@@ -69,7 +69,8 @@ patch($src, '#1 Staatliche Formulare acilmasi',
 
 /* ── FIX #2 — "Meine Anträge" paneli boş (loadHistory çöküyor) ── */
 $antBody = '$1'
-    . "\n  <div class=\"pnl-scroll\">\n"
+    . "\n  </div>\n"
+    . "  <div class=\"pnl-scroll\">\n"
     . "    <div class=\"ant-stats\" id=\"ant-stats\" style=\"display:none\">\n"
     . "      <div class=\"astat\"><div class=\"astat-n\" id=\"stat-tot\">0</div><div class=\"astat-l\">Anträge gesamt</div></div>\n"
     . "      <div class=\"astat\"><div class=\"astat-n gr\" id=\"stat-kept\">0</div><div class=\"astat-l\">Gespeichert</div></div>\n"
