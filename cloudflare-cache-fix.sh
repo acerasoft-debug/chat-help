@@ -11,10 +11,10 @@
 #
 set -euo pipefail
 
-# ====== DOLDUR ======
-CF_TOKEN="BURAYA_API_TOKEN_YAPISTIR"
-DOMAIN="chat-help.com"
-# ====================
+# ====== DOLDUR (veya CF_TOKEN'i ortam değişkeni olarak ver) ======
+CF_TOKEN="${CF_TOKEN:-BURAYA_API_TOKEN_YAPISTIR}"
+DOMAIN="${DOMAIN:-chat-help.com}"
+# =================================================================
 
 API="https://api.cloudflare.com/client/v4"
 HDRS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
