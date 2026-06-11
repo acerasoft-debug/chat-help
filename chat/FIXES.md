@@ -126,6 +126,41 @@ qual.innerHTML='\u{1F512} Persönliche Daten nur auf Ihrem Server · ChatHelp AI
 
 ---
 
+## 🔴 5. "Hedefleyici sorular sorulmuyor" — dilekçe formu BOŞ açılıyor
+
+**Sorun:** `showQuestions()` soruları `doc.qs` üzerinden okuyor, ama tüm 121
+belge tanımı soruları `q:` anahtarıyla tutuyor (`doc.q`). `doc.qs` her zaman
+`undefined` olduğu için `(doc.qs||[])` boş diziye düşüyor → **hiçbir soru
+gösterilmiyor**, form sadece ilerleme çubuğu + "Generieren" butonuyla açılıyor.
+
+**ESKİ:**
+```js
+  (doc.qs||[]).forEach(q=>{
+```
+
+**YENİ:**
+```js
+  (doc.q||doc.qs||[]).forEach(q=>{
+```
+
+> Not: Aynı fonksiyondaki soru tiplerine de dikkat — tanımlarda soru metni `l`,
+> zorunluluk `r`, seçenekler `opts` olarak geçiyor. `showQuestions` `q.l` ve
+> `q.r` kullanıyor (uyumlu). Eğer `opts` (seçim kutusu) desteği de istiyorsan
+> ayrıca eklenebilir; şu an opts'lu sorular düz metin input olarak çıkar.
+
+---
+
+## ⚠️ Not: Staatliche Formulare PDF → 1,99€ ödeme akışı
+
+`form-engine.js` içindeki `exportFormPDF`, plansız kullanıcıya kilit gösteriyor
+ama "Zum ChatHelp Portal" diyerek sadece portala **yönlendiriyor** — formun
+içinden doğrudan 1,99€ Einzelzahlung / paket ödemesi başlatmıyor. Eğer
+"PDF'e basınca anında 1,99€ Stripe ödemesi" istiyorsan, form-engine.js
+paywall'una `stripe-checkout.php`'ye giden bir buton eklenmeli. Şu anki haliyle
+kullanıcı portala dönüp oradan ödüyor.
+
+---
+
 ## Ayrıca: form-engine.js (zaten düzeltildi ve commit'lendi)
 
 - jsPDF yüklenmezse çökme → güvenli kontrol eklendi
