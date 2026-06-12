@@ -171,13 +171,26 @@ if ($action === 'fall_solve') {
     ], 0.4);
     $analysis[] = ['step'=>'Dokumententyp & Argumente', 'text'=>$a3];
 
+    // Gerçek profil bilgileri + tarih (boş/placeholder gitmesin)
+    $prof    = $body['profile'] ?? [];
+    $datum   = trim($body['datum'] ?? date('d.m.Y'));
+    $absName = trim(($prof['f1'] ?? '') . ' ' . ($prof['f2'] ?? ''));
+    $absAdr  = trim(($prof['f3'] ?? '') . (($prof['f4'] ?? '') ? ', ' . $prof['f4'] : ''));
+    $profBlock = "ABSENDERDATEN (verwende diese echten Daten direkt im Dokument, KEINE Platzhalter):\n"
+        . "Name: "    . ($absName ?: '[Vorname Nachname]') . "\n"
+        . "Adresse: " . ($absAdr  ?: '[Straße, PLZ Ort]')  . "\n"
+        . "E-Mail: "  . ($prof['f7'] ?? '') . "\n"
+        . "Telefon: " . ($prof['f6'] ?? '') . "\n"
+        . "Datum: "   . $datum . "\n\n";
+
     $sys = "Du bist ein deutscher Rechtsanwalt. Erstelle ein vollständiges, sofort verwendbares, rechtlich "
-         . "präzises deutsches Dokument basierend auf der gesamten Analyse. Korrekte Form: Absender-Platzhalter, "
-         . "Empfänger, Ort/Datum, Betreff, Anrede, Begründung mit §-Verweisen, klare Forderung mit Frist, Grußformel. "
-         . "WICHTIG: Reiner Fließtext ohne Markdown, ohne Sternchen, ohne Emojis. "
-         . "Füge KEINE Versandvermerke wie 'Per Einschreiben mit Rückschein' oder 'per E-Mail' ein. "
-         . "Gib NUR das fertige Dokument aus.";
-    $usr = "FALL: $title\n\nGESPRÄCH MIT NUTZER:\n$convo\n\nJURISTISCHE ANALYSE:\n$a1\n\nSTRATEGIE:\n$a2\n\n"
+         . "präzises deutsches Dokument basierend auf der gesamten Analyse. Korrekte Briefform: Absender (echte "
+         . "Daten oben), Empfänger, Ort und Datum, Betreff, Anrede, Begründung mit §-Verweisen, klare Forderung "
+         . "mit Frist, Grußformel. "
+         . "WICHTIG: Reiner Fließtext ohne Markdown, ohne Sternchen, ohne Emojis. Verwende die echten Absenderdaten "
+         . "und das angegebene Datum. Füge KEINE Versandvermerke wie 'Per Einschreiben mit Rückschein' oder "
+         . "'per E-Mail' ein. Gib NUR das fertige Dokument aus.";
+    $usr = $profBlock . "FALL: $title\n\nGESPRÄCH MIT NUTZER:\n$convo\n\nJURISTISCHE ANALYSE:\n$a1\n\nSTRATEGIE:\n$a2\n\n"
          . "DOKUMENTENTYP & ARGUMENTE:\n$a3\n\nErstelle jetzt das finale, maßgeschneiderte Dokument auf Deutsch.";
     $document = claude($sys, $usr, 4000);
 
