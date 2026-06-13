@@ -8,12 +8,12 @@
         <h2>{{ section.settings.title }}</h2>
       </div>
       <div style="display:flex;align-items:center;gap:20px">
-        <div class="countdown" id="flash-countdown">
-          <div class="countdown-unit"><span class="n" id="cd-h">06</span><span class="l">h</span></div>
+        <div class="countdown" id="flash-countdown" data-end="{{ section.settings.countdown_end }}">
+          <div class="countdown-unit"><span class="n" id="cd-h">--</span><span class="l">h</span></div>
           <span class="countdown-sep">:</span>
-          <div class="countdown-unit"><span class="n" id="cd-m">42</span><span class="l">min</span></div>
+          <div class="countdown-unit"><span class="n" id="cd-m">--</span><span class="l">min</span></div>
           <span class="countdown-sep">:</span>
-          <div class="countdown-unit"><span class="n" id="cd-s">17</span><span class="l">sec</span></div>
+          <div class="countdown-unit"><span class="n" id="cd-s">--</span><span class="l">sec</span></div>
         </div>
         <a href="{{ section.settings.see_all_url }}" style="color:#A8D8A0;font-size:13px;font-weight:600;text-decoration:none">
           {{ section.settings.see_all_label }} →
@@ -71,7 +71,8 @@
   "settings": [
     { "type": "text", "id": "title", "label": "Titre", "default": "Flash Deals du Jour" },
     { "type": "text", "id": "see_all_label", "label": "Lien texte", "default": "Voir toutes les promos" },
-    { "type": "url", "id": "see_all_url", "label": "Lien URL" }
+    { "type": "url", "id": "see_all_url", "label": "Lien URL" },
+    { "type": "text", "id": "countdown_end", "label": "Fin du compte à rebours (YYYY-MM-DDTHH:MM:SS)", "default": "2026-06-14T23:59:59" }
   ],
   "blocks": [
     {

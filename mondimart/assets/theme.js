@@ -141,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.changeQty = function(line, delta) {
-    // Instantly update display
     var btns = document.querySelectorAll('.qty-btn');
     btns.forEach(function(b){ b.disabled = true; b.style.opacity = '.5'; });
     fetch('/cart.js').then(function(r){ return r.json(); }).then(function(cart) {
@@ -158,6 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   };
+
+  // Support data-attribute based qty buttons (cart-drawer.liquid pattern)
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-qty-change]');
+    if (!btn) return;
+    const line = parseInt(btn.dataset.line);
+    const delta = parseInt(btn.dataset.qtyChange);
+    if (!line || isNaN(delta)) return;
+    window.changeQty(line, delta);
+  });
 
   function formatMoney(cents) {
     return (cents / 100).toFixed(2).replace('.', ',') + '€';
@@ -215,16 +224,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── COUNTDOWN ──
   const cd = document.getElementById('flash-countdown');
   if (cd) {
-    let total = 6 * 3600 + 42 * 60 + 17;
+    const endStr = cd.dataset.end;
+    const endTime = endStr ? new Date(endStr).getTime() : (Date.now() + 23 * 3600 * 1000);
+    const elH = document.getElementById('cd-h');
+    const elM = document.getElementById('cd-m');
+    const elS = document.getElementById('cd-s');
     const tick = () => {
-      total = Math.max(0, total - 1);
-      const h = Math.floor(total / 3600), m = Math.floor((total % 3600) / 60), s = total % 60;
-      const el = id => document.getElementById(id);
-      if (el('cd-h')) el('cd-h').textContent = String(h).padStart(2, '0');
-      if (el('cd-m')) el('cd-m').textContent = String(m).padStart(2, '0');
-      if (el('cd-s')) el('cd-s').textContent = String(s).padStart(2, '0');
+      const diff = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
+      if (elH) elH.textContent = String(h).padStart(2, '0');
+      if (elM) elM.textContent = String(m).padStart(2, '0');
+      if (elS) elS.textContent = String(s).padStart(2, '0');
+      if (diff === 0) {
+        cd.style.opacity = '.4';
+        clearInterval(cdTimer);
+      }
     };
-    setInterval(tick, 1000);
+    const cdTimer = setInterval(tick, 1000);
     tick();
   }
 

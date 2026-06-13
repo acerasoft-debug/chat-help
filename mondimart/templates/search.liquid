@@ -3,7 +3,7 @@
   {% if search.performed %}
     <p style="color:#7A7A7A;margin-bottom:32px">{{ search.results_count }} résultat{% if search.results_count != 1 %}s{% endif %} pour "{{ search.terms }}"</p>
     {% if search.results_count > 0 %}
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px">
         {% for item in search.results %}
           {% if item.object_type == 'product' %}
             <a href="{{ item.url }}" style="background:#fff;border:1px solid #DDD8CC;border-radius:14px;overflow:hidden;display:block;text-decoration:none;transition:all .2s">
