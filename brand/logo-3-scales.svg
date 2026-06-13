@@ -1,0 +1,37 @@
+<svg width="520" height="160" viewBox="0 0 520 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g3gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3D88A"/>
+      <stop offset="0.5" stop-color="#D4A84A"/>
+      <stop offset="1" stop-color="#B0801F"/>
+    </linearGradient>
+    <linearGradient id="g3txt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F6E2A6"/>
+      <stop offset="1" stop-color="#D4A84A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="520" height="160" fill="#1b1b1e"/>
+
+  <!-- Emblem: chat bubble enclosing scales of justice -->
+  <g transform="translate(28,32)">
+    <path d="M14 8 h68 a14 14 0 0 1 14 14 v40 a14 14 0 0 1 -14 14 h-40 l-22 18 v-18 h-6 a14 14 0 0 1 -14 -14 v-40 a14 14 0 0 1 14 -14 z"
+          fill="#222226" stroke="url(#g3gold)" stroke-width="2.5"/>
+    <!-- scales -->
+    <g stroke="url(#g3gold)" stroke-width="2.6" stroke-linecap="round" fill="none">
+      <line x1="48" y1="22" x2="48" y2="64"/>
+      <line x1="26" y1="30" x2="70" y2="30"/>
+      <!-- left pan -->
+      <path d="M26 30 l-8 16 h16 z" fill="url(#g3gold)" stroke="none" opacity="0.92"/>
+      <!-- right pan -->
+      <path d="M70 30 l-8 16 h16 z" fill="url(#g3gold)" stroke="none" opacity="0.92"/>
+      <!-- base -->
+      <line x1="38" y1="64" x2="58" y2="64"/>
+    </g>
+    <circle cx="48" cy="30" r="3" fill="url(#g3gold)"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="150" y="86" font-family="Georgia, 'Times New Roman', serif" font-size="48" font-weight="700" fill="#F4F4F8">Chat<tspan fill="url(#g3txt)">Help</tspan></text>
+  <text x="152" y="114" font-family="'Segoe UI', Arial, sans-serif" font-size="14" letter-spacing="3.5" fill="#8e8e9c">IHR DIGITALER RECHTSASSISTENT</text>
+</svg>
