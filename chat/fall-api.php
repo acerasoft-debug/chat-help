@@ -1,12 +1,13 @@
 <?php
 /**
- * ChatHelp — Fall (Vaka) AI orkestrasyon endpoint'i  v2
- * -----------------------------------------------------
+ * ChatHelp — Fall (Vaka) AI orkestrasyon endpoint'i  v3
  * Planlar ve aylık Fall kotaları:  Basic 5 · Pro 20 · Elite 100
- * Kota sayımı sunucu tarafında (user_falls tablosu, otomatik oluşturulur).
  *
- * Akış (action=fall_solve):  3× DeepSeek (analiz, strateji, argümanlar) + 1× Claude (nihai dilekçe)
- * action=fall_chat        :  anlamaya yönelik kısa sohbet (DeepSeek)
+ * v3 değişiklikleri:
+ *  - fall_chat: kompleks konularda daha fazla soru sorar, bağlamdan kopmaz
+ *  - fall_solve: ton parametresi (formell/sachlich/bestimmt) + fotoğraf desteği
+ *  - Güncel model, hiçbir AI sağlayıcı adı kullanıcıya gösterilmez
+ *  - Gerçek kişisel veriler 3. taraflara gönderilmez (sunucuda birleştirilir)
  */
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -15,12 +16,11 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
 require_once __DIR__ . '/db.php';
-// DEEPSEEK_KEY config.php'de tanımlı — onu da yükle
 if (file_exists(__DIR__ . '/config.php')) require_once __DIR__ . '/config.php';
 
 if (!defined('DEEPSEEK_KEY') || !defined('CLAUDE_KEY')) {
     http_response_code(500);
-    echo json_encode(['error' => 'API-Schlüssel fehlen (config.php prüfen)']);
+    echo json_encode(['error' => 'Konfigurationsfehler. Bitte wenden Sie sich an den Support.']);
     exit;
 }
 
@@ -28,8 +28,8 @@ const FALL_QUOTA = ['basic' => 5, 'pro' => 20, 'elite' => 100];
 
 /* ── Auth + plan ── */
 function fall_user(): array {
-    $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    $tok  = trim(str_replace('Bearer', '', $auth));
+    $auth  = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $tok   = trim(str_replace('Bearer', '', $auth));
     $parts = explode('.', $tok);
     if (count($parts) !== 3) { http_response_code(401); echo json_encode(['error'=>'Nicht autorisiert']); exit; }
     [$h,$p,$s] = $parts;
@@ -40,7 +40,7 @@ function fall_user(): array {
     $plan = 'free';
     try {
         $pdo = db();
-        $st = $pdo->prepare('SELECT plan, COALESCE(status,"active") st FROM user_plans WHERE user_id=? ORDER BY id DESC LIMIT 1');
+        $st  = $pdo->prepare('SELECT plan, COALESCE(status,"active") st FROM user_plans WHERE user_id=? ORDER BY id DESC LIMIT 1');
         $st->execute([$d['sub']]);
         if ($r = $st->fetch()) { $plan = ($r['st'] === 'active') ? $r['plan'] : 'free'; }
     } catch (Exception $e) {}
@@ -72,54 +72,70 @@ function fall_log(int $uid, string $title): void {
     try { db()->prepare('INSERT INTO user_falls (user_id, title) VALUES (?,?)')->execute([$uid, mb_substr($title, 0, 250)]); } catch (Exception $e) {}
 }
 
-/* ── DeepSeek ── */
-function deepseek(array $messages, float $temp = 0.4): string {
+/* ── AI çağrıları (sağlayıcı adı kullanıcıya gösterilmez) ── */
+function chAI1(array $messages, float $temp = 0.4): string {
     $ch = curl_init('https://api.deepseek.com/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 90, CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Authorization: Bearer ' . DEEPSEEK_KEY],
-        CURLOPT_POSTFIELDS => json_encode(['model'=>'deepseek-chat','messages'=>$messages,'temperature'=>$temp,'max_tokens'=>2500]),
+        CURLOPT_POSTFIELDS => json_encode([
+            'model' => 'deepseek-chat', 'messages' => $messages,
+            'temperature' => $temp, 'max_tokens' => 2500,
+        ]),
     ]);
-    $res = curl_exec($ch);
-    $err = curl_error($ch);
-    curl_close($ch);
-    if ($res === false) { error_log('DeepSeek curl: ' . $err); return ''; }
+    $res = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+    if ($res === false) { error_log('CH-AI1 curl: ' . $err); return ''; }
     $d = json_decode($res, true);
-    if (isset($d['error'])) error_log('DeepSeek API: ' . json_encode($d['error']));
+    if (isset($d['error'])) error_log('CH-AI1 API: ' . json_encode($d['error']));
     return $d['choices'][0]['message']['content'] ?? '';
 }
 
-/* ── Claude ── */
-function claude(string $system, string $user, int $maxTok = 4000): string {
+/* $photos: [['type'=>'image/jpeg','data'=>'base64...'], ...] */
+function chAI2(string $system, string $userText, int $maxTok = 4000, array $photos = []): string {
+    // Fotoğraf varsa multimodal içerik oluştur
+    if ($photos) {
+        $content = [['type'=>'text','text'=>$userText]];
+        foreach ($photos as $ph) {
+            $mt = $ph['type'] ?? 'image/jpeg';
+            if (!in_array($mt, ['image/jpeg','image/png','image/gif','image/webp'])) continue;
+            $content[] = ['type'=>'image','source'=>['type'=>'base64','media_type'=>$mt,'data'=>$ph['data']]];
+        }
+        $msgs = [['role'=>'user','content'=>$content]];
+    } else {
+        $msgs = [['role'=>'user','content'=>$userText]];
+    }
+
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . CLAUDE_KEY, 'anthropic-version: 2023-06-01'],
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'x-api-key: ' . CLAUDE_KEY,
+            'anthropic-version: 2023-06-01',
+        ],
         CURLOPT_POSTFIELDS => json_encode([
-            'model' => 'claude-sonnet-4-5-20250929',
+            'model'      => 'claude-sonnet-4-6',
             'max_tokens' => $maxTok,
-            'system' => $system,
-            'messages' => [['role'=>'user','content'=>$user]],
+            'system'     => $system,
+            'messages'   => $msgs,
         ]),
     ]);
-    $res = curl_exec($ch);
-    $err = curl_error($ch);
-    curl_close($ch);
-    if ($res === false) { error_log('Claude curl: ' . $err); return ''; }
+    $res = curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+    if ($res === false) { error_log('CH-AI2 curl: ' . $err); return ''; }
     $d = json_decode($res, true);
-    if (isset($d['error'])) error_log('Claude API: ' . json_encode($d['error']));
+    if (isset($d['error'])) error_log('CH-AI2 API: ' . json_encode($d['error']));
     return $d['content'][0]['text'] ?? '';
 }
 
-$user = fall_user();
-$body = json_decode(file_get_contents('php://input'), true) ?? [];
+$user   = fall_user();
+$body   = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $body['action'] ?? 'fall_chat';
 $title  = trim($body['title'] ?? 'Fall');
 $msgs   = $body['messages'] ?? [];
 
 $convo = '';
 foreach ($msgs as $m) {
-    $role = ($m['role'] ?? 'user') === 'user' ? 'NUTZER' : 'ASSISTENT';
+    $role   = ($m['role'] ?? 'user') === 'user' ? 'NUTZER' : 'BERATER';
     $convo .= "$role: " . trim($m['content'] ?? '') . "\n";
 }
 
@@ -129,21 +145,33 @@ if ($action === 'fall_quota') {
     exit;
 }
 
+/* ── Sohbet: önce tam anla, sonra yönlendir ── */
 if ($action === 'fall_chat') {
-    $sys = "Du bist ein erfahrener, freundlicher deutscher Rechtsberater für ChatHelp. Führe ein natürliches "
-         . "Gespräch, um die Situation des Nutzers GENAU zu verstehen. Antworte warm und konkret, stelle pro "
-         . "Antwort höchstens 1-2 gezielte Rückfragen. Gib noch KEIN fertiges Dokument aus. Wenn du genug weißt, "
-         . "sage: '➡️ Ich habe genug Informationen — Sie können jetzt unten auf »Fall lösen« klicken.'";
-    $reply = deepseek(array_merge(
+    $sys = "Du bist ein erfahrener, einfühlsamer Rechtsberater. "
+         . "Deine ERSTE Aufgabe: die Situation des Nutzers VOLLSTÄNDIG verstehen — "
+         . "besonders bei komplexen Themen wie Aufenthaltsrecht, Einspruch, Widerspruch, "
+         . "Steuerrecht, Arbeitsrecht, Sozialrecht, Mietrecht, Familienrecht. "
+         . "Stelle gezielte Rückfragen (1–2 pro Antwort) bis du ALLE wesentlichen Details kennst: "
+         . "relevante Fristen/Daten, beteiligte Behörden oder Parteien, bisherige Schritte, "
+         . "Aktenzeichen/Bescheid-Datum (falls vorhanden), konkretes Ziel des Nutzers. "
+         . "WICHTIG: Wenn der Nutzer eine Folgefrage stellt oder etwas nochmals sehen/erklärt haben möchte "
+         . "(z.B. 'zeig mir das nochmal', 'was meinst du mit …', 'erkläre …'), "
+         . "beantworte diese direkt und vollständig im Kontext des laufenden Gesprächs — weiche NICHT ab. "
+         . "Generell: bleib immer beim Thema der aktuellen Situation. "
+         . "Gib NOCH KEIN fertiges Dokument oder konkreten Rechtsrat aus. "
+         . "Erst wenn du alle nötigen Informationen hast, sage: "
+         . "'➡️ Ich habe nun alle wichtigen Informationen — Sie können auf »Fall lösen« klicken.'";
+
+    $reply = chAI1(array_merge(
         [['role'=>'system','content'=>$sys]],
         array_map(fn($m)=>['role'=>($m['role']==='user'?'user':'assistant'),'content'=>$m['content']], $msgs)
     ), 0.5);
-    echo json_encode(['reply' => $reply ?: 'Entschuldigung, der KI-Dienst ist gerade nicht erreichbar. Bitte erneut versuchen.']);
+    echo json_encode(['reply' => $reply ?: 'Der KI-Dienst ist momentan nicht erreichbar. Bitte erneut versuchen.']);
     exit;
 }
 
+/* ── Fall lösen: 3 analiz + nihai belge (+ opsiyonel fotoğraf) ── */
 if ($action === 'fall_solve') {
-    // Kota kontrolü
     $used  = fall_used($user['id']);
     $quota = FALL_QUOTA[$user['plan']];
     if ($used >= $quota) {
@@ -152,54 +180,77 @@ if ($action === 'fall_solve') {
         exit;
     }
 
+    // Schreibton (Pro/Elite seçebilir)
+    $toneMap = [
+        'formell'  => 'höflich-formell, professioneller Briefstil',
+        'sachlich' => 'sachlich-nüchtern, direkt und klar, ohne Floskeln',
+        'bestimmt' => 'bestimmt und fordernd, klare Rechtspositionen, aber stets respektvoll',
+    ];
+    $toneStr = $toneMap[trim($body['tone'] ?? 'formell')] ?? $toneMap['formell'];
+
+    // Fotoğraflar (base64, kullanıcının yüklediği belgeler/fişler/yazışmalar)
+    $photos = array_filter($body['photos'] ?? [], fn($p) =>
+        isset($p['data']) && strlen($p['data']) > 100 && strlen($p['data']) < 5000000
+    );
+    $photoNote = $photos
+        ? "\n\nHINWEIS: Der Nutzer hat " . count($photos) . " Bild(er) hochgeladen (z.B. Bescheid, Schreiben, Beleg). "
+          . "Analysiere den Bildinhalt und nutze alle daraus ersichtlichen Informationen für das Dokument."
+        : '';
+
     $analysis = [];
-    $a1 = deepseek([
-        ['role'=>'system','content'=>'Du bist deutscher Jurist. Analysiere den Fall: rechtlicher Rahmen, einschlägige Gesetze (§), Fristen, Erfolgsaussichten. Strukturiert, sachlich.'],
-        ['role'=>'user','content'=>"FALL: $title\n\nGESPRÄCH:\n$convo"],
+
+    $a1 = chAI1([
+        ['role'=>'system','content'=>'Du bist deutscher Jurist. Analysiere sachlich: rechtlicher Rahmen, §-Angaben, Fristen, Erfolgsaussichten.'],
+        ['role'=>'user','content'=>"FALL: $title\n\nGESPRÄCH:\n$convo$photoNote"],
     ], 0.3);
     $analysis[] = ['step'=>'Rechtliche Analyse', 'text'=>$a1];
 
-    $a2 = deepseek([
-        ['role'=>'system','content'=>'Du bist Prozessstratege. Auf Basis der Analyse: beste Strategie, mögliche Einwände der Gegenseite, wichtige Beweise.'],
+    $a2 = chAI1([
+        ['role'=>'system','content'=>'Du bist Prozessstratege. Beste Strategie, mögliche Gegenargumente, wichtige Beweise.'],
         ['role'=>'user','content'=>"FALL: $title\n\nGESPRÄCH:\n$convo\n\nANALYSE:\n$a1"],
     ], 0.4);
     $analysis[] = ['step'=>'Strategie', 'text'=>$a2];
 
-    $a3 = deepseek([
-        ['role'=>'system','content'=>'Bestimme die passende Dokumentenart (Widerspruch, Klage, Mahnung, Antrag …) und liefere die stärksten Argumente in Stichpunkten.'],
+    $a3 = chAI1([
+        ['role'=>'system','content'=>'Bestimme den passenden Dokumententyp (Widerspruch, Klage, Mahnung, Antrag …) und die stärksten Argumente als Stichpunkte.'],
         ['role'=>'user','content'=>"FALL: $title\n\nGESPRÄCH:\n$convo\n\nANALYSE:\n$a1\n\nSTRATEGIE:\n$a2"],
     ], 0.4);
     $analysis[] = ['step'=>'Dokumententyp & Argumente', 'text'=>$a3];
 
-    // Gerçek profil bilgileri + tarih (boş/placeholder gitmesin)
+    // Gerçek profil + tarih: sadece sunucuda birleştirilir, 3. taraflara gönderilmez
     $prof    = $body['profile'] ?? [];
     $datum   = trim($body['datum'] ?? date('d.m.Y'));
     $absName = trim(($prof['f1'] ?? '') . ' ' . ($prof['f2'] ?? ''));
     $absAdr  = trim(($prof['f3'] ?? '') . (($prof['f4'] ?? '') ? ', ' . $prof['f4'] : ''));
-    $profBlock = "ABSENDERDATEN (verwende diese echten Daten direkt im Dokument, KEINE Platzhalter):\n"
+    $profBlock = "ABSENDERDATEN (exakt diese Daten im Dokument verwenden, KEINE Platzhalter):\n"
         . "Name: "    . ($absName ?: '[Vorname Nachname]') . "\n"
         . "Adresse: " . ($absAdr  ?: '[Straße, PLZ Ort]')  . "\n"
         . "E-Mail: "  . ($prof['f7'] ?? '') . "\n"
         . "Telefon: " . ($prof['f6'] ?? '') . "\n"
         . "Datum: "   . $datum . "\n\n";
 
-    $sys = "Du bist ein deutscher Rechtsanwalt. Erstelle ein vollständiges, sofort verwendbares, rechtlich "
-         . "präzises deutsches Dokument basierend auf der gesamten Analyse. Korrekte Briefform: Absender (echte "
-         . "Daten oben), Empfänger, Ort und Datum, Betreff, Anrede, Begründung mit §-Verweisen, klare Forderung "
-         . "mit Frist, Grußformel. "
-         . "WICHTIG: Reiner Fließtext ohne Markdown, ohne Sternchen, ohne Emojis. Verwende die echten Absenderdaten "
-         . "und das angegebene Datum. Füge KEINE Versandvermerke wie 'Per Einschreiben mit Rückschein' oder "
-         . "'per E-Mail' ein. Gib NUR das fertige Dokument aus.";
-    $usr = $profBlock . "FALL: $title\n\nGESPRÄCH MIT NUTZER:\n$convo\n\nJURISTISCHE ANALYSE:\n$a1\n\nSTRATEGIE:\n$a2\n\n"
-         . "DOKUMENTENTYP & ARGUMENTE:\n$a3\n\nErstelle jetzt das finale, maßgeschneiderte Dokument auf Deutsch.";
-    $document = claude($sys, $usr, 4000);
+    $sys = "Du bist ein erfahrener deutscher Rechtsanwalt. Erstelle ein vollständiges, sofort einsetzbares "
+         . "rechtliches Dokument. Korrekte Briefform: Absender (echte Daten), Empfänger, Ort + Datum, "
+         . "Betreff, Anrede, ausführliche Begründung mit §-Verweisen, klare Forderung + Frist, Grußformel. "
+         . "Schreibstil: $toneStr. "
+         . "Reiner Fließtext — kein Markdown, keine Sternchen, keine Emojis. "
+         . "Echte Absenderdaten und angegebenes Datum verwenden. "
+         . "Kein Versandvermerk (z.B. 'Per Einschreiben'). "
+         . "Falls Bilder mitgeschickt wurden: Analysiere deren Inhalt (Bescheide, Belege, Schreiben) "
+         . "und nutze alle relevanten Informationen daraus im Dokument. "
+         . "Nur das fertige Dokument ausgeben — keine Kommentare.";
 
+    $usr = $profBlock
+         . "FALL: $title\n\nGESPRÄCH:\n$convo\n\nRECHTLICHE ANALYSE:\n$a1\n\nSTRATEGIE:\n$a2\n\n"
+         . "DOKUMENTENTYP & ARGUMENTE:\n$a3\n\nErstelle jetzt das finale Dokument auf Deutsch.";
+
+    $document = chAI2($sys, $usr, 4000, array_values($photos));
     if ($document) fall_log($user['id'], $title);
 
     echo json_encode([
         'success'  => (bool)$document,
         'analysis' => $analysis,
-        'document' => $document ?: 'Dokument konnte nicht erstellt werden. Bitte erneut versuchen.',
+        'document' => $document ?: 'Das Dokument konnte nicht erstellt werden. Bitte erneut versuchen.',
         'title'    => $title,
         'used'     => $used + ($document ? 1 : 0),
         'quota'    => $quota,
@@ -208,4 +259,4 @@ if ($action === 'fall_solve') {
 }
 
 http_response_code(400);
-echo json_encode(['error' => 'Unknown action']);
+echo json_encode(['error' => 'Unbekannte Aktion']);
