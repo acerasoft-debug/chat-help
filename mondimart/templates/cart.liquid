@@ -126,12 +126,13 @@
       <div class="cart-sidebar">
         <div class="cart-sidebar-title">Récapitulatif</div>
 
-        {%- assign needed = 15000 | minus: cart.items_subtotal_price -%}
-        {% if cart.items_subtotal_price < 15000 %}
+        {%- assign threshold = 4900 -%}
+        {%- assign needed = threshold | minus: cart.items_subtotal_price -%}
+        {% if cart.items_subtotal_price < threshold %}
           <div class="cart-progress-wrap">
             <div class="cart-progress-label">Plus que <span>{{ needed | money }}</span> pour la livraison gratuite 🎁</div>
             <div class="cart-progress-bar">
-              <div class="cart-progress-fill" style="width:{{ cart.items_subtotal_price | times: 100 | divided_by: 15000 }}%;"></div>
+              <div class="cart-progress-fill" style="width:{{ cart.items_subtotal_price | times: 100 | divided_by: threshold }}%;"></div>
             </div>
           </div>
         {% else %}
@@ -147,10 +148,10 @@
         </div>
 
         <div class="cart-line"><span>Sous-total ({{ cart.item_count }} art.)</span><span>{{ cart.items_subtotal_price | money }}</span></div>
-        {% if cart.items_subtotal_price >= 15000 %}
+        {% if cart.items_subtotal_price >= 4900 %}
           <div class="cart-line free"><span>Livraison</span><span>Gratuite 🎁</span></div>
         {% else %}
-          <div class="cart-line"><span>Livraison</span><span>Standard gratuite</span></div>
+          <div class="cart-line"><span>Livraison</span><span>4,90€</span></div>
         {% endif %}
         <div class="cart-line total"><span>Total</span><span>{{ cart.total_price | money }}</span></div>
 

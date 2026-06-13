@@ -1,5 +1,20 @@
-
-<div style="max-width:860px;margin:0 auto;padding:52px 32px">
-  <h1 style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--td,#1C1C1C);margin-bottom:24px">{{ page.title }}</h1>
-  <div style="font-size:15px;color:var(--tm,#4A4A4A);line-height:1.8">{{ page.content }}</div>
+<div style="max-width:860px;margin:0 auto;padding:52px 24px 80px">
+  <h1 style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--td);margin-bottom:28px;line-height:1.25">{{ page.title }}</h1>
+  <div class="rte-content" style="font-size:15px;color:var(--tm);line-height:1.85">{{ page.content }}</div>
 </div>
+
+<style>
+.rte-content h2 { font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--td);margin:32px 0 14px; }
+.rte-content h3 { font-family:'Playfair Display',serif;font-size:19px;font-weight:700;color:var(--td);margin:24px 0 10px; }
+.rte-content p { margin-bottom:16px; }
+.rte-content ul,.rte-content ol { padding-left:22px;margin-bottom:16px; }
+.rte-content li { margin-bottom:7px;line-height:1.65; }
+.rte-content a { color:var(--gl);font-weight:600; }
+.rte-content strong { color:var(--td);font-weight:700; }
+.rte-content img { border-radius:12px;max-width:100%;height:auto;margin:20px 0; }
+.rte-content blockquote { border-left:4px solid var(--gl);padding:14px 18px;background:var(--cr);border-radius:0 10px 10px 0;margin:20px 0;font-style:italic;color:var(--tm); }
+.rte-content table { width:100%;border-collapse:collapse;margin-bottom:20px; }
+.rte-content th { background:var(--gd);color:#fff;padding:11px 14px;font-size:13px;text-align:left; }
+.rte-content td { padding:10px 14px;font-size:13px;border-bottom:1px solid var(--bo); }
+.rte-content tr:nth-child(even) td { background:var(--cr); }
+</style>
