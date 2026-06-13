@@ -1,0 +1,184 @@
+<style>
+.cart-page { max-width: 1040px; margin: 0 auto; padding: 48px 24px; }
+.cart-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #1C1C1C; margin-bottom: 8px; }
+.cart-count-label { font-size: 13px; color: #888; margin-bottom: 32px; display: block; }
+.cart-layout { display: grid; grid-template-columns: 1fr 340px; gap: 32px; align-items: start; }
+.cart-items { }
+.cart-item { display: flex; gap: 16px; padding: 20px 0; border-bottom: 1px solid #F0ECE4; align-items: flex-start; }
+.cart-item-img { width: 88px; height: 88px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: #F8F4EC; border: 1px solid #EDEAD8; }
+.cart-item-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cart-item-info { flex: 1; }
+.cart-item-name { font-size: 14px; font-weight: 600; color: #1C1C1C; text-decoration: none; display: block; margin-bottom: 4px; line-height: 1.4; }
+.cart-item-name:hover { color: #4A8C3F; }
+.cart-item-variant { font-size: 12px; color: #999; margin-bottom: 8px; }
+.cart-item-price { font-size: 15px; font-weight: 700; color: #1C1C1C; }
+.cart-item-per { font-size: 11px; color: #AAA; margin-top: 1px; }
+.cart-item-right { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.cart-qty { display: flex; align-items: center; gap: 0; border: 1.5px solid #E0DDD6; border-radius: 10px; overflow: hidden; background: #fff; }
+.cart-qty-btn { width: 36px; height: 36px; background: transparent; border: none; cursor: pointer; font-size: 18px; color: #555; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+.cart-qty-btn:hover { background: #F5F0E8; }
+.cart-qty-input { width: 44px; height: 36px; border: none; border-left: 1px solid #E0DDD6; border-right: 1px solid #E0DDD6; text-align: center; font-size: 14px; font-weight: 600; color: #1C1C1C; background: #fff; outline: none; -moz-appearance: textfield; }
+.cart-qty-input::-webkit-outer-spin-button,
+.cart-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.cart-remove { font-size: 11px; color: #C0977A; text-decoration: none; cursor: pointer; background: none; border: none; padding: 0; transition: color .15s; }
+.cart-remove:hover { color: #A0673A; }
+.cart-item-total { font-size: 15px; font-weight: 700; color: #1C1C1C; }
+
+/* Sidebar */
+.cart-sidebar { background: #FAFAF7; border: 1.5px solid #EDEAD8; border-radius: 16px; padding: 24px; position: sticky; top: 20px; }
+.cart-sidebar-title { font-size: 16px; font-weight: 700; color: #1C1C1C; margin-bottom: 20px; }
+.cart-line { display: flex; justify-content: space-between; font-size: 13px; color: #555; margin-bottom: 10px; }
+.cart-line.free { color: #4A8C3F; font-weight: 600; }
+.cart-line.total { font-size: 18px; font-weight: 700; color: #1C1C1C; padding-top: 14px; border-top: 1.5px solid #EDEAD8; margin-top: 4px; }
+
+/* Free shipping progress */
+.cart-progress-wrap { background: #F0EDE5; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
+.cart-progress-label { font-size: 12px; color: #777; margin-bottom: 7px; }
+.cart-progress-bar { height: 5px; background: #E0DDD6; border-radius: 3px; overflow: hidden; }
+.cart-progress-fill { height: 100%; background: linear-gradient(90deg, #4A8C3F, #76C442); border-radius: 3px; transition: width .4s; }
+.cart-progress-label span { color: #4A8C3F; font-weight: 700; }
+
+/* Coupon */
+.cart-coupon { display: flex; gap: 8px; margin-bottom: 18px; }
+.cart-coupon input { flex: 1; border: 1.5px solid #E0DDD6; border-radius: 9px; padding: 10px 12px; font-size: 13px; outline: none; background: #fff; }
+.cart-coupon input:focus { border-color: #4A8C3F; }
+.cart-coupon button { background: #F5F0E8; border: 1.5px solid #E0DDD6; border-radius: 9px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #555; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.cart-coupon button:hover { background: #4A8C3F; border-color: #4A8C3F; color: #fff; }
+
+.cart-checkout-btn { display: block; width: 100%; padding: 16px; background: #4A8C3F; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; transition: background .15s; box-shadow: 0 4px 16px rgba(74,140,63,.25); }
+.cart-checkout-btn:hover { background: #3A7A2F; }
+.cart-continue { display: block; text-align: center; font-size: 13px; color: #888; text-decoration: none; margin-top: 12px; }
+.cart-continue:hover { color: #4A8C3F; }
+.cart-trust { display: flex; justify-content: center; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #EDEAD8; }
+.cart-trust span { font-size: 10px; color: #AAA; display: flex; align-items: center; gap: 4px; }
+
+/* Empty cart */
+.cart-empty { text-align: center; padding: 80px 20px; }
+.cart-empty-icon { font-size: 64px; margin-bottom: 20px; }
+.cart-empty h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: #1C1C1C; margin-bottom: 10px; }
+.cart-empty p { font-size: 14px; color: #888; margin-bottom: 24px; }
+.cart-empty a { display: inline-flex; background: #4A8C3F; color: #fff; padding: 14px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .15s; }
+.cart-empty a:hover { background: #3A7A2F; }
+
+@media (max-width: 768px) {
+  .cart-layout { grid-template-columns: 1fr; }
+  .cart-sidebar { position: static; }
+  .cart-page { padding: 24px 14px; }
+  .cart-title { font-size: 24px; }
+}
+</style>
+
+<div class="cart-page">
+  <h1 class="cart-title">Mon Panier</h1>
+
+  {% if cart.item_count == 0 %}
+    <div class="cart-empty">
+      <div class="cart-empty-icon">🛒</div>
+      <h2>Votre panier est vide</h2>
+      <p>Découvrez nos produits du monde entier et ajoutez vos favoris.</p>
+      <a href="/collections/all">Continuer les achats →</a>
+    </div>
+
+  {% else %}
+    <span class="cart-count-label">{{ cart.item_count }} article{% if cart.item_count > 1 %}s{% endif %}</span>
+
+    <div class="cart-layout">
+
+      <!-- ITEMS -->
+      <div class="cart-items">
+        {% form 'cart', cart %}
+
+          {% for item in cart.items %}
+            <div class="cart-item">
+              <a href="{{ item.url }}" class="cart-item-img">
+                {% if item.image %}
+                  <img src="{{ item.image | image_url: width: 176 }}" alt="{{ item.title }}" loading="lazy">
+                {% endif %}
+              </a>
+              <div class="cart-item-info">
+                <a href="{{ item.url }}" class="cart-item-name">{{ item.product.title }}</a>
+                {% unless item.variant.title == 'Default Title' %}
+                  <div class="cart-item-variant">{{ item.variant.title }}</div>
+                {% endunless %}
+                <div class="cart-item-price">{{ item.final_line_price | money }}</div>
+                <div class="cart-item-per">{{ item.final_price | money }} / unité</div>
+              </div>
+              <div class="cart-item-right">
+                <div class="cart-qty">
+                  <button type="button" class="cart-qty-btn" onclick="mmQty(this,-1)">−</button>
+                  <input class="cart-qty-input" type="number" name="updates[]" value="{{ item.quantity }}" min="0" data-price="{{ item.final_price }}" onchange="mmQtyChanged()">
+                  <button type="button" class="cart-qty-btn" onclick="mmQty(this,1)">+</button>
+                </div>
+                <div class="cart-item-total" id="item-total-{{ forloop.index }}">{{ item.final_line_price | money }}</div>
+                <button type="button" class="cart-remove" onclick="mmRemove(this)">Supprimer</button>
+              </div>
+            </div>
+          {% endfor %}
+
+          <button type="submit" name="update" style="margin-top:16px;background:#F5F0E8;border:1.5px solid #E0DDD6;border-radius:9px;padding:10px 20px;font-size:13px;font-weight:600;color:#555;cursor:pointer;">
+            Mettre à jour le panier
+          </button>
+
+        {% endform %}
+      </div>
+
+      <!-- SIDEBAR -->
+      <div class="cart-sidebar">
+        <div class="cart-sidebar-title">Récapitulatif</div>
+
+        {%- assign needed = 15000 | minus: cart.items_subtotal_price -%}
+        {% if cart.items_subtotal_price < 15000 %}
+          <div class="cart-progress-wrap">
+            <div class="cart-progress-label">Plus que <span>{{ needed | money }}</span> pour la livraison gratuite 🎁</div>
+            <div class="cart-progress-bar">
+              <div class="cart-progress-fill" style="width:{{ cart.items_subtotal_price | times: 100 | divided_by: 15000 }}%;"></div>
+            </div>
+          </div>
+        {% else %}
+          <div class="cart-progress-wrap" style="background:#EDF7EC;">
+            <div class="cart-progress-label" style="color:#4A8C3F;">🎉 Livraison gratuite débloquée !</div>
+            <div class="cart-progress-bar"><div class="cart-progress-fill" style="width:100%;"></div></div>
+          </div>
+        {% endif %}
+
+        <div class="cart-coupon">
+          <input type="text" placeholder="Code promo">
+          <button type="button">Appliquer</button>
+        </div>
+
+        <div class="cart-line"><span>Sous-total ({{ cart.item_count }} art.)</span><span>{{ cart.items_subtotal_price | money }}</span></div>
+        {% if cart.items_subtotal_price >= 15000 %}
+          <div class="cart-line free"><span>Livraison</span><span>Gratuite 🎁</span></div>
+        {% else %}
+          <div class="cart-line"><span>Livraison</span><span>Standard gratuite</span></div>
+        {% endif %}
+        <div class="cart-line total"><span>Total</span><span>{{ cart.total_price | money }}</span></div>
+
+        <a href="/checkout" class="cart-checkout-btn">Passer à la caisse →</a>
+        <a href="/collections/all" class="cart-continue">← Continuer les achats</a>
+
+        <div class="cart-trust">
+          <span>🔒 Sécurisé</span>
+          <span>💳 PayPal · CB</span>
+          <span>📦 Livraison 24h</span>
+        </div>
+      </div>
+
+    </div>
+  {% endif %}
+</div>
+
+<script>
+function mmQty(btn, delta) {
+  var input = btn.parentNode.querySelector('.cart-qty-input');
+  var val = Math.max(0, parseInt(input.value || 0) + delta);
+  input.value = val;
+}
+function mmRemove(btn) {
+  var input = btn.closest('.cart-item').querySelector('.cart-qty-input');
+  if (input) { input.value = 0; }
+  btn.closest('.cart-item').style.opacity = '0.4';
+  btn.closest('form').submit();
+}
+function mmQtyChanged() { /* auto-updates on form submit */ }
+</script>

@@ -1,0 +1,44 @@
+<div class="ann">
+  <div class="ann-track">
+    {% for block in section.blocks %}
+      <span class="ann-item">{{ block.settings.text }}</span>
+    {% endfor %}
+    {% for block in section.blocks %}
+      <span class="ann-item">{{ block.settings.text }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Barre d'annonce",
+  "class": "announcement-bar",
+  "blocks": [
+    {
+      "type": "announcement",
+      "name": "Annonce",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Texte",
+          "default": "⚡ Livraison <strong>Express 24h</strong>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Barre d'annonce",
+      "blocks": [
+        { "type": "announcement", "settings": { "text": "⚡ Livraison <strong>Express 24h</strong> — Toute la France" } },
+        { "type": "announcement", "settings": { "text": "🎁 Livraison <strong>offerte dès 49€</strong>" } },
+        { "type": "announcement", "settings": { "text": "🥩 Boucherie <strong>Halal certifiée</strong>" } },
+        { "type": "announcement", "settings": { "text": "🌿 <strong>+500 produits</strong> authentiques" } },
+        { "type": "announcement", "settings": { "text": "🔒 Paiement <strong>100% sécurisé</strong>" } },
+        { "type": "announcement", "settings": { "text": "🌍 <strong>8 cuisines</strong> du monde" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

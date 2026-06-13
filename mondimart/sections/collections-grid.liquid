@@ -1,0 +1,137 @@
+<section class="section collections-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">{{ section.settings.title }}</h2>
+        <p class="section-sub">{{ section.settings.subtitle }}</p>
+      </div>
+      <a class="see-all" href="{{ section.settings.see_all_url }}">
+        {{ section.settings.see_all_label }}
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+
+    <!-- Rangée 1 : grandes cartes -->
+    {% assign row1_count = 0 %}
+    {% for block in section.blocks %}{% if block.type == 'row1' %}{% assign row1_count = row1_count | plus: 1 %}{% endif %}{% endfor %}
+    {% if row1_count > 0 %}
+      <div class="col-row1">
+        {% for block in section.blocks %}
+          {% if block.type == 'row1' %}
+            <a class="colcard" href="{{ block.settings.url | default: '/collections/' | append: block.settings.collection }}" {{ block.shopify_attributes }}>
+              <img src="{{ block.settings.image | default: block.settings.fallback_image }}" alt="{{ block.settings.name }}" loading="lazy">
+              <div class="col-ov dark">
+                <span class="col-name">{{ block.settings.name }}</span>
+                <span class="col-cnt">{{ block.settings.description }}</span>
+              </div>
+              {% if block.settings.tag != blank %}<span class="col-tag {{ block.settings.tag_style }}">{{ block.settings.tag }}</span>{% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Rangée 2 : cartes moyennes -->
+    {% assign row2_count = 0 %}
+    {% for block in section.blocks %}{% if block.type == 'row2' %}{% assign row2_count = row2_count | plus: 1 %}{% endif %}{% endfor %}
+    {% if row2_count > 0 %}
+      <div class="col-row2">
+        {% for block in section.blocks %}
+          {% if block.type == 'row2' %}
+            <a class="colcard" href="{{ block.settings.url | default: '/collections/' | append: block.settings.collection }}" {{ block.shopify_attributes }}>
+              <img src="{{ block.settings.image | default: block.settings.fallback_image }}" alt="{{ block.settings.name }}" loading="lazy">
+              <div class="col-ov mid">
+                <span class="col-name">{{ block.settings.name }}</span>
+                <span class="col-cnt">{{ block.settings.description }}</span>
+              </div>
+              {% if block.settings.tag != blank %}<span class="col-tag {{ block.settings.tag_style }}">{{ block.settings.tag }}</span>{% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Rangée 3 : petites cartes -->
+    {% assign row3_count = 0 %}
+    {% for block in section.blocks %}{% if block.type == 'row3' %}{% assign row3_count = row3_count | plus: 1 %}{% endif %}{% endfor %}
+    {% if row3_count > 0 %}
+      <div class="col-row3">
+        {% for block in section.blocks %}
+          {% if block.type == 'row3' %}
+            <a class="colcard" href="{{ block.settings.url }}" {{ block.shopify_attributes }}>
+              <img src="{{ block.settings.image | default: block.settings.fallback_image }}" alt="{{ block.settings.name }}" loading="lazy">
+              <div class="col-ov light">
+                <span class="col-name sm">{{ block.settings.name }}</span>
+                <span class="col-cnt">{{ block.settings.description }}</span>
+              </div>
+              {% if block.settings.tag != blank %}<span class="col-tag {{ block.settings.tag_style }}">{{ block.settings.tag }}</span>{% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Grille collections",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "Nos Rayons" },
+    { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Parcourez toutes nos grandes familles de produits" },
+    { "type": "text", "id": "see_all_label", "label": "Voir tout texte", "default": "Tout voir" },
+    { "type": "url", "id": "see_all_url", "label": "Voir tout lien" }
+  ],
+  "blocks": [
+    {
+      "type": "row1",
+      "name": "Grande carte (rangée 1)",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "Image URL (fallback)" },
+        { "type": "text", "id": "collection", "label": "Slug collection (ex: epicerie-fine)" },
+        { "type": "url", "id": "url", "label": "Lien direct (optionnel)" },
+        { "type": "text", "id": "name", "label": "Nom", "default": "🏺 Épicerie Fine" },
+        { "type": "text", "id": "description", "label": "Description", "default": "Épices, conserves, pâtes" },
+        { "type": "text", "id": "tag", "label": "Badge (optionnel)" },
+        { "type": "select", "id": "tag_style", "label": "Couleur badge", "options": [
+          { "value": "tag-g", "label": "Vert" }, { "value": "tag-r", "label": "Rouge" }, { "value": "tag-o", "label": "Orange" }
+        ], "default": "tag-g" }
+      ]
+    },
+    {
+      "type": "row2",
+      "name": "Carte moyenne (rangée 2)",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "Image URL (fallback)" },
+        { "type": "text", "id": "collection", "label": "Slug collection" },
+        { "type": "url", "id": "url", "label": "Lien direct (optionnel)" },
+        { "type": "text", "id": "name", "label": "Nom", "default": "🫖 Boissons" },
+        { "type": "text", "id": "description", "label": "Description", "default": "Thés, jus, sodas" },
+        { "type": "text", "id": "tag", "label": "Badge (optionnel)" },
+        { "type": "select", "id": "tag_style", "label": "Couleur badge", "options": [
+          { "value": "tag-g", "label": "Vert" }, { "value": "tag-r", "label": "Rouge" }, { "value": "tag-o", "label": "Orange" }
+        ], "default": "tag-g" }
+      ]
+    },
+    {
+      "type": "row3",
+      "name": "Petite carte (rangée 3)",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "Image URL (fallback)" },
+        { "type": "url", "id": "url", "label": "Lien" },
+        { "type": "text", "id": "name", "label": "Nom", "default": "🍽️ Karaca" },
+        { "type": "text", "id": "description", "label": "Description", "default": "Vaisselle turque" },
+        { "type": "text", "id": "tag", "label": "Badge (optionnel)" },
+        { "type": "select", "id": "tag_style", "label": "Couleur badge", "options": [
+          { "value": "tag-g", "label": "Vert" }, { "value": "tag-r", "label": "Rouge" }, { "value": "tag-o", "label": "Orange" }
+        ], "default": "tag-o" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Grille collections" }]
+}
+{% endschema %}

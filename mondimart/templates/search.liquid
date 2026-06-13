@@ -1,0 +1,30 @@
+<div style="max-width:var(--lw,1440px);margin:0 auto;padding:40px 32px">
+  <h1 style="font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:#1C1C1C;margin-bottom:8px">Recherche</h1>
+  {% if search.performed %}
+    <p style="color:#7A7A7A;margin-bottom:32px">{{ search.results_count }} résultat{% if search.results_count != 1 %}s{% endif %} pour "{{ search.terms }}"</p>
+    {% if search.results_count > 0 %}
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:18px">
+        {% for item in search.results %}
+          {% if item.object_type == 'product' %}
+            <a href="{{ item.url }}" style="background:#fff;border:1px solid #DDD8CC;border-radius:14px;overflow:hidden;display:block;text-decoration:none;transition:all .2s">
+              <div style="height:180px;background:#F8F4EC;overflow:hidden">
+                {% if item.featured_image %}<img src="{{ item.featured_image | image_url: width:400 }}" alt="{{ item.title }}" style="width:100%;height:100%;object-fit:cover">{% endif %}
+              </div>
+              <div style="padding:12px">
+                <div style="font-size:13px;font-weight:600;color:#1C1C1C;margin-bottom:6px">{{ item.title }}</div>
+                <div style="font-size:15px;font-weight:700;color:#1C1C1C">{{ item.price | money }}</div>
+              </div>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color:#7A7A7A">Aucun résultat trouvé. <a href="/collections/all" style="color:#4A8C3F">Voir tous les produits</a></p>
+    {% endif %}
+  {% else %}
+    <form action="/search" method="get" style="display:flex;gap:10px;max-width:500px">
+      <input type="text" name="q" placeholder="Rechercher..." style="flex:1;height:44px;padding:0 16px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none">
+      <button style="height:44px;padding:0 20px;background:#4A8C3F;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Chercher</button>
+    </form>
+  {% endif %}
+</div>

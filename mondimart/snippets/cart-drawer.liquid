@@ -1,0 +1,90 @@
+<div class="cart-overlay" id="cart-overlay"></div>
+<div class="cart-drawer" id="cart-drawer">
+
+  <!-- Header -->
+  <div class="cart-header" style="flex-shrink:0">
+    <h3>Mon Panier (<span class="cart-count-display">{{ cart.item_count }}</span>)</h3>
+    <button class="cart-close" data-close-cart aria-label="Fermer">×</button>
+  </div>
+
+  <!-- Free shipping progress -->
+  {% assign threshold = 4900 %}
+  {% if cart.item_count > 0 %}
+    <div style="padding:10px 20px;background:var(--cr);border-bottom:1px solid var(--bo);flex-shrink:0">
+      {% if cart.total_price >= threshold %}
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#2D6A2D">
+          🎁 Livraison gratuite débloquée !
+        </div>
+      {% else %}
+        {% assign remaining = threshold | minus: cart.total_price %}
+        <div style="font-size:12px;color:var(--tm);margin-bottom:6px">
+          Plus que <strong>{{ remaining | money }}</strong> pour la livraison gratuite
+        </div>
+        <div style="height:5px;background:var(--bo);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:var(--gl);border-radius:3px;width:{{ cart.total_price | times: 100 | divided_by: threshold | at_most: 100 }}%;transition:width .4s"></div>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Items - scrollable -->
+  <div class="cart-items" id="cart-items-container" style="flex:1;overflow-y:auto;min-height:0">
+    {% if cart.item_count == 0 %}
+      <div style="text-align:center;padding:48px 20px">
+        <div style="font-size:52px;margin-bottom:14px">🛒</div>
+        <p style="font-size:15px;font-weight:600;color:var(--tm);margin-bottom:6px">Panier vide</p>
+        <p style="font-size:13px;color:var(--tl);margin-bottom:20px">Découvrez nos +500 produits</p>
+        <a href="/collections/all" style="display:inline-flex;align-items:center;gap:8px;background:var(--gl);color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">
+          Explorer les produits →
+        </a>
+      </div>
+    {% else %}
+      {% for item in cart.items %}
+        <div class="cart-item">
+          <a href="{{ item.url }}" class="cart-item-img" onclick="closeCartDrawer()" style="text-decoration:none;display:block;">
+            {% if item.image %}
+              <img src="{{ item.image | image_url: width: 144 }}" alt="{{ item.title }}" loading="lazy">
+            {% else %}
+              <div style="width:100%;height:100%;background:var(--cr);display:flex;align-items:center;justify-content:center;font-size:28px">🛒</div>
+            {% endif %}
+          </a>
+          <div class="cart-item-info">
+            <a href="{{ item.url }}" onclick="closeCartDrawer()" style="text-decoration:none;"><div class="cart-item-name" style="color:inherit;">{{ item.product.title }}</div></a>
+            {% unless item.variant.title == 'Default Title' or item.variant.title == blank %}
+              <div class="cart-item-variant">{{ item.variant.title }}</div>
+            {% endunless %}
+            <div class="cart-item-price">{{ item.final_line_price | money }}</div>
+            <div class="cart-qty">
+              <button class="qty-btn" data-line="{{ forloop.index }}" data-qty-change="-1">−</button>
+              <span data-qty-display>{{ item.quantity }}</span>
+              <button class="qty-btn" data-line="{{ forloop.index }}" data-qty-change="1">+</button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Footer - always at bottom -->
+  <div class="cart-footer" style="flex-shrink:0;border-top:1px solid var(--bo)">
+    <div class="cart-subtotal">
+      <span>Sous-total</span>
+      <span>{{ cart.items_subtotal_price | money }}</span>
+    </div>
+    <div class="cart-subtotal">
+      <span>Livraison</span>
+      <span style="color:var(--gl)">{% if cart.total_price >= 4900 %}Gratuite 🎁{% else %}Calculée ensuite{% endif %}</span>
+    </div>
+    <div class="cart-total">
+      <span>Total</span>
+      <span>{{ cart.total_price | money }}</span>
+    </div>
+    <a href="/checkout" class="checkout-btn" style="display:block;text-align:center;color:#fff;text-decoration:none">
+      Passer à la caisse →
+    </a>
+    <a href="{{ routes.cart_url }}" style="display:block;text-align:center;margin-top:10px;font-size:13px;color:var(--tl);text-decoration:none">
+      Voir le panier complet
+    </a>
+  </div>
+
+</div>

@@ -1,0 +1,1192 @@
+/* ============================================================
+   MONDIMART PREMIUM OVERLAY — v2 (demo-aligned)
+   Layered on top of theme.css. Never replaces it.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --mm-gold: #d4a64a;
+  --mm-gold-soft: #e8c97a;
+  --mm-cream: #f5efe3;
+  --mm-green-deep: #142d1d;
+}
+
+/* ============================================================
+   1. HEADER ICONS — consistent hover/transition
+   ============================================================ */
+.site-header svg,
+.menu-toggle svg,
+.hbtn svg,
+.search-btn svg {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.menu-toggle:hover svg,
+.hbtn:hover svg { opacity: 0.75; transform: scale(1.05); }
+.search-btn:hover svg { opacity: 0.8; }
+
+.cart-count {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 9px !important;
+  border: 2px solid var(--gd, #1A3C1A) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 5px !important;
+  letter-spacing: 0 !important;
+}
+
+.site-header .logo-nm {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.site-header .logo-nm em { color: var(--mm-gold-soft) !important; }
+
+/* ============================================================
+   2. MOBILE MENU — PREMIUM REBUILD
+   ============================================================ */
+
+.mobile-menu {
+  background: linear-gradient(180deg, #1a3a2a 0%, #142d1d 100%) !important;
+  box-shadow: 8px 0 40px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.05) !important;
+  transition: left 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  width: min(380px, 92vw) !important;
+  font-family: 'Manrope', sans-serif !important;
+  color: var(--mm-cream) !important;
+  overflow: hidden !important;
+  position: fixed !important;
+}
+
+/* Atmospheric glows inside drawer */
+.mobile-menu::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(212, 166, 74, 0.18), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.mobile-menu::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -100px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(74, 144, 112, 0.15), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mobile-overlay {
+  background: rgba(15, 36, 25, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* --- HEADER (premium) --- */
+.mm-header-premium {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  display: block !important;
+  flex-direction: column !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15) !important;
+  flex-shrink: 0 !important;
+}
+
+.mm-header-top {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  padding: 18px 20px 16px !important;
+}
+
+.mm-brand { display: flex; flex-direction: column; }
+.mm-brand .mm-logo {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 24px !important;
+  color: var(--mm-cream) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1 !important;
+  margin-bottom: 4px !important;
+}
+.mm-brand .mm-logo em {
+  color: var(--mm-gold) !important;
+  font-style: normal !important;
+}
+.mm-brand-sub {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 11px !important;
+  color: var(--mm-gold-soft) !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  opacity: 1 !important;
+}
+
+.mm-close-premium {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  color: var(--mm-cream) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+}
+.mm-close-premium svg { width: 16px; height: 16px; }
+.mm-close-premium:hover {
+  background: rgba(212, 166, 74, 0.15) !important;
+  border-color: var(--mm-gold) !important;
+  transform: rotate(90deg) !important;
+}
+
+/* --- CUISINE STRIP --- */
+.mm-cuisine-strip {
+  display: flex !important;
+  gap: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  background: rgba(0,0,0,0.2) !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.12) !important;
+}
+.mm-cuisine-strip::-webkit-scrollbar { display: none; }
+.mm-cuisine-strip a {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  color: rgba(245, 239, 227, 0.75) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  gap: 4px !important;
+  font-family: 'Manrope', sans-serif !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s ease;
+}
+.mm-cuisine-strip a:hover {
+  color: var(--mm-gold-soft) !important;
+  background: rgba(212, 166, 74, 0.08) !important;
+}
+.mm-cuisine-strip a.cs-promo {
+  color: var(--mm-gold) !important;
+  font-weight: 700 !important;
+}
+.mm-cuisine-strip a > :first-child { font-size: 18px !important; }
+
+/* --- SEARCH (in menu) --- */
+.mobile-menu .mm-search {
+  background: transparent !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.12) !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.mobile-menu .mm-search input {
+  width: 100% !important;
+  height: 44px !important;
+  padding: 0 18px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  border-radius: 999px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 13px !important;
+  color: var(--mm-cream) !important;
+  outline: none !important;
+  transition: all 0.2s ease;
+}
+.mobile-menu .mm-search input::placeholder { color: rgba(245, 239, 227, 0.45) !important; }
+.mobile-menu .mm-search input:focus {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* --- QUICK CHIP ROW (between search and body) --- */
+.mobile-menu .mm-search + div {
+  background: transparent !important;
+  padding: 10px 16px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.12) !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.mobile-menu .mm-search + div::-webkit-scrollbar { display: none; }
+.mobile-menu .mm-search + div a {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.3) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease;
+}
+.mobile-menu .mm-search + div a:hover {
+  background: rgba(212, 166, 74, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* --- BODY --- */
+.mobile-menu .mm-body {
+  position: relative !important;
+  z-index: 2 !important;
+  background: transparent !important;
+  padding: 8px 0 20px !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+.mobile-menu .mm-body::-webkit-scrollbar { width: 0; }
+
+.mobile-menu .mm-section-label {
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 9px !important;
+  letter-spacing: 0.18em !important;
+  padding: 18px 20px 8px !important;
+  opacity: 0.7 !important;
+  text-transform: uppercase !important;
+}
+
+/* --- ITEMS --- */
+.mobile-menu .mm-item,
+.mobile-menu .mm-item-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 13px 20px !important;
+  color: var(--mm-cream) !important;
+  text-decoration: none !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  min-height: 0 !important;
+  position: relative;
+}
+.mobile-menu .mm-item:hover,
+.mobile-menu .mm-item-link:hover {
+  background: rgba(212, 166, 74, 0.08) !important;
+}
+.mobile-menu .mm-item:hover .mm-chevron,
+.mobile-menu .mm-item-link:hover .mm-chevron {
+  color: var(--mm-gold) !important;
+  transform: translateX(3px) !important;
+}
+
+.mobile-menu .mm-item-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+/* ICON BOXES — gold-tinted, demo style (overrides inline styles) */
+.mobile-menu .mm-item-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  background: rgba(212, 166, 74, 0.12) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  flex-shrink: 0 !important;
+  transition: all 0.25s ease !important;
+  filter: saturate(1.05);
+}
+.mobile-menu .mm-item:hover .mm-item-icon,
+.mobile-menu .mm-item-link:hover .mm-item-icon {
+  background: rgba(212, 166, 74, 0.2) !important;
+  border-color: var(--mm-gold) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(212, 166, 74, 0.2) !important;
+}
+
+.mobile-menu .mm-item-title {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  color: var(--mm-cream) !important;
+  letter-spacing: -0.005em !important;
+  display: block !important;
+  line-height: 1.3 !important;
+}
+
+/* Meta text below item title (e.g. "82 produits", "Soins quotidiens") */
+.mobile-menu .mm-item-left > div > span:not(.mm-item-title) {
+  font-size: 11px !important;
+  color: rgba(245, 239, 227, 0.5) !important;
+  font-weight: 400 !important;
+  display: block !important;
+  margin-top: 1px !important;
+  font-family: 'Manrope', sans-serif !important;
+}
+
+.mobile-menu .mm-chevron {
+  color: rgba(245, 239, 227, 0.4) !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Divider — subtle gold gradient line */
+.mobile-menu .mm-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(212, 166, 74, 0.25), transparent) !important;
+  border: none !important;
+  margin: 12px 20px !important;
+}
+
+/* Promo highlight (Promotions item, existing) */
+.mobile-menu .mm-promo {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border-left: none !important;
+  position: relative;
+}
+.mobile-menu .mm-promo::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--mm-gold);
+  border-radius: 0 3px 3px 0;
+}
+.mobile-menu .mm-promo-txt {
+  color: var(--mm-gold) !important;
+  font-weight: 700 !important;
+}
+
+/* --- PREMIUM GOLD PROMO CARD --- */
+.mm-promo-card {
+  position: relative;
+  z-index: 2;
+  margin: 8px 16px 12px !important;
+  padding: 18px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #d4a64a 0%, #b88a2e 100%) !important;
+  color: var(--mm-green-deep) !important;
+  overflow: hidden !important;
+}
+.mm-promo-card::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(255,255,255,0.3), transparent 70%);
+  pointer-events: none;
+}
+.mm-promo-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  opacity: 0.75 !important;
+  margin-bottom: 6px !important;
+  position: relative;
+}
+.mm-promo-title {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  margin-bottom: 4px !important;
+  letter-spacing: -0.01em !important;
+  position: relative;
+}
+.mm-promo-sub {
+  font-size: 12px !important;
+  opacity: 0.85 !important;
+  margin-bottom: 14px !important;
+  position: relative;
+}
+.mm-promo-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--mm-green-deep) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 9px 14px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.mm-promo-cta:hover {
+  background: #000 !important;
+  transform: translateY(-1px);
+}
+.mm-promo-cta svg { width: 12px; height: 12px; fill: none; stroke: currentColor; }
+
+/* --- SUB-MENUS (slide-in panels, keep functional) --- */
+.mobile-menu .mm-sub {
+  background: linear-gradient(180deg, #142d1d 0%, #0e2014 100%) !important;
+  border: none !important;
+  color: var(--mm-cream) !important;
+  position: relative;
+  z-index: 3;
+}
+.mobile-menu .mm-sub a {
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+.mobile-menu .mm-sub a:hover {
+  color: var(--mm-gold-soft) !important;
+  background: rgba(212, 166, 74, 0.08) !important;
+  padding-left: 24px !important;
+}
+.mobile-menu .mm-sub-header {
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.16em !important;
+  background: rgba(0,0,0,0.2) !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15) !important;
+}
+.mobile-menu .mm-sub-back {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+  margin: 12px 16px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+}
+.mobile-menu .mm-sub-back:hover {
+  background: rgba(212, 166, 74, 0.2) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* --- FOOTER --- */
+.mm-footer-premium {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 14px 16px 18px !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.18) !important;
+  background: rgba(0,0,0,0.3) !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+/* Language buttons row */
+.mm-footer-langs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.mm-lang {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(212, 166, 74, 0.22);
+  color: var(--mm-cream);
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+}
+.mm-lang:hover,
+.mm-lang.active {
+  background: var(--mm-gold);
+  color: var(--mm-green-deep);
+  border-color: var(--mm-gold);
+}
+
+/* Account / Close button row */
+.mm-footer-account {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.mm-footer-account .mm-footer-btn {
+  flex: 1;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+.mm-footer-btn-primary {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  box-shadow: 0 2px 8px rgba(212, 166, 74, 0.25);
+}
+.mm-footer-btn-primary:hover {
+  background: var(--mm-gold-soft) !important;
+  transform: translateY(-1px);
+}
+.mm-footer-btn-ghost {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--mm-cream) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+}
+.mm-footer-btn-ghost:hover {
+  background: rgba(212, 166, 74, 0.12) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* Social icons */
+.mm-footer-social {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.mm-footer-social a {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 166, 74, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mm-cream);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.mm-footer-social a:hover {
+  background: var(--mm-gold);
+  color: var(--mm-green-deep);
+  border-color: var(--mm-gold);
+  transform: translateY(-2px);
+}
+.mm-footer-social svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   3. LANGUAGE SWITCHER DESKTOP — light polish only
+   ============================================================ */
+.lang-switcher .lang-btn { transition: all 0.2s ease; font-family: 'Manrope', sans-serif !important; }
+.lang-switcher .lang-btn:hover { background: rgba(212, 166, 74, 0.15) !important; }
+.lang-dropdown { font-family: 'Manrope', sans-serif !important; }
+.lang-option { transition: all 0.2s ease; font-weight: 500; }
+.lang-option:hover { background: var(--cr, #F8F4EC) !important; color: var(--gd, #1A3C1A) !important; padding-left: 16px !important; }
+.lang-option.active { color: var(--mm-gold) !important; font-weight: 700 !important; }
+
+/* ============================================================
+   5. MENU ITEM ICONS — SVG inside (replaces emoji)
+   ============================================================ */
+.mobile-menu .mm-item-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--mm-gold);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.25s ease;
+}
+
+.mobile-menu .mm-item:hover .mm-item-icon svg,
+.mobile-menu .mm-item-link:hover .mm-item-icon svg {
+  stroke: var(--mm-gold-soft);
+  transform: scale(1.08);
+}
+
+/* Promo item — flame icon in warm tone */
+.mobile-menu .mm-promo .mm-item-icon {
+  background: rgba(232, 109, 47, 0.15) !important;
+  border-color: rgba(232, 109, 47, 0.4) !important;
+}
+.mobile-menu .mm-promo .mm-item-icon svg {
+  stroke: #ff8c42 !important;
+}
+.mobile-menu .mm-promo-txt {
+  color: #ff8c42 !important;
+}
+
+/* ============================================================
+   6. FOOTER — READABILITY + REFINED LAYOUT
+   ============================================================ */
+
+/* Brand block */
+.site-footer .footer-brand p {
+  color: rgba(245, 239, 227, 0.75) !important;
+  font-family: 'Manrope', sans-serif !important;
+  line-height: 1.6 !important;
+  font-size: 14px !important;
+}
+
+/* Social icons in footer */
+.site-footer .footer-social {
+  background: rgba(212, 166, 74, 0.08) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+.site-footer .footer-social:hover {
+  background: var(--mm-gold) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateY(-2px);
+}
+.site-footer .footer-social svg {
+  fill: var(--mm-cream) !important;
+  width: 18px !important;
+  height: 18px !important;
+  transition: fill 0.2s ease;
+}
+.site-footer .footer-social:hover svg {
+  fill: var(--mm-green-deep) !important;
+}
+
+/* Column headings with SVG icon */
+.site-footer .footer-col h4 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: var(--mm-gold) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 18px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.2) !important;
+  width: 100%;
+}
+
+.site-footer .footer-h4-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(212, 166, 74, 0.12);
+  border: 1px solid rgba(212, 166, 74, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.site-footer .footer-h4-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--mm-gold);
+}
+
+/* Column links — much more readable */
+.site-footer .footer-col a {
+  color: rgba(245, 239, 227, 0.85) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  padding: 8px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  transition: all 0.2s ease !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.site-footer .footer-col a:last-child {
+  border-bottom: none;
+}
+.site-footer .footer-col a:hover {
+  color: var(--mm-gold-soft) !important;
+  padding-left: 6px !important;
+}
+
+/* Flag emojis in cuisine links */
+.site-footer .ft-flag {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* SVG icon next to info links */
+.site-footer .footer-link-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+.site-footer .footer-link-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--mm-gold-soft);
+}
+.site-footer .footer-col a:hover .footer-link-icon {
+  opacity: 1;
+}
+
+/* Footer brand logo */
+.site-footer .footer-brand .logo-nm {
+  color: var(--mm-cream) !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 24px !important;
+  letter-spacing: -0.01em !important;
+  display: block;
+  margin-bottom: 10px;
+}
+.site-footer .footer-brand .logo-nm em {
+  color: var(--mm-gold) !important;
+  font-style: normal !important;
+}
+
+/* Footer bottom (copyright + payment icons) */
+.site-footer .footer-bottom {
+  border-top: 1px solid rgba(212, 166, 74, 0.18) !important;
+  padding-top: 20px !important;
+  margin-top: 30px !important;
+}
+.site-footer .footer-bottom span {
+  color: rgba(245, 239, 227, 0.55) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+}
+.site-footer .footer-bottom span a {
+  color: var(--mm-gold-soft) !important;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.site-footer .footer-bottom span a:hover {
+  color: var(--mm-gold) !important;
+}
+
+/* Payment icons */
+.site-footer .pay-icon {
+  background: rgba(212, 166, 74, 0.08) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+}
+
+/* ============================================================
+   7. NEWSLETTER — "RESTEZ INFORMÉ"
+   ============================================================ */
+.newsletter-overlay h2 {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: clamp(28px, 4vw, 40px) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--mm-cream) !important;
+  margin-bottom: 12px !important;
+}
+
+.newsletter-overlay p {
+  color: rgba(245, 239, 227, 0.85) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  margin-bottom: 22px !important;
+}
+
+.newsletter-form input[type="email"] {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(212, 166, 74, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+.newsletter-form input[type="email"]:focus {
+  border-color: var(--mm-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 166, 74, 0.15) !important;
+  outline: none !important;
+}
+
+.newsletter-form button {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(212, 166, 74, 0.3) !important;
+}
+.newsletter-form button:hover {
+  background: var(--mm-gold-soft) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(212, 166, 74, 0.42) !important;
+}
+
+/* ============================================================
+   8. TRUST BAR — PREMIUM HORIZONTAL CARDS
+   ============================================================ */
+.trust-bar {
+  background: linear-gradient(180deg, var(--mm-cream) 0%, #ede4d0 100%) !important;
+  padding: 24px 0 !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.15);
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15);
+}
+
+.trust-bar .trust-inner {
+  display: flex !important;
+  gap: 14px !important;
+  padding: 0 18px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x mandatory !important;
+}
+.trust-bar .trust-inner::-webkit-scrollbar { display: none !important; }
+
+.trust-bar .trust-item {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  background: #fff !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  min-width: 230px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+  transition: all 0.25s ease !important;
+  scroll-snap-align: start !important;
+  font-family: 'Manrope', sans-serif !important;
+}
+.trust-bar .trust-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+  border-color: rgba(212, 166, 74, 0.3) !important;
+}
+
+.trust-bar .trust-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 11px !important;
+  background: linear-gradient(135deg, #1a3a2a 0%, #142d1d 100%) !important;
+  color: var(--mm-gold-soft) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  box-shadow: inset 0 0 0 1px rgba(212, 166, 74, 0.08) !important;
+}
+
+.trust-bar .trust-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.trust-bar .trust-item strong {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #0f2419 !important;
+  letter-spacing: -0.005em !important;
+  display: block !important;
+  line-height: 1.3 !important;
+}
+
+.trust-bar .trust-item span {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 11px !important;
+  color: #6b7c72 !important;
+  margin-top: 2px !important;
+  display: block !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+}
+
+/* ============================================================
+   9. COLLECTIONS GRID (NOS RAYONS) — TITLE + CARD POLISH
+   ============================================================ */
+.collections-section .section-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  margin-bottom: 22px !important;
+  gap: 16px !important;
+}
+
+.collections-section .section-title {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: clamp(26px, 4vw, 36px) !important;
+  color: #0f2419 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+  line-height: 1.1 !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Italic gold accent on second word ("Rayons" in "Nos Rayons") */
+.collections-section .section-title {
+  position: relative;
+}
+.collections-section .section-title::after {
+  display: none !important;
+}
+
+.collections-section .section-sub {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 13px !important;
+  color: #6b7c72 !important;
+  margin-top: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* "Tout voir →" link */
+.collections-section .see-all {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--mm-gold) !important;
+  text-decoration: none !important;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  white-space: nowrap !important;
+  transition: all 0.2s ease !important;
+}
+.collections-section .see-all:hover {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateX(2px);
+}
+.collections-section .see-all svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Collection cards — premium hover */
+.collections-section .colcard {
+  position: relative;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+  text-decoration: none !important;
+}
+.collections-section .colcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important;
+}
+
+.collections-section .colcard img {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.collections-section .colcard:hover img {
+  transform: scale(1.06);
+}
+
+/* Card overlay/labels — refined typography */
+.collections-section .col-ov {
+  font-family: 'Manrope', sans-serif !important;
+}
+.collections-section .col-name {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+.collections-section .col-cnt {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 500 !important;
+  opacity: 0.85;
+}
+
+/* Tag badges — premium pill */
+.collections-section .col-tag {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.collections-section .col-tag.tag-g {
+  background: rgba(74, 140, 63, 0.95) !important;
+  color: #fff !important;
+}
+.collections-section .col-tag.tag-r {
+  background: rgba(220, 53, 69, 0.95) !important;
+  color: #fff !important;
+}
+.collections-section .col-tag.tag-o {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  box-shadow: 0 2px 8px rgba(212, 166, 74, 0.4);
+}
+
+/* ============================================================
+   10. ICON QUALITY UPGRADE — MORE PREMIUM PRESENTATION
+   ============================================================ */
+
+/* Icon containers — refined gold gradient + inner glow */
+.mobile-menu .mm-item-icon,
+.mobile-menu .mm-item-link .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(232, 201, 122, 0.18) 0%,
+    rgba(212, 166, 74, 0.08) 100%) !important;
+  border: 1px solid rgba(212, 166, 74, 0.3) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.mobile-menu .mm-item-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 1.5 !important;
+  stroke: var(--mm-gold-soft) !important;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mobile-menu .mm-item:hover .mm-item-icon,
+.mobile-menu .mm-item-link:hover .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(232, 201, 122, 0.35) 0%,
+    rgba(212, 166, 74, 0.18) 100%) !important;
+  border-color: var(--mm-gold) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 14px rgba(212, 166, 74, 0.25) !important;
+  transform: scale(1.06) !important;
+}
+.mobile-menu .mm-item:hover .mm-item-icon svg,
+.mobile-menu .mm-item-link:hover .mm-item-icon svg {
+  stroke: #fff !important;
+  transform: scale(1.05);
+}
+
+/* Promo item — warmer hue */
+.mobile-menu .mm-promo .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(255, 140, 66, 0.25) 0%,
+    rgba(232, 109, 47, 0.12) 100%) !important;
+  border-color: rgba(255, 140, 66, 0.4) !important;
+}
+.mobile-menu .mm-promo .mm-item-icon svg {
+  stroke: #ffae72 !important;
+}
+.mobile-menu .mm-promo:hover .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(255, 140, 66, 0.4) 0%,
+    rgba(232, 109, 47, 0.2) 100%) !important;
+  border-color: #ff8c42 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 14px rgba(232, 109, 47, 0.3) !important;
+}
+
+/* ============================================================
+   11. CUISINE STRIP — PREMIUM FLAG TILES
+   ============================================================ */
+.mm-cuisine-strip {
+  padding: 12px 14px !important;
+  gap: 6px !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+.mm-cuisine-strip a {
+  padding: 6px 8px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(212, 166, 74, 0.18) !important;
+  min-width: 52px !important;
+  gap: 4px !important;
+  transition: all 0.25s ease !important;
+}
+
+.mm-cuisine-strip a:hover {
+  background: rgba(212, 166, 74, 0.15) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(212, 166, 74, 0.2);
+}
+
+.mm-cuisine-strip a > :first-child {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.mm-cuisine-strip a > span:not(:first-child),
+.mm-cuisine-strip a > span:last-child {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(245, 239, 227, 0.7) !important;
+}
+
+.mm-cuisine-strip a:hover span:last-child {
+  color: var(--mm-gold-soft) !important;
+}
+
+.mm-cuisine-strip a.cs-promo {
+  background: rgba(212, 166, 74, 0.18) !important;
+  border-color: rgba(212, 166, 74, 0.5) !important;
+}
+.mm-cuisine-strip a.cs-promo span:last-child {
+  color: var(--mm-gold) !important;
+}

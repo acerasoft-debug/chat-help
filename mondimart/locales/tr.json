@@ -1,0 +1,5 @@
+{
+  "general": { "meta": { "page": "Sayfa" } },
+  "products": { "add_to_cart": "Sepete Ekle", "sold_out": "Tükendi", "unavailable": "Mevcut Değil", "from": "Başlangıç" },
+  "cart": { "title": "Sepetim", "empty": "Sepetiniz boş", "checkout": "Ödemeye Geç", "subtotal": "Ara Toplam", "total": "Toplam", "shipping": "Kargo" }
+}

@@ -1,0 +1,19 @@
+<div style="max-width:var(--lw,1440px);margin:0 auto;padding:40px 32px">
+  <h1 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#1C1C1C;margin-bottom:28px">Mon Compte</h1>
+  <p style="margin-bottom:16px">Bienvenue, {{ customer.first_name }} !</p>
+  <a href="/account/logout" style="color:#C0392B;font-size:13px">Se déconnecter</a>
+  <h2 style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;margin:28px 0 16px">Mes commandes</h2>
+  {% if customer.orders.size == 0 %}
+    <p style="color:#7A7A7A;font-size:14px">Vous n'avez pas encore de commandes. <a href="/collections/all" style="color:#4A8C3F">Commencer vos achats</a></p>
+  {% else %}
+    {% for order in customer.orders %}
+      <div style="border:1px solid #DDD8CC;border-radius:10px;padding:16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-weight:600">{{ order.name }}</span>
+          <span style="font-size:13px;color:#7A7A7A">{{ order.created_at | date: '%d %b %Y' }}</span>
+        </div>
+        <div style="font-size:14px;color:#4A4A4A">{{ order.financial_status_label }} · {{ order.total_price | money }}</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

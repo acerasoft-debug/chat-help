@@ -1,0 +1,14 @@
+<div style="max-width:460px;margin:60px auto;padding:0 32px">
+  <h1 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#1C1C1C;margin-bottom:28px;text-align:center">Créer un compte</h1>
+  {% form 'create_customer' %}
+    {% if form.errors %}<div style="background:#FDECEA;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">{{ form.errors | default_errors }}</div>{% endif %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Prénom</label><input type="text" name="customer[first_name]" style="width:100%;height:44px;padding:0 14px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none"></div>
+      <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Nom</label><input type="text" name="customer[last_name]" style="width:100%;height:44px;padding:0 14px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none"></div>
+    </div>
+    <div style="margin-bottom:16px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Email</label><input type="email" name="customer[email]" style="width:100%;height:44px;padding:0 16px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none"></div>
+    <div style="margin-bottom:24px"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Mot de passe</label><input type="password" name="customer[password]" style="width:100%;height:44px;padding:0 16px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none"></div>
+    <button type="submit" style="width:100%;height:48px;background:#4A8C3F;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Créer mon compte</button>
+    <p style="text-align:center;margin-top:14px;font-size:13px;color:#7A7A7A">Déjà inscrit ? <a href="/account/login" style="color:#4A8C3F">Se connecter</a></p>
+  {% endform %}
+</div>

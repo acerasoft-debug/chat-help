@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="{{ request.locale.iso_code }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1A3C1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ shop.name }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Mondimart">
+  <title>{{ page_title }}{% if current_page != 1 %} — Page {{ current_page }}{% endif %}{% unless page_title contains shop.name %} — {{ shop.name }}{% endunless %}</title>
+  {% if page_description %}
+    <meta name="description" content="{{ page_description | escape }}">
+  {% endif %}
+  {{ content_for_header }}
+  {{ 'theme.css' | asset_url | stylesheet_tag }}
+  {{ 'mondimart-premium.css' | asset_url | stylesheet_tag }}
+</head>
+<body>
+
+  {%- section 'header' -%}
+
+  <main id="MainContent" role="main" tabindex="-1">
+    {{ content_for_layout }}
+  </main>
+
+  {%- section 'footer' -%}
+
+  {% render 'cart-drawer' %}
+
+  <!-- Sticky cart desktop only -->
+  <button class="sticky-cart" data-open-cart aria-label="Ouvrir le panier">
+    Panier (<span class="cart-sticky-count">{{ cart.item_count }}</span>)
+  </button>
+
+  <!-- APP BOTTOM NAVIGATION -->
+  <nav class="app-bottom-nav" role="navigation" aria-label="Navigation principale">
+    <div class="app-nav-inner">
+      <a class="app-nav-btn {% if template.name == 'index' %}active{% endif %}" href="/">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Accueil
+      </a>
+      <a class="app-nav-btn app-nav-search-btn" href="/collections/all">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+        Rayons
+      </a>
+      <button class="app-nav-btn" data-open-cart style="border:none;cursor:pointer">
+        <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45C5.16 14.78 5 15.37 5 16c0 2.21 1.79 4 4 4h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.45 7H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        <span class="app-nav-cart-count cart-count">{{ cart.item_count }}</span>
+        Panier
+      </button>
+      <a class="app-nav-btn {% if template.name == 'customers/account' %}active{% endif %}" href="{{ routes.account_url }}">
+        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 100 10A5 5 0 0012 2zM5.5 20a6.5 6.5 0 0113 0H5.5z"/></svg>
+        Compte
+      </a>
+    </div>
+  </nav>
+
+  {{ 'theme.js' | asset_url | script_tag }}
+</body>
+</html>

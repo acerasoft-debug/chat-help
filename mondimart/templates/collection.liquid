@@ -1,0 +1,615 @@
+<style>
+.col-page{max-width:1440px;margin:0 auto;}
+
+/* HERO */
+.col-hero{position:relative;height:200px;overflow:hidden;}
+.col-hero img{width:100%;height:100%;object-fit:cover;}
+.col-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(10,30,10,.88) 100%);display:flex;align-items:flex-end;padding:20px 24px;}
+.col-hero-fallback{background:linear-gradient(135deg,#1A3C1A,#2D5A2D);padding:28px 24px;display:flex;align-items:center;gap:14px;}
+.col-hero h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#fff;margin-bottom:4px;}
+.col-hero-meta{font-size:13px;color:rgba(255,255,255,.55);}
+
+/* TOOLBAR */
+.col-toolbar{padding:10px 16px;display:flex;gap:8px;border-bottom:1px solid #EDEAD8;background:#fff;position:sticky;top:0;z-index:50;}
+.toolbar-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 14px;border:1px solid #E0DDD6;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#555;background:#fff;cursor:pointer;flex:1;transition:all .15s;}
+.toolbar-btn:hover{border-color:#1A3C1A;color:#1A3C1A;}
+.toolbar-btn.has-filter{border-color:#1A3C1A;color:#1A3C1A;background:rgba(26,60,26,.05);}
+.tb-badge{background:#1A3C1A;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;}
+.toolbar-view{width:40px;height:40px;padding:0;flex:none;}
+
+/* ACTIVE CHIPS */
+.col-chips{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid #F5F2EC;}
+.col-chips::-webkit-scrollbar{display:none;}
+.col-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(26,60,26,.07);border:1px solid rgba(26,60,26,.2);border-radius:20px;padding:4px 11px;font-size:11px;font-weight:600;color:#1A3C1A;white-space:nowrap;flex-shrink:0;}
+.col-chip button{background:none;border:none;cursor:pointer;color:#1A3C1A;opacity:.7;padding:0;display:flex;align-items:center;font-size:13px;}
+
+/* COLLECTION DESCRIPTION */
+.col-desc{padding:14px 16px 0;font-size:14px;color:#666;line-height:1.7;max-width:680px;}
+
+/* GRID */
+.col-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 16px;}
+.col-grid.list-view{grid-template-columns:1fr;}
+
+/* PRODUCT CARDS */
+.prod-card{background:#fff;border:1px solid #EDEAD8;border-radius:14px;overflow:hidden;transition:all .2s;text-decoration:none;display:block;position:relative;}
+.prod-card:hover{border-color:#1A3C1A;box-shadow:0 4px 20px rgba(26,60,26,.08);}
+.prod-img{aspect-ratio:1;overflow:hidden;background:#F8F5EF;display:flex;align-items:center;justify-content:center;position:relative;}
+.prod-img img{width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .3s;}
+.prod-card:hover .prod-img img{transform:scale(1.04);}
+.prod-img-placeholder{font-size:40px;}
+.prod-img-badges{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;}
+.pbadge{font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;display:inline-block;}
+.pbadge-sale{background:#FDE8E8;color:#A32D2D;}
+.pbadge-new{background:#E8F4E8;color:#1A3C1A;}
+.pbadge-halal{background:#E8F0E8;color:#1A3C1A;}
+.pbadge-bio{background:#EBF5E8;color:#2D6A2D;}
+.pbadge-vegan{background:#EBF5E8;color:#2D6A2D;}
+.prod-add{position:absolute;bottom:8px;right:8px;width:32px;height:32px;background:#1A3C1A;border:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;z-index:2;}
+.prod-add:hover{background:#2D5A2D;transform:scale(1.05);}
+.prod-add svg{width:15px;height:15px;fill:#fff;}
+.prod-body{padding:10px 10px 12px;}
+.prod-vendor{font-size:9px;color:#AAA;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;}
+.prod-title{font-size:12px;font-weight:600;color:#1C1C1C;margin-bottom:8px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.prod-prices{display:flex;align-items:baseline;gap:5px;}
+.prod-price{font-size:15px;font-weight:700;color:#1C1C1C;}
+.prod-compare{font-size:11px;color:#BBB;text-decoration:line-through;}
+
+/* LIST VIEW */
+.list-view .prod-card{display:flex;}
+.list-view .prod-img{width:90px;height:90px;aspect-ratio:unset;flex-shrink:0;border-radius:10px 0 0 10px;}
+.list-view .prod-body{flex:1;padding:12px;}
+.list-view .prod-title{-webkit-line-clamp:3;font-size:13px;}
+.list-view .prod-add{position:static;margin-left:auto;width:34px;height:34px;}
+
+/* PAGINATION */
+.col-pagination{display:flex;justify-content:center;align-items:center;gap:8px;padding:28px 16px 40px;flex-wrap:wrap;}
+.pag-btn{padding:9px 16px;border:1px solid #E0DDD6;border-radius:9px;font-size:13px;font-weight:600;color:#555;text-decoration:none;transition:all .15s;}
+.pag-btn:hover{border-color:#1A3C1A;color:#1A3C1A;}
+.pag-btn.active{background:#1A3C1A;border-color:#1A3C1A;color:#fff;}
+
+/* EMPTY */
+.col-empty{text-align:center;padding:60px 20px;}
+.col-empty-icon{font-size:48px;margin-bottom:16px;}
+.col-empty h3{font-family:'Playfair Display',serif;font-size:20px;color:#1C1C1C;margin-bottom:8px;}
+.col-empty p{font-size:13px;color:#888;margin-bottom:20px;}
+.col-empty a{display:inline-flex;background:#1A3C1A;color:#fff;padding:12px 24px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;}
+
+/* ═══ FILTER DRAWER ═══ */
+.fd-overlay{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:200;display:none;transition:background .25s;}
+.fd-overlay.open{display:block;background:rgba(0,0,0,.45);}
+.fd-drawer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .3s cubic-bezier(.22,.61,.36,1);z-index:201;}
+.fd-overlay.open .fd-drawer{transform:translateY(0);}
+.fd-handle{width:36px;height:4px;background:#E0DDD6;border-radius:2px;margin:12px auto 0;flex-shrink:0;}
+.fd-header{padding:14px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #F0EDE5;flex-shrink:0;}
+.fd-title{font-size:15px;font-weight:700;color:#1C1C1C;}
+.fd-reset{font-size:12px;font-weight:600;color:#1A3C1A;background:none;border:none;cursor:pointer;padding:4px 8px;}
+.fd-body{overflow-y:auto;flex:1;scrollbar-width:thin;padding-bottom:100px;}
+.fd-body::-webkit-scrollbar{width:3px;}
+.fd-body::-webkit-scrollbar-thumb{background:#E0DDD6;border-radius:2px;}
+
+.fd-section{border-bottom:1px solid #F5F2EC;}
+.fd-section-btn{width:100%;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:none;border:none;cursor:pointer;text-align:left;}
+.fd-section-label{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;}
+.fd-section-right{display:flex;align-items:center;gap:8px;}
+.fd-section-val{font-size:12px;color:#1A3C1A;font-weight:600;}
+.fd-chevron{font-size:16px;color:#BBB;transition:transform .2s;}
+.fd-section-btn.open .fd-chevron{transform:rotate(180deg);}
+.fd-content{padding:0 20px 16px;display:none;}
+.fd-content.open{display:block;}
+
+/* Sort options */
+.fd-sort-opts{display:flex;flex-direction:column;gap:3px;}
+.fd-sort-opt{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background .15s;}
+.fd-sort-opt:hover{background:#F8F5EF;}
+.fd-sort-opt.sel{background:rgba(26,60,26,.06);}
+.fd-radio{width:18px;height:18px;border-radius:50%;border:2px solid #E0DDD6;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .15s;}
+.fd-sort-opt.sel .fd-radio{border-color:#1A3C1A;}
+.fd-radio-dot{width:9px;height:9px;border-radius:50%;background:#1A3C1A;display:none;}
+.fd-sort-opt.sel .fd-radio-dot{display:block;}
+.fd-sort-label{font-size:13px;color:#1C1C1C;}
+
+/* Price slider */
+.fd-price-labels{display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:10px;}
+.fd-slider{width:100%;accent-color:#1A3C1A;height:4px;}
+
+/* Tag pills */
+.fd-tags{display:flex;flex-wrap:wrap;gap:7px;}
+.fd-tag{display:inline-flex;align-items:center;padding:7px 14px;border:1px solid #E0DDD6;border-radius:20px;font-size:12px;font-weight:500;color:#555;cursor:pointer;transition:all .15s;}
+.fd-tag:hover{border-color:#1A3C1A;color:#1A3C1A;}
+.fd-tag.on{background:rgba(26,60,26,.08);border-color:#1A3C1A;color:#1A3C1A;font-weight:600;}
+
+/* Brand checkboxes */
+.fd-brands{display:flex;flex-direction:column;gap:2px;}
+.fd-brand{display:flex;align-items:center;gap:12px;padding:9px 14px;border-radius:10px;cursor:pointer;transition:background .15s;}
+.fd-brand:hover{background:#F8F5EF;}
+.fd-chk{width:20px;height:20px;border-radius:6px;border:1.5px solid #E0DDD6;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.fd-brand.on .fd-chk{background:#1A3C1A;border-color:#1A3C1A;}
+.fd-chk-icon{display:none;width:12px;height:12px;}
+.fd-chk-icon path{fill:#fff;}
+.fd-brand.on .fd-chk-icon{display:block;}
+.fd-brand-name{font-size:13px;color:#1C1C1C;flex:1;}
+.fd-brand-cnt{font-size:11px;color:#BBB;}
+
+/* Availability toggle */
+.fd-avail{display:flex;gap:8px;}
+.fd-avail-opt{flex:1;padding:10px;border:1.5px solid #E0DDD6;border-radius:10px;text-align:center;font-size:13px;font-weight:500;color:#555;cursor:pointer;transition:all .15s;}
+.fd-avail-opt.on{border-color:#1A3C1A;background:rgba(26,60,26,.06);color:#1A3C1A;}
+
+/* FOOTER CTA */
+.fd-footer{position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;background:#fff;border-top:1px solid #EDEAD8;z-index:210;display:none;gap:10px;}
+.fd-apply{width:100%;padding:15px;background:#1A3C1A;color:#fff;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s;}
+.fd-apply:hover{background:#2D5A2D;}
+
+@media(max-width:480px){
+  .col-grid{grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;}
+  .prod-body{padding:8px 8px 10px;}
+  .prod-title{font-size:11px;}
+  .prod-price{font-size:14px;}
+}
+@media(min-width:768px){
+  .col-grid{grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 24px;}
+  .col-toolbar{padding:12px 24px;}
+  .col-chips{padding:10px 24px;}
+  .fd-drawer{max-width:440px;left:auto;}
+}
+@media(min-width:1024px){
+  .col-grid{grid-template-columns:repeat(4,1fr);}
+}
+@media(min-width:1280px){
+  .col-grid{grid-template-columns:repeat(5,1fr);}
+}
+</style>
+
+<div class="col-page">
+
+  <!-- HERO -->
+  {% if collection.image %}
+    <div class="col-hero">
+      <img src="{{ collection.image | image_url: width: 1400 }}" alt="{{ collection.title }}" loading="eager">
+      <div class="col-hero-overlay">
+        <div>
+          <h1>{{ collection.title }}</h1>
+          <div class="col-hero-meta">{{ collection.products_count }} produit{% if collection.products_count != 1 %}s{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-hero-fallback">
+      <div>
+        <h1 style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff;margin-bottom:4px;">{{ collection.title }}</h1>
+        <div class="col-hero-meta">{{ collection.products_count }} produit{% if collection.products_count != 1 %}s{% endif %}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- DESCRIPTION -->
+  {%- if collection.description != blank -%}
+    <div class="col-desc">{{ collection.description }}</div>
+  {%- endif -%}
+
+  <!-- TOOLBAR -->
+  <div class="col-toolbar">
+    <button class="toolbar-btn" id="fd-open-btn" onclick="fdOpen()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>
+      Filtrer
+      <span id="fd-badge" class="tb-badge" style="display:none;"></span>
+    </button>
+    <button class="toolbar-btn" onclick="fdOpenSort()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+      Trier
+    </button>
+    <button class="toolbar-btn toolbar-view" id="view-toggle-btn" onclick="toggleView()" title="Changer la vue">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="view-icon-grid"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="view-icon-list" style="display:none;"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- ACTIVE FILTER CHIPS -->
+  <div class="col-chips" id="col-chips" style="display:none;"></div>
+
+  <!-- PRODUCTS GRID -->
+  {%- paginate collection.products by 24 -%}
+  <div class="col-grid" id="col-grid">
+    {%- for product in collection.products -%}
+      <a href="{{ product.url }}" class="prod-card">
+        <div class="prod-img">
+          {%- if product.featured_image -%}
+            <img src="{{ product.featured_image | image_url: width: 400 }}" alt="{{ product.title }}" loading="lazy">
+          {%- else -%}
+            <div class="prod-img-placeholder">🛒</div>
+          {%- endif -%}
+          <div class="prod-img-badges">
+            {%- if product.compare_at_price > product.price -%}
+              {%- assign discount = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price -%}
+              <span class="pbadge pbadge-sale">-{{ discount }}%</span>
+            {%- endif -%}
+            {%- assign tags_lower = product.tags | join: ',' | downcase -%}
+            {%- if tags_lower contains 'halal' -%}<span class="pbadge pbadge-halal">Halal ✓</span>{%- endif -%}
+            {%- if tags_lower contains 'bio' or tags_lower contains 'biologique' -%}<span class="pbadge pbadge-bio">Bio</span>{%- endif -%}
+            {%- if tags_lower contains 'vegan' -%}<span class="pbadge pbadge-vegan">Vegan</span>{%- endif -%}
+            {%- if tags_lower contains 'nouveau' or tags_lower contains 'new' -%}<span class="pbadge pbadge-new">Nouveau</span>{%- endif -%}
+          </div>
+          <button class="prod-add" data-variant="{{ product.variants.first.id }}" onclick="event.preventDefault();mmAddToCart(this)" aria-label="Ajouter au panier">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
+        </div>
+        <div class="prod-body">
+          <div class="prod-vendor">{{ product.vendor }}</div>
+          <div class="prod-title">{{ product.title }}</div>
+          <div class="prod-prices">
+            <span class="prod-price">{{ product.price | money }}</span>
+            {%- if product.compare_at_price > product.price -%}
+              <span class="prod-compare">{{ product.compare_at_price | money }}</span>
+            {%- endif -%}
+          </div>
+        </div>
+      </a>
+    {%- else -%}
+      <div style="grid-column:1/-1;">
+        <div class="col-empty">
+          <div class="col-empty-icon">🔍</div>
+          <h3>Aucun produit trouvé</h3>
+          <p>Essayez de modifier vos filtres ou explorez toutes nos collections.</p>
+          <a href="/collections/all">Voir tous les produits</a>
+        </div>
+      </div>
+    {%- endfor -%}
+  </div>
+
+  <!-- PAGINATION -->
+  {%- if paginate.pages > 1 -%}
+    <div class="col-pagination">
+      {%- if paginate.previous -%}
+        <a href="{{ paginate.previous.url }}" class="pag-btn">← Précédent</a>
+      {%- endif -%}
+      {%- for part in paginate.parts -%}
+        {%- if part.is_link -%}
+          <a href="{{ part.url }}" class="pag-btn">{{ part.title }}</a>
+        {%- else -%}
+          {%- if part.title == paginate.current_page -%}
+            <span class="pag-btn active">{{ part.title }}</span>
+          {%- else -%}
+            <span class="pag-btn" style="color:#BBB;cursor:default;">…</span>
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if paginate.next -%}
+        <a href="{{ paginate.next.url }}" class="pag-btn">Suivant →</a>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+  {%- endpaginate -%}
+
+</div>
+
+<!-- ═══ FILTER DRAWER ═══ -->
+<div class="fd-overlay" id="fd-overlay" onclick="fdOverlayClick(event)">
+  <div class="fd-drawer" id="fd-drawer">
+    <div class="fd-handle"></div>
+    <div class="fd-header">
+      <div class="fd-title">Filtres & Tri</div>
+      <button class="fd-reset" onclick="fdReset()">Tout effacer</button>
+    </div>
+    <div class="fd-body" id="fd-body">
+
+      <!-- SORT -->
+      <div class="fd-section">
+        <button class="fd-section-btn open" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Trier par</span>
+          <div class="fd-section-right">
+            <span class="fd-section-val" id="sort-val">Pertinence</span>
+            <span class="fd-chevron">▾</span>
+          </div>
+        </button>
+        <div class="fd-content open">
+          <div class="fd-sort-opts">
+            <div class="fd-sort-opt sel" onclick="fdSort(this,'Pertinence','')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Pertinence</span></div>
+            <div class="fd-sort-opt" onclick="fdSort(this,'Prix ↑','price-ascending')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Prix croissant</span></div>
+            <div class="fd-sort-opt" onclick="fdSort(this,'Prix ↓','price-descending')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Prix décroissant</span></div>
+            <div class="fd-sort-opt" onclick="fdSort(this,'Nouveautés','created-descending')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Nouveautés d'abord</span></div>
+            <div class="fd-sort-opt" onclick="fdSort(this,'Meilleures ventes','best-selling')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Meilleures ventes</span></div>
+            <div class="fd-sort-opt" onclick="fdSort(this,'A → Z','title-ascending')"><div class="fd-radio"><div class="fd-radio-dot"></div></div><span class="fd-sort-label">Nom A → Z</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRICE -->
+      <div class="fd-section">
+        <button class="fd-section-btn open" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Prix maximum</span>
+          <div class="fd-section-right">
+            <span class="fd-section-val" id="price-val">200€</span>
+            <span class="fd-chevron">▾</span>
+          </div>
+        </button>
+        <div class="fd-content open">
+          <div class="fd-price-labels"><span>0€</span><span id="price-display">200€</span></div>
+          <input type="range" class="fd-slider" id="price-slider" min="0" max="500" value="200" step="5"
+            oninput="fdPriceChange(this.value)">
+        </div>
+      </div>
+
+      <!-- DISPONIBILITÉ -->
+      <div class="fd-section">
+        <button class="fd-section-btn open" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Disponibilité</span>
+          <div class="fd-section-right"><span class="fd-chevron">▾</span></div>
+        </button>
+        <div class="fd-content open">
+          <div class="fd-avail">
+            <div class="fd-avail-opt on" onclick="fdAvail(this,'instock')">En stock</div>
+            <div class="fd-avail-opt" onclick="fdAvail(this,'all')">Tout afficher</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RÉGIME ALIMENTAIRE -->
+      <div class="fd-section">
+        <button class="fd-section-btn" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Régime alimentaire</span>
+          <div class="fd-section-right"><span class="fd-chevron">▾</span></div>
+        </button>
+        <div class="fd-content">
+          <div class="fd-tags">
+            <div class="fd-tag" onclick="fdToggleTag(this,'halal')">Halal ✅</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'vegan')">Vegan 🌿</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'bio')">Bio 🌱</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'sans-gluten')">Sans gluten</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'sans-sucre')">Sans sucre</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'vegetarien')">Végétarien</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'sans-lactose')">Sans lactose</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUISINE -->
+      <div class="fd-section">
+        <button class="fd-section-btn" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Cuisine du monde</span>
+          <div class="fd-section-right"><span class="fd-chevron">▾</span></div>
+        </button>
+        <div class="fd-content">
+          <div class="fd-tags">
+            <div class="fd-tag" onclick="fdToggleTag(this,'turque')">🇹🇷 Turque</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'francaise')">🇫🇷 Française</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'italienne')">🇮🇹 Italienne</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'maghrebine')">🇲🇦 Maghrébine</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'espagnole')">🇪🇸 Espagnole</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'portugaise')">🇵🇹 Portugaise</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'asiatique')">🌏 Asiatique</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOUS-CATÉGORIE -->
+      <div class="fd-section">
+        <button class="fd-section-btn" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Sous-catégorie</span>
+          <div class="fd-section-right"><span class="fd-chevron">▾</span></div>
+        </button>
+        <div class="fd-content">
+          <div class="fd-tags">
+            <div class="fd-tag" onclick="fdToggleTag(this,'epices')">Épices</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'conserves')">Conserves</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'pates')">Pâtes & Riz</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'huiles')">Huiles</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'thes')">Thés & Cafés</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'sucreries')">Sucreries</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'fruits-secs')">Fruits secs</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'sauces')">Sauces</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'boissons')">Boissons</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'snacks')">Snacks</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'fromages')">Fromages</div>
+            <div class="fd-tag" onclick="fdToggleTag(this,'poissons')">Poissons</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MARQUE -->
+      <div class="fd-section">
+        <button class="fd-section-btn" onclick="fdToggleSection(this)">
+          <span class="fd-section-label">Marque</span>
+          <div class="fd-section-right"><span class="fd-chevron">▾</span></div>
+        </button>
+        <div class="fd-content">
+          <div class="fd-brands" id="fd-brands">
+            {%- assign vendors = collection.products | map: 'vendor' | uniq | sort -%}
+            {%- for vendor in vendors -%}
+              {%- unless vendor == blank -%}
+                <div class="fd-brand" onclick="fdToggleBrand(this,'{{ vendor | escape }}')">
+                  <div class="fd-chk">
+                    <svg class="fd-chk-icon" viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+                  </div>
+                  <span class="fd-brand-name">{{ vendor }}</span>
+                </div>
+              {%- endunless -%}
+            {%- endfor -%}
+          </div>
+        </div>
+      </div>
+
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER APPLY BUTTON -->
+<div class="fd-footer" id="fd-footer" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;background:#fff;border-top:1px solid #EDEAD8;z-index:210;display:flex;gap:10px;">
+  <button onclick="fdClose()" style="flex:1;padding:14px;background:#F5F5F5;color:#333;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">
+    ✕ Fermer
+  </button>
+  <button class="fd-apply" onclick="fdApply()" style="flex:2;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+    Voir les résultats
+  </button>
+</div>
+
+<script>
+(function() {
+  var activeTags = [];
+  var activeBrands = [];
+  var activeSort = '';
+  var activePrice = 200;
+  var isListView = false;
+
+  window.fdOpen = function() {
+    document.getElementById('fd-overlay').classList.add('open');
+    document.getElementById('fd-footer').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+  window.fdOpenSort = function() { fdOpen(); };
+  window.fdOverlayClick = function(e) {
+    if (e.target === document.getElementById('fd-overlay')) fdClose();
+  };
+  function fdClose() {
+    document.getElementById('fd-overlay').classList.remove('open');
+    document.getElementById('fd-footer').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  window.fdApply = function() {
+    var params = new URLSearchParams(window.location.search);
+    if (activeSort) params.set('sort_by', activeSort);
+    else params.delete('sort_by');
+    var tagStr = activeTags.concat(activeBrands.map(function(b){return 'vendor:'+b;})).join('+');
+    if (tagStr) params.set('filter.p.tag', tagStr);
+    else params.delete('filter.p.tag');
+    if (activePrice < 500) params.set('filter.v.price.lte', activePrice);
+    else params.delete('filter.v.price.lte');
+    var url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.location.href = url;
+  };
+  window.fdReset = function() {
+    activeTags = []; activeBrands = []; activeSort = ''; activePrice = 200;
+    document.querySelectorAll('.fd-tag.on').forEach(function(e){e.classList.remove('on');});
+    document.querySelectorAll('.fd-brand.on').forEach(function(e){
+      e.classList.remove('on');
+      e.querySelector('.fd-chk-icon').style.display='none';
+    });
+    document.querySelectorAll('.fd-sort-opt').forEach(function(e,i){
+      e.classList.toggle('sel',i===0);
+    });
+    document.getElementById('sort-val').textContent='Pertinence';
+    document.getElementById('price-slider').value=200;
+    document.getElementById('price-display').textContent='200€';
+    document.getElementById('price-val').textContent='200€';
+    updateBadge();
+  };
+  window.fdToggleSection = function(btn) {
+    btn.classList.toggle('open');
+    var content = btn.nextElementSibling;
+    content.classList.toggle('open');
+  };
+  window.fdSort = function(el, label, val) {
+    document.querySelectorAll('.fd-sort-opt').forEach(function(e){e.classList.remove('sel');});
+    el.classList.add('sel');
+    activeSort = val;
+    document.getElementById('sort-val').textContent = label;
+  };
+  window.fdPriceChange = function(val) {
+    activePrice = parseInt(val);
+    document.getElementById('price-display').textContent = val + '€';
+    document.getElementById('price-val').textContent = val + '€';
+    updateBadge();
+  };
+  window.fdAvail = function(el, val) {
+    document.querySelectorAll('.fd-avail-opt').forEach(function(e){e.classList.remove('on');});
+    el.classList.add('on');
+  };
+  window.fdToggleTag = function(el, tag) {
+    el.classList.toggle('on');
+    var idx = activeTags.indexOf(tag);
+    if (idx > -1) activeTags.splice(idx, 1);
+    else activeTags.push(tag);
+    updateBadge(); updateChips();
+  };
+  window.fdToggleBrand = function(el, brand) {
+    el.classList.toggle('on');
+    var icon = el.querySelector('.fd-chk-icon');
+    if (el.classList.contains('on')) {
+      icon.style.display = 'block';
+      activeBrands.push(brand);
+    } else {
+      icon.style.display = 'none';
+      var idx = activeBrands.indexOf(brand);
+      if (idx > -1) activeBrands.splice(idx, 1);
+    }
+    updateBadge(); updateChips();
+  };
+  function updateBadge() {
+    var n = activeTags.length + activeBrands.length + (activePrice < 500 ? 1 : 0);
+    var badge = document.getElementById('fd-badge');
+    var btn = document.getElementById('fd-open-btn');
+    if (n > 0) {
+      badge.style.display = 'inline';
+      badge.textContent = n;
+      btn.classList.add('has-filter');
+    } else {
+      badge.style.display = 'none';
+      btn.classList.remove('has-filter');
+    }
+  }
+  function updateChips() {
+    var chips = document.getElementById('col-chips');
+    var all = activeTags.concat(activeBrands);
+    if (all.length === 0) { chips.style.display = 'none'; return; }
+    chips.style.display = 'flex';
+    chips.innerHTML = all.map(function(tag) {
+      return '<div class="col-chip">' + tag +
+        '<button onclick="removeChip(\''+tag+'\')" aria-label="Supprimer">×</button></div>';
+    }).join('');
+  }
+  window.removeChip = function(tag) {
+    var tagEl = document.querySelector('.fd-tag.on[onclick*="\''+tag+'\'"]');
+    if (tagEl) { tagEl.classList.remove('on'); fdToggleTag(tagEl, tag); }
+    var brandEl = document.querySelector('.fd-brand.on[onclick*="\''+tag+'\'"]');
+    if (brandEl) { fdToggleBrand(brandEl, tag); }
+    updateChips();
+  };
+  window.toggleView = function() {
+    isListView = !isListView;
+    var grid = document.getElementById('col-grid');
+    grid.classList.toggle('list-view', isListView);
+    document.getElementById('view-icon-grid').style.display = isListView ? 'none' : 'block';
+    document.getElementById('view-icon-list').style.display = isListView ? 'block' : 'none';
+  };
+
+  // Quick add to cart
+  window.mmAddToCart = function(btn) {
+    var vid = btn.getAttribute('data-variant');
+    if (!vid) return;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+    btn.style.background = '#2D6A2D';
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify({id: vid, quantity: 1})
+    }).then(function(r){ return r.json(); }).then(function() {
+      setTimeout(function() {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+        btn.style.background = '#1A3C1A';
+      }, 1200);
+    }).catch(function(){
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+      btn.style.background = '#1A3C1A';
+    });
+  };
+
+  // Read URL params on load
+  var params = new URLSearchParams(window.location.search);
+  var urlTags = params.get('filter.p.tag');
+  if (urlTags) {
+    urlTags.split('+').forEach(function(tag) {
+      activeTags.push(tag);
+      var el = document.querySelector('.fd-tag[onclick*="\''+tag+'\'"]');
+      if (el) el.classList.add('on');
+    });
+    updateBadge(); updateChips();
+  }
+})();
+</script>
+
+<style>
+@media(max-width:767px){
+  .col-grid{grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;}
+}
+</style>
