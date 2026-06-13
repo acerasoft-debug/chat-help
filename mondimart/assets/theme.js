@@ -114,31 +114,71 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = document.getElementById('cart-items-container');
       if (!container) return;
       if (cart.item_count === 0) {
-        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--tl)"><div style="font-size:52px;margin-bottom:14px">🛒</div><p style="font-size:15px;font-weight:600;color:var(--tm);margin-bottom:6px">Panier vide</p><p style="font-size:13px;margin-bottom:18px">Découvrez nos produits du monde</p><a href="/collections/all" class="btn-primary" style="display:inline-flex">Explorer →</a></div>`;
+        container.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--tl)"><div style="font-size:52px;margin-bottom:14px">🛒</div><p style="font-size:15px;font-weight:600;color:var(--tm);margin-bottom:6px">Panier vide</p><p style="font-size:13px;margin-bottom:18px">Découvrez nos produits du monde</p><a href="/collections/all" style="display:inline-flex;background:var(--gl);color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Explorer →</a></div>`;
+        updateCartFooter(cart);
         return;
       }
       container.innerHTML = cart.items.map((item, i) => `
         <div class="cart-item">
-          <a href="${item.url}" onclick="cartOverlay.classList.remove('open');cartDrawer.classList.remove('open');document.body.style.overflow='';" class="cart-item-img" style="text-decoration:none;display:block;cursor:pointer;">
-            ${item.image ? `<img src="${item.image}" alt="${item.title}">` : ''}
+          <a href="${item.url}" onclick="window.closeCartDrawer&&window.closeCartDrawer()" class="cart-item-img" style="text-decoration:none;display:block;cursor:pointer;">
+            ${item.image ? `<img src="${item.image}" alt="${item.title}" loading="lazy">` : '<div style="width:100%;height:100%;background:var(--cr);display:flex;align-items:center;justify-content:center;font-size:28px">🛒</div>'}
           </a>
           <div class="cart-item-info">
-            <a href="${item.url}" onclick="cartOverlay.classList.remove('open');cartDrawer.classList.remove('open');document.body.style.overflow='';" style="text-decoration:none;">
+            <a href="${item.url}" onclick="window.closeCartDrawer&&window.closeCartDrawer()" style="text-decoration:none;">
               <div class="cart-item-name" style="color:inherit;">${item.product_title}</div>
             </a>
-            <div class="cart-item-variant">${(item.variant_title && item.variant_title !== "Default Title" && item.variant_title !== "null") ? item.variant_title : ""}</div>
+            ${(item.variant_title && item.variant_title !== "Default Title") ? `<div class="cart-item-variant">${item.variant_title}</div>` : ''}
             <div class="cart-item-price">${formatMoney(item.final_line_price)}</div>
             <div class="cart-qty">
-              <button class="qty-btn" onclick="changeQty(${i + 1}, -1)">−</button>
+              <button class="qty-btn" onclick="window.changeQty(${i + 1}, -1)">−</button>
               <span>${item.quantity}</span>
-              <button class="qty-btn" onclick="changeQty(${i + 1}, 1)">+</button>
+              <button class="qty-btn" onclick="window.changeQty(${i + 1}, 1)">+</button>
+              <button class="qty-btn" onclick="window.removeCartItem(${i + 1})" style="margin-left:4px;color:#c0392b;font-size:16px;opacity:.7" aria-label="Supprimer">🗑</button>
             </div>
           </div>
         </div>`).join('');
-      document.querySelector('.cart-header h3').innerHTML = `Panier <span style="opacity:.7">(${cart.item_count})</span>`;
-      document.querySelector('.cart-total span:last-child').textContent = formatMoney(cart.total_price);
+      updateCartFooter(cart);
     });
   }
+
+  function updateCartFooter(cart) {
+    const threshold = 4900;
+    // Header count
+    const hdr = document.querySelector('.cart-header h3');
+    if (hdr) hdr.innerHTML = `Mon Panier <span style="opacity:.6;font-weight:400">(${cart.item_count})</span>`;
+    // Subtotal rows
+    const subtotalRows = document.querySelectorAll('.cart-subtotal');
+    if (subtotalRows[0]) {
+      const v = subtotalRows[0].querySelector('span:last-child');
+      if (v) v.textContent = formatMoney(cart.items_subtotal_price || cart.total_price);
+    }
+    if (subtotalRows[1]) {
+      const v = subtotalRows[1].querySelector('span:last-child');
+      if (v) v.style.color = 'var(--gl)';
+      if (v) v.textContent = cart.total_price >= threshold ? 'Gratuite 🎁' : 'Calculée ensuite';
+    }
+    // Total
+    const totalEl = document.querySelector('.cart-total span:last-child');
+    if (totalEl) totalEl.textContent = formatMoney(cart.total_price);
+    // Free shipping progress bar
+    const progressBar = document.querySelector('.cart-progress-inner');
+    if (progressBar) {
+      const pct = Math.min(100, Math.round(cart.total_price * 100 / threshold));
+      progressBar.style.width = pct + '%';
+    }
+    // Progress text
+    const progressText = document.getElementById('cart-progress-text');
+    if (progressText) {
+      if (cart.total_price >= threshold) {
+        progressText.innerHTML = '🎁 Livraison gratuite débloquée !';
+      } else {
+        const rem = formatMoney(threshold - cart.total_price);
+        progressText.innerHTML = `Plus que <strong>${rem}</strong> pour la livraison gratuite`;
+      }
+    }
+  }
+
+  window.refreshCart = refreshCart;
 
   window.changeQty = function(line, delta) {
     var btns = document.querySelectorAll('.qty-btn');

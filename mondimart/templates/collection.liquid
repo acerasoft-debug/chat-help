@@ -34,7 +34,7 @@
 .prod-card{background:#fff;border:1px solid #EDEAD8;border-radius:14px;overflow:hidden;transition:all .2s;text-decoration:none;display:block;position:relative;}
 .prod-card:hover{border-color:#1A3C1A;box-shadow:0 4px 20px rgba(26,60,26,.08);}
 .prod-img{aspect-ratio:1;overflow:hidden;background:#F8F5EF;display:flex;align-items:center;justify-content:center;position:relative;}
-.prod-img img{width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .3s;}
+.prod-img img{width:100%;height:100%;object-fit:cover;object-position:center;transition:transform .3s, opacity .15s;}
 .prod-card:hover .prod-img img{transform:scale(1.04);}
 .prod-img-placeholder{font-size:40px;}
 .prod-img-badges{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;}
@@ -212,9 +212,13 @@
   <div class="col-grid" id="col-grid">
     {%- for product in collection.products -%}
       <a href="{{ product.url }}" class="prod-card">
-        <div class="prod-img">
+        <div class="prod-img" data-swipe-container
+          {%- if product.images.size > 1 -%}
+            data-img0="{{ product.images[0] | image_url: width: 400 }}"
+            data-img1="{{ product.images[1] | image_url: width: 400 }}"
+          {%- endif -%}>
           {%- if product.featured_image -%}
-            <img src="{{ product.featured_image | image_url: width: 400 }}" alt="{{ product.title }}" loading="lazy">
+            <img src="{{ product.featured_image | image_url: width: 400 }}" alt="{{ product.title }}" loading="lazy" class="prod-main-img">
           {%- else -%}
             <div class="prod-img-placeholder">🛒</div>
           {%- endif -%}
@@ -577,22 +581,70 @@
   window.mmAddToCart = function(btn) {
     var vid = btn.getAttribute('data-variant');
     if (!vid) return;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" fill="none"/><path d="M12 8v8M8 12h8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
     btn.style.background = '#2D6A2D';
+    btn.disabled = true;
     fetch('/cart/add.js', {
       method: 'POST',
       headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-      body: JSON.stringify({id: vid, quantity: 1})
+      body: JSON.stringify({id: parseInt(vid), quantity: 1})
     }).then(function(r){ return r.json(); }).then(function() {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+      btn.style.background = '#2D6A2D';
+      // Immediately refresh cart and open drawer
+      if (window.refreshCart) window.refreshCart();
+      if (window.openCartDrawer) window.openCartDrawer();
       setTimeout(function() {
         btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
         btn.style.background = '#1A3C1A';
-      }, 1200);
+        btn.disabled = false;
+      }, 1500);
     }).catch(function(){
       btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-      btn.style.background = '#1A3C1A';
+      btn.style.background = '#C0392B';
+      btn.disabled = false;
+      setTimeout(function(){ btn.style.background = '#1A3C1A'; }, 2000);
     });
   };
+
+  // Mobile image swipe on product cards
+  (function() {
+    var startX = 0;
+    document.addEventListener('touchstart', function(e) {
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+    document.addEventListener('touchend', function(e) {
+      var dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) < 40) return;
+      var container = e.target.closest('[data-swipe-container]');
+      if (!container) return;
+      var img = container.querySelector('.prod-main-img');
+      if (!img) return;
+      var img0 = container.dataset.img0;
+      var img1 = container.dataset.img1;
+      if (!img0 || !img1) return;
+      var showing0 = img.src.indexOf(img0.split('?')[0].split('/').pop()) !== -1 || !container._showingAlt;
+      if (dx < 0 && showing0) {
+        img.style.opacity = '0';
+        img.style.transform = 'scale(.95)';
+        setTimeout(function() {
+          img.src = img1;
+          img.style.opacity = '1';
+          img.style.transform = 'scale(1)';
+        }, 150);
+        container._showingAlt = true;
+      } else if (dx > 0 && !showing0) {
+        img.style.opacity = '0';
+        img.style.transform = 'scale(.95)';
+        setTimeout(function() {
+          img.src = img0;
+          img.style.opacity = '1';
+          img.style.transform = 'scale(1)';
+        }, 150);
+        container._showingAlt = false;
+      }
+    }, { passive: true });
+  })();
 
   // Read URL params on load
   var params = new URLSearchParams(window.location.search);

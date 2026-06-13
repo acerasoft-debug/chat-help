@@ -1,20 +1,95 @@
-<div style="max-width:460px;margin:60px auto;padding:0 32px">
-  <h1 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#1C1C1C;margin-bottom:28px;text-align:center">Se connecter</h1>
-  {% form 'customer_login' %}
-    {% if form.errors %}
-      <div style="background:#FDECEA;color:#C0392B;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">{{ form.errors | default_errors }}</div>
-    {% endif %}
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Email</label>
-      <input type="email" name="customer[email]" style="width:100%;height:44px;padding:0 16px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none">
+<style>
+.auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 40px 16px; background: var(--cr); }
+.auth-card { background: #fff; border-radius: 20px; padding: 44px 40px; width: 100%; max-width: 440px; box-shadow: 0 8px 48px rgba(0,0,0,.1); }
+.auth-logo { text-align: center; margin-bottom: 28px; }
+.auth-logo-icon { width: 52px; height: 52px; background: var(--gd); border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+.auth-logo-icon svg { width: 28px; height: 28px; fill: #fff; }
+.auth-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: var(--td); margin-bottom: 6px; }
+.auth-sub { font-size: 14px; color: var(--tl); }
+.auth-error { background: #FDE8E8; color: #C0392B; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; border: 1px solid #F5C6C6; }
+.auth-field { margin-bottom: 18px; }
+.auth-label { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 600; color: var(--tm); margin-bottom: 7px; }
+.auth-label a { color: var(--gl); font-weight: 500; }
+.auth-input-wrap { position: relative; }
+.auth-input { width: 100%; height: 48px; padding: 0 46px 0 16px; border: 1.5px solid var(--bo); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--td); outline: none; transition: border-color .2s, box-shadow .2s; background: #fff; }
+.auth-input:focus { border-color: var(--gl); box-shadow: 0 0 0 3px rgba(74,140,63,.1); }
+.auth-input-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: var(--tl); pointer-events: none; }
+.auth-eye { pointer-events: all !important; cursor: pointer; }
+.auth-submit { width: 100%; height: 50px; background: var(--gd); color: #fff; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s, transform .1s; margin-top: 4px; letter-spacing: .3px; }
+.auth-submit:hover { background: var(--gm); }
+.auth-submit:active { transform: scale(.99); }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--tl); font-size: 12px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--bo); }
+.auth-links { text-align: center; font-size: 13px; color: var(--tl); }
+.auth-links a { color: var(--gl); font-weight: 600; }
+.auth-trust { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 24px; font-size: 11px; color: var(--tl); }
+.auth-trust svg { width: 13px; height: 13px; fill: var(--gl); }
+
+@media(max-width:480px) {
+  .auth-card { padding: 32px 22px; border-radius: 16px; }
+  .auth-title { font-size: 24px; }
+}
+</style>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div class="auth-title">Bienvenue</div>
+      <div class="auth-sub">Connectez-vous à votre compte Mondimart</div>
     </div>
-    <div style="margin-bottom:24px">
-      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Mot de passe</label>
-      <input type="password" name="customer[password]" style="width:100%;height:44px;padding:0 16px;border:1.5px solid #DDD8CC;border-radius:8px;font-size:14px;outline:none">
+
+    {% form 'customer_login' %}
+      {% if form.errors %}
+        <div class="auth-error">{{ form.errors | default_errors }}</div>
+      {% endif %}
+
+      <div class="auth-field">
+        <label class="auth-label" for="login-email">Adresse email</label>
+        <div class="auth-input-wrap">
+          <input class="auth-input" type="email" name="customer[email]" id="login-email" autocomplete="email" placeholder="votre@email.com" required>
+          <svg class="auth-input-icon" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+        </div>
+      </div>
+
+      <div class="auth-field">
+        <label class="auth-label" for="login-password">
+          Mot de passe
+          <a href="/account/recover">Oublié ?</a>
+        </label>
+        <div class="auth-input-wrap">
+          <input class="auth-input" type="password" name="customer[password]" id="login-password" autocomplete="current-password" placeholder="••••••••" required>
+          <svg class="auth-input-icon auth-eye" viewBox="0 0 24 24" onclick="togglePwd('login-password',this)"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        </div>
+      </div>
+
+      <button type="submit" class="auth-submit">Se connecter →</button>
+    {% endform %}
+
+    <div class="auth-divider">ou</div>
+
+    <div class="auth-links">
+      Pas encore de compte ? <a href="/account/register">Créer un compte gratuit</a>
     </div>
-    <button type="submit" style="width:100%;height:48px;background:#4A8C3F;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer">Se connecter</button>
-    <p style="text-align:center;margin-top:14px;font-size:13px;color:#7A7A7A">
-      <a href="/account/register" style="color:#4A8C3F">Créer un compte</a> · <a href="/account/recover" style="color:#4A8C3F">Mot de passe oublié?</a>
-    </p>
-  {% endform %}
+
+    <div class="auth-trust">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+      Connexion sécurisée SSL
+    </div>
+  </div>
 </div>
+
+<script>
+function togglePwd(id, icon) {
+  var inp = document.getElementById(id);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.style.fill = 'var(--gl)';
+  } else {
+    inp.type = 'password';
+    icon.style.fill = 'var(--tl)';
+  }
+}
+</script>
