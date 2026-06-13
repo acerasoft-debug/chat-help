@@ -94,6 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
+  // Expose globally so cart-drawer.liquid inline handlers can call them
+  window.closeCartDrawer = closeCart;
+  window.openCartDrawer  = openCart;
+
   cartOverlay?.addEventListener('click', closeCart);
   document.querySelectorAll('[data-open-cart]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openCart(); }));
   document.querySelectorAll('[data-close-cart]').forEach(b => b.addEventListener('click', closeCart));
@@ -159,6 +163,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return (cents / 100).toFixed(2).replace('.', ',') + '€';
   }
 
+  // ── TOAST NOTIFICATION ──
+  function showToast(msg, type) {
+    let t = document.getElementById('mm-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'mm-toast';
+      t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A3C1A;color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.25)';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = type === 'error' ? '#c0392b' : '#1A3C1A';
+    requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'; });
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
+  }
+
   // Quick add
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-quick-add]');
@@ -167,12 +187,28 @@ document.addEventListener('DOMContentLoaded', () => {
     e.stopPropagation();
     const variantId = btn.dataset.variantId;
     if (!variantId) return;
+    const origInner = btn.innerHTML;
     btn.style.opacity = '.5';
+    btn.disabled = true;
     fetch('/cart/add.js', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: variantId, quantity: 1 }) })
       .then(r => r.json())
-      .then(() => { btn.style.opacity = '1'; openCart(); })
-      .catch(() => { btn.style.opacity = '1'; });
+      .then(item => {
+        btn.style.opacity = '1';
+        btn.disabled = false;
+        showToast('✓ Ajouté au panier', 'success');
+        openCart();
+      })
+      .catch(() => { btn.style.opacity = '1'; btn.disabled = false; showToast('Erreur, réessayez', 'error'); });
   });
+
+  // ── REMOVE FROM CART ──
+  window.removeCartItem = function(line) {
+    fetch('/cart/change.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line: line, quantity: 0 })
+    }).then(r => r.json()).then(() => refreshCart());
+  };
 
   refreshCart();
 
@@ -360,6 +396,41 @@ document.addEventListener('DOMContentLoaded', () => {
       input.value = Math.max(1, val + delta);
     });
   });
+
+  // ── LANGUAGE SWITCHER ──
+  window.toggleLangDropdown = function() {
+    const dd = document.getElementById('lang-dropdown');
+    dd?.classList.toggle('open');
+    // close on outside click
+    if (dd?.classList.contains('open')) {
+      setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+          if (!e.target.closest('#lang-switcher-desktop')) {
+            dd.classList.remove('open');
+            document.removeEventListener('click', handler);
+          }
+        });
+      }, 10);
+    }
+  };
+
+  window.switchLang = function(lang, flag, code) {
+    // Update visual immediately
+    const flagEl = document.getElementById('current-flag');
+    const codeEl = document.getElementById('current-lang');
+    if (flagEl) flagEl.textContent = flag;
+    if (codeEl) codeEl.textContent = code;
+    document.getElementById('lang-dropdown')?.classList.remove('open');
+    document.querySelectorAll('.lang-option').forEach(o => o.classList.remove('active'));
+    document.querySelectorAll('.mm-lang').forEach(o => { o.classList.toggle('active', o.textContent.trim() === code); });
+    // Submit localization form (Shopify Markets)
+    const form = document.getElementById('lang-form-localization');
+    if (form) {
+      form.querySelector('[name="locale_code"]').value = lang;
+      form.querySelector('[name="return_to"]').value = window.location.pathname + window.location.search;
+      form.submit();
+    }
+  };
 
   // ── STAR PICKER ──
   const stars = document.querySelectorAll('.star-pick');

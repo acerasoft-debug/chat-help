@@ -1,3 +1,10 @@
+<!-- Shopify locale switcher form (hidden) -->
+<form action="/localization" method="POST" id="lang-form-localization" style="display:none">
+  <input type="hidden" name="_method" value="PUT">
+  <input type="hidden" name="locale_code" value="{{ request.locale.iso_code }}">
+  <input type="hidden" name="return_to" value="{{ request.path }}">
+</form>
+
 <!-- ══ ANNOUNCEMENT BAR ══ -->
 <div class="ann">
   <div class="ann-track" id="ann-track">
