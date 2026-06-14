@@ -17,8 +17,16 @@ const BASE = `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(BRA
 
 const FILES = [
   'sections/announcement-bar.liquid',
+  'sections/header.liquid',
   'sections/footer.liquid',
+  'sections/trust-bar.liquid',
+  'templates/cart.liquid',
   'templates/page.faq.liquid',
+  'templates/page.delivery.liquid',
+  'templates/index.liquid',
+  'templates/product.liquid',
+  'templates/customers/register.liquid',
+  'snippets/cart-drawer.liquid',
   'assets/mondimart-premium.css',
 ];
 
