@@ -1803,108 +1803,6 @@
 }
 
 /* ============================================================
-   17. APP BOTTOM NAV — PREMIUM MOBILE BAR
-   ============================================================ */
-.app-bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 9000;
-  display: none;
-  background: rgba(255,255,255,0.96);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-top: 1px solid rgba(212,166,74,0.2);
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.10), 0 -1px 0 rgba(212,166,74,0.15);
-  padding: 0 0 env(safe-area-inset-bottom, 0px);
-  height: calc(60px + env(safe-area-inset-bottom, 0px));
-}
-@media (max-width: 768px) {
-  .app-bottom-nav { display: flex; }
-}
-
-.app-nav-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  font-family: 'Manrope', 'DM Sans', sans-serif;
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #9a9284;
-  text-decoration: none;
-  border: none;
-  background: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: color 0.18s ease;
-  padding: 0;
-  height: 60px;
-  position: relative;
-}
-
-.app-nav-btn svg {
-  width: 22px; height: 22px;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: all 0.18s ease;
-}
-
-.app-nav-btn:hover,
-.app-nav-btn.active {
-  color: var(--mm-green-deep);
-}
-.app-nav-btn:hover svg,
-.app-nav-btn.active svg {
-  stroke: var(--mm-green-deep);
-  filter: drop-shadow(0 2px 4px rgba(20,45,29,0.2));
-}
-.app-nav-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 28px; height: 3px;
-  background: linear-gradient(90deg, var(--mm-green-deep), #2d5c2a);
-  border-radius: 2px 2px 0 0;
-}
-
-.app-nav-btn.app-cart-btn {
-  position: relative;
-}
-.app-nav-btn.app-cart-btn svg {
-  stroke: var(--mm-green-deep);
-}
-.app-nav-btn.app-cart-btn .app-nav-icon-wrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.app-nav-cart-count {
-  position: absolute;
-  top: -5px; right: -8px;
-  min-width: 18px; height: 18px;
-  background: linear-gradient(135deg, #e63946, #ff6b6b);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  line-height: 1;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 6px rgba(230,57,70,0.4);
-  pointer-events: none;
-}
-
-/* ============================================================
    18. PRODUCTS SECTION WRAPPER
    ============================================================ */
 .products-section {
@@ -2479,4 +2377,267 @@
   font-weight: 800;
   color: var(--mm-cream, #f5efe3);
   letter-spacing: 0.05em;
+}
+
+/* ============================================================
+   28. FIX BOTTOM NAV — override theme.css conflicts
+   ============================================================ */
+/* theme.css sets display:block at 803, we need display:flex */
+@media (max-width: 768px) {
+  .app-bottom-nav {
+    display: flex !important;
+    align-items: stretch !important;
+  }
+}
+/* theme.css .app-nav-btn has fill-based icons; premium uses stroke — force stroke */
+.app-bottom-nav .app-nav-btn svg {
+  fill: none !important;
+  stroke: currentColor !important;
+  width: 22px !important;
+  height: 22px !important;
+  transition: all 0.18s ease !important;
+}
+.app-bottom-nav .app-nav-btn {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  flex: 1 !important;
+  height: 64px !important;
+  color: #8a8880 !important;
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+.app-bottom-nav .app-nav-btn.active,
+.app-bottom-nav .app-nav-btn:hover {
+  color: var(--mm-green-deep, #142d1d) !important;
+}
+.app-bottom-nav .app-nav-btn.active svg,
+.app-bottom-nav .app-nav-btn:hover svg {
+  stroke: var(--mm-green-deep, #142d1d) !important;
+  fill: none !important;
+}
+/* Remove theme.css top-bar active indicator (uses background color) and keep premium one */
+.app-bottom-nav .app-nav-btn.active::before {
+  background: linear-gradient(90deg, var(--mm-green-deep, #142d1d), #2d5c2a) !important;
+  width: auto !important;
+  left: 25% !important;
+  right: 25% !important;
+  height: 2.5px !important;
+  border-radius: 0 0 3px 3px !important;
+}
+
+/* ============================================================
+   29. FIX CART OVERFLOW — sidebar constraint
+   ============================================================ */
+.cart-layout {
+  overflow: hidden;
+}
+.cart-sidebar {
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.cart-payment-icons {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* ============================================================
+   30. PREMIUM BUTTON REDESIGN
+   ============================================================ */
+
+/* Hero "Nos produits" button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #1e5c2a 0%, #142d1d 60%, #0e2015 100%);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow 0.22s ease, transform 0.18s ease, border-color 0.22s ease;
+  box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35);
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover {
+  border-color: rgba(212, 166, 74, 0.6);
+  box-shadow: 0 8px 32px rgba(20, 45, 29, 0.45), 0 0 0 3px rgba(212, 166, 74, 0.15);
+  transform: translateY(-2px);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Hero "Promotions" ghost button */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  border: 2px solid var(--mm-gold, #d4a64a);
+  background: transparent;
+  color: var(--mm-gold, #d4a64a);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease;
+  letter-spacing: 0.02em;
+}
+.btn-outline:hover {
+  background: var(--mm-gold, #d4a64a);
+  color: var(--mm-green-deep, #142d1d);
+  box-shadow: 0 6px 24px rgba(212, 166, 74, 0.35);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+/* Collection quick-add button */
+.prod-add {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #2a6e35 0%, #142d1d 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, background 0.18s ease;
+  box-shadow: 0 3px 10px rgba(20, 45, 29, 0.3);
+}
+.prod-add:hover {
+  transform: scale(1.14);
+  box-shadow: 0 6px 20px rgba(20, 45, 29, 0.45);
+  background: linear-gradient(135deg, #3a8c45 0%, #1e5c2a 100%);
+}
+.prod-add.added {
+  background: linear-gradient(135deg, #4CAF50, #2e7d32);
+}
+
+/* Cart checkout button */
+.cart-checkout-btn {
+  display: block !important;
+  width: 100% !important;
+  padding: 17px 20px !important;
+  background: linear-gradient(135deg, #2a6e35 0%, #142d1d 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 14px !important;
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35) !important;
+  transition: transform 0.18s ease, box-shadow 0.22s ease !important;
+  animation: cart-btn-pulse 2.8s ease-in-out infinite;
+  letter-spacing: 0.02em !important;
+}
+.cart-checkout-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 32px rgba(20, 45, 29, 0.5) !important;
+  animation: none;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+@keyframes cart-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35); }
+  50% { box-shadow: 0 4px 28px rgba(20, 45, 29, 0.55), 0 0 0 4px rgba(42, 110, 53, 0.12); }
+}
+
+/* Quantity buttons */
+.cart-qty-btn {
+  width: 36px !important;
+  height: 36px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  font-size: 18px !important;
+  color: var(--mm-green-deep, #142d1d) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.15s ease !important;
+  font-weight: 400 !important;
+}
+.cart-qty-btn:hover {
+  background: rgba(20, 45, 29, 0.07) !important;
+}
+
+/* ============================================================
+   31. PREMIUM CARD UPGRADES
+   ============================================================ */
+.prod-card {
+  background: #faf8f3;
+  border-radius: 16px;
+  border: 1.5px solid #ede9df;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.prod-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(20, 45, 29, 0.12);
+  border-color: rgba(212, 166, 74, 0.4);
+}
+
+.prod-price {
+  color: #1e6632 !important;
+  font-weight: 800 !important;
+}
+
+/* ============================================================
+   32. GLOBAL AESTHETIC POLISH
+   ============================================================ */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(42, 110, 53, 0.2);
+  color: var(--mm-green-deep, #142d1d);
+}
+
+.section-title span {
+  background: linear-gradient(135deg, var(--mm-gold, #d4a64a) 0%, #b8861e 50%, var(--mm-gold-soft, #e8c97a) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-badge {
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2) !important;
 }
