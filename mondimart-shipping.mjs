@@ -1,14 +1,14 @@
 // ============================================================
-// MONDIMART - Kargo Profilleri Kurulumu (GraphQL)
+// MONDIMART - Kargo Profilleri Kurulumu (GraphQL 2024-04)
 // - Standart: Fransa 8€, AB 18€, 149€ üstü ücretsiz
-// - Soğuk Zincir (viande/halal): Fransa 18€, BE/LU/ES 24€, 149€ üstü ücretsiz
+// - Soğuk Zincir (viande/halal/frais): Fransa 18€, BE/LU/ES 24€, 149€ üstü ücretsiz
 // Kullanım: SHOPIFY_TOKEN='...' node mondimart-shipping.mjs
 // ============================================================
 
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
 const SHOP = 'pftzey-y0.myshopify.com';
 const GQL = `https://${SHOP}/admin/api/2024-04/graphql.json`;
-const REST = `https://${SHOP}/admin/api/2024-04`;
+const REST_BASE = `https://${SHOP}/admin/api/2024-04`;
 const H = { 'X-Shopify-Access-Token': SHOPIFY_TOKEN, 'Content-Type': 'application/json' };
 
 if (!SHOPIFY_TOKEN) { console.error('SHOPIFY_TOKEN gerekli'); process.exit(1); }
@@ -24,7 +24,7 @@ async function gql(query, variables = {}) {
       });
       const d = await r.json();
       if (d.errors) {
-        console.error('GraphQL hata:', JSON.stringify(d.errors, null, 2));
+        console.error('GraphQL hata:', JSON.stringify(d.errors.map(e => e.message), null, 2));
         return null;
       }
       return d.data;
@@ -35,19 +35,8 @@ async function gql(query, variables = {}) {
   }
 }
 
-async function rest(method, path, body) {
-  const r = await fetch(`${REST}/${path}`, {
-    method, headers: H,
-    body: body ? JSON.stringify(body) : undefined
-  });
-  return r.json();
-}
-
-// ============================================================
-// ADIM 1: Soğuk zincir ürünlerini bul (halal veya viande tag'i olanlar)
-// ============================================================
 async function fetchAll(path) {
-  let url = `${REST}/${path}`;
+  let url = `${REST_BASE}/${path}`;
   let all = [];
   while (url) {
     const r = await fetch(url, { headers: H });
@@ -62,9 +51,23 @@ async function fetchAll(path) {
 }
 
 // ============================================================
-// ADIM 2: Mevcut profilleri kontrol et
+// ADIM 1: Lokasyon ID'lerini al
 // ============================================================
-async function getExistingProfiles() {
+async function getLocationIds() {
+  const data = await gql(`{
+    locations(first: 10, includeLegacy: false) {
+      edges { node { id name } }
+    }
+  }`);
+  const locs = data?.locations?.edges?.map(e => e.node) || [];
+  locs.forEach(l => console.log(`   📍 ${l.name}: ${l.id}`));
+  return locs.map(l => l.id);
+}
+
+// ============================================================
+// ADIM 2: Varsayılan profil bilgilerini al
+// ============================================================
+async function getDefaultProfile() {
   const data = await gql(`{
     deliveryProfiles(first: 20) {
       edges {
@@ -72,73 +75,48 @@ async function getExistingProfiles() {
           id
           name
           default
-        }
-      }
-    }
-  }`);
-  return data?.deliveryProfiles?.edges?.map(e => e.node) || [];
-}
-
-// ============================================================
-// ADIM 3: Varsayılan profil için kargo bölgelerini ayarla
-// (Standart kargo: Fransa 8€, AB 18€, 149€ üstü ücretsiz)
-// ============================================================
-async function setupDefaultProfile(profileId) {
-  console.log('\n📦 Standart kargo profili ayarlanıyor...');
-
-  // Önce mevcut lokasyonları al
-  const locData = await gql(`{
-    deliveryProfile(id: "${profileId}") {
-      profileLocationGroups {
-        locationGroup {
-          id
-        }
-        profileLocations {
-          location {
-            id
-            name
+          profileLocationGroups {
+            locationGroup { id }
           }
         }
       }
     }
   }`);
+  const profiles = data?.deliveryProfiles?.edges?.map(e => e.node) || [];
+  profiles.forEach(p => console.log(`   - ${p.name} ${p.default ? '(VARSAYILAN)' : ''} → ${p.id}`));
+  return profiles.find(p => p.default);
+}
 
-  const locationGroups = locData?.deliveryProfile?.profileLocationGroups || [];
-  if (locationGroups.length === 0) {
-    console.log('  ⚠️  Lokasyon grubu bulunamadı, manuel kurulum gerekli');
-    return;
-  }
+// ============================================================
+// ADIM 3: Standart profili güncelle (Fransa 8€, AB 18€)
+// ============================================================
+async function setupStandardShipping(profileId, locationGroupId) {
+  console.log('\n📦 Standart kargo bölgeleri ekleniyor...');
 
-  const locationGroupId = locationGroups[0].locationGroup.id;
-
-  // Kargo bölgeleri tanımla
   const zones = [
     {
-      name: 'France',
+      name: 'France — Livraison Standard',
       countries: [{ code: 'FR', includeAllProvinces: true }],
-      methodDefinitions: [
+      methodDefinitionsToCreate: [
         {
-          name: 'Livraison Standard',
+          name: '🚚 Livraison Standard France',
           active: true,
-          rateDefinition: {
-            price: { amount: '8.00', currencyCode: 'EUR' }
-          },
-          weightConditionsToCreate: [],
-          priceConditionsToCreate: []
+          rateDefinition: { price: { amount: '8.00', currencyCode: 'EUR' } }
         },
         {
-          name: 'Livraison Gratuite (149€+)',
+          name: '🎁 Livraison Gratuite France (149€+)',
           active: true,
-          rateDefinition: {
-            price: { amount: '0.00', currencyCode: 'EUR' }
-          },
-          weightConditionsToCreate: [],
-          priceConditionsToCreate: [{ criteria: { greaterThanOrEqualTo: { amount: '149.00', currencyCode: 'EUR' } } }]
+          rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
+          priceConditionsToCreate: [{
+            field: 'TOTAL_PRICE',
+            operator: 'GREATER_THAN_OR_EQUAL_TO',
+            criteria: { amount: '149.00', currencyCode: 'EUR' }
+          }]
         }
       ]
     },
     {
-      name: 'Europe',
+      name: 'Europe — Livraison Standard',
       countries: [
         { code: 'BE', includeAllProvinces: true },
         { code: 'LU', includeAllProvinces: true },
@@ -148,127 +126,97 @@ async function setupDefaultProfile(profileId) {
         { code: 'IT', includeAllProvinces: true },
         { code: 'PT', includeAllProvinces: true },
         { code: 'AT', includeAllProvinces: true },
-        { code: 'CH', includeAllProvinces: true },
+        { code: 'CH', includeAllProvinces: true }
       ],
-      methodDefinitions: [
+      methodDefinitionsToCreate: [
         {
-          name: 'Livraison Europe',
+          name: '🚚 Livraison Europe',
           active: true,
-          rateDefinition: {
-            price: { amount: '18.00', currencyCode: 'EUR' }
-          },
-          weightConditionsToCreate: [],
-          priceConditionsToCreate: []
+          rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } }
         },
         {
-          name: 'Livraison Gratuite (149€+)',
+          name: '🎁 Livraison Gratuite Europe (149€+)',
           active: true,
-          rateDefinition: {
-            price: { amount: '0.00', currencyCode: 'EUR' }
-          },
-          weightConditionsToCreate: [],
-          priceConditionsToCreate: [{ criteria: { greaterThanOrEqualTo: { amount: '149.00', currencyCode: 'EUR' } } }]
+          rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
+          priceConditionsToCreate: [{
+            field: 'TOTAL_PRICE',
+            operator: 'GREATER_THAN_OR_EQUAL_TO',
+            criteria: { amount: '149.00', currencyCode: 'EUR' }
+          }]
         }
       ]
     }
   ];
 
   for (const zone of zones) {
-    const mutation = `
+    const result = await gql(`
       mutation deliveryProfileUpdate($id: ID!, $profile: DeliveryProfileInput!) {
         deliveryProfileUpdate(id: $id, profile: $profile) {
           profile { id name }
           userErrors { field message }
         }
       }
-    `;
-
-    const result = await gql(mutation, {
+    `, {
       id: profileId,
       profile: {
-        locationGroupsToCreate: [{
-          locationGroup: { id: locationGroupId },
+        locationGroupsToUpdate: [{
+          locationGroupId,
           zonesToCreate: [zone]
         }]
       }
     });
 
-    if (result?.deliveryProfileUpdate?.userErrors?.length > 0) {
-      console.log(`  ⚠️  ${zone.name}: ${result.deliveryProfileUpdate.userErrors.map(e => e.message).join(', ')}`);
-    } else {
-      console.log(`  ✅ ${zone.name} bölgesi ayarlandı`);
+    const errs = result?.deliveryProfileUpdate?.userErrors;
+    if (errs?.length > 0) {
+      console.log(`   ⚠️  ${zone.name}: ${errs.map(e => e.message).join(' | ')}`);
+    } else if (result?.deliveryProfileUpdate?.profile) {
+      console.log(`   ✅ ${zone.name} eklendi`);
     }
-    await delay(500);
+    await delay(600);
   }
 }
 
 // ============================================================
 // ADIM 4: Soğuk zincir profili oluştur
 // ============================================================
-async function createColdChainProfile(coldProductGids) {
-  console.log('\n❄️  Soğuk Zincir kargo profili oluşturuluyor...');
-  console.log(`   ${coldProductGids.length} soğuk ürün bu profile atanacak`);
+async function createColdChainProfile(coldVariantGids, locationIds) {
+  console.log(`\n❄️  Soğuk Zincir profili oluşturuluyor (${coldVariantGids.length} variant)...`);
 
-  // Önce lokasyon gruplarını al
-  const locData = await gql(`{
-    locations(first: 10) {
-      edges {
-        node {
-          id
-          name
-        }
-      }
-    }
-  }`);
+  // Çok fazla variant varsa ilk 250'yi al (Shopify limiti)
+  const variantsChunk = coldVariantGids.slice(0, 250);
 
-  const locationIds = locData?.locations?.edges?.map(e => e.node.id) || [];
-  if (locationIds.length === 0) {
-    console.log('  ⚠️  Lokasyon bulunamadı');
-    return null;
-  }
-
-  const mutation = `
+  const result = await gql(`
     mutation deliveryProfileCreate($profile: DeliveryProfileInput!) {
       deliveryProfileCreate(profile: $profile) {
-        profile {
-          id
-          name
-        }
-        userErrors {
-          field
-          message
-        }
+        profile { id name }
+        userErrors { field message }
       }
     }
-  `;
-
-  const profileInput = {
-    name: 'Livraison Chaîne du Froid ❄️',
-    variantsToAssociate: coldProductGids,
-    locationGroupsToCreate: [
-      {
-        locationGroup: { locationIds },
+  `, {
+    profile: {
+      name: 'Livraison Chaîne du Froid ❄️',
+      variantsToAssociate: variantsChunk,
+      locationGroupsToCreate: [{
+        locationIds,
         zonesToCreate: [
           {
             name: 'France — Chaîne du Froid',
             countries: [{ code: 'FR', includeAllProvinces: true }],
-            methodDefinitions: [
+            methodDefinitionsToCreate: [
               {
-                name: '❄️ Livraison Chaîne du Froid',
+                name: '❄️ Livraison Chaîne du Froid France',
                 active: true,
-                rateDefinition: {
-                  price: { amount: '18.00', currencyCode: 'EUR' }
-                }
+                rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } }
               },
               {
                 name: '❄️ Livraison Gratuite Chaîne du Froid (149€+)',
                 active: true,
-                rateDefinition: {
-                  price: { amount: '0.00', currencyCode: 'EUR' }
-                },
-                priceConditionsToCreate: [
-                  { criteria: { greaterThanOrEqualTo: { amount: '149.00', currencyCode: 'EUR' } } }
-                ]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
+                priceConditionsToCreate: [{
+                  field: 'TOTAL_PRICE',
+                  operator: 'GREATER_THAN_OR_EQUAL_TO',
+                  criteria: { amount: '149.00', currencyCode: 'EUR' }
+                }]
               }
             ]
           },
@@ -279,41 +227,61 @@ async function createColdChainProfile(coldProductGids) {
               { code: 'LU', includeAllProvinces: true },
               { code: 'ES', includeAllProvinces: true }
             ],
-            methodDefinitions: [
+            methodDefinitionsToCreate: [
               {
                 name: '❄️ Livraison Chaîne du Froid BE/LU/ES',
                 active: true,
-                rateDefinition: {
-                  price: { amount: '24.00', currencyCode: 'EUR' }
-                }
+                rateDefinition: { price: { amount: '24.00', currencyCode: 'EUR' } }
               },
               {
                 name: '❄️ Livraison Gratuite Chaîne du Froid (149€+)',
                 active: true,
-                rateDefinition: {
-                  price: { amount: '0.00', currencyCode: 'EUR' }
-                },
-                priceConditionsToCreate: [
-                  { criteria: { greaterThanOrEqualTo: { amount: '149.00', currencyCode: 'EUR' } } }
-                ]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
+                priceConditionsToCreate: [{
+                  field: 'TOTAL_PRICE',
+                  operator: 'GREATER_THAN_OR_EQUAL_TO',
+                  criteria: { amount: '149.00', currencyCode: 'EUR' }
+                }]
               }
             ]
           }
         ]
-      }
-    ]
-  };
+      }]
+    }
+  });
 
-  const result = await gql(mutation, { profile: profileInput });
-
-  if (result?.deliveryProfileCreate?.userErrors?.length > 0) {
-    console.log('  ❌ Hata:', result.deliveryProfileCreate.userErrors.map(e => e.message).join('\n  '));
+  const errs = result?.deliveryProfileCreate?.userErrors;
+  if (errs?.length > 0) {
+    console.log('   ❌ Hata:', errs.map(e => `[${e.field}] ${e.message}`).join('\n        '));
     return null;
   }
 
   const newProfile = result?.deliveryProfileCreate?.profile;
   if (newProfile) {
-    console.log(`  ✅ Soğuk zincir profili oluşturuldu: ${newProfile.name} (${newProfile.id})`);
+    console.log(`   ✅ Profil oluşturuldu: "${newProfile.name}" (${newProfile.id})`);
+
+    // Kalan variantları ekle (250'den fazlaysa)
+    if (coldVariantGids.length > 250) {
+      console.log(`   ➕ Kalan ${coldVariantGids.length - 250} variant ekleniyor...`);
+      for (let i = 250; i < coldVariantGids.length; i += 250) {
+        const chunk = coldVariantGids.slice(i, i + 250);
+        await gql(`
+          mutation deliveryProfileUpdate($id: ID!, $profile: DeliveryProfileInput!) {
+            deliveryProfileUpdate(id: $id, profile: $profile) {
+              profile { id }
+              userErrors { field message }
+            }
+          }
+        `, {
+          id: newProfile.id,
+          profile: { variantsToAssociate: chunk }
+        });
+        process.stdout.write('.');
+        await delay(500);
+      }
+      console.log(' tamamlandı');
+    }
+
     return newProfile.id;
   }
   return null;
@@ -324,63 +292,79 @@ async function createColdChainProfile(coldProductGids) {
 // ============================================================
 console.log('🚚 Mondimart Kargo Kurulumu başlıyor...\n');
 
-// Ürünleri yükle
-console.log('Ürünler yükleniyor...');
-const products = await fetchAll('products.json?limit=250&fields=id,title,tags,product_type,variants');
+// Lokasyonları al
+console.log('📍 Lokasyonlar yükleniyor...');
+const locationIds = await getLocationIds();
+if (locationIds.length === 0) {
+  console.error('❌ Lokasyon bulunamadı!');
+  process.exit(1);
+}
+
+await delay(500);
+
+// Ürünleri ve soğuk zincir filtresi
+console.log('\n🛍️  Ürünler yükleniyor...');
+const products = await fetchAll('products.json?limit=250&fields=id,title,tags,variants');
 console.log(`${products.length} ürün yüklendi`);
 
-// Soğuk zincir ürünlerini belirle
 const coldProducts = products.filter(p => {
   const tags = (p.tags || '').toLowerCase();
   return tags.includes('viande') || tags.includes('halal') || tags.includes('frais');
 });
-console.log(`❄️  ${coldProducts.length} soğuk zincir ürünü tespit edildi`);
-
-// Variant GID'leri topla
 const coldVariantGids = coldProducts
   .flatMap(p => p.variants || [])
-  .map(v => `gid://shopify/ProductVariant/${v.id}`)
-  .filter(Boolean);
+  .map(v => `gid://shopify/ProductVariant/${v.id}`);
 
-console.log(`   ${coldVariantGids.length} variant soğuk zincir profiline atanacak\n`);
+console.log(`❄️  ${coldProducts.length} soğuk ürün, ${coldVariantGids.length} variant`);
 
-// Mevcut profilleri kontrol et
-console.log('Mevcut kargo profilleri kontrol ediliyor...');
-const profiles = await getExistingProfiles();
-console.log('Mevcut profiller:');
-profiles.forEach(p => console.log(`  - ${p.name} (${p.default ? 'VARSAYILAN' : 'özel'}) → ${p.id}`));
+await delay(500);
 
-const defaultProfile = profiles.find(p => p.default);
+// Profilleri al
+console.log('\n📋 Mevcut kargo profilleri:');
+const defaultProfile = await getDefaultProfile();
+
+if (!defaultProfile) {
+  console.error('❌ Varsayılan profil bulunamadı!');
+  process.exit(1);
+}
+
+const locationGroupId = defaultProfile.profileLocationGroups?.[0]?.locationGroup?.id;
+console.log(`\nVarsayılan profil ID: ${defaultProfile.id}`);
+console.log(`Lokasyon grubu ID: ${locationGroupId || 'bulunamadı'}`);
 
 // Soğuk zincir profili zaten var mı?
-const existingCold = profiles.find(p => p.name.toLowerCase().includes('froid') || p.name.toLowerCase().includes('cold'));
+const allProfilesData = await gql(`{
+  deliveryProfiles(first: 20) {
+    edges { node { id name default } }
+  }
+}`);
+const allProfiles = allProfilesData?.deliveryProfiles?.edges?.map(e => e.node) || [];
+const existingCold = allProfiles.find(p =>
+  p.name.toLowerCase().includes('froid') || p.name.toLowerCase().includes('cold chain')
+);
 
-// Standart profili güncelle
-if (defaultProfile) {
-  await setupDefaultProfile(defaultProfile.id);
+// Standart kargo kurulumu
+if (locationGroupId) {
+  await setupStandardShipping(defaultProfile.id, locationGroupId);
 } else {
-  console.log('\n⚠️  Varsayılan profil bulunamadı!');
+  console.log('\n⚠️  Lokasyon grubu ID alınamadı, standart kargo manuel kurulumu gerekli');
 }
 
 await delay(1000);
 
-// Soğuk zincir profilini oluştur (yoksa)
+// Soğuk zincir profili
 if (existingCold) {
-  console.log(`\n❄️  Soğuk zincir profili zaten mevcut: ${existingCold.name}`);
-  console.log('   Güncelleme yapmak için Shopify Admin > Shipping > Shipping profiles sayfasını kullanın.');
+  console.log(`\n❄️  Soğuk zincir profili zaten mevcut: "${existingCold.name}"`);
+  console.log('   Shopify Admin > Settings > Shipping and delivery > Shipping profiles üzerinden düzenleyebilirsiniz.');
 } else {
-  if (coldVariantGids.length > 0) {
-    await createColdChainProfile(coldVariantGids);
-  } else {
-    console.log('\n⚠️  Soğuk zincir ürünü bulunamadı (halal/viande tag eksik olabilir)');
-  }
+  await createColdChainProfile(coldVariantGids, locationIds);
 }
 
 console.log('\n\n=== KARGO KURULUM ÖZETI ===');
-console.log('✅ Standart kargo (varsayılan profil):');
+console.log('✅ Standart (General profile):');
 console.log('   🇫🇷 Fransa: 8€ | 149€+ ücretsiz');
-console.log('   🌍 Avrupa: 18€ | 149€+ ücretsiz');
-console.log('❄️  Soğuk Zincir profili:');
+console.log('   🌍 AB (BE/LU/ES/DE/NL/IT/PT/AT/CH): 18€ | 149€+ ücretsiz');
+console.log('❄️  Soğuk Zincir profili (Chaîne du Froid):');
 console.log('   🇫🇷 Fransa: 18€ | 149€+ ücretsiz');
 console.log('   🇧🇪🇱🇺🇪🇸 BE/LU/ES: 24€ | 149€+ ücretsiz');
-console.log('\nKontrol: Shopify Admin → Settings → Shipping and delivery');
+console.log('\n👉 Kontrol: Shopify Admin → Settings → Shipping and delivery');
