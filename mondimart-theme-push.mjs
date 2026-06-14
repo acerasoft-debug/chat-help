@@ -28,6 +28,7 @@ const FILES = [
   'templates/customers/register.liquid',
   'snippets/cart-drawer.liquid',
   'assets/mondimart-premium.css',
+  'assets/theme.css',
 ];
 
 for (const file of FILES) {
