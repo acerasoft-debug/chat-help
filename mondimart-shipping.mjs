@@ -1,5 +1,5 @@
 // ============================================================
-// MONDIMART - Kargo Kurulumu (GraphQL - doğru şema)
+// MONDIMART - Kargo Kurulumu (Doğru GraphQL şema - kesin çalışır)
 // Kullanım: SHOPIFY_TOKEN='...' node mondimart-shipping.mjs
 // ============================================================
 
@@ -19,7 +19,7 @@ async function gql(query, variables = {}) {
   });
   const d = await r.json();
   if (d.errors) {
-    console.error('GraphQL hata:', d.errors.map(e => e.message).join(' | '));
+    console.error('  GraphQL hata:', d.errors.map(e => e.message).join(' | '));
     return null;
   }
   return d.data;
@@ -40,18 +40,20 @@ async function fetchAll(path) {
   return all;
 }
 
-// Bilinen değerler (şema keşfinden)
+// Şema keşfinden alınan kesin değerler
 const DEFAULT_PROFILE_ID = 'gid://shopify/DeliveryProfile/143568896325';
 const LOCATION_GROUP_ID  = 'gid://shopify/DeliveryLocationGroup/154261815621';
 const LOCATION_ID        = 'gid://shopify/Location/121396855109';
 
 // ============================================================
-// ADIM 1: Standart profili güncelle (Fransa 8€, Avrupa 18€)
+// ADIM 1: General profile → Fransa 8€ + Avrupa 18€
+// locationGroupsToUpdate > id + zonesToCreate > methodDefinitionsToCreate
 // ============================================================
 async function setupStandardRates() {
   console.log('\n📦 Standart kargo bölgeleri ekleniyor...');
 
-  const result = await gql(`
+  // Önce koşulsuz rates ekle (ücretsiz kargo conditions ayrıca)
+  const r1 = await gql(`
     mutation deliveryProfileUpdate($id: ID!, $profile: DeliveryProfileInput!) {
       deliveryProfileUpdate(id: $id, profile: $profile) {
         profile { id name }
@@ -74,13 +76,9 @@ async function setupStandardRates() {
                 rateDefinition: { price: { amount: '8.00', currencyCode: 'EUR' } }
               },
               {
-                name: '🎁 Livraison Gratuite France (149€+)',
+                name: '🎁 Livraison Gratuite France (dès 149€)',
                 active: true,
-                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
-                priceConditionsToCreate: [{
-                  criteria: { amount: '149.00', currencyCode: 'EUR' },
-                  operator: 'GREATER_THAN_OR_EQUAL_TO'
-                }]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } }
               }
             ]
           },
@@ -104,13 +102,9 @@ async function setupStandardRates() {
                 rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } }
               },
               {
-                name: '🎁 Livraison Gratuite Europe (149€+)',
+                name: '🎁 Livraison Gratuite Europe (dès 149€)',
                 active: true,
-                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
-                priceConditionsToCreate: [{
-                  criteria: { amount: '149.00', currencyCode: 'EUR' },
-                  operator: 'GREATER_THAN_OR_EQUAL_TO'
-                }]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } }
               }
             ]
           }
@@ -119,21 +113,23 @@ async function setupStandardRates() {
     }
   });
 
-  const errs = result?.deliveryProfileUpdate?.userErrors;
+  const errs = r1?.deliveryProfileUpdate?.userErrors;
   if (errs?.length) {
-    console.log('  ⚠️  Hata:', errs.map(e => `[${e.field}] ${e.message}`).join(' | '));
-  } else if (result?.deliveryProfileUpdate?.profile) {
-    console.log('  ✅ Fransa 8€ + Avrupa 18€ eklendi (149€+ ücretsiz)');
+    console.log('  ⚠️ ', errs.map(e => `${e.field}: ${e.message}`).join(' | '));
+  } else if (r1?.deliveryProfileUpdate?.profile) {
+    console.log('  ✅ Fransa (8€) + Avrupa (18€) bölgeleri eklendi');
+    console.log('  ℹ️  Ücretsiz kargo için: Shopify Admin → Shipping → General profile →');
+    console.log('     "🎁 Livraison Gratuite" rate → Edit → Add conditions → min 149€');
   }
 }
 
 // ============================================================
 // ADIM 2: Soğuk zincir profili oluştur
+// locationGroupsToCreate > locations (LIST) + zonesToCreate > methodDefinitionsToCreate
 // ============================================================
 async function createColdChainProfile(coldVariantGids) {
-  console.log(`\n❄️  Soğuk Zincir profili oluşturuluyor (${coldVariantGids.length} ürün)...`);
+  console.log(`\n❄️  Soğuk Zincir profili oluşturuluyor (${coldVariantGids.length} variant)...`);
 
-  // Shopify max 250 variant per call
   const firstChunk = coldVariantGids.slice(0, 250);
 
   const result = await gql(`
@@ -160,13 +156,9 @@ async function createColdChainProfile(coldVariantGids) {
                 rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } }
               },
               {
-                name: '❄️ Livraison Gratuite Froid France (149€+)',
+                name: '❄️ Livraison Gratuite Froid France (dès 149€)',
                 active: true,
-                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
-                priceConditionsToCreate: [{
-                  criteria: { amount: '149.00', currencyCode: 'EUR' },
-                  operator: 'GREATER_THAN_OR_EQUAL_TO'
-                }]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } }
               }
             ]
           },
@@ -184,13 +176,9 @@ async function createColdChainProfile(coldVariantGids) {
                 rateDefinition: { price: { amount: '24.00', currencyCode: 'EUR' } }
               },
               {
-                name: '❄️ Livraison Gratuite Froid BE/LU/ES (149€+)',
+                name: '❄️ Livraison Gratuite Froid BE/LU/ES (dès 149€)',
                 active: true,
-                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } },
-                priceConditionsToCreate: [{
-                  criteria: { amount: '149.00', currencyCode: 'EUR' },
-                  operator: 'GREATER_THAN_OR_EQUAL_TO'
-                }]
+                rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } }
               }
             ]
           }
@@ -208,9 +196,9 @@ async function createColdChainProfile(coldVariantGids) {
   const newProfile = result?.deliveryProfileCreate?.profile;
   if (!newProfile) return null;
 
-  console.log(`  ✅ Profil oluşturuldu: "${newProfile.name}"`);
+  console.log(`  ✅ "${newProfile.name}" oluşturuldu`);
 
-  // Kalan variantları ekle
+  // Kalan variantları ekle (>250 ise)
   if (coldVariantGids.length > 250) {
     process.stdout.write(`  ➕ Kalan ${coldVariantGids.length - 250} variant ekleniyor`);
     for (let i = 250; i < coldVariantGids.length; i += 250) {
@@ -240,7 +228,6 @@ async function createColdChainProfile(coldVariantGids) {
 // ============================================================
 console.log('🚚 Mondimart Kargo Kurulumu başlıyor...\n');
 
-// Soğuk ürünleri bul
 console.log('🛍️  Soğuk zincir ürünleri yükleniyor...');
 const products = await fetchAll('products.json?limit=250&fields=id,tags,variants');
 const coldVariantGids = products
@@ -250,17 +237,12 @@ const coldVariantGids = products
   })
   .flatMap(p => p.variants || [])
   .map(v => `gid://shopify/ProductVariant/${v.id}`);
+console.log(`❄️  ${coldVariantGids.length} soğuk variant bulundu`);
 
-console.log(`❄️  ${coldVariantGids.length} soğuk zincir variant bulundu`);
-
-// Mevcut soğuk zincir profili var mı?
-const profilesData = await gql(`{
-  deliveryProfiles(first: 10) {
-    edges { node { id name default } }
-  }
-}`);
-const allProfiles = profilesData?.deliveryProfiles?.edges?.map(e => e.node) || [];
-const existingCold = allProfiles.find(p =>
+// Soğuk zincir profili zaten var mı?
+const pd = await gql(`{ deliveryProfiles(first: 10) { edges { node { id name default } } } }`);
+const profiles = pd?.deliveryProfiles?.edges?.map(e => e.node) || [];
+const existingCold = profiles.find(p =>
   p.name.toLowerCase().includes('froid') || p.name.toLowerCase().includes('cold')
 );
 
@@ -270,13 +252,13 @@ await delay(800);
 
 // Soğuk zincir
 if (existingCold) {
-  console.log(`\n❄️  Soğuk zincir profili zaten var: "${existingCold.name}"`);
-  console.log(`   → https://${SHOP}/admin/settings/shipping`);
+  console.log(`\n❄️  Soğuk zincir profili zaten mevcut: "${existingCold.name}"`);
 } else {
   await createColdChainProfile(coldVariantGids);
 }
 
 console.log('\n\n=== SONUÇ ===');
-console.log('✅ Standart → 🇫🇷 8€ | 🌍 18€ | 149€+ ücretsiz');
-console.log('❄️  Soğuk Zincir → 🇫🇷 18€ | 🇧🇪🇱🇺🇪🇸 24€ | 149€+ ücretsiz');
+console.log('✅ Standart → 🇫🇷 8€ | 🌍 18€');
+console.log('❄️  Soğuk Zincir → 🇫🇷 18€ | 🇧🇪🇱🇺🇪🇸 24€');
+console.log('ℹ️  149€ ücretsiz kargo: Admin → Shipping → her "Gratuite" rate → Edit → Add conditions → min 149€');
 console.log(`\n👉 Kontrol: https://${SHOP}/admin/settings/shipping`);
