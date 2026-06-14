@@ -28,7 +28,19 @@
       {% for block in section.blocks %}
         {% if block.settings.product != blank %}
           {%- assign product = block.settings.product -%}
-          <a class="product-card" href="{{ product.url }}" data-cat="{{ block.settings.category }}" {{ block.shopify_attributes }}>
+          {%- assign auto_cat = block.settings.category -%}
+          {%- assign tags_str = product.tags | join: ',' | downcase -%}
+          {%- if auto_cat == blank or auto_cat == 'epicerie' -%}
+            {%- if tags_str contains 'halal' or product.type contains 'viande' or product.type contains 'boucherie' -%}{%- assign auto_cat = 'boucherie' -%}
+            {%- elsif tags_str contains 'boisson' or tags_str contains 'thé' or tags_str contains 'cafe' or product.type contains 'boisson' -%}{%- assign auto_cat = 'boissons' -%}
+            {%- elsif tags_str contains 'frais' or tags_str contains 'laitage' or tags_str contains 'fromage' or product.type contains 'frais' -%}{%- assign auto_cat = 'frais' -%}
+            {%- elsif tags_str contains 'turque' or tags_str contains 'turc' or product.vendor contains 'Turc' -%}{%- assign auto_cat = 'turque' -%}
+            {%- elsif tags_str contains 'maghreb' or tags_str contains 'maghrebine' or tags_str contains 'arabe' -%}{%- assign auto_cat = 'maghrebine' -%}
+            {%- elsif tags_str contains 'bio' or tags_str contains 'vegan' or tags_str contains 'biologique' -%}{%- assign auto_cat = 'bio' -%}
+            {%- else -%}{%- assign auto_cat = 'epicerie' -%}
+            {%- endif -%}
+          {%- endif -%}
+          <a class="product-card" href="{{ product.url }}" data-cat="{{ auto_cat }}" {{ block.shopify_attributes }}>
             <div class="product-img">
               {% if product.featured_image %}
                 <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">

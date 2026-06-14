@@ -211,7 +211,18 @@
   {%- paginate collection.products by 24 -%}
   <div class="col-grid" id="col-grid">
     {%- for product in collection.products -%}
-      <a href="{{ product.url }}" class="prod-card">
+      {%- assign tags_str = product.tags | join: ',' | downcase -%}
+      {%- assign prod_cat = 'epicerie' -%}
+      {%- if tags_str contains 'halal' or product.type contains 'viande' or product.type contains 'boucherie' -%}{%- assign prod_cat = 'boucherie' -%}
+      {%- elsif tags_str contains 'boisson' or tags_str contains 'thé' or tags_str contains 'cafe' or product.type contains 'boisson' -%}{%- assign prod_cat = 'boissons' -%}
+      {%- elsif tags_str contains 'frais' or tags_str contains 'laitage' or tags_str contains 'fromage' -%}{%- assign prod_cat = 'frais' -%}
+      {%- elsif tags_str contains 'turque' or tags_str contains 'turc' -%}{%- assign prod_cat = 'turque' -%}
+      {%- elsif tags_str contains 'maghreb' or tags_str contains 'maghrebine' -%}{%- assign prod_cat = 'maghrebine' -%}
+      {%- elsif tags_str contains 'bio' or tags_str contains 'vegan' -%}{%- assign prod_cat = 'bio' -%}
+      {%- elsif tags_str contains 'epice' or tags_str contains 'condiment' -%}{%- assign prod_cat = 'epices' -%}
+      {%- elsif tags_str contains 'snack' or tags_str contains 'baklava' or tags_str contains 'sucrerie' -%}{%- assign prod_cat = 'snacks' -%}
+      {%- endif -%}
+      <a href="{{ product.url }}" class="prod-card" data-cat="{{ prod_cat }}" data-price="{{ product.price | divided_by: 100 }}" data-vendor="{{ product.vendor | escape }}">
         <div class="prod-img" data-swipe-container
           {%- if product.images.size > 1 -%}
             data-img0="{{ product.images[0] | image_url: width: 400 }}"
@@ -437,28 +448,98 @@
   </div>
 </div>
 
-<!-- FOOTER APPLY BUTTON -->
-<div class="fd-footer" id="fd-footer" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:12px 16px 20px;background:#fff;border-top:1px solid #EDEAD8;z-index:210;display:flex;gap:10px;">
-  <button onclick="fdClose()" style="flex:1;padding:14px;background:#F5F5F5;color:#333;border:none;border-radius:12px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;">
-    ✕ Fermer
-  </button>
-  <button class="fd-apply" onclick="fdApply()" style="flex:2;">
+<!-- FOOTER FILTER BAR -->
+<div class="fd-footer" id="fd-footer">
+  <button onclick="fdClose()" class="fd-close-btn">✕ Fermer</button>
+  <button class="fd-apply" id="fd-apply-btn" onclick="fdApply()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-    Voir les résultats
+    <span id="fd-apply-label">Voir les résultats</span>
   </button>
 </div>
+
+<!-- LOADING OVERLAY -->
+<div id="col-loading" style="display:none;position:fixed;inset:0;z-index:9999;pointer-events:none;"></div>
 
 <script>
 (function() {
   var activeTags = [];
   var activeBrands = [];
   var activeSort = '';
-  var activePrice = 200;
+  var activePrice = 500;
   var isListView = false;
+  var fetchTimer = null;
+  var grid = document.getElementById('col-grid');
+  var paginationEl = document.querySelector('.col-pagination');
 
+  /* ── AJAX FETCH ENGINE ── */
+  function buildParams() {
+    var p = new URLSearchParams(window.location.search);
+    if (activeSort) p.set('sort_by', activeSort); else p.delete('sort_by');
+    var tags = activeTags.concat(activeBrands.map(function(b){ return 'vendor:' + b; }));
+    if (tags.length) p.set('filter.p.tag', tags.join('+')); else p.delete('filter.p.tag');
+    if (activePrice < 500) p.set('filter.v.price.lte', activePrice); else p.delete('filter.v.price.lte');
+    return p;
+  }
+
+  function fetchProducts(instant) {
+    clearTimeout(fetchTimer);
+    fetchTimer = setTimeout(function() {
+      var params = buildParams();
+      var url = window.location.pathname + (params.toString() ? '?' + params : '');
+      history.pushState({}, '', url);
+      updateBadge(); updateChips();
+
+      // Loading shimmer
+      grid.style.opacity = '0.4';
+      grid.style.pointerEvents = 'none';
+      showSkeletons();
+
+      fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var doc = new DOMParser().parseFromString(html, 'text/html');
+          var newGrid = doc.getElementById('col-grid');
+          var newPag = doc.querySelector('.col-pagination');
+          if (newGrid) {
+            grid.innerHTML = newGrid.innerHTML;
+            // Re-attach swipe handlers
+            attachSwipe();
+          }
+          if (paginationEl && newPag) paginationEl.innerHTML = newPag.innerHTML;
+          else if (paginationEl && !newPag) paginationEl.innerHTML = '';
+          grid.style.opacity = '1';
+          grid.style.pointerEvents = '';
+          // Animate new cards in
+          grid.querySelectorAll('.prod-card').forEach(function(c, i) {
+            c.style.animationDelay = (i * 0.04) + 's';
+            c.classList.add('card-appear');
+          });
+          // Update result count
+          var countEl = doc.querySelector('.col-hero-meta');
+          var localCount = document.querySelector('.col-hero-meta');
+          if (countEl && localCount) localCount.textContent = countEl.textContent;
+          updateApplyLabel(grid.querySelectorAll('.prod-card').length);
+        })
+        .catch(function() {
+          grid.style.opacity = '1';
+          grid.style.pointerEvents = '';
+        });
+    }, instant ? 0 : 350);
+  }
+
+  function showSkeletons() {
+    // Grid already shows, just fade it
+  }
+
+  function updateApplyLabel(count) {
+    var label = document.getElementById('fd-apply-label');
+    if (label) label.textContent = count > 0 ? 'Voir ' + count + ' résultats' : 'Aucun résultat';
+  }
+
+  /* ── DRAWER ── */
   window.fdOpen = function() {
     document.getElementById('fd-overlay').classList.add('open');
-    document.getElementById('fd-footer').style.display = 'flex';
+    document.getElementById('fd-footer').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
   window.fdOpenSort = function() { fdOpen(); };
@@ -467,152 +548,152 @@
   };
   function fdClose() {
     document.getElementById('fd-overlay').classList.remove('open');
-    document.getElementById('fd-footer').style.display = 'none';
+    document.getElementById('fd-footer').classList.remove('open');
     document.body.style.overflow = '';
   }
+  window.fdClose = fdClose;
+
+  /* ── APPLY (also closes drawer and fires fetch) ── */
   window.fdApply = function() {
-    var params = new URLSearchParams(window.location.search);
-    if (activeSort) params.set('sort_by', activeSort);
-    else params.delete('sort_by');
-    var tagStr = activeTags.concat(activeBrands.map(function(b){return 'vendor:'+b;})).join('+');
-    if (tagStr) params.set('filter.p.tag', tagStr);
-    else params.delete('filter.p.tag');
-    if (activePrice < 500) params.set('filter.v.price.lte', activePrice);
-    else params.delete('filter.v.price.lte');
-    var url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    window.location.href = url;
+    fdClose();
+    fetchProducts(true);
   };
+
+  /* ── RESET ── */
   window.fdReset = function() {
-    activeTags = []; activeBrands = []; activeSort = ''; activePrice = 200;
-    document.querySelectorAll('.fd-tag.on').forEach(function(e){e.classList.remove('on');});
+    activeTags = []; activeBrands = []; activeSort = ''; activePrice = 500;
+    document.querySelectorAll('.fd-tag.on').forEach(function(e){ e.classList.remove('on'); });
     document.querySelectorAll('.fd-brand.on').forEach(function(e){
       e.classList.remove('on');
-      e.querySelector('.fd-chk-icon').style.display='none';
+      var icon = e.querySelector('.fd-chk-icon');
+      if (icon) icon.style.display = 'none';
     });
-    document.querySelectorAll('.fd-sort-opt').forEach(function(e,i){
-      e.classList.toggle('sel',i===0);
-    });
-    document.getElementById('sort-val').textContent='Pertinence';
-    document.getElementById('price-slider').value=200;
-    document.getElementById('price-display').textContent='200€';
-    document.getElementById('price-val').textContent='200€';
-    updateBadge();
+    document.querySelectorAll('.fd-sort-opt').forEach(function(e, i){ e.classList.toggle('sel', i === 0); });
+    document.getElementById('sort-val').textContent = 'Pertinence';
+    document.getElementById('price-slider').value = 500;
+    document.getElementById('price-display').textContent = 'Tous';
+    document.getElementById('price-val').textContent = 'Tous';
+    updateBadge(); updateChips();
+    fetchProducts(false);
   };
+
   window.fdToggleSection = function(btn) {
     btn.classList.toggle('open');
-    var content = btn.nextElementSibling;
-    content.classList.toggle('open');
+    btn.nextElementSibling.classList.toggle('open');
   };
+
+  /* ── SORT — instant fetch ── */
   window.fdSort = function(el, label, val) {
-    document.querySelectorAll('.fd-sort-opt').forEach(function(e){e.classList.remove('sel');});
+    document.querySelectorAll('.fd-sort-opt').forEach(function(e){ e.classList.remove('sel'); });
     el.classList.add('sel');
     activeSort = val;
     document.getElementById('sort-val').textContent = label;
+    fetchProducts(false); // fetch immediately on sort change
   };
+
+  /* ── PRICE ── */
   window.fdPriceChange = function(val) {
     activePrice = parseInt(val);
-    document.getElementById('price-display').textContent = val + '€';
-    document.getElementById('price-val').textContent = val + '€';
+    var display = val >= 500 ? 'Tous' : val + '€';
+    document.getElementById('price-display').textContent = display;
+    document.getElementById('price-val').textContent = display;
     updateBadge();
+    fetchProducts(false);
   };
+
   window.fdAvail = function(el, val) {
-    document.querySelectorAll('.fd-avail-opt').forEach(function(e){e.classList.remove('on');});
+    document.querySelectorAll('.fd-avail-opt').forEach(function(e){ e.classList.remove('on'); });
     el.classList.add('on');
   };
+
+  /* ── TAG TOGGLE — instant fetch ── */
   window.fdToggleTag = function(el, tag) {
     el.classList.toggle('on');
     var idx = activeTags.indexOf(tag);
     if (idx > -1) activeTags.splice(idx, 1);
     else activeTags.push(tag);
     updateBadge(); updateChips();
+    fetchProducts(false);
   };
+
+  /* ── BRAND TOGGLE — instant fetch ── */
   window.fdToggleBrand = function(el, brand) {
     el.classList.toggle('on');
     var icon = el.querySelector('.fd-chk-icon');
     if (el.classList.contains('on')) {
-      icon.style.display = 'block';
+      if (icon) icon.style.display = 'block';
       activeBrands.push(brand);
     } else {
-      icon.style.display = 'none';
+      if (icon) icon.style.display = 'none';
       var idx = activeBrands.indexOf(brand);
       if (idx > -1) activeBrands.splice(idx, 1);
     }
     updateBadge(); updateChips();
+    fetchProducts(false);
   };
+
   function updateBadge() {
     var n = activeTags.length + activeBrands.length + (activePrice < 500 ? 1 : 0);
     var badge = document.getElementById('fd-badge');
     var btn = document.getElementById('fd-open-btn');
-    if (n > 0) {
-      badge.style.display = 'inline';
-      badge.textContent = n;
-      btn.classList.add('has-filter');
-    } else {
-      badge.style.display = 'none';
-      btn.classList.remove('has-filter');
-    }
+    if (n > 0) { badge.style.display = 'inline'; badge.textContent = n; btn.classList.add('has-filter'); }
+    else { badge.style.display = 'none'; btn.classList.remove('has-filter'); }
   }
+
   function updateChips() {
     var chips = document.getElementById('col-chips');
     var all = activeTags.concat(activeBrands);
+    if (!chips) return;
     if (all.length === 0) { chips.style.display = 'none'; return; }
     chips.style.display = 'flex';
     chips.innerHTML = all.map(function(tag) {
-      return '<div class="col-chip">' + tag +
-        '<button onclick="removeChip(\''+tag+'\')" aria-label="Supprimer">×</button></div>';
+      return '<div class="col-chip">' + tag + '<button onclick="removeChip(\'' + tag + '\')" aria-label="Supprimer">×</button></div>';
     }).join('');
   }
+
   window.removeChip = function(tag) {
-    var tagEl = document.querySelector('.fd-tag.on[onclick*="\''+tag+'\'"]');
-    if (tagEl) { tagEl.classList.remove('on'); fdToggleTag(tagEl, tag); }
-    var brandEl = document.querySelector('.fd-brand.on[onclick*="\''+tag+'\'"]');
-    if (brandEl) { fdToggleBrand(brandEl, tag); }
-    updateChips();
+    var tagEl = document.querySelector('.fd-tag.on[onclick*="\'' + tag + '\'"]');
+    if (tagEl) { tagEl.classList.remove('on'); var i = activeTags.indexOf(tag); if (i > -1) activeTags.splice(i, 1); }
+    var brandEl = document.querySelector('.fd-brand.on[onclick*="\'' + tag + '\'"]');
+    if (brandEl) { brandEl.classList.remove('on'); var icon = brandEl.querySelector('.fd-chk-icon'); if (icon) icon.style.display = 'none'; var bi = activeBrands.indexOf(tag); if (bi > -1) activeBrands.splice(bi, 1); }
+    updateBadge(); updateChips();
+    fetchProducts(false);
   };
+
   window.toggleView = function() {
     isListView = !isListView;
-    var grid = document.getElementById('col-grid');
     grid.classList.toggle('list-view', isListView);
     document.getElementById('view-icon-grid').style.display = isListView ? 'none' : 'block';
     document.getElementById('view-icon-list').style.display = isListView ? 'block' : 'none';
   };
 
-  // Quick add to cart
-  window.mmAddToCart = function(btn) {
+  /* ── QUICK ADD TO CART ── */
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.prod-add');
+    if (!btn) return;
+    e.preventDefault(); e.stopPropagation();
     var vid = btn.getAttribute('data-variant');
     if (!vid) return;
-    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="2" fill="none"/><path d="M12 8v8M8 12h8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';
-    btn.style.background = '#2D6A2D';
+    var svg0 = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round"><circle cx="12" cy="12" r="9"/></svg>';
     btn.disabled = true;
     fetch('/cart/add.js', {
       method: 'POST',
-      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
-      body: JSON.stringify({id: parseInt(vid), quantity: 1})
-    }).then(function(r){ return r.json(); }).then(function() {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: parseInt(vid), quantity: 1 })
+    }).then(function(r) { return r.json(); }).then(function() {
       btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
       btn.style.background = '#2D6A2D';
-      // Immediately refresh cart and open drawer
       if (window.refreshCart) window.refreshCart();
       if (window.openCartDrawer) window.openCartDrawer();
-      setTimeout(function() {
-        btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-        btn.style.background = '#1A3C1A';
-        btn.disabled = false;
-      }, 1500);
-    }).catch(function(){
-      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:#fff"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>';
-      btn.style.background = '#C0392B';
-      btn.disabled = false;
-      setTimeout(function(){ btn.style.background = '#1A3C1A'; }, 2000);
-    });
-  };
+      setTimeout(function() { btn.innerHTML = svg0; btn.style.background = '#1A3C1A'; btn.disabled = false; }, 1500);
+    }).catch(function() { btn.innerHTML = svg0; btn.disabled = false; });
+  });
 
-  // Mobile image swipe on product cards
-  (function() {
+  /* ── SWIPE ── */
+  function attachSwipe() {
     var startX = 0;
-    document.addEventListener('touchstart', function(e) {
-      startX = e.touches[0].clientX;
-    }, { passive: true });
+    document.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
     document.addEventListener('touchend', function(e) {
       var dx = e.changedTouches[0].clientX - startX;
       if (Math.abs(dx) < 40) return;
@@ -620,48 +701,70 @@
       if (!container) return;
       var img = container.querySelector('.prod-main-img');
       if (!img) return;
-      var img0 = container.dataset.img0;
-      var img1 = container.dataset.img1;
+      var img0 = container.dataset.img0, img1 = container.dataset.img1;
       if (!img0 || !img1) return;
-      var showing0 = img.src.indexOf(img0.split('?')[0].split('/').pop()) !== -1 || !container._showingAlt;
-      if (dx < 0 && showing0) {
-        img.style.opacity = '0';
-        img.style.transform = 'scale(.95)';
-        setTimeout(function() {
-          img.src = img1;
-          img.style.opacity = '1';
-          img.style.transform = 'scale(1)';
-        }, 150);
+      var isAlt = container._showingAlt;
+      if (dx < 0 && !isAlt) {
+        img.style.opacity = '0'; img.style.transform = 'scale(.95)';
+        setTimeout(function() { img.src = img1; img.style.opacity = '1'; img.style.transform = ''; }, 140);
         container._showingAlt = true;
-      } else if (dx > 0 && !showing0) {
-        img.style.opacity = '0';
-        img.style.transform = 'scale(.95)';
-        setTimeout(function() {
-          img.src = img0;
-          img.style.opacity = '1';
-          img.style.transform = 'scale(1)';
-        }, 150);
+      } else if (dx > 0 && isAlt) {
+        img.style.opacity = '0'; img.style.transform = 'scale(.95)';
+        setTimeout(function() { img.src = img0; img.style.opacity = '1'; img.style.transform = ''; }, 140);
         container._showingAlt = false;
       }
     }, { passive: true });
-  })();
+  }
+  attachSwipe();
 
-  // Read URL params on load
+  /* ── READ URL PARAMS ON LOAD ── */
   var params = new URLSearchParams(window.location.search);
+  var urlSort = params.get('sort_by');
+  if (urlSort) activeSort = urlSort;
   var urlTags = params.get('filter.p.tag');
   if (urlTags) {
     urlTags.split('+').forEach(function(tag) {
+      if (!tag) return;
       activeTags.push(tag);
-      var el = document.querySelector('.fd-tag[onclick*="\''+tag+'\'"]');
+      var el = document.querySelector('.fd-tag[onclick*="\'' + tag + '\'"]');
       if (el) el.classList.add('on');
     });
     updateBadge(); updateChips();
   }
+
+  /* ── POPSTATE (back button) ── */
+  window.addEventListener('popstate', function() {
+    var p = new URLSearchParams(window.location.search);
+    activeTags = []; activeBrands = [];
+    var t = p.get('filter.p.tag');
+    if (t) activeTags = t.split('+').filter(Boolean);
+    activeSort = p.get('sort_by') || '';
+    fetchProducts(true);
+  });
 })();
 </script>
 
 <style>
-@media(max-width:767px){
-  .col-grid{grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;}
+.fd-footer {
+  position: fixed; bottom: -100px; left: 0; right: 0;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: #fff; border-top: 1px solid #EDEAD8; z-index: 210;
+  display: flex; gap: 10px;
+  transition: bottom 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+.fd-footer.open { bottom: 0; }
+.fd-close-btn {
+  flex: 1; padding: 14px; background: #F5F5F5; color: #333;
+  border: none; border-radius: 12px; font-family: inherit;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+}
+@keyframes card-appear {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.prod-card.card-appear { animation: card-appear 0.3s ease forwards; opacity: 0; }
+@media(max-width: 767px) {
+  .col-grid { grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 12px; }
 }
 </style>
