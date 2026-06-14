@@ -15,7 +15,7 @@ async function gql(query, variables = {}) {
 const DEFAULT_PROFILE_ID = 'gid://shopify/DeliveryProfile/143568896325';
 const LOCATION_GROUP_ID  = 'gid://shopify/DeliveryLocationGroup/154261815621';
 
-// BE, LU, DE, NL, IT, AT, CH — ES ve PT zaten baska zone'da
+// Sadece BE/LU ve AT/CH — ES, PT, DE, NL, IT zaten baska zone'da olabilir
 const ZONES = [
   {
     name: 'Belgique / Luxembourg',
@@ -26,18 +26,6 @@ const ZONES = [
     methodDefinitionsToCreate: [
       { name: '🚚 Livraison Belgique / Luxembourg', active: true, rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } } },
       { name: '🎁 Livraison Gratuite BE/LU (dès 149€)', active: true, rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } } }
-    ]
-  },
-  {
-    name: 'Allemagne / Pays-Bas / Italie',
-    countries: [
-      { code: 'DE', includeAllProvinces: true },
-      { code: 'NL', includeAllProvinces: true },
-      { code: 'IT', includeAllProvinces: true }
-    ],
-    methodDefinitionsToCreate: [
-      { name: '🚚 Livraison Europe', active: true, rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } } },
-      { name: '🎁 Livraison Gratuite Europe (dès 149€)', active: true, rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } } }
     ]
   },
   {
@@ -53,7 +41,7 @@ const ZONES = [
   }
 ];
 
-console.log('🌍 Avrupa kargo bölgeleri ekleniyor (BE/LU, DE/NL/IT, AT/CH)...\n');
+console.log('🌍 Avrupa kargo bölgeleri ekleniyor (BE/LU, AT/CH)...\n');
 
 const result = await gql(`
   mutation deliveryProfileUpdate($id: ID!, $profile: DeliveryProfileInput!) {
@@ -78,6 +66,5 @@ if (errs?.length) {
 } else if (result?.deliveryProfileUpdate?.profile) {
   console.log('✅ Bölgeler eklendi!');
   console.log('   🇧🇪🇱🇺 Belçika/Lüksemburg: 18€');
-  console.log('   🇩🇪🇳🇱🇮🇹 Almanya/Hollanda/İtalya: 18€');
   console.log('   🇦🇹🇨🇭 Avusturya/İsviçre: 18€');
 }
