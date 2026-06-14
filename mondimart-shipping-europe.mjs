@@ -63,9 +63,8 @@ const result = await gql(`
           ]
         },
         {
-          name: 'Portugal / Autriche / Suisse',
+          name: 'Autriche / Suisse',
           countries: [
-            { code: 'PT', includeAllProvinces: true },
             { code: 'AT', includeAllProvinces: true },
             { code: 'CH', includeAllProvinces: true }
           ],
