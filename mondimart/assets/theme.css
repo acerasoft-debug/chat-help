@@ -202,7 +202,7 @@ button { font-family: 'DM Sans', sans-serif; }
 .col-row3 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .colcard { border-radius: var(--radius); overflow: hidden; position: relative; display: block; transition: transform var(--transition), box-shadow var(--transition); }
 .colcard:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-.colcard img { transition: transform .45s; }
+.colcard img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .45s; }
 .colcard:hover img { transform: scale(1.06); }
 .col-ov { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 18px 16px; }
 .col-ov.dark { background: linear-gradient(180deg, transparent 30%, rgba(10,25,10,.85) 100%); }
@@ -251,7 +251,7 @@ button { font-family: 'DM Sans', sans-serif; }
 .flash-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: var(--radius); overflow: hidden; cursor: pointer; transition: all var(--transition); display: block; }
 .flash-card:hover { background: rgba(255,255,255,.14); transform: translateY(-3px); }
 .flash-card-img { height: 165px; position: relative; overflow: hidden; }
-.flash-card-img img { object-position: center; transition: transform .4s; }
+.flash-card-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .4s; }
 .flash-card:hover .flash-card-img img { transform: scale(1.06); }
 .flash-discount { position: absolute; top: 10px; left: 10px; background: var(--rp); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 6px; }
 .flash-card-body { padding: 13px; }
@@ -276,7 +276,7 @@ button { font-family: 'DM Sans', sans-serif; }
 .product-card { background: #fff; border: 1px solid var(--bo); border-radius: var(--radius); overflow: hidden; display: block; transition: all var(--transition); position: relative; }
 .product-card:hover { border-color: var(--gl); box-shadow: 0 8px 32px rgba(42,106,42,.12); transform: translateY(-4px); }
 .product-img { height: 195px; position: relative; overflow: hidden; background: var(--cr); }
-.product-img img { transition: transform .45s; }
+.product-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .45s; }
 .product-card:hover .product-img img { transform: scale(1.07); }
 .product-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; position: absolute; top: 10px; left: 10px; }
 .badge-new { background: #E8F2E3; color: var(--gl); }
@@ -300,7 +300,7 @@ button { font-family: 'DM Sans', sans-serif; }
 .promo-section { background: var(--wh); padding: 0 20px 52px; }
 .promo-grid { max-width: var(--lw); margin: 0 auto; display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: 14px; }
 .promo-card { border-radius: 16px; overflow: hidden; position: relative; display: block; height: 230px; }
-.promo-card img { transition: transform .4s; }
+.promo-card img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .4s; }
 .promo-card:hover img { transform: scale(1.04); }
 .promo-overlay { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: 24px; }
 .promo-overlay.p1 { background: linear-gradient(180deg, transparent 20%, rgba(15,35,15,.9) 100%); }
@@ -318,7 +318,7 @@ button { font-family: 'DM Sans', sans-serif; }
 .recipe-img { position: relative; overflow: hidden; }
 .recipe-card:first-child .recipe-img { height: 260px; }
 .recipe-card:not(:first-child) .recipe-img { height: 160px; }
-.recipe-img img { transition: transform .4s; }
+.recipe-img img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .4s; }
 .recipe-card:hover .recipe-img img { transform: scale(1.05); }
 .recipe-tag { position: absolute; bottom: 12px; left: 12px; background: rgba(26,60,26,.88); color: #A8D8A0; font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: .6px; }
 .recipe-info { padding: 16px; }
