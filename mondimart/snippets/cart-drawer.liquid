@@ -7,20 +7,70 @@
     <button class="cart-close" data-close-cart aria-label="Fermer">×</button>
   </div>
 
-  <!-- Free shipping progress -->
-  {% assign threshold = 4900 %}
-  <div style="padding:10px 20px;background:var(--cr);border-bottom:1px solid var(--bo);flex-shrink:0">
-    <div id="cart-progress-text" style="font-size:12px;color:var(--tm);margin-bottom:6px;font-weight:{% if cart.total_price >= threshold %}700{% else %}400{% endif %};color:{% if cart.total_price >= threshold %}#2D6A2D{% else %}var(--tm){% endif %}">
-      {% if cart.total_price >= threshold %}
-        🎁 Livraison gratuite débloquée !
-      {% else %}
-        {% assign remaining = threshold | minus: cart.total_price %}Plus que <strong>{{ remaining | money }}</strong> pour la livraison gratuite
-      {% endif %}
+  <!-- Soğuk zincir tespiti -->
+  {% assign has_cold = false %}
+  {% assign has_meat = false %}
+  {% for item in cart.items %}
+    {% if item.product.tags contains 'viande' or item.product.tags contains 'halal' %}
+      {% assign has_cold = true %}
+      {% assign has_meat = true %}
+    {% endif %}
+    {% if item.product.tags contains 'frais' %}
+      {% assign has_cold = true %}
+    {% endif %}
+  {% endfor %}
+
+  <!-- Free shipping progress bar -->
+  {% assign threshold = 14900 %}
+  {% assign pct = cart.total_price | times: 100 | divided_by: threshold | at_most: 100 %}
+  {% assign remaining = threshold | minus: cart.total_price %}
+
+  <div style="padding:12px 18px;background:linear-gradient(135deg,#f8fdf8,#f0f7f0);border-bottom:1px solid #e0ead0;flex-shrink:0">
+    {% if cart.total_price >= threshold %}
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#2a6b2a;margin-bottom:7px">
+        <span style="font-size:18px">🎁</span> Livraison gratuite débloquée !
+      </div>
+    {% else %}
+      <div style="font-size:12px;color:#555;margin-bottom:7px;line-height:1.4">
+        Plus que <strong style="color:#2a6b2a">{{ remaining | money }}</strong> pour la livraison gratuite
+      </div>
+    {% endif %}
+    <div style="height:6px;background:#dce8dc;border-radius:6px;overflow:hidden;position:relative">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,#4caf50,#66bb6a);border-radius:6px;transition:width .5s ease"></div>
     </div>
-    <div style="height:5px;background:var(--bo);border-radius:3px;overflow:hidden">
-      <div class="cart-progress-inner" style="height:100%;background:var(--gl);border-radius:3px;width:{{ cart.total_price | times: 100 | divided_by: threshold | at_most: 100 }}%;transition:width .4s"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#aaa">
+      <span>0€</span><span style="font-weight:600;color:#2a6b2a">149€ = livraison offerte</span>
     </div>
   </div>
+
+  <!-- Soğuk zincir uyarısı -->
+  {% if has_cold %}
+  <div id="cold-chain-banner" style="padding:10px 18px;background:#e8f4fd;border-bottom:2px solid #b3d9f5;flex-shrink:0;display:flex;align-items:flex-start;gap:10px">
+    <span style="font-size:20px;flex-shrink:0">❄️</span>
+    <div>
+      <div style="font-size:12px;font-weight:700;color:#1565c0;margin-bottom:3px">Livraison Chaîne du Froid</div>
+      <div style="font-size:11px;color:#1976d2;line-height:1.5">
+        {% if cart.total_price >= threshold %}
+          Gratuite — seuil 149€ atteint 🎉
+        {% else %}
+          🇫🇷 France : <strong>18€</strong> (+1€/kg sup. à 1kg)<br>
+          🇧🇪🇱🇺🇪🇸 BE/LU/ES : <strong>24€</strong> (+1€/kg sup. à 1kg)
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div style="padding:8px 18px;background:#fafafa;border-bottom:1px solid var(--bo);flex-shrink:0;display:flex;align-items:center;gap:8px">
+    <span style="font-size:15px">🚚</span>
+    <div style="font-size:11px;color:#777;line-height:1.5">
+      {% if cart.total_price >= threshold %}
+        <strong style="color:#2a6b2a">Livraison gratuite</strong> — seuil 149€ atteint 🎉
+      {% else %}
+        🇫🇷 France : <strong>8€</strong> (+1€/kg) &nbsp;|&nbsp; 🌍 Europe : <strong>18€</strong> (+2€/kg sup. à 5kg)
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Items - scrollable -->
   <div class="cart-items" id="cart-items-container" style="flex:1;overflow-y:auto;min-height:0">
@@ -48,6 +98,9 @@
             {% unless item.variant.title == 'Default Title' or item.variant.title == blank %}
               <div class="cart-item-variant">{{ item.variant.title }}</div>
             {% endunless %}
+            {% if item.product.tags contains 'viande' or item.product.tags contains 'halal' %}
+              <div style="font-size:10px;color:#1565c0;font-weight:600;margin-top:2px">❄️ Chaîne du froid</div>
+            {% endif %}
             <div class="cart-item-price">{{ item.final_line_price | money }}</div>
             <div class="cart-qty">
               <button class="qty-btn" data-line="{{ forloop.index }}" data-qty-change="-1">−</button>
@@ -61,15 +114,23 @@
     {% endif %}
   </div>
 
-  <!-- Footer - always at bottom -->
+  <!-- Footer -->
   <div class="cart-footer" style="flex-shrink:0;border-top:1px solid var(--bo)">
     <div class="cart-subtotal">
       <span>Sous-total</span>
       <span>{{ cart.items_subtotal_price | money }}</span>
     </div>
     <div class="cart-subtotal">
-      <span>Livraison</span>
-      <span style="color:var(--gl)">{% if cart.total_price >= 4900 %}Gratuite 🎁{% else %}Calculée ensuite{% endif %}</span>
+      <span>Livraison estimée</span>
+      <span style="color:{% if cart.total_price >= threshold %}#2a6b2a{% else %}var(--gl){% endif %};font-weight:600">
+        {% if cart.total_price >= threshold %}
+          Gratuite 🎁
+        {% elsif has_cold %}
+          ❄️ 18€–24€
+        {% else %}
+          🚚 8€–18€
+        {% endif %}
+      </span>
     </div>
     <div class="cart-total">
       <span>Total</span>
