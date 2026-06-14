@@ -1,6 +1,11 @@
 // ============================================================
 // MONDIMART - Premium FAQ Sayfası
 // Kullanım: SHOPIFY_TOKEN='...' node mondimart-faq.mjs
+//
+// ⚠️  Token'ın write_content yetkisi gerekli!
+// Shopify Admin → Settings → Apps and sales channels →
+//   Develop apps → mondimart-app → Configuration →
+//   Admin API access scopes → "write_content" ekle → Save → Reinstall
 // ============================================================
 
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
