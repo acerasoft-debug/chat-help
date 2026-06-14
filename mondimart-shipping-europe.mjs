@@ -43,14 +43,6 @@ const result = await gql(`
           ]
         },
         {
-          name: 'Espagne',
-          countries: [{ code: 'ES', includeAllProvinces: true }],
-          methodDefinitionsToCreate: [
-            { name: '🚚 Livraison Espagne', active: true, rateDefinition: { price: { amount: '18.00', currencyCode: 'EUR' } } },
-            { name: '🎁 Livraison Gratuite Espagne (dès 149€)', active: true, rateDefinition: { price: { amount: '0.00', currencyCode: 'EUR' } } }
-          ]
-        },
-        {
           name: 'Allemagne / Pays-Bas / Italie',
           countries: [
             { code: 'DE', includeAllProvinces: true },
