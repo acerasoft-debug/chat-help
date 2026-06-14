@@ -192,8 +192,7 @@ Réponds UNIQUEMENT en JSON valide (array), sans texte:
           model: 'deepseek-chat',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.1,
-          max_tokens: 2000,
-          response_format: { type: 'json_object' }
+          max_tokens: 2000
         })
       });
 
@@ -201,15 +200,15 @@ Réponds UNIQUEMENT en JSON valide (array), sans texte:
       if (!d.choices?.[0]?.message?.content) throw new Error('No content');
 
       let content = d.choices[0].message.content.trim();
-      // JSON array içinde olabilir veya obje içinde
-      if (content.startsWith('{')) {
-        const obj = JSON.parse(content);
-        // Array'i bul
-        const arr = obj.results || obj.products || obj.items || Object.values(obj)[0];
-        if (Array.isArray(arr)) return arr;
-        return [obj]; // Tek ürün döndüyse
-      }
-      return JSON.parse(content);
+      // Markdown kod bloğunu temizle
+      content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // JSON parse
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) return parsed;
+      // Obje içindeyse array'i bul
+      const arr = parsed.results || parsed.products || parsed.items || Object.values(parsed)[0];
+      if (Array.isArray(arr)) return arr;
+      return [parsed];
     } catch(e) {
       if (attempt === 3) {
         console.error(`DeepSeek hata: ${e.message}`);
