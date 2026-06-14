@@ -124,40 +124,59 @@ const PRODUCT_TYPES = [
 // ============================================================
 async function analyzeWithDeepSeek(products) {
   const productList = products.map((p, i) =>
-    `${i+1}. Titre: "${p.title}" | Tags actuels: "${p.tags}" | Type actuel: "${p.product_type}"`
+    `${i+1}. Titre: "${p.title}" | Tags actuels: "${p.tags}" | Type actuel: "${p.product_type}" | Prix actuel: ${p.variants?.[0]?.price || '0.00'}€`
   ).join('\n');
 
   const collectionList = Object.keys(COLLECTIONS).join(', ');
   const typeList = PRODUCT_TYPES.join(', ');
 
-  const prompt = `Tu es un expert en épicerie mondiale (Turkish, Maghreb, Italian, Asian, Halal products).
+  const prompt = `Tu es un expert en épicerie mondiale (Turkish, Maghreb, Italian, Asian, Halal products) et en pricing pour la France et la Belgique.
+
 Analyse ces ${products.length} produits et détermine pour chacun:
 1. Le bon "product_type" (choisis EXACTEMENT parmi: ${typeList})
 2. Les bonnes "collections" (choisis parmi: ${collectionList})
-3. Les "tags" corrects à ajouter (en minuscules, ex: turque, halal, viande, hygiene, etc.)
+3. Les "tags" corrects à ajouter (en minuscules)
 4. Les "tags_remove" à supprimer si incorrects
+5. Le "price" de vente réaliste en France/Belgique (épicerie mondiale, prix moyen marché 2024)
+   - Basé sur le grammage/volume dans le titre si possible
+   - Prix compétitif mais rentable (marge 30-40% sur prix grossiste estimé)
+   - Si le prix actuel est déjà > 0, ne pas le changer (mettre null)
 
-RÈGLES IMPORTANTES:
+RÈGLES CATÉGORIE:
 - "bebe" en turc = jeune animal (bebe kuzu = agneau), PAS aliment bébé
 - Alimentation Bébé = UNIQUEMENT vrais aliments bébé (Blédina, petits pots, lait infantile)
-- Mezze = baba ganoush, haydari, fava, hummus, dolma, börek, salade turque
-- Produits Karaca = vaisselle/cuisine, ne pas mettre dans épicerie
+- Mezze = baba ganoush, haydari, fava, hummus, dolma, börek, salade turque (200g ≈ 6.90€)
+- Produits Karaca = vaisselle/cuisine uniquement
 - Emballage Horeca = contenants professionnels (bakjes, folie, serviettes)
 - Turque = marques Bizim, Ülker, Eti, Eker, Bingo, Baltat, Bebeto, etc.
-- Si "halal" ET "viande" dans tags → Viandes Halal / Boucherie
+- Si "halal" ET "viande" → Viandes Halal / Boucherie
 - Charcuterie = bacon dinde, délice poulet tranché, saucisse, fumé
+
+RÉFÉRENCES PRIX FRANCE/BELGIQUE:
+- Agneau 500g: 18-22€ | Agneau 1kg: 35-42€ | Agneau 2.5kg: 80-95€
+- Veau 500g: 25-32€ | Poulet 500g: 8-12€
+- Mezze/Salades 200g: 6-8€
+- Biscuits paquet 300g: 2.50-3.50€ | Biscuits koli (15-20 pcs): 18-25€
+- Bonbons 1kg: 8-10€ | Bonbons 180g: 2-3€
+- Épices 50-100g: 1.80-3€ | Bouillon 120g: 2-2.50€
+- Pâtes 500g: 1.50-2€ | Riz 2.5kg: 5-7€
+- Huile olive 750ml: 7-10€ | Margarine 500g: 2-3€
+- Nettoyant 1L: 4-6€ | Lessive 4L: 8-12€
+- Shampoing 500ml: 5-8€
+- Emballage pro 100 pcs: 8-12€
 
 Produits à analyser:
 ${productList}
 
-Réponds UNIQUEMENT en JSON valide, sans texte avant/après:
+Réponds UNIQUEMENT en JSON valide (array), sans texte:
 [
   {
     "index": 1,
     "product_type": "...",
     "collections": ["Collection1", "Collection2"],
-    "tags_add": ["tag1", "tag2"],
-    "tags_remove": ["mauvais_tag"]
+    "tags_add": ["tag1"],
+    "tags_remove": ["mauvais_tag"],
+    "price": 6.90
   }
 ]`;
 
@@ -291,6 +310,21 @@ for (let i = 0; i < toProcess.length; i += BATCH) {
         process.stdout.write('!');
       }
       await delay(250);
+    }
+
+    // --- FİYAT güncelleme (sadece 0.00 ise) ---
+    const curPrice = parseFloat(p.variants?.[0]?.price || 0);
+    if (result.price && curPrice === 0 && result.price > 0) {
+      const variantId = p.variants?.[0]?.id;
+      if (variantId) {
+        const res = await shopify('PUT', `variants/${variantId}.json`, {
+          variant: { id: variantId, price: result.price.toFixed(2) }
+        });
+        if (res.variant) {
+          process.stdout.write('€');
+        }
+        await delay(220);
+      }
     }
 
     // --- KOLEKSİYON ekleme ---
