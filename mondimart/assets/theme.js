@@ -265,7 +265,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const cd = document.getElementById('flash-countdown');
   if (cd) {
     const endStr = cd.dataset.end;
-    const endTime = endStr ? new Date(endStr).getTime() : (Date.now() + 23 * 3600 * 1000);
+    let endTime;
+    if (endStr) {
+      endTime = new Date(endStr).getTime();
+      // If the configured end is in the past, auto-roll to next midnight
+      if (endTime < Date.now()) {
+        const midnight = new Date();
+        midnight.setHours(23, 59, 59, 0);
+        if (midnight.getTime() < Date.now()) midnight.setDate(midnight.getDate() + 1);
+        endTime = midnight.getTime();
+      }
+    } else {
+      const midnight = new Date();
+      midnight.setHours(23, 59, 59, 0);
+      endTime = midnight.getTime();
+    }
     const elH = document.getElementById('cd-h');
     const elM = document.getElementById('cd-m');
     const elS = document.getElementById('cd-s');
@@ -277,13 +291,96 @@ document.addEventListener('DOMContentLoaded', () => {
       if (elH) elH.textContent = String(h).padStart(2, '0');
       if (elM) elM.textContent = String(m).padStart(2, '0');
       if (elS) elS.textContent = String(s).padStart(2, '0');
-      if (diff === 0) {
-        cd.style.opacity = '.4';
-        clearInterval(cdTimer);
-      }
     };
-    const cdTimer = setInterval(tick, 1000);
+    setInterval(tick, 1000);
     tick();
+  }
+
+  // ── SCROLL-AWARE HEADER ──
+  const siteHeader = document.querySelector('.site-header');
+  if (siteHeader) {
+    let lastScroll = 0;
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scroll = window.scrollY;
+          if (scroll > 60) {
+            siteHeader.classList.add('header-scrolled');
+          } else {
+            siteHeader.classList.remove('header-scrolled');
+            siteHeader.classList.remove('header-hidden');
+          }
+          if (scroll > lastScroll + 8 && scroll > 200) {
+            siteHeader.classList.add('header-hidden');
+          } else if (scroll < lastScroll - 5) {
+            siteHeader.classList.remove('header-hidden');
+          }
+          lastScroll = scroll;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+
+  // ── MOBILE SEARCH OVERLAY ──
+  const searchOverlay = document.getElementById('mm-search-overlay');
+  const searchInput = document.getElementById('mm-search-input');
+  const searchClose = document.getElementById('mm-search-close');
+  const mobileTriggers = document.querySelectorAll('#mobile-search-trigger, #anb-search');
+
+  function openSearch() {
+    searchOverlay?.classList.add('open');
+    searchOverlay?.removeAttribute('aria-hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => searchInput?.focus(), 150);
+  }
+  function closeSearch() {
+    searchOverlay?.classList.remove('open');
+    searchOverlay?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  mobileTriggers.forEach(btn => btn?.addEventListener('click', (e) => { e.preventDefault(); openSearch(); }));
+  searchClose?.addEventListener('click', closeSearch);
+  searchOverlay?.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
+
+  // Show mobile search trigger on mobile
+  const mobileST = document.getElementById('mobile-search-trigger');
+  if (mobileST && window.innerWidth <= 768) {
+    mobileST.style.display = 'flex';
+    // Also hide desktop lang switcher on very small screens optionally
+  }
+
+  // ── BOTTOM NAV ACTIVE STATE BY URL ──
+  const path = window.location.pathname;
+  document.querySelectorAll('.app-nav-btn[href]').forEach(btn => {
+    const href = btn.getAttribute('href');
+    if (href === '/' && path === '/') btn.classList.add('active');
+    else if (href !== '/' && path.startsWith(href)) btn.classList.add('active');
+  });
+
+  // ── TOUCH RIPPLE ON BUTTONS ──
+  document.addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('.quick-add, .flash-add-btn, .checkout-btn, .cart-checkout-btn');
+    if (!btn) return;
+    const ripple = document.createElement('span');
+    const rect = btn.getBoundingClientRect();
+    ripple.style.cssText = `position:absolute;border-radius:50%;background:rgba(255,255,255,.4);pointer-events:none;transform:scale(0);animation:ripple .5s ease-out forwards;width:80px;height:80px;left:${e.clientX - rect.left - 40}px;top:${e.clientY - rect.top - 40}px;`;
+    btn.style.position = 'relative';
+    btn.style.overflow = 'hidden';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+  });
+
+  // Ripple keyframe injection
+  if (!document.getElementById('mm-ripple-style')) {
+    const st = document.createElement('style');
+    st.id = 'mm-ripple-style';
+    st.textContent = '@keyframes ripple{to{transform:scale(3);opacity:0}}';
+    document.head.appendChild(st);
   }
 
   // ── FILTER TABS ──

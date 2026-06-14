@@ -34,27 +34,93 @@
     Panier (<span class="cart-sticky-count">{{ cart.item_count }}</span>)
   </button>
 
-  <!-- APP BOTTOM NAVIGATION -->
-  <nav class="app-bottom-nav" role="navigation" aria-label="Navigation principale">
-    <div class="app-nav-inner">
-      <a class="app-nav-btn {% if template.name == 'index' %}active{% endif %}" href="/">
-        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-        Accueil
-      </a>
-      <a class="app-nav-btn app-nav-search-btn" href="/collections/all">
-        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-        Rayons
-      </a>
-      <button class="app-nav-btn" data-open-cart style="border:none;cursor:pointer">
-        <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45C5.16 14.78 5 15.37 5 16c0 2.21 1.79 4 4 4h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.45 7H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-        <span class="app-nav-cart-count cart-count">{{ cart.item_count }}</span>
-        Panier
-      </button>
-      <a class="app-nav-btn {% if template.name == 'customers/account' %}active{% endif %}" href="{{ routes.account_url }}">
-        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 100 10A5 5 0 0012 2zM5.5 20a6.5 6.5 0 0113 0H5.5z"/></svg>
-        Compte
-      </a>
+  <!-- MOBILE SEARCH OVERLAY -->
+  <div class="mm-search-overlay" id="mm-search-overlay" aria-hidden="true">
+    <div class="mm-search-overlay-inner">
+      <form action="{{ routes.search_url }}" method="get" class="mm-search-overlay-form" role="search">
+        <button type="button" class="mm-search-back" id="mm-search-close" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <input type="search" name="q" id="mm-search-input" placeholder="Chercher un produit…" autocomplete="off" autocapitalize="off" class="mm-search-overlay-input" enterkeyhint="search">
+        <button type="submit" class="mm-search-submit" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </form>
+      <div class="mm-search-body">
+        <p class="mm-search-hint">Recherches populaires</p>
+        <div class="mm-search-chips">
+          <a href="/search?q=halal" class="mm-search-chip">✅ Halal</a>
+          <a href="/search?q=epices" class="mm-search-chip">🌶️ Épices</a>
+          <a href="/search?q=baklava" class="mm-search-chip">🍯 Baklava</a>
+          <a href="/search?q=thé" class="mm-search-chip">🫖 Thé</a>
+          <a href="/search?q=olive" class="mm-search-chip">🫒 Huile d'olive</a>
+          <a href="/search?q=karaca" class="mm-search-chip">🍽️ Karaca</a>
+          <a href="/search?q=bio" class="mm-search-chip">🌿 Bio</a>
+          <a href="/search?q=vegan" class="mm-search-chip">🌱 Vegan</a>
+          <a href="/search?q=confiture" class="mm-search-chip">🍓 Confiture</a>
+          <a href="/search?q=pates" class="mm-search-chip">🍝 Pâtes</a>
+        </div>
+        <p class="mm-search-hint" style="margin-top:24px">Catégories</p>
+        <div class="mm-search-cats">
+          <a href="/collections/epicerie-fine" class="mm-search-cat"><span class="msc-icon">🏺</span><span>Épicerie</span></a>
+          <a href="/collections/viandes-halal" class="mm-search-cat"><span class="msc-icon">🥩</span><span>Boucherie</span></a>
+          <a href="/collections/boissons" class="mm-search-cat"><span class="msc-icon">🫖</span><span>Boissons</span></a>
+          <a href="/collections/karaca" class="mm-search-cat"><span class="msc-icon">🍽️</span><span>Karaca</span></a>
+          <a href="/collections/epices" class="mm-search-cat"><span class="msc-icon">🌶️</span><span>Épices</span></a>
+          <a href="/collections/promotions" class="mm-search-cat" style="border-color:#FFD4A3;background:#FFF8F0"><span class="msc-icon">🔥</span><span style="color:#C4792A">Promos</span></a>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- APP BOTTOM NAVIGATION -->
+  <nav class="app-bottom-nav" id="app-bottom-nav" role="navigation" aria-label="Navigation principale">
+    <a class="app-nav-btn {% if template.name == 'index' %}active{% endif %}" href="/" id="anb-home">
+      <div class="anb-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12L12 3l9 9"/>
+          <path d="M9 21V12h6v9"/>
+          <path d="M5 10v11h14V10"/>
+        </svg>
+      </div>
+      <span>Accueil</span>
+    </a>
+    <a class="app-nav-btn {% if template.name == 'list-collections' or template.name == 'collection' %}active{% endif %}" href="/collections/all" id="anb-shop">
+      <div class="anb-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+        </svg>
+      </div>
+      <span>Rayons</span>
+    </a>
+    <button class="app-nav-btn anb-search-trigger" id="anb-search" aria-label="Rechercher" style="background:none;border:none;cursor:pointer;">
+      <div class="anb-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <span>Chercher</span>
+    </button>
+    <button class="app-nav-btn app-cart-btn" data-open-cart aria-label="Panier" style="background:none;border:none;cursor:pointer;position:relative">
+      <div class="anb-icon-wrap" style="position:relative;display:inline-flex">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 7h14l-1.5 12.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5L5 7z"/>
+          <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+        </svg>
+        <span class="app-nav-cart-count cart-count" style="{% if cart.item_count == 0 %}display:none{% endif %}">{{ cart.item_count }}</span>
+      </div>
+      <span>Panier</span>
+    </button>
+    <a class="app-nav-btn {% if template.name == 'customers/account' %}active{% endif %}" href="{{ routes.account_url }}" id="anb-account">
+      <div class="anb-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20a8 8 0 0 1 16 0"/>
+        </svg>
+      </div>
+      <span>Compte</span>
+    </a>
   </nav>
 
   {{ 'theme.js' | asset_url | script_tag }}

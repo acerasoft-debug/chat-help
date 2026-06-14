@@ -12,14 +12,15 @@
     </div>
 
     {% if section.settings.show_tabs %}
-      <div class="filter-tabs">
-        <button class="filter-tab active" onclick="filterTab(this)">Tout</button>
-        <button class="filter-tab" onclick="filterTab(this)">🏺 Épicerie</button>
-        <button class="filter-tab" onclick="filterTab(this)">🥩 Boucherie</button>
-        <button class="filter-tab" onclick="filterTab(this)">🥬 Frais</button>
-        <button class="filter-tab" onclick="filterTab(this)">🫖 Boissons</button>
-        <button class="filter-tab" onclick="filterTab(this)">🇹🇷 Turque</button>
-        <button class="filter-tab" onclick="filterTab(this)">🇲🇦 Maghrébine</button>
+      <div class="filter-tabs" id="fp-tabs">
+        <button class="filter-tab active" data-cat="all">Tout</button>
+        <button class="filter-tab" data-cat="epicerie">🏺 Épicerie</button>
+        <button class="filter-tab" data-cat="boucherie">🥩 Halal</button>
+        <button class="filter-tab" data-cat="frais">🥬 Frais</button>
+        <button class="filter-tab" data-cat="boissons">🫖 Boissons</button>
+        <button class="filter-tab" data-cat="turque">🇹🇷 Turque</button>
+        <button class="filter-tab" data-cat="maghrebine">🇲🇦 Maghreb</button>
+        <button class="filter-tab" data-cat="bio">🌿 Bio</button>
       </div>
     {% endif %}
 
@@ -27,7 +28,7 @@
       {% for block in section.blocks %}
         {% if block.settings.product != blank %}
           {%- assign product = block.settings.product -%}
-          <a class="product-card" href="{{ product.url }}" {{ block.shopify_attributes }}>
+          <a class="product-card" href="{{ product.url }}" data-cat="{{ block.settings.category }}" {{ block.shopify_attributes }}>
             <div class="product-img">
               {% if product.featured_image %}
                 <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
@@ -58,10 +59,25 @@
   </div>
 </section>
 <script>
-function filterTab(el) {
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-}
+(function() {
+  var tabs = document.querySelectorAll('#fp-tabs .filter-tab');
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      var cat = this.dataset.cat;
+      var cards = document.querySelectorAll('.products-grid .product-card');
+      cards.forEach(function(card) {
+        if (cat === 'all' || !card.dataset.cat || card.dataset.cat === cat) {
+          card.style.display = '';
+          card.style.animation = 'fadeInUp .3s ease forwards';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+})();
 </script>
 
 {% schema %}
@@ -86,7 +102,16 @@ function filterTab(el) {
           { "value": "badge-sale", "label": "Promo (rouge)" },
           { "value": "badge-halal", "label": "Halal (jaune)" }
         ], "default": "badge-new" },
-        { "type": "text", "id": "origin", "label": "Origine", "default": "🇹🇷 Turque" }
+        { "type": "text", "id": "origin", "label": "Origine / étiquette", "default": "🇹🇷 Turque" },
+        { "type": "select", "id": "category", "label": "Catégorie (filtre)", "options": [
+          { "value": "epicerie", "label": "Épicerie" },
+          { "value": "boucherie", "label": "Boucherie / Halal" },
+          { "value": "frais", "label": "Produits frais" },
+          { "value": "boissons", "label": "Boissons" },
+          { "value": "turque", "label": "Cuisine turque" },
+          { "value": "maghrebine", "label": "Cuisine maghrébine" },
+          { "value": "bio", "label": "Bio / Vegan" }
+        ], "default": "epicerie" }
       ]
     }
   ],

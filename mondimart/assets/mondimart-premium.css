@@ -1921,3 +1921,480 @@
   .products-section, .cuisines-section { padding: 36px 0; }
   .section-title { font-size: 22px !important; }
 }
+
+/* ============================================================
+   19. SCROLL-AWARE HEADER
+   ============================================================ */
+.site-header {
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.32s ease,
+              background 0.25s ease;
+}
+.header-scrolled {
+  box-shadow: 0 2px 20px rgba(0,0,0,0.12) !important;
+}
+.header-hidden {
+  transform: translateY(-100%);
+}
+
+/* ============================================================
+   20. MOBILE SEARCH OVERLAY — FULL SCREEN
+   ============================================================ */
+.mm-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.mm-search-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.mm-search-overlay-form {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 12px 12px 8px;
+  border-bottom: 1.5px solid #ede9df;
+  flex-shrink: 0;
+}
+
+.mm-search-back {
+  width: 44px; height: 44px;
+  border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--mm-green-deep);
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.mm-search-back:hover { background: #f0f0ea; }
+.mm-search-back svg { width: 22px; height: 22px; }
+
+.mm-search-overlay-input {
+  flex: 1;
+  height: 48px;
+  border: none;
+  outline: none;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: #1c1c1c;
+  background: transparent;
+  padding: 0 8px;
+  caret-color: var(--mm-green-deep);
+}
+.mm-search-overlay-input::placeholder {
+  color: #bbb;
+  font-weight: 400;
+}
+
+.mm-search-submit {
+  width: 44px; height: 44px;
+  border: none;
+  background: linear-gradient(135deg, var(--mm-green-deep), #2d5c2a);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.mm-search-submit svg { width: 18px; height: 18px; stroke: #fff; }
+.mm-search-submit:hover { filter: brightness(1.1); transform: scale(1.04); }
+
+.mm-search-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mm-search-hint {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a9284;
+  margin: 0 0 12px;
+}
+
+.mm-search-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mm-search-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f5f0e6;
+  border: 1px solid #e5e0d5;
+  border-radius: 999px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3a3028;
+  text-decoration: none;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mm-search-chip:hover, .mm-search-chip:active {
+  background: var(--mm-green-deep);
+  border-color: var(--mm-green-deep);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.mm-search-cats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mm-search-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: #fafaf5;
+  border: 1.5px solid #ede9df;
+  border-radius: 14px;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mm-search-cat:hover, .mm-search-cat:active {
+  border-color: var(--mm-green-deep);
+  background: #f0f7ef;
+  transform: translateY(-2px);
+}
+.mm-search-cat .msc-icon { font-size: 26px; }
+.mm-search-cat span:last-child {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mm-green-deep);
+}
+
+/* ============================================================
+   21. PREMIUM APP BOTTOM NAV — COMPLETE REBUILD
+   ============================================================ */
+.app-bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 9000;
+  display: none;
+  background: rgba(252, 250, 246, 0.96);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-top: 1px solid rgba(0,0,0,0.06);
+  box-shadow:
+    0 -1px 0 rgba(212,166,74,0.1),
+    0 -8px 32px rgba(0,0,0,0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (max-width: 768px) {
+  .app-bottom-nav { display: flex; }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+}
+
+.app-bottom-nav > .app-nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 64px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #8a8880;
+  text-decoration: none;
+  padding: 0;
+  transition: color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.anb-icon-wrap {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.app-bottom-nav > .app-nav-btn svg {
+  width: 22px; height: 22px;
+  stroke: currentColor;
+  fill: none;
+  transition: all 0.18s ease;
+}
+
+/* Active state */
+.app-bottom-nav > .app-nav-btn.active,
+.app-bottom-nav > .app-nav-btn:active {
+  color: var(--mm-green-deep);
+}
+.app-bottom-nav > .app-nav-btn.active .anb-icon-wrap {
+  background: rgba(20, 45, 29, 0.1);
+  transform: scale(1.08);
+}
+.app-bottom-nav > .app-nav-btn.active svg {
+  stroke: var(--mm-green-deep);
+}
+.app-bottom-nav > .app-nav-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 25%; right: 25%;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--mm-green-deep), #2d5c2a);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Tap animation */
+.app-bottom-nav > .app-nav-btn:active .anb-icon-wrap {
+  transform: scale(0.88);
+}
+
+/* Cart badge */
+.app-nav-cart-count {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 18px);
+  min-width: 17px; height: 17px;
+  background: linear-gradient(135deg, #e63946, #ff4757);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  border: 2px solid rgba(252, 250, 246, 0.96);
+  box-shadow: 0 2px 6px rgba(230,57,70,0.4);
+  pointer-events: none;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+}
+
+/* ============================================================
+   22. MOBILE HEADER SEARCH TRIGGER (shows on mobile)
+   ============================================================ */
+@media (max-width: 768px) {
+  .mobile-search-trigger { display: flex !important; }
+  .search-wrap { display: none !important; }
+}
+
+/* ============================================================
+   23. MOBILE PRODUCT CARDS — PREMIUM TOUCH OPTIMIZED
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Better tap states */
+  .product-card:active {
+    transform: scale(0.97) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  }
+  .quick-add:active {
+    transform: scale(0.88) !important;
+  }
+  .cuisine-card:active {
+    transform: scale(0.97) !important;
+  }
+  .flash-card:active {
+    transform: scale(0.97) !important;
+  }
+  .filter-tab:active {
+    transform: scale(0.94) !important;
+  }
+
+  /* Slightly larger touch targets */
+  .quick-add {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Product grid with better spacing on mobile */
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Cuisine grid on mobile */
+  .cuisines-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .cuisine-card {
+    aspect-ratio: 4 / 3 !important;
+  }
+
+  /* Flash grid on mobile */
+  .flash-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Section inner padding */
+  .section-inner { padding: 0 14px !important; }
+
+  /* Section titles */
+  .section-title { font-size: 20px !important; }
+  .section-sub { font-size: 13px !important; }
+
+  /* Filter tabs scroll */
+  .filter-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 4px;
+    margin-bottom: 16px !important;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none !important; }
+  .filter-tab { flex-shrink: 0; }
+}
+
+/* ============================================================
+   24. MOBILE COLLECTION PAGE — PREMIUM
+   ============================================================ */
+@media (max-width: 768px) {
+  .col-hero { height: 160px; }
+  .col-hero h1 { font-size: 22px; }
+  .col-grid { gap: 8px; padding: 10px 12px; }
+  .prod-card { border-radius: 12px; }
+  .prod-body { padding: 8px 8px 10px; }
+  .prod-title { font-size: 11.5px; }
+  .prod-price { font-size: 14px; }
+  .prod-add { width: 34px; height: 34px; border-radius: 8px; bottom: 6px; right: 6px; }
+
+  /* Better toolbar */
+  .col-toolbar {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .toolbar-btn {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 9px;
+  }
+}
+
+/* ============================================================
+   25. MOBILE CART DRAWER — PREMIUM
+   ============================================================ */
+@media (max-width: 768px) {
+  .cart-drawer {
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    max-height: 92vh !important;
+    transform: translateY(100%) !important;
+  }
+  .cart-drawer.open {
+    transform: translateY(0) !important;
+  }
+  .cart-header {
+    border-radius: 20px 20px 0 0;
+  }
+  /* Drag handle */
+  .cart-header::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+}
+
+/* ============================================================
+   26. MOBILE HERO — BETTER MOBILE LAYOUT
+   ============================================================ */
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: 65vh !important;
+    border-radius: 0 0 28px 28px !important;
+  }
+  .hero-badge {
+    font-size: 10px !important;
+    padding: 5px 12px !important;
+  }
+  .hero-title {
+    font-size: clamp(26px, 8vw, 38px) !important;
+    line-height: 1.15 !important;
+  }
+  .hero-sub {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  .hero-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .hero-btn, .hero-btn-ghost {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 16px 20px !important;
+    font-size: 15px !important;
+  }
+  .hero-trust {
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+}
+
+/* ============================================================
+   27. GLOBAL MOBILE POLISH
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Smooth scrolling momentum */
+  body { -webkit-overflow-scrolling: touch; }
+
+  /* Prevent text selection on interactive elements */
+  .filter-tab, .app-nav-btn, .quick-add, .flash-add-btn,
+  .cart-qty-btn, .mm-search-chip, .mm-search-cat {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Better focus styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--mm-green-deep);
+    outline-offset: 2px;
+  }
+
+  /* Announcement bar on mobile */
+  .ann { height: 34px !important; }
+  .ann-item { font-size: 11px !important; }
+
+  /* Section spacing on mobile */
+  .products-section, .cuisines-section {
+    padding: 28px 0 !important;
+  }
+  .flash-section { padding: 28px 0 !important; }
+
+  /* Better mobile footer */
+  .footer { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* fadeInUp animation for filter */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
