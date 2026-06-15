@@ -3088,3 +3088,51 @@ body {
   .dbc-title { font-size: 20px; }
   .dbc-desc { font-size: 13px; }
 }
+
+/* ============================================================
+   37. PRODUCT CAROUSEL — Sélection du Moment auto-scroll
+   ============================================================ */
+.pcarousel-wrap {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 8px;
+  cursor: grab;
+}
+.pcarousel-wrap::-webkit-scrollbar { display: none; }
+.pcarousel-wrap:active { cursor: grabbing; }
+.pcar-item {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
+}
+@media (max-width: 600px) {
+  .pcar-item { flex: 0 0 170px; }
+}
+.pcarousel-arrow {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bo);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.pcarousel-arrow:hover {
+  background: var(--gl);
+  border-color: var(--gl);
+}
+.pcarousel-arrow:hover svg {
+  stroke: #fff;
+}
+.pcarousel-arrow svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--td);
+}

@@ -58,11 +58,13 @@
     { label: "Karaca — Cuisine",        href: "/collections/karaca" }
   ];
   var CYCLE = 30000, PER = 3000;
+  var startTime = Date.now(); /* anchor to page load so JS matches CSS animation */
   var link  = document.getElementById('hero-slide-link');
   var label = document.getElementById('hero-slide-label');
   if (!link || !label) return;
   function update() {
-    var idx = Math.floor((Date.now() % CYCLE) / PER) % slides.length;
+    var elapsed = (Date.now() - startTime) % CYCLE;
+    var idx = Math.floor(elapsed / PER) % slides.length;
     link.href  = slides[idx].href;
     label.textContent = slides[idx].label;
   }
@@ -204,64 +206,128 @@
   </div>
 </section>
 
-<!-- ══ PRODUITS ══ -->
+<!-- ══ PRODUITS — SÉLECTION DU MOMENT (auto-scroll carousel) ══ -->
 <section class="section products-section">
   <div class="section-inner">
     <div class="section-header">
       <div><h2 class="section-title">Sélection <span>du Moment</span></h2><p class="section-sub">Nos produits phares · Mis à jour chaque semaine</p></div>
-      <a class="see-all" href="/collections/all">Voir tout <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="pcarousel-arrow" id="pcar-prev" aria-label="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="pcarousel-arrow" id="pcar-next" aria-label="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <a class="see-all" href="/collections/all">Voir tout <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+      </div>
     </div>
-    <div class="filter-tabs">
-      <button class="filter-tab active" onclick="filterTab(this)">Tout</button>
-      <button class="filter-tab" onclick="filterTab(this)">🏺 Épicerie</button>
-      <button class="filter-tab" onclick="filterTab(this)">🥩 Boucherie</button>
-      <button class="filter-tab" onclick="filterTab(this)">🥬 Frais</button>
-      <button class="filter-tab" onclick="filterTab(this)">🫖 Boissons</button>
-      <button class="filter-tab" onclick="filterTab(this)">🇹🇷 Turque</button>
-      <button class="filter-tab" onclick="filterTab(this)">🇲🇦 Maghrébine</button>
-    </div>
-    {% assign featured = collections['epicerie-fine'] %}
-    <div class="products-grid">
-      {% if collections['turque'].products.size > 0 %}
-        {% for product in collections['turque'].products limit: 5 %}
-          <a class="product-card" href="{{ product.url }}">
+
+    <!-- Carousel track -->
+    <div class="pcarousel-wrap" id="pcarousel">
+      {% assign shown_count = 0 %}
+
+      {% for product in collections['epicerie-fine'].products limit: 3 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🏺 Épicerie</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['boucherie'].products limit: 3 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥩 Boucherie Halal</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['boissons'].products limit: 2 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🫖 Boissons</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['karaca'].products limit: 2 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            <span class="product-badge" style="background:#C4792A">Karaca</span>
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🍽️ Art de la Table</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['produits-frais'].products limit: 2 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥬 Produits Frais</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      <!-- Fallback: tüm koleksiyonlardan toplamak -->
+      {% if shown_count < 6 %}
+        {% for product in collections.all.products limit: 12 %}
+          <a class="product-card pcar-item" href="{{ product.url }}">
             <div class="product-img">
               {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
               {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
             </div>
-            <div class="product-info">
-              <div class="product-origin">🇹🇷 Turque</div>
-              <div class="product-title">{{ product.title }}</div>
-              <div class="product-bottom">
-                <div class="product-price">
-                  <span class="current-price">{{ product.price | money }}</span>
-                  {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
-                </div>
-                <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}">
-                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-                </button>
-              </div>
-            </div>
-          </a>
-        {% else %}
-          {% comment %}Fallback: show from all products{% endcomment %}
-          {% for product in collections.all.products limit: 5 %}
-            <a class="product-card" href="{{ product.url }}">
-              <div class="product-img">{% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}</div>
-              <div class="product-info">
-                <div class="product-title">{{ product.title }}</div>
-                <div class="product-bottom">
-                  <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
-                  <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-                </div>
-              </div>
-            </a>
-          {% endfor %}
-        {% endfor %}
-      {% else %}
-        {% for product in collections.all.products limit: 5 %}
-          <a class="product-card" href="{{ product.url }}">
-            <div class="product-img">{% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}</div>
             <div class="product-info">
               <div class="product-title">{{ product.title }}</div>
               <div class="product-bottom">
@@ -275,6 +341,37 @@
     </div>
   </div>
 </section>
+
+<script>
+(function() {
+  var track = document.getElementById('pcarousel');
+  var btnPrev = document.getElementById('pcar-prev');
+  var btnNext = document.getElementById('pcar-next');
+  if (!track) return;
+  var cardW = function() {
+    var c = track.querySelector('.pcar-item');
+    return c ? c.offsetWidth + parseInt(getComputedStyle(track).gap || 16) : 220;
+  };
+  if (btnPrev) btnPrev.addEventListener('click', function() {
+    track.scrollBy({ left: -cardW() * 2, behavior: 'smooth' });
+  });
+  if (btnNext) btnNext.addEventListener('click', function() {
+    track.scrollBy({ left: cardW() * 2, behavior: 'smooth' });
+  });
+  /* Auto-scroll every 3.5s */
+  var autoTimer = setInterval(function() {
+    var maxScroll = track.scrollWidth - track.clientWidth;
+    if (track.scrollLeft >= maxScroll - 10) {
+      track.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      track.scrollBy({ left: cardW(), behavior: 'smooth' });
+    }
+  }, 3500);
+  /* Pause on hover/touch */
+  track.addEventListener('mouseenter', function() { clearInterval(autoTimer); });
+  track.addEventListener('touchstart', function() { clearInterval(autoTimer); }, { passive: true });
+})();
+</script>
 
 
 <!-- ══ ART DE LA TABLE — KARACA ══ -->
