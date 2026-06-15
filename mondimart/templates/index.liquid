@@ -242,7 +242,7 @@
     <div class="pcarousel-wrap" id="pcarousel">
       {% assign shown_count = 0 %}
 
-      {% for product in collections['epicerie-fine'].products limit: 3 %}
+      {% for product in collections['epicerie-fine'].products limit: 8 %}
         {% assign shown_count = shown_count | plus: 1 %}
         <a class="product-card pcar-item" href="{{ product.url }}">
           <div class="product-img">
@@ -263,7 +263,7 @@
         </a>
       {% endfor %}
 
-      {% for product in collections['boucherie'].products limit: 3 %}
+      {% for product in collections['boucherie'].products limit: 6 %}
         {% assign shown_count = shown_count | plus: 1 %}
         <a class="product-card pcar-item" href="{{ product.url }}">
           <div class="product-img">
@@ -284,7 +284,7 @@
         </a>
       {% endfor %}
 
-      {% for product in collections['boissons'].products limit: 2 %}
+      {% for product in collections['boissons'].products limit: 5 %}
         {% assign shown_count = shown_count | plus: 1 %}
         <a class="product-card pcar-item" href="{{ product.url }}">
           <div class="product-img">
@@ -301,7 +301,7 @@
         </a>
       {% endfor %}
 
-      {% for product in collections['karaca'].products limit: 2 %}
+      {% for product in collections['karaca'].products limit: 5 %}
         {% assign shown_count = shown_count | plus: 1 %}
         <a class="product-card pcar-item" href="{{ product.url }}">
           <div class="product-img">
@@ -319,7 +319,7 @@
         </a>
       {% endfor %}
 
-      {% for product in collections['produits-frais'].products limit: 2 %}
+      {% for product in collections['produits-frais'].products limit: 5 %}
         {% assign shown_count = shown_count | plus: 1 %}
         <a class="product-card pcar-item" href="{{ product.url }}">
           <div class="product-img">
@@ -336,9 +336,85 @@
         </a>
       {% endfor %}
 
+      {% for product in collections['produits-frais'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥬 Produits Frais</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['epices'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🌶️ Épices</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['turque'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🇹🇷 Cuisine Turque</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['maghrébine'].products limit: 4 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🇲🇦 Cuisine Maghrébine</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
       <!-- Fallback: tüm koleksiyonlardan toplamak -->
       {% if shown_count < 6 %}
-        {% for product in collections.all.products limit: 12 %}
+        {% for product in collections.all.products limit: 30 %}
           <a class="product-card pcar-item" href="{{ product.url }}">
             <div class="product-img">
               {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
