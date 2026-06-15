@@ -16,19 +16,45 @@ const REPO = 'acerasoft-debug/chat-help';
 const BASE = `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(BRANCH)}/mondimart`;
 
 const FILES = [
+  // layout — KRİTİK: alt menü (bottom nav) burada
+  'layout/theme.liquid',
+  // assets
+  'assets/mondimart-premium.css',
+  'assets/theme.css',
+  'assets/theme.js',
+  // sections
   'sections/announcement-bar.liquid',
   'sections/header.liquid',
   'sections/footer.liquid',
   'sections/trust-bar.liquid',
-  'templates/cart.liquid',
-  'templates/page.faq.liquid',
-  'templates/page.delivery.liquid',
+  'sections/collections-grid.liquid',
+  'sections/cuisines.liquid',
+  'sections/featured-products.liquid',
+  'sections/flash-deals.liquid',
+  'sections/hero.liquid',
+  'sections/newsletter.liquid',
+  'sections/promo-banners.liquid',
+  'sections/recipes.liquid',
+  // snippets
+  'snippets/cart-drawer.liquid',
+  // templates
   'templates/index.liquid',
   'templates/product.liquid',
+  'templates/collection.liquid',
+  'templates/cart.liquid',
+  'templates/search.liquid',
+  'templates/blog.liquid',
+  'templates/article.liquid',
+  'templates/404.liquid',
+  'templates/page.liquid',
+  'templates/page.faq.liquid',
+  'templates/page.delivery.liquid',
+  'templates/page.about.liquid',
+  'templates/page.contact.liquid',
+  'templates/page.impressum.liquid',
+  'templates/customers/account.liquid',
+  'templates/customers/login.liquid',
   'templates/customers/register.liquid',
-  'snippets/cart-drawer.liquid',
-  'assets/mondimart-premium.css',
-  'assets/theme.css',
 ];
 
 for (const file of FILES) {
