@@ -767,9 +767,9 @@ button { font-family: 'DM Sans', sans-serif; }
   position: relative;
   text-decoration: none;
 }
-.app-nav-btn svg { width: 22px; height: 22px; fill: var(--tl); transition: fill var(--transition); }
+.app-nav-btn svg { width: 24px; height: 24px; fill: none; stroke: var(--tl); stroke-width: 1.8; transition: stroke var(--transition); }
 .app-nav-btn.active, .app-nav-btn:hover { color: var(--gl); }
-.app-nav-btn.active svg, .app-nav-btn:hover svg { fill: var(--gl); }
+.app-nav-btn.active svg, .app-nav-btn:hover svg { fill: none; stroke: var(--gl); }
 .app-nav-btn.active::before {
   content: '';
   position: absolute;
@@ -800,8 +800,8 @@ button { font-family: 'DM Sans', sans-serif; }
 .app-nav-search-btn { position: relative; }
 
 @media (max-width: 768px) {
-  .app-bottom-nav { display: block; }
-  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .app-bottom-nav { display: flex; align-items: stretch; }
+  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .sticky-cart { display: none; } /* Hide when bottom nav visible */
 }
 

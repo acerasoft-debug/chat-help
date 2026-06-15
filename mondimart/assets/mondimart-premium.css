@@ -2380,41 +2380,71 @@
 }
 
 /* ============================================================
-   28. FIX BOTTOM NAV — override theme.css conflicts
+   28. BOTTOM NAV — AUTHORITATIVE PREMIUM (mobile app bar)
    ============================================================ */
-/* theme.css sets display:block at 803, we need display:flex */
 @media (max-width: 768px) {
   .app-bottom-nav {
     display: flex !important;
     align-items: stretch !important;
+    background: rgba(252, 250, 246, 0.94) !important;
+    backdrop-filter: saturate(180%) blur(22px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(22px) !important;
+    border-top: 1px solid rgba(212, 166, 74, 0.18) !important;
+    box-shadow: 0 -1px 0 rgba(212,166,74,0.1), 0 -10px 34px rgba(0,0,0,0.07) !important;
+    height: auto !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
 }
-/* theme.css .app-nav-btn has fill-based icons; premium uses stroke — force stroke */
-.app-bottom-nav .app-nav-btn svg {
-  fill: none !important;
-  stroke: currentColor !important;
-  width: 22px !important;
-  height: 22px !important;
-  transition: all 0.18s ease !important;
-}
+
+/* Each tab — equal width flex column */
 .app-bottom-nav .app-nav-btn {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 3px !important;
-  flex: 1 !important;
-  height: 64px !important;
-  color: #8a8880 !important;
+  gap: 4px !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  height: 60px !important;
+  color: #8f8a80 !important;
   font-family: 'Manrope', 'DM Sans', sans-serif !important;
-  font-size: 9px !important;
+  font-size: 9.5px !important;
   font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
   text-decoration: none !important;
   padding: 0 !important;
+  margin: 0 !important;
   background: none !important;
   border: none !important;
   cursor: pointer !important;
+  position: relative !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
+
+/* Icon wrapper — gives the pill highlight room */
+.app-bottom-nav .anb-icon-wrap {
+  width: 40px !important;
+  height: 30px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  transition: background 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* Outline icons — stroke not fill */
+.app-bottom-nav .app-nav-btn svg {
+  width: 23px !important;
+  height: 23px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.85 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  transition: stroke 0.18s ease !important;
+}
+
+/* Active + hover */
 .app-bottom-nav .app-nav-btn.active,
 .app-bottom-nav .app-nav-btn:hover {
   color: var(--mm-green-deep, #142d1d) !important;
@@ -2422,32 +2452,82 @@
 .app-bottom-nav .app-nav-btn.active svg,
 .app-bottom-nav .app-nav-btn:hover svg {
   stroke: var(--mm-green-deep, #142d1d) !important;
-  fill: none !important;
 }
-/* Remove theme.css top-bar active indicator (uses background color) and keep premium one */
+.app-bottom-nav .app-nav-btn.active .anb-icon-wrap {
+  background: rgba(20, 45, 29, 0.09) !important;
+  transform: translateY(-1px) !important;
+}
+.app-bottom-nav .app-nav-btn:active .anb-icon-wrap {
+  transform: scale(0.9) !important;
+}
+
+/* Top accent bar on active tab */
 .app-bottom-nav .app-nav-btn.active::before {
-  background: linear-gradient(90deg, var(--mm-green-deep, #142d1d), #2d5c2a) !important;
-  width: auto !important;
-  left: 25% !important;
-  right: 25% !important;
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 30% !important;
+  right: 30% !important;
   height: 2.5px !important;
+  background: linear-gradient(90deg, var(--mm-gold, #d4a64a), var(--mm-green-deep, #142d1d)) !important;
   border-radius: 0 0 3px 3px !important;
 }
 
+/* Cart badge — sits on the icon, not the label */
+.app-bottom-nav .app-nav-cart-count {
+  position: absolute !important;
+  top: 2px !important;
+  right: calc(50% - 20px) !important;
+  min-width: 17px !important;
+  height: 17px !important;
+  background: linear-gradient(135deg, #e63946, #ff4757) !important;
+  color: #fff !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  border: 2px solid #fcfaf6 !important;
+  box-shadow: 0 2px 6px rgba(230,57,70,0.4) !important;
+  pointer-events: none !important;
+}
+
 /* ============================================================
-   29. FIX CART OVERFLOW — sidebar constraint
+   29. CART PAGE — PREMIUM REBUILD + OVERFLOW/STICKY FIX
    ============================================================ */
-.cart-layout {
-  overflow: hidden;
-}
+/* Sidebar must clear the sticky header (header is sticky top:0, z-index 900) */
 .cart-sidebar {
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  position: sticky !important;
+  top: 96px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fafaf6 100%) !important;
+  border: 1.5px solid #ece7db !important;
+  border-radius: 18px !important;
+  box-shadow: 0 6px 28px rgba(20, 45, 29, 0.06) !important;
 }
-.cart-payment-icons {
-  max-width: 100%;
-  overflow: hidden;
+.cart-layout { overflow: visible !important; }
+.cart-items { min-width: 0 !important; }
+.cart-payment-icons { max-width: 100% !important; overflow: hidden !important; }
+
+/* Item card polish */
+.cart-item {
+  padding: 18px 0 !important;
+  border-bottom: 1px solid #f0ece2 !important;
+}
+.cart-item-img {
+  border-radius: 14px !important;
+  border: 1px solid #ece7db !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+}
+
+/* On mobile: sidebar not sticky, and leave room for the bottom nav */
+@media (max-width: 768px) {
+  .cart-sidebar { position: static !important; top: auto !important; }
+  .cart-page { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
 }
 
 /* ============================================================
@@ -2640,4 +2720,84 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.22) !important;
   color: rgba(255, 255, 255, 0.92) !important;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+}
+
+/* ============================================================
+   33. HOMEPAGE CARD POLISH — products, flash, cuisines, promos
+   ============================================================ */
+/* Featured product cards */
+.product-card {
+  border-radius: 16px !important;
+  border: 1.5px solid #ece7db !important;
+  background: #fffdf8 !important;
+  overflow: hidden !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+}
+.product-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 32px rgba(20, 45, 29, 0.13) !important;
+  border-color: rgba(212, 166, 74, 0.4) !important;
+}
+
+/* Flash deal cards */
+.flash-card {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+}
+.flash-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 14px 34px rgba(20, 45, 29, 0.14) !important;
+}
+.flash-discount {
+  background: linear-gradient(135deg, #e63946, #ff5e3a) !important;
+  box-shadow: 0 3px 10px rgba(230,57,70,0.35) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Cuisine cards — soft lift + gold ring on hover */
+.cuisine-card {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.22s ease !important;
+}
+.cuisine-card:hover {
+  box-shadow: 0 12px 30px rgba(20, 45, 29, 0.16), 0 0 0 2px rgba(212,166,74,0.35) !important;
+}
+
+/* Trust bar items — refined */
+.trust-bar .trust-icon svg { transition: transform 0.2s ease; }
+.trust-bar .trust-item:hover .trust-icon svg { transform: scale(1.1); }
+
+/* Section CTAs / "see all" links — gold hover */
+.see-all { transition: color 0.18s ease, gap 0.18s ease !important; }
+.see-all:hover { color: var(--mm-gold, #d4a64a) !important; }
+
+/* Pagination + add buttons — consistent premium */
+.pag-btn { transition: all 0.18s ease !important; }
+.pag-btn.active {
+  background: linear-gradient(135deg, #1e5c2a, #142d1d) !important;
+  border-color: #142d1d !important;
+}
+
+/* Quantity stepper container — rounded premium */
+.cart-qty {
+  border: 1.5px solid #e3ddd0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03) !important;
+}
+
+/* Coupon apply button — gold accent on hover */
+.cart-coupon button:hover {
+  background: var(--mm-green-deep, #142d1d) !important;
+  border-color: var(--mm-green-deep, #142d1d) !important;
+  color: #fff !important;
+}
+
+/* Free-shipping progress bar — richer gradient */
+.cart-progress-fill {
+  background: linear-gradient(90deg, #1e5c2a, #4CAF50, #76C442) !important;
 }
