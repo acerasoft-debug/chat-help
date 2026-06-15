@@ -231,34 +231,142 @@
       {% endif %}
 
       <!-- Qty + Add to Cart -->
-      {% form 'product', product, style: 'width:100%;box-sizing:border-box;overflow:hidden;' %}
-        <input type="hidden" name="id" value="{{ current_variant.id }}" id="variant-id">
+      <style>
+      .qty-atc-wrap { width:100%; box-sizing:border-box; }
+      .qty-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+      .qty-label { font-size:12px; font-weight:700; color:var(--tl); text-transform:uppercase; letter-spacing:.8px; }
+      .qty-selector { display:flex; align-items:center; background:#F5F3EE; border-radius:12px; overflow:hidden; border:1px solid var(--bo); }
+      .qty-btn-lg { width:44px; height:44px; background:none; border:none; font-size:20px; font-weight:300; cursor:pointer; color:var(--td); display:flex; align-items:center; justify-content:center; transition:background .15s; }
+      .qty-btn-lg:hover { background:#E8E4DC; }
+      .qty-input { width:48px; height:44px; text-align:center; border:none; background:none; font-size:17px; font-weight:700; color:var(--td); outline:none; font-family:'DM Sans',sans-serif; }
+      .atc-btn-premium {
+        width:100%; height:62px; border:none; border-radius:16px; cursor:pointer;
+        background:linear-gradient(135deg, #F5A623 0%, #E8922B 100%);
+        color:#fff; font-family:'DM Sans',sans-serif; font-size:17px; font-weight:800;
+        display:flex; align-items:center; justify-content:center; gap:10px;
+        box-shadow:0 6px 24px rgba(245,166,35,.45);
+        transition:all .22s cubic-bezier(.34,1.56,.64,1);
+        letter-spacing:.01em; margin-bottom:12px; position:relative; overflow:hidden;
+      }
+      .atc-btn-premium:active { transform:scale(.97); }
+      .atc-btn-premium:disabled { opacity:.5; cursor:not-allowed; box-shadow:none; }
+      .atc-btn-premium svg { width:22px; height:22px; fill:#fff; flex-shrink:0; }
+      .atc-btn-premium .atc-check { display:none; }
+      .atc-btn-premium.success {
+        background:linear-gradient(135deg,#2D6A2D,#3a8a3a) !important;
+        box-shadow:0 6px 24px rgba(45,106,45,.45) !important;
+      }
+      .atc-btn-premium.success .atc-icon { display:none; }
+      .atc-btn-premium.success .atc-check { display:block; }
+      .atc-btn-premium.success .atc-label { display:none; }
+      .atc-btn-premium.success .atc-label-ok { display:flex; align-items:center; gap:6px; }
+      .atc-label-ok { display:none; }
+      .buy-now-premium {
+        width:100%; height:56px; border:none; border-radius:16px; cursor:pointer;
+        background:linear-gradient(135deg,#1A3C1A,#2D6A2D);
+        color:#fff; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:700;
+        display:flex; align-items:center; justify-content:center; gap:8px;
+        box-shadow:0 4px 16px rgba(26,60,26,.3); transition:all .2s; margin-bottom:20px;
+      }
+      .buy-now-premium:hover { background:linear-gradient(135deg,#0f2810,#1A3C1A); transform:translateY(-1px); }
+      .buy-now-premium:disabled { opacity:.5; cursor:not-allowed; }
+      /* trust badges below buttons */
+      .atc-trust { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+      .atc-trust-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--tl); font-weight:600; }
+      </style>
 
-        <!-- Qty selector centered -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <span style="font-size:13px;font-weight:700;color:var(--tl);text-transform:uppercase;letter-spacing:.7px">Quantité</span>
+      <div class="qty-atc-wrap">
+        <input type="hidden" id="variant-id" value="{{ current_variant.id }}">
+
+        <div class="qty-row">
+          <span class="qty-label">Quantité</span>
           <div class="qty-selector">
-            <button type="button" class="qty-btn-lg" data-delta="-1" aria-label="Diminuer">−</button>
-            <input type="number" name="quantity" value="1" min="1" max="99" class="qty-input" aria-label="Quantité">
-            <button type="button" class="qty-btn-lg" data-delta="1" aria-label="Augmenter">+</button>
+            <button type="button" class="qty-btn-lg" id="qty-minus" aria-label="Diminuer">−</button>
+            <input type="number" id="qty-input" value="1" min="1" max="99" class="qty-input" aria-label="Quantité">
+            <button type="button" class="qty-btn-lg" id="qty-plus" aria-label="Augmenter">+</button>
           </div>
         </div>
 
-        <!-- ATC full width -->
-        <div class="atc-row">
-          <button type="submit" name="add" class="atc-btn" id="atc-btn"
-                  {% unless current_variant.available %}disabled{% endunless %}>
+        <button class="atc-btn-premium" id="atc-btn-premium"
+                {% unless current_variant.available %}disabled{% endunless %}>
+          <span class="atc-icon">
             <svg viewBox="0 0 24 24"><path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45C5.16 14.78 5 15.37 5 16c0 2.21 1.79 4 4 4h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.45 7H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
-            {% if current_variant.available %}Ajouter au panier{% else %}Épuisé{% endif %}
-          </button>
+          </span>
+          <span class="atc-check">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+          </span>
+          <span class="atc-label">{% if current_variant.available %}Ajouter au panier{% else %}Épuisé{% endif %}</span>
+          <span class="atc-label-ok">Ajouté au panier ✓</span>
+        </button>
 
-          <button type="submit" name="add" class="buy-now-btn"
-                  onclick="this.form.setAttribute('action','/checkout')"
-                  {% unless current_variant.available %}disabled{% endunless %}>
-            ⚡ Acheter maintenant
-          </button>
+        <a href="/checkout?variant={{ current_variant.id }}" id="buy-now-btn"
+           class="buy-now-premium"
+           {% unless current_variant.available %}style="pointer-events:none;opacity:.5"{% endunless %}>
+          ⚡ Acheter maintenant
+        </a>
+
+        <div class="atc-trust">
+          <span class="atc-trust-item">🔒 Paiement sécurisé</span>
+          <span class="atc-trust-item">🚚 Livraison 24h</span>
+          <span class="atc-trust-item">↩️ Retour 14j</span>
         </div>
-      {% endform %}
+      </div>
+
+      <script>
+      (function(){
+        var btn = document.getElementById('atc-btn-premium');
+        var qtyInput = document.getElementById('qty-input');
+        var variantInput = document.getElementById('variant-id');
+        var qtyMinus = document.getElementById('qty-minus');
+        var qtyPlus = document.getElementById('qty-plus');
+
+        if (qtyMinus) qtyMinus.addEventListener('click', function(){
+          var v = parseInt(qtyInput.value)||1;
+          if(v>1) qtyInput.value = v-1;
+        });
+        if (qtyPlus) qtyPlus.addEventListener('click', function(){
+          var v = parseInt(qtyInput.value)||1;
+          if(v<99) qtyInput.value = v+1;
+        });
+
+        if (!btn) return;
+        btn.addEventListener('click', function(e){
+          e.preventDefault();
+          if(btn.disabled) return;
+          var variantId = variantInput ? variantInput.value : '{{ current_variant.id }}';
+          var qty = qtyInput ? parseInt(qtyInput.value)||1 : 1;
+          btn.disabled = true;
+          btn.style.opacity = '.8';
+          fetch('/cart/add.js', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Accept':'application/json'},
+            body: JSON.stringify({id: variantId, quantity: qty})
+          })
+          .then(function(r){ return r.json(); })
+          .then(function(){
+            return fetch('/cart.js');
+          })
+          .then(function(r){ return r.json(); })
+          .then(function(cart){
+            var count = cart.item_count;
+            document.querySelectorAll('.cart-count,.app-nav-cart-count,.header-cart-count,[data-cart-count]').forEach(function(el){
+              el.textContent = count;
+              el.style.display = count > 0 ? '' : 'none';
+            });
+            btn.classList.add('success');
+            btn.style.opacity = '1';
+            setTimeout(function(){
+              btn.classList.remove('success');
+              btn.disabled = false;
+            }, 2200);
+          })
+          .catch(function(){
+            btn.disabled = false;
+            btn.style.opacity = '1';
+          });
+        });
+      })();
+      </script>
 
       <!-- Benefits — vertical stack -->
       <div class="product-benefits">
