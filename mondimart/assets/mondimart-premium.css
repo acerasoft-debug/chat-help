@@ -3054,118 +3054,105 @@ body {
 .menu-toggle svg { stroke: #FFD700 !important; }
 .menu-toggle span { background: #FFD700 !important; }
 
-/* --- Bottom nav: solid foundation --- */
-nav.app-bottom-nav {
+/* --- Bottom nav: solid foundation (ID-based → works on any HTML version) --- */
+#app-bottom-nav {
   position: fixed !important;
   bottom: 0 !important; left: 0 !important; right: 0 !important;
-  z-index: 9999 !important;
+  z-index: 99999 !important;
   display: none !important; /* hidden on desktop */
-  height: auto !important;
-  min-height: 60px !important;
-  background: rgba(255,255,255,0.97) !important;
+  height: 60px !important;
+  background: rgba(255,255,255,0.98) !important;
   border-top: 1px solid rgba(0,0,0,0.09) !important;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.10) !important;
-  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 0 0 env(safe-area-inset-bottom, 0px) 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 @media (max-width: 900px) {
-  nav.app-bottom-nav {
+  #app-bottom-nav {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: stretch !important;
+    justify-content: space-between !important;
     width: 100% !important;
     height: 60px !important;
   }
   body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
 }
 
-/* Each button — equal columns, vertical stack */
-nav.app-bottom-nav > * {
-  flex: 1 1 0 !important;
+/* Each button — equal columns, vertical icon+label stack */
+#app-bottom-nav > * {
+  flex: 1 1 0% !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 3px !important;
-  padding: 8px 4px 6px !important;
+  height: 60px !important;
+  padding: 8px 2px 6px !important;
+  margin: 0 !important;
   background: none !important;
   border: none !important;
   text-decoration: none !important;
   cursor: pointer !important;
-  color: #777 !important;
+  color: #888 !important;
   font-size: 10px !important;
   font-weight: 600 !important;
   letter-spacing: 0.02em !important;
   position: relative !important;
   min-width: 0 !important;
+  box-sizing: border-box !important;
   -webkit-tap-highlight-color: transparent !important;
-  transition: color 0.18s ease !important;
 }
 
 /* SVG icons — stroke only, never fill */
-nav.app-bottom-nav > * svg {
+#app-bottom-nav > * svg {
   display: block !important;
   width: 24px !important;
   height: 24px !important;
   fill: none !important;
-  stroke: #999 !important;
+  stroke: #888 !important;
   stroke-width: 1.8px !important;
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
   flex-shrink: 0 !important;
-  transition: stroke 0.18s ease !important;
 }
 
-/* Icon wrapper */
-nav.app-bottom-nav > * .anb-icon-wrap {
+/* Icon wrapper (old HTML structure) */
+#app-bottom-nav > * .anb-icon-wrap {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 40px !important;
-  height: 32px !important;
-  border-radius: 10px !important;
+  width: 28px !important;
+  height: 28px !important;
   position: relative !important;
-  transition: background 0.18s ease, transform 0.18s ease !important;
+  flex-shrink: 0 !important;
 }
 
-/* Active tab */
-nav.app-bottom-nav > *.active {
-  color: #1A3C1A !important;
-}
-nav.app-bottom-nav > *.active svg {
-  stroke: #C8A84B !important; /* gold */
-}
-nav.app-bottom-nav > *.active .anb-icon-wrap {
-  background: rgba(200,168,75,0.12) !important;
-}
-
-/* Tap feedback */
-nav.app-bottom-nav > *:active .anb-icon-wrap {
-  transform: scale(0.88) !important;
-}
-nav.app-bottom-nav > *:active svg {
-  stroke: #C8A84B !important;
-}
+/* Active tab → gold */
+#app-bottom-nav > *.active { color: #C8A84B !important; }
+#app-bottom-nav > *.active svg { stroke: #C8A84B !important; }
+#app-bottom-nav > *:active svg { stroke: #C8A84B !important; }
 
 /* Cart badge */
-nav.app-bottom-nav .app-nav-cart-count,
-nav.app-bottom-nav .cart-count {
+#app-bottom-nav .app-nav-cart-count,
+#app-bottom-nav .cart-count {
   position: absolute !important;
-  top: -2px !important; right: -4px !important;
-  min-width: 17px !important; height: 17px !important;
+  top: -4px !important; right: -6px !important;
+  min-width: 16px !important; height: 16px !important;
   background: #e53e3e !important;
   color: #fff !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  border-radius: 10px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   line-height: 1 !important;
   padding: 0 3px !important;
-  border: 2px solid #fff !important;
+  border: 1.5px solid #fff !important;
+  box-sizing: border-box !important;
 }
 
 /* ============================================================
