@@ -2751,8 +2751,8 @@ body {
 }
 @media (max-width: 768px) {
   .hero-slide-link {
-    top: auto;
-    bottom: 110px; /* above bottom nav */
+    top: 18%;
+    bottom: auto;
     right: 0;
     transform: none;
     font-size: 12px;
