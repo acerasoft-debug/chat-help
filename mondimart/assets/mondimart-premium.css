@@ -2919,3 +2919,172 @@ body {
     transform: translateX(-4px);
   }
 }
+
+/* ============================================================
+   36. DELIVERY PROMISE BANNER — Express 24h + Chaîne du froid
+   ============================================================ */
+.delivery-banner-section {
+  padding: 0 0 48px;
+  background: #f8faf8;
+}
+.delivery-banner-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dbcard {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.dbcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+}
+.dbc-img-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.dbc-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+/* Express card — dark green gradient overlay */
+.dbcard--express .dbc-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15,35,15,0.82) 0%, rgba(26,60,26,0.65) 60%, rgba(0,0,0,0.4) 100%);
+}
+/* Cold card — deep blue-teal gradient overlay */
+.dbcard--cold .dbc-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,30,60,0.88) 0%, rgba(0,60,90,0.70) 60%, rgba(0,20,40,0.45) 100%);
+}
+.dbc-content {
+  position: relative;
+  z-index: 2;
+  padding: 36px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+}
+.dbc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212,175,55,0.25);
+  border: 1px solid rgba(212,175,55,0.55);
+  color: #FFD700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 30px;
+  width: fit-content;
+  backdrop-filter: blur(6px);
+}
+.dbc-tag--ice {
+  background: rgba(100,200,255,0.18);
+  border-color: rgba(100,200,255,0.45);
+  color: #90E4FF;
+}
+.dbc-title {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.dbc-title em {
+  font-style: normal;
+  color: #FFD700;
+}
+.dbcard--cold .dbc-title em {
+  color: #90E4FF;
+}
+.dbc-desc {
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 340px;
+}
+.dbc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dbc-pill {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+.dbc-pill--ice {
+  background: rgba(100,200,255,0.12);
+  border-color: rgba(100,200,255,0.30);
+  color: #b8eeff;
+}
+.dbc-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: auto;
+  width: fit-content;
+  padding: 12px 24px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #C8A84B, #FFD700);
+  color: #1A3C1A;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 16px rgba(212,175,55,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.dbc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212,175,55,0.55);
+}
+.dbc-btn--ice {
+  background: linear-gradient(135deg, #0080c0, #00c0f0);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,160,220,0.4);
+}
+.dbc-btn--ice:hover {
+  box-shadow: 0 8px 24px rgba(0,160,220,0.55);
+}
+
+@media (max-width: 900px) {
+  .delivery-banner-inner {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px;
+  }
+  .dbcard { min-height: 300px; }
+  .dbc-content { padding: 28px 24px 24px; }
+}
+@media (max-width: 480px) {
+  .dbcard { min-height: 260px; }
+  .dbc-title { font-size: 20px; }
+  .dbc-desc { font-size: 13px; }
+}
