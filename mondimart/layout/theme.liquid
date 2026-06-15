@@ -73,51 +73,111 @@
     </div>
   </div>
 
-  <!-- APP BOTTOM NAVIGATION -->
+  <!-- APP BOTTOM NAVIGATION — inline styles guarantee layout regardless of CSS conflicts -->
+  <style>
+  #app-bottom-nav {
+    display: none;
+    position: fixed !important;
+    bottom: 0 !important; left: 0 !important; right: 0 !important;
+    width: 100% !important;
+    height: 60px !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    background: rgba(255,255,255,0.97) !important;
+    border-top: 1px solid rgba(0,0,0,0.09) !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.10) !important;
+    z-index: 99999 !important;
+    padding-bottom: env(safe-area-inset-bottom,0px) !important;
+    box-sizing: border-box !important;
+  }
+  @media (max-width: 900px) {
+    #app-bottom-nav { display: flex !important; }
+    body { padding-bottom: calc(60px + env(safe-area-inset-bottom,0px)) !important; }
+  }
+  #app-bottom-nav > * {
+    flex: 1 1 0% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    height: 60px !important;
+    padding: 8px 4px 6px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #888 !important;
+    text-decoration: none !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    position: relative !important;
+    font-family: 'DM Sans',sans-serif !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+  }
+  #app-bottom-nav > * svg {
+    width: 24px !important; height: 24px !important;
+    fill: none !important;
+    stroke: #888 !important;
+    stroke-width: 1.8 !important;
+    flex-shrink: 0 !important;
+  }
+  #app-bottom-nav > *.active { color: #C8A84B !important; }
+  #app-bottom-nav > *.active svg { stroke: #C8A84B !important; }
+  #app-bottom-nav > *:active svg { stroke: #C8A84B !important; }
+  #app-bottom-nav .anb-icon-wrap {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important; height: 28px !important;
+    flex-shrink: 0 !important;
+  }
+  #app-bottom-nav .app-nav-cart-count {
+    position: absolute !important;
+    top: -4px !important; right: -6px !important;
+    min-width: 16px !important; height: 16px !important;
+    background: #e63946 !important;
+    color: #fff !important;
+    font-size: 9px !important; font-weight: 800 !important;
+    border-radius: 999px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 3px !important;
+    border: 1.5px solid #fff !important;
+    box-sizing: border-box !important;
+  }
+  </style>
+
   <nav class="app-bottom-nav" id="app-bottom-nav" role="navigation" aria-label="Navigation principale">
     <a class="app-nav-btn {% if template.name == 'index' %}active{% endif %}" href="/" id="anb-home">
       <div class="anb-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 12L12 3l9 9"/>
-          <path d="M9 21V12h6v9"/>
-          <path d="M5 10v11h14V10"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/><path d="M5 10v11h14V10"/></svg>
       </div>
       <span>Accueil</span>
     </a>
     <a class="app-nav-btn {% if template.name == 'list-collections' or template.name == 'collection' %}active{% endif %}" href="/collections/all" id="anb-shop">
       <div class="anb-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
       </div>
       <span>Rayons</span>
     </a>
-    <button class="app-nav-btn anb-search-trigger" id="anb-search" aria-label="Rechercher" style="background:none;border:none;cursor:pointer;">
+    <button class="app-nav-btn anb-search-trigger" id="anb-search" aria-label="Rechercher">
       <div class="anb-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="7"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
       <span>Chercher</span>
     </button>
-    <button class="app-nav-btn app-cart-btn" data-open-cart aria-label="Panier" style="background:none;border:none;cursor:pointer;position:relative">
-      <div class="anb-icon-wrap" style="position:relative;display:inline-flex">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 7h14l-1.5 12.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5L5 7z"/>
-          <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
-        </svg>
-        <span class="app-nav-cart-count cart-count" style="{% if cart.item_count == 0 %}display:none{% endif %}">{{ cart.item_count }}</span>
+    <button class="app-nav-btn app-cart-btn" data-open-cart aria-label="Panier">
+      <div class="anb-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M5 7h14l-1.5 12.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+        <span class="app-nav-cart-count cart-count" {% if cart.item_count == 0 %}style="display:none"{% endif %}>{{ cart.item_count }}</span>
       </div>
       <span>Panier</span>
     </button>
     <a class="app-nav-btn {% if template.name == 'customers/account' %}active{% endif %}" href="{{ routes.account_url }}" id="anb-account">
       <div class="anb-icon-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="8" r="4"/>
-          <path d="M4 20a8 8 0 0 1 16 0"/>
-        </svg>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
       </div>
       <span>Compte</span>
     </a>
