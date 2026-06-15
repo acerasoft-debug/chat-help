@@ -800,10 +800,8 @@ button { font-family: 'DM Sans', sans-serif; }
 }
 .app-nav-search-btn { position: relative; }
 
-@media (max-width: 768px) {
-  .app-bottom-nav { display: flex; align-items: stretch; }
-  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
-  .sticky-cart { display: none; } /* Hide when bottom nav visible */
+@media (max-width: 900px) {
+  .sticky-cart { display: none; }
 }
 
 /* Product Page — Premium App Buttons */
