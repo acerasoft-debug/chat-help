@@ -212,12 +212,18 @@
         <a href="/collections/promotions" style="color:#A8D8A0;font-size:13px;font-weight:600;text-decoration:none">Voir toutes les promos →</a>
       </div>
     </div>
-    <div class="flash-grid" style="display:flex;overflow-x:auto;gap:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px">
+    <div class="flash-grid" style="display:flex;overflow-x:auto;gap:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;scrollbar-width:none">
       <a class="flash-card" href="/collections/epices"><div class="flash-card-img">{%- assign fl_epices = collections['epices'] -%}{%- if fl_epices.image -%}<img src="{{ fl_epices.image | image_url: width: 400 }}" alt="{{ fl_epices.title }}" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=80" alt="epices" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-30%</div></div><div class="flash-card-body"><div class="flash-origin">🏺 Épicerie · Épices</div><div class="flash-name">Épices & Condiments</div><div class="flash-price"><span class="new-price">dès 1,90€</span></div><div class="stock-bar"><div class="stock-label">67% vendu</div><div class="stock-track"><div class="stock-fill" style="width:67%"></div></div></div></div></a>
       <a class="flash-card" href="/collections/viandes-halal"><div class="flash-card-img">{%- assign fl_viandes_halal = collections['viandes-halal'] -%}{%- if fl_viandes_halal.image -%}<img src="{{ fl_viandes_halal.image | image_url: width: 400 }}" alt="{{ fl_viandes_halal.title }}" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&q=80" alt="viandes-halal" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-20%</div></div><div class="flash-card-body"><div class="flash-origin">🥩 Boucherie · Halal</div><div class="flash-name">Viandes Halal Fraîches</div><div class="flash-price"><span class="new-price">dès 8,90€/kg</span></div><div class="stock-bar"><div class="stock-label">45% vendu</div><div class="stock-track"><div class="stock-fill" style="width:45%"></div></div></div></div></a>
       <a class="flash-card" href="/collections/baklava"><div class="flash-card-img">{%- assign fl_baklava = collections['baklava'] -%}{%- if fl_baklava.image -%}<img src="{{ fl_baklava.image | image_url: width: 400 }}" alt="{{ fl_baklava.title }}" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&q=80" alt="baklava" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-25%</div></div><div class="flash-card-body"><div class="flash-origin">🇹🇷 Turque · Sucreries</div><div class="flash-name">Baklava & Pâtisseries</div><div class="flash-price"><span class="new-price">dès 4,90€</span></div><div class="stock-bar"><div class="stock-label">60% vendu</div><div class="stock-track"><div class="stock-fill" style="width:60%"></div></div></div></div></a>
       <a class="flash-card" href="/collections/thes"><div class="flash-card-img">{%- assign fl_thes = collections['thes'] -%}{%- if fl_thes.image -%}<img src="{{ fl_thes.image | image_url: width: 400 }}" alt="{{ fl_thes.title }}" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1564890369478-c89ca3d9cde0?w=400&q=80" alt="thes" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-40%</div></div><div class="flash-card-body"><div class="flash-origin">🫖 Boissons · Thés</div><div class="flash-name">Thés & Cafés du Monde</div><div class="flash-price"><span class="new-price">dès 3,50€</span></div><div class="stock-bar"><div class="stock-label">38% vendu</div><div class="stock-track"><div class="stock-fill" style="width:38%"></div></div></div></div></a>
       <a class="flash-card" href="/collections/fromages-frais"><div class="flash-card-img">{%- assign fl_fromages_frais = collections['fromages-frais'] -%}{%- if fl_fromages_frais.image -%}<img src="{{ fl_fromages_frais.image | image_url: width: 400 }}" alt="{{ fl_fromages_frais.title }}" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80" alt="fromages-frais" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-15%</div></div><div class="flash-card-body"><div class="flash-origin">🥬 Frais · Fromages</div><div class="flash-name">Fromages & Laitages</div><div class="flash-price"><span class="new-price">dès 5,90€</span></div><div class="stock-bar"><div class="stock-label">55% vendu</div><div class="stock-track"><div class="stock-fill" style="width:55%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/huile-olive"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80" alt="Huile d'olive" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-18%</div></div><div class="flash-card-body"><div class="flash-origin">🫒 Épicerie · Huiles</div><div class="flash-name">Huile d'Olive Premium</div><div class="flash-price"><span class="new-price">dès 6,90€</span></div><div class="stock-bar"><div class="stock-label">42% vendu</div><div class="stock-track"><div class="stock-fill" style="width:42%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/confiseries"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1582058091597-4033bde768e2?w=400&q=80" alt="Confiseries" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-22%</div></div><div class="flash-card-body"><div class="flash-origin">🍬 Sucreries · Confiseries</div><div class="flash-name">Confiseries du Monde</div><div class="flash-price"><span class="new-price">dès 2,50€</span></div><div class="stock-bar"><div class="stock-label">70% vendu</div><div class="stock-track"><div class="stock-fill" style="width:70%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/conserves"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=400&q=80" alt="Conserves" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-35%</div></div><div class="flash-card-body"><div class="flash-origin">🥫 Épicerie · Conserves</div><div class="flash-name">Conserves & Bocaux</div><div class="flash-price"><span class="new-price">dès 1,50€</span></div><div class="stock-bar"><div class="stock-label">52% vendu</div><div class="stock-track"><div class="stock-fill" style="width:52%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/cafes"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1497515114629-f71d768fd07c?w=400&q=80" alt="Cafés" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-28%</div></div><div class="flash-card-body"><div class="flash-origin">☕ Boissons · Café</div><div class="flash-name">Cafés & Nescafé</div><div class="flash-price"><span class="new-price">dès 4,20€</span></div><div class="stock-bar"><div class="stock-label">33% vendu</div><div class="stock-track"><div class="stock-fill" style="width:33%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/pates-riz"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&q=80" alt="Pâtes et riz" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-12%</div></div><div class="flash-card-body"><div class="flash-origin">🍝 Épicerie · Féculents</div><div class="flash-name">Pâtes & Riz du Monde</div><div class="flash-price"><span class="new-price">dès 1,20€</span></div><div class="stock-bar"><div class="stock-label">29% vendu</div><div class="stock-track"><div class="stock-fill" style="width:29%"></div></div></div></div></a>
+      <a class="flash-card" href="/collections/sauces"><div class="flash-card-img"><img src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80" alt="Sauces" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-20%</div></div><div class="flash-card-body"><div class="flash-origin">🥣 Épicerie · Sauces</div><div class="flash-name">Sauces & Condiments</div><div class="flash-price"><span class="new-price">dès 2,90€</span></div><div class="stock-bar"><div class="stock-label">48% vendu</div><div class="stock-track"><div class="stock-fill" style="width:48%"></div></div></div></div></a>
     </div>
   </div>
 </section>
@@ -533,7 +539,67 @@
       <a href="/collections/karaca" style="flex-shrink:0;background:var(--gl);border:1.5px solid var(--gl);border-radius:30px;padding:7px 15px;font-size:12px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap">→ Tout Karaca</a>
     </div>
   </div>
+
+  <!-- ══ KARACA PRODUCT CAROUSEL ══ -->
+  <div style="margin-top:32px;padding:0 20px 8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <p style="font-size:13px;font-weight:600;color:#C4792A;letter-spacing:0.04em;text-transform:uppercase;margin:0">🍽️ Toute la collection Karaca</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="kcar-prev" class="pcarousel-arrow" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="kcar-next" class="pcarousel-arrow" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+    <div class="pcarousel-wrap" id="kcarousel">
+      {% for product in collections['karaca'].products limit: 40 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}
+              <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}
+              <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&q=80" alt="{{ product.title }}" loading="lazy">
+            {% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+            <span class="product-badge" style="background:#C4792A;top:auto;bottom:8px;right:8px;left:auto">Karaca</span>
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🍽️ Art de la Table</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
 </section>
+
+<script>
+(function() {
+  var track = document.getElementById('kcarousel');
+  var btnP  = document.getElementById('kcar-prev');
+  var btnN  = document.getElementById('kcar-next');
+  if (!track) return;
+  var cw = function() {
+    var c = track.querySelector('.pcar-item');
+    return c ? c.offsetWidth + 16 : 220;
+  };
+  if (btnP) btnP.addEventListener('click', function() { track.scrollBy({ left: -cw()*2, behavior:'smooth' }); });
+  if (btnN) btnN.addEventListener('click', function() { track.scrollBy({ left:  cw()*2, behavior:'smooth' }); });
+  var t = setInterval(function() {
+    var max = track.scrollWidth - track.clientWidth;
+    if (track.scrollLeft >= max - 10) { track.scrollTo({ left:0, behavior:'smooth' }); }
+    else { track.scrollBy({ left: cw(), behavior:'smooth' }); }
+  }, 3000);
+  track.addEventListener('mouseenter', function() { clearInterval(t); });
+  track.addEventListener('touchstart', function() { clearInterval(t); }, { passive:true });
+})();
+</script>
 <style>
 .karaca-cats a:hover img { transform: scale(1.06); }
 .karaca-cats a:hover { transform: translateY(-3px); }
