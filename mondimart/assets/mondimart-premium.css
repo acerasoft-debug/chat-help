@@ -2801,3 +2801,41 @@ body {
 .cart-progress-fill {
   background: linear-gradient(90deg, #1e5c2a, #4CAF50, #76C442) !important;
 }
+
+/* ============================================================
+   34. HERO BACKGROUND SLIDESHOW — premium crossfade
+   ============================================================ */
+/* Only the background image changes; content/overlay stay static.
+   4 images, each visible ~3s, soft crossfade. Total cycle 12s. */
+.hero-bg-slideshow {
+  background: #0f230f; /* deep base so it's never blank during load */
+}
+.hero-bg-slideshow img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+  opacity: 0;
+  will-change: opacity;
+  animation: heroCrossfade 12s infinite cubic-bezier(0.45, 0, 0.55, 1);
+}
+.hero-bg-slideshow img:nth-child(1) { animation-delay: 0s; }
+.hero-bg-slideshow img:nth-child(2) { animation-delay: 3s; }
+.hero-bg-slideshow img:nth-child(3) { animation-delay: 6s; }
+.hero-bg-slideshow img:nth-child(4) { animation-delay: 9s; }
+
+@keyframes heroCrossfade {
+  0%   { opacity: 0; }
+  6%   { opacity: 1; }   /* fade in (~0.7s) */
+  25%  { opacity: 1; }   /* hold through its 3s slot */
+  31%  { opacity: 0; }   /* fade out, overlapping next image's fade-in */
+  100% { opacity: 0; }
+}
+
+/* Respect reduced-motion: show only the first image, no animation */
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg-slideshow img { animation: none; opacity: 0; }
+  .hero-bg-slideshow img:nth-child(1) { opacity: 1; }
+}
