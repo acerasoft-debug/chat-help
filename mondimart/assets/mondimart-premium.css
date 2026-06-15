@@ -2806,7 +2806,7 @@ body {
    34. HERO BACKGROUND SLIDESHOW — premium crossfade
    ============================================================ */
 /* Only the background image changes; content/overlay stay static.
-   4 images, each visible ~3s, soft crossfade. Total cycle 12s. */
+   10 images, each visible ~3s, soft crossfade. Total cycle 30s. */
 .hero-bg-slideshow {
   background: #0f230f; /* deep base so it's never blank during load */
 }
@@ -2819,19 +2819,25 @@ body {
   object-position: center 35% !important;
   opacity: 0;
   will-change: opacity;
-  animation: heroCrossfade 12s infinite cubic-bezier(0.45, 0, 0.55, 1);
+  animation: heroCrossfade 30s infinite cubic-bezier(0.45, 0, 0.55, 1);
 }
-.hero-bg-slideshow img:nth-child(1) { animation-delay: 0s; }
-.hero-bg-slideshow img:nth-child(2) { animation-delay: 3s; }
-.hero-bg-slideshow img:nth-child(3) { animation-delay: 6s; }
-.hero-bg-slideshow img:nth-child(4) { animation-delay: 9s; }
+.hero-bg-slideshow img:nth-child(1)  { animation-delay: 0s; }
+.hero-bg-slideshow img:nth-child(2)  { animation-delay: 3s; }
+.hero-bg-slideshow img:nth-child(3)  { animation-delay: 6s; }
+.hero-bg-slideshow img:nth-child(4)  { animation-delay: 9s; }
+.hero-bg-slideshow img:nth-child(5)  { animation-delay: 12s; }
+.hero-bg-slideshow img:nth-child(6)  { animation-delay: 15s; }
+.hero-bg-slideshow img:nth-child(7)  { animation-delay: 18s; }
+.hero-bg-slideshow img:nth-child(8)  { animation-delay: 21s; }
+.hero-bg-slideshow img:nth-child(9)  { animation-delay: 24s; }
+.hero-bg-slideshow img:nth-child(10) { animation-delay: 27s; }
 
 @keyframes heroCrossfade {
-  0%   { opacity: 0; }
-  6%   { opacity: 1; }   /* fade in (~0.7s) */
-  25%  { opacity: 1; }   /* hold through its 3s slot */
-  31%  { opacity: 0; }   /* fade out, overlapping next image's fade-in */
-  100% { opacity: 0; }
+  0%    { opacity: 0; }
+  2.5%  { opacity: 1; }   /* fade in (~0.75s) */
+  10%   { opacity: 1; }   /* hold through its 3s slot */
+  12.5% { opacity: 0; }   /* fade out, overlapping next image's fade-in */
+  100%  { opacity: 0; }
 }
 
 /* Respect reduced-motion: show only the first image, no animation */
