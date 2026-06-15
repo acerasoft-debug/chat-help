@@ -342,17 +342,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.style.overflow = '';
   }
 
-  mobileTriggers.forEach(btn => btn?.addEventListener('click', (e) => { e.preventDefault(); openSearch(); }));
+  mobileTriggers.forEach(btn => btn?.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openSearch(); }));
   searchClose?.addEventListener('click', closeSearch);
   searchOverlay?.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
+  /* Delegate: also catch clicks on #anb-search even if DOM not ready at bind time */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#anb-search, .anb-search-trigger');
+    if (btn) { e.preventDefault(); openSearch(); }
+  });
 
-  // Show mobile search trigger on mobile
-  const mobileST = document.getElementById('mobile-search-trigger');
-  if (mobileST && window.innerWidth <= 768) {
-    mobileST.style.display = 'flex';
-    // Also hide desktop lang switcher on very small screens optionally
-  }
+  // Show mobile search trigger — handled via CSS media query now
+  // (no JS needed; .mobile-search-trigger shown via @media in premium.css)
 
   // ── BOTTOM NAV ACTIVE STATE BY URL ──
   const path = window.location.pathname;

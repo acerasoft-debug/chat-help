@@ -2094,7 +2094,7 @@
 /* ============================================================
    22. MOBILE HEADER SEARCH TRIGGER (shows on mobile)
    ============================================================ */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .mobile-search-trigger { display: flex !important; }
   .search-wrap { display: none !important; }
 }
