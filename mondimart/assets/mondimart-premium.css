@@ -1987,6 +1987,8 @@
   color: var(--mm-green-deep);
 }
 
+/* === §21 DISABLED — superseded by §38 nuclear fix === */
+/*
 /* ============================================================
    21. PREMIUM APP BOTTOM NAV — COMPLETE REBUILD
    ============================================================ */
@@ -2087,6 +2089,7 @@
   pointer-events: none;
   font-family: 'Manrope', 'DM Sans', sans-serif;
 }
+*/
 
 /* ============================================================
    22. MOBILE HEADER SEARCH TRIGGER (shows on mobile)
@@ -2379,6 +2382,9 @@
   letter-spacing: 0.05em;
 }
 
+
+/* === §28 DISABLED — superseded by §38 nuclear fix === */
+/*
 /* ============================================================
    28. BOTTOM NAV — AUTHORITATIVE PREMIUM (mobile app bar)
    ============================================================ */
@@ -2493,6 +2499,7 @@
   box-shadow: 0 2px 6px rgba(230,57,70,0.4) !important;
   pointer-events: none !important;
 }
+*/
 
 /* ============================================================
    29. CART PAGE — PREMIUM REBUILD + OVERFLOW/STICKY FIX

@@ -608,12 +608,16 @@ button { font-family: 'DM Sans', sans-serif; }
   .logo-sub { display: none; }
 
   /* Hero */
-  .hero { height: 520px; }
-  .hero-title { font-size: 36px; }
+  .hero { height: 420px; }
+  .hero-title { font-size: 30px; line-height: 1.15; }
+  .hero-desc { font-size: 13px; }
   .hero-overlay { background: linear-gradient(180deg, rgba(15,35,15,.7) 0%, rgba(15,35,15,.92) 60%); }
-  .hero-content-wrap { align-items: center; padding: 20px; }
-  .hero-stats { gap: 20px; }
-  .hero-stat .n { font-size: 22px; }
+  .hero-content-wrap { align-items: flex-end; padding: 20px 20px 32px; }
+  .hero-stats { gap: 14px; margin-top: 16px; }
+  .hero-stat .n { font-size: 18px; }
+  .hero-stat .l { font-size: 10px; }
+  .hero-buttons { gap: 10px; }
+  .hero-buttons .btn-primary, .hero-buttons .btn-outline { padding: 10px 18px; font-size: 13px; }
 
   /* Collections */
   .col-row1 { grid-template-columns: 1fr 1fr; }
@@ -730,17 +734,14 @@ button { font-family: 'DM Sans', sans-serif; }
    APP APPEARANCE — PREMIUM MOBILE
 ══════════════════════════════════════ */
 
-/* Bottom Nav App Bar */
+/* Bottom Nav App Bar — base styles only, overridden by mondimart-premium.css §38 */
 .app-bottom-nav {
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 64px;
   background: #fff;
   border-top: 1px solid var(--bo);
   z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(0,0,0,.1);
-  safe-area-inset-bottom: env(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .app-nav-inner {
@@ -960,8 +961,8 @@ button { font-family: 'DM Sans', sans-serif; }
 
 /* Hero mobile */
 @media (max-width: 768px) {
-  .hero { height: 480px; }
-  .hero-title { font-size: 32px; line-height: 1.12; }
+  .hero { height: 400px; }
+  .hero-title { font-size: 28px; line-height: 1.12; }
   .product-main-title { font-size: 24px; }
   .product-layout { gap: 20px; }
 }

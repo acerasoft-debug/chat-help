@@ -225,26 +225,6 @@
 })();
 </script>
 
-<!-- ══ 8 CUISINES ══ -->
-<section class="section cuisines-section">
-  <div class="section-inner">
-    <div class="section-header">
-      <div><h2 class="section-title">8 Cuisines <span>du Monde</span></h2><p class="section-sub">Produits authentiques directement d'origine</p></div>
-      <a class="see-all" href="/collections/epicerie-fine">Toutes les cuisines <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
-    </div>
-    <div class="cuisines-row">
-      <a class="cuisine-card" href="/collections/francaise">{%- assign cui_francaise = collections['francaise'] -%}{%- if cui_francaise.image -%}<img src="{{ cui_francaise.image | image_url: width: 400 }}" alt="{{ cui_francaise.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&q=80" alt="francaise" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇫🇷 Française</span><span class="cuisine-cnt">Fromages & vins</span></div></a>
-      <a class="cuisine-card" href="/collections/italienne">{%- assign cui_italienne = collections['italienne'] -%}{%- if cui_italienne.image -%}<img src="{{ cui_italienne.image | image_url: width: 400 }}" alt="{{ cui_italienne.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300&q=80" alt="italienne" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇮🇹 Italienne</span><span class="cuisine-cnt">Pâtes & huiles</span></div></a>
-      <a class="cuisine-card" href="/collections/espagnole">{%- assign cui_espagnole = collections['espagnole'] -%}{%- if cui_espagnole.image -%}<img src="{{ cui_espagnole.image | image_url: width: 400 }}" alt="{{ cui_espagnole.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=300&q=80" alt="espagnole" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇪🇸 Espagnole</span><span class="cuisine-cnt">Jamón & vins</span></div></a>
-      <a class="cuisine-card" href="/collections/portugaise">{%- assign cui_portugaise = collections['portugaise'] -%}{%- if cui_portugaise.image -%}<img src="{{ cui_portugaise.image | image_url: width: 400 }}" alt="{{ cui_portugaise.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&q=80" alt="portugaise" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇵🇹 Portugaise</span><span class="cuisine-cnt">Morue & vins</span></div></a>
-      <a class="cuisine-card" href="/collections/turque">{%- assign cui_turque = collections['turque'] -%}{%- if cui_turque.image -%}<img src="{{ cui_turque.image | image_url: width: 400 }}" alt="{{ cui_turque.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1579631542720-3a87824fff86?w=300&q=80" alt="turque" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇹🇷 Turque</span><span class="cuisine-cnt">Épices & baklava</span></div><span class="cuisine-tag tag-g">TOP</span></a>
-      <a class="cuisine-card" href="/collections/maghrebine">{%- assign cui_maghrebine = collections['maghrebine'] -%}{%- if cui_maghrebine.image -%}<img src="{{ cui_maghrebine.image | image_url: width: 400 }}" alt="{{ cui_maghrebine.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=300&q=80" alt="maghrebine" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🇲🇦 Maghrébine</span><span class="cuisine-cnt">Couscous & épices</span></div></a>
-      <a class="cuisine-card" href="/collections/asiatique">{%- assign cui_asiatique = collections['asiatique'] -%}{%- if cui_asiatique.image -%}<img src="{{ cui_asiatique.image | image_url: width: 400 }}" alt="{{ cui_asiatique.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=300&q=80" alt="asiatique" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🌏 Asiatique</span><span class="cuisine-cnt">Sauces & riz</span></div></a>
-      <a class="cuisine-card" href="/collections/vegan">{%- assign cui_vegan = collections['vegan'] -%}{%- if cui_vegan.image -%}<img src="{{ cui_vegan.image | image_url: width: 400 }}" alt="{{ cui_vegan.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=300&q=80" alt="vegan" loading="lazy">{%- endif -%}<div class="cuisine-ov"></div><div class="cuisine-info"><span class="cuisine-nm">🌿 Vegan & Bio</span><span class="cuisine-cnt">100% naturel</span></div></a>
-    </div>
-  </div>
-</section>
-
 <!-- ══ FLASH DEALS ══ -->
 <section class="flash-section">
   <div class="section-inner">
