@@ -154,6 +154,77 @@
     </div>
   </div>
 
+  <!-- VISUAL DELIVERY CARDS -->
+  <style>
+  .dlv-dbcards { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:48px; }
+  .dlv-dbcards .dbcard { border-radius:20px; overflow:hidden; position:relative; min-height:340px; display:flex; flex-direction:column; }
+  .dlv-dbcards .dbc-img-wrap { position:absolute; inset:0; }
+  .dlv-dbcards .dbc-img-wrap img { width:100%; height:100%; object-fit:cover; }
+  .dlv-dbcards .dbc-overlay { position:absolute; inset:0; }
+  .dbcard--express .dbc-overlay { background:linear-gradient(160deg,rgba(10,60,20,.82) 0%,rgba(20,100,40,.65) 100%); }
+  .dbcard--cold .dbc-overlay { background:linear-gradient(160deg,rgba(10,30,80,.85) 0%,rgba(20,60,140,.65) 100%); }
+  .dlv-dbcards .dbc-content { position:relative; z-index:2; padding:28px 28px 32px; display:flex; flex-direction:column; gap:10px; margin-top:auto; }
+  .dlv-dbcards .dbc-tag { display:inline-flex; align-items:center; gap:6px; padding:5px 14px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; width:fit-content; }
+  .dbc-tag--express { background:rgba(255,200,50,.2); color:#FFD700; border:1px solid rgba(255,200,50,.35); }
+  .dbc-tag--ice { background:rgba(100,200,255,.2); color:#A8D8FF; border:1px solid rgba(100,200,255,.35); }
+  .dlv-dbcards .dbc-title { font-family:'Playfair Display',serif; font-size:22px; font-weight:700; color:#fff; line-height:1.25; margin:0; }
+  .dlv-dbcards .dbc-title em { font-style:italic; color:#A8D8FF; }
+  .dbcard--express .dbc-title em { color:#FFE87C; }
+  .dlv-dbcards .dbc-desc { font-size:13px; color:rgba(255,255,255,.78); line-height:1.65; margin:0; }
+  .dlv-dbcards .dbc-pills { display:flex; flex-wrap:wrap; gap:6px; }
+  .dlv-dbcards .dbc-pill { padding:4px 11px; border-radius:16px; font-size:11px; font-weight:600; }
+  .dbc-pill--express { background:rgba(255,220,80,.18); color:#FFE87C; border:1px solid rgba(255,220,80,.3); }
+  .dbc-pill--ice { background:rgba(100,200,255,.18); color:#A8D8FF; border:1px solid rgba(100,200,255,.3); }
+  .dlv-dbcards .dbc-btn { display:inline-flex; align-items:center; gap:6px; padding:11px 22px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none; margin-top:4px; width:fit-content; transition:all .2s; }
+  .dbc-btn--express { background:linear-gradient(135deg,#C8A84B,#E8C96A); color:#1A3A0A; }
+  .dbc-btn--express:hover { background:linear-gradient(135deg,#E8C96A,#C8A84B); }
+  .dbc-btn--ice { background:linear-gradient(135deg,#1565C0,#1E88E5); color:#fff; }
+  .dbc-btn--ice:hover { background:linear-gradient(135deg,#1E88E5,#1565C0); }
+  @media(max-width:680px) { .dlv-dbcards { grid-template-columns:1fr; } .dlv-dbcards .dbcard { min-height:280px; } }
+  </style>
+
+  <div class="dlv-dbcards">
+
+    <!-- Express 24h Card -->
+    <div class="dbcard dbcard--express">
+      <div class="dbc-img-wrap">
+        <img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=900&q=85" alt="Livraison Express 24h France entière" loading="lazy" style="object-position:center 55%">
+        <div class="dbc-overlay"></div>
+      </div>
+      <div class="dbc-content">
+        <span class="dbc-tag dbc-tag--express">⚡ Express 24h</span>
+        <h3 class="dbc-title">Livraison Express<br><em>France entière en 24h</em></h3>
+        <p class="dbc-desc">Commandez avant 14h, recevez le lendemain. Livraison Chronopost sur toute la France métropolitaine, DOM inclus.</p>
+        <div class="dbc-pills">
+          <span class="dbc-pill dbc-pill--express">⏰ Commande avant 14h</span>
+          <span class="dbc-pill dbc-pill--express">📱 Suivi SMS</span>
+          <span class="dbc-pill dbc-pill--express">🇫🇷 France entière</span>
+        </div>
+        <a class="dbc-btn dbc-btn--express" href="/collections/all">Commander maintenant →</a>
+      </div>
+    </div>
+
+    <!-- Cold Chain Card -->
+    <div class="dbcard dbcard--cold">
+      <div class="dbc-img-wrap">
+        <img src="https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=900&q=85" alt="Chaîne du froid préservée — viandes et poissons frais" loading="lazy" style="object-position:center 40%">
+        <div class="dbc-overlay"></div>
+      </div>
+      <div class="dbc-content">
+        <span class="dbc-tag dbc-tag--ice">❄️ Chaîne du Froid</span>
+        <h3 class="dbc-title">Fraîcheur préservée<br><em>jusqu'à votre porte</em></h3>
+        <p class="dbc-desc">Viandes halal, produits frais et surgelés transportés en colis isotherme réfrigéré. Température contrôlée de 0°C à 4°C.</p>
+        <div class="dbc-pills">
+          <span class="dbc-pill dbc-pill--ice">🌡️ 0°C – 4°C</span>
+          <span class="dbc-pill dbc-pill--ice">🧊 Colis isotherme</span>
+          <span class="dbc-pill dbc-pill--ice">✅ Norme HACCP</span>
+        </div>
+        <a class="dbc-btn dbc-btn--ice" href="/collections/boucherie">Voir boucherie & frais →</a>
+      </div>
+    </div>
+
+  </div>
+
   <!-- COLD CHAIN HIGHLIGHT -->
   <div class="dlv-cold">
     <div class="dlv-cold-icon">
