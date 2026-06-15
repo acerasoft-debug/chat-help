@@ -15,6 +15,15 @@
     <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&q=85" alt="Karaca cuisine moderne" loading="lazy">
   </div>
   <div class="hero-overlay"></div>
+
+  <!-- Right-side slide link: updates via JS to match current visible slide -->
+  <a class="hero-slide-link" id="hero-slide-link" href="/collections/epices" aria-label="Voir la collection">
+    <span class="hsl-label" id="hero-slide-label">Épices du monde</span>
+    <span class="hsl-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </span>
+  </a>
+
   <div class="hero-content-wrap">
     <div class="hero-content">
       <div class="hero-badge"><i></i>Supermarché Mondial · Paris · Livraison 24h</div>
@@ -33,6 +42,34 @@
     </div>
   </div>
 </section>
+
+<script>
+(function() {
+  var slides = [
+    { label: "Épices du monde",         href: "/collections/epices" },
+    { label: "Fruits & légumes",        href: "/collections/epicerie-fine" },
+    { label: "Épicerie mondiale",       href: "/collections/all" },
+    { label: "Cuisine méditerranéenne", href: "/collections/epicerie-fine" },
+    { label: "Huile d'olive",           href: "/search?q=olive" },
+    { label: "Saveurs du monde",        href: "/collections/all" },
+    { label: "Baklava & pâtisseries",   href: "/search?q=baklava" },
+    { label: "Karaca — Vaisselle",      href: "/collections/karaca" },
+    { label: "Karaca — Arts de table",  href: "/collections/karaca" },
+    { label: "Karaca — Cuisine",        href: "/collections/karaca" }
+  ];
+  var CYCLE = 30000, PER = 3000;
+  var link  = document.getElementById('hero-slide-link');
+  var label = document.getElementById('hero-slide-label');
+  if (!link || !label) return;
+  function update() {
+    var idx = Math.floor((Date.now() % CYCLE) / PER) % slides.length;
+    link.href  = slides[idx].href;
+    label.textContent = slides[idx].label;
+  }
+  update();
+  setInterval(update, PER);
+})();
+</script>
 
 <!-- ══ TRUST BAR ══ -->
 <div class="trust-bar">

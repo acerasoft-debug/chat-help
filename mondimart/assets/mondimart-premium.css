@@ -2845,3 +2845,77 @@ body {
   .hero-bg-slideshow img { animation: none; opacity: 0; }
   .hero-bg-slideshow img:nth-child(1) { opacity: 1; }
 }
+
+/* ============================================================
+   35. HERO SLIDE LINK — right-side collection shortcut
+   ============================================================ */
+.hero-slide-link {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 14px 18px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-right: none;
+  border-radius: 40px 0 0 40px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 200px;
+  transition: background 0.25s, transform 0.25s, max-width 0.3s;
+  overflow: hidden;
+}
+.hero-slide-link:hover {
+  background: rgba(212,175,55,0.28);
+  border-color: rgba(212,175,55,0.55);
+  transform: translateY(-50%) translateX(-4px);
+}
+.hsl-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.4s;
+}
+.hsl-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(212,175,55,0.3);
+  border-radius: 50%;
+  transition: background 0.25s;
+}
+.hsl-arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke: #FFD700;
+}
+.hero-slide-link:hover .hsl-arrow {
+  background: rgba(212,175,55,0.6);
+}
+@media (max-width: 768px) {
+  .hero-slide-link {
+    top: auto;
+    bottom: 110px; /* above bottom nav */
+    right: 0;
+    transform: none;
+    font-size: 12px;
+    padding: 10px 14px 10px 12px;
+    max-width: 170px;
+  }
+  .hero-slide-link:hover {
+    transform: translateX(-4px);
+  }
+}
