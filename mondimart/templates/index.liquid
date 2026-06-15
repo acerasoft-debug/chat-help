@@ -173,6 +173,58 @@
   </div>
 </section>
 
+<!-- ══ BOUCHERIE PRODUCT CAROUSEL ══ -->
+<section class="section" style="background:#fff8f5;padding:40px 0 48px">
+  <div class="section-inner">
+    <div class="section-header" style="margin-bottom:18px">
+      <div>
+        <h2 class="section-title">🥩 Boucherie <span>Halal</span></h2>
+        <p class="section-sub">Viandes fraîches certifiées · Livraison sous glace 24h</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="bcar-prev" class="pcarousel-arrow" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="bcar-next" class="pcarousel-arrow" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <a class="see-all" href="/collections/boucherie">Voir tout →</a>
+      </div>
+    </div>
+    <div class="pcarousel-wrap" id="bcarousel">
+      {% for product in collections['boucherie'].products limit: 40 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=500&q=80" alt="{{ product.title }}" loading="lazy">{% endif %}
+            <span class="product-badge" style="background:#b91c1c">Halal ✓</span>
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale" style="top:36px">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥩 Boucherie Halal</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var t=document.getElementById('bcarousel'),p=document.getElementById('bcar-prev'),n=document.getElementById('bcar-next');
+  if(!t)return;
+  var cw=function(){var c=t.querySelector('.pcar-item');return c?c.offsetWidth+16:220;};
+  if(p)p.addEventListener('click',function(){t.scrollBy({left:-cw()*2,behavior:'smooth'});});
+  if(n)n.addEventListener('click',function(){t.scrollBy({left:cw()*2,behavior:'smooth'});});
+  var ti=setInterval(function(){if(t.scrollLeft>=t.scrollWidth-t.clientWidth-10){t.scrollTo({left:0,behavior:'smooth'});}else{t.scrollBy({left:cw(),behavior:'smooth'});}},3500);
+  t.addEventListener('mouseenter',function(){clearInterval(ti);});
+  t.addEventListener('touchstart',function(){clearInterval(ti);},{passive:true});
+})();
+</script>
+
 <!-- ══ 8 CUISINES ══ -->
 <section class="section cuisines-section">
   <div class="section-inner">
@@ -630,58 +682,6 @@
 .karaca-cats a:hover { transform: translateY(-3px); }
 @media(max-width:768px) { .karaca-cats { grid-template-columns: 1fr 1fr !important; } .karaca-cats a { height: 130px !important; } }
 </style>
-
-<!-- ══ BOUCHERIE PRODUCT CAROUSEL ══ -->
-<section class="section" style="background:#fff8f5;padding:40px 0 48px">
-  <div class="section-inner">
-    <div class="section-header" style="margin-bottom:18px">
-      <div>
-        <h2 class="section-title">🥩 Boucherie <span>Halal</span></h2>
-        <p class="section-sub">Viandes fraîches certifiées · Livraison sous glace 24h</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <button id="bcar-prev" class="pcarousel-arrow" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-        <button id="bcar-next" class="pcarousel-arrow" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
-        <a class="see-all" href="/collections/boucherie">Voir tout →</a>
-      </div>
-    </div>
-    <div class="pcarousel-wrap" id="bcarousel">
-      {% for product in collections['boucherie'].products limit: 40 %}
-        <a class="product-card pcar-item" href="{{ product.url }}">
-          <div class="product-img">
-            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
-            {% else %}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=500&q=80" alt="{{ product.title }}" loading="lazy">{% endif %}
-            <span class="product-badge" style="background:#b91c1c">Halal ✓</span>
-            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale" style="top:36px">Promo</span>{% endif %}
-          </div>
-          <div class="product-info">
-            <div class="product-origin">🥩 Boucherie Halal</div>
-            <div class="product-title">{{ product.title }}</div>
-            <div class="product-bottom">
-              <div class="product-price">
-                <span class="current-price">{{ product.price | money }}</span>
-                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
-              </div>
-              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-            </div>
-          </div>
-        </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-<script>
-(function(){
-  var t=document.getElementById('bcarousel'),p=document.getElementById('bcar-prev'),n=document.getElementById('bcar-next');
-  if(!t)return;
-  var cw=function(){var c=t.querySelector('.pcar-item');return c?c.offsetWidth+16:220;};
-  if(p)p.addEventListener('click',function(){t.scrollBy({left:-cw()*2,behavior:'smooth'});});
-  if(n)n.addEventListener('click',function(){t.scrollBy({left:cw()*2,behavior:'smooth'});});
-  var ti=setInterval(function(){if(t.scrollLeft>=t.scrollWidth-t.clientWidth-10){t.scrollTo({left:0,behavior:'smooth'});}else{t.scrollBy({left:cw(),behavior:'smooth'});}},3500);
-  t.addEventListener('mouseenter',function(){clearInterval(ti);});
-  t.addEventListener('touchstart',function(){clearInterval(ti);},{passive:true});
-})();
-</script>
 
 <!-- ══ PROMO BANNERS ══ -->
 <div class="promo-section">
