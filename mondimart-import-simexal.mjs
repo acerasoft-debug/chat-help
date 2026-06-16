@@ -223,15 +223,17 @@ async function enrich(batch) {
   const types = PRODUCT_TYPES.join(', ');
   const prompt = `Tu es expert e-commerce d'une épicerie du monde (Mondimart). Pour chaque produit, renvoie un objet JSON.
 
+IMPORTANT: Les titres source viennent d'un GROSSISTE et contiennent souvent une quantité de carton (ex: "x24", "*12pcs", "800gr*6pcs", "Lot de 6"). Le produit doit être vendu à L'UNITÉ au détail. Donc TOUS les textes (titre, description, SEO) et le prix doivent concerner UNE SEULE unité, JAMAIS le carton/lot. Ignore la quantité de carton dans tous les textes.
+
 Produits:
 ${list}
 
 Pour CHAQUE produit fournis:
 - "collections": tableau de 1 à 3 noms EXACTEMENT depuis cette liste: ${cols}
 - "product_type": EXACTEMENT un parmi: ${types}
-- "seo_title": titre SEO accrocheur en français (max 60 caractères)
-- "seo_description": meta description vendeuse en français (140-155 caractères)
-- "body_html": description produit riche en HTML français (2-3 phrases + <ul> de 3 atouts)
+- "seo_title": titre SEO accrocheur en français pour UNE unité (max 60 caractères, sans mention de carton/lot)
+- "seo_description": meta description vendeuse en français pour UNE unité (140-155 caractères, sans mention de carton/lot)
+- "body_html": description produit riche en HTML français pour UNE SEULE unité (2-3 phrases + <ul> de 3 atouts, JAMAIS de mention du carton/lot/quantité de gros)
 - "tags": tableau de 8 à 12 tags pertinents en français (origine, type, usage, halal/bio si pertinent)
 - "clean_title": titre produit PROPRE et bien présenté en français (corrige la casse type "Rakı Yeni 70cl 47°", garde la contenance et le degré d'alcool, RETIRE tout caractère parasite comme ===, (2), (00.0), codes internes)
 - "unit_count": nombre d'unités individuelles dans ce lot/pack (ex: "Lot de 6" -> 6, "Pack x3" -> 3, vendu à l'unité -> 1)
