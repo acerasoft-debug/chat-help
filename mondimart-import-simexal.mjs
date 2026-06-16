@@ -196,6 +196,16 @@ let missing = catalog.filter(p => {
 // aynı normalize başlıktan tek kopya
 const seen = new Set();
 missing = missing.filter(p => { const k = normTitle(p.title); if (seen.has(k)) return false; seen.add(k); return true; });
+
+// Hızlı sayım modu: DeepSeek'siz, sadece toplam eksik + başlık listesi
+if (process.env.COUNT === '1') {
+  console.log(`\n🔍 simexal'de ${catalog.length} ürün | sitenizde ${existing.length} ürün`);
+  console.log(`📊 TOPLAM EKSİK (sitenizde olmayan): ${missing.length}\n`);
+  missing.forEach((p, i) => console.log(`   ${String(i+1).padStart(4)}. ${p.title}${p.price ? `  (${p.price}€)` : ''}`));
+  console.log(`\nHepsini eklemek için COUNT'suz, DRY'sız çalıştırın.`);
+  process.exit(0);
+}
+
 if (LIMIT) missing = missing.slice(0, LIMIT);
 
 console.log(`\n🔍 ${missing.length} eksik ürün bulundu${LIMIT ? ` (LIMIT=${LIMIT})` : ''}.`);
