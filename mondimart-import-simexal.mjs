@@ -5,7 +5,7 @@
 //   2. Mondimart'taki mevcut ürünlerle karşılaştır → eksikleri bul
 //   3. DeepSeek ile: koleksiyon, product_type, SEO başlık/açıklama, tag,
 //      piyasa değeri araştır
-//   4. Fiyat = piyasa değeri × 1.20 (+%20) ile ürünü oluştur, koleksiyona ekle
+//   4. Fiyat = piyasa değeri × 1.15 (+%15) ile ürünü oluştur, koleksiyona ekle
 //
 // Kullanım:
 //   SHOPIFY_TOKEN='...' DEEPSEEK_KEY='...' node mondimart-import-simexal.mjs
@@ -18,7 +18,7 @@ const DEEPSEEK_KEY  = process.env.DEEPSEEK_KEY;
 const DRY   = process.env.DRY === '1';
 const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT) : 0;
 const SOURCE = (process.env.SRC || 'https://simexal.fr').replace(/\/+$/, '');
-const MARKUP = 1.20; // piyasa değeri +%20
+const MARKUP = 1.15; // piyasa değeri +%15
 
 const SHOP = 'pftzey-y0.myshopify.com';
 const BASE = `https://${SHOP}/admin/api/2024-04`;
