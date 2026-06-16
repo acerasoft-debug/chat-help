@@ -305,6 +305,14 @@ for (let i = 0; i < missing.length; i += 5) {
     const seoDesc = (r.seo_description || '').slice(0, 320);
     const body = r.body_html || p.body_html || `<p>${p.title}</p>`;
 
+    // GÜVENLİK AĞI: temizlenmiş/yeniden adlandırılmış başlık sitede zaten var mı?
+    const finalNorm = normTitle(finalTitle);
+    if (existTitles.has(finalNorm)) {
+      console.log(`   ⏭️  "${finalTitle}" zaten sitede var (başlık eşleşti) — atlandı`);
+      skipped++; continue;
+    }
+    existTitles.add(finalNorm); // bundan sonraki turlarda da tekrarı engelle
+
     const packNote = splitToSingle ? ` [${unitCount}'lü → TEKLİ, adet başı ${unitPrice}€]` : '';
     if (DRY) {
       console.log(`   [ÖNİZLEME] "${finalTitle}"${packNote} → ${priceStr}€ (piyasa ${market.toFixed(2)}€) | ${ptype} | koleksiyon: ${cols.join(', ') || '—'}`);
