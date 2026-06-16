@@ -222,7 +222,9 @@ Pour CHAQUE produit fournis:
 - "seo_description": meta description vendeuse en français (140-155 caractères)
 - "body_html": description produit riche en HTML français (2-3 phrases + <ul> de 3 atouts)
 - "tags": tableau de 8 à 12 tags pertinents en français (origine, type, usage, halal/bio si pertinent)
-- "market_price_eur": prix de marché moyen RÉALISTE en France pour ce produit (nombre, ex: 4.90)
+- "unit_count": nombre d'unités individuelles dans ce lot/pack (ex: "Lot de 6" -> 6, "Pack x3" -> 3, vendu à l'unité -> 1)
+- "single_title": titre du produit pour UNE SEULE unité, SANS la mention du lot/pack (ex: "Eau minérale 1L" au lieu de "Eau minérale 1L Lot de 6")
+- "unit_price_eur": prix de marché moyen RÉALISTE en France pour UNE SEULE unité (nombre, ex: 4.90)
 
 Réponds UNIQUEMENT avec un tableau JSON de ${batch.length} objets, dans le même ordre. Pas de texte autour.`;
 
@@ -264,9 +266,23 @@ for (let i = 0; i < missing.length; i += 5) {
   for (let j = 0; j < batch.length; j++) {
     const p = batch[j];
     const r = results[j] || {};
-    const market = parseFloat(r.market_price_eur) || p.price || 0;
+
+    // Paket adedini tespit et (DeepSeek > başlık regex fallback)
+    const titleN = (() => {
+      const m = (p.title || '').match(/(?:lot|pack|paquet|set|x|×)\s*(?:de\s*)?(\d{1,3})|(\d{1,3})\s*(?:pi[eè]ces?|pcs|unit[eé]s?)/i);
+      return m ? parseInt(m[1] || m[2]) : 0;
+    })();
+    let unitCount = parseInt(r.unit_count) || titleN || 1;
+    if (unitCount < 1) unitCount = 1;
+    const splitToSingle = unitCount >= 3;          // 3+ ise tek adet olarak listele
+
+    const unitPrice = parseFloat(r.unit_price_eur) || (p.price && unitCount ? p.price / unitCount : p.price) || 0;
+    // 3+ → adet başı fiyat; aksi halde paketi olduğu gibi (adet × birim) fiyatla
+    const market = splitToSingle ? unitPrice : unitPrice * unitCount;
     const price = (market > 0 ? market : p.price) * MARKUP;
     const priceStr = price > 0 ? price.toFixed(2) : '0.00';
+
+    const finalTitle = splitToSingle ? (r.single_title || p.title) : p.title;
     const cols = (r.collections || []).filter(c => COLLECTIONS[c]);
     const ptype = PRODUCT_TYPES.includes(r.product_type) ? r.product_type : (p.type || 'Épicerie Fine');
     const tags = Array.isArray(r.tags) ? r.tags.join(', ') : (r.tags || p.tags || '');
@@ -274,14 +290,15 @@ for (let i = 0; i < missing.length; i += 5) {
     const seoDesc = (r.seo_description || '').slice(0, 320);
     const body = r.body_html || p.body_html || `<p>${p.title}</p>`;
 
+    const packNote = splitToSingle ? ` [${unitCount}'lü → TEKLİ, adet başı ${unitPrice}€]` : '';
     if (DRY) {
-      console.log(`   [ÖNİZLEME] "${p.title}" → ${priceStr}€ (piyasa ${market}€) | ${ptype} | koleksiyon: ${cols.join(', ') || '—'}`);
+      console.log(`   [ÖNİZLEME] "${finalTitle}"${packNote} → ${priceStr}€ (piyasa ${market.toFixed(2)}€) | ${ptype} | koleksiyon: ${cols.join(', ') || '—'}`);
       created++; continue;
     }
 
     const productBody = {
       product: {
-        title: p.title,
+        title: finalTitle,
         body_html: body,
         vendor: p.vendor || 'Mondimart',
         product_type: ptype,
@@ -309,7 +326,7 @@ for (let i = 0; i < missing.length; i += 5) {
       await shopify('POST', 'collects.json', { collect: { product_id: pid, collection_id: COLLECTIONS[cName] } });
       await delay(250);
     }
-    console.log(`   ✅ "${p.title}" → ${priceStr}€ | ${ptype} | ${cols.join(', ') || '—'}`);
+    console.log(`   ✅ "${finalTitle}"${packNote} → ${priceStr}€ | ${ptype} | ${cols.join(', ') || '—'}`);
     created++;
     await delay(500);
   }
