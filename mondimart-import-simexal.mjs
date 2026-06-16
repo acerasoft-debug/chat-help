@@ -29,6 +29,11 @@ if (!SHOPIFY_TOKEN || !DEEPSEEK_KEY) {
   console.error('❌ Eksik: SHOPIFY_TOKEN ve DEEPSEEK_KEY gerekli');
   process.exit(1);
 }
+if (/ANAHTAR|YOUR_|PLACEHOLDER|xxx/i.test(DEEPSEEK_KEY)) {
+  console.error(`❌ DEEPSEEK_KEY gerçek bir anahtar değil ("${DEEPSEEK_KEY}").
+   https://platform.deepseek.com/api_keys adresinden alın (sk-... ile başlar).`);
+  process.exit(1);
+}
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
 async function shopify(method, path, body) {
@@ -230,7 +235,10 @@ Réponds UNIQUEMENT avec un tableau JSON de ${batch.length} objets, dans le mêm
       });
       const d = await r.json();
       let c = d.choices?.[0]?.message?.content?.trim();
-      if (!c) throw new Error('boş cevap');
+      if (!c) {
+        const apiErr = d.error?.message || d.message || JSON.stringify(d).slice(0, 200);
+        throw new Error(`boş cevap (HTTP ${r.status}: ${apiErr})`);
+      }
       c = c.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(c);
       const arr = Array.isArray(parsed) ? parsed : (parsed.results || parsed.products || Object.values(parsed)[0]);
