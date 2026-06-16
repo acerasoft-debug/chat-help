@@ -83,6 +83,14 @@ const COLLECTIONS = {
   'Cuisine Asiatique':686915289413,'Cuisine Espagnole':686915486021,'Cuisine Portugaise':686915322181,
   'Gastronomie Française':687026504005,'Karaca':687037448517,'Promotions':687026471237,
   'Sans Gluten':687037481285,'Bio Certifié':687037546821,'Vegan':686915354949,'Épicerie Fine':686917910853,
+  // --- Ek gıda/bakkaliye kategorileri (mondimart-collections.mjs'ten) ---
+  'Fromages Affinés':687859990853,'Légumes Frais':687821750597,'Pain':687825486149,
+  'Plats Préparés':687822963013,'Surgelés':687822766405,'Vins':686918926661,
+  'Alternatives Végétales':687030796613,'Boissons Végétales':687030862149,
+  'Conserves Vegan':687029813573,'Sucreries Vegan':687030894917,
+  'Coffrets':687026405701,'Coffrets Cadeaux':687866478917,"Coffrets d'Épices":687863824709,
+  'Compléments Alimentaires':687825977669,'Sans Sucre':687850357061,'Sport':687860711749,
+  'Laits Bébé':687866446149,'Jus Bébé':687826239813,'Snacks Bébé':687827910981,
 };
 const PRODUCT_TYPES = [
   'Hygiène & Beauté','Alimentation Bébé','Entretien Ménager','Viandes Halal','Charcuterie Halal',
@@ -219,7 +227,8 @@ async function enrich(batch) {
   const list = batch.map((p, i) =>
     `${i+1}. Titre: "${p.title}" | Marque: "${p.vendor}" | Catégorie source: "${p.type}" | Prix source: ${p.price}€`
   ).join('\n');
-  const cols = Object.keys(COLLECTIONS).join(', ');
+  // Karaca (ev eşyası markası) gıda import'unda asla önerilmesin
+  const cols = Object.keys(COLLECTIONS).filter(c => c !== 'Karaca').join(', ');
   const types = PRODUCT_TYPES.join(', ');
   const prompt = `Tu es expert e-commerce d'une épicerie du monde (Mondimart). Pour chaque produit, renvoie un objet JSON.
 
@@ -293,12 +302,13 @@ for (let i = 0; i < missing.length; i += 5) {
     const unitPrice = parseFloat(r.unit_price_eur) || (p.price && unitCount ? p.price / unitCount : p.price) || 0;
     // 3+ → adet başı fiyat; aksi halde paketi olduğu gibi (adet × birim) fiyatla
     const market = splitToSingle ? unitPrice : unitPrice * unitCount;
-    const price = (market > 0 ? market : p.price) * MARKUP;
+    let price = (market > 0 ? market : p.price) * MARKUP;
+    price = Math.round(price * 10) / 10;        // en yakın 0,10'a yuvarla (7.88 -> 7.90)
     const priceStr = price > 0 ? price.toFixed(2) : '0.00';
 
     const baseTitle = r.clean_title || p.title;
     const finalTitle = splitToSingle ? (r.single_title || baseTitle) : baseTitle;
-    const cols = (r.collections || []).filter(c => COLLECTIONS[c]);
+    const cols = (r.collections || []).filter(c => COLLECTIONS[c] && c !== 'Karaca');
     const ptype = PRODUCT_TYPES.includes(r.product_type) ? r.product_type : (p.type || 'Épicerie Fine');
     const tags = Array.isArray(r.tags) ? r.tags.join(', ') : (r.tags || p.tags || '');
     const seoTitle = (r.seo_title || p.title).slice(0, 70);
