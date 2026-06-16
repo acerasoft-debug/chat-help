@@ -17,7 +17,7 @@ const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
 const DEEPSEEK_KEY  = process.env.DEEPSEEK_KEY;
 const DRY   = process.env.DRY === '1';
 const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT) : 0;
-const SOURCE = 'https://simexal.fr';
+const SOURCE = (process.env.SRC || 'https://simexal.fr').replace(/\/+$/, '');
 const MARKUP = 1.15; // piyasa değeri +%15
 
 const SHOP = 'pftzey-y0.myshopify.com';
@@ -163,7 +163,8 @@ async function scrapeWoo() {
   return out.length ? out : null;
 }
 
-console.log(`🌍 simexal.fr katalogu çekiliyor...`);
+const SRC_HOST = SOURCE.replace(/^https?:\/\//, '');
+console.log(`🌍 ${SRC_HOST} katalogu çekiliyor...`);
 let catalog = await scrapeShopify();
 if (catalog) console.log(`   ✅ Shopify modu — ${catalog.length} ürün`);
 if (!catalog) {
@@ -171,7 +172,7 @@ if (!catalog) {
   if (catalog) console.log(`   ✅ WooCommerce modu — ${catalog.length} ürün`);
 }
 if (!catalog) {
-  console.error(`   ❌ simexal.fr otomatik çekilemedi (Shopify/Woo değil ya da erişim engelli).
+  console.error(`   ❌ ${SRC_HOST} otomatik çekilemedi (Shopify/Woo değil ya da erişim engelli).
    Lütfen şu komutun çıktısını paylaşın, scraper'ı ona göre uyarlayayım:
    curl -sS -D - "${SOURCE}/" -o /dev/null | grep -iE "server|powered|shopify|woocommerce|prestashop"`);
   process.exit(1);
@@ -199,7 +200,7 @@ missing = missing.filter(p => { const k = normTitle(p.title); if (seen.has(k)) r
 
 // Hızlı sayım modu: DeepSeek'siz, sadece toplam eksik + başlık listesi
 if (process.env.COUNT === '1') {
-  console.log(`\n🔍 simexal'de ${catalog.length} ürün | sitenizde ${existing.length} ürün`);
+  console.log(`\n🔍 ${SRC_HOST}'de ${catalog.length} ürün | sitenizde ${existing.length} ürün`);
   console.log(`📊 TOPLAM EKSİK (sitenizde olmayan): ${missing.length}\n`);
   missing.forEach((p, i) => console.log(`   ${String(i+1).padStart(4)}. ${p.title}${p.price ? `  (${p.price}€)` : ''}`));
   console.log(`\nHepsini eklemek için COUNT'suz, DRY'sız çalıştırın.`);
