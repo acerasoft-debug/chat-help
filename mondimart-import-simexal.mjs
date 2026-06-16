@@ -222,8 +222,9 @@ Pour CHAQUE produit fournis:
 - "seo_description": meta description vendeuse en français (140-155 caractères)
 - "body_html": description produit riche en HTML français (2-3 phrases + <ul> de 3 atouts)
 - "tags": tableau de 8 à 12 tags pertinents en français (origine, type, usage, halal/bio si pertinent)
+- "clean_title": titre produit PROPRE et bien présenté en français (corrige la casse type "Rakı Yeni 70cl 47°", garde la contenance et le degré d'alcool, RETIRE tout caractère parasite comme ===, (2), (00.0), codes internes)
 - "unit_count": nombre d'unités individuelles dans ce lot/pack (ex: "Lot de 6" -> 6, "Pack x3" -> 3, vendu à l'unité -> 1)
-- "single_title": titre du produit pour UNE SEULE unité, SANS la mention du lot/pack (ex: "Eau minérale 1L" au lieu de "Eau minérale 1L Lot de 6")
+- "single_title": titre PROPRE du produit pour UNE SEULE unité, SANS la mention du lot/pack (ex: "Eau minérale 1L" au lieu de "Eau minérale 1L Lot de 6")
 - "unit_price_eur": prix de marché moyen RÉALISTE en France pour UNE SEULE unité (nombre, ex: 4.90)
 
 Réponds UNIQUEMENT avec un tableau JSON de ${batch.length} objets, dans le même ordre. Pas de texte autour.`;
@@ -282,7 +283,8 @@ for (let i = 0; i < missing.length; i += 5) {
     const price = (market > 0 ? market : p.price) * MARKUP;
     const priceStr = price > 0 ? price.toFixed(2) : '0.00';
 
-    const finalTitle = splitToSingle ? (r.single_title || p.title) : p.title;
+    const baseTitle = r.clean_title || p.title;
+    const finalTitle = splitToSingle ? (r.single_title || baseTitle) : baseTitle;
     const cols = (r.collections || []).filter(c => COLLECTIONS[c]);
     const ptype = PRODUCT_TYPES.includes(r.product_type) ? r.product_type : (p.type || 'Épicerie Fine');
     const tags = Array.isArray(r.tags) ? r.tags.join(', ') : (r.tags || p.tags || '');
