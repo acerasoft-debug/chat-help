@@ -139,7 +139,7 @@ Réponds UNIQUEMENT avec un tableau JSON de ${batch.length} objets, dans le mêm
 function roundPrice(v) {
   const n = parseFloat(v);
   if (!n || n <= 0) return null;
-  return (Math.round(n * 10) / 10).toFixed(2);
+  return Math.round(n).toFixed(2); // tam sayıya yuvarla (7.89 → 8.00)
 }
 
 function calcPrice(marketPrice, currentPrice) {

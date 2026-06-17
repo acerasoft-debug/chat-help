@@ -363,7 +363,7 @@ for (let i = 0; i < missing.length; i += 5) {
     // 3+ → adet başı fiyat; aksi halde paketi olduğu gibi (adet × birim) fiyatla
     const market = splitToSingle ? unitPrice : unitPrice * unitCount;
     let price = (market > 0 ? market : p.price) * MARKUP;
-    price = Math.round(price * 10) / 10;        // en yakın 0,10'a yuvarla (7.88 -> 7.90)
+    price = Math.round(price);                   // tam sayıya yuvarla (7.88 -> 8)
     const priceStr = price > 0 ? price.toFixed(2) : '0.00';
 
     const baseTitle = r.clean_title || p.title;
