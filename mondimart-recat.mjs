@@ -204,15 +204,14 @@ for (let i = 0; i < targets.length; i += 5) {
     }
     const desiredNames = (r.collections || []).filter(c => COLLECTIONS[c] && c !== 'Karaca');
     const desiredIds = new Set(desiredNames.map(c => COLLECTIONS[c]));
-    if (!desiredIds.size) { continue; }
 
     // ürünün mevcut koleksiyonları
     const collects = await fetchAll(`collects.json?product_id=${p.id}&limit=250&fields=id,collection_id`);
     const currentIds = new Set(collects.map(c => c.collection_id));
 
-    // EKLE: istenen ama mevcut olmayanlar
-    const toAdd = [...desiredIds].filter(id => !currentIds.has(id));
-    // ÇIKAR: yönetilen sette olan ama istenmeyenler (Karaca asla)
+    // EKLE: istenen ama mevcut olmayanlar (DeepSeek koleksiyon döndürdüyse)
+    const toAdd = desiredIds.size ? [...desiredIds].filter(id => !currentIds.has(id)) : [];
+    // ÇIKAR: yönetilen sette olan ama istenmeyenler (Karaca asla, DeepSeek boş dönse bile)
     const toRemove = collects.filter(c =>
       MANAGED_IDS.has(c.collection_id) && c.collection_id !== KARACA_ID && !desiredIds.has(c.collection_id)
     );
