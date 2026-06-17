@@ -3073,10 +3073,11 @@ body {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    align-items: stretch !important;
+    align-items: flex-start !important;
     justify-content: space-between !important;
     width: 100% !important;
-    height: 60px !important;
+    height: auto !important;
+    min-height: 60px !important;
   }
   body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
 }
@@ -3177,4 +3178,200 @@ body {
   background: linear-gradient(135deg, #C8A84B, #FFD700);
   color: #1A3C1A !important;
   transform: translateY(-1px);
+}
+
+/* ============================================================
+   40. COMPREHENSIVE LAYOUT FIXES — overflow, logo, bottom nav,
+       collection/product premium polish
+   ============================================================ */
+
+/* ── Logo containment ──────────────────────────────────────── */
+.logo {
+  flex-shrink: 0 !important;
+  overflow: hidden !important;
+  max-width: calc(100vw - 220px) !important; /* never push off screen */
+}
+.logo-img {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 9px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.logo-img img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+/* Header bar never leaks content horizontally */
+.hdr {
+  overflow: hidden !important;
+  overflow: clip !important; /* modern browsers clip to border-box */
+}
+/* But keep site-nav / mega menu visible */
+.site-nav { overflow: visible !important; }
+.site-header { overflow: visible !important; }
+
+/* ── Bottom nav: correct height + safe-area ────────────────── */
+/* §38 set height:60px which box-sizing:border-box then subtracted
+   safe-area padding from usable content space → icons clipped on iPhone.
+   Fix: nav grows to fit safe area, buttons stay 60px. */
+@media (max-width: 900px) {
+  #app-bottom-nav {
+    height: auto !important;
+    min-height: 60px !important;
+    align-items: flex-start !important;
+  }
+  #app-bottom-nav > * {
+    height: 60px !important;
+    flex-shrink: 0 !important;
+  }
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Cart page extra clearance for nav + sidebar actions */
+  .cart-page {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ── Global overflow guard ─────────────────────────────────── */
+html, body {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+/* Images never overflow their containers */
+img {
+  max-width: 100% !important;
+}
+
+/* ── Collection page — premium hero ───────────────────────── */
+.col-hero {
+  height: 220px !important;
+  border-radius: 0 0 20px 20px !important;
+  overflow: hidden !important;
+}
+.col-hero-fallback {
+  height: 220px !important;
+  background: linear-gradient(135deg, #0e2615 0%, #1a3c1a 50%, #2d6a2d 100%) !important;
+  border-radius: 0 0 20px 20px !important;
+  position: relative !important;
+}
+.col-hero-fallback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 70% 50%, rgba(212,166,74,0.15) 0%, transparent 65%);
+  pointer-events: none;
+}
+.col-hero h1 {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  font-size: 30px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+.col-hero-meta {
+  color: rgba(255,255,255,0.65) !important;
+  font-size: 13px !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* ── Collection product cards — premium polish ─────────────── */
+.prod-card {
+  border-radius: 16px !important;
+  border: 1px solid #EDE9DF !important;
+  box-shadow: 0 2px 8px rgba(20,45,20,0.04) !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease !important;
+}
+.prod-card:hover {
+  border-color: rgba(26,60,26,0.3) !important;
+  box-shadow: 0 8px 32px rgba(20,45,20,0.12) !important;
+  transform: translateY(-2px) !important;
+}
+.prod-img {
+  background: #F9F6F0 !important;
+  border-radius: 15px 15px 0 0 !important;
+}
+.prod-price {
+  font-family: 'Fraunces', 'Manrope', sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #1a3c1a !important;
+}
+.prod-title {
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: #1c1c1c !important;
+  line-height: 1.4 !important;
+}
+.prod-add {
+  background: linear-gradient(135deg, #1a3c1a, #2d6a2d) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 8px rgba(26,60,26,0.25) !important;
+}
+.prod-add:hover {
+  transform: scale(1.08) !important;
+  box-shadow: 0 4px 14px rgba(26,60,26,0.35) !important;
+}
+
+/* ── Collection toolbar ────────────────────────────────────── */
+.col-toolbar {
+  background: #fff !important;
+  border-bottom: 1px solid #EDEAD8 !important;
+  top: 62px !important; /* clear the sticky header */
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+.toolbar-btn {
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  border-radius: 12px !important;
+}
+
+/* ── Product page — premium header & price ─────────────────── */
+.product-main-title {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  letter-spacing: -0.01em !important;
+}
+.price-current {
+  font-family: 'Fraunces', 'Manrope', sans-serif !important;
+  color: #142d1d !important;
+}
+
+/* ── Search page chips & results ───────────────────────────── */
+.mm-search-chip {
+  border-radius: 999px !important;
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  transition: all 0.15s ease !important;
+}
+.mm-search-cat {
+  border-radius: 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* ── Cart page – items fit on all mobile widths ────────────── */
+@media (max-width: 900px) {
+  .cart-item-img {
+    width: 72px !important;
+    height: 72px !important;
+  }
+  .cart-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .cart-sidebar {
+    position: static !important;
+    top: auto !important;
+  }
+}
+
+/* ── Footer — never pushed under bottom nav ────────────────── */
+@media (max-width: 900px) {
+  .site-footer {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
 }
