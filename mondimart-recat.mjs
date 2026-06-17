@@ -18,6 +18,7 @@ const DEEPSEEK_KEY  = process.env.DEEPSEEK_KEY;
 const DRY   = process.env.DRY === '1';
 const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT) : 0;
 const PRICEONLY = process.env.PRICEONLY === '1';
+const MARKUP = process.env.MARKUP ? parseFloat(process.env.MARKUP) : 1.20; // varsayılan +%20
 
 const SHOP = 'pftzey-y0.myshopify.com';
 const BASE = `https://${SHOP}/admin/api/2024-04`;
@@ -98,11 +99,11 @@ const PRODUCT_TYPES = [
 async function enrich(batch) {
   const list = batch.map((p, i) => {
     const desc = (p.body_html || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 150);
-    return `${i+1}. Titre: "${p.title}" | Marque: "${p.vendor}" | Type actuel: "${p.product_type}" | Tags: "${(p.tags||'').slice(0,120)}" | Description: "${desc}"`;
+    return `${i+1}. Titre: "${p.title}" | Marque: "${p.vendor}" | Prix actuel: ${p.variants?.[0]?.price||'?'}€ | Type actuel: "${p.product_type}" | Tags: "${(p.tags||'').slice(0,120)}" | Description: "${desc}"`;
   }).join('\n');
-  const cols = Object.keys(COLLECTIONS).join(', ');
+  const cols = Object.keys(COLLECTIONS).filter(c => c !== 'Karaca').join(', ');
   const types = PRODUCT_TYPES.join(', ');
-  const prompt = `Tu es expert e-commerce d'une épicerie du monde (Mondimart). Pour chaque produit existant, détermine le bon classement.
+  const prompt = `Tu es expert e-commerce d'une épicerie du monde (Mondimart) basée en France. Pour chaque produit, détermine le bon classement ET le prix de marché français réaliste pour un consommateur final.
 
 Produits:
 ${list}
@@ -110,6 +111,7 @@ ${list}
 Pour CHAQUE produit fournis un objet JSON avec:
 - "collections": tableau de 1 à 3 noms EXACTEMENT depuis cette liste: ${cols}
 - "product_type": EXACTEMENT un parmi: ${types}
+- "market_price_eur": prix de vente au détail en France (nombre décimal, ex: 3.50) — recherche le prix réel du marché français pour ce produit. Si inconnu, mets null.
 
 Réponds UNIQUEMENT avec un tableau JSON de ${batch.length} objets, dans le même ordre. Pas de texte autour.`;
 
@@ -140,6 +142,13 @@ function roundPrice(v) {
   return (Math.round(n * 10) / 10).toFixed(2);
 }
 
+function calcPrice(marketPrice, currentPrice) {
+  const mp = parseFloat(marketPrice);
+  if (mp && mp > 0) return roundPrice(mp * MARKUP);
+  // piyasa fiyatı bilinmiyorsa mevcut fiyatı yuvarla
+  return roundPrice(currentPrice);
+}
+
 // ============================================================
 // ANA AKIŞ
 // ============================================================
@@ -160,27 +169,39 @@ for (let i = 0; i < targets.length; i += 5) {
   const batch = targets.slice(i, i + 5);
   console.log(`\n🧠 ${i + 1}-${i + batch.length} / ${targets.length}`);
 
-  // --- FİYAT YUVARLAMA (her ürün için, DeepSeek'siz) ---
-  for (const p of batch) {
-    const v = p.variants?.[0];
-    if (!v) continue;
-    const rp = roundPrice(v.price);
-    if (rp && rp !== v.price) {
-      if (DRY) console.log(`   [ÖNİZLEME] 💶 "${p.title}" ${v.price}€ → ${rp}€`);
-      else { await shopify('PUT', `variants/${v.id}.json`, { variant: { id: v.id, price: rp } }); await delay(250); }
-      priced++;
+  if (PRICEONLY) {
+    for (const p of batch) {
+      const v = p.variants?.[0];
+      if (!v) continue;
+      const rp = roundPrice(v.price);
+      if (rp && rp !== v.price) {
+        if (DRY) console.log(`   [ÖNİZLEME] 💶 "${p.title}" ${v.price}€ → ${rp}€`);
+        else { await shopify('PUT', `variants/${v.id}.json`, { variant: { id: v.id, price: rp } }); await delay(250); }
+        priced++;
+      }
     }
+    continue;
   }
 
-  if (PRICEONLY) continue;
-
-  // --- KATEGORİ DÜZELTME (DeepSeek) ---
+  // --- KATEGORİ + FİYAT (DeepSeek piyasa fiyatı araştırır) ---
   const results = await enrich(batch);
   if (!results) { skipped += batch.length; continue; }
 
   for (let j = 0; j < batch.length; j++) {
     const p = batch[j];
     const r = results[j] || {};
+
+    // Fiyat: DeepSeek piyasa fiyatı × MARKUP, yoksa mevcut fiyatı yuvarla
+    const v = p.variants?.[0];
+    if (v) {
+      const np = calcPrice(r.market_price_eur, v.price);
+      if (np && np !== v.price) {
+        const src = r.market_price_eur ? `piyasa ${parseFloat(r.market_price_eur).toFixed(2)}€ × ${MARKUP}` : 'yuvarla';
+        if (DRY) console.log(`   [ÖNİZLEME] 💶 "${p.title}" ${v.price}€ → ${np}€ (${src})`);
+        else { await shopify('PUT', `variants/${v.id}.json`, { variant: { id: v.id, price: np } }); await delay(250); }
+        priced++;
+      }
+    }
     const desiredNames = (r.collections || []).filter(c => COLLECTIONS[c] && c !== 'Karaca');
     const desiredIds = new Set(desiredNames.map(c => COLLECTIONS[c]));
     if (!desiredIds.size) { continue; }
