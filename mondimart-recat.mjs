@@ -96,9 +96,10 @@ const PRODUCT_TYPES = [
 // DeepSeek: doğru koleksiyon + product_type belirle
 // ============================================================
 async function enrich(batch) {
-  const list = batch.map((p, i) =>
-    `${i+1}. Titre: "${p.title}" | Marque: "${p.vendor}" | Type actuel: "${p.product_type}" | Tags: "${(p.tags||'').slice(0,120)}"`
-  ).join('\n');
+  const list = batch.map((p, i) => {
+    const desc = (p.body_html || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, 150);
+    return `${i+1}. Titre: "${p.title}" | Marque: "${p.vendor}" | Type actuel: "${p.product_type}" | Tags: "${(p.tags||'').slice(0,120)}" | Description: "${desc}"`;
+  }).join('\n');
   const cols = Object.keys(COLLECTIONS).join(', ');
   const types = PRODUCT_TYPES.join(', ');
   const prompt = `Tu es expert e-commerce d'une épicerie du monde (Mondimart). Pour chaque produit existant, détermine le bon classement.
@@ -143,7 +144,7 @@ function roundPrice(v) {
 // ANA AKIŞ
 // ============================================================
 console.log('📦 Sitedeki ürünler yükleniyor...');
-const all = await fetchAll('products.json?limit=250&fields=id,title,vendor,product_type,tags,variants');
+const all = await fetchAll('products.json?limit=250&fields=id,title,vendor,product_type,tags,variants,body_html');
 console.log(`   ${all.length} ürün`);
 
 // Karaca markasını / Karaca ürünlerini ayrı tut
