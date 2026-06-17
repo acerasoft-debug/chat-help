@@ -173,6 +173,60 @@ async function scrapeWoo() {
   return out.length ? out : null;
 }
 
+// Sitemap tabanlı scraper (WooCommerce API kapalıysa HTML'den çeker)
+async function scrapeSitemap() {
+  let sitemapUrl = `${SOURCE}/product-sitemap.xml`;
+  let xml; try { const r = await fetch(sitemapUrl, { headers: { 'User-Agent': UA } }); xml = await r.text(); } catch { return null; }
+  const urls = [...xml.matchAll(/<loc>([^<]*\/product\/[^<]*)<\/loc>/g)].map(m => m[1]);
+  if (!urls.length) {
+    // fallback: tüm loc'ları al
+    const all = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]).filter(u => !u.endsWith('.xml'));
+    if (!all.length) return null;
+    urls.push(...all);
+  }
+  if (!urls.length) return null;
+  console.log(`   📄 Sitemap: ${urls.length} ürün URL'si bulundu`);
+  const out = [];
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    if (i % 20 === 0) process.stdout.write(`   HTML scraping ${i+1}/${urls.length}...\r`);
+    try {
+      const r = await fetch(url, { headers: { 'User-Agent': UA } });
+      if (!r.ok) { await delay(500); continue; }
+      const html = await r.text();
+      // Başlık
+      const title = (html.match(/<h1[^>]*class="[^"]*product[^"]*"[^>]*>([^<]+)</) ||
+                     html.match(/<h1[^>]*itemprop="name"[^>]*>([^<]+)</) ||
+                     html.match(/<h1[^>]*>([^<]+)<\/h1>/) || [])[1]?.trim() || '';
+      if (!title) { await delay(300); continue; }
+      // Fiyat
+      const priceStr = (html.match(/class="woocommerce-Price-amount[^"]*"[^>]*><bdi>([^<]+)/) ||
+                        html.match(/itemprop="price"[^>]*content="([^"]+)"/) ||
+                        html.match(/"price":"([^"]+)"/) || [])[1] || '0';
+      const price = parseFloat(priceStr.replace(/[^0-9.,]/g, '').replace(',', '.')) || 0;
+      // Resim
+      const imgMatch = html.match(/class="wp-post-image"[^>]*src="([^"]+)"/) ||
+                        html.match(/"og:image"[^>]*content="([^"]+)"/) ||
+                        html.match(/<img[^>]+src="([^"]+product[^"]+)"/);
+      const img = imgMatch?.[1] || '';
+      // Açıklama
+      const descMatch = html.match(/class="woocommerce-product-details__short-description"[^>]*>([\s\S]{0,600}?)<\/div>/) ||
+                         html.match(/itemprop="description"[^>]*>([\s\S]{0,600}?)<\/[^>]+>/);
+      const body_html = descMatch?.[1]?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() || '';
+      // Kategori
+      const catMatch = html.match(/class="posted_in"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
+      const cat = catMatch?.[1]?.trim() || '';
+      // Marka (vendor)
+      const vendorMatch = html.match(/class="(?:brand|vendor|marque)"[^>]*>[\s\S]*?<(?:a|span)[^>]*>([^<]+)</);
+      const vendor = vendorMatch?.[1]?.trim() || '';
+      out.push({ title, vendor, type: cat, tags: cat, price, sku: '', grams: 0, body_html, images: img ? [img] : [], handle: url.split('/').filter(Boolean).pop() });
+    } catch { /* skip */ }
+    await delay(350);
+  }
+  console.log('');
+  return out.length ? out : null;
+}
+
 const SRC_HOST = SOURCE.replace(/^https?:\/\//, '');
 console.log(`🌍 ${SRC_HOST} katalogu çekiliyor...`);
 let catalog = await scrapeShopify();
@@ -180,6 +234,10 @@ if (catalog) console.log(`   ✅ Shopify modu — ${catalog.length} ürün`);
 if (!catalog) {
   catalog = await scrapeWoo();
   if (catalog) console.log(`   ✅ WooCommerce modu — ${catalog.length} ürün`);
+}
+if (!catalog) {
+  catalog = await scrapeSitemap();
+  if (catalog) console.log(`   ✅ Sitemap/HTML modu — ${catalog.length} ürün`);
 }
 if (!catalog) {
   console.error(`   ❌ ${SRC_HOST} otomatik çekilemedi (Shopify/Woo değil ya da erişim engelli).
