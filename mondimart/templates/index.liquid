@@ -618,14 +618,8 @@
 @media(max-width:768px) { .karaca-cats { grid-template-columns: 1fr 1fr !important; } .karaca-cats a { height: 130px !important; } }
 </style>
 
-<!-- ══ PROMO BANNERS ══ -->
-<div class="promo-section">
-  <div class="promo-grid">
-    <a class="promo-card" href="/collections/boucherie">{%- assign promo_boucherie = collections['boucherie'] -%}{%- if promo_boucherie.image -%}<img src="{{ promo_boucherie.image | image_url: width: 800 }}" alt="{{ promo_boucherie.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&q=80" alt="boucherie" loading="lazy">{%- endif -%}<div class="promo-overlay p1"><div class="promo-text"><h3>Boucherie Halal Fraîche</h3><p>Certifiée · Livraison sous glace · 24h</p><span class="promo-cta">Commander →</span></div></div></a>
-    <a class="promo-card" href="/collections/turque">{%- assign promo_turque = collections['turque'] -%}{%- if promo_turque.image -%}<img src="{{ promo_turque.image | image_url: width: 800 }}" alt="{{ promo_turque.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1579631542720-3a87824fff86?w=600&q=80" alt="turque" loading="lazy">{%- endif -%}<div class="promo-overlay p2"><div class="promo-text"><h3>Épicerie Turque</h3><p>Épices · Baklava · Olives · Fromages</p><span class="promo-cta">Découvrir →</span></div></div></a>
-    <a class="promo-card" href="/collections/maghrebine">{%- assign promo_maghrebine = collections['maghrebine'] -%}{%- if promo_maghrebine.image -%}<img src="{{ promo_maghrebine.image | image_url: width: 800 }}" alt="{{ promo_maghrebine.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=600&q=80" alt="maghrebine" loading="lazy">{%- endif -%}<div class="promo-overlay p3"><div class="promo-text"><h3>Cuisine Maghrébine</h3><p>Couscous · Harissa · Tajines</p><span class="promo-cta">Explorer →</span></div></div></a>
-  </div>
-</div>
+
+
 
 
 <!-- ══════════════════════════════════
