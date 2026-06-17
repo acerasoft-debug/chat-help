@@ -177,7 +177,7 @@ async function scrapeWoo() {
 async function scrapeSitemap() {
   let sitemapUrl = `${SOURCE}/product-sitemap.xml`;
   let xml; try { const r = await fetch(sitemapUrl, { headers: { 'User-Agent': UA } }); xml = await r.text(); } catch { return null; }
-  const urls = [...xml.matchAll(/<loc>([^<]*\/product\/[^<]*)<\/loc>/g)].map(m => m[1]);
+  const urls = [...xml.matchAll(/<loc>([^<]*\/(?:product|produit)\/[^<]*)<\/loc>/g)].map(m => m[1]);
   if (!urls.length) {
     // fallback: tüm loc'ları al
     const all = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]).filter(u => !u.endsWith('.xml'));
