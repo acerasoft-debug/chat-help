@@ -3409,10 +3409,11 @@ body:has(.pg-lb.open) #app-bottom-nav {
   border-radius: 10px 0 0 10px !important;
   color: #fff !important;
   font-family: 'Manrope', sans-serif !important;
-  font-size: 14px !important;
+  font-size: 16px !important; /* 16px = iOS zoom yok */
   height: 44px !important;
   padding: 0 50px 0 16px !important;
   transition: background 0.2s ease, border-color 0.2s ease !important;
+  -webkit-appearance: none !important;
 }
 .search-wrap input::placeholder {
   color: rgba(255,255,255,.7) !important;
@@ -3425,20 +3426,72 @@ body:has(.pg-lb.open) #app-bottom-nav {
 .search-btn {
   height: 44px !important;
   width: 48px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: linear-gradient(135deg, #2a6a1e, #3a8a2a) !important;
   border-radius: 0 10px 10px 0 !important;
   box-shadow: 0 4px 14px rgba(42,106,30,.35) !important;
   transition: background 0.2s ease, box-shadow 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: none !important;
 }
 .search-btn:active {
   background: linear-gradient(135deg, #1e5015, #2a6a1e) !important;
   box-shadow: 0 2px 8px rgba(42,106,30,.3) !important;
+  transform: none !important;
 }
 .search-btn svg {
   width: 18px !important;
   height: 18px !important;
   stroke: #fff !important;
   fill: none !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+.search-btn:active svg {
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+/* ── CART CLOSE BUTTON — premium, no shift on tap ── */
+.cart-close {
+  width: 38px !important;
+  height: 38px !important;
+  background: rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  font-size: 0 !important; /* hide × text */
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: background 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: none !important;
+  position: relative !important;
+}
+.cart-close::before,
+.cart-close::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 14px !important;
+  height: 1.8px !important;
+  background: #fff !important;
+  border-radius: 2px !important;
+  pointer-events: none !important;
+}
+.cart-close::before { transform: rotate(45deg) !important; }
+.cart-close::after  { transform: rotate(-45deg) !important; }
+.cart-close:active {
+  background: rgba(255,255,255,.3) !important;
+  transform: none !important;
 }
 
 /* ── PRODUCT CARD — mobile tap state + wishlist visible ── */
