@@ -40,6 +40,7 @@ const FILES = [
   ['templates/page.confidentialite.liquid', 'mondimart/templates/page.confidentialite.liquid'],
   ['templates/page.politique-de-confidentialite.liquid', 'mondimart/templates/page.politique-de-confidentialite.liquid'],
   ['templates/page.faq.liquid',      'mondimart/templates/page.faq.liquid'],
+  ['sections/footer.liquid',         'mondimart/sections/footer.liquid'],
 ];
 
 console.log('🔍 Temalar yükleniyor...');
