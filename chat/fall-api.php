@@ -161,8 +161,25 @@ if ($action === 'fall_quota') {
     exit;
 }
 
-/* ── Sohbet: önce tam anla, sonra yönlendir ── */
+/* ── Sohbet: önce tam anla, sonra yönlendir (+ foto/dosya okuma) ── */
 if ($action === 'fall_chat') {
+    // Sohbet sırasında eklenen foto/belgeleri Vision ile oku, bağlama kat
+    $photos = array_values(array_filter($body['photos'] ?? [], fn($p) =>
+        isset($p['data']) && strlen($p['data']) > 100 && strlen($p['data']) < 5000000
+    ));
+    $photoCtx = '';
+    if ($photos) {
+        $ext = chAI2(
+            "Du wertest hochgeladene Dokumente/Belege aus. Extrahiere alle relevanten Fakten "
+            . "(Daten, Fristen, Aktenzeichen, Beträge, Behörde/Absender, Kernaussagen) als knappe deutsche Stichpunkte. Keine Einleitung.",
+            "Beigefügte Dokumente des Nutzers:",
+            1000,
+            array_slice($photos, 0, 4)
+        );
+        if ($ext) $photoCtx = "\n\nWICHTIG — Der Nutzer hat Dokumente hochgeladen. Daraus extrahierte Fakten "
+            . "(beziehe dich aktiv darauf, stelle bei Bedarf Rückfragen):\n$ext";
+    }
+
     $sys = "Du bist ein erfahrener, einfühlsamer Rechtsberater. "
          . "Deine ERSTE Aufgabe: die Situation des Nutzers VOLLSTÄNDIG verstehen — "
          . "besonders bei komplexen Themen wie Aufenthaltsrecht, Einspruch, Widerspruch, "
@@ -176,7 +193,8 @@ if ($action === 'fall_chat') {
          . "Generell: bleib immer beim Thema der aktuellen Situation. "
          . "Gib NOCH KEIN fertiges Dokument oder konkreten Rechtsrat aus. "
          . "Erst wenn du alle nötigen Informationen hast, sage: "
-         . "'➡️ Ich habe nun alle wichtigen Informationen — Sie können auf »Fall lösen« klicken.'";
+         . "'➡️ Ich habe nun alle wichtigen Informationen — Sie können auf »Fall lösen« klicken.'"
+         . $photoCtx;
 
     $reply = chAI1(array_merge(
         [['role'=>'system','content'=>$sys]],
