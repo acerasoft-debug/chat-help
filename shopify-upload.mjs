@@ -33,6 +33,8 @@ async function uploadAsset(themeId, key, filePath) {
 const FILES = [
   ['assets/mondimart-logo.svg',      'mondimart/assets/mondimart-logo.svg'],
   ['assets/mondimart-premium.css',   'mondimart/assets/mondimart-premium.css'],
+  ['assets/theme.js',                'mondimart/assets/theme.js'],
+  ['assets/theme.css',               'mondimart/assets/theme.css'],
   ['layout/checkout.liquid',         'mondimart/layout/checkout.liquid'],
   ['sections/header.liquid',         'mondimart/sections/header.liquid'],
   ['snippets/cart-drawer.liquid',    'mondimart/snippets/cart-drawer.liquid'],
