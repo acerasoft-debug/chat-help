@@ -38,6 +38,7 @@ const FILES = [
   ['snippets/cart-drawer.liquid',    'mondimart/snippets/cart-drawer.liquid'],
   ['templates/index.liquid',         'mondimart/templates/index.liquid'],
   ['templates/page.confidentialite.liquid', 'mondimart/templates/page.confidentialite.liquid'],
+  ['templates/page.politique-de-confidentialite.liquid', 'mondimart/templates/page.politique-de-confidentialite.liquid'],
   ['templates/page.faq.liquid',      'mondimart/templates/page.faq.liquid'],
 ];
 
