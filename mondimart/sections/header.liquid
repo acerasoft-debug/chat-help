@@ -728,7 +728,6 @@ document.querySelectorAll('.nav-item').forEach(function(item) {
 });
 
 // App-like product card entrance animation — mobile only
-// body.js-anim gates the CSS so cards stay visible if JS fails
 if ('IntersectionObserver' in window) {
   document.addEventListener('DOMContentLoaded', function() {
     if (window.innerWidth > 900) return;
@@ -741,17 +740,28 @@ if ('IntersectionObserver' in window) {
           obs.unobserve(e.target);
         }
       });
-    }, { threshold: 0.07, rootMargin: '0px 0px -10px 0px' });
+    }, { threshold: 0.01 });
 
-    // Animate product cards with staggered delay
     document.querySelectorAll('.product-card').forEach(function(c, i) {
-      c.style.transitionDelay = (i % 4) * 55 + 'ms';
-      obs.observe(c);
+      var rect = c.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        // Already in viewport: show immediately with light stagger
+        var delay = (i % 4) * 70;
+        c.style.transitionDelay = delay + 'ms';
+        setTimeout(function() { c.classList.add('is-visible'); }, delay);
+      } else {
+        c.style.transitionDelay = (i % 4) * 55 + 'ms';
+        obs.observe(c);
+      }
     });
 
-    // Animate section headings
-    document.querySelectorAll('.section-title, .collections-section h2, .hero-section h1').forEach(function(el) {
-      obs.observe(el);
+    document.querySelectorAll('.section-title, .collections-section h2').forEach(function(el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        el.classList.add('is-visible');
+      } else {
+        obs.observe(el);
+      }
     });
   });
 }

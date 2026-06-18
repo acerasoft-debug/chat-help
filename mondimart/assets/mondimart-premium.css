@@ -3361,3 +3361,156 @@ body:has(.pg-lb.open) #app-bottom-nav {
     transform: translateY(0) !important;
   }
 }
+
+/* ============================================================
+   PREMIUM FIXES — mobile UX, visual polish, bug fixes
+   ============================================================ */
+
+/* ── FIX: mm-sub-l2 slide animation (display:none blocks CSS transition) ── */
+.mm-sub-l2 {
+  display: block !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1),
+              visibility 0s linear 0.32s !important;
+}
+.mm-sub-l2.open {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1),
+              visibility 0s linear 0s !important;
+}
+
+/* ── FIX: mm-sub-back inside l2 — reset pill shape, make full-width sticky ── */
+.mm-sub-l2 .mm-sub-back {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+  box-sizing: border-box !important;
+  padding: 0 20px !important;
+}
+
+/* ── FIX: mm-sub-item text overflow on narrow phones ── */
+.mobile-menu .mm-sub-item span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 36px);
+}
+
+/* ── SEARCH BAR — premium look ── */
+.search-wrap input {
+  background: rgba(255,255,255,.16) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 10px 0 0 10px !important;
+  color: #fff !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  height: 44px !important;
+  padding: 0 50px 0 16px !important;
+  transition: background 0.2s ease, border-color 0.2s ease !important;
+}
+.search-wrap input::placeholder {
+  color: rgba(255,255,255,.7) !important;
+}
+.search-wrap input:focus {
+  background: rgba(255,255,255,.24) !important;
+  border-color: var(--mm-gold) !important;
+  outline: none !important;
+}
+.search-btn {
+  height: 44px !important;
+  width: 48px !important;
+  background: linear-gradient(135deg, #2a6a1e, #3a8a2a) !important;
+  border-radius: 0 10px 10px 0 !important;
+  box-shadow: 0 4px 14px rgba(42,106,30,.35) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease !important;
+}
+.search-btn:active {
+  background: linear-gradient(135deg, #1e5015, #2a6a1e) !important;
+  box-shadow: 0 2px 8px rgba(42,106,30,.3) !important;
+}
+.search-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke: #fff !important;
+  fill: none !important;
+}
+
+/* ── PRODUCT CARD — mobile tap state + wishlist visible ── */
+@media (max-width: 900px) {
+  .product-card:active {
+    border-color: var(--gl, #1A3C1A) !important;
+    box-shadow: 0 4px 16px rgba(42,106,42,.15) !important;
+    transform: scale(0.985) !important;
+  }
+  .product-card .wishlist-btn {
+    opacity: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    background: rgba(255,255,255,.95) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12) !important;
+  }
+  .product-img {
+    aspect-ratio: 1 !important;
+    height: auto !important;
+  }
+}
+
+/* ── PRODUCT CARD — cart item image polish ── */
+.cart-item-img {
+  border: 1px solid var(--bo, #E8E4DC) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07) !important;
+  border-radius: 10px !important;
+}
+
+/* ── COLLECTION CARDS — min-height on mobile ── */
+@media (max-width: 768px) {
+  .col-row1 .colcard { height: 180px !important; }
+  .col-row2 .colcard { min-height: 140px !important; height: 155px !important; }
+  .col-row3 .colcard { min-height: 120px !important; height: 130px !important; }
+  .colcard:active { transform: scale(0.97) !important; }
+}
+
+/* ── FILTER TABS — smooth scroll on mobile ── */
+.filter-tabs {
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x proximity !important;
+  flex-wrap: nowrap !important;
+}
+.filter-tab {
+  scroll-snap-align: start !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  min-height: 38px !important;
+}
+.filter-tab.active {
+  box-shadow: 0 3px 10px rgba(26,60,26,.2) !important;
+}
+
+/* ── BOTTOM NAV — safe area fix (iPhone notch) ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #app-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    height: auto !important;
+    min-height: 60px !important;
+  }
+}
+
+/* ── BUTTON CONSISTENCY — 12px radius everywhere ── */
+.btn, .btn-primary, .btn-outline, .quick-add-btn, .atc-btn {
+  border-radius: 12px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+/* ── MOBILE MENU ITEMS — tap highlight ── */
+.mm-item:active,
+.mm-item-link:active {
+  background: rgba(212,166,74,.12) !important;
+  transition: none !important;
+}
