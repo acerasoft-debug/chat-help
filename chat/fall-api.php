@@ -26,6 +26,18 @@ if (!defined('DEEPSEEK_KEY') || !defined('CLAUDE_KEY')) {
 
 const FALL_QUOTA = ['basic' => 5, 'pro' => 20, 'elite' => 100];
 
+/* Plan adını normalize et — webhook 'Pro'/'PRO'/'pro_plan'/'elite_monthly' vs.
+   ne yazarsa yazsın, kod hep 'basic'/'pro'/'elite' ile çalışsın.
+   Böylece kullanıcı paketi alınca KESİN tanınır. */
+function ch_norm_plan(string $raw): string {
+    $p = strtolower(trim($raw));
+    if ($p === '') return 'free';
+    if (strpos($p, 'elite') !== false || strpos($p, 'premium') !== false) return 'elite';
+    if (strpos($p, 'pro')   !== false) return 'pro';
+    if (strpos($p, 'basic') !== false || strpos($p, 'basis') !== false || strpos($p, 'start') !== false) return 'basic';
+    return $p; // bilinmeyen -> olduğu gibi (free dahil)
+}
+
 /* ── Auth + plan ── */
 function fall_user(): array {
     $auth  = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -42,7 +54,11 @@ function fall_user(): array {
         $pdo = db();
         $st  = $pdo->prepare('SELECT plan, COALESCE(status,"active") st FROM user_plans WHERE user_id=? ORDER BY id DESC LIMIT 1');
         $st->execute([$d['sub']]);
-        if ($r = $st->fetch()) { $plan = ($r['st'] === 'active') ? $r['plan'] : 'free'; }
+        if ($r = $st->fetch()) {
+            $st_raw  = strtolower(trim($r['st'] ?? 'active'));
+            $isActive = in_array($st_raw, ['active', 'aktiv', 'paid', 'complete', 'completed', 'trialing', ''], true);
+            $plan     = $isActive ? ch_norm_plan($r['plan'] ?? '') : 'free';
+        }
     } catch (Exception $e) {}
     if (!isset(FALL_QUOTA[$plan])) {
         http_response_code(403);
