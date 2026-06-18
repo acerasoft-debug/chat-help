@@ -113,10 +113,15 @@ function chAI2(string $system, string $userText, int $maxTok = 4000, array $phot
         $content = [['type'=>'text','text'=>$userText]];
         foreach ($photos as $ph) {
             $mt = $ph['type'] ?? 'image/jpeg';
-            if (!in_array($mt, ['image/jpeg','image/png','image/gif','image/webp'])) continue;
-            $content[] = ['type'=>'image','source'=>['type'=>'base64','media_type'=>$mt,'data'=>$ph['data']]];
+            if (empty($ph['data'])) continue;
+            if ($mt === 'application/pdf') {
+                $content[] = ['type'=>'document','source'=>['type'=>'base64','media_type'=>'application/pdf','data'=>$ph['data']]];
+            } elseif (in_array($mt, ['image/jpeg','image/png','image/gif','image/webp'])) {
+                $content[] = ['type'=>'image','source'=>['type'=>'base64','media_type'=>$mt,'data'=>$ph['data']]];
+            }
         }
-        $msgs = [['role'=>'user','content'=>$content]];
+        if (count($content) < 2) { $msgs = [['role'=>'user','content'=>$userText]]; }
+        else { $msgs = [['role'=>'user','content'=>$content]]; }
     } else {
         $msgs = [['role'=>'user','content'=>$userText]];
     }
