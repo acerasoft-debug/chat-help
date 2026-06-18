@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Mondimart — Viandes Premium</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f0ece4; font-family:'Georgia', serif; padding:40px 20px; }
+  h1 { text-align:center; color:#1a5c1a; font-size:28px; letter-spacing:4px; margin-bottom:6px; }
+  .subtitle { text-align:center; color:#C4922A; font-size:13px; letter-spacing:6px; margin-bottom:40px; text-transform:uppercase; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(560px,1fr)); gap:32px; max-width:1200px; margin:0 auto; }
+  .card { background:#fff; border-radius:4px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.10); }
+  .card-pair { display:grid; grid-template-columns:1fr 1fr; }
+  .card-img { position:relative; background:#fff; aspect-ratio:4/3; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .card-img svg { width:100%; height:100%; display:block; }
+  .badge { position:absolute; top:14px; left:14px; padding:4px 12px; font-size:10px; letter-spacing:2px; font-family:'Arial',sans-serif; font-weight:700; border-radius:2px; text-transform:uppercase; }
+  .badge-raw  { background:#c0392b; color:#fff; }
+  .badge-cook { background:#6b3d11; color:#fff; }
+  .divider { width:1px; background:#f0ece4; }
+  .card-info { padding:18px 22px 14px; border-top:3px solid #C4922A; }
+  .product-name { font-size:20px; color:#1a1a1a; font-weight:700; margin-bottom:3px; }
+  .product-sub  { font-size:11px; color:#888; letter-spacing:3px; text-transform:uppercase; font-family:'Arial',sans-serif; }
+  .logo-bar { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  .logo-bar svg { height:28px; width:auto; }
+  .halal-badge { margin-left:auto; font-size:9px; font-family:'Arial',sans-serif; font-weight:700; color:#1a5c1a; border:1.5px solid #1a5c1a; border-radius:50%; width:34px; height:34px; display:flex; align-items:center; justify-content:center; letter-spacing:0.5px; }
+</style>
+</head>
+<body>
+
+<h1>MONDIMART</h1>
+<div class="subtitle">Viandes &amp; Charcuteries Premium</div>
+
+<div class="grid">
+
+<!-- ======== SUCUK ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <!-- shadow plate -->
+        <ellipse cx="200" cy="240" rx="130" ry="18" fill="#e8e0d4" opacity=".5"/>
+        <!-- sausage coil shape - ring/horseshoe sucuk -->
+        <g transform="translate(200,148)">
+          <!-- outer ring shadow -->
+          <ellipse cx="0" cy="4" rx="98" ry="98" fill="#5a1515" opacity=".15"/>
+          <!-- main coil - dark red sausage tube -->
+          <path d="M-90,0 A90,90 0 1,1 90,0" stroke="#8B1A1A" stroke-width="26" fill="none" stroke-linecap="round"/>
+          <!-- highlight top -->
+          <path d="M-88,0 A88,88 0 1,1 88,0" stroke="#C0352B" stroke-width="8" fill="none" stroke-linecap="round" opacity=".5"/>
+          <!-- spice texture dots -->
+          <circle cx="-40" cy="-82" r="2.5" fill="#4a0d0d" opacity=".7"/>
+          <circle cx="10"  cy="-92" r="2"   fill="#2a0808" opacity=".6"/>
+          <circle cx="60"  cy="-72" r="2.5" fill="#4a0d0d" opacity=".7"/>
+          <circle cx="80"  cy="-30" r="2"   fill="#2a0808" opacity=".6"/>
+          <circle cx="-70" cy="-50" r="2"   fill="#4a0d0d" opacity=".6"/>
+          <circle cx="-20" cy="-78" r="1.5" fill="#4a0d0d" opacity=".5"/>
+          <circle cx="30"  cy="-88" r="1.5" fill="#2a0808" opacity=".5"/>
+          <!-- end knots -->
+          <circle cx="-90" cy="0"  r="14" fill="#7a1212" stroke="#5a0e0e" stroke-width="1.5"/>
+          <circle cx="90"  cy="0"  r="14" fill="#7a1212" stroke="#5a0e0e" stroke-width="1.5"/>
+          <circle cx="-90" cy="0"  r="7"  fill="#5a0e0e"/>
+          <circle cx="90"  cy="0"  r="7"  fill="#5a0e0e"/>
+          <!-- hanging string -->
+          <line x1="-90" y1="-14" x2="-90" y2="-38" stroke="#8B7355" stroke-width="2" stroke-linecap="round"/>
+          <line x1="90"  y1="-14" x2="90"  y2="-38" stroke="#8B7355" stroke-width="2" stroke-linecap="round"/>
+          <path d="M-90,-38 Q0,-60 90,-38" stroke="#8B7355" stroke-width="2" fill="none"/>
+        </g>
+        <!-- logo watermark bottom-right -->
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <line x1="3" y1="5"  x2="21" y2="5"  stroke="#1a5c1a" stroke-width=".5"/>
+          <line x1="3" y1="15" x2="21" y2="15" stroke="#1a5c1a" stroke-width=".5"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Cuit</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <!-- plate -->
+        <ellipse cx="200" cy="220" rx="145" ry="22" fill="#e8e0d4" opacity=".4"/>
+        <!-- sliced sucuk fanned out -->
+        <g transform="translate(200,155)">
+          <!-- slices fanned - each rotated -->
+          <g transform="rotate(-30)"><ellipse cx="0" cy="-55" rx="28" ry="28" fill="#7a1212"/><ellipse cx="0" cy="-55" rx="28" ry="6" fill="#5a0e0e" transform="translate(0,24)"/><ellipse cx="0" cy="-55" rx="16" ry="16" fill="#6b1010"/><circle cx="0" cy="-55" r="5" fill="#4a0808"/></g>
+          <g transform="rotate(-15)"><ellipse cx="0" cy="-58" rx="28" ry="28" fill="#8B1A1A"/><ellipse cx="0" cy="-58" rx="28" ry="6" fill="#6a1212" transform="translate(0,24)"/><ellipse cx="0" cy="-58" rx="16" ry="16" fill="#7a1414"/><circle cx="0" cy="-58" r="5" fill="#5a0a0a"/></g>
+          <g transform="rotate(0)"><ellipse cx="0" cy="-60" rx="28" ry="28" fill="#9B2020"/><ellipse cx="0" cy="-60" rx="28" ry="6" fill="#7a1414" transform="translate(0,24)"/><ellipse cx="0" cy="-60" rx="16" ry="16" fill="#8a1818"/><circle cx="0" cy="-60" r="5" fill="#6a0c0c"/></g>
+          <g transform="rotate(15)"><ellipse cx="0" cy="-58" rx="28" ry="28" fill="#8B1A1A"/><ellipse cx="0" cy="-58" rx="28" ry="6" fill="#6a1212" transform="translate(0,24)"/><ellipse cx="0" cy="-58" rx="16" ry="16" fill="#7a1414"/><circle cx="0" cy="-58" r="5" fill="#5a0a0a"/></g>
+          <g transform="rotate(30)"><ellipse cx="0" cy="-55" rx="28" ry="28" fill="#7a1212"/><ellipse cx="0" cy="-55" rx="28" ry="6" fill="#5a0e0e" transform="translate(0,24)"/><ellipse cx="0" cy="-55" rx="16" ry="16" fill="#6b1010"/><circle cx="0" cy="-55" r="5" fill="#4a0808"/></g>
+          <!-- grill marks on top slice -->
+          <g transform="rotate(0)">
+            <line x1="-18" y1="-72" x2="-12" y2="-48" stroke="#3a0a0a" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+            <line x1="-6"  y1="-72" x2="0"   y2="-48" stroke="#3a0a0a" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+            <line x1="6"   y1="-72" x2="12"  y2="-48" stroke="#3a0a0a" stroke-width="3" stroke-linecap="round" opacity=".6"/>
+          </g>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Soudjouk / Sucuk</div>
+    <div class="product-sub">Saucisse turque épicée séchée</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== MERGUEZ ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="248" rx="130" ry="14" fill="#e8ddd4" opacity=".5"/>
+        <!-- 3 raw merguez links arranged diagonally -->
+        <g transform="rotate(-20,200,150)">
+          <!-- link 3 (back) -->
+          <rect x="80" y="105" width="210" height="28" rx="14" fill="#8B2500"/>
+          <rect x="80" y="105" width="210" height="12" rx="8" fill="#A83010" opacity=".6"/>
+          <circle cx="80"  cy="119" r="14" fill="#7a1e00"/>
+          <circle cx="290" cy="119" r="14" fill="#7a1e00"/>
+          <!-- link 2 (mid) -->
+          <rect x="76" y="140" width="215" height="30" rx="15" fill="#A02800"/>
+          <rect x="76" y="140" width="215" height="13" rx="8" fill="#C03818" opacity=".55"/>
+          <circle cx="76"  cy="155" r="15" fill="#8a2000"/>
+          <circle cx="291" cy="155" r="15" fill="#8a2000"/>
+          <!-- spice texture -->
+          <circle cx="120" cy="148" r="2" fill="#2a0800" opacity=".5"/>
+          <circle cx="170" cy="144" r="1.5" fill="#2a0800" opacity=".5"/>
+          <circle cx="220" cy="150" r="2" fill="#2a0800" opacity=".5"/>
+          <circle cx="250" cy="146" r="1.5" fill="#2a0800" opacity=".5"/>
+          <!-- link 1 (front) -->
+          <rect x="72" y="176" width="220" height="32" rx="16" fill="#B83010"/>
+          <rect x="72" y="176" width="220" height="14" rx="9" fill="#D04020" opacity=".5"/>
+          <circle cx="72"  cy="192" r="16" fill="#9a2808"/>
+          <circle cx="292" cy="192" r="16" fill="#9a2808"/>
+          <!-- spice on front -->
+          <circle cx="130" cy="185" r="2.5" fill="#3a1000" opacity=".6"/>
+          <circle cx="180" cy="182" r="2"   fill="#3a1000" opacity=".6"/>
+          <circle cx="230" cy="188" r="2.5" fill="#3a1000" opacity=".6"/>
+          <circle cx="260" cy="184" r="2"   fill="#3a1000" opacity=".6"/>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Grillé</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <!-- grill grate shadow -->
+        <ellipse cx="200" cy="248" rx="140" ry="16" fill="#d4c8b8" opacity=".5"/>
+        <!-- grilled merguez - curved and charred -->
+        <g transform="rotate(-15,200,150)">
+          <!-- back link grilled -->
+          <path d="M80,118 Q180,100 300,118" stroke="#5a1800" stroke-width="26" fill="none" stroke-linecap="round"/>
+          <path d="M80,118 Q180,100 300,118" stroke="#8B2500" stroke-width="22" fill="none" stroke-linecap="round"/>
+          <path d="M80,118 Q180,100 300,118" stroke="#B03010" stroke-width="10" fill="none" stroke-linecap="round" opacity=".5"/>
+          <!-- grill marks -->
+          <path d="M120,122 Q120,100 120,110" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M165,116 Q165,98 165,108" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M210,114 Q210,96 210,106" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M255,116 Q255,98 255,108" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".8"/>
+          <!-- mid link grilled -->
+          <path d="M76,155 Q180,138 298,155" stroke="#5a1800" stroke-width="28" fill="none" stroke-linecap="round"/>
+          <path d="M76,155 Q180,138 298,155" stroke="#9a2800" stroke-width="24" fill="none" stroke-linecap="round"/>
+          <path d="M76,155 Q180,138 298,155" stroke="#C03010" stroke-width="11" fill="none" stroke-linecap="round" opacity=".45"/>
+          <path d="M118,158 L118,144" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".75"/>
+          <path d="M164,152 L164,140" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".75"/>
+          <path d="M210,150 L210,138" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".75"/>
+          <path d="M256,152 L256,140" stroke="#3a0800" stroke-width="3.5" fill="none" stroke-linecap="round" opacity=".75"/>
+          <!-- front link grilled -->
+          <path d="M72,192 Q185,175 296,192" stroke="#5a1800" stroke-width="30" fill="none" stroke-linecap="round"/>
+          <path d="M72,192 Q185,175 296,192" stroke="#B02808" stroke-width="26" fill="none" stroke-linecap="round"/>
+          <path d="M72,192 Q185,175 296,192" stroke="#D84020" stroke-width="12" fill="none" stroke-linecap="round" opacity=".4"/>
+          <path d="M115,194 L115,178" stroke="#2a0600" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M162,188 L162,174" stroke="#2a0600" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M210,185 L210,171" stroke="#2a0600" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+          <path d="M258,188 L258,174" stroke="#2a0600" stroke-width="4" fill="none" stroke-linecap="round" opacity=".8"/>
+        </g>
+        <!-- steam wisps -->
+        <path d="M155,60 Q158,45 155,30 Q152,18 155,5" stroke="#ccc" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".5"/>
+        <path d="M200,58 Q203,43 200,28 Q197,16 200,3" stroke="#ccc" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".5"/>
+        <path d="M245,60 Q248,45 245,30 Q242,18 245,5" stroke="#ccc" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".5"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Merguez Halal</div>
+    <div class="product-sub">Saucisse épicée d'agneau &amp; bœuf</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== KÖFTE ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="150" ry="16" fill="#e4ddd4" opacity=".45"/>
+        <!-- 6 raw köfte on a tray -->
+        <!-- Row 1 -->
+        <g transform="translate(108,148)">
+          <ellipse cx="0" cy="8" rx="36" ry="16" fill="#8B3A1A" opacity=".3"/>
+          <ellipse cx="0" cy="0" rx="36" ry="20" fill="#6B2510"/>
+          <ellipse cx="0" cy="0" rx="34" ry="18" fill="#8B3520"/>
+          <ellipse cx="0" cy="-4" rx="28" ry="13" fill="#A04030" opacity=".6"/>
+          <ellipse cx="-8" cy="-8" rx="10" ry="5" fill="#C05040" opacity=".3"/>
+        </g>
+        <g transform="translate(200,148)">
+          <ellipse cx="0" cy="8" rx="36" ry="16" fill="#8B3A1A" opacity=".3"/>
+          <ellipse cx="0" cy="0" rx="36" ry="20" fill="#7B2F18"/>
+          <ellipse cx="0" cy="0" rx="34" ry="18" fill="#9B3D28"/>
+          <ellipse cx="0" cy="-4" rx="28" ry="13" fill="#B05040" opacity=".6"/>
+          <ellipse cx="-8" cy="-8" rx="10" ry="5" fill="#C06050" opacity=".3"/>
+        </g>
+        <g transform="translate(292,148)">
+          <ellipse cx="0" cy="8" rx="36" ry="16" fill="#8B3A1A" opacity=".3"/>
+          <ellipse cx="0" cy="0" rx="36" ry="20" fill="#6B2510"/>
+          <ellipse cx="0" cy="0" rx="34" ry="18" fill="#8B3520"/>
+          <ellipse cx="0" cy="-4" rx="28" ry="13" fill="#A04030" opacity=".6"/>
+        </g>
+        <!-- Row 2 (shifted) -->
+        <g transform="translate(154,200)">
+          <ellipse cx="0" cy="8" rx="36" ry="16" fill="#7B2F18" opacity=".3"/>
+          <ellipse cx="0" cy="0" rx="36" ry="20" fill="#7B2F18"/>
+          <ellipse cx="0" cy="0" rx="34" ry="18" fill="#9B3D28"/>
+          <ellipse cx="0" cy="-4" rx="28" ry="13" fill="#B04535" opacity=".6"/>
+        </g>
+        <g transform="translate(246,200)">
+          <ellipse cx="0" cy="8" rx="36" ry="16" fill="#7B2F18" opacity=".3"/>
+          <ellipse cx="0" cy="0" rx="36" ry="20" fill="#6B2510"/>
+          <ellipse cx="0" cy="0" rx="34" ry="18" fill="#8B3520"/>
+          <ellipse cx="0" cy="-4" rx="28" ry="13" fill="#A04030" opacity=".6"/>
+        </g>
+        <!-- herb flecks -->
+        <ellipse cx="200" cy="144" rx="2" ry="1" fill="#2d5a1a" opacity=".6"/>
+        <ellipse cx="155" cy="195" rx="2" ry="1" fill="#2d5a1a" opacity=".6"/>
+        <ellipse cx="245" cy="198" rx="1.5" ry="1" fill="#2d5a1a" opacity=".6"/>
+        <ellipse cx="108" cy="143" rx="1.5" ry="1" fill="#2d5a1a" opacity=".5"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Grillé</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="155" ry="16" fill="#d4c8b4" opacity=".4"/>
+        <!-- 4 grilled köfte on skewers -->
+        <!-- skewer 1 -->
+        <line x1="88" y1="30" x2="88" y2="270" stroke="#C8A050" stroke-width="3" stroke-linecap="round"/>
+        <g transform="translate(88,95)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#7B3510"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#9B4820" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <g transform="translate(88,160)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#8B3C12"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#A04C22" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <!-- skewer 2 -->
+        <line x1="174" y1="30" x2="174" y2="270" stroke="#C8A050" stroke-width="3" stroke-linecap="round"/>
+        <g transform="translate(174,90)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#7a3010"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#984520" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <g transform="translate(174,158)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#8a3814"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#a84a24" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <!-- skewer 3 -->
+        <line x1="260" y1="30" x2="260" y2="270" stroke="#C8A050" stroke-width="3" stroke-linecap="round"/>
+        <g transform="translate(260,95)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#7B3510"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#9B4820" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <g transform="translate(260,163)">
+          <ellipse cx="0" cy="0" rx="28" ry="22" fill="#4a1a08"/>
+          <ellipse cx="0" cy="0" rx="26" ry="20" fill="#8B3C12"/>
+          <ellipse cx="0" cy="-4" rx="20" ry="14" fill="#A04C22" opacity=".7"/>
+          <line x1="-20" y1="-10" x2="20" y2="-10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+          <line x1="-18" y1="2"  x2="18" y2="2"  stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+        </g>
+        <!-- steam -->
+        <path d="M150,18 Q153,8 150,0" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".6"/>
+        <path d="M200,16 Q203,6 200,-2" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".6"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Köfte Halal</div>
+    <div class="product-sub">Boulettes de viande épicées turques</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== PASTIRMA ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Entier</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="248" rx="140" ry="16" fill="#e0d8cc" opacity=".4"/>
+        <!-- pastırma whole piece with çemen crust -->
+        <g transform="translate(200,150)">
+          <!-- shadow -->
+          <ellipse cx="2" cy="10" rx="120" ry="40" fill="#4a2800" opacity=".15"/>
+          <!-- main body - whole cured beef -->
+          <rect x="-118" y="-36" width="236" height="72" rx="14" fill="#5a2a08"/>
+          <!-- çemen spice coating (dark reddish-brown crust) -->
+          <rect x="-116" y="-34" width="232" height="68" rx="12" fill="#3d1e08"/>
+          <!-- çemen texture overlay -->
+          <rect x="-116" y="-34" width="232" height="20" rx="8" fill="#5a2e10" opacity=".6"/>
+          <!-- top highlight -->
+          <rect x="-100" y="-32" width="200" height="8" rx="4" fill="#6a3a18" opacity=".4"/>
+          <!-- çemen green speckles -->
+          <circle cx="-60" cy="-10" r="2.5" fill="#2d5a10" opacity=".7"/>
+          <circle cx="-20" cy="5"   r="2"   fill="#2d5a10" opacity=".6"/>
+          <circle cx="30"  cy="-15" r="2.5" fill="#2d5a10" opacity=".7"/>
+          <circle cx="80"  cy="8"   r="2"   fill="#2d5a10" opacity=".6"/>
+          <circle cx="-80" cy="12"  r="2"   fill="#2d5a10" opacity=".6"/>
+          <circle cx="55"  cy="-5"  r="1.5" fill="#2d5a10" opacity=".5"/>
+          <!-- red pepper flecks -->
+          <circle cx="-40" cy="15"  r="2"   fill="#8B1A00" opacity=".6"/>
+          <circle cx="20"  cy="-8"  r="1.5" fill="#8B1A00" opacity=".5"/>
+          <circle cx="70"  cy="14"  r="2"   fill="#8B1A00" opacity=".6"/>
+          <!-- end cut showing meat -->
+          <ellipse cx="118" cy="0" rx="8" ry="36" fill="#8B2500"/>
+          <ellipse cx="118" cy="0" rx="6" ry="32" fill="#A03010"/>
+          <ellipse cx="118" cy="0" rx="3" ry="22" fill="#B83820" opacity=".8"/>
+        </g>
+        <!-- string tie -->
+        <line x1="140" y1="114" x2="140" y2="186" stroke="#8B7355" stroke-width="2"/>
+        <line x1="260" y1="114" x2="260" y2="186" stroke="#8B7355" stroke-width="2"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Tranché</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="155" ry="14" fill="#e0d8cc" opacity=".35"/>
+        <!-- thin pastirma slices fanned out on white plate -->
+        <!-- plate -->
+        <ellipse cx="200" cy="200" rx="155" ry="70" fill="#f8f6f2"/>
+        <ellipse cx="200" cy="200" rx="155" ry="70" fill="none" stroke="#ece8e0" stroke-width="2"/>
+        <ellipse cx="200" cy="200" rx="130" ry="58" fill="none" stroke="#ece8e0" stroke-width="1"/>
+        <!-- thin translucent slices fanned -->
+        <g opacity=".9">
+          <g transform="rotate(-40,200,200)"><ellipse cx="200" cy="168" rx="42" ry="18" fill="#5a2000" opacity=".85"/><ellipse cx="200" cy="168" rx="38" ry="14" fill="#8B3010" opacity=".7"/></g>
+          <g transform="rotate(-28,200,200)"><ellipse cx="200" cy="165" rx="44" ry="18" fill="#622200" opacity=".87"/><ellipse cx="200" cy="165" rx="40" ry="14" fill="#943212" opacity=".7"/></g>
+          <g transform="rotate(-16,200,200)"><ellipse cx="200" cy="163" rx="44" ry="19" fill="#6a2400" opacity=".88"/><ellipse cx="200" cy="163" rx="40" ry="15" fill="#9C3414" opacity=".7"/></g>
+          <g transform="rotate(-4,200,200)"><ellipse cx="200" cy="162" rx="44" ry="19" fill="#722600" opacity=".89"/><ellipse cx="200" cy="162" rx="40" ry="15" fill="#A43616" opacity=".7"/></g>
+          <g transform="rotate(8,200,200)"><ellipse cx="200" cy="163" rx="44" ry="18" fill="#6a2400" opacity=".88"/><ellipse cx="200" cy="163" rx="40" ry="14" fill="#9C3414" opacity=".7"/></g>
+          <g transform="rotate(20,200,200)"><ellipse cx="200" cy="165" rx="42" ry="18" fill="#622200" opacity=".87"/><ellipse cx="200" cy="165" rx="38" ry="14" fill="#943212" opacity=".7"/></g>
+          <g transform="rotate(32,200,200)"><ellipse cx="200" cy="168" rx="40" ry="17" fill="#5a2000" opacity=".85"/><ellipse cx="200" cy="168" rx="36" ry="13" fill="#8B3010" opacity=".7"/></g>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Pastırma</div>
+    <div class="product-sub">Viande de bœuf séchée aux épices · Spécialité turque</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ======== VIANDE HACHÉE ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="130" ry="14" fill="#e4d8cc" opacity=".4"/>
+        <!-- ground meat mound -->
+        <g transform="translate(200,165)">
+          <ellipse cx="0" cy="16" rx="115" ry="42" fill="#8B2C18" opacity=".2"/>
+          <!-- main mound -->
+          <path d="M-110,40 Q-90,-10 -50,-30 Q0,-50 50,-30 Q90,-10 110,40 Z" fill="#8B2C18"/>
+          <path d="M-100,40 Q-80,-6 -45,-26 Q0,-46 45,-26 Q80,-6 100,40 Z" fill="#A83820"/>
+          <!-- texture - minced meat strands -->
+          <path d="M-60,10 Q-40,-5 -20,8 Q0,20 20,5 Q40,-8 60,10" stroke="#6B1E0E" stroke-width="2" fill="none" opacity=".5"/>
+          <path d="M-70,22 Q-50,8 -30,18 Q-10,28 10,15 Q30,3 50,18 Q70,28 80,22" stroke="#6B1E0E" stroke-width="1.5" fill="none" opacity=".4"/>
+          <path d="M-80,32 Q-60,20 -40,28 Q-20,36 0,24 Q20,12 40,24 Q60,32 80,24" stroke="#7a2410" stroke-width="1.5" fill="none" opacity=".35"/>
+          <!-- fat specks -->
+          <circle cx="-30" cy="0"  r="4" fill="#e8c8a8" opacity=".8"/>
+          <circle cx="40"  cy="-12" r="3" fill="#e8c8a8" opacity=".7"/>
+          <circle cx="-60" cy="18" r="3" fill="#e8c8a8" opacity=".7"/>
+          <circle cx="20"  cy="15"  r="3.5" fill="#e0bca0" opacity=".75"/>
+          <circle cx="-10" cy="-18" r="2.5" fill="#e8c8a8" opacity=".65"/>
+          <!-- highlight on top -->
+          <ellipse cx="-10" cy="-20" rx="35" ry="12" fill="#C04830" opacity=".25"/>
+        </g>
+        <!-- herb garnish -->
+        <ellipse cx="200" cy="120" rx="18" ry="8" fill="#2d6020" opacity=".6"/>
+        <path d="M188,120 Q200,108 212,120" fill="none" stroke="#3a7a28" stroke-width="1.5" opacity=".6"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Cuit</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <!-- pan with cooked meat -->
+        <!-- pan body -->
+        <ellipse cx="200" cy="220" rx="155" ry="50" fill="#2a2a2a"/>
+        <ellipse cx="200" cy="210" rx="150" ry="46" fill="#383838"/>
+        <ellipse cx="200" cy="202" rx="144" ry="42" fill="#222"/>
+        <!-- cooked meat in pan -->
+        <ellipse cx="200" cy="198" rx="130" ry="36" fill="#3d1a0a"/>
+        <ellipse cx="200" cy="196" rx="128" ry="34" fill="#5a2808"/>
+        <!-- cooked texture -->
+        <path d="M80,196 Q120,180 160,190 Q200,200 240,188 Q280,178 320,196" stroke="#7a3810" stroke-width="8" fill="none" stroke-linecap="round" opacity=".6"/>
+        <path d="M85,206 Q125,192 165,200 Q200,208 240,196 Q278,186 315,206" stroke="#6a2e0a" stroke-width="6" fill="none" stroke-linecap="round" opacity=".5"/>
+        <!-- fat/juice -->
+        <ellipse cx="150" cy="198" rx="20" ry="8" fill="#9a5020" opacity=".4"/>
+        <ellipse cx="250" cy="194" rx="18" ry="7" fill="#9a5020" opacity=".35"/>
+        <!-- pan handle -->
+        <rect x="310" y="198" width="70" height="14" rx="7" fill="#2a2a2a"/>
+        <rect x="310" y="200" width="70" height="10" rx="5" fill="#3a3a3a"/>
+        <!-- steam -->
+        <path d="M140,160 Q143,148 140,136 Q137,126 140,115" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".5"/>
+        <path d="M180,155 Q183,143 180,131 Q177,121 180,110" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".5"/>
+        <path d="M220,153 Q223,141 220,129 Q217,119 220,108" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".5"/>
+        <path d="M260,157 Q263,145 260,133 Q257,123 260,112" stroke="#ddd" stroke-width="1.5" fill="none" opacity=".5"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Viande Hachée Halal</div>
+    <div class="product-sub">Bœuf haché frais · 100% halal certifié</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== POULET HALAL ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="135" ry="15" fill="#e4ddd0" opacity=".4"/>
+        <!-- raw chicken thighs/pieces -->
+        <!-- piece 1 - large thigh -->
+        <g transform="translate(160,145)">
+          <ellipse cx="2" cy="8" rx="70" ry="45" fill="#e8c4a0" opacity=".2"/>
+          <path d="M-65,35 Q-55,-35 0,-40 Q55,-35 65,35 Q40,55 0,58 Q-40,55 -65,35 Z" fill="#f0c8a8"/>
+          <path d="M-60,30 Q-50,-32 0,-36 Q50,-32 60,30 Q38,50 0,53 Q-38,50 -60,30 Z" fill="#f4d0b0"/>
+          <!-- skin texture -->
+          <path d="M-30,-20 Q0,-28 30,-20" stroke="#e8c098" stroke-width="1.5" fill="none" opacity=".5"/>
+          <path d="M-40,5 Q0,-5 40,5" stroke="#e8c098" stroke-width="1" fill="none" opacity=".4"/>
+          <!-- bone end -->
+          <ellipse cx="0" cy="-38" rx="8" ry="6" fill="#d4a870"/>
+          <line x1="0" y1="-34" x2="0" y2="-20" stroke="#c8a060" stroke-width="4"/>
+        </g>
+        <!-- piece 2 - drumstick -->
+        <g transform="translate(280,155) rotate(20)">
+          <ellipse cx="0" cy="0" rx="30" ry="50" fill="#f0c8a0"/>
+          <ellipse cx="0" cy="0" rx="26" ry="46" fill="#f4d0a8"/>
+          <ellipse cx="0" cy="-46" rx="12" ry="8" fill="#d4a870"/>
+          <line x1="0" y1="-38" x2="0" y2="-20" stroke="#c8a060" stroke-width="5"/>
+          <ellipse cx="0" cy="46" rx="20" ry="10" fill="#d4a870"/>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Rôti</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="135" ry="14" fill="#e0d0b8" opacity=".4"/>
+        <!-- roasted golden chicken pieces -->
+        <!-- large roasted thigh -->
+        <g transform="translate(155,148)">
+          <ellipse cx="2" cy="8" rx="72" ry="47" fill="#8B5010" opacity=".2"/>
+          <path d="M-68,38 Q-58,-38 0,-43 Q58,-38 68,38 Q42,58 0,62 Q-42,58 -68,38 Z" fill="#8B5010"/>
+          <path d="M-64,34 Q-54,-34 0,-38 Q54,-34 64,34 Q40,54 0,58 Q-40,54 -64,34 Z" fill="#C47828"/>
+          <!-- golden skin highlights -->
+          <path d="M-40,-15 Q0,-25 40,-15" stroke="#D4903A" stroke-width="3" fill="none" opacity=".6"/>
+          <path d="M-50,5 Q0,-5 50,5" stroke="#D4903A" stroke-width="2" fill="none" opacity=".5"/>
+          <!-- crispy skin texture -->
+          <ellipse cx="-20" cy="-5" rx="15" ry="8" fill="#E0A040" opacity=".35"/>
+          <ellipse cx="25"  cy="8"  rx="12" ry="7" fill="#E0A040" opacity=".3"/>
+          <!-- bone -->
+          <ellipse cx="0" cy="-40" rx="8" ry="6" fill="#c8a060"/>
+          <line x1="0" y1="-34" x2="0" y2="-18" stroke="#b89050" stroke-width="4"/>
+        </g>
+        <!-- drumstick roasted -->
+        <g transform="translate(282,158) rotate(22)">
+          <ellipse cx="0" cy="0" rx="30" ry="50" fill="#9B5C14"/>
+          <ellipse cx="0" cy="0" rx="26" ry="46" fill="#C47828"/>
+          <ellipse cx="-6" cy="-15" rx="16" ry="20" fill="#D48C38" opacity=".5"/>
+          <ellipse cx="0" cy="-46" rx="12" ry="8" fill="#c8a060"/>
+          <line x1="0" y1="-38" x2="0" y2="-18" stroke="#b89050" stroke-width="5"/>
+          <ellipse cx="0" cy="46" rx="20" ry="10" fill="#c8a060"/>
+        </g>
+        <!-- steam -->
+        <path d="M140,65 Q143,52 140,40 Q137,30 140,18" stroke="#e0e0e0" stroke-width="1.5" fill="none" opacity=".55"/>
+        <path d="M185,62 Q188,49 185,37 Q182,27 185,15" stroke="#e0e0e0" stroke-width="1.5" fill="none" opacity=".55"/>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Poulet Halal</div>
+    <div class="product-sub">Morceaux de poulet frais · Abattage halal certifié</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======== AGNEAU ======== -->
+<div class="card">
+  <div class="card-pair">
+    <div class="card-img">
+      <div class="badge badge-raw">Cru</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="140" ry="14" fill="#e4ddd0" opacity=".35"/>
+        <!-- lamb chops raw -->
+        <g transform="translate(200,155)">
+          <!-- chop 3 (back) -->
+          <g transform="translate(-60,10) rotate(-10)">
+            <path d="M-25,-55 L-28,35 Q0,48 28,35 L25,-55 Z" fill="#b83c28"/>
+            <path d="M-22,-52 L-25,32 Q0,44 25,32 L22,-52 Z" fill="#d04838"/>
+            <line x1="0" y1="-55" x2="0" y2="-80" stroke="#d4b890" stroke-width="8" stroke-linecap="round"/>
+            <ellipse cx="0" cy="-80" rx="6" ry="5" fill="#c4a878"/>
+            <!-- fat cap -->
+            <path d="M-22,-52 L-18,-40 Q0,-35 18,-40 L22,-52 Z" fill="#f0ddb8"/>
+          </g>
+          <!-- chop 2 (mid) -->
+          <g transform="translate(0,5) rotate(0)">
+            <path d="M-26,-57 L-30,37 Q0,50 30,37 L26,-57 Z" fill="#c04030"/>
+            <path d="M-23,-54 L-27,34 Q0,47 27,34 L23,-54 Z" fill="#d85040"/>
+            <line x1="0" y1="-57" x2="0" y2="-84" stroke="#d4b890" stroke-width="9" stroke-linecap="round"/>
+            <ellipse cx="0" cy="-84" rx="7" ry="6" fill="#c4a878"/>
+            <path d="M-23,-54 L-19,-42 Q0,-36 19,-42 L23,-54 Z" fill="#f4e0bc"/>
+          </g>
+          <!-- chop 1 (front) -->
+          <g transform="translate(62,8) rotate(12)">
+            <path d="M-25,-55 L-28,35 Q0,48 28,35 L25,-55 Z" fill="#b83c28"/>
+            <path d="M-22,-52 L-25,32 Q0,44 25,32 L22,-52 Z" fill="#d04838"/>
+            <line x1="0" y1="-55" x2="0" y2="-80" stroke="#d4b890" stroke-width="8" stroke-linecap="round"/>
+            <ellipse cx="0" cy="-80" rx="6" ry="5" fill="#c4a878"/>
+            <path d="M-22,-52 L-18,-40 Q0,-35 18,-40 L22,-52 Z" fill="#f0ddb8"/>
+          </g>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+    <div class="divider"></div>
+    <div class="card-img">
+      <div class="badge badge-cook">Grillé</div>
+      <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+        <rect width="400" height="300" fill="#ffffff"/>
+        <ellipse cx="200" cy="252" rx="140" ry="14" fill="#d8ccbc" opacity=".4"/>
+        <!-- grilled lamb chops plated -->
+        <g transform="translate(200,155)">
+          <!-- chop 3 -->
+          <g transform="translate(-62,8) rotate(-10)">
+            <path d="M-25,-55 L-28,35 Q0,48 28,35 L25,-55 Z" fill="#4a1808"/>
+            <path d="M-22,-52 L-25,32 Q0,44 25,32 L22,-52 Z" fill="#7a2c14"/>
+            <path d="M-18,-48 L-21,28 Q0,40 21,28 L18,-48 Z" fill="#9a3a1c" opacity=".7"/>
+            <!-- grill marks -->
+            <line x1="-15" y1="10" x2="15" y2="10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+            <line x1="-15" y1="22" x2="15" y2="22" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+            <line x1="0" y1="-55" x2="0" y2="-80" stroke="#c8a868" stroke-width="8" stroke-linecap="round"/>
+            <path d="M-22,-52 L-18,-40 Q0,-35 18,-40 L22,-52 Z" fill="#d4a840" opacity=".8"/>
+          </g>
+          <!-- chop 2 -->
+          <g transform="translate(0,3)">
+            <path d="M-26,-57 L-30,37 Q0,50 30,37 L26,-57 Z" fill="#521a08"/>
+            <path d="M-23,-54 L-27,34 Q0,47 27,34 L23,-54 Z" fill="#8a3018"/>
+            <path d="M-19,-50 L-23,30 Q0,43 23,30 L19,-50 Z" fill="#a83c22" opacity=".7"/>
+            <line x1="-16" y1="12" x2="16" y2="12" stroke="#2a0a04" stroke-width="3.5" opacity=".75"/>
+            <line x1="-16" y1="24" x2="16" y2="24" stroke="#2a0a04" stroke-width="3.5" opacity=".75"/>
+            <line x1="0" y1="-57" x2="0" y2="-84" stroke="#c8a868" stroke-width="9" stroke-linecap="round"/>
+            <path d="M-23,-54 L-19,-42 Q0,-36 19,-42 L23,-54 Z" fill="#d4a840" opacity=".8"/>
+          </g>
+          <!-- chop 1 -->
+          <g transform="translate(64,6) rotate(12)">
+            <path d="M-25,-55 L-28,35 Q0,48 28,35 L25,-55 Z" fill="#4a1808"/>
+            <path d="M-22,-52 L-25,32 Q0,44 25,32 L22,-52 Z" fill="#7a2c14"/>
+            <path d="M-18,-48 L-21,28 Q0,40 21,28 L18,-48 Z" fill="#9a3a1c" opacity=".7"/>
+            <line x1="-15" y1="10" x2="15" y2="10" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+            <line x1="-15" y1="22" x2="15" y2="22" stroke="#2a0a04" stroke-width="3" opacity=".7"/>
+            <line x1="0" y1="-55" x2="0" y2="-80" stroke="#c8a868" stroke-width="8" stroke-linecap="round"/>
+            <path d="M-22,-52 L-18,-40 Q0,-35 18,-40 L22,-52 Z" fill="#d4a840" opacity=".8"/>
+          </g>
+        </g>
+        <!-- rosemary garnish -->
+        <g transform="translate(300,230)" opacity=".75">
+          <line x1="0" y1="0" x2="0" y2="-45" stroke="#4a7a28" stroke-width="1.5"/>
+          <ellipse cx="-4" cy="-15" rx="6" ry="2" fill="#4a7a28" transform="rotate(-30,-4,-15)"/>
+          <ellipse cx="4"  cy="-22" rx="6" ry="2" fill="#4a7a28" transform="rotate(30,4,-22)"/>
+          <ellipse cx="-4" cy="-30" rx="5" ry="2" fill="#4a7a28" transform="rotate(-30,-4,-30)"/>
+          <ellipse cx="4"  cy="-37" rx="5" ry="2" fill="#4a7a28" transform="rotate(30,4,-37)"/>
+        </g>
+        <g transform="translate(248,262)" opacity=".22">
+          <circle cx="12" cy="10" r="10" stroke="#1a5c1a" stroke-width="1" fill="none"/>
+          <ellipse cx="12" cy="10" rx="5" ry="10" stroke="#1a5c1a" stroke-width=".6" fill="none"/>
+          <line x1="2" y1="10" x2="22" y2="10" stroke="#1a5c1a" stroke-width=".6"/>
+          <text x="26" y="15" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#1a5c1a">Mondi</text>
+          <text x="68" y="15" font-family="Georgia,serif" font-size="13" font-style="italic" fill="#C4922A">mart</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="card-info">
+    <div class="product-name">Côtelettes d'Agneau Halal</div>
+    <div class="product-sub">Agneau frais · Découpe traditionnelle halal</div>
+    <div class="logo-bar">
+      <svg viewBox="0 0 180 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" stroke="#C4922A" stroke-width="1.4" fill="none"/>
+        <ellipse cx="16" cy="16" rx="7" ry="14" stroke="#C4922A" stroke-width=".9" fill="none"/>
+        <ellipse cx="16" cy="16" rx="3.5" ry="14" stroke="#C4922A" stroke-width=".6" fill="none"/>
+        <line x1="2" y1="16" x2="30" y2="16" stroke="#C4922A" stroke-width=".9"/>
+        <line x1="3" y1="9"  x2="29" y2="9"  stroke="#C4922A" stroke-width=".6"/>
+        <line x1="3" y1="23" x2="29" y2="23" stroke="#C4922A" stroke-width=".6"/>
+        <text x="36" y="22" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#1a5c1a">Mondi</text>
+        <text x="98" y="22" font-family="Georgia,serif" font-size="18" font-style="italic" fill="#C4922A">mart</text>
+        <text x="36" y="30" font-family="Arial,sans-serif" font-size="6" letter-spacing="2.5" fill="#999">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /grid -->
+</body>
+</html>
