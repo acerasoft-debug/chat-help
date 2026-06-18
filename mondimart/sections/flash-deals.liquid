@@ -65,6 +65,43 @@
   </div>
 </section>
 
+<script>
+(function(){
+  var el = document.getElementById('flash-countdown');
+  if (!el) return;
+  var hEl = document.getElementById('cd-h');
+  var mEl = document.getElementById('cd-m');
+  var sEl = document.getElementById('cd-s');
+  if (!hEl || !mEl || !sEl) return;
+
+  function getEnd() {
+    var str = el.dataset.end;
+    var d = str ? new Date(str) : null;
+    var now = new Date();
+    if (!d || isNaN(d) || d <= now) {
+      /* Date passée ou invalide → compte à rebours jusqu'à minuit du jour courant */
+      d = new Date();
+      d.setHours(23, 59, 59, 0);
+      if (d <= now) { d.setDate(d.getDate() + 1); d.setHours(23, 59, 59, 0); }
+    }
+    return d;
+  }
+
+  var end = getEnd();
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function tick() {
+    var diff = Math.floor((end - Date.now()) / 1000);
+    if (diff <= 0) { end = getEnd(); diff = Math.max(0, Math.floor((end - Date.now()) / 1000)); }
+    hEl.textContent = pad(Math.floor(diff / 3600));
+    mEl.textContent = pad(Math.floor((diff % 3600) / 60));
+    sEl.textContent = pad(diff % 60);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+
 {% schema %}
 {
   "name": "Flash Deals",
@@ -72,7 +109,7 @@
     { "type": "text", "id": "title", "label": "Titre", "default": "Flash Deals du Jour" },
     { "type": "text", "id": "see_all_label", "label": "Lien texte", "default": "Voir toutes les promos" },
     { "type": "url", "id": "see_all_url", "label": "Lien URL" },
-    { "type": "text", "id": "countdown_end", "label": "Fin du compte à rebours (YYYY-MM-DDTHH:MM:SS)", "default": "2026-06-14T23:59:59" }
+    { "type": "text", "id": "countdown_end", "label": "Fin du compte à rebours (YYYY-MM-DDTHH:MM:SS+02:00)", "default": "2026-12-31T23:59:59" }
   ],
   "blocks": [
     {
