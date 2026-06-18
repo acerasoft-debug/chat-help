@@ -3249,25 +3249,30 @@ body {
   box-shadow: 0 6px 22px rgba(200,168,75,0.45) !important;
 }
 
-/* ── ALIMENTATION LEVEL-2 SUB-ITEMS (clickable section rows in level-1) ── */
+/* ── SUB-ITEMS: clickable category rows (level-1 → level-2) ── */
 .mobile-menu .mm-sub-item {
   color: var(--mm-cream) !important;
   font-family: 'Manrope', sans-serif !important;
   font-weight: 600 !important;
-  font-size: 13px !important;
+  font-size: 15px !important;
+  min-height: 56px !important;
+  padding: 0 20px 0 20px !important;
   border-bottom: 1px solid rgba(212, 166, 74, 0.1) !important;
   background: transparent !important;
-  transition: background 0.2s ease !important;
+  transition: background 0.18s ease !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.15);
 }
-.mobile-menu .mm-sub-item:hover {
-  background: rgba(212, 166, 74, 0.1) !important;
+.mobile-menu .mm-sub-item:active {
+  background: rgba(212, 166, 74, 0.15) !important;
 }
 .mobile-menu .mm-sub-item .mm-chevron {
   color: var(--mm-gold) !important;
-  font-size: 18px !important;
+  font-size: 22px !important;
+  font-weight: 300 !important;
+  flex-shrink: 0;
 }
 
-/* ── LEVEL-2 PANELS (alimentation sub-categories) ── */
+/* ── LEVEL-2 PANELS ── */
 .mm-sub-l2 {
   background: linear-gradient(180deg, #142d1d 0%, #0e2014 100%) !important;
 }
@@ -3275,24 +3280,37 @@ body {
   color: var(--mm-cream) !important;
   font-family: 'Manrope', sans-serif !important;
   font-weight: 500 !important;
-  font-size: 14px !important;
+  font-size: 15px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 20px !important;
   border-bottom: 1px solid rgba(212, 166, 74, 0.08) !important;
-  transition: all 0.2s ease !important;
+  transition: background 0.15s ease !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.12);
 }
-.mm-sub-l2 a:hover {
-  color: var(--mm-gold-soft) !important;
-  background: rgba(212, 166, 74, 0.08) !important;
-  padding-left: 24px !important;
+.mm-sub-l2 a:active {
+  background: rgba(212, 166, 74, 0.1) !important;
 }
 .mm-sub-l2 .mm-sub-back {
-  background: rgba(0,0,0,0.3) !important;
-  border-bottom: 1px solid rgba(212, 166, 74, 0.2) !important;
+  background: rgba(0,0,0,0.35) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.18) !important;
   color: var(--mm-cream) !important;
   font-family: 'Manrope', sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  min-height: 54px !important;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  letter-spacing: 0.01em !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.12);
 }
-.mm-sub-l2 .mm-sub-back:hover {
+.mm-sub-l2 .mm-sub-back:active {
   background: rgba(212, 166, 74, 0.12) !important;
 }
 
