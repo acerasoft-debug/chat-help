@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Mondimart — Viandes &amp; Volailles</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f2ede5; font-family:'Georgia',serif; padding:48px 24px; }
+
+  .page-header { text-align:center; margin-bottom:48px; }
+  .page-header .globe-logo { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:8px; }
+  .page-header h1 { font-size:13px; letter-spacing:6px; color:#888; text-transform:uppercase; margin-top:4px; }
+
+  .section-title { max-width:1240px; margin:0 auto 20px; padding-left:4px;
+    font-size:11px; letter-spacing:4px; color:#C4922A; text-transform:uppercase; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(580px,1fr));
+    gap:28px; max-width:1240px; margin:0 auto 48px; }
+
+  /* Card */
+  .card { background:#fff; border-radius:3px; overflow:hidden;
+    box-shadow:0 2px 20px rgba(0,0,0,.09); }
+
+  .card-photos { display:grid; grid-template-columns:1fr 1fr; }
+
+  /* Photo slot */
+  .photo-slot { position:relative; aspect-ratio:4/3; overflow:hidden; background:#111; }
+  .photo-slot img {
+    width:100%; height:100%; object-fit:cover; object-position:center;
+    display:block; transition:transform .4s ease;
+  }
+  .card:hover .photo-slot img { transform:scale(1.04); }
+
+  /* Dark gradient at bottom of each photo for logo readability */
+  .photo-slot::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 45%);
+    pointer-events:none;
+  }
+
+  /* Badge top-left */
+  .badge {
+    position:absolute; top:12px; left:12px; z-index:2;
+    padding:4px 10px; font-size:9px; letter-spacing:2.5px;
+    font-family:'Arial',sans-serif; font-weight:700;
+    text-transform:uppercase; border-radius:2px;
+  }
+  .badge-cook { background:rgba(80,35,5,.85); color:#f8e0b0; border:1px solid rgba(200,140,40,.4); }
+  .badge-raw  { background:rgba(160,30,20,.82); color:#fff; border:1px solid rgba(255,180,160,.3); }
+
+  /* Logo bottom-right of each photo */
+  .photo-logo {
+    position:absolute; bottom:10px; right:10px; z-index:2;
+    background:rgba(255,255,255,.18); backdrop-filter:blur(4px);
+    border:1px solid rgba(255,255,255,.25); border-radius:3px;
+    padding:5px 9px 4px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .photo-logo svg { height:20px; width:auto; }
+
+  /* Divider between photos */
+  .photo-divider { width:2px; background:#f2ede5; flex-shrink:0; }
+
+  /* Info bar */
+  .card-info {
+    padding:16px 20px 14px;
+    border-top:3px solid #C4922A;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .card-info-left {}
+  .product-name { font-size:18px; font-weight:700; color:#1a1a1a; line-height:1.2; }
+  .product-sub  { font-size:10px; color:#999; letter-spacing:2.5px; text-transform:uppercase;
+    font-family:'Arial',sans-serif; margin-top:3px; }
+
+  .halal-badge {
+    flex-shrink:0; width:38px; height:38px; border-radius:50%;
+    border:2px solid #1a5c1a; color:#1a5c1a;
+    font-size:8px; font-family:'Arial',sans-serif; font-weight:800;
+    letter-spacing:.5px; display:flex; align-items:center; justify-content:center;
+  }
+</style>
+</head>
+<body>
+
+<!-- Page header with full logo -->
+<div class="page-header">
+  <div class="globe-logo">
+    <svg width="220" height="52" viewBox="0 0 220 52" xmlns="http://www.w3.org/2000/svg">
+      <!-- Globe -->
+      <circle cx="26" cy="26" r="24" stroke="#C4922A" stroke-width="1.6" fill="none"/>
+      <ellipse cx="26" cy="26" rx="12" ry="24" stroke="#C4922A" stroke-width="1" fill="none"/>
+      <ellipse cx="26" cy="26" rx="5.5" ry="24" stroke="#C4922A" stroke-width=".7" fill="none"/>
+      <line x1="2" y1="26" x2="50" y2="26" stroke="#C4922A" stroke-width="1"/>
+      <path d="M3,15 Q26,9 49,15" stroke="#C4922A" stroke-width=".7" fill="none"/>
+      <path d="M3,37 Q26,43 49,37" stroke="#C4922A" stroke-width=".7" fill="none"/>
+      <!-- Wordmark -->
+      <text x="60" y="36" font-family="Georgia,'Times New Roman',serif" font-size="32" font-weight="700" fill="#1a5c1a">Mondi</text>
+      <text x="148" y="36" font-family="Georgia,'Times New Roman',serif" font-size="32" font-style="italic" fill="#C4922A">mart</text>
+      <!-- Tagline -->
+      <text x="60" y="48" font-family="Arial,sans-serif" font-size="8.5" letter-spacing="3" fill="#aaa">SUPERMARCHÉ DU MONDE</text>
+    </svg>
+  </div>
+  <h1>Viandes &amp; Volailles · Et &amp; Tavuk</h1>
+</div>
+
+<!-- ─── CHARCUTERIE TURQUE ─── -->
+<div class="section-title">Charcuterie Turque · Türk Şarküteri</div>
+<div class="grid">
+
+  <!-- SUCUK -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Cuit · Pişmiş</div>
+        <img src="https://images.unsplash.com/photo-1529042410759-befb1204b468?w=600&h=450&fit=crop&q=85" alt="Sucuk pişmiş"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&h=450&fit=crop&q=85" alt="Sucuk çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Soudjouk / Sucuk</div>
+        <div class="product-sub">Saucisse turque épicée séchée</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- PASTIRMA -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Tranché · Dilimli</div>
+        <img src="https://images.unsplash.com/photo-1544025162-d76538680442?w=600&h=450&fit=crop&q=85" alt="Pastırma dilimli"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Entier · Bütün</div>
+        <img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=600&h=450&fit=crop&q=85" alt="Pastırma bütün"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Pastırma</div>
+        <div class="product-sub">Viande séchée aux épices · Spécialité turque</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── VIANDES ROUGES ─── -->
+<div class="section-title">Viandes Rouges · Kırmızı Et</div>
+<div class="grid">
+
+  <!-- MERGUEZ -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1558030006-450675393462?w=600&h=450&fit=crop&q=85" alt="Merguez ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1613917775541-b8f94d742b21?w=600&h=450&fit=crop&q=85" alt="Merguez çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Merguez Halal</div>
+        <div class="product-sub">Saucisse épicée agneau &amp; bœuf</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- KÖFTE -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1574484284002-952d92456975?w=600&h=450&fit=crop&q=85" alt="Köfte ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=600&h=450&fit=crop&q=85" alt="Köfte çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Köfte / Kefta Halal</div>
+        <div class="product-sub">Boulettes de viande épicées</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- KIYMA DANA -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Cuit · Pişmiş</div>
+        <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=450&fit=crop&q=85" alt="Kıyma pişmiş"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=600&h=450&fit=crop&q=85" alt="Kıyma çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Kıyma Dana / Bœuf Haché</div>
+        <div class="product-sub">Viande bovine hachée fraîche · 15% MG</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- DANA ANTRIKOT -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1546964124-0cce460e01ad?w=600&h=450&fit=crop&q=85" alt="Antrikot ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1615937657715-bc7b4b7962c1?w=600&h=450&fit=crop&q=85" alt="Antrikot çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Entrecôte Halal / Dana Antrikot</div>
+        <div class="product-sub">Bœuf persillé maturé · Grill &amp; poêle</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- CÔTELETTES D'AGNEAU -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&h=450&fit=crop&q=85" alt="Kuzu pirzola ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1603048297172-c73e47f3c965?w=600&h=450&fit=crop&q=85" alt="Kuzu pirzola çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Côtelettes d'Agneau / Kuzu Pirzola</div>
+        <div class="product-sub">Agneau frais · Découpe traditionnelle halal</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- GIGOT D'AGNEAU -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Rôti · Fırın</div>
+        <img src="https://images.unsplash.com/photo-1695653420861-eac067a74c46?w=600&h=450&fit=crop&q=85" alt="Kuzu but fırın"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=600&h=450&fit=crop&q=85" alt="Kuzu but çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Gigot d'Agneau / Kuzu But</div>
+        <div class="product-sub">Cuisse entière · Rôtie aux herbes &amp; à l'ail</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── VOLAILLES ─── -->
+<div class="section-title">Volailles · Tavuk &amp; Kanatlı</div>
+<div class="grid">
+
+  <!-- POULET ENTIER -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Rôti · Fırın</div>
+        <img src="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600&h=450&fit=crop&q=85" alt="Bütün tavuk fırın"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=600&h=450&fit=crop&q=85" alt="Bütün tavuk çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Poulet Entier / Bütün Tavuk</div>
+        <div class="product-sub">Poulet fermier halal · Élevé en plein air</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- BLANC DE POULET -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1598103442097-8b74394b95c7?w=600&h=450&fit=crop&q=85" alt="Tavuk göğsü ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=600&h=450&fit=crop&q=85" alt="Tavuk göğsü çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Blanc de Poulet / Tavuk Göğsü</div>
+        <div class="product-sub">Filet halal · Sans os · Protéines maigres</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- CUISSE DE POULET -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Rôti · Fırın</div>
+        <img src="https://images.unsplash.com/photo-1598515213692-b419f0a07b12?w=600&h=450&fit=crop&q=85" alt="Tavuk but fırın"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=600&h=450&fit=crop&q=85" alt="Tavuk but çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Cuisse de Poulet / Tavuk But</div>
+        <div class="product-sub">Hauts de cuisse &amp; pilons halal · Juteux</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+  <!-- AILES DE POULET -->
+  <div class="card">
+    <div class="card-photos">
+      <div class="photo-slot">
+        <div class="badge badge-cook">Grillé · Izgara</div>
+        <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&h=450&fit=crop&q=85" alt="Tavuk kanat ızgara"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+      <div class="photo-divider"></div>
+      <div class="photo-slot">
+        <div class="badge badge-raw">Cru · Çiğ</div>
+        <img src="https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&h=450&fit=crop&q=85" alt="Tavuk kanat çiğ"/>
+        <div class="photo-logo">
+          <svg viewBox="0 0 110 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1" fill="none"/>
+            <ellipse cx="10" cy="10" rx="4.5" ry="9" stroke="#fff" stroke-width=".7" fill="none"/>
+            <line x1="1" y1="10" x2="19" y2="10" stroke="#fff" stroke-width=".7"/>
+            <path d="M2,6 Q10,3 18,6" stroke="#fff" stroke-width=".5" fill="none"/>
+            <path d="M2,14 Q10,17 18,14" stroke="#fff" stroke-width=".5" fill="none"/>
+            <text x="23" y="14" font-family="Georgia,serif" font-size="11" font-weight="700" fill="#fff">Mondi</text>
+            <text x="64" y="14" font-family="Georgia,serif" font-size="11" font-style="italic" fill="#C4922A">mart</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-info-left">
+        <div class="product-name">Ailes de Poulet / Tavuk Kanat</div>
+        <div class="product-sub">Ailerons halal · Croustillants au grill</div>
+      </div>
+      <div class="halal-badge">HALAL</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
