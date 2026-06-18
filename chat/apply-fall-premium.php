@@ -40,6 +40,9 @@ $bundle = <<<'HTML'
 .cfa-chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cfa-chip .x{cursor:pointer;color:#d05a4e;font-weight:800;padding:0 4px;line-height:1}
 .cfa-chip .x:hover{color:#e8675a}
+/* ── Kalıcı "Dokument erstellen" butonu (analiz sonrası da hep görünür) ── */
+#ch-fall-redo{display:block;width:100%;margin:14px 0 8px;padding:14px;border:none;border-radius:13px;background:linear-gradient(135deg,#d4a84a,#b8862f);color:#1b1b1e;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 6px 18px rgba(212,168,74,.25)}
+#ch-fall-redo:hover{filter:brightness(1.06)}
 </style>
 <script id="ch-fall-premium-js">
 (function(){
@@ -117,7 +120,36 @@ $bundle = <<<'HTML'
     return of(input,init);
   };
 
-  function boot(){ injectAttach(); setInterval(injectAttach,1000); }
+  /* ── Kalıcı "Dokument erstellen": analiz/belge sonrası da hep en altta ── */
+  function getPlan(){
+    var p=(window.P&&P.plan)||'';
+    try{ if(!p) p=(JSON.parse(localStorage.getItem('ch_user')||'{}').plan)||''; }catch(e){}
+    return (''+p).toLowerCase();
+  }
+  function hasNativeSolve(body){
+    return Array.prototype.some.call(body.querySelectorAll('button'),function(b){
+      return /Dokument erstellen|Fall l[öo]sen/i.test(b.textContent||'') || /fallSolve/.test(b.getAttribute('onclick')||'');
+    });
+  }
+  function injectRedo(){
+    var body=document.getElementById('fall-body'); if(!body) return;
+    var loggedIn=!!localStorage.getItem('ch_token');
+    var hasPlan=['basic','pro','elite'].indexOf(getPlan())>-1;
+    var inputPresent=!!document.getElementById('fall-input');
+    var looksDoc=(body.textContent||'').length>600;
+    var mine=document.getElementById('ch-fall-redo');
+    // upsell ekranı / fall içinde değil -> gösterme
+    if(!loggedIn || !hasPlan || (!inputPresent && !looksDoc)){ if(mine)mine.remove(); return; }
+    // native "Fall lösen" zaten varsa kopyalama
+    if(hasNativeSolve(body)){ if(mine)mine.remove(); return; }
+    if(mine) return;
+    var btn=document.createElement('button'); btn.id='ch-fall-redo';
+    btn.textContent='📄 Dokument erstellen';
+    btn.onclick=function(){ if(typeof window.fallSolve==='function') window.fallSolve(); };
+    body.appendChild(btn);
+  }
+
+  function boot(){ injectAttach(); injectRedo(); setInterval(function(){ injectAttach(); injectRedo(); },1000); }
   if(document.body) boot(); else document.addEventListener('DOMContentLoaded',boot);
 })();
 </script>
