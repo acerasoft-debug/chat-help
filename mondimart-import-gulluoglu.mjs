@@ -6,6 +6,7 @@
 // ============================================================
 
 import * as https from 'https';
+import * as zlib from 'zlib';
 
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
 const DRY   = process.env.DRY === '1';
@@ -55,11 +56,11 @@ function fetchPage(url) {
       // Handle gzip
       let stream = res;
       if (res.headers['content-encoding'] === 'gzip') {
-        const zlib = require('zlib');
         stream = res.pipe(zlib.createGunzip());
       } else if (res.headers['content-encoding'] === 'br') {
-        const zlib = require('zlib');
         stream = res.pipe(zlib.createBrotliDecompress());
+      } else if (res.headers['content-encoding'] === 'deflate') {
+        stream = res.pipe(zlib.createInflate());
       }
       stream.on('data', chunk => data.push(chunk));
       stream.on('end', () => resolve(Buffer.concat(data).toString('utf8')));
