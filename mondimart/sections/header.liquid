@@ -34,14 +34,17 @@
       </svg>
     </button>
 
-    <a class="logo" href="{{ routes.root_url }}">
-      {% if section.settings.logo %}
-        <div class="logo-img"><img src="{{ section.settings.logo | image_url: width: 80 }}" alt="{{ shop.name }}"></div>
-      {% endif %}
-      <div>
-        <span class="logo-nm">Mondi<em>mart</em></span>
-        <span class="logo-sub">Supermarché du Monde</span>
-      </div>
+    <a class="logo" href="{{ routes.root_url }}" aria-label="Mondimart — Supermarché du Monde">
+      <svg class="logo-svg" viewBox="0 0 210 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="25" cy="26" r="20" stroke="#C8A84B" stroke-width="1.6"/>
+        <ellipse cx="25" cy="26" rx="10" ry="20" stroke="#C8A84B" stroke-width="1.1"/>
+        <line x1="5" y1="26" x2="45" y2="26" stroke="#C8A84B" stroke-width="1.1"/>
+        <line x1="7.5" y1="18" x2="42.5" y2="18" stroke="#C8A84B" stroke-width="0.7"/>
+        <line x1="7.5" y1="34" x2="42.5" y2="34" stroke="#C8A84B" stroke-width="0.7"/>
+        <text x="56" y="35" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="23" font-weight="500" fill="#F5EFE3" letter-spacing="-0.4">Mondi</text>
+        <text x="136" y="35" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="23" font-style="italic" font-weight="400" fill="#C8A84B" letter-spacing="-0.4">mart</text>
+        <text x="56" y="47" font-family="'Manrope',Arial,sans-serif" font-size="6.2" font-weight="700" fill="rgba(245,239,227,0.45)" letter-spacing="2.1">SUPERMARCHÉ DU MONDE</text>
+      </svg>
     </a>
 
     <div class="search-wrap">
@@ -236,7 +239,15 @@
   <div class="mm-header mm-header-premium">
     <div class="mm-header-top">
       <div class="mm-brand">
-        <span class="mm-logo">Mondi<em>mart</em></span>
+        <svg class="mm-logo-svg" viewBox="0 0 174 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Mondimart">
+          <circle cx="20" cy="21" r="16" stroke="#C8A84B" stroke-width="1.5"/>
+          <ellipse cx="20" cy="21" rx="8" ry="16" stroke="#C8A84B" stroke-width="1"/>
+          <line x1="4" y1="21" x2="36" y2="21" stroke="#C8A84B" stroke-width="1"/>
+          <line x1="6" y1="14.5" x2="34" y2="14.5" stroke="#C8A84B" stroke-width="0.65"/>
+          <line x1="6" y1="27.5" x2="34" y2="27.5" stroke="#C8A84B" stroke-width="0.65"/>
+          <text x="44" y="29" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="19" font-weight="500" fill="#F5EFE3" letter-spacing="-0.3">Mondi</text>
+          <text x="112" y="29" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="19" font-style="italic" font-weight="400" fill="#C8A84B" letter-spacing="-0.3">mart</text>
+        </svg>
         <span class="mm-brand-sub">Le monde dans votre assiette</span>
       </div>
       <button class="mm-close mm-close-premium" id="mm-close" aria-label="Fermer">

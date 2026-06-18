@@ -3216,3 +3216,35 @@ body {
   display: block !important;
   max-width: none !important;
 }
+
+/* ============================================================
+   §41 — LOGO SVG + CHECKOUT BUTTON ENHANCEMENTS
+   ============================================================ */
+
+/* Header inline SVG logo */
+.logo-svg {
+  height: 44px !important;
+  width: auto !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+@media (max-width: 768px) {
+  .logo-svg { height: 36px !important; }
+}
+@media (max-width: 480px) {
+  .logo-svg { height: 32px !important; }
+}
+
+/* Mobile menu SVG logo */
+.mm-logo-svg {
+  height: 34px !important;
+  width: auto !important;
+  display: block !important;
+}
+
+/* Cart checkout CTA hover */
+.mm-checkout-cta:hover {
+  background: linear-gradient(135deg, #D4B85A, #E0C86A) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 22px rgba(200,168,75,0.45) !important;
+}

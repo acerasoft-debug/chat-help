@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 290 76" fill="none" role="img" aria-label="Mondimart — Supermarché du Monde">
+  <title>Mondimart</title>
+  <!-- Globe mark -->
+  <circle cx="38" cy="38" r="26" stroke="#C8A84B" stroke-width="2"/>
+  <ellipse cx="38" cy="38" rx="13" ry="26" stroke="#C8A84B" stroke-width="1.4"/>
+  <line x1="12" y1="38" x2="64" y2="38" stroke="#C8A84B" stroke-width="1.4"/>
+  <line x1="15.5" y1="27" x2="60.5" y2="27" stroke="#C8A84B" stroke-width="0.9"/>
+  <line x1="15.5" y1="49" x2="60.5" y2="49" stroke="#C8A84B" stroke-width="0.9"/>
+  <!-- Wordmark: Mondi (dark green) + mart (gold italic) — for light backgrounds -->
+  <text x="78" y="50"
+    font-family="'Fraunces','Playfair Display',Georgia,serif"
+    font-size="34" font-weight="500" fill="#1A3C1A" letter-spacing="-0.8">Mondi</text>
+  <text x="190" y="50"
+    font-family="'Fraunces','Playfair Display',Georgia,serif"
+    font-size="34" font-style="italic" font-weight="400" fill="#C8A84B" letter-spacing="-0.8">mart</text>
+  <!-- Tagline -->
+  <text x="78" y="67"
+    font-family="'Manrope','Helvetica Neue',Arial,sans-serif"
+    font-size="8" font-weight="700" fill="#1A3C1A" opacity="0.38" letter-spacing="3.2">SUPERMARCHÉ DU MONDE</text>
+</svg>
