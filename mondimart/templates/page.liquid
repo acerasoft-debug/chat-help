@@ -1,7 +1,13 @@
+{% if page.handle == 'cgv' %}
+  {% render 'page-cgv' %}
+{% elsif page.handle == 'confidentialite' or page.handle == 'politique-de-confidentialite' %}
+  {% render 'page-confidentialite' %}
+{% else %}
 <div style="max-width:860px;margin:0 auto;padding:52px 24px 80px">
   <h1 style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--td);margin-bottom:28px;line-height:1.25">{{ page.title }}</h1>
   <div class="rte-content" style="font-size:15px;color:var(--tm);line-height:1.85">{{ page.content }}</div>
 </div>
+{% endif %}
 
 <style>
 .rte-content h2 { font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--td);margin:32px 0 14px; }
