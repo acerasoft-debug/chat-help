@@ -47,6 +47,11 @@ async function getAllProducts() {
 // Tüm lokasyonları getir
 async function getLocations() {
   const d = await api('GET', '/locations.json?limit=250');
+  if (d.errors) {
+    console.error('❌ API Hatası:', JSON.stringify(d.errors));
+    console.error('   → Token geçersiz veya yetersiz yetki olabilir.');
+    process.exit(1);
+  }
   return (d.locations || []).filter(l => l.active);
 }
 
@@ -56,7 +61,7 @@ async function main() {
 
   console.log('📍 Lokasyonlar alınıyor...');
   const locations = await getLocations();
-  if (!locations.length) { console.error('❌ Aktif lokasyon bulunamadı'); process.exit(1); }
+  if (!locations.length) { console.error('❌ Aktif lokasyon bulunamadı (tüm lokasyonlar pasif?)'); process.exit(1); }
   console.log(`✅ ${locations.length} aktif lokasyon:`);
   for (const l of locations) console.log(`   • ${l.name} (${l.id})`);
 
