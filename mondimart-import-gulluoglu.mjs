@@ -117,11 +117,123 @@ function extractAttr(html, tag, attr, cls = '') {
   return m ? m[1] : null;
 }
 
+// ── API / sitemap stratejileri ───────────────────────────────
+async function tryWooCommerceAPI() {
+  // Çeşitli WooCommerce endpoint kombinasyonları
+  const endpoints = [
+    'https://www.karakoygulluoglu.com/wp-json/wc/store/v1/products?category=baklavalar&per_page=100',
+    'https://www.karakoygulluoglu.com/wp-json/wc/store/v1/products?search=baklava&per_page=100',
+    'https://www.karakoygulluoglu.com/wp-json/wp/v2/product?per_page=100&search=baklava',
+  ];
+  for (const url of endpoints) {
+    try {
+      const html = await fetchPage(url);
+      const data = JSON.parse(html);
+      if (Array.isArray(data) && data.length > 0) {
+        console.log(`   ✅ WooCommerce API: ${data.length} ürün (${url.split('?')[0].split('/').pop()})`);
+        return data.map(p => ({
+          name: p.name || p.title?.rendered || '',
+          priceTRY: parseFloat(p.prices?.price || p.price || 0) / 100, // WooCommerce minor units
+          imageUrl: p.images?.[0]?.src || p.image?.src || '',
+          url: p.permalink || p.link || '',
+          description: (p.short_description || p.description || '').replace(/<[^>]+>/g, '').slice(0, 400),
+        }));
+      }
+    } catch {}
+    await delay(300);
+  }
+  return null;
+}
+
+async function tryNextJsAPI() {
+  // Next.js statik data veya API route'ları
+  const endpoints = [
+    'https://www.karakoygulluoglu.com/api/products?slug=baklavalar',
+    'https://www.karakoygulluoglu.com/api/products?category=baklava',
+    'https://www.karakoygulluoglu.com/_next/data/baklavalar.json',
+  ];
+  for (const url of endpoints) {
+    try {
+      const html = await fetchPage(url);
+      const data = JSON.parse(html);
+      const products = data?.products || data?.items || data?.data || data?.pageProps?.products;
+      if (Array.isArray(products) && products.length > 0) {
+        console.log(`   ✅ Next.js API: ${products.length} ürün`);
+        return products.map(p => ({
+          name: p.name || p.title || '',
+          priceTRY: parseFloat(p.price || p.regularPrice || 0),
+          imageUrl: p.image || p.thumbnail || p.imageUrl || '',
+          url: p.url || p.slug || '',
+          description: (p.description || p.shortDescription || '').slice(0, 400),
+        }));
+      }
+    } catch {}
+    await delay(300);
+  }
+  return null;
+}
+
+async function tryScriptTagData(html) {
+  // Next.js / Nuxt __NEXT_DATA__ veya window.__INITIAL_STATE__
+  const patterns = [
+    /__NEXT_DATA__\s*=\s*(\{[\s\S]*?\})<\/script>/,
+    /window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/,
+    /window\.__NUXT__\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/,
+    /<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/g,
+  ];
+
+  for (const pattern of patterns) {
+    try {
+      const matches = typeof pattern.exec === 'function'
+        ? [html.match(pattern)]
+        : [...html.matchAll(pattern)].map(m => [m[0], m[1]]);
+
+      for (const m of matches) {
+        if (!m?.[1]) continue;
+        const data = JSON.parse(m[1]);
+        // Ürün listesini ara
+        const findProducts = (obj, depth = 0) => {
+          if (depth > 6 || !obj || typeof obj !== 'object') return null;
+          if (Array.isArray(obj) && obj.length > 2 && obj[0]?.name && (obj[0]?.price !== undefined)) return obj;
+          for (const v of Object.values(obj)) {
+            const r = findProducts(v, depth + 1);
+            if (r) return r;
+          }
+          return null;
+        };
+        const products = findProducts(data);
+        if (products) {
+          console.log(`   ✅ Script tag data: ${products.length} ürün`);
+          return products.map(p => ({
+            name: p.name || p.title || '',
+            priceTRY: parseFloat(p.price || p.regularPrice || p.salePrice || 0),
+            imageUrl: p.image || p.imageUrl || p.thumbnail || '',
+            url: p.url || p.permalink || p.slug || '',
+            description: (p.description || p.shortDescription || '').replace(/<[^>]+>/g, '').slice(0, 400),
+          }));
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 // ── Baklava sayfasını parse et ───────────────────────────────
 async function scrapeBaklavas() {
+  // Önce API endpoint'leri dene
+  console.log('   🔌 WooCommerce API deneniyor...');
+  const wooResult = await tryWooCommerceAPI();
+  if (wooResult?.length > 0) return wooResult;
+
+  console.log('   🔌 Next.js API deneniyor...');
+  const nextResult = await tryNextJsAPI();
+  if (nextResult?.length > 0) return nextResult;
+
   const PAGES = [
     'https://www.karakoygulluoglu.com/baklavalar',
     'https://www.karakoygulluoglu.com/urunler/baklavalar',
+    'https://www.karakoygulluoglu.com/kategori/baklavalar',
+    'https://www.karakoygulluoglu.com/category/baklavalar',
   ];
 
   let html = null;
@@ -129,14 +241,28 @@ async function scrapeBaklavas() {
     try {
       console.log(`   Deneniyor: ${url}`);
       html = await fetchPage(url);
-      if (html && html.length > 5000) { console.log(`   ✅ Sayfa alındı (${Math.round(html.length/1024)}KB)`); break; }
+      if (html && html.length > 3000) {
+        console.log(`   ✅ Sayfa alındı (${Math.round(html.length/1024)}KB)`);
+        // Script tag'dan data bul
+        const scriptData = await tryScriptTagData(html);
+        if (scriptData?.length > 0) return scriptData;
+        break;
+      }
     } catch (e) {
       console.log(`   ❌ ${url}: ${e.message}`);
     }
-    await delay(1000);
+    await delay(800);
   }
 
-  if (!html || html.length < 1000) throw new Error('Sayfa alınamadı — site bot koruması olabilir');
+  // HTML dump — incelemek için
+  if (html) {
+    const fs = await import('fs');
+    fs.writeFileSync('./gulluoglu-debug.html', html);
+    console.log(`   📄 HTML kaydedildi: gulluoglu-debug.html (${Math.round(html.length/1024)}KB)`);
+    console.log(`      İncele: open gulluoglu-debug.html`);
+  }
+
+  if (!html || html.length < 500) throw new Error('Sayfa alınamadı — site bot koruması olabilir');
 
   const products = [];
 
