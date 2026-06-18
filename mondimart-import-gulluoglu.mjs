@@ -1,463 +1,279 @@
 // ============================================================
-// Karaköy Güllüoğlu Baklava → Mondimart import
+// Karaköy Güllüoğlu Baklava → Mondimart import (Puppeteer)
+// Kurulum: npm install puppeteer   (ilk çalıştırmada otomatik Chrome indirir)
 // Çalıştır: SHOPIFY_TOKEN='...' node mondimart-import-gulluoglu.mjs
-// Önizleme:  DRY=1 node mondimart-import-gulluoglu.mjs
-// Sınırlı:   LIMIT=5 DRY=1 ...
+// Önizleme: DRY=1 node mondimart-import-gulluoglu.mjs
 // ============================================================
 
-import * as https from 'https';
-import * as zlib from 'zlib';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 
 const SHOPIFY_TOKEN = process.env.SHOPIFY_TOKEN;
-const DRY   = process.env.DRY === '1';
-const LIMIT = process.env.LIMIT ? parseInt(process.env.LIMIT) : 0;
+const DRY    = process.env.DRY === '1';
+const LIMIT  = process.env.LIMIT ? parseInt(process.env.LIMIT) : 0;
 const MARKUP = process.env.MARKUP ? parseFloat(process.env.MARKUP) : 1.20;
-
-// TRY → EUR kuru (güncelle: https://www.ecb.europa.eu)
-// Haziran 2026 itibarıyla yaklaşık 1 EUR = 38 TRY
 const TRY_TO_EUR = process.env.TRY_EUR ? parseFloat(process.env.TRY_EUR) : 1 / 38;
 
 const SHOP = 'pftzey-y0.myshopify.com';
 const BASE = `https://${SHOP}/admin/api/2024-04`;
-const SH = { 'X-Shopify-Access-Token': SHOPIFY_TOKEN, 'Content-Type': 'application/json' };
+const SH   = { 'X-Shopify-Access-Token': SHOPIFY_TOKEN, 'Content-Type': 'application/json' };
 
 if (!SHOPIFY_TOKEN && !DRY) {
-  console.error('❌ SHOPIFY_TOKEN gerekli (veya DRY=1 ile önizle)');
-  process.exit(1);
+  console.error('❌ SHOPIFY_TOKEN gerekli (veya DRY=1)'); process.exit(1);
 }
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
-// ── HTTP fetch with browser headers ─────────────────────────
-function fetchPage(url) {
-  return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(url);
-    const options = {
-      hostname: parsedUrl.hostname,
-      path: parsedUrl.pathname + parsedUrl.search,
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'tr-TR,tr;q=0.9,fr;q=0.8,en;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'max-age=0',
-      }
-    };
-
-    let req;
-    const handleResponse = (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchPage(new URL(res.headers.location, url).href).then(resolve).catch(reject);
-      }
-      let data = [];
-      // Handle gzip
-      let stream = res;
-      if (res.headers['content-encoding'] === 'gzip') {
-        stream = res.pipe(zlib.createGunzip());
-      } else if (res.headers['content-encoding'] === 'br') {
-        stream = res.pipe(zlib.createBrotliDecompress());
-      } else if (res.headers['content-encoding'] === 'deflate') {
-        stream = res.pipe(zlib.createInflate());
-      }
-      stream.on('data', chunk => data.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(data).toString('utf8')));
-      stream.on('error', reject);
-    };
-
-    req = https.request(options, handleResponse);
-    req.on('error', reject);
-    req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
-    req.end();
-  });
-}
-
-// ── Shopify API ──────────────────────────────────────────────
+// ── Shopify helper ───────────────────────────────────────────
 async function shopify(method, path, body) {
   for (let i = 1; i <= 4; i++) {
     try {
       const r = await fetch(`${BASE}/${path}`, {
-        method, headers: SH,
-        body: body ? JSON.stringify(body) : undefined
+        method, headers: SH, body: body ? JSON.stringify(body) : undefined
       });
       if (method === 'DELETE') return { ok: r.ok };
       return await r.json();
-    } catch (e) {
-      if (i === 4) throw e;
-      await delay(2000 * i);
-    }
+    } catch (e) { if (i === 4) throw e; await delay(2000 * i); }
   }
 }
 
-async function uploadImageToShopify(productId, imageUrl, altText) {
-  try {
-    const d = await shopify('POST', `products/${productId}/images.json`, {
-      image: { src: imageUrl, alt: altText }
-    });
-    return d.image?.id;
-  } catch (e) {
-    console.warn(`   ⚠️  Resim yüklenemedi: ${e.message}`);
-    return null;
-  }
-}
-
-// ── HTML Parser ──────────────────────────────────────────────
-function extractText(html, tag, cls) {
-  const re = new RegExp(`<${tag}[^>]*class="[^"]*${cls}[^"]*"[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
-  const m = html.match(re);
-  return m ? m[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : null;
-}
-
-function extractAttr(html, tag, attr, cls = '') {
-  const clsPart = cls ? `[^>]*class="[^"]*${cls}[^"]*"` : '';
-  const re = new RegExp(`<${tag}${clsPart}[^>]*${attr}="([^"]+)"`, 'i');
-  const m = html.match(re);
-  return m ? m[1] : null;
-}
-
-// ── API / sitemap stratejileri ───────────────────────────────
-async function tryWooCommerceAPI() {
-  // Çeşitli WooCommerce endpoint kombinasyonları
-  const endpoints = [
-    'https://www.karakoygulluoglu.com/wp-json/wc/store/v1/products?category=baklavalar&per_page=100',
-    'https://www.karakoygulluoglu.com/wp-json/wc/store/v1/products?search=baklava&per_page=100',
-    'https://www.karakoygulluoglu.com/wp-json/wp/v2/product?per_page=100&search=baklava',
-  ];
-  for (const url of endpoints) {
-    try {
-      const html = await fetchPage(url);
-      const data = JSON.parse(html);
-      if (Array.isArray(data) && data.length > 0) {
-        console.log(`   ✅ WooCommerce API: ${data.length} ürün (${url.split('?')[0].split('/').pop()})`);
-        return data.map(p => ({
-          name: p.name || p.title?.rendered || '',
-          priceTRY: parseFloat(p.prices?.price || p.price || 0) / 100, // WooCommerce minor units
-          imageUrl: p.images?.[0]?.src || p.image?.src || '',
-          url: p.permalink || p.link || '',
-          description: (p.short_description || p.description || '').replace(/<[^>]+>/g, '').slice(0, 400),
-        }));
-      }
-    } catch {}
-    await delay(300);
-  }
-  return null;
-}
-
-async function tryNextJsAPI() {
-  // Next.js statik data veya API route'ları
-  const endpoints = [
-    'https://www.karakoygulluoglu.com/api/products?slug=baklavalar',
-    'https://www.karakoygulluoglu.com/api/products?category=baklava',
-    'https://www.karakoygulluoglu.com/_next/data/baklavalar.json',
-  ];
-  for (const url of endpoints) {
-    try {
-      const html = await fetchPage(url);
-      const data = JSON.parse(html);
-      const products = data?.products || data?.items || data?.data || data?.pageProps?.products;
-      if (Array.isArray(products) && products.length > 0) {
-        console.log(`   ✅ Next.js API: ${products.length} ürün`);
-        return products.map(p => ({
-          name: p.name || p.title || '',
-          priceTRY: parseFloat(p.price || p.regularPrice || 0),
-          imageUrl: p.image || p.thumbnail || p.imageUrl || '',
-          url: p.url || p.slug || '',
-          description: (p.description || p.shortDescription || '').slice(0, 400),
-        }));
-      }
-    } catch {}
-    await delay(300);
-  }
-  return null;
-}
-
-async function tryScriptTagData(html) {
-  // Next.js / Nuxt __NEXT_DATA__ veya window.__INITIAL_STATE__
-  const patterns = [
-    /__NEXT_DATA__\s*=\s*(\{[\s\S]*?\})<\/script>/,
-    /window\.__INITIAL_STATE__\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/,
-    /window\.__NUXT__\s*=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/,
-    /<script[^>]*type="application\/json"[^>]*>([\s\S]*?)<\/script>/g,
-  ];
-
-  for (const pattern of patterns) {
-    try {
-      const matches = typeof pattern.exec === 'function'
-        ? [html.match(pattern)]
-        : [...html.matchAll(pattern)].map(m => [m[0], m[1]]);
-
-      for (const m of matches) {
-        if (!m?.[1]) continue;
-        const data = JSON.parse(m[1]);
-        // Ürün listesini ara
-        const findProducts = (obj, depth = 0) => {
-          if (depth > 6 || !obj || typeof obj !== 'object') return null;
-          if (Array.isArray(obj) && obj.length > 2 && obj[0]?.name && (obj[0]?.price !== undefined)) return obj;
-          for (const v of Object.values(obj)) {
-            const r = findProducts(v, depth + 1);
-            if (r) return r;
-          }
-          return null;
-        };
-        const products = findProducts(data);
-        if (products) {
-          console.log(`   ✅ Script tag data: ${products.length} ürün`);
-          return products.map(p => ({
-            name: p.name || p.title || '',
-            priceTRY: parseFloat(p.price || p.regularPrice || p.salePrice || 0),
-            imageUrl: p.image || p.imageUrl || p.thumbnail || '',
-            url: p.url || p.permalink || p.slug || '',
-            description: (p.description || p.shortDescription || '').replace(/<[^>]+>/g, '').slice(0, 400),
-          }));
-        }
-      }
-    } catch {}
-  }
-  return null;
-}
-
-// ── Baklava sayfasını parse et ───────────────────────────────
+// ── Puppeteer scraper ────────────────────────────────────────
 async function scrapeBaklavas() {
-  // Önce API endpoint'leri dene
-  console.log('   🔌 WooCommerce API deneniyor...');
-  const wooResult = await tryWooCommerceAPI();
-  if (wooResult?.length > 0) return wooResult;
-
-  console.log('   🔌 Next.js API deneniyor...');
-  const nextResult = await tryNextJsAPI();
-  if (nextResult?.length > 0) return nextResult;
-
-  const PAGES = [
-    'https://www.karakoygulluoglu.com/baklavalar',
-    'https://www.karakoygulluoglu.com/urunler/baklavalar',
-    'https://www.karakoygulluoglu.com/kategori/baklavalar',
-    'https://www.karakoygulluoglu.com/category/baklavalar',
-  ];
-
-  let html = null;
-  for (const url of PAGES) {
-    try {
-      console.log(`   Deneniyor: ${url}`);
-      html = await fetchPage(url);
-      if (html && html.length > 3000) {
-        console.log(`   ✅ Sayfa alındı (${Math.round(html.length/1024)}KB)`);
-        // Script tag'dan data bul
-        const scriptData = await tryScriptTagData(html);
-        if (scriptData?.length > 0) return scriptData;
-        break;
-      }
-    } catch (e) {
-      console.log(`   ❌ ${url}: ${e.message}`);
-    }
-    await delay(800);
+  let puppeteer;
+  try {
+    puppeteer = require('puppeteer');
+  } catch {
+    console.error('\n❌ Puppeteer bulunamadı. Şu komutu çalıştır:\n');
+    console.error('   npm install puppeteer\n');
+    console.error('Sonra tekrar dene.\n');
+    process.exit(1);
   }
 
-  // HTML dump — incelemek için
-  if (html) {
-    const fs = await import('fs');
-    fs.writeFileSync('./gulluoglu-debug.html', html);
-    console.log(`   📄 HTML kaydedildi: gulluoglu-debug.html (${Math.round(html.length/1024)}KB)`);
-    console.log(`      İncele: open gulluoglu-debug.html`);
-  }
+  console.log('   🌐 Chrome başlatılıyor...');
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--lang=tr-TR']
+  });
 
-  if (!html || html.length < 500) throw new Error('Sayfa alınamadı — site bot koruması olabilir');
+  const page = await browser.newPage();
+  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36');
+  await page.setExtraHTTPHeaders({ 'Accept-Language': 'tr-TR,tr;q=0.9' });
 
-  const products = [];
-
-  // WooCommerce standart ürün kartı
-  const cardPatterns = [
-    // Standart WooCommerce li.product
-    /<li[^>]*class="[^"]*product[^"]*"[^>]*>([\s\S]*?)<\/li>/g,
-    // Alternatif div.product-item
-    /<div[^>]*class="[^"]*product[^"]*"[^>]*>([\s\S]*?)<\/div>/g,
-  ];
-
-  let cards = [];
-  for (const pattern of cardPatterns) {
-    const matches = [...html.matchAll(pattern)];
-    if (matches.length > 3) { cards = matches.map(m => m[1]); break; }
-  }
-
-  if (cards.length === 0) {
-    // JSON-LD fallback
-    const jsonLdMatches = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
-    for (const m of jsonLdMatches) {
+  // Ağ isteklerini dinle — API endpoint'i yakala
+  let apiProducts = [];
+  page.on('response', async (response) => {
+    const url = response.url();
+    if (!url.includes('karakoygulluoglu')) return;
+    if (/(product|urun|item)/i.test(url) && response.headers()['content-type']?.includes('json')) {
       try {
-        const data = JSON.parse(m[1]);
-        const items = data['@graph'] || (Array.isArray(data) ? data : [data]);
-        for (const item of items) {
-          if (item['@type'] === 'Product') {
-            products.push({
-              name: item.name,
-              priceTRY: parseFloat(item.offers?.price || 0),
-              imageUrl: item.image?.[0] || item.image || '',
-              url: item.url || '',
-              description: item.description || '',
-            });
-          }
+        const data = await response.json();
+        const items = data?.data?.products || data?.products || data?.items || data?.data || [];
+        if (Array.isArray(items) && items.length > 0) {
+          console.log(`   🎯 API endpoint yakalandı: ${url.split('?')[0].slice(-60)}`);
+          apiProducts = items;
         }
       } catch {}
     }
-    if (products.length > 0) return products;
+  });
 
-    // Son çare: fiyat ve isim regex
-    const priceRe = /<[^>]*class="[^"]*price[^"]*"[^>]*>[\s\S]*?(\d[\d.,]+)\s*(?:TL|₺|TRY)/g;
-    const nameRe = /<[^>]*class="[^"]*(?:title|name|product-title)[^"]*"[^>]*>\s*<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>/g;
-
-    // Raw extraction
-    const priceMatches = [...html.matchAll(priceRe)].map(m => m[1]);
-    const nameMatches  = [...html.matchAll(nameRe)].map(m => ({ url: m[1], name: m[2].trim() }));
-
-    for (let i = 0; i < Math.min(nameMatches.length, priceMatches.length); i++) {
-      products.push({
-        name: nameMatches[i].name,
-        priceTRY: parseFloat(priceMatches[i].replace(/\./g, '').replace(',', '.')),
-        imageUrl: '',
-        url: nameMatches[i].url,
-        description: '',
-      });
-    }
-    return products;
+  console.log('   📖 Sayfa yükleniyor...');
+  try {
+    await page.goto('https://www.karakoygulluoglu.com/baklavalar', {
+      waitUntil: 'networkidle2', timeout: 30000
+    });
+  } catch (e) {
+    console.log(`   ⚠️  Yükleme hatası: ${e.message} — devam ediyorum`);
   }
 
-  for (const card of cards) {
-    // Name
-    let name = null;
-    const namePatterns = [
-      /<a[^>]*class="[^"]*(?:woocommerce-loop-product__title|product-title|product_title)[^"]*"[^>]*>([^<]+)<\/a>/i,
-      /<h2[^>]*class="[^"]*(?:woocommerce-loop-product__title|product-title)[^"]*"[^>]*>([^<]+)<\/h2>/i,
-      /<h3[^>]*class="[^"]*(?:product-title)[^"]*"[^>]*>([^<]+)<\/h3>/i,
-      /<a[^>]*>([\w\sÀ-ɏİ-ı]+Baklava[\w\sÀ-ɏİı]*)<\/a>/i,
+  // Ürünlerin yüklenmesi için bekle
+  await delay(2000);
+
+  // Scroll — lazy-load ürünler için
+  await page.evaluate(async () => {
+    for (let i = 0; i < 5; i++) {
+      window.scrollBy(0, window.innerHeight);
+      await new Promise(r => setTimeout(r, 600));
+    }
+  });
+  await delay(1500);
+
+  // API'den ürün geldiyse önce onu kullan
+  if (apiProducts.length > 0) {
+    await browser.close();
+    return apiProducts.map(p => ({
+      name: p.name || p.title || p.product_name || '',
+      priceTRY: parseFloat(p.price || p.regularPrice || p.salePrice || 0),
+      imageUrl: p.image || p.imageUrl || p.images?.[0]?.src || p.images?.[0] || '',
+      url: p.url || p.permalink || p.slug || '',
+      description: (p.description || p.shortDescription || '').replace(/<[^>]+>/g,'').slice(0,400),
+    }));
+  }
+
+  // DOM'dan ürünleri çek
+  console.log('   🔍 DOM parse ediliyor...');
+  const products = await page.evaluate(() => {
+    const results = [];
+    const seen = new Set();
+
+    // Tüm olası ürün container seçicileri dene
+    const selectors = [
+      '[class*="product-card"]',
+      '[class*="product-item"]',
+      '[class*="ProductCard"]',
+      '[class*="product_card"]',
+      'article[class*="product"]',
+      'li[class*="product"]',
+      '.products-grid > div',
+      '.product-list > div',
+      '[data-product-id]',
+      '[data-id][class*="product"]',
     ];
-    for (const p of namePatterns) {
-      const m = card.match(p);
-      if (m) { name = m[1].trim(); break; }
-    }
-    if (!name) continue;
 
-    // Price (TRY)
-    let priceTRY = 0;
-    const priceMatch = card.match(/(\d[\d.,]+)\s*(?:TL|₺|TRY)/i)
-      || card.match(/<bdi>([^<]+)<\/bdi>/i)
-      || card.match(/class="[^"]*(?:price|woocommerce-Price-amount)[^"]*"[^>]*>[\s\S]*?(\d[\d.,]+)/i);
-    if (priceMatch) {
-      priceTRY = parseFloat(priceMatch[1].replace(/\./g, '').replace(',', '.'));
+    let cards = [];
+    for (const sel of selectors) {
+      const found = document.querySelectorAll(sel);
+      if (found.length > 2) { cards = Array.from(found); break; }
     }
 
-    // Image
-    const imgMatch = card.match(/<img[^>]*src="([^"]+)"[^>]*>/i)
-      || card.match(/data-src="([^"]+\.(?:jpg|jpeg|png|webp))"/i);
-    const imageUrl = imgMatch ? imgMatch[1] : '';
+    for (const card of cards) {
+      // Name
+      const nameEl = card.querySelector(
+        '[class*="title"], [class*="name"], [class*="product-name"], h2, h3, h4, a[class*="name"]'
+      );
+      const name = nameEl?.textContent?.trim();
+      if (!name || seen.has(name)) continue;
+      seen.add(name);
 
-    // Product URL
-    const urlMatch = card.match(/<a[^>]*href="(https?:\/\/[^"]*karakoygulluoglu[^"]*)"[^>]*>/i)
-      || card.match(/<a[^>]*href="(\/urun[^"]*|\/product[^"]*)"[^>]*>/i);
-    const productUrl = urlMatch ? urlMatch[1] : '';
+      // Price
+      const priceEl = card.querySelector('[class*="price"], [class*="Price"]');
+      const priceText = priceEl?.textContent || '';
+      const priceMatch = priceText.match(/([\d.,]+)\s*(?:TL|₺|TRY)?/);
+      const priceTRY = priceMatch ? parseFloat(priceMatch[1].replace(/\./g,'').replace(',','.')) : 0;
 
-    products.push({ name, priceTRY, imageUrl, url: productUrl, description: '' });
+      // Image
+      const img = card.querySelector('img');
+      const imageUrl = img?.src || img?.dataset?.src || img?.dataset?.lazySrc || '';
+
+      // URL
+      const link = card.querySelector('a');
+      const url = link?.href || '';
+
+      results.push({ name, priceTRY, imageUrl, url, description: '' });
+    }
+
+    return results;
+  });
+
+  if (products.length === 0) {
+    // Son çare: tüm sayfanın HTML'ini kaydet
+    const html = await page.content();
+    const fs = require('fs');
+    fs.writeFileSync('./gulluoglu-debug.html', html);
+    console.log(`   📄 Debug HTML kaydedildi (${Math.round(html.length/1024)}KB): gulluoglu-debug.html`);
+    console.log('   👉 Lütfen gulluoglu-debug.html içeriğini incele');
   }
 
+  await browser.close();
   return products;
 }
 
-// ── Ürün sayfasından açıklama al ────────────────────────────
-async function fetchDescription(url) {
-  if (!url) return '';
-  try {
-    const html = await fetchPage(url.startsWith('http') ? url : `https://www.karakoygulluoglu.com${url}`);
-    const descMatch = html.match(/<div[^>]*class="[^"]*(?:woocommerce-product-details__short-description|product-description|entry-summary)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    if (descMatch) return descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
-  } catch {}
-  return '';
+// ── Filtre & dönüşüm ─────────────────────────────────────────
+function isBoxed(name) {
+  return /kutu|box|paket|set|gift|hediye|gift\s*box|özel\s*sunum/i.test(name);
 }
 
-// ── Shopify'a ürün ekle ──────────────────────────────────────
+function frenchifyName(name) {
+  let n = name
+    .replace(/\bFıstıklı Baklava\b/gi, 'Baklava aux Pistaches')
+    .replace(/\bFıstıklı\b/gi, 'aux Pistaches')
+    .replace(/\bCevizli Baklava\b/gi, 'Baklava aux Noix')
+    .replace(/\bCevizli\b/gi, 'aux Noix')
+    .replace(/\bBülbül Yuvası\b/gi, 'Nid de Rossignol (Baklava)')
+    .replace(/\bHavuç Dilimi\b/gi, 'Baklava Tranche de Carotte')
+    .replace(/\bŞöbiyet\b/gi, 'Şöbiyet (Feuilleté Kaymak)')
+    .replace(/\bBurma Kadayıf\b/gi, 'Burma Kadayıf')
+    .replace(/\bKadayıf\b/gi, 'Kadayıf')
+    .replace(/\bSade Baklava\b/gi, 'Baklava Nature')
+    .replace(/\bSade\b/gi, 'Nature')
+    .replace(/\bAntep Fıstıklı\b/gi, 'aux Pistaches d\'Antep')
+    .replace(/\bKaymak(?:lı)?\b/gi, 'à la Crème')
+    .replace(/\bDürüm\b/gi, 'Roulé')
+    .replace(/\bKestaneli\b/gi, 'aux Châtaignes')
+    .replace(/\bFındıklı\b/gi, 'aux Noisettes')
+    .replace(/\bBadem(?:li)?\b/gi, 'aux Amandes')
+    .replace(/\bÇikolata(?:lı)?\b/gi, 'au Chocolat')
+    .replace(/\bPortakal(?:lı)?\b/gi, 'à l\'Orange')
+    .replace(/\bLimon(?:lu)?\b/gi, 'au Citron')
+    .replace(/\bı/g,'ı').replace(/\bİ/g,'İ')
+    .trim();
+
+  // "Baklava" kelimesi yoksa ekle
+  if (!/baklava/i.test(n) && !/kadayıf|şöbiyet|nid|roulé/i.test(n)) {
+    n = 'Baklava ' + n;
+  }
+
+  // Karaköy Güllüoğlu prefix
+  return `Karaköy Güllüoğlu — ${n}`;
+}
+
+// ── Shopify ürün oluştur ─────────────────────────────────────
 async function createProduct(p) {
   const priceEUR = (p.priceTRY * TRY_TO_EUR * MARKUP).toFixed(2);
-  const body = {
+  const d = await shopify('POST', 'products.json', {
     product: {
       title: p.frenchName,
-      body_html: p.description ? `<p>${p.description}</p>` : `<p>Baklava traditionnel turc Karaköy Güllüoğlu — Fabrication artisanale depuis 1820.</p>`,
+      body_html: p.description
+        ? `<p>${p.description}</p><p><em>Karaköy Güllüoğlu — Maître artisan depuis 1820, Istanbul.</em></p>`
+        : `<p>Baklava artisanal de la prestigieuse maison Karaköy Güllüoğlu, fondée à Istanbul en 1820. Préparé selon des recettes transmises de génération en génération, avec les meilleurs ingrédients sélectionnés.</p>`,
       vendor: 'Karaköy Güllüoğlu',
       product_type: 'Douceurs Orientales',
-      tags: 'baklava,turc,oriental,halal,dessert,karakoy',
+      tags: 'baklava,turc,oriental,pâtisserie,artisanal,istanbul,karakoy-gulluoglu',
       status: 'active',
-      variants: [{ price: priceEUR, requires_shipping: true, taxable: true }],
+      variants: [{
+        price: priceEUR,
+        requires_shipping: true,
+        taxable: true,
+        inventory_management: null,
+      }],
     }
-  };
-
-  const d = await shopify('POST', 'products.json', body);
+  });
   const product = d.product;
-  if (!product) throw new Error(JSON.stringify(d));
+  if (!product?.id) throw new Error(JSON.stringify(d).slice(0,200));
 
-  // Koleksiyona ekle
-  const colls = ['686917583173', '687825617221']; // Baklava + Snacks&Apéro
-  for (const cid of colls) {
-    await shopify('POST', 'collects.json', { collect: { product_id: product.id, collection_id: parseInt(cid) } });
+  // Koleksiyonlar: Baklava + Snacks & Apéro + Cuisine Turque
+  for (const cid of [686917583173, 687825617221, 686915551557]) {
+    await shopify('POST', 'collects.json', { collect: { product_id: product.id, collection_id: cid } });
     await delay(150);
   }
 
-  // Resim ekle
-  if (p.imageUrl) {
-    await uploadImageToShopify(product.id, p.imageUrl, p.frenchName);
+  // Resim
+  if (p.imageUrl && p.imageUrl.startsWith('http')) {
+    await shopify('POST', `products/${product.id}/images.json`, {
+      image: { src: p.imageUrl, alt: p.frenchName }
+    });
     await delay(300);
   }
 
   return { id: product.id, price: priceEUR };
 }
 
-// ── İsim Fransızcalaştır ─────────────────────────────────────
-function frenchifyName(name) {
-  return name
-    .replace(/Baklava/gi, 'Baklava')
-    .replace(/Fıstıklı/gi, 'Baklava aux Pistaches')
-    .replace(/Cevizli/gi, 'Baklava aux Noix')
-    .replace(/Bülbül Yuvası/gi, 'Nid de Rossignol')
-    .replace(/Burma/gi, 'Baklava Burma')
-    .replace(/Havuç Dilimi/gi, 'Baklava Tranche de Carotte')
-    .replace(/Şöbiyet/gi, 'Şöbiyet')
-    .replace(/Sade/gi, 'Nature')
-    .replace(/Antep/gi, 'Antep')
-    .replace(/Kaymak/gi, 'à la Crème')
-    .replace(/Dürüm/gi, 'Roulé')
-    .replace(/Kadayıf/gi, 'Kadayıf')
-    .trim();
-}
-
-// ── "Kutulu" (kutu/hediye) filtresi ─────────────────────────
-function isBoxed(name) {
-  return /kutu|box|paket|set|gift|hediye/i.test(name);
-}
-
 // ── ANA AKIŞ ────────────────────────────────────────────────
-console.log('🍯 Karaköy Güllüoğlu Baklava → Mondimart\n');
-console.log(`   Kur: 1 EUR = ${(1/TRY_TO_EUR).toFixed(0)} TRY | Markup: ×${MARKUP} | ${DRY ? '🔍 ÖNİZLEME' : '🚀 CANLI'}\n`);
+console.log('🍯 Karaköy Güllüoğlu → Mondimart\n');
+console.log(`   Kur: 1 EUR ≈ ${(1/TRY_TO_EUR).toFixed(0)} TRY | Markup: ×${MARKUP} | ${DRY?'🔍 ÖNİZLEME':'🚀 CANLI'}\n`);
 
 console.log('🌐 Baklava sayfası scrape ediliyor...');
-let baklavas;
-try {
-  baklavas = await scrapeBaklavas();
-} catch (e) {
-  console.error(`❌ Scrape başarısız: ${e.message}`);
-  console.error('\n💡 İpucu: Site bot koruması varsa tarayıcıda açıp HTML\'i kaydet,');
-  console.error('   ardından: node mondimart-import-gulluoglu.mjs --file baklavalar.html');
-  process.exit(1);
-}
+const raw = await scrapeBaklavas();
+console.log(`   ${raw.length} ürün bulundu`);
 
-console.log(`   ${baklavas.length} ürün bulundu`);
-
-// Filtrele: kutu ve fiyatsız ürünleri çıkar
-const filtered = baklavas
+const filtered = raw
   .filter(p => !isBoxed(p.name))
+  .filter(p => p.name?.length > 2)
   .filter(p => p.priceTRY > 0);
 
-console.log(`   Kutulu/fiyatsız çıkarıldı: ${baklavas.length - filtered.length}`);
+console.log(`   Kutulu/geçersiz çıkarıldı: ${raw.length - filtered.length}`);
 console.log(`   İşlenecek: ${filtered.length} ürün\n`);
 
-let targets = LIMIT ? filtered.slice(0, LIMIT) : filtered;
-
+const targets = LIMIT ? filtered.slice(0, LIMIT) : filtered;
 let added = 0, skipped = 0;
 
 for (const p of targets) {
@@ -465,27 +281,24 @@ for (const p of targets) {
   const priceEUR = (p.priceTRY * TRY_TO_EUR * MARKUP).toFixed(2);
 
   if (DRY) {
-    console.log(`   📦 "${p.name}"`);
-    console.log(`      → "${p.frenchName}"`);
-    console.log(`      💰 ${p.priceTRY} TRY × ${TRY_TO_EUR.toFixed(4)} × ${MARKUP} = ${priceEUR}€`);
-    console.log(`      🖼️  ${p.imageUrl ? p.imageUrl.slice(0,60)+'...' : '(resim yok)'}`);
+    console.log(`📦 "${p.name}"`);
+    console.log(`   → "${p.frenchName}"`);
+    console.log(`   💰 ${p.priceTRY} TRY → ${priceEUR}€`);
+    console.log(`   🖼️  ${p.imageUrl ? '✅ resim var' : '❌ resim yok'}`);
+    console.log('');
     added++;
     continue;
   }
 
-  // Açıklama çek (isteğe bağlı — yavaşlatır)
-  // p.description = await fetchDescription(p.url);
-
   try {
     const result = await createProduct(p);
-    console.log(`   ✅ "${p.frenchName}" → ${result.price}€ (ID: ${result.id})`);
+    console.log(`✅ "${p.frenchName}" → ${result.price}€`);
     added++;
-    await delay(500);
+    await delay(600);
   } catch (e) {
-    console.error(`   ❌ "${p.name}": ${e.message}`);
+    console.error(`❌ "${p.name}": ${e.message}`);
     skipped++;
   }
 }
 
-console.log(`\n🎉 Tamamlandı: ${added} ${DRY ? 'önizlendi' : 'eklendi'} | ${skipped} hata`);
-if (!DRY) console.log('   Baklava ve Snacks&Apéro koleksiyonlarına otomatik eklendi.');
+console.log(`\n🎉 ${added} ${DRY?'önizlendi':'eklendi'} | ${skipped} hata`);
