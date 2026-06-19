@@ -88,6 +88,30 @@ function ch_claude(string $sys, string $usr, int $max = 4000): string {
     return $d['content'][0]['text'] ?? '';
 }
 
+/* Vision: yüklenen foto/PDF'den gerçekleri çıkar (3. tarafa gerçek isim/adres gitmez; sadece vaka gerçekleri) */
+function ch_vision(string $sys, string $userText, array $photos, int $max = 1200): string {
+    $content = [['type'=>'text','text'=>$userText]];
+    foreach ($photos as $ph) {
+        $mt = $ph['type'] ?? 'image/jpeg';
+        if (empty($ph['data'])) continue;
+        if ($mt === 'application/pdf') {
+            $content[] = ['type'=>'document','source'=>['type'=>'base64','media_type'=>'application/pdf','data'=>$ph['data']]];
+        } elseif (in_array($mt, ['image/jpeg','image/png','image/gif','image/webp'])) {
+            $content[] = ['type'=>'image','source'=>['type'=>'base64','media_type'=>$mt,'data'=>$ph['data']]];
+        }
+    }
+    if (count($content) < 2) return '';
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>60, CURLOPT_POST=>true,
+        CURLOPT_HTTPHEADER=>['Content-Type: application/json','x-api-key: '.CLAUDE_KEY,'anthropic-version: 2023-06-01'],
+        CURLOPT_POSTFIELDS=>json_encode(['model'=>'claude-sonnet-4-6','max_tokens'=>$max,'system'=>$sys,'messages'=>[['role'=>'user','content'=>$content]]]),
+    ]);
+    $res = curl_exec($ch); curl_close($ch);
+    $d = json_decode($res, true);
+    return $d['content'][0]['text'] ?? '';
+}
+
 $user   = intake_user();
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 $action = $body['action'] ?? 'intake_chat';
@@ -125,6 +149,21 @@ if ($action === 'intake_chat') {
 
 /* ── Anlaşılan duruma göre güçlü belge ── */
 if ($action === 'intake_solve') {
+    // 0) Yüklenen foto/PDF varsa Vision ile oku, vakaya ekle
+    $photos = array_values(array_filter($body['photos'] ?? [], fn($p) =>
+        isset($p['data']) && strlen($p['data']) > 100 && strlen($p['data']) < 5000000
+    ));
+    if ($photos) {
+        $pf = ch_vision(
+            "Du wertest hochgeladene Dokumente/Belege aus. Extrahiere alle relevanten Fakten "
+            . "(Daten, Fristen, Aktenzeichen, Beträge, Behörde/Absender, Kernaussagen) als knappe deutsche Stichpunkte. Keine Einleitung.",
+            "Beigefügte Dokumente des Nutzers:",
+            array_slice($photos, 0, 5),
+            1200
+        );
+        if ($pf) $convo .= "\n\nAUS HOCHGELADENEN DOKUMENTEN:\n" . $pf;
+    }
+
     // 1) Yapı + hukuki çerçeve (anlama derinleştirme)
     $struct = ch_ds([
         ['role'=>'system','content'=>'Du bist deutscher Jurist. Fasse den Bedarf des Nutzers präzise zusammen und bestimme: passender Dokumententyp, einschlägige §§, Fristen, die stärksten Argumente. Kompakt und strukturiert.'],
