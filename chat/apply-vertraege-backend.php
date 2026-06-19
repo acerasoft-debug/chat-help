@@ -26,7 +26,8 @@ $inject = $anchor . "\n"
   . "          . ' am Ende Ort/Datum und Unterschriftsfelder BEIDER Parteien.'\n"
   . "          . ' Nenne einschlägige §§ (BGB, HGB, GmbHG, GbR/MoPeG, BetrVG, TzBfG, Nachweisgesetz usw.) korrekt.'\n"
   . "          . ' Wenn für diesen Vertrag eine notarielle Beurkundung oder Schriftform gesetzlich vorgeschrieben ist (z.B. Ehevertrag, GmbH-Satzung, Grundstücke, Bürgschaft), weise am Ende AUSDRÜCKLICH mit einem Hinweis darauf hin.'\n"
-  . "          . ' Lasse keine Pflichtklausel aus. Reiner, vollständiger Vertragstext.';\n"
+  . "          . ' Lasse keine Pflichtklausel aus. Reiner, vollständiger Vertragstext.'\n"
+  . "          . ' Füge als ALLERLETZTE Zeile genau hinzu: \"Hinweis: Dieses Dokument wurde KI-gestützt erstellt – bei wichtigen Verträgen empfehlen wir eine anwaltliche Prüfung.\"';\n"
   . "    }";
 
 $c = substr_count($src, $anchor);
