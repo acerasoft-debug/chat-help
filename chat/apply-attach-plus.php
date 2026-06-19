@@ -180,7 +180,7 @@ $bundle = <<<'HTML'
     return of(input,init);
   };
 
-  function tick(){ wrapReset(); decorateDocForm(); decorateFall(); decorateIntake(); decorateMain(); fallPremium(); }
+  function tick(){ wrapReset(); decorateDocForm(); decorateFall(); decorateIntake(); decorateMain(); fallPremium(); syncDocPhotos(); }
   function boot(){ tick(); setInterval(tick,1000); }
   if(document.body) boot(); else document.addEventListener('DOMContentLoaded',boot);
 })();
