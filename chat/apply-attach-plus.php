@@ -141,19 +141,30 @@ $bundle = <<<'HTML'
     });
   }
 
-  /* ── formlar değişince sıfırla ── */
+  /* ── form açılınca yükleme alanını (kalıcı dosyalarla) yeniden çiz ── */
   function wrapReset(){
     if(typeof window.showQuestions==='function' && !window.showQuestions._cha2){
       var _sq=window.showQuestions;
-      window.showQuestions=function(){ window._chDocFiles=[]; window._chPhotos={};
-        var ex=document.querySelector('.cha2-doc'); if(ex)ex.remove();
-        var r=_sq.apply(this,arguments); setTimeout(decorateDocForm,200); setTimeout(decorateDocForm,700); return r; };
+      // _chDocFiles SIFIRLANMAZ: ana sayfada çekilen foto forma taşınır
+      window.showQuestions=function(){ var r=_sq.apply(this,arguments);
+        setTimeout(decorateDocForm,200); setTimeout(decorateDocForm,700); return r; };
       window.showQuestions._cha2=true;
     }
     if(typeof window.chOpenIntake==='function' && !window.chOpenIntake._cha2){
       var _oi=window.chOpenIntake; window.chOpenIntake=function(){ window._chIntakeFiles=[]; return _oi.apply(this,arguments); }; window.chOpenIntake._cha2=true;
     }
   }
+
+  /* ── Ana sayfa "fotografieren" foto'sunu da belgeye taşı (capture) ── */
+  document.addEventListener('change', function(ev){
+    var inp=ev.target;
+    if(!inp || inp.type!=='file' || !inp.files || !inp.files.length) return;
+    if(inp.closest('.cha2-doc') || inp.closest('.cha2-plus')) return;   // benim inputlarım zaten ekleniyor
+    if(!/image\//.test(inp.accept||'') && !/pdf/.test(inp.accept||'')) return;
+    Array.prototype.slice.call(inp.files).forEach(function(f){
+      readFile(f, function(o){ window._chDocFiles.push(o); syncDocPhotos(); drawDocChips(); });
+    });
+  }, true);
 
   /* ── intake isteklerine photos ── */
   var of=window.fetch.bind(window);
