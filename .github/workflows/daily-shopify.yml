@@ -1,0 +1,34 @@
+name: Daily Shopify Stock (Mondimart)
+
+# Her gün 05:00 UTC + elle tetikleme
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Stok senkronu
+        env:
+          SHOPIFY_TOKEN: ${{ secrets.SHOPIFY_TOKEN }}
+        run: |
+          if [ -z "$SHOPIFY_TOKEN" ]; then
+            echo "::warning::SHOPIFY_TOKEN secret yok — atlanıyor."
+            exit 0
+          fi
+          if [ -f shopify-stock-all.mjs ]; then
+            node shopify-stock-all.mjs
+          else
+            echo "::warning::shopify-stock-all.mjs bu branch'te yok. Scripti default branch'e ekleyin."
+          fi
