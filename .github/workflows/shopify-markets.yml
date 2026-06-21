@@ -1,0 +1,40 @@
+name: Shopify Markets + Soğuk Zincir (Mondimart)
+
+# Elle tetiklenir. Varsayılan DRY-RUN; uygulamak için apply=true seçin.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Gerçekten uygula? (false = sadece önizleme/dry-run)'
+        type: boolean
+        default: false
+      steps:
+        description: 'Adımlar (virgülle): markets,delivery,catalogs'
+        type: string
+        default: 'markets,delivery,catalogs'
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Pazar + soğuk zincir
+        env:
+          SHOPIFY_STORE: ${{ secrets.SHOPIFY_STORE }}
+          SHOPIFY_TOKEN: ${{ secrets.SHOPIFY_TOKEN }}
+          APPLY: ${{ inputs.apply }}
+          STEPS: ${{ inputs.steps }}
+        run: |
+          if [ -z "$SHOPIFY_STORE" ] || [ -z "$SHOPIFY_TOKEN" ]; then
+            echo "::error::SHOPIFY_STORE ve SHOPIFY_TOKEN secret'ları gerekli."
+            exit 1
+          fi
+          node shopify-markets.mjs
