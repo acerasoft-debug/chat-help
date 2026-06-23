@@ -13,6 +13,9 @@
  * KULLANIM: chat-help.com/chat/apply-france.php -> opcache-reset.php. SİL: rm apply-france.php
  */
 header('Content-Type: text/plain; charset=UTF-8');
+@ini_set('display_errors','1'); error_reporting(E_ALL);
+echo "ChatHelp — apply-france.php BAŞLADI ✓ (PHP ".PHP_VERSION.")\n\n";
+@ob_flush(); @flush();
 $file = __DIR__ . '/index.php';
 if (!file_exists($file)) { exit("HATA: index.php yok.\n"); }
 $src   = file_get_contents($file);
