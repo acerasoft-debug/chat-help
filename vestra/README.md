@@ -12,9 +12,14 @@ Sade PHP. Hosteurope dâhil her paylaşımlı hostingte çalışır. Ekstra kuru
 4. Bitti. Sayfayı aç, formu test et.
 
 ## Markayı/ayarları değiştir
-- `index.php` en üstteki satırlar: `$BRAND`, `$TAGLINE`, `$CONTACT`, `$COMPANY`, `$ACCENT`.
+- `index.php` en üstteki satırlar: `$BRAND`, `$CONTACT`, `$COMPANY`, `$ACCENT`.
 - `$COMPANY` alanına **gerçek şirket/iletişim bilgini** yaz (şeffaflık = güven + yasal zorunluluk).
 - E-posta bildirimi istersen: `join.php` içinde `$NOTIFY = true;` yap ve `$CONTACT`'ı ayarla.
+
+## Diller (EN / FR / IT / ES / DE)
+- Sağ üstteki dil değiştiriciden (ve mobil menüden) geçilir. URL: `?lang=fr`, `?lang=de` …
+- Varsayılan: İngilizce. Form gönderilince seçili dil korunur.
+- Tüm metinler `index.php` içindeki **`$T`** dizisinde — yeni dil eklemek/metni düzenlemek kolaydır.
 
 ## Kayıtlar nerede?
 - `data/signups.csv` — satıcı/alıcı kayıtları (web'den indirilemez; sadece FTP/panelden).
