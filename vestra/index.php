@@ -289,6 +289,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
       <span><?= htmlspecialchars($BRAND) ?></span>
     </a>
     <div class="nav-links">
+      <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
       <a href="#how"><?= $t['how'] ?></a>
       <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
@@ -301,6 +302,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     </button>
   </nav></div>
   <div class="mnav" id="mnav">
+    <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <a href="#join"><?= $t['join_nav'] ?></a>
