@@ -93,25 +93,24 @@ ${MARKER}
   }
   console.log(`\n✓ ${Object.keys(contents).length} dosya theme-dump/ klasörüne kaydedildi.`);
 
-  // İlgili CSS satırlarını doğrudan terminale bas (yapıştırması kolay)
-  const RX = /(img|image|photo|media|product|featured|gallery|slider|swiper|owl|zoom|thumb|float|margin|transform|translate|position\s*:|text-align|justify-content|align-items|left\s*:|right\s*:|width\s*:)/i;
+  // FOKUS: ürün-SAYFASI CSS kuralları (tam) + galeri JS — kaymanın olduğu yer
+  const PRX = /(product-layout|product-page|pg-wrap|pg-strip|pg-thumb|pg-dot|pg-lb|product-info-wrap|product-main|product-vendor|product-gallery|product-media)/i;
   for (const key of cssKeys) {
     const v = contents[key]; if (!v) continue;
-    const hits = v.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => RX.test(l) && l.trim());
-    console.log(`\n===== CSS ${key}  (ilgili ${hits.length} satır) =====`);
-    hits.slice(0, 180).forEach(([n, l]) => console.log(String(n).padStart(5) + '  ' + l.trim().slice(0, 200)));
-    if (hits.length > 180) console.log(`  … +${hits.length - 180} satır daha (tamamı theme-dump/${key.replace(/\//g, '__')})`);
+    const hits = v.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => PRX.test(l) && l.trim());
+    console.log(`\n##### ÜRÜN-SAYFASI CSS — ${key}  (${hits.length} satır) #####`);
+    hits.forEach(([n, l]) => console.log(String(n).padStart(5) + '  ' + l.trim().slice(0, 260)));
   }
-  // Ürün şablonunun görsel/markup kısmı
+  // Galeri JS: product.liquid içindeki <script> bloklarını TAM bas
   for (const key of prodKeys) {
     const v = contents[key]; if (!v) continue;
-    const lines = v.split('\n');
-    console.log(`\n===== ŞABLON ${key}  (${lines.length} satır) =====`);
-    const rows = lines.length <= 300
-      ? lines.map((l, i) => [i + 1, l])
-      : lines.map((l, i) => [i + 1, l]).filter(([, l]) => /(img|image|media|photo|featured|product[-_ ]?(single|image|photo|media|gallery)|class=|<div|<a |zoom|thumb)/i.test(l));
-    rows.slice(0, 220).forEach(([n, l]) => console.log(String(n).padStart(5) + '  ' + l.replace(/\s+$/, '').slice(0, 230)));
-    if (lines.length > 300) console.log(`  … (tam dosya: theme-dump/${key.replace(/\//g, '__')})`);
+    const scripts = v.match(/<script[\s\S]*?<\/script>/gi) || [];
+    const gal = scripts.filter(s => /(pg-strip|pgGoTo|pgStripClick|pgClose|pgLb|touchstart|swipe|pg-thumb|pgDrag|pgSnap)/i.test(s));
+    console.log(`\n##### GALERİ JS — ${key}  (${gal.length}/${scripts.length} script bloğu) #####`);
+    (gal.length ? gal : scripts).forEach((s, idx) => {
+      console.log(`--- script #${idx + 1} ---`);
+      console.log(s.length > 9000 ? s.slice(0, 9000) + '\n…(kesildi)' : s);
+    });
   }
-  console.log('\n→ Yukarıdaki "=====" bloklarını bana yapıştır; foto kaymasını + diğer hataları buradan düzeltirim.');
+  console.log('\n→ "#####" başlıklı blokları (ÜRÜN-SAYFASI CSS + GALERİ JS) bana yapıştır; kaymayı kesin düzelteceğim.');
 })();
