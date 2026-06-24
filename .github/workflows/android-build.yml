@@ -1,0 +1,54 @@
+name: Build Android APK (CHelp)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ "claude/charming-franklin-1ynmuj" ]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/android-build.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps + add Android platform
+        working-directory: mobile
+        run: |
+          npm install
+          npx cap add android
+          npx cap sync android
+
+      - name: Generate app icon + splash
+        working-directory: mobile
+        run: npx capacitor-assets generate --android || echo "assets step skipped"
+
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHelp-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
