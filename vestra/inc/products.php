@@ -4,7 +4,7 @@
  * Pricing modes:  'fixed' (tiered), 'sale' (discounted vs list), 'offer' (make-an-offer / negotiate).
  * B2B: MOQ (min order) + tiered pricing (more qty -> lower unit price). Demo data.
  */
-function vestra_products(){
+function vestra_demo_products(){
   return [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'Classic Piqué Polo','mode'=>'fixed',
@@ -51,6 +51,11 @@ function vestra_products(){
     ],
   ];
 }
+/* seller-added listings (saved by the seller panel) merged into the live catalog */
+function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
+function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
+function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h); while(($r=fgetcsv($h))!==false){ if($head&&count($r)===count($head)) $rows[]=array_combine($head,$r);} fclose($h);} return array_reverse($rows); }
+function vestra_products(){ return array_merge(vestra_demo_products(), vestra_listings()); }
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_unit_price($p,$qty){ $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }

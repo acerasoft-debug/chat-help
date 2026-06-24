@@ -33,9 +33,10 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
     <div class="nav-links">
       <a href="shop.php" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>">Catalog</a>
       <a href="requests.php" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>">Requests</a>
-      <a class="hidem" href="index.php#how">How it works</a>
+      <a href="seller.php" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>">Sell</a>
       <?php if ($MEMBER): ?>
-        <span class="memberpill">✓ Verified buyer</span>
+        <a href="buyer.php" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>">Account</a>
+        <span class="memberpill">✓</span>
       <?php else: ?>
         <a href="?demo_member=1">Sign in</a>
       <?php endif; ?>

@@ -4,8 +4,9 @@
       <div style="margin-top:5px;opacity:.8">[Company Name LLC · US] — legal info pending</div></div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <a href="shop.php">Catalog</a>
-      <a href="policies/terms-of-service.md">Terms</a>
-      <a href="policies/privacy-policy.md">Privacy</a>
+      <a href="legal.php?doc=terms">Terms</a>
+      <a href="legal.php?doc=privacy">Privacy</a>
+      <a href="legal.php?doc=imprint">Imprint</a>
       <a href="index.php#join" class="acc">Join the waitlist</a>
     </div>
   </div>
