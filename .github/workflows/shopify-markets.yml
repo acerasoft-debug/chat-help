@@ -33,8 +33,8 @@ jobs:
           APPLY: ${{ inputs.apply }}
           STEPS: ${{ inputs.steps }}
         run: |
-          # SHOPIFY_STORE secret'ı yoksa Mondimart varsayılanına düş
-          export SHOPIFY_STORE="${SHOPIFY_STORE:-mondimart.myshopify.com}"
+          # SHOPIFY_STORE secret'ı yoksa Mondimart Admin domaini varsayılanına düş
+          export SHOPIFY_STORE="${SHOPIFY_STORE:-pftzey-y0.myshopify.com}"
           if [ -z "$SHOPIFY_TOKEN" ]; then
             echo "::error::SHOPIFY_TOKEN secret'ı gerekli (Settings > Secrets > Actions)."
             exit 1

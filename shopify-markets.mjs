@@ -2,7 +2,7 @@
 /**
  * Mondimart — Pazar açılışı + Soğuk Zincir Kargo (Shopify Admin GraphQL)
  * ====================================================================
- * Ne yapar (etiket bazlı, Shopify Plus):
+ * Ne yapar (ürün TİPİ / product_type bazlı):
  *   1) ET ürünleri  → sadece FR, BE, ES, LU pazarlarına açık
  *                     + "Livraison Chaîne du Froid ❄️" soğuk zincir kargo profili (zone = FR/BE/ES/LU)
  *   2) KURU GIDA    → tüm Avrupa Birliği'ne (27 ülke) açık (görünürlük + EU kargo profili)
@@ -19,8 +19,8 @@
  *   SHOPIFY_TOKEN   Admin API access token         (zorunlu)
  * Opsiyonel ENV:
  *   SHOPIFY_API_VERSION  (varsayılan 2025-07)
- *   MEAT_TAGS   virgülle: et ürünü / soğuk zincir etiketleri
- *   DRY_TAGS    virgülle: kuru gıda etiketleri
+ *   MEAT_TYPES  virgülle: et product_type listesi (soğuk zincir)
+ *   DRY_TYPES   virgülle: kuru gıda product_type listesi (AB)
  *   COLD_RATE   soğuk zincir kargo ücreti (varsayılan 9.90)
  *   DRY_RATE    kuru gıda kargo ücreti   (varsayılan 5.90)
  *   RATE_CURRENCY (varsayılan EUR)
@@ -37,15 +37,20 @@ const API_VERSION = process.env.SHOPIFY_API_VERSION || '2025-07';
 const TARGET4 = ['FR', 'BE', 'ES', 'LU'];
 const EU27 = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
 
-// Etiketler (küçük harfe çevrilip karşılaştırılır). Mağazanızdaki gerçek etiketlere göre
-// MEAT_TAGS / DRY_TAGS env ile geçersiz kılın.
-const MEAT_TAGS = splitEnv(process.env.MEAT_TAGS, [
-  'viande', 'meat', 'et', 'frais', 'froid', 'cold', 'cold-chain',
-  'chaine-du-froid', 'chaîne-du-froid', 'soguk', 'soğuk', 'soguk-zincir', 'soğuk-zincir',
+// Ürünler Shopify'da product_type ile ayrılmış (audit ile doğrulandı).
+// ET (soğuk zincir) tipleri. İstenirse peynir/süt de eklenebilir:
+//   'Fromages Frais','Œufs & Laitages' → MEAT_TYPES env ile geçersiz kıl.
+const MEAT_TYPES = splitTypes(process.env.MEAT_TYPES, [
+  'Viandes Halal', 'Charcuterie Halal',
 ]);
-const DRY_TAGS = splitEnv(process.env.DRY_TAGS, [
-  'sec', 'epicerie', 'épicerie', 'dry', 'dry-food', 'ambient',
-  'kuru', 'kuru-gida', 'kuru-gıda', 'kurugida',
+// KURU GIDA (tüm AB-27): raf-stabil yiyecek tipleri (ev/kozmetik/temizlik HARİÇ).
+const DRY_TYPES = splitTypes(process.env.DRY_TYPES, [
+  'Épicerie Fine', 'Pâtes & Féculents', 'Thés & Cafés', 'Fruits Secs & Noix',
+  'Légumes & Conserves', 'Condiments & Sauces', 'Épices & Condiments',
+  'Biscuits & Gâteaux', 'Confiserie & Bonbons', 'Chocolats & Pâtes à Tartiner',
+  'Snacks & Apéro', 'Huiles & Matières Grasses', 'Douceurs Orientales',
+  'Pâtisserie & Desserts', 'Boissons', 'Petit-Déjeuner', 'Soupes & Potages',
+  'Cuisine Asiatique', 'Mezze & Spécialités',
 ]);
 
 const COLD_RATE = process.env.COLD_RATE || '9.90';
@@ -67,6 +72,11 @@ if (ARGS.includes('--help') || ARGS.includes('-h')) { printHelp(); process.exit(
 function splitEnv(v, def) {
   if (!v) return def;
   return v.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+// product_type değerleri: büyük/küçük harf + aksan korunur
+function splitTypes(v, def) {
+  if (!v) return def;
+  return v.split(',').map(s => s.trim()).filter(Boolean);
 }
 function parseSteps() {
   const onlyArg = ARGS.find(a => a.startsWith('--only='));
@@ -131,13 +141,13 @@ function checkUserErrors(label, payload) {
   if (ue.length) throw new Error(`${label} userErrors: ` + JSON.stringify(ue));
 }
 
-// Etiket OR sorgusu (kuru/et için ürün arama)
-function tagQuery(tags) {
-  return tags.map(t => `tag:'${t.replace(/'/g, "\\'")}'`).join(' OR ');
+// product_type OR sorgusu (kuru/et için ürün arama)
+function typeQuery(types) {
+  return types.map(t => `product_type:'${t.replace(/'/g, "\\'")}'`).join(' OR ');
 }
 
-async function fetchProductsByTags(tags) {
-  const q = `(${tagQuery(tags)})`;
+async function fetchProductsByTypes(types) {
+  const q = `(${typeQuery(types)})`;
   const products = [];
   let cursor = null;
   do {
@@ -417,17 +427,17 @@ function stepMarketsReport(markets) {
   }
   log(`Mağaza: ${STORE}`);
   log(`Adımlar: ${Object.entries(STEPS).filter(([, v]) => v).map(([k]) => k).join(', ') || '(yok)'}`);
-  log(`Et etiketleri: ${MEAT_TAGS.join(', ')}`);
-  log(`Kuru gıda etiketleri: ${DRY_TAGS.join(', ')}`);
+  log(`Et tipleri (soğuk zincir): ${MEAT_TYPES.join(', ')}`);
+  log(`Kuru gıda tipleri (AB): ${DRY_TYPES.join(', ')}`);
 
   try {
-    section('Ürünler (etikete göre)');
-    const meat = await fetchProductsByTags(MEAT_TAGS);
-    const dry = await fetchProductsByTags(DRY_TAGS);
+    section('Ürünler (product_type’a göre)');
+    const meat = await fetchProductsByTypes(MEAT_TYPES);
+    const dry = await fetchProductsByTypes(DRY_TYPES);
     log(`  ET: ${meat.length} ürün, ${meat.reduce((n, p) => n + p.variantIds.length, 0)} varyant`);
     log(`  KURU GIDA: ${dry.length} ürün, ${dry.reduce((n, p) => n + p.variantIds.length, 0)} varyant`);
-    if (!meat.length) log('  ⚠️ Et etiketiyle ürün bulunamadı — MEAT_TAGS değerini gerçek etiketlerinize göre ayarlayın.');
-    if (!dry.length) log('  ⚠️ Kuru gıda etiketiyle ürün bulunamadı — DRY_TAGS değerini ayarlayın.');
+    if (!meat.length) log('  ⚠️ Et tipiyle ürün bulunamadı — MEAT_TYPES değerini kontrol edin.');
+    if (!dry.length) log('  ⚠️ Kuru gıda tipiyle ürün bulunamadı — DRY_TYPES değerini kontrol edin.');
 
     const markets = (STEPS.markets || STEPS.catalogs) ? await fetchMarkets() : [];
 
