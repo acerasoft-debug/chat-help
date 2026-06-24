@@ -34,13 +34,14 @@ npx cap add android
 
 ## 2) İkon & açılış ekranı
 
-`resources/` içine `icon.png` (1024×1024) ve `splash.png` (2732×2732) koy (bkz. `resources/README.md`), sonra:
+Premium **CHelp** ikon + splash zaten hazır (`mobile/assets/` — icon-only, adaptive foreground/background, splash). Sadece tüm Android boyutlarını üret:
 
 ```bash
-npx @capacitor/assets generate --android
+npx capacitor-assets generate --android
 ```
 
-Tüm boyutlar otomatik üretilip yerleşir.
+Bu komut `assets/`'tan okuyup mdpi…xxxhdpi ikon, adaptive icon ve splash'ı `android/`'e yerleştirir.
+Kendi logonu kullanmak istersen `assets/icon-only.png` (1024) ve `assets/splash.png` (2732) dosyalarını değiştirip komutu tekrar çalıştır.
 
 ---
 
