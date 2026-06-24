@@ -32,12 +32,16 @@ async function rest(path, opts = {}) {
   return json;
 }
 
-const MARKER = '/* mondimart-foto-fix */';
+const MARKER = '/* mondimart-pg-fix v2 */';
 const FIX_CSS = `
 ${MARKER}
-.product__media-wrapper,.product__media-list,.product__media,.product__media-item,.product-single__media{margin-left:auto!important;margin-right:auto!important;float:none!important;}
-.product__media-list{justify-content:center!important;}
-.product__media img,.product__media-item img,.product__media-image,.product-single__photo,.product-single__photo img{display:block!important;margin-left:auto!important;margin-right:auto!important;width:100%!important;max-width:100%!important;object-fit:contain!important;transform:none!important;}
+/* Ürün galerisi foto kayması: her slaytı TAM konteyner genişliğine sabitle.
+   min-width:100% + flex-basis:auto slaytları 100%'den biraz geniş yapıp
+   translateX(-i*100%) ile birikmeli SAĞA KAYMAYA yol açıyordu (çok fotoğraflı = et). */
+#pg-strip { width: 100% !important; }
+#pg-strip > div { flex: 0 0 100% !important; width: 100% !important; min-width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+#pg-strip-outer { width: 100% !important; max-width: 100% !important; margin-left: auto !important; margin-right: auto !important; }
+#pg-strip-outer img { width: 100% !important; height: 100% !important; object-fit: contain !important; }
 `;
 
 (async () => {
@@ -54,7 +58,7 @@ ${MARKER}
   const prodKeys = assets.map(a => a.key).filter(k => /(main-product|product-media|product-grid-item|product-card|card-product|product\.liquid)/i.test(k));
 
   if (FIX) {
-    const target = cssKeys.find(k => /assets\/base\.css$/.test(k))
+    const target = cssKeys.find(k => /mondimart-premium\.css$/.test(k))
       || cssKeys.find(k => /assets\/theme\.css$/.test(k))
       || cssKeys.find(k => /assets\/.*\.css$/.test(k) && !/\.liquid$/.test(k));
     if (!target) { console.error('❌ Hedef CSS (base.css/theme.css) bulunamadı. Önce dump çalıştır.'); process.exit(1); }
@@ -67,7 +71,7 @@ ${MARKER}
       method: 'PUT',
       body: JSON.stringify({ asset: { key: target, value: value + '\n' + FIX_CSS } }),
     });
-    console.log(`\n✅ Foto ortalama CSS eklendi → ${target}`);
+    console.log(`\n✅ Galeri foto-kayması düzeltmesi eklendi → ${target}`);
     console.log(`   Yedek: theme-backup/${target.replace(/\//g, '__')}.bak`);
     console.log('   Ürün sayfasını yenile. Geri almak için yedeği aynı asset\'e PUT et.');
     return;
