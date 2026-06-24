@@ -1,0 +1,11 @@
+# Capacitor / Node
+node_modules/
+# Generated native projects (regenerate with: npx cap add android)
+android/
+ios/
+# Build outputs
+*.aab
+*.apk
+*.keystore
+*.jks
+.DS_Store
