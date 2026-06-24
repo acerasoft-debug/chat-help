@@ -290,8 +290,9 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     </a>
     <div class="nav-links">
       <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
-      <a href="#how"><?= $t['how'] ?></a>
-      <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
+      <a href="requests.php"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+      <a class="hidem-s" href="#how"><?= $t['how'] ?></a>
+      <a class="hidem-s" href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
         <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
       </span>
@@ -303,6 +304,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   </nav></div>
   <div class="mnav" id="mnav">
     <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
+    <a href="requests.php"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <a href="#join"><?= $t['join_nav'] ?></a>

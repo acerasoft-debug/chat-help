@@ -46,18 +46,24 @@ $cats = vestra_cats();
             Verified</span>
           <?php endif; ?>
           <span class="bname"><?=htmlspecialchars($p['brand'])?></span>
+          <?php if($p['mode']==='sale'): ?><span class="modetag sale">−<?=vestra_discount($p)?>%</span>
+          <?php elseif($p['mode']==='offer'): ?><span class="modetag offer">Offers</span><?php endif; ?>
         </div>
         <div class="body">
           <span class="brand"><?=htmlspecialchars($p['brand'])?></span>
           <span class="title"><?=htmlspecialchars($p['name'])?></span>
           <span class="meta"><?=htmlspecialchars($p['cat'])?> · SKU <?=htmlspecialchars($p['sku'])?> · MOQ <?=$p['moq']?> <?=htmlspecialchars($p['unit'])?></span>
           <div class="price">
-            <?php if($MEMBER): ?>
-              <span class="from">from</span> <span class="amt"><?=eur($from)?></span> <span class="from">/ <?=htmlspecialchars($p['unit'])?></span>
-            <?php else: ?>
+            <?php if(!$MEMBER): ?>
               <span class="lock">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
                 Members only</span>
+            <?php elseif($p['mode']==='offer'): ?>
+              <span class="offerprice">💬 Open to offers</span>
+            <?php elseif($p['mode']==='sale'): ?>
+              <span class="was"><?=eur($p['list'])?></span> <span class="amt"><?=eur($from)?></span> <span class="from">/ <?=htmlspecialchars($p['unit'])?></span>
+            <?php else: ?>
+              <span class="from">from</span> <span class="amt"><?=eur($from)?></span> <span class="from">/ <?=htmlspecialchars($p['unit'])?></span>
             <?php endif; ?>
           </div>
         </div>
