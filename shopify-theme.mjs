@@ -73,26 +73,45 @@ ${MARKER}
     return;
   }
 
-  // DUMP (salt-okunur)
+  // DUMP (salt-okunur) — tüm CSS + ürün şablonları + ilgili snippet/section'lar
   console.log(`\nCSS dosyaları (${cssKeys.length}):`);
   cssKeys.forEach(k => console.log('  ' + k));
-  console.log(`\nÜrün ile ilgili dosyalar (${prodKeys.length}):`);
+  console.log(`\nÜrün/şablon dosyaları (${prodKeys.length}):`);
   prodKeys.forEach(k => console.log('  ' + k));
 
   await mkdir('theme-dump', { recursive: true });
-  const want = [...new Set([
-    ...cssKeys.filter(k => /base\.css|theme\.css|product/i.test(k)),
-    ...prodKeys,
-  ])];
-  let saved = 0;
+  const extra = assets.map(a => a.key)
+    .filter(k => /(snippets|sections)\/.*(product|media|image|photo|card|gallery|thumb)/i.test(k));
+  const want = [...new Set([...cssKeys, ...prodKeys, ...extra])];
+  const contents = {};
   for (const key of want) {
     try {
       const a = await rest(`/themes/${main.id}/assets.json?asset[key]=${encodeURIComponent(key)}`);
-      await writeFile(`theme-dump/${key.replace(/\//g, '__')}`, a.asset.value ?? '');
-      saved++;
+      contents[key] = a.asset.value ?? '';
+      await writeFile(`theme-dump/${key.replace(/\//g, '__')}`, contents[key]);
     } catch (e) { console.log(`  (okunamadı: ${key})`); }
   }
-  console.log(`\n✓ ${saved} dosya theme-dump/ klasörüne kaydedildi.`);
-  console.log('  → Bana şunları yapıştır: theme-dump/assets__base.css (varsa) ve theme-dump/sections__main-product.liquid');
-  console.log('  → Foto kaymasını hemen denemek için:  node shopify-theme.mjs --fix-photos');
+  console.log(`\n✓ ${Object.keys(contents).length} dosya theme-dump/ klasörüne kaydedildi.`);
+
+  // İlgili CSS satırlarını doğrudan terminale bas (yapıştırması kolay)
+  const RX = /(img|image|photo|media|product|featured|gallery|slider|swiper|owl|zoom|thumb|float|margin|transform|translate|position\s*:|text-align|justify-content|align-items|left\s*:|right\s*:|width\s*:)/i;
+  for (const key of cssKeys) {
+    const v = contents[key]; if (!v) continue;
+    const hits = v.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => RX.test(l) && l.trim());
+    console.log(`\n===== CSS ${key}  (ilgili ${hits.length} satır) =====`);
+    hits.slice(0, 180).forEach(([n, l]) => console.log(String(n).padStart(5) + '  ' + l.trim().slice(0, 200)));
+    if (hits.length > 180) console.log(`  … +${hits.length - 180} satır daha (tamamı theme-dump/${key.replace(/\//g, '__')})`);
+  }
+  // Ürün şablonunun görsel/markup kısmı
+  for (const key of prodKeys) {
+    const v = contents[key]; if (!v) continue;
+    const lines = v.split('\n');
+    console.log(`\n===== ŞABLON ${key}  (${lines.length} satır) =====`);
+    const rows = lines.length <= 300
+      ? lines.map((l, i) => [i + 1, l])
+      : lines.map((l, i) => [i + 1, l]).filter(([, l]) => /(img|image|media|photo|featured|product[-_ ]?(single|image|photo|media|gallery)|class=|<div|<a |zoom|thumb)/i.test(l));
+    rows.slice(0, 220).forEach(([n, l]) => console.log(String(n).padStart(5) + '  ' + l.replace(/\s+$/, '').slice(0, 230)));
+    if (lines.length > 300) console.log(`  … (tam dosya: theme-dump/${key.replace(/\//g, '__')})`);
+  }
+  console.log('\n→ Yukarıdaki "=====" bloklarını bana yapıştır; foto kaymasını + diğer hataları buradan düzeltirim.');
 })();
