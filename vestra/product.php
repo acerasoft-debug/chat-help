@@ -14,6 +14,7 @@ $offered=isset($_GET['offered']);
   <div class="pdetail">
     <div>
       <div class="hero-thumb" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
+        <?php if(!empty($p['image'])): ?><img class="heroimg" src="<?=htmlspecialchars($p['image'])?>" alt="<?=htmlspecialchars($p['name'])?>"><?php endif; ?>
         <span class="bname"><?=htmlspecialchars($p['brand'])?></span>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?=$disc?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer">Open to offers</span><?php endif; ?>
@@ -30,6 +31,9 @@ $offered=isset($_GET['offered']);
         <span>Seller <b><?=htmlspecialchars($p['seller'])?></b><?php if(!empty($p['verified'])): ?> ✓<?php endif; ?></span>
       </div>
       <div class="hint"><?=htmlspecialchars($p['origin'])?></div>
+      <?php if(!empty($p['sheet'])): ?>
+        <a class="btn btn-o btn-sm" style="margin-top:12px" href="<?=htmlspecialchars($p['sheet'])?>" target="_blank" rel="noopener">⬇ Line sheet / price list (<?=strtoupper(htmlspecialchars(pathinfo($p['sheet'],PATHINFO_EXTENSION)))?>)</a>
+      <?php endif; ?>
 
       <?php if(!$MEMBER): ?>
         <div class="gate" style="margin-top:22px">

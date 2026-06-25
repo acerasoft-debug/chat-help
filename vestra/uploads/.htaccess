@@ -1,0 +1,5 @@
+# VESTRA uploads — serve media (images, sheets) only, never execute code here.
+Options -Indexes
+<FilesMatch "(?i)\.(php\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+  Require all denied
+</FilesMatch>

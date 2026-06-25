@@ -41,7 +41,7 @@ if($tab==='overview'){
   if($added) echo '<div class="banner ok">✓ Product added — it is now live in the <a class="acc" href="/shop">catalog</a>.</div>';
   ?>
   <div class="panelcard">
-    <form method="post" action="/seller-add" class="addform">
+    <form method="post" action="/seller-add" class="addform" enctype="multipart/form-data">
       <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
       <div class="frow">
         <div><label>Brand *</label><input name="brand" required placeholder="e.g. Lacoste / Your label"></div>
@@ -79,6 +79,12 @@ if($tab==='overview'){
 
       <div class="frow">
         <div><label>Description</label><textarea name="desc" rows="2" placeholder="Sizes, colours, condition…"></textarea></div>
+      </div>
+      <div class="frow">
+        <div><label>Product photo <span class="hint">(JPG / PNG / WebP · ≤5 MB)</span></label>
+          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></div>
+        <div><label>Line sheet / price list <span class="hint">(Excel or CSV · ≤8 MB · optional)</span></label>
+          <input type="file" name="sheet" accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></div>
       </div>
       <div class="frow">
         <div><label>Origin / authenticity note *</label><input name="origin" required placeholder="e.g. EEA stock · invoice on request"></div>

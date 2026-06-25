@@ -35,6 +35,34 @@ $item=[
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
 
+/* ---- uploads: product photo (image) + optional line sheet (Excel/CSV) ---- */
+$updir = __DIR__.'/uploads';
+if(!is_dir($updir)) @mkdir($updir,0755,true);
+/* harden: never execute code from the uploads folder, no directory listing */
+if(!is_file($updir.'/.htaccess')){
+  @file_put_contents($updir.'/.htaccess',
+    "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
+}
+$savePhoto = function($field) use ($updir){
+  if(($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return '';
+  $f=$_FILES[$field]; if($f['size']<=0 || $f['size']>5*1024*1024) return '';
+  $info=@getimagesize($f['tmp_name']); if(!$info) return '';               // real image only
+  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]] ?? '';
+  if($ext==='') return '';
+  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;                          // random, safe name
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name) ? '/uploads/'.$name : '';
+};
+$saveSheet = function($field) use ($updir){
+  if(($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return '';
+  $f=$_FILES[$field]; if($f['size']<=0 || $f['size']>8*1024*1024) return '';
+  $ext=strtolower(pathinfo($f['name'],PATHINFO_EXTENSION));
+  if(!in_array($ext,['xlsx','xls','csv'],true)) return '';
+  $name='sheet_'.bin2hex(random_bytes(8)).'.'.$ext;
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name) ? '/uploads/'.$name : '';
+};
+if($img=$savePhoto('photo'))  $item['image']=$img;
+if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
+
 $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/listings.json';
 $list=vestra_listings(); $list[]=$item;

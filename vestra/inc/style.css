@@ -233,3 +233,9 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
   body{background:#fff;color:#000}
   .pdfdoc{padding:0}
 }
+
+/* seller-uploaded product images (cards + detail hero) */
+.thumb,.pdetail .hero-thumb{overflow:hidden}
+.thumbimg,.heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.thumb .bname,.pdetail .hero-thumb .bname{position:relative;z-index:1;text-shadow:0 1px 10px rgba(0,0,0,.6)}
+.thumb .vbadge,.thumb .modetag,.hero-thumb .modetag{z-index:1}

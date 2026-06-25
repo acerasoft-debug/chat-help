@@ -27,7 +27,7 @@ $cats = vestra_cats();
   </div>
 
   <div class="toolbar" style="margin-top:-12px">
-    <button class="chip on" data-cat="" onclick="setCat(this,'')">All</button>
+    <button class="chip" data-cat="" onclick="setCat(this,'')">All</button>
     <?php foreach($cats as $c): ?>
       <button class="chip" data-cat="<?=htmlspecialchars($c)?>" onclick="setCat(this,'<?=htmlspecialchars($c)?>')"><?=htmlspecialchars($c)?></button>
     <?php endforeach; ?>
@@ -40,6 +40,7 @@ $cats = vestra_cats();
          data-cat="<?=htmlspecialchars($p['cat'])?>"
          data-search="<?=htmlspecialchars(strtolower($p['brand'].' '.$p['name'].' '.$p['sku'].' '.$p['cat']))?>">
         <div class="thumb" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
+          <?php if(!empty($p['image'])): ?><img class="thumbimg" src="<?=htmlspecialchars($p['image'])?>" alt="" loading="lazy"><?php endif; ?>
           <?php if(!empty($p['verified'])): ?>
           <span class="vbadge">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -71,19 +72,26 @@ $cats = vestra_cats();
     <?php endforeach; ?>
   </div>
   <div class="empty" id="noresult" style="display:none">No products match your search.</div>
+  <div class="empty" id="startprompt" style="display:none">👆 Pick a <b>category</b> above — or type in <b>search</b> — to view products.</div>
 </div>
 
 <script>
-var curCat='';
+var curCat=null; // null = nothing chosen yet -> products stay hidden
 function setCat(el,c){ curCat=c; document.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')}); el.classList.add('on'); filter(); }
 function filter(){
-  var q=(document.getElementById('search').value||'').toLowerCase().trim(), shown=0;
+  var q=(document.getElementById('search').value||'').toLowerCase().trim();
+  var active = (curCat!==null) || q!=='';
+  document.getElementById('grid').style.display = active?'':'none';
+  document.getElementById('startprompt').style.display = active?'none':'block';
+  if(!active){ document.getElementById('noresult').style.display='none'; return; }
+  var shown=0;
   document.querySelectorAll('#grid .pcard').forEach(function(card){
-    var okCat = !curCat || card.dataset.cat===curCat;
+    var okCat = (curCat===null||curCat==='') || card.dataset.cat===curCat;
     var okQ = !q || card.dataset.search.indexOf(q)>=0;
     var vis = okCat && okQ; card.style.display = vis?'flex':'none'; if(vis) shown++;
   });
   document.getElementById('noresult').style.display = shown?'none':'block';
 }
+filter(); // on load: nothing selected -> hide grid, show the prompt
 </script>
 <?php require __DIR__.'/inc/foot.php';
