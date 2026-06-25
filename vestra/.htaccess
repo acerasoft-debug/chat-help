@@ -1,0 +1,23 @@
+# VESTRA — paylaşımlı hosting (GoDaddy / Host Europe) için Apache ayarları
+# Bu dosya vestra/ klasörünün köküne konur. Hem chat-help.com/vestra hem de
+# vestrasales.com için çalışır (host bağımsız yazıldı).
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1) HTTPS zorunlu (http -> https). Proxy/CDN arkasında döngü olmaması için
+  #    X-Forwarded-Proto da kontrol edilir.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # 2) www -> www'siz (tek kanonik adres: vestrasales.com)
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Varsayılan açılış sayfası
+DirectoryIndex index.php index.html
+
+# Dizin listelemesini kapat (klasör içeriği web'de görünmesin)
+Options -Indexes
