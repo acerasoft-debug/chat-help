@@ -2,27 +2,27 @@
 /** VESTRA — dashboard layout helpers (premium sidebar panel). */
 function dash_open($role,$section,$title,$subtitle=''){
   $nav = $role==='seller' ? [
-      ['overview','Overview','seller.php'],
-      ['add','＋ Add product','seller.php?tab=add'],
-      ['listings','My listings','seller.php?tab=listings'],
-      ['orders','Orders','seller.php?tab=orders'],
-      ['offers','Offers received','seller.php?tab=offers'],
-      ['kyc','Verification','seller.php?tab=kyc'],
+      ['overview',t('Overview'),'/seller'],
+      ['add','＋ '.t('Add product'),'/seller?tab=add'],
+      ['listings',t('My listings'),'/seller?tab=listings'],
+      ['orders',t('Orders'),'/seller?tab=orders'],
+      ['offers',t('Offers received'),'/seller?tab=offers'],
+      ['kyc',t('Verification'),'/seller?tab=kyc'],
     ] : [
-      ['overview','Overview','buyer.php'],
-      ['orders','My orders','buyer.php?tab=orders'],
-      ['requests','My requests','buyer.php?tab=requests'],
-      ['offers','My offers','buyer.php?tab=offers'],
-      ['kyc','Verification','buyer.php?tab=kyc'],
+      ['overview',t('Overview'),'/buyer'],
+      ['orders',t('My orders'),'/buyer?tab=orders'],
+      ['requests',t('My requests'),'/buyer?tab=requests'],
+      ['offers',t('My offers'),'/buyer?tab=offers'],
+      ['kyc',t('Verification'),'/buyer?tab=kyc'],
     ];
   echo '<div class="wrap"><div class="dashtop">';
-  echo '<div><div class="crumbs"><a href="/">Home</a> · '.($role==='seller'?'Seller':'Buyer').' panel</div>';
+  echo '<div><div class="crumbs"><a href="/">'.t('Home').'</a> · '.($role==='seller'?t('Seller'):t('Buyer')).' '.t('panel').'</div>';
   echo '<h1>'.htmlspecialchars($title).'</h1>';
   if($subtitle) echo '<p class="hint" style="margin:2px 0 0">'.htmlspecialchars($subtitle).'</p>';
-  echo '</div><span class="rolepill">'.($role==='seller'?'🏷️ Seller workspace':'🛍️ Buyer workspace').'</span>';
+  echo '</div><span class="rolepill">'.($role==='seller'?'🏷️ '.t('Seller workspace'):'🛍️ '.t('Buyer workspace')).'</span>';
   echo '</div><div class="dashlayout"><aside class="dashside">';
   foreach($nav as $n){ echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.htmlspecialchars($n[1]).'</a>'; }
-  echo '<a class="signout" href="/?demo_signout=1">Sign out</a>';
+  echo '<a class="signout" href="/?demo_signout=1">'.t('Sign out').'</a>';
   echo '</aside><main class="dashmain">';
 }
 function dash_close(){ echo '</main></div></div>'; }

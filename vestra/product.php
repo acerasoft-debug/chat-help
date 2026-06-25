@@ -38,19 +38,19 @@ $offered=isset($_GET['offered']);
       <?php if(!$MEMBER): ?>
         <div class="gate" style="margin-top:22px">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-          <h3 style="margin:0 0 6px">Verified buyers only</h3>
-          <p style="color:var(--mut);margin:0 0 16px">Sign in as a verified business buyer to see pricing<?= $mode==='offer'?' and make an offer':' and order' ?>.</p>
-          <a class="btn btn-p" href="?id=<?=urlencode($p['id'])?>&demo_member=1">Sign in</a>
+          <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to see pricing') ?><?= $mode==='offer'?' '.t('and make an offer'):' '.t('and order') ?>.</p>
+          <a class="btn btn-p" href="?id=<?=urlencode($p['id'])?>&demo_member=1"><?= t('Sign in') ?></a>
         </div>
 
       <?php elseif($offered): ?>
-        <div class="banner ok" style="margin-top:18px">✓ Your offer is in the queue (ref <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b>). The seller will respond — track it under <a href="/requests" class="acc">Requests</a>.</div>
-        <a class="btn btn-o" href="/shop">Continue browsing</a>
+        <div class="banner ok" style="margin-top:18px">✓ <?= t('Your offer is in the queue (ref') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b>). <?= t('The seller will respond — track it under') ?> <a href="/requests" class="acc"><?= t('Requests') ?></a>.</div>
+        <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
 
       <?php elseif($mode==='offer'): /* ---------- MAKE AN OFFER ---------- */ ?>
-        <div class="banner info" style="margin-top:18px">💬 This item is <b>open to offers</b>. <?=htmlspecialchars($p['guide']??'')?></div>
+        <div class="banner info" style="margin-top:18px">💬 <?= t('This item is <b>open to offers</b>.') ?> <?=htmlspecialchars($p['guide']??'')?></div>
         <table class="tiers">
-          <thead><tr><th>Volume</th><th>Indicative unit</th></tr></thead>
+          <thead><tr><th><?= t('Volume') ?></th><th><?= t('Indicative unit') ?></th></tr></thead>
           <tbody>
           <?php foreach($p['tiers'] as $i=>$t): ?>
             <tr><td><?=$t['min']?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?> <?=htmlspecialchars($p['unit'])?></td><td class="amt"><?=eur($t['price'])?></td></tr>
@@ -62,19 +62,19 @@ $offered=isset($_GET['offered']);
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div><label class="hint">Quantity (<?=htmlspecialchars($p['unit'])?>) — min <?=$p['moq']?></label>
+              <div><label class="hint"><?= t('Quantity') ?> (<?=htmlspecialchars($p['unit'])?>) — min <?=$p['moq']?></label>
                 <input type="number" name="qty" min="<?=$p['moq']?>" value="<?=$p['moq']?>" required style="width:100%"></div>
-              <div><label class="hint">Your offer (€ / <?=htmlspecialchars($p['unit'])?>)</label>
-                <input type="number" name="price" step="0.01" min="0" placeholder="e.g. 95.00" required style="width:100%"></div>
+              <div><label class="hint"><?= t('Your offer') ?> (€ / <?=htmlspecialchars($p['unit'])?>)</label>
+                <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
             </div>
-            <div style="margin-top:12px"><label class="hint">Message to seller</label>
-              <textarea name="message" rows="2" style="width:100%" placeholder="Sizes, delivery, terms…"></textarea></div>
+            <div style="margin-top:12px"><label class="hint"><?= t('Message to seller') ?></label>
+              <textarea name="message" rows="2" style="width:100%" placeholder="<?= htmlspecialchars(t('Sizes, delivery, terms…')) ?>"></textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
-              <div><label class="hint">Company *</label><input name="company" required style="width:100%"></div>
-              <div><label class="hint">Work email *</label><input type="email" name="email" required style="width:100%"></div>
+              <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
+              <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
             </div>
-            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px">Submit offer →</button>
-            <div class="hint" style="margin-top:10px">Your offer joins the seller's queue. If accepted, payment is via <b>escrow</b>.</div>
+            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Submit offer →') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, payment is via <b>escrow</b>.") ?></div>
           </form>
         </div>
 
@@ -84,11 +84,11 @@ $offered=isset($_GET['offered']);
             <span class="was"><?=eur($p['list'])?></span>
             <span class="now">from <?=eur($from)?></span>
             <span class="badge-sale">−<?=$disc?>%</span>
-            <span class="hint">/ <?=htmlspecialchars($p['unit'])?> · clearance</span>
+            <span class="hint">/ <?=htmlspecialchars($p['unit'])?> · <?= t('clearance') ?></span>
           </div>
         <?php endif; ?>
         <table class="tiers" id="tiers">
-          <thead><tr><th>Quantity (<?=htmlspecialchars($p['unit'])?>)</th><th><?= $mode==='sale'?'Sale unit':'Unit price' ?></th><th>Saving</th></tr></thead>
+          <thead><tr><th><?= t('Quantity') ?> (<?=htmlspecialchars($p['unit'])?>)</th><th><?= $mode==='sale'?t('Sale unit'):t('Unit price') ?></th><th><?= t('Saving') ?></th></tr></thead>
           <tbody>
           <?php foreach($p['tiers'] as $i=>$t):
             $base=$mode==='sale'?$p['list']:$p['tiers'][0]['price'];
@@ -108,15 +108,15 @@ $offered=isset($_GET['offered']);
               <input id="qty" type="number" min="<?=$p['moq']?>" step="1" value="<?=$p['moq']?>" oninput="recalc()">
               <button type="button" onclick="bump(step())">+</button>
             </div>
-            <span class="hint">Min order <b><?=$p['moq']?> <?=htmlspecialchars($p['unit'])?></b></span>
+            <span class="hint"><?= t('Min order') ?> <b><?=$p['moq']?> <?=htmlspecialchars($p['unit'])?></b></span>
           </div>
           <div class="calc">
-            <div class="unit">Unit: <span id="uprice"><?=eur($from)?></span> · <span id="tier"></span></div>
-            <div class="total" id="total"><?=eur($from*$p['moq'])?> <small>excl. taxes &amp; shipping</small></div>
+            <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?=eur($from)?></span> · <span id="tier"></span></div>
+            <div class="total" id="total"><?=eur($from*$p['moq'])?> <small><?= t('excl. taxes & shipping') ?></small></div>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
-          <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()">Add to order</button>
-          <div class="hint" style="margin-top:10px">Orders are placed via secured <b>escrow</b> — funds release after you confirm receipt.</div>
+          <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
+          <div class="hint" style="margin-top:10px"><?= t('Orders are placed via secured <b>escrow</b> — funds release after you confirm receipt.') ?></div>
         </div>
         <script>
         var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
@@ -132,12 +132,12 @@ $offered=isset($_GET['offered']);
           var u=unitPrice(q);
           document.getElementById('uprice').textContent=eur(u);
           document.getElementById('tier').textContent='tier '+tierLabel(q)+' '+P.unitLabel;
-          document.getElementById('total').innerHTML=eur(u*q)+' <small>excl. taxes &amp; shipping</small>';
+          document.getElementById('total').innerHTML=eur(u*q)+' <small>'+<?= json_encode(t('excl. taxes & shipping')) ?>+'</small>';
           document.querySelectorAll('#tiers tbody tr').forEach(function(tr){ tr.classList.toggle('active', q>=parseInt(tr.dataset.min) && (!tr.nextElementSibling||q<parseInt(tr.nextElementSibling.dataset.min))); });
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
           VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u});
-          var b=document.getElementById('addBtn'); b.textContent='✓ Added to order'; setTimeout(function(){b.textContent='Add to order';},1400); }
+          var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }
         recalc();
         </script>
       <?php endif; ?>

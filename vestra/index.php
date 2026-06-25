@@ -10,10 +10,10 @@ $BRAND   = 'VESTRA';                                          // ← marka adı 
 $CONTACT = 'hello@vestrasales.com';                            // ← iletişim e-postan
 $COMPANY = 'acerasoft LLC';    // ← şirket bilgin (şeffaflık!)
 $ACCENT  = '#c9a86a';
+require_once __DIR__.'/inc/i18n.php';
 
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
-$lang  = $_GET['lang'] ?? 'en';
-if (!isset($LANGS[$lang])) $lang = 'en';
+$lang  = vlang(); // shared cookie-backed language, consistent with the rest of the site
 
 $T = [
 'en'=>[

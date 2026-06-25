@@ -1,13 +1,13 @@
 <footer>
   <div class="wrap foot">
-    <div><b style="color:var(--ink)">VESTRA</b> — verified B2B fashion wholesale
-      <div style="margin-top:5px;opacity:.8">[acerasoft LLC · US]</div></div>
+    <div><b style="color:var(--ink)">VESTRA</b> — <?= t('verified B2B fashion wholesale') ?>
+      <div style="margin-top:5px;opacity:.8">acerasoft LLC · US</div></div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
-      <a href="/shop">Catalog</a>
-      <a href="/legal?doc=terms">Terms</a>
-      <a href="/legal?doc=privacy">Privacy</a>
-      <a href="/legal?doc=imprint">Imprint</a>
-      <a href="/#join" class="acc">Join the waitlist</a>
+      <a href="/shop"><?= t('Catalog') ?></a>
+      <a href="/legal?doc=terms"><?= t('Terms') ?></a>
+      <a href="/legal?doc=privacy"><?= t('Privacy') ?></a>
+      <a href="/legal?doc=imprint"><?= t('Imprint') ?></a>
+      <a href="/#join" class="acc"><?= t('Join the waitlist') ?></a>
     </div>
   </div>
 </footer>

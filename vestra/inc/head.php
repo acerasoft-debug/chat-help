@@ -1,5 +1,6 @@
 <?php
 /** VESTRA shared header — start session, member gate, nav. Set $PAGE before include. */
+require_once __DIR__.'/i18n.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (isset($_GET['demo_member']))  { $_SESSION['member'] = true; }
 if (isset($_GET['demo_signout'])) { unset($_SESSION['member']); }
@@ -9,7 +10,7 @@ $PAGE   = $PAGE ?? $BRAND;
 $ACC    = '#c9a86a';
 $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#0e0e11'/><path d='M9 10l7 13 7-13' fill='none' stroke='{$ACC}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= vlang() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -31,15 +32,16 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
       <span><?= $BRAND ?></span>
     </a>
     <div class="nav-links">
-      <a href="/shop" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>">Catalog</a>
-      <a href="/requests" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>">Requests</a>
-      <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>">Sell</a>
+      <a href="/shop" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>"><?= t('Catalog') ?></a>
+      <a href="/requests" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>"><?= t('Requests') ?></a>
+      <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>"><?= t('Sell') ?></a>
       <?php if ($MEMBER): ?>
-        <a href="/buyer" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>">Account</a>
+        <a href="/buyer" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>"><?= t('Account') ?></a>
         <span class="memberpill">✓</span>
       <?php else: ?>
-        <a href="?demo_member=1">Sign in</a>
+        <a href="?demo_member=1"><?= t('Sign in') ?></a>
       <?php endif; ?>
+      <?= vlang_switcher() ?>
       <a class="cartlink" href="/cart" aria-label="Cart">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.2 11H6.2L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
         <span class="badge" id="cartCount" style="display:none">0</span>
