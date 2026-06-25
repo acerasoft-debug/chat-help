@@ -1,7 +1,7 @@
 <?php
 /** VESTRA — order request handler (demo). Stores to data/orders.csv (+ optional email). */
 require __DIR__.'/inc/products.php';
-$CONTACT='hello@vestra.example'; $NOTIFY=false;
+$CONTACT='hello@vestrasales.com'; $NOTIFY=false;
 
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: cart.php'); exit; }
 if(!empty($_POST['website'])){ header('Location: cart.php?placed=1&ref=NA'); exit; } // honeypot

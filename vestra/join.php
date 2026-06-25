@@ -3,7 +3,7 @@
  * VESTRA waitlist handler — kayıtları data/signups.csv'ye yazar (+ opsiyonel e-posta).
  * Sade PHP; Hosteurope'ta ekstra kurulum gerekmez.
  */
-$CONTACT = 'hello@vestra.example'; // bildirim e-postan
+$CONTACT = 'hello@vestrasales.com'; // bildirim e-postan
 $NOTIFY  = false;                  // true yaparsan her kayıtta sana mail gider (SMTP/mail() aktifse)
 
 // Dil (geri dönüşte korunur)

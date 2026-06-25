@@ -1,7 +1,7 @@
 <footer>
   <div class="wrap foot">
     <div><b style="color:var(--ink)">VESTRA</b> — verified B2B fashion wholesale
-      <div style="margin-top:5px;opacity:.8">[Company Name LLC · US] — legal info pending</div></div>
+      <div style="margin-top:5px;opacity:.8">[acerasoft LLC · US]</div></div>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <a href="shop.php">Catalog</a>
       <a href="legal.php?doc=terms">Terms</a>

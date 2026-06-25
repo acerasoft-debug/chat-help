@@ -7,8 +7,8 @@
  * Markayı/iletişimi değiştirmek için sadece şu satırları düzenle:
  */
 $BRAND   = 'VESTRA';                                          // ← marka adı (placeholder)
-$CONTACT = 'hello@vestra.example';                            // ← iletişim e-postan
-$COMPANY = '[Company Name LLC · US] — legal info pending';    // ← şirket bilgin (şeffaflık!)
+$CONTACT = 'hello@vestrasales.com';                            // ← iletişim e-postan
+$COMPANY = 'acerasoft LLC';    // ← şirket bilgin (şeffaflık!)
 $ACCENT  = '#c9a86a';
 
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];

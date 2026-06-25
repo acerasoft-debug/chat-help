@@ -63,7 +63,7 @@ require __DIR__.'/inc/products.php';
 </table>
 
 <div class="foot">
-  VESTRA — [Company Name LLC]. Prices indicative, exclusive of platform/escrow fees, taxes and shipping.
+  VESTRA — acerasoft LLC. Prices indicative, exclusive of platform/escrow fees, taxes and shipping.
   Branded goods sold by verified sellers; authenticity &amp; right-to-sell warranted. Subject to availability.
 </div>
 

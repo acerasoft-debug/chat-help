@@ -4,7 +4,7 @@
  * Content is a launch draft; fill [bracketed] details and have a US+EU lawyer review.
  */
 function vestra_legal(){
-  $co='[VESTRA LLC]'; $addr='[US registered address]'; $email='legal@vestra.example';
+  $co='acerasoft LLC'; $addr='[US registered address]'; $email='legal@vestrasales.com';
   return [
   'imprint'=>['title'=>'Imprint / Legal Notice','html'=>"
     <p>Information pursuant to applicable e-commerce and consumer-information rules.</p>
@@ -40,7 +40,7 @@ function vestra_legal(){
     <p class='muted'>Contact: <a href='mailto:{$email}'>{$email}</a></p>"],
 
   'privacy'=>['title'=>'Privacy Policy','html'=>"
-    <p><b>Controller:</b> {$co}, {$addr}. <b>Contact:</b> privacy@vestra.example.</p>
+    <p><b>Controller:</b> {$co}, {$addr}. <b>Contact:</b> privacy@vestrasales.com.</p>
     <h3>1. Data we collect</h3><p>Account &amp; verification data (name, business details, tax/VAT ID, beneficial-owner
     identity &amp; address documents), transactional data (orders, listings, communications) and technical/log data.</p>
     <h3>2. Why (purposes &amp; legal bases)</h3><ul>
@@ -74,7 +74,7 @@ function vestra_legal(){
   'ip'=>['title'=>'IP &amp; Anti-Counterfeit / Notice-and-Takedown','html'=>"
     <h3>Zero tolerance</h3><p>Counterfeit, replica, unauthorised-brand and unverified grey-market goods, and any
     IP-infringing listing, are prohibited.</p>
-    <h3>Report an infringement</h3><p>Send a notice to <a href='mailto:ip@vestra.example'>ip@vestra.example</a> with:
+    <h3>Report an infringement</h3><p>Send a notice to <a href='mailto:ip@vestrasales.com'>ip@vestrasales.com</a> with:
     the right relied on (e.g., trademark number) and proof of ownership; the exact listing URL(s); the reason it
     infringes; and a good-faith statement with contact details. One notice may list multiple URLs.</p>
     <h3>Our process</h3><ol><li>Acknowledge receipt.</li><li>Assess; remove/disable substantiated or manifest cases promptly.</li>
