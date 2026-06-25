@@ -7,7 +7,7 @@ $PAGE = strip_tags($docs[$doc]['title']); $NAV='legal';
 require __DIR__.'/inc/head.php';
 ?>
 <div class="wrap">
-  <div class="phead"><div class="crumbs"><a href="index.php">Home</a> · Legal</div>
+  <div class="phead"><div class="crumbs"><a href="/">Home</a> · Legal</div>
     <h1>Legal &amp; policies</h1>
     <p>Transparency by design. These documents govern the use of VESTRA.</p>
   </div>

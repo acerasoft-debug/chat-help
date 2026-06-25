@@ -3,11 +3,11 @@
 require __DIR__.'/inc/products.php';
 $CONTACT='hello@vestrasales.com'; $NOTIFY=false;
 
-if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: cart.php'); exit; }
-if(!empty($_POST['website'])){ header('Location: cart.php?placed=1&ref=NA'); exit; } // honeypot
+if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
+if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
 
 $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
-if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: cart.php'); exit; }
+if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
 
 $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 
@@ -19,7 +19,7 @@ foreach($cart as $it){
   $unit=vestra_unit_price($p,$qty); $line=$qty*$unit; $subtotal+=$line;
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line];
 }
-if(!$lines){ header('Location: cart.php'); exit; }
+if(!$lines){ header('Location: /cart'); exit; }
 /* Platform commission — set seller- and buyer-side rates independently. */
 $FEE_SELLER = VESTRA_FEE_SELLER; // configured in inc/products.php (6% seller)
 $FEE_BUYER  = VESTRA_FEE_BUYER;  // configured in inc/products.php (2% buyer)
@@ -45,4 +45,4 @@ if($NOTIFY && $CONTACT){
   $body.="\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n";
   @mail($CONTACT,"VESTRA order {$ref} — {$company}",$body,"From: {$CONTACT}\r\nReply-To: {$email}");
 }
-header('Location: cart.php?placed=1&ref='.urlencode($ref)); exit;
+header('Location: /cart?placed=1&ref='.urlencode($ref)); exit;

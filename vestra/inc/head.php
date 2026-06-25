@@ -18,12 +18,12 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="inc/style.css">
+<link rel="stylesheet" href="/inc/style.css">
 </head>
 <body>
 <header>
   <div class="wrap"><nav>
-    <a class="logo" href="index.php">
+    <a class="logo" href="/">
       <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/>
         <path d="M9 10l7 13 7-13" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -31,16 +31,16 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
       <span><?= $BRAND ?></span>
     </a>
     <div class="nav-links">
-      <a href="shop.php" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>">Catalog</a>
-      <a href="requests.php" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>">Requests</a>
-      <a href="seller.php" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>">Sell</a>
+      <a href="/shop" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>">Catalog</a>
+      <a href="/requests" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>">Requests</a>
+      <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>">Sell</a>
       <?php if ($MEMBER): ?>
-        <a href="buyer.php" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>">Account</a>
+        <a href="/buyer" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>">Account</a>
         <span class="memberpill">✓</span>
       <?php else: ?>
         <a href="?demo_member=1">Sign in</a>
       <?php endif; ?>
-      <a class="cartlink" href="cart.php" aria-label="Cart">
+      <a class="cartlink" href="/cart" aria-label="Cart">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1.2 11H6.2L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
         <span class="badge" id="cartCount" style="display:none">0</span>
       </a>

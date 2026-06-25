@@ -1,14 +1,14 @@
 <?php
 /** VESTRA — seller "add product" handler. Appends to data/listings.json (merged into the live catalog). */
 require __DIR__.'/inc/products.php';
-if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: seller.php?tab=add'); exit; }
-if(!empty($_POST['website'])){ header('Location: seller.php?tab=add&added=1'); exit; }
+if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /seller?tab=add'); exit; }
+if(!empty($_POST['website'])){ header('Location: /seller?tab=add&added=1'); exit; }
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $brand=$one($_POST['brand']??''); $name=$one($_POST['name']??''); $origin=$one($_POST['origin']??'');
 $moq=max(1,(int)($_POST['moq']??1));
 $mode=in_array($_POST['mode']??'',['fixed','sale','offer'],true)?$_POST['mode']:'fixed';
-if($brand===''||$name===''||$origin===''){ header('Location: seller.php?tab=add'); exit; }
+if($brand===''||$name===''||$origin===''){ header('Location: /seller?tab=add'); exit; }
 
 /* tiers */
 $tiers=[];
@@ -40,4 +40,4 @@ $file=$dir.'/listings.json';
 $list=vestra_listings(); $list[]=$item;
 @file_put_contents($file, json_encode($list, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 
-header('Location: seller.php?tab=add&added=1'); exit;
+header('Location: /seller?tab=add&added=1'); exit;

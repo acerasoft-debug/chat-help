@@ -25,7 +25,7 @@ require __DIR__.'/inc/products.php';
   @media print{.bar{display:none}body{padding:0}}
 </style>
 </head><body>
-<div class="bar">Use <b>Print → Save as PDF</b> to download. <a onclick="window.print()">Print / Save as PDF</a> · <a href="shop.php">Back to catalog</a></div>
+<div class="bar">Use <b>Print → Save as PDF</b> to download. <a onclick="window.print()">Print / Save as PDF</a> · <a href="/shop">Back to catalog</a></div>
 <div style="height:14px"></div>
 
 <div class="top">

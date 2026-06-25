@@ -1,11 +1,11 @@
 <?php
 /** VESTRA — sourcing request handler. Stores to data/requests.csv. */
 $CONTACT='hello@vestrasales.com'; $NOTIFY=false;
-if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: requests.php'); exit; }
-if(!empty($_POST['website'])){ header('Location: requests.php?posted=1&ref=NA'); exit; }
+if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /requests'); exit; }
+if(!empty($_POST['website'])){ header('Location: /requests?posted=1&ref=NA'); exit; }
 
 $title=trim($_POST['title']??''); $email=trim($_POST['email']??'');
-if($title===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: requests.php#post'); exit; }
+if($title===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /requests#post'); exit; }
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $ref='R'.strtoupper(substr(md5($email.$title.microtime(false)),0,5));
@@ -21,4 +21,4 @@ if($fh=@fopen($file,'a')){
 if($NOTIFY && $CONTACT){
   @mail($CONTACT,"VESTRA sourcing request {$ref}","{$title}\nQty: ".($_POST['qty']??'')."\nTarget: ".($_POST['target']??'')."\nFrom: {$email}\n","From: {$CONTACT}\r\nReply-To: {$email}");
 }
-header('Location: requests.php?posted=1&ref='.urlencode($ref)); exit;
+header('Location: /requests?posted=1&ref='.urlencode($ref)); exit;

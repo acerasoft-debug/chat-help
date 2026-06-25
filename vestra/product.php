@@ -2,14 +2,14 @@
 require __DIR__.'/inc/products.php';
 $p = vestra_find($_GET['id'] ?? '');
 if(!$p){ http_response_code(404); $PAGE='Not found'; require __DIR__.'/inc/head.php';
-  echo '<div class="wrap"><div class="empty">Product not found. <a class="acc" href="shop.php">Back to catalog</a></div></div>';
+  echo '<div class="wrap"><div class="empty">Product not found. <a class="acc" href="/shop">Back to catalog</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
 $PAGE=$p['name']; $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 ?>
 <div class="wrap">
-  <div class="crumbs" style="margin-top:24px"><a href="index.php">Home</a> · <a href="shop.php">Catalog</a> · <?=htmlspecialchars($p['brand'])?></div>
+  <div class="crumbs" style="margin-top:24px"><a href="/">Home</a> · <a href="/shop">Catalog</a> · <?=htmlspecialchars($p['brand'])?></div>
 
   <div class="pdetail">
     <div>
@@ -40,8 +40,8 @@ $offered=isset($_GET['offered']);
         </div>
 
       <?php elseif($offered): ?>
-        <div class="banner ok" style="margin-top:18px">✓ Your offer is in the queue (ref <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b>). The seller will respond — track it under <a href="requests.php" class="acc">Requests</a>.</div>
-        <a class="btn btn-o" href="shop.php">Continue browsing</a>
+        <div class="banner ok" style="margin-top:18px">✓ Your offer is in the queue (ref <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b>). The seller will respond — track it under <a href="/requests" class="acc">Requests</a>.</div>
+        <a class="btn btn-o" href="/shop">Continue browsing</a>
 
       <?php elseif($mode==='offer'): /* ---------- MAKE AN OFFER ---------- */ ?>
         <div class="banner info" style="margin-top:18px">💬 This item is <b>open to offers</b>. <?=htmlspecialchars($p['guide']??'')?></div>
@@ -54,7 +54,7 @@ $offered=isset($_GET['offered']);
           </tbody>
         </table>
         <div class="order-box">
-          <form method="post" action="offer.php">
+          <form method="post" action="/offer">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">

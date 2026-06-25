@@ -10,7 +10,7 @@ $cats=vestra_cats();
 ?>
 <div class="wrap">
   <div class="phead">
-    <div class="crumbs"><a href="index.php">Home</a> · Sourcing requests</div>
+    <div class="crumbs"><a href="/">Home</a> · Sourcing requests</div>
     <h1>Sourcing board</h1>
     <p>Can't find it in the catalog? <b>Post what you're looking for</b> and join the queue — verified sellers come to you with offers.</p>
   </div>
@@ -78,7 +78,7 @@ $cats=vestra_cats();
       <div class="postbox" id="post">
         <h3 class="blocktitle">Post a request</h3>
         <p class="hint" style="margin-top:-4px">No payment, no commitment. You'll get offers from verified sellers.</p>
-        <form method="post" action="request.php">
+        <form method="post" action="/request">
           <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
           <label class="hint">What are you looking for? *</label>
           <input name="title" required placeholder="e.g. Lacoste polos, mixed sizes, EEA stock" style="width:100%;margin-bottom:12px">

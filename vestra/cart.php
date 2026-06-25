@@ -1,17 +1,17 @@
 <?php $PAGE='Your order'; $NAV='shop'; require __DIR__.'/inc/head.php'; require_once __DIR__.'/inc/products.php'; $placed=isset($_GET['placed']); ?>
 <div class="wrap">
   <div class="phead">
-    <div class="crumbs"><a href="index.php">Home</a> · <a href="shop.php">Catalog</a> · Order</div>
+    <div class="crumbs"><a href="/">Home</a> · <a href="/shop">Catalog</a> · Order</div>
     <h1>Your order</h1>
   </div>
 
   <?php if($placed): ?>
     <div class="banner ok">✓ Order request received. We'll confirm seller availability and send a secured (escrow) payment link. Reference: <b><?=htmlspecialchars(substr($_GET['ref']??'',0,20))?></b></div>
-    <a class="btn btn-o" href="shop.php">Continue browsing</a>
+    <a class="btn btn-o" href="/shop">Continue browsing</a>
   <?php else: ?>
 
   <div id="empty" class="empty" style="display:none">
-    Your order is empty. <a class="acc" href="shop.php">Browse the catalog →</a>
+    Your order is empty. <a class="acc" href="/shop">Browse the catalog →</a>
   </div>
 
   <div id="filled" style="display:none">
@@ -28,7 +28,7 @@
       <div class="hint" style="margin-top:6px">Payment is held in <b>escrow</b>; released to the seller after you confirm receipt.</div>
     </div></div>
 
-    <form id="orderForm" method="post" action="order.php">
+    <form id="orderForm" method="post" action="/order">
       <input type="hidden" name="cart" id="cartField">
       <h3 style="margin:24px 0 10px">Buyer details</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px">

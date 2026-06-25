@@ -6,7 +6,7 @@ if(!$MEMBER){
   echo '<div class="wrap"><div class="gate" style="margin:48px auto;max-width:460px">
     <h3 style="margin:0 0 6px">Buyer workspace</h3>
     <p style="color:var(--mut);margin:0 0 16px">Sign in to track your orders, sourcing requests and offers.</p>
-    <a class="btn btn-p" href="buyer.php?demo_member=1">Sign in (demo)</a></div></div>';
+    <a class="btn btn-p" href="/buyer?demo_member=1">Sign in (demo)</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
 $tab=$_GET['tab']??'overview';
@@ -27,14 +27,14 @@ if($tab==='overview'){
     [eur($spent),'Order value'],
   ]);
   echo '<div class="panelcard"><div class="pcfhead"><h3>Quick actions</h3></div><div class="quickrow">
-    <a class="btn btn-p btn-sm" href="shop.php">Browse catalog</a>
-    <a class="btn btn-o btn-sm" href="requests.php#post">Post a sourcing request</a>
-    <a class="btn btn-o btn-sm" href="buyer.php?tab=orders">View orders</a></div></div>';
+    <a class="btn btn-p btn-sm" href="/shop">Browse catalog</a>
+    <a class="btn btn-o btn-sm" href="/requests#post">Post a sourcing request</a>
+    <a class="btn btn-o btn-sm" href="/buyer?tab=orders">View orders</a></div></div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>Buyer protection</h3><span class="status offers">Escrow active</span></div>
     <p class="hint">Every order is escrow-protected — funds release to the seller only after you confirm receipt.</p></div>';
 
 } elseif($tab==='orders'){
-  echo '<div class="panelcard"><div class="pcfhead"><h3>Orders</h3><a class="btn btn-o btn-sm" href="shop.php">New order</a></div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>Orders</h3><a class="btn btn-o btn-sm" href="/shop">New order</a></div>';
   if(!$orders) dash_empty('No orders yet. Place an order from the catalog.');
   else { echo '<table class="ctable"><thead><tr><th>Ref</th><th>Items</th><th class="r">Total</th><th>Status</th></tr></thead><tbody>';
     foreach($orders as $o){ echo '<tr><td><b>'.htmlspecialchars($o['ref']??'').'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
@@ -44,7 +44,7 @@ if($tab==='overview'){
   echo '</div>';
 
 } elseif($tab==='requests'){
-  echo '<div class="panelcard"><div class="pcfhead"><h3>Sourcing requests</h3><a class="btn btn-p btn-sm" href="requests.php#post">＋ New request</a></div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>Sourcing requests</h3><a class="btn btn-p btn-sm" href="/requests#post">＋ New request</a></div>';
   if(!$requests) dash_empty('No requests yet. Post what you need on the sourcing board.');
   else { echo '<table class="ctable"><thead><tr><th>Ref</th><th>Looking for</th><th>Target</th><th>Status</th></tr></thead><tbody>';
     foreach($requests as $r){ echo '<tr><td><b>'.htmlspecialchars($r['ref']??'').'</b></td><td>'.htmlspecialchars($r['title']??'').'<div class="hint">'.htmlspecialchars($r['qty']??'').'</div></td>'.

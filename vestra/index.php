@@ -289,8 +289,8 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
       <span><?= htmlspecialchars($BRAND) ?></span>
     </a>
     <div class="nav-links">
-      <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
-      <a href="requests.php"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
+      <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
       <a class="hidem-s" href="#how"><?= $t['how'] ?></a>
       <a class="hidem-s" href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
@@ -303,8 +303,8 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     </button>
   </nav></div>
   <div class="mnav" id="mnav">
-    <a href="shop.php"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
-    <a href="requests.php"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+    <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
+    <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <a href="#join"><?= $t['join_nav'] ?></a>
@@ -373,7 +373,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
       <button type="button" id="t-seller" class="on" onclick="setType('seller')"><?= $t['tg_s'] ?></button>
       <button type="button" id="t-buyer" onclick="setType('buyer')"><?= $t['tg_b'] ?></button>
     </div>
-    <form action="join.php" method="post">
+    <form action="/join" method="post">
       <input type="hidden" name="type" id="type" value="seller">
       <input type="hidden" name="lang" value="<?= $lang ?>">
       <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">

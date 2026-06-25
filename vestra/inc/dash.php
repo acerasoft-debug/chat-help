@@ -16,13 +16,13 @@ function dash_open($role,$section,$title,$subtitle=''){
       ['kyc','Verification','buyer.php?tab=kyc'],
     ];
   echo '<div class="wrap"><div class="dashtop">';
-  echo '<div><div class="crumbs"><a href="index.php">Home</a> · '.($role==='seller'?'Seller':'Buyer').' panel</div>';
+  echo '<div><div class="crumbs"><a href="/">Home</a> · '.($role==='seller'?'Seller':'Buyer').' panel</div>';
   echo '<h1>'.htmlspecialchars($title).'</h1>';
   if($subtitle) echo '<p class="hint" style="margin:2px 0 0">'.htmlspecialchars($subtitle).'</p>';
   echo '</div><span class="rolepill">'.($role==='seller'?'🏷️ Seller workspace':'🛍️ Buyer workspace').'</span>';
   echo '</div><div class="dashlayout"><aside class="dashside">';
   foreach($nav as $n){ echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.htmlspecialchars($n[1]).'</a>'; }
-  echo '<a class="signout" href="index.php?demo_signout=1">Sign out</a>';
+  echo '<a class="signout" href="/?demo_signout=1">Sign out</a>';
   echo '</aside><main class="dashmain">';
 }
 function dash_close(){ echo '</main></div></div>'; }

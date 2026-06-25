@@ -3,7 +3,7 @@ $cats = vestra_cats();
 ?>
 <div class="wrap">
   <div class="phead">
-    <div class="crumbs"><a href="index.php">Home</a> · Catalog</div>
+    <div class="crumbs"><a href="/">Home</a> · Catalog</div>
     <h1>Wholesale catalog</h1>
     <p>Verified branded &amp; textile fashion — minimum order &amp; bulk pricing per product.</p>
   </div>
@@ -16,11 +16,11 @@ $cats = vestra_cats();
   <div class="toolbar">
     <input class="search" id="search" placeholder="Search products, brands, SKU…" oninput="filter()">
     <span class="grow"></span>
-    <a class="btn btn-o btn-sm" href="catalog-csv.php">
+    <a class="btn btn-o btn-sm" href="/catalog-csv">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
       Excel (CSV)
     </a>
-    <a class="btn btn-o btn-sm" href="catalog-pdf.php" target="_blank">
+    <a class="btn btn-o btn-sm" href="/catalog-pdf" target="_blank">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
       PDF
     </a>
@@ -36,7 +36,7 @@ $cats = vestra_cats();
   <div class="grid" id="grid">
     <?php foreach(vestra_products() as $p):
       $from = vestra_from_price($p); ?>
-      <a class="pcard" href="product.php?id=<?=urlencode($p['id'])?>"
+      <a class="pcard" href="/product?id=<?=urlencode($p['id'])?>"
          data-cat="<?=htmlspecialchars($p['cat'])?>"
          data-search="<?=htmlspecialchars(strtolower($p['brand'].' '.$p['name'].' '.$p['sku'].' '.$p['cat']))?>">
         <div class="thumb" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">

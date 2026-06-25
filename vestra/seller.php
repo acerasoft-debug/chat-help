@@ -6,7 +6,7 @@ if(!$MEMBER){
   echo '<div class="wrap"><div class="gate" style="margin:48px auto;max-width:460px">
     <h3 style="margin:0 0 6px">Seller workspace</h3>
     <p style="color:var(--mut);margin:0 0 16px">Sign in to manage your listings, orders and offers.</p>
-    <a class="btn btn-p" href="seller.php?demo_member=1">Sign in (demo)</a></div></div>';
+    <a class="btn btn-p" href="/seller?demo_member=1">Sign in (demo)</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit;
 }
 $tab=$_GET['tab']??'overview';
@@ -30,18 +30,18 @@ if($tab==='overview'){
   ]);
   echo '<div class="panelcard"><div class="pcfhead"><h3>Quick actions</h3></div>
     <div class="quickrow">
-      <a class="btn btn-p btn-sm" href="seller.php?tab=add">＋ Add a product</a>
-      <a class="btn btn-o btn-sm" href="seller.php?tab=orders">View orders</a>
-      <a class="btn btn-o btn-sm" href="requests.php">Browse buyer requests</a>
+      <a class="btn btn-p btn-sm" href="/seller?tab=add">＋ Add a product</a>
+      <a class="btn btn-o btn-sm" href="/seller?tab=orders">View orders</a>
+      <a class="btn btn-o btn-sm" href="/requests">Browse buyer requests</a>
     </div></div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>Verification</h3><span class="status offers">✓ Verified seller</span></div>
     <p class="hint">Business KYB complete. Your listings show the “Verified” badge to buyers.</p></div>';
 
 } elseif($tab==='add'){
-  if($added) echo '<div class="banner ok">✓ Product added — it is now live in the <a class="acc" href="shop.php">catalog</a>.</div>';
+  if($added) echo '<div class="banner ok">✓ Product added — it is now live in the <a class="acc" href="/shop">catalog</a>.</div>';
   ?>
   <div class="panelcard">
-    <form method="post" action="seller-add.php" class="addform">
+    <form method="post" action="/seller-add" class="addform">
       <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
       <div class="frow">
         <div><label>Brand *</label><input name="brand" required placeholder="e.g. Lacoste / Your label"></div>
@@ -97,7 +97,7 @@ if($tab==='overview'){
   <?php
 
 } elseif($tab==='listings'){
-  echo '<div class="panelcard"><div class="pcfhead"><h3>Your listings</h3><a class="btn btn-p btn-sm" href="seller.php?tab=add">＋ Add product</a></div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>Your listings</h3><a class="btn btn-p btn-sm" href="/seller?tab=add">＋ Add product</a></div>';
   echo '<table class="ctable"><thead><tr><th>Product</th><th>Mode</th><th>MOQ</th><th class="r">From</th><th>Status</th></tr></thead><tbody>';
   $all=array_merge($listings, vestra_demo_products());
   foreach($all as $p){ $mine=in_array($p,$listings,true);
@@ -134,7 +134,7 @@ if($tab==='overview'){
     <tr><td>Beneficial owner ID</td><td class="r"><span class="status offers">Approved</span></td></tr>
     <tr><td>Payout (escrow) account</td><td class="r"><span class="status open">Connect Tazapay</span></td></tr>
     </tbody></table>
-    <p class="hint">Verified sellers can list and receive escrow payouts. See the <a class="acc" href="legal.php?doc=seller">Seller Agreement</a>.</p></div>';
+    <p class="hint">Verified sellers can list and receive escrow payouts. See the <a class="acc" href="/legal?doc=seller">Seller Agreement</a>.</p></div>';
 }
 dash_close();
 require __DIR__.'/inc/foot.php';
