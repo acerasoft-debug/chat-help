@@ -101,7 +101,7 @@ function vestra_legal(){
     Funds are <b>held in escrow</b> — VESTRA never holds the money.</p>
     <h3>Escrow release</h3><p>Funds release on buyer confirmation, verified delivery, or expiry of an agreed auto-release
     window if no dispute is raised. The provider disburses seller payout + VESTRA commission.</p>
-    <h3>Fees</h3><p>VESTRA commission 8% per order (deducted from the seller's payout) and/or membership fee; provider fees as charged. Shown before checkout.</p>
+    <h3>Fees</h3><p>VESTRA charges a platform commission per order — a seller commission plus a small buyer-protection fee — and/or a membership fee; provider fees as charged. Exact amounts are shown before checkout.</p>
     <h3>Refunds &amp; disputes</h3><p>During a dispute funds remain in escrow. If resolved for the buyer (non-delivery,
     materially not-as-described, proven counterfeit), escrowed funds are refunded before release.</p>
     <h3>Chargebacks</h3><p>SEPA payments are not subject to card chargebacks; card payments follow the provider's process.</p>"],

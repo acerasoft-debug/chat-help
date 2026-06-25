@@ -1,4 +1,4 @@
-<?php $PAGE='Your order'; $NAV='shop'; require __DIR__.'/inc/head.php'; $placed=isset($_GET['placed']); ?>
+<?php $PAGE='Your order'; $NAV='shop'; require __DIR__.'/inc/head.php'; require_once __DIR__.'/inc/products.php'; $placed=isset($_GET['placed']); ?>
 <div class="wrap">
   <div class="phead">
     <div class="crumbs"><a href="index.php">Home</a> · <a href="shop.php">Catalog</a> · Order</div>
@@ -22,8 +22,9 @@
 
     <div class="summary"><div class="box">
       <div class="line"><span>Subtotal</span><span id="sub"></span></div>
+      <div class="line"><span>Buyer-protection fee (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
       <div class="line big"><span>Total (you pay)</span><span id="grand"></span></div>
-      <div class="hint" style="margin-top:8px">Listed prices are final for buyers — an <b>8% platform commission</b> is deducted from the seller's payout, no extra charge for you.</div>
+      <div class="hint" style="margin-top:8px">Includes a <b><?=round(VESTRA_FEE_BUYER*100)?>% buyer-protection fee</b> (secure escrow + authenticity guarantee). The seller separately pays a <?=round(VESTRA_FEE_SELLER*100)?>% commission.</div>
       <div class="hint" style="margin-top:6px">Payment is held in <b>escrow</b>; released to the seller after you confirm receipt.</div>
     </div></div>
 
@@ -63,8 +64,10 @@ function render(){
       '<td class="x" title="Remove" onclick="VCart.remove(\''+x.id+'\');render()">✕</td></tr>';
   });
   document.getElementById('rows').innerHTML=rows;
+  var bfee=sub*<?=VESTRA_FEE_BUYER?>;
   document.getElementById('sub').textContent=eur(sub);
-  document.getElementById('grand').textContent=eur(sub);
+  document.getElementById('bfee').textContent=eur(bfee);
+  document.getElementById('grand').textContent=eur(sub+bfee);
   document.getElementById('cartField').value=JSON.stringify(c);
 }
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){

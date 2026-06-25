@@ -21,8 +21,8 @@ foreach($cart as $it){
 }
 if(!$lines){ header('Location: cart.php'); exit; }
 /* Platform commission — set seller- and buyer-side rates independently. */
-$FEE_SELLER = 0.08;  // taken from the seller's payout (0.08 = 8%)
-$FEE_BUYER  = 0.00;  // added on top of the buyer's total (e.g. 0.02 = 2% buyer-protection fee)
+$FEE_SELLER = VESTRA_FEE_SELLER; // configured in inc/products.php (6% seller)
+$FEE_BUYER  = VESTRA_FEE_BUYER;  // configured in inc/products.php (2% buyer)
 $buyer_fee  = round($subtotal*$FEE_BUYER, 2);
 $seller_fee = round($subtotal*$FEE_SELLER, 2);
 $commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
