@@ -20,13 +20,14 @@ foreach($cart as $it){
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line];
 }
 if(!$lines){ header('Location: cart.php'); exit; }
-/* Platform commission — flip $COMMISSION_SIDE to change who pays (no re-pricing change). */
-$COMMISSION_RATE = 0.08;     // 8%
-$COMMISSION_SIDE = 'seller'; // 'seller' = buyer pays list, comm. from payout | 'buyer' = added on top | 'split'
-$commission = round($subtotal*$COMMISSION_RATE, 2);
-if     ($COMMISSION_SIDE==='buyer'){ $total=round($subtotal+$commission,2);   $payout=$subtotal; }
-elseif ($COMMISSION_SIDE==='split'){ $total=round($subtotal+$commission/2,2); $payout=round($subtotal-$commission/2,2); }
-else                               { $total=$subtotal;                        $payout=round($subtotal-$commission,2); }
+/* Platform commission — set seller- and buyer-side rates independently. */
+$FEE_SELLER = 0.08;  // taken from the seller's payout (0.08 = 8%)
+$FEE_BUYER  = 0.00;  // added on top of the buyer's total (e.g. 0.02 = 2% buyer-protection fee)
+$buyer_fee  = round($subtotal*$FEE_BUYER, 2);
+$seller_fee = round($subtotal*$FEE_SELLER, 2);
+$commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
+$total      = round($subtotal + $buyer_fee, 2);   // what the buyer pays
+$payout     = round($subtotal - $seller_fee, 2);  // what the seller receives
 $ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).count($lines)),0,8));
 
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
@@ -41,7 +42,7 @@ if($fh=@fopen($file,'a')){
 if($NOTIFY && $CONTACT){
   $body="New order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\n\n";
   foreach($lines as $l){ $body.="{$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}\n"; }
-  $body.="\nBuyer pays €{$total}\nVESTRA commission ".($COMMISSION_RATE*100)."% €{$commission} · Seller payout €{$payout}\n";
+  $body.="\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n";
   @mail($CONTACT,"VESTRA order {$ref} — {$company}",$body,"From: {$CONTACT}\r\nReply-To: {$email}");
 }
 header('Location: cart.php?placed=1&ref='.urlencode($ref)); exit;
