@@ -108,7 +108,7 @@ $offered=isset($_GET['offered']);
           </div>
           <div class="calc">
             <div class="unit">Unit: <span id="uprice"><?=eur($from)?></span> · <span id="tier"></span></div>
-            <div class="total" id="total"><?=eur($from*$p['moq'])?> <small>excl. fees</small></div>
+            <div class="total" id="total"><?=eur($from*$p['moq'])?> <small>excl. taxes &amp; shipping</small></div>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
           <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()">Add to order</button>
@@ -128,7 +128,7 @@ $offered=isset($_GET['offered']);
           var u=unitPrice(q);
           document.getElementById('uprice').textContent=eur(u);
           document.getElementById('tier').textContent='tier '+tierLabel(q)+' '+P.unitLabel;
-          document.getElementById('total').innerHTML=eur(u*q)+' <small>excl. fees</small>';
+          document.getElementById('total').innerHTML=eur(u*q)+' <small>excl. taxes &amp; shipping</small>';
           document.querySelectorAll('#tiers tbody tr').forEach(function(tr){ tr.classList.toggle('active', q>=parseInt(tr.dataset.min) && (!tr.nextElementSibling||q<parseInt(tr.nextElementSibling.dataset.min))); });
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);

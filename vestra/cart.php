@@ -22,9 +22,9 @@
 
     <div class="summary"><div class="box">
       <div class="line"><span>Subtotal</span><span id="sub"></span></div>
-      <div class="line"><span>Platform fee (est. 5%)</span><span id="fee"></span></div>
-      <div class="line big"><span>Total</span><span id="grand"></span></div>
-      <div class="hint" style="margin-top:8px">Payment is held in <b>escrow</b>; released to the seller after you confirm receipt.</div>
+      <div class="line big"><span>Total (you pay)</span><span id="grand"></span></div>
+      <div class="hint" style="margin-top:8px">Listed prices are final for buyers — an <b>8% platform commission</b> is deducted from the seller's payout, no extra charge for you.</div>
+      <div class="hint" style="margin-top:6px">Payment is held in <b>escrow</b>; released to the seller after you confirm receipt.</div>
     </div></div>
 
     <form id="orderForm" method="post" action="order.php">
@@ -63,10 +63,8 @@ function render(){
       '<td class="x" title="Remove" onclick="VCart.remove(\''+x.id+'\');render()">✕</td></tr>';
   });
   document.getElementById('rows').innerHTML=rows;
-  var fee=sub*0.05;
   document.getElementById('sub').textContent=eur(sub);
-  document.getElementById('fee').textContent=eur(fee);
-  document.getElementById('grand').textContent=eur(sub+fee);
+  document.getElementById('grand').textContent=eur(sub);
   document.getElementById('cartField').value=JSON.stringify(c);
 }
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
