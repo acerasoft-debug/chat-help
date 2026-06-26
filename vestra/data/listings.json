@@ -6,7 +6,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101211",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S71GD1552. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -15,7 +15,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -35,7 +35,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101212",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1394. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -44,7 +44,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -64,7 +64,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101213",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's oversized fit graphic print t-shirt. Model SS74GD1399. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -73,7 +73,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -93,7 +93,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101214",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1400. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -102,7 +102,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -122,7 +122,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101215",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's crewneck sweatshirt. Model S74GU0811. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -131,7 +131,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -151,7 +151,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101216",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's crewneck sweatshirt. Model S74GU0814. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -160,7 +160,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -180,7 +180,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101217",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's crewneck sweatshirt. Model S74GU0815. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -189,7 +189,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -209,7 +209,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101218",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's crewneck sweatshirt. Model S74GU0826. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -218,7 +218,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -238,7 +238,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101219",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's classic crewneck sweatshirt. Model S74GU0836. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -247,7 +247,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -267,7 +267,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101220",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's crewneck sweatshirt. Model S71GU0546. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -276,7 +276,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -296,7 +296,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101221",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's graphic print crewneck sweatshirt. Model S71GU0554. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -305,7 +305,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 120
             },
             {
@@ -325,7 +325,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101222",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's hooded windbreaker jacket. Model S74AM1331. Colour: Yellow. Lot: 150 pcs.",
         "seller": "",
@@ -334,15 +334,15 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 220
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 205
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 190
             }
         ]
@@ -354,7 +354,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101223",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's hooded windbreaker jacket. Model S74AM1331. Colour: Black. Lot: 150 pcs.",
         "seller": "",
@@ -363,15 +363,15 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 220
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 205
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 190
             }
         ]
@@ -383,7 +383,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101224",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's hooded windbreaker jacket. Model S74AM1331. Colour: Navy. Lot: 150 pcs.",
         "seller": "",
@@ -392,15 +392,15 @@
         "accent": "#0f2f5c",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 220
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 205
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 190
             }
         ]
@@ -412,7 +412,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101225",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1106. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -421,7 +421,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -441,7 +441,7 @@
         "mode": "fixed",
         "cat": "Polos",
         "sku": "101226",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit graphic polo shirt. Model S74GL0073. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -450,7 +450,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 100
             },
             {
@@ -470,7 +470,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101227",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's graphic print pullover hoodie. Model S74GU0634. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -479,7 +479,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 145
             },
             {
@@ -499,7 +499,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101228",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection hooded windbreaker jacket. Model S79AM0038. Colour: Black/Red. Lot: 150 pcs.",
         "seller": "",
@@ -508,15 +508,15 @@
         "accent": "#3a0f12",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 230
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 215
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 195
             }
         ]
@@ -528,7 +528,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101229",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection hooded windbreaker jacket. Model S79AM0038. Colour: Black. Lot: 150 pcs.",
         "seller": "",
@@ -537,15 +537,15 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 230
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 215
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 195
             }
         ]
@@ -557,7 +557,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101230",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection mini logo t-shirt. Model S79GC0010. Colour: Pink. Lot: 150 pcs.",
         "seller": "",
@@ -566,7 +566,7 @@
         "accent": "#392b4a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -586,7 +586,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101231",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection outlined logo t-shirt. Model S79GC0063. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -595,7 +595,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -615,7 +615,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101232",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection metallic logo t-shirt. Model S79GC0068. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -624,7 +624,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -644,7 +644,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101233",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection sunset palm tree logo t-shirt. Model S79GC0065. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -653,7 +653,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -673,7 +673,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101234",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection mini logo pullover hoodie. Model S79GC0068. Colour: Blue. Lot: 150 pcs.",
         "seller": "",
@@ -682,7 +682,7 @@
         "accent": "#0f2f5c",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 145
             },
             {
@@ -702,7 +702,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101235",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection mini logo pullover hoodie. Model S79GC0068. Colour: Pink. Lot: 200 pcs.",
         "seller": "",
@@ -711,7 +711,7 @@
         "accent": "#392b4a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 145
             },
             {
@@ -731,7 +731,7 @@
         "mode": "fixed",
         "cat": "Hoodies & Sweatshirts",
         "sku": "101236",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's ICON collection paint splatter pullover hoodie. Model S79GU0072. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -740,7 +740,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 145
             },
             {
@@ -760,7 +760,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101237",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's oversized fit t-shirt. Model S74GC0096. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -769,7 +769,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
@@ -789,7 +789,7 @@
         "mode": "fixed",
         "cat": "Jackets",
         "sku": "101238",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's hooded windbreaker jacket. Model S74AM1331. Colour: Orange. Lot: 150 pcs.",
         "seller": "",
@@ -798,15 +798,15 @@
         "accent": "#3a0f12",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 220
             },
             {
-                "min": 12,
+                "min": 30,
                 "price": 205
             },
             {
-                "min": 24,
+                "min": 40,
                 "price": 190
             }
         ]
@@ -818,7 +818,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101239",
-        "moq": 10,
+        "moq": 20,
         "unit": "pc",
         "desc": "Men's regular fit ICON mini logo t-shirt. Model S79GC0010S23009997. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -827,7 +827,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 10,
+                "min": 20,
                 "price": 55
             },
             {
