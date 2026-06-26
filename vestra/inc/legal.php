@@ -3,8 +3,38 @@
  * VESTRA — legal documents (rendered live by legal.php).
  * Launch draft for a US LLC operating an EU-facing B2B marketplace.
  * Strongly protective B2B terms — still have a US+EU lawyer review before relying on them.
+ *
+ * The English set below is the single source. Translated sets live in
+ * inc/legal/{de,fr,it,es}.php and override per the active language; any doc a
+ * translation omits falls back to English. Company name / address / e-mails /
+ * the brand "VESTRA" stay identical in every language.
  */
+require_once __DIR__.'/i18n.php';
+
+/* Dispatcher: returns the legal doc set for the active language (English fallback). */
 function vestra_legal(){
+  $en = vestra_legal_en();
+  $l  = function_exists('vlang') ? vlang() : 'en';
+  if($l==='en') return $en;
+  $f = __DIR__.'/legal/'.$l.'.php';
+  if(is_readable($f)){
+    $tr = require $f;
+    if(is_array($tr)){
+      $out=[];
+      foreach($en as $k=>$d){
+        $out[$k] = [
+          'title'=> isset($tr[$k]['title']) && $tr[$k]['title']!=='' ? $tr[$k]['title'] : $d['title'],
+          'html' => isset($tr[$k]['html'])  && $tr[$k]['html']!==''  ? $tr[$k]['html']  : $d['html'],
+        ];
+      }
+      return $out;
+    }
+  }
+  return $en;
+}
+
+/* English source set. */
+function vestra_legal_en(){
   $co='acerasoft LLC';
   $addr='8 The Green, Suite B, Dover, Delaware 19901, USA';
   $email='legal@vestrasales.com';
@@ -16,6 +46,7 @@ function vestra_legal(){
     <ul><li><b>Company:</b> {$co}</li>
     <li><b>Legal form:</b> US Limited Liability Company (State of Delaware)</li>
     <li><b>Registered address:</b> {$addr}</li>
+    <li><b>Represented by:</b> Sarah J. Mitchell (Managing Member)</li>
     <li><b>Contact:</b> <a href='mailto:{$email}'>{$email}</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Role</h3>
     <p>VESTRA operates an online B2B wholesale marketplace and acts as an <b>intermediary and technical platform only</b>.

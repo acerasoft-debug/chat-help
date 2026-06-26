@@ -10,15 +10,44 @@ if(!function_exists('vlang')){
 
 function vlang_list(){ return ['en'=>'EN','de'=>'DE','fr'=>'FR','it'=>'IT','es'=>'ES']; }
 
+/* Best match for the visitor's device/browser language (phone language travels
+ * in the Accept-Language header). Maps regional tags (de-AT, fr-CA…) to our base
+ * languages and respects q-weights. Returns null if nothing matches. */
+function vlang_detect(){
+  $langs=vlang_list();
+  $h=$_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
+  if($h==='') return null;
+  $best=null; $bestQ=-1;
+  foreach(explode(',',$h) as $part){
+    $part=trim($part); if($part==='') continue;
+    $q=1.0;
+    if(preg_match('/;\s*q=([0-9.]+)/',$part,$m)) $q=(float)$m[1];
+    $code=strtolower(trim(preg_replace('/;.*$/','',$part)));   // "de-at" → de-at
+    $base=substr($code,0,2);                                    // → "de"
+    if(isset($langs[$base]) && $q>$bestQ){ $best=$base; $bestQ=$q; }
+  }
+  return $best;
+}
+
 function vlang(){
   static $l=null; if($l!==null) return $l;
   $langs=vlang_list(); $l='en';
   if(isset($_GET['lang']) && isset($langs[$_GET['lang']])){
+    /* explicit choice — remember it for a year */
     $l=$_GET['lang'];
     if(!headers_sent()) @setcookie('vlang',$l,time()+31536000,'/');
     $_COOKIE['vlang']=$l;
   } elseif(isset($_COOKIE['vlang']) && isset($langs[$_COOKIE['vlang']])){
+    /* returning visitor — honour their saved choice */
     $l=$_COOKIE['vlang'];
+  } else {
+    /* first visit — auto-pick from the device/browser language, then remember */
+    $d=vlang_detect();
+    if($d!==null){
+      $l=$d;
+      if(!headers_sent()) @setcookie('vlang',$l,time()+31536000,'/');
+      $_COOKIE['vlang']=$l;
+    }
   }
   return $l;
 }
@@ -33,11 +62,17 @@ function vtrans(){
 /* translate (with English fallback) */
 function t($s){ $d=vtrans(); return isset($d[$s]) ? $d[$s] : $s; }
 
-/* language switcher markup; links carry ?lang= to set the cookie */
+/* language switcher markup; each link keeps the visitor on the SAME page and
+ * preserves existing query params (e.g. ?doc=imprint), only overriding ?lang= */
 function vlang_switcher($class='langsw'){
-  $cur=vlang(); $out='<div class="'.$class.'">';
+  $cur=vlang();
+  $path=parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+  $base=array_filter($_GET, function($k){ return $k!=='lang'; }, ARRAY_FILTER_USE_KEY);
+  $out='<div class="'.$class.'">';
   foreach(vlang_list() as $code=>$label){
-    $out.='<a class="lsw'.($code===$cur?' on':'').'" href="?lang='.$code.'" hreflang="'.$code.'">'.$label.'</a>';
+    $qs=http_build_query($base+['lang'=>$code]);
+    $href=htmlspecialchars($path.'?'.$qs, ENT_QUOTES);
+    $out.='<a class="lsw'.($code===$cur?' on':'').'" href="'.$href.'" hreflang="'.$code.'">'.$label.'</a>';
   }
   return $out.'</div>';
 }

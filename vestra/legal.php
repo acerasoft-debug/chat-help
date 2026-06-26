@@ -7,9 +7,9 @@ $PAGE = strip_tags($docs[$doc]['title']); $NAV='legal';
 require __DIR__.'/inc/head.php';
 ?>
 <div class="wrap">
-  <div class="phead"><div class="crumbs"><a href="/">Home</a> · Legal</div>
-    <h1>Legal &amp; policies</h1>
-    <p>Transparency by design. These documents govern the use of VESTRA.</p>
+  <div class="phead"><div class="crumbs"><a href="/">Home</a> · <?= t('Legal') ?></div>
+    <h1><?= t('Legal &amp; policies') ?></h1>
+    <p><?= t('Transparency by design. These documents govern the use of VESTRA.') ?></p>
   </div>
 
   <div class="legallayout">
@@ -20,7 +20,7 @@ require __DIR__.'/inc/head.php';
     </aside>
     <article class="legalbody">
       <h2><?=$docs[$doc]['title']?></h2>
-      <div class="legalmeta">Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents</div>
+      <div class="legalmeta"><?= t('Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents') ?></div>
       <?=$docs[$doc]['html']?>
     </article>
   </div>

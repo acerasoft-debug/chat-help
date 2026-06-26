@@ -261,4 +261,8 @@
   'e.g. €24/pc or best offer' => 'p. ej. €24/u o mejor oferta',
   'Brands, condition, delivery terms…' => 'Marcas, estado, condiciones de entrega…',
   'Post request &amp; join the queue' => 'Publicar solicitud &amp; unirte a la cola',
+  'Legal' => 'Legal',
+  'Legal &amp; policies' => 'Legal y políticas',
+  'Transparency by design. These documents govern the use of VESTRA.' => 'Transparencia por diseño. Estos documentos rigen el uso de VESTRA.',
+  'Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents' => 'Última actualización: 26 de junio de 2026 · Solicite la revisión de estos documentos por un abogado de EE. UU. y la UE antes de basarse en ellos',
 ];
