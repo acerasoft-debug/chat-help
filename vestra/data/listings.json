@@ -14,9 +14,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 68.00},
-      {"min": 48, "price": 60.00},
-      {"min": 120, "price": 52.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -34,9 +34,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 68.00},
-      {"min": 48, "price": 60.00},
-      {"min": 120, "price": 52.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -54,9 +54,9 @@
     "verified": true,
     "accent": "#23323a",
     "tiers": [
-      {"min": 12, "price": 70.00},
-      {"min": 48, "price": 62.00},
-      {"min": 120, "price": 55.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -74,9 +74,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 68.00},
-      {"min": 48, "price": 60.00},
-      {"min": 120, "price": 52.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -294,9 +294,9 @@
     "verified": true,
     "accent": "#23323a",
     "tiers": [
-      {"min": 12, "price": 68.00},
-      {"min": 48, "price": 60.00},
-      {"min": 120, "price": 52.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -314,9 +314,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 85.00},
-      {"min": 48, "price": 75.00},
-      {"min": 120, "price": 65.00}
+      {"min": 12, "price": 100.00},
+      {"min": 48, "price": 92.50},
+      {"min": 120, "price": 85.00}
     ]
   },
   {
@@ -394,9 +394,9 @@
     "verified": true,
     "accent": "#392b4a",
     "tiers": [
-      {"min": 12, "price": 65.00},
-      {"min": 48, "price": 57.00},
-      {"min": 120, "price": 50.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -414,9 +414,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 65.00},
-      {"min": 48, "price": 57.00},
-      {"min": 120, "price": 50.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -434,9 +434,9 @@
     "verified": true,
     "accent": "#23323a",
     "tiers": [
-      {"min": 12, "price": 65.00},
-      {"min": 48, "price": 57.00},
-      {"min": 120, "price": 50.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -454,9 +454,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 65.00},
-      {"min": 48, "price": 57.00},
-      {"min": 120, "price": 50.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -534,9 +534,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 70.00},
-      {"min": 48, "price": 62.00},
-      {"min": 120, "price": 55.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   },
   {
@@ -574,9 +574,9 @@
     "verified": true,
     "accent": "#3a3320",
     "tiers": [
-      {"min": 12, "price": 65.00},
-      {"min": 48, "price": 57.00},
-      {"min": 120, "price": 50.00}
+      {"min": 12, "price": 55.00},
+      {"min": 48, "price": 48.00},
+      {"min": 120, "price": 42.50}
     ]
   }
 ]
