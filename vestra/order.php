@@ -8,6 +8,7 @@ if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; 
 
 $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
+if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
 
 $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 
@@ -33,10 +34,10 @@ $ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/orders.csv'; $new=!file_exists($file);
 if($fh=@fopen($file,'a')){
-  if($new) fputcsv($fh,['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes']);
+  if($new) fputcsv($fh,['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version']);
   $items=implode(' | ', array_map(function($l){return $l['qty'].'x '.$l['sku'].' @'.$l['unit'];}, $lines));
   fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
-    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,trim($_POST['notes']??'')]);
+    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,trim($_POST['notes']??''),'yes',VESTRA_TERMS_VERSION]);
   fclose($fh);
 }
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";

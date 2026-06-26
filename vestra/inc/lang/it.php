@@ -187,4 +187,9 @@
   'Make an offer' => 'Fai un\'offerta',
   'This seller also accepts offers.' => 'Questo venditore accetta anche offerte.',
   'Allow buyers to make an offer on this product (they can negotiate alongside the listed price)' => 'Consenti agli acquirenti di fare un\'offerta per questo prodotto (negoziazione oltre al prezzo indicato)',
+  'Terms of Service' => 'Termini di servizio',
+  'Privacy Policy' => 'Informativa sulla privacy',
+  'Seller / Buyer Agreement' => 'Accordo venditore / acquirente',
+  'Payments &amp; Escrow' => 'Pagamenti &amp; deposito a garanzia',
+  'I have read and accept the %s, %s and %s, and I confirm I act as a business.' => 'Ho letto e accetto i %s, la %s e l\'%s e confermo di agire come azienda.',
 ];

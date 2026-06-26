@@ -3,7 +3,7 @@
  * VESTRA waitlist handler — kayıtları data/signups.csv'ye yazar (+ opsiyonel e-posta).
  * Sade PHP; Hosteurope'ta ekstra kurulum gerekmez.
  */
-require_once __DIR__.'/inc/notify.php';
+require_once __DIR__.'/inc/products.php';
 
 // Dil (geri dönüşte korunur)
 $lang = $_POST['lang'] ?? 'en';
@@ -22,10 +22,13 @@ $message = trim($_POST['message'] ?? '');
 if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     header("Location: /?lang={$lang}&error=1#join"); exit;
 }
+if (empty($_POST['consent'])) { // Terms acceptance is mandatory
+    header("Location: /?lang={$lang}&error=1#join"); exit;
+}
 
 $oneLine = fn($s) => trim(preg_replace('/\s+/', ' ', str_replace(["\r","\n"], ' ', $s)));
 $row = [date('c'), $type, $oneLine($name), $oneLine($company), $oneLine($email),
-        $oneLine($country), $oneLine($message), $_SERVER['REMOTE_ADDR'] ?? ''];
+        $oneLine($country), $oneLine($message), $_SERVER['REMOTE_ADDR'] ?? '', 'yes', VESTRA_TERMS_VERSION];
 
 $dir = __DIR__ . '/data';
 if (!is_dir($dir)) { @mkdir($dir, 0775, true); }
@@ -34,7 +37,7 @@ $isNew = !file_exists($file);
 
 if ($fh = @fopen($file, 'a')) {
     if ($isNew) {
-        fputcsv($fh, ['timestamp','type','name','company','email','country','message','ip']);
+        fputcsv($fh, ['timestamp','type','name','company','email','country','message','ip','consent','terms_version']);
     }
     fputcsv($fh, $row);
     fclose($fh);

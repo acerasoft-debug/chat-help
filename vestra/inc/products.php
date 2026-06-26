@@ -9,6 +9,7 @@ if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.07); // 7% from 
 if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.02); // 2% buyer-protection fee
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
+if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
 
 function vestra_demo_products(){
   return [
@@ -60,7 +61,7 @@ function vestra_demo_products(){
 /* seller-added listings (saved by the seller panel) merged into the live catalog */
 function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
 function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
-function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h); while(($r=fgetcsv($h))!==false){ if($head&&count($r)===count($head)) $rows[]=array_combine($head,$r);} fclose($h);} return array_reverse($rows); }
+function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h); while(($r=fgetcsv($h))!==false){ if($head){ $n=count($head); $r=array_slice(array_pad($r,$n,''),0,$n); $rows[]=array_combine($head,$r);} } fclose($h);} return array_reverse($rows); }
 function vestra_products(){ return array_merge(vestra_demo_products(), vestra_listings()); }
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }

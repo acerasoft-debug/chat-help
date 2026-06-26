@@ -1,46 +1,88 @@
 <?php
 /**
  * VESTRA — legal documents (rendered live by legal.php).
- * Content is a launch draft; fill [bracketed] details and have a US+EU lawyer review.
+ * Launch draft for a US LLC operating an EU-facing B2B marketplace.
+ * Strongly protective B2B terms — still have a US+EU lawyer review before relying on them.
  */
 function vestra_legal(){
-  $co='acerasoft LLC'; $addr='[US registered address]'; $email='legal@vestrasales.com';
+  $co='acerasoft LLC';
+  $addr='8 The Green, Suite B, Dover, Delaware 19901, USA';
+  $email='legal@vestrasales.com';
+  $eff='26 June 2026';
   return [
   'imprint'=>['title'=>'Imprint / Legal Notice','html'=>"
     <p>Information pursuant to applicable e-commerce and consumer-information rules.</p>
     <h3>Operator</h3>
-    <ul><li><b>Company:</b> {$co}</li><li><b>Form:</b> US Limited Liability Company</li>
-    <li><b>Registered address:</b> {$addr}</li><li><b>EIN:</b> [IRS EIN]</li>
-    <li><b>Represented by:</b> [Managing member]</li>
-    <li><b>Contact:</b> <a href='mailto:{$email}'>{$email}</a></li></ul>
+    <ul><li><b>Company:</b> {$co}</li>
+    <li><b>Legal form:</b> US Limited Liability Company (State of Delaware)</li>
+    <li><b>Registered address:</b> {$addr}</li>
+    <li><b>Contact:</b> <a href='mailto:{$email}'>{$email}</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Role</h3>
-    <p>VESTRA operates an online B2B wholesale marketplace and is an intermediary. It is not a
-    party to the sales contracts concluded between sellers and buyers and does not take title to goods.</p>
+    <p>VESTRA operates an online B2B wholesale marketplace and acts as an <b>intermediary and technical platform only</b>.
+    It is not a party to the sales contracts concluded between sellers and buyers and does not take title to goods.</p>
     <h3>Online dispute resolution</h3>
-    <p>The EU ODR platform is available at ec.europa.eu/consumers/odr. VESTRA primarily serves businesses (B2B).</p>"],
+    <p>The EU ODR platform is available at ec.europa.eu/consumers/odr. VESTRA serves businesses (B2B).</p>"],
 
   'terms'=>['title'=>'Terms of Service','html'=>"
-    <p><b>Operator:</b> {$co}. <b>Effective:</b> [date]. By using VESTRA you accept these Terms.</p>
-    <h3>1. What VESTRA is</h3><p>A B2B wholesale marketplace connecting verified business sellers and buyers.
-    VESTRA is an <b>intermediary</b> and not a party to sales; it does not warehouse goods or custody funds (an
-    external licensed escrow provider does).</p>
-    <h3>2. Eligibility</h3><p>For businesses only. You must complete verification (KYB/KYC) before transacting.</p>
-    <h3>3. Listings &amp; orders</h3><p>Sellers are responsible for their listings, products, legality and fulfilment.
-    Orders form a contract between buyer and seller.</p>
-    <h3>4. Payments &amp; escrow</h3><p>Payments are held in escrow by a licensed provider and released to the seller
-    per agreed conditions (e.g., buyer confirmation / verified delivery). VESTRA charges its own fees/commission.</p>
-    <h3>5. Authenticity &amp; IP</h3><p>Only genuine, lawful goods the seller is entitled to sell may be listed.
-    Counterfeit, replica and unverified grey-market goods are prohibited. We operate a notice-and-takedown process.</p>
-    <h3>6. Prohibited conduct</h3><p>No illegal activity, fraud, IP infringement, circumvention of verification/escrow,
-    or off-platform solicitation to evade fees or protections.</p>
-    <h3>7. Liability</h3><p>Service provided 'as is'. To the extent permitted by law, VESTRA is not liable for goods or
-    the conduct of users; mandatory protections under applicable law are unaffected.</p>
-    <h3>8. Suspension &amp; termination</h3><p>We may suspend or terminate access for breach, legal/risk reasons or repeated infringement.</p>
-    <h3>9. Governing law</h3><p>[Governing law/forum]; mandatory provisions of the user's local law may still apply.</p>
-    <p class='muted'>Contact: <a href='mailto:{$email}'>{$email}</a></p>"],
+    <p><b>Operator:</b> {$co}, {$addr} (&ldquo;VESTRA&rdquo;, &ldquo;we&rdquo;). <b>Effective:</b> {$eff}.
+    By creating an account, joining the waitlist, listing, ordering or otherwise using VESTRA, you confirm you are a
+    business acting in a commercial capacity and you accept these Terms.</p>
+    <h3>1. What VESTRA is</h3><p>VESTRA is a B2B wholesale marketplace connecting verified business sellers and buyers.
+    VESTRA is an <b>intermediary and technical platform only</b>. It is <b>not a party</b> to any sale; it does not own,
+    hold, inspect, store, ship or take title to goods, and does not custody funds (a licensed third-party escrow/payment
+    provider does). Contracts of sale are concluded <b>exclusively between buyer and seller</b>.</p>
+    <h3>2. Business users only (no consumers)</h3><p>VESTRA is strictly for businesses (B2B); it is not directed to
+    consumers and consumer-withdrawal rights do not apply. You must complete verification (KYB/KYC) before transacting and
+    warrant that all information you provide is accurate and kept current.</p>
+    <h3>3. Listings, orders &amp; fulfilment</h3><p>Sellers are <b>solely responsible</b> for their listings and for the
+    legality, safety, conformity, labelling, description, pricing, authenticity, delivery, warranties and taxes of their
+    goods. An order forms a binding contract between buyer and seller; VESTRA is not responsible for either party's performance.</p>
+    <h3>4. Payments, escrow &amp; fees</h3><p>Payments are processed and held in escrow by a licensed third-party provider and
+    released per agreed conditions (e.g. buyer confirmation / verified delivery). VESTRA charges a platform commission (a
+    seller commission plus a buyer-protection fee) and/or membership fees; provider fees apply as charged. Fees are shown
+    before checkout and are non-refundable except where required by law.</p>
+    <h3>5. Authenticity &amp; intellectual property</h3><p>Only genuine, lawful goods the seller is entitled to sell may be
+    listed. Counterfeit, replica and unverified grey-market goods are prohibited; we operate a notice-and-takedown process
+    (see the IP &amp; Anti-Counterfeit Policy).</p>
+    <h3>6. Prohibited conduct</h3><p>No illegal activity, fraud, misrepresentation, IP infringement, circumvention of
+    verification/escrow/fees, scraping, or off-platform solicitation to evade fees or protections. You are responsible for all
+    activity under your account and for keeping your credentials secure.</p>
+    <h3>7. Disclaimer of warranties</h3><p>The platform is provided <b>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</b>,
+    without warranties of any kind, express or implied, including merchantability, fitness for a particular purpose,
+    non-infringement, accuracy, or uninterrupted/error-free operation. VESTRA does <b>not warrant or guarantee</b> any seller,
+    buyer, listing, good, description, authenticity, quantity, quality or delivery, the outcome of any transaction, or any
+    third-party provider.</p>
+    <h3>8. Limitation of liability</h3><p>To the maximum extent permitted by applicable law: (a) VESTRA is <b>not liable</b>
+    for the goods, listings, acts or omissions of buyers, sellers or third parties, for non-delivery, defects or authenticity,
+    or for any dispute between users; (b) VESTRA is not liable for any <b>indirect, incidental, special, consequential,
+    exemplary or punitive damages</b>, or for loss of profit, revenue, business, goodwill or data; and (c) VESTRA's
+    <b>total aggregate liability</b> arising out of or relating to the platform or these Terms shall not exceed the greater of
+    the platform fees actually paid by you to VESTRA in the <b>three (3) months</b> before the event giving rise to the claim,
+    or <b>EUR 100</b>. Nothing excludes liability that cannot be limited by law (e.g. fraud, gross negligence, or death/personal
+    injury caused by our negligence); your mandatory rights are unaffected.</p>
+    <h3>9. Indemnification</h3><p>You agree to <b>indemnify, defend and hold harmless</b> {$co}, its affiliates, officers,
+    members and staff from and against any claims, demands, losses, liabilities, fines, penalties, damages and reasonable legal
+    costs arising out of or related to your use of the platform, your goods, listings or content, your transactions, your breach
+    of these Terms or of any law, or your infringement of any third-party right.</p>
+    <h3>10. Suspension &amp; termination</h3><p>We may suspend, restrict or terminate access at any time, with or without
+    notice, for breach, suspected fraud, legal/risk reasons, non-payment or repeated infringement. Provisions that by their
+    nature should survive (including sections 7–9 and 11–13) survive termination.</p>
+    <h3>11. Content licence &amp; force majeure</h3><p>You grant VESTRA a non-exclusive licence to host and display your
+    listings and content for the purpose of operating the platform, and warrant you hold the rights to do so. VESTRA is not
+    liable for any failure or delay caused by events beyond its reasonable control (force majeure).</p>
+    <h3>12. Changes</h3><p>We may update these Terms; the current version is published here with its effective date.
+    Continued use after changes constitutes acceptance.</p>
+    <h3>13. Governing law &amp; disputes</h3><p>These Terms are governed by the laws of the <b>State of Delaware, USA</b>,
+    without regard to conflict-of-law rules. Subject to mandatory law, the courts located in Delaware shall have jurisdiction;
+    the parties may agree to resolve B2B disputes by binding arbitration. <b>Mandatory provisions</b> of the user's local law
+    and the EU ODR platform (ec.europa.eu/consumers/odr) remain available where applicable.</p>
+    <h3>14. Miscellaneous</h3><p>If any provision is unenforceable, the remainder stays in effect (severability). These Terms
+    are the entire agreement on their subject matter. We may assign these Terms in connection with a merger, acquisition or
+    sale of assets; you may not assign without our consent. Our failure to enforce a provision is not a waiver.</p>
+    <p class='muted'>Acceptance is recorded at registration (date, version, language). Contact: <a href='mailto:{$email}'>{$email}</a></p>"],
 
   'privacy'=>['title'=>'Privacy Policy','html'=>"
-    <p><b>Controller:</b> {$co}, {$addr}. <b>Contact:</b> privacy@vestrasales.com.</p>
+    <p><b>Controller:</b> {$co}, {$addr}. <b>Contact:</b> privacy@vestrasales.com. <b>Effective:</b> {$eff}.</p>
     <h3>1. Data we collect</h3><p>Account &amp; verification data (name, business details, tax/VAT ID, beneficial-owner
     identity &amp; address documents), transactional data (orders, listings, communications) and technical/log data.</p>
     <h3>2. Why (purposes &amp; legal bases)</h3><ul>
@@ -55,21 +97,22 @@ function vestra_legal(){
     supervisory authority.</p>"],
 
   'seller'=>['title'=>'Seller Agreement','html'=>"
-    <p>Between {$co} and the registered business seller.</p>
+    <p>Between {$co} and the registered business seller. <b>Effective:</b> {$eff}.</p>
     <h3>1. Verification</h3><p>Provide and keep current business registration, tax/VAT ID and beneficial-owner identity.</p>
-    <h3>2. Seller of record</h3><p>The seller is the legal seller of its goods and responsible for conformity, safety,
-    delivery, warranties and taxes. VESTRA is an intermediary only.</p>
-    <h3>3. Authenticity &amp; right to sell</h3><p>For every item the seller warrants the goods are <b>genuine</b> and
-    that it is <b>authorised/entitled to sell</b> them in the destination market (including EEA trademark exhaustion
-    where applicable), and will provide proof of authenticity/provenance on request.</p>
-    <h3>4. Indemnification</h3><p>The seller indemnifies and holds VESTRA harmless from claims, losses, fines or costs
-    arising from its goods, listings, breach of warranties or IP infringement.</p>
-    <h3>5. Notice-and-takedown</h3><p>The seller will comply with the IP &amp; Anti-Counterfeit Policy, respond to
-    notices, and accept removal of listings pending resolution.</p>
+    <h3>2. Seller of record</h3><p>The seller is the legal seller of its goods and is solely responsible for conformity, safety,
+    delivery, warranties and taxes. VESTRA is an intermediary only and is not a party to the sale.</p>
+    <h3>3. Authenticity &amp; right to sell</h3><p>For every item the seller warrants the goods are <b>genuine</b> and that it
+    is <b>authorised/entitled to sell</b> them in the destination market (including EEA trademark exhaustion where applicable),
+    and will provide proof of authenticity/provenance on request.</p>
+    <h3>4. Indemnification &amp; liability</h3><p>The seller indemnifies and holds {$co} harmless from any claims, losses, fines
+    or costs arising from its goods, listings, breach of warranties or IP infringement, and is liable to buyers for its goods;
+    VESTRA's liability is limited as set out in the Terms of Service.</p>
+    <h3>5. Notice-and-takedown</h3><p>The seller will comply with the IP &amp; Anti-Counterfeit Policy, respond to notices, and
+    accept removal of listings pending resolution.</p>
     <h3>6. Orders, escrow &amp; payouts</h3><p>Funds are held in escrow and released after buyer confirmation / verified
     delivery, less VESTRA's commission.</p>
-    <h3>7. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to
-    removal, strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>"],
+    <h3>7. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to removal,
+    strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>"],
 
   'ip'=>['title'=>'IP &amp; Anti-Counterfeit / Notice-and-Takedown','html'=>"
     <h3>Zero tolerance</h3><p>Counterfeit, replica, unauthorised-brand and unverified grey-market goods, and any

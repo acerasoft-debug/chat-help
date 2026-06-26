@@ -20,7 +20,7 @@ require __DIR__.'/inc/head.php';
     </aside>
     <article class="legalbody">
       <h2><?=$docs[$doc]['title']?></h2>
-      <div class="legalmeta">Last updated: [date] · Draft pending legal review</div>
+      <div class="legalmeta">Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents</div>
       <?=$docs[$doc]['html']?>
     </article>
   </div>

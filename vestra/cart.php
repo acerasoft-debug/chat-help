@@ -41,7 +41,14 @@
       </div>
       <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
       <input type="text" name="website" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
-      <button class="btn btn-p" type="submit" style="margin-top:18px"><?= t('Place order request') ?></button>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin:14px 0 4px;max-width:680px;font-size:13px;color:var(--mut);cursor:pointer">
+        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none">
+        <span><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
+          '<a href="/legal?doc=terms" target="_blank" class="acc">'.t('Terms of Service').'</a>',
+          '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
+          '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
+      </label>
+      <button class="btn btn-p" type="submit" style="margin-top:14px"><?= t('Place order request') ?></button>
       <span class="hint" style="margin-left:12px"><?= t('No payment now — we confirm availability, then send the escrow link.') ?></span>
     </form>
   </div>
