@@ -28,7 +28,7 @@ $offered=isset($_GET['offered']);
         <span>SKU <b><?=htmlspecialchars($p['sku'])?></b></span>
         <span>Category <b><?=htmlspecialchars($p['cat'])?></b></span>
         <span>MOQ <b><?=$p['moq']?> <?=htmlspecialchars($p['unit'])?></b></span>
-        <span>Seller <b><?=htmlspecialchars($p['seller'])?></b><?php if(!empty($p['verified'])): ?> ✓<?php endif; ?></span>
+        <?php if(!empty($p['seller'])): ?><span><?= t('Seller') ?> <b><?=htmlspecialchars($p['seller'])?></b><?php if(!empty($p['verified'])): ?> ✓<?php endif; ?></span><?php endif; ?>
       </div>
       <div class="hint"><?=htmlspecialchars($p['origin'])?></div>
       <?php if(!empty($p['sheet'])): ?>
