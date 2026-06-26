@@ -8,6 +8,7 @@
 if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.07); // 7% from seller's payout
 if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.02); // 2% buyer-protection fee
 require_once __DIR__.'/i18n.php';
+require_once __DIR__.'/notify.php';
 
 function vestra_demo_products(){
   return [

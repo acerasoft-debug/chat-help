@@ -3,8 +3,7 @@
  * VESTRA waitlist handler — kayıtları data/signups.csv'ye yazar (+ opsiyonel e-posta).
  * Sade PHP; Hosteurope'ta ekstra kurulum gerekmez.
  */
-$CONTACT = 'hello@vestrasales.com'; // bildirim e-postan
-$NOTIFY  = false;                  // true yaparsan her kayıtta sana mail gider (SMTP/mail() aktifse)
+require_once __DIR__.'/inc/notify.php';
 
 // Dil (geri dönüşte korunur)
 $lang = $_POST['lang'] ?? 'en';
@@ -41,11 +40,13 @@ if ($fh = @fopen($file, 'a')) {
     fclose($fh);
 }
 
-if ($NOTIFY && $CONTACT) {
-    $body = "New {$type} waitlist signup\n\n"
-          . "Name:    {$name}\nCompany: {$company}\nEmail:   {$email}\n"
-          . "Country: {$country}\nMessage: {$message}\n";
-    @mail($CONTACT, "VESTRA waitlist — {$type}: {$name}", $body, "From: {$CONTACT}\r\nReply-To: {$email}");
+$ip = $_SERVER['REMOTE_ADDR'] ?? '';
+vestra_notify("New {$type} signup — {$name}",
+  "New VESTRA {$type} waitlist signup\n\nName:    {$name}\nCompany: {$company}\nEmail:   {$email}\nCountry: {$country}\nMessage: {$message}\nIP:      {$ip}\nWhen:    ".date('c')."\n",
+  $email);
+if (vestra_cfg('confirm_user', false)) {
+  [$subjAck,$bodyAck] = vestra_ack_text($lang, $name, $type);
+  vestra_send_mail($email, $subjAck, $bodyAck);
 }
 
 header("Location: /?lang={$lang}&joined=1#join");

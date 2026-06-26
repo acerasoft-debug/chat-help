@@ -39,10 +39,12 @@ if($fh=@fopen($file,'a')){
     trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,trim($_POST['notes']??'')]);
   fclose($fh);
 }
-if($NOTIFY && $CONTACT){
-  $body="New order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\n\n";
-  foreach($lines as $l){ $body.="{$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}\n"; }
-  $body.="\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n";
-  @mail($CONTACT,"VESTRA order {$ref} — {$company}",$body,"From: {$CONTACT}\r\nReply-To: {$email}");
+$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";
+foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}\n"; }
+$body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\nNotes: ".trim($_POST['notes']??'')."\n";
+vestra_notify("New order {$ref} — {$company}", $body, $email);
+if(vestra_cfg('confirm_user',false)){
+  vestra_send_mail($email, "VESTRA — order {$ref} received",
+    "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received. We will confirm seller availability and send a secured (escrow) payment link.\n\nTotal: €{$total}\n\n— VESTRA · acerasoft LLC");
 }
 header('Location: /cart?placed=1&ref='.urlencode($ref)); exit;
