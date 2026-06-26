@@ -6,7 +6,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101211",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S71GD1552. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -15,7 +15,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -35,7 +35,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101212",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1394. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -44,7 +44,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -64,7 +64,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101213",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's oversized fit graphic print t-shirt. Model SS74GD1399. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -73,7 +73,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -93,7 +93,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101214",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1400. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -102,7 +102,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -412,7 +412,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101225",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit graphic print t-shirt. Model S74GD1106. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -421,7 +421,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -441,7 +441,7 @@
         "mode": "fixed",
         "cat": "Polos",
         "sku": "101226",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit graphic polo shirt. Model S74GL0073. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -450,7 +450,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 100
             },
             {
@@ -557,7 +557,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101230",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's ICON collection mini logo t-shirt. Model S79GC0010. Colour: Pink. Lot: 150 pcs.",
         "seller": "",
@@ -566,7 +566,7 @@
         "accent": "#392b4a",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -586,7 +586,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101231",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's ICON collection outlined logo t-shirt. Model S79GC0063. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -595,7 +595,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -615,7 +615,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101232",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's ICON collection metallic logo t-shirt. Model S79GC0068. Colour: Black. Lot: 200 pcs.",
         "seller": "",
@@ -624,7 +624,7 @@
         "accent": "#23323a",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -644,7 +644,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101233",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's ICON collection sunset palm tree logo t-shirt. Model S79GC0065. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -653,7 +653,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -760,7 +760,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101237",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's oversized fit t-shirt. Model S74GC0096. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -769,7 +769,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
@@ -818,7 +818,7 @@
         "mode": "fixed",
         "cat": "T-Shirts",
         "sku": "101239",
-        "moq": 12,
+        "moq": 10,
         "unit": "pc",
         "desc": "Men's regular fit ICON mini logo t-shirt. Model S79GC0010S23009997. Colour: White. Lot: 200 pcs.",
         "seller": "",
@@ -827,7 +827,7 @@
         "accent": "#3a3320",
         "tiers": [
             {
-                "min": 12,
+                "min": 10,
                 "price": 55
             },
             {
