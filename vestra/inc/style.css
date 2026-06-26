@@ -245,3 +245,15 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .langsw .lsw{font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--mut);padding:3px 5px;border-radius:5px;line-height:1;text-decoration:none}
 .langsw .lsw.on{color:var(--ink);background:rgba(255,255,255,.10)}
 .langsw .lsw:hover{color:var(--ink)}
+
+/* account language picker (dashboard sidebar) */
+.dashlang{margin:12px 0 6px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--mut)}
+.dashlang>span{display:block;margin-bottom:6px;letter-spacing:.3px;text-transform:uppercase;font-weight:600}
+.dashlang .dashsw{display:flex;gap:3px;flex-wrap:wrap}
+.dashlang .dashsw .lsw{font-size:12px;font-weight:600;color:var(--mut);padding:4px 8px;border-radius:6px;text-decoration:none;border:1px solid var(--line)}
+.dashlang .dashsw .lsw.on{background:var(--acc);color:#0e0e11;border-color:var(--acc)}
+
+/* make-an-offer toggle on priced products */
+.offerdetails summary{list-style:none;cursor:pointer}
+.offerdetails summary::-webkit-details-marker{display:none}
+.offerdetails[open] summary{margin-bottom:4px}

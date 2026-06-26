@@ -22,6 +22,7 @@ function dash_open($role,$section,$title,$subtitle=''){
   echo '</div><span class="rolepill">'.($role==='seller'?'🏷️ '.t('Seller workspace'):'🛍️ '.t('Buyer workspace')).'</span>';
   echo '</div><div class="dashlayout"><aside class="dashside">';
   foreach($nav as $n){ echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.htmlspecialchars($n[1]).'</a>'; }
+  echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw').'</div>';
   echo '<a class="signout" href="/?demo_signout=1">'.t('Sign out').'</a>';
   echo '</aside><main class="dashmain">';
 }

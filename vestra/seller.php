@@ -49,7 +49,12 @@ if($tab==='overview'){
       </div>
       <div class="frow four">
         <div><label><?= t('Category') ?></label>
-          <select name="cat"><?php foreach($cats as $c) echo '<option>'.htmlspecialchars($c).'</option>'; ?><option><?= t('Other') ?></option></select></div>
+          <select name="cat">
+            <?php foreach(vestra_all_cats() as $grp=>$items): ?>
+              <optgroup label="<?=htmlspecialchars($grp)?>"><?php foreach($items as $c) echo '<option>'.htmlspecialchars($c).'</option>'; ?></optgroup>
+            <?php endforeach; ?>
+            <option><?= t('Other') ?></option>
+          </select></div>
         <div><label>SKU</label><input name="sku" placeholder="<?= htmlspecialchars(t('auto if blank')) ?>"></div>
         <div><label><?= t('Unit') ?></label><select name="unit"><option>pc</option><option>pack</option><option>set</option><option>carton</option></select></div>
         <div><label><?= t('Min order (MOQ)') ?> *</label><input type="number" name="moq" min="1" value="12" required></div>
@@ -76,6 +81,11 @@ if($tab==='overview'){
         <div><span class="hint">€ / <?= t('unit') ?></span><input type="number" step="0.01" name="t3price" placeholder="25.00"></div>
       </div>
       <p class="hint" id="offerhint" style="display:none"><?= t('For make-an-offer, tiers are shown as indicative guidance only.') ?></p>
+
+      <label id="offercheck" style="display:flex;gap:9px;align-items:center;margin:12px 0 0;cursor:pointer">
+        <input type="checkbox" name="allow_offers" value="1">
+        <span><?= t('Allow buyers to make an offer on this product (they can negotiate alongside the listed price)') ?></span>
+      </label>
 
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2" placeholder="<?= htmlspecialchars(t('Sizes, colours, condition…')) ?>"></textarea></div>

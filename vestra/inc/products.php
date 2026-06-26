@@ -64,6 +64,22 @@ function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is
 function vestra_products(){ return array_merge(vestra_demo_products(), vestra_listings()); }
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
+/* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
+function vestra_all_cats(){
+  return [
+    'Tops'               => ['T-Shirts','Polos','Shirts','Blouses','Sweaters & Knitwear','Cardigans','Hoodies & Sweatshirts','Tank Tops'],
+    'Bottoms'            => ['Trousers & Chinos','Jeans','Shorts','Skirts','Leggings'],
+    'Outerwear'          => ['Jackets','Coats','Blazers','Vests & Gilets'],
+    'Dresses & Suits'    => ['Dresses','Suits','Jumpsuits & Playsuits'],
+    'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Swimwear'],
+    'Underwear & Socks'  => ['Underwear','Lingerie','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
+    'Footwear'           => ['Sneakers','Boots','Sandals','Heels','Flats','Loafers','Slippers'],
+    'Bags & Luggage'     => ['Handbags','Backpacks','Tote Bags','Wallets & Purses','Travel & Luggage'],
+    'Accessories'        => ['Belts','Hats & Caps','Scarves & Shawls','Gloves','Sunglasses','Eyewear','Ties','Hair Accessories','Phone Cases'],
+    'Jewelry & Watches'  => ['Jewelry','Watches'],
+    'Kids & Baby'        => ['Kidswear','Babywear'],
+  ];
+}
 function vestra_unit_price($p,$qty){ $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
 function vestra_from_price($p){ $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }

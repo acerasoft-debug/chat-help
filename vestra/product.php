@@ -118,6 +118,29 @@ $offered=isset($_GET['offered']);
           <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
           <div class="hint" style="margin-top:10px"><?= t('Orders are placed via secured <b>escrow</b> — funds release after you confirm receipt.') ?></div>
         </div>
+        <?php if(!empty($p['offers'])): ?>
+        <div class="order-box" style="margin-top:14px">
+          <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
+            <form method="post" action="/offer" style="margin-top:12px">
+              <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div><label class="hint"><?= t('Quantity') ?> (<?=htmlspecialchars($p['unit'])?>) — min <?=$p['moq']?></label>
+                  <input type="number" name="qty" min="<?=$p['moq']?>" value="<?=$p['moq']?>" required style="width:100%"></div>
+                <div><label class="hint"><?= t('Your offer') ?> (€ / <?=htmlspecialchars($p['unit'])?>)</label>
+                  <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+                <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
+                <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
+              </div>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:12px"><?= t('Submit offer →') ?></button>
+            </form>
+          </details>
+        </div>
+        <?php endif; ?>
         <script>
         var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.moq>=100?10:(P.moq>=12?6:1); }

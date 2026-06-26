@@ -34,6 +34,7 @@ $item=[
 ];
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
+if(!empty($_POST['allow_offers']) && $mode!=='offer') $item['offers']=true; // seller allows negotiation on a priced item
 
 /* ---- uploads: product photo (image) + optional line sheet (Excel/CSV) ---- */
 $updir = __DIR__.'/uploads';
