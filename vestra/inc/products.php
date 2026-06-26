@@ -60,6 +60,48 @@ function vestra_demo_products(){
     ],
   ];
 }
+/* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
+function vestra_brand_logo($brand){
+  $L=[
+    'DSQUARED2'=>
+      '<svg viewBox="0 0 230 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="24" font-weight="900" letter-spacing="2">'.
+      'DSQUARED<tspan dy="-10" font-size="15">2</tspan></text></svg>',
+
+    'Lacoste'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="6">'.
+      'LACOSTE</text></svg>',
+
+    'Ralph Lauren'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="36%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="19" font-weight="400" letter-spacing="4">'.
+      'RALPH LAUREN</text>'.
+      '<line x1="28%" y1="58%" x2="72%" y2="58%" stroke="rgba(255,255,255,.45)" stroke-width="0.8"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.65)" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="11" letter-spacing="4">POLO</text></svg>',
+
+    'Amiri'=>
+      '<svg viewBox="0 0 180 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="34" font-weight="400" letter-spacing="7">'.
+      'AMIRI</text></svg>',
+
+    'VESTRA Essentials'=>
+      '<svg viewBox="0 0 200 68" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="38%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="5">'.
+      'VESTRA</text>'.
+      '<text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.55)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="10" font-weight="300" letter-spacing="5">'.
+      'ESSENTIALS</text></svg>',
+  ];
+  return $L[$brand] ?? null;
+}
+
 /* seller-added listings (saved by the seller panel) merged into the live catalog */
 function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
 function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }

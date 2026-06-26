@@ -46,7 +46,7 @@ $cats = vestra_cats();
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             <?= t('Verified') ?></span>
           <?php endif; ?>
-          <span class="bname"><?=htmlspecialchars($p['brand'])?></span>
+          <?php $blogo=vestra_brand_logo($p['brand']); if($blogo){ echo $blogo; }else{ echo '<span class="bname">'.htmlspecialchars($p['brand']).'</span>'; } ?>
           <?php if($p['mode']==='sale'): ?><span class="modetag sale">−<?=vestra_discount($p)?>%</span>
           <?php elseif($p['mode']==='offer'): ?><span class="modetag offer"><?= t('Offers') ?></span><?php endif; ?>
         </div>

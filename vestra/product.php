@@ -15,7 +15,7 @@ $offered=isset($_GET['offered']);
     <div>
       <div class="hero-thumb" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
         <?php if(!empty($p['image'])): ?><img class="heroimg" src="<?=htmlspecialchars($p['image'])?>" alt="<?=htmlspecialchars($p['name'])?>"><?php endif; ?>
-        <span class="bname"><?=htmlspecialchars($p['brand'])?></span>
+        <?php $blogo=vestra_brand_logo($p['brand']); if($blogo){ echo $blogo; }else{ echo '<span class="bname">'.htmlspecialchars($p['brand']).'</span>'; } ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?=$disc?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer">Open to offers</span><?php endif; ?>
       </div>

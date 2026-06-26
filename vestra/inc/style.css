@@ -63,6 +63,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 .pcard:hover{border-color:rgba(201,168,106,.35);transform:translateY(-4px)}
 .thumb{aspect-ratio:4/3;display:grid;place-items:center;position:relative;color:#fff}
 .thumb .bname{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;opacity:.92;text-align:center;padding:0 14px}
+.brand-logo{display:block;width:72%;max-width:200px;position:relative;z-index:1;filter:drop-shadow(0 1px 8px rgba(0,0,0,.55))}
 .thumb .vbadge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:600;background:rgba(0,0,0,.45);
   border:1px solid rgba(255,255,255,.25);padding:4px 9px;border-radius:999px;display:flex;gap:5px;align-items:center}
 .pcard .body{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
@@ -78,6 +79,7 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 .pdetail{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin:14px 0 40px}
 .pdetail .hero-thumb{aspect-ratio:1/1;border-radius:18px;display:grid;place-items:center;color:#fff;border:1px solid var(--line)}
 .pdetail .hero-thumb .bname{font-family:'Playfair Display',serif;font-size:40px;font-weight:700;text-align:center;padding:0 20px}
+.pdetail .hero-thumb .brand-logo{width:62%;max-width:280px}
 .pdetail h1{font-size:30px;margin:6px 0 4px}
 .pdetail .sub{color:var(--mut);margin:0 0 16px}
 .spec{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin:14px 0}
