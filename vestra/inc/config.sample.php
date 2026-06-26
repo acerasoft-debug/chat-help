@@ -9,10 +9,10 @@ return [
   'admin_pass'   => '',
 
   // Where new signup / order / offer notifications are emailed (one or more).
-  'notify'       => ['acerasoft@gmail.com', 'hello@vestrasales.com'],
+  'notify'       => ['acerasoft@gmail.com', 'support@vestrasales.com'],
 
   // From address for outgoing mail — use a real mailbox on your domain.
-  'mail_from'    => 'hello@vestrasales.com',
+  'mail_from'    => 'support@vestrasales.com',
 
   // Send an automatic acknowledgement email to the person who registers / orders.
   'confirm_user' => true,

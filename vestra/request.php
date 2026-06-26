@@ -1,6 +1,6 @@
 <?php
 /** VESTRA — sourcing request handler. Stores to data/requests.csv. */
-$CONTACT='hello@vestrasales.com'; $NOTIFY=false;
+$CONTACT='support@vestrasales.com'; $NOTIFY=false;
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /requests'); exit; }
 if(!empty($_POST['website'])){ header('Location: /requests?posted=1&ref=NA'); exit; }
 

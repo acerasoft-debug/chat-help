@@ -1,7 +1,7 @@
 <?php
 /** VESTRA — "make an offer" handler (offer-mode products). Stores to data/offers.csv. */
 require __DIR__.'/inc/products.php';
-$CONTACT='hello@vestrasales.com'; $NOTIFY=false;
+$CONTACT='support@vestrasales.com'; $NOTIFY=false;
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /shop'); exit; }
 $id=$_POST['id']??''; $p=vestra_find($id);
 if(!$p){ header('Location: /shop'); exit; }

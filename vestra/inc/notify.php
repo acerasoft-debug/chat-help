@@ -13,7 +13,7 @@ function vestra_cfg($k,$def=null){
 function vestra_send_mail($to,$subject,$body,$replyTo=''){
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
-  $from=vestra_cfg('mail_from','hello@vestrasales.com');
+  $from=vestra_cfg('mail_from','support@vestrasales.com');
   $h ="From: VESTRA <{$from}>\r\n";
   $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
