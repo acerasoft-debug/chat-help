@@ -28,6 +28,7 @@ $offered=isset($_GET['offered']);
         <span>SKU <b><?=htmlspecialchars($p['sku'])?></b></span>
         <span>Category <b><?=htmlspecialchars($p['cat'])?></b></span>
         <span>MOQ <b><?=$p['moq']?> <?=htmlspecialchars($p['unit'])?></b></span>
+        <?php if(!empty($p['sizes'])): ?><span><?= t('Size mix') ?> <b><?=htmlspecialchars($p['sizes'])?></b></span><?php endif; ?>
         <?php if(!empty($p['seller'])): ?><span><?= t('Seller') ?> <b><?=htmlspecialchars($p['seller'])?></b><?php if(!empty($p['verified'])): ?> ✓<?php endif; ?></span><?php endif; ?>
       </div>
       <div class="hint"><?=htmlspecialchars($p['origin'])?></div>
@@ -147,8 +148,8 @@ $offered=isset($_GET['offered']);
         </div>
         <?php endif; ?>
         <script>
-        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
-        function step(){ return P.moq>=100?10:(P.moq>=12?6:1); }
+        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
+        function step(){ return P.step || (P.moq>=100?100:(P.moq>=50?50:10)); }
         function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
         function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }

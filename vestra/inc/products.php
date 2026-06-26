@@ -15,26 +15,29 @@ function vestra_demo_products(){
   return [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'Classic Piqué Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'LAC-PP-001','moq'=>12,'unit'=>'pc',
+      'cat'=>'Polos','sku'=>'LAC-PP-001','moq'=>8,'unit'=>'pc',
       'desc'=>'Iconic cotton piqué polo. Assorted sizes (S–XXL) and colours per carton.',
       'seller'=>'Maison Textile SARL','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
-      'tiers'=>[['min'=>12,'price'=>34.00],['min'=>60,'price'=>29.50],['min'=>180,'price'=>25.00]],
+      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
+      'tiers'=>[['min'=>8,'price'=>34.00],['min'=>60,'price'=>29.50],['min'=>180,'price'=>25.00]],
       'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 180 pc → €25/pc
     ],
     [
       'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,
-      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>10,'unit'=>'pc',
+      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>8,'unit'=>'pc',
       'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock.',
       'seller'=>'Atlantic Wholesale GmbH','origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
-      'tiers'=>[['min'=>10,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
+      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
+      'tiers'=>[['min'=>8,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
     [
       'id'=>'amiri-core-tee','brand'=>'Amiri','name'=>'Core Logo Tee','mode'=>'offer',
       'guide'=>'Indicative €90–110 / pc · limited allocation',
-      'cat'=>'T-Shirts','sku'=>'AMI-CT-007','moq'=>6,'unit'=>'pc',
+      'cat'=>'T-Shirts','sku'=>'AMI-CT-007','moq'=>10,'unit'=>'pc',
       'desc'=>'Premium cotton tee. Limited allocation — open to offers. Authenticity verified on delivery.',
       'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#3a0f12',
-      'tiers'=>[['min'=>6,'price'=>110.00],['min'=>24,'price'=>98.00],['min'=>60,'price'=>90.00]],
+      'sizes'=>'S×1 · M×3 · L×3 · XL×2 · XXL×1','size_step'=>10,
+      'tiers'=>[['min'=>10,'price'=>110.00],['min'=>24,'price'=>98.00],['min'=>60,'price'=>90.00]],
     ],
     [
       'id'=>'basic-crew-tee','brand'=>'VESTRA Essentials','name'=>'Crew Neck Tee — blank','mode'=>'fixed',

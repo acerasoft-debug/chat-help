@@ -265,4 +265,8 @@
   'Legal &amp; policies' => 'Rechtliches &amp; Richtlinien',
   'Transparency by design. These documents govern the use of VESTRA.' => 'Transparenz von Grund auf. Diese Dokumente regeln die Nutzung von VESTRA.',
   'Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents' => 'Zuletzt aktualisiert: 26. Juni 2026 · Bitte lassen Sie diese Dokumente von einem US- und EU-Anwalt prüfen, bevor Sie sich darauf verlassen',
+  'Size mix' => 'Größenmix',
+  'FAQ' => 'FAQ',
+  'Frequently Asked Questions' => 'Häufig gestellte Fragen',
+  'Find your answer' => 'Antwort finden',
 ];

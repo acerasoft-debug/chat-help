@@ -265,4 +265,8 @@
   'Legal &amp; policies' => 'Note legali &amp; politiche',
   'Transparency by design. These documents govern the use of VESTRA.' => 'Trasparenza per progettazione. Questi documenti regolano l’uso di VESTRA.',
   'Last updated: 26 June 2026 · Please have a US+EU lawyer review before relying on these documents' => 'Ultimo aggiornamento: 26 giugno 2026 · Si prega di far esaminare questi documenti da un avvocato statunitense ed europeo prima di farvi affidamento',
+  'Size mix' => 'Mix di taglie',
+  'FAQ' => 'FAQ',
+  'Frequently Asked Questions' => 'Domande frequenti',
+  'Find your answer' => 'Trova la tua risposta',
 ];
