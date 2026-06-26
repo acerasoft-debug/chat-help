@@ -387,8 +387,8 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
       </div>
       <div><label id="msglabel"><?= $t['m_s'] ?></label><textarea name="message" rows="3"></textarea></div>
       <label class="consentbox" style="display:flex;gap:9px;align-items:flex-start;margin:6px 0 2px;font-size:13px;color:var(--mut);text-align:left;cursor:pointer">
-        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none">
-        <span><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
+        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none;flex-shrink:0">
+        <span style="min-width:0;overflow-wrap:break-word"><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
           '<a href="/legal?doc=terms" target="_blank" class="acc">'.t('Terms of Service').'</a>',
           '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
           '<a href="/legal?doc=seller" target="_blank" class="acc">'.t('Seller / Buyer Agreement').'</a>') ?></span>
