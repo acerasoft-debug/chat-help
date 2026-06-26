@@ -87,6 +87,15 @@ if($tab==='overview'){
         <span><?= t('Allow buyers to make an offer on this product (they can negotiate alongside the listed price)') ?></span>
       </label>
 
+      <label style="display:flex;gap:9px;align-items:center;margin:10px 0 0;cursor:pointer">
+        <input type="checkbox" name="group_enable" value="1" onchange="groupUI()">
+        <span><?= t('Open this product for <b>group buying</b> — let small buyers pool their orders to reach your MOQ together, then unlock your best tier price') ?></span>
+      </label>
+      <div id="grouprow" class="frow" style="display:none;margin-top:8px">
+        <div><label><?= t('Group target (qty to unlock)') ?></label><input type="number" name="group_target" min="1" placeholder="<?= htmlspecialchars(t('blank = your top tier qty')) ?>"></div>
+        <div><label><?= t('Pool open for (days)') ?></label><input type="number" name="group_days" min="1" max="90" value="14"></div>
+      </div>
+
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2" placeholder="<?= htmlspecialchars(t('Sizes, colours, condition…')) ?>"></textarea></div>
       </div>
@@ -108,7 +117,8 @@ if($tab==='overview'){
   function modeUI(){ var m=document.querySelector('input[name=mode]:checked').value;
     document.getElementById('listrow').style.display = m==='sale'?'grid':'none';
     document.getElementById('offerhint').style.display = m==='offer'?'block':'none'; }
-  modeUI();
+  function groupUI(){ document.getElementById('grouprow').style.display = document.querySelector('input[name=group_enable]').checked?'grid':'none'; }
+  modeUI(); groupUI();
   </script>
   <?php
 

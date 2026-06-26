@@ -19,6 +19,7 @@ function vestra_demo_products(){
       'desc'=>'Iconic cotton piqué polo. Assorted sizes (S–XXL) and colours per carton.',
       'seller'=>'Maison Textile SARL','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
       'tiers'=>[['min'=>12,'price'=>34.00],['min'=>60,'price'=>29.50],['min'=>180,'price'=>25.00]],
+      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 180 pc → €25/pc
     ],
     [
       'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,
@@ -41,6 +42,7 @@ function vestra_demo_products(){
       'desc'=>'180gsm combed cotton blank tee. Bulk packs, all sizes & colours.',
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#44454e',
       'tiers'=>[['min'=>50,'price'=>4.20],['min'=>300,'price'=>3.40],['min'=>1000,'price'=>2.80]],
+      'group'=>true,'group_seed'=>640,'group_seed_n'=>11, // group-buy: pool to 1000 pc → €2.80/pc
     ],
     [
       'id'=>'cotton-socks','brand'=>'VESTRA Essentials','name'=>'Cotton Socks — 12 pack','mode'=>'sale','list'=>11.90,
@@ -85,6 +87,60 @@ function vestra_unit_price($p,$qty){ $price=$p['tiers'][0]['price']; foreach($p[
 function vestra_from_price($p){ $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
 function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
+
+/* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────
+ * Small buyers pool their quantities on one product until the seller's wholesale MOQ is
+ * reached — then the lowest tier price unlocks for everyone. VESTRA runs the countdown +
+ * escrow; the seller just ticks "open for group buying". A pool is 1:1 with a product id.
+ */
+if(!defined('VESTRA_GROUP_DEFAULT_DAYS')) define('VESTRA_GROUP_DEFAULT_DAYS', 14);
+
+/* Target = qty that unlocks the wholesale price (seller override, else the top tier's min). */
+function vestra_group_target($p){
+  if(!empty($p['group_target'])) return max(1,(int)$p['group_target']);
+  $last=end($p['tiers']); return max(1,(int)($last['min']??$p['moq']));
+}
+/* Unlocked unit price once the target is met (seller override, else the lowest tier price). */
+function vestra_group_price($p){
+  if(!empty($p['group_price'])) return (float)$p['group_price'];
+  return (float)vestra_from_price($p);
+}
+function vestra_group_deadline($p){
+  if(!empty($p['group_deadline'])) return $p['group_deadline'];
+  $start=$p['group_started'] ?? date('c');
+  return date('c', strtotime($start.' +'.VESTRA_GROUP_DEFAULT_DAYS.' days'));
+}
+/* Buyer commitments for one pool (newest first), read from data/groups.csv. */
+function vestra_group_commits($poolId){
+  $rows=vestra_read_csv('groups.csv');
+  return array_values(array_filter($rows, function($r) use ($poolId){ return ($r['pool_id']??'')===$poolId; }));
+}
+/* Enrich a product with live pool state (committed qty, % progress, days left, status). */
+function vestra_group_enrich($p){
+  $target=vestra_group_target($p);
+  $commits=vestra_group_commits($p['id']);
+  $committed=(int)($p['group_seed']??0);
+  foreach($commits as $c){ $committed+=(int)($c['qty']??0); }
+  $deadline=vestra_group_deadline($p);
+  $secsLeft=strtotime($deadline)-time();
+  $daysLeft=max(0,(int)ceil($secsLeft/86400));
+  $pct=$target>0?max(0,min(100,(int)round(100*$committed/$target))):0;
+  $remaining=max(0,$target-$committed);
+  $status = $committed>=$target ? 'funded' : ($secsLeft<=0 ? 'expired' : 'open');
+  return $p + [
+    '_target'=>$target,'_gprice'=>vestra_group_price($p),'_committed'=>$committed,
+    '_remaining'=>$remaining,'_participants'=>count($commits)+(int)($p['group_seed_n']??0),
+    '_deadline'=>$deadline,'_daysLeft'=>$daysLeft,'_pct'=>$pct,'_status'=>$status,'_commits'=>$commits,
+  ];
+}
+/* All products opened for group buying, enriched + sorted (almost-funded first). */
+function vestra_group_pools(){
+  $pools=[];
+  foreach(vestra_products() as $p){ if(!empty($p['group'])) $pools[]=vestra_group_enrich($p); }
+  usort($pools, function($a,$b){ return $b['_pct']<=>$a['_pct']; });
+  return $pools;
+}
+function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
 
 /* Sourcing requests board (buyers post what they need; sellers make offers). Demo seed. */
 function vestra_requests(){

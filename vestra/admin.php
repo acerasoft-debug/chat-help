@@ -17,7 +17,7 @@ $authed = !empty($_SESSION['vadmin']);
 
 /* CSV download (admin only) */
 if($authed && isset($_GET['dl'])){
-  $map=['signups'=>'signups.csv','orders'=>'orders.csv','offers'=>'offers.csv','requests'=>'requests.csv'];
+  $map=['signups'=>'signups.csv','orders'=>'orders.csv','offers'=>'offers.csv','requests'=>'requests.csv','groups'=>'groups.csv'];
   $f=$map[$_GET['dl']]??null; $path=$f?vestra_data_dir().'/'.$f:'';
   if($f && is_readable($path)){
     header('Content-Type: text/csv; charset=UTF-8');
@@ -71,8 +71,10 @@ function atable($rows){
     'orders'  =>['Orders',        vestra_read_csv('orders.csv')],
     'offers'  =>['Offers',        vestra_read_csv('offers.csv')],
     'requests'=>['Requests',      vestra_read_csv('requests.csv')],
+    'groups'  =>['Group buys',    vestra_read_csv('groups.csv')],
   ];
   $listings=vestra_listings();
+  $pools=vestra_group_pools();
 ?>
   <div class="adminbar">
     <h1 style="margin:0">VESTRA Admin</h1>
@@ -93,6 +95,18 @@ function atable($rows){
         'photo'=>!empty($p['image'])?'✓':'', 'sheet'=>!empty($p['sheet'])?'✓':'',
       ]; }, $listings);
       atable(array_reverse($rows));
+  elseif($tab==='groups'):
+      $prows=array_map(function($p){ return [
+        'pool'=>$p['brand'].' '.$p['name'], 'sku'=>$p['sku'],
+        'committed'=>number_format($p['_committed']), 'target'=>number_format($p['_target']),
+        'progress'=>$p['_pct'].'%', 'buyers'=>$p['_participants'], 'unlock_price'=>eur($p['_gprice']),
+        'days_left'=>$p['_daysLeft'], 'status'=>$p['_status'],
+      ]; }, $pools);
+      echo '<h3 style="margin:4px 0 8px">Pools ('.count($pools).')</h3>';
+      atable($prows);
+      echo '<h3 style="margin:24px 0 8px">Commitments</h3>';
+      echo '<div style="margin-bottom:10px"><a class="btn btn-o btn-sm" href="/admin?dl=groups">⬇ Download CSV</a></div>';
+      atable($data['groups'][1]);
   else:
       $cur=$data[$tab]??$data['signups']; ?>
     <div style="margin-bottom:10px"><a class="btn btn-o btn-sm" href="/admin?dl=<?=htmlspecialchars($tab)?>">⬇ Download CSV</a></div>

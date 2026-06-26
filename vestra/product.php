@@ -34,6 +34,11 @@ $offered=isset($_GET['offered']);
       <?php if(!empty($p['sheet'])): ?>
         <a class="btn btn-o btn-sm" style="margin-top:12px" href="<?=htmlspecialchars($p['sheet'])?>" target="_blank" rel="noopener">⬇ Line sheet / price list (<?=strtoupper(htmlspecialchars(pathinfo($p['sheet'],PATHINFO_EXTENSION)))?>)</a>
       <?php endif; ?>
+      <?php if(!empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>
+        <a href="/group?id=<?=urlencode($p['id'])?>" class="banner info" style="display:block;margin-top:14px;text-decoration:none">
+          🤝 <?= sprintf(t('Also a <b>Group buy</b>: pool with other buyers to unlock %s / %s — %d%% of the target is already committed. Join the pool →'), eur($gp['_gprice']), htmlspecialchars($p['unit']), $gp['_pct']) ?>
+        </a>
+      <?php endif; endif; ?>
 
       <?php if(!$MEMBER): ?>
         <div class="gate" style="margin-top:22px">

@@ -35,6 +35,13 @@ $item=[
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
 if(!empty($_POST['allow_offers']) && $mode!=='offer') $item['offers']=true; // seller allows negotiation on a priced item
+if(!empty($_POST['group_enable']) && $mode!=='offer'){ // seller opens this product for collective group buying
+  $item['group']=true;
+  $gt=(int)($_POST['group_target']??0); if($gt>0) $item['group_target']=$gt;
+  $days=(int)($_POST['group_days']??VESTRA_GROUP_DEFAULT_DAYS); if($days<1||$days>90) $days=VESTRA_GROUP_DEFAULT_DAYS;
+  $item['group_started']=date('c');
+  $item['group_deadline']=date('c', strtotime("+{$days} days"));
+}
 
 /* ---- uploads: product photo (image) + optional line sheet (Excel/CSV) ---- */
 $updir = __DIR__.'/uploads';
