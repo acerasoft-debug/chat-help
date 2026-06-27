@@ -57,7 +57,7 @@ function promo_generate(): string {
 function promo_benefit_label(string $b): string {
     return match($b) {
         'instant_kyb'         => 'Instant KYB approval',
-        'commission_free_3m'  => '0 % commission — 3 months',
+        'commission_free_3m'  => 'No registration fee',
         'commission_free_6m'  => '0 % commission — 6 months',
         'reduced_commission'  => '3.5 % commission (half rate) — 6 months',
         'priority_listing'    => 'Priority placement in catalog',

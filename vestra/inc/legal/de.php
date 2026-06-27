@@ -5,7 +5,7 @@
     <ul><li><b>Unternehmen:</b> acerasoft LLC</li>
     <li><b>Rechtsform:</b> US Limited Liability Company (State of Delaware)</li>
     <li><b>Eingetragene Anschrift:</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
-    <li><b>Vertreten durch:</b> Sarah J. Mitchell (Geschäftsführerin)</li>
+    <li><b>Vertreten durch:</b> S. C. Bilgic (Geschäftsführer)</li>
     <li><b>Kontakt:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Rolle</h3>
     <p>VESTRA betreibt einen Online-B2B-Großhandelsmarktplatz und handelt <b>ausschließlich als Vermittler und technische Plattform</b>.

@@ -96,7 +96,7 @@ require __DIR__.'/inc/head.php';
       </div>
       <div style="display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ok)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-        <?= t('0 % commission — first 3 months') ?>
+        <?= t('No registration fee') ?>
       </div>
     </div>
     <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:15px;padding:13px 28px">
@@ -111,7 +111,7 @@ require __DIR__.'/inc/head.php';
     <div class="faq-list">
       <?php $faqs = [
         [t('What products can I sell?'), t('Branded fashion, accessories, footwear, basics, textiles — anything you can ship within the EEA with valid proof of origin. VESTRA does not accept fakes or grey-market goods.')],
-        [t('What is the commission?'), t('VESTRA takes 7 % from your payout. Buyers pay a 2 % protection fee on top. With the invite code, commission drops to 0 % for your first 3 months.')],
+        [t('What is the commission?'), t('VESTRA takes 7 % from your payout. Buyers pay a 2 % protection fee on top. With an invite code, registration on the platform is free of charge.')],
         [t('How does payment work?'), t('Buyers pay into an Tazapay escrow wallet. Funds are released to your account when the buyer confirms receipt (or 14 days after shipping if no dispute is raised).')],
         [t('How long does KYB take?'), t('With an invite code: instant approval. Without: typically 1–3 business days after you submit your registration details.')],
         [t('Can I set my own prices?'), t('Yes. You set your own MOQ, tiered pricing, and pricing mode (fixed, sale, or make-an-offer). VESTRA only takes its commission from completed sales.')],

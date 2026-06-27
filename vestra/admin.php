@@ -159,7 +159,7 @@ function atable($rows){
         <div><label class="hint">Benefit</label>
           <select name="benefit" style="width:100%">
             <option value="instant_kyb">Instant KYB approval</option>
-            <option value="commission_free_3m">0% commission — 3 months</option>
+            <option value="commission_free_3m">No registration fee</option>
             <option value="commission_free_6m">0% commission — 6 months</option>
             <option value="reduced_commission">3.5% commission — 6 months</option>
             <option value="priority_listing">Priority listing placement</option>

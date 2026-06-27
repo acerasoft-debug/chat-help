@@ -253,6 +253,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   input,textarea{width:100%;background:#0c0c0f;border:1px solid var(--line);
     border-radius:10px;padding:13px 14px;color:var(--ink);font:inherit;font-size:15px;transition:border-color .2s}
   input:focus,textarea:focus{outline:0;border-color:var(--acc)}
+  input[type=checkbox],input[type=radio]{width:auto;background:none;border:none;padding:0;border-radius:0}
   .hp{position:absolute;left:-9999px}
   .note{font-size:13px;color:var(--mut);text-align:center;margin-top:14px}
   .banner{padding:14px 18px;border-radius:12px;margin-bottom:22px;font-size:15px;text-align:center;position:relative;z-index:1}

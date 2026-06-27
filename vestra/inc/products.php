@@ -61,6 +61,71 @@ function vestra_demo_products(){
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#392b4a',
       'tiers'=>[['min'=>100,'price'=>7.80],['min'=>500,'price'=>6.40],['min'=>2000,'price'=>5.30]],
     ],
+    // Dolce & Gabbana — Summer 2026 wholesale allocation
+    [
+      'id'=>'dg-101200','brand'=>'Dolce & Gabbana','name'=>'DG Crest Embroidered T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101200','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, embroidered DG crest at chest. Regular fit. Black. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>75.00],['min'=>600,'price'=>65.00],['min'=>1200,'price'=>58.00]],
+    ],
+    [
+      'id'=>'dg-101201','brand'=>'Dolce & Gabbana','name'=>'Oversized Striped Print T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101201','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, technical stripe print, oversized fit. White/multi. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a2030',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>72.00],['min'=>600,'price'=>63.00],['min'=>1200,'price'=>56.00]],
+    ],
+    [
+      'id'=>'dg-101203','brand'=>'Dolce & Gabbana','name'=>'Tonal Crown Crest Polo','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'DG-101203','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton piqué, embroidered crown crest & DG logo, button placket, classic fit. Black. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>95.00],['min'=>600,'price'=>82.00],['min'=>1200,'price'=>72.00]],
+    ],
+    [
+      'id'=>'dg-101206','brand'=>'Dolce & Gabbana','name'=>'Collegiate Milano Logo T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101206','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, collegiate "Milano" lettering across chest, relaxed fit. Black. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>68.00],['min'=>600,'price'=>59.00],['min'=>1200,'price'=>52.00]],
+    ],
+    [
+      'id'=>'dg-101207','brand'=>'Dolce & Gabbana','name'=>'"Italian Holiday" Scooter T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101207','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, "Italian Holiday" scooter graphic print, relaxed fit. White. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a2e18',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>78.00],['min'=>600,'price'=>67.00],['min'=>1200,'price'=>60.00]],
+    ],
+    [
+      'id'=>'dg-101214','brand'=>'Dolce & Gabbana','name'=>'Oversized DG Monogram T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101214','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, all-over DG monogram print, dropped shoulders, oversized fit. Black. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>82.00],['min'=>600,'price'=>70.00],['min'=>1200,'price'=>62.00]],
+    ],
+    [
+      'id'=>'dg-101222','brand'=>'Dolce & Gabbana','name'=>'Metallic Plaque Logo T-Shirt','mode'=>'fixed',
+      'cat'=>'T-Shirts','sku'=>'DG-101222','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton jersey, polished metallic DG logo plaque at chest, regular fit. Red. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#3a0808',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>85.00],['min'=>600,'price'=>73.00],['min'=>1200,'price'=>65.00]],
+    ],
+    [
+      'id'=>'dg-101247','brand'=>'Dolce & Gabbana','name'=>'Tipped-Collar DG Logo Polo','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'DG-101247','moq'=>200,'unit'=>'pc',
+      'desc'=>'100 % cotton piqué, contrasting tipped collar, embroidered DG logo, slim fit. Black. Made in Italy.',
+      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
+      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
+      'tiers'=>[['min'=>200,'price'=>92.00],['min'=>600,'price'=>79.00],['min'=>1200,'price'=>70.00]],
+    ],
   ];
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
@@ -101,6 +166,16 @@ function vestra_brand_logo($brand){
       '<text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.55)" '.
       'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="10" font-weight="300" letter-spacing="5">'.
       'ESSENTIALS</text></svg>',
+
+    'Dolce & Gabbana'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="26" font-weight="700" letter-spacing="5">'.
+      'D&amp;G</text>'.
+      '<line x1="22%" y1="60%" x2="78%" y2="60%" stroke="rgba(255,255,255,.28)" stroke-width="0.7"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.52)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="8.5" font-weight="400" letter-spacing="4">'.
+      'DOLCE &amp; GABBANA</text></svg>',
   ];
   return $L[$brand] ?? null;
 }
