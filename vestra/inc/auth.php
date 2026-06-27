@@ -43,26 +43,39 @@ function auth_register(array $d): array|string {
     if (strlen($d['password'] ?? '') < 8) return 'password_short';
     if (($d['password'] ?? '') !== ($d['password2'] ?? '')) return 'password_mismatch';
 
+    $promo_code = strtoupper(trim($d['promo_code'] ?? ''));
+    $promo_data = null;
+    if ($promo_code !== '') {
+        require_once __DIR__.'/promos.php';
+        $pv = promo_validate($promo_code);
+        if (is_string($pv)) return 'promo_'.$pv;
+        $promo_data = $pv;
+    }
+
     $list = auth_accounts();
     $acc  = [
-        'id'         => bin2hex(random_bytes(8)),
-        'email'      => strtolower(trim($d['email'])),
-        'hash'       => password_hash($d['password'], PASSWORD_DEFAULT),
-        'type'       => in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer',
-        'status'     => 'active',
-        'name'       => trim($d['name']        ?? ''),
-        'company'    => trim($d['company']     ?? ''),
-        'vat_id'     => trim($d['vat_id']      ?? ''),
-        'reg_number' => trim($d['reg_number']  ?? ''),
-        'country'    => trim($d['country']     ?? ''),
-        'address'    => trim($d['address']     ?? ''),
-        'phone'      => trim($d['phone']       ?? ''),
-        'website'    => trim($d['website']     ?? ''),
-        'kyb_status' => 'pending',
-        'created'    => date('c'),
+        'id'            => bin2hex(random_bytes(8)),
+        'email'         => strtolower(trim($d['email'])),
+        'hash'          => password_hash($d['password'], PASSWORD_DEFAULT),
+        'type'          => in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer',
+        'status'        => 'active',
+        'name'          => trim($d['name']        ?? ''),
+        'company'       => trim($d['company']     ?? ''),
+        'vat_id'        => trim($d['vat_id']      ?? ''),
+        'reg_number'    => trim($d['reg_number']  ?? ''),
+        'country'       => trim($d['country']     ?? ''),
+        'address'       => trim($d['address']     ?? ''),
+        'phone'         => trim($d['phone']       ?? ''),
+        'website'       => trim($d['website']     ?? ''),
+        'kyb_status'    => $promo_data ? 'approved' : 'pending',
+        'promo_code'    => $promo_code,
+        'promo_benefit' => $promo_data['benefit'] ?? '',
+        'promo_expiry'  => $promo_data['expiry']  ?? '',
+        'created'       => date('c'),
     ];
     $list[] = $acc;
     auth_save_accounts($list);
+    if ($promo_data) { promo_use($promo_code); }
     return $acc;
 }
 

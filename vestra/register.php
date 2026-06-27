@@ -16,10 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $errmsg = [
-    'email_taken'       => t('An account with this email already exists.'),
-    'password_short'    => t('Password must be at least 8 characters.'),
-    'password_mismatch' => t('Passwords do not match.'),
+    'email_taken'        => t('An account with this email already exists.'),
+    'password_short'     => t('Password must be at least 8 characters.'),
+    'password_mismatch'  => t('Passwords do not match.'),
+    'promo_not_found'    => t('Invite code not found.'),
+    'promo_expired'      => t('This invite code has expired.'),
+    'promo_exhausted'    => t('This invite code has reached its usage limit.'),
+    'promo_inactive'     => t('This invite code is no longer active.'),
 ];
+
+// Pre-fill promo code + type from URL (from seller-invite page links)
+if (empty($d)) {
+    if (isset($_GET['promo_code'])) $d['promo_code'] = strtoupper(trim($_GET['promo_code']));
+    if (isset($_GET['type']))       $d['type'] = $_GET['type'];
+}
 
 $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
 ?>
@@ -115,6 +125,17 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
         <label><?= t('Website') ?></label>
         <input name="website" type="url" placeholder="https://company.com" value="<?= htmlspecialchars($d['website']??'') ?>">
       </div>
+
+      <!-- Invite / promo code (optional) -->
+      <div class="authsect"><?= t('Invite code') ?> <span class="hint" style="text-transform:none;font-size:11px;letter-spacing:0"><?= t('(optional — unlocks instant verification)') ?></span></div>
+      <div class="authfield">
+        <label><?= t('Invite / promo code') ?></label>
+        <input name="promo_code" placeholder="e.g. VESTRA2026" value="<?= htmlspecialchars(strtoupper($d['promo_code']??'')) ?>" style="text-transform:uppercase;letter-spacing:1.5px">
+      </div>
+      <?php if($err && str_starts_with($err,'promo_')): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
+          <?= htmlspecialchars($errmsg[$err] ?? $err) ?></div>
+      <?php endif; ?>
 
       <div class="banner info" style="margin:10px 0 14px;font-size:13px">
         <?= t('By registering you agree to the') ?>
