@@ -27,7 +27,7 @@ $cats = vestra_cats();
   </div>
 
   <div class="toolbar" style="margin-top:-12px">
-    <button class="chip" data-cat="" onclick="setCat(this,'')"><?= t('All') ?></button>
+    <button class="chip on" data-cat="" onclick="setCat(this,'')"><?= t('All') ?></button>
     <?php foreach($cats as $c): ?>
       <button class="chip" data-cat="<?=htmlspecialchars($c)?>" onclick="setCat(this,'<?=htmlspecialchars($c)?>')"><?=htmlspecialchars($c)?></button>
     <?php endforeach; ?>
@@ -39,7 +39,7 @@ $cats = vestra_cats();
       <a class="pcard" href="/product?id=<?=urlencode($p['id'])?>"
          data-cat="<?=htmlspecialchars($p['cat'])?>"
          data-search="<?=htmlspecialchars(strtolower($p['brand'].' '.$p['name'].' '.$p['sku'].' '.$p['cat']))?>">
-        <div class="thumb" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
+        <div class="thumb<?= !empty($p['image']) ? ' has-image' : '' ?>" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
           <?php if(!empty($p['image'])): ?><img class="thumbimg" src="<?=htmlspecialchars($p['image'])?>" alt="" loading="lazy"><?php endif; ?>
           <?php if(!empty($p['verified'])): ?>
           <span class="vbadge">
@@ -72,11 +72,11 @@ $cats = vestra_cats();
     <?php endforeach; ?>
   </div>
   <div class="empty" id="noresult" style="display:none"><?= t('No products match your search.') ?></div>
-  <div class="empty" id="startprompt" style="display:none">👆 <?= t('Pick a <b>category</b> above — or type in <b>search</b> — to view products.') ?></div>
+  <div class="empty" id="startprompt" style="display:none"></div>
 </div>
 
 <script>
-var curCat=null; // null = nothing chosen yet -> products stay hidden
+var curCat=''; // show all products by default
 function setCat(el,c){ curCat=c; document.querySelectorAll('.chip').forEach(function(x){x.classList.remove('on')}); el.classList.add('on'); filter(); }
 function filter(){
   var q=(document.getElementById('search').value||'').toLowerCase().trim();

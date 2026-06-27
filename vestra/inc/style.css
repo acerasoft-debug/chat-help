@@ -58,21 +58,36 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 .search{min-width:210px}
 
 /* product grid */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.pcard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:.25s;display:flex;flex-direction:column}
-.pcard:hover{border-color:rgba(201,168,106,.35);transform:translateY(-4px)}
-.thumb{aspect-ratio:4/3;display:grid;place-items:center;position:relative;color:#fff}
-.thumb .bname{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;opacity:.92;text-align:center;padding:0 14px}
-.brand-logo{display:block;width:72%;max-width:200px;position:relative;z-index:1;filter:drop-shadow(0 1px 8px rgba(0,0,0,.55))}
-.thumb .vbadge{position:absolute;top:10px;left:10px;font-size:11px;font-weight:600;background:rgba(0,0,0,.45);
-  border:1px solid rgba(255,255,255,.25);padding:4px 9px;border-radius:999px;display:flex;gap:5px;align-items:center}
-.pcard .body{padding:16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.pcard .brand{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--acc)}
-.pcard .title{font-weight:600;font-size:15px}
-.pcard .meta{font-size:12.5px;color:var(--mut)}
-.pcard .price{margin-top:auto;padding-top:10px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pcard{background:var(--bg2);border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  transition:transform .3s ease,box-shadow .3s ease,border-color .3s;display:flex;flex-direction:column;cursor:pointer}
+.pcard:hover{border-color:rgba(201,168,106,.42);transform:translateY(-7px);
+  box-shadow:0 24px 60px -16px rgba(0,0,0,.6),0 0 0 1px rgba(201,168,106,.1)}
+/* thumb: portrait for fashion feel */
+.thumb{aspect-ratio:3/4;display:grid;place-items:center;position:relative;color:#fff;overflow:hidden}
+/* no-image: subtle diagonal texture */
+.thumb::before{content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(45deg,transparent,transparent 28px,rgba(255,255,255,.025) 28px,rgba(255,255,255,.025) 29px);
+  pointer-events:none;z-index:0}
+/* with-image: dark overlay for legibility */
+.thumb.has-image::after{content:'';position:absolute;bottom:0;left:0;right:0;height:60%;
+  background:linear-gradient(to bottom,transparent 0%,rgba(14,14,17,.92) 100%);pointer-events:none;z-index:1}
+.thumb .bname{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;opacity:.95;
+  text-align:center;padding:0 14px;position:relative;z-index:2;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.brand-logo{display:block;width:70%;max-width:190px;position:relative;z-index:2;
+  filter:drop-shadow(0 1px 10px rgba(0,0,0,.65));transition:filter .3s}
+.pcard:hover .brand-logo{filter:drop-shadow(0 2px 16px rgba(0,0,0,.75))}
+.thumb .vbadge{position:absolute;top:12px;left:12px;font-size:11px;font-weight:600;
+  background:rgba(14,14,17,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.16);padding:5px 10px;border-radius:999px;
+  display:flex;gap:5px;align-items:center;z-index:3}
+.pcard .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:4px;flex:1}
+.pcard .brand{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-weight:600}
+.pcard .title{font-weight:600;font-size:14.5px;line-height:1.32}
+.pcard .meta{font-size:12px;color:var(--mut);line-height:1.45}
+.pcard .price{margin-top:auto;padding-top:10px;font-size:14px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
 .pcard .from{color:var(--mut);font-size:12px}
-.pcard .amt{font-size:19px;font-weight:700}
+.pcard .amt{font-size:20px;font-weight:700}
 .lock{color:var(--mut);font-size:13px;display:flex;align-items:center;gap:6px}
 
 /* product detail */
@@ -129,7 +144,8 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 
 @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.pdetail{grid-template-columns:1fr}}
 @media(max-width:620px){
-  .grid{grid-template-columns:1fr}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .thumb{aspect-ratio:2/3}
   .nav-links{gap:14px;font-size:13px}
   .nav-links .hidem{display:none}
 }
@@ -248,10 +264,12 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 }
 
 /* seller-uploaded product images (cards + detail hero) */
-.thumb,.pdetail .hero-thumb{overflow:hidden}
-.thumbimg,.heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-.thumb .bname,.pdetail .hero-thumb .bname{position:relative;z-index:1;text-shadow:0 1px 10px rgba(0,0,0,.6)}
-.thumb .vbadge,.thumb .modetag,.hero-thumb .modetag{z-index:1}
+.pdetail .hero-thumb{overflow:hidden}
+.thumbimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform .5s ease}
+.pcard:hover .thumbimg{transform:scale(1.05)}
+.heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.thumb .bname,.pdetail .hero-thumb .bname{position:relative;z-index:2;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+.thumb .vbadge,.thumb .modetag,.hero-thumb .modetag{z-index:3}
 
 /* language switcher (nav) */
 .langsw{display:inline-flex;gap:1px;align-items:center;margin-left:6px}
