@@ -187,6 +187,24 @@ function vestra_group_pools(){
 }
 function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
 
+/* ─── Listings & status helpers ─── */
+function vestra_save_listings(array $list): void {
+    $f = vestra_data_dir().'/listings.json';
+    file_put_contents($f, json_encode(array_values($list), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+function vestra_listing_by_id(string $id): ?array {
+    foreach (vestra_listings() as $l) if (($l['id']??'') === $id) return $l; return null;
+}
+function vestra_read_json(string $name): array {
+    $f = vestra_data_dir().'/'.$name;
+    if (!is_readable($f)) return [];
+    return json_decode((string)file_get_contents($f), true) ?: [];
+}
+function vestra_write_json(string $name, array $data): void {
+    $f = vestra_data_dir().'/'.$name;
+    file_put_contents($f, json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
 /* Sourcing requests board (buyers post what they need; sellers make offers). Demo seed. */
 function vestra_requests(){
   return [

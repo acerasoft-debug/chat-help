@@ -308,3 +308,10 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .typecard .ts{font-size:12px;color:var(--mut);display:block;margin-top:2px}
 .authsect{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
 @media(max-width:520px){.authcard{padding:28px 22px}}
+
+/* panel inline-action forms (ship / offer-respond) */
+.respdetails>summary{list-style:none;cursor:pointer}
+.respdetails>summary::-webkit-details-marker{display:none}
+.respform,.shipform{margin-top:10px;padding:12px;background:var(--bg3);border:1px solid var(--line);border-radius:10px}
+.resprow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.shipform input{width:100%;margin-bottom:8px}
