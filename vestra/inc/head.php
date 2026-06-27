@@ -1,10 +1,12 @@
 <?php
 /** VESTRA shared header — start session, member gate, nav. Set $PAGE before include. */
 require_once __DIR__.'/i18n.php';
+require_once __DIR__.'/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (isset($_GET['demo_member']))  { $_SESSION['member'] = true; }
-if (isset($_GET['demo_signout'])) { unset($_SESSION['member']); }
-$MEMBER = !empty($_SESSION['member']);
+if (isset($_GET['demo_signout'])) { auth_logout(); unset($_SESSION['member']); }
+$AUTH_USER = auth_user();
+$MEMBER = $AUTH_USER !== null || !empty($_SESSION['member']);
 $BRAND  = 'VESTRA';
 $PAGE   = $PAGE ?? $BRAND;
 $ACC    = '#c9a86a';
@@ -38,10 +40,11 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
       <a href="/faq" class="<?= ($NAV ?? '')==='faq'?'on':'' ?>"><?= t('FAQ') ?></a>
       <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>"><?= t('Sell') ?></a>
       <?php if ($MEMBER): ?>
-        <a href="/buyer" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>"><?= t('Account') ?></a>
+        <?php $panel = ($AUTH_USER['type']??'buyer')==='seller' ? '/seller' : '/buyer'; ?>
+        <a href="<?= $panel ?>" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>"><?= t('Account') ?></a>
         <span class="memberpill">✓</span>
       <?php else: ?>
-        <a href="?demo_member=1"><?= t('Sign in') ?></a>
+        <a href="/login"><?= t('Sign in') ?></a>
       <?php endif; ?>
       <?= vlang_switcher() ?>
       <a class="cartlink" href="/cart" aria-label="Cart">

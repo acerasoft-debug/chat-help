@@ -8,12 +8,14 @@ function dash_open($role,$section,$title,$subtitle=''){
       ['orders',t('Orders'),'/seller?tab=orders'],
       ['offers',t('Offers received'),'/seller?tab=offers'],
       ['kyc',t('Verification'),'/seller?tab=kyc'],
+      ['profile',t('My profile'),'/seller?tab=profile'],
     ] : [
       ['overview',t('Overview'),'/buyer'],
       ['orders',t('My orders'),'/buyer?tab=orders'],
       ['requests',t('My requests'),'/buyer?tab=requests'],
       ['offers',t('My offers'),'/buyer?tab=offers'],
       ['kyc',t('Verification'),'/buyer?tab=kyc'],
+      ['profile',t('My profile'),'/buyer?tab=profile'],
     ];
   echo '<div class="wrap"><div class="dashtop">';
   echo '<div><div class="crumbs"><a href="/">'.t('Home').'</a> · '.($role==='seller'?t('Seller'):t('Buyer')).' '.t('panel').'</div>';
@@ -23,7 +25,7 @@ function dash_open($role,$section,$title,$subtitle=''){
   echo '</div><div class="dashlayout"><aside class="dashside">';
   foreach($nav as $n){ echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.htmlspecialchars($n[1]).'</a>'; }
   echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw').'</div>';
-  echo '<a class="signout" href="/?demo_signout=1">'.t('Sign out').'</a>';
+  echo '<a class="signout" href="/login?signout=1">'.t('Sign out').'</a>';
   echo '</aside><main class="dashmain">';
 }
 function dash_close(){ echo '</main></div></div>'; }

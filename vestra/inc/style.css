@@ -288,3 +288,23 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .offerdetails summary{list-style:none;cursor:pointer}
 .offerdetails summary::-webkit-details-marker{display:none}
 .offerdetails[open] summary{margin-bottom:4px}
+
+/* auth pages (login, register) */
+.authwrap{min-height:calc(100vh - 180px);display:grid;place-items:center;padding:40px 20px}
+.authcard{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:36px 40px;width:100%;max-width:480px}
+.authcard-logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:1.5px;margin-bottom:22px}
+.authcard-title{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 4px}
+.authcard-sub{color:var(--mut);margin:0 0 22px;font-size:14px}
+.authcard-foot{text-align:center;font-size:14px;color:var(--mut);margin:18px 0 0}
+.authform .authfield{margin-bottom:14px}
+.authform .authfield label{display:block;font-size:13px;color:var(--mut);margin-bottom:5px}
+.authform .authfield input{width:100%}
+.authtype{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.typecard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center;transition:.2s;display:block}
+.typecard:hover{border-color:rgba(201,168,106,.3);background:rgba(201,168,106,.04)}
+.typecard.on{border-color:var(--acc);background:rgba(201,168,106,.08)}
+.typecard .ticon{font-size:24px;display:block;margin-bottom:4px}
+.typecard .tl{font-weight:600;font-size:14px;display:block}
+.typecard .ts{font-size:12px;color:var(--mut);display:block;margin-top:2px}
+.authsect{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
+@media(max-width:520px){.authcard{padding:28px 22px}}
