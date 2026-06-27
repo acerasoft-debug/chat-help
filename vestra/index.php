@@ -291,6 +291,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     <div class="nav-links">
       <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
       <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+      <a href="/faq">FAQ</a>
       <a class="hidem-s" href="#how"><?= $t['how'] ?></a>
       <a class="hidem-s" href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
@@ -305,6 +306,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   <div class="mnav" id="mnav">
     <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
     <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+    <a href="/faq">FAQ</a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <a href="#join"><?= $t['join_nav'] ?></a>
