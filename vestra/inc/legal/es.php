@@ -79,7 +79,7 @@
     <li>Verificación de identidad, prevención del fraude, obligaciones de AML/PI — obligación legal / interés legítimo.</li>
     <li>Procesar pagos/depósito en garantía — contrato (compartido con el proveedor licenciado).</li></ul>
     <h3>3. Comunicación de datos</h3><p>Con el proveedor licenciado de pagos/depósito en garantía, proveedores de KYC, la contraparte de una transacción,
-    proveedores de servicios y autoridades cuando lo exija la ley. No vendemos datos personales.</p>
+    proveedores de servicios y autoridades cuando lo exija la ley. No vendemos datos personales. <b>Los datos de identidad de los vendedores no se divulgan a terceros sin orden judicial o solicitud de autoridad competente</b> (RGPD Art. 6).</p>
     <h3>4. Transferencias internacionales</h3><p>Cuando los datos salgan del EEA, se aplican garantías adecuadas (p. ej., SCCs).</p>
     <h3>5. Conservación</h3><p>Solo durante el tiempo necesario y para cumplir los requisitos legales de conservación.</p>
     <h3>6. Sus derechos</h3><p>Acceso, rectificación, supresión, limitación, portabilidad, oposición y reclamación ante una
@@ -102,6 +102,7 @@
     verificada, menos la comisión de VESTRA.</p>
     <h3>7. Amonestaciones y suspensión</h3><p>La falsificación, la infracción de PI, las reclamaciones válidas reiteradas o el fraude conllevan retirada,
     amonestaciones y suspensión. La falsificación/fraude manifiestos pueden causar la suspensión inmediata.</p>
+    <h3>8. Inspección de mercancías y notificación de defectos (HGB §377)</h3><p>Los compradores deben inspeccionar las mercancías recibidas inmediatamente tras la entrega. <b>Los defectos evidentes, faltantes o entregas incorrectas deben notificarse por escrito en un plazo de 48 horas</b> desde la recepción. Los defectos ocultos deben notificarse en cuanto se descubran. La falta de notificación oportuna implica la aceptación de la mercancía y la pérdida de derechos de garantía.</p>
 "],
   'ip'        => ['title'=>"PI y antifalsificación / Notificación y retirada", 'html'=>"
     <h3>Tolerancia cero</h3><p>Las mercancías falsificadas, réplicas, de marca no autorizada y de mercado gris no verificadas, así como cualquier
@@ -116,6 +117,7 @@
     Para los artículos infractores identificados, adoptamos medidas razonables para evitar su nueva publicación (permanencia retirada).</p>
     <h3>Titulares de derechos de confianza</h3><p>Los titulares de marcas pueden solicitar un canal prioritario; mantenemos un proceso de contranotificación
     justo para los vendedores (conforme a las obligaciones de la DSA de la EU). Las notificaciones abusivas pueden ser restringidas.</p>
+    <h3>Protección de datos de los vendedores</h3><p>Los datos de identidad de los vendedores registrados no se divulgan a titulares de derechos ni a terceros <b>sin orden judicial o solicitud de autoridad competente</b>. Los titulares de derechos que deseen obtener datos de identidad de vendedores deben acudir a la vía judicial (RGPD Art. 6).</p>
 "],
   'aml'       => ['title'=>"Política de AML / KYC", 'html'=>"
     <h3>Finalidad</h3><p>Prevenir el blanqueo de capitales, la evasión de sanciones, el fraude y la financiación del terrorismo, y verificar a los usuarios empresariales.</p>

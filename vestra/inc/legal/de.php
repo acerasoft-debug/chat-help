@@ -78,7 +78,7 @@
     <li>Identitätsverifizierung, Betrugsprävention, AML/IP-Pflichten — rechtliche Verpflichtung / berechtigte Interessen.</li>
     <li>Abwicklung von Zahlungen/Treuhand — Vertrag (geteilt mit dem lizenzierten Anbieter).</li></ul>
     <h3>3. Weitergabe</h3><p>An den lizenzierten Zahlungs-/Treuhandanbieter, KYC-Dienstleister, die Gegenpartei einer Transaktion,
-    Dienstleister und Behörden, soweit gesetzlich vorgeschrieben. Wir verkaufen keine personenbezogenen Daten.</p>
+    Dienstleister und Behörden, soweit gesetzlich vorgeschrieben. Wir verkaufen keine personenbezogenen Daten. <b>Identitätsdaten von Verkäufern werden ohne richterliche Anordnung oder behördliche Aufforderung nicht an Dritte weitergegeben</b> (DSGVO Art. 6 Abs. 1).</p>
     <h3>4. Internationale Übermittlungen</h3><p>Wenn Daten den EWR verlassen, gelten geeignete Garantien (z. B. SCCs).</p>
     <h3>5. Speicherung</h3><p>Nur so lange wie erforderlich und zur Erfüllung gesetzlicher Aufbewahrungspflichten.</p>
     <h3>6. Ihre Rechte</h3><p>Auskunft, Berichtigung, Löschung, Einschränkung, Übertragbarkeit, Widerspruch sowie Beschwerde bei einer
@@ -99,7 +99,8 @@
     <h3>6. Bestellungen, Treuhand &amp; Auszahlungen</h3><p>Gelder werden treuhänderisch verwahrt und nach Käuferbestätigung / verifizierter
     Lieferung freigegeben, abzüglich der Provision von VESTRA.</p>
     <h3>7. Verwarnungen &amp; Sperrung</h3><p>Fälschungen, IP-Verletzungen, wiederholte berechtigte Beschwerden oder Betrug führen zur Entfernung,
-    zu Verwarnungen und zur Sperrung. Offensichtliche Fälschungen/Betrug können eine sofortige Sperrung zur Folge haben.</p>"],
+    zu Verwarnungen und zur Sperrung. Offensichtliche Fälschungen/Betrug können eine sofortige Sperrung zur Folge haben.</p>
+    <h3>8. Warenprüfung &amp; Mängelrüge (HGB §377)</h3><p>Käufer haben die erhaltenen Waren unverzüglich nach Lieferung zu prüfen. <b>Offensichtliche Mängel, Fehlmengen oder Falschlieferungen sind innerhalb von 48 Stunden</b> nach Lieferung schriftlich zu melden. Verborgene Mängel sind unmittelbar nach Entdeckung anzuzeigen. Unterbleibt die rechtzeitige Rüge, gilt die Ware als genehmigt und Gewährleistungsansprüche entfallen.</p>"],
   'ip'        => ['title'=>"Geistiges Eigentum &amp; Fälschungsschutz / Melde- und Entfernungsverfahren", 'html'=>"
     <h3>Null Toleranz</h3><p>Gefälschte, nachgeahmte, nicht autorisierte Marken- und nicht verifizierte Graumarktwaren sowie jedes
     IP-verletzende Angebot sind verboten.</p>
@@ -112,7 +113,8 @@
     <h3>Wiederholungstäter &amp; Verhinderung erneuter Einstellung</h3><p>Es gilt ein Verwarnungssystem; wiederholte berechtigte Beschwerden führen zur Sperrung.
     Für identifizierte rechtsverletzende Artikel ergreifen wir angemessene Maßnahmen, um eine erneute Einstellung zu verhindern (Stay-down).</p>
     <h3>Vertrauenswürdige Rechteinhaber</h3><p>Markeninhaber können einen Prioritätskanal beantragen; wir wahren ein faires Gegendarstellungsverfahren
-    für Verkäufer (im Einklang mit den Pflichten des EU DSA). Missbräuchliche Meldungen können eingeschränkt werden.</p>"],
+    für Verkäufer (im Einklang mit den Pflichten des EU DSA). Missbräuchliche Meldungen können eingeschränkt werden.</p>
+    <h3>Schutz von Verkäuferdaten</h3><p>Identitätsdaten registrierter Verkäufer werden Rechteinhabern oder Dritten <b>nicht ohne richterliche Anordnung oder entsprechende behördliche Aufforderung</b> offengelegt. Rechteinhaber, die auf Verkäuferidentitäten zugreifen möchten, sind an den ordentlichen Rechtsweg zu verweisen (DSGVO Art. 6).</p>"],
   'aml'       => ['title'=>"AML- / KYC-Richtlinie", 'html'=>"
     <h3>Zweck</h3><p>Verhinderung von Geldwäsche, Sanktionsumgehung, Betrug und Terrorismusfinanzierung sowie Verifizierung gewerblicher Nutzer.</p>
     <h3>Verifizierung (KYB/KYC)</h3><p>Vor dem Abschluss von Geschäften verifizieren wir: die Gewerbeanmeldung; den Steuer-/USt-Identifikator;

@@ -80,7 +80,7 @@
     <li>Vérification d&rsquo;identité, prévention de la fraude, obligations AML/IP — obligation légale / intérêts légitimes.</li>
     <li>Traiter les paiements/l&rsquo;entiercement — contrat (partagé avec le prestataire agréé).</li></ul>
     <h3>3. Partage</h3><p>Avec le prestataire de paiement/d&rsquo;entiercement agréé, les fournisseurs KYC, la contrepartie d&rsquo;une transaction,
-    les prestataires de services et les autorités lorsque la loi l&rsquo;exige. Nous ne vendons pas de données personnelles.</p>
+    les prestataires de services et les autorités lorsque la loi l&rsquo;exige. Nous ne vendons pas de données personnelles. <b>Les données d'identité des vendeurs ne sont pas divulguées à des tiers sans ordonnance judiciaire ou demande d'une autorité compétente</b> (RGPD Art. 6).</p>
     <h3>4. Transferts internationaux</h3><p>Lorsque des données quittent l&rsquo;EEA, des garanties appropriées (par ex. les SCCs) s&rsquo;appliquent.</p>
     <h3>5. Conservation</h3><p>Uniquement aussi longtemps que nécessaire et pour satisfaire aux exigences légales de conservation.</p>
     <h3>6. Vos droits</h3><p>Accès, rectification, effacement, limitation, portabilité, opposition et réclamation auprès d&rsquo;une
@@ -103,6 +103,7 @@
     vérifiée, déduction faite de la commission de VESTRA.</p>
     <h3>7. Avertissements &amp; suspension</h3><p>La contrefaçon, l&rsquo;atteinte à la propriété intellectuelle, les plaintes valides répétées ou la fraude entraînent le retrait,
     des avertissements et la suspension. Une contrefaçon/fraude manifeste peut entraîner une suspension immédiate.</p>
+    <h3>8. Vérification des marchandises &amp; notification des défauts (HGB §377)</h3><p>Les acheteurs doivent inspecter les marchandises reçues immédiatement après la livraison. <b>Les défauts apparents, les manquants ou les livraisons incorrectes doivent être notifiés par écrit dans les 48 heures</b> suivant la réception. Les défauts cachés doivent être signalés dès leur découverte. À défaut de notification dans les délais, la marchandise est réputée acceptée et les droits à garantie sont perdus.</p>
 "],
   'ip'        => ['title'=>"Propriété intellectuelle &amp; lutte contre la contrefaçon / Notification et retrait", 'html'=>"
     <h3>Tolérance zéro</h3><p>Les marchandises contrefaites, les répliques, les marchandises de marque non autorisées et les marchandises du marché gris non vérifiées, ainsi que toute
@@ -117,6 +118,7 @@
     Pour les articles identifiés comme contrevenants, nous prenons des mesures raisonnables pour empêcher leur remise en vente (maintien du retrait).</p>
     <h3>Titulaires de droits de confiance</h3><p>Les propriétaires de marques peuvent demander un canal prioritaire ; nous préservons une procédure équitable de contre-notification
     pour les vendeurs (conformément aux obligations du DSA de l&rsquo;UE). Les notifications abusives peuvent être restreintes.</p>
+    <h3>Protection des données des vendeurs</h3><p>Les données d'identité des vendeurs enregistrés ne sont pas divulguées aux titulaires de droits ou à des tiers <b>sans ordonnance judiciaire ou demande d'une autorité compétente</b>. Les titulaires de droits souhaitant obtenir des données d'identité de vendeurs doivent engager une procédure judiciaire formelle (RGPD Art. 6).</p>
 "],
   'aml'       => ['title'=>"Politique AML / KYC", 'html'=>"
     <h3>Objet</h3><p>Prévenir le blanchiment d&rsquo;argent, le contournement des sanctions, la fraude et le financement du terrorisme, et vérifier les utilisateurs professionnels.</p>

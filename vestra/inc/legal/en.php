@@ -43,7 +43,7 @@ return [
     <li>Identity verification, fraud prevention, AML/IP duties — legal obligation / legitimate interests.</li>
     <li>Process payments/escrow — contract (shared with the licensed provider).</li></ul>
     <h3>3. Sharing</h3><p>With the licensed payment/escrow provider, KYC vendors, the counterparty to a transaction,
-    service providers and authorities where legally required. We do not sell personal data.</p>
+    service providers and authorities where legally required. We do not sell personal data. <b>Seller identities are not disclosed to third parties without a court order or competent authority request</b> (GDPR Art. 6).</p>
     <h3>4. International transfers</h3><p>Where data leaves the EEA, appropriate safeguards (e.g., SCCs) apply.</p>
     <h3>5. Retention</h3><p>Only as long as necessary and to meet legal retention requirements.</p>
     <h3>6. Your rights</h3><p>Access, rectification, erasure, restriction, portability, objection, and complaint to a
@@ -64,7 +64,8 @@ return [
     <h3>6. Orders, escrow &amp; payouts</h3><p>Funds are held in escrow and released after buyer confirmation / verified
     delivery, less VESTRA's commission.</p>
     <h3>7. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to
-    removal, strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>"],
+    removal, strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>
+    <h3>8. Goods inspection &amp; defect notice (HGB §377)</h3><p>Buyers must inspect received goods promptly upon delivery. <b>Apparent defects, shortages or wrong deliveries must be notified in writing within 48 hours</b> of receipt. Hidden defects must be notified immediately upon discovery. Failure to give timely notice means the goods are deemed accepted and warranty claims lapse.</p>"],
 
   'ip'=>['title'=>'IP &amp; Anti-Counterfeit / Notice-and-Takedown','html'=>"
     <h3>Zero tolerance</h3><p>Counterfeit, replica, unauthorised-brand and unverified grey-market goods, and any
@@ -78,7 +79,8 @@ return [
     <h3>Repeat infringers &amp; stay-down</h3><p>A strike system applies; repeated valid complaints lead to suspension.
     For identified infringing items we take reasonable measures to prevent re-listing (stay-down).</p>
     <h3>Trusted rights-holders</h3><p>Brand owners may request a priority channel; we preserve a fair counter-notice
-    process for sellers (consistent with EU DSA duties). Abusive notices may be restricted.</p>"],
+    process for sellers (consistent with EU DSA duties). Abusive notices may be restricted.</p>
+    <h3>Seller data protection</h3><p>Registered seller identity data is not disclosed to rights holders or third parties <b>without a court order or competent authority request</b>. Rights holders seeking seller identity must pursue formal legal proceedings (GDPR Art. 6).</p>"],
 
   'aml'=>['title'=>'AML / KYC Policy','html'=>"
     <h3>Purpose</h3><p>Prevent money laundering, sanctions evasion, fraud and terrorist financing, and verify business users.</p>

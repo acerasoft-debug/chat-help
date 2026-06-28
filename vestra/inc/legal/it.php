@@ -78,7 +78,7 @@
     <li>Verifica dell'identit&agrave;, prevenzione delle frodi, obblighi AML/IP &mdash; obbligo legale / legittimo interesse.</li>
     <li>Elaborare pagamenti/deposito a garanzia &mdash; contratto (condiviso con il fornitore autorizzato).</li></ul>
     <h3>3. Condivisione</h3><p>Con il fornitore autorizzato di servizi di pagamento/deposito a garanzia, i fornitori KYC, la controparte di una transazione,
-    i fornitori di servizi e le autorit&agrave; ove legalmente richiesto. Non vendiamo dati personali.</p>
+    i fornitori di servizi e le autorit&agrave; ove legalmente richiesto. Non vendiamo dati personali. <b>I dati identificativi dei venditori non vengono divulgati a terzi senza ordine del tribunale o richiesta delle autorità competenti</b> (GDPR Art. 6).</p>
     <h3>4. Trasferimenti internazionali</h3><p>Laddove i dati lascino il SEE, si applicano garanzie adeguate (ad es. SCCs).</p>
     <h3>5. Conservazione</h3><p>Solo per il tempo necessario e per soddisfare gli obblighi legali di conservazione.</p>
     <h3>6. I tuoi diritti</h3><p>Accesso, rettifica, cancellazione, limitazione, portabilit&agrave;, opposizione e reclamo a un'
@@ -99,7 +99,8 @@
     <h3>6. Ordini, deposito a garanzia &amp; pagamenti</h3><p>I fondi sono trattenuti in deposito a garanzia e rilasciati dopo la conferma dell'acquirente / consegna
     verificata, al netto della commissione di VESTRA.</p>
     <h3>7. Sanzioni &amp; sospensione</h3><p>Contraffazione, violazione IP, reclami validi ripetuti o frode comportano la rimozione,
-    sanzioni e sospensione. Una contraffazione/frode manifesta pu&ograve; comportare la sospensione immediata.</p>"],
+    sanzioni e sospensione. Una contraffazione/frode manifesta pu&ograve; comportare la sospensione immediata.</p>
+    <h3>8. Ispezione delle merci e notifica dei difetti (HGB §377)</h3><p>Gli acquirenti devono ispezionare la merce ricevuta immediatamente dopo la consegna. <b>I difetti evidenti, le carenze o le consegne errate devono essere segnalati per iscritto entro 48 ore</b> dalla ricezione. I difetti nascosti devono essere segnalati non appena scoperti. In assenza di contestazione tempestiva, la merce è considerata accettata e i diritti di garanzia decadono.</p>"],
   'ip'        => ['title'=>"IP &amp; anticontraffazione / Segnalazione e rimozione", 'html'=>"
     <h3>Tolleranza zero</h3><p>Sono vietati beni contraffatti, repliche, beni a marchio non autorizzato e beni del mercato grigio non verificati, nonch&eacute; qualsiasi
     inserzione che violi la propriet&agrave; intellettuale.</p>
@@ -112,7 +113,8 @@
     <h3>Trasgressori recidivi &amp; mantenimento della rimozione</h3><p>Si applica un sistema di sanzioni; reclami validi ripetuti comportano la sospensione.
     Per gli articoli in violazione identificati adottiamo misure ragionevoli per impedirne la ripubblicazione (mantenimento della rimozione).</p>
     <h3>Titolari di diritti affidabili</h3><p>I titolari dei marchi possono richiedere un canale prioritario; preserviamo una procedura equa di contro-segnalazione
-    per i venditori (in conformit&agrave; con gli obblighi del DSA dell'UE). Le segnalazioni abusive possono essere limitate.</p>"],
+    per i venditori (in conformit&agrave; con gli obblighi del DSA dell'UE). Le segnalazioni abusive possono essere limitate.</p>
+    <h3>Protezione dei dati dei venditori</h3><p>I dati identificativi dei venditori registrati non vengono divulgati a titolari di diritti o terzi <b>senza ordine del tribunale o richiesta delle autorità competenti</b>. I titolari di diritti che desiderano accedere ai dati identificativi dei venditori devono ricorrere alle vie legali ordinarie (GDPR Art. 6).</p>"],
   'aml'       => ['title'=>"Politica AML / KYC", 'html'=>"
     <h3>Finalit&agrave;</h3><p>Prevenire il riciclaggio di denaro, l'elusione delle sanzioni, le frodi e il finanziamento del terrorismo, e verificare gli utenti commerciali.</p>
     <h3>Verifica (KYB/KYC)</h3><p>Prima di effettuare transazioni verifichiamo: la registrazione dell'impresa; il codice fiscale/partita IVA;
