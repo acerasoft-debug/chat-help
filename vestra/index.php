@@ -1,29 +1,25 @@
 <?php
 /**
- * VESTRA — Verified B2B Fashion Wholesale · Phase 0 landing + waitlist
- * --------------------------------------------------------------------
- * Tek dosya, sade PHP. Hosteurope dâhil her paylaşımlı hostingte çalışır.
- * Diller: EN / FR / IT / ES (?lang=fr ...). Metinler aşağıdaki $T dizisinde.
- * Markayı/iletişimi değiştirmek için sadece şu satırları düzenle:
+ * VESTRA — Verified B2B Fashion Wholesale · Live marketplace homepage
  */
-$BRAND   = 'VESTRA';                                          // ← marka adı (placeholder)
-$CONTACT = 'support@vestrasales.com';                            // ← iletişim e-postan
-$COMPANY = 'acerasoft LLC';    // ← şirket bilgin (şeffaflık!)
+$BRAND   = 'VESTRA';
+$CONTACT = 'support@vestrasales.com';
+$COMPANY = 'acerasoft LLC';
 $ACCENT  = '#c9a86a';
 require_once __DIR__.'/inc/i18n.php';
 
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
-$lang  = vlang(); // shared cookie-backed language, consistent with the rest of the site
+$lang  = vlang();
 
 $T = [
 'en'=>[
  'tagline'=>"Europe's verified B2B fashion wholesale",
- 'meta'=>"A verified, authenticity-first B2B wholesale marketplace for branded and textile fashion. Join the founding waitlist.",
- 'why'=>'Why','how'=>'How it works','join_nav'=>'Join the waitlist',
- 'pill'=>'Invitation-only · Launching soon',
+ 'meta'=>"A verified, authenticity-first B2B wholesale marketplace for branded and textile fashion. Register free as a seller or buyer.",
+ 'why'=>'Why','how'=>'How it works','join_nav'=>'Get started',
+ 'pill'=>'Live · Open registration',
  'h1'=>'The <span class="acc">verified</span> way to trade<br>branded fashion, wholesale.',
  'sub'=>'A B2B marketplace where every seller is KYC-checked, every order is escrow-protected, and every product is traceable. Built authenticity-first — not as an afterthought.',
- 'b_sell'=>'Join as a Seller','b_buy'=>'Join as a Buyer',
+ 'b_sell'=>'Register as Seller','b_buy'=>'Register as Buyer',
  'tr1'=>'KYC-verified members','tr2'=>'Escrow protection','tr3'=>'EU DPP-ready',
  'p1t'=>'Verified sellers only','p1d'=>'Business KYC on every seller — VAT ID, registration, identity. No anonymous listings, no guesswork.',
  'p2t'=>'Escrow & authenticity','p2d'=>'Funds release only after the order is received and confirmed. Counterfeit & grey-market screening built in.',
@@ -32,120 +28,147 @@ $T = [
  's1t'=>'Get verified','s1d'=>'Sellers and buyers complete a quick business verification. Approved members see live wholesale pricing.',
  's2t'=>'Source & order','s2d'=>'Browse verified listings — branded & textile basics. Order with escrow protection and clear terms.',
  's3t'=>'Trade with confidence','s3d'=>'Authenticity checks, provenance records and a fair dispute process protect every transaction.',
- 'ok'=>"✓ You're on the list. We'll be in touch as we open the founding cohort.",
- 'bad'=>'Please enter at least your name and a valid email.',
- 'jt'=>'Join the founding waitlist','js'=>'Be among the first verified members. No payment, no commitment.',
- 'tg_s'=>"I'm a Seller",'tg_b'=>"I'm a Buyer",
- 'f_name'=>'Full name','f_co'=>'Company','f_email'=>'Work email','f_country'=>'Country',
- 'm_s'=>'What do you sell? (brands, categories)','m_b'=>'What are you looking to source?',
- 'submit'=>'Request early access',
- 'note'=>'By joining you agree to be contacted about the launch. We never share your data.',
+ 'jt'=>'Start trading on VESTRA','js'=>'Free registration. No commitment. Join hundreds of verified sellers and buyers.',
+ 'sell_title'=>"I'm a Seller",
+ 'sell_desc'=>'List your branded and textile products. Reach verified wholesale buyers across Europe.',
+ 'sell_f1'=>'Escrow on every order — no payment risk',
+ 'sell_f2'=>'Only 7% commission on completed sales',
+ 'sell_f3'=>'Full control over pricing, MOQ and tiers',
+ 'sell_cta'=>'Register as Seller',
+ 'buy_title'=>"I'm a Buyer",
+ 'buy_desc'=>'Source authenticated fashion from KYC-verified sellers. Every transaction is escrow-protected.',
+ 'buy_f1'=>'Only verified, KYC-checked sellers',
+ 'buy_f2'=>'Escrow holds funds until you confirm receipt',
+ 'buy_f3'=>'Free to browse and request quotes',
+ 'buy_cta'=>'Register as Buyer',
+ 'already'=>'Already have an account?','signin'=>'Sign in →',
 ],
 'fr'=>[
  'tagline'=>"La vente en gros de mode B2B vérifiée en Europe",
- 'meta'=>"Une marketplace B2B vérifiée, centrée sur l'authenticité, pour la mode de marque et le textile. Rejoignez la liste d'attente.",
- 'why'=>'Pourquoi','how'=>'Comment ça marche','join_nav'=>"Rejoindre la liste",
- 'pill'=>'Sur invitation · Lancement imminent',
+ 'meta'=>"Une marketplace B2B vérifiée, centrée sur l'authenticité, pour la mode de marque et le textile. Inscrivez-vous gratuitement.",
+ 'why'=>'Pourquoi','how'=>'Comment ça marche','join_nav'=>'Commencer',
+ 'pill'=>'En ligne · Inscription ouverte',
  'h1'=>'La façon <span class="acc">vérifiée</span> de négocier<br>la mode de marque, en gros.',
  'sub'=>"Une marketplace B2B où chaque vendeur est vérifié (KYC), chaque commande est protégée par séquestre et chaque produit est traçable. Conçue pour l'authenticité, dès le départ.",
- 'b_sell'=>'Rejoindre en Vendeur','b_buy'=>'Rejoindre en Acheteur',
- 'tr1'=>'Membres vérifiés (KYC)','tr2'=>'Protection par séquestre','tr3'=>"Prêt pour le DPP de l'UE",
- 'p1t'=>'Vendeurs vérifiés uniquement','p1d'=>'KYC entreprise sur chaque vendeur — numéro de TVA, immatriculation, identité. Aucune annonce anonyme, aucune incertitude.',
- 'p2t'=>'Séquestre & authenticité','p2d'=>'Les fonds ne sont libérés qu\'après réception et confirmation de la commande. Détection des contrefaçons et du marché gris intégrée.',
- 'p3t'=>'Passeport Numérique de Produit','p3d'=>"Chaque article dispose d'un historique de provenance traçable — prêt dès aujourd'hui pour la future réglementation DPP de l'UE.",
+ 'b_sell'=>'Rejoindre comme Vendeur','b_buy'=>'Rejoindre comme Acheteur',
+ 'tr1'=>'Membres vérifiés (KYC)','tr2'=>'Protection par séquestre','tr3'=>"Prêt pour le DPP UE",
+ 'p1t'=>'Vendeurs vérifiés uniquement','p1d'=>'KYC entreprise sur chaque vendeur — TVA, immatriculation, identité. Aucune annonce anonyme.',
+ 'p2t'=>'Séquestre & authenticité','p2d'=>"Les fonds ne sont libérés qu'après réception et confirmation. Détection des contrefaçons intégrée.",
+ 'p3t'=>'Passeport Numérique de Produit','p3d'=>"Chaque article dispose d'un historique de provenance traçable — prêt pour le DPP UE.",
  'hsub'=>'La confiance par conception — pour les deux parties.',
- 's1t'=>'Faites-vous vérifier','s1d'=>'Vendeurs et acheteurs effectuent une vérification d\'entreprise rapide. Les membres approuvés voient les prix de gros en direct.',
- 's2t'=>'Sourcez & commandez','s2d'=>'Parcourez des annonces vérifiées — articles de marque et basiques textiles. Commandez avec séquestre et conditions claires.',
- 's3t'=>'Échangez en confiance','s3d'=>'Contrôles d\'authenticité, historiques de provenance et un processus de litige équitable protègent chaque transaction.',
- 'ok'=>"✓ Vous êtes sur la liste. Nous vous contacterons à l'ouverture du premier groupe.",
- 'bad'=>'Veuillez saisir au moins votre nom et un e-mail valide.',
- 'jt'=>"Rejoignez la liste d'attente",'js'=>'Soyez parmi les premiers membres vérifiés. Sans paiement, sans engagement.',
- 'tg_s'=>'Je suis Vendeur','tg_b'=>'Je suis Acheteur',
- 'f_name'=>'Nom complet','f_co'=>'Entreprise','f_email'=>'E-mail professionnel','f_country'=>'Pays',
- 'm_s'=>'Que vendez-vous ? (marques, catégories)','m_b'=>'Que cherchez-vous à sourcer ?',
- 'submit'=>'Demander un accès anticipé',
- 'note'=>"En vous inscrivant, vous acceptez d'être contacté au sujet du lancement. Nous ne partageons jamais vos données.",
+ 's1t'=>'Faites-vous vérifier','s1d'=>'Vendeurs et acheteurs effectuent une vérification d\'entreprise rapide. Les membres approuvés voient les prix en direct.',
+ 's2t'=>'Sourcez & commandez','s2d'=>'Parcourez des annonces vérifiées — articles de marque et basiques textiles. Commandez avec séquestre.',
+ 's3t'=>'Échangez en confiance','s3d'=>'Contrôles d\'authenticité, historiques de provenance et processus de litige équitable.',
+ 'jt'=>'Commencez à trader sur VESTRA','js'=>'Inscription gratuite. Sans engagement. Rejoignez des centaines de vendeurs et acheteurs vérifiés.',
+ 'sell_title'=>'Je suis Vendeur',
+ 'sell_desc'=>'Listez vos produits de marque et textiles. Atteignez des acheteurs en gros vérifiés en Europe.',
+ 'sell_f1'=>'Séquestre sur chaque commande — zéro risque de paiement',
+ 'sell_f2'=>'Seulement 7% de commission sur les ventes réalisées',
+ 'sell_f3'=>'Contrôle total sur les prix, MOQ et paliers',
+ 'sell_cta'=>'S\'inscrire comme Vendeur',
+ 'buy_title'=>'Je suis Acheteur',
+ 'buy_desc'=>'Sourcez de la mode authentique auprès de vendeurs vérifiés KYC. Chaque transaction est protégée par séquestre.',
+ 'buy_f1'=>'Uniquement des vendeurs vérifiés KYC',
+ 'buy_f2'=>'Séquestre jusqu\'à confirmation de réception',
+ 'buy_f3'=>'Navigation et demandes de devis gratuites',
+ 'buy_cta'=>'S\'inscrire comme Acheteur',
+ 'already'=>'Déjà un compte ?','signin'=>'Se connecter →',
 ],
 'it'=>[
  'tagline'=>"Il commercio all'ingrosso di moda B2B verificato in Europa",
- 'meta'=>"Un marketplace B2B verificato, incentrato sull'autenticità, per moda di marca e tessile. Unisciti alla lista d'attesa.",
- 'why'=>'Perché','how'=>'Come funziona','join_nav'=>"Unisciti alla lista",
- 'pill'=>'Su invito · Lancio imminente',
+ 'meta'=>"Un marketplace B2B verificato, incentrato sull'autenticità, per moda di marca e tessile. Registrati gratuitamente.",
+ 'why'=>'Perché','how'=>'Come funziona','join_nav'=>'Inizia ora',
+ 'pill'=>'Online · Registrazione aperta',
  'h1'=>'Il modo <span class="acc">verificato</span> di commerciare<br>moda di marca, all\'ingrosso.',
- 'sub'=>"Un marketplace B2B dove ogni venditore è verificato (KYC), ogni ordine è protetto da deposito a garanzia e ogni prodotto è tracciabile. Costruito sull'autenticità, fin dall'inizio.",
- 'b_sell'=>'Unisciti come Venditore','b_buy'=>'Unisciti come Acquirente',
+ 'sub'=>"Un marketplace B2B dove ogni venditore è verificato (KYC), ogni ordine è protetto da deposito a garanzia e ogni prodotto è tracciabile.",
+ 'b_sell'=>'Registrati come Venditore','b_buy'=>'Registrati come Acquirente',
  'tr1'=>'Membri verificati (KYC)','tr2'=>'Protezione con deposito','tr3'=>'Pronto per il DPP UE',
- 'p1t'=>'Solo venditori verificati','p1d'=>'KYC aziendale su ogni venditore — partita IVA, registrazione, identità. Nessun annuncio anonimo, nessuna incertezza.',
- 'p2t'=>'Deposito & autenticità','p2d'=>"I fondi vengono rilasciati solo dopo la ricezione e la conferma dell'ordine. Controllo di contraffazione e mercato grigio integrato.",
- 'p3t'=>'Passaporto Digitale di Prodotto','p3d'=>"Ogni articolo ha una cronologia di provenienza tracciabile — già pronto per le prossime regole DPP dell'UE.",
+ 'p1t'=>'Solo venditori verificati','p1d'=>'KYC aziendale su ogni venditore — partita IVA, registrazione, identità. Nessun annuncio anonimo.',
+ 'p2t'=>'Deposito & autenticità','p2d'=>"I fondi vengono rilasciati solo dopo la ricezione e la conferma dell'ordine. Controllo anticontraffazione integrato.",
+ 'p3t'=>'Passaporto Digitale di Prodotto','p3d'=>"Ogni articolo ha una cronologia di provenienza tracciabile — già pronto per le regole DPP UE.",
  'hsub'=>'Fiducia per progettazione — per entrambe le parti.',
- 's1t'=>'Verificati','s1d'=>'Venditori e acquirenti completano una rapida verifica aziendale. I membri approvati vedono i prezzi all\'ingrosso in tempo reale.',
- 's2t'=>'Cerca & ordina','s2d'=>'Sfoglia annunci verificati — capi di marca e basici tessili. Ordina con deposito a garanzia e condizioni chiare.',
- 's3t'=>'Commercia con fiducia','s3d'=>'Controlli di autenticità, registri di provenienza e un processo di reclamo equo proteggono ogni transazione.',
- 'ok'=>"✓ Sei in lista. Ti contatteremo all'apertura del primo gruppo.",
- 'bad'=>"Inserisci almeno il tuo nome e un'email valida.",
- 'jt'=>"Unisciti alla lista d'attesa",'js'=>'Sii tra i primi membri verificati. Nessun pagamento, nessun impegno.',
- 'tg_s'=>'Sono un Venditore','tg_b'=>'Sono un Acquirente',
- 'f_name'=>'Nome completo','f_co'=>'Azienda','f_email'=>'Email aziendale','f_country'=>'Paese',
- 'm_s'=>'Cosa vendi? (marche, categorie)','m_b'=>'Cosa stai cercando?',
- 'submit'=>"Richiedi l'accesso anticipato",
- 'note'=>'Iscrivendoti accetti di essere contattato riguardo al lancio. Non condividiamo mai i tuoi dati.',
+ 's1t'=>'Verificati','s1d'=>'Venditori e acquirenti completano una rapida verifica aziendale. I membri approvati vedono i prezzi in tempo reale.',
+ 's2t'=>'Cerca & ordina','s2d'=>'Sfoglia annunci verificati — capi di marca e basici tessili. Ordina con deposito a garanzia.',
+ 's3t'=>'Commercia con fiducia','s3d'=>'Controlli di autenticità, registri di provenienza e processo di reclamo equo.',
+ 'jt'=>'Inizia a fare trading su VESTRA','js'=>'Registrazione gratuita. Senza impegno. Unisciti a centinaia di venditori e acquirenti verificati.',
+ 'sell_title'=>'Sono un Venditore',
+ 'sell_desc'=>'Elenca i tuoi prodotti di marca e tessili. Raggiungi acquirenti all\'ingrosso verificati in tutta Europa.',
+ 'sell_f1'=>'Deposito su ogni ordine — zero rischio di pagamento',
+ 'sell_f2'=>'Solo 7% di commissione sulle vendite completate',
+ 'sell_f3'=>'Controllo totale su prezzi, MOQ e fasce',
+ 'sell_cta'=>'Registrati come Venditore',
+ 'buy_title'=>'Sono un Acquirente',
+ 'buy_desc'=>'Acquista moda autenticata da venditori verificati KYC. Ogni transazione è protetta da deposito.',
+ 'buy_f1'=>'Solo venditori verificati KYC',
+ 'buy_f2'=>'Deposito fino alla conferma della ricezione',
+ 'buy_f3'=>'Navigazione e richieste di preventivo gratuite',
+ 'buy_cta'=>'Registrati come Acquirente',
+ 'already'=>'Hai già un account?','signin'=>'Accedi →',
 ],
 'es'=>[
  'tagline'=>"La venta mayorista de moda B2B verificada en Europa",
- 'meta'=>"Un marketplace B2B verificado, centrado en la autenticidad, para moda de marca y textil. Únete a la lista de espera.",
- 'why'=>'Por qué','how'=>'Cómo funciona','join_nav'=>"Únete a la lista",
- 'pill'=>'Solo por invitación · Próximo lanzamiento',
+ 'meta'=>"Un marketplace B2B verificado, centrado en la autenticidad, para moda de marca y textil. Regístrate gratis.",
+ 'why'=>'Por qué','how'=>'Cómo funciona','join_nav'=>'Empezar',
+ 'pill'=>'En vivo · Registro abierto',
  'h1'=>'La forma <span class="acc">verificada</span> de comerciar<br>moda de marca, al por mayor.',
- 'sub'=>'Un marketplace B2B donde cada vendedor está verificado (KYC), cada pedido está protegido con depósito en garantía y cada producto es trazable. Construido con la autenticidad por delante.',
- 'b_sell'=>'Únete como Vendedor','b_buy'=>'Únete como Comprador',
- 'tr1'=>'Miembros verificados (KYC)','tr2'=>'Protección con depósito','tr3'=>'Listo para el DPP de la UE',
- 'p1t'=>'Solo vendedores verificados','p1d'=>'KYC empresarial en cada vendedor — número de IVA, registro, identidad. Sin anuncios anónimos, sin conjeturas.',
- 'p2t'=>'Depósito & autenticidad','p2d'=>'Los fondos se liberan solo tras recibir y confirmar el pedido. Detección de falsificaciones y mercado gris integrada.',
- 'p3t'=>'Pasaporte Digital de Producto','p3d'=>'Cada artículo lleva un registro de procedencia trazable — listo hoy para las próximas normas DPP de la UE.',
+ 'sub'=>'Un marketplace B2B donde cada vendedor está verificado (KYC), cada pedido está protegido con depósito en garantía y cada producto es trazable.',
+ 'b_sell'=>'Registrarse como Vendedor','b_buy'=>'Registrarse como Comprador',
+ 'tr1'=>'Miembros verificados (KYC)','tr2'=>'Protección con depósito','tr3'=>'Listo para el DPP UE',
+ 'p1t'=>'Solo vendedores verificados','p1d'=>'KYC empresarial en cada vendedor — IVA, registro, identidad. Sin anuncios anónimos.',
+ 'p2t'=>'Depósito & autenticidad','p2d'=>'Los fondos se liberan solo tras recibir y confirmar el pedido. Detección de falsificaciones integrada.',
+ 'p3t'=>'Pasaporte Digital de Producto','p3d'=>'Cada artículo lleva un registro de procedencia trazable — listo para las normas DPP UE.',
  'hsub'=>'Confianza por diseño — para ambas partes.',
- 's1t'=>'Verifícate','s1d'=>'Vendedores y compradores completan una rápida verificación empresarial. Los miembros aprobados ven los precios mayoristas en vivo.',
- 's2t'=>'Busca & pide','s2d'=>'Explora anuncios verificados — productos de marca y básicos textiles. Pide con depósito en garantía y condiciones claras.',
- 's3t'=>'Comercia con confianza','s3d'=>'Comprobaciones de autenticidad, registros de procedencia y un proceso de disputa justo protegen cada transacción.',
- 'ok'=>'✓ Estás en la lista. Te contactaremos al abrir el primer grupo.',
- 'bad'=>'Introduce al menos tu nombre y un correo válido.',
- 'jt'=>'Únete a la lista de espera','js'=>'Sé de los primeros miembros verificados. Sin pago, sin compromiso.',
- 'tg_s'=>'Soy Vendedor','tg_b'=>'Soy Comprador',
- 'f_name'=>'Nombre completo','f_co'=>'Empresa','f_email'=>'Correo profesional','f_country'=>'País',
- 'm_s'=>'¿Qué vendes? (marcas, categorías)','m_b'=>'¿Qué buscas comprar?',
- 'submit'=>'Solicita acceso anticipado',
- 'note'=>'Al unirte, aceptas que te contactemos sobre el lanzamiento. Nunca compartimos tus datos.',
+ 's1t'=>'Verifícate','s1d'=>'Vendedores y compradores completan una verificación empresarial rápida. Los miembros aprobados ven precios mayoristas en vivo.',
+ 's2t'=>'Busca & pide','s2d'=>'Explora anuncios verificados — productos de marca y básicos textiles. Pide con depósito y condiciones claras.',
+ 's3t'=>'Comercia con confianza','s3d'=>'Comprobaciones de autenticidad, registros de procedencia y proceso de disputa justo.',
+ 'jt'=>'Empieza a operar en VESTRA','js'=>'Registro gratuito. Sin compromiso. Únete a cientos de vendedores y compradores verificados.',
+ 'sell_title'=>'Soy Vendedor',
+ 'sell_desc'=>'Lista tus productos de marca y textiles. Llega a compradores mayoristas verificados en toda Europa.',
+ 'sell_f1'=>'Depósito en cada pedido — cero riesgo de pago',
+ 'sell_f2'=>'Solo 7% de comisión en ventas completadas',
+ 'sell_f3'=>'Control total sobre precios, MOQ y tramos',
+ 'sell_cta'=>'Registrarse como Vendedor',
+ 'buy_title'=>'Soy Comprador',
+ 'buy_desc'=>'Abastécete de moda autenticada de vendedores verificados KYC. Cada transacción está protegida con depósito.',
+ 'buy_f1'=>'Solo vendedores verificados KYC',
+ 'buy_f2'=>'Depósito hasta que confirmes la recepción',
+ 'buy_f3'=>'Navegación y solicitudes de presupuesto gratuitas',
+ 'buy_cta'=>'Registrarse como Comprador',
+ 'already'=>'¿Ya tienes cuenta?','signin'=>'Iniciar sesión →',
 ],
 'de'=>[
  'tagline'=>"Europas verifizierter B2B-Modegroßhandel",
- 'meta'=>"Ein verifizierter, auf Echtheit ausgerichteter B2B-Großhandelsmarktplatz für Marken- und Textilmode. Tragen Sie sich in die Warteliste ein.",
- 'why'=>'Warum','how'=>"So funktioniert's",'join_nav'=>"Warteliste beitreten",
- 'pill'=>'Nur auf Einladung · Bald verfügbar',
+ 'meta'=>"Ein verifizierter, auf Echtheit ausgerichteter B2B-Großhandelsmarktplatz für Marken- und Textilmode. Jetzt kostenlos registrieren.",
+ 'why'=>'Warum','how'=>"So funktioniert's",'join_nav'=>'Jetzt starten',
+ 'pill'=>'Live · Registrierung offen',
  'h1'=>'Der <span class="acc">verifizierte</span> Weg, Markenmode<br>im Großhandel zu handeln.',
- 'sub'=>"Ein B2B-Marktplatz, auf dem jeder Verkäufer KYC-geprüft ist, jede Bestellung durch Treuhand geschützt wird und jedes Produkt rückverfolgbar ist. Von Anfang an auf Echtheit ausgelegt.",
- 'b_sell'=>'Als Verkäufer beitreten','b_buy'=>'Als Käufer beitreten',
+ 'sub'=>"Ein B2B-Marktplatz, auf dem jeder Verkäufer KYC-geprüft ist, jede Bestellung durch Treuhand geschützt wird und jedes Produkt rückverfolgbar ist.",
+ 'b_sell'=>'Als Verkäufer registrieren','b_buy'=>'Als Käufer registrieren',
  'tr1'=>'KYC-verifizierte Mitglieder','tr2'=>'Treuhand-Schutz','tr3'=>'EU-DPP-bereit',
- 'p1t'=>'Nur verifizierte Verkäufer','p1d'=>'Geschäftliche KYC-Prüfung bei jedem Verkäufer — USt-IdNr., Registrierung, Identität. Keine anonymen Inserate, keine Unsicherheit.',
- 'p2t'=>'Treuhand & Echtheit','p2d'=>'Gelder werden erst nach Erhalt und Bestätigung der Bestellung freigegeben. Fälschungs- und Graumarkt-Prüfung integriert.',
- 'p3t'=>'Digitaler Produktpass','p3d'=>'Jeder Artikel trägt einen rückverfolgbaren Herkunftsnachweis — schon heute bereit für die kommende EU-DPP-Pflicht.',
+ 'p1t'=>'Nur verifizierte Verkäufer','p1d'=>'Geschäftliche KYC-Prüfung bei jedem Verkäufer — USt-IdNr., Registrierung, Identität. Keine anonymen Inserate.',
+ 'p2t'=>'Treuhand & Echtheit','p2d'=>'Gelder werden erst nach Erhalt und Bestätigung der Bestellung freigegeben. Fälschungsprüfung integriert.',
+ 'p3t'=>'Digitaler Produktpass','p3d'=>'Jeder Artikel trägt einen rückverfolgbaren Herkunftsnachweis — bereit für die EU-DPP-Pflicht.',
  'hsub'=>'Vertrauen durch Design — für beide Seiten des Handels.',
  's1t'=>'Verifizieren lassen','s1d'=>'Verkäufer und Käufer durchlaufen eine schnelle Geschäftsverifizierung. Freigegebene Mitglieder sehen Live-Großhandelspreise.',
- 's2t'=>'Finden & bestellen','s2d'=>'Durchstöbern Sie verifizierte Inserate — Markenware & Textil-Basics. Bestellen Sie mit Treuhand-Schutz und klaren Konditionen.',
+ 's2t'=>'Finden & bestellen','s2d'=>'Verifizierte Inserate durchstöbern — Markenware & Textil-Basics. Mit Treuhand-Schutz bestellen.',
  's3t'=>'Mit Vertrauen handeln','s3d'=>'Echtheitsprüfungen, Herkunftsnachweise und ein faires Streitverfahren schützen jede Transaktion.',
- 'ok'=>'✓ Sie stehen auf der Liste. Wir melden uns, sobald wir die Gründungsgruppe öffnen.',
- 'bad'=>'Bitte geben Sie mindestens Ihren Namen und eine gültige E-Mail-Adresse an.',
- 'jt'=>'Der Gründungs-Warteliste beitreten','js'=>'Gehören Sie zu den ersten verifizierten Mitgliedern. Keine Zahlung, keine Verpflichtung.',
- 'tg_s'=>'Ich bin Verkäufer','tg_b'=>'Ich bin Käufer',
- 'f_name'=>'Vollständiger Name','f_co'=>'Unternehmen','f_email'=>'Geschäftliche E-Mail','f_country'=>'Land',
- 'm_s'=>'Was verkaufen Sie? (Marken, Kategorien)','m_b'=>'Was möchten Sie beziehen?',
- 'submit'=>'Frühzugang anfragen',
- 'note'=>'Mit der Anmeldung stimmen Sie zu, zum Launch kontaktiert zu werden. Wir geben Ihre Daten niemals weiter.',
+ 'jt'=>'Jetzt auf VESTRA handeln','js'=>'Kostenlose Registrierung. Kein Risiko. Tausende verifizierte Verkäufer und Käufer.',
+ 'sell_title'=>'Ich bin Verkäufer',
+ 'sell_desc'=>'Inserieren Sie Ihre Marken- und Textilprodukte. Erreichen Sie verifizierte Großhändler in ganz Europa.',
+ 'sell_f1'=>'Treuhand bei jeder Bestellung — kein Zahlungsrisiko',
+ 'sell_f2'=>'Nur 7% Provision auf abgeschlossene Verkäufe',
+ 'sell_f3'=>'Volle Kontrolle über Preise, Mindestmenge und Staffeln',
+ 'sell_cta'=>'Als Verkäufer registrieren',
+ 'buy_title'=>'Ich bin Käufer',
+ 'buy_desc'=>'Beziehen Sie authentifizierte Mode von KYC-verifizierten Verkäufern. Jede Transaktion ist treuhänderisch geschützt.',
+ 'buy_f1'=>'Nur KYC-verifizierte Verkäufer',
+ 'buy_f2'=>'Treuhand bis zur Empfangsbestätigung',
+ 'buy_f3'=>'Kostenlos stöbern und Angebote anfragen',
+ 'buy_cta'=>'Als Käufer registrieren',
+ 'already'=>'Bereits ein Konto?','signin'=>'Anmelden →',
 ],
 ];
 $t = $T[$lang];
-
-$joined = isset($_GET['joined']);
-$error  = isset($_GET['error']);
 
 $favSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#0e0e11'/><path d='M9 10l7 13 7-13' fill='none' stroke='{$ACCENT}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>";
 $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
@@ -238,27 +261,33 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   .step h3{font-size:18px;margin:10px 0 6px}
   .step p{color:var(--mut);font-size:15px;margin:0}
 
-  .join{margin:90px auto;background:linear-gradient(180deg,var(--bg2),#101015);
-    border:1px solid var(--line);border-radius:24px;padding:50px;max-width:720px;position:relative;overflow:hidden}
-  .join:before{content:"";position:absolute;inset:-60% 0 auto 0;height:300px;
-    background:radial-gradient(50% 60% at 50% 0,rgba(201,168,106,.12),transparent 70%)}
-  .toggle{display:flex;background:#0c0c0f;border:1px solid var(--line);border-radius:999px;
-    padding:5px;margin:0 auto 26px;width:fit-content;position:relative;z-index:1}
-  .toggle button{border:0;background:transparent;color:var(--mut);padding:11px 24px;border-radius:999px;
-    cursor:pointer;font:inherit;font-weight:600;font-size:14px;transition:.25s}
-  .toggle button.on{background:var(--acc);color:#1a1408}
-  form{display:grid;gap:14px;position:relative;z-index:1}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  label{font-size:13px;color:var(--mut);display:block;margin-bottom:6px}
-  input,textarea{width:100%;background:#0c0c0f;border:1px solid var(--line);
-    border-radius:10px;padding:13px 14px;color:var(--ink);font:inherit;font-size:15px;transition:border-color .2s}
-  input:focus,textarea:focus{outline:0;border-color:var(--acc)}
-  input[type=checkbox],input[type=radio]{width:auto;background:none;border:none;padding:0;border-radius:0}
-  .hp{position:absolute;left:-9999px}
-  .note{font-size:13px;color:var(--mut);text-align:center;margin-top:14px}
-  .banner{padding:14px 18px;border-radius:12px;margin-bottom:22px;font-size:15px;text-align:center;position:relative;z-index:1}
-  .ok{background:rgba(80,200,120,.12);border:1px solid rgba(80,200,120,.4);color:#9fe3b4}
-  .bad{background:rgba(230,90,90,.12);border:1px solid rgba(230,90,90,.4);color:#f0a8a8}
+  /* ── Registration cards ── */
+  .join{margin:90px auto 80px;max-width:960px;text-align:center}
+  .join-cards{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:40px;text-align:left}
+  .jcard{background:linear-gradient(160deg,var(--bg2),#101015);border:1px solid var(--line);
+    border-radius:22px;padding:36px;transition:.3s;display:flex;flex-direction:column;gap:20px;position:relative;overflow:hidden}
+  .jcard:before{content:"";position:absolute;inset:0;border-radius:22px;opacity:0;transition:.3s;
+    background:radial-gradient(60% 50% at 50% 0,rgba(201,168,106,.07),transparent 70%)}
+  .jcard:hover:before{opacity:1}
+  .jcard:hover{border-color:rgba(201,168,106,.4);transform:translateY(-4px);box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
+  .jcard-icon{width:54px;height:54px;display:grid;place-items:center;border-radius:15px;
+    background:rgba(201,168,106,.12);color:var(--acc)}
+  .jcard-icon svg{width:28px;height:28px}
+  .jcard h3{font-size:24px;margin:0}
+  .jcard .jdesc{color:var(--mut);font-size:15px;margin:0;line-height:1.6}
+  .jcard .jfeats{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px}
+  .jcard .jfeats li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mut)}
+  .jcard .jfeats li:before{content:"✓";color:var(--acc);font-weight:700;flex:none;font-size:15px}
+  .jcard .jbtn{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;
+    gap:9px;padding:15px 28px;border-radius:999px;font-weight:600;font-size:15px;border:1px solid var(--acc);
+    transition:.2s;text-decoration:none;width:100%}
+  .jcard.seller .jbtn{background:var(--acc);color:#1a1408}
+  .jcard.seller .jbtn:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 28px -8px rgba(201,168,106,.5)}
+  .jcard.buyer .jbtn{background:transparent;color:var(--ink)}
+  .jcard.buyer .jbtn:hover{background:rgba(201,168,106,.12);transform:translateY(-2px)}
+  .join-note{margin-top:22px;font-size:14px;color:var(--mut)}
+  .join-note a{color:var(--acc);font-weight:500}
+  .join-note a:hover{text-decoration:underline}
 
   footer{border-top:1px solid var(--line);padding:46px 0;color:var(--mut);font-size:13px}
   .foot{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;align-items:center}
@@ -272,8 +301,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   @media(max-width:820px){.nav-links{display:none}.burger{display:block}}
   @media(max-width:760px){
     .pillars,.steps{grid-template-columns:1fr}
-    .row{grid-template-columns:1fr}
-    .join{padding:32px 22px;margin:64px auto}
+    .join-cards{grid-template-columns:1fr}
     .hero{padding:64px 0 44px}
     .trustline{gap:14px}
   }
@@ -282,7 +310,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
 <body>
 <header>
   <div class="wrap"><nav>
-    <a class="logo" href="?lang=<?= $lang ?>#top" aria-label="<?= htmlspecialchars($BRAND) ?>">
+    <a class="logo" href="/?lang=<?= $lang ?>" aria-label="<?= htmlspecialchars($BRAND) ?>">
       <svg class="mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
         <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/>
         <path d="M9 10l7 13 7-13" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -293,12 +321,12 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
       <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
       <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
       <a href="/faq">FAQ</a>
-      <a class="hidem-s" href="#how"><?= $t['how'] ?></a>
-      <a class="hidem-s" href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
+      <a href="#how"><?= $t['how'] ?></a>
+      <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
         <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
       </span>
-      <a href="#join" class="nav-cta"><?= $t['join_nav'] ?></a>
+      <a href="/register" class="nav-cta"><?= $t['join_nav'] ?></a>
     </div>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mnav">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -310,7 +338,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     <a href="/faq">FAQ</a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-    <a href="#join"><?= $t['join_nav'] ?></a>
+    <a href="/register"><?= $t['join_nav'] ?></a>
     <div class="mlangs">
       <?php foreach($LANGS as $c=>$l){ ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
     </div>
@@ -324,11 +352,11 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     <h1><?= $t['h1'] ?></h1>
     <p><?= $t['sub'] ?></p>
     <div class="btns">
-      <a class="btn btn-p" href="#join" onclick="setType('seller')">
+      <a class="btn btn-p" href="/register?type=seller">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l5 5v5h-2"/><path d="M3 7v10h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/></svg>
         <?= $t['b_sell'] ?>
       </a>
-      <a class="btn btn-o" href="#join" onclick="setType('buyer')">
+      <a class="btn btn-o" href="/register?type=buyer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1 12H6L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
         <?= $t['b_buy'] ?>
       </a>
@@ -368,37 +396,52 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   </section>
 
   <section class="join reveal" id="join">
-    <?php if ($joined): ?><div class="banner ok"><?= $t['ok'] ?></div>
-    <?php elseif ($error): ?><div class="banner bad"><?= $t['bad'] ?></div><?php endif; ?>
-    <h2 class="sec-title" style="font-size:30px"><?= $t['jt'] ?></h2>
-    <p class="sec-sub"><?= $t['js'] ?></p>
-    <div class="toggle">
-      <button type="button" id="t-seller" class="on" onclick="setType('seller')"><?= $t['tg_s'] ?></button>
-      <button type="button" id="t-buyer" onclick="setType('buyer')"><?= $t['tg_b'] ?></button>
+    <h2 class="sec-title"><?= $t['jt'] ?></h2>
+    <p class="sec-sub" style="margin-bottom:0"><?= $t['js'] ?></p>
+
+    <div class="join-cards">
+      <!-- Seller card -->
+      <div class="jcard seller reveal">
+        <div class="jcard-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7h13l5 5v5h-2"/><path d="M3 7v10h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/>
+          </svg>
+        </div>
+        <h3><?= $t['sell_title'] ?></h3>
+        <p class="jdesc"><?= $t['sell_desc'] ?></p>
+        <ul class="jfeats">
+          <li><?= $t['sell_f1'] ?></li>
+          <li><?= $t['sell_f2'] ?></li>
+          <li><?= $t['sell_f3'] ?></li>
+        </ul>
+        <a class="jbtn" href="/register?type=seller">
+          <?= $t['sell_cta'] ?>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+
+      <!-- Buyer card -->
+      <div class="jcard buyer reveal">
+        <div class="jcard-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 7h14l-1 12H6L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/>
+          </svg>
+        </div>
+        <h3><?= $t['buy_title'] ?></h3>
+        <p class="jdesc"><?= $t['buy_desc'] ?></p>
+        <ul class="jfeats">
+          <li><?= $t['buy_f1'] ?></li>
+          <li><?= $t['buy_f2'] ?></li>
+          <li><?= $t['buy_f3'] ?></li>
+        </ul>
+        <a class="jbtn" href="/register?type=buyer">
+          <?= $t['buy_cta'] ?>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
     </div>
-    <form action="/join" method="post">
-      <input type="hidden" name="type" id="type" value="seller">
-      <input type="hidden" name="lang" value="<?= $lang ?>">
-      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <div class="row">
-        <div><label><?= $t['f_name'] ?> *</label><input name="name" required></div>
-        <div><label><?= $t['f_co'] ?></label><input name="company"></div>
-      </div>
-      <div class="row">
-        <div><label><?= $t['f_email'] ?> *</label><input type="email" name="email" required></div>
-        <div><label><?= $t['f_country'] ?></label><input name="country"></div>
-      </div>
-      <div><label id="msglabel"><?= $t['m_s'] ?></label><textarea name="message" rows="3"></textarea></div>
-      <label class="consentbox" style="display:flex;gap:9px;align-items:flex-start;margin:6px 0 2px;font-size:13px;color:var(--mut);text-align:left;cursor:pointer">
-        <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none;flex-shrink:0">
-        <span style="min-width:0;overflow-wrap:break-word"><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
-          '<a href="/legal?doc=terms" target="_blank" class="acc">'.t('Terms of Service').'</a>',
-          '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
-          '<a href="/legal?doc=seller" target="_blank" class="acc">'.t('Seller / Buyer Agreement').'</a>') ?></span>
-      </label>
-      <button class="btn btn-p" type="submit" style="justify-content:center"><?= $t['submit'] ?></button>
-      <p class="note"><?= $t['note'] ?></p>
-    </form>
+
+    <p class="join-note"><?= $t['already'] ?> <a href="/login"><?= $t['signin'] ?></a></p>
   </section>
 </div>
 
@@ -407,8 +450,9 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
     <div><b style="color:var(--ink)"><?= htmlspecialchars($BRAND) ?></b> — <?= $t['tagline'] ?>
       <div style="margin-top:6px;opacity:.8"><?= htmlspecialchars($COMPANY) ?></div></div>
     <div class="foot-links">
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
+      <a href="/faq">FAQ</a>
       <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-      <a href="#how"><?= $t['how'] ?></a>
       <a href="mailto:<?= htmlspecialchars($CONTACT) ?>" class="acc"><?= htmlspecialchars($CONTACT) ?></a>
     </div>
   </div>
@@ -418,14 +462,6 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   var burger=document.getElementById('burger'), mnav=document.getElementById('mnav');
   burger.addEventListener('click',function(){var o=mnav.classList.toggle('open');burger.setAttribute('aria-expanded',o);});
   mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
-
-  var MSG={s:<?= json_encode($t['m_s']) ?>,b:<?= json_encode($t['m_b']) ?>};
-  function setType(t){
-    document.getElementById('type').value=t;
-    document.getElementById('t-seller').classList.toggle('on',t==='seller');
-    document.getElementById('t-buyer').classList.toggle('on',t==='buyer');
-    document.getElementById('msglabel').textContent = t==='seller'?MSG.s:MSG.b;
-  }
 
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
   document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
