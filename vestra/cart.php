@@ -1,4 +1,11 @@
-<?php require_once __DIR__.'/inc/products.php'; $PAGE=t('Your order'); $NAV='shop'; require __DIR__.'/inc/head.php'; $placed=isset($_GET['placed']); ?>
+<?php
+require_once __DIR__.'/inc/auth.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
+require_once __DIR__.'/inc/products.php';
+$PAGE=t('Your order'); $NAV='shop'; require __DIR__.'/inc/head.php';
+$placed=isset($_GET['placed']);
+$u = auth_user(); // logged-in user for pre-filling form
+?>
 <div class="wrap">
   <div class="phead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= t('Order') ?></div>
@@ -32,12 +39,12 @@
       <input type="hidden" name="cart" id="cartField">
       <h3 style="margin:24px 0 10px"><?= t('Buyer details') ?></h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:680px">
-        <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
-        <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%"></div>
-        <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%"></div>
-        <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
-        <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%"></div>
-        <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%"></div>
+        <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($u['company']??'') ?>"></div>
+        <div><label class="hint"><?= t('VAT / Tax ID') ?></label><input name="vat" style="width:100%" value="<?= htmlspecialchars($u['vat_id']??'') ?>"></div>
+        <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
+        <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
+        <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
+        <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
       </div>
       <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
       <input type="text" name="website" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
@@ -80,7 +87,8 @@ function render(){
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
   document.getElementById('cartField').value=JSON.stringify(VCart.all());
 });
-render();
+/* VCart is defined in foot.php which loads after this block — use DOMContentLoaded */
+document.addEventListener('DOMContentLoaded', function(){ render(); });
 </script>
 <?php endif; ?>
 <?php require __DIR__.'/inc/foot.php';

@@ -33,6 +33,37 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st = vestra_read_json('order_statuses.json');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         vestra_write_json('order_statuses.json', $st);
+        /* Notify admin + seller */
+        require_once __DIR__.'/inc/notify.php';
+        $buyerName=''; $orderItems='';
+        foreach(vestra_read_csv('orders.csv') as $row){
+            if(($row['ref']??'')!==$ref) continue;
+            $buyerName = ($row['name']?:$row['company']?:'');
+            $orderItems = $row['items']??'';
+            break;
+        }
+        vestra_notify("Order {$ref} — receipt confirmed, escrow released",
+          "Buyer confirmed receipt for order {$ref}.\nBuyer: {$buyerName}\nItems: {$orderItems}\n\nEscrow funds due for release to seller.\n\nAdmin: https://vestrasales.com/admin?tab=orders");
+        /* Notify seller(s) — match ordered SKUs from order_statuses or orders.csv items field */
+        $allListings=vestra_listings();
+        $notified=[];
+        /* parse "qty x SKU @price | ..." items string from CSV */
+        $skus=[];
+        foreach(explode('|',$orderItems) as $seg){
+            if(preg_match('/\s([A-Z0-9\-]+)\s@/',$seg,$m)) $skus[]=$m[1];
+        }
+        foreach($allListings as $listing){
+            if(empty($listing['seller_uid'])||empty($listing['sku'])) continue;
+            if(!in_array($listing['sku'],$skus,true)) continue;
+            if(in_array($listing['seller_uid'],$notified,true)) continue;
+            foreach(auth_accounts() as $acc){
+                if(($acc['id']??'')!==$listing['seller_uid']||empty($acc['email'])) continue;
+                vestra_send_mail($acc['email'], "VESTRA — order {$ref} confirmed, payout in progress",
+                  "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nThe buyer has confirmed receipt for order {$ref}. Your payout is being processed.\n\nItems: {$orderItems}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+                $notified[]=$listing['seller_uid'];
+                break;
+            }
+        }
     }
     header('Location: /buyer?tab=orders&confirmed=1'); exit;
 }

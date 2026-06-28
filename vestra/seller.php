@@ -65,8 +65,18 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $ref = $_POST['ref'] ?? '';
     if ($ref) {
         $st = vestra_read_json('order_statuses.json');
-        $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>trim($_POST['tracking']??''),'shipped_at'=>date('c')]);
+        $tracking = trim($_POST['tracking']??'');
+        $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
         vestra_write_json('order_statuses.json', $st);
+        /* Email buyer */
+        require_once __DIR__.'/inc/notify.php';
+        foreach(vestra_read_csv('orders.csv') as $row){
+            if(($row['ref']??'')!==$ref || empty($row['email'])) continue;
+            $trackLine = $tracking ? "\nTracking: {$tracking}" : '';
+            vestra_send_mail($row['email'], "VESTRA — your order {$ref} has shipped",
+              "Hello ".($row['name']?:$row['company']).",\n\nGreat news — your VESTRA order has been shipped!\n\nOrder ref: {$ref}{$trackLine}\n\nOnce you receive and inspect the goods, please confirm receipt in your buyer dashboard to release payment to the seller:\nhttps://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+            break;
+        }
     }
     header('Location: /seller?tab=orders&shipped=1'); exit;
 }

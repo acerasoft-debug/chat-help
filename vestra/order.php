@@ -44,8 +44,31 @@ $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} 
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}\n"; }
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\nNotes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
-if(vestra_cfg('confirm_user',false)){
-  vestra_send_mail($email, "VESTRA — order {$ref} received",
-    "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received. We will confirm seller availability and send a secured (escrow) payment link.\n\nTotal: €{$total}\n\n— VESTRA · acerasoft LLC");
+
+$FEE_BUYER_PCT=round($FEE_BUYER*100);
+/* Confirmation to buyer — always on */
+vestra_send_mail($email, "VESTRA — order {$ref} received",
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe will confirm seller availability and send a secured (escrow) payment link.\n\nBuyer pays: €{$total} (includes {$FEE_BUYER_PCT}% buyer-protection fee)\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}",$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+
+/* Notify the seller(s) who own the ordered listings */
+if(!empty($lines)){
+  require_once __DIR__.'/inc/auth.php';
+  $notifiedSellers=[];
+  $allListings=vestra_listings();
+  foreach($lines as $l){
+    foreach($allListings as $listing){
+      if(($listing['sku']??'')!==$l['sku']||empty($listing['seller_uid'])) continue;
+      $sid=$listing['seller_uid'];
+      if(in_array($sid,$notifiedSellers,true)) break;
+      $notifiedSellers[]=$sid;
+      foreach(auth_accounts() as $acc){
+        if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
+        vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}",$lines))."\n\nSubtotal: €{$subtotal}   Your payout (after commission): €{$payout}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+        break;
+      }
+      break;
+    }
+  }
 }
 header('Location: /cart?placed=1&ref='.urlencode($ref)); exit;

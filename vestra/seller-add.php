@@ -1,5 +1,7 @@
 <?php
 /** VESTRA — seller "add product" handler. Appends to data/listings.json (merged into the live catalog). */
+require_once __DIR__.'/inc/auth.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
 require __DIR__.'/inc/products.php';
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /seller?tab=add'); exit; }
 if(!empty($_POST['website'])){ header('Location: /seller?tab=add&added=1'); exit; }
@@ -31,6 +33,7 @@ $item=[
   'cat'=>$one($_POST['cat']??'Other'),'sku'=>$sku,'moq'=>$moq,'unit'=>$one($_POST['unit']??'pc'),
   'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,
   'verified'=>true,'accent'=>$accent,'tiers'=>$tiers,
+  'seller_uid'=>$_SESSION['uid']??'',
 ];
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
@@ -82,5 +85,12 @@ $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/listings.json';
 $list=vestra_listings(); $list[]=$item;
 @file_put_contents($file, json_encode($list, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+
+/* Notify admin about new pending listing */
+$sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');
+vestra_notify(
+  "New listing pending approval: {$brand} {$name} [{$sku}]",
+  "A seller submitted a new listing for review.\n\nBrand: {$brand}\nProduct: {$name}\nSKU: {$sku}\nCategory: {$item['cat']}\nMode: {$mode}\nOrigin: {$origin}\nSeller: {$sellerName}\n\nReview and approve: https://vestrasales.com/admin?tab=approvals"
+);
 
 header('Location: /seller?tab=listings&pending=1'); exit;
