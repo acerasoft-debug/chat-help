@@ -5,7 +5,7 @@
     <ul><li><b>Empresa:</b> acerasoft LLC</li>
     <li><b>Forma jurídica:</b> Sociedad de responsabilidad limitada de EE. UU. (State of Delaware)</li>
     <li><b>Domicilio registrado:</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
-    <li><b>Representada por:</b> S. C. Bilgic (Administrador)</li>
+    <li><b>Representada por:</b> Management</li>
     <li><b>Contacto:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a> · <a href='mailto:support@vestrasales.com'>support@vestrasales.com</a></li></ul>
     <h3>Función</h3>
     <p>VESTRA opera un mercado mayorista B2B en línea y actúa <b>únicamente como intermediario y plataforma técnica</b>.
