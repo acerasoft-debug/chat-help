@@ -15,6 +15,17 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
 
 require __DIR__.'/inc/products.php';
 
+// ── Upload KYC document ───────────────────────────────────────────────────────
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
+    $req_id = preg_replace('/[^a-f0-9]/','', $_POST['req_id']??'');
+    $file   = $_FILES['doc_file'] ?? null;
+    if ($req_id && $file) {
+        $ok = auth_upload_doc($_SESSION['uid'], $req_id, $file);
+        header('Location: /buyer?tab=kyc&'.($ok?'uploaded=1':'upload_err=1')); exit;
+    }
+    header('Location: /buyer?tab=kyc'); exit;
+}
+
 // Confirm receipt (escrow release)
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='confirm_receipt') {
     $ref = $_POST['ref'] ?? '';
@@ -159,13 +170,53 @@ if($tab==='overview'){
   <?php
 
 } else { // kyc
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3><span class="status offers">✓ '.t('Verified buyer').'</span></div>
-    <p class="hint">'.t('Verified buyers see wholesale pricing and can order with escrow protection.').'</p>
-    <table class="ctable"><tbody>
-    <tr><td>'.t('Company details').'</td><td class="r"><span class="status '.($AUTH_USER?'offers':'open').'">'.($AUTH_USER?t('Approved'):t('Pending')).'</span></td></tr>
-    <tr><td>'.t('VAT / Tax ID').'</td><td class="r"><span class="status '.($AUTH_USER?'offers':'open').'">'.($AUTH_USER?t('Approved'):t('Pending')).'</span></td></tr>
-    <tr><td>'.t('Email verified').'</td><td class="r"><span class="status '.($AUTH_USER?'offers':'open').'">'.($AUTH_USER?t('Approved'):t('Pending')).'</span></td></tr>
-    </tbody></table></div>';
+  $kybSt   = $AUTH_USER['kyb_status'] ?? 'pending';
+  $docReqs = $AUTH_USER['doc_requests'] ?? [];
+  $docTypes= auth_doc_types();
+  $kybLabel = $kybSt==='approved'
+    ? '<span class="status offers">✓ '.t('Verified').'</span>'
+    : ($kybSt==='suspended'
+        ? '<span class="status" style="color:var(--bad)">⊘ '.t('Suspended').'</span>'
+        : '<span class="status open">'.t('Pending review').'</span>');
+  if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
+  if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3>'.$kybLabel.'</div>';
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with escrow protection. Upload your company registration and VAT/tax certificate when requested.').'</p>';
+  if(!$docReqs){
+    echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
+  } else {
+    echo '<table class="ctable"><thead><tr><th>'.t('Document').'</th><th>'.t('Note from admin').'</th><th>'.t('Status').'</th><th></th></tr></thead><tbody>';
+    foreach($docReqs as $r){
+      $type  = $docTypes[$r['type']??''] ?? ucfirst(str_replace('_',' ',$r['type']??''));
+      $st    = $r['status'] ?? 'requested';
+      $stHtml = match($st){
+        'approved'  => '<span class="status offers">✓ '.t('Approved').'</span>',
+        'rejected'  => '<span class="status" style="color:var(--bad);background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>',
+        'uploaded'  => '<span class="status open">⏳ '.t('Under review').'</span>',
+        default     => '<span class="status open">📎 '.t('Upload required').'</span>',
+      };
+      $note = htmlspecialchars($r['admin_note'] ?? $r['note'] ?? '');
+      $actionCell = '';
+      if($st==='requested'||$st==='rejected'){
+        $actionCell = '<form method="post" action="/buyer?tab=kyc" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="hidden" name="_action" value="upload_doc">
+          <input type="hidden" name="req_id" value="'.htmlspecialchars($r['id']).'">
+          <input type="file" name="doc_file" accept=".pdf,.jpg,.jpeg,.png,.webp" required style="font-size:12px;max-width:200px">
+          <button class="btn btn-p btn-sm" type="submit">'.t('Upload').'</button>
+        </form>';
+      } elseif($st==='uploaded'){
+        $actionCell = '<span class="hint">'.substr($r['uploaded_at']??'',0,10).'</span>';
+      } elseif($st==='approved'){
+        $actionCell = '<span class="hint">'.substr($r['reviewed_at']??'',0,10).'</span>';
+      }
+      echo '<tr><td><b>'.htmlspecialchars($type).'</b><div class="hint">'.t('Requested').': '.htmlspecialchars(substr($r['requested_at']??'',0,10)).'</div></td>'.
+        '<td class="hint">'.($note?$note:'—').'</td>'.
+        '<td>'.$stHtml.'</td>'.
+        '<td>'.$actionCell.'</td></tr>';
+    }
+    echo '</tbody></table>';
+  }
+  echo '</div>';
 }
 dash_close();
 require __DIR__.'/inc/foot.php';
