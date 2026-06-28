@@ -226,7 +226,7 @@ if($tab==='overview'){
   $lid = $_GET['lid'] ?? '';
   $ep = vestra_listing_by_id($lid);
   if (!$ep) { echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Listing not found.').'</div>'; }
-  else:
+  else {
   $t1=$ep['tiers'][0]??null; $t2=$ep['tiers'][1]??null; $t3=$ep['tiers'][2]??null;
   ?>
   <?php if(isset($_GET['updated'])): ?><div class="banner ok">✓ <?= t('Listing updated.') ?></div><?php endif; ?>
@@ -291,7 +291,7 @@ if($tab==='overview'){
       </div>
     </form>
   </div>
-  <?php endif;
+  <?php }
   ?><script>
   function modeUI(){var m=document.querySelector('input[name=mode]:checked').value;
     document.getElementById('listrow').style.display=m==='sale'?'grid':'none';
