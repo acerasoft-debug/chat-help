@@ -188,6 +188,7 @@ function vestra_live_listings(){ return array_values(array_filter(vestra_listing
 function vestra_products(){ return array_merge(vestra_demo_products(), vestra_live_listings()); }
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
+function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
 /* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
 function vestra_all_cats(){
   return [

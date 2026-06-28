@@ -209,11 +209,21 @@ if($tab==='overview'){
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2" placeholder="<?= htmlspecialchars(t('Sizes, colours, condition…')) ?>"></textarea></div>
       </div>
-      <div class="frow">
-        <div><label><?= t('Product photo') ?> <span class="hint">(JPG / PNG / WebP · ≤5 MB)</span></label>
-          <input type="file" name="photo" accept="image/png,image/jpeg,image/webp"></div>
-        <div><label><?= t('Line sheet / price list') ?> <span class="hint"><?= t('(Excel or CSV · ≤8 MB · optional)') ?></span></label>
-          <input type="file" name="sheet" accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"></div>
+      <div>
+        <label><?= t('Product photos') ?> <span class="hint">(<?= t('up to 6 · JPG/PNG/WebP · ≤5 MB each — first photo is the main image') ?>)</span></label>
+        <div class="phgrid">
+          <?php for($pi=1;$pi<=6;$pi++): ?>
+          <label class="ph-slot" id="phs<?=$pi?>">
+            <input type="file" name="photos[]" accept="image/png,image/jpeg,image/webp" onchange="phPrev(this,<?=$pi?>)">
+            <img class="ph-preview" id="pp<?=$pi?>" style="display:none" alt="">
+            <span class="ph-label" id="phl<?=$pi?>">📷 <?=$pi?></span>
+          </label>
+          <?php endfor; ?>
+        </div>
+      </div>
+      <div>
+        <label><?= t('Line sheet / price list') ?> <span class="hint"><?= t('(Excel or CSV · ≤8 MB · optional)') ?></span></label>
+        <input type="file" name="sheet" accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv">
       </div>
       <div class="frow">
         <div><label><?= t('Origin / authenticity note') ?> *</label><input name="origin" required placeholder="<?= htmlspecialchars(t('e.g. EEA stock · invoice on request')) ?>"></div>
@@ -228,6 +238,8 @@ if($tab==='overview'){
     document.getElementById('listrow').style.display=m==='sale'?'grid':'none';
     document.getElementById('offerhint').style.display=m==='offer'?'block':'none'; }
   function groupUI(){ document.getElementById('grouprow').style.display=document.querySelector('input[name=group_enable]').checked?'grid':'none'; }
+  function phPrev(inp,n){ var f=inp.files[0]; if(!f) return;
+    var r=new FileReader(); r.onload=function(e){ var img=document.getElementById('pp'+n); img.src=e.target.result; img.style.display='block'; document.getElementById('phl'+n).style.display='none'; }; r.readAsDataURL(f); }
   modeUI(); groupUI();
   </script>
   <?php

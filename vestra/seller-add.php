@@ -27,7 +27,7 @@ $palette=['#1b5e3a','#0f2f5c','#3a0f12','#283b49','#392b4a','#44454e','#3a3320',
 $accent=$palette[ hexdec(substr(md5($id),0,2)) % count($palette) ];
 
 $item=[
-  'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,'status'=>'pending',
+  'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,'status'=>'pending','added_at'=>date('c'),
   'cat'=>$one($_POST['cat']??'Other'),'sku'=>$sku,'moq'=>$moq,'unit'=>$one($_POST['unit']??'pc'),
   'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,
   'verified'=>true,'accent'=>$accent,'tiers'=>$tiers,
@@ -51,14 +51,13 @@ if(!is_file($updir.'/.htaccess')){
   @file_put_contents($updir.'/.htaccess',
     "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
 }
-$savePhoto = function($field) use ($updir){
-  if(($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return '';
-  $f=$_FILES[$field]; if($f['size']<=0 || $f['size']>5*1024*1024) return '';
-  $info=@getimagesize($f['tmp_name']); if(!$info) return '';               // real image only
-  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]] ?? '';
+$savePhotoFile = function(array $f) use ($updir){
+  if($f['error']!==UPLOAD_ERR_OK||$f['size']<=0||$f['size']>5*1024*1024) return '';
+  $info=@getimagesize($f['tmp_name']); if(!$info) return '';
+  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]]??'';
   if($ext==='') return '';
-  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;                          // random, safe name
-  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name) ? '/uploads/'.$name : '';
+  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name)?'/uploads/'.$name:'';
 };
 $saveSheet = function($field) use ($updir){
   if(($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return '';
@@ -68,7 +67,15 @@ $saveSheet = function($field) use ($updir){
   $name='sheet_'.bin2hex(random_bytes(8)).'.'.$ext;
   return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name) ? '/uploads/'.$name : '';
 };
-if($img=$savePhoto('photo'))  $item['image']=$img;
+$images=[];
+if(isset($_FILES['photos']['name'])&&is_array($_FILES['photos']['name'])){
+  for($i=0;$i<min(count($_FILES['photos']['name']),6);$i++){
+    $f=['name'=>$_FILES['photos']['name'][$i],'type'=>$_FILES['photos']['type'][$i],
+        'tmp_name'=>$_FILES['photos']['tmp_name'][$i],'error'=>$_FILES['photos']['error'][$i],'size'=>$_FILES['photos']['size'][$i]];
+    if($url=$savePhotoFile($f)) $images[]=$url;
+  }
+}
+if($images){ $item['images']=$images; $item['image']=$images[0]; }
 if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
 
 $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
