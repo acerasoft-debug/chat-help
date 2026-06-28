@@ -98,3 +98,78 @@ function auth_update(string $id, array $fields): void {
     }
     auth_save_accounts($list);
 }
+
+// ── Document management ────────────────────────────────────────────────────
+define('VESTRA_DOCS_DIR', __DIR__.'/../data/docs');
+
+function auth_docs_dir(string $uid): string {
+    $base = VESTRA_DOCS_DIR;
+    if(!is_dir($base)) @mkdir($base, 0755, true);
+    $htaccess = $base.'/.htaccess';
+    if(!is_file($htaccess)) @file_put_contents($htaccess, "Deny from all\n");
+    $dir = $base.'/'.$uid;
+    if(!is_dir($dir)) @mkdir($dir, 0755, true);
+    return $dir;
+}
+
+function auth_doc_types(): array {
+    return [
+        'company_reg'  => 'Company Registration',
+        'vat_cert'     => 'VAT / Tax Certificate',
+        'id_document'  => 'Government ID (Passport / National ID)',
+        'auth_letter'  => 'Authorization Letter (if not director)',
+        'other'        => 'Other document',
+    ];
+}
+
+function auth_request_doc(string $uid, string $type, string $note=''): void {
+    $list = auth_accounts();
+    foreach($list as &$a) {
+        if($a['id']!==$uid) continue;
+        if(!isset($a['doc_requests'])) $a['doc_requests']=[];
+        foreach($a['doc_requests'] as &$r) {
+            if($r['type']===$type && in_array($r['status'],['requested','uploaded'],true)){
+                $r['note']=$note; $r['requested_at']=date('c');
+                auth_save_accounts($list); return;
+            }
+        }
+        $a['doc_requests'][]=['id'=>bin2hex(random_bytes(4)),'type'=>$type,'note'=>$note,'status'=>'requested','requested_at'=>date('c')];
+        break;
+    }
+    auth_save_accounts($list);
+}
+
+function auth_upload_doc(string $uid, string $req_id, array $file): bool {
+    if($file['error']!==UPLOAD_ERR_OK||$file['size']>10*1024*1024) return false;
+    $ext=strtolower(pathinfo($file['name'],PATHINFO_EXTENSION));
+    if(!in_array($ext,['pdf','jpg','jpeg','png','webp'],true)) return false;
+    $dir=auth_docs_dir($uid);
+    $fname=$req_id.'_'.bin2hex(random_bytes(4)).'.'.$ext;
+    if(!@move_uploaded_file($file['tmp_name'],$dir.'/'.$fname)) return false;
+    $list=auth_accounts();
+    foreach($list as &$a){
+        if($a['id']!==$uid) continue;
+        foreach($a['doc_requests'] as &$r){
+            if($r['id']===$req_id){ $r['status']='uploaded'; $r['file']=$fname; $r['uploaded_at']=date('c'); break; }
+        }
+        break;
+    }
+    auth_save_accounts($list);
+    return true;
+}
+
+function auth_review_doc(string $uid, string $req_id, string $status, string $note=''): void {
+    $list=auth_accounts();
+    foreach($list as &$a){
+        if($a['id']!==$uid) continue;
+        foreach($a['doc_requests'] as &$r){
+            if($r['id']===$req_id){ $r['status']=$status; if($note) $r['admin_note']=$note; $r['reviewed_at']=date('c'); break; }
+        }
+        break;
+    }
+    auth_save_accounts($list);
+}
+
+function auth_doc_file_path(string $uid, string $filename): string {
+    return VESTRA_DOCS_DIR.'/'.$uid.'/'.$filename;
+}

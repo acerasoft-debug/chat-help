@@ -302,6 +302,7 @@ if($tab==='overview'){
 } elseif($tab==='listings'){
   if(isset($_GET['deleted'])) echo '<div class="banner ok">✓ '.t('Listing deleted.').'</div>';
   if(isset($_GET['updated'])) echo '<div class="banner ok">✓ '.t('Listing updated.').'</div>';
+  if(isset($_GET['pending'])) echo '<div class="banner" style="background:rgba(240,192,96,.12);border:1px solid rgba(240,192,96,.35);color:#f0c060;margin-bottom:12px">⏳ '.t('Your listing has been submitted and is awaiting admin approval. It will appear in the catalog once approved.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('My listings').'</h3><a class="btn btn-p btn-sm" href="/seller?tab=add">＋ '.t('Add product').'</a></div>';
   echo '<table class="ctable"><thead><tr><th>'.t('Product').'</th><th>'.t('Mode').'</th><th>MOQ</th><th class="r">'.t('From').'</th><th>'.t('Status').'</th><th></th></tr></thead><tbody>';
   $demoIds = array_column(vestra_demo_products(), 'id');
@@ -311,7 +312,7 @@ if($tab==='overview'){
     echo '<tr><td><b>'.htmlspecialchars($p['brand']).'</b> — '.htmlspecialchars($p['name']).'<div class="hint">SKU '.htmlspecialchars($p['sku']).($isDemo?' · demo':'').'</div></td>'.
       '<td><span class="modechip '.$p['mode'].'">'.$p['mode'].'</span></td><td>'.$p['moq'].' '.htmlspecialchars($p['unit']).'</td>'.
       '<td class="r">'.($p['mode']==='offer'?'—':eur(vestra_from_price($p))).'</td>'.
-      '<td><span class="status offers">'.t('Live').'</span></td>'.
+      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
       '<td class="r" style="white-space:nowrap">';
     if (!$isDemo) {
       echo '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> ';

@@ -27,7 +27,7 @@ $palette=['#1b5e3a','#0f2f5c','#3a0f12','#283b49','#392b4a','#44454e','#3a3320',
 $accent=$palette[ hexdec(substr(md5($id),0,2)) % count($palette) ];
 
 $item=[
-  'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,
+  'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,'status'=>'pending',
   'cat'=>$one($_POST['cat']??'Other'),'sku'=>$sku,'moq'=>$moq,'unit'=>$one($_POST['unit']??'pc'),
   'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,
   'verified'=>true,'accent'=>$accent,'tiers'=>$tiers,
@@ -76,4 +76,4 @@ $file=$dir.'/listings.json';
 $list=vestra_listings(); $list[]=$item;
 @file_put_contents($file, json_encode($list, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 
-header('Location: /seller?tab=add&added=1'); exit;
+header('Location: /seller?tab=listings&pending=1'); exit;
