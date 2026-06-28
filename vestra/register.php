@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
