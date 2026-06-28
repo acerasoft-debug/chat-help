@@ -201,7 +201,7 @@
         'items' => [
             [
                 'q' => '¿Qué ocurre si la mercancía no se corresponde con la descripción del listado?',
-                'a' => 'Si la mercancía difiere sustancialmente del listado (modelo, cantidad o color incorrecto, o defectos no comunicados), abra una disputa en el panel de su cuenta dentro de los 5 días hábiles siguientes a la entrega confirmada. Adjunte fotografías y una descripción escrita. Los fondos en escrow permanecerán bloqueados durante la revisión.',
+                'a' => 'Si la mercancía difiere sustancialmente del listado (modelo, cantidad o color incorrecto, o defectos no comunicados), abra una disputa en el panel de su cuenta en las <b>48 horas</b> siguientes a la entrega confirmada. Adjunte fotografías y una descripción escrita. Los fondos en escrow permanecerán bloqueados durante la revisión.',
             ],
             [
                 'q' => '¿Cómo abro una disputa?',
@@ -217,7 +217,7 @@
             ],
             [
                 'q' => '¿Cuánto tiempo tengo para presentar una disputa?',
-                'a' => 'Debe presentar una disputa dentro de los 5 días hábiles siguientes a la fecha de entrega confirmada (o, en caso de no entrega, antes del plazo de entrega acordado). Transcurrido este período, el escrow se libera automáticamente al vendedor y las disputas se vuelven considerablemente más difíciles de resolver.',
+                'a' => 'Debe presentar una disputa en las <b>48 horas</b> siguientes a la fecha de entrega confirmada (o, en caso de no entrega, antes del plazo de entrega acordado). Transcurrido este período, el escrow se libera automáticamente al vendedor y las disputas se vuelven considerablemente más difíciles de resolver.',
             ],
             [
                 'q' => '¿Qué sucede si la disputa se resuelve a mi favor?',

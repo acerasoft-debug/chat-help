@@ -201,7 +201,7 @@
         'items' => [
             [
                 'q' => 'Was passiert, wenn die Waren nicht der Angebotsbeschreibung entsprechen?',
-                'a' => 'Weichen die Waren wesentlich vom Angebot ab (falsches Modell, falsche Menge, falsche Farbe oder nicht offengelegte Mängel), eröffnen Sie innerhalb von 5 Werktagen nach bestätigter Lieferung einen Streitfall in Ihrem Konto-Dashboard. Fügen Sie Fotografien und eine schriftliche Beschreibung bei. Die Escrow-Gelder bleiben während der Prüfung eingefroren.',
+                'a' => 'Weichen die Waren wesentlich vom Angebot ab (falsches Modell, falsche Menge, falsche Farbe oder nicht offengelegte Mängel), eröffnen Sie innerhalb von <b>48 Stunden</b> nach bestätigter Lieferung einen Streitfall in Ihrem Konto-Dashboard. Fügen Sie Fotografien und eine schriftliche Beschreibung bei. Die Escrow-Gelder bleiben während der Prüfung eingefroren.',
             ],
             [
                 'q' => 'Wie eröffne ich einen Streitfall?',
@@ -217,7 +217,7 @@
             ],
             [
                 'q' => 'Wie lange habe ich Zeit, einen Streitfall zu eröffnen?',
-                'a' => 'Sie müssen einen Streitfall innerhalb von 5 Werktagen nach dem bestätigten Lieferdatum einreichen (bzw. bei Nichtlieferung bis zum vereinbarten Lieferfristende). Nach Ablauf dieser Frist werden die Escrow-Gelder automatisch an den Verkäufer freigegeben und Streitfälle sind deutlich schwerer zu klären.',
+                'a' => 'Sie müssen einen Streitfall innerhalb von <b>48 Stunden</b> nach dem bestätigten Lieferdatum einreichen (bzw. bei Nichtlieferung bis zum vereinbarten Lieferfristende). Nach Ablauf dieser Frist werden die Escrow-Gelder automatisch an den Verkäufer freigegeben und Streitfälle sind deutlich schwerer zu klären.',
             ],
             [
                 'q' => 'Was passiert, wenn ein Streitfall zu meinen Gunsten entschieden wird?',

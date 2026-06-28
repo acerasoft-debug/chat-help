@@ -201,7 +201,7 @@
         'items' => [
             [
                 'q' => 'Cosa succede se la merce non corrisponde alla descrizione dell\'annuncio?',
-                'a' => 'Se la merce differisce materialmente dall\'annuncio (modello, quantità, colore errati o difetti non dichiarati), apra una contestazione nel pannello di controllo dell\'account entro 5 giorni lavorativi dalla consegna confermata. Alleghi fotografie e una descrizione scritta. I fondi in escrow rimarranno bloccati per tutta la durata dell\'istruttoria.',
+                'a' => 'Se la merce differisce materialmente dall\'annuncio (modello, quantità, colore errati o difetti non dichiarati), apra una contestazione nel pannello di controllo dell\'account entro <b>48 ore</b> dalla consegna confermata. Alleghi fotografie e una descrizione scritta. I fondi in escrow rimarranno bloccati per tutta la durata dell\'istruttoria.',
             ],
             [
                 'q' => 'Come si apre una contestazione?',
@@ -217,7 +217,7 @@
             ],
             [
                 'q' => 'Entro quando devo aprire una contestazione?',
-                'a' => 'La contestazione deve essere aperta entro 5 giorni lavorativi dalla data di consegna confermata (o, in caso di mancata consegna, entro la scadenza concordata per la consegna). Trascorso questo termine, l\'escrow viene rilasciato automaticamente al venditore e le contestazioni diventano significativamente più difficili da risolvere.',
+                'a' => 'La contestazione deve essere aperta entro <b>48 ore</b> dalla data di consegna confermata (o, in caso di mancata consegna, entro la scadenza concordata per la consegna). Trascorso questo termine, l\'escrow viene rilasciato automaticamente al venditore e le contestazioni diventano significativamente più difficili da risolvere.',
             ],
             [
                 'q' => 'Cosa succede se la contestazione viene risolta a mio favore?',

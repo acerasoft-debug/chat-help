@@ -201,7 +201,7 @@
         'items' => [
             [
                 'q' => 'Que faire si les marchandises ne correspondent pas à l\'annonce ?',
-                'a' => 'Si les marchandises sont substantiellement différentes de ce qui était annoncé (modèle, quantité, couleur incorrects, ou défauts non signalés), ouvrez un litige dans votre tableau de bord dans les 5 jours ouvrés suivant la livraison confirmée. Joignez des photographies et une description écrite. Les fonds séquestrés resteront bloqués pendant l\'instruction du dossier.',
+                'a' => 'Si les marchandises sont substantiellement différentes de ce qui était annoncé (modèle, quantité, couleur incorrects, ou défauts non signalés), ouvrez un litige dans votre tableau de bord dans les <b>48 heures</b> suivant la livraison confirmée. Joignez des photographies et une description écrite. Les fonds séquestrés resteront bloqués pendant l\'instruction du dossier.',
             ],
             [
                 'q' => 'Comment ouvrir un litige ?',
@@ -217,7 +217,7 @@
             ],
             [
                 'q' => 'Quel est le délai pour ouvrir un litige ?',
-                'a' => 'Vous devez ouvrir un litige dans les 5 jours ouvrés suivant la date de livraison confirmée (ou, en cas de non-livraison, à la date limite de livraison convenue). Passé ce délai, le séquestre est automatiquement libéré au profit du vendeur et les litiges deviennent nettement plus difficiles à résoudre.',
+                'a' => 'Vous devez ouvrir un litige dans les <b>48 heures</b> suivant la date de livraison confirmée (ou, en cas de non-livraison, à la date limite de livraison convenue). Passé ce délai, le séquestre est automatiquement libéré au profit du vendeur et les litiges deviennent nettement plus difficiles à résoudre.',
             ],
             [
                 'q' => 'Que se passe-t-il si le litige est résolu en ma faveur ?',
