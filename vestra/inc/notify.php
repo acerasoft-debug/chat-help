@@ -28,16 +28,32 @@ function vestra_notify($subject,$body,$replyTo=''){
   return $ok;
 }
 
-/* localized "we received your request" acknowledgement → [subject, body] */
+/* localized welcome email after registration → [subject, body] */
 function vestra_ack_text($lang,$name,$type){
-  $role = $type==='buyer' ? 'buyer' : 'seller';
+  $role_en = $type==='seller' ? 'seller' : 'buyer';
+  $url_en  = $type==='seller' ? 'https://vestrasales.com/seller?tab=kyc' : 'https://vestrasales.com/buyer?tab=kyc';
   $T=[
-   'en'=>['Your VESTRA request was received',"Hello %s,\n\nThank you — we have received your VESTRA %s request. Our team will review it and contact you as we open the founding cohort.\n\n— VESTRA · acerasoft LLC"],
-   'de'=>['Ihre VESTRA-Anfrage ist eingegangen',"Hallo %s,\n\nvielen Dank — Ihre VESTRA-Anfrage als %s ist bei uns eingegangen. Unser Team prüft sie und meldet sich, sobald wir die Gründungsgruppe öffnen.\n\n— VESTRA · acerasoft LLC"],
-   'fr'=>['Votre demande VESTRA a bien été reçue',"Bonjour %s,\n\nMerci — nous avons bien reçu votre demande VESTRA en tant que %s. Notre équipe l\\'examinera et vous recontactera à l\\'ouverture du groupe fondateur.\n\n— VESTRA · acerasoft LLC"],
-   'it'=>['La tua richiesta VESTRA è stata ricevuta',"Ciao %s,\n\ngrazie — abbiamo ricevuto la tua richiesta VESTRA come %s. Il nostro team la esaminerà e ti contatterà all\\'apertura del gruppo fondatore.\n\n— VESTRA · acerasoft LLC"],
-   'es'=>['Hemos recibido tu solicitud de VESTRA',"Hola %s,\n\ngracias — hemos recibido tu solicitud de VESTRA como %s. Nuestro equipo la revisará y te contactará cuando abramos el grupo fundador.\n\n— VESTRA · acerasoft LLC"],
+   'en'=>[
+     'Welcome to VESTRA — account created',
+     "Hello %s,\n\nYour VESTRA account has been created as a verified %s.\n\nNext step: please upload your verification documents at:\n%s\n\nOur team will review them and activate your account. Thank you for joining!\n\n— VESTRA · vestrasales.com",
+   ],
+   'de'=>[
+     'Willkommen bei VESTRA — Konto erstellt',
+     "Hallo %s,\n\nIhr VESTRA-Konto als %s wurde erfolgreich erstellt.\n\nNächster Schritt: Bitte laden Sie Ihre Verifizierungsdokumente hoch:\n%s\n\nUnser Team prüft diese und aktiviert Ihr Konto. Vielen Dank!\n\n— VESTRA · vestrasales.com",
+   ],
+   'fr'=>[
+     'Bienvenue sur VESTRA — compte créé',
+     "Bonjour %s,\n\nVotre compte VESTRA en tant que %s a été créé avec succès.\n\nProchaine étape : veuillez télécharger vos documents de vérification :\n%s\n\nNotre équipe les examinera et activera votre compte. Merci de nous rejoindre !\n\n— VESTRA · vestrasales.com",
+   ],
+   'it'=>[
+     'Benvenuto su VESTRA — account creato',
+     "Ciao %s,\n\nIl tuo account VESTRA come %s è stato creato con successo.\n\nProssimo passo: carica i tuoi documenti di verifica:\n%s\n\nIl nostro team li esaminerà e attiverà il tuo account. Grazie!\n\n— VESTRA · vestrasales.com",
+   ],
+   'es'=>[
+     'Bienvenido a VESTRA — cuenta creada',
+     "Hola %s,\n\nTu cuenta VESTRA como %s ha sido creada con éxito.\n\nSiguiente paso: sube tus documentos de verificación:\n%s\n\nNuestro equipo los revisará y activará tu cuenta. ¡Gracias!\n\n— VESTRA · vestrasales.com",
+   ],
   ];
-  $t=$T[$lang] ?? $T['en'];
-  return [$t[0], sprintf($t[1],$name,$role)];
+  $t = $T[$lang] ?? $T['en'];
+  return [$t[0], sprintf($t[1], $name, $role_en, $url_en)];
 }

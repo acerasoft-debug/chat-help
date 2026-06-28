@@ -12,6 +12,11 @@ function auth_accounts(): array {
 }
 
 function auth_save_accounts(array $list): void {
+    $dir = dirname(VESTRA_ACCOUNTS);
+    if(!is_dir($dir)){
+        @mkdir($dir, 0755, true);
+        @file_put_contents($dir.'/.htaccess', "<IfModule mod_authz_core.c>\n  Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n  Order deny,allow\n  Deny from all\n</IfModule>\n");
+    }
     file_put_contents(VESTRA_ACCOUNTS, json_encode($list, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
 }
 
@@ -53,11 +58,12 @@ function auth_register(array $d): array|string {
     }
 
     $list = auth_accounts();
+    $type = in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer';
     $acc  = [
         'id'            => bin2hex(random_bytes(8)),
         'email'         => strtolower(trim($d['email'])),
         'hash'          => password_hash($d['password'], PASSWORD_DEFAULT),
-        'type'          => in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer',
+        'type'          => $type,
         'status'        => 'active',
         'name'          => trim($d['name']        ?? ''),
         'company'       => trim($d['company']     ?? ''),
@@ -72,10 +78,51 @@ function auth_register(array $d): array|string {
         'promo_benefit' => $promo_data['benefit'] ?? '',
         'promo_expiry'  => $promo_data['expiry']  ?? '',
         'created'       => date('c'),
+        'doc_requests'  => [],
     ];
+    // Auto document requests on registration
+    $ts = date('c');
+    if($type === 'seller'){
+        $acc['doc_requests'] = [
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate (Handelsregister / KvK / equivalent).','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate (Umsatzsteuer-ID confirmation or equivalent).','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'auth_letter', 'note'=>'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.','status'=>'requested','requested_at'=>$ts],
+        ];
+    } elseif($type === 'buyer'){
+        $acc['doc_requests'] = [
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate to complete buyer verification.','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
+        ];
+    }
     $list[] = $acc;
     auth_save_accounts($list);
     if ($promo_data) { promo_use($promo_code); }
+
+    // Notify admin of new registration
+    require_once __DIR__.'/notify.php';
+    $roleLabel = $type === 'seller' ? 'Seller' : 'Buyer';
+    vestra_notify(
+        "🆕 New {$roleLabel} registered: ".($acc['name']?:'—').' — '.($acc['company']?:'—'),
+        "New {$roleLabel} account on VESTRA:\n\n".
+        "Name:    ".($acc['name']    ?: '—')."\n".
+        "Email:   ".$acc['email']."\n".
+        "Company: ".($acc['company'] ?: '—')."\n".
+        "Country: ".($acc['country'] ?: '—')."\n".
+        "VAT ID:  ".($acc['vat_id']  ?: '—')."\n".
+        "Phone:   ".($acc['phone']   ?: '—')."\n".
+        "Promo:   ".($promo_code     ?: 'none')."\n".
+        "KYB:     ".($acc['kyb_status'])."\n".
+        "Created: ".$acc['created']."\n\n".
+        "Admin: https://vestrasales.com/admin?tab=users",
+        $acc['email']
+    );
+    // Auto-acknowledge the new user
+    if(vestra_cfg('confirm_user', true)){
+        $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
+        [$subj, $body] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type);
+        vestra_send_mail($acc['email'], $subj, $body);
+    }
     return $acc;
 }
 
