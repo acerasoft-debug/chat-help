@@ -60,12 +60,14 @@ function auth_register(array $d): array|string {
     $list = auth_accounts();
     $type = in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer';
     $acc  = [
-        'id'            => bin2hex(random_bytes(8)),
-        'email'         => strtolower(trim($d['email'])),
-        'hash'          => password_hash($d['password'], PASSWORD_DEFAULT),
-        'type'          => $type,
-        'status'        => 'active',
-        'name'          => trim($d['name']        ?? ''),
+        'id'             => bin2hex(random_bytes(8)),
+        'email'          => strtolower(trim($d['email'])),
+        'hash'           => password_hash($d['password'], PASSWORD_DEFAULT),
+        'type'           => $type,
+        'status'         => 'pending_email',
+        'email_verified' => false,
+        'email_token'    => bin2hex(random_bytes(16)),
+        'name'           => trim($d['name']        ?? ''),
         'company'       => trim($d['company']     ?? ''),
         'vat_id'        => trim($d['vat_id']      ?? ''),
         'reg_number'    => trim($d['reg_number']  ?? ''),
@@ -117,19 +119,18 @@ function auth_register(array $d): array|string {
         "Admin: https://vestrasales.com/admin?tab=users",
         $acc['email']
     );
-    // Auto-acknowledge the new user
-    if(vestra_cfg('confirm_user', true)){
-        $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
-        [$subj, $body] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type);
-        vestra_send_mail($acc['email'], $subj, $body);
-    }
+    // Send email verification link
+    $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
+    [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
+    vestra_send_mail($acc['email'], $subj, $body);
     return $acc;
 }
 
-function auth_login(string $email, string $password): array|false {
+function auth_login(string $email, string $password): array|string {
     $acc = auth_find($email);
-    if (!$acc) return false;
-    if (!password_verify($password, $acc['hash'] ?? '')) return false;
+    if (!$acc || !password_verify($password, $acc['hash'] ?? '')) return 'invalid';
+    if (($acc['status'] ?? '') === 'pending_email') return 'unverified';
+    if (($acc['status'] ?? '') === 'suspended')     return 'suspended';
     return $acc;
 }
 

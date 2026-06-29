@@ -28,6 +28,35 @@ function vestra_notify($subject,$body,$replyTo=''){
   return $ok;
 }
 
+/* localized email-verification email → [subject, body] */
+function vestra_verify_text($lang, $name, $token) {
+  $url = 'https://vestrasales.com/verify?token='.$token;
+  $T = [
+   'en' => [
+     'VESTRA — please verify your email address',
+     "Hello %s,\n\nThank you for registering on VESTRA. Please verify your email address by clicking the link below:\n\n%s\n\nThis link is valid for 72 hours. If you did not register, you can safely ignore this email.\n\n— VESTRA · vestrasales.com",
+   ],
+   'de' => [
+     'VESTRA — bitte bestätigen Sie Ihre E-Mail-Adresse',
+     "Hallo %s,\n\nVielen Dank für Ihre Registrierung bei VESTRA. Bitte bestätigen Sie Ihre E-Mail-Adresse über den folgenden Link:\n\n%s\n\nDieser Link ist 72 Stunden gültig. Falls Sie sich nicht registriert haben, können Sie diese E-Mail ignorieren.\n\n— VESTRA · vestrasales.com",
+   ],
+   'fr' => [
+     'VESTRA — veuillez vérifier votre adresse e-mail',
+     "Bonjour %s,\n\nMerci de vous être inscrit sur VESTRA. Veuillez vérifier votre adresse e-mail en cliquant sur le lien ci-dessous :\n\n%s\n\nCe lien est valide 72 heures. Si vous n'êtes pas à l'origine de cette inscription, ignorez simplement cet e-mail.\n\n— VESTRA · vestrasales.com",
+   ],
+   'it' => [
+     'VESTRA — verifica il tuo indirizzo e-mail',
+     "Ciao %s,\n\nGrazie per esserti registrato su VESTRA. Verifica il tuo indirizzo e-mail cliccando sul link qui sotto:\n\n%s\n\nQuesto link è valido per 72 ore. Se non ti sei registrato, puoi ignorare questa e-mail.\n\n— VESTRA · vestrasales.com",
+   ],
+   'es' => [
+     'VESTRA — por favor verifica tu dirección de correo',
+     "Hola %s,\n\nGracias por registrarte en VESTRA. Por favor verifica tu dirección de correo electrónico haciendo clic en el enlace de abajo:\n\n%s\n\nEste enlace caduca en 72 horas. Si no te registraste, puedes ignorar este correo.\n\n— VESTRA · vestrasales.com",
+   ],
+  ];
+  $t = $T[$lang] ?? $T['en'];
+  return [$t[0], sprintf($t[1], $name, $url)];
+}
+
 /* localized welcome email after registration → [subject, body] */
 function vestra_ack_text($lang,$name,$type){
   $role_en = $type==='seller' ? 'seller' : 'buyer';

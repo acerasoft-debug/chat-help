@@ -14,13 +14,17 @@ $err = ''; $email_val = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_val = strtolower(trim($_POST['email'] ?? ''));
     $acc = auth_login($email_val, $_POST['password'] ?? '');
-    if ($acc) {
+    if (is_array($acc)) {
         auth_set($acc);
         $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
         if (!str_starts_with($back, '/')) $back = '/buyer';
         header('Location: '.$back); exit;
     }
-    $err = t('Email or password is incorrect.');
+    $err = match($acc) {
+        'unverified' => t('Please verify your email address. Check your inbox for the confirmation link.'),
+        'suspended'  => t('Your account has been suspended. Please contact support.'),
+        default      => t('Email or password is incorrect.'),
+    };
 }
 
 $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
@@ -37,7 +41,11 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
     <h2 class="authcard-title"><?= t('Welcome back') ?></h2>
     <p class="authcard-sub"><?= t('Sign in to your wholesale account') ?></p>
 
-    <?php if ($err): ?>
+    <?php if (isset($_GET['verified'])): ?>
+      <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('Email verified! You can now sign in.') ?></div>
+    <?php elseif (isset($_GET['verify_error'])): ?>
+      <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px"><?= t('Verification link is invalid or has already been used.') ?></div>
+    <?php elseif ($err): ?>
       <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px"><?= htmlspecialchars($err) ?></div>
     <?php endif; ?>
 

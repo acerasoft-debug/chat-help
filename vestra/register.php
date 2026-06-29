@@ -5,13 +5,12 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!empty($_SESSION['uid'])) { header('Location: /'); exit; }
 
-$err = ''; $d = [];
+$err = ''; $d = []; $check_email = isset($_GET['check_email']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $d = $_POST;
     $result = auth_register($d);
     if (is_array($result)) {
-        auth_set($result);
-        header('Location: '.($result['type']==='seller' ? '/seller' : '/buyer')); exit;
+        header('Location: /register?check_email=1'); exit;
     }
     $err = $result;
 }
@@ -36,6 +35,14 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
 ?>
 <div class="authwrap" style="padding:30px 20px">
   <div class="authcard" style="max-width:540px">
+<?php if ($check_email): ?>
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:52px;margin-bottom:16px">📧</div>
+      <h2 style="margin:0 0 10px"><?= t('Check your inbox') ?></h2>
+      <p style="color:var(--mut);margin:0 0 24px;font-size:15px"><?= t('We sent a verification link to your email address. Click it to activate your account.') ?></p>
+      <p style="color:var(--mut);font-size:13px"><?= t("Didn't receive it? Check your spam folder or") ?> <a class="acc" href="/login"><?= t('sign in') ?></a> <?= t('to resend.') ?></p>
+    </div>
+<?php else: ?>
     <div class="authcard-logo">
       <svg viewBox="0 0 32 32" fill="none" width="34" height="34">
         <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/>
@@ -150,6 +157,7 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
     </form>
 
     <p class="authcard-foot"><?= t('Already have an account?') ?> <a class="acc" href="/login"><?= t('Sign in') ?></a></p>
+<?php endif; ?>
   </div>
 </div>
 <script>
