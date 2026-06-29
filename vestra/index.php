@@ -267,6 +267,7 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   .jcard{background:linear-gradient(160deg,var(--bg2),#101015);border:1px solid var(--line);
     border-radius:22px;padding:36px;transition:.3s;display:flex;flex-direction:column;gap:20px;position:relative;overflow:hidden}
   .jcard:before{content:"";position:absolute;inset:0;border-radius:22px;opacity:0;transition:.3s;
+    pointer-events:none;
     background:radial-gradient(60% 50% at 50% 0,rgba(201,168,106,.07),transparent 70%)}
   .jcard:hover:before{opacity:1}
   .jcard:hover{border-color:rgba(201,168,106,.4);transform:translateY(-4px);box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}
