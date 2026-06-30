@@ -148,6 +148,8 @@
   'VAT / Tax ID' => 'USt-IdNr. / Steuernummer',
   'Verification' => 'Verifizierung',
   'Verified' => 'Verifiziert',
+  'Verified seller' => 'Verifizierter Verkäufer',
+  'Verified business' => 'Verifiziertes Unternehmen',
   'Verified branded & textile fashion — minimum order & bulk pricing per product.' => 'Verifizierte Marken- & Textilmode — Mindestbestellmenge & Mengenpreise je Produkt.',
   'Verified buyer' => 'Verifizierter Käufer',
   'Verified buyers only' => 'Nur verifizierte Käufer',

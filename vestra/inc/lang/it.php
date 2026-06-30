@@ -148,6 +148,8 @@
   'VAT / Tax ID' => 'P. IVA / Cod. fiscale',
   'Verification' => 'Verifica',
   'Verified' => 'Verificato',
+  'Verified seller' => 'Venditore verificato',
+  'Verified business' => 'Azienda verificata',
   'Verified branded & textile fashion — minimum order & bulk pricing per product.' => 'Moda di marca e tessile verificata — ordine minimo e prezzi all\'ingrosso per prodotto.',
   'Verified buyer' => 'Acquirente verificato',
   'Verified buyers only' => 'Solo acquirenti verificati',

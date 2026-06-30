@@ -148,6 +148,8 @@
   'VAT / Tax ID' => 'NIF / CIF',
   'Verification' => 'Verificación',
   'Verified' => 'Verificado',
+  'Verified seller' => 'Vendedor verificado',
+  'Verified business' => 'Empresa verificada',
   'Verified branded & textile fashion — minimum order & bulk pricing per product.' => 'Moda textil y de marca verificada: pedido mínimo y precios por volumen en cada producto.',
   'Verified buyer' => 'Comprador verificado',
   'Verified buyers only' => 'Solo compradores verificados',

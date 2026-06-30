@@ -32,7 +32,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
-        <?php if(!empty($p['verified'])): ?><span class="gal-vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified') ?></span><?php endif; ?>
+        <?php if(!empty($p['verified'])): ?><span class="gal-vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
       </div>
       <?php if(count($images)>1): ?>
       <div class="gal-thumbs" id="gal-thumbs">
@@ -58,7 +58,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
         <div class="spec-row"><span><?= t('Category') ?></span><b><?= htmlspecialchars($p['cat']) ?></b></div>
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars($p['sizes']) ?></b></div><?php endif; ?>
-        <?php if(!empty($p['seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' ✓':'' ?></b></div><?php endif; ?>
+        <?php if(!empty($p['seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
       </div>
 

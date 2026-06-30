@@ -44,6 +44,13 @@ $cats=vestra_cats();
               <?php if(!empty($r['country'])): ?><span><?=htmlspecialchars($r['country'])?></span><?php endif; ?>
               <span><?= t('just now') ?></span>
             </div>
+            <div class="reqact">
+              <?php if($MEMBER): ?>
+                <a class="btn btn-o btn-sm" href="/request-offer?ref=<?= urlencode($r['ref']??'') ?>"><?= t('Make an offer') ?></a>
+              <?php else: ?>
+                <a class="hint" href="/login"><?= t('Sign in to make an offer') ?></a>
+              <?php endif; ?>
+            </div>
           </div>
         <?php endforeach; ?>
 
@@ -63,9 +70,9 @@ $cats=vestra_cats();
             </div>
             <div class="reqact">
               <?php if($MEMBER): ?>
-                <a class="btn btn-o btn-sm" href="#post"><?= t('Make an offer') ?></a>
+                <a class="btn btn-o btn-sm" href="/request-offer?ref=<?= urlencode($r['id']) ?>&seed=1"><?= t('Make an offer') ?></a>
               <?php else: ?>
-                <a class="hint" href="?demo_member=1#post"><?= t('Sign in to make an offer') ?></a>
+                <a class="hint" href="/login"><?= t('Sign in to make an offer') ?></a>
               <?php endif; ?>
             </div>
           </div>
