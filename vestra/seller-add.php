@@ -6,6 +6,16 @@ require __DIR__.'/inc/products.php';
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /seller?tab=add'); exit; }
 if(!empty($_POST['website'])){ header('Location: /seller?tab=add&added=1'); exit; }
 
+$_user = auth_user();
+if (!$_user || ($_user['type'] ?? '') !== 'seller') {
+    header('Location: /login?back=' . urlencode('/seller')); exit;
+}
+$_ms  = $_user['membership_status'] ?? '';
+$_kyb = $_user['kyb_status'] ?? '';
+if (!in_array($_ms, ['trialing', 'active'], true) && !($_ms === '' && $_kyb === 'approved')) {
+    header('Location: /membership?gate=1'); exit;
+}
+
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $brand=$one($_POST['brand']??''); $name=$one($_POST['name']??''); $origin=$one($_POST['origin']??'');
 $moq=max(1,(int)($_POST['moq']??1));

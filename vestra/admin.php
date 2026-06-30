@@ -64,6 +64,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['email_verified'=>true,'email_token'=>'','status'=>'pending']);
     header('Location: /admin?tab=users&msg=manual_verified'); exit;
   }
+  if($act==='grant_badge'){
+    auth_update($_POST['uid']??'',['verified_badge'=>true,'verification_status'=>'verified']);
+    header('Location: /admin?tab=users&msg=badge_granted'); exit;
+  }
+  if($act==='revoke_badge'){
+    auth_update($_POST['uid']??'',['verified_badge'=>false,'verification_status'=>'none']);
+    header('Location: /admin?tab=users&msg=badge_revoked'); exit;
+  }
   if($act==='request_doc'){
     auth_request_doc($_POST['uid']??'', $_POST['doc_type']??'', trim($_POST['note']??''));
     header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_requested'); exit;
@@ -139,6 +147,14 @@ function orderBadge(string $s): string {
 function typePill(string $t): string {
   $c=$t==='seller'?'#c9a86a':'#8ab4f8'; $b=$t==='seller'?'rgba(201,168,106,.15)':'rgba(138,180,248,.15)';
   return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:'.$b.';color:'.$c.'">'.htmlspecialchars($t).'</span>';
+}
+function memberBadge(string $tier, string $status): string {
+  if($tier===''&&($status===''||$status==='none')) return '<span style="color:#555;font-size:11px">—</span>';
+  $tc=['starter'=>'#8ab4f8','pro'=>'#c9a86a','premium'=>'#f0c060'][$tier]??'#888';
+  $tl=$tier?ucfirst($tier):'';
+  $sc=match($status){'active'=>'#7ad6a0','trialing'=>'#f0c060','past_due'=>'#ef9a9a','canceled'=>'#888',default=>'#555'};
+  $sl=match($status){'active'=>'Active','trialing'=>'Trial','past_due'=>'Past due','canceled'=>'Canceled',default=>'—'};
+  return ($tl?abadge($tl,$tc):'').'<div style="margin-top:3px">'.abadge($sl,$sc).'</div>';
 }
 function fBtn(string $label, string $act, array $fields, string $style='', string $confirm=''): string {
   $oc=$confirm?' onclick="return confirm(\''.htmlspecialchars(addslashes($confirm)).'\')"':'';
@@ -278,6 +294,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
+    'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
   ];
 
   function navLink(string $cur, string $key, string $icon, string $label, int $badge=0, bool $red=false): string {
@@ -598,7 +615,7 @@ elseif($tab==='users'):
 <?php else: ?>
 <div class="acard">
 <div class="atscroll"><table class="atable">
-  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Email','KYB','Docs','Joined','Actions'],true) ?>
+  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Email','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
   <?php $i=count($shown); foreach($shown as $a):
     $isSusp=($a['status']??'active')==='suspended';
     $isPendEmail=($a['status']??'')==='pending_email';
@@ -628,6 +645,19 @@ elseif($tab==='users'):
       <?php endif; ?>
     </td>
     <td class="ac"><?= kybBadge($isSusp?'suspended':($a['kyb_status']??'pending')) ?></td>
+    <td class="ac"><?= memberBadge($a['membership_tier']??'',$a['membership_status']??'') ?></td>
+    <td class="ac">
+      <?php if(($a['type']??'')==='seller' && !empty($a['onboarding_paid'])): ?>
+        <?php if(!empty($a['verified_badge'])): ?>
+          <?= abadge('✓ Badge','#7ad6a0') ?>
+          <div style="margin-top:3px"><?= fBtn('Revoke','revoke_badge',['uid'=>$a['id']??''],'font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.3)','Revoke Verified Seller badge?') ?></div>
+        <?php else: ?>
+          <?= fBtn('Grant badge','grant_badge',['uid'=>$a['id']??''],'font-size:11px;color:var(--ok);border-color:rgba(122,214,160,.4)','Grant Verified Seller badge?') ?>
+        <?php endif; ?>
+      <?php else: ?>
+        <span style="color:#555;font-size:11px">—</span>
+      <?php endif; ?>
+    </td>
     <td class="ac">
       <?= $docSummary ?>
       <?php if($uploaded>0): ?><div><?= abadge("$uploaded to review",'#c9a86a') ?></div><?php endif; ?>

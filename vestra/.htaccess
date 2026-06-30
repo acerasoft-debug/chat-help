@@ -30,9 +30,10 @@
   # RewriteRule ^ https://%1%{REQUEST_URI} [L,R=301]
 </IfModule>
 
-# data/ dizinini tarayıcıdan koru (accounts.json doğrudan erişilemez)
+# data/ ve vendor/ dizinlerini tarayıcıdan koru
 <IfModule mod_rewrite.c>
   RewriteRule ^data/ - [F,L]
+  RewriteRule ^vendor/ - [F,L]
 </IfModule>
 
 # Varsayılan açılış sayfası

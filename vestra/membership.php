@@ -1,0 +1,160 @@
+<?php
+require_once __DIR__.'/inc/i18n.php';
+require_once __DIR__.'/inc/auth.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+$PAGE = t('Seller Membership'); $NAV = 'membership';
+require __DIR__.'/inc/head.php';
+
+$u = auth_user();
+$isLoggedInSeller = $u && ($u['type'] ?? '') === 'seller';
+$membershipStatus = $u['membership_status'] ?? 'none';
+$alreadyActive    = in_array($membershipStatus, ['trialing', 'active'], true);
+$error = !empty($_GET['error']);
+?>
+<style>
+/* Pricing page — design tokens from brief */
+.mp-canvas{--mp-card:#EFEAE1;--mp-ink:#1A1C21;--mp-seal:#A6402B;--mp-mut:#6F6A61;--mp-line:#DBD4C7}
+body{ background:#15171C }
+.mwrap{max-width:1080px;margin:0 auto;padding:56px 24px 80px}
+.mhero{text-align:center;margin-bottom:52px}
+.mhero h1{font-family:'Playfair Display',Georgia,serif;font-size:clamp(26px,5vw,44px);font-weight:700;color:#fff;letter-spacing:-.5px;margin-bottom:12px}
+.mhero p{color:var(--mut);font-size:15px;max-width:460px;margin:0 auto;line-height:1.6}
+.mtiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;align-items:start}
+.mcard{background:var(--mp-card);border-radius:16px;padding:32px 28px;position:relative;display:flex;flex-direction:column}
+.mcard.featured{box-shadow:0 0 0 2px var(--mp-seal),0 8px 40px rgba(166,64,43,.18)}
+.mpop{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--mp-seal);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.09em;padding:4px 14px;border-radius:20px;white-space:nowrap;text-transform:uppercase}
+.mname{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:var(--mp-ink);margin-bottom:6px}
+.mprice{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.mprice .cur{font-size:20px;font-weight:600;color:var(--mp-ink);margin-top:4px}
+.mprice .amt{font-size:40px;font-weight:700;color:var(--mp-ink);letter-spacing:-1.5px;line-height:1}
+.mprice .per{font-size:13px;color:var(--mp-mut);margin-left:2px}
+.mtrial{font-size:12px;color:var(--mp-seal);font-weight:700;letter-spacing:.03em;margin-bottom:18px}
+.mdiv{height:1px;background:var(--mp-line);margin:0 0 16px}
+.mfeatures{list-style:none;padding:0;margin:0 0 28px;display:flex;flex-direction:column;gap:8px;flex:1}
+.mfeatures li{font-size:13.5px;color:var(--mp-ink);display:flex;gap:8px;line-height:1.45}
+.mfeatures li::before{content:"✓";color:var(--mp-seal);font-weight:700;flex-shrink:0;margin-top:1px}
+.mcta{width:100%;padding:12px 0;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;margin-top:auto}
+.mcard:not(.featured) .mcta{background:var(--mp-ink);color:var(--mp-card)}
+.mcard:not(.featured) .mcta:hover:not(:disabled){opacity:.82}
+.mcard.featured .mcta{background:var(--mp-seal);color:#fff}
+.mcard.featured .mcta:hover:not(:disabled){opacity:.88}
+.mcta:disabled{opacity:.35;cursor:default}
+.mfoot{text-align:center;margin-top:36px;font-size:12.5px;color:var(--mut);line-height:1.7}
+.mfoot b{color:#b0a890}
+.merr{background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#ef9a9a;border-radius:8px;padding:10px 14px;margin-bottom:24px;font-size:13px;text-align:center}
+.mactive{background:rgba(122,214,160,.07);border:1px solid rgba(122,214,160,.22);color:#7ad6a0;border-radius:10px;padding:14px 18px;margin-bottom:32px;font-size:14px;text-align:center}
+</style>
+
+<div class="mp-canvas">
+<div class="mwrap">
+
+  <div class="mhero">
+    <h1><?= t('Seller Membership') ?></h1>
+    <p><?= t('Join the curated seller community. Access verified buyers and grow your wholesale business. Buyers are always free.') ?></p>
+  </div>
+
+  <?php if ($error): ?>
+  <div class="merr"><?= t('Something went wrong — please try again or contact support.') ?></div>
+  <?php endif; ?>
+
+  <?php if ($alreadyActive): ?>
+  <div class="mactive">
+    ✓ <?= t('You already have an active membership.') ?>
+    <?php if ($membershipStatus === 'trialing'): ?>
+      <?= ' ' . t('Your trial is running — first charge in 30 days.') ?>
+    <?php endif; ?>
+    <a href="/seller" style="color:#7ad6a0;margin-left:10px"><?= t('Go to dashboard →') ?></a>
+  </div>
+  <?php endif; ?>
+
+  <div class="mtiers">
+
+    <!-- ── STARTER ── -->
+    <div class="mcard">
+      <div class="mname"><?= t('Starter') ?></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">19</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mtrial">✓ <?= t('1 month free') ?></div>
+      <div class="mdiv"></div>
+      <ul class="mfeatures">
+        <li><?= t('For new sellers testing wholesale.') ?></li>
+        <li><?= t('Up to 10 listings') ?></li>
+        <li><?= t('Seller profile &amp; showroom') ?></li>
+        <li><?= t('"Verified Seller" badge') ?></li>
+        <li><?= t('Direct buyer contact') ?></li>
+        <li><?= t('Trade Record') ?></li>
+      </ul>
+      <?php if ($isLoggedInSeller): ?>
+      <form method="post" action="/stripe/checkout">
+        <input type="hidden" name="tier" value="starter">
+        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+      </form>
+      <?php else: ?>
+        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+      <?php endif; ?>
+    </div>
+
+    <!-- ── PRO (featured) ── -->
+    <div class="mcard featured">
+      <div class="mpop"><?= t('Most popular') ?></div>
+      <div class="mname"><?= t('Pro') ?></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">39</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mtrial">✓ <?= t('1 month free') ?></div>
+      <div class="mdiv"></div>
+      <ul class="mfeatures">
+        <li><?= t('For active sellers with a growing range.') ?></li>
+        <li><?= t('Everything in Starter') ?></li>
+        <li><?= t('Unlimited listings') ?></li>
+        <li><?= t('Priority placement') ?></li>
+        <li><?= t('Analytics dashboard') ?></li>
+        <li><?= t('Multiple users') ?></li>
+        <li><?= t('Lead notifications') ?></li>
+      </ul>
+      <?php if ($isLoggedInSeller): ?>
+      <form method="post" action="/stripe/checkout">
+        <input type="hidden" name="tier" value="pro">
+        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+      </form>
+      <?php else: ?>
+        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+      <?php endif; ?>
+    </div>
+
+    <!-- ── PREMIUM ── -->
+    <div class="mcard">
+      <div class="mname"><?= t('Premium') ?></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">89</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mtrial">✓ <?= t('1 month free') ?></div>
+      <div class="mdiv"></div>
+      <ul class="mfeatures">
+        <li><?= t('For established wholesalers with volume.') ?></li>
+        <li><?= t('Everything in Pro') ?></li>
+        <li><?= t('Top placement') ?></li>
+        <li><?= t('Dedicated account manager') ?></li>
+        <li><?= t('Optional buyer protection (escrow)') ?></li>
+        <li><?= t('Reduced commission (Phase 2)') ?></li>
+      </ul>
+      <?php if ($isLoggedInSeller): ?>
+      <form method="post" action="/stripe/checkout">
+        <input type="hidden" name="tier" value="premium">
+        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+      </form>
+      <?php else: ?>
+        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+      <?php endif; ?>
+    </div>
+
+  </div><!-- /mtiers -->
+
+  <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
+
+  <?php if (!$isLoggedInSeller): ?>
+  <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">
+    <a href="/register?type=seller" style="color:var(--acc)"><?= t('Create a seller account') ?></a>
+    <?= ' ' . t('to get started.') ?>
+    <?= t('Already registered?') ?> <a href="/login" style="color:var(--acc)"><?= t('Sign in') ?></a>
+  </p>
+  <?php endif; ?>
+
+</div><!-- /mwrap -->
+</div><!-- /mp-canvas -->
+<?php require __DIR__.'/inc/foot.php';

@@ -1,2 +1,8 @@
+# credentials — never commit
+.env
+
 # user account data — never commit
 vestra/data/accounts.json
+
+# composer dependencies
+vestra/vendor/
