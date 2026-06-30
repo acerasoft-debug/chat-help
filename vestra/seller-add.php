@@ -10,7 +10,7 @@ $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],
 $brand=$one($_POST['brand']??''); $name=$one($_POST['name']??''); $origin=$one($_POST['origin']??'');
 $moq=max(1,(int)($_POST['moq']??1));
 $mode=in_array($_POST['mode']??'',['fixed','sale','offer'],true)?$_POST['mode']:'fixed';
-if($brand===''||$name===''||$origin===''){ header('Location: /seller?tab=add'); exit; }
+if($brand===''||$name===''||$origin===''||empty($_POST['origin_confirm'])){ header('Location: /seller?tab=add'); exit; }
 
 /* tiers */
 $tiers=[];

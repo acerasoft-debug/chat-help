@@ -132,17 +132,29 @@ function vestra_legal_en(){
     <h3>1. Verification</h3><p>Provide and keep current business registration, tax/VAT ID and beneficial-owner identity.</p>
     <h3>2. Seller of record</h3><p>The seller is the legal seller of its goods and is solely responsible for conformity, safety,
     delivery, warranties and taxes. VESTRA is an intermediary only and is not a party to the sale.</p>
-    <h3>3. Authenticity &amp; right to sell</h3><p>For every item the seller warrants the goods are <b>genuine</b> and that it
-    is <b>authorised/entitled to sell</b> them in the destination market (including EEA trademark exhaustion where applicable),
-    and will provide proof of authenticity/provenance on request.</p>
-    <h3>4. Indemnification &amp; liability</h3><p>The seller indemnifies and holds {$co} harmless from any claims, losses, fines
-    or costs arising from its goods, listings, breach of warranties or IP infringement, and is liable to buyers for its goods;
-    VESTRA's liability is limited as set out in the Terms of Service.</p>
-    <h3>5. Notice-and-takedown</h3><p>The seller will comply with the IP &amp; Anti-Counterfeit Policy, respond to notices, and
+    <h3>3. Authenticity &amp; right to sell</h3><p>For every item listed on VESTRA, the seller gives the following warranty:
+    the goods are <b>genuine</b> (not counterfeit, replica or imitation); the seller is <b>lawfully entitled to sell</b> them
+    in the destination market; and — for branded goods — the goods were <b>first placed on the EEA market by or with the
+    consent of the trade-mark owner</b> (EEA exhaustion), or the seller holds documented authorisation to sell them in the EEA.
+    The seller will provide written proof of authenticity and lawful provenance (e.g. supplier invoice, authorisation letter)
+    on request by VESTRA, a buyer or a rights holder, within 5 business days.</p>
+    <h3>4. Seller warranty &amp; full indemnification</h3><p>The seller <b>warrants</b> the accuracy of every declaration made
+    under §3. The seller <b>fully indemnifies, defends and holds harmless</b> {$co}, its affiliates, officers, members and
+    staff from and against <b>all</b> claims, demands, losses, damages, fines, penalties and reasonable legal costs —
+    including claims by brand owners, customs authorities, buyers, and any other third party — arising out of or relating to:
+    (a) any breach of the §3 warranty; (b) the goods being counterfeit, infringing, unlawfully sourced or not exhausted under
+    EEA trade-mark law; or (c) any misrepresentation in a listing. This indemnity applies regardless of whether VESTRA was
+    aware of the breach. VESTRA's own liability remains limited as set out in the Terms of Service.</p>
+    <h3>5. Per-listing declaration</h3><p>By submitting each listing the seller expressly confirms: &ldquo;I confirm this
+    product is genuine, lawfully acquired, and was first placed on the EEA market by or with the brand owner's consent.
+    I accept full personal and corporate liability for any third-party claims against VESTRA arising from a breach of this
+    declaration.&rdquo; This declaration is recorded at the time of submission and forms part of the seller's contractual
+    obligations.</p>
+    <h3>6. Notice-and-takedown</h3><p>The seller will comply with the IP &amp; Anti-Counterfeit Policy, respond to notices, and
     accept removal of listings pending resolution.</p>
-    <h3>6. Orders, escrow &amp; payouts</h3><p>Funds are held in escrow and released after buyer confirmation / verified
+    <h3>7. Orders, escrow &amp; payouts</h3><p>Funds are held in escrow and released after buyer confirmation / verified
     delivery, less VESTRA's commission.</p>
-    <h3>7. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to removal,
+    <h3>8. Strikes &amp; suspension</h3><p>Counterfeit, IP infringement, repeated valid complaints or fraud lead to removal,
     strikes and suspension. Manifest counterfeit/fraud may cause immediate suspension.</p>"],
 
   'ip'=>['title'=>'IP &amp; Anti-Counterfeit / Notice-and-Takedown','html'=>"

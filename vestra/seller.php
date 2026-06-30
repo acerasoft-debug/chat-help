@@ -239,7 +239,10 @@ if($tab==='overview'){
         <div><label><?= t('Origin / authenticity note') ?> *</label><input name="origin" required placeholder="<?= htmlspecialchars(t('e.g. EEA stock · invoice on request')) ?>"></div>
         <div><label><?= t('Seller name') ?></label><input name="seller" value="<?= htmlspecialchars($AUTH_USER['company']??'My Wholesale Co.') ?>"></div>
       </div>
-      <div class="banner info" style="margin:8px 0 0"><?= t('By listing you confirm the goods are <b>genuine</b> and you are <b>entitled to sell</b> them (incl. EEA exhaustion where applicable) — per the Seller Agreement.') ?></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:14px 0 0;background:rgba(201,168,106,.07);border:1px solid rgba(201,168,106,.25);border-radius:8px;padding:12px 14px">
+        <input type="checkbox" name="origin_confirm" required style="margin-top:2px;flex-shrink:0">
+        <span style="font-size:13px;line-height:1.5"><?= t('I confirm this product is genuine, lawfully acquired, and was first placed on the EEA market by or with the brand owner\'s consent. I accept full liability for any third-party claims against VESTRA arising from a breach of this declaration.') ?> <a href="/legal#seller" target="_blank" style="color:var(--acc)"><?= t('Seller Agreement §3–5') ?></a></span>
+      </label>
       <button class="btn btn-p" type="submit" style="margin-top:14px"><?= t('Publish product') ?></button>
     </form>
   </div>

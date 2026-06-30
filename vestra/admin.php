@@ -46,6 +46,24 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['status'=>'active']);
     header('Location: /admin?tab=users&msg=activated'); exit;
   }
+  if($act==='resend_verify'){
+    $uid=$_POST['uid']??'';
+    foreach(auth_accounts() as $a){
+      if(($a['id']??'')!==$uid) continue;
+      if(($a['status']??'')==='pending_email' && !empty($a['email_token'])){
+        require_once __DIR__.'/inc/notify.php';
+        $lang=substr($a['lang']??'en',0,2);
+        [$subj,$body]=vestra_verify_text($lang,$a['name']?:($a['company']?:'there'),$a['email_token']);
+        vestra_send_mail($a['email'],$subj,$body);
+      }
+      break;
+    }
+    header('Location: /admin?tab=users&msg=verify_resent'); exit;
+  }
+  if($act==='manual_verify'){
+    auth_update($_POST['uid']??'',['email_verified'=>true,'email_token'=>'','status'=>'pending']);
+    header('Location: /admin?tab=users&msg=manual_verified'); exit;
+  }
   if($act==='request_doc'){
     auth_request_doc($_POST['uid']??'', $_POST['doc_type']??'', trim($_POST['note']??''));
     header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_requested'); exit;
@@ -244,7 +262,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   $sellers      = array_filter($accounts,fn($a)=>($a['type']??'')==='seller');
   $buyers       = array_filter($accounts,fn($a)=>($a['type']??'')==='buyer');
-  $pendingKyb   = array_filter($accounts,fn($a)=>($a['kyb_status']??'pending')==='pending'&&($a['status']??'active')!=='suspended');
+  $pendingEmail = array_filter($accounts,fn($a)=>($a['status']??'')==='pending_email');
+  $pendingKyb   = array_filter($accounts,fn($a)=>($a['status']??'')==='pending'&&($a['kyb_status']??'pending')==='pending');
+  $reqOffers    = vestra_read_csv('request_offers.csv');
   $pendingList  = array_filter($listings,fn($p)=>($p['status']??'approved')==='pending');
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
@@ -257,6 +277,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
+    'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
   ];
 
   function navLink(string $cur, string $key, string $icon, string $label, int $badge=0, bool $red=false): string {
@@ -292,12 +313,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'documents','📄','Documents',$pendingDocs,$pendingDocs>0) ?>
 
   <div class="sgrp">People</div>
-  <?= navLink($tab,'users','👥','Users ('.count($accounts).')') ?>
+  <?= navLink($tab,'users','👥','Users ('.count($accounts).')',count($pendingEmail),count($pendingEmail)>0) ?>
 
   <div class="sgrp">Transactions</div>
   <?= navLink($tab,'orders','📦','Orders ('.count($orders).')') ?>
   <?= navLink($tab,'offers','💬','Offers ('.count($offers).')') ?>
   <?= navLink($tab,'requests','📋','Requests ('.count($requests).')') ?>
+  <?= navLink($tab,'req_offers','📩','Request Offers ('.count($reqOffers).')') ?>
 
   <div class="sgrp">Catalog</div>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
@@ -322,6 +344,7 @@ if($tab==='overview'): ?>
   <div class="ascard"><div class="sv"><?= count($accounts) ?></div><div class="sl">Total accounts</div></div>
   <div class="ascard"><div class="sv" style="color:#c9a86a"><?= count($sellers) ?></div><div class="sl">Sellers</div></div>
   <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= count($buyers) ?></div><div class="sl">Buyers</div></div>
+  <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= count($pendingEmail) ?></div><div class="sl">Email unverified</div></div>
   <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingKyb) ?></div><div class="sl">Pending KYB</div></div>
   <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= count($pendingList) ?></div><div class="sl">Pending listings</div></div>
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Orders</div></div>
@@ -575,9 +598,10 @@ elseif($tab==='users'):
 <?php else: ?>
 <div class="acard">
 <div class="atscroll"><table class="atable">
-  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','KYB','Docs','Joined','Actions'],true) ?>
+  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Email','KYB','Docs','Joined','Actions'],true) ?>
   <?php $i=count($shown); foreach($shown as $a):
     $isSusp=($a['status']??'active')==='suspended';
+    $isPendEmail=($a['status']??'')==='pending_email';
     $dreqs=$a['doc_requests']??[];
     $docSummary=count($dreqs)>0?(count(array_filter($dreqs,fn($r)=>$r['status']==='approved')).'/'.count($dreqs)):'—';
     $uploaded=count(array_filter($dreqs,fn($r)=>$r['status']==='uploaded'));
@@ -590,6 +614,19 @@ elseif($tab==='users'):
     <td class="ac"><?= htmlspecialchars($a['company']??'—') ?></td>
     <td class="ac"><?= htmlspecialchars($a['country']??'—') ?></td>
     <td class="ac" style="font-family:monospace;font-size:11px"><?= htmlspecialchars($a['vat_id']??'—') ?></td>
+    <td class="ac">
+      <?php if($isPendEmail): ?>
+        <?= abadge('⚠ Unverified','#ef9a9a') ?>
+        <div style="display:flex;gap:3px;margin-top:4px">
+          <?= fBtn('Resend','resend_verify',['uid'=>$a['id']??''],'font-size:11px') ?>
+          <?= fBtn('Force verify','manual_verify',['uid'=>$a['id']??''],'font-size:11px;color:var(--ok);border-color:rgba(122,214,160,.4)','Force-verify email for this account?') ?>
+        </div>
+      <?php elseif(!empty($a['email_verified'])): ?>
+        <?= abadge('✓ Verified','#7ad6a0') ?>
+      <?php else: ?>
+        <span class="ahint">—</span>
+      <?php endif; ?>
+    </td>
     <td class="ac"><?= kybBadge($isSusp?'suspended':($a['kyb_status']??'pending')) ?></td>
     <td class="ac">
       <?= $docSummary ?>
@@ -598,7 +635,7 @@ elseif($tab==='users'):
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($a['created']??'',0,10)) ?></td>
     <td class="ac"><div style="display:flex;gap:4px;flex-wrap:wrap">
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
-      <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>
+      <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp&&!$isPendEmail): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>
     </div></td>
   </tr>
@@ -710,6 +747,32 @@ elseif($tab==='requests'): ?>
     htmlspecialchars($r['qty']??''),
     htmlspecialchars($r['budget']??''),
     htmlspecialchars(substr($r['notes']??$r['message']??'',0,80)),
+  ]) ?>
+  <?php endforeach; ?>
+</table></div></div>
+<?php endif; ?>
+
+
+<?php // ══════════════════════════════════════════════════════ REQUEST OFFERS
+elseif($tab==='req_offers'): ?>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div><h2 style="font-size:18px;font-weight:700">Request Offers</h2><p class="ahint" style="margin-top:4px">Seller offers submitted on buyer sourcing requests.</p></div>
+</div>
+<?php if(!$reqOffers): ?><div class="acard"><div class="aempty">No seller offers on requests yet.</div></div>
+<?php else: ?>
+<div class="acard"><div class="atscroll"><table class="atable">
+  <?= arow(['Ref','Date','Request ref','Seller company','Seller email','Price','Qty','Delivery','Message'],true) ?>
+  <?php foreach(array_reverse($reqOffers) as $ro): ?>
+  <?= arow([
+    '<span class="atag">'.htmlspecialchars(substr($ro['ref']??'',0,12)).'</span>',
+    htmlspecialchars(substr($ro['timestamp']??'',0,10)),
+    '<span class="atag">'.htmlspecialchars($ro['request_ref']??'—').'</span>',
+    '<b>'.htmlspecialchars($ro['seller_company']??'—').'</b>',
+    '<a href="mailto:'.htmlspecialchars($ro['seller_email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($ro['seller_email']??'').'</a>',
+    htmlspecialchars($ro['price']??''),
+    htmlspecialchars($ro['qty']??''),
+    htmlspecialchars($ro['delivery']??''),
+    htmlspecialchars(substr($ro['message']??'',0,80)),
   ]) ?>
   <?php endforeach; ?>
 </table></div></div>
