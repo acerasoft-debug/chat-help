@@ -20,15 +20,22 @@ internet yoksa şık bir offline ekranı gösterir.
 
 ---
 
-## 1) Projeyi hazırla
+## 1) Projeyi hazırla + premium native yamalar
 
 ```bash
 cd ~/chat-help/mobile
 npm install
-npx cap add android
+npm run setup:android
 ```
 
-`npx cap add android` `android/` native klasörünü oluşturur (bu klasör git'e girmez, normaldir).
+`npm run setup:android` üç şeyi sırayla yapar:
+1. `cap add android` → `android/` native klasörünü oluşturur (bu klasör git'e girmez, normaldir).
+2. `cap sync android` → eklentileri (App/Browser/SplashScreen/StatusBar) bağlar.
+3. `scripts/patch-android.js` → **premium native polish** uygular (aşağıya bak). Güvenle tekrar tekrar çalıştırılabilir (idempotent) — `android/` klasörünü silip yeniden oluşturduğunda sadece `npm run setup:android`'i tekrar çalıştırman yeter.
+
+### Otomatik uygulanan premium native özellikler
+- **Donanım geri tuşu**: Android geri tuşu artık uygulamayı aniden kapatmıyor — önce WebView geçmişinde geri gider; en kökteyken çift basışla ("Nochmal drücken zum Beenden") çıkar. (`MainActivity.java`)
+- **Otomatik release imzalama**: `android/key.properties` oluşturduğunda (adım 4), `./gradlew bundleRelease` otomatik imzalı çıktı üretir — `build.gradle`'ı elle düzenlemene gerek yok.
 
 ---
 
@@ -51,7 +58,7 @@ Kendi logonu kullanmak istersen `assets/icon-only.png` (1024) ve `assets/splash.
 npx cap sync android
 ```
 
-> `capacitor.config.json`, `package.json` veya ikonları her değiştirdiğinde bu komutu çalıştır.
+> `capacitor.config.json`, `package.json` veya ikonları her değiştirdiğinde bu komutu çalıştır. (Bu komut `MainActivity.java`'ya dokunmaz, geri tuşu yaması kalıcıdır.)
 
 ---
 
@@ -72,27 +79,7 @@ keyAlias=chathelp
 keyPassword=SENIN_KEY_PAROLAN
 ```
 
-`android/app/build.gradle` içine imza yapılandırması ekle (`android { ... }` bloğuna):
-
-```gradle
-    signingConfigs {
-        release {
-            def props = new Properties()
-            def f = rootProject.file("key.properties")
-            if (f.exists()) { f.withInputStream { props.load(it) } }
-            storeFile file(props['storeFile'])
-            storePassword props['storePassword']
-            keyAlias props['keyAlias']
-            keyPassword props['keyPassword']
-        }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-        }
-    }
-```
+Bu kadar — **`build.gradle`'ı elle düzenlemene gerek yok**, `npm run setup:android` (adım 1) zaten `key.properties` varsa release'i otomatik imzalayacak şekilde bağladı.
 
 > `key.properties` ve `.jks` dosyalarını GİT'e koyma (zaten `.gitignore`'da).
 
@@ -148,9 +135,10 @@ taşıyıp tek belge satışını web'de bırakan hibrit modele geçeriz.
 
 ## Sonraki adımlar (Faz 2 — premium native özellikler)
 
+- ✅ ~~Donanım geri tuşu~~ — otomatik (adım 1)
+- ✅ ~~Otomatik release imzalama~~ — otomatik (adım 1 + 4)
 - 🔔 **Push bildirim** (belge hazır, hatırlatma) — `@capacitor/push-notifications` + FCM
 - 📷 **Native kamera** (foto çekip belgeye) — `@capacitor/camera`
-- 🔗 **Ödeme/dış linkler sistem tarayıcısında** — `@capacitor/browser` (mağaza uyumu için)
 - 🔒 **Biyometrik kilit** (Face/parmak izi ile giriş)
 - 🍎 **iOS sürümü** — `npx cap add ios` (Mac + Xcode + Apple Developer $99/yıl); Apple IAP kuralı ayrıca ele alınır.
 

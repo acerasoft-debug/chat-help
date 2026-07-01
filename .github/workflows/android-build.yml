@@ -33,28 +33,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install deps + add Android platform
+      - name: Install deps + add Android platform + patch native (back button, signing)
         working-directory: mobile
         run: |
           npm install
-          npx cap add android
-          npx cap sync android
+          npm run setup:android
 
       - name: Generate app icon + splash
         working-directory: mobile
         run: npx capacitor-assets generate --android || echo "assets step skipped"
-
-      - name: DEBUG dump native files (temporary)
-        working-directory: mobile
-        run: |
-          echo "===== app/build.gradle ====="
-          cat android/app/build.gradle
-          echo "===== MainActivity.java ====="
-          find android -name MainActivity.java -exec cat {} \;
-          echo "===== AndroidManifest.xml ====="
-          cat android/app/src/main/AndroidManifest.xml
-          echo "===== capacitor.build.gradle (app) ====="
-          cat android/app/capacitor.build.gradle 2>/dev/null || echo "n/a"
 
       - name: Build debug APK
         working-directory: mobile/android
