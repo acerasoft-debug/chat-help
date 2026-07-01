@@ -34,6 +34,7 @@ npm run setup:android
 3. `scripts/patch-android.js` → **premium native polish** uygular (aşağıya bak). Güvenle tekrar tekrar çalıştırılabilir (idempotent) — `android/` klasörünü silip yeniden oluşturduğunda sadece `npm run setup:android`'i tekrar çalıştırman yeter.
 
 ### Otomatik uygulanan premium native özellikler
+- **Google Play targetSdk 35 uyumu**: Capacitor 6 şablonu targetSdk 34 üretir; Play, Ağustos 2025'ten beri yeni uygulama ve güncellemelerde **API 35 (Android 15)** şart koşar. `variables.gradle` otomatik 35'e yükseltilir + Android 15'in zorunlu edge-to-edge davranışından çıkılır (durum çubuğu düzeni bozulmaz) + AGP sürüm uyarısı susturulur. Ayrıntı ve Play Console form cevapları: **`mobile/PLAY-COMPLIANCE.md`**.
 - **Donanım geri tuşu**: Android geri tuşu artık uygulamayı aniden kapatmıyor — önce WebView geçmişinde geri gider; en kökteyken çift basışla ("Nochmal drücken zum Beenden") çıkar. (`MainActivity.java`)
 - **Otomatik release imzalama**: `android/key.properties` oluşturduğunda (adım 4), `./gradlew bundleRelease` otomatik imzalı çıktı üretir — `build.gradle`'ı elle düzenlemene gerek yok.
 - **Biyometrik kilit altyapısı** (Face/parmak izi): kod hazır ama **varsayılan kapalı** (`MainActivity.java` içinde `BIOMETRIC_LOCK_ENABLED = false`). Cihazında test edip beğenirsen `true` yap + `npm run setup:android` ile yeniden derle. "Fail-open" tasarım — hata/iptal olursa kullanıcı asla kilitli kalmaz, içerik yine açılır.

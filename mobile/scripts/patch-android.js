@@ -8,6 +8,13 @@
  *   2) app/build.gradle — wires an optional release signingConfig that reads
  *      key.properties if present (see BUILD-ANDROID.md step 4). No key.properties
  *      yet -> release build stays unsigned, nothing breaks.
+ *   3) variables.gradle — targetSdk/compileSdk 35 (Google Play zorunluluğu:
+ *      Ağustos 2025'ten beri yeni uygulama ve güncellemeler API 35 hedeflemeli;
+ *      Capacitor 6 şablonu 34 üretir -> Play yüklemesi reddedilir).
+ *   4) styles.xml — Android 15 zorunlu edge-to-edge'den çıkış (windowOptOut...):
+ *      targetSdk 35'te sistem çubukları WebView üzerine binerdi; opt-out ile
+ *      mevcut StatusBar (overlaysWebView:false) davranışı aynen korunur.
+ *   5) gradle.properties — AGP'nin "compileSdk 35 test edilmedi" uyarısını sustur.
  * Safe to re-run: every edit is guarded by a marker check.
  */
 const fs = require('fs');
@@ -16,6 +23,9 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
 const BUILD_GRADLE = path.join(ROOT, 'app', 'build.gradle');
+const VARIABLES_GRADLE = path.join(ROOT, 'variables.gradle');
+const STYLES_XML = path.join(ROOT, 'app', 'src', 'main', 'res', 'values', 'styles.xml');
+const GRADLE_PROPERTIES = path.join(ROOT, 'gradle.properties');
 
 function findMainActivity(root) {
   const base = path.join(root, 'app', 'src', 'main', 'java');
@@ -215,6 +225,71 @@ android {
   console.log('✓ build.gradle yamalandı (key.properties varsa release otomatik imzalanır; androidx.biometric eklendi; debug build\'ler sabit paylaşılan anahtarla imzalanır).');
 }
 
+function patchVariablesGradle() {
+  if (!fs.existsSync(VARIABLES_GRADLE)) {
+    console.log('variables.gradle bulunamadı — atlandı (önce `npx cap add android` çalıştır).');
+    return;
+  }
+  let src = fs.readFileSync(VARIABLES_GRADLE, 'utf8');
+  if (src.includes('CHELP_TARGET_SDK_PATCH')) {
+    console.log('variables.gradle zaten yamalı (targetSdk 35).');
+    return;
+  }
+  const before = src;
+  src = src.replace(/compileSdkVersion\s*=\s*3[0-4]\b/, 'compileSdkVersion = 35');
+  src = src.replace(/targetSdkVersion\s*=\s*3[0-4]\b/, 'targetSdkVersion = 35');
+  if (src === before) {
+    console.log('variables.gradle: compileSdk/targetSdk zaten 35+ görünüyor — dokunulmadı.');
+    return;
+  }
+  src = '/* CHELP_TARGET_SDK_PATCH — Google Play zorunluluğu: yeni uygulama/güncellemeler API 35 (Android 15) hedeflemeli (Ağu 2025+). */\n' + src;
+  fs.writeFileSync(VARIABLES_GRADLE, src);
+  console.log('✓ variables.gradle yamalandı (compileSdk/targetSdk 34 -> 35, Google Play zorunluluğu).');
+}
+
+function patchStylesXml() {
+  if (!fs.existsSync(STYLES_XML)) {
+    console.log('styles.xml bulunamadı — atlandı.');
+    return;
+  }
+  let src = fs.readFileSync(STYLES_XML, 'utf8');
+  if (src.includes('CHELP_EDGE_PATCH')) {
+    console.log('styles.xml zaten yamalı (edge-to-edge opt-out).');
+    return;
+  }
+  // targetSdk 35'te Android 15 edge-to-edge'i zorlar; WebView kabuk için opt-out
+  // en güvenli yol (StatusBar overlaysWebView:false davranışı korunur).
+  // Hem ana temaya hem launch temasına eklenir; API<35 cihazlar özniteliği yok sayar.
+  const item = '\n        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item><!-- CHELP_EDGE_PATCH -->';
+  const before = src;
+  src = src.replace(/(<style name="AppTheme\.NoActionBar"[^>]*>)/, '$1' + item);
+  src = src.replace(/(<style name="AppTheme\.NoActionBarLaunch"[^>]*>)/, '$1' + item);
+  if (src === before) {
+    console.log('✗ styles.xml: AppTheme.NoActionBar bulunamadı — edge-to-edge yaması atlandı.');
+    return;
+  }
+  fs.writeFileSync(STYLES_XML, src);
+  console.log('✓ styles.xml yamalandı (Android 15 edge-to-edge opt-out — durum çubuğu düzeni korunur).');
+}
+
+function patchGradleProperties() {
+  if (!fs.existsSync(GRADLE_PROPERTIES)) {
+    console.log('gradle.properties bulunamadı — atlandı.');
+    return;
+  }
+  let src = fs.readFileSync(GRADLE_PROPERTIES, 'utf8');
+  if (src.includes('CHELP_SUPPRESS_SDK_WARN')) {
+    console.log('gradle.properties zaten yamalı (compileSdk 35 uyarısı susturuldu).');
+    return;
+  }
+  src += '\n# CHELP_SUPPRESS_SDK_WARN — Capacitor 6 şablonundaki AGP, compileSdk 35 ile resmi test edilmedi uyarısı verir; build sorunsuz.\nandroid.suppressUnsupportedCompileSdk=35\n';
+  fs.writeFileSync(GRADLE_PROPERTIES, src);
+  console.log('✓ gradle.properties yamalandı (suppressUnsupportedCompileSdk=35).');
+}
+
 patchMainActivity();
 patchBuildGradle();
+patchVariablesGradle();
+patchStylesXml();
+patchGradleProperties();
 console.log('\nBitti. Bu script her zaman güvenle tekrar çalıştırılabilir (idempotent).');

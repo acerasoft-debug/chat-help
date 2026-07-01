@@ -3,7 +3,7 @@ name: Build Android APK (CHelp)
 on:
   workflow_dispatch: {}
   push:
-    branches: [ "claude/charming-franklin-1ynmuj" ]
+    branches: [ "claude/charming-franklin-1ynmuj", "claude/diagnostics-catalog-work-5gmxqw" ]
     paths:
       - "mobile/**"
       - ".github/workflows/android-build.yml"
@@ -42,6 +42,15 @@ jobs:
       - name: Generate app icon + splash
         working-directory: mobile
         run: npx capacitor-assets generate --android || echo "assets step skipped"
+
+      - name: Verify Google Play compliance patches (targetSdk 35 + edge-to-edge opt-out)
+        working-directory: mobile/android
+        run: |
+          grep -q "targetSdkVersion = 35" variables.gradle
+          grep -q "compileSdkVersion = 35" variables.gradle
+          grep -q "windowOptOutEdgeToEdgeEnforcement" app/src/main/res/values/styles.xml
+          grep -q "suppressUnsupportedCompileSdk=35" gradle.properties
+          echo "Play uyum yamalari dogrulandi: targetSdk 35, edge-to-edge opt-out, AGP uyari susturma"
 
       - name: Build debug APK
         working-directory: mobile/android
