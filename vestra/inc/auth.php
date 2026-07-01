@@ -44,7 +44,18 @@ function auth_logout(): void {
 }
 
 function auth_register(array $d): array|string {
-    if (auth_find($d['email'] ?? '')) return 'email_taken';
+    $existing = auth_find($d['email'] ?? '');
+    if ($existing) {
+        // Account exists but email not verified → resend link instead of hard error
+        if (($existing['status'] ?? '') === 'pending_email' && !empty($existing['email_token'])) {
+            require_once __DIR__.'/notify.php';
+            $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
+            [$subj, $body] = vestra_verify_text($lang, $existing['name'] ?: ($existing['company'] ?: 'there'), $existing['email_token']);
+            vestra_send_mail($existing['email'], $subj, $body);
+            return 'email_pending_verify';
+        }
+        return 'email_taken';
+    }
     if (strlen($d['password'] ?? '') < 8) return 'password_short';
     if (($d['password'] ?? '') !== ($d['password2'] ?? '')) return 'password_mismatch';
 

@@ -16,7 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $errmsg = [
-    'email_taken'        => t('An account with this email already exists.'),
+    'email_taken'           => t('An account with this email already exists.'),
+    'email_pending_verify'  => t('This email is already registered but not yet verified — we resent the verification link. Check your inbox and spam folder.'),
     'password_short'     => t('Password must be at least 8 characters.'),
     'password_mismatch'  => t('Passwords do not match.'),
     'promo_not_found'    => t('Invite code not found.'),

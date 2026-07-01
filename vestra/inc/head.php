@@ -41,6 +41,9 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
       <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>"><?= t('Sell') ?></a>
       <?php if ($MEMBER): ?>
         <?php $panel = ($AUTH_USER['type']??'buyer')==='seller' ? '/seller' : '/buyer'; ?>
+        <?php if (($AUTH_USER['type']??'') === 'seller'): ?>
+          <a href="/membership" class="hidem <?= ($NAV ?? '')==='membership'?'on':'' ?>"><?= t('Membership') ?></a>
+        <?php endif; ?>
         <a href="<?= $panel ?>" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>"><?= t('Account') ?></a>
         <span class="memberpill">✓</span>
       <?php else: ?>

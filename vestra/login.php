@@ -10,7 +10,7 @@ if (!empty($_SESSION['uid'])) {
     header('Location: '.($a && $a['type']==='seller' ? '/seller' : '/buyer')); exit;
 }
 
-$err = ''; $email_val = '';
+$err = ''; $email_val = ''; $unverified = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_val = strtolower(trim($_POST['email'] ?? ''));
     $acc = auth_login($email_val, $_POST['password'] ?? '');
@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!str_starts_with($back, '/')) $back = '/buyer';
         header('Location: '.$back); exit;
     }
+    $unverified = ($acc === 'unverified');
     $err = match($acc) {
         'unverified' => t('Please verify your email address. Check your inbox for the confirmation link.'),
         'suspended'  => t('Your account has been suspended. Please contact support.'),
@@ -46,7 +47,12 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
     <?php elseif (isset($_GET['verify_error'])): ?>
       <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px"><?= t('Verification link is invalid or has already been used.') ?></div>
     <?php elseif ($err): ?>
-      <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px"><?= htmlspecialchars($err) ?></div>
+      <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px">
+        <?= htmlspecialchars($err) ?>
+        <?php if ($unverified): ?>
+          <a href="/register" style="color:var(--acc);display:block;margin-top:6px;font-size:13px"><?= t('Resend verification link →') ?></a>
+        <?php endif; ?>
+      </div>
     <?php endif; ?>
 
     <form method="post" action="" class="authform">
