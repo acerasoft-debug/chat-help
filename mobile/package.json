@@ -6,10 +6,13 @@
   "scripts": {
     "sync": "cap sync",
     "add:android": "cap add android",
+    "add:ios": "cap add ios",
     "open:android": "cap open android",
-    "assets": "capacitor-assets generate --android",
+    "open:ios": "cap open ios",
+    "assets": "capacitor-assets generate",
     "patch:android": "node scripts/patch-android.js",
     "setup:android": "cap add android && cap sync android && node scripts/patch-android.js",
+    "setup:ios": "cap add ios && cap sync ios",
     "build:aab": "cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
@@ -17,6 +20,8 @@
     "@capacitor/app": "^6.0.1",
     "@capacitor/browser": "^6.0.3",
     "@capacitor/core": "^6.1.2",
+    "@capacitor/ios": "^6.1.2",
+    "@capacitor/push-notifications": "^6.0.3",
     "@capacitor/splash-screen": "^6.0.2",
     "@capacitor/status-bar": "^6.0.1"
   },

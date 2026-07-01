@@ -9,3 +9,6 @@ ios/
 *.keystore
 *.jks
 .DS_Store
+# Firebase (push notifications) — never commit, contains project credentials
+google-services.json
+GoogleService-Info.plist

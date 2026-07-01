@@ -39,7 +39,7 @@ function patchMainActivity() {
   }
   const src = fs.readFileSync(MAIN_ACTIVITY, 'utf8');
   if (src.includes('CHELP_BACK_BUTTON_PATCH')) {
-    console.log('MainActivity.java zaten yamalı (geri tuşu).');
+    console.log('MainActivity.java zaten yamalı (geri tuşu + biyometrik).');
     return;
   }
   const pkgMatch = src.match(/^package\s+([\w.]+);/m);
@@ -48,12 +48,65 @@ function patchMainActivity() {
 
 /* CHELP_BACK_BUTTON_PATCH — donanım geri tuşu: WebView geçmişinde gezinir,
    kökte çift basışla çıkış (premium Android davranışı). */
+import android.os.Bundle;
 import android.webkit.WebView;
 import android.widget.Toast;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    /* CHELP_BIOMETRIC_PATCH — Face/Fingerprint kilidi (AndroidX Biometric, stabil API).
+       Varsayılan KAPALI: burada true yapıp yeniden derleyerek cihazında test edebilirsin.
+       "Fail-open" tasarım: hata/iptal/biyometri-yok durumlarında HER ZAMAN içerik açılır —
+       kullanıcı asla kilitli kalmaz. */
+    private static final boolean BIOMETRIC_LOCK_ENABLED = false;
+    private boolean unlocked = false;
     private long lastBackPressAt = 0;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (BIOMETRIC_LOCK_ENABLED && !unlocked) {
+            showBiometricPrompt();
+        }
+    }
+
+    private void showBiometricPrompt() {
+        try {
+            BiometricManager bm = BiometricManager.from(this);
+            int can = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK);
+            if (can != BiometricManager.BIOMETRIC_SUCCESS) {
+                unlocked = true; // biyometri yok/kurulu değil -> kilitlemeden aç
+                return;
+            }
+            BiometricPrompt prompt = new BiometricPrompt(this, ContextCompat.getMainExecutor(this),
+                new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                        unlocked = true;
+                    }
+                    @Override
+                    public void onAuthenticationError(int errorCode, CharSequence errString) {
+                        unlocked = true; // hata/iptal -> güvenli taraf: içerik yine de açılır
+                    }
+                });
+            BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle("ChatHelp")
+                .setSubtitle("Entsperren, um fortzufahren")
+                .setNegativeButtonText("Überspringen")
+                .build();
+            prompt.authenticate(info);
+        } catch (Exception e) {
+            unlocked = true; // beklenmeyen hata -> güvenli taraf: içerik açılır
+        }
+    }
 
     @Override
     public void onBackPressed() {
@@ -73,7 +126,7 @@ public class MainActivity extends BridgeActivity {
 }
 `;
   fs.writeFileSync(MAIN_ACTIVITY, out);
-  console.log('✓ MainActivity.java yamalandı (geri tuşu + çift-tık çıkış).');
+  console.log('✓ MainActivity.java yamalandı (geri tuşu + çift-tık çıkış + biyometrik kilit altyapısı [kapalı]).');
 }
 
 function patchBuildGradle() {
@@ -122,8 +175,16 @@ function patchBuildGradle() {
     src = src.replace(proguardAnchor, `$1            if (chelpHasSigning) {\n                signingConfig signingConfigs.release\n            }\n`);
   }
 
+  // 3) androidx.biometric bağımlılığı (biyometrik kilit altyapısı için — MainActivity import'ları buna ihtiyaç duyuyor)
+  const depsAnchor = /(implementation project\(':capacitor-android'\)\n)/;
+  if (depsAnchor.test(src)) {
+    src = src.replace(depsAnchor, `$1    implementation "androidx.biometric:biometric:1.1.0" /* CHELP_BIOMETRIC_DEP */\n`);
+  } else {
+    console.log('✗ build.gradle: dependencies anchor bulunamadı — biometric bağımlılığı eklenemedi.');
+  }
+
   fs.writeFileSync(BUILD_GRADLE, src);
-  console.log('✓ build.gradle yamalandı (key.properties varsa release otomatik imzalanır).');
+  console.log('✓ build.gradle yamalandı (key.properties varsa release otomatik imzalanır; androidx.biometric eklendi).');
 }
 
 patchMainActivity();

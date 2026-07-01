@@ -1,0 +1,49 @@
+name: Build iOS App (CHelp, simulator — no signing)
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ "claude/charming-franklin-1ynmuj" ]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios-build.yml"
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps + add iOS platform
+        working-directory: mobile
+        run: |
+          npm install
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Generate app icon + splash
+        working-directory: mobile
+        run: npx capacitor-assets generate --ios || echo "assets step skipped"
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios/App
+        run: pod install --repo-update
+
+      - name: Build for iOS Simulator (unsigned — proves the project compiles)
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            CODE_SIGNING_ALLOWED=NO \
+            build

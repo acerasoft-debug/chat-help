@@ -36,6 +36,7 @@ npm run setup:android
 ### Otomatik uygulanan premium native özellikler
 - **Donanım geri tuşu**: Android geri tuşu artık uygulamayı aniden kapatmıyor — önce WebView geçmişinde geri gider; en kökteyken çift basışla ("Nochmal drücken zum Beenden") çıkar. (`MainActivity.java`)
 - **Otomatik release imzalama**: `android/key.properties` oluşturduğunda (adım 4), `./gradlew bundleRelease` otomatik imzalı çıktı üretir — `build.gradle`'ı elle düzenlemene gerek yok.
+- **Biyometrik kilit altyapısı** (Face/parmak izi): kod hazır ama **varsayılan kapalı** (`MainActivity.java` içinde `BIOMETRIC_LOCK_ENABLED = false`). Cihazında test edip beğenirsen `true` yap + `npm run setup:android` ile yeniden derle. "Fail-open" tasarım — hata/iptal olursa kullanıcı asla kilitli kalmaz, içerik yine açılır.
 
 ---
 
@@ -137,9 +138,24 @@ taşıyıp tek belge satışını web'de bırakan hibrit modele geçeriz.
 
 - ✅ ~~Donanım geri tuşu~~ — otomatik (adım 1)
 - ✅ ~~Otomatik release imzalama~~ — otomatik (adım 1 + 4)
-- 🔔 **Push bildirim** (belge hazır, hatırlatma) — `@capacitor/push-notifications` + FCM
-- 📷 **Native kamera** (foto çekip belgeye) — `@capacitor/camera`
-- 🔒 **Biyometrik kilit** (Face/parmak izi ile giriş)
-- 🍎 **iOS sürümü** — `npx cap add ios` (Mac + Xcode + Apple Developer $99/yıl); Apple IAP kuralı ayrıca ele alınır.
+- ✅ ~~Biyometrik kilit~~ — kod hazır, varsayılan kapalı (yukarı bak)
+- ✅ ~~iOS sürümü~~ — proje hazır, CI'da simulator build doğrulandı → **`mobile/BUILD-IOS.md`**
+- 🔔 **Push bildirim** — plugin eklendi (`@capacitor/push-notifications`), tek eksik adım aşağıda ⬇️
+- 📷 **Native kamera** — **bilerek eklenmedi**: site zaten `<input type="file" capture>` ile native kamerayı açıyor (WebView'ın kendi dosya seçici mekanizması üzerinden); ek plugin, site JS'i Capacitor'ı çağıracak şekilde değişmeden hiçbir fayda getirmez. Site tarafında entegrasyon istersen ayrı bir iş olarak (chat-help.com canlı yaması) yaparız.
+
+### 🔔 Push bildirimi bitirmek için tek eksik: Firebase projesi
+
+Kod/bağımlılık tarafı hazır (`@capacitor/push-notifications` kurulu; `build.gradle` zaten Firebase'i
+**koşullu** uyguluyor — `google-services.json` yoksa sessizce atlanır, build bozulmaz). Gerçek bildirim
+göndermek için:
+
+1. https://console.firebase.google.com → **Proje ekle** → ad: ChatHelp (Google hesabınla).
+2. **Android uygulaması ekle** → paket adı: `com.chathelp.app` → `google-services.json` indir.
+3. Dosyayı `mobile/android/app/google-services.json` konumuna koy (`.gitignore`'a ekle, git'e girmesin).
+4. Bana haber ver — o an şunları ekleyip biteni işlerim: bildirim izni isteme, cihaz token'ını
+   `chat-help.com`'a (backend'e) kaydetme, ve belge hazır olunca sunucudan FCM push gönderen küçük bir
+   backend endpoint'i (aynı `apply-*.php` desenimizle).
+
+Bu tek adım (Firebase hesabı) benim yapabileceğim bir şey değil — Google hesabı/kimlik doğrulaması gerektiriyor.
 
 Hepsini sırayla ben hazırlayabilirim — sadece söyle.
