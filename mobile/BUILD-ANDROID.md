@@ -37,6 +37,7 @@ npm run setup:android
 - **Donanım geri tuşu**: Android geri tuşu artık uygulamayı aniden kapatmıyor — önce WebView geçmişinde geri gider; en kökteyken çift basışla ("Nochmal drücken zum Beenden") çıkar. (`MainActivity.java`)
 - **Otomatik release imzalama**: `android/key.properties` oluşturduğunda (adım 4), `./gradlew bundleRelease` otomatik imzalı çıktı üretir — `build.gradle`'ı elle düzenlemene gerek yok.
 - **Biyometrik kilit altyapısı** (Face/parmak izi): kod hazır ama **varsayılan kapalı** (`MainActivity.java` içinde `BIOMETRIC_LOCK_ENABLED = false`). Cihazında test edip beğenirsen `true` yap + `npm run setup:android` ile yeniden derle. "Fail-open" tasarım — hata/iptal olursa kullanıcı asla kilitli kalmaz, içerik yine açılır.
+- **Sabit debug imzası** (`mobile/ci/debug-shared.keystore`, git'e kayıtlı — test amaçlı, Play Store imzası DEĞİL): tüm debug build'ler (CI dahil) aynı anahtarla imzalanır, böylece telefonunda yeni APK'yı **üzerine kurarak** güncelleyebilirsin — önce silmene gerek kalmaz. (Bu yama öncesi derlenen ilk birkaç test APK'sı farklı/rastgele anahtarlarla imzalanmıştı; o sürümlerden birini kurduysan **bir kez** eski uygulamayı sil, bundan sonrakiler sorunsuz üzerine kurulur.)
 
 ---
 

@@ -183,8 +183,36 @@ function patchBuildGradle() {
     console.log('✗ build.gradle: dependencies anchor bulunamadı — biometric bağımlılığı eklenemedi.');
   }
 
+  // 4) Sabit, paylaşılan debug imzası (mobile/ci/debug-shared.keystore) — HER build (CI dahil) aynı
+  //    imzayı kullansın diye. Bunsuz her CI çalışması rastgele bir debug anahtarı üretir ve telefonda
+  //    "üzerine kur" (güncelle) işlemi "App not installed" hatasıyla başarısız olur.
+  //    Gradle'ın "android {}" bloğu dosyada birden fazla kez tanımlanabilir (birleşir) -> ayrı, güvenli ek.
+  const debugSigningAppend = `
+
+/* CHELP_DEBUG_SIGNING_PATCH — tüm debug build'ler sabit paylaşılan anahtarla imzalanır (güncelleme uyumu) */
+android {
+    signingConfigs {
+        debug {
+            def chelpDebugKs = rootProject.file("../ci/debug-shared.keystore")
+            if (chelpDebugKs.exists()) {
+                storeFile chelpDebugKs
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+`;
+  src = src + debugSigningAppend;
+
   fs.writeFileSync(BUILD_GRADLE, src);
-  console.log('✓ build.gradle yamalandı (key.properties varsa release otomatik imzalanır; androidx.biometric eklendi).');
+  console.log('✓ build.gradle yamalandı (key.properties varsa release otomatik imzalanır; androidx.biometric eklendi; debug build\'ler sabit paylaşılan anahtarla imzalanır).');
 }
 
 patchMainActivity();

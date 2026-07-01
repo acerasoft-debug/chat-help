@@ -9,6 +9,10 @@ ios/
 *.keystore
 *.jks
 .DS_Store
+# EXCEPTION: shared debug-only keystore, intentionally tracked so every CI/local
+# debug build shares one signature and updates install cleanly over each other.
+# Password "android" — this is NOT the release key, never used for Play Store.
+!ci/debug-shared.keystore
 # Firebase (push notifications) — never commit, contains project credentials
 google-services.json
 GoogleService-Info.plist
