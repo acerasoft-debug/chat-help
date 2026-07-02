@@ -28,10 +28,10 @@ if(strpos($src,"CH_CC_LOCK")!==false) exit("Zaten ekli (CH_CC_LOCK).\n");
 file_put_contents($file.".bak-cclock-".date("Ymd-His"),$src);
 $rep=[];
 
-/* ---- 1) setCountry: manuel secim bayragini set et ---- */
+/* ---- 1) setCountry: manuel secim bayragini set et + hukuk bilgilendirme mesaji ---- */
 $o1="function setCountry(cc){CC=cc;const c=CC_DATA[cc]||CC_DATA.DE;if(!localStorage.getItem('ch_lm')){UL=c.l||'de';}savePref();applyUI();applyCC();addMsg('ai','✅ Land: '+c.f+' '+c.n);}";
-$n1="function setCountry(cc){CC=cc;const c=CC_DATA[cc]||CC_DATA.DE;if(!localStorage.getItem('ch_lm')){UL=c.l||'de';}try{localStorage.setItem('ch_cc_manual','1');}catch(e){}/*CH_CC_LOCK*/savePref();applyUI();applyCC();addMsg('ai','✅ Land: '+c.f+' '+c.n);}";
-$c=substr_count($src,$o1); if($c>0) $src=str_replace($o1,$n1,$src); $rep[]=["1 setCountry manuel bayrak",$c];
+$n1="function setCountry(cc){CC=cc;const c=CC_DATA[cc]||CC_DATA.DE;if(!localStorage.getItem('ch_lm')){UL=c.l||'de';}try{localStorage.setItem('ch_cc_manual','1');}catch(e){}/*CH_CC_LOCK*/savePref();applyUI();applyCC();addMsg('ai','✅ Land: '+c.f+' '+c.n+' — ChatHelp erstellt Ihre Dokumente ab jetzt nach: '+c.law+'.');}";
+$c=substr_count($src,$o1); if($c>0) $src=str_replace($o1,$n1,$src); $rep[]=["1 setCountry manuel bayrak + hukuk bilgilendirme",$c];
 
 /* ---- 2) detectLoc: manuel secim varsa CC'yi ezme ---- */
 $o2="if(d.country){CC=d.country;if(!localStorage.getItem('ch_lm'))UL=d.lang||'de';localStorage.setItem('ch_ldi','1');savePref();}";
