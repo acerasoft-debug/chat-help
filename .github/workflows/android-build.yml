@@ -1,4 +1,4 @@
-name: Build Android APK (CHelp)
+name: Build Android APK (ChatHelp)
 
 on:
   workflow_dispatch: {}
@@ -57,27 +57,27 @@ jobs:
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Rename APK
-        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk CHelp.apk
+        run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk ChatHelp.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CHelp-debug-apk
-          path: CHelp.apk
+          name: ChatHelp-debug-apk
+          path: ChatHelp.apk
           if-no-files-found: error
 
       - name: Publish APK to a Release (direct download link)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
-          name: CHelp Android (Test-Build)
+          name: ChatHelp Android (Test-Build)
           body: |
-            CHelp Android test sürümü (debug APK).
-            Telefonda kur: bu sayfadaki **CHelp.apk**'ya dokun → Yükle.
+            ChatHelp Android test sürümü (debug APK).
+            Telefonda kur: bu sayfadaki **ChatHelp.apk**'ya dokun → Yükle.
             (Bilinmeyen kaynak uyarısı çıkarsa tarayıcıya izin ver.)
           prerelease: true
           make_latest: "false"
-          files: CHelp.apk
+          files: ChatHelp.apk
 
   build-release:
     # Google Play'e yuklenecek IMZALI .aab. Yalnizca repo Secrets'inde imza
@@ -153,12 +153,12 @@ jobs:
 
       - name: Rename AAB
         if: steps.sign.outputs.has == 'true'
-        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab CHelp-release.aab
+        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
 
       - name: Upload AAB artifact (Play Console'a bunu yukle)
         if: steps.sign.outputs.has == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: CHelp-release-aab
-          path: CHelp-release.aab
+          name: ChatHelp-release-aab
+          path: ChatHelp-release.aab
           if-no-files-found: error
