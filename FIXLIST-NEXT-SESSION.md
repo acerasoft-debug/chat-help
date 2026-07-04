@@ -165,14 +165,23 @@ açılır → deneyim soruları sorulur → metin hazır → "E-posta ile gönde
 şablonu fotoğraflı ve estetik.
 
 ## #3c — IS ARAMA: E-POSTA + 50 SONUC + PLAN BAZLI GUNLUK KOTA (kullanıcı talebi)
-1) FIRMA E-POSTASI: ⚠️ AI'ya serbest e-posta yazdirmak YASAK KALIR (uydurma adres
-   riski — basvuru boşa gider, spam/hukuk riski). Iki asamali cozum:
-   a) chJobFindAI prompt'una ek: "Include an application e-mail ONLY if you are
-      highly confident it is the company's real, public careers address (e.g.
-      published careers@/jobs@); otherwise empty string. NEVER guess." → UI'da
-      e-posta varsa kartta goster + 'Basvuruyu e-postayla hazirla' butonu.
-   b) Opsiyonel guclendirme: Hunter.io benzeri yasal e-posta bulma API'si
-      (kullanici ucretsiz anahtar alir; jbdata/hunter.key deseni, Jooble gibi).
+1) FIRMA E-POSTASI — KESIN KURAL (kullanici direktifi): AI E-POSTA URETMEZ, HIC.
+   E-posta yalnizca GERCEK kaynaktan, su sirayla:
+   a) ILANDAN: ilan metni/snippet'inde e-posta regex'i ile ara
+      ([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i) → bulunursa kaynak='ilan'.
+   b) WEB SITESINDEN (sunucu tarafi, api.php'de yeni yardimci chFindEmail):
+      firma web sitesi belli ise (ilan linki domain'i veya AI'nin verdigi
+      DOGRULANMIS domain) su sayfalari sirayla fetch et (timeout 6sn, max 300KB,
+      cURL, User-Agent set): /impressum, /kontakt, /karriere, /jobs, /contact,
+      / (anasayfa). mailto: ve duz e-posta regex'i ile cikar; oncelik sirasi:
+      bewerbung@ > jobs@ > karriere@ > careers@ > hr@ > personal@ > info@ >
+      digerleri. Ayni domain'e ait olmayan adresleri ele. Bulunursa
+      kaynak='web sitesi' etiketiyle kartta goster.
+   c) IKISI DE YOKSA: kartta acikca 'E-posta bulunamadi' (arayuz dilinde,
+      12 dil) + varsa 'Ilani ac' linki. UYDURMA/TAHMIN ASLA YOK.
+   Cache: bulunan e-postalar jbdata/email-cache.json'da domain→email saklanir
+   (ayni firmayi tekrar tekrar fetch etmemek icin, 30 gun TTL).
+   (Hunter.io entegrasyonu istege bagli 2. asama olarak kalabilir.)
 2) KULLANICININ KENDI E-POSTASINA GONDERIM: 'Paketi e-postama gonder' butonu →
    backend send-doc.php altyapisiyla (once dump: imza/parametre) kullanicinin
    KAYITLI adresine Anschreiben metni (+ CV PDF, #3b sablonu hazirsa ekli)
