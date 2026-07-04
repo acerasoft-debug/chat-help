@@ -20,6 +20,11 @@
 const fs = require('fs');
 const path = require('path');
 
+/* CHELP_VERSION — Play her yuklemede daha yuksek versionCode ister.
+   Yeni AAB cikarmadan once bu iki degeri artir. */
+const VERSION_CODE = 2;
+const VERSION_NAME = '1.1';
+
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
 const BUILD_GRADLE = path.join(ROOT, 'app', 'build.gradle');
@@ -287,8 +292,26 @@ function patchGradleProperties() {
   console.log('✓ gradle.properties yamalandı (suppressUnsupportedCompileSdk=35).');
 }
 
+function patchVersion() {
+  if (!fs.existsSync(BUILD_GRADLE)) {
+    console.log('app/build.gradle bulunamadı — sürüm yaması atlandı.');
+    return;
+  }
+  let src = fs.readFileSync(BUILD_GRADLE, 'utf8');
+  const before = src;
+  src = src.replace(/versionCode\s+\d+/, 'versionCode ' + VERSION_CODE);
+  src = src.replace(/versionName\s+"[^"]*"/, 'versionName "' + VERSION_NAME + '"');
+  if (src !== before) {
+    fs.writeFileSync(BUILD_GRADLE, src);
+    console.log(`✓ sürüm yamalandı: versionCode ${VERSION_CODE} · versionName ${VERSION_NAME}`);
+  } else {
+    console.log('✗ build.gradle: versionCode/versionName bulunamadı.');
+  }
+}
+
 patchMainActivity();
 patchBuildGradle();
+patchVersion();
 patchVariablesGradle();
 patchStylesXml();
 patchGradleProperties();

@@ -2,7 +2,7 @@
   "appId": "com.acerasoft.chathelp",
   "appName": "ChatHelp",
   "webDir": "www",
-  "backgroundColor": "#15151b",
+  "backgroundColor": "#0a1a3f",
   "server": {
     "url": "https://chat-help.com/chat/",
     "androidScheme": "https",
@@ -22,7 +22,7 @@
     "SplashScreen": {
       "launchShowDuration": 1400,
       "launchAutoHide": true,
-      "backgroundColor": "#15151b",
+      "backgroundColor": "#0a1a3f",
       "showSpinner": false,
       "androidScaleType": "CENTER_CROP",
       "splashFullScreen": true,
@@ -30,11 +30,15 @@
     },
     "StatusBar": {
       "style": "DARK",
-      "backgroundColor": "#15151b",
+      "backgroundColor": "#0a1a3f",
       "overlaysWebView": false
     },
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     }
   }
 }
