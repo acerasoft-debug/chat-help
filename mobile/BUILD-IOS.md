@@ -4,7 +4,7 @@ Android ile aynı Capacitor projesi; sadece platform ekleniyor. **Simulator buil
 imza gerekmeden doğrulanıyor** (`.github/workflows/ios-build.yml`) — yani proje sağlam,
 gerçek cihaz/App Store için tek eksik **senin Apple Developer hesabın**.
 
-- **Bundle ID:** `com.chathelp.app` (Android ile aynı — App Store'da bu ID senin adına kayıtlı olmalı)
+- **Bundle ID:** `com.acerasoft.chathelp` (Android ile aynı — App Store'da bu ID senin adına kayıtlı olmalı)
 - **Ödeme:** Android'de olduğu gibi uygulama ücretsiz, satın alma web'de (Stripe). *Apple, dijital
   içerik/hizmet satışında genelde In-App Purchase (IAP) ister — bkz. "Ödeme politikası" altta.*
 
@@ -57,7 +57,7 @@ Xcode açılınca:
 ## 4) App Store Connect'te uygulama oluştur
 
 1. https://appstoreconnect.apple.com → **My Apps → +**
-2. Bundle ID: `com.chathelp.app` (Xcode'da otomatik kayıtlı olur; farklıysa Apple Developer portalından elle ekle).
+2. Bundle ID: `com.acerasoft.chathelp` (Xcode'da otomatik kayıtlı olur; farklıysa Apple Developer portalından elle ekle).
 3. Ad: **ChatHelp**, kategori: hukuk/verimlilik, birincil dil: Almanca (veya Fransızca, pazarına göre).
 4. **Gizlilik politikası URL:** `https://chat-help.com/datenschutz`
 5. **Age rating:** hukuki/finansal içerik nedeniyle genelde 17+ işaretlenir (Apple'ın anketini doldur).

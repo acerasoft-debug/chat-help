@@ -4,7 +4,7 @@ Bu klasör, mevcut `chat-help.com/chat` web uygulamasını **native Android** ka
 Uygulama açılışta native splash + status bar ile başlar, sonra canlı siteyi yükler (her güncelleme anında yansır),
 internet yoksa şık bir offline ekranı gösterir.
 
-- **Paket adı (appId):** `com.chathelp.app`  *(yayından sonra DEĞİŞMEZ — baştan doğru olsun)*
+- **Paket adı (appId):** `com.acerasoft.chathelp`  *(yayından sonra DEĞİŞMEZ — baştan doğru olsun)*
 - **Uygulama adı:** `ChatHelp`
 - **Ödeme:** uygulama ücretsiz; satın alma sitedeki Stripe akışında (mağaza komisyonu yok).
 
@@ -191,7 +191,7 @@ Kod/bağımlılık tarafı hazır (`@capacitor/push-notifications` kurulu; `buil
 göndermek için:
 
 1. https://console.firebase.google.com → **Proje ekle** → ad: ChatHelp (Google hesabınla).
-2. **Android uygulaması ekle** → paket adı: `com.chathelp.app` → `google-services.json` indir.
+2. **Android uygulaması ekle** → paket adı: `com.acerasoft.chathelp` → `google-services.json` indir.
 3. Dosyayı `mobile/android/app/google-services.json` konumuna koy (`.gitignore`'a ekle, git'e girmesin).
 4. Bana haber ver — o an şunları ekleyip biteni işlerim: bildirim izni isteme, cihaz token'ını
    `chat-help.com`'a (backend'e) kaydetme, ve belge hazır olunca sunucudan FCM push gönderen küçük bir

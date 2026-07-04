@@ -53,7 +53,7 @@ function patchMainActivity() {
     return;
   }
   const pkgMatch = src.match(/^package\s+([\w.]+);/m);
-  const pkg = pkgMatch ? pkgMatch[1] : 'com.chathelp.app';
+  const pkg = pkgMatch ? pkgMatch[1] : 'com.acerasoft.chathelp';
   const out = `package ${pkg};
 
 /* CHELP_BACK_BUTTON_PATCH — donanım geri tuşu: WebView geçmişinde gezinir,
