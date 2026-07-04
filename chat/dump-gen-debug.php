@@ -3,8 +3,33 @@
  *  SADECE OKUR. SIL: rm dump-gen-debug.php */
 header('Content-Type: text/plain; charset=UTF-8');
 @ini_set('display_errors','1'); error_reporting(E_ALL);
+$dir=__DIR__.'/jbdata';
+echo "=== JBDATA KLASOR DURUMU ===\n";
+echo "klasor var mi : ".(is_dir($dir)?'EVET':'HAYIR')."\n";
+echo "yazilabilir   : ".(is_writable($dir)?'EVET':'HAYIR')."\n";
+$files=is_dir($dir)?array_values(array_filter(scandir($dir),function($x){return $x!=='.'&&$x!=='..';})):[];
+echo "icindeki dosyalar: ".($files?implode(", ",$files):'(bos)')."\n";
+
+$fin=__DIR__.'/jbdata/gen-debug-in.json';
+if(is_file($fin)){
+  $di=json_decode(file_get_contents($fin),true);
+  echo "\n=== GIRIS KAYDI (doGenerate BASI — ham istek) ===\n";
+  echo "zaman        : ".($di['time']??'?')."\n";
+  echo "docType      : ".($di['docType']??'?')."  docName: ".($di['docName']??'?')."  country: ".($di['country']??'?')."\n";
+  echo "body_keys    : ".(is_array($di['body_keys']??null)?implode(", ",$di['body_keys']):var_export($di['body_keys']??null,true))."\n";
+  echo "answers_type : ".($di['answers_type']??'?')."\n";
+  $ak=$di['answers_keys']??null;
+  echo "answers_keys : ".(is_array($ak)?(count($ak)?implode(", ",$ak):"(BOS!)"):var_export($ak,true))."\n";
+  echo "photos_in_body: ".($di['photos_in_body']??'?')."\n";
+  echo "answers(tam) :\n".json_encode($di['answers']??null,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT)."\n";
+  echo "answersText  :\n".($di['answersText']??'(yok)')."\n";
+} else {
+  echo "\n=== GIRIS KAYDI YOK (gen-debug-in.json) ===\n";
+  echo "-> doGenerate ya HIC cagrilmadi ya answersText satirina ulasmadi.\n";
+}
+
 $f=__DIR__.'/jbdata/gen-debug.json';
-if(!is_file($f)) exit("HENUZ KAYIT YOK.\n- Once apply-gen-debug.php calistir.\n- Sonra 1 BELGE URET (alanlari doldur).\n- Sonra bu dosyayi tekrar calistir.\n");
+if(!is_file($f)){ echo "\n=== KAYDETME-ONCESI KAYDI YOK (gen-debug.json) ===\n-> Uretim kaydetme adimina ULASMADI (AI cagrisi sirasinda koptu?).\n\n=== BITTI. TAMAMINI yapistir. ===\n"; exit; }
 $d=json_decode(file_get_contents($f),true);
 if(!$d){ echo "Kayit okunamadi, ham icerik:\n".file_get_contents($f)."\n"; exit; }
 
