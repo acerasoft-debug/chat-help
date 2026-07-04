@@ -82,6 +82,20 @@ KABUL KRİTERİ: Kündigung Internetvertrag + tüm alanlar dolu + foto → TEK b
 mesajı → belge geliyor → belgede: kullanıcı GÖNDEREN, ch_empfaenger MUHATAP, tüm form
 cevapları gerçek değer olarak metinde, [PLACEHOLDER] yok → Anträge listesinde görünüyor.
 
+## #1b — FOTO AKIŞI: yüklenen foto dilekçede KULLANILMALI (kullanıcı talebi, zorunlu)
+Backend hazır ve kanıtlı ÇALIŞIYOR: doGenerate, $b['photos'] doluysa callClaudeVision
+ile okuyup "AUS HOCHGELADENEN DOKUMENTEN:" olarak answersText'e ekliyor (dump'ta kod
+görüldü). Debug'da photo_count=0 → foto FRONTEND'den hiç gitmemiş. Zincir:
+- genDoc gönderiyor: photos: Object.values(window._chPhotos||{})
+- attach kutusu (apply-attach-plus) dosyaları window._chDocFiles'a koyuyor ve
+  syncDocPhotos() çağırıyor — _chDocFiles → _chPhotos senkronunun GERÇEKTEN çalıştığı
+  ve formatın backend beklentisiyle eşleştiği DOĞRULANMALI (backend filtresi:
+  isset($p['data']) && strlen 100..5MB — yani {data:<base64>, mime:...} bekliyor).
+YAPILACAK: (1) dump ile syncDocPhotos gövdesini çıkar, _chPhotos'a ne yazdığını gör;
+(2) #1'deki savunma sarmalayıcısına foto fallback'i de ekle: _chPhotos boş ama
+window._chDocFiles doluysa oradan doldur; (3) uçtan uca test: foto yükle → üret →
+debug'da photo_count>0 + vision_in_answers=EVET + belge foto verisini kullanıyor.
+
 ## #2 — KRİTİK: Gönderen/Muhatap rol karışması
 Kullanıcının adı "Antragsgegner" (karşı taraf) olarak yazılmış. api.php draft
 prompt'unda SENDER bloğu placeholder'larla, muhatap ise CASE DETAILS içindeki
