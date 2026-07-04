@@ -48,7 +48,7 @@ else { echo "  ✗ [1] anchor bulunamadi — YAZILMADI\n"; exit; }
 
 /* ── 2) prompt kurali: plain text only ── */
 $pAnchor = '- Return ONLY the document text, no explanations';
-$pNew = $pAnchor . "\n- Plain text only: NEVER use Markdown (no **, no ---, no #). Omit any field whose value is unknown (no empty labels like \"Telefon:\").";
+$pNew = $pAnchor . "\n- Plain text only: NEVER use Markdown (no **, no ---, no #). Omit any field whose value is unknown (write no empty labels such as Telefon: with nothing after it).";
 $src2 = str_replace($pAnchor, $pNew, $src, $c2);
 if ($c2) { $src = $src2; echo "  ✓ [2] prompt kurali eklendi ($c2 nokta)\n"; }
 else { echo "  - [2] prompt anchor yok (atlandi — temizlik blogu yeterli)\n"; }
