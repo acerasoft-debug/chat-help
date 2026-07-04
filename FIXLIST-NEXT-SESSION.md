@@ -252,6 +252,19 @@ AI'ya HİÇ gitmiyor — not metni artık hukuken doğru). KALAN:
   if(!empty($answers['ch_sender_name'])) → isim parçala, $ph VORNAME/NACHNAME
   override (CH_SENDER_OVERRIDE marker'ıyla, $ph tanımından hemen sonra).
 - Plan tespiti: P.plan||ch_user.plan ('free','basic','pro','elite').
+- GENISLETME (kullanici talebi, premium AILE sistemi):
+  * Basic: 1 profil. Pro: 5 AILE profili (es, cocuklar...). Her profil:
+    ad/soyad/adres/tel/email + VESIKALIK FOTO (base64, ch_profiles[i].photo).
+  * Profil secici: Konto'da premium kart tasarimi (foto + ad + "aktif" rozeti);
+    aktif profil localStorage ch_active_profile; belge uretimi aktif profille.
+  * Vesikalik foto CV/Bewerbung uretiminde kullanilir (#3b sablonuna baglanir).
+  * ANTRAGE KISI BAZLI: her uretimde aktif profil adi stored kayda eklensin
+    (backend: body.profile zaten gidiyor -> doGenerate $stored'a 'profileName'
+    alani ekle; apply ile kucuk patch). Antrage listesinde kisi filtresi/rozeti.
+  * ⚠️ 5 TELEFON SENKRONU: localStorage CIHAZA OZELDIR — 5 telefonda ayni
+    profiller icin SUNUCU tarafinda saklama sart (auth.php hesabina bagli:
+    action=save_profiles/get_profiles, STORE_DIR/profiles_<uid>.json).
+    Iki asama: once localStorage (tek cihaz, hemen), sonra sunucu senkronu.
 - Test: pro'da 5. profilden sonra ekleme engellenir; seçilen profille üretilen
   belgede o profilin adı; elite'te serbest ad belgeye yazılır; free'de hiçbir
   yeni UI görünmez.
