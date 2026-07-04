@@ -88,6 +88,45 @@ Bu kadar — **`build.gradle`'ı elle düzenlemene gerek yok**, `npm run setup:a
 
 ---
 
+## 4b) Mac'in yok mu? CI'da imzalı .aab üret (GitHub Secrets)
+
+Android Studio/Mac olmadan, sadece bir terminalde `keytool` çalıştırıp (Linux/Windows'ta da
+JDK ile gelir) 4 GitHub Secret ekleyerek CI'ya imzalı release build'i yaptırabilirsin —
+anahtarın kendisi hiçbir zaman koda veya loglara yazılmaz.
+
+1. **Keystore oluştur** (bir kere, güvenli bir yerde sakla — kaybedersen bu uygulamayı BİR DAHA
+   güncelleyemezsin):
+   ```bash
+   keytool -genkey -v -keystore chathelp-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias chathelp
+   ```
+   Sorulan store parolası + key parolasını not et.
+
+2. **Base64'e çevir** (GitHub Secrets sadece metin kabul eder):
+   ```bash
+   base64 -w0 chathelp-release.jks > chathelp-release.b64   # Linux
+   # Mac: base64 -i chathelp-release.jks | pbcopy
+   ```
+
+3. **GitHub'da 4 Secret ekle** → repo → *Settings* → *Secrets and variables* → *Actions* → *New repository secret*:
+   | İsim | Değer |
+   |---|---|
+   | `ANDROID_KEYSTORE_BASE64` | `chathelp-release.b64` dosyasının TAM içeriği |
+   | `ANDROID_KEYSTORE_PASSWORD` | store parolan |
+   | `ANDROID_KEY_ALIAS` | `chathelp` |
+   | `ANDROID_KEY_PASSWORD` | key parolan |
+
+4. **Workflow'u tetikle**: *Actions* sekmesi → *Build Android APK (CHelp)* → *Run workflow*
+   (veya `mobile/**` altına bir push yap). `build-release` job'u secret'ları görünce otomatik
+   çalışır ve imzalı `.aab`'yi üretir.
+
+5. **İndir**: workflow çalışması bitince *Artifacts* altında **CHelp-release-aab** — bu dosya
+   (`CHelp-release.aab`) doğrudan Play Console'a yüklenecek dosya.
+
+Secret'lar eklenmemişse bu job sessizce atlanır — mevcut test (debug APK) build'i her zaman
+normal çalışmaya devam eder.
+
+---
+
 ## 5) Sürüm numarası
 
 `android/app/build.gradle` → `defaultConfig`:

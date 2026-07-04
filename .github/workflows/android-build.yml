@@ -78,3 +78,87 @@ jobs:
           prerelease: true
           make_latest: "false"
           files: CHelp.apk
+
+  build-release:
+    # Google Play'e yuklenecek IMZALI .aab. Yalnizca repo Secrets'inde imza
+    # bilgisi VARSA calisir; yoksa sessizce atlanir (debug build etkilenmez).
+    # Anahtar (keystore) hicbir zaman bu repoya/CI logina yazilmaz.
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - name: Check signing secrets present
+        id: sign
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "ANDROID_KEYSTORE_BASE64 secret yok — release job atlaniyor. Kurulum icin mobile/BUILD-ANDROID.md > '6b) CI'da imzali release' bolumune bak."
+          fi
+
+      - name: Checkout
+        if: steps.sign.outputs.has == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: steps.sign.outputs.has == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java 17
+        if: steps.sign.outputs.has == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        if: steps.sign.outputs.has == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps + add Android platform + patch native
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile
+        run: |
+          npm install
+          npm run setup:android
+
+      - name: Generate app icon + splash
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile
+        run: npx capacitor-assets generate --android || echo "assets step skipped"
+
+      - name: Restore keystore from secret
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile/android
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > release.jks
+
+      - name: Write key.properties from secrets
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile/android
+        run: |
+          cat > key.properties <<EOF
+          storeFile=release.jks
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release AAB
+        if: steps.sign.outputs.has == 'true'
+        working-directory: mobile/android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
+
+      - name: Rename AAB
+        if: steps.sign.outputs.has == 'true'
+        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab CHelp-release.aab
+
+      - name: Upload AAB artifact (Play Console'a bunu yukle)
+        if: steps.sign.outputs.has == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHelp-release-aab
+          path: CHelp-release.aab
+          if-no-files-found: error
