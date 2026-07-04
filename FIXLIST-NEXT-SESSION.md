@@ -159,6 +159,26 @@ workflow'u çalıştır → Artifact: CHelp-release.aab → Play Console'a yükl
 Rehber: mobile/BUILD-ANDROID.md §4b. Play form cevapları: mobile/PLAY-COMPLIANCE.md.
 NOT: Debug APK Play'e YÜKLENEMEZ; internal testing bile imzalı AAB ister.
 
+## #8b — PLAN BAZLI PROFİL SİSTEMİ (kullanıcı talebi, tasarım hazır — implement edilecek)
+Temel katman TAMAM: CH_PROFILE_REQ (üretim öncesi profil zorunlu) + CH_ONBOARD
+(girişte Konto'ya yönlendirme + DSGVO notu) + CH_ANON_FINAL (ad/adres/iletişim
+AI'ya HİÇ gitmiyor — not metni artık hukuken doğru). KALAN:
+- FREE/BASIC: TEK profil (mevcut davranış) — tüm dilekçeler hep bu isme. ✅ zaten böyle.
+- PRO: en fazla 5 profil. localStorage 'ch_profiles' = [{f1..f7},...]; Konto'ya
+  profil yöneticisi (listele/ekle/sil, 5 sınırı, plan!=='pro'&&'elite' ise gizli);
+  belge formunun üstüne profil seçici (select, data-noi18n) — seçilen profil
+  genDoc çağrısında window.P yerine geçer (P'yi kalıcı DEĞİŞTİRME; sadece o
+  üretim için profile param'ı override: genDoc sarmalayıcısında
+  body.profile=secilen). Backend değişikliği GEREKMEZ ($profile zaten body'den).
+- ELITE: belgedeki gönderen adı SERBEST değiştirilebilir — form üstüne opsiyonel
+  "Absender-Name (frei)" alanı (data-k ch_sender_name); api.php'de küçük ek:
+  if(!empty($answers['ch_sender_name'])) → isim parçala, $ph VORNAME/NACHNAME
+  override (CH_SENDER_OVERRIDE marker'ıyla, $ph tanımından hemen sonra).
+- Plan tespiti: P.plan||ch_user.plan ('free','basic','pro','elite').
+- Test: pro'da 5. profilden sonra ekleme engellenir; seçilen profille üretilen
+  belgede o profilin adı; elite'te serbest ad belgeye yazılır; free'de hiçbir
+  yeni UI görünmez.
+
 ## #9 — Bekleyen küçük işler
 - Task #9 (eski liste): ülke resmi formları faz 2 (Staatliche mantığı diğer ülkelere,
   form içi 1,99€ Stripe) — başlanmadı.
