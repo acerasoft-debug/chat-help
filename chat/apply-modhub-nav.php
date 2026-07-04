@@ -86,16 +86,7 @@ try{(function(){
       document.body.appendChild(b);
     }catch(e){}
   }
-  function fabVis(){
-    try{
-      var b=document.getElementById("ch-hub-fab"); if(!b) return;
-      /* acik bir panel varsa gizle (chat/ana sayfa disi) */
-      var open=document.querySelector(".pnl.on")||document.querySelector('[class*="pnl"][class*="on"]');
-      b.style.display=open?"none":"flex";
-    }catch(e){}
-  }
-
-  function tick(){ addHubNav(); addFab(); fabVis(); addCardRobust(); }
+  function tick(){ addHubNav(); addFab(); addCardRobust(); }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",function(){ tick(); setInterval(tick,1200); });
   else { tick(); setInterval(tick,1200); }
 })();}catch(e){}
