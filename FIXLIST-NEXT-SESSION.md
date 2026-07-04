@@ -18,7 +18,34 @@ neden hipotezleri ve somut düzeltme talimatlarıyla içerir. Sıra = öncelik.
   teslim (tarayıcıya inen HTML) edge cache yüzünden eski olabilir — kalıcı çözüm için
   GoDaddy destek talebi hâlâ bekliyor (aşağıda #7).
 
-## #1 — KRİTİK: Belge üretimi bozuk (sonsuz "Bitte warten" döngüsü)
+## #1 — KRİTİK: Belge üretimi bozuk — KÖK NEDEN KANITLANDI (dump-gen-debug3, 2026-07-04 09:01)
+KESİN KANIT: Backend/AI hattı ÇALIŞIYOR (research=1999, draft=1172, final=1108 bayt;
+CH_DOCQUAL doğru — bracket yerine temiz ____ boşluklar üretilmiş). SORUN FRONTEND:
+api.php'ye ulaşan answers = SADECE {"datum":"4.7.2026"} — datum'u da genDoc kendisi
+ekliyor (boş objeye). Yani genDoc BOŞ cevaplarla çağrılmış; formdaki hiçbir alan
+(kundennummer, anbieter, ch_empfaenger, neden…) gönderilmemiş. AI jenerik mektup yazmış.
+Ek kanıt: profil de neredeyse boş (VORNAME=Acerasoft NACHNAME=LLC, adres/tel yok) —
+gönderen bloğu boş kalıyor; "isim Antragsgegner oldu" karışıklığı da boş answers +
+boş profil ile AI'nın rol tahmininden geliyor (bkz #2).
+Yığılan "Bitte warten" = genDoc'un DEFALARCA boş ans ile çağrılması.
+ARAŞTIRILACAK: genDoc'u boş ans ile TEKRAR TEKRAR çağıran yol hangisi?
+Adaylar (sırayla):
+a) location.reload() sonrası restoreConv() eski form baloncuğunu geri çiziyor ama
+   buton onclick closure'ları (box/ans referansı) KAYIP → butona basınca ans boş
+   VEYA buton hiçbir şey yapmıyor, kullanıcı sohbet yolunu deniyor.
+b) Sohbet-akışı yolu (composer'dan yazınca) genDoc(dk,{}) çağırıyor olabilir —
+   state.ans toplama zinciri kopuk.
+c) window._pendingDoc replay (paywall→login) eski/boş ans ile tekrar oynatıyor.
+GÜVENLİ SAVUNMA DÜZELTMESİ (yol hangisi olursa olsun işe yarar, apply ile index.php'ye):
+genDoc sarmalayıcısında (veya yeni bir wrap'te): gönderilecek ans'ta ≤1 anahtar varsa
+DOM'daki SON formdan topla → document.querySelectorAll('#msgs [data-k]') üzerinden
+{k:value} birleştir (dolu değerler öncelikli), ch_empfaenger dahil. Ek olarak: ans yine
+boşsa üretime GİRME — kullanıcıya "form alanlarını doldurun" uyarısı göster (jenerik
+belge üretmekten iyidir). Ve genDoc başında mevcut TÜM bekleme mesajlarını sil,
+yenisini 1 kez ekle (kullanıcı talebi: tek mesaj + arayüz dilinde, ar/ru dahil).
+Profil eksikliği için: resmi dilekçe üretiminden önce profil (ad+adres) boşsa kibar
+uyarı/yönlendirme (Konto → Profil).
+(Önceki hipotez bölümü aşağıda — artık ikincil:)
 Belirti (ekran görüntüsü): "Bitte warten, Ihr Dokument wird erstellt …" mesajı ÜST ÜSTE
 onlarca kez yığılıyor, kırmızı "Abbrechen" butonu görünüyor, belge gelmiyor.
 Bağlantılı belirtiler (muhtemelen AYNI kök neden):
