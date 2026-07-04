@@ -164,6 +164,37 @@ açılır → deneyim soruları sorulur → metin hazır → "E-posta ile gönde
 (konu+gövde dolu) + CV PDF indirme; CV yoksa önce CV akışına yönlendirir; CV
 şablonu fotoğraflı ve estetik.
 
+## #3c — IS ARAMA: E-POSTA + 50 SONUC + PLAN BAZLI GUNLUK KOTA (kullanıcı talebi)
+1) FIRMA E-POSTASI: ⚠️ AI'ya serbest e-posta yazdirmak YASAK KALIR (uydurma adres
+   riski — basvuru boşa gider, spam/hukuk riski). Iki asamali cozum:
+   a) chJobFindAI prompt'una ek: "Include an application e-mail ONLY if you are
+      highly confident it is the company's real, public careers address (e.g.
+      published careers@/jobs@); otherwise empty string. NEVER guess." → UI'da
+      e-posta varsa kartta goster + 'Basvuruyu e-postayla hazirla' butonu.
+   b) Opsiyonel guclendirme: Hunter.io benzeri yasal e-posta bulma API'si
+      (kullanici ucretsiz anahtar alir; jbdata/hunter.key deseni, Jooble gibi).
+2) KULLANICININ KENDI E-POSTASINA GONDERIM: 'Paketi e-postama gonder' butonu →
+   backend send-doc.php altyapisiyla (once dump: imza/parametre) kullanicinin
+   KAYITLI adresine Anschreiben metni (+ CV PDF, #3b sablonu hazirsa ekli)
+   gonderilir; kullanici kendi kutusundan firmaya iletir/gonderir. (Otomatik
+   firmaya gonderim YOK — onceki karar: spam/ToS riski.)
+3) 50 SONUCA KADAR: 'Daha fazla goster' butonu → ayni aramada devam:
+   - Jooble yolunda: sayfalama (page param) ile 25+25.
+   - AI yolunda: ikinci cagri "list 25 MORE, different from: <onceki firmalar>"
+     (dedup: company adi normalize edilip Set'te tutulur). Kart limiti 50.
+4) GUNLUK PLAN KOTASI (istemci+backend):
+   - Basic: gunde 3 arama (~50 firma/arama, gunluk ~150 kart tavani yerine
+     kullanici ifadesi esas: 3 arama = yeterli)  → sayac localStorage
+     'ch_jobq_YYYY-MM-DD' {searches:n, companies:n}.
+   - Pro: gunde 100 firma karti.  - Elite: gunde 200 firma karti.
+   - Free: panel gorunur ama arama kilitli → plan sec CTA (paywall).
+   - Kota dolunca arayuz dilinde net mesaj + Konto/plan linki. Backend'e de
+     basit koruma: jobsearch action gunluk IP/sid sayaci (jbdata/jobq-<gun>.json)
+     — istemci atlatilirsa da sinir calisir.
+KABUL: Basic hesapta 4. arama engellenir; 'Daha fazla' ile 50 karta ulasilir;
+e-posta SADECE gercek/resmi oldugunda gorunur; 'e-postama gonder' kullanicinin
+kayitli adresine paket yollar.
+
 ## #4 — Anträge dolmuyor
 Büyük olasılıkla #1'in sonucu (belge kaydedilmiyor). #1 çözülünce yeniden test et.
 Hâlâ boşsa: doHistory sid eşleşmesini dump'la (STORE_DIR glob '{$sid}_*' vs kayıtta
