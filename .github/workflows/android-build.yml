@@ -80,10 +80,12 @@ jobs:
           files: ChatHelp.apk
 
   build-release:
-    # Google Play'e yuklenecek IMZALI .aab. Yalnizca repo Secrets'inde imza
-    # bilgisi VARSA calisir; yoksa sessizce atlanir (debug build etkilenmez).
-    # Anahtar (keystore) hicbir zaman bu repoya/CI logina yazilmaz.
+    # Google Play icin .aab. Secrets VARSA imzali uretir; YOKSA imzasiz
+    # (unsigned) uretip release'e yukler — imzalama sonra jarsigner ile
+    # terminalde yapilir (Google'in resmi destekledigi yol).
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       CI: "true"
     steps:
@@ -94,39 +96,33 @@ jobs:
             echo "has=true" >> "$GITHUB_OUTPUT"
           else
             echo "has=false" >> "$GITHUB_OUTPUT"
-            echo "ANDROID_KEYSTORE_BASE64 secret yok — release job atlaniyor. Kurulum icin mobile/BUILD-ANDROID.md > '6b) CI'da imzali release' bolumune bak."
+            echo "Secrets yok — IMZASIZ .aab uretilecek (jarsigner ile sonradan imzalanir)."
           fi
 
       - name: Checkout
-        if: steps.sign.outputs.has == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node
-        if: steps.sign.outputs.has == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Setup Java 17
-        if: steps.sign.outputs.has == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Setup Android SDK
-        if: steps.sign.outputs.has == 'true'
         uses: android-actions/setup-android@v3
 
       - name: Install deps + add Android platform + patch native
-        if: steps.sign.outputs.has == 'true'
         working-directory: mobile
         run: |
           npm install
           npm run setup:android
 
       - name: Generate app icon + splash
-        if: steps.sign.outputs.has == 'true'
         working-directory: mobile
         run: npx capacitor-assets generate --android || echo "assets step skipped"
 
@@ -146,19 +142,30 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
-      - name: Build signed release AAB
-        if: steps.sign.outputs.has == 'true'
+      - name: Build release AAB
         working-directory: mobile/android
         run: ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: Rename AAB
-        if: steps.sign.outputs.has == 'true'
-        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
+      - name: Rename AAB (signed or unsigned)
+        run: |
+          if [ "${{ steps.sign.outputs.has }}" = "true" ]; then
+            cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
+          else
+            cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-unsigned.aab
+          fi
 
-      - name: Upload AAB artifact (Play Console'a bunu yukle)
-        if: steps.sign.outputs.has == 'true'
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: ChatHelp-release-aab
-          path: ChatHelp-release.aab
+          path: ChatHelp-*.aab
           if-no-files-found: error
+
+      - name: Publish unsigned AAB to release (terminalden indirilip imzalanacak)
+        if: steps.sign.outputs.has == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-latest
+          prerelease: true
+          make_latest: "false"
+          files: ChatHelp-unsigned.aab
