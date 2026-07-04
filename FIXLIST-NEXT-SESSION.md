@@ -127,6 +127,43 @@ f) E-posta: otomatik GÖNDERME YOK (spam riski, kullanıcıyla önceden anlaşı
 KABUL: "Berlin + yazılım" → 5-12 gerçek firma kartı; boşsa nedeni yazıyor; karttan
 mektup + mailto taslağı; panel meslek soruyor/hatırlıyor; adres otomatik dolmuyor.
 
+## #3b — BEWERBUNG UCTAN UCA AKISI (kullanıcı talebi — tam spec)
+Hedef: "İş başvurusunda bulunma" belgeleri profesyonel bir akış olsun.
+1) OTOMATİK DOLDURMA: Bewerbung/CV formlarındaki kişisel alanlar profilden
+   otomatik dolsun. ÖNCE dump gerekli: tr_basvuru/bew_* dokümanlarının q key'leri
+   (ör. "kisisel","ad_soyad","iletisim"?) — sonra render'daki _pf haritasına bu
+   key'ler eklenir (f1+f2 ad, f6 tel, f7 email, f4 şehir). Ayrıca hedef işveren:
+   İş panelinden gelindiyse (seçilen ilan) firma adı+yeri forma otomatik yazılsın
+   (window._chJobCtx = seçilen ilan; form açılırken firma alanına inject).
+2) ANSCHREIBEN → E-POSTA: ⚠️ TEKNİK SINIR: mailto: EK DOSYA EKLEYEMEZ (tarayıcı
+   standardı; hiçbir sitede yapılamaz). İki meşru yol:
+   a) mailto ile konu+gövde (Anschreiben metni) hazır açılır; CV/Lebenslauf PDF
+      indirilir, kullanıcı manuel ekler (1 tık fark), VEYA
+   b) sitenin MEVCUT send-doc.php altyapısıyla (PROTECT listesinde var — e-posta
+      gönderebiliyor) backend'den ekli e-posta gönderimi: kullanıcının KENDİ
+      adresine Anschreiben+CV PDF ekli mail atılır → oradan iletir. Önce
+      dump-senddoc ile imza/parametreleri çıkar, sonra 'sendBewerbung' action.
+   Öneri: (a) hemen, (b) ikinci adım.
+3) EKSİK KONTROL + YÖNLENDİRME: Anschreiben üretilmeden önce kontrol listesi:
+   profil tam mı, CV/Lebenslauf var mı (Anträge geçmişinde bew_cv/lebenslauf tipli
+   belge VAR MI diye action=history'den bak), vesikalık foto yüklü mü. Eksikler
+   arayüz dilinde TEK mesajla listelenir; ilgili bölüme yönlendirilir (CV yoksa
+   CV formunu aç: showCat/openDoc ile bew_/tr_basvuru kategorisi).
+4) FOTOĞRAFLI ESTETİK CV ŞABLONU: kullanıcıdan vesikalık foto al (mevcut attach
+   altyapısı), CV/Lebenslauf çıktısına yerleştir. Uygulama: CV HTML şablonu
+   (print/PDF için A4, foto sağ üst, temiz tipografi — form-engine'deki staatliche
+   HTML form deseni örnek alınabilir); doc çıktısı yerine bu şablona render eden
+   özel bir viewer (sadece bew_cv/lebenslauf tipleri için). Foto base64 olarak
+   localStorage ch_cv_photo'da tutulur (sunucuya gerek yok).
+5) İŞE ÖZGÜ SORULAR: Bewerbung q listesine ekle: "Bu alanda kaç yıl deneyim?",
+   "Öne çıkan 2-3 başarı/yetkinlik", "Neden bu firma?" (opsiyonel) — cevaplar
+   Anschreiben metnine hazır cümleler olarak işlensin (backend'e ek gerek yok,
+   CASE DETAILS zaten kullanılıyor).
+KABUL: İş panelinden ilan seç → Anschreiben formu firma+kişisel bilgiler dolu
+açılır → deneyim soruları sorulur → metin hazır → "E-posta ile gönder" mailto
+(konu+gövde dolu) + CV PDF indirme; CV yoksa önce CV akışına yönlendirir; CV
+şablonu fotoğraflı ve estetik.
+
 ## #4 — Anträge dolmuyor
 Büyük olasılıkla #1'in sonucu (belge kaydedilmiyor). #1 çözülünce yeniden test et.
 Hâlâ boşsa: doHistory sid eşleşmesini dump'la (STORE_DIR glob '{$sid}_*' vs kayıtta
