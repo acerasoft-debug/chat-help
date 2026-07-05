@@ -427,9 +427,9 @@ try{(function(){
 </script>
 MODHTML;
 
-$nn = 0;
-$src = preg_replace('/<\/body>/', $bundle . "\n</body>", $src, 1, $nn);
-if (!$nn) exit("HATA: </body> bulunamadi — yazilmadi.\n");
+$p = strrpos($src, '</body>');
+if ($p === false) exit("HATA: </body> bulunamadi — yazilmadi.\n");
+$src = substr($src, 0, $p) . $bundle . "\n" . substr($src, $p);
 
 $tmp = tempnam(sys_get_temp_dir(), 'idx') . '.php';
 file_put_contents($tmp, $src);
