@@ -4,7 +4,8 @@
  *  GECICI teshis panellerini kaldirir:
  *   • CH_NAVDEBUG (sol alttaki yesil kutu)
  *   • CH_NAVORDER_DEBUG (sag ustteki camgobegi kutu)
- *  Sadece bu iki script blogunu siler, baska hicbir seye dokunmaz.
+ *   • CH_SBDEBUG (sol ustteki sari kutu)
+ *  Sadece bu script bloklarini siler, baska hicbir seye dokunmaz.
  * KULLANIM: pull-updates.php?files=apply-debug-remove.php
  */
 header('Content-Type: text/plain; charset=UTF-8');
@@ -17,7 +18,7 @@ if ($src === false) exit("index.php okunamadi\n");
 file_put_contents($file . '.bak-dbgremove-' . date('Ymd-His'), $src);
 
 $removed = 0;
-foreach (['ch-navdebug', 'ch-navorder-debug'] as $id) {
+foreach (['ch-navdebug', 'ch-navorder-debug', 'ch-sbdebug'] as $id) {
     $start = strpos($src, '<script id="' . $id . '">');
     if ($start === false) { echo "  – $id zaten yok\n"; continue; }
     $end = strpos($src, '</script>', $start);
