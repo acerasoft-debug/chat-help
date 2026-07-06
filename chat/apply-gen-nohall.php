@@ -34,15 +34,15 @@ $old1b = 'if ($dsR) $research = $dsR;';
 $new1b = 'if ($dsR) $research = "NUR BELEGTE NUTZERANGABEN (nichts ergänzen, nichts erfinden):\n".$dsR;';
 $c=0; $src=str_replace($old1b,$new1b,$src,$c); echo ($c?"  ✓ [1b] research etiketi olgu-only\n":"  ✗ [1b] research atama anchor yok\n");
 
-/* ── 2) draftPrompt: "§§ belirt" -> sıkı uydurma yasagi ── */
+/* ── 2) draftPrompt: "§§ belirt" -> GUVENLI §§ (uydurma yok) ── */
 $old2 = '- Cite specific laws with §§ or Article numbers';
-$new2 = '- Do NOT invent anything: add no facts, no law paragraphs/§§, no legal arguments and no demands that are not present in CASE DETAILS; formalize ONLY what the user provided; cite a §/article/statute ONLY if the user themselves stated it, otherwise cite none';
-$c=0; $src=str_replace($old2,$new2,$src,$c); $n+=$c; echo ($c?"  ✓ [2] draftPrompt uydurma yasagi\n":"  ✗ [2] draftPrompt anchor yok\n");
+$new2 = '- Do NOT invent facts, legal arguments or demands the user did not state — formalize only what the user provided. Cite the applicable statutes/§§/articles that genuinely fit this matter, but ONLY well-established provisions you are certain exist and correctly apply; when unsure of the exact number, state the legal point in plain words WITHOUT inventing a paragraph; never invent case-law/precedent';
+$c=0; $src=str_replace($old2,$new2,$src,$c); $n+=$c; echo ($c?"  ✓ [2] draftPrompt guvenli-§§ kurali\n":"  ✗ [2] draftPrompt anchor yok\n");
 
-/* ── 3) Final adim: cila -> DENETCI ── */
+/* ── 3) Final adim: cila -> GUVENLI-§§ DENETCISI ── */
 $old3 = '"Precise document assistant. Document tone: "';
-$new3 = '"Precise document assistant AND strict fact-checker: remove from the document any law paragraph/§, legal argument or demand that is NOT present in the user CASE DETAILS; keep only what the user stated; invent nothing and change no facts. Document tone: "';
-$c=0; $src=str_replace($old3,$new3,$src,$c); $n+=$c; echo ($c?"  ✓ [3] final adim denetciye cevrildi\n":"  ✗ [3] final anchor yok\n");
+$new3 = '"Precise document assistant AND strict legal fact-checker: verify every cited paragraph/§/article and KEEP it only if you are certain it is a real provision that correctly applies to this exact matter — if in any doubt about its existence or applicability, remove the citation number but keep the sentence; never add new paragraphs or case-law; remove any fact or demand the user did not state and change no facts. Document tone: "';
+$c=0; $src=str_replace($old3,$new3,$src,$c); $n+=$c; echo ($c?"  ✓ [3] final adim guvenli-§§ denetcisi\n":"  ✗ [3] final anchor yok\n");
 
 /* ── 4) Foto vision: kisisel veri korumasi ── */
 $old4 = 'Extrahiere alle relevanten Fakten (Daten, Fristen, Aktenzeichen, Beträge, Behörde/Absender, Kernaussagen) als knappe deutsche Stichpunkte. Keine Einleitung, keine Erklärungen.';
