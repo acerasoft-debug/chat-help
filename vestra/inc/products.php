@@ -205,8 +205,8 @@ function vestra_all_cats(){
     'Kids & Baby'        => ['Kidswear','Babywear'],
   ];
 }
-function vestra_unit_price($p,$qty){ $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
-function vestra_from_price($p){ $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
+function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
 function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
 
@@ -271,6 +271,39 @@ function vestra_save_listings(array $list): void {
 }
 function vestra_listing_by_id(string $id): ?array {
     foreach (vestra_listings() as $l) if (($l['id']??'') === $id) return $l; return null;
+}
+/* ─── Ownership helpers (multi-seller safety — every seller only ever touches their own data) ─── */
+function vestra_seller_listings(string $uid): array {
+    if ($uid === '') return [];
+    return array_values(array_filter(vestra_listings(), fn($p) => ($p['seller_uid']??'') === $uid));
+}
+function vestra_listing_owner(string $id): ?string {
+    $l = vestra_listing_by_id($id);
+    return $l ? ($l['seller_uid'] ?? '') : null;
+}
+function vestra_listing_by_sku(string $sku): ?array {
+    if ($sku === '') return null;
+    foreach (vestra_listings() as $l) if (($l['sku']??'') === $sku) return $l;
+    return null;
+}
+/* Parse the "12x SKU-123 @19.99 | 5x SKU-456 @9.99" string order.php writes into orders.csv's items column. */
+function vestra_parse_order_items(string $items): array {
+    $out = [];
+    foreach (explode(' | ', $items) as $seg) {
+        if (preg_match('/^(\d+)x\s+(\S+)\s+@([\d.]+)$/', trim($seg), $m)) {
+            $out[] = ['qty'=>(int)$m[1], 'sku'=>$m[2], 'unit'=>(float)$m[3]];
+        }
+    }
+    return $out;
+}
+/* An order can bundle SKUs from several sellers (buyer's cart isn't seller-partitioned) — true if
+   at least one line item in this order row belongs to the given seller's SKU list. */
+function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {
+    if (!$sellerSkus) return false;
+    foreach (vestra_parse_order_items($orderRow['items'] ?? '') as $it) {
+        if (in_array($it['sku'], $sellerSkus, true)) return true;
+    }
+    return false;
 }
 function vestra_read_json(string $name): array {
     $f = vestra_data_dir().'/'.$name;

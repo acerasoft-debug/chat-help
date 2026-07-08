@@ -14,11 +14,14 @@
  * IMPORTANT: verify signature before ANY processing.
  */
 require_once __DIR__ . '/../inc/env.php';
-require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/products.php';
 require_once __DIR__ . '/../inc/notify.php';
 require_once __DIR__ . '/../inc/stripe.php';
+
+if (!stripe_available()) {
+    http_response_code(503); echo 'Stripe library not installed'; exit;
+}
 
 // Must read raw body before any output or other reads
 $payload   = (string) file_get_contents('php://input');

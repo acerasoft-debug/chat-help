@@ -87,6 +87,7 @@ function auth_register(array $d): array|string {
         'phone'         => trim($d['phone']       ?? ''),
         'website'       => trim($d['website']     ?? ''),
         'kyb_status'    => $promo_data ? 'approved' : 'pending',
+        'membership_status' => 'none',
         'promo_code'    => $promo_code,
         'promo_benefit' => $promo_data['benefit'] ?? '',
         'promo_expiry'  => $promo_data['expiry']  ?? '',

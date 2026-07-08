@@ -10,6 +10,7 @@ $isLoggedInSeller = $u && ($u['type'] ?? '') === 'seller';
 $membershipStatus = $u['membership_status'] ?? 'none';
 $alreadyActive    = in_array($membershipStatus, ['trialing', 'active'], true);
 $error = !empty($_GET['error']);
+$gated = !empty($_GET['gate']);
 ?>
 <style>
 /* Pricing page — design tokens from brief */
@@ -55,6 +56,8 @@ body{ background:#15171C }
 
   <?php if ($error): ?>
   <div class="merr"><?= t('Something went wrong — please try again or contact support.') ?></div>
+  <?php elseif ($gated): ?>
+  <div class="merr" style="background:rgba(240,192,96,.1);border-color:rgba(240,192,96,.35);color:#f0c060"><?= t('An active membership is required to publish products. Choose a plan below to get started.') ?></div>
   <?php endif; ?>
 
   <?php if ($alreadyActive): ?>

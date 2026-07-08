@@ -5,10 +5,21 @@
  * Requires composer install (stripe/stripe-php ^14).
  */
 require_once __DIR__ . '/env.php';
-require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/auth.php';
 
+/** True if composer dependencies are installed. Loads the Stripe autoloader as a side effect. */
+function stripe_available(): bool {
+    static $ok = null;
+    if ($ok === null) {
+        $autoload = __DIR__ . '/../vendor/autoload.php';
+        $ok = is_file($autoload);
+        if ($ok) require_once $autoload;
+    }
+    return $ok;
+}
+
 function stripe_client(): \Stripe\StripeClient {
+    if (!stripe_available()) throw new \RuntimeException('Stripe library not installed — run composer install.');
     static $c;
     if (!$c) {
         $key = getenv('STRIPE_SECRET_KEY') ?: '';
