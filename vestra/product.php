@@ -184,6 +184,24 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
           </details>
         </div>
         <?php endif; ?>
+        <?php if(!empty($p['seller_uid'])): ?>
+        <div class="order-box" style="margin-top:14px">
+          <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer'): ?>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center">💬 <?= t('Message seller') ?></summary>
+            <form method="post" action="/buyer?tab=messages" style="margin-top:12px">
+              <input type="hidden" name="_action" value="send_message">
+              <input type="hidden" name="listing_id" value="<?= htmlspecialchars($p['id']) ?>">
+              <textarea name="body" rows="3" placeholder="<?= htmlspecialchars(t('Ask about MOQ, samples, delivery…')) ?>" required style="width:100%"></textarea>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Send') ?></button>
+              <div class="hint" style="margin-top:8px"><?= t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.') ?></div>
+            </form>
+          </details>
+          <?php else: ?>
+          <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center">💬 <?= t('Sign in to message seller') ?></a>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
         <script>
         var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }

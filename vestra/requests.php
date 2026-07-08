@@ -93,8 +93,8 @@ $cats=vestra_cats();
             <div><label class="hint"><?= t('Category') ?></label>
               <select name="cat" style="width:100%">
                 <option value=""><?= t('Any') ?></option>
-                <?php foreach($cats as $c): ?><option><?=htmlspecialchars($c)?></option><?php endforeach; ?>
-                <option><?= t('Other') ?></option>
+                <?php foreach($cats as $c): ?><option value="<?=htmlspecialchars($c)?>"><?=htmlspecialchars(t($c))?></option><?php endforeach; ?>
+                <option value="Other"><?= t('Other') ?></option>
               </select></div>
             <div><label class="hint"><?= t('Quantity') ?></label><input name="qty" placeholder="<?= htmlspecialchars(t('e.g. 300 pc')) ?>" style="width:100%"></div>
             <div><label class="hint"><?= t('Target price') ?></label><input name="target" placeholder="<?= htmlspecialchars(t('e.g. €24/pc or best offer')) ?>" style="width:100%"></div>

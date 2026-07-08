@@ -4,5 +4,8 @@
 # user account data — never commit
 vestra/data/accounts.json
 
+# buyer/seller conversations — never commit
+vestra/data/messages.json
+
 # composer dependencies
 vestra/vendor/

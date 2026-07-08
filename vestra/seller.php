@@ -126,6 +126,20 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=offers&responded=1'); exit;
 }
 
+// ── Messaging (reply within a thread the seller is part of) ───────────────────
+require __DIR__.'/inc/messages.php';
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='send_message') {
+    $uid = $_SESSION['uid'] ?? '';
+    $tid = $_POST['thread_id'] ?? '';
+    $body = $_POST['body'] ?? '';
+    $thread = vestra_msg_find_thread($tid);
+    if ($thread && $uid !== '' && ($thread['seller_uid']??'') === $uid) {
+        $res = vestra_msg_send($thread['buyer_uid'], $thread['seller_uid'], $uid, $body, $thread['listing_id']??'');
+        if (!$res['ok']) { header('Location: /seller?tab=messages&thread='.urlencode($tid).'&msgerr='.($res['error']==='flagged'?$res['flag']:'empty')); exit; }
+    }
+    header('Location: /seller?tab=messages&thread='.urlencode($tid)); exit;
+}
+
 require __DIR__.'/inc/dash.php';
 $PAGE=t('Seller panel'); $NAV='sell'; require __DIR__.'/inc/head.php';
 
@@ -158,6 +172,7 @@ $tabTitle = match($tab) {
     'listings' => t('My listings'),
     'orders'   => t('Orders'),
     'offers'   => t('Offers received'),
+    'messages' => t('Messages'),
     'kyc'      => t('Verification'),
     'profile'  => t('My profile'),
     default    => t('Overview'),
@@ -233,9 +248,9 @@ if($tab==='overview'){
         <div><label><?= t('Category') ?></label>
           <select name="cat">
             <?php foreach(vestra_all_cats() as $grp=>$items): ?>
-              <optgroup label="<?=htmlspecialchars($grp)?>"><?php foreach($items as $c) echo '<option>'.htmlspecialchars($c).'</option>'; ?></optgroup>
+              <optgroup label="<?=htmlspecialchars(t($grp))?>"><?php foreach($items as $c) echo '<option value="'.htmlspecialchars($c).'">'.htmlspecialchars(t($c)).'</option>'; ?></optgroup>
             <?php endforeach; ?>
-            <option><?= t('Other') ?></option>
+            <option value="Other"><?= t('Other') ?></option>
           </select></div>
         <div><label>SKU</label><input name="sku" placeholder="<?= htmlspecialchars(t('auto if blank')) ?>"></div>
         <div><label><?= t('Unit') ?></label><select name="unit"><option>pc</option><option>pack</option><option>set</option><option>carton</option></select></div>
@@ -338,11 +353,11 @@ if($tab==='overview'){
         <div><label><?= t('Category') ?></label>
           <select name="cat">
             <?php foreach(vestra_all_cats() as $grp=>$items): ?>
-              <optgroup label="<?=htmlspecialchars($grp)?>"><?php foreach($items as $c): ?>
-                <option<?= $c===($ep['cat']??'')?'  selected':'' ?>><?=htmlspecialchars($c)?></option>
+              <optgroup label="<?=htmlspecialchars(t($grp))?>"><?php foreach($items as $c): ?>
+                <option value="<?=htmlspecialchars($c)?>"<?= $c===($ep['cat']??'')?' selected':'' ?>><?=htmlspecialchars(t($c))?></option>
               <?php endforeach; ?></optgroup>
             <?php endforeach; ?>
-            <option<?= !in_array($ep['cat']??'',array_merge(...array_values(vestra_all_cats())))?'  selected':'' ?>><?= t('Other') ?></option>
+            <option value="Other"<?= !in_array($ep['cat']??'',array_merge(...array_values(vestra_all_cats())))?' selected':'' ?>><?= t('Other') ?></option>
           </select></div>
         <div><label>SKU</label><input name="sku" value="<?= htmlspecialchars($ep['sku']??'') ?>"></div>
         <div><label><?= t('Unit') ?></label>
@@ -495,6 +510,57 @@ if($tab==='overview'){
     echo '</tbody></table>';
   }
   echo '</div>';
+
+// ── MESSAGES ──────────────────────────────────────────────────────────────────
+} elseif($tab==='messages'){
+  $tid = $_GET['thread'] ?? '';
+  $thread = $tid ? vestra_msg_find_thread($tid) : null;
+  if ($thread && ($thread['seller_uid']??'') !== $uid) $thread = null;
+
+  if ($thread) {
+    vestra_msg_mark_read($tid, $uid);
+    $ctp = vestra_msg_counterpart_label($thread, $uid);
+    $msgerr = $_GET['msgerr'] ?? '';
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/seller?tab=messages">'.t('Back').'</a></div>';
+    if ($msgerr === 'email' || $msgerr === 'iban') {
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so escrow protection still applies. Your message was not sent.').'</div>';
+    }
+    echo '<div class="msgthread">';
+    foreach ($thread['messages'] as $m) {
+      $mine = ($m['from']??'') === $uid;
+      echo '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
+        nl2br(htmlspecialchars($m['text']??'')).
+        '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div></div></div>';
+    }
+    echo '</div>';
+    echo '<form method="post" action="/seller?tab=messages" class="msgcompose">
+      <input type="hidden" name="_action" value="send_message">
+      <input type="hidden" name="thread_id" value="'.htmlspecialchars($tid).'">
+      <textarea name="body" rows="2" placeholder="'.htmlspecialchars(t('Write a message…')).'" required></textarea>
+      <button class="btn btn-p" type="submit">'.t('Send').'</button>
+    </form>';
+    echo '<p class="hint" style="margin-top:10px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
+    echo '</div>';
+  } else {
+    $myThreads = vestra_msg_my_threads($uid);
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';
+    if (!$myThreads) {
+      dash_empty(t('No messages yet. Buyers can message you from a product page.'));
+    } else {
+      echo '<div class="threadlist">';
+      foreach ($myThreads as $th) {
+        $last = end($th['messages']);
+        $unread = vestra_msg_unread($th, $uid);
+        echo '<a class="threadrow'.($unread?' unread':'').'" href="/seller?tab=messages&thread='.urlencode($th['id']).'">
+          <div class="tr-name">'.htmlspecialchars(vestra_msg_counterpart_label($th, $uid)).($unread?' <span class="tr-dot"></span>':'').'</div>
+          <div class="tr-snippet">'.htmlspecialchars(mb_substr($last['text']??'', 0, 80)).'</div>
+          <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
+        </a>';
+      }
+      echo '</div>';
+    }
+    echo '</div>';
+  }
 
 // ── VERIFICATION / KYB ────────────────────────────────────────────────────────
 } elseif($tab==='kyc'){

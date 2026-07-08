@@ -7,6 +7,7 @@ function dash_open($role,$section,$title,$subtitle=''){
       ['listings',t('My listings'),'/seller?tab=listings'],
       ['orders',t('Orders'),'/seller?tab=orders'],
       ['offers',t('Offers received'),'/seller?tab=offers'],
+      ['messages',t('Messages'),'/seller?tab=messages'],
       ['kyc',t('Verification'),'/seller?tab=kyc'],
       ['profile',t('My profile'),'/seller?tab=profile'],
     ] : [
@@ -14,6 +15,7 @@ function dash_open($role,$section,$title,$subtitle=''){
       ['orders',t('My orders'),'/buyer?tab=orders'],
       ['requests',t('My requests'),'/buyer?tab=requests'],
       ['offers',t('My offers'),'/buyer?tab=offers'],
+      ['messages',t('Messages'),'/buyer?tab=messages'],
       ['kyc',t('Verification'),'/buyer?tab=kyc'],
       ['profile',t('My profile'),'/buyer?tab=profile'],
     ];
