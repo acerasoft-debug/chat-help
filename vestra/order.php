@@ -17,7 +17,8 @@ $lines=[]; $subtotal=0;
 foreach($cart as $it){
   $p=vestra_find($it['id']??''); if(!$p) continue;
   $qty=max((int)$p['moq'], (int)($it['qty']??0));
-  $unit=vestra_unit_price($p,$qty); $line=$qty*$unit; $subtotal+=$line;
+  $unit=vestra_unit_price($p,$qty); if($unit<=0) continue;
+  $line=$qty*$unit; $subtotal+=$line;
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line];
 }
 if(!$lines){ header('Location: /cart'); exit; }

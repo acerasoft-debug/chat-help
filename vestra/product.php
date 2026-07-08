@@ -87,7 +87,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
         </div>
 
       <?php elseif($offered): ?>
-        <div class="banner ok" style="margin-top:18px">✓ <?= t('Your offer is in the queue (ref') ?> <b><?= htmlspecialchars(substr($_GET['ref']??'',0,16)) ?></b>). <?= t('The seller will respond — track it under') ?> <a href="/requests" class="acc"><?= t('Requests') ?></a>.</div>
+        <div class="banner ok" style="margin-top:18px">✓ <?= t('Your offer is in the queue (ref') ?> <b><?= htmlspecialchars(substr($_GET['ref']??'',0,16)) ?></b>). <?= t('The seller will respond — track it under') ?> <a href="/buyer?tab=offers" class="acc"><?= t('My offers') ?></a>.</div>
         <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
 
       <?php elseif($mode==='offer'): ?>
@@ -105,7 +105,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div><label class="hint"><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>) — min <?= $p['moq'] ?></label>
+              <div><label class="hint"><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>) — <?= t('min') ?> <?= $p['moq'] ?></label>
                 <input type="number" name="qty" min="<?= $p['moq'] ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
               <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
                 <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
@@ -170,7 +170,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
               <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div><label class="hint"><?= t('Quantity') ?> — min <?= $p['moq'] ?></label>
+                <div><label class="hint"><?= t('Quantity') ?> — <?= t('min') ?> <?= $p['moq'] ?></label>
                   <input type="number" name="qty" min="<?= $p['moq'] ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
                 <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
                   <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>

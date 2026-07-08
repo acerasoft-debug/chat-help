@@ -10,7 +10,7 @@ $cats=vestra_cats();
 ?>
 <div class="wrap">
   <div class="phead">
-    <div class="crumbs"><a href="/">Home</a> · <?= t('Sourcing requests') ?></div>
+    <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Sourcing requests') ?></div>
     <h1><?= t('Sourcing board') ?></h1>
     <p><?= t("Can't find it in the catalog? <b>Post what you're looking for</b> and join the queue — verified sellers come to you with offers.") ?></p>
   </div>

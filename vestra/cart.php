@@ -66,6 +66,7 @@ $u = auth_user(); // logged-in user for pre-filling form
 <?php if(!$placed): ?>
 <script>
 function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 function render(){
   var c=VCart.all();
   document.getElementById('empty').style.display = c.length?'none':'block';
@@ -73,9 +74,9 @@ function render(){
   var rows='', sub=0;
   c.forEach(function(x){
     var line=x.qty*x.unit; sub+=line;
-    rows+='<tr><td><b>'+x.brand+'</b> — '+x.name+'<div class="hint">SKU '+x.sku+'</div></td>'+
-      '<td>'+x.qty+' '+x.unitLabel+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
-      '<td class="x" title="<?= htmlspecialchars(t('Remove')) ?>" onclick="VCart.remove(\''+x.id+'\');render()">✕</td></tr>';
+    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+'</div></td>'+
+      '<td>'+Number(x.qty)+' '+esc(x.unitLabel)+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
+      '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });
   document.getElementById('rows').innerHTML=rows;
   var bfee=sub*<?=VESTRA_FEE_BUYER?>;
@@ -84,6 +85,10 @@ function render(){
   document.getElementById('grand').textContent=eur(sub+bfee);
   document.getElementById('cartField').value=JSON.stringify(c);
 }
+document.getElementById('rows').addEventListener('click', function(e){
+  var id = e.target && e.target.dataset ? e.target.dataset.removeId : null;
+  if (id) { VCart.remove(id); render(); }
+});
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
   document.getElementById('cartField').value=JSON.stringify(VCart.all());
 });

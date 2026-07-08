@@ -5,7 +5,7 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/he
   echo '<div class="wrap"><div class="empty">'.t('This group buy is not available.').' <a class="acc" href="/groups">'.t('See open group buys →').'</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
 $PAGE=$p['name'].' — '.t('Group buy'); $NAV='groups'; require __DIR__.'/inc/head.php';
-$from=vestra_from_price($p); $joined=isset($_GET['joined']);
+$from=$p['tiers'][0]['price']??vestra_from_price($p); $joined=isset($_GET['joined']);
 $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
 ?>
 <style>
@@ -101,7 +101,7 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
           <div class="gate">
             <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
             <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to join this pool.') ?></p>
-            <a class="btn btn-p" href="?id=<?=urlencode($p['id'])?>&demo_member=1" style="width:100%;justify-content:center"><?= t('Sign in') ?></a>
+            <a class="btn btn-p" href="/login?back=<?=urlencode('/group?id='.$p['id'])?>" style="width:100%;justify-content:center"><?= t('Sign in') ?></a>
           </div>
         <?php else: ?>
           <h3 style="margin:0 0 4px"><?= t('Join this pool') ?></h3>

@@ -90,7 +90,7 @@ arsort($catCounts);
              data-idx="<?= $idx ?>"
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
              data-mode="<?= htmlspecialchars($p['mode']??'fixed') ?>"
-             data-price="<?= $p['mode']==='offer' ? 999999 : $from ?>"
+             data-price="<?= !$MEMBER ? '' : ($p['mode']==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
             <div class="sthumb<?= $img?' has-img':'' ?>" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">

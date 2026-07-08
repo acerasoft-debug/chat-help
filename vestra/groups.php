@@ -41,7 +41,7 @@ $pools=vestra_group_pools();
   <?php else: ?>
   <div class="gpools">
     <?php foreach($pools as $p):
-      $from=vestra_from_price($p); $tierTop=$p['_gprice'];
+      $from=$p['tiers'][0]['price']??vestra_from_price($p); $tierTop=$p['_gprice'];
       $statusLabel=['open'=>$p['_daysLeft'].' '.t('days left'),'funded'=>t('Target reached'),'expired'=>t('Closed')][$p['_status']]; ?>
       <a class="gpool" href="/group?id=<?=urlencode($p['id'])?>" style="text-decoration:none;color:inherit">
         <div class="top" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">

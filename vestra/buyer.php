@@ -26,35 +26,34 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=kyc'); exit;
 }
 
-// Confirm receipt (escrow release)
+// Confirm receipt (escrow release) — only the buyer who placed it, only once it's actually shipped
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='confirm_receipt') {
     $ref = $_POST['ref'] ?? '';
-    if ($ref) {
-        $st = vestra_read_json('order_statuses.json');
+    $me  = auth_user();
+    $myEmail = strtolower($me['email'] ?? '');
+    $orderRow = null;
+    foreach(vestra_read_csv('orders.csv') as $row){
+        if(($row['ref']??'')===$ref){ $orderRow=$row; break; }
+    }
+    $ownsOrder = $orderRow && $myEmail !== '' && strtolower($orderRow['email']??'') === $myEmail;
+    $st = vestra_read_json('order_statuses.json');
+    $currentStatus = $st[$ref]['status'] ?? 'pending';
+    if ($ref && $ownsOrder && $currentStatus === 'shipped') {
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         vestra_write_json('order_statuses.json', $st);
         /* Notify admin + seller */
         require_once __DIR__.'/inc/notify.php';
-        $buyerName=''; $orderItems='';
-        foreach(vestra_read_csv('orders.csv') as $row){
-            if(($row['ref']??'')!==$ref) continue;
-            $buyerName = ($row['name']?:$row['company']?:'');
-            $orderItems = $row['items']??'';
-            break;
-        }
+        $buyerName = ($orderRow['name']?:$orderRow['company']?:'');
+        $orderItems = $orderRow['items']??'';
         vestra_notify("Order {$ref} — receipt confirmed, escrow released",
           "Buyer confirmed receipt for order {$ref}.\nBuyer: {$buyerName}\nItems: {$orderItems}\n\nEscrow funds due for release to seller.\n\nAdmin: https://vestrasales.com/admin?tab=orders");
-        /* Notify seller(s) — match ordered SKUs from order_statuses or orders.csv items field */
+        /* Notify seller(s) — match ordered SKUs from orders.csv items field */
         $allListings=vestra_listings();
         $notified=[];
-        /* parse "qty x SKU @price | ..." items string from CSV */
-        $skus=[];
-        foreach(explode('|',$orderItems) as $seg){
-            if(preg_match('/\s([A-Z0-9\-]+)\s@/',$seg,$m)) $skus[]=$m[1];
-        }
+        $orderSkus=array_column(vestra_parse_order_items($orderItems),'sku');
         foreach($allListings as $listing){
             if(empty($listing['seller_uid'])||empty($listing['sku'])) continue;
-            if(!in_array($listing['sku'],$skus,true)) continue;
+            if(!in_array($listing['sku'],$orderSkus,true)) continue;
             if(in_array($listing['seller_uid'],$notified,true)) continue;
             foreach(auth_accounts() as $acc){
                 if(($acc['id']??'')!==$listing['seller_uid']||empty($acc['email'])) continue;
@@ -81,9 +80,10 @@ if(!$MEMBER){
   require __DIR__.'/inc/foot.php'; exit;
 }
 $tab=$_GET['tab']??'overview';
-$orders=vestra_read_csv('orders.csv');
-$requests=vestra_read_csv('requests.csv');
-$offers=vestra_read_csv('offers.csv');
+$myEmail=strtolower($AUTH_USER['email']??'');
+$orders=array_values(array_filter(vestra_read_csv('orders.csv'), fn($o)=>$myEmail!==''&&strtolower($o['email']??'')===$myEmail));
+$requests=array_values(array_filter(vestra_read_csv('requests.csv'), fn($o)=>$myEmail!==''&&strtolower($o['email']??'')===$myEmail));
+$offers=array_values(array_filter(vestra_read_csv('offers.csv'), fn($o)=>$myEmail!==''&&strtolower($o['email']??'')===$myEmail));
 $offerResp=vestra_read_json('offer_responses.json');
 $orderSt=vestra_read_json('order_statuses.json');
 
@@ -136,11 +136,30 @@ if($tab==='overview'){
   echo '</div>';
 
 } elseif($tab==='requests'){
+  $reqOffers = vestra_read_csv('request_offers.csv');
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Sourcing requests').'</h3><a class="btn btn-p btn-sm" href="/requests#post">＋ '.t('New request').'</a></div>';
   if(!$requests) dash_empty(t('No requests yet. Post what you need on the sourcing board.'));
   else { echo '<table class="ctable"><thead><tr><th>'.t('Ref').'</th><th>'.t('Looking for').'</th><th>'.t('Target').'</th><th>'.t('Status').'</th></tr></thead><tbody>';
-    foreach($requests as $r){ echo '<tr><td><b>'.htmlspecialchars($r['ref']??'').'</b></td><td>'.htmlspecialchars($r['title']??'').'<div class="hint">'.htmlspecialchars($r['qty']??'').'</div></td>'.
-      '<td>'.htmlspecialchars($r['target']??'').'</td><td><span class="status open">'.t('In queue').'</span></td></tr>'; }
+    foreach($requests as $r){
+      $rref = $r['ref']??'';
+      $myOffers = array_values(array_filter($reqOffers, fn($o)=>($o['request_ref']??'')===$rref));
+      if ($myOffers) {
+        $stCell = '<details class="respdetails"><summary class="status offers" style="cursor:pointer;display:inline-block">'.count($myOffers).' '.t('offer(s) received').'</summary>';
+        foreach($myOffers as $of){
+          $stCell .= '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);font-size:13px">'.
+            '<b>'.htmlspecialchars($of['seller_company']??'').'</b> — '.htmlspecialchars($of['price']??'').' / '.htmlspecialchars($of['qty']??'').
+            '<div class="hint">'.htmlspecialchars($of['delivery']??'').'</div>'.
+            (!empty($of['message'])?'<div class="hint">'.htmlspecialchars($of['message']).'</div>':'').
+            '<div class="hint">'.t('Contact').': <a class="acc" href="mailto:'.htmlspecialchars($of['seller_email']??'').'">'.htmlspecialchars($of['seller_email']??'').'</a></div>'.
+          '</div>';
+        }
+        $stCell .= '</details>';
+      } else {
+        $stCell = '<span class="status open">'.t('In queue').'</span>';
+      }
+      echo '<tr><td><b>'.htmlspecialchars($rref).'</b></td><td>'.htmlspecialchars($r['title']??'').'<div class="hint">'.htmlspecialchars($r['qty']??'').'</div></td>'.
+        '<td>'.htmlspecialchars($r['target']??'').'</td><td>'.$stCell.'</td></tr>';
+    }
     echo '</tbody></table>'; }
   echo '</div>';
 
@@ -193,7 +212,7 @@ if($tab==='overview'){
       </div>
       <div class="frow">
         <div><label><?= t('Website') ?></label><input name="website" value="<?= htmlspecialchars($u['website']??'') ?>" placeholder="https://company.com"></div>
-        <div><label><?= t('Firma ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled title="<?= htmlspecialchars(t('Your unique VESTRA account ID')) ?>"></div>
+        <div><label><?= t('Account ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled title="<?= htmlspecialchars(t('Your unique VESTRA account ID')) ?>"></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
