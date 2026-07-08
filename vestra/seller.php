@@ -577,7 +577,7 @@ if($tab==='overview'){
       </div>
       <div class="frow">
         <div><label><?= t('Website') ?></label><input name="website" value="<?= htmlspecialchars($u['website']??'') ?>" placeholder="https://company.com"></div>
-        <div><label><?= t('Firma ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled></div>
+        <div><label><?= t('Account ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
