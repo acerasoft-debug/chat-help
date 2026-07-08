@@ -29,7 +29,7 @@ foreach([['t1min','t1price'],['t2min','t2price'],['t3min','t3price']] as $pair){
   if($min>0 && $price>0) $tiers[]=['min'=>$min,'price'=>round($price,2)];
 }
 usort($tiers,function($a,$b){ return $a['min']<=>$b['min']; });
-if(!$tiers) $tiers=[['min'=>$moq,'price'=>($mode==='offer'?0:1.00)]];
+if(!$tiers){ header('Location: /seller?tab=add&err=1'); exit; }
 if($tiers[0]['min']>$moq) $tiers[0]['min']=$moq;
 
 $slug=function($s){ $s=strtolower($s); $s=preg_replace('/[^a-z0-9]+/','-',$s); return trim($s,'-'); };
@@ -42,7 +42,7 @@ $item=[
   'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,'status'=>'pending','added_at'=>date('c'),
   'cat'=>$one($_POST['cat']??'Other'),'sku'=>$sku,'moq'=>$moq,'unit'=>$one($_POST['unit']??'pc'),
   'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,
-  'verified'=>true,'accent'=>$accent,'tiers'=>$tiers,
+  'verified'=>$_kyb==='approved','accent'=>$accent,'tiers'=>$tiers,
   'seller_uid'=>$_SESSION['uid']??'',
 ];
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
@@ -91,10 +91,8 @@ if(isset($_FILES['photos']['name'])&&is_array($_FILES['photos']['name'])){
 if($images){ $item['images']=$images; $item['image']=$images[0]; }
 if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
 
-$dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
-$file=$dir.'/listings.json';
 $list=vestra_listings(); $list[]=$item;
-@file_put_contents($file, json_encode($list, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+vestra_save_listings($list);
 
 /* Notify admin about new pending listing */
 $sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');

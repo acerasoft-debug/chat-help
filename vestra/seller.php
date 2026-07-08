@@ -16,18 +16,26 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
 // ── Require products (needed for listing/status helpers) ─────────────────────
 require __DIR__.'/inc/products.php';
 
-// ── Delete listing ────────────────────────────────────────────────────────────
+// ── Delete listing (owner only) ────────────────────────────────────────────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete_listing') {
     $lid = $_POST['lid'] ?? '';
-    if ($lid) { vestra_save_listings(array_values(array_filter(vestra_listings(), fn($p) => ($p['id']??'') !== $lid))); }
+    $uid = $_SESSION['uid'] ?? '';
+    if ($lid && $uid !== '' && vestra_listing_owner($lid) === $uid) {
+        vestra_save_listings(array_values(array_filter(vestra_listings(), fn($p) => ($p['id']??'') !== $lid)));
+    }
     header('Location: /seller?tab=listings&deleted=1'); exit;
 }
 
-// ── Update listing (text fields; image preserved) ─────────────────────────────
+// ── Update listing (owner only; text fields, image preserved) ─────────────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='update_listing') {
     $lid = $_POST['lid'] ?? '';
+    $uid = $_SESSION['uid'] ?? '';
     $one = fn($s) => trim(preg_replace('/\s+/',' ', str_replace(["\r","\n"],' ',(string)$s)));
-    if ($lid) {
+    if ($lid && $uid !== '' && vestra_listing_owner($lid) === $uid) {
+        $brand = $one($_POST['brand']??''); $name = $one($_POST['name']??''); $origin = $one($_POST['origin']??'');
+        if ($brand === '' || $name === '' || $origin === '' || empty($_POST['origin_confirm'])) {
+            header('Location: /seller?tab=edit&lid='.urlencode($lid).'&err=1'); exit;
+        }
         $list = vestra_listings();
         $tiers = [];
         foreach([['t1min','t1price'],['t2min','t2price'],['t3min','t3price']] as $pair){
@@ -37,45 +45,50 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         usort($tiers, fn($a,$b) => $a['min']<=>$b['min']);
         $moq = max(1,(int)($_POST['moq']??1));
         $mode = in_array($_POST['mode']??'',['fixed','sale','offer'],true) ? $_POST['mode'] : 'fixed';
-        if (!$tiers) $tiers=[['min'=>$moq,'price'=>1.00]];
+        if (!$tiers) { header('Location: /seller?tab=edit&lid='.urlencode($lid).'&err=1'); exit; }
         if ($tiers[0]['min'] > $moq) $tiers[0]['min'] = $moq;
         foreach ($list as &$p) {
             if (($p['id']??'') !== $lid) continue;
-            $p['brand']  = $one($_POST['brand']??$p['brand']);
-            $p['name']   = $one($_POST['name']??$p['name']);
+            $p['brand']  = $brand;
+            $p['name']   = $name;
             $p['cat']    = $one($_POST['cat']??$p['cat']);
             $p['sku']    = $one($_POST['sku']??$p['sku']);
             $p['unit']   = $one($_POST['unit']??$p['unit']);
             $p['moq']    = $moq;
             $p['mode']   = $mode;
             $p['desc']   = $one($_POST['desc']??'');
-            $p['origin'] = $one($_POST['origin']??'');
+            $p['origin'] = $origin;
             $p['tiers']  = $tiers;
             if($mode==='sale') $p['list']=round((float)($_POST['list']??0),2);
             $p['offers'] = !empty($_POST['allow_offers']) && $mode!=='offer';
             break;
         }
+        unset($p);
         vestra_save_listings($list);
     }
     header('Location: /seller?tab=listings&updated=1'); exit;
 }
 
-// ── Ship order ────────────────────────────────────────────────────────────────
+// ── Ship order (only if this seller's SKUs are actually in the order) ─────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='ship_order') {
     $ref = $_POST['ref'] ?? '';
-    if ($ref) {
+    $uid = $_SESSION['uid'] ?? '';
+    $mySkus = array_column(vestra_seller_listings($uid), 'sku');
+    $ownsOrder = false; $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (($row['ref']??'') === $ref && vestra_order_has_seller_sku($row, $mySkus)) { $ownsOrder = true; $orderRow = $row; break; }
+    }
+    if ($ref && $ownsOrder) {
         $st = vestra_read_json('order_statuses.json');
         $tracking = trim($_POST['tracking']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
         vestra_write_json('order_statuses.json', $st);
         /* Email buyer */
         require_once __DIR__.'/inc/notify.php';
-        foreach(vestra_read_csv('orders.csv') as $row){
-            if(($row['ref']??'')!==$ref || empty($row['email'])) continue;
+        if (!empty($orderRow['email'])) {
             $trackLine = $tracking ? "\nTracking: {$tracking}" : '';
-            vestra_send_mail($row['email'], "VESTRA — your order {$ref} has shipped",
-              "Hello ".($row['name']?:$row['company']).",\n\nGreat news — your VESTRA order has been shipped!\n\nOrder ref: {$ref}{$trackLine}\n\nOnce you receive and inspect the goods, please confirm receipt in your buyer dashboard to release payment to the seller:\nhttps://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
-            break;
+            vestra_send_mail($orderRow['email'], "VESTRA — your order {$ref} has shipped",
+              "Hello ".($orderRow['name']?:$orderRow['company']).",\n\nGreat news — your VESTRA order has been shipped!\n\nOrder ref: {$ref}{$trackLine}\n\nOnce you receive and inspect the goods, please confirm receipt in your buyer dashboard to release payment to the seller:\nhttps://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
         }
     }
     header('Location: /seller?tab=orders&shipped=1'); exit;
@@ -92,12 +105,20 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /seller?tab=kyc'); exit;
 }
 
-// ── Respond to offer ──────────────────────────────────────────────────────────
+// ── Respond to offer (owner of the offered SKU only) ───────────────────────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='offer_respond') {
     $ref    = trim($_POST['ref'] ?? '');
+    $uid    = $_SESSION['uid'] ?? '';
     $action = $_POST['response'] ?? '';
     $ctr    = round((float)($_POST['counter_price']??0), 2);
-    if ($ref && in_array($action, ['accept','decline','counter'], true) && !($action==='counter'&&$ctr<=0)) {
+    $ownsOffer = false;
+    foreach (vestra_read_csv('offers.csv') as $row) {
+        if (($row['ref']??'') !== $ref) continue;
+        $listing = vestra_listing_by_sku($row['sku'] ?? '');
+        $ownsOffer = $listing && ($listing['seller_uid'] ?? '') === $uid && $uid !== '';
+        break;
+    }
+    if ($ref && $ownsOffer && in_array($action, ['accept','decline','counter'], true) && !($action==='counter'&&$ctr<=0)) {
         $rs = vestra_read_json('offer_responses.json');
         $rs[$ref] = ['status'=>$action, 'counter_price'=>$action==='counter'?$ctr:null, 'responded_at'=>date('c')];
         vestra_write_json('offer_responses.json', $rs);
@@ -119,12 +140,17 @@ if(!$MEMBER){
 }
 
 $tab=$_GET['tab']??'overview';
-$listings=vestra_listings();
-$orders=vestra_read_csv('orders.csv');
-$offers=vestra_read_csv('offers.csv');
+$uid=$_SESSION['uid']??'';
+$listings=vestra_seller_listings($uid);
+$mySkus=array_column($listings,'sku');
+$orders=array_values(array_filter(vestra_read_csv('orders.csv'), fn($o)=>vestra_order_has_seller_sku($o,$mySkus)));
+$offers=array_values(array_filter(vestra_read_csv('offers.csv'), fn($o)=>in_array($o['sku']??'',$mySkus,true)));
 $offerResp=vestra_read_json('offer_responses.json');
 $orderSt=vestra_read_json('order_statuses.json');
 $cats=vestra_cats();
+$_ms  = $AUTH_USER['membership_status'] ?? '';
+$_kyb = $AUTH_USER['kyb_status'] ?? '';
+$canPublish = in_array($_ms, ['trialing','active'], true) || ($_ms === '' && $_kyb === 'approved');
 
 $tabTitle = match($tab) {
     'add'      => t('Add a product'),
@@ -141,10 +167,10 @@ dash_open('seller',$tab, $tabTitle, $tab==='overview'?t('Welcome back — here i
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
   $rev=0; foreach($orders as $o){ $rev+=(float)($o['total']??0); }
+  $liveListings = count(array_filter($listings, fn($p) => ($p['status']??'approved')==='approved'));
   $pendingOffers = count(array_filter($offers, fn($o) => empty($offerResp[$o['ref']??''])));
-  $shippedOrders = count(array_filter($orders, fn($o) => ($orderSt[$o['ref']??'']['status']??'')!=='completed'));
   stat_cards([
-    ['<span class="acc">'.(count(vestra_demo_products())+count($listings)).'</span>', t('Live listings')],
+    ['<span class="acc">'.$liveListings.'</span>', t('Live listings')],
     [count($orders), t('Orders')],
     ['<span class="'.($pendingOffers?'acc':'').'">'.$pendingOffers.'</span>', t('Offers pending')],
     [eur($rev), t('Order value')],
@@ -156,15 +182,45 @@ if($tab==='overview'){
       <a class="btn btn-o btn-sm" href="/seller?tab=orders">'.t('View orders').'</a>
       <a class="btn btn-o btn-sm" href="/requests">'.t('Browse buyer requests').'</a>
     </div></div>';
+  $msBadge = match($_ms){
+    'trialing' => '<span class="status open">⏳ '.t('Trial').'</span>',
+    'active'   => '<span class="status offers">✓ '.t('Active').'</span>',
+    'past_due' => '<span class="status" style="color:var(--bad)">⚠ '.t('Past due').'</span>',
+    'canceled' => '<span class="status" style="color:var(--mut)">✗ '.t('Canceled').'</span>',
+    default    => $canPublish ? '<span class="status offers">✓ '.t('Active').'</span>' : '<span class="status open">— '.t('None').'</span>',
+  };
+  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Membership').'</h3>'.$msBadge.'</div>';
+  if ($_ms === 'trialing') echo '<p class="hint">'.t('Your free trial is running. First charge in 30 days, cancel anytime from Stripe.').'</p>';
+  elseif ($_ms === 'past_due') echo '<p class="hint" style="color:var(--bad)">'.t('Your last payment failed — please update your payment method to keep your listings active.').'</p>';
+  elseif ($_ms === 'canceled') echo '<p class="hint">'.t('Your membership has ended. Reactivate to publish and keep listings live.').' <a class="acc" href="/membership">'.t('View plans').'</a></p>';
+  elseif (!$canPublish) echo '<p class="hint">'.t('Choose a plan to start publishing products.').' <a class="acc" href="/membership">'.t('View membership plans').'</a></p>';
+  else echo '<p class="hint">'.t('Legacy account — no active subscription required.').'</p>';
+  echo '</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Verification').'</h3>';
   $kybSt = $AUTH_USER['kyb_status']??'pending';
-  echo $kybSt==='approved'?'<span class="status offers">✓ '.t('Verified seller').'</span>':'<span class="status open">'.t('Pending review').'</span>';
-  echo '</div><p class="hint">'.t('Business KYB complete. Your listings show the "Verified" badge to buyers.').'</p></div>';
+  $kybBadge = match($kybSt){
+    'approved'  => '<span class="status offers">✓ '.t('Verified seller').'</span>',
+    'suspended' => '<span class="status" style="color:var(--bad)">⊘ '.t('Suspended').'</span>',
+    default     => '<span class="status open">'.t('Pending review').'</span>',
+  };
+  echo $kybBadge.'</div>';
+  if ($kybSt==='approved') echo '<p class="hint">'.t('Business KYB complete. Your listings show the "Verified" badge to buyers.').'</p>';
+  elseif ($kybSt==='suspended') echo '<p class="hint" style="color:var(--bad)">'.t('Your account has been suspended. Contact support for details.').'</p>';
+  else echo '<p class="hint">'.t('Upload your verification documents to earn the "Verified" badge.').' <a class="acc" href="/seller?tab=kyc">'.t('Verification').'</a></p>';
+  echo '</div>';
 
 // ── ADD PRODUCT ───────────────────────────────────────────────────────────────
 } elseif($tab==='add'){
+  if (!$canPublish) {
+    echo '<div class="panelcard" style="text-align:center;padding:44px 24px">
+      <h3 style="margin:0 0 10px">'.t('Active membership required').'</h3>
+      <p style="color:var(--mut);margin:0 0 20px">'.t('You need an active seller membership to publish products.').'</p>
+      <a class="btn btn-p" href="/membership">'.t('View membership plans').'</a>
+    </div>';
+  } else {
   $added=isset($_GET['added']);
   if($added) echo '<div class="banner ok">✓ '.t('Product added — it is now live in the').' <a class="acc" href="/shop">'.t('catalog').'</a>.</div>';
+  if(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
   ?>
   <div class="panelcard">
     <form method="post" action="/seller-add" class="addform" enctype="multipart/form-data">
@@ -197,7 +253,7 @@ if($tab==='overview'){
       <label><?= t('Tiered pricing — quantity → unit price (€)') ?></label>
       <div class="tiergrid">
         <div><span class="hint"><?= t('Tier 1 qty') ?></span><input type="number" name="t1min" value="12"></div>
-        <div><span class="hint">€ / <?= t('unit') ?></span><input type="number" step="0.01" name="t1price" placeholder="34.00"></div>
+        <div><span class="hint">€ / <?= t('unit') ?></span><input type="number" step="0.01" name="t1price" placeholder="34.00" required></div>
         <div><span class="hint"><?= t('Tier 2 qty') ?></span><input type="number" name="t2min" placeholder="60"></div>
         <div><span class="hint">€ / <?= t('unit') ?></span><input type="number" step="0.01" name="t2price" placeholder="29.50"></div>
         <div><span class="hint"><?= t('Tier 3 qty') ?></span><input type="number" name="t3min" placeholder="180"></div>
@@ -256,13 +312,16 @@ if($tab==='overview'){
   modeUI(); groupUI();
   </script>
   <?php
+  }
 
 // ── EDIT LISTING ──────────────────────────────────────────────────────────────
 } elseif($tab==='edit'){
   $lid = $_GET['lid'] ?? '';
   $ep = vestra_listing_by_id($lid);
+  if ($ep && ($ep['seller_uid']??'') !== $uid) $ep = null;
   if (!$ep) { echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Listing not found.').'</div>'; }
   else {
+  if(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
   $t1=$ep['tiers'][0]??null; $t2=$ep['tiers'][1]??null; $t3=$ep['tiers'][2]??null;
   ?>
   <?php if(isset($_GET['updated'])): ?><div class="banner ok">✓ <?= t('Listing updated.') ?></div><?php endif; ?>
@@ -340,26 +399,26 @@ if($tab==='overview'){
   if(isset($_GET['updated'])) echo '<div class="banner ok">✓ '.t('Listing updated.').'</div>';
   if(isset($_GET['pending'])) echo '<div class="banner" style="background:rgba(240,192,96,.12);border:1px solid rgba(240,192,96,.35);color:#f0c060;margin-bottom:12px">⏳ '.t('Your listing has been submitted and is awaiting admin approval. It will appear in the catalog once approved.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('My listings').'</h3><a class="btn btn-p btn-sm" href="/seller?tab=add">＋ '.t('Add product').'</a></div>';
+  if (!$listings) {
+    dash_empty(t('No listings yet. Add your first product to get started.'));
+  } else {
   echo '<table class="ctable"><thead><tr><th>'.t('Product').'</th><th>'.t('Mode').'</th><th>MOQ</th><th class="r">'.t('From').'</th><th>'.t('Status').'</th><th></th></tr></thead><tbody>';
-  $demoIds = array_column(vestra_demo_products(), 'id');
-  $all = array_merge($listings, vestra_demo_products());
-  foreach($all as $p){
-    $isDemo = in_array($p['id']??'', $demoIds);
-    echo '<tr><td><b>'.htmlspecialchars($p['brand']).'</b> — '.htmlspecialchars($p['name']).'<div class="hint">SKU '.htmlspecialchars($p['sku']).($isDemo?' · demo':'').'</div></td>'.
-      '<td><span class="modechip '.$p['mode'].'">'.$p['mode'].'</span></td><td>'.$p['moq'].' '.htmlspecialchars($p['unit']).'</td>'.
-      '<td class="r">'.($p['mode']==='offer'?'—':eur(vestra_from_price($p))).'</td>'.
-      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
-      '<td class="r" style="white-space:nowrap">';
-    if (!$isDemo) {
-      echo '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> ';
-      echo '<form method="post" action="/seller?tab=listings" style="display:inline">
+  foreach($listings as $p){
+    echo '<tr><td><b>'.htmlspecialchars($p['brand']??'').'</b> — '.htmlspecialchars($p['name']??'').'<div class="hint">SKU '.htmlspecialchars($p['sku']??'').'</div></td>'.
+      '<td><span class="modechip '.($p['mode']??'fixed').'">'.($p['mode']??'fixed').'</span></td><td>'.($p['moq']??1).' '.htmlspecialchars($p['unit']??'pc').'</td>'.
+      '<td class="r">'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p))).'</td>'.
+      '<td>'.match($p['status']??'approved'){'pending'=>'<span class="status open">⏳ '.t('Pending approval').'</span>','rejected'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">✗ '.t('Rejected').'</span>','suspended'=>'<span class="status" style="background:rgba(239,154,154,.12);color:var(--bad);border:1px solid rgba(239,154,154,.3)">⊘ '.t('Suspended').'</span>',default=>'<span class="status offers">✓ '.t('Live').'</span>'}.'</td>'.
+      '<td class="r" style="white-space:nowrap">'.
+      '<a class="btn btn-o btn-sm" href="/seller?tab=edit&lid='.urlencode($p['id']).'">'.t('Edit').'</a> '.
+      '<form method="post" action="/seller?tab=listings" style="display:inline">
         <input type="hidden" name="_action" value="delete_listing">
         <input type="hidden" name="lid" value="'.htmlspecialchars($p['id']).'">
-        <button class="btn btn-o btn-sm" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="return confirm(\''.htmlspecialchars(t('Delete this listing?')).'\')">'.t('Delete').'</button></form>';
-    }
-    echo '</td></tr>';
+        <button class="btn btn-o btn-sm" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="return confirm(\''.htmlspecialchars(t('Delete this listing?')).'\')">'.t('Delete').'</button></form>'.
+      '</td></tr>';
   }
-  echo '</tbody></table></div>';
+  echo '</tbody></table>';
+  }
+  echo '</div>';
 
 // ── ORDERS ────────────────────────────────────────────────────────────────────
 } elseif($tab==='orders'){
