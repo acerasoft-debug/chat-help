@@ -21,31 +21,32 @@ if(!$MEMBER) $images = [];
     <!-- ── Gallery ────────────────────────────────────────────────────────── -->
     <div class="gal-col">
       <div class="gal-main" id="gal-wrap">
-        <?php if($images): ?>
-          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
-          <?php if(count($images)>1): ?>
-            <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous">‹</button>
-            <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
+        <!-- Slide 0 is ALWAYS the brand card; member photos come after it. -->
+        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px">
+          <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
+          <?php if($photosLocked): ?>
+            <a href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              <?= t('Sign in to view product photos') ?>
+            </a>
           <?php endif; ?>
-        <?php else: ?>
-          <div class="gal-placeholder" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px">
-            <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
-            <?php if($photosLocked): ?>
-              <a href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-                <?= t('Sign in to view product photos') ?>
-              </a>
-            <?php endif; ?>
-          </div>
+        </div>
+        <?php if($images): ?>
+          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>" style="display:none">
+          <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous">‹</button>
+          <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
         <?php if(!empty($p['verified'])): ?><span class="gal-vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
       </div>
-      <?php if(count($images)>1): ?>
+      <?php if($images): ?>
       <div class="gal-thumbs" id="gal-thumbs">
+        <button class="gal-thumb active" onclick="galSet(-1)" title="<?= htmlspecialchars($p['brand']) ?>">
+          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)"></span>
+        </button>
         <?php foreach($images as $i=>$img): ?>
-          <button class="gal-thumb <?= $i===0?'active':'' ?>" onclick="galSet(<?= $i ?>)">
+          <button class="gal-thumb" onclick="galSet(<?= $i ?>)">
             <img src="<?= htmlspecialchars($img) ?>" alt="" loading="lazy">
           </button>
         <?php endforeach; ?>
@@ -244,15 +245,22 @@ if(!$MEMBER) $images = [];
   </div>
 </div>
 
-<?php if(count($images)>1): ?>
+<?php if($images): ?>
 <script>
-var galImgs=<?= json_encode($images) ?>, galIdx=0;
+/* Index -1 = the brand card (always the first slide); 0..n-1 = photos. */
+var galImgs=<?= json_encode($images) ?>, galIdx=-1;
 function galSet(i){
   galIdx=i;
-  document.getElementById('gal-main-img').src=galImgs[i];
-  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active',j===i); });
+  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card');
+  if(i<0){ img.style.display='none'; card.style.display='flex'; }
+  else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; }
+  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i+1); });
 }
-function galGo(d){ galSet((galIdx+d+galImgs.length)%galImgs.length); }
+function galGo(d){
+  var n=galImgs.length+1;                 // slides: card + photos
+  var cur=galIdx+1;                       // 0-based over all slides
+  galSet(((cur+d)%n+n)%n - 1);
+}
 document.addEventListener('keydown', function(e){
   if(e.key==='ArrowLeft') galGo(-1);
   if(e.key==='ArrowRight') galGo(1);

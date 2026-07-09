@@ -63,71 +63,6 @@ function vestra_demo_products(){
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#392b4a',
       'tiers'=>[['min'=>100,'price'=>7.80],['min'=>500,'price'=>6.40],['min'=>2000,'price'=>5.30]],
     ],
-    // Dolce & Gabbana — Summer 2026 wholesale allocation
-    [
-      'id'=>'dg-101200','brand'=>'Dolce & Gabbana','name'=>'DG Crest Embroidered T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101200','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, embroidered DG crest at chest. Regular fit. Black. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>75.00],['min'=>600,'price'=>65.00],['min'=>1200,'price'=>58.00]],
-    ],
-    [
-      'id'=>'dg-101201','brand'=>'Dolce & Gabbana','name'=>'Oversized Striped Print T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101201','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, technical stripe print, oversized fit. White/multi. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a2030',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>72.00],['min'=>600,'price'=>63.00],['min'=>1200,'price'=>56.00]],
-    ],
-    [
-      'id'=>'dg-101203','brand'=>'Dolce & Gabbana','name'=>'Tonal Crown Crest Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'DG-101203','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton piqué, embroidered crown crest & DG logo, button placket, classic fit. Black. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>95.00],['min'=>600,'price'=>82.00],['min'=>1200,'price'=>72.00]],
-    ],
-    [
-      'id'=>'dg-101206','brand'=>'Dolce & Gabbana','name'=>'Collegiate Milano Logo T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101206','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, collegiate "Milano" lettering across chest, relaxed fit. Black. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>68.00],['min'=>600,'price'=>59.00],['min'=>1200,'price'=>52.00]],
-    ],
-    [
-      'id'=>'dg-101207','brand'=>'Dolce & Gabbana','name'=>'"Italian Holiday" Scooter T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101207','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, "Italian Holiday" scooter graphic print, relaxed fit. White. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a2e18',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>78.00],['min'=>600,'price'=>67.00],['min'=>1200,'price'=>60.00]],
-    ],
-    [
-      'id'=>'dg-101214','brand'=>'Dolce & Gabbana','name'=>'Oversized DG Monogram T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101214','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, all-over DG monogram print, dropped shoulders, oversized fit. Black. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>82.00],['min'=>600,'price'=>70.00],['min'=>1200,'price'=>62.00]],
-    ],
-    [
-      'id'=>'dg-101222','brand'=>'Dolce & Gabbana','name'=>'Metallic Plaque Logo T-Shirt','mode'=>'fixed',
-      'cat'=>'T-Shirts','sku'=>'DG-101222','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton jersey, polished metallic DG logo plaque at chest, regular fit. Red. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#3a0808',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>85.00],['min'=>600,'price'=>73.00],['min'=>1200,'price'=>65.00]],
-    ],
-    [
-      'id'=>'dg-101247','brand'=>'Dolce & Gabbana','name'=>'Tipped-Collar DG Logo Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'DG-101247','moq'=>200,'unit'=>'pc',
-      'desc'=>'100 % cotton piqué, contrasting tipped collar, embroidered DG logo, slim fit. Black. Made in Italy.',
-      'seller'=>'Milano Wholesale S.r.l.','origin'=>'Authorised distributor · Made in Italy','verified'=>true,'accent'=>'#1a0a12',
-      'sizes'=>'S×20 · M×60 · L×60 · XL×40 · XXL×20','size_step'=>200,
-      'tiers'=>[['min'=>200,'price'=>92.00],['min'=>600,'price'=>79.00],['min'=>1200,'price'=>70.00]],
-    ],
   ];
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
@@ -210,9 +145,9 @@ function vestra_all_cats(){
 /* Curated colour palette for listings (name => swatch hex). Names are t()-translated at render. */
 function vestra_colors(){
   return [
-    'Black'=>'#17181c','Navy'=>'#1f2a44','White'=>'#f2f1ec','Grey'=>'#8e9094','Red'=>'#b3242c',
-    'Green'=>'#14532d','Light Blue'=>'#8db8d8','Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f',
-    'Orange'=>'#d97b29','Brown'=>'#6b4a2f','Bordeaux'=>'#5c1a24',
+    'Black'=>'#17181c','Navy'=>'#1f2a44','Blue'=>'#2b46c4','Light Blue'=>'#8db8d8','White'=>'#f2f1ec',
+    'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
+    'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
   ];
 }
 /* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */

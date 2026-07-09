@@ -82,8 +82,8 @@ arsort($catCounts);
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          $img  = $MEMBER ? vestra_primary_image($p) : '';   // photos are members-only
-          $imgCount = $MEMBER ? count($p['images'] ?? ($img ? [$img] : [])) : 0;
+          $img  = '';   // grid always shows the brand card — photos live in the product gallery (members)
+          $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
           <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
