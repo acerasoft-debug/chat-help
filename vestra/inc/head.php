@@ -7,6 +7,8 @@ if (isset($_GET['demo_member']))  { $_SESSION['member'] = true; }
 if (isset($_GET['demo_signout'])) { auth_logout(); unset($_SESSION['member']); }
 $AUTH_USER = auth_user();
 $MEMBER = $AUTH_USER !== null || !empty($_SESSION['member']);
+$MSG_UNREAD = 0;
+if ($AUTH_USER) { require_once __DIR__.'/messages.php'; $MSG_UNREAD = vestra_msg_unread_count($AUTH_USER['id']); }
 $BRAND  = 'VESTRA';
 $PAGE   = $PAGE ?? $BRAND;
 $ACC    = '#c9a86a';
@@ -45,6 +47,12 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
           <a href="/membership" class="hidem <?= ($NAV ?? '')==='membership'?'on':'' ?>"><?= t('Membership') ?></a>
         <?php endif; ?>
         <a href="<?= $panel ?>" class="hidem <?= ($NAV ?? '')==='account'?'on':'' ?>"><?= t('Account') ?></a>
+        <?php if ($AUTH_USER): ?>
+        <a class="cartlink" href="<?= $panel ?>?tab=messages" aria-label="Messages" title="<?= htmlspecialchars(t('Messages')) ?>">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v12H8l-4 4V5z"/></svg>
+          <?php if ($MSG_UNREAD > 0): ?><span class="badge"><?= $MSG_UNREAD ?></span><?php endif; ?>
+        </a>
+        <?php endif; ?>
         <span class="memberpill">✓</span>
       <?php else: ?>
         <a href="/login"><?= t('Sign in') ?></a>

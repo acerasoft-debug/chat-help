@@ -51,15 +51,23 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $allListings=vestra_listings();
         $notified=[];
         $orderSkus=array_column(vestra_parse_order_items($orderItems),'sku');
+        $me = auth_user();
         foreach($allListings as $listing){
             if(empty($listing['seller_uid'])||empty($listing['sku'])) continue;
             if(!in_array($listing['sku'],$orderSkus,true)) continue;
             if(in_array($listing['seller_uid'],$notified,true)) continue;
+            $notified[]=$listing['seller_uid'];
+            /* Completed card into the seller's conversation */
+            if($me){
+                require_once __DIR__.'/inc/messages.php';
+                vestra_msg_post_system($me['id'], $listing['seller_uid'], '', [
+                    'kind'=>'order','status'=>'completed','ref'=>$ref,
+                ]);
+            }
             foreach(auth_accounts() as $acc){
                 if(($acc['id']??'')!==$listing['seller_uid']||empty($acc['email'])) continue;
                 vestra_send_mail($acc['email'], "VESTRA — order {$ref} confirmed, payout in progress",
                   "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nThe buyer has confirmed receipt for order {$ref}. Your payout is being processed.\n\nItems: {$orderItems}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
-                $notified[]=$listing['seller_uid'];
                 break;
             }
         }
@@ -69,6 +77,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 
 // ── Messaging (start a new thread from a product page, or reply in an existing one) ──
 require __DIR__.'/inc/messages.php';
+if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && isset($_GET['poll'])) {
+    $t = vestra_msg_find_thread($_GET['thread']);
+    $ok = $t && ($t['buyer_uid']??'') === ($_SESSION['uid']??'');
+    header('Content-Type: application/json');
+    echo json_encode(['last' => $ok ? ($t['last_at']??'') : '']);
+    exit;
+}
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='send_message') {
     $uid  = $_SESSION['uid'] ?? '';
     $tid  = $_POST['thread_id'] ?? '';
@@ -221,6 +236,9 @@ if($tab==='overview'){
     $ctp = vestra_msg_counterpart_label($thread, $uid);
     $msgerr = $_GET['msgerr'] ?? '';
     echo '<div class="panelcard"><div class="pcfhead"><h3>'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/buyer?tab=messages">'.t('Back').'</a></div>';
+    if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
+      echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
+    }
     if ($msgerr === 'email' || $msgerr === 'iban') {
       echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so escrow protection still applies. Your message was not sent.').'</div>';
     }
@@ -241,6 +259,11 @@ if($tab==='overview'){
     </form>';
     echo '<p class="hint" style="margin-top:10px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
     echo '</div>';
+    echo '<script>var mt=document.querySelector(".msgthread");if(mt)mt.scrollTop=mt.scrollHeight;'.
+      '(function(){var last='.json_encode($thread['last_at']??'').';'.
+      'setInterval(function(){fetch("/buyer?tab=messages&thread='.urlencode($tid).'&poll=1",{cache:"no-store"})'.
+      '.then(function(r){return r.json()}).then(function(d){if(d.last&&d.last!==last)location.reload()})'.
+      '.catch(function(){})},15000)})();</script>';
   } else {
     $myThreads = vestra_msg_my_threads($uid);
     echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';

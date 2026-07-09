@@ -95,9 +95,12 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
 
     $threads = vestra_msg_threads();
     $id = vestra_msg_thread_id($buyerUid, $sellerUid, $listingId);
+    $recipient = $fromUid === $buyerUid ? $sellerUid : $buyerUid;
+    $hadUnread = false; // was the recipient already behind before this message?
     $found = false;
     foreach ($threads as &$t) {
         if (($t['id']??'') === $id) {
+            $hadUnread = vestra_msg_unread($t, $recipient);
             $t['messages'][] = ['from'=>$fromUid, 'text'=>$text, 'at'=>date('c')];
             $t['last_at'] = date('c');
             $found = true;
@@ -117,6 +120,24 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
         ];
     }
     vestra_msg_save_threads($threads);
+    // Email ping — only on the FIRST unread message since the recipient last read the
+    // thread (no per-message spam). Content stays out of the mail: conversations live
+    // on VESTRA, the mail is just the doorbell.
+    if (!$hadUnread) {
+        $fromLabel = $recipient !== '' ? vestra_msg_counterpart_label(
+            ['buyer_uid'=>$buyerUid,'seller_uid'=>$sellerUid], $recipient) : '';
+        foreach (auth_accounts() as $a) {
+            if (($a['id']??'') !== $recipient || empty($a['email'])) continue;
+            require_once __DIR__.'/notify.php';
+            $panel = ($a['type']??'') === 'seller' ? 'seller' : 'buyer';
+            vestra_send_mail($a['email'], "VESTRA — new message from {$fromLabel}",
+              "Hello ".($a['name']?:($a['company']?:'there')).",\n\n".
+              "You have a new message from {$fromLabel} on VESTRA.\n\n".
+              "Read and reply in your dashboard:\nhttps://vestrasales.com/{$panel}?tab=messages\n\n".
+              "— VESTRA · vestrasales.com");
+            break;
+        }
+    }
     return ['ok'=>true, 'thread_id'=>$id];
 }
 
@@ -164,6 +185,11 @@ function vestra_msg_snippet(array $m): string {
             'decline' => '✗ '.t('Offer declined'),
             default   => '↩ '.t('Counter offer'),
         },
+        'order' => match($meta['status']??''){
+            'shipped'   => '🚚 '.t('Order shipped'),
+            'completed' => '✓ '.t('Order completed — payment released'),
+            default     => '📦 '.t('Order placed'),
+        },
         default => '',
     };
 }
@@ -195,22 +221,43 @@ function vestra_msg_system_html(array $m, string $viewerRole): string {
                ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
                '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.$time.'</div>';
     }
+    if ($kind === 'order') {
+        [$cls, $label] = match($meta['status']??''){
+            'shipped'   => ['ctr', '🚚 '.t('Order shipped')],
+            'completed' => ['ok',  '✓ '.t('Order completed — payment released')],
+            default     => ['',    '📦 '.t('Order placed')],
+        };
+        $body = '<div class="mo-head">'.$label.
+                ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>';
+        if (!empty($meta['items']))    $body .= '<div class="mo-prod">'.htmlspecialchars($meta['items']).'</div>';
+        if (!empty($meta['total']))    $body .= '<div class="mo-terms"><b>'.eur($meta['total']).'</b> '.t('total').'</div>';
+        if (!empty($meta['tracking'])) $body .= '<div class="mo-prod">'.t('Tracking').': '.htmlspecialchars($meta['tracking']).'</div>';
+        $panel = $viewerRole === 'seller' ? '/seller?tab=orders' : '/buyer?tab=orders';
+        $body .= '<a class="mo-act" href="'.$panel.'">'.t('View order →').'</a>';
+        return '<div class="msgoffer '.$cls.'">'.$body.$time.'</div>';
+    }
     return '';
 }
 
-/* Mark a thread as read by $uid (called when they open it). */
+/* Mark a thread as read by $uid — store the message COUNT seen (immune to same-second
+   timestamp collisions that a date-based marker suffers from). */
 function vestra_msg_mark_read(string $id, string $uid): void {
     $threads = vestra_msg_threads();
     foreach ($threads as &$t) {
-        if (($t['id']??'') === $id) { $t['read'][$uid] = date('c'); break; }
+        if (($t['id']??'') === $id) { $t['read'][$uid] = count($t['messages'] ?? []); break; }
     }
     unset($t);
     vestra_msg_save_threads($threads);
 }
+/* Unread ⇔ there is at least one message beyond what $uid has seen that they didn't send. */
 function vestra_msg_unread(array $thread, string $uid): bool {
-    $readAt = $thread['read'][$uid] ?? null;
-    if ($readAt === null) return !empty($thread['messages']);
-    return strtotime($thread['last_at']??'1970-01-01') > strtotime($readAt);
+    $msgs = $thread['messages'] ?? [];
+    $seen = $thread['read'][$uid] ?? 0;
+    if (!is_int($seen)) $seen = 0; // legacy date-based markers → treat as unseen baseline
+    for ($i = max(0, $seen); $i < count($msgs); $i++) {
+        if (($msgs[$i]['from'] ?? '') !== $uid) return true;
+    }
+    return false;
 }
 
 /* Display label for the OTHER party in a thread, from the point of view of $uid. */

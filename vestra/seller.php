@@ -83,6 +83,14 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $tracking = trim($_POST['tracking']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
         vestra_write_json('order_statuses.json', $st);
+        /* Shipped card into the buyer's conversation */
+        $buyerAcc = auth_find($orderRow['email'] ?? '');
+        if ($buyerAcc) {
+            require_once __DIR__.'/inc/messages.php';
+            vestra_msg_post_system($buyerAcc['id'], $uid, '', [
+                'kind'=>'order','status'=>'shipped','ref'=>$ref,'tracking'=>$tracking,
+            ]);
+        }
         /* Email buyer */
         require_once __DIR__.'/inc/notify.php';
         if (!empty($orderRow['email'])) {
@@ -137,12 +145,34 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=offers&responded=1'); exit;
 }
 
-// ── Messaging (reply within a thread the seller is part of) ───────────────────
+// ── Messaging (reply in a thread, or start one with a buyer who offered/ordered) ─
 require __DIR__.'/inc/messages.php';
+if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && isset($_GET['poll'])) {
+    $t = vestra_msg_find_thread($_GET['thread']);
+    $ok = $t && ($t['seller_uid']??'') === ($_SESSION['uid']??'');
+    header('Content-Type: application/json');
+    echo json_encode(['last' => $ok ? ($t['last_at']??'') : '']);
+    exit;
+}
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='send_message') {
     $uid = $_SESSION['uid'] ?? '';
     $tid = $_POST['thread_id'] ?? '';
     $body = $_POST['body'] ?? '';
+    if ($tid === '' && !empty($_POST['buyer_uid'])) {
+        // Seller initiates: only towards a real buyer account, only about the seller's own listing.
+        $buyerAcc  = null;
+        foreach (auth_accounts() as $a) { if (($a['id']??'')===$_POST['buyer_uid'] && ($a['type']??'')==='buyer') { $buyerAcc=$a; break; } }
+        $listingId = $_POST['listing_id'] ?? '';
+        $listing   = $listingId !== '' ? vestra_listing_by_id($listingId) : null;
+        if ($listing && ($listing['seller_uid']??'') !== $uid) $listing = null;
+        if ($buyerAcc && $uid !== '') {
+            $res = vestra_msg_send($buyerAcc['id'], $uid, $uid, $body, $listing ? $listingId : '');
+            $tid = $res['thread_id'] ?? vestra_msg_thread_id($buyerAcc['id'], $uid, $listing ? $listingId : '');
+            if (!$res['ok']) { header('Location: /seller?tab=messages&thread='.urlencode($tid).'&msgerr='.($res['error']==='flagged'?$res['flag']:'empty')); exit; }
+            header('Location: /seller?tab=messages&thread='.urlencode($tid)); exit;
+        }
+        header('Location: /seller?tab=messages'); exit;
+    }
     $thread = vestra_msg_find_thread($tid);
     if ($thread && $uid !== '' && ($thread['seller_uid']??'') === $uid) {
         $res = vestra_msg_send($thread['buyer_uid'], $thread['seller_uid'], $uid, $body, $thread['listing_id']??'');
@@ -512,6 +542,24 @@ if($tab==='overview'){
             </div>
           </form></details>';
       }
+      /* One-click chat with this buyer (only when the offer email maps to a real account) */
+      $obAcc = auth_find($o['email'] ?? '');
+      if ($obAcc && ($obAcc['type']??'')==='buyer') {
+        $obListing = vestra_listing_by_sku($o['sku'] ?? '');
+        $obTid = vestra_msg_thread_id($obAcc['id'], $uid, $obListing['id'] ?? '');
+        if (vestra_msg_find_thread($obTid)) {
+          $actCell .= ' <a class="btn btn-o btn-sm" href="/seller?tab=messages&thread='.urlencode($obTid).'" style="margin-top:6px">💬 '.t('Message buyer').'</a>';
+        } else {
+          $actCell .= '<details class="respdetails" style="margin-top:6px"><summary class="btn btn-o btn-sm">💬 '.t('Message buyer').'</summary>
+            <form method="post" action="/seller?tab=offers" class="respform">
+              <input type="hidden" name="_action" value="send_message">
+              <input type="hidden" name="buyer_uid" value="'.htmlspecialchars($obAcc['id']).'">
+              <input type="hidden" name="listing_id" value="'.htmlspecialchars($obListing['id'] ?? '').'">
+              <textarea name="body" rows="2" placeholder="'.htmlspecialchars(t('Write a message…')).'" required style="width:100%"></textarea>
+              <button class="btn btn-p btn-sm" type="submit" style="margin-top:8px">'.t('Send').'</button>
+            </form></details>';
+        }
+      }
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td>'.htmlspecialchars($o['product']??'').'<div class="hint">'.htmlspecialchars($o['qty']??'').'× SKU '.htmlspecialchars($o['sku']??'').'</div></td>'.
         '<td>'.htmlspecialchars($o['company']??'').'<div class="hint">'.htmlspecialchars($o['email']??'').'</div></td>'.
@@ -533,6 +581,9 @@ if($tab==='overview'){
     $ctp = vestra_msg_counterpart_label($thread, $uid);
     $msgerr = $_GET['msgerr'] ?? '';
     echo '<div class="panelcard"><div class="pcfhead"><h3>'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/seller?tab=messages">'.t('Back').'</a></div>';
+    if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
+      echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
+    }
     if ($msgerr === 'email' || $msgerr === 'iban') {
       echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so escrow protection still applies. Your message was not sent.').'</div>';
     }
@@ -553,6 +604,11 @@ if($tab==='overview'){
     </form>';
     echo '<p class="hint" style="margin-top:10px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
     echo '</div>';
+    echo '<script>var mt=document.querySelector(".msgthread");if(mt)mt.scrollTop=mt.scrollHeight;'.
+      '(function(){var last='.json_encode($thread['last_at']??'').';'.
+      'setInterval(function(){fetch("/seller?tab=messages&thread='.urlencode($tid).'&poll=1",{cache:"no-store"})'.
+      '.then(function(r){return r.json()}).then(function(d){if(d.last&&d.last!==last)location.reload()})'.
+      '.catch(function(){})},15000)})();</script>';
   } else {
     $myThreads = vestra_msg_my_threads($uid);
     echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';

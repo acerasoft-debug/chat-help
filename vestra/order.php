@@ -1,6 +1,8 @@
 <?php
 /** VESTRA — order request handler (demo). Stores to data/orders.csv (+ optional email). */
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/auth.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
 $CONTACT='support@vestrasales.com'; $NOTIFY=false;
 
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
@@ -54,6 +56,10 @@ vestra_send_mail($email, "VESTRA — order {$ref} received",
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
   require_once __DIR__.'/inc/auth.php';
+  /* Order card in the buyer↔seller conversation: the whole trade lives in one place. */
+  $buyerAcc = !empty($_SESSION['uid']) ? auth_user() : auth_find($email);
+  if($buyerAcc && ($buyerAcc['type']??'')!=='buyer') $buyerAcc = null;
+  $itemsSummary = implode(' · ', array_map(fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'], $lines));
   $notifiedSellers=[];
   $allListings=vestra_listings();
   foreach($lines as $l){
@@ -62,6 +68,13 @@ if(!empty($lines)){
       $sid=$listing['seller_uid'];
       if(in_array($sid,$notifiedSellers,true)) break;
       $notifiedSellers[]=$sid;
+      if($buyerAcc){
+        require_once __DIR__.'/inc/messages.php';
+        vestra_msg_post_system($buyerAcc['id'], $sid, '', [
+          'kind'=>'order','status'=>'placed','ref'=>$ref,
+          'items'=>mb_substr($itemsSummary,0,160),'total'=>$total,
+        ]);
+      }
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
