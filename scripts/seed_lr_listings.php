@@ -39,10 +39,10 @@ $rl  = fn($c) => '/uploads/rl/'.$c;
 $catalog = [
     [
         'id'=>'lac-vneck-tee','brand'=>'Lacoste','name'=>"Men's Pima Cotton T-Shirt — V-Neck (TH6710)",
-        'mode'=>'offer','cat'=>'T-Shirts','sku'=>'LAC-TH6710','moq'=>20,'size_step'=>10,'unit'=>'pc',
-        'desc'=>"Original Lacoste men's Pima cotton T-shirt TH6710, V-neck, short sleeves, regular fit, 100% cotton. Summer season. Ships in packs of 10.",
+        'mode'=>'offer','cat'=>'T-Shirts','sku'=>'LAC-TH6710','moq'=>100,'size_step'=>10,'min_colors'=>4,'unit'=>'pc',
+        'desc'=>"Original Lacoste men's Pima cotton T-shirt TH6710, V-neck, short sleeves, regular fit, 100% cotton. Summer season. Packs of 10 — minimum order 100 pc (10 packs), at least 4 colours.",
         'guide'=>'Retail €60 — price on request','accent'=>'#1b5e3a',
-        'sizes'=>'Sizes 3–7 · 10/pack',
+        'sizes'=>'Sizes 3–7 · 10/pack · min 100 pc',
         'colors'=>['Black','White','Green','Navy'],
         'images'=>[$lac('th6710-black.jpg'),$lac('th6710-white.jpg'),$lac('th6710-green.jpg'),$lac('th6710-navy.jpg')],
         'linesheet'=>true,'sheet_file'=>'lacoste-pima-vneck-tshirt.pdf',
@@ -52,7 +52,7 @@ $catalog = [
             ['art'=>'LCMP16002','model'=>'TH6710 51 132','color'=>'Green','image'=>$lac('th6710-green.jpg')],
             ['art'=>'LCMP16003','model'=>'TH6710 51 166','color'=>'Navy','image'=>$lac('th6710-navy.jpg')],
         ],
-        'tiers'=>[['min'=>20,'price'=>0]],
+        'tiers'=>[['min'=>100,'price'=>0]],
     ],
     [
         'id'=>'lac-sweatshirt','brand'=>'Lacoste','name'=>'Men Sweatshirt (SH9608)',
@@ -81,10 +81,10 @@ $catalog = [
     ],
     [
         'id'=>'rl-slim-tee','brand'=>'Ralph Lauren','name'=>'Men Custom Slim Fit T-Shirt',
-        'mode'=>'offer','cat'=>'T-Shirts','sku'=>'RL-CSF-TS','moq'=>20,'size_step'=>10,'unit'=>'pc',
-        'desc'=>"Original Ralph Lauren men's Custom Slim Fit T-shirt, short sleeves, 100% cotton. Made in Cambodia. Summer season. Ships in packs of 10.",
+        'mode'=>'offer','cat'=>'T-Shirts','sku'=>'RL-CSF-TS','moq'=>100,'size_step'=>10,'min_colors'=>4,'unit'=>'pc',
+        'desc'=>"Original Ralph Lauren men's Custom Slim Fit T-shirt, short sleeves, 100% cotton. Made in Cambodia. Summer season. Packs of 10 — minimum order 100 pc (10 packs), at least 4 colours.",
         'guide'=>'Retail €79 — price on request','accent'=>'#0f2f5c',
-        'sizes'=>'S–XXL mixed · 10/pack',
+        'sizes'=>'S–XXL mixed · 10/pack · min 100 pc',
         'colors'=>['Navy','Black','White','Grey','Khaki','Red','Light Blue','Cream'],
         'images'=>[$rl('csf-tee-navy.jpg'),$rl('csf-tee-black.jpg'),$rl('csf-tee-white.jpg'),$rl('csf-tee-grey.jpg'),
                    $rl('csf-tee-khaki.png'),$rl('csf-tee-red.jpg'),$rl('csf-tee-lightblue.jpg'),$rl('csf-tee-cream.jpg')],
@@ -99,14 +99,14 @@ $catalog = [
             ['art'=>'40106','model'=>'710671438337','color'=>'Light Blue','image'=>$rl('csf-tee-lightblue.jpg')],
             ['art'=>'40107','model'=>'710671438350','color'=>'Cream','image'=>$rl('csf-tee-cream.jpg')],
         ],
-        'tiers'=>[['min'=>20,'price'=>0]],
+        'tiers'=>[['min'=>100,'price'=>0]],
     ],
     [
         'id'=>'rl-slim-polo','brand'=>'Ralph Lauren','name'=>'Men Custom Slim Fit Polo Shirt',
-        'mode'=>'offer','cat'=>'Polos','sku'=>'RL-CSF-PL','moq'=>16,'size_step'=>16,'unit'=>'pc',
-        'desc'=>"Original Ralph Lauren men's Custom Slim Fit polo shirt, short sleeves, 100% cotton. Summer season. Ships in 8+8 cartons (16 pc, two size runs S–XXL).",
+        'mode'=>'offer','cat'=>'Polos','sku'=>'RL-CSF-PL','moq'=>80,'size_step'=>8,'min_colors'=>4,'unit'=>'pc',
+        'desc'=>"Original Ralph Lauren men's Custom Slim Fit polo shirt, short sleeves, 100% cotton. Summer season. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.",
         'guide'=>'Price on request — make an offer','accent'=>'#12365f',
-        'sizes'=>'S×2 · M×4 · L×4 · XL×4 · XXL×2 (8+8 · 16/carton)',
+        'sizes'=>'Lots of 8 · S–XXL · min 80 pc (10 lots)',
         'colors'=>['White','Green','Fuchsia','Yellow','Orange','Pink'],
         'images'=>[$rl('csf-polo-white.png'),$rl('csf-polo-darkgreen.jpg'),$rl('csf-polo-fuchsia.png'),
                    $rl('csf-polo-yellow.jpg'),$rl('csf-polo-orange.jpg'),$rl('csf-polo-pink.jpg')],
@@ -119,7 +119,7 @@ $catalog = [
             ['art'=>'101212','model'=>'710536856408','color'=>'Orange','image'=>$rl('csf-polo-orange.jpg')],
             ['art'=>'101214','model'=>'710536856396','color'=>'Pink','image'=>$rl('csf-polo-pink.jpg')],
         ],
-        'tiers'=>[['min'=>16,'price'=>0]],
+        'tiers'=>[['min'=>80,'price'=>0]],
     ],
 ];
 
@@ -155,15 +155,16 @@ foreach ($catalog as $item) {
 /* Pack rules for the earlier Lacoste seeds, if they exist on this server */
 foreach ($list as &$l) {
     if (($l['id'] ?? '') === 'lac-paris-polo-allcol') {
-        $l['moq'] = 16; $l['size_step'] = 16; $l['hide_seller'] = true;
-        $l['sizes'] = 'S×2 · M×4 · L×4 · XL×4 · XXL×2 (8+8 · 16/carton)';
-        $l['tiers'] = [['min'=>16,'price'=>95.00],['min'=>96,'price'=>88.00],['min'=>288,'price'=>82.00]];
-        echo "güncellendi: lac-paris-polo-allcol → 8+8 (16'lık karton), satıcı gizli\n";
+        $l['moq'] = 80; $l['size_step'] = 8; $l['min_colors'] = 4; $l['hide_seller'] = true;
+        $l['sizes'] = 'Lots of 8 · S–XXL · min 80 pc (10 lots)';
+        $l['tiers'] = [['min'=>80,'price'=>95.00],['min'=>160,'price'=>88.00],['min'=>320,'price'=>82.00]];
+        echo "güncellendi: lac-paris-polo-allcol → MOQ 80 (8'li lot), min 4 renk, satıcı gizli\n";
     }
     if (($l['id'] ?? '') === 'lac-basic-tee-7col') {
-        $l['size_step'] = 10; $l['hide_seller'] = true;
+        $l['size_step'] = 10; $l['moq'] = 100; $l['min_colors'] = 4; $l['hide_seller'] = true;
+        if (!empty($l['tiers'][0]['min']) && $l['tiers'][0]['min'] < 100) $l['tiers'][0]['min'] = 100;
         if (strpos((string)($l['sizes'] ?? ''), '10/pack') === false) $l['sizes'] = trim(($l['sizes'] ?? '')).' · 10/pack';
-        echo "güncellendi: lac-basic-tee-7col → 10'lu paket, satıcı gizli\n";
+        echo "güncellendi: lac-basic-tee-7col → MOQ 100, 10'lu paket, min 4 renk, satıcı gizli\n";
     }
 }
 unset($l);

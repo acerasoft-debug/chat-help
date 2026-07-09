@@ -15,10 +15,10 @@ function vestra_demo_products(){
   return [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>16,'unit'=>'pc',
-      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Ships in 8+8 cartons (16 pc, two size runs 3–8).',
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc',
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
       'seller'=>'Maison Textile SARL','hide_seller'=>true,'origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
-      'sizes'=>'3×2 · 4×4 · 5×4 · 6×3 · 7×2 · 8×1 (8+8 · 16/carton)','size_step'=>16,
+      'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,
       'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
       'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-beige.jpg',
                  '/uploads/lacoste/l1212-navy.jpg','/uploads/lacoste/l1212-yellow.jpg','/uploads/lacoste/l1212-pink.jpg',
@@ -37,8 +37,8 @@ function vestra_demo_products(){
         ['art'=>'LCMP103209','model'=>'L.12.12 00 4XA','color'=>'Blue','image'=>'/uploads/lacoste/l1212-blue.jpg'],
         ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
       ],
-      'tiers'=>[['min'=>16,'price'=>34.00],['min'=>64,'price'=>29.50],['min'=>176,'price'=>25.00]],
-      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 176 pc → €25/pc
+      'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
+      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 320 pc → €25/pc
     ],
     [
       'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,

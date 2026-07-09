@@ -17,6 +17,11 @@ $u = auth_user(); // logged-in user for pre-filling form
     <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
   <?php else: ?>
 
+  <?php if(isset($_GET['err']) && $_GET['err']==='colors'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= t('Colour selection missing — open the product page, choose at least the required number of colours and add the item again.') ?></div>
+  <?php endif; ?>
+
   <div id="empty" class="empty" style="display:none">
     <?= t('Your order is empty.') ?> <a class="acc" href="/shop"><?= t('Browse the catalog →') ?></a>
   </div>
@@ -74,7 +79,8 @@ function render(){
   var rows='', sub=0;
   c.forEach(function(x){
     var line=x.qty*x.unit; sub+=line;
-    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+'</div></td>'+
+    var cols = (x.colors && x.colors.length) ? ' · '+x.colors.map(esc).join(', ') : '';
+    rows+='<tr><td><b>'+esc(x.brand)+'</b> — '+esc(x.name)+'<div class="hint">SKU '+esc(x.sku)+cols+'</div></td>'+
       '<td>'+Number(x.qty)+' '+esc(x.unitLabel)+'</td><td class="r">'+eur(x.unit)+'</td><td class="r">'+eur(line)+'</td>'+
       '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });

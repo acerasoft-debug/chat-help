@@ -129,9 +129,23 @@ if(!$MEMBER) $images = [];
           </tbody>
         </table>
         <div class="order-box">
-          <form method="post" action="/offer">
+          <?php if(isset($_GET['colerr'])): ?>
+          <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
+            <?= sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??1)) ?></div>
+          <?php endif; ?>
+          <form method="post" action="/offer" onsubmit="return vcolOk(this)">
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+            <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
+            <div style="margin-bottom:12px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+              <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
+                <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+                <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+                <?php endforeach; ?>
+              </div>
+              <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= sprintf(t('Please select at least %d colours.'), (int)$p['min_colors']) ?></div>
+            </div>
+            <?php endif; ?>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div><label class="hint"><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>) — <?= t('min') ?> <?= $p['moq'] ?></label>
                 <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
@@ -176,6 +190,15 @@ if(!$MEMBER) $images = [];
           </tbody>
         </table>
         <div class="order-box">
+          <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
+          <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+            <div class="colorpick" id="ordColors">
+              <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+              <label class="colorchip"><input type="checkbox" value="<?= htmlspecialchars($cn) ?>" onchange="recalc()"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <?php endif; ?>
           <div class="qtyrow">
             <div class="stepper">
               <button type="button" onclick="bump(-step())">−</button>
@@ -197,9 +220,19 @@ if(!$MEMBER) $images = [];
           <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
-            <form method="post" action="/offer" style="margin-top:12px">
+            <form method="post" action="/offer" style="margin-top:12px" onsubmit="return vcolOk(this)">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
               <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
+              <div style="margin-bottom:10px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
+                <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
+                  <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+                  <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+                  <?php endforeach; ?>
+                </div>
+                <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= sprintf(t('Please select at least %d colours.'), (int)$p['min_colors']) ?></div>
+              </div>
+              <?php endif; ?>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div><label class="hint"><?= t('Quantity') ?> — <?= t('min') ?> <?= $p['moq'] ?></label>
                   <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
@@ -237,15 +270,18 @@ if(!$MEMBER) $images = [];
         </div>
         <?php endif; ?>
         <script>
-        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
+        var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
         function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
         function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
         function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
+        function ordColors(){ var el=document.getElementById('ordColors'); if(!el) return [];
+          return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
         function recalc(){
           var q=parseInt(document.getElementById('qty').value)||0, warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
           if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; btn.disabled=true; }
+          else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??0))) ?>; btn.disabled=true; }
           else { warn.style.display='none'; btn.disabled=false; }
           var u=unitPrice(q);
           document.getElementById('uprice').textContent=eur(u);
@@ -254,7 +290,8 @@ if(!$MEMBER) $images = [];
           document.querySelectorAll('#tiers tbody tr').forEach(function(tr){ tr.classList.toggle('active', q>=parseInt(tr.dataset.min)&&(!tr.nextElementSibling||q<parseInt(tr.nextElementSibling.dataset.min))); });
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
-          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u});
+          var cols=ordColors(); if(P.minColors>0 && cols.length<P.minColors){ recalc(); return; }
+          VCart.add({id:P.id,brand:P.brand,name:P.name,sku:P.sku,unitLabel:P.unitLabel,qty:q,unit:u,colors:cols});
           var b=document.getElementById('addBtn'); b.textContent='✓ '+<?= json_encode(t('Added to order')) ?>; setTimeout(function(){b.textContent=<?= json_encode(t('Add to order')) ?>;},1400); }
         recalc();
         </script>
@@ -285,4 +322,12 @@ document.addEventListener('keydown', function(e){
 });
 </script>
 <?php endif; ?>
+<script>
+function vcolOk(f){
+  var cp=f.querySelector('.colorpick[data-min]'); if(!cp) return true;
+  var need=parseInt(cp.dataset.min)||0, got=cp.querySelectorAll('input:checked').length;
+  var w=f.querySelector('.vcolwarn'); if(got<need){ if(w) w.style.display='block'; return false; }
+  if(w) w.style.display='none'; return true;
+}
+</script>
 <?php require __DIR__.'/inc/foot.php';

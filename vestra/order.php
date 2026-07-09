@@ -19,9 +19,15 @@ $lines=[]; $subtotal=0;
 foreach($cart as $it){
   $p=vestra_find($it['id']??''); if(!$p) continue;
   $qty=max((int)$p['moq'], (int)($it['qty']??0));
+  if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
+    $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
   $unit=vestra_unit_price($p,$qty); if($unit<=0) continue;
+  /* Colour selection: only colours the listing actually offers count; enforce the minimum. */
+  $colors = array_values(array_unique(array_intersect(
+      array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
+  if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
   $line=$qty*$unit; $subtotal+=$line;
-  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line];
+  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors];
 }
 if(!$lines){ header('Location: /cart'); exit; }
 /* Platform commission — set seller- and buyer-side rates independently. */
@@ -39,19 +45,22 @@ $file=$dir.'/orders.csv'; $new=!file_exists($file);
 if($fh=@fopen($file,'a')){
   if($new) fputcsv($fh,['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version'],',','"','\\');
   $items=implode(' | ', array_map(function($l){return $l['qty'].'x '.$l['sku'].' @'.$l['unit'];}, $lines));
+  $colorNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['colors']),
+    array_filter($lines, fn($l)=>!empty($l['colors']))));
+  $notes=trim(($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
   fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
-    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,trim($_POST['notes']??''),'yes',VESTRA_TERMS_VERSION],',','"','\\');
+    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION],',','"','\\');
   fclose($fh);
 }
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";
-foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}\n"; }
+foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"")."\n"; }
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\nNotes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
 $FEE_BUYER_PCT=round($FEE_BUYER*100);
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe will confirm seller availability and send you a proforma invoice. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total} (includes {$FEE_BUYER_PCT}% buyer-protection fee)\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}",$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe will confirm seller availability and send you a proforma invoice. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total} (includes {$FEE_BUYER_PCT}% buyer-protection fee)\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -59,7 +68,7 @@ if(!empty($lines)){
   /* Order card in the buyer↔seller conversation: the whole trade lives in one place. */
   $buyerAcc = !empty($_SESSION['uid']) ? auth_user() : auth_find($email);
   if($buyerAcc && ($buyerAcc['type']??'')!=='buyer') $buyerAcc = null;
-  $itemsSummary = implode(' · ', array_map(fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'], $lines));
+  $itemsSummary = implode(' · ', array_map(fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'].(!empty($l['colors'])?' ('.implode(', ',$l['colors']).')':''), $lines));
   $notifiedSellers=[];
   $allListings=vestra_listings();
   foreach($lines as $l){
@@ -78,7 +87,7 @@ if(!empty($lines)){
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
-          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}",$lines))."\n\nSubtotal: €{$subtotal}   Your payout (after commission): €{$payout}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}   Your payout (after commission): €{$payout}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
         break;
       }
       break;

@@ -205,7 +205,8 @@ function vestra_msg_system_html(array $m, string $viewerRole): string {
         $total = eur($meta['total']??0);
         $body  = '<div class="mo-head">💰 '.t('New offer').' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
                  '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.
-                 '<div class="mo-terms">'.$qty.' × '.$unit.' — <b>'.$total.'</b> '.t('total').'</div>';
+                 '<div class="mo-terms">'.$qty.' × '.$unit.' — <b>'.$total.'</b> '.t('total').'</div>'.
+                 (!empty($meta['colors'])?'<div class="mo-terms">'.t('Colours').': '.htmlspecialchars(implode(', ', array_map(fn($c)=>t($c),(array)$meta['colors']))).'</div>':'');
         if ($viewerRole === 'seller') {
             $body .= '<a class="mo-act" href="/seller?tab=offers">'.t('Respond in Offers tab →').'</a>';
         }
