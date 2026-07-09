@@ -15,8 +15,8 @@ $row=[date('c'),$ref,$one($title),$cat,$qty,$target,$country,$one($email),$notes
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/requests.csv'; $new=!file_exists($file);
 if($fh=@fopen($file,'a')){
-  if($new) fputcsv($fh,['timestamp','ref','title','cat','qty','target','country','email','notes']);
-  fputcsv($fh,$row); fclose($fh);
+  if($new) fputcsv($fh,['timestamp','ref','title','cat','qty','target','country','email','notes'],',','"','\\');
+  fputcsv($fh,$row,',','"','\\'); fclose($fh);
 }
 vestra_notify("New sourcing request {$ref} — {$title}",
   "A buyer posted a new sourcing request on VESTRA:\n\nTitle: {$title}\nCategory: {$cat}\nQty: {$qty}\nTarget: {$target}\nCountry: {$country}\nNotes: {$notes}\n\nRespond: https://vestrasales.com/requests\nAdmin: https://vestrasales.com/admin?tab=requests",

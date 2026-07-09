@@ -37,9 +37,9 @@ $isNew = !file_exists($file);
 
 if ($fh = @fopen($file, 'a')) {
     if ($isNew) {
-        fputcsv($fh, ['timestamp','type','name','company','email','country','message','ip','consent','terms_version']);
+        fputcsv($fh, ['timestamp','type','name','company','email','country','message','ip','consent','terms_version'],',','"','\\');
     }
-    fputcsv($fh, $row);
+    fputcsv($fh, $row,',','"','\\');
     fclose($fh);
 }
 

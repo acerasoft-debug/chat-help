@@ -459,7 +459,13 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
   </div>
 </footer>
 
+<div id="cnotice" style="display:none;position:fixed;left:14px;right:14px;bottom:14px;z-index:90;max-width:520px;margin:0 auto;background:#17181c;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px;font-size:13px;color:#9a9ba1;box-shadow:0 10px 34px rgba(0,0,0,.45);gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+  <span>🍪 <?= t('VESTRA only uses essential cookies (session & language preference) — no tracking, no ads.') ?>
+    <a href="/legal?doc=privacy" style="color:<?= $ACCENT ?>;margin-left:4px"><?= t('Privacy') ?></a></span>
+  <button onclick="localStorage.setItem('vcookie_ok','1');document.getElementById('cnotice').style.display='none'" style="background:<?= $ACCENT ?>;color:#0e0e11;border:0;border-radius:8px;padding:7px 16px;font-weight:600;cursor:pointer">OK</button>
+</div>
 <script>
+  if(!localStorage.getItem('vcookie_ok')){ document.getElementById('cnotice').style.display='flex'; }
   var burger=document.getElementById('burger'), mnav=document.getElementById('mnav');
   burger.addEventListener('click',function(){var o=mnav.classList.toggle('open');burger.setAttribute('aria-expanded',o);});
   mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});

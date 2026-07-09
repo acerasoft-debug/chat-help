@@ -13,19 +13,26 @@ if (!empty($_SESSION['uid'])) {
 $err = ''; $email_val = ''; $unverified = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_val = strtolower(trim($_POST['email'] ?? ''));
-    $acc = auth_login($email_val, $_POST['password'] ?? '');
-    if (is_array($acc)) {
-        auth_set($acc);
-        $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
-        if (!str_starts_with($back, '/')) $back = '/buyer';
-        header('Location: '.$back); exit;
+    $tkey = $email_val.'|'.($_SERVER['REMOTE_ADDR'] ?? '');
+    if (auth_throttled($tkey)) {
+        $err = t('Too many failed attempts. Please wait a few minutes and try again.');
+    } else {
+        $acc = auth_login($email_val, $_POST['password'] ?? '');
+        if (is_array($acc)) {
+            auth_throttle_clear($tkey);
+            auth_set($acc);
+            $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
+            if (!str_starts_with($back, '/')) $back = '/buyer';
+            header('Location: '.$back); exit;
+        }
+        if ($acc === 'invalid') { auth_throttle_hit($tkey); usleep(300000); }
+        $unverified = ($acc === 'unverified');
+        $err = match($acc) {
+            'unverified' => t('Please verify your email address. Check your inbox for the confirmation link.'),
+            'suspended'  => t('Your account has been suspended. Please contact support.'),
+            default      => t('Email or password is incorrect.'),
+        };
     }
-    $unverified = ($acc === 'unverified');
-    $err = match($acc) {
-        'unverified' => t('Please verify your email address. Check your inbox for the confirmation link.'),
-        'suspended'  => t('Your account has been suspended. Please contact support.'),
-        default      => t('Email or password is incorrect.'),
-    };
 }
 
 $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
@@ -42,7 +49,9 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
     <h2 class="authcard-title"><?= t('Welcome back') ?></h2>
     <p class="authcard-sub"><?= t('Sign in to your wholesale account') ?></p>
 
-    <?php if (isset($_GET['verified'])): ?>
+    <?php if (isset($_GET['reset'])): ?>
+      <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('Password updated. You can now sign in with your new password.') ?></div>
+    <?php elseif (isset($_GET['verified'])): ?>
       <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('Email verified! You can now sign in.') ?></div>
     <?php elseif (isset($_GET['verify_error'])): ?>
       <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px"><?= t('Verification link is invalid or has already been used.') ?></div>
@@ -70,7 +79,7 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
 
     <p class="authcard-foot"><?= t("Don't have an account?") ?> <a class="acc" href="/register"><?= t('Create one') ?></a></p>
     <p class="authcard-foot" style="margin-top:8px;font-size:13px">
-      <a class="acc" href="/?demo_member=1" style="opacity:.6"><?= t('Continue as demo') ?></a>
+      <a class="acc" href="/forgot" style="opacity:.75"><?= t('Forgot your password?') ?></a>
     </p>
   </div>
 </div>

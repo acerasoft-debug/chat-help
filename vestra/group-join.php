@@ -20,8 +20,8 @@ $ref='G'.strtoupper(substr(md5($email.$id.microtime(false)),0,6));
 $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/groups.csv'; $new=!file_exists($file);
 if($fh=@fopen($file,'a')){
-  if($new) fputcsv($fh,['timestamp','pool_id','ref','company','name','email','country','qty','unit_price','est_total','consent','terms_version']);
-  fputcsv($fh,[date('c'),$id,$ref,$company,$name,$email,$country,$qty,$unit,$est,'yes',VESTRA_TERMS_VERSION]);
+  if($new) fputcsv($fh,['timestamp','pool_id','ref','company','name','email','country','qty','unit_price','est_total','consent','terms_version'],',','"','\\');
+  fputcsv($fh,[date('c'),$id,$ref,$company,$name,$email,$country,$qty,$unit,$est,'yes',VESTRA_TERMS_VERSION],',','"','\\');
   fclose($fh);
 }
 

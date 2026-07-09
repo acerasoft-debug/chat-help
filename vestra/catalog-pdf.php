@@ -56,7 +56,7 @@ require __DIR__.'/inc/products.php';
       <td class="price"><?php
         $parts=[]; foreach($p['tiers'] as $t){ $parts[]=$t['min'].'+ → <b>'.eur($t['price']).'</b>'; }
         echo implode('&nbsp;&nbsp;·&nbsp;&nbsp;',$parts); ?></td>
-      <td><?=htmlspecialchars($p['seller'])?></td>
+      <td><?=htmlspecialchars(empty($p['hide_seller'])?($p['seller']??''):'via VESTRA')?></td>
     </tr>
   <?php endforeach; ?>
   </tbody>

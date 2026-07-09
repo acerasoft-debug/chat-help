@@ -3,8 +3,6 @@
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
-if (isset($_GET['demo_member']))  { $_SESSION['member'] = true; }
-if (isset($_GET['demo_signout'])) { auth_logout(); unset($_SESSION['member']); }
 $AUTH_USER = auth_user();
 $MEMBER = $AUTH_USER !== null || !empty($_SESSION['member']);
 $MSG_UNREAD = 0;
@@ -19,6 +17,13 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?></title>
+<?php $META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe.'); ?>
+<meta name="description" content="<?= htmlspecialchars($META) ?>">
+<meta property="og:site_name" content="VESTRA">
+<meta property="og:type" content="website">
+<meta property="og:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
+<meta property="og:description" content="<?= htmlspecialchars($META) ?>">
+<meta name="theme-color" content="#0e0e11">
 <link rel="icon" href="<?= $fav ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

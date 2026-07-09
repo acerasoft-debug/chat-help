@@ -26,8 +26,8 @@ if ($seed) {
 } else {
     $f = __DIR__.'/data/requests.csv';
     if (is_readable($f) && ($h = @fopen($f, 'r'))) {
-        $head = fgetcsv($h);
-        while (($row = fgetcsv($h)) !== false) {
+        $head = fgetcsv($h, null, ',', '"', '\\');
+        while (($row = fgetcsv($h, null, ',', '"', '\\')) !== false) {
             if ($head && count($row) === count($head)) {
                 $r = array_combine($head, $row);
                 if (($r['ref'] ?? '') === $ref) { $req = $r; break; }
@@ -65,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $file = $dir.'/request_offers.csv';
         $new  = !file_exists($file);
         if ($fh = @fopen($file, 'a')) {
-            if ($new) fputcsv($fh, ['timestamp','ref','request_ref','seller_company','seller_email','price','qty','delivery','message']);
-            fputcsv($fh, [date('c'), $oref, $ref, $one($company), $one($email), $one($price), $one($qty), $one($delivery), $one($message)]);
+            if ($new) fputcsv($fh, ['timestamp','ref','request_ref','seller_company','seller_email','price','qty','delivery','message'],',','"','\\');
+            fputcsv($fh, [date('c'), $oref, $ref, $one($company), $one($email), $one($price), $one($qty), $one($delivery), $one($message)],',','"','\\');
             fclose($fh);
         }
 

@@ -7,13 +7,13 @@ $out=fopen('php://output','w');
 fprintf($out, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel
 fputcsv($out,['SKU','Brand','Product','Category','Unit','MOQ',
   'Tier1 Qty','Tier1 Price (EUR)','Tier2 Qty','Tier2 Price (EUR)','Tier3 Qty','Tier3 Price (EUR)',
-  'Seller','Origin']);
+  'Seller','Origin'],',','"','\\');
 foreach(vestra_products() as $p){
   $t=$p['tiers'];
   fputcsv($out,[
-    $p['sku'],$p['brand'],$p['name'],$p['cat'],$p['unit'],$p['moq'],
+    $p['sku']??'',$p['brand']??'',$p['name']??'',$p['cat']??'',$p['unit']??'pc',$p['moq']??'',
     $t[0]['min']??'',$t[0]['price']??'', $t[1]['min']??'',$t[1]['price']??'', $t[2]['min']??'',$t[2]['price']??'',
-    $p['seller'],$p['origin'],
-  ]);
+    empty($p['hide_seller'])?($p['seller']??''):'via VESTRA',$p['origin']??'',
+  ],',','"','\\');
 }
 fclose($out);

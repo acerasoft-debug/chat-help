@@ -20,8 +20,8 @@ $row=[date('c'),$ref,$p['sku'],$p['brand'].' '.$p['name'],$qty,$price,round($qty
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/offers.csv'; $new=!file_exists($file);
 if($fh=@fopen($file,'a')){
-  if($new) fputcsv($fh,['timestamp','ref','sku','product','qty','offer_unit','offer_total','company','email','message']);
-  fputcsv($fh,$row); fclose($fh);
+  if($new) fputcsv($fh,['timestamp','ref','sku','product','qty','offer_unit','offer_total','company','email','message'],',','"','\\');
+  fputcsv($fh,$row,',','"','\\'); fclose($fh);
 }
 
 /* ── Email notifications ── */

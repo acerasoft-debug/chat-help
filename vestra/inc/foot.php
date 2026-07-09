@@ -7,10 +7,19 @@
       <a href="/legal?doc=terms"><?= t('Terms') ?></a>
       <a href="/legal?doc=privacy"><?= t('Privacy') ?></a>
       <a href="/legal?doc=imprint"><?= t('Imprint') ?></a>
-      <a href="/#join" class="acc"><?= t('Join the waitlist') ?></a>
+      <a href="/faq"><?= t('FAQ') ?></a>
+      <a href="/register" class="acc"><?= t('Get started') ?></a>
     </div>
   </div>
 </footer>
+<div id="cnotice" style="display:none;position:fixed;left:14px;right:14px;bottom:14px;z-index:90;max-width:520px;margin:0 auto;background:var(--card,#17181c);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:13px 16px;font-size:13px;color:var(--mut,#9a9ba1);box-shadow:0 10px 34px rgba(0,0,0,.45);gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+  <span>🍪 <?= t('VESTRA only uses essential cookies (session & language preference) — no tracking, no ads.') ?>
+    <a href="/legal?doc=privacy" class="acc" style="margin-left:4px"><?= t('Privacy') ?></a></span>
+  <button class="btn btn-p btn-sm" onclick="localStorage.setItem('vcookie_ok','1');document.getElementById('cnotice').style.display='none'">OK</button>
+</div>
+<script>
+if(!localStorage.getItem('vcookie_ok')){ var _cn=document.getElementById('cnotice'); _cn.style.display='flex'; }
+</script>
 <script>
 /* VESTRA cart — localStorage based (demo; Phase 1 moves server-side) */
 var VCart = {

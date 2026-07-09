@@ -13,6 +13,16 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /seller?tab=profile&saved=1'); exit;
 }
 
+// Change password (requires the current password)
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='change_password') {
+    $u = auth_user();
+    if (!$u || !password_verify($_POST['current']??'', $u['hash']??'')) { header('Location: /seller?tab=profile&pwerr=cur'); exit; }
+    if (strlen($_POST['password']??'') < 8)                              { header('Location: /seller?tab=profile&pwerr=len'); exit; }
+    if (($_POST['password']??'') !== ($_POST['password2']??''))          { header('Location: /seller?tab=profile&pwerr=match'); exit; }
+    auth_set_password($u['id'], $_POST['password']);
+    header('Location: /seller?tab=profile&pw=1'); exit;
+}
+
 // ── Require products (needed for listing/status helpers) ─────────────────────
 require __DIR__.'/inc/products.php';
 
@@ -524,8 +534,8 @@ if($tab==='overview'){
     foreach($orders as $o){
       $ref = $o['ref']??'';
       $st  = $orderSt[$ref]['status'] ?? 'pending';
-      $stClass = $st==='completed'?'offers':($st==='shipped'?'offers':'open');
-      $stLabel  = $st==='completed'?t('Completed'):($st==='shipped'?t('Shipped'):t('Awaiting payment'));
+      $stClass = $st==='completed'?'offers':($st==='shipped'?'offers':($st==='paid'?'offers':'open'));
+      $stLabel  = $st==='completed'?t('Completed'):($st==='shipped'?t('Shipped'):($st==='paid'?t('Paid — ship now'):t('Awaiting payment')));
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td>'.htmlspecialchars($o['company']??'').'<div class="hint">'.htmlspecialchars($o['email']??'').'</div></td>'.
         '<td class="hint">'.htmlspecialchars($o['items']??'').'</td>'.
@@ -533,7 +543,7 @@ if($tab==='overview'){
         '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.
           ($st==='shipped'&&!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
         '<td>';
-      if ($st==='pending') {
+      if (in_array($st,['pending','paid'],true)) {
         echo '<details class="respdetails"><summary class="btn btn-p btn-sm">🚚 '.t('Ship').'</summary>
           <form method="post" action="/seller?tab=orders" class="shipform">
             <input type="hidden" name="_action" value="ship_order">
@@ -724,6 +734,10 @@ if($tab==='overview'){
 } else { // profile
   $u = $AUTH_USER ?? [];
   if(isset($_GET['saved'])) echo '<div class="banner ok">✓ '.t('Profile saved.').'</div>';
+  if(isset($_GET['pw'])) echo '<div class="banner ok">✓ '.t('Password updated.').'</div>';
+  if(isset($_GET['pwerr'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.
+    match($_GET['pwerr']){ 'cur'=>t('Current password is incorrect.'), 'len'=>t('Password must be at least 8 characters.'), default=>t('Passwords do not match.') }.'</div>';
+
   ?>
   <div class="panelcard">
     <form method="post" action="/seller?tab=profile" class="addform">
@@ -752,6 +766,21 @@ if($tab==='overview'){
         <div><label><?= t('Account ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
+    </form>
+  </div>
+  <div class="panelcard">
+    <div class="pcfhead"><h3><?= t('Security') ?></h3></div>
+    <form method="post" action="/seller?tab=profile" class="addform" autocomplete="off">
+      <input type="hidden" name="_action" value="change_password">
+      <div class="frow">
+        <div><label><?= t('Current password') ?></label><input type="password" name="current" required autocomplete="current-password"></div>
+        <div></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('New password') ?></label><input type="password" name="password" required minlength="8" autocomplete="new-password"></div>
+        <div><label><?= t('Repeat new password') ?></label><input type="password" name="password2" required minlength="8" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn-o" type="submit"><?= t('Change password') ?></button>
     </form>
   </div>
   <?php

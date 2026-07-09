@@ -1,3 +1,8 @@
 data/*.csv
+data/login_throttle.json
+data/messages.json
+data/blocked_messages.json
+data/order_statuses.json
+data/accounts.json
 inc/config.php
 vendor/

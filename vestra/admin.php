@@ -11,8 +11,10 @@ $locked = ($PASS==='');
 if(isset($_GET['logout'])){ unset($_SESSION['vadmin'],$_SESSION['vadmin_csrf']); header('Location: /admin'); exit; }
 $err=false;
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
-  if(!$locked && hash_equals($PASS,(string)$_POST['pass'])){ $_SESSION['vadmin']=true; header('Location: /admin'); exit; }
-  $err=true;
+  $tkey='admin|'.($_SERVER['REMOTE_ADDR']??'');
+  if(auth_throttled($tkey)){ $err=true; }
+  elseif(!$locked && hash_equals($PASS,(string)$_POST['pass'])){ auth_throttle_clear($tkey); $_SESSION['vadmin']=true; header('Location: /admin'); exit; }
+  else { auth_throttle_hit($tkey); sleep(1); $err=true; }
 }
 $authed=!empty($_SESSION['vadmin']);
 if($authed && empty($_SESSION['vadmin_csrf'])) $_SESSION['vadmin_csrf']=bin2hex(random_bytes(16));
@@ -97,10 +99,35 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   if($act==='order_status'){
     $ref=$_POST['ref']??''; $st=$_POST['status']??'';
-    if($ref && in_array($st,['pending','shipped','completed'],true)){
+    if($ref && in_array($st,['pending','paid','shipped','completed'],true)){
       $all=vestra_read_json('order_statuses.json');
+      $prev=$all[$ref]['status']??'pending';
       $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>trim($_POST['tracking']??''),'updated_at'=>date('c')]);
       vestra_write_json('order_statuses.json',$all);
+      /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order */
+      if($st==='paid' && $prev!=='paid'){
+        $orderRow=null;
+        foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $orderRow=$row; break; } }
+        if($orderRow){
+          require_once __DIR__.'/inc/notify.php';
+          if(!empty($orderRow['email'])){
+            vestra_send_mail($orderRow['email'], "VESTRA — payment received for order {$ref}",
+              "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\nWe have received your invoice payment for order {$ref}. The seller is preparing your shipment — you'll get another email with tracking once it ships.\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+          }
+          $notified=[];
+          foreach(vestra_parse_order_items($orderRow['items']??'') as $it){
+            $l=vestra_listing_by_sku($it['sku']); $sid=$l['seller_uid']??'';
+            if($sid==='' || in_array($sid,$notified,true)) continue;
+            $notified[]=$sid;
+            foreach(auth_accounts() as $acc){
+              if(($acc['id']??'')!==$sid || empty($acc['email'])) continue;
+              vestra_send_mail($acc['email'], "VESTRA — order {$ref} is paid, please ship",
+                "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nThe invoice for order {$ref} has been paid. Please ship the goods and mark the order as shipped in your panel (with tracking if available):\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+              break;
+            }
+          }
+        }
+      }
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
   }
@@ -152,7 +179,7 @@ function docBadge(string $s): string {
   return match($s){ 'approved'=>abadge('✓ Approved','#7ad6a0'),'rejected'=>abadge('✗ Rejected','#ef9a9a'),'uploaded'=>abadge('📤 Review','#c9a86a'),'requested'=>abadge('📋 Requested','#8ab4f8'),default=>abadge('—','#555') };
 }
 function orderBadge(string $s): string {
-  return match($s){ 'completed'=>abadge('✓ Completed','#7ad6a0'),'shipped'=>abadge('🚚 Shipped','#c9a86a'),default=>abadge('⏳ Awaiting payment','#888') };
+  return match($s){ 'completed'=>abadge('✓ Completed','#7ad6a0'),'shipped'=>abadge('🚚 Shipped','#c9a86a'),'paid'=>abadge('💶 Paid — to ship','#8fb7e8'),default=>abadge('⏳ Awaiting payment','#888') };
 }
 function typePill(string $t): string {
   $c=$t==='seller'?'#c9a86a':'#8ab4f8'; $b=$t==='seller'?'rgba(201,168,106,.15)':'rgba(138,180,248,.15)';
@@ -760,6 +787,7 @@ elseif($tab==='orders'):
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
         <select name="status" style="padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
           <option value="pending" <?= $st==='pending'?'selected':'' ?>>⏳ Awaiting payment</option>
+          <option value="paid" <?= $st==='paid'?'selected':'' ?>>💶 Paid — to ship</option>
           <option value="shipped" <?= $st==='shipped'?'selected':'' ?>>🚚 Shipped</option>
           <option value="completed" <?= $st==='completed'?'selected':'' ?>>✓ Completed</option>
         </select>

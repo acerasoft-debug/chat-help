@@ -13,6 +13,16 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=profile&saved=1'); exit;
 }
 
+// Change password (requires the current password)
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='change_password') {
+    $u = auth_user();
+    if (!$u || !password_verify($_POST['current']??'', $u['hash']??'')) { header('Location: /buyer?tab=profile&pwerr=cur'); exit; }
+    if (strlen($_POST['password']??'') < 8)                              { header('Location: /buyer?tab=profile&pwerr=len'); exit; }
+    if (($_POST['password']??'') !== ($_POST['password2']??''))          { header('Location: /buyer?tab=profile&pwerr=match'); exit; }
+    auth_set_password($u['id'], $_POST['password']);
+    header('Location: /buyer?tab=profile&pw=1'); exit;
+}
+
 require __DIR__.'/inc/products.php';
 
 // ── Upload KYC document ───────────────────────────────────────────────────────
@@ -159,6 +169,7 @@ if($tab==='overview'){
       $st  = $orderSt[$ref]['status'] ?? 'pending';
       if ($st==='completed') { $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
+      elseif($st==='paid')    { $stClass='offers'; $stLabel=t('Paid — preparing shipment'); }
       else { $stClass='open'; $stLabel=t('Awaiting payment'); }
       $confirmBtn='';
       if($st==='shipped'){
@@ -288,6 +299,10 @@ if($tab==='overview'){
 } elseif($tab==='profile') {
   $u = $AUTH_USER ?? [];
   if(isset($_GET['saved'])) echo '<div class="banner ok">✓ '.t('Profile saved.').'</div>';
+  if(isset($_GET['pw'])) echo '<div class="banner ok">✓ '.t('Password updated.').'</div>';
+  if(isset($_GET['pwerr'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.
+    match($_GET['pwerr']){ 'cur'=>t('Current password is incorrect.'), 'len'=>t('Password must be at least 8 characters.'), default=>t('Passwords do not match.') }.'</div>';
+
   ?>
   <div class="panelcard">
     <form method="post" action="/buyer?tab=profile" class="addform">
@@ -316,6 +331,21 @@ if($tab==='overview'){
         <div><label><?= t('Account ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled title="<?= htmlspecialchars(t('Your unique VESTRA account ID')) ?>"></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
+    </form>
+  </div>
+  <div class="panelcard">
+    <div class="pcfhead"><h3><?= t('Security') ?></h3></div>
+    <form method="post" action="/buyer?tab=profile" class="addform" autocomplete="off">
+      <input type="hidden" name="_action" value="change_password">
+      <div class="frow">
+        <div><label><?= t('Current password') ?></label><input type="password" name="current" required autocomplete="current-password"></div>
+        <div></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('New password') ?></label><input type="password" name="password" required minlength="8" autocomplete="new-password"></div>
+        <div><label><?= t('Repeat new password') ?></label><input type="password" name="password2" required minlength="8" autocomplete="new-password"></div>
+      </div>
+      <button class="btn btn-o" type="submit"><?= t('Change password') ?></button>
     </form>
   </div>
   <?php

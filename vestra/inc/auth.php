@@ -4,6 +4,17 @@
  * Accounts stored in data/accounts.json (server-side, not web-accessible).
  */
 
+/* Session-cookie hardening — must run before any session_start() (auth.php is
+ * required before sessions start everywhere). HttpOnly blocks JS access,
+ * SameSite=Lax blocks cross-site POSTs riding the session, Secure on HTTPS. */
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_set_cookie_params([
+        'lifetime' => 0, 'path' => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
+        'httponly' => true, 'samesite' => 'Lax',
+    ]);
+}
+
 define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 
 function auth_accounts(): array {
@@ -144,6 +155,71 @@ function auth_login(string $email, string $password): array|string {
     if (($acc['status'] ?? '') === 'pending_email') return 'unverified';
     if (($acc['status'] ?? '') === 'suspended')     return 'suspended';
     return $acc;
+}
+
+/* Set a new password (the only sanctioned way to touch 'hash' — auth_update locks it). */
+function auth_set_password(string $id, string $newPassword): bool {
+    if (strlen($newPassword) < 8) return false;
+    $list = auth_accounts(); $ok = false;
+    foreach ($list as &$a) {
+        if (($a['id'] ?? '') === $id) {
+            $a['hash'] = password_hash($newPassword, PASSWORD_DEFAULT);
+            unset($a['reset_token'], $a['reset_expires']);
+            $ok = true; break;
+        }
+    }
+    if ($ok) auth_save_accounts($list);
+    return $ok;
+}
+
+/* ── Password reset tokens ─────────────────────────────────────────────────── */
+function auth_reset_begin(string $email): ?array {
+    $acc = auth_find($email);
+    if (!$acc) return null;
+    $token = bin2hex(random_bytes(24));
+    auth_update($acc['id'], ['reset_token'=>$token, 'reset_expires'=>date('c', time()+3600)]);
+    $acc['reset_token'] = $token;
+    return $acc;
+}
+function auth_reset_find(string $token): ?array {
+    if ($token === '') return null;
+    foreach (auth_accounts() as $a) {
+        if (!empty($a['reset_token']) && hash_equals($a['reset_token'], $token)) {
+            if (strtotime($a['reset_expires'] ?? '') < time()) return null; // expired
+            return $a;
+        }
+    }
+    return null;
+}
+
+/* ── Login throttling (per email+IP, file-based) ───────────────────────────────
+ * auth_throttled($key)  → true when ≥5 failures in the last 15 min (still blocked)
+ * auth_throttle_hit / auth_throttle_clear on failure / success. */
+define('VESTRA_THROTTLE', __DIR__.'/../data/login_throttle.json');
+function auth_throttle_load(): array {
+    if (!is_file(VESTRA_THROTTLE)) return [];
+    return json_decode((string)@file_get_contents(VESTRA_THROTTLE), true) ?: [];
+}
+function auth_throttle_save(array $d): void {
+    $now = time();
+    $d = array_filter($d, fn($e) => ($e['first'] ?? 0) > $now - 3600); // prune stale entries
+    @file_put_contents(VESTRA_THROTTLE, json_encode($d), LOCK_EX);
+}
+function auth_throttled(string $key, int $max = 5, int $window = 900): bool {
+    $e = auth_throttle_load()[$key] ?? null;
+    return $e && ($e['n'] ?? 0) >= $max && ($e['first'] ?? 0) > time() - $window;
+}
+function auth_throttle_hit(string $key): void {
+    $d = auth_throttle_load();
+    $e = $d[$key] ?? ['n'=>0, 'first'=>time()];
+    if (($e['first'] ?? 0) < time() - 900) $e = ['n'=>0, 'first'=>time()]; // window rolled over
+    $e['n']++;
+    $d[$key] = $e;
+    auth_throttle_save($d);
+}
+function auth_throttle_clear(string $key): void {
+    $d = auth_throttle_load();
+    if (isset($d[$key])) { unset($d[$key]); auth_throttle_save($d); }
 }
 
 function auth_update(string $id, array $fields): void {

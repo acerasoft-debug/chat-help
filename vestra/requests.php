@@ -2,7 +2,7 @@
 require __DIR__.'/inc/products.php'; $PAGE=t('Sourcing requests'); $NAV='requests'; require __DIR__.'/inc/head.php';
 $posted=isset($_GET['posted']);
 $userReqs=[]; $f=__DIR__.'/data/requests.csv';
-if(is_readable($f) && ($h=@fopen($f,'r'))){ $head=fgetcsv($h); while(($row=fgetcsv($h))!==false){ if($head&&count($row)===count($head)) $userReqs[]=array_combine($head,$row); } fclose($h); }
+if(is_readable($f) && ($h=@fopen($f,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($row=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head&&count($row)===count($head)) $userReqs[]=array_combine($head,$row); } fclose($h); }
 $userReqs=array_reverse($userReqs);
 $seed=vestra_requests();
 $openCount=count($seed)+count($userReqs);
