@@ -27,7 +27,7 @@ foreach($cart as $it){
       array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
   if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
   $line=$qty*$unit; $subtotal+=$line;
-  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors];
+  $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
 }
 if(!$lines){ header('Location: /cart'); exit; }
 /* Platform commission — set seller- and buyer-side rates independently. */
@@ -94,4 +94,20 @@ if(!empty($lines)){
     }
   }
 }
+/* Auto-generate one PDF invoice per seller involved in this order (idempotent — safe to
+   call again later from the buyer/seller panels; already-issued invoices are never rewritten). */
+require_once __DIR__.'/inc/invoice.php';
+$orderMeta = [
+  'ref'=>$ref, 'date'=>date('c'),
+  'buyer'=>['company'=>$company,'vat'=>trim($_POST['vat']??''),'name'=>$name,'email'=>$email,
+            'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??'')],
+];
+$bySeller=[];
+foreach($lines as $l){ $bySeller[$l['seller_uid']?:'vestra'][] = $l; }
+foreach($bySeller as $sid=>$sellerItems){
+  $sellerAcc=null;
+  if($sid!=='vestra'){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sid){ $sellerAcc=$a; break; } } }
+  vestra_ensure_invoice($orderMeta, $sellerItems, $sellerAcc);
+}
+
 header('Location: /cart?placed=1&ref='.urlencode($ref)); exit;

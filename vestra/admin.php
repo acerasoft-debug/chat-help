@@ -3,6 +3,7 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/promos.php';
 require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/invoice.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -768,7 +769,7 @@ elseif($tab==='orders'):
 <?php if(!$orders): ?><div class="acard"><div class="aempty">No orders yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Update'],true) ?>
+  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Update'],true) ?>
   <?php foreach(array_reverse($orders) as $o):
     $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
   <tr>
@@ -780,6 +781,9 @@ elseif($tab==='orders'):
     <td class="ac"><b><?= eur($o['total']??0) ?></b></td>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
+    <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
+      <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars($iv['no']) ?></a>
+    <?php endforeach; ?></td>
     <td class="ac"><?php if($st!=='completed'): ?>
       <form method="post" style="display:flex;flex-direction:column;gap:5px">
         <?= csrfField() ?>

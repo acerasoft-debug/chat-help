@@ -4,5 +4,7 @@ data/messages.json
 data/blocked_messages.json
 data/order_statuses.json
 data/accounts.json
+data/invoices/
+data/invoice_seq.json
 inc/config.php
 vendor/

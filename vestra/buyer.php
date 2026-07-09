@@ -24,6 +24,7 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
 }
 
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/invoice.php';
 
 // ── Upload KYC document ───────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
@@ -178,11 +179,15 @@ if($tab==='overview'){
           <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
           <button class="btn btn-p btn-sm" type="submit">✓ '.t('Confirm receipt').'</button></form>';
       }
+      $invLinks='';
+      foreach(vestra_invoices_for_ref($ref) as $iv){
+        $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
+      }
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td class="hint">'.htmlspecialchars($o['items']??'').'</td><td class="r">'.eur($o['total']??0).'</td>'.
         '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.
         (!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
-        '<td>'.$confirmBtn.'</td></tr>';
+        '<td>'.$confirmBtn.$invLinks.'</td></tr>';
     }
     echo '</tbody></table>';
   }
@@ -225,7 +230,12 @@ if($tab==='overview'){
       $ref = $o['ref']??'';
       $resp = $offerResp[$ref] ?? null;
       if (!$resp) { $rCell='<span class="status open">'.t('Pending seller').'</span>'; }
-      elseif($resp['status']==='accept') { $rCell='<span class="status offers">✓ '.t('Accepted').'</span>'; }
+      elseif($resp['status']==='accept') {
+        $rCell='<span class="status offers">✓ '.t('Accepted').'</span>';
+        foreach(vestra_invoices_for_ref($ref) as $iv){
+          $rCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+        }
+      }
       elseif($resp['status']==='decline') { $rCell='<span class="status">✗ '.t('Declined').'</span>'; }
       else { $rCell='<span class="status open">↩ '.t('Counter').': '.eur($resp['counter_price']??0).'/u</span>'; }
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
@@ -250,8 +260,8 @@ if($tab==='overview'){
     if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
       echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
     }
-    if ($msgerr === 'email' || $msgerr === 'iban') {
-      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
+    if (in_array($msgerr, ['email','iban','phone'], true)) {
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {

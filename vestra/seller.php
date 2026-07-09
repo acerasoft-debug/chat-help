@@ -9,6 +9,9 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
         'vat_id'=>trim($_POST['vat_id']??''),'reg_number'=>trim($_POST['reg_number']??''),
         'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??''),
         'phone'=>trim($_POST['phone']??''),'website'=>trim($_POST['website']??''),
+        'bank_name'=>trim($_POST['bank_name']??''),'bank_holder'=>trim($_POST['bank_holder']??''),
+        'bank_iban'=>strtoupper(trim(preg_replace('/\s+/',' ',$_POST['bank_iban']??''))),
+        'bank_bic'=>strtoupper(trim($_POST['bank_bic']??'')),
     ]);
     header('Location: /seller?tab=profile&saved=1'); exit;
 }
@@ -25,6 +28,7 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
 
 // ── Require products (needed for listing/status helpers) ─────────────────────
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/invoice.php';
 
 // ── Delete listing (owner only) ────────────────────────────────────────────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='delete_listing') {
@@ -155,6 +159,29 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 'product'=>trim(($offerListing['brand']??'').' '.($offerListing['name']??'')),
             ]);
         }
+        /* Accepted offer = a confirmed sale — auto-generate this seller's PDF invoice,
+           enriched with the buyer's full account details when they have one. */
+        if ($action === 'accept') {
+            require_once __DIR__.'/inc/invoice.php';
+            $sellerAcc = null;
+            foreach (auth_accounts() as $a) { if (($a['id']??'')===$uid) { $sellerAcc=$a; break; } }
+            $buyerFull = $buyerAcc ?: auth_find($offerRow['email'] ?? '');
+            $orderMeta = [
+                'ref'=>$ref, 'date'=>date('c'),
+                'buyer'=>[
+                    'company'=>$offerRow['company'] ?? ($buyerFull['company'] ?? ''),
+                    'vat'=>$buyerFull['vat_id'] ?? '', 'name'=>$buyerFull['name'] ?? '',
+                    'email'=>$offerRow['email'] ?? '', 'country'=>$buyerFull['country'] ?? '',
+                    'address'=>$buyerFull['address'] ?? '',
+                ],
+            ];
+            $items = [[
+                'sku'=>$offerListing['sku'] ?? '', 'brand'=>$offerListing['brand'] ?? '', 'name'=>$offerListing['name'] ?? '',
+                'colors'=>[], 'qty'=>(int)($offerRow['qty']??0), 'unit'=>(float)($offerRow['offer_unit']??0),
+                'line'=>(float)($offerRow['offer_total']??($offerRow['qty']*$offerRow['offer_unit'])),
+            ]];
+            vestra_ensure_invoice($orderMeta, $items, $sellerAcc);
+        }
     }
     header('Location: /seller?tab=offers&responded=1'); exit;
 }
@@ -252,6 +279,10 @@ if($tab==='overview'){
       <a class="btn btn-o btn-sm" href="/seller?tab=orders">'.t('View orders').'</a>
       <a class="btn btn-o btn-sm" href="/requests">'.t('Browse buyer requests').'</a>
     </div></div>';
+  if(empty($AUTH_USER['bank_iban'])){
+    echo '<div class="banner info">🏦 '.t('Add your bank details so buyers can pay you directly — shown on the automatic PDF invoices your buyers download.').
+      ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
+  }
   $msBadge = match($_ms){
     'trialing' => '<span class="status open">⏳ '.t('Trial').'</span>',
     'active'   => '<span class="status offers">✓ '.t('Active').'</span>',
@@ -552,6 +583,10 @@ if($tab==='overview'){
             <button class="btn btn-p btn-sm" type="submit">'.t('Mark shipped').'</button>
           </form></details>';
       }
+      foreach(vestra_invoices_for_ref($ref) as $iv){
+        if($iv['seller_key']!==$uid) continue;
+        echo '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+      }
       echo '</td></tr>';
     }
     echo '</tbody></table>';
@@ -574,6 +609,12 @@ if($tab==='overview'){
         if($rSt==='counter'){$rsClass='open'; $rsLabel='↩ '.t('Counter').': '.eur($resp['counter_price']??0);}
         $stCell='<span class="status '.$rsClass.'">'.$rsLabel.'</span>';
         $actCell='<span class="hint">'.substr($resp['responded_at']??'',0,10).'</span>';
+        if($rSt==='accept'){
+          foreach(vestra_invoices_for_ref($ref) as $iv){
+            if($iv['seller_key']!==$uid) continue;
+            $actCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+          }
+        }
       } else {
         $stCell='<span class="status open">'.t('Pending').'</span>';
         $actCell='<details class="respdetails"><summary class="btn btn-o btn-sm">'.t('Respond').'</summary>
@@ -632,8 +673,8 @@ if($tab==='overview'){
     if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
       echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
     }
-    if ($msgerr === 'email' || $msgerr === 'iban') {
-      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
+    if (in_array($msgerr, ['email','iban','phone'], true)) {
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {
@@ -764,6 +805,16 @@ if($tab==='overview'){
       <div class="frow">
         <div><label><?= t('Website') ?></label><input name="website" value="<?= htmlspecialchars($u['website']??'') ?>" placeholder="https://company.com"></div>
         <div><label><?= t('Account ID') ?></label><input value="<?= htmlspecialchars($u['id']??'—') ?>" disabled></div>
+      </div>
+      <div class="authsect"><?= t('Bank details for invoices') ?></div>
+      <p class="hint" style="margin:0 0 10px"><?= t('Shown on the automatic PDF invoices your buyers receive, so they can pay you directly by bank transfer.') ?></p>
+      <div class="frow">
+        <div><label><?= t('Bank name') ?></label><input name="bank_name" value="<?= htmlspecialchars($u['bank_name']??'') ?>" placeholder="Deutsche Bank"></div>
+        <div><label><?= t('Account holder') ?></label><input name="bank_holder" value="<?= htmlspecialchars($u['bank_holder']??'') ?>" placeholder="<?= htmlspecialchars($u['company']?:'Company GmbH') ?>"></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('IBAN') ?></label><input name="bank_iban" value="<?= htmlspecialchars($u['bank_iban']??'') ?>" placeholder="DE89 3704 0044 0532 0130 00" style="text-transform:uppercase"></div>
+        <div><label><?= t('BIC / SWIFT') ?></label><input name="bank_bic" value="<?= htmlspecialchars($u['bank_bic']??'') ?>" placeholder="COBADEFFXXX" style="text-transform:uppercase"></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>

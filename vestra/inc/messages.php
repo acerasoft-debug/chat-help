@@ -36,15 +36,23 @@ function vestra_msg_thread_owner(string $id, string $uid): bool {
     return ($t['buyer_uid']??'') === $uid || ($t['seller_uid']??'') === $uid;
 }
 
-/* Returns 'email', 'iban', or null. Deliberately blunt — false positives just mean the sender
-   edits the message and resends, which is a fine trade-off for keeping deals on-platform.
-   The IBAN pattern matches directly against the original text (not a globally whitespace-
-   stripped copy) so it follows real IBAN formatting — country+checksum glued together, then
-   groups of 4 optionally separated by a space/hyphen — instead of merging unrelated adjacent
-   words into a false positive, or losing a real IBAN's word boundary. */
+/* Returns 'email', 'iban', 'phone', or null. Deliberately blunt — false positives just mean
+   the sender edits the message and resends, which is a fine trade-off for keeping deals and
+   contact details on-platform. The IBAN pattern matches directly against the original text
+   (not a globally whitespace-stripped copy) so it follows real IBAN formatting — country+
+   checksum glued together, then groups of 4 optionally separated by a space/hyphen — instead
+   of merging unrelated adjacent words into a false positive, or losing a real IBAN's word
+   boundary. The phone check only fires on a digit run long enough to actually BE a phone
+   number (9–15 digits once separators are stripped) so ordinary quantities/prices/SKUs
+   (routinely 2–7 digits in this catalog) pass through untouched. */
 function vestra_msg_flag_offplatform(string $text): ?string {
     if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text)) return 'email';
     if (preg_match('/\b[A-Z]{2}\d{2}(?:[ -]?[A-Z0-9]{4}){2,7}(?:[ -]?[A-Z0-9]{1,3})?\b/i', $text)) return 'iban';
+    if (preg_match('/(?:\+|\b00)\s?\d[\d \-.()]{5,15}\d\b/', $text)) return 'phone';
+    if (preg_match('/(?<![\d.,])(\d[\d \-.\/]{6,20}\d)(?![\d.,])/', $text, $m)) {
+        $digits = preg_replace('/\D/', '', $m[1]);
+        if (strlen($digits) >= 9 && strlen($digits) <= 15) return 'phone';
+    }
     return null;
 }
 
@@ -70,7 +78,7 @@ function vestra_msg_log_blocked(string $fromUid, string $buyerUid, string $selle
     }
     vestra_notify(
         "⚠️ Off-platform contact attempt blocked ({$flag}) — {$who}",
-        "A message containing ".($flag==='email'?'an email address':'an IBAN')." was blocked in buyer-seller chat.\n\n".
+        "A message containing ".match($flag){'email'=>'an email address','phone'=>'a phone number',default=>'an IBAN'}." was blocked in buyer-seller chat.\n\n".
         "Sender:  {$who}".($whoEmail?" <{$whoEmail}>":'')." (uid {$fromUid})\n".
         "Thread:  buyer {$buyerUid} ↔ seller {$sellerUid}".($listingId?" · listing {$listingId}":'')."\n\n".
         "Attempted text:\n".mb_substr($text, 0, 500)."\n\n".
