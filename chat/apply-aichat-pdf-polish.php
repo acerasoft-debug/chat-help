@@ -28,8 +28,9 @@ if (strpos($src,'CH_AICHAT_PDF_POLISH')!==false) exit("Zaten ekli (CH_AICHAT_PDF
 if (strpos($src,'CH_AICHAT_DOCPDF')===false) exit("HATA: once apply-aichat-docpdf.php gerekli (CH_AICHAT_DOCPDF yok).\n");
 
 $old = <<<'OLD'
-  function printDoc(docText){
+function printDoc(docText){ if(window.chDlGate&&!window.chDlGate()) return; /*CH_DLGATE*/
     var real=restore(docText);
+    try{ if(window.jspdf&&typeof makePDF==="function"){ makePDF(real,"ChatHelp-Dokument",(typeof CC!=="undefined"?CC:"DE")); return; } }catch(e){} /*CH_FIX5 PDF*/
     var html='<!doctype html><html><head><meta charset="utf-8"><title>ChatHelp</title>'
       +'<style>@page{size:A4;margin:0}html,body{margin:0;padding:0}'
       +'.a4{width:794px;min-height:1123px;box-sizing:border-box;padding:80px 84px;background:#fff;color:#1e1e26;'
@@ -38,8 +39,9 @@ $old = <<<'OLD'
 OLD;
 
 $new = <<<'NEW'
-  function printDoc(docText){ /*CH_AICHAT_PDF_POLISH*/
+function printDoc(docText){ if(window.chDlGate&&!window.chDlGate()) return; /*CH_DLGATE*/ /*CH_AICHAT_PDF_POLISH*/
     var real=restore(docText);
+    try{ if(window.jspdf&&typeof makePDF==="function"){ makePDF(real,"ChatHelp-Dokument",(typeof CC!=="undefined"?CC:"DE")); return; } }catch(e){} /*CH_FIX5 PDF*/
     var isRtl=(uil()==="ar");
     var html='<!doctype html><html'+(isRtl?' dir="rtl" lang="ar"':'')+'><head><meta charset="utf-8"><title>ChatHelp</title>'
       +'<style>@page{size:A4;margin:0}html,body{margin:0;padding:0}*{box-sizing:border-box}'
