@@ -68,11 +68,29 @@ if(!$MEMBER) $images = [];
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars($p['sizes']) ?></b></div><?php endif; ?>
         <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
-        <?php if(!empty($p['seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?></b></div><?php endif; ?>
+        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?></b></div>
+        <?php elseif(!empty($p['verified'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= t('Verified business') ?> · <?= t('via VESTRA') ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
       </div>
 
-      <?php if(!empty($p['sheet'])): ?>
+      <?php if(!empty($p['linesheet'])): ?>
+        <?php if($MEMBER): ?>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
+          <?php if(!empty($p['sheet_file'])): ?>
+          <a class="btn btn-o btn-sm" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=pdf" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
+            <?= t('Line sheet (PDF)') ?>
+          </a>
+          <?php endif; ?>
+          <a class="btn btn-o btn-sm" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=xls">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+            <?= t('Line sheet (Excel)') ?>
+          </a>
+        </div>
+        <?php else: ?>
+        <div class="hint" style="margin:14px 0">🔒 <?= t('Sign in to download the line sheet (PDF & Excel).') ?></div>
+        <?php endif; ?>
+      <?php elseif(!empty($p['sheet'])): ?>
         <a class="btn btn-o btn-sm" style="margin:14px 0" href="<?= htmlspecialchars($p['sheet']) ?>" target="_blank" rel="noopener">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
           <?= t('Line sheet') ?> (<?= strtoupper(htmlspecialchars(pathinfo($p['sheet'],PATHINFO_EXTENSION))) ?>)
@@ -127,7 +145,7 @@ if(!$MEMBER) $images = [];
               <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
             </div>
             <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Submit offer →') ?></button>
-            <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, payment is via <b>escrow</b>.") ?></div>
+            <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, you receive an <b>invoice</b> — payment by bank transfer.") ?></div>
             <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>
             <div class="hint" style="margin-top:6px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
             <?php endif; ?>
@@ -172,7 +190,7 @@ if(!$MEMBER) $images = [];
           </div>
           <div id="warn" class="warn" style="display:none"></div>
           <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
-          <div class="hint" style="margin-top:10px"><?= t('Orders are placed via secured <b>escrow</b> — funds release after you confirm receipt.') ?></div>
+          <div class="hint" style="margin-top:10px"><?= t('Payment is currently by <b>invoice</b> — you receive a proforma invoice and goods ship after bank-transfer payment.') ?></div>
         </div>
         <?php if(!empty($p['offers'])): ?>
         <div class="order-box" style="margin-top:14px">

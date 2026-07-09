@@ -126,6 +126,8 @@
     <h3>Monitoraggio &amp; registrazioni</h3><p>Monitoriamo gli schemi sospetti e conserviamo le registrazioni di verifica e transazione
     per il periodo legalmente richiesto.</p>"],
   'payments'  => ['title'=>"Pagamenti, deposito a garanzia &amp; rimborsi", 'html'=>"
+    <p><b>Stato attuale:</b> i pagamenti avvengono temporaneamente <b>su fattura</b> &mdash; l'acquirente riceve una fattura proforma e paga tramite
+    bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è sospeso fino a nuovo avviso.</p>
     <h3>Come funziona il pagamento</h3><p>Gli acquirenti pagano tramite il fornitore autorizzato di deposito a garanzia (bonifico bancario SEPA per il B2B dell'UE; sono disponibili le carte).
     I fondi sono <b>trattenuti in deposito a garanzia</b> &mdash; VESTRA non detiene mai il denaro.</p>
     <h3>Rilascio del deposito a garanzia</h3><p>I fondi vengono rilasciati alla conferma dell'acquirente, alla consegna verificata o alla scadenza di una finestra di rilascio automatico

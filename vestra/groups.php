@@ -33,7 +33,7 @@ $pools=vestra_group_pools();
   <div class="ghow">
     <div class="step"><span class="n">1</span><h4><?= t('Join a pool') ?></h4><p><?= t('Commit the quantity you actually need — no minimum of your own.') ?></p></div>
     <div class="step"><span class="n">2</span><h4><?= t('Reach the target together') ?></h4><p><?= t('When all buyers’ quantities add up to the MOQ before the deadline, the wholesale price unlocks for everyone.') ?></p></div>
-    <div class="step"><span class="n">3</span><h4><?= t('Pay via escrow, ship separately') ?></h4><p><?= t('Funds are held in escrow. The seller ships to each buyer separately. If the target isn’t met, everyone is refunded.') ?></p></div>
+    <div class="step"><span class="n">3</span><h4><?= t('Pay by invoice, ship separately') ?></h4><p><?= t('You pay by bank transfer against an invoice. The seller ships to each buyer separately. If the target isn’t met, nobody pays.') ?></p></div>
   </div>
 
   <?php if(!$pools): ?>

@@ -152,7 +152,7 @@ function docBadge(string $s): string {
   return match($s){ 'approved'=>abadge('✓ Approved','#7ad6a0'),'rejected'=>abadge('✗ Rejected','#ef9a9a'),'uploaded'=>abadge('📤 Review','#c9a86a'),'requested'=>abadge('📋 Requested','#8ab4f8'),default=>abadge('—','#555') };
 }
 function orderBadge(string $s): string {
-  return match($s){ 'completed'=>abadge('✓ Completed','#7ad6a0'),'shipped'=>abadge('🚚 Shipped','#c9a86a'),default=>abadge('⏳ Escrow','#888') };
+  return match($s){ 'completed'=>abadge('✓ Completed','#7ad6a0'),'shipped'=>abadge('🚚 Shipped','#c9a86a'),default=>abadge('⏳ Awaiting payment','#888') };
 }
 function typePill(string $t): string {
   $c=$t==='seller'?'#c9a86a':'#8ab4f8'; $b=$t==='seller'?'rgba(201,168,106,.15)':'rgba(138,180,248,.15)';
@@ -731,7 +731,7 @@ elseif($tab==='orders'):
 
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Total orders</div></div>
-  <div class="ascard"><div class="sv" style="color:#888"><?= count($orders)-$cnt_ship-$cnt_done ?></div><div class="sl">In escrow</div></div>
+  <div class="ascard"><div class="sv" style="color:#888"><?= count($orders)-$cnt_ship-$cnt_done ?></div><div class="sl">Awaiting payment</div></div>
   <div class="ascard"><div class="sv" style="color:#c9a86a"><?= $cnt_ship ?></div><div class="sl">Shipped</div></div>
   <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $cnt_done ?></div><div class="sl">Completed</div></div>
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Total volume</div></div>
@@ -759,7 +759,7 @@ elseif($tab==='orders'):
         <input type="hidden" name="_action" value="order_status">
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
         <select name="status" style="padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
-          <option value="pending" <?= $st==='pending'?'selected':'' ?>>⏳ In escrow</option>
+          <option value="pending" <?= $st==='pending'?'selected':'' ?>>⏳ Awaiting payment</option>
           <option value="shipped" <?= $st==='shipped'?'selected':'' ?>>🚚 Shipped</option>
           <option value="completed" <?= $st==='completed'?'selected':'' ?>>✓ Completed</option>
         </select>

@@ -15,22 +15,39 @@ function vestra_demo_products(){
   return [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>8,'unit'=>'pc',
-      'desc'=>'Iconic L1212 cotton piqué polo, classic fit. Assorted sizes (S–XXL); all colourways available.',
-      'seller'=>'Maison Textile SARL','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
-      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
-      'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
-      'tiers'=>[['min'=>8,'price'=>34.00],['min'=>60,'price'=>29.50],['min'=>180,'price'=>25.00]],
-      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 180 pc → €25/pc
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>16,'unit'=>'pc',
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Ships in 8+8 cartons (16 pc, two size runs 3–8).',
+      'seller'=>'Maison Textile SARL','hide_seller'=>true,'origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
+      'sizes'=>'3×2 · 4×4 · 5×4 · 6×3 · 7×2 · 8×1 (8+8 · 16/carton)','size_step'=>16,
+      'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
+      'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-beige.jpg',
+                 '/uploads/lacoste/l1212-navy.jpg','/uploads/lacoste/l1212-yellow.jpg','/uploads/lacoste/l1212-pink.jpg',
+                 '/uploads/lacoste/l1212-bordeaux.jpg','/uploads/lacoste/l1212-green.jpg','/uploads/lacoste/l1212-blue.jpg',
+                 '/uploads/lacoste/l1212-lightblue.png'],
+      'linesheet'=>true,'sheet_file'=>'lacoste-l1212-poloshirt-preorder.pdf',
+      'variants'=>[
+        ['art'=>'LCMP103200','model'=>'L.12.12 00 031','color'=>'Black','image'=>'/uploads/lacoste/l1212-black.jpg'],
+        ['art'=>'LCMP103201','model'=>'L.12.12 00 001','color'=>'White','image'=>'/uploads/lacoste/l1212-white.jpg'],
+        ['art'=>'LCMP103202','model'=>'L.12.12 00 025','color'=>'Beige','image'=>'/uploads/lacoste/l1212-beige.jpg'],
+        ['art'=>'LCMP103203','model'=>'L.12.12 00 166','color'=>'Navy','image'=>'/uploads/lacoste/l1212-navy.jpg'],
+        ['art'=>'LCMP103205','model'=>'L.12.12 00 107','color'=>'Yellow','image'=>'/uploads/lacoste/l1212-yellow.jpg'],
+        ['art'=>'LCMP103206','model'=>'L.12.12 00 T03','color'=>'Pink','image'=>'/uploads/lacoste/l1212-pink.jpg'],
+        ['art'=>'LCMP103207','model'=>'L.12.12 00 476','color'=>'Bordeaux','image'=>'/uploads/lacoste/l1212-bordeaux.jpg'],
+        ['art'=>'LCMP103208','model'=>'L.12.12 00 132','color'=>'Green','image'=>'/uploads/lacoste/l1212-green.jpg'],
+        ['art'=>'LCMP103209','model'=>'L.12.12 00 4XA','color'=>'Blue','image'=>'/uploads/lacoste/l1212-blue.jpg'],
+        ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
+      ],
+      'tiers'=>[['min'=>16,'price'=>34.00],['min'=>64,'price'=>29.50],['min'=>176,'price'=>25.00]],
+      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 176 pc → €25/pc
     ],
     [
       'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,
-      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>8,'unit'=>'pc',
-      'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock.',
-      'seller'=>'Atlantic Wholesale GmbH','origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
-      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
+      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>10,'unit'=>'pc',
+      'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock. Ships in packs of 10.',
+      'seller'=>'Atlantic Wholesale GmbH','hide_seller'=>true,'origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
+      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1 · 10/pack','size_step'=>10,
       'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
-      'tiers'=>[['min'=>8,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
+      'tiers'=>[['min'=>10,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
     [
       'id'=>'amiri-core-tee','brand'=>'Amiri','name'=>'Core Logo Tee','mode'=>'offer',
@@ -156,6 +173,7 @@ function vestra_colors(){
     'Black'=>'#17181c','Navy'=>'#1f2a44','Blue'=>'#2b46c4','Light Blue'=>'#8db8d8','White'=>'#f2f1ec',
     'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
     'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
+    'Cream'=>'#f1e8d2','Khaki'=>'#6a704c','Fuchsia'=>'#d1256e',
   ];
 }
 /* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */

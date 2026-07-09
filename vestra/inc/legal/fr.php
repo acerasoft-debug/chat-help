@@ -132,6 +132,8 @@
     pendant la durée légalement requise.</p>
 "],
   'payments'  => ['title'=>"Paiements, entiercement &amp; remboursements", 'html'=>"
+    <p><b>Statut actuel :</b> les paiements se font temporairement <b>sur facture</b> — l&rsquo;acheteur reçoit une facture proforma et paie par
+    virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par entiercement/carte décrit ci-dessous est suspendu jusqu&rsquo;à nouvel ordre.</p>
     <h3>Comment fonctionne le paiement</h3><p>Les acheteurs paient via le prestataire d&rsquo;entiercement agréé (virement bancaire SEPA pour le B2B de l&rsquo;UE ; cartes disponibles).
     Les fonds sont <b>conservés sous séquestre</b> — VESTRA ne détient jamais l&rsquo;argent.</p>
     <h3>Libération de l&rsquo;entiercement</h3><p>Les fonds sont libérés sur confirmation de l&rsquo;acheteur, livraison vérifiée, ou expiration d&rsquo;une fenêtre convenue de libération automatique

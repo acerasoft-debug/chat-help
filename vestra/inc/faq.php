@@ -102,6 +102,8 @@ function vestra_faq_en(){
   ]],
 
   'payment'=>['title'=>'Payment & Escrow','items'=>[
+    ['q'=>'How do I pay right now?',
+     'a'=>'<b>Payments are currently invoice-based.</b> After your order is confirmed you receive a proforma invoice and pay by bank transfer; goods ship after the invoice is paid. The escrow/card checkout described below is temporarily suspended and will return at a later stage.'],
     ['q'=>'How does payment work on VESTRA?',
      'a'=>'After confirming an order, you pay into a third-party escrow account via bank transfer (SEPA for EU buyers) or card. The funds are held securely until you confirm receipt of the goods or an auto-release window expires. Only then are they disbursed to the seller.'],
     ['q'=>'What is escrow and why does VESTRA use it?',

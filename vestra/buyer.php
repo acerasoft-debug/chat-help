@@ -45,8 +45,8 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         require_once __DIR__.'/inc/notify.php';
         $buyerName = ($orderRow['name']?:$orderRow['company']?:'');
         $orderItems = $orderRow['items']??'';
-        vestra_notify("Order {$ref} — receipt confirmed, escrow released",
-          "Buyer confirmed receipt for order {$ref}.\nBuyer: {$buyerName}\nItems: {$orderItems}\n\nEscrow funds due for release to seller.\n\nAdmin: https://vestrasales.com/admin?tab=orders");
+        vestra_notify("Order {$ref} — receipt confirmed by buyer",
+          "Buyer confirmed receipt for order {$ref}.\nBuyer: {$buyerName}\nItems: {$orderItems}\n\nOrder can be marked completed (invoice settlement).\n\nAdmin: https://vestrasales.com/admin?tab=orders");
         /* Notify seller(s) — match ordered SKUs from orders.csv items field */
         $allListings=vestra_listings();
         $notified=[];
@@ -145,11 +145,11 @@ if($tab==='overview'){
     <a class="btn btn-p btn-sm" href="/shop">'.t('Browse catalog').'</a>
     <a class="btn btn-o btn-sm" href="/requests#post">'.t('Post a sourcing request').'</a>
     <a class="btn btn-o btn-sm" href="/buyer?tab=orders">'.t('View orders').'</a></div></div>';
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Buyer protection').'</h3><span class="status offers">'.t('Escrow active').'</span></div>
-    <p class="hint">'.t('Every order is escrow-protected — funds release to the seller only after you confirm receipt.').'</p></div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Buyer protection').'</h3><span class="status offers">'.t('Active').'</span></div>
+    <p class="hint">'.t('Every order runs on documented invoice terms — report any issue within 48 hours of delivery and our dispute process steps in.').'</p></div>';
 
 } elseif($tab==='orders'){
-  if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Escrow funds released to seller.').'</div>';
+  if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Orders').'</h3><a class="btn btn-o btn-sm" href="/shop">'.t('New order').'</a></div>';
   if(!$orders) dash_empty(t('No orders yet. Place an order from the catalog.'));
   else {
@@ -159,7 +159,7 @@ if($tab==='overview'){
       $st  = $orderSt[$ref]['status'] ?? 'pending';
       if ($st==='completed') { $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
-      else { $stClass='open'; $stLabel=t('In escrow'); }
+      else { $stClass='open'; $stLabel=t('Awaiting payment'); }
       $confirmBtn='';
       if($st==='shipped'){
         $confirmBtn='<form method="post" action="/buyer?tab=orders" style="margin-top:4px">
@@ -240,7 +240,7 @@ if($tab==='overview'){
       echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
     }
     if ($msgerr === 'email' || $msgerr === 'iban') {
-      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so escrow protection still applies. Your message was not sent.').'</div>';
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {
@@ -332,7 +332,7 @@ if($tab==='overview'){
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
   if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3>'.$kybLabel.'</div>';
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with escrow protection. Upload your company registration and VAT/tax certificate when requested.').'</p>';
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. Upload your company registration and VAT/tax certificate when requested.').'</p>';
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
   } else {

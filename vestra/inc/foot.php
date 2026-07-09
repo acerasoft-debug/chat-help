@@ -12,7 +12,7 @@
   </div>
 </footer>
 <script>
-/* VESTRA cart — localStorage based (demo; Phase 1 moves to server + escrow) */
+/* VESTRA cart — localStorage based (demo; Phase 1 moves server-side) */
 var VCart = {
   key:'vestra_cart',
   all:function(){ try{ return JSON.parse(localStorage.getItem(this.key))||[] }catch(e){ return [] } },

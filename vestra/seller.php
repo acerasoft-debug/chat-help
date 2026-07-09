@@ -525,7 +525,7 @@ if($tab==='overview'){
       $ref = $o['ref']??'';
       $st  = $orderSt[$ref]['status'] ?? 'pending';
       $stClass = $st==='completed'?'offers':($st==='shipped'?'offers':'open');
-      $stLabel  = $st==='completed'?t('Completed'):($st==='shipped'?t('Shipped'):t('In escrow'));
+      $stLabel  = $st==='completed'?t('Completed'):($st==='shipped'?t('Shipped'):t('Awaiting payment'));
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td>'.htmlspecialchars($o['company']??'').'<div class="hint">'.htmlspecialchars($o['email']??'').'</div></td>'.
         '<td class="hint">'.htmlspecialchars($o['items']??'').'</td>'.
@@ -623,7 +623,7 @@ if($tab==='overview'){
       echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
     }
     if ($msgerr === 'email' || $msgerr === 'iban') {
-      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so escrow protection still applies. Your message was not sent.').'</div>';
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {

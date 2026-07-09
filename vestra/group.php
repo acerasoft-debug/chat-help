@@ -33,7 +33,7 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
   <div class="crumbs" style="margin-top:24px"><a href="/"><?= t('Home') ?></a> · <a href="/groups"><?= t('Group buys') ?></a> · <?=htmlspecialchars($p['brand'])?></div>
 
   <?php if($joined): ?>
-    <div class="banner ok" style="margin-top:16px">✓ <?= t('You’ve joined the pool. We’ll email you when the target is reached and the escrow link is ready.') ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b></div>
+    <div class="banner ok" style="margin-top:16px">✓ <?= t('You’ve joined the pool. We’ll email you when the target is reached and your invoice is ready.') ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b></div>
   <?php endif; ?>
 
   <div class="gwrap">

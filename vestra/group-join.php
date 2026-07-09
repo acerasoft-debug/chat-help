@@ -38,8 +38,8 @@ vestra_notify("Group buy {$ref} — {$p['brand']} {$p['name']} ({$after['_pct']}
 
 if(vestra_cfg('confirm_user',false)){
   $msg = $reached
-    ? "Hello {$name},\n\nGreat news — the group buy for {$p['brand']} {$p['name']} has reached its target! Your committed {$qty} {$p['unit']} at €{$unit}/{$p['unit']} is locked in. We’ll send your secured (escrow) payment link shortly.\n\nReference: {$ref}\n\n— VESTRA · acerasoft LLC"
-    : "Hello {$name},\n\nThank you — you’ve joined the group buy for {$p['brand']} {$p['name']} ({$ref}).\nYou committed {$qty} {$p['unit']} at the unlocked price of €{$unit}/{$p['unit']}.\n\nThe pool is at {$after['_pct']}% ({$after['_committed']} / {$after['_target']} {$p['unit']}). We’ll email you the moment it reaches the target and the escrow link is ready. If the pool doesn’t fill in time, you pay nothing.\n\n— VESTRA · acerasoft LLC";
+    ? "Hello {$name},\n\nGreat news — the group buy for {$p['brand']} {$p['name']} has reached its target! Your committed {$qty} {$p['unit']} at €{$unit}/{$p['unit']} is locked in. We’ll send your invoice shortly — payment by bank transfer; goods ship after payment.\n\nReference: {$ref}\n\n— VESTRA · acerasoft LLC"
+    : "Hello {$name},\n\nThank you — you’ve joined the group buy for {$p['brand']} {$p['name']} ({$ref}).\nYou committed {$qty} {$p['unit']} at the unlocked price of €{$unit}/{$p['unit']}.\n\nThe pool is at {$after['_pct']}% ({$after['_committed']} / {$after['_target']} {$p['unit']}). We’ll email you the moment it reaches the target and your invoice is ready. If the pool doesn’t fill in time, you pay nothing.\n\n— VESTRA · acerasoft LLC";
   vestra_send_mail($email, "VESTRA — group buy {$ref} ({$p['brand']} {$p['name']})", $msg);
 }
 

@@ -132,6 +132,10 @@
         'title' => 'Zahlung & Escrow',
         'items' => [
             [
+                'q' => 'Wie bezahle ich aktuell?',
+                'a' => '<b>Zahlungen erfolgen derzeit auf Rechnung.</b> Nach Bestätigung Ihrer Bestellung erhalten Sie eine Proforma-Rechnung und zahlen per Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Escrow-/Karten-Checkout ist vorübergehend ausgesetzt und wird zu einem späteren Zeitpunkt wieder verfügbar sein.',
+            ],
+            [
                 'q' => 'Wie funktioniert die Zahlung auf VESTRA?',
                 'a' => 'Nach Bestätigung einer Bestellung zahlen Sie per Banküberweisung (SEPA für EU-Käufer) oder Kreditkarte auf ein Drittanbieter-Escrow-Konto ein. Die Gelder werden dort sicher verwahrt, bis Sie den Erhalt der Waren bestätigen oder ein automatisches Freigabefenster abläuft. Erst dann werden sie an den Verkäufer ausgezahlt.',
             ],

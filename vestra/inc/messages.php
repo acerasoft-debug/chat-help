@@ -3,7 +3,7 @@
  * VESTRA — buyer/seller direct messaging.
  * File-based threads in data/messages.json. One thread per (buyer, seller, listing) triple.
  * Off-platform contact info (email, IBAN) is detected and blocked before a message is stored —
- * all communication and payment must stay on VESTRA so escrow protection still applies.
+ * all communication and payment must stay on VESTRA so buyer protection still applies.
  */
 function vestra_msg_file(): string { return dirname(__DIR__).'/data/messages.json'; }
 

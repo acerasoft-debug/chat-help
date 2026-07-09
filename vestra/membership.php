@@ -133,7 +133,7 @@ body{ background:#15171C }
         <li><?= t('Everything in Pro') ?></li>
         <li><?= t('Top placement') ?></li>
         <li><?= t('Dedicated account manager') ?></li>
-        <li><?= t('Optional buyer protection (escrow)') ?></li>
+        <li><?= t('Buyer protection & dispute process') ?></li>
         <li><?= t('Reduced commission (Phase 2)') ?></li>
       </ul>
       <?php if ($isLoggedInSeller): ?>

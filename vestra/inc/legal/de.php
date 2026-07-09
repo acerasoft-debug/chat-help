@@ -126,6 +126,8 @@
     <h3>Überwachung &amp; Aufzeichnungen</h3><p>Wir überwachen auf verdächtige Muster und bewahren Verifizierungs- und Transaktionsaufzeichnungen
     für den gesetzlich vorgeschriebenen Zeitraum auf.</p>"],
   'payments'  => ['title'=>"Zahlungen, Treuhand &amp; Erstattungen", 'html'=>"
+    <p><b>Aktueller Stand:</b> Zahlungen erfolgen vorübergehend <b>auf Rechnung</b> — Käufer erhalten eine Proforma-Rechnung und zahlen per
+    Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Treuhand-/Karten-Checkout ist bis auf Weiteres ausgesetzt.</p>
     <h3>Wie die Zahlung funktioniert</h3><p>Käufer zahlen über den lizenzierten Treuhandanbieter (SEPA-Banküberweisung für EU-B2B; Karten verfügbar).
     Gelder werden <b>treuhänderisch verwahrt</b> — VESTRA hält das Geld niemals.</p>
     <h3>Treuhandfreigabe</h3><p>Gelder werden bei Käuferbestätigung, verifizierter Lieferung oder Ablauf eines vereinbarten automatischen Freigabezeitfensters

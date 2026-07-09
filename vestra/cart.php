@@ -13,7 +13,7 @@ $u = auth_user(); // logged-in user for pre-filling form
   </div>
 
   <?php if($placed): ?>
-    <div class="banner ok">✓ <?= t("Order request received. We'll confirm seller availability and send a secured (escrow) payment link.") ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,20))?></b></div>
+    <div class="banner ok">✓ <?= t("Order request received. We'll confirm seller availability and send your invoice — goods ship after payment.") ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,20))?></b></div>
     <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
   <?php else: ?>
 
@@ -31,8 +31,8 @@ $u = auth_user(); // logged-in user for pre-filling form
       <div class="line"><span><?= t('Subtotal') ?></span><span id="sub"></span></div>
       <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
-      <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (secure escrow + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
-      <div class="hint" style="margin-top:6px"><?= t('Payment is held in <b>escrow</b>; released to the seller after you confirm receipt.') ?></div>
+      <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
+      <div class="hint" style="margin-top:6px"><?= t('Payment is currently by <b>invoice</b> (bank transfer) — goods ship after the invoice is paid. Other payment methods are temporarily suspended.') ?></div>
     </div></div>
 
     <form id="orderForm" method="post" action="/order">
@@ -56,7 +56,7 @@ $u = auth_user(); // logged-in user for pre-filling form
           '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
       </label>
       <button class="btn btn-p" type="submit" style="margin-top:14px"><?= t('Place order request') ?></button>
-      <span class="hint" style="margin-left:12px"><?= t('No payment now — we confirm availability, then send the escrow link.') ?></span>
+      <span class="hint" style="margin-left:12px"><?= t('No payment now — we confirm availability, then send your invoice.') ?></span>
     </form>
   </div>
 

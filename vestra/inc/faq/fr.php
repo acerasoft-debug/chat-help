@@ -132,6 +132,10 @@
         'title' => 'Paiement & Séquestre',
         'items' => [
             [
+                'q' => 'Comment payer actuellement ?',
+                'a' => '<b>Les paiements se font actuellement sur facture.</b> Après confirmation de votre commande, vous recevez une facture proforma et payez par virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par séquestre/carte décrit ci-dessous est temporairement suspendu et sera rétabli ultérieurement.',
+            ],
+            [
                 'q' => 'Comment fonctionne le paiement sur VESTRA ?',
                 'a' => 'Après confirmation d\'une commande, vous effectuez un virement sur un compte séquestre tenu par un tiers (SEPA pour les acheteurs en UE) ou par carte bancaire. Les fonds sont conservés en sécurité jusqu\'à ce que vous confirmiez la réception des marchandises ou jusqu\'à l\'expiration d\'une fenêtre de libération automatique. Ce n\'est qu\'à ce moment que les fonds sont versés au vendeur.',
             ],

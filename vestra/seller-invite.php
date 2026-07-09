@@ -39,7 +39,7 @@ require __DIR__.'/inc/head.php';
       <?= t('Early seller access — limited spots') ?>
     </div>
     <h1><?= t('Sell to verified B2B buyers across Europe') ?></h1>
-    <p><?= t('VESTRA connects wholesale fashion sellers with verified business buyers. List your products in minutes — built-in escrow, group buy engine, and zero upfront cost.') ?></p>
+    <p><?= t('VESTRA connects wholesale fashion sellers with verified business buyers. List your products in minutes — built-in buyer protection, group buy engine, and zero upfront cost.') ?></p>
     <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:16px;padding:15px 30px">
       <?= t('Start selling — it\'s free') ?></a>
     <div style="margin-top:12px;font-size:13px;color:var(--mut)"><?= t('No listing fees · No subscription · Pay only when you sell') ?></div>
@@ -56,7 +56,7 @@ require __DIR__.'/inc/head.php';
   <!-- BENEFITS -->
   <div class="inv-benefits">
     <?php $bens = [
-      ['✓','Instant escrow protection','Funds held safely. Released to you when buyer confirms receipt — no chasing payments.'],
+      ['✓','Documented invoice payments','Every order runs on clear invoice terms with a full paper trail — no chasing payments.'],
       ['✓','Group buy engine','Small buyers pool their quantities to hit your MOQ. You get your minimum order, they get wholesale pricing.'],
       ['✓','Verified buyer-only access','All pricing is hidden from the public. Only verified businesses can see and order.'],
       ['✓','Multi-language catalog','Your listings appear in DE, EN, FR, IT, ES — no extra work needed.'],
@@ -74,7 +74,7 @@ require __DIR__.'/inc/head.php';
     <?php $steps = [
       [1, t('Create your account'), t('Register in 2 minutes. Use your invite code for instant KYB — no waiting.')],
       [2, t('Add your products'), t('Fill in the product form, upload a photo, set your pricing tiers and MOQ.')],
-      [3, t('Buyers order — you ship'), t('Orders land in your panel. Escrow holds the funds until delivery is confirmed.')],
+      [3, t('Buyers order — you ship'), t('Orders land in your panel. You ship once the invoice is paid — no payment chasing.')],
     ]; foreach($steps as $s): ?>
     <div class="inv-step">
       <div class="sn"><?= $s[0] ?></div>
@@ -112,7 +112,7 @@ require __DIR__.'/inc/head.php';
       <?php $faqs = [
         [t('What products can I sell?'), t('Branded fashion, accessories, footwear, basics, textiles — anything you can ship within the EEA with valid proof of origin. VESTRA does not accept fakes or grey-market goods.')],
         [t('What is the commission?'), t('VESTRA takes 7 % from your payout. Buyers pay a 2 % protection fee on top. With an invite code, registration on the platform is free of charge.')],
-        [t('How does payment work?'), t('Buyers pay into an Tazapay escrow wallet. Funds are released to your account when the buyer confirms receipt (or 14 days after shipping if no dispute is raised).')],
+        [t('How does payment work?'), t('Payment is currently invoice-based: the buyer pays by bank transfer against a proforma invoice and goods ship after payment. Other payment methods (card / escrow checkout) are temporarily suspended.')],
         [t('How long does KYB take?'), t('With an invite code: instant approval. Without: typically 1–3 business days after you submit your registration details.')],
         [t('Can I set my own prices?'), t('Yes. You set your own MOQ, tiered pricing, and pricing mode (fixed, sale, or make-an-offer). VESTRA only takes its commission from completed sales.')],
       ]; foreach($faqs as $f): ?>

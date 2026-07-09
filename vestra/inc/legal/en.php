@@ -94,6 +94,8 @@ return [
     for the legally required period.</p>"],
 
   'payments'=>['title'=>'Payments, Escrow &amp; Refunds','html'=>"
+    <p><b>Current status:</b> payments are temporarily <b>invoice-based</b> — buyers receive a proforma invoice and pay by
+    bank transfer; goods ship after payment. The escrow/card checkout described below is suspended until further notice.</p>
     <h3>How payment works</h3><p>Buyers pay via the licensed escrow provider (SEPA bank transfer for EU B2B; cards available).
     Funds are <b>held in escrow</b> — VESTRA never holds the money.</p>
     <h3>Escrow release</h3><p>Funds release on buyer confirmation, verified delivery, or expiry of an agreed auto-release

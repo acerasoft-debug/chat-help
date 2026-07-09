@@ -132,6 +132,10 @@
         'title' => 'Pago y Escrow',
         'items' => [
             [
+                'q' => '¿Cómo pago actualmente?',
+                'a' => '<b>Actualmente los pagos se realizan por factura.</b> Tras confirmar tu pedido recibes una factura proforma y pagas por transferencia bancaria; la mercancía se envía tras el pago. El pago con depósito en garantía/tarjeta descrito más abajo está temporalmente suspendido y volverá más adelante.',
+            ],
+            [
                 'q' => '¿Cómo funciona el pago en VESTRA?',
                 'a' => 'Tras confirmar un pedido, usted realiza el pago en una cuenta de escrow gestionada por un tercero independiente, mediante transferencia bancaria (SEPA para compradores de la EU) o tarjeta. Los fondos se custodian de forma segura hasta que usted confirma la recepción de la mercancía o expira la ventana de liberación automática. Solo entonces se desembolsan al vendedor.',
             ],

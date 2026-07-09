@@ -132,6 +132,10 @@
         'title' => 'Pagamento ed Escrow',
         'items' => [
             [
+                'q' => 'Come si paga attualmente?',
+                'a' => '<b>I pagamenti avvengono attualmente su fattura.</b> Dopo la conferma dell\'ordine ricevi una fattura proforma e paghi tramite bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è temporaneamente sospeso e tornerà disponibile in una fase successiva.',
+            ],
+            [
                 'q' => 'Come funziona il pagamento su VESTRA?',
                 'a' => 'Dopo aver confermato un ordine, il pagamento viene effettuato su un conto escrow di terze parti tramite bonifico bancario (SEPA per gli acquirenti EU) o carta. I fondi vengono custoditi in modo sicuro fino alla conferma di ricevimento della merce da parte dell\'acquirente, o fino alla scadenza di una finestra di rilascio automatico. Solo a quel punto vengono accreditati al venditore.',
             ],

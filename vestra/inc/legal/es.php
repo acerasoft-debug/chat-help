@@ -131,6 +131,8 @@
     durante el periodo legalmente exigido.</p>
 "],
   'payments'  => ['title'=>"Pagos, depósito en garantía y reembolsos", 'html'=>"
+    <p><b>Estado actual:</b> los pagos se realizan temporalmente <b>por factura</b> — el comprador recibe una factura proforma y paga por
+    transferencia bancaria; la mercancía se envía tras el pago. El pago con depósito en garantía/tarjeta descrito a continuación queda suspendido hasta nuevo aviso.</p>
     <h3>Cómo funciona el pago</h3><p>Los compradores pagan a través del proveedor licenciado de depósito en garantía (transferencia bancaria SEPA para B2B en la EU; tarjetas disponibles).
     Los fondos se <b>mantienen en depósito en garantía</b> — VESTRA nunca conserva el dinero.</p>
     <h3>Liberación del depósito en garantía</h3><p>Los fondos se liberan tras la confirmación del comprador, la entrega verificada o el vencimiento de un plazo de liberación automática
