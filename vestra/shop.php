@@ -82,8 +82,8 @@ arsort($catCounts);
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          $img  = vestra_primary_image($p);
-          $imgCount = count($p['images'] ?? ($img ? [$img] : []));
+          $img  = $MEMBER ? vestra_primary_image($p) : '';   // photos are members-only
+          $imgCount = $MEMBER ? count($p['images'] ?? ($img ? [$img] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
           <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
@@ -112,6 +112,7 @@ arsort($catCounts);
               <span class="stitle"><?= htmlspecialchars($p['name']??'') ?></span>
               <span class="smeta"><?= htmlspecialchars($p['cat']??'') ?> &middot; SKU <?= htmlspecialchars($p['sku']??'') ?></span>
               <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?></span>
+              <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
               <div class="sprice">
                 <?php if(!$MEMBER): ?>
                   <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>

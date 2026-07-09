@@ -236,6 +236,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .amsg.ok{background:rgba(122,214,160,.1);border:1px solid rgba(122,214,160,.3);color:#7ad6a0}
 .aempty{color:var(--mut);padding:36px;text-align:center;font-size:14px}
 .atag{font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--line);padding:2px 6px;border-radius:4px}
+.cdots{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+.cdots .cdot{width:13px;height:13px;border-radius:50%;display:inline-block}
+.cdots .cmore{font-size:10px;color:var(--mut);font-weight:600}
 .ahint{font-size:11px;color:var(--mut);margin-top:3px}
 .acols2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .acols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
@@ -246,7 +249,16 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .doc-approved{background:rgba(122,214,160,.08);border-left:3px solid #7ad6a0}
 .doc-rejected{background:rgba(239,154,154,.08);border-left:3px solid #ef9a9a}
 .doc-requested{background:rgba(138,180,248,.08);border-left:3px solid #8ab4f8}
-@media(max-width:900px){:root{--sb:0px}.asidebar{display:none}.amain{padding:16px}}
+/* Mobile: sidebar becomes a horizontal, scrollable tab strip instead of disappearing */
+@media(max-width:900px){
+  :root{--sb:0px}
+  .alayout{display:block}
+  .asidebar{position:static;height:auto;display:flex;flex-direction:row;align-items:center;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);white-space:nowrap}
+  .asidebar a{border-left:0;border-bottom:2px solid transparent;padding:8px 12px;flex-shrink:0}
+  .asidebar a.on{border-left-color:transparent;border-bottom-color:var(--acc)}
+  .asidebar .sgrp{display:none}
+  .amain{padding:16px}
+}
 </style></head><body>
 
 <?php if($locked): ?>
@@ -626,14 +638,25 @@ elseif($tab==='users'):
   $shown = array_reverse($shown);
 ?>
 
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap">
   <h2 style="font-size:18px;font-weight:700">Users</h2>
-  <div style="display:flex;gap:6px">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+    <input id="usearch" placeholder="🔍 Search name / email / company…" oninput="ufilter()"
+      style="padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:12.5px;min-width:220px">
     <a class="abtn<?= $filterType==='all'?' primary':'' ?>" href="/admin?tab=users&type=all">All (<?= count($accounts) ?>)</a>
     <a class="abtn<?= $filterType==='seller'?' primary':'' ?>" href="/admin?tab=users&type=seller">Sellers (<?= count($sellers) ?>)</a>
     <a class="abtn<?= $filterType==='buyer'?' primary':'' ?>" href="/admin?tab=users&type=buyer">Buyers (<?= count($buyers) ?>)</a>
   </div>
 </div>
+<script>
+function ufilter(){
+  var q=document.getElementById('usearch').value.toLowerCase();
+  document.querySelectorAll('.atable tr').forEach(function(tr,i){
+    if(i===0) return; // header
+    tr.style.display = tr.textContent.toLowerCase().indexOf(q)>-1 ? '' : 'none';
+  });
+}
+</script>
 
 <?php if(!$shown): ?>
   <div class="acard"><div class="aempty">No accounts yet.</div></div>
@@ -850,11 +873,12 @@ elseif($tab==='listings'):
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Brand','Product','SKU','Mode','MOQ','From','Seller','Status',''],true) ?>
-  <?php foreach(array_reverse($listings) as $p): $st=$p['status']??'approved'; ?>
+  <?= arow(['','Brand','Product','SKU','Mode','MOQ','From','Seller','Status',''],true) ?>
+  <?php foreach(array_reverse($listings) as $p): $st=$p['status']??'approved'; $thumb=vestra_primary_image($p); ?>
   <tr>
+    <td class="ac"><?php if($thumb): ?><img src="<?= htmlspecialchars($thumb) ?>" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><?php else: ?><div style="width:42px;height:42px;border-radius:7px;background:linear-gradient(135deg,<?= htmlspecialchars($p['accent']??'#333') ?>,#0e0e11)"></div><?php endif; ?></td>
     <td class="ac"><b><?= htmlspecialchars($p['brand']??'') ?></b></td>
-    <td class="ac"><?= htmlspecialchars($p['name']??'') ?><div class="ahint"><?= htmlspecialchars(substr($p['id']??'',0,14)) ?>…</div></td>
+    <td class="ac"><?= htmlspecialchars($p['name']??'') ?><div class="ahint"><?= htmlspecialchars(substr($p['id']??'',0,14)) ?>…</div><?= !empty($p['colors'])?'<div style="margin-top:3px">'.vestra_color_dots((array)$p['colors'],7).'</div>':'' ?></td>
     <td class="ac"><span class="atag"><?= htmlspecialchars($p['sku']??'') ?></span></td>
     <td class="ac"><span class="modechip <?= htmlspecialchars($p['mode']??'fixed') ?>"><?= htmlspecialchars($p['mode']??'fixed') ?></span></td>
     <td class="ac"><?= htmlspecialchars((string)($p['moq']??'')) ?> <?= htmlspecialchars($p['unit']??'pc') ?></td>

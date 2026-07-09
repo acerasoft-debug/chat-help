@@ -61,6 +61,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $p['tiers']  = $tiers;
             if($mode==='sale') $p['list']=round((float)($_POST['list']??0),2);
             $p['offers'] = !empty($_POST['allow_offers']) && $mode!=='offer';
+            $colors = array_values(array_intersect((array)($_POST['colors']??[]), array_keys(vestra_colors())));
+            if($colors) $p['colors']=$colors; else unset($p['colors']);
+            $newImgs = vestra_collect_photo_uploads('photos', 6);
+            if($newImgs){ $p['images']=$newImgs; $p['image']=$newImgs[0]; }
             break;
         }
         unset($p);
@@ -328,6 +332,14 @@ if($tab==='overview'){
         <div><label><?= t('Group target (qty to unlock)') ?></label><input type="number" name="group_target" min="1" placeholder="<?= htmlspecialchars(t('blank = your top tier qty')) ?>"></div>
         <div><label><?= t('Pool open for (days)') ?></label><input type="number" name="group_days" min="1" max="90" value="14"></div>
       </div>
+      <div>
+        <label><?= t('Available colours') ?> <span class="hint">(<?= t('optional') ?>)</span></label>
+        <div class="colorpick">
+          <?php foreach(vestra_colors() as $cn=>$hex): ?>
+            <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>"><span class="cdot" style="background:<?= $hex ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+          <?php endforeach; ?>
+        </div>
+      </div>
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2" placeholder="<?= htmlspecialchars(t('Sizes, colours, condition…')) ?>"></textarea></div>
       </div>
@@ -382,8 +394,7 @@ if($tab==='overview'){
   ?>
   <?php if(isset($_GET['updated'])): ?><div class="banner ok">✓ <?= t('Listing updated.') ?></div><?php endif; ?>
   <div class="panelcard">
-    <p class="hint" style="margin:0 0 14px"><?= t('Edit text fields below. To change the product image, delete and re-add the listing.') ?></p>
-    <form method="post" action="/seller?tab=listings" class="addform">
+    <form method="post" action="/seller?tab=listings" class="addform" enctype="multipart/form-data">
       <input type="hidden" name="_action" value="update_listing">
       <input type="hidden" name="lid" value="<?= htmlspecialchars($lid) ?>">
       <div class="frow">
@@ -428,9 +439,34 @@ if($tab==='overview'){
         <div><span class="hint">€ / <?= t('unit') ?></span><input type="number" step="0.01" name="t3price" value="<?= $t3?number_format($t3['price'],2,'.',''):'' ?>"></div>
       </div>
       <p class="hint" id="offerhint" style="display:<?=($ep['mode']??'')!=='offer'?'none':'block'?>"><?= t('For make-an-offer, tiers are shown as indicative guidance only.') ?></p>
+      <div>
+        <label><?= t('Available colours') ?></label>
+        <div class="colorpick">
+          <?php $epColors=(array)($ep['colors']??[]); foreach(vestra_colors() as $cn=>$hex): ?>
+            <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>" <?= in_array($cn,$epColors,true)?'checked':'' ?>><span class="cdot" style="background:<?= $hex ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
+          <?php endforeach; ?>
+        </div>
+      </div>
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2"><?= htmlspecialchars($ep['desc']??'') ?></textarea></div>
         <div><label><?= t('Origin / authenticity note') ?> *</label><input name="origin" required value="<?= htmlspecialchars($ep['origin']??'') ?>"></div>
+      </div>
+      <div>
+        <label><?= t('Product photos') ?> <span class="hint"><?= t('Leave empty to keep the current photos.') ?></span></label>
+        <?php $epImgs=(array)($ep['images'] ?? (!empty($ep['image'])?[$ep['image']]:[])); if($epImgs): ?>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px">
+            <?php foreach($epImgs as $ei): ?><img src="<?= htmlspecialchars($ei) ?>" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line)"><?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+        <div class="phgrid">
+          <?php for($pi=1;$pi<=6;$pi++): ?>
+          <label class="ph-slot" id="ephs<?=$pi?>">
+            <input type="file" name="photos[]" accept="image/png,image/jpeg,image/webp" onchange="ephPrev(this,<?=$pi?>)">
+            <img class="ph-preview" id="epp<?=$pi?>" style="display:none" alt="">
+            <span class="ph-label" id="ephl<?=$pi?>">📷 <?=$pi?></span>
+          </label>
+          <?php endfor; ?>
+        </div>
       </div>
       <label style="display:flex;gap:9px;align-items:center;margin:10px 0 14px;cursor:pointer">
         <input type="checkbox" name="allow_offers" value="1" <?= !empty($ep['offers'])?'checked':'' ?>>
@@ -447,6 +483,8 @@ if($tab==='overview'){
   function modeUI(){var m=document.querySelector('input[name=mode]:checked').value;
     document.getElementById('listrow').style.display=m==='sale'?'grid':'none';
     document.getElementById('offerhint').style.display=m==='offer'?'block':'none';}
+  function ephPrev(inp,n){ var f=inp.files[0]; if(!f) return;
+    var r=new FileReader(); r.onload=function(e){ var img=document.getElementById('epp'+n); img.src=e.target.result; img.style.display='block'; document.getElementById('ephl'+n).style.display='none'; }; r.readAsDataURL(f); }
   </script><?php
 
 // ── MY LISTINGS ───────────────────────────────────────────────────────────────

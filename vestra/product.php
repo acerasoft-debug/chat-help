@@ -9,6 +9,8 @@ $PAGE=$p['name']; $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
+$photosLocked = !$MEMBER && $images;   // photos are members-only; guests get the brand card
+if(!$MEMBER) $images = [];
 ?>
 <div class="wrap">
   <div class="crumbs" style="margin-top:24px">
@@ -26,8 +28,14 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
             <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
           <?php endif; ?>
         <?php else: ?>
-          <div class="gal-placeholder" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
+          <div class="gal-placeholder" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px">
             <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
+            <?php if($photosLocked): ?>
+              <a href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                <?= t('Sign in to view product photos') ?>
+              </a>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
@@ -58,6 +66,7 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
         <div class="spec-row"><span><?= t('Category') ?></span><b><?= htmlspecialchars($p['cat']) ?></b></div>
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars($p['sizes']) ?></b></div><?php endif; ?>
+        <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
         <?php if(!empty($p['seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
       </div>

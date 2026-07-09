@@ -45,6 +45,8 @@ $item=[
   'verified'=>$_kyb==='approved','accent'=>$accent,'tiers'=>$tiers,
   'seller_uid'=>$_SESSION['uid']??'',
 ];
+$colors=array_values(array_intersect((array)($_POST['colors']??[]), array_keys(vestra_colors())));
+if($colors) $item['colors']=$colors;
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
 if(!empty($_POST['allow_offers']) && $mode!=='offer') $item['offers']=true; // seller allows negotiation on a priced item
@@ -56,23 +58,10 @@ if(!empty($_POST['group_enable']) && $mode!=='offer'){ // seller opens this prod
   $item['group_deadline']=date('c', strtotime("+{$days} days"));
 }
 
-/* ---- uploads: product photo (image) + optional line sheet (Excel/CSV) ---- */
+/* ---- uploads: product photos + optional line sheet (Excel/CSV) ---- */
 $updir = __DIR__.'/uploads';
-if(!is_dir($updir)) @mkdir($updir,0755,true);
-/* harden: never execute code from the uploads folder, no directory listing */
-if(!is_file($updir.'/.htaccess')){
-  @file_put_contents($updir.'/.htaccess',
-    "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
-}
-$savePhotoFile = function(array $f) use ($updir){
-  if($f['error']!==UPLOAD_ERR_OK||$f['size']<=0||$f['size']>5*1024*1024) return '';
-  $info=@getimagesize($f['tmp_name']); if(!$info) return '';
-  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]]??'';
-  if($ext==='') return '';
-  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;
-  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name)?'/uploads/'.$name:'';
-};
 $saveSheet = function($field) use ($updir){
+  if(!is_dir($updir)) @mkdir($updir,0755,true);
   if(($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return '';
   $f=$_FILES[$field]; if($f['size']<=0 || $f['size']>8*1024*1024) return '';
   $ext=strtolower(pathinfo($f['name'],PATHINFO_EXTENSION));
@@ -80,14 +69,7 @@ $saveSheet = function($field) use ($updir){
   $name='sheet_'.bin2hex(random_bytes(8)).'.'.$ext;
   return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name) ? '/uploads/'.$name : '';
 };
-$images=[];
-if(isset($_FILES['photos']['name'])&&is_array($_FILES['photos']['name'])){
-  for($i=0;$i<min(count($_FILES['photos']['name']),6);$i++){
-    $f=['name'=>$_FILES['photos']['name'][$i],'type'=>$_FILES['photos']['type'][$i],
-        'tmp_name'=>$_FILES['photos']['tmp_name'][$i],'error'=>$_FILES['photos']['error'][$i],'size'=>$_FILES['photos']['size'][$i]];
-    if($url=$savePhotoFile($f)) $images[]=$url;
-  }
-}
+$images = vestra_collect_photo_uploads('photos', 6);
 if($images){ $item['images']=$images; $item['image']=$images[0]; }
 if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
 

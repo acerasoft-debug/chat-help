@@ -45,7 +45,7 @@ $pools=vestra_group_pools();
       $statusLabel=['open'=>$p['_daysLeft'].' '.t('days left'),'funded'=>t('Target reached'),'expired'=>t('Closed')][$p['_status']]; ?>
       <a class="gpool" href="/group?id=<?=urlencode($p['id'])?>" style="text-decoration:none;color:inherit">
         <div class="top" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
-          <?php if(!empty($p['image'])): ?><img src="<?=htmlspecialchars($p['image'])?>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55"><?php endif; ?>
+          <?php if(!empty($p['image']) && $MEMBER): ?><img src="<?=htmlspecialchars($p['image'])?>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55"><?php endif; ?>
           <span class="bn" style="position:relative"><?=htmlspecialchars($p['brand'])?></span>
         </div>
         <div class="body">

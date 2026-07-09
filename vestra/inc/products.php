@@ -14,11 +14,12 @@ if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26')
 function vestra_demo_products(){
   return [
     [
-      'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'Classic Piqué Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'LAC-PP-001','moq'=>8,'unit'=>'pc',
-      'desc'=>'Iconic cotton piqué polo. Assorted sizes (S–XXL) and colours per carton.',
+      'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>8,'unit'=>'pc',
+      'desc'=>'Iconic L1212 cotton piqué polo, classic fit. Assorted sizes (S–XXL); all colourways available.',
       'seller'=>'Maison Textile SARL','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
       'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
+      'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
       'tiers'=>[['min'=>8,'price'=>34.00],['min'=>60,'price'=>29.50],['min'=>180,'price'=>25.00]],
       'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 180 pc → €25/pc
     ],
@@ -28,6 +29,7 @@ function vestra_demo_products(){
       'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock.',
       'seller'=>'Atlantic Wholesale GmbH','origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
       'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1','size_step'=>10,
+      'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
       'tiers'=>[['min'=>8,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
     [
@@ -205,6 +207,27 @@ function vestra_all_cats(){
     'Kids & Baby'        => ['Kidswear','Babywear'],
   ];
 }
+/* Curated colour palette for listings (name => swatch hex). Names are t()-translated at render. */
+function vestra_colors(){
+  return [
+    'Black'=>'#17181c','Navy'=>'#1f2a44','White'=>'#f2f1ec','Grey'=>'#8e9094','Red'=>'#b3242c',
+    'Green'=>'#14532d','Light Blue'=>'#8db8d8','Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f',
+    'Orange'=>'#d97b29','Brown'=>'#6b4a2f','Bordeaux'=>'#5c1a24',
+  ];
+}
+/* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
+function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): string {
+  $pal=vestra_colors(); $out=''; $shown=0;
+  foreach($colors as $c){
+    if(!isset($pal[$c])) continue;
+    if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
+    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $out.='<span class="cdot" title="'.htmlspecialchars(t($c)).'" style="background:'.$pal[$c].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
+    if($withNames) $out.='<span class="cname">'.htmlspecialchars(t($c)).'</span>';
+    $shown++;
+  }
+  return $out ? '<span class="cdots">'.$out.'</span>' : '';
+}
 function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
 function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
@@ -263,6 +286,36 @@ function vestra_group_pools(){
   return $pools;
 }
 function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
+
+/* ─── Uploads ─── */
+/* Validate + store one uploaded product photo; returns '/uploads/…' or '' on any failure.
+   Shared by seller-add (new listing) and seller edit (replace photos). */
+function vestra_save_upload_photo(array $f): string {
+  $updir = dirname(__DIR__).'/uploads';
+  if(!is_dir($updir)) @mkdir($updir,0755,true);
+  if(!is_file($updir.'/.htaccess')){
+    @file_put_contents($updir.'/.htaccess',
+      "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
+  }
+  if(($f['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($f['size']??0)<=0||$f['size']>5*1024*1024) return '';
+  $info=@getimagesize($f['tmp_name']); if(!$info) return '';
+  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]]??'';
+  if($ext==='') return '';
+  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name)?'/uploads/'.$name:'';
+}
+/* Collect photos[] uploads (up to $max) → list of stored URLs. */
+function vestra_collect_photo_uploads(string $field='photos', int $max=6): array {
+  $out=[];
+  if(isset($_FILES[$field]['name'])&&is_array($_FILES[$field]['name'])){
+    for($i=0;$i<min(count($_FILES[$field]['name']),$max);$i++){
+      $f=['name'=>$_FILES[$field]['name'][$i],'type'=>$_FILES[$field]['type'][$i],
+          'tmp_name'=>$_FILES[$field]['tmp_name'][$i],'error'=>$_FILES[$field]['error'][$i],'size'=>$_FILES[$field]['size'][$i]];
+      if($url=vestra_save_upload_photo($f)) $out[]=$url;
+    }
+  }
+  return $out;
+}
 
 /* ─── Listings & status helpers ─── */
 function vestra_save_listings(array $list): void {
