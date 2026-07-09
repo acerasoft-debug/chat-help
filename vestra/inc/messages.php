@@ -120,6 +120,84 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
     return ['ok'=>true, 'thread_id'=>$id];
 }
 
+/**
+ * Post a SYSTEM message (offer / offer response) into the buyer↔seller thread.
+ * System messages carry structured meta and no free text, so they bypass the
+ * off-platform filter and render as a prominent card in the viewer's language.
+ */
+function vestra_msg_post_system(string $buyerUid, string $sellerUid, string $listingId, array $meta): string {
+    if ($buyerUid === '' || $sellerUid === '') return '';
+    $threads = vestra_msg_threads();
+    $id = vestra_msg_thread_id($buyerUid, $sellerUid, $listingId);
+    $entry = ['from'=>'system', 'meta'=>$meta, 'text'=>'', 'at'=>date('c')];
+    $found = false;
+    foreach ($threads as &$t) {
+        if (($t['id']??'') === $id) { $t['messages'][] = $entry; $t['last_at'] = date('c'); $found = true; break; }
+    }
+    unset($t);
+    if (!$found) {
+        $threads[] = [
+            'id'=>$id, 'buyer_uid'=>$buyerUid, 'seller_uid'=>$sellerUid, 'listing_id'=>$listingId,
+            'created_at'=>date('c'), 'last_at'=>date('c'), 'messages'=>[$entry],
+        ];
+    }
+    vestra_msg_save_threads($threads);
+    return $id;
+}
+
+/* Total number of threads with unread activity for $uid — powers the sidebar badge. */
+function vestra_msg_unread_count(string $uid): int {
+    if ($uid === '') return 0;
+    $n = 0;
+    foreach (vestra_msg_my_threads($uid) as $t) if (vestra_msg_unread($t, $uid)) $n++;
+    return $n;
+}
+
+/* Inbox snippet for the latest message (system messages show their card label). */
+function vestra_msg_snippet(array $m): string {
+    if (($m['from']??'') !== 'system') return mb_substr($m['text']??'', 0, 80);
+    $meta = $m['meta'] ?? [];
+    return match($meta['kind']??'') {
+        'offer'          => '💰 '.t('New offer').' — '.($meta['product']??''),
+        'offer_response' => match($meta['status']??''){
+            'accept'  => '✓ '.t('Offer accepted'),
+            'decline' => '✗ '.t('Offer declined'),
+            default   => '↩ '.t('Counter offer'),
+        },
+        default => '',
+    };
+}
+
+/* Render a system message as a highlighted card (offer → gold, response → green/red/gold). */
+function vestra_msg_system_html(array $m, string $viewerRole): string {
+    $meta = $m['meta'] ?? [];
+    $kind = $meta['kind'] ?? '';
+    $time = '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div>';
+    if ($kind === 'offer') {
+        $qty   = (int)($meta['qty']??0);
+        $unit  = eur($meta['unit_price']??0);
+        $total = eur($meta['total']??0);
+        $body  = '<div class="mo-head">💰 '.t('New offer').' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
+                 '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.
+                 '<div class="mo-terms">'.$qty.' × '.$unit.' — <b>'.$total.'</b> '.t('total').'</div>';
+        if ($viewerRole === 'seller') {
+            $body .= '<a class="mo-act" href="/seller?tab=offers">'.t('Respond in Offers tab →').'</a>';
+        }
+        return '<div class="msgoffer">'.$body.$time.'</div>';
+    }
+    if ($kind === 'offer_response') {
+        [$cls, $label] = match($meta['status']??''){
+            'accept'  => ['ok',  '✓ '.t('Offer accepted')],
+            'decline' => ['bad', '✗ '.t('Offer declined')],
+            default   => ['ctr', '↩ '.t('Counter offer').': '.eur($meta['counter_price']??0).' / '.t('unit')],
+        };
+        return '<div class="msgoffer '.$cls.'"><div class="mo-head">'.$label.
+               ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
+               '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.$time.'</div>';
+    }
+    return '';
+}
+
 /* Mark a thread as read by $uid (called when they open it). */
 function vestra_msg_mark_read(string $id, string $uid): void {
     $threads = vestra_msg_threads();

@@ -118,6 +118,9 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
             </div>
             <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Submit offer →') ?></button>
             <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, payment is via <b>escrow</b>.") ?></div>
+            <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>
+            <div class="hint" style="margin-top:6px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
+            <?php endif; ?>
           </form>
         </div>
 
@@ -180,6 +183,9 @@ $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_
                 <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
               </div>
               <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:12px"><?= t('Submit offer →') ?></button>
+              <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>
+              <div class="hint" style="margin-top:8px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
+              <?php endif; ?>
             </form>
           </details>
         </div>

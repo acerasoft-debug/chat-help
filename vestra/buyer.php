@@ -226,6 +226,7 @@ if($tab==='overview'){
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {
+      if (($m['from']??'') === 'system') { echo vestra_msg_system_html($m, 'buyer'); continue; }
       $mine = ($m['from']??'') === $uid;
       echo '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
         nl2br(htmlspecialchars($m['text']??'')).
@@ -252,7 +253,7 @@ if($tab==='overview'){
         $unread = vestra_msg_unread($th, $uid);
         echo '<a class="threadrow'.($unread?' unread':'').'" href="/buyer?tab=messages&thread='.urlencode($th['id']).'">
           <div class="tr-name">'.htmlspecialchars(vestra_msg_counterpart_label($th, $uid)).($unread?' <span class="tr-dot"></span>':'').'</div>
-          <div class="tr-snippet">'.htmlspecialchars(mb_substr($last['text']??'', 0, 80)).'</div>
+          <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
           <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
         </a>';
       }

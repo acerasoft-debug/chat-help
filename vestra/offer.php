@@ -1,6 +1,8 @@
 <?php
 /** VESTRA — "make an offer" handler (offer-mode products). Stores to data/offers.csv. */
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/auth.php';
+if(session_status()===PHP_SESSION_NONE) session_start();
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /shop'); exit; }
 $id=$_POST['id']??''; $p=vestra_find($id);
 if(!$p){ header('Location: /shop'); exit; }
@@ -30,6 +32,19 @@ vestra_notify("Offer {$ref} — {$p['sku']} — {$company}", $adminBody, $email)
 /* Confirmation to the buyer who made the offer */
 vestra_send_mail($email, "VESTRA — offer {$ref} received",
   "Hello {$company},\n\nWe have received your offer for:\n\n  {$p['brand']} {$p['name']} ({$p['sku']})\n  Qty: {$qty}   Your price: €{$price}/unit   Total: €{$total}\n\nRef: {$ref}\n\nThe seller will review and respond shortly. You can also view updates in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com");
+
+/* Drop the offer into the buyer↔seller message thread as a prominent card, so the
+   seller sees it like a new message (unread badge + inbox entry), not just a table row. */
+if(!empty($p['seller_uid']) && !empty($_SESSION['uid'])){
+  $me = auth_user();
+  if($me && ($me['type']??'')==='buyer'){
+    require_once __DIR__.'/inc/messages.php';
+    vestra_msg_post_system($me['id'], $p['seller_uid'], $p['id'], [
+      'kind'=>'offer', 'ref'=>$ref, 'product'=>$p['brand'].' '.$p['name'], 'sku'=>$p['sku'],
+      'qty'=>$qty, 'unit_price'=>$price, 'total'=>$total,
+    ]);
+  }
+}
 
 /* Notify the seller who owns this listing (if seller_uid stored on listing) */
 if(!empty($p['seller_uid'])){

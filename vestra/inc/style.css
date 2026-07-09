@@ -327,6 +327,18 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .msgtime{font-size:11px;color:var(--mut);margin-top:5px}
 .msgcompose{display:flex;gap:10px;align-items:flex-end}
 .msgcompose textarea{flex:1;resize:vertical;min-height:44px}
+/* system offer cards inside a thread */
+.msgoffer{align-self:center;width:min(420px,94%);background:rgba(201,168,106,.09);border:1px solid rgba(201,168,106,.45);border-radius:14px;padding:14px 16px;text-align:center}
+.msgoffer.ok{background:rgba(122,214,160,.08);border-color:rgba(122,214,160,.45)}
+.msgoffer.bad{background:rgba(239,154,154,.07);border-color:rgba(239,154,154,.4)}
+.msgoffer.ctr{background:rgba(240,192,96,.08);border-color:rgba(240,192,96,.45)}
+.msgoffer .mo-head{font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap}
+.msgoffer .mo-prod{font-size:13px;color:var(--mut);margin-top:4px}
+.msgoffer .mo-terms{font-size:14.5px;margin-top:6px}
+.msgoffer .mo-act{display:inline-block;margin-top:9px;font-size:13px;font-weight:600;color:var(--acc)}
+.msgoffer .atag{font-size:10px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-weight:600;letter-spacing:.4px}
+/* sidebar unread badge */
+.dashside .navdot{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:var(--acc);color:#1a1408;font-size:11px;font-weight:700;margin-left:4px}
 
 /* panel inline-action forms (ship / offer-respond) */
 .respdetails>summary{list-style:none;cursor:pointer}

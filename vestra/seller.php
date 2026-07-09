@@ -111,17 +111,28 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $uid    = $_SESSION['uid'] ?? '';
     $action = $_POST['response'] ?? '';
     $ctr    = round((float)($_POST['counter_price']??0), 2);
-    $ownsOffer = false;
+    $ownsOffer = false; $offerRow = null; $offerListing = null;
     foreach (vestra_read_csv('offers.csv') as $row) {
         if (($row['ref']??'') !== $ref) continue;
-        $listing = vestra_listing_by_sku($row['sku'] ?? '');
-        $ownsOffer = $listing && ($listing['seller_uid'] ?? '') === $uid && $uid !== '';
+        $offerListing = vestra_listing_by_sku($row['sku'] ?? '');
+        $ownsOffer = $offerListing && ($offerListing['seller_uid'] ?? '') === $uid && $uid !== '';
+        $offerRow = $row;
         break;
     }
     if ($ref && $ownsOffer && in_array($action, ['accept','decline','counter'], true) && !($action==='counter'&&$ctr<=0)) {
         $rs = vestra_read_json('offer_responses.json');
         $rs[$ref] = ['status'=>$action, 'counter_price'=>$action==='counter'?$ctr:null, 'responded_at'=>date('c')];
         vestra_write_json('offer_responses.json', $rs);
+        /* Mirror the response into the buyer's Messages inbox as a highlighted card. */
+        $buyerAcc = auth_find($offerRow['email'] ?? '');
+        if ($buyerAcc) {
+            require_once __DIR__.'/inc/messages.php';
+            vestra_msg_post_system($buyerAcc['id'], $uid, $offerListing['id'] ?? '', [
+                'kind'=>'offer_response', 'ref'=>$ref, 'status'=>$action,
+                'counter_price'=>$action==='counter'?$ctr:null,
+                'product'=>trim(($offerListing['brand']??'').' '.($offerListing['name']??'')),
+            ]);
+        }
     }
     header('Location: /seller?tab=offers&responded=1'); exit;
 }
@@ -527,6 +538,7 @@ if($tab==='overview'){
     }
     echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {
+      if (($m['from']??'') === 'system') { echo vestra_msg_system_html($m, 'seller'); continue; }
       $mine = ($m['from']??'') === $uid;
       echo '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
         nl2br(htmlspecialchars($m['text']??'')).
@@ -553,7 +565,7 @@ if($tab==='overview'){
         $unread = vestra_msg_unread($th, $uid);
         echo '<a class="threadrow'.($unread?' unread':'').'" href="/seller?tab=messages&thread='.urlencode($th['id']).'">
           <div class="tr-name">'.htmlspecialchars(vestra_msg_counterpart_label($th, $uid)).($unread?' <span class="tr-dot"></span>':'').'</div>
-          <div class="tr-snippet">'.htmlspecialchars(mb_substr($last['text']??'', 0, 80)).'</div>
+          <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
           <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
         </a>';
       }

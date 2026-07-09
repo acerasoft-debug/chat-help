@@ -1,6 +1,8 @@
 <?php
 /** VESTRA — dashboard layout helpers (premium sidebar panel). */
+require_once __DIR__.'/messages.php';
 function dash_open($role,$section,$title,$subtitle=''){
+  $unreadN = vestra_msg_unread_count($_SESSION['uid'] ?? '');
   $nav = $role==='seller' ? [
       ['overview',t('Overview'),'/seller'],
       ['add','＋ '.t('Add product'),'/seller?tab=add'],
@@ -25,7 +27,11 @@ function dash_open($role,$section,$title,$subtitle=''){
   if($subtitle) echo '<p class="hint" style="margin:2px 0 0">'.htmlspecialchars($subtitle).'</p>';
   echo '</div><span class="rolepill">'.($role==='seller'?'🏷️ '.t('Seller workspace'):'🛍️ '.t('Buyer workspace')).'</span>';
   echo '</div><div class="dashlayout"><aside class="dashside">';
-  foreach($nav as $n){ echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.htmlspecialchars($n[1]).'</a>'; }
+  foreach($nav as $n){
+    $label = htmlspecialchars($n[1]);
+    if($n[0]==='messages' && $unreadN>0) $label .= ' <span class="navdot">'.$unreadN.'</span>';
+    echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.$label.'</a>';
+  }
   echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw').'</div>';
   echo '<a class="signout" href="/login?signout=1">'.t('Sign out').'</a>';
   echo '</aside><main class="dashmain">';
