@@ -8,16 +8,26 @@ if(session_status()===PHP_SESSION_NONE) session_start();
 $PASS   = (string)vestra_cfg('admin_pass','');
 $locked = ($PASS==='');
 
-if(isset($_GET['logout'])){ unset($_SESSION['vadmin']); header('Location: /admin'); exit; }
+if(isset($_GET['logout'])){ unset($_SESSION['vadmin'],$_SESSION['vadmin_csrf']); header('Location: /admin'); exit; }
 $err=false;
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
   if(!$locked && hash_equals($PASS,(string)$_POST['pass'])){ $_SESSION['vadmin']=true; header('Location: /admin'); exit; }
   $err=true;
 }
 $authed=!empty($_SESSION['vadmin']);
+if($authed && empty($_SESSION['vadmin_csrf'])) $_SESSION['vadmin_csrf']=bin2hex(random_bytes(16));
+
+/* Hidden CSRF field — include in EVERY admin POST form. */
+function csrfField(): string {
+  return '<input type="hidden" name="_csrf" value="'.htmlspecialchars($_SESSION['vadmin_csrf']??'').'">';
+}
 
 // ── POST actions ───────────────────────────────────────────────────────────────
 if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
+  // Every mutating action must carry the session CSRF token — blocks cross-site form posts.
+  if(!hash_equals($_SESSION['vadmin_csrf']??'', (string)($_POST['_csrf']??''))){
+    header('Location: /admin?msg=csrf_fail'); exit;
+  }
   $act=$_POST['_action']??'';
 
   if($act==='approve_listing'){
@@ -102,7 +112,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='toggle_promo'){
     $all=promo_all(); $k=strtoupper($_POST['toggle_code']??'');
     if(isset($all[$k])){ $all[$k]['active']=!($all[$k]['active']??true); promo_save($all); }
-    header('Location: /admin?tab=marketing'); exit;
+    header('Location: /admin?tab=marketing&msg=promo_toggled'); exit;
   }
 }
 
@@ -125,7 +135,7 @@ if($authed && isset($_GET['dl_doc'])){
 
 // ── CSV download ───────────────────────────────────────────────────────────────
 if($authed && isset($_GET['dl'])){
-  $map=['signups'=>'signups.csv','orders'=>'orders.csv','offers'=>'offers.csv','requests'=>'requests.csv','groups'=>'groups.csv'];
+  $map=['signups'=>'signups.csv','orders'=>'orders.csv','offers'=>'offers.csv','requests'=>'requests.csv','groups'=>'groups.csv','request_offers'=>'request_offers.csv'];
   $f=$map[$_GET['dl']]??null; $path=$f?vestra_data_dir().'/'.$f:'';
   if($f && is_readable($path)){ header('Content-Type: text/csv; charset=UTF-8'); header('Content-Disposition: attachment; filename="vestra-'.$f.'"'); readfile($path); exit; }
   http_response_code(404); echo 'No data'; exit;
@@ -159,6 +169,7 @@ function memberBadge(string $tier, string $status): string {
 function fBtn(string $label, string $act, array $fields, string $style='', string $confirm=''): string {
   $oc=$confirm?' onclick="return confirm(\''.htmlspecialchars(addslashes($confirm)).'\')"':'';
   $h='<form method="post" style="display:inline">';
+  $h.=csrfField();
   $h.='<input type="hidden" name="_action" value="'.htmlspecialchars($act).'">';
   foreach($fields as $k=>$v) $h.='<input type="hidden" name="'.htmlspecialchars($k).'" value="'.htmlspecialchars($v).'">';
   $h.='<button type="submit" class="abtn"'.$oc.' style="'.htmlspecialchars($style).'">'.htmlspecialchars($label).'</button></form> ';
@@ -281,6 +292,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $pendingEmail = array_filter($accounts,fn($a)=>($a['status']??'')==='pending_email');
   $pendingKyb   = array_filter($accounts,fn($a)=>($a['status']??'')==='pending'&&($a['kyb_status']??'pending')==='pending');
   $reqOffers    = vestra_read_csv('request_offers.csv');
+  require_once __DIR__.'/inc/messages.php';
+  $msgThreads   = vestra_msg_threads();
+  $blockedMsgs  = vestra_msg_blocked_log();
+  $groupPools   = vestra_group_pools();
   $pendingList  = array_filter($listings,fn($p)=>($p['status']??'approved')==='pending');
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
@@ -292,9 +307,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
+    'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
     'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
+    'csrf_fail'=>'⚠ Security check failed — please retry the action from this page.',
   ];
 
   function navLink(string $cur, string $key, string $icon, string $label, int $badge=0, bool $red=false): string {
@@ -337,6 +354,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'offers','💬','Offers ('.count($offers).')') ?>
   <?= navLink($tab,'requests','📋','Requests ('.count($requests).')') ?>
   <?= navLink($tab,'req_offers','📩','Request Offers ('.count($reqOffers).')') ?>
+  <?= navLink($tab,'groups','👥','Group buys ('.count($groupPools).')') ?>
+
+  <div class="sgrp">Moderation</div>
+  <?= navLink($tab,'messages','✉️','Messages ('.count($msgThreads).')',count($blockedMsgs),count($blockedMsgs)>0) ?>
 
   <div class="sgrp">Catalog</div>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
@@ -453,12 +474,14 @@ elseif($tab==='approvals'): ?>
     </div>
     <div class="acols2">
       <form method="post" class="aform">
+        <?= csrfField() ?>
         <input type="hidden" name="_action" value="approve_listing">
         <input type="hidden" name="lid" value="<?= htmlspecialchars($p['id']??'') ?>">
         <div class="afield"><label>Note to seller (optional)</label><textarea name="note" placeholder="Approved — listing is now live."></textarea></div>
         <button class="abtn primary" type="submit">✓ Approve — go live</button>
       </form>
       <form method="post" class="aform">
+        <?= csrfField() ?>
         <input type="hidden" name="_action" value="reject_listing">
         <input type="hidden" name="lid" value="<?= htmlspecialchars($p['id']??'') ?>">
         <div class="afield"><label>Reason for rejection (required)</label><textarea name="note" placeholder="Please revise: missing origin documentation…" required></textarea></div>
@@ -500,6 +523,7 @@ elseif($tab==='documents'):
   <div class="acols2">
   <!-- Request a document -->
   <form method="post" class="aform">
+    <?= csrfField() ?>
     <input type="hidden" name="_action" value="request_doc">
     <input type="hidden" name="uid" value="<?= htmlspecialchars($selUser['id']??'') ?>">
     <div style="font-weight:600;margin-bottom:10px;font-size:13px">Request additional document</div>
@@ -550,6 +574,7 @@ if(!$docReqs): ?>
     <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
       <a class="abtn" href="/admin?dl_doc=<?= urlencode($req['file']) ?>&uid=<?= urlencode($selUser['id']??'') ?>" target="_blank">📂 View uploaded file</a>
       <form method="post" style="display:inline-flex;gap:8px;align-items:center">
+        <?= csrfField() ?>
         <input type="hidden" name="_action" value="review_doc">
         <input type="hidden" name="uid" value="<?= htmlspecialchars($selUser['id']??'') ?>">
         <input type="hidden" name="req_id" value="<?= htmlspecialchars($req['id']??'') ?>">
@@ -707,6 +732,7 @@ elseif($tab==='orders'):
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
     <td class="ac"><?php if($st!=='completed'): ?>
       <form method="post" style="display:flex;flex-direction:column;gap:5px">
+        <?= csrfField() ?>
         <input type="hidden" name="_action" value="order_status">
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
         <select name="status" style="padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
@@ -788,6 +814,7 @@ elseif($tab==='req_offers'): ?>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
   <div><h2 style="font-size:18px;font-weight:700">Request Offers</h2><p class="ahint" style="margin-top:4px">Seller offers submitted on buyer sourcing requests.</p></div>
 </div>
+<div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=request_offers">⬇ CSV</a></div>
 <?php if(!$reqOffers): ?><div class="acard"><div class="aempty">No seller offers on requests yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
@@ -851,6 +878,7 @@ elseif($tab==='marketing'): ?>
   <div class="acard-hd"><h3>Create promo code</h3></div>
   <div class="acard-body">
   <form method="post" class="aform">
+    <?= csrfField() ?>
     <input type="hidden" name="_action" value="create_promo">
     <div class="afield"><label>Code (blank = auto-generate)</label><input name="code" placeholder="SELLER-SUMMER26" style="text-transform:uppercase"></div>
     <div class="afield"><label>Description</label><input name="desc" placeholder="Early seller access"></div>
@@ -926,6 +954,113 @@ function updateLinks(){
 }
 updateLinks();
 </script>
+
+
+<?php // ══════════════════════════════════════════════════════ GROUP BUYS
+elseif($tab==='groups'):
+  $cnt_open   = count(array_filter($groupPools,fn($p)=>$p['_status']==='open'));
+  $cnt_funded = count(array_filter($groupPools,fn($p)=>$p['_status']==='funded'));
+  $cnt_exp    = count(array_filter($groupPools,fn($p)=>$p['_status']==='expired'));
+?>
+<div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+  <div class="ascard"><div class="sv"><?= count($groupPools) ?></div><div class="sl">Pools</div></div>
+  <div class="ascard"><div class="sv" style="color:#f0c060"><?= $cnt_open ?></div><div class="sl">Open</div></div>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $cnt_funded ?></div><div class="sl">Target reached</div></div>
+  <div class="ascard"><div class="sv" style="color:var(--mut)"><?= $cnt_exp ?></div><div class="sl">Expired</div></div>
+</div>
+<div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=groups">⬇ CSV</a></div>
+<?php if(!$groupPools): ?><div class="acard"><div class="aempty">No products are open for group buying yet.</div></div>
+<?php else: foreach($groupPools as $gp): ?>
+<div class="acard" style="margin-bottom:12px">
+  <div class="acard-hd">
+    <div style="flex:1">
+      <div style="font-weight:600"><?= htmlspecialchars($gp['brand']??'') ?> — <?= htmlspecialchars($gp['name']??'') ?>
+        <a href="/group?id=<?= urlencode($gp['id']??'') ?>" target="_blank" style="color:var(--acc);font-size:11px;margin-left:8px">View page ↗</a></div>
+      <div class="ahint"><?= number_format($gp['_committed']) ?> / <?= number_format($gp['_target']) ?> <?= htmlspecialchars($gp['unit']??'pc') ?>
+        · <?= $gp['_pct'] ?>% · <?= (int)$gp['_participants'] ?> buyers
+        · unlocks <?= eur($gp['_gprice']) ?>/<?= htmlspecialchars($gp['unit']??'pc') ?>
+        · closes <?= htmlspecialchars(substr($gp['_deadline']??'',0,10)) ?></div>
+    </div>
+    <?= match($gp['_status']){'funded'=>abadge('✓ Target reached','#7ad6a0'),'expired'=>abadge('• Expired','#888'),default=>abadge('⏳ Open · '.$gp['_daysLeft'].'d left','#f0c060')} ?>
+  </div>
+  <?php if($gp['_commits']): ?>
+  <div class="acard-body"><div class="atscroll"><table class="atable">
+    <?= arow(['Date','Ref','Company','Email','Country','Qty','Est. total'],true) ?>
+    <?php foreach($gp['_commits'] as $c): ?>
+    <?= arow([
+      htmlspecialchars(substr($c['timestamp']??'',0,10)),
+      '<span class="atag">'.htmlspecialchars($c['ref']??'').'</span>',
+      '<b>'.htmlspecialchars($c['company']??'—').'</b>',
+      '<a href="mailto:'.htmlspecialchars($c['email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($c['email']??'').'</a>',
+      htmlspecialchars($c['country']??'—'),
+      htmlspecialchars($c['qty']??'').' '.htmlspecialchars($gp['unit']??'pc'),
+      eur($c['est_total']??0),
+    ]) ?>
+    <?php endforeach; ?>
+  </table></div></div>
+  <?php endif; ?>
+</div>
+<?php endforeach; endif; ?>
+
+
+<?php // ══════════════════════════════════════════════════════ MESSAGES (moderation)
+elseif($tab==='messages'):
+  $accById=[]; foreach($accounts as $a){ $accById[$a['id']??'']=$a; }
+  $accLabel=function(string $uid) use ($accById): string {
+    $a=$accById[$uid]??null;
+    return $a ? (($a['company']?:($a['name']?:$uid))) : $uid;
+  };
+?>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div><h2 style="font-size:18px;font-weight:700">Message Moderation</h2>
+  <p class="ahint" style="margin-top:4px">Buyer ↔ seller conversations. Off-platform contact (email / IBAN) is auto-blocked — attempts are logged below.</p></div>
+</div>
+
+<?php if($blockedMsgs): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(239,154,154,.35)">
+  <div class="acard-hd"><h3 style="color:#ef9a9a">⚠️ Blocked off-platform attempts (<?= count($blockedMsgs) ?>)</h3></div>
+  <div class="acard-body"><div class="atscroll"><table class="atable">
+    <?= arow(['When','Sender','Thread','Type','Attempted text'],true) ?>
+    <?php foreach(array_reverse($blockedMsgs) as $bm): ?>
+    <?= arow([
+      htmlspecialchars(substr($bm['at']??'',0,16)),
+      '<b>'.htmlspecialchars($accLabel($bm['from']??'')).'</b>',
+      htmlspecialchars($accLabel($bm['buyer_uid']??'')).' ↔ '.htmlspecialchars($accLabel($bm['seller_uid']??'')),
+      abadge(strtoupper($bm['flag']??''),'#ef9a9a'),
+      '<span style="font-size:11px;color:var(--mut)">'.htmlspecialchars(mb_substr($bm['text']??'',0,120)).'</span>',
+    ]) ?>
+    <?php endforeach; ?>
+  </table></div></div>
+</div>
+<?php endif; ?>
+
+<?php if(!$msgThreads): ?><div class="acard"><div class="aempty">No conversations yet. Buyer-seller chats appear here.</div></div>
+<?php else:
+  usort($msgThreads, fn($a,$b)=>strtotime($b['last_at']??'1970-01-01')<=>strtotime($a['last_at']??'1970-01-01'));
+  foreach($msgThreads as $th): ?>
+<div class="acard" style="margin-bottom:12px">
+  <div class="acard-hd">
+    <div style="flex:1">
+      <div style="font-weight:600"><?= htmlspecialchars($accLabel($th['buyer_uid']??'')) ?> ↔ <?= htmlspecialchars($accLabel($th['seller_uid']??'')) ?></div>
+      <div class="ahint"><?= count($th['messages']??[]) ?> messages · last <?= htmlspecialchars(substr($th['last_at']??'',0,16)) ?>
+        <?php if(!empty($th['listing_id'])): ?> · <a href="/product?id=<?= urlencode($th['listing_id']) ?>" target="_blank" style="color:var(--acc)">listing ↗</a><?php endif; ?></div>
+    </div>
+  </div>
+  <div class="acard-body">
+    <details><summary style="cursor:pointer;font-size:12px;color:var(--acc)">Read conversation</summary>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+        <?php foreach(($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??''); ?>
+        <div style="font-size:12.5px;line-height:1.5">
+          <b style="color:<?= $isBuyer?'#8ab4f8':'#c9a86a' ?>"><?= htmlspecialchars($accLabel($m['from']??'')) ?></b>
+          <span class="ahint" style="margin-left:6px"><?= htmlspecialchars(substr($m['at']??'',0,16)) ?></span>
+          <div><?= htmlspecialchars($m['text']??'') ?></div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+    </details>
+  </div>
+</div>
+<?php endforeach; endif; ?>
 
 
 <?php // ══════════════════════════════════════════════════════ WAITLIST

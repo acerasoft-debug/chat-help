@@ -53,10 +53,45 @@ function vestra_msg_flag_offplatform(string $text): ?string {
  * $fromUid must be one of $buyerUid/$sellerUid — the caller enforces that.
  * Returns ['ok'=>true,'thread_id'=>...] or ['ok'=>false,'error'=>'empty'|'flagged','flag'=>...].
  */
+/* Moderation trail: every blocked off-platform attempt is kept (server-side only, data/ is
+   web-blocked) so the admin can spot repeat circumvention and act on the account. */
+function vestra_msg_log_blocked(string $fromUid, string $buyerUid, string $sellerUid, string $listingId, string $flag, string $text): void {
+    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    $log = [];
+    if (is_readable($f)) { $d = json_decode((string)file_get_contents($f), true); if (is_array($d)) $log = $d; }
+    $log[] = ['at'=>date('c'), 'from'=>$fromUid, 'buyer_uid'=>$buyerUid, 'seller_uid'=>$sellerUid,
+              'listing_id'=>$listingId, 'flag'=>$flag, 'text'=>mb_substr($text, 0, 500)];
+    file_put_contents($f, json_encode($log, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+    require_once __DIR__.'/notify.php';
+    $who = $fromUid; $whoEmail = '';
+    foreach (auth_accounts() as $a) {
+        if (($a['id']??'') === $fromUid) { $who = $a['company'] ?: ($a['name'] ?: $fromUid); $whoEmail = $a['email'] ?? ''; break; }
+    }
+    vestra_notify(
+        "⚠️ Off-platform contact attempt blocked ({$flag}) — {$who}",
+        "A message containing ".($flag==='email'?'an email address':'an IBAN')." was blocked in buyer-seller chat.\n\n".
+        "Sender:  {$who}".($whoEmail?" <{$whoEmail}>":'')." (uid {$fromUid})\n".
+        "Thread:  buyer {$buyerUid} ↔ seller {$sellerUid}".($listingId?" · listing {$listingId}":'')."\n\n".
+        "Attempted text:\n".mb_substr($text, 0, 500)."\n\n".
+        "Review: https://vestrasales.com/admin?tab=messages"
+    );
+}
+
+function vestra_msg_blocked_log(): array {
+    $f = dirname(__DIR__).'/data/blocked_messages.json';
+    if (!is_readable($f)) return [];
+    $d = json_decode((string)file_get_contents($f), true);
+    return is_array($d) ? $d : [];
+}
+
 function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, string $text, string $listingId=''): array {
     $text = trim(preg_replace('/[ \t]+/', ' ', (string)$text));
     if ($text === '' || $buyerUid === '' || $sellerUid === '') return ['ok'=>false, 'error'=>'empty'];
-    if ($flag = vestra_msg_flag_offplatform($text)) return ['ok'=>false, 'error'=>'flagged', 'flag'=>$flag];
+    if ($flag = vestra_msg_flag_offplatform($text)) {
+        vestra_msg_log_blocked($fromUid, $buyerUid, $sellerUid, $listingId, $flag, $text);
+        return ['ok'=>false, 'error'=>'flagged', 'flag'=>$flag];
+    }
 
     $threads = vestra_msg_threads();
     $id = vestra_msg_thread_id($buyerUid, $sellerUid, $listingId);
