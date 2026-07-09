@@ -4,6 +4,16 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  # ── /membership çakışması ──────────────────────────────────────────────
+  # public_html/membership/ diye bir KLASÖR var (Stripe success + cancel sayfaları).
+  # O yüzden /membership isteğini Apache klasör sanıp /membership/ adresine 301
+  # atıyor, orada index olmadığı için 403 veriyor. DirectorySlash Off bu otomatik
+  # slash-ekleme yönlendirmesini kapatır; alttaki kural da /membership'i doğrudan
+  # fiyatlandırma sayfasına (membership.php) yönlendirir. /membership/success ve
+  # /membership/cancel ise aşağıdaki genel *.php kuralıyla çalışmaya devam eder.
+  DirectorySlash Off
+  RewriteRule ^membership/?$ membership.php [L]
+
   # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
 
   # index.php  →  /
