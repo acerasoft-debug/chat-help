@@ -198,6 +198,10 @@ function vestra_msg_snippet(array $m): string {
             'completed' => '✓ '.t('Order completed — payment released'),
             default     => '📦 '.t('Order placed'),
         },
+        'request_offer' => match($meta['status']??''){
+            'accept' => '✓ '.t('Sourcing offer accepted'),
+            default  => '📋 '.t('New sourcing offer').' — '.($meta['product']??''),
+        },
         default => '',
     };
 }
@@ -219,6 +223,24 @@ function vestra_msg_system_html(array $m, string $viewerRole): string {
             $body .= '<a class="mo-act" href="/seller?tab=offers">'.t('Respond in Offers tab →').'</a>';
         }
         return '<div class="msgoffer">'.$body.$time.'</div>';
+    }
+    if ($kind === 'request_offer') {
+        $accepted = ($meta['status']??'') === 'accept';
+        $qty  = htmlspecialchars((string)($meta['qty']??''));
+        $unit = eur($meta['unit_price']??0);
+        $body = '<div class="mo-head">'.($accepted?'✓ '.t('Sourcing offer accepted'):'📋 '.t('New sourcing offer')).
+                ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
+                '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.
+                '<div class="mo-terms">'.$unit.' / pc'.($qty?' · '.$qty:'').'</div>';
+        if (!$accepted && $viewerRole === 'buyer') {
+            $body .= '<a class="mo-act" href="/buyer?tab=requests">'.t('Review in My requests →').'</a>';
+        }
+        if ($accepted && $viewerRole === 'seller' && function_exists('vestra_invoices_for_ref')) {
+            foreach (vestra_invoices_for_ref($meta['ref'] ?? '') as $iv) {
+                $body .= '<a class="mo-act" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+            }
+        }
+        return '<div class="msgoffer'.($accepted?' ok':'').'">'.$body.$time.'</div>';
     }
     if ($kind === 'offer_response') {
         [$cls, $label] = match($meta['status']??''){

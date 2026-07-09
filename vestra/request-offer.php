@@ -46,14 +46,14 @@ $u = auth_user();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $company  = trim($_POST['company']  ?? '');
     $email    = trim($_POST['email']    ?? '');
-    $price    = trim($_POST['price']    ?? '');
+    $price    = (float)($_POST['price'] ?? 0);
     $qty      = trim($_POST['qty']      ?? '');
     $delivery = trim($_POST['delivery'] ?? '');
     $message  = trim($_POST['message']  ?? '');
 
     if (!empty($_POST['website'])) { header('Location: /requests'); exit; } // honeypot
 
-    if ($company === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $price === '') {
+    if ($company === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $price <= 0) {
         $err = t('Please fill in all required fields.');
     } else {
         $oref = 'RO'.strtoupper(substr(md5($email.$ref.microtime(false)), 0, 6));
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new  = !file_exists($file);
         if ($fh = @fopen($file, 'a')) {
             if ($new) fputcsv($fh, ['timestamp','ref','request_ref','seller_company','seller_email','price','qty','delivery','message'],',','"','\\');
-            fputcsv($fh, [date('c'), $oref, $ref, $one($company), $one($email), $one($price), $one($qty), $one($delivery), $one($message)],',','"','\\');
+            fputcsv($fh, [date('c'), $oref, $ref, $one($company), $one($email), $price, $one($qty), $one($delivery), $one($message)],',','"','\\');
             fclose($fh);
         }
 
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "New seller offer on VESTRA sourcing request:\n\n".
             "Request: #{$ref} — {$title}\n".
             "Seller: {$company} <{$email}>\n".
-            "Price offered: {$price}\n".
+            "Price offered: €{$price}\n".
             "Quantity: {$qty}\n".
             "Delivery: {$delivery}\n".
             "Message: {$message}\n\n".
@@ -87,20 +87,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email
         );
 
-        // Notify buyer if we have their email (real requests only)
+        /* Mirror the offer into an on-platform message thread when both sides have real
+           VESTRA accounts — keeps the negotiation on-platform instead of a raw mailto. */
         $buyerEmail = $req['email'] ?? '';
+        $buyerAcc = $buyerEmail ? auth_find($buyerEmail) : null;
+        $sellerAcc = auth_find($email);
+        if ($buyerAcc && ($buyerAcc['type']??'')==='buyer' && $sellerAcc && ($sellerAcc['type']??'')==='seller') {
+            require_once __DIR__.'/inc/messages.php';
+            vestra_msg_post_system($buyerAcc['id'], $sellerAcc['id'], $ref, [
+                'kind'=>'request_offer', 'ref'=>$oref, 'request_ref'=>$ref, 'product'=>$title,
+                'qty'=>$qty, 'unit_price'=>$price,
+            ]);
+        }
+
+        // Notify buyer if we have their email (real requests only) — never reveals the
+        // seller's raw email; response happens on-platform (Messages / Accept button).
         if ($buyerEmail && filter_var($buyerEmail, FILTER_VALIDATE_EMAIL)) {
             vestra_send_mail($buyerEmail,
                 "VESTRA — you received an offer on your request #{$ref}",
                 "Hello,\n\nA verified seller has made an offer on your sourcing request:\n\n".
                 "Your request: {$title}\n".
                 "Seller company: {$company}\n".
-                "Price offered: {$price}\n".
+                "Price offered: €{$price}/pc\n".
                 "Quantity available: {$qty}\n".
                 "Delivery: {$delivery}\n".
                 ($message ? "Message: {$message}\n" : '').
                 "\nRef: {$oref}\n\n".
-                "To respond, contact: {$email}\n\n".
+                "View and respond on VESTRA:\nhttps://vestrasales.com/buyer?tab=requests\n\n".
                 "— VESTRA · vestrasales.com"
             );
         }
@@ -110,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "VESTRA — your offer {$oref} has been submitted",
             "Hello {$company},\n\nYour offer on sourcing request #{$ref} has been submitted.\n\n".
             "Request: {$title}\n".
-            "Your offer: {$price} / {$qty}\n".
+            "Your offer: €{$price}/pc / {$qty}\n".
             "Ref: {$oref}\n\n".
             "VESTRA will forward your offer to the buyer. You will hear back if they accept.\n\n".
             "— VESTRA · vestrasales.com"
@@ -157,8 +170,8 @@ $title = htmlspecialchars($req['title'] ?? $req['id'] ?? $ref);
 
       <div class="frow" style="margin-bottom:0">
         <div class="authfield">
-          <label><?= t('Price per unit') ?> *</label>
-          <input name="price" required placeholder="€ 18.50 / pc">
+          <label><?= t('Price per unit (€)') ?> *</label>
+          <input type="number" name="price" step="0.01" min="0.01" required placeholder="18.50">
         </div>
         <div class="authfield">
           <label><?= t('Quantity available') ?></label>
