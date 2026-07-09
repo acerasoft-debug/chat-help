@@ -42,6 +42,14 @@ function vestra_demo_products(){
       'tiers'=>[['min'=>10,'price'=>110.00],['min'=>24,'price'=>98.00],['min'=>60,'price'=>90.00]],
     ],
     [
+      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
+      'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
+      'sizes'=>'S×5 · M×15 · L×15 · XL×10 · XXL×5 · mixed colours',
+      'tiers'=>[['min'=>50,'price'=>35.00]],
+    ],
+    [
       'id'=>'basic-crew-tee','brand'=>'VESTRA Essentials','name'=>'Crew Neck Tee — blank','mode'=>'fixed',
       'cat'=>'Basics','sku'=>'VE-CT-100','moq'=>50,'unit'=>'pc',
       'desc'=>'180gsm combed cotton blank tee. Bulk packs, all sizes & colours.',

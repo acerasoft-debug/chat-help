@@ -116,7 +116,7 @@ if(!$MEMBER) $images = [];
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div><label class="hint"><?= t('Quantity') ?> (<?= htmlspecialchars($p['unit']) ?>) — <?= t('min') ?> <?= $p['moq'] ?></label>
-                <input type="number" name="qty" min="<?= $p['moq'] ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
+                <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
               <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
                 <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
             </div>
@@ -161,7 +161,7 @@ if(!$MEMBER) $images = [];
           <div class="qtyrow">
             <div class="stepper">
               <button type="button" onclick="bump(-step())">−</button>
-              <input id="qty" type="number" min="<?= $p['moq'] ?>" step="1" value="<?= $p['moq'] ?>" oninput="recalc()">
+              <input id="qty" type="number" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" oninput="recalc()">
               <button type="button" onclick="bump(step())">+</button>
             </div>
             <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
@@ -184,7 +184,7 @@ if(!$MEMBER) $images = [];
               <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div><label class="hint"><?= t('Quantity') ?> — <?= t('min') ?> <?= $p['moq'] ?></label>
-                  <input type="number" name="qty" min="<?= $p['moq'] ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
+                  <input type="number" name="qty" min="<?= $p['moq'] ?>" step="<?= (int)($p['size_step'] ?? 1) ?>" value="<?= $p['moq'] ?>" required style="width:100%"></div>
                 <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
                   <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>
               </div>
