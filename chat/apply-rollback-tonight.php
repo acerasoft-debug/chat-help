@@ -15,10 +15,13 @@ error_reporting(E_ERROR | E_PARSE);
 $D = __DIR__;
 echo "apply-rollback-tonight BASLADI OK\n\n";
 
-/* bu gecenin v2-oncesi son durumu: sbprobe3-rm yedegi (en yenisi) */
-$cands = glob($D.'/index.php.bak-sbprobe3-rm-*');
+/* HEDEF: v2 turundan ONCEKI durum = kullanicinin calisan ekran goruntusu ani
+   (lang-force2'nin index yedegi bak-lf2c = o gece index'e dokunan ILK v2 adimi
+   oncesi). Boylece uistab2 + lf2-index-wrapper + probe-remove + clickfix'in
+   TAMAMI index'ten cikar; api.php/fall-api.php'deki dil garantisi KALIR. */
+$cands = glob($D.'/index.php.bak-lf2c-*');
 usort($cands, fn($a,$b)=>filemtime($b)-filemtime($a));
-if (!$cands) exit("HATA: index.php.bak-sbprobe3-rm-* yedegi bulunamadi.\n");
+if (!$cands) exit("HATA: index.php.bak-lf2c-* yedegi bulunamadi.\n");
 $src = $cands[0];
 
 $lo=[];$rc=0; exec('php -l '.escapeshellarg($src).' 2>&1',$lo,$rc);
