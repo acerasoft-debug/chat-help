@@ -36,7 +36,7 @@ $fail=[];
 
 /* [1] 55vh yer tutucuyu kaldir — kartlar eski boyutuna doner */
 $o1 = '.wcat-grid.ch-settling{opacity:0;pointer-events:none;min-height:55vh} /*CH_STAB_FINAL*/';
-$n1 = '.wcat-grid.ch-settling{opacity:0;pointer-events:none} /*CH_STAB_FINAL2*/';
+$n1 = '.wcat-grid.ch-settling{opacity:0;pointer-events:none;transition:none} /*CH_STAB_FINAL2*/';
 $c=0; $src=str_replace($o1,$n1,$src,$c);
 echo ($c===1?"  ✓ [1] 55vh yer tutucu kaldirildi — izgara dogal boyut\n":"  ✗ [1] anchor ($c)\n"); if($c!==1)$fail[]=1;
 
