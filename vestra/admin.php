@@ -4,7 +4,6 @@ require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/promos.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
-require_once __DIR__.'/inc/orders.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -105,7 +104,6 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $all=vestra_read_json('order_statuses.json');
       $prev=$all[$ref]['status']??'pending';
       $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>trim($_POST['tracking']??''),'updated_at'=>date('c')]);
-      $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order */
       if($st==='paid' && $prev!=='paid'){
@@ -849,19 +847,17 @@ elseif($tab==='requests'): ?>
 <?php if(!$requests): ?><div class="acard"><div class="aempty">No buyer sourcing requests yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Date','Ref','Looking for','Email','Category','Qty','Target','Country','Reference','Notes'],true) ?>
+  <?= arow(['Date','Company','Email','Brand','Category','Qty','Budget €/u','Notes'],true) ?>
   <?php foreach(array_reverse($requests) as $r): ?>
   <?= arow([
     htmlspecialchars(substr($r['timestamp']??'',0,10)),
-    '<span class="atag">'.htmlspecialchars($r['ref']??'').'</span>',
-    '<b>'.htmlspecialchars($r['title']??'—').'</b>',
+    htmlspecialchars($r['company']??'—'),
     '<a href="mailto:'.htmlspecialchars($r['email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($r['email']??'').'</a>',
-    htmlspecialchars($r['cat']??''),
+    '<b>'.htmlspecialchars($r['brand']??'—').'</b>',
+    htmlspecialchars($r['category']??''),
     htmlspecialchars($r['qty']??''),
-    htmlspecialchars($r['target']??''),
-    htmlspecialchars($r['country']??''),
-    !empty($r['ref_url']) ? '<a href="'.htmlspecialchars($r['ref_url']).'" target="_blank" rel="noopener nofollow" style="color:var(--acc)">🔗 link</a>'.(!empty($r['ref_image']) ? ' <a href="'.htmlspecialchars($r['ref_image']).'" target="_blank" rel="noopener">🖼</a>' : '') : (!empty($r['ref_image']) ? '<a href="'.htmlspecialchars($r['ref_image']).'" target="_blank" rel="noopener">🖼 photo</a>' : '—'),
-    htmlspecialchars(substr($r['notes']??'',0,80)),
+    htmlspecialchars($r['budget']??''),
+    htmlspecialchars(substr($r['notes']??$r['message']??'',0,80)),
   ]) ?>
   <?php endforeach; ?>
 </table></div></div>

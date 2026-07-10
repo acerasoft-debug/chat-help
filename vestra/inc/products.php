@@ -146,25 +146,6 @@ function vestra_brand_logo($brand){
 function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
 function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
 function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($r=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head){ $n=count($head); $r=array_slice(array_pad($r,$n,''),0,$n); $rows[]=array_combine($head,$r);} } fclose($h);} return array_reverse($rows); }
-/* Upgrade a CSV's header row in place when new trailing columns are added to a schema after
-   the file already exists on a live server — data rows are never touched (the reader above
-   already pads short rows with ''), only the first line is rewritten, and only when the
-   existing header is exactly a prefix of the new one (anything unexpected is left alone). */
-function vestra_csv_ensure_header(string $name, array $header): void {
-    $f = vestra_data_dir().'/'.$name;
-    if (!is_file($f)) return;
-    $fh = @fopen($f, 'r'); if (!$fh) return;
-    $firstLine = fgets($fh);
-    if ($firstLine === false) { fclose($fh); return; }
-    $current = str_getcsv(rtrim($firstLine, "\r\n"), ',', '"', '\\');
-    $rest = stream_get_contents($fh);
-    fclose($fh);
-    if ($current === $header || array_slice($header, 0, count($current)) !== $current) return;
-    $tmp = fopen('php://temp', 'r+');
-    fputcsv($tmp, $header, ',', '"', '\\');
-    rewind($tmp); $newHeaderLine = stream_get_contents($tmp); fclose($tmp);
-    file_put_contents($f, $newHeaderLine.$rest, LOCK_EX);
-}
 function vestra_live_listings(){ return array_values(array_filter(vestra_listings(), fn($p)=>($p['status']??'approved')==='approved')); }
 function vestra_products(){ return array_merge(vestra_demo_products(), vestra_live_listings()); }
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }

@@ -29,16 +29,6 @@ if ($me && ($me['type'] ?? '') === 'buyer') {
             if (($row['ref'] ?? '') === $ref && strtolower($row['email'] ?? '') === strtolower($me['email'] ?? '')) { $allowed = true; break; }
         }
     }
-    if (!$allowed) {
-        // Sourcing-request invoices are keyed by the accepted request-offer's own ref; the
-        // buyer's email lives on the parent request row, not on the offer row itself.
-        foreach (vestra_read_csv('request_offers.csv') as $row) {
-            if (($row['ref'] ?? '') !== $ref) continue;
-            foreach (vestra_read_csv('requests.csv') as $req) {
-                if (($req['ref'] ?? '') === ($row['request_ref'] ?? '') && strtolower($req['email'] ?? '') === strtolower($me['email'] ?? '')) { $allowed = true; break 2; }
-            }
-        }
-    }
 }
 if (!empty($_SESSION['vadmin'])) $allowed = true;
 if (!$allowed) { http_response_code(403); exit('Forbidden'); }

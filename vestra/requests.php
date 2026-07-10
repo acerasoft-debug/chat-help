@@ -37,7 +37,6 @@ $cats=vestra_cats();
               <span class="status open"><?= t('In queue') ?></span>
             </div>
             <div class="reqtitle"><?=htmlspecialchars($r['title']??'')?></div>
-            <?php if(!empty($r['ref_image'])): ?><img src="<?=htmlspecialchars($r['ref_image'])?>" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin:8px 0"><?php endif; ?>
             <div class="reqmeta">
               <?php if(!empty($r['cat'])): ?><span><?=htmlspecialchars($r['cat'])?></span><?php endif; ?>
               <?php if(!empty($r['qty'])): ?><span><?= t('Qty') ?> <b><?=htmlspecialchars($r['qty'])?></b></span><?php endif; ?>
@@ -45,7 +44,6 @@ $cats=vestra_cats();
               <?php if(!empty($r['country'])): ?><span><?=htmlspecialchars($r['country'])?></span><?php endif; ?>
               <span><?= t('just now') ?></span>
             </div>
-            <?php if(!empty($r['ref_url'])): ?><a class="hint" href="<?=htmlspecialchars($r['ref_url'])?>" target="_blank" rel="noopener nofollow" style="display:inline-block;margin-top:4px">🔗 <?= t('View reference ↗') ?></a><?php endif; ?>
             <div class="reqact">
               <?php if($MEMBER): ?>
                 <a class="btn btn-o btn-sm" href="/request-offer?ref=<?= urlencode($r['ref']??'') ?>"><?= t('Make an offer') ?></a>
@@ -87,7 +85,7 @@ $cats=vestra_cats();
       <div class="postbox" id="post">
         <h3 class="blocktitle"><?= t('Post a request') ?></h3>
         <p class="hint" style="margin-top:-4px"><?= t("No payment, no commitment. You'll get offers from verified sellers.") ?></p>
-        <form method="post" action="/request" enctype="multipart/form-data">
+        <form method="post" action="/request">
           <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
           <label class="hint"><?= t('What are you looking for?') ?> *</label>
           <input name="title" required placeholder="<?= htmlspecialchars(t('e.g. Lacoste polos, mixed sizes, EEA stock')) ?>" style="width:100%;margin-bottom:12px">
@@ -103,13 +101,6 @@ $cats=vestra_cats();
             <div><label class="hint"><?= t('Country') ?></label><input name="country" placeholder="DE" style="width:100%"></div>
           </div>
           <div style="margin-top:12px"><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
-          <div style="margin-top:12px"><label class="hint"><?= t('Reference link (optional)') ?></label>
-            <input type="url" name="ref_url" placeholder="<?= htmlspecialchars(t('Link to the exact item — Amazon, eBay, brand site…')) ?>" style="width:100%">
-            <p class="hint" style="margin:4px 0 0"><?= t("Found it on another site? Paste the link so sellers know exactly what you mean. We don't copy or import anything from it — it's just shown as a reference.") ?></p>
-          </div>
-          <div style="margin-top:12px"><label class="hint"><?= t('Reference photo (optional)') ?></label>
-            <input type="file" name="ref_image" accept="image/png,image/jpeg,image/webp" style="width:100%">
-          </div>
           <div style="margin-top:12px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%" placeholder="<?= htmlspecialchars(t('Brands, condition, delivery terms…')) ?>"></textarea></div>
           <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Post request &amp; join the queue') ?></button>
         </form>

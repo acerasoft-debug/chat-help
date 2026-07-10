@@ -25,7 +25,6 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
 
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/invoice.php';
-require_once __DIR__.'/inc/orders.php';
 
 // ── Upload KYC document ───────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
@@ -52,7 +51,6 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $currentStatus = $st[$ref]['status'] ?? 'pending';
     if ($ref && $ownsOrder && $currentStatus === 'shipped') {
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
-        $st[$ref]['history'][] = vestra_order_history_entry('completed', 'buyer');
         vestra_write_json('order_statuses.json', $st);
         /* Notify admin + seller */
         require_once __DIR__.'/inc/notify.php';
@@ -86,51 +84,6 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         }
     }
     header('Location: /buyer?tab=orders&confirmed=1'); exit;
-}
-
-// ── Accept a seller's offer on one of my sourcing requests ─────────────────────
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='request_offer_respond') {
-    $oref = $_POST['ref'] ?? '';
-    $me = auth_user();
-    $myEmail = strtolower($me['email'] ?? '');
-    $reqRow = null; $offerRow = null;
-    foreach (vestra_read_csv('requests.csv') as $row) {
-        $offers = array_filter(vestra_read_csv('request_offers.csv'), fn($o)=>($o['request_ref']??'')===($row['ref']??''));
-        foreach ($offers as $o) { if (($o['ref']??'')===$oref) { $reqRow=$row; $offerRow=$o; break 2; } }
-    }
-    $owns = $reqRow && $offerRow && $myEmail !== '' && strtolower($reqRow['email']??'') === $myEmail;
-    if ($owns) {
-        $resp = vestra_read_json('request_offer_responses.json');
-        $resp[$oref] = ['status'=>'accept', 'responded_at'=>date('c')];
-        vestra_write_json('request_offer_responses.json', $resp);
-
-        $sellerAcc = auth_find($offerRow['seller_email'] ?? '');
-        $title = $reqRow['title'] ?? $oref;
-        if ($sellerAcc && ($sellerAcc['type']??'')==='seller') {
-            require_once __DIR__.'/inc/messages.php';
-            vestra_msg_post_system($me['id'], $sellerAcc['id'], $reqRow['ref'] ?? '', [
-                'kind'=>'request_offer', 'status'=>'accept', 'ref'=>$oref,
-                'request_ref'=>$reqRow['ref'] ?? '', 'product'=>$title,
-                'qty'=>$offerRow['qty'] ?? '', 'unit_price'=>(float)($offerRow['price'] ?? 0),
-            ]);
-        }
-        /* Auto-generate an invoice for this sourcing deal, same as any other confirmed sale. */
-        $qtyNum = (int)preg_replace('/\D/', '', (string)($offerRow['qty'] ?? '0')) ?: 1;
-        $unit = (float)($offerRow['price'] ?? 0);
-        $orderMeta = [
-            'ref'=>$oref, 'date'=>date('c'),
-            'buyer'=>['company'=>$me['company']??'','vat'=>$me['vat_id']??'','name'=>$me['name']??'','email'=>$me['email']??'','country'=>$me['country']??'','address'=>$me['address']??''],
-        ];
-        $items = [[ 'sku'=>$reqRow['ref'] ?? $oref, 'brand'=>t('Sourcing request'), 'name'=>$title, 'colors'=>[], 'qty'=>$qtyNum, 'unit'=>$unit, 'line'=>round($qtyNum*$unit,2) ]];
-        vestra_ensure_invoice($orderMeta, $items, $sellerAcc);
-
-        require_once __DIR__.'/inc/notify.php';
-        if (!empty($offerRow['seller_email'])) {
-            vestra_send_mail($offerRow['seller_email'], "VESTRA — your offer {$oref} was accepted!",
-              "Hello ".($offerRow['seller_company']??'there').",\n\nGreat news — the buyer accepted your offer on sourcing request \"{$title}\".\n\nSign in to view the details and message the buyer:\nhttps://vestrasales.com/seller?tab=messages\n\n— VESTRA · vestrasales.com");
-        }
-    }
-    header('Location: /buyer?tab=requests&accepted=1'); exit;
 }
 
 // ── Messaging (start a new thread from a product page, or reply in an existing one) ──
@@ -207,11 +160,6 @@ if($tab==='overview'){
     <p class="hint">'.t('Every order runs on documented invoice terms — report any issue within 48 hours of delivery and our dispute process steps in.').'</p></div>';
 
 } elseif($tab==='orders'){
-  $viewRef = $_GET['view'] ?? '';
-  $viewOrder = $viewRef ? current(array_filter($orders, fn($o)=>($o['ref']??'')===$viewRef)) : null;
-  if ($viewOrder) {
-    echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'buyer', $uid, '/buyer?tab=orders', '/buyer?tab=orders');
-  } else {
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Orders').'</h3><a class="btn btn-o btn-sm" href="/shop">'.t('New order').'</a></div>';
   if(!$orders) dash_empty(t('No orders yet. Place an order from the catalog.'));
@@ -235,7 +183,7 @@ if($tab==='overview'){
       foreach(vestra_invoices_for_ref($ref) as $iv){
         $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
       }
-      echo '<tr><td><a class="acc" href="/buyer?tab=orders&view='.urlencode($ref).'"><b>'.htmlspecialchars($ref).'</b></a><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
+      echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td class="hint">'.htmlspecialchars($o['items']??'').'</td><td class="r">'.eur($o['total']??0).'</td>'.
         '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.
         (!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
@@ -244,41 +192,24 @@ if($tab==='overview'){
     echo '</tbody></table>';
   }
   echo '</div>';
-  }
 
 } elseif($tab==='requests'){
   $reqOffers = vestra_read_csv('request_offers.csv');
-  $reqOfferResp = vestra_read_json('request_offer_responses.json');
-  if(isset($_GET['accepted'])) echo '<div class="banner ok">✓ '.t('Offer accepted — an invoice was generated and the seller was notified.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Sourcing requests').'</h3><a class="btn btn-p btn-sm" href="/requests#post">＋ '.t('New request').'</a></div>';
   if(!$requests) dash_empty(t('No requests yet. Post what you need on the sourcing board.'));
   else { echo '<table class="ctable"><thead><tr><th>'.t('Ref').'</th><th>'.t('Looking for').'</th><th>'.t('Target').'</th><th>'.t('Status').'</th></tr></thead><tbody>';
     foreach($requests as $r){
       $rref = $r['ref']??'';
       $myOffers = array_values(array_filter($reqOffers, fn($o)=>($o['request_ref']??'')===$rref));
-      $anyAccepted = (bool)array_filter($myOffers, fn($o)=>($reqOfferResp[$o['ref']??'']['status']??'')==='accept');
       if ($myOffers) {
-        $stCell = '<details class="respdetails"'.($anyAccepted?'':' open').'><summary class="status '.($anyAccepted?'offers':'open').'" style="cursor:pointer;display:inline-block">'.count($myOffers).' '.t('offer(s) received').'</summary>';
+        $stCell = '<details class="respdetails"><summary class="status offers" style="cursor:pointer;display:inline-block">'.count($myOffers).' '.t('offer(s) received').'</summary>';
         foreach($myOffers as $of){
-          $oref = $of['ref'] ?? '';
-          $accepted = ($reqOfferResp[$oref]['status'] ?? '') === 'accept';
           $stCell .= '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--brd);font-size:13px">'.
-            '<b>'.htmlspecialchars($of['seller_company']??'').'</b> — '.eur($of['price']??0).'/pc · '.htmlspecialchars($of['qty']??'').
+            '<b>'.htmlspecialchars($of['seller_company']??'').'</b> — '.htmlspecialchars($of['price']??'').' / '.htmlspecialchars($of['qty']??'').
             '<div class="hint">'.htmlspecialchars($of['delivery']??'').'</div>'.
-            (!empty($of['message'])?'<div class="hint">'.htmlspecialchars($of['message']).'</div>':'');
-          if ($accepted) {
-            $stCell .= '<div style="margin-top:6px"><span class="status offers">✓ '.t('Accepted').'</span>';
-            foreach(vestra_invoices_for_ref($oref) as $iv){
-              $stCell .= ' <a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
-            }
-            $stCell .= '</div>';
-          } elseif (!$anyAccepted) {
-            $stCell .= '<form method="post" action="/buyer?tab=requests" style="margin-top:6px">
-              <input type="hidden" name="_action" value="request_offer_respond">
-              <input type="hidden" name="ref" value="'.htmlspecialchars($oref).'">
-              <button class="btn btn-p btn-sm" type="submit">✓ '.t('Accept offer').'</button></form>';
-          }
-          $stCell .= '</div>';
+            (!empty($of['message'])?'<div class="hint">'.htmlspecialchars($of['message']).'</div>':'').
+            '<div class="hint">'.t('Contact').': <a class="acc" href="mailto:'.htmlspecialchars($of['seller_email']??'').'">'.htmlspecialchars($of['seller_email']??'').'</a></div>'.
+          '</div>';
         }
         $stCell .= '</details>';
       } else {
@@ -320,67 +251,59 @@ if($tab==='overview'){
   $tid = $_GET['thread'] ?? '';
   $thread = $tid ? vestra_msg_find_thread($tid) : null;
   if ($thread && ($thread['buyer_uid']??'') !== $uid) $thread = null;
-  if ($thread) vestra_msg_mark_read($tid, $uid);
-  $myThreads = vestra_msg_my_threads($uid);
-
-  $listHtml = '<div class="mssearch"><input id="mfilter" placeholder="'.htmlspecialchars(t('Search conversations…')).'" oninput="mFilterThreads(this.value)"></div>';
-  if (!$myThreads) {
-    $listHtml .= '<p class="hint" style="padding:0 10px">'.t('No messages yet. Start a conversation from any product page.').'</p>';
-  } else {
-    $listHtml .= '<div class="threadlist" id="mThreadList">';
-    foreach ($myThreads as $th) {
-      $last = end($th['messages']);
-      $unread = vestra_msg_unread($th, $uid);
-      $name = vestra_msg_counterpart_label($th, $uid);
-      $listHtml .= '<a class="threadrow'.($unread?' unread':'').($th['id']===$tid?' active':'').'" data-name="'.htmlspecialchars(mb_strtolower($name)).'" href="/buyer?tab=messages&thread='.urlencode($th['id']).'">
-        <div class="tr-name">'.htmlspecialchars($name).($unread?' <span class="tr-dot"></span>':'').'</div>
-        <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
-        <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
-      </a>';
-    }
-    $listHtml .= '</div>';
-  }
 
   if ($thread) {
+    vestra_msg_mark_read($tid, $uid);
     $ctp = vestra_msg_counterpart_label($thread, $uid);
     $msgerr = $_GET['msgerr'] ?? '';
-    $mainHtml = '<div class="msghead"><h3 style="margin:0">'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/buyer?tab=messages">← '.t('Back').'</a></div>';
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/buyer?tab=messages">'.t('Back').'</a></div>';
     if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
-      $mainHtml .= '<p class="hint" style="margin:10px 18px 0">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
+      echo '<p class="hint" style="margin:-4px 0 12px">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
     }
     if (in_array($msgerr, ['email','iban','phone'], true)) {
-      $mainHtml .= '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:10px 18px 0">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
     }
-    $mainHtml .= '<div class="msgthread" id="mThread">';
+    echo '<div class="msgthread">';
     foreach ($thread['messages'] as $m) {
-      if (($m['from']??'') === 'system') { $mainHtml .= vestra_msg_system_html($m, 'buyer'); continue; }
+      if (($m['from']??'') === 'system') { echo vestra_msg_system_html($m, 'buyer'); continue; }
       $mine = ($m['from']??'') === $uid;
-      $mainHtml .= '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
+      echo '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
         nl2br(htmlspecialchars($m['text']??'')).
         '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div></div></div>';
     }
-    $mainHtml .= '</div>';
-    $mainHtml .= '<form method="post" action="/buyer?tab=messages" class="msgcompose">
+    echo '</div>';
+    echo '<form method="post" action="/buyer?tab=messages" class="msgcompose">
       <input type="hidden" name="_action" value="send_message">
       <input type="hidden" name="thread_id" value="'.htmlspecialchars($tid).'">
       <textarea name="body" rows="2" placeholder="'.htmlspecialchars(t('Write a message…')).'" required></textarea>
       <button class="btn btn-p" type="submit">'.t('Send').'</button>
     </form>';
-    $mainHtml .= '<p class="hint" style="padding:0 18px 14px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
-  } else {
-    $mainHtml = '<div class="msempty">'.t('Select a conversation to start messaging.').'</div>';
-  }
-
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';
-  echo '<div class="msgshell'.($thread?' has-thread':'').'"><div class="mslist">'.$listHtml.'</div><div class="msmain">'.$mainHtml.'</div></div>';
-  echo '</div>';
-  echo '<script>function mFilterThreads(q){q=q.toLowerCase();document.querySelectorAll("#mThreadList .threadrow").forEach(function(r){r.style.display=r.dataset.name.indexOf(q)>-1?"":"none";});}</script>';
-  if ($thread) {
-    echo '<script>var mt=document.getElementById("mThread");if(mt)mt.scrollTop=mt.scrollHeight;'.
+    echo '<p class="hint" style="margin-top:10px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
+    echo '</div>';
+    echo '<script>var mt=document.querySelector(".msgthread");if(mt)mt.scrollTop=mt.scrollHeight;'.
       '(function(){var last='.json_encode($thread['last_at']??'').';'.
       'setInterval(function(){fetch("/buyer?tab=messages&thread='.urlencode($tid).'&poll=1",{cache:"no-store"})'.
       '.then(function(r){return r.json()}).then(function(d){if(d.last&&d.last!==last)location.reload()})'.
       '.catch(function(){})},15000)})();</script>';
+  } else {
+    $myThreads = vestra_msg_my_threads($uid);
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';
+    if (!$myThreads) {
+      dash_empty(t('No messages yet. Start a conversation from any product page.'));
+    } else {
+      echo '<div class="threadlist">';
+      foreach ($myThreads as $th) {
+        $last = end($th['messages']);
+        $unread = vestra_msg_unread($th, $uid);
+        echo '<a class="threadrow'.($unread?' unread':'').'" href="/buyer?tab=messages&thread='.urlencode($th['id']).'">
+          <div class="tr-name">'.htmlspecialchars(vestra_msg_counterpart_label($th, $uid)).($unread?' <span class="tr-dot"></span>':'').'</div>
+          <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
+          <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
+        </a>';
+      }
+      echo '</div>';
+    }
+    echo '</div>';
   }
 
 } elseif($tab==='profile') {
