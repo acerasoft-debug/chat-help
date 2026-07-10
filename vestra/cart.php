@@ -34,15 +34,9 @@ $u = auth_user(); // logged-in user for pre-filling form
 
     <div class="summary"><div class="box">
       <div class="line"><span><?= t('Subtotal') ?></span><span id="sub"></span></div>
-      <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
-      <?php endif; ?>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
-      <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
-      <?php else: ?>
-      <div class="hint" style="margin-top:8px"><?= t('No platform fees — you pay exactly the goods total on the seller\'s invoice.') ?></div>
-      <?php endif; ?>
       <div class="hint" style="margin-top:6px"><?= t('Payment is currently by <b>invoice</b> (bank transfer) — goods ship after the invoice is paid. Other payment methods are temporarily suspended.') ?></div>
     </div></div>
 
@@ -95,7 +89,7 @@ function render(){
   document.getElementById('rows').innerHTML=rows;
   var bfee=sub*<?=VESTRA_FEE_BUYER?>;
   document.getElementById('sub').textContent=eur(sub);
-  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(bfee);
+  document.getElementById('bfee').textContent=eur(bfee);
   document.getElementById('grand').textContent=eur(sub+bfee);
   document.getElementById('cartField').value=JSON.stringify(c);
 }

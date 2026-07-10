@@ -19,6 +19,10 @@ require_once __DIR__ . '/../inc/products.php';
 require_once __DIR__ . '/../inc/notify.php';
 require_once __DIR__ . '/../inc/stripe.php';
 
+if (!stripe_available()) {
+    http_response_code(503); echo 'Stripe library not installed'; exit;
+}
+
 // Must read raw body before any output or other reads
 $payload   = (string) file_get_contents('php://input');
 $sigHeader = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
@@ -28,9 +32,13 @@ if (!$secret || !$sigHeader || $payload === '') {
     http_response_code(400); echo 'Bad request'; exit;
 }
 
-$event = stripe_webhook_verify($payload, $sigHeader, $secret);
-if (!$event) {
+try {
+    $event = \Stripe\Webhook::constructEvent($payload, $sigHeader, $secret);
+} catch (\Stripe\Exception\SignatureVerificationException $e) {
     http_response_code(400); echo 'Invalid signature'; exit;
+} catch (\Throwable $e) {
+    error_log('[VESTRA webhook] Parse error: ' . $e->getMessage());
+    http_response_code(400); echo 'Webhook error'; exit;
 }
 
 $obj  = $event->data->object;

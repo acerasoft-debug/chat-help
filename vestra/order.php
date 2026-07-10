@@ -54,14 +54,13 @@ if($fh=@fopen($file,'a')){
 }
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"")."\n"; }
-$body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
+$body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\nVESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\nNotes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
 $FEE_BUYER_PCT=round($FEE_BUYER*100);
-$feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"";
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nYour PDF invoice(s) with the seller's bank details are ready — download them on your confirmation page or under My orders. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe will confirm seller availability and send you a proforma invoice. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total} (includes {$FEE_BUYER_PCT}% buyer-protection fee)\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -88,7 +87,7 @@ if(!empty($lines)){
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
-          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (no commission — membership model)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}   Your payout (after commission): €{$payout}\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
         break;
       }
       break;
@@ -111,12 +110,4 @@ foreach($bySeller as $sid=>$sellerItems){
   vestra_ensure_invoice($orderMeta, $sellerItems, $sellerAcc);
 }
 
-/* Let this browser session open the confirmation page + invoices (guest checkout has no
-   account to authorize against). Keep only the last few refs so the session stays small. */
-$_SESSION['order_refs'][$ref] = time();
-if (count($_SESSION['order_refs']) > 10) {
-  asort($_SESSION['order_refs']);
-  $_SESSION['order_refs'] = array_slice($_SESSION['order_refs'], -10, null, true);
-}
-
-header('Location: /order-confirm?ref='.urlencode($ref)); exit;
+header('Location: /cart?placed=1&ref='.urlencode($ref)); exit;

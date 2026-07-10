@@ -1,0 +1,11 @@
+{
+  "name": "acerasoft/vestra",
+  "description": "VESTRA B2B wholesale marketplace",
+  "require": {
+    "php": ">=8.1",
+    "stripe/stripe-php": "^14.0"
+  },
+  "config": {
+    "optimize-autoloader": true
+  }
+}

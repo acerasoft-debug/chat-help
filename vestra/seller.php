@@ -78,11 +78,6 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $p['offers'] = !empty($_POST['allow_offers']) && $mode!=='offer';
             $colors = array_values(array_intersect((array)($_POST['colors']??[]), array_keys(vestra_colors())));
             if($colors) $p['colors']=$colors; else unset($p['colors']);
-            /* Pack size + minimum colour count — same fields the curated catalog uses */
-            $step = max(0,(int)($_POST['size_step']??0));
-            if($step>1) $p['size_step']=$step; else unset($p['size_step']);
-            $minC = max(0,(int)($_POST['min_colors']??0));
-            if($minC>0 && $colors && $minC<=count($colors)) $p['min_colors']=$minC; else unset($p['min_colors']);
             $newImgs = vestra_collect_photo_uploads('photos', 6);
             if($newImgs){ $p['images']=$newImgs; $p['image']=$newImgs[0]; }
             break;
@@ -408,12 +403,6 @@ if($tab==='overview'){
         </div>
       </div>
       <div class="frow">
-        <div><label><?= t('Pack size') ?> <span class="hint">(<?= t('optional — buyers order in multiples, e.g. 10 = packs of 10, 8 = 8+8 cartons') ?>)</span></label>
-          <input type="number" name="size_step" min="0" placeholder="10"></div>
-        <div><label><?= t('Minimum colours per order') ?> <span class="hint">(<?= t('optional — buyer must pick at least this many of the colours above') ?>)</span></label>
-          <input type="number" name="min_colors" min="0" placeholder="4"></div>
-      </div>
-      <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2" placeholder="<?= htmlspecialchars(t('Sizes, colours, condition…')) ?>"></textarea></div>
       </div>
       <div>
@@ -519,12 +508,6 @@ if($tab==='overview'){
             <label class="colorchip"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>" <?= in_array($cn,$epColors,true)?'checked':'' ?>><span class="cdot" style="background:<?= $hex ?>"></span><?= htmlspecialchars(t($cn)) ?></label>
           <?php endforeach; ?>
         </div>
-      </div>
-      <div class="frow">
-        <div><label><?= t('Pack size') ?> <span class="hint">(<?= t('optional — buyers order in multiples, e.g. 10 = packs of 10, 8 = 8+8 cartons') ?>)</span></label>
-          <input type="number" name="size_step" min="0" value="<?= (int)($ep['size_step']??0) ?: '' ?>" placeholder="10"></div>
-        <div><label><?= t('Minimum colours per order') ?> <span class="hint">(<?= t('optional — buyer must pick at least this many of the colours above') ?>)</span></label>
-          <input type="number" name="min_colors" min="0" value="<?= (int)($ep['min_colors']??0) ?: '' ?>" placeholder="4"></div>
       </div>
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2"><?= htmlspecialchars($ep['desc']??'') ?></textarea></div>
