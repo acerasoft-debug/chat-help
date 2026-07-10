@@ -1,32 +1,44 @@
 <?php
 /**
- * VESTRA — Stripe helper functions.
- * All credentials come from environment variables (never hardcoded).
- * Requires composer install (stripe/stripe-php ^14).
+ * VESTRA — Stripe helpers, dependency-free (no composer / no SDK).
+ *
+ * Talks to the Stripe REST API directly over curl and verifies webhook
+ * signatures with a hand-rolled HMAC check — the same philosophy as the
+ * hand-rolled PDF writer in inc/pdf.php: nothing to "composer install" on
+ * the server, so a deploy can never break payments by forgetting vendor/.
+ *
+ * All credentials come from environment variables loaded by inc/env.php
+ * from a .env file stored one level ABOVE the document root:
+ *   STRIPE_SECRET_KEY      sk_live_… / sk_test_…
+ *   STRIPE_PUBLISHABLE_KEY pk_live_… / pk_test_…   (not used server-side yet)
+ *   STRIPE_WEBHOOK_SECRET  whsec_…                  (from the webhook endpoint)
+ *   PRICE_STARTER / PRICE_PRO / PRICE_PREMIUM / PRICE_ONBOARDING  price_…
+ *   SEPA_ENABLED           1 to offer SEPA debit next to cards
+ * See .env.example in the repo root for a template.
  */
 require_once __DIR__ . '/env.php';
 require_once __DIR__ . '/auth.php';
 
-/** True if composer dependencies are installed. Loads the Stripe autoloader as a side effect. */
+/** True when Stripe can actually be used: curl present + secret key configured. */
 function stripe_available(): bool {
-    static $ok = null;
-    if ($ok === null) {
-        $autoload = __DIR__ . '/../vendor/autoload.php';
-        $ok = is_file($autoload);
-        if ($ok) require_once $autoload;
-    }
-    return $ok;
+    return function_exists('curl_init') && (getenv('STRIPE_SECRET_KEY') ?: '') !== '';
 }
 
-function stripe_client(): \Stripe\StripeClient {
-    if (!stripe_available()) throw new \RuntimeException('Stripe library not installed — run composer install.');
-    static $c;
-    if (!$c) {
-        $key = getenv('STRIPE_SECRET_KEY') ?: '';
-        if (!$key) throw new \RuntimeException('STRIPE_SECRET_KEY not configured in .env');
-        $c = new \Stripe\StripeClient($key);
+/** True when every key the membership flow needs is present (for status banners). */
+function stripe_configured(): bool {
+    foreach (['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','PRICE_STARTER','PRICE_PRO','PRICE_PREMIUM','PRICE_ONBOARDING'] as $k) {
+        if ((getenv($k) ?: '') === '') return false;
     }
-    return $c;
+    return function_exists('curl_init');
+}
+
+/** Names of required env keys that are still missing (for the admin banner). */
+function stripe_missing_keys(): array {
+    $missing = [];
+    foreach (['STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','PRICE_STARTER','PRICE_PRO','PRICE_PREMIUM','PRICE_ONBOARDING'] as $k) {
+        if ((getenv($k) ?: '') === '') $missing[] = $k;
+    }
+    return $missing;
 }
 
 function stripe_pk(): string {
@@ -35,7 +47,7 @@ function stripe_pk(): string {
 
 function stripe_price(string $tier): string {
     $map = [
-        'starter'    => getenv('PRICE_STARTER')   ?: '',
+        'starter'    => getenv('PRICE_STARTER')    ?: '',
         'pro'        => getenv('PRICE_PRO')        ?: '',
         'premium'    => getenv('PRICE_PREMIUM')    ?: '',
         'onboarding' => getenv('PRICE_ONBOARDING') ?: '',
@@ -49,11 +61,77 @@ function stripe_sepa_enabled(): bool {
     return getenv('SEPA_ENABLED') === '1';
 }
 
+/**
+ * One call against the Stripe API. Params are form-encoded exactly the way
+ * Stripe expects nested structures (a[b][0][c]=…), which is what PHP's
+ * http_build_query produces. Returns the decoded JSON as stdClass.
+ * Throws RuntimeException with Stripe's own message on any error.
+ */
+function stripe_api(string $method, string $path, array $params = []): object {
+    if (!stripe_available()) throw new \RuntimeException('Stripe not configured — STRIPE_SECRET_KEY missing in .env');
+    $ch = curl_init('https://api.stripe.com'.$path);
+    $headers = [
+        'Authorization: Bearer '.(getenv('STRIPE_SECRET_KEY') ?: ''),
+        'Stripe-Version: 2024-06-20',
+    ];
+    $opts = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_HTTPHEADER     => $headers,
+    ];
+    if (strtoupper($method) === 'POST') {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = http_build_query($params);
+    } elseif ($params) {
+        curl_setopt($ch, CURLOPT_URL, 'https://api.stripe.com'.$path.'?'.http_build_query($params));
+    }
+    curl_setopt_array($ch, $opts);
+    $body = curl_exec($ch);
+    if ($body === false) {
+        $err = curl_error($ch); curl_close($ch);
+        throw new \RuntimeException('Stripe request failed: '.$err);
+    }
+    $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    curl_close($ch);
+    $json = json_decode((string)$body);
+    if (!is_object($json)) throw new \RuntimeException('Stripe returned invalid JSON (HTTP '.$status.')');
+    if ($status >= 400) {
+        $msg = $json->error->message ?? ('HTTP '.$status);
+        throw new \RuntimeException('Stripe error: '.$msg);
+    }
+    return $json;
+}
+
+/**
+ * Verify a webhook's Stripe-Signature header and return the decoded event.
+ * Scheme (documented by Stripe): header is "t=<unix>,v1=<hex>,…" and
+ * v1 = HMAC-SHA256("<t>.<raw body>", endpoint_secret). Reject when no v1
+ * matches or the timestamp is older than $tolerance seconds (replay guard).
+ * Returns the event as stdClass, or null when the signature is invalid.
+ */
+function stripe_webhook_verify(string $payload, string $sigHeader, string $secret, int $tolerance = 300): ?object {
+    $t = null; $v1s = [];
+    foreach (explode(',', $sigHeader) as $part) {
+        $kv = explode('=', trim($part), 2);
+        if (count($kv) !== 2) continue;
+        if ($kv[0] === 't')  $t = (int)$kv[1];
+        if ($kv[0] === 'v1') $v1s[] = $kv[1];
+    }
+    if (!$t || !$v1s) return null;
+    if (abs(time() - $t) > $tolerance) return null;
+    $expected = hash_hmac('sha256', $t.'.'.$payload, $secret);
+    $ok = false;
+    foreach ($v1s as $sig) { if (hash_equals($expected, $sig)) { $ok = true; break; } }
+    if (!$ok) return null;
+    $event = json_decode($payload);
+    return is_object($event) ? $event : null;
+}
+
 /** Get existing Stripe Customer ID or create one, persisting it to accounts.json. */
 function stripe_ensure_customer(array $account): string {
     if (!empty($account['stripe_customer_id'])) return $account['stripe_customer_id'];
     $label = trim(($account['name'] ?? '') . ' — ' . ($account['company'] ?? ''));
-    $customer = stripe_client()->customers->create([
+    $customer = stripe_api('POST', '/v1/customers', [
         'email'    => $account['email'],
         'name'     => $label,
         'metadata' => ['seller_id' => $account['id'], 'vat_id' => $account['vat_id'] ?? ''],

@@ -498,6 +498,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php // ══════════════════════════════════════════════════════ OVERVIEW
 if($tab==='overview'): ?>
 
+<?php require_once __DIR__.'/inc/stripe.php'; if(!stripe_configured()): ?>
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#f0c060">
+  ⚠ Stripe is not configured — seller membership checkout is disabled.
+  Missing keys: <code style="font-size:11px"><?= htmlspecialchars(implode(', ', stripe_missing_keys())) ?></code>.
+  Copy <code>.env.example</code> to a <code>.env</code> file one level above the document root and fill in the values.
+</div>
+<?php endif; ?>
+
 <div class="asgrid">
   <div class="ascard"><div class="sv"><?= count($accounts) ?></div><div class="sl">Total accounts</div></div>
   <div class="ascard"><div class="sv" style="color:#c9a86a"><?= count($sellers) ?></div><div class="sl">Sellers</div></div>

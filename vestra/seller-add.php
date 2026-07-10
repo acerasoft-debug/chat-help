@@ -47,6 +47,9 @@ $item=[
 ];
 $colors=array_values(array_intersect((array)($_POST['colors']??[]), array_keys(vestra_colors())));
 if($colors) $item['colors']=$colors;
+/* Pack size (order in multiples of N) + minimum colour count, as in the curated catalog */
+$step=max(0,(int)($_POST['size_step']??0)); if($step>1) $item['size_step']=$step;
+$minC=max(0,(int)($_POST['min_colors']??0)); if($minC>0 && $colors && $minC<=count($colors)) $item['min_colors']=$minC;
 if($mode==='sale'){ $item['list']=round((float)($_POST['list']??0),2) ?: round($tiers[0]['price']*1.25,2); }
 if($mode==='offer'){ $item['guide']='Open to offers'; }
 if(!empty($_POST['allow_offers']) && $mode!=='offer') $item['offers']=true; // seller allows negotiation on a priced item
