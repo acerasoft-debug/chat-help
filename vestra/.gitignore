@@ -1,10 +1,9 @@
-data/*.csv
-data/login_throttle.json
-data/messages.json
-data/blocked_messages.json
-data/order_statuses.json
-data/accounts.json
-data/invoices/
-data/invoice_seq.json
+# Everything under data/ is live runtime state (accounts, orders, messages,
+# invoices, listings sellers add on the live site, etc.) — never tracked, so
+# a deploy (git pull) can never overwrite production data. Only .htaccess
+# ships from the repo.
+data/*
+!data/.htaccess
+
 inc/config.php
 vendor/
