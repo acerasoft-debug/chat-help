@@ -5,12 +5,16 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 $PAGE = t('Seller Membership'); $NAV = 'membership';
 require __DIR__.'/inc/head.php';
 
+require_once __DIR__.'/inc/stripe.php';
 $u = auth_user();
 $isLoggedInSeller = $u && ($u['type'] ?? '') === 'seller';
 $membershipStatus = $u['membership_status'] ?? 'none';
 $alreadyActive    = in_array($membershipStatus, ['trialing', 'active'], true);
-$error = !empty($_GET['error']);
+$stripeReady = stripe_configured();
+$error    = !empty($_GET['error']) && ($_GET['error'] ?? '') !== 'notready';
+$notReady = !$stripeReady || ($_GET['error'] ?? '') === 'notready';
 $gated = !empty($_GET['gate']);
+$ctaDisabled = $alreadyActive || !$stripeReady;
 ?>
 <style>
 /* Pricing page — design tokens from brief */
@@ -60,6 +64,10 @@ body{ background:#15171C }
   <div class="merr" style="background:rgba(240,192,96,.1);border-color:rgba(240,192,96,.35);color:#f0c060"><?= t('An active membership is required to publish products. Choose a plan below to get started.') ?></div>
   <?php endif; ?>
 
+  <?php if ($notReady): ?>
+  <div class="merr" style="background:rgba(138,180,248,.08);border-color:rgba(138,180,248,.3);color:#8ab4f8"><?= t('Online payment is being set up — plan checkout will open here shortly. Contact support@vestrasales.com to reserve your plan in the meantime.') ?></div>
+  <?php endif; ?>
+
   <?php if ($alreadyActive): ?>
   <div class="mactive">
     ✓ <?= t('You already have an active membership.') ?>
@@ -89,7 +97,7 @@ body{ background:#15171C }
       <?php if ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="starter">
-        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
@@ -115,7 +123,7 @@ body{ background:#15171C }
       <?php if ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="pro">
-        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
@@ -139,7 +147,7 @@ body{ background:#15171C }
       <?php if ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="premium">
-        <button class="mcta" type="submit" <?= $alreadyActive?'disabled':'' ?>><?= t('Get started') ?></button>
+        <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>

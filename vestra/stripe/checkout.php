@@ -24,12 +24,17 @@ if (!in_array($tier, ['starter', 'pro', 'premium'], true)) {
     exit;
 }
 
+if (!stripe_configured()) {
+    header('Location: /membership?error=notready');
+    exit;
+}
+
 try {
     $customerId = stripe_ensure_customer($user);
 
     $paymentMethods = stripe_sepa_enabled() ? ['sepa_debit', 'card'] : ['card'];
 
-    $session = stripe_client()->checkout->sessions->create([
+    $session = stripe_api('POST', '/v1/checkout/sessions', [
         'mode'       => 'subscription',
         'customer'   => $customerId,
         'line_items' => [['price' => stripe_price($tier), 'quantity' => 1]],

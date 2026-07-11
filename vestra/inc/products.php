@@ -4,9 +4,12 @@
  * Pricing modes:  'fixed' (tiered), 'sale' (discounted vs list), 'offer' (make-an-offer / negotiate).
  * B2B: MOQ (min order) + tiered pricing (more qty -> lower unit price). Demo data.
  */
-/* Platform commission — single source of truth (used by order.php + cart.php). */
-if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.07); // 7% from seller's payout
-if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.02); // 2% buyer-protection fee
+/* Platform fees — single source of truth (used by order.php + cart.php).
+   Both are 0 while VESTRA runs on the seller-membership model: the buyer pays the
+   seller's invoice directly by bank transfer, so a platform fee on top would never
+   match the invoice total. Cart/emails hide fee lines automatically while 0. */
+if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.0);
+if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
 if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version

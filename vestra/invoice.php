@@ -19,6 +19,9 @@ if (!is_file($path)) { http_response_code(404); exit('Not found'); }
 
 $me = auth_user();
 $allowed = false;
+/* The browser session that just placed this order may fetch its invoices —
+   guest checkout has no account for the email-match branches below. */
+if (!empty($_SESSION['order_refs'][$ref])) $allowed = true;
 if ($me && ($me['type'] ?? '') === 'seller' && $me['id'] === $sellerKey) $allowed = true;
 if ($me && ($me['type'] ?? '') === 'buyer') {
     foreach (vestra_read_csv('orders.csv') as $row) {
