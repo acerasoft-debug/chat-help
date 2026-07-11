@@ -211,6 +211,43 @@ function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): st
   }
   return $out ? '<span class="cdots">'.$out.'</span>' : '';
 }
+/* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
+   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
+function vestra_is_colorqty_listing(array $p): bool {
+  return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+}
+/* Validate + snap posted per-colour quantities ($posted = ['ColourName'=>qty,...], e.g. from
+   $_POST['cq']) against a listing's own colour list and pack step. Only colours the listing
+   actually offers count, and every quantity is snapped down to the nearest step multiple —
+   never trusts the client. Returns null when the listing isn't in per-colour-qty mode.
+   Otherwise returns ['lines'=>['Black ×16','Navy ×8',...], 'qty'=>24] — a lines entry is
+   included only once its snapped quantity is > 0, so it also doubles as "colours selected". */
+function vestra_parse_colorqty(array $p, array $posted): ?array {
+  if (!vestra_is_colorqty_listing($p)) return null;
+  $step = (int)$p['size_step'];
+  $allowed = array_flip((array)$p['colors']);
+  $lines = []; $qty = 0;
+  foreach ($posted as $name => $raw) {
+    $name = (string)$name;
+    if (!isset($allowed[$name])) continue;
+    $n = (int)(round(max(0, (int)$raw) / $step) * $step);
+    if ($n <= 0) continue;
+    $lines[] = $name.' ×'.$n;
+    $qty += $n;
+  }
+  return ['lines' => $lines, 'qty' => $qty];
+}
+/* Same as vestra_parse_colorqty() but for the cart/JS path, which submits the client-built
+   "Black ×16" style tokens (cart.php just displays these verbatim) instead of a raw
+   ['Name'=>qty] map. Re-derives the map from the tokens and re-validates from scratch —
+   the client's numbers are never trusted, only which colour+step they point at. */
+function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
+  $map = [];
+  foreach ($tokens as $tok) {
+    if (preg_match('/^(.*?)\s*×\s*(\d+)$/u', trim((string)$tok), $m)) $map[$m[1]] = (int)$m[2];
+  }
+  return vestra_parse_colorqty($p, $map);
+}
 function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
 function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }

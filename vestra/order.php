@@ -18,14 +18,23 @@ $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 $lines=[]; $subtotal=0;
 foreach($cart as $it){
   $p=vestra_find($it['id']??''); if(!$p) continue;
-  $qty=max((int)$p['moq'], (int)($it['qty']??0));
-  if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
-    $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
+  /* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
+     colour breakdown itself, re-derived + re-validated from the client's tokens — the
+     posted "qty" is never trusted for these listings. */
+  $cq = vestra_parse_colorqty_tokens($p, (array)($it['colors']??[]));
+  if($cq !== null){
+    $qty = $cq['qty']; $colors = $cq['lines'];
+    if(count($colors) < (int)$p['min_colors'] || $qty < (int)$p['moq']){ header('Location: /cart?err=colors'); exit; }
+  } else {
+    $qty=max((int)$p['moq'], (int)($it['qty']??0));
+    if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
+      $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
+    /* Colour selection: only colours the listing actually offers count; enforce the minimum. */
+    $colors = array_values(array_unique(array_intersect(
+        array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
+    if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
+  }
   $unit=vestra_unit_price($p,$qty); if($unit<=0) continue;
-  /* Colour selection: only colours the listing actually offers count; enforce the minimum. */
-  $colors = array_values(array_unique(array_intersect(
-      array_map('strval', (array)($it['colors']??[])), (array)($p['colors']??[]) )));
-  if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){ header('Location: /cart?err=colors'); exit; }
   $line=$qty*$unit; $subtotal+=$line;
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
 }

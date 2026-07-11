@@ -11,6 +11,24 @@ $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
 $photosLocked = !$MEMBER && $images;   // photos are members-only; guests get the brand card
 if(!$MEMBER) $images = [];
+
+/* Carton/lot listings (e.g. Lacoste & Ralph Lauren polos: min_colors + size_step) get a
+   per-colour quantity picker — 0/8/16/24… per colour — instead of plain checkboxes, so the
+   buyer builds their own colour mix directly (matches how these ship: cartons per colourway). */
+$cqMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+function vestra_colorqty_picker(array $p, string $idSuffix): string {
+    $step = (int)($p['size_step'] ?? 1);
+    $pal  = vestra_colors();
+    $h = '<div class="colorqty" id="cq-'.$idSuffix.'">';
+    foreach ((array)$p['colors'] as $cn) {
+        $h .= '<div class="cqrow"><span class="cdot" style="background:'.($pal[$cn] ?? '#666').'"></span>'
+            . '<span class="cqname">'.htmlspecialchars(t($cn)).'</span>'
+            . '<select name="cq['.htmlspecialchars($cn).']" data-color="'.htmlspecialchars($cn).'" onchange="cqSync(\''.$idSuffix.'\')">';
+        for ($k = 0; $k <= 8; $k++) { $v = $k * $step; $h .= '<option value="'.$v.'">'.$v.'</option>'; }
+        $h .= '</select></div>';
+    }
+    return $h.'</div>';
+}
 ?>
 <div class="wrap">
   <div class="crumbs" style="margin-top:24px">
@@ -133,9 +151,22 @@ if(!$MEMBER) $images = [];
           <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
             <?= sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??1)) ?></div>
           <?php endif; ?>
-          <form method="post" action="/offer" onsubmit="return vcolOk(this)">
+          <form method="post" action="/offer" onsubmit="return <?= $cqMode?'cqOk(this,\'main\')':'vcolOk(this)' ?>">
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+            <?php if($cqMode): ?>
+            <div style="margin-bottom:12px">
+              <label class="hint"><?= t('Quantity per colour') ?> — <?= sprintf(t('at least %d colours'), (int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
+              <?= vestra_colorqty_picker($p,'main') ?>
+              <div class="warn" id="cqwarn-main" style="display:none;margin-top:8px"></div>
+              <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-main">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
+            </div>
+            <input type="hidden" name="qty" id="qty-main" value="0">
+            <div style="max-width:280px">
+              <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
+                <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
+            </div>
+            <?php else: ?>
             <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
             <div style="margin-bottom:12px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
               <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
@@ -152,6 +183,7 @@ if(!$MEMBER) $images = [];
               <div><label class="hint"><?= t('Your offer') ?> (€ / <?= htmlspecialchars($p['unit']) ?>)</label>
                 <input type="number" name="price" step="0.01" min="0" placeholder="<?= htmlspecialchars(t('e.g. 95.00')) ?>" required style="width:100%"></div>
             </div>
+            <?php endif; ?>
             <div style="margin-top:12px"><label class="hint"><?= t('Message to seller') ?></label>
               <textarea name="message" rows="2" style="width:100%" placeholder="<?= htmlspecialchars(t('Sizes, delivery, terms…')) ?>"></textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
@@ -190,6 +222,28 @@ if(!$MEMBER) $images = [];
           </tbody>
         </table>
         <div class="order-box">
+          <?php $colorQtyMode = !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step']??0) > 1; ?>
+          <?php if($colorQtyMode): $cqStep=(int)$p['size_step']; ?>
+          <div style="margin-bottom:14px">
+            <label class="hint"><?= t('Quantity per colour') ?> — <?= sprintf(t('at least %d colours'), (int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), $cqStep) ?></label>
+            <div class="colorqty" id="ordColors">
+              <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+              <div class="cqrow">
+                <span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span>
+                <span class="cqname"><?= htmlspecialchars(t($cn)) ?></span>
+                <select data-color="<?= htmlspecialchars($cn) ?>" onchange="recalc()">
+                  <?php for($k=0;$k<=8;$k++): $v=$k*$cqStep; ?><option value="<?= $v ?>"><?= $v ?></option><?php endfor; ?>
+                </select>
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <input id="qty" type="hidden" value="0">
+          <div class="qtyrow">
+            <span class="hint"><?= t('Total quantity') ?>: <b><span id="cqtotal">0</span> <?= htmlspecialchars($p['unit']) ?></b></span>
+            <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
+          </div>
+          <?php else: ?>
           <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
           <div style="margin-bottom:14px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
             <div class="colorpick" id="ordColors">
@@ -207,6 +261,7 @@ if(!$MEMBER) $images = [];
             </div>
             <span class="hint"><?= t('Min order') ?> <b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></span>
           </div>
+          <?php endif; ?>
           <div class="calc">
             <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= eur($from) ?></span> · <span id="tier"></span></div>
             <div class="total" id="total"><?= eur($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
@@ -220,9 +275,22 @@ if(!$MEMBER) $images = [];
           <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center"><?= t('Make an offer') ?></summary>
-            <form method="post" action="/offer" style="margin-top:12px" onsubmit="return vcolOk(this)">
+            <form method="post" action="/offer" style="margin-top:12px" onsubmit="return <?= $cqMode?'cqOk(this,\'sub\')':'vcolOk(this)' ?>">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
               <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <?php if($cqMode): ?>
+              <div style="margin-bottom:10px">
+                <label class="hint"><?= t('Quantity per colour') ?> — <?= sprintf(t('at least %d colours'), (int)$p['min_colors']) ?> · <?= sprintf(t('multiples of %d'), (int)$p['size_step']) ?></label>
+                <?= vestra_colorqty_picker($p,'sub') ?>
+                <div class="warn" id="cqwarn-sub" style="display:none;margin-top:8px"></div>
+                <div class="hint" style="margin-top:6px"><?= t('Total quantity') ?>: <b><span id="cqtotal-sub">0</span> <?= htmlspecialchars($p['unit']) ?></b></div>
+              </div>
+              <input type="hidden" name="qty" id="qty-sub" value="0">
+              <div style="max-width:280px">
+                <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
+                  <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>
+              </div>
+              <?php else: ?>
               <?php if(!empty($p['colors']) && !empty($p['min_colors'])): ?>
               <div style="margin-bottom:10px"><label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), (int)$p['min_colors']) ?></label>
                 <div class="colorpick" data-min="<?= (int)$p['min_colors'] ?>">
@@ -239,6 +307,7 @@ if(!$MEMBER) $images = [];
                 <div><label class="hint"><?= t('Your offer') ?> (€/<?= htmlspecialchars($p['unit']) ?>)</label>
                   <input type="number" name="price" step="0.01" min="0" required style="width:100%"></div>
               </div>
+              <?php endif; ?>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
                 <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
                 <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
@@ -276,12 +345,23 @@ if(!$MEMBER) $images = [];
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
         function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
         function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
-        function ordColors(){ var el=document.getElementById('ordColors'); if(!el) return [];
+        /* Per-colour qty selects (carton listings) vs plain checkboxes */
+        function cqSelects(){ var el=document.getElementById('ordColors'); if(!el) return null;
+          var s=el.querySelectorAll('select[data-color]'); return s.length?s:null; }
+        function ordColors(){ var s=cqSelects();
+          if(s) return Array.prototype.filter.call(s,function(x){return parseInt(x.value)>0;})
+                     .map(function(x){return x.dataset.color+' ×'+parseInt(x.value);});
+          var el=document.getElementById('ordColors'); if(!el) return [];
           return Array.prototype.map.call(el.querySelectorAll('input:checked'), function(i){return i.value;}); }
+        function cqTotal(){ var s=cqSelects(), t=0; if(!s) return 0;
+          Array.prototype.forEach.call(s,function(x){t+=parseInt(x.value)||0;}); return t; }
         function recalc(){
-          var q=parseInt(document.getElementById('qty').value)||0, warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
-          if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; btn.disabled=true; }
-          else if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??0))) ?>; btn.disabled=true; }
+          var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
+          if(cq){ var t=cqTotal(); document.getElementById('qty').value=t;
+            var tt=document.getElementById('cqtotal'); if(tt) tt.textContent=t; }
+          var q=parseInt(document.getElementById('qty').value)||0;
+          if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??0))) ?>; btn.disabled=true; }
+          else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; btn.disabled=true; }
           else { warn.style.display='none'; btn.disabled=false; }
           var u=unitPrice(q);
           document.getElementById('uprice').textContent=eur(u);
@@ -328,6 +408,27 @@ function vcolOk(f){
   var need=parseInt(cp.dataset.min)||0, got=cp.querySelectorAll('input:checked').length;
   var w=f.querySelector('.vcolwarn'); if(got<need){ if(w) w.style.display='block'; return false; }
   if(w) w.style.display='none'; return true;
+}
+/* Per-colour qty picker (offer forms) — sums the selects, writes the hidden qty field
+   and the running total display for the given picker instance ('main' | 'sub'). */
+function cqSync(suffix){
+  var wrap=document.getElementById('cq-'+suffix); if(!wrap) return 0;
+  var t=0; wrap.querySelectorAll('select[data-color]').forEach(function(s){ t+=parseInt(s.value)||0; });
+  var qtyEl=document.getElementById('qty-'+suffix); if(qtyEl) qtyEl.value=t;
+  var totEl=document.getElementById('cqtotal-'+suffix); if(totEl) totEl.textContent=t;
+  return t;
+}
+function cqOk(f,suffix){
+  var need=<?= (int)($p['min_colors']??0) ?>;
+  var wrap=document.getElementById('cq-'+suffix), warn=document.getElementById('cqwarn-'+suffix);
+  var got=0; if(wrap) wrap.querySelectorAll('select[data-color]').forEach(function(s){ if(parseInt(s.value)>0) got++; });
+  var t=cqSync(suffix);
+  if(got<need || t<=0){
+    if(warn){ warn.textContent=<?= json_encode(sprintf(t('Please select at least %d colours.'), (int)($p['min_colors']??0))) ?>; warn.style.display='block'; }
+    return false;
+  }
+  if(warn) warn.style.display='none';
+  return true;
 }
 </script>
 <?php require __DIR__.'/inc/foot.php';

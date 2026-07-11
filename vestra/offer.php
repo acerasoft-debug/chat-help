@@ -9,16 +9,29 @@ if(!$p){ header('Location: /shop'); exit; }
 if(!empty($_POST['website'])){ header('Location: /product?id='.urlencode($id).'&offered=1&ref=NA'); exit; }
 
 $company=trim($_POST['company']??''); $email=trim($_POST['email']??'');
-$qty=max((int)$p['moq'],(int)($_POST['qty']??0)); $price=(float)($_POST['price']??0);
-if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
-  $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
-if($company===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||$price<=0){ header('Location: /product?id='.urlencode($id).'#post'); exit; }
-/* Mandatory colour choice (listings with min_colors) — only offered colours count */
-$colors = array_values(array_unique(array_intersect(
-    array_map('strval', (array)($_POST['colors']??[])), (array)($p['colors']??[]) )));
-if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){
-  header('Location: /product?id='.urlencode($id).'&colerr=1'); exit;
+$price=(float)($_POST['price']??0);
+
+/* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
+   colour breakdown itself — the plain "qty" field is never trusted for these listings. */
+$cq = vestra_parse_colorqty($p, (array)($_POST['cq'] ?? []));
+if ($cq !== null) {
+  $qty = $cq['qty'];
+  $colors = $cq['lines']; // e.g. ["Black ×16", "Navy ×8"]
+  if (count($colors) < (int)$p['min_colors'] || $qty < (int)$p['moq']) {
+    header('Location: /product?id='.urlencode($id).'&colerr=1'); exit;
+  }
+} else {
+  $qty=max((int)$p['moq'],(int)($_POST['qty']??0));
+  if(!empty($p['size_step']) && $qty % (int)$p['size_step'] !== 0)
+    $qty = (int)(ceil($qty/(int)$p['size_step']) * (int)$p['size_step']);   // snap to pack/lot size
+  /* Mandatory colour choice (listings with min_colors) — only offered colours count */
+  $colors = array_values(array_unique(array_intersect(
+      array_map('strval', (array)($_POST['colors']??[])), (array)($p['colors']??[]) )));
+  if(!empty($p['min_colors']) && count($colors) < (int)$p['min_colors']){
+    header('Location: /product?id='.urlencode($id).'&colerr=1'); exit;
+  }
 }
+if($company===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||$price<=0){ header('Location: /product?id='.urlencode($id).'#post'); exit; }
 $colorsTxt = $colors ? 'Colours: '.implode(', ', $colors) : '';
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };

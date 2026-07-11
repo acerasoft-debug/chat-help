@@ -384,6 +384,12 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .colorchip .cdot{width:15px;height:15px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
 .colorchip input{width:auto;accent-color:var(--acc);margin:0}
 .colorchip:has(input:checked){color:var(--ink);border-color:var(--acc);background:rgba(201,168,106,.08)}
+.colorqty{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}
+.cqrow{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+.cqrow .cdot{width:15px;height:15px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);flex-shrink:0}
+.cqrow .cqname{flex:1;font-size:13px;color:var(--ink)}
+.cqrow select{width:76px;padding:5px 6px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:13px;font-family:inherit}
+.cqrow:has(select option:checked:not([value="0"])){border-color:var(--acc);background:rgba(201,168,106,.06)}
 
 /* panel inline-action forms (ship / offer-respond) */
 .respdetails>summary{list-style:none;cursor:pointer}
