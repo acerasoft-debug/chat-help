@@ -49,51 +49,51 @@ function vestra_demo_products(){
     ],
     [
       'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,
-      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>10,'unit'=>'pc',
-      'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock. Ships in packs of 10.',
+      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>20,'unit'=>'pc',
+      'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock. Ships in packs of 10; minimum order 20 pc, choose your colours.',
       'seller'=>'Atlantic Wholesale GmbH','hide_seller'=>true,'origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
-      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1 · 10/pack','size_step'=>10,
+      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1 · 10/pack','size_step'=>10,'min_colors'=>1,
       'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
-      'tiers'=>[['min'=>10,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
+      'tiers'=>[['min'=>20,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
     [
       'id'=>'amiri-core-tee','brand'=>'Amiri','name'=>'Core Logo Tee','mode'=>'offer',
       'guide'=>'Indicative €90–110 / pc · limited allocation',
-      'cat'=>'T-Shirts','sku'=>'AMI-CT-007','moq'=>10,'unit'=>'pc',
+      'cat'=>'T-Shirts','sku'=>'AMI-CT-007','moq'=>20,'unit'=>'pc',
       'desc'=>'Premium cotton tee. Limited allocation — open to offers. Authenticity verified on delivery.',
       'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#3a0f12',
-      'sizes'=>'S×1 · M×3 · L×3 · XL×2 · XXL×1','size_step'=>10,
-      'tiers'=>[['min'=>10,'price'=>110.00],['min'=>24,'price'=>98.00],['min'=>60,'price'=>90.00]],
+      'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2','size_step'=>10,
+      'tiers'=>[['min'=>20,'price'=>110.00],['min'=>24,'price'=>98.00],['min'=>60,'price'=>90.00]],
     ],
     [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>20,'unit'=>'pc',
       'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
       'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
-      'sizes'=>'S×5 · M×15 · L×15 · XL×10 · XXL×5 · mixed colours',
-      'tiers'=>[['min'=>50,'price'=>35.00]],
+      'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours',
+      'tiers'=>[['min'=>20,'price'=>35.00]],
     ],
     [
       'id'=>'basic-crew-tee','brand'=>'VESTRA Essentials','name'=>'Crew Neck Tee — blank','mode'=>'fixed',
-      'cat'=>'Basics','sku'=>'VE-CT-100','moq'=>50,'unit'=>'pc',
+      'cat'=>'Basics','sku'=>'VE-CT-100','moq'=>20,'unit'=>'pc',
       'desc'=>'180gsm combed cotton blank tee. Bulk packs, all sizes & colours.',
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#44454e',
-      'tiers'=>[['min'=>50,'price'=>4.20],['min'=>300,'price'=>3.40],['min'=>1000,'price'=>2.80]],
+      'tiers'=>[['min'=>20,'price'=>4.20],['min'=>300,'price'=>3.40],['min'=>1000,'price'=>2.80]],
       'group'=>true,'group_seed'=>640,'group_seed_n'=>11, // group-buy: pool to 1000 pc → €2.80/pc
     ],
     [
       'id'=>'cotton-socks','brand'=>'VESTRA Essentials','name'=>'Cotton Socks — 12 pack','mode'=>'sale','list'=>11.90,
-      'cat'=>'Basics','sku'=>'VE-SK-220','moq'=>100,'unit'=>'pack',
+      'cat'=>'Basics','sku'=>'VE-SK-220','moq'=>20,'unit'=>'pack',
       'desc'=>'Combed cotton crew socks, 12 pairs per pack. Clearance pricing.',
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#283b49',
-      'tiers'=>[['min'=>100,'price'=>9.50],['min'=>500,'price'=>7.90],['min'=>2000,'price'=>6.50]],
+      'tiers'=>[['min'=>20,'price'=>9.50],['min'=>500,'price'=>7.90],['min'=>2000,'price'=>6.50]],
     ],
     [
       'id'=>'boxer-briefs','brand'=>'VESTRA Essentials','name'=>'Boxer Briefs — 3 pack','mode'=>'fixed',
-      'cat'=>'Underwear','sku'=>'VE-UW-330','moq'=>100,'unit'=>'pack',
+      'cat'=>'Underwear','sku'=>'VE-UW-330','moq'=>20,'unit'=>'pack',
       'desc'=>'Stretch cotton boxer briefs, 3 per pack. Assorted sizes & colours.',
       'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#392b4a',
-      'tiers'=>[['min'=>100,'price'=>7.80],['min'=>500,'price'=>6.40],['min'=>2000,'price'=>5.30]],
+      'tiers'=>[['min'=>20,'price'=>7.80],['min'=>500,'price'=>6.40],['min'=>2000,'price'=>5.30]],
     ],
   ];
 }
@@ -219,6 +219,14 @@ function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): st
    min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
 function vestra_is_colorqty_listing(array $p): bool {
   return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+}
+/* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
+   (e.g. rl-oxford-shirt) only require 1, where "at least 1 colours" would read wrong. */
+function vestra_colours_phrase(int $n): string {
+  return $n === 1 ? t('at least 1 colour') : sprintf(t('at least %d colours'), $n);
+}
+function vestra_colours_warn(int $n): string {
+  return $n === 1 ? t('Please select at least 1 colour.') : sprintf(t('Please select at least %d colours.'), $n);
 }
 /* Validate + snap posted per-colour quantities ($posted = ['ColourName'=>qty,...], e.g. from
    $_POST['cq']) against a listing's own colour list and pack step. Only colours the listing
