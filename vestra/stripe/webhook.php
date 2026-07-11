@@ -40,6 +40,22 @@ switch ($type) {
 
     // ── checkout.session.completed → trial started ────────────────────────
     case 'checkout.session.completed':
+        if (($obj->mode ?? '') === 'setup') {
+            // Commission card saved (stripe/setup-card.php) — fetch the resulting payment
+            // method, make it the customer's default, and remember it on the account so
+            // inc/commission.php can charge it off-session later.
+            $customerId = $obj->customer ?? '';
+            $setupIntentId = $obj->setup_intent ?? '';
+            if (!$customerId || !$setupIntentId) break;
+            $account = stripe_find_account($customerId);
+            if (!$account) break;
+            $si = stripe_api('GET', '/v1/setup_intents/' . $setupIntentId);
+            $pm = $si->payment_method ?? '';
+            if (!$pm) break;
+            stripe_api('POST', '/v1/customers/' . $customerId, ['invoice_settings' => ['default_payment_method' => $pm]]);
+            auth_update($account['id'], ['stripe_commission_pm' => $pm]);
+            break;
+        }
         if (($obj->mode ?? '') !== 'subscription') break;
         $sellerId = $obj->metadata->seller_id ?? '';
         $tier     = $obj->metadata->tier      ?? '';

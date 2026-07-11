@@ -273,6 +273,9 @@ $cats=vestra_cats();
 $_ms  = $AUTH_USER['membership_status'] ?? '';
 $_kyb = $AUTH_USER['kyb_status'] ?? '';
 $canPublish = in_array($_ms, ['trialing','active'], true) || ($_ms === '' && $_kyb === 'approved');
+$quotaLimit = vestra_seller_monthly_quota_limit($AUTH_USER['membership_tier'] ?? '');
+$quotaUsed  = vestra_seller_monthly_quota_used($AUTH_USER);
+$quotaLeft  = $quotaLimit !== null ? max(0, $quotaLimit - $quotaUsed) : null;
 
 $tabTitle = match($tab) {
     'add'      => t('Add a product'),
@@ -307,6 +310,10 @@ if($tab==='overview'){
     </div></div>';
   if(empty($AUTH_USER['bank_iban'])){
     echo '<div class="banner info">🏦 '.t('Add your bank details so buyers can pay you directly — shown on the automatic PDF invoices your buyers download.').
+      ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
+  }
+  if(empty($AUTH_USER['stripe_commission_pm'])){
+    echo '<div class="banner info">💳 '.t('Add a commission card so your 3.5% platform commission is collected automatically when orders are paid — no manual invoicing.').
       ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
   }
   $msBadge = match($_ms){
@@ -347,8 +354,18 @@ if($tab==='overview'){
   } else {
   $added=isset($_GET['added']);
   if($added) echo '<div class="banner ok">✓ '.t('Product added — it is now live in the').' <a class="acc" href="/shop">'.t('catalog').'</a>.</div>';
-  if(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
-  ?>
+  if(($_GET['err']??'')==='quota') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.sprintf(t("You've used all %d listings included in your plan this month. It renews on the 1st, or you can upgrade for more."), (int)$quotaLimit).' <a class="acc" href="/membership">'.t('View membership plans').'</a></div>';
+  elseif(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
+  if($quotaLimit !== null): ?>
+  <div class="banner info" style="margin-bottom:14px"><?= sprintf(t('This month: <b>%d of %d</b> listings used. Resets on the 1st.'), $quotaUsed, $quotaLimit) ?></div>
+  <?php endif; ?>
+  <?php if($quotaLeft === 0): ?>
+  <div class="panelcard" style="text-align:center;padding:44px 24px">
+    <h3 style="margin:0 0 10px"><?= t('Monthly listing quota reached') ?></h3>
+    <p style="color:var(--mut);margin:0 0 20px"><?= sprintf(t("You've used all %d listings included in your plan this month. It renews on the 1st, or you can upgrade for more."), (int)$quotaLimit) ?></p>
+    <a class="btn btn-p" href="/membership"><?= t('View membership plans') ?></a>
+  </div>
+  <?php else: ?>
   <div class="panelcard">
     <form method="post" action="/seller-add" class="addform" enctype="multipart/form-data">
       <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
@@ -452,6 +469,7 @@ if($tab==='overview'){
     var r=new FileReader(); r.onload=function(e){ var img=document.getElementById('pp'+n); img.src=e.target.result; img.style.display='block'; document.getElementById('phl'+n).style.display='none'; }; r.readAsDataURL(f); }
   modeUI(); groupUI();
   </script>
+  <?php endif; ?>
   <?php
   }
 
@@ -831,6 +849,10 @@ if($tab==='overview'){
   if(isset($_GET['pw'])) echo '<div class="banner ok">✓ '.t('Password updated.').'</div>';
   if(isset($_GET['pwerr'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.
     match($_GET['pwerr']){ 'cur'=>t('Current password is incorrect.'), 'len'=>t('Password must be at least 8 characters.'), default=>t('Passwords do not match.') }.'</div>';
+  if(isset($_GET['cardok'])) echo '<div class="banner ok">✓ '.t('Commission card saved.').'</div>';
+  if(isset($_GET['cardcancel'])) echo '<div class="banner info">'.t('Card setup was cancelled — no card was saved.').'</div>';
+  if(($_GET['error']??'')==='notready') echo '<div class="banner info">'.t('Online payment is being set up — try again shortly, or contact support@vestrasales.com.').'</div>';
+  elseif(isset($_GET['error'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Something went wrong — please try again or contact support.').'</div>';
 
   ?>
   <div class="panelcard">
@@ -871,6 +893,17 @@ if($tab==='overview'){
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
+  </div>
+  <div class="panelcard">
+    <div class="pcfhead"><h3><?= t('Commission card') ?></h3>
+      <?= !empty($u['stripe_commission_pm']) ? '<span class="status offers">✓ '.t('On file').'</span>' : '<span class="status open">— '.t('Not added').'</span>' ?>
+    </div>
+    <div style="padding:16px 18px">
+      <p class="hint" style="margin:0 0 14px"><?= sprintf(t('VESTRA charges a %s%% commission on each order automatically to this card once the buyer\'s payment is confirmed — separate from your bank details above, which are only for receiving buyer payments.'), number_format(VESTRA_COMMISSION_RATE*100,1)) ?></p>
+      <form method="post" action="/stripe/setup-card">
+        <button class="btn btn-p" type="submit"><?= !empty($u['stripe_commission_pm']) ? t('Update card') : t('Add commission card') ?></button>
+      </form>
+    </div>
   </div>
   <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Security') ?></h3></div>

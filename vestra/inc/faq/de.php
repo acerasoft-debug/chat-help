@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => 'Welche Provision erhebt VESTRA von Verkäufern?',
-        'a' => 'Keine — VESTRA berechnet derzeit 0% Provision. Die Plattform finanziert sich stattdessen über Verkäufer-Mitgliedschaften, sodass 100% des Rechnungsbetrags an Sie gehen. Jede künftige Änderung würde rechtzeitig angekündigt.',
+        'a' => 'VESTRA berechnet eine Provision von 3,5% auf den Warenwert jeder Bestellung. Sie wird automatisch von der in Ihrem Verkäuferprofil hinterlegten Karte abgebucht, sobald die Zahlung des Käufers bestätigt ist — keine Rechnungsstellung, keine manuellen Überweisungen, und sie ändert nie, was der Käufer zahlt.',
       ),
       2 => 
       array (
         'q' => 'Wie und wann erhalte ich meine Zahlung?',
-        'a' => 'Direkt und vor dem Versand: Der Käufer bezahlt Ihre Rechnung per Überweisung auf das in Ihrem Verkäuferprofil hinterlegte Bankkonto. Versenden Sie, sobald die Zahlung eingegangen ist — es gibt keinen Auszahlungsschritt über die Plattform und keine Wartefrist.',
+        'a' => 'Direkt und vor dem Versand: Der Käufer bezahlt Ihre Rechnung per Überweisung auf das in Ihrem Verkäuferprofil hinterlegte Bankkonto — VESTRA ist in dieser Zahlung nie zwischengeschaltet. Versenden Sie, sobald sie eingegangen ist. Separat wird die Provision von 3,5% von Ihrer Provisionskarte abgebucht, sobald die Bestellung als bezahlt markiert ist.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => 'Wie hoch ist die Verkäuferprovision?',
-        'a' => 'Es gibt keine Verkäuferprovision — 0%. Verkäufer veröffentlichen mit einem Mitgliedschaftsplan (Starter, Pro oder Premium; 30 Tage kostenlos) und behalten 100% ihrer Verkäufe.',
+        'a' => 'VESTRA berechnet Verkäufern eine Provision von 3,5% auf den Warenwert jeder bezahlten Bestellung, automatisch abgebucht von der hinterlegten Karte. Dies ist zusätzlich zur monatlichen Mitgliedschaft zu verstehen.',
       ),
       2 => 
       array (
         'q' => 'Gibt es Mitgliedschafts- oder Abonnementgebühren?',
-        'a' => 'Für Käufer: niemals. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19, Pro €39 oder Premium €89 pro Monat, nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
+        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — bis zu 10 Angebote/Monat; Pro €39 oder Premium €89 pro Monat — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
       ),
       3 => 
       array (

@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => 'Quelle commission VESTRA prélève-t-elle sur les ventes ?',
-        'a' => 'Aucune — VESTRA applique actuellement 0% de commission. La plateforme est financée par les abonnements vendeurs, donc 100% du montant facturé vous revient. Tout changement futur serait annoncé longtemps à l\'avance.',
+        'a' => 'VESTRA prélève une commission de 3,5% sur la valeur marchandise de chaque commande. Elle est débitée automatiquement de la carte enregistrée dans votre profil vendeur dès que le paiement de l\'acheteur est confirmé — pas de facturation, pas de virement manuel, et cela ne change jamais ce que paie l\'acheteur.',
       ),
       2 => 
       array (
         'q' => 'Comment et quand suis-je payé(e) ?',
-        'a' => 'Directement et avant l\'expédition : l\'acheteur règle votre facture par virement sur le compte bancaire renseigné dans votre profil vendeur. Expédiez dès réception du paiement — il n\'y a ni étape de reversement par la plateforme ni délai d\'attente.',
+        'a' => 'Directement et avant l\'expédition : l\'acheteur règle votre facture par virement sur le compte bancaire renseigné dans votre profil vendeur — VESTRA n\'intervient jamais dans ce paiement. Expédiez dès réception. Séparément, la commission de 3,5% est débitée de votre carte de commission une fois la commande marquée comme payée.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => 'Quel est le montant de la commission vendeur ?',
-        'a' => 'Il n\'y a pas de commission vendeur — 0%. Les vendeurs publient avec un abonnement (Starter, Pro ou Premium ; essai gratuit de 30 jours) et conservent 100% de leurs ventes.',
+        'a' => 'VESTRA facture aux vendeurs une commission de 3,5% sur la valeur marchandise de chaque commande payée, débitée automatiquement de la carte enregistrée. Ceci s\'ajoute à l\'abonnement mensuel, distinct de celui-ci.',
       ),
       2 => 
       array (
         'q' => 'Existe-t-il des frais d\'abonnement ou d\'adhésion ?',
-        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19 €, Pro 39 € ou Premium 89 € par mois, après 30 jours d\'essai gratuit). Les formules sont détaillées sur la page Abonnement.',
+        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — jusqu\'à 10 annonces/mois ; Pro 39 € ou Premium 89 € par mois — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
       ),
       3 => 
       array (

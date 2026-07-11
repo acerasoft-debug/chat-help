@@ -10,6 +10,10 @@
    match the invoice total. Cart/emails hide fee lines automatically while 0. */
 if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.0);
 if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
+/* Seller commission — a SEPARATE mechanism from the fees above: 3.5% of each paid order's
+   goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
+   once the order is marked paid. Never touches the buyer-facing cart/invoice total. */
+if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
 if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
@@ -353,6 +357,31 @@ function vestra_seller_listings(string $uid): array {
 function vestra_listing_owner(string $id): ?string {
     $l = vestra_listing_by_id($id);
     return $l ? ($l['seller_uid'] ?? '') : null;
+}
+
+/* ─── Monthly listing quota (Starter tier: 10 new listings per calendar month) ───
+   Tracked as a counter on the account (month + count), NOT derived from how many
+   listings currently exist — so deleting a listing never frees up quota within the
+   same month. Pro/Premium return null (no cap), matching their existing "Unlimited
+   listings" copy. */
+function vestra_seller_monthly_quota_limit(string $tier): ?int {
+    return match ($tier) { 'starter' => 10, default => null };
+}
+function vestra_seller_monthly_quota_used(array $acc): int {
+    $rec = $acc['listing_quota'] ?? null;
+    if (!is_array($rec) || ($rec['month'] ?? '') !== date('Y-m')) return 0;
+    return (int)($rec['count'] ?? 0);
+}
+function vestra_seller_monthly_quota_bump(string $uid): void {
+    $acc = null;
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+    if (!$acc) return;
+    auth_update($uid, ['listing_quota' => ['month' => date('Y-m'), 'count' => vestra_seller_monthly_quota_used($acc) + 1]]);
+}
+/** True when this seller has hit their monthly quota (always false for uncapped tiers). */
+function vestra_seller_quota_exhausted(array $acc): bool {
+    $limit = vestra_seller_monthly_quota_limit($acc['membership_tier'] ?? '');
+    return $limit !== null && vestra_seller_monthly_quota_used($acc) >= $limit;
 }
 function vestra_listing_by_sku(string $sku): ?array {
     if ($sku === '') return null;

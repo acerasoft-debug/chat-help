@@ -54,12 +54,16 @@ function promo_generate(): string {
     return 'VESTRA-'.strtoupper(bin2hex(random_bytes(3)));
 }
 
+/* NOTE: promo_benefit is stored on the account (auth.php) at registration but not currently
+   read anywhere to actually change commission charging (inc/commission.php always applies
+   the flat VESTRA_COMMISSION_RATE). These labels are informational for admin only — wiring
+   a real per-seller discount/waiver into vestra_charge_order_commission() is a separate task. */
 function promo_benefit_label(string $b): string {
     return match($b) {
         'instant_kyb'         => 'Instant KYB approval',
         'commission_free_3m'  => 'No registration fee',
-        'commission_free_6m'  => '0 % commission — 6 months',
-        'reduced_commission'  => '3.5 % commission (half rate) — 6 months',
+        'commission_free_6m'  => '0% commission — 6 months',
+        'reduced_commission'  => '1.75% commission (half rate) — 6 months',
         'priority_listing'    => 'Priority placement in catalog',
         default               => $b,
     };

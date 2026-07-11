@@ -15,6 +15,9 @@ $_kyb = $_user['kyb_status'] ?? '';
 if (!in_array($_ms, ['trialing', 'active'], true) && !($_ms === '' && $_kyb === 'approved')) {
     header('Location: /membership?gate=1'); exit;
 }
+if (vestra_seller_quota_exhausted($_user)) {
+    header('Location: /seller?tab=add&err=quota'); exit;
+}
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $brand=$one($_POST['brand']??''); $name=$one($_POST['name']??''); $origin=$one($_POST['origin']??'');
@@ -78,6 +81,7 @@ if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
 
 $list=vestra_listings(); $list[]=$item;
 vestra_save_listings($list);
+if(!empty($_SESSION['uid'])) vestra_seller_monthly_quota_bump($_SESSION['uid']);
 
 /* Notify admin about new pending listing */
 $sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');

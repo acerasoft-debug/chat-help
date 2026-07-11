@@ -83,12 +83,12 @@ body{ background:#15171C }
     <!-- ── STARTER ── -->
     <div class="mcard">
       <div class="mname"><?= t('Starter') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">19</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">19,90</span><span class="per"><?= t('/month') ?></span></div>
       <div class="mtrial">✓ <?= t('1 month free') ?></div>
       <div class="mdiv"></div>
       <ul class="mfeatures">
         <li><?= t('For new sellers testing wholesale.') ?></li>
-        <li><?= t('Up to 10 listings') ?></li>
+        <li><?= t('10 listings / month') ?></li>
         <li><?= t('Seller profile &amp; showroom') ?></li>
         <li><?= t('"Verified Seller" badge') ?></li>
         <li><?= t('Direct buyer contact') ?></li>
@@ -139,10 +139,10 @@ body{ background:#15171C }
       <ul class="mfeatures">
         <li><?= t('For established wholesalers with volume.') ?></li>
         <li><?= t('Everything in Pro') ?></li>
+        <li><?= t('Unlimited listings') ?></li>
         <li><?= t('Top placement') ?></li>
         <li><?= t('Dedicated account manager') ?></li>
         <li><?= t('Buyer protection & dispute process') ?></li>
-        <li><?= t('Reduced commission (Phase 2)') ?></li>
       </ul>
       <?php if ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
@@ -157,6 +157,7 @@ body{ background:#15171C }
   </div><!-- /mtiers -->
 
   <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
+  <p class="mfoot"><?= t('<b>3.5% commission</b> on each paid order, charged automatically to your card on file when payment arrives — no invoicing, no manual transfers. All plans, no exceptions.') ?></p>
 
   <?php if (!$isLoggedInSeller): ?>
   <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">

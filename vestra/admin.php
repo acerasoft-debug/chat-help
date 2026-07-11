@@ -6,6 +6,9 @@ require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
 require_once __DIR__.'/inc/leads.php';
+require_once __DIR__.'/inc/notify.php';
+require_once __DIR__.'/inc/stripe.php';
+require_once __DIR__.'/inc/commission.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -108,12 +111,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>trim($_POST['tracking']??''),'updated_at'=>date('c')]);
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
-      /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order */
+      /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
+         and charge each seller's 3.5% commission off-session (inc/commission.php) — never
+         touches what the buyer paid, purely a separate seller-side charge. */
       if($st==='paid' && $prev!=='paid'){
         $orderRow=null;
         foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $orderRow=$row; break; } }
         if($orderRow){
-          require_once __DIR__.'/inc/notify.php';
+          vestra_charge_order_commission($ref, vestra_order_lines($orderRow)['lines']);
           if(!empty($orderRow['email'])){
             vestra_send_mail($orderRow['email'], "VESTRA — payment received for order {$ref}",
               "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\nWe have received your invoice payment for order {$ref}. The seller is preparing your shipment — you'll get another email with tracking once it ships.\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
@@ -515,7 +520,13 @@ if($tab==='overview'): ?>
   <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= count($pendingList) ?></div><div class="sl">Pending listings</div></div>
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Orders</div></div>
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Order volume</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($totalRevenue*0.07) ?></div><div class="sl">Platform fees (7%)</div></div>
+  <?php
+    $comAll = vestra_commissions();
+    $comCharged = array_sum(array_map(fn($c)=>($c['status']??'')==='charged'?(float)($c['amount']??0):0, $comAll));
+    $comFailed  = count(array_filter($comAll, fn($c)=>in_array($c['status']??'', ['failed','no_card'], true)));
+  ?>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($comCharged) ?></div><div class="sl">Commission collected (3.5%)</div></div>
+  <div class="ascard"><div class="sv" style="color:<?= $comFailed?'#ef9a9a':'#555' ?>"><?= $comFailed ?></div><div class="sl">Commission needs attention</div></div>
   <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingOffers) ?></div><div class="sl">Offers pending</div></div>
   <div class="ascard"><div class="sv"><?= count($signups) ?></div><div class="sl">Waitlist</div></div>
 </div>
@@ -857,7 +868,7 @@ elseif($tab==='orders'):
 <?php if(!$orders): ?><div class="acard"><div class="aempty">No orders yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Update'],true) ?>
+  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Update'],true) ?>
   <?php foreach(array_reverse($orders) as $o):
     $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
   <tr>
@@ -872,6 +883,17 @@ elseif($tab==='orders'):
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
       <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars($iv['no']) ?></a>
     <?php endforeach; ?></td>
+    <td class="ac" style="font-size:11px">
+      <?php $coms=vestra_commissions_for_ref($ref); if(!$coms): ?><span style="color:var(--mut)">—</span>
+      <?php else: foreach($coms as $c): ?>
+        <?= match($c['status']??''){
+          'charged'=>abadge('✓ '.eur($c['amount']??0),'#7ad6a0'),
+          'failed'=>abadge('✗ '.eur($c['amount']??0),'#ef9a9a'),
+          'no_card'=>abadge('⚠ no card','#f0c060'),
+          default=>abadge('—','#555'),
+        } ?><br>
+      <?php endforeach; endif; ?>
+    </td>
     <td class="ac"><?php if($st!=='completed'): ?>
       <form method="post" style="display:flex;flex-direction:column;gap:5px">
         <?= csrfField() ?>

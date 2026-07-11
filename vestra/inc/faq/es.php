@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => '¿Qué comisión cobra VESTRA a los vendedores?',
-        'a' => 'Ninguna — VESTRA cobra actualmente un 0% de comisión. La plataforma se financia con las membresías de vendedores, así que el 100% del importe facturado es para usted. Cualquier cambio futuro se anunciaría con mucha antelación.',
+        'a' => 'VESTRA cobra una comisión del 3,5% sobre el valor de la mercancía de cada pedido. Se cobra automáticamente de la tarjeta registrada en su perfil de vendedor en cuanto se confirma el pago del comprador — sin facturación, sin transferencias manuales, y nunca cambia lo que paga el comprador.',
       ),
       2 => 
       array (
         'q' => '¿Cómo y cuándo recibo el pago?',
-        'a' => 'Directamente y antes del envío: el comprador paga su factura por transferencia a la cuenta bancaria configurada en su perfil de vendedor. Envíe en cuanto llegue el pago — no hay paso de liquidación por la plataforma ni plazo de espera.',
+        'a' => 'Directamente y antes del envío: el comprador paga su factura por transferencia a la cuenta bancaria configurada en su perfil de vendedor — VESTRA nunca interviene en ese pago. Envíe en cuanto llegue. Por separado, la comisión del 3,5% se cobra en su tarjeta de comisión cuando el pedido se marca como pagado.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => '¿Cuál es la comisión para los vendedores?',
-        'a' => 'No hay comisión de vendedor — 0%. Los vendedores publican con un plan de membresía (Starter, Pro o Premium; 30 días de prueba gratuita) y conservan el 100% de sus ventas.',
+        'a' => 'VESTRA cobra a los vendedores una comisión del 3,5% sobre el valor de la mercancía de cada pedido pagado, cobrada automáticamente de la tarjeta registrada. Esto es adicional a la membresía mensual, no la sustituye.',
       ),
       2 => 
       array (
         'q' => '¿Existen cuotas de membresía o suscripción?',
-        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19 €, Pro 39 € o Premium 89 € al mes, tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
+        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — hasta 10 anuncios/mes; Pro 39 € o Premium 89 € al mes — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
       ),
       3 => 
       array (
