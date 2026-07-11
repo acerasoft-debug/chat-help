@@ -36,8 +36,8 @@ if (strpos($src,'CH_EXQ_LANG_FIX')!==false) exit("Zaten ekli (CH_EXQ_LANG_FIX).\
 $fail=[];
 
 /* [1] tiklama: data-t oznitelidi yerine .qt span'inin canli metnini oku */
-$o1 = 'onclick="chExAsk(this.getAttribute(\'data-t\'))" data-t="';
-$n1 = 'onclick="chExAsk(this.querySelector(\'.qt\').textContent)" data-t="';
+$o1 = "onclick=\"chExAsk(this.getAttribute(\\'data-t\\'))\" data-t=\"";
+$n1 = "onclick=\"chExAsk(this.querySelector(\\'.qt\\').textContent)\" data-t=\"";
 $c=0; $src=str_replace($o1,$n1,$src,$c);
 echo ($c===1?"  ✓ [1] tiklama artik EKRANDAKI (cevrilmis) metni gonderiyor\n":"  ✗ [1] anchor ($c)\n"); if($c!==1)$fail[]=1;
 
