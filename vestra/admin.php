@@ -5,6 +5,7 @@ require_once __DIR__.'/inc/promos.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
+require_once __DIR__.'/inc/leads.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -143,6 +144,73 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $all=promo_all(); $k=strtoupper($_POST['toggle_code']??'');
     if(isset($all[$k])){ $all[$k]['active']=!($all[$k]['active']??true); promo_save($all); }
     header('Location: /admin?tab=marketing&msg=promo_toggled'); exit;
+  }
+
+  // ── Seller prospecting (lead CRM + templated outreach) ──────────────────────
+  if($act==='add_lead'){
+    $company=trim($_POST['company']??''); $email=strtolower(trim($_POST['email']??''));
+    if($company!=='' && filter_var($email,FILTER_VALIDATE_EMAIL)){
+      $leads=vestra_leads();
+      $dupe=false; foreach($leads as $l){ if(strtolower($l['email']??'')===$email){ $dupe=true; break; } }
+      if(!$dupe){
+        $leads[]=[
+          'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),
+          'company'=>$company,'contact_name'=>trim($_POST['contact_name']??''),'email'=>$email,
+          'country'=>trim($_POST['country']??''),'website'=>trim($_POST['website']??''),
+          'source'=>trim($_POST['source']??'')?:'Other','category'=>trim($_POST['category']??''),
+          'notes'=>trim($_POST['notes']??''),'status'=>'new','last_contacted_at'=>'',
+          'unsub_token'=>bin2hex(random_bytes(16)),
+        ];
+        vestra_save_leads($leads);
+        header('Location: /admin?tab=prospects&msg=lead_added'); exit;
+      }
+      header('Location: /admin?tab=prospects&msg=lead_dupe'); exit;
+    }
+    header('Location: /admin?tab=prospects&msg=lead_invalid'); exit;
+  }
+  if($act==='import_leads_csv'){
+    $added=0; $skipped=0;
+    if(!empty($_FILES['csv']['tmp_name']) && is_uploaded_file($_FILES['csv']['tmp_name'])){
+      [$added,$skipped]=vestra_lead_import_csv($_FILES['csv']['tmp_name']);
+    }
+    header('Location: /admin?tab=prospects&msg=lead_import&added='.$added.'&skipped='.$skipped); exit;
+  }
+  if($act==='update_lead_status'){
+    $lid=$_POST['lid']??''; $st=$_POST['status']??'';
+    if(in_array($st,VESTRA_LEAD_STATUSES,true)){
+      $leads=vestra_leads();
+      foreach($leads as &$l){ if(($l['id']??'')===$lid){ $l['status']=$st; break; } }
+      unset($l);
+      vestra_save_leads($leads);
+    }
+    header('Location: /admin?tab=prospects&msg=lead_status_ok'); exit;
+  }
+  if($act==='delete_lead'){
+    $lid=$_POST['lid']??'';
+    vestra_save_leads(array_values(array_filter(vestra_leads(),fn($l)=>($l['id']??'')!==$lid)));
+    header('Location: /admin?tab=prospects&msg=lead_deleted'); exit;
+  }
+  if($act==='save_lead_template'){
+    vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??'')]);
+    header('Location: /admin?tab=prospects&msg=lead_tpl_ok'); exit;
+  }
+  if($act==='send_lead_email'){
+    $ids=array_slice(array_filter((array)($_POST['lead_ids']??[])),0,50);
+    $leads=vestra_leads(); $tpl=vestra_lead_template(); $sent=0;
+    require_once __DIR__.'/inc/notify.php';
+    foreach($leads as &$l){
+      if(!in_array($l['id']??'',$ids,true)) continue;
+      if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
+      [$subject,$body]=vestra_lead_render_email($l,$tpl);
+      if(vestra_send_mail($l['email'],$subject,$body)){
+        $sent++;
+        if(($l['status']??'new')==='new') $l['status']='contacted';
+        $l['last_contacted_at']=date('c');
+      }
+    }
+    unset($l);
+    vestra_save_leads($leads);
+    header('Location: /admin?tab=prospects&msg=lead_sent&n='.$sent); exit;
   }
 }
 
@@ -338,6 +406,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $msgThreads   = vestra_msg_threads();
   $blockedMsgs  = vestra_msg_blocked_log();
   $groupPools   = vestra_group_pools();
+  $leads        = vestra_leads();
+  $leadTpl      = vestra_lead_template();
   $pendingList  = array_filter($listings,fn($p)=>($p['status']??'approved')==='pending');
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
@@ -354,6 +424,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
     'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
     'csrf_fail'=>'⚠ Security check failed — please retry the action from this page.',
+    'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
+    'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
+    'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.',
   ];
 
   function navLink(string $cur, string $key, string $icon, string $label, int $badge=0, bool $red=false): string {
@@ -406,6 +479,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Marketing</div>
   <?= navLink($tab,'marketing','🎟️','Promo codes ('.count($promos).')') ?>
+  <?= navLink($tab,'prospects','🎯','Seller prospects ('.count($leads).')') ?>
   <?= navLink($tab,'waitlist','📩','Waitlist ('.count($signups).')') ?>
 </nav>
 
@@ -414,6 +488,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
 <?php if($msg && isset($msgs[$msg])): ?>
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
+<?php elseif($msg==='lead_import'): ?>
+<div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
+<?php elseif($msg==='lead_sent'): ?>
+<div class="amsg ok">✓ Sent to <?= (int)($_GET['n']??0) ?> prospect(s).</div>
 <?php endif; ?>
 
 
@@ -1014,6 +1092,149 @@ function updateLinks(){
 }
 updateLinks();
 </script>
+
+
+<?php // ══════════════════════════════════════════════════════ SELLER PROSPECTS
+elseif($tab==='prospects'):
+  $ldNew=count(array_filter($leads,fn($l)=>($l['status']??'new')==='new'));
+  $ldContacted=count(array_filter($leads,fn($l)=>($l['status']??'')==='contacted'));
+  $ldReplied=count(array_filter($leads,fn($l)=>($l['status']??'')==='replied'));
+  $ldConverted=count(array_filter($leads,fn($l)=>($l['status']??'')==='converted'));
+  $ldUnsub=count(array_filter($leads,fn($l)=>($l['status']??'')==='unsubscribed'));
+?>
+<p class="ahint" style="margin-bottom:16px;max-width:760px">
+  This list only ever grows from research <b>you</b> do (trade shows, LinkedIn, directories, the Seller Scout links
+  under Promo codes) or a CSV you compiled yourself — VESTRA never crawls the web to harvest contacts. Every outreach
+  email carries a working one-click unsubscribe link; anyone who uses it is permanently excluded from future sends.
+</p>
+
+<div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
+  <div class="ascard"><div class="sv"><?= $ldNew ?></div><div class="sl">New</div></div>
+  <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= $ldContacted ?></div><div class="sl">Contacted</div></div>
+  <div class="ascard"><div class="sv" style="color:#f0c060"><?= $ldReplied ?></div><div class="sl">Replied</div></div>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $ldConverted ?></div><div class="sl">Converted</div></div>
+  <div class="ascard"><div class="sv" style="color:#555"><?= $ldUnsub ?></div><div class="sl">Unsubscribed</div></div>
+</div>
+
+<div class="acols2">
+<div class="acard">
+  <div class="acard-hd"><h3>Add a prospect</h3></div>
+  <div class="acard-body">
+  <form method="post" class="aform">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="add_lead">
+    <div class="acols2">
+      <div class="afield"><label>Company *</label><input name="company" required placeholder="Nordic Streetwear AB"></div>
+      <div class="afield"><label>Email *</label><input type="email" name="email" required placeholder="sales@company.com"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>Contact name</label><input name="contact_name" placeholder="Optional"></div>
+      <div class="afield"><label>Country</label><input name="country" placeholder="e.g. Sweden"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>Website</label><input name="website" placeholder="Optional"></div>
+      <div class="afield"><label>Source</label>
+        <select name="source">
+          <?php foreach(vestra_lead_sources() as $s): ?><option value="<?= htmlspecialchars($s) ?>"><?= htmlspecialchars($s) ?></option><?php endforeach; ?>
+        </select>
+      </div>
+    </div>
+    <div class="afield"><label>Category / notes</label><input name="category" placeholder="e.g. denim, streetwear brands"></div>
+    <button class="abtn primary" type="submit">＋ Add prospect</button>
+  </form>
+  </div>
+</div>
+
+<div class="acard">
+  <div class="acard-hd"><h3>Import CSV</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:12px">Header row required. Columns: <code>company,email</code> required — <code>contact_name,country,website,source,category,notes</code> optional. Duplicate emails are skipped automatically.</p>
+  <form method="post" enctype="multipart/form-data" class="aform">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="import_leads_csv">
+    <div class="afield"><input type="file" name="csv" accept=".csv,text/csv" required></div>
+    <button class="abtn primary" type="submit">⬆ Import</button>
+  </form>
+  </div>
+</div>
+</div>
+
+<div class="acard">
+  <div class="acard-hd"><h3>Outreach email template</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:12px">Placeholders: <code>{{company}}</code> <code>{{contact_name}}</code> <code>{{country}}</code>. A sender-identification + unsubscribe footer is appended automatically to every send and can't be removed.</p>
+  <form method="post" class="aform">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="save_lead_template">
+    <div class="afield"><label>Subject</label><input name="tpl_subject" value="<?= htmlspecialchars($leadTpl['subject']) ?>"></div>
+    <div class="afield"><label>Body</label><textarea name="tpl_body" rows="8"><?= htmlspecialchars($leadTpl['body']) ?></textarea></div>
+    <button class="abtn primary" type="submit">Save template</button>
+  </form>
+  </div>
+</div>
+
+<form method="post" id="leadRowForm" style="display:none">
+  <?= csrfField() ?>
+  <input type="hidden" name="_action" id="lrf_action">
+  <input type="hidden" name="lid" id="lrf_lid">
+  <input type="hidden" name="status" id="lrf_status">
+</form>
+<script>
+function leadSetStatus(lid,status){
+  document.getElementById('lrf_action').value='update_lead_status';
+  document.getElementById('lrf_lid').value=lid;
+  document.getElementById('lrf_status').value=status;
+  document.getElementById('leadRowForm').submit();
+}
+function leadDelete(lid){
+  if(!confirm('Delete this prospect?')) return;
+  document.getElementById('lrf_action').value='delete_lead';
+  document.getElementById('lrf_lid').value=lid;
+  document.getElementById('leadRowForm').submit();
+}
+function leadToggleAll(box){
+  document.querySelectorAll('.leadchk').forEach(function(c){ if(!c.disabled) c.checked=box.checked; });
+}
+</script>
+
+<div class="acard">
+  <div class="acard-hd"><h3>Prospects (<?= count($leads) ?>)</h3></div>
+  <?php if(!$leads): ?><div class="aempty">No prospects yet — add one or import a CSV above.</div>
+  <?php else: ?>
+  <form method="post" onsubmit="return confirm('Send the outreach email to the selected prospect(s)?')">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="send_lead_email">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button class="abtn primary" type="submit">✉ Send invite to selected</button>
+      <span class="ahint">Max 50 per send · unsubscribed prospects can't be selected</span>
+    </div>
+    <div class="atscroll"><table class="atable">
+      <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
+      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; ?>
+      <tr style="opacity:<?= $unsub?.5:1 ?>">
+        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" <?= $unsub?'disabled':'' ?>></td>
+        <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
+        <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
+        <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['email']??'') ?></td>
+        <td class="ac"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
+        <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['source']??'') ?></td>
+        <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['category']??'') ?: '—' ?></td>
+        <td class="ac">
+          <?php if($unsub): ?><?= abadge('Unsubscribed','#555') ?>
+          <?php else: ?>
+          <select onchange="leadSetStatus('<?= htmlspecialchars($l['id']??'') ?>',this.value)" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-size:11px">
+            <?php foreach(VESTRA_LEAD_STATUSES as $s): ?><option value="<?= $s ?>" <?= ($l['status']??'new')===$s?'selected':'' ?>><?= vestra_lead_status_label($s) ?></option><?php endforeach; ?>
+          </select>
+          <?php endif; ?>
+        </td>
+        <td class="ac" style="font-size:11px"><?= $l['last_contacted_at'] ? htmlspecialchars(substr($l['last_contacted_at'],0,10)) : '—' ?></td>
+        <td class="ac"><button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadDelete('<?= htmlspecialchars($l['id']??'') ?>')">Delete</button></td>
+      </tr>
+      <?php endforeach; ?>
+    </table></div>
+  </form>
+  <?php endif; ?>
+</div>
 
 
 <?php // ══════════════════════════════════════════════════════ GROUP BUYS
