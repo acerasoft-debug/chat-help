@@ -1,10 +1,10 @@
 <?php
 /**
- * VESTRA — automatic seller commission: 3.5% (VESTRA_COMMISSION_RATE, inc/products.php)
- * of each order's goods value, charged off-session to the seller's saved commission
- * card the moment an order is marked "paid". Completely separate from the invoice/cart
- * total the buyer pays — the buyer is never touched by this, and the amount is never
- * added to the invoice PDF.
+ * VESTRA — automatic seller commission: a per-membership-tier % (vestra_seller_commission_rate(),
+ * inc/products.php — Starter 3.5%, Pro 3.2%, Elite 2.8%) of each order's goods value, charged
+ * off-session to the seller's saved commission card the moment an order is marked "paid".
+ * Completely separate from the invoice/cart total the buyer pays — the buyer is never touched
+ * by this, and the amount is never added to the invoice PDF.
  *
  * Assumes the caller has already required inc/products.php, inc/auth.php, inc/stripe.php
  * and inc/notify.php (same implicit-dependency convention as inc/invoice.php/orders.php).
@@ -22,7 +22,7 @@ function vestra_commission_status_label(string $status): string {
 }
 
 /**
- * Charge each seller's 3.5% commission for one order — once. Idempotent per
+ * Charge each seller's plan commission for one order — once. Idempotent per
  * (order ref, seller): a second call (e.g. an admin re-saving the same "paid"
  * status) is a no-op for any seller already recorded. Groups $lines (from
  * vestra_order_lines()) by seller_uid, so a multi-seller cart charges each
@@ -44,10 +44,12 @@ function vestra_charge_order_commission(string $ref, array $lines): void {
         $key = $ref . '__' . $sid;
         if (isset($all[$key])) continue; // already charged or already attempted for this order+seller
 
-        $amount = round($goods * VESTRA_COMMISSION_RATE, 2);
         $acc = null;
         foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $acc = $a; break; } }
-        $entry = ['ref' => $ref, 'seller_uid' => $sid, 'goods' => round($goods, 2), 'amount' => $amount, 'at' => date('c')];
+        $rate = vestra_seller_commission_rate($acc['membership_tier'] ?? '');
+        $ratePct = rtrim(rtrim(number_format($rate * 100, 1), '0'), '.');
+        $amount = round($goods * $rate, 2);
+        $entry = ['ref' => $ref, 'seller_uid' => $sid, 'goods' => round($goods, 2), 'rate' => $rate, 'amount' => $amount, 'at' => date('c')];
 
         if ($amount <= 0) { continue; } // nothing to collect
 
@@ -58,7 +60,7 @@ function vestra_charge_order_commission(string $ref, array $lines): void {
             vestra_notify(
                 "Commission not collected (no card on file) — order {$ref}",
                 "Seller " . ($acc['company'] ?? $sid) . " has no commission card on file.\n\n" .
-                "Order: {$ref}\nGoods: €{$goods}\nCommission due (3.5%): €{$amount}\n\n" .
+                "Order: {$ref}\nGoods: €{$goods}\nCommission due ({$ratePct}%): €{$amount}\n\n" .
                 "Please invoice this seller manually, or ask them to add a card:\n" .
                 "https://vestrasales.com/admin?tab=users"
             );
@@ -81,7 +83,7 @@ function vestra_charge_order_commission(string $ref, array $lines): void {
             $all[$key] = $entry + ['status' => 'failed', 'error' => $e->getMessage()];
             vestra_notify(
                 "Commission charge FAILED — order {$ref}",
-                "Could not charge €{$amount} commission (3.5% of €{$goods}) from " .
+                "Could not charge €{$amount} commission ({$ratePct}% of €{$goods}) from " .
                 ($acc['company'] ?? $sid) . " for order {$ref}.\n\nStripe error: {$e->getMessage()}\n\n" .
                 "Admin: https://vestrasales.com/admin?tab=orders"
             );
@@ -90,7 +92,7 @@ function vestra_charge_order_commission(string $ref, array $lines): void {
                     $acc['email'],
                     'VESTRA — commission charge failed',
                     "Hello " . ($acc['name'] ?: $acc['company']) . ",\n\n" .
-                    "We couldn't charge the 3.5% commission (€{$amount}) for order {$ref} to your card on file.\n\n" .
+                    "We couldn't charge the {$ratePct}% commission (€{$amount}) for order {$ref} to your card on file.\n\n" .
                     "Please check or update your payment method:\nhttps://vestrasales.com/seller?tab=profile\n\n" .
                     "— VESTRA · vestrasales.com"
                 );

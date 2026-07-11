@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => '¿Qué comisión cobra VESTRA a los vendedores?',
-        'a' => 'VESTRA cobra una comisión del 3,5% sobre el valor de la mercancía de cada pedido. Se cobra automáticamente de la tarjeta registrada en su perfil de vendedor en cuanto se confirma el pago del comprador — sin facturación, sin transferencias manuales, y nunca cambia lo que paga el comprador.',
+        'a' => 'VESTRA cobra una comisión sobre el valor de la mercancía de cada pedido que depende de su plan — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Se cobra automáticamente de la tarjeta registrada en su perfil de vendedor en cuanto se confirma el pago del comprador — sin facturación, sin transferencias manuales, y nunca cambia lo que paga el comprador.',
       ),
       2 => 
       array (
         'q' => '¿Cómo y cuándo recibo el pago?',
-        'a' => 'Directamente y antes del envío: el comprador paga su factura por transferencia a la cuenta bancaria configurada en su perfil de vendedor — VESTRA nunca interviene en ese pago. Envíe en cuanto llegue. Por separado, la comisión del 3,5% se cobra en su tarjeta de comisión cuando el pedido se marca como pagado.',
+        'a' => 'Directamente y antes del envío: el comprador paga su factura por transferencia a la cuenta bancaria configurada en su perfil de vendedor — VESTRA nunca interviene en ese pago. Envíe en cuanto llegue. Por separado, la comisión de su plan (vea arriba) se cobra en su tarjeta de comisión cuando el pedido se marca como pagado.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => '¿Cuál es la comisión para los vendedores?',
-        'a' => 'VESTRA cobra a los vendedores una comisión del 3,5% sobre el valor de la mercancía de cada pedido pagado, cobrada automáticamente de la tarjeta registrada. Esto es adicional a la membresía mensual, no la sustituye.',
+        'a' => 'VESTRA cobra a los vendedores una comisión sobre el valor de la mercancía de cada pedido pagado, cobrada automáticamente de la tarjeta registrada — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Esto es adicional a la membresía mensual, no la sustituye.',
       ),
       2 => 
       array (
         'q' => '¿Existen cuotas de membresía o suscripción?',
-        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — hasta 10 anuncios/mes; Pro 39 € o Premium 89 € al mes — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
+        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — 10 anuncios/mes; Pro 39 € — 100 anuncios/mes; Elite 89 € — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
       ),
       3 => 
       array (

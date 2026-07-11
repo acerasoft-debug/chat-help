@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/products.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 $PAGE = t('Seller Membership'); $NAV = 'membership';
 require __DIR__.'/inc/head.php';
@@ -89,6 +90,7 @@ body{ background:#15171C }
       <ul class="mfeatures">
         <li><?= t('For new sellers testing wholesale.') ?></li>
         <li><?= t('10 listings / month') ?></li>
+        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('starter')*100,1)) ?></li>
         <li><?= t('Seller profile &amp; showroom') ?></li>
         <li><?= t('"Verified Seller" badge') ?></li>
         <li><?= t('Direct buyer contact') ?></li>
@@ -113,8 +115,9 @@ body{ background:#15171C }
       <div class="mdiv"></div>
       <ul class="mfeatures">
         <li><?= t('For active sellers with a growing range.') ?></li>
+        <li><?= t('100 listings / month') ?></li>
+        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('pro')*100,1)) ?></li>
         <li><?= t('Everything in Starter') ?></li>
-        <li><?= t('Unlimited listings') ?></li>
         <li><?= t('Priority placement') ?></li>
         <li><?= t('Analytics dashboard') ?></li>
         <li><?= t('Multiple users') ?></li>
@@ -130,16 +133,17 @@ body{ background:#15171C }
       <?php endif; ?>
     </div>
 
-    <!-- ── PREMIUM ── -->
+    <!-- ── ELITE (internal tier key stays "premium" — Stripe/account data untouched) ── -->
     <div class="mcard">
-      <div class="mname"><?= t('Premium') ?></div>
+      <div class="mname"><?= t('Elite') ?></div>
       <div class="mprice"><span class="cur">€</span><span class="amt">89</span><span class="per"><?= t('/month') ?></span></div>
       <div class="mtrial">✓ <?= t('1 month free') ?></div>
       <div class="mdiv"></div>
       <ul class="mfeatures">
         <li><?= t('For established wholesalers with volume.') ?></li>
-        <li><?= t('Everything in Pro') ?></li>
         <li><?= t('Unlimited listings') ?></li>
+        <li><?= sprintf(t('%s%% commission per sale'), number_format(vestra_seller_commission_rate('premium')*100,1)) ?></li>
+        <li><?= t('Everything in Pro') ?></li>
         <li><?= t('Top placement') ?></li>
         <li><?= t('Dedicated account manager') ?></li>
         <li><?= t('Buyer protection & dispute process') ?></li>
@@ -157,7 +161,7 @@ body{ background:#15171C }
   </div><!-- /mtiers -->
 
   <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
-  <p class="mfoot"><?= t('<b>3.5% commission</b> on each paid order, charged automatically to your card on file when payment arrives — no invoicing, no manual transfers. All plans, no exceptions.') ?></p>
+  <p class="mfoot"><?= t('<b>Commission is charged automatically</b> to your card on file when payment arrives — no invoicing, no manual transfers. The rate depends on your plan (shown above) and drops as you upgrade.') ?></p>
 
   <?php if (!$isLoggedInSeller): ?>
   <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">

@@ -313,7 +313,8 @@ if($tab==='overview'){
       ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
   }
   if(empty($AUTH_USER['stripe_commission_pm'])){
-    echo '<div class="banner info">💳 '.t('Add a commission card so your 3.5% platform commission is collected automatically when orders are paid — no manual invoicing.').
+    $myRate = vestra_seller_commission_rate($AUTH_USER['membership_tier'] ?? '');
+    echo '<div class="banner info">💳 '.sprintf(t('Add a commission card so your %s%% platform commission is collected automatically when orders are paid — no manual invoicing.'), number_format($myRate*100,1)).
       ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
   }
   $msBadge = match($_ms){
@@ -899,7 +900,7 @@ if($tab==='overview'){
       <?= !empty($u['stripe_commission_pm']) ? '<span class="status offers">✓ '.t('On file').'</span>' : '<span class="status open">— '.t('Not added').'</span>' ?>
     </div>
     <div style="padding:16px 18px">
-      <p class="hint" style="margin:0 0 14px"><?= sprintf(t('VESTRA charges a %s%% commission on each order automatically to this card once the buyer\'s payment is confirmed — separate from your bank details above, which are only for receiving buyer payments.'), number_format(VESTRA_COMMISSION_RATE*100,1)) ?></p>
+      <p class="hint" style="margin:0 0 14px"><?= sprintf(t('VESTRA charges a %s%% commission on each order automatically to this card once the buyer\'s payment is confirmed — separate from your bank details above, which are only for receiving buyer payments.'), number_format(vestra_seller_commission_rate($u['membership_tier']??'')*100,1)) ?></p>
       <form method="post" action="/stripe/setup-card">
         <button class="btn btn-p" type="submit"><?= !empty($u['stripe_commission_pm']) ? t('Update card') : t('Add commission card') ?></button>
       </form>

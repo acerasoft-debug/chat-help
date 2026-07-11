@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => 'Welche Provision erhebt VESTRA von Verkäufern?',
-        'a' => 'VESTRA berechnet eine Provision von 3,5% auf den Warenwert jeder Bestellung. Sie wird automatisch von der in Ihrem Verkäuferprofil hinterlegten Karte abgebucht, sobald die Zahlung des Käufers bestätigt ist — keine Rechnungsstellung, keine manuellen Überweisungen, und sie ändert nie, was der Käufer zahlt.',
+        'a' => 'VESTRA berechnet eine Provision auf den Warenwert jeder Bestellung, die von Ihrem Plan abhängt — 3,5% im Starter, 3,2% im Pro, 2,8% im Elite. Sie wird automatisch von der in Ihrem Verkäuferprofil hinterlegten Karte abgebucht, sobald die Zahlung des Käufers bestätigt ist — keine Rechnungsstellung, keine manuellen Überweisungen, und sie ändert nie, was der Käufer zahlt.',
       ),
       2 => 
       array (
         'q' => 'Wie und wann erhalte ich meine Zahlung?',
-        'a' => 'Direkt und vor dem Versand: Der Käufer bezahlt Ihre Rechnung per Überweisung auf das in Ihrem Verkäuferprofil hinterlegte Bankkonto — VESTRA ist in dieser Zahlung nie zwischengeschaltet. Versenden Sie, sobald sie eingegangen ist. Separat wird die Provision von 3,5% von Ihrer Provisionskarte abgebucht, sobald die Bestellung als bezahlt markiert ist.',
+        'a' => 'Direkt und vor dem Versand: Der Käufer bezahlt Ihre Rechnung per Überweisung auf das in Ihrem Verkäuferprofil hinterlegte Bankkonto — VESTRA ist in dieser Zahlung nie zwischengeschaltet. Versenden Sie, sobald sie eingegangen ist. Separat wird die Provision Ihres Plans (siehe oben) von Ihrer Provisionskarte abgebucht, sobald die Bestellung als bezahlt markiert ist.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => 'Wie hoch ist die Verkäuferprovision?',
-        'a' => 'VESTRA berechnet Verkäufern eine Provision von 3,5% auf den Warenwert jeder bezahlten Bestellung, automatisch abgebucht von der hinterlegten Karte. Dies ist zusätzlich zur monatlichen Mitgliedschaft zu verstehen.',
+        'a' => 'VESTRA berechnet Verkäufern eine Provision auf den Warenwert jeder bezahlten Bestellung, automatisch abgebucht von der hinterlegten Karte — 3,5% im Starter, 3,2% im Pro, 2,8% im Elite. Dies ist zusätzlich zur monatlichen Mitgliedschaft zu verstehen.',
       ),
       2 => 
       array (
         'q' => 'Gibt es Mitgliedschafts- oder Abonnementgebühren?',
-        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — bis zu 10 Angebote/Monat; Pro €39 oder Premium €89 pro Monat — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
+        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — 10 Angebote/Monat; Pro €39 — 100 Angebote/Monat; Elite €89 — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
       ),
       3 => 
       array (

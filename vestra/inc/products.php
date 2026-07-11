@@ -10,9 +10,11 @@
    match the invoice total. Cart/emails hide fee lines automatically while 0. */
 if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.0);
 if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
-/* Seller commission — a SEPARATE mechanism from the fees above: 3.5% of each paid order's
+/* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
    goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
-   once the order is marked paid. Never touches the buyer-facing cart/invoice total. */
+   once the order is marked paid. Never touches the buyer-facing cart/invoice total. This
+   constant is the Starter-tier (and fallback) rate; Pro/Elite get a lower rate — see
+   vestra_seller_commission_rate() below. */
 if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
@@ -367,13 +369,21 @@ function vestra_listing_owner(string $id): ?string {
     return $l ? ($l['seller_uid'] ?? '') : null;
 }
 
-/* ─── Monthly listing quota (Starter tier: 10 new listings per calendar month) ───
+/* ─── Monthly listing quota (Starter: 10/mo, Pro: 100/mo) ───────────────────────
    Tracked as a counter on the account (month + count), NOT derived from how many
    listings currently exist — so deleting a listing never frees up quota within the
-   same month. Pro/Premium return null (no cap), matching their existing "Unlimited
-   listings" copy. */
+   same month. Premium (displayed as "Elite") returns null (no cap), matching its
+   "Unlimited listings" copy. */
 function vestra_seller_monthly_quota_limit(string $tier): ?int {
-    return match ($tier) { 'starter' => 10, default => null };
+    return match ($tier) { 'starter' => 10, 'pro' => 100, default => null };
+}
+/* ─── Per-tier commission rate — charged on top of the monthly membership, never
+   touching the buyer-facing total (see vestra_charge_order_commission()). Higher
+   tiers earn a lower rate as a retention incentive. Unknown/legacy tiers fall back
+   to the Starter rate (the highest), never to 0 — a missing tier must never mean
+   "no commission". */
+function vestra_seller_commission_rate(string $tier): float {
+    return match ($tier) { 'pro' => 0.032, 'premium' => 0.028, default => VESTRA_COMMISSION_RATE };
 }
 function vestra_seller_monthly_quota_used(array $acc): int {
     $rec = $acc['listing_quota'] ?? null;

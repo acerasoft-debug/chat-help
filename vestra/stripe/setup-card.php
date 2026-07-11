@@ -3,7 +3,8 @@
  * VESTRA — save a seller's commission card via Stripe Checkout (mode=setup).
  * POST /stripe/setup-card
  *
- * This card is charged automatically for the 3.5% platform commission when an
+ * This card is charged automatically for the seller's plan commission (rate
+ * depends on membership tier — see vestra_seller_commission_rate()) when an
  * order is marked paid (inc/commission.php) — it is completely separate from
  * the seller's bank_iban/bank_holder fields, which are for RECEIVING buyer
  * payments and are never touched here. No amount is charged at setup time;

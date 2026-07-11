@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => 'Quelle commission VESTRA prélève-t-elle sur les ventes ?',
-        'a' => 'VESTRA prélève une commission de 3,5% sur la valeur marchandise de chaque commande. Elle est débitée automatiquement de la carte enregistrée dans votre profil vendeur dès que le paiement de l\'acheteur est confirmé — pas de facturation, pas de virement manuel, et cela ne change jamais ce que paie l\'acheteur.',
+        'a' => 'VESTRA prélève une commission sur la valeur marchandise de chaque commande, qui dépend de votre formule — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Elle est débitée automatiquement de la carte enregistrée dans votre profil vendeur dès que le paiement de l\'acheteur est confirmé — pas de facturation, pas de virement manuel, et cela ne change jamais ce que paie l\'acheteur.',
       ),
       2 => 
       array (
         'q' => 'Comment et quand suis-je payé(e) ?',
-        'a' => 'Directement et avant l\'expédition : l\'acheteur règle votre facture par virement sur le compte bancaire renseigné dans votre profil vendeur — VESTRA n\'intervient jamais dans ce paiement. Expédiez dès réception. Séparément, la commission de 3,5% est débitée de votre carte de commission une fois la commande marquée comme payée.',
+        'a' => 'Directement et avant l\'expédition : l\'acheteur règle votre facture par virement sur le compte bancaire renseigné dans votre profil vendeur — VESTRA n\'intervient jamais dans ce paiement. Expédiez dès réception. Séparément, la commission de votre formule (voir ci-dessus) est débitée de votre carte de commission une fois la commande marquée comme payée.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => 'Quel est le montant de la commission vendeur ?',
-        'a' => 'VESTRA facture aux vendeurs une commission de 3,5% sur la valeur marchandise de chaque commande payée, débitée automatiquement de la carte enregistrée. Ceci s\'ajoute à l\'abonnement mensuel, distinct de celui-ci.',
+        'a' => 'VESTRA facture aux vendeurs une commission sur la valeur marchandise de chaque commande payée, débitée automatiquement de la carte enregistrée — 3,5% en Starter, 3,2% en Pro, 2,8% en Elite. Ceci s\'ajoute à l\'abonnement mensuel, distinct de celui-ci.',
       ),
       2 => 
       array (
         'q' => 'Existe-t-il des frais d\'abonnement ou d\'adhésion ?',
-        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — jusqu\'à 10 annonces/mois ; Pro 39 € ou Premium 89 € par mois — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
+        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — 10 annonces/mois ; Pro 39 € — 100 annonces/mois ; Elite 89 € — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
       ),
       3 => 
       array (

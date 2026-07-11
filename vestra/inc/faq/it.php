@@ -296,12 +296,12 @@
       1 => 
       array (
         'q' => 'Quale commissione applica VESTRA ai venditori?',
-        'a' => 'VESTRA applica una commissione del 3,5% sul valore merce di ogni ordine. Viene addebitata automaticamente sulla carta registrata nel Suo profilo venditore non appena il pagamento dell\'acquirente è confermato — nessuna fatturazione, nessun bonifico manuale, e non modifica mai quanto paga l\'acquirente.',
+        'a' => 'VESTRA applica una commissione sul valore merce di ogni ordine, che dipende dal Suo piano — 3,5% in Starter, 3,2% in Pro, 2,8% in Elite. Viene addebitata automaticamente sulla carta registrata nel Suo profilo venditore non appena il pagamento dell\'acquirente è confermato — nessuna fatturazione, nessun bonifico manuale, e non modifica mai quanto paga l\'acquirente.',
       ),
       2 => 
       array (
         'q' => 'Come e quando ricevo il pagamento?',
-        'a' => 'Direttamente e prima della spedizione: l\'acquirente paga la Sua fattura con bonifico sul conto bancario impostato nel Suo profilo venditore — VESTRA non è mai parte di questo pagamento. Spedisca non appena arriva. Separatamente, la commissione del 3,5% viene addebitata sulla Sua carta commissioni quando l\'ordine viene contrassegnato come pagato.',
+        'a' => 'Direttamente e prima della spedizione: l\'acquirente paga la Sua fattura con bonifico sul conto bancario impostato nel Suo profilo venditore — VESTRA non è mai parte di questo pagamento. Spedisca non appena arriva. Separatamente, la commissione del Suo piano (vedi sopra) viene addebitata sulla Sua carta commissioni quando l\'ordine viene contrassegnato come pagato.',
       ),
       3 => 
       array (
@@ -375,12 +375,12 @@
       1 => 
       array (
         'q' => 'Qual è la commissione per i venditori?',
-        'a' => 'VESTRA applica ai venditori una commissione del 3,5% sul valore merce di ogni ordine pagato, addebitata automaticamente sulla carta registrata. Si aggiunge all\'abbonamento mensile, distinta da esso.',
+        'a' => 'VESTRA applica ai venditori una commissione sul valore merce di ogni ordine pagato, addebitata automaticamente sulla carta registrata — 3,5% in Starter, 3,2% in Pro, 2,8% in Elite. Si aggiunge all\'abbonamento mensile, distinta da esso.',
       ),
       2 => 
       array (
         'q' => 'Sono previste quote di abbonamento o piani tariffari?',
-        'a' => 'Per gli acquirenti: mai. Per i venditori: pubblicare annunci richiede un abbonamento attivo (Starter €19,90 — fino a 10 annunci/mese; Pro €39 o Premium €89 al mese — annunci illimitati; in tutti i casi dopo 30 giorni di prova gratuita). I piani sono illustrati nella pagina Abbonamento.',
+        'a' => 'Per gli acquirenti: mai. Per i venditori: pubblicare annunci richiede un abbonamento attivo (Starter €19,90 — 10 annunci/mese; Pro €39 — 100 annunci/mese; Elite €89 — annunci illimitati; in tutti i casi dopo 30 giorni di prova gratuita). I piani sono illustrati nella pagina Abbonamento.',
       ),
       3 => 
       array (

@@ -112,7 +112,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
-         and charge each seller's 3.5% commission off-session (inc/commission.php) — never
+         and charge each seller's per-tier commission off-session (inc/commission.php) — never
          touches what the buyer paid, purely a separate seller-side charge. */
       if($st==='paid' && $prev!=='paid'){
         $orderRow=null;
@@ -264,7 +264,7 @@ function typePill(string $t): string {
 function memberBadge(string $tier, string $status): string {
   if($tier===''&&($status===''||$status==='none')) return '<span style="color:#555;font-size:11px">—</span>';
   $tc=['starter'=>'#8ab4f8','pro'=>'#c9a86a','premium'=>'#f0c060'][$tier]??'#888';
-  $tl=$tier?ucfirst($tier):'';
+  $tl=$tier==='premium' ? 'Elite' : ($tier?ucfirst($tier):'');
   $sc=match($status){'active'=>'#7ad6a0','trialing'=>'#f0c060','past_due'=>'#ef9a9a','canceled'=>'#888',default=>'#555'};
   $sl=match($status){'active'=>'Active','trialing'=>'Trial','past_due'=>'Past due','canceled'=>'Canceled',default=>'—'};
   return ($tl?abadge($tl,$tc):'').'<div style="margin-top:3px">'.abadge($sl,$sc).'</div>';
@@ -525,7 +525,7 @@ if($tab==='overview'): ?>
     $comCharged = array_sum(array_map(fn($c)=>($c['status']??'')==='charged'?(float)($c['amount']??0):0, $comAll));
     $comFailed  = count(array_filter($comAll, fn($c)=>in_array($c['status']??'', ['failed','no_card'], true)));
   ?>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($comCharged) ?></div><div class="sl">Commission collected (3.5%)</div></div>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($comCharged) ?></div><div class="sl">Commission collected</div></div>
   <div class="ascard"><div class="sv" style="color:<?= $comFailed?'#ef9a9a':'#555' ?>"><?= $comFailed ?></div><div class="sl">Commission needs attention</div></div>
   <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingOffers) ?></div><div class="sl">Offers pending</div></div>
   <div class="ascard"><div class="sv"><?= count($signups) ?></div><div class="sl">Waitlist</div></div>
@@ -1055,7 +1055,7 @@ elseif($tab==='marketing'): ?>
         <option value="instant_kyb">Instant KYB approval</option>
         <option value="commission_free_3m">No registration fee</option>
         <option value="commission_free_6m">0% commission — 6 months</option>
-        <option value="reduced_commission">3.5% commission — 6 months</option>
+        <option value="reduced_commission">1.75% commission (half rate) — 6 months</option>
         <option value="priority_listing">Priority listing placement</option>
       </select>
     </div>
