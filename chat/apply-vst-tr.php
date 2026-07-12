@@ -20,9 +20,11 @@ $file = __DIR__.'/index.php';
 $src = @file_get_contents($file);
 if ($src===false) exit("index.php okunamadi\n");
 if (strpos($src,'CH_VST_TR')!==false) exit("Zaten ekli (CH_VST_TR).\n");
-$anchor='function boot(){ addCss(); addNav();';
+/* NOT: 'function boot(){ addCss(); addNav();' hem Vertrag Studio'da hem
+   TR-vize modulunde var (2 gecis) — Studio'ya OZGU devamiyla capalanir. */
+$anchor='function boot(){ addCss(); addNav(); try{window.__vstOpen';
 $ac = substr_count($src,$anchor);
-if ($ac!==1) exit("HATA: Vertrag Studio boot anchor $ac kez (beklenen 1).\n");
+if ($ac!==1) exit("HATA: Vertrag Studio boot anchor (__vstOpen imzali) $ac kez (beklenen 1).\n");
 if (strpos($src,'ncxBuild')===false) exit("HATA: vst-more (ncxBuild) yok — once o gerekli.\n");
 
 $js = <<<'CHJS'
@@ -119,8 +121,10 @@ $js = <<<'CHJS'
   }catch(e){} }, 0);
 CHJS;
 
-$src = str_replace($anchor, $anchor.$js, $src);
-echo "  ✓ [1] 5 TR sozlesmesi + ulke filtresi boot'a enjekte edildi\n";
+/* vst-more gibi capanin ONUNE eklenir (capa boot() imzasinin icinde surdugu
+   icin arkasina eklemek sozdizimini bozar) */
+$src = str_replace($anchor, $js."\n  ".$anchor, $src);
+echo "  ✓ [1] 5 TR sozlesmesi + ulke filtresi boot'un onune enjekte edildi\n";
 
 /* TR'de modul gorunurlugu: country-gate'i TR icin ac */
 $css = "\n<style id=\"ch-vst-tr-css\">\n"
