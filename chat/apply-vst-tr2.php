@@ -10,7 +10,7 @@
  *    hukuklarda TR sozlesmeleri gizlenir (Alman seti aynen kalir).
  *  • TR'de modul GORUNUR: country-gate'in nav-vst gizlemesi TR icin acilir.
  *  Mevcut motor kullanilir: NCX + ncxBuild + buildPages sarmalayicisi (vst-more).
- * KULLANIM: pull2.php?key=...&files=apply-vst-tr.php
+ * KULLANIM: pull2.php?key=...&files=apply-vst-tr2.php
  */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
