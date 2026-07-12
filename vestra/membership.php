@@ -15,7 +15,8 @@ $stripeReady = stripe_configured();
 $error    = !empty($_GET['error']) && ($_GET['error'] ?? '') !== 'notready';
 $notReady = !$stripeReady || ($_GET['error'] ?? '') === 'notready';
 $gated = !empty($_GET['gate']);
-$ctaDisabled = $alreadyActive || !$stripeReady;
+$curTier = $u['membership_tier'] ?? '';
+$ctaDisabled = !$stripeReady; // active members get portal buttons instead of disabled CTAs
 ?>
 <style>
 /* Pricing page — design tokens from brief */
@@ -75,6 +76,9 @@ body{ background:#15171C }
     <?php if ($membershipStatus === 'trialing'): ?>
       <?= ' ' . t('Your trial is running — first charge in 30 days.') ?>
     <?php endif; ?>
+    <form method="post" action="/stripe/portal" style="display:inline;margin-left:10px">
+      <button type="submit" style="background:none;border:none;padding:0;color:#7ad6a0;font:inherit;cursor:pointer;text-decoration:underline"><?= t('Manage subscription →') ?></button>
+    </form>
     <a href="/seller" style="color:#7ad6a0;margin-left:10px"><?= t('Go to dashboard →') ?></a>
   </div>
   <?php endif; ?>
@@ -96,7 +100,13 @@ body{ background:#15171C }
         <li><?= t('Direct buyer contact') ?></li>
         <li><?= t('Trade Record') ?></li>
       </ul>
-      <?php if ($isLoggedInSeller): ?>
+      <?php if ($isLoggedInSeller && $alreadyActive): ?>
+        <?php if ($curTier === 'starter'): ?>
+        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
+        <?php else: ?>
+        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
+        <?php endif; ?>
+      <?php elseif ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="starter">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
@@ -123,7 +133,13 @@ body{ background:#15171C }
         <li><?= t('Multiple users') ?></li>
         <li><?= t('Lead notifications') ?></li>
       </ul>
-      <?php if ($isLoggedInSeller): ?>
+      <?php if ($isLoggedInSeller && $alreadyActive): ?>
+        <?php if ($curTier === 'pro'): ?>
+        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
+        <?php else: ?>
+        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
+        <?php endif; ?>
+      <?php elseif ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="pro">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
@@ -148,7 +164,13 @@ body{ background:#15171C }
         <li><?= t('Dedicated account manager') ?></li>
         <li><?= t('Buyer protection & dispute process') ?></li>
       </ul>
-      <?php if ($isLoggedInSeller): ?>
+      <?php if ($isLoggedInSeller && $alreadyActive): ?>
+        <?php if ($curTier === 'premium'): ?>
+        <button class="mcta" type="button" disabled>✓ <?= t('Your current plan') ?></button>
+        <?php else: ?>
+        <form method="post" action="/stripe/portal"><button class="mcta" type="submit"><?= t('Change plan') ?></button></form>
+        <?php endif; ?>
+      <?php elseif ($isLoggedInSeller): ?>
       <form method="post" action="/stripe/checkout">
         <input type="hidden" name="tier" value="premium">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>

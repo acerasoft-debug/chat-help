@@ -75,14 +75,20 @@ switch ($type) {
         $account = stripe_find_account($customerId);
         if (!$account) break;
 
-        // Detect the onboarding line item by price ID
-        $onboardingPriceId = getenv('PRICE_ONBOARDING') ?: '';
+        // Detect the onboarding line item by price ID. stripe_price() resolves a
+        // prod_… env value to its real price_… — compare against both so a
+        // product-ID-configured .env still matches (line->price->id is always price_…,
+        // line->price->product is the prod_…).
+        $onbEnv = getenv('PRICE_ONBOARDING') ?: '';
+        $onboardingPriceId = '';
+        try { $onboardingPriceId = $onbEnv ? stripe_price('onboarding') : ''; } catch (\Throwable $e) {}
         $paidOnboarding = false;
-        if ($onboardingPriceId) {
-            foreach (($obj->lines->data ?? []) as $line) {
-                if (($line->price->id ?? '') === $onboardingPriceId) {
-                    $paidOnboarding = true; break;
-                }
+        foreach (($obj->lines->data ?? []) as $line) {
+            $lpid  = $line->price->id ?? '';
+            $lprod = is_string($line->price->product ?? null) ? $line->price->product : '';
+            if (($onboardingPriceId !== '' && $lpid === $onboardingPriceId)
+             || ($onbEnv !== '' && $lprod !== '' && $lprod === $onbEnv)) {
+                $paidOnboarding = true; break;
             }
         }
 

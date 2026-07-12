@@ -54,7 +54,38 @@ function stripe_price(string $tier): string {
     ];
     $id = $map[$tier] ?? '';
     if (!$id) throw new \RuntimeException("Price ID not set for tier '{$tier}' — check .env");
+    if (str_starts_with($id, 'prod_')) return stripe_resolve_product_price($id);
     return $id;
+}
+
+/**
+ * Allow PRICE_* env vars to hold a prod_… ID instead of a price_… ID: resolve the
+ * product's default price (falling back to its newest active price) via the API,
+ * and cache the result on disk so this costs one API call per product, ever.
+ * Product IDs are what the Dashboard shows most prominently — accepting them
+ * directly removes the most error-prone step of the setup.
+ */
+function stripe_resolve_product_price(string $productId): string {
+    $cacheFile = __DIR__ . '/../data/stripe_price_cache.json';
+    $cache = is_readable($cacheFile) ? (json_decode((string)file_get_contents($cacheFile), true) ?: []) : [];
+    if (!empty($cache[$productId])) return $cache[$productId];
+
+    $product = stripe_api('GET', '/v1/products/' . $productId);
+    $price = is_string($product->default_price ?? null)
+        ? $product->default_price
+        : ($product->default_price->id ?? '');
+    if (!$price) {
+        $list = stripe_api('GET', '/v1/prices', ['product' => $productId, 'active' => 'true', 'limit' => 1]);
+        $price = $list->data[0]->id ?? '';
+    }
+    if (!$price) {
+        throw new \RuntimeException("Stripe product {$productId} has no active price — add one in the Dashboard (Products → Pricing) first.");
+    }
+
+    $cache[$productId] = $price;
+    if (!is_dir(dirname($cacheFile))) @mkdir(dirname($cacheFile), 0775, true);
+    @file_put_contents($cacheFile, json_encode($cache, JSON_PRETTY_PRINT), LOCK_EX);
+    return $price;
 }
 
 function stripe_sepa_enabled(): bool {

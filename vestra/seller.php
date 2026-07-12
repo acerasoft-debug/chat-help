@@ -896,6 +896,33 @@ if($tab==='overview'){
     </form>
   </div>
   <div class="panelcard">
+    <?php
+      $msTier   = $u['membership_tier'] ?? '';
+      $msTierLabel = $msTier === 'premium' ? 'Elite' : ($msTier ? ucfirst($msTier) : '—');
+      $msStat   = $u['membership_status'] ?? 'none';
+    ?>
+    <div class="pcfhead"><h3><?= t('Membership') ?></h3>
+      <?= match($msStat){
+        'active'   => '<span class="status offers">✓ '.htmlspecialchars($msTierLabel).' · '.t('Active').'</span>',
+        'trialing' => '<span class="status open">⏳ '.htmlspecialchars($msTierLabel).' · '.t('Trial').'</span>',
+        'past_due' => '<span class="status" style="color:var(--bad)">⚠ '.t('Past due').'</span>',
+        'canceled' => '<span class="status open">✗ '.t('Canceled').'</span>',
+        default    => '<span class="status open">— '.t('No plan yet').'</span>',
+      } ?>
+    </div>
+    <div style="padding:16px 18px">
+      <p class="hint" style="margin:0 0 14px"><?= t('Change your plan, update your payment method, download invoices or cancel — all in the secure Stripe billing portal.') ?></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <?php if (!empty($u['stripe_customer_id'])): ?>
+        <form method="post" action="/stripe/portal">
+          <button class="btn btn-p" type="submit"><?= t('Manage subscription') ?></button>
+        </form>
+        <?php endif; ?>
+        <a class="btn btn-o" href="/membership"><?= t('Compare plans') ?></a>
+      </div>
+    </div>
+  </div>
+  <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Commission card') ?></h3>
       <?= !empty($u['stripe_commission_pm']) ? '<span class="status offers">✓ '.t('On file').'</span>' : '<span class="status open">— '.t('Not added').'</span>' ?>
     </div>

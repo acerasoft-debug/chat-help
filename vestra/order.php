@@ -47,7 +47,9 @@ $seller_fee = round($subtotal*$FEE_SELLER, 2);
 $commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
 $total      = round($subtotal + $buyer_fee, 2);   // what the buyer pays
 $payout     = round($subtotal - $seller_fee, 2);  // what the seller receives
-$ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).count($lines)),0,8));
+/* Ref must be unique per ORDER, not per buyer+items — the same buyer reordering the
+   same goods must get a fresh ref (commission idempotency and status tracking key on it). */
+$ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).microtime(false).bin2hex(random_bytes(4))),0,8));
 
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/orders.csv'; $new=!file_exists($file);
