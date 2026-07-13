@@ -307,6 +307,7 @@ if($tab==='overview'){
       <a class="btn btn-o btn-sm" href="/seller?tab=offers">'.t('Manage offers').'</a>
       <a class="btn btn-o btn-sm" href="/seller?tab=orders">'.t('View orders').'</a>
       <a class="btn btn-o btn-sm" href="/requests">'.t('Browse buyer requests').'</a>
+      <a class="btn btn-o btn-sm" href="/showroom?id='.urlencode($AUTH_USER['id']??'').'" target="_blank">'.t('My showroom').'</a>
     </div></div>';
   if(empty($AUTH_USER['bank_iban'])){
     echo '<div class="banner info">🏦 '.t('Add your bank details so buyers can pay you directly — shown on the automatic PDF invoices your buyers download.').

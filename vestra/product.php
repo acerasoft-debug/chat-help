@@ -86,7 +86,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars($p['sizes']) ?></b></div><?php endif; ?>
         <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
-        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?></b></div>
+        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?><?= !empty($p['seller_uid'])?' · <a class="acc" href="/showroom?id='.urlencode($p['seller_uid']).'">'.t('Showroom →').'</a>':'' ?></b></div>
         <?php elseif(!empty($p['verified'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= t('Verified business') ?> · <?= t('via VESTRA') ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
       </div>
