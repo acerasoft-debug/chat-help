@@ -50,10 +50,11 @@ if ($authed && $_SERVER['REQUEST_METHOD']==='POST') {
             $allowed = ['free','basic','pro','elite'];
             if ($uid<=0 || !in_array($plan,$allowed,true)) throw new Exception('Ungültige Eingabe.');
             if ($plan==='free') {
-                /* free = plan kaydini kaldir (en yeni plan olmasin) */
-                $pdo->prepare('INSERT INTO user_plans (user_id, plan) VALUES (?, ?)')->execute([$uid,'free']);
+                /* 'free' ist kein enum-Wert (basic|pro|elite) → Plan-Zeile entfernen = Free */
+                $pdo->prepare('DELETE FROM user_plans WHERE user_id=?')->execute([$uid]);
             } else {
-                $pdo->prepare('INSERT INTO user_plans (user_id, plan) VALUES (?, ?)')->execute([$uid,$plan]);
+                /* user_plans.user_id ist UNIQUE (Webhook nutzt ON DUPLICATE KEY) → upsert */
+                $pdo->prepare('INSERT INTO user_plans (user_id, plan, status, starts_at) VALUES (?, ?, \'active\', CURDATE()) ON DUPLICATE KEY UPDATE plan=VALUES(plan), status=\'active\'')->execute([$uid,$plan]);
             }
             $msg="Plan aktualisiert: Nutzer #$uid → ".strtoupper($plan);
         }
@@ -80,13 +81,13 @@ if ($authed) {
     try {
         $pdo=db(); $q=trim($_GET['q'] ?? '');
         $sql='SELECT u.id,u.email,u.name,u.email_verified,u.created_at,
-                (SELECT p.plan FROM user_plans p WHERE p.user_id=u.id ORDER BY p.id DESC LIMIT 1) AS plan
+                (SELECT p.plan FROM user_plans p WHERE p.user_id=u.id AND p.status=\'active\' ORDER BY p.id DESC LIMIT 1) AS plan
               FROM users u';
         $args=[];
         if ($q!==''){ $sql.=' WHERE u.email LIKE ? OR u.name LIKE ?'; $args=["%$q%","%$q%"]; }
         $sql.=' ORDER BY u.id DESC LIMIT 300';
         $st=$pdo->prepare($sql); $st->execute($args); $rows=$st->fetchAll();
-        $ct=$pdo->query('SELECT (SELECT p.plan FROM user_plans p WHERE p.user_id=u.id ORDER BY p.id DESC LIMIT 1) AS plan FROM users u');
+        $ct=$pdo->query('SELECT (SELECT p.plan FROM user_plans p WHERE p.user_id=u.id AND p.status=\'active\' ORDER BY p.id DESC LIMIT 1) AS plan FROM users u');
         foreach ($ct as $r){ $pl=$r['plan']?:'free'; if(isset($counts[$pl])) $counts[$pl]++; $total++; }
     } catch (Throwable $e) { $msg='DB-Fehler: '.$e->getMessage(); $msgType='err'; }
 }
