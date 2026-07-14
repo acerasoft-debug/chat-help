@@ -98,6 +98,14 @@ function auth_register(array $d): array|string {
         $promo_data = $pv;
     }
 
+    // Email-verification gate. Default OFF: on hosts where outgoing mail can't be
+    // delivered (blocked SMTP ports + strict domain DMARC), waiting on a click-to-
+    // verify email would lock every new account out forever. Access is still gated
+    // downstream by admin KYB approval (status must reach 'active'). Set
+    // 'require_email_verify' => true in inc/config.php once real email delivery works.
+    require_once __DIR__.'/notify.php';
+    $requireVerify = (bool) vestra_cfg('require_email_verify', false);
+
     $list = auth_accounts();
     $type = in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer';
     $acc  = [
@@ -105,8 +113,8 @@ function auth_register(array $d): array|string {
         'email'          => strtolower(trim($d['email'])),
         'hash'           => password_hash($d['password'], PASSWORD_DEFAULT),
         'type'           => $type,
-        'status'         => 'pending_email',
-        'email_verified' => false,
+        'status'         => $requireVerify ? 'pending_email' : 'pending',
+        'email_verified' => !$requireVerify,
         'email_token'    => bin2hex(random_bytes(16)),
         'name'           => trim($d['name']        ?? ''),
         'company'       => trim($d['company']     ?? ''),
@@ -161,13 +169,17 @@ function auth_register(array $d): array|string {
         "Admin: https://vestrasales.com/admin?tab=users",
         $acc['email']
     );
-    // Send email verification link
-    $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
-    [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
-    $sent = vestra_send_mail($acc['email'], $subj, $body);
-    $acc['verify_sent_at'] = date('c');
-    $acc['verify_sent_ok'] = $sent;
-    auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
+    // Send email verification link only when verification is required. When it's
+    // off, the account is already usable (email_verified=true) so a link would be
+    // pointless — skip it to avoid a dead "check your inbox" wait.
+    if ($requireVerify) {
+        $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
+        [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
+        $sent = vestra_send_mail($acc['email'], $subj, $body);
+        $acc['verify_sent_at'] = date('c');
+        $acc['verify_sent_ok'] = $sent;
+        auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
+    }
     return $acc;
 }
 

@@ -10,7 +10,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $d = $_POST;
     $result = auth_register($d);
     if (is_array($result)) {
-        header('Location: /register?check_email=1'); exit;
+        if (empty($result['email_verified'])) {
+            // Verification required → show the "check your inbox" screen.
+            header('Location: /register?check_email=1'); exit;
+        }
+        // Verification disabled → account is usable now: sign in and take them
+        // straight to the KYC upload step (admin still gates final activation).
+        auth_set($result);
+        auth_touch_login($result['id']);
+        header('Location: '.(($result['type'] ?? '') === 'seller' ? '/seller?tab=kyc' : '/buyer?tab=kyc')); exit;
     }
     $err = $result;
 }

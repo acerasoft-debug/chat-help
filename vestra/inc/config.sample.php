@@ -20,6 +20,12 @@ return [
   // Master switch for outgoing email (false = nothing is sent).
   'mail_enabled' => true,
 
+  // Require a click-to-verify email before a new account can sign in?
+  // Keep FALSE on hosts where outgoing mail can't be delivered (blocked SMTP +
+  // strict domain DMARC) — otherwise every new account is locked out forever.
+  // Access is still gated by admin KYB approval. Set true once real email works.
+  'require_email_verify' => false,
+
   // ── BEST option: transactional email over HTTPS (port 443) ──────────────────
   // Works even when the host blocks outbound SMTP ports (25/465/587). The
   // provider signs mail with its own SPF/DKIM, so it lands in the inbox without
