@@ -18,7 +18,9 @@ function vestra_send_mail($to,$subject,$body,$replyTo=''){
   $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
   $subj='=?UTF-8?B?'.base64_encode($subject).'?=';
-  return @mail($to,$subj,$body,$h);
+  $ok = mail($to,$subj,$body,$h);
+  if(!$ok) error_log("[VESTRA Mail] mail() returned false sending to {$to} — subject: {$subject}");
+  return $ok;
 }
 
 /* notify the operator address(es) configured in inc/config.php */

@@ -241,6 +241,7 @@ return array (
   'I want to' => 'Desidero',
   'IBAN' => 'IBAN',
   'If an account exists for that address, a reset link is on its way. Check your inbox (and spam folder).' => 'Se esiste un account per questo indirizzo, il link di reimpostazione è in arrivo. Controlla la posta (anche lo spam).',
+  'If that account exists and is unverified, we just sent a new verification link. Check your inbox and spam folder.' => 'Se questo account esiste e non è ancora verificato, abbiamo appena inviato un nuovo link di verifica. Controlla la posta (anche lo spam).',
   'Imprint' => 'Note legali',
   'In queue' => 'In coda',
   'Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.' => 'Include una <b>commissione di protezione acquirente del %d%%</b> (verifica + garanzia di autenticità). Il venditore paga separatamente una commissione del %d%%.',

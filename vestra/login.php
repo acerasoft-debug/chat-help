@@ -10,8 +10,16 @@ if (!empty($_SESSION['uid'])) {
     header('Location: '.($a && $a['type']==='seller' ? '/seller' : '/buyer')); exit;
 }
 
-$err = ''; $email_val = ''; $unverified = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$err = ''; $email_val = ''; $unverified = false; $resent = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['resend'] ?? '') === '1') {
+    $email_val = strtolower(trim($_POST['email'] ?? ''));
+    $tkey = 'resend|'.$email_val.'|'.($_SERVER['REMOTE_ADDR'] ?? '');
+    if (!auth_throttled($tkey, 3, 300)) {
+        auth_throttle_hit($tkey);
+        auth_resend_verify($email_val);
+    }
+    $resent = true; // same message whether or not the account exists — avoids leaking account existence
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email_val = strtolower(trim($_POST['email'] ?? ''));
     $tkey = $email_val.'|'.($_SERVER['REMOTE_ADDR'] ?? '');
     if (auth_throttled($tkey)) {
@@ -21,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (is_array($acc)) {
             auth_throttle_clear($tkey);
             auth_set($acc);
+            auth_touch_login($acc['id']);
             $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
             if (!str_starts_with($back, '/')) $back = '/buyer';
             header('Location: '.$back); exit;
@@ -49,7 +58,9 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
     <h2 class="authcard-title"><?= t('Welcome back') ?></h2>
     <p class="authcard-sub"><?= t('Sign in to your wholesale account') ?></p>
 
-    <?php if (isset($_GET['reset'])): ?>
+    <?php if ($resent): ?>
+      <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('If that account exists and is unverified, we just sent a new verification link. Check your inbox and spam folder.') ?></div>
+    <?php elseif (isset($_GET['reset'])): ?>
       <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('Password updated. You can now sign in with your new password.') ?></div>
     <?php elseif (isset($_GET['verified'])): ?>
       <div class="banner" style="background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.3);color:#6dbf7e;margin-bottom:16px"><?= t('Email verified! You can now sign in.') ?></div>
@@ -59,7 +70,11 @@ $PAGE = t('Sign in'); $NAV = ''; require __DIR__.'/inc/head.php';
       <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:16px">
         <?= htmlspecialchars($err) ?>
         <?php if ($unverified): ?>
-          <a href="/register" style="color:var(--acc);display:block;margin-top:6px;font-size:13px"><?= t('Resend verification link →') ?></a>
+          <form method="post" style="margin-top:8px">
+            <input type="hidden" name="resend" value="1">
+            <input type="hidden" name="email" value="<?= htmlspecialchars($email_val) ?>">
+            <button type="submit" style="background:none;border:none;padding:0;color:var(--acc);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline"><?= t('Resend verification link →') ?></button>
+          </form>
         <?php endif; ?>
       </div>
     <?php endif; ?>

@@ -68,12 +68,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $uid=$_POST['uid']??'';
     foreach(auth_accounts() as $a){
       if(($a['id']??'')!==$uid) continue;
-      if(($a['status']??'')==='pending_email' && !empty($a['email_token'])){
-        require_once __DIR__.'/inc/notify.php';
-        $lang=substr($a['lang']??'en',0,2);
-        [$subj,$body]=vestra_verify_text($lang,$a['name']?:($a['company']?:'there'),$a['email_token']);
-        vestra_send_mail($a['email'],$subj,$body);
-      }
+      auth_resend_verify($a['email']??'');
       break;
     }
     header('Location: /admin?tab=users&msg=verify_resent'); exit;
@@ -790,7 +785,7 @@ function ufilter(){
 <?php else: ?>
 <div class="acard">
 <div class="atscroll"><table class="atable">
-  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Email','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
+  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Verification','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
   <?php $i=count($shown); foreach($shown as $a):
     $isSusp=($a['status']??'active')==='suspended';
     $isPendEmail=($a['status']??'')==='pending_email';
@@ -809,9 +804,18 @@ function ufilter(){
     <td class="ac">
       <?php if($isPendEmail): ?>
         <?= abadge('⚠ Unverified','#ef9a9a') ?>
-        <div style="display:flex;gap:3px;margin-top:4px">
+        <?php if(!empty($a['verify_sent_at'])):
+          $sentOk = $a['verify_sent_ok'] ?? true;
+        ?>
+          <div class="ahint" style="margin-top:2px;<?= $sentOk?'':'color:#ef9a9a' ?>">
+            <?= $sentOk?'✓ sent':'⚠ send failed' ?> <?= htmlspecialchars(date('d.m H:i',strtotime($a['verify_sent_at']))) ?>
+          </div>
+        <?php endif; ?>
+        <div style="display:flex;gap:3px;margin-top:4px;flex-wrap:wrap">
           <?= fBtn('Resend','resend_verify',['uid'=>$a['id']??''],'font-size:11px') ?>
           <?= fBtn('Force verify','manual_verify',['uid'=>$a['id']??''],'font-size:11px;color:var(--ok);border-color:rgba(122,214,160,.4)','Force-verify email for this account?') ?>
+          <button type="button" class="abtn" style="font-size:11px" title="Copy the verification link to send manually (WhatsApp, SMS…) if email delivery is unreliable"
+            onclick="navigator.clipboard.writeText('https://vestrasales.com/verify?token=<?= htmlspecialchars($a['email_token']??'',ENT_QUOTES) ?>');this.textContent='✓ Copied'">🔗 Copy link</button>
         </div>
       <?php elseif(!empty($a['email_verified'])): ?>
         <?= abadge('✓ Verified','#7ad6a0') ?>
@@ -837,7 +841,10 @@ function ufilter(){
       <?= $docSummary ?>
       <?php if($uploaded>0): ?><div><?= abadge("$uploaded to review",'#c9a86a') ?></div><?php endif; ?>
     </td>
-    <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($a['created']??'',0,10)) ?></td>
+    <td class="ac" style="font-size:11px;color:var(--mut)">
+      <?= htmlspecialchars(substr($a['created']??'',0,10)) ?>
+      <?php if(!empty($a['last_login'])): ?><div class="ahint" style="margin-top:2px">Last in: <?= htmlspecialchars(substr($a['last_login'],0,10)) ?></div><?php endif; ?>
+    </td>
     <td class="ac"><div style="display:flex;gap:4px;flex-wrap:wrap">
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
       <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp&&!$isPendEmail): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>

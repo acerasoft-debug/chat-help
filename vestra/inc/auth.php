@@ -54,15 +54,34 @@ function auth_logout(): void {
     unset($_SESSION['uid'], $_SESSION['member'], $_SESSION['utype']);
 }
 
+/* Resend the verification email for a pending_email account and record the
+ * attempt (verify_sent_at/verify_sent_ok) so admins can see whether it went
+ * out. Shared by register.php's "already registered" path, login.php's
+ * one-click resend, and the admin panel's Resend button. Returns false
+ * silently for unknown/already-verified emails — callers must not use the
+ * return value to reveal account existence. */
+function auth_resend_verify(string $email): bool {
+    $acc = auth_find($email);
+    if (!$acc || ($acc['status'] ?? '') !== 'pending_email' || empty($acc['email_token'])) return false;
+    require_once __DIR__.'/notify.php';
+    $lang = substr($acc['lang'] ?? ($_COOKIE['vlang'] ?? 'en'), 0, 2);
+    [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: ($acc['company'] ?: 'there'), $acc['email_token']);
+    $sent = vestra_send_mail($acc['email'], $subj, $body);
+    auth_update($acc['id'], ['verify_sent_at' => date('c'), 'verify_sent_ok' => $sent]);
+    return true;
+}
+
+/* Record the timestamp of a successful login (shown in the admin Users tab). */
+function auth_touch_login(string $id): void {
+    auth_update($id, ['last_login' => date('c')]);
+}
+
 function auth_register(array $d): array|string {
     $existing = auth_find($d['email'] ?? '');
     if ($existing) {
         // Account exists but email not verified → resend link instead of hard error
         if (($existing['status'] ?? '') === 'pending_email' && !empty($existing['email_token'])) {
-            require_once __DIR__.'/notify.php';
-            $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
-            [$subj, $body] = vestra_verify_text($lang, $existing['name'] ?: ($existing['company'] ?: 'there'), $existing['email_token']);
-            vestra_send_mail($existing['email'], $subj, $body);
+            auth_resend_verify($existing['email']);
             return 'email_pending_verify';
         }
         return 'email_taken';
@@ -145,7 +164,10 @@ function auth_register(array $d): array|string {
     // Send email verification link
     $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
     [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
-    vestra_send_mail($acc['email'], $subj, $body);
+    $sent = vestra_send_mail($acc['email'], $subj, $body);
+    $acc['verify_sent_at'] = date('c');
+    $acc['verify_sent_ok'] = $sent;
+    auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
     return $acc;
 }
 
