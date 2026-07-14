@@ -9,13 +9,22 @@ function vestra_cfg($k,$def=null){
   return array_key_exists($k,$c) ? $c[$k] : $def;
 }
 
-/* low-level: send one UTF-8 plain-text email.
- * Uses authenticated SMTP when smtp_host is configured (recommended — avoids
- * the shared server's local mail() needing SPF/DKIM alignment with the
- * sending domain). Falls back to local mail() otherwise. */
+/* low-level: send one UTF-8 plain-text email. Transport priority:
+ *   1) HTTP API (mail_api_key set) — sends over HTTPS/443, which shared hosts
+ *      leave open even when they block outbound SMTP ports (25/465/587). Best
+ *      deliverability: the provider signs with its own SPF/DKIM. RECOMMENDED.
+ *   2) Authenticated SMTP (smtp_host set) — needs an outbound SMTP port open.
+ *   3) Local mail() — only lands in inboxes if the domain's SPF/DKIM authorize
+ *      this server's IP.
+ */
 function vestra_send_mail($to,$subject,$body,$replyTo=''){
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
+  if(vestra_cfg('mail_api_key','')!==''){
+    $ok = vestra_api_send($to,$subject,$body,$replyTo);
+    if(!$ok) error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
+    return $ok;
+  }
   if(vestra_cfg('smtp_host','')!==''){
     $ok = vestra_smtp_send($to,$subject,$body,$replyTo);
     if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
@@ -74,6 +83,50 @@ function vestra_smtp_send($to,$subject,$body,$replyTo=''){
   $cmd('QUIT');
   fclose($fp);
   return strpos($r,'250')!==false;
+}
+
+/* Send via a transactional-email HTTP API (over HTTPS/443, no SMTP port needed).
+ * Config: mail_api_provider ('brevo' default | 'resend'), mail_api_key,
+ *         mail_from (verified sender address), smtp_name (display name).
+ * Returns true on a 2xx from the provider. */
+function vestra_api_send($to,$subject,$body,$replyTo=''){
+  $provider=strtolower((string)vestra_cfg('mail_api_provider','brevo'));
+  $key=(string)vestra_cfg('mail_api_key','');
+  $from=(string)vestra_cfg('mail_from','support@vestrasales.com');
+  $name=(string)vestra_cfg('smtp_name','VESTRA');
+  if($key===''||$from===''){ error_log('[VESTRA API] mail_api_key or mail_from missing'); return false; }
+
+  if($provider==='resend'){
+    $url='https://api.resend.com/emails';
+    $headers=['Authorization: Bearer '.$key,'Content-Type: application/json'];
+    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body];
+    if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['reply_to']=$replyTo;
+  } else { // brevo (default)
+    $url='https://api.brevo.com/v3/smtp/email';
+    $headers=['api-key: '.$key,'Content-Type: application/json','Accept: application/json'];
+    $payload=[
+      'sender'=>['name'=>$name,'email'=>$from],
+      'to'=>[['email'=>$to]],
+      'subject'=>$subject,
+      'textContent'=>$body,
+    ];
+    if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
+  }
+
+  $ch=curl_init($url);
+  curl_setopt_array($ch,[
+    CURLOPT_RETURNTRANSFER=>true,
+    CURLOPT_POST=>true,
+    CURLOPT_HTTPHEADER=>$headers,
+    CURLOPT_POSTFIELDS=>json_encode($payload,JSON_UNESCAPED_UNICODE),
+    CURLOPT_TIMEOUT=>20,
+  ]);
+  $resp=curl_exec($ch);
+  if($resp===false){ error_log('[VESTRA API] curl error: '.curl_error($ch)); curl_close($ch); return false; }
+  $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+  if($code>=200 && $code<300) return true;
+  error_log("[VESTRA API] {$provider} HTTP {$code}: ".substr((string)$resp,0,300));
+  return false;
 }
 
 /* notify the operator address(es) configured in inc/config.php */
