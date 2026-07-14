@@ -1,45 +1,40 @@
 <?php
-/** ChatHelp — dump-plans (SADECE OKUR) — plan/fiyat/Stripe/kota altyapisini haritalar.
- *  Faz-2 plan yapisi (Basic 13,99 / Pro 29,99 / Elite 99,99) icin: mevcut plan
- *  isimleri, fiyat metinleri, Stripe price id/link'leri, kota sabitleri, plan
- *  gate'leri (nerede 'pro'/'elite'/'basic'/'free' kontrol ediliyor) nerede?
- *  Ciktinin TAMAMINI gonder. */
+/** ChatHelp — dump-plans (SADECE OKUR) — plan/Stripe akisi: fiyat modali (#pm),
+ *  plan butonlari + onclick, Stripe checkout cagrisi (stripe-checkout.php),
+ *  sozlesme "kaufen" butonu (gBuy). Hassas maskeli. TAMAMINI gonder. */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
-@set_time_limit(60);
-$D=__DIR__;
-
-function win($src,$needle,$pre,$post,$label,$max=6){
+function mask($s){ return preg_replace('/(sk_live_|sk_test_|whsec_|price_)[A-Za-z0-9_]+/','$1***',$s); }
+$idx=(string)@file_get_contents(__DIR__.'/index.php');
+$sc=(string)@file_get_contents(__DIR__.'/stripe-checkout.php');
+function raw($src,$needle,$pre,$len,$label,$max=8){
     echo "\n──────── $label ('$needle') ────────\n";
-    $off=0;$n=0;
+    $off=0;$n=0;$tot=substr_count($src,$needle);
     while(($p=strpos($src,$needle,$off))!==false && $n<$max){
-        $s=max(0,$p-$pre);
-        echo "[@$p] ".preg_replace('/[ \t]+/',' ',substr($src,$s,$pre+$post+strlen($needle)))."\n────\n";
+        echo "[@$p] ".str_replace("\n","⏎",mask(substr($src,max(0,$p-$pre),$len)))."\n\n";
         $off=$p+strlen($needle);$n++;
     }
-    if(!$n) echo "(yok)\n";
-    $tot=substr_count($src,$needle); if($tot>$max) echo "(toplam $tot)\n";
+    if(!$n) echo "(YOK)\n"; echo "(toplam $tot)\n";
 }
+echo "════════ [1] index.php — plan/fiyat UI + stripe cagrisi ════════\n";
+raw($idx,'stripe-checkout',-120,180,'stripe-checkout cagrisi',8);
+raw($idx,'function openPlans',-20,200,'openPlans',3);
+raw($idx,'function showPlans',-20,200,'showPlans',3);
+raw($idx,'function cPM',-20,120,'cPM (pricing modal)',2);
+raw($idx,'openPM',-40,120,'openPM',6);
+raw($idx,'data-plan',-60,120,'data-plan butonlari',8);
+raw($idx,'checkout',-60,120,'checkout genel',12);
+raw($idx,'in Kürze',-120,60,'in Kurze (placeholder buton)',6);
+raw($idx,'gBuy',-40,140,'gBuy (sozlesme kaufen)',6);
+raw($idx,'chBuy',-40,140,'chBuy',8);
+raw($idx,'plan_select',-40,120,'plan_select',5);
 
-foreach (['index.php','api.php','fall-api.php'] as $f) {
-    $src=(string)@file_get_contents("$D/$f");
-    if($src==='') { echo "=== $f: YOK/BOS ===\n"; continue; }
-    echo "\n════════════════ $f (".number_format(strlen($src))." B) ════════════════\n";
-    win($src,'13,99',60,80,'fiyat 13,99',4);
-    win($src,'29,99',60,80,'fiyat 29,99',4);
-    win($src,'99,99',60,80,'fiyat 99,99',4);
-    win($src,'Basic',20,80,'Basic gecisleri',5);
-    win($src,'Elite',20,80,'Elite gecisleri',5);
-    win($src,'price_',10,60,'Stripe price_ id',6);
-    win($src,'buy.stripe',10,90,'Stripe payment link',6);
-    win($src,'FALL_QUOTA',10,120,'Fall kota sabiti',3);
-    win($src,'basic5',10,80,'kota basic5/pro20/elite',4);
-    win($src,'40',0,0,'—atla—',0); /* gurultuyu onle */
+echo "\n════════ [2] stripe-checkout.php (".strlen($sc)." bayt) ════════\n";
+if($sc===''){ echo "stripe-checkout.php OKUNAMADI/YOK\n"; }
+else {
+  raw($sc,'price',-40,120,'price / plan tanimlari',14);
+  raw($sc,'mode',-30,90,'mode (subscription/payment)',6);
+  raw($sc,'$_',-20,80,'girdi parametreleri',12);
+  raw($sc,'checkout/sessions',-60,120,'session olusturma',3);
 }
-
-/* stripe dosyalari var mi */
-echo "\n════════ Stripe dosyalari ════════\n";
-foreach (['stripe-checkout.php','stripe-webhook.php','checkout.php','buy.php'] as $f)
-    echo "  ".($f).": ".(is_file("$D/$f")?number_format(filesize("$D/$f"))." B":"yok")."\n";
-
 echo "\n════════ BITTI. Ciktinin TAMAMINI gonder. ════════\n";
