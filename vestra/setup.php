@@ -11,7 +11,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $content = "<?php\nreturn [\n".
       "  'admin_pass'   => ".var_export($pass,true).",\n".
       "  'notify'       => [".var_export($notify,true)."],\n".
-      "  'mail_from'    => 'support@vestrasales.com',\n".
+      "  'mail_from'    => 'register@vestrasales.com',\n".
       "  'confirm_user' => true,\n".
       "  'mail_enabled' => true,\n".
       "];\n";

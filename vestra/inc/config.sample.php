@@ -12,7 +12,7 @@ return [
   'notify'       => ['acerasoft@gmail.com', 'support@vestrasales.com'],
 
   // From address for outgoing mail — use a real mailbox on your domain.
-  'mail_from'    => 'support@vestrasales.com',
+  'mail_from'    => 'register@vestrasales.com',
 
   // Send an automatic acknowledgement email to the person who registers / orders.
   'confirm_user' => true,
