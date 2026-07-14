@@ -9,10 +9,18 @@ function vestra_cfg($k,$def=null){
   return array_key_exists($k,$c) ? $c[$k] : $def;
 }
 
-/* low-level: send one UTF-8 plain-text email */
+/* low-level: send one UTF-8 plain-text email.
+ * Uses authenticated SMTP when smtp_host is configured (recommended — avoids
+ * the shared server's local mail() needing SPF/DKIM alignment with the
+ * sending domain). Falls back to local mail() otherwise. */
 function vestra_send_mail($to,$subject,$body,$replyTo=''){
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
+  if(vestra_cfg('smtp_host','')!==''){
+    $ok = vestra_smtp_send($to,$subject,$body,$replyTo);
+    if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
+    return $ok;
+  }
   $from=vestra_cfg('mail_from','support@vestrasales.com');
   $h ="From: VESTRA <{$from}>\r\n";
   $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
@@ -21,6 +29,51 @@ function vestra_send_mail($to,$subject,$body,$replyTo=''){
   $ok = mail($to,$subj,$body,$h);
   if(!$ok) error_log("[VESTRA Mail] mail() returned false sending to {$to} — subject: {$subject}");
   return $ok;
+}
+
+/* Dependency-free authenticated SMTP (STARTTLS + AUTH LOGIN) — no PHPMailer/composer.
+ * Config: smtp_host, smtp_port (default 587), smtp_user, smtp_pass, smtp_from, smtp_name. */
+function vestra_smtp_send($to,$subject,$body,$replyTo=''){
+  $host=vestra_cfg('smtp_host',''); $port=(int)vestra_cfg('smtp_port',587);
+  $user=vestra_cfg('smtp_user',''); $pass=vestra_cfg('smtp_pass','');
+  $from=vestra_cfg('smtp_from',$user); $name=vestra_cfg('smtp_name','VESTRA');
+  if($host===''||$user===''||$pass===''||$from===''){ error_log('[VESTRA SMTP] smtp_host set but user/pass/from missing'); return false; }
+
+  $fp=@fsockopen($host,$port,$errno,$errstr,15);
+  if(!$fp){ error_log("[VESTRA SMTP] connect failed: {$errstr} ({$errno})"); return false; }
+  stream_set_timeout($fp,15);
+
+  $read=function() use ($fp){
+    $data=''; while(($line=fgets($fp,515))!==false){ $data.=$line; if(isset($line[3])&&$line[3]===' ') break; } return $data;
+  };
+  $cmd=function($c) use ($fp,$read){ fwrite($fp,$c."\r\n"); return $read(); };
+
+  $read(); // greeting
+  $cmd('EHLO vestrasales.com');
+  $r=$cmd('STARTTLS');
+  if(strpos($r,'220')===false || !@stream_socket_enable_crypto($fp,true,STREAM_CRYPTO_METHOD_TLS_CLIENT)){
+    fclose($fp); error_log('[VESTRA SMTP] STARTTLS failed'); return false;
+  }
+  $cmd('EHLO vestrasales.com');
+  $cmd('AUTH LOGIN');
+  $cmd(base64_encode($user));
+  $r=$cmd(base64_encode($pass));
+  if(strpos($r,'235')===false){ fclose($fp); error_log('[VESTRA SMTP] AUTH LOGIN rejected — check smtp_user/smtp_pass'); return false; }
+
+  $cmd('MAIL FROM:<'.$from.'>');
+  $r=$cmd('RCPT TO:<'.$to.'>');
+  if(strpos($r,'250')===false){ fclose($fp); error_log("[VESTRA SMTP] RCPT TO rejected: {$to}"); return false; }
+  $cmd('DATA');
+
+  $h ="From: {$name} <{$from}>\r\nTo: <{$to}>\r\n";
+  $h.='Subject: =?UTF-8?B?'.base64_encode($subject)."?=\r\n";
+  $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
+  if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
+  $escapedBody=preg_replace('/^\./m','..',$body); // SMTP dot-stuffing
+  $r=$cmd($h."\r\n".$escapedBody."\r\n.");
+  $cmd('QUIT');
+  fclose($fp);
+  return strpos($r,'250')!==false;
 }
 
 /* notify the operator address(es) configured in inc/config.php */
