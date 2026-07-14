@@ -380,7 +380,7 @@
       2 => 
       array (
         'q' => 'Gibt es Mitgliedschafts- oder Abonnementgebühren?',
-        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — 10 Angebote/Monat; Pro €39 — 100 Angebote/Monat; Elite €89 — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
+        'a' => 'Für Käufer: nie. Für Verkäufer: Das Veröffentlichen von Angeboten erfordert einen aktiven Mitgliedschaftsplan (Starter €19,90 — 10 Angebote/Monat; Pro €39,90 — 100 Angebote/Monat; Elite €89,90 — unbegrenzte Angebote; jeweils nach 30 Tagen kostenloser Testphase). Die Pläne finden Sie auf der Mitgliedschaftsseite.',
       ),
       3 => 
       array (

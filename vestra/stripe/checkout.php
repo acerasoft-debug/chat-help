@@ -2,8 +2,8 @@
 /**
  * VESTRA — Stripe Checkout session creator.
  * POST /stripe/checkout  (body: tier=starter|pro|premium)
- * Creates a subscription session: 30-day trial + 89 € one-time onboarding.
- * Day 0 charge = 89 € only; monthly subscription starts on day 30.
+ * Creates a subscription session: 30-day trial + 89,90 € one-time onboarding.
+ * Day 0 charge = 89,90 € only; monthly subscription starts on day 30.
  */
 require_once __DIR__ . '/../inc/i18n.php';
 require_once __DIR__ . '/../inc/auth.php';

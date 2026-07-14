@@ -380,7 +380,7 @@
       2 => 
       array (
         'q' => 'Sono previste quote di abbonamento o piani tariffari?',
-        'a' => 'Per gli acquirenti: mai. Per i venditori: pubblicare annunci richiede un abbonamento attivo (Starter €19,90 — 10 annunci/mese; Pro €39 — 100 annunci/mese; Elite €89 — annunci illimitati; in tutti i casi dopo 30 giorni di prova gratuita). I piani sono illustrati nella pagina Abbonamento.',
+        'a' => 'Per gli acquirenti: mai. Per i venditori: pubblicare annunci richiede un abbonamento attivo (Starter €19,90 — 10 annunci/mese; Pro €39,90 — 100 annunci/mese; Elite €89,90 — annunci illimitati; in tutti i casi dopo 30 giorni di prova gratuita). I piani sono illustrati nella pagina Abbonamento.',
       ),
       3 => 
       array (

@@ -190,7 +190,7 @@ function vestra_faq_en(){
     ['q'=>'What is the seller commission?',
      'a'=>'VESTRA charges sellers a commission on each paid order\'s goods value, charged automatically to the card on file — 3.5% on Starter, 3.2% on Pro, 2.8% on Elite. This is separate from — and in addition to — the monthly membership plan.'],
     ['q'=>'Are there any membership or subscription fees?',
-     'a'=>'For buyers: never. For sellers: publishing listings requires an active membership plan (Starter €19.90 — 10 listings/month; Pro €39 — 100 listings/month; Elite €89 — unlimited listings; all after a 30-day free trial). Plans are shown on the Membership page.'],
+     'a'=>'For buyers: never. For sellers: publishing listings requires an active membership plan (Starter €19.90 — 10 listings/month; Pro €39.90 — 100 listings/month; Elite €89.90 — unlimited listings; all after a 30-day free trial). Plans are shown on the Membership page.'],
     ['q'=>'Are platform fees refundable?',
      'a'=>'Membership fees are non-refundable except where required by law — you can cancel anytime and keep access until the end of the paid period. Goods payments go directly to the seller; refunds for goods are handled through the order dispute process.'],
   ]],

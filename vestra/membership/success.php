@@ -36,7 +36,7 @@ body{ background:#15171C }
     <p><?= sprintf(t('You are on the <strong>%s</strong> plan.'), ucfirst($tier)) ?></p>
     <?php endif; ?>
     <p><?= t('Your 30-day free trial has started. Your first charge will be in 30 days.') ?></p>
-    <p><?= t('Your card has been charged 89 € for the one-time onboarding fee.') ?></p>
+    <p><?= t('Your card has been charged 89,90 € for the one-time onboarding fee.') ?></p>
   </div>
 
   <p class="sucline" style="font-size:13px;color:#6F6A61"><?= t('Your verified-seller badge will appear once our team completes the onboarding review — usually within 1 business day.') ?></p>

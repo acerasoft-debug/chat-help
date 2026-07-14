@@ -380,7 +380,7 @@
       2 => 
       array (
         'q' => 'Existe-t-il des frais d\'abonnement ou d\'adhésion ?',
-        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — 10 annonces/mois ; Pro 39 € — 100 annonces/mois ; Elite 89 € — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
+        'a' => 'Pour les acheteurs : jamais. Pour les vendeurs : publier des annonces nécessite un abonnement actif (Starter 19,90 € — 10 annonces/mois ; Pro 39,90 € — 100 annonces/mois ; Elite 89,90 € — annonces illimitées ; après 30 jours d\'essai gratuit dans tous les cas). Les formules sont détaillées sur la page Abonnement.',
       ),
       3 => 
       array (

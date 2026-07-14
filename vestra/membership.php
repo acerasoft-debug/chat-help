@@ -120,7 +120,7 @@ body{ background:#15171C }
     <div class="mcard featured">
       <div class="mpop"><?= t('Most popular') ?></div>
       <div class="mname"><?= t('Pro') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">39</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">39,90</span><span class="per"><?= t('/month') ?></span></div>
       <div class="mtrial">✓ <?= t('1 month free') ?></div>
       <div class="mdiv"></div>
       <ul class="mfeatures">
@@ -152,7 +152,7 @@ body{ background:#15171C }
     <!-- ── ELITE (internal tier key stays "premium" — Stripe/account data untouched) ── -->
     <div class="mcard">
       <div class="mname"><?= t('Elite') ?></div>
-      <div class="mprice"><span class="cur">€</span><span class="amt">89</span><span class="per"><?= t('/month') ?></span></div>
+      <div class="mprice"><span class="cur">€</span><span class="amt">89,90</span><span class="per"><?= t('/month') ?></span></div>
       <div class="mtrial">✓ <?= t('1 month free') ?></div>
       <div class="mdiv"></div>
       <ul class="mfeatures">
@@ -182,7 +182,7 @@ body{ background:#15171C }
 
   </div><!-- /mtiers -->
 
-  <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
+  <p class="mfoot"><?= t('<b>One-time onboarding &amp; verification 89,90 €</b> · 1 month free · Buyers free · excl. VAT') ?></p>
   <p class="mfoot"><?= t('<b>Commission is charged automatically</b> to your card on file when payment arrives — no invoicing, no manual transfers. The rate depends on your plan (shown above) and drops as you upgrade.') ?></p>
 
   <?php if (!$isLoggedInSeller): ?>

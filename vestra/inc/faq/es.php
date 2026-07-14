@@ -380,7 +380,7 @@
       2 => 
       array (
         'q' => '¿Existen cuotas de membresía o suscripción?',
-        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — 10 anuncios/mes; Pro 39 € — 100 anuncios/mes; Elite 89 € — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
+        'a' => 'Para compradores: nunca. Para vendedores: publicar anuncios requiere una membresía activa (Starter 19,90 € — 10 anuncios/mes; Pro 39,90 € — 100 anuncios/mes; Elite 89,90 € — anuncios ilimitados; en todos los casos tras 30 días de prueba gratuita). Los planes están en la página de Membresía.',
       ),
       3 => 
       array (
