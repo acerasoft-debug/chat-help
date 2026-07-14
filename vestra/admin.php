@@ -77,6 +77,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['email_verified'=>true,'email_token'=>'','status'=>'pending']);
     header('Location: /admin?tab=users&msg=manual_verified'); exit;
   }
+  if($act==='reset_password'){
+    // Admin-assisted reset for when email delivery is unavailable: generate a
+    // strong temporary password, set it, and flash it once so the admin can
+    // relay it to the account holder out-of-band. The plaintext is never stored.
+    $uid=$_POST['uid']??'';
+    $acc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $acc=$a; break; } }
+    if($acc){
+      $temp=bin2hex(random_bytes(5)).'-'.random_int(10,99); // 12-char, easy to read
+      if(auth_set_password($uid,$temp)){
+        $_SESSION['pw_reset_flash']=['email'=>$acc['email']??'','pw'=>$temp];
+      }
+    }
+    header('Location: /admin?tab=users&msg=pw_reset'); exit;
+  }
   if($act==='grant_badge'){
     auth_update($_POST['uid']??'',['verified_badge'=>true,'verification_status'=>'verified']);
     header('Location: /admin?tab=users&msg=badge_granted'); exit;
@@ -486,7 +500,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <!-- MAIN -->
 <main class="amain">
 
-<?php if($msg && isset($msgs[$msg])): ?>
+<?php if($msg==='pw_reset' && !empty($_SESSION['pw_reset_flash'])):
+  $flash=$_SESSION['pw_reset_flash']; unset($_SESSION['pw_reset_flash']); // show once ?>
+<div class="amsg ok" style="background:rgba(201,168,106,.1);border:1px solid rgba(201,168,106,.4)">
+  🔑 New password for <b><?= htmlspecialchars($flash['email']) ?></b>:
+  <code style="font-size:15px;background:#000;padding:3px 10px;border-radius:6px;color:#c9a86a;user-select:all"><?= htmlspecialchars($flash['pw']) ?></code>
+  &nbsp;— copy it now and send it to them (WhatsApp / phone). It won't be shown again; they can change it after signing in.
+</div>
+<?php elseif($msg && isset($msgs[$msg])): ?>
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
 <?php elseif($msg==='lead_import'): ?>
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
@@ -848,6 +869,7 @@ function ufilter(){
     <td class="ac"><div style="display:flex;gap:4px;flex-wrap:wrap">
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
       <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp&&!$isPendEmail): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>
+      <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>
     </div></td>
   </tr>
