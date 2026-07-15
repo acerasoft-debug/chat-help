@@ -32,6 +32,25 @@ if (!$allowed) { header('Location: /login?back='.urlencode('/order-confirm?ref='
 $ld = vestra_order_lines($orderRow);
 $lines = $ld['lines'];
 
+/* Escrow: if the buyer just returned from Stripe (paid=1) but the webhook hasn't
+   marked the order held yet — e.g. connected-account events aren't enabled — verify
+   the Checkout Session directly and fulfil it here. Makes escrow reliable without
+   depending on webhook delivery. */
+require_once __DIR__.'/inc/escrow.php';
+$escrow = escrow_get($ref);
+if ($escrow && ($escrow['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
+    require_once __DIR__.'/inc/stripe.php';
+    try {
+        $sess = stripe_api('GET', '/v1/checkout/sessions/'.$escrow['session_id'], [], $escrow['acct_id']);
+        if (($sess->payment_status ?? '') === 'paid') {
+            $pi  = is_string($sess->payment_intent ?? null) ? $sess->payment_intent : ($sess->payment_intent->id ?? '');
+            $rec = escrow_mark_paid($ref, $pi);
+            if ($rec) { escrow_fulfill($rec); $escrow = escrow_get($ref); }
+        }
+    } catch (\Throwable $e) { error_log('[VESTRA Escrow] confirm reconcile failed '.$ref.': '.$e->getMessage()); }
+}
+$isEscrow = $escrow && in_array($escrow['status'] ?? '', ['held','released','refunded'], true);
+
 /* Group goods per seller — mirrors the per-seller invoice grouping in order.php */
 $bySeller = [];
 foreach ($lines as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
@@ -55,11 +74,18 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
       · <?= t('A confirmation email is on its way to') ?> <b><?= htmlspecialchars($orderRow['email'] ?? '') ?></b></p>
   </div>
 
+  <?php if ($isEscrow): ?>
+  <div class="banner ok" style="margin:22px 0;font-size:13.5px">
+    🛡️ <b><?= t('Paid — your money is protected in escrow.') ?></b>
+    <?= t('The seller ships your goods; the funds are released to them only after you confirm delivery under My orders. If anything goes wrong before then, open a dispute for a full refund.') ?>
+  </div>
+  <?php else: ?>
   <div class="banner info" style="margin:22px 0;font-size:13.5px">
     <b>1.</b> <?= t('Your PDF invoice(s) are ready below.') ?> ·
     <b>2.</b> <?= t('Pay by bank transfer to the seller account shown on each invoice.') ?> ·
     <b>3.</b> <?= t('Goods ship as soon as payment arrives — you can track everything under My orders.') ?>
   </div>
+  <?php endif; ?>
 
   <?php foreach ($bySeller as $sid => $sellerLines):
     $acc   = $sid !== 'vestra' ? ($accById[$sid] ?? null) : null;
@@ -88,7 +114,12 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
         </div>
       <?php endforeach; ?>
 
-      <?php if ($hasBank): ?>
+      <?php if ($isEscrow): ?>
+      <div style="margin-top:14px;background:rgba(122,214,160,.06);border:1px solid rgba(122,214,160,.3);border-radius:10px;padding:14px 16px">
+        <div style="font-weight:600;color:var(--ok)">🛡️ <?= t('Paid via secure escrow') ?> — <?= eur($goods) ?></div>
+        <div class="hint" style="margin-top:6px"><?= t('These funds are held safely. Confirm delivery under My orders to release them to the seller.') ?></div>
+      </div>
+      <?php elseif ($hasBank): ?>
       <div style="margin-top:14px;background:rgba(201,168,106,.05);border:1px solid rgba(201,168,106,.25);border-radius:10px;padding:14px 16px">
         <div style="font-weight:600;margin-bottom:8px">🏦 <?= t('Payment details — bank transfer') ?></div>
         <table style="font-size:13px;border-collapse:collapse">
