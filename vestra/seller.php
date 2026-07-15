@@ -903,6 +903,13 @@ if($tab==='overview'){
     require_once __DIR__.'/inc/stripe.php';
     $connSt = (stripe_available() && !empty($u['stripe_account_id'])) ? stripe_connect_status($u) : ['connected' => false];
     $connReady = !empty($connSt['ready']);
+    /* Cache escrow readiness (can this seller receive a direct charge?) so the
+       cart can offer escrow without an API call — refreshed on every profile view,
+       which also covers the return from Connect onboarding before any webhook. */
+    if (!empty($connSt['connected'])) {
+      $ready = !empty($connSt['charges_enabled']);
+      if (($u['escrow_ready'] ?? null) !== $ready) { auth_update($u['id'], ['escrow_ready'=>$ready]); $u['escrow_ready']=$ready; }
+    }
   ?>
   <div class="panelcard">
     <div class="pcfhead"><h3><?= t('Payouts &amp; Escrow (Stripe)') ?></h3>

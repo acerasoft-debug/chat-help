@@ -54,6 +54,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         $st[$ref]['history'][] = vestra_order_history_entry('completed', 'buyer');
         vestra_write_json('order_statuses.json', $st);
+        /* Escrow: confirming receipt RELEASES the held funds to the seller. */
+        require_once __DIR__.'/inc/escrow.php';
+        $esc = escrow_get($ref);
+        if ($esc && ($esc['status']??'')==='held') {
+            $rel = escrow_do_release($ref);
+            if (!$rel['ok']) error_log('[VESTRA Escrow] buyer-confirm release failed '.$ref.': '.$rel['msg']);
+        }
         /* Notify admin + seller */
         require_once __DIR__.'/inc/notify.php';
         $buyerName = ($orderRow['name']?:$orderRow['company']?:'');

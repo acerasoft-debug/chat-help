@@ -9,6 +9,7 @@ require_once __DIR__.'/inc/leads.php';
 require_once __DIR__.'/inc/notify.php';
 require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/commission.php';
+require_once __DIR__.'/inc/escrow.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -148,6 +149,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       }
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
+  }
+  /* Escrow dispute resolution — force-release the held funds to the seller, or
+     refund the buyer in full (cancels the sale, claws the commission back). */
+  if($act==='escrow_release'){
+    $r=escrow_do_release($_POST['ref']??'');
+    header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_released':'esc_err')); exit;
+  }
+  if($act==='escrow_refund'){
+    $r=escrow_do_refund($_POST['ref']??'');
+    header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_refunded':'esc_err')); exit;
   }
   if($act==='create_promo'){ promo_create($_POST); header('Location: /admin?tab=marketing&msg=promo_ok'); exit; }
   if($act==='delete_promo'){
@@ -433,6 +444,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
+    'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
@@ -897,7 +909,7 @@ elseif($tab==='orders'):
 <?php if(!$orders): ?><div class="acard"><div class="aempty">No orders yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Update'],true) ?>
+  <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Escrow','Update'],true) ?>
   <?php foreach(array_reverse($orders) as $o):
     $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
   <tr>
@@ -922,6 +934,19 @@ elseif($tab==='orders'):
           default=>abadge('—','#555'),
         } ?><br>
       <?php endforeach; endif; ?>
+    </td>
+    <td class="ac" style="font-size:11px">
+      <?php $er=escrow_get($ref); if(!$er): ?><span style="color:var(--mut)">—</span>
+      <?php else: ?>
+        <?= escrow_badge($er['status']??'') ?>
+        <?php if(!empty($er['disputed'])): ?><div style="color:#f0c060;margin-top:2px">⚠ <?= htmlspecialchars(mb_substr((string)($er['dispute_reason']??'disputed'),0,50)) ?></div><?php endif; ?>
+        <?php if(($er['status']??'')==='held'): ?>
+        <div style="display:flex;gap:4px;margin-top:4px">
+          <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#7ad6a0" title="Release to seller">Release</button></form>
+          <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#ef9a9a" title="Refund buyer">Refund</button></form>
+        </div>
+        <?php endif; ?>
+      <?php endif; ?>
     </td>
     <td class="ac"><?php if($st!=='completed'): ?>
       <form method="post" style="display:flex;flex-direction:column;gap:5px">
