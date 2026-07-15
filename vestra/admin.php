@@ -437,6 +437,17 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
 
+  // Escrow (Treuhand) at-a-glance — held funds + lifecycle counts for the dashboard.
+  require_once __DIR__.'/inc/escrow.php';
+  $escrowAll   = escrow_all();
+  $escHeld     = array_filter($escrowAll, fn($e)=>($e['status']??'')==='held');
+  $escHeldSum  = array_sum(array_map(fn($e)=>(float)($e['total']??0), $escHeld));
+  $escReleased = count(array_filter($escrowAll, fn($e)=>($e['status']??'')==='released'));
+  $escRefunded = count(array_filter($escrowAll, fn($e)=>($e['status']??'')==='refunded'));
+  // Membership + Connect readiness across sellers.
+  $memActive    = count(array_filter($sellers, fn($a)=>in_array($a['membership_status']??'', ['active','trialing'], true)));
+  $connectReady = count(array_filter($sellers, fn($a)=>!empty($a['escrow_ready'])));
+
   // Accounts with pending document uploads
   $pendingDocs  = count(array_filter($accounts, fn($a)=>count(array_filter($a['doc_requests']??[],fn($r)=>$r['status']==='uploaded'))>0));
 
@@ -557,6 +568,10 @@ if($tab==='overview'): ?>
   <div class="ascard"><div class="sv" style="color:<?= $comFailed?'#ef9a9a':'#555' ?>"><?= $comFailed ?></div><div class="sl">Commission needs attention</div></div>
   <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingOffers) ?></div><div class="sl">Offers pending</div></div>
   <div class="ascard"><div class="sv"><?= count($signups) ?></div><div class="sl">Waitlist</div></div>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($escHeldSum) ?></div><div class="sl">🛡️ Held in escrow (<?= count($escHeld) ?>)</div></div>
+  <div class="ascard"><div class="sv" style="color:#8fd3ff"><?= $escReleased ?></div><div class="sl">Escrow released</div></div>
+  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= $connectReady ?></div><div class="sl">Connect-ready sellers</div></div>
+  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $memActive ?></div><div class="sl">Active memberships</div></div>
 </div>
 
 <?php if($pendingList||$pendingKyb): ?>
@@ -583,6 +598,30 @@ if($tab==='overview'): ?>
   </table></div>
 </div>
 <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php if($escHeld): ?>
+<div class="acard" style="margin-bottom:18px">
+  <div class="acard-hd"><h3>🛡️ Funds held in escrow (<?= count($escHeld) ?> · <?= eur($escHeldSum) ?>)</h3><a class="abtn" href="/admin?tab=orders">All orders →</a></div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Ref','Buyer','Seller','Total','Paid','Action'],true) ?>
+    <?php foreach(array_slice(array_reverse(array_values($escHeld)),0,8) as $e):
+      $sName=''; foreach($accounts as $sa){ if(($sa['id']??'')===($e['seller_uid']??'')){ $sName=$sa['company']?:($sa['name']??''); break; } }
+      $ref=$e['ref']??''; ?>
+    <tr>
+      <td><span class="atag"><?= htmlspecialchars(substr($ref,0,12)) ?></span></td>
+      <td><?= htmlspecialchars($e['buyer']['company']??($e['buyer']['name']??($e['buyer']['email']??'—'))) ?></td>
+      <td><?= htmlspecialchars($sName?:'—') ?></td>
+      <td><b><?= eur($e['total']??0) ?></b></td>
+      <td class="ahint"><?= htmlspecialchars(substr($e['paid_at']??'',0,10)) ?></td>
+      <td><div style="display:flex;gap:5px">
+        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#7ad6a0">Release</button></form>
+        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#ef9a9a">Refund</button></form>
+      </div></td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
 </div>
 <?php endif; ?>
 
