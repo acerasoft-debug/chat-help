@@ -146,6 +146,65 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=orders&view='.urlencode($ref).'&noted=1'); exit;
 }
 
+// ── Seller confirms the buyer's BANK payment arrived → mark paid + charge commission ─
+// Bank-transfer orders only: escrow orders are auto-paid via Stripe (commission already
+// taken as the application fee), so this never applies to them.
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='confirm_paid') {
+    $ref = $_POST['ref'] ?? '';
+    $uid = $_SESSION['uid'] ?? '';
+    $mySkus = array_column(vestra_seller_listings($uid), 'sku');
+    $ownsOrder = false; $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (($row['ref']??'') === $ref && vestra_order_has_seller_sku($row, $mySkus)) { $ownsOrder = true; $orderRow = $row; break; }
+    }
+    require_once __DIR__.'/inc/escrow.php';
+    $isEscrow = (bool) escrow_get($ref);
+    if ($ref && $ownsOrder && !$isEscrow) {
+        $st = vestra_read_json('order_statuses.json');
+        $prev = $st[$ref]['status'] ?? 'pending';
+        if (!in_array($prev, ['paid','shipped','completed'], true)) {
+            $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'paid','paid_at'=>date('c')]);
+            $st[$ref]['history'][] = vestra_order_history_entry('paid', 'seller', t('Payment confirmed by seller'));
+            vestra_write_json('order_statuses.json', $st);
+            require_once __DIR__.'/inc/commission.php';
+            vestra_charge_order_commission($ref, vestra_order_lines($orderRow)['lines']);
+            require_once __DIR__.'/inc/notify.php';
+            if (!empty($orderRow['email'])) {
+                vestra_send_mail($orderRow['email'], "VESTRA — payment confirmed for order {$ref}",
+                  "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\nThe seller has confirmed your payment for order {$ref}. Your goods are being prepared — you'll get tracking as soon as it ships.\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+            }
+            $buyerAcc = auth_find($orderRow['email'] ?? '');
+            if ($buyerAcc) { require_once __DIR__.'/inc/messages.php'; vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref]); }
+        }
+    }
+    header('Location: /seller?tab=orders&msg=paid'); exit;
+}
+
+// ── Seller marks a shipped order completed/delivered (bank orders; escrow completion
+// is the buyer's confirm-receipt, which releases the held funds) ──────────────────
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='complete_order') {
+    $ref = $_POST['ref'] ?? '';
+    $uid = $_SESSION['uid'] ?? '';
+    $mySkus = array_column(vestra_seller_listings($uid), 'sku');
+    $ownsOrder = false; $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (($row['ref']??'') === $ref && vestra_order_has_seller_sku($row, $mySkus)) { $ownsOrder = true; $orderRow = $row; break; }
+    }
+    require_once __DIR__.'/inc/escrow.php';
+    if ($ref && $ownsOrder && !escrow_get($ref)) {
+        $st = vestra_read_json('order_statuses.json');
+        $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','completed_at'=>date('c')]);
+        $st[$ref]['history'][] = vestra_order_history_entry('completed', 'seller');
+        vestra_write_json('order_statuses.json', $st);
+        require_once __DIR__.'/inc/notify.php';
+        if (!empty($orderRow['email'])) {
+            vestra_send_mail($orderRow['email'], "VESTRA — order {$ref} completed",
+              "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\nYour order {$ref} has been marked completed. Thank you for trading on VESTRA.\n\n— VESTRA · vestrasales.com");
+        }
+    }
+    header('Location: /seller?tab=orders&msg=completed'); exit;
+}
+
 // ── Upload KYB document ───────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
     $req_id = preg_replace('/[^a-f0-9]/','', $_POST['req_id']??'');
@@ -623,6 +682,8 @@ if($tab==='overview'){
     echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'seller', $uid, '/seller?tab=orders', '/seller?tab=orders');
   } else {
   if(isset($_GET['shipped'])) echo '<div class="banner ok">✓ '.t('Order marked as shipped.').'</div>';
+  if(($_GET['msg']??'')==='paid') echo '<div class="banner ok">✓ '.t('Payment confirmed — commission charged and the buyer notified.').'</div>';
+  if(($_GET['msg']??'')==='completed') echo '<div class="banner ok">✓ '.t('Order marked as completed.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Orders').'</h3></div>';
   if(!$orders) dash_empty(t('No orders yet. Orders placed by buyers appear here.'));
   else {
@@ -641,6 +702,13 @@ if($tab==='overview'){
         '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.
           ($st==='shipped'&&!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
         '<td>';
+      if ($st==='pending' && !$er) {
+        echo '<form method="post" action="/seller?tab=orders" style="margin-bottom:5px" onsubmit="return confirm('.htmlspecialchars(json_encode(t('Confirm the buyer bank payment has arrived? Your platform commission will be charged.')),ENT_QUOTES).')">
+            <input type="hidden" name="_action" value="confirm_paid">
+            <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
+            <button class="btn btn-o btn-sm" type="submit">✓ '.t('Confirm payment').'</button>
+          </form>';
+      }
       if (in_array($st,['pending','paid'],true)) {
         echo '<details class="respdetails"><summary class="btn btn-p btn-sm">🚚 '.t('Ship').'</summary>
           <form method="post" action="/seller?tab=orders" class="shipform">
@@ -649,6 +717,13 @@ if($tab==='overview'){
             <input name="tracking" placeholder="'.htmlspecialchars(t('Tracking number (optional)')).'">
             <button class="btn btn-p btn-sm" type="submit">'.t('Mark shipped').'</button>
           </form></details>';
+      }
+      if ($st==='shipped' && !$er) {
+        echo '<form method="post" action="/seller?tab=orders" style="margin-top:5px" onsubmit="return confirm('.htmlspecialchars(json_encode(t('Mark this order as completed?')),ENT_QUOTES).')">
+            <input type="hidden" name="_action" value="complete_order">
+            <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
+            <button class="btn btn-o btn-sm" type="submit">✓ '.t('Mark completed').'</button>
+          </form>';
       }
       foreach(vestra_invoices_for_ref($ref) as $iv){
         if($iv['seller_key']!==$uid) continue;
