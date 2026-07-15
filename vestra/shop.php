@@ -79,10 +79,19 @@ arsort($catCounts);
         </select>
       </div>
 
+      <?php /* Approved members (KYB active/approved, or documents submitted) see the real
+               product photo on the card, with a hover-swap to the second image. Everyone
+               else keeps the branded gradient tile — catalog photos stay members-only. */
+      $APPROVED = $AUTH_USER !== null && (
+        (($AUTH_USER['status'] ?? '') === 'active')
+        || (($AUTH_USER['kyb_status'] ?? '') === 'approved')
+        || count(array_filter($AUTH_USER['doc_requests'] ?? [], fn($r) => in_array($r['status'] ?? '', ['uploaded','approved'], true))) > 0
+      ); ?>
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          $img  = '';   // grid always shows the brand card — photos live in the product gallery (members)
+          $cardImgs = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? array_values(array_slice($p['images'],0,2)) : [];
+          $img  = $cardImgs[0] ?? '';   // approved: real photo on the card; hover shows the 2nd
           $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
@@ -94,7 +103,9 @@ arsort($catCounts);
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
             <div class="sthumb<?= $img?' has-img':'' ?>" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
-              <?php if($img): ?><img src="<?= htmlspecialchars($img) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
+              <?php if($img): ?><img src="<?= htmlspecialchars($cardImgs[0]) ?>" alt="" loading="lazy" class="sthumbi sthumbi-front">
+                <?php if(isset($cardImgs[1])): ?><img src="<?= htmlspecialchars($cardImgs[1]) ?>" alt="" loading="lazy" class="sthumbi sthumbi-back"><?php endif; ?>
+              <?php endif; ?>
               <?php if(!empty($p['verified'])): ?>
                 <span class="svbadge">
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
