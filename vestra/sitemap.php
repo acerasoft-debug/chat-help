@@ -15,9 +15,17 @@ $urls = [
 foreach (vestra_products() as $p) {
   $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6'];
 }
+$langs = array_keys(vlang_list());   // en, de, fr, it, es
 echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
-echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
+echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
 foreach ($urls as [$path, $freq, $prio]) {
-  echo "  <url><loc>".htmlspecialchars($host.$path, ENT_XML1)."</loc><changefreq>$freq</changefreq><priority>$prio</priority></url>\n";
+  $sep = str_contains($path, '?') ? '&' : '?';
+  echo "  <url><loc>".htmlspecialchars($host.$path, ENT_XML1)."</loc>\n";
+  foreach ($langs as $l) {
+    $href = $host.$path.($l === 'en' ? '' : $sep.'lang='.$l);
+    echo '    <xhtml:link rel="alternate" hreflang="'.$l.'" href="'.htmlspecialchars($href, ENT_XML1)."\"/>\n";
+  }
+  echo '    <xhtml:link rel="alternate" hreflang="x-default" href="'.htmlspecialchars($host.$path, ENT_XML1)."\"/>\n";
+  echo "    <changefreq>$freq</changefreq><priority>$prio</priority></url>\n";
 }
 echo "</urlset>\n";

@@ -180,6 +180,38 @@ $favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($BRAND.' — '.$t['tagline']) ?></title>
 <meta name="description" content="<?= htmlspecialchars($t['meta']) ?>">
+<?php
+// ── SEO: canonical + multilingual hreflang + social + structured data ──
+$SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
+$_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
+$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][$lang] ?? 'en_US';
+?>
+<link rel="canonical" href="<?= htmlspecialchars($_hh($lang)) ?>">
+<?php foreach (array_keys($LANGS) as $_l): ?>
+<link rel="alternate" hreflang="<?= $_l ?>" href="<?= htmlspecialchars($_hh($_l)) ?>">
+<?php endforeach; ?>
+<link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_hh('en')) ?>">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:site_name" content="VESTRA">
+<meta property="og:type" content="website">
+<meta property="og:title" content="<?= htmlspecialchars($BRAND.' — '.$t['tagline']) ?>">
+<meta property="og:description" content="<?= htmlspecialchars($t['meta']) ?>">
+<meta property="og:url" content="<?= htmlspecialchars($_hh($lang)) ?>">
+<meta property="og:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
+<meta property="og:locale" content="<?= $_ogloc ?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= htmlspecialchars($BRAND.' — '.$t['tagline']) ?>">
+<meta name="twitter:description" content="<?= htmlspecialchars($t['meta']) ?>">
+<meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
+<script type="application/ld+json"><?= json_encode([
+  '@context'=>'https://schema.org','@type'=>'Organization','name'=>'VESTRA','url'=>$SEO_HOST,
+  'logo'=>$OG_IMAGE,'email'=>$CONTACT,'areaServed'=>'EU',
+  'description'=>'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.',
+], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
+<script type="application/ld+json"><?= json_encode([
+  '@context'=>'https://schema.org','@type'=>'WebSite','name'=>'VESTRA','url'=>$SEO_HOST,
+  'potentialAction'=>['@type'=>'SearchAction','target'=>['@type'=>'EntryPoint','urlTemplate'=>$SEO_HOST.'/shop?q={search_term_string}'],'query-input'=>'required name=search_term_string'],
+], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
 <link rel="icon" href="<?= $favicon ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

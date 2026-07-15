@@ -17,18 +17,69 @@ $fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?></title>
-<?php $META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe.'); ?>
+<?php
+$META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile basics from KYC-verified sellers. Invoice-based ordering across Europe.');
+// ── SEO: canonical + multilingual hreflang (self-referencing per language) ──
+$SEO_HOST  = 'https://vestrasales.com';
+$_seoPath  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$_seoPath  = preg_replace('/\.php$/', '', $_seoPath) ?: '/';   // canonical uses clean URLs (.htaccess serves them)
+$_seoQ     = $_GET; unset($_seoQ['lang']);            // keep product id etc., drop lang
+$_seoBase  = $_seoPath . (($qs = http_build_query($_seoQ)) !== '' ? '?'.$qs : '');
+$_seoSep   = ($qs !== '' ? '&' : '?');
+$_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
+$CANONICAL = $_seoHref(vlang());
+$OG_IMAGE  = $SEO_HOST.'/inc/og-image.png';
+$OG_LOCALE = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][vlang()] ?? 'en_US';
+$NOINDEX   = $NOINDEX ?? false;
+?>
 <meta name="description" content="<?= htmlspecialchars($META) ?>">
+<link rel="canonical" href="<?= htmlspecialchars($CANONICAL) ?>">
+<?php foreach (array_keys(vlang_list()) as $_l): ?>
+<link rel="alternate" hreflang="<?= $_l ?>" href="<?= htmlspecialchars($_seoHref($_l)) ?>">
+<?php endforeach; ?>
+<link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_seoHref('en')) ?>">
+<meta name="robots" content="<?= $NOINDEX ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
 <meta property="og:site_name" content="VESTRA">
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
 <meta property="og:description" content="<?= htmlspecialchars($META) ?>">
+<meta property="og:url" content="<?= htmlspecialchars($CANONICAL) ?>">
+<meta property="og:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
+<meta property="og:locale" content="<?= $OG_LOCALE ?>">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
+<meta name="twitter:description" content="<?= htmlspecialchars($META) ?>">
+<meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <meta name="theme-color" content="#0e0e11">
 <link rel="icon" href="<?= $fav ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/inc/style.css">
+<?php
+// ── Structured data (JSON-LD): site-wide Organization + WebSite, plus any
+//    page-specific schema a page set in $JSONLD before including this header. ──
+$_ld = array_merge([
+  [
+    '@context' => 'https://schema.org', '@type' => 'Organization',
+    'name' => 'VESTRA', 'url' => $SEO_HOST, 'logo' => $OG_IMAGE,
+    'description' => 'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.',
+    'areaServed' => 'EU', 'email' => 'support@vestrasales.com',
+  ],
+  [
+    '@context' => 'https://schema.org', '@type' => 'WebSite',
+    'name' => 'VESTRA', 'url' => $SEO_HOST,
+    'potentialAction' => [
+      '@type' => 'SearchAction',
+      'target' => ['@type' => 'EntryPoint', 'urlTemplate' => $SEO_HOST.'/shop?q={search_term_string}'],
+      'query-input' => 'required name=search_term_string',
+    ],
+  ],
+], $JSONLD ?? []);
+foreach ($_ld as $_schema) {
+  echo '<script type="application/ld+json">'.json_encode($_schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE).'</script>'."\n";
+}
+?>
 </head>
 <body>
 <header>

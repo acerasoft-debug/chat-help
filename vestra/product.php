@@ -1,11 +1,24 @@
 <?php
 require __DIR__.'/inc/products.php';
 $p = vestra_find($_GET['id'] ?? '');
-if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/head.php';
+if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('Product not found.').' <a class="acc" href="/shop">'.t('Back to catalog').'</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
 
-$PAGE=$p['name']; $NAV='shop'; require __DIR__.'/inc/head.php';
+$PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
+$_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
+$META = sprintf('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.',
+        $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
+$JSONLD = [[
+  '@context'=>'https://schema.org', '@type'=>'Product',
+  'name'=>$PAGE,
+  'brand'=>['@type'=>'Brand','name'=>$p['brand'] ?? 'VESTRA'],
+  'category'=>$_pcat,
+  'sku'=>$p['sku'] ?? ($p['id'] ?? ''),
+  'description'=>$META,
+  'url'=>'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? ''),
+]];
+$NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
