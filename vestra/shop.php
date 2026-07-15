@@ -3,7 +3,7 @@ $products = vestra_products();
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
 ?>
-<div class="wrap">
+<div class="wrap wide">
   <div class="phead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
     <h1><?= t('Wholesale catalog') ?></h1>
