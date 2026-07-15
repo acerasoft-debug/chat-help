@@ -34,13 +34,19 @@ try {
 
     $paymentMethods = stripe_sepa_enabled() ? ['sepa_debit', 'card'] : ['card'];
 
+    // One-time onboarding + verification fee is a second (one-off) line item on
+    // the same subscription checkout — Stripe adds it to the subscription's first
+    // invoice. (subscription_data.add_invoice_items is NOT a valid Checkout
+    // parameter and made the whole session fail.)
     $session = stripe_api('POST', '/v1/checkout/sessions', [
         'mode'       => 'subscription',
         'customer'   => $customerId,
-        'line_items' => [['price' => stripe_price($tier), 'quantity' => 1]],
+        'line_items' => [
+            ['price' => stripe_price($tier),        'quantity' => 1],
+            ['price' => stripe_price('onboarding'), 'quantity' => 1],
+        ],
         'subscription_data' => [
             'trial_period_days' => 30,
-            'add_invoice_items' => [['price' => stripe_price('onboarding'), 'quantity' => 1]],
             'metadata'          => ['seller_id' => $user['id'], 'tier' => $tier],
         ],
         'payment_method_types' => $paymentMethods,
