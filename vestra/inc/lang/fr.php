@@ -799,4 +799,9 @@ return array (
   'The seller ships your goods; the funds are released to them only after you confirm delivery under My orders. If anything goes wrong before then, open a dispute for a full refund.' => 'Le vendeur expédie votre marchandise ; les fonds ne lui sont versés qu’après votre confirmation de livraison dans Mes commandes. En cas de problème avant cela, ouvrez un litige pour un remboursement intégral.',
   'Paid via secure escrow' => 'Payé via séquestre sécurisé',
   'These funds are held safely. Confirm delivery under My orders to release them to the seller.' => 'Ces fonds sont conservés en toute sécurité. Confirmez la livraison dans Mes commandes pour les verser au vendeur.',
+  'Confirm delivery & release payment' => 'Confirmer la livraison et libérer le paiement',
+  'Confirm you received the goods? This releases the held funds to the seller and cannot be undone.' => 'Confirmer que vous avez reçu la marchandise ? Cela libère les fonds détenus au vendeur et est irréversible.',
+  'In escrow' => 'Sous séquestre',
+  'Released to seller' => 'Versé au vendeur',
+  'Refunded to buyer' => 'Remboursé à l’acheteur',
 );

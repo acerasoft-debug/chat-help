@@ -214,6 +214,7 @@ if($tab==='overview'){
     <p class="hint">'.t('Every order runs on documented invoice terms — report any issue within 48 hours of delivery and our dispute process steps in.').'</p></div>';
 
 } elseif($tab==='orders'){
+  require_once __DIR__.'/inc/escrow.php';
   $viewRef = $_GET['view'] ?? '';
   $viewOrder = $viewRef ? current(array_filter($orders, fn($o)=>($o['ref']??'')===$viewRef)) : null;
   if ($viewOrder) {
@@ -227,16 +228,20 @@ if($tab==='overview'){
     foreach($orders as $o){
       $ref = $o['ref']??'';
       $st  = $orderSt[$ref]['status'] ?? 'pending';
+      $er  = escrow_get($ref);
+      $isHeld = $er && ($er['status']??'')==='held';
+      $escBadge = $er ? '<div style="margin-top:3px">'.escrow_badge($er['status']??'').'</div>' : '';
       if ($st==='completed') { $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
       elseif($st==='paid')    { $stClass='offers'; $stLabel=t('Paid — preparing shipment'); }
       else { $stClass='open'; $stLabel=t('Awaiting payment'); }
       $confirmBtn='';
       if($st==='shipped'){
-        $confirmBtn='<form method="post" action="/buyer?tab=orders" style="margin-top:4px">
+        $confirmBtn='<form method="post" action="/buyer?tab=orders" style="margin-top:4px" '.
+          ($isHeld?'onsubmit="return confirm(\''.htmlspecialchars(t('Confirm you received the goods? This releases the held funds to the seller and cannot be undone.'),ENT_QUOTES).'\')"':'').'>
           <input type="hidden" name="_action" value="confirm_receipt">
           <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
-          <button class="btn btn-p btn-sm" type="submit">✓ '.t('Confirm receipt').'</button></form>';
+          <button class="btn btn-p btn-sm" type="submit">✓ '.($isHeld?t('Confirm delivery & release payment'):t('Confirm receipt')).'</button></form>';
       }
       $invLinks='';
       foreach(vestra_invoices_for_ref($ref) as $iv){
@@ -244,7 +249,7 @@ if($tab==='overview'){
       }
       echo '<tr><td><a class="acc" href="/buyer?tab=orders&view='.urlencode($ref).'"><b>'.htmlspecialchars($ref).'</b></a><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td class="hint">'.htmlspecialchars($o['items']??'').'</td><td class="r">'.eur($o['total']??0).'</td>'.
-        '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.
+        '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.
         (!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
         '<td>'.$confirmBtn.$invLinks.'</td></tr>';
     }

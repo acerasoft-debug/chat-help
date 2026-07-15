@@ -73,13 +73,14 @@ function escrow_update(string $ref, array $patch): ?array {
     return $all[$ref];
 }
 
-/** Human status label + colour for UI badges. */
+/** Human status label + colour for UI badges (localised where t() is loaded). */
 function escrow_badge(string $status): string {
+    $L = fn(string $s): string => function_exists('t') ? t($s) : $s;
     return match ($status) {
-        'held'     => '<span style="color:#7ad6a0">🛡️ In escrow</span>',
-        'released' => '<span style="color:#8fd3ff">✓ Released to seller</span>',
-        'refunded' => '<span style="color:#f0c060">↩ Refunded to buyer</span>',
-        'pending'  => '<span style="color:#888">⏳ Awaiting payment</span>',
+        'held'     => '<span style="color:#7ad6a0">🛡️ '.$L('In escrow').'</span>',
+        'released' => '<span style="color:#8fd3ff">✓ '.$L('Released to seller').'</span>',
+        'refunded' => '<span style="color:#f0c060">↩ '.$L('Refunded to buyer').'</span>',
+        'pending'  => '<span style="color:#888">⏳ '.$L('Awaiting payment').'</span>',
         default    => '<span style="color:#555">—</span>',
     };
 }

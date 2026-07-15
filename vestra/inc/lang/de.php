@@ -799,4 +799,9 @@ return array (
   'The seller ships your goods; the funds are released to them only after you confirm delivery under My orders. If anything goes wrong before then, open a dispute for a full refund.' => 'Der Verkäufer versendet Ihre Ware; der Betrag wird erst an ihn freigegeben, wenn Sie den Erhalt unter „Meine Bestellungen“ bestätigen. Falls vorher etwas schiefgeht, eröffnen Sie einen Streitfall für eine volle Rückerstattung.',
   'Paid via secure escrow' => 'Bezahlt über sicheren Treuhandservice',
   'These funds are held safely. Confirm delivery under My orders to release them to the seller.' => 'Diese Mittel werden sicher verwahrt. Bestätigen Sie den Erhalt unter „Meine Bestellungen“, um sie an den Verkäufer freizugeben.',
+  'Confirm delivery & release payment' => 'Lieferung bestätigen & Zahlung freigeben',
+  'Confirm you received the goods? This releases the held funds to the seller and cannot be undone.' => 'Bestätigen, dass Sie die Ware erhalten haben? Dadurch wird der treuhänderisch gehaltene Betrag an den Verkäufer freigegeben und kann nicht rückgängig gemacht werden.',
+  'In escrow' => 'Treuhänderisch gehalten',
+  'Released to seller' => 'An Verkäufer freigegeben',
+  'Refunded to buyer' => 'An Käufer erstattet',
 );
