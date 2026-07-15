@@ -3,12 +3,34 @@ require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/products.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Buyer → seller upgrade (from this page's CTA). Handled before any output so we
+// can redirect. Membership/checkout is seller-only; a buyer who wants a plan is
+// switched to a seller account (same login) and given the seller KYB documents.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'become_seller') {
+    $me = auth_user();
+    if ($me && ($me['type'] ?? '') === 'buyer') {
+        auth_update($me['id'], ['type' => 'seller']);
+        $have = array_column($me['doc_requests'] ?? [], 'type');
+        $sellerDocs = [
+            'id_document' => 'Please upload a government-issued ID: passport, national ID card, or driving licence.',
+            'auth_letter' => 'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.',
+        ];
+        foreach ($sellerDocs as $dt => $note) {
+            if (!in_array($dt, $have, true)) auth_request_doc($me['id'], $dt, $note);
+        }
+        $_SESSION['utype'] = 'seller';
+    }
+    header('Location: /membership?welcome=seller'); exit;
+}
+
 $PAGE = t('Seller Membership'); $NAV = 'membership';
 require __DIR__.'/inc/head.php';
 
 require_once __DIR__.'/inc/stripe.php';
 $u = auth_user();
 $isLoggedInSeller = $u && ($u['type'] ?? '') === 'seller';
+$isLoggedInBuyer  = $u && ($u['type'] ?? '') === 'buyer';
 $membershipStatus = $u['membership_status'] ?? 'none';
 $alreadyActive    = in_array($membershipStatus, ['trialing', 'active'], true);
 $stripeReady = stripe_configured();
@@ -70,6 +92,22 @@ body{ background:#15171C }
   <div class="merr" style="background:rgba(138,180,248,.08);border-color:rgba(138,180,248,.3);color:#8ab4f8"><?= t('Online payment is being set up — plan checkout will open here shortly. Contact support@vestrasales.com to reserve your plan in the meantime.') ?></div>
   <?php endif; ?>
 
+  <?php if ($isLoggedInBuyer): ?>
+  <div class="mactive" style="background:rgba(138,180,248,.07);border-color:rgba(138,180,248,.25);color:#8ab4f8;text-align:left">
+    🛍️ <b><?= t("You're signed in as a buyer.") ?></b>
+    <?= ' ' . t('Buying on VESTRA is always free — no membership needed. The plans below are for sellers who want to list products.') ?>
+    <div style="margin-top:12px">
+      <form method="post" action="/membership" style="display:inline">
+        <input type="hidden" name="action" value="become_seller">
+        <button type="submit" class="mcta" style="width:auto;display:inline-block;padding:10px 22px;background:var(--acc,#c9a86a);color:#1a1408"><?= t('Become a seller') ?></button>
+      </form>
+      <span style="margin-left:10px;font-size:13px;opacity:.85"><?= t('Keeps your current login — just adds selling.') ?></span>
+    </div>
+  </div>
+  <?php elseif (($_GET['welcome'] ?? '') === 'seller'): ?>
+  <div class="mactive">✓ <?= t('You are now a seller. Choose a plan below to start listing — your first month is free.') ?></div>
+  <?php endif; ?>
+
   <?php if ($alreadyActive): ?>
   <div class="mactive">
     ✓ <?= t('You already have an active membership.') ?>
@@ -111,6 +149,8 @@ body{ background:#15171C }
         <input type="hidden" name="tier" value="starter">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
+      <?php elseif ($isLoggedInBuyer): ?>
+        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
       <?php endif; ?>
@@ -144,6 +184,8 @@ body{ background:#15171C }
         <input type="hidden" name="tier" value="pro">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
+      <?php elseif ($isLoggedInBuyer): ?>
+        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#A6402B;color:#fff;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
       <?php endif; ?>
@@ -175,6 +217,8 @@ body{ background:#15171C }
         <input type="hidden" name="tier" value="premium">
         <button class="mcta" type="submit" <?= $ctaDisabled?'disabled':'' ?>><?= t('Get started') ?></button>
       </form>
+      <?php elseif ($isLoggedInBuyer): ?>
+        <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
         <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
       <?php endif; ?>
