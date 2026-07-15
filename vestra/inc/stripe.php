@@ -171,6 +171,64 @@ function stripe_ensure_customer(array $account): string {
     return $customer->id;
 }
 
+/* ── Stripe Connect (seller payouts / escrow) ───────────────────────────────
+ * Sellers onboard an Express connected account so escrow funds can be released
+ * to them automatically. We store the acct_… id on the seller's account. */
+
+/** Create an Express connected account for a seller, persist its id, return it. */
+function stripe_connect_create_account(array $seller): string {
+    if (!empty($seller['stripe_account_id'])) return $seller['stripe_account_id'];
+    $country = strtoupper(substr(trim($seller['country'] ?? 'DE'), 0, 2)) ?: 'DE';
+    $acct = stripe_api('POST', '/v1/accounts', [
+        'type'            => 'express',
+        'email'           => $seller['email'] ?? '',
+        'country'         => $country,
+        'business_type'   => 'company',
+        'capabilities'    => ['card_payments' => ['requested' => 'true'], 'transfers' => ['requested' => 'true']],
+        'business_profile'=> ['name' => $seller['company'] ?: ($seller['name'] ?: 'VESTRA seller')],
+        'metadata'        => ['seller_id' => $seller['id'] ?? ''],
+    ]);
+    auth_update($seller['id'], ['stripe_account_id' => $acct->id]);
+    return $acct->id;
+}
+
+/** Hosted onboarding link (KYC + bank details) for a connected account. */
+function stripe_connect_onboarding_link(string $acctId): string {
+    $link = stripe_api('POST', '/v1/account_links', [
+        'account'     => $acctId,
+        'refresh_url' => 'https://vestrasales.com/stripe/connect',
+        'return_url'  => 'https://vestrasales.com/seller?tab=profile&connect=done',
+        'type'        => 'account_onboarding',
+    ]);
+    return $link->url;
+}
+
+/** One-click login link to the seller's Express dashboard (once onboarded). */
+function stripe_connect_dashboard_link(string $acctId): string {
+    $link = stripe_api('POST', '/v1/accounts/' . $acctId . '/login_links', []);
+    return $link->url;
+}
+
+/** Live connection status for a seller's connected account. */
+function stripe_connect_status(array $seller): array {
+    $id = $seller['stripe_account_id'] ?? '';
+    if ($id === '') return ['connected' => false];
+    try {
+        $a = stripe_api('GET', '/v1/accounts/' . $id);
+        return [
+            'connected'         => true,
+            'id'                => $id,
+            'charges_enabled'   => !empty($a->charges_enabled),
+            'payouts_enabled'   => !empty($a->payouts_enabled),
+            'details_submitted' => !empty($a->details_submitted),
+            // fully ready to receive escrow payouts
+            'ready'             => !empty($a->payouts_enabled) && !empty($a->details_submitted),
+        ];
+    } catch (\Throwable $e) {
+        return ['connected' => false, 'error' => $e->getMessage()];
+    }
+}
+
 /** Find an account by Stripe customer ID (linear scan — fine for JSON store). */
 function stripe_find_account(string $customerId): ?array {
     foreach (auth_accounts() as $a) {

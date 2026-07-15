@@ -896,6 +896,41 @@ if($tab==='overview'){
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
   </div>
+
+  <?php
+    // Stripe Connect (escrow payouts) status — only hits the API when the seller
+    // has actually started onboarding, so most profile loads stay fast.
+    require_once __DIR__.'/inc/stripe.php';
+    $connSt = (stripe_available() && !empty($u['stripe_account_id'])) ? stripe_connect_status($u) : ['connected' => false];
+    $connReady = !empty($connSt['ready']);
+  ?>
+  <div class="panelcard">
+    <div class="pcfhead"><h3><?= t('Payouts &amp; Escrow (Stripe)') ?></h3>
+      <?php if ($connReady): ?><span class="status offers">✓ <?= t('Active') ?></span>
+      <?php elseif (!empty($connSt['connected'])): ?><span class="status" style="background:rgba(240,192,96,.15);color:#f0c060">⏳ <?= t('In review') ?></span>
+      <?php endif; ?>
+    </div>
+    <div class="panelcard-body" style="padding:0 4px">
+      <p class="hint" style="margin:0 0 14px"><?= t('Connect your bank via Stripe to receive escrow payments automatically — the moment a buyer confirms delivery, your payout (minus commission) lands in your account. Stripe verifies your identity and bank details; VESTRA never sees them.') ?></p>
+      <?php if (($_GET['connect'] ?? '') === 'done'): ?>
+        <div class="banner ok" style="margin-bottom:12px">✓ <?= t('Thanks — your details were sent to Stripe.') ?></div>
+      <?php elseif (($_GET['error'] ?? '') === 'connect'): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px"><?= t('Something went wrong connecting to Stripe — please try again.') ?></div>
+      <?php endif; ?>
+      <?php if (!stripe_available()): ?>
+        <div class="banner info"><?= t('Online payments are being set up — check back shortly.') ?></div>
+      <?php elseif ($connReady): ?>
+        <div class="banner ok" style="margin-bottom:12px">✓ <?= t('Your payout account is active. Escrow payments transfer to your bank automatically.') ?></div>
+        <a class="btn btn-o" href="/stripe/connect?dashboard=1" target="_blank" rel="noopener"><?= t('Open Stripe dashboard') ?> ↗</a>
+      <?php elseif (!empty($connSt['connected'])): ?>
+        <a class="btn btn-p" href="/stripe/connect"><?= t('Finish Stripe setup') ?></a>
+      <?php else: ?>
+        <a class="btn btn-p" href="/stripe/connect"><?= t('Set up Stripe payouts') ?></a>
+        <p class="hint" style="margin-top:10px"><?= t('Bank transfer (invoice) still works without this — but escrow payments need a connected Stripe account.') ?></p>
+      <?php endif; ?>
+    </div>
+  </div>
+
   <div class="panelcard">
     <?php
       $msTier   = $u['membership_tier'] ?? '';
