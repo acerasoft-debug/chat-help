@@ -97,14 +97,21 @@ function stripe_sepa_enabled(): bool {
  * Stripe expects nested structures (a[b][0][c]=…), which is what PHP's
  * http_build_query produces. Returns the decoded JSON as stdClass.
  * Throws RuntimeException with Stripe's own message on any error.
+ *
+ * $connectedAccount (an acct_… id) makes the request act ON that connected
+ * account via the Stripe-Account header — the mechanism behind DIRECT CHARGES,
+ * payouts and refunds in the escrow flow: the charge lives on the seller's
+ * account (so chargeback liability is theirs), while application_fee_amount
+ * still routes our commission to the platform.
  */
-function stripe_api(string $method, string $path, array $params = []): object {
+function stripe_api(string $method, string $path, array $params = [], string $connectedAccount = ''): object {
     if (!stripe_available()) throw new \RuntimeException('Stripe not configured — STRIPE_SECRET_KEY missing in .env');
     $ch = curl_init('https://api.stripe.com'.$path);
     $headers = [
         'Authorization: Bearer '.(getenv('STRIPE_SECRET_KEY') ?: ''),
         'Stripe-Version: 2024-06-20',
     ];
+    if ($connectedAccount !== '') $headers[] = 'Stripe-Account: '.$connectedAccount;
     $opts = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 30,
@@ -175,7 +182,11 @@ function stripe_ensure_customer(array $account): string {
  * Sellers onboard an Express connected account so escrow funds can be released
  * to them automatically. We store the acct_… id on the seller's account. */
 
-/** Create an Express connected account for a seller, persist its id, return it. */
+/** Create an Express connected account for a seller, persist its id, return it.
+ * Payout schedule is set to MANUAL: escrow funds land in the seller's Stripe
+ * balance and stay there until the platform explicitly releases them (a payout)
+ * on delivery confirmation — the mechanism that makes "delayed payout" escrow
+ * work without the platform ever holding the money itself. */
 function stripe_connect_create_account(array $seller): string {
     if (!empty($seller['stripe_account_id'])) return $seller['stripe_account_id'];
     $country = strtoupper(substr(trim($seller['country'] ?? 'DE'), 0, 2)) ?: 'DE';
@@ -186,6 +197,7 @@ function stripe_connect_create_account(array $seller): string {
         'business_type'   => 'company',
         'capabilities'    => ['card_payments' => ['requested' => 'true'], 'transfers' => ['requested' => 'true']],
         'business_profile'=> ['name' => $seller['company'] ?: ($seller['name'] ?: 'VESTRA seller')],
+        'settings'        => ['payouts' => ['schedule' => ['interval' => 'manual']]],
         'metadata'        => ['seller_id' => $seller['id'] ?? ''],
     ]);
     auth_update($seller['id'], ['stripe_account_id' => $acct->id]);
@@ -227,6 +239,88 @@ function stripe_connect_status(array $seller): array {
     } catch (\Throwable $e) {
         return ['connected' => false, 'error' => $e->getMessage()];
     }
+}
+
+/* ── Escrow: direct charge + delayed payout ─────────────────────────────────
+ * The trade money never touches a platform-owned balance. Instead:
+ *   1. Buyer pays on the SELLER's connected account (a direct charge), so
+ *      card/chargeback liability sits with the seller, not the platform.
+ *   2. application_fee_amount skims the platform commission into our balance.
+ *   3. The seller's payout schedule is MANUAL, so the seller's share is HELD
+ *      in their Stripe balance — that hold IS the escrow.
+ *   4. On delivery confirmation the platform RELEASES the hold (a payout to the
+ *      seller's bank). Before release, the platform can REFUND the buyer in full
+ *      (refund_application_fee so our commission comes back too and the seller's
+ *      balance isn't pushed negative). */
+
+/**
+ * Create a hosted Checkout Session as a DIRECT CHARGE on the seller's connected
+ * account. $lineItems is [['name'=>…, 'amount'=>cents, 'qty'=>n], …] (inline
+ * price_data, so no pre-made Prices needed). $appFeeCents is the platform
+ * commission. Returns the Session object (->url is the payment page).
+ */
+function stripe_escrow_checkout(string $acctId, array $lineItems, int $appFeeCents, string $ref, string $buyerEmail = '', string $currency = 'eur'): object {
+    $params = [
+        'mode'                => 'payment',
+        'success_url'         => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref).'&paid=1',
+        'cancel_url'          => 'https://vestrasales.com/cart?ref='.rawurlencode($ref),
+        'client_reference_id' => $ref,
+        'payment_intent_data' => [
+            'application_fee_amount' => $appFeeCents,
+            'metadata'               => ['order_ref' => $ref, 'kind' => 'escrow'],
+        ],
+        'metadata'            => ['order_ref' => $ref, 'kind' => 'escrow'],
+    ];
+    if ($buyerEmail !== '') $params['customer_email'] = $buyerEmail;
+    foreach (array_values($lineItems) as $i => $li) {
+        $params['line_items'][$i] = [
+            'quantity'   => max(1, (int)($li['qty'] ?? 1)),
+            'price_data' => [
+                'currency'     => $currency,
+                'unit_amount'  => (int)$li['amount'],
+                'product_data' => ['name' => (string)($li['name'] ?? 'Item')],
+            ],
+        ];
+    }
+    return stripe_api('POST', '/v1/checkout/sessions', $params, $acctId);
+}
+
+/** Available + pending balance (in cents) held on a connected account. */
+function stripe_escrow_balance(string $acctId): array {
+    $b = stripe_api('GET', '/v1/balance', [], $acctId);
+    $sum = function ($rows) {
+        $out = [];
+        foreach (($rows ?? []) as $r) { $out[$r->currency] = ($out[$r->currency] ?? 0) + (int)$r->amount; }
+        return $out;
+    };
+    return ['available' => $sum($b->available ?? []), 'pending' => $sum($b->pending ?? [])];
+}
+
+/**
+ * RELEASE the escrow: pay out the held funds from the seller's Stripe balance to
+ * their bank. Omit $amountCents to release the full available balance. Runs as a
+ * payout ON the connected account. Returns the Payout object.
+ */
+function stripe_escrow_release(string $acctId, ?int $amountCents = null, string $currency = 'eur', string $ref = ''): object {
+    if ($amountCents === null) {
+        $bal = stripe_escrow_balance($acctId);
+        $amountCents = (int)($bal['available'][$currency] ?? 0);
+        if ($amountCents <= 0) throw new \RuntimeException('Nothing available to release yet (funds may still be pending).');
+    }
+    $params = ['amount' => $amountCents, 'currency' => $currency];
+    if ($ref !== '') $params['metadata'] = ['order_ref' => $ref];
+    return stripe_api('POST', '/v1/payouts', $params, $acctId);
+}
+
+/**
+ * REFUND the buyer in full before release. refund_application_fee pulls our
+ * commission back too, so the buyer gets 100% and the seller's balance is not
+ * pushed negative. $paymentIntent is the charge's pi_… (from the webhook).
+ */
+function stripe_escrow_refund(string $acctId, string $paymentIntent, ?int $amountCents = null): object {
+    $params = ['payment_intent' => $paymentIntent, 'refund_application_fee' => 'true'];
+    if ($amountCents !== null) $params['amount'] = $amountCents;
+    return stripe_api('POST', '/v1/refunds', $params, $acctId);
 }
 
 /** Find an account by Stripe customer ID (linear scan — fine for JSON store). */
