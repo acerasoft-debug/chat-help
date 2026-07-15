@@ -77,10 +77,14 @@ function auth_touch_login(string $id): void {
 }
 
 function auth_register(array $d): array|string {
+    require_once __DIR__.'/notify.php';
     $existing = auth_find($d['email'] ?? '');
     if ($existing) {
-        // Account exists but email not verified → resend link instead of hard error
-        if (($existing['status'] ?? '') === 'pending_email' && !empty($existing['email_token'])) {
+        // Only resend a verification link when verification is actually required.
+        // With it off, a stuck pending_email account can just sign in, so fall
+        // through to a plain "email taken" instead of a dead-end resend.
+        if (($existing['status'] ?? '') === 'pending_email' && !empty($existing['email_token'])
+            && vestra_cfg('require_email_verify', false)) {
             auth_resend_verify($existing['email']);
             return 'email_pending_verify';
         }
@@ -186,7 +190,15 @@ function auth_register(array $d): array|string {
 function auth_login(string $email, string $password): array|string {
     $acc = auth_find($email);
     if (!$acc || !password_verify($password, $acc['hash'] ?? '')) return 'invalid';
-    if (($acc['status'] ?? '') === 'pending_email') return 'unverified';
+    if (($acc['status'] ?? '') === 'pending_email') {
+        require_once __DIR__.'/notify.php';
+        // With email verification required, keep blocking until they confirm.
+        if (vestra_cfg('require_email_verify', false)) return 'unverified';
+        // Verification disabled → don't strand accounts that were created (or got
+        // stuck) under the old flow: treat them as verified and let them in.
+        auth_update($acc['id'], ['status' => 'pending', 'email_verified' => true, 'email_token' => '']);
+        $acc['status'] = 'pending'; $acc['email_verified'] = true;
+    }
     if (($acc['status'] ?? '') === 'suspended')     return 'suspended';
     return $acc;
 }
