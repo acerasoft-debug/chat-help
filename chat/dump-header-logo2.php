@@ -23,25 +23,25 @@ function occ($label,$src,$needle,$pre=90,$len=220,$max=6){
   echo "\n";
 }
 
-occ('1','ChatHelp<','ChatHelp<',60,180,10);
-occ('2',"'ChatHelp'","'ChatHelp'",60,180,10);
-occ('3','"ChatHelp"','"ChatHelp"',60,180,10);
-occ('4','>ChatHelp','>ChatHelp',60,180,10);
-occ('5','sb-head','sb-head');
-occ('6','app-logo','app-logo');
-occ('7','app-brand','app-brand');
-occ('8','sidebar-logo','sidebar-logo');
-occ('9','nav-brand','nav-brand');
-occ('10','class="logo','class="logo');
-occ('11','id="logo','id="logo');
-occ('12','apple-touch-icon','apple-touch-icon');
-occ('13','manifest.json','manifest.json');
-occ('14','og:image','og:image');
-occ('15','⚖️','⚖️',60,160,6);
-occ('16','logoHTML','logoHTML');
-occ('17','function chLogo','function chLogo');
-occ('18','headerHTML','headerHTML');
-occ('19','topHTML','topHTML');
-occ('20','sb-title','sb-title');
+occ('1',$src,'ChatHelp<',60,180,10);
+occ('2',$src,"'ChatHelp'",60,180,10);
+occ('3',$src,'"ChatHelp"',60,180,10);
+occ('4',$src,'>ChatHelp',60,180,10);
+occ('5',$src,'sb-head');
+occ('6',$src,'app-logo');
+occ('7',$src,'app-brand');
+occ('8',$src,'sidebar-logo');
+occ('9',$src,'nav-brand');
+occ('10',$src,'class="logo');
+occ('11',$src,'id="logo');
+occ('12',$src,'apple-touch-icon');
+occ('13',$src,'manifest.json');
+occ('14',$src,'og:image');
+occ('15',$src,'⚖️',60,160,6);
+occ('16',$src,'logoHTML');
+occ('17',$src,'function chLogo');
+occ('18',$src,'headerHTML');
+occ('19',$src,'topHTML');
+occ('20',$src,'sb-title');
 
 echo "=== BITTI (salt-okunur). Ciktinin TAMAMINI gonder. ===\n";
