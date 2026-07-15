@@ -32,25 +32,25 @@ function bodyOf($s,$decl,$cap=1500){
 }
 
 echo "════ [1] ch_profiles okunma/yazilma ════\n";
-occ('ch_profiles','ch_profiles',30,110,10);
+occ('ch_profiles',$src,'ch_profiles',30,110,10);
 
 echo "════ [2] token saklandiktan sonra (login basari) ════\n";
-occ('login basari sonrasi','localStorage.setItem(\'ch_token\'',60,240,3);
-occ('token sonrasi me cagrisi','ch_token\', d.token',40,260,3);
+occ('login basari sonrasi',$src,"localStorage.setItem('ch_token'",60,240,3);
+occ('token sonrasi me cagrisi',$src,"ch_token', d.token",40,260,3);
 
 echo "════ [3] login HATA gosterimi (403/email dogrulanmadi) ════\n";
-occ('login catch/error','error.message',40,180,6);
-occ('email dogrulanmadi metni','bestätigen',40,220,6);
-occ('login fonksiyonu adi (fetch action=login)','action=login',60,200,4);
+occ('login catch/error',$src,'error.message',40,180,6);
+occ('email dogrulanmadi metni',$src,'bestätigen',40,220,6);
+occ('login fonksiyonu adi (fetch action=login)',$src,'action=login',60,200,4);
 
 echo "════ [4] doMe/renderKonto sonrasi UI ════\n";
-occ('renderKontoPlanSelect','renderKontoPlanSelect',30,140,3);
-occ('doMe cagrisi frontend','action=me',40,200,4);
+occ('renderKontoPlanSelect',$src,'renderKontoPlanSelect',30,140,3);
+occ('doMe cagrisi frontend',$src,'action=me',40,200,4);
 
 echo "════ [5] profil kaydet/degistir butonlari ════\n";
-occ('profil ekle/kaydet','ch_profiles.push',30,140,4);
-occ('ch_prof_active','ch_prof_active',30,130,6);
-occ('saveProfiles fn (varsa)','function saveProfiles',0,400,2);
-occ('profil switch UI','prof-switch',30,120,4);
+occ('profil ekle/kaydet',$src,'ch_profiles.push',30,140,4);
+occ('ch_prof_active',$src,'ch_prof_active',30,130,6);
+occ('saveProfiles fn (varsa)',$src,'function saveProfiles',0,400,2);
+occ('profil switch UI',$src,'prof-switch',30,120,4);
 
 echo "\n=== BITTI (salt-okunur). Ciktinin TAMAMINI gonder. ===\n";
