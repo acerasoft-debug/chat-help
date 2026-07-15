@@ -136,6 +136,18 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 .summary .box{min-width:280px}
 .summary .line{display:flex;justify-content:space-between;padding:8px 0;color:var(--mut)}
 .summary .line.big{color:var(--ink);font-size:20px;font-weight:800;border-top:1px solid var(--line);margin-top:8px;padding-top:14px}
+/* payment-method selector */
+.paysel{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:680px}
+@media(max-width:560px){.paysel{grid-template-columns:1fr}}
+.payopt{display:flex;gap:11px;align-items:flex-start;padding:14px 15px;border:1px solid var(--line);
+  border-radius:14px;background:var(--bg2);cursor:pointer;transition:.18s}
+.payopt:hover{border-color:rgba(201,168,106,.5)}
+.payopt input{margin-top:3px;flex:none;accent-color:var(--acc)}
+.payopt:has(input:checked){border-color:var(--acc);background:rgba(201,168,106,.07);box-shadow:0 0 0 1px var(--acc) inset}
+.payopt .payopt-b{display:flex;flex-direction:column;gap:3px}
+.payopt .payopt-b b{font-size:14.5px}
+.payopt.disabled{opacity:.5;cursor:not-allowed}
+.payopt.disabled:hover{border-color:var(--line)}
 
 /* banners / notes */
 .banner{padding:13px 16px;border-radius:12px;margin:18px 0;font-size:14px}
