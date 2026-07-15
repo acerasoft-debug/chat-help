@@ -2,8 +2,12 @@
 /** VESTRA — order request handler (demo). Stores to data/orders.csv (+ optional email). */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/escrow.php';
+require_once __DIR__.'/inc/stripe.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 $CONTACT='support@vestrasales.com'; $NOTIFY=false;
+/* Buyer's chosen payment method: 'escrow' (card, held) or 'bank' (invoice/transfer). */
+$payMethod = (($_POST['pay'] ?? 'bank') === 'escrow') ? 'escrow' : 'bank';
 
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
 if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
@@ -58,11 +62,53 @@ if($fh=@fopen($file,'a')){
   $items=implode(' | ', array_map(function($l){return $l['qty'].'x '.$l['sku'].' @'.$l['unit'];}, $lines));
   $colorNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['colors']),
     array_filter($lines, fn($l)=>!empty($l['colors']))));
-  $notes=trim(($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
+  $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
+  $notes=trim($methodLabel.($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
   fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
     trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION],',','"','\\');
   fclose($fh);
 }
+
+/* ── Escrow (direct charge + delayed payout) ─────────────────────────────────
+   Buyer pays by card ON the seller's connected Stripe account (a direct charge);
+   the platform commission is skimmed as an application fee; the seller's share is
+   HELD in their Stripe balance (manual payout) until delivery is confirmed.
+   Only offered for a SINGLE-seller cart whose seller finished Connect onboarding
+   — otherwise bounce back to the cart to pick bank transfer. */
+if($payMethod==='escrow'){
+  $sellerUids=array_values(array_unique(array_filter(array_map(fn($l)=>$l['seller_uid']??'', $lines))));
+  $seller=null;
+  if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $seller=$a; break; } } }
+  $ready=$seller && stripe_available() && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
+  if(!$ready){ header('Location: /cart?err=escrow'); exit; }
+
+  $amountCents=(int)round($total*100);
+  $feeCents=(int)round($commission*100);
+  /* Itemise for the Stripe page; the protection-fee line absorbs rounding so the sum == amount. */
+  $li=[]; $acc=0;
+  foreach($lines as $l){ $c=(int)round($l['line']*100); if($c<=0) continue; $li[]=['name'=>$l['qty'].'× '.$l['brand'].' '.$l['name'],'amount'=>$c,'qty'=>1]; $acc+=$c; }
+  $protCents=$amountCents-$acc;
+  if($protCents>0) $li[]=['name'=>'Buyer protection fee','amount'=>$protCents,'qty'=>1];
+
+  try {
+    $session=stripe_escrow_checkout($seller['stripe_account_id'],$li,$feeCents,$ref,$email,'eur');
+  } catch(\Throwable $e){
+    error_log('[VESTRA Escrow] checkout create failed: '.$e->getMessage());
+    header('Location: /cart?err=escrow'); exit;
+  }
+  escrow_save([
+    'ref'=>$ref,'seller_uid'=>$seller['id'],'acct_id'=>$seller['stripe_account_id'],
+    'session_id'=>$session->id,'payment_intent'=>'','amount'=>$amountCents,'fee'=>$feeCents,
+    'currency'=>'eur','status'=>'pending','created'=>date('c'),
+    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??'')],
+    'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
+    'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors']],$lines),
+    'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
+  ]);
+  $_SESSION['order_refs'][$ref]=time();
+  header('Location: '.$session->url); exit;
+}
+
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"")."\n"; }
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";

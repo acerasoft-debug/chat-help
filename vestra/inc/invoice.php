@@ -128,23 +128,39 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     }
     $y -= 8;
 
-    // ── Bank details (seller-issued invoices only, when provided) ──
-    $bankLines = $sellerAcc ? array_values(array_filter([
-        !empty($sellerAcc['bank_name'])   ? 'Bank: '.$sellerAcc['bank_name'] : '',
-        !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
-        !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
-        !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
-    ], fn($v) => $v !== '')) : [];
-    if ($bankLines) {
-        $boxH = 16 + count($bankLines) * 13;
+    // ── Payment box ──
+    // Escrow-paid orders show a "PAID via secure escrow" box instead of bank
+    // details — the buyer has already paid by card and no transfer is due.
+    $paid = !empty($order['paid']);
+    if ($paid) {
+        $paidLines = ['Paid by card via VESTRA secure escrow — no bank transfer required.'];
+        if (!empty($order['paid_at'])) $paidLines[] = 'Payment received: '.$order['paid_at'];
+        $boxH = 16 + count($paidLines) * 13;
         $need($boxH + 14);
         $pdf->rectFill($left, $y - $boxH + 4, $width, $boxH);
         $by = $y - 8;
-        $pdf->text($left + 10, $by, 9, 'Payment details — bank transfer', true);
-        foreach ($bankLines as $bl) { $by -= 13; $pdf->text($left + 10, $by, 9, $bl); }
+        $pdf->text($left + 10, $by, 9, 'Payment status — PAID (escrow)', true);
+        foreach ($paidLines as $bl) { $by -= 13; $pdf->text($left + 10, $by, 9, $bl); }
         $y -= ($boxH + 14);
     } else {
-        $y -= 6;
+        // ── Bank details (seller-issued invoices only, when provided) ──
+        $bankLines = $sellerAcc ? array_values(array_filter([
+            !empty($sellerAcc['bank_name'])   ? 'Bank: '.$sellerAcc['bank_name'] : '',
+            !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
+            !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
+            !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
+        ], fn($v) => $v !== '')) : [];
+        if ($bankLines) {
+            $boxH = 16 + count($bankLines) * 13;
+            $need($boxH + 14);
+            $pdf->rectFill($left, $y - $boxH + 4, $width, $boxH);
+            $by = $y - 8;
+            $pdf->text($left + 10, $by, 9, 'Payment details — bank transfer', true);
+            foreach ($bankLines as $bl) { $by -= 13; $pdf->text($left + 10, $by, 9, $bl); }
+            $y -= ($boxH + 14);
+        } else {
+            $y -= 6;
+        }
     }
 
     // ── Line-items table ──
@@ -187,7 +203,9 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $y -= 34;
 
     $need(40);
-    $pdf->text($left, $y, 8, 'Payment due within 14 days via bank transfer to the account shown above (if provided).', false);
+    $pdf->text($left, $y, 8, $paid
+        ? 'Paid in full via VESTRA secure escrow. Funds are released to the seller once the buyer confirms delivery.'
+        : 'Payment due within 14 days via bank transfer to the account shown above (if provided).', false);
     $y -= 12;
     foreach ($pdf->wrap('This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.', $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;

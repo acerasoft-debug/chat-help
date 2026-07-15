@@ -1,0 +1,239 @@
+<?php
+/**
+ * VESTRA — escrow order state (direct charge + delayed payout).
+ *
+ * orders.csv is append-only, so the mutable escrow lifecycle lives in its own
+ * tiny JSON store keyed by order ref. One record per escrow order:
+ *
+ *   ref            VES-xxxxxxxx   (matches orders.csv)
+ *   seller_uid     our account id of the paid seller
+ *   acct_id        acct_…         connected account the charge lives on
+ *   session_id     cs_…           Checkout Session (set at creation)
+ *   payment_intent pi_…           set once paid (needed for refund)
+ *   amount         cents the buyer paid (gross)
+ *   fee            cents platform commission (application_fee_amount)
+ *   currency       eur
+ *   status         pending → held → released | refunded
+ *   buyer_email / buyer_id / created / paid_at / released_at / refunded_at
+ *
+ * Status meaning:
+ *   pending   Checkout Session created, buyer has not paid yet.
+ *   held      Buyer paid; the seller's share sits HELD in their Stripe balance
+ *             (manual payout). This is money in escrow.
+ *   released  Platform paid the seller out (buyer confirmed delivery).
+ *   refunded  Platform refunded the buyer in full before release.
+ */
+
+function escrow_file(): string { return __DIR__ . '/../data/escrow.json'; }
+
+function escrow_all(): array {
+    $f = escrow_file();
+    if (!is_readable($f)) return [];
+    $j = json_decode((string) file_get_contents($f), true);
+    return is_array($j) ? $j : [];
+}
+
+function escrow_get(string $ref): ?array {
+    $all = escrow_all();
+    return $all[$ref] ?? null;
+}
+
+/** Find an escrow record by Stripe Checkout Session id (webhook lookup). */
+function escrow_find_by_session(string $sessionId): ?array {
+    foreach (escrow_all() as $rec) {
+        if (($rec['session_id'] ?? '') === $sessionId) return $rec;
+    }
+    return null;
+}
+
+/** Find an escrow record by payment_intent id (webhook / refund lookup). */
+function escrow_find_by_pi(string $pi): ?array {
+    foreach (escrow_all() as $rec) {
+        if (($rec['payment_intent'] ?? '') === $pi) return $rec;
+    }
+    return null;
+}
+
+function escrow_save(array $rec): void {
+    $ref = $rec['ref'] ?? '';
+    if ($ref === '') return;
+    $all = escrow_all();
+    $all[$ref] = $rec;
+    $dir = dirname(escrow_file());
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    @file_put_contents(escrow_file(), json_encode($all, JSON_PRETTY_PRINT), LOCK_EX);
+}
+
+/** Merge a patch into an existing record and persist. Returns the merged record. */
+function escrow_update(string $ref, array $patch): ?array {
+    $all = escrow_all();
+    if (!isset($all[$ref])) return null;
+    $all[$ref] = array_merge($all[$ref], $patch);
+    @file_put_contents(escrow_file(), json_encode($all, JSON_PRETTY_PRINT), LOCK_EX);
+    return $all[$ref];
+}
+
+/** Human status label + colour for UI badges. */
+function escrow_badge(string $status): string {
+    return match ($status) {
+        'held'     => '<span style="color:#7ad6a0">🛡️ In escrow</span>',
+        'released' => '<span style="color:#8fd3ff">✓ Released to seller</span>',
+        'refunded' => '<span style="color:#f0c060">↩ Refunded to buyer</span>',
+        'pending'  => '<span style="color:#888">⏳ Awaiting payment</span>',
+        default    => '<span style="color:#555">—</span>',
+    };
+}
+
+/**
+ * Is this seller ready to receive escrow (Connect onboarded, charges enabled)?
+ * Reads the cached `escrow_ready` flag written on onboarding-return and by the
+ * account.updated webhook — no per-request Stripe call. When $refresh is true
+ * (e.g. right after onboarding) it hits the API once and updates the cache.
+ */
+function escrow_seller_ready(array $seller, bool $refresh = false): bool {
+    if ($refresh && !empty($seller['stripe_account_id']) && function_exists('stripe_connect_status')) {
+        $st = stripe_connect_status($seller);
+        $ready = !empty($st['charges_enabled']);
+        if (($seller['escrow_ready'] ?? null) !== $ready) {
+            auth_update($seller['id'], ['escrow_ready' => $ready]);
+        }
+        return $ready;
+    }
+    return !empty($seller['escrow_ready']);
+}
+
+/* ── Lifecycle actions ──────────────────────────────────────────────────── */
+
+/**
+ * Mark an escrow order PAID (buyer completed Checkout). Idempotent: records the
+ * payment_intent and flips pending→held once, returning the record so the caller
+ * can fulfil it. Returns null if the ref is unknown or already past 'pending'.
+ */
+function escrow_mark_paid(string $ref, string $paymentIntent): ?array {
+    $rec = escrow_get($ref);
+    if (!$rec || ($rec['status'] ?? '') !== 'pending') return null;
+    return escrow_update($ref, [
+        'status'         => 'held',
+        'payment_intent' => $paymentIntent,
+        'paid_at'        => date('c'),
+    ]);
+}
+
+/**
+ * Post-payment side effects for a freshly-held escrow order: PDF invoice (marked
+ * paid), buyer + seller "payment held in escrow" emails, and the messaging order
+ * card. Idempotent — guarded by a 'fulfilled' flag so a webhook + confirm-page
+ * double-fire can't duplicate emails.
+ */
+function escrow_fulfill(array $rec): void {
+    $ref = $rec['ref'] ?? '';
+    if ($ref === '' || !empty($rec['fulfilled'])) return;
+    escrow_update($ref, ['fulfilled' => true]); // claim first — avoids double email on races
+
+    require_once __DIR__ . '/notify.php';
+    require_once __DIR__ . '/invoice.php';
+
+    $b     = $rec['buyer'] ?? [];
+    $items = $rec['items'] ?? [];
+    $total = number_format((float)($rec['total'] ?? 0), 2);
+
+    // Seller account (for invoice + email).
+    $seller = null;
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === ($rec['seller_uid'] ?? '')) { $seller = $a; break; } }
+
+    // Paid invoice (idempotent by ref+seller).
+    try {
+        vestra_ensure_invoice([
+            'ref' => $ref, 'date' => $rec['created'] ?? date('c'),
+            'paid' => true, 'paid_at' => $rec['paid_at'] ?? date('c'),
+            'buyer' => ['company'=>$b['company']??'','vat'=>$b['vat']??'','name'=>$b['name']??'',
+                        'email'=>$b['email']??'','country'=>$b['country']??'','address'=>$b['address']??''],
+        ], $items, $seller);
+    } catch (\Throwable $e) { error_log('[VESTRA Escrow] invoice failed '.$ref.': '.$e->getMessage()); }
+
+    $itemsTxt = implode("\n", array_map(
+        fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €".number_format((float)$l['unit'],2)
+              .(!empty($l['colors'])?" [".implode(', ',(array)$l['colors'])."]":""), $items));
+
+    // Buyer: payment held in escrow.
+    if (!empty($b['email'])) {
+        vestra_send_mail($b['email'], "VESTRA — payment secured in escrow ({$ref})",
+            "Hello ".($b['name']?:'there').",\n\n".
+            "Your payment for order {$ref} has been received and is now held safely in VESTRA escrow.\n\n".
+            "€{$total} is protected. The seller ships your goods, and the funds are released to them only after you confirm delivery. If something goes wrong before then, you can open a dispute and we can refund you in full.\n\n".
+            "--- Order summary ---\n{$itemsTxt}\n\n".
+            "Confirm delivery when your goods arrive: https://vestrasales.com/buyer?tab=orders\n\n".
+            "— VESTRA · vestrasales.com");
+    }
+
+    // Seller: funds held, ship now.
+    if ($seller && !empty($seller['email'])) {
+        $payout = number_format((float)($rec['payout'] ?? 0), 2);
+        vestra_send_mail($seller['email'], "VESTRA — paid order in escrow ({$ref}) — ship now",
+            "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\n".
+            "Good news — a buyer has PAID for an order and the funds are held in escrow on your Stripe balance:\n\n".
+            "Order ref: {$ref}\nBuyer: ".($b['company']?:$b['name'])."\n\n{$itemsTxt}\n\n".
+            "Your payout after commission: €{$payout}\n\n".
+            "Please ship the goods and mark the order shipped. The held funds are released to your bank once the buyer confirms delivery.\n\n".
+            "Your dashboard: https://vestrasales.com/seller?tab=orders\n\n".
+            "— VESTRA · vestrasales.com");
+    }
+
+    // Messaging order card (buyer ↔ seller) — the trade lives in one thread.
+    $buyerId = $rec['buyer_id'] ?? '';
+    if ($buyerId && $seller) {
+        require_once __DIR__ . '/messages.php';
+        $summary = implode(' · ', array_map(
+            fn($l)=>$l['qty'].'× '.$l['brand'].' '.$l['name'].(!empty($l['colors'])?' ('.implode(', ',(array)$l['colors']).')':''), $items));
+        try {
+            vestra_msg_post_system($buyerId, $seller['id'], '', [
+                'kind'=>'order', 'status'=>'paid_escrow', 'ref'=>$ref,
+                'items'=>mb_substr($summary,0,160), 'total'=>(float)($rec['total'] ?? 0),
+            ]);
+        } catch (\Throwable $e) { error_log('[VESTRA Escrow] msg card failed '.$ref.': '.$e->getMessage()); }
+    }
+}
+
+/**
+ * RELEASE the escrow to the seller (buyer confirmed delivery). Pays out the
+ * seller's held balance and flips held→released. Returns [ok,msg].
+ */
+function escrow_do_release(string $ref): array {
+    require_once __DIR__ . '/stripe.php';
+    $rec = escrow_get($ref);
+    if (!$rec) return ['ok'=>false, 'msg'=>'Unknown order.'];
+    if (($rec['status'] ?? '') === 'released') return ['ok'=>true, 'msg'=>'Already released.'];
+    if (($rec['status'] ?? '') !== 'held')     return ['ok'=>false, 'msg'=>'Order is not in escrow (status: '.($rec['status'] ?? '?').').'];
+    // Release the seller's NET share (payout), not the whole balance — leaves the
+    // rest (e.g. other orders) untouched; falls back to full balance if unset.
+    $amt = isset($rec['payout']) ? (int) round(((float)$rec['payout']) * 100) : null;
+    try {
+        $p = stripe_escrow_release($rec['acct_id'], $amt, $rec['currency'] ?? 'eur', $ref);
+        escrow_update($ref, ['status'=>'released', 'released_at'=>date('c'), 'payout_id'=>$p->id ?? '']);
+        return ['ok'=>true, 'msg'=>'Released €'.number_format(((int)($p->amount ?? 0))/100, 2).' to the seller.'];
+    } catch (\Throwable $e) {
+        error_log('[VESTRA Escrow] release failed '.$ref.': '.$e->getMessage());
+        return ['ok'=>false, 'msg'=>'Release failed: '.$e->getMessage()];
+    }
+}
+
+/**
+ * REFUND the buyer in full before release (dispute / non-delivery). Flips
+ * held→refunded and claws the commission back. Returns [ok,msg].
+ */
+function escrow_do_refund(string $ref): array {
+    require_once __DIR__ . '/stripe.php';
+    $rec = escrow_get($ref);
+    if (!$rec) return ['ok'=>false, 'msg'=>'Unknown order.'];
+    if (($rec['status'] ?? '') === 'refunded') return ['ok'=>true, 'msg'=>'Already refunded.'];
+    if (($rec['status'] ?? '') !== 'held')     return ['ok'=>false, 'msg'=>'Only in-escrow orders can be refunded (status: '.($rec['status'] ?? '?').').'];
+    if (empty($rec['payment_intent']))         return ['ok'=>false, 'msg'=>'No payment on file to refund.'];
+    try {
+        $r = stripe_escrow_refund($rec['acct_id'], $rec['payment_intent']);
+        escrow_update($ref, ['status'=>'refunded', 'refunded_at'=>date('c'), 'refund_id'=>$r->id ?? '']);
+        return ['ok'=>true, 'msg'=>'Refunded €'.number_format(((int)($r->amount ?? 0))/100, 2).' to the buyer.'];
+    } catch (\Throwable $e) {
+        error_log('[VESTRA Escrow] refund failed '.$ref.': '.$e->getMessage());
+        return ['ok'=>false, 'msg'=>'Refund failed: '.$e->getMessage()];
+    }
+}

@@ -18,6 +18,7 @@ require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/products.php';
 require_once __DIR__ . '/../inc/notify.php';
 require_once __DIR__ . '/../inc/stripe.php';
+require_once __DIR__ . '/../inc/escrow.php';
 
 // Must read raw body before any output or other reads
 $payload   = (string) file_get_contents('php://input');
@@ -54,6 +55,18 @@ switch ($type) {
             if (!$pm) break;
             stripe_api('POST', '/v1/customers/' . $customerId, ['invoice_settings' => ['default_payment_method' => $pm]]);
             auth_update($account['id'], ['stripe_commission_pm' => $pm]);
+            break;
+        }
+        // Escrow order paid — direct charge on the seller's connected account.
+        // (Delivered here as a CONNECTED-account event, so enable "listen to
+        // events on connected accounts" on this webhook endpoint.)
+        if (($obj->mode ?? '') === 'payment') {
+            $ref = $obj->client_reference_id ?? ($obj->metadata->order_ref ?? '');
+            $pi  = is_string($obj->payment_intent ?? null) ? $obj->payment_intent : ($obj->payment_intent->id ?? '');
+            if ($ref !== '') {
+                $rec = escrow_mark_paid($ref, $pi);
+                if ($rec) escrow_fulfill($rec);
+            }
             break;
         }
         if (($obj->mode ?? '') !== 'subscription') break;
@@ -158,6 +171,22 @@ switch ($type) {
             "To reactivate, visit: https://vestrasales.com/membership\n\n" .
             "— VESTRA · vestrasales.com"
         );
+        break;
+
+    // ── account.updated → refresh a seller's escrow readiness ─────────────
+    // Fires (as a connected-account event) whenever a seller finishes or changes
+    // Connect onboarding. Cache charges_enabled so the cart can offer escrow
+    // without a live API call per page load.
+    case 'account.updated':
+        $acctId = $obj->id ?? '';
+        if ($acctId === '') break;
+        foreach (auth_accounts() as $acc) {
+            if (($acc['stripe_account_id'] ?? '') === $acctId) {
+                $ready = !empty($obj->charges_enabled);
+                if (($acc['escrow_ready'] ?? null) !== $ready) auth_update($acc['id'], ['escrow_ready' => $ready]);
+                break;
+            }
+        }
         break;
 
     // ── invoice.payment_failed → past_due + warn seller ──────────────────
