@@ -24,9 +24,12 @@
  * secret key to the .env as STRIPE_TEST_SECRET_KEY=sk_test_… and load this page.
  */
 
+error_reporting(E_ALL);
+ini_set('display_errors', '1'); // this is a diagnostic — surface fatals instead of a blank 500
 header('Content-Type: text/plain; charset=utf-8');
 require_once __DIR__ . '/../inc/env.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/notify.php'; // defines vestra_cfg() used by the gate
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 /* ── gate ─────────────────────────────────────────────────────────────────── */
