@@ -10,7 +10,6 @@ if ($AUTH_USER) { require_once __DIR__.'/messages.php'; $MSG_UNREAD = vestra_msg
 $BRAND  = 'VESTRA';
 $PAGE   = $PAGE ?? $BRAND;
 $ACC    = '#c9a86a';
-$fav = 'data:image/svg+xml,' . rawurlencode("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#0e0e11'/><path d='M9 10l7 13 7-13' fill='none' stroke='{$ACC}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
 ?><!DOCTYPE html>
 <html lang="<?= vlang() ?>">
 <head>
@@ -51,7 +50,10 @@ $NOINDEX   = $NOINDEX ?? false;
 <meta name="twitter:description" content="<?= htmlspecialchars($META) ?>">
 <meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <meta name="theme-color" content="#0e0e11">
-<link rel="icon" href="<?= $fav ?>">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -90,7 +92,7 @@ foreach ($_ld as $_schema) {
         <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/>
         <path d="M9 10l7 13 7-13" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span><?= $BRAND ?></span>
+      <span><?= $BRAND ?><span class="logo-sub">sales</span></span>
     </a>
     <div class="nav-links" id="navmenu">
       <a href="/shop" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>"><?= t('Catalog') ?></a>

@@ -170,8 +170,6 @@ $T = [
 ];
 $t = $T[$lang];
 
-$favSvg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='#0e0e11'/><path d='M9 10l7 13 7-13' fill='none' stroke='{$ACCENT}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>";
-$favicon = 'data:image/svg+xml,' . rawurlencode($favSvg);
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>">
@@ -212,7 +210,10 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   '@context'=>'https://schema.org','@type'=>'WebSite','name'=>'VESTRA','url'=>$SEO_HOST,
   'potentialAction'=>['@type'=>'SearchAction','target'=>['@type'=>'EntryPoint','urlTemplate'=>$SEO_HOST.'/shop?q={search_term_string}'],'query-input'=>'required name=search_term_string'],
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
-<link rel="icon" href="<?= $favicon ?>">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
@@ -237,6 +238,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   .logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;
     font-size:22px;font-weight:700;letter-spacing:1.5px}
   .logo .mark{width:30px;height:30px}
+  .logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:400;font-size:.5em;letter-spacing:.3px;color:var(--acc);opacity:.5;margin-left:.16em;text-transform:lowercase;font-style:normal}
   .nav-links{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:500}
   .nav-links>a{color:var(--mut);transition:color .2s}
   .nav-links>a:hover{color:var(--ink)}
@@ -348,7 +350,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
         <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/>
         <path d="M9 10l7 13 7-13" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <span><?= htmlspecialchars($BRAND) ?></span>
+      <span><?= htmlspecialchars($BRAND) ?><span class="logo-sub">sales</span></span>
     </a>
     <div class="nav-links">
       <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
