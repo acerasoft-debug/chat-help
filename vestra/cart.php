@@ -60,6 +60,7 @@ if (stripe_available()) {
       <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
       <?php endif; ?>
+      <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
       <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="hint" style="margin-top:8px"><?= sprintf(t('Includes a <b>%d%% buyer-protection fee</b> (verification + authenticity guarantee). The seller separately pays a %d%% commission.'), round(VESTRA_FEE_BUYER*100), round(VESTRA_FEE_SELLER*100)) ?></div>
@@ -77,7 +78,7 @@ if (stripe_available()) {
         <label class="payopt" id="payEscrowOpt">
           <input type="radio" name="pay" value="escrow" id="payEscrow">
           <span class="payopt-b">
-            <b>🛡️ <?= t('Secure escrow (card)') ?></b>
+            <b>🛡️ <?= t('Secure escrow (card)') ?> · +<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%</b>
             <span class="hint"><?= t('Pay now by card. VESTRA holds the funds and releases them to the seller only after you confirm delivery — full refund if anything goes wrong.') ?></span>
             <span class="hint payopt-lock" id="escrowLock" style="display:none;color:var(--mut)"><?= t('Available when your whole cart is from one verified seller.') ?></span>
           </span>
@@ -122,6 +123,7 @@ if (stripe_available()) {
 <?php if(!$placed): ?>
 <script>
 var ESCROW_MAP = <?= json_encode($escrowMap, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
+var ESCROW_FEE_RATE = <?= json_encode((float)VESTRA_ESCROW_FEE_BUYER) ?>;
 var PAY_LBL = {
   escrowBtn: <?= json_encode(t('Pay securely →')) ?>,
   escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,
@@ -169,19 +171,22 @@ function render(){
       '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });
   document.getElementById('rows').innerHTML=rows;
-  var bfee=sub*<?=VESTRA_FEE_BUYER?>;
+  syncPay(c); // enable/disable escrow (may force bank) before pricing the fee
+  var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
+  var efee=isEsc?sub*ESCROW_FEE_RATE:0;
+  var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';
+  var efeeEl=document.getElementById('escrowFee'); if(efeeEl) efeeEl.textContent=eur(efee);
   document.getElementById('sub').textContent=eur(sub);
-  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(bfee);
-  document.getElementById('grand').textContent=eur(sub+bfee);
+  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(sub*<?=VESTRA_FEE_BUYER?>);
+  document.getElementById('grand').textContent=eur(sub+efee);
   document.getElementById('cartField').value=JSON.stringify(c);
-  syncPay(c);
 }
 document.getElementById('rows').addEventListener('click', function(e){
   var id = e.target && e.target.dataset ? e.target.dataset.removeId : null;
   if (id) { VCart.remove(id); render(); }
 });
 ['payEscrow','payBank'].forEach(function(id){
-  var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ syncPay(VCart.all()); });
+  var el=document.getElementById(id); if(el) el.addEventListener('change', function(){ render(); });
 });
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
   document.getElementById('cartField').value=JSON.stringify(VCart.all());

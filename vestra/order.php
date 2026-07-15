@@ -43,9 +43,21 @@ foreach($cart as $it){
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
 }
 if(!$lines){ header('Location: /cart'); exit; }
-/* Platform commission — set seller- and buyer-side rates independently. */
-$FEE_SELLER = VESTRA_FEE_SELLER; // configured in inc/products.php (6% seller)
-$FEE_BUYER  = VESTRA_FEE_BUYER;  // configured in inc/products.php (2% buyer)
+/* Platform commission. Escrow (Treuhand) orders carry a FIXED buyer-protection fee
+   (VESTRA_ESCROW_FEE_BUYER, 2%) plus the seller's tiered membership commission
+   (3.5/3.2/2.8%), collected together as the Stripe application fee on the direct
+   charge. Bank-transfer orders keep the 0% cart fees (seller commission is charged
+   separately to the seller card). Escrow needs a single, known seller. */
+$sellerUids = array_values(array_unique(array_filter(array_map(fn($l)=>$l['seller_uid']??'', $lines))));
+$escrowSeller = null;
+if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $escrowSeller=$a; break; } } }
+if($payMethod==='escrow' && $escrowSeller){
+  $FEE_BUYER  = VESTRA_ESCROW_FEE_BUYER;                                              // fixed 2% buyer
+  $FEE_SELLER = vestra_seller_commission_rate($escrowSeller['membership_tier'] ?? ''); // 3.5/3.2/2.8%
+} else {
+  $FEE_SELLER = VESTRA_FEE_SELLER;
+  $FEE_BUYER  = VESTRA_FEE_BUYER;
+}
 $buyer_fee  = round($subtotal*$FEE_BUYER, 2);
 $seller_fee = round($subtotal*$FEE_SELLER, 2);
 $commission = round($buyer_fee + $seller_fee, 2); // total platform revenue
@@ -76,9 +88,7 @@ if($fh=@fopen($file,'a')){
    Only offered for a SINGLE-seller cart whose seller finished Connect onboarding
    — otherwise bounce back to the cart to pick bank transfer. */
 if($payMethod==='escrow'){
-  $sellerUids=array_values(array_unique(array_filter(array_map(fn($l)=>$l['seller_uid']??'', $lines))));
-  $seller=null;
-  if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $seller=$a; break; } } }
+  $seller=$escrowSeller; // single seller resolved during fee computation above
   $ready=$seller && stripe_available() && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
   if(!$ready){ header('Location: /cart?err=escrow'); exit; }
 

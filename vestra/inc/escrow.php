@@ -205,11 +205,17 @@ function escrow_do_release(string $ref): array {
     if (!$rec) return ['ok'=>false, 'msg'=>'Unknown order.'];
     if (($rec['status'] ?? '') === 'released') return ['ok'=>true, 'msg'=>'Already released.'];
     if (($rec['status'] ?? '') !== 'held')     return ['ok'=>false, 'msg'=>'Order is not in escrow (status: '.($rec['status'] ?? '?').').'];
-    // Release the seller's NET share (payout), not the whole balance — leaves the
-    // rest (e.g. other orders) untouched; falls back to full balance if unset.
-    $amt = isset($rec['payout']) ? (int) round(((float)$rec['payout']) * 100) : null;
+    // Release the seller's NET share (payout). Direct-charge Stripe fees reduce the
+    // connected balance below the gross payout, so cap at what's actually available —
+    // never over-request (Stripe rejects payouts above the available balance).
+    $want = isset($rec['payout']) ? (int) round(((float)$rec['payout']) * 100) : null;
     try {
-        $p = stripe_escrow_release($rec['acct_id'], $amt, $rec['currency'] ?? 'eur', $ref);
+        $cur   = $rec['currency'] ?? 'eur';
+        $bal   = stripe_escrow_balance($rec['acct_id']);
+        $avail = (int) ($bal['available'][$cur] ?? 0);
+        $amt   = ($want === null) ? $avail : min($want, $avail);
+        if ($amt <= 0) return ['ok'=>false, 'msg'=>'Nothing available to release yet — card funds may still be settling. Try again shortly.'];
+        $p = stripe_escrow_release($rec['acct_id'], $amt, $cur, $ref);
         escrow_update($ref, ['status'=>'released', 'released_at'=>date('c'), 'payout_id'=>$p->id ?? '']);
         return ['ok'=>true, 'msg'=>'Released €'.number_format(((int)($p->amount ?? 0))/100, 2).' to the seller.'];
     } catch (\Throwable $e) {
