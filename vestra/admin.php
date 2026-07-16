@@ -150,6 +150,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
   }
+  /* One-time repair: give duplicate order refs (pre-uniqueness bug) fresh refs so
+     each order gets its own independent status entry. */
+  if($act==='fix_dup_refs'){
+    $n=vestra_orders_fix_dup_refs();
+    header('Location: /admin?tab=orders&msg=dupfix&n='.$n); exit;
+  }
   /* Escrow dispute resolution — force-release the held funds to the seller, or
      refund the buyer in full (cancels the sale, claws the commission back). */
   if($act==='escrow_release'){
@@ -536,6 +542,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
 <div class="amsg ok">✓ Sent to <?= (int)($_GET['n']??0) ?> prospect(s).</div>
+<?php elseif($msg==='dupfix'): ?>
+<div class="amsg ok">✓ Repaired <?= (int)($_GET['n']??0) ?> duplicate order ref(s) — every order now has its own independent status.</div>
 <?php endif; ?>
 
 
@@ -944,6 +952,22 @@ elseif($tab==='orders'):
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Total volume</div></div>
 </div>
 <div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=orders">⬇ Download CSV</a></div>
+
+<?php
+/* Legacy duplicate refs (same buyer + same items pre-fix) share ONE status entry —
+   the "update one, all change" bug. Offer the one-click repair when any exist. */
+$__refCounts = array_count_values(array_filter(array_map(fn($o)=>$o['ref']??'', $orders)));
+$__dupRefs   = array_filter($__refCounts, fn($n)=>$n>1);
+if($__dupRefs): ?>
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#f0c060;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <span>⚠ <b><?= count($__dupRefs) ?></b> ref is shared by multiple orders (<?= htmlspecialchars(implode(', ', array_slice(array_keys($__dupRefs),0,4))) ?><?= count($__dupRefs)>4?', …':'' ?>)
+  — they share one status entry, so updating one updates them all.</span>
+  <form method="post" style="margin:0" onsubmit="return confirm('Give each duplicate order its own fresh ref? The oldest keeps the original ref (and its invoices); statuses are preserved.')">
+    <?= csrfField() ?><input type="hidden" name="_action" value="fix_dup_refs">
+    <button class="abtn primary" type="submit">🔧 Repair duplicate refs</button>
+  </form>
+</div>
+<?php endif; ?>
 
 <?php if(!$orders): ?><div class="acard"><div class="aempty">No orders yet.</div></div>
 <?php else: ?>

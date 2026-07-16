@@ -171,3 +171,48 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     $h .= '</div>'; // end panelcard
     return $h;
 }
+
+/* ── Duplicate-ref repair ────────────────────────────────────────────────────
+ * Before the ref-collision fix, a ref was derived from buyer+items only, so the
+ * same buyer reordering the same goods got the SAME ref. Status/tracking/escrow
+ * all key on the ref, so those orders shared one status entry — updating one
+ * order "changed them all" in the admin. This one-time repair keeps the FIRST
+ * (oldest) occurrence — its invoices stay linked — and gives every later
+ * duplicate a fresh unique ref, cloning the shared status entry so each order
+ * keeps the status the admin last saw. Returns how many rows were re-reffed. */
+function vestra_orders_fix_dup_refs(): int {
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return 0;
+    $in = fopen($file, 'r'); if (!$in) return 0;
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return 0; }
+    $refIdx = array_search('ref', $head, true);
+    if ($refIdx === false) { fclose($in); return 0; }
+    $rows = [];
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) $rows[] = $r;
+    fclose($in);
+
+    $statuses = vestra_read_json('order_statuses.json');
+    $seen = []; $fixed = 0;
+    $existing = array_flip(array_map(fn($r) => (string)($r[$refIdx] ?? ''), $rows));
+    foreach ($rows as &$r) {
+        $ref = (string)($r[$refIdx] ?? '');
+        if ($ref === '') continue;
+        if (!isset($seen[$ref])) { $seen[$ref] = true; continue; }
+        do { $new = 'VES-'.strtoupper(substr(md5(random_bytes(16)), 0, 8)); }
+        while (isset($seen[$new]) || isset($existing[$new]));
+        if (isset($statuses[$ref])) $statuses[$new] = $statuses[$ref];
+        $r[$refIdx] = $new; $seen[$new] = true; $existing[$new] = true; $fixed++;
+    }
+    unset($r);
+    if (!$fixed) return 0;
+
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return 0;
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    rename($tmp, $file);   // atomic swap — readers never see a half-written file
+    vestra_write_json('order_statuses.json', $statuses);
+    return $fixed;
+}
