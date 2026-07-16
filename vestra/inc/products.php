@@ -63,43 +63,12 @@ function vestra_demo_products(){
       'tiers'=>[['min'=>20,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
     [
-      'id'=>'amiri-core-tee','brand'=>'Amiri','name'=>'Core Logo Tee','mode'=>'offer',
-      'guide'=>'Indicative €90–110 / pc · limited allocation',
-      'cat'=>'T-Shirts','sku'=>'AMI-CT-007','moq'=>10,'unit'=>'pc',
-      'desc'=>'Premium cotton tee. Limited allocation — open to offers. Authenticity verified on delivery.',
-      'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#3a0f12',
-      'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2','size_step'=>10,
-      'tiers'=>[['min'=>10,'price'=>110.00],['min'=>30,'price'=>98.00],['min'=>60,'price'=>90.00]],
-    ],
-    [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo','mode'=>'fixed',
       'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>10,'unit'=>'pc',
       'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
       'seller'=>'Lux Source Srl','origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
       'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours','size_step'=>10,
       'tiers'=>[['min'=>10,'price'=>35.00]],
-    ],
-    [
-      'id'=>'basic-crew-tee','brand'=>'VESTRA Essentials','name'=>'Crew Neck Tee — blank','mode'=>'fixed',
-      'cat'=>'Basics','sku'=>'VE-CT-100','moq'=>10,'unit'=>'pc',
-      'desc'=>'180gsm combed cotton blank tee. Bulk packs, all sizes & colours.',
-      'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#44454e','size_step'=>10,
-      'tiers'=>[['min'=>10,'price'=>4.20],['min'=>300,'price'=>3.40],['min'=>1000,'price'=>2.80]],
-      'group'=>true,'group_seed'=>640,'group_seed_n'=>11, // group-buy: pool to 1000 pc → €2.80/pc
-    ],
-    [
-      'id'=>'cotton-socks','brand'=>'VESTRA Essentials','name'=>'Cotton Socks — 12 pack','mode'=>'sale','list'=>11.90,
-      'cat'=>'Basics','sku'=>'VE-SK-220','moq'=>10,'unit'=>'pack',
-      'desc'=>'Combed cotton crew socks, 12 pairs per pack. Clearance pricing.',
-      'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#283b49','size_step'=>10,
-      'tiers'=>[['min'=>10,'price'=>9.50],['min'=>500,'price'=>7.90],['min'=>2000,'price'=>6.50]],
-    ],
-    [
-      'id'=>'boxer-briefs','brand'=>'VESTRA Essentials','name'=>'Boxer Briefs — 3 pack','mode'=>'fixed',
-      'cat'=>'Underwear','sku'=>'VE-UW-330','moq'=>10,'unit'=>'pack',
-      'desc'=>'Stretch cotton boxer briefs, 3 per pack. Assorted sizes & colours.',
-      'seller'=>'VESTRA Essentials','origin'=>'White-label','verified'=>true,'accent'=>'#392b4a','size_step'=>10,
-      'tiers'=>[['min'=>10,'price'=>7.80],['min'=>500,'price'=>6.40],['min'=>2000,'price'=>5.30]],
     ],
   ];
 }
