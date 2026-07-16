@@ -6,6 +6,11 @@ $BRAND   = 'VESTRA';
 $CONTACT = 'support@vestrasales.com';
 $COMPANY = 'acerasoft LLC';
 $ACCENT  = '#c9a86a';
+/* Signed-in visitors get "open my dashboard" instead of register CTAs —
+   register.php would only redirect them anyway (reads as a dead button). */
+if (session_status() === PHP_SESSION_NONE) session_start();
+$LOGGED    = !empty($_SESSION['uid']);
+$panelHref = ($_SESSION['utype'] ?? '') === 'seller' ? '/seller' : '/buyer';
 require_once __DIR__.'/inc/i18n.php';
 
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
@@ -19,7 +24,7 @@ $T = [
  'pill'=>'Live · Open registration',
  'h1'=>'The <span class="acc">verified</span> way to trade<br>branded fashion, wholesale.',
  'sub'=>'A B2B marketplace where every seller is KYC-verified, every order runs on clear invoice terms, and every transaction is documented. Built on seller verification — not empty promises.',
- 'b_sell'=>'Register as Seller','b_buy'=>'Register as Buyer',
+ 'b_sell'=>'Register as Seller','b_buy'=>'Register as Buyer','b_panel'=>'Open my dashboard',
  'tr1'=>'KYC-verified sellers','tr2'=>'Invoice-based payment','tr3'=>'Transaction records',
  'p1t'=>'Verified sellers only','p1d'=>'Business KYC on every seller — VAT ID, registration, identity. No anonymous listings, no guesswork.',
  'p2t'=>'Buyer protection','p2d'=>'Pay by invoice with a full paper trail. If goods don\'t match the listing, a structured dispute process steps in.',
@@ -50,7 +55,7 @@ $T = [
  'pill'=>'En ligne · Inscription ouverte',
  'h1'=>'La façon <span class="acc">vérifiée</span> de négocier<br>la mode de marque, en gros.',
  'sub'=>"Une marketplace B2B où chaque vendeur est vérifié (KYC), chaque commande repose sur des conditions de facturation claires et chaque transaction est documentée. Construite sur la vérification des vendeurs.",
- 'b_sell'=>'Rejoindre comme Vendeur','b_buy'=>'Rejoindre comme Acheteur',
+ 'b_sell'=>'Rejoindre comme Vendeur','b_buy'=>'Rejoindre comme Acheteur','b_panel'=>'Ouvrir mon tableau de bord',
  'tr1'=>'Vendeurs vérifiés (KYC)','tr2'=>'Paiement sur facture','tr3'=>'Traçabilité des transactions',
  'p1t'=>'Vendeurs vérifiés uniquement','p1d'=>'KYC entreprise sur chaque vendeur — TVA, immatriculation, identité. Aucune annonce anonyme.',
  'p2t'=>'Protection acheteur','p2d'=>"Paiement sur facture avec une traçabilité complète. Si la marchandise ne correspond pas à l'annonce, un processus de litige structuré s'enclenche.",
@@ -81,7 +86,7 @@ $T = [
  'pill'=>'Online · Registrazione aperta',
  'h1'=>'Il modo <span class="acc">verificato</span> di commerciare<br>moda di marca, all\'ingrosso.',
  'sub'=>"Un marketplace B2B dove ogni venditore è verificato (KYC), ogni ordine si basa su chiare condizioni di fatturazione e ogni transazione è documentata.",
- 'b_sell'=>'Registrati come Venditore','b_buy'=>'Registrati come Acquirente',
+ 'b_sell'=>'Registrati come Venditore','b_buy'=>'Registrati come Acquirente','b_panel'=>'Apri la mia dashboard',
  'tr1'=>'Venditori verificati (KYC)','tr2'=>'Pagamento su fattura','tr3'=>'Registri delle transazioni',
  'p1t'=>'Solo venditori verificati','p1d'=>'KYC aziendale su ogni venditore — partita IVA, registrazione, identità. Nessun annuncio anonimo.',
  'p2t'=>'Protezione acquirente','p2d'=>"Pagamento su fattura con tracciabilità completa. Se la merce non corrisponde all'annuncio, si attiva un processo di reclamo strutturato.",
@@ -112,7 +117,7 @@ $T = [
  'pill'=>'En vivo · Registro abierto',
  'h1'=>'La forma <span class="acc">verificada</span> de comerciar<br>moda de marca, al por mayor.',
  'sub'=>'Un marketplace B2B donde cada vendedor está verificado (KYC), cada pedido se basa en condiciones de facturación claras y cada transacción queda registrada.',
- 'b_sell'=>'Registrarse como Vendedor','b_buy'=>'Registrarse como Comprador',
+ 'b_sell'=>'Registrarse como Vendedor','b_buy'=>'Registrarse como Comprador','b_panel'=>'Abrir mi panel',
  'tr1'=>'Vendedores verificados (KYC)','tr2'=>'Pago por factura','tr3'=>'Registros de transacciones',
  'p1t'=>'Solo vendedores verificados','p1d'=>'KYC empresarial en cada vendedor — IVA, registro, identidad. Sin anuncios anónimos.',
  'p2t'=>'Protección al comprador','p2d'=>'Pago por factura con trazabilidad completa. Si la mercancía no coincide con el anuncio, se activa un proceso de disputa estructurado.',
@@ -143,7 +148,7 @@ $T = [
  'pill'=>'Live · Registrierung offen',
  'h1'=>'Der <span class="acc">verifizierte</span> Weg, Markenmode<br>im Großhandel zu handeln.',
  'sub'=>"Ein B2B-Marktplatz, auf dem jeder Verkäufer KYC-geprüft ist, jede Bestellung auf klaren Rechnungskonditionen läuft und jede Transaktion dokumentiert ist.",
- 'b_sell'=>'Als Verkäufer registrieren','b_buy'=>'Als Käufer registrieren',
+ 'b_sell'=>'Als Verkäufer registrieren','b_buy'=>'Als Käufer registrieren','b_panel'=>'Mein Dashboard öffnen',
  'tr1'=>'KYC-verifizierte Verkäufer','tr2'=>'Zahlung auf Rechnung','tr3'=>'Transaktionsnachweise',
  'p1t'=>'Nur verifizierte Verkäufer','p1d'=>'Geschäftliche KYC-Prüfung bei jedem Verkäufer — USt-IdNr., Registrierung, Identität. Keine anonymen Inserate.',
  'p2t'=>'Käuferschutz','p2d'=>'Zahlung auf Rechnung mit lückenloser Dokumentation. Entspricht die Ware nicht dem Angebot, greift ein strukturiertes Streitverfahren.',
@@ -366,7 +371,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
       <span class="langs">
         <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
       </span>
-      <a href="/register" class="nav-cta"><?= $t['join_nav'] ?></a>
+      <a href="<?= $LOGGED ? $panelHref : '/register' ?>" class="nav-cta"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     </div>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mnav">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -378,7 +383,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
     <a href="/faq">FAQ</a>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-    <a href="/register"><?= $t['join_nav'] ?></a>
+    <a href="<?= $LOGGED ? $panelHref : '/register' ?>"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     <div class="mlangs">
       <?php foreach($LANGS as $c=>$l){ ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
     </div>
@@ -392,6 +397,12 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
     <h1><?= $t['h1'] ?></h1>
     <p><?= $t['sub'] ?></p>
     <div class="btns">
+      <?php if($LOGGED): ?>
+      <a class="btn btn-p" href="<?= $panelHref ?>">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <?= $t['b_panel'] ?>
+      </a>
+      <?php else: ?>
       <a class="btn btn-p" href="/register?type=seller">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l5 5v5h-2"/><path d="M3 7v10h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/></svg>
         <?= $t['b_sell'] ?>
@@ -400,6 +411,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1 12H6L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
         <?= $t['b_buy'] ?>
       </a>
+      <?php endif; ?>
     </div>
     <div class="trustline">
       <?php foreach(['tr1','tr2','tr3'] as $k){ ?>

@@ -3,7 +3,12 @@ require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-if (!empty($_SESSION['uid'])) { header('Location: /'); exit; }
+/* Already signed in → their panel, never a silent bounce back to the homepage
+   (tapping "Register" and landing on the same page reads as a dead button). */
+if (!empty($_SESSION['uid'])) {
+    $a = auth_user();
+    header('Location: '.($a && ($a['type'] ?? '') === 'seller' ? '/seller' : '/buyer')); exit;
+}
 
 $err = ''; $d = []; $check_email = isset($_GET['check_email']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
