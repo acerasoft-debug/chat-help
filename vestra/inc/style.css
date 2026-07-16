@@ -129,6 +129,9 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 
 /* cart */
 .ctable{width:100%;border-collapse:collapse;font-size:14px}
+/* Phones: wide data tables (orders, KYC docs, offers) scroll inside their own
+   container instead of stretching the page — no horizontal page scroll ever. */
+@media(max-width:640px){.ctable{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}}
 .ctable th,.ctable td{padding:14px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 .ctable th{color:var(--mut);font-weight:500;font-size:12.5px}
 .ctable .r{text-align:right}
@@ -258,6 +261,9 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .addform input[type=checkbox]{width:auto;flex:none;accent-color:var(--acc)}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .frow.four{grid-template-columns:repeat(4,1fr)}
+/* Grid 1fr tracks refuse to shrink below an input's intrinsic min width (~180px),
+   which overflowed narrow phones — let form controls shrink with their track. */
+.frow input,.frow select,.authform input,.authform select{min-width:0;max-width:100%}
 .moderow{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 14px}
 .moderadio{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:14px;color:var(--ink)}
 .moderadio input{width:auto}
@@ -334,8 +340,12 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .offerdetails[open] summary{margin-bottom:4px}
 
 /* auth pages (login, register) */
-.authwrap{min-height:calc(100vh - 180px);display:grid;place-items:center;padding:40px 20px}
-.authcard{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:36px 40px;width:100%;max-width:480px}
+/* Flex centering (not grid place-items): a grid column sizes to the card's
+   max-content (longest unwrapped line ≈ 430px+), blowing past narrow phone
+   viewports — the register-page horizontal-scroll bug. Flex + min-width:0
+   keeps the card at 100% of the available width, capped by max-width. */
+.authwrap{min-height:calc(100vh - 180px);display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.authcard{background:var(--bg2);border:1px solid var(--line);border-radius:20px;padding:36px 40px;width:100%;max-width:480px;min-width:0}
 .authcard-logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:1.5px;margin-bottom:22px}
 .authcard-title{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 4px}
 .authcard-sub{color:var(--mut);margin:0 0 22px;font-size:14px}
@@ -352,14 +362,20 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .pwtoggle:hover{color:var(--ink)}
 .pwtoggle:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
 .authtype{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
-.typecard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center;transition:.2s;display:block}
+.typecard{border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;text-align:center;transition:.2s;display:block;min-width:0}
 .typecard:hover{border-color:rgba(201,168,106,.3);background:rgba(201,168,106,.04)}
 .typecard.on{border-color:var(--acc);background:rgba(201,168,106,.08)}
 .typecard .ticon{font-size:24px;display:block;margin-bottom:4px}
 .typecard .tl{font-weight:600;font-size:14px;display:block}
 .typecard .ts{font-size:12px;color:var(--mut);display:block;margin-top:2px}
 .authsect{font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut);margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
-@media(max-width:520px){.authcard{padding:28px 22px}}
+@media(max-width:520px){
+  .authcard{padding:28px 22px}
+  /* Phones: stack paired form fields and the buyer/seller type cards — two 1fr
+     columns overflow narrow viewports (the register-page horizontal-scroll bug). */
+  .authform .frow{grid-template-columns:1fr}
+  .authtype{grid-template-columns:1fr}
+}
 
 /* ── Buyer/seller messaging ─────────────────────────────────────────────── */
 .threadlist{display:flex;flex-direction:column;gap:2px}
