@@ -79,20 +79,15 @@ arsort($catCounts);
         </select>
       </div>
 
-      <?php /* Approved members (KYB active/approved, or documents submitted) see the real
-               product photo on the card, with a hover-swap to the second image. Everyone
-               else keeps the branded gradient tile — catalog photos stay members-only. */
-      $APPROVED = $AUTH_USER !== null && (
-        (($AUTH_USER['status'] ?? '') === 'active')
-        || (($AUTH_USER['kyb_status'] ?? '') === 'approved')
-        || count(array_filter($AUTH_USER['doc_requests'] ?? [], fn($r) => in_array($r['status'] ?? '', ['uploaded','approved'], true))) > 0
-      ); ?>
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          $cardImgs = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? array_values(array_slice($p['images'],0,2)) : [];
-          $img  = $cardImgs[0] ?? '';   // approved: real photo on the card; hover shows the 2nd
-          $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
+          /* Card front is ALWAYS the brand tile. Approved (freigeschaltet) members get the
+             first product photo revealed on hover — desktop — or while the card is centered
+             in view on touch devices. Unverified viewers never receive a photo URL at all. */
+          $revealImg = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? (string)$p['images'][0] : '';
+          $img  = '';   // brand tile stays the front layer for everyone
+          $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
           <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
@@ -102,10 +97,8 @@ arsort($catCounts);
              data-price="<?= !$MEMBER ? '' : ($p['mode']==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
-            <div class="sthumb<?= $img?' has-img':'' ?>" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
-              <?php if($img): ?><img src="<?= htmlspecialchars($cardImgs[0]) ?>" alt="" loading="lazy" class="sthumbi sthumbi-front">
-                <?php if(isset($cardImgs[1])): ?><img src="<?= htmlspecialchars($cardImgs[1]) ?>" alt="" loading="lazy" class="sthumbi sthumbi-back"><?php endif; ?>
-              <?php endif; ?>
+            <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
+              <?php if($revealImg): ?><img src="<?= htmlspecialchars($revealImg) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
               <?php if(!empty($p['verified'])): ?>
                 <span class="svbadge">
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -188,5 +181,15 @@ function applyFilters(){
   document.getElementById('noresult').style.display=cnt?'none':'block';
 }
 applyFilters();
+/* Touch devices have no hover: reveal the product photo while the card is
+   centered in the viewport instead (same crossfade as the desktop hover). */
+if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'IntersectionObserver' in window) {
+  var revIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ en.target.classList.toggle('sreveal', en.intersectionRatio >= .55); });
+  }, {threshold:[.3,.55]});
+  document.querySelectorAll('#shopgrid .scard').forEach(function(c){
+    if (c.querySelector('.sthumbi-reveal')) revIO.observe(c);
+  });
+}
 </script>
 <?php require __DIR__.'/inc/foot.php';

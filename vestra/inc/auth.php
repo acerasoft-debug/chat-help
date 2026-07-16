@@ -44,6 +44,17 @@ function auth_user(): ?array {
     return null;
 }
 
+/* Freischaltung: is this account approved enough to see photos, seller identities and
+   catalog exports? Signed in AND (active / KYB-approved / verification docs submitted).
+   The single source of truth — head.php's $APPROVED and every gated endpoint use this. */
+function auth_user_approved(?array $u): bool {
+    return $u !== null && (
+        ($u['status'] ?? '') === 'active'
+        || ($u['kyb_status'] ?? '') === 'approved'
+        || count(array_filter($u['doc_requests'] ?? [], fn($r) => in_array($r['status'] ?? '', ['uploaded', 'approved'], true))) > 0
+    );
+}
+
 function auth_set(array $acc): void {
     $_SESSION['uid']    = $acc['id'];
     $_SESSION['member'] = true;

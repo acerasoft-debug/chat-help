@@ -173,7 +173,8 @@ function escrow_fulfill(array $rec): void {
         vestra_send_mail($seller['email'], "VESTRA — paid order in escrow ({$ref}) — ship now",
             "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\n".
             "Good news — a buyer has PAID for an order and the funds are held in escrow on your Stripe balance:\n\n".
-            "Order ref: {$ref}\nBuyer: ".($b['company']?:$b['name'])."\n\n{$itemsTxt}\n\n".
+            "Order ref: {$ref}\nBuyer: ".($b['company']?:$b['name'])."\n".
+            (!empty($b['ship_address'])?"Deliver to: {$b['ship_address']}\n":'')."\n{$itemsTxt}\n\n".
             "Your payout after commission: €{$payout}\n\n".
             "Please ship the goods and mark the order shipped. The held funds are released to your bank once the buyer confirms delivery.\n\n".
             "Your dashboard: https://vestrasales.com/seller?tab=orders\n\n".

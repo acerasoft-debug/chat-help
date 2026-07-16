@@ -24,6 +24,25 @@ if (!$sellerAcc || !$items) {
     require __DIR__.'/inc/foot.php'; exit;
 }
 
+/* Showrooms reveal the seller's identity, so they are approval-gated: the viewer must be
+   signed in AND freigeschaltet (active / KYB-approved / documents submitted). The gate is
+   decided BEFORE head.php so the seller's name never leaks via <title>/OG tags either. */
+if (session_status() === PHP_SESSION_NONE) session_start();
+$viewer = auth_user();
+if (!auth_user_approved($viewer)) {
+    $PAGE = t('Showroom'); $NAV = 'shop'; $NOINDEX = true; require __DIR__.'/inc/head.php';
+    $cta = $viewer === null
+        ? '<a class="btn btn-p" href="/login?back='.htmlspecialchars(urlencode('/showroom?id='.$sid)).'">'.t('Sign in').'</a> <a class="btn btn-o" href="/register">'.t('Register free').'</a>'
+        : '<a class="btn btn-p" href="'.((($viewer['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc').'">'.t('Complete verification').'</a>';
+    echo '<div class="wrap"><div class="gate" style="margin:70px auto;max-width:480px;text-align:center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <h3 style="margin:0 0 6px">'.t('Showrooms are for verified members').'</h3>
+      <p style="color:var(--mut);margin:0 0 16px">'.t('Seller identities and product photos unlock once your business is verified.').'</p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'.$cta.'</div>
+    </div></div>';
+    require __DIR__.'/inc/foot.php'; exit;
+}
+
 /* Anonymity: a seller who hides their name on EVERY listing gets an alias here too. */
 $allHidden = !array_filter($items, fn($p) => empty($p['hide_seller']));
 $dispName  = $allHidden || ($sellerAcc['company'] ?? '') === ''
@@ -52,7 +71,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
   <div class="shopgrid">
     <?php foreach ($items as $p):
       $from = vestra_from_price($p);
-      $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
+      $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
       ?>
       <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>">
         <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?? '#2a2b31' ?>,#0e0e11)">

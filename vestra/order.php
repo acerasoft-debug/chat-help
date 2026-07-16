@@ -15,6 +15,23 @@ if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; 
 $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
 if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
+$shipAddr=trim($_POST['ship_address']??''); // optional — empty means "deliver to the billing address"
+
+/* Remember checkout details on the buyer's account so the next order is prefilled:
+   the delivery address is always kept current; other fields only fill gaps (never
+   overwrite what the user saved in their profile). */
+if(!empty($_SESSION['uid'])){
+  $me=auth_user();
+  if($me){
+    $patch=[];
+    if($shipAddr!==($me['ship_address']??'')) $patch['ship_address']=$shipAddr;
+    foreach(['company'=>'company','vat'=>'vat_id','name'=>'name','address'=>'address','country'=>'country','phone'=>'phone'] as $post=>$field){
+      $v=trim($_POST[$post]??'');
+      if($v!=='' && trim($me[$field]??'')===''){ $patch[$field]=$v; }
+    }
+    if($patch) auth_update($me['id'],$patch);
+  }
+}
 
 $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 
@@ -75,7 +92,8 @@ if($fh=@fopen($file,'a')){
   $colorNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['colors']),
     array_filter($lines, fn($l)=>!empty($l['colors']))));
   $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
-  $notes=trim($methodLabel.($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
+  $shipNote=$shipAddr!==''?'Deliver to: '.$shipAddr.'. ':'';
+  $notes=trim($methodLabel.$shipNote.($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
   fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
     trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION],',','"','\\');
   fclose($fh);
@@ -110,7 +128,7 @@ if($payMethod==='escrow'){
     'ref'=>$ref,'seller_uid'=>$seller['id'],'acct_id'=>$seller['stripe_account_id'],
     'session_id'=>$session->id,'payment_intent'=>'','amount'=>$amountCents,'fee'=>$feeCents,
     'currency'=>'eur','status'=>'pending','created'=>date('c'),
-    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??'')],
+    'buyer'=>['company'=>$company,'name'=>$name,'email'=>$email,'vat'=>trim($_POST['vat']??''),'country'=>trim($_POST['country']??''),'address'=>trim($_POST['address']??''),'ship_address'=>$shipAddr],
     'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
     'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors']],$lines),
     'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
@@ -119,7 +137,7 @@ if($payMethod==='escrow'){
   header('Location: '.$session->url); exit;
 }
 
-$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n\n";
+$body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"")."\n"; }
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
@@ -128,7 +146,7 @@ $FEE_BUYER_PCT=round($FEE_BUYER*100);
 $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"";
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nYour PDF invoice(s) with the seller's bank details are ready — download them on your confirmation page or under My orders. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nYour PDF invoice(s) with the seller's bank details are ready — download them on your confirmation page or under My orders. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -155,7 +173,7 @@ if(!empty($lines)){
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
-          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
         break;
       }
       break;

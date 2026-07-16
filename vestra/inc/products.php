@@ -183,6 +183,12 @@ function vestra_products(){ return array_merge(vestra_demo_products(), vestra_li
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+/* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):
+   "Milano Fashion GmbH" → "M···". Never reveals more than the first letter. */
+function vestra_mask_seller(string $s): string {
+    $s = trim($s);
+    return $s === '' ? '' : mb_strtoupper(mb_substr($s, 0, 1)).'···';
+}
 /* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
 function vestra_all_cats(){
   return [

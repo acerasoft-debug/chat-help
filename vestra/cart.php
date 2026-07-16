@@ -99,6 +99,7 @@ if (stripe_available()) {
         <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%" value="<?= htmlspecialchars($u['name']??'') ?>"></div>
         <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($u['email']??'') ?>"></div>
         <div><label class="hint"><?= t('Billing address') ?></label><input name="address" style="width:100%" value="<?= htmlspecialchars($u['address']??'') ?>" placeholder="<?= htmlspecialchars(t('Street, postal code, city')) ?>"></div>
+        <div><label class="hint"><?= t('Delivery address (if different)') ?></label><input name="ship_address" style="width:100%" value="<?= htmlspecialchars($u['ship_address']??'') ?>" placeholder="<?= htmlspecialchars(t('Leave empty to ship to the billing address')) ?>"></div>
         <div><label class="hint"><?= t('Country') ?></label><input name="country" style="width:100%" value="<?= htmlspecialchars($u['country']??'') ?>"></div>
         <div><label class="hint"><?= t('Phone') ?></label><input name="phone" style="width:100%" value="<?= htmlspecialchars($u['phone']??'') ?>"></div>
       </div>

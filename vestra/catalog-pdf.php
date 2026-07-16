@@ -1,6 +1,14 @@
 <?php
-/** VESTRA — print-ready catalog (use the browser's "Save as PDF"). Auto-opens print dialog. */
+/** VESTRA — print-ready catalog (use the browser's "Save as PDF"). Auto-opens print dialog.
+ *  Approved members only: the catalog carries seller names and full trade pricing. */
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/auth.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+$u = auth_user();
+if (!auth_user_approved($u)) {
+    header('Location: '.(!$u ? '/login?back='.urlencode('/shop') : ((($u['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc')));
+    exit;
+}
 ?><!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><title>VESTRA — Catalog</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">

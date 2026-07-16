@@ -22,8 +22,13 @@ $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
-$photosLocked = !$MEMBER && $images;   // photos are members-only; guests get the brand card
-if(!$MEMBER) $images = [];
+$photosLocked = !$APPROVED && $images;   // photos require an APPROVED account (freischaltung), not just a login
+if(!$APPROVED) $images = [];
+/* Where the locked-photos CTA sends the viewer: guests sign in; signed-in-but-unverified
+   accounts go straight to their verification tab. */
+$verifyHref = !$AUTH_USER
+    ? '/login?back='.urlencode('/product?id='.$p['id'])
+    : ((($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc');
 
 /* Carton/lot listings (e.g. Lacoste & Ralph Lauren polos: min_colors + size_step) get a
    per-colour quantity picker — 0/8/16/24… per colour — instead of plain checkboxes, so the
@@ -56,9 +61,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px">
           <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
           <?php if($photosLocked): ?>
-            <a href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
+            <a href="<?= htmlspecialchars($verifyHref) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
-              <?= t('Sign in to view product photos') ?>
+              <?= $AUTH_USER ? t('Complete verification to view photos') : t('Sign in to view product photos') ?>
             </a>
           <?php endif; ?>
         </div>
@@ -99,13 +104,23 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="spec-row"><span><?= t('Min. order (MOQ)') ?></span><b><?= $p['moq'] ?> <?= htmlspecialchars($p['unit']) ?></b></div>
         <?php if(!empty($p['sizes'])): ?><div class="spec-row"><span><?= t('Size mix') ?></span><b><?= htmlspecialchars($p['sizes']) ?></b></div><?php endif; ?>
         <?php if(!empty($p['colors'])): ?><div class="spec-row"><span><?= t('Colours') ?></span><b style="display:flex;justify-content:flex-end"><?= vestra_color_dots((array)$p['colors'], 13) ?></b></div><?php endif; ?>
-        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= htmlspecialchars($p['seller']) ?><?= !empty($p['verified'])?' · '.t('Verified business'):'' ?><?= !empty($p['seller_uid'])?' · <a class="acc" href="/showroom?id='.urlencode($p['seller_uid']).'">'.t('Showroom →').'</a>':'' ?></b></div>
+        <?php if(!empty($p['seller']) && empty($p['hide_seller'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?php
+          // Seller identity is approval-gated: unverified viewers only ever see a masked name.
+          if ($APPROVED) {
+            echo htmlspecialchars($p['seller']);
+            echo !empty($p['verified']) ? ' · '.t('Verified business') : '';
+            echo !empty($p['seller_uid']) ? ' · <a class="acc" href="/showroom?id='.urlencode($p['seller_uid']).'">'.t('Showroom →').'</a>' : '';
+          } else {
+            echo htmlspecialchars(vestra_mask_seller($p['seller'])).' · '.t('Verified business');
+            echo ' <a class="acc" href="'.htmlspecialchars($verifyHref).'" style="font-size:11px">🔒 '.($AUTH_USER ? t('Verify to see the name') : t('Sign in to see the name')).'</a>';
+          }
+        ?></b></div>
         <?php elseif(!empty($p['verified'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= t('Verified business') ?> · <?= t('via VESTRA') ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
       </div>
 
       <?php if(!empty($p['linesheet'])): ?>
-        <?php if($MEMBER): ?>
+        <?php if($APPROVED): ?>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">
           <?php if(!empty($p['sheet_file'])): ?>
           <a class="btn btn-o btn-sm" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=pdf" target="_blank" rel="noopener">
@@ -119,7 +134,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </a>
         </div>
         <?php else: ?>
-        <div class="hint" style="margin:14px 0">🔒 <?= t('Sign in to download the line sheet (PDF & Excel).') ?></div>
+        <div class="hint" style="margin:14px 0">🔒 <?= $AUTH_USER ? t('Complete verification to download the line sheet (PDF & Excel).') : t('Sign in to download the line sheet (PDF & Excel).') ?></div>
         <?php endif; ?>
       <?php elseif(!empty($p['sheet'])): ?>
         <a class="btn btn-o btn-sm" style="margin:14px 0" href="<?= htmlspecialchars($p['sheet']) ?>" target="_blank" rel="noopener">
@@ -200,8 +215,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <div style="margin-top:12px"><label class="hint"><?= t('Message to seller') ?></label>
               <textarea name="message" rows="2" style="width:100%" placeholder="<?= htmlspecialchars(t('Sizes, delivery, terms…')) ?>"></textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
-              <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
-              <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
+              <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['company'] ?? '') ?>"></div>
+              <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['email'] ?? '') ?>"></div>
             </div>
             <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:16px"><?= t('Submit offer →') ?></button>
             <div class="hint" style="margin-top:10px"><?= t("Your offer joins the seller's queue. If accepted, you receive an <b>invoice</b> — payment by bank transfer.") ?></div>
@@ -322,8 +337,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               </div>
               <?php endif; ?>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
-                <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
-                <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%"></div>
+                <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['company'] ?? '') ?>"></div>
+                <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['email'] ?? '') ?>"></div>
               </div>
               <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:12px"><?= t('Submit offer →') ?></button>
               <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>

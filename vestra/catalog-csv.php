@@ -1,6 +1,14 @@
 <?php
-/** VESTRA — catalog export as CSV (opens in Excel). */
+/** VESTRA — catalog export as CSV (opens in Excel). Approved members only:
+ *  the export carries seller names and full trade pricing. */
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/auth.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+$u = auth_user();
+if (!auth_user_approved($u)) {
+    header('Location: '.(!$u ? '/login?back='.urlencode('/shop') : ((($u['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc')));
+    exit;
+}
 header('Content-Type: text/csv; charset=UTF-8');
 header('Content-Disposition: attachment; filename="vestra-catalog-'.date('Y-m-d').'.csv"');
 $out=fopen('php://output','w');
