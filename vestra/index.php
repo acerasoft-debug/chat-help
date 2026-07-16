@@ -329,9 +329,14 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   .foot-links{display:flex;gap:22px}
   .foot-links a:hover{color:var(--ink)}
 
-  .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease}
-  .reveal.in{opacity:1;transform:none}
-  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.dot{animation:none}}
+  /* Scroll-reveal is progressive enhancement ONLY: the keyframe fallback forces every
+     section visible ~1s after load even if ALL JavaScript fails (old browser, blocked
+     storage, extension error) — the register cards must never stay hidden. */
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s ease;
+    animation:revealauto .7s ease 1.1s forwards}
+  .reveal.in{animation:none;opacity:1;transform:none}
+  @keyframes revealauto{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;animation:none}.dot{animation:none}}
 
   @media(max-width:820px){.nav-links{display:none}.burger{display:block}}
   @media(max-width:760px){
@@ -499,13 +504,24 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   <button onclick="localStorage.setItem('vcookie_ok','1');document.getElementById('cnotice').style.display='none'" style="background:<?= $ACCENT ?>;color:#0e0e11;border:0;border-radius:8px;padding:7px 16px;font-weight:600;cursor:pointer">OK</button>
 </div>
 <script>
-  if(!localStorage.getItem('vcookie_ok')){ document.getElementById('cnotice').style.display='flex'; }
-  var burger=document.getElementById('burger'), mnav=document.getElementById('mnav');
-  burger.addEventListener('click',function(){var o=mnav.classList.toggle('open');burger.setAttribute('aria-expanded',o);});
-  mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
-
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
-  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+  /* Every block below is independent and guarded — one failure (blocked storage,
+     missing element, old browser) must never take the others down with it. */
+  try{ if(!localStorage.getItem('vcookie_ok')){ document.getElementById('cnotice').style.display='flex'; } }catch(e){}
+  try{
+    var burger=document.getElementById('burger'), mnav=document.getElementById('mnav');
+    if(burger&&mnav){
+      burger.addEventListener('click',function(){var o=mnav.classList.toggle('open');burger.setAttribute('aria-expanded',o);});
+      mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
+    }
+  }catch(e){}
+  try{
+    if('IntersectionObserver' in window){
+      var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+      document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+    }else{
+      document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
+    }
+  }catch(e){ document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');}); }
 </script>
 </body>
 </html>
