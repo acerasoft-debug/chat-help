@@ -1,57 +1,46 @@
 <?php
-/** ChatHelp — dump-health (SADECE OKUR) — bu oturumdaki tum degisikliklerin
- *  saglik kontrolu. Tum CH_* isaretlerini index/api/auth'ta sayar; cift-uygulama
- *  (count>1), eksik marker, dosya butunlugu (</body></html>), <script> dengesi,
- *  ve olasi cakismalari raporlar.
- *  Ciktinin TAMAMINI gonder. */
+/**
+ * ChatHelp — dump-health (SADECE OKUR) — TEK TIK SAGLIK KONTROLU:
+ *  tum kritik katman markerlari + sw.js + lint + altin kopya durumu.
+ *  Her seyin yerinde olup olmadigini 10 saniyede gosterir.
+ * KULLANIM: pull2.php?key=...&files=dump-health.php
+ */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
 $D=__DIR__;
-$files=['index.php','api.php','auth.php','admin-users.php'];
-
-foreach($files as $f){
-  $p="$D/$f"; $s=(string)@file_get_contents($p);
-  echo "════════ $f ".(is_file($p)?"(".strlen($s)." bayt)":"(YOK)")." ════════\n";
-  if($s===''){ echo "  (okunamadi)\n\n"; continue; }
-  /* CH_* markerlari */
-  if(preg_match_all('/CH_[A-Z0-9_]+/',$s,$m)){
-    $cnt=array_count_values($m[0]);
-    ksort($cnt);
-    echo "  CH_ markerlari (".count($cnt)." tur):\n";
-    foreach($cnt as $k=>$v){
-      $flag = ($v>2) ? "  ⚠ COK FAZLA (cift-uygulama?)" : "";
-      echo "    $k = $v".$flag."\n";
-    }
-  } else echo "  (CH_ marker yok)\n";
-  /* yapisal */
-  echo "  <script> acilis: ".substr_count($s,'<script').", </script>: ".substr_count($s,'</scr'.'ipt>')."\n";
-  echo "  <style> acilis: ".substr_count($s,'<style').", </style>: ".substr_count($s,'</style>')."\n";
-  if($f==='index.php'){
-    echo "  </body>: ".substr_count($s,'</body>').", </html>: ".substr_count($s,'</html>')."\n";
-    echo "  son 60 bayt: ".str_replace("\n","⏎",substr($s,-60))."\n";
-    /* onemli fonksiyonlar duruyor mu */
-    foreach(['function makePDF','window.chDlGate','function gP(','function startVoice','window.chPrintDoc','window.chVizeAsistan'] as $fn){
-      echo "  '$fn': ".(strpos($s,$fn)!==false?"VAR":"⚠ YOK")."\n";
-    }
-  }
-  if($f==='api.php'){
-    foreach(['function doAiChat','function doGenerate','function doPhoto','function ch_mem_append','=> doAiChat','=> doPhoto'] as $fn){
-      echo "  '$fn': ".(strpos($s,$fn)!==false?"VAR":"⚠ YOK")."\n";
-    }
-  }
-  if($f==='auth.php'){
-    foreach(['function doLogin','function doRegister','function doBillingPortal','function doEmailDoc','function sendMail','=> doBillingPortal','=> doEmailDoc'] as $fn){
-      echo "  '$fn': ".(strpos($s,$fn)!==false?"VAR":"⚠ YOK")."\n";
-    }
-  }
-  echo "\n";
+$src=(string)@file_get_contents("$D/index.php");
+echo "=== ChatHelp SAGLIK KONTROLU — ".date('d.m.Y H:i')." ===\n\n";
+echo "index.php: ".strlen($src)." bayt\n\n";
+$layers=[
+ 'CH_VIZE_V3'=>'Vize Asistani V3 (ana konsept)',
+ 'CH_FOTO_PANEL'=>'Belge & Foto Merkezi',
+ 'CH_ANAFIX'=>'Ana sayfa paket duzeltmesi',
+ 'CH_FOTO_MULTI'=>'8li yukleme + belge hafizasi',
+ 'CH_CARDS_KAT_FIX'=>'Kart titreme duzeltmesi',
+ 'CH_ABO_REFRESH'=>'Abonelik tanima',
+ 'CH_MIC_TRY'=>'Mikrofon (dogrudan deneme)',
+ 'CH_FIX_FOTOFRAME'=>'Foto 📎 duzeltmesi',
+ 'CH_TRVIZE_AI2'=>'TR vize PDF cevirisi',
+ 'CH_PWA'=>'PWA / App altyapisi',
+ 'CH_THEME_BRIDGE'=>'Tema koprusu',
+];
+$bad=0;
+foreach($layers as $m=>$desc){
+  $ok=strpos($src,$m)!==false;
+  if(!$ok)$bad++;
+  echo "  ".($ok?'✓':'✗ EKSIK')."  ".str_pad($m,18)." — $desc\n";
 }
-
-/* apply/dump betikleri (sunucuda kalinti kalmis mi) */
-echo "════════ sunucudaki apply-/dump- betikleri ════════\n";
-$left=[];
-foreach(glob("$D/apply-*.php") as $g) $left[]=basename($g);
-foreach(glob("$D/dump-*.php") as $g) $left[]=basename($g);
-echo count($left)? "  ⚠ kalinti: ".implode(', ',$left)."\n" : "  ✓ temiz (apply/dump betigi yok)\n";
-
-echo "\n════════ BITTI. Ciktinin TAMAMINI gonder. ════════\n";
+$sw=(string)@file_get_contents("$D/sw.js");
+$swok=(strpos($sw,'CH_SW_SAFE')!==false && strpos($sw,'respondWith(')===false);
+if(!$swok)$bad++;
+echo "  ".($swok?'✓':'✗ SORUN')."  ".str_pad('sw.js',18)." — service worker guvenli (pass-through)\n";
+$tmp=tempnam(sys_get_temp_dir(),'hl').'.php';
+file_put_contents($tmp,$src);
+$lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
+if($rc!==0)$bad++;
+echo "  ".($rc===0?'✓':'✗ HATA')."  ".str_pad('php lint',18)." — index.php soz dizimi\n\n";
+$g=(string)@file_get_contents("$D/index-golden.php");
+echo "Altin kopya: ".($g===''?'HENUZ ALINMADI — apply-golden-save.php calistirin':
+  (strlen($g)." B ".(strlen($g)===strlen($src)?'(su anki halle AYNI ✓)':'(su anki halden FARKLI — degisiklik var)')))."\n\n";
+echo $bad===0 ? "SONUC: HER SEY YERINDE ✓✓✓\n"
+  : "SONUC: $bad SORUN VAR — ciktiyi gonderin, duzeltilir. Acilse: apply-golden-restore.php\n";
