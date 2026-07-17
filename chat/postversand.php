@@ -28,6 +28,61 @@ function lx_call($path,$payload){
 }
 function lx_auth(){ global $mode; return ['username'=>constant('LETTERXPRESS_USER'),'apikey'=>constant('LETTERXPRESS_APIKEY'),'mode'=>($mode==='live'?'live':'test')]; }
 
+
+/* ── JPEG boyutu (SOF) ── */
+function ch_jpeg_dims(string $j){
+  $i=2; $len=strlen($j);
+  while($i<$len){
+    if(ord($j[$i])!==0xFF){ $i++; continue; }
+    $m=ord($j[$i+1]); $i+=2;
+    if($m===0xD8||$m===0xD9||($m>=0xD0&&$m<=0xD7)) continue;
+    if($i+2>$len) break;
+    $seglen=(ord($j[$i])<<8)+ord($j[$i+1]);
+    if($m>=0xC0 && $m<=0xCF && $m!==0xC4 && $m!==0xC8 && $m!==0xCC){
+      $h=(ord($j[$i+3])<<8)+ord($j[$i+4]); $w=(ord($j[$i+5])<<8)+ord($j[$i+6]); return [$w,$h];
+    }
+    $i+=$seglen;
+  }
+  return [300,90];
+}
+/* ── DIN5008 mektup PDF: alici adresi (pencere konumu) + govde + imza JPEG ── */
+function ch_letter_pdf(string $text, string $recipient='', string $sender='', string $sigJpeg=''): string {
+  $enc=function($s){ $t=@iconv('UTF-8','Windows-1252//TRANSLIT//IGNORE',$s); return $t===false?$s:$t; };
+  $e=function($s){ return str_replace(['\\\\','(',')'],['\\\\\\\\','\\(','\\)'],$s); };
+  $text=$enc($text); $recipient=$enc($recipient); $sender=$enc($sender);
+  $lines=[];
+  foreach(explode("\n",str_replace("\r",'',$text)) as $ln){
+    if($ln===''){ $lines[]=''; continue; }
+    while(strlen($ln)>90){ $cut=strrpos(substr($ln,0,90),' '); if($cut===false||$cut<40)$cut=90; $lines[]=substr($ln,0,$cut); $ln=ltrim(substr($ln,$cut)); }
+    $lines[]=$ln;
+  }
+  $c="";
+  if($sender!==''){ $c.="BT /F1 8 Tf 56 800 Td 10 TL\n"; foreach(explode("\n",$sender) as $sl){ $c.="(".$e($sl).") Tj T*\n"; } $c.="ET\n"; }
+  if($recipient!==''){ $c.="BT /F1 11 Tf 64 725 Td 14 TL\n"; foreach(explode("\n",$recipient) as $rl){ $c.="(".$e($rl).") Tj T*\n"; } $c.="ET\n"; }
+  $c.="BT /F1 11 Tf 56 640 Td 15 TL\n";
+  foreach($lines as $i=>$ln){ $c.=($i? "T*\n":"")."(".$e($ln).") Tj\n"; }
+  $c.="ET\n";
+  $imgW=0;$imgH=0;
+  if($sigJpeg!==''){ list($imgW,$imgH)=ch_jpeg_dims($sigJpeg); $dw=120; $dh=($imgW>0?intval($dw*$imgH/$imgW):40); if($dh>60)$dh=60; $c.="q $dw 0 0 $dh 56 140 cm /Im1 Do Q\n"; }
+  $objs=[];
+  $objs[1]="<</Type/Catalog /Pages 2 0 R>>";
+  $objs[3]="<</Type/Font /Subtype/Type1 /BaseFont/Helvetica /Encoding/WinAnsiEncoding>>";
+  $res="<</Font<</F1 3 0 R>>";
+  if($sigJpeg!==''){ $objs[5]="<</Type/XObject /Subtype/Image /Width $imgW /Height $imgH /ColorSpace/DeviceRGB /BitsPerComponent 8 /Filter/DCTDecode /Length ".strlen($sigJpeg).">>\nstream\n".$sigJpeg."\nendstream"; $res.=" /XObject<</Im1 5 0 R>>"; }
+  $res.=">>";
+  $objs[4]="<</Length ".strlen($c).">>\nstream\n".$c."\nendstream";
+  $objs[6]="<</Type/Page /Parent 2 0 R /MediaBox[0 0 595 842] /Resources $res /Contents 4 0 R>>";
+  $objs[2]="<</Type/Pages /Kids[6 0 R] /Count 1>>";
+  ksort($objs);
+  $pdf="%PDF-1.4\n"; $offs=[];
+  foreach($objs as $num=>$body){ $offs[$num]=strlen($pdf); $pdf.="$num 0 obj\n$body\nendobj\n"; }
+  $xref=strlen($pdf); $max=max(array_keys($objs));
+  $pdf.="xref\n0 ".($max+1)."\n0000000000 65535 f \n";
+  for($i=1;$i<=$max;$i++){ $pdf.=str_pad((string)($offs[$i]??0),10,'0',STR_PAD_LEFT)." 00000 n \n"; }
+  $pdf.="trailer\n<</Size ".($max+1)." /Root 1 0 R>>\nstartxref\n$xref\n%%EOF";
+  return $pdf;
+}
+
 /* ── basit ama gecerli PDF uretici (Helvetica, A4, cok sayfa) ── */
 function ch_text_pdf(string $text): string {
   $t = @iconv('UTF-8','Windows-1252//TRANSLIT//IGNORE',$text); if($t===false) $t=$text;
@@ -90,4 +145,26 @@ if ($action==='send' || $action==='send_text') {
   $j=json_decode((string)$res,true);
   out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
 }
+
+if ($action==='send_letter') {
+  if (!$configured) out(['error'=>'not_configured']);
+  $b=json_decode((string)file_get_contents('php://input'),true);
+  if(!is_array($b)) out(['error'=>'bad_request']);
+  $text=trim((string)($b['text']??'')); if(strlen($text)<20) out(['error'=>'no_text']);
+  $recipient=trim((string)($b['recipient']??''));
+  $sender=trim((string)($b['sender']??''));
+  $sig='';
+  if(!empty($b['sig_jpeg'])){ $sj=preg_replace('#^data:image/jpe?g;base64,#','',(string)$b['sig_jpeg']); $sig=base64_decode($sj); if($sig===false)$sig=''; }
+  $pdfBin=ch_letter_pdf($text,$recipient,$sender,$sig);
+  $pdf=base64_encode($pdfBin);
+  $payload=['auth'=>lx_auth(),'letter'=>[
+    'base64_file'=>$pdf,'base64_checksum'=>md5($pdf),
+    'specification'=>['color'=>!empty($b['color'])?'4':'1','mode'=>'simplex','ship'=>'national'],
+  ]];
+  list($code,$res,$err)=lx_call('setJob',$payload);
+  if($res===false) out(['error'=>'network','http'=>$code,'detail'=>$err]);
+  $j=json_decode((string)$res,true);
+  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'pdf_bytes'=>strlen($pdfBin),'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
+}
+
 out(['error'=>'unknown_action']);
