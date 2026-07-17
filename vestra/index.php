@@ -46,6 +46,7 @@ $T = [
  'buy_f2'=>'Structured dispute process on every order',
  'buy_f3'=>'Free to browse and request quotes',
  'buy_cta'=>'Register as Buyer',
+ 'app_t'=>'VESTRA as an app','app_s'=>'Install straight from your browser — no App Store, no Play Store. Live prices, orders and messages, with push notifications.','app_and'=>'Install on Android','app_and_hint'=>'In Chrome: menu ⋮ → \'Install app\'.','app_apk'=>'Download APK','app_ios'=>'Install on iPhone','app_ios_hint'=>'Open in Safari → Share → \'Add to Home Screen\'.','app_noti'=>'Enable notifications','app_noti_ok'=>'Notifications are on ✓','app_noti_no'=>'Notifications blocked — allow them in your browser settings.','app_signin'=>'Sign in first to receive notifications.',
  'already'=>'Already have an account?','signin'=>'Sign in →',
 ],
 'fr'=>[
@@ -77,6 +78,7 @@ $T = [
  'buy_f2'=>'Processus de litige structuré sur chaque commande',
  'buy_f3'=>'Navigation et demandes de devis gratuites',
  'buy_cta'=>'S\'inscrire comme Acheteur',
+ 'app_t'=>'VESTRA en application','app_s'=>'Installez directement depuis le navigateur — sans App Store ni Play Store. Prix en direct, commandes et messages, avec notifications push.','app_and'=>'Installer sur Android','app_and_hint'=>'Dans Chrome : menu ⋮ → « Installer l’appli ».','app_apk'=>'Télécharger l’APK','app_ios'=>'Installer sur iPhone','app_ios_hint'=>'Dans Safari : Partager → « Sur l’écran d’accueil ».','app_noti'=>'Activer les notifications','app_noti_ok'=>'Notifications activées ✓','app_noti_no'=>'Notifications bloquées — autorisez-les dans les réglages du navigateur.','app_signin'=>'Connectez-vous d’abord pour recevoir les notifications.',
  'already'=>'Déjà un compte ?','signin'=>'Se connecter →',
 ],
 'it'=>[
@@ -108,6 +110,7 @@ $T = [
  'buy_f2'=>'Processo di reclamo strutturato su ogni ordine',
  'buy_f3'=>'Navigazione e richieste di preventivo gratuite',
  'buy_cta'=>'Registrati come Acquirente',
+ 'app_t'=>'VESTRA come app','app_s'=>'Installa direttamente dal browser — senza App Store né Play Store. Prezzi live, ordini e messaggi, con notifiche push.','app_and'=>'Installa su Android','app_and_hint'=>'In Chrome: menu ⋮ → “Installa app”.','app_apk'=>'Scarica APK','app_ios'=>'Installa su iPhone','app_ios_hint'=>'In Safari: Condividi → “Aggiungi a Home”.','app_noti'=>'Attiva le notifiche','app_noti_ok'=>'Notifiche attive ✓','app_noti_no'=>'Notifiche bloccate — consentile nelle impostazioni del browser.','app_signin'=>'Accedi prima per ricevere le notifiche.',
  'already'=>'Hai già un account?','signin'=>'Accedi →',
 ],
 'es'=>[
@@ -139,6 +142,7 @@ $T = [
  'buy_f2'=>'Proceso de disputa estructurado en cada pedido',
  'buy_f3'=>'Navegación y solicitudes de presupuesto gratuitas',
  'buy_cta'=>'Registrarse como Comprador',
+ 'app_t'=>'VESTRA como app','app_s'=>'Instálala directamente desde el navegador — sin App Store ni Play Store. Precios en vivo, pedidos y mensajes, con notificaciones push.','app_and'=>'Instalar en Android','app_and_hint'=>'En Chrome: menú ⋮ → “Instalar aplicación”.','app_apk'=>'Descargar APK','app_ios'=>'Instalar en iPhone','app_ios_hint'=>'En Safari: Compartir → “Añadir a pantalla de inicio”.','app_noti'=>'Activar notificaciones','app_noti_ok'=>'Notificaciones activadas ✓','app_noti_no'=>'Notificaciones bloqueadas — permítelas en los ajustes del navegador.','app_signin'=>'Inicia sesión primero para recibir notificaciones.',
  'already'=>'¿Ya tienes cuenta?','signin'=>'Iniciar sesión →',
 ],
 'de'=>[
@@ -170,6 +174,7 @@ $T = [
  'buy_f2'=>'Strukturiertes Streitverfahren bei jeder Bestellung',
  'buy_f3'=>'Kostenlos stöbern und Angebote anfragen',
  'buy_cta'=>'Als Käufer registrieren',
+ 'app_t'=>'VESTRA als App','app_s'=>'Direkt aus dem Browser installieren — ohne App Store und Play Store. Live-Preise, Bestellungen & Nachrichten, mit Push-Benachrichtigungen.','app_and'=>'Auf Android installieren','app_and_hint'=>'In Chrome: Menü ⋮ → „App installieren“.','app_apk'=>'APK herunterladen','app_ios'=>'Auf dem iPhone installieren','app_ios_hint'=>'In Safari: Teilen → „Zum Home-Bildschirm“.','app_noti'=>'Benachrichtigungen aktivieren','app_noti_ok'=>'Benachrichtigungen aktiv ✓','app_noti_no'=>'Benachrichtigungen blockiert — bitte in den Browser-Einstellungen erlauben.','app_signin'=>'Bitte zuerst anmelden, um Benachrichtigungen zu erhalten.',
  'already'=>'Bereits ein Konto?','signin'=>'Anmelden →',
 ],
 ];
@@ -243,7 +248,10 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   .logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;
     font-size:22px;font-weight:700;letter-spacing:1.5px}
   .logo .mark{width:30px;height:30px}
-  .logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:400;font-size:.5em;letter-spacing:.3px;color:var(--acc);opacity:.5;margin-left:.16em;text-transform:lowercase;font-style:normal}
+  .logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:.62em;letter-spacing:1.1px;
+    margin-left:.22em;text-transform:lowercase;font-style:normal;
+    background:linear-gradient(100deg,#e8cf95,var(--acc) 55%,#a8854a);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--acc)}
   .nav-links{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:500}
   .nav-links>a{color:var(--mut);transition:color .2s}
   .nav-links>a:hover{color:var(--ink)}
@@ -328,6 +336,26 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   .jcard.buyer .jbtn:hover{background:rgba(201,168,106,.12);transform:translateY(-2px)}
   .join-note{margin-top:22px;font-size:14px;color:var(--mut)}
   .join-note a{color:var(--acc);font-weight:500}
+  /* "VESTRA as an app" — store-independent install box (PWA + push) */
+  .appbox{position:relative;display:flex;gap:22px;align-items:flex-start;
+    width:min(760px,calc(100% - 40px));margin:6px auto 64px;padding:26px 28px;
+    border-radius:20px;border:1px solid rgba(201,168,106,.35);overflow:hidden;
+    background:linear-gradient(160deg,rgba(201,168,106,.10),rgba(20,20,24,.92) 55%)}
+  .appbox-glow{position:absolute;top:-70px;left:-50px;width:240px;height:240px;border-radius:50%;
+    background:radial-gradient(circle,rgba(201,168,106,.22),transparent 70%);pointer-events:none}
+  .appbox-icon{flex:none;width:64px;height:64px;border-radius:16px;background:#101014;
+    border:1px solid var(--line);display:grid;place-items:center;position:relative}
+  .appbox-tx h3{margin:0 0 6px;font-size:20px;font-family:'Playfair Display',serif}
+  .appbox-tx p{margin:0 0 14px;color:var(--mut);font-size:14px;line-height:1.6;max-width:480px}
+  .appbox-btns{display:flex;gap:10px;flex-wrap:wrap}
+  .appbox-hint{margin-top:12px;font-size:13px;color:var(--acc);background:rgba(201,168,106,.08);
+    border:1px solid rgba(201,168,106,.25);border-radius:10px;padding:9px 13px;display:inline-block}
+  @media(max-width:640px){
+    .appbox{flex-direction:column;align-items:stretch;width:calc(100% - 28px);padding:22px 18px;gap:14px;margin-bottom:44px}
+    .appbox-icon{width:56px;height:56px}
+    .appbox-btns{flex-direction:column}
+    .appbox-btns .btn{width:100%;justify-content:center}
+  }
   .join-note a:hover{text-decoration:underline}
 
   footer{border-top:1px solid var(--line);padding:46px 0;color:var(--mut);font-size:13px}
@@ -496,6 +524,29 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
 
     <p class="join-note"><?= $t['already'] ?> <a href="/login"><?= $t['signin'] ?></a></p>
   </section>
+
+  <!-- ── VESTRA as an app: store-independent install (PWA) + push opt-in ── -->
+  <?php $apkExists = is_file(__DIR__.'/app/vestra.apk'); ?>
+  <section class="appbox reveal" id="app">
+    <div class="appbox-glow" aria-hidden="true"></div>
+    <div class="appbox-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none" width="40" height="40"><rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="var(--acc)" stroke-width="1.4"/><path d="M9 10l7 13 7-13" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="appbox-tx">
+      <h3><?= $t['app_t'] ?></h3>
+      <p><?= $t['app_s'] ?></p>
+      <div class="appbox-btns">
+        <?php if($apkExists): ?>
+          <a class="btn btn-p" href="/app/vestra.apk" download>🤖 <?= $t['app_apk'] ?></a>
+        <?php else: ?>
+          <button class="btn btn-p" id="btnAndroid" type="button">🤖 <?= $t['app_and'] ?></button>
+        <?php endif; ?>
+        <button class="btn btn-o" id="btnIos" type="button"> <?= $t['app_ios'] ?></button>
+        <button class="btn btn-o" id="btnNoti" type="button">🔔 <?= $t['app_noti'] ?></button>
+      </div>
+      <div class="appbox-hint" id="appHint" style="display:none"></div>
+    </div>
+  </section>
 </div>
 
 <footer>
@@ -527,6 +578,43 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
       mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
     }
   }catch(e){}
+  /* ── PWA install + push opt-in (app box) ── */
+  try{
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
+    var appHint=document.getElementById('appHint');
+    function appSay(m){ if(appHint){ appHint.textContent=m; appHint.style.display='inline-block'; } }
+    var deferredInstall=null;
+    window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferredInstall=e; });
+    var bA=document.getElementById('btnAndroid'), bI=document.getElementById('btnIos'), bN=document.getElementById('btnNoti');
+    if(bA) bA.addEventListener('click',function(){
+      if(deferredInstall){ deferredInstall.prompt(); deferredInstall=null; }
+      else appSay(<?= json_encode($t['app_and_hint']) ?>);
+    });
+    if(bI) bI.addEventListener('click',function(){ appSay(<?= json_encode($t['app_ios_hint']) ?>); });
+    if(window.matchMedia && matchMedia('(display-mode: standalone)').matches){ if(bA)bA.style.display='none'; if(bI)bI.style.display='none'; }
+    async function vestraPushOptIn(){
+      if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)) return 'unsupported';
+      var reg=await navigator.serviceWorker.ready;
+      if(await Notification.requestPermission()!=='granted') return 'denied';
+      var vk=(await (await fetch('/push?a=vapid')).json()).publicKey;
+      if(!vk) return 'error';
+      var pad='='.repeat((4-vk.length%4)%4), raw=atob((vk+pad).replace(/-/g,'+').replace(/_/g,'/'));
+      var key=new Uint8Array(raw.length); for(var i2=0;i2<raw.length;i2++) key[i2]=raw.charCodeAt(i2);
+      var sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+      var r=await fetch('/push?a=subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub)});
+      if(r.status===401) return 'signin';
+      return (await r.json()).ok?'ok':'error';
+    }
+    if(bN) bN.addEventListener('click',async function(){
+      bN.disabled=true;
+      var res='error'; try{ res=await vestraPushOptIn(); }catch(e){}
+      bN.disabled=false;
+      if(res==='ok'){ bN.textContent=<?= json_encode('✓ '.$t['app_noti_ok']) ?>; appSay(<?= json_encode($t['app_noti_ok']) ?>); }
+      else if(res==='signin'){ appSay(<?= json_encode($t['app_signin']) ?>); }
+      else { appSay(<?= json_encode($t['app_noti_no']) ?>); }
+    });
+  }catch(e){}
+
   try{
     if('IntersectionObserver' in window){
       var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});

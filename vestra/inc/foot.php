@@ -97,5 +97,27 @@ document.addEventListener('DOMContentLoaded', function(){ VCart.refresh(); });
   });
 })();
 </script>
+<script>
+/* PWA: register the service worker on every page, and expose the push opt-in
+   used by the homepage app box (and any future 🔔 buttons). */
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js').catch(function(){}); }
+window.vestraEnablePush = async function(){
+  try{
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) return 'unsupported';
+    var reg = await navigator.serviceWorker.ready;
+    if (await Notification.requestPermission() !== 'granted') return 'denied';
+    var vk = (await (await fetch('/push?a=vapid')).json()).publicKey;
+    if (!vk) return 'error';
+    var pad = '='.repeat((4 - vk.length % 4) % 4);
+    var raw = atob((vk + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    var key = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+    var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    var r = await fetch('/push?a=subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+    if (r.status === 401) return 'signin';
+    return (await r.json()).ok ? 'ok' : 'error';
+  } catch (e) { return 'error'; }
+};
+</script>
 </body>
 </html>

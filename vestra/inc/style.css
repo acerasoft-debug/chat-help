@@ -23,7 +23,10 @@ nav{display:flex;align-items:center;justify-content:space-between;height:64px;ga
 .logo{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-size:21px;font-weight:700;letter-spacing:1.5px}
 .logo .mark{width:28px;height:28px}
 /* Subtle "sales" appended to the wordmark — dim gold, light sans, understated */
-.logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:400;font-size:.5em;letter-spacing:.3px;color:var(--acc);opacity:.5;margin-left:.16em;text-transform:lowercase;font-style:normal}
+.logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:.62em;letter-spacing:1.1px;
+  margin-left:.22em;text-transform:lowercase;font-style:normal;
+  background:linear-gradient(100deg,#e8cf95,var(--acc) 55%,#a8854a);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--acc)}
 .nav-links{display:flex;align-items:center;gap:22px;font-size:14px;font-weight:500}
 .nav-links a{color:var(--mut);transition:.2s}
 .nav-links a:hover,.nav-links a.on{color:var(--ink)}

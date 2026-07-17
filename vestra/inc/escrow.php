@@ -181,6 +181,17 @@ function escrow_fulfill(array $rec): void {
             "— VESTRA · vestrasales.com");
     }
 
+    // Push pings: buyer "payment secured", seller "paid order — ship now".
+    require_once __DIR__.'/push.php';
+    if (!empty($rec['buyer_id'])) {
+        vestra_push_send($rec['buyer_id'], 'VESTRA — payment secured 🛡️',
+            'Order '.$ref.' is protected in escrow. We\'ll notify you when it ships.', '/buyer?tab=orders');
+    }
+    if ($seller) {
+        vestra_push_send($seller['id'], 'VESTRA — paid order! Ship now',
+            'Order '.$ref.' is paid and held in escrow. Please ship the goods.', '/seller?tab=orders');
+    }
+
     // Messaging order card (buyer ↔ seller) — the trade lives in one thread.
     $buyerId = $rec['buyer_id'] ?? '';
     if ($buyerId && $seller) {

@@ -146,6 +146,14 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
             break;
         }
     }
+    // Push ping to the recipient's installed devices (fire-and-forget).
+    if ($recipient !== '') {
+        require_once __DIR__.'/push.php';
+        $recPanel = ($recipient === $sellerUid) ? 'seller' : 'buyer';
+        vestra_push_send($recipient, 'VESTRA — new message',
+            mb_substr(preg_replace('/\s+/', ' ', $text), 0, 90),
+            '/'.$recPanel.'?tab=messages');
+    }
     return ['ok'=>true, 'thread_id'=>$id];
 }
 

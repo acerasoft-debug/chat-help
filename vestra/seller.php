@@ -116,6 +116,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 'kind'=>'order','status'=>'shipped','ref'=>$ref,'tracking'=>$tracking,
             ]);
         }
+        /* Push ping to the buyer's installed devices */
+        if ($buyerAcc) {
+            require_once __DIR__.'/inc/push.php';
+            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
+                'Order '.$ref.($tracking !== '' ? ' · Tracking: '.$tracking : '').' is on its way.', '/buyer?tab=orders');
+        }
         /* Email buyer */
         require_once __DIR__.'/inc/notify.php';
         if (!empty($orderRow['email'])) {
