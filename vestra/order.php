@@ -176,6 +176,9 @@ if(!empty($lines)){
       $sid=$listing['seller_uid'];
       if(in_array($sid,$notifiedSellers,true)) break;
       $notifiedSellers[]=$sid;
+      require_once __DIR__.'/inc/push.php';
+      vestra_push_send($sid, 'VESTRA — new order 📦',
+        'Order '.$ref.' · '.$company.' · €'.number_format((float)$total,2), '/seller?tab=orders');
       if($buyerAcc){
         require_once __DIR__.'/inc/messages.php';
         vestra_msg_post_system($buyerAcc['id'], $sid, '', [

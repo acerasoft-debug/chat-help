@@ -40,21 +40,36 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   $act=$_POST['_action']??'';
 
   if($act==='approve_listing'){
-    $lid=$_POST['lid']??''; $note=trim($_POST['note']??'');
+    $lid=$_POST['lid']??''; $note=trim($_POST['note']??''); $sellerUid=''; $pname='';
     $all=vestra_listings();
-    foreach($all as &$p){ if(($p['id']??'')===$lid){ $p['status']='approved'; if($note) $p['admin_note']=$note; break; } }
+    foreach($all as &$p){ if(($p['id']??'')===$lid){ $p['status']='approved'; if($note) $p['admin_note']=$note; $sellerUid=(string)($p['seller_uid']??''); $pname=trim(($p['brand']??'').' '.($p['name']??'')); break; } }
     vestra_save_listings($all);
+    if($sellerUid){
+      require_once __DIR__.'/inc/push.php';
+      vestra_push_send($sellerUid,'VESTRA — listing approved 🎉', ($pname?:'Your listing').' is now live in the catalog.','/seller?tab=listings');
+    }
     header('Location: /admin?tab=approvals&msg=approved'); exit;
   }
   if($act==='reject_listing'){
-    $lid=$_POST['lid']??''; $note=trim($_POST['note']??'');
+    $lid=$_POST['lid']??''; $note=trim($_POST['note']??''); $sellerUid=''; $pname='';
     $all=vestra_listings();
-    foreach($all as &$p){ if(($p['id']??'')===$lid){ $p['status']='rejected'; if($note) $p['admin_note']=$note; break; } }
+    foreach($all as &$p){ if(($p['id']??'')===$lid){ $p['status']='rejected'; if($note) $p['admin_note']=$note; $sellerUid=(string)($p['seller_uid']??''); $pname=trim(($p['brand']??'').' '.($p['name']??'')); break; } }
     vestra_save_listings($all);
+    if($sellerUid){
+      require_once __DIR__.'/inc/push.php';
+      vestra_push_send($sellerUid,'VESTRA — listing needs changes', ($pname?:'Your listing').($note?' — '.mb_substr($note,0,80):' was not approved. See your dashboard for details.'),'/seller?tab=listings');
+    }
     header('Location: /admin?tab=approvals&msg=rejected'); exit;
   }
   if($act==='approve_kyb'){
-    auth_update($_POST['uid']??'',['kyb_status'=>'approved','status'=>'active']);
+    $uid=$_POST['uid']??'';
+    auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
+    $acc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $acc=$a; break; } }
+    if($acc){
+      require_once __DIR__.'/inc/push.php';
+      vestra_push_send($uid,'VESTRA — account verified ✓','Your business is verified. Full wholesale access is unlocked.',
+        (($acc['type']??'')==='seller')?'/seller':'/buyer');
+    }
     header('Location: /admin?tab=users&msg=kyb_ok'); exit;
   }
   if($act==='suspend_account'){
@@ -242,6 +257,32 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     unset($l);
     vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=lead_sent&n='.$sent); exit;
+  }
+
+  /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
+  if($act==='send_push'){
+    require_once __DIR__.'/inc/push.php';
+    $target = $_POST['target'] ?? 'all';
+    $title  = trim($_POST['title'] ?? '');
+    $body   = trim($_POST['body']  ?? '');
+    $url    = trim($_POST['url']   ?? '');
+    if($url==='' || $url[0]!=='/') $url='/shop';       // same-origin only — never push external links
+    if($title==='' || $body===''){ header('Location: /admin?tab=notify&msg=push_err'); exit; }
+    $uids=[];
+    foreach(auth_accounts() as $a){
+      $uid=(string)($a['id']??''); if($uid==='') continue;
+      $type=$a['type']??'';
+      $hit = match($target){
+        'buyers'  => $type==='buyer',
+        'sellers' => $type==='seller',
+        'user'    => $uid===($_POST['uid']??''),
+        default   => true, // 'all'
+      };
+      if($hit) $uids[]=$uid;
+    }
+    $reached=vestra_push_broadcast($uids, mb_substr($title,0,80), mb_substr($body,0,160), $url);
+    vestra_push_log(['at'=>date('c'),'target'=>$target,'title'=>mb_substr($title,0,80),'reached'=>$reached]);
+    header('Location: /admin?tab=notify&msg=push_sent&n='.$reached); exit;
   }
 }
 
@@ -516,6 +557,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Moderation</div>
   <?= navLink($tab,'messages','✉️','Messages ('.count($msgThreads).')',count($blockedMsgs),count($blockedMsgs)>0) ?>
+  <?= navLink($tab,'notify','🔔','Notifications') ?>
 
   <div class="sgrp">Catalog</div>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
@@ -544,6 +586,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ Sent to <?= (int)($_GET['n']??0) ?> prospect(s).</div>
 <?php elseif($msg==='dupfix'): ?>
 <div class="amsg ok">✓ Repaired <?= (int)($_GET['n']??0) ?> duplicate order ref(s) — every order now has its own independent status.</div>
+<?php elseif($msg==='push_sent'): ?>
+<div class="amsg ok">🔔 Notification sent — reached <?= (int)($_GET['n']??0) ?> subscribed user(s). Users without push enabled don't count here.</div>
+<?php elseif($msg==='push_err'): ?>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#ef9a9a">⚠ Title and message are required.</div>
 <?php endif; ?>
 
 
@@ -1604,6 +1650,85 @@ elseif($tab==='messages'):
 </div>
 <?php endforeach; endif; ?>
 
+
+<?php // ══════════════════════════════════════════════════════ NOTIFICATION CENTER
+elseif($tab==='notify'):
+  require_once __DIR__.'/inc/push.php';
+  $pstats = vestra_push_stats();
+  $plog   = vestra_push_log_all();
+  $subscribedPct = count($accounts) ? round($pstats['users']/count($accounts)*100) : 0;
+?>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+  <div><h2 style="font-size:18px;font-weight:700">🔔 Notification Center</h2>
+  <p class="ahint" style="margin-top:4px">Send push notifications straight to your users' phones &amp; desktops — product drops, offer news, anything. Automatic pushes (orders, offers, messages, escrow) are always on; this panel is for manual announcements.</p></div>
+</div>
+
+<div class="asgrid" style="margin-bottom:18px">
+  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
+  <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices reachable</div></div>
+  <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= count($plog) ?></div><div class="sl">Broadcasts sent</div></div>
+</div>
+
+<div class="acols2" style="align-items:start">
+  <div class="acard">
+    <div class="acard-hd"><h3>📣 New announcement</h3></div>
+    <div class="acard-body">
+      <form method="post" class="aform" action="/admin">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="send_push">
+        <div class="afield"><label>Send to</label>
+          <select name="target" id="pushTarget" onchange="document.getElementById('pushUidRow').style.display=this.value==='user'?'':'none'">
+            <option value="all">🌍 Everyone (all accounts)</option>
+            <option value="buyers">🛍️ All buyers</option>
+            <option value="sellers">🏷️ All sellers</option>
+            <option value="user">👤 One specific user…</option>
+          </select>
+        </div>
+        <div class="afield" id="pushUidRow" style="display:none"><label>User</label>
+          <select name="uid">
+            <?php foreach($accounts as $a): ?>
+            <option value="<?= htmlspecialchars($a['id']??'') ?>"><?= htmlspecialchars(($a['company']?:($a['name']?:($a['email']??'?'))).' — '.($a['type']??'?')) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="afield"><label>Title (max 80)</label><input name="title" maxlength="80" required placeholder="VESTRA — new D&amp;G drop 🔥"></div>
+        <div class="afield"><label>Message (max 160)</label><textarea name="body" maxlength="160" rows="3" required placeholder="Fresh stock just landed: 29 new D&amp;G styles from €50/pc. First come, first served."></textarea></div>
+        <div class="afield"><label>Opens page (tap target)</label><input name="url" value="/shop" placeholder="/shop"><div class="ahint">Site path only, e.g. <code>/shop</code>, <code>/product?id=…</code>, <code>/groups</code>, <code>/requests</code></div></div>
+        <button class="abtn primary" type="submit" style="justify-content:center;padding:10px">🔔 Send notification</button>
+        <div class="ahint">Only users who enabled notifications (bell button on the homepage / app) receive pushes. Delivery is instant.</div>
+      </form>
+    </div>
+  </div>
+
+  <div class="acard">
+    <div class="acard-hd"><h3>🕐 Recent broadcasts</h3></div>
+    <div class="acard-body">
+      <?php if(!$plog): ?><div class="aempty">Nothing sent yet. Your announcement history appears here.</div>
+      <?php else: ?>
+      <div class="atscroll"><table class="atable">
+        <?= arow(['When','Audience','Title','Reached'],true) ?>
+        <?php foreach(array_slice($plog,0,15) as $le):
+          $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?'); ?>
+        <?= arow([
+          htmlspecialchars(substr($le['at']??'',0,16)),
+          abadge($tl,'#8ab4f8'),
+          '<b>'.htmlspecialchars($le['title']??'').'</b>',
+          '<span style="color:'.((int)($le['reached']??0)>0?'#7ad6a0':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)</span>',
+        ]) ?>
+        <?php endforeach; ?>
+      </table></div>
+      <?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<div class="acard" style="margin-top:18px">
+  <div class="acard-hd"><h3>⚡ Automatic notifications — always on</h3></div>
+  <div class="acard-body" style="font-size:13px;line-height:1.9;color:var(--mut)">
+    <b style="color:var(--fg)">Buyers get pushed when:</b> an offer is accepted / countered / declined · a seller answers their sourcing request · payment is confirmed · the order ships (with tracking) · escrow secures their payment · a refund is issued · a new message arrives.<br>
+    <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.
+  </div>
+</div>
 
 <?php // ══════════════════════════════════════════════════════ WAITLIST
 elseif($tab==='waitlist'): ?>

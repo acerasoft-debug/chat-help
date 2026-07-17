@@ -92,6 +92,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $buyerEmail = $req['email'] ?? '';
         $buyerAcc = $buyerEmail ? auth_find($buyerEmail) : null;
         $sellerAcc = auth_find($email);
+        if ($buyerAcc && ($buyerAcc['type']??'')==='buyer') {
+            require_once __DIR__.'/inc/push.php';
+            vestra_push_send($buyerAcc['id'], 'VESTRA — offer on your request 📥',
+                mb_substr($title,0,60).' — €'.$price.($qty!==''?' · '.$qty:''), '/requests');
+        }
         if ($buyerAcc && ($buyerAcc['type']??'')==='buyer' && $sellerAcc && ($sellerAcc['type']??'')==='seller') {
             require_once __DIR__.'/inc/messages.php';
             vestra_msg_post_system($buyerAcc['id'], $sellerAcc['id'], $ref, [

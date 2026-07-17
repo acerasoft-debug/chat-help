@@ -180,7 +180,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                   "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\nThe seller has confirmed your payment for order {$ref}. Your goods are being prepared — you'll get tracking as soon as it ships.\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
             }
             $buyerAcc = auth_find($orderRow['email'] ?? '');
-            if ($buyerAcc) { require_once __DIR__.'/inc/messages.php'; vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref]); }
+            if ($buyerAcc) {
+                require_once __DIR__.'/inc/messages.php';
+                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'paid','ref'=>$ref]);
+                require_once __DIR__.'/inc/push.php';
+                vestra_push_send($buyerAcc['id'], 'VESTRA — payment confirmed 💶',
+                    'Order '.$ref.' — payment received. Your goods are being prepared.', '/buyer?tab=orders');
+            }
         }
     }
     header('Location: /seller?tab=orders&msg=paid'); exit;
@@ -249,6 +255,14 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                 'counter_price'=>$action==='counter'?$ctr:null,
                 'product'=>trim(($offerListing['brand']??'').' '.($offerListing['name']??'')),
             ]);
+            require_once __DIR__.'/inc/push.php';
+            $prodName = trim(($offerListing['brand']??'').' '.($offerListing['name']??''));
+            $pushTxt = match($action){
+                'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted. Invoice is ready.'],
+                'counter' => ['VESTRA — counter offer ↩', $prodName.' — seller counters at €'.number_format($ctr,2).'/unit.'],
+                default   => ['VESTRA — offer declined', $prodName.' — the seller declined this offer.'],
+            };
+            vestra_push_send($buyerAcc['id'], $pushTxt[0], $pushTxt[1], '/buyer?tab=offers');
         }
         /* Accepted offer = a confirmed sale — auto-generate this seller's PDF invoice,
            enriched with the buyer's full account details when they have one. */

@@ -71,6 +71,9 @@ if(!empty($p['seller_uid']) && !empty($_SESSION['uid'])){
 /* Notify the seller who owns this listing (if seller_uid stored on listing) */
 if(!empty($p['seller_uid'])){
   require_once __DIR__.'/inc/auth.php';
+  require_once __DIR__.'/inc/push.php';
+  vestra_push_send($p['seller_uid'], 'VESTRA — new offer 💶',
+    trim(($p['brand']??'').' '.($p['name']??'')).' · €'.$price.' × '.$qty, '/seller?tab=offers');
   foreach(auth_accounts() as $acc){
     if(($acc['id']??'')!==$p['seller_uid']) continue;
     if(empty($acc['email'])) break;

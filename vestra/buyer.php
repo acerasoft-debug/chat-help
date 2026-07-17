@@ -77,6 +77,9 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             if(!in_array($listing['sku'],$orderSkus,true)) continue;
             if(in_array($listing['seller_uid'],$notified,true)) continue;
             $notified[]=$listing['seller_uid'];
+            require_once __DIR__.'/inc/push.php';
+            vestra_push_send($listing['seller_uid'], 'VESTRA — receipt confirmed ✓',
+                'Order '.$ref.' — the buyer confirmed delivery. Payout in progress.', '/seller?tab=orders');
             /* Completed card into the seller's conversation */
             if($me){
                 require_once __DIR__.'/inc/messages.php';

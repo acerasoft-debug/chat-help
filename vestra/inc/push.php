@@ -121,3 +121,33 @@ function vestra_push_send(string $uid, string $title, string $body, string $url 
     }
     if ($changed) vestra_push_save_subs($all);
 }
+
+/* ── Admin notification center helpers ─────────────────────────────────── */
+
+/** Broadcast to many accounts. Returns how many of them have push devices. */
+function vestra_push_broadcast(array $uids, string $title, string $body, string $url = '/'): int {
+    $subs = vestra_push_subs(); $reached = 0;
+    foreach (array_unique(array_filter($uids)) as $u) {
+        if (!empty($subs[$u])) $reached++;
+        vestra_push_send($u, $title, $body, $url);
+    }
+    return $reached;
+}
+
+/** How many accounts / devices are push-enabled (for the admin dashboard). */
+function vestra_push_stats(): array {
+    $s = array_filter(vestra_push_subs());
+    return ['users' => count($s), 'devices' => array_sum(array_map('count', $s))];
+}
+
+/** Append to the broadcast log (last 50 kept). */
+function vestra_push_log(array $entry): void {
+    $f = vestra_push_dir().'/push_log.json';
+    $l = is_readable($f) ? (json_decode((string)file_get_contents($f), true) ?: []) : [];
+    $l[] = $entry;
+    @file_put_contents($f, json_encode(array_slice($l, -50)), LOCK_EX);
+}
+function vestra_push_log_all(): array {
+    $f = vestra_push_dir().'/push_log.json';
+    return is_readable($f) ? array_reverse(json_decode((string)file_get_contents($f), true) ?: []) : [];
+}

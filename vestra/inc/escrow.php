@@ -229,7 +229,13 @@ function escrow_do_release(string $ref): array {
         if ($amt <= 0) return ['ok'=>false, 'msg'=>'Nothing available to release yet — card funds may still be settling. Try again shortly.'];
         $p = stripe_escrow_release($rec['acct_id'], $amt, $cur, $ref);
         escrow_update($ref, ['status'=>'released', 'released_at'=>date('c'), 'payout_id'=>$p->id ?? '']);
-        return ['ok'=>true, 'msg'=>'Released €'.number_format(((int)($p->amount ?? 0))/100, 2).' to the seller.'];
+        $paid = number_format(((int)($p->amount ?? 0))/100, 2);
+        if (!empty($rec['seller_uid'])) {
+            require_once __DIR__.'/push.php';
+            vestra_push_send($rec['seller_uid'], 'VESTRA — funds released 🎉',
+                'Order '.$ref.' — €'.$paid.' is on its way to your bank.', '/seller?tab=orders');
+        }
+        return ['ok'=>true, 'msg'=>'Released €'.$paid.' to the seller.'];
     } catch (\Throwable $e) {
         error_log('[VESTRA Escrow] release failed '.$ref.': '.$e->getMessage());
         return ['ok'=>false, 'msg'=>'Release failed: '.$e->getMessage()];
@@ -250,7 +256,13 @@ function escrow_do_refund(string $ref): array {
     try {
         $r = stripe_escrow_refund($rec['acct_id'], $rec['payment_intent']);
         escrow_update($ref, ['status'=>'refunded', 'refunded_at'=>date('c'), 'refund_id'=>$r->id ?? '']);
-        return ['ok'=>true, 'msg'=>'Refunded €'.number_format(((int)($r->amount ?? 0))/100, 2).' to the buyer.'];
+        $back = number_format(((int)($r->amount ?? 0))/100, 2);
+        if (!empty($rec['buyer_id'])) {
+            require_once __DIR__.'/push.php';
+            vestra_push_send($rec['buyer_id'], 'VESTRA — refund issued ↩',
+                'Order '.$ref.' — €'.$back.' is being returned to your card in full.', '/buyer?tab=orders');
+        }
+        return ['ok'=>true, 'msg'=>'Refunded €'.$back.' to the buyer.'];
     } catch (\Throwable $e) {
         error_log('[VESTRA Escrow] refund failed '.$ref.': '.$e->getMessage());
         return ['ok'=>false, 'msg'=>'Refund failed: '.$e->getMessage()];
