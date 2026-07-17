@@ -101,6 +101,22 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     $h .= '<div class="pcfhead"><h3>'.t('Order').' <span class="atag">'.htmlspecialchars($ref).'</span></h3><a class="btn btn-o btn-sm" href="'.htmlspecialchars($backHref).'">← '.t('Back to orders').'</a></div>';
     $h .= vestra_order_timeline_html($status);
 
+    // Payment method + escrow state + delivery address, parsed from the order record —
+    // the three facts both sides ask about first.
+    $rawNotes = (string)($orderRow['notes'] ?? '');
+    $isEscrowOrder = str_contains($rawNotes, 'Secure escrow');
+    $escrowBadge = '';
+    if (function_exists('escrow_get')) {
+        $er = escrow_get($ref);
+        if ($er) { $isEscrowOrder = true; $escrowBadge = ' · '.escrow_badge($er['status'] ?? ''); }
+    }
+    $shipTo = '';
+    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', $rawNotes, $m)) $shipTo = trim($m[1]);
+    $h .= '<div class="hint" style="display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 14px;font-size:13px">'
+        . '<span><b>'.t('Payment').':</b> '.($isEscrowOrder ? '🛡️ '.t('Secure escrow (card)') : '🏦 '.t('Bank transfer (invoice)')).$escrowBadge.'</span>'
+        . ($shipTo !== '' ? '<span><b>'.t('Deliver to').':</b> '.htmlspecialchars($shipTo).'</span>' : '')
+        . '</div>';
+
     $h .= '<div class="odgrid">';
     // Line items
     $h .= '<div><table class="ctable"><thead><tr><th>'.t('Product').'</th><th>'.t('Colours').'</th><th>'.t('Qty').'</th><th class="r">'.t('Unit').'</th><th class="r">'.t('Line total').'</th></tr></thead><tbody>';

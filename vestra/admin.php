@@ -942,7 +942,120 @@ function ufilter(){
 elseif($tab==='orders'):
   $cnt_ship=count(array_filter($orders,fn($o)=>($orderSt[$o['ref']??'']['status']??'')==='shipped'));
   $cnt_done=count(array_filter($orders,fn($o)=>($orderSt[$o['ref']??'']['status']??'')==='completed'));
+  /* Full order dossier (?tab=orders&view=REF): everything about one order on
+     one screen — buyer, delivery, items, money, escrow, commission, invoices,
+     status control — so the admin never pieces an order together from a row. */
+  $viewRef=trim($_GET['view']??''); $viewRow=null;
+  if($viewRef!==''){ foreach($orders as $__o){ if(($__o['ref']??'')===$viewRef){ $viewRow=$__o; break; } } }
+  if($viewRow):
+    $vst=$orderSt[$viewRef]??[]; $vstatus=$vst['status']??'pending';
+    $vlines=vestra_order_lines($viewRow)['lines']??[];
+    $ver=escrow_get($viewRef);
+    $vpay=$ver?'escrow':(str_contains($viewRow['notes']??'','Secure escrow')?'escrow':'bank');
+    $vship=''; if(preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', $viewRow['notes']??'', $m)) $vship=$m[1];
 ?>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <h2 style="font-size:18px;font-weight:700">📦 Order <span class="atag" style="font-size:14px"><?= htmlspecialchars($viewRef) ?></span> · <?= orderBadge($vstatus) ?><?= $ver?' · '.escrow_badge($ver['status']??''):'' ?></h2>
+  <a class="abtn" href="/admin?tab=orders">← All orders</a>
+</div>
+
+<div class="acols2">
+  <div class="acard">
+    <div class="acard-hd"><h3>Buyer & delivery</h3></div>
+    <table class="atable">
+      <?= arow(['Company','<b>'.htmlspecialchars($viewRow['company']??'—').'</b>'.(($viewRow['vat']??'')!==''?' · VAT '.htmlspecialchars($viewRow['vat']):'')]) ?>
+      <?= arow(['Contact',htmlspecialchars($viewRow['name']??'—').' · <a href="mailto:'.htmlspecialchars($viewRow['email']??'').'" style="color:var(--acc)">'.htmlspecialchars($viewRow['email']??'').'</a>']) ?>
+      <?= arow(['Country / Phone',htmlspecialchars($viewRow['country']??'—').(($viewRow['phone']??'')!==''?' · '.htmlspecialchars($viewRow['phone']):'')]) ?>
+      <?= arow(['Delivery address',$vship!==''?htmlspecialchars($vship):'<span style="color:var(--mut)">same as billing</span>']) ?>
+      <?= arow(['Payment',$vpay==='escrow'?'🛡️ Secure escrow (card)':'🏦 Bank transfer (invoice)']) ?>
+      <?= arow(['Placed',htmlspecialchars(substr($viewRow['timestamp']??'',0,16))]) ?>
+      <?php if(($viewRow['notes']??'')!==''): ?><?= arow(['Notes','<span style="font-size:12px">'.htmlspecialchars($viewRow['notes']).'</span>']) ?><?php endif; ?>
+    </table>
+  </div>
+
+  <div class="acard">
+    <div class="acard-hd"><h3>Money</h3></div>
+    <table class="atable">
+      <?= arow(['Subtotal',eur($viewRow['subtotal']??0)]) ?>
+      <?= arow(['Platform commission','<b style="color:#7ad6a0">'.eur($viewRow['commission']??0).'</b>']) ?>
+      <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
+      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>']) ?>
+    </table>
+    <div style="margin-top:12px">
+      <div class="ahint" style="margin-bottom:6px;font-weight:600">Commission charges</div>
+      <?php $vcoms=vestra_commissions_for_ref($viewRef); if(!$vcoms): ?><span style="color:var(--mut);font-size:12px">— none recorded</span>
+      <?php else: foreach($vcoms as $c): ?>
+        <div style="font-size:12px;padding:3px 0"><?= match($c['status']??''){'charged'=>abadge('✓ charged '.eur($c['amount']??0),'#7ad6a0'),'failed'=>abadge('✗ failed '.eur($c['amount']??0),'#ef9a9a'),'no_card'=>abadge('⚠ no card','#f0c060'),default=>abadge($c['status']??'—','#888')} ?> <span style="color:var(--mut)"><?= htmlspecialchars(substr($c['timestamp']??'',0,16)) ?></span></div>
+      <?php endforeach; endif; ?>
+    </div>
+    <div style="margin-top:12px">
+      <div class="ahint" style="margin-bottom:6px;font-weight:600">Invoices</div>
+      <?php $vinvs=vestra_invoices_for_ref($viewRef); if(!$vinvs): ?><span style="color:var(--mut);font-size:12px">— none yet</span>
+      <?php else: foreach($vinvs as $iv): ?>
+        <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:inline-block;margin-right:12px;font-size:12.5px">📄 <?= htmlspecialchars($iv['no']) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
+      <?php endforeach; endif; ?>
+    </div>
+  </div>
+</div>
+
+<div class="acard" style="margin-top:16px">
+  <div class="acard-hd"><h3>Items</h3></div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['SKU','Product','Colours','Qty','Unit','Line total'],true) ?>
+    <?php foreach($vlines as $l): ?>
+    <?= arow([htmlspecialchars($l['sku']??''),'<b>'.htmlspecialchars(($l['brand']??'').' '.($l['name']??'')).'</b>',htmlspecialchars(implode(', ',(array)($l['colors']??[]))?:'—'),(int)($l['qty']??0),eur($l['unit']??0),'<b>'.eur($l['line']??0).'</b>']) ?>
+    <?php endforeach; ?>
+  </table></div>
+</div>
+
+<div class="acols2" style="margin-top:16px">
+  <div class="acard">
+    <div class="acard-hd"><h3>Status & tracking</h3></div>
+    <?php if(!empty($vst['history'])): ?>
+      <div style="margin-bottom:12px">
+      <?php foreach($vst['history'] as $ev): ?>
+        <div class="ahint" style="padding:3px 0"><?= htmlspecialchars(substr($ev['at']??'',0,16)) ?> — <b><?= htmlspecialchars($ev['status']??'') ?></b> <span style="color:var(--mut)">(<?= htmlspecialchars($ev['by']??'') ?>)</span><?= !empty($ev['note'])?' · '.htmlspecialchars($ev['note']):'' ?></div>
+      <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+    <form method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="order_status">
+      <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+      <select name="status" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+        <option value="pending" <?= $vstatus==='pending'?'selected':'' ?>>⏳ Awaiting payment</option>
+        <option value="paid" <?= $vstatus==='paid'?'selected':'' ?>>💶 Paid — to ship</option>
+        <option value="shipped" <?= $vstatus==='shipped'?'selected':'' ?>>🚚 Shipped</option>
+        <option value="completed" <?= $vstatus==='completed'?'selected':'' ?>>✓ Completed</option>
+      </select>
+      <input name="tracking" value="<?= htmlspecialchars($vst['tracking']??'') ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
+      <button class="abtn primary" type="submit">Save</button>
+    </form>
+  </div>
+
+  <div class="acard">
+    <div class="acard-hd"><h3>🛡️ Escrow</h3></div>
+    <?php if(!$ver): ?>
+      <span style="color:var(--mut);font-size:13px">Not an escrow order — payment runs by bank transfer against the invoice.</span>
+    <?php else: ?>
+      <table class="atable">
+        <?= arow(['Status',escrow_badge($ver['status']??'')]) ?>
+        <?= arow(['Paid at',htmlspecialchars(substr($ver['paid_at']??'—',0,16))]) ?>
+        <?= arow(['Held amount',eur($ver['total']??0).' <span style="color:var(--mut)">(fee '.eur(($ver['fee']??0)/100).')</span>']) ?>
+        <?php if(!empty($ver['released_at'])): ?><?= arow(['Released',htmlspecialchars(substr($ver['released_at'],0,16))]) ?><?php endif; ?>
+        <?php if(!empty($ver['refunded_at'])): ?><?= arow(['Refunded',htmlspecialchars(substr($ver['refunded_at'],0,16))]) ?><?php endif; ?>
+      </table>
+      <?php if(($ver['status']??'')==='held'): ?>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#7ad6a0">Release to seller</button></form>
+        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#ef9a9a">Refund buyer</button></form>
+      </div>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+</div>
+
+<?php else: ?>
 
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Total orders</div></div>
@@ -976,7 +1089,7 @@ if($__dupRefs): ?>
   <?php foreach(array_reverse($orders) as $o):
     $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
   <tr>
-    <td class="ac"><span class="atag"><?= htmlspecialchars(substr($ref,0,12)) ?></span></td>
+    <td class="ac"><a href="/admin?tab=orders&view=<?= urlencode($ref) ?>" style="text-decoration:none"><span class="atag" title="Open full order dossier"><?= htmlspecialchars(substr($ref,0,12)) ?> →</span></a></td>
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($o['timestamp']??'',0,10)) ?></td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
@@ -1030,6 +1143,7 @@ if($__dupRefs): ?>
   <?php endforeach; ?>
 </table></div></div>
 <?php endif; ?>
+<?php endif; // order dossier vs list ?>
 
 
 <?php // ══════════════════════════════════════════════════════ OFFERS
