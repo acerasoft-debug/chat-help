@@ -939,7 +939,7 @@ if($tab==='overview'){
     }
     echo '</tbody></table>';
   }
-  echo '<div class="hint" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--brd)">'.t('Payout account').' · <span class="status open">'.t('Connect Tazapay — coming soon').'</span></div>';
+  echo '<div class="hint" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--brd)">'.t('Payout account').' · <a href="/seller?tab=profile" style="color:var(--acc)">'.t('Set up Stripe payouts &amp; escrow').' ↗</a></div>';
   echo '</div>';
 
 // ── PROFILE ───────────────────────────────────────────────────────────────────
@@ -1020,7 +1020,11 @@ if($tab==='overview'){
       <?php if (($_GET['connect'] ?? '') === 'done'): ?>
         <div class="banner ok" style="margin-bottom:12px">✓ <?= t('Thanks — your details were sent to Stripe.') ?></div>
       <?php elseif (($_GET['error'] ?? '') === 'connect'): ?>
-        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px"><?= t('Something went wrong connecting to Stripe — please try again.') ?></div>
+        <?php $connErr = $_SESSION['connect_error'] ?? ''; unset($_SESSION['connect_error']); ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:12px">
+          <?= t('Something went wrong connecting to Stripe — please try again.') ?>
+          <?php if ($connErr): ?><br><span style="font-size:12px;opacity:.85"><?= htmlspecialchars($connErr) ?></span><?php endif; ?>
+        </div>
       <?php endif; ?>
       <?php if (!stripe_available()): ?>
         <div class="banner info"><?= t('Online payments are being set up — check back shortly.') ?></div>

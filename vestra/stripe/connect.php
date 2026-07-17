@@ -27,6 +27,7 @@ if (($_GET['dashboard'] ?? '') === '1' && !empty($user['stripe_account_id'])) {
         exit;
     } catch (\Throwable $e) {
         error_log('[VESTRA Connect] dashboard link error: ' . $e->getMessage());
+        $_SESSION['connect_error'] = $e->getMessage();
         header('Location: /seller?tab=profile&error=connect');
         exit;
     }
@@ -42,6 +43,11 @@ try {
     exit;
 } catch (\Throwable $e) {
     error_log('[VESTRA Connect] onboarding error: ' . $e->getMessage());
+    // Surface Stripe's own message (e.g. "Invalid country", "Connect not
+    // enabled") — for a handful of sellers this is far more useful than a
+    // generic "something went wrong", and Stripe's onboarding errors are safe
+    // to show. Cleared once displayed on the profile page.
+    $_SESSION['connect_error'] = $e->getMessage();
     header('Location: /seller?tab=profile&error=connect');
     exit;
 }

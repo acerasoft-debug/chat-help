@@ -182,6 +182,53 @@ function stripe_ensure_customer(array $account): string {
  * Sellers onboard an Express connected account so escrow funds can be released
  * to them automatically. We store the acct_… id on the seller's account. */
 
+/**
+ * Normalise a free-text country field to a Stripe-valid ISO-3166 alpha-2 code.
+ * The registration form is a free 3-char text input (placeholder "DE"), so real
+ * values arrive as "DE", "GER", "Ger", "D", "TÜR", "TR", "AT"… A naive
+ * substr($x,0,2) turns "GER"→"GE" and "TÜR"→"TÜ", which Stripe rejects with
+ * "Invalid country" and the whole Connect onboarding dies. We map the common
+ * alpha-3 codes and German/Turkish variants back to alpha-2, accept a known
+ * alpha-2 as-is, and fall back to DE (this is a Germany-based EU wholesaler).
+ */
+function stripe_country_iso($raw): string {
+    // Transliterate the umlauts/diacritics that appear in DE/TR spellings to
+    // ASCII first (ü→U, ö→O, ä→A, ç→C, ş→S, ı→I …) so the lookup key is clean
+    // regardless of PHP's non-multibyte strtoupper.
+    $s = str_ireplace(
+        ['ü','ö','ä','ß','ç','ş','ğ','ı','é','è'],
+        ['u','o','a','ss','c','s','g','i','e','e'],
+        (string)$raw);
+    $c = strtoupper(preg_replace('/[^A-Za-z]/', '', $s));
+    if ($c === '') return 'DE';
+    // Alpha-3 and common name fragments → alpha-2.
+    static $map = [
+        'DEU'=>'DE','GER'=>'DE','GERMANY'=>'DE','DEUTSCHLAND'=>'DE','D'=>'DE',
+        'AUT'=>'AT','OST'=>'AT','OESTERREICH'=>'AT',
+        'CHE'=>'CH','SUI'=>'CH','SWI'=>'CH','SCHWEIZ'=>'CH',
+        'FRA'=>'FR','FRANCE'=>'FR','FRANKREICH'=>'FR',
+        'ITA'=>'IT','ITALY'=>'IT','ITALIA'=>'IT','ITALIEN'=>'IT',
+        'ESP'=>'ES','SPA'=>'ES','SPAIN'=>'ES','SPANIEN'=>'ES',
+        'NLD'=>'NL','NED'=>'NL','HOL'=>'NL','NETHERLANDS'=>'NL','NIEDERLANDE'=>'NL',
+        'BEL'=>'BE','BELGIUM'=>'BE','BELGIEN'=>'BE',
+        'LUX'=>'LU','PRT'=>'PT','POR'=>'PT','PORTUGAL'=>'PT',
+        'IRL'=>'IE','IRELAND'=>'IE','GBR'=>'GB','UK'=>'GB','ENG'=>'GB',
+        'DNK'=>'DK','DEN'=>'DK','SWE'=>'SE','NOR'=>'NO','FIN'=>'FI',
+        'POL'=>'PL','POLAND'=>'PL','POLEN'=>'PL','CZE'=>'CZ',
+        'SVK'=>'SK','HUN'=>'HU','ROU'=>'RO','ROM'=>'RO','BGR'=>'BG','BUL'=>'BG',
+        'GRC'=>'GR','GRE'=>'GR','HRV'=>'HR','CRO'=>'HR','SVN'=>'SI','SLO'=>'SI',
+        'EST'=>'EE','LVA'=>'LV','LTU'=>'LT','CYP'=>'CY','MLT'=>'MT',
+        'USA'=>'US','TUR'=>'TR','TURKEY'=>'TR','TURKIYE'=>'TR',
+    ];
+    if (isset($map[$c])) return $map[$c];
+    // Known EU/EEA + common alpha-2 codes we accept verbatim.
+    static $valid = ['DE','AT','CH','FR','IT','ES','NL','BE','LU','PT','IE','GB',
+        'DK','SE','NO','FI','PL','CZ','SK','HU','RO','BG','GR','HR','SI','EE',
+        'LV','LT','CY','MT','US','TR'];
+    $two = substr($c, 0, 2);
+    return in_array($two, $valid, true) ? $two : 'DE';
+}
+
 /** Create an Express connected account for a seller, persist its id, return it.
  * Payout schedule is set to MANUAL: escrow funds land in the seller's Stripe
  * balance and stay there until the platform explicitly releases them (a payout)
@@ -189,7 +236,7 @@ function stripe_ensure_customer(array $account): string {
  * work without the platform ever holding the money itself. */
 function stripe_connect_create_account(array $seller): string {
     if (!empty($seller['stripe_account_id'])) return $seller['stripe_account_id'];
-    $country = strtoupper(substr(trim($seller['country'] ?? 'DE'), 0, 2)) ?: 'DE';
+    $country = stripe_country_iso($seller['country'] ?? 'DE');
     $acct = stripe_api('POST', '/v1/accounts', [
         'type'            => 'express',
         'email'           => $seller['email'] ?? '',
