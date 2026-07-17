@@ -34,7 +34,7 @@ try{(function(){
   function needsWet(html){ var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung/.test(h); }
   function plan(){ try{ if(typeof window.chPlan==='function'){ var p=window.chPlan(); if(p) return String(p).toLowerCase(); } }catch(e){} try{ if(window.P&&window.P.plan) return String(window.P.plan).toLowerCase(); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u.plan) return String(u.plan).toLowerCase(); }catch(e){} return 'free'; }
   function hasPack(){ var p=plan(); return /basic|pro|elite/.test(p); }
-  function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,20 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
+  function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,50 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
   function isLetter(html){ if(CCX()!=='DE') return false; if(/vfA4/.test(html)) return false; var P=prof(); return /Mit freundlichen Grüßen|Hochachtungsvoll|Mit freundlichem Gruß|freundlichen Grüßen/i.test(html)||(P.f3&&html.indexOf(P.f3)!==-1); }
   function T(k){
     var L={

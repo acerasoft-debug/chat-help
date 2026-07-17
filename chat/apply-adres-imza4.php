@@ -10,7 +10,7 @@
  *   [B] Themen ICERIGI: her sonlandirmada dilekce METNI ch_topics'e (doc)
  *       kaydedilir (dedup) -> Meine Themen'de tiklayinca icerik gorunur,
  *       PDF/duzenle/gonder yapilabilir.
- *  Kademeli fiyat (paketsiz 2,99 / Basic 1,99 / Pro 1,50 / Elite 1,20).
+ *  Kademeli fiyat (paketsiz 2,99 / Basic 1,99 / Pro 1,50 / Elite 1,50).
  *  node ✓ + harness ✓.
  * KULLANIM: pull2.php?key=...&files=apply-adres-imza4.php
  */
@@ -36,7 +36,7 @@ try{(function(){
   function planNorm(p){ p=(''+(p||'')).toLowerCase().trim(); if(!p) return ''; if(/elite|unbegrenzt|unlimited|premium\+|max/.test(p)) return 'elite'; if(/\bpro\b|pro[_-]|professional/.test(p)) return 'pro'; if(/basic|basis|starter/.test(p)) return 'basic'; if(/free|gratis|kostenlos/.test(p)) return 'free'; return ''; }
   /* Elite/Pro/Basic: TUM kaynaklardan en yuksek kademe (tek kaynak bayat olsa bile paket taninir) */
   function plan(){ var cand=[]; try{ cand.push(localStorage.getItem('ch_plan')); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u&&u.plan) cand.push(u.plan); }catch(e){} try{ if(window.P&&window.P.plan) cand.push(window.P.plan); }catch(e){} try{ if(typeof window.chPlan==='function') cand.push(window.chPlan()); }catch(e){} var rank={free:0,basic:1,pro:2,elite:3}, best='free', bestR=0; for(var i=0;i<cand.length;i++){ var n=planNorm(cand[i]); if(!n) continue; if(rank[n]>bestR){ bestR=rank[n]; best=n; } } return best; }
-  function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,20 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
+  function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,50 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
   function isLetter(html){ if(CCX()!=='DE') return false; if(/vfA4/.test(html)) return false; var P=prof(); return /Mit freundlichen Grüßen|Hochachtungsvoll|Mit freundlichem Gruß|freundlichen Grüßen/i.test(html)||(P.f3&&html.indexOf(P.f3)!==-1); }
   function T(k){
     var L={
