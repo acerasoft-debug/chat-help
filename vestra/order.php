@@ -12,6 +12,18 @@ $payMethod = (($_POST['pay'] ?? 'bank') === 'escrow') ? 'escrow' : 'bank';
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
 if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
 
+/* One-shot order token (idempotency). A double-tap posts the same token twice; the
+   PHP session lock serialises the two requests: the first consumes the token and
+   records its ref, the second replays the SAME confirmation — never a second order,
+   invoice or email. Posts without a token (stale cached cart) still go through. */
+$orderTok = preg_replace('/[^a-f0-9]/','', (string)($_POST['order_token'] ?? ''));
+if($orderTok !== ''){
+  $doneRef = $_SESSION['order_token_done'][$orderTok] ?? '';
+  if($doneRef !== ''){ header('Location: /order-confirm?ref='.urlencode($doneRef)); exit; }
+  if(empty($_SESSION['order_tokens'][$orderTok])){ header('Location: /cart'); exit; } // unknown/expired
+  unset($_SESSION['order_tokens'][$orderTok]); // consume — single use
+}
+
 $company=trim($_POST['company']??''); $name=trim($_POST['name']??''); $email=trim($_POST['email']??'');
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /cart'); exit; }
 if(empty($_POST['consent'])){ header('Location: /cart'); exit; } // Terms acceptance is mandatory
@@ -134,6 +146,7 @@ if($payMethod==='escrow'){
     'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
   ]);
   $_SESSION['order_refs'][$ref]=time();
+  if($orderTok !== ''){ $_SESSION['order_token_done'][$orderTok] = $ref; }
   header('Location: '.$session->url); exit;
 }
 
@@ -202,6 +215,10 @@ $_SESSION['order_refs'][$ref] = time();
 if (count($_SESSION['order_refs']) > 10) {
   asort($_SESSION['order_refs']);
   $_SESSION['order_refs'] = array_slice($_SESSION['order_refs'], -10, null, true);
+}
+if($orderTok !== ''){
+  $_SESSION['order_token_done'][$orderTok] = $ref;
+  if (count($_SESSION['order_token_done']) > 20) $_SESSION['order_token_done'] = array_slice($_SESSION['order_token_done'], -20, null, true);
 }
 
 header('Location: /order-confirm?ref='.urlencode($ref)); exit;

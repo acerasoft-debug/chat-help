@@ -72,6 +72,17 @@ if (stripe_available()) {
 
     <form id="orderForm" method="post" action="/order">
       <input type="hidden" name="cart" id="cartField">
+      <?php
+      /* One-shot order token: order.php consumes it on the first POST and replays
+         the SAME confirmation for any duplicate POST (double-tap, refresh-resend) —
+         a multi-tapped "place order" can never create multiple orders/invoices. */
+      $orderTok = bin2hex(random_bytes(12));
+      $_SESSION['order_tokens'][$orderTok] = time();
+      if (count($_SESSION['order_tokens']) > 20) {
+        asort($_SESSION['order_tokens']);
+        $_SESSION['order_tokens'] = array_slice($_SESSION['order_tokens'], -20, null, true);
+      } ?>
+      <input type="hidden" name="order_token" value="<?= $orderTok ?>">
 
       <h3 style="margin:24px 0 10px"><?= t('Payment method') ?></h3>
       <div class="paysel">

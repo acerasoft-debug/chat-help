@@ -70,5 +70,32 @@ document.addEventListener('DOMContentLoaded', function(){ VCart.refresh(); });
   });
 })();
 </script>
+<script>
+/* Double-submit guard — every form, site-wide. The FIRST submit disables the
+   form's submit buttons and shows a spinner (.btn-busy), any further submit of
+   the same form is blocked. Prevents "tapped order 5× → 5 orders/invoices".
+   Buttons are disabled a tick AFTER submission starts so their name/value still
+   posts. Opt out per-form with data-nobusy. */
+(function(){
+  document.addEventListener('submit', function(e){
+    var f = e.target;
+    if (!f || f.tagName !== 'FORM' || f.hasAttribute('data-nobusy')) return;
+    if (f.dataset.vbusy === '1') { e.preventDefault(); e.stopPropagation(); return; }
+    f.dataset.vbusy = '1';
+    setTimeout(function(){
+      f.querySelectorAll('button[type="submit"],button:not([type]),input[type="submit"]').forEach(function(b){
+        b.classList.add('btn-busy'); b.disabled = true;
+      });
+    }, 0);
+  }, true);
+  /* Back/forward cache restore (iOS/Android back button): re-arm the forms. */
+  window.addEventListener('pageshow', function(){
+    document.querySelectorAll('form[data-vbusy]').forEach(function(f){
+      f.removeAttribute('data-vbusy');
+      f.querySelectorAll('.btn-busy').forEach(function(b){ b.classList.remove('btn-busy'); b.disabled = false; });
+    });
+  });
+})();
+</script>
 </body>
 </html>

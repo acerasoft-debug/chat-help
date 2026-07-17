@@ -280,6 +280,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   .btn-p:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 30px -10px rgba(201,168,106,.5)}
   .btn-o{background:transparent;color:var(--ink)}
   .btn-o:hover{background:rgba(201,168,106,.1);transform:translateY(-2px)}
+  .btn:active{transform:scale(.96)}
   .trustline{margin-top:34px;font-size:13px;color:var(--mut);display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
   .trustline span{display:inline-flex;align-items:center;gap:7px}
 

@@ -46,6 +46,14 @@ nav{display:flex;align-items:center;justify-content:space-between;height:64px;ga
 .btn-o{background:transparent;color:var(--ink)}
 .btn-o:hover{background:rgba(201,168,106,.1)}
 .btn-sm{padding:9px 15px;font-size:13px}
+/* Tactile press: every button visibly reacts to the tap itself… */
+.btn:active,button:not(:disabled):active{transform:scale(.96)}
+/* …and a submitted form shows a spinner on its button (set by foot.php's
+   double-submit guard) so nobody taps "order" five times waiting. */
+.btn-busy{pointer-events:none;opacity:.65;position:relative}
+.btn-busy::after{content:'';width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;
+  border-radius:50%;display:inline-block;margin-left:8px;flex:none;animation:btnspin .7s linear infinite}
+@keyframes btnspin{to{transform:rotate(360deg)}}
 .btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
 
 /* page header */
