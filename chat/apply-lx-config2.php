@@ -13,7 +13,7 @@ echo "apply-lx-config2 BASLADI OK (PHP ".PHP_VERSION.")\n\n";
 
 $k = '7895a0a0aff0a8dabf14ac1a0920722bdfd4c752d2ccfce851bc7bbe6a865639';
 $u = trim((string)($_GET['lxuser'] ?? ''));
-if ($u==='') $u = 'acerasoft@gmail.com';
+if ($u==='') $u = 'LXPApi73638';
 $m = trim((string)($_GET['lxmode'] ?? 'test'));
 if ($m!=='live') $m='test';
 
