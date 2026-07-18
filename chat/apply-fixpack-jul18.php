@@ -68,17 +68,22 @@ try{(function(){
   function dedupe(){
     try{
       var emp=document.querySelector('[data-k="ch_empfaenger"]');
-      if(!emp) return;
-      var wrap=emp.closest? (emp.closest('.frm-row')||emp.closest('.fe-field')||emp.parentNode) : emp.parentNode;
-      if(!wrap||wrap.__j18) return;
-      var labels=document.querySelectorAll('label, .fe-label, .frm-label');
-      for(var i=0;i<labels.length;i++){
-        var t=(labels[i].textContent||'').toLowerCase();
-        if(/name des unternehmens|firmenname|anbieter|unternehmen\b/.test(t) && !/empfänger/.test(t)){
-          wrap.style.display='none'; wrap.__j18=1; return;
+      if(emp){
+        var labels=document.querySelectorAll('label, .fe-label, .frm-label');
+        for(var i=0;i<labels.length;i++){
+          var t=(labels[i].textContent||'').toLowerCase();
+          if(/name des unternehmens|firmenname|anbieter|name des anbieters/.test(t) && !/empf/.test(t)){
+            var lw=labels[i].closest? (labels[i].closest('.fi')||labels[i].closest('.frm-row')||labels[i].closest('.fe-field')||labels[i].parentNode) : labels[i].parentNode;
+            if(lw && !lw.__j18){
+              var inp=lw.querySelector('input,textarea,[data-k]');
+              if(inp){ if(!String(inp.value||'').trim()){ inp.value=String(emp.value||'').split('\n')[0].trim(); } inp.removeAttribute('required'); }
+              lw.style.display='none'; lw.__j18=1;
+            }
+          }
         }
       }
     }catch(e){}
+    try{ var rs=document.querySelectorAll('[required]'); for(var k=0;k<rs.length;k++){ if(rs[k].offsetParent===null) rs[k].removeAttribute('required'); } }catch(e){}
   }
   setInterval(dedupe,900);
 })();}catch(e){}
