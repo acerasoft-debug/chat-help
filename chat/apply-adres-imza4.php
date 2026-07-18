@@ -32,12 +32,12 @@ try{(function(){
   function API(){ return (typeof window.API!=='undefined'&&window.API)?window.API:'api.php'; }
   function PVURL(){ var a=API(); var i=a.lastIndexOf('/'); return (i>=0?a.slice(0,i+1):'')+'postversand.php'; }
   function prof(){ try{ var P=window.P; if(P&&(P.f1||P.f7)) return P; }catch(e){} try{ return JSON.parse(localStorage.getItem('ch_prof_v3')||'{}')||{}; }catch(e){ return {}; } }
-  function needsWet(html){ var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung|befristeter mietvertrag|mietvertrag[^<]{0,40}befristet|darlehensvertrag|verbraucherdarlehen/.test(h); }
+  function needsWet(html){ if(CCX()!=='DE') return false; var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung|befristeter mietvertrag|mietvertrag[^<]{0,40}befristet|darlehensvertrag|verbraucherdarlehen/.test(h); }
   function planNorm(p){ p=(''+(p||'')).toLowerCase().trim(); if(!p) return ''; if(/elite|unbegrenzt|unlimited|premium\+|max/.test(p)) return 'elite'; if(/\bpro\b|pro[_-]|professional/.test(p)) return 'pro'; if(/basic|basis|starter/.test(p)) return 'basic'; if(/free|gratis|kostenlos/.test(p)) return 'free'; return ''; }
   /* Elite/Pro/Basic: TUM kaynaklardan en yuksek kademe (tek kaynak bayat olsa bile paket taninir) */
   function plan(){ var cand=[]; try{ cand.push(localStorage.getItem('ch_plan')); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u&&u.plan) cand.push(u.plan); }catch(e){} try{ if(window.P&&window.P.plan) cand.push(window.P.plan); }catch(e){} try{ if(typeof window.chPlan==='function') cand.push(window.chPlan()); }catch(e){} var rank={free:0,basic:1,pro:2,elite:3}, best='free', bestR=0; for(var i=0;i<cand.length;i++){ var n=planNorm(cand[i]); if(!n) continue; if(rank[n]>bestR){ bestR=rank[n]; best=n; } } return best; }
   function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,50 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
-  function isLetter(html){ if(CCX()!=='DE') return false; if(/vfA4/.test(html)) return false; var P=prof(); return /Mit freundlichen Grüßen|Hochachtungsvoll|Mit freundlichem Gruß|freundlichen Grüßen/i.test(html)||(P.f3&&html.indexOf(P.f3)!==-1); }
+  function isLetter(html){ if(/vfA4/.test(html)) return false; var P=prof(); var clos=/Mit freundlichen Grüßen|Hochachtungsvoll|Mit freundlichem Gruß|freundlichen Grüßen|Sincerely|Best regards|Kind regards|Yours (faithfully|sincerely|truly)|Cordialement|Salutations distingu|Veuillez agr|Cordiali saluti|Distinti saluti|Atentamente|Saludos cordiales|Un saludo|Saygılar|İyi çalışmalar/i; return clos.test(html)||(P.f3&&html.indexOf(P.f3)!==-1); }
   function T(k){
     var L={
       ttl:{de:'Empfänger, Adresse & Versand',tr:'Alıcı, Adres & Gönderim',en:'Recipient, address & sending'},
@@ -209,9 +209,10 @@ try{(function(){
     var frk=/widerruf|widerspruch|k(ü|ue)ndigung|einspruch|frist|mahnung/i.test(ORIG_BODY);
     function _bnum(){ var p=plan(); if(/elite|pro/.test(p)) return 1.5; if(/basic/.test(p)) return 1.99; return 2.99; }
     function _f2(n){ return n.toFixed(2).replace('.',',')+' €'; }
-    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,ppg:0.50,frk:1,lab:T('fax')}];
-    var _use=_DEF.filter(function(d){ return frk?!!d.frk:true; });
-    var _dm=frk?'einwurf':'normal';
+    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,de:1,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,de:1,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,de:1,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,ppg:0.50,frk:1,lab:T('fax')}];
+    var _isDE=(CCX()==='DE');
+    var _use=_DEF.filter(function(d){ return (frk?!!d.frk:true) && (!d.de || _isDE); });
+    var _dm=_isDE?(frk?'einwurf':'normal'):'fax';
     /* paketsiz (free) ise sabit-fiyatli Einschreiben'e +1 € eklenir; normal/fax zaten base ile kademeli */
     function _hasPkg(){ return /basic|pro|elite/.test(plan()); }
     function _pages(){ try{ var t=(bodyVal&&bodyVal())||ORIG_BODY||''; var ln=0; t.split('\n').forEach(function(x){ ln+=Math.max(1,Math.ceil(x.length/90)); }); return Math.max(1,Math.ceil((ln+8)/42)); }catch(e){ return 1; } }
