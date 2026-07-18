@@ -29,13 +29,15 @@ function lx_call($path,$payload){
 }
 function lx_auth(){ global $mode; return ['username'=>constant('LETTERXPRESS_USER'),'apikey'=>constant('LETTERXPRESS_APIKEY'),'mode'=>($mode==='live'?'live':'test')]; }
 
-/* ── Fax: saglayici anahtari (InterFAX varsayilan; faxde/phaxio yedek) ── */
-function fax_provider(){ return defined('FAX_PROVIDER') ? strtolower((string)constant('FAX_PROVIDER')) : 'interfax'; }
+/* ── Fax: saglayici anahtari (ClickSend varsayilan — kendi fax no'su gerekmez;
+   interfax/faxde/phaxio yedek) ── */
+function fax_provider(){ return defined('FAX_PROVIDER') ? strtolower((string)constant('FAX_PROVIDER')) : 'clicksend'; }
 function fax_configured(){
   $p=fax_provider();
-  if($p==='phaxio') return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET');
-  if($p==='faxde')  return defined('FAXDE_TOKEN') && constant('FAXDE_TOKEN');
-  return defined('INTERFAX_USER') && defined('INTERFAX_PASS') && constant('INTERFAX_USER') && constant('INTERFAX_PASS'); /* interfax */
+  if($p==='phaxio')   return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET');
+  if($p==='faxde')    return defined('FAXDE_TOKEN') && constant('FAXDE_TOKEN');
+  if($p==='interfax') return defined('INTERFAX_USER') && defined('INTERFAX_PASS') && constant('INTERFAX_USER') && constant('INTERFAX_PASS');
+  return defined('CLICKSEND_USER') && defined('CLICKSEND_KEY') && constant('CLICKSEND_USER') && constant('CLICKSEND_KEY'); /* clicksend */
 }
 function fax_e164($n){ $n=preg_replace('/[^\d+]/','',(string)$n); if($n==='') return ''; if($n[0]==='+') return $n; if(strpos($n,'00')===0) return '+'.substr($n,2); if($n[0]==='0') return '+49'.substr($n,1); return '+'.$n; }
 /* yerel/DE bicimi (fax-api.de genelde 0049... veya 0... bekler; E.164 + ise 00'a cevir) */
@@ -88,7 +90,33 @@ function fax_send_interfax($pdfBin,$faxnr){
   return ['ok'=>($code>=200&&$code<300),'http'=>$code,'provider'=>'InterFAX','err'=>$err,
     'result'=>['fax_id'=>$id,'location'=>$loc,'body'=>substr(trim($body),0,300)]];
 }
-function fax_send($pdfBin,$faxnr){ $p=fax_provider(); if($p==='phaxio') return fax_send_phaxio($pdfBin,$faxnr); if($p==='faxde') return fax_send_faxde($pdfBin,$faxnr); return fax_send_interfax($pdfBin,$faxnr); }
+/* ClickSend: kendi fax no'su GEREKMEZ. 1) uploads?convert=fax (base64) -> _url  2) fax/send {file_url,messages[]} */
+function fax_send_clicksend($pdfBin,$faxnr){
+  $auth=constant('CLICKSEND_USER').':'.constant('CLICKSEND_KEY');
+  $up=curl_init('https://rest.clicksend.com/v3/uploads?convert=fax');
+  curl_setopt_array($up,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_USERPWD=>$auth,
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
+    CURLOPT_POSTFIELDS=>json_encode(['content'=>base64_encode($pdfBin)]),CURLOPT_TIMEOUT=>90]);
+  $ur=curl_exec($up); $uc=(int)curl_getinfo($up,CURLINFO_HTTP_CODE); $ue=curl_error($up); curl_close($up);
+  $uj=json_decode((string)$ur,true);
+  $fileUrl=''; if(is_array($uj)){ $d=$uj['data']??null; if(is_array($d)) $fileUrl=$d['_url']??($d['url']??''); elseif(is_string($d)) $fileUrl=$d; }
+  if(!$fileUrl) return ['ok'=>false,'http'=>$uc,'provider'=>'ClickSend','err'=>$ue?:'upload_failed','result'=>is_array($uj)?$uj:substr((string)$ur,0,400)];
+  $payload=['file_url'=>$fileUrl,'messages'=>[['source'=>'chathelp','to'=>fax_e164($faxnr)]]];
+  $sd=curl_init('https://rest.clicksend.com/v3/fax/send');
+  curl_setopt_array($sd,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_USERPWD=>$auth,
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
+    CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_TIMEOUT=>90]);
+  $sr=curl_exec($sd); $sc=(int)curl_getinfo($sd,CURLINFO_HTTP_CODE); $se=curl_error($sd); curl_close($sd);
+  $sj=json_decode((string)$sr,true);
+  $ok=($sc>=200&&$sc<300); if(is_array($sj)&&isset($sj['response_code'])) $ok=($sj['response_code']==='SUCCESS');
+  return ['ok'=>$ok,'http'=>$sc,'provider'=>'ClickSend','err'=>$se,'result'=>is_array($sj)?$sj:substr((string)$sr,0,400)];
+}
+function fax_send($pdfBin,$faxnr){ $p=fax_provider();
+  if($p==='phaxio')   return fax_send_phaxio($pdfBin,$faxnr);
+  if($p==='faxde')    return fax_send_faxde($pdfBin,$faxnr);
+  if($p==='interfax') return fax_send_interfax($pdfBin,$faxnr);
+  return fax_send_clicksend($pdfBin,$faxnr);
+}
 
 
 /* ── JPEG boyutu (SOF) ── */

@@ -20,8 +20,9 @@ $prov=$j['fax_provider']??'?'; $cfg=$j['fax_configured']??false;
 echo "  fax_provider = $prov | fax_configured = ".($cfg?'EVET':'HAYIR')."\n\n";
 if(!$cfg){
   echo "→ Fax kimlikleri yok. Saglayiciya gore config'e ekle:\n";
+  echo "   ClickSend (varsayilan, kendi fax no'su GEREKMEZ):\n";
+  echo "             FAX_PROVIDER='clicksend', CLICKSEND_USER='...', CLICKSEND_KEY='...'\n";
   echo "   InterFAX : FAX_PROVIDER='interfax', INTERFAX_USER='...', INTERFAX_PASS='...'\n";
-  echo "   fax-api.de: FAX_PROVIDER='faxde', FAXDE_TOKEN='...'\n";
   echo "   Phaxio   : FAX_PROVIDER='phaxio', PHAXIO_KEY='...', PHAXIO_SECRET='...'\n";
   echo "  Kimlikleri verirsen apply-fax-config.php yazip eklerim.\n";
   exit;
