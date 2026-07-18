@@ -45,7 +45,7 @@ try{(function(){
   function PVURL(){ var a=API(); var i=a.lastIndexOf('/'); return (i>=0?a.slice(0,i+1):'')+'postversand.php'; }
   function planNorm(p){ p=(''+(p||'')).toLowerCase().trim(); if(/elite|unbegrenzt|unlimited|premium\+|max/.test(p)) return 'elite'; if(/\bpro\b|pro[_-]|professional/.test(p)) return 'pro'; if(/basic|basis|starter/.test(p)) return 'basic'; if(/free|gratis|kostenlos/.test(p)) return 'free'; return ''; }
   function plan(){ var cand=[]; try{ cand.push(localStorage.getItem('ch_plan')); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u&&u.plan) cand.push(u.plan); }catch(e){} try{ if(window.P&&window.P.plan) cand.push(window.P.plan); }catch(e){} try{ if(typeof window.chPlan==='function') cand.push(window.chPlan()); }catch(e){} var rank={free:0,basic:1,pro:2,elite:3},best='free',bR=0; for(var i=0;i<cand.length;i++){ var n=planNorm(cand[i]); if(!n) continue; if(rank[n]>bR){ bR=rank[n]; best=n; } } return best; }
-  function isPrem(){ return /pro|elite/.test(plan()); }
+  function isPrem(){ return /basic|pro|elite/.test(plan()); }
   function list(){ try{ var a=JSON.parse(localStorage.getItem('ch_sendungen')||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
   function save(a){ try{ localStorage.setItem('ch_sendungen',JSON.stringify(a.slice(-200))); }catch(e){} }
   function T(k){
