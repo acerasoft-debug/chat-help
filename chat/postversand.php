@@ -29,11 +29,13 @@ function lx_call($path,$payload){
 }
 function lx_auth(){ global $mode; return ['username'=>constant('LETTERXPRESS_USER'),'apikey'=>constant('LETTERXPRESS_APIKEY'),'mode'=>($mode==='live'?'live':'test')]; }
 
-/* ── Fax: saglayici anahtari (fax-api.de varsayilan; phaxio yedek) ── */
-function fax_provider(){ return defined('FAX_PROVIDER') ? strtolower((string)constant('FAX_PROVIDER')) : 'faxde'; }
+/* ── Fax: saglayici anahtari (InterFAX varsayilan; faxde/phaxio yedek) ── */
+function fax_provider(){ return defined('FAX_PROVIDER') ? strtolower((string)constant('FAX_PROVIDER')) : 'interfax'; }
 function fax_configured(){
-  if(fax_provider()==='phaxio') return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET');
-  return defined('FAXDE_TOKEN') && constant('FAXDE_TOKEN'); /* fax-api.de */
+  $p=fax_provider();
+  if($p==='phaxio') return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET');
+  if($p==='faxde')  return defined('FAXDE_TOKEN') && constant('FAXDE_TOKEN');
+  return defined('INTERFAX_USER') && defined('INTERFAX_PASS') && constant('INTERFAX_USER') && constant('INTERFAX_PASS'); /* interfax */
 }
 function fax_e164($n){ $n=preg_replace('/[^\d+]/','',(string)$n); if($n==='') return ''; if($n[0]==='+') return $n; if(strpos($n,'00')===0) return '+'.substr($n,2); if($n[0]==='0') return '+49'.substr($n,1); return '+'.$n; }
 /* yerel/DE bicimi (fax-api.de genelde 0049... veya 0... bekler; E.164 + ise 00'a cevir) */
@@ -70,7 +72,23 @@ function fax_send_faxde($pdfBin,$faxnr){
   if(is_array($j) && (isset($j['error'])||isset($j['errors'])||(isset($j['status'])&&$j['status']==='error'))) $ok=false;
   return ['ok'=>$ok,'http'=>$code,'provider'=>'fax-api.de','err'=>$err,'result'=>is_array($j)?$j:substr((string)$res,0,400)];
 }
-function fax_send($pdfBin,$faxnr){ return (fax_provider()==='phaxio') ? fax_send_phaxio($pdfBin,$faxnr) : fax_send_faxde($pdfBin,$faxnr); }
+/* InterFAX: POST /outbound/faxes?faxNumber=+49... ; Basic auth ; body=ham PDF ; 201+Location */
+function fax_send_interfax($pdfBin,$faxnr){
+  $url='https://rest.interfax.net/outbound/faxes?faxNumber='.rawurlencode(fax_e164($faxnr));
+  $ch=curl_init($url);
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_HEADER=>true,
+    CURLOPT_USERPWD=>constant('INTERFAX_USER').':'.constant('INTERFAX_PASS'),
+    CURLOPT_HTTPHEADER=>['Content-Type: application/pdf'],
+    CURLOPT_POSTFIELDS=>$pdfBin,CURLOPT_TIMEOUT=>90]);
+  $raw=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch);
+  $hs=(int)curl_getinfo($ch,CURLINFO_HEADER_SIZE); curl_close($ch);
+  $head=substr((string)$raw,0,$hs); $body=substr((string)$raw,$hs);
+  $loc=''; if(preg_match('/^location:\s*(.+)$/mi',$head,$m)) $loc=trim($m[1]);
+  $id=''; if($loc && preg_match('#/faxes/(\d+)#',$loc,$mm)) $id=$mm[1];
+  return ['ok'=>($code>=200&&$code<300),'http'=>$code,'provider'=>'InterFAX','err'=>$err,
+    'result'=>['fax_id'=>$id,'location'=>$loc,'body'=>substr(trim($body),0,300)]];
+}
+function fax_send($pdfBin,$faxnr){ $p=fax_provider(); if($p==='phaxio') return fax_send_phaxio($pdfBin,$faxnr); if($p==='faxde') return fax_send_faxde($pdfBin,$faxnr); return fax_send_interfax($pdfBin,$faxnr); }
 
 
 /* ── JPEG boyutu (SOF) ── */
