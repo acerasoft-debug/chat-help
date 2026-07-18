@@ -62,6 +62,10 @@ try{(function(){
       confirmq:{de:'⚠️ Das Dokument wird jetzt verbindlich an „{r}" versendet. Fortfahren?',tr:'⚠️ Belge şimdi „{r}" adresine gönderilecek. Devam edilsin mi?',en:'⚠️ The document will be sent to „{r}". Continue?'},
       confirmyes:{de:'✓ Bestätigen & senden',tr:'✓ Onayla & gönder',en:'✓ Confirm & send'},
       back:{de:'← Zurück',tr:'← Geri',en:'← Back'},
+      proof:{de:'✓ Zustellnachweis',tr:'✓ İspatlı teslim',en:'✓ Proof of delivery'},
+      wetnote:{de:'Original-Unterschrift nötig: selbst ausdrucken & unterschreiben — ODER das Original per Post an Ihre eigene Adresse senden lassen, dort unterschreiben und selbst verschicken.',tr:'Islak imza gerekli: kendiniz yazdırıp imzalayın — YA DA orijinali kendi adresinize postalatın, imzalayıp kendiniz gönderin.',en:'Original signature required: print & sign yourself — OR have the original posted to your own address, sign it and send it yourself.'},
+      wethome:{de:'✉️ Original an meine Adresse (zum Unterschreiben)',tr:'✉️ Orijinali kendi adresime (imzalamak için)',en:'✉️ Original to my address (to sign)'},
+      needownaddr:{de:'Bitte Ihre Adresse (Straße + PLZ/Ort) angeben.',tr:'Lütfen adresinizi (sokak + PLZ/şehir) girin.',en:'Please enter your address (street + postal/city).'},
       vnormal:{de:'✉️ Normale Post',tr:'✉️ Normal posta',en:'✉️ Normal post'},
       reg_einwurf:{de:'📬 Einwurf-Einschreiben — Auslieferungsbeleg',tr:'📬 Einwurf-Einschreiben — teslim belgesi',en:'📬 Registered (mailbox) — delivery proof'},
       reg_standard:{de:'📮 Einschreiben (Übergabe) — Unterschrift Empfänger',tr:'📮 Einschreiben (teslim) — alıcı imzası',en:'📮 Registered (handover) — recipient signs'},
@@ -190,11 +194,18 @@ try{(function(){
     return html;
   }
   function doFree(){ if(!fillGuard(false)) return; var html=finalHtml(true); saveTopicTxt(bodyVal()); close(); proceed(html); }
+  function ownRecip(){ var P=prof(); var nm=((P.f1||'')+' '+(P.f2||'')).trim(); var a3=(document.getElementById('ai-f3')||{}).value||P.f3||''; var a4=(document.getElementById('ai-f4')||{}).value||P.f4||''; return [nm,a3,a4].filter(function(x){ return x&&(''+x).trim(); }).join('\n'); }
   function doHome(){
     if(!fillGuard(false)) return;
-    var html=finalHtml(true);
-    try{ var P=prof(); var a=JSON.parse(localStorage.getItem('ch_mailorig_req')||'[]'); if(!Array.isArray(a))a=[]; a.push({ts:new Date().getTime(),adr:(document.getElementById('ai-f3')||{}).value||P.f3||'',html:String(html).slice(0,20000),paid:0}); localStorage.setItem('ch_mailorig_req',JSON.stringify(a.slice(-50))); }catch(e){}
-    saveTopicTxt(bodyVal()); close(); try{ alert(T('homeok')); }catch(e){}
+    var own=ownRecip(); if(own.replace(/\s/g,'').length<8){ try{ alert(T('needownaddr')); }catch(e){} return; }
+    var P=prof(); var sender=((P.f1||'')+' '+(P.f2||'')).trim()+' - '+(P.f3||'')+' - '+(P.f4||'');
+    saveTopicTxt(bodyVal());
+    try{ var a=JSON.parse(localStorage.getItem('ch_mailorig_req')||'[]'); if(!Array.isArray(a))a=[]; a.push({ts:new Date().getTime(),adr:own,paid:0}); localStorage.setItem('ch_mailorig_req',JSON.stringify(a.slice(-50))); }catch(e){}
+    var btn=document.getElementById('ai-home'); var old=btn?btn.textContent:''; if(btn){ btn.textContent=T('sending'); btn.disabled=true; }
+    fetch(PVURL()+'?action=send_letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:bodyVal(),recipient:own,sender:sender})})
+     .then(function(r){ return r.json(); }).then(function(j){ if(btn){ btn.textContent=old; btn.disabled=false; }
+        if(j&&j.ok){ close(); try{ alert(T('sentok')); }catch(e){} } else { try{ alert(T('senderr')+((j&&(j.error||(j.result&&j.result.message)))||'?')); }catch(e){} } })
+     .catch(function(){ if(btn){ btn.textContent=old; btn.disabled=false; } try{ alert(T('senderr')+'network'); }catch(e){} });
   }
   /* [1] onceki onay: imza+alici+metin dogrula, [2] kesin onay bar'i goster */
   function doSend(btn){
@@ -209,7 +220,7 @@ try{(function(){
     var frk=/widerruf|widerspruch|k(ü|ue)ndigung|einspruch|frist|mahnung/i.test(ORIG_BODY);
     function _bnum(){ var p=plan(); if(/elite|pro/.test(p)) return 1.5; if(/basic/.test(p)) return 1.99; return 2.99; }
     function _f2(n){ return n.toFixed(2).replace('.',',')+' €'; }
-    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,de:1,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,de:1,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,de:1,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,ppg:0.50,frk:1,lab:T('fax')}];
+    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,de:1,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,de:1,proof:1,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,de:1,proof:1,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,ppg:0.50,proof:1,frk:1,lab:T('fax')}];
     var _isDE=(CCX()==='DE');
     var _use=_DEF.filter(function(d){ return (frk?!!d.frk:true) && (!d.de || _isDE); });
     var _dm=_isDE?(frk?'einwurf':'normal'):'fax';
@@ -217,7 +228,7 @@ try{(function(){
     function _hasPkg(){ return /basic|pro|elite/.test(plan()); }
     function _pages(){ try{ var t=(bodyVal&&bodyVal())||ORIG_BODY||''; var ln=0; t.split('\n').forEach(function(x){ ln+=Math.max(1,Math.ceil(x.length/90)); }); return Math.max(1,Math.ceil((ln+8)/42)); }catch(e){ return 1; } }
     function _priceFor(v){ var d=null; for(var i=0;i<_DEF.length;i++) if(_DEF[i].v===v) d=_DEF[i]; if(d&&d.flat!=null){ var b=_hasPkg()? d.flat : (d.flat_np!=null? d.flat_np : d.flat+1); if(d.ppg) b+=d.ppg*Math.max(0,_pages()-1); return _f2(b); } return _f2(_bnum()+(d?(d.add||0):0)); }
-    function _opt(d){ return '<label class="ai-vopt" style="display:flex;align-items:center;gap:7px;width:100%;margin:1px 0;font-size:11.5px;color:#cfe0ff;cursor:pointer"><input type="radio" name="ai-vsa" value="'+d.v+'" data-act="'+d.act+'" data-reg="'+d.reg+'"'+(d.v===_dm?' checked':'')+'> <span>'+d.lab+' ('+_priceFor(d.v)+')</span></label>'; }
+    function _opt(d){ return '<label class="ai-vopt" style="display:flex;align-items:center;gap:7px;width:100%;margin:1px 0;font-size:11.5px;color:#cfe0ff;cursor:pointer"><input type="radio" name="ai-vsa" value="'+d.v+'" data-act="'+d.act+'" data-reg="'+d.reg+'"'+(d.v===_dm?' checked':'')+'> <span>'+d.lab+' ('+_priceFor(d.v)+')'+(d.proof?' <span style="color:#42df94;font-weight:700">'+T('proof')+'</span>':'')+'</span></label>'; }
     bar.innerHTML='<div class="ai-warn" style="width:100%;margin-bottom:6px">'+T('confirmq').replace('{r}',esc(rec.split('\n')[0]))+'</div>'
       +(frk?'<div class="aik-hint" style="color:#ffb0b0;font-size:11px;margin:0 0 6px;width:100%">'+T('beweisnote')+'</div>':'')
       +'<div style="width:100%;display:flex;flex-direction:column;gap:3px;margin:2px 0 6px">'+_use.map(_opt).join('')+'</div>'
@@ -274,11 +285,11 @@ try{(function(){
     h+='<div class="ai-f"><label>'+T('adr')+'</label><input class="ai-in" id="ai-f3" value="'+esc(P.f3||'')+'"></div>';
     h+='<div class="ai-f"><label>'+T('plz')+'</label><input class="ai-in" id="ai-f4" value="'+esc(P.f4||'')+'"></div>';
     h+='<div class="ai-sec">'+T('sigsec')+'</div>';
-    if(wet){ h+='<div class="ai-warn">'+T('sigwet')+'</div>'; }
+    if(wet){ h+='<div class="ai-warn">'+T('sigwet')+'</div><div class="aik-hint" style="color:#ffd9a0;font-size:11px;margin:4px 0 0">'+T('wetnote')+'</div>'; }
     else{ h+='<div class="sub" style="margin-bottom:6px">'+T('sigok')+'</div><canvas id="ai-sigpad"></canvas><div class="ai-sigrow"><button id="ai-sigclr">🗑 '+T('clr')+'</button></div>'; }
     h+='<div class="ai-acts">';
     if(!wet) h+='<button id="ai-send">'+T('send')+' — '+priceStr()+'</button>';
-    h+='<button id="ai-free">'+T('free')+'</button><button id="ai-home">'+T('home')+' — '+priceStr()+'</button><button id="ai-cancel">'+T('cancel')+'</button></div>';
+    h+='<button id="ai-free">'+T('free')+'</button><button id="ai-home">'+(wet?T('wethome'):(T('home')+' — '+priceStr()))+'</button><button id="ai-cancel">'+T('cancel')+'</button></div>';
     box.innerHTML=h;
     if(!wet){ setupSig(); var cb=document.getElementById('ai-sigclr'); if(cb) cb.onclick=clearSig; extractRecipient(); var sb=document.getElementById('ai-send'); if(sb) sb.onclick=function(){ doSend(sb); }; }
     document.getElementById('ai-free').onclick=doFree;
