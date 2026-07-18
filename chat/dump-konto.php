@@ -1,43 +1,48 @@
 <?php
-/** ChatHelp — dump-konto (SADECE OKUR) — Konto paneline "Zahlungsmethode/Abo
- *  verwalten" butonu koyabilmek icin:
- *  [1] pnl-konto bolgesi (buton nereye — plan gosterimi / Abmelden yakini)
- *  [2] authed fetch JWT'yi nasil gonderiyor (Authorization: Bearer ch_token)
- *  [3] konto icinde plan/abo/Abmelden/logout capalari
- *  [4] MSG i18n / dil anahtari (buton metnini cevirebilmek icin)
- *  Ciktinin TAMAMINI gonder. */
+/* dump-konto (READ-ONLY) — Konto sayfasi tema selector(ler)i + 'Abo verwalten'
+   + tema kalicilik/geri-donus mantigini cikarir. Silme/duzeltme icin haritalama.
+   KULLANIM: pull2.php?key=...&files=dump-konto.php */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
-$idx=(string)@file_get_contents(__DIR__.'/index.php');
-if($idx==='') exit("index.php okunamadi\n");
+echo "dump-konto (READ-ONLY)\n\n";
+$s=@file_get_contents(__DIR__.'/index.php');
+if($s===false) exit("okunamadi\n");
 
-function raw($src,$needle,$pre,$len,$label,$max=3){
-    echo "\n──────── $label ('$needle') ────────\n";
-    $off=0;$n=0;$tot=substr_count($src,$needle);
-    while(($p=strpos($src,$needle,$off))!==false && $n<$max){
-        echo "[@$p]\n".substr($src,max(0,$p-$pre),$len)."\n[/end]\n";
-        $off=$p+strlen($needle);$n++;
-    }
-    if(!$n) echo "(YOK)\n"; if($tot>$max) echo "(toplam $tot)\n";
+function ctx($s,$needle,$before=90,$after=180,$max=8){
+  $out=[]; $off=0;
+  while(($p=stripos($s,$needle,$off))!==false && count($out)<$max){
+    $a=max(0,$p-$before); $seg=substr($s,$a,$before+strlen($needle)+$after);
+    $seg=preg_replace('/\s+/',' ',$seg);
+    $out[]="  @".$p.": …".trim($seg)."…";
+    $off=$p+strlen($needle);
+  }
+  return $out;
 }
 
-echo "════ [1] pnl-konto bolgesi ════\n";
-raw($idx,'pnl-konto',60,1600,'pnl-konto',2);
+echo "=== 'Anthrazit' gecisleri (".substr_count($s,'Anthrazit').") ===\n";
+echo implode("\n",ctx($s,'Anthrazit',80,120,10))."\n";
+echo "\n=== 'Weiß' / 'Weiss' gecisleri ===\n";
+echo implode("\n",array_merge(ctx($s,'Weiß',80,90,6),ctx($s,'>Weiss',60,80,4)))."\n";
+echo "\n=== 'Marine' gecisleri (".substr_count($s,'Marine').") ===\n";
+echo implode("\n",ctx($s,'Marine',80,90,10))."\n";
+echo "\n=== 'verwalten' gecisleri (".substr_count($s,'verwalten').") ===\n";
+echo implode("\n",ctx($s,'verwalten',110,60,10))."\n";
+echo "\n=== 'Systemeinstellung' (auto-tema notu) ===\n";
+echo implode("\n",ctx($s,'Systemeinstellung',120,120,4))."\n";
 
-echo "\n════ [2] authed fetch — JWT gonderimi ════\n";
-raw($idx,'Bearer',40,140,'Bearer token',5);
-raw($idx,"getItem('ch_token')",30,110,"ch_token okuma",5);
-raw($idx,'getItem("ch_token")',30,110,'ch_token okuma (cift tirnak)',5);
-
-echo "\n════ [3] konto ici plan/abo/Abmelden ════\n";
-foreach(['Abmelden','Mein Konto','Ihr Paket','aktueller Plan','Abonnement','tb-auth-label','plan-badge','ch-authclean'] as $nd){
-    $c=substr_count($idx,$nd);
-    if($c>0){ $p=strpos($idx,$nd); echo "  '$nd': $c kez, ilk@$p: ".str_replace("\n"," ",substr($idx,max(0,$p-50),120))."\n"; }
-    else echo "  '$nd': YOK\n";
+echo "\n=== tema JS anahtarlari ===\n";
+foreach(['ch_theme','data-theme','setTheme','applyTheme','matchMedia','prefers-color-scheme','theme_auto','ch-theme','localStorage.setItem(\'ch_theme'] as $k){
+  echo "  '$k': ".substr_count($s,$k)." kez\n";
 }
 
-echo "\n════ [4] MSG i18n / dil ════\n";
-raw($idx,'var MSG',0,300,'MSG tanimi',1);
-raw($idx,'ch_uilang',20,90,'ch_uilang',3);
+echo "\n=== data-theme / classList.add('anthr / navy / marine yazan yerler ===\n";
+foreach(['anthrazit','anthracite','marine','navy','light-theme','theme-anthr'] as $k){
+  $n=preg_match_all('/(setAttribute\([\'"]data-theme[\'"]|classList\.(?:add|remove|toggle)|documentElement\.\w+|body\.\w+)[^;]{0,60}'.preg_quote($k,'/').'/i',$s,$mm);
+  if($n) echo "  ...$k: $n eslesme\n";
+}
 
-echo "\n════════ BITTI. Ciktinin TAMAMINI gonder. ════════\n";
+echo "\n=== 'Design' basligi olan bloklarin CH_ marker baglamı ===\n";
+echo implode("\n",ctx($s,'>Design<',140,40,8))."\n";
+echo implode("\n",ctx($s,'DESIGN<',140,40,6))."\n";
+
+echo "\nBITTI.\n";
