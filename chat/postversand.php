@@ -1,6 +1,7 @@
 <?php
 /**
- * ChatHelp — postversand.php — hibrit posta (LetterXpress v1) gonderim ucu.
+ * ChatHelp — postversand.php — hibrit posta gonderim ucu.
+ *  LetterXpress v1 (Brief/Einschreiben) + Phaxio (Fax).
  *  Kimlikler config.php'den: LETTERXPRESS_USER / LETTERXPRESS_APIKEY / LETTERXPRESS_MODE.
  *  action=status    : servis bagli mi + bakiye
  *  action=send      : {pdf_base64}            -> setJob
@@ -27,6 +28,10 @@ function lx_call($path,$payload){
   return [$code,$res,$err];
 }
 function lx_auth(){ global $mode; return ['username'=>constant('LETTERXPRESS_USER'),'apikey'=>constant('LETTERXPRESS_APIKEY'),'mode'=>($mode==='live'?'live':'test')]; }
+
+/* ── Fax (Phaxio) ── */
+function fax_configured(){ return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET'); }
+function fax_e164($n){ $n=preg_replace('/[^\d+]/','',(string)$n); if($n==='') return ''; if($n[0]==='+') return $n; if(strpos($n,'00')===0) return '+'.substr($n,2); if($n[0]==='0') return '+49'.substr($n,1); return '+'.$n; }
 
 
 /* ── JPEG boyutu (SOF) ── */
@@ -122,7 +127,29 @@ $action = $_GET['action'] ?? 'status';
 if ($action==='status') {
   $bal=null;
   if($configured){ list($c,$r)=lx_call('getBalance',['auth'=>lx_auth()]); $j=json_decode((string)$r,true); if(is_array($j)) $bal=$j['balance']??null; }
-  out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal]);
+  out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured()]);
+}
+
+if ($action==='send_fax') {
+  if (!fax_configured()) out(['error'=>'fax_not_configured']);
+  $b=json_decode((string)file_get_contents('php://input'),true);
+  if(!is_array($b)) out(['error'=>'bad_request']);
+  $text=trim((string)($b['text']??'')); if(strlen($text)<20) out(['error'=>'no_text']);
+  $faxnr=fax_e164($b['fax_number']??''); if(strlen($faxnr)<6) out(['error'=>'no_fax_number']);
+  $recipient=trim((string)($b['recipient']??'')); $sender=trim((string)($b['sender']??''));
+  $sig='';
+  if(!empty($b['sig_jpeg'])){ $sj=preg_replace('#^data:image/jpe?g;base64,#','',(string)$b['sig_jpeg']); $sig=base64_decode($sj); if($sig===false)$sig=''; }
+  $pdfBin=ch_letter_pdf($text,$recipient,$sender,$sig);
+  $tmp=tempnam(sys_get_temp_dir(),'fax').'.pdf'; file_put_contents($tmp,$pdfBin);
+  $ch=curl_init('https://api.phaxio.com/v2/faxes');
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,
+    CURLOPT_USERPWD=>constant('PHAXIO_KEY').':'.constant('PHAXIO_SECRET'),
+    CURLOPT_POSTFIELDS=>['to'=>$faxnr,'file[]'=>new CURLFile($tmp,'application/pdf','dokument.pdf')],
+    CURLOPT_TIMEOUT=>90]);
+  $res=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch); @unlink($tmp);
+  if($res===false) out(['error'=>'network','http'=>$code,'detail'=>$err]);
+  $j=json_decode((string)$res,true);
+  out(['ok'=>($code>=200&&$code<300 && !empty($j['success'])),'http'=>$code,'to'=>$faxnr,'pdf_bytes'=>strlen($pdfBin),'provider'=>'Phaxio','result'=>is_array($j)?$j:substr((string)$res,0,300)]);
 }
 
 if ($action==='send' || $action==='send_text') {
@@ -137,7 +164,7 @@ if ($action==='send' || $action==='send_text') {
     if(strlen($pdf)<100) out(['error'=>'no_pdf']);
   }
   $spec=['color'=>!empty($b['color'])?'4':'1','mode'=>!empty($b['duplex'])?'duplex':'simplex','ship'=>'national'];
-  if(!empty($b['registered'])) $spec['registered']='einwurf'; /* Einwurf-Einschreiben (frist_kritisch) */
+  if(!empty($b['registered'])){ $rv=preg_replace('/[^a-z_]/','',strtolower((string)$b['registered'])); if($rv!=='') $spec['registered']=$rv; } /* einwurf | einschreiben (Uebergabe) */
   $payload=['auth'=>lx_auth(),'letter'=>[
     'base64_file'=>$pdf,'base64_checksum'=>md5($pdf),
     'specification'=>$spec,
@@ -160,7 +187,7 @@ if ($action==='send_letter') {
   $pdfBin=ch_letter_pdf($text,$recipient,$sender,$sig);
   $pdf=base64_encode($pdfBin);
   $spec=['color'=>!empty($b['color'])?'4':'1','mode'=>'simplex','ship'=>'national'];
-  if(!empty($b['registered'])) $spec['registered']='einwurf'; /* Einwurf-Einschreiben (frist_kritisch) */
+  if(!empty($b['registered'])){ $rv=preg_replace('/[^a-z_]/','',strtolower((string)$b['registered'])); if($rv!=='') $spec['registered']=$rv; } /* einwurf | einschreiben (Uebergabe) */
   $payload=['auth'=>lx_auth(),'letter'=>[
     'base64_file'=>$pdf,'base64_checksum'=>md5($pdf),
     'specification'=>$spec,

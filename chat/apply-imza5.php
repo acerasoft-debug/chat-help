@@ -1,31 +1,39 @@
 <?php
 /**
- * ChatHelp — apply-adres-imza4 (CH_ADRES_IMZA4) — 2 eksik: alici belgeye
- *  yazilsin + Themen'e ICERIK kaydedilsin. IMZA3 modalini kapsamli surumle
- *  degistirir (IMZA3 pass-through):
- *   [A] Alici (Empfänger) belgeye islenir: modaldeki alici adi/firmasi
- *       belgede yoksa "An: ..." blogu olarak eklenir (tum yollar: ucretsiz/
- *       gonder/evime). Taninmis firma/Behörde ise AI adresi tamamlar +
- *       "(bitte prüfen)" uyarisi; PLZ yoksa uyari satiri.
- *   [B] Themen ICERIGI: her sonlandirmada dilekce METNI ch_topics'e (doc)
- *       kaydedilir (dedup) -> Meine Themen'de tiklayinca icerik gorunur,
- *       PDF/duzenle/gonder yapilabilir.
- *  Kademeli fiyat (paketsiz 2,99 / Basic 1,99 / Pro 1,50 / Elite 1,50).
- *  node ✓ + harness ✓.
- * KULLANIM: pull2.php?key=...&files=apply-adres-imza4.php
+ * ChatHelp — apply-adres-imza5 (CH_ADRES_IMZA5) — modalin KAPSAMLI surumu.
+ *  chPrintDoc'u EN DISTAN sarar, IMZA4/IMZA3 modalini pass-through ile devre
+ *  disi birakir (window.__addr3OK). IMZA4'un tum ozelliklerine EK olarak:
+ *   [A] Gonderim turu secici (yanyana): Normale Post / Einwurf-Einschreiben /
+ *       Einschreiben (Übergabe) / Fax. Fristkritik belgede (Kündigung,
+ *       Widerspruch, Widerruf, Einspruch, Frist, Mahnung) "Normale Post"
+ *       GIZLENIR — ispatlanamaz; sadece Einschreiben/Fax. Uyari gosterilir.
+ *   [B] Fax: alici faks numarasi alani; kullanici girer YA DA AI (deepseek)
+ *       yalniz KESIN bildigi resmi numarayi onerir (UNBEKANNT ise bos). Fax
+ *       PDF -> postversand send_fax (Phaxio) -> Sendebericht.
+ *   [C] Alici adresi AI ile tamamlanir ama ASLA uydurulmaz (kesin degilse
+ *       "(Adresse bitte selbst eintragen)").
+ *   [D] Eksik-alan korumasi: PDF/gonderim oncesi belgede "IBAN: ....",
+ *       "[FELD]", "____" gibi bos yerler varsa kullaniciya sorar (gonderimde
+ *       bloklar, ucretsiz baskida onay ister).
+ *   [E] Alici belgeye "An:" blogu + dilekce METNI Meine Themen'e (doc) kaydi.
+ *  Kademeli fiyat (paketsiz 2,99 / Basic 1,99 / Pro 1,50 / Elite 1,50);
+ *  Einwurf +3,00 / Einschreiben Übergabe +3,50 / Fax +1,00.
+ *  Modal her belgede tekrar acilir (proceed sonrasi bayrak sifirlanir).
+ *  node ✓ + harness ✓. Backend: apply-postversand.php (send_fax + registered).
+ * KULLANIM: pull2.php?key=...&files=apply-adres-imza5.php
  */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
-echo "apply-adres-imza4 BASLADI OK (PHP ".PHP_VERSION.")\n\n";
+echo "apply-adres-imza5 BASLADI OK (PHP ".PHP_VERSION.")\n\n";
 $file = __DIR__.'/index.php';
 $src = @file_get_contents($file);
 if ($src===false) exit("index.php okunamadi\n");
-if (strpos($src,'CH_ADRES_IMZA4')!==false) exit("Zaten ekli (CH_ADRES_IMZA4).\n");
-if (strpos($src,'CH_ADRES_IMZA3')===false) exit("HATA: once CH_ADRES_IMZA3 gerekli.\n");
+if (strpos($src,'CH_ADRES_IMZA5')!==false) exit("Zaten ekli (CH_ADRES_IMZA5).\n");
+if (strpos($src,'CH_ADRES_IMZA4')===false) exit("HATA: once CH_ADRES_IMZA4 gerekli.\n");
 
 $block = <<<'HTMLBLOCK'
-<script id="ch-adres-imza4-js">
-/* CH_ADRES_IMZA4 — alici belgeye + Themen icerik kaydi (IMZA3 kapsamli surum) */
+<script id="ch-adres-imza5-js">
+/* CH_ADRES_IMZA5 — alici belgeye + Themen icerik kaydi (IMZA3 kapsamli surum) */
 try{(function(){
   function UIL(){ try{ return (localStorage.getItem('ch_uilang')||'de').slice(0,2); }catch(e){ return 'de'; } }
   function CCX(){ try{ var m=localStorage.getItem('ch_cc_manual'); var c=localStorage.getItem('ch_cc'); var w=(typeof window.CC!=='undefined'&&window.CC)?window.CC:''; return String((m&&m.length===2?m:(c||w||'DE'))).toUpperCase(); }catch(e){ return 'DE'; } }
@@ -283,7 +291,7 @@ try{(function(){
   }
   var g=0;(function wrap(){
     try{
-      if(typeof window.chPrintDoc==='function' && !window.chPrintDoc.__addr4){
+      if(typeof window.chPrintDoc==='function' && !window.chPrintDoc.__addr5){
         var _cpd=window.chPrintDoc;
         var w=function(html){
           try{
@@ -292,7 +300,7 @@ try{(function(){
           }catch(e){}
           return _cpd.apply(this,arguments);
         };
-        w.__addr4=1; w.__addr3=1; w.__addr=1;
+        w.__addr5=1; w.__addr4=1; w.__addr3=1; w.__addr=1;
         try{ if(_cpd.__ai2)w.__ai2=1; if(_cpd.__fit)w.__fit=1; if(_cpd.__vsfprn)w.__vsfprn=1; }catch(e){}
         window.chPrintDoc=w;
       }
@@ -310,13 +318,16 @@ $tmp = tempnam(sys_get_temp_dir(),'a4').'.php';
 file_put_contents($tmp,$new);
 $lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
 if ($rc!==0) { echo "\nLINT HATASI — index DEGISTIRILMEDI:\n  ".implode("\n  ",$lo)."\n"; exit; }
-@file_put_contents($file.'.bak-adresimza4-'.date('Ymd-His'), $src);
+@file_put_contents($file.'.bak-adresimza5-'.date('Ymd-His'), $src);
 $w=@file_put_contents($file,$new);
 if ($w===false || $w<strlen($new)) { echo "\n✗ YAZMA HATASI.\n"; exit; }
 $chk=(string)@file_get_contents($file);
-if (strpos($chk,'CH_ADRES_IMZA4')===false) { echo "\n✗ DOGRULAMA BASARISIZ.\n"; exit; }
-echo "  ✓ DOGRULAMA: CH_ADRES_IMZA4 diskte (".strlen($chk)." bayt)\n";
-echo "\n✓ [A] Alici belgeye 'An:' blogu olarak islenir (yoksa eklenir); taninmis\n";
-echo "     firma/Behörde adresi AI ile tamamlanir + uyari.\n";
-echo "✓ [B] Dilekce METNI Meine Themen'e (doc) kaydedilir -> tiklayinca icerik\n";
-echo "     gorunur, PDF/duzenle/gonder yapilabilir.\n";
+if (strpos($chk,'CH_ADRES_IMZA5')===false) { echo "\n✗ DOGRULAMA BASARISIZ.\n"; exit; }
+echo "  ✓ DOGRULAMA: CH_ADRES_IMZA5 diskte (".strlen($chk)." bayt)\n";
+echo "\n✓ Gonderim turu secici (yanyana): Normale Post / Einwurf-Einschreiben /\n";
+echo "   Einschreiben (Übergabe) / Fax. Fristkritik belgede Normale Post GIZLI.\n";
+echo "✓ Fax: alici faks no (kullanici veya AI-kesin); send_fax (Phaxio) + Sendebericht.\n";
+echo "✓ Eksik alan korumasi: 'IBAN: ....' / '[FELD]' varsa PDF/gonderim oncesi sorar.\n";
+echo "✓ Alici 'An:' blogu + dilekce METNI Meine Themen'e kaydedilir.\n";
+echo "✓ Modal her belgede tekrar acilir; Elite/Pro 1,50 €.\n";
+echo "\nBackend gerekli: pull2.php?key=...&files=apply-postversand.php\n";
