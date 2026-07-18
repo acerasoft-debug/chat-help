@@ -215,6 +215,22 @@ if ($action==='status') {
   out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured(),'fax_provider'=>fax_provider()]);
 }
 
+if ($action==='fax_ping') {
+  /* GONDERIMSIZ baglanti kontrolu — ClickSend hesap/bakiye (auth dogrular) */
+  if (!fax_configured()) out(['ok'=>false,'provider'=>fax_provider(),'error'=>'fax_not_configured']);
+  if (fax_provider()!=='clicksend') out(['ok'=>true,'provider'=>fax_provider(),'note'=>'ping sadece clicksend icin']);
+  $ch=curl_init('https://rest.clicksend.com/v3/account');
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>30,
+    CURLOPT_USERPWD=>constant('CLICKSEND_USER').':'.constant('CLICKSEND_KEY')]);
+  $r=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch);
+  $j=json_decode((string)$r,true);
+  $ok=($code>=200&&$code<300 && is_array($j) && (($j['response_code']??'')==='SUCCESS'));
+  $bal=null;$cur=null;$acc=null;
+  if(is_array($j)&&isset($j['data'])){ $bal=$j['data']['balance']??null; $cur=$j['data']['currency']['currency_code']??($j['data']['currency']??null); $acc=$j['data']['username']??($j['data']['user_email']??null); }
+  out(['ok'=>$ok,'provider'=>'ClickSend','http'=>$code,'balance'=>$bal,'currency'=>$cur,'account'=>$acc,'err'=>$err,
+    'raw'=>is_array($j)?['response_code'=>$j['response_code']??null,'response_msg'=>$j['response_msg']??null]:substr((string)$r,0,200)]);
+}
+
 if ($action==='send_fax') {
   if (!fax_configured()) out(['error'=>'fax_not_configured']);
   $b=json_decode((string)file_get_contents('php://input'),true);
