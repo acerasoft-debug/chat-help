@@ -215,6 +215,33 @@ if ($action==='status') {
   out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured(),'fax_provider'=>fax_provider()]);
 }
 
+if ($action==='fax_status') {
+  /* ClickSend fax durumu/Sendebericht — message_id ile gecmisten bul */
+  if (!fax_configured()||fax_provider()!=='clicksend') out(['ok'=>false,'error'=>'na']);
+  $mid=preg_replace('/[^0-9]/','',(string)($_GET['mid']??''));
+  $ch=curl_init('https://rest.clicksend.com/v3/fax/history?limit=200');
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>30,CURLOPT_USERPWD=>constant('CLICKSEND_USER').':'.constant('CLICKSEND_KEY')]);
+  $r=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+  $j=json_decode((string)$r,true); $hit=null;
+  if(is_array($j)){ $rows=$j['data']['data']??($j['data']??[]); if(is_array($rows)) foreach($rows as $row){ if(is_array($row) && (string)($row['message_id']??$row['messageid']??'')===$mid){ $hit=$row; break; } } }
+  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mid'=>$mid,
+    'status'=>$hit['status']??null,'to'=>$hit['to']??null,'pages'=>$hit['pages']??null,'cost'=>$hit['cost']??$hit['price']??null,'date'=>$hit['date_added']??$hit['date']??null,
+    'found'=>$hit!==null]);
+}
+
+if ($action==='letter_status') {
+  /* LetterXpress is durumu + takip (Einschreiben Sendungsnummer) */
+  if (!$configured) out(['ok'=>false,'error'=>'na']);
+  $jid=preg_replace('/[^0-9]/','',(string)($_GET['jid']??''));
+  list($c,$r)=lx_call('getJob',['auth'=>lx_auth(),'job'=>['id'=>$jid]]);
+  $j=json_decode((string)$r,true);
+  $d=is_array($j)?($j['job']??$j['data']??$j):null;
+  out(['ok'=>($c>=200&&$c<300),'http'=>$c,'jid'=>$jid,
+    'status'=>is_array($d)?($d['status']??null):null,
+    'tracking'=>is_array($d)?($d['tracking']??$d['tracking_id']??$d['shipment']??null):null,
+    'raw'=>is_array($j)?$j:substr((string)$r,0,300)]);
+}
+
 if ($action==='fax_ping') {
   /* GONDERIMSIZ baglanti kontrolu — ClickSend hesap/bakiye (auth dogrular) */
   if (!fax_configured()) out(['ok'=>false,'provider'=>fax_provider(),'error'=>'fax_not_configured']);
