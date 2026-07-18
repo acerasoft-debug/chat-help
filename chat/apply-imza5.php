@@ -205,8 +205,13 @@ try{(function(){
 
   function recVal(){ return String((document.getElementById('ai-rec')||{}).value||'').trim(); }
   var ORIG_BODY='';
+  /* CH_DOCFILL — imza adi + alici belgeye doldur */
+  function chSignerName(){ try{ var f1=(document.getElementById('ai-f1')||{}).value; if(f1&&(''+f1).trim()) return (''+f1).trim(); var P=prof(); return ((P.f1||'')+' '+(P.f2||'')).trim(); }catch(e){ return ''; } }
+  function chDocClean(text){ try{ text=String(text||''); var nm=chSignerName(); if(nm){ text=text.replace(/Acerasoft(\s+LLC)?/gi,nm); } return text; }catch(e){ return String(text||''); } }
+  function fillRecip(text,rec){ try{ rec=String(rec||'').trim(); if(!rec) return text; var lines=String(text||'').split('\n'); var di=-1,bi=-1; for(var i=0;i<lines.length;i++){ if(di<0 && /,\s*den\s+\d{1,2}\.\d{1,2}\.\d{2,4}/.test(lines[i])) di=i; if(bi<0 && /^\s*(Betreff|Betrifft)\s*:/i.test(lines[i])) bi=i; } var recFirst=rec.split('\n')[0].trim(); if(di>=0 && bi>di){ var area=lines.slice(di+1,bi).join('\n'); if(area.indexOf(recFirst)===-1 || /_{3,}|\.{4,}|…/.test(area)){ return lines.slice(0,di+1).join('\n')+'\n\n'+rec+'\n\n'+lines.slice(bi).join('\n'); } return text; } if(/_{4,}/.test(text)){ var adr=rec.split('\n').slice(1).join(', ')||rec; return text.replace(/_{4,}/, adr); } return text; }catch(e){ return String(text||''); } }
+  function fillRecipInBody(rec){ try{ var b=document.getElementById('ai-body'); if(!b) return; var t=fillRecip(b.value, rec); if(t!==b.value) b.value=t; }catch(e){} }
   function bodyVal(){ var b=document.getElementById('ai-body'); return b?String(b.value||'').trim():(ORIG_BODY||htmlText(CTX.html)); }
-  function bodyEdited(){ var b=document.getElementById('ai-body'); return !!(b && String(b.value||'').trim() && String(b.value||'').trim()!==ORIG_BODY.trim()); }
+  function bodyEdited(){ var b=document.getElementById('ai-body'); var base=((CTX&&CTX.raw)||ORIG_BODY||'').trim(); return !!(b && String(b.value||'').trim() && String(b.value||'').trim()!==base); }
   /* duzenlenmis metni yazdirilacak HTML'e uygula (a4 govdesini degistir) */
   function applyEdited(html){
     try{
@@ -229,6 +234,7 @@ try{(function(){
   }
   function finalHtml(withSigPng){
     var html=saveProfAddr(CTX.html);
+    try{ var _nm=chSignerName(); if(_nm) html=html.replace(/Acerasoft(\s+LLC)?/gi,_nm); }catch(e){}
     html=applyEdited(html);
     html=injectRecip(html, recVal());
     if(withSigPng){ var sig=sigPng(); if(sig){ var img='<div style="margin-top:24px"><img src="'+sig+'" style="height:62px"></div>'; if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,img+'</body>'); else html=html+img; } }
@@ -310,13 +316,13 @@ try{(function(){
     var msg='Aus dem folgenden deutschen Brief die EMPFÄNGER-Anschrift extrahieren (Name/Firma/Behörde + Straße + PLZ Ort), je Zeile ein Element. Fehlt die Adresse: NUR ergänzen, wenn du die offizielle Postanschrift ABSOLUT SICHER kennst (Behörde/bekannte Firma) — erfinde NIEMALS Straße oder PLZ. Bist du unsicher, gib nur den Namen zurück und hänge in einer neuen Zeile „(Adresse bitte selbst eintragen)" an. Wenn kein Empfänger erkennbar: leere Antwort. NUR die Anschrift, keine Erklärung.\n\n'+txt;
     fetch(API()+'?action=aichat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:[],provider:'deepseek',lang:'de',country:'DE'})})
      .then(function(r){ return r.json(); })
-     .then(function(j){ try{ var t=(j&&j.reply)?String(j.reply).replace(/```[a-z]*\n?|```/g,'').trim():''; if(t&&t.length<240 && el && !el.value.trim()){ el.value=t; var wl=document.getElementById('ai-recwarn'); if(wl) wl.style.display=(/\b\d{5}\b/.test(t)?'none':''); } }catch(e){} })
+     .then(function(j){ try{ var t=(j&&j.reply)?String(j.reply).replace(/```[a-z]*\n?|```/g,'').trim():''; if(t&&t.length<240 && el && !el.value.trim()){ el.value=t; try{ fillRecipInBody(t); }catch(e){} var wl=document.getElementById('ai-recwarn'); if(wl) wl.style.display=(/\b\d{5}\b/.test(t)?'none':''); } }catch(e){} })
      .catch(function(){});
   }
   function render(){
     var P=prof(), box=document.getElementById('ai-box'); if(!box) return;
     var wet=needsWet(CTX.html);
-    ORIG_BODY=htmlText(CTX.html);
+    CTX.raw=htmlText(CTX.html); ORIG_BODY=chDocClean(CTX.raw);
     try{ saveTopicTxt(ORIG_BODY); }catch(e){} /* behalten: icerik aninda kayit */
     var h='<h3>📮 '+T('ttl')+'</h3><div class="sub">'+T('sub')+'</div>';
     var _miss=missingFields(ORIG_BODY);
