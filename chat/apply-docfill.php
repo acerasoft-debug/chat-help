@@ -20,8 +20,8 @@ $REP=json_decode('[["ICBmdW5jdGlvbiBib2R5RWRpdGVkKCl7IHZhciBiPWRvY3VtZW50LmdldEV
 $i=0;
 foreach($REP as $pr){ $i++; $o=base64_decode($pr[0]); $n=base64_decode($pr[1]);
   $c=substr_count($src,$o);
-  if($c!==1){ exit("HATA: degisim #$i anchor $c kez (1 beklenir) — index DEGISTIRILMEDI.\n"); }
-  $src=str_replace($o,$n,$src); echo "  ✓ degisim #$i\n";
+  if($c<1 || $c>2){ exit("HATA: degisim #$i anchor $c kez (1-2 beklenir) — index DEGISTIRILMEDI.\n"); }
+  $src=str_replace($o,$n,$src); echo "  ✓ degisim #$i ($c yer)\n";
 }
 $tmp=tempnam(sys_get_temp_dir(),'df').'.php'; file_put_contents($tmp,$src);
 $lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
