@@ -29,9 +29,48 @@ function lx_call($path,$payload){
 }
 function lx_auth(){ global $mode; return ['username'=>constant('LETTERXPRESS_USER'),'apikey'=>constant('LETTERXPRESS_APIKEY'),'mode'=>($mode==='live'?'live':'test')]; }
 
-/* ── Fax (Phaxio) ── */
-function fax_configured(){ return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET'); }
+/* ── Fax: saglayici anahtari (fax-api.de varsayilan; phaxio yedek) ── */
+function fax_provider(){ return defined('FAX_PROVIDER') ? strtolower((string)constant('FAX_PROVIDER')) : 'faxde'; }
+function fax_configured(){
+  if(fax_provider()==='phaxio') return defined('PHAXIO_KEY') && defined('PHAXIO_SECRET') && constant('PHAXIO_KEY') && constant('PHAXIO_SECRET');
+  return defined('FAXDE_TOKEN') && constant('FAXDE_TOKEN'); /* fax-api.de */
+}
 function fax_e164($n){ $n=preg_replace('/[^\d+]/','',(string)$n); if($n==='') return ''; if($n[0]==='+') return $n; if(strpos($n,'00')===0) return '+'.substr($n,2); if($n[0]==='0') return '+49'.substr($n,1); return '+'.$n; }
+/* yerel/DE bicimi (fax-api.de genelde 0049... veya 0... bekler; E.164 + ise 00'a cevir) */
+function fax_local($n){ $e=fax_e164($n); if($e==='') return ''; return (strpos($e,'+')===0) ? '00'.substr($e,1) : $e; }
+function faxde_endpoint(){ return defined('FAXDE_ENDPOINT') ? rtrim((string)constant('FAXDE_ENDPOINT'),'/') : 'https://service.fax-api.de/4.0/rest'; }
+
+/* Phaxio: multipart file[] + Basic auth */
+function fax_send_phaxio($pdfBin,$faxnr){
+  $tmp=tempnam(sys_get_temp_dir(),'fax').'.pdf'; file_put_contents($tmp,$pdfBin);
+  $ch=curl_init('https://api.phaxio.com/v2/faxes');
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,
+    CURLOPT_USERPWD=>constant('PHAXIO_KEY').':'.constant('PHAXIO_SECRET'),
+    CURLOPT_POSTFIELDS=>['to'=>fax_e164($faxnr),'file[]'=>new CURLFile($tmp,'application/pdf','dokument.pdf')],
+    CURLOPT_TIMEOUT=>90]);
+  $res=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch); @unlink($tmp);
+  $j=json_decode((string)$res,true);
+  return ['ok'=>($code>=200&&$code<300&&!empty($j['success'])),'http'=>$code,'provider'=>'Phaxio','err'=>$err,'result'=>is_array($j)?$j:substr((string)$res,0,400)];
+}
+/* fax-api.de (Faxsuite REST): X-Auth-Token + JSON. ALAN ADLARI config'den ayarlanabilir
+   (canli API'ye probe ile dogrulanip kesinlestirilecek). */
+function fax_send_faxde($pdfBin,$faxnr){
+  $path = defined('FAXDE_SEND_PATH') ? (string)constant('FAXDE_SEND_PATH') : '/sendfax';
+  $fRec = defined('FAXDE_FIELD_RECIPIENT') ? (string)constant('FAXDE_FIELD_RECIPIENT') : 'recipient';
+  $fDoc = defined('FAXDE_FIELD_DOCUMENT')  ? (string)constant('FAXDE_FIELD_DOCUMENT')  : 'filedata';
+  $fName= defined('FAXDE_FIELD_FILENAME')  ? (string)constant('FAXDE_FIELD_FILENAME')  : 'filename';
+  $payload=[ $fRec=>fax_local($faxnr), $fName=>'dokument.pdf', $fDoc=>base64_encode($pdfBin) ];
+  $ch=curl_init(faxde_endpoint().$path);
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json','X-Auth-Token: '.constant('FAXDE_TOKEN')],
+    CURLOPT_POSTFIELDS=>json_encode($payload),CURLOPT_TIMEOUT=>90]);
+  $res=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch);
+  $j=json_decode((string)$res,true);
+  $ok=($code>=200&&$code<300);
+  if(is_array($j) && (isset($j['error'])||isset($j['errors'])||(isset($j['status'])&&$j['status']==='error'))) $ok=false;
+  return ['ok'=>$ok,'http'=>$code,'provider'=>'fax-api.de','err'=>$err,'result'=>is_array($j)?$j:substr((string)$res,0,400)];
+}
+function fax_send($pdfBin,$faxnr){ return (fax_provider()==='phaxio') ? fax_send_phaxio($pdfBin,$faxnr) : fax_send_faxde($pdfBin,$faxnr); }
 
 
 /* ── JPEG boyutu (SOF) ── */
@@ -127,7 +166,7 @@ $action = $_GET['action'] ?? 'status';
 if ($action==='status') {
   $bal=null;
   if($configured){ list($c,$r)=lx_call('getBalance',['auth'=>lx_auth()]); $j=json_decode((string)$r,true); if(is_array($j)) $bal=$j['balance']??null; }
-  out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured()]);
+  out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured(),'fax_provider'=>fax_provider()]);
 }
 
 if ($action==='send_fax') {
@@ -140,16 +179,8 @@ if ($action==='send_fax') {
   $sig='';
   if(!empty($b['sig_jpeg'])){ $sj=preg_replace('#^data:image/jpe?g;base64,#','',(string)$b['sig_jpeg']); $sig=base64_decode($sj); if($sig===false)$sig=''; }
   $pdfBin=ch_letter_pdf($text,$recipient,$sender,$sig);
-  $tmp=tempnam(sys_get_temp_dir(),'fax').'.pdf'; file_put_contents($tmp,$pdfBin);
-  $ch=curl_init('https://api.phaxio.com/v2/faxes');
-  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,
-    CURLOPT_USERPWD=>constant('PHAXIO_KEY').':'.constant('PHAXIO_SECRET'),
-    CURLOPT_POSTFIELDS=>['to'=>$faxnr,'file[]'=>new CURLFile($tmp,'application/pdf','dokument.pdf')],
-    CURLOPT_TIMEOUT=>90]);
-  $res=curl_exec($ch); $code=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); $err=curl_error($ch); curl_close($ch); @unlink($tmp);
-  if($res===false) out(['error'=>'network','http'=>$code,'detail'=>$err]);
-  $j=json_decode((string)$res,true);
-  out(['ok'=>($code>=200&&$code<300 && !empty($j['success'])),'http'=>$code,'to'=>$faxnr,'pdf_bytes'=>strlen($pdfBin),'provider'=>'Phaxio','result'=>is_array($j)?$j:substr((string)$res,0,300)]);
+  $r=fax_send($pdfBin,$faxnr);
+  out(['ok'=>!empty($r['ok']),'http'=>$r['http']??0,'to'=>$faxnr,'pdf_bytes'=>strlen($pdfBin),'provider'=>$r['provider']??fax_provider(),'result'=>$r['result']??null]);
 }
 
 if ($action==='send' || $action==='send_text') {
