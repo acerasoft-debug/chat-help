@@ -136,14 +136,16 @@ if ($action==='send' || $action==='send_text') {
     $pdf=preg_replace('#^data:application/pdf;base64,#','',(string)($b['pdf_base64']??''));
     if(strlen($pdf)<100) out(['error'=>'no_pdf']);
   }
+  $spec=['color'=>!empty($b['color'])?'4':'1','mode'=>!empty($b['duplex'])?'duplex':'simplex','ship'=>'national'];
+  if(!empty($b['registered'])) $spec['registered']='einwurf'; /* Einwurf-Einschreiben (frist_kritisch) */
   $payload=['auth'=>lx_auth(),'letter'=>[
     'base64_file'=>$pdf,'base64_checksum'=>md5($pdf),
-    'specification'=>['color'=>!empty($b['color'])?'4':'1','mode'=>!empty($b['duplex'])?'duplex':'simplex','ship'=>'national'],
+    'specification'=>$spec,
   ]];
   list($code,$res,$err)=lx_call('setJob',$payload);
   if($res===false) out(['error'=>'network','http'=>$code,'detail'=>$err]);
   $j=json_decode((string)$res,true);
-  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
+  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'registered'=>!empty($b['registered'])?1:0,'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
 }
 
 if ($action==='send_letter') {
@@ -157,14 +159,16 @@ if ($action==='send_letter') {
   if(!empty($b['sig_jpeg'])){ $sj=preg_replace('#^data:image/jpe?g;base64,#','',(string)$b['sig_jpeg']); $sig=base64_decode($sj); if($sig===false)$sig=''; }
   $pdfBin=ch_letter_pdf($text,$recipient,$sender,$sig);
   $pdf=base64_encode($pdfBin);
+  $spec=['color'=>!empty($b['color'])?'4':'1','mode'=>'simplex','ship'=>'national'];
+  if(!empty($b['registered'])) $spec['registered']='einwurf'; /* Einwurf-Einschreiben (frist_kritisch) */
   $payload=['auth'=>lx_auth(),'letter'=>[
     'base64_file'=>$pdf,'base64_checksum'=>md5($pdf),
-    'specification'=>['color'=>!empty($b['color'])?'4':'1','mode'=>'simplex','ship'=>'national'],
+    'specification'=>$spec,
   ]];
   list($code,$res,$err)=lx_call('setJob',$payload);
   if($res===false) out(['error'=>'network','http'=>$code,'detail'=>$err]);
   $j=json_decode((string)$res,true);
-  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'pdf_bytes'=>strlen($pdfBin),'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
+  out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'pdf_bytes'=>strlen($pdfBin),'registered'=>!empty($b['registered'])?1:0,'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
 }
 
 out(['error'=>'unknown_action']);

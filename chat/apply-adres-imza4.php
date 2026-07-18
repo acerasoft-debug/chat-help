@@ -32,7 +32,7 @@ try{(function(){
   function API(){ return (typeof window.API!=='undefined'&&window.API)?window.API:'api.php'; }
   function PVURL(){ var a=API(); var i=a.lastIndexOf('/'); return (i>=0?a.slice(0,i+1):'')+'postversand.php'; }
   function prof(){ try{ var P=window.P; if(P&&(P.f1||P.f7)) return P; }catch(e){} try{ return JSON.parse(localStorage.getItem('ch_prof_v3')||'{}')||{}; }catch(e){ return {}; } }
-  function needsWet(html){ var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung/.test(h); }
+  function needsWet(html){ var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung|befristeter mietvertrag|mietvertrag[^<]{0,40}befristet|darlehensvertrag|verbraucherdarlehen/.test(h); }
   function planNorm(p){ p=(''+(p||'')).toLowerCase().trim(); if(!p) return ''; if(/elite|unbegrenzt|unlimited|premium\+|max/.test(p)) return 'elite'; if(/\bpro\b|pro[_-]|professional/.test(p)) return 'pro'; if(/basic|basis|starter/.test(p)) return 'basic'; if(/free|gratis|kostenlos/.test(p)) return 'free'; return ''; }
   /* Elite/Pro/Basic: TUM kaynaklardan en yuksek kademe (tek kaynak bayat olsa bile paket taninir) */
   function plan(){ var cand=[]; try{ cand.push(localStorage.getItem('ch_plan')); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u&&u.plan) cand.push(u.plan); }catch(e){} try{ if(window.P&&window.P.plan) cand.push(window.P.plan); }catch(e){} try{ if(typeof window.chPlan==='function') cand.push(window.chPlan()); }catch(e){} var rank={free:0,basic:1,pro:2,elite:3}, best='free', bestR=0; for(var i=0;i<cand.length;i++){ var n=planNorm(cand[i]); if(!n) continue; if(rank[n]>bestR){ bestR=rank[n]; best=n; } } return best; }
@@ -62,6 +62,8 @@ try{(function(){
       confirmq:{de:'⚠️ Das Dokument wird jetzt verbindlich an „{r}" versendet. Fortfahren?',tr:'⚠️ Belge şimdi „{r}" adresine gönderilecek. Devam edilsin mi?',en:'⚠️ The document will be sent to „{r}". Continue?'},
       confirmyes:{de:'✓ Bestätigen & senden',tr:'✓ Onayla & gönder',en:'✓ Confirm & send'},
       back:{de:'← Zurück',tr:'← Geri',en:'← Back'},
+      reg:{de:'📬 Einwurf-Einschreiben (+3,50 €) — mit Zustellnachweis',tr:'📬 Taahhütlü gönderim (+3,50 €) — teslim kanıtlı',en:'📬 Registered mail (+3,50 €) — proof of delivery'},
+      reghint:{de:'Fristkritisches Dokument — Einschreiben empfohlen.',tr:'Süreye bağlı belge — taahhütlü önerilir.',en:'Deadline-critical — registered recommended.'},
       sending:{de:'⏳ Wird gesendet…',tr:'⏳ Gönderiliyor…',en:'⏳ Sending…'},
       sentok:{de:'✓ Auftrag angenommen (Testmodus).',tr:'✓ Talep alındı (test modu).',en:'✓ Accepted (test mode).'},
       senderr:{de:'Senden fehlgeschlagen: ',tr:'Gönderim başarısız: ',en:'Send failed: '},
@@ -175,7 +177,10 @@ try{(function(){
     if(document.getElementById('ai-confirmbar')) return;
     acts.style.display='none';
     var bar=document.createElement('div'); bar.className='ai-acts'; bar.id='ai-confirmbar';
-    bar.innerHTML='<div class="ai-warn" style="width:100%;margin-bottom:6px">'+T('confirmq').replace('{r}',esc(rec.split('\n')[0]))+'</div><button id="ai-do">'+T('confirmyes')+' — '+priceStr()+'</button><button id="ai-back">'+T('back')+'</button>';
+    var frk=/widerruf|widerspruch|k(ü|ue)ndigung|einspruch|frist|mahnung/i.test(ORIG_BODY);
+    bar.innerHTML='<div class="ai-warn" style="width:100%;margin-bottom:6px">'+T('confirmq').replace('{r}',esc(rec.split('\n')[0]))+'</div>'
+      +'<label style="display:flex;align-items:center;gap:7px;width:100%;margin:2px 0 8px;font-size:11.5px;color:#cfe0ff;cursor:pointer"><input type="checkbox" id="ai-reg"'+(frk?' checked':'')+'> <span>'+T('reg')+(frk?'<br><span style="color:#ffcf7a">'+T('reghint')+'</span>':'')+'</span></label>'
+      +'<button id="ai-do">'+T('confirmyes')+' — '+priceStr()+'</button><button id="ai-back">'+T('back')+'</button>';
     acts.parentNode.insertBefore(bar,acts.nextSibling);
     document.getElementById('ai-do').onclick=function(){ reallySend(this); };
     document.getElementById('ai-back').onclick=function(){ bar.remove(); acts.style.display=''; };
@@ -183,7 +188,7 @@ try{(function(){
   function reallySend(btn){
     var rec=recVal(); var txt=bodyVal(); saveTopicTxt(txt);
     var P=prof(); var sender=((P.f1||'')+' '+(P.f2||'')).trim()+' - '+(P.f3||'')+' - '+(P.f4||'');
-    var body={text:txt,recipient:rec,sender:sender,sig_jpeg:sigJpeg()};
+    var body={text:txt,recipient:rec,sender:sender,sig_jpeg:sigJpeg(),registered:((document.getElementById('ai-reg')||{}).checked?1:0)};
     var old=btn.textContent; btn.textContent=T('sending'); btn.disabled=true;
     fetch(PVURL()+'?action=send_letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
      .then(function(r){ return r.json(); })
