@@ -209,12 +209,12 @@ try{(function(){
     var frk=/widerruf|widerspruch|k(ü|ue)ndigung|einspruch|frist|mahnung/i.test(ORIG_BODY);
     function _bnum(){ var p=plan(); if(/elite|pro/.test(p)) return 1.5; if(/basic/.test(p)) return 1.99; return 2.99; }
     function _f2(n){ return n.toFixed(2).replace('.',',')+' €'; }
-    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',add:1.0,frk:1,lab:T('fax')}];
+    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,frk:1,lab:T('fax')}];
     var _use=_DEF.filter(function(d){ return frk?!!d.frk:true; });
     var _dm=frk?'einwurf':'normal';
     /* paketsiz (free) ise sabit-fiyatli Einschreiben'e +1 € eklenir; normal/fax zaten base ile kademeli */
-    function _npkg(){ return (/basic|pro|elite/.test(plan()))?0:1.0; }
-    function _priceFor(v){ var d=null; for(var i=0;i<_DEF.length;i++) if(_DEF[i].v===v) d=_DEF[i]; if(d&&d.flat!=null) return _f2(d.flat+_npkg()); return _f2(_bnum()+(d?(d.add||0):0)); }
+    function _hasPkg(){ return /basic|pro|elite/.test(plan()); }
+    function _priceFor(v){ var d=null; for(var i=0;i<_DEF.length;i++) if(_DEF[i].v===v) d=_DEF[i]; if(d&&d.flat!=null){ return _f2(_hasPkg()? d.flat : (d.flat_np!=null? d.flat_np : d.flat+1)); } return _f2(_bnum()+(d?(d.add||0):0)); }
     function _opt(d){ return '<label class="ai-vopt" style="display:flex;align-items:center;gap:7px;width:100%;margin:1px 0;font-size:11.5px;color:#cfe0ff;cursor:pointer"><input type="radio" name="ai-vsa" value="'+d.v+'" data-act="'+d.act+'" data-reg="'+d.reg+'"'+(d.v===_dm?' checked':'')+'> <span>'+d.lab+' ('+_priceFor(d.v)+')</span></label>'; }
     bar.innerHTML='<div class="ai-warn" style="width:100%;margin-bottom:6px">'+T('confirmq').replace('{r}',esc(rec.split('\n')[0]))+'</div>'
       +(frk?'<div class="aik-hint" style="color:#ffb0b0;font-size:11px;margin:0 0 6px;width:100%">'+T('beweisnote')+'</div>':'')
