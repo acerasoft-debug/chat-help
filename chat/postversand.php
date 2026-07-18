@@ -207,12 +207,20 @@ function ch_text_pdf(string $text): string {
   return $pdf;
 }
 
-$action = $_GET['action'] ?? 'status';
+define('PV_VERSION','5');
+/* action: URL'den; yoksa/eslesmesin diye JSON govdeden de kabul (bayat opcache/WAF dayanikliligi) */
+$action = $_GET['action'] ?? '';
+$__rawBody = file_get_contents('php://input');
+if ($action==='' || $action===null) {
+  $__b = json_decode((string)$__rawBody, true);
+  if (is_array($__b) && !empty($__b['action'])) $action = (string)$__b['action'];
+}
+if ($action==='') $action='status';
 
 if ($action==='status') {
   $bal=null;
   if($configured){ list($c,$r)=lx_call('getBalance',['auth'=>lx_auth()]); $j=json_decode((string)$r,true); if(is_array($j)) $bal=$j['balance']??null; }
-  out(['ok'=>true,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured(),'fax_provider'=>fax_provider()]);
+  out(['ok'=>true,'v'=>PV_VERSION,'configured'=>$configured,'mode'=>$mode,'provider'=>'LetterXpress','balance'=>$bal,'fax_configured'=>fax_configured(),'fax_provider'=>fax_provider()]);
 }
 
 if ($action==='fax_status') {
@@ -260,7 +268,7 @@ if ($action==='fax_ping') {
 
 if ($action==='send_fax') {
   if (!fax_configured()) out(['error'=>'fax_not_configured']);
-  $b=json_decode((string)file_get_contents('php://input'),true);
+  $b=json_decode((string)$__rawBody,true);
   if(!is_array($b)) out(['error'=>'bad_request']);
   $text=trim((string)($b['text']??'')); if(strlen($text)<20) out(['error'=>'no_text']);
   $faxnr=fax_e164($b['fax_number']??''); if(strlen($faxnr)<6) out(['error'=>'no_fax_number']);
@@ -274,7 +282,7 @@ if ($action==='send_fax') {
 
 if ($action==='send' || $action==='send_text') {
   if (!$configured) out(['error'=>'not_configured']);
-  $b=json_decode((string)file_get_contents('php://input'),true);
+  $b=json_decode((string)$__rawBody,true);
   if(!is_array($b)) out(['error'=>'bad_request']);
   if($action==='send_text'){
     $text=trim((string)($b['text']??'')); if(strlen($text)<20) out(['error'=>'no_text']);
@@ -297,7 +305,7 @@ if ($action==='send' || $action==='send_text') {
 
 if ($action==='send_letter') {
   if (!$configured) out(['error'=>'not_configured']);
-  $b=json_decode((string)file_get_contents('php://input'),true);
+  $b=json_decode((string)$__rawBody,true);
   if(!is_array($b)) out(['error'=>'bad_request']);
   $text=trim((string)($b['text']??'')); if(strlen($text)<20) out(['error'=>'no_text']);
   $recipient=trim((string)($b['recipient']??''));
@@ -318,4 +326,4 @@ if ($action==='send_letter') {
   out(['ok'=>($code>=200&&$code<300),'http'=>$code,'mode'=>$mode,'pdf_bytes'=>strlen($pdfBin),'registered'=>!empty($b['registered'])?1:0,'result'=>is_array($j)?$j:substr((string)$res,0,300)]);
 }
 
-out(['error'=>'unknown_action']);
+out(['error'=>'unknown_action','received'=>$action,'v'=>PV_VERSION]);

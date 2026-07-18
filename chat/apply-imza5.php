@@ -144,6 +144,9 @@ try{(function(){
       var tps=JSON.parse(localStorage.getItem('ch_topics')||'[]'); if(!Array.isArray(tps)) tps=[];
       var key=txt.slice(0,50);
       for(var i=0;i<tps.length;i++){ if(tps[i] && (tps[i].doc||tps[i].text||'').slice(0,50)===key){ tps[i].doc=txt; tps[i].ts=new Date().getTime(); localStorage.setItem('ch_topics',JSON.stringify(tps)); return; } }
+      /* Fall-merge: son 10 dk icinde acilmis, ICERIGI OLMAYAN auto-topic'e (Fall) belgeyi bagla */
+      var now=new Date().getTime();
+      for(var m=tps.length-1;m>=0;m--){ var tp=tps[m]; if(tp && !tp.doc && !tp.text && (now-(tp.created||tp.ts||0))<600000){ tp.doc=txt; tp.ts=now; localStorage.setItem('ch_topics',JSON.stringify(tps)); return; } }
       tps.push({id:'d'+new Date().getTime(),title:'📄 '+title,doc:txt,ts:new Date().getTime(),keep:1,src:'doc'});
       localStorage.setItem('ch_topics',JSON.stringify(tps.slice(-60)));
     }catch(e){}
@@ -263,7 +266,7 @@ try{(function(){
     var _act=_ds.act||'send_letter'; var _reg=_ds.reg||'';
     var _faxnr=String((document.getElementById('ai-faxnr')||{}).value||'').trim();
     if(_act==='send_fax' && _faxnr.length<5){ try{ alert(T('needfax')); }catch(e){} return; }
-    var body={text:txt,recipient:rec,sender:sender,sig_jpeg:sigJpeg(),registered:_reg,fax_number:_faxnr};
+    var body={action:_act,text:txt,recipient:rec,sender:sender,sig_jpeg:sigJpeg(),registered:_reg,fax_number:_faxnr};
     var old=btn.textContent; btn.textContent=T('sending'); btn.disabled=true;
     fetch(PVURL()+'?action='+_act,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
      .then(function(r){ return r.json(); })
@@ -284,6 +287,7 @@ try{(function(){
     var P=prof(), box=document.getElementById('ai-box'); if(!box) return;
     var wet=needsWet(CTX.html);
     ORIG_BODY=htmlText(CTX.html);
+    try{ saveTopicTxt(ORIG_BODY); }catch(e){} /* behalten: icerik aninda kayit */
     var h='<h3>📮 '+T('ttl')+'</h3><div class="sub">'+T('sub')+'</div>';
     var _miss=missingFields(ORIG_BODY);
     if(_miss.length) h+='<div class="ai-warn" id="ai-misswarn">'+T('fillwarn').replace('{f}',esc(_miss.join(', ')))+'</div>';
