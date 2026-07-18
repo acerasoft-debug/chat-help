@@ -113,14 +113,44 @@ try{(function(){
     if(out.length<8 && /(_{5,}|\.{6,})/.test(txt) && out.indexOf('…')===-1) out.push('…');
     return out.slice(0,8);
   }
-  /* devam etmeden önce eksik alan kontrolü — hard=true iken bloklar, degilse onay sorar */
-  function fillGuard(hard){
-    var m=missingFields(bodyVal()); if(!m.length) return true;
-    if(hard){ try{ alert(T('needfill')+m.join(', ')); }catch(e){} var b=document.getElementById('ai-body'); if(b) try{ b.focus(); }catch(e){} return false; }
-    var okc=false; try{ okc=window.confirm(T('fillany').replace('{f}',m.join(', '))); }catch(e){ okc=true; }
-    if(!okc){ var b2=document.getElementById('ai-body'); if(b2) try{ b2.focus(); }catch(e){} }
-    return okc;
+  /* eksik alan akisi: modal ICINDE doldurma paneli (confirm yok) — CH_FIXPDF */
+  function _today(){ var d=new Date(); function z(n){return(n<10?'0':'')+n;} return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
+  function applyFill(){
+    var b=document.getElementById('ai-body'); if(!b) return;
+    var t=String(b.value||'');
+    try{ Array.prototype.forEach.call(document.querySelectorAll('#ai-fillp [data-mf]'),function(inp){
+      var k=inp.getAttribute('data-mf'); var v=String(inp.value||'').trim(); if(!v||k==='…') return;
+      if(k.charAt(0)==='['){ while(t.indexOf(k)!==-1) t=t.replace(k,v); return; }
+      var re=new RegExp('('+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[:\\-]?\\s*)(\\.{3,}|_{3,}|x{3,}|X{3,}|-{3,}|—{2,})');
+      t=t.replace(re,'$1'+v);
+    }); }catch(e){}
+    b.value=t;
   }
+  function fillFlow(hard,cont){
+    var m=missingFields(bodyVal()); if(!m.length){ cont(); return; }
+    var old=document.getElementById('ai-fillp'); if(old) old.remove();
+    var acts=document.querySelector('#ai-box .ai-acts');
+    var p=document.createElement('div'); p.id='ai-fillp'; p.className='ai-warn'; p.style.cssText='width:100%;margin:8px 0';
+    var L=UIL();
+    var hd={de:'⚠️ Offene Angaben — bitte ergänzen:',tr:'⚠️ Eksik bilgiler — lütfen tamamlayın:',en:'⚠️ Missing details — please complete:'}[L]||'⚠️';
+    var bt1={de:'✔ Übernehmen & fortfahren',tr:'✔ Uygula & devam et',en:'✔ Apply & continue'}[L]||'✔';
+    var bt2={de:'Trotzdem drucken',tr:'Yine de yazdır',en:'Print anyway'}[L]||'Print';
+    var gap={de:'Weitere Lücken (… / ___) bitte oben im Text ergänzen.',tr:'Diğer boşlukları (… / ___) yukarıdaki metinde doldurun.',en:'Fill remaining gaps (… / ___) in the text above.'}[L]||'';
+    var h='<div style="font-weight:700;margin-bottom:6px">'+hd+'</div>';
+    m.forEach(function(f){
+      if(f==='…'){ h+='<div class="aik-hint" style="color:#ffcf7a;font-size:11px;margin:2px 0">'+gap+'</div>'; return; }
+      h+='<div style="margin:4px 0"><label style="font-size:11px;color:#ffd9a0">'+esc(f)+'</label><input class="ai-in" data-mf="'+esc(f)+'" style="margin-top:2px"'+(/datum|tarih/i.test(f)?' value="'+_today()+'"':'')+'></div>';
+    });
+    h+='<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button id="ai-fill-go" class="jb-mbtn p" style="flex:1">'+bt1+'</button>'+(!hard?'<button id="ai-fill-skip" class="jb-mbtn">'+bt2+'</button>':'')+'</div>';
+    p.innerHTML=h;
+    if(acts&&acts.parentNode) acts.parentNode.insertBefore(p,acts); else { var bx=document.getElementById('ai-box'); if(bx) bx.appendChild(p); }
+    try{ p.scrollIntoView({block:'center'}); }catch(e){}
+    var go=document.getElementById('ai-fill-go');
+    if(go) go.onclick=function(){ applyFill(); var rest=missingFields(bodyVal()).filter(function(x){ return x!=='…'; }); if(hard&&rest.length){ var pp=document.getElementById('ai-fillp'); if(pp) pp.remove(); fillFlow(true,cont); return; } var p2=document.getElementById('ai-fillp'); if(p2) p2.remove(); cont(); };
+    var sk=document.getElementById('ai-fill-skip');
+    if(sk) sk.onclick=function(){ var p3=document.getElementById('ai-fillp'); if(p3) p3.remove(); cont(); };
+  }
+  function fillGuard(hard){ return !missingFields(bodyVal()).length; }
   /* ── [A] alici belgeye "An:" blogu olarak isle ── */
   function injectRecip(html,rec){
     try{
@@ -187,7 +217,7 @@ try{(function(){
     }catch(e){}
     return html;
   }
-  function proceed(html){ window.__addr3OK=true; window.__addrOK=true; try{ CTX.orig.call(window,html); }catch(e){ try{ CTX.orig(html); }catch(e2){} } try{ window.__addr3OK=false; window.__addrOK=false; }catch(e){} }
+  function proceed(html){ window.__addr3OK=true; window.__addrOK=true; try{ CTX.orig.call(window,html); }catch(e){ try{ CTX.orig(html); }catch(e2){} } setTimeout(function(){ try{ window.__addr3OK=false; window.__addrOK=false; }catch(e){} },2500); }
   function saveProfAddr(html){
     try{ var P=prof(), f3=(document.getElementById('ai-f3')||{}).value, f4=(document.getElementById('ai-f4')||{}).value;
       if(f3!==undefined && P.f3 && f3 && f3!==P.f3) html=html.split(P.f3).join(f3);
@@ -204,10 +234,10 @@ try{(function(){
     if(withSigPng){ var sig=sigPng(); if(sig){ var img='<div style="margin-top:24px"><img src="'+sig+'" style="height:62px"></div>'; if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,img+'</body>'); else html=html+img; } }
     return html;
   }
-  function doFree(){ if(!fillGuard(false)) return; var html=finalHtml(true); saveTopicTxt(bodyVal()); close(); proceed(html); }
+  function doFree(){ fillFlow(false,function(){ var html=finalHtml(true); saveTopicTxt(bodyVal()); close(); proceed(html); }); }
   function ownRecip(){ var P=prof(); var nm=((P.f1||'')+' '+(P.f2||'')).trim(); var a3=(document.getElementById('ai-f3')||{}).value||P.f3||''; var a4=(document.getElementById('ai-f4')||{}).value||P.f4||''; return [nm,a3,a4].filter(function(x){ return x&&(''+x).trim(); }).join('\n'); }
   function doHome(){
-    if(!fillGuard(false)) return;
+    if(!fillGuard(true)){ fillFlow(true,function(){ doHome(); }); return; }
     var own=ownRecip(); if(own.replace(/\s/g,'').length<8){ try{ alert(T('needownaddr')); }catch(e){} return; }
     var P=prof(); var sender=((P.f1||'')+' '+(P.f2||'')).trim()+' - '+(P.f3||'')+' - '+(P.f4||'');
     saveTopicTxt(bodyVal());
@@ -223,7 +253,7 @@ try{(function(){
     if(!SIG.has){ try{ alert(T('needsig')); }catch(e){} return; }
     var rec=recVal(); if(rec.length<8){ try{ alert(T('needrec')); }catch(e){} return; }
     if(bodyVal().length<20){ try{ alert(T('needbody')); }catch(e){} return; }
-    if(!fillGuard(true)) return;
+    if(!fillGuard(true)){ var _sb=btn; fillFlow(true,function(){ doSend(_sb); }); return; }
     var acts=document.querySelector('#ai-box .ai-acts'); if(!acts) return;
     if(document.getElementById('ai-confirmbar')) return;
     acts.style.display='none';
