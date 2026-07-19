@@ -235,16 +235,18 @@ function stripe_country_iso($raw): string {
  * on delivery confirmation — the mechanism that makes "delayed payout" escrow
  * work without the platform ever holding the money itself.
  *
- * We DON'T pass type=express. Instead we spell out the identical Express
- * configuration through `controller` properties. The one that matters:
- *   controller[losses][payments] = stripe  → the connected account (seller) is
- *   liable for payment losses / negative balances (the Express default).
- * Declaring loss liability explicitly here is what Stripe otherwise demands via
- * the dashboard "platform profile / manage losses" attestation — with it stated
- * in the API call, account creation no longer errors with "Please review the
- * responsibilities of managing losses for connected accounts". Every other
- * property below mirrors a standard Express account exactly, so fees, dashboard
- * and onboarding behave precisely as before. */
+ * We DON'T pass type=express. Instead we spell out the Express configuration
+ * through `controller` properties, declaring loss control explicitly:
+ *   controller[losses][payments] = application  → the platform controls payment
+ *   losses. Stripe REQUIRES this whenever the connected account uses the Express
+ *   dashboard ("With a dashboard type of express, the Connect application must
+ *   control losses"), because Express sellers can't manage disputes themselves.
+ * Stating it here in the API call is also what otherwise has to be attested in
+ * the dashboard "platform profile / manage losses" step — so with it explicit,
+ * account creation no longer errors with "Please review the responsibilities of
+ * managing losses for connected accounts". The escrow model contains this risk:
+ * funds sit HELD in the seller's balance (manual payout) until the buyer
+ * confirms delivery, so a dispute before release is covered by the held funds. */
 function stripe_connect_create_account(array $seller): string {
     if (!empty($seller['stripe_account_id'])) return $seller['stripe_account_id'];
     $country = stripe_country_iso($seller['country'] ?? 'DE');
@@ -253,10 +255,10 @@ function stripe_connect_create_account(array $seller): string {
         'email'           => $seller['email'] ?? '',
         'business_type'   => 'company',
         'controller'      => [
-            'losses'                 => ['payments' => 'stripe'],   // seller liable (Express default)
-            'fees'                   => ['payer' => 'application'],  // Express default
-            'requirement_collection' => 'stripe',                   // Stripe-hosted onboarding
-            'stripe_dashboard'       => ['type' => 'express'],      // Express dashboard for the seller
+            'losses'                 => ['payments' => 'application'], // platform controls losses (required for express dashboard)
+            'fees'                   => ['payer' => 'application'],     // platform pays Stripe fees (Express default)
+            'requirement_collection' => 'stripe',                      // Stripe-hosted onboarding (KYC)
+            'stripe_dashboard'       => ['type' => 'express'],         // Express dashboard for the seller
         ],
         'capabilities'    => ['card_payments' => ['requested' => 'true'], 'transfers' => ['requested' => 'true']],
         'business_profile'=> ['name' => $seller['company'] ?: ($seller['name'] ?: 'VESTRA seller')],

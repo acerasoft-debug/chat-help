@@ -91,10 +91,11 @@ try {
             'country'       => 'DE',
             'email'         => 'escrow-selftest@vestrasales.com',
             'business_type' => 'company',
-            // Same explicit Express config as the real seller flow: loss liability
-            // stated in the API call so we don't need the dashboard attestation.
+            // Same explicit Express config as the real seller flow: platform
+            // controls losses (required for the express dashboard) so we don't
+            // need the dashboard platform-profile attestation.
             'controller'    => [
-                'losses'                 => ['payments' => 'stripe'],
+                'losses'                 => ['payments' => 'application'],
                 'fees'                   => ['payer' => 'application'],
                 'requirement_collection' => 'stripe',
                 'stripe_dashboard'       => ['type' => 'express'],
