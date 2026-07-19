@@ -79,6 +79,34 @@ try {
 }
 echo "\n";
 
+/* ── 0b. PROBE: can we create a connected account WITHOUT card_payments? ─────
+ * The platform-profile "managing losses" wall is triggered by the card_payments
+ * capability on the connected account. A transfers-ONLY account — used with the
+ * "destination charge" model (buyer pays the PLATFORM's own account, which
+ * already works; the platform then transfers the seller's share and holds the
+ * rest as escrow) — may create fine without that dashboard attestation. If this
+ * probe succeeds, we can switch the escrow to that model and skip the dashboard
+ * step entirely. */
+echo "0b) PROBE — transfers-only account (destination-charge escrow, no dashboard step)\n";
+try {
+    $probe = stripe_api('POST', '/v1/accounts', [
+        'type'         => 'express',
+        'country'      => 'DE',
+        'email'        => 'transfers-probe@vestrasales.com',
+        'capabilities' => ['transfers' => ['requested' => 'true']],
+        'metadata'     => ['purpose' => 'vestra_transfers_probe'],
+    ]);
+    pass('SUCCESS — transfers-only account created: ' . ($probe->id ?? '?'));
+    info('=> The alternative (destination-charge) escrow works WITHOUT the platform');
+    info('   profile. Send this whole output to Claude and it switches to that model.');
+    info('   (This empty probe account is harmless — you can ignore/delete it later.)');
+} catch (\Throwable $e) {
+    fail('Also blocked: ' . $e->getMessage());
+    info('=> Even a transfers-only account is blocked, so the platform profile');
+    info('   is unavoidable and must be completed once in the dashboard.');
+}
+echo "\n";
+
 /* ── 1. manual-payout connected account (the HOLD) — non-destructive ──────── */
 echo "1) Connected account with MANUAL payouts (the escrow hold)\n";
 $storeFile = __DIR__ . '/../data/escrow_selftest.json';
