@@ -252,7 +252,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
     margin-left:.22em;text-transform:lowercase;font-style:normal;
     background:linear-gradient(100deg,#e8cf95,var(--acc) 55%,#a8854a);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--acc)}
-  .nav-links{display:flex;align-items:center;gap:26px;font-size:14px;font-weight:500}
+  .nav-links{display:flex;align-items:center;gap:19px;font-size:14px;font-weight:500;white-space:nowrap}
   .nav-links>a{color:var(--mut);transition:color .2s}
   .nav-links>a:hover{color:var(--ink)}
   .nav-cta{border:1px solid var(--line);padding:9px 18px;border-radius:999px;color:var(--ink)!important;transition:.2s}
@@ -372,7 +372,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
   @keyframes revealauto{to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;animation:none}.dot{animation:none}}
 
-  @media(max-width:820px){.nav-links{display:none}.burger{display:block}}
+  @media(max-width:1024px){.nav-links{display:none}.burger{display:block}}
   @media(max-width:760px){
     .pillars,.steps{grid-template-columns:1fr}
     .join-cards{grid-template-columns:1fr}
