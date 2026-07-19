@@ -88,10 +88,17 @@ $acctId  = $store[$acctKey] ?? '';
 try {
     if ($acctId === '') {
         $created = stripe_api('POST', '/v1/accounts', [
-            'type'          => 'express',
             'country'       => 'DE',
             'email'         => 'escrow-selftest@vestrasales.com',
             'business_type' => 'company',
+            // Same explicit Express config as the real seller flow: loss liability
+            // stated in the API call so we don't need the dashboard attestation.
+            'controller'    => [
+                'losses'                 => ['payments' => 'stripe'],
+                'fees'                   => ['payer' => 'application'],
+                'requirement_collection' => 'stripe',
+                'stripe_dashboard'       => ['type' => 'express'],
+            ],
             'capabilities'  => ['card_payments' => ['requested' => 'true'], 'transfers' => ['requested' => 'true']],
             'settings'      => ['payouts' => ['schedule' => ['interval' => 'manual']]],
             'metadata'      => ['purpose' => 'vestra_escrow_selftest'],

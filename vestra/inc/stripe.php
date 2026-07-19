@@ -233,15 +233,31 @@ function stripe_country_iso($raw): string {
  * Payout schedule is set to MANUAL: escrow funds land in the seller's Stripe
  * balance and stay there until the platform explicitly releases them (a payout)
  * on delivery confirmation — the mechanism that makes "delayed payout" escrow
- * work without the platform ever holding the money itself. */
+ * work without the platform ever holding the money itself.
+ *
+ * We DON'T pass type=express. Instead we spell out the identical Express
+ * configuration through `controller` properties. The one that matters:
+ *   controller[losses][payments] = stripe  → the connected account (seller) is
+ *   liable for payment losses / negative balances (the Express default).
+ * Declaring loss liability explicitly here is what Stripe otherwise demands via
+ * the dashboard "platform profile / manage losses" attestation — with it stated
+ * in the API call, account creation no longer errors with "Please review the
+ * responsibilities of managing losses for connected accounts". Every other
+ * property below mirrors a standard Express account exactly, so fees, dashboard
+ * and onboarding behave precisely as before. */
 function stripe_connect_create_account(array $seller): string {
     if (!empty($seller['stripe_account_id'])) return $seller['stripe_account_id'];
     $country = stripe_country_iso($seller['country'] ?? 'DE');
     $acct = stripe_api('POST', '/v1/accounts', [
-        'type'            => 'express',
-        'email'           => $seller['email'] ?? '',
         'country'         => $country,
+        'email'           => $seller['email'] ?? '',
         'business_type'   => 'company',
+        'controller'      => [
+            'losses'                 => ['payments' => 'stripe'],   // seller liable (Express default)
+            'fees'                   => ['payer' => 'application'],  // Express default
+            'requirement_collection' => 'stripe',                   // Stripe-hosted onboarding
+            'stripe_dashboard'       => ['type' => 'express'],      // Express dashboard for the seller
+        ],
         'capabilities'    => ['card_payments' => ['requested' => 'true'], 'transfers' => ['requested' => 'true']],
         'business_profile'=> ['name' => $seller['company'] ?: ($seller['name'] ?: 'VESTRA seller')],
         'settings'        => ['payouts' => ['schedule' => ['interval' => 'manual']]],
