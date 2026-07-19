@@ -20,7 +20,7 @@ img{max-width:100%}
 header{position:sticky;top:0;z-index:30;background:rgba(14,14,17,.78);
   backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
 nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:18px}
-.logo{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-size:21px;font-weight:700;letter-spacing:1.5px}
+.logo{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-size:21px;font-weight:700;letter-spacing:1.5px;margin-right:clamp(1.5rem,4vw,3.75rem)}
 .logo .mark{width:28px;height:28px}
 /* Subtle "sales" appended to the wordmark — dim gold, light sans, understated */
 .logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:.62em;letter-spacing:1.1px;

@@ -102,7 +102,7 @@ foreach ($_ld as $_schema) {
       <a href="/shop" class="<?= ($NAV ?? '')==='shop'?'on':'' ?>"><?= t('Catalog') ?></a>
       <a href="/groups" class="<?= ($NAV ?? '')==='groups'?'on':'' ?>"><?= t('Group buys') ?></a>
       <a href="/requests" class="<?= ($NAV ?? '')==='requests'?'on':'' ?>"><?= t('Requests') ?></a>
-      <a href="/faq" class="<?= ($NAV ?? '')==='faq'?'on':'' ?>"><?= t('FAQ') ?></a>
+      <a href="/help" class="<?= ($NAV ?? '')==='help'?'on':'' ?>"><?= t('Help') ?></a>
       <a href="/seller" class="<?= ($NAV ?? '')==='sell'?'on':'' ?>"><?= t('Sell') ?></a>
       <?php if ($MEMBER): ?>
         <?php if (($AUTH_USER['type']??'') === 'seller'): ?>

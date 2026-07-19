@@ -9,6 +9,7 @@ $urls = [
   ['/groups', 'weekly', '0.7'],
   ['/requests', 'weekly', '0.6'],
   ['/membership', 'monthly', '0.5'],
+  ['/help', 'monthly', '0.5'],
   ['/faq', 'monthly', '0.5'],
   ['/register', 'monthly', '0.5'],
 ];
