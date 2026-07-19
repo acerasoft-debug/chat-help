@@ -1,40 +1,27 @@
 <?php
-/** ChatHelp — dump-plans (SADECE OKUR) — plan/Stripe akisi: fiyat modali (#pm),
- *  plan butonlari + onclick, Stripe checkout cagrisi (stripe-checkout.php),
- *  sozlesme "kaufen" butonu (gBuy). Hassas maskeli. TAMAMINI gonder. */
-header('Content-Type: text/plain; charset=UTF-8');
-error_reporting(E_ERROR | E_PARSE);
-function mask($s){ return preg_replace('/(sk_live_|sk_test_|whsec_|price_)[A-Za-z0-9_]+/','$1***',$s); }
-$idx=(string)@file_get_contents(__DIR__.'/index.php');
-$sc=(string)@file_get_contents(__DIR__.'/stripe-checkout.php');
-function raw($src,$needle,$pre,$len,$label,$max=8){
-    echo "\n──────── $label ('$needle') ────────\n";
-    $off=0;$n=0;$tot=substr_count($src,$needle);
-    while(($p=strpos($src,$needle,$off))!==false && $n<$max){
-        echo "[@$p] ".str_replace("\n","⏎",mask(substr($src,max(0,$p-$pre),$len)))."\n\n";
-        $off=$p+strlen($needle);$n++;
-    }
-    if(!$n) echo "(YOK)\n"; echo "(toplam $tot)\n";
-}
-echo "════════ [1] index.php — plan/fiyat UI + stripe cagrisi ════════\n";
-raw($idx,'stripe-checkout',-120,180,'stripe-checkout cagrisi',8);
-raw($idx,'function openPlans',-20,200,'openPlans',3);
-raw($idx,'function showPlans',-20,200,'showPlans',3);
-raw($idx,'function cPM',-20,120,'cPM (pricing modal)',2);
-raw($idx,'openPM',-40,120,'openPM',6);
-raw($idx,'data-plan',-60,120,'data-plan butonlari',8);
-raw($idx,'checkout',-60,120,'checkout genel',12);
-raw($idx,'in Kürze',-120,60,'in Kurze (placeholder buton)',6);
-raw($idx,'gBuy',-40,140,'gBuy (sozlesme kaufen)',6);
-raw($idx,'chBuy',-40,140,'chBuy',8);
-raw($idx,'plan_select',-40,120,'plan_select',5);
+/* dump-plans (READ-ONLY) — paket/fiyat sayfasi yapisi: plan kartlari, ozellik
+   listesi, plan adlari (Basic/Pro/Elite) + nasil render ediliyor. Ucretsiz-fax
+   satirini eklemek icin.
+   KULLANIM: pull2.php?key=...&files=dump-plans.php */
+header('Content-Type: text/plain; charset=UTF-8'); error_reporting(E_ERROR|E_PARSE);
+echo "dump-plans (READ-ONLY)\n\n";
+$s=@file_get_contents(__DIR__.'/index.php'); if($s===false) exit("okunamadi\n");
+function W($s,$p,$b,$a){ return trim(preg_replace('/\s+/',' ',substr($s,max(0,$p-$b),$b+$a))); }
 
-echo "\n════════ [2] stripe-checkout.php (".strlen($sc)." bayt) ════════\n";
-if($sc===''){ echo "stripe-checkout.php OKUNAMADI/YOK\n"; }
-else {
-  raw($sc,'price',-40,120,'price / plan tanimlari',14);
-  raw($sc,'mode',-30,90,'mode (subscription/payment)',6);
-  raw($sc,'$_',-20,80,'girdi parametreleri',12);
-  raw($sc,'checkout/sessions',-60,120,'session olusturma',3);
+echo "=== [1] plan sayfasi id/panel ===\n";
+foreach(['pnl-plans','pnl-plan','chOpenPlans','renderPlans','plan-card','pc-','PLANS=','ch-plans'] as $k){
+  $p=strpos($s,$k); if($p!==false) echo "  '".$k."' [".$p."] ".W($s,$p,10,110)."\n";
 }
-echo "\n════════ BITTI. Ciktinin TAMAMINI gonder. ════════\n";
+echo "\n=== [2] plan ozellik listesi (feats/features) ornekleri ===\n";
+$off=0;$c=0; while(($p=strpos($s,'Fallanalysen',$off))!==false && $c<3){ echo "  [".$p."] …".W($s,$p,220,120)."…\n\n"; $off=$p+10;$c++; }
+
+echo "\n=== [3] plan tanimlari (Basic/Pro/Elite + feats dizisi) ===\n";
+foreach(['basic:{','pro:{','elite:{','"Basic"','"Pro"','"Elite"','feats:','features:','name:"Basic'] as $k){
+  $p=strpos($s,$k); if($p!==false) echo "  '".$k."' [".$p."] ".W($s,$p,0,160)."\n";
+}
+echo "\n=== [4] plan kart HTML uretimi (per-plan feats.map / <li>) ===\n";
+$p=strpos($s,'chOpenPlans'); if($p===false)$p=strpos($s,'renderPlans');
+if($p!==false){ echo W($s,$p,0,500)."\n"; }
+echo "\n=== [5] '40'/'200'/'Dokumente pro Monat' (kota satirlari) ===\n";
+$off=0;$c=0; while(($p=strpos($s,'pro Monat',$off))!==false && $c<4){ echo "  [".$p."] …".W($s,$p,80,40)."…\n"; $off=$p+8;$c++; }
+echo "\nBITTI.\n";
