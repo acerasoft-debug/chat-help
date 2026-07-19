@@ -1,38 +1,24 @@
 <?php
-/** ChatHelp — dump-checkout (SADECE OKUR) — checkout akisinin ham baytlari
- *  F2-5 premium plan sayfasindaki "sec" dugmeleri dogru fonksiyonu cagirsin:
- *  stripeCheckout / makeCheckout tanimlari, plan panelinin acildigi yer
- *  (gP('konto')?), ve yeni sayfayi nasil acabilecegimiz (panel/gP sistemi). */
-header('Content-Type: text/plain; charset=UTF-8');
-error_reporting(E_ERROR | E_PARSE);
-$src=(string)@file_get_contents(__DIR__.'/index.php');
-if($src==='') exit("index.php okunamadi\n");
-
-function raw($src,$needle,$pre,$len,$label,$max=3){
-    echo "\n──────── $label ('$needle') ────────\n";
-    $off=0;$n=0;
-    while(($p=strpos($src,$needle,$off))!==false && $n<$max){
-        $s=max(0,$p-$pre);
-        echo "[@$p]\n".substr($src,$s,$len)."\n[/end]\n";
-        $off=$p+strlen($needle);$n++;
-    }
-    if(!$n) echo "(YOK)\n";
-    $tot=substr_count($src,$needle); if($tot>$max) echo "(toplam $tot)\n";
+/* dump-checkout (READ-ONLY) — stripe-checkout.php tek-odeme (mode=payment) akisi:
+   price_data / amount / action'lar + window.stripeCheckout imzasi. Fax over-kota
+   odemesini buna baglamak icin.
+   KULLANIM: pull2.php?key=...&files=dump-checkout.php */
+header('Content-Type: text/plain; charset=UTF-8'); error_reporting(E_ERROR|E_PARSE);
+echo "dump-checkout (READ-ONLY)\n\n";
+$D=__DIR__;
+$sc=@file_get_contents("$D/stripe-checkout.php");
+echo "=== stripe-checkout.php ".($sc!==false?strlen($sc)." B":"(YOK)")." ===\n";
+if($sc!==false){
+  /* action'lar + price/amount + mode */
+  foreach(['action','mode','price_data','unit_amount','line_items','currency','payment','subscription','verify','1.99','199','create'] as $k){
+    if(preg_match_all('/.{0,50}'.preg_quote($k,'/').'.{0,70}/i',$sc,$m)){ echo "  ~".$k." (".count($m[0]).")\n"; $i=0; foreach($m[0] as $x){ if($i++>=2)break; echo "      ".trim(preg_replace('/\s+/',' ',$x))."\n"; } }
+  }
 }
-
-/* checkout fonksiyon tanimlari */
-raw($src,'function stripeCheckout',0,420,'stripeCheckout tanimi',2);
-raw($src,'function makeCheckout',0,420,'makeCheckout tanimi',2);
-raw($src,'stripe-checkout.php',-160,260,'stripe-checkout.php cagrisi',3);
-
-/* panel/gP sistemi: yeni panel nasil aciliyor */
-raw($src,'function gP(',0,300,'gP panel switcher',1);
-raw($src,'id="pnl-konto"',-40,120,'konto paneli',2);
-raw($src,'id="pnl-',-5,60,'mevcut panel idleri',20);
-
-/* plan panelini acan tetik (Konto icindeki "Plan/Upgrade" dugmesi) */
-raw($src,'chPlans',-60,140,'chPlans / plan paneli acma',6);
-raw($src,'renderPlans',-60,180,'renderPlans',4);
-raw($src,'chp-grid',-120,120,'chp-grid (fiyat kart konteyneri)',3);
-
-echo "\n════════ BITTI. Ciktinin TAMAMINI gonder. ════════\n";
+echo "\n=== window.stripeCheckout tanimi (index) ===\n";
+$s=@file_get_contents("$D/index.php");
+$p=strpos($s,'stripeCheckout=function'); if($p===false)$p=strpos($s,'function stripeCheckout');
+if($p!==false){ echo "  ".trim(preg_replace('/\s+/',' ',substr($s,max(0,$p-20),420)))."\n"; }
+echo "\n=== fax gonderim (reallySend) send_fax nerede tetikleniyor (index) ===\n";
+$p=strpos($s,'send_fax');
+if($p!==false){ echo "  [".$p."] ".trim(preg_replace('/\s+/',' ',substr($s,max(0,$p-180),260)))."\n"; }
+echo "\nBITTI.\n";
