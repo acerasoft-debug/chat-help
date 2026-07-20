@@ -22,8 +22,8 @@ const path = require('path');
 
 /* CHELP_VERSION — Play her yuklemede daha yuksek versionCode ister.
    Yeni AAB cikarmadan once bu iki degeri artir. */
-const VERSION_CODE = 2;
-const VERSION_NAME = '1.1';
+const VERSION_CODE = 3;
+const VERSION_NAME = '1.2';
 
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
