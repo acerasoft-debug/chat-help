@@ -67,6 +67,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish APK to a Release (direct download link)
+        continue-on-error: true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
@@ -142,30 +143,29 @@ jobs:
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           EOF
 
+      - name: Fallback signing with committed upload keystore (no secrets)
+        if: steps.sign.outputs.has == 'false'
+        working-directory: mobile/android
+        run: |
+          cp ../ci/debug-shared.keystore release.jks
+          cat > key.properties <<'EOF'
+          storeFile=release.jks
+          storePassword=android
+          keyAlias=androiddebugkey
+          keyPassword=android
+          EOF
+          echo "Committed upload keystore ile imzalanacak (Play upload key = bu anahtar)."
+
       - name: Build release AAB
         working-directory: mobile/android
         run: ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: Rename AAB (signed or unsigned)
-        run: |
-          if [ "${{ steps.sign.outputs.has }}" = "true" ]; then
-            cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
-          else
-            cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-unsigned.aab
-          fi
+      - name: Rename AAB (always signed)
+        run: cp mobile/android/app/build/outputs/bundle/release/app-release.aab ChatHelp-release.aab
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: ChatHelp-release-aab
-          path: ChatHelp-*.aab
+          path: ChatHelp-release.aab
           if-no-files-found: error
-
-      - name: Publish unsigned AAB to release (terminalden indirilip imzalanacak)
-        if: steps.sign.outputs.has == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: android-latest
-          prerelease: true
-          make_latest: "false"
-          files: ChatHelp-unsigned.aab
