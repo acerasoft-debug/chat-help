@@ -80,6 +80,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['status'=>'active']);
     header('Location: /admin?tab=users&msg=activated'); exit;
   }
+  /* Admin-managed membership plan (comp / manual upgrade). Sets the tier + marks
+     it active; '' clears it back to no plan. Drives commission rate + listing
+     quota + Elite perks. Granting a paid tier to a seller also flips
+     onboarding_paid so their full package (badge eligibility etc.) is unlocked. */
+  if($act==='set_membership'){
+    $uid=$_POST['uid']??''; $tier=(string)($_POST['tier']??'');
+    if(in_array($tier,['','starter','pro','premium'],true)){
+      $acc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $acc=$a; break; } }
+      $upd=['membership_tier'=>$tier,'membership_status'=>($tier===''?'none':'active')];
+      if($tier!=='' && ($acc['type']??'')==='seller') $upd['onboarding_paid']=true;
+      auth_update($uid,$upd);
+      if($acc && $tier!==''){
+        require_once __DIR__.'/inc/push.php';
+        $label=$tier==='premium'?'Elite':ucfirst($tier);
+        vestra_push_send($uid,'VESTRA — plan updated ⭐','Your VESTRA membership is now '.$label.'.',(($acc['type']??'')==='seller')?'/seller':'/buyer');
+      }
+    }
+    header('Location: /admin?tab=users&msg=member_set'); exit;
+  }
   if($act==='resend_verify'){
     $uid=$_POST['uid']??'';
     foreach(auth_accounts() as $a){
@@ -501,6 +520,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $msgs=[
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
+    'member_set'=>'✓ Membership plan updated.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -950,7 +970,20 @@ function ufilter(){
       <?php endif; ?>
     </td>
     <td class="ac"><?= kybBadge($isSusp?'suspended':($a['kyb_status']??'pending')) ?></td>
-    <td class="ac"><?= memberBadge($a['membership_tier']??'',$a['membership_status']??'') ?></td>
+    <td class="ac">
+      <?= memberBadge($a['membership_tier']??'',$a['membership_status']??'') ?>
+      <form method="post" action="/admin" style="margin-top:5px;display:flex;gap:3px;align-items:center">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="set_membership">
+        <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'') ?>">
+        <select name="tier" title="Change plan" style="padding:3px 5px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
+          <?php $ct=$a['membership_tier']??''; foreach(['' =>'— None','starter'=>'Starter','pro'=>'Pro','premium'=>'Elite'] as $tv=>$tl): ?>
+            <option value="<?= $tv ?>" <?= $ct===$tv?'selected':'' ?>><?= $tl ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button class="abtn" type="submit" style="font-size:11px" title="Apply plan">Set</button>
+      </form>
+    </td>
     <td class="ac">
       <?php if(($a['type']??'')==='seller' && !empty($a['onboarding_paid'])): ?>
         <?php if(!empty($a['verified_badge'])): ?>
