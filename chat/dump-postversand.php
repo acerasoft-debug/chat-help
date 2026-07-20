@@ -13,7 +13,7 @@ $src=@file_get_contents($f);
 if($src===false){ echo "postversand.php YOK/okunamadi\n"; exit; }
 echo "== dump-postversand (".strlen($src)." B) ==\n\n";
 
-echo "=== beklenen POST alanlari ($_POST['...']) ===\n";
+echo '=== beklenen POST alanlari ($_POST[...]) ==='."\n";
 if(preg_match_all("/\\\$_(POST|REQUEST|GET)\\[['\"]([a-zA-Z0-9_]+)['\"]\\]/",$src,$m)){
   echo "  ".implode(', ',array_values(array_unique($m[2])))."\n";
 }
