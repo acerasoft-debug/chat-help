@@ -148,6 +148,7 @@ jobs:
         working-directory: mobile/android
         run: |
           cp ../ci/debug-shared.keystore release.jks
+          cp ../ci/debug-shared.keystore app/release.jks
           cat > key.properties <<'EOF'
           storeFile=release.jks
           storePassword=android
