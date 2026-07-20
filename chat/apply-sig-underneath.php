@@ -28,8 +28,9 @@ NEW;
 $new=rtrim($new,"\n");
 
 $c=substr_count($src,$old);
-if($c!==1){ echo "  ✗ imza-insert anchor ($c, 1 beklenir) — DEGISTIRILMEDI.\n   (imza5 surumu farkli olabilir; dokunmadim.)\n"; exit; }
+if($c<1){ echo "  ✗ imza-insert anchor ($c) bulunamadi — DEGISTIRILMEDI.\n"; exit; }
 $src=str_replace($old,$new,$src);
+echo "  ✓ $c kopya imza-insert degistirildi (imza4+imza5)\n";
 
 $tmp=tempnam(sys_get_temp_dir(),'su').'.php'; file_put_contents($tmp,$src);
 $lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
