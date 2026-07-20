@@ -114,7 +114,7 @@ return array (
   'Buyer workspace' => 'Käufer-Arbeitsbereich',
   'Buyer-protection fee' => 'Käuferschutzgebühr',
   'Buyers order — you ship' => 'Käufer bestellen — Sie versenden',
-  'Buyers pay a fixed 2% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.' => 'Käufer zahlen bei Treuhandbestellungen eine feste Treuhand-Schutzgebühr von 2 %. Rechnung per Überweisung ist ebenfalls möglich. Es gibt keine versteckten Kosten.',
+  'Buyers pay a fixed 3.8% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.' => 'Käufer zahlen bei Treuhandbestellungen eine feste Treuhand-Schutzgebühr von 3,8 %. Rechnung per Überweisung ist ebenfalls möglich. Es gibt keine versteckten Kosten.',
   'Buying & orders' => 'Einkauf & Bestellungen',
   'Buying on VESTRA is always free — no membership needed. The plans below are for sellers who want to list products.' => 'Einkaufen auf VESTRA ist immer kostenlos — keine Mitgliedschaft nötig. Die Pläne unten sind für Verkäufer, die Produkte einstellen möchten.',
   'By listing you confirm the goods are <b>genuine</b> and you are <b>entitled to sell</b> them (incl. EEA exhaustion where applicable) — per the Seller Agreement.' => 'Mit dem Einstellen bestätigen Sie, dass die Ware <b>original</b> ist und Sie zu deren <b>Verkauf berechtigt</b> sind (einschließlich EWR-Erschöpfung, sofern zutreffend) — gemäß der Verkäufervereinbarung.',

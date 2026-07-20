@@ -200,7 +200,7 @@
       7 => 
       array (
         'q' => '¿Existe una tarifa de protección al comprador?',
-        'a' => 'No — actualmente no hay tarifas para compradores en VESTRA. Paga exactamente el total de la mercancía que figura en la factura del vendedor. Si algún día se introduce una tarifa de protección junto con el pago escrow, se mostrará claramente antes de pedir.',
+        'a' => 'Sí — los pedidos con depósito en garantía (pago seguro con tarjeta) incluyen una tarifa de protección al comprador del 3,8%. Mantiene tu pago seguro hasta que confirmes la entrega y financia un reembolso completo si la operación se frustra; se muestra claramente en el pago. Los pedidos abonados por transferencia contra factura no tienen ninguna tarifa para el comprador.',
       ),
       8 => 
       array (

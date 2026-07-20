@@ -13,7 +13,7 @@ if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
 /* Escrow (Treuhand) only: a fixed buyer-protection fee added to the buyer's total,
    collected together with the seller's tiered commission as the Stripe application
    fee on the direct charge. Bank-transfer orders are unaffected (buyer pays 0). */
-if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.02);
+if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038);
 /* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
    goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
    once the order is marked paid. Never touches the buyer-facing cart/invoice total. This

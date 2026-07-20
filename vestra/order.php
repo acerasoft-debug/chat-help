@@ -73,7 +73,7 @@ foreach($cart as $it){
 }
 if(!$lines){ header('Location: /cart'); exit; }
 /* Platform commission. Escrow (Treuhand) orders carry a FIXED buyer-protection fee
-   (VESTRA_ESCROW_FEE_BUYER, 2%) plus the seller's tiered membership commission
+   (VESTRA_ESCROW_FEE_BUYER, 3.8%) plus the seller's tiered membership commission
    (3.5/3.2/2.8%), collected together as the Stripe application fee on the direct
    charge. Bank-transfer orders keep the 0% cart fees (seller commission is charged
    separately to the seller card). Escrow needs a single, known seller. */
@@ -81,7 +81,7 @@ $sellerUids = array_values(array_unique(array_filter(array_map(fn($l)=>$l['selle
 $escrowSeller = null;
 if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $escrowSeller=$a; break; } } }
 if($payMethod==='escrow' && $escrowSeller){
-  $FEE_BUYER  = VESTRA_ESCROW_FEE_BUYER;                                              // fixed 2% buyer
+  $FEE_BUYER  = VESTRA_ESCROW_FEE_BUYER;                                              // fixed 3.8% buyer
   $FEE_SELLER = vestra_seller_commission_rate($escrowSeller['membership_tier'] ?? ''); // 3.5/3.2/2.8%
 } else {
   $FEE_SELLER = VESTRA_FEE_SELLER;

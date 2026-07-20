@@ -114,7 +114,7 @@ return array (
   'Buyer workspace' => 'Espacio del comprador',
   'Buyer-protection fee' => 'Comisión de protección al comprador',
   'Buyers order — you ship' => 'Los compradores piden — usted envía',
-  'Buyers pay a fixed 2% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.' => 'Los compradores pagan una comisión fija de protección del 2% en los pedidos con depósito en garantía. También está disponible la facturación por transferencia. No hay cargos ocultos.',
+  'Buyers pay a fixed 3.8% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.' => 'Los compradores pagan una comisión fija de protección del 3,8% en los pedidos con depósito en garantía. También está disponible la facturación por transferencia. No hay cargos ocultos.',
   'Buying & orders' => 'Compras & pedidos',
   'Buying on VESTRA is always free — no membership needed. The plans below are for sellers who want to list products.' => 'Comprar en VESTRA es siempre gratis — no necesitas membresía. Los planes de abajo son para vendedores que quieren publicar productos.',
   'By listing you confirm the goods are <b>genuine</b> and you are <b>entitled to sell</b> them (incl. EEA exhaustion where applicable) — per the Seller Agreement.' => 'Al publicar, usted confirma que los productos son <b>auténticos</b> y que está <b>autorizado a venderlos</b> (incl. el agotamiento en el EEE cuando proceda), conforme al Acuerdo de Vendedor.',

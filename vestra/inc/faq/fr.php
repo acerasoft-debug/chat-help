@@ -200,7 +200,7 @@
       7 => 
       array (
         'q' => 'Y a-t-il des frais de protection acheteur ?',
-        'a' => 'Non — il n\'y a actuellement aucun frais acheteur sur VESTRA. Vous payez exactement le montant des marchandises indiqué sur la facture du vendeur. Si des frais de protection étaient un jour introduits avec le paiement escrow, ils seraient clairement affichés avant la commande.',
+        'a' => 'Oui — les commandes sous séquestre (paiement sécurisé par carte) comportent des frais de protection acheteur de 3,8 %. Ils conservent votre paiement en sécurité jusqu\'à ce que vous confirmiez la livraison et financent un remboursement intégral si la transaction échoue ; ils sont affichés clairement au paiement. Les commandes réglées par virement contre facture n\'ont aucun frais acheteur.',
       ),
       8 => 
       array (

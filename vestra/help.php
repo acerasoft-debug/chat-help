@@ -54,7 +54,7 @@ $HELP = [
     'items' => [
       [t('How does escrow protect me?'), t('Your payment is held securely and released to the seller only after you confirm delivery. If something goes wrong before release, VESTRA can refund you in full — your money is never handed over on trust alone.')],
       [t('Which payment methods can I use?'), t('Card payment via Stripe with escrow protection, or bank transfer against an automatic invoice. Choose whichever suits your business.')],
-      [t('What fees do buyers pay?'), t('Buyers pay a fixed 2% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.')],
+      [t('What fees do buyers pay?'), t('Buyers pay a fixed 3.8% escrow-protection fee on escrow orders. Bank-transfer invoicing is also available. There are no hidden charges.')],
       [t('How do refunds and disputes work?'), t('Before the funds are released you can open a dispute. If it cannot be resolved, VESTRA refunds you in full and the commission is reversed too.')],
       [t('Do I get an invoice?'), t('Yes — every order produces an automatic PDF invoice showing the seller\'s company and bank details, ready for your accounts.')],
     ],

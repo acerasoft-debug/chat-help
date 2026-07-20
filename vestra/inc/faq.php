@@ -117,7 +117,7 @@ function vestra_faq_en(){
     ['q'=>'In which currency do I pay?',
      'a'=>'All prices on VESTRA are in Euros (EUR). SEPA transfers are made in EUR. Card transactions may attract a conversion fee if your card is in a different currency.'],
     ['q'=>'Is there a buyer-protection fee?',
-     'a'=>'No — there are currently no buyer fees on VESTRA. You pay exactly the goods total shown on the seller\'s invoice. If a protection fee is ever introduced together with the escrow checkout, it will be shown clearly before you order.'],
+     'a'=>'Yes — escrow (secure card) orders carry a 3.8% buyer-protection fee. It holds your payment safely until you confirm delivery and funds a full refund if the deal falls through, and it is shown clearly at checkout before you pay. Orders paid by bank transfer against an invoice have no buyer fee.'],
     ['q'=>'Is my payment information safe?',
      'a'=>'You pay by bank transfer from your own bank — VESTRA never collects, sees, or stores your card numbers or online-banking credentials. The seller\'s bank details are printed on the invoice itself.'],
   ]],

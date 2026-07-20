@@ -200,7 +200,7 @@
       7 => 
       array (
         'q' => 'Gibt es eine Käuferschutzgebühr?',
-        'a' => 'Nein — aktuell fallen für Käufer auf VESTRA keine Gebühren an. Sie zahlen exakt den Warenwert laut Rechnung des Verkäufers. Sollte mit dem Escrow-Checkout je eine Schutzgebühr eingeführt werden, wird sie vor der Bestellung klar ausgewiesen.',
+        'a' => 'Ja — Treuhandbestellungen (sichere Kartenzahlung) tragen eine Käuferschutzgebühr von 3,8 %. Sie hält Ihre Zahlung sicher, bis Sie die Lieferung bestätigen, und ermöglicht eine vollständige Rückerstattung, falls das Geschäft scheitert; sie wird vor dem Kauf klar an der Kasse ausgewiesen. Bestellungen per Überweisung gegen Rechnung haben keine Käufergebühr.',
       ),
       8 => 
       array (

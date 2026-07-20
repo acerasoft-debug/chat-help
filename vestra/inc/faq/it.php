@@ -200,7 +200,7 @@
       7 => 
       array (
         'q' => 'È prevista una fee di protezione acquirente?',
-        'a' => 'No — attualmente su VESTRA non ci sono commissioni per gli acquirenti. Paga esattamente il totale merce indicato sulla fattura del venditore. Se in futuro venisse introdotta una commissione di protezione insieme al checkout escrow, sarà mostrata chiaramente prima dell\'ordine.',
+        'a' => 'Sì — gli ordini con deposito di garanzia (pagamento sicuro con carta) prevedono una fee di protezione acquirente del 3,8%. Custodisce il pagamento finché non confermi la consegna e finanzia un rimborso completo se l\'affare non va a buon fine; viene mostrata chiaramente al checkout prima del pagamento. Gli ordini pagati con bonifico contro fattura non hanno alcuna fee per l\'acquirente.',
       ),
       8 => 
       array (
