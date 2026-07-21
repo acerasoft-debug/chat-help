@@ -10,6 +10,7 @@ require_once __DIR__.'/inc/notify.php';
 require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/commission.php';
 require_once __DIR__.'/inc/escrow.php';
+require_once __DIR__.'/inc/journal.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -99,6 +100,29 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=users&msg=member_set'); exit;
   }
+
+  /* ── Journal (editorial) ── */
+  if($act==='journal_save'){
+    $jid=trim($_POST['jid']??''); $title=trim($_POST['title']??'');
+    if($title!==''){
+      $rec=[
+        'title'=>$title,
+        'category'=>in_array($_POST['category']??'',VESTRA_JOURNAL_CATS,true)?$_POST['category']:VESTRA_JOURNAL_CATS[0],
+        'excerpt'=>trim($_POST['excerpt']??''),
+        'body'=>trim($_POST['body']??''),
+        'cover'=>trim($_POST['cover']??''),
+        'author'=>trim($_POST['author']??'')?:'VESTRA Editorial',
+        'published'=>!empty($_POST['published']),
+      ];
+      if($jid!=='') $rec['id']=$jid;
+      $rec['slug']=vestra_journal_slug($title,$jid);
+      vestra_journal_save($rec);
+    }
+    header('Location: /admin?tab=journal&msg=journal_saved'); exit;
+  }
+  if($act==='journal_delete'){ vestra_journal_delete($_POST['jid']??''); header('Location: /admin?tab=journal&msg=journal_deleted'); exit; }
+  if($act==='journal_toggle'){ vestra_journal_toggle($_POST['jid']??''); header('Location: /admin?tab=journal&msg=journal_toggled'); exit; }
+  if($act==='journal_seed'){ $n=vestra_journal_seed_starters(); header('Location: /admin?tab=journal&msg=journal_seeded&n='.$n); exit; }
   if($act==='resend_verify'){
     $uid=$_POST['uid']??'';
     foreach(auth_accounts() as $a){
@@ -499,6 +523,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $groupPools   = vestra_group_pools();
   $leads        = vestra_leads();
   $leadTpl      = vestra_lead_template();
+  $journalAll   = vestra_journal_all();
   $pendingList  = array_filter($listings,fn($p)=>($p['status']??'approved')==='pending');
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
@@ -521,6 +546,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'member_set'=>'✓ Membership plan updated.',
+    'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -582,6 +608,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <div class="sgrp">Catalog</div>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
 
+  <div class="sgrp">Content</div>
+  <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
+
   <div class="sgrp">Marketing</div>
   <?= navLink($tab,'marketing','🎟️','Promo codes ('.count($promos).')') ?>
   <?= navLink($tab,'prospects','🎯','Seller prospects ('.count($leads).')') ?>
@@ -610,6 +639,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">🔔 Notification sent — reached <?= (int)($_GET['n']??0) ?> subscribed user(s). Users without push enabled don't count here.</div>
 <?php elseif($msg==='push_err'): ?>
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#ef9a9a">⚠ Title and message are required.</div>
+<?php elseif($msg==='journal_seeded'): ?>
+<div class="amsg ok">✓ Loaded <?= (int)($_GET['n']??0) ?> starter article(s)<?= ((int)($_GET['n']??0)===0)?' — they were already present':'' ?>. Edit or unpublish them any time below.</div>
 <?php endif; ?>
 
 
@@ -1760,6 +1791,64 @@ elseif($tab==='notify'):
   <div class="acard-body" style="font-size:13px;line-height:1.9;color:var(--mut)">
     <b style="color:var(--fg)">Buyers get pushed when:</b> an offer is accepted / countered / declined · a seller answers their sourcing request · payment is confirmed · the order ships (with tracking) · escrow secures their payment · a refund is issued · a new message arrives.<br>
     <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.
+  </div>
+</div>
+
+<?php // ══════════════════════════════════════════════════════ JOURNAL
+elseif($tab==='journal'):
+  $jarts = vestra_journal_all();
+  $jEdit = ($eid=($_GET['edit']??'')) ? vestra_journal_find_id($eid) : null;
+?>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <div><h2 style="font-size:18px;font-weight:700">📰 Journal</h2>
+  <p class="ahint" style="margin-top:4px">Publish fashion, brand &amp; market articles. Published pieces appear at <a href="/journal" target="_blank" style="color:var(--acc)">/journal ↗</a>.</p></div>
+  <form method="post" action="/admin"><?= csrfField() ?><input type="hidden" name="_action" value="journal_seed">
+    <button class="abtn" type="submit" title="Add three ready-made starter articles you can edit">✨ Load starter articles</button>
+  </form>
+</div>
+
+<div class="acols2" style="align-items:start">
+  <div class="acard">
+    <div class="acard-hd"><h3><?= $jEdit?'✏️ Edit article':'➕ New article' ?></h3></div>
+    <div class="acard-body">
+      <form method="post" action="/admin" class="aform">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="journal_save">
+        <?php if($jEdit): ?><input type="hidden" name="jid" value="<?= htmlspecialchars($jEdit['id']) ?>"><?php endif; ?>
+        <div class="afield"><label>Title</label><input name="title" required maxlength="140" value="<?= htmlspecialchars($jEdit['title']??'') ?>"></div>
+        <div class="afield"><label>Category</label><select name="category">
+          <?php foreach(VESTRA_JOURNAL_CATS as $c): ?><option value="<?= htmlspecialchars($c) ?>" <?= ($jEdit['category']??'')===$c?'selected':'' ?>><?= htmlspecialchars($c) ?></option><?php endforeach; ?>
+        </select></div>
+        <div class="afield"><label>Cover image URL (optional)</label><input name="cover" value="<?= htmlspecialchars($jEdit['cover']??'') ?>" placeholder="/uploads/journal/x.jpg or https://…"></div>
+        <div class="afield"><label>Excerpt (1–2 sentences)</label><textarea name="excerpt" rows="2" maxlength="240"><?= htmlspecialchars($jEdit['excerpt']??'') ?></textarea></div>
+        <div class="afield"><label>Body <span class="ahint">(leave a blank line between paragraphs)</span></label><textarea name="body" rows="13" style="font-family:inherit;line-height:1.6"><?= htmlspecialchars($jEdit['body']??'') ?></textarea></div>
+        <div class="afield"><label>Author</label><input name="author" value="<?= htmlspecialchars($jEdit['author']??'VESTRA Editorial') ?>"></div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin:2px 0 6px"><input type="checkbox" name="published" value="1" <?= (!$jEdit||!empty($jEdit['published']))?'checked':'' ?>> Published (visible on the site)</label>
+        <button class="abtn primary" type="submit" style="justify-content:center;padding:10px"><?= $jEdit?'Save changes':'Publish article' ?></button>
+        <?php if($jEdit): ?><a class="abtn" href="/admin?tab=journal" style="justify-content:center;margin-top:6px">Cancel edit</a><?php endif; ?>
+      </form>
+    </div>
+  </div>
+
+  <div class="acard">
+    <div class="acard-hd"><h3>All articles (<?= count($jarts) ?>)</h3></div>
+    <div class="acard-body">
+      <?php if(!$jarts): ?><div class="aempty">No articles yet. Write one on the left, or press “Load starter articles”.</div>
+      <?php else: foreach($jarts as $p): ?>
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px"><?= htmlspecialchars($p['title']??'') ?></div>
+          <div class="ahint"><?= htmlspecialchars($p['category']??'') ?> · <?= htmlspecialchars(substr($p['created']??'',0,10)) ?> · <?= !empty($p['published'])?'<span style="color:#7ad6a0">● published</span>':'<span style="color:var(--mut)">○ draft</span>' ?></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
+          <?php if(!empty($p['published'])): ?><a class="abtn" href="/journal?slug=<?= urlencode($p['slug']??'') ?>" target="_blank" style="font-size:11px">View</a><?php endif; ?>
+          <a class="abtn" href="/admin?tab=journal&edit=<?= urlencode($p['id']??'') ?>" style="font-size:11px">Edit</a>
+          <?= fBtn(!empty($p['published'])?'Unpublish':'Publish','journal_toggle',['jid'=>$p['id']??''],'font-size:11px') ?>
+          <?= fBtn('Delete','journal_delete',['jid'=>$p['id']??''],'font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.3)','Delete this article permanently?') ?>
+        </div>
+      </div>
+      <?php endforeach; endif; ?>
+    </div>
   </div>
 </div>
 
