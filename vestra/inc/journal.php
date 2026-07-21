@@ -125,11 +125,12 @@ function vestra_journal_seed_starters(): int {
         $key = strtolower(trim($s['title']));
         if (isset($byTitle[$key])) {
             $idx = $byTitle[$key];
-            if (empty($all[$idx]['i18n']) && !empty($s['i18n'])) { // back-fill translations onto an English-only starter
-                $all[$idx]['i18n']    = $s['i18n'];
-                $all[$idx]['updated'] = date('c');
-                $changed++;
+            $cur = (isset($all[$idx]['i18n']) && is_array($all[$idx]['i18n'])) ? $all[$idx]['i18n'] : [];
+            $touched = false;
+            foreach (($s['i18n'] ?? []) as $l => $tr) {          // add any language the stored record lacks;
+                if (empty($cur[$l])) { $cur[$l] = $tr; $touched = true; } // never overwrite an existing translation
             }
+            if ($touched) { $all[$idx]['i18n'] = $cur; $all[$idx]['updated'] = date('c'); $changed++; }
             continue;
         }
         $s['id']   = 'jr_'.bin2hex(random_bytes(5));
