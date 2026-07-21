@@ -4,18 +4,30 @@
  * Accounts stored in data/accounts.json (server-side, not web-accessible).
  */
 
+/* Defined before the session bootstrap below, because auth_remember_restore()
+   (called during that bootstrap) reads the accounts file. */
+define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
+
 /* Session-cookie hardening — must run before any session_start() (auth.php is
  * required before sessions start everywhere). HttpOnly blocks JS access,
  * SameSite=Lax blocks cross-site POSTs riding the session, Secure on HTTPS. */
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    $_vlife = 90 * 86400; // keep users signed in ~90 days, even after the browser is closed
+    @ini_set('session.gc_maxlifetime', (string)$_vlife);
+    // Private session store: on shared hosting the global /tmp GC would otherwise
+    // expire our sessions within minutes. Keeping them under data/ (web-blocked)
+    // means our own gc_maxlifetime governs their lifetime.
+    $_vsess = __DIR__.'/../data/sessions';
+    if (!is_dir($_vsess)) @mkdir($_vsess, 0700, true);
+    if (is_dir($_vsess) && is_writable($_vsess)) @ini_set('session.save_path', $_vsess);
     session_set_cookie_params([
-        'lifetime' => 0, 'path' => '/',
+        'lifetime' => $_vlife, 'path' => '/',
         'secure'   => !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
         'httponly' => true, 'samesite' => 'Lax',
     ]);
+    session_start();
+    auth_remember_restore(); // re-establish a persistent login if the session itself has lapsed
 }
-
-define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 
 function auth_accounts(): array {
     if (!is_file(VESTRA_ACCOUNTS)) return [];
@@ -59,10 +71,53 @@ function auth_set(array $acc): void {
     $_SESSION['uid']    = $acc['id'];
     $_SESSION['member'] = true;
     $_SESSION['utype']  = $acc['type'];
+    auth_remember_set($acc['id'] ?? ''); // persistent "remember me" — stays signed in across visits
 }
 
 function auth_logout(): void {
+    auth_remember_clear($_SESSION['uid'] ?? '');
     unset($_SESSION['uid'], $_SESSION['member'], $_SESSION['utype']);
+}
+
+/* ── Persistent login ("remember me") ────────────────────────────────────────
+   A random token is stored (hashed) on the account and mirrored in a long-lived
+   cookie. When the PHP session has lapsed but the cookie is still valid, the
+   login is transparently restored. The raw token is never stored server-side. */
+function auth_remember_set(string $uid): void {
+    if ($uid === '') return;
+    $token = bin2hex(random_bytes(32));
+    $exp   = time() + 90 * 86400;
+    auth_update($uid, ['remember' => ['hash' => hash('sha256', $token), 'exp' => $exp]]);
+    if (!headers_sent()) {
+        $secure = !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        setcookie('vestra_rmb', $uid.':'.$token, [
+            'expires' => $exp, 'path' => '/', 'secure' => $secure, 'httponly' => true, 'samesite' => 'Lax',
+        ]);
+        $_COOKIE['vestra_rmb'] = $uid.':'.$token;
+    }
+}
+function auth_remember_restore(): void {
+    if (!empty($_SESSION['uid'])) return;
+    $c = $_COOKIE['vestra_rmb'] ?? '';
+    if ($c === '' || strpos($c, ':') === false) return;
+    [$uid, $token] = explode(':', $c, 2);
+    if ($uid === '' || $token === '') return;
+    foreach (auth_accounts() as $a) {
+        if (($a['id'] ?? '') !== $uid) continue;
+        $r = $a['remember'] ?? null;
+        if (!is_array($r) || empty($r['hash']) || empty($r['exp']) || time() > (int)$r['exp']) return;
+        if (!hash_equals((string)$r['hash'], hash('sha256', $token))) return;
+        if (($a['status'] ?? '') === 'suspended') return; // never auto-restore a suspended account
+        $_SESSION['uid']    = $a['id'];
+        $_SESSION['member'] = true;
+        $_SESSION['utype']  = $a['type'] ?? '';
+        return;
+    }
+}
+function auth_remember_clear(string $uid): void {
+    if ($uid !== '') auth_update($uid, ['remember' => null]);
+    if (!headers_sent()) setcookie('vestra_rmb', '', ['expires' => time() - 3600, 'path' => '/']);
+    unset($_COOKIE['vestra_rmb']);
 }
 
 /* Resend the verification email for a pending_email account and record the
