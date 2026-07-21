@@ -39,7 +39,7 @@ if ($slug !== '') {
           <div class="jr-cat"><?= htmlspecialchars(t($art['category'] ?? '')) ?></div>
           <h1 class="jr-title"><?= htmlspecialchars($art['title'] ?? '') ?></h1>
           <div class="jr-meta"><?= htmlspecialchars($art['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($art['created'] ?? '') ?> · <?= vestra_journal_reading_min($art['body'] ?? '') ?> <?= t('min read') ?></div>
-          <div class="jr-hero-img" role="img" aria-label="<?= htmlspecialchars($art['title'] ?? '') ?>" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($art), ENT_QUOTES) ?>')"></div>
+          <div class="jr-hero-img" role="img" aria-label="<?= htmlspecialchars($art['title'] ?? '') ?>" style="background-image:<?= vestra_journal_cover_bg($art) ?>"></div>
           <div class="jr-body"><?= vestra_journal_body_html($art['body'] ?? '') ?></div>
           <div class="jr-share">
             <a class="btn btn-o" href="/journal">← <?= t('All articles') ?></a>
@@ -53,7 +53,7 @@ if ($slug !== '') {
           <div class="jr-grid">
             <?php foreach ($more as $p): ?>
             <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-              <div class="jr-thumb" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($p), ENT_QUOTES) ?>')"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
+              <div class="jr-thumb" style="background-image:<?= vestra_journal_cover_bg($p) ?>"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
               <div class="jr-cbody"><h4><?= htmlspecialchars($p['title'] ?? '') ?></h4><p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 110)) ?></p></div>
             </a>
             <?php endforeach; ?>
@@ -97,7 +97,7 @@ $rest = $featured ? array_slice($all, 1) : [];
   <?php else: ?>
     <?php if ($featured): ?>
     <a class="jr-feature" href="/journal?slug=<?= urlencode($featured['slug'] ?? '') ?>">
-      <div class="jr-feature-img" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($featured), ENT_QUOTES) ?>')"></div>
+      <div class="jr-feature-img" style="background-image:<?= vestra_journal_cover_bg($featured) ?>"></div>
       <div class="jr-feature-txt">
         <span class="jr-badge gold"><?= htmlspecialchars(t($featured['category'] ?? '')) ?></span>
         <h2><?= htmlspecialchars($featured['title'] ?? '') ?></h2>
@@ -111,7 +111,7 @@ $rest = $featured ? array_slice($all, 1) : [];
     <div class="jr-grid">
       <?php foreach ($rest as $p): ?>
       <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-        <div class="jr-thumb" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($p), ENT_QUOTES) ?>')"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
+        <div class="jr-thumb" style="background-image:<?= vestra_journal_cover_bg($p) ?>"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
         <div class="jr-cbody">
           <h4><?= htmlspecialchars($p['title'] ?? '') ?></h4>
           <p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 120)) ?></p>

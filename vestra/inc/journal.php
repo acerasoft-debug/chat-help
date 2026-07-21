@@ -108,29 +108,33 @@ function vestra_journal_cover_svg(array $p): string {
 </svg>
 SVG;
 }
-/* A few fashion-relevant articles get a real garment photo (from the catalogue's
-   product shots) instead of the generated art — mapped by slug at render time, so
-   no data migration/re-seed is needed. Only used when the file actually exists. */
-function vestra_journal_photo_for(array $p): string {
+/* Real fashion/model photography for a few articles, pulled automatically from
+   free stock BY KEYWORD (LoremFlickr — keyword-matched, so there are no fragile
+   per-photo IDs to guess), with a stable per-article lock so the image doesn't
+   reshuffle on every load. It is layered OVER the generated editorial art (see
+   vestra_journal_cover_bg), so a photo that can't load simply reveals the art —
+   never a broken image. An admin-set cover (Journal editor) overrides it. */
+function vestra_journal_model_photo(array $p): string {
     static $map = [
-        'the-enduring-business-of-the-piqu-polo'                    => '/uploads/rl/csf-polo-white.png',
-        'build-a-colour-assortment-that-actually-sells'            => '/uploads/rl/csf-polo-fuchsia.png',
-        'how-presentation-lifts-sell-through-on-a-wholesale-rail'  => '/uploads/rl/csf-polo-orange.jpg',
-        'why-mixed-size-packs-outsell-single-size-buys'            => '/uploads/rl/csf-polo-yellow.jpg',
-        'seasonless-staples-building-a-core-that-never-goes-on-sale'=> '/uploads/rl/csf-tee-cream.jpg',
-        'the-resale-boom-and-what-it-means-for-wholesale-buyers'   => '/uploads/rl/csf-polo-darkgreen.jpg',
+        'the-enduring-business-of-the-piqu-polo'                     => ['menswear,fashion,model', 12],
+        'build-a-colour-assortment-that-actually-sells'             => ['fashion,model,colourful', 23],
+        'how-presentation-lifts-sell-through-on-a-wholesale-rail'    => ['fashion,boutique,style',  34],
+        'why-mixed-size-packs-outsell-single-size-buys'             => ['fashion,clothing,apparel', 45],
+        'seasonless-staples-building-a-core-that-never-goes-on-sale' => ['fashion,model,minimal',   56],
+        'the-resale-boom-and-what-it-means-for-wholesale-buyers'    => ['fashion,style,streetwear', 67],
     ];
-    $f = $map[$p['slug'] ?? ''] ?? '';
-    return ($f !== '' && is_file(dirname(__DIR__).$f)) ? $f : '';
+    $m = $map[$p['slug'] ?? ''] ?? null;
+    return $m ? ('https://loremflickr.com/1200/800/'.$m[0].'?lock='.$m[1]) : '';
 }
-/* Cover image URL for an article: the admin-set cover if present, else a mapped
-   real garment photo, else the generated editorial SVG as a data-URI (so the
-   grid/hero is never a blank block). */
-function vestra_journal_cover_uri(array $p): string {
-    if (!empty($p['cover'])) return (string)$p['cover'];
-    $photo = vestra_journal_photo_for($p);
-    if ($photo !== '') return $photo;
-    return 'data:image/svg+xml;base64,'.base64_encode(vestra_journal_cover_svg($p));
+/* Full CSS background-image value for a cover: the real photo (admin cover, or a
+   keyword model photo) layered OVER the generated editorial SVG data-URI, so if
+   the photo fails to load the art shows through instead of a blank/broken block. */
+function vestra_journal_cover_bg(array $p): string {
+    $svg = "url('data:image/svg+xml;base64,".base64_encode(vestra_journal_cover_svg($p))."')";
+    if (!empty($p['cover'])) return "url('".$p['cover']."'), ".$svg;
+    $model = vestra_journal_model_photo($p);
+    if ($model !== '')       return "url('".$model."'), ".$svg;
+    return $svg;
 }
 /* Return the article with title/excerpt/body swapped to the reader's language
    when a translation exists under $a['i18n'][$lang]; English is the base/fallback. */
