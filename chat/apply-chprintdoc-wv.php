@@ -50,9 +50,9 @@ setTimeout(function(){
 JS;
 
 $c=substr_count($src,$old);
-if($c!==1){ echo "  ✗ anchor ($c, 1 beklenir) — HICBIR sey degistirilmedi.\n"; exit; }
+if($c<1 || $c>4){ echo "  ✗ anchor ($c, 1-4 beklenir) — HICBIR sey degistirilmedi.\n"; exit; }
 $src=str_replace($old,$new,$src);
-echo "  ✓ TEMEL chPrintDoc App/WebView'de jsPDF ile gercek PDF uretir (print()/window.open() App'te ARTIK HIC KULLANILMIYOR)\n";
+echo "  ✓ TEMEL chPrintDoc'un $c kopyasi App/WebView'de jsPDF ile gercek PDF uretir (print()/window.open() App'te ARTIK HIC KULLANILMIYOR)\n";
 echo "  KAPSAM: standart PDF, Kostenlos selbst ausdrucken, Vertrag Studio, CV Studio, Vize — HEPSI\n";
 
 $tmp=tempnam(sys_get_temp_dir(),'cw').'.php'; file_put_contents($tmp,$src);
