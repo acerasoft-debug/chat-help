@@ -6,6 +6,14 @@
 require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/journal.php';
 
+/* Never show an empty magazine: if nothing has been published yet but the
+   built-in starter articles ship with the code, seed them on first view.
+   Idempotent — once data/journal.json holds published pieces this does nothing,
+   and it silently no-ops if data/ is not writable (page still renders). */
+if (function_exists('vestra_journal_seed_starters') && !vestra_journal_published()) {
+    @vestra_journal_seed_starters();
+}
+
 $slug = trim($_GET['slug'] ?? '');
 $cat  = trim($_GET['cat'] ?? '');
 
