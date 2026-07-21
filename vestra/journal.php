@@ -115,7 +115,10 @@ $rest = $featured ? array_slice($all, 1) : [];
 
 /* Scoped premium styling (shared between grid and article views). */
 function vestra_journal_css(): string { return <<<CSS
-.jr-wrap{max-width:1080px;margin:0 auto;padding:0 20px 72px}
+/* Light editorial theme — dark header/footer stay, the Journal reads as a clean magazine */
+body{background:#f5f3ef}
+.jr-wrap,.jr-article{--bg2:#ffffff;--ink:#1b1813;--mut:#6f695f;--line:#e8e2d7;color:#1b1813}
+.jr-wrap{max-width:1080px;margin:0 auto;padding:0 20px 72px;background:#f5f3ef}
 .jr-hero{text-align:center;padding:52px 20px 30px;border-bottom:1px solid var(--line);margin-bottom:26px}
 .jr-hero .jr-eyebrow{font-size:12px;letter-spacing:2.5px;text-transform:uppercase;color:var(--acc);font-weight:600;margin-bottom:12px}
 .jr-hero h1{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,44px);font-weight:700;margin:0 0 10px;line-height:1.08}
@@ -126,20 +129,21 @@ function vestra_journal_css(): string { return <<<CSS
 .jr-cats a.on{background:var(--acc);color:#1a1205;border-color:var(--acc);font-weight:600}
 .jr-empty{text-align:center;color:var(--mut);padding:60px 20px}
 .jr-feature{display:grid;grid-template-columns:1.15fr 1fr;gap:0;border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:30px;text-decoration:none;color:inherit;transition:.22s;background:var(--bg2)}
-.jr-feature:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 24px 50px -24px rgba(0,0,0,.6)}
-.jr-feature-img{min-height:300px;background:linear-gradient(135deg,#20222a,#14151a);background-size:cover;background-position:center}
+.jr-feature:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 24px 50px -24px rgba(60,50,30,.16)}
+.jr-feature-img{min-height:300px;background:linear-gradient(135deg,#ece7df,#ddd6c8);background-size:cover;background-position:center}
 .jr-feature-txt{padding:34px;display:flex;flex-direction:column;justify-content:center;gap:12px}
 .jr-feature-txt h2{font-family:'Playfair Display',serif;font-size:26px;line-height:1.2;margin:0}
 .jr-feature-txt p{color:var(--mut);font-size:14.5px;line-height:1.6;margin:0}
 .jr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 .jr-card{border:1px solid var(--line);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;transition:.22s;background:var(--bg2);display:flex;flex-direction:column}
-.jr-card:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 20px 44px -24px rgba(0,0,0,.6)}
-.jr-thumb{aspect-ratio:16/10;background:linear-gradient(135deg,#20222a,#14151a);background-size:cover;background-position:center;position:relative}
+.jr-card:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 20px 44px -24px rgba(60,50,30,.16)}
+.jr-thumb{aspect-ratio:16/10;background:linear-gradient(135deg,#ece7df,#ddd6c8);background-size:cover;background-position:center;position:relative}
 .jr-cbody{padding:16px 18px 18px;display:flex;flex-direction:column;gap:7px;flex:1}
 .jr-cbody h4{font-size:16px;font-weight:700;margin:0;line-height:1.3}
 .jr-cbody p{color:var(--mut);font-size:13px;line-height:1.5;margin:0;flex:1}
 .jr-badge{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.4px;padding:4px 9px;border-radius:6px;background:rgba(0,0,0,.55);color:#fff;position:absolute;top:12px;left:12px;backdrop-filter:blur(4px)}
-.jr-badge.gold{position:static;background:rgba(201,168,106,.16);color:var(--acc);align-self:flex-start}
+.jr-badge.gold{position:static;background:rgba(176,125,42,.14);color:#8a6420;align-self:flex-start}
+.jr-card,.jr-feature{box-shadow:0 1px 3px rgba(60,50,30,.06)}
 .jr-meta{font-size:12px;color:var(--mut)}
 /* article */
 .jr-article{max-width:760px;margin:0 auto;padding:34px 20px 10px}
