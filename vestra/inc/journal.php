@@ -108,10 +108,28 @@ function vestra_journal_cover_svg(array $p): string {
 </svg>
 SVG;
 }
-/* Cover image URL for an article: the admin-set cover if present, otherwise the
-   generated editorial SVG as a data-URI (so the grid/hero is never a blank block). */
+/* A few fashion-relevant articles get a real garment photo (from the catalogue's
+   product shots) instead of the generated art — mapped by slug at render time, so
+   no data migration/re-seed is needed. Only used when the file actually exists. */
+function vestra_journal_photo_for(array $p): string {
+    static $map = [
+        'the-enduring-business-of-the-piqu-polo'                    => '/uploads/rl/csf-polo-white.png',
+        'build-a-colour-assortment-that-actually-sells'            => '/uploads/rl/csf-polo-fuchsia.png',
+        'how-presentation-lifts-sell-through-on-a-wholesale-rail'  => '/uploads/rl/csf-polo-orange.jpg',
+        'why-mixed-size-packs-outsell-single-size-buys'            => '/uploads/rl/csf-polo-yellow.jpg',
+        'seasonless-staples-building-a-core-that-never-goes-on-sale'=> '/uploads/rl/csf-tee-cream.jpg',
+        'the-resale-boom-and-what-it-means-for-wholesale-buyers'   => '/uploads/rl/csf-polo-darkgreen.jpg',
+    ];
+    $f = $map[$p['slug'] ?? ''] ?? '';
+    return ($f !== '' && is_file(dirname(__DIR__).$f)) ? $f : '';
+}
+/* Cover image URL for an article: the admin-set cover if present, else a mapped
+   real garment photo, else the generated editorial SVG as a data-URI (so the
+   grid/hero is never a blank block). */
 function vestra_journal_cover_uri(array $p): string {
     if (!empty($p['cover'])) return (string)$p['cover'];
+    $photo = vestra_journal_photo_for($p);
+    if ($photo !== '') return $photo;
     return 'data:image/svg+xml;base64,'.base64_encode(vestra_journal_cover_svg($p));
 }
 /* Return the article with title/excerpt/body swapped to the reader's language
