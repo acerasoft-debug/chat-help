@@ -16,12 +16,14 @@ if ($slug !== '') {
     $art = vestra_journal_find($slug);
     if (!$art || empty($art['published'])) { http_response_code(404); $slug=''; }
     else {
+        $lang = vlang();
+        $art  = vestra_journal_localize($art, $lang);
         $PAGE = $art['title'];
         $META = mb_substr(trim($art['excerpt'] ?: strip_tags($art['body'] ?? '')), 0, 180);
         $NAV  = 'journal';
         require __DIR__.'/inc/head.php';
         $more = array_values(array_filter(vestra_journal_published(), fn($p) => ($p['id'] ?? '') !== ($art['id'] ?? '')));
-        $more = array_slice($more, 0, 3);
+        $more = array_map(fn($p) => vestra_journal_localize($p, $lang), array_slice($more, 0, 3));
         ?>
         <style><?= vestra_journal_css() ?></style>
         <article class="jr-article">
@@ -62,6 +64,8 @@ require __DIR__.'/inc/head.php';
 
 $all = vestra_journal_published();
 if ($cat !== '') $all = array_values(array_filter($all, fn($p) => ($p['category'] ?? '') === $cat));
+$lang = vlang();
+$all = array_map(fn($p) => vestra_journal_localize($p, $lang), $all);
 $featured = $all[0] ?? null;
 $rest = $featured ? array_slice($all, 1) : [];
 ?>

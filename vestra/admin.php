@@ -1890,7 +1890,7 @@ elseif($tab==='journal'):
   <div><h2 style="font-size:18px;font-weight:700">📰 Journal</h2>
   <p class="ahint" style="margin-top:4px">Publish fashion, brand &amp; market articles. Published pieces appear at <a href="/journal" target="_blank" style="color:var(--acc)">/journal ↗</a>.</p></div>
   <form method="post" action="/admin"><?= csrfField() ?><input type="hidden" name="_action" value="journal_seed">
-    <button class="abtn" type="submit" title="Add three ready-made starter articles you can edit">✨ Load starter articles</button>
+    <button class="abtn" type="submit" title="Add six ready-made, fully translated (EN/DE/FR/IT/ES) starter articles you can edit — running it again back-fills translations onto older starters">✨ Load starter articles</button>
   </form>
 </div>
 

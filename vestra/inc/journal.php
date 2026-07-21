@@ -73,53 +73,71 @@ function vestra_journal_body_html(string $body): string {
 function vestra_journal_reading_min(string $body): int {
     return max(1, (int)ceil(str_word_count(strip_tags($body)) / 200));
 }
-
-/** Built-in starter articles — loaded into data/journal.json on admin request. */
-function vestra_journal_starters(): array {
-    $now = date('c');
-    return [
-        [
-            'title'    => 'Sourcing Authentic Branded Stock in 2026: A Buyer\'s Checklist',
-            'category' => 'Market & Prices',
-            'author'   => 'VESTRA Editorial',
-            'cover'    => '',
-            'excerpt'  => 'Counterfeits and non-delivery are the two biggest risks in branded wholesale. Here is how professional buyers de-risk every order.',
-            'body'     => "The branded wholesale market moves fast, and the same speed that lets you land a great parcel of stock can also expose you to two familiar risks: goods that never arrive, and goods that are not what they claimed to be.\n\nStart with the paperwork. A serious seller can show provenance — invoices up the chain, or at minimum a clear statement of where the stock came from and a willingness to provide proof on request. Vague answers are a red flag.\n\nInspect the size ratio, not just the headline quantity. A \"pack of 8\" that is really 6 XL and 2 S is very different to a balanced run. Reputable listings state the ratio up front.\n\nFinally, protect the money. Paying a new supplier by open bank transfer means trusting a stranger with your cash before you have seen a single carton. Escrow flips that: the funds are held and only released to the seller once you confirm delivery — so a deal that goes wrong is recoverable, not written off.\n\nOn VESTRA every seller is verified before they can trade, and escrow-protected card payment is built into checkout. The result is a market where you can move quickly without moving carelessly.",
-            'published' => true, 'created' => $now, 'updated' => $now,
-        ],
-        [
-            'title'    => 'The Enduring Business of the Piqué Polo',
-            'category' => 'Wholesale Trends',
-            'author'   => 'VESTRA Editorial',
-            'cover'    => '',
-            'excerpt'  => 'Few garments sell as reliably at wholesale as the cotton piqué polo. We look at why it keeps turning over — season after season.',
-            'body'     => "Trends come and go, but a handful of garments simply keep selling. The cotton piqué polo is one of them: seasonless, gender-broad, and instantly recognisable across price tiers from the high street to heritage houses.\n\nFor a buyer, that reliability is the whole point. A polo does not date the way a printed tee or a cut-of-the-moment jacket can, which means unsold stock carries far less markdown risk. It also travels across markets — the same core colours work in Germany, France, Italy and beyond.\n\nThe commercial art is in the assortment. The strongest sellers weight the middle of the size curve (M–XL) and lead with core colours — black, white, navy — before adding a few seasonal accents. Mixed-colour cartons let a retailer test breadth without committing to full packs of a single shade.\n\nAs a category to build a wholesale position around, the piqué polo remains hard to beat: dependable demand, broad appeal, and margins that hold.",
-            'published' => true, 'created' => $now, 'updated' => $now,
-        ],
-        [
-            'title'    => 'How to Read a Wholesale Line Sheet Like a Buyer',
-            'category' => 'Brand News',
-            'author'   => 'VESTRA Editorial',
-            'cover'    => '',
-            'excerpt'  => 'A line sheet is where a deal is really made or lost. Here is what experienced buyers look at first.',
-            'body'     => "A line sheet looks simple — photos, prices, minimums — but experienced buyers read it in a specific order, and it saves them money.\n\nFirst, the minimum order quantity and pack structure. MOQ tells you the size of the commitment; the pack step tells you how the stock actually ships. A low unit price behind a huge MOQ is not a bargain if it ties up your cash.\n\nSecond, the price breaks. Tiered pricing rewards volume — knowing where the next break sits lets you decide whether nudging your order up a tier is worth it.\n\nThird, condition and origin. \"A1\" or first-quality is not the same as graded or returned stock, and EEA origin matters for both duty and authenticity. A good line sheet states both plainly.\n\nOnly then do the photos matter. Great imagery sells, but the numbers decide whether the deal works for your business. On VESTRA, every listing surfaces MOQ, pack size, tiers and condition up front — so you can read the deal in seconds and message the seller with the right question.",
-            'published' => true, 'created' => $now, 'updated' => $now,
-        ],
-    ];
+/* Return the article with title/excerpt/body swapped to the reader's language
+   when a translation exists under $a['i18n'][$lang]; English is the base/fallback. */
+function vestra_journal_localize(array $a, string $lang): array {
+    if ($lang !== 'en' && !empty($a['i18n'][$lang]) && is_array($a['i18n'][$lang])) {
+        foreach (['title', 'excerpt', 'body'] as $f)
+            if (!empty($a['i18n'][$lang][$f])) $a[$f] = $a['i18n'][$lang][$f];
+    }
+    return $a;
 }
-/** Load the starter articles into data/journal.json (skips titles that already exist). Returns count added. */
+
+/** Built-in starter articles — loaded into data/journal.json on admin request.
+ *  The content (English + de/fr/it/es translations) lives in inc/journal_seed.json,
+ *  which ships with the code, so it deploys like any other source file and needs
+ *  no escaping gymnastics in PHP. Timestamps are staggered by one day per article
+ *  so the newest-first ordering is stable and reads as a natural publishing run. */
+function vestra_journal_starters(): array {
+    $file = __DIR__.'/journal_seed.json';
+    $seed = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
+    if (!is_array($seed)) return [];
+    $out = []; $i = 0;
+    foreach ($seed as $s) {
+        if (empty($s['title'])) continue;
+        $ts = date('c', time() - $i * 86400);
+        $out[] = [
+            'title'     => (string)$s['title'],
+            'category'  => (string)($s['category'] ?? 'Brand News'),
+            'author'    => (string)($s['author'] ?? 'VESTRA Editorial'),
+            'cover'     => (string)($s['cover'] ?? ''),
+            'excerpt'   => (string)($s['excerpt'] ?? ''),
+            'body'      => (string)($s['body'] ?? ''),
+            'i18n'      => (isset($s['i18n']) && is_array($s['i18n'])) ? $s['i18n'] : [],
+            'published' => true,
+            'created'   => $ts,
+            'updated'   => $ts,
+        ];
+        $i++;
+    }
+    return $out;
+}
+/** Load starter articles into data/journal.json. New titles are added in full;
+ *  an existing starter (matched by title) has its translations back-filled if it
+ *  has none yet — so clicking again upgrades older English-only starters in place
+ *  without touching any article the admin has since edited. Returns count changed. */
 function vestra_journal_seed_starters(): int {
     $all = vestra_read_json('journal.json');
-    $have = array_map(fn($p) => strtolower(trim((string)($p['title'] ?? ''))), $all);
-    $added = 0;
+    $byTitle = [];
+    foreach ($all as $idx => $p) $byTitle[strtolower(trim((string)($p['title'] ?? '')))] = $idx;
+    $changed = 0;
     foreach (vestra_journal_starters() as $s) {
-        if (in_array(strtolower(trim($s['title'])), $have, true)) continue;
-        $s['id'] = 'jr_'.bin2hex(random_bytes(5));
+        $key = strtolower(trim($s['title']));
+        if (isset($byTitle[$key])) {
+            $idx = $byTitle[$key];
+            if (empty($all[$idx]['i18n']) && !empty($s['i18n'])) { // back-fill translations onto an English-only starter
+                $all[$idx]['i18n']    = $s['i18n'];
+                $all[$idx]['updated'] = date('c');
+                $changed++;
+            }
+            continue;
+        }
+        $s['id']   = 'jr_'.bin2hex(random_bytes(5));
         $s['slug'] = vestra_journal_slug($s['title']);
-        $all[] = $s; $added++;
-        $have[] = strtolower(trim($s['title']));
-        // re-read-safe: keep $all local, write once at the end
+        $all[] = $s;
+        $byTitle[$key] = array_key_last($all);
+        $changed++;
     }
-    if ($added) vestra_write_json('journal.json', $all);
-    return $added;
+    if ($changed) vestra_write_json('journal.json', $all);
+    return $changed;
 }
