@@ -62,6 +62,42 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=approvals&msg=rejected'); exit;
   }
+  /* Admin full listing editor — edit any field, set status, and reassign the
+     listing to a different seller. */
+  if($act==='admin_save_listing'){
+    $lid=$_POST['lid']??''; $one=fn($s)=>trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s)));
+    $all=vestra_listings();
+    foreach($all as &$p){
+      if(($p['id']??'')!==$lid) continue;
+      $p['brand']=$one($_POST['brand']??($p['brand']??''));
+      $p['name'] =$one($_POST['name'] ??($p['name'] ??''));
+      $p['cat']  =$one($_POST['cat']  ??($p['cat']  ??''));
+      $p['sku']  =$one($_POST['sku']  ??($p['sku']  ??''));
+      $p['moq']  =max(1,(int)($_POST['moq']??($p['moq']??1)));
+      $mode=in_array($_POST['mode']??'',['fixed','sale','offer'],true)?$_POST['mode']:($p['mode']??'fixed');
+      $p['mode']=$mode;
+      if($mode==='sale') $p['list']=round((float)($_POST['list']??($p['list']??0)),2);
+      $tiers=[];
+      foreach([['t1min','t1price'],['t2min','t2price'],['t3min','t3price']] as $pair){
+        $mn=(int)($_POST[$pair[0]]??0); $pr=(float)($_POST[$pair[1]]??0);
+        if($mn>0&&$pr>0) $tiers[]=['min'=>$mn,'price'=>round($pr,2)];
+      }
+      usort($tiers,fn($a,$b)=>$a['min']<=>$b['min']);
+      if($tiers) $p['tiers']=$tiers;
+      $colors=array_values(array_intersect((array)($_POST['colors']??[]),array_keys(vestra_colors())));
+      if($colors) $p['colors']=$colors; else unset($p['colors']);
+      $step=max(0,(int)($_POST['size_step']??0)); if($step>1) $p['size_step']=$step; else unset($p['size_step']);
+      $minC=max(0,(int)($_POST['min_colors']??0)); if($minC>0&&$colors&&$minC<=count($colors)) $p['min_colors']=$minC; else unset($p['min_colors']);
+      if(in_array($_POST['status']??'',['approved','pending','rejected','suspended'],true)) $p['status']=$_POST['status'];
+      if(isset($_POST['desc'])) $p['desc']=$one($_POST['desc']);
+      $ns=$_POST['seller_uid']??'';
+      if($ns!==''){ $p['seller_uid']=$ns; foreach(auth_accounts() as $a){ if(($a['id']??'')===$ns){ $p['seller']=($a['company']?:($a['name']?:($p['seller']??''))); break; } } }
+      break;
+    }
+    unset($p);
+    vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=listing_saved'); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -547,6 +583,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
+    'listing_saved'=>'✓ Listing updated.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -1348,7 +1385,56 @@ elseif($tab==='req_offers'): ?>
 elseif($tab==='listings'):
   $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved');
   $rejList    = array_filter($listings,fn($p)=>($p['status']??'')==='rejected');
+  $ledit      = ($leid=($_GET['edit']??'')) ? vestra_listing_by_id($leid) : null;
 ?>
+<?php if($ledit): $lc=(array)($ledit['colors']??[]); $lt=$ledit['tiers']??[]; ?>
+<div class="acard" style="margin-bottom:18px;border-color:var(--acc)">
+  <div class="acard-hd"><h3>✏️ Edit listing — <?= htmlspecialchars(trim(($ledit['brand']??'').' '.($ledit['name']??''))) ?></h3><a class="abtn" href="/admin?tab=listings">✕ Close</a></div>
+  <div class="acard-body">
+    <form method="post" action="/admin" class="aform">
+      <?= csrfField() ?><input type="hidden" name="_action" value="admin_save_listing"><input type="hidden" name="lid" value="<?= htmlspecialchars($ledit['id']??'') ?>">
+      <div class="acols2">
+        <div class="afield"><label>Brand</label><input name="brand" value="<?= htmlspecialchars($ledit['brand']??'') ?>"></div>
+        <div class="afield"><label>Product name</label><input name="name" value="<?= htmlspecialchars($ledit['name']??'') ?>"></div>
+      </div>
+      <div class="acols3">
+        <div class="afield"><label>Category</label><input name="cat" value="<?= htmlspecialchars($ledit['cat']??'') ?>"></div>
+        <div class="afield"><label>SKU</label><input name="sku" value="<?= htmlspecialchars($ledit['sku']??'') ?>"></div>
+        <div class="afield"><label>MOQ</label><input type="number" name="moq" min="1" value="<?= (int)($ledit['moq']??1) ?>"></div>
+      </div>
+      <div class="acols3">
+        <div class="afield"><label>Mode</label><select name="mode"><?php foreach(['fixed','sale','offer'] as $m): ?><option <?= ($ledit['mode']??'fixed')===$m?'selected':'' ?>><?= $m ?></option><?php endforeach; ?></select></div>
+        <div class="afield"><label>Pack size (0 = none)</label><input type="number" name="size_step" min="0" value="<?= (int)($ledit['size_step']??0) ?>"></div>
+        <div class="afield"><label>Min colours (0 = none)</label><input type="number" name="min_colors" min="0" value="<?= (int)($ledit['min_colors']??0) ?>"></div>
+      </div>
+      <label style="font-size:12px;color:var(--mut);display:block;margin:2px 0 4px">Price tiers — min qty → €/unit</label>
+      <div class="acols3">
+        <?php for($i=0;$i<3;$i++): ?>
+        <div style="display:flex;gap:6px"><input type="number" name="t<?= $i+1 ?>min" placeholder="min qty" value="<?= htmlspecialchars((string)($lt[$i]['min']??'')) ?>"><input type="number" step="0.01" name="t<?= $i+1 ?>price" placeholder="€/unit" value="<?= htmlspecialchars((string)($lt[$i]['price']??'')) ?>"></div>
+        <?php endfor; ?>
+      </div>
+      <div class="afield"><label>Colours</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:2px">
+          <?php foreach(vestra_colors() as $cn=>$hex): ?>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" name="colors[]" value="<?= htmlspecialchars($cn) ?>" <?= in_array($cn,$lc,true)?'checked':'' ?>><span style="width:13px;height:13px;border-radius:50%;background:<?= htmlspecialchars($hex) ?>;display:inline-block;border:1px solid var(--line)"></span><?= htmlspecialchars($cn) ?></label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="acols2">
+        <div class="afield"><label>Status</label><select name="status"><?php foreach(['approved','pending','rejected','suspended'] as $s): ?><option <?= ($ledit['status']??'approved')===$s?'selected':'' ?>><?= $s ?></option><?php endforeach; ?></select></div>
+        <div class="afield"><label>Seller (reassign)</label><select name="seller_uid">
+          <option value="">— keep current (<?= htmlspecialchars($ledit['seller']??$ledit['seller_uid']??'—') ?>)</option>
+          <?php foreach(array_filter($accounts,fn($a)=>($a['type']??'')==='seller') as $a): ?>
+          <option value="<?= htmlspecialchars($a['id']??'') ?>" <?= ($ledit['seller_uid']??'')===($a['id']??'')?'selected':'' ?>><?= htmlspecialchars($a['company']?:($a['name']?:($a['email']??'?'))) ?></option>
+          <?php endforeach; ?>
+        </select></div>
+      </div>
+      <div class="afield"><label>Description</label><textarea name="desc" rows="3"><?= htmlspecialchars($ledit['desc']??'') ?></textarea></div>
+      <button class="abtn primary" type="submit" style="justify-content:center;padding:10px">💾 Save listing</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 <div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($listings) ?></div><div class="sl">Custom listings</div></div>
   <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= count($liveList) ?></div><div class="sl">Live / approved</div></div>
@@ -1371,6 +1457,7 @@ elseif($tab==='listings'):
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
     <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#7ad6a0'),'rejected'=>abadge('✗ Rejected','#ef9a9a'),default=>abadge('⏳ Pending','#f0c060')} ?></td>
     <td class="ac"><div style="display:flex;gap:4px">
+      <a class="abtn" href="/admin?tab=listings&edit=<?= urlencode($p['id']??'') ?>#top" style="border-color:rgba(201,168,106,.4)">Edit</a>
       <?php if($st==='pending'): ?><a class="abtn" href="/admin?tab=approvals">Review</a><?php endif; ?>
       <?= fBtn('Delete','delete_listing',['lid'=>$p['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)','Delete this listing?') ?>
     </div></td>

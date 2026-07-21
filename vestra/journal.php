@@ -25,8 +25,8 @@ if ($slug !== '') {
         ?>
         <style><?= vestra_journal_css() ?></style>
         <article class="jr-article">
-          <div class="jr-crumbs"><a href="/">Home</a> · <a href="/journal"><?= t('Journal') ?></a> · <span><?= htmlspecialchars($art['category'] ?? '') ?></span></div>
-          <div class="jr-cat"><?= htmlspecialchars($art['category'] ?? '') ?></div>
+          <div class="jr-crumbs"><a href="/">Home</a> · <a href="/journal"><?= t('Journal') ?></a> · <span><?= htmlspecialchars(t($art['category'] ?? '')) ?></span></div>
+          <div class="jr-cat"><?= htmlspecialchars(t($art['category'] ?? '')) ?></div>
           <h1 class="jr-title"><?= htmlspecialchars($art['title'] ?? '') ?></h1>
           <div class="jr-meta"><?= htmlspecialchars($art['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($art['created'] ?? '') ?> · <?= vestra_journal_reading_min($art['body'] ?? '') ?> <?= t('min read') ?></div>
           <?php if (!empty($art['cover'])): ?><img class="jr-cover" src="<?= htmlspecialchars($art['cover']) ?>" alt="<?= htmlspecialchars($art['title'] ?? '') ?>" loading="lazy"><?php endif; ?>
@@ -43,7 +43,7 @@ if ($slug !== '') {
           <div class="jr-grid">
             <?php foreach ($more as $p): ?>
             <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-              <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars($p['category'] ?? '') ?></span></div>
+              <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
               <div class="jr-cbody"><h4><?= htmlspecialchars($p['title'] ?? '') ?></h4><p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 110)) ?></p></div>
             </a>
             <?php endforeach; ?>
@@ -76,7 +76,7 @@ $rest = $featured ? array_slice($all, 1) : [];
   <div class="jr-cats">
     <a href="/journal" class="<?= $cat===''?'on':'' ?>"><?= t('All') ?></a>
     <?php foreach (VESTRA_JOURNAL_CATS as $c): ?>
-      <a href="/journal?cat=<?= urlencode($c) ?>" class="<?= $cat===$c?'on':'' ?>"><?= htmlspecialchars($c) ?></a>
+      <a href="/journal?cat=<?= urlencode($c) ?>" class="<?= $cat===$c?'on':'' ?>"><?= htmlspecialchars(t($c)) ?></a>
     <?php endforeach; ?>
   </div>
 
@@ -87,7 +87,7 @@ $rest = $featured ? array_slice($all, 1) : [];
     <a class="jr-feature" href="/journal?slug=<?= urlencode($featured['slug'] ?? '') ?>">
       <div class="jr-feature-img"<?= !empty($featured['cover'])?' style="background-image:url(\''.htmlspecialchars($featured['cover'],ENT_QUOTES).'\')"':'' ?>></div>
       <div class="jr-feature-txt">
-        <span class="jr-badge gold"><?= htmlspecialchars($featured['category'] ?? '') ?></span>
+        <span class="jr-badge gold"><?= htmlspecialchars(t($featured['category'] ?? '')) ?></span>
         <h2><?= htmlspecialchars($featured['title'] ?? '') ?></h2>
         <p><?= htmlspecialchars(mb_substr($featured['excerpt'] ?? '', 0, 200)) ?></p>
         <div class="jr-meta"><?= htmlspecialchars($featured['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($featured['created'] ?? '') ?></div>
@@ -99,7 +99,7 @@ $rest = $featured ? array_slice($all, 1) : [];
     <div class="jr-grid">
       <?php foreach ($rest as $p): ?>
       <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-        <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars($p['category'] ?? '') ?></span></div>
+        <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
         <div class="jr-cbody">
           <h4><?= htmlspecialchars($p['title'] ?? '') ?></h4>
           <p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 120)) ?></p>
