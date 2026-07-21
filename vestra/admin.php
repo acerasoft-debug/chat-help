@@ -98,6 +98,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=listing_saved'); exit;
   }
+  /* Bulk: set MOQ to 20 on every listing whose brand is NOT Lacoste / Ralph
+     Lauren / Amiri (matched loosely so "R. Lauren", "Ralph Lauren Polo", … are
+     also kept as-is). Only touches seller listings in data/listings.json. */
+  if($act==='bulk_moq_20'){
+    $all=vestra_listings(); $n=0;
+    foreach($all as &$p){
+      $b=(string)($p['brand']??'');
+      if(preg_match('/lacoste|ralph|lauren|amiri/i',$b)) continue;   // excluded brands stay untouched
+      if((int)($p['moq']??0)!==20){ $p['moq']=20; $n++; }
+    }
+    unset($p);
+    if($n) vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=bulk_moq&n='.$n); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -673,6 +687,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 </div>
 <?php elseif($msg && isset($msgs[$msg])): ?>
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
+<?php elseif($msg==='bulk_moq'): ?>
+<div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
 <?php elseif($msg==='lead_import'): ?>
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
@@ -1489,6 +1505,10 @@ elseif($tab==='listings'):
   <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= count(vestra_demo_products()) ?></div><div class="sl">Demo products</div></div>
 </div>
+<form method="post" style="margin:0 0 16px" onsubmit="return confirm('Set MOQ = 20 on EVERY listing except Lacoste, Ralph Lauren and Amiri? (Those three keep their current MOQ.)')">
+  <?= csrfField() ?><input type="hidden" name="_action" value="bulk_moq_20">
+  <button class="abtn primary" type="submit" title="Bulk-set the minimum order quantity to 20 pieces on all listings whose brand is not Lacoste, Ralph Lauren or Amiri">⚙ Set MOQ = 20 — all brands except Lacoste / R.Lauren / Amiri</button>
+</form>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
