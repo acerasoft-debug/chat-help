@@ -73,12 +73,22 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
       $from = vestra_from_price($p);
       $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
       ?>
+      <?php
+        /* Showroom viewers are always freigeschaltet, so cards are photo-forward:
+           first photo is the base, the SECOND crossfades in on hover (or while the
+           card is centred in view on touch) — same effect as the catalogue. */
+        $imgs = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
+        if (!$imgs && $APPROVED) { $pi = vestra_primary_image($p); if ($pi) $imgs = [$pi]; }
+        $img0 = $imgs[0] ?? ''; $img1 = $imgs[1] ?? '';
+      ?>
       <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>">
         <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?? '#2a2b31' ?>,#0e0e11)">
+          <?php if ($img0): ?><img class="sthumbi" src="<?= htmlspecialchars($img0) ?>" alt="" loading="lazy"><?php endif; ?>
+          <?php if ($img1): ?><img class="sthumbi sthumbi-reveal" src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy"><?php endif; ?>
           <?php if (!empty($p['verified'])): ?>
             <span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span>
           <?php endif; ?>
-          <?php $blogo = vestra_brand_logo($p['brand'] ?? ''); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand'] ?? '').'</span>'; ?>
+          <?php if (!$img0): $blogo = vestra_brand_logo($p['brand'] ?? ''); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand'] ?? '').'</span>'; endif; ?>
           <?php if (($p['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
           <?php elseif (($p['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
           <?php if ($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
@@ -108,4 +118,16 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
     <?php endforeach; ?>
   </div>
 </div>
+<script>
+/* Touch devices have no hover: reveal the second product photo while the card is
+   centred in the viewport instead (same crossfade as the desktop hover). */
+if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'IntersectionObserver' in window) {
+  var revIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ en.target.classList.toggle('sreveal', en.intersectionRatio >= .55); });
+  }, {threshold:[.3,.55]});
+  document.querySelectorAll('.shopgrid .scard').forEach(function(c){
+    if (c.querySelector('.sthumbi-reveal')) revIO.observe(c);
+  });
+}
+</script>
 <?php require __DIR__.'/inc/foot.php';
