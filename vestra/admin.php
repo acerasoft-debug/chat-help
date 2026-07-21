@@ -395,23 +395,23 @@ function abadge(string $t, string $c='#888'): string {
   return '<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'.$c.'22;color:'.$c.';border:1px solid '.$c.'44">'.htmlspecialchars($t).'</span>';
 }
 function kybBadge(string $s): string {
-  return match($s){ 'approved'=>abadge('✓ Verified','#7ad6a0'),'suspended'=>abadge('⊘ Suspended','#ef9a9a'),default=>abadge('⏳ Pending','#f0c060') };
+  return match($s){ 'approved'=>abadge('✓ Verified','#1f9d63'),'suspended'=>abadge('⊘ Suspended','#c0392b'),default=>abadge('⏳ Pending','#a9781a') };
 }
 function docBadge(string $s): string {
-  return match($s){ 'approved'=>abadge('✓ Approved','#7ad6a0'),'rejected'=>abadge('✗ Rejected','#ef9a9a'),'uploaded'=>abadge('📤 Review','#c9a86a'),'requested'=>abadge('📋 Requested','#8ab4f8'),default=>abadge('—','#555') };
+  return match($s){ 'approved'=>abadge('✓ Approved','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),'uploaded'=>abadge('📤 Review','#9a7320'),'requested'=>abadge('📋 Requested','#3366cc'),default=>abadge('—','#555') };
 }
 function orderBadge(string $s): string {
-  return match($s){ 'completed'=>abadge('✓ Completed','#7ad6a0'),'shipped'=>abadge('🚚 Shipped','#c9a86a'),'paid'=>abadge('💶 Paid — to ship','#8fb7e8'),default=>abadge('⏳ Awaiting payment','#888') };
+  return match($s){ 'completed'=>abadge('✓ Completed','#1f9d63'),'shipped'=>abadge('🚚 Shipped','#9a7320'),'paid'=>abadge('💶 Paid — to ship','#3a6fb0'),default=>abadge('⏳ Awaiting payment','#888') };
 }
 function typePill(string $t): string {
-  $c=$t==='seller'?'#c9a86a':'#8ab4f8'; $b=$t==='seller'?'rgba(201,168,106,.15)':'rgba(138,180,248,.15)';
+  $c=$t==='seller'?'#9a7320':'#3366cc'; $b=$t==='seller'?'rgba(201,168,106,.15)':'rgba(138,180,248,.15)';
   return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:'.$b.';color:'.$c.'">'.htmlspecialchars($t).'</span>';
 }
 function memberBadge(string $tier, string $status): string {
   if($tier===''&&($status===''||$status==='none')) return '<span style="color:#555;font-size:11px">—</span>';
-  $tc=['starter'=>'#8ab4f8','pro'=>'#c9a86a','premium'=>'#f0c060'][$tier]??'#888';
+  $tc=['starter'=>'#3366cc','pro'=>'#9a7320','premium'=>'#a9781a'][$tier]??'#888';
   $tl=$tier==='premium' ? 'Elite' : ($tier?ucfirst($tier):'');
-  $sc=match($status){'active'=>'#7ad6a0','trialing'=>'#f0c060','past_due'=>'#ef9a9a','canceled'=>'#888',default=>'#555'};
+  $sc=match($status){'active'=>'#1f9d63','trialing'=>'#a9781a','past_due'=>'#c0392b','canceled'=>'#888',default=>'#555'};
   $sl=match($status){'active'=>'Active','trialing'=>'Trial','past_due'=>'Past due','canceled'=>'Canceled',default=>'—'};
   return ($tl?abadge($tl,$tc):'').'<div style="margin-top:3px">'.abadge($sl,$sc).'</div>';
 }
@@ -434,46 +434,49 @@ function arow(array $cells, bool $head=false): string {
 <title>VESTRA Admin</title>
 <link rel="stylesheet" href="/inc/style.css">
 <style>
-:root{--sb:220px}
+:root{--sb:220px;
+  --bg:#f4f2ee; --bg2:#ffffff; --bg3:#faf8f4; --ink:#211d17; --mut:#6f695e;
+  --acc:#a97f2c; --line:#e6e0d5; --ok:#2e9e6b; --bad:#d0574f;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh}
 .alayout{display:grid;grid-template-columns:var(--sb) 1fr;grid-template-rows:52px 1fr;min-height:100vh}
 /* top bar */
-.atopbar{grid-column:1/-1;background:#0a0a0d;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:100}
+.atopbar{grid-column:1/-1;background:#ffffff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:100}
 .atopbar .logo{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-weight:700;font-size:15px;width:var(--sb);flex-shrink:0}
 .atopbar .logo svg{flex-shrink:0}
 .atopbar-links{margin-left:auto;display:flex;gap:8px}
 /* sidebar */
-.asidebar{background:#0d0d10;border-right:1px solid var(--line);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.asidebar{background:#fbfaf7;border-right:1px solid var(--line);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
 .asidebar a{display:flex;align-items:center;gap:9px;padding:8px 18px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-left:2px solid transparent;transition:.1s}
-.asidebar a:hover{color:var(--ink);background:rgba(255,255,255,.04)}
-.asidebar a.on{color:var(--acc);border-left-color:var(--acc);background:rgba(201,168,106,.06)}
-.asidebar .sgrp{padding:14px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;color:#444;text-transform:uppercase}
-.aside-badge{margin-left:auto;background:var(--acc);color:#0e0e11;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
-.aside-badge.red{background:#ef9a9a;color:#1a0000}
+.asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.04)}
+.asidebar a.on{color:var(--acc);border-left-color:var(--acc);background:rgba(168,127,44,.1)}
+.asidebar .sgrp{padding:14px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;color:#a49a86;text-transform:uppercase}
+.aside-badge{margin-left:auto;background:var(--acc);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
+.aside-badge.red{background:#d0574f;color:#fff}
 /* main */
 .amain{padding:28px 32px;overflow-y:auto}
 /* stat cards */
 .asgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:24px}
-.ascard{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:default}
+.ascard{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:default;box-shadow:0 1px 3px rgba(60,50,30,.05)}
 .ascard .sv{font-size:22px;font-weight:700;line-height:1.2;color:var(--acc)}
 .ascard .sl{font-size:11px;color:var(--mut);margin-top:4px}
 /* section card */
-.acard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:20px;overflow:hidden}
-.acard-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+.acard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:20px;overflow:hidden;box-shadow:0 1px 3px rgba(60,50,30,.05)}
+.acard-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.02)}
 .acard-hd h3{font-size:14px;font-weight:600;flex:1}
 .acard-body{padding:18px}
 /* table */
 .atable{width:100%;border-collapse:collapse;font-size:12.5px}
-.atable th.ac{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);color:var(--mut);font-weight:500;font-size:11px;white-space:nowrap;background:rgba(255,255,255,.02)}
-.atable td.ac{padding:9px 10px;border-bottom:1px solid #1a1a1e;vertical-align:top;max-width:220px;word-break:break-word}
+.atable th.ac{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);color:var(--mut);font-weight:500;font-size:11px;white-space:nowrap;background:rgba(0,0,0,.03)}
+.atable td.ac{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;max-width:220px;word-break:break-word}
 .atable tr:last-child td.ac{border-bottom:none}
-.atable tr:hover td.ac{background:rgba(255,255,255,.02)}
+.atable tr:hover td.ac{background:rgba(0,0,0,.03)}
 .atscroll{overflow-x:auto}
 /* buttons */
 .abtn{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:.1s;text-decoration:none}
 .abtn:hover{border-color:var(--acc);color:var(--acc)}
-.abtn.primary{background:var(--acc);color:#0e0e11;border-color:var(--acc);font-weight:600}
+.abtn.primary{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
 .abtn.primary:hover{opacity:.9}
 /* forms */
 .aform{display:flex;flex-direction:column;gap:12px}
@@ -482,7 +485,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .afield textarea{resize:vertical;min-height:60px}
 /* misc */
 .amsg{padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px}
-.amsg.ok{background:rgba(122,214,160,.1);border:1px solid rgba(122,214,160,.3);color:#7ad6a0}
+.amsg.ok{background:rgba(122,214,160,.1);border:1px solid rgba(122,214,160,.3);color:#1f9d63}
 .aempty{color:var(--mut);padding:36px;text-align:center;font-size:14px}
 .atag{font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--line);padding:2px 6px;border-radius:4px}
 .cdots{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
@@ -494,10 +497,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .loginwrap{display:flex;align-items:center;justify-content:center;min-height:100vh}
 .loginbox{width:380px;background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:36px}
 /* doc status colors */
-.doc-uploaded{background:rgba(201,168,106,.1);border-left:3px solid #c9a86a}
-.doc-approved{background:rgba(122,214,160,.08);border-left:3px solid #7ad6a0}
-.doc-rejected{background:rgba(239,154,154,.08);border-left:3px solid #ef9a9a}
-.doc-requested{background:rgba(138,180,248,.08);border-left:3px solid #8ab4f8}
+.doc-uploaded{background:rgba(201,168,106,.1);border-left:3px solid #9a7320}
+.doc-approved{background:rgba(122,214,160,.08);border-left:3px solid #1f9d63}
+.doc-rejected{background:rgba(239,154,154,.08);border-left:3px solid #c0392b}
+.doc-requested{background:rgba(138,180,248,.08);border-left:3px solid #3366cc}
 /* Mobile: sidebar becomes a horizontal, scrollable tab strip instead of disappearing */
 @media(max-width:900px){
   :root{--sb:0px}
@@ -521,12 +524,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="loginwrap"><div class="loginbox">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
     <svg viewBox="0 0 32 32" fill="none" width="30" height="30">
-      <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="#c9a86a" stroke-width="1.4"/>
-      <path d="M9 10l7 13 7-13" stroke="#c9a86a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="#9a7320" stroke-width="1.4"/>
+      <path d="M9 10l7 13 7-13" stroke="#9a7320" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <div><div style="font-weight:700;font-size:16px">VESTRA</div><div style="font-size:11px;color:var(--mut)">Admin Panel</div></div>
   </div>
-  <?php if($err): ?><div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#ef9a9a">Wrong password.</div><?php endif; ?>
+  <?php if($err): ?><div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">Wrong password.</div><?php endif; ?>
   <form method="post" class="aform">
     <div class="afield"><label>Admin password</label><input type="password" name="pass" autofocus required autocomplete="current-password" placeholder="••••••••"></div>
     <button class="abtn primary" type="submit" style="justify-content:center;padding:9px">Sign in</button>
@@ -574,6 +577,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   // Membership + Connect readiness across sellers.
   $memActive    = count(array_filter($sellers, fn($a)=>in_array($a['membership_status']??'', ['active','trialing'], true)));
   $connectReady = count(array_filter($sellers, fn($a)=>!empty($a['escrow_ready'])));
+  // Commission health — used by the dashboard action center AND the stat cards below.
+  $comAll       = vestra_commissions();
+  $comCharged   = array_sum(array_map(fn($c)=>($c['status']??'')==='charged'?(float)($c['amount']??0):0, $comAll));
+  $comFailed    = count(array_filter($comAll, fn($c)=>in_array($c['status']??'', ['failed','no_card'], true)));
 
   // Accounts with pending document uploads
   $pendingDocs  = count(array_filter($accounts, fn($a)=>count(array_filter($a['doc_requests']??[],fn($r)=>$r['status']==='uploaded'))>0));
@@ -608,8 +615,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="atopbar">
   <a href="/admin" class="logo">
     <svg viewBox="0 0 32 32" fill="none" width="26" height="26">
-      <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="#c9a86a" stroke-width="1.4"/>
-      <path d="M9 10l7 13 7-13" stroke="#c9a86a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="#9a7320" stroke-width="1.4"/>
+      <path d="M9 10l7 13 7-13" stroke="#9a7320" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     VESTRA
   </a>
@@ -661,7 +668,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $flash=$_SESSION['pw_reset_flash']; unset($_SESSION['pw_reset_flash']); // show once ?>
 <div class="amsg ok" style="background:rgba(201,168,106,.1);border:1px solid rgba(201,168,106,.4)">
   🔑 New password for <b><?= htmlspecialchars($flash['email']) ?></b>:
-  <code style="font-size:15px;background:#000;padding:3px 10px;border-radius:6px;color:#c9a86a;user-select:all"><?= htmlspecialchars($flash['pw']) ?></code>
+  <code style="font-size:15px;background:#faf7f1;padding:3px 10px;border-radius:6px;color:#8a6420;border:1px solid var(--line);user-select:all"><?= htmlspecialchars($flash['pw']) ?></code>
   &nbsp;— copy it now and send it to them (WhatsApp / phone). It won't be shown again; they can change it after signing in.
 </div>
 <?php elseif($msg && isset($msgs[$msg])): ?>
@@ -675,7 +682,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='push_sent'): ?>
 <div class="amsg ok">🔔 Notification sent — reached <?= (int)($_GET['n']??0) ?> subscribed user(s). Users without push enabled don't count here.</div>
 <?php elseif($msg==='push_err'): ?>
-<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#ef9a9a">⚠ Title and message are required.</div>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Title and message are required.</div>
 <?php elseif($msg==='journal_seeded'): ?>
 <div class="amsg ok">✓ Loaded <?= (int)($_GET['n']??0) ?> starter article(s)<?= ((int)($_GET['n']??0)===0)?' — they were already present':'' ?>. Edit or unpublish them any time below.</div>
 <?php endif; ?>
@@ -684,8 +691,48 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php // ══════════════════════════════════════════════════════ OVERVIEW
 if($tab==='overview'): ?>
 
+<style>
+.attn-grid{display:grid;gap:8px}
+.attn-row{display:flex;align-items:center;gap:14px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);background:var(--bg);transition:.15s}
+.attn-row:hover{border-color:var(--acc);transform:translateX(2px)}
+.attn-n{font-size:20px;font-weight:800;min-width:34px;text-align:center}
+.attn-lbl{flex:1;font-size:14px;font-weight:600}
+.attn-cta{font-size:12.5px;color:var(--acc);font-weight:600;white-space:nowrap}
+@media(max-width:600px){.attn-lbl{font-size:13px}.attn-row{gap:10px;padding:10px}}
+</style>
+<?php
+/* Action center — every pending task in one place, each a one-tap jump. Only
+   non-empty rows appear; when nothing is pending the admin sees an all-clear. */
+$att = [];
+if($pendingList)   $att[] = ['#c0392b','⚠️','Listings to approve', count($pendingList), '/admin?tab=approvals','Review'];
+if($pendingDocs)   $att[] = ['#9a7320','📄','Documents to review', $pendingDocs, '/admin?tab=documents','Open'];
+if($pendingKyb)    $att[] = ['#a9781a','⏳','Seller / buyer verifications (KYB)', count($pendingKyb), '/admin?tab=users','Review'];
+if($pendingOffers) $att[] = ['#a9781a','💬','Offers awaiting a response', count($pendingOffers), '/admin?tab=offers','Open'];
+if($escHeld)       $att[] = ['#1f9d63','🛡️','Escrow to release ('.eur($escHeldSum).')', count($escHeld), '/admin?tab=orders','Manage'];
+if($comFailed)     $att[] = ['#c0392b','💳','Commission charges to fix', $comFailed, '/admin?tab=orders','Fix'];
+if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email', count($pendingEmail), '/admin?tab=users','View'];
+?>
+<div class="acard" style="margin-bottom:18px;border-color:<?= $att?'rgba(240,192,96,.4)':'rgba(122,214,160,.35)' ?>">
+  <div class="acard-hd"><h3><?= $att?'🔔 Needs your attention':'✓ You’re all caught up' ?></h3><?php if($att): ?><span class="ahint"><?= count($att) ?> to handle</span><?php endif; ?></div>
+  <div class="acard-body">
+  <?php if(!$att): ?>
+    <div class="ahint" style="padding:6px 2px">Nothing is waiting on you — no listings to approve, no documents or verifications to review, no offers or escrow pending. 🎉</div>
+  <?php else: ?>
+    <div class="attn-grid">
+    <?php foreach($att as $it): ?>
+      <a class="attn-row" href="<?= $it[4] ?>">
+        <span class="attn-n" style="color:<?= $it[0] ?>"><?= (int)$it[3] ?></span>
+        <span class="attn-lbl"><?= $it[1] ?> <?= htmlspecialchars($it[2]) ?></span>
+        <span class="attn-cta"><?= htmlspecialchars($it[5]) ?> →</span>
+      </a>
+    <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+  </div>
+</div>
+
 <?php require_once __DIR__.'/inc/stripe.php'; if(!stripe_configured()): ?>
-<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#f0c060">
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#a9781a">
   ⚠ Stripe is not configured — seller membership checkout is disabled.
   Missing keys: <code style="font-size:11px"><?= htmlspecialchars(implode(', ', stripe_missing_keys())) ?></code>.
   Copy <code>.env.example</code> to a <code>.env</code> file one level above the document root and fill in the values.
@@ -694,37 +741,38 @@ if($tab==='overview'): ?>
 
 <div class="asgrid">
   <div class="ascard"><div class="sv"><?= count($accounts) ?></div><div class="sl">Total accounts</div></div>
-  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= count($sellers) ?></div><div class="sl">Sellers</div></div>
-  <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= count($buyers) ?></div><div class="sl">Buyers</div></div>
-  <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= count($pendingEmail) ?></div><div class="sl">Email unverified</div></div>
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingKyb) ?></div><div class="sl">Pending KYB</div></div>
-  <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= count($pendingList) ?></div><div class="sl">Pending listings</div></div>
+  <div class="ascard"><div class="sv" style="color:#9a7320"><?= count($sellers) ?></div><div class="sl">Sellers</div></div>
+  <div class="ascard"><div class="sv" style="color:#3366cc"><?= count($buyers) ?></div><div class="sl">Buyers</div></div>
+  <div class="ascard"><div class="sv" style="color:#c0392b"><?= count($pendingEmail) ?></div><div class="sl">Email unverified</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingKyb) ?></div><div class="sl">Pending KYB</div></div>
+  <div class="ascard"><div class="sv" style="color:#c0392b"><?= count($pendingList) ?></div><div class="sl">Pending listings</div></div>
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Orders</div></div>
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Order volume</div></div>
-  <?php
-    $comAll = vestra_commissions();
-    $comCharged = array_sum(array_map(fn($c)=>($c['status']??'')==='charged'?(float)($c['amount']??0):0, $comAll));
-    $comFailed  = count(array_filter($comAll, fn($c)=>in_array($c['status']??'', ['failed','no_card'], true)));
-  ?>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($comCharged) ?></div><div class="sl">Commission collected</div></div>
-  <div class="ascard"><div class="sv" style="color:<?= $comFailed?'#ef9a9a':'#555' ?>"><?= $comFailed ?></div><div class="sl">Commission needs attention</div></div>
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingOffers) ?></div><div class="sl">Offers pending</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= eur($comCharged) ?></div><div class="sl">Commission collected</div></div>
+  <div class="ascard"><div class="sv" style="color:<?= $comFailed?'#c0392b':'#555' ?>"><?= $comFailed ?></div><div class="sl">Commission needs attention</div></div><?php /* commission stats computed in the data-loading section above */ ?>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingOffers) ?></div><div class="sl">Offers pending</div></div>
   <div class="ascard"><div class="sv"><?= count($signups) ?></div><div class="sl">Waitlist</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= eur($escHeldSum) ?></div><div class="sl">🛡️ Held in escrow (<?= count($escHeld) ?>)</div></div>
-  <div class="ascard"><div class="sv" style="color:#8fd3ff"><?= $escReleased ?></div><div class="sl">Escrow released</div></div>
-  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= $connectReady ?></div><div class="sl">Connect-ready sellers</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $memActive ?></div><div class="sl">Active memberships</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= eur($escHeldSum) ?></div><div class="sl">🛡️ Held in escrow (<?= count($escHeld) ?>)</div></div>
+  <div class="ascard"><div class="sv" style="color:#2b7fb0"><?= $escReleased ?></div><div class="sl">Escrow released</div></div>
+  <div class="ascard"><div class="sv" style="color:#9a7320"><?= $connectReady ?></div><div class="sl">Connect-ready sellers</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $memActive ?></div><div class="sl">Active memberships</div></div>
 </div>
 
 <?php if($pendingList||$pendingKyb): ?>
 <div class="acols2">
 <?php if($pendingList): ?>
 <div class="acard">
-  <div class="acard-hd"><h3>⚠️ Listings awaiting approval (<?= count($pendingList) ?>)</h3><a class="abtn" href="/admin?tab=approvals">View all →</a></div>
+  <div class="acard-hd"><h3>⚠️ Listings awaiting approval (<?= count($pendingList) ?>)</h3><a class="abtn" href="/admin?tab=approvals">Review all →</a></div>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Brand','Product','Seller','Date'],true) ?>
+    <?= arow(['Brand','Product','Seller','Date','Approve'],true) ?>
     <?php foreach(array_slice(array_reverse(array_values($pendingList)),0,5) as $p): ?>
-    <?= arow(['<b>'.htmlspecialchars($p['brand']??'').'</b>',htmlspecialchars($p['name']??''),htmlspecialchars($p['seller']??''),htmlspecialchars(substr($p['submitted_at']??'',0,10))]) ?>
+    <tr>
+      <td class="ac"><b><?= htmlspecialchars($p['brand']??'') ?></b></td>
+      <td class="ac"><?= htmlspecialchars($p['name']??'') ?></td>
+      <td class="ac"><?= htmlspecialchars($p['seller']??'') ?></td>
+      <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($p['submitted_at']??'',0,10)) ?></td>
+      <td class="ac"><form method="post" style="margin:0" onsubmit="return confirm('Approve this listing and make it live now?')"><?= csrfField() ?><input type="hidden" name="_action" value="approve_listing"><input type="hidden" name="lid" value="<?= htmlspecialchars($p['id']??'') ?>"><button class="abtn primary" type="submit" style="font-size:11px;padding:3px 9px" title="Approve — go live now">✓ Approve</button></form></td>
+    </tr>
     <?php endforeach; ?>
   </table></div>
 </div>
@@ -758,8 +806,8 @@ if($tab==='overview'): ?>
       <td><b><?= eur($e['total']??0) ?></b></td>
       <td class="ahint"><?= htmlspecialchars(substr($e['paid_at']??'',0,10)) ?></td>
       <td><div style="display:flex;gap:5px">
-        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#7ad6a0">Release</button></form>
-        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#ef9a9a">Refund</button></form>
+        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#1f9d63">Release</button></form>
+        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b">Refund</button></form>
       </div></td>
     </tr>
     <?php endforeach; ?>
@@ -809,7 +857,7 @@ elseif($tab==='approvals'): ?>
       <div style="font-size:15px;font-weight:700"><?= htmlspecialchars($p['brand']??'') ?> — <?= htmlspecialchars($p['name']??'') ?></div>
       <div class="ahint" style="margin-top:3px">SKU <?= htmlspecialchars($p['sku']??'') ?> · <?= htmlspecialchars($p['cat']??'') ?> · Seller: <?= htmlspecialchars($p['seller']??'') ?></div>
     </div>
-    <?= abadge('⏳ Pending','#f0c060') ?>
+    <?= abadge('⏳ Pending','#a9781a') ?>
   </div>
   <div class="acard-body">
     <div class="acols3" style="margin-bottom:16px">
@@ -913,7 +961,7 @@ if(!$docReqs): ?>
         <?php if(!empty($req['reviewed_at'])): ?> · Reviewed <?= htmlspecialchars(substr($req['reviewed_at'],0,10)) ?><?php endif; ?>
       </div>
       <?php if(!empty($req['note'])): ?><div class="ahint" style="margin-top:4px;font-style:italic">Note: <?= htmlspecialchars($req['note']) ?></div><?php endif; ?>
-      <?php if(!empty($req['admin_note'])): ?><div class="ahint" style="margin-top:4px;color:#c9a86a">Admin: <?= htmlspecialchars($req['admin_note']) ?></div><?php endif; ?>
+      <?php if(!empty($req['admin_note'])): ?><div class="ahint" style="margin-top:4px;color:#9a7320">Admin: <?= htmlspecialchars($req['admin_note']) ?></div><?php endif; ?>
     </div>
     <?= docBadge($st) ?>
   </div>
@@ -957,7 +1005,7 @@ if(!$docReqs): ?>
       typePill($a['type']??''),
       kybBadge(($a['status']??'active')==='suspended'?'suspended':($a['kyb_status']??'pending')),
       $total>0?"$approved/$total approved":'<span class="ahint">None</span>',
-      $uploaded>0?abadge("$uploaded waiting review",'#c9a86a'):'<span class="ahint">—</span>',
+      $uploaded>0?abadge("$uploaded waiting review",'#9a7320'):'<span class="ahint">—</span>',
       '<a class="abtn" href="/admin?tab=documents&uid='.urlencode($a['id']??'').'">Manage docs →</a>',
     ]) ?>
     <?php endforeach; ?>
@@ -1017,11 +1065,11 @@ function ufilter(){
     <td class="ac" style="font-family:monospace;font-size:11px"><?= htmlspecialchars($a['vat_id']??'—') ?></td>
     <td class="ac">
       <?php if($isPendEmail): ?>
-        <?= abadge('⚠ Unverified','#ef9a9a') ?>
+        <?= abadge('⚠ Unverified','#c0392b') ?>
         <?php if(!empty($a['verify_sent_at'])):
           $sentOk = $a['verify_sent_ok'] ?? true;
         ?>
-          <div class="ahint" style="margin-top:2px;<?= $sentOk?'':'color:#ef9a9a' ?>">
+          <div class="ahint" style="margin-top:2px;<?= $sentOk?'':'color:#c0392b' ?>">
             <?= $sentOk?'✓ sent':'⚠ send failed' ?> <?= htmlspecialchars(date('d.m H:i',strtotime($a['verify_sent_at']))) ?>
           </div>
         <?php endif; ?>
@@ -1032,7 +1080,7 @@ function ufilter(){
             onclick="navigator.clipboard.writeText('https://vestrasales.com/verify?token=<?= htmlspecialchars($a['email_token']??'',ENT_QUOTES) ?>');this.textContent='✓ Copied'">🔗 Copy link</button>
         </div>
       <?php elseif(!empty($a['email_verified'])): ?>
-        <?= abadge('✓ Verified','#7ad6a0') ?>
+        <?= abadge('✓ Verified','#1f9d63') ?>
       <?php else: ?>
         <span class="ahint">—</span>
       <?php endif; ?>
@@ -1055,7 +1103,7 @@ function ufilter(){
     <td class="ac">
       <?php if(($a['type']??'')==='seller' && !empty($a['onboarding_paid'])): ?>
         <?php if(!empty($a['verified_badge'])): ?>
-          <?= abadge('✓ Badge','#7ad6a0') ?>
+          <?= abadge('✓ Badge','#1f9d63') ?>
           <div style="margin-top:3px"><?= fBtn('Revoke','revoke_badge',['uid'=>$a['id']??''],'font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.3)','Revoke Verified Seller badge?') ?></div>
         <?php else: ?>
           <?= fBtn('Grant badge','grant_badge',['uid'=>$a['id']??''],'font-size:11px;color:var(--ok);border-color:rgba(122,214,160,.4)','Grant Verified Seller badge?') ?>
@@ -1066,7 +1114,7 @@ function ufilter(){
     </td>
     <td class="ac">
       <?= $docSummary ?>
-      <?php if($uploaded>0): ?><div><?= abadge("$uploaded to review",'#c9a86a') ?></div><?php endif; ?>
+      <?php if($uploaded>0): ?><div><?= abadge("$uploaded to review",'#9a7320') ?></div><?php endif; ?>
     </td>
     <td class="ac" style="font-size:11px;color:var(--mut)">
       <?= htmlspecialchars(substr($a['created']??'',0,10)) ?>
@@ -1124,7 +1172,7 @@ elseif($tab==='orders'):
     <div class="acard-hd"><h3>Money</h3></div>
     <table class="atable">
       <?= arow(['Subtotal',eur($viewRow['subtotal']??0)]) ?>
-      <?= arow(['Platform commission','<b style="color:#7ad6a0">'.eur($viewRow['commission']??0).'</b>']) ?>
+      <?= arow(['Platform commission','<b style="color:#1f9d63">'.eur($viewRow['commission']??0).'</b>']) ?>
       <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
       <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>']) ?>
     </table>
@@ -1132,7 +1180,7 @@ elseif($tab==='orders'):
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Commission charges</div>
       <?php $vcoms=vestra_commissions_for_ref($viewRef); if(!$vcoms): ?><span style="color:var(--mut);font-size:12px">— none recorded</span>
       <?php else: foreach($vcoms as $c): ?>
-        <div style="font-size:12px;padding:3px 0"><?= match($c['status']??''){'charged'=>abadge('✓ charged '.eur($c['amount']??0),'#7ad6a0'),'failed'=>abadge('✗ failed '.eur($c['amount']??0),'#ef9a9a'),'no_card'=>abadge('⚠ no card','#f0c060'),default=>abadge($c['status']??'—','#888')} ?> <span style="color:var(--mut)"><?= htmlspecialchars(substr($c['timestamp']??'',0,16)) ?></span></div>
+        <div style="font-size:12px;padding:3px 0"><?= match($c['status']??''){'charged'=>abadge('✓ charged '.eur($c['amount']??0),'#1f9d63'),'failed'=>abadge('✗ failed '.eur($c['amount']??0),'#c0392b'),'no_card'=>abadge('⚠ no card','#a9781a'),default=>abadge($c['status']??'—','#888')} ?> <span style="color:var(--mut)"><?= htmlspecialchars(substr($c['timestamp']??'',0,16)) ?></span></div>
       <?php endforeach; endif; ?>
     </div>
     <div style="margin-top:12px">
@@ -1194,8 +1242,8 @@ elseif($tab==='orders'):
       </table>
       <?php if(($ver['status']??'')==='held'): ?>
       <div style="display:flex;gap:8px;margin-top:12px">
-        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#7ad6a0">Release to seller</button></form>
-        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#ef9a9a">Refund buyer</button></form>
+        <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#1f9d63">Release to seller</button></form>
+        <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>"><button class="abtn" type="submit" style="color:#c0392b">Refund buyer</button></form>
       </div>
       <?php endif; ?>
     <?php endif; ?>
@@ -1207,8 +1255,8 @@ elseif($tab==='orders'):
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($orders) ?></div><div class="sl">Total orders</div></div>
   <div class="ascard"><div class="sv" style="color:#888"><?= count($orders)-$cnt_ship-$cnt_done ?></div><div class="sl">Awaiting payment</div></div>
-  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= $cnt_ship ?></div><div class="sl">Shipped</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $cnt_done ?></div><div class="sl">Completed</div></div>
+  <div class="ascard"><div class="sv" style="color:#9a7320"><?= $cnt_ship ?></div><div class="sl">Shipped</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $cnt_done ?></div><div class="sl">Completed</div></div>
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Total volume</div></div>
 </div>
 <div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=orders">⬇ Download CSV</a></div>
@@ -1219,7 +1267,7 @@ elseif($tab==='orders'):
 $__refCounts = array_count_values(array_filter(array_map(fn($o)=>$o['ref']??'', $orders)));
 $__dupRefs   = array_filter($__refCounts, fn($n)=>$n>1);
 if($__dupRefs): ?>
-<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#f0c060;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3);color:#a9781a;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
   <span>⚠ <b><?= count($__dupRefs) ?></b> ref is shared by multiple orders (<?= htmlspecialchars(implode(', ', array_slice(array_keys($__dupRefs),0,4))) ?><?= count($__dupRefs)>4?', …':'' ?>)
   — they share one status entry, so updating one updates them all.</span>
   <form method="post" style="margin:0" onsubmit="return confirm('Give each duplicate order its own fresh ref? The oldest keeps the original ref (and its invoices); statuses are preserved.')">
@@ -1251,9 +1299,9 @@ if($__dupRefs): ?>
       <?php $coms=vestra_commissions_for_ref($ref); if(!$coms): ?><span style="color:var(--mut)">—</span>
       <?php else: foreach($coms as $c): ?>
         <?= match($c['status']??''){
-          'charged'=>abadge('✓ '.eur($c['amount']??0),'#7ad6a0'),
-          'failed'=>abadge('✗ '.eur($c['amount']??0),'#ef9a9a'),
-          'no_card'=>abadge('⚠ no card','#f0c060'),
+          'charged'=>abadge('✓ '.eur($c['amount']??0),'#1f9d63'),
+          'failed'=>abadge('✗ '.eur($c['amount']??0),'#c0392b'),
+          'no_card'=>abadge('⚠ no card','#a9781a'),
           default=>abadge('—','#555'),
         } ?><br>
       <?php endforeach; endif; ?>
@@ -1262,11 +1310,11 @@ if($__dupRefs): ?>
       <?php $er=escrow_get($ref); if(!$er): ?><span style="color:var(--mut)">—</span>
       <?php else: ?>
         <?= escrow_badge($er['status']??'') ?>
-        <?php if(!empty($er['disputed'])): ?><div style="color:#f0c060;margin-top:2px">⚠ <?= htmlspecialchars(mb_substr((string)($er['dispute_reason']??'disputed'),0,50)) ?></div><?php endif; ?>
+        <?php if(!empty($er['disputed'])): ?><div style="color:#a9781a;margin-top:2px">⚠ <?= htmlspecialchars(mb_substr((string)($er['dispute_reason']??'disputed'),0,50)) ?></div><?php endif; ?>
         <?php if(($er['status']??'')==='held'): ?>
         <div style="display:flex;gap:4px;margin-top:4px">
-          <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#7ad6a0" title="Release to seller">Release</button></form>
-          <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#ef9a9a" title="Refund buyer">Refund</button></form>
+          <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#1f9d63" title="Release to seller">Release</button></form>
+          <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b" title="Refund buyer">Refund</button></form>
         </div>
         <?php endif; ?>
       <?php endif; ?>
@@ -1300,10 +1348,10 @@ elseif($tab==='offers'):
   $cnt_ctr=count(array_filter($offers,fn($o)=>($offerResp[$o['ref']??'']['status']??'')==='counter'));
 ?>
 <div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingOffers) ?></div><div class="sl">Pending</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $cnt_acc ?></div><div class="sl">Accepted</div></div>
-  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= $cnt_ctr ?></div><div class="sl">Countered</div></div>
-  <div class="ascard"><div class="sv" style="color:#ef9a9a"><?= $cnt_dec ?></div><div class="sl">Declined</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingOffers) ?></div><div class="sl">Pending</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $cnt_acc ?></div><div class="sl">Accepted</div></div>
+  <div class="ascard"><div class="sv" style="color:#9a7320"><?= $cnt_ctr ?></div><div class="sl">Countered</div></div>
+  <div class="ascard"><div class="sv" style="color:#c0392b"><?= $cnt_dec ?></div><div class="sl">Declined</div></div>
 </div>
 <div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=offers">⬇ CSV</a></div>
 <?php if(!$offers): ?><div class="acard"><div class="aempty">No offers yet.</div></div>
@@ -1321,7 +1369,7 @@ elseif($tab==='offers'):
     eur($o['offer_unit']??0),
     '<b>'.eur($o['offer_total']??0).'</b>',
     '<a href="mailto:'.htmlspecialchars($o['email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($o['email']??'').'</a>',
-    match($rSt){'accept'=>abadge('✓ Accepted','#7ad6a0'),'decline'=>abadge('✗ Declined','#ef9a9a'),'counter'=>abadge('↩ Counter','#c9a86a'),default=>abadge('⏳ Pending','#888')},
+    match($rSt){'accept'=>abadge('✓ Accepted','#1f9d63'),'decline'=>abadge('✗ Declined','#c0392b'),'counter'=>abadge('↩ Counter','#9a7320'),default=>abadge('⏳ Pending','#888')},
     ($resp&&$rSt==='counter')?eur($resp['counter_price']??0):'—',
   ]) ?>
   <?php endforeach; ?>
@@ -1437,8 +1485,8 @@ elseif($tab==='listings'):
 <?php endif; ?>
 <div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($listings) ?></div><div class="sl">Custom listings</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= count($liveList) ?></div><div class="sl">Live / approved</div></div>
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= count($liveList) ?></div><div class="sl">Live / approved</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= count(vestra_demo_products()) ?></div><div class="sl">Demo products</div></div>
 </div>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
@@ -1447,7 +1495,7 @@ elseif($tab==='listings'):
   <?= arow(['','Brand','Product','SKU','Mode','MOQ','From','Seller','Status',''],true) ?>
   <?php foreach(array_reverse($listings) as $p): $st=$p['status']??'approved'; $thumb=vestra_primary_image($p); ?>
   <tr>
-    <td class="ac"><?php if($thumb): ?><img src="<?= htmlspecialchars($thumb) ?>" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><?php else: ?><div style="width:42px;height:42px;border-radius:7px;background:linear-gradient(135deg,<?= htmlspecialchars($p['accent']??'#333') ?>,#0e0e11)"></div><?php endif; ?></td>
+    <td class="ac"><?php if($thumb): ?><img src="<?= htmlspecialchars($thumb) ?>" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><?php else: ?><div style="width:42px;height:42px;border-radius:7px;background:linear-gradient(135deg,<?= htmlspecialchars($p['accent']??'#cfc8ba') ?>,#e8e2d7)"></div><?php endif; ?></td>
     <td class="ac"><b><?= htmlspecialchars($p['brand']??'') ?></b></td>
     <td class="ac"><?= htmlspecialchars($p['name']??'') ?><div class="ahint"><?= htmlspecialchars(substr($p['id']??'',0,14)) ?>…</div><?= !empty($p['colors'])?'<div style="margin-top:3px">'.vestra_color_dots((array)$p['colors'],7).'</div>':'' ?></td>
     <td class="ac"><span class="atag"><?= htmlspecialchars($p['sku']??'') ?></span></td>
@@ -1455,7 +1503,7 @@ elseif($tab==='listings'):
     <td class="ac"><?= htmlspecialchars((string)($p['moq']??'')) ?> <?= htmlspecialchars($p['unit']??'pc') ?></td>
     <td class="ac"><?= $st==='offer'?'—':eur(vestra_from_price($p)) ?></td>
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
-    <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#7ad6a0'),'rejected'=>abadge('✗ Rejected','#ef9a9a'),default=>abadge('⏳ Pending','#f0c060')} ?></td>
+    <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?></td>
     <td class="ac"><div style="display:flex;gap:4px">
       <a class="abtn" href="/admin?tab=listings&edit=<?= urlencode($p['id']??'') ?>#top" style="border-color:rgba(201,168,106,.4)">Edit</a>
       <?php if($st==='pending'): ?><a class="abtn" href="/admin?tab=approvals">Review</a><?php endif; ?>
@@ -1526,7 +1574,7 @@ elseif($tab==='marketing'): ?>
       <td class="ac" style="font-size:11px"><?= htmlspecialchars(promo_benefit_label($p['benefit']??'')) ?></td>
       <td class="ac"><?= htmlspecialchars($p['expiry']??'—') ?></td>
       <td class="ac"><?= ($p['used']??0) ?>/<?= ($p['max_uses']??'∞') ?></td>
-      <td class="ac"><?= abadge($active?'Active':'Paused',$active?'#7ad6a0':'#888') ?></td>
+      <td class="ac"><?= abadge($active?'Active':'Paused',$active?'#1f9d63':'#888') ?></td>
       <td class="ac"><a href="/seller-invite?code=<?= urlencode($c) ?>" target="_blank" style="color:var(--acc);font-size:11px">…/seller-invite?code=<?= htmlspecialchars($c) ?></a></td>
       <td class="ac"><div style="display:flex;gap:4px">
         <?= fBtn($active?'Pause':'Enable','toggle_promo',['toggle_code'=>$c]) ?>
@@ -1568,9 +1616,9 @@ elseif($tab==='prospects'):
 
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
   <div class="ascard"><div class="sv"><?= $ldNew ?></div><div class="sl">New</div></div>
-  <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= $ldContacted ?></div><div class="sl">Contacted</div></div>
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= $ldReplied ?></div><div class="sl">Replied</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $ldConverted ?></div><div class="sl">Converted</div></div>
+  <div class="ascard"><div class="sv" style="color:#3366cc"><?= $ldContacted ?></div><div class="sl">Contacted</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= $ldReplied ?></div><div class="sl">Replied</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $ldConverted ?></div><div class="sl">Converted</div></div>
   <div class="ascard"><div class="sv" style="color:#555"><?= $ldUnsub ?></div><div class="sl">Unsubscribed</div></div>
 </div>
 
@@ -1703,8 +1751,8 @@ elseif($tab==='groups'):
 ?>
 <div class="asgrid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
   <div class="ascard"><div class="sv"><?= count($groupPools) ?></div><div class="sl">Pools</div></div>
-  <div class="ascard"><div class="sv" style="color:#f0c060"><?= $cnt_open ?></div><div class="sl">Open</div></div>
-  <div class="ascard"><div class="sv" style="color:#7ad6a0"><?= $cnt_funded ?></div><div class="sl">Target reached</div></div>
+  <div class="ascard"><div class="sv" style="color:#a9781a"><?= $cnt_open ?></div><div class="sl">Open</div></div>
+  <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $cnt_funded ?></div><div class="sl">Target reached</div></div>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= $cnt_exp ?></div><div class="sl">Expired</div></div>
 </div>
 <div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=groups">⬇ CSV</a></div>
@@ -1720,7 +1768,7 @@ elseif($tab==='groups'):
         · unlocks <?= eur($gp['_gprice']) ?>/<?= htmlspecialchars($gp['unit']??'pc') ?>
         · closes <?= htmlspecialchars(substr($gp['_deadline']??'',0,10)) ?></div>
     </div>
-    <?= match($gp['_status']){'funded'=>abadge('✓ Target reached','#7ad6a0'),'expired'=>abadge('• Expired','#888'),default=>abadge('⏳ Open · '.$gp['_daysLeft'].'d left','#f0c060')} ?>
+    <?= match($gp['_status']){'funded'=>abadge('✓ Target reached','#1f9d63'),'expired'=>abadge('• Expired','#888'),default=>abadge('⏳ Open · '.$gp['_daysLeft'].'d left','#a9781a')} ?>
   </div>
   <?php if($gp['_commits']): ?>
   <div class="acard-body"><div class="atscroll"><table class="atable">
@@ -1757,7 +1805,7 @@ elseif($tab==='messages'):
 
 <?php if($blockedMsgs): ?>
 <div class="acard" style="margin-bottom:16px;border-color:rgba(239,154,154,.35)">
-  <div class="acard-hd"><h3 style="color:#ef9a9a">⚠️ Blocked off-platform attempts (<?= count($blockedMsgs) ?>)</h3></div>
+  <div class="acard-hd"><h3 style="color:#c0392b">⚠️ Blocked off-platform attempts (<?= count($blockedMsgs) ?>)</h3></div>
   <div class="acard-body"><div class="atscroll"><table class="atable">
     <?= arow(['When','Sender','Thread','Type','Attempted text'],true) ?>
     <?php foreach(array_reverse($blockedMsgs) as $bm): ?>
@@ -1765,7 +1813,7 @@ elseif($tab==='messages'):
       htmlspecialchars(substr($bm['at']??'',0,16)),
       '<b>'.htmlspecialchars($accLabel($bm['from']??'')).'</b>',
       htmlspecialchars($accLabel($bm['buyer_uid']??'')).' ↔ '.htmlspecialchars($accLabel($bm['seller_uid']??'')),
-      abadge(strtoupper($bm['flag']??''),'#ef9a9a'),
+      abadge(strtoupper($bm['flag']??''),'#c0392b'),
       '<span style="font-size:11px;color:var(--mut)">'.htmlspecialchars(mb_substr($bm['text']??'',0,120)).'</span>',
     ]) ?>
     <?php endforeach; ?>
@@ -1790,7 +1838,7 @@ elseif($tab==='messages'):
       <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
         <?php foreach(($th['messages']??[]) as $m): $isBuyer=($m['from']??'')===($th['buyer_uid']??''); ?>
         <div style="font-size:12.5px;line-height:1.5">
-          <b style="color:<?= $isBuyer?'#8ab4f8':'#c9a86a' ?>"><?= htmlspecialchars($accLabel($m['from']??'')) ?></b>
+          <b style="color:<?= $isBuyer?'#3366cc':'#9a7320' ?>"><?= htmlspecialchars($accLabel($m['from']??'')) ?></b>
           <span class="ahint" style="margin-left:6px"><?= htmlspecialchars(substr($m['at']??'',0,16)) ?></span>
           <div><?= htmlspecialchars($m['text']??'') ?></div>
         </div>
@@ -1815,9 +1863,9 @@ elseif($tab==='notify'):
 </div>
 
 <div class="asgrid" style="margin-bottom:18px">
-  <div class="ascard"><div class="sv" style="color:#c9a86a"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
+  <div class="ascard"><div class="sv" style="color:#9a7320"><?= (int)$pstats['users'] ?></div><div class="sl">Subscribed users (<?= $subscribedPct ?>%)</div></div>
   <div class="ascard"><div class="sv"><?= (int)$pstats['devices'] ?></div><div class="sl">Devices reachable</div></div>
-  <div class="ascard"><div class="sv" style="color:#8ab4f8"><?= count($plog) ?></div><div class="sl">Broadcasts sent</div></div>
+  <div class="ascard"><div class="sv" style="color:#3366cc"><?= count($plog) ?></div><div class="sl">Broadcasts sent</div></div>
 </div>
 
 <div class="acols2" style="align-items:start">
@@ -1862,9 +1910,9 @@ elseif($tab==='notify'):
           $tl=['all'=>'🌍 Everyone','buyers'=>'🛍️ Buyers','sellers'=>'🏷️ Sellers','user'=>'👤 One user'][$le['target']??'all']??($le['target']??'?'); ?>
         <?= arow([
           htmlspecialchars(substr($le['at']??'',0,16)),
-          abadge($tl,'#8ab4f8'),
+          abadge($tl,'#3366cc'),
           '<b>'.htmlspecialchars($le['title']??'').'</b>',
-          '<span style="color:'.((int)($le['reached']??0)>0?'#7ad6a0':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)</span>',
+          '<span style="color:'.((int)($le['reached']??0)>0?'#1f9d63':'var(--mut)').'">'.(int)($le['reached']??0).' user(s)</span>',
         ]) ?>
         <?php endforeach; ?>
       </table></div>
@@ -1922,10 +1970,10 @@ elseif($tab==='journal'):
     <div class="acard-body">
       <?php if(!$jarts): ?><div class="aempty">No articles yet. Write one on the left, or press “Load starter articles”.</div>
       <?php else: foreach($jarts as $p): ?>
-      <div style="display:flex;gap:10px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--line)">
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:14px"><?= htmlspecialchars($p['title']??'') ?></div>
-          <div class="ahint"><?= htmlspecialchars($p['category']??'') ?> · <?= htmlspecialchars(substr($p['created']??'',0,10)) ?> · <?= !empty($p['published'])?'<span style="color:#7ad6a0">● published</span>':'<span style="color:var(--mut)">○ draft</span>' ?></div>
+          <div class="ahint"><?= htmlspecialchars($p['category']??'') ?> · <?= htmlspecialchars(substr($p['created']??'',0,10)) ?> · <?= !empty($p['published'])?'<span style="color:#1f9d63">● published</span>':'<span style="color:var(--mut)">○ draft</span>' ?></div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
           <?php if(!empty($p['published'])): ?><a class="abtn" href="/journal?slug=<?= urlencode($p['slug']??'') ?>" target="_blank" style="font-size:11px">View</a><?php endif; ?>
