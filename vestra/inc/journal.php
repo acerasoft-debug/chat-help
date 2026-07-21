@@ -73,6 +73,47 @@ function vestra_journal_body_html(string $body): string {
 function vestra_journal_reading_min(string $body): int {
     return max(1, (int)ceil(str_word_count(strip_tags($body)) / 200));
 }
+/* Deterministic editorial cover art per article — a category-themed gradient with
+   concentric rings, thin diagonals and a faint serif "V" monogram. Self-contained
+   (no external images), so covers always render and stay on-brand. */
+function vestra_journal_cover_svg(array $p): string {
+    $themes = [
+        'Brand News'       => ['#241a12', '#4a3623', '#caa465'], // espresso + gold
+        'Market & Prices'  => ['#12332a', '#1f5340', '#79c0a1'], // deep green + mint
+        'Wholesale Trends' => ['#4f2a1a', '#8a4a2c', '#eac59a'], // terracotta + cream
+        'Style Edit'       => ['#3f1d2b', '#78334a', '#e2a6ba'], // burgundy + blush
+    ];
+    $cat = (string)($p['category'] ?? 'Brand News');
+    [$c1, $c2, $acc] = $themes[$cat] ?? $themes['Brand News'];
+    $h   = crc32(($p['slug'] ?? '').'|'.($p['title'] ?? ''));       // stable per-article seed
+    $cx  = 150 + ($h % 520);
+    $cy  = 70  + (intdiv($h, 7)  % 360);
+    $r1  = 165 + (intdiv($h, 13) % 120);
+    $r2  = $r1 - 60;
+    $r3  = max(28, $r1 - 116);
+    $la  = 150 + (intdiv($h, 17) % 240);
+    $lb  = $la - 130; $lc = $la + 76; $ld = $la - 44;
+    return <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="$c1"/><stop offset="1" stop-color="$c2"/></linearGradient>
+<radialGradient id="vig" cx="0.5" cy="0.42" r="0.85"><stop offset="0.55" stop-color="#000000" stop-opacity="0"/><stop offset="1" stop-color="#000000" stop-opacity="0.3"/></radialGradient>
+</defs>
+<rect width="800" height="520" fill="url(#bg)"/>
+<g fill="none" stroke="$acc" stroke-opacity="0.22"><circle cx="$cx" cy="$cy" r="$r1" stroke-width="1.4"/><circle cx="$cx" cy="$cy" r="$r2" stroke-width="1"/></g>
+<circle cx="$cx" cy="$cy" r="$r3" fill="$acc" fill-opacity="0.1"/>
+<g stroke="$acc" stroke-opacity="0.16" stroke-width="1"><line x1="0" y1="$la" x2="800" y2="$lb"/><line x1="0" y1="$lc" x2="800" y2="$ld"/></g>
+<text x="40" y="480" font-family="Playfair Display, Georgia, serif" font-size="360" font-weight="700" fill="#ffffff" fill-opacity="0.05">V</text>
+<rect width="800" height="520" fill="url(#vig)"/>
+</svg>
+SVG;
+}
+/* Cover image URL for an article: the admin-set cover if present, otherwise the
+   generated editorial SVG as a data-URI (so the grid/hero is never a blank block). */
+function vestra_journal_cover_uri(array $p): string {
+    if (!empty($p['cover'])) return (string)$p['cover'];
+    return 'data:image/svg+xml;base64,'.base64_encode(vestra_journal_cover_svg($p));
+}
 /* Return the article with title/excerpt/body swapped to the reader's language
    when a translation exists under $a['i18n'][$lang]; English is the base/fallback. */
 function vestra_journal_localize(array $a, string $lang): array {

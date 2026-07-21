@@ -39,7 +39,7 @@ if ($slug !== '') {
           <div class="jr-cat"><?= htmlspecialchars(t($art['category'] ?? '')) ?></div>
           <h1 class="jr-title"><?= htmlspecialchars($art['title'] ?? '') ?></h1>
           <div class="jr-meta"><?= htmlspecialchars($art['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($art['created'] ?? '') ?> · <?= vestra_journal_reading_min($art['body'] ?? '') ?> <?= t('min read') ?></div>
-          <?php if (!empty($art['cover'])): ?><img class="jr-cover" src="<?= htmlspecialchars($art['cover']) ?>" alt="<?= htmlspecialchars($art['title'] ?? '') ?>" loading="lazy"><?php endif; ?>
+          <div class="jr-hero-img" role="img" aria-label="<?= htmlspecialchars($art['title'] ?? '') ?>" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($art), ENT_QUOTES) ?>')"></div>
           <div class="jr-body"><?= vestra_journal_body_html($art['body'] ?? '') ?></div>
           <div class="jr-share">
             <a class="btn btn-o" href="/journal">← <?= t('All articles') ?></a>
@@ -53,7 +53,7 @@ if ($slug !== '') {
           <div class="jr-grid">
             <?php foreach ($more as $p): ?>
             <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-              <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
+              <div class="jr-thumb" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($p), ENT_QUOTES) ?>')"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
               <div class="jr-cbody"><h4><?= htmlspecialchars($p['title'] ?? '') ?></h4><p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 110)) ?></p></div>
             </a>
             <?php endforeach; ?>
@@ -97,7 +97,7 @@ $rest = $featured ? array_slice($all, 1) : [];
   <?php else: ?>
     <?php if ($featured): ?>
     <a class="jr-feature" href="/journal?slug=<?= urlencode($featured['slug'] ?? '') ?>">
-      <div class="jr-feature-img"<?= !empty($featured['cover'])?' style="background-image:url(\''.htmlspecialchars($featured['cover'],ENT_QUOTES).'\')"':'' ?>></div>
+      <div class="jr-feature-img" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($featured), ENT_QUOTES) ?>')"></div>
       <div class="jr-feature-txt">
         <span class="jr-badge gold"><?= htmlspecialchars(t($featured['category'] ?? '')) ?></span>
         <h2><?= htmlspecialchars($featured['title'] ?? '') ?></h2>
@@ -111,7 +111,7 @@ $rest = $featured ? array_slice($all, 1) : [];
     <div class="jr-grid">
       <?php foreach ($rest as $p): ?>
       <a class="jr-card" href="/journal?slug=<?= urlencode($p['slug'] ?? '') ?>">
-        <div class="jr-thumb"<?= !empty($p['cover'])?' style="background-image:url(\''.htmlspecialchars($p['cover'],ENT_QUOTES).'\')"':'' ?>><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
+        <div class="jr-thumb" style="background-image:url('<?= htmlspecialchars(vestra_journal_cover_uri($p), ENT_QUOTES) ?>')"><span class="jr-badge"><?= htmlspecialchars(t($p['category'] ?? '')) ?></span></div>
         <div class="jr-cbody">
           <h4><?= htmlspecialchars($p['title'] ?? '') ?></h4>
           <p><?= htmlspecialchars(mb_substr($p['excerpt'] ?? '', 0, 120)) ?></p>
@@ -129,6 +129,11 @@ $rest = $featured ? array_slice($all, 1) : [];
 function vestra_journal_css(): string { return <<<CSS
 /* Light editorial theme — dark header/footer stay, the Journal reads as a clean magazine */
 body{background:#f5f3ef}
+/* The site footer sits on the light body here, so its default light text/border would
+   wash out — give it a warm dark band so the bottom links stay clearly readable. */
+footer{background:#14110c;border-top-color:#2a241a;color:#c3bbac}
+footer a{color:#d8bd86}
+footer a:hover{color:#ffffff}
 .jr-wrap,.jr-article{--bg2:#ffffff;--ink:#1b1813;--mut:#6f695f;--line:#e8e2d7;color:#1b1813}
 .jr-wrap{max-width:1080px;margin:0 auto;padding:0 20px 72px;background:#f5f3ef}
 .jr-hero{text-align:center;padding:52px 20px 30px;border-bottom:1px solid var(--line);margin-bottom:26px}
@@ -165,6 +170,7 @@ body{background:#f5f3ef}
 .jr-title{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);line-height:1.15;margin:0 0 14px}
 .jr-article .jr-meta{margin-bottom:22px}
 .jr-cover{width:100%;border-radius:16px;margin-bottom:26px;border:1px solid var(--line)}
+.jr-hero-img{width:100%;aspect-ratio:21/9;border-radius:16px;margin-bottom:26px;border:1px solid var(--line);background-size:cover;background-position:center}
 .jr-body{font-size:17px;line-height:1.75;color:var(--ink)}
 .jr-body p{margin:0 0 20px}
 .jr-share{display:flex;gap:10px;flex-wrap:wrap;margin:36px 0 8px;padding-top:24px;border-top:1px solid var(--line)}
