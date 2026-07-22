@@ -1,14 +1,14 @@
 <?php
 /**
- * ChatHelp — fix-acerasoft-plan — ACIL: acerasoft@gmail.com DB'de hala 'basic'
+ * ChatHelp — apply-fix-acerasoft-plan — ACIL: acerasoft@gmail.com DB'de hala 'basic'
  *  (webhook bug'indan kalma, CH_PLANSAFE gelecegi korudu ama gecmis kaydi duzeltmedi).
  *  Bu TEK SEFERLIK script: acerasoft@gmail.com kullanicisinin EN SON user_plans
  *  satirini 'elite' yapar. Baska HICBIR seye dokunmaz (stripe_customer_id/status aynen).
- * KULLANIM: pull2.php?key=...&files=fix-acerasoft-plan.php
+ * KULLANIM: pull2.php?key=...&files=apply-fix-acerasoft-plan.php
  */
 header('Content-Type: text/plain; charset=UTF-8');
 error_reporting(E_ERROR | E_PARSE);
-echo "fix-acerasoft-plan BASLADI OK (PHP ".PHP_VERSION.")\n\n";
+echo "apply-fix-acerasoft-plan BASLADI OK (PHP ".PHP_VERSION.")\n\n";
 if(!is_file(__DIR__.'/db.php')) exit("HATA: db.php yok.\n");
 require_once __DIR__.'/db.php';
 
