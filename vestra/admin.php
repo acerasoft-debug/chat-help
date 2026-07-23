@@ -538,11 +538,21 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 @media(max-width:900px){
   :root{--sb:0px}
   .alayout{display:block}
-  .asidebar{position:static;height:auto;display:flex;flex-direction:row;align-items:center;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);white-space:nowrap}
-  .asidebar a{border-left:0;border-bottom:2px solid transparent;padding:8px 12px;flex-shrink:0}
-  .asidebar a.on{border-left-color:transparent;border-bottom-color:var(--acc)}
-  .asidebar .sgrp{display:none}
-  .amain{padding:16px}
+  /* Wrap every tab onto the screen instead of a single off-screen scroll row, so
+     nothing (Listings, Journal, …) hides past the right edge. Group labels break
+     to a new row and keep the tabs organised. */
+  .asidebar{position:static;height:auto;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 5px;padding:10px 12px;border-right:0;border-bottom:1px solid var(--line)}
+  .asidebar a{border-left:0;border-bottom:2px solid transparent;padding:7px 11px;border:1px solid var(--line);border-radius:8px}
+  .asidebar a.on{border-color:var(--acc);background:rgba(168,127,44,.1)}
+  .asidebar .sgrp{flex-basis:100%;padding:8px 2px 0;margin:2px 0 0}
+  .amain{padding:16px;overflow-x:hidden;min-width:0}
+  /* Stat grids are forced to 4 columns inline on some tabs — that overflows a
+     phone; wrap them to 2 columns and stop any element widening the page (which
+     would push the wrapped sidebar tabs off the right edge). */
+  .asgrid{grid-template-columns:repeat(2,1fr)!important}
+  .acols2,.acols3{grid-template-columns:1fr}
+  .abtn{white-space:normal;text-align:left}
+  html,body,.alayout{overflow-x:hidden;max-width:100%}
 }
 </style></head><body>
 
