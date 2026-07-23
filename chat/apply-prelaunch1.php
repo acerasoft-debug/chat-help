@@ -30,9 +30,15 @@ $ok=0;
 if(strpos($src,'CH_RECFIX')===false){
   $oldRN='function recName(){ try{ var r=document.getElementById(\'ai-recipient\'); if(r&&r.value) return (r.value.split(\'\n\')[0]||\'\').trim(); }catch(e){} return \'\'; }';
   $newRN='function recName(){/*CH_RECFIX*/ var _v=\'\'; try{ var r=document.getElementById(\'ai-recipient\'); if(r&&r.value&&r.value.trim()) _v=r.value; }catch(e){} try{ if(!_v&&typeof recVal===\'function\'){ var q=recVal(); if(q&&String(q).trim()) _v=String(q); } }catch(e){} try{ if(!_v){ var bx=document.getElementById(\'ai-box\'); if(bx){ var els=bx.querySelectorAll(\'textarea,input[type=text],input:not([type])\'); for(var i=0;i<els.length;i++){ var idp=(els[i].id||\'\')+\' \'+(els[i].placeholder||\'\'); if(/rec|empf|adressat|alici/i.test(idp)&&els[i].value&&els[i].value.trim()){ _v=els[i].value; break; } } } } }catch(e){} try{ if(!_v&&window._lastGenAns&&window._lastGenAns.ans){ var a=window._lastGenAns.ans,ks=Object.keys(a); for(var j=0;j<ks.length;j++){ if(/empf|recip|adressat|behoerd|alici|an_/i.test(ks[j])&&a[ks[j]]&&String(a[ks[j]]).trim()){ _v=String(a[ks[j]]); break; } } } }catch(e){} return _v?(_v.split(\'\n\')[0]||\'\').trim():\'\'; }';
+  /* cok-satirli varyant (CH_FAX_UX kopyasi) */
+  $oldRN2="function recName(){\n    try{ var r=document.getElementById('ai-recipient'); if(r&&r.value) return (r.value.split('\n')[0]||'').trim(); }catch(e){}\n    return '';\n  }";
   $c=substr_count($src,$oldRN);
-  if($c>=1 && $c<=3){ $src=str_replace($oldRN,$newRN,$src); echo "  ✓ [1] CH_RECFIX — recName() $c kopyada 4-kaynakli yapildi (Empfänger bug'i)\n"; $ok++; }
-  else echo "  ✗ [1] CH_RECFIX anchor ($c, 1-3 beklenir) — atlandi\n";
+  $c2=substr_count($src,$oldRN2);
+  $tot=0;
+  if($c>=1 && $c<=3){ $src=str_replace($oldRN,$newRN,$src); $tot+=$c; }
+  if($c2>=1 && $c2<=3){ $src=str_replace($oldRN2,$newRN,$src); $tot+=$c2; }
+  if($tot>=1){ echo "  ✓ [1] CH_RECFIX — recName() $tot kopyada 4-kaynakli yapildi (Empfänger bug'i)\n"; $ok++; }
+  else echo "  ✗ [1] CH_RECFIX anchor (tek-satir:$c cok-satir:$c2) — atlandi\n";
 } else { echo "  = [1] CH_RECFIX zaten ekli\n"; $ok++; }
 
 /* ── [2] CH_TELFIX ── */
