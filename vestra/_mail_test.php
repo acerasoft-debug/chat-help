@@ -42,10 +42,32 @@ echo "smtp_name               : ".$name."\n";
 echo "require_email_verify    : ".var_export(vestra_cfg('require_email_verify', false), true)."\n";
 echo "curl available          : ".(function_exists('curl_init') ? 'YES' : 'NO — cannot use the HTTP API!')."\n\n";
 
+/* ── SMTP reachability probe ── shared hosts usually block 25/465/587; Brevo also
+   offers 2525. Tells us whether the SMTP-relay path is possible from this host. */
+echo "SMTP reachability to smtp-relay.brevo.com (outbound):\n";
+foreach ([587, 2525, 465, 25] as $port) {
+    $t0 = microtime(true);
+    $fp = @fsockopen('smtp-relay.brevo.com', $port, $errno, $errstr, 8);
+    $ms = round((microtime(true) - $t0) * 1000);
+    if ($fp) { $greet = trim((string)fgets($fp, 256)); fclose($fp); echo "  port $port : ✓ OPEN ({$ms}ms)  ".substr($greet, 0, 40)."\n"; }
+    else     { echo "  port $port : ✗ blocked — {$errstr}\n"; }
+}
+$smtpHost = (string)vestra_cfg('smtp_host', '');
+echo "\nsmtp_host configured    : ".($smtpHost !== '' ? $smtpHost.' (port '.(int)vestra_cfg('smtp_port', 587).', user '.(string)vestra_cfg('smtp_user', '(none)').')' : '(none — using API path)')."\n\n";
+
 $to = trim((string)($_GET['to'] ?? ''));
 if ($to === '') { echo "→ Add  &to=you@example.com  to send a live test and see the provider's reply.\n"; exit; }
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { echo "→ '$to' is not a valid email address.\n"; exit; }
-if ($k === '') { echo "→ No mail_api_key set — fill it in inc/config.php first.\n"; exit; }
+if ($k === '' && $smtpHost === '') { echo "→ No mail_api_key AND no smtp_host configured — set one in inc/config.php first.\n"; exit; }
+
+/* SMTP path (no API key): test the real send through the configured relay. */
+if ($k === '' && $smtpHost !== '') {
+    echo "=== live send via SMTP ($smtpHost port ".(int)vestra_cfg('smtp_port', 587).") ===\n";
+    echo "to        : $to\n";
+    $ok = @vestra_send_mail($to, 'VESTRA SMTP test '.date('H:i:s'), "VESTRA SMTP transport test.");
+    echo "result    : ".($ok ? "✅ SENT — check the inbox AND spam." : "❌ FAILED — SMTP connect/AUTH failed. Check the port probe above (is the configured port OPEN?) and smtp_user. [VESTRA SMTP] details are in the server error log.")."\n";
+    exit;
+}
 
 if ($provider === 'resend') {
     $url = 'https://api.resend.com/emails';
