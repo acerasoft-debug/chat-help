@@ -82,11 +82,13 @@ arsort($catCounts);
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          /* Card front is ALWAYS the brand tile. Approved (freigeschaltet) members get the
-             first product photo revealed on hover — desktop — or while the card is centered
-             in view on touch devices. Unverified viewers never receive a photo URL at all. */
-          $revealImg = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? (string)$p['images'][0] : '';
-          $img  = '';   // brand tile stays the front layer for everyone
+          /* Approved (freigeschaltet) members see the catalogue photo-forward, like the
+             showroom: the first product photo is the card front and the SECOND crossfades
+             in on hover (or while the card is centered in view on touch). Unverified
+             viewers get NO photo — only the brand tile stays as the gate. */
+          $imgs = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
+          $img0 = $imgs[0] ?? '';   // base photo (approved only)
+          $img1 = $imgs[1] ?? '';   // second photo → hover reveal
           $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
@@ -98,14 +100,15 @@ arsort($catCounts);
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
             <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
-              <?php if($revealImg): ?><img src="<?= htmlspecialchars($revealImg) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
+              <?php if($img0): ?><img src="<?= htmlspecialchars($img0) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
+              <?php if($img1): ?><img src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
               <?php if(!empty($p['verified'])): ?>
                 <span class="svbadge">
                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                   <?= t('Verified seller') ?>
                 </span>
               <?php endif; ?>
-              <?php $blogo = vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand']).'</span>'; ?>
+              <?php if(!$img0){ $blogo = vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand']).'</span>'; } ?>
               <?php if($p['mode']==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
               <?php elseif($p['mode']==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
               <?php if($isNew): ?><span class="snewbadge"><?= t('NEW') ?></span><?php endif; ?>

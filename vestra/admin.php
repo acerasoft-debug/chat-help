@@ -112,6 +112,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($n) vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=bulk_moq&n='.$n); exit;
   }
+  /* Bulk: rebrand every "SB E-Commerce…" listing's seller to "Tyrex International
+     BV" and hide the name on the public catalogue (shows "Verified business ·
+     via VESTRA"). Matches the stored seller name, or the seller_uid's account
+     company when the listing has no seller name of its own. */
+  if($act==='rebrand_sb_tyrex'){
+    $accCo=[]; foreach(auth_accounts() as $a) $accCo[(string)($a['id']??'')]=(string)($a['company']?:($a['name']??''));
+    $all=vestra_listings(); $n=0;
+    foreach($all as &$p){
+      $s=(string)($p['seller']??''); if($s===''&&!empty($p['seller_uid'])) $s=$accCo[(string)$p['seller_uid']]??'';
+      if(preg_match('/sb\W*e\W*commerce/i',$s)){
+        $p['seller']='Tyrex International BV';
+        $p['hide_seller']=true;
+        $n++;
+      }
+    }
+    unset($p);
+    if($n) vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=rebrand&n='.$n); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -689,6 +708,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
+<?php elseif($msg==='rebrand'): ?>
+<div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='lead_import'): ?>
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
@@ -1505,10 +1526,16 @@ elseif($tab==='listings'):
   <div class="ascard"><div class="sv" style="color:#a9781a"><?= count($pendingList) ?></div><div class="sl">Pending approval</div></div>
   <div class="ascard"><div class="sv" style="color:var(--mut)"><?= count(vestra_demo_products()) ?></div><div class="sl">Demo products</div></div>
 </div>
-<form method="post" style="margin:0 0 16px" onsubmit="return confirm('Set MOQ = 20 on EVERY listing except Lacoste, Ralph Lauren and Amiri? (Those three keep their current MOQ.)')">
-  <?= csrfField() ?><input type="hidden" name="_action" value="bulk_moq_20">
-  <button class="abtn primary" type="submit" title="Bulk-set the minimum order quantity to 20 pieces on all listings whose brand is not Lacoste, Ralph Lauren or Amiri">⚙ Set MOQ = 20 — all brands except Lacoste / R.Lauren / Amiri</button>
-</form>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 16px">
+  <form method="post" style="margin:0" onsubmit="return confirm('Set MOQ = 20 on EVERY listing except Lacoste, Ralph Lauren and Amiri? (Those three keep their current MOQ.)')">
+    <?= csrfField() ?><input type="hidden" name="_action" value="bulk_moq_20">
+    <button class="abtn primary" type="submit" title="Bulk-set the minimum order quantity to 20 pieces on all listings whose brand is not Lacoste, Ralph Lauren or Amiri">⚙ Set MOQ = 20 — all brands except Lacoste / R.Lauren / Amiri</button>
+  </form>
+  <form method="post" style="margin:0" onsubmit="return confirm('Rebrand all SB E-Commerce listings to “Tyrex International BV” and hide the seller name on the public catalogue?')">
+    <?= csrfField() ?><input type="hidden" name="_action" value="rebrand_sb_tyrex">
+    <button class="abtn" type="submit" title="Rename every SB E-Commerce listing's seller to Tyrex International BV and hide the name publicly (shows “Verified business · via VESTRA”)">🏷 SB E-Commerce → Tyrex International BV (name hidden)</button>
+  </form>
+</div>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
