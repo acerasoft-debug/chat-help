@@ -131,6 +131,50 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($n) vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=rebrand&n='.$n); exit;
   }
+  /* Price editor — retune MOQ / mode / list price / tiered pricing for EVERY product
+     in one submit. Demo (built-in) products are saved to data/product_overrides.json;
+     live seller listings are edited directly in listings.json. Fields are keyed by
+     product id: moq[id], mode[id], list[id], t1min[id]…t3price[id]. Empty tier pairs
+     are ignored, so clearing them never wipes existing pricing by accident. */
+  if($act==='save_prices'){
+    $moqIn=(array)($_POST['moq']??[]); $modeIn=(array)($_POST['mode']??[]); $listIn=(array)($_POST['list']??[]);
+    $tminIn=[(array)($_POST['t1min']??[]),(array)($_POST['t2min']??[]),(array)($_POST['t3min']??[])];
+    $tprIn =[(array)($_POST['t1price']??[]),(array)($_POST['t2price']??[]),(array)($_POST['t3price']??[])];
+    $ids=array_values(array_unique(array_merge(array_keys($moqIn),array_keys($modeIn),array_keys($listIn))));
+    $all=vestra_listings(); $ov=vestra_product_overrides(); $n=0;
+    foreach($ids as $id){
+      $tiers=[];
+      for($i=0;$i<3;$i++){
+        $mn=(string)($tminIn[$i][$id]??''); $pr=(string)($tprIn[$i][$id]??'');
+        if($mn!=='' && $pr!=='' && (float)$pr>0) $tiers[]=['min'=>max(1,(int)$mn),'price'=>round((float)$pr,2)];
+      }
+      usort($tiers,fn($a,$b)=>$a['min']<=>$b['min']);
+      $m  = isset($moqIn[$id]) && $moqIn[$id]!=='' ? max(1,(int)$moqIn[$id]) : null;
+      $md = in_array($modeIn[$id]??'',['fixed','sale','offer'],true) ? $modeIn[$id] : null;
+      $ls = isset($listIn[$id]) && $listIn[$id]!=='' ? round((float)$listIn[$id],2) : null;
+      if(vestra_is_demo_product($id)){
+        $e=(array)($ov[$id]??[]);
+        if($m!==null)  $e['moq']=$m;
+        if($md!==null) $e['mode']=$md;
+        if($ls!==null) $e['list']=$ls;
+        if($tiers)     $e['tiers']=$tiers;
+        if($e){ $ov[$id]=$e; $n++; }
+      } else {
+        foreach($all as &$p){
+          if(($p['id']??'')!==$id) continue;
+          if($m!==null)  $p['moq']=$m;
+          if($md!==null) $p['mode']=$md;
+          if($ls!==null) $p['list']=$ls;
+          if($tiers)     $p['tiers']=$tiers;
+          $n++; break;
+        }
+        unset($p);
+      }
+    }
+    vestra_save_product_overrides($ov);
+    vestra_save_listings($all);
+    header('Location: /admin?tab=prices&msg=prices_saved&n='.$n); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -516,6 +560,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .afield label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px}
 .afield input,.afield select,.afield textarea{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;font-family:inherit}
 .afield textarea{resize:vertical;min-height:60px}
+/* price editor — bare inputs in table cells need the admin light theme (they are not inside .afield) */
+.pricetable input,.pricetable select{border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px;font-family:inherit}
+.pricetable input:focus,.pricetable select:focus{outline:none;border-color:var(--acc)}
+.pricetable td{vertical-align:middle}
 /* misc */
 .amsg{padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px}
 .amsg.ok{background:rgba(122,214,160,.1);border:1px solid rgba(122,214,160,.3);color:#1f9d63}
@@ -633,7 +681,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
-    'listing_saved'=>'✓ Listing updated.',
+    'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -693,6 +741,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'notify','🔔','Notifications') ?>
 
   <div class="sgrp">Catalog</div>
+  <?= navLink($tab,'prices','💶','Prices & MOQ') ?>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
 
   <div class="sgrp">Content</div>
@@ -1475,6 +1524,59 @@ elseif($tab==='req_offers'): ?>
 </table></div></div>
 <?php endif; ?>
 
+
+<?php // ══════════════════════════════════════════════════════ PRICES & MOQ
+elseif($tab==='prices'):
+  $allProd = vestra_products();
+  usort($allProd, function($a,$b){
+    $ad=vestra_is_demo_product($a['id']??'')?0:1; $bd=vestra_is_demo_product($b['id']??'')?0:1;
+    return $ad<=>$bd ?: strcmp(($a['brand']??'').($a['name']??''),($b['brand']??'').($b['name']??''));
+  });
+?>
+<div class="acard-hd" style="margin-bottom:6px"><h3>💶 Prices &amp; MOQ — edit every product in one place</h3></div>
+<p style="color:var(--mut);font-size:13px;margin:0 0 16px;max-width:720px">
+  Retune the minimum order quantity and the tiered wholesale pricing for the whole catalogue,
+  then hit <b>Save all</b> once. Built-in products and live seller listings are all editable here.
+  Leave a tier's two boxes empty to drop it; the lowest tier price is shown to buyers as the “from” price.
+</p>
+<form method="post" action="/admin">
+  <?= csrfField() ?><input type="hidden" name="_action" value="save_prices">
+  <div style="position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">
+    <button class="abtn primary" type="submit" style="padding:9px 18px">💾 Save all prices</button>
+    <span style="color:var(--mut);font-size:12px"><?= count($allProd) ?> products · changes apply to the live catalogue instantly</span>
+  </div>
+  <div class="acard"><div class="atscroll"><table class="atable pricetable">
+    <?= arow(['Product','Type','MOQ','List €<div class="ahint" style="font-weight:400">sale only</div>','Tier 1 — min → €','Tier 2','Tier 3','From'],true) ?>
+    <?php foreach($allProd as $p): $id=(string)($p['id']??''); $eid=htmlspecialchars($id); $t=array_values($p['tiers']??[]); $demo=vestra_is_demo_product($id); $thumb=vestra_primary_image($p); ?>
+    <tr>
+      <td class="ac" style="min-width:210px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <?php if($thumb): ?><img src="<?= htmlspecialchars($thumb) ?>" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:none">
+          <?php else: ?><div style="width:34px;height:34px;border-radius:6px;flex:none;background:linear-gradient(135deg,<?= htmlspecialchars($p['accent']??'#cfc8ba') ?>,#e8e2d7)"></div><?php endif; ?>
+          <div style="min-width:0">
+            <div style="font-size:11px;color:var(--mut);letter-spacing:.02em"><?= htmlspecialchars($p['brand']??'') ?></div>
+            <div style="font-weight:600;line-height:1.2"><?= htmlspecialchars($p['name']??'') ?></div>
+            <div class="ahint"><span class="atag" style="font-size:9px"><?= htmlspecialchars($p['sku']??'') ?></span>
+              <?= $demo?abadge('Built-in','#9a7320'):abadge('Listing','#3366cc') ?></div>
+          </div>
+        </div>
+      </td>
+      <td class="ac"><select name="mode[<?= $eid ?>]" style="padding:5px"><?php foreach(['fixed','sale','offer'] as $m): ?><option <?= ($p['mode']??'fixed')===$m?'selected':'' ?>><?= $m ?></option><?php endforeach; ?></select></td>
+      <td class="ac"><input type="number" min="1" name="moq[<?= $eid ?>]" value="<?= (int)($p['moq']??1) ?>" style="width:64px;padding:5px"></td>
+      <?php $lv = (isset($p['list']) && $p['list']!=='') ? (string)$p['list'] : ''; ?>
+      <td class="ac"><input type="number" step="0.01" min="0" name="list[<?= $eid ?>]" value="<?= htmlspecialchars($lv) ?>" placeholder="—" style="width:72px;padding:5px"></td>
+      <?php for($i=0;$i<3;$i++): ?>
+      <td class="ac"><div style="display:flex;gap:4px">
+        <input type="number" min="1" name="t<?= $i+1 ?>min[<?= $eid ?>]" value="<?= htmlspecialchars((string)($t[$i]['min']??'')) ?>" placeholder="min" style="width:56px;padding:5px">
+        <input type="number" step="0.01" min="0" name="t<?= $i+1 ?>price[<?= $eid ?>]" value="<?= htmlspecialchars((string)($t[$i]['price']??'')) ?>" placeholder="€" style="width:62px;padding:5px">
+      </div></td>
+      <?php endfor; ?>
+      <td class="ac"><b><?= ($p['mode']??'')==='offer' ? '—' : eur(vestra_from_price($p)) ?></b></td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div></div>
+  <div style="margin-top:14px"><button class="abtn primary" type="submit" style="padding:9px 18px">💾 Save all prices</button></div>
+</form>
 
 <?php // ══════════════════════════════════════════════════════ LISTINGS
 elseif($tab==='listings'):

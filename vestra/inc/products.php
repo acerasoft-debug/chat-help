@@ -25,7 +25,7 @@ require_once __DIR__.'/notify.php';
 if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
 
 function vestra_demo_products(){
-  return [
+  $P = [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
       'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc',
@@ -71,6 +71,48 @@ function vestra_demo_products(){
       'tiers'=>[['min'=>10,'price'=>35.00]],
     ],
   ];
+  return vestra_apply_price_overrides($P);
+}
+/* ── Admin price/MOQ overrides for the built-in demo products ──────────────
+   The 3 demo products above are hard-coded, but the admin "Prices" editor lets
+   the owner retune their MOQ, list price and tier pricing without touching code.
+   Those edits live in data/product_overrides.json ({id => {moq,list,tiers}}) and
+   are layered on top here so a redeploy never wipes them. Live seller listings
+   are edited directly in listings.json instead (they are already mutable). */
+function vestra_product_overrides(): array {
+  $f = vestra_data_dir().'/product_overrides.json';
+  if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+  return [];
+}
+function vestra_apply_price_overrides(array $products): array {
+  $ov = vestra_product_overrides();
+  if(!$ov) return $products;
+  foreach($products as &$p){
+    $o = $ov[$p['id']??''] ?? null;
+    if(!is_array($o)) continue;
+    if(isset($o['moq']))  $p['moq']  = (int)$o['moq'];
+    if(isset($o['list'])) $p['list'] = (float)$o['list'];
+    if(isset($o['mode']) && $o['mode']!=='') $p['mode'] = (string)$o['mode'];
+    if(isset($o['tiers']) && is_array($o['tiers']) && $o['tiers']){
+      $t=[];
+      foreach($o['tiers'] as $row){
+        if(!isset($row['min'],$row['price'])) continue;
+        $t[]=['min'=>(int)$row['min'],'price'=>(float)$row['price']];
+      }
+      if($t){ usort($t, fn($a,$b)=>$a['min']<=>$b['min']); $p['tiers']=$t; }
+    }
+  }
+  unset($p);
+  return $products;
+}
+function vestra_save_product_overrides(array $ov): void {
+  $f = vestra_data_dir().'/product_overrides.json';
+  file_put_contents($f, json_encode($ov, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+/* Which products are demo (override-backed) vs live listings (listings.json-backed). */
+function vestra_is_demo_product(string $id): bool {
+  foreach(['lac-pique-polo','rl-oxford-shirt','amiri-core-polo'] as $d){ if($d===$id) return true; }
+  return false;
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
 function vestra_brand_logo($brand){
