@@ -211,6 +211,51 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=prices&msg=pricing_rules&n='.$n); exit;
   }
+  /* Create (or reuse) the verified Elite "Tyrex International BV" seller account and
+     migrate every SB E-Commerce Services LLC listing (and any already-rebranded
+     "Tyrex" listing) onto it. Company details come from the supplier invoice (VAT /
+     address). The admin supplies the login email at click-time; a one-time password
+     is flashed back so it can be relayed out-of-band. */
+  if($act==='create_tyrex_migrate'){
+    $email=strtolower(trim((string)($_POST['tyrex_email']??'')));
+    $hide=!empty($_POST['hide_name']);
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=listings&msg=tyrex_bademail'); exit; }
+    $accs=auth_accounts();
+    $tyrex=null;
+    foreach($accs as $a){ if(($a['type']??'')==='seller' && strtolower(trim((string)($a['company']??'')))==='tyrex international bv'){ $tyrex=$a; break; } }
+    foreach($accs as $a){ if(strtolower((string)($a['email']??''))===$email && ($a['id']??'')!==($tyrex['id']??'')){ header('Location: /admin?tab=listings&msg=tyrex_emailtaken'); exit; } }
+    $pwPlain=null;
+    if(!$tyrex){
+      $pwPlain=bin2hex(random_bytes(5)).'-'.random_int(10,99);
+      $tyrex=[
+        'id'=>bin2hex(random_bytes(8)),'email'=>$email,'hash'=>password_hash($pwPlain,PASSWORD_DEFAULT),'type'=>'seller',
+        'status'=>'active','email_verified'=>true,
+        'name'=>'Tyrex International BV','company'=>'Tyrex International BV',
+        'vat_id'=>'NL853943576B01','reg_number'=>'','country'=>'Netherlands',
+        'address'=>'Kingsfordweg 151, 1043 GR Amsterdam, Netherlands','phone'=>'','website'=>'',
+        'kyb_status'=>'approved','membership_tier'=>'premium','membership_status'=>'active',
+        'onboarding_paid'=>true,'created'=>date('c'),'doc_requests'=>[],
+      ];
+      $accs[]=$tyrex; auth_save_accounts($accs);
+    } else {
+      auth_update($tyrex['id'],['email'=>$email,'status'=>'active','kyb_status'=>'approved',
+        'membership_tier'=>'premium','membership_status'=>'active','onboarding_paid'=>true,
+        'company'=>'Tyrex International BV','vat_id'=>($tyrex['vat_id']??'')?:'NL853943576B01']);
+    }
+    $tuid=$tyrex['id'];
+    $accCo=[]; foreach($accs as $a) $accCo[(string)($a['id']??'')]=strtolower((string)($a['company']?:($a['name']??'')));
+    $all=vestra_listings(); $n=0;
+    foreach($all as &$p){
+      $s=strtolower((string)($p['seller']??'')); if($s===''&&!empty($p['seller_uid'])) $s=$accCo[(string)$p['seller_uid']]??'';
+      if(preg_match('/sb\W*e\W*commerce/i',$s) || str_contains($s,'tyrex')){
+        $p['seller_uid']=$tuid; $p['seller']='Tyrex International BV'; $p['hide_seller']=$hide; $p['verified']=true; $n++;
+      }
+    }
+    unset($p);
+    vestra_save_listings($all);
+    if($pwPlain) $_SESSION['tyrex_flash']=['email'=>$email,'pw'=>$pwPlain];
+    header('Location: /admin?tab=listings&msg=tyrex_ok&n='.$n); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -807,6 +852,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
 <div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 60 · other polos €70 · D&G / Dsquared tees €60→€45 · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
+<?php elseif($msg==='tyrex_ok'): $tf=$_SESSION['tyrex_flash']??null; if($tf) unset($_SESSION['tyrex_flash']); ?>
+<div class="amsg ok">✓ <b>Tyrex International BV</b> (Elite · verified) is ready — <?= (int)($_GET['n']??0) ?> listing(s) now belong to it.
+  <?php if($tf): ?><br>Login e-mail: <b><?= htmlspecialchars($tf['email']) ?></b> · temporary password:
+  <code style="font-size:15px;background:#faf7f1;padding:3px 10px;border-radius:6px;color:#8a6420;border:1px solid var(--line);user-select:all"><?= htmlspecialchars($tf['pw']) ?></code>
+  — copy it now, it's shown only once (change it later under the account).<?php endif; ?></div>
+<?php elseif($msg==='tyrex_bademail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Enter a valid login e-mail for the Tyrex account.</div>
+<?php elseif($msg==='tyrex_emailtaken'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ That e-mail already belongs to another account — use a different one for Tyrex.</div>
 <?php elseif($msg==='lead_import'): ?>
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
@@ -1699,6 +1753,23 @@ elseif($tab==='listings'):
     <?= csrfField() ?><input type="hidden" name="_action" value="rebrand_sb_tyrex">
     <button class="abtn" type="submit" title="Rename every SB E-Commerce listing's seller to Tyrex International BV and hide the name publicly (shows “Verified business · via VESTRA”)">🏷 SB E-Commerce → Tyrex International BV (name hidden)</button>
   </form>
+</div>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body">
+    <div style="font-size:13px;color:var(--mut);margin-bottom:10px;max-width:720px">
+      <b style="color:var(--ink)">🏢 Create Tyrex International BV (Elite) &amp; move SB E-Commerce products to it</b><br>
+      Creates a verified <b>Elite</b> seller account (VAT NL853943576B01 · Amsterdam) and reassigns every
+      <b>SB E-Commerce Services LLC</b> listing (and any already-rebranded “Tyrex” listing) to it.
+      Enter the login e-mail for the account — a one-time password is shown after.
+    </div>
+    <form method="post" action="/admin" style="margin:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap"
+      onsubmit="return confirm('Create the verified Elite “Tyrex International BV” account and move all SB E-Commerce products to it?')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="create_tyrex_migrate">
+      <input type="email" name="tyrex_email" required placeholder="Tyrex login e-mail" style="padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;min-width:240px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)"><input type="checkbox" name="hide_name" value="1"> Hide name publicly</label>
+      <button class="abtn primary" type="submit" style="white-space:nowrap">🏢 Create Tyrex Elite &amp; migrate</button>
+    </form>
+  </div>
 </div>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
