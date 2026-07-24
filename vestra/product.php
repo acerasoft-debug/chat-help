@@ -406,6 +406,115 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <?php endif; ?>
     </div>
   </div>
+
+  <?php
+  /* ── Full-width detail sections (the "open in more detail" view) ────────────
+     Specifications, the per-colour article/model breakdown, and related items.
+     Specs & article codes are catalogue data → shown to everyone; only the
+     variant thumbnails stay photo-gated (freischaltung), like the gallery. */
+  $specs = (!empty($p['specs']) && is_array($p['specs'])) ? $p['specs'] : [];
+  $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
+  $related = [];
+  $pid = $p['id'] ?? '';
+  foreach (vestra_products() as $rp) {
+    if (($rp['id'] ?? '') === $pid) continue;
+    $s = (!empty($p['seller_uid']) && ($rp['seller_uid'] ?? '') === $p['seller_uid']) ? 2 : 0;
+    $c = (($rp['cat'] ?? '') !== '' && ($rp['cat'] ?? '') === ($p['cat'] ?? '')) ? 1 : 0;
+    if ($s + $c > 0) $related[] = ['p' => $rp, 's' => $s + $c];
+  }
+  usort($related, fn($a, $b) => $b['s'] <=> $a['s']);
+  $related = array_slice(array_map(fn($x) => $x['p'], $related), 0, 4);
+  ?>
+  <?php if ($specs || $variants || $related): ?>
+  <style>
+    .pmore{margin:40px 0 0;padding-top:30px;border-top:1px solid var(--line)}
+    .pmore>h2{font-size:21px;margin:0 0 16px}
+    .specs2{display:grid;grid-template-columns:1fr 1fr;background:var(--bg2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+    .specs2 .spec-row{padding:11px 16px}
+    @media(max-width:640px){.specs2{grid-template-columns:1fr}}
+    .vscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+    .vartable{width:100%;border-collapse:collapse;font-size:13.5px;min-width:460px}
+    .vartable th,.vartable td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+    .vartable th{color:var(--mut);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+    .vartable tr:last-child td{border-bottom:none}
+    .vartable .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12.5px;color:var(--acc)}
+    .vartable .vcol{display:flex;align-items:center;gap:9px}
+    .vartable .varthumb{width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--line);flex:none}
+    .vartable .vdot{width:13px;height:13px;border-radius:50%;border:1px solid rgba(255,255,255,.25);flex:none}
+  </style>
+  <?php endif; ?>
+
+  <?php if ($specs): ?>
+  <section class="pmore">
+    <h2><?= t('Specifications') ?></h2>
+    <div class="specs2">
+      <?php foreach ($specs as $k => $v): ?>
+      <div class="spec-row"><span><?= htmlspecialchars(t($k)) ?></span><b><?= htmlspecialchars((string)$v) ?></b></div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <?php if ($variants): $pal = vestra_colors(); ?>
+  <section class="pmore">
+    <h2><?= t('Article & colour breakdown') ?> <span style="color:var(--mut);font-weight:400;font-size:14px">· <?= count($variants) ?> <?= t('colourways') ?></span></h2>
+    <div class="vscroll"><table class="vartable">
+      <thead><tr>
+        <th><?= t('Colour') ?></th><th><?= t('Article no.') ?></th><th><?= t('Model') ?></th>
+        <?php if (!empty($p['size_step'])): ?><th><?= t('Carton') ?></th><?php endif; ?>
+      </tr></thead>
+      <tbody>
+        <?php foreach ($variants as $v): $cn = $v['color'] ?? ''; ?>
+        <tr>
+          <td><div class="vcol">
+            <?php if ($APPROVED && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="" loading="lazy">
+            <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars($pal[$cn] ?? '#888') ?>"></span><?php endif; ?>
+            <?= htmlspecialchars(t($cn)) ?>
+          </div></td>
+          <td class="mono"><?= htmlspecialchars($v['art'] ?? '—') ?></td>
+          <td class="mono"><?= htmlspecialchars($v['model'] ?? '—') ?></td>
+          <?php if (!empty($p['size_step'])): ?><td><?= (int)$p['size_step'] ?> <?= htmlspecialchars($p['unit'] ?? 'pc') ?></td><?php endif; ?>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table></div>
+  </section>
+  <?php endif; ?>
+
+  <?php if ($related): ?>
+  <section class="pmore">
+    <h2><?= t('You might also like') ?></h2>
+    <div class="shopgrid">
+      <?php foreach ($related as $rp): $rfrom = vestra_from_price($rp);
+        $rimgs = ($APPROVED && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
+        $rimg = $rimgs[0] ?? ''; ?>
+        <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
+          <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars($rp['accent'] ?? '#2a2b31') ?>,#0e0e11)">
+            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
+            <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
+            <?php if (!$rimg) { $bl = vestra_brand_logo($rp['brand'] ?? ''); echo $bl ?: '<span class="sbname">'.htmlspecialchars($rp['brand'] ?? '').'</span>'; } ?>
+            <?php if (($rp['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
+            <?php elseif (($rp['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+          </div>
+          <div class="sbody">
+            <span class="sbrand"><?= htmlspecialchars($rp['brand'] ?? '') ?></span>
+            <span class="stitle"><?= htmlspecialchars($rp['name'] ?? '') ?></span>
+            <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
+            <div class="sprice">
+              <?php if (!$MEMBER): ?>
+                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
+              <?php elseif (($rp['mode'] ?? '') === 'offer'): ?>
+                <span class="soffer">💬 <?= t('Open to offers') ?></span>
+              <?php else: ?>
+                <span class="sfrom"><?= t('from') ?></span><span class="samt"><?= eur($rfrom) ?></span><span class="sfrom">/<?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
+              <?php endif; ?>
+            </div>
+          </div>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
 </div>
 
 <?php if($images): ?>
