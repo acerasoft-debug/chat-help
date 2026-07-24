@@ -1,0 +1,198 @@
+<meta charset="utf-8">
+<title>ChatHelp — Carousel</title>
+<style>
+  :root{
+    --bg0:#07070e;--bg1:#0c0c16;--ink:#F4F4F8;--mute:#9a9ab0;--mute2:#7a7a90;
+    --gold0:#F6E2A6;--gold1:#F3D88A;--gold2:#D4A84A;--gold3:#B0801F;--red:#e0685e;
+    --serif:Georgia,'Liberation Serif','DejaVu Serif',serif;
+    --sans:'DejaVu Sans','Liberation Sans',system-ui,sans-serif;
+    --mono:'DejaVu Sans Mono','Liberation Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+  .slide{position:relative;width:1080px;height:1350px;overflow:hidden;color:var(--ink);
+    font-family:var(--sans);border-radius:0;
+    background:radial-gradient(120% 75% at 50% -8%, #17172c 0%, var(--bg1) 46%, var(--bg0) 100%);}
+  .pad{position:absolute;inset:0;padding:84px 84px}
+  .k{font:700 30px/1 var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--gold2)}
+  .h1{font:700 84px/1.04 var(--serif);letter-spacing:-.5px}
+  .h1 .g,.g{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2) 62%,var(--gold3));-webkit-background-clip:text;background-clip:text}
+  .h2{font:700 64px/1.08 var(--serif)}
+  .lead{font:400 37px/1.44 var(--sans);color:var(--mute)}
+  .gold{color:var(--gold2)}
+  .wm{font:700 var(--wm,84px)/1 var(--serif)}
+  .tag{font:600 27px/1 var(--sans);letter-spacing:.28em;color:var(--mute)}
+  .foot{position:absolute;left:84px;right:84px;bottom:64px;display:flex;justify-content:space-between;align-items:center;
+    font:600 28px/1 var(--sans);color:var(--mute2);border-top:1px solid rgba(255,255,255,.08);padding-top:28px}
+  .foot .g{font-weight:700}
+  .center{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .pill{display:inline-flex;align-items:center;gap:14px;padding:22px 40px;border-radius:999px;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 42px/1 var(--sans);
+    box-shadow:0 20px 60px rgba(212,168,74,.4)}
+  .swipe{display:inline-flex;align-items:center;gap:14px;padding:16px 30px;border-radius:999px;
+    background:rgba(212,168,74,.1);border:1px solid rgba(212,168,74,.3);font:700 30px/1 var(--sans);color:var(--gold1)}
+  /* mini paper */
+  .paper{background:linear-gradient(180deg,#fbf8f1,#efe9db);color:#2a2418;border-radius:16px;
+    box-shadow:0 40px 90px rgba(0,0,0,.55);padding:44px 46px;position:relative}
+  .stamp{position:absolute;border:4px solid var(--red);color:var(--red);border-radius:10px;font:800 26px/1 var(--sans);
+    letter-spacing:.1em;padding:11px 16px;transform:rotate(-10deg);text-transform:uppercase}
+  /* chat */
+  .bub{max-width:640px;padding:26px 30px;border-radius:26px;font:400 33px/1.4 var(--sans);margin-bottom:22px}
+  .bub.me{margin-left:auto;background:linear-gradient(180deg,#2a2410,#1e1a0b);border:1.5px solid rgba(212,168,74,.5);color:#f4ecd6;border-bottom-right-radius:8px}
+  .bub.ai{background:linear-gradient(180deg,#191924,#12121b);border:1.5px solid rgba(255,255,255,.08);color:#e9e9f4;border-bottom-left-radius:8px}
+  .who{font:700 22px/1 var(--sans);color:var(--gold2);margin-bottom:12px;letter-spacing:.04em}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;font:600 24px/1 var(--sans);
+    color:var(--gold1);background:rgba(212,168,74,.12);border:1px solid rgba(212,168,74,.35)}
+  /* nodes */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .node{padding:28px 30px;border-radius:22px;background:linear-gradient(180deg,rgba(26,26,40,.92),rgba(14,14,22,.92));
+    border:1.6px solid rgba(212,168,74,.35);box-shadow:0 16px 44px rgba(0,0,0,.4)}
+  .node .ic{width:60px;height:60px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 30% 25%,#2a2a12,#17170c);border:1.4px solid rgba(212,168,74,.5);margin-bottom:14px}
+  .node .nt{font:700 34px/1.1 var(--sans)}
+  .node .nd{font:400 25px/1.32 var(--sans);color:var(--mute);margin-top:8px}
+  .hub{display:flex;align-items:center;gap:22px;justify-content:center;margin-top:30px;padding:24px 34px;border-radius:22px;
+    background:radial-gradient(circle at 30% 20%,#23231a,#101018);border:2px solid rgba(212,168,74,.55)}
+  .hub .hn{font:700 40px/1 var(--serif)}.hub .hn b{color:var(--gold2)}
+  .hub .hs{font:600 24px/1 var(--sans);letter-spacing:.14em;color:var(--gold2);text-transform:uppercase;margin-top:6px}
+  .outchip{display:inline-flex;align-items:center;gap:12px;padding:18px 28px;border-radius:16px;
+    background:linear-gradient(180deg,rgba(26,26,40,.95),rgba(14,14,22,.95));border:1.4px solid rgba(212,168,74,.4);
+    font:700 32px/1 var(--sans);color:var(--gold1)}
+  .badge{display:inline-flex;align-items:center;gap:12px;padding:14px 24px;border-radius:999px;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 30px/1 var(--sans)}
+  .doc p{font:400 27px/1.5 var(--sans);color:#3a3324;margin:0 0 12px}
+</style>
+<body>
+
+<!-- 1 COVER -->
+<div class="slide"><div class="pad">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span class="k">ChatHelp</span><span class="tag">chat-help.com</span>
+  </div>
+  <div class="center" style="margin-top:150px">
+    <div id="c1emb"></div>
+    <div class="wm" style="--wm:96px;margin-top:36px">Chat<span class="g">Help</span></div>
+    <div class="tag" style="margin-top:20px">Recht · Einfach · Digital</div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:790px;text-align:center">
+    <div class="h1">Almanca resmî<br>yazı mı geldi?</div>
+    <div class="lead" style="margin-top:34px">Panikleme. <span class="gold">Sen anlat</span>, gerisini yapay zekâ halletsin.</div>
+    <div style="margin-top:44px"><span class="swipe">Kaydır → nasıl çalışıyor</span></div>
+  </div>
+</div></div>
+
+<!-- 2 PROBLEM -->
+<div class="slide"><div class="pad">
+  <span class="k">Sorun</span>
+  <div style="display:flex;justify-content:center;margin-top:70px">
+    <div class="paper" style="width:660px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div style="width:56px;height:56px;border-radius:50%;background:#20304a;border:3px solid #35507a;margin-bottom:14px"></div>
+          <div style="font:800 28px/1.1 var(--sans);color:#22324c">BEHÖRDE · AMT</div>
+          <div style="font:600 20px/1.3 var(--mono);color:#7a7360;margin-top:6px">Az: 2026 / 44-871</div></div>
+        <div style="font:600 20px/1.4 var(--mono);color:#7a7360">03.07.2026</div>
+      </div>
+      <div style="font:800 56px/1.05 var(--serif);color:#1c2942;margin:26px 0 8px">BESCHEID</div>
+      <div style="height:7px;width:200px;background:var(--red);border-radius:6px;margin-bottom:24px"></div>
+      <div style="font:400 26px/1.6 var(--sans);color:#5a5342">…Gegen diesen Bescheid können Sie innerhalb der Frist Widerspruch einlegen…</div>
+      <div style="margin-top:22px;font:700 25px/1.3 var(--sans);color:var(--red)">⚠ Widerspruchsfrist: 1 Monat</div>
+      <div class="stamp" style="position:absolute;right:-14px;top:38px">Frist läuft</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:930px;text-align:center">
+    <div class="h2">Anlamadığın resmî yazı.<br><span class="g">İşleyen itiraz süresi.</span></div>
+    <div class="lead" style="margin-top:26px">Yanlış adım ya da geç kalmak = hak kaybı.</div>
+  </div>
+  <div class="foot"><span>Sorun</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 3 ANLAT -->
+<div class="slide"><div class="pad">
+  <span class="k">1 · Anlat</span>
+  <div style="margin-top:80px">
+    <div class="bub me"><div class="who">SEN</div>Kira zammına itiraz etmek istiyorum. Belediyeden gelen yazıyı ekledim.
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><span class="chip">Bescheid.jpg</span><span class="chip">Frist: 1 Ay</span><span class="chip">250 €</span></div></div>
+    <div class="bub ai"><div class="who">CHATHELP KI</div>Anladım. Belgedeki tarih ve oranı okudum. Kappungsgrenze'yi kontrol edip itiraz metnini hazırlayabilirim. Sözleşmen ne zaman başladı?</div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:840px">
+    <div class="h2" style="text-align:center">Kendi dilinde anlat,<br><span class="g">belgeni yükle.</span></div>
+    <div class="lead" style="margin-top:28px;text-align:center">Yapay zekâ belgeni okur — tarih, süre, dosya no — ve tam anlayana kadar soru sorar.</div>
+  </div>
+  <div class="foot"><span>1 · Anlat</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 4 ANALIZ -->
+<div class="slide"><div class="pad">
+  <span class="k">2 · Analiz</span>
+  <div class="h2" style="margin-top:20px">Güçlü yapay zekâlar <span class="g">birlikte çalışır</span></div>
+  <div class="grid" style="margin-top:44px">
+    <div class="node"><div class="ic" id="i1"></div><div class="nt">Hukuk Analizi</div><div class="nd">Yasal çerçeve · §-maddeler · itiraz süresi</div></div>
+    <div class="node"><div class="ic" id="i2"></div><div class="nt">Strateji</div><div class="nd">En güçlü yaklaşım · karşı argümanlar</div></div>
+    <div class="node"><div class="ic" id="i3"></div><div class="nt">Belge Tipi</div><div class="nd">Widerspruch · Klage · Antrag?</div></div>
+    <div class="node"><div class="ic" id="i4"></div><div class="nt">Belge Yazımı</div><div class="nd">Kusursuz, resmî Almanca metin</div></div>
+  </div>
+  <div class="hub"><div id="c4emb"></div><div style="text-align:left"><div class="hn">Chat<b>Help</b> KI</div><div class="hs">hepsi buraya akar ↓</div></div></div>
+  <div style="text-align:center;margin-top:34px"><span class="swipe"><span id="lk"></span> Kişisel verilerin 3. taraflara gönderilmez</span></div>
+  <div class="foot"><span>2 · Analiz</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 5 SONUC -->
+<div class="slide"><div class="pad">
+  <span class="k">3 · Sonuç</span>
+  <div style="display:flex;justify-content:center;margin-top:50px">
+    <div class="paper doc" style="width:720px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid rgba(0,0,0,.12);padding-bottom:18px;margin-bottom:20px">
+        <div style="font:700 34px/1 var(--serif)">Chat<b style="color:var(--gold3)">Help</b></div>
+        <span class="badge"><span id="ck"></span> Fertig</span>
+      </div>
+      <p style="color:#6a6350"><b style="color:#2a2418">Max Mustermann</b> · Musterstraße 12, Berlin</p>
+      <p style="font:700 28px/1.35 var(--sans);color:#241f14;margin:14px 0">Betreff: Widerspruch gegen die Mieterhöhung</p>
+      <p>Sehr geehrte Damen und Herren, hiermit lege ich <b>fristgerecht Widerspruch</b> ein. Die Erhöhung überschreitet die <b>Kappungsgrenze gemäß § 558 Abs. 3 BGB</b>…</p>
+      <p style="margin-top:10px">Mit freundlichen Grüßen<br>Max Mustermann</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:18px;justify-content:center;margin-top:34px">
+    <span class="outchip"><span id="pk"></span> PDF</span><span class="outchip"><span id="mk"></span> E-Posta</span><span class="outchip"><span id="kk"></span> Kopyala</span>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:1050px;text-align:center">
+    <div class="h2">Saniyeler içinde <span class="g">gönderime hazır</span></div>
+  </div>
+  <div class="foot"><span>3 · Sonuç</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 6 CTA -->
+<div class="slide"><div class="pad">
+  <div class="center" style="margin-top:180px">
+    <div id="c6emb"></div>
+    <div class="wm" style="--wm:104px;margin-top:34px">Chat<span class="g">Help</span></div>
+    <div class="tag" style="margin-top:20px;text-transform:none">HUKUK · BASİT · DİJİTAL</div>
+  </div>
+  <div class="center" style="margin-top:120px">
+    <span class="pill">Hemen dene</span>
+    <div class="wm g" style="--wm:56px;margin-top:40px">chat-help.com</div>
+    <div class="lead" style="margin-top:60px">Basic · Pro · Elite — her ay yeni Fall hakkı</div>
+  </div>
+  <div class="foot" style="justify-content:center"><span>@chathelp · Rechtsassistent · Almanya · Türkiye · Frankreich</span></div>
+</div></div>
+
+<script>
+function emblemSVG(s){return `<svg width="${s}" height="${s}" viewBox="0 0 120 120" style="filter:drop-shadow(0 10px 30px rgba(212,168,74,.5))">
+  <defs><linearGradient id="eg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset=".5" stop-color="#D4A84A"/><stop offset="1" stop-color="#B0801F"/></linearGradient></defs>
+  <rect x="8" y="8" width="104" height="104" rx="28" fill="#1c1c22" stroke="url(#eg${s})" stroke-width="2.4"/>
+  <path d="M30 34 h50 a10 10 0 0 1 10 10 v24 a10 10 0 0 1 -10 10 h-28 l-16 13 v-13 h-6 a10 10 0 0 1 -10 -10 v-24 a10 10 0 0 1 10 -10 z" fill="none" stroke="url(#eg${s})" stroke-width="3"/>
+  <g stroke="url(#eg${s})" stroke-width="2.6" stroke-linecap="round" fill="none" transform="translate(11,7)"><line x1="49" y1="34" x2="49" y2="66"/><line x1="30" y1="41" x2="68" y2="41"/><path d="M30 41 l-7 14 h14 z" fill="url(#eg${s})" stroke="none"/><path d="M68 41 l-7 14 h14 z" fill="url(#eg${s})" stroke="none"/><line x1="41" y1="66" x2="57" y2="66"/></g>
+  <circle cx="60" cy="48" r="2.6" fill="url(#eg${s})"/></svg>`;}
+function icon(n){const h=`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="url(#ig)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset="1" stop-color="#D4A84A"/></linearGradient></defs>`;
+  const p={scales:`<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 006 0zM19 7l-3 6a3 3 0 006 0z"/>`,
+    target:`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>`,
+    branch:`<circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="9" r="2.4"/><path d="M6 8.4v7.2M8.2 6h4a3.6 3.6 0 013.6 3"/>`,
+    pen:`<path d="M14 4l6 6M4 20l1.5-5L16 4.5a2 2 0 013 3L8.5 18 4 20z"/>`,
+    lock:`<rect x="4.5" y="10" width="15" height="10" rx="2.4"/><path d="M8 10V7a4 4 0 018 0v3"/>`,
+    check:`<path d="M20 6L9 17l-5-5"/>`,pdf:`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>`,
+    mail:`<rect x="3" y="5" width="18" height="14" rx="2.4"/><path d="M3.5 6.5L12 13l8.5-6.5"/>`,copy:`<rect x="9" y="9" width="12" height="12" rx="2.2"/><path d="M5 15V5a2 2 0 012-2h10"/>`}[n]||'';
+  return h+p+'</svg>';}
+c1emb.innerHTML=emblemSVG(200);c4emb.innerHTML=emblemSVG(96);c6emb.innerHTML=emblemSVG(220);
+i1.innerHTML=icon('scales');i2.innerHTML=icon('target');i3.innerHTML=icon('branch');i4.innerHTML=icon('pen');
+lk.innerHTML=icon('lock');ck.innerHTML=icon('check');pk.innerHTML=icon('pdf');mk.innerHTML=icon('mail');kk.innerHTML=icon('copy');
+window.__ready=true;
+</script>
