@@ -9,7 +9,8 @@ formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument. **Geprüft 
 
 | Datei | Was | Maße |
 |---|---|---|
-| `chathelp-reel.mp4` | **Erklär-Reel** — 44 Sek., inkl. Vergleichsszene „Standard-KI vs. ChatHelp" und Versand-Szene | 1080×1920 (9:16), H.264, 30 fps |
+| `chathelp-reel.mp4` | **Erklär-Reel (stumm)** — 44 Sek., inkl. Vergleichs- und Versand-Szene; stiller Tonspur, für eigene Musik/Trend-Audio | 1080×1920 (9:16), H.264, 30 fps |
+| `chathelp-reel-vo.mp4` | **Erklär-Reel mit Voiceover** — dieselbe 44-Sek.-Reel mit deutscher weiblicher Sprecherin (Google Neural2-C), szenengenau | 1080×1920, H.264 + AAC |
 | `carousel/01-cover.png` | Karussell 1 — Aufhänger: „Amtliches Schreiben erhalten?" | 1080×1350 (4:5) |
 | `carousel/02-problem.png` | Karussell 2 — Problem: unverständlicher Bescheid + laufende Frist | 1080×1350 |
 | `carousel/03-schildern.png` | Karussell 3 — Schritt 1: in eigenen Worten schildern, Dokument hochladen | 1080×1350 |
