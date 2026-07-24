@@ -224,23 +224,43 @@ if($tab==='overview'){
     echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'buyer', $uid, '/buyer?tab=orders', '/buyer?tab=orders');
   } else {
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Orders').'</h3><a class="btn btn-o btn-sm" href="/shop">'.t('New order').'</a></div>';
-  if(!$orders) dash_empty(t('No orders yet. Place an order from the catalog.'));
+  echo '<style>
+    .ordlist{display:flex;flex-direction:column;gap:12px}
+    .ordcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(60,50,30,.05)}
+    .ordcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .ordref{font-weight:700;font-size:15px;color:var(--ink)}
+    .ordref:hover{color:var(--acc)}
+    .ordcard-items{color:var(--mut);font-size:13.5px;margin:10px 0 0;line-height:1.5}
+    .ordcard-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid var(--line)}
+    .ordtotal{font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700}
+    .ordacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .ordacts form{margin:0}
+    @media(max-width:560px){.ordcard-foot{flex-direction:column;align-items:stretch}.ordacts{justify-content:flex-start}}
+  </style>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('My orders').'</h3><a class="btn btn-o btn-sm" href="/shop">'.t('New order').'</a></div>';
+  if(!$orders){ dash_empty(t('No orders yet. Place an order from the catalog.')); echo '</div>'; }
   else {
-    echo '<table class="ctable"><thead><tr><th>'.t('Ref').'</th><th>'.t('Items').'</th><th class="r">'.t('Total').'</th><th>'.t('Status').'</th><th></th></tr></thead><tbody>';
+    $spent=0; $awaiting=0;
+    foreach($orders as $o){ $spent+=(float)($o['total']??0); if((($orderSt[$o['ref']??'']['status'])??'pending')==='shipped') $awaiting++; }
+    echo '<div class="statgrid" style="grid-template-columns:repeat(3,1fr);margin:0">'.
+      '<div class="statcard"><div class="sv">'.count($orders).'</div><div class="sl">'.t('Orders').'</div></div>'.
+      '<div class="statcard"><div class="sv">'.eur($spent).'</div><div class="sl">'.t('Total value').'</div></div>'.
+      '<div class="statcard"><div class="sv" style="color:'.($awaiting?'#8a6420':'var(--mut)').'">'.$awaiting.'</div><div class="sl">'.t('Awaiting your confirmation').'</div></div></div>';
+    echo '</div>';
+    echo '<div class="ordlist">';
     foreach($orders as $o){
       $ref = $o['ref']??'';
       $st  = $orderSt[$ref]['status'] ?? 'pending';
       $er  = escrow_get($ref);
       $isHeld = $er && ($er['status']??'')==='held';
-      $escBadge = $er ? '<div style="margin-top:3px">'.escrow_badge($er['status']??'').'</div>' : '';
+      $escBadge = $er ? '<div style="margin-top:5px">'.escrow_badge($er['status']??'').'</div>' : '';
       if ($st==='completed') { $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
       elseif($st==='paid')    { $stClass='offers'; $stLabel=t('Paid — preparing shipment'); }
       else { $stClass='open'; $stLabel=t('Awaiting payment'); }
       $confirmBtn='';
       if($st==='shipped'){
-        $confirmBtn='<form method="post" action="/buyer?tab=orders" style="margin-top:4px" '.
+        $confirmBtn='<form method="post" action="/buyer?tab=orders" '.
           ($isHeld?'onsubmit="return confirm(\''.htmlspecialchars(t('Confirm you received the goods? This releases the held funds to the seller and cannot be undone.'),ENT_QUOTES).'\')"':'').'>
           <input type="hidden" name="_action" value="confirm_receipt">
           <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
@@ -248,17 +268,27 @@ if($tab==='overview'){
       }
       $invLinks='';
       foreach(vestra_invoices_for_ref($ref) as $iv){
-        $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
+        $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
       }
-      echo '<tr><td><a class="acc" href="/buyer?tab=orders&view='.urlencode($ref).'"><b>'.htmlspecialchars($ref).'</b></a><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
-        '<td class="hint">'.htmlspecialchars($o['items']??'').'</td><td class="r">'.eur($o['total']??0).'</td>'.
-        '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.
-        (!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.
-        '<td>'.$confirmBtn.$invLinks.'</td></tr>';
+      $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
+      echo '<div class="ordcard">'.
+        '<div class="ordcard-top">'.
+          '<div><a class="ordref" href="/buyer?tab=orders&view='.urlencode($ref).'">#'.htmlspecialchars($ref).'</a>'.
+          '<div class="hint" style="margin-top:2px">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></div>'.
+          '<div style="text-align:right"><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.'</div>'.
+        '</div>'.
+        (($o['items']??'')!==''?'<div class="ordcard-items">'.htmlspecialchars($o['items']).'</div>':'').
+        $trk.
+        '<div class="ordcard-foot">'.
+          '<div class="ordtotal">'.eur($o['total']??0).'</div>'.
+          '<div class="ordacts">'.$confirmBtn.$invLinks.
+            '<a class="btn btn-o btn-sm" href="/buyer?tab=orders&view='.urlencode($ref).'">'.t('View details').' →</a>'.
+          '</div>'.
+        '</div>'.
+      '</div>';
     }
-    echo '</tbody></table>';
+    echo '</div>';
   }
-  echo '</div>';
   }
 
 } elseif($tab==='requests'){

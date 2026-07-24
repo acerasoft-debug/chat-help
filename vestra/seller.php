@@ -93,6 +93,43 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=listings&updated=1'); exit;
 }
 
+// ── Bulk price / MOQ editor: retune the seller's OWN listings in one submit ───
+// Only ever touches listings whose seller_uid matches the signed-in seller; other
+// sellers' rows and the built-in demo products are never reachable from here.
+// Fields are keyed by product id (moq[id], mode[id], list[id], t1min[id]…t3price[id]);
+// empty tier pairs are ignored so clearing a box never wipes existing pricing.
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='save_prices') {
+    $uid = $_SESSION['uid'] ?? '';
+    if ($uid !== '') {
+        $moqIn=(array)($_POST['moq']??[]); $modeIn=(array)($_POST['mode']??[]); $listIn=(array)($_POST['list']??[]);
+        $tminIn=[(array)($_POST['t1min']??[]),(array)($_POST['t2min']??[]),(array)($_POST['t3min']??[])];
+        $tprIn =[(array)($_POST['t1price']??[]),(array)($_POST['t2price']??[]),(array)($_POST['t3price']??[])];
+        $list=vestra_listings(); $n=0;
+        foreach($list as &$p){
+            $id=(string)($p['id']??'');
+            if(($p['seller_uid']??'')!==$uid) continue;            // ownership guard
+            if(!isset($moqIn[$id]) && !isset($modeIn[$id])) continue; // row not in this form
+            $tiers=[];
+            for($i=0;$i<3;$i++){
+                $mn=(string)($tminIn[$i][$id]??''); $pr=(string)($tprIn[$i][$id]??'');
+                if($mn!=='' && $pr!=='' && (float)$pr>0) $tiers[]=['min'=>max(1,(int)$mn),'price'=>round((float)$pr,2)];
+            }
+            usort($tiers,fn($a,$b)=>$a['min']<=>$b['min']);
+            if(isset($moqIn[$id]) && $moqIn[$id]!=='') $p['moq']=max(1,(int)$moqIn[$id]);
+            if(in_array($modeIn[$id]??'',['fixed','sale','offer'],true)) $p['mode']=$modeIn[$id];
+            if(($p['mode']??'')==='sale' && isset($listIn[$id]) && $listIn[$id]!=='') $p['list']=round((float)$listIn[$id],2);
+            if($tiers){
+                if($tiers[0]['min'] > ($p['moq']??1)) $tiers[0]['min']=(int)($p['moq']??1);
+                $p['tiers']=$tiers;
+            }
+            $n++;
+        }
+        unset($p);
+        if($n) vestra_save_listings($list);
+    }
+    header('Location: /seller?tab=prices&saved=1'); exit;
+}
+
 // ── Ship order (only if this seller's SKUs are actually in the order) ─────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='ship_order') {
     $ref = $_POST['ref'] ?? '';
@@ -360,6 +397,7 @@ $tabTitle = match($tab) {
     'add'      => t('Add a product'),
     'edit'     => t('Edit listing'),
     'listings' => t('My listings'),
+    'prices'   => t('Prices & MOQ'),
     'orders'   => t('Orders'),
     'offers'   => t('Offers received'),
     'messages' => t('Messages'),
@@ -689,6 +727,43 @@ if($tab==='overview'){
       '</td></tr>';
   }
   echo '</tbody></table>';
+  }
+  echo '</div>';
+
+// ── PRICES & MOQ (bulk editor for the seller's own listings) ──────────────────
+} elseif($tab==='prices'){
+  if(isset($_GET['saved'])) echo '<div class="banner ok">✓ '.t('Prices & MOQ saved — live on the catalog now.').'</div>';
+  echo '<div class="panelcard"><div class="pcfhead"><h3>💶 '.t('Prices & MOQ').'</h3><a class="btn btn-o btn-sm" href="/seller?tab=add">＋ '.t('Add product').'</a></div>';
+  echo '<p class="hint" style="margin:-4px 0 14px;max-width:640px">'.t('Retune the minimum order quantity and tiered wholesale pricing for all your products at once, then save once. Leave a tier\'s two boxes empty to drop it — the lowest tier price is shown to buyers as the “from” price. Changes go live on the catalog immediately.').'</p>';
+  if(!$listings){
+    dash_empty(t('No listings yet. Add your first product to get started.'));
+  } else {
+    echo '<form method="post" action="/seller?tab=prices" class="pricetable">';
+    echo '<style>.pricetable .ctable th,.pricetable .ctable td{padding:12px 7px}.pricetable .ctable input,.pricetable .ctable select{font-size:13px}</style>';
+    echo '<input type="hidden" name="_action" value="save_prices">';
+    echo '<div style="overflow-x:auto"><table class="ctable"><thead><tr>'.
+      '<th>'.t('Product').'</th><th>'.t('Mode').'</th><th>MOQ</th><th>'.t('List').' €<div class="hint" style="font-weight:400">'.t('sale only').'</div></th>'.
+      '<th>'.t('Tier').' 1 — min → €</th><th>'.t('Tier').' 2</th><th>'.t('Tier').' 3</th><th class="r">'.t('From').'</th></tr></thead><tbody>';
+    foreach($listings as $p){
+      $id=htmlspecialchars((string)($p['id']??'')); $tt=array_values($p['tiers']??[]);
+      $lv=(isset($p['list'])&&$p['list']!=='')?(string)$p['list']:'';
+      echo '<tr><td style="min-width:180px"><b>'.htmlspecialchars($p['brand']??'').'</b> — '.htmlspecialchars($p['name']??'').
+        '<div class="hint">SKU '.htmlspecialchars($p['sku']??'').'</div></td>'.
+        '<td><select name="mode['.$id.']" style="padding:6px 8px">';
+      foreach(['fixed','sale','offer'] as $m) echo '<option'.(($p['mode']??'fixed')===$m?' selected':'').'>'.$m.'</option>';
+      echo '</select></td>'.
+        '<td><input type="number" min="1" name="moq['.$id.']" value="'.(int)($p['moq']??1).'" style="width:66px;padding:7px 8px"></td>'.
+        '<td><input type="number" step="0.01" min="0" name="list['.$id.']" value="'.htmlspecialchars($lv).'" placeholder="—" style="width:74px;padding:7px 8px"></td>';
+      for($i=0;$i<3;$i++){
+        echo '<td><div style="display:flex;gap:4px">'.
+          '<input type="number" min="1" name="t'.($i+1).'min['.$id.']" value="'.htmlspecialchars((string)($tt[$i]['min']??'')).'" placeholder="min" style="width:56px;padding:7px 6px">'.
+          '<input type="number" step="0.01" min="0" name="t'.($i+1).'price['.$id.']" value="'.htmlspecialchars((string)($tt[$i]['price']??'')).'" placeholder="€" style="width:64px;padding:7px 6px"></div></td>';
+      }
+      echo '<td class="r"><b>'.(($p['mode']??'')==='offer'?'—':eur(vestra_from_price($p))).'</b></td></tr>';
+    }
+    echo '</tbody></table></div>';
+    echo '<div style="margin-top:16px"><button class="btn btn-p" type="submit">💾 '.t('Save all prices').'</button></div>';
+    echo '</form>';
   }
   echo '</div>';
 
