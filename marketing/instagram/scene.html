@@ -5,7 +5,7 @@
     --bg0:#07070e; --bg1:#0c0c16; --bg2:#12121d;
     --ink:#F4F4F8; --mute:#9a9ab0; --mute2:#7a7a90;
     --gold0:#F6E2A6; --gold1:#F3D88A; --gold2:#D4A84A; --gold3:#B0801F;
-    --red:#e0685e; --paper:#f6f1e6; --paperInk:#242017;
+    --red:#e0685e; --paper:#f6f1e6; --paperInk:#242017; --green:#6bd08a;
     --serif: Georgia,'Liberation Serif','DejaVu Serif',serif;
     --sans:'DejaVu Sans','Liberation Sans',system-ui,sans-serif;
     --mono:'DejaVu Sans Mono','Liberation Mono',monospace;
@@ -23,18 +23,15 @@
   #fx{position:absolute;inset:0;z-index:5;pointer-events:none}
   .scene{position:absolute;inset:0;z-index:10;will-change:opacity,transform}
   .center{position:absolute;left:50%;transform:translateX(-50%);text-align:center;width:920px}
-  .k{ /* kicker */ font:600 30px/1.3 var(--sans);letter-spacing:.28em;text-transform:uppercase;color:var(--gold2)}
+  .k{ font:600 30px/1.3 var(--sans);letter-spacing:.28em;text-transform:uppercase;color:var(--gold2)}
   .h1{font:700 92px/1.02 var(--serif);color:var(--ink);letter-spacing:-.5px}
   .h1 .g{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2));-webkit-background-clip:text;background-clip:text}
   .h2{font:700 66px/1.08 var(--serif)}
   .lead{font:400 38px/1.42 var(--sans);color:var(--mute)}
   .gold{color:var(--gold2)}
   .goldgrad{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2) 60%,var(--gold3));-webkit-background-clip:text;background-clip:text}
-
-  /* ===== Brand emblem (scales in chat bubble) ===== */
   .emblem{filter:drop-shadow(0 8px 26px rgba(212,168,74,.32))}
 
-  /* ===== S1 letter ===== */
   .paperCard{
     position:absolute;border-radius:16px;background:linear-gradient(180deg,#fbf8f1,#efe9db);
     color:var(--paperInk);box-shadow:0 40px 90px rgba(0,0,0,.6),0 4px 0 rgba(0,0,0,.2);
@@ -45,7 +42,6 @@
     text-transform:uppercase;opacity:.92}
   .redbar{height:8px;border-radius:6px;background:var(--red)}
 
-  /* ===== S2 chat ===== */
   .phone{position:absolute;left:50%;top:210px;transform:translateX(-50%);
     width:760px;height:1500px;border-radius:64px;background:linear-gradient(180deg,#1a1a28,#0e0e18);
     border:2px solid rgba(212,168,74,.22);box-shadow:0 40px 120px rgba(0,0,0,.6), inset 0 0 0 10px #05050b}
@@ -70,13 +66,14 @@
   .typing{display:inline-flex;gap:9px;align-items:center}
   .typing i{width:16px;height:16px;border-radius:50%;background:var(--mute)}
 
-  /* ===== S3 nodes ===== */
   .node{position:absolute;width:360px;padding:26px 28px;border-radius:24px;
     background:linear-gradient(180deg,rgba(26,26,40,.92),rgba(14,14,22,.92));
     border:1.6px solid rgba(255,255,255,.09);box-shadow:0 20px 60px rgba(0,0,0,.5);
     transform-origin:center center}
   .node .ic{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;
     background:radial-gradient(circle at 30% 25%, #2a2a12, #17170c);border:1.4px solid rgba(212,168,74,.5);margin-bottom:16px}
+  .node .tag2{position:absolute;top:26px;right:28px;font:700 22px/1 var(--sans);letter-spacing:.08em;color:var(--gold2);
+    background:rgba(212,168,74,.12);border:1px solid rgba(212,168,74,.32);padding:7px 12px;border-radius:999px}
   .node .nt{font:700 33px/1.12 var(--sans);color:var(--ink)}
   .node .nd{font:400 25px/1.34 var(--sans);color:var(--mute);margin-top:8px}
   .node .prog{height:7px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:18px;overflow:hidden}
@@ -89,7 +86,6 @@
   .hub .hn b{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2));-webkit-background-clip:text;background-clip:text}
   .hub .hs{font:600 20px/1 var(--sans);letter-spacing:.18em;color:var(--gold2);text-transform:uppercase;margin-top:8px}
 
-  /* ===== S4 document ===== */
   .doc{position:absolute;left:50%;transform:translateX(-50%);width:820px;border-radius:14px;
     background:linear-gradient(180deg,#fbf8f1,#f1ece0);color:#2a2418;box-shadow:0 50px 110px rgba(0,0,0,.65);
     padding:64px 66px;font-family:var(--sans)}
@@ -109,6 +105,17 @@
     background:linear-gradient(180deg,rgba(26,26,40,.95),rgba(14,14,22,.95));border:1.4px solid rgba(212,168,74,.4);
     font:700 30px/1 var(--sans);color:var(--gold1)}
 
+  /* comparison */
+  .cmp{position:absolute;border-radius:26px;padding:40px 38px}
+  .cmpBad{background:linear-gradient(180deg,rgba(34,26,26,.9),rgba(18,14,14,.92));border:1.6px solid rgba(224,104,94,.30)}
+  .cmpGood{background:linear-gradient(180deg,rgba(26,26,40,.95),rgba(13,13,20,.96));border:2px solid rgba(212,168,74,.5)}
+  .chd{display:flex;align-items:center;gap:14px;font:700 37px/1.05 var(--sans);padding-bottom:26px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.09)}
+  .crow{display:flex;gap:16px;align-items:flex-start;font:400 30px/1.32 var(--sans);color:#dcdce8;margin-top:28px}
+  .cmpBad .crow{color:#b6a6a6}
+  .xic,.vic{flex:0 0 auto;margin-top:3px;line-height:0}
+  .vs{position:absolute;left:540px;top:840px;transform:translate(-50%,-50%);width:108px;height:108px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font:800 42px/1 var(--serif);color:#241a06;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));box-shadow:0 16px 40px rgba(212,168,74,.5),0 0 0 12px rgba(7,7,14,.92)}
   .pill{display:inline-flex;align-items:center;gap:14px;padding:20px 34px;border-radius:999px;
     background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 40px/1 var(--sans);
     box-shadow:0 20px 60px rgba(212,168,74,.45)}
@@ -130,7 +137,7 @@
       <div class="tag" style="margin-top:22px">Recht · Einfach · Digital</div>
     </div>
     <div class="center lead" id="s0sub" style="top:1150px;color:var(--mute)">
-      Resmî mektup mu geldi?<br><span style="color:var(--mute2);font-size:32px">Almanca, karmaşık, süreli…</span>
+      Amtliches Schreiben erhalten?<br><span style="color:var(--mute2);font-size:32px">Kompliziert, auf Deutsch, mit Frist…</span>
     </div>
   </div>
 
@@ -164,31 +171,31 @@
     </div>
     <div class="stamp" id="s1stamp" style="left:640px;top:520px">Frist läuft</div>
     <div class="center lead" id="s1cap" style="top:1560px;width:840px">
-      Anlamadığın resmî yazı. <span class="gold">Kaçırılmaması gereken</span> itiraz süresi.
+      Ein Schreiben, das Sie nicht verstehen. <span class="gold">Eine Frist, die läuft.</span>
     </div>
   </div>
 
   <!-- ===================== S2 CHAT ===================== -->
   <div class="scene" id="s2">
-    <div class="center" id="s2k" style="top:120px"><div class="k">1 · Anlat</div></div>
+    <div class="center" id="s2k" style="top:120px"><div class="k">1 · Schildern</div></div>
     <div class="phone" id="s2phone">
       <div class="screen">
         <div class="appbar">
           <div class="appdot" id="s2logo"></div>
           <div>
             <div style="font:700 30px/1 var(--serif)">Chat<span class="goldgrad">Help</span></div>
-            <div style="font:600 19px/1 var(--sans);color:#5bbd7a;margin-top:5px">● çevrimiçi</div>
+            <div style="font:600 19px/1 var(--sans);color:#5bbd7a;margin-top:5px">● online</div>
           </div>
         </div>
         <div class="bub me" id="s2m1" style="top:180px">
-          <div class="who">SEN</div>
-          Kira zammına itiraz etmek istiyorum. Belediyeden gelen yazıyı da ekledim.
+          <div class="who">SIE</div>
+          Ich möchte Widerspruch gegen die Mieterhöhung einlegen. Das Behördenschreiben habe ich angehängt.
           <div class="attach" id="s2att">
             <div class="thumb"><div class="scanline" id="s2scan" style="top:20px"></div></div>
             <div>
               <div style="font:700 24px/1 var(--sans);color:#f4ecd6">Bescheid.jpg</div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
-                <span class="chip" id="s2c1">Frist: 1 Ay</span>
+                <span class="chip" id="s2c1">Frist: 1 Monat</span>
                 <span class="chip" id="s2c2">Az: 2026/44-871</span>
                 <span class="chip" id="s2c3">Betrag: 250 €</span>
               </div>
@@ -202,60 +209,86 @@
       </div>
     </div>
     <div class="center lead" id="s2cap" style="top:1620px;width:900px">
-      Sen <span class="gold">kendi dilinde</span> anlat, belgeni fotoğrafla yükle.<br>
-      <span style="font-size:31px;color:var(--mute2)">Yapay zeka belgeni okur, tam anlayana kadar soru sorar.</span>
+      Schildern Sie es <span class="gold">in Ihren Worten</span>, laden Sie das Dokument hoch.<br>
+      <span style="font-size:31px;color:var(--mute2)">Die KI liest Datum, Frist &amp; Aktenzeichen und fragt nach, bis alles klar ist.</span>
     </div>
   </div>
 
-  <!-- ===================== S3 AI ENGINES ===================== -->
+  <!-- ===================== S3 ANALYSE (Datenbank + 2. KI Kontrolle) ===================== -->
   <div class="scene" id="s3">
     <div class="center" id="s3k" style="top:120px">
-      <div class="k">2 · Analiz</div>
-      <div class="h2" style="margin-top:16px">Güçlü yapay zekâlar<br><span class="goldgrad">birlikte çalışır</span></div>
+      <div class="k">2 · Analyse</div>
+      <div class="h2" style="margin-top:16px">Echte Fakten —<br><span class="goldgrad">von zwei KIs geprüft</span></div>
     </div>
 
     <div class="node" id="n1" style="left:70px;top:470px">
       <div class="ic" id="n1ic"></div>
-      <div class="nt">Hukuk Analizi</div>
-      <div class="nd">Yasal çerçeve · §-maddeler · itiraz süresi · başarı şansı</div>
+      <div class="nt">Wissensdatenbank</div>
+      <div class="nd">Echte Rechtsquellen: §§, Gesetze, Fristen, Urteile</div>
       <div class="prog"><i id="n1p" style="width:0%"></i></div>
     </div>
     <div class="node" id="n2" style="left:650px;top:470px">
+      <div class="tag2">KI 1</div>
       <div class="ic" id="n2ic"></div>
-      <div class="nt">Strateji</div>
-      <div class="nd">En güçlü yaklaşım · karşı argümanlar · gerekli kanıtlar</div>
+      <div class="nt">Recherche</div>
+      <div class="nd">holt die passenden echten Fakten — keine Vermutung</div>
       <div class="prog"><i id="n2p" style="width:0%"></i></div>
     </div>
     <div class="node" id="n3" style="left:70px;top:1180px">
+      <div class="tag2">KI 2</div>
       <div class="ic" id="n3ic"></div>
-      <div class="nt">Belge Tipi</div>
-      <div class="nd">Widerspruch · Klage · Antrag? · en güçlü argümanları seçer</div>
+      <div class="nt">Kontrolle</div>
+      <div class="nd">zweite KI prüft &amp; verifiziert jede Angabe · ✓ geprüft</div>
       <div class="prog"><i id="n3p" style="width:0%"></i></div>
     </div>
     <div class="node" id="n4" style="left:650px;top:1180px">
       <div class="ic" id="n4ic"></div>
-      <div class="nt">Belge Yazımı</div>
-      <div class="nd">Kusursuz, resmî Almanca · doğru mektup formu</div>
+      <div class="nt">Formulierung</div>
+      <div class="nd">gemeinsam — fehlerfrei &amp; versandfertig</div>
       <div class="prog"><i id="n4p" style="width:0%"></i></div>
     </div>
 
     <div class="hub" id="s3hub">
       <div id="s3hubemb"></div>
       <div class="hn">Chat<b>Help</b> KI</div>
-      <div class="hs" id="s3hubst">topluyor…</div>
+      <div class="hs" id="s3hubst">prüft…</div>
     </div>
 
-    <div class="center" id="s3cap" style="top:1590px;width:940px">
-      <div class="lead">Her biri kendi uzmanlık alanında çalışır — <span class="gold">hepsi ChatHelp'e bilgi akıtır.</span></div>
+    <div class="center" id="s3cap" style="top:1560px;width:960px">
+      <div class="lead">Mehrstufig — <span class="gold">jede Angabe wird geprüft.</span></div>
       <div style="margin-top:22px;display:inline-flex;align-items:center;gap:14px;padding:16px 28px;border-radius:999px;background:rgba(212,168,74,.1);border:1px solid rgba(212,168,74,.32)">
-        <span id="lockic"></span><span style="font:600 27px/1 var(--sans);color:var(--gold1)">Kişisel verilerin 3. taraflara gönderilmez</span>
+        <span id="lockic"></span><span style="font:600 27px/1 var(--sans);color:var(--gold1)">Ihre Daten gehen nicht an Dritte</span>
       </div>
     </div>
   </div>
 
-  <!-- ===================== S4 RESULT ===================== -->
+  <!-- ===================== SC UNTERSCHIED (vs Standard-KI) ===================== -->
+  <div class="scene" id="sc">
+    <div class="center" id="sck" style="top:130px">
+      <div class="k">Der Unterschied</div>
+      <div class="h2" style="margin-top:16px"><span class="goldgrad">Geprüft</span> statt geraten</div>
+    </div>
+    <div class="cmp cmpBad" id="scBad" style="left:64px;top:450px;width:452px;height:800px">
+      <div class="chd" style="color:var(--mute)"><span id="scBadIc"></span> Standard-KI</div>
+      <div class="crow" id="bad1"><span class="xic"></span><span>Oberflächliche Standard&shy;antwort</span></div>
+      <div class="crow" id="bad2"><span class="xic"></span><span>Rät &amp; erfindet — keine Quelle</span></div>
+      <div class="crow" id="bad3"><span class="xic"></span><span>Ungeprüft, oft fehlerhaft</span></div>
+    </div>
+    <div class="cmp cmpGood" id="scGood" style="left:564px;top:450px;width:452px;height:800px">
+      <div class="chd"><span id="scGoodIc"></span> <span>Chat<b style="color:var(--gold2)">Help</b> KI</span></div>
+      <div class="crow" id="good1"><span class="vic"></span><span>Echte Rechtsquellen: §§, Urteile</span></div>
+      <div class="crow" id="good2"><span class="vic"></span><span>Von einer <b style="color:var(--gold1)">2. KI geprüft</b></span></div>
+      <div class="crow" id="good3"><span class="vic"></span><span>Fehlerfrei &amp; versandfertig</span></div>
+    </div>
+    <div class="vs" id="scVs">VS</div>
+    <div class="center lead" id="sccap" style="top:1400px;width:900px">
+      Echte Quellen, doppelte Kontrolle — <span class="gold">null Floskeln.</span>
+    </div>
+  </div>
+
+  <!-- ===================== S4 ERGEBNIS ===================== -->
   <div class="scene" id="s4">
-    <div class="center" id="s4k" style="top:120px"><div class="k">3 · Sonuç</div></div>
+    <div class="center" id="s4k" style="top:120px"><div class="k">3 · Ergebnis</div></div>
     <div class="doc" id="s4doc" style="top:300px">
       <div class="badge" id="s4badge"><span id="s4check"></span> Fertig</div>
       <div class="lh">
@@ -275,11 +308,11 @@
     </div>
     <div class="outchips" id="s4chips" style="top:1500px">
       <div class="outchip"><span id="pdfic"></span> PDF</div>
-      <div class="outchip"><span id="mailic"></span> E-Posta</div>
-      <div class="outchip"><span id="copyic"></span> Kopyala</div>
+      <div class="outchip"><span id="mailic"></span> E-Mail</div>
+      <div class="outchip"><span id="copyic"></span> Kopieren</div>
     </div>
     <div class="center lead" id="s4cap" style="top:1660px;width:900px">
-      Saniyeler içinde: <span class="gold">gönderime hazır</span>, profesyonel Almanca belge.
+      In Sekunden: ein <span class="gold">geprüftes, versandfertiges</span> Dokument — auf Deutsch.
     </div>
   </div>
 
@@ -288,28 +321,26 @@
     <div class="center" id="s5emb" style="top:560px"></div>
     <div class="center" id="s5wm" style="top:880px">
       <div style="font:700 118px/1 var(--serif)">Chat<span class="goldgrad">Help</span></div>
-      <div class="tag" style="margin-top:24px;text-transform:none">HUKUK · BASİT · DİJİTAL</div>
+      <div class="tag" style="margin-top:24px">Recht · Einfach · Digital</div>
     </div>
     <div class="center" id="s5cta" style="top:1180px">
-      <div class="pill">Hemen dene</div>
+      <div class="pill">Jetzt starten</div>
       <div class="url goldgrad" style="margin-top:40px">chat-help.com</div>
     </div>
     <div class="center" id="s5plans" style="top:1500px;font:600 30px/1.6 var(--sans);color:var(--mute)">
-      Basic · Pro · Elite &nbsp;—&nbsp; her ay yeni Fall hakkı
+      Basic · Pro · Elite &nbsp;—&nbsp; monatliche Fälle inklusive
     </div>
   </div>
 
-  <!-- progress + handle -->
   <div class="progressbar"><i id="pbar" style="width:0%"></i></div>
   <div class="handle" id="handle">@chathelp · chat-help.com</div>
 </div></div>
 
 <script>
-const DUR = 35000;
+const DUR = 40000;
 const stage = document.getElementById('stage');
 const cv = document.getElementById('fx'); const ctx = cv.getContext('2d');
 
-/* ---------- brand emblem (scales in chat bubble) ---------- */
 function emblemSVG(size, glow){
   const s = size;
   return `<svg width="${s}" height="${s}" viewBox="0 0 120 120" class="emblem" style="${glow?'filter:drop-shadow(0 10px 34px rgba(212,168,74,.55))':''}">
@@ -326,12 +357,11 @@ function emblemSVG(size, glow){
   </svg>`;
 }
 function icon(name){
-  const g='url(#ig)';
   const head=`<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="url(#ig)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset="1" stop-color="#D4A84A"/></linearGradient></defs>`;
   const p={
+    database:`<ellipse cx="12" cy="6" rx="7.5" ry="3.1"/><path d="M4.5 6v6c0 1.7 3.4 3.1 7.5 3.1s7.5-1.4 7.5-3.1V6"/><path d="M4.5 12v6c0 1.7 3.4 3.1 7.5 3.1s7.5-1.4 7.5-3.1v-6"/>`,
     scales:`<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 006 0zM19 7l-3 6a3 3 0 006 0z"/>`,
-    target:`<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>`,
-    branch:`<circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="9" r="2.4"/><path d="M6 8.4v7.2M8.2 6h4a3.6 3.6 0 013.6 3"/>`,
+    shield:`<path d="M12 3l7 3v5c0 4.6-3 7.6-7 9-4-1.4-7-4.4-7-9V6z"/><path d="M8.5 12l2.3 2.3L15.5 9.7"/>`,
     pen:`<path d="M14 4l6 6M4 20l1.5-5L16 4.5a2 2 0 013 3L8.5 18 4 20z"/>`,
     lock:`<rect x="4.5" y="10" width="15" height="10" rx="2.4"/><path d="M8 10V7a4 4 0 018 0v3"/>`,
     check:`<path d="M20 6L9 17l-5-5"/>`,
@@ -342,7 +372,6 @@ function icon(name){
   return head+p+'</svg>';
 }
 
-/* ---------- math ---------- */
 const clamp=(v,a=0,b=1)=>v<a?a:v>b?b:v;
 const seg=(t,a,b)=>clamp((t-a)/(b-a));
 const lerp=(a,b,p)=>a+(b-a)*p;
@@ -352,24 +381,26 @@ const ei=p=>p*p*p;
 const back=p=>{const c=1.70158,c3=c+1;return 1+c3*Math.pow(p-1,3)+c*Math.pow(p-1,2);};
 function env(t,a,b,fi=420,fo=420){ if(t<=a||t>=b) return 0; return Math.min(clamp((t-a)/fi),clamp((b-t)/fo)); }
 
-/* fill DOM emblems/icons once */
 document.getElementById('s0emb').innerHTML=emblemSVG(220,true);
 document.getElementById('s5emb').innerHTML=emblemSVG(240,true);
 document.getElementById('s3hubemb').innerHTML=emblemSVG(112,true);
 document.getElementById('s2logo').innerHTML=emblemSVG(40,false);
-['n1ic:scales','n2ic:target','n3ic:branch','n4ic:pen'].forEach(x=>{const[i,n]=x.split(':');document.getElementById(i).innerHTML=icon(n);});
+['n1ic:database','n2ic:scales','n3ic:shield','n4ic:pen'].forEach(x=>{const[i,n]=x.split(':');document.getElementById(i).innerHTML=icon(n);});
 document.getElementById('lockic').innerHTML=icon('lock');
 document.getElementById('s4check').innerHTML=icon('check');
 document.getElementById('pdfic').innerHTML=icon('pdf');
 document.getElementById('mailic').innerHTML=icon('mail');
 document.getElementById('copyic').innerHTML=icon('copy');
+document.getElementById('scGoodIc').innerHTML=emblemSVG(48,false);
+document.getElementById('scBadIc').innerHTML=`<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#9a9ab0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H9l-4 3v-3H4a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>`;
+document.querySelectorAll('.xic').forEach(e=>e.innerHTML=`<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#e0685e" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`);
+document.querySelectorAll('.vic').forEach(e=>e.innerHTML=icon('check'));
 
 const S = id=>document.getElementById(id);
 const set=(el,o,ty=0,sc=1,extra='')=>{el.style.opacity=o;el.style.transform=`translateX(-50%) translateY(${ty}px) scale(${sc})`+extra;};
 
-const AI_REPLY="Anladım. Zammın oranı ve tarihi belgede yazıyor. Kappungsgrenze'yi kontrol edip itiraz metnini hazırlayabilirim. Kira sözleşmen ne zaman başladı?";
+const AI_REPLY="Verstanden. Datum und Höhe der Erhöhung habe ich dem Dokument entnommen. Ich prüfe die Kappungsgrenze (§ 558 BGB) und bereite den Widerspruch vor. Wann begann Ihr Mietverhältnis?";
 
-/* ---------- canvas helpers ---------- */
 function dust(t){
   const N=46;
   for(let i=0;i<N;i++){
@@ -389,7 +420,6 @@ function glowCircle(x,y,r,c,a){
   ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
 }
 function stream(x1,y1,x2,y2,prog,flow,intensity){
-  // curved control toward hub
   const mx=(x1+x2)/2, my=(y1+y2)/2;
   const cx=lerp(mx,540, .25), cy=lerp(my,930,.25);
   ctx.lineWidth=2.2;
@@ -416,62 +446,45 @@ const nodes=[
 function drawFX(t){
   ctx.clearRect(0,0,1080,1920);
   dust(t);
-  // S3 energy field
-  const e3=env(t,14600,25200,600,700);
+  const e3=env(t,14600,24200,600,700);
   if(e3>0){
     const hubX=540,hubY=930;
-    // node -> hub streams
     nodes.forEach((n,idx)=>{
       const act=seg(t,n.s,n.s+1500);
       if(act<=0) return;
       const flow=(t-n.s)/1000;
       stream(n.x,n.y,hubX,hubY,act,flow,e3*clamp(act+0.15));
     });
-    // hub glow pulse
     const comp=clamp((seg(t,nodes[0].s,nodes[0].s+1500)+seg(t,nodes[1].s,nodes[1].s+1500)+seg(t,nodes[2].s,nodes[2].s+1500)+seg(t,nodes[3].s,nodes[3].s+1500))/4);
     const pulse=0.5+0.5*Math.sin(t*0.006);
     glowCircle(hubX,hubY,150+30*pulse,'rgba(243,216,138,A)',(e3*(0.10+0.18*comp)).toFixed(3));
-    // progress ring
     ctx.lineWidth=6;
     ctx.strokeStyle='rgba(255,255,255,0.08)';
     ctx.beginPath();ctx.arc(hubX,hubY,150,0,7);ctx.stroke();
     ctx.strokeStyle='rgba(243,216,138,'+(0.9*e3)+')';
     ctx.lineCap='round';
     ctx.beginPath();ctx.arc(hubX,hubY,150,-Math.PI/2,-Math.PI/2+7*Math.min(comp,0.999)/1.114);ctx.stroke();
-    // when complete, emit downward beam (transition)
-    const emit=seg(t,23200,24600);
-    if(emit>0){
-      const by=hubY+150+ (1080-hubY)*eo(emit);
-      const grd=ctx.createLinearGradient(hubX,hubY,hubX,by);
-      grd.addColorStop(0,'rgba(243,216,138,'+(0.5*e3)+')');grd.addColorStop(1,'rgba(243,216,138,0)');
-      ctx.strokeStyle=grd;ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(hubX,hubY+150);ctx.lineTo(hubX,by);ctx.stroke();
-    }
   }
-  // S0/S5 emblem aura
-  [{t0:0,t1:3400,y:640},{t0:30400,t1:35000,y:560}].forEach(o=>{
-    const a=env(t,o.t0,o.t1,500,500); if(a>0) glowCircle(540,o.y+ (o.y<600?0:0),260,'rgba(243,216,138,A)',(a*0.10).toFixed(3));
+  [{t0:0,t1:3400,y:640},{t0:35800,t1:40000,y:560}].forEach(o=>{
+    const a=env(t,o.t0,o.t1,500,500); if(a>0) glowCircle(540,o.y,260,'rgba(243,216,138,A)',(a*0.10).toFixed(3));
   });
 }
 
-/* ---------- main ---------- */
 function renderFrame(t){
   t=clamp(t,0,DUR-1);
   try{ drawFX(t); }catch(e){ window.__err=(''+e); }
 
-  // progress bar + handle
   S('pbar').style.width=(100*t/DUR).toFixed(2)+'%';
   const handleA=env(t,300,DUR-300,600,600);
   S('handle').style.opacity=0.0+0.9*handleA;
   document.querySelector('.progressbar').style.opacity=0.85*env(t,300,DUR-200,600,400);
 
-  /* S0 */
   {const e=env(t,0,3400,500,600); S('s0').style.opacity=e;
    const p=seg(t,0,1400);
    set(S('s0emb'),1, lerp(40,0,eo(p)),lerp(.7,1,back(clamp(p))));
    set(S('s0wm'),seg(t,600,1600),lerp(30,0,eo(seg(t,600,1700))),1);
    set(S('s0sub'),seg(t,1200,2200),lerp(24,0,eo(seg(t,1200,2200))),1);
   }
-  /* S1 */
   {const e=env(t,3100,8300,600,600); S('s1').style.opacity=e;
    set(S('s1k'),seg(t,3200,3900),lerp(20,0,eo(seg(t,3200,3900))),1);
    const pin=seg(t,3300,4200);
@@ -482,27 +495,23 @@ function renderFrame(t){
    S('s1stamp').style.transform=`rotate(-11deg) scale(${lerp(1.6,1,back(clamp(st)))})`;
    set(S('s1cap'),seg(t,5000,5800),lerp(24,0,eo(seg(t,5000,5800))),1);
   }
-  /* S2 */
   {const e=env(t,8000,14600,600,650); S('s2').style.opacity=e;
    set(S('s2k'),seg(t,8100,8700),0,1);
    const ph=seg(t,8100,9000); S('s2phone').style.opacity=ph;
    S('s2phone').style.transform=`translateX(-50%) translateY(${lerp(40,0,eo(ph))}px)`;
-   // my bubble
    const m1=seg(t,9000,9500); S('s2m1').style.opacity=m1;
    S('s2m1').style.transform=`translateY(${lerp(24,0,eo(m1))}px)`;
-   // scan line moves + chips pop
    const sc=seg(t,9600,11000);
    S('s2scan').style.top=lerp(6,88,sc)+'px';
    S('s2scan').style.opacity=sc>0&&sc<1?1:0;
    S('s2c1').style.opacity=seg(t,10000,10300);S('s2c1').style.transform=`scale(${lerp(.6,1,back(clamp(seg(t,10000,10400))))})`;
    S('s2c2').style.opacity=seg(t,10300,10600);S('s2c2').style.transform=`scale(${lerp(.6,1,back(clamp(seg(t,10300,10700))))})`;
    S('s2c3').style.opacity=seg(t,10600,10900);S('s2c3').style.transform=`scale(${lerp(.6,1,back(clamp(seg(t,10600,11000))))})`;
-   // AI bubble + typing then text
    const ab=seg(t,11200,11700); S('s2a1').style.opacity=ab;
    S('s2a1').style.transform=`translateY(${lerp(24,0,eo(ab))}px)`;
    const typeShow = t>11700 && t<12500;
    S('s2type').style.display = typeShow ? 'inline-flex':'none';
-   if(typeShow){ // animate dots
+   if(typeShow){
      [0,1,2].forEach(k=>{S('s2type').children[k].style.opacity=0.3+0.7*(0.5+0.5*Math.sin(t*0.012 - k*0.9));});
      S('s2a1txt').textContent='';
    } else if(t>=12500){
@@ -511,7 +520,6 @@ function renderFrame(t){
    } else { S('s2a1txt').textContent=''; }
    set(S('s2cap'),seg(t,9200,9900),lerp(20,0,eo(seg(t,9200,9900))),1);
   }
-  /* S3 */
   {const e=env(t,14400,25200,600,700); S('s3').style.opacity=e;
    set(S('s3k'),seg(t,14500,15200),lerp(18,0,eo(seg(t,14500,15200))),1);
    const ids=['n1','n2','n3','n4']; const st=[16000,17600,19200,20800]; const pid=['n1p','n2p','n3p','n4p'];
@@ -526,43 +534,53 @@ function renderFrame(t){
      node.style.boxShadow=`0 20px 60px rgba(0,0,0,.5), 0 0 ${(40*lit).toFixed(0)}px rgba(212,168,74,${(0.28*lit).toFixed(3)})`;
      S(pid[i]).style.width=(100*eo(lit)).toFixed(1)+'%';
    });
-   // hub scale-in + status text
    const hb=seg(t,15000,15800); S('s3hub').style.opacity=hb;
    S('s3hub').style.transform=`translate(-50%,-50%) scale(${lerp(.8,1,back(clamp(hb)))})`;
    const comp=clamp((seg(t,16000,17400)+seg(t,17600,19000)+seg(t,19200,20600)+seg(t,20800,22200))/4);
-   S('s3hubst').textContent = comp>0.98 ? 'HAZIR ✓' : 'topluyor…';
+   S('s3hubst').textContent = comp>0.98 ? 'geprüft ✓' : 'prüft…';
    S('s3hubst').style.color = comp>0.98 ? '#F6E2A6' : '';
    set(S('s3cap'),seg(t,15400,16100),lerp(18,0,eo(seg(t,15400,16100))),1);
   }
-  /* S4 */
-  {const e=env(t,24600,30600,650,650); S('s4').style.opacity=e;
-   set(S('s4k'),seg(t,24800,25500),0,1);
-   const dp=seg(t,24900,25900);
+  {const e=env(t,24000,30200,600,600); S('sc').style.opacity=e;
+   set(S('sck'),seg(t,24200,24900),lerp(18,0,eo(seg(t,24200,24900))),1);
+   const bp=seg(t,24300,25000); S('scBad').style.opacity=bp;
+   S('scBad').style.transform=`translateX(${lerp(-50,0,eo(bp))}px)`;
+   const gp=seg(t,25200,25900); S('scGood').style.opacity=gp;
+   S('scGood').style.transform=`translateX(${lerp(50,0,eo(gp))}px)`;
+   const vp=seg(t,25000,25500); S('scVs').style.opacity=vp;
+   S('scVs').style.transform=`translate(-50%,-50%) scale(${lerp(.3,1,back(clamp(vp)))})`;
+   [['bad1',24700],['bad2',25000],['bad3',25300],['good1',25700],['good2',26000],['good3',26300]].forEach(r=>{
+     const p=seg(t,r[1],r[1]+500);S(r[0]).style.opacity=p;S(r[0]).style.transform=`translateY(${lerp(16,0,eo(p))}px)`;});
+   const win=seg(t,26500,28200);
+   S('scGood').style.boxShadow=`0 20px 60px rgba(0,0,0,.5), 0 0 ${(50*win).toFixed(0)}px rgba(212,168,74,${(0.34*win).toFixed(3)})`;
+   S('scGood').style.borderColor=`rgba(212,168,74,${(0.5+0.4*win).toFixed(3)})`;
+   set(S('sccap'),seg(t,26800,27500),lerp(18,0,eo(seg(t,26800,27500))),1);
+  }
+  {const e=env(t,30000,36000,650,650); S('s4').style.opacity=e;
+   set(S('s4k'),seg(t,30200,30900),0,1);
+   const dp=seg(t,30300,31300);
    S('s4doc').style.opacity=dp;
    S('s4doc').style.transform=`translateX(-50%) translateY(${lerp(70,0,eo(dp))}px) scale(${lerp(.95,1,eo(dp))})`;
-   const bd=seg(t,26400,27000);
+   const bd=seg(t,31800,32400);
    S('s4badge').style.opacity=bd;
    S('s4badge').style.transform=`scale(${lerp(.4,1,back(clamp(bd)))})`;
-   const ch=seg(t,27000,27700);
+   const ch=seg(t,32400,33100);
    S('s4chips').style.opacity=ch;
    S('s4chips').style.transform=`translateX(-50%) translateY(${lerp(20,0,eo(ch))}px)`;
-   set(S('s4cap'),seg(t,27400,28100),lerp(18,0,eo(seg(t,27400,28100))),1);
+   set(S('s4cap'),seg(t,32800,33500),lerp(18,0,eo(seg(t,32800,33500))),1);
   }
-  /* S5 */
-  {const e=env(t,30400,DUR,600,300); S('s5').style.opacity=e;
-   const p=seg(t,30500,31600);
+  {const e=env(t,35800,DUR,600,300); S('s5').style.opacity=e;
+   const p=seg(t,35900,37000);
    set(S('s5emb'),1,lerp(30,0,eo(p)),lerp(.75,1,back(clamp(p))));
-   set(S('s5wm'),seg(t,30900,31900),lerp(26,0,eo(seg(t,30900,31900))),1);
-   set(S('s5cta'),seg(t,31500,32400),lerp(22,0,eo(seg(t,31500,32400))),1);
-   set(S('s5plans'),seg(t,32100,33000),lerp(18,0,eo(seg(t,32100,33000))),1);
-   // gentle CTA pulse
+   set(S('s5wm'),seg(t,36300,37300),lerp(26,0,eo(seg(t,36300,37300))),1);
+   set(S('s5cta'),seg(t,36900,37800),lerp(22,0,eo(seg(t,36900,37800))),1);
+   set(S('s5plans'),seg(t,37500,38400),lerp(18,0,eo(seg(t,37500,38400))),1);
    const pill=S('s5cta').querySelector('.pill');
    if(pill){const pl=0.5+0.5*Math.sin(t*0.006);pill.style.boxShadow=`0 20px ${(50+18*pl)}px rgba(212,168,74,${0.35+0.2*pl})`;}
   }
 }
 window.renderFrame=renderFrame;
 
-/* live preview loop unless capturing */
 const capturing = location.search.indexOf('capture')>=0;
 function fit(){ const s=Math.min(innerWidth/1080, innerHeight/1920); stage.style.transform=`scale(${s})`; }
 if(!capturing){

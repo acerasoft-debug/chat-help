@@ -1,86 +1,72 @@
-# ChatHelp — Instagram Metinleri (Reel + Karusel)
+# ChatHelp — Instagram-Texte (Reel + Karussell)
 
-> Videonun ve karuselin anlattığı hikâye: **kullanıcı derdini kendi dilinde anlatır →
-> güçlü yapay zekâlar (Hukuk Analizi · Strateji · Belge Tipi · Belge Yazımı) birlikte
-> çalışıp ChatHelp'e bilgi akıtır → saniyeler içinde gönderime hazır, resmî Almanca belge.**
-
----
-
-## 🎬 REEL / Video açıklaması — TÜRKÇE
-
-Almanya'dan resmî bir yazı geldi ve tam olarak ne yazdığını anlamıyor musun? 😮‍💨
-Panikleme — ChatHelp senin için çözüyor. 👇
-
-Derdini **kendi dilinde** anlat, belgeyi fotoğrafla yükle. Gerisini güçlü yapay zekâlar hallediyor:
-
-⚖️ **Hukuk Analizi** — yasal çerçeve, ilgili §-maddeler, itiraz süresi
-🎯 **Strateji** — en güçlü yaklaşım ve olası karşı argümanlar
-📄 **Belge Tipi** — Widerspruch mu, Klage mı, Antrag mı?
-✍️ **Belge Yazımı** — kusursuz, gönderime hazır resmî Almanca metin
-
-Hepsi aynı anda çalışır, hepsi ChatHelp'e bilgi akıtır. Sonuç: saniyeler içinde elinde **PDF olarak hazır belge.**
-🔒 Kişisel verilerin 3. taraflara gönderilmez.
-
-**Hukuk. Basit. Dijital.**
-👉 chat-help.com
+> Kernbotschaft: **Nicht wie eine Standard-KI.** ChatHelp holt echte Fakten aus einer
+> **Wissensdatenbank** (§§, Fristen, Urteile), lässt sie von einer **zweiten KI prüfen**
+> und formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument auf Deutsch.
+> **Geprüft statt geraten** — keine oberflächlichen Standard-Antworten.
 
 ---
 
-## 🎬 REEL / Video açıklaması — DEUTSCH
+## 🎬 REEL / Video-Beschreibung — DEUTSCH
 
-Ein amtliches Schreiben aus Deutschland — und du verstehst nicht genau, was drinsteht? 😮‍💨
-Keine Panik. ChatHelp erledigt das für dich. 👇
+Amtliches Schreiben erhalten — und keine Ahnung, was es bedeutet? 😮‍💨
+ChatHelp erledigt das. Aber anders als eine Standard-KI. 👇
 
-Schildere dein Anliegen **in deiner Sprache**, lade das Dokument als Foto hoch. Den Rest übernehmen starke KIs, die zusammenarbeiten:
+Sie schildern Ihr Anliegen in Ihren Worten und laden das Dokument als Foto hoch.
+Dann arbeiten mehrere KIs zusammen:
 
-⚖️ **Rechtliche Analyse** — Rechtsrahmen, §-Angaben, Fristen
-🎯 **Strategie** — beste Vorgehensweise & mögliche Gegenargumente
-📄 **Dokumententyp** — Widerspruch, Klage oder Antrag?
-✍️ **Dokument-Erstellung** — perfektes, versandfertiges Schreiben auf Deutsch
+📚 **Wissensdatenbank** — echte Rechtsquellen: §§, Fristen, Urteile
+⚖️ **Recherche (KI 1)** — holt die passenden echten Fakten. Keine Vermutung.
+🛡️ **Kontrolle (KI 2)** — eine zweite KI prüft & verifiziert jede Angabe
+✍️ **Formulierung** — gemeinsam, fehlerfrei, versandfertig
 
-Alle arbeiten zusammen und liefern ihr Wissen an ChatHelp. Ergebnis: in Sekunden ein **fertiges Dokument als PDF.**
-🔒 Deine persönlichen Daten gehen nicht an Dritte.
+Das ist der Unterschied: **geprüft statt geraten.** Keine oberflächlichen Standard-Antworten —
+echte Quellen, doppelt kontrolliert. In Sekunden als PDF.
+🔒 Ihre Daten gehen nicht an Dritte.
 
 **Recht. Einfach. Digital.**
 👉 chat-help.com
 
 ---
 
-## 🖼️ KARUSEL açıklaması — TÜRKÇE (kısa)
+## 🖼️ KARUSSELL-Beschreibung — DEUTSCH
 
-Almanca resmî yazı mı geldi? 📩 Sen anlat, güçlü yapay zekâlar birlikte çalışıp
-gönderime hazır belgeni yazsın. Kaydır ➡️ nasıl çalıştığını gör.
+Amtliches Schreiben? 📩 Sie schildern — mehrere KIs holen echte Fakten aus der
+Wissensdatenbank, eine **zweite KI prüft** alles, gemeinsam entsteht Ihr **versandfertiges
+Dokument.** Geprüft statt geraten. Wischen ➡️
 
-⚖️ Hukuk Analizi · 🎯 Strateji · 📄 Belge Tipi · ✍️ Belge Yazımı → hepsi ChatHelp'te.
-🔒 Verilerin güvende. Hukuk. Basit. Dijital.
+📚 Wissensdatenbank · ⚖️ Recherche · 🛡️ Kontrolle (2. KI) · ✍️ Formulierung
+🔒 Ihre Daten bleiben sicher. Recht. Einfach. Digital. 👉 chat-help.com
+
+---
+
+## #️⃣ Hashtags (kopieren & einfügen)
+
+```
+#ChatHelp #Recht #Rechtsberatung #Widerspruch #Bescheid #Mieterhöhung #Mietrecht
+#Verwaltungsrecht #KI #KünstlicheIntelligenz #LegalTech #Deutschland #Behörde
+#Frist #EinspruchEinlegen #Rechtsassistent #Verbraucherschutz #Fristwahrung
+```
+
+---
+
+## 🇹🇷 Optional — türkische Variante (für türkischsprachiges Publikum)
+
+> Falls zusätzlich ein türkischsprachiger Post gewünscht ist:
+
+Almanya'dan resmî bir yazı geldi ve ne dediğini anlamıyor musun? 😮‍💨 ChatHelp standart bir
+yapay zekâ gibi **yüzeysel** cevap vermez: **veri bankasından gerçek bilgiyi** (§§, süreler,
+mahkeme kararları) çıkarır, bunu **ikinci bir yapay zekâya kontrol ettirir** ve birlikte
+**kusursuz, gönderime hazır** Almanca belgeyi yazar. **Tahmin değil — kontrol.**
 👉 chat-help.com
 
 ---
 
-## #️⃣ Hashtag'ler (kopyala-yapıştır)
+## 📌 Hinweise zur Veröffentlichung
 
-**Karışık (TR + DE, diaspora + hukuk):**
-```
-#ChatHelp #Almanya #AlmanyadaYaşam #Gurbet #Gurbetçi #hukuk #hukukidanışmanlık
-#dilekçe #resmiyazı #YapayZeka #KI #Widerspruch #Bescheid #Mieterhöhung
-#Auslaenderbehoerde #Recht #Rechtsberatung #Almanya🇩🇪 #Türkiye #Deutschland
-```
-
-**Yalnızca Almanca pazar:**
-```
-#Recht #Rechtsberatung #Widerspruch #Bescheid #Mieterhöhung #Mietrecht
-#Verwaltungsrecht #KI #KünstlicheIntelligenz #LegalTech #Deutschland
-#Behörde #Frist #ChatHelp #EinspruchEinlegen
-```
-
----
-
-## 📌 Yayın notları
-
-- **Reel süresi:** 35 sn (Instagram Reels ideal aralığı). Kapak karesi olarak
-  `carousel/01-kapak.png` kullanılabilir.
-- **En/boy:** Reel 9:16 (1080×1920) · Karusel 4:5 (1080×1350) — ikisi de feed'de tam kaplar.
-- **İlk 3 saniye kritik:** Reel "Almanca resmî yazı mı geldi?" kancasıyla açılıyor — ses kapalı da olsa metin anlatıyor.
-- **Müzik:** Sessiz kurgulandı; Instagram içinden sakin/kurumsal bir trend sesi eklenebilir.
-- **CTA:** Bio linkine `chat-help.com` koyun; açıklamada da tekrarlayın.
-- **Alt yazı:** Metinler videoda gömülü (yakılmış) olduğundan Instagram alt yazısına gerek yok.
+- **Reel-Länge:** 40 Sek. — enthält eine eigene Vergleichsszene „Standard-KI vs. ChatHelp".
+- **Format:** Reel 9:16 (1080×1920) · Karussell 4:5 (1080×1350) — beides füllt den Feed.
+- **Erste 3 Sekunden:** Reel öffnet mit „Amtliches Schreiben erhalten?" — funktioniert auch stumm (Text eingebrannt).
+- **Cover:** `carousel/01-cover.png` eignet sich als Reel-Titelbild.
+- **CTA:** `chat-help.com` in die Bio und in die Caption.
+- **Musik:** Stumm produziert; in Instagram einen ruhigen/seriösen Trend-Sound ergänzen.
