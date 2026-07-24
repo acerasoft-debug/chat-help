@@ -641,6 +641,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .afield label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px}
 .afield input,.afield select,.afield textarea{width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px;font-family:inherit}
 .afield textarea{resize:vertical;min-height:60px}
+/* Every input in the admin is on the light theme — bare inputs not wrapped in
+   .afield (e.g. the listing-edit "Price tiers" boxes) otherwise fall back to the
+   dark site default (#0c0c0f) and render black-on-black. */
+.amain input:not([type=checkbox]):not([type=radio]),.amain select,.amain textarea{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px}
+.amain input:focus,.amain select:focus,.amain textarea:focus{outline:none;border-color:var(--acc)}
 /* price editor — bare inputs in table cells need the admin light theme (they are not inside .afield) */
 .pricetable input,.pricetable select{border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px;font-family:inherit}
 .pricetable input:focus,.pricetable select:focus{outline:none;border-color:var(--acc)}
