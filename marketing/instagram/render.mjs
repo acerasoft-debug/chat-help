@@ -8,7 +8,7 @@ import path from 'node:path';
 const __dir = path.dirname(fileURLToPath(import.meta.url));
 const SCENE = 'file://' + path.join(__dir, 'scene.html') + '?capture=1';
 const EXE = '/opt/pw-browsers/chromium';
-const W = 1080, H = 1920, FPS = 30, DUR = 40000;
+const W = 1080, H = 1920, FPS = 30, DUR = 44000;
 
 const mode = process.argv[2] || 'full';
 const outName = process.argv[3] || 'chathelp-reel.mp4';
@@ -28,7 +28,7 @@ async function main() {
   if (mode === 'test') {
     const dir = path.join(__dir, 'test');
     rmSync(dir, { recursive: true, force: true }); mkdirSync(dir, { recursive: true });
-    const keys = [1600, 5400, 13200, 22400, 25400, 26400, 27400, 28800, 32600, 34200, 37800];
+    const keys = [1600, 5400, 13200, 22400, 27400, 32600, 37600, 38200, 42000];
     for (const t of keys) {
       await page.evaluate((tt) => window.renderFrame(tt), t);
       await page.screenshot({ path: path.join(dir, `t${String(t).padStart(5,'0')}.png`), clip });

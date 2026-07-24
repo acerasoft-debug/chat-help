@@ -9,14 +9,15 @@ formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument. **Geprüft 
 
 | Datei | Was | Maße |
 |---|---|---|
-| `chathelp-reel.mp4` | **Erklär-Reel** — 40 Sek., inkl. Vergleichsszene „Standard-KI vs. ChatHelp" | 1080×1920 (9:16), H.264, 30 fps |
+| `chathelp-reel.mp4` | **Erklär-Reel** — 44 Sek., inkl. Vergleichsszene „Standard-KI vs. ChatHelp" und Versand-Szene | 1080×1920 (9:16), H.264, 30 fps |
 | `carousel/01-cover.png` | Karussell 1 — Aufhänger: „Amtliches Schreiben erhalten?" | 1080×1350 (4:5) |
 | `carousel/02-problem.png` | Karussell 2 — Problem: unverständlicher Bescheid + laufende Frist | 1080×1350 |
 | `carousel/03-schildern.png` | Karussell 3 — Schritt 1: in eigenen Worten schildern, Dokument hochladen | 1080×1350 |
 | `carousel/04-analyse.png` | Karussell 4 — Schritt 2: **Wissensdatenbank + 2 KIs (Recherche · Kontrolle)** | 1080×1350 |
 | `carousel/05-unterschied.png` | Karussell 5 — **Der Unterschied: geprüft statt geraten** (vs. Standard-KI) | 1080×1350 |
 | `carousel/06-ergebnis.png` | Karussell 6 — Schritt 3: versandfertiges Dokument | 1080×1350 |
-| `carousel/07-cta.png` | Karussell 7 — CTA: chat-help.com | 1080×1350 |
+| `carousel/07-versand.png` | Karussell 7 — Schritt 4: **Versand — Fax · Brief · Einschreiben** | 1080×1350 |
+| `carousel/08-cta.png` | Karussell 8 — CTA: chat-help.com | 1080×1350 |
 | `CAPTIONS.md` | Fertige Beschreibungstexte (DE, optional TR) + Hashtags | — |
 | `scene.html` | **Quelle** der Reel-Animation (bearbeitbar) | — |
 | `carousel.html` | **Quelle** der Karussell-Slides (bearbeitbar) | — |
@@ -31,7 +32,9 @@ formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument. **Geprüft 
    **Kontrolle (KI 2)** prüft & verifiziert jede Angabe → **Formulierung** (gemeinsam, fehlerfrei).
 3. **Der Unterschied** — *geprüft statt geraten*: keine oberflächlichen Standard-Antworten,
    echte Quellen, doppelt kontrolliert.
-4. **Ergebnis** — versandfertiges Dokument in korrekter Briefform (PDF / E-Mail / Kopieren).
+4. **Ergebnis** — geprüftes, versandfertiges Dokument in korrekter Briefform.
+5. **Versand** (letzter Schritt) — ChatHelp verschickt es für Sie: per **Fax**, **Brief** oder
+   **Einschreiben** (mit Zustellnachweis, fristwahrend); auf Wunsch auch als PDF & E-Mail.
    Persönliche Daten werden nur serverseitig zusammengeführt, nicht an Dritte gegeben.
 
 > Anbieternamen (Modelle im Hintergrund) werden bewusst **nicht** gezeigt — alles unter der
