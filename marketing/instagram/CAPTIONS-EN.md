@@ -1,43 +1,42 @@
-# ChatHelp — Instagram caption (English carousel)
+# ChatHelp — Instagram caption (English / UK carousel)
 
-> Audience: English speakers in Germany (expats) who get official German letters.
+> Market: United Kingdom. ChatHelp produces a ready-to-send **English legal letter**.
 > Angle: **not a template-filler — real analysis, double-checked, then sent for you.**
 
 ## Carousel caption — ready to paste
 
 ```
-📩 Got an official German letter — and no idea what it says?
+📩 An official letter with a deadline — and no idea what to do?
 
 With ChatHelp you just explain your situation in your own words and upload the
-document. Then several AIs work together — for real:
+letter. Then several AIs work together — for real:
 
-📚 Real legal sources — statutes, deadlines, rulings (not guesses)
+📚 Real legal sources — statutes, case law, deadlines (not guesses)
 🛡️ A second AI double-checks every detail
-✍️ A ready-to-send German document in seconds — not a template with your name dropped in
-📮 And we send it for you — by fax, post or registered mail (Einschreiben, with proof of delivery)
+✍️ A ready-to-send legal letter in seconds — not a template with your name dropped in
+📮 And we send it for you — by post, fax or Signed For (recorded) delivery, with proof
 
-No generic template answers. No Behördendeutsch. No trip to the post office.
+No generic template answers. No legalese. No trip to the Post Office.
 🔒 Your data stays private.
 
-Legal help in Germany, made simple.
+Legal help, made simple.
 👉 Start now: chat-help.com
 
-#ChatHelp #ExpatsInGermany #LifeInGermany #Germany #GermanBureaucracy #Behörde
-#Widerspruch #Bescheid #Mietrecht #RentIncrease #LegalTech #AI #Ausländerbehörde
-#ExpatLife #Auswandern #Berlin #Munich #Frankfurt
+#ChatHelp #UK #TenantRights #RentIncrease #Section13 #KnowYourRights #Renters
+#London #LegalTech #AI #ConsumerRights #LegalHelp #CouncilTax #HousingAct #CitizensAdvice
 ```
 
 ## Shorter version (feed / story)
 
 ```
-Official German letter you can't read? 📩 You explain it — several AIs pull real
-legal facts, double-check them, and write your ready-to-send German document.
-Not a template. We even send it by fax, post or registered mail. 👉 chat-help.com
-#ChatHelp #ExpatsInGermany #Germany #LegalTech #Widerspruch
+Official letter you can't make sense of? 📩 You explain it — several AIs pull real
+legal facts, double-check them, and write your ready-to-send letter. Not a template.
+We even send it by post, fax or Signed For delivery. 👉 chat-help.com
+#ChatHelp #UK #TenantRights #LegalTech #KnowYourRights
 ```
 
 ## Alternate hooks (first line matters most)
 
-- `Official letter from a German authority? Don't panic — read on. 👇`
-- `Germans dread Behördenpost too. You don't have to. 📩`
-- `Not a template with your name in it — real legal analysis, in your language.`
+- `Official letter from your council, landlord or HMRC? Don't panic — read on. 👇`
+- `Not a template with your name in it — real legal analysis, in plain English.`
+- `A deadline you didn't ask for. A letter you didn't understand. Sorted. 📩`
