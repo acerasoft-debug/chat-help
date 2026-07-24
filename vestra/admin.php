@@ -178,7 +178,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* One-click catalogue pricing rules (seller listings only — the demo products
      Lacoste / Ralph Lauren / Amiri are set in code). Rules:
        • Remove "make an offer": every offer listing becomes a fixed price.
-       • Amiri polos → €40, MOQ 60.       • All other polos → €70.
+       • Amiri polos → €40 (MOQ 20 like the rest).  • All other polos → €70.
        • D&G / Dsquared T-shirts → €60→€45 tiered.
        • MOQ 20 on everything else.
        • Lacoste & Ralph Lauren: price AND MOQ left completely untouched. */
@@ -195,7 +195,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $sig=json_encode([$p['mode']??'',$p['moq']??0,$p['offers']??false,$p['tiers']??[]]);
       if(($p['mode']??'')==='offer') $p['mode']='fixed';   // remove make-an-offer
       unset($p['offers']);                                  // drop "also accepts offers"
-      if($isAmiri && $isPolo){ $p['moq']=60; $p['tiers']=[['min'=>60,'price'=>40.00]]; }
+      if($isAmiri && $isPolo){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>40.00]]; }
       elseif($isPolo){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>70.00]]; }
       elseif(($isDG||$isDsq) && $isTee){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>60.00],['min'=>120,'price'=>45.00]]; }
       else {                                                // others: MOQ 20, keep existing (now fixed) price
@@ -859,7 +859,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
-<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 60 · other polos €70 · D&G / Dsquared tees €60→€45 · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
+<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40 · other polos €70 · D&G / Dsquared tees €60→€45 · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
 <?php elseif($msg==='tyrex_ok'): $tf=$_SESSION['tyrex_flash']??null; if($tf) unset($_SESSION['tyrex_flash']); ?>
 <div class="amsg ok">✓ <b>Tyrex International BV</b> (Elite · verified) is ready — <?= (int)($_GET['n']??0) ?> listing(s) now belong to it.
   <?php if($tf): ?><br>Login e-mail: <b><?= htmlspecialchars($tf['email']) ?></b> · temporary password:
@@ -1643,11 +1643,11 @@ elseif($tab==='prices'):
   <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <div style="font-size:13px;color:var(--mut);max-width:640px">
       <b style="color:var(--ink)">⚙ Apply pricing rules</b> — one click on the seller listings:
-      remove “make an offer” → fixed · <b>Amiri</b> polos €40 / MOQ 60 · other <b>polos</b> €70 ·
+      remove “make an offer” → fixed · <b>Amiri</b> polos €40 · other <b>polos</b> €70 ·
       <b>D&amp;G / Dsquared</b> tees €60→€45 · <b>MOQ 20</b> on the rest.
       <b>Lacoste &amp; Ralph Lauren</b> stay untouched.
     </div>
-    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 60\n• Other polos → €70\n• D&amp;G / Dsquared t-shirts → €60→€45\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40\n• Other polos → €70\n• D&amp;G / Dsquared t-shirts → €60→€45\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="apply_pricing_rules">
       <button class="abtn primary" type="submit" style="padding:9px 18px;white-space:nowrap">⚙ Apply pricing rules</button>
     </form>
