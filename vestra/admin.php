@@ -179,7 +179,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      Lacoste / Ralph Lauren / Amiri are set in code). Rules:
        • Remove "make an offer": every offer listing becomes a fixed price.
        • Amiri polos → €40, MOQ 50.  • All other polos → €70 (MOQ 20).
-       • All T-shirts → €49.90 on sale (from €69.90), flat even at 20.
+       • T-shirts (not Lacoste/Ralph/Amiri) → €49.90 on sale (-29%), flat even at 20.
        • MOQ 20 on everything else.
        • Lacoste & Ralph Lauren: price AND MOQ left completely untouched. */
   if($act==='apply_pricing_rules'){
@@ -197,7 +197,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       unset($p['offers']);                                  // drop "also accepts offers"
       if($isAmiri && $isPolo){ $p['moq']=50; $p['tiers']=[['min'=>50,'price'=>40.00]]; }
       elseif($isPolo){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>70.00]]; }
-      elseif($isTee){ $p['moq']=20; $p['mode']='sale'; $p['list']=69.90; $p['tiers']=[['min'=>20,'price'=>49.90]]; }
+      elseif($isTee && !$isAmiri){ $p['moq']=20; $p['mode']='sale'; $p['list']=69.90; $p['tiers']=[['min'=>20,'price'=>49.90]]; }
       else {                                                // others: MOQ 20, keep existing (now fixed) price
         $p['moq']=20;
         if(!empty($p['tiers']) && is_array($p['tiers'])){
@@ -607,11 +607,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 /* sidebar */
 /* display:flex/column overrides the global site nav{display:flex} (row), which
    otherwise lays the whole sidebar out horizontally and clips it off-screen. */
-.asidebar{display:flex;flex-direction:column;gap:1px;background:#fbfaf7;border-right:1px solid var(--line);padding:12px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
-.asidebar a{display:flex;align-items:center;gap:10px;padding:8px 11px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-radius:8px;transition:.12s}
-.asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.05)}
-.asidebar a.on{color:var(--acc);background:rgba(169,127,44,.13);font-weight:600}
-.asidebar .sgrp{padding:14px 11px 5px;font-size:9.5px;font-weight:700;letter-spacing:.1em;color:#b3aa97;text-transform:uppercase}
+.asidebar{display:flex;flex-direction:column;gap:2px;background:#fbfaf7;border-right:1px solid var(--line);padding:10px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.asidebar a{display:flex;align-items:center;gap:11px;padding:8px 11px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-radius:9px;transition:.13s}
+.asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.045)}
+.asidebar a.on{color:var(--acc);background:rgba(169,127,44,.12);font-weight:600;box-shadow:inset 0 0 0 1px rgba(169,127,44,.18)}
+.asidebar a svg{flex:none;opacity:.75}
+.asidebar a:hover svg,.asidebar a.on svg{opacity:1}
+.asidebar .alabel{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.asidebar .sgrp{padding:15px 11px 5px;font-size:9.5px;font-weight:700;letter-spacing:.11em;color:#b3aa97;text-transform:uppercase}
+.asidebar .sgrp:first-child{padding-top:4px}
 .aside-badge{margin-left:auto;background:var(--acc);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;line-height:1.6}
 .aside-badge.red{background:var(--bad);color:#fff}
 /* main */
@@ -790,10 +794,34 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.',
   ];
 
+  /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
+     sidebar reads as one clean set (colour inherited via currentColor). */
+  function adminIcon(string $key): string {
+    $p = [
+      'overview'   => '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>',
+      'approvals'  => '<path d="M12 3.5 21 19.5H3z"/><path d="M12 10v4"/><path d="M12 17h.01"/>',
+      'documents'  => '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+      'users'      => '<circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.3a3 3 0 0 1 0 5.4"/><path d="M17.6 20a5.5 5.5 0 0 0-2.3-4.4"/>',
+      'orders'     => '<path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 7.5v9l9 4.5 9-4.5v-9"/><path d="M12 12v9"/>',
+      'offers'     => '<path d="M4 5h16v11H9l-4 3.5V5z"/>',
+      'requests'   => '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M8.5 11h7M8.5 15h4.5"/>',
+      'req_offers' => '<path d="M3 12.5h5l1.5 3h5l1.5-3h5"/><path d="M3 12.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6.5"/>',
+      'groups'     => '<circle cx="8" cy="9" r="2.5"/><circle cx="16" cy="9" r="2.5"/><path d="M3 19a5 5 0 0 1 10 0"/><path d="M13.5 19a5 5 0 0 1 7.5-4.3"/>',
+      'messages'   => '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>',
+      'notify'     => '<path d="M6 9a6 6 0 0 1 12 0c0 4.5 2 5.5 2 5.5H4S6 13.5 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+      'prices'     => '<path d="M20.5 12.5 12 21l-9-9V4h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+      'listings'   => '<circle cx="4" cy="6" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="4" cy="18" r="1.3"/><path d="M8.5 6H21M8.5 12H21M8.5 18H21"/>',
+      'journal'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h6M7 13h6M7 16h4"/><path d="M16 9h2v7h-2z"/>',
+      'marketing'  => '<path d="M4 10v4h3l8 4V6l-8 4z"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/>',
+      'prospects'  => '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 11.4v1.2"/>',
+      'waitlist'   => '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>',
+    ][$key] ?? '<circle cx="12" cy="12" r="2.5"/>';
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'.$p.'</svg>';
+  }
   function navLink(string $cur, string $key, string $icon, string $label, int $badge=0, bool $red=false): string {
     $on = $cur===$key?' on':'';
     $b = $badge>0?'<span class="aside-badge'.($red?' red':'').'">'.$badge.'</span>':'';
-    return '<a href="/admin?tab='.htmlspecialchars($key).'" class="'.$on.'">'.$icon.' '.htmlspecialchars($label).$b.'</a>';
+    return '<a href="/admin?tab='.htmlspecialchars($key).'" class="'.$on.'">'.adminIcon($key).'<span class="alabel">'.htmlspecialchars($label).'</span>'.$b.'</a>';
   }
 ?>
 
@@ -868,7 +896,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
-<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 50 · other polos €70 · all T-shirts €49.90 (sale) · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
+<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 50 · other polos €70 · T-shirts €49.90 (sale, −29%) · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
 <?php elseif($msg==='tyrex_ok'): $tf=$_SESSION['tyrex_flash']??null; if($tf) unset($_SESSION['tyrex_flash']); ?>
 <div class="amsg ok">✓ <b>Tyrex International BV</b> (Elite · verified) is ready — <?= (int)($_GET['n']??0) ?> listing(s) now belong to it.
   <?php if($tf): ?><br>Login e-mail: <b><?= htmlspecialchars($tf['email']) ?></b> · temporary password:
@@ -1653,10 +1681,10 @@ elseif($tab==='prices'):
     <div style="font-size:13px;color:var(--mut);max-width:640px">
       <b style="color:var(--ink)">⚙ Apply pricing rules</b> — one click on the seller listings:
       remove “make an offer” → fixed · <b>Amiri</b> polos €40 / MOQ 50 · other <b>polos</b> €70 ·
-      all <b>T-shirts</b> €49.90 (sale, was €69.90) · <b>MOQ 20</b> on the rest.
+      <b>T-shirts</b> (excl. Lacoste/Ralph/Amiri) €49.90 sale −29% · <b>MOQ 20</b> on the rest.
       <b>Lacoste &amp; Ralph Lauren</b> stay untouched.
     </div>
-    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 50\n• Other polos → €70\n• All T-shirts → €49.90 on sale (flat, even at 20)\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 50\n• Other polos → €70\n• T-shirts (not Lacoste/Ralph/Amiri) → €49.90 sale -29% (flat, even at 20)\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="apply_pricing_rules">
       <button class="abtn primary" type="submit" style="padding:9px 18px;white-space:nowrap">⚙ Apply pricing rules</button>
     </form>
