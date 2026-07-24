@@ -57,8 +57,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     <!-- ── Gallery ────────────────────────────────────────────────────────── -->
     <div class="gal-col">
       <div class="gal-main" id="gal-wrap">
-        <!-- Slide 0 is ALWAYS the brand card; member photos come after it. -->
-        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px">
+        <!-- Approved viewers open on the product photo; the brand card is the LAST
+             slide. Non-approved viewers have no photos, so the card is all they see. -->
+        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px<?= $images ? ';display:none' : '' ?>">
           <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
           <?php if($photosLocked): ?>
             <a href="<?= htmlspecialchars($verifyHref) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
@@ -68,7 +69,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <?php endif; ?>
         </div>
         <?php if($images): ?>
-          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>" style="display:none">
+          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
           <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous">‹</button>
           <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
         <?php endif; ?>
@@ -78,14 +79,14 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       </div>
       <?php if($images): ?>
       <div class="gal-thumbs" id="gal-thumbs">
-        <button class="gal-thumb active" onclick="galSet(-1)" title="<?= htmlspecialchars($p['brand']) ?>">
-          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)"></span>
-        </button>
         <?php foreach($images as $i=>$img): ?>
-          <button class="gal-thumb" onclick="galSet(<?= $i ?>)">
+          <button class="gal-thumb <?= $i===0?'active':'' ?>" onclick="galSet(<?= $i ?>)">
             <img src="<?= htmlspecialchars($img) ?>" alt="" loading="lazy">
           </button>
         <?php endforeach; ?>
+        <button class="gal-thumb" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
+          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)"></span>
+        </button>
       </div>
       <?php endif; ?>
     </div>
@@ -519,19 +520,18 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
 
 <?php if($images): ?>
 <script>
-/* Index -1 = the brand card (always the first slide); 0..n-1 = photos. */
-var galImgs=<?= json_encode($images) ?>, galIdx=-1;
+/* Slides: 0..n-1 = product photos (opens on the first photo); n = the brand card (last). */
+var galImgs=<?= json_encode($images) ?>, galN=galImgs.length, galIdx=0;
 function galSet(i){
   galIdx=i;
   var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card');
-  if(i<0){ img.style.display='none'; card.style.display='flex'; }
+  if(i>=galN){ if(img) img.style.display='none'; card.style.display='flex'; }
   else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; }
-  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i+1); });
+  document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i); });
 }
 function galGo(d){
-  var n=galImgs.length+1;                 // slides: card + photos
-  var cur=galIdx+1;                       // 0-based over all slides
-  galSet(((cur+d)%n+n)%n - 1);
+  var n=galN+1;                           // slides: photos + brand card
+  galSet(((galIdx+d)%n+n)%n);
 }
 document.addEventListener('keydown', function(e){
   if(e.key==='ArrowLeft') galGo(-1);
