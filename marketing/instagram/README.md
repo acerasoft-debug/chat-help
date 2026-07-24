@@ -11,6 +11,7 @@ formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument. **Geprüft 
 |---|---|---|
 | `chathelp-reel.mp4` | **Erklär-Reel (stumm)** — 44 Sek., inkl. Vergleichs- und Versand-Szene; stiller Tonspur, für eigene Musik/Trend-Audio | 1080×1920 (9:16), H.264, 30 fps |
 | `chathelp-reel-vo.mp4` | **Erklär-Reel mit Voiceover** — dieselbe 44-Sek.-Reel mit deutscher weiblicher Sprecherin (Google **Chirp3-HD-Vindemiatrix**, natürlich/Werbeton), szenengenau | 1080×1920, H.264 + AAC |
+| `chathelp-reel-vo-music.mp4` | **Voiceover + Musikbett** — dieselbe Reel mit Sprecherin und dezenter, eigens synthetisierter (lizenzfreier) Hintergrundmusik; Musik wird unter der Stimme automatisch abgesenkt (Ducking) | 1080×1920, H.264 + AAC |
 | `carousel/01-cover.png` | Karussell 1 — Aufhänger: „Amtliches Schreiben erhalten?" | 1080×1350 (4:5) |
 | `carousel/02-problem.png` | Karussell 2 — Problem: unverständlicher Bescheid + laufende Frist | 1080×1350 |
 | `carousel/03-schildern.png` | Karussell 3 — Schritt 1: in eigenen Worten schildern, Dokument hochladen | 1080×1350 |
