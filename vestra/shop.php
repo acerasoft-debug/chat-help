@@ -3,7 +3,22 @@ $products = vestra_products();
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
 ?>
-<div class="wrap wide">
+<style>
+/* Großhandelskatalog — "premium white" theme, scoped to /shop only. The dark site
+   header stays as top chrome; body + footer are repainted here because this page
+   only ever renders the catalog. Product-image tiles keep their dark gradient. */
+body{background:#f4f2ee}
+.shopwrap{--bg:#f4f2ee;--bg2:#ffffff;--bg3:#f3efe8;--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;--ok:#1f9d63;--bad:#c0392b;color:var(--ink)}
+.shopwrap h1,.shopwrap h2,.shopwrap h3{color:var(--ink)}
+.shopwrap .filterblock,.shopwrap .scard{box-shadow:0 1px 3px rgba(60,50,30,.05)}
+.shopwrap .fcheck:hover,.shopwrap .filter-export:hover{background:rgba(0,0,0,.045)}
+.shopwrap .fcheck.on{background:rgba(169,127,44,.08)}
+.shopwrap .fcount{background:rgba(0,0,0,.05)}
+.shopwrap .scard:hover{box-shadow:0 12px 30px rgba(60,50,30,.16);border-color:rgba(169,127,44,.4)}
+footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
+footer a{color:#d8bd86}
+</style>
+<div class="wrap wide shopwrap">
   <div class="phead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
     <h1><?= t('Wholesale catalog') ?></h1>
