@@ -550,7 +550,7 @@ if($authed && isset($_GET['dl'])){
 
 // ── Helper functions ───────────────────────────────────────────────────────────
 function abadge(string $t, string $c='#888'): string {
-  return '<span style="display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'.$c.'22;color:'.$c.';border:1px solid '.$c.'44">'.htmlspecialchars($t).'</span>';
+  return '<span style="display:inline-flex;align-items:center;white-space:nowrap;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;background:'.$c.'22;color:'.$c.';border:1px solid '.$c.'44">'.htmlspecialchars($t).'</span>';
 }
 function kybBadge(string $s): string {
   return match($s){ 'approved'=>abadge('✓ Verified','#1f9d63'),'suspended'=>abadge('⊘ Suspended','#c0392b'),default=>abadge('⏳ Pending','#a9781a') };
@@ -600,42 +600,46 @@ function arow(array $cells, bool $head=false): string {
 body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh}
 .alayout{display:grid;grid-template-columns:var(--sb) 1fr;grid-template-rows:52px 1fr;min-height:100vh}
 /* top bar */
-.atopbar{grid-column:1/-1;background:#ffffff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:100}
+.atopbar{grid-column:1/-1;background:#ffffff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 20px;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(60,50,30,.05)}
 .atopbar .logo{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-weight:700;font-size:15px;width:var(--sb);flex-shrink:0}
 .atopbar .logo svg{flex-shrink:0}
 .atopbar-links{margin-left:auto;display:flex;gap:8px}
 /* sidebar */
-.asidebar{background:#fbfaf7;border-right:1px solid var(--line);padding:16px 0;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
-.asidebar a{display:flex;align-items:center;gap:9px;padding:8px 18px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-left:2px solid transparent;transition:.1s}
-.asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.04)}
-.asidebar a.on{color:var(--acc);border-left-color:var(--acc);background:rgba(168,127,44,.1)}
-.asidebar .sgrp{padding:14px 18px 4px;font-size:10px;font-weight:700;letter-spacing:.08em;color:#a49a86;text-transform:uppercase}
-.aside-badge{margin-left:auto;background:var(--acc);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700}
-.aside-badge.red{background:#d0574f;color:#fff}
+/* display:flex/column overrides the global site nav{display:flex} (row), which
+   otherwise lays the whole sidebar out horizontally and clips it off-screen. */
+.asidebar{display:flex;flex-direction:column;gap:1px;background:#fbfaf7;border-right:1px solid var(--line);padding:12px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
+.asidebar a{display:flex;align-items:center;gap:10px;padding:8px 11px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-radius:8px;transition:.12s}
+.asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.05)}
+.asidebar a.on{color:var(--acc);background:rgba(169,127,44,.13);font-weight:600}
+.asidebar .sgrp{padding:14px 11px 5px;font-size:9.5px;font-weight:700;letter-spacing:.1em;color:#b3aa97;text-transform:uppercase}
+.aside-badge{margin-left:auto;background:var(--acc);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;line-height:1.6}
+.aside-badge.red{background:var(--bad);color:#fff}
 /* main */
 .amain{padding:28px 32px;overflow-y:auto}
 /* stat cards */
-.asgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-bottom:24px}
-.ascard{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:default;box-shadow:0 1px 3px rgba(60,50,30,.05)}
-.ascard .sv{font-size:22px;font-weight:700;line-height:1.2;color:var(--acc)}
-.ascard .sl{font-size:11px;color:var(--mut);margin-top:4px}
+.asgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:13px;margin-bottom:26px}
+.ascard{background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:16px 17px;cursor:default;box-shadow:0 1px 2px rgba(60,50,30,.04);transition:.14s}
+.ascard:hover{box-shadow:0 5px 16px rgba(60,50,30,.08);transform:translateY(-1px);border-color:#ddd4c4}
+.ascard .sv{font-size:25px;font-weight:700;line-height:1.05;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.ascard .sl{font-size:11px;color:var(--mut);margin-top:6px;font-weight:500}
 /* section card */
 .acard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:20px;overflow:hidden;box-shadow:0 1px 3px rgba(60,50,30,.05)}
-.acard-hd{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.02)}
-.acard-hd h3{font-size:14px;font-weight:600;flex:1}
+.acard-hd{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line);background:linear-gradient(#fdfcfa,#fbfaf7)}
+.acard-hd h3{font-size:14.5px;font-weight:600;flex:1;letter-spacing:-.01em}
 .acard-body{padding:18px}
 /* table */
 .atable{width:100%;border-collapse:collapse;font-size:12.5px}
-.atable th.ac{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);color:var(--mut);font-weight:500;font-size:11px;white-space:nowrap;background:rgba(0,0,0,.03)}
-.atable td.ac{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;max-width:220px;word-break:break-word}
+.atable th.ac{text-align:left;padding:10px 12px;border-bottom:1.5px solid var(--line);color:var(--mut);font-weight:600;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;background:transparent}
+.atable td.ac{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;max-width:220px;word-break:break-word}
 .atable tr:last-child td.ac{border-bottom:none}
-.atable tr:hover td.ac{background:rgba(0,0,0,.03)}
+.atable tbody tr{transition:background .1s}
+.atable tbody tr:hover td.ac{background:rgba(169,127,44,.05)}
 .atscroll{overflow-x:auto}
 /* buttons */
-.abtn{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--ink);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:.1s;text-decoration:none}
-.abtn:hover{border-color:var(--acc);color:var(--acc)}
-.abtn.primary{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
-.abtn.primary:hover{opacity:.9}
+.abtn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:.12s;text-decoration:none;font-weight:500}
+.abtn:hover{border-color:var(--acc);color:var(--acc);background:rgba(169,127,44,.05)}
+.abtn.primary{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;box-shadow:0 1px 2px rgba(169,127,44,.25)}
+.abtn.primary:hover{filter:brightness(1.07);background:var(--acc);color:#fff}
 /* forms */
 .aform{display:flex;flex-direction:column;gap:12px}
 .afield label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px}
