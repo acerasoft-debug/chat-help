@@ -179,7 +179,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      Lacoste / Ralph Lauren / Amiri are set in code). Rules:
        • Remove "make an offer": every offer listing becomes a fixed price.
        • Amiri polos → €40, MOQ 50.  • All other polos → €70 (MOQ 20).
-       • D&G / Dsquared T-shirts → €60→€45 tiered.
+       • All T-shirts → €49.90 on sale (from €69.90), flat even at 20.
        • MOQ 20 on everything else.
        • Lacoste & Ralph Lauren: price AND MOQ left completely untouched. */
   if($act==='apply_pricing_rules'){
@@ -197,7 +197,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       unset($p['offers']);                                  // drop "also accepts offers"
       if($isAmiri && $isPolo){ $p['moq']=50; $p['tiers']=[['min'=>50,'price'=>40.00]]; }
       elseif($isPolo){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>70.00]]; }
-      elseif(($isDG||$isDsq) && $isTee){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>60.00],['min'=>120,'price'=>45.00]]; }
+      elseif($isTee){ $p['moq']=20; $p['mode']='sale'; $p['list']=69.90; $p['tiers']=[['min'=>20,'price'=>49.90]]; }
       else {                                                // others: MOQ 20, keep existing (now fixed) price
         $p['moq']=20;
         if(!empty($p['tiers']) && is_array($p['tiers'])){
@@ -864,7 +864,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
-<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 50 · other polos €70 · D&G / Dsquared tees €60→€45 · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
+<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 50 · other polos €70 · all T-shirts €49.90 (sale) · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
 <?php elseif($msg==='tyrex_ok'): $tf=$_SESSION['tyrex_flash']??null; if($tf) unset($_SESSION['tyrex_flash']); ?>
 <div class="amsg ok">✓ <b>Tyrex International BV</b> (Elite · verified) is ready — <?= (int)($_GET['n']??0) ?> listing(s) now belong to it.
   <?php if($tf): ?><br>Login e-mail: <b><?= htmlspecialchars($tf['email']) ?></b> · temporary password:
@@ -1649,10 +1649,10 @@ elseif($tab==='prices'):
     <div style="font-size:13px;color:var(--mut);max-width:640px">
       <b style="color:var(--ink)">⚙ Apply pricing rules</b> — one click on the seller listings:
       remove “make an offer” → fixed · <b>Amiri</b> polos €40 / MOQ 50 · other <b>polos</b> €70 ·
-      <b>D&amp;G / Dsquared</b> tees €60→€45 · <b>MOQ 20</b> on the rest.
+      all <b>T-shirts</b> €49.90 (sale, was €69.90) · <b>MOQ 20</b> on the rest.
       <b>Lacoste &amp; Ralph Lauren</b> stay untouched.
     </div>
-    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 50\n• Other polos → €70\n• D&amp;G / Dsquared t-shirts → €60→€45\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 50\n• Other polos → €70\n• All T-shirts → €49.90 on sale (flat, even at 20)\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="apply_pricing_rules">
       <button class="abtn primary" type="submit" style="padding:9px 18px;white-space:nowrap">⚙ Apply pricing rules</button>
     </form>
