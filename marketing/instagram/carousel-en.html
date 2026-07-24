@@ -1,0 +1,257 @@
+<meta charset="utf-8">
+<title>ChatHelp — Carousel (EN)</title>
+<style>
+  :root{
+    --bg0:#07070e;--bg1:#0c0c16;--ink:#F4F4F8;--mute:#9a9ab0;--mute2:#7a7a90;
+    --gold0:#F6E2A6;--gold1:#F3D88A;--gold2:#D4A84A;--gold3:#B0801F;--red:#e0685e;
+    --serif:Georgia,'Liberation Serif','DejaVu Serif',serif;
+    --sans:'DejaVu Sans','Liberation Sans',system-ui,sans-serif;
+    --mono:'DejaVu Sans Mono','Liberation Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;display:flex;flex-direction:column;align-items:center;gap:40px;padding:40px}
+  .slide{position:relative;width:1080px;height:1350px;overflow:hidden;color:var(--ink);
+    font-family:var(--sans);
+    background:radial-gradient(120% 75% at 50% -8%, #17172c 0%, var(--bg1) 46%, var(--bg0) 100%);}
+  .pad{position:absolute;inset:0;padding:84px 84px}
+  .k{font:700 30px/1 var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--gold2)}
+  .h1{font:700 84px/1.04 var(--serif);letter-spacing:-.5px}
+  .h1 .g,.g{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2) 62%,var(--gold3));-webkit-background-clip:text;background-clip:text}
+  .h2{font:700 62px/1.08 var(--serif)}
+  .lead{font:400 37px/1.44 var(--sans);color:var(--mute)}
+  .gold{color:var(--gold2)}
+  .wm{font:700 var(--wm,84px)/1 var(--serif)}
+  .tag{font:600 27px/1 var(--sans);letter-spacing:.28em;color:var(--mute);text-transform:uppercase}
+  .foot{position:absolute;left:84px;right:84px;bottom:60px;display:flex;justify-content:space-between;align-items:center;
+    font:600 27px/1 var(--sans);color:var(--mute2);border-top:1px solid rgba(255,255,255,.08);padding-top:26px}
+  .foot .g{font-weight:700}
+  .center{display:flex;flex-direction:column;align-items:center;text-align:center}
+  .pill{display:inline-flex;align-items:center;gap:14px;padding:22px 40px;border-radius:999px;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 42px/1 var(--sans);
+    box-shadow:0 20px 60px rgba(212,168,74,.4)}
+  .swipe{display:inline-flex;align-items:center;gap:14px;padding:16px 30px;border-radius:999px;
+    background:rgba(212,168,74,.1);border:1px solid rgba(212,168,74,.3);font:700 30px/1 var(--sans);color:var(--gold1)}
+  .paper{background:linear-gradient(180deg,#fbf8f1,#efe9db);color:#2a2418;border-radius:16px;
+    box-shadow:0 40px 90px rgba(0,0,0,.55);padding:44px 46px;position:relative}
+  .stamp{position:absolute;border:4px solid var(--red);color:var(--red);border-radius:10px;font:800 26px/1 var(--sans);
+    letter-spacing:.1em;padding:11px 16px;transform:rotate(-10deg);text-transform:uppercase}
+  .bub{max-width:640px;padding:26px 30px;border-radius:26px;font:400 33px/1.4 var(--sans);margin-bottom:22px}
+  .bub.me{margin-left:auto;background:linear-gradient(180deg,#2a2410,#1e1a0b);border:1.5px solid rgba(212,168,74,.5);color:#f4ecd6;border-bottom-right-radius:8px}
+  .bub.ai{background:linear-gradient(180deg,#191924,#12121b);border:1.5px solid rgba(255,255,255,.08);color:#e9e9f4;border-bottom-left-radius:8px}
+  .who{font:700 22px/1 var(--sans);color:var(--gold2);margin-bottom:12px;letter-spacing:.04em}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:999px;font:600 24px/1 var(--sans);
+    color:var(--gold1);background:rgba(212,168,74,.12);border:1px solid rgba(212,168,74,.35)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .node{padding:26px 30px;border-radius:22px;background:linear-gradient(180deg,rgba(26,26,40,.92),rgba(14,14,22,.92));
+    border:1.6px solid rgba(212,168,74,.35);box-shadow:0 16px 44px rgba(0,0,0,.4);position:relative}
+  .node .ic{width:58px;height:58px;border-radius:15px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 30% 25%,#2a2a12,#17170c);border:1.4px solid rgba(212,168,74,.5);margin-bottom:14px}
+  .node .t2{position:absolute;top:24px;right:26px;font:700 21px/1 var(--sans);letter-spacing:.06em;color:var(--gold2);
+    background:rgba(212,168,74,.12);border:1px solid rgba(212,168,74,.3);padding:6px 11px;border-radius:999px}
+  .node .nt{font:700 33px/1.1 var(--sans)}
+  .node .nd{font:400 24px/1.3 var(--sans);color:var(--mute);margin-top:7px}
+  .hub{display:flex;align-items:center;gap:22px;justify-content:center;margin-top:28px;padding:22px 34px;border-radius:22px;
+    background:radial-gradient(circle at 30% 20%,#23231a,#101018);border:2px solid rgba(212,168,74,.55)}
+  .hub .hn{font:700 38px/1 var(--serif)}.hub .hn b{color:var(--gold2)}
+  .hub .hs{font:600 23px/1 var(--sans);letter-spacing:.12em;color:var(--gold2);text-transform:uppercase;margin-top:6px}
+  .outchip{display:inline-flex;align-items:center;gap:12px;padding:18px 28px;border-radius:16px;
+    background:linear-gradient(180deg,rgba(26,26,40,.95),rgba(14,14,22,.95));border:1.4px solid rgba(212,168,74,.4);
+    font:700 32px/1 var(--sans);color:var(--gold1)}
+  .badge{display:inline-flex;align-items:center;gap:12px;padding:14px 24px;border-radius:999px;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 30px/1 var(--sans)}
+  .doc p{font:400 27px/1.5 var(--sans);color:#3a3324;margin:0 0 12px}
+  .cmp{border-radius:24px;padding:40px 38px;height:640px}
+  .cmpBad{background:linear-gradient(180deg,rgba(34,26,26,.9),rgba(18,14,14,.92));border:1.6px solid rgba(224,104,94,.30)}
+  .cmpGood{background:linear-gradient(180deg,rgba(26,26,40,.95),rgba(13,13,20,.96));border:2px solid rgba(212,168,74,.55);box-shadow:0 0 46px rgba(212,168,74,.28)}
+  .chd{display:flex;align-items:center;gap:14px;font:700 38px/1.05 var(--sans);padding-bottom:24px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.09)}
+  .crow{display:flex;gap:16px;align-items:flex-start;font:400 30px/1.3 var(--sans);color:#dcdce8;margin-top:28px}
+  .cmpBad .crow{color:#b6a6a6}
+  .xic,.vic{flex:0 0 auto;margin-top:3px;line-height:0}
+  .vsb{position:absolute;left:50%;top:320px;transform:translate(-50%,-50%);width:98px;height:98px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font:800 38px/1 var(--serif);color:#241a06;z-index:3;
+    background:linear-gradient(180deg,var(--gold1),var(--gold2));box-shadow:0 14px 36px rgba(212,168,74,.5),0 0 0 11px #0a0a12}
+  .vcard{display:flex;align-items:center;gap:26px;padding:30px 34px;border-radius:22px;
+    background:linear-gradient(180deg,rgba(26,26,40,.92),rgba(14,14,22,.92));border:1.6px solid rgba(255,255,255,.10);box-shadow:0 16px 40px rgba(0,0,0,.4)}
+  .vcardHi{border:2px solid rgba(212,168,74,.55);box-shadow:0 0 42px rgba(212,168,74,.26)}
+  .vic2{width:74px;height:74px;flex:0 0 auto;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 30% 25%,#2a2a12,#17170c);border:1.4px solid rgba(212,168,74,.5)}
+  .vt{font:700 40px/1.05 var(--sans);display:flex;align-items:center;gap:14px}
+  .vd{font:400 26px/1.3 var(--sans);color:var(--mute);margin-top:6px}
+  .vbadge{font:700 21px/1 var(--sans);color:#241a06;background:linear-gradient(180deg,var(--gold1),var(--gold2));padding:7px 13px;border-radius:999px}
+</style>
+<body>
+
+<!-- 1 COVER -->
+<div class="slide"><div class="pad">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <span class="k">ChatHelp</span><span class="tag" style="letter-spacing:.05em">chat-help.com</span>
+  </div>
+  <div class="center" style="margin-top:150px">
+    <div id="c1emb"></div>
+    <div class="wm" style="--wm:96px;margin-top:36px">Chat<span class="g">Help</span></div>
+    <div class="tag" style="margin-top:20px">Legal · Simple · Digital</div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:790px;text-align:center">
+    <div class="h1">Got an official<br>German letter?</div>
+    <div class="lead" style="margin-top:34px">Don't panic. <span class="gold">You explain it</span> — verified AI does the rest.</div>
+    <div style="margin-top:44px"><span class="swipe">Swipe → how it works</span></div>
+  </div>
+</div></div>
+
+<!-- 2 PROBLEM -->
+<div class="slide"><div class="pad">
+  <span class="k">The problem</span>
+  <div style="display:flex;justify-content:center;margin-top:70px">
+    <div class="paper" style="width:660px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div><div style="width:56px;height:56px;border-radius:50%;background:#20304a;border:3px solid #35507a;margin-bottom:14px"></div>
+          <div style="font:800 28px/1.1 var(--sans);color:#22324c">BEHÖRDE · AMT</div>
+          <div style="font:600 20px/1.3 var(--mono);color:#7a7360;margin-top:6px">Ref: 2026 / 44-871</div></div>
+        <div style="font:600 20px/1.4 var(--mono);color:#7a7360">03.07.2026</div>
+      </div>
+      <div style="font:800 56px/1.05 var(--serif);color:#1c2942;margin:26px 0 8px">BESCHEID</div>
+      <div style="height:7px;width:200px;background:var(--red);border-radius:6px;margin-bottom:24px"></div>
+      <div style="font:400 26px/1.6 var(--sans);color:#5a5342">…Gegen diesen Bescheid können Sie innerhalb der Frist Widerspruch einlegen…</div>
+      <div style="margin-top:22px;font:700 25px/1.3 var(--sans);color:var(--red)">⚠ Objection deadline: 1 month</div>
+      <div class="stamp" style="position:absolute;right:-14px;top:38px">deadline</div>
+    </div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:930px;text-align:center">
+    <div class="h2">A letter you can't read.<br><span class="g">A deadline that's ticking.</span></div>
+  </div>
+  <div class="foot"><span>The problem</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 3 TELL IT -->
+<div class="slide"><div class="pad">
+  <span class="k">1 · Tell it</span>
+  <div style="margin-top:80px">
+    <div class="bub me"><div class="who">YOU</div>I want to object to my rent increase. I've attached the letter from the authority.
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap"><span class="chip">Bescheid.jpg</span><span class="chip">Deadline: 1 month</span><span class="chip">€250</span></div></div>
+    <div class="bub ai"><div class="who">CHATHELP AI</div>Got it. I've read the date and amount from your document. I'll check the rent cap under § 558 BGB. When did your tenancy start?</div>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:860px">
+    <div class="h2" style="text-align:center">Explain it<br><span class="g">in your own words.</span></div>
+    <div class="lead" style="margin-top:26px;text-align:center">The AI reads the date, deadline &amp; reference — and asks until everything is clear.</div>
+  </div>
+  <div class="foot"><span>1 · Tell it</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 4 ANALYSIS -->
+<div class="slide"><div class="pad">
+  <span class="k">2 · Analysis</span>
+  <div class="h2" style="margin-top:18px">Real facts — <span class="g">checked by two AIs</span></div>
+  <div class="grid" style="margin-top:40px">
+    <div class="node"><div class="ic" id="i1"></div><div class="nt">Knowledge base</div><div class="nd">Real legal sources: statutes, deadlines, rulings</div></div>
+    <div class="node"><div class="t2">AI 1</div><div class="ic" id="i2"></div><div class="nt">Research</div><div class="nd">pulls the real facts — no guessing</div></div>
+    <div class="node"><div class="t2">AI 2</div><div class="ic" id="i3"></div><div class="nt">Verification</div><div class="nd">a second AI checks every detail</div></div>
+    <div class="node"><div class="ic" id="i4"></div><div class="nt">Drafting</div><div class="nd">together, flawless, ready to send</div></div>
+  </div>
+  <div class="hub"><div id="c4emb"></div><div style="text-align:left"><div class="hn">Chat<b>Help</b> AI</div><div class="hs">it all comes together ↓</div></div></div>
+  <div style="text-align:center;margin-top:30px"><span class="swipe"><span id="lk"></span> No generic template answers</span></div>
+  <div class="foot"><span>2 · Analysis</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 5 THE DIFFERENCE -->
+<div class="slide"><div class="pad">
+  <div class="center"><span class="k">The difference</span>
+    <div class="h2" style="margin-top:16px">Not a template. <span class="g">Real analysis.</span></div></div>
+  <div class="grid" style="margin-top:56px;position:relative">
+    <div class="cmp cmpBad">
+      <div class="chd" style="color:var(--mute)"><span id="b0"></span> Template tools</div>
+      <div class="crow"><span class="xic" data-x></span><span>Generic template, just your name filled in</span></div>
+      <div class="crow"><span class="xic" data-x></span><span>Guesses &amp; invents — no real source</span></div>
+      <div class="crow"><span class="xic" data-x></span><span>Unchecked, often wrong</span></div>
+    </div>
+    <div class="cmp cmpGood">
+      <div class="chd"><span id="g0"></span> <span>Chat<b style="color:var(--gold2)">Help</b> AI</span></div>
+      <div class="crow"><span class="vic" data-v></span><span>Real legal sources: statutes, rulings</span></div>
+      <div class="crow"><span class="vic" data-v></span><span>Verified by a <b style="color:var(--gold1)">second AI</b></span></div>
+      <div class="crow"><span class="vic" data-v></span><span>Tailored to your case, ready to send</span></div>
+    </div>
+    <div class="vsb">VS</div>
+  </div>
+  <div class="lead" style="text-align:center;margin-top:56px">Real sources, double-checked — <span class="gold">zero filler.</span></div>
+  <div class="foot"><span>The difference</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 6 RESULT -->
+<div class="slide"><div class="pad">
+  <span class="k">3 · Result</span>
+  <div style="display:flex;justify-content:center;margin-top:46px">
+    <div class="paper doc" style="width:720px">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid rgba(0,0,0,.12);padding-bottom:18px;margin-bottom:20px">
+        <div style="font:700 34px/1 var(--serif)">Chat<b style="color:var(--gold3)">Help</b></div>
+        <span class="badge"><span id="ck"></span> Done</span>
+      </div>
+      <p style="color:#6a6350"><b style="color:#2a2418">Max Mustermann</b> · Musterstraße 12, Berlin</p>
+      <p style="font:700 28px/1.35 var(--sans);color:#241f14;margin:14px 0">Betreff: Widerspruch gegen die Mieterhöhung</p>
+      <p>Sehr geehrte Damen und Herren, hiermit lege ich <b>fristgerecht Widerspruch</b> ein. Die Erhöhung überschreitet die <b>Kappungsgrenze gemäß § 558 Abs. 3 BGB</b>…</p>
+      <p style="margin-top:10px">Mit freundlichen Grüßen<br>Max Mustermann</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:18px;justify-content:center;margin-top:32px">
+    <span class="outchip"><span id="pk"></span> PDF</span><span class="outchip"><span id="mk"></span> Email</span><span class="outchip"><span id="kk"></span> Copy</span>
+  </div>
+  <div style="position:absolute;left:84px;right:84px;top:1035px;text-align:center">
+    <div class="h2">A perfect German letter — <span class="g">in seconds</span></div>
+  </div>
+  <div class="foot"><span>3 · Result</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 7 DELIVERY -->
+<div class="slide"><div class="pad">
+  <span class="k">4 · Delivery</span>
+  <div class="h2" style="margin-top:16px">We send it — <span class="g">for you</span></div>
+  <div style="margin-top:52px;display:flex;flex-direction:column;gap:26px">
+    <div class="vcard"><div class="vic2" id="vf"></div><div><div class="vt">Fax</div><div class="vd">Faxed straight to the authority</div></div></div>
+    <div class="vcard"><div class="vic2" id="vb"></div><div><div class="vt">Post</div><div class="vd">Printed and sent by mail</div></div></div>
+    <div class="vcard vcardHi"><div class="vic2" id="ve"></div><div><div class="vt">Registered mail <span class="vbadge">recommended</span></div><div class="vd">Proof of delivery — meets the deadline (Einschreiben)</div></div></div>
+  </div>
+  <div class="lead" style="text-align:center;margin-top:48px">No printer, no trip to the post office. <span class="gold">Or as PDF &amp; email.</span></div>
+  <div class="foot"><span>4 · Delivery</span><span>Chat<span class="g">Help</span> · chat-help.com</span></div>
+</div></div>
+
+<!-- 8 CTA -->
+<div class="slide"><div class="pad">
+  <div class="center" style="margin-top:170px">
+    <div id="c7emb"></div>
+    <div class="wm" style="--wm:104px;margin-top:34px">Chat<span class="g">Help</span></div>
+    <div class="tag" style="margin-top:20px">Legal · Simple · Digital</div>
+  </div>
+  <div class="center" style="margin-top:110px">
+    <span class="pill">Start now</span>
+    <div class="wm g" style="--wm:56px;margin-top:40px">chat-help.com</div>
+    <div class="lead" style="margin-top:56px">Basic · Pro · Elite — monthly cases included</div>
+  </div>
+  <div class="foot" style="justify-content:center"><span>@chathelp · Your digital legal assistant · Germany</span></div>
+</div></div>
+
+<script>
+function emblemSVG(s){return `<svg width="${s}" height="${s}" viewBox="0 0 120 120" style="filter:drop-shadow(0 10px 30px rgba(212,168,74,.5))">
+  <defs><linearGradient id="eg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset=".5" stop-color="#D4A84A"/><stop offset="1" stop-color="#B0801F"/></linearGradient></defs>
+  <rect x="8" y="8" width="104" height="104" rx="28" fill="#1c1c22" stroke="url(#eg${s})" stroke-width="2.4"/>
+  <path d="M30 34 h50 a10 10 0 0 1 10 10 v24 a10 10 0 0 1 -10 10 h-28 l-16 13 v-13 h-6 a10 10 0 0 1 -10 -10 v-24 a10 10 0 0 1 10 -10 z" fill="none" stroke="url(#eg${s})" stroke-width="3"/>
+  <g stroke="url(#eg${s})" stroke-width="2.6" stroke-linecap="round" fill="none" transform="translate(11,7)"><line x1="49" y1="34" x2="49" y2="66"/><line x1="30" y1="41" x2="68" y2="41"/><path d="M30 41 l-7 14 h14 z" fill="url(#eg${s})" stroke="none"/><path d="M68 41 l-7 14 h14 z" fill="url(#eg${s})" stroke="none"/><line x1="41" y1="66" x2="57" y2="66"/></g>
+  <circle cx="60" cy="48" r="2.6" fill="url(#eg${s})"/></svg>`;}
+function icon(n){const h=`<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="url(#ig)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset="1" stop-color="#D4A84A"/></linearGradient></defs>`;
+  const p={database:`<ellipse cx="12" cy="6" rx="7.5" ry="3.1"/><path d="M4.5 6v6c0 1.7 3.4 3.1 7.5 3.1s7.5-1.4 7.5-3.1V6"/><path d="M4.5 12v6c0 1.7 3.4 3.1 7.5 3.1s7.5-1.4 7.5-3.1v-6"/>`,
+    scales:`<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 006 0zM19 7l-3 6a3 3 0 006 0z"/>`,
+    shield:`<path d="M12 3l7 3v5c0 4.6-3 7.6-7 9-4-1.4-7-4.4-7-9V6z"/><path d="M8.5 12l2.3 2.3L15.5 9.7"/>`,
+    pen:`<path d="M14 4l6 6M4 20l1.5-5L16 4.5a2 2 0 013 3L8.5 18 4 20z"/>`,
+    lock:`<rect x="4.5" y="10" width="15" height="10" rx="2.4"/><path d="M8 10V7a4 4 0 018 0v3"/>`,
+    check:`<path d="M20 6L9 17l-5-5"/>`,pdf:`<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/>`,
+    mail:`<rect x="3" y="5" width="18" height="14" rx="2.4"/><path d="M3.5 6.5L12 13l8.5-6.5"/>`,copy:`<rect x="9" y="9" width="12" height="12" rx="2.2"/><path d="M5 15V5a2 2 0 012-2h10"/>`,
+    fax:`<rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 9V4h10v5"/><path d="M8 17v3h8v-3"/><path d="M8 13h4"/>`,
+    mailcheck:`<path d="M21 10.5V6a2 2 0 00-2-2H5a2 2 0 00-2 2v9a2 2 0 002 2h7"/><path d="M3.5 6.5L12 12l8.5-5.5"/><path d="M15.5 18l2 2 3.5-3.5"/>`}[n]||'';
+  return h+p+'</svg>';}
+c1emb.innerHTML=emblemSVG(200);c4emb.innerHTML=emblemSVG(90);c7emb.innerHTML=emblemSVG(220);
+i1.innerHTML=icon('database');i2.innerHTML=icon('scales');i3.innerHTML=icon('shield');i4.innerHTML=icon('pen');
+lk.innerHTML=icon('lock');ck.innerHTML=icon('check');pk.innerHTML=icon('pdf');mk.innerHTML=icon('mail');kk.innerHTML=icon('copy');
+g0.innerHTML=emblemSVG(46);
+b0.innerHTML=`<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#9a9ab0" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 011 1v9a1 1 0 01-1 1H9l-4 3v-3H4a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg>`;
+document.querySelectorAll('[data-x]').forEach(e=>e.innerHTML=`<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#e0685e" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`);
+document.querySelectorAll('[data-v]').forEach(e=>e.innerHTML=icon('check'));
+vf.innerHTML=icon('fax');vb.innerHTML=icon('mail');ve.innerHTML=icon('mailcheck');
+window.__ready=true;
+</script>

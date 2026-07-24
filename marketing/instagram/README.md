@@ -20,6 +20,8 @@ formuliert gemeinsam ein **fehlerfreies, versandfertiges** Dokument. **Geprüft 
 | `carousel/06-ergebnis.png` | Karussell 6 — Schritt 3: versandfertiges Dokument | 1080×1350 |
 | `carousel/07-versand.png` | Karussell 7 — Schritt 4: **Versand — Fax · Brief · Einschreiben** | 1080×1350 |
 | `carousel/08-cta.png` | Karussell 8 — CTA: chat-help.com | 1080×1350 |
+| `carousel-en/*.png` | **English carousel** (8 slides, same story) für Expats in DE — Angle „not a template, real analysis" | 1080×1350 |
+| `CAPTIONS-EN.md` | Englische Instagram-Caption + Hashtags (Expat-Zielgruppe) | — |
 | `CAPTIONS.md` | Fertige Beschreibungstexte (DE, optional TR) + Hashtags | — |
 | `scene.html` | **Quelle** der Reel-Animation (bearbeitbar) | — |
 | `carousel.html` | **Quelle** der Karussell-Slides (bearbeitbar) | — |
