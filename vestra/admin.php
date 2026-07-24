@@ -681,6 +681,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   .asgrid{grid-template-columns:repeat(2,1fr)!important}
   .acols2,.acols3{grid-template-columns:1fr}
   .abtn{white-space:normal;text-align:left}
+  /* Top bar: wrap the shortcut/utility links onto their own row and drop the
+     "Admin Panel" label so the 🏷️ Listings / 💶 Prices shortcuts always fit. */
+  .atopbar{flex-wrap:wrap;padding:8px 12px;gap:6px 8px}
+  .atopbar-sub{display:none}
+  .atopbar-links{margin-left:auto;flex-wrap:wrap;gap:6px}
+  .atopbar .abtn{white-space:nowrap;text-align:center;font-size:12px;padding:6px 10px}
   html,body,.alayout{overflow-x:hidden;max-width:100%}
 }
 </style></head><body>
@@ -792,8 +798,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     </svg>
     VESTRA
   </a>
-  <span style="color:var(--mut);font-size:12px">Admin Panel</span>
+  <span class="atopbar-sub" style="color:var(--mut);font-size:12px">Admin Panel</span>
   <div class="atopbar-links">
+    <a class="abtn primary" href="/admin?tab=listings">🏷️ Listings</a>
+    <a class="abtn" href="/admin?tab=prices">💶 Prices</a>
     <a class="abtn" href="/" target="_blank">View site</a>
     <a class="abtn" href="/seller-invite" target="_blank">Invite page</a>
     <a class="abtn" href="/admin?logout=1">Sign out</a>
