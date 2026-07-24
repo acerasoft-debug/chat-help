@@ -1676,7 +1676,8 @@ elseif($tab==='prices'):
             <div style="font-size:11px;color:var(--mut);letter-spacing:.02em"><?= htmlspecialchars($p['brand']??'') ?></div>
             <div style="font-weight:600;line-height:1.2"><?= htmlspecialchars($p['name']??'') ?></div>
             <div class="ahint"><span class="atag" style="font-size:9px"><?= htmlspecialchars($p['sku']??'') ?></span>
-              <?= $demo?abadge('Built-in','#9a7320'):abadge('Listing','#3366cc') ?></div>
+              <?= $demo?abadge('Built-in','#9a7320'):abadge('Listing','#3366cc') ?>
+              <a href="/product?id=<?= urlencode($id) ?>" target="_blank" rel="noopener" style="font-size:10px;color:#1f9d63;text-decoration:none;font-weight:600" title="Open the live product page">↗ View</a></div>
           </div>
         </div>
       </td>
@@ -1705,7 +1706,11 @@ elseif($tab==='listings'):
 ?>
 <?php if($ledit): $lc=(array)($ledit['colors']??[]); $lt=$ledit['tiers']??[]; ?>
 <div class="acard" style="margin-bottom:18px;border-color:var(--acc)">
-  <div class="acard-hd"><h3>✏️ Edit listing — <?= htmlspecialchars(trim(($ledit['brand']??'').' '.($ledit['name']??''))) ?></h3><a class="abtn" href="/admin?tab=listings">✕ Close</a></div>
+  <div class="acard-hd"><h3>✏️ Edit listing — <?= htmlspecialchars(trim(($ledit['brand']??'').' '.($ledit['name']??''))) ?></h3>
+    <div style="display:flex;gap:6px">
+      <?php if(($ledit['status']??'approved')==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($ledit['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63">View live ↗</a><?php endif; ?>
+      <a class="abtn" href="/admin?tab=listings">✕ Close</a>
+    </div></div>
   <div class="acard-body">
     <form method="post" action="/admin" class="aform">
       <?= csrfField() ?><input type="hidden" name="_action" value="admin_save_listing"><input type="hidden" name="lid" value="<?= htmlspecialchars($ledit['id']??'') ?>">
@@ -1800,6 +1805,7 @@ elseif($tab==='listings'):
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
     <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?></td>
     <td class="ac"><div style="display:flex;gap:4px">
+      <?php if($st==='approved'): ?><a class="abtn" href="/product?id=<?= urlencode($p['id']??'') ?>" target="_blank" rel="noopener" style="border-color:rgba(31,157,99,.4);color:#1f9d63" title="Open the live product page in a new tab">View ↗</a><?php endif; ?>
       <a class="abtn" href="/admin?tab=listings&edit=<?= urlencode($p['id']??'') ?>#top" style="border-color:rgba(201,168,106,.4)">Edit</a>
       <?php if($st==='pending'): ?><a class="abtn" href="/admin?tab=approvals">Review</a><?php endif; ?>
       <?= fBtn('Delete','delete_listing',['lid'=>$p['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)','Delete this listing?') ?>
