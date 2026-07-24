@@ -4,11 +4,15 @@ require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 $AUTH_USER = auth_user();
-$MEMBER = $AUTH_USER !== null || !empty($_SESSION['member']);
+/* The site owner (admin session) sees the catalogue exactly as a fully-verified
+   member does — real product photos, prices and seller names — so reviewing a
+   product via the admin "View ↗" link never shows the locked brand card. */
+$IS_ADMIN = !empty($_SESSION['vadmin']);
+$MEMBER = $IS_ADMIN || $AUTH_USER !== null || !empty($_SESSION['member']);
 /* Freischaltung gate: product photos + seller identities are visible only to APPROVED
    accounts — signed in AND (active / KYB-approved / verification documents submitted).
    A mere registration without documents never unlocks photos or seller names. */
-$APPROVED = auth_user_approved($AUTH_USER);
+$APPROVED = $IS_ADMIN || auth_user_approved($AUTH_USER);
 $MSG_UNREAD = 0;
 if ($AUTH_USER) { require_once __DIR__.'/messages.php'; $MSG_UNREAD = vestra_msg_unread_count($AUTH_USER['id']); }
 $BRAND  = 'VESTRA';
