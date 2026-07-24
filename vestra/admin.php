@@ -175,6 +175,42 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=prices&msg=prices_saved&n='.$n); exit;
   }
+  /* One-click catalogue pricing rules (seller listings only — the demo products
+     Lacoste / Ralph Lauren / Amiri are set in code). Rules:
+       • Remove "make an offer": every offer listing becomes a fixed price.
+       • Amiri polos → €40, MOQ 60.       • All other polos → €70.
+       • D&G / Dsquared T-shirts → €60→€45 tiered.
+       • MOQ 20 on everything else.
+       • Lacoste & Ralph Lauren: price AND MOQ left completely untouched. */
+  if($act==='apply_pricing_rules'){
+    $all=vestra_listings(); $n=0;
+    foreach($all as &$p){
+      $b=strtolower((string)($p['brand']??'')); $c=strtolower((string)($p['cat']??''));
+      if(str_contains($b,'lacoste')||str_contains($b,'ralph')||str_contains($b,'lauren')) continue; // untouched
+      $isDG   = str_contains($b,'dolce')||str_contains($b,'gabbana')||$b==='dg'||$b==='d&g'||(bool)preg_match('/\bd\s*&\s*g\b/',$b);
+      $isDsq  = str_contains($b,'dsquared')||str_contains($b,'dsq');
+      $isAmiri= str_contains($b,'amiri');
+      $isPolo = str_contains($c,'polo');
+      $isTee  = (bool)preg_match('/t[-\s]?shirt|tee/',$c);
+      $sig=json_encode([$p['mode']??'',$p['moq']??0,$p['offers']??false,$p['tiers']??[]]);
+      if(($p['mode']??'')==='offer') $p['mode']='fixed';   // remove make-an-offer
+      unset($p['offers']);                                  // drop "also accepts offers"
+      if($isAmiri && $isPolo){ $p['moq']=60; $p['tiers']=[['min'=>60,'price'=>40.00]]; }
+      elseif($isPolo){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>70.00]]; }
+      elseif(($isDG||$isDsq) && $isTee){ $p['moq']=20; $p['tiers']=[['min'=>20,'price'=>60.00],['min'=>120,'price'=>45.00]]; }
+      else {                                                // others: MOQ 20, keep existing (now fixed) price
+        $p['moq']=20;
+        if(!empty($p['tiers']) && is_array($p['tiers'])){
+          usort($p['tiers'],fn($a,$bb)=>($a['min']??0)<=>($bb['min']??0));
+          if(($p['tiers'][0]['min']??0) > 20) $p['tiers'][0]['min']=20; // lowest tier starts at the new MOQ
+        }
+      }
+      if(json_encode([$p['mode']??'',$p['moq']??0,$p['offers']??false,$p['tiers']??[]])!==$sig) $n++;
+    }
+    unset($p);
+    vestra_save_listings($all);
+    header('Location: /admin?tab=prices&msg=pricing_rules&n='.$n); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -769,6 +805,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
+<?php elseif($msg==='pricing_rules'): ?>
+<div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 60 · other polos €70 · D&G / Dsquared tees €60→€45 · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
 <?php elseif($msg==='lead_import'): ?>
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
@@ -1539,6 +1577,20 @@ elseif($tab==='prices'):
   then hit <b>Save all</b> once. Built-in products and live seller listings are all editable here.
   Leave a tier's two boxes empty to drop it; the lowest tier price is shown to buyers as the “from” price.
 </p>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:640px">
+      <b style="color:var(--ink)">⚙ Apply pricing rules</b> — one click on the seller listings:
+      remove “make an offer” → fixed · <b>Amiri</b> polos €40 / MOQ 60 · other <b>polos</b> €70 ·
+      <b>D&amp;G / Dsquared</b> tees €60→€45 · <b>MOQ 20</b> on the rest.
+      <b>Lacoste &amp; Ralph Lauren</b> stay untouched.
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 60\n• Other polos → €70\n• D&amp;G / Dsquared t-shirts → €60→€45\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="apply_pricing_rules">
+      <button class="abtn primary" type="submit" style="padding:9px 18px;white-space:nowrap">⚙ Apply pricing rules</button>
+    </form>
+  </div>
+</div>
 <form method="post" action="/admin">
   <?= csrfField() ?><input type="hidden" name="_action" value="save_prices">
   <div style="position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;margin-bottom:6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)">

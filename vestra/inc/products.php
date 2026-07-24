@@ -85,7 +85,7 @@ function vestra_demo_products(){
     ],
     [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>10,'unit'=>'pc',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>60,'unit'=>'pc',
       'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
       'origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
       'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours','size_step'=>10,
@@ -99,7 +99,7 @@ function vestra_demo_products(){
         'Made in'=>'Italy / EU',
         'Authenticity'=>'Verified on delivery · proof of sourcing on request',
       ],
-      'tiers'=>[['min'=>10,'price'=>35.00]],
+      'tiers'=>[['min'=>60,'price'=>40.00]],
     ],
   ];
   return vestra_apply_price_overrides($P);
