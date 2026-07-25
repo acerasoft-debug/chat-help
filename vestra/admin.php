@@ -575,6 +575,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=prospects&msg=lead_tpl_ok'); exit;
   }
   if($act==='send_lead_email'){
+    @set_time_limit(0); // up to 50 individual sends — don't let a slow SMTP host time the request out
     $ids=array_slice(array_filter((array)($_POST['lead_ids']??[])),0,50);
     $leads=vestra_leads(); $tpl=vestra_lead_template(); $sent=0;
     require_once __DIR__.'/inc/notify.php';
@@ -627,6 +628,36 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       fclose($fh);
     }
     header('Location: /admin?tab=prospects&msg='.($ok?'quote_sent':'quote_failed')); exit;
+  }
+  /* Save the operator's own sending identity + transport (SMTP or HTTP API) so all
+     outbound mail goes out "from" their address. Written to data/email_settings.json
+     (web-denied, gitignored); the password is kept if the field is left blank. */
+  if($act==='save_email_settings'){
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[];
+    if(!is_array($cur)) $cur=[];
+    $from=trim($_POST['from_email']??''); $pass=(string)($_POST['smtp_pass']??''); $apiKey=trim($_POST['mail_api_key']??'');
+    $s=[
+      'mail_enabled'=>!empty($_POST['mail_enabled']),
+      'mail_from'=>$from, 'smtp_from'=>$from,
+      'smtp_name'=>trim($_POST['from_name']??'')?:'VESTRA',
+      'smtp_host'=>trim($_POST['smtp_host']??''),
+      'smtp_port'=>(int)($_POST['smtp_port']??587)?:587,
+      'smtp_user'=>trim($_POST['smtp_user']??'')?:$from,
+      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),
+      'mail_api_provider'=>trim($_POST['mail_api_provider']??'brevo')?:'brevo',
+      'mail_api_key'=>$apiKey!==''?$apiKey:(string)($cur['mail_api_key']??''),
+    ];
+    file_put_contents($dir.'/email_settings.json',json_encode($s,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+    @chmod($dir.'/email_settings.json',0600);
+    header('Location: /admin?tab=prospects&msg=email_saved'); exit;
+  }
+  if($act==='send_test_email'){
+    require_once __DIR__.'/inc/notify.php';
+    $to=trim($_POST['test_to']??'');
+    if(!filter_var($to,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=prospects&msg=test_invalid'); exit; }
+    $ok=vestra_send_mail($to,'VESTRA — test email',"This is a test from your VESTRA sending setup.\n\nIf you received this, outbound email works and your customer offers will send from your address. \xE2\x9C\x93\n\n— VESTRA");
+    header('Location: /admin?tab=prospects&msg='.($ok?'test_ok':'test_fail')); exit;
   }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
@@ -939,7 +970,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
     'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
-    'quote_failed'=>'Offer could not be sent (check SMTP settings in config).','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
+    'quote_failed'=>'Offer could not be sent — set up your Sending email below (SMTP) first.','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
+    'email_saved'=>'✓ Sending email saved. Send yourself a test to confirm it works.','test_ok'=>'✓ Test email sent — check that inbox.','test_fail'=>'Test failed — check the SMTP host/username/password (or use an API key).','test_invalid'=>'Enter a valid email address to send the test to.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -2238,6 +2270,9 @@ elseif($tab==='prospects'):
   $ldReplied=count(array_filter($leads,fn($l)=>($l['status']??'')==='replied'));
   $ldConverted=count(array_filter($leads,fn($l)=>($l['status']??'')==='converted'));
   $ldUnsub=count(array_filter($leads,fn($l)=>($l['status']??'')==='unsubscribed'));
+  $emCfg=is_readable(vestra_data_dir().'/email_settings.json')?json_decode((string)file_get_contents(vestra_data_dir().'/email_settings.json'),true):[];
+  if(!is_array($emCfg)) $emCfg=[];
+  $emReady=!empty($emCfg['mail_enabled']) && ((($emCfg['smtp_host']??'')!=='' && ($emCfg['smtp_pass']??'')!=='') || ($emCfg['mail_api_key']??'')!=='');
 ?>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
   Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
@@ -2245,6 +2280,61 @@ elseif($tab==='prospects'):
   harvest contacts. Every outreach email carries a working one-click unsubscribe link; anyone who uses it is
   permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
+
+<div class="acard" style="margin-bottom:20px;border-color:<?= $emReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
+  <div class="acard-hd"><h3>📤 Sending email — send from your own address
+    <?= $emReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Ready</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Not set up</span>' ?></h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:12px">Every outreach + offer goes out <b>from this address</b>, one email per customer. Enter your email and its SMTP login (from your email provider). <b>Gmail/Google:</b> turn on 2-step verification and use an <b>App Password</b> (not your normal password). Saved securely — web-blocked and never committed to git.</p>
+  <form method="post" class="aform">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="save_email_settings">
+    <input type="hidden" name="mail_enabled" value="1">
+    <div class="acols2">
+      <div class="afield"><label>From email *</label><input type="email" name="from_email" required value="<?= htmlspecialchars($emCfg['mail_from']??'') ?>" placeholder="you@yourcompany.com"></div>
+      <div class="afield"><label>From name</label><input name="from_name" value="<?= htmlspecialchars($emCfg['smtp_name']??'') ?>" placeholder="Your Company"></div>
+    </div>
+    <div class="afield"><label>Provider preset (auto-fills SMTP)</label>
+      <select onchange="smtpPreset(this.value)">
+        <option value="">— choose —</option>
+        <option value="gmail">Gmail / Google Workspace</option>
+        <option value="outlook">Outlook / Microsoft 365</option>
+        <option value="custom">Other / custom host</option>
+      </select>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>SMTP host</label><input name="smtp_host" id="smtp_host" value="<?= htmlspecialchars($emCfg['smtp_host']??'') ?>" placeholder="smtp.gmail.com"></div>
+      <div class="afield"><label>SMTP port</label><input name="smtp_port" id="smtp_port" value="<?= htmlspecialchars((string)($emCfg['smtp_port']??'587')) ?>" placeholder="587"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($emCfg['smtp_user']??'') ?>" placeholder="usually your email"></div>
+      <div class="afield"><label>SMTP password <?= ($emCfg['smtp_pass']??'')!==''?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="smtp_pass" placeholder="app password" autocomplete="new-password"></div>
+    </div>
+    <details style="margin:2px 0 12px">
+      <summary class="ahint" style="cursor:pointer">Advanced: use a transactional API key instead (best inbox rate)</summary>
+      <div class="acols2" style="margin-top:8px">
+        <div class="afield"><label>Provider</label><select name="mail_api_provider"><option value="brevo" <?= ($emCfg['mail_api_provider']??'brevo')==='brevo'?'selected':'' ?>>Brevo</option><option value="resend" <?= ($emCfg['mail_api_provider']??'')==='resend'?'selected':'' ?>>Resend</option></select></div>
+        <div class="afield"><label>API key <?= ($emCfg['mail_api_key']??'')!==''?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="mail_api_key" placeholder="xkeysib-… / re_…" autocomplete="new-password"></div>
+      </div>
+      <p class="ahint">If an API key is set it's used instead of SMTP. Your "from" address must be verified with the provider (adds SPF/DKIM for you → far fewer spam-folder landings).</p>
+    </details>
+    <button class="abtn primary" type="submit">Save sending email</button>
+  </form>
+  <form method="post" style="margin-top:14px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="send_test_email">
+    <div class="afield" style="margin:0;flex:1;min-width:220px"><label>Send a test email to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($emCfg['mail_from']??'') ?>" placeholder="your@email.com"></div>
+    <button class="abtn" type="submit">✉ Send test</button>
+  </form>
+  </div>
+</div>
+<script>
+function smtpPreset(v){
+  var h=document.getElementById('smtp_host'), p=document.getElementById('smtp_port');
+  if(v==='gmail'){ h.value='smtp.gmail.com'; p.value='587'; }
+  else if(v==='outlook'){ h.value='smtp.office365.com'; p.value='587'; }
+}
+</script>
 
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
   <div class="ascard"><div class="sv"><?= $ldNew ?></div><div class="sl">New</div></div>

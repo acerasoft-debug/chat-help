@@ -5,7 +5,15 @@
  */
 function vestra_cfg($k,$def=null){
   static $c=null;
-  if($c===null){ $f=__DIR__.'/config.php'; $c=is_readable($f)?(require $f):[]; if(!is_array($c)) $c=[]; }
+  if($c===null){
+    $f=__DIR__.'/config.php'; $c=is_readable($f)?(require $f):[]; if(!is_array($c)) $c=[];
+    // Admin-editable sending settings (Admin → Customers → Sending email) override
+    // config.php so the operator can point outbound mail at their own address/SMTP
+    // without editing files. Stored web-denied + gitignored under data/.
+    $mf=dirname(__DIR__).'/data/email_settings.json';
+    if(is_readable($mf)){ $m=json_decode((string)file_get_contents($mf),true);
+      if(is_array($m)) foreach($m as $mk=>$mv){ if($mv!=='' && $mv!==null) $c[$mk]=$mv; } }
+  }
   return array_key_exists($k,$c) ? $c[$k] : $def;
 }
 
