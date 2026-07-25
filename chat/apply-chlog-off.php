@@ -21,5 +21,5 @@ if($src!==false && strpos($src,'CH_APPLOG')!==false){
   }
 } else { echo "  (index'te CH_APPLOG yok)\n"; }
 
-foreach(['chlog.php','chlog.txt'] as $x){ echo (@unlink($dir.'/'.$x) ? "  ✓ silindi: $x\n" : "  (yok: $x)\n"); }
+foreach(['chlog.php','chlog.txt','chlog9k1.php','chlog9k1.txt'] as $x){ echo (@unlink($dir.'/'.$x) ? "  ✓ silindi: $x\n" : "  (yok: $x)\n"); }
 echo "\n✓ Temizlik bitti.\n";
