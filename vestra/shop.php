@@ -105,7 +105,10 @@ footer a{color:#d8bd86}
           $img0 = $imgs[0] ?? '';   // base photo (approved only)
           $img1 = $imgs[1] ?? '';   // second photo → hover reveal
           $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
-          $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
+          /* "NEW" is an explicit flag now (set on freshly-imported ranges like the
+             DSQUARED2 drop) instead of "added in the last 30 days" — a bulk import
+             would otherwise flag the whole catalogue as new. */
+          $isNew = !empty($p['new']);
           ?>
           <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
              data-idx="<?= $idx ?>"

@@ -221,7 +221,31 @@ function vestra_csv_ensure_header(string $name, array $header): void {
     file_put_contents($f, $newHeaderLine.$rest, LOCK_EX);
 }
 function vestra_live_listings(){ return array_values(array_filter(vestra_listings(), fn($p)=>($p['status']??'approved')==='approved')); }
-function vestra_products(){ return array_merge(vestra_demo_products(), vestra_live_listings()); }
+/* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
+   in the catalogue straight after a deploy — no import click needed — but are hidden
+   for any item already present as a real listing (same id or brand+SKU), so importing
+   them into listings.json never double-lists them. */
+function vestra_seed_catalog(){
+    $f = __DIR__.'/dsquared_seed.json';
+    if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+    return [];
+}
+function vestra_products(){
+    $live = vestra_live_listings();
+    $seen = [];
+    foreach($live as $l){
+        $seen['id:'.strtolower((string)($l['id']??''))] = true;
+        $seen['bs:'.strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))] = true;
+    }
+    $seed = [];
+    foreach(vestra_seed_catalog() as $p){
+        $id='id:'.strtolower((string)($p['id']??''));
+        $bs='bs:'.strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+        if(isset($seen[$id]) || isset($seen[$bs])) continue;
+        $seed[] = $p;
+    }
+    return array_merge(vestra_demo_products(), $live, $seed);
+}
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
