@@ -295,6 +295,34 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=tyrex_polos&n='.$added); exit;
   }
+  /* Import the Lacoste polo as an APPROVED listing owned by the "Les Garage Paris"
+     seller account — resolved by company name, or created (minimal, editable later)
+     if it does not exist yet. De-dupes on id and brand+SKU; safe to re-run. */
+  if($act==='import_lesgarage_polos'){
+    $seed=is_readable(__DIR__.'/inc/lesgarage_polos_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/lesgarage_polos_seed.json'),true) : [];
+    if(!is_array($seed)) $seed=[];
+    $accs=auth_accounts(); $sid='';
+    foreach($accs as $a){ if(($a['type']??'')==='seller' && strtolower(trim((string)($a['company']??'')))==='les garage paris'){ $sid=(string)($a['id']??''); break; } }
+    if($sid===''){
+      $sid=bin2hex(random_bytes(8));
+      $accs[]=['id'=>$sid,'email'=>'','type'=>'seller','status'=>'active','email_verified'=>true,
+        'name'=>'Les Garage Paris','company'=>'Les Garage Paris','vat_id'=>'','reg_number'=>'',
+        'country'=>'France','address'=>'','phone'=>'','website'=>'','kyb_status'=>'approved',
+        'membership_tier'=>'premium','membership_status'=>'active','onboarding_paid'=>true,'created'=>date('c'),'doc_requests'=>[]];
+      auth_save_accounts($accs);
+    }
+    $all=vestra_listings(); $haveId=[]; $haveBS=[];
+    foreach($all as $l){ $haveId[(string)($l['id']??'')]=true; $haveBS[strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))]=true; }
+    $added=0;
+    foreach($seed as $p){
+      $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+      if(($id!=='' && isset($haveId[$id])) || ($bs!=='|' && isset($haveBS[$bs]))) continue;
+      $p['seller_uid']=$sid; $p['seller']='Les Garage Paris'; $p['verified']=true; $p['status']='approved'; $p['added_at']=date('c');
+      $all[]=$p; $added++; $haveId[$id]=true; $haveBS[$bs]=true;
+    }
+    vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=lgp_polos&n='.$added); exit;
+  }
   /* Import the DSQUARED2 catalogue (T-shirts €49.90 / sweatshirts €90, on sale)
      from inc/dsquared_seed.json. De-dupes on brand+SKU(model) AND id, so a
      product already in the catalogue with the same photo/title is skipped
@@ -853,6 +881,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'tyrex_polos'=>'✓ Polos imported as Tyrex International BV listings.','tyrex_missing'=>'Tyrex International BV account not found — create it first (Listings → Tyrex).',
+    'lgp_polos'=>'✓ Lacoste polo imported as a Les Garage Paris listing.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
@@ -2015,13 +2044,28 @@ elseif($tab==='listings'):
 <div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
   <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <div style="font-size:13px;color:var(--mut);max-width:660px">
-      <b style="color:var(--ink)">👔 Import polos to Tyrex International BV (<?= $tpN ?>)</b> — the Amiri Core Logo Polo and the
-      Lacoste Regular Fit Logo Trim Polo, each with their photos + a downloadable line-sheet PDF, listed under the
-      Tyrex seller account. Requires the Tyrex account to exist. Already-imported items are skipped — safe to re-run.
+      <b style="color:var(--ink)">👔 Import to Tyrex International BV (<?= $tpN ?>)</b> — the Amiri Core Logo Polo, with its
+      photos + a downloadable line-sheet PDF, listed under the Tyrex seller account. Requires the Tyrex account to
+      exist. Already-imported items are skipped — safe to re-run.
     </div>
-    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $tpN ?> polos as Tyrex International BV listings? Items already in the catalogue are skipped.')">
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $tpN ?> product(s) as Tyrex International BV listings? Items already in the catalogue are skipped.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="import_tyrex_polos">
-      <button class="abtn primary" type="submit" style="white-space:nowrap">👔 Import polos → Tyrex (<?= $tpN ?>)</button>
+      <button class="abtn primary" type="submit" style="white-space:nowrap">👔 Import → Tyrex (<?= $tpN ?>)</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+<?php $lgSeed=is_readable(__DIR__.'/inc/lesgarage_polos_seed.json')?json_decode((string)file_get_contents(__DIR__.'/inc/lesgarage_polos_seed.json'),true):[]; $lgN=is_array($lgSeed)?count($lgSeed):0; if($lgN): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:660px">
+      <b style="color:var(--ink)">🅿️ Import to Les Garage Paris (<?= $lgN ?>)</b> — the Lacoste Regular Fit Logo Trim Polo,
+      with photos + a downloadable line-sheet PDF, at volume tiers <b>€35 / €32 / €28</b> (20 / 60 / 120 pc). Listed under
+      the Les Garage Paris seller (created automatically if it doesn't exist yet). Already-imported items are skipped.
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $lgN ?> product(s) as Les Garage Paris listings? The seller is created if missing. Items already in the catalogue are skipped.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="import_lesgarage_polos">
+      <button class="abtn primary" type="submit" style="white-space:nowrap">🅿️ Import → Les Garage Paris (<?= $lgN ?>)</button>
     </form>
   </div>
 </div>

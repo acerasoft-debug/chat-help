@@ -35,41 +35,5 @@
       "Authenticity": "Verified on delivery · proof of sourcing on request"
     },
     "tiers": [{ "min": 50, "price": 40.0 }]
-  },
-  {
-    "id": "lacoste-trim-polo",
-    "brand": "Lacoste",
-    "name": "Regular Fit Logo Trim Polo",
-    "cat": "Polos",
-    "sku": "LAC-LT-1121",
-    "moq": 20,
-    "unit": "pc",
-    "mode": "fixed",
-    "desc": "Regular fit cotton piqué polo with the signature logo-trim chest stripe. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.",
-    "origin": "Authorised allocation",
-    "verified": true,
-    "status": "approved",
-    "accent": "#14213a",
-    "colors": ["White", "Red", "Black", "Navy"],
-    "images": [
-      "/uploads/lac-trim/lacoste-trim-polo-1.png",
-      "/uploads/lac-trim/lacoste-trim-polo-2.png",
-      "/uploads/lac-trim/lacoste-trim-polo-3.png",
-      "/uploads/lac-trim/lacoste-trim-polo-4.png"
-    ],
-    "linesheet": true,
-    "sheet_file": "lacoste-logo-trim-polo.pdf",
-    "sizes": "S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours",
-    "size_step": 10,
-    "specs": {
-      "Composition": "100% cotton piqué",
-      "Fit": "Regular fit",
-      "Care": "Machine wash 30°C",
-      "Packaging": "Mixed-size carton · S×2 M×6 L×6 XL×4 XXL×2",
-      "Lead time": "Authorised allocation — 5–7 business days",
-      "Made in": "EU",
-      "Authenticity": "Verified on delivery · proof of sourcing on request"
-    },
-    "tiers": [{ "min": 20, "price": 55.0 }]
   }
 ]
