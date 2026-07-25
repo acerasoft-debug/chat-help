@@ -14,7 +14,7 @@ if($src===false) exit("index.php okunamadi\n");
 if(strpos($src,'CH_APPDIAG')===false) exit("Zaten yok (CH_APPDIAG bulunamadi) — DEGISIKLIK YOK.\n");
 
 /* Her iki payload da ` /*CH_APPDIAG(2)*/ try{...}catch(_e2){}}` ile biter. Non-greedy sil. */
-$new=preg_replace('/\s*\/\*CH_APPDIAG2?\*\/ try\{.*?\}catch\(_e2\)\{\}\}/s','',$src);
+$new=preg_replace('/\s*\/\*CH_APPDIAG[23]?\*\/ try\{.*?\}catch\(_e2\)\{\}\}/s','',$src);
 if($new===null) exit("preg hatasi.\n");
 
 $removed=substr_count($src,'CH_APPDIAG')-substr_count($new,'CH_APPDIAG');
