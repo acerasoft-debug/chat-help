@@ -47,40 +47,171 @@ function vestra_seller_can_send(array $cfg): bool {
   return (($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') || ($cfg['mail_api_key']??'')!=='';
 }
 
-/* Look up a business email for a company domain via an email-finder API (operator's
- * own key). Config (global email_settings): finder_provider ('hunter'|'anymailfinder'),
- * finder_key. Returns the best generic/contact email, or '' if none / not configured.
- * Purpose-built finders (not an LLM) return real, verified addresses. */
-function vestra_find_email(string $website, string $keyOverride='', string $providerOverride=''): string {
-  $domain=strtolower(trim($website));
-  $domain=preg_replace('#^https?://#','',$domain);
-  $domain=preg_replace('#[/?].*$#','',$domain);
-  $domain=preg_replace('#^www\.#','',$domain);
-  if($domain===''||strpos($domain,'.')===false) return '';
-  $key=$keyOverride!==''?$keyOverride:(string)vestra_cfg('finder_key',''); if($key==='') return '';
-  $provider=strtolower($providerOverride!==''?$providerOverride:(string)vestra_cfg('finder_provider','hunter'));
-  if($provider==='anymailfinder'){
-    $ch=curl_init('https://api.anymailfinder.com/v5.0/search/company.json');
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>25,
-      CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json'],
-      CURLOPT_POSTFIELDS=>json_encode(['domain'=>$domain])]);
-    $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-    if($code>=200&&$code<300){ $d=json_decode((string)$r,true); $e=$d['email']??($d['results'][0]['email']??'');
-      if(is_string($e)&&filter_var($e,FILTER_VALIDATE_EMAIL)) return strtolower($e); }
-    if($code) error_log("[VESTRA finder] anymailfinder HTTP {$code}");
-    return '';
-  }
-  // Hunter.io domain-search (default)
-  $ch=curl_init('https://api.hunter.io/v2/domain-search?domain='.urlencode($domain).'&api_key='.urlencode($key));
-  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>25]);
+/* Extract a bare host/domain from a URL or host string ('' if it isn't a domain). */
+function vestra_domain_of(string $website): string {
+  $d=strtolower(trim($website));
+  $d=preg_replace('#^https?://#','',$d);
+  $d=preg_replace('~[/?#].*$~','',$d);
+  $d=preg_replace('#^www\.#','',$d);
+  return ($d===''||strpos($d,'.')===false)?'':$d;
+}
+
+/* Minimal HTTP GET (browser-ish UA, follows redirects, size-capped). '' on any error. */
+function vestra_http_get(string $url, int $timeout=12): string {
+  $ch=curl_init($url);
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_MAXREDIRS=>4,
+    CURLOPT_TIMEOUT=>$timeout,CURLOPT_CONNECTTIMEOUT=>7,
+    CURLOPT_USERAGENT=>'Mozilla/5.0 (compatible; VestraBot/1.0; +https://vestrasales.com)',
+    CURLOPT_HTTPHEADER=>['Accept: text/html,application/xhtml+xml'],CURLOPT_ENCODING=>'']);
   $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-  if($code>=200&&$code<300){
-    $d=json_decode((string)$r,true); $emails=$d['data']['emails']??[];
-    // rank: prefer generic (info@/sales@) then higher confidence
-    usort($emails,fn($a,$b)=>((($b['type']??'')==='generic'?100:0)+($b['confidence']??0))<=>((($a['type']??'')==='generic'?100:0)+($a['confidence']??0)));
-    foreach($emails as $e){ if(!empty($e['value'])&&filter_var($e['value'],FILTER_VALIDATE_EMAIL)) return strtolower($e['value']); }
-  } elseif($code){ error_log("[VESTRA finder] hunter HTTP {$code}"); }
+  if($r===false||$code<200||$code>=400) return '';
+  return substr((string)$r,0,600000);
+}
+
+/* Pull email addresses out of one HTML page into a score map (mailto: links weigh most,
+ * plain text least; simple " at "/" dot " de-obfuscation). Mutates $scores. */
+function vestra_harvest_emails(string $html, array &$scores): void {
+  if(preg_match_all('#mailto:([^"\'>?\s]+)#i',$html,$m)) foreach($m[1] as $e){
+    $e=strtolower(rawurldecode($e)); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+6; }
+  $flat=str_ireplace([' at ','(at)','[at]',' [at] ','&#64;'],'@',$html);
+  $flat=str_ireplace([' dot ','(dot)','[dot]'],'.',$flat);
+  if(preg_match_all('#[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,24}#i',$flat,$m2)) foreach($m2[0] as $e){
+    $e=strtolower($e); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+1; }
+}
+
+/* Rank harvested candidates: own-domain + generic mailbox wins; role/junk addresses lose. */
+function vestra_best_email(array $scores, string $domain): string {
+  if(!$scores) return '';
+  $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg|domain\.com$|email\.com$|test@|@test\.)#i';
+  $generic=['info','contact','kontakt','sales','hello','office','mail','enquiries','enquiry','shop','service','support','hallo','bonjour','contatti','ventas','team','commercial','wholesale'];
+  $best=''; $bestScore=-999;
+  foreach($scores as $e=>$sig){
+    if(preg_match($junk,$e)) continue;
+    [$lp,$dp]=array_pad(explode('@',$e,2),2,'');
+    $s=$sig;
+    if($dp===$domain || str_ends_with($dp,'.'.$domain)) $s+=12;                       // on the company's own domain
+    elseif(preg_match('#(gmail|yahoo|hotmail|outlook|gmx|web\.de|icloud|aol|orange\.fr|libero\.it)\.#',$dp)) $s+=2; // still a real mailbox
+    if(in_array($lp,$generic,true)) $s+=7;
+    if(in_array($lp,['noreply','no-reply','postmaster','webmaster','abuse','privacy','gdpr','dpo','hostmaster','sentry'],true)) $s-=12;
+    if($s>$bestScore){ $bestScore=$s; $best=$e; }
+  }
+  return $best;
+}
+
+/* Free, key-less email finder: fetch the company's OWN contact / imprint pages and pull a
+ * published business address. EU/UK shops must list a reachable email in their Impressum /
+ * mentions-légales / contact page, so hit-rate is high across the target market. Returns the
+ * best generic contact mailbox, or '' if none found / unreachable. No API, no key, no guessing. */
+function vestra_scrape_email(string $website): string {
+  $domain=vestra_domain_of($website); if($domain==='') return '';
+  $base=''; $home='';
+  foreach(['https://'.$domain,'https://www.'.$domain,'http://'.$domain] as $b){
+    $h=vestra_http_get($b.'/',8); if($h!==''){ $base=$b; $home=$h; break; }
+  }
+  if($base==='') return '';
+  $scores=[]; vestra_harvest_emails($home,$scores);
+  $paths=['/contact','/contact-us','/kontakt','/impressum','/imprint','/about','/about-us',
+          '/legal','/mentions-legales','/pages/contact','/en/contact','/contatti','/contacto'];
+  $req=0;
+  foreach($paths as $p){
+    if($req>=7) break;                 // hard cap on requests per site
+    if($req>=3 && $scores) break;      // homepage + a few pages is enough once we have hits
+    $html=vestra_http_get($base.$p,9); $req++;
+    if($html!=='') vestra_harvest_emails($html,$scores);
+  }
+  return vestra_best_email($scores,$domain);
+}
+
+/* Look up a business email for a company website. Cascade:
+ *   1) email-finder API (Hunter.io / Anymailfinder) IF a key is configured — verified addresses;
+ *   2) free fallback — read the site's own contact/imprint pages (no key, works out of the box).
+ * Config (global email_settings or per-seller override): finder_provider, finder_key.
+ * Returns the best real, published/verified email, or '' if none found. Never an LLM guess. */
+function vestra_find_email(string $website, string $keyOverride='', string $providerOverride=''): string {
+  $domain=vestra_domain_of($website);
+  if($domain==='') return '';
+  $key=$keyOverride!==''?$keyOverride:(string)vestra_cfg('finder_key','');
+  $provider=strtolower($providerOverride!==''?$providerOverride:(string)vestra_cfg('finder_provider','hunter'));
+  // 1) API finder — only when a key exists.
+  if($key!==''){
+    $api='';
+    if($provider==='anymailfinder'){
+      $ch=curl_init('https://api.anymailfinder.com/v5.0/search/company.json');
+      curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>25,
+        CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json'],
+        CURLOPT_POSTFIELDS=>json_encode(['domain'=>$domain])]);
+      $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+      if($code>=200&&$code<300){ $d=json_decode((string)$r,true); $e=$d['email']??($d['results'][0]['email']??'');
+        if(is_string($e)&&filter_var($e,FILTER_VALIDATE_EMAIL)) $api=strtolower($e); }
+      elseif($code) error_log("[VESTRA finder] anymailfinder HTTP {$code}");
+    } else {
+      // Hunter.io domain-search (default)
+      $ch=curl_init('https://api.hunter.io/v2/domain-search?domain='.urlencode($domain).'&api_key='.urlencode($key));
+      curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>25]);
+      $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+      if($code>=200&&$code<300){
+        $d=json_decode((string)$r,true); $emails=$d['data']['emails']??[];
+        // rank: prefer generic (info@/sales@) then higher confidence
+        usort($emails,fn($a,$b)=>((($b['type']??'')==='generic'?100:0)+($b['confidence']??0))<=>((($a['type']??'')==='generic'?100:0)+($a['confidence']??0)));
+        foreach($emails as $e){ if(!empty($e['value'])&&filter_var($e['value'],FILTER_VALIDATE_EMAIL)){ $api=strtolower($e['value']); break; } }
+      } elseif($code){ error_log("[VESTRA finder] hunter HTTP {$code}"); }
+    }
+    if($api!=='') return $api;
+  }
+  // 2) Free fallback — read the company's own site. Works with NO key.
+  return vestra_scrape_email($domain);
+}
+
+/* Discover real small/medium clothing & textile retailers from OpenStreetMap (free, no key).
+ * OSM is full of independent boutiques — exactly the target (multi-brand stores, not big chains)
+ * — and many list website / email / phone directly. Returns rows shaped for vestra_leads_add():
+ * ['company','website','email','phone','country','city','address','category','source']. */
+function vestra_overpass(string $ql): string {
+  foreach(['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'] as $ep){
+    $ch=curl_init($ep);
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>45,CURLOPT_CONNECTTIMEOUT=>10,
+      CURLOPT_USERAGENT=>'VestraBot/1.0 (+https://vestrasales.com)',
+      CURLOPT_POSTFIELDS=>'data='.urlencode($ql)]);
+    $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    if($code>=200&&$code<300 && is_string($r) && $r!=='') return $r;
+    if($code) error_log("[VESTRA osm] {$ep} HTTP {$code}");
+  }
   return '';
+}
+function vestra_discover_osm(string $city, string $country='', int $limit=60): array {
+  $city=trim($city); if($city==='') return [];
+  $cityEsc=preg_replace('#[\\\\"\r\n]#','',$city);                 // guard the Overpass QL string
+  $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$';
+  $f='["shop"~"'.$shopRe.'"]';
+  $ql="[out:json][timeout:35];".
+      'area["name"~"^'.$cityEsc.'$",i]["boundary"="administrative"]->.a;'.
+      "(node{$f}(area.a);way{$f}(area.a););out tags center ".max(1,min(400,$limit*4)).";";
+  $body=vestra_overpass($ql);
+  if($body==='') return [];
+  $d=json_decode($body,true); $els=$d['elements']??[]; if(!$els) return [];
+  $out=[]; $seen=[];
+  foreach($els as $el){
+    $t=$el['tags']??[]; $name=trim((string)($t['name']??'')); if($name==='') continue;
+    $k=strtolower($name); if(isset($seen[$k])) continue; $seen[$k]=true;
+    $web=(string)($t['website']??($t['contact:website']??($t['url']??'')));
+    $email=(string)($t['email']??($t['contact:email']??''));
+    $phone=(string)($t['phone']??($t['contact:phone']??''));
+    $street=trim(((string)($t['addr:street']??'')).' '.((string)($t['addr:housenumber']??'')));
+    $pc=trim(((string)($t['addr:postcode']??'')).' '.((string)($t['addr:city']??$city)));
+    $out[]=[
+      'company'=>$name,
+      'website'=>$web,
+      'email'=>(filter_var($email,FILTER_VALIDATE_EMAIL)?strtolower($email):''),
+      'phone'=>$phone,
+      'country'=>$country,
+      'city'=>trim((string)($t['addr:city']??$city)),
+      'address'=>trim($street.($pc!==''?', '.$pc:'')),
+      'category'=>'Retailer ('.((string)($t['shop']??'clothes')).')',
+      'source'=>'OpenStreetMap',
+    ];
+    if(count($out)>=$limit) break;
+  }
+  return $out;
 }
 
 /* AI outreach personalisation (DeepSeek by default, OpenAI-compatible). The key comes

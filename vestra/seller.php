@@ -365,7 +365,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email','seller_discover','seller_find_all'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
@@ -408,6 +408,22 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $added=0;$skipped=0;
     if(!empty($_FILES['csv']['tmp_name']) && is_uploaded_file($_FILES['csv']['tmp_name'])) [$added,$skipped]=vestra_lead_import_csv($_FILES['csv']['tmp_name'],$suid);
     header('Location: /seller?tab=find&msg=lead_import&added='.$added); exit;
+  }
+  if($sact==='seller_discover'){
+    @set_time_limit(0);
+    $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
+    $rows=$city!==''?vestra_discover_osm($city,$country,60):[];
+    [$added]=$rows?vestra_leads_add($rows,$suid):[0,0];
+    header('Location: /seller?tab=find&msg=discover&n='.$added.'&found='.count($rows)); exit;
+  }
+  if($sact==='seller_find_all'){
+    @set_time_limit(0); $sc=vestra_seller_mail($suid); $leads=vestra_leads(); $n=0;
+    foreach($leads as &$l){ if((string)($l['owner_uid']??'')!==$suid) continue;
+      if(($l['email']??'')!=='' || ($l['website']??'')==='') continue;
+      $e=vestra_find_email((string)$l['website'],(string)($sc['finder_key']??''),(string)($sc['finder_provider']??'hunter'));
+      if($e!==''){ $l['email']=$e; $n++; } }
+    unset($l); vestra_save_leads($leads);
+    header('Location: /seller?tab=find&msg=found_bulk&n='.$n); exit;
   }
   if($sact==='seller_send_one'){
     header('Content-Type: application/json');
@@ -1038,8 +1054,12 @@ if($tab==='overview'){
   $myMail=vestra_seller_mail($uid); $mailReady=vestra_seller_can_send($myMail);
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
-  $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Verified email found and added.','found_none'=>'No email found for that website — add it manually.'];
-  $sFinderOn=($myMail['finder_key']??'')!=='' || vestra_cfg('finder_key','')!=='';
+  $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Real email found and added.','found_none'=>'No email found on that website — add it manually.'];
+  if($fmsg==='discover'){ $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0);
+    $fmsgs['discover']=$df===0?'No shops found in that city — try the local spelling (e.g. “Milano”, “Köln”) or a bigger nearby city.'
+      :('✓ '.$df.' retailer(s) found, '.$dn.' new added'.($dn===0?' (all were already on your list)':'').'. Now run “🔍 Find all missing emails”.'); }
+  if($fmsg==='found_bulk') $fmsgs['found_bulk']='✓ Email lookup finished — '.(int)($_GET['n']??0).' email(s) added from the shops’ own websites.';
+  $sFinderOn=true;   // finding always works — free site-reading fallback (own/platform key optional)
   $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
   $inp='width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg,#fff);color:var(--ink);font-size:13px;box-sizing:border-box';
   $lbl='display:block;font-size:11.5px;color:var(--mut);margin:0 0 4px';
@@ -1076,6 +1096,26 @@ if($tab==='overview'){
       <input type="hidden" name="_action" value="seller_send_test">
       <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>">Send a test to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($me['email']??'') ?>" style="<?= $inp ?>"></div>
       <button class="btn btn-o btn-sm" type="submit">✉ Send test</button>
+    </form>
+  </div>
+
+  <div style="<?= $card ?>;border-color:#b9e3c9">
+    <h3 style="margin:0 0 6px;font-size:15px">🧭 Auto-discover customers <span style="color:#1f9d63;font-size:12px">● Free — no key needed</span></h3>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Pull <b>real small &amp; medium clothing shops</b> (independent &amp; multi-brand boutiques — not big chains) from OpenStreetMap straight into your list. Then click <b>🔍 Find all missing emails</b> to fill their addresses from their own websites.</p>
+    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching… (up to ~30s)';">
+      <input type="hidden" name="_action" value="seller_discover">
+      <div style="flex:1;min-width:190px"><label style="<?= $lbl ?>">City</label><input name="disc_city" required placeholder="Paris, Milano, London, Köln…" style="<?= $inp ?>"></div>
+      <div style="min-width:150px"><label style="<?= $lbl ?>">Country (label)</label>
+        <select name="disc_country" style="<?= $inp ?>"><option value="">(none)</option>
+          <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
+          <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option></select>
+      </div>
+      <button class="btn btn-p btn-sm" type="submit">🧭 Discover &amp; add</button>
+    </form>
+    <form method="post" style="margin-top:10px" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Looking up emails…';">
+      <input type="hidden" name="_action" value="seller_find_all">
+      <button class="btn btn-o btn-sm" type="submit">🔍 Find all missing emails</button>
+      <span style="font-size:11px;color:var(--mut);margin-left:6px">Reads each shop's contact/imprint page. Long lists can take a while.</span>
     </form>
   </div>
 

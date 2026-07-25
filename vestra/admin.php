@@ -610,6 +610,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     unset($l); vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=finder_bulk&n='.$n); exit;
   }
+  /* Auto-discover real small/medium clothing & textile retailers (OpenStreetMap, free, no key)
+     for a city, and add them straight into the customer list. */
+  if($act==='discover_leads'){
+    @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
+    $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
+    $rows=$city!==''?vestra_discover_osm($city,$country,80):[];
+    [$added,$skipped]=$rows?vestra_leads_add($rows):[0,0];
+    header('Location: /admin?tab=prospects&msg=discover&n='.$added.'&found='.count($rows)); exit;
+  }
   if($act==='save_lead_template'){
     vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??'')]);
     header('Location: /admin?tab=prospects&msg=lead_tpl_ok'); exit;
@@ -1079,7 +1088,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'quote_failed'=>'Offer could not be sent — set up your Sending email below (SMTP) first.','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
     'email_saved'=>'✓ Sending email saved. Send yourself a test to confirm it works.','test_ok'=>'✓ Test email sent — check that inbox.','test_fail'=>'Test failed — check the SMTP host/username/password (or use an API key).','test_invalid'=>'Enter a valid email address to send the test to.',
     'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
-    'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.','finder_bulk'=>'✓ Email-finder run — missing emails filled where found.',
+    'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.',
     'ai_saved'=>'✓ AI personalisation key saved.',
   ];
 
@@ -1179,6 +1188,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
+<?php elseif($msg==='finder_bulk'): ?>
+<div class="amsg ok">✓ Email-finder run — <?= (int)($_GET['n']??0) ?> missing email(s) filled from the companies' own websites.</div>
+<?php elseif($msg==='discover'): $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0); ?>
+<div class="amsg <?= $df>0?'ok':'' ?>"<?= $df>0?'':' style="background:rgba(201,168,106,.12);border:1px solid rgba(201,168,106,.4)"' ?>><?php if($df===0): ?>No retailers found in that city — try another spelling (use the local name, e.g. “Köln”, “Milano”), or a bigger nearby city.<?php else: ?>✓ Discovery: <?= $df ?> retailer(s) found, <b><?= $dn ?> new</b> added to your customers<?= ($dn===0)?' (all were already on your list)':'' ?>. Now run “🔍 Find all missing emails” to fill their addresses.<?php endif; ?></div>
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
@@ -2384,14 +2397,15 @@ elseif($tab==='prospects'):
   $emReady = $mailTarget!=='' ? vestra_seller_can_send($emCfg)
            : (!empty($emCfg['mail_enabled']) && ((($emCfg['smtp_host']??'')!=='' && ($emCfg['smtp_pass']??'')!=='') || ($emCfg['mail_api_key']??'')!==''));
   $mailTargetName = $mailTarget!=='' ? (($a0=array_values(array_filter($sellerAccts,fn($a)=>($a['id']??'')===$mailTarget))[0]??null) ? ($a0['company']??$a0['name']??'Seller') : 'Seller') : 'Platform (VESTRA)';
-  $finderOn = vestra_cfg('finder_key','')!=='';
+  $finderApi = vestra_cfg('finder_key','')!=='';   // optional Hunter/Anymailfinder key
+  $finderOn  = true;                               // finding always works — free site-reading fallback
   $aiOn = vestra_ai_key()!=='';
 ?>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
   <?php
     $csteps=[
-      ['1','Find buyers','🔎','Customer Scout',true],
-      ['2','Get real emails','🔍',$finderOn?'Finder connected':'Add finder key',$finderOn],
+      ['1','Find buyers','🧭','Auto-discover + Scout',true],
+      ['2','Get real emails','🔍',$finderApi?'API + reads sites':'Reads sites — no key',true],
       ['3','Your sender','📤',$emReady?'Sending ready':'Set up SMTP',$emReady],
       ['4','AI (optional)','✨',$aiOn?'AI connected':'Optional',$aiOn],
       ['5','Send one-by-one','▶','Live, personalised',false],
@@ -2405,10 +2419,11 @@ elseif($tab==='prospects'):
   ?>
 </div>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
-  Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
-  <b>you</b> do (trade shows, LinkedIn, directories) or a CSV you compiled/imported — VESTRA never crawls the web to
-  harvest contacts. Every outreach email carries a working one-click unsubscribe link; anyone who uses it is
-  permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
+  Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. Build it by
+  <b>Auto-discover</b> (real shops from OpenStreetMap), your own research (Scout links, trade shows, directories),
+  or a CSV you import. Emails come only from a company's <b>own public contact/imprint page</b> or a finder API —
+  real addresses, never mass-scraped private data. Every outreach email carries a working one-click unsubscribe link;
+  anyone who uses it is permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
 
 <div class="acard" style="margin-bottom:20px;border-color:rgba(51,102,204,.35)">
@@ -2447,23 +2462,41 @@ function csUpdate(){
 document.addEventListener('DOMContentLoaded',csUpdate);
 </script>
 
-<div class="acard" style="margin-bottom:20px">
-  <div class="acard-hd"><h3>🔍 Auto email-finder (API)
-    <?= $finderOn?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Connected</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Add key</span>' ?></h3></div>
+<div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
+  <div class="acard-hd"><h3>🧭 Auto-discover retailers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:10px">Paste your <b>Hunter.io</b> or <b>Anymailfinder</b> API key (both have free tiers). Then every customer with a website gets a <b>🔍 Find</b> button — or <b>Find all missing</b> below — pulling a real, verified email from the company domain (not a guess). Key stored web-blocked, never in git.</p>
+  <p class="ahint" style="margin-bottom:12px">Pull <b>real small &amp; medium clothing / textile shops</b> straight from OpenStreetMap into your customer list — independent boutiques &amp; multi-brand stores, <b>not</b> big chains. Pick a city; many arrive with a website, phone and sometimes an email already. Then hit <b>🔍 Find all missing emails</b> to fill the rest from the shops' own sites. Free, no API key.</p>
+  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching OpenStreetMap… (up to ~30s)';">
+    <?= csrfField() ?><input type="hidden" name="_action" value="discover_leads">
+    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City</label><input name="disc_city" placeholder="e.g. Paris, Milano, London, Köln, Sydney" required></div>
+    <div class="afield" style="margin:0"><label>Country (label)</label>
+      <select name="disc_country">
+        <option value="">(none)</option>
+        <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
+        <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
+      </select>
+    </div>
+    <button class="abtn primary" type="submit">🧭 Discover &amp; add</button>
+  </form>
+  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Adds up to 80 shops per run; duplicates are skipped.</p>
+  </div>
+</div>
+
+<div class="acard" style="margin-bottom:20px">
+  <div class="acard-hd"><h3>🔍 Auto email-finder
+    <?= $finderApi?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● API + reads sites</span>':'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Reads sites — free</span>' ?></h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:10px">Every customer with a website gets a <b>🔍 Find</b> button — or <b>Find all missing</b> below. It reads the company's own <b>contact / imprint</b> pages and pulls the real published email — <b>no key needed</b>. Optionally add a <b>Hunter.io</b> / <b>Anymailfinder</b> key (free tiers) for extra volume &amp; deliverability-verified addresses; it's tried first, then the free site-reader as fallback. Keys stored web-blocked, never in git.</p>
   <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">
     <?= csrfField() ?><input type="hidden" name="_action" value="save_finder">
-    <div class="afield" style="margin:0"><label>Provider</label><select name="finder_provider"><option value="hunter" <?= (vestra_cfg('finder_provider','hunter')==='hunter')?'selected':'' ?>>Hunter.io</option><option value="anymailfinder" <?= (vestra_cfg('finder_provider','')==='anymailfinder')?'selected':'' ?>>Anymailfinder</option></select></div>
-    <div class="afield" style="margin:0;flex:1;min-width:240px"><label>API key <?= $finderOn?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="finder_key" placeholder="key…" autocomplete="new-password"></div>
+    <div class="afield" style="margin:0"><label>Provider (optional)</label><select name="finder_provider"><option value="hunter" <?= (vestra_cfg('finder_provider','hunter')==='hunter')?'selected':'' ?>>Hunter.io</option><option value="anymailfinder" <?= (vestra_cfg('finder_provider','')==='anymailfinder')?'selected':'' ?>>Anymailfinder</option></select></div>
+    <div class="afield" style="margin:0;flex:1;min-width:240px"><label>API key <?= $finderApi?'<span class="ahint">· saved, blank = keep</span>':'<span class="ahint">· optional</span>' ?></label><input type="password" name="finder_key" placeholder="key… (optional)" autocomplete="new-password"></div>
     <button class="abtn primary" type="submit">Save key</button>
   </form>
-  <?php if($finderOn): ?>
-  <form method="post" style="margin:0" onsubmit="return confirm('Look up a verified email for every customer that has a website but no email yet? Uses your finder credits.')">
+  <form method="post" style="margin:0" onsubmit="return confirm('Look up an email for every customer that has a website but no email yet? Reads each site — this can take a while for long lists.')">
     <?= csrfField() ?><input type="hidden" name="_action" value="find_all_emails">
     <button class="abtn" type="submit">🔍 Find all missing emails</button>
   </form>
-  <?php endif; ?>
   </div>
 </div>
 
