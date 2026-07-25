@@ -88,6 +88,8 @@ function vestra_demo_products(){
       'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
       'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
       'origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
+      'images'=>['/uploads/amiri/amiri-core-polo-1.png','/uploads/amiri/amiri-core-polo-2.png','/uploads/amiri/amiri-core-polo-3.png','/uploads/amiri/amiri-core-polo-4.png'],
+      'linesheet'=>true,'sheet_file'=>'ami-paris-polo.pdf',
       'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours','size_step'=>10,
       'specs'=>[
         'Composition'=>'Premium cotton piqué',

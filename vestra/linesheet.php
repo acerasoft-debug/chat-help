@@ -15,7 +15,7 @@ if (!$p || empty($p['linesheet'])) { http_response_code(404); exit('Not found');
 /* Approved members only — the sheets contain product photography and trade terms,
    both of which are freischaltung-gated (login alone is not enough). */
 $AUTH_USER = auth_user();
-if (!auth_user_approved($AUTH_USER)) {
+if (empty($_SESSION['vadmin']) && !auth_user_approved($AUTH_USER)) {
     header('Location: '.(!$AUTH_USER
         ? '/login?back='.urlencode('/product?id='.$p['id'])
         : ((($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc')));
