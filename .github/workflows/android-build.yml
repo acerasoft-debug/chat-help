@@ -100,6 +100,17 @@ jobs:
             echo "Secrets yok — IMZASIZ .aab uretilecek (jarsigner ile sonradan imzalanir)."
           fi
 
+      - name: Check Play publish secret present
+        id: play
+        run: |
+          if [ -n "${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "has=true" >> "$GITHUB_OUTPUT"
+            echo "PLAY_SERVICE_ACCOUNT_JSON var — AAB otomatik Play (internal) kanalina yuklenecek."
+          else
+            echo "has=false" >> "$GITHUB_OUTPUT"
+            echo "PLAY_SERVICE_ACCOUNT_JSON yok — otomatik Play yuklemesi ATLANIR (AAB yine artifact olarak kalir)."
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -170,3 +181,14 @@ jobs:
           name: ChatHelp-release-aab
           path: ChatHelp-release.aab
           if-no-files-found: error
+
+      - name: Publish AAB to Google Play (internal track)
+        if: steps.play.outputs.has == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.acerasoft.chathelp
+          releaseFiles: ChatHelp-release.aab
+          track: internal
+          status: completed
+          changesNotSentForReview: false
