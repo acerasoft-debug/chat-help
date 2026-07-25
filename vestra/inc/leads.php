@@ -127,7 +127,11 @@ function vestra_quote_render_email(string $company, string $contact, array $line
  *  for a send until an email is added. Dedupes by email when present, otherwise by
  *  company name, against existing leads and within the file. Returns [added, skipped].
  *  Caps at 500 rows so a mistaken huge upload can't silently create thousands. */
-function vestra_lead_import_csv(string $tmpPath): array {
+/* Leads owned by one seller (owner_uid). Admin/global leads have owner_uid ''. */
+function vestra_leads_by_owner(string $uid): array {
+  return array_values(array_filter(vestra_leads(), fn($l)=>(string)($l['owner_uid']??'')===$uid));
+}
+function vestra_lead_import_csv(string $tmpPath, string $owner=''): array {
     $fh = @fopen($tmpPath, 'r');
     if (!$fh) return [0, 0];
     $header = fgetcsv($fh, null, ',', '"', '\\');
@@ -160,6 +164,7 @@ function vestra_lead_import_csv(string $tmpPath): array {
         $leads[] = [
             'id'                => 'LD' . strtoupper(bin2hex(random_bytes(4))),
             'added_at'          => date('c'),
+            'owner_uid'         => $owner,
             'company'           => $company,
             'contact_name'      => trim($r['contact_name'] ?? $r['contact'] ?? ''),
             'email'             => $emailValid ? $email : '',

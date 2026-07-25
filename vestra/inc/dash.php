@@ -30,6 +30,7 @@ function dash_open($role,$section,$title,$subtitle=''){
       ['orders',t('Orders'),'/seller?tab=orders'],
       ['offers',t('Offers received'),'/seller?tab=offers'],
       ['messages',t('Messages'),'/seller?tab=messages'],
+      ['find','🎯 '.t('Find customers'),'/seller?tab=find'],
       ['kyc',t('Verification'),'/seller?tab=kyc'],
       ['profile',t('My profile'),'/seller?tab=profile'],
     ] : [

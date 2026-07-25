@@ -364,6 +364,60 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=messages&thread='.urlencode($tid)); exit;
 }
 
+/* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one'],true)) {
+  require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
+  $suid=$_SESSION['uid']??''; $sme=auth_user();
+  if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
+  $sact=$_POST['_action']; $sName=$sme['company']?:($sme['name']?:'Seller');
+  if($sact==='seller_save_smtp'){
+    $cur=vestra_seller_mail($suid); $from=trim($_POST['from_email']??''); $pass=(string)($_POST['smtp_pass']??'');
+    vestra_seller_mail_save($suid,['mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
+      'smtp_name'=>trim($_POST['from_name']??'')?:$sName,'smtp_host'=>trim($_POST['smtp_host']??''),
+      'smtp_port'=>(int)($_POST['smtp_port']??587)?:587,'smtp_user'=>trim($_POST['smtp_user']??'')?:$from,
+      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo','mail_api_key'=>(string)($cur['mail_api_key']??'')]);
+    header('Location: /seller?tab=find&msg=smtp_saved'); exit;
+  }
+  if($sact==='seller_send_test'){
+    $to=trim($_POST['test_to']??''); $sc=vestra_seller_mail($suid);
+    $ok=filter_var($to,FILTER_VALIDATE_EMAIL) && vestra_send_mail($to,'VESTRA — test email',"Test from your VESTRA sending setup. If you received this, it works. \xE2\x9C\x93\n\n— ".$sName,'',(string)($sc['smtp_name']??''),$sc);
+    header('Location: /seller?tab=find&msg='.($ok?'test_ok':'test_fail')); exit;
+  }
+  if($sact==='seller_add_lead'){
+    $company=trim($_POST['company']??''); $email=strtolower(trim($_POST['email']??''));
+    if($company!==''){ $leads=vestra_leads();
+      $leads[]=['id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>$suid,
+        'company'=>$company,'contact_name'=>trim($_POST['contact_name']??''),'email'=>(filter_var($email,FILTER_VALIDATE_EMAIL)?$email:''),
+        'country'=>trim($_POST['country']??''),'website'=>trim($_POST['website']??''),'source'=>'Seller','category'=>trim($_POST['category']??''),
+        'notes'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>bin2hex(random_bytes(16))];
+      vestra_save_leads($leads); }
+    header('Location: /seller?tab=find&msg=lead_added'); exit;
+  }
+  if($sact==='seller_import_leads'){
+    $added=0;$skipped=0;
+    if(!empty($_FILES['csv']['tmp_name']) && is_uploaded_file($_FILES['csv']['tmp_name'])) [$added,$skipped]=vestra_lead_import_csv($_FILES['csv']['tmp_name'],$suid);
+    header('Location: /seller?tab=find&msg=lead_import&added='.$added); exit;
+  }
+  if($sact==='seller_send_one'){
+    header('Content-Type: application/json');
+    $sc=vestra_seller_mail($suid);
+    if(!vestra_seller_can_send($sc)){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
+    $lid=$_POST['lead_id']??''; $tpl=vestra_lead_template(); $leads=vestra_leads(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    foreach($leads as &$l){
+      if(($l['id']??'')!==$lid || (string)($l['owner_uid']??'')!==$suid) continue;
+      $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
+      if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
+      if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
+      $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName):null;
+      [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
+      if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
+      else { $res['error']='send'; }
+      break;
+    }
+    unset($l); vestra_save_leads($leads); echo json_encode($res); exit;
+  }
+}
+
 require __DIR__.'/inc/dash.php';
 $PAGE=t('Seller panel'); $NAV='sell'; require __DIR__.'/inc/head.php';
 
@@ -401,6 +455,7 @@ $tabTitle = match($tab) {
     'orders'   => t('Orders'),
     'offers'   => t('Offers received'),
     'messages' => t('Messages'),
+    'find'     => t('Find customers'),
     'kyc'      => t('Verification'),
     'profile'  => t('My profile'),
     default    => t('Overview'),
@@ -966,6 +1021,115 @@ if($tab==='overview'){
   }
 
 // ── VERIFICATION / KYB ────────────────────────────────────────────────────────
+} elseif($tab==='find'){
+  require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
+  $me=$AUTH_USER ?? auth_user();
+  $myMail=vestra_seller_mail($uid); $mailReady=vestra_seller_can_send($myMail);
+  $myLeads=array_reverse(vestra_leads_by_owner($uid));
+  $fmsg=$_GET['msg']??'';
+  $fmsgs=['smtp_saved'=>'✓ Your sending email is saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.'];
+  $inp='width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg,#fff);color:var(--ink);font-size:13px;box-sizing:border-box';
+  $lbl='display:block;font-size:11.5px;color:var(--mut);margin:0 0 4px';
+  $card='border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;background:var(--card,#fff)';
+?>
+<div style="max-width:920px">
+  <?php if(isset($fmsgs[$fmsg])): ?><div style="background:#eaf7ef;border:1px solid #b9e3c9;color:#1f7a4d;padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13.5px"><?= htmlspecialchars($fmsgs[$fmsg]) ?></div><?php endif; ?>
+  <p style="color:var(--mut);font-size:13.5px;margin:0 0 18px">Find your own customers and email them a wholesale offer <b>from your own address</b>. Add or import a list, then send one by one. Every email carries a one-click unsubscribe.</p>
+
+  <div style="<?= $card ?>;border-color:<?= $mailReady?'#b9e3c9':'var(--line)' ?>">
+    <h3 style="margin:0 0 4px;font-size:15px">📤 Your sending email <?= $mailReady?'<span style="color:#1f9d63;font-size:12px">● Ready</span>':'<span style="color:#a9781a;font-size:12px">● Not set up</span>' ?></h3>
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Enter your email + its SMTP login (from your email provider). <b>Gmail:</b> use an App Password. Stored securely — never shared.</p>
+    <form method="post">
+      <input type="hidden" name="_action" value="seller_save_smtp">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><label style="<?= $lbl ?>">From email *</label><input type="email" name="from_email" required value="<?= htmlspecialchars($myMail['mail_from']??($me['email']??'')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">From name</label><input name="from_name" value="<?= htmlspecialchars($myMail['smtp_name']??($me['company']??'')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP host</label><input name="smtp_host" value="<?= htmlspecialchars($myMail['smtp_host']??'') ?>" placeholder="smtp.gmail.com" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP port</label><input name="smtp_port" value="<?= htmlspecialchars((string)($myMail['smtp_port']??'587')) ?>" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
+        <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
+      </div>
+      <button class="btn btn-p btn-sm" type="submit">Save sending email</button>
+    </form>
+    <form method="post" style="margin-top:10px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <input type="hidden" name="_action" value="seller_send_test">
+      <div style="flex:1;min-width:220px"><label style="<?= $lbl ?>">Send a test to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($me['email']??'') ?>" style="<?= $inp ?>"></div>
+      <button class="btn btn-o btn-sm" type="submit">✉ Send test</button>
+    </form>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div style="<?= $card ?>;margin:0">
+      <h3 style="margin:0 0 10px;font-size:15px">＋ Add a customer</h3>
+      <form method="post">
+        <input type="hidden" name="_action" value="seller_add_lead">
+        <div style="display:grid;gap:8px;margin-bottom:10px">
+          <input name="company" required placeholder="Company *" style="<?= $inp ?>">
+          <input type="email" name="email" placeholder="Email (optional)" style="<?= $inp ?>">
+          <input name="country" placeholder="Country" style="<?= $inp ?>">
+          <input name="website" placeholder="Website" style="<?= $inp ?>">
+        </div>
+        <button class="btn btn-p btn-sm" type="submit">＋ Add</button>
+      </form>
+    </div>
+    <div style="<?= $card ?>;margin:0">
+      <h3 style="margin:0 0 10px;font-size:15px">⬆ Import CSV</h3>
+      <p style="color:var(--mut);font-size:12px;margin:0 0 10px">Columns: <code>company</code> required; <code>email,contact_name,country,website</code> optional. Email-less rows still import.</p>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="_action" value="seller_import_leads">
+        <input type="file" name="csv" accept=".csv,text/csv" required style="<?= $inp ?>;margin-bottom:10px">
+        <button class="btn btn-p btn-sm" type="submit">⬆ Import</button>
+      </form>
+    </div>
+  </div>
+
+  <div style="<?= $card ?>">
+    <h3 style="margin:0 0 10px;font-size:15px">My customers (<?= count($myLeads) ?>)</h3>
+    <?php if(!$myLeads): ?><p style="color:var(--mut);font-size:13px;margin:0">No customers yet — add one or import a CSV above.</p>
+    <?php else: ?>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn btn-p btn-sm" type="button" onclick="sellerSend(this)" <?= $mailReady?'':'disabled title="Set up your sending email first"' ?>>▶ Send one-by-one (live)</button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)"><input type="checkbox" id="sAll" onclick="document.querySelectorAll('.slc').forEach(c=>{if(!c.disabled)c.checked=this.checked})"> select all</label>
+      <span style="font-size:11.5px;color:var(--mut)">Email-less/unsubscribed can't be selected.</span>
+    </div>
+    <div id="sSob" style="display:none;background:var(--bg2,#f7f7fb);border-radius:10px;padding:10px 12px;margin-bottom:10px"><div id="sSobBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div><div id="sSobLog" style="max-height:200px;overflow:auto"></div></div>
+    <div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px">Company</th><th style="padding:6px">Email</th><th style="padding:6px">Country</th><th style="padding:6px">Status</th></tr>
+      <?php foreach($myLeads as $l): $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $unsub=($l['status']??'')==='unsubscribed'; ?>
+      <tr style="border-top:1px solid var(--line);opacity:<?= ($noEmail||$unsub)?.6:1 ?>">
+        <td style="padding:6px"><input class="slc" type="checkbox" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($noEmail||$unsub)?'disabled':'' ?>></td>
+        <td style="padding:6px"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
+        <td style="padding:6px;font-size:11.5px"><?= $noEmail?'<span style="color:#a9781a">— add email</span>':htmlspecialchars($l['email']) ?></td>
+        <td style="padding:6px"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
+        <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(ucfirst($l['status']??'new')) ?></td>
+      </tr>
+      <?php endforeach; ?>
+    </table></div>
+    <?php endif; ?>
+  </div>
+</div>
+<script>
+function sellerSend(btn){
+  var boxes=[].slice.call(document.querySelectorAll('.slc')).filter(function(c){return c.checked && !c.disabled;});
+  if(!boxes.length){ alert('Select at least one customer first.'); return; }
+  var ids=boxes.map(function(c){return c.value;});
+  var wrap=document.getElementById('sSob'),bar=document.getElementById('sSobBar'),log=document.getElementById('sSobLog');
+  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true; var i=0,ok=0,fail=0;
+  function next(){
+    if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh for statuses.'; btn.disabled=false; return; }
+    bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
+    var fd=new FormData(); fd.append('_action','seller_send_one'); fd.append('lead_id',ids[i]);
+    fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+      var ln=document.createElement('div'); ln.style.fontSize='12px'; ln.style.padding='2px 0';
+      if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent='✓ '+(d.company||d.email||''); }
+      else { fail++; ln.style.color='#c0392b'; ln.textContent='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
+      log.appendChild(ln); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
+    }).catch(function(){ fail++; i++; setTimeout(next,250); });
+  }
+  next();
+}
+</script>
+<?php
 } elseif($tab==='kyc'){
   $kybSt    = $AUTH_USER['kyb_status'] ?? 'pending';
   $docReqs  = $AUTH_USER['doc_requests'] ?? [];
