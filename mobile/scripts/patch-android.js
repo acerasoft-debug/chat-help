@@ -22,8 +22,8 @@ const path = require('path');
 
 /* CHELP_VERSION — Play her yuklemede daha yuksek versionCode ister.
    Yeni AAB cikarmadan once bu iki degeri artir. */
-const VERSION_CODE = 3;
-const VERSION_NAME = '1.2';
+const VERSION_CODE = 4;
+const VERSION_NAME = '1.3';
 
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
@@ -237,19 +237,19 @@ function patchVariablesGradle() {
   }
   let src = fs.readFileSync(VARIABLES_GRADLE, 'utf8');
   if (src.includes('CHELP_TARGET_SDK_PATCH')) {
-    console.log('variables.gradle zaten yamalı (targetSdk 35).');
+    console.log('variables.gradle zaten yamalı (targetSdk 36).');
     return;
   }
   const before = src;
-  src = src.replace(/compileSdkVersion\s*=\s*3[0-4]\b/, 'compileSdkVersion = 35');
-  src = src.replace(/targetSdkVersion\s*=\s*3[0-4]\b/, 'targetSdkVersion = 35');
+  src = src.replace(/compileSdkVersion\s*=\s*3[0-5]\b/, 'compileSdkVersion = 36');
+  src = src.replace(/targetSdkVersion\s*=\s*3[0-5]\b/, 'targetSdkVersion = 36');
   if (src === before) {
-    console.log('variables.gradle: compileSdk/targetSdk zaten 35+ görünüyor — dokunulmadı.');
+    console.log('variables.gradle: compileSdk/targetSdk zaten 36+ görünüyor — dokunulmadı.');
     return;
   }
-  src = '/* CHELP_TARGET_SDK_PATCH — Google Play zorunluluğu: yeni uygulama/güncellemeler API 35 (Android 15) hedeflemeli (Ağu 2025+). */\n' + src;
+  src = '/* CHELP_TARGET_SDK_PATCH — Google Play zorunluluğu: 31 Ağu 2026\'dan sonra güncellemeler API 36 (Android 16) hedeflemeli. */\n' + src;
   fs.writeFileSync(VARIABLES_GRADLE, src);
-  console.log('✓ variables.gradle yamalandı (compileSdk/targetSdk 34 -> 35, Google Play zorunluluğu).');
+  console.log('✓ variables.gradle yamalandı (compileSdk/targetSdk -> 36, Google Play zorunluluğu).');
 }
 
 function patchStylesXml() {
@@ -287,9 +287,9 @@ function patchGradleProperties() {
     console.log('gradle.properties zaten yamalı (compileSdk 35 uyarısı susturuldu).');
     return;
   }
-  src += '\n# CHELP_SUPPRESS_SDK_WARN — Capacitor 6 şablonundaki AGP, compileSdk 35 ile resmi test edilmedi uyarısı verir; build sorunsuz.\nandroid.suppressUnsupportedCompileSdk=35\n';
+  src += '\n# CHELP_SUPPRESS_SDK_WARN — Capacitor 6 şablonundaki AGP, compileSdk 36 ile resmi test edilmedi uyarısı verir; build sorunsuz.\nandroid.suppressUnsupportedCompileSdk=36\n';
   fs.writeFileSync(GRADLE_PROPERTIES, src);
-  console.log('✓ gradle.properties yamalandı (suppressUnsupportedCompileSdk=35).');
+  console.log('✓ gradle.properties yamalandı (suppressUnsupportedCompileSdk=36).');
 }
 
 function patchVersion() {
