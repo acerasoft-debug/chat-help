@@ -1,6 +1,9 @@
 <?php
 /* VESTRA UI strings — DE (auto-sorted; English keys → translations) */
 return array (
+  'Stock is being confirmed.' => 'Der Bestand wird gerade bestätigt.',
+  'Invoice within the day' => 'Rechnung noch heute',
+  "Once confirmed, your invoice — with the seller's bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'Sobald der Bestand bestätigt ist, wird Ihnen Ihre Rechnung — mit den Bankdaten des Verkäufers — per E-Mail zugesandt und Ihrem Konto hinzugefügt, in der Regel noch am selben Tag. Die Zahlung erfolgt per Banküberweisung gegen diese Rechnung; die Ware wird nach Zahlungseingang versandt. Alles unter „Meine Bestellungen" verfolgen.',
   '"Verified Seller" badge' => '„Verifizierter Verkäufer"-Abzeichen',
   '%d verified boutiques already committed' => '%d verifizierte Boutiquen bereits zugesagt',
   '%s pc to unlock' => '%s Stk. bis zur Freischaltung',

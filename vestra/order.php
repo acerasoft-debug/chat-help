@@ -159,7 +159,7 @@ $FEE_BUYER_PCT=round($FEE_BUYER*100);
 $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"";
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nYour PDF invoice(s) with the seller's bank details are ready — download them on your confirmation page or under My orders. Payment is by bank transfer against the invoice; goods ship after payment. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
@@ -196,8 +196,10 @@ if(!empty($lines)){
     }
   }
 }
-/* Auto-generate one PDF invoice per seller involved in this order (idempotent — safe to
-   call again later from the buyer/seller panels; already-issued invoices are never rewritten). */
+/* Invoicing is SUSPENDED: no PDF is created at checkout. The operator confirms stock
+   and then issues it from the admin "Invoice approvals" tab (vestra_ensure_invoice is
+   a no-op here unless VESTRA_AUTO_INVOICE is switched back on). Kept so re-enabling is
+   a one-line flip. */
 require_once __DIR__.'/inc/invoice.php';
 $orderMeta = [
   'ref'=>$ref, 'date'=>date('c'),

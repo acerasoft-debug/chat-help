@@ -81,9 +81,8 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
   </div>
   <?php else: ?>
   <div class="banner info" style="margin:22px 0;font-size:13.5px">
-    <b>1.</b> <?= t('Your PDF invoice(s) are ready below.') ?> ·
-    <b>2.</b> <?= t('Pay by bank transfer to the seller account shown on each invoice.') ?> ·
-    <b>3.</b> <?= t('Goods ship as soon as payment arrives — you can track everything under My orders.') ?>
+    ⏳ <b><?= t('Stock is being confirmed.') ?></b>
+    <?= t("Once confirmed, your invoice — with the seller's bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.") ?>
   </div>
   <?php endif; ?>
 
@@ -101,6 +100,8 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
         <span class="status offers"><?= eur($goods) ?></span>
         <?php if ($iv): ?>
           <a class="btn btn-p btn-sm" href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener">📄 <?= t('Download invoice') ?> <?= htmlspecialchars($iv['no']) ?></a>
+        <?php else: ?>
+          <span class="status offers" style="opacity:.9">⏳ <?= t('Invoice within the day') ?></span>
         <?php endif; ?>
       </div>
     </div>

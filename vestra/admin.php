@@ -62,6 +62,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=approvals&msg=rejected'); exit;
   }
+  /* Issue (approve) the invoice(s) for an order once stock is confirmed. Auto-invoicing
+     is suspended, so the PDF is created HERE on operator approval, then emailed to the
+     buyer and added to their account (it appears under My orders / the confirmation page). */
+  if($act==='issue_invoice'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/invoice.php';
+    $issued=vestra_issue_order_invoices($ref);
+    if($issued){
+      $orow=null; foreach(vestra_read_csv('orders.csv') as $r){ if(($r['ref']??'')===$ref){ $orow=$r; break; } }
+      if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
+        require_once __DIR__.'/inc/notify.php';
+        $nos=implode(', ',array_map(fn($i)=>$i['no'],$issued));
+        vestra_send_mail($orow['email'], "VESTRA — invoice for order {$ref}",
+          "Hello ".($orow['name']?:'there').",\n\nGood news — stock for your order {$ref} is confirmed and your invoice ({$nos}) is now ready.\n\nDownload it from your order confirmation page or under My orders, and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\nView: https://vestrasales.com/order-confirm?ref=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com");
+      }
+    }
+    $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
+    header('Location: /admin?tab='.$back.'&msg='.($issued?'invoice_issued':'invoice_none')); exit;
+  }
   /* Admin full listing editor — edit any field, set status, and reassign the
      listing to a different seller. */
   if($act==='admin_save_listing'){
@@ -777,6 +796,16 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $pendingOffers= array_filter($offers,fn($o)=>empty($offerResp[$o['ref']??'']));
   $totalRevenue = array_sum(array_column($orders,'total'));
 
+  // Invoice approvals — bank-transfer orders still awaiting a manually issued invoice.
+  // (Auto-invoicing is suspended: the operator confirms stock, then approves each one.)
+  require_once __DIR__.'/inc/invoice.php';
+  $pendingInvoiceOrders = array_values(array_filter($orders, function($o){
+      $ref = (string)($o['ref'] ?? ''); if($ref==='') return false;
+      if (str_contains((string)($o['notes'] ?? ''), 'Secure escrow')) return false; // card/escrow invoices itself on payment
+      return count(vestra_invoices_for_ref($ref)) === 0;
+  }));
+  $pendingInvoiceCount = count($pendingInvoiceOrders);
+
   // Escrow (Treuhand) at-a-glance — held funds + lifecycle counts for the dashboard.
   require_once __DIR__.'/inc/escrow.php';
   $escrowAll   = escrow_all();
@@ -802,6 +831,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
+    'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
@@ -876,6 +906,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Transactions</div>
   <?= navLink($tab,'orders','📦','Orders ('.count($orders).')') ?>
+  <?= navLink($tab,'invoices','🧾','Invoice approvals',$pendingInvoiceCount,$pendingInvoiceCount>0) ?>
   <?= navLink($tab,'offers','💬','Offers ('.count($offers).')') ?>
   <?= navLink($tab,'requests','📋','Requests ('.count($requests).')') ?>
   <?= navLink($tab,'req_offers','📩','Request Offers ('.count($reqOffers).')') ?>
@@ -1439,7 +1470,17 @@ elseif($tab==='orders'):
     </div>
     <div style="margin-top:12px">
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Invoices</div>
-      <?php $vinvs=vestra_invoices_for_ref($viewRef); if(!$vinvs): ?><span style="color:var(--mut);font-size:12px">— none yet</span>
+      <?php $vinvs=vestra_invoices_for_ref($viewRef); if(!$vinvs): ?>
+        <div style="color:var(--mut);font-size:12px;margin-bottom:8px">— not issued yet · auto-invoicing suspended</div>
+        <?php if(!str_contains((string)($viewRow['notes']??''),'Secure escrow')): ?>
+        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice(s) for this order and email the buyer? Do this once stock is confirmed.')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="issue_invoice">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input type="hidden" name="from" value="view">
+          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue invoice</button>
+        </form>
+        <?php endif; ?>
       <?php else: foreach($vinvs as $iv): ?>
         <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:inline-block;margin-right:12px;font-size:12.5px">📄 <?= htmlspecialchars($iv['no']) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
       <?php endforeach; endif; ?>
@@ -1593,6 +1634,42 @@ if($__dupRefs): ?>
 </table></div></div>
 <?php endif; ?>
 <?php endif; // order dossier vs list ?>
+
+<?php // ===================================================== INVOICE APPROVALS
+elseif($tab==='invoices'): ?>
+
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🧾 Invoice approvals</h3></div>
+  <p class="ahint" style="margin:0">Automatic invoicing is <b>suspended</b>. After you confirm stock for an order, approve it here — the PDF invoice is then issued, emailed to the buyer and added to their account (My orders / confirmation page). Card &amp; escrow orders invoice themselves on payment and are not listed.</p>
+</div>
+
+<?php if(!$pendingInvoiceOrders): ?>
+  <div class="acard"><div style="padding:26px;text-align:center;color:var(--mut)">✓ No orders are awaiting an invoice.</div></div>
+<?php else: ?>
+<div class="acard">
+  <div class="acard-hd"><h3><?= $pendingInvoiceCount ?> awaiting your approval</h3></div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Order','Buyer','Placed','Buyer pays','Approve'],true) ?>
+    <?php foreach($pendingInvoiceOrders as $o): $oref=(string)($o['ref']??''); ?>
+    <tr>
+      <td><a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>"><?= htmlspecialchars($oref) ?></a></td>
+      <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['name']??'') ?> · <?= htmlspecialchars($o['email']??'') ?></div></td>
+      <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
+      <td><b><?= eur($o['total']??0) ?></b></td>
+      <td>
+        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?> and email the buyer? Do this once stock is confirmed.')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="issue_invoice">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+        </form>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+</div>
+<?php endif; ?>
+
 
 
 <?php // ══════════════════════════════════════════════════════ OFFERS

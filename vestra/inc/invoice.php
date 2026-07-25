@@ -219,13 +219,26 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
  * Idempotent — a second call for the same ($order['ref'], $sellerAcc) returns
  * the already-issued invoice untouched rather than re-numbering/re-rendering.
  */
-function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc): array {
+/* Automatic invoicing is SUSPENDED by default: after an order we confirm stock
+   first and issue the invoice by hand (within the day). vestra_ensure_invoice()
+   therefore only creates a PDF when explicitly forced — the operator's "Issue
+   invoice" action, or a completed escrow card payment — or when auto-issuing is
+   switched back on by defining VESTRA_AUTO_INVOICE=true. Already-issued invoices
+   are always returned regardless of the switch. */
+function vestra_auto_invoice_enabled(): bool {
+    return defined('VESTRA_AUTO_INVOICE') ? (bool) VESTRA_AUTO_INVOICE : false;
+}
+function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bool $force = false): array {
     $sellerKey = vestra_invoice_seller_key($sellerAcc);
     $pdfPath  = vestra_invoice_file($order['ref'], $sellerKey);
     $metaPath = vestra_invoice_meta_file($order['ref'], $sellerKey);
     if (is_file($pdfPath) && is_file($metaPath)) {
         $meta = json_decode((string)file_get_contents($metaPath), true) ?: [];
         return ['no' => $meta['no'] ?? '', 'path' => $pdfPath, 'seller_key' => $sellerKey];
+    }
+    /* Suspended: no invoice is created until stock is confirmed and it is issued by hand. */
+    if (!$force && !vestra_auto_invoice_enabled()) {
+        return ['no' => '', 'path' => '', 'seller_key' => $sellerKey, 'pending' => true];
     }
     $no = vestra_next_invoice_no($sellerKey);
     $bytes = vestra_render_invoice_pdf($order, $items, $sellerAcc, $no);
@@ -258,4 +271,39 @@ function vestra_invoices_for_ref(string $ref): array {
     }
     usort($out, fn($a, $b) => strcmp($a['no'], $b['no']));
     return $out;
+}
+
+/**
+ * Manually issue (force) every per-seller invoice for an order ref — used by the
+ * operator's "Issue invoice" action once stock is confirmed. Rebuilds the buyer
+ * and per-seller line data from orders.csv (address recovered from the notes).
+ * Idempotent: already-issued invoices are returned untouched. Returns the list.
+ */
+function vestra_issue_order_invoices(string $ref): array {
+    require_once __DIR__.'/orders.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $row) { if (($row['ref'] ?? '') === $ref) { $orderRow = $row; break; } }
+    if (!$orderRow) return [];
+    $ld = vestra_order_lines($orderRow);
+    $address = '';
+    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
+    $orderMeta = [
+        'ref' => $ref, 'date' => $orderRow['timestamp'] ?? date('c'),
+        'buyer' => [
+            'company' => $orderRow['company'] ?? '', 'vat' => $orderRow['vat'] ?? '',
+            'name' => $orderRow['name'] ?? '', 'email' => $orderRow['email'] ?? '',
+            'country' => $orderRow['country'] ?? '', 'address' => $address,
+        ],
+    ];
+    $bySeller = [];
+    foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    $issued = [];
+    foreach ($bySeller as $sid => $sellerItems) {
+        $sellerAcc = null;
+        if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
+        $iv = vestra_ensure_invoice($orderMeta, $sellerItems, $sellerAcc, true);
+        if (!empty($iv['no'])) $issued[] = $iv;
+    }
+    return $issued;
 }

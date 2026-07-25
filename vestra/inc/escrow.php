@@ -149,7 +149,7 @@ function escrow_fulfill(array $rec): void {
             'paid' => true, 'paid_at' => $rec['paid_at'] ?? date('c'),
             'buyer' => ['company'=>$b['company']??'','vat'=>$b['vat']??'','name'=>$b['name']??'',
                         'email'=>$b['email']??'','country'=>$b['country']??'','address'=>$b['address']??''],
-        ], $items, $seller);
+        ], $items, $seller, true); // force: escrow payment already completed, invoice always issues
     } catch (\Throwable $e) { error_log('[VESTRA Escrow] invoice failed '.$ref.': '.$e->getMessage()); }
 
     $itemsTxt = implode("\n", array_map(
