@@ -2059,9 +2059,9 @@ elseif($tab==='listings'):
 <div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
   <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <div style="font-size:13px;color:var(--mut);max-width:660px">
-      <b style="color:var(--ink)">🅿️ Import to Les Garage Paris (<?= $lgN ?>)</b> — the Lacoste Regular Fit Logo Trim Polo,
-      with photos + a downloadable line-sheet PDF, at volume tiers <b>€35 / €32 / €28</b> (20 / 60 / 120 pc). Listed under
-      the Les Garage Paris seller (created automatically if it doesn't exist yet). Already-imported items are skipped.
+      <b style="color:var(--ink)">🅿️ Import to Les Garage Paris (<?= $lgN ?>)</b> — Lacoste Logo Trim products (polo &amp; t-shirt),
+      each with photos + a downloadable line-sheet PDF. Listed under the Les Garage Paris seller (created automatically
+      if it doesn't exist yet). Already-imported items are skipped — safe to re-run.
     </div>
     <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $lgN ?> product(s) as Les Garage Paris listings? The seller is created if missing. Items already in the catalogue are skipped.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="import_lesgarage_polos">
