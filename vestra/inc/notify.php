@@ -40,6 +40,42 @@ function vestra_seller_can_send(array $cfg): bool {
   return (($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') || ($cfg['mail_api_key']??'')!=='';
 }
 
+/* Look up a business email for a company domain via an email-finder API (operator's
+ * own key). Config (global email_settings): finder_provider ('hunter'|'anymailfinder'),
+ * finder_key. Returns the best generic/contact email, or '' if none / not configured.
+ * Purpose-built finders (not an LLM) return real, verified addresses. */
+function vestra_find_email(string $website): string {
+  $domain=strtolower(trim($website));
+  $domain=preg_replace('#^https?://#','',$domain);
+  $domain=preg_replace('#[/?].*$#','',$domain);
+  $domain=preg_replace('#^www\.#','',$domain);
+  if($domain===''||strpos($domain,'.')===false) return '';
+  $key=(string)vestra_cfg('finder_key',''); if($key==='') return '';
+  $provider=strtolower((string)vestra_cfg('finder_provider','hunter'));
+  if($provider==='anymailfinder'){
+    $ch=curl_init('https://api.anymailfinder.com/v5.0/search/company.json');
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>25,
+      CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Content-Type: application/json'],
+      CURLOPT_POSTFIELDS=>json_encode(['domain'=>$domain])]);
+    $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+    if($code>=200&&$code<300){ $d=json_decode((string)$r,true); $e=$d['email']??($d['results'][0]['email']??'');
+      if(is_string($e)&&filter_var($e,FILTER_VALIDATE_EMAIL)) return strtolower($e); }
+    if($code) error_log("[VESTRA finder] anymailfinder HTTP {$code}");
+    return '';
+  }
+  // Hunter.io domain-search (default)
+  $ch=curl_init('https://api.hunter.io/v2/domain-search?domain='.urlencode($domain).'&api_key='.urlencode($key));
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>25]);
+  $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+  if($code>=200&&$code<300){
+    $d=json_decode((string)$r,true); $emails=$d['data']['emails']??[];
+    // rank: prefer generic (info@/sales@) then higher confidence
+    usort($emails,fn($a,$b)=>((($b['type']??'')==='generic'?100:0)+($b['confidence']??0))<=>((($a['type']??'')==='generic'?100:0)+($a['confidence']??0)));
+    foreach($emails as $e){ if(!empty($e['value'])&&filter_var($e['value'],FILTER_VALIDATE_EMAIL)) return strtolower($e['value']); }
+  } elseif($code){ error_log("[VESTRA finder] hunter HTTP {$code}"); }
+  return '';
+}
+
 /* low-level: send one UTF-8 plain-text email. Transport priority:
  *   1) HTTP API (mail_api_key set) — sends over HTTPS/443, which shared hosts
  *      leave open even when they block outbound SMTP ports (25/465/587). Best
