@@ -45,14 +45,18 @@ function vestra_lead_status_label(string $s): string {
 
 function vestra_lead_default_template(): array {
     return [
-        'subject' => 'Invitation to join VESTRA — verified B2B fashion wholesale',
+        'subject' => 'Wholesale offer for {{company}} — verified designer brands',
         'body' =>
             "Hello {{contact_name}},\n\n".
-            "We came across {{company}} while researching branded and textile wholesale sellers and wanted to reach out directly.\n\n".
-            "VESTRA is a KYC-verified B2B marketplace connecting fashion wholesale sellers with buyer businesses across Europe. Sellers of brands like Lacoste, DSQUARED2, Ralph Lauren and Dolce & Gabbana already list with us. Every seller is background-checked, goods are authenticity-verified on delivery, orders run on clear invoice terms, and listing is free.\n\n".
-            "If you sell branded or textile fashion wholesale, we'd love to have you on the platform:\n".
-            "https://vestrasales.com/register?type=seller\n\n".
-            "Happy to answer any questions — just reply to this email.\n\n".
+            "We're reaching out to {{company}} with a wholesale offer from VESTRA — a KYC-verified B2B marketplace where retailers source authentic designer and streetwear brands directly from background-checked sellers, on clear invoice terms.\n\n".
+            "Available now at wholesale — mixed-size cartons, low minimums:\n".
+            "• Lacoste — polos & logo-trim tees\n".
+            "• DSQUARED2 — Icon & graphic tees, sweatshirts\n".
+            "• Ralph Lauren — Custom Fit tees\n".
+            "• Dolce & Gabbana, Amiri and more\n\n".
+            "Browse the full catalogue and live wholesale prices:\n".
+            "https://vestrasales.com/shop\n\n".
+            "Want a tailored quote for specific brands, sizes or volumes? Just reply and we'll put an offer together the same day.\n\n".
             "Best regards,\nThe VESTRA team",
     ];
 }
@@ -79,9 +83,9 @@ function vestra_lead_render_email(array $lead, array $tpl): array {
     $body    = strtr($tpl['body'] ?? '', $map);
     $unsubUrl = 'https://vestrasales.com/lead-unsubscribe?token=' . urlencode($lead['unsub_token'] ?? '');
     $company  = $lead['company'] ?? 'your company';
-    $body .= "\n\n—\nVESTRA is operated by acerasoft LLC. This is a one-time business invitation to join our ".
+    $body .= "\n\n—\nVESTRA is operated by acerasoft LLC. This is a one-time business message from our ".
              "verified B2B wholesale marketplace — you're receiving it because {$company} was identified as a ".
-             "potential fit by our team.\nDon't want to hear from us again? Unsubscribe instantly: {$unsubUrl}";
+             "potential trade partner by our team.\nDon't want to hear from us again? Unsubscribe instantly: {$unsubUrl}";
     return [$subject, $body];
 }
 
@@ -115,10 +119,13 @@ function vestra_quote_render_email(string $company, string $contact, array $line
     return [$subject, $b];
 }
 
-/** Bulk-import leads from an uploaded CSV (header row required; company + email
- *  columns mandatory, rest optional). Dedupes by email against existing leads
- *  and within the file itself. Returns [added, skipped]. Caps at 500 rows so a
- *  mistaken huge upload can't silently create thousands of records. */
+/** Bulk-import leads from an uploaded CSV (header row required; company mandatory,
+ *  everything else — email included — optional). A row without a valid email still
+ *  imports so a web-research list (company + website, email to be enriched later)
+ *  can be loaded and completed inside the CRM; such leads simply can't be selected
+ *  for a send until an email is added. Dedupes by email when present, otherwise by
+ *  company name, against existing leads and within the file. Returns [added, skipped].
+ *  Caps at 500 rows so a mistaken huge upload can't silently create thousands. */
 function vestra_lead_import_csv(string $tmpPath): array {
     $fh = @fopen($tmpPath, 'r');
     if (!$fh) return [0, 0];
@@ -127,26 +134,34 @@ function vestra_lead_import_csv(string $tmpPath): array {
     $header = array_map(fn($h) => strtolower(trim((string) $h)), $header);
 
     $leads = vestra_leads();
-    $seen  = [];
-    foreach ($leads as $l) { $seen[strtolower($l['email'] ?? '')] = true; }
+    $seenEmail = []; $seenCompany = [];
+    foreach ($leads as $l) {
+        $e = strtolower($l['email'] ?? ''); if ($e !== '') $seenEmail[$e] = true;
+        $seenCompany[strtolower($l['company'] ?? '')] = true;
+    }
 
     $added = 0; $skipped = 0; $max = 500;
     while (($added + $skipped) < $max && ($row = fgetcsv($fh, null, ',', '"', '\\')) !== false) {
         $n = count($header);
         $r = array_combine($header, array_slice(array_pad($row, $n, ''), 0, $n));
-        $email   = strtolower(trim($r['email'] ?? ''));
-        $company = trim($r['company'] ?? '');
-        if ($company === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || isset($seen[$email])) {
+        $email      = strtolower(trim($r['email'] ?? ''));
+        $company    = trim($r['company'] ?? '');
+        $emailValid = $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL);
+        // Company is required; dedupe by email when the row has one, else by company.
+        if ($company === '' ||
+            ($emailValid && isset($seenEmail[$email])) ||
+            (!$emailValid && isset($seenCompany[strtolower($company)]))) {
             $skipped++;
             continue;
         }
-        $seen[$email] = true;
+        if ($emailValid) $seenEmail[$email] = true;
+        $seenCompany[strtolower($company)] = true;
         $leads[] = [
             'id'                => 'LD' . strtoupper(bin2hex(random_bytes(4))),
             'added_at'          => date('c'),
             'company'           => $company,
             'contact_name'      => trim($r['contact_name'] ?? $r['contact'] ?? ''),
-            'email'             => $email,
+            'email'             => $emailValid ? $email : '',
             'country'           => trim($r['country'] ?? ''),
             'website'           => trim($r['website'] ?? ''),
             'source'            => trim($r['source'] ?? '') ?: 'Other',

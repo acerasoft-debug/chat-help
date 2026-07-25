@@ -559,6 +559,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_leads(array_values(array_filter(vestra_leads(),fn($l)=>($l['id']??'')!==$lid)));
     header('Location: /admin?tab=prospects&msg=lead_deleted'); exit;
   }
+  /* Enrich a research lead that was imported without an email (or fix a wrong one). */
+  if($act==='set_lead_email'){
+    $lid=$_POST['lid']??''; $email=strtolower(trim($_POST['email']??''));
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=prospects&msg=lead_invalid'); exit; }
+    $leads=vestra_leads();
+    foreach($leads as $l){ if(strtolower($l['email']??'')===$email && ($l['id']??'')!==$lid){ header('Location: /admin?tab=prospects&msg=lead_dupe'); exit; } }
+    foreach($leads as &$l){ if(($l['id']??'')===$lid){ $l['email']=$email; break; } }
+    unset($l);
+    vestra_save_leads($leads);
+    header('Location: /admin?tab=prospects&msg=lead_email_ok'); exit;
+  }
   if($act==='save_lead_template'){
     vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??'')]);
     header('Location: /admin?tab=prospects&msg=lead_tpl_ok'); exit;
@@ -570,6 +581,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     foreach($leads as &$l){
       if(!in_array($l['id']??'',$ids,true)) continue;
       if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
+      if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)) continue; // research lead without an email yet
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
       if(vestra_send_mail($l['email'],$subject,$body)){
         $sent++;
@@ -925,7 +937,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'csrf_fail'=>'⚠ Security check failed — please retry the action from this page.',
     'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
-    'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.',
+    'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
     'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
     'quote_failed'=>'Offer could not be sent (check SMTP settings in config).','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
   ];
@@ -1012,7 +1024,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Marketing</div>
   <?= navLink($tab,'marketing','🎟️','Promo codes ('.count($promos).')') ?>
-  <?= navLink($tab,'prospects','🎯','Seller prospects ('.count($leads).')') ?>
+  <?= navLink($tab,'prospects','🎯','Customers ('.count($leads).')') ?>
   <?= navLink($tab,'waitlist','📩','Waitlist ('.count($signups).')') ?>
 </nav>
 
@@ -2228,9 +2240,10 @@ elseif($tab==='prospects'):
   $ldUnsub=count(array_filter($leads,fn($l)=>($l['status']??'')==='unsubscribed'));
 ?>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
-  This list only ever grows from research <b>you</b> do (trade shows, LinkedIn, directories, the Seller Scout links
-  under Promo codes) or a CSV you compiled yourself — VESTRA never crawls the web to harvest contacts. Every outreach
-  email carries a working one-click unsubscribe link; anyone who uses it is permanently excluded from future sends.
+  Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
+  <b>you</b> do (trade shows, LinkedIn, directories) or a CSV you compiled/imported — VESTRA never crawls the web to
+  harvest contacts. Every outreach email carries a working one-click unsubscribe link; anyone who uses it is
+  permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
 
 <div class="asgrid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">
@@ -2273,7 +2286,7 @@ elseif($tab==='prospects'):
 <div class="acard">
   <div class="acard-hd"><h3>Import CSV</h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Header row required. Columns: <code>company,email</code> required — <code>contact_name,country,website,source,category,notes</code> optional. Duplicate emails are skipped automatically.</p>
+  <p class="ahint" style="margin-bottom:12px">Header row required. Only <code>company</code> is mandatory — <code>email,contact_name,country,website,source,category,notes</code> are optional. A web-research list with no emails still imports (rows load as "＋ Add email" so you can enrich and then send). Dupes are skipped by email, or by company when there's no email.</p>
   <form method="post" enctype="multipart/form-data" class="aform">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="import_leads_csv">
@@ -2345,12 +2358,20 @@ document.addEventListener('DOMContentLoaded',function(){
   <input type="hidden" name="_action" id="lrf_action">
   <input type="hidden" name="lid" id="lrf_lid">
   <input type="hidden" name="status" id="lrf_status">
+  <input type="hidden" name="email" id="lrf_email">
 </form>
 <script>
 function leadSetStatus(lid,status){
   document.getElementById('lrf_action').value='update_lead_status';
   document.getElementById('lrf_lid').value=lid;
   document.getElementById('lrf_status').value=status;
+  document.getElementById('leadRowForm').submit();
+}
+function leadSetEmail(lid,current){
+  var e=prompt('Email for this prospect:',current||''); if(e===null) return; e=e.trim(); if(!e) return;
+  document.getElementById('lrf_action').value='set_lead_email';
+  document.getElementById('lrf_lid').value=lid;
+  document.getElementById('lrf_email').value=e;
   document.getElementById('leadRowForm').submit();
 }
 function leadDelete(lid){
@@ -2373,16 +2394,16 @@ function leadToggleAll(box){
     <input type="hidden" name="_action" value="send_lead_email">
     <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="abtn primary" type="submit">✉ Send invite to selected</button>
-      <span class="ahint">Max 50 per send · unsubscribed prospects can't be selected</span>
+      <span class="ahint">Max 50 per send · unsubscribed or email-less prospects can't be selected (click ＋ Add email to enrich)</span>
     </div>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
-      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; ?>
-      <tr style="opacity:<?= $unsub?.5:1 ?>">
-        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" <?= $unsub?'disabled':'' ?>></td>
+      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); ?>
+      <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>">
+        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($unsub||$noEmail)?'disabled':'' ?>></td>
         <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
-        <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['email']??'') ?></td>
+        <td class="ac" style="font-size:11px"><?php if(!$noEmail): ?><span style="cursor:pointer" title="Click to edit" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['email']) ?>')"><?= htmlspecialchars($l['email']) ?></span><?php elseif(!$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','')">＋ Add email</button><?php else: ?>—<?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
         <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['source']??'') ?></td>
         <td class="ac" style="font-size:11px"><?= htmlspecialchars($l['category']??'') ?: '—' ?></td>
