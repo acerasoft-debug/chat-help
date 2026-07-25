@@ -49,7 +49,7 @@ function vestra_lead_default_template(): array {
         'body' =>
             "Hello {{contact_name}},\n\n".
             "We came across {{company}} while researching branded and textile wholesale sellers and wanted to reach out directly.\n\n".
-            "VESTRA is a KYC-verified B2B marketplace connecting fashion wholesale sellers with buyer businesses across Europe. Every seller is background-checked, orders run on clear invoice terms, and listing is free.\n\n".
+            "VESTRA is a KYC-verified B2B marketplace connecting fashion wholesale sellers with buyer businesses across Europe. Sellers of brands like Lacoste, DSQUARED2, Ralph Lauren and Dolce & Gabbana already list with us. Every seller is background-checked, goods are authenticity-verified on delivery, orders run on clear invoice terms, and listing is free.\n\n".
             "If you sell branded or textile fashion wholesale, we'd love to have you on the platform:\n".
             "https://vestrasales.com/register?type=seller\n\n".
             "Happy to answer any questions — just reply to this email.\n\n".
@@ -83,6 +83,36 @@ function vestra_lead_render_email(array $lead, array $tpl): array {
              "verified B2B wholesale marketplace — you're receiving it because {$company} was identified as a ".
              "potential fit by our team.\nDon't want to hear from us again? Unsubscribe instantly: {$unsubUrl}";
     return [$subject, $body];
+}
+
+/** Render a wholesale product-offer ("quote") email to a customer/buyer. $lines is a
+ *  list of ['title'=>, 'price'=>, 'moq'=>, 'url'=>] built from the selected listings.
+ *  A sender-identity + opt-out footer is always appended — the saved prospect's
+ *  one-click unsubscribe link when the offer targets one, else a plain reply-to-opt-out
+ *  line — so proactive offers stay as compliant as the invite outreach. */
+function vestra_quote_render_email(string $company, string $contact, array $lines, string $note, string $unsubUrl = ''): array {
+    $who = $company !== '' ? $company : 'your business';
+    $c   = $contact !== '' ? $contact : 'there';
+    $subject = 'VESTRA — wholesale offer' . ($company !== '' ? ' for ' . $company : '');
+    $b  = "Hello {$c},\n\n";
+    $b .= "Here's a wholesale offer from VESTRA — a KYC-verified B2B fashion marketplace. ".
+          "Every seller is background-checked, goods are authenticity-verified on delivery, and orders run on clear invoice terms.\n\n";
+    $b .= "Selected for {$who}:\n\n";
+    foreach ($lines as $ln) {
+        $b .= '• ' . ($ln['title'] ?? '') . ' — ' . ($ln['price'] ?? '');
+        if (!empty($ln['moq'])) $b .= ' · ' . $ln['moq'];
+        $b .= "\n";
+        if (!empty($ln['url'])) $b .= '  ' . $ln['url'] . "\n";
+    }
+    $b .= "\n";
+    if ($note !== '') $b .= $note . "\n\n";
+    $b .= "Browse the full range or request a tailored quote: https://vestrasales.com/shop\n\n";
+    $b .= "Best regards,\nThe VESTRA team";
+    $b .= "\n\n—\nVESTRA is operated by acerasoft LLC. You received this wholesale offer because {$who} was identified as a potential trade buyer.\n";
+    $b .= $unsubUrl !== ''
+        ? "Don't want these offers? Unsubscribe instantly: {$unsubUrl}"
+        : "To opt out of future offers, just reply to this email.";
+    return [$subject, $b];
 }
 
 /** Bulk-import leads from an uploaded CSV (header row required; company + email

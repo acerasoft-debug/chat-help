@@ -581,6 +581,41 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=lead_sent&n='.$sent); exit;
   }
+  /* Send a tailored product OFFER (quote) straight to a customer — selected listings
+     + prices, emailed and logged to data/quotes.csv. Respects opt-outs: a saved
+     prospect who unsubscribed is never emailed. */
+  if($act==='send_quote'){
+    require_once __DIR__.'/inc/notify.php';
+    $email=strtolower(trim($_POST['q_email']??'')); $company=trim($_POST['q_company']??'');
+    $contact=trim($_POST['q_contact']??''); $note=trim($_POST['q_note']??'');
+    $pids=array_slice(array_values(array_filter((array)($_POST['q_products']??[]))),0,20);
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL) || !$pids){ header('Location: /admin?tab=prospects&msg=quote_invalid'); exit; }
+    // Never send to a prospect who opted out; reuse their unsubscribe link if saved.
+    $unsubUrl='';
+    foreach(vestra_leads() as $l){ if(strtolower($l['email']??'')===$email){
+      if(($l['status']??'')==='unsubscribed'){ header('Location: /admin?tab=prospects&msg=quote_unsub'); exit; }
+      $unsubUrl='https://vestrasales.com/lead-unsubscribe?token='.urlencode($l['unsub_token']??''); break; } }
+    $fmt=fn($n)=>'€'.rtrim(rtrim(number_format((float)$n,2),'0'),'.');
+    $lines=[];
+    foreach($pids as $pid){
+      $p=vestra_find($pid); if(!$p) continue;
+      $price='from '.$fmt(vestra_from_price($p)).'/'.($p['unit']??'pc');
+      if(($p['mode']??'')==='sale' && !empty($p['list'])) $price.=' (was '.$fmt($p['list']).')';
+      $lines[]=['title'=>trim(($p['brand']??'').' '.($p['name']??'')),'price'=>$price,
+        'moq'=>'MOQ '.(int)($p['moq']??0).' '.($p['unit']??'pc'),
+        'url'=>'https://vestrasales.com/product?id='.rawurlencode($p['id']??'')];
+    }
+    if(!$lines){ header('Location: /admin?tab=prospects&msg=quote_invalid'); exit; }
+    [$subject,$body]=vestra_quote_render_email($company,$contact,$lines,$note,$unsubUrl);
+    $ok=vestra_send_mail($email,$subject,$body);
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    if($fh=@fopen($dir.'/quotes.csv','a')){
+      if(ftell($fh)===0) fputcsv($fh,['timestamp','email','company','contact','products','note','sent'],',','"','\\');
+      fputcsv($fh,[date('c'),$email,$company,$contact,implode(' | ',array_map(fn($x)=>$x['title'],$lines)),$note,$ok?'yes':'no'],',','"','\\');
+      fclose($fh);
+    }
+    header('Location: /admin?tab=prospects&msg='.($ok?'quote_sent':'quote_failed')); exit;
+  }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
   if($act==='send_push'){
@@ -891,6 +926,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.',
+    'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
+    'quote_failed'=>'Offer could not be sent (check SMTP settings in config).','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -2243,6 +2280,7 @@ elseif($tab==='prospects'):
     <div class="afield"><input type="file" name="csv" accept=".csv,text/csv" required></div>
     <button class="abtn primary" type="submit">⬆ Import</button>
   </form>
+  <a class="ahint" style="display:inline-block;margin-top:10px" download="vestra-prospects-sample.csv" href="data:text/csv;charset=utf-8,company%2Cemail%2Ccontact_name%2Ccountry%2Cwebsite%2Csource%2Ccategory%2Cnotes%0ANordic%20Streetwear%20AB%2Csales%40nordic.example%2CAnna%2CSweden%2Cnordic.example%2CReferral%2Cstreetwear%2CReorders%20quarterly">⬇ Download sample CSV</a>
   </div>
 </div>
 </div>
@@ -2260,6 +2298,47 @@ elseif($tab==='prospects'):
   </form>
   </div>
 </div>
+
+<div class="acard">
+  <div class="acard-hd"><h3>Send a product offer</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:12px">Email a tailored wholesale offer — selected products + live prices — straight to a customer. Logged to <code>quotes.csv</code>. If the email matches a saved prospect their unsubscribe link is used, and opt-outs are never emailed.</p>
+  <form method="post" class="aform" onsubmit="return confirm('Send this product offer to the customer?')">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="send_quote">
+    <div class="acols2">
+      <div class="afield"><label>Customer email *</label><input type="email" name="q_email" id="q_email" required placeholder="buyer@company.com" list="prospectEmails"></div>
+      <div class="afield"><label>Company</label><input name="q_company" id="q_company" placeholder="Optional"></div>
+    </div>
+    <datalist id="prospectEmails"><?php foreach($leads as $l){ if(($l['status']??'')==='unsubscribed') continue; echo '<option data-company="'.htmlspecialchars($l['company']??'').'" data-contact="'.htmlspecialchars($l['contact_name']??'').'" value="'.htmlspecialchars($l['email']??'').'">'; } ?></datalist>
+    <div class="afield"><label>Contact name</label><input name="q_contact" id="q_contact" placeholder="Optional"></div>
+    <div class="afield"><label>Products *</label>
+      <input type="text" onkeyup="quoteFilter(this.value)" placeholder="Filter products…" style="margin-bottom:6px">
+      <div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px">
+        <?php foreach(vestra_products() as $qp): if(empty($qp['brand'])) continue; $qfp=vestra_from_price($qp); ?>
+        <label class="qprow" style="display:flex;gap:8px;align-items:center;padding:4px 6px;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" name="q_products[]" value="<?= htmlspecialchars($qp['id']??'') ?>">
+          <span><b><?= htmlspecialchars($qp['brand']) ?></b> <?= htmlspecialchars($qp['name']??'') ?><?php if($qfp>0): ?> · <span class="ahint">from €<?= rtrim(rtrim(number_format($qfp,2),'0'),'.') ?><?= ($qp['mode']??'')==='sale'?' (sale)':'' ?></span><?php endif; ?></span>
+        </label>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="afield"><label>Message (optional)</label><textarea name="q_note" rows="3" placeholder="e.g. Prices valid 14 days · mixed-size cartons available · ask for a full size breakdown."></textarea></div>
+    <button class="abtn primary" type="submit">✉ Send offer</button>
+  </form>
+  </div>
+</div>
+<script>
+function quoteFilter(q){ q=(q||'').toLowerCase(); document.querySelectorAll('.qprow').forEach(function(r){ r.style.display=r.textContent.toLowerCase().indexOf(q)>=0?'':'none'; }); }
+document.addEventListener('DOMContentLoaded',function(){
+  var e=document.getElementById('q_email'); if(!e) return;
+  e.addEventListener('change',function(){
+    var opts=document.querySelectorAll('#prospectEmails option'), c=document.getElementById('q_company'), n=document.getElementById('q_contact');
+    opts.forEach(function(o){ if(o.value.toLowerCase()===e.value.toLowerCase()){
+      if(c&&!c.value) c.value=o.getAttribute('data-company')||''; if(n&&!n.value) n.value=o.getAttribute('data-contact')||''; } });
+  });
+});
+</script>
 
 <form method="post" id="leadRowForm" style="display:none">
   <?= csrfField() ?>
