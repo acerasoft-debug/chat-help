@@ -182,6 +182,20 @@ jobs:
           path: ChatHelp-release.aab
           if-no-files-found: error
 
+      - name: Publish AAB to a Release (dogrudan .aab indirme, ZIP yok)
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-aab-latest
+          name: ChatHelp Android AAB (Play upload)
+          body: |
+            Google Play Console'a yuklenecek imzali AAB.
+            Asagidaki **ChatHelp-release.aab**'ye dokun -> dogrudan iner (ZIP degil).
+            Play Console -> Uretim -> Yeni surum -> bu .aab'yi yukle.
+          prerelease: true
+          make_latest: "false"
+          files: ChatHelp-release.aab
+
       - name: Publish AAB to Google Play (internal track)
         if: steps.play.outputs.has == 'true'
         uses: r0adkll/upload-google-play@v1
