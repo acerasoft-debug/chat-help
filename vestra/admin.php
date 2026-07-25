@@ -2458,6 +2458,18 @@ function smtpPreset(v){
 </div>
 
 <div class="acard">
+  <div class="acard-hd"><h3>👁 Email preview — exactly what each customer receives</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:10px">Live render of your saved outreach (sample customer “Bodega”). Placeholders are filled per-recipient and the required sender + one-click unsubscribe footer is added automatically. One personalised email is sent per customer.</p>
+  <?php $pv=vestra_lead_render_email(['company'=>'Bodega','contact_name'=>'Ali','country'=>'United States','unsub_token'=>'preview'],$leadTpl); ?>
+  <div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px">
+    <div style="font-size:12px;color:var(--mut);margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)">Subject:&nbsp; <b style="color:var(--ink)"><?= htmlspecialchars($pv[0]) ?></b></div>
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.55;color:var(--ink);margin:0"><?= htmlspecialchars($pv[1]) ?></pre>
+  </div>
+  </div>
+</div>
+
+<div class="acard">
   <div class="acard-hd"><h3>Send a product offer</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">Email a tailored wholesale offer — selected products + live prices — straight to a customer. Logged to <code>quotes.csv</code>. If the email matches a saved prospect their unsubscribe link is used, and opt-outs are never emailed.</p>
