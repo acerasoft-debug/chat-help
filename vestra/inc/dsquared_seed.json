@@ -25,7 +25,7 @@
             }
         ],
         "desc": "DSQUARED2 Graphic T-Shirt — model S71GD1552. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101212",
@@ -53,7 +53,7 @@
             }
         ],
         "desc": "DSQUARED2 Graphic T-Shirt — model S74GD1394. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101213",
@@ -81,7 +81,7 @@
             }
         ],
         "desc": "DSQUARED2 Graphic T-Shirt (Oversized) — model S74GD1399. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101214",
@@ -109,7 +109,7 @@
             }
         ],
         "desc": "DSQUARED2 Graphic T-Shirt — model S74GD1400. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101225",
@@ -137,7 +137,7 @@
             }
         ],
         "desc": "DSQUARED2 Graphic Print T-Shirt — model S74GD1106. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101230",
@@ -165,7 +165,7 @@
             }
         ],
         "desc": "DSQUARED2 ICON Mini Logo T-Shirt — model S79G0010. 100% cotton, regular fit. Colour: Pink.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101231",
@@ -193,7 +193,7 @@
             }
         ],
         "desc": "DSQUARED2 ICON Outlined Logo T-Shirt — model S79G0063. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101232",
@@ -221,7 +221,7 @@
             }
         ],
         "desc": "DSQUARED2 ICON Metallic Logo T-Shirt — model S79G0068. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101233",
@@ -249,7 +249,7 @@
             }
         ],
         "desc": "DSQUARED2 ICON Sunset Palm Tree T-Shirt — model S79G0065. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101237",
@@ -277,7 +277,7 @@
             }
         ],
         "desc": "DSQUARED2 Oversized Fit T-Shirt — model S74G0096. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101239",
@@ -305,7 +305,7 @@
             }
         ],
         "desc": "DSQUARED2 Mini Icon T-Shirt — model S79G0010B. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101215",
@@ -333,7 +333,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Sweatshirt — model S74GU0811. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101216",
@@ -361,7 +361,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Sweatshirt — model S74GU0814. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101217",
@@ -389,7 +389,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Sweatshirt — model S74GU0815. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101218",
@@ -417,7 +417,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Sweatshirt — model S74GU0826. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101219",
@@ -445,7 +445,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Crewneck Sweatshirt — model S74GU0836. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101220",
@@ -473,7 +473,7 @@
             }
         ],
         "desc": "DSQUARED2 Men's Sweatshirt — model S71GU0546. 100% cotton, regular fit. Colour: Black.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     },
     {
         "id": "dsq-101221",
@@ -501,6 +501,6 @@
             }
         ],
         "desc": "DSQUARED2 Men's Graphic Crewneck Sweatshirt — model S71GU0554. 100% cotton, regular fit. Colour: White.",
-        "new": true
+        "added_at": "2026-07-25T12:00:00+00:00"
     }
 ]
