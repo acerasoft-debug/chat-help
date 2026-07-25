@@ -83,26 +83,6 @@ function vestra_demo_products(){
       ],
       'tiers'=>[['min'=>20,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
     ],
-    [
-      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
-      'desc'=>'Premium cotton piqué polo. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.',
-      'origin'=>'Authorised allocation','verified'=>true,'accent'=>'#4a1420',
-      'images'=>['/uploads/amiri/amiri-core-polo-1.png','/uploads/amiri/amiri-core-polo-2.png','/uploads/amiri/amiri-core-polo-3.png','/uploads/amiri/amiri-core-polo-4.png'],
-      'linesheet'=>true,'sheet_file'=>'ami-paris-polo.pdf',
-      'sizes'=>'S×2 · M×6 · L×6 · XL×4 · XXL×2 · mixed colours','size_step'=>10,
-      'specs'=>[
-        'Composition'=>'Premium cotton piqué',
-        'Fit'=>'Regular fit',
-        'Care'=>'Machine wash 30°C · wash inside out',
-        'Packaging'=>'Mixed-size carton · S×2 M×6 L×6 XL×4 XXL×2',
-        'Lead time'=>'Authorised allocation — 5–7 business days',
-        'Season'=>'SS26',
-        'Made in'=>'Italy / EU',
-        'Authenticity'=>'Verified on delivery · proof of sourcing on request',
-      ],
-      'tiers'=>[['min'=>50,'price'=>40.00]],
-    ],
   ];
   return vestra_apply_price_overrides($P);
 }
@@ -144,7 +124,7 @@ function vestra_save_product_overrides(array $ov): void {
 }
 /* Which products are demo (override-backed) vs live listings (listings.json-backed). */
 function vestra_is_demo_product(string $id): bool {
-  foreach(['lac-pique-polo','rl-oxford-shirt','amiri-core-polo'] as $d){ if($d===$id) return true; }
+  foreach(['lac-pique-polo','rl-oxford-shirt'] as $d){ if($d===$id) return true; }
   return false;
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */

@@ -275,6 +275,26 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($pwPlain) $_SESSION['tyrex_flash']=['email'=>$email,'pw'=>$pwPlain];
     header('Location: /admin?tab=listings&msg=tyrex_ok&n='.$n); exit;
   }
+  /* Import the Amiri + Lacoste polos (photos + line-sheet PDF ship with the code)
+     as APPROVED listings OWNED BY the Tyrex International BV seller account, resolved
+     by company name at runtime. De-dupes on id and brand+SKU, so re-running is safe. */
+  if($act==='import_tyrex_polos'){
+    $seed=is_readable(__DIR__.'/inc/tyrex_polos_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/tyrex_polos_seed.json'),true) : [];
+    if(!is_array($seed)) $seed=[];
+    $tuid=''; foreach(auth_accounts() as $a){ if(($a['type']??'')==='seller' && strtolower(trim((string)($a['company']??'')))==='tyrex international bv'){ $tuid=(string)($a['id']??''); break; } }
+    if($tuid===''){ header('Location: /admin?tab=listings&msg=tyrex_missing'); exit; }
+    $all=vestra_listings(); $haveId=[]; $haveBS=[];
+    foreach($all as $l){ $haveId[(string)($l['id']??'')]=true; $haveBS[strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))]=true; }
+    $added=0;
+    foreach($seed as $p){
+      $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+      if(($id!=='' && isset($haveId[$id])) || ($bs!=='|' && isset($haveBS[$bs]))) continue;
+      $p['seller_uid']=$tuid; $p['seller']='Tyrex International BV'; $p['verified']=true; $p['status']='approved'; $p['added_at']=date('c');
+      $all[]=$p; $added++; $haveId[$id]=true; $haveBS[$bs]=true;
+    }
+    vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=tyrex_polos&n='.$added); exit;
+  }
   /* Import the DSQUARED2 catalogue (T-shirts €49.90 / sweatshirts €90, on sale)
      from inc/dsquared_seed.json. De-dupes on brand+SKU(model) AND id, so a
      product already in the catalogue with the same photo/title is skipped
@@ -832,6 +852,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
+    'tyrex_polos'=>'✓ Polos imported as Tyrex International BV listings.','tyrex_missing'=>'Tyrex International BV account not found — create it first (Listings → Tyrex).',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
@@ -1986,6 +2007,21 @@ elseif($tab==='listings'):
     <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $dsqN ?> DSQUARED2 products (T-shirts €49.90, sweatshirts €90)? Items already in the catalogue are skipped.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="import_dsquared">
       <button class="abtn primary" type="submit" style="white-space:nowrap">👕 Import DSQUARED2 (<?= $dsqN ?>)</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+<?php $tpSeed=is_readable(__DIR__.'/inc/tyrex_polos_seed.json')?json_decode((string)file_get_contents(__DIR__.'/inc/tyrex_polos_seed.json'),true):[]; $tpN=is_array($tpSeed)?count($tpSeed):0; if($tpN): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:660px">
+      <b style="color:var(--ink)">👔 Import polos to Tyrex International BV (<?= $tpN ?>)</b> — the Amiri Core Logo Polo and the
+      Lacoste Regular Fit Logo Trim Polo, each with their photos + a downloadable line-sheet PDF, listed under the
+      Tyrex seller account. Requires the Tyrex account to exist. Already-imported items are skipped — safe to re-run.
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $tpN ?> polos as Tyrex International BV listings? Items already in the catalogue are skipped.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="import_tyrex_polos">
+      <button class="abtn primary" type="submit" style="white-space:nowrap">👔 Import polos → Tyrex (<?= $tpN ?>)</button>
     </form>
   </div>
 </div>
