@@ -65,7 +65,7 @@ $NOINDEX   = $NOINDEX ?? false;
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/inc/style.css">
+<link rel="stylesheet" href="/inc/style.css?v=<?= @filemtime(__DIR__.'/style.css') ?: '1' ?>">
 <?php
 // ── Structured data (JSON-LD): site-wide Organization + WebSite, plus any
 //    page-specific schema a page set in $JSONLD before including this header. ──
