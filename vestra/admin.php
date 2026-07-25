@@ -602,6 +602,33 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=lead_sent&n='.$sent); exit;
   }
+  /* One-at-a-time send for the live progress view — the JS calls this once per
+     selected customer so the operator watches each email go out. Returns JSON. */
+  if($act==='send_lead_one'){
+    header('Content-Type: application/json');
+    require_once __DIR__.'/inc/notify.php';
+    $lid=$_POST['lead_id']??''; $sellerUid=trim($_POST['l_seller_uid']??'');
+    $sc=null; $senderName='';
+    if($sellerUid!==''){
+      $sc=vestra_seller_mail($sellerUid);
+      if(!vestra_seller_can_send($sc)){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
+      $a0=array_values(array_filter(auth_accounts(),fn($a)=>($a['id']??'')===$sellerUid))[0]??null;
+      $senderName=$a0?($a0['company']??$a0['name']??''):'';
+    }
+    $leads=vestra_leads(); $tpl=vestra_lead_template(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    foreach($leads as &$l){
+      if(($l['id']??'')!==$lid) continue;
+      $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
+      if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
+      if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
+      [$subject,$body]=vestra_lead_render_email($l,$tpl);
+      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
+      else { $res['error']='send'; }
+      break;
+    }
+    unset($l); vestra_save_leads($leads);
+    echo json_encode($res); exit;
+  }
   /* Send a tailored product OFFER (quote) straight to a customer — selected listings
      + prices, emailed and logged to data/quotes.csv. Respects opt-outs: a saved
      prospect who unsubscribed is never emailed. */
@@ -2559,6 +2586,7 @@ function leadToggleAll(box){
     <input type="hidden" name="_action" value="send_lead_email">
     <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="abtn primary" type="submit">✉ Send invite to selected</button>
+      <button type="button" class="abtn" onclick="sendOneByOne(this)">▶ Send one-by-one (live)</button>
       <select name="l_seller_uid" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px">
         <option value="">From: Platform (VESTRA)</option>
         <?php foreach($sellerAccts as $s): $sid=$s['id']??''; $ok=vestra_seller_can_send(vestra_seller_mail($sid)); ?>
@@ -2567,6 +2595,34 @@ function leadToggleAll(box){
       </select>
       <span class="ahint">Max 50 · unsubscribed/email-less can't be selected · pick a seller to send from their address</span>
     </div>
+    <div id="sobWrap" style="display:none;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg2)">
+      <div id="sobBar" style="font-weight:600;font-size:13px;margin-bottom:8px"></div>
+      <div id="sobLog" style="max-height:230px;overflow:auto"></div>
+    </div>
+    <script>
+    var VADMIN_CSRF=<?= json_encode($_SESSION['vadmin_csrf']??'') ?>;
+    function sendOneByOne(btn){
+      var boxes=[].slice.call(document.querySelectorAll('.leadchk')).filter(function(c){return c.checked && !c.disabled;});
+      if(!boxes.length){ alert('Select at least one customer (checkbox) first.'); return; }
+      var ids=boxes.map(function(c){return c.value;});
+      var sel=document.querySelector('[name=l_seller_uid]'); var seller=sel?sel.value:'';
+      var wrap=document.getElementById('sobWrap'), bar=document.getElementById('sobBar'), log=document.getElementById('sobLog');
+      wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
+      var i=0, ok=0, fail=0;
+      function next(){
+        if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh to see updated statuses.'; btn.disabled=false; return; }
+        bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
+        var fd=new FormData(); fd.append('_action','send_lead_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lead_id',ids[i]); fd.append('l_seller_uid',seller);
+        fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+          var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
+          if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||d.email||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
+          else { fail++; line.style.color='#c0392b'; line.innerHTML='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
+          log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
+        }).catch(function(){ fail++; i++; setTimeout(next,250); });
+      }
+      next();
+    }
+    </script>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
       <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); ?>
