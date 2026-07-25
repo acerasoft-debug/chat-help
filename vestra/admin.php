@@ -2391,6 +2391,23 @@ elseif($tab==='prospects'):
   $finderOn = vestra_cfg('finder_key','')!=='';
   $aiOn = vestra_ai_key()!=='';
 ?>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+  <?php
+    $csteps=[
+      ['1','Find buyers','🔎','Customer Scout',true],
+      ['2','Get real emails','🔍',$finderOn?'Finder connected':'Add finder key',$finderOn],
+      ['3','Your sender','📤',$emReady?'Sending ready':'Set up SMTP',$emReady],
+      ['4','AI (optional)','✨',$aiOn?'AI connected':'Optional',$aiOn],
+      ['5','Send one-by-one','▶','Live, personalised',false],
+    ];
+    foreach($csteps as $cs){ $cd=$cs[4];
+      echo '<div style="flex:1;min-width:150px;border:1px solid '.($cd?'rgba(31,157,99,.45)':'var(--line)').';border-radius:11px;padding:10px 13px;background:var(--bg2)">'
+        .'<div style="font-size:10.5px;color:'.($cd?'#1f9d63':'var(--mut)').';font-weight:600;letter-spacing:.03em">STEP '.$cs[0].($cd?' ✓':'').'</div>'
+        .'<div style="font-weight:700;font-size:13px;margin-top:2px">'.$cs[2].' '.htmlspecialchars($cs[1]).'</div>'
+        .'<div class="ahint" style="font-size:11px;margin-top:1px">'.htmlspecialchars($cs[3]).'</div></div>';
+    }
+  ?>
+</div>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
   Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
   <b>you</b> do (trade shows, LinkedIn, directories) or a CSV you compiled/imported — VESTRA never crawls the web to
