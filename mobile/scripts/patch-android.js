@@ -22,8 +22,8 @@ const path = require('path');
 
 /* CHELP_VERSION — Play her yuklemede daha yuksek versionCode ister.
    Yeni AAB cikarmadan once bu iki degeri artir. */
-const VERSION_CODE = 4;
-const VERSION_NAME = '1.3';
+const VERSION_CODE = 5;
+const VERSION_NAME = '1.4';
 
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
@@ -53,8 +53,8 @@ function patchMainActivity() {
     return;
   }
   const src = fs.readFileSync(MAIN_ACTIVITY, 'utf8');
-  if (src.includes('CHELP_BACK_BUTTON_PATCH')) {
-    console.log('MainActivity.java zaten yamalı (geri tuşu + biyometrik).');
+  if (src.includes('CHELP_JSBRIDGE_PATCH')) {
+    console.log('MainActivity.java zaten yamalı (geri tuşu + biyometrik + JS köprü).');
     return;
   }
   const pkgMatch = src.match(/^package\s+([\w.]+);/m);
@@ -62,10 +62,23 @@ function patchMainActivity() {
   const out = `package ${pkg};
 
 /* CHELP_BACK_BUTTON_PATCH — donanım geri tuşu: WebView geçmişinde gezinir,
-   kökte çift basışla çıkış (premium Android davranışı). */
+   kökte çift basışla çıkış (premium Android davranışı).
+   CHELP_JSBRIDGE_PATCH — window.ChelpNative.chSavePdf(base64,name,mime): WebView'den
+   gelen PDF'i İndirilenler'e kaydeder ve açar (App'te dosya çıkışının tek yolu). */
 import android.os.Bundle;
+import android.os.Build;
+import android.os.Environment;
 import android.webkit.WebView;
+import android.webkit.JavascriptInterface;
 import android.widget.Toast;
+import android.content.Intent;
+import android.content.ContentValues;
+import android.content.ContentResolver;
+import android.net.Uri;
+import android.provider.MediaStore;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -83,6 +96,73 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        /* CHELP_JSBRIDGE_PATCH — WebView'e native PDF-kaydet köprüsünü bağla.
+           App yalnızca chat-help.com yükler (capacitor.config allowNavigation),
+           köprü sadece bir PDF'i İndirilenler'e yazar — güvenli, sınırlı yetki. */
+        try {
+            WebView wv = (getBridge() != null) ? getBridge().getWebView() : null;
+            if (wv != null) {
+                wv.addJavascriptInterface(new ChelpBridge(), "ChelpNative");
+            }
+        } catch (Exception e) { /* köprü kurulamazsa app normal çalışır */ }
+    }
+
+    /* CHELP_JSBRIDGE — window.ChelpNative.chSavePdf(base64, filename, mime).
+       API 29+ (Android 10+): MediaStore.Downloads -> görünür İndirilenler + otomatik açılış.
+       Altı: uygulamaya özel Downloads klasörü (izin gerektirmez). */
+    public class ChelpBridge {
+        @JavascriptInterface
+        public void chSavePdf(final String base64, final String filename, final String mime) {
+            final String fn = (filename == null || filename.trim().isEmpty()) ? "ChatHelp-Dokument.pdf" : filename.trim();
+            final String mt = (mime == null || mime.trim().isEmpty()) ? "application/pdf" : mime.trim();
+            try {
+                final byte[] data = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
+                Uri saved = null;
+                if (Build.VERSION.SDK_INT >= 29) {
+                    ContentValues cv = new ContentValues();
+                    cv.put(MediaStore.Downloads.DISPLAY_NAME, fn);
+                    cv.put(MediaStore.Downloads.MIME_TYPE, mt);
+                    cv.put(MediaStore.Downloads.IS_PENDING, 1);
+                    ContentResolver cr = getContentResolver();
+                    saved = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
+                    if (saved != null) {
+                        OutputStream os = cr.openOutputStream(saved);
+                        if (os != null) { os.write(data); os.flush(); os.close(); }
+                        cv.clear();
+                        cv.put(MediaStore.Downloads.IS_PENDING, 0);
+                        cr.update(saved, cv, null, null);
+                    }
+                } else {
+                    File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    if (dir != null && !dir.exists()) dir.mkdirs();
+                    File f = new File(dir, fn);
+                    FileOutputStream fos = new FileOutputStream(f);
+                    fos.write(data); fos.flush(); fos.close();
+                    saved = Uri.fromFile(f);
+                }
+                final Uri viewUri = saved;
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        Toast.makeText(MainActivity.this, "Gespeichert: " + fn, Toast.LENGTH_LONG).show();
+                        if (viewUri != null && Build.VERSION.SDK_INT >= 29) {
+                            try {
+                                Intent iv = new Intent(Intent.ACTION_VIEW);
+                                iv.setDataAndType(viewUri, mt);
+                                iv.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                iv.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(iv);
+                            } catch (Exception e2) { /* açacak uygulama yoksa yine de kaydedildi */ }
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        Toast.makeText(MainActivity.this, "Speichern fehlgeschlagen", Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }
     }
 
     @Override
