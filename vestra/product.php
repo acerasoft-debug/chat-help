@@ -70,8 +70,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php if($images): ?>
           <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
-          <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous">‹</button>
-          <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
+          <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+          <button class="gal-nav next" onclick="galGo(1)" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>

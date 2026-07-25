@@ -537,15 +537,20 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 /* ── Product gallery ────────────────────────────────────────────────────── */
 .pdetail{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin:14px 0 40px;align-items:start}
 .gal-col{display:flex;flex-direction:column;gap:10px;position:sticky;top:80px}
-.gal-main{aspect-ratio:4/5;border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;background:linear-gradient(165deg,#fdfcfa 0%,#f3eee6 58%,#eae3d7 100%);box-shadow:0 22px 46px -24px rgba(38,30,15,.5),0 2px 8px -3px rgba(38,30,15,.18)}
+.gal-main{aspect-ratio:4/5;border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(165deg,#fdfcfa 0%,#f3eee6 58%,#eae3d7 100%);box-shadow:0 22px 46px -24px rgba(38,30,15,.5),0 2px 8px -3px rgba(38,30,15,.18)}
 /* museum-style inner mat: a delicate framed presentation around the product */
 .gal-main::after{content:'';position:absolute;inset:14px;border:1px solid rgba(120,96,48,.22);border-radius:7px;pointer-events:none;z-index:4}
-.gal-img{width:100%;height:100%;object-fit:contain;display:block;padding:28px;box-sizing:border-box}
+/* Never upscale past native resolution: low-res photos stay crisp (framed a touch
+   smaller) instead of being stretched blurry to fill the stage. */
+.gal-img{max-width:calc(100% - 56px);max-height:calc(100% - 56px);width:auto;height:auto;object-fit:contain;display:block}
 .gal-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
-.gal-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(14,14,17,.72);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:50%;width:42px;height:42px;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s;z-index:5;line-height:1}
-.gal-nav:hover{background:rgba(0,0,0,.88);border-color:rgba(255,255,255,.3)}
-.gal-nav.prev{left:12px}
-.gal-nav.next{right:12px}
+.gal-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.86);backdrop-filter:blur(10px) saturate(1.1);border:1px solid rgba(70,52,24,.14);color:#2b2318;box-shadow:0 8px 20px -8px rgba(40,30,12,.42),0 1px 0 rgba(255,255,255,.8) inset;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .18s cubic-bezier(.2,.7,.2,1),background .18s,box-shadow .18s,color .18s,opacity .18s;z-index:5;opacity:.9}
+.gal-main:hover .gal-nav{opacity:1}
+.gal-nav svg{width:19px;height:19px;display:block}
+.gal-nav:hover{background:var(--acc);color:#fff;border-color:transparent;box-shadow:0 12px 26px -8px rgba(169,127,44,.6)}
+.gal-nav:active{transform:translateY(-50%) scale(.93)}
+.gal-nav.prev{left:16px}
+.gal-nav.next{right:16px}
 .gal-vbadge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:700;background:rgba(122,214,160,.15);color:#7ad6a0;border:1px solid rgba(122,214,160,.3);padding:4px 10px;border-radius:999px;z-index:6;display:flex;align-items:center;gap:5px}
 .gal-thumbs{display:flex;gap:8px;flex-wrap:wrap}
 .gal-thumb{width:68px;height:68px;border-radius:9px;border:2px solid var(--line);overflow:hidden;cursor:pointer;transition:.18s;padding:0;background:none;flex-shrink:0}
