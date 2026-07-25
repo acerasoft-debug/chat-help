@@ -579,12 +579,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $ids=array_slice(array_filter((array)($_POST['lead_ids']??[])),0,50);
     $leads=vestra_leads(); $tpl=vestra_lead_template(); $sent=0;
     require_once __DIR__.'/inc/notify.php';
+    // Optional: send the whole batch on behalf of a seller, from THEIR own address.
+    $sellerUid=trim($_POST['l_seller_uid']??''); $senderName=''; $sc=null;
+    if($sellerUid!==''){
+      $sc=vestra_seller_mail($sellerUid);
+      if(!vestra_seller_can_send($sc)){ header('Location: /admin?tab=prospects&mailfor='.urlencode($sellerUid).'&msg=quote_nosender'); exit; }
+      $a0=array_values(array_filter(auth_accounts(),fn($a)=>($a['id']??'')===$sellerUid))[0]??null;
+      $senderName=$a0?($a0['company']??$a0['name']??''):(string)($sc['smtp_name']??'');
+    }
     foreach($leads as &$l){
       if(!in_array($l['id']??'',$ids,true)) continue;
       if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)) continue; // research lead without an email yet
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body)){
+      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){
         $sent++;
         if(($l['status']??'new')==='new') $l['status']='contacted';
         $l['last_contacted_at']=date('c');
@@ -603,6 +611,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $contact=trim($_POST['q_contact']??''); $note=trim($_POST['q_note']??'');
     $pids=array_slice(array_values(array_filter((array)($_POST['q_products']??[]))),0,20);
     if(!filter_var($email,FILTER_VALIDATE_EMAIL) || !$pids){ header('Location: /admin?tab=prospects&msg=quote_invalid'); exit; }
+    // Optional: send on behalf of a seller, from THEIR own configured address.
+    $sellerUid=trim($_POST['q_seller_uid']??''); $senderName=''; $sc=null;
+    if($sellerUid!==''){
+      $sc=vestra_seller_mail($sellerUid);
+      if(!vestra_seller_can_send($sc)){ header('Location: /admin?tab=prospects&mailfor='.urlencode($sellerUid).'&msg=quote_nosender'); exit; }
+      $a0=array_values(array_filter(auth_accounts(),fn($a)=>($a['id']??'')===$sellerUid))[0]??null;
+      $senderName=$a0?($a0['company']??$a0['name']??''):(string)($sc['smtp_name']??'');
+    }
     // Never send to a prospect who opted out; reuse their unsubscribe link if saved.
     $unsubUrl='';
     foreach(vestra_leads() as $l){ if(strtolower($l['email']??'')===$email){
@@ -619,12 +635,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         'url'=>'https://vestrasales.com/product?id='.rawurlencode($p['id']??'')];
     }
     if(!$lines){ header('Location: /admin?tab=prospects&msg=quote_invalid'); exit; }
-    [$subject,$body]=vestra_quote_render_email($company,$contact,$lines,$note,$unsubUrl);
-    $ok=vestra_send_mail($email,$subject,$body);
+    [$subject,$body]=vestra_quote_render_email($company,$contact,$lines,$note,$unsubUrl,$senderName);
+    $ok=vestra_send_mail($email,$subject,$body,'',$senderName,$sc);
     $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
     if($fh=@fopen($dir.'/quotes.csv','a')){
-      if(ftell($fh)===0) fputcsv($fh,['timestamp','email','company','contact','products','note','sent'],',','"','\\');
-      fputcsv($fh,[date('c'),$email,$company,$contact,implode(' | ',array_map(fn($x)=>$x['title'],$lines)),$note,$ok?'yes':'no'],',','"','\\');
+      if(ftell($fh)===0) fputcsv($fh,['timestamp','email','company','contact','sender','products','note','sent'],',','"','\\');
+      fputcsv($fh,[date('c'),$email,$company,$contact,$senderName?:'Platform',implode(' | ',array_map(fn($x)=>$x['title'],$lines)),$note,$ok?'yes':'no'],',','"','\\');
       fclose($fh);
     }
     header('Location: /admin?tab=prospects&msg='.($ok?'quote_sent':'quote_failed')); exit;
@@ -633,8 +649,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      outbound mail goes out "from" their address. Written to data/email_settings.json
      (web-denied, gitignored); the password is kept if the field is left blank. */
   if($act==='save_email_settings'){
-    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
-    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[];
+    $uid=trim($_POST['target_uid']??'');
+    $cur = $uid!=='' ? vestra_seller_mail($uid)
+         : (is_readable(vestra_data_dir().'/email_settings.json')?json_decode((string)file_get_contents(vestra_data_dir().'/email_settings.json'),true):[]);
     if(!is_array($cur)) $cur=[];
     $from=trim($_POST['from_email']??''); $pass=(string)($_POST['smtp_pass']??''); $apiKey=trim($_POST['mail_api_key']??'');
     $s=[
@@ -648,16 +665,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       'mail_api_provider'=>trim($_POST['mail_api_provider']??'brevo')?:'brevo',
       'mail_api_key'=>$apiKey!==''?$apiKey:(string)($cur['mail_api_key']??''),
     ];
-    file_put_contents($dir.'/email_settings.json',json_encode($s,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
-    @chmod($dir.'/email_settings.json',0600);
-    header('Location: /admin?tab=prospects&msg=email_saved'); exit;
+    if($uid!==''){ vestra_seller_mail_save($uid,$s); }
+    else { $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true); file_put_contents($dir.'/email_settings.json',json_encode($s,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600); }
+    header('Location: /admin?tab=prospects'.($uid!==''?'&mailfor='.urlencode($uid):'').'&msg=email_saved'); exit;
   }
   if($act==='send_test_email'){
     require_once __DIR__.'/inc/notify.php';
-    $to=trim($_POST['test_to']??'');
+    $to=trim($_POST['test_to']??''); $uid=trim($_POST['target_uid']??'');
     if(!filter_var($to,FILTER_VALIDATE_EMAIL)){ header('Location: /admin?tab=prospects&msg=test_invalid'); exit; }
-    $ok=vestra_send_mail($to,'VESTRA — test email',"This is a test from your VESTRA sending setup.\n\nIf you received this, outbound email works and your customer offers will send from your address. \xE2\x9C\x93\n\n— VESTRA");
-    header('Location: /admin?tab=prospects&msg='.($ok?'test_ok':'test_fail')); exit;
+    $body="This is a test from your VESTRA sending setup.\n\nIf you received this, outbound email works and offers will send from this address. \xE2\x9C\x93\n\n— VESTRA";
+    if($uid!==''){ $sc=vestra_seller_mail($uid); $ok=vestra_send_mail($to,'VESTRA — test email',$body,'',(string)($sc['smtp_name']??''),$sc); }
+    else { $ok=vestra_send_mail($to,'VESTRA — test email',$body); }
+    header('Location: /admin?tab=prospects'.($uid!==''?'&mailfor='.urlencode($uid):'').'&msg='.($ok?'test_ok':'test_fail')); exit;
   }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
@@ -972,6 +991,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
     'quote_failed'=>'Offer could not be sent — set up your Sending email below (SMTP) first.','quote_unsub'=>'That contact has unsubscribed — offer not sent.',
     'email_saved'=>'✓ Sending email saved. Send yourself a test to confirm it works.','test_ok'=>'✓ Test email sent — check that inbox.','test_fail'=>'Test failed — check the SMTP host/username/password (or use an API key).','test_invalid'=>'Enter a valid email address to send the test to.',
+    'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -2270,9 +2290,14 @@ elseif($tab==='prospects'):
   $ldReplied=count(array_filter($leads,fn($l)=>($l['status']??'')==='replied'));
   $ldConverted=count(array_filter($leads,fn($l)=>($l['status']??'')==='converted'));
   $ldUnsub=count(array_filter($leads,fn($l)=>($l['status']??'')==='unsubscribed'));
-  $emCfg=is_readable(vestra_data_dir().'/email_settings.json')?json_decode((string)file_get_contents(vestra_data_dir().'/email_settings.json'),true):[];
+  $sellerAccts=array_values(array_filter(auth_accounts(),fn($a)=>($a['type']??'')==='seller'));
+  $mailTarget=(string)($_GET['mailfor']??'');
+  $emCfg = $mailTarget!=='' ? vestra_seller_mail($mailTarget)
+         : (is_readable(vestra_data_dir().'/email_settings.json')?json_decode((string)file_get_contents(vestra_data_dir().'/email_settings.json'),true):[]);
   if(!is_array($emCfg)) $emCfg=[];
-  $emReady=!empty($emCfg['mail_enabled']) && ((($emCfg['smtp_host']??'')!=='' && ($emCfg['smtp_pass']??'')!=='') || ($emCfg['mail_api_key']??'')!=='');
+  $emReady = $mailTarget!=='' ? vestra_seller_can_send($emCfg)
+           : (!empty($emCfg['mail_enabled']) && ((($emCfg['smtp_host']??'')!=='' && ($emCfg['smtp_pass']??'')!=='') || ($emCfg['mail_api_key']??'')!==''));
+  $mailTargetName = $mailTarget!=='' ? (($a0=array_values(array_filter($sellerAccts,fn($a)=>($a['id']??'')===$mailTarget))[0]??null) ? ($a0['company']??$a0['name']??'Seller') : 'Seller') : 'Platform (VESTRA)';
 ?>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
   Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
@@ -2282,14 +2307,23 @@ elseif($tab==='prospects'):
 </p>
 
 <div class="acard" style="margin-bottom:20px;border-color:<?= $emReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
-  <div class="acard-hd"><h3>📤 Sending email — send from your own address
+  <div class="acard-hd"><h3>📤 Sending email — <?= htmlspecialchars($mailTargetName) ?>
     <?= $emReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Ready</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Not set up</span>' ?></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Every outreach + offer goes out <b>from this address</b>, one email per customer. Enter your email and its SMTP login (from your email provider). <b>Gmail/Google:</b> turn on 2-step verification and use an <b>App Password</b> (not your normal password). Saved securely — web-blocked and never committed to git.</p>
+  <div class="afield" style="margin-bottom:14px"><label>Configure sending for</label>
+    <select onchange="location.href='/admin?tab=prospects&mailfor='+encodeURIComponent(this.value)">
+      <option value="" <?= $mailTarget===''?'selected':'' ?>>Platform (VESTRA) — default sender</option>
+      <?php foreach($sellerAccts as $s): $sid=$s['id']??''; ?>
+      <option value="<?= htmlspecialchars($sid) ?>" <?= $mailTarget===$sid?'selected':'' ?>><?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= vestra_seller_can_send(vestra_seller_mail($sid))?'  ✓ set up':'' ?></option>
+      <?php endforeach; ?>
+    </select>
+  </div>
+  <p class="ahint" style="margin-bottom:12px">Mail for <b><?= htmlspecialchars($mailTargetName) ?></b> goes out <b>from this address</b>, one email per customer. Enter the email + its SMTP login (from the provider). <b>Gmail/Google:</b> turn on 2-step verification and use an <b>App Password</b>. Saved securely — web-blocked, never committed to git. Set one up <b>per seller</b> so each seller's offers send from their own address (best deliverability).</p>
   <form method="post" class="aform">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="save_email_settings">
     <input type="hidden" name="mail_enabled" value="1">
+    <input type="hidden" name="target_uid" value="<?= htmlspecialchars($mailTarget) ?>">
     <div class="acols2">
       <div class="afield"><label>From email *</label><input type="email" name="from_email" required value="<?= htmlspecialchars($emCfg['mail_from']??'') ?>" placeholder="you@yourcompany.com"></div>
       <div class="afield"><label>From name</label><input name="from_name" value="<?= htmlspecialchars($emCfg['smtp_name']??'') ?>" placeholder="Your Company"></div>
@@ -2323,7 +2357,8 @@ elseif($tab==='prospects'):
   <form method="post" style="margin-top:14px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="send_test_email">
-    <div class="afield" style="margin:0;flex:1;min-width:220px"><label>Send a test email to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($emCfg['mail_from']??'') ?>" placeholder="your@email.com"></div>
+    <input type="hidden" name="target_uid" value="<?= htmlspecialchars($mailTarget) ?>">
+    <div class="afield" style="margin:0;flex:1;min-width:220px"><label>Send a test email (from <?= htmlspecialchars($mailTargetName) ?>) to</label><input type="email" name="test_to" required value="<?= htmlspecialchars($emCfg['mail_from']??'') ?>" placeholder="your@email.com"></div>
     <button class="abtn" type="submit">✉ Send test</button>
   </form>
   </div>
@@ -2426,6 +2461,14 @@ function smtpPreset(v){
         <?php endforeach; ?>
       </div>
     </div>
+    <div class="afield"><label>Send on behalf of</label>
+      <select name="q_seller_uid">
+        <option value="">Platform (VESTRA default sender)</option>
+        <?php foreach($sellerAccts as $s): $sid=$s['id']??''; $ok=vestra_seller_can_send(vestra_seller_mail($sid)); ?>
+        <option value="<?= htmlspecialchars($sid) ?>" <?= $ok?'':'disabled' ?>><?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= $ok?' ✓':' — set up email first' ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
     <div class="afield"><label>Message (optional)</label><textarea name="q_note" rows="3" placeholder="e.g. Prices valid 14 days · mixed-size cartons available · ask for a full size breakdown."></textarea></div>
     <button class="abtn primary" type="submit">✉ Send offer</button>
   </form>
@@ -2484,7 +2527,13 @@ function leadToggleAll(box){
     <input type="hidden" name="_action" value="send_lead_email">
     <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="abtn primary" type="submit">✉ Send invite to selected</button>
-      <span class="ahint">Max 50 per send · unsubscribed or email-less prospects can't be selected (click ＋ Add email to enrich)</span>
+      <select name="l_seller_uid" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px">
+        <option value="">From: Platform (VESTRA)</option>
+        <?php foreach($sellerAccts as $s): $sid=$s['id']??''; $ok=vestra_seller_can_send(vestra_seller_mail($sid)); ?>
+        <option value="<?= htmlspecialchars($sid) ?>" <?= $ok?'':'disabled' ?>>From: <?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= $ok?'':' (set up first)' ?></option>
+        <?php endforeach; ?>
+      </select>
+      <span class="ahint">Max 50 · unsubscribed/email-less can't be selected · pick a seller to send from their address</span>
     </div>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>

@@ -17,6 +17,29 @@ function vestra_cfg($k,$def=null){
   return array_key_exists($k,$c) ? $c[$k] : $def;
 }
 
+/* Per-seller sending identity (their OWN From address + SMTP/API) so offers/outreach
+ * go out truly "from" the seller — best deliverability (their provider signs SPF/DKIM).
+ * Stored web-denied + gitignored under data/, keyed by seller account id; same key shape
+ * as the global settings (smtp_host, smtp_port, smtp_user, smtp_pass, mail_from, smtp_name). */
+function vestra_seller_mail_all(): array {
+  $f=dirname(__DIR__).'/data/seller_mail.json';
+  if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+  return [];
+}
+function vestra_seller_mail(string $uid): array {
+  $a=vestra_seller_mail_all(); return (isset($a[$uid])&&is_array($a[$uid]))?$a[$uid]:[];
+}
+function vestra_seller_mail_save(string $uid, array $cfg): void {
+  $dir=dirname(__DIR__).'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
+  $a=vestra_seller_mail_all(); $a[$uid]=$cfg;
+  file_put_contents($dir.'/seller_mail.json',json_encode($a,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+  @chmod($dir.'/seller_mail.json',0600);
+}
+/* True when a seller has a usable own-transport configured. */
+function vestra_seller_can_send(array $cfg): bool {
+  return (($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') || ($cfg['mail_api_key']??'')!=='';
+}
+
 /* low-level: send one UTF-8 plain-text email. Transport priority:
  *   1) HTTP API (mail_api_key set) — sends over HTTPS/443, which shared hosts
  *      leave open even when they block outbound SMTP ports (25/465/587). Best
@@ -25,21 +48,28 @@ function vestra_cfg($k,$def=null){
  *   3) Local mail() — only lands in inboxes if the domain's SPF/DKIM authorize
  *      this server's IP.
  */
-function vestra_send_mail($to,$subject,$body,$replyTo=''){
-  if(!vestra_cfg('mail_enabled',false)) return false;
+function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
+  // Explicit sender config (e.g. a seller's OWN SMTP/API) — send truly "from" them.
+  if($cfg!==null){
+    if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg);
+    if(($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') return vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,$cfg);
+    return false; // sender selected but their transport isn't set up
+  }
+  if(!vestra_cfg('mail_enabled',false)) return false;
   if(vestra_cfg('mail_api_key','')!==''){
-    $ok = vestra_api_send($to,$subject,$body,$replyTo);
+    $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName);
     if(!$ok) error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
     return $ok;
   }
   if(vestra_cfg('smtp_host','')!==''){
-    $ok = vestra_smtp_send($to,$subject,$body,$replyTo);
+    $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName);
     if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
     return $ok;
   }
   $from=vestra_cfg('mail_from','support@vestrasales.com');
-  $h ="From: VESTRA <{$from}>\r\n";
+  $dispName=$fromName!==''?$fromName:'VESTRA';
+  $h ="From: {$dispName} <{$from}>\r\n";
   $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
   $subj='=?UTF-8?B?'.base64_encode($subject).'?=';
@@ -50,10 +80,11 @@ function vestra_send_mail($to,$subject,$body,$replyTo=''){
 
 /* Dependency-free authenticated SMTP (STARTTLS + AUTH LOGIN) — no PHPMailer/composer.
  * Config: smtp_host, smtp_port (default 587), smtp_user, smtp_pass, smtp_from, smtp_name. */
-function vestra_smtp_send($to,$subject,$body,$replyTo=''){
-  $host=vestra_cfg('smtp_host',''); $port=(int)vestra_cfg('smtp_port',587);
-  $user=vestra_cfg('smtp_user',''); $pass=vestra_cfg('smtp_pass','');
-  $from=vestra_cfg('smtp_from',$user); $name=vestra_cfg('smtp_name','VESTRA');
+function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
+  $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
+  $host=$g('smtp_host',''); $port=(int)$g('smtp_port',587);
+  $user=$g('smtp_user',''); $pass=$g('smtp_pass','');
+  $from=$g('smtp_from','')?:$user; $name=$fromName!==''?$fromName:$g('smtp_name','VESTRA');
   if($host===''||$user===''||$pass===''||$from===''){ error_log('[VESTRA SMTP] smtp_host set but user/pass/from missing'); return false; }
 
   $fp=@fsockopen($host,$port,$errno,$errstr,15);
@@ -97,11 +128,12 @@ function vestra_smtp_send($to,$subject,$body,$replyTo=''){
  * Config: mail_api_provider ('brevo' default | 'resend'), mail_api_key,
  *         mail_from (verified sender address), smtp_name (display name).
  * Returns true on a 2xx from the provider. */
-function vestra_api_send($to,$subject,$body,$replyTo=''){
-  $provider=strtolower((string)vestra_cfg('mail_api_provider','brevo'));
-  $key=(string)vestra_cfg('mail_api_key','');
-  $from=(string)vestra_cfg('mail_from','support@vestrasales.com');
-  $name=(string)vestra_cfg('smtp_name','VESTRA');
+function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
+  $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
+  $provider=strtolower((string)$g('mail_api_provider','brevo'));
+  $key=(string)$g('mail_api_key','');
+  $from=(string)$g('mail_from','support@vestrasales.com');
+  $name=$fromName!==''?$fromName:(string)$g('smtp_name','VESTRA');
   if($key===''||$from===''){ error_log('[VESTRA API] mail_api_key or mail_from missing'); return false; }
 
   if($provider==='resend'){

@@ -94,12 +94,13 @@ function vestra_lead_render_email(array $lead, array $tpl): array {
  *  A sender-identity + opt-out footer is always appended — the saved prospect's
  *  one-click unsubscribe link when the offer targets one, else a plain reply-to-opt-out
  *  line — so proactive offers stay as compliant as the invite outreach. */
-function vestra_quote_render_email(string $company, string $contact, array $lines, string $note, string $unsubUrl = ''): array {
-    $who = $company !== '' ? $company : 'your business';
-    $c   = $contact !== '' ? $contact : 'there';
-    $subject = 'VESTRA — wholesale offer' . ($company !== '' ? ' for ' . $company : '');
+function vestra_quote_render_email(string $company, string $contact, array $lines, string $note, string $unsubUrl = '', string $senderName = ''): array {
+    $who  = $company !== '' ? $company : 'your business';
+    $c    = $contact !== '' ? $contact : 'there';
+    $from = $senderName !== '' ? $senderName : 'VESTRA';
+    $subject = ($senderName !== '' ? $senderName : 'VESTRA') . ' — wholesale offer' . ($company !== '' ? ' for ' . $company : '');
     $b  = "Hello {$c},\n\n";
-    $b .= "Here's a wholesale offer from VESTRA — a KYC-verified B2B fashion marketplace. ".
+    $b .= "Here's a wholesale offer from {$from} on VESTRA — a KYC-verified B2B fashion marketplace. ".
           "Every seller is background-checked, goods are authenticity-verified on delivery, and orders run on clear invoice terms.\n\n";
     $b .= "Selected for {$who}:\n\n";
     foreach ($lines as $ln) {
@@ -111,8 +112,8 @@ function vestra_quote_render_email(string $company, string $contact, array $line
     $b .= "\n";
     if ($note !== '') $b .= $note . "\n\n";
     $b .= "Browse the full range or request a tailored quote: https://vestrasales.com/shop\n\n";
-    $b .= "Best regards,\nThe VESTRA team";
-    $b .= "\n\n—\nVESTRA is operated by acerasoft LLC. You received this wholesale offer because {$who} was identified as a potential trade buyer.\n";
+    $b .= "Best regards,\n".($senderName !== '' ? $senderName : 'The VESTRA team');
+    $b .= "\n\n—\n".($senderName !== '' ? $senderName.' via VESTRA (operated by acerasoft LLC)' : 'VESTRA is operated by acerasoft LLC').". You received this wholesale offer because {$who} was identified as a potential trade buyer.\n";
     $b .= $unsubUrl !== ''
         ? "Don't want these offers? Unsubscribe instantly: {$unsubUrl}"
         : "To opt out of future offers, just reply to this email.";
