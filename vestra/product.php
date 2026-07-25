@@ -72,10 +72,6 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
           <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous">‹</button>
           <button class="gal-nav next" onclick="galGo(1)" aria-label="Next">›</button>
-          <span class="gal-zoomhint" id="gal-zoomhint">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>
-            <?= t('Zoom') ?>
-          </span>
         <?php endif; ?>
         <?php if($mode==='sale'): ?><span class="modetag sale">SALE −<?= $disc ?>%</span>
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
@@ -523,27 +519,14 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
 </div>
 
 <?php if($images): ?>
-<!-- ── Premium fullscreen zoom lightbox ─────────────────────────────────────── -->
-<div class="zlb" id="zlb" aria-hidden="true" role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars(t('Product photo')) ?>">
-  <div class="zlb-stage" id="zlb-stage"><img class="zlb-img" id="zlb-img" src="" alt="<?= htmlspecialchars($p['name']) ?>" draggable="false"></div>
-  <button class="zlb-close" id="zlb-close" aria-label="<?= htmlspecialchars(t('Close')) ?>">✕</button>
-  <?php if(count($images) > 1): ?>
-  <button class="zlb-nav2 prev" id="zlb-prev" aria-label="Previous">‹</button>
-  <button class="zlb-nav2 next" id="zlb-next" aria-label="Next">›</button>
-  <div class="zlb-count" id="zlb-count"></div>
-  <?php endif; ?>
-  <div class="zlb-zoomctl"><button class="zlb-zbtn" id="zlb-in" aria-label="Zoom in">+</button><button class="zlb-zbtn" id="zlb-out" aria-label="Zoom out">−</button></div>
-  <div class="zlb-hint"><?= t('Scroll to zoom · drag to pan') ?></div>
-</div>
 <script>
 /* Slides: 0..n-1 = product photos (opens on the first photo); n = the brand card (last). */
 var galImgs=<?= json_encode($images) ?>, galN=galImgs.length, galIdx=0;
 function galSet(i){
   galIdx=i;
-  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card'),
-      hint=document.getElementById('gal-zoomhint');
-  if(i>=galN){ if(img) img.style.display='none'; card.style.display='flex'; if(hint) hint.style.display='none'; }
-  else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; if(hint) hint.style.display=''; }
+  var img=document.getElementById('gal-main-img'), card=document.getElementById('gal-card');
+  if(i>=galN){ if(img) img.style.display='none'; card.style.display='flex'; }
+  else { img.src=galImgs[i]; img.style.display='block'; card.style.display='none'; }
   document.querySelectorAll('.gal-thumb').forEach(function(t,j){ t.classList.toggle('active', j===i); });
 }
 function galGo(d){
@@ -551,62 +534,9 @@ function galGo(d){
   galSet(((galIdx+d)%n+n)%n);
 }
 document.addEventListener('keydown', function(e){
-  if(document.getElementById('zlb').classList.contains('open')) return; // lightbox owns the keys while open
   if(e.key==='ArrowLeft') galGo(-1);
   if(e.key==='ArrowRight') galGo(1);
 });
-/* ── Zoom lightbox: wheel/pinch zoom, drag pan, dbl-click, keyboard ─────────── */
-(function(){
-  var lb=document.getElementById('zlb'), limg=document.getElementById('zlb-img'),
-      stage=document.getElementById('zlb-stage'), lcount=document.getElementById('zlb-count');
-  var idx=0, scale=1, tx=0, ty=0, drag=false, sx=0, sy=0, ptx=0, pty=0;
-  var MIN=1, MAX=4.5, pts={}, pd0=0, ps0=1;
-  function render(){ limg.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')'; limg.classList.toggle('z', scale>1.01); }
-  function reset(){ scale=1; tx=0; ty=0; render(); }
-  function show(i){ idx=(i%galN+galN)%galN; limg.src=galImgs[idx]; if(lcount) lcount.textContent=(idx+1)+' / '+galN; reset(); }
-  function open(i){ show(i); lb.classList.add('open'); lb.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
-  function close(){ lb.classList.remove('open'); lb.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
-  function zoomAt(f, cx, cy){
-    var ns=Math.min(MAX, Math.max(MIN, scale*f)); if(ns===scale) return;
-    var r=limg.getBoundingClientRect(), ox=cx-(r.left+r.width/2), oy=cy-(r.top+r.height/2);
-    tx-=ox*(ns/scale-1); ty-=oy*(ns/scale-1); scale=ns; if(scale<=1.01){tx=0;ty=0;} render();
-  }
-  function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
-  stage.addEventListener('wheel', function(e){ e.preventDefault(); zoomAt(e.deltaY<0?1.16:1/1.16, e.clientX, e.clientY); }, {passive:false});
-  limg.addEventListener('dblclick', function(e){ e.preventDefault(); if(scale>1.01) reset(); else zoomAt(2.6, e.clientX, e.clientY); });
-  limg.addEventListener('pointerdown', function(e){
-    pts[e.pointerId]={x:e.clientX,y:e.clientY};
-    if(Object.keys(pts).length===1 && scale>1.01){ drag=true; limg.classList.add('drag'); sx=e.clientX; sy=e.clientY; ptx=tx; pty=ty; }
-  });
-  window.addEventListener('pointermove', function(e){
-    if(pts[e.pointerId]) pts[e.pointerId]={x:e.clientX,y:e.clientY};
-    var k=Object.keys(pts);
-    if(k.length===2){ drag=false; limg.classList.remove('drag'); var d=dist(pts[k[0]],pts[k[1]]); if(!pd0){pd0=d;ps0=scale;} else { scale=Math.min(MAX,Math.max(MIN,ps0*d/pd0)); if(scale<=1.01){tx=0;ty=0;} render(); } return; }
-    if(drag){ tx=ptx+(e.clientX-sx); ty=pty+(e.clientY-sy); render(); }
-  });
-  function up(e){ delete pts[e.pointerId]; if(Object.keys(pts).length<2) pd0=0; if(!Object.keys(pts).length){ drag=false; limg.classList.remove('drag'); } }
-  window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
-  document.getElementById('zlb-in').onclick=function(){ zoomAt(1.45, innerWidth/2, innerHeight/2); };
-  document.getElementById('zlb-out').onclick=function(){ zoomAt(1/1.45, innerWidth/2, innerHeight/2); };
-  document.getElementById('zlb-close').onclick=close;
-  var pv=document.getElementById('zlb-prev'), nx=document.getElementById('zlb-next');
-  if(pv) pv.onclick=function(){ show(idx-1); }; if(nx) nx.onclick=function(){ show(idx+1); };
-  lb.addEventListener('click', function(e){ if(e.target===lb || e.target===stage) close(); });
-  document.addEventListener('keydown', function(e){
-    if(!lb.classList.contains('open')) return;
-    if(e.key==='Escape') close();
-    else if(e.key==='ArrowLeft'){ show(idx-1); }
-    else if(e.key==='ArrowRight'){ show(idx+1); }
-    else if(e.key==='+'||e.key==='='){ zoomAt(1.45, innerWidth/2, innerHeight/2); }
-    else if(e.key==='-'||e.key==='_'){ zoomAt(1/1.45, innerWidth/2, innerHeight/2); }
-  });
-  /* open on main-image click (ignore nav buttons + brand-card slide) */
-  document.getElementById('gal-wrap').addEventListener('click', function(e){
-    if(e.target.closest('.gal-nav')) return;
-    if(galIdx>=galN) return;
-    open(galIdx);
-  });
-})();
 </script>
 <?php endif; ?>
 <script>
