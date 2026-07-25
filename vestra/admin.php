@@ -1346,10 +1346,18 @@ elseif($tab==='users'):
 <script>
 function ufilter(){
   var q=document.getElementById('usearch').value.toLowerCase();
+  document.querySelectorAll('.udetail').forEach(function(r){ r.style.display='none'; });
   document.querySelectorAll('.atable tr').forEach(function(tr,i){
-    if(i===0) return; // header
+    if(i===0||tr.classList.contains('udetail')) return; // header + detail rows follow their parent
     tr.style.display = tr.textContent.toLowerCase().indexOf(q)>-1 ? '' : 'none';
   });
+}
+function utgl(id){
+  var r=document.getElementById('ud-'+id), a=document.getElementById('uarr-'+id);
+  if(!r) return;
+  var hidden=(r.style.display==='none');
+  r.style.display=hidden?'':'none';
+  if(a) a.textContent=hidden?'▾':'▸';
 }
 </script>
 
@@ -1368,7 +1376,10 @@ function ufilter(){
   ?>
   <tr style="<?= $isSusp?'opacity:.45':'' ?>">
     <td class="ac" style="color:var(--mut)"><?= $i-- ?></td>
-    <td class="ac"><b><?= htmlspecialchars($a['name']??'—') ?></b><div class="ahint"><?= htmlspecialchars(substr($a['id']??'',0,10)) ?>…</div></td>
+    <td class="ac" style="cursor:pointer" onclick="utgl('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>')" title="Click to see full address">
+      <b><?= htmlspecialchars($a['name']??'—') ?></b> <span class="ahint" id="uarr-<?= htmlspecialchars($a['id']??'') ?>" style="color:var(--acc)">▸</span>
+      <div class="ahint"><?= htmlspecialchars(substr($a['id']??'',0,10)) ?>…</div>
+    </td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($a['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($a['email']??'') ?></a></td>
     <td class="ac"><?= typePill($a['type']??'') ?></td>
     <td class="ac"><?= htmlspecialchars($a['company']??'—') ?></td>
@@ -1437,6 +1448,25 @@ function ufilter(){
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>
     </div></td>
+  </tr>
+  <tr class="udetail" id="ud-<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>" style="display:none;background:rgba(201,168,106,.06)">
+    <td></td>
+    <td colspan="13" style="padding:14px 18px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1040px">
+        <div>
+          <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">📍 Full address</div>
+          <div style="font-size:13px;line-height:1.55"><?= ($a['address']??'')!=='' ? nl2br(htmlspecialchars($a['address'])) : '<span class="ahint">— none on file —</span>' ?><?php if(!empty($a['country'])): ?><br><?= htmlspecialchars($a['country']) ?><?php endif; ?></div>
+        </div>
+        <div>
+          <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">🏢 Company</div>
+          <div style="font-size:13px;line-height:1.6"><?= htmlspecialchars(($a['company']??'')?:'—') ?><?php if(!empty($a['vat_id'])): ?><br>VAT: <b><?= htmlspecialchars($a['vat_id']) ?></b><?php endif; ?><?php if(!empty($a['reg_number'])): ?><br>Reg: <?= htmlspecialchars($a['reg_number']) ?><?php endif; ?></div>
+        </div>
+        <div>
+          <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">☎ Contact</div>
+          <div style="font-size:13px;line-height:1.6"><?= htmlspecialchars(($a['name']??'')?:'—') ?><br><a href="mailto:<?= htmlspecialchars($a['email']??'') ?>" style="color:var(--acc)"><?= htmlspecialchars($a['email']??'') ?></a><?php if(!empty($a['phone'])): ?><br>📞 <?= htmlspecialchars($a['phone']) ?><?php endif; ?><?php if(!empty($a['website'])): ?><br>🔗 <a href="<?= htmlspecialchars($a['website']) ?>" target="_blank" rel="noopener" style="color:var(--acc)"><?= htmlspecialchars($a['website']) ?></a><?php endif; ?></div>
+        </div>
+      </div>
+    </td>
   </tr>
   <?php endforeach; ?>
 </table></div>
