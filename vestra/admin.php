@@ -2353,6 +2353,42 @@ elseif($tab==='prospects'):
   permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
 
+<div class="acard" style="margin-bottom:20px;border-color:rgba(51,102,204,.35)">
+  <div class="acard-hd"><h3>🔎 Customer Scout — find buyers to add</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:12px">Pick a segment + region, then open the ready searches to research real buyers (online retailers, boutiques, distributors). Add the good ones below or via <i>Import CSV</i>. VESTRA never scrapes — you choose who to contact.</p>
+  <div class="acols2" style="align-items:flex-end">
+    <div class="afield"><label>Segment / keyword</label><input id="csKw" value="streetwear boutique" oninput="csUpdate()" placeholder="e.g. designer menswear, sneaker store"></div>
+    <div class="afield"><label>Region</label>
+      <select id="csRegion" onchange="csUpdate()">
+        <option value="">(any)</option>
+        <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
+        <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
+      </select>
+    </div>
+  </div>
+  <div id="csLinks" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+  </div>
+</div>
+<script>
+function csUpdate(){
+  var kw=(document.getElementById('csKw').value||'').trim(), rg=document.getElementById('csRegion').value||'';
+  var base=(kw+' '+rg).trim(), q=encodeURIComponent(base);
+  var g=function(s){return 'https://www.google.com/search?q='+encodeURIComponent(s);};
+  var links=[
+    ['🔍 Google — online stores', g(base+' online store')],
+    ['✉ Google — contact email', g(base+' contact email')],
+    ['💼 LinkedIn companies', 'https://www.linkedin.com/search/results/companies/?keywords='+q],
+    ['📍 Google Maps', 'https://www.google.com/maps/search/'+q],
+    ['📸 Instagram shops', g('site:instagram.com '+base+' shop')],
+    ['🏭 Wholesale buyers / stockists', g(kw+' wholesale buyer stockist '+rg)]
+  ];
+  var box=document.getElementById('csLinks'); box.innerHTML='';
+  links.forEach(function(l){ var a=document.createElement('a'); a.href=l[1]; a.target='_blank'; a.rel='noopener'; a.className='abtn'; a.style.fontSize='12px'; a.textContent=l[0]; box.appendChild(a); });
+}
+document.addEventListener('DOMContentLoaded',csUpdate);
+</script>
+
 <div class="acard" style="margin-bottom:20px;border-color:<?= $emReady?'rgba(31,157,99,.45)':'rgba(169,127,44,.5)' ?>">
   <div class="acard-hd"><h3>📤 Sending email — <?= htmlspecialchars($mailTargetName) ?>
     <?= $emReady?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Ready</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Not set up</span>' ?></h3></div>
