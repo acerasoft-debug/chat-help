@@ -365,7 +365,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 }
 
 /* ── Seller customer outreach: own SMTP + own customer list + one-by-one send ── */
-if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one'],true)) {
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_array(($_POST['_action']??''),['seller_save_smtp','seller_send_test','seller_add_lead','seller_import_leads','seller_send_one','seller_find_email'],true)) {
   require_once __DIR__.'/inc/notify.php'; require_once __DIR__.'/inc/leads.php';
   $suid=$_SESSION['uid']??''; $sme=auth_user();
   if($suid==='' || ($sme['type']??'')!=='seller'){ if(($_POST['_action']??'')==='seller_send_one'){ header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>'auth']); } else header('Location: /seller?tab=find'); exit; }
@@ -375,8 +375,19 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     vestra_seller_mail_save($suid,['mail_enabled'=>true,'mail_from'=>$from,'smtp_from'=>$from,
       'smtp_name'=>trim($_POST['from_name']??'')?:$sName,'smtp_host'=>trim($_POST['smtp_host']??''),
       'smtp_port'=>(int)($_POST['smtp_port']??587)?:587,'smtp_user'=>trim($_POST['smtp_user']??'')?:$from,
-      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo','mail_api_key'=>(string)($cur['mail_api_key']??'')]);
+      'smtp_pass'=>$pass!==''?$pass:(string)($cur['smtp_pass']??''),'mail_api_provider'=>'brevo','mail_api_key'=>(string)($cur['mail_api_key']??''),
+      'finder_provider'=>trim($_POST['finder_provider']??'hunter')?:'hunter',
+      'finder_key'=>(($fk=trim($_POST['finder_key']??''))!=='')?$fk:(string)($cur['finder_key']??''),
+      'ai_key'=>(($ak=trim($_POST['ai_key']??''))!=='')?$ak:(string)($cur['ai_key']??'')]);
     header('Location: /seller?tab=find&msg=smtp_saved'); exit;
+  }
+  if($sact==='seller_find_email'){
+    $sc=vestra_seller_mail($suid); $lid=$_POST['lid']??''; $leads=vestra_leads(); $found='';
+    foreach($leads as &$l){ if(($l['id']??'')!==$lid || (string)($l['owner_uid']??'')!==$suid) continue;
+      if(($l['email']??'')==='') { $found=vestra_find_email((string)($l['website']??''),(string)($sc['finder_key']??''),(string)($sc['finder_provider']??'hunter')); if($found!=='') $l['email']=$found; }
+      break; }
+    unset($l); vestra_save_leads($leads);
+    header('Location: /seller?tab=find&msg='.($found!==''?'found_ok':'found_none')); exit;
   }
   if($sact==='seller_send_test'){
     $to=trim($_POST['test_to']??''); $sc=vestra_seller_mail($suid);
@@ -408,7 +419,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
       if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
-      $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName):null;
+      $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName,(string)($sc['ai_key']??'')):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
       if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
       else { $res['error']='send'; }
@@ -1027,7 +1038,9 @@ if($tab==='overview'){
   $myMail=vestra_seller_mail($uid); $mailReady=vestra_seller_can_send($myMail);
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
-  $fmsgs=['smtp_saved'=>'✓ Your sending email is saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.'];
+  $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Verified email found and added.','found_none'=>'No email found for that website — add it manually.'];
+  $sFinderOn=($myMail['finder_key']??'')!=='' || vestra_cfg('finder_key','')!=='';
+  $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
   $inp='width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg,#fff);color:var(--ink);font-size:13px;box-sizing:border-box';
   $lbl='display:block;font-size:11.5px;color:var(--mut);margin:0 0 4px';
   $card='border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;background:var(--card,#fff)';
@@ -1049,7 +1062,15 @@ if($tab==='overview'){
         <div><label style="<?= $lbl ?>">SMTP username</label><input name="smtp_user" value="<?= htmlspecialchars($myMail['smtp_user']??'') ?>" placeholder="usually your email" style="<?= $inp ?>"></div>
         <div><label style="<?= $lbl ?>">SMTP password <?= ($myMail['smtp_pass']??'')!==''?'· saved, blank = keep':'' ?></label><input type="password" name="smtp_pass" autocomplete="new-password" style="<?= $inp ?>"></div>
       </div>
-      <button class="btn btn-p btn-sm" type="submit">Save sending email</button>
+      <div style="border-top:1px solid var(--line);margin:2px 0 12px;padding-top:12px">
+        <div style="font-size:12.5px;font-weight:600;margin-bottom:2px">✨ Your own API keys <span style="color:var(--mut);font-weight:400">— optional; blank = use the platform's</span></div>
+        <div style="color:var(--mut);font-size:11.5px;margin-bottom:8px">Use your own so your finder/AI usage is billed to you, not the platform.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label style="<?= $lbl ?>">Email-finder key — Hunter.io<?= ($myMail['finder_key']??'')!==''?' · saved':'' ?></label><input type="password" name="finder_key" autocomplete="new-password" placeholder="real emails from a website" style="<?= $inp ?>"></div>
+          <div><label style="<?= $lbl ?>">AI key — DeepSeek<?= ($myMail['ai_key']??'')!==''?' · saved':'' ?></label><input type="password" name="ai_key" autocomplete="new-password" placeholder="personalise each email" style="<?= $inp ?>"></div>
+        </div>
+      </div>
+      <button class="btn btn-p btn-sm" type="submit">Save sending email &amp; keys</button>
     </form>
     <form method="post" style="margin-top:10px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
       <input type="hidden" name="_action" value="seller_send_test">
@@ -1090,6 +1111,7 @@ if($tab==='overview'){
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
       <button class="btn btn-p btn-sm" type="button" onclick="sellerSend(this)" <?= $mailReady?'':'disabled title="Set up your sending email first"' ?>>▶ Send one-by-one (live)</button>
       <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)"><input type="checkbox" id="sAll" onclick="document.querySelectorAll('.slc').forEach(c=>{if(!c.disabled)c.checked=this.checked})"> select all</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="<?= $sAiOn?'Rewrite each email for the customer with AI':'Add your DeepSeek key above to enable' ?>"><input type="checkbox" id="sAi" <?= $sAiOn?'':'disabled' ?>> ✨ AI personalize<?= $sAiOn?'':' (add key)' ?></label>
       <span style="font-size:11.5px;color:var(--mut)">Email-less/unsubscribed can't be selected.</span>
     </div>
     <div id="sSob" style="display:none;background:var(--bg2,#f7f7fb);border-radius:10px;padding:10px 12px;margin-bottom:10px"><div id="sSobBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div><div id="sSobLog" style="max-height:200px;overflow:auto"></div></div>
@@ -1099,7 +1121,7 @@ if($tab==='overview'){
       <tr style="border-top:1px solid var(--line);opacity:<?= ($noEmail||$unsub)?.6:1 ?>">
         <td style="padding:6px"><input class="slc" type="checkbox" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($noEmail||$unsub)?'disabled':'' ?>></td>
         <td style="padding:6px"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
-        <td style="padding:6px;font-size:11.5px"><?= $noEmail?'<span style="color:#a9781a">— add email</span>':htmlspecialchars($l['email']) ?></td>
+        <td style="padding:6px;font-size:11.5px"><?php if($noEmail): ?><span style="color:#a9781a">—</span><?php if(!empty($l['website']) && $sFinderOn): ?> <form method="post" style="display:inline"><input type="hidden" name="_action" value="seller_find_email"><input type="hidden" name="lid" value="<?= htmlspecialchars($l['id']??'') ?>"><button class="btn btn-o btn-sm" style="padding:1px 7px;font-size:10.5px" type="submit">🔍 Find</button></form><?php endif; ?><?php else: ?><?= htmlspecialchars($l['email']) ?><?php endif; ?></td>
         <td style="padding:6px"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
         <td style="padding:6px;font-size:11.5px"><?= htmlspecialchars(ucfirst($l['status']??'new')) ?></td>
       </tr>
@@ -1114,11 +1136,12 @@ function sellerSend(btn){
   if(!boxes.length){ alert('Select at least one customer first.'); return; }
   var ids=boxes.map(function(c){return c.value;});
   var wrap=document.getElementById('sSob'),bar=document.getElementById('sSobBar'),log=document.getElementById('sSobLog');
+  var aiEl=document.getElementById('sAi'); var ai=(aiEl&&aiEl.checked&&!aiEl.disabled)?'1':'';
   wrap.style.display='block'; log.innerHTML=''; btn.disabled=true; var i=0,ok=0,fail=0;
   function next(){
     if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh for statuses.'; btn.disabled=false; return; }
-    bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
-    var fd=new FormData(); fd.append('_action','seller_send_one'); fd.append('lead_id',ids[i]);
+    bar.textContent='Sending '+(i+1)+' / '+ids.length+(ai?' ✨':'')+'…';
+    var fd=new FormData(); fd.append('_action','seller_send_one'); fd.append('lead_id',ids[i]); fd.append('ai',ai);
     fetch('/seller?tab=find',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
       var ln=document.createElement('div'); ln.style.fontSize='12px'; ln.style.padding='2px 0';
       if(d.ok){ ok++; ln.style.color='#1f9d63'; ln.textContent='✓ '+(d.company||d.email||''); }

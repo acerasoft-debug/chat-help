@@ -51,14 +51,14 @@ function vestra_seller_can_send(array $cfg): bool {
  * own key). Config (global email_settings): finder_provider ('hunter'|'anymailfinder'),
  * finder_key. Returns the best generic/contact email, or '' if none / not configured.
  * Purpose-built finders (not an LLM) return real, verified addresses. */
-function vestra_find_email(string $website): string {
+function vestra_find_email(string $website, string $keyOverride='', string $providerOverride=''): string {
   $domain=strtolower(trim($website));
   $domain=preg_replace('#^https?://#','',$domain);
   $domain=preg_replace('#[/?].*$#','',$domain);
   $domain=preg_replace('#^www\.#','',$domain);
   if($domain===''||strpos($domain,'.')===false) return '';
-  $key=(string)vestra_cfg('finder_key',''); if($key==='') return '';
-  $provider=strtolower((string)vestra_cfg('finder_provider','hunter'));
+  $key=$keyOverride!==''?$keyOverride:(string)vestra_cfg('finder_key',''); if($key==='') return '';
+  $provider=strtolower($providerOverride!==''?$providerOverride:(string)vestra_cfg('finder_provider','hunter'));
   if($provider==='anymailfinder'){
     $ch=curl_init('https://api.anymailfinder.com/v5.0/search/company.json');
     curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>25,
@@ -91,8 +91,8 @@ function vestra_ai_key(): string {
   if(defined('DEEPSEEK_KEY') && constant('DEEPSEEK_KEY')) return (string)constant('DEEPSEEK_KEY');
   return '';
 }
-function vestra_ai_chat(array $messages, float $temp=0.6, int $max=700): string {
-  $key=vestra_ai_key(); if($key==='') return '';
+function vestra_ai_chat(array $messages, float $temp=0.6, int $max=700, string $keyOverride=''): string {
+  $key=$keyOverride!==''?$keyOverride:vestra_ai_key(); if($key==='') return '';
   $url=(string)vestra_cfg('ai_url','https://api.deepseek.com/chat/completions');
   $ch=curl_init($url);
   curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>60,CURLOPT_POST=>true,
@@ -105,14 +105,14 @@ function vestra_ai_chat(array $messages, float $temp=0.6, int $max=700): string 
 /* Personalise the outreach for one customer → [subject, body] (with the required
  * sender + unsubscribe footer appended), or null if AI is off/fails (caller falls
  * back to the template). $senderName lets a seller's offer be signed as the seller. */
-function vestra_ai_personalize(array $lead, array $tpl, string $senderName=''): ?array {
-  if(vestra_ai_key()==='') return null;
+function vestra_ai_personalize(array $lead, array $tpl, string $senderName='', string $keyOverride=''): ?array {
+  if(($keyOverride!==''?$keyOverride:vestra_ai_key())==='') return null;
   $company=(string)($lead['company']??''); $country=(string)($lead['country']??'');
   $cat=(string)($lead['category']??''); $contact=(string)($lead['contact_name']??'');
   $sender=$senderName!==''?$senderName:'VESTRA';
   $sys="You write concise, professional B2B wholesale outreach emails for a KYC-verified marketplace selling AUTHENTIC branded fashion (Lacoste, DSQUARED2, Ralph Lauren, Dolce & Gabbana, Amiri) wholesale to small/medium multi-brand retailers. Warm but businesslike, 80-120 words, no invented facts, no unfilled placeholders. Plain text only.";
   $usr="Write a personalised wholesale outreach email from \"{$sender}\" to this retailer.\nCompany: {$company}\nContact: {$contact}\nCountry: {$country}\nSegment/notes: {$cat}\n\nReference 1-2 relevant brands, invite them to browse or request a quote at https://vestrasales.com/shop, sign as \"{$sender}\". First line 'Subject: ...', then a blank line, then the body.";
-  $out=vestra_ai_chat([['role'=>'system','content'=>$sys],['role'=>'user','content'=>$usr]]);
+  $out=vestra_ai_chat([['role'=>'system','content'=>$sys],['role'=>'user','content'=>$usr]],0.6,700,$keyOverride);
   if($out==='') return null;
   $subject=(string)($tpl['subject']??'Wholesale offer'); $body=$out;
   if(preg_match('/^\s*Subject:\s*(.+?)\r?\n(.*)$/is',$out,$m)){ $subject=trim($m[1]); $body=trim($m[2]); }
