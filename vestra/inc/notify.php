@@ -76,6 +76,47 @@ function vestra_find_email(string $website): string {
   return '';
 }
 
+/* AI outreach personalisation (DeepSeek by default, OpenAI-compatible). The key comes
+ * from vestra_cfg('ai_key') (admin/config) or a DEEPSEEK_KEY constant if the server
+ * already defines one (e.g. shared with the chat app) — never committed to git. */
+function vestra_ai_key(): string {
+  $k=(string)vestra_cfg('ai_key',''); if($k!=='') return $k;
+  if(defined('DEEPSEEK_KEY') && constant('DEEPSEEK_KEY')) return (string)constant('DEEPSEEK_KEY');
+  return '';
+}
+function vestra_ai_chat(array $messages, float $temp=0.6, int $max=700): string {
+  $key=vestra_ai_key(); if($key==='') return '';
+  $url=(string)vestra_cfg('ai_url','https://api.deepseek.com/chat/completions');
+  $ch=curl_init($url);
+  curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>60,CURLOPT_POST=>true,
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key],
+    CURLOPT_POSTFIELDS=>json_encode(['model'=>(string)vestra_cfg('ai_model','deepseek-chat'),'messages'=>$messages,'temperature'=>$temp,'max_tokens'=>$max],JSON_UNESCAPED_UNICODE)]);
+  $res=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+  if($res===false||$code<200||$code>=300){ error_log("[VESTRA AI] HTTP {$code}"); return ''; }
+  $d=json_decode((string)$res,true); return trim((string)($d['choices'][0]['message']['content'] ?? ''));
+}
+/* Personalise the outreach for one customer → [subject, body] (with the required
+ * sender + unsubscribe footer appended), or null if AI is off/fails (caller falls
+ * back to the template). $senderName lets a seller's offer be signed as the seller. */
+function vestra_ai_personalize(array $lead, array $tpl, string $senderName=''): ?array {
+  if(vestra_ai_key()==='') return null;
+  $company=(string)($lead['company']??''); $country=(string)($lead['country']??'');
+  $cat=(string)($lead['category']??''); $contact=(string)($lead['contact_name']??'');
+  $sender=$senderName!==''?$senderName:'VESTRA';
+  $sys="You write concise, professional B2B wholesale outreach emails for a KYC-verified marketplace selling AUTHENTIC branded fashion (Lacoste, DSQUARED2, Ralph Lauren, Dolce & Gabbana, Amiri) wholesale to small/medium multi-brand retailers. Warm but businesslike, 80-120 words, no invented facts, no unfilled placeholders. Plain text only.";
+  $usr="Write a personalised wholesale outreach email from \"{$sender}\" to this retailer.\nCompany: {$company}\nContact: {$contact}\nCountry: {$country}\nSegment/notes: {$cat}\n\nReference 1-2 relevant brands, invite them to browse or request a quote at https://vestrasales.com/shop, sign as \"{$sender}\". First line 'Subject: ...', then a blank line, then the body.";
+  $out=vestra_ai_chat([['role'=>'system','content'=>$sys],['role'=>'user','content'=>$usr]]);
+  if($out==='') return null;
+  $subject=(string)($tpl['subject']??'Wholesale offer'); $body=$out;
+  if(preg_match('/^\s*Subject:\s*(.+?)\r?\n(.*)$/is',$out,$m)){ $subject=trim($m[1]); $body=trim($m[2]); }
+  $map=['{{company}}'=>$company,'{{contact_name}}'=>($contact?:'there'),'{{country}}'=>$country];
+  $subject=strtr($subject,$map); $body=strtr($body,$map);
+  $unsubUrl='https://vestrasales.com/lead-unsubscribe?token='.urlencode((string)($lead['unsub_token']??''));
+  $body.="\n\n—\n".($senderName!==''?$senderName.' via VESTRA (operated by acerasoft LLC)':'VESTRA is operated by acerasoft LLC').
+         ". You're receiving this one-time business message because {$company} was identified as a potential trade partner.\nUnsubscribe: {$unsubUrl}";
+  return [$subject,$body];
+}
+
 /* low-level: send one UTF-8 plain-text email. Transport priority:
  *   1) HTTP API (mail_api_key set) — sends over HTTPS/443, which shared hosts
  *      leave open even when they block outbound SMTP ports (25/465/587). Best

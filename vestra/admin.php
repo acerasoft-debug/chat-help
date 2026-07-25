@@ -579,6 +579,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
     header('Location: /admin?tab=prospects&msg=finder_saved'); exit;
   }
+  /* Save the AI (DeepSeek) key for outreach personalisation — optional; falls back
+     to a server DEEPSEEK_KEY constant. Stored web-blocked, never in git. */
+  if($act==='save_ai'){
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+    $k=trim($_POST['ai_key']??''); $cur['ai_key']=$k!==''?$k:(string)($cur['ai_key']??'');
+    if(($m=trim($_POST['ai_model']??''))!=='') $cur['ai_model']=$m;
+    file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+    header('Location: /admin?tab=prospects&msg=ai_saved'); exit;
+  }
   /* Find a verified email for one customer from its website domain. */
   if($act==='find_lead_email'){
     require_once __DIR__.'/inc/notify.php';
@@ -645,14 +655,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $a0=array_values(array_filter(auth_accounts(),fn($a)=>($a['id']??'')===$sellerUid))[0]??null;
       $senderName=$a0?($a0['company']??$a0['name']??''):'';
     }
-    $leads=vestra_leads(); $tpl=vestra_lead_template(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    $leads=vestra_leads(); $tpl=vestra_lead_template(); $ai=($_POST['ai']??'')==='1'; $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
     foreach($leads as &$l){
       if(($l['id']??'')!==$lid) continue;
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
       if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
-      [$subject,$body]=vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
+      $pair=$ai?vestra_ai_personalize($l,$tpl,$senderName):null;
+      [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
+      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
       else { $res['error']='send'; }
       break;
     }
@@ -1069,6 +1080,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'email_saved'=>'✓ Sending email saved. Send yourself a test to confirm it works.','test_ok'=>'✓ Test email sent — check that inbox.','test_fail'=>'Test failed — check the SMTP host/username/password (or use an API key).','test_invalid'=>'Enter a valid email address to send the test to.',
     'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
     'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.','finder_bulk'=>'✓ Email-finder run — missing emails filled where found.',
+    'ai_saved'=>'✓ AI personalisation key saved.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -2377,6 +2389,7 @@ elseif($tab==='prospects'):
            : (!empty($emCfg['mail_enabled']) && ((($emCfg['smtp_host']??'')!=='' && ($emCfg['smtp_pass']??'')!=='') || ($emCfg['mail_api_key']??'')!==''));
   $mailTargetName = $mailTarget!=='' ? (($a0=array_values(array_filter($sellerAccts,fn($a)=>($a['id']??'')===$mailTarget))[0]??null) ? ($a0['company']??$a0['name']??'Seller') : 'Seller') : 'Platform (VESTRA)';
   $finderOn = vestra_cfg('finder_key','')!=='';
+  $aiOn = vestra_ai_key()!=='';
 ?>
 <p class="ahint" style="margin-bottom:16px;max-width:760px">
   Your <b>customer</b> list — the retailers, stores and buyers you want to sell to. It only grows from research
@@ -2438,6 +2451,20 @@ document.addEventListener('DOMContentLoaded',csUpdate);
     <button class="abtn" type="submit">🔍 Find all missing emails</button>
   </form>
   <?php endif; ?>
+  </div>
+</div>
+
+<div class="acard" style="margin-bottom:20px">
+  <div class="acard-hd"><h3>✨ AI personalisation (DeepSeek)
+    <?= $aiOn?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Connected</span>':'<span style="color:#a9781a;font-size:12px;font-weight:600">● Add key</span>' ?></h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin-bottom:10px">Tick <b>✨ AI personalize each</b> before a one-by-one send and every customer gets a tailored email (written from their company / country / segment). If your server already defines <code>DEEPSEEK_KEY</code> (shared with ChatHelp) it's used automatically — otherwise paste your DeepSeek key here. Stored web-blocked, never in git.</p>
+  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= csrfField() ?><input type="hidden" name="_action" value="save_ai">
+    <div class="afield" style="margin:0;flex:1;min-width:240px"><label>DeepSeek API key <?= (vestra_cfg('ai_key','')!=='')?'<span class="ahint">· saved, blank = keep</span>':($aiOn?'<span class="ahint">· using server DEEPSEEK_KEY ✓</span>':'') ?></label><input type="password" name="ai_key" placeholder="sk-…" autocomplete="new-password"></div>
+    <div class="afield" style="margin:0"><label>Model</label><input name="ai_model" value="<?= htmlspecialchars((string)vestra_cfg('ai_model','deepseek-chat')) ?>" style="width:150px"></div>
+    <button class="abtn primary" type="submit">Save AI key</button>
+  </form>
   </div>
 </div>
 
@@ -2680,6 +2707,7 @@ function leadToggleAll(box){
     <div style="padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
       <button class="abtn primary" type="submit">✉ Send invite to selected</button>
       <button type="button" class="abtn" onclick="sendOneByOne(this)">▶ Send one-by-one (live)</button>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--mut)" title="Personalise each email with AI (DeepSeek)"><input type="checkbox" id="aiPersonalize" <?= $aiOn?'':'disabled' ?>> ✨ AI personalize<?= $aiOn?'':' (add key ↑)' ?></label>
       <select name="l_seller_uid" style="background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px">
         <option value="">From: Platform (VESTRA)</option>
         <?php foreach($sellerAccts as $s): $sid=$s['id']??''; $ok=vestra_seller_can_send(vestra_seller_mail($sid)); ?>
@@ -2699,13 +2727,14 @@ function leadToggleAll(box){
       if(!boxes.length){ alert('Select at least one customer (checkbox) first.'); return; }
       var ids=boxes.map(function(c){return c.value;});
       var sel=document.querySelector('[name=l_seller_uid]'); var seller=sel?sel.value:'';
+      var aiEl=document.getElementById('aiPersonalize'); var ai=(aiEl&&aiEl.checked)?'1':'';
       var wrap=document.getElementById('sobWrap'), bar=document.getElementById('sobBar'), log=document.getElementById('sobLog');
       wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
       var i=0, ok=0, fail=0;
       function next(){
         if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh to see updated statuses.'; btn.disabled=false; return; }
         bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
-        var fd=new FormData(); fd.append('_action','send_lead_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lead_id',ids[i]); fd.append('l_seller_uid',seller);
+        var fd=new FormData(); fd.append('_action','send_lead_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lead_id',ids[i]); fd.append('l_seller_uid',seller); fd.append('ai',ai);
         fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
           var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
           if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||d.email||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
