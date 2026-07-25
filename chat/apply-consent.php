@@ -42,12 +42,12 @@ $boot=<<<BOOT
 }catch(e){}})();</script>
 BOOT;
 
+/* ilk <head> = gercek dokuman head'i (2301); sonraki ~9 tanesi body-ici JS string'lerinde */
 $hpos=strpos($src,'<head>');
 if($hpos===false){ echo "  ✗ <head> capasi bulunamadi — DEGISTIRILMEDI.\n"; exit; }
-$hc=substr_count($src,'<head>');
-if($hc!==1){ echo "  ✗ <head> $hc kez (1 beklenir) — DEGISTIRILMEDI.\n"; exit; }
+if($hpos>5000){ echo "  ✗ ilk <head> beklenmedik konumda (@$hpos) — DEGISTIRILMEDI.\n"; exit; }
 $src=substr($src,0,$hpos+6)."\n".$boot.substr($src,$hpos+6);
-echo "  ✓ [BOOT] <head> icine pixel yukleyici eklendi\n";
+echo "  ✓ [BOOT] ilk <head> (@$hpos) icine pixel yukleyici eklendi\n";
 
 /* ── [B] </body> oncesine: cok dilli onay banner'i ── */
 $banner=<<<BANNER
