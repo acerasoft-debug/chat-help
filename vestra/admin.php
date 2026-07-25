@@ -724,6 +724,16 @@ if($authed && isset($_GET['dl_doc'])){
 }
 
 // ── CSV download ───────────────────────────────────────────────────────────────
+if($authed && ($_GET['dl']??'')==='sellers'){
+  header('Content-Type: text/csv; charset=UTF-8');
+  header('Content-Disposition: attachment; filename="vestra-sellers.csv"');
+  $out=fopen('php://output','w');
+  fputcsv($out,['company','contact_name','email','country','address','vat_id','reg_number','phone','website','status','kyb_status'],',','"','\\');
+  foreach(auth_accounts() as $a){ if(($a['type']??'')!=='seller') continue;
+    fputcsv($out,[$a['company']??'',$a['name']??'',$a['email']??'',$a['country']??'',$a['address']??'',$a['vat_id']??'',$a['reg_number']??'',$a['phone']??'',$a['website']??'',$a['status']??'',$a['kyb_status']??''],',','"','\\');
+  }
+  fclose($out); exit;
+}
 if($authed && isset($_GET['dl'])){
   $map=['signups'=>'signups.csv','orders'=>'orders.csv','offers'=>'offers.csv','requests'=>'requests.csv','groups'=>'groups.csv','request_offers'=>'request_offers.csv'];
   $f=$map[$_GET['dl']]??null; $path=$f?vestra_data_dir().'/'.$f:'';
@@ -1492,6 +1502,7 @@ elseif($tab==='users'):
     <a class="abtn<?= $filterType==='all'?' primary':'' ?>" href="/admin?tab=users&type=all">All (<?= count($accounts) ?>)</a>
     <a class="abtn<?= $filterType==='seller'?' primary':'' ?>" href="/admin?tab=users&type=seller">Sellers (<?= count($sellers) ?>)</a>
     <a class="abtn<?= $filterType==='buyer'?' primary':'' ?>" href="/admin?tab=users&type=buyer">Buyers (<?= count($buyers) ?>)</a>
+    <a class="abtn" href="/admin?dl=sellers" title="Download all sellers with company, email, address, VAT">⬇ Export sellers CSV</a>
   </div>
 </div>
 <script>
