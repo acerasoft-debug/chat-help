@@ -45,9 +45,10 @@
     "name": "Trim Cotton Jersey T-Shirt",
     "cat": "T-Shirts",
     "sku": "LAC-LT-TEE-01",
-    "moq": 20,
+    "moq": 100,
     "unit": "pc",
-    "mode": "fixed",
+    "mode": "sale",
+    "list": 28.0,
     "desc": "Regular fit cotton jersey t-shirt with the signature logo-trim chest stripe. Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.",
     "origin": "Authorised allocation",
     "verified": true,
@@ -74,9 +75,7 @@
       "Authenticity": "Verified on delivery · proof of sourcing on request"
     },
     "tiers": [
-      { "min": 20, "price": 22.0 },
-      { "min": 60, "price": 20.0 },
-      { "min": 120, "price": 18.0 }
+      { "min": 100, "price": 20.0 }
     ]
   }
 ]
