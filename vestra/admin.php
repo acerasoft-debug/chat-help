@@ -1141,10 +1141,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'approvals','⚠️','Approvals',count($pendingList),true) ?>
   <?= navLink($tab,'documents','📄','Documents',$pendingDocs,$pendingDocs>0) ?>
 
-  <div class="sgrp">People</div>
+  <div class="sgrp">Customers &amp; outreach</div>
+  <?= navLink($tab,'prospects','🎯','Customers ('.count($leads).')') ?>
+  <?= navLink($tab,'messages','✉️','Messages ('.count($msgThreads).')',count($blockedMsgs),count($blockedMsgs)>0) ?>
   <?= navLink($tab,'users','👥','Users ('.count($accounts).')',count($pendingEmail),count($pendingEmail)>0) ?>
+  <?= navLink($tab,'waitlist','📩','Waitlist ('.count($signups).')') ?>
 
-  <div class="sgrp">Transactions</div>
+  <div class="sgrp">Sales</div>
   <?= navLink($tab,'orders','📦','Orders ('.count($orders).')') ?>
   <?= navLink($tab,'invoices','🧾','Invoice approvals',$pendingInvoiceCount,$pendingInvoiceCount>0) ?>
   <?= navLink($tab,'offers','💬','Offers ('.count($offers).')') ?>
@@ -1152,21 +1155,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'req_offers','📩','Request Offers ('.count($reqOffers).')') ?>
   <?= navLink($tab,'groups','👥','Group buys ('.count($groupPools).')') ?>
 
-  <div class="sgrp">Moderation</div>
-  <?= navLink($tab,'messages','✉️','Messages ('.count($msgThreads).')',count($blockedMsgs),count($blockedMsgs)>0) ?>
-  <?= navLink($tab,'notify','🔔','Notifications') ?>
-
   <div class="sgrp">Catalog</div>
-  <?= navLink($tab,'prices','💶','Prices & MOQ') ?>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
+  <?= navLink($tab,'prices','💶','Prices &amp; MOQ') ?>
 
-  <div class="sgrp">Content</div>
-  <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
-
-  <div class="sgrp">Marketing</div>
+  <div class="sgrp">Growth</div>
   <?= navLink($tab,'marketing','🎟️','Promo codes ('.count($promos).')') ?>
-  <?= navLink($tab,'prospects','🎯','Customers ('.count($leads).')') ?>
-  <?= navLink($tab,'waitlist','📩','Waitlist ('.count($signups).')') ?>
+  <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
+  <?= navLink($tab,'notify','🔔','Notifications') ?>
 </nav>
 
 <!-- MAIN -->

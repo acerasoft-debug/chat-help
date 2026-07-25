@@ -13,6 +13,13 @@ function vestra_cfg($k,$def=null){
     $mf=dirname(__DIR__).'/data/email_settings.json';
     if(is_readable($mf)){ $m=json_decode((string)file_get_contents($mf),true);
       if(is_array($m)) foreach($m as $mk=>$mv){ if($mv!=='' && $mv!==null) $c[$mk]=$mv; } }
+    // Reuse server constants (e.g. the ones already in chat/config.php: SMTP_* and
+    // DEEPSEEK_KEY) as defaults when a vestra setting isn't otherwise configured —
+    // define them in inc/config.php and sending / AI work with no re-entry.
+    foreach(['smtp_host'=>'SMTP_HOST','smtp_port'=>'SMTP_PORT','smtp_user'=>'SMTP_USER','smtp_pass'=>'SMTP_PASS','smtp_from'=>'SMTP_FROM','mail_from'=>'SMTP_FROM','ai_key'=>'DEEPSEEK_KEY'] as $ck=>$const){
+      if(($c[$ck]??'')==='' && defined($const) && (string)constant($const)!=='') $c[$ck]=(string)constant($const);
+    }
+    if(!isset($c['mail_enabled']) && ($c['smtp_host']??'')!=='') $c['mail_enabled']=true;
   }
   return array_key_exists($k,$c) ? $c[$k] : $def;
 }
