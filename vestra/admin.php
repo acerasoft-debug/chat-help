@@ -1250,18 +1250,44 @@ if(!$docReqs): ?>
     </div>
     <?= docBadge($st) ?>
   </div>
-  <?php if($st==='uploaded' && !empty($req['file'])): ?>
+  <?php if($st==='uploaded' && !empty($req['file'])):
+    $docUrl  = '/admin?dl_doc='.urlencode($req['file']).'&uid='.urlencode($selUser['id']??'');
+    $ext     = strtolower(pathinfo($req['file'],PATHINFO_EXTENSION));
+    $isImg   = in_array($ext,['jpg','jpeg','png','webp'],true);
+    $isPdf   = ($ext==='pdf');
+    $docLabel= $docTypes[$req['type']??'']??($req['type']??'Document');
+    $who     = trim(($selUser['company']??'')?:($selUser['name']??'')?:($selUser['email']??''));
+    $fpath   = function_exists('auth_doc_file_path') ? auth_doc_file_path($selUser['id']??'',$req['file']) : '';
+    $fsize   = ($fpath && is_readable($fpath)) ? round(filesize($fpath)/1024).' KB' : '';
+    $cfJs    = htmlspecialchars(addslashes($docLabel.' — '.$who), ENT_QUOTES);
+  ?>
   <div class="acard-body">
-    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <a class="abtn" href="/admin?dl_doc=<?= urlencode($req['file']) ?>&uid=<?= urlencode($selUser['id']??'') ?>" target="_blank">📂 View uploaded file</a>
+    <!-- Exactly what is being approved -->
+    <div style="background:rgba(201,168,106,.07);border:1px solid rgba(201,168,106,.28);border-radius:8px;padding:11px 13px;margin-bottom:12px">
+      <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)">You are approving</div>
+      <div style="font-weight:600;font-size:14.5px;margin-top:3px">📄 <?= htmlspecialchars($docLabel) ?></div>
+      <div class="ahint" style="margin-top:3px">For account: <b><?= htmlspecialchars($who) ?></b> · <?= htmlspecialchars($selUser['id']??'') ?></div>
+      <div class="ahint" style="margin-top:3px">File: <b><?= htmlspecialchars($req['file']) ?></b> · <?= strtoupper($ext)?:'FILE' ?><?= $fsize?' · '.$fsize:'' ?></div>
+      <?php if(!empty($req['note'])): ?><div class="ahint" style="margin-top:5px">What was requested: <?= htmlspecialchars($req['note']) ?></div><?php endif; ?>
+    </div>
+    <!-- Live preview of the actual document -->
+    <?php if($isImg): ?>
+      <a href="<?= $docUrl ?>" target="_blank" title="Open full size"><img src="<?= $docUrl ?>" alt="Document preview" style="max-width:100%;max-height:360px;border:1px solid var(--line);border-radius:8px;display:block;margin-bottom:12px;background:#fff"></a>
+    <?php elseif($isPdf): ?>
+      <iframe src="<?= $docUrl ?>#view=FitH" title="Document preview" style="width:100%;height:440px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:12px"></iframe>
+    <?php else: ?>
+      <div class="ahint" style="margin-bottom:12px">Preview not available for .<?= htmlspecialchars($ext) ?> files — open the file to review it.</div>
+    <?php endif; ?>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <a class="abtn" href="<?= $docUrl ?>" target="_blank">📂 Open full file</a>
       <form method="post" style="display:inline-flex;gap:8px;align-items:center">
         <?= csrfField() ?>
         <input type="hidden" name="_action" value="review_doc">
         <input type="hidden" name="uid" value="<?= htmlspecialchars($selUser['id']??'') ?>">
         <input type="hidden" name="req_id" value="<?= htmlspecialchars($req['id']??'') ?>">
-        <input name="admin_note" placeholder="Optional note" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px;width:180px">
-        <button class="abtn" name="status" value="approved" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">✓ Approve</button>
-        <button class="abtn" name="status" value="rejected" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)">✗ Reject</button>
+        <input name="admin_note" placeholder="Optional note" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px;width:170px">
+        <button class="abtn" name="status" value="approved" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)" onclick="return confirm('Approve the <?= $cfJs ?>?')">✓ Approve this document</button>
+        <button class="abtn" name="status" value="rejected" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="return confirm('Reject the <?= $cfJs ?>? They will be asked to re-upload.')">✗ Reject</button>
       </form>
     </div>
   </div>
