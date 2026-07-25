@@ -678,6 +678,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     else { $ok=vestra_send_mail($to,'VESTRA — test email',$body); }
     header('Location: /admin?tab=prospects'.($uid!==''?'&mailfor='.urlencode($uid):'').'&msg='.($ok?'test_ok':'test_fail')); exit;
   }
+  /* Operator replies in a conversation from Admin → Messages — as the seller/support
+     side (covers platform/seller-less listings routed to VESTRA Support). */
+  if($act==='admin_reply'){
+    require_once __DIR__.'/inc/messages.php';
+    $tid=$_POST['thread_id']??''; $body=trim($_POST['body']??'');
+    $th=vestra_msg_find_thread($tid);
+    if($th && $body!==''){ vestra_msg_send((string)($th['buyer_uid']??''),(string)($th['seller_uid']??''),(string)($th['seller_uid']??''),$body,(string)($th['listing_id']??'')); }
+    header('Location: /admin?tab=messages&msg=replied'); exit;
+  }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
   if($act==='send_push'){
@@ -2626,6 +2635,7 @@ elseif($tab==='groups'):
 elseif($tab==='messages'):
   $accById=[]; foreach($accounts as $a){ $accById[$a['id']??'']=$a; }
   $accLabel=function(string $uid) use ($accById): string {
+    if($uid===VESTRA_SUPPORT_UID) return 'VESTRA Support';
     $a=$accById[$uid]??null;
     return $a ? (($a['company']?:($a['name']?:$uid))) : $uid;
   };
@@ -2676,6 +2686,13 @@ elseif($tab==='messages'):
         </div>
         <?php endforeach; ?>
       </div>
+      <form method="post" style="margin-top:10px;display:flex;gap:8px">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="admin_reply">
+        <input type="hidden" name="thread_id" value="<?= htmlspecialchars($th['id']??'') ?>">
+        <input name="body" required placeholder="Reply as <?= htmlspecialchars($accLabel($th['seller_uid']??'')) ?>…" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:12.5px">
+        <button class="abtn primary" type="submit">Reply</button>
+      </form>
     </details>
   </div>
 </div>

@@ -165,6 +165,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $listingId = $_POST['listing_id'] ?? '';
         $listing = vestra_listing_by_id($listingId);
         $sellerUid = $listing['seller_uid'] ?? '';
+        if ($listing && !$sellerUid) $sellerUid = VESTRA_SUPPORT_UID; // platform/seller-less listing → operator support
         if ($listing && $sellerUid && $uid) {
             $res = vestra_msg_send($uid, $sellerUid, $uid, $body, $listingId);
             $tid = $res['thread_id'] ?? vestra_msg_thread_id($uid, $sellerUid, $listingId);

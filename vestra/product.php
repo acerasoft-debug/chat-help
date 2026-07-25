@@ -349,7 +349,6 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </details>
         </div>
         <?php endif; ?>
-        <?php if(!empty($p['seller_uid'])): ?>
         <div class="order-box" style="margin-top:14px">
           <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer'): ?>
           <details class="offerdetails">
@@ -366,7 +365,6 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center">💬 <?= t('Sign in to message seller') ?></a>
           <?php endif; ?>
         </div>
-        <?php endif; ?>
         <script>
         var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }

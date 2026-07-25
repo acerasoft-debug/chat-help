@@ -7,6 +7,12 @@
  */
 function vestra_msg_file(): string { return dirname(__DIR__).'/data/messages.json'; }
 
+/* Synthetic recipient for messages about platform listings that have no assigned
+ * seller (demo / catalogue items). These threads route to the operator, who replies
+ * from Admin → Messages. */
+const VESTRA_SUPPORT_UID = 'vestra-support';
+function vestra_msg_label(string $uid): string { return $uid === VESTRA_SUPPORT_UID ? 'VESTRA Support' : ''; }
+
 function vestra_msg_threads(): array {
     $f = vestra_msg_file();
     if (!is_readable($f)) return [];
