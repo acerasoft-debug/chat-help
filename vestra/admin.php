@@ -256,6 +256,25 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($pwPlain) $_SESSION['tyrex_flash']=['email'=>$email,'pw'=>$pwPlain];
     header('Location: /admin?tab=listings&msg=tyrex_ok&n='.$n); exit;
   }
+  /* Import the DSQUARED2 catalogue (T-shirts €49.90 / sweatshirts €90, on sale)
+     from inc/dsquared_seed.json. De-dupes on brand+SKU(model) AND id, so a
+     product already in the catalogue with the same photo/title is skipped
+     ("koyma yoksa koy") — and it never clashes with the D&G items that reuse
+     the same 1012xx numbers, because those are a different brand. */
+  if($act==='import_dsquared'){
+    $seed=is_readable(__DIR__.'/inc/dsquared_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/dsquared_seed.json'),true) : [];
+    if(!is_array($seed)) $seed=[];
+    $all=vestra_listings(); $haveId=[]; $haveBS=[];
+    foreach($all as $l){ $haveId[(string)($l['id']??'')]=true; $haveBS[strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))]=true; }
+    $added=0; $skipped=0;
+    foreach($seed as $p){
+      $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+      if(($id!=='' && isset($haveId[$id])) || ($bs!=='|' && isset($haveBS[$bs]))){ $skipped++; continue; }
+      $p['added_at']=date('c'); $all[]=$p; $added++; $haveId[$id]=true; $haveBS[$bs]=true;
+    }
+    if($added) vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=dsq_import&n='.$added.'&s='.$skipped); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -902,6 +921,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?php if($tf): ?><br>Login e-mail: <b><?= htmlspecialchars($tf['email']) ?></b> · temporary password:
   <code style="font-size:15px;background:#faf7f1;padding:3px 10px;border-radius:6px;color:#8a6420;border:1px solid var(--line);user-select:all"><?= htmlspecialchars($tf['pw']) ?></code>
   — copy it now, it's shown only once (change it later under the account).<?php endif; ?></div>
+<?php elseif($msg==='dsq_import'): ?>
+<div class="amsg ok">✓ DSQUARED2 içe aktarıldı: <b><?= (int)($_GET['n']??0) ?></b> yeni ürün eklendi<?= ((int)($_GET['s']??0))>0 ? ', '.(int)$_GET['s'].' tanesi zaten katalogda olduğu için atlandı' : '' ?>. (T-shirt €49,90 · Sweatshirt €90, indirimli.)</div>
 <?php elseif($msg==='tyrex_bademail'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Enter a valid login e-mail for the Tyrex account.</div>
 <?php elseif($msg==='tyrex_emailtaken'): ?>
@@ -1821,6 +1842,21 @@ elseif($tab==='listings'):
     </form>
   </div>
 </div>
+<?php $dsqSeed=is_readable(__DIR__.'/inc/dsquared_seed.json')?json_decode((string)file_get_contents(__DIR__.'/inc/dsquared_seed.json'),true):[]; $dsqN=is_array($dsqSeed)?count($dsqSeed):0; if($dsqN): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:660px">
+      <b style="color:var(--ink)">👕 Import DSQUARED2 catalogue (<?= $dsqN ?> products)</b> — T-shirts &amp; sweatshirts from the model list,
+      with their photos. <b>T-shirt €49.90</b> (was €69) · <b>Sweatshirt €90</b> (was €130), on sale.
+      Already-imported items (same brand + SKU) are skipped, so you can click it again safely.
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $dsqN ?> DSQUARED2 products (T-shirts €49.90, sweatshirts €90)? Items already in the catalogue are skipped.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="import_dsquared">
+      <button class="abtn primary" type="submit" style="white-space:nowrap">👕 Import DSQUARED2 (<?= $dsqN ?>)</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
