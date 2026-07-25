@@ -11,8 +11,9 @@ echo "apply-chlog-off BASLADI OK (PHP ".PHP_VERSION.")\n\n";
 $dir=__DIR__;
 $file=$dir.'/index.php';
 $src=@file_get_contents($file);
-if($src!==false && strpos($src,'CH_APPLOG')!==false){
+if($src!==false && (strpos($src,'CH_APPLOG')!==false || strpos($src,'CH_LOADLOG')!==false)){
   $new=preg_replace('/\s*\/\*CH_APPLOG\*\/ try\{.*?\}catch\(_e9\)\{\}/s','',$src);
+  $new=preg_replace('/<script>\/\*CH_LOADLOG\*\/.*?<\/script>/s','',$new);
   if($new!==null && $new!==$src){
     $tmp=tempnam(sys_get_temp_dir(),'clo').'.php'; file_put_contents($tmp,$new);
     $lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
