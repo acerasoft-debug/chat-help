@@ -72,5 +72,46 @@
       "Authenticity": "Verified on delivery · proof of sourcing on request"
     },
     "tiers": [{ "min": 20, "price": 30.0 }]
+  },
+  {
+    "id": "rl-custom-fit-tee",
+    "brand": "Ralph Lauren",
+    "name": "Custom Fit T-Shirt",
+    "cat": "T-Shirts",
+    "sku": "RL-CSF-TEE",
+    "moq": 20,
+    "unit": "pc",
+    "mode": "sale",
+    "list": 29.0,
+    "desc": "Cotton jersey crew-neck t-shirt with embroidered pony, custom fit. Eight colours, mixed-size packs. Authenticity verified on delivery.",
+    "origin": "Authorised allocation",
+    "verified": true,
+    "status": "approved",
+    "accent": "#0f2f5c",
+    "colors": ["Navy", "White", "Black", "Red", "Light Blue", "Grey", "Khaki", "Cream"],
+    "images": [
+      "/uploads/rl/csf-tee-navy.jpg",
+      "/uploads/rl/csf-tee-white.jpg",
+      "/uploads/rl/csf-tee-black.jpg",
+      "/uploads/rl/csf-tee-red.jpg",
+      "/uploads/rl/csf-tee-lightblue.jpg",
+      "/uploads/rl/csf-tee-grey.jpg",
+      "/uploads/rl/csf-tee-khaki.png",
+      "/uploads/rl/csf-tee-cream.jpg"
+    ],
+    "linesheet": true,
+    "sheet_file": "ralph-lauren-custom-fit-tee.pdf",
+    "sizes": "S×2 · M×3 · L×3 · XL×2 · 10/pack",
+    "size_step": 10,
+    "specs": {
+      "Composition": "100% cotton jersey",
+      "Fit": "Custom fit · crew neck",
+      "Care": "Machine wash 30°C",
+      "Packaging": "Packs of 10 · S×2 M×3 L×3 XL×2",
+      "Lead time": "Authorised allocation — 5–7 business days",
+      "Made in": "EU",
+      "Authenticity": "Verified on delivery · proof of sourcing on request"
+    },
+    "tiers": [{ "min": 20, "price": 20.0 }]
   }
 ]

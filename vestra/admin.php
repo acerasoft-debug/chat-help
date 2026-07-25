@@ -2044,9 +2044,9 @@ elseif($tab==='listings'):
 <div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
   <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <div style="font-size:13px;color:var(--mut);max-width:660px">
-      <b style="color:var(--ink)">👔 Import to Tyrex International BV (<?= $tpN ?>)</b> — the Amiri Core Logo Polo and the
-      Lacoste Logo Trim Polo (sale €30, was €42), each with photos + a downloadable line-sheet PDF, listed under the
-      Tyrex seller account. Requires the Tyrex account to exist. Already-imported items are skipped — safe to re-run.
+      <b style="color:var(--ink)">👔 Import to Tyrex International BV (<?= $tpN ?>)</b> — the Amiri Core Logo Polo, the
+      Lacoste Logo Trim Polo (sale €30, was €42) and the Ralph Lauren Custom Fit T-Shirt (sale €20, was €29), each with
+      photos + a line-sheet PDF, listed under the Tyrex seller account. Requires the Tyrex account to exist. Already-imported items are skipped.
     </div>
     <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $tpN ?> product(s) as Tyrex International BV listings? Items already in the catalogue are skipped.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="import_tyrex_polos">
