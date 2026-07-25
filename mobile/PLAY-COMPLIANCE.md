@@ -15,7 +15,8 @@ aşağıda hazır cevaplarıyla.
 | **16 KB bellek sayfası desteği** | Kas 2025'ten beri Android 15+ hedefleyen yeni uygulama/güncellemeler için zorunlu | ✅ Uygulamada **hiç native .so kütüphanesi yok** (saf WebView kabuk + Java eklentiler) — otomatik uyumlu |
 | AAB formatı + Play App Signing | Yeni uygulamalar için zorunlu | ✅ `./gradlew bundleRelease` → `.aab` (BUILD-ANDROID.md adım 6) |
 | Cleartext / karışık içerik yok | Güvenlik | ✅ `allowMixedContent:false`, `androidScheme:https`, tüm trafik HTTPS |
-| Minimal izinler | Gereksiz izin = inceleme riski | ✅ Yalnız `INTERNET`; kamera native `<input capture>` üzerinden (izin gerektirmez), konum/kişi/SMS yok |
+| Minimal izinler | Gereksiz izin = inceleme riski | ✅ `INTERNET` + `RECORD_AUDIO`/`MODIFY_AUDIO_SETTINGS` (App içi sesli giriş / yerel Spracherkennung); kamera native `<input capture>` üzerinden (izin gerektirmez), konum/kişi/SMS yok |
+| **Mikrofon izni beyanı** | `RECORD_AUDIO` isteyen uygulama Play'de kullanım amacını beyan etmeli | ⚠️ **Console'da sen beyan et** — amaç: "Sesli giriş (Spracherkennung) — kullanıcı mikrofon tuşuna basınca konuşmasını metne çevirmek". Ses **kaydedilmez/saklanmaz/gönderilmez**; Android'in yerel tanıma servisi (RecognizerIntent) anında metne çevirir. Data safety'de "Audio → toplanmıyor" işaretle (yalnız cihazda işlenir). |
 | Hedef kitle | Hukuki içerik | 18+ olarak beyan et (aşağıda) |
 
 > `npm run setup:android` çalıştırdığında beş yama da otomatik uygulanır ve

@@ -22,8 +22,8 @@ const path = require('path');
 
 /* CHELP_VERSION — Play her yuklemede daha yuksek versionCode ister.
    Yeni AAB cikarmadan once bu iki degeri artir. */
-const VERSION_CODE = 5;
-const VERSION_NAME = '1.4';
+const VERSION_CODE = 6;
+const VERSION_NAME = '1.5';
 
 const ROOT = path.join(__dirname, '..', 'android');
 const MAIN_ACTIVITY = findMainActivity(ROOT);
@@ -31,6 +31,7 @@ const BUILD_GRADLE = path.join(ROOT, 'app', 'build.gradle');
 const VARIABLES_GRADLE = path.join(ROOT, 'variables.gradle');
 const STYLES_XML = path.join(ROOT, 'app', 'src', 'main', 'res', 'values', 'styles.xml');
 const GRADLE_PROPERTIES = path.join(ROOT, 'gradle.properties');
+const MANIFEST = path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml');
 
 function findMainActivity(root) {
   const base = path.join(root, 'app', 'src', 'main', 'java');
@@ -53,8 +54,8 @@ function patchMainActivity() {
     return;
   }
   const src = fs.readFileSync(MAIN_ACTIVITY, 'utf8');
-  if (src.includes('CHELP_JSBRIDGE_PATCH')) {
-    console.log('MainActivity.java zaten yamalı (geri tuşu + biyometrik + JS köprü).');
+  if (src.includes('CHELP_VOICE_PATCH')) {
+    console.log('MainActivity.java zaten yamalı (geri tuşu + biyometrik + JS köprü + sesli giriş).');
     return;
   }
   const pkgMatch = src.match(/^package\s+([\w.]+);/m);
@@ -64,7 +65,12 @@ function patchMainActivity() {
 /* CHELP_BACK_BUTTON_PATCH — donanım geri tuşu: WebView geçmişinde gezinir,
    kökte çift basışla çıkış (premium Android davranışı).
    CHELP_JSBRIDGE_PATCH — window.ChelpNative.chSavePdf(base64,name,mime): WebView'den
-   gelen PDF'i İndirilenler'e kaydeder ve açar (App'te dosya çıkışının tek yolu). */
+   gelen PDF'i İndirilenler'e kaydeder ve açar (App'te dosya çıkışının tek yolu).
+   CHELP_VOICE_PATCH — window.ChelpNative.chStartVoice(langTag): Android yerel
+   Spracherkennung'unu (RecognizerIntent, Google STT — klavye mikrofonuyla aynı motor)
+   başlatır; tanınan metni window.chVoiceResult(text) ile WebView'e geri verir.
+   WebView'de webkitSpeechRecognition çalışmadığı için App'te GERÇEK mikrofonun tek
+   güvenilir yolu budur. Sunucu/STT gerektirmez, çok dillidir. */
 import android.os.Bundle;
 import android.os.Build;
 import android.os.Environment;
@@ -74,11 +80,15 @@ import android.widget.Toast;
 import android.content.Intent;
 import android.content.ContentValues;
 import android.content.ContentResolver;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
@@ -92,6 +102,11 @@ public class MainActivity extends BridgeActivity {
     private static final boolean BIOMETRIC_LOCK_ENABLED = false;
     private boolean unlocked = false;
     private long lastBackPressAt = 0;
+
+    /* CHELP_VOICE_PATCH — sesli giriş istek kodları + izin beklerken kullanılacak dil. */
+    private static final int CHELP_VOICE_REQ = 0xC401;
+    private static final int CHELP_MIC_PERM_REQ = 0xC402;
+    private String voicePendingLang = "de-DE";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -161,6 +176,95 @@ public class MainActivity extends BridgeActivity {
                         Toast.makeText(MainActivity.this, "Speichern fehlgeschlagen", Toast.LENGTH_LONG).show();
                     }
                 });
+            }
+        }
+
+        /* CHELP_VOICE_PATCH — window.ChelpNative.chStartVoice(langTag): yerel Google
+           Spracherkennung'unu başlatır. RECORD_AUDIO izni yoksa önce onu ister,
+           izin gelince tanımayı başlatır. Sonuç window.chVoiceResult(text)'e döner. */
+        @JavascriptInterface
+        public void chStartVoice(final String langTag) {
+            final String lt = (langTag == null || langTag.trim().isEmpty()) ? "de-DE" : langTag.trim();
+            runOnUiThread(new Runnable() {
+                @Override public void run() {
+                    try {
+                        if (Build.VERSION.SDK_INT >= 23 &&
+                            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                            voicePendingLang = lt;
+                            requestPermissions(new String[]{ android.Manifest.permission.RECORD_AUDIO }, CHELP_MIC_PERM_REQ);
+                            return;
+                        }
+                        launchVoice(lt);
+                    } catch (Exception e) {
+                        deliverVoice("");
+                    }
+                }
+            });
+        }
+    }
+
+    /* CHELP_VOICE_PATCH — RecognizerIntent (Google STT) başlat; çok dilli. */
+    private void launchVoice(final String langTag) {
+        final String lt = (langTag == null || langTag.trim().isEmpty()) ? "de-DE" : langTag.trim();
+        try {
+            Intent it = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            it.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            it.putExtra(RecognizerIntent.EXTRA_LANGUAGE, lt);
+            it.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, lt);
+            it.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+            it.putExtra(RecognizerIntent.EXTRA_PROMPT, "…");
+            startActivityForResult(it, CHELP_VOICE_REQ);
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "Spracheingabe auf diesem Gerät nicht verfügbar", Toast.LENGTH_LONG).show();
+            deliverVoice("");
+        }
+    }
+
+    /* CHELP_VOICE_PATCH — tanınan metni WebView'e ilet (base64 -> UTF-8, kaçış derdi yok). */
+    private void deliverVoice(final String text) {
+        final String b64 = android.util.Base64.encodeToString(
+            ((text == null) ? "" : text).getBytes(StandardCharsets.UTF_8),
+            android.util.Base64.NO_WRAP);
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try {
+                    WebView wv = (getBridge() != null) ? getBridge().getWebView() : null;
+                    if (wv != null) {
+                        wv.evaluateJavascript(
+                            "window.chVoiceResult&&window.chVoiceResult(decodeURIComponent(escape(atob('" + b64 + "'))))",
+                            null);
+                    }
+                } catch (Exception e) { /* WebView yoksa sessizce yut */ }
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == CHELP_VOICE_REQ) {
+            String spoken = "";
+            try {
+                if (resultCode == RESULT_OK && data != null) {
+                    ArrayList<String> res = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    if (res != null && !res.isEmpty()) spoken = res.get(0);
+                }
+            } catch (Exception e) { spoken = ""; }
+            deliverVoice(spoken);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CHELP_MIC_PERM_REQ) {
+            boolean granted = grantResults != null && grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (granted) {
+                launchVoice(voicePendingLang);
+            } else {
+                Toast.makeText(this, "Mikrofon-Zugriff verweigert", Toast.LENGTH_LONG).show();
+                deliverVoice("");
             }
         }
     }
@@ -372,6 +476,52 @@ function patchGradleProperties() {
   console.log('✓ gradle.properties yamalandı (suppressUnsupportedCompileSdk=36).');
 }
 
+function patchManifest() {
+  if (!fs.existsSync(MANIFEST)) {
+    console.log('AndroidManifest.xml bulunamadı — atlandı (önce `npx cap add android` çalıştır).');
+    return;
+  }
+  let src = fs.readFileSync(MANIFEST, 'utf8');
+  if (src.includes('CHELP_MIC_PERM_PATCH')) {
+    console.log('AndroidManifest.xml zaten yamalı (RECORD_AUDIO + Spracherkennung).');
+    return;
+  }
+  // 1) RECORD_AUDIO izni — yerel Spracherkennung (RecognizerIntent) için.
+  const permAnchor = /(<uses-permission\s+android:name="android\.permission\.INTERNET"\s*\/>)/;
+  const permBlock = '$1\n    <!-- CHELP_MIC_PERM_PATCH — App içi gerçek mikrofon (yerel Spracherkennung) -->\n' +
+    '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n' +
+    '    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />';
+  if (permAnchor.test(src)) {
+    src = src.replace(permAnchor, permBlock);
+  } else {
+    // INTERNET izni beklenen yerde değilse: <application ...> öncesine ekle (bozmadan).
+    const appAnchor = /(\n[ \t]*<application\b)/;
+    if (!appAnchor.test(src)) {
+      console.log('✗ AndroidManifest.xml: uygun bağlantı noktası bulunamadı — mic izni atlandı (build bozulmasın).');
+      return;
+    }
+    src = src.replace(appAnchor,
+      '\n    <!-- CHELP_MIC_PERM_PATCH -->\n' +
+      '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n' +
+      '    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />$1');
+  }
+  // 2) <queries> — Android 11+ paket görünürlüğü: Spracherkennme servisini görebilelim.
+  if (!/android\.speech\.RecognitionService/.test(src)) {
+    const queriesBlock = '\n    <!-- CHELP_MIC_PERM_PATCH — Spracherkennung servisini görünür kıl (Android 11+) -->\n' +
+      '    <queries>\n' +
+      '        <intent>\n' +
+      '            <action android:name="android.speech.RecognitionService" />\n' +
+      '        </intent>\n' +
+      '    </queries>';
+    const appAnchor2 = /(\n[ \t]*<application\b)/;
+    if (appAnchor2.test(src)) {
+      src = src.replace(appAnchor2, queriesBlock + '$1');
+    }
+  }
+  fs.writeFileSync(MANIFEST, src);
+  console.log('✓ AndroidManifest.xml yamalandı (RECORD_AUDIO + Spracherkennung görünürlüğü).');
+}
+
 function patchVersion() {
   if (!fs.existsSync(BUILD_GRADLE)) {
     console.log('app/build.gradle bulunamadı — sürüm yaması atlandı.');
@@ -395,4 +545,5 @@ patchVersion();
 patchVariablesGradle();
 patchStylesXml();
 patchGradleProperties();
+patchManifest();
 console.log('\nBitti. Bu script her zaman güvenle tekrar çalıştırılabilir (idempotent).');
