@@ -30,6 +30,41 @@ function vestra_lead_sources(): array {
     return ['Trade show', 'LinkedIn', 'Industry directory', 'Referral', 'Existing contact', 'Other'];
 }
 
+/* Shared by the daily cron (cron_find_customers.php) and the admin "Run automation now"
+ * button, so both trigger paths use the exact same rotation and both leave the exact same
+ * status trail — a manual click and a 9am cron run are indistinguishable to the operator. */
+function vestra_cron_countries(): array {
+    $custom = vestra_read_json('cron_countries.json');
+    return (is_array($custom) && $custom) ? $custom
+        : ['Germany','Netherlands','France','Italy','Spain','United Kingdom','United States','Australia'];
+}
+
+function vestra_cron_today_country(): string {
+    $countries = vestra_cron_countries();
+    $dayIndex = (int)date('z') % max(1, count($countries));
+    return trim((string)($countries[$dayIndex] ?? ''));
+}
+
+/** Status snapshot read by the admin "Automation" card — written after every discovery run,
+ *  whether triggered by the daily cron or a manual click, so both leave the same visible trail. */
+function vestra_cron_write_status(string $country, int $found, int $added, int $emailsFound, int $emailsChecked, string $trigger, string $note = ''): void {
+    vestra_write_json('cron_status.json', [
+        'last_run' => date('c'),
+        'country' => $country,
+        'found' => $found,
+        'added' => $added,
+        'emails_found' => $emailsFound,
+        'emails_checked' => $emailsChecked,
+        'trigger' => $trigger,
+        'note' => $note,
+    ]);
+}
+
+function vestra_cron_status(): ?array {
+    $s = vestra_read_json('cron_status.json');
+    return $s ? $s : null;
+}
+
 const VESTRA_LEAD_STATUSES = ['new', 'contacted', 'replied', 'converted', 'declined'];
 
 function vestra_lead_status_label(string $s): string {

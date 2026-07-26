@@ -634,6 +634,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
     echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds]); exit;
   }
+  /* Written by the "Run now" button once its live discovery + email-lookup finishes, so a
+     manual run leaves the exact same status trail as the 09:00 cron (inc/leads.php). */
+  if($act==='record_automation_result'){
+    header('Content-Type: application/json');
+    vestra_cron_write_status(trim($_POST['country']??''),(int)($_POST['found']??0),(int)($_POST['added']??0),
+      (int)($_POST['emails_found']??0),(int)($_POST['emails_checked']??0),'manual');
+    echo json_encode(['ok'=>true]); exit;
+  }
   /* Bulk-delete selected prospects (e.g. big-chain results from before the discovery
      filter, or a bad CSV import) — same lead_ids[] checkboxes as the send actions. */
   if($act==='delete_leads_bulk'){
@@ -2427,6 +2435,8 @@ elseif($tab==='prospects'):
   $mailTargetName = $mailTarget!=='' ? (($a0=array_values(array_filter($sellerAccts,fn($a)=>($a['id']??'')===$mailTarget))[0]??null) ? ($a0['company']??$a0['name']??'Seller') : 'Seller') : 'Platform (VESTRA)';
   $finderApi = vestra_cfg('finder_key','')!=='';   // optional Hunter/Anymailfinder key
   $finderOn  = true;                               // finding always works — free site-reading fallback
+  $cronStatus = vestra_cron_status();
+  $cronTodayCountry = vestra_cron_today_country();
   $aiOn = vestra_ai_key()!=='';
 ?>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
@@ -2454,44 +2464,23 @@ elseif($tab==='prospects'):
   anyone who uses it is permanently excluded from future sends. Use the offer template below (or <i>Send a product offer</i>) to pitch them.
 </p>
 
-<div class="acard" style="margin-bottom:20px;border-color:rgba(51,102,204,.35)">
-  <div class="acard-hd"><h3>🔎 Customer Scout — find buyers to add</h3></div>
+<div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
+  <div class="acard-hd"><h3>🤖 Automation <span style="color:#1f9d63;font-size:12px;font-weight:600">● Runs daily at 09:00 (server cron)</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Priority: <b>small &amp; medium textile retailers that stock brands</b> — multi-brand &amp; designer boutiques (they buy the labels you sell) — not big chains. Pick a segment + region, open the ready searches, add the good ones below or via <i>Import CSV</i>. VESTRA never scrapes — you choose who to contact.</p>
-  <p class="ahint" style="margin-bottom:12px;padding:8px 10px;background:var(--bg2);border-radius:8px">📦🛒 <b>eBay / Amazon:</b> the links below find their storefronts. eBay business-seller pages often list a real contact email directly — add the company below. Amazon rarely shows one (messaging stays on-platform) — instead look for the seller's <b>own website</b> in their storefront "About" info, add that, then use 🔍 Find to resolve a real email from it.</p>
-  <div class="acols2" style="align-items:flex-end">
-    <div class="afield"><label>Segment / keyword</label><input id="csKw" value="multi-brand designer boutique" oninput="csUpdate()" placeholder="e.g. multi-brand boutique, branded fashion store"></div>
-    <div class="afield"><label>Region</label>
-      <select id="csRegion" onchange="csUpdate()">
-        <option value="">(any)</option>
-        <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
-        <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
-      </select>
-    </div>
+  <p class="ahint" style="margin-bottom:12px">This is the same search as <i>Find customers</i> below, just triggered automatically every morning instead of by hand — one country per day (today: <b><?= htmlspecialchars($cronTodayCountry) ?></b>), rotating so the same one isn't hit twice in a row. It only finds &amp; adds — sending always stays a separate, manual step.</p>
+  <?php if($cronStatus): $ago=time()-strtotime($cronStatus['last_run']??'now');
+    $agoTxt = $ago<120?'just now':($ago<3600?intdiv($ago,60).' min ago':($ago<86400?intdiv($ago,3600).' hr ago':intdiv($ago,86400).' day(s) ago')); ?>
+  <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px">
+    <b>Last run:</b> <?= $agoTxt ?> (<?= htmlspecialchars(date('Y-m-d H:i',strtotime($cronStatus['last_run']))) ?>) — <?= ($cronStatus['trigger']??'cron')==='manual'?'started by you':'automatic' ?><br>
+    Searched <b><?= htmlspecialchars($cronStatus['country']??'—') ?></b> — found <?= (int)($cronStatus['found']??0) ?>, added <?= (int)($cronStatus['added']??0) ?> new, resolved <?= (int)($cronStatus['emails_found']??0) ?>/<?= (int)($cronStatus['emails_checked']??0) ?> emails.
+    <?php if(($cronStatus['found']??0)===0): ?><div style="color:#c0392b;margin-top:4px">0 found — either that country genuinely has little OSM shop data, or your server can't reach the OpenStreetMap API right now. Try "Run now" and watch the live log below.</div><?php endif; ?>
   </div>
-  <div id="csLinks" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+  <?php else: ?>
+  <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--mut)">Never run yet — click "Run now" to try it immediately, or wait for tonight's 09:00 automatic run.</div>
+  <?php endif; ?>
+  <button class="abtn primary" type="button" onclick="runAutomationNow(this)">▶ Run now (<?= htmlspecialchars($cronTodayCountry) ?>)</button>
   </div>
 </div>
-<script>
-function csUpdate(){
-  var kw=(document.getElementById('csKw').value||'').trim(), rg=document.getElementById('csRegion').value||'';
-  var base=(kw+' '+rg).trim(), q=encodeURIComponent(base);
-  var g=function(s){return 'https://www.google.com/search?q='+encodeURIComponent(s);};
-  var links=[
-    ['🔍 Google — small online stores', g(base+' online store -farfetch -ssense -zalando -asos -amazon')],
-    ['✉ Google — contact email', g(base+' contact email -farfetch -ssense -zalando')],
-    ['💼 LinkedIn companies', 'https://www.linkedin.com/search/results/companies/?keywords='+q],
-    ['📍 Google Maps', 'https://www.google.com/maps/search/'+q],
-    ['📸 Instagram shops', g('site:instagram.com '+base+' shop')],
-    ['🏭 Wholesale buyers / stockists', g(kw+' wholesale buyer stockist '+rg)],
-    ['📦 eBay business sellers', g('(site:ebay.com/str OR site:ebay.co.uk/str OR site:ebay.de/str) '+base)],
-    ['🛒 Amazon sellers’ own sites', g(base+' ("sold by" OR "verkauft von" OR "vendu par") (site:amazon.com OR site:amazon.de OR site:amazon.co.uk OR site:amazon.com.au)')]
-  ];
-  var box=document.getElementById('csLinks'); box.innerHTML='';
-  links.forEach(function(l){ var a=document.createElement('a'); a.href=l[1]; a.target='_blank'; a.rel='noopener'; a.className='abtn'; a.style.fontSize='12px'; a.textContent=l[0]; box.appendChild(a); });
-}
-document.addEventListener('DOMContentLoaded',csUpdate);
-</script>
 
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
   <div class="acard-hd"><h3>🎯 Find customers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key needed</span></h3></div>
@@ -2836,6 +2825,33 @@ function findMissingEmailsLive(btn){
   runEmailFinderQueue(ids, log,
     function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
     function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' found, '+fail+' not found, of '+n+'. Refresh to see them.'; btn.disabled=false; });
+}
+/* "Run now" on the Automation card — exactly what tonight's 09:00 cron does (today's
+ * rotation country, whole-country search), just triggered by a click instead of the clock,
+ * with the same live log. Records the result so the card's "last run" reflects this click. */
+function runAutomationNow(btn){
+  var country=<?= json_encode($cronTodayCountry) ?>;
+  var wrap=document.getElementById('fcWrap'), bar=document.getElementById('fcBar'), log=document.getElementById('fcLog');
+  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
+  wrap.scrollIntoView({behavior:'smooth',block:'center'});
+  bar.textContent='Running today\'s automation — '+country+'… (whole-country searches can take up to a minute)';
+  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city','');
+  var record=function(emailsFound,emailsChecked,total,added){
+    var fd2=new FormData(); fd2.append('_action','record_automation_result'); fd2.append('_csrf',VADMIN_CSRF);
+    fd2.append('country',country); fd2.append('found',total); fd2.append('added',added);
+    fd2.append('emails_found',emailsFound); fd2.append('emails_checked',emailsChecked);
+    fetch('/admin',{method:'POST',body:fd2}).then(function(){ setTimeout(function(){ location.reload(); },1200); });
+  };
+  fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
+    line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
+    log.appendChild(line);
+    var ids=d.newIds||[];
+    if(!ids.length){ bar.textContent='✓ Done — no new customers needed an email lookup. Refreshing…'; record(0,0,d.total||0,d.added||0); return; }
+    runEmailFinderQueue(ids, log,
+      function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
+      function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found. Refreshing…'; record(ok,n,d.total||0,d.added||0); });
+  }).catch(function(){ bar.textContent='✗ Search failed — check your connection and try again.'; btn.disabled=false; });
 }
 </script>
 
