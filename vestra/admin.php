@@ -495,13 +495,47 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=orders&msg=dupfix&n='.$n); exit;
   }
   /* Escrow dispute resolution — force-release the held funds to the seller, or
-     refund the buyer in full (cancels the sale, claws the commission back). */
+     refund the buyer in full (cancels the sale, claws the commission back).
+     escrow_do_release()/escrow_do_refund() only push-notify (they're also called
+     from the buyer's own confirm-receipt flow, which already sends its own emails) —
+     an admin-forced resolution is a dispute outcome neither party triggered themselves,
+     so both get an explicit email here instead of relying on push alone. */
   if($act==='escrow_release'){
-    $r=escrow_do_release($_POST['ref']??'');
+    $ref=(string)($_POST['ref']??''); $rec=escrow_get($ref);
+    $r=escrow_do_release($ref);
+    if($r['ok'] && $rec){
+      require_once __DIR__.'/inc/notify.php';
+      $b=$rec['buyer']??[]; $seller=null;
+      foreach(auth_accounts() as $a){ if(($a['id']??'')===($rec['seller_uid']??'')){ $seller=$a; break; } }
+      $payout=number_format((float)($rec['payout']??0),2);
+      if($seller && !empty($seller['email'])){
+        vestra_send_mail($seller['email'],"VESTRA — funds released for order {$ref}",
+          "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\nVESTRA has released the held funds for order {$ref} — €{$payout} is on its way to your bank.\n\nView: https://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+      }
+      if(!empty($b['email'])){
+        vestra_send_mail($b['email'],"VESTRA — order {$ref} resolved, funds released to seller",
+          "Hello ".($b['name']?:'there').",\n\nYour order {$ref} has been resolved — the held funds have been released to the seller.\n\nView: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+      }
+    }
     header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_released':'esc_err')); exit;
   }
   if($act==='escrow_refund'){
-    $r=escrow_do_refund($_POST['ref']??'');
+    $ref=(string)($_POST['ref']??''); $rec=escrow_get($ref);
+    $r=escrow_do_refund($ref);
+    if($r['ok'] && $rec){
+      require_once __DIR__.'/inc/notify.php';
+      $b=$rec['buyer']??[]; $seller=null;
+      foreach(auth_accounts() as $a){ if(($a['id']??'')===($rec['seller_uid']??'')){ $seller=$a; break; } }
+      $total=number_format((float)($rec['total']??0),2);
+      if(!empty($b['email'])){
+        vestra_send_mail($b['email'],"VESTRA — order {$ref} refunded",
+          "Hello ".($b['name']?:'there').",\n\nYour order {$ref} has been cancelled and refunded in full — €{$total} is being returned to your card.\n\n— VESTRA · vestrasales.com");
+      }
+      if($seller && !empty($seller['email'])){
+        vestra_send_mail($seller['email'],"VESTRA — order {$ref} refunded to buyer",
+          "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\nOrder {$ref} was cancelled — the buyer has been refunded in full and no funds will be released to you for it.\n\n— VESTRA · vestrasales.com");
+      }
+    }
     header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_refunded':'esc_err')); exit;
   }
   if($act==='create_promo'){ promo_create($_POST); header('Location: /admin?tab=marketing&msg=promo_ok'); exit; }
@@ -793,14 +827,56 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     else { $ok=vestra_send_mail($to,'VESTRA — test email',$body); }
     header('Location: /admin?tab=prospects'.($uid!==''?'&mailfor='.urlencode($uid):'').'&msg='.($ok?'test_ok':'test_fail')); exit;
   }
-  /* Operator replies in a conversation from Admin → Messages — as the seller/support
-     side (covers platform/seller-less listings routed to VESTRA Support). */
+  /* Operator replies in a conversation from Admin → Messages, always speaking as
+     VESTRA Support when that's one of the two thread slots — whether that's the
+     seller slot (buyer messaged a seller-less listing) or the buyer slot (admin
+     started this thread with a seller directly, from Admin → Users). Threads
+     between two real accounts keep the old default: reply as the seller side. */
   if($act==='admin_reply'){
     require_once __DIR__.'/inc/messages.php';
     $tid=$_POST['thread_id']??''; $body=trim($_POST['body']??'');
     $th=vestra_msg_find_thread($tid);
-    if($th && $body!==''){ vestra_msg_send((string)($th['buyer_uid']??''),(string)($th['seller_uid']??''),(string)($th['seller_uid']??''),$body,(string)($th['listing_id']??'')); }
+    if($th && $body!==''){
+      $from=((string)($th['buyer_uid']??''))===VESTRA_SUPPORT_UID ? VESTRA_SUPPORT_UID : (string)($th['seller_uid']??'');
+      vestra_msg_send((string)($th['buyer_uid']??''),(string)($th['seller_uid']??''),$from,$body,(string)($th['listing_id']??''));
+    }
     header('Location: /admin?tab=messages&msg=replied'); exit;
+  }
+  /* Admin starts a fresh on-platform thread with a buyer or seller straight from
+     Admin → Users — e.g. an account with no usable email on file yet. */
+  if($act==='start_message'){
+    $uid=trim($_POST['uid']??''); $body=trim($_POST['body']??'');
+    $target=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $target=$a; break; } }
+    $tid='';
+    if($target && $body!==''){
+      require_once __DIR__.'/inc/messages.php';
+      $ttype=($target['type']??'')==='seller'?'seller':'buyer';
+      $res=vestra_msg_admin_start($uid,$ttype,$body);
+      if(!empty($res['ok'])) $tid=$res['thread_id'];
+    }
+    header('Location: /admin?tab=messages'.($tid!==''?('&thread='.urlencode($tid)):'&msg=msg_err')); exit;
+  }
+  /* Fix a missing/wrong email on any account — the operator's only lever when an
+     account (e.g. an auto-created seller) was never given a working address, since
+     that silently breaks every order/offer/message notification meant for them. */
+  if($act==='set_account_email'){
+    $uid=trim($_POST['uid']??''); $email=trim($_POST['email']??'');
+    $msg='email_set';
+    if($uid!==''){
+      if($email!=='' && !filter_var($email,FILTER_VALIDATE_EMAIL)){ $msg='email_invalid'; }
+      else {
+        $accs=auth_accounts();
+        $dupe=false;
+        foreach($accs as $a){ if($email!==''&&($a['id']??'')!==$uid&&strcasecmp((string)($a['email']??''),$email)===0){ $dupe=true; break; } }
+        if($dupe){ $msg='email_dupe'; }
+        else {
+          foreach($accs as &$a){ if(($a['id']??'')===$uid){ $a['email']=$email; break; } }
+          unset($a);
+          auth_save_accounts($accs);
+        }
+      }
+    }
+    header('Location: /admin?tab=users&msg='.$msg); exit;
   }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
@@ -1128,6 +1204,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
     'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.',
     'ai_saved'=>'✓ AI personalisation key saved.',
+    'replied'=>'✓ Reply sent.','msg_err'=>'⚠ Could not start that conversation — try again.',
+    'email_set'=>'✓ Email updated.','email_invalid'=>'⚠ Enter a valid email address (or leave it blank).','email_dupe'=>'⚠ Another account already uses that email.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -1645,7 +1723,20 @@ function utgl(id){
   r.style.display=hidden?'':'none';
   if(a) a.textContent=hidden?'▾':'▸';
 }
+function sendUserMessage(uid,name){
+  var body=prompt('Message to '+name+' (delivered on-platform — they see it in their Messages tab, as from "VESTRA Support"):');
+  if(body===null) return; body=body.trim(); if(!body) return;
+  document.getElementById('umf_uid').value=uid;
+  document.getElementById('umf_body').value=body;
+  document.getElementById('userMsgForm').submit();
+}
 </script>
+<form method="post" id="userMsgForm" style="display:none">
+  <?= csrfField() ?>
+  <input type="hidden" name="_action" value="start_message">
+  <input type="hidden" name="uid" id="umf_uid">
+  <input type="hidden" name="body" id="umf_body">
+</form>
 
 <?php if(!$shown): ?>
   <div class="acard"><div class="aempty">No accounts yet.</div></div>
@@ -1666,7 +1757,15 @@ function utgl(id){
       <b><?= htmlspecialchars($a['name']??'—') ?></b> <span class="ahint" id="uarr-<?= htmlspecialchars($a['id']??'') ?>" style="color:var(--acc)">▸</span>
       <div class="ahint"><?= htmlspecialchars(substr($a['id']??'',0,10)) ?>…</div>
     </td>
-    <td class="ac"><a href="mailto:<?= htmlspecialchars($a['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($a['email']??'') ?></a></td>
+    <td class="ac">
+      <form method="post" style="display:flex;gap:3px;align-items:center;white-space:nowrap">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="set_account_email">
+        <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'') ?>">
+        <input type="email" name="email" value="<?= htmlspecialchars($a['email']??'') ?>" placeholder="no email on file" title="Notifications (orders, offers, messages) silently fail without this" style="width:145px;padding:3px 6px;border:1px solid <?= empty($a['email'])?'#c0392b':'var(--line)' ?>;border-radius:5px;background:var(--bg);color:var(--ink);font-size:11.5px">
+        <button class="abtn" type="submit" style="font-size:11px;padding:3px 7px" title="Save email">💾</button>
+      </form>
+    </td>
     <td class="ac"><?= typePill($a['type']??'') ?></td>
     <td class="ac"><?= htmlspecialchars($a['company']??'—') ?></td>
     <td class="ac"><?= htmlspecialchars($a['country']??'—') ?></td>
@@ -1732,6 +1831,7 @@ function utgl(id){
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
       <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp&&!$isPendEmail): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
+      <button type="button" class="abtn" onclick="sendUserMessage('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>','<?= htmlspecialchars($a['company']??($a['name']??'this account'),ENT_QUOTES) ?>')" title="Start an on-platform message thread — reaches them even with no email on file">💬 Message</button>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>
     </div></td>
   </tr>

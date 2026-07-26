@@ -285,21 +285,40 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         vestra_write_json('offer_responses.json', $rs);
         /* Mirror the response into the buyer's Messages inbox as a highlighted card. */
         $buyerAcc = auth_find($offerRow['email'] ?? '');
+        $prodName = trim(($offerListing['brand']??'').' '.($offerListing['name']??''));
         if ($buyerAcc) {
             require_once __DIR__.'/inc/messages.php';
             vestra_msg_post_system($buyerAcc['id'], $uid, $offerListing['id'] ?? '', [
                 'kind'=>'offer_response', 'ref'=>$ref, 'status'=>$action,
                 'counter_price'=>$action==='counter'?$ctr:null,
-                'product'=>trim(($offerListing['brand']??'').' '.($offerListing['name']??'')),
+                'product'=>$prodName,
             ]);
             require_once __DIR__.'/inc/push.php';
-            $prodName = trim(($offerListing['brand']??'').' '.($offerListing['name']??''));
             $pushTxt = match($action){
                 'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted. Invoice is ready.'],
                 'counter' => ['VESTRA — counter offer ↩', $prodName.' — seller counters at €'.number_format($ctr,2).'/unit.'],
                 default   => ['VESTRA — offer declined', $prodName.' — the seller declined this offer.'],
             };
             vestra_push_send($buyerAcc['id'], $pushTxt[0], $pushTxt[1], '/buyer?tab=offers');
+        }
+        /* Email the buyer directly — works whether or not they have a VESTRA account,
+           since offers always collect a work email. This is the buyer's only notice if
+           they don't have push enabled or don't happen to check the site. */
+        require_once __DIR__.'/inc/notify.php';
+        if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
+            $buyerName = $offerRow['company'] ?? ($buyerAcc['name'] ?? 'there');
+            [$mSubject, $mBody] = match($action) {
+                'accept'  => ["VESTRA — your offer on {$prodName} was accepted ✓",
+                    "Great news — the seller accepted your offer:\n\n{$prodName}\nRef: {$ref}\n\n".
+                    "Your invoice will be available in your buyer dashboard shortly.\n\nView: https://vestrasales.com/buyer?tab=offers"],
+                'counter' => ["VESTRA — counter offer on {$prodName}",
+                    "The seller has countered your offer:\n\n{$prodName}\nCounter price: €".number_format($ctr,2)."/unit\nRef: {$ref}\n\n".
+                    "Accept, decline, or reply in your dashboard: https://vestrasales.com/buyer?tab=offers"],
+                default   => ["VESTRA — your offer on {$prodName} was declined",
+                    "The seller declined your offer:\n\n{$prodName}\nRef: {$ref}\n\n".
+                    "You can browse similar listings or message the seller directly: https://vestrasales.com/buyer?tab=offers"],
+            };
+            vestra_send_mail($offerRow['email'], $mSubject, "Hello {$buyerName},\n\n{$mBody}\n\n— VESTRA · vestrasales.com");
         }
         /* Accepted offer = a confirmed sale — auto-generate this seller's PDF invoice,
            enriched with the buyer's full account details when they have one. */

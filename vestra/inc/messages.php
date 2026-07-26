@@ -134,24 +134,41 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
         ];
     }
     vestra_msg_save_threads($threads);
-    // Email ping — only on the FIRST unread message since the recipient last read the
-    // thread (no per-message spam). Content stays out of the mail: conversations live
+    require_once __DIR__.'/notify.php';
+    $fromLabel = vestra_msg_label($fromUid);
+    if ($fromLabel === '') {
+        foreach (auth_accounts() as $a) { if (($a['id']??'') === $fromUid) { $fromLabel = $a['company'] ?: ($a['name'] ?: 'A VESTRA user'); break; } }
+    }
+    if ($fromLabel === '') $fromLabel = 'A VESTRA user';
+    // Email ping to the recipient — only on the FIRST unread message since they last read
+    // the thread (no per-message spam). Content stays out of the mail: conversations live
     // on VESTRA, the mail is just the doorbell.
-    if (!$hadUnread) {
-        $fromLabel = $recipient !== '' ? vestra_msg_counterpart_label(
-            ['buyer_uid'=>$buyerUid,'seller_uid'=>$sellerUid], $recipient) : '';
-        foreach (auth_accounts() as $a) {
-            if (($a['id']??'') !== $recipient || empty($a['email'])) continue;
-            require_once __DIR__.'/notify.php';
-            $panel = ($a['type']??'') === 'seller' ? 'seller' : 'buyer';
-            vestra_send_mail($a['email'], "VESTRA — new message from {$fromLabel}",
-              "Hello ".($a['name']?:($a['company']?:'there')).",\n\n".
+    if (!$hadUnread && $recipient !== '' && $recipient !== VESTRA_SUPPORT_UID) {
+        $recAcc = null;
+        foreach (auth_accounts() as $a) { if (($a['id']??'') === $recipient) { $recAcc = $a; break; } }
+        if ($recAcc && !empty($recAcc['email'])) {
+            $panel = ($recAcc['type']??'') === 'seller' ? 'seller' : 'buyer';
+            vestra_send_mail($recAcc['email'], "VESTRA — new message from {$fromLabel}",
+              "Hello ".($recAcc['name']?:($recAcc['company']?:'there')).",\n\n".
               "You have a new message from {$fromLabel} on VESTRA.\n\n".
               "Read and reply in your dashboard:\nhttps://vestrasales.com/{$panel}?tab=messages\n\n".
               "— VESTRA · vestrasales.com");
-            break;
+        } else {
+            // No usable email on file — logging in is the ONLY way this recipient would ever
+            // find out. Tell the operator so it's a visible follow-up, not a silent miss.
+            vestra_notify("⚠️ VESTRA message not emailed — no address on file",
+              "{$fromLabel} sent a message, but the recipient (".
+              ($recAcc['company'] ?? ($recAcc['name'] ?? $recipient)).") has no email on file, so no notification could be sent.\n\n".
+              "Add their email: https://vestrasales.com/admin?tab=users\n".
+              "Thread: https://vestrasales.com/admin?tab=messages");
         }
     }
+    // Admin visibility — every message, so the operator has proof the messaging system is
+    // actually delivering, not just posting silently into a thread nobody happens to check.
+    vestra_notify("💬 VESTRA message — {$fromLabel}",
+      "{$fromLabel} sent a message on VESTRA".($listingId !== '' ? " (listing {$listingId})" : '').":\n\n".
+      mb_substr($text, 0, 400)."\n\n".
+      "Thread: https://vestrasales.com/admin?tab=messages");
     // Push ping to the recipient's installed devices (fire-and-forget).
     if ($recipient !== '') {
         require_once __DIR__.'/push.php';
@@ -185,6 +202,19 @@ function vestra_msg_post_system(string $buyerUid, string $sellerUid, string $lis
         ];
     }
     vestra_msg_save_threads($threads);
+    // Admin visibility for every order/offer status card — same reasoning as vestra_msg_send:
+    // the operator should see proof each step actually fired, not just trust it happened.
+    require_once __DIR__.'/notify.php';
+    $accLabel = ['', '']; // [buyer label, seller label]
+    foreach ([$buyerUid, $sellerUid] as $i => $partyUid) {
+        $accLabel[$i] = vestra_msg_label($partyUid) ?: $partyUid;
+        if ($accLabel[$i] === $partyUid) {
+            foreach (auth_accounts() as $a) { if (($a['id']??'') === $partyUid) { $accLabel[$i] = $a['company'] ?: ($a['name'] ?: $partyUid); break; } }
+        }
+    }
+    vestra_notify("📋 VESTRA — ".vestra_msg_snippet($entry),
+      "Buyer: {$accLabel[0]}\nSeller: {$accLabel[1]}".($listingId !== '' ? "\nListing: {$listingId}" : '')."\n\n".
+      "Thread: https://vestrasales.com/admin?tab=messages");
     return $id;
 }
 
@@ -308,9 +338,23 @@ function vestra_msg_unread(array $thread, string $uid): bool {
 /* Display label for the OTHER party in a thread, from the point of view of $uid. */
 function vestra_msg_counterpart_label(array $thread, string $uid): string {
     $otherUid = ($thread['buyer_uid']??'') === $uid ? ($thread['seller_uid']??'') : ($thread['buyer_uid']??'');
+    if ($otherUid === VESTRA_SUPPORT_UID) return vestra_msg_label($otherUid);
     foreach (auth_accounts() as $a) {
         if (($a['id']??'') === $otherUid) return $a['company'] ?: ($a['name'] ?: t('Account'));
     }
     return t('Account');
+}
+
+/**
+ * Admin starts (or continues) a direct thread with one buyer or seller account —
+ * covers accounts an admin needs to reach on-platform (e.g. no usable email on file
+ * yet). Admin sits in the VESTRA_SUPPORT_UID slot on whichever side isn't $targetUid,
+ * so the target sees it in their normal Messages tab, labelled "VESTRA Support".
+ */
+function vestra_msg_admin_start(string $targetUid, string $targetType, string $body): array {
+    if ($targetUid === '' || !in_array($targetType, ['buyer','seller'], true)) return ['ok'=>false, 'error'=>'empty'];
+    $buyerUid  = $targetType === 'buyer'  ? $targetUid : VESTRA_SUPPORT_UID;
+    $sellerUid = $targetType === 'seller' ? $targetUid : VESTRA_SUPPORT_UID;
+    return vestra_msg_send($buyerUid, $sellerUid, VESTRA_SUPPORT_UID, $body, '');
 }
 
