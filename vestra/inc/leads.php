@@ -134,21 +134,23 @@ function vestra_leads_by_owner(string $uid): array {
 /* Add discovered/researched rows as leads. Company required; dedupe by email when present,
  * else by company (against existing leads and within the batch); sets owner_uid. Rows may
  * carry company, contact_name, email, country, website, source, category, address, phone.
- * Returns [added, skipped]. Caps at 500 per call. */
+ * Returns [addedRows, skipped] — addedRows is the actual new lead records (with generated
+ * id/unsub_token), so a caller can chain straight into per-row work (e.g. live email lookup)
+ * without guessing IDs. Caps at 500 per call. */
 function vestra_leads_add(array $rows, string $owner=''): array {
   $leads=vestra_leads();
   $seenEmail=[]; $seenCompany=[];
   foreach($leads as $l){ $e=strtolower($l['email']??''); if($e!=='') $seenEmail[$e]=true; $seenCompany[strtolower($l['company']??'')]=true; }
-  $added=0; $skipped=0; $max=500;
+  $addedRows=[]; $skipped=0; $max=500;
   foreach($rows as $r){
-    if(($added+$skipped)>=$max) break;
+    if((count($addedRows)+$skipped)>=$max) break;
     $company=trim((string)($r['company']??'')); if($company===''){ $skipped++; continue; }
     $email=strtolower(trim((string)($r['email']??''))); $ev=$email!=='' && filter_var($email,FILTER_VALIDATE_EMAIL);
     if(($ev && isset($seenEmail[$email])) || (!$ev && isset($seenCompany[strtolower($company)]))){ $skipped++; continue; }
     if($ev) $seenEmail[$email]=true; $seenCompany[strtolower($company)]=true;
     $notes=trim((string)($r['address']??''));
     if(($r['phone']??'')!=='') $notes=trim($notes.($notes!==''?' · ':'').'☎ '.$r['phone']);
-    $leads[]=[
+    $new=[
       'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>$owner,
       'company'=>$company,'contact_name'=>trim((string)($r['contact_name']??'')),
       'email'=>$ev?$email:'','country'=>trim((string)($r['country']??'')),
@@ -156,10 +158,10 @@ function vestra_leads_add(array $rows, string $owner=''): array {
       'category'=>trim((string)($r['category']??'')),'notes'=>$notes,
       'status'=>'new','last_contacted_at'=>'','unsub_token'=>bin2hex(random_bytes(16)),
     ];
-    $added++;
+    $leads[]=$new; $addedRows[]=$new;
   }
   vestra_save_leads($leads);
-  return [$added,$skipped];
+  return [$addedRows,$skipped];
 }
 function vestra_lead_import_csv(string $tmpPath, string $owner=''): array {
     $fh = @fopen($tmpPath, 'r');

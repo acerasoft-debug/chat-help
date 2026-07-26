@@ -599,26 +599,40 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     unset($l); vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg='.($found!==''?'finder_ok':'finder_none')); exit;
   }
-  /* Bulk: fill every email-less customer that has a website. */
-  if($act==='find_all_emails'){
-    @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
-    $leads=vestra_leads(); $n=0;
+  /* One-at-a-time email lookup for the live progress view — same shape as send_lead_one,
+     so a failure shows up as a visible per-company line (with a reason) instead of a
+     silent batch total. This is the ONLY way to look up missing emails now — no more
+     opaque bulk action that just returns a count with no way to tell what went wrong. */
+  if($act==='find_lead_email_one'){
+    header('Content-Type: application/json');
+    require_once __DIR__.'/inc/notify.php';
+    $lid=$_POST['lid']??''; $leads=vestra_leads();
+    $res=['ok'=>false,'company'=>'','website'=>'','email'=>'','error'=>'notfound'];
     foreach($leads as &$l){
-      if(($l['email']??'')!=='' || ($l['website']??'')==='') continue;
-      $e=vestra_find_email((string)$l['website']); if($e!==''){ $l['email']=$e; $n++; }
+      if(($l['id']??'')!==$lid) continue;
+      $res['company']=$l['company']??''; $res['website']=$l['website']??'';
+      if(($l['email']??'')!==''){ $res['ok']=true; $res['email']=$l['email']; break; }
+      if(($l['website']??'')===''){ $res['error']='nowebsite'; break; }
+      $found=vestra_find_email((string)$l['website']);
+      if($found!==''){ $l['email']=$found; $res['ok']=true; $res['email']=$found; }
+      else { $res['error']='notfound'; }
+      break;
     }
     unset($l); vestra_save_leads($leads);
-    header('Location: /admin?tab=prospects&msg=finder_bulk&n='.$n); exit;
+    echo json_encode($res); exit;
   }
-  /* Auto-discover real small/medium clothing & textile retailers (OpenStreetMap, free, no key)
-     WITH a resolved email each — candidates we can't get an email for are dropped, not added.
-     Slower than a plain lookup (fetches each candidate's own site) so the batch is smaller. */
+  /* Auto-discover real small/medium clothing & textile retailers (OpenStreetMap, free, no
+     key) and add them straight to the customer list — fast, no per-candidate network calls.
+     Emails are a separate step (find_lead_email_one above) so a slow/failing site-lookup
+     never blocks discovery itself. */
   if($act==='discover_leads'){
+    header('Content-Type: application/json');
     @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
     $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
-    $rows=$city!==''?vestra_discover_with_email($city,$country,40):[];
-    [$added,$skipped]=$rows?vestra_leads_add($rows):[0,0];
-    header('Location: /admin?tab=prospects&msg=discover&n='.$added.'&found='.count($rows)); exit;
+    $rows=$city!==''?vestra_discover_osm($city,$country,80):[];
+    [$addedRows,$skipped]=$rows?vestra_leads_add($rows):[[],0];
+    $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
+    echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds]); exit;
   }
   /* Bulk-delete selected prospects (e.g. big-chain results from before the discovery
      filter, or a bad CSV import) — same lead_ids[] checkboxes as the send actions. */
@@ -1198,10 +1212,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
-<?php elseif($msg==='finder_bulk'): ?>
-<div class="amsg ok">✓ Email-finder run — <?= (int)($_GET['n']??0) ?> missing email(s) filled from the companies' own websites.</div>
-<?php elseif($msg==='discover'): $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0); ?>
-<div class="amsg <?= $df>0?'ok':'' ?>"<?= $df>0?'':' style="background:rgba(201,168,106,.12);border:1px solid rgba(201,168,106,.4)"' ?>><?php if($df===0): ?>No retailers with a findable email in that city — try another spelling (use the local name, e.g. “Köln”, “Milano”), a bigger nearby city, or add a Hunter/Anymailfinder key above for a higher hit-rate.<?php else: ?>✓ Discovery: <?= $df ?> retailer(s) found <b>with a real email</b>, <b><?= $dn ?> new</b> added to your customers<?= ($dn===0)?' (all were already on your list)':'' ?> — ready to send to.<?php endif; ?></div>
 <?php elseif($msg==='lead_bulk_deleted'): ?>
 <div class="amsg ok">✓ <?= (int)($_GET['n']??0) ?> prospect(s) deleted.</div>
 <?php elseif($msg==='rebrand'): ?>
@@ -2478,40 +2488,34 @@ document.addEventListener('DOMContentLoaded',csUpdate);
 </script>
 
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
-  <div class="acard-hd"><h3>🧭 Auto-discover retailers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key</span></h3></div>
+  <div class="acard-hd"><h3>🎯 Find customers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key needed</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Pull <b>real small &amp; medium clothing / textile shops</b> straight from OpenStreetMap into your customer list — independent boutiques &amp; multi-brand stores, <b>not</b> big chains or the brands' own flagship stores. Every row added already has a <b>real email</b> — candidates it can't find one for are dropped automatically, not added half-finished. Free, no API key required (an optional Hunter/Anymailfinder key above raises the hit-rate).</p>
-  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching + resolving emails… (can take a few minutes)';">
-    <?= csrfField() ?><input type="hidden" name="_action" value="discover_leads">
-    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City</label><input name="disc_city" placeholder="e.g. Paris, Milano, London, Köln, Sydney" required></div>
+  <p class="ahint" style="margin-bottom:12px">One button: finds <b>real small &amp; medium clothing / textile shops</b> in a city (independent boutiques &amp; multi-brand stores, not big chains or the brands' own flagship stores), adds them, then checks each new one for a real email — live, one row at a time, so you see exactly what worked and what didn't.</p>
+  <div class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City</label><input id="discCity" placeholder="e.g. Paris, Milano, London, Köln, Sydney"></div>
     <div class="afield" style="margin:0"><label>Country (label)</label>
-      <select name="disc_country">
+      <select id="discCountry">
         <option value="">(none)</option>
         <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
         <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
       </select>
     </div>
-    <button class="abtn primary" type="submit">🧭 Discover &amp; add</button>
-  </form>
-  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Adds up to 40 email-verified shops per run (checks each one's own site, so it's slower than before — don't close the tab); duplicates are skipped.</p>
+    <button class="abtn primary" type="button" onclick="findCustomersLive(this)">🎯 Find customers</button>
   </div>
-</div>
-
-<div class="acard" style="margin-bottom:20px">
-  <div class="acard-hd"><h3>🔍 Auto email-finder
-    <?= $finderApi?'<span style="color:#1f9d63;font-size:12px;font-weight:600">● API + reads sites</span>':'<span style="color:#1f9d63;font-size:12px;font-weight:600">● Reads sites — free</span>' ?></h3></div>
-  <div class="acard-body">
-  <p class="ahint" style="margin-bottom:10px">Every customer with a website gets a <b>🔍 Find</b> button — or <b>Find all missing</b> below. It reads the company's own <b>contact / imprint</b> pages and pulls the real published email — <b>no key needed</b>. Optionally add a <b>Hunter.io</b> / <b>Anymailfinder</b> key (free tiers) for extra volume &amp; deliverability-verified addresses; it's tried first, then the free site-reader as fallback. Keys stored web-blocked, never in git.</p>
-  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">
-    <?= csrfField() ?><input type="hidden" name="_action" value="save_finder">
-    <div class="afield" style="margin:0"><label>Provider (optional)</label><select name="finder_provider"><option value="hunter" <?= (vestra_cfg('finder_provider','hunter')==='hunter')?'selected':'' ?>>Hunter.io</option><option value="anymailfinder" <?= (vestra_cfg('finder_provider','')==='anymailfinder')?'selected':'' ?>>Anymailfinder</option></select></div>
-    <div class="afield" style="margin:0;flex:1;min-width:240px"><label>API key <?= $finderApi?'<span class="ahint">· saved, blank = keep</span>':'<span class="ahint">· optional</span>' ?></label><input type="password" name="finder_key" placeholder="key… (optional)" autocomplete="new-password"></div>
-    <button class="abtn primary" type="submit">Save key</button>
-  </form>
-  <form method="post" style="margin:0" onsubmit="return confirm('Look up an email for every customer that has a website but no email yet? Reads each site — this can take a while for long lists.')">
-    <?= csrfField() ?><input type="hidden" name="_action" value="find_all_emails">
-    <button class="abtn" type="submit">🔍 Find all missing emails</button>
-  </form>
+  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Already have customers without an email (e.g. from a CSV import)? <a href="#" onclick="findMissingEmailsLive(this);return false" style="color:var(--acc)">🔍 Find their emails too</a>.</p>
+  <div id="fcWrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg2);border-radius:8px">
+    <div id="fcBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div>
+    <div id="fcLog" style="max-height:260px;overflow:auto"></div>
+  </div>
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;font-size:12px;color:var(--mut)">Optional: use your own Hunter.io / Anymailfinder key (raises the hit-rate; not required)</summary>
+    <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
+      <?= csrfField() ?><input type="hidden" name="_action" value="save_finder">
+      <div class="afield" style="margin:0"><label>Provider</label><select name="finder_provider"><option value="hunter" <?= (vestra_cfg('finder_provider','hunter')==='hunter')?'selected':'' ?>>Hunter.io</option><option value="anymailfinder" <?= (vestra_cfg('finder_provider','')==='anymailfinder')?'selected':'' ?>>Anymailfinder</option></select></div>
+      <div class="afield" style="margin:0;flex:1;min-width:240px"><label>API key <?= $finderApi?'<span class="ahint">· saved, blank = keep</span>':'' ?></label><input type="password" name="finder_key" placeholder="key…" autocomplete="new-password"></div>
+      <button class="abtn" type="submit">Save key</button>
+    </form>
+  </details>
   </div>
 </div>
 
@@ -2763,6 +2767,54 @@ function leadBulkDelete(form){
   form.querySelector('[name="_action"]').value='delete_leads_bulk';
   form.submit();
 }
+/* Shared live queue runner: POSTs find_lead_email_one for each id, one at a time, logging
+ * each result as it comes back. Used both right after a fresh discovery and for "find emails
+ * for customers I already have" (e.g. a CSV import that had no emails). */
+function runEmailFinderQueue(ids, log, onStep, onDone){
+  var i=0, ok=0, fail=0;
+  function next(){
+    if(i>=ids.length){ onDone(ok,fail,ids.length); return; }
+    onStep(i+1, ids.length);
+    var fd=new FormData(); fd.append('_action','find_lead_email_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lid',ids[i]);
+    fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+      var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
+      if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
+      else { fail++; line.style.color='#c0392b'; var why=d.error==='nowebsite'?'no website':'not found on site'; line.innerHTML='✗ '+(d.company||d.website||'')+' — '+why; }
+      log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,150);
+    }).catch(function(){ fail++; i++; setTimeout(next,150); });
+  }
+  next();
+}
+function findCustomersLive(btn){
+  var city=(document.getElementById('discCity').value||'').trim();
+  if(!city){ alert('Enter a city first.'); return; }
+  var country=document.getElementById('discCountry').value||'';
+  var wrap=document.getElementById('fcWrap'), bar=document.getElementById('fcBar'), log=document.getElementById('fcLog');
+  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
+  bar.textContent='Searching '+city+'…';
+  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_city',city); fd.append('disc_country',country);
+  fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
+    line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
+    log.appendChild(line);
+    var ids=d.newIds||[];
+    if(!ids.length){ bar.textContent='✓ Done — no new customers needed an email lookup.'; btn.disabled=false; return; }
+    runEmailFinderQueue(ids, log,
+      function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
+      function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found, of '+n+' new customers. Refresh to see them.'; btn.disabled=false; });
+  }).catch(function(){ bar.textContent='✗ Search failed — check your connection and try again.'; btn.disabled=false; });
+}
+function findMissingEmailsLive(btn){
+  var rows=[].slice.call(document.querySelectorAll('tr[data-findable="1"]'));
+  var ids=rows.map(function(r){return r.getAttribute('data-id');});
+  if(!ids.length){ alert('No email-less customers with a website to look up.'); return; }
+  var wrap=document.getElementById('fcWrap'), bar=document.getElementById('fcBar'), log=document.getElementById('fcLog');
+  wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
+  bar.textContent='Checking emails 1 / '+ids.length+'…';
+  runEmailFinderQueue(ids, log,
+    function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
+    function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' found, '+fail+' not found, of '+n+'. Refresh to see them.'; btn.disabled=false; });
+}
 </script>
 
 <div class="acard">
@@ -2816,8 +2868,8 @@ function leadBulkDelete(form){
     </script>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
-      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); ?>
-      <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>">
+      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $findable=($noEmail && !$unsub && !empty($l['website'])); ?>
+      <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>" data-id="<?= htmlspecialchars($l['id']??'') ?>" data-findable="<?= $findable?'1':'0' ?>">
         <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':'' ?>"></td>
         <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>

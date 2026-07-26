@@ -413,8 +413,8 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     @set_time_limit(0);
     $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
     $rows=$city!==''?vestra_discover_osm($city,$country,60):[];
-    [$added]=$rows?vestra_leads_add($rows,$suid):[0,0];
-    header('Location: /seller?tab=find&msg=discover&n='.$added.'&found='.count($rows)); exit;
+    [$addedRows]=$rows?vestra_leads_add($rows,$suid):[[],0];
+    header('Location: /seller?tab=find&msg=discover&n='.count($addedRows).'&found='.count($rows)); exit;
   }
   if($sact==='seller_find_all'){
     @set_time_limit(0); $sc=vestra_seller_mail($suid); $leads=vestra_leads(); $n=0;
