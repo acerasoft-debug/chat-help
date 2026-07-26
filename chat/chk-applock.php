@@ -24,7 +24,8 @@ else{
 }
 
 echo "\n=== Kritik isaretler ===\n";
-$need=['CH_ISWV_GLOBAL'=>1,'CH_APPVIEW3'=>1,'CH_APPVIEW2C'=>4,'CH_MAILBTN'=>1,'CH_FILLGAPS'=>1];
+$need=['CH_ISWV_GLOBAL'=>1,'CH_APPVIEW3'=>1,'CH_APPVIEW2C'=>4,'CH_MAILBTN'=>1,'CH_FILLGAPS'=>1,
+       'CH_NATIVEPDF'=>1,'CH_PDFGOLD'=>1];
 $bad=[];
 foreach($need as $m=>$min){
   $c=substr_count($src,$m);
