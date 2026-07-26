@@ -1,0 +1,26 @@
+name: VESTRA'yı sunucuya otomatik kur
+
+# claude/wizardly-planck-7ylnmk'e her push'ta, sunucuya SSH ile bağlanıp
+# mevcut ~/deploy.sh'ı çalıştırır — elle SSH açıp komut yazmaya gerek kalmaz.
+# Actions sekmesinden "Run workflow" ile elle de tetiklenebilir.
+on:
+  push:
+    branches:
+      - claude/wizardly-planck-7ylnmk
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucuda deploy.sh çalıştır
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: bash ~/deploy.sh
