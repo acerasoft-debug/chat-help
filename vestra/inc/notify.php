@@ -253,6 +253,28 @@ function vestra_discover_osm(string $city, string $country='', int $limit=60): a
   return $out;
 }
 
+/* Discover retailers AND resolve a real email for each, dropping any candidate we can't get
+ * one for (no website, or the finder/free site-reader came up empty) — every row returned is
+ * ready to receive an outreach email immediately. Pulls a larger raw pool from OSM than
+ * $limit so enough survive the email step; hard-caps the number of site lookups it will
+ * attempt so one run can't run away on a big city. $keyOverride/$providerOverride pass a
+ * seller's own finder key through (blank = platform key, same cascade as vestra_find_email). */
+function vestra_discover_with_email(string $city, string $country='', int $limit=40, string $keyOverride='', string $providerOverride=''): array {
+  $pool=vestra_discover_osm($city,$country,max($limit*3,$limit+20));
+  $out=[]; $attempts=0; $maxAttempts=max($limit*3,30);
+  foreach($pool as $row){
+    if(count($out)>=$limit) break;
+    if($row['email']!==''){ $out[]=$row; continue; }               // OSM already gave us one — free
+    if($row['website']===''){ continue; }                          // nothing to look up — drop
+    if($attempts>=$maxAttempts){ continue; }                       // safety cap on network lookups
+    $attempts++;
+    $e=vestra_find_email($row['website'],$keyOverride,$providerOverride);
+    if($e!==''){ $row['email']=$e; $out[]=$row; }
+    // else: no email found for this one — drop it, per "only surface ones with an email"
+  }
+  return $out;
+}
+
 /* AI outreach personalisation (DeepSeek by default, OpenAI-compatible). The key comes
  * from vestra_cfg('ai_key') (admin/config) or a DEEPSEEK_KEY constant if the server
  * already defines one (e.g. shared with the chat app) — never committed to git. */

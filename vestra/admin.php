@@ -611,13 +611,23 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=prospects&msg=finder_bulk&n='.$n); exit;
   }
   /* Auto-discover real small/medium clothing & textile retailers (OpenStreetMap, free, no key)
-     for a city, and add them straight into the customer list. */
+     WITH a resolved email each — candidates we can't get an email for are dropped, not added.
+     Slower than a plain lookup (fetches each candidate's own site) so the batch is smaller. */
   if($act==='discover_leads'){
     @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
     $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
-    $rows=$city!==''?vestra_discover_osm($city,$country,80):[];
+    $rows=$city!==''?vestra_discover_with_email($city,$country,40):[];
     [$added,$skipped]=$rows?vestra_leads_add($rows):[0,0];
     header('Location: /admin?tab=prospects&msg=discover&n='.$added.'&found='.count($rows)); exit;
+  }
+  /* Bulk-delete selected prospects (e.g. big-chain results from before the discovery
+     filter, or a bad CSV import) — same lead_ids[] checkboxes as the send actions. */
+  if($act==='delete_leads_bulk'){
+    $ids=array_filter((array)($_POST['lead_ids']??[]));
+    $before=count(vestra_leads());
+    vestra_save_leads(array_values(array_filter(vestra_leads(),fn($l)=>!in_array($l['id']??'',$ids,true))));
+    $n=$before-count(vestra_leads());
+    header('Location: /admin?tab=prospects&msg=lead_bulk_deleted&n='.$n); exit;
   }
   if($act==='save_lead_template'){
     vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??'')]);
@@ -1191,7 +1201,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='finder_bulk'): ?>
 <div class="amsg ok">✓ Email-finder run — <?= (int)($_GET['n']??0) ?> missing email(s) filled from the companies' own websites.</div>
 <?php elseif($msg==='discover'): $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0); ?>
-<div class="amsg <?= $df>0?'ok':'' ?>"<?= $df>0?'':' style="background:rgba(201,168,106,.12);border:1px solid rgba(201,168,106,.4)"' ?>><?php if($df===0): ?>No retailers found in that city — try another spelling (use the local name, e.g. “Köln”, “Milano”), or a bigger nearby city.<?php else: ?>✓ Discovery: <?= $df ?> retailer(s) found, <b><?= $dn ?> new</b> added to your customers<?= ($dn===0)?' (all were already on your list)':'' ?>. Now run “🔍 Find all missing emails” to fill their addresses.<?php endif; ?></div>
+<div class="amsg <?= $df>0?'ok':'' ?>"<?= $df>0?'':' style="background:rgba(201,168,106,.12);border:1px solid rgba(201,168,106,.4)"' ?>><?php if($df===0): ?>No retailers with a findable email in that city — try another spelling (use the local name, e.g. “Köln”, “Milano”), a bigger nearby city, or add a Hunter/Anymailfinder key above for a higher hit-rate.<?php else: ?>✓ Discovery: <?= $df ?> retailer(s) found <b>with a real email</b>, <b><?= $dn ?> new</b> added to your customers<?= ($dn===0)?' (all were already on your list)':'' ?> — ready to send to.<?php endif; ?></div>
+<?php elseif($msg==='lead_bulk_deleted'): ?>
+<div class="amsg ok">✓ <?= (int)($_GET['n']??0) ?> prospect(s) deleted.</div>
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
 <?php elseif($msg==='pricing_rules'): ?>
@@ -2465,8 +2477,8 @@ document.addEventListener('DOMContentLoaded',csUpdate);
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
   <div class="acard-hd"><h3>🧭 Auto-discover retailers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Pull <b>real small &amp; medium clothing / textile shops</b> straight from OpenStreetMap into your customer list — independent boutiques &amp; multi-brand stores, <b>not</b> big chains. Pick a city; many arrive with a website, phone and sometimes an email already. Then hit <b>🔍 Find all missing emails</b> to fill the rest from the shops' own sites. Free, no API key.</p>
-  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching OpenStreetMap… (up to ~30s)';">
+  <p class="ahint" style="margin-bottom:12px">Pull <b>real small &amp; medium clothing / textile shops</b> straight from OpenStreetMap into your customer list — independent boutiques &amp; multi-brand stores, <b>not</b> big chains or the brands' own flagship stores. Every row added already has a <b>real email</b> — candidates it can't find one for are dropped automatically, not added half-finished. Free, no API key required (an optional Hunter/Anymailfinder key above raises the hit-rate).</p>
+  <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching + resolving emails… (can take a few minutes)';">
     <?= csrfField() ?><input type="hidden" name="_action" value="discover_leads">
     <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City</label><input name="disc_city" placeholder="e.g. Paris, Milano, London, Köln, Sydney" required></div>
     <div class="afield" style="margin:0"><label>Country (label)</label>
@@ -2478,7 +2490,7 @@ document.addEventListener('DOMContentLoaded',csUpdate);
     </div>
     <button class="abtn primary" type="submit">🧭 Discover &amp; add</button>
   </form>
-  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Adds up to 80 shops per run; duplicates are skipped.</p>
+  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Adds up to 40 email-verified shops per run (checks each one's own site, so it's slower than before — don't close the tab); duplicates are skipped.</p>
   </div>
 </div>
 
@@ -2741,6 +2753,13 @@ function leadDelete(lid){
 function leadToggleAll(box){
   document.querySelectorAll('.leadchk').forEach(function(c){ if(!c.disabled) c.checked=box.checked; });
 }
+function leadBulkDelete(form){
+  var boxes=[].slice.call(document.querySelectorAll('.leadchk')).filter(function(c){return c.checked;});
+  if(!boxes.length){ alert('Select at least one prospect (checkbox) first.'); return; }
+  if(!confirm('Delete '+boxes.length+' selected prospect(s)? This cannot be undone.')) return;
+  form.querySelector('[name="_action"]').value='delete_leads_bulk';
+  form.submit();
+}
 </script>
 
 <div class="acard">
@@ -2760,7 +2779,8 @@ function leadToggleAll(box){
         <option value="<?= htmlspecialchars($sid) ?>" <?= $ok?'':'disabled' ?>>From: <?= htmlspecialchars($s['company']??$s['name']??'Seller') ?><?= $ok?'':' (set up first)' ?></option>
         <?php endforeach; ?>
       </select>
-      <span class="ahint">Max 50 · unsubscribed/email-less can't be selected · pick a seller to send from their address</span>
+      <button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadBulkDelete(this.form)">🗑 Delete selected</button>
+      <span class="ahint">Send: max 50 · unsubscribed/email-less are safely skipped · pick a seller to send from their address. Delete: any selected row, no limit.</span>
     </div>
     <div id="sobWrap" style="display:none;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg2)">
       <div id="sobBar" style="font-weight:600;font-size:13px;margin-bottom:8px"></div>
@@ -2795,7 +2815,7 @@ function leadToggleAll(box){
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
       <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); ?>
       <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>">
-        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" <?= ($unsub||$noEmail)?'disabled':'' ?>></td>
+        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':'' ?>"></td>
         <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
         <td class="ac" style="font-size:11px"><?php if(!$noEmail): ?><span style="cursor:pointer" title="Click to edit" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['email']) ?>')"><?= htmlspecialchars($l['email']) ?></span><?php elseif(!$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','')">＋ Add email</button><?php if($finderOn && !empty($l['website'])): ?> <button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadFindEmail('<?= htmlspecialchars($l['id']??'') ?>')" title="Look up a verified email from the website">🔍 Find</button><?php endif; ?><?php else: ?>—<?php endif; ?></td>
