@@ -24,7 +24,7 @@ else{
 }
 
 echo "\n=== Kritik isaretler ===\n";
-$need=['CH_ISWV_GLOBAL'=>1,'CH_APPVIEW3'=>1,'CH_APPVIEW2C'=>4];
+$need=['CH_ISWV_GLOBAL'=>1,'CH_APPVIEW3'=>1,'CH_APPVIEW2C'=>4,'CH_MAILBTN'=>1,'CH_FILLGAPS'=>1];
 $bad=[];
 foreach($need as $m=>$min){
   $c=substr_count($src,$m);
@@ -33,8 +33,19 @@ foreach($need as $m=>$min){
   if(!$ok)$bad[]=$m;
 }
 
+echo "\n=== api.php (belge uretimi) ===\n";
+$apiS=(string)@file_get_contents($dir.'/api.php');
+if($apiS===''){ echo "  ✗ api.php okunamadi\n"; $bad[]='api.php'; }
+else{
+  foreach(['CH_BLANKFILL'=>1,'CH_DOC_POLISH'=>1,'function doGenerate'=>1] as $m=>$min){
+    $c=substr_count($apiS,$m); $ok=($c>=$min);
+    printf("  %-22s %2d / en az %d   %s\n",$m,$c,$min,$ok?'OK':'✗ EKSIK');
+    if(!$ok)$bad[]=$m;
+  }
+}
+
 echo "\n=== Dosyalar ===\n";
-foreach(['pv.php','pvsave.php','index.php.GOOD-appprint'] as $f){
+foreach(['pv.php','pvsave.php','pvmail.php','pdflib.php','index.php.GOOD-appprint'] as $f){
   $p=$dir.'/'.$f; $ok=is_file($p);
   printf("  %-28s %s\n",$f,$ok?('OK '.filesize($p).' B'):'✗ YOK');
   if(!$ok)$bad[]=$f;
