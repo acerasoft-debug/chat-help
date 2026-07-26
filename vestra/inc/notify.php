@@ -304,6 +304,55 @@ function vestra_ai_personalize(array $lead, array $tpl, string $senderName='', s
   return [$subject,$body];
 }
 
+/* Turn a bare URL into a clickable link inside already-escaped HTML text. */
+function vestra_html_linkify(string $escapedHtml): string {
+  return preg_replace('#(https?://[^\s<]+)#','<a href="$1" style="color:#a97f2c;text-decoration:underline">$1</a>',$escapedHtml);
+}
+
+/* VESTRA's branded HTML shell for every outreach/offer/quote email — plain text stays the
+ * primary content (nothing here changes what any template generates), this just wraps it in
+ * a premium visual layout for the HTML half of the send. Blank lines become paragraphs;
+ * everything after the "—" sender-identity/unsubscribe separator (every template appends one)
+ * renders as a smaller, muted footer block so the legal text doesn't compete with the pitch. */
+function vestra_html_email(string $bodyPlain): string {
+  $parts=explode("\n\n—\n",$bodyPlain,2);
+  $main=trim($parts[0]); $footer=isset($parts[1])?trim($parts[1]):'';
+  $renderParas=function(string $text,string $style): string {
+    $out='';
+    foreach(preg_split('/\n{2,}/',trim($text)) as $p){
+      $p=trim($p); if($p==='') continue;
+      $esc=nl2br(htmlspecialchars($p,ENT_QUOTES,'UTF-8'));
+      $out.='<p style="'.$style.'">'.vestra_html_linkify($esc).'</p>';
+    }
+    return $out;
+  };
+  $mainHtml=$renderParas($main,'margin:0 0 18px;line-height:1.65;color:#3a3428;font-size:15px');
+  $footerHtml=$footer!==''?$renderParas($footer,'margin:0 0 8px;line-height:1.5;color:#8a8272;font-size:12px'):'';
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    .'<title>VESTRA</title></head>'
+    .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
+    .'<div style="max-width:560px;margin:0 auto;padding:32px 16px">'
+    .'<div style="background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e0d5">'
+    .'<div style="background:#14110c;padding:22px 28px">'
+    .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em">VESTRA</span>'
+    .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span></div>'
+    .'<div style="padding:28px 28px 8px">'.$mainHtml.'</div>'
+    .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
+    .'</div>'
+    .'<p style="text-align:center;color:#9b9585;font-size:11px;margin:18px 0 0">VESTRA — verified B2B wholesale marketplace</p>'
+    .'</div></body></html>';
+}
+
+/* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
+ * send raw MIME themselves (SMTP, PHP mail()) — HTTP APIs take the two parts separately. */
+function vestra_mime_multipart(string $bodyPlain, string $boundary): string {
+  $html=vestra_html_email($bodyPlain);
+  return "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
+       .$bodyPlain."\r\n\r\n"
+       ."--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
+       .$html."\r\n\r\n--{$boundary}--";
+}
+
 /* low-level: send one UTF-8 plain-text email. Transport priority:
  *   1) HTTP API (mail_api_key set) — sends over HTTPS/443, which shared hosts
  *      leave open even when they block outbound SMTP ports (25/465/587). Best
@@ -333,11 +382,12 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null)
   }
   $from=vestra_cfg('mail_from','support@vestrasales.com');
   $dispName=$fromName!==''?$fromName:'VESTRA';
+  $boundary='vestra-'.bin2hex(random_bytes(12));
   $h ="From: {$dispName} <{$from}>\r\n";
-  $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
+  $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
   $subj='=?UTF-8?B?'.base64_encode($subject).'?=';
-  $ok = mail($to,$subj,$body,$h);
+  $ok = mail($to,$subj,vestra_mime_multipart($body,$boundary),$h);
   if(!$ok) error_log("[VESTRA Mail] mail() returned false sending to {$to} — subject: {$subject}");
   return $ok;
 }
@@ -377,12 +427,14 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null)
   if(strpos($r,'250')===false){ fclose($fp); error_log("[VESTRA SMTP] RCPT TO rejected: {$to}"); return false; }
   $cmd('DATA');
 
+  $boundary='vestra-'.bin2hex(random_bytes(12));
   $h ="From: {$name} <{$from}>\r\nTo: <{$to}>\r\n";
   $h.='Subject: =?UTF-8?B?'.base64_encode($subject)."?=\r\n";
-  $h.="MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
+  $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
-  $escapedBody=preg_replace('/^\./m','..',$body); // SMTP dot-stuffing
-  $r=$cmd($h."\r\n".$escapedBody."\r\n.");
+  $mime=vestra_mime_multipart($body,$boundary);
+  $escapedMime=preg_replace('/^\./m','..',$mime); // SMTP dot-stuffing
+  $r=$cmd($h."\r\n".$escapedMime."\r\n.");
   $cmd('QUIT');
   fclose($fp);
   return strpos($r,'250')!==false;
@@ -403,7 +455,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
   if($provider==='resend'){
     $url='https://api.resend.com/emails';
     $headers=['Authorization: Bearer '.$key,'Content-Type: application/json'];
-    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body];
+    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body)];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['reply_to']=$replyTo;
   } else { // brevo (default)
     $url='https://api.brevo.com/v3/smtp/email';
@@ -413,6 +465,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
       'to'=>[['email'=>$to]],
       'subject'=>$subject,
       'textContent'=>$body,
+      'htmlContent'=>vestra_html_email($body),
     ];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
   }
