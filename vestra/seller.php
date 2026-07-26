@@ -411,8 +411,8 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
   }
   if($sact==='seller_discover'){
     @set_time_limit(0);
-    $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
-    $rows=$city!==''?vestra_discover_osm($city,$country,60):[];
+    $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
+    $rows=$country!==''?vestra_discover_osm($country,$city,60):[];
     [$addedRows]=$rows?vestra_leads_add($rows,$suid):[[],0];
     header('Location: /seller?tab=find&msg=discover&n='.count($addedRows).'&found='.count($rows)); exit;
   }
@@ -1101,15 +1101,15 @@ if($tab==='overview'){
 
   <div style="<?= $card ?>;border-color:#b9e3c9">
     <h3 style="margin:0 0 6px;font-size:15px">🧭 Auto-discover customers <span style="color:#1f9d63;font-size:12px">● Free — no key needed</span></h3>
-    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Pull <b>real small &amp; medium clothing shops</b> (independent &amp; multi-brand boutiques — not big chains) from OpenStreetMap straight into your list. Then click <b>🔍 Find all missing emails</b> to fill their addresses from their own websites.</p>
-    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching… (up to ~30s)';">
+    <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Pull <b>real small &amp; medium clothing shops</b> (independent &amp; multi-brand boutiques — not big chains) from OpenStreetMap straight into your list — searches a whole country at once. Then click <b>🔍 Find all missing emails</b> to fill their addresses from their own websites.</p>
+    <form method="post" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Searching… (whole-country can take up to a minute)';">
       <input type="hidden" name="_action" value="seller_discover">
-      <div style="flex:1;min-width:190px"><label style="<?= $lbl ?>">City</label><input name="disc_city" required placeholder="Paris, Milano, London, Köln…" style="<?= $inp ?>"></div>
-      <div style="min-width:150px"><label style="<?= $lbl ?>">Country (label)</label>
-        <select name="disc_country" style="<?= $inp ?>"><option value="">(none)</option>
+      <div style="min-width:150px"><label style="<?= $lbl ?>">Country</label>
+        <select name="disc_country" required style="<?= $inp ?>"><option value="" disabled selected>— choose —</option>
           <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
           <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option></select>
       </div>
+      <div style="flex:1;min-width:190px"><label style="<?= $lbl ?>">City <span style="font-weight:400">— optional, narrows the search</span></label><input name="disc_city" placeholder="leave blank for the whole country" style="<?= $inp ?>"></div>
       <button class="btn btn-p btn-sm" type="submit">🧭 Discover &amp; add</button>
     </form>
     <form method="post" style="margin-top:10px" onsubmit="var b=this.querySelector('button');b.disabled=true;b.textContent='Looking up emails…';">

@@ -628,8 +628,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='discover_leads'){
     header('Content-Type: application/json');
     @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
-    $city=trim($_POST['disc_city']??''); $country=trim($_POST['disc_country']??'');
-    $rows=$city!==''?vestra_discover_osm($city,$country,80):[];
+    $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
+    $rows=$country!==''?vestra_discover_osm($country,$city,80):[];
     [$addedRows,$skipped]=$rows?vestra_leads_add($rows):[[],0];
     $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
     echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds]); exit;
@@ -2490,19 +2490,19 @@ document.addEventListener('DOMContentLoaded',csUpdate);
 <div class="acard" style="margin-bottom:20px;border-color:rgba(31,157,99,.4)">
   <div class="acard-hd"><h3>🎯 Find customers <span style="color:#1f9d63;font-size:12px;font-weight:600">● Free · no key needed</span></h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">One button: finds <b>real small &amp; medium clothing / textile shops</b> in a city (independent boutiques &amp; multi-brand stores, not big chains or the brands' own flagship stores), adds them, then checks each new one for a real email — live, one row at a time, so you see exactly what worked and what didn't.</p>
+  <p class="ahint" style="margin-bottom:12px">One button: finds <b>real small &amp; medium clothing / textile shops</b> across a whole country (independent boutiques &amp; multi-brand stores, not big chains or the brands' own flagship stores), adds them, then checks each new one for a real email — live, one row at a time, so you see exactly what worked and what didn't.</p>
   <div class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City</label><input id="discCity" placeholder="e.g. Paris, Milano, London, Köln, Sydney"></div>
-    <div class="afield" style="margin:0"><label>Country (label)</label>
+    <div class="afield" style="margin:0"><label>Country</label>
       <select id="discCountry">
-        <option value="">(none)</option>
+        <option value="" disabled selected>— choose —</option>
         <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
         <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
       </select>
     </div>
+    <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City <span style="font-weight:400;color:var(--mut)">— optional, narrows the search</span></label><input id="discCity" placeholder="leave blank to search the whole country"></div>
     <button class="abtn primary" type="button" onclick="findCustomersLive(this)">🎯 Find customers</button>
   </div>
-  <p class="ahint" style="margin-top:8px;font-size:11px">Use the city's local spelling (Milano not Milan, Köln not Cologne) for the most hits. Already have customers without an email (e.g. from a CSV import)? <a href="#" onclick="findMissingEmailsLive(this);return false" style="color:var(--acc)">🔍 Find their emails too</a>.</p>
+  <p class="ahint" style="margin-top:8px;font-size:11px">Whole-country searches take longer (up to ~60s) and may return nothing for very large countries — narrow to a city (local spelling, e.g. Milano not Milan) if that happens. Already have customers without an email (e.g. from a CSV import)? <a href="#" onclick="findMissingEmailsLive(this);return false" style="color:var(--acc)">🔍 Find their emails too</a>.</p>
   <div id="fcWrap" style="display:none;margin-top:10px;padding:10px 12px;background:var(--bg2);border-radius:8px">
     <div id="fcBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div>
     <div id="fcLog" style="max-height:260px;overflow:auto"></div>
@@ -2786,13 +2786,13 @@ function runEmailFinderQueue(ids, log, onStep, onDone){
   next();
 }
 function findCustomersLive(btn){
-  var city=(document.getElementById('discCity').value||'').trim();
-  if(!city){ alert('Enter a city first.'); return; }
   var country=document.getElementById('discCountry').value||'';
+  if(!country){ alert('Choose a country first.'); return; }
+  var city=(document.getElementById('discCity').value||'').trim();
   var wrap=document.getElementById('fcWrap'), bar=document.getElementById('fcBar'), log=document.getElementById('fcLog');
   wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
-  bar.textContent='Searching '+city+'…';
-  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_city',city); fd.append('disc_country',country);
+  bar.textContent='Searching '+(city?city+', '+country:'all of '+country)+'… (whole-country searches can take up to a minute)';
+  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city',city);
   fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
     var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
     line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';

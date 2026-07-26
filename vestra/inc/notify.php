@@ -169,7 +169,7 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
 function vestra_overpass(string $ql): string {
   foreach(['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'] as $ep){
     $ch=curl_init($ep);
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>45,CURLOPT_CONNECTTIMEOUT=>10,
+    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>65,CURLOPT_CONNECTTIMEOUT=>10,
       CURLOPT_USERAGENT=>'VestraBot/1.0 (+https://vestrasales.com)',
       CURLOPT_POSTFIELDS=>'data='.urlencode($ql)]);
     $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
@@ -206,13 +206,23 @@ function vestra_discover_blocklist(): array {
     'zalando','farfetch','ssense','asos','amazon',
   ];
 }
-function vestra_discover_osm(string $city, string $country='', int $limit=60): array {
-  $city=trim($city); if($city==='') return [];
-  $cityEsc=preg_replace('#[\\\\"\r\n]#','',$city);                 // guard the Overpass QL string
+/* $country is the search scope (required — matches an OSM country-level admin boundary).
+ * $city is an optional narrowing filter: blank searches the whole country, set it to search
+ * just that city instead (same as the old behaviour). Country-wide queries scan a much
+ * bigger area so they're given a longer budget — and may still time out / come back empty
+ * for very large countries on the free public Overpass server; that's an inherent trade-off
+ * of not requiring a city, not a bug. */
+function vestra_discover_osm(string $country, string $city='', int $limit=80): array {
+  $country=trim($country); $city=trim($city);
+  if($country==='') return [];
+  $wide=($city==='');
+  $areaEsc=preg_replace('#[\\\\"\r\n]#','',$wide?$country:$city);   // guard the Overpass QL string
+  $adminFilter=$wide?'["admin_level"="2"]':'';                       // country-level boundary only when scope-wide
+  $timeout=$wide?55:35;
   $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$';
   $f='["shop"~"'.$shopRe.'"]';
-  $ql="[out:json][timeout:35];".
-      'area["name"~"^'.$cityEsc.'$",i]["boundary"="administrative"]->.a;'.
+  $ql="[out:json][timeout:{$timeout}];".
+      'area["name"~"^'.$areaEsc.'$",i]["boundary"="administrative"]'.$adminFilter.'->.a;'.
       "(node{$f}(area.a);way{$f}(area.a););out tags center ".max(1,min(400,$limit*4)).";";
   $body=vestra_overpass($ql);
   if($body==='') return [];
