@@ -2442,6 +2442,7 @@ elseif($tab==='prospects'):
   <div class="acard-hd"><h3>🔎 Customer Scout — find buyers to add</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:12px">Priority: <b>small &amp; medium textile retailers that stock brands</b> — multi-brand &amp; designer boutiques (they buy the labels you sell) — not big chains. Pick a segment + region, open the ready searches, add the good ones below or via <i>Import CSV</i>. VESTRA never scrapes — you choose who to contact.</p>
+  <p class="ahint" style="margin-bottom:12px;padding:8px 10px;background:var(--bg2);border-radius:8px">📦🛒 <b>eBay / Amazon:</b> the links below find their storefronts. eBay business-seller pages often list a real contact email directly — add the company below. Amazon rarely shows one (messaging stays on-platform) — instead look for the seller's <b>own website</b> in their storefront "About" info, add that, then use 🔍 Find to resolve a real email from it.</p>
   <div class="acols2" style="align-items:flex-end">
     <div class="afield"><label>Segment / keyword</label><input id="csKw" value="multi-brand designer boutique" oninput="csUpdate()" placeholder="e.g. multi-brand boutique, branded fashion store"></div>
     <div class="afield"><label>Region</label>
@@ -2466,7 +2467,9 @@ function csUpdate(){
     ['💼 LinkedIn companies', 'https://www.linkedin.com/search/results/companies/?keywords='+q],
     ['📍 Google Maps', 'https://www.google.com/maps/search/'+q],
     ['📸 Instagram shops', g('site:instagram.com '+base+' shop')],
-    ['🏭 Wholesale buyers / stockists', g(kw+' wholesale buyer stockist '+rg)]
+    ['🏭 Wholesale buyers / stockists', g(kw+' wholesale buyer stockist '+rg)],
+    ['📦 eBay business sellers', g('(site:ebay.com/str OR site:ebay.co.uk/str OR site:ebay.de/str) '+base)],
+    ['🛒 Amazon sellers’ own sites', g(base+' ("sold by" OR "verkauft von" OR "vendu par") (site:amazon.com OR site:amazon.de OR site:amazon.co.uk OR site:amazon.com.au)')]
   ];
   var box=document.getElementById('csLinks'); box.innerHTML='';
   links.forEach(function(l){ var a=document.createElement('a'); a.href=l[1]; a.target='_blank'; a.rel='noopener'; a.className='abtn'; a.style.fontSize='12px'; a.textContent=l[0]; box.appendChild(a); });
