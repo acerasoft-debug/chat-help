@@ -430,6 +430,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     $sc=vestra_seller_mail($suid);
     if(!vestra_seller_can_send($sc)){ echo json_encode(['ok'=>false,'error'=>'nosender']); exit; }
     $lid=$_POST['lead_id']??''; $tpl=vestra_lead_template(); $leads=vestra_leads(); $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    $heroImg=($tpl['img']??'')!==''?'https://vestrasales.com'.$tpl['img']:'';
     foreach($leads as &$l){
       if(($l['id']??'')!==$lid || (string)($l['owner_uid']??'')!==$suid) continue;
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
@@ -437,7 +438,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
       $pair=(($_POST['ai']??'')==='1')?vestra_ai_personalize($l,$tpl,$sName,(string)($sc['ai_key']??'')):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
+      if(vestra_send_mail($l['email'],$subject,$body,'',$sName,$sc,$heroImg)){ $res['ok']=true; if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
       else { $res['error']='send'; }
       break;
     }

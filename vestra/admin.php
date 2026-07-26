@@ -644,7 +644,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=prospects&msg=lead_bulk_deleted&n='.$n); exit;
   }
   if($act==='save_lead_template'){
-    vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??'')]);
+    $img=trim($_POST['tpl_img_keep']??'');
+    if(($_POST['tpl_img_clear']??'')==='1') $img='';
+    if(!empty($_FILES['tpl_img']['name'])){ $up=vestra_save_upload_photo($_FILES['tpl_img']); if($up!=='') $img=$up; }
+    vestra_save_lead_template(['subject'=>trim($_POST['tpl_subject']??''),'body'=>trim($_POST['tpl_body']??''),'img'=>$img]);
     header('Location: /admin?tab=prospects&msg=lead_tpl_ok'); exit;
   }
   if($act==='send_lead_email'){
@@ -660,12 +663,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $a0=array_values(array_filter(auth_accounts(),fn($a)=>($a['id']??'')===$sellerUid))[0]??null;
       $senderName=$a0?($a0['company']??$a0['name']??''):(string)($sc['smtp_name']??'');
     }
+    $heroImg=($tpl['img']??'')!==''?'https://vestrasales.com'.$tpl['img']:'';
     foreach($leads as &$l){
       if(!in_array($l['id']??'',$ids,true)) continue;
       if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)) continue; // research lead without an email yet
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){
+      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){
         $sent++;
         if(($l['status']??'new')==='new') $l['status']='contacted';
         $l['last_contacted_at']=date('c');
@@ -689,6 +693,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $senderName=$a0?($a0['company']??$a0['name']??''):'';
     }
     $leads=vestra_leads(); $tpl=vestra_lead_template(); $ai=($_POST['ai']??'')==='1'; $res=['ok'=>false,'company'=>'','email'=>'','error'=>'notfound'];
+    $heroImg=($tpl['img']??'')!==''?'https://vestrasales.com'.$tpl['img']:'';
     foreach($leads as &$l){
       if(($l['id']??'')!==$lid) continue;
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
@@ -696,7 +701,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
       $pair=$ai?vestra_ai_personalize($l,$tpl,$senderName):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
-      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc)){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
+      if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
       else { $res['error']='send'; }
       break;
     }
@@ -726,7 +731,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(($l['status']??'')==='unsubscribed'){ header('Location: /admin?tab=prospects&msg=quote_unsub'); exit; }
       $unsubUrl='https://vestrasales.com/lead-unsubscribe?token='.urlencode($l['unsub_token']??''); break; } }
     $fmt=fn($n)=>'€'.rtrim(rtrim(number_format((float)$n,2),'0'),'.');
-    $lines=[];
+    $lines=[]; $heroImg='';
     foreach($pids as $pid){
       $p=vestra_find($pid); if(!$p) continue;
       $price='from '.$fmt(vestra_from_price($p)).'/'.($p['unit']??'pc');
@@ -734,10 +739,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $lines[]=['title'=>trim(($p['brand']??'').' '.($p['name']??'')),'price'=>$price,
         'moq'=>'MOQ '.(int)($p['moq']??0).' '.($p['unit']??'pc'),
         'url'=>'https://vestrasales.com/product?id='.rawurlencode($p['id']??'')];
+      if($heroImg===''){ $img=vestra_primary_image($p); if($img!=='') $heroImg='https://vestrasales.com'.$img; }
     }
     if(!$lines){ header('Location: /admin?tab=prospects&msg=quote_invalid'); exit; }
     [$subject,$body]=vestra_quote_render_email($company,$contact,$lines,$note,$unsubUrl,$senderName);
-    $ok=vestra_send_mail($email,$subject,$body,'',$senderName,$sc);
+    $ok=vestra_send_mail($email,$subject,$body,'',$senderName,$sc,$heroImg);
     $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
     if($fh=@fopen($dir.'/quotes.csv','a')){
       if(ftell($fh)===0) fputcsv($fh,['timestamp','email','company','contact','sender','products','note','sent'],',','"','\\');
@@ -2653,12 +2659,22 @@ function smtpPreset(v){
 <div class="acard">
   <div class="acard-hd"><h3>Outreach email template</h3></div>
   <div class="acard-body">
-  <p class="ahint" style="margin-bottom:12px">Placeholders: <code>{{company}}</code> <code>{{contact_name}}</code> <code>{{country}}</code>. A sender-identification + unsubscribe footer is appended automatically to every send and can't be removed.</p>
-  <form method="post" class="aform">
+  <p class="ahint" style="margin-bottom:12px">Placeholders: <code>{{company}}</code> <code>{{contact_name}}</code> <code>{{country}}</code>. A sender-identification + unsubscribe footer is appended automatically to every send and can't be removed. Every email goes out as a branded HTML card (with a plain-text fallback) — add an image any time to make it feel more premium; leave it out any time too.</p>
+  <form method="post" class="aform" enctype="multipart/form-data">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="save_lead_template">
+    <input type="hidden" name="tpl_img_keep" value="<?= htmlspecialchars($leadTpl['img']) ?>">
     <div class="afield"><label>Subject</label><input name="tpl_subject" value="<?= htmlspecialchars($leadTpl['subject']) ?>"></div>
     <div class="afield"><label>Body</label><textarea name="tpl_body" rows="8"><?= htmlspecialchars($leadTpl['body']) ?></textarea></div>
+    <div class="afield"><label>Header image <span style="font-weight:400;color:var(--mut)">— optional, shown at the top of the HTML email</span></label>
+      <?php if($leadTpl['img']!==''): ?>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <img src="<?= htmlspecialchars($leadTpl['img']) ?>" style="height:52px;border-radius:6px;border:1px solid var(--line)">
+          <label style="font-size:12px;color:var(--mut);display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" name="tpl_img_clear" value="1"> Remove image</label>
+        </div>
+      <?php endif; ?>
+      <input type="file" name="tpl_img" accept="image/png,image/jpeg,image/webp,image/gif">
+    </div>
     <button class="abtn primary" type="submit">Save template</button>
   </form>
   </div>
@@ -2668,11 +2684,17 @@ function smtpPreset(v){
   <div class="acard-hd"><h3>👁 Email preview — exactly what each customer receives</h3></div>
   <div class="acard-body">
   <p class="ahint" style="margin-bottom:10px">Live render of your saved outreach (sample customer “Bodega”). Placeholders are filled per-recipient and the required sender + one-click unsubscribe footer is added automatically. One personalised email is sent per customer.</p>
-  <?php $pv=vestra_lead_render_email(['company'=>'Bodega','contact_name'=>'Ali','country'=>'United States','unsub_token'=>'preview'],$leadTpl); ?>
-  <div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px">
-    <div style="font-size:12px;color:var(--mut);margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)">Subject:&nbsp; <b style="color:var(--ink)"><?= htmlspecialchars($pv[0]) ?></b></div>
-    <pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.55;color:var(--ink);margin:0"><?= htmlspecialchars($pv[1]) ?></pre>
-  </div>
+  <?php
+    $pv=vestra_lead_render_email(['company'=>'Bodega','contact_name'=>'Ali','country'=>'United States','unsub_token'=>'preview'],$leadTpl);
+    $pvImg=$leadTpl['img']!==''?'https://vestrasales.com'.$leadTpl['img']:'';
+    $pvHtml=vestra_html_email($pv[1],$pvImg);
+  ?>
+  <div style="font-size:12px;color:var(--mut);margin-bottom:8px">Subject:&nbsp; <b style="color:var(--ink)"><?= htmlspecialchars($pv[0]) ?></b></div>
+  <iframe srcdoc="<?= htmlspecialchars($pvHtml) ?>" style="width:100%;height:640px;border:1px solid var(--line);border-radius:10px;background:#f4f2ee"></iframe>
+  <details style="margin-top:10px">
+    <summary style="cursor:pointer;font-size:12px;color:var(--mut)">Plain-text fallback (shown to clients that can't render HTML)</summary>
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.55;color:var(--ink);margin:8px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px 16px"><?= htmlspecialchars($pv[1]) ?></pre>
+  </details>
   </div>
 </div>
 

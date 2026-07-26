@@ -58,17 +58,18 @@ function vestra_lead_default_template(): array {
             "https://vestrasales.com/shop\n\n".
             "Want a tailored quote for specific brands, sizes or volumes? Just reply and we'll put an offer together the same day.\n\n".
             "Best regards,\nThe VESTRA team",
+        'img' => '',
     ];
 }
 
 function vestra_lead_template(): array {
     $t = vestra_read_json('lead_template.json');
     $d = vestra_lead_default_template();
-    return ['subject' => $t['subject'] ?? $d['subject'], 'body' => $t['body'] ?? $d['body']];
+    return ['subject' => $t['subject'] ?? $d['subject'], 'body' => $t['body'] ?? $d['body'], 'img' => $t['img'] ?? $d['img']];
 }
 
 function vestra_save_lead_template(array $t): void {
-    vestra_write_json('lead_template.json', ['subject' => $t['subject'] ?? '', 'body' => $t['body'] ?? '']);
+    vestra_write_json('lead_template.json', ['subject' => $t['subject'] ?? '', 'body' => $t['body'] ?? '', 'img' => $t['img'] ?? '']);
 }
 
 /** Render one lead's outreach email — substitutes placeholders and appends a

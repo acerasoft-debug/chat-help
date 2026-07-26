@@ -314,7 +314,7 @@ function vestra_html_linkify(string $escapedHtml): string {
  * a premium visual layout for the HTML half of the send. Blank lines become paragraphs;
  * everything after the "—" sender-identity/unsubscribe separator (every template appends one)
  * renders as a smaller, muted footer block so the legal text doesn't compete with the pitch. */
-function vestra_html_email(string $bodyPlain): string {
+function vestra_html_email(string $bodyPlain, string $heroImage=''): string {
   $parts=explode("\n\n—\n",$bodyPlain,2);
   $main=trim($parts[0]); $footer=isset($parts[1])?trim($parts[1]):'';
   $renderParas=function(string $text,string $style): string {
@@ -328,6 +328,9 @@ function vestra_html_email(string $bodyPlain): string {
   };
   $mainHtml=$renderParas($main,'margin:0 0 18px;line-height:1.65;color:#3a3428;font-size:15px');
   $footerHtml=$footer!==''?$renderParas($footer,'margin:0 0 8px;line-height:1.5;color:#8a8272;font-size:12px'):'';
+  $heroHtml=$heroImage!==''
+    ?'<img src="'.htmlspecialchars($heroImage,ENT_QUOTES,'UTF-8').'" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto">'
+    :'';
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     .'<title>VESTRA</title></head>'
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
@@ -336,6 +339,7 @@ function vestra_html_email(string $bodyPlain): string {
     .'<div style="background:#14110c;padding:22px 28px">'
     .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em">VESTRA</span>'
     .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span></div>'
+    .$heroHtml
     .'<div style="padding:28px 28px 8px">'.$mainHtml.'</div>'
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
     .'</div>'
@@ -345,8 +349,8 @@ function vestra_html_email(string $bodyPlain): string {
 
 /* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
  * send raw MIME themselves (SMTP, PHP mail()) — HTTP APIs take the two parts separately. */
-function vestra_mime_multipart(string $bodyPlain, string $boundary): string {
-  $html=vestra_html_email($bodyPlain);
+function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage=''): string {
+  $html=vestra_html_email($bodyPlain,$heroImage);
   return "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
        .$bodyPlain."\r\n\r\n"
        ."--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
@@ -361,22 +365,22 @@ function vestra_mime_multipart(string $bodyPlain, string $boundary): string {
  *   3) Local mail() — only lands in inboxes if the domain's SPF/DKIM authorize
  *      this server's IP.
  */
-function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
+function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
   // Explicit sender config (e.g. a seller's OWN SMTP/API) — send truly "from" them.
   if($cfg!==null){
-    if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg);
-    if(($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') return vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,$cfg);
+    if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage);
+    if(($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') return vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage);
     return false; // sender selected but their transport isn't set up
   }
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(vestra_cfg('mail_api_key','')!==''){
-    $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName);
+    $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage);
     if(!$ok) error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
     return $ok;
   }
   if(vestra_cfg('smtp_host','')!==''){
-    $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName);
+    $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage);
     if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
     return $ok;
   }
@@ -387,14 +391,14 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null)
   $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
   $subj='=?UTF-8?B?'.base64_encode($subject).'?=';
-  $ok = mail($to,$subj,vestra_mime_multipart($body,$boundary),$h);
+  $ok = mail($to,$subj,vestra_mime_multipart($body,$boundary,$heroImage),$h);
   if(!$ok) error_log("[VESTRA Mail] mail() returned false sending to {$to} — subject: {$subject}");
   return $ok;
 }
 
 /* Dependency-free authenticated SMTP (STARTTLS + AUTH LOGIN) — no PHPMailer/composer.
  * Config: smtp_host, smtp_port (default 587), smtp_user, smtp_pass, smtp_from, smtp_name. */
-function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
+function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $host=$g('smtp_host',''); $port=(int)$g('smtp_port',587);
   $user=$g('smtp_user',''); $pass=$g('smtp_pass','');
@@ -432,7 +436,7 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null)
   $h.='Subject: =?UTF-8?B?'.base64_encode($subject)."?=\r\n";
   $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
-  $mime=vestra_mime_multipart($body,$boundary);
+  $mime=vestra_mime_multipart($body,$boundary,$heroImage);
   $escapedMime=preg_replace('/^\./m','..',$mime); // SMTP dot-stuffing
   $r=$cmd($h."\r\n".$escapedMime."\r\n.");
   $cmd('QUIT');
@@ -444,7 +448,7 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null)
  * Config: mail_api_provider ('brevo' default | 'resend'), mail_api_key,
  *         mail_from (verified sender address), smtp_name (display name).
  * Returns true on a 2xx from the provider. */
-function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
+function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $provider=strtolower((string)$g('mail_api_provider','brevo'));
   $key=(string)$g('mail_api_key','');
@@ -455,7 +459,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
   if($provider==='resend'){
     $url='https://api.resend.com/emails';
     $headers=['Authorization: Bearer '.$key,'Content-Type: application/json'];
-    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body)];
+    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body,$heroImage)];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['reply_to']=$replyTo;
   } else { // brevo (default)
     $url='https://api.brevo.com/v3/smtp/email';
@@ -465,7 +469,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null){
       'to'=>[['email'=>$to]],
       'subject'=>$subject,
       'textContent'=>$body,
-      'htmlContent'=>vestra_html_email($body),
+      'htmlContent'=>vestra_html_email($body,$heroImage),
     ];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
   }
