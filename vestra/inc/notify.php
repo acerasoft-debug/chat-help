@@ -178,6 +178,34 @@ function vestra_overpass(string $ql): string {
   }
   return '';
 }
+/* Names/brands to exclude from Discovery: mass-market chains (Zara, H&M, Primark…) and
+ * monobrand flagship stores of the very designer labels VESTRA sells (Lacoste, Ralph Lauren,
+ * DSQUARED2, D&G…) — neither is a wholesale customer: chains don't buy small lots from a
+ * marketplace, and a brand's own store doesn't stock competitors. Best-effort substring
+ * match on the shop's name/brand tag; admin can still remove any that slip through. */
+function vestra_discover_blocklist(): array {
+  return [
+    // mass-market / fast-fashion chains
+    'zara','h&m','h & m','c&a','c & a','primark','mango','uniqlo','bershka','pull&bear','pull & bear',
+    'stradivarius','new yorker','takko','kik','nkd',"ernsting's family",'peek & cloppenburg','peek&cloppenburg',
+    'esprit','s.oliver','tom tailor','jack & jones','vero moda','celio','kiabi','forever 21','gap',
+    'old navy','banana republic','topshop','topman','river island','marks & spencer','m&s','jd sports',
+    'foot locker','footlocker','deichmann','görtz','goertz','snipes','courir','next retail',
+    // department stores
+    'galeries lafayette','el corte inglés','el corte ingles','karstadt','kaufhof','john lewis','debenhams',
+    "macy's",'nordstrom','harrods','selfridges','myer','david jones',
+    // sportswear giants
+    'nike','adidas','puma','under armour','the north face','columbia sportswear','reebok','fila','kappa',
+    'umbro','asics','new balance',
+    // designer/luxury monobrand flagships — VESTRA's own brands; their stores aren't buyers
+    'lacoste','ralph lauren','polo ralph lauren','dsquared2','dsquared 2','dolce & gabbana','dolce&gabbana',
+    'd&g','gucci','prada','emporio armani','giorgio armani','armani','versace','burberry','hugo boss',
+    'tommy hilfiger','calvin klein','michael kors','louis vuitton','chanel','dior','balenciaga','fendi',
+    'moncler','off-white','amiri','valentino','saint laurent','givenchy','bottega veneta',
+    // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
+    'zalando','farfetch','ssense','asos','amazon',
+  ];
+}
 function vestra_discover_osm(string $city, string $country='', int $limit=60): array {
   $city=trim($city); if($city==='') return [];
   $cityEsc=preg_replace('#[\\\\"\r\n]#','',$city);                 // guard the Overpass QL string
@@ -189,10 +217,15 @@ function vestra_discover_osm(string $city, string $country='', int $limit=60): a
   $body=vestra_overpass($ql);
   if($body==='') return [];
   $d=json_decode($body,true); $els=$d['elements']??[]; if(!$els) return [];
+  $block=vestra_discover_blocklist();
   $out=[]; $seen=[];
   foreach($els as $el){
     $t=$el['tags']??[]; $name=trim((string)($t['name']??'')); if($name==='') continue;
     $k=strtolower($name); if(isset($seen[$k])) continue; $seen[$k]=true;
+    $brandL=strtolower((string)($t['brand']??''));
+    $blocked=false;
+    foreach($block as $b){ if(str_contains($k,$b) || ($brandL!==''&&str_contains($brandL,$b))){ $blocked=true; break; } }
+    if($blocked) continue;
     $web=(string)($t['website']??($t['contact:website']??($t['url']??'')));
     $email=(string)($t['email']??($t['contact:email']??''));
     $phone=(string)($t['phone']??($t['contact:phone']??''));
@@ -208,9 +241,15 @@ function vestra_discover_osm(string $city, string $country='', int $limit=60): a
       'address'=>trim($street.($pc!==''?', '.$pc:'')),
       'category'=>'Retailer ('.((string)($t['shop']??'clothes')).')',
       'source'=>'OpenStreetMap',
+      '_hasweb'=>$web!=='',   // sort key only, stripped below
     ];
-    if(count($out)>=$limit) break;
   }
+  // Candidates with a website already listed have far better odds of yielding a real email
+  // next (via the free site-reader) — fill the cap with those first.
+  usort($out, fn($a,$b) => ($b['_hasweb']<=>$a['_hasweb']));
+  $out=array_slice($out,0,$limit);
+  foreach($out as &$r) unset($r['_hasweb']);
+  unset($r);
   return $out;
 }
 
