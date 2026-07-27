@@ -64,30 +64,11 @@ function vestra_demo_products(){
       'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
       'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 320 pc → €25/pc
     ],
-    [
-      'id'=>'rl-oxford-shirt','brand'=>'Ralph Lauren','name'=>'Custom Fit Oxford Shirt','mode'=>'sale','list'=>49.00,
-      'cat'=>'Shirts','sku'=>'RL-OX-014','moq'=>20,'unit'=>'pc',
-      'desc'=>'Cotton oxford shirt, custom fit. End-of-season clearance — limited stock. Ships in packs of 10; minimum order 20 pc, choose your colours.',
-      'hide_seller'=>true,'origin'=>'EEA stock','verified'=>true,'accent'=>'#0f2f5c',
-      'sizes'=>'S×1 · M×2 · L×2 · XL×2 · XXL×1 · 10/pack','size_step'=>10,'min_colors'=>1,
-      'colors'=>['Black','Navy','White','Grey','Red','Green','Light Blue'],
-      'specs'=>[
-        'Composition'=>'100% cotton oxford weave',
-        'Fit'=>'Custom fit · button-down collar',
-        'Care'=>'Machine wash 40°C · warm iron',
-        'Packaging'=>'Packs of 10 · S×1 M×2 L×2 XL×2 XXL×1',
-        'Lead time'=>'In stock — ships in 3–5 business days',
-        'Season'=>'End-of-season clearance',
-        'Made in'=>'EU',
-        'Customs code (HS)'=>'6205.20.00',
-      ],
-      'tiers'=>[['min'=>20,'price'=>39.00],['min'=>50,'price'=>34.00],['min'=>150,'price'=>29.00]],
-    ],
   ];
   return vestra_apply_price_overrides($P);
 }
 /* ── Admin price/MOQ overrides for the built-in demo products ──────────────
-   The 3 demo products above are hard-coded, but the admin "Prices" editor lets
+   The demo product(s) above are hard-coded, but the admin "Prices" editor lets
    the owner retune their MOQ, list price and tier pricing without touching code.
    Those edits live in data/product_overrides.json ({id => {moq,list,tiers}}) and
    are layered on top here so a redeploy never wipes them. Live seller listings
@@ -124,7 +105,7 @@ function vestra_save_product_overrides(array $ov): void {
 }
 /* Which products are demo (override-backed) vs live listings (listings.json-backed). */
 function vestra_is_demo_product(string $id): bool {
-  foreach(['lac-pique-polo','rl-oxford-shirt'] as $d){ if($d===$id) return true; }
+  foreach(['lac-pique-polo'] as $d){ if($d===$id) return true; }
   return false;
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
@@ -281,7 +262,7 @@ function vestra_is_colorqty_listing(array $p): bool {
   return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
 }
 /* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
-   (e.g. rl-oxford-shirt) only require 1, where "at least 1 colours" would read wrong. */
+   only require 1, where "at least 1 colours" would read wrong. */
 function vestra_colours_phrase(int $n): string {
   return $n === 1 ? t('at least 1 colour') : sprintf(t('at least %d colours'), $n);
 }
