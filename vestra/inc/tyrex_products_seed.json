@@ -38,5 +38,47 @@
     "tiers": [
       { "min": 104, "price": 19.9 }
     ]
+  },
+  {
+    "id": "tyx-lacoste-zipup-hoodie",
+    "brand": "Lacoste",
+    "name": "Zip-Up Fleece Hoodie",
+    "cat": "Hoodies",
+    "sku": "LAC-SH9626-00",
+    "moq": 80,
+    "unit": "pc",
+    "mode": "fixed",
+    "desc": "Classic fit zip-up fleece hoodie in cotton-blend fleece (model SH9626-00, Winter season). Sold in lots of 16; minimum order 80 pc (5 lots), at least 3 colours.",
+    "origin": "Authorised allocation",
+    "verified": true,
+    "status": "approved",
+    "accent": "#14532d",
+    "sizes": "Lots of 16 · S×2 M×4 L×4 XL×4 XXL×2 · min 80 pc (5 lots)",
+    "size_step": 16,
+    "min_colors": 3,
+    "colors": ["Green", "Navy", "White", "Blue", "Bordeaux"],
+    "images": [
+      "/uploads/lac-hoodie/lacoste-hoodie-green.png",
+      "/uploads/lac-hoodie/lacoste-hoodie-navy.png",
+      "/uploads/lac-hoodie/lacoste-hoodie-white.png",
+      "/uploads/lac-hoodie/lacoste-hoodie-blue.png",
+      "/uploads/lac-hoodie/lacoste-hoodie-bordeaux.png"
+    ],
+    "linesheet": true,
+    "sheet_file": "lacoste-zipup-hoodie.pdf",
+    "specs": {
+      "Composition": "84% cotton, 16% polyester",
+      "Fit": "Classic fit",
+      "Season": "Winter",
+      "Sleeves": "Long",
+      "Care": "Machine wash 30°C",
+      "Packaging": "Lots of 16 · S×2 M×4 L×4 XL×4 XXL×2",
+      "Lead time": "Authorised allocation — 5–7 business days",
+      "Model no.": "SH9626-00",
+      "Retail price (RRP)": "€150"
+    },
+    "tiers": [
+      { "min": 80, "price": 59.9 }
+    ]
   }
 ]
