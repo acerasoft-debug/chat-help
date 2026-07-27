@@ -295,9 +295,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=tyrex_polos&n='.$added); exit;
   }
-  /* Import the Lacoste polo as an APPROVED listing owned by the "Les Garage Paris"
+  /* Import the Lacoste polo(s) as APPROVED listing(s) owned by the "Les Garage Paris"
      seller account — resolved by company name, or created (minimal, editable later)
-     if it does not exist yet. De-dupes on id and brand+SKU; safe to re-run. */
+     if it does not exist yet. Safe to re-run: a seed item matching an existing listing
+     by id (or brand+SKU) REFRESHES that listing's commercial fields (price, MOQ, tiers,
+     pack size, colours, specs, images, line sheet) instead of being skipped as a no-op —
+     so correcting numbers in the seed and re-running always lands the fix, whether or
+     not this exact item was imported before. */
   if($act==='import_lesgarage_polos'){
     $seed=is_readable(__DIR__.'/inc/lesgarage_polos_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/lesgarage_polos_seed.json'),true) : [];
     if(!is_array($seed)) $seed=[];
@@ -311,17 +315,27 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         'membership_tier'=>'premium','membership_status'=>'active','onboarding_paid'=>true,'created'=>date('c'),'doc_requests'=>[]];
       auth_save_accounts($accs);
     }
-    $all=vestra_listings(); $haveId=[]; $haveBS=[];
-    foreach($all as $l){ $haveId[(string)($l['id']??'')]=true; $haveBS[strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))]=true; }
-    $added=0;
+    $all=vestra_listings();
+    $byId=[]; $byBS=[];
+    foreach($all as $i=>$l){ $lid=(string)($l['id']??''); if($lid!=='') $byId[$lid]=$i;
+      $bs=strtolower(trim(($l['brand']??'').'|'.($l['sku']??''))); if($bs!=='|') $byBS[$bs]=$i; }
+    $added=0; $updated=0;
+    $refreshable=['moq','unit','mode','list','desc','origin','colors','images','linesheet','sheet_file','sizes','size_step','specs','tiers','cat'];
     foreach($seed as $p){
       $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
-      if(($id!=='' && isset($haveId[$id])) || ($bs!=='|' && isset($haveBS[$bs]))) continue;
+      $matchIdx = ($id!=='' && isset($byId[$id])) ? $byId[$id] : (($bs!=='|' && isset($byBS[$bs])) ? $byBS[$bs] : null);
+      if($matchIdx!==null){
+        foreach($refreshable as $k) if(array_key_exists($k,$p)) $all[$matchIdx][$k]=$p[$k];
+        $updated++;
+        continue;
+      }
       $p['seller_uid']=$sid; $p['seller']='Les Garage Paris'; $p['verified']=true; $p['status']='approved'; $p['added_at']=date('c');
-      $all[]=$p; $added++; $haveId[$id]=true; $haveBS[$bs]=true;
+      $all[]=$p; $newIdx=count($all)-1; $added++;
+      if($id!=='') $byId[$id]=$newIdx;
+      if($bs!=='|') $byBS[$bs]=$newIdx;
     }
     vestra_save_listings($all);
-    header('Location: /admin?tab=listings&msg=lgp_polos&n='.$added); exit;
+    header('Location: /admin?tab=listings&msg=lgp_polos&n='.$added.'&upd='.$updated); exit;
   }
   /* Import the DSQUARED2 catalogue (T-shirts €49.90 / sweatshirts €90, on sale)
      from inc/dsquared_seed.json. De-dupes on brand+SKU(model) AND id, so a
@@ -1188,7 +1202,6 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'tyrex_polos'=>'✓ Polos imported as Tyrex International BV listings.','tyrex_missing'=>'Tyrex International BV account not found — create it first (Listings → Tyrex).',
-    'lgp_polos'=>'✓ Lacoste polo imported as a Les Garage Paris listing.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
@@ -1333,6 +1346,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Title and message are required.</div>
 <?php elseif($msg==='journal_seeded'): ?>
 <div class="amsg ok">✓ Loaded <?= (int)($_GET['n']??0) ?> starter article(s)<?= ((int)($_GET['n']??0)===0)?' — they were already present':'' ?>. Edit or unpublish them any time below.</div>
+<?php elseif($msg==='lgp_polos'): $lgpN=(int)($_GET['n']??0); $lgpU=(int)($_GET['upd']??0); ?>
+<div class="amsg ok">✓ Les Garage Paris:
+  <?= $lgpN>0 ? $lgpN.' listing(s) imported' : '' ?><?= ($lgpN>0 && $lgpU>0)?' · ':'' ?><?= $lgpU>0 ? $lgpU.' existing listing(s) refreshed with the latest price/MOQ/colours' : '' ?><?= ($lgpN===0 && $lgpU===0) ? 'nothing to do — already up to date.' : '.' ?></div>
 <?php endif; ?>
 
 
@@ -2396,10 +2412,11 @@ elseif($tab==='listings'):
   <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
     <div style="font-size:13px;color:var(--mut);max-width:660px">
       <b style="color:var(--ink)">🅿️ Import to Les Garage Paris (<?= $lgN ?>)</b> — the Lacoste Trim Cotton Jersey T-Shirt
-      (sale €20, was €28, MOQ 100), with photos + a downloadable line-sheet PDF. Listed under the Les Garage Paris seller
-      (created automatically if it doesn't exist yet). Already-imported items are skipped — safe to re-run.
+      (sale €20, was €29, MOQ 104, packs of 8, colours: Bordeaux/Navy/Black/White), with photos + a downloadable line-sheet PDF.
+      Listed under the Les Garage Paris seller (created automatically if it doesn't exist yet). Safe to re-run — new items are
+      added, items already imported get their price/MOQ/colours refreshed to match the numbers above.
     </div>
-    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import <?= $lgN ?> product(s) as Les Garage Paris listings? The seller is created if missing. Items already in the catalogue are skipped.')">
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Import/refresh <?= $lgN ?> product(s) as Les Garage Paris listings? The seller is created if missing. Already-imported items get their price/MOQ/colours updated to match.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="import_lesgarage_polos">
       <button class="abtn primary" type="submit" style="white-space:nowrap">🅿️ Import → Les Garage Paris (<?= $lgN ?>)</button>
     </form>
