@@ -275,6 +275,46 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($pwPlain) $_SESSION['tyrex_flash']=['email'=>$email,'pw'=>$pwPlain];
     header('Location: /admin?tab=listings&msg=tyrex_ok&n='.$n); exit;
   }
+  /* Les Garage Paris catalogue sync — this seller's products are maintained in
+     inc/lesgarage_polos_seed.json (add/edit a product there, click this, done).
+     Adds anything new and refreshes anything already listed (price, MOQ, tiers,
+     pack size, colours, images, specs) to match the seed — an ongoing tool for
+     this one seller, not a one-off import. */
+  if($act==='sync_lesgarage'){
+    $seed=is_readable(__DIR__.'/inc/lesgarage_polos_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/lesgarage_polos_seed.json'),true) : [];
+    if(!is_array($seed)) $seed=[];
+    $accs=auth_accounts(); $sid='';
+    foreach($accs as $a){ if(($a['type']??'')==='seller' && strtolower(trim((string)($a['company']??'')))==='les garage paris'){ $sid=(string)($a['id']??''); break; } }
+    if($sid===''){
+      $sid=bin2hex(random_bytes(8));
+      $accs[]=['id'=>$sid,'email'=>'','type'=>'seller','status'=>'active','email_verified'=>true,
+        'name'=>'Les Garage Paris','company'=>'Les Garage Paris','vat_id'=>'','reg_number'=>'',
+        'country'=>'France','address'=>'','phone'=>'','website'=>'','kyb_status'=>'approved',
+        'membership_tier'=>'premium','membership_status'=>'active','onboarding_paid'=>true,'created'=>date('c'),'doc_requests'=>[]];
+      auth_save_accounts($accs);
+    }
+    $all=vestra_listings();
+    $byId=[]; $byBS=[];
+    foreach($all as $i=>$l){ $lid=(string)($l['id']??''); if($lid!=='') $byId[$lid]=$i;
+      $bs=strtolower(trim(($l['brand']??'').'|'.($l['sku']??''))); if($bs!=='|') $byBS[$bs]=$i; }
+    $added=0; $updated=0;
+    $refreshable=['moq','unit','mode','list','desc','origin','colors','images','linesheet','sheet_file','sizes','size_step','specs','tiers','cat'];
+    foreach($seed as $p){
+      $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+      $matchIdx = ($id!=='' && isset($byId[$id])) ? $byId[$id] : (($bs!=='|' && isset($byBS[$bs])) ? $byBS[$bs] : null);
+      if($matchIdx!==null){
+        foreach($refreshable as $k) if(array_key_exists($k,$p)) $all[$matchIdx][$k]=$p[$k];
+        $updated++;
+        continue;
+      }
+      $p['seller_uid']=$sid; $p['seller']='Les Garage Paris'; $p['verified']=true; $p['status']='approved'; $p['added_at']=date('c');
+      $all[]=$p; $newIdx=count($all)-1; $added++;
+      if($id!=='') $byId[$id]=$newIdx;
+      if($bs!=='|') $byBS[$bs]=$newIdx;
+    }
+    vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=lgp_sync&n='.$added.'&upd='.$updated); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -1262,6 +1302,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Title and message are required.</div>
 <?php elseif($msg==='journal_seeded'): ?>
 <div class="amsg ok">✓ Loaded <?= (int)($_GET['n']??0) ?> starter article(s)<?= ((int)($_GET['n']??0)===0)?' — they were already present':'' ?>. Edit or unpublish them any time below.</div>
+<?php elseif($msg==='lgp_sync'): $lgpN=(int)($_GET['n']??0); $lgpU=(int)($_GET['upd']??0); ?>
+<div class="amsg ok">✓ Les Garage Paris:
+  <?= $lgpN>0 ? $lgpN.' listing(s) added' : '' ?><?= ($lgpN>0 && $lgpU>0)?' · ':'' ?><?= $lgpU>0 ? $lgpU.' existing listing(s) refreshed' : '' ?><?= ($lgpN===0 && $lgpU===0) ? 'nothing to do — already up to date.' : '.' ?></div>
 <?php endif; ?>
 
 
@@ -2290,6 +2333,21 @@ elseif($tab==='listings'):
     </form>
   </div>
 </div>
+<?php $lgSeed=is_readable(__DIR__.'/inc/lesgarage_polos_seed.json')?json_decode((string)file_get_contents(__DIR__.'/inc/lesgarage_polos_seed.json'),true):[]; $lgN=is_array($lgSeed)?count($lgSeed):0; if($lgN): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:660px">
+      <b style="color:var(--ink)">🅿️ Les Garage Paris catalogue (<?= $lgN ?>)</b> — this seller's products are maintained in
+      inc/lesgarage_polos_seed.json (ask to add/edit a product there, then sync). Adds anything new, refreshes
+      price/MOQ/colours/images/specs on anything already listed. Seller account is created automatically if missing.
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Sync <?= $lgN ?> product(s) to Les Garage Paris? New items are added, existing ones get their price/MOQ/colours refreshed to match the seed.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="sync_lesgarage">
+      <button class="abtn primary" type="submit" style="white-space:nowrap">🅿️ Sync Les Garage Paris (<?= $lgN ?>)</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
 <?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">

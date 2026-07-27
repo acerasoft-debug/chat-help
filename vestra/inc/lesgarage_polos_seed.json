@@ -1,0 +1,93 @@
+[
+  {
+    "id": "lgp-lacoste-trim-tshirt",
+    "brand": "Lacoste",
+    "name": "Trim Cotton Jersey T-Shirt",
+    "cat": "T-Shirts",
+    "sku": "LAC-TH9842-00",
+    "moq": 104,
+    "unit": "pc",
+    "mode": "sale",
+    "list": 29.0,
+    "desc": "Regular fit cotton jersey t-shirt with the signature logo-trim chest stripe (model TH9842-00, Summer season). Mixed-colour, mixed-size carton assortment. Authenticity verified on delivery.",
+    "origin": "Authorised allocation",
+    "verified": true,
+    "status": "approved",
+    "accent": "#7a1420",
+    "colors": ["Bordeaux", "Navy", "Black", "White"],
+    "images": [
+      "/uploads/lac-tee/lacoste-trim-tshirt-1.png",
+      "/uploads/lac-tee/lacoste-trim-tshirt-2.png",
+      "/uploads/lac-tee/lacoste-trim-tshirt-3.png",
+      "/uploads/lac-tee/lacoste-trim-tshirt-4.png"
+    ],
+    "linesheet": true,
+    "sheet_file": "lacoste-trim-jersey-tshirt.pdf",
+    "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+    "size_step": 8,
+    "specs": {
+      "Composition": "100% cotton jersey",
+      "Fit": "Regular fit",
+      "Season": "Summer",
+      "Care": "Machine wash 30°C",
+      "Packaging": "Mixed-size carton · S×1 M×2 L×2 XL×2 XXL×1",
+      "Lead time": "Authorised allocation — 5–7 business days",
+      "Made in": "EU",
+      "Model no.": "TH9842-00",
+      "Retail price (RRP)": "€70",
+      "Authenticity": "Verified on delivery · proof of sourcing on request"
+    },
+    "tiers": [
+      { "min": 104, "price": 20.0 }
+    ]
+  },
+  {
+    "id": "lgp-lacoste-crew-sweatshirt",
+    "brand": "Lacoste",
+    "name": "Crew Neck Sweatshirt",
+    "cat": "Sweatshirts",
+    "sku": "LAC-SH9608-00",
+    "moq": 8,
+    "unit": "pc",
+    "mode": "sale",
+    "list": 60.0,
+    "desc": "Regular fit crew-neck sweatshirt in organic cotton fleece (model SH9608-00, Winter season). Single-size cartons of 8 — tell us your preferred size split (S–XXL) in your order note. Authenticity verified on delivery.",
+    "origin": "Authorised allocation",
+    "verified": true,
+    "status": "approved",
+    "accent": "#1f2a44",
+    "colors": ["Navy", "Black", "Red", "Green", "White", "Blue", "Beige", "Bordeaux", "Pink", "Light Blue"],
+    "images": [
+      "/uploads/lac-sweat/lacoste-sweat-navy.png",
+      "/uploads/lac-sweat/lacoste-sweat-black.png",
+      "/uploads/lac-sweat/lacoste-sweat-red.png",
+      "/uploads/lac-sweat/lacoste-sweat-green.png",
+      "/uploads/lac-sweat/lacoste-sweat-white.png",
+      "/uploads/lac-sweat/lacoste-sweat-blue.png",
+      "/uploads/lac-sweat/lacoste-sweat-beige.png",
+      "/uploads/lac-sweat/lacoste-sweat-bordeaux.png",
+      "/uploads/lac-sweat/lacoste-sweat-lightpink.png",
+      "/uploads/lac-sweat/lacoste-sweat-lightblue.png"
+    ],
+    "linesheet": true,
+    "sheet_file": "lacoste-crew-sweatshirt.pdf",
+    "sizes": "Single-size cartons · 8/pack · specify size in order note",
+    "size_step": 8,
+    "specs": {
+      "Composition": "84% organic cotton, 16% polyester",
+      "Fit": "Regular fit",
+      "Season": "Winter",
+      "Sleeves": "Long",
+      "Care": "Machine wash 30°C",
+      "Packaging": "Single-size cartons of 8",
+      "Lead time": "Authorised allocation — 5–7 business days",
+      "Made in": "EU",
+      "Model no.": "SH9608-00",
+      "Retail price (RRP)": "€130",
+      "Authenticity": "Verified on delivery · proof of sourcing on request"
+    },
+    "tiers": [
+      { "min": 8, "price": 45.0 }
+    ]
+  }
+]
