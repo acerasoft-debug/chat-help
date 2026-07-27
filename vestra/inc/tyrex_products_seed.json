@@ -1,0 +1,42 @@
+[
+  {
+    "id": "tyx-lacoste-vneck-tshirt",
+    "brand": "Lacoste",
+    "name": "Pima Cotton V-Neck T-Shirt",
+    "cat": "T-Shirts",
+    "sku": "LAC-TH6710-51",
+    "moq": 104,
+    "unit": "pc",
+    "mode": "fixed",
+    "desc": "Regular fit Pima cotton V-neck t-shirt, short sleeves (model TH6710-51, Summer season). Mixed-colour, mixed-size carton assortment.",
+    "origin": "Authorised allocation",
+    "verified": true,
+    "status": "approved",
+    "accent": "#17181c",
+    "colors": ["Black", "White", "Green", "Navy"],
+    "images": [
+      "/uploads/lac-vneck/lacoste-vneck-black.png",
+      "/uploads/lac-vneck/lacoste-vneck-white.png",
+      "/uploads/lac-vneck/lacoste-vneck-green.png",
+      "/uploads/lac-vneck/lacoste-vneck-navy.png"
+    ],
+    "linesheet": true,
+    "sheet_file": "lacoste-vneck-tshirt.pdf",
+    "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+    "size_step": 8,
+    "specs": {
+      "Composition": "100% cotton (Pima)",
+      "Fit": "Regular fit · V-neck",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Care": "Machine wash 30°C",
+      "Packaging": "Mixed-size carton · S×1 M×2 L×2 XL×2 XXL×1",
+      "Lead time": "Authorised allocation — 5–7 business days",
+      "Model no.": "TH6710-51",
+      "Retail price (RRP)": "€60"
+    },
+    "tiers": [
+      { "min": 104, "price": 19.9 }
+    ]
+  }
+]

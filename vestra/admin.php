@@ -315,6 +315,37 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_listings($all);
     header('Location: /admin?tab=listings&msg=lgp_sync&n='.$added.'&upd='.$updated); exit;
   }
+  /* Tyrex International BV catalogue sync — same idea as the Les Garage Paris sync
+     above, but the seller account is NOT auto-created here: Tyrex is set up
+     deliberately via "Create Tyrex Elite & migrate" (needs a real login e-mail),
+     so this only attaches products to an account that already exists. */
+  if($act==='sync_tyrex'){
+    $seed=is_readable(__DIR__.'/inc/tyrex_products_seed.json') ? json_decode((string)file_get_contents(__DIR__.'/inc/tyrex_products_seed.json'),true) : [];
+    if(!is_array($seed)) $seed=[];
+    $tuid=''; foreach(auth_accounts() as $a){ if(($a['type']??'')==='seller' && strtolower(trim((string)($a['company']??'')))==='tyrex international bv'){ $tuid=(string)($a['id']??''); break; } }
+    if($tuid===''){ header('Location: /admin?tab=listings&msg=tyrex_missing'); exit; }
+    $all=vestra_listings();
+    $byId=[]; $byBS=[];
+    foreach($all as $i=>$l){ $lid=(string)($l['id']??''); if($lid!=='') $byId[$lid]=$i;
+      $bs=strtolower(trim(($l['brand']??'').'|'.($l['sku']??''))); if($bs!=='|') $byBS[$bs]=$i; }
+    $added=0; $updated=0;
+    $refreshable=['moq','unit','mode','list','desc','origin','colors','images','linesheet','sheet_file','sizes','size_step','specs','tiers','cat'];
+    foreach($seed as $p){
+      $id=(string)($p['id']??''); $bs=strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+      $matchIdx = ($id!=='' && isset($byId[$id])) ? $byId[$id] : (($bs!=='|' && isset($byBS[$bs])) ? $byBS[$bs] : null);
+      if($matchIdx!==null){
+        foreach($refreshable as $k) if(array_key_exists($k,$p)) $all[$matchIdx][$k]=$p[$k];
+        $updated++;
+        continue;
+      }
+      $p['seller_uid']=$tuid; $p['seller']='Tyrex International BV'; $p['verified']=true; $p['status']='approved'; $p['added_at']=date('c');
+      $all[]=$p; $newIdx=count($all)-1; $added++;
+      if($id!=='') $byId[$id]=$newIdx;
+      if($bs!=='|') $byBS[$bs]=$newIdx;
+    }
+    vestra_save_listings($all);
+    header('Location: /admin?tab=listings&msg=tyx_sync&n='.$added.'&upd='.$updated); exit;
+  }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
@@ -1305,6 +1336,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='lgp_sync'): $lgpN=(int)($_GET['n']??0); $lgpU=(int)($_GET['upd']??0); ?>
 <div class="amsg ok">✓ Les Garage Paris:
   <?= $lgpN>0 ? $lgpN.' listing(s) added' : '' ?><?= ($lgpN>0 && $lgpU>0)?' · ':'' ?><?= $lgpU>0 ? $lgpU.' existing listing(s) refreshed' : '' ?><?= ($lgpN===0 && $lgpU===0) ? 'nothing to do — already up to date.' : '.' ?></div>
+<?php elseif($msg==='tyx_sync'): $tyxNn=(int)($_GET['n']??0); $tyxUu=(int)($_GET['upd']??0); ?>
+<div class="amsg ok">✓ Tyrex International BV:
+  <?= $tyxNn>0 ? $tyxNn.' listing(s) added' : '' ?><?= ($tyxNn>0 && $tyxUu>0)?' · ':'' ?><?= $tyxUu>0 ? $tyxUu.' existing listing(s) refreshed' : '' ?><?= ($tyxNn===0 && $tyxUu===0) ? 'nothing to do — already up to date.' : '.' ?></div>
+<?php elseif($msg==='tyrex_missing'): ?>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Tyrex International BV account not found — create it first with "Create Tyrex Elite &amp; migrate" above.</div>
 <?php endif; ?>
 
 
@@ -2344,6 +2380,21 @@ elseif($tab==='listings'):
     <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Sync <?= $lgN ?> product(s) to Les Garage Paris? New items are added, existing ones get their price/MOQ/colours refreshed to match the seed.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="sync_lesgarage">
       <button class="abtn primary" type="submit" style="white-space:nowrap">🅿️ Sync Les Garage Paris (<?= $lgN ?>)</button>
+    </form>
+  </div>
+</div>
+<?php endif; ?>
+<?php $tyxSeed=is_readable(__DIR__.'/inc/tyrex_products_seed.json')?json_decode((string)file_get_contents(__DIR__.'/inc/tyrex_products_seed.json'),true):[]; $tyxN=is_array($tyxSeed)?count($tyxSeed):0; if($tyxN): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+    <div style="font-size:13px;color:var(--mut);max-width:660px">
+      <b style="color:var(--ink)">👔 Tyrex International BV catalogue (<?= $tyxN ?>)</b> — this seller's products are maintained in
+      inc/tyrex_products_seed.json. Adds anything new, refreshes price/MOQ/colours/images/specs on anything already
+      listed. Requires the Tyrex account to already exist (create it above first if it doesn't).
+    </div>
+    <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Sync <?= $tyxN ?> product(s) to Tyrex International BV? New items are added, existing ones get their price/MOQ/colours refreshed to match the seed.')">
+      <?= csrfField() ?><input type="hidden" name="_action" value="sync_tyrex">
+      <button class="abtn primary" type="submit" style="white-space:nowrap">👔 Sync Tyrex International BV (<?= $tyxN ?>)</button>
     </form>
   </div>
 </div>
