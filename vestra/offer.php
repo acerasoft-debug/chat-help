@@ -59,7 +59,7 @@ vestra_send_mail($email, "VESTRA — offer {$ref} received",
    seller sees it like a new message (unread badge + inbox entry), not just a table row. */
 if(!empty($p['seller_uid']) && !empty($_SESSION['uid'])){
   $me = auth_user();
-  if($me && ($me['type']??'')==='buyer'){
+  if($me && $me['id']!==$p['seller_uid']){
     require_once __DIR__.'/inc/messages.php';
     vestra_msg_post_system($me['id'], $p['seller_uid'], $p['id'], [
       'kind'=>'offer', 'ref'=>$ref, 'product'=>$p['brand'].' '.$p['name'], 'sku'=>$p['sku'],

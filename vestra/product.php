@@ -342,15 +342,17 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
                 <div><label class="hint"><?= t('Work email') ?> *</label><input type="email" name="email" required style="width:100%" value="<?= htmlspecialchars($AUTH_USER['email'] ?? '') ?>"></div>
               </div>
               <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:12px"><?= t('Submit offer →') ?></button>
-              <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer' && !empty($p['seller_uid'])): ?>
+              <?php if($AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']!==$p['seller_uid']): ?>
               <div class="hint" style="margin-top:8px">💬 <?= t('Your offer will also appear in Messages, linked to this product.') ?></div>
               <?php endif; ?>
             </form>
           </details>
         </div>
         <?php endif; ?>
+        <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
+        <?php if(!$isOwnListing): ?>
         <div class="order-box" style="margin-top:14px">
-          <?php if($AUTH_USER && ($AUTH_USER['type']??'')==='buyer'): ?>
+          <?php if($AUTH_USER): ?>
           <details class="offerdetails">
             <summary class="btn btn-o" style="width:100%;justify-content:center">💬 <?= t('Message seller') ?></summary>
             <form method="post" action="/buyer?tab=messages" style="margin-top:12px">
@@ -365,6 +367,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center">💬 <?= t('Sign in to message seller') ?></a>
           <?php endif; ?>
         </div>
+        <?php endif; ?>
         <script>
         var P=<?= json_encode(['id'=>$p['id'],'brand'=>$p['brand'],'name'=>$p['name'],'sku'=>$p['sku'],'unitLabel'=>$p['unit'],'moq'=>(int)$p['moq'],'step'=>(int)($p['size_step']??0),'minColors'=>(int)($p['min_colors']??0),'tiers'=>array_map(function($t){return ['min'=>(int)$t['min'],'price'=>(float)$t['price']];},$p['tiers'])]) ?>;
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
