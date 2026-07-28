@@ -43,6 +43,12 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           script: |
+            echo "== (GECICI) bu cPanel hesabi vestrasales.com DNS'ini yonetiyor mu? =="
+            uapi DomainInfo domains_data 2>&1 | head -c 2000
+            echo ""
+            echo "-- zone dosyasi var mi --"
+            uapi ZoneEdit fetchzone domain=vestrasales.com 2>&1 | head -c 1500
+            echo ""
             echo "== cPanel crontab (musteri bulma gunluk isi kurulu mu?) =="
             crontab -l 2>&1 || echo "(crontab bos ya da erisilemedi)"
             echo ""
