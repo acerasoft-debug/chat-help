@@ -5,14 +5,12 @@ name: Sunucuda email API key'ini güncelle
 # ile eklenmeden çalışmaz (fail-fast kontrolü aşağıda). Key hiçbir zaman log'a yazılmaz,
 # hiçbir dosyaya commit edilmez -- sadece sunucudaki data/email_settings.json'a yazılır.
 #
-# Not: secrets.MAIL_API_KEY Brevo'nun gerçek REST API key'i (xkeysib-...). Brevo'nun
-# kendi teslimat event log'u (bkz. check-registrations.yml) gösterdi ki asıl sorun
-# key değil, gönderen adresti: support@vestrasales.com Brevo'da hiç doğrulanmış bir
-# sender değil (Brevo API'yi 2xx ile kabul edip sonra async "sender not valid" diye
-# reddediyordu -- kod bunu göremiyordu). Bu hesapta doğrulanmış TEK sender
-# acerasoft@gmail.com, o yüzden mail_from o adrese sabitlendi (görünen isim yine
-# "VESTRA"). Kalıcı çözüm: Brevo'da support@vestrasales.com'u (veya tüm
-# vestrasales.com domain'ini) doğrulayıp mail_from'u geri değiştirmek.
+# Not: vestrasales.com artık Brevo'da domain olarak doğrulandı (DKIM/DMARC DNS
+# kayıtları Host Europe KIS panelinden eklendi, Brevo'nun /authenticate uç noktası
+# "Domain has been authenticated successfully" döndü, verified:true). Bu yüzden
+# mail_from artık support@vestrasales.com -- ilk kurulumda (Brevo'da hiçbir domain
+# doğrulanmamışken) tek doğrulanmış sender acerasoft@gmail.com olduğu için oraya
+# sabitlenmişti, o geçici çözümdü.
 on:
   workflow_dispatch:
 
@@ -31,7 +29,7 @@ jobs:
           fi
           echo "MAIL_API_KEY tanımlı, devam ediliyor."
 
-      - name: Sunucuda doğrulanmış sender'a geç + gerçek test gönder
+      - name: Sunucuda dogrulanmis domain sender'ina gec + gercek test gonder
         uses: appleboy/ssh-action@v1.0.3
         env:
           MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
@@ -45,10 +43,10 @@ jobs:
             cat > /tmp/vestra_mailcheck.php <<'PHPEOF'
             <?php
             $key = getenv("MAIL_API_KEY");
-            $from = "acerasoft@gmail.com";
+            $from = "support@vestrasales.com";
             $to   = "acerasoft@gmail.com";
 
-            echo "== email_settings.json guncelle (dogrulanmis sender'a gecis) ==\n";
+            echo "== email_settings.json guncelle (dogrulanmis domain sender'ina gecis) ==\n";
             $f = getenv("HOME")."/public_html/data/email_settings.json";
             $cur = is_readable($f) ? (json_decode(file_get_contents($f), true) ?: []) : [];
             if (!is_array($cur)) $cur = [];
