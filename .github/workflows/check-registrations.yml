@@ -91,6 +91,37 @@ jobs:
             foreach (array_slice($accs, 0, 10) as $a) {
               echo "  " . ($a['created'] ?? '?') . " | " . ($a['type'] ?? '?') . " | " . ($a['status'] ?? '?') . "\n";
             }
+
+            echo "\n\n== musteri bulma (leads) durumu ==\n";
+            echo "finder_key (Hunter.io/Anymailfinder) tanimli mi: " . (vestra_cfg('finder_key','')!=='' ? "EVET (".vestra_cfg('finder_provider','hunter').")" : "HAYIR -- sadece ucretsiz site-tarama fallback'i kullaniliyor") . "\n";
+            $lf = $home."/public_html/data/leads.json";
+            $leads = is_readable($lf) ? (json_decode(file_get_contents($lf), true) ?: []) : [];
+            if (!is_array($leads)) $leads = [];
+            echo "toplam lead sayisi: " . count($leads) . "\n";
+            $withEmail = count(array_filter($leads, fn($l)=>($l['email']??'')!==''));
+            $withWebsiteNoEmail = count(array_filter($leads, fn($l)=>($l['email']??'')==='' && ($l['website']??'')!==''));
+            $noWebsiteNoEmail = count(array_filter($leads, fn($l)=>($l['email']??'')==='' && ($l['website']??'')===''));
+            echo "email bulunmus: {$withEmail}\n";
+            echo "website var ama email yok (bulunabilir aday): {$withWebsiteNoEmail}\n";
+            echo "ne website ne email var (bulunamaz): {$noWebsiteNoEmail}\n";
+            $bySrc = []; $byStatusL = [];
+            foreach ($leads as $l) {
+              $s = $l['source'] ?? '(yok)'; $bySrc[$s] = ($bySrc[$s]??0)+1;
+              $st = $l['status'] ?? '(yok)'; $byStatusL[$st] = ($byStatusL[$st]??0)+1;
+            }
+            echo "kaynaga gore:\n"; foreach ($bySrc as $s=>$c) echo "  {$s}: {$c}\n";
+            echo "duruma gore:\n"; foreach ($byStatusL as $s=>$c) echo "  {$s}: {$c}\n";
+
+            $cs = $home."/public_html/data/cron_status.json";
+            $cron = is_readable($cs) ? (json_decode(file_get_contents($cs), true) ?: null) : null;
+            echo "\nson otomasyon calismasi:\n";
+            if ($cron) {
+              echo "  tarih: " . ($cron['last_run'] ?? '?') . " | ulke: " . ($cron['country'] ?? '?') . " | tetikleyici: " . ($cron['trigger'] ?? '?') . "\n";
+              echo "  bulunan: " . ($cron['found'] ?? 0) . " | eklenen: " . ($cron['added'] ?? 0) . " | email bulunan: " . ($cron['emails_found'] ?? 0) . "/" . ($cron['emails_checked'] ?? 0) . "\n";
+              if (!empty($cron['note'])) echo "  not: " . $cron['note'] . "\n";
+            } else {
+              echo "  hic calismamis.\n";
+            }
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
