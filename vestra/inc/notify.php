@@ -264,8 +264,17 @@ function vestra_discover_osm(string $country, string $city='', int $limit=80): a
   if($country==='') return [];
   $wide=($city==='');
   $areaEsc=preg_replace('#[\\\\"\r\n]#','',$wide?$country:$city);   // guard the Overpass QL string
-  $adminFilter=$wide?'["admin_level"="2"]':'';                       // country-level boundary only when scope-wide
-  $timeout=$wide?55:35;
+  // Without an admin_level filter, matching a city name has to regex-scan EVERY
+  // boundary=administrative area on the planet (countries, provinces, wards, hamlets —
+  // there are far more of these worldwide than the ~200 country-level ones), which is
+  // slow enough to time out on the free public mirrors even for well-known cities
+  // (confirmed empirically: a plain Berlin/Istanbul name lookup can time out at 35-40s).
+  // Real cities are tagged admin_level 3-10 in virtually every country's OSM convention
+  // (4 for city-states like Berlin, 6-8 for most cities/communes/comuni/municipios) —
+  // restricting to that range shrinks the scan the same way admin_level=2 already does
+  // for country-wide search, without excluding any plausible city match.
+  $adminFilter=$wide?'["admin_level"="2"]':'["admin_level"~"^([3-9]|10)$"]';
+  $timeout=$wide?55:45;
   $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$';
   $f='["shop"~"'.$shopRe.'"]';
   // OSM tags admin boundaries with the LOCAL name in `name` (e.g. "Deutschland") and the
