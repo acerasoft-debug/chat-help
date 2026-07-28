@@ -35,25 +35,34 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Overpass alan eslesmesi teshisi (GH runner'dan dogrudan, SSH gerekmez)
+      - name: (GECICI) admin_level filtresi hipotezini dogrula (GH runner'dan dogrudan, SSH gerekmez)
         run: |
           set +e
-          ov() { curl -sS 'https://overpass-api.de/api/interpreter' --data-urlencode "data=$1" -m 30; }
-          dumpareas() { jq -r '.elements as $e | "  eslesen alan sayisi: \($e|length)", ($e[] | "    admin_level=\(.tags.admin_level // "?") name=\(.tags.name // "?") name:en=\(.tags["name:en"] // "(yok)")")' 2>&1; }
-          dumpcount() { jq -r '"  eleman sayisi: " + (.elements[0].tags.total // "0")' 2>&1; }
+          ov() { curl -sS 'https://overpass-api.de/api/interpreter' --data-urlencode "data=$1" -m 40; }
+          test_query() {
+            local label="$1" ql="$2"
+            local t0=$(date +%s)
+            local resp; resp=$(ov "$ql")
+            local dt=$(( $(date +%s) - t0 ))
+            local n; n=$(echo "$resp" | jq '.elements | length' 2>/dev/null)
+            if [ -z "$n" ]; then
+              echo "${label}: sure=${dt}s SONUC=HATA/TIMEOUT (ham yanit basi: $(echo "$resp" | head -c150))"
+            else
+              echo "${label}: sure=${dt}s eslesen_alan=${n}"
+            fi
+          }
 
-          for CITY in Istanbul Berlin; do
-            echo "===== ${CITY} ====="
-            echo "-- name= ile alan eslesmesi --"
-            ov "[out:json][timeout:25];area[\"name\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];out tags;" | dumpareas
-            echo "-- name:en= ile alan eslesmesi --"
-            ov "[out:json][timeout:25];area[\"name:en\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];out tags;" | dumpareas
-            echo "-- birlesim alan + herhangi shop= etiketi sayisi --"
-            ov "[out:json][timeout:25];(area[\"name\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];area[\"name:en\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];)->.a;node[\"shop\"](area.a);out count;" | dumpcount
-            echo "-- birlesim alan + uygulamanin dar shop filtresiyle sayisi --"
-            ov "[out:json][timeout:25];(area[\"name\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];area[\"name:en\"~\"^${CITY}\$\",i][\"boundary\"=\"administrative\"];)->.a;(node[\"shop\"~\"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)\$\"](area.a);way[\"shop\"~\"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)\$\"](area.a););out count;" | dumpcount
-            echo ""
-          done
+          echo "=== Istanbul: admin_level filtresi OLMADAN (mevcutta uygulamanin kullandigi) ==="
+          test_query "Istanbul/filtresiz" '[out:json][timeout:35];area["name"~"^Istanbul$",i]["boundary"="administrative"];out tags;'
+          sleep 5
+          echo "=== Istanbul: admin_level filtresi ILE (2-10 arasi) ==="
+          test_query "Istanbul/filtreli" '[out:json][timeout:35];area["name"~"^Istanbul$",i]["boundary"="administrative"]["admin_level"~"^([2-9]|10)$"];out tags;'
+          sleep 5
+          echo "=== Berlin: admin_level filtresi OLMADAN (mevcutta uygulamanin kullandigi) ==="
+          test_query "Berlin/filtresiz" '[out:json][timeout:35];area["name"~"^Berlin$",i]["boundary"="administrative"];out tags;'
+          sleep 5
+          echo "=== Berlin: admin_level filtresi ILE (2-10 arasi) ==="
+          test_query "Berlin/filtreli" '[out:json][timeout:35];area["name"~"^Berlin$",i]["boundary"="administrative"]["admin_level"~"^([2-9]|10)$"];out tags;'
 
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
