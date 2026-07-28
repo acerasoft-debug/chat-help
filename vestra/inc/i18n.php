@@ -79,3 +79,12 @@ function vlang_switcher($class='langsw'){
 
 vlang(); // resolve language + set cookie before any output
 }
+
+/* The RECIPIENT's language for an outbound email — never the current request's vlang(),
+ * which is whoever is browsing right now (could be a different buyer/seller, or the admin
+ * triggering a KYB approval). Accounts created before the 'lang' field existed fall back to
+ * English rather than silently erroring. */
+function vestra_user_lang(?array $acc): string {
+  $l = strtolower(substr((string)($acc['lang'] ?? ''), 0, 2));
+  return isset(vlang_list()[$l]) ? $l : 'en';
+}

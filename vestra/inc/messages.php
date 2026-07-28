@@ -135,9 +135,9 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
     }
     vestra_msg_save_threads($threads);
     require_once __DIR__.'/notify.php';
-    $fromLabel = vestra_msg_label($fromUid);
+    $fromLabel = vestra_msg_label($fromUid); $fromEmail = '';
     if ($fromLabel === '') {
-        foreach (auth_accounts() as $a) { if (($a['id']??'') === $fromUid) { $fromLabel = $a['company'] ?: ($a['name'] ?: 'A VESTRA user'); break; } }
+        foreach (auth_accounts() as $a) { if (($a['id']??'') === $fromUid) { $fromLabel = $a['company'] ?: ($a['name'] ?: 'A VESTRA user'); $fromEmail = $a['email'] ?? ''; break; } }
     }
     if ($fromLabel === '') $fromLabel = 'A VESTRA user';
     // Email ping to the recipient — only on the FIRST unread message since they last read
@@ -148,11 +148,9 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
         foreach (auth_accounts() as $a) { if (($a['id']??'') === $recipient) { $recAcc = $a; break; } }
         if ($recAcc && !empty($recAcc['email'])) {
             $panel = ($recAcc['type']??'') === 'seller' ? 'seller' : 'buyer';
-            vestra_send_mail($recAcc['email'], "VESTRA — new message from {$fromLabel}",
-              "Hello ".($recAcc['name']?:($recAcc['company']?:'there')).",\n\n".
-              "You have a new message from {$fromLabel} on VESTRA.\n\n".
-              "Read and reply in your dashboard:\nhttps://vestrasales.com/{$panel}?tab=messages\n\n".
-              "— VESTRA · vestrasales.com");
+            [$mSubj,$mBody,$mOpts] = vestra_tpl_message(vestra_user_lang($recAcc), $recAcc['name']?:($recAcc['company']?:'there'),
+              $fromLabel, "https://vestrasales.com/{$panel}?tab=messages");
+            vestra_send_mail($recAcc['email'], $mSubj, $mBody, $fromEmail, $fromLabel, null, '', $mOpts);
         } else {
             // No usable email on file — logging in is the ONLY way this recipient would ever
             // find out. Tell the operator so it's a visible follow-up, not a silent miss.

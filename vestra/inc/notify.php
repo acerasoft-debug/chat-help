@@ -3,6 +3,8 @@
  * VESTRA — local config loader + outgoing email (plain PHP mail()).
  * Real settings live in inc/config.php (NOT in git). Falls back to safe defaults.
  */
+require_once __DIR__.'/i18n.php';       // vestra_user_lang() — every template call site resolves the recipient's language
+require_once __DIR__.'/email_templates.php';
 function vestra_cfg($k,$def=null){
   static $c=null;
   if($c===null){
@@ -166,16 +168,40 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
  * OSM is full of independent boutiques — exactly the target (multi-brand stores, not big chains)
  * — and many list website / email / phone directly. Returns rows shaped for vestra_leads_add():
  * ['company','website','email','phone','country','city','address','category','source']. */
+/* Whether the most recent vestra_overpass() call reached a working mirror. False means
+ * every mirror failed transport-wide (not "genuinely zero shops") — callers that want to
+ * tell "OSM is down today" apart from "this area really has none" check this right after
+ * vestra_discover_osm(). Pass a bool to set it (internal), call with no args to read it. */
+function vestra_osm_ok(?bool $set = null): bool {
+  static $ok = true;
+  if ($set !== null) $ok = $set;
+  return $ok;
+}
 function vestra_overpass(string $ql): string {
-  foreach(['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'] as $ep){
-    $ch=curl_init($ep);
-    curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>65,CURLOPT_CONNECTTIMEOUT=>10,
-      CURLOPT_USERAGENT=>'VestraBot/1.0 (+https://vestrasales.com)',
-      CURLOPT_POSTFIELDS=>'data='.urlencode($ql)]);
-    $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-    if($code>=200&&$code<300 && is_string($r) && $r!=='') return $r;
-    if($code) error_log("[VESTRA osm] {$ep} HTTP {$code}");
+  // Free public Overpass mirrors are prone to transient 502/503/504 under load, especially
+  // for whole-country queries — four independent instances plus one same-mirror retry on a
+  // 5xx (a momentary spike often clears within a couple of seconds) makes a total outage
+  // much less likely than the original two-mirror, no-retry version.
+  $mirrors = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.osm.ch/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter',
+  ];
+  foreach($mirrors as $ep){
+    for($attempt=1; $attempt<=2; $attempt++){
+      $ch=curl_init($ep);
+      curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_POST=>true,CURLOPT_TIMEOUT=>65,CURLOPT_CONNECTTIMEOUT=>10,
+        CURLOPT_USERAGENT=>'VestraBot/1.0 (+https://vestrasales.com)',
+        CURLOPT_POSTFIELDS=>'data='.urlencode($ql)]);
+      $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+      if($code>=200&&$code<300 && is_string($r) && $r!==''){ vestra_osm_ok(true); return $r; }
+      if($code) error_log("[VESTRA osm] {$ep} HTTP {$code} (deneme {$attempt})");
+      if($attempt===1 && in_array($code,[502,503,504],true)){ sleep(2); continue; } // transient — retry same mirror once
+      break;
+    }
   }
+  vestra_osm_ok(false);
   return '';
 }
 /* Names/brands to exclude from Discovery: mass-market chains (Zara, H&M, Primark…) and
@@ -313,8 +339,16 @@ function vestra_html_linkify(string $escapedHtml): string {
  * primary content (nothing here changes what any template generates), this just wraps it in
  * a premium visual layout for the HTML half of the send. Blank lines become paragraphs;
  * everything after the "—" sender-identity/unsubscribe separator (every template appends one)
- * renders as a smaller, muted footer block so the legal text doesn't compete with the pitch. */
-function vestra_html_email(string $bodyPlain, string $heroImage=''): string {
+ * renders as a smaller, muted footer block so the legal text doesn't compete with the pitch.
+ *
+ * $opts optionally adds the structured elements that make a receipt/status email read as
+ * premium rather than a plain note — all purely additive, every existing caller (which
+ * passes none of these) renders exactly as before:
+ *   'badge'  => short status pill under the header, e.g. "✅ Verified", "💶 New offer"
+ *   'rows'   => [['label'=>'Qty','value'=>'104','strong'=>false], ...] detail card
+ *   'button' => ['label'=>'View in dashboard','url'=>'https://...'] CTA button
+ */
+function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=[]): string {
   $parts=explode("\n\n—\n",$bodyPlain,2);
   $main=trim($parts[0]); $footer=isset($parts[1])?trim($parts[1]):'';
   $renderParas=function(string $text,string $style): string {
@@ -331,6 +365,39 @@ function vestra_html_email(string $bodyPlain, string $heroImage=''): string {
   $heroHtml=$heroImage!==''
     ?'<img src="'.htmlspecialchars($heroImage,ENT_QUOTES,'UTF-8').'" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto">'
     :'';
+
+  $badgeHtml='';
+  if(!empty($opts['badge'])){
+    $badgeHtml='<div style="padding:20px 28px 0"><span style="display:inline-block;background:#f4ecd8;color:#8a6d1f;'
+      .'font-size:12px;font-weight:700;letter-spacing:.02em;padding:5px 12px;border-radius:20px">'
+      .htmlspecialchars((string)$opts['badge'],ENT_QUOTES,'UTF-8').'</span></div>';
+  }
+
+  $rowsHtml='';
+  if(!empty($opts['rows']) && is_array($opts['rows'])){
+    $tr=''; $i=0;
+    foreach($opts['rows'] as $row){
+      $label=(string)($row['label']??''); $value=(string)($row['value']??''); $strong=!empty($row['strong']);
+      $top=$i>0?'border-top:1px solid #ece6d8;':''; $i++;
+      $tr.='<tr>'
+        .'<td style="padding:8px 0;'.$top.'color:#8a8272;font-size:13px">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</td>'
+        .'<td style="padding:8px 0;'.$top.'color:#3a3428;font-size:13px;text-align:right;'.($strong?'font-weight:700;font-size:15px':'').'">'.htmlspecialchars($value,ENT_QUOTES,'UTF-8').'</td>'
+        .'</tr>';
+    }
+    $rowsHtml='<div style="margin:0 28px 18px;background:#faf8f3;border:1px solid #ece6d8;border-radius:10px;padding:2px 16px">'
+      .'<table style="width:100%;border-collapse:collapse" cellpadding="0" cellspacing="0">'.$tr.'</table></div>';
+  }
+
+  $buttonHtml='';
+  if(!empty($opts['button']['url'])){
+    $btnLabel=(string)($opts['button']['label'] ?? 'View in VESTRA');
+    $buttonHtml='<div style="padding:4px 28px 28px;text-align:center">'
+      .'<a href="'.htmlspecialchars((string)$opts['button']['url'],ENT_QUOTES,'UTF-8').'" '
+      .'style="display:inline-block;background:#14110c;color:#d8bd86;padding:13px 34px;border-radius:8px;'
+      .'text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.02em">'
+      .htmlspecialchars($btnLabel,ENT_QUOTES,'UTF-8').'</a></div>';
+  }
+
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     .'<title>VESTRA</title></head>'
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
@@ -340,7 +407,10 @@ function vestra_html_email(string $bodyPlain, string $heroImage=''): string {
     .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em">VESTRA</span>'
     .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span></div>'
     .$heroHtml
-    .'<div style="padding:28px 28px 8px">'.$mainHtml.'</div>'
+    .$badgeHtml
+    .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
+    .$rowsHtml
+    .$buttonHtml
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
     .'</div>'
     .'<p style="text-align:center;color:#9b9585;font-size:11px;margin:18px 0 0">VESTRA — verified B2B wholesale marketplace</p>'
@@ -349,8 +419,8 @@ function vestra_html_email(string $bodyPlain, string $heroImage=''): string {
 
 /* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
  * send raw MIME themselves (SMTP, PHP mail()) — HTTP APIs take the two parts separately. */
-function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage=''): string {
-  $html=vestra_html_email($bodyPlain,$heroImage);
+function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage='', array $opts=[]): string {
+  $html=vestra_html_email($bodyPlain,$heroImage,$opts);
   return "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
        .$bodyPlain."\r\n\r\n"
        ."--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
@@ -365,22 +435,22 @@ function vestra_mime_multipart(string $bodyPlain, string $boundary, string $hero
  *   3) Local mail() — only lands in inboxes if the domain's SPF/DKIM authorize
  *      this server's IP.
  */
-function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
+function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
   if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
   // Explicit sender config (e.g. a seller's OWN SMTP/API) — send truly "from" them.
   if($cfg!==null){
-    if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage);
-    if(($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') return vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage);
+    if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage,$opts);
+    if(($cfg['smtp_host']??'')!=='' && ($cfg['smtp_pass']??'')!=='') return vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage,$opts);
     return false; // sender selected but their transport isn't set up
   }
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(vestra_cfg('mail_api_key','')!==''){
-    $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage);
+    $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage,$opts);
     if(!$ok) error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
     return $ok;
   }
   if(vestra_cfg('smtp_host','')!==''){
-    $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage);
+    $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage,$opts);
     if(!$ok) error_log("[VESTRA Mail] SMTP send failed to {$to} — subject: {$subject}");
     return $ok;
   }
@@ -391,14 +461,14 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
   $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
   $subj='=?UTF-8?B?'.base64_encode($subject).'?=';
-  $ok = mail($to,$subj,vestra_mime_multipart($body,$boundary,$heroImage),$h);
+  $ok = mail($to,$subj,vestra_mime_multipart($body,$boundary,$heroImage,$opts),$h);
   if(!$ok) error_log("[VESTRA Mail] mail() returned false sending to {$to} — subject: {$subject}");
   return $ok;
 }
 
 /* Dependency-free authenticated SMTP (STARTTLS + AUTH LOGIN) — no PHPMailer/composer.
  * Config: smtp_host, smtp_port (default 587), smtp_user, smtp_pass, smtp_from, smtp_name. */
-function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
+function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $host=$g('smtp_host',''); $port=(int)$g('smtp_port',587);
   $user=$g('smtp_user',''); $pass=$g('smtp_pass','');
@@ -436,7 +506,7 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
   $h.='Subject: =?UTF-8?B?'.base64_encode($subject)."?=\r\n";
   $h.="MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n";
   if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $h.="Reply-To: {$replyTo}\r\n";
-  $mime=vestra_mime_multipart($body,$boundary,$heroImage);
+  $mime=vestra_mime_multipart($body,$boundary,$heroImage,$opts);
   $escapedMime=preg_replace('/^\./m','..',$mime); // SMTP dot-stuffing
   $r=$cmd($h."\r\n".$escapedMime."\r\n.");
   $cmd('QUIT');
@@ -448,7 +518,7 @@ function vestra_smtp_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
  * Config: mail_api_provider ('brevo' default | 'resend'), mail_api_key,
  *         mail_from (verified sender address), smtp_name (display name).
  * Returns true on a 2xx from the provider. */
-function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage=''){
+function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
   $g=fn($k,$d)=> $cfg!==null ? ($cfg[$k]??$d) : vestra_cfg($k,$d);
   $provider=strtolower((string)$g('mail_api_provider','brevo'));
   $key=(string)$g('mail_api_key','');
@@ -459,7 +529,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
   if($provider==='resend'){
     $url='https://api.resend.com/emails';
     $headers=['Authorization: Bearer '.$key,'Content-Type: application/json'];
-    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body,$heroImage)];
+    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body,$heroImage,$opts)];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['reply_to']=$replyTo;
   } else { // brevo (default)
     $url='https://api.brevo.com/v3/smtp/email';
@@ -469,7 +539,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
       'to'=>[['email'=>$to]],
       'subject'=>$subject,
       'textContent'=>$body,
-      'htmlContent'=>vestra_html_email($body,$heroImage),
+      'htmlContent'=>vestra_html_email($body,$heroImage,$opts),
     ];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
   }
@@ -497,9 +567,12 @@ function vestra_notify($subject,$body,$replyTo=''){
   return $ok;
 }
 
-/* localized email-verification email → [subject, body] */
+/* localized email-verification email → [subject, body, opts]. $opts carries a CTA button
+ * (the raw URL still appears in the plain-text body too, for text-only clients). */
 function vestra_verify_text($lang, $name, $token) {
   $url = 'https://vestrasales.com/verify?token='.$token;
+  $btnLabel = ['en'=>'Verify email address','de'=>'E-Mail-Adresse bestätigen','fr'=>'Vérifier mon adresse e-mail',
+    'it'=>'Verifica indirizzo e-mail','es'=>'Verificar dirección de correo'][$lang] ?? 'Verify email address';
   $T = [
    'en' => [
      'VESTRA — please verify your email address',
@@ -523,13 +596,17 @@ function vestra_verify_text($lang, $name, $token) {
    ],
   ];
   $t = $T[$lang] ?? $T['en'];
-  return [$t[0], sprintf($t[1], $name, $url)];
+  return [$t[0], sprintf($t[1], $name, $url), ['button'=>['label'=>$btnLabel,'url'=>$url]]];
 }
 
-/* localized welcome email after registration → [subject, body] */
+/* localized welcome email after registration → [subject, body, opts]. */
 function vestra_ack_text($lang,$name,$type){
-  $role_en = $type==='seller' ? 'seller' : 'buyer';
-  $url_en  = $type==='seller' ? 'https://vestrasales.com/seller?tab=kyc' : 'https://vestrasales.com/buyer?tab=kyc';
+  $roleWord = ['en'=>$type==='seller'?'seller':'buyer','de'=>$type==='seller'?'Verkäufer':'Käufer',
+    'fr'=>$type==='seller'?'vendeur':'acheteur','it'=>$type==='seller'?'venditore':'acquirente',
+    'es'=>$type==='seller'?'vendedor':'comprador'][$lang] ?? ($type==='seller'?'seller':'buyer');
+  $url  = $type==='seller' ? 'https://vestrasales.com/seller?tab=kyc' : 'https://vestrasales.com/buyer?tab=kyc';
+  $btnLabel = ['en'=>'Upload documents','de'=>'Dokumente hochladen','fr'=>'Téléverser les documents',
+    'it'=>'Carica documenti','es'=>'Subir documentos'][$lang] ?? 'Upload documents';
   $T=[
    'en'=>[
      'Welcome to VESTRA — account created',
@@ -553,5 +630,5 @@ function vestra_ack_text($lang,$name,$type){
    ],
   ];
   $t = $T[$lang] ?? $T['en'];
-  return [$t[0], sprintf($t[1], $name, $role_en, $url_en)];
+  return [$t[0], sprintf($t[1], $name, $roleWord, $url), ['button'=>['label'=>$btnLabel,'url'=>$url]]];
 }

@@ -131,8 +131,8 @@ function auth_resend_verify(string $email): bool {
     if (!$acc || ($acc['status'] ?? '') !== 'pending_email' || empty($acc['email_token'])) return false;
     require_once __DIR__.'/notify.php';
     $lang = substr($acc['lang'] ?? ($_COOKIE['vlang'] ?? 'en'), 0, 2);
-    [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: ($acc['company'] ?: 'there'), $acc['email_token']);
-    $sent = vestra_send_mail($acc['email'], $subj, $body);
+    [$subj, $body, $vOpts] = vestra_verify_text($lang, $acc['name'] ?: ($acc['company'] ?: 'there'), $acc['email_token']);
+    $sent = vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $vOpts);
     auth_update($acc['id'], ['verify_sent_at' => date('c'), 'verify_sent_ok' => $sent]);
     return true;
 }
@@ -194,6 +194,7 @@ function auth_register(array $d): array|string {
         'address'       => trim($d['address']     ?? ''),
         'phone'         => trim($d['phone']       ?? ''),
         'website'       => trim($d['website']     ?? ''),
+        'lang'          => substr($_COOKIE['vlang'] ?? 'en', 0, 2),
         'kyb_status'    => $promo_data ? 'approved' : 'pending',
         'membership_status' => 'none',
         'promo_code'    => $promo_code,
@@ -241,14 +242,19 @@ function auth_register(array $d): array|string {
     );
     // Send email verification link only when verification is required. When it's
     // off, the account is already usable (email_verified=true) so a link would be
-    // pointless — skip it to avoid a dead "check your inbox" wait.
+    // pointless — skip it to avoid a dead "check your inbox" wait. Either way the
+    // new user gets SOME email: a verify link, or (when verification is off) the
+    // welcome/next-steps email instead — otherwise they'd get nothing at all.
+    $lang = $acc['lang'] ?? 'en';
     if ($requireVerify) {
-        $lang = substr($_COOKIE['vlang'] ?? 'en', 0, 2);
-        [$subj, $body] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
-        $sent = vestra_send_mail($acc['email'], $subj, $body);
+        [$subj, $body, $vOpts] = vestra_verify_text($lang, $acc['name'] ?: $acc['company'], $acc['email_token']);
+        $sent = vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $vOpts);
         $acc['verify_sent_at'] = date('c');
         $acc['verify_sent_ok'] = $sent;
         auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
+    } else {
+        [$subj, $body, $aOpts] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type);
+        vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $aOpts);
     }
     return $acc;
 }

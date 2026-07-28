@@ -39,8 +39,10 @@ if ($country === '') {
 }
 
 $rows = vestra_discover_osm($country, '', 80);
+$osmOk = vestra_osm_ok();
 [$addedRows, ] = $rows ? vestra_leads_add($rows) : [[], 0];
 echo "  found ".count($rows)." shop(s), added ".count($addedRows)." new.\n";
+if (!$osmOk) echo "  UYARI: OpenStreetMap/Overpass'a hicbir yansi sunucudan ulasilamadi -- bugunku sonuc eksik/bos olabilir.\n";
 
 $toCheckIds = array_column(array_filter($addedRows, fn($r) => $r['email'] === '' && $r['website'] !== ''), 'id');
 $found = 0;
@@ -57,4 +59,5 @@ if ($toCheckIds) {
 }
 echo "  emails: $found found / ".count($toCheckIds)." checked.\n";
 echo "[$stamp] done — review & send from Admin -> Customers.\n";
-vestra_cron_write_status($country, count($rows), count($addedRows), $found, count($toCheckIds), 'cron');
+vestra_cron_write_status($country, count($rows), count($addedRows), $found, count($toCheckIds), 'cron',
+  $osmOk ? '' : 'OpenStreetMap (Overpass) sorgusu basarisiz oldu — tum yansi sunucular hata verdi. Bu ulke icin bugunku sonuclar eksik/bos olabilir; Admin panelinden "Run now" ile tekrar denenebilir.');

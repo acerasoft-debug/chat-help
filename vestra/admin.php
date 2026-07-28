@@ -351,9 +351,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
     $acc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $acc=$a; break; } }
     if($acc){
+      $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
       require_once __DIR__.'/inc/push.php';
-      vestra_push_send($uid,'VESTRA — account verified ✓','Your business is verified. Full wholesale access is unlocked.',
-        (($acc['type']??'')==='seller')?'/seller':'/buyer');
+      vestra_push_send($uid,'VESTRA — account verified ✓','Your business is verified. Full wholesale access is unlocked.',$panel);
+      if(!empty($acc['email'])){
+        [$kSubj,$kBody,$kOpts]=vestra_tpl_kyb_approved(vestra_user_lang($acc),$acc['name']?:($acc['company']?:'there'),$acc['type']??'buyer','https://vestrasales.com'.$panel);
+        vestra_send_mail($acc['email'],$kSubj,$kBody,'','',null,'',$kOpts);
+      }
     }
     header('Location: /admin?tab=users&msg=kyb_ok'); exit;
   }
@@ -377,9 +381,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if($tier!=='' && ($acc['type']??'')==='seller') $upd['onboarding_paid']=true;
       auth_update($uid,$upd);
       if($acc && $tier!==''){
+        $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
         require_once __DIR__.'/inc/push.php';
         $label=$tier==='premium'?'Elite':ucfirst($tier);
-        vestra_push_send($uid,'VESTRA — plan updated ⭐','Your VESTRA membership is now '.$label.'.',(($acc['type']??'')==='seller')?'/seller':'/buyer');
+        vestra_push_send($uid,'VESTRA — plan updated ⭐','Your VESTRA membership is now '.$label.'.',$panel);
+        if(!empty($acc['email'])){
+          // Plan names (Starter/Pro/Elite) stay in English in every locale, same as any
+          // branded product-tier name — only the surrounding copy is translated.
+          [$pSubj,$pBody,$pOpts]=vestra_tpl_membership_changed(vestra_user_lang($acc),$acc['name']?:($acc['company']?:'there'),$label,'https://vestrasales.com'.$panel);
+          vestra_send_mail($acc['email'],$pSubj,$pBody,'','',null,'',$pOpts);
+        }
       }
     }
     header('Location: /admin?tab=users&msg=member_set'); exit;
@@ -511,14 +522,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       require_once __DIR__.'/inc/notify.php';
       $b=$rec['buyer']??[]; $seller=null;
       foreach(auth_accounts() as $a){ if(($a['id']??'')===($rec['seller_uid']??'')){ $seller=$a; break; } }
-      $payout=number_format((float)($rec['payout']??0),2);
+      $payout=(float)($rec['payout']??0);
       if($seller && !empty($seller['email'])){
-        vestra_send_mail($seller['email'],"VESTRA — funds released for order {$ref}",
-          "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\nVESTRA has released the held funds for order {$ref} — €{$payout} is on its way to your bank.\n\nView: https://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+        [$sSubj,$sBody,$sOpts]=vestra_tpl_escrow_release(vestra_user_lang($seller),$seller['name']?:($seller['company']?:'there'),'seller',$ref,$payout);
+        vestra_send_mail($seller['email'],$sSubj,$sBody,'','',null,'',$sOpts);
       }
       if(!empty($b['email'])){
-        vestra_send_mail($b['email'],"VESTRA — order {$ref} resolved, funds released to seller",
-          "Hello ".($b['name']?:'there').",\n\nYour order {$ref} has been resolved — the held funds have been released to the seller.\n\nView: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+        $buyerAcc=auth_find($b['email']);
+        [$bSubj,$bBody,$bOpts]=vestra_tpl_escrow_release(vestra_user_lang($buyerAcc),$b['name']?:'there','buyer',$ref,$payout);
+        vestra_send_mail($b['email'],$bSubj,$bBody,'','',null,'',$bOpts);
       }
     }
     header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_released':'esc_err')); exit;
@@ -530,14 +542,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       require_once __DIR__.'/inc/notify.php';
       $b=$rec['buyer']??[]; $seller=null;
       foreach(auth_accounts() as $a){ if(($a['id']??'')===($rec['seller_uid']??'')){ $seller=$a; break; } }
-      $total=number_format((float)($rec['total']??0),2);
+      $total=(float)($rec['total']??0);
       if(!empty($b['email'])){
-        vestra_send_mail($b['email'],"VESTRA — order {$ref} refunded",
-          "Hello ".($b['name']?:'there').",\n\nYour order {$ref} has been cancelled and refunded in full — €{$total} is being returned to your card.\n\n— VESTRA · vestrasales.com");
+        $buyerAcc=auth_find($b['email']);
+        [$bSubj,$bBody,$bOpts]=vestra_tpl_escrow_refund(vestra_user_lang($buyerAcc),$b['name']?:'there','buyer',$ref,$total);
+        vestra_send_mail($b['email'],$bSubj,$bBody,'','',null,'',$bOpts);
       }
       if($seller && !empty($seller['email'])){
-        vestra_send_mail($seller['email'],"VESTRA — order {$ref} refunded to buyer",
-          "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\nOrder {$ref} was cancelled — the buyer has been refunded in full and no funds will be released to you for it.\n\n— VESTRA · vestrasales.com");
+        [$sSubj,$sBody,$sOpts]=vestra_tpl_escrow_refund(vestra_user_lang($seller),$seller['name']?:($seller['company']?:'there'),'seller',$ref,$total);
+        vestra_send_mail($seller['email'],$sSubj,$sBody,'','',null,'',$sOpts);
       }
     }
     header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_refunded':'esc_err')); exit;
@@ -668,16 +681,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
     $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
     $rows=$country!==''?vestra_discover_osm($country,$city,80):[];
+    $osmOk=$country!==''?vestra_osm_ok():true;
     [$addedRows,$skipped]=$rows?vestra_leads_add($rows):[[],0];
     $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
-    echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds]); exit;
+    echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds,'osm_ok'=>$osmOk]); exit;
   }
   /* Written by the "Run now" button once its live discovery + email-lookup finishes, so a
      manual run leaves the exact same status trail as the 09:00 cron (inc/leads.php). */
   if($act==='record_automation_result'){
     header('Content-Type: application/json');
+    $osmOk=($_POST['osm_ok']??'1')==='1';
     vestra_cron_write_status(trim($_POST['country']??''),(int)($_POST['found']??0),(int)($_POST['added']??0),
-      (int)($_POST['emails_found']??0),(int)($_POST['emails_checked']??0),'manual');
+      (int)($_POST['emails_found']??0),(int)($_POST['emails_checked']??0),'manual',
+      $osmOk?'':'OpenStreetMap (Overpass) sorgusu basarisiz oldu — tum yansi sunucular hata verdi. Bu ulke icin sonuclar eksik/bos olabilir, tekrar deneyin.');
     echo json_encode(['ok'=>true]); exit;
   }
   /* Bulk-delete selected prospects (e.g. big-chain results from before the discovery
@@ -2566,7 +2582,8 @@ elseif($tab==='prospects'):
   <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px">
     <b>Last run:</b> <?= $agoTxt ?> (<?= htmlspecialchars(date('Y-m-d H:i',strtotime($cronStatus['last_run']))) ?>) — <?= ($cronStatus['trigger']??'cron')==='manual'?'started by you':'automatic' ?><br>
     Searched <b><?= htmlspecialchars($cronStatus['country']??'—') ?></b> — found <?= (int)($cronStatus['found']??0) ?>, added <?= (int)($cronStatus['added']??0) ?> new, resolved <?= (int)($cronStatus['emails_found']??0) ?>/<?= (int)($cronStatus['emails_checked']??0) ?> emails.
-    <?php if(($cronStatus['found']??0)===0): ?><div style="color:#c0392b;margin-top:4px">0 found — either that country genuinely has little OSM shop data, or your server can't reach the OpenStreetMap API right now. Try "Run now" and watch the live log below.</div><?php endif; ?>
+    <?php if(!empty($cronStatus['note'])): ?><div style="color:#c0392b;margin-top:4px">⚠ <?= htmlspecialchars($cronStatus['note']) ?></div>
+    <?php elseif(($cronStatus['found']??0)===0): ?><div style="color:#c0392b;margin-top:4px">0 found — that country genuinely has little OSM shop data for the categories we search. Try "Run now" and watch the live log below.</div><?php endif; ?>
   </div>
   <?php else: ?>
   <div style="background:var(--bg2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--mut)">Never run yet — click "Run now" to try it immediately, or wait for tonight's 09:00 automatic run.</div>
@@ -2898,11 +2915,16 @@ function findCustomersLive(btn){
   bar.textContent='Searching '+(city?city+', '+country:'all of '+country)+'… (whole-country searches can take up to a minute)';
   var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city',city);
   fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(d.osm_ok===false){
+      var warn=document.createElement('div'); warn.style.fontSize='12px'; warn.style.fontWeight='600'; warn.style.color='#c0392b'; warn.style.padding='2px 0';
+      warn.textContent='⚠ OpenStreetMap unreachable (all mirrors failed) — today\'s results may be incomplete. Try again in a minute.';
+      log.appendChild(warn);
+    }
     var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
     line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
     log.appendChild(line);
     var ids=d.newIds||[];
-    if(!ids.length){ bar.textContent='✓ Done — no new customers needed an email lookup.'; btn.disabled=false; return; }
+    if(!ids.length){ bar.textContent=d.osm_ok===false?'✗ OSM search failed — try again.':'✓ Done — no new customers needed an email lookup.'; btn.disabled=false; return; }
     runEmailFinderQueue(ids, log,
       function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
       function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found, of '+n+' new customers. Refresh to see them.'; btn.disabled=false; });
@@ -2929,21 +2951,27 @@ function runAutomationNow(btn){
   wrap.scrollIntoView({behavior:'smooth',block:'center'});
   bar.textContent='Running today\'s automation — '+country+'… (whole-country searches can take up to a minute)';
   var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city','');
-  var record=function(emailsFound,emailsChecked,total,added){
+  var record=function(emailsFound,emailsChecked,total,added,osmOk){
     var fd2=new FormData(); fd2.append('_action','record_automation_result'); fd2.append('_csrf',VADMIN_CSRF);
     fd2.append('country',country); fd2.append('found',total); fd2.append('added',added);
     fd2.append('emails_found',emailsFound); fd2.append('emails_checked',emailsChecked);
+    fd2.append('osm_ok',osmOk===false?'0':'1');
     fetch('/admin',{method:'POST',body:fd2}).then(function(){ setTimeout(function(){ location.reload(); },1200); });
   };
   fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(d.osm_ok===false){
+      var warn=document.createElement('div'); warn.style.fontSize='12px'; warn.style.fontWeight='600'; warn.style.color='#c0392b'; warn.style.padding='2px 0';
+      warn.textContent='⚠ OpenStreetMap unreachable (all mirrors failed) — today\'s results may be incomplete.';
+      log.appendChild(warn);
+    }
     var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
     line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
     log.appendChild(line);
     var ids=d.newIds||[];
-    if(!ids.length){ bar.textContent='✓ Done — no new customers needed an email lookup. Refreshing…'; record(0,0,d.total||0,d.added||0); return; }
+    if(!ids.length){ bar.textContent=(d.osm_ok===false?'✗ OSM search failed.':'✓ Done — no new customers needed an email lookup.')+' Refreshing…'; record(0,0,d.total||0,d.added||0,d.osm_ok); return; }
     runEmailFinderQueue(ids, log,
       function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
-      function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found. Refreshing…'; record(ok,n,d.total||0,d.added||0); });
+      function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found. Refreshing…'; record(ok,n,d.total||0,d.added||0,d.osm_ok); });
   }).catch(function(){ bar.textContent='✗ Search failed — check your connection and try again.'; btn.disabled=false; });
 }
 </script>

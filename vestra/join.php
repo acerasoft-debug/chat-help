@@ -48,8 +48,8 @@ vestra_notify("New {$type} signup — {$name}",
   "New VESTRA {$type} waitlist signup\n\nName:    {$name}\nCompany: {$company}\nEmail:   {$email}\nCountry: {$country}\nMessage: {$message}\nIP:      {$ip}\nWhen:    ".date('c')."\n",
   $email);
 if (vestra_cfg('confirm_user', false)) {
-  [$subjAck,$bodyAck] = vestra_ack_text($lang, $name, $type);
-  vestra_send_mail($email, $subjAck, $bodyAck);
+  [$subjAck,$bodyAck,$ackOpts] = vestra_ack_text($lang, $name, $type);
+  vestra_send_mail($email, $subjAck, $bodyAck, '', '', null, '', $ackOpts);
 }
 
 header("Location: /?lang={$lang}&joined=1#join");

@@ -51,9 +51,12 @@ $total=round($qty*$price,2);
 $adminBody="New offer {$ref} on VESTRA\n\nProduct: {$p['brand']} {$p['name']} [{$p['sku']}]\nCompany: {$company}\nBuyer email: {$email}\nQty: {$qty}   Unit price offered: €{$price}   Total: €{$total}\n".($colorsTxt!==''?$colorsTxt."\n":"")."Message: ".$one($_POST['message']??'')."\n\nAdmin: https://vestrasales.com/admin?tab=offers";
 vestra_notify("Offer {$ref} — {$p['sku']} — {$company}", $adminBody, $email);
 
-/* Confirmation to the buyer who made the offer */
-vestra_send_mail($email, "VESTRA — offer {$ref} received",
-  "Hello {$company},\n\nWe have received your offer for:\n\n  {$p['brand']} {$p['name']} ({$p['sku']})\n  Qty: {$qty}   Your price: €{$price}/unit   Total: €{$total}\n".($colorsTxt!==''?"  ".$colorsTxt."\n":"")."\nRef: {$ref}\n\nThe seller will review and respond shortly. You can also view updates in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com");
+/* Confirmation to the buyer who made the offer, in their own saved language when they
+ * have an account (guest checkouts fall back to English). */
+$buyerAccForLang = auth_find($email);
+$buyerLang = vestra_user_lang($buyerAccForLang);
+[$rSubj,$rBody,$rOpts] = vestra_tpl_offer_received($buyerLang, $company, trim($p['brand'].' '.$p['name']), $p['sku'], $qty, $price, $total, $ref, $colorsTxt);
+vestra_send_mail($email, $rSubj, $rBody, '', '', null, '', $rOpts);
 
 /* Drop the offer into the buyer↔seller message thread as a prominent card, so the
    seller sees it like a new message (unread badge + inbox entry), not just a table row. */
@@ -77,8 +80,11 @@ if(!empty($p['seller_uid'])){
   foreach(auth_accounts() as $acc){
     if(($acc['id']??'')!==$p['seller_uid']) continue;
     if(empty($acc['email'])) break;
-    vestra_send_mail($acc['email'], "VESTRA — you received an offer ({$ref})",
-      "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nYou received a new offer on VESTRA:\n\nProduct: {$p['brand']} {$p['name']} [{$p['sku']}]\nBuyer: {$company}\nQty: {$qty}   Offered: €{$price}/unit   Total: €{$total}\n".($colorsTxt!==''?$colorsTxt."\n":"")."Message: ".$one($_POST['message']??'')."\n\nRef: {$ref}\n\nView and respond in your seller dashboard:\nhttps://vestrasales.com/seller?tab=offers\n\n— VESTRA · vestrasales.com");
+    // Reads as coming from the buyer's own company (Reply-To -> straight back to them),
+    // while the technical envelope stays VESTRA's own verified sender.
+    [$nSubj,$nBody,$nOpts] = vestra_tpl_offer_new(vestra_user_lang($acc), $acc['name']?:($acc['company']?:'there'),
+      $company, trim($p['brand'].' '.$p['name']), $p['sku'], $qty, $price, $total, $ref, $colorsTxt, $one($_POST['message']??''));
+    vestra_send_mail($acc['email'], $nSubj, $nBody, $email, $company, null, '', $nOpts);
     break;
   }
 }

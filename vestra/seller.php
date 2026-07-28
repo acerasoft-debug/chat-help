@@ -303,22 +303,15 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         }
         /* Email the buyer directly — works whether or not they have a VESTRA account,
            since offers always collect a work email. This is the buyer's only notice if
-           they don't have push enabled or don't happen to check the site. */
+           they don't have push enabled or don't happen to check the site. Reads as
+           coming from the seller (Reply-To -> them) in the buyer's own saved language. */
         require_once __DIR__.'/inc/notify.php';
         if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
             $buyerName = $offerRow['company'] ?? ($buyerAcc['name'] ?? 'there');
-            [$mSubject, $mBody] = match($action) {
-                'accept'  => ["VESTRA — your offer on {$prodName} was accepted ✓",
-                    "Great news — the seller accepted your offer:\n\n{$prodName}\nRef: {$ref}\n\n".
-                    "Your invoice will be available in your buyer dashboard shortly.\n\nView: https://vestrasales.com/buyer?tab=offers"],
-                'counter' => ["VESTRA — counter offer on {$prodName}",
-                    "The seller has countered your offer:\n\n{$prodName}\nCounter price: €".number_format($ctr,2)."/unit\nRef: {$ref}\n\n".
-                    "Accept, decline, or reply in your dashboard: https://vestrasales.com/buyer?tab=offers"],
-                default   => ["VESTRA — your offer on {$prodName} was declined",
-                    "The seller declined your offer:\n\n{$prodName}\nRef: {$ref}\n\n".
-                    "You can browse similar listings or message the seller directly: https://vestrasales.com/buyer?tab=offers"],
-            };
-            vestra_send_mail($offerRow['email'], $mSubject, "Hello {$buyerName},\n\n{$mBody}\n\n— VESTRA · vestrasales.com");
+            $meSeller = auth_user();
+            $sellerLabel = $meSeller ? ($meSeller['company'] ?: ($meSeller['name'] ?: 'VESTRA')) : 'VESTRA';
+            [$mSubject, $mBody, $mOpts] = vestra_tpl_offer_response(vestra_user_lang($buyerAcc), $action, $buyerName, $prodName, $ref, $action==='counter'?$ctr:null);
+            vestra_send_mail($offerRow['email'], $mSubject, $mBody, $meSeller['email']??'', $sellerLabel, null, '', $mOpts);
         }
         /* Accepted offer = a confirmed sale — auto-generate this seller's PDF invoice,
            enriched with the buyer's full account details when they have one. */
@@ -432,8 +425,9 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && in_arr
     @set_time_limit(0);
     $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
     $rows=$country!==''?vestra_discover_osm($country,$city,60):[];
+    $osmOk=$country!==''?vestra_osm_ok():true;
     [$addedRows]=$rows?vestra_leads_add($rows,$suid):[[],0];
-    header('Location: /seller?tab=find&msg=discover&n='.count($addedRows).'&found='.count($rows)); exit;
+    header('Location: /seller?tab=find&msg=discover&n='.count($addedRows).'&found='.count($rows).($osmOk?'':'&osmfail=1')); exit;
   }
   if($sact==='seller_find_all'){
     @set_time_limit(0); $sc=vestra_seller_mail($suid); $leads=vestra_leads(); $n=0;
@@ -1075,9 +1069,10 @@ if($tab==='overview'){
   $myLeads=array_reverse(vestra_leads_by_owner($uid));
   $fmsg=$_GET['msg']??'';
   $fmsgs=['smtp_saved'=>'✓ Your sending email & keys are saved — send a test to confirm.','test_ok'=>'✓ Test sent — check your inbox.','test_fail'=>'Test failed — check your SMTP host / username / password.','lead_added'=>'✓ Customer added.','lead_import'=>'✓ Customers imported.','found_ok'=>'✓ Real email found and added.','found_none'=>'No email found on that website — add it manually.'];
-  if($fmsg==='discover'){ $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0);
-    $fmsgs['discover']=$df===0?'No shops found in that city — try the local spelling (e.g. “Milano”, “Köln”) or a bigger nearby city.'
-      :('✓ '.$df.' retailer(s) found, '.$dn.' new added'.($dn===0?' (all were already on your list)':'').'. Now run “🔍 Find all missing emails”.'); }
+  if($fmsg==='discover'){ $df=(int)($_GET['found']??0); $dn=(int)($_GET['n']??0); $osmFail=($_GET['osmfail']??'')==='1';
+    $fmsgs['discover']=$osmFail?'⚠ OpenStreetMap could not be reached (all mirrors failed) — this is a temporary outage, not "no shops". Please try again in a minute.'
+      :($df===0?'No shops found in that city — try the local spelling (e.g. “Milano”, “Köln”) or a bigger nearby city.'
+      :('✓ '.$df.' retailer(s) found, '.$dn.' new added'.($dn===0?' (all were already on your list)':'').'. Now run “🔍 Find all missing emails”.')); }
   if($fmsg==='found_bulk') $fmsgs['found_bulk']='✓ Email lookup finished — '.(int)($_GET['n']??0).' email(s) added from the shops’ own websites.';
   $sFinderOn=true;   // finding always works — free site-reading fallback (own/platform key optional)
   $sAiOn=($myMail['ai_key']??'')!=='' || vestra_ai_key()!=='';
