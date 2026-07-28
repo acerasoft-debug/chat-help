@@ -26,6 +26,10 @@ jobs:
           echo "== genel son event'ler (son 20, herhangi bir alici) =="
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=20" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          echo "== kayitli sender listesi (dogrulanmis mi degil mi) =="
+          curl -sS "https://api.brevo.com/v3/senders" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
