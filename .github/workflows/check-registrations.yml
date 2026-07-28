@@ -31,29 +31,6 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Duzeltilmis vestra_discover_osm() ile Almanya'da gercek arama (uretim kodu, 4 mirror + retry)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          command_timeout: 8m
-          script: |
-            cat > /tmp/vestra_osmtest.php <<'PHPEOF'
-            <?php
-            $home = getenv("HOME");
-            require $home."/public_html/inc/notify.php";
-            $t0 = microtime(true);
-            $r = vestra_discover_osm('Germany', '', 10);
-            $dt = round(microtime(true) - $t0, 1);
-            echo "vestra_osm_ok(): " . (vestra_osm_ok() ? "true (mirror'lardan biri yanit verdi)" : "false (4 mirror da basarisiz oldu)") . "\n";
-            echo "bulunan magaza sayisi: " . count($r) . " (sure: {$dt}s)\n";
-            if ($r) { echo "ornek: " . ($r[0]['name'] ?? '?') . " / " . ($r[0]['city'] ?? '?') . "\n"; }
-            PHPEOF
-            timeout 460 php /tmp/vestra_osmtest.php || echo "(zaman asimi -- 460sn icinde tum mirror denemeleri tamamlanamadi, genel Overpass yavasligi/erisim sorunu olabilir, sorgu mantigiyla ilgisiz)"
-            rm -f /tmp/vestra_osmtest.php
-
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
