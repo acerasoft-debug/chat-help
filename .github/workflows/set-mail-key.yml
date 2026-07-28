@@ -5,9 +5,14 @@ name: Sunucuda email API key'ini güncelle
 # ile eklenmeden çalışmaz (fail-fast kontrolü aşağıda). Key hiçbir zaman log'a yazılmaz,
 # hiçbir dosyaya commit edilmez -- sadece sunucudaki data/email_settings.json'a yazılır.
 #
-# Not: secrets.MAIL_API_KEY artık Brevo'nun gerçek REST API key'i (xkeysib-...) olmalı --
-# SMTP denendi ama bu sunucudan port 587 tamamen kapalı (bkz. run #4 log), o yüzden
-# HTTPS/443 üzerinden çalışan REST API (api.brevo.com) tek çalışabilir yol.
+# Not: secrets.MAIL_API_KEY Brevo'nun gerçek REST API key'i (xkeysib-...). Brevo'nun
+# kendi teslimat event log'u (bkz. check-registrations.yml) gösterdi ki asıl sorun
+# key değil, gönderen adresti: support@vestrasales.com Brevo'da hiç doğrulanmış bir
+# sender değil (Brevo API'yi 2xx ile kabul edip sonra async "sender not valid" diye
+# reddediyordu -- kod bunu göremiyordu). Bu hesapta doğrulanmış TEK sender
+# acerasoft@gmail.com, o yüzden mail_from o adrese sabitlendi (görünen isim yine
+# "VESTRA"). Kalıcı çözüm: Brevo'da support@vestrasales.com'u (veya tüm
+# vestrasales.com domain'ini) doğrulayıp mail_from'u geri değiştirmek.
 on:
   workflow_dispatch:
 
@@ -26,7 +31,7 @@ jobs:
           fi
           echo "MAIL_API_KEY tanımlı, devam ediliyor."
 
-      - name: Key'i doğrudan Brevo'da doğrula + sunucuda güncelle + gerçek test gönder
+      - name: Sunucuda doğrulanmış sender'a geç + gerçek test gönder
         uses: appleboy/ssh-action@v1.0.3
         env:
           MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
@@ -40,61 +45,45 @@ jobs:
             cat > /tmp/vestra_mailcheck.php <<'PHPEOF'
             <?php
             $key = getenv("MAIL_API_KEY");
-            $from = "support@vestrasales.com";
+            $from = "acerasoft@gmail.com";
+            $to   = "acerasoft@gmail.com";
 
-            echo "== 0) key format kontrolu ==\n";
-            echo "uzunluk: " . strlen($key) . " karakter\n";
-            echo "onek: " . substr($key,0,9) . "...\n";
-            if (strpos($key, "xkeysib-") === 0) {
-              echo "TIP: xkeysib- -> REST API key formati (dogru tip)\n";
-            } elseif (strpos($key, "xsmtpsib-") === 0) {
-              echo "TIP: xsmtpsib- -> SMTP key, REST API bunu kabul etmez.\n";
-            } else {
-              echo "TIP: bilinmeyen format\n";
-            }
-
-            echo "\n== 1) Brevo REST API'ye dogrudan test (GET /v3/account) ==\n";
-            $ch = curl_init("https://api.brevo.com/v3/account");
-            curl_setopt_array($ch, [
-              CURLOPT_RETURNTRANSFER => true,
-              CURLOPT_HTTPHEADER => ["api-key: {$key}", "Accept: application/json"],
-              CURLOPT_TIMEOUT => 20,
-            ]);
-            $resp = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            echo "HTTP {$code}\n";
-            echo substr((string)$resp, 0, 500) . "\n";
-            $keyOk = ($code >= 200 && $code < 300);
-            echo $keyOk ? "-> KEY GECERLI (Brevo API kabul etti)\n" : "-> KEY REDDEDILDI\n";
-
-            echo "\n== 2) email_settings.json guncelle (API moduna gecis) ==\n";
+            echo "== email_settings.json guncelle (dogrulanmis sender'a gecis) ==\n";
             $f = getenv("HOME")."/public_html/data/email_settings.json";
             $cur = is_readable($f) ? (json_decode(file_get_contents($f), true) ?: []) : [];
             if (!is_array($cur)) $cur = [];
             $cur["mail_enabled"] = true;
             $cur["mail_api_provider"] = "brevo";
             $cur["mail_api_key"] = $key;
-            if (empty($cur["mail_from"])) $cur["mail_from"] = $from;
-            $cur["smtp_from"] = $cur["mail_from"];
-            if (empty($cur["smtp_name"])) $cur["smtp_name"] = "VESTRA";
+            $cur["mail_from"] = $from;
+            $cur["smtp_from"] = $from;
+            $cur["smtp_name"] = "VESTRA";
             file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
             @chmod($f, 0600);
             echo "mail_enabled: true\n";
-            echo "mail_from: " . $cur["mail_from"] . "\n";
-            echo "mail_api_key: " . (strlen($cur["mail_api_key"]) > 0 ? "ayarlandi (" . strlen($cur["mail_api_key"]) . " karakter)" : "BOS") . "\n";
+            echo "mail_from: " . $cur["mail_from"] . " (Brevo'da dogrulanmis sender)\n";
+            echo "smtp_name (gorunen isim): " . $cur["smtp_name"] . "\n";
 
-            echo "\n== 3) gercek uygulama testi (vestra_send_mail uzerinden) ==\n";
+            echo "\n== gercek uygulama testi (vestra_send_mail uzerinden, aliciya: {$to}) ==\n";
             $errFile = "/tmp/vestra_api_apptest_err.log";
             @unlink($errFile);
             ini_set("error_log", $errFile);
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
-            $ok = vestra_send_mail($cur["mail_from"], "VESTRA - otomatik email testi", "Bu otomatik bir test mesajidir. Bu mail size ulastiysa gonderim calisiyor demektir.\n\n-- VESTRA");
-            echo $ok ? "TEST GONDERIMI: BASARILI\n" : "TEST GONDERIMI: BASARISIZ\n";
+            $ok = vestra_send_mail($to, "VESTRA - otomatik email testi (dogrulanmis sender)", "Bu otomatik bir test mesajidir. Bu mail size ulastiysa gonderim calisiyor demektir.\n\n-- VESTRA");
+            echo $ok ? "TEST GONDERIMI: BASARILI (Brevo kabul etti)\n" : "TEST GONDERIMI: BASARISIZ\n";
             $errContent = is_readable($errFile) ? trim((string)file_get_contents($errFile)) : "";
             echo "hata detayi: " . ($errContent !== "" ? $errContent : "(yok)") . "\n";
             @unlink($errFile);
             PHPEOF
             php /tmp/vestra_mailcheck.php
             rm -f /tmp/vestra_mailcheck.php
+
+      - name: 3sn bekle, sonra Brevo'nun gerçek teslimat event'ini kontrol et
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          sleep 3
+          echo "== acerasoft@gmail.com icin son event'ler (delivered mi, error mi?) =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=5&email=acerasoft%40gmail.com" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
