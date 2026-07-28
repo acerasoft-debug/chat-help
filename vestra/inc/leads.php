@@ -36,7 +36,7 @@ function vestra_lead_sources(): array {
 function vestra_cron_countries(): array {
     $custom = vestra_read_json('cron_countries.json');
     return (is_array($custom) && $custom) ? $custom
-        : ['Germany','Netherlands','France','Italy','Spain','United Kingdom','United States','Australia'];
+        : ['Netherlands','France','Italy','Spain','Poland','United Kingdom','United States','Australia'];
 }
 
 function vestra_cron_today_country(): string {

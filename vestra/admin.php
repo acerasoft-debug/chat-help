@@ -2620,7 +2620,7 @@ elseif($tab==='prospects'):
     <div class="afield" style="margin:0"><label>Country</label>
       <select id="discCountry">
         <option value="" disabled selected>— choose —</option>
-        <option>Germany</option><option>Netherlands</option><option>France</option><option>Italy</option>
+        <option>Germany</option><option>Netherlands</option><option>Poland</option><option>France</option><option>Italy</option>
         <option>Spain</option><option>United Kingdom</option><option>United States</option><option>Australia</option><option>UAE</option><option>Turkey</option>
       </select>
     </div>
