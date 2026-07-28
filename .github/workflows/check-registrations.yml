@@ -31,14 +31,18 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Duzeltilmis Overpass sorgusu -- Almanya icin gercek magaza verisi geliyor mu?
+      - name: (GECICI) Duzeltilmis Overpass sorgusu -- alan birlesimi calisiyor mu?
         run: |
-          echo "== ulke-capinda (Germany), duzeltilmis birlesim sorgusu =="
-          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:55];(area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 2500
+          echo "== [kumi mirror] ulke-capinda (Germany), hafif alan-only birlesim sorgusu =="
+          curl -sS "https://overpass.kumi.systems/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];(area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];)->.a;.a out tags;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 1200
           echo ""
           echo ""
-          echo "== sehir-bazli (Munich, yerel adi Muenchen), duzeltilmis birlesim sorgusu =="
-          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:35];(area["name"~"^Munich$",i]["boundary"="administrative"];area["name:en"~"^Munich$",i]["boundary"="administrative"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 2500
+          echo "== [kumi mirror] sehir-bazli (Munich), hafif alan-only birlesim sorgusu =="
+          curl -sS "https://overpass.kumi.systems/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];(area["name"~"^Munich$",i]["boundary"="administrative"];area["name:en"~"^Munich$",i]["boundary"="administrative"];)->.a;.a out tags;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 1200
+          echo ""
+          echo ""
+          echo "== [kumi mirror] ulke-capinda (Germany), TAM sorgu (magaza arama dahil) =="
+          curl -sS "https://overpass.kumi.systems/api/interpreter" --data-urlencode 'data=[out:json][timeout:55];(area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 2000
 
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
