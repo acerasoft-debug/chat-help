@@ -4,6 +4,10 @@ name: Sunucuda email API key'ini güncelle
 # gerekir -- repo Settings -> Secrets and variables -> Actions -> New repository secret
 # ile eklenmeden çalışmaz (fail-fast kontrolü aşağıda). Key hiçbir zaman log'a yazılmaz,
 # hiçbir dosyaya commit edilmez -- sadece sunucudaki data/email_settings.json'a yazılır.
+#
+# Not: secrets.MAIL_API_KEY şu an Brevo'nun SMTP key'ini (xsmtpsib-...) tutuyor -- bu bir
+# REST API key değil (o api.brevo.com'u 401 ile reddediyordu), bu yüzden bu workflow
+# doğrudan authenticated SMTP (smtp-relay.brevo.com:587) kullanıyor.
 on:
   workflow_dispatch:
 
@@ -22,7 +26,7 @@ jobs:
           fi
           echo "MAIL_API_KEY tanımlı, devam ediliyor."
 
-      - name: Key'i doğrudan Brevo'da doğrula + sunucuda güncelle + test gönderimi yap
+      - name: Brevo SMTP'yi ham protokolle doğrula + sunucuda güncelle + gerçek test gönder
         uses: appleboy/ssh-action@v1.0.3
         env:
           MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
@@ -35,57 +39,93 @@ jobs:
           script: |
             cat > /tmp/vestra_mailcheck.php <<'PHPEOF'
             <?php
-            $key = getenv("MAIL_API_KEY");
+            $host = "smtp-relay.brevo.com";
+            $port = 587;
+            $user = "b2bf45001@smtp-brevo.com";
+            $pass = getenv("MAIL_API_KEY");
+            $from = "support@vestrasales.com";
 
-            echo "== 0) key format kontrolu ==\n";
-            echo "uzunluk: " . strlen($key) . " karakter\n";
-            echo "onek: " . substr($key,0,9) . "...\n";
-            if (strpos($key, "xkeysib-") === 0) {
-              echo "TIP: xkeysib- -> REST API key formati (dogru tip, HTTP API gonderimi bunu bekler)\n";
-            } elseif (strpos($key, "xsmtpsib-") === 0) {
-              echo "TIP: xsmtpsib- -> bu bir SMTP KEY formati, REST API key DEGIL.\n";
-              echo "     api.brevo.com REST API bu key tipini kabul etmez -> 401 Key not found beklenir.\n";
-              echo "     Brevo panelinde: SMTP & API -> 'API Keys' sekmesi -> Generate a new API key\n";
-              echo "     (SMTP sekmesindeki key farkli bir sistemdir, orayla karistirilmamali.)\n";
+            echo "== 1) RAW SMTP diagnostik: {$host}:{$port} ==\n";
+            $fp = @fsockopen($host, $port, $errno, $errstr, 15);
+            if (!$fp) {
+              echo "BAGLANTI BASARISIZ: {$errstr} ({$errno})\n";
+              echo "-> sunucu bu portu disariya kapatiyor olabilir.\n";
             } else {
-              echo "TIP: bilinmeyen format (ne xkeysib- ne xsmtpsib- ile basliyor)\n";
+              stream_set_timeout($fp, 15);
+              $read = function() use ($fp) {
+                $data=''; while(($line=fgets($fp,515))!==false){ $data.=$line; if(isset($line[3])&&$line[3]===' ') break; } return $data;
+              };
+              $cmd = function($c, $label) use ($fp,$read){
+                if ($c !== null) fwrite($fp, $c."\r\n");
+                $r = $read();
+                echo "{$label}: " . trim($r) . "\n";
+                return $r;
+              };
+              $cmd(null, "GREETING");
+              $cmd("EHLO vestrasales.com", "EHLO#1");
+              $r = $cmd("STARTTLS", "STARTTLS");
+              if (strpos($r,'220')===false) {
+                echo "-> STARTTLS reddedildi, durduruluyor\n";
+              } elseif (!@stream_socket_enable_crypto($fp, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                echo "-> TLS handshake BASARISIZ\n";
+              } else {
+                echo "TLS: OK\n";
+                $cmd("EHLO vestrasales.com", "EHLO#2");
+                $cmd("AUTH LOGIN", "AUTH LOGIN");
+                $cmd(base64_encode($user), "USER ({$user})");
+                $r = $cmd(base64_encode($pass), "PASS (" . strlen($pass) . " karakter key)");
+                if (strpos($r,'235')===false) {
+                  echo "-> AUTH BASARISIZ (kullanici adi/sifre reddedildi)\n";
+                } else {
+                  echo "AUTH: OK\n";
+                  $cmd("MAIL FROM:<{$from}>", "MAIL FROM");
+                  $r = $cmd("RCPT TO:<{$from}>", "RCPT TO");
+                  if (strpos($r,'250')===false) {
+                    echo "-> RCPT TO reddedildi (gonderen/alici adresiyle ilgili olabilir)\n";
+                  } else {
+                    $cmd("DATA", "DATA");
+                    $msg = "From: VESTRA <{$from}>\r\nTo: <{$from}>\r\nSubject: VESTRA raw SMTP testi\r\n\r\nRaw SMTP diagnostik testi basarili.\r\n.";
+                    $r = $cmd($msg, "SEND");
+                    echo (strpos($r,'250')!==false) ? "-> RAW SMTP GONDERIMI BASARILI\n" : "-> RAW SMTP GONDERIMI BASARISIZ\n";
+                  }
+                }
+              }
+              $cmd("QUIT", "QUIT");
+              fclose($fp);
             }
 
-            echo "\n== 1) Brevo REST API'ye dogrudan test (GET /v3/account) ==\n";
-            $ch = curl_init("https://api.brevo.com/v3/account");
-            curl_setopt_array($ch, [
-              CURLOPT_RETURNTRANSFER => true,
-              CURLOPT_HTTPHEADER => ["api-key: {$key}", "Accept: application/json"],
-              CURLOPT_TIMEOUT => 20,
-            ]);
-            $resp = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            echo "HTTP {$code}\n";
-            echo substr((string)$resp, 0, 500) . "\n";
-            echo ($code >= 200 && $code < 300) ? "-> KEY GECERLI (Brevo API kabul etti)\n" : "-> KEY REDDEDILDI\n";
-
-            echo "\n== 2) email_settings.json guncelle ==\n";
+            echo "\n== 2) email_settings.json guncelle (SMTP moduna gecis) ==\n";
             $f = getenv("HOME")."/public_html/data/email_settings.json";
             $cur = is_readable($f) ? (json_decode(file_get_contents($f), true) ?: []) : [];
             if (!is_array($cur)) $cur = [];
             $cur["mail_enabled"] = true;
-            $cur["mail_api_provider"] = "brevo";
-            $cur["mail_api_key"] = $key;
-            if (empty($cur["mail_from"])) $cur["mail_from"] = "support@vestrasales.com";
-            if (empty($cur["smtp_from"])) $cur["smtp_from"] = $cur["mail_from"];
+            $cur["mail_api_key"] = "";
+            $cur["mail_api_provider"] = "";
+            $cur["smtp_host"] = $host;
+            $cur["smtp_port"] = $port;
+            $cur["smtp_user"] = $user;
+            $cur["smtp_pass"] = $pass;
+            if (empty($cur["mail_from"])) $cur["mail_from"] = $from;
+            $cur["smtp_from"] = $cur["mail_from"];
             if (empty($cur["smtp_name"])) $cur["smtp_name"] = "VESTRA";
             file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
             @chmod($f, 0600);
-            echo "mail_enabled: true\n";
-            echo "mail_from: " . $cur["mail_from"] . "\n";
-            echo "mail_api_key: " . (strlen($cur["mail_api_key"]) > 0 ? "ayarlandi (" . strlen($cur["mail_api_key"]) . " karakter)" : "BOS") . "\n";
+            echo "smtp_host: {$cur['smtp_host']}:{$cur['smtp_port']}\n";
+            echo "smtp_user: {$cur['smtp_user']}\n";
+            echo "smtp_pass: " . (strlen($cur['smtp_pass'])>0 ? "ayarlandi (" . strlen($cur['smtp_pass']) . " karakter)" : "BOS") . "\n";
+            echo "mail_api_key: temizlendi (bos, artik SMTP yolu kullanilacak)\n";
 
-            echo "\n== 3) gercek gonderim testi (vestra_send_mail uzerinden) ==\n";
+            echo "\n== 3) gercek uygulama testi (vestra_send_mail uzerinden) ==\n";
+            $errFile = "/tmp/vestra_smtp_apptest_err.log";
+            @unlink($errFile);
+            ini_set("error_log", $errFile);
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
-            $ok = vestra_send_mail($cur["mail_from"], "VESTRA - otomatik email testi", "Bu otomatik bir test mesajidir. Bu mail size ulastiysa gonderim calisiyor demektir.\n\n-- VESTRA");
-            echo $ok ? "TEST GONDERIMI: BASARILI\n" : "TEST GONDERIMI: BASARISIZ\n";
+            $ok = vestra_send_mail($cur["mail_from"], "VESTRA - uygulama SMTP testi", "Bu, vestra_send_mail() uzerinden gonderilen otomatik bir test mesajidir. Bu mail size ulastiysa gonderim calisiyor demektir.\n\n-- VESTRA");
+            echo $ok ? "UYGULAMA TESTI: BASARILI\n" : "UYGULAMA TESTI: BASARISIZ\n";
+            $errContent = is_readable($errFile) ? trim((string)file_get_contents($errFile)) : "";
+            echo "hata detayi: " . ($errContent !== "" ? $errContent : "(yok)") . "\n";
+            @unlink($errFile);
             PHPEOF
             php /tmp/vestra_mailcheck.php
             rm -f /tmp/vestra_mailcheck.php
