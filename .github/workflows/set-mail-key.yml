@@ -22,7 +22,7 @@ jobs:
           fi
           echo "MAIL_API_KEY tanımlı, devam ediliyor."
 
-      - name: Sunucuda email_settings.json güncelle + test gönderimi yap
+      - name: Key'i doğrudan Brevo'da doğrula + sunucuda güncelle + test gönderimi yap
         uses: appleboy/ssh-action@v1.0.3
         env:
           MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
@@ -33,26 +33,59 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT }}
           envs: MAIL_API_KEY
           script: |
-            php -r '
+            cat > /tmp/vestra_mailcheck.php <<'PHPEOF'
+            <?php
+            $key = getenv("MAIL_API_KEY");
+
+            echo "== 0) key format kontrolu ==\n";
+            echo "uzunluk: " . strlen($key) . " karakter\n";
+            echo "onek: " . substr($key,0,9) . "...\n";
+            if (strpos($key, "xkeysib-") === 0) {
+              echo "TIP: xkeysib- -> REST API key formati (dogru tip, HTTP API gonderimi bunu bekler)\n";
+            } elseif (strpos($key, "xsmtpsib-") === 0) {
+              echo "TIP: xsmtpsib- -> bu bir SMTP KEY formati, REST API key DEGIL.\n";
+              echo "     api.brevo.com REST API bu key tipini kabul etmez -> 401 Key not found beklenir.\n";
+              echo "     Brevo panelinde: SMTP & API -> 'API Keys' sekmesi -> Generate a new API key\n";
+              echo "     (SMTP sekmesindeki key farkli bir sistemdir, orayla karistirilmamali.)\n";
+            } else {
+              echo "TIP: bilinmeyen format (ne xkeysib- ne xsmtpsib- ile basliyor)\n";
+            }
+
+            echo "\n== 1) Brevo REST API'ye dogrudan test (GET /v3/account) ==\n";
+            $ch = curl_init("https://api.brevo.com/v3/account");
+            curl_setopt_array($ch, [
+              CURLOPT_RETURNTRANSFER => true,
+              CURLOPT_HTTPHEADER => ["api-key: {$key}", "Accept: application/json"],
+              CURLOPT_TIMEOUT => 20,
+            ]);
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            echo "HTTP {$code}\n";
+            echo substr((string)$resp, 0, 500) . "\n";
+            echo ($code >= 200 && $code < 300) ? "-> KEY GECERLI (Brevo API kabul etti)\n" : "-> KEY REDDEDILDI\n";
+
+            echo "\n== 2) email_settings.json guncelle ==\n";
             $f = getenv("HOME")."/public_html/data/email_settings.json";
             $cur = is_readable($f) ? (json_decode(file_get_contents($f), true) ?: []) : [];
             if (!is_array($cur)) $cur = [];
             $cur["mail_enabled"] = true;
             $cur["mail_api_provider"] = "brevo";
-            $cur["mail_api_key"] = getenv("MAIL_API_KEY");
+            $cur["mail_api_key"] = $key;
             if (empty($cur["mail_from"])) $cur["mail_from"] = "support@vestrasales.com";
             if (empty($cur["smtp_from"])) $cur["smtp_from"] = $cur["mail_from"];
             if (empty($cur["smtp_name"])) $cur["smtp_name"] = "VESTRA";
             file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
             @chmod($f, 0600);
-            echo "== email_settings.json güncellendi ==\n";
             echo "mail_enabled: true\n";
-            echo "mail_api_provider: brevo\n";
             echo "mail_from: " . $cur["mail_from"] . "\n";
-            echo "mail_api_key: " . (strlen($cur["mail_api_key"]) > 0 ? "ayarlandı (" . strlen($cur["mail_api_key"]) . " karakter)" : "BOŞ") . "\n";
-            echo "\n== gerçek gönderim testi ==\n";
+            echo "mail_api_key: " . (strlen($cur["mail_api_key"]) > 0 ? "ayarlandi (" . strlen($cur["mail_api_key"]) . " karakter)" : "BOS") . "\n";
+
+            echo "\n== 3) gercek gonderim testi (vestra_send_mail uzerinden) ==\n";
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
             $ok = vestra_send_mail($cur["mail_from"], "VESTRA - otomatik email testi", "Bu otomatik bir test mesajidir. Bu mail size ulastiysa gonderim calisiyor demektir.\n\n-- VESTRA");
-            echo $ok ? "TEST GONDERIMI: BASARILI\n" : "TEST GONDERIMI: BASARISIZ -- ~/public_html/error_log dosyasina bakin\n";
-            '
+            echo $ok ? "TEST GONDERIMI: BASARILI\n" : "TEST GONDERIMI: BASARISIZ\n";
+            PHPEOF
+            php /tmp/vestra_mailcheck.php
+            rm -f /tmp/vestra_mailcheck.php
