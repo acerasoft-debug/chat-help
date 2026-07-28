@@ -188,6 +188,7 @@ function vestra_overpass(string $ql): string {
     'https://overpass.osm.ch/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
   ];
+  $lastEmpty = null; // a well-formed 2xx response whose "elements" came back empty
   foreach($mirrors as $ep){
     for($attempt=1; $attempt<=2; $attempt++){
       $ch=curl_init($ep);
@@ -201,12 +202,26 @@ function vestra_overpass(string $ql): string {
       // as success would silently report "0 found" for what's actually a failed lookup.
       $softTimeout = is_string($r) && $r!=='' && stripos($r,'"remark"')!==false
         && (stripos($r,'timed out')!==false || stripos($r,'timeout')!==false);
-      if($code>=200&&$code<300 && is_string($r) && $r!=='' && !$softTimeout){ vestra_osm_ok(true); return $r; }
+      if($code>=200&&$code<300 && is_string($r) && $r!=='' && !$softTimeout){
+        // Mirrors also disagree on completeness: a mirror can answer cleanly (no error at
+        // all) with an empty "elements" array simply because ITS copy of OSM's derived area
+        // index doesn't have the place we asked about (confirmed empirically: a Berlin
+        // clothing-shop search came back as valid, remark-free, genuinely empty JSON). Don't
+        // trust the first mirror's "found nothing" — remember it and let other mirrors, which
+        // may have a more complete area index, get a real shot before giving up.
+        $d=json_decode($r,true);
+        $empty = is_array($d) && array_key_exists('elements',$d) && count($d['elements'])===0;
+        vestra_osm_ok(true);
+        if(!$empty) return $r;
+        $lastEmpty=$r;
+        break; // no point retrying the same mirror on a legitimately-empty answer — try the next one
+      }
       if($code) error_log("[VESTRA osm] {$ep} HTTP {$code}".($softTimeout?' (Overpass ic zaman asimi remark)':'')." (deneme {$attempt})");
       if($attempt===1 && (in_array($code,[502,503,504],true) || $softTimeout)){ sleep(2); continue; } // transient — retry same mirror once
       break;
     }
   }
+  if($lastEmpty!==null) return $lastEmpty; // every mirror that answered agreed: genuinely nothing found
   vestra_osm_ok(false);
   return '';
 }
