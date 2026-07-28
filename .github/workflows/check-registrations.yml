@@ -31,14 +31,14 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Overpass alan-adi testi -- name= vs name:en=
+      - name: (GECICI) Duzeltilmis Overpass sorgusu -- Almanya icin gercek magaza verisi geliyor mu?
         run: |
-          echo "== name~^Germany\$ (mevcut kod bunu kullaniyor) =="
-          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];out tags;' | head -c 600
+          echo "== ulke-capinda (Germany), duzeltilmis birlesim sorgusu =="
+          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:55];(area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 2500
           echo ""
           echo ""
-          echo "== name:en~^Germany\$ =="
-          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];out tags;' | head -c 600
+          echo "== sehir-bazli (Munich, yerel adi Muenchen), duzeltilmis birlesim sorgusu =="
+          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:35];(area["name"~"^Munich$",i]["boundary"="administrative"];area["name:en"~"^Munich$",i]["boundary"="administrative"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;' -w "\nHTTP_CODE:%{http_code}\n" | head -c 2500
 
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3

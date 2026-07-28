@@ -247,8 +247,14 @@ function vestra_discover_osm(string $country, string $city='', int $limit=80): a
   $timeout=$wide?55:35;
   $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$';
   $f='["shop"~"'.$shopRe.'"]';
+  // OSM tags admin boundaries with the LOCAL name in `name` (e.g. "Deutschland") and the
+  // English name in a separate `name:en` tag when it differs. Matching only `name` silently
+  // returns zero results for Germany/Netherlands/Italy/Spain and many non-English city names
+  // (Munich/München, Rome/Roma, ...) — union both tags so the English country/city list we use
+  // actually resolves everywhere.
   $ql="[out:json][timeout:{$timeout}];".
-      'area["name"~"^'.$areaEsc.'$",i]["boundary"="administrative"]'.$adminFilter.'->.a;'.
+      '(area["name"~"^'.$areaEsc.'$",i]["boundary"="administrative"]'.$adminFilter.';'.
+      'area["name:en"~"^'.$areaEsc.'$",i]["boundary"="administrative"]'.$adminFilter.';)->.a;'.
       "(node{$f}(area.a);way{$f}(area.a););out tags center ".max(1,min(400,$limit*4)).";";
   $body=vestra_overpass($ql);
   if($body==='') return [];
