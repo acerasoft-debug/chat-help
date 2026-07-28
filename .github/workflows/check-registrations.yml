@@ -45,13 +45,19 @@ jobs:
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
 
-            echo "---- sehir-bazli (Berlin), uretim fonksiyonu (mirror-uzlasma duzeltmesiyle) ----\n";
+            echo "---- A: TEKIL sorgu (birlesim YOK) -- name=Berlin, sadece alan cozuluyor mu ----\n";
+            $qlA = '[out:json][timeout:25];area["name"~"^Berlin$",i]["boundary"="administrative"];out ids tags;';
             $t0 = microtime(true);
-            $r = vestra_discover_osm('Germany', 'Berlin', 10);
-            $dt = round(microtime(true) - $t0, 1);
-            echo "vestra_osm_ok(): " . (vestra_osm_ok() ? "true" : "false") . "\n";
-            echo "bulunan magaza sayisi: " . count($r) . " (sure: {$dt}s)\n";
-            if ($r) { foreach (array_slice($r,0,5) as $s) echo "  - " . ($s['name'] ?? '?') . " / " . ($s['city'] ?? '?') . "\n"; }
+            $rA = vestra_overpass($qlA);
+            echo "osm_ok: " . (vestra_osm_ok()?"true":"false") . " | uzunluk: " . strlen($rA) . " | sure: " . round(microtime(true)-$t0,1) . "s\n";
+            echo substr($rA, 0, 400) . "\n";
+
+            echo "\n---- B: BIRLESIM sorgu -- name=Berlin VEYA name:en=Berlin, sadece alan cozuluyor mu ----\n";
+            $qlB = '[out:json][timeout:25];(area["name"~"^Berlin$",i]["boundary"="administrative"];area["name:en"~"^Berlin$",i]["boundary"="administrative"];)->.a;.a out ids tags;';
+            $t1 = microtime(true);
+            $rB = vestra_overpass($qlB);
+            echo "osm_ok: " . (vestra_osm_ok()?"true":"false") . " | uzunluk: " . strlen($rB) . " | sure: " . round(microtime(true)-$t1,1) . "s\n";
+            echo substr($rB, 0, 400) . "\n";
             PHPEOF
             timeout 460 php /tmp/vestra_osmtest.php || echo "(zaman asimi -- 460sn icinde tum mirror denemeleri tamamlanamadi, genel Overpass yavasligi/erisim sorunu olabilir, sorgu mantigiyla ilgisiz)"
             rm -f /tmp/vestra_osmtest.php
