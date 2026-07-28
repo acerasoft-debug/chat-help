@@ -15,20 +15,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $host = (!empty($_SERVER['HTTPS']) ? 'https' : 'http').'://'.($_SERVER['HTTP_HOST'] ?? 'vestrasales.com');
             $link = $host.'/reset?token='.$acc['reset_token'];
             $name = $acc['name'] ?: ($acc['company'] ?: 'there');
-            $texts = [
-              'en' => ["VESTRA — reset your password",
-                       "Hello {$name},\n\nSomeone (hopefully you) requested a password reset for your VESTRA account.\n\nSet a new password here (link valid for 1 hour):\n{$link}\n\nIf you didn't request this, you can ignore this email — your password stays unchanged.\n\n— VESTRA · vestrasales.com"],
-              'de' => ["VESTRA — Passwort zurücksetzen",
-                       "Hallo {$name},\n\njemand (hoffentlich Sie) hat das Zurücksetzen des Passworts für Ihr VESTRA-Konto angefordert.\n\nNeues Passwort hier festlegen (Link 1 Stunde gültig):\n{$link}\n\nFalls Sie das nicht angefordert haben, ignorieren Sie diese E-Mail — Ihr Passwort bleibt unverändert.\n\n— VESTRA · vestrasales.com"],
-              'fr' => ["VESTRA — réinitialiser votre mot de passe",
-                       "Bonjour {$name},\n\nQuelqu'un (vous, espérons-le) a demandé la réinitialisation du mot de passe de votre compte VESTRA.\n\nDéfinissez un nouveau mot de passe ici (lien valable 1 heure) :\n{$link}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail — votre mot de passe reste inchangé.\n\n— VESTRA · vestrasales.com"],
-              'it' => ["VESTRA — reimposta la password",
-                       "Ciao {$name},\n\nqualcuno (speriamo tu) ha richiesto la reimpostazione della password del tuo account VESTRA.\n\nImposta una nuova password qui (link valido 1 ora):\n{$link}\n\nSe non sei stato tu, ignora questa e-mail — la tua password resta invariata.\n\n— VESTRA · vestrasales.com"],
-              'es' => ["VESTRA — restablecer tu contraseña",
-                       "Hola {$name},\n\nalguien (esperamos que tú) ha solicitado restablecer la contraseña de tu cuenta VESTRA.\n\nEstablece una nueva contraseña aquí (enlace válido 1 hora):\n{$link}\n\nSi no lo has solicitado, ignora este correo — tu contraseña no cambia.\n\n— VESTRA · vestrasales.com"],
-            ];
-            [$subj, $body] = $texts[vlang()] ?? $texts['en'];
-            vestra_send_mail($acc['email'], $subj, $body);
+            // This runs inside the account holder's OWN request (they just typed their own
+            // email into this form) — vlang() is the right signal here, unlike offer/message/
+            // membership mail which fires from someone else's request.
+            [$subj, $body, $rOpts] = vestra_reset_text(vlang(), $name, $link);
+            vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $rOpts);
         }
     }
     $sent = true; // same response whether or not the account exists

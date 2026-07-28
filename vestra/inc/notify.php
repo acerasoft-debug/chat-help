@@ -632,3 +632,28 @@ function vestra_ack_text($lang,$name,$type){
   $t = $T[$lang] ?? $T['en'];
   return [$t[0], sprintf($t[1], $name, $roleWord, $url), ['button'=>['label'=>$btnLabel,'url'=>$url]]];
 }
+
+/* localized password-reset email → [subject, body, opts]. Called from forgot.php's own
+ * request (the account holder typing their own email), so $lang is that request's vlang()
+ * — unlike offer/message/membership mail, which fires from someone ELSE's request and must
+ * use the recipient's stored vestra_user_lang() instead. */
+function vestra_reset_text($lang, $name, $link) {
+  $btnLabel = ['en'=>'Set new password','de'=>'Neues Passwort festlegen','fr'=>'Définir un nouveau mot de passe',
+    'it'=>'Imposta nuova password','es'=>'Establecer nueva contraseña'][$lang] ?? 'Set new password';
+  $badge = ['en'=>'🔑 Password reset','de'=>'🔑 Passwort zurücksetzen','fr'=>'🔑 Réinitialisation du mot de passe',
+    'it'=>'🔑 Reimposta password','es'=>'🔑 Restablecer contraseña'][$lang] ?? '🔑 Password reset';
+  $T = [
+   'en' => ["VESTRA — reset your password",
+     "Hello %s,\n\nSomeone (hopefully you) requested a password reset for your VESTRA account.\n\nSet a new password using the button below (link valid for 1 hour):\n%s\n\nIf you didn't request this, you can ignore this email — your password stays unchanged.\n\n— VESTRA · vestrasales.com"],
+   'de' => ["VESTRA — Passwort zurücksetzen",
+     "Hallo %s,\n\njemand (hoffentlich Sie) hat das Zurücksetzen des Passworts für Ihr VESTRA-Konto angefordert.\n\nLegen Sie über den Button unten ein neues Passwort fest (Link 1 Stunde gültig):\n%s\n\nFalls Sie das nicht angefordert haben, ignorieren Sie diese E-Mail — Ihr Passwort bleibt unverändert.\n\n— VESTRA · vestrasales.com"],
+   'fr' => ["VESTRA — réinitialiser votre mot de passe",
+     "Bonjour %s,\n\nQuelqu'un (vous, espérons-le) a demandé la réinitialisation du mot de passe de votre compte VESTRA.\n\nDéfinissez un nouveau mot de passe via le bouton ci-dessous (lien valable 1 heure) :\n%s\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail — votre mot de passe reste inchangé.\n\n— VESTRA · vestrasales.com"],
+   'it' => ["VESTRA — reimposta la password",
+     "Ciao %s,\n\nqualcuno (speriamo tu) ha richiesto la reimpostazione della password del tuo account VESTRA.\n\nImposta una nuova password tramite il pulsante qui sotto (link valido 1 ora):\n%s\n\nSe non sei stato tu, ignora questa e-mail — la tua password resta invariata.\n\n— VESTRA · vestrasales.com"],
+   'es' => ["VESTRA — restablecer tu contraseña",
+     "Hola %s,\n\nalguien (esperamos que tú) ha solicitado restablecer la contraseña de tu cuenta VESTRA.\n\nEstablece una nueva contraseña con el botón de abajo (enlace válido 1 hora):\n%s\n\nSi no lo has solicitado, ignora este correo — tu contraseña no cambia.\n\n— VESTRA · vestrasales.com"],
+  ];
+  $t = $T[$lang] ?? $T['en'];
+  return [$t[0], sprintf($t[1], $name, $link), ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$link]]];
+}
