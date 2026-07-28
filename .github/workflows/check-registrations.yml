@@ -31,17 +31,8 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
           echo ""
-          echo "== (GECICI) vestrasales.com domain'i Brevo'ya ekleniyor =="
-          curl -sS -X POST "https://api.brevo.com/v3/senders/domains" \
-            -H "api-key: ${MAIL_API_KEY}" -H "Content-Type: application/json" -H "Accept: application/json" \
-            -d '{"name":"vestrasales.com"}' -w "\nHTTP_CODE:%{http_code}\n"
-          echo ""
-          echo "== (GECICI) domain detayi (DNS kayitlarini icerebilir) =="
+          echo "== vestrasales.com domain dogrulama durumu (DNS kayitlari eklendi mi?) =="
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
-            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
-          echo ""
-          echo "== (GECICI) authenticate endpoint'i -- DNS kayitlari burada da olabilir =="
-          curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com/authenticate" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
       - name: Sunucuda hesap durumunu oku
