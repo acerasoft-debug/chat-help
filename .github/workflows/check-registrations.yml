@@ -35,6 +35,37 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
+      - name: (GECICI) cron_countries.json override kontrolu + yeni rotasyonu dogrula
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            F="$HOME/public_html/data/cron_countries.json"
+            if [ -f "$F" ]; then
+              echo "cron_countries.json BULUNDU -- icerigi:"
+              cat "$F"
+              rm -f "$F"
+              echo ""
+              echo "-- silindi, artik kod icindeki varsayilan liste kullanilacak --"
+            else
+              echo "cron_countries.json yok -- zaten kod icindeki varsayilan liste kullaniliyor."
+            fi
+            echo ""
+            cat > /tmp/vestra_rotcheck.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/leads.php";
+            echo "guncel rotasyon: " . implode(', ', vestra_cron_countries()) . "\n";
+            echo "bugunku ulke: " . vestra_cron_today_country() . "\n";
+            PHPEOF
+            php /tmp/vestra_rotcheck.php
+            rm -f /tmp/vestra_rotcheck.php
+
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
