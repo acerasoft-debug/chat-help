@@ -35,6 +35,62 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
+      - name: (GECICI) Duzeltilmis kodla gercek kesif -- 3 sehir
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 8m
+          script: |
+            cat > /tmp/vestra_livediscover2.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/leads.php";
+
+            $targets = [
+              ['Germany','Berlin'],
+              ['France','Paris'],
+              ['Spain','Madrid'],
+            ];
+
+            $totalAdded = 0; $totalEmails = 0;
+            foreach ($targets as [$country, $city]) {
+              $t0 = microtime(true);
+              $rows = vestra_discover_osm($country, $city, 60);
+              $ok = vestra_osm_ok();
+              $dt = round(microtime(true) - $t0, 1);
+              echo "== {$country} / {$city} == osm_ok=" . ($ok?"true":"false") . " bulunan=" . count($rows) . " sure={$dt}s\n";
+              if (!$rows) continue;
+              [$added, $skipped] = vestra_leads_add($rows);
+              $addedCount = count($added);
+              echo "  eklenen={$addedCount} atlanan(zaten var)={$skipped}\n";
+              $totalAdded += $addedCount;
+              foreach ($added as $r) { echo "  - " . ($r['company'] ?? '?') . " | " . ($r['city'] ?? '?') . " | web:" . ($r['website'] ?? '-') . "\n"; }
+
+              $needEmail = array_values(array_filter($added, fn($r) => ($r['email'] ?? '') === '' && ($r['website'] ?? '') !== ''));
+              if ($needEmail) {
+                $leads = vestra_leads();
+                foreach ($needEmail as $nr) {
+                  foreach ($leads as &$l) {
+                    if (($l['id'] ?? '') !== ($nr['id'] ?? '')) continue;
+                    $found = vestra_find_email((string)($l['website'] ?? ''));
+                    if ($found !== '') { $l['email'] = $found; $totalEmails++; echo "    email bulundu: {$found}\n"; }
+                    break;
+                  }
+                  unset($l);
+                }
+                vestra_save_leads($leads);
+              }
+            }
+            echo "\n== TOPLAM: {$totalAdded} yeni lead eklendi, {$totalEmails} email bulundu ==\n";
+            PHPEOF
+            timeout 420 php /tmp/vestra_livediscover2.php || echo "(zaman asimi -- 420sn icinde tamamlanamadi)"
+            rm -f /tmp/vestra_livediscover2.php
+
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
