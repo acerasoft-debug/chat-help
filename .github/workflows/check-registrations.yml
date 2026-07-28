@@ -39,6 +39,9 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           script: |
+            echo "== cPanel crontab (musteri bulma gunluk isi kurulu mu?) =="
+            crontab -l 2>&1 || echo "(crontab bos ya da erisilemedi)"
+            echo ""
             cat > /tmp/vestra_regcheck.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
