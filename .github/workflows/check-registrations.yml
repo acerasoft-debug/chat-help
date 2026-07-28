@@ -1,0 +1,92 @@
+name: Kayıt durumunu kontrol et (salt okunur)
+
+# Elle tetiklenir. Sunucuda hiçbir şeyi DEĞİŞTİRMEZ -- sadece require_email_verify
+# ayarını ve data/accounts.json içindeki hesap sayılarını/durumlarını okur.
+# Gizlilik: başka müşterilerin e-posta/isim bilgileri bu (public repo'daki)
+# log'a asla yazılmaz -- sadece tarih/durum/tip gibi PII içermeyen alanlar,
+# ve ayrıca operatörün kendi (acerasoft@gmail.com) test hesabının detayı.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Brevo'da gerçek teslimat durumunu sorgula (GH runner'dan doğrudan, SSH gerekmez)
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          echo "== support@vestrasales.com icin son event'ler =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=20&email=support%40vestrasales.com" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          echo "== genel son event'ler (son 20, herhangi bir alici) =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=20" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+
+      - name: Sunucuda hesap durumunu oku
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: |
+            cat > /tmp/vestra_regcheck.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+
+            echo "== require_email_verify ayari ==\n";
+            $rv = vestra_cfg('require_email_verify', false);
+            echo $rv ? "true (kayit, email dogrulanana kadar bekletiliyor)\n" : "false / tanimsiz (varsayilan -- kayit ANINDA calisiyor, email dogrulama beklenmiyor)\n";
+
+            $f = $home."/public_html/data/accounts.json";
+            $accs = is_readable($f) ? (json_decode(file_get_contents($f), true) ?: []) : [];
+            if (!is_array($accs)) $accs = [];
+            echo "\n== toplam hesap sayisi: " . count($accs) . " ==\n";
+
+            $byStatus = [];
+            $now = time();
+            $recent2 = 0; $recent7 = 0;
+            foreach ($accs as $a) {
+              $st = $a['status'] ?? '(yok)';
+              $byStatus[$st] = ($byStatus[$st] ?? 0) + 1;
+              $created = strtotime($a['created'] ?? '');
+              if ($created && ($now - $created) <= 2*86400) $recent2++;
+              if ($created && ($now - $created) <= 7*86400) $recent7++;
+            }
+            echo "\nduruma gore dagilim:\n";
+            foreach ($byStatus as $st => $c) echo "  {$st}: {$c}\n";
+            echo "\nson 2 gunde olusturulan hesap: {$recent2}\n";
+            echo "son 7 gunde olusturulan hesap: {$recent7}\n";
+
+            $stuck = array_values(array_filter($accs, fn($a) => ($a['status'] ?? '') === 'pending_email'));
+            echo "\npending_email durumunda (dogrulama linki hic tiklanmamis): " . count($stuck) . "\n";
+            foreach ($stuck as $a) {
+              $sentOk = array_key_exists('verify_sent_ok', $a) ? ($a['verify_sent_ok'] ? 'evet' : 'HAYIR (gonderim basarisiz olmus)') : '(hic denenmemis)';
+              echo "  - olusturulma: " . ($a['created'] ?? '?') . " | tip: " . ($a['type'] ?? '?') . " | mail gonderildi mi: {$sentOk}\n";
+            }
+
+            $mine = null;
+            foreach ($accs as $a) { if (strtolower($a['email'] ?? '') === 'acerasoft@gmail.com') { $mine = $a; break; } }
+            echo "\n== acerasoft@gmail.com test hesabi ==\n";
+            if ($mine) {
+              echo "bulundu -- status: " . ($mine['status'] ?? '?') . " | tip: " . ($mine['type'] ?? '?') .
+                   " | olusturulma: " . ($mine['created'] ?? '?') . " | email_verified: " . (!empty($mine['email_verified']) ? 'evet' : 'hayir') .
+                   " | kyb_status: " . ($mine['kyb_status'] ?? '?') . "\n";
+            } else {
+              echo "boyle bir hesap yok.\n";
+            }
+
+            usort($accs, fn($x, $y) => strtotime($y['created'] ?? '') <=> strtotime($x['created'] ?? ''));
+            echo "\n== son 10 hesap (sadece tarih/tip/durum -- isim/email yok) ==\n";
+            foreach (array_slice($accs, 0, 10) as $a) {
+              echo "  " . ($a['created'] ?? '?') . " | " . ($a['type'] ?? '?') . " | " . ($a['status'] ?? '?') . "\n";
+            }
+            PHPEOF
+            php /tmp/vestra_regcheck.php
+            rm -f /tmp/vestra_regcheck.php
