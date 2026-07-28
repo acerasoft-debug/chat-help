@@ -31,6 +31,10 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
           echo ""
+          echo "== (GECICI) vestrasales.com dogrulamasini simdi tetikle (PUT authenticate) =="
+          curl -sS -X PUT "https://api.brevo.com/v3/senders/domains/vestrasales.com/authenticate" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
           echo "== vestrasales.com domain dogrulama durumu (DNS kayitlari eklendi mi?) =="
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
