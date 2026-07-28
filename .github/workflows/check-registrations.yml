@@ -45,22 +45,13 @@ jobs:
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
 
-            echo "---- sehir-bazli (Berlin), uretim fonksiyonu ----\n";
+            echo "---- sehir-bazli (Berlin), uretim fonksiyonu (mirror-uzlasma duzeltmesiyle) ----\n";
             $t0 = microtime(true);
             $r = vestra_discover_osm('Germany', 'Berlin', 10);
             $dt = round(microtime(true) - $t0, 1);
             echo "vestra_osm_ok(): " . (vestra_osm_ok() ? "true" : "false") . "\n";
             echo "bulunan magaza sayisi: " . count($r) . " (sure: {$dt}s)\n";
-            if ($r) { echo "ornek: " . ($r[0]['name'] ?? '?') . " / " . ($r[0]['city'] ?? '?') . "\n"; }
-
-            echo "\n---- ham Overpass govdesi -- ne donuyor gercekten? ----\n";
-            $ql = '[out:json][timeout:35];(area["name"~"^Berlin$",i]["boundary"="administrative"];area["name:en"~"^Berlin$",i]["boundary"="administrative"];)->.a;(node["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a);way["shop"~"^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$"](area.a););out tags center 40;';
-            $t1 = microtime(true);
-            $raw = vestra_overpass($ql);
-            $dt2 = round(microtime(true) - $t1, 1);
-            echo "osm_ok: " . (vestra_osm_ok() ? "true" : "false") . " | uzunluk: " . strlen($raw) . " | sure: {$dt2}s\n";
-            echo "'remark' iceriyor mu: " . (stripos($raw,'remark')!==false ? "EVET" : "hayir") . "\n";
-            echo "ilk 500 karakter: " . substr($raw, 0, 500) . "\n";
+            if ($r) { foreach (array_slice($r,0,5) as $s) echo "  - " . ($s['name'] ?? '?') . " / " . ($s['city'] ?? '?') . "\n"; }
             PHPEOF
             timeout 460 php /tmp/vestra_osmtest.php || echo "(zaman asimi -- 460sn icinde tum mirror denemeleri tamamlanamadi, genel Overpass yavasligi/erisim sorunu olabilir, sorgu mantigiyla ilgisiz)"
             rm -f /tmp/vestra_osmtest.php
