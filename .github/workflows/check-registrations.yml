@@ -31,6 +31,15 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
+      - name: (GECICI) Overpass alan-adi testi -- name= vs name:en=
+        run: |
+          echo "== name~^Germany\$ (mevcut kod bunu kullaniyor) =="
+          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];area["name"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];out tags;' | head -c 600
+          echo ""
+          echo ""
+          echo "== name:en~^Germany\$ =="
+          curl -sS "https://overpass-api.de/api/interpreter" --data-urlencode 'data=[out:json][timeout:25];area["name:en"~"^Germany$",i]["boundary"="administrative"]["admin_level"="2"];out tags;' | head -c 600
+
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
