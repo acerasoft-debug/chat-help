@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
-          command_timeout: 4m
+          command_timeout: 8m
           script: |
             cat > /tmp/vestra_osmtest.php <<'PHPEOF'
             <?php
@@ -51,7 +51,7 @@ jobs:
             echo "bulunan magaza sayisi: " . count($r) . " (sure: {$dt}s)\n";
             if ($r) { echo "ornek: " . ($r[0]['name'] ?? '?') . " / " . ($r[0]['city'] ?? '?') . "\n"; }
             PHPEOF
-            timeout 220 php /tmp/vestra_osmtest.php || echo "(zaman asimi -- 220sn icinde tum mirror denemeleri tamamlanamadi, genel Overpass yavasligi/erisim sorunu olabilir, sorgu mantigiyla ilgisiz)"
+            timeout 460 php /tmp/vestra_osmtest.php || echo "(zaman asimi -- 460sn icinde tum mirror denemeleri tamamlanamadi, genel Overpass yavasligi/erisim sorunu olabilir, sorgu mantigiyla ilgisiz)"
             rm -f /tmp/vestra_osmtest.php
 
       - name: Sunucuda hesap durumunu oku
