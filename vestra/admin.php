@@ -48,6 +48,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
       vestra_push_send($sellerUid,'VESTRA — listing approved 🎉', ($pname?:'Your listing').' is now live in the catalog.','/seller?tab=listings');
+      foreach(auth_accounts() as $sa){
+        if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
+        [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_approved(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing');
+        vestra_send_mail($sa['email'],$lSubj,$lBody,'','',null,'',$lOpts);
+        break;
+      }
     }
     header('Location: /admin?tab=approvals&msg=approved'); exit;
   }
@@ -59,6 +65,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($sellerUid){
       require_once __DIR__.'/inc/push.php';
       vestra_push_send($sellerUid,'VESTRA — listing needs changes', ($pname?:'Your listing').($note?' — '.mb_substr($note,0,80):' was not approved. See your dashboard for details.'),'/seller?tab=listings');
+      foreach(auth_accounts() as $sa){
+        if(($sa['id']??'')!==$sellerUid || empty($sa['email'])) continue;
+        [$lSubj,$lBody,$lOpts]=vestra_tpl_listing_rejected(vestra_user_lang($sa),$sa['name']?:($sa['company']?:'there'),$pname?:'Your listing',$note);
+        vestra_send_mail($sa['email'],$lSubj,$lBody,'','',null,'',$lOpts);
+        break;
+      }
     }
     header('Location: /admin?tab=approvals&msg=rejected'); exit;
   }
@@ -458,7 +470,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_requested'); exit;
   }
   if($act==='review_doc'){
-    auth_review_doc($_POST['uid']??'', $_POST['req_id']??'', $_POST['status']??'', trim($_POST['admin_note']??''));
+    $duid=$_POST['uid']??''; $dreq=$_POST['req_id']??''; $dstatus=$_POST['status']??''; $dnote=trim($_POST['admin_note']??'');
+    $dacc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$duid){ $dacc=$a; break; } }
+    $dtype=''; if($dacc) foreach(($dacc['doc_requests']??[]) as $r){ if(($r['id']??'')===$dreq){ $dtype=$r['type']??''; break; } }
+    auth_review_doc($duid, $dreq, $dstatus, $dnote);
+    if($dacc && !empty($dacc['email']) && in_array($dstatus,['approved','rejected'],true)){
+      $dlang=vestra_user_lang($dacc);
+      [$dSubj,$dBody,$dOpts]=vestra_tpl_doc_reviewed($dlang,$dacc['name']?:($dacc['company']?:'there'),$dstatus,vestra_doc_type_label($dlang,$dtype),$dnote);
+      vestra_send_mail($dacc['email'],$dSubj,$dBody,'','',null,'',$dOpts);
+    }
     header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_reviewed'); exit;
   }
   if($act==='delete_listing'){

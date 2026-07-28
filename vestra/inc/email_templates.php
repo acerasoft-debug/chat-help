@@ -16,6 +16,21 @@
  * deal, or an admin action), so there is no live language cookie to read.
  */
 
+/* Short, localized name for a doc_requests 'type' — the stored 'note' field is a full
+ * "please upload..." instruction, not a noun phrase that reads naturally inside a
+ * sentence like "your ___ was approved", so this is a separate small vocabulary. Falls
+ * back to the raw type string for any custom/unknown type an admin might request. */
+function vestra_doc_type_label(string $lang, string $type): string {
+  $L = [
+    'en'=>['company_reg'=>'company registration certificate','vat_cert'=>'VAT/tax registration certificate','id_document'=>'government-issued ID','auth_letter'=>'authorization letter'],
+    'de'=>['company_reg'=>'Handelsregisterauszug','vat_cert'=>'Umsatzsteuer-/Steuerregistrierungsnachweis','id_document'=>'amtlichen Ausweis','auth_letter'=>'Vollmachtsschreiben'],
+    'fr'=>['company_reg'=>'extrait Kbis / immatriculation','vat_cert'=>'justificatif de TVA','id_document'=>'pièce d\'identité officielle','auth_letter'=>'lettre d\'autorisation'],
+    'it'=>['company_reg'=>'visura camerale','vat_cert'=>'certificato di partita IVA','id_document'=>'documento d\'identità','auth_letter'=>'lettera di autorizzazione'],
+    'es'=>['company_reg'=>'certificado de registro mercantil','vat_cert'=>'certificado de IVA','id_document'=>'documento de identidad oficial','auth_letter'=>'carta de autorización'],
+  ];
+  return ($L[$lang] ?? $L['en'])[$type] ?? $type;
+}
+
 /* Shared vocabulary reused across templates (row labels, button labels, status
  * badges) so every template speaks the same terms instead of drifting. */
 function vestra_email_labels(string $lang): array {
@@ -31,6 +46,7 @@ function vestra_email_labels(string $lang): array {
       'badge_accepted'=>'✓ Offer accepted','badge_declined'=>'✗ Offer declined','badge_countered'=>'↩ Counter offer',
       'badge_message'=>'💬 New message','badge_verified'=>'✅ Account verified','badge_plan'=>'⭐ Plan updated',
       'badge_released'=>'✓ Funds released','badge_refunded'=>'↩ Refunded',
+      'btn_listings'=>'View my listings','badge_listing_live'=>'🎉 Listing live','badge_listing_changes'=>'✎ Changes requested',
     ],
     'de' => [
       'product'=>'Produkt','qty'=>'Menge','unit_price'=>'Stückpreis','total'=>'Gesamt',
@@ -43,6 +59,7 @@ function vestra_email_labels(string $lang): array {
       'badge_accepted'=>'✓ Angebot angenommen','badge_declined'=>'✗ Angebot abgelehnt','badge_countered'=>'↩ Gegenangebot',
       'badge_message'=>'💬 Neue Nachricht','badge_verified'=>'✅ Konto verifiziert','badge_plan'=>'⭐ Tarif aktualisiert',
       'badge_released'=>'✓ Guthaben freigegeben','badge_refunded'=>'↩ Rückerstattet',
+      'btn_listings'=>'Meine Angebote ansehen','badge_listing_live'=>'🎉 Angebot live','badge_listing_changes'=>'✎ Änderungen erforderlich',
     ],
     'fr' => [
       'product'=>'Produit','qty'=>'Quantité','unit_price'=>'Prix unitaire','total'=>'Total',
@@ -55,6 +72,7 @@ function vestra_email_labels(string $lang): array {
       'badge_accepted'=>'✓ Offre acceptée','badge_declined'=>'✗ Offre refusée','badge_countered'=>'↩ Contre-offre',
       'badge_message'=>'💬 Nouveau message','badge_verified'=>'✅ Compte vérifié','badge_plan'=>'⭐ Formule mise à jour',
       'badge_released'=>'✓ Fonds libérés','badge_refunded'=>'↩ Remboursé',
+      'btn_listings'=>'Voir mes annonces','badge_listing_live'=>'🎉 Annonce en ligne','badge_listing_changes'=>'✎ Modifications requises',
     ],
     'it' => [
       'product'=>'Prodotto','qty'=>'Quantità','unit_price'=>'Prezzo unitario','total'=>'Totale',
@@ -67,6 +85,7 @@ function vestra_email_labels(string $lang): array {
       'badge_accepted'=>'✓ Offerta accettata','badge_declined'=>'✗ Offerta rifiutata','badge_countered'=>'↩ Controfferta',
       'badge_message'=>'💬 Nuovo messaggio','badge_verified'=>'✅ Account verificato','badge_plan'=>'⭐ Piano aggiornato',
       'badge_released'=>'✓ Fondi rilasciati','badge_refunded'=>'↩ Rimborsato',
+      'btn_listings'=>'Vedi i miei annunci','badge_listing_live'=>'🎉 Annuncio online','badge_listing_changes'=>'✎ Modifiche richieste',
     ],
     'es' => [
       'product'=>'Producto','qty'=>'Cantidad','unit_price'=>'Precio unitario','total'=>'Total',
@@ -79,6 +98,7 @@ function vestra_email_labels(string $lang): array {
       'badge_accepted'=>'✓ Oferta aceptada','badge_declined'=>'✗ Oferta rechazada','badge_countered'=>'↩ Contraoferta',
       'badge_message'=>'💬 Nuevo mensaje','badge_verified'=>'✅ Cuenta verificada','badge_plan'=>'⭐ Plan actualizado',
       'badge_released'=>'✓ Fondos liberados','badge_refunded'=>'↩ Reembolsado',
+      'btn_listings'=>'Ver mis anuncios','badge_listing_live'=>'🎉 Anuncio publicado','badge_listing_changes'=>'✎ Cambios necesarios',
     ],
   ];
   return $L[$lang] ?? $L['en'];
@@ -282,5 +302,89 @@ function vestra_tpl_escrow_refund(string $lang, string $name, string $role, stri
   [$subjT,$bodyT] = $set[$role] ?? $set['buyer'];
   $subject = sprintf($subjT, $name, $ref);
   $body = sprintf($bodyT, $name, $ref) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* A seller's pending listing goes live. */
+function vestra_tpl_listing_approved(string $lang, string $name, string $product): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_listing_live'],'rows'=>[['label'=>$Lb['product'],'value'=>$product]],
+    'button'=>['label'=>$Lb['btn_listings'],'url'=>'https://vestrasales.com/seller?tab=listings']];
+  $T = [
+    'en'=>["VESTRA — %2\$s is now live 🎉", "Hello %1\$s,\n\nGood news — your listing has been approved and is now live in the VESTRA catalog."],
+    'de'=>["VESTRA — %2\$s ist jetzt live 🎉", "Hallo %1\$s,\n\ngute Nachricht — Ihr Angebot wurde genehmigt und ist jetzt im VESTRA-Katalog live."],
+    'fr'=>["VESTRA — %2\$s est maintenant en ligne 🎉", "Bonjour %1\$s,\n\nbonne nouvelle — votre annonce a été approuvée et est désormais en ligne dans le catalogue VESTRA."],
+    'it'=>["VESTRA — %2\$s è ora online 🎉", "Ciao %1\$s,\n\nottima notizia — il tuo annuncio è stato approvato ed è ora online nel catalogo VESTRA."],
+    'es'=>["VESTRA — %2\$s ya está en línea 🎉", "Hola %1\$s,\n\nbuenas noticias — tu anuncio ha sido aprobado y ya está en línea en el catálogo de VESTRA."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $name, $product);
+  $body = sprintf($bodyT, $name) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* A seller's pending listing was rejected / needs changes. $note is the admin's own text
+ * (already in whatever language they wrote it — inserted as-is, not translated). */
+function vestra_tpl_listing_rejected(string $lang, string $name, string $product, string $note): array {
+  $Lb = vestra_email_labels($lang);
+  $rows = [['label'=>$Lb['product'],'value'=>$product]];
+  $opts = ['badge'=>$Lb['badge_listing_changes'],'rows'=>$rows,
+    'button'=>['label'=>$Lb['btn_listings'],'url'=>'https://vestrasales.com/seller?tab=listings']];
+  $noteLine = $note !== '' ? "\n\n".$note : '';
+  $T = [
+    'en'=>["VESTRA — %2\$s needs changes", "Hello %1\$s,\n\nYour listing wasn't approved as submitted and needs a few changes before it can go live.%3\$s"],
+    'de'=>["VESTRA — %2\$s benötigt Änderungen", "Hallo %1\$s,\n\nIhr Angebot wurde in der eingereichten Form nicht genehmigt und benötigt einige Änderungen, bevor es live gehen kann.%3\$s"],
+    'fr'=>["VESTRA — %2\$s nécessite des modifications", "Bonjour %1\$s,\n\nvotre annonce n'a pas été approuvée telle quelle et nécessite quelques modifications avant de pouvoir être publiée.%3\$s"],
+    'it'=>["VESTRA — %2\$s richiede modifiche", "Ciao %1\$s,\n\nil tuo annuncio non è stato approvato così come inviato e richiede alcune modifiche prima di poter andare online.%3\$s"],
+    'es'=>["VESTRA — %2\$s necesita cambios", "Hola %1\$s,\n\ntu anuncio no fue aprobado tal como se envió y necesita algunos cambios antes de poder publicarse.%3\$s"],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $name, $product);
+  $body = sprintf($bodyT, $name, $product, $noteLine) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* One uploaded verification document reviewed (approved or rejected) — distinct from
+ * vestra_tpl_kyb_approved(), which is the OVERALL account-verified moment once every
+ * required document has been approved. $docLabel is the doc's own request note/type
+ * (already human-readable, e.g. "company registration certificate"). */
+function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, string $docLabel, string $adminNote): array {
+  $Lb = vestra_email_labels($lang);
+  $approved = $status === 'approved';
+  $badge = ['en'=>$approved?'✓ Document approved':'✎ Document needs changes',
+    'de'=>$approved?'✓ Dokument genehmigt':'✎ Dokument benötigt Änderungen',
+    'fr'=>$approved?'✓ Document approuvé':'✎ Document à corriger',
+    'it'=>$approved?'✓ Documento approvato':'✎ Documento da correggere',
+    'es'=>$approved?'✓ Documento aprobado':'✎ Documento requiere cambios'][$lang] ?? ($approved?'✓ Document approved':'✎ Document needs changes');
+  $btnLabel = ['en'=>'Go to my documents','de'=>'Zu meinen Dokumenten','fr'=>'Voir mes documents',
+    'it'=>'Vai ai miei documenti','es'=>'Ir a mis documentos'][$lang] ?? 'Go to my documents';
+  $opts = ['badge'=>$badge,'button'=>['label'=>$btnLabel,'url'=>'https://vestrasales.com/seller?tab=kyc']];
+  $noteLine = $adminNote !== '' ? "\n\n".$adminNote : '';
+  $T = [
+    'en'=>[
+      true  => ["VESTRA — your %2\$s was approved ✓", "Hello %1\$s,\n\nYour uploaded %2\$s has been reviewed and approved."],
+      false => ["VESTRA — your %2\$s needs changes", "Hello %1\$s,\n\nYour uploaded %2\$s couldn't be approved as submitted and needs a re-upload.%3\$s"],
+    ],
+    'de'=>[
+      true  => ["VESTRA — Ihr %2\$s wurde genehmigt ✓", "Hallo %1\$s,\n\nIhr hochgeladenes Dokument (%2\$s) wurde geprüft und genehmigt."],
+      false => ["VESTRA — %2\$s benötigt Änderungen", "Hallo %1\$s,\n\nIhr hochgeladenes Dokument (%2\$s) konnte in der eingereichten Form nicht genehmigt werden und muss erneut hochgeladen werden.%3\$s"],
+    ],
+    'fr'=>[
+      true  => ["VESTRA — votre document (%2\$s) a été approuvé ✓", "Bonjour %1\$s,\n\nvotre document envoyé (%2\$s) a été examiné et approuvé."],
+      false => ["VESTRA — votre document (%2\$s) nécessite des modifications", "Bonjour %1\$s,\n\nvotre document envoyé (%2\$s) n'a pas pu être approuvé tel quel et doit être renvoyé.%3\$s"],
+    ],
+    'it'=>[
+      true  => ["VESTRA — il tuo documento (%2\$s) è stato approvato ✓", "Ciao %1\$s,\n\nil documento caricato (%2\$s) è stato esaminato e approvato."],
+      false => ["VESTRA — il tuo documento (%2\$s) richiede modifiche", "Ciao %1\$s,\n\nil documento caricato (%2\$s) non è stato approvato così come inviato e deve essere ricaricato.%3\$s"],
+    ],
+    'es'=>[
+      true  => ["VESTRA — tu documento (%2\$s) fue aprobado ✓", "Hola %1\$s,\n\ntu documento subido (%2\$s) ha sido revisado y aprobado."],
+      false => ["VESTRA — tu documento (%2\$s) necesita cambios", "Hola %1\$s,\n\ntu documento subido (%2\$s) no pudo aprobarse tal como se envió y debe volver a subirse.%3\$s"],
+    ],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  [$subjT,$bodyT] = $set[$approved];
+  $subject = sprintf($subjT, $name, $docLabel);
+  $body = sprintf($bodyT, $name, $docLabel, $noteLine) . "\n\n—\nVESTRA · vestrasales.com";
   return [$subject, $body, $opts];
 }
