@@ -128,6 +128,11 @@
   .pill{display:inline-flex;align-items:center;gap:14px;padding:20px 34px;border-radius:999px;
     background:linear-gradient(180deg,var(--gold1),var(--gold2));color:#241a06;font:800 40px/1 var(--sans);
     box-shadow:0 20px 60px rgba(212,168,74,.45)}
+  .gpbadge{display:inline-flex;align-items:center;gap:18px;padding:22px 40px;border-radius:20px;
+    background:linear-gradient(180deg,#14141c,#0a0a10);border:1.6px solid rgba(212,168,74,.6)}
+  .gpbadge .gptxt{display:flex;flex-direction:column;gap:6px;text-align:left}
+  .gpbadge .gptxt small{font:600 25px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:#c2c2d6}
+  .gpbadge .gptxt b{font:700 48px/1 var(--sans);color:#F4F4F8}
   .url{font:700 44px/1 var(--sans);letter-spacing:.02em}
   .tag{font:600 28px/1 var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
   .progressbar{position:absolute;left:60px;right:60px;bottom:54px;height:8px;border-radius:6px;background:rgba(255,255,255,.08);z-index:20}
@@ -342,9 +347,12 @@
       <div style="font:700 118px/1 var(--serif)">Chat<span class="goldgrad">Help</span></div>
       <div class="tag" style="margin-top:24px">Recht · Einfach · Digital</div>
     </div>
-    <div class="center" id="s5cta" style="top:1180px">
-      <div class="pill">Jetzt starten</div>
-      <div class="url goldgrad" style="margin-top:40px">chat-help.com</div>
+    <div class="center" id="s5cta" style="top:1150px">
+      <div class="gpbadge">
+        <svg width="48" height="54" viewBox="0 0 24 24"><defs><linearGradient id="gpc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00D3FF"/><stop offset=".38" stop-color="#00E0A0"/><stop offset=".7" stop-color="#FFD400"/><stop offset="1" stop-color="#FF3B3B"/></linearGradient></defs><path d="M3.5 2.2 L3.5 21.8 L20.2 12 Z" fill="url(#gpc)"/></svg>
+        <span class="gptxt"><small>Jetzt bei</small><b>Google Play</b></span>
+      </div>
+      <div class="url goldgrad" style="margin-top:44px">chat-help.com</div>
     </div>
     <div class="center" id="s5plans" style="top:1500px;font:600 30px/1.6 var(--sans);color:var(--mute)">
       Basic · Pro · Elite &nbsp;—&nbsp; monatliche Fälle inklusive
@@ -606,8 +614,8 @@ function renderFrame(t){
    set(S('s5wm'),seg(t,41100,42100),lerp(26,0,eo(seg(t,41100,42100))),1);
    set(S('s5cta'),seg(t,41700,42600),lerp(22,0,eo(seg(t,41700,42600))),1);
    set(S('s5plans'),seg(t,42300,43200),lerp(18,0,eo(seg(t,42300,43200))),1);
-   const pill=S('s5cta').querySelector('.pill');
-   if(pill){const pl=0.5+0.5*Math.sin(t*0.006);pill.style.boxShadow=`0 20px ${(50+18*pl)}px rgba(212,168,74,${0.35+0.2*pl})`;}
+   const gp=S('s5cta').querySelector('.gpbadge');
+   if(gp){const pl=0.5+0.5*Math.sin(t*0.006);gp.style.boxShadow=`0 16px ${(44+18*pl)}px rgba(212,168,74,${0.24+0.18*pl})`;}
   }
 }
 window.renderFrame=renderFrame;
