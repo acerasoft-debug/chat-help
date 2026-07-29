@@ -698,6 +698,43 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
     return [$subject,$body,$opts];
   }
 
+  if($lang==='fr'){
+    $subject="Les Garage de Paris × VESTRA — la sélection authentique de mode de créateurs en gros";
+    $body=implode("\n",[
+      $company!=='' ? "Bonjour — un message pour {$company}." : "Bonjour,",
+      "",
+      "Une brève présentation de Les Garage de Paris, via VESTRA — la marketplace B2B vérifiée KYC pour la mode de créateurs authentique en gros.",
+      "",
+      "Nous approvisionnons des boutiques multimarques premium avec les maisons que leurs clients demandent par leur nom — 100% authentique, authenticité vérifiée à la livraison, avec des conditions de facturation claires.",
+      "",
+      "La sélection actuelle est ci-dessous sous forme de line-sheets Excel prêts à l'emploi. Les prix de gros sont réservés aux partenaires vérifiés — inscrivez-vous une fois (c'est gratuit) et chaque prix se débloque instantanément.",
+      "",
+      "Indiquez-moi votre mix de marques et je préparerai une sélection pour votre boutique.",
+      "",
+      "Cordialement,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (exploité par acerasoft LLC). Message commercial unique — votre boutique a été identifiée comme partenaire commercial premium potentiel.",
+      "Se désinscrire immédiatement : https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Mode de créateurs authentique en gros','title'=>'Les maisons que vos clients demandent — à des conditions de gros.'],
+      'brands'=>$brands,
+      'brands_title'=>'Maisons en vedette',
+      'brands_hint'=>'Touchez une maison pour ouvrir son line-sheet',
+      'badge'=>'Vérifié KYC · authenticité contrôlée · protégé par séquestre',
+      'downloads'=>['title'=>'Line-sheets — télécharger (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Authenticité','value'=>'Vérifiée à la livraison'],
+        ['label'=>'Paiement','value'=>'Facture protégée par séquestre'],
+        ['label'=>'Minimums','value'=>'Bas — adaptés aux capsules','strong'=>true],
+      ],
+      'button'=>['label'=>"S'inscrire pour les prix de gros",'url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
   if($lang==='it'){
     $subject="Les Garage de Paris × VESTRA — la selezione autentica di moda di lusso all'ingrosso";
     $body=implode("\n",[

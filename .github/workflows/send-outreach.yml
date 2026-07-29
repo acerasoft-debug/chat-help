@@ -2,8 +2,8 @@ name: (Lead) Kampanya e-postası gönder (gerçek — Les Garage de Paris)
 
 # Elle tetiklenir. Listedeki UYGUN prospect'lere premium logo-duvarlı kampanyayı
 # gönderir (builder: inc/notify.php · vestra_campaign_preview). Dil MÜŞTERİNİN
-# ÜLKESİNE göre otomatik seçilir (Hollanda→nl, İtalya→it, Portekiz→pt, Çekya→cs,
-# Polonya→pl, İspanya→es, Yunanistan→el), listede olmayan her ülke → İngilizce (en).
+# ÜLKESİNE göre otomatik seçilir (Hollanda→nl, Fransa→fr, İtalya→it, Portekiz→pt,
+# Çekya→cs, Polonya→pl, İspanya→es, Yunanistan→el), listede olmayan her ülke → İngilizce (en).
 #
 # Uygunluk kuralları (hepsi sağlanmalı):
 #   • geçerli e-posta var
@@ -83,6 +83,7 @@ jobs:
             // Country -> campaign language. Falls back to English for anything not listed.
             $LANG_MAP = [
               'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'france'=>'fr',
               'italy'=>'it','italia'=>'it',
               'portugal'=>'pt',
               'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
@@ -90,7 +91,7 @@ jobs:
               'spain'=>'es','españa'=>'es','espana'=>'es',
               'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
             ];
-            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
+            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
