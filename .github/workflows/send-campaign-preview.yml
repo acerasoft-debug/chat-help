@@ -1,0 +1,49 @@
+name: Örnek kampanya önizleme gönder (test)
+
+# Elle tetiklenir. Sunucudaki vestra_campaign_preview() builder'ını kullanarak
+# premium kampanya e-postasını TEK bir alıcıya (varsayılan: operatörün kendi test
+# kutusu acerasoft@gmail.com) gönderir. Gönderen görünen adı "Les Garage de Paris",
+# gerçek gönderen adresi doğrulanmış support@vestrasales.com kalır.
+# Kampanya içeriği/estetiği inc/notify.php içindeki builder'da yaşar; burada değişmez.
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        description: "Alıcı e-posta (boş bırakılırsa acerasoft@gmail.com)"
+        required: false
+        default: "acerasoft@gmail.com"
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kampanya önizlemesini gönder
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          CAMP_TO: ${{ github.event.inputs.to }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 4m
+          envs: CAMP_TO
+          script: |
+            TO="$CAMP_TO"
+            case "$TO" in *@*) ;; *) TO="acerasoft@gmail.com" ;; esac
+            cat > /tmp/vestra_camp_preview.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            $to = $argv[1] ?? 'acerasoft@gmail.com';
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { echo "GECERSIZ ALICI\n"; exit(1); }
+            list($subject, $body, $opts) = vestra_campaign_preview();
+            $ok = vestra_send_mail($to, $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
+            echo $ok ? "GONDERILDI -> {$to}\n" : "HATA: gonderim basarisiz\n";
+            PHPEOF
+            php /tmp/vestra_camp_preview.php "$TO"
+            rm -f /tmp/vestra_camp_preview.php
