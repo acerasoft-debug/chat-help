@@ -4,7 +4,7 @@
  *  view / join / message-the-seller actions. */
 require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/auth.php';
-$PAGE=t('Group buys'); $NAV='groups'; require __DIR__.'/inc/head.php';
+$PAGE=t('Group buys'); $NAV='groups'; $META='VESTRA group buys — pool wholesale orders with other verified boutiques to reach minimum quantities and unlock better trade pricing on authentic branded fashion.'; require __DIR__.'/inc/head.php';
 $pools=vestra_group_pools();
 
 /* Hub stats across all pools. */

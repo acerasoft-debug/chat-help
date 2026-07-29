@@ -9,15 +9,31 @@ $PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Prod
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
 $META = sprintf('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.',
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
-$JSONLD = [[
+$_purl = 'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? '');
+$_pimgs = [];
+foreach ((!empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[])) as $im) {
+  if ($im === '') continue;
+  $_pimgs[] = (strncmp($im,'http',4)===0) ? $im : 'https://vestrasales.com'.$im;
+}
+if ($_pimgs) $OG_IMAGE = $_pimgs[0];   // product photo as the social/preview image (not the generic logo)
+$_prod = [
   '@context'=>'https://schema.org', '@type'=>'Product',
   'name'=>$PAGE,
   'brand'=>['@type'=>'Brand','name'=>$p['brand'] ?? 'VESTRA'],
   'category'=>$_pcat,
   'sku'=>$p['sku'] ?? ($p['id'] ?? ''),
   'description'=>$META,
-  'url'=>'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? ''),
-]];
+  'url'=>$_purl,
+];
+if ($_pimgs) $_prod['image'] = $_pimgs;
+$JSONLD = [
+  $_prod,
+  ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[
+    ['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>'https://vestrasales.com/'],
+    ['@type'=>'ListItem','position'=>2,'name'=>'Catalog','item'=>'https://vestrasales.com/shop'],
+    ['@type'=>'ListItem','position'=>3,'name'=>$PAGE,'item'=>$_purl],
+  ]],
+];
 $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);

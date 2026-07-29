@@ -7,7 +7,7 @@
  */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/auth.php';
-$PAGE=t('Sourcing requests'); $NAV='requests'; require __DIR__.'/inc/head.php';
+$PAGE=t('Sourcing requests'); $NAV='requests'; $META='VESTRA sourcing requests — post what your boutique needs and let KYC-verified wholesale suppliers quote. Authentic branded fashion, invoice-based B2B ordering across Europe.'; require __DIR__.'/inc/head.php';
 $posted=isset($_GET['posted']);
 
 /* Real buyer requests (no demo seeds — the board only shows genuine Anzeigen). */

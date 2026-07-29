@@ -4,6 +4,15 @@ $cats = vestra_faq();
 $cat  = $_GET['cat'] ?? 'about';
 if(!isset($cats[$cat])) $cat = array_key_first($cats);
 $PAGE = t('Frequently Asked Questions'); $NAV='faq';
+$META = 'VESTRA FAQ — how B2B wholesale works on a KYC-verified marketplace: seller verification, invoice-based ordering, minimum orders, authenticity guarantees, shipping and returns for boutiques and multi-brand retailers.';
+// FAQPage rich-result schema, built from the live Q&A so Google can show an FAQ snippet.
+$_faqQ = [];
+foreach ($cats as $c) foreach (($c['items'] ?? []) as $it) {
+  $q = trim((string)($it['q'] ?? '')); $a = trim(strip_tags((string)($it['a'] ?? '')));
+  if ($q === '' || $a === '') continue;
+  $_faqQ[] = ['@type'=>'Question','name'=>$q,'acceptedAnswer'=>['@type'=>'Answer','text'=>$a]];
+}
+if ($_faqQ) $JSONLD = [['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>$_faqQ]];
 require __DIR__.'/inc/head.php';
 ?>
 <div class="wrap">

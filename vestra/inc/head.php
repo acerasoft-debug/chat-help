@@ -35,7 +35,7 @@ $_seoBase  = $_seoPath . (($qs = http_build_query($_seoQ)) !== '' ? '?'.$qs : ''
 $_seoSep   = ($qs !== '' ? '&' : '?');
 $_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
 $CANONICAL = $_seoHref(vlang());
-$OG_IMAGE  = $SEO_HOST.'/inc/og-image.png';
+$OG_IMAGE  = $OG_IMAGE ?? $SEO_HOST.'/inc/og-image.png';   // pages may set a specific image (e.g. product photo)
 $OG_LOCALE = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][vlang()] ?? 'en_US';
 $NOINDEX   = $NOINDEX ?? false;
 ?>
