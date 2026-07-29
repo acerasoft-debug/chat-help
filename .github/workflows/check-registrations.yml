@@ -35,6 +35,52 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
+      - name: (GECICI) Mevcut leadleri premium marka satiyor mu diye tara
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 20m
+          script: |
+            cat > /tmp/vestra_premscan.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/leads.php";
+
+            $leads = vestra_leads();
+            // Websitesi olan ve henuz taranmamis leadler; email'i olanlar (kampanya icin en
+            // degerliler) one alinir ki zaman asimi olsa bile onlar mutlaka taranmis olsun.
+            $idx = [];
+            foreach ($leads as $i => $l) {
+              if (($l['website'] ?? '') === '') continue;
+              if (array_key_exists('premium', $l)) continue;
+              $idx[] = $i;
+            }
+            usort($idx, function($a,$b) use ($leads){
+              $ea = ($leads[$a]['email'] ?? '') !== '' ? 0 : 1;
+              $eb = ($leads[$b]['email'] ?? '') !== '' ? 0 : 1;
+              return $ea - $eb;
+            });
+            echo "taranacak lead: " . count($idx) . "\n";
+
+            $prem = 0; $done = 0;
+            foreach ($idx as $i) {
+              $pb = vestra_premium_brands((string)($leads[$i]['website'] ?? ''));
+              $leads[$i]['premium'] = !empty($pb);
+              $leads[$i]['premium_brands'] = $pb;
+              $done++;
+              if (!empty($pb)) { $prem++; echo "  * " . ($leads[$i]['company'] ?? '?') . " -> " . implode(', ', $pb) . "\n"; }
+              vestra_save_leads($leads); // her adimda kaydet (zaman asiminda ilerleme kaybolmasin)
+            }
+            echo "\n== TOPLAM: {$done} lead tarandi, {$prem} premium marka satan bulundu ==\n";
+            PHPEOF
+            timeout 1120 php /tmp/vestra_premscan.php || echo "(zaman asimi -- 1120sn icinde tamamlanamadi, taranmislar kaydedildi)"
+            rm -f /tmp/vestra_premscan.php
+
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
