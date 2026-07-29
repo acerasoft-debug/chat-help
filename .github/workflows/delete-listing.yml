@@ -1,0 +1,65 @@
+name: (Tek seferlik) Listeden urun sil + Polos dogrula (yedekli)
+on:
+  workflow_dispatch:
+    inputs:
+      delete_id:
+        description: "Silinecek canli listing id"
+        required: true
+        default: "lacoste-paris-piqu-polo-2a56"
+
+permissions:
+  contents: read
+
+# data/listings.json'dan verilen id'li listing'i siler. ONCE zaman damgali yedek alir
+# (listings.json.bak-YYYYmmdd-HHMMSS). id yoksa hicbir sey degistirmez. Ardindan Polos
+# kategorisindeki urunleri listeleyerek son durumu dogrular. Geri alinabilir.
+jobs:
+  del:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sil + dogrula
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DELETE_ID: ${{ github.event.inputs.delete_id }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          envs: DELETE_ID
+          script: |
+            cat > /tmp/vestra_del.php <<'PHPEOF'
+            <?php
+            $home=getenv("HOME");
+            $f=$home."/public_html/data/listings.json";
+            $id=trim((string)getenv("DELETE_ID"));
+            if($id===""){ fwrite(STDERR,"HATA: id bos\n"); exit(1); }
+            if(!is_file($f)){ echo "listings.json yok: $f (silinecek sey yok)\n"; }
+            else {
+              $data=json_decode((string)file_get_contents($f),true);
+              if(!is_array($data)){ fwrite(STDERR,"HATA: listings.json parse edilemedi\n"); exit(1); }
+              $before=count($data); $kept=[]; $removed=0; $names=[];
+              foreach($data as $l){
+                if(isset($l["id"]) && (string)$l["id"]===$id){ $removed++; $names[]=($l["brand"]??"?")." / ".($l["name"]??"?"); continue; }
+                $kept[]=$l;
+              }
+              echo "== SIL ==\nhedef id: $id\nonce: $before  silinen: $removed\n";
+              foreach($names as $nm){ echo "  - $nm\n"; }
+              if($removed>0){
+                $bak=$f.".bak-".date("Ymd-His"); copy($f,$bak);
+                echo "yedek: $bak\n";
+                file_put_contents($f, json_encode(array_values($kept), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+                echo "sonra: ".count($kept)."\n";
+              } else { echo "id bulunamadi; degisiklik yok.\n"; }
+            }
+            echo "\n== POLOS (son durum) ==\n";
+            require $home."/public_html/inc/products.php";
+            foreach(vestra_products() as $p){
+              if((string)($p["cat"]??"")!=="Polos") continue;
+              $demo=function_exists("vestra_is_demo_product")&&vestra_is_demo_product((string)($p["id"]??""))?"DEMO":"canli";
+              echo "  id=".($p["id"]??"?")." | ".($p["brand"]??"?")." | ".($p["name"]??"?")." | $demo\n";
+            }
+            PHPEOF
+            php /tmp/vestra_del.php
+            rm -f /tmp/vestra_del.php
