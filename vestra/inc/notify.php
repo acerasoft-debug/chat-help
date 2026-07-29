@@ -84,7 +84,11 @@ function vestra_harvest_emails(string $html, array &$scores): void {
 /* Rank harvested candidates: own-domain + generic mailbox wins; role/junk addresses lose. */
 function vestra_best_email(array $scores, string $domain): string {
   if(!$scores) return '';
-  $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg|domain\.com$|email\.com$|test@|@test\.)#i';
+  // "example" placeholder text in the site's own contact-form boilerplate ("your-email@example.com")
+  // gets scraped as if it were a real address — cross-market fix, not just English: voorbeeld=NL,
+  // beispiel=DE, exemple=FR, esempio=IT, ejemplo=ES all mean "example"; xxx@xxx/name@domain/
+  // user@domain/email@email/abc@abc are generic instructional placeholders in any language.
+  $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg|domain\.com$|email\.com$|test@|@test\.|voorbeeld|beispiel|exemple\.|esempio|ejemplo|xxx@xxx|xxx\.xxx|your-email|youremail|email@email|name@domain|user@domain|abc@abc)#i';
   $generic=['info','contact','kontakt','sales','hello','office','mail','enquiries','enquiry','shop','service','support','hallo','bonjour','contatti','ventas','team','commercial','wholesale'];
   $best=''; $bestScore=-999;
   foreach($scores as $e=>$sig){
