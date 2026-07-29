@@ -532,6 +532,29 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
       .htmlspecialchars($btnLabel,ENT_QUOTES,'UTF-8').'</a></div>';
   }
 
+  // Optional download list ('downloads' => ['title'=>..,'items'=>[['label'=>,'url'=>],..]]) —
+  // renders each as a labelled row with a compact gold download button. Used for campaign
+  // line-sheet / catalogue (Excel) links; additive, callers that pass none are unaffected.
+  $downloadsHtml='';
+  if(!empty($opts['downloads']['items']) && is_array($opts['downloads']['items'])){
+    $dTitle=(string)($opts['downloads']['title'] ?? 'Downloads');
+    $dRows='';
+    foreach($opts['downloads']['items'] as $it){
+      $label=(string)($it['label']??''); $url=(string)($it['url']??''); if($url==='') continue;
+      $dRows.='<tr>'
+        .'<td style="padding:10px 0;border-top:1px solid #ece6d8;color:#3a3428;font-size:14px">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</td>'
+        .'<td style="padding:10px 0;border-top:1px solid #ece6d8;text-align:right">'
+        .'<a href="'.htmlspecialchars($url,ENT_QUOTES,'UTF-8').'" style="display:inline-block;background:#14110c;color:#d8bd86;padding:7px 16px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:.02em">Excel &#8595;</a>'
+        .'</td></tr>';
+    }
+    if($dRows!==''){
+      $downloadsHtml='<div style="margin:2px 28px 20px">'
+        .'<div style="font-size:12px;font-weight:700;color:#8a6d1f;letter-spacing:.03em;text-transform:uppercase;margin:0 0 6px">'.htmlspecialchars($dTitle,ENT_QUOTES,'UTF-8').'</div>'
+        .'<div style="background:#faf8f3;border:1px solid #ece6d8;border-radius:10px;padding:2px 16px">'
+        .'<table style="width:100%;border-collapse:collapse" cellpadding="0" cellspacing="0">'.$dRows.'</table></div></div>';
+    }
+  }
+
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     .'<title>VESTRA</title></head>'
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
@@ -544,6 +567,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .$badgeHtml
     .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
     .$rowsHtml
+    .$downloadsHtml
     .$buttonHtml
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
     .'</div>'
