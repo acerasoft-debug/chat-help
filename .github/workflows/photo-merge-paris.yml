@@ -1,0 +1,68 @@
+name: (Tek seferlik) Paris polo foto ekle + mükerrer birleştir
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Elle tetiklenir. İki 'Paris polo' listingine (lac-paris-polo-allcol,
+# lacoste-paris-piqu-polo-2a56) yeşil polo fotoğrafını ekler; sonra ikisi mükerrer
+# olduğundan daha dolu olanı tutar, diğerini listeden kaldırır (önce yedek alır).
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Foto ekle + birleştir
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_paris_merge.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            $lf = $home."/public_html/data/listings.json";
+            if (!is_readable($lf)) { echo "HATA: listings.json yok\n"; exit(1); }
+            $L = json_decode((string)file_get_contents($lf), true);
+            if (!is_array($L)) { echo "HATA: listings.json parse edilemedi\n"; exit(1); }
+            @copy($lf, $lf.".bak.".date("Ymd_His"));
+
+            $img = '/uploads/lac-paris/paris-polo-green.png';
+            $ids = ['lac-paris-polo-allcol','lacoste-paris-piqu-polo-2a56'];
+            $idx = [];
+            foreach ($L as $i => $p) { $id = (string)($p['id'] ?? ''); if (in_array($id, $ids, true)) $idx[$id] = $i; }
+
+            $score = function($p) {
+              return count($p['variants'] ?? []) * 2 + count($p['colors'] ?? [])
+                   + (!empty($p['tiers']) ? 3 : 0) + ((($p['mode'] ?? '') === 'fixed') ? 2 : 0)
+                   + ((mb_strlen((string)($p['desc'] ?? '')) > 50) ? 1 : 0);
+            };
+
+            foreach ($ids as $id) {
+              if (!isset($idx[$id])) { echo "  {$id}: BULUNAMADI\n"; continue; }
+              $p = $L[$idx[$id]];
+              echo "  {$id}: '".($p['name'] ?? '?')."' | mode=".($p['mode'] ?? '?')
+                 . " | renk=".count($p['colors'] ?? []) . " | varyant=".count($p['variants'] ?? [])
+                 . " | tiers=".(!empty($p['tiers']) ? 'var' : 'yok') . " | skor=".$score($p)."\n";
+              $L[$idx[$id]]['images'] = [$img];   // fotografi ekle (birincil)
+            }
+
+            $present = array_values(array_filter($ids, fn($id) => isset($idx[$id])));
+            if (count($present) === 2) {
+              $a = $present[0]; $b = $present[1];
+              $keep = $score($L[$idx[$a]]) >= $score($L[$idx[$b]]) ? $a : $b;
+              $drop = ($keep === $a) ? $b : $a;
+              array_splice($L, $idx[$drop], 1);
+              echo "\nBIRLESTIR -> KALAN: {$keep} | KALDIRILAN: {$drop} (yedek: listings.json.bak.*)\n";
+            } else {
+              echo "\n(iki kayit birden bulunamadi -> birlestirme atlandi, foto eklendi)\n";
+            }
+
+            file_put_contents($lf, json_encode(array_values($L), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+            echo "OK: listings.json guncellendi. toplam listing: ".count($L)."\n";
+            PHPEOF
+            php /tmp/vestra_paris_merge.php
+            rm -f /tmp/vestra_paris_merge.php
