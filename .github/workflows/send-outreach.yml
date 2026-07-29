@@ -2,7 +2,8 @@ name: (Lead) Kampanya e-postası gönder (gerçek — Les Garage de Paris)
 
 # Elle tetiklenir. Listedeki UYGUN prospect'lere premium logo-duvarlı kampanyayı
 # gönderir (builder: inc/notify.php · vestra_campaign_preview). Dil MÜŞTERİNİN
-# ÜLKESİNE göre: Hollanda → Flemenkçe (nl), diğer herkes → İngilizce (en).
+# ÜLKESİNE göre otomatik seçilir (Hollanda→nl, İtalya→it, Portekiz→pt, Çekya→cs,
+# Polonya→pl, İspanya→es, Yunanistan→el), listede olmayan her ülke → İngilizce (en).
 #
 # Uygunluk kuralları (hepsi sağlanmalı):
 #   • geçerli e-posta var
@@ -79,7 +80,17 @@ jobs:
             if ($COUNT > 50) $COUNT = 50;            // hard cap — one batch never exceeds 50
             $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
             $FROM = 'Les Garage de Paris';
-            $NL = ['netherlands','the netherlands','nederland','holland','nl'];
+            // Country -> campaign language. Falls back to English for anything not listed.
+            $LANG_MAP = [
+              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'italy'=>'it','italia'=>'it',
+              'portugal'=>'pt',
+              'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
+              'poland'=>'pl','polska'=>'pl',
+              'spain'=>'es','españa'=>'es','espana'=>'es',
+              'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
+            ];
+            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
@@ -125,14 +136,14 @@ jobs:
             $idx = [];
             foreach ($leads as $i => $l) { $id = (string)($l['id'] ?? ''); if ($id !== '') $idx[$id] = $i; }
 
-            $sent = 0; $fail = 0; $nlN = 0; $enN = 0;
+            $sent = 0; $fail = 0; $langCounts = [];
             foreach ($picked as $l) {
               $company = (string)($l['company'] ?? '');
               $email   = strtolower(trim((string)($l['email'] ?? '')));
               $country = (string)($l['country'] ?? '');
-              $lang    = in_array(strtolower(trim($country)), $NL, true) ? 'nl' : 'en';
-              $flag    = $lang === 'nl' ? 'NL/Flemenkce' : 'EN/Ingilizce';
-              $lang === 'nl' ? $nlN++ : $enN++;
+              $lang    = $LANG_MAP[strtolower(trim($country))] ?? 'en';
+              $flag    = $FLAG_LABELS[$lang] ?? 'EN/Ingilizce';
+              $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
 
               if ($DRY) {
                 echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag}\n";
@@ -172,7 +183,9 @@ jobs:
             if (!$DRY && $sent > 0) vestra_save_leads($leads);
 
             echo "\n----\n";
-            echo "dil dagilimi (secilen): NL={$nlN}  EN={$enN}\n";
+            echo "dil dagilimi (secilen): ";
+            foreach ($langCounts as $lc => $cnt) echo "{$lc}={$cnt}  ";
+            echo "\n";
             if ($DRY) {
               echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
             } else {

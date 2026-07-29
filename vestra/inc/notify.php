@@ -698,6 +698,228 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
     return [$subject,$body,$opts];
   }
 
+  if($lang==='it'){
+    $subject="Les Garage de Paris × VESTRA — la selezione autentica di moda di lusso all'ingrosso";
+    $body=implode("\n",[
+      $company!=='' ? "Salve — un messaggio per {$company}." : "Salve,",
+      "",
+      "Una breve presentazione di Les Garage de Paris, tramite VESTRA — il marketplace B2B verificato KYC per moda di design autentica all'ingrosso.",
+      "",
+      "Riforniamo boutique multimarca premium con le maison che i loro clienti richiedono per nome — 100% autentico, autenticità verificata alla consegna, con condizioni di fatturazione chiare.",
+      "",
+      "La selezione attuale è disponibile qui sotto come line-sheet Excel pronti all'uso. I prezzi all'ingrosso sono riservati ai partner verificati — registratevi una volta (gratis) e ogni prezzo si sblocca immediatamente.",
+      "",
+      "Indicatemi il vostro mix di marchi e curerò una selezione per il vostro negozio.",
+      "",
+      "Cordiali saluti,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (gestito da acerasoft LLC). Messaggio commerciale una tantum — il vostro negozio è stato identificato come potenziale partner commerciale premium.",
+      "Annulla l'iscrizione subito: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>"Moda di design autentica all'ingrosso",'title'=>'Le maison che i vostri clienti richiedono — a condizioni commerciali.'],
+      'brands'=>$brands,
+      'brands_title'=>'Maison in evidenza',
+      'brands_hint'=>'Toccare una maison per aprire il line-sheet',
+      'badge'=>'Verificato KYC · autenticità controllata · protetto da escrow',
+      'downloads'=>['title'=>'Line-sheet — scarica (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Autenticità','value'=>'Verificata alla consegna'],
+        ['label'=>'Pagamento','value'=>'Fattura protetta da escrow'],
+        ['label'=>'Minimi','value'=>'Bassi — ideali per capsule','strong'=>true],
+      ],
+      'button'=>['label'=>"Registrati per i prezzi all'ingrosso",'url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='pt'){
+    $subject="Les Garage de Paris × VESTRA — a seleção autêntica de moda de grife por atacado";
+    $body=implode("\n",[
+      $company!=='' ? "Olá — uma mensagem para {$company}." : "Olá,",
+      "",
+      "Uma breve apresentação da Les Garage de Paris, através da VESTRA — o marketplace B2B verificado por KYC para moda de grife autêntica por atacado.",
+      "",
+      "Fornecemos a boutiques multimarcas premium as grifes que os seus clientes pedem pelo nome — 100% autênticas, autenticidade verificada na entrega, com condições de faturação claras.",
+      "",
+      "A seleção atual está abaixo em line-sheets Excel prontos a abrir. Os preços de atacado são reservados a parceiros verificados — registe-se uma vez (é gratuito) e cada preço é desbloqueado de imediato.",
+      "",
+      "Diga-me o seu mix de marcas e preparo uma seleção para a sua loja.",
+      "",
+      "Com os melhores cumprimentos,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (operado pela acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como potencial parceiro comercial premium.",
+      "Cancelar subscrição imediatamente: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Moda de grife autêntica por atacado','title'=>'As grifes que os seus clientes pedem — em condições de atacado.'],
+      'brands'=>$brands,
+      'brands_title'=>'Marcas em destaque',
+      'brands_hint'=>'Toque numa marca para abrir o line-sheet',
+      'badge'=>'Verificado por KYC · autenticidade verificada · protegido por escrow',
+      'downloads'=>['title'=>'Line-sheets — descarregar (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Autenticidade','value'=>'Verificada na entrega'],
+        ['label'=>'Pagamento','value'=>'Fatura protegida por escrow'],
+        ['label'=>'Mínimos','value'=>'Baixos — ideais para cápsulas','strong'=>true],
+      ],
+      'button'=>['label'=>'Registar para preços de atacado','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='cs'){
+    $subject="Les Garage de Paris × VESTRA — autentický výběr značkové módy za velkoobchodní ceny";
+    $body=implode("\n",[
+      $company!=='' ? "Dobrý den — zpráva pro {$company}." : "Dobrý den,",
+      "",
+      "Krátké představení Les Garage de Paris prostřednictvím VESTRA — B2B tržiště ověřené KYC pro autentickou značkovou módu za velkoobchodní ceny.",
+      "",
+      "Zásobujeme prémiové multibrandové butiky značkami, o které jejich zákazníci žádají jmenovitě — 100% autentické, pravost ověřena při doručení, za jasných fakturačních podmínek.",
+      "",
+      "Aktuální nabídka je níže jako připravené Excel ceníky (line-sheets). Velkoobchodní ceny jsou vyhrazeny ověřeným partnerům — zaregistrujte se jednou (zdarma) a každá cena se okamžitě odemkne.",
+      "",
+      "Řekněte mi vaši značkovou skladbu a připravím výběr pro vaši prodejnu.",
+      "",
+      "S pozdravem,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (provozuje acerasoft LLC). Jednorázová obchodní zpráva — váš obchod byl identifikován jako potenciální prémiový obchodní partner.",
+      "Okamžité odhlášení: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Autentická značková móda za velkoobchodní ceny','title'=>'Značky, o které vaši zákazníci žádají — za velkoobchodních podmínek.'],
+      'brands'=>$brands,
+      'brands_title'=>'Vybrané značky',
+      'brands_hint'=>'Klepnutím na značku otevřete ceník',
+      'badge'=>'Ověřeno KYC · pravost kontrolována · chráněno escrow',
+      'downloads'=>['title'=>'Ceníky — stáhnout (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Pravost','value'=>'Ověřena při doručení'],
+        ['label'=>'Platba','value'=>'Faktura chráněná escrow'],
+        ['label'=>'Minimální odběr','value'=>'Nízký — vhodné pro kapsulové kolekce','strong'=>true],
+      ],
+      'button'=>['label'=>'Registrovat se pro velkoobchodní ceny','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='pl'){
+    $subject="Les Garage de Paris × VESTRA — autentyczny wybór mody projektantów w cenach hurtowych";
+    $body=implode("\n",[
+      $company!=='' ? "Dzień dobry — wiadomość dla {$company}." : "Dzień dobry,",
+      "",
+      "Krótkie przedstawienie Les Garage de Paris za pośrednictwem VESTRA — zweryfikowanego KYC rynku B2B dla autentycznej mody projektantów w cenach hurtowych.",
+      "",
+      "Zaopatrujemy premium butiki multibrandowe w marki, o które klienci pytają z nazwy — 100% autentyczne, autentyczność weryfikowana przy dostawie, na jasnych warunkach fakturowania.",
+      "",
+      "Aktualny wybór znajduje się poniżej jako gotowe do otwarcia arkusze Excel (line-sheets). Ceny hurtowe są zarezerwowane dla zweryfikowanych partnerów — zarejestruj się raz (bezpłatnie), a każda cena odblokuje się natychmiast.",
+      "",
+      "Podaj mi swój mix marek, a przygotuję wybór dla Twojego sklepu.",
+      "",
+      "Z poważaniem,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (prowadzone przez acerasoft LLC). Jednorazowa wiadomość biznesowa — Twój sklep został zidentyfikowany jako potencjalny partner handlowy premium.",
+      "Natychmiastowa rezygnacja z subskrypcji: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Autentyczna moda projektantów w cenach hurtowych','title'=>'Marki, o które pytają Twoi klienci — na warunkach hurtowych.'],
+      'brands'=>$brands,
+      'brands_title'=>'Wyróżnione marki',
+      'brands_hint'=>'Dotknij marki, aby otworzyć jej line-sheet',
+      'badge'=>'Zweryfikowano KYC · autentyczność sprawdzona · chronione escrow',
+      'downloads'=>['title'=>'Line-sheets — pobierz (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Autentyczność','value'=>'Weryfikowana przy dostawie'],
+        ['label'=>'Płatność','value'=>'Faktura chroniona escrow'],
+        ['label'=>'Minima','value'=>'Niskie — idealne na kolekcje kapsułowe','strong'=>true],
+      ],
+      'button'=>['label'=>'Zarejestruj się, aby zobaczyć ceny hurtowe','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='es'){
+    $subject="Les Garage de Paris × VESTRA — la selección auténtica de moda de diseño al por mayor";
+    $body=implode("\n",[
+      $company!=='' ? "Hola — un mensaje para {$company}." : "Hola,",
+      "",
+      "Una breve presentación de Les Garage de Paris, a través de VESTRA — el marketplace B2B verificado por KYC para moda de diseño auténtica al por mayor.",
+      "",
+      "Suministramos a boutiques multimarca premium las firmas que sus clientes piden por su nombre — 100% auténticas, autenticidad verificada en la entrega, con condiciones de facturación claras.",
+      "",
+      "La selección actual está a continuación en forma de line-sheets de Excel listos para abrir. Los precios mayoristas están reservados a socios verificados — regístrese una vez (es gratis) y cada precio se desbloquea al instante.",
+      "",
+      "Indíqueme su mix de marcas y prepararé una selección para su tienda.",
+      "",
+      "Un cordial saludo,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (operado por acerasoft LLC). Mensaje comercial único — su tienda ha sido identificada como potencial socio comercial premium.",
+      "Cancelar suscripción al instante: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Moda de diseño auténtica al por mayor','title'=>'Las firmas que sus clientes piden — en condiciones mayoristas.'],
+      'brands'=>$brands,
+      'brands_title'=>'Firmas destacadas',
+      'brands_hint'=>'Toque una firma para abrir su line-sheet',
+      'badge'=>'Verificado KYC · autenticidad comprobada · protegido por depósito en garantía',
+      'downloads'=>['title'=>'Line-sheets — descargar (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Autenticidad','value'=>'Verificada en la entrega'],
+        ['label'=>'Pago','value'=>'Factura protegida por depósito en garantía'],
+        ['label'=>'Mínimos','value'=>'Bajos — ideales para cápsulas','strong'=>true],
+      ],
+      'button'=>['label'=>'Regístrese para ver precios mayoristas','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='el'){
+    $subject="Les Garage de Paris × VESTRA — η αυθεντική επιλογή σχεδιαστικής μόδας χονδρικής";
+    $body=implode("\n",[
+      $company!=='' ? "Γεια σας — ένα μήνυμα για {$company}." : "Γεια σας,",
+      "",
+      "Μια σύντομη παρουσίαση της Les Garage de Paris, μέσω της VESTRA — της επαληθευμένης με KYC B2B αγοράς για αυθεντική σχεδιαστική μόδα σε τιμές χονδρικής.",
+      "",
+      "Προμηθεύουμε premium πολυμαρκικές μπουτίκ με τους οίκους που οι πελάτες τους ζητούν ονομαστικά — 100% αυθεντικά, με έλεγχο αυθεντικότητας κατά την παράδοση, με σαφείς όρους τιμολόγησης.",
+      "",
+      "Η τρέχουσα επιλογή βρίσκεται παρακάτω ως έτοιμα προς άνοιγμα line-sheets σε Excel. Οι τιμές χονδρικής προορίζονται αποκλειστικά για επαληθευμένους συνεργάτες — εγγραφείτε μία φορά (δωρεάν) και κάθε τιμή ξεκλειδώνεται άμεσα.",
+      "",
+      "Πείτε μου το brand mix σας και θα ετοιμάσω μια επιλογή για το κατάστημά σας.",
+      "",
+      "Με εκτίμηση,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (λειτουργεί από την acerasoft LLC). Μοναδικό εμπορικό μήνυμα — το κατάστημά σας αναγνωρίστηκε ως πιθανός premium εμπορικός συνεργάτης.",
+      "Άμεση διαγραφή: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Αυθεντική σχεδιαστική μόδα χονδρικής','title'=>'Οι οίκοι που ζητούν οι πελάτες σας — με όρους χονδρικής.'],
+      'brands'=>$brands,
+      'brands_title'=>'Επιλεγμένοι οίκοι',
+      'brands_hint'=>'Πατήστε σε έναν οίκο για να ανοίξετε το line-sheet',
+      'badge'=>'Επαληθευμένο KYC · ελεγμένη αυθεντικότητα · προστασία escrow',
+      'downloads'=>['title'=>'Line-sheets — λήψη (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Αυθεντικότητα','value'=>'Ελέγχεται κατά την παράδοση'],
+        ['label'=>'Πληρωμή','value'=>'Τιμολόγιο προστατευμένο με escrow'],
+        ['label'=>'Ελάχιστες ποσότητες','value'=>'Χαμηλές — ιδανικές για capsule collections','strong'=>true],
+      ],
+      'button'=>['label'=>'Εγγραφείτε για τιμές χονδρικής','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
   $subject='Les Garage de Paris × VESTRA — the authentic designer wholesale edit';
   $body=implode("\n",[
     $company!=='' ? "Hello — a note for {$company}." : "Hello,",
