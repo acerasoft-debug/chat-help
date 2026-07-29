@@ -1,0 +1,101 @@
+name: (Lead) Listeye email/prospect ekle
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Eklenecek e-posta (zorunlu)"
+        required: true
+      company:
+        description: "Firma adı (boş bırakılırsa site başlığından türetilir)"
+        required: false
+        default: ""
+      website:
+        description: "Web sitesi (boş bırakılırsa e-posta alan adından)"
+        required: false
+        default: ""
+      country:
+        description: "Ülke (boş bırakılırsa alan adı uzantısından)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Elle tetiklenir. Verilen e-postayı data/leads.json'a bir prospect olarak ekler
+# (tekrar önleme: e-posta zaten varsa eklemez). Firma adı boşsa site <title>'ından,
+# ülke boşsa alan adı uzantısından türetilir; site premium marka satıyorsa işaretlenir.
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prospect ekle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          LEAD_EMAIL: ${{ github.event.inputs.email }}
+          LEAD_COMPANY: ${{ github.event.inputs.company }}
+          LEAD_WEBSITE: ${{ github.event.inputs.website }}
+          LEAD_COUNTRY: ${{ github.event.inputs.country }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          envs: LEAD_EMAIL,LEAD_COMPANY,LEAD_WEBSITE,LEAD_COUNTRY
+          script: |
+            cat > /tmp/vestra_add_lead.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/leads.php";
+
+            $email = strtolower(trim((string)getenv("LEAD_EMAIL")));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "GECERSIZ EMAIL: {$email}\n"; exit(1); }
+            $domain = substr(strrchr($email, '@'), 1);
+
+            $website = trim((string)getenv("LEAD_WEBSITE"));
+            if ($website === '') $website = 'https://'.$domain;
+
+            $country = trim((string)getenv("LEAD_COUNTRY"));
+            if ($country === '') {
+              $tld = strtolower(substr(strrchr($domain, '.'), 1));
+              $map = ['gr'=>'Greece','de'=>'Germany','fr'=>'France','it'=>'Italy','es'=>'Spain','nl'=>'Netherlands','pl'=>'Poland','be'=>'Belgium','at'=>'Austria','pt'=>'Portugal','uk'=>'United Kingdom','ie'=>'Ireland','se'=>'Sweden','dk'=>'Denmark','fi'=>'Finland','cz'=>'Czechia','ro'=>'Romania'];
+              $country = $map[$tld] ?? '';
+            }
+
+            $company = trim((string)getenv("LEAD_COMPANY"));
+            if ($company === '') {
+              $html = function_exists('vestra_http_get') ? vestra_http_get($website, 8) : '';
+              if ($html !== '' && preg_match('/<title[^>]*>(.*?)<\/title>/is', $html, $m)) {
+                $company = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8')));
+                foreach ([' | ', ' – ', ' — ', ' - ', ' : ', ' · '] as $sep) {
+                  $pos = mb_strpos($company, $sep);
+                  if ($pos !== false && $pos > 2) $company = mb_substr($company, 0, $pos);
+                }
+                if (mb_strlen($company) > 60) $company = mb_substr($company, 0, 60);
+              }
+              if ($company === '') $company = $domain;
+            }
+
+            $leads = vestra_leads();
+            foreach ($leads as $l) {
+              if (strtolower($l['email'] ?? '') === $email) { echo "ZATEN VAR: {$email} (id=".($l['id']??'?').") -- eklenmedi\n"; exit(0); }
+            }
+
+            $pb = function_exists('vestra_premium_brands') ? vestra_premium_brands($website) : [];
+            $new = [
+              'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>'',
+              'company'=>$company,'contact_name'=>'',
+              'email'=>$email,'country'=>$country,
+              'website'=>$website,'source'=>'manual','category'=>'',
+              'notes'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>bin2hex(random_bytes(16)),
+              'premium'=>!empty($pb),'premium_brands'=>$pb,
+            ];
+            $leads[] = $new;
+            vestra_save_leads($leads);
+            echo "EKLENDI: {$company} <{$email}> | ulke=".($country?:'?')." | premium=".(!empty($pb)?('EVET ('.implode(', ', $pb).')'):'hayir')." | id={$new['id']}\n";
+            echo "toplam lead: ".count($leads)."\n";
+            PHPEOF
+            php /tmp/vestra_add_lead.php
+            rm -f /tmp/vestra_add_lead.php
