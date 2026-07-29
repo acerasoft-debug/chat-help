@@ -482,6 +482,30 @@ function vestra_html_linkify(string $escapedHtml): string {
  *   'rows'   => [['label'=>'Qty','value'=>'104','strong'=>false], ...] detail card
  *   'button' => ['label'=>'View in dashboard','url'=>'https://...'] CTA button
  */
+/* Email-safe stylised brand wordmark for the campaign "house wall". External images and inline
+ * SVG get stripped by Gmail/Outlook, so these are pure inline-CSS typographic wordmarks (like the
+ * site's own SVG logos) — they always render, in any client, with no image-loading prompt. They
+ * are stylised text, not copyrighted logo artwork. */
+function vestra_email_brand_logo_html(string $brand): string {
+  $b = strtolower(trim($brand));
+  $ink = '#f4ecd8';
+  $ss  = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+  $sf  = "Georgia,'Times New Roman',serif";
+  if ($b === 'lacoste')
+    return '<span style="font-family:'.$ss.';color:'.$ink.';font-size:18px;font-weight:700;letter-spacing:.26em">LACOSTE</span>';
+  if (str_contains($b,'dsquared'))
+    return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:18px;font-weight:900;letter-spacing:.04em">DSQUARED<sup style="font-size:11px;font-weight:900">2</sup></span>';
+  if (str_contains($b,'ralph'))
+    return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:15px;font-weight:400;letter-spacing:.20em">RALPH&nbsp;LAUREN</span>';
+  if (str_contains($b,'dolce') || str_contains($b,'gabbana'))
+    return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:14px;font-weight:400;letter-spacing:.10em">DOLCE&nbsp;&amp;&nbsp;GABBANA</span>';
+  if ($b === 'amiri')
+    return '<span style="font-family:'.$ss.';color:'.$ink.';font-size:18px;font-weight:700;letter-spacing:.34em">AMIRI</span>';
+  if (str_contains($b,'vestra'))
+    return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:15px;font-weight:700;letter-spacing:.12em">VESTRA&nbsp;<span style="color:#c9a86a;font-size:10px;letter-spacing:.2em">ESSENTIALS</span></span>';
+  return '<span style="font-family:'.$sf.';color:'.$ink.';font-size:16px;font-weight:600;letter-spacing:.12em">'.htmlspecialchars(strtoupper($brand),ENT_QUOTES,'UTF-8').'</span>';
+}
+
 function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=[]): string {
   $parts=explode("\n\n—\n",$bodyPlain,2);
   $main=trim($parts[0]); $footer=isset($parts[1])?trim($parts[1]):'';
@@ -568,16 +592,34 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
 
   // Optional "featured houses" brand strip ('brands' => [name,..]) — centered serif names split by
   // gold dots. Gives the multi-brand campaign an elegant, editorial signature. Additive.
+  // "The houses on your floor" — a premium 2-column wall of dark, gold-edged brand-logo tiles.
+  // Each tile is a stylised wordmark (email-safe, always renders) and links to that brand's Excel
+  // line-sheet, so the logos double as the download CTA. Additive.
   $brandsHtml='';
   if(!empty($opts['brands']) && is_array($opts['brands'])){
     $names=array_slice(array_values(array_filter(array_map('strval',$opts['brands']),fn($s)=>trim($s)!=='')),0,8);
     if($names){
-      $sep='<span style="color:#c9a86a;padding:0 9px">&bull;</span>';
-      $joined=implode($sep,array_map(fn($n)=>'<span style="white-space:nowrap">'.htmlspecialchars($n,ENT_QUOTES,'UTF-8').'</span>',$names));
-      $brandsHtml='<div style="padding:2px 28px 18px;text-align:center">'
-        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin:0 0 9px">Featured houses</div>'
-        .'<div style="color:#3a3428;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;line-height:2">'.$joined.'</div>'
-        .'<div style="width:38px;height:2px;background:#c9a86a;margin:16px auto 0"></div>'
+      $tiles=[];
+      foreach($names as $n){
+        $href='https://vestrasales.com/catalog?brand='.rawurlencode($n);
+        $tiles[]='<a href="'.$href.'" style="display:block;background:#14110c;border:1px solid rgba(201,168,106,.34);border-radius:10px;padding:22px 8px;text-align:center;text-decoration:none">'
+          .vestra_email_brand_logo_html($n).'</a>';
+      }
+      $tileRows='';
+      for($i=0;$i<count($tiles);$i+=2){
+        if(isset($tiles[$i+1])){
+          $tileRows.='<tr><td width="50%" valign="middle" style="padding:5px">'.$tiles[$i].'</td>'
+            .'<td width="50%" valign="middle" style="padding:5px">'.$tiles[$i+1].'</td></tr>';
+        }else{
+          // lone trailing house → full-width tile (reads as intentional, no empty cell)
+          $tileRows.='<tr><td colspan="2" valign="middle" style="padding:5px">'.$tiles[$i].'</td></tr>';
+        }
+      }
+      $brandsHtml='<div style="padding:8px 23px 20px">'
+        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;text-align:center;margin:2px 0 12px">Featured houses</div>'
+        .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">'.$tileRows.'</table>'
+        .'<div style="color:#9b9585;font-size:11px;text-align:center;margin:12px 0 0">Tap a house to open its line-sheet</div>'
+        .'<div style="width:38px;height:2px;background:#c9a86a;margin:14px auto 0"></div>'
         .'</div>';
     }
   }
@@ -590,10 +632,12 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .'<div style="background:#14110c;padding:22px 28px">'
     .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em">VESTRA</span>'
     .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span></div>'
+    .$heroBandHtml
     .$heroHtml
     .$badgeHtml
     .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
     .$rowsHtml
+    .$brandsHtml
     .$downloadsHtml
     .$buttonHtml
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
