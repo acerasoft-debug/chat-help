@@ -1,0 +1,49 @@
+name: (Salt-okunur) Ürün kataloğunu incele
+on:
+  workflow_dispatch:
+    inputs:
+      brand:
+        description: "Marka filtresi (boş = hepsi)"
+        required: false
+        default: "Lacoste"
+
+permissions:
+  contents: read
+
+# Salt-okunur. Katalog ürünlerini (demo + canlı listing) listeler: id, marka, ad, kategori,
+# görsel sayısı/ilk görsel, varyant sayısı, demo mu canlı mı. Hiçbir şeyi DEĞİŞTİRMEZ.
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ürünleri listele
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          INSPECT_BRAND: ${{ github.event.inputs.brand }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          envs: INSPECT_BRAND
+          script: |
+            cat > /tmp/vestra_inspect.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            $bf = strtolower(trim((string)getenv("INSPECT_BRAND")));
+            foreach (vestra_products() as $p) {
+              $brand = (string)($p['brand'] ?? '');
+              if ($bf !== '' && stripos($brand, $bf) === false) continue;
+              $imgs = [];
+              if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
+              elseif (!empty($p['image'])) $imgs = [$p['image']];
+              $demo = function_exists('vestra_is_demo_product') && vestra_is_demo_product((string)($p['id'] ?? '')) ? 'DEMO(kodda)' : 'canli-listing';
+              $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
+              echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
+              echo "   gorsel({$nv} varyant): ".(count($imgs) ? count($imgs)." adet, ilk=".$imgs[0] : "YOK")."\n";
+            }
+            PHPEOF
+            php /tmp/vestra_inspect.php
+            rm -f /tmp/vestra_inspect.php
