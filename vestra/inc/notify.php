@@ -616,9 +616,9 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
         }
       }
       $brandsHtml='<div style="padding:8px 23px 20px">'
-        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;text-align:center;margin:2px 0 12px">Featured houses</div>'
+        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;text-align:center;margin:2px 0 12px">'.htmlspecialchars((string)($opts['brands_title']??'Featured houses'),ENT_QUOTES,'UTF-8').'</div>'
         .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">'.$tileRows.'</table>'
-        .'<div style="color:#9b9585;font-size:11px;text-align:center;margin:12px 0 0">Tap a house to open its line-sheet</div>'
+        .'<div style="color:#9b9585;font-size:11px;text-align:center;margin:12px 0 0">'.htmlspecialchars((string)($opts['brands_hint']??'Tap a house to open its line-sheet'),ENT_QUOTES,'UTF-8').'</div>'
         .'<div style="width:38px;height:2px;background:#c9a86a;margin:14px auto 0"></div>'
         .'</div>';
     }
@@ -651,7 +651,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
  * aesthetic tweak lives here. The featured-brand strip and the per-brand Excel catalogue links
  * are derived from the LIVE catalogue (vestra_products), so the mail always reflects real stock.
  * $company personalises the opening line when provided. */
-function vestra_campaign_preview(string $company=''): array {
+function vestra_campaign_preview(string $company='', string $lang='en'): array {
   $counts=[]; $brands=[];
   if(function_exists('vestra_products')){
     foreach(vestra_products() as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $counts[$b]=($counts[$b]??0)+1; }
@@ -660,6 +660,43 @@ function vestra_campaign_preview(string $company=''): array {
   $downloads=[];
   foreach($brands as $b){ $downloads[]=['label'=>$b,'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)]; }
   if(!$downloads) $downloads[]=['label'=>'Full selection','url'=>'https://vestrasales.com/catalog'];
+
+  if($lang==='nl'){
+    $subject='Les Garage de Paris × VESTRA — de authentieke designer groothandelselectie';
+    $body=implode("\n",[
+      $company!=='' ? "Hallo — een bericht voor {$company}." : "Hallo,",
+      "",
+      "Een korte kennismaking van Les Garage de Paris, via VESTRA — de KYC-geverifieerde B2B-marktplaats voor authentieke designermode tegen groothandelsprijzen.",
+      "",
+      "Wij leveren premium multi-brand boutiques de merken waar hun klanten met naam naar vragen — 100% authentiek, echtheid gecontroleerd bij levering, op heldere factuurvoorwaarden.",
+      "",
+      "De actuele selectie staat hieronder als kant-en-klare Excel line-sheets. Handelsprijzen zijn voorbehouden aan geverifieerde partners — registreer eenmalig (gratis) en elke prijs wordt direct zichtbaar.",
+      "",
+      "Vertel me uw merkenmix en ik stel een selectie samen voor uw winkel.",
+      "",
+      "Met vriendelijke groet,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (beheerd door acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke premium handelspartner.",
+      "Direct uitschrijven: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Authentieke designer groothandel','title'=>'De merken waar uw klanten naar vragen — tegen handelsvoorwaarden.'],
+      'brands'=>$brands,
+      'brands_title'=>'Uitgelichte merken',
+      'brands_hint'=>'Tik op een merk voor de line-sheet',
+      'badge'=>'KYC-geverifieerd · echtheid gecontroleerd · escrow-beschermd',
+      'downloads'=>['title'=>'Line-sheets — download (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Echtheid','value'=>'Gecontroleerd bij levering'],
+        ['label'=>'Betaling','value'=>'Escrow-beschermde factuur'],
+        ['label'=>'Minimums','value'=>'Laag — capsule-vriendelijk','strong'=>true],
+      ],
+      'button'=>['label'=>'Registreer voor handelsprijzen','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
 
   $subject='Les Garage de Paris × VESTRA — the authentic designer wholesale edit';
   $body=implode("\n",[
@@ -683,6 +720,8 @@ function vestra_campaign_preview(string $company=''): array {
   $opts=[
     'hero'=>['kicker'=>'Authentic designer wholesale','title'=>'The houses your clients ask for — at trade terms.'],
     'brands'=>$brands,
+    'brands_title'=>'Featured houses',
+    'brands_hint'=>'Tap a house to open its line-sheet',
     'badge'=>'KYC-verified · authenticity-checked · escrow-protected',
     'downloads'=>['title'=>'Line-sheets — download (Excel)','items'=>$downloads],
     'rows'=>[
