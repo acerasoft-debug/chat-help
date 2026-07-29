@@ -6,30 +6,35 @@ on:
         description: "Yerler: 'Ülke|Şehir' çiftleri, virgülle ayrık"
         required: false
         default: "Greece|Rhodes, Spain|Ibiza, Spain|Palma"
+      purge_emailless:
+        description: "Başta mevcut e-postasız leadleri sil (yedekli)"
+        required: false
+        default: "true"
 
 permissions:
   contents: read
 
-# Elle tetiklenir. OpenStreetMap (Overpass) ile verilen şehir/bölgelerdeki moda/butik
-# dükkanlarını bulur, büyük zincir/tek-marka mağazalarını eler (blocklist + brand etiketi),
-# data/leads.json'a EKLER (dedup), sonra websitesi olan yeni leadler için e-posta bulmaya
-# çalışır (Hunter + site tarama), zaman bütçesi dolunca kalanı e-postasız bırakır.
-# Hiçbir e-posta GÖNDERMEZ — sadece listeye ekler.
+# Elle tetiklenir. (1) İstenirse başta e-postasız TÜM mevcut leadleri siler (önce yedek alır).
+# (2) OpenStreetMap (Overpass) ile verilen şehir/bölgelerdeki moda/butik dükkanlarını bulur,
+# büyük zincir/tek-marka mağazalarını eler (blocklist + brand etiketi), yalnızca E-POSTASI
+# BULUNANLARI ekler (OSM etiketi → Hunter → site tarama), e-posta yoksa EKLEMEZ.
+# Sonuç: sistemde yalnızca e-postalı leadler kalır. Hiçbir e-posta GÖNDERMEZ.
 jobs:
   discover:
     runs-on: ubuntu-latest
     steps:
-      - name: Keşfet + ekle
+      - name: Temizle + keşfet (yalnızca e-postalı)
         uses: appleboy/ssh-action@v1.0.3
         env:
           DISCOVER_PLACES: ${{ github.event.inputs.places }}
+          PURGE_EMAILLESS: ${{ github.event.inputs.purge_emailless }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 25m
-          envs: DISCOVER_PLACES
+          envs: DISCOVER_PLACES,PURGE_EMAILLESS
           script: |
             cat > /tmp/vestra_discover_city.php <<'PHPEOF'
             <?php
@@ -39,6 +44,18 @@ jobs:
             require_once $home."/public_html/inc/notify.php";
             @set_time_limit(0);
 
+            $hasEmail = fn($l) => filter_var(strtolower(trim((string)($l['email'] ?? ''))), FILTER_VALIDATE_EMAIL) !== false;
+
+            // (1) mevcut e-postasiz leadleri sil (yedekli)
+            if (strtolower(trim((string)getenv("PURGE_EMAILLESS"))) !== 'false') {
+              $lf = $home."/public_html/data/leads.json";
+              if (is_readable($lf)) @copy($lf, $lf.".bak.".date("Ymd_His"));
+              $all = vestra_leads(); $before = count($all);
+              $kept = array_values(array_filter($all, $hasEmail));
+              vestra_save_leads($kept);
+              echo "PURGE: {$before} lead vardi -> ".($before - count($kept))." e-postasiz silindi, ".count($kept)." kaldi (hepsi e-postali)\n\n";
+            }
+
             $raw = trim((string)getenv("DISCOVER_PLACES"));
             if ($raw === '') $raw = "Greece|Rhodes, Spain|Ibiza, Spain|Palma";
             $places = [];
@@ -47,35 +64,30 @@ jobs:
               [$c, $ct] = array_map('trim', explode('|', $p, 2));
               if ($c !== '' && $ct !== '') $places[] = [$c, $ct];
             }
-            if (!$places) { echo "HATA: gecerli yer yok\n"; exit(1); }
+            if (!$places) { echo "TOPLAM lead: ".count(vestra_leads())."\n"; exit(0); }
 
-            $start = time(); $budget = 1080; // ~18 dk e-posta bulma butcesi
-            $tFound = 0; $tAdded = 0; $eFound = 0; $eChecked = 0;
+            $start = time(); $budget = 1080; // ~18 dk e-posta arama butcesi
+            $tFound = 0; $tAdded = 0; $eFound = 0; $eChecked = 0; $budgetHit = false;
 
             foreach ($places as [$country, $city]) {
               $rows = vestra_discover_osm($country, $city, 80);
               $ok = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
-              [$added, ] = $rows ? vestra_leads_add($rows) : [[], 0];
-              $tFound += count($rows); $tAdded += count($added);
-              echo "* {$city} ({$country}): bulundu ".count($rows).", yeni eklendi ".count($added).($ok?'':'  [UYARI: Overpass'a ulasilamadi, eksik olabilir]')."\n";
-
-              $ids = array_column(array_filter($added, fn($r) => ($r['email'] ?? '') === '' && ($r['website'] ?? '') !== ''), 'id');
-              if ($ids) {
-                $all = vestra_leads(); $ch = 0;
-                foreach ($all as &$l) {
-                  if (!in_array($l['id'] ?? '', $ids, true)) continue;
-                  if (time() - $start > $budget) break;
-                  $e = vestra_find_email((string)($l['website'] ?? '')); $eChecked++; $ch++;
-                  if ($e !== '') { $l['email'] = $e; $eFound++; }
-                }
-                unset($l);
-                vestra_save_leads($all);
-                echo "    e-posta: bu sehirde {$ch} site tarandi\n";
+              $tFound += count($rows);
+              $toAdd = []; $cityChecked = 0;
+              foreach ($rows as $r) {
+                if (time() - $start > $budget) { $budgetHit = true; break; }
+                $email = strtolower(trim((string)($r['email'] ?? '')));
+                if ($email === '') { $w = (string)($r['website'] ?? ''); if ($w !== '') $email = vestra_find_email($w); }
+                $eChecked++; $cityChecked++;
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) { $r['email'] = $email; $toAdd[] = $r; $eFound++; }
               }
-              if (time() - $start > $budget) { echo "    (e-posta butcesi doldu -- kalan leadler e-postasiz eklendi)\n"; }
+              [$added, ] = $toAdd ? vestra_leads_add($toAdd) : [[], 0];
+              $tAdded += count($added);
+              echo "* {$city} ({$country}): bulundu ".count($rows).", tarandi {$cityChecked}, e-postali ".count($toAdd).", yeni eklendi ".count($added).($ok?'':'  [UYARI: Overpass eksik olabilir]')."\n";
+              if ($budgetHit) { echo "    (zaman butcesi doldu -- kalan sehir/dukkanlar taranmadi)\n"; break; }
             }
-            echo "\n== TOPLAM: {$tFound} bulundu, {$tAdded} yeni eklendi, {$eFound}/{$eChecked} e-posta bulundu ==\n";
-            echo "toplam lead: ".count(vestra_leads())."\n";
+            echo "\n== KESIF: {$tFound} bulundu, {$eChecked} tarandi, {$eFound} e-postali, {$tAdded} yeni eklendi ==\n";
+            echo "TOPLAM lead (hepsi e-postali): ".count(vestra_leads())."\n";
             PHPEOF
             php /tmp/vestra_discover_city.php
             rm -f /tmp/vestra_discover_city.php
