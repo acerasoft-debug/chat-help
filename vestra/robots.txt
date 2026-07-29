@@ -9,6 +9,7 @@ Disallow: /buyer
 Disallow: /seller
 Disallow: /cart
 Disallow: /linesheet
+Disallow: /catalog
 Disallow: /data/
 Disallow: /vendor/
 Disallow: /sheets/
