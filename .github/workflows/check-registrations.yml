@@ -35,39 +35,6 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Guncellenmis engelleme listesini mevcut leadlere uygula
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          script: |
-            cat > /tmp/vestra_reblock.php <<'PHPEOF'
-            <?php
-            $home = getenv("HOME");
-            require $home."/public_html/inc/notify.php";
-            require $home."/public_html/inc/products.php";
-            require $home."/public_html/inc/leads.php";
-
-            $block = vestra_discover_blocklist();
-            $leads = vestra_leads();
-            $kept = []; $removed = [];
-            foreach ($leads as $l) {
-              if (($l['source'] ?? '') !== 'OpenStreetMap') { $kept[] = $l; continue; }
-              $k = strtolower((string)($l['company'] ?? ''));
-              $isBlocked = false;
-              foreach ($block as $b) { if (str_contains($k, $b)) { $isBlocked = true; break; } }
-              if ($isBlocked) { $removed[] = $l['company'] ?? '?'; } else { $kept[] = $l; }
-            }
-            vestra_save_leads($kept);
-            echo "silinen (" . count($removed) . "):\n";
-            foreach ($removed as $r) echo "  - {$r}\n";
-            echo "\nkalan toplam lead: " . count($kept) . "\n";
-            PHPEOF
-            php /tmp/vestra_reblock.php
-            rm -f /tmp/vestra_reblock.php
-
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
