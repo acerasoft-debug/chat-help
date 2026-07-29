@@ -33,6 +33,10 @@ on:
         description: "Sadece premium marka satan leadlere gönder (true/false)"
         required: false
         default: "false"
+      only_emails:
+        description: "Sadece bu e-posta(lar)a gönder (allowlist; virgül/boşlukla ayrılır). Boşsa normal seçim."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -48,13 +52,14 @@ jobs:
           SEND_DRY: ${{ github.event.inputs.dry_run }}
           SEND_SKIP: ${{ github.event.inputs.skip_emails }}
           SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
+          SEND_ONLY: ${{ github.event.inputs.only_emails }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -73,6 +78,8 @@ jobs:
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
+            $ONLY = [];
+            foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_ONLY"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $ONLY[strtolower(trim($s))] = true; }
 
             $leads = vestra_leads();
 
@@ -91,6 +98,7 @@ jobs:
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
               if (isset($SKIP[$email])) continue;                                // explicitly excluded this run
+              if ($ONLY && !isset($ONLY[$email])) continue;                      // allowlist mode: only these addresses
               if (($l['status'] ?? '') === 'unsubscribed') continue;             // opted out
               if (($l['last_contacted_at'] ?? '') !== '') continue;              // already emailed once
               if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
