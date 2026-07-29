@@ -24,7 +24,8 @@ jobs:
             cat > /tmp/vcount.php <<'PHPEOF'
             <?php
             $home=getenv("HOME"); $pub=$home."/public_html";
-            require $pub."/inc/leads.php";
+            require $pub."/inc/products.php";   // vestra_read_json / vestra_data_dir burada
+            require $pub."/inc/leads.php";       // vestra_leads() bunu kullanir
             $leads = function_exists("vestra_leads") ? vestra_leads() : [];
             $total=count($leads); $withEmail=0; $noEmail=0; $byCountry=[]; $free=0; $biz=0;
             $freeList=["gmail.com","googlemail.com","hotmail.com","hotmail.de","hotmail.fr","outlook.com",
