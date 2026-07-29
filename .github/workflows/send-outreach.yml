@@ -1,0 +1,152 @@
+name: (Lead) Kampanya e-postası gönder (gerçek — Les Garage de Paris)
+
+# Elle tetiklenir. Listedeki UYGUN prospect'lere premium logo-duvarlı kampanyayı
+# gönderir (builder: inc/notify.php · vestra_campaign_preview). Dil MÜŞTERİNİN
+# ÜLKESİNE göre: Hollanda → Flemenkçe (nl), diğer herkes → İngilizce (en).
+#
+# Uygunluk kuralları (hepsi sağlanmalı):
+#   • geçerli e-posta var
+#   • unsubscribed DEĞİL
+#   • daha önce HİÇ gönderilmemiş (last_contacted_at boş)  → aynı alıcıya asla iki kez
+#   • blocklist'te DEĞİL (büyük zincir / tek-marka flagship)
+# Her gönderilen lead: status=contacted + last_contacted_at damgalanır ve nota işlenir
+# ("belli olması" için). Her e-postaya kişiye özel tek-tık unsubscribe linki (token) gömülür.
+#
+# dry_run=true (VARSAYILAN): hiçbir e-posta GÖNDERMEZ — sadece seçilecek alıcıları
+# (firma / ülke / dil) listeler. Gerçekten göndermek için dry_run=false ver.
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: "Kaç prospect'e gönderilsin (uygun olanların ilk N'i)"
+        required: false
+        default: "10"
+      dry_run:
+        description: "Deneme (gönderme yok, sadece listele) — gerçek gönderim için 'false' yaz"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kampanyayı gönder (ya da dry-run listele)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEND_COUNT: ${{ github.event.inputs.count }}
+          SEND_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 8m
+          envs: SEND_COUNT,SEND_DRY
+          script: |
+            cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
+            <?php
+            @set_time_limit(0);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+            require $home."/public_html/inc/leads.php";
+
+            $COUNT = (int)(getenv("SEND_COUNT") ?: 10);
+            if ($COUNT < 1) $COUNT = 1;
+            if ($COUNT > 50) $COUNT = 50;            // hard cap — one batch never exceeds 50
+            $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
+            $FROM = 'Les Garage de Paris';
+            $NL = ['netherlands','the netherlands','nederland','holland','nl'];
+
+            $leads = vestra_leads();
+
+            // Every e-mail already contacted (across ALL lead records) — so an address is never
+            // emailed a second time even if it somehow appears on two lead rows.
+            $contacted = [];
+            foreach ($leads as $l) {
+              if (($l['last_contacted_at'] ?? '') !== '') {
+                $e = strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $contacted[$e] = true;
+              }
+            }
+
+            // Select eligible leads (first COUNT), de-duped by e-mail within the batch too.
+            $picked = []; $seen = [];
+            foreach ($leads as $l) {
+              $email = strtolower(trim((string)($l['email'] ?? '')));
+              if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
+              if (($l['status'] ?? '') === 'unsubscribed') continue;             // opted out
+              if (($l['last_contacted_at'] ?? '') !== '') continue;              // already emailed once
+              if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
+              if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
+              $seen[$email] = true;
+              $picked[] = $l;
+              if (count($picked) >= $COUNT) break;
+            }
+
+            echo $DRY ? "== DRY-RUN — gonderim YOK, sadece secim listesi ==\n"
+                      : "== GERCEK GONDERIM — Les Garage de Paris ==\n";
+            echo "uygun secilen: " . count($picked) . " / hedef: {$COUNT}\n\n";
+
+            // id -> index, so a successful send stamps the master array (not the picked copy).
+            $idx = [];
+            foreach ($leads as $i => $l) { $id = (string)($l['id'] ?? ''); if ($id !== '') $idx[$id] = $i; }
+
+            $sent = 0; $fail = 0; $nlN = 0; $enN = 0;
+            foreach ($picked as $l) {
+              $company = (string)($l['company'] ?? '');
+              $email   = strtolower(trim((string)($l['email'] ?? '')));
+              $country = (string)($l['country'] ?? '');
+              $lang    = in_array(strtolower(trim($country)), $NL, true) ? 'nl' : 'en';
+              $flag    = $lang === 'nl' ? 'NL/Flemenkce' : 'EN/Ingilizce';
+              $lang === 'nl' ? $nlN++ : $enN++;
+
+              if ($DRY) {
+                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag}\n";
+                continue;
+              }
+
+              list($subject, $body, $opts) = vestra_campaign_preview($company, $lang);
+              // Compliance: swap the builder's generic opt-out link for THIS lead's tokenised
+              // one-click unsubscribe, so the recipient can actually opt out of their own record.
+              $token = (string)($l['unsub_token'] ?? '');
+              if ($token !== '') {
+                $body = str_replace(
+                  'https://vestrasales.com/lead-unsubscribe',
+                  'https://vestrasales.com/lead-unsubscribe?token=' . rawurlencode($token),
+                  $body
+                );
+              }
+
+              $ok = vestra_send_mail($email, $subject, $body, '', $FROM, null, '', $opts);
+              if ($ok) {
+                $sent++;
+                $i = $idx[(string)($l['id'] ?? '')] ?? null;
+                if ($i !== null) {
+                  if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+                  $leads[$i]['last_contacted_at'] = date('c');
+                  $leads[$i]['last_campaign'] = 'les-garage/' . $lang;
+                  $note = trim((string)($leads[$i]['notes'] ?? ''));
+                  $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'campaign(' . $lang . ') ' . date('Y-m-d'));
+                }
+                echo "  + GONDERILDI: {$company} <{$email}> | dil={$flag}\n";
+              } else {
+                $fail++;
+                echo "  x HATA (gonderilemedi): {$company} <{$email}> | dil={$flag}\n";
+              }
+            }
+
+            if (!$DRY && $sent > 0) vestra_save_leads($leads);
+
+            echo "\n----\n";
+            echo "dil dagilimi (secilen): NL={$nlN}  EN={$enN}\n";
+            if ($DRY) {
+              echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
+            } else {
+              echo "BITTI. gonderildi: {$sent}, hata: {$fail}. toplam lead: " . count($leads) . "\n";
+            }
+            PHPEOF
+            php /tmp/vestra_send_outreach.php
+            rm -f /tmp/vestra_send_outreach.php
