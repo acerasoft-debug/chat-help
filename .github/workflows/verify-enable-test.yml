@@ -1,0 +1,72 @@
+name: (Tek seferlik) Email doğrulamayı aç + canlı test
+
+# Elle tetiklenir. Sunucudaki inc/config.php içinde require_email_verify=true yapar
+# (önce yedek alır, sonra yeniden yükleyip doğrular), ardından plus-adresli bir test
+# kaydı oluşturarak doğrulama e-postasının GERÇEKTEN gittiğini kanıtlar. Test e-postası
+# acerasoft+verifytest@gmail.com adresine (Gmail bunu acerasoft@gmail.com kutusuna düşürür)
+# gider. Log'a yalnızca boolean/durum yazılır -- config sırları ASLA yazılmaz.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: require_email_verify=true + test kaydı
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_enable_verify.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            $cfgF = $home."/public_html/inc/config.php";
+            if (!is_readable($cfgF)) { echo "HATA: config.php okunamiyor\n"; exit(1); }
+            $orig = file_get_contents($cfgF);
+            $bak  = $cfgF.".bak";
+            file_put_contents($bak, $orig);
+
+            $n = 0;
+            $src = preg_replace('/(([\'"])require_email_verify\2\s*=>\s*)(true|false)/i', '${1}true', $orig, 1, $n);
+            if ($n === 0) {
+              // Anahtar yoksa: return [ / return array( hemen ardina ekle
+              $src = preg_replace('/return\s*(\[|array\s*\()/', "$0\n  'require_email_verify' => true,", $orig, 1, $n);
+            }
+            if ($n === 0 || $src === null) { echo "HATA: config.php icinde uygun yer bulunamadi, degisiklik YAPILMADI\n"; exit(1); }
+            file_put_contents($cfgF, $src);
+
+            // Yeniden yukleyip dogrula (config.php sadece bir dizi dondurur)
+            $c = @include $cfgF;
+            if (!is_array($c) || ($c['require_email_verify'] ?? false) !== true) {
+              file_put_contents($cfgF, $orig); // geri al
+              echo "HATA: dogrulama basarisiz -> config.php GERI ALINDI (yedekten)\n"; exit(1);
+            }
+            echo "OK: require_email_verify = true (yedek: config.php.bak)\n";
+
+            // Canli uctan-uca test: plus-adresli kayit -> dogrulama emaili acerasoft kutusuna dusmeli
+            require $home."/public_html/inc/auth.php";
+            $testEmail = "acerasoft+verifytest@gmail.com";
+            // Idempotent: ayni test hesabi varsa once sil
+            $accs = auth_accounts();
+            $accs = array_values(array_filter($accs, fn($a)=>strtolower($a['email']??'')!==$testEmail));
+            auth_save_accounts($accs);
+
+            $r = auth_register([
+              'email'=>$testEmail,'password'=>'Test12345!','password2'=>'Test12345!',
+              'type'=>'buyer','name'=>'Verify Test','company'=>'Verify Test Co'
+            ]);
+            if (is_string($r)) { echo "TEST KAYIT SONUCU (beklenmedik): {$r}\n"; exit(1); }
+            echo "test kaydi: status={$r['status']} email_verified=".var_export($r['email_verified'],true)."\n";
+            echo "dogrulama emaili gonderildi mi (verify_sent_ok): ".var_export($r['verify_sent_ok'] ?? null, true)."\n";
+            echo "test hesabi id (sonra silinecek): {$r['id']}\n";
+            echo ($r['status']==='pending_email' && ($r['verify_sent_ok']??false)) ? "SONUC: AKIS CALISIYOR (kayit->pending_email->email gonderildi)\n" : "SONUC: KONTROL GEREKLI\n";
+            PHPEOF
+            php /tmp/vestra_enable_verify.php
+            rm -f /tmp/vestra_enable_verify.php
