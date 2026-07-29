@@ -249,6 +249,13 @@ function vestra_discover_blocklist(): array {
     'd&g','gucci','prada','emporio armani','giorgio armani','armani','versace','burberry','hugo boss',
     'tommy hilfiger','calvin klein','michael kors','louis vuitton','chanel','dior','balenciaga','fendi',
     'moncler','off-white','amiri','valentino','saint laurent','givenchy','bottega veneta',
+    'max mara','harry winston','paul smith','ray-ban','rayban',
+    // fast-fashion group sister brands (same parent as zara/h&m above, easy to miss)
+    'massimo dutti','springfield','& other stories',
+    // footwear/eyewear giants (same tier as the sportswear giants above)
+    'birkenstock','geox','skechers',
+    // big supermarket/department-store chains
+    'monoprix',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
