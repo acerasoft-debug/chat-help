@@ -24,3 +24,24 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           script: bash ~/deploy.sh
+
+      # deploy.sh'ın ana rsync'i uploads/'u HARİÇ tutuyor (satıcı yüklemelerini
+      # korumak için). Bu yüzden git'e eklediğimiz ÜRÜN görselleri sunucuya hiç
+      # gitmiyordu. Aşağıdaki additive rsync git'teki ürün görsellerini public_html'e
+      # kopyalar; --delete YOK, dolayısıyla sunucudaki (git'te olmayan) satıcı
+      # yüklemeleri korunur.
+      - name: Ürün görsellerini senkronla (uploads/ additive)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          script: |
+            VUP=$(find "$HOME" -maxdepth 6 -type d -path '*/vestra/uploads' -not -path '*/public_html/*' 2>/dev/null | head -1)
+            if [ -n "$VUP" ]; then
+              rsync -a "$VUP/" "$HOME/public_html/uploads/" && echo "uploads senkron OK: $VUP -> public_html/uploads"
+            else
+              echo "UYARI: git vestra/uploads bulunamadi — atlaniyor"
+            fi
