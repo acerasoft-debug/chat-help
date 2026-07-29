@@ -35,39 +35,6 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
-      - name: (GECICI) Placeholder email'leri mevcut leadlerden temizle
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          script: |
-            cat > /tmp/vestra_emailclean.php <<'PHPEOF'
-            <?php
-            $home = getenv("HOME");
-            require $home."/public_html/inc/notify.php";
-            require $home."/public_html/inc/products.php";
-            require $home."/public_html/inc/leads.php";
-
-            $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg|domain\.com$|email\.com$|test@|@test\.|voorbeeld|beispiel|exemple\.|esempio|ejemplo|xxx@xxx|xxx\.xxx|your-email|youremail|email@email|name@domain|user@domain|abc@abc)#i';
-            $leads = vestra_leads();
-            $cleaned = [];
-            foreach ($leads as &$l) {
-              $e = (string)($l['email'] ?? '');
-              if ($e !== '' && preg_match($junk, $e)) {
-                $cleaned[] = ($l['company'] ?? '?') . ' | eski: ' . $e;
-                $l['email'] = '';
-              }
-            }
-            unset($l);
-            vestra_save_leads($leads);
-            echo "temizlenen (" . count($cleaned) . "):\n";
-            foreach ($cleaned as $c) echo "  - {$c}\n";
-            PHPEOF
-            php /tmp/vestra_emailclean.php
-            rm -f /tmp/vestra_emailclean.php
-
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
