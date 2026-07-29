@@ -5,6 +5,14 @@ on:
       emails:
         description: "E-posta(lar) — virgül/boşluk/satır ile ayrılabilir (birden çok olabilir)"
         required: true
+      company:
+        description: "Firma adı (opsiyonel; SADECE tek e-posta eklerken uygulanır)"
+        required: false
+        default: ""
+      country:
+        description: "Ülke (opsiyonel; SADECE tek e-posta eklerken uygulanır)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -14,6 +22,7 @@ permissions:
 # Tekrar önleme: zaten olan e-posta atlanır. İş alan adı için: firma adı site
 # <title>'ından, ülke TLD'den türetilir, site premium marka satıyorsa işaretlenir.
 # Ücretsiz sağlayıcılar (gmx, gmail, hotmail…) için site taranmaz, ad yerel-kısımdan alınır.
+# company/country girilirse ve TEK e-posta ekleniyorsa, türetmeyi ezerler (bilinen firma için).
 jobs:
   add:
     runs-on: ubuntu-latest
@@ -22,13 +31,15 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           LEAD_EMAILS: ${{ github.event.inputs.emails }}
+          LEAD_COMPANY: ${{ github.event.inputs.company }}
+          LEAD_COUNTRY: ${{ github.event.inputs.country }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 6m
-          envs: LEAD_EMAILS
+          envs: LEAD_EMAILS,LEAD_COMPANY,LEAD_COUNTRY
           script: |
             cat > /tmp/vestra_add_lead.php <<'PHPEOF'
             <?php
@@ -40,6 +51,9 @@ jobs:
             $raw = (string)getenv("LEAD_EMAILS");
             $emails = preg_split('/[\s,;]+/', trim($raw), -1, PREG_SPLIT_NO_EMPTY);
             if (!$emails) { echo "HATA: e-posta verilmedi\n"; exit(1); }
+            $single = (count($emails) === 1);
+            $ovCompany = $single ? trim((string)getenv("LEAD_COMPANY")) : '';
+            $ovCountry = $single ? trim((string)getenv("LEAD_COUNTRY")) : '';
 
             $leads = vestra_leads();
             $seen = [];
@@ -72,6 +86,8 @@ jobs:
                 if ($company === '') $company = $domain;
                 $pb = function_exists('vestra_premium_brands') ? vestra_premium_brands($website) : [];
               }
+              if ($ovCompany !== '') $company = $ovCompany;
+              if ($ovCountry !== '') $country = $ovCountry;
               $leads[] = [
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>'',
                 'company'=>$company,'contact_name'=>'',
