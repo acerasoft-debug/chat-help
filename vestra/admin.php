@@ -750,6 +750,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(!in_array($l['id']??'',$ids,true)) continue;
       if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)) continue; // research lead without an email yet
+      if(($l['last_contacted_at']??'')!=='') continue; // already emailed once — no auto-resend
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
       if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){
         $sent++;
@@ -781,6 +782,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
       if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
+      /* Already emailed once — never auto-resend the same outreach to the same
+         boutique. The lead stays in the list either way; this only blocks a repeat
+         send (accidental re-select, a second "run all", etc.), not the record itself. */
+      if(($l['last_contacted_at']??'')!==''){ $res['error']='already_sent'; break; }
       $pair=$ai?vestra_ai_personalize($l,$tpl,$senderName):null;
       [$subject,$body]=$pair!==null?$pair:vestra_lead_render_email($l,$tpl);
       if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){ $res['ok']=true; $res['ai']=($pair!==null); if(($l['status']??'new')==='new') $l['status']='contacted'; $l['last_contacted_at']=date('c'); }
@@ -3014,7 +3019,7 @@ function runAutomationNow(btn){
         <?php endforeach; ?>
       </select>
       <button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadBulkDelete(this.form)">🗑 Delete selected</button>
-      <span class="ahint">Send: max 50 · unsubscribed/email-less are safely skipped · pick a seller to send from their address. Delete: any selected row, no limit.</span>
+      <span class="ahint">Send: max 50 · unsubscribed/email-less/already-emailed are safely skipped (no auto-resend to the same prospect) · pick a seller to send from their address. Delete: any selected row, no limit.</span>
     </div>
     <div id="sobWrap" style="display:none;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--bg2)">
       <div id="sobBar" style="font-weight:600;font-size:13px;margin-bottom:8px"></div>
@@ -3030,14 +3035,15 @@ function runAutomationNow(btn){
       var aiEl=document.getElementById('aiPersonalize'); var ai=(aiEl&&aiEl.checked)?'1':'';
       var wrap=document.getElementById('sobWrap'), bar=document.getElementById('sobBar'), log=document.getElementById('sobLog');
       wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
-      var i=0, ok=0, fail=0;
+      var i=0, ok=0, fail=0, skip=0;
       function next(){
-        if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+fail+' failed of '+ids.length+'. Refresh to see updated statuses.'; btn.disabled=false; return; }
+        if(i>=ids.length){ bar.textContent='✓ Done — '+ok+' sent, '+skip+' already emailed (skipped), '+fail+' failed of '+ids.length+'. Refresh to see updated statuses.'; btn.disabled=false; return; }
         bar.textContent='Sending '+(i+1)+' / '+ids.length+'…';
         var fd=new FormData(); fd.append('_action','send_lead_one'); fd.append('_csrf',VADMIN_CSRF); fd.append('lead_id',ids[i]); fd.append('l_seller_uid',seller); fd.append('ai',ai);
         fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
           var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
           if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||d.email||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
+          else if(d.error==='already_sent'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">already emailed, skipped</span>'; }
           else { fail++; line.style.color='#c0392b'; line.innerHTML='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
           log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
         }).catch(function(){ fail++; i++; setTimeout(next,250); });
@@ -3047,9 +3053,9 @@ function runAutomationNow(btn){
     </script>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
-      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $findable=($noEmail && !$unsub && !empty($l['website'])); ?>
+      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $alreadySent=($l['last_contacted_at']??'')!==''; $findable=($noEmail && !$unsub && !empty($l['website'])); ?>
       <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>" data-id="<?= htmlspecialchars($l['id']??'') ?>" data-findable="<?= $findable?'1':'0' ?>">
-        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':'' ?>"></td>
+        <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':($alreadySent?'Already emailed — send skips it automatically (no auto-resend), still selectable to delete':'') ?>"></td>
         <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
         <td class="ac" style="font-size:11px"><?php if(!$noEmail): ?><span style="cursor:pointer" title="Click to edit" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['email']) ?>')"><?= htmlspecialchars($l['email']) ?></span><?php elseif(!$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','')">＋ Add email</button><?php if($finderOn && !empty($l['website'])): ?> <button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadFindEmail('<?= htmlspecialchars($l['id']??'') ?>')" title="Look up a verified email from the website">🔍 Find</button><?php endif; ?><?php else: ?>—<?php endif; ?></td>
