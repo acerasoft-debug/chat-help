@@ -29,6 +29,10 @@ on:
         description: "Atlanacak e-posta(lar) — virgül/boşlukla ayrılabilir (bu adreslere gönderilmez)"
         required: false
         default: ""
+      premium_only:
+        description: "Sadece premium marka satan leadlere gönder (true/false)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -43,13 +47,14 @@ jobs:
           SEND_COUNT: ${{ github.event.inputs.count }}
           SEND_DRY: ${{ github.event.inputs.dry_run }}
           SEND_SKIP: ${{ github.event.inputs.skip_emails }}
+          SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -67,6 +72,7 @@ jobs:
             $NL = ['netherlands','the netherlands','nederland','holland','nl'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
+            $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
 
             $leads = vestra_leads();
 
@@ -89,6 +95,7 @@ jobs:
               if (($l['last_contacted_at'] ?? '') !== '') continue;              // already emailed once
               if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
               if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
+              if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
