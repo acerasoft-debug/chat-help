@@ -37,6 +37,10 @@ on:
         description: "Sadece bu e-posta(lar)a gönder (allowlist; virgül/boşlukla ayrılır). Boşsa normal seçim."
         required: false
         default: ""
+      country_filter:
+        description: "Sadece bu ülke(ler)deki leadlere gönder (virgülle ayrılabilir). Boşsa tüm ülkeler."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -53,13 +57,14 @@ jobs:
           SEND_SKIP: ${{ github.event.inputs.skip_emails }}
           SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
           SEND_ONLY: ${{ github.event.inputs.only_emails }}
+          SEND_COUNTRY: ${{ github.event.inputs.country_filter }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -80,6 +85,8 @@ jobs:
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
             $ONLY = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_ONLY"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $ONLY[strtolower(trim($s))] = true; }
+            $COUNTRIES = [];
+            foreach (explode(',', (string)getenv("SEND_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $COUNTRIES[$s] = true; }
 
             $leads = vestra_leads();
 
@@ -104,6 +111,7 @@ jobs:
               if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
               if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
+              if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
