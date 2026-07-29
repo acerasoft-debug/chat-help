@@ -35,6 +35,83 @@ jobs:
           curl -sS "https://api.brevo.com/v3/senders/domains/vestrasales.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
 
+      - name: (GECICI) Yenilenmis premium kampanyayi (katalog indirme linkli) test gonder
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_camp2.php <<'PHPEOF'
+            <?php
+            // Yenilenmis, daha premium ornek kampanya -- sadece operatorun kendi kutusuna
+            // (acerasoft@gmail.com) gider, gonderen goruntu adi "Les Garage de Paris".
+            // Marka bazli herkese-acik Excel katalog linkleri eklenir (trade fiyat YOK).
+            $home = getenv("HOME");
+            require $home."/public_html/inc/notify.php";
+            require $home."/public_html/inc/products.php";
+
+            // Sadece urunu OLAN markalara katalog linki ver (bos markaya link verme).
+            $counts = [];
+            foreach (vestra_products() as $p) {
+              $b = trim((string)($p['brand'] ?? ''));
+              if ($b === '') continue;
+              $counts[$b] = ($counts[$b] ?? 0) + 1;
+            }
+            arsort($counts);
+            echo "katalogda marka (urun sayisi):\n";
+            foreach ($counts as $b=>$c) echo "  {$b}: {$c}\n";
+
+            $downloads = [];
+            foreach (array_slice(array_keys($counts), 0, 8) as $b) {
+              $downloads[] = ['label'=>$b, 'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+            }
+            if (!$downloads) $downloads[] = ['label'=>'Full selection', 'url'=>'https://vestrasales.com/catalog'];
+
+            $subject = "Les Garage de Paris × VESTRA — the authentic designer wholesale edit";
+            $body = implode("\n", [
+              "Hello,",
+              "",
+              "A brief introduction from Les Garage de Paris — through VESTRA, the KYC-verified B2B marketplace for authentic designer fashion at wholesale.",
+              "",
+              "We supply premium multi-brand boutiques with the houses their clients ask for by name: 100% authentic, authenticity-verified on delivery, on clear invoice terms.",
+              "",
+              "Our current selection is below as ready-to-open Excel line-sheets. Trade pricing is reserved for verified partners — register once (it's free) and every price unlocks instantly.",
+              "",
+              "Why boutiques buy through VESTRA:",
+              "• Authentic-only — every seller is background-checked; goods are verified before payment is released.",
+              "• Trade margins — designer labels at wholesale, with low minimums so you can test a capsule first.",
+              "• Escrow-protected — you're covered until the stock arrives exactly as described.",
+              "",
+              "Tell me your brand mix and I'll curate a selection for your floor.",
+              "",
+              "Warm regards,",
+              "Les Garage de Paris · via VESTRA",
+              "",
+              "—",
+              "Les Garage de Paris via VESTRA (operated by acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
+              "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+            ]);
+            $opts = [
+              'badge' => '✨ Authentic designer wholesale',
+              'downloads' => ['title' => 'Line-sheets — download (Excel)', 'items' => $downloads],
+              'rows' => [
+                ['label'=>'Authenticity','value'=>'Verified on delivery'],
+                ['label'=>'Payment','value'=>'Escrow-protected invoice'],
+                ['label'=>'Minimums','value'=>'Low — capsule-friendly','strong'=>true],
+              ],
+              'button' => ['label'=>'Register for trade pricing','url'=>'https://vestrasales.com/register'],
+            ];
+            $ok = vestra_send_mail('acerasoft@gmail.com', $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
+            echo $ok
+              ? "\nGONDERILDI: yenilenmis premium kampanya (".count($downloads)." katalog linki) acerasoft@gmail.com adresine gonderildi.\n"
+              : "\nHATA: gonderim basarisiz.\n";
+            PHPEOF
+            php /tmp/vestra_camp2.php
+            rm -f /tmp/vestra_camp2.php
+
       - name: Sunucuda hesap durumunu oku
         uses: appleboy/ssh-action@v1.0.3
         with:
