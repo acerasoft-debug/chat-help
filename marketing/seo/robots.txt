@@ -1,0 +1,26 @@
+# ChatHelp robots.txt — ins Web-Root (https://chat-help.com/robots.txt) legen.
+User-agent: *
+Allow: /
+
+# Entwicklungs-/Diagnose-Skripte nicht indexieren (Junk + Sicherheit)
+Disallow: /chat/apply-
+Disallow: /chat/dump-
+Disallow: /chat/dump
+Disallow: /chat/diagnostic.php
+Disallow: /chat/audit.php
+Disallow: /chat/cleanup.php
+Disallow: /chat/show-keys.php
+Disallow: /chat/make-
+Disallow: /chat/opcache-reset.php
+Disallow: /chat/*mail-test*
+Disallow: /chat/*-test.php
+Disallow: /chat/fix-
+Disallow: /chat/apply
+Disallow: /chat/relay-mail.php
+Disallow: /chat/smtp-fix.php
+
+# APIs/Endpunkte, die kein Suchergebnis sein sollen
+Disallow: /chat/fall-api.php
+Disallow: /chat/intake-api.php
+
+Sitemap: https://chat-help.com/sitemap.xml
