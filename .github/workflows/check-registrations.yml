@@ -157,6 +157,9 @@ jobs:
             echo "email bulunmus: {$withEmail}\n";
             echo "website var ama email yok (bulunabilir aday): {$withWebsiteNoEmail}\n";
             echo "ne website ne email var (bulunamaz): {$noWebsiteNoEmail}\n";
+            $prem = count(array_filter($leads, fn($l)=>!empty($l['premium'])));
+            $premEmail = count(array_filter($leads, fn($l)=>!empty($l['premium']) && ($l['email']??'')!==''));
+            echo "premium marka satan: {$prem} (bunlarin {$premEmail} tanesinde email de var -- kampanya onceligi)\n";
             $bySrc = []; $byStatusL = [];
             foreach ($leads as $l) {
               $s = $l['source'] ?? '(yok)'; $bySrc[$s] = ($bySrc[$s]??0)+1;
