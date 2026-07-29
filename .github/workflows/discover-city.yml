@@ -1,0 +1,81 @@
+name: (Lead) Şehir/bölge butik keşfi (OSM) + ekle
+on:
+  workflow_dispatch:
+    inputs:
+      places:
+        description: "Yerler: 'Ülke|Şehir' çiftleri, virgülle ayrık"
+        required: false
+        default: "Greece|Rhodes, Spain|Ibiza, Spain|Palma"
+
+permissions:
+  contents: read
+
+# Elle tetiklenir. OpenStreetMap (Overpass) ile verilen şehir/bölgelerdeki moda/butik
+# dükkanlarını bulur, büyük zincir/tek-marka mağazalarını eler (blocklist + brand etiketi),
+# data/leads.json'a EKLER (dedup), sonra websitesi olan yeni leadler için e-posta bulmaya
+# çalışır (Hunter + site tarama), zaman bütçesi dolunca kalanı e-postasız bırakır.
+# Hiçbir e-posta GÖNDERMEZ — sadece listeye ekler.
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Keşfet + ekle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DISCOVER_PLACES: ${{ github.event.inputs.places }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 25m
+          envs: DISCOVER_PLACES
+          script: |
+            cat > /tmp/vestra_discover_city.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+            require_once $home."/public_html/inc/notify.php";
+            @set_time_limit(0);
+
+            $raw = trim((string)getenv("DISCOVER_PLACES"));
+            if ($raw === '') $raw = "Greece|Rhodes, Spain|Ibiza, Spain|Palma";
+            $places = [];
+            foreach (explode(',', $raw) as $p) {
+              $p = trim($p); if ($p === '' || strpos($p, '|') === false) continue;
+              [$c, $ct] = array_map('trim', explode('|', $p, 2));
+              if ($c !== '' && $ct !== '') $places[] = [$c, $ct];
+            }
+            if (!$places) { echo "HATA: gecerli yer yok\n"; exit(1); }
+
+            $start = time(); $budget = 1080; // ~18 dk e-posta bulma butcesi
+            $tFound = 0; $tAdded = 0; $eFound = 0; $eChecked = 0;
+
+            foreach ($places as [$country, $city]) {
+              $rows = vestra_discover_osm($country, $city, 80);
+              $ok = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
+              [$added, ] = $rows ? vestra_leads_add($rows) : [[], 0];
+              $tFound += count($rows); $tAdded += count($added);
+              echo "* {$city} ({$country}): bulundu ".count($rows).", yeni eklendi ".count($added).($ok?'':'  [UYARI: Overpass'a ulasilamadi, eksik olabilir]')."\n";
+
+              $ids = array_column(array_filter($added, fn($r) => ($r['email'] ?? '') === '' && ($r['website'] ?? '') !== ''), 'id');
+              if ($ids) {
+                $all = vestra_leads(); $ch = 0;
+                foreach ($all as &$l) {
+                  if (!in_array($l['id'] ?? '', $ids, true)) continue;
+                  if (time() - $start > $budget) break;
+                  $e = vestra_find_email((string)($l['website'] ?? '')); $eChecked++; $ch++;
+                  if ($e !== '') { $l['email'] = $e; $eFound++; }
+                }
+                unset($l);
+                vestra_save_leads($all);
+                echo "    e-posta: bu sehirde {$ch} site tarandi\n";
+              }
+              if (time() - $start > $budget) { echo "    (e-posta butcesi doldu -- kalan leadler e-postasiz eklendi)\n"; }
+            }
+            echo "\n== TOPLAM: {$tFound} bulundu, {$tAdded} yeni eklendi, {$eFound}/{$eChecked} e-posta bulundu ==\n";
+            echo "toplam lead: ".count(vestra_leads())."\n";
+            PHPEOF
+            php /tmp/vestra_discover_city.php
+            rm -f /tmp/vestra_discover_city.php
