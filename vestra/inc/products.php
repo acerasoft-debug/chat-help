@@ -1,0 +1,513 @@
+<?php
+/**
+ * VESTRA — sample catalog (single source of truth).
+ * Pricing modes:  'fixed' (tiered), 'sale' (discounted vs list), 'offer' (make-an-offer / negotiate).
+ * B2B: MOQ (min order) + tiered pricing (more qty -> lower unit price). Demo data.
+ */
+/* Platform fees — single source of truth (used by order.php + cart.php).
+   Both are 0 while VESTRA runs on the seller-membership model: the buyer pays the
+   seller's invoice directly by bank transfer, so a platform fee on top would never
+   match the invoice total. Cart/emails hide fee lines automatically while 0. */
+if(!defined('VESTRA_FEE_SELLER')) define('VESTRA_FEE_SELLER', 0.0);
+if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
+/* Escrow (Treuhand) only: a fixed buyer-protection fee added to the buyer's total,
+   collected together with the seller's tiered commission as the Stripe application
+   fee on the direct charge. Bank-transfer orders are unaffected (buyer pays 0). */
+if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038);
+/* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
+   goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
+   once the order is marked paid. Never touches the buyer-facing cart/invoice total. This
+   constant is the Starter-tier (and fallback) rate; Pro/Elite get a lower rate — see
+   vestra_seller_commission_rate() below. */
+if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
+require_once __DIR__.'/i18n.php';
+require_once __DIR__.'/notify.php';
+if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
+
+function vestra_demo_products(){
+  $P = [
+    [
+      'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc',
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
+      'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,
+      'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
+      'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-beige.jpg',
+                 '/uploads/lacoste/l1212-navy.jpg','/uploads/lacoste/l1212-yellow.jpg','/uploads/lacoste/l1212-pink.jpg',
+                 '/uploads/lacoste/l1212-bordeaux.jpg','/uploads/lacoste/l1212-green.jpg','/uploads/lacoste/l1212-blue.jpg',
+                 '/uploads/lacoste/l1212-lightblue.png'],
+      'linesheet'=>true,'sheet_file'=>'lacoste-l1212-poloshirt-preorder.pdf',
+      'specs'=>[
+        'Composition'=>'100% cotton piqué',
+        'Fabric weight'=>'≈ 200 gsm',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Care'=>'Machine wash 30°C · do not tumble dry',
+        'Packaging'=>'Cartons of 8 per colourway (8+8)',
+        'Lead time'=>'Pre-order — in stock from 5 May',
+        'Season'=>'SS26 · core carryover',
+        'Made in'=>'France / EU',
+        'Customs code (HS)'=>'6105.10.00',
+      ],
+      'variants'=>[
+        ['art'=>'LCMP103200','model'=>'L.12.12 00 031','color'=>'Black','image'=>'/uploads/lacoste/l1212-black.jpg'],
+        ['art'=>'LCMP103201','model'=>'L.12.12 00 001','color'=>'White','image'=>'/uploads/lacoste/l1212-white.jpg'],
+        ['art'=>'LCMP103202','model'=>'L.12.12 00 025','color'=>'Beige','image'=>'/uploads/lacoste/l1212-beige.jpg'],
+        ['art'=>'LCMP103203','model'=>'L.12.12 00 166','color'=>'Navy','image'=>'/uploads/lacoste/l1212-navy.jpg'],
+        ['art'=>'LCMP103205','model'=>'L.12.12 00 107','color'=>'Yellow','image'=>'/uploads/lacoste/l1212-yellow.jpg'],
+        ['art'=>'LCMP103206','model'=>'L.12.12 00 T03','color'=>'Pink','image'=>'/uploads/lacoste/l1212-pink.jpg'],
+        ['art'=>'LCMP103207','model'=>'L.12.12 00 476','color'=>'Bordeaux','image'=>'/uploads/lacoste/l1212-bordeaux.jpg'],
+        ['art'=>'LCMP103208','model'=>'L.12.12 00 132','color'=>'Green','image'=>'/uploads/lacoste/l1212-green.jpg'],
+        ['art'=>'LCMP103209','model'=>'L.12.12 00 4XA','color'=>'Blue','image'=>'/uploads/lacoste/l1212-blue.jpg'],
+        ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
+      ],
+      'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
+      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 320 pc → €25/pc
+    ],
+    [
+      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
+      'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,
+      'colors'=>['Black','White','Navy','Grey'],
+      'images'=>['/uploads/amiri/amiri-core-polo-black.png','/uploads/amiri/amiri-core-polo-white.png',
+                 '/uploads/amiri/amiri-core-polo-navy.png','/uploads/amiri/amiri-core-polo-grey.png'],
+      'linesheet'=>true,'sheet_file'=>'ami-paris-polo.pdf',
+      'specs'=>[
+        'Composition'=>'100% organic cotton piqué',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Signature'=>'Ami de Cœur embroidered heart-A crest',
+        'Care'=>'Machine wash 30°C · wash inside out · do not tumble dry',
+        'Packaging'=>'Cartons of 10 per colour · mixed sizes S·M·L·XL·XXL',
+        'Season'=>'SS26 · Summer',
+        'Made in'=>'Portugal / EU',
+        'Authenticity'=>'Verified on delivery · proof of sourcing on request',
+      ],
+      'variants'=>[
+        ['art'=>'BFUPL001.760.001','model'=>'Ami de Cœur','color'=>'Black','image'=>'/uploads/amiri/amiri-core-polo-black.png'],
+        ['art'=>'BFUPL001.760.100','model'=>'Ami de Cœur','color'=>'White','image'=>'/uploads/amiri/amiri-core-polo-white.png'],
+        ['art'=>'BFUPL001.760.430','model'=>'Ami de Cœur','color'=>'Navy','image'=>'/uploads/amiri/amiri-core-polo-navy.png'],
+        ['art'=>'BFUPL001.760.095','model'=>'Ami de Cœur','color'=>'Grey','image'=>'/uploads/amiri/amiri-core-polo-grey.png'],
+      ],
+      'tiers'=>[['min'=>50,'price'=>42.00],['min'=>150,'price'=>36.00],['min'=>300,'price'=>32.00]],
+    ],
+  ];
+  return vestra_apply_price_overrides($P);
+}
+/* ── Admin price/MOQ overrides for the built-in demo products ──────────────
+   The demo product(s) above are hard-coded, but the admin "Prices" editor lets
+   the owner retune their MOQ, list price and tier pricing without touching code.
+   Those edits live in data/product_overrides.json ({id => {moq,list,tiers}}) and
+   are layered on top here so a redeploy never wipes them. Live seller listings
+   are edited directly in listings.json instead (they are already mutable). */
+function vestra_product_overrides(): array {
+  $f = vestra_data_dir().'/product_overrides.json';
+  if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+  return [];
+}
+function vestra_apply_price_overrides(array $products): array {
+  $ov = vestra_product_overrides();
+  if(!$ov) return $products;
+  foreach($products as &$p){
+    $o = $ov[$p['id']??''] ?? null;
+    if(!is_array($o)) continue;
+    if(isset($o['moq']))  $p['moq']  = (int)$o['moq'];
+    if(isset($o['list'])) $p['list'] = (float)$o['list'];
+    if(isset($o['mode']) && $o['mode']!=='') $p['mode'] = (string)$o['mode'];
+    if(isset($o['tiers']) && is_array($o['tiers']) && $o['tiers']){
+      $t=[];
+      foreach($o['tiers'] as $row){
+        if(!isset($row['min'],$row['price'])) continue;
+        $t[]=['min'=>(int)$row['min'],'price'=>(float)$row['price']];
+      }
+      if($t){ usort($t, fn($a,$b)=>$a['min']<=>$b['min']); $p['tiers']=$t; }
+    }
+  }
+  unset($p);
+  return $products;
+}
+function vestra_save_product_overrides(array $ov): void {
+  $f = vestra_data_dir().'/product_overrides.json';
+  file_put_contents($f, json_encode($ov, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+/* Which products are demo (override-backed) vs live listings (listings.json-backed). */
+function vestra_is_demo_product(string $id): bool {
+  foreach(['lac-pique-polo','amiri-core-polo'] as $d){ if($d===$id) return true; }
+  return false;
+}
+/* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
+function vestra_brand_logo($brand){
+  $L=[
+    'DSQUARED2'=>
+      '<svg viewBox="0 0 230 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="24" font-weight="900" letter-spacing="2">'.
+      'DSQUARED<tspan dy="-10" font-size="15">2</tspan></text></svg>',
+
+    'Lacoste'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="6">'.
+      'LACOSTE</text></svg>',
+
+    'Ralph Lauren'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="36%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="19" font-weight="400" letter-spacing="4">'.
+      'RALPH LAUREN</text>'.
+      '<line x1="28%" y1="58%" x2="72%" y2="58%" stroke="rgba(255,255,255,.45)" stroke-width="0.8"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.65)" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="11" letter-spacing="4">POLO</text></svg>',
+
+    'Amiri'=>
+      '<svg viewBox="0 0 180 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="34" font-weight="400" letter-spacing="7">'.
+      'AMIRI</text></svg>',
+
+    'VESTRA Essentials'=>
+      '<svg viewBox="0 0 200 68" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="38%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="5">'.
+      'VESTRA</text>'.
+      '<text x="50%" y="72%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.55)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="10" font-weight="300" letter-spacing="5">'.
+      'ESSENTIALS</text></svg>',
+
+    'Dolce & Gabbana'=>
+      '<svg viewBox="0 0 220 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="Georgia,\'Times New Roman\',serif" font-size="26" font-weight="700" letter-spacing="5">'.
+      'D&amp;G</text>'.
+      '<line x1="22%" y1="60%" x2="78%" y2="60%" stroke="rgba(255,255,255,.28)" stroke-width="0.7"/>'.
+      '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.52)" '.
+      'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="8.5" font-weight="400" letter-spacing="4">'.
+      'DOLCE &amp; GABBANA</text></svg>',
+  ];
+  return $L[$brand] ?? null;
+}
+
+/* seller-added listings (saved by the seller panel) merged into the live catalog */
+function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
+function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }
+function vestra_read_csv($name){ $f=vestra_data_dir().'/'.$name; $rows=[]; if(is_readable($f)&&($h=@fopen($f,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($r=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head){ $n=count($head); $r=array_slice(array_pad($r,$n,''),0,$n); $rows[]=array_combine($head,$r);} } fclose($h);} return array_reverse($rows); }
+/* Upgrade a CSV's header row in place when new trailing columns are added to a schema after
+   the file already exists on a live server — data rows are never touched (the reader above
+   already pads short rows with ''), only the first line is rewritten, and only when the
+   existing header is exactly a prefix of the new one (anything unexpected is left alone). */
+function vestra_csv_ensure_header(string $name, array $header): void {
+    $f = vestra_data_dir().'/'.$name;
+    if (!is_file($f)) return;
+    $fh = @fopen($f, 'r'); if (!$fh) return;
+    $firstLine = fgets($fh);
+    if ($firstLine === false) { fclose($fh); return; }
+    $current = str_getcsv(rtrim($firstLine, "\r\n"), ',', '"', '\\');
+    $rest = stream_get_contents($fh);
+    fclose($fh);
+    if ($current === $header || array_slice($header, 0, count($current)) !== $current) return;
+    $tmp = fopen('php://temp', 'r+');
+    fputcsv($tmp, $header, ',', '"', '\\');
+    rewind($tmp); $newHeaderLine = stream_get_contents($tmp); fclose($tmp);
+    file_put_contents($f, $newHeaderLine.$rest, LOCK_EX);
+}
+function vestra_live_listings(){ return array_values(array_filter(vestra_listings(), fn($p)=>($p['status']??'approved')==='approved')); }
+/* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
+   in the catalogue straight after a deploy — no import click needed — but are hidden
+   for any item already present as a real listing (same id or brand+SKU), so importing
+   them into listings.json never double-lists them. */
+function vestra_seed_catalog(){
+    $f = __DIR__.'/dsquared_seed.json';
+    if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
+    return [];
+}
+function vestra_products(){
+    $live = vestra_live_listings();
+    $seen = [];
+    foreach($live as $l){
+        $seen['id:'.strtolower((string)($l['id']??''))] = true;
+        $seen['bs:'.strtolower(trim(($l['brand']??'').'|'.($l['sku']??'')))] = true;
+    }
+    $seed = [];
+    foreach(vestra_seed_catalog() as $p){
+        $id='id:'.strtolower((string)($p['id']??''));
+        $bs='bs:'.strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')));
+        if(isset($seen[$id]) || isset($seen[$bs])) continue;
+        $seed[] = $p;
+    }
+    return array_merge(vestra_demo_products(), $live, $seed);
+}
+function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
+function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
+function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
+/* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):
+   "Milano Fashion GmbH" → "M···". Never reveals more than the first letter. */
+function vestra_mask_seller(string $s): string {
+    $s = trim($s);
+    return $s === '' ? '' : mb_strtoupper(mb_substr($s, 0, 1)).'···';
+}
+/* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
+function vestra_all_cats(){
+  return [
+    'Tops'               => ['T-Shirts','Polos','Shirts','Blouses','Sweaters & Knitwear','Cardigans','Hoodies & Sweatshirts','Tank Tops'],
+    'Bottoms'            => ['Trousers & Chinos','Jeans','Shorts','Skirts','Leggings'],
+    'Outerwear'          => ['Jackets','Coats','Blazers','Vests & Gilets'],
+    'Dresses & Suits'    => ['Dresses','Suits','Jumpsuits & Playsuits'],
+    'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Swimwear'],
+    'Underwear & Socks'  => ['Underwear','Lingerie','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
+    'Footwear'           => ['Sneakers','Boots','Sandals','Heels','Flats','Loafers','Slippers'],
+    'Bags & Luggage'     => ['Handbags','Backpacks','Tote Bags','Wallets & Purses','Travel & Luggage'],
+    'Accessories'        => ['Belts','Hats & Caps','Scarves & Shawls','Gloves','Sunglasses','Eyewear','Ties','Hair Accessories','Phone Cases'],
+    'Jewelry & Watches'  => ['Jewelry','Watches'],
+    'Kids & Baby'        => ['Kidswear','Babywear'],
+  ];
+}
+/* Curated colour palette for listings (name => swatch hex). Names are t()-translated at render. */
+function vestra_colors(){
+  return [
+    'Black'=>'#17181c','Navy'=>'#1f2a44','Blue'=>'#2b46c4','Light Blue'=>'#8db8d8','White'=>'#f2f1ec',
+    'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
+    'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
+    'Cream'=>'#f1e8d2','Khaki'=>'#6a704c','Fuchsia'=>'#d1256e',
+  ];
+}
+/* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
+function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): string {
+  $pal=vestra_colors(); $out=''; $shown=0;
+  foreach($colors as $c){
+    if(!isset($pal[$c])) continue;
+    if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
+    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $out.='<span class="cdot" title="'.htmlspecialchars(t($c)).'" style="background:'.$pal[$c].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
+    if($withNames) $out.='<span class="cname">'.htmlspecialchars(t($c)).'</span>';
+    $shown++;
+  }
+  return $out ? '<span class="cdots">'.$out.'</span>' : '';
+}
+/* True for listings that use the per-colour carton picker (e.g. Lacoste/Ralph Lauren polos:
+   min 4 colours, cartons of 8 or 10 per colour) instead of a plain colour checklist. */
+function vestra_is_colorqty_listing(array $p): bool {
+  return !empty($p['colors']) && !empty($p['min_colors']) && (int)($p['size_step'] ?? 0) > 1;
+}
+/* Singular-safe "at least N colour(s)" phrasing — most listings require 4, but some
+   only require 1, where "at least 1 colours" would read wrong. */
+function vestra_colours_phrase(int $n): string {
+  return $n === 1 ? t('at least 1 colour') : sprintf(t('at least %d colours'), $n);
+}
+function vestra_colours_warn(int $n): string {
+  return $n === 1 ? t('Please select at least 1 colour.') : sprintf(t('Please select at least %d colours.'), $n);
+}
+/* Validate + snap posted per-colour quantities ($posted = ['ColourName'=>qty,...], e.g. from
+   $_POST['cq']) against a listing's own colour list and pack step. Only colours the listing
+   actually offers count, and every quantity is snapped down to the nearest step multiple —
+   never trusts the client. Returns null when the listing isn't in per-colour-qty mode.
+   Otherwise returns ['lines'=>['Black ×16','Navy ×8',...], 'qty'=>24] — a lines entry is
+   included only once its snapped quantity is > 0, so it also doubles as "colours selected". */
+function vestra_parse_colorqty(array $p, array $posted): ?array {
+  if (!vestra_is_colorqty_listing($p)) return null;
+  $step = (int)$p['size_step'];
+  $allowed = array_flip((array)$p['colors']);
+  $lines = []; $qty = 0;
+  foreach ($posted as $name => $raw) {
+    $name = (string)$name;
+    if (!isset($allowed[$name])) continue;
+    $n = (int)(round(max(0, (int)$raw) / $step) * $step);
+    if ($n <= 0) continue;
+    $lines[] = $name.' ×'.$n;
+    $qty += $n;
+  }
+  return ['lines' => $lines, 'qty' => $qty];
+}
+/* Same as vestra_parse_colorqty() but for the cart/JS path, which submits the client-built
+   "Black ×16" style tokens (cart.php just displays these verbatim) instead of a raw
+   ['Name'=>qty] map. Re-derives the map from the tokens and re-validates from scratch —
+   the client's numbers are never trusted, only which colour+step they point at. */
+function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
+  $map = [];
+  foreach ($tokens as $tok) {
+    if (preg_match('/^(.*?)\s*×\s*(\d+)$/u', trim((string)$tok), $m)) $map[$m[1]] = (int)$m[2];
+  }
+  return vestra_parse_colorqty($p, $map);
+}
+function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
+function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
+function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
+
+/* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────
+ * Small buyers pool their quantities on one product until the seller's wholesale MOQ is
+ * reached — then the lowest tier price unlocks for everyone. VESTRA runs the countdown +
+ * escrow; the seller just ticks "open for group buying". A pool is 1:1 with a product id.
+ */
+if(!defined('VESTRA_GROUP_DEFAULT_DAYS')) define('VESTRA_GROUP_DEFAULT_DAYS', 14);
+
+/* Target = qty that unlocks the wholesale price (seller override, else the top tier's min). */
+function vestra_group_target($p){
+  if(!empty($p['group_target'])) return max(1,(int)$p['group_target']);
+  $last=end($p['tiers']); return max(1,(int)($last['min']??$p['moq']));
+}
+/* Unlocked unit price once the target is met (seller override, else the lowest tier price). */
+function vestra_group_price($p){
+  if(!empty($p['group_price'])) return (float)$p['group_price'];
+  return (float)vestra_from_price($p);
+}
+function vestra_group_deadline($p){
+  if(!empty($p['group_deadline'])) return $p['group_deadline'];
+  $start=$p['group_started'] ?? date('c');
+  return date('c', strtotime($start.' +'.VESTRA_GROUP_DEFAULT_DAYS.' days'));
+}
+/* Buyer commitments for one pool (newest first), read from data/groups.csv. */
+function vestra_group_commits($poolId){
+  $rows=vestra_read_csv('groups.csv');
+  return array_values(array_filter($rows, function($r) use ($poolId){ return ($r['pool_id']??'')===$poolId; }));
+}
+/* Enrich a product with live pool state (committed qty, % progress, days left, status). */
+function vestra_group_enrich($p){
+  $target=vestra_group_target($p);
+  $commits=vestra_group_commits($p['id']);
+  $committed=(int)($p['group_seed']??0);
+  foreach($commits as $c){ $committed+=(int)($c['qty']??0); }
+  $deadline=vestra_group_deadline($p);
+  $secsLeft=strtotime($deadline)-time();
+  $daysLeft=max(0,(int)ceil($secsLeft/86400));
+  $pct=$target>0?max(0,min(100,(int)round(100*$committed/$target))):0;
+  $remaining=max(0,$target-$committed);
+  $status = $committed>=$target ? 'funded' : ($secsLeft<=0 ? 'expired' : 'open');
+  return $p + [
+    '_target'=>$target,'_gprice'=>vestra_group_price($p),'_committed'=>$committed,
+    '_remaining'=>$remaining,'_participants'=>count($commits)+(int)($p['group_seed_n']??0),
+    '_deadline'=>$deadline,'_daysLeft'=>$daysLeft,'_pct'=>$pct,'_status'=>$status,'_commits'=>$commits,
+  ];
+}
+/* All products opened for group buying, enriched + sorted (almost-funded first). */
+function vestra_group_pools(){
+  $pools=[];
+  foreach(vestra_products() as $p){ if(!empty($p['group'])) $pools[]=vestra_group_enrich($p); }
+  usort($pools, function($a,$b){ return $b['_pct']<=>$a['_pct']; });
+  return $pools;
+}
+function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
+
+/* ─── Uploads ─── */
+/* Validate + store one uploaded product photo; returns '/uploads/…' or '' on any failure.
+   Shared by seller-add (new listing) and seller edit (replace photos). */
+function vestra_save_upload_photo(array $f): string {
+  $updir = dirname(__DIR__).'/uploads';
+  if(!is_dir($updir)) @mkdir($updir,0755,true);
+  if(!is_file($updir.'/.htaccess')){
+    @file_put_contents($updir.'/.htaccess',
+      "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
+  }
+  if(($f['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($f['size']??0)<=0||$f['size']>5*1024*1024) return '';
+  $info=@getimagesize($f['tmp_name']); if(!$info) return '';
+  $ext=[IMAGETYPE_JPEG=>'jpg',IMAGETYPE_PNG=>'png',IMAGETYPE_WEBP=>'webp',IMAGETYPE_GIF=>'gif'][$info[2]]??'';
+  if($ext==='') return '';
+  $name='img_'.bin2hex(random_bytes(8)).'.'.$ext;
+  return @move_uploaded_file($f['tmp_name'],$updir.'/'.$name)?'/uploads/'.$name:'';
+}
+/* Collect photos[] uploads (up to $max) → list of stored URLs. */
+function vestra_collect_photo_uploads(string $field='photos', int $max=6): array {
+  $out=[];
+  if(isset($_FILES[$field]['name'])&&is_array($_FILES[$field]['name'])){
+    for($i=0;$i<min(count($_FILES[$field]['name']),$max);$i++){
+      $f=['name'=>$_FILES[$field]['name'][$i],'type'=>$_FILES[$field]['type'][$i],
+          'tmp_name'=>$_FILES[$field]['tmp_name'][$i],'error'=>$_FILES[$field]['error'][$i],'size'=>$_FILES[$field]['size'][$i]];
+      if($url=vestra_save_upload_photo($f)) $out[]=$url;
+    }
+  }
+  return $out;
+}
+
+/* ─── Listings & status helpers ─── */
+function vestra_save_listings(array $list): void {
+    $f = vestra_data_dir().'/listings.json';
+    file_put_contents($f, json_encode(array_values($list), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+}
+function vestra_listing_by_id(string $id): ?array {
+    foreach (vestra_listings() as $l) if (($l['id']??'') === $id) return $l; return null;
+}
+/* ─── Ownership helpers (multi-seller safety — every seller only ever touches their own data) ─── */
+function vestra_seller_listings(string $uid): array {
+    if ($uid === '') return [];
+    return array_values(array_filter(vestra_listings(), fn($p) => ($p['seller_uid']??'') === $uid));
+}
+function vestra_listing_owner(string $id): ?string {
+    $l = vestra_listing_by_id($id);
+    return $l ? ($l['seller_uid'] ?? '') : null;
+}
+
+/* ─── Monthly listing quota (Starter: 10/mo, Pro: 100/mo) ───────────────────────
+   Tracked as a counter on the account (month + count), NOT derived from how many
+   listings currently exist — so deleting a listing never frees up quota within the
+   same month. Premium (displayed as "Elite") returns null (no cap), matching its
+   "Unlimited listings" copy. */
+function vestra_seller_monthly_quota_limit(string $tier): ?int {
+    return match ($tier) { 'starter' => 10, 'pro' => 100, default => null };
+}
+/* ─── Per-tier commission rate — charged on top of the monthly membership, never
+   touching the buyer-facing total (see vestra_charge_order_commission()). Higher
+   tiers earn a lower rate as a retention incentive. Unknown/legacy tiers fall back
+   to the Starter rate (the highest), never to 0 — a missing tier must never mean
+   "no commission". */
+function vestra_seller_commission_rate(string $tier): float {
+    return match ($tier) { 'pro' => 0.032, 'premium' => 0.028, default => VESTRA_COMMISSION_RATE };
+}
+function vestra_seller_monthly_quota_used(array $acc): int {
+    $rec = $acc['listing_quota'] ?? null;
+    if (!is_array($rec) || ($rec['month'] ?? '') !== date('Y-m')) return 0;
+    return (int)($rec['count'] ?? 0);
+}
+function vestra_seller_monthly_quota_bump(string $uid): void {
+    $acc = null;
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+    if (!$acc) return;
+    auth_update($uid, ['listing_quota' => ['month' => date('Y-m'), 'count' => vestra_seller_monthly_quota_used($acc) + 1]]);
+}
+/** True when this seller has hit their monthly quota (always false for uncapped tiers). */
+function vestra_seller_quota_exhausted(array $acc): bool {
+    $limit = vestra_seller_monthly_quota_limit($acc['membership_tier'] ?? '');
+    return $limit !== null && vestra_seller_monthly_quota_used($acc) >= $limit;
+}
+function vestra_listing_by_sku(string $sku): ?array {
+    if ($sku === '') return null;
+    foreach (vestra_listings() as $l) if (($l['sku']??'') === $sku) return $l;
+    return null;
+}
+/* Parse the "12x SKU-123 @19.99 | 5x SKU-456 @9.99" string order.php writes into orders.csv's items column. */
+function vestra_parse_order_items(string $items): array {
+    $out = [];
+    foreach (explode(' | ', $items) as $seg) {
+        if (preg_match('/^(\d+)x\s+(\S+)\s+@([\d.]+)$/', trim($seg), $m)) {
+            $out[] = ['qty'=>(int)$m[1], 'sku'=>$m[2], 'unit'=>(float)$m[3]];
+        }
+    }
+    return $out;
+}
+/* An order can bundle SKUs from several sellers (buyer's cart isn't seller-partitioned) — true if
+   at least one line item in this order row belongs to the given seller's SKU list. */
+function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {
+    if (!$sellerSkus) return false;
+    foreach (vestra_parse_order_items($orderRow['items'] ?? '') as $it) {
+        if (in_array($it['sku'], $sellerSkus, true)) return true;
+    }
+    return false;
+}
+function vestra_read_json(string $name): array {
+    $f = vestra_data_dir().'/'.$name;
+    if (!is_readable($f)) return [];
+    return json_decode((string)file_get_contents($f), true) ?: [];
+}
+function vestra_write_json(string $name, array $data): void {
+    $f = vestra_data_dir().'/'.$name;
+    file_put_contents($f, json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE), LOCK_EX);
+}
+
+/* Sourcing requests board (buyers post what they need; sellers make offers). Demo seed. */
+function vestra_requests(){
+  return [
+    ['id'=>'r1042','title'=>'Lacoste polos — mixed sizes, EEA stock','cat'=>'Polos','qty'=>'300 pc','target'=>'€24 / pc','country'=>'DE','offers'=>3,'age'=>'2h'],
+    ['id'=>'r1041','title'=>'Ralph Lauren oxford shirts','cat'=>'Shirts','qty'=>'150 pc','target'=>'€28 / pc','country'=>'FR','offers'=>5,'age'=>'5h'],
+    ['id'=>'r1039','title'=>'Blank cotton tees 180gsm, white','cat'=>'Basics','qty'=>'2,000 pc','target'=>'€2.60 / pc','country'=>'IT','offers'=>1,'age'=>'1d'],
+    ['id'=>'r1038','title'=>'Branded socks, bulk clearance','cat'=>'Basics','qty'=>'1,000 pack','target'=>'best offer','country'=>'ES','offers'=>0,'age'=>'1d'],
+  ];
+}

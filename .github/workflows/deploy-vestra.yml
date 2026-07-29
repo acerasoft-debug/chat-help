@@ -1,0 +1,48 @@
+name: VESTRA'yı sunucuya otomatik kur
+
+# claude/wizardly-planck-7ylnmk'e her push'ta, sunucuya SSH ile bağlanıp
+# mevcut ~/deploy.sh'ı çalıştırır — elle SSH açıp komut yazmaya gerek kalmaz.
+# Actions sekmesinden "Run workflow" ile elle de tetiklenebilir.
+on:
+  push:
+    branches:
+      - claude/wizardly-planck-7ylnmk
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucuda deploy.sh çalıştır
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          script: bash ~/deploy.sh
+
+      # deploy.sh'ın ana rsync'i uploads/'u HARİÇ tutuyor (satıcı yüklemelerini
+      # korumak için). Bu yüzden git'e eklediğimiz ÜRÜN görselleri sunucuya hiç
+      # gitmiyordu. Aşağıdaki additive rsync git'teki ürün görsellerini public_html'e
+      # kopyalar; --delete YOK, dolayısıyla sunucudaki (git'te olmayan) satıcı
+      # yüklemeleri korunur.
+      - name: Ürün görsellerini senkronla (uploads/ additive)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          script: |
+            # deploy.sh: REPO=~/vestra-repo, LIVE=~/public_html (uploads/ ana rsync'te haric).
+            VUP="$HOME/vestra-repo/vestra/uploads"
+            if [ -d "$VUP" ]; then
+              rsync -a "$VUP/" "$HOME/public_html/uploads/" && echo "uploads senkron OK: $VUP -> public_html/uploads"
+            else
+              echo "UYARI: $VUP yok — atlaniyor"
+            fi

@@ -1,0 +1,93 @@
+<?php
+/** VESTRA — PUBLIC brand catalogue export as a real .xlsx WITH EMBEDDED PRODUCT PHOTOS.
+ *
+ *  For cold-outreach / campaign links. Deliberately carries NO trade pricing and NO seller
+ *  identity (a teaser line-sheet that entices boutiques to register for trade access); all
+ *  confidential data stays behind the members-only exports. Unlike the old .xls-as-HTML trick
+ *  (Excel drops <img> tags), this emits a genuine .xlsx with the product photos embedded via
+ *  drawing anchors, so every row shows a picture.
+ *
+ *  One row PER COLOURWAY where a product has variants (so every colour shows its own photo +
+ *  article/model code); products without variants fall back to a single row (primary photo,
+ *  SKU/reference code). Every row carries an identification code — article code → SKU → id —
+ *  so buyers can match items to their own systems.
+ *
+ *    /catalog?brand=lacoste   → .xlsx of that brand's listings (photos + codes, no pricing)
+ *    /catalog                 → the full public selection (all brands)
+ *
+ *  Download file name is intentionally neutral ("VESTRA-Selection-<date>.xlsx").
+ */
+require __DIR__.'/inc/products.php';
+require __DIR__.'/inc/xlsx.php';
+
+$brandQ = trim((string)($_GET['brand'] ?? ''));
+
+$items = [];
+foreach (vestra_products() as $p) {
+    if ($brandQ !== '' && strcasecmp(trim((string)($p['brand'] ?? '')), $brandQ) !== 0) continue;
+    $items[] = $p;
+}
+
+/* A never-empty identification code for a row: variant article code → product SKU →
+   uppercased id. Lets every product/colour carry a code buyers can reference. */
+function vestra_export_code(array $p, array $v = []): string {
+    $art = trim((string)($v['art'] ?? ''));
+    if ($art !== '') return $art;
+    $sku = trim((string)($p['sku'] ?? ''));
+    if ($sku !== '') return $sku;
+    $id = trim((string)($p['id'] ?? ''));
+    return $id !== '' ? strtoupper($id) : '';
+}
+/* Resolve a web image path ("/uploads/..") to a local file for embedding, or '' if absent. */
+function vestra_export_local(string $img): string {
+    if ($img !== '' && $img[0] === '/') { $c = __DIR__.$img; if (is_file($c)) return $c; }
+    return '';
+}
+
+$headers = ['#', 'Brand', 'Product', 'Colour', 'Article / Code', 'Model / Ref', 'MOQ', 'Photo'];
+$rows = [];
+$i = 0;
+foreach ($items as $p) {
+    $brand = (string)($p['brand'] ?? '');
+    $name  = (string)($p['name'] ?? '');
+    $moq   = ((int)($p['moq'] ?? 0)) . ' ' . (string)($p['unit'] ?? 'pc');
+    $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
+    if ($variants) {
+        // One row per colourway → each shows its own photo + article/model code.
+        foreach ($variants as $v) {
+            $i++;
+            $rows[] = ['cells' => [
+                (string)$i, $brand, $name,
+                (string)($v['color'] ?? ''),
+                vestra_export_code($p, $v),
+                (string)($v['model'] ?? ''),
+                $moq, '',
+            ], 'image' => vestra_export_local((string)($v['image'] ?? ''))];
+        }
+    } else {
+        $i++;
+        $colours = implode(', ', array_filter((array)($p['colors'] ?? [])));
+        $rows[] = ['cells' => [
+            (string)$i, $brand, $name,
+            $colours,
+            vestra_export_code($p),
+            '',
+            $moq, '',
+        ], 'image' => vestra_export_local(vestra_primary_image($p))];
+    }
+}
+if (!$rows) {
+    $rows[] = ['cells' => ['', '', 'This selection is available on request — register free at vestrasales.com', '', '', '', '', ''], 'image' => ''];
+}
+// Footer note (no photo): drives registration; keeps trade pricing gated.
+$rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
+
+$title = $brandQ !== '' ? $brandQ : 'VESTRA Selection';
+$xlsx = vestra_xlsx_with_photos($headers, $rows, $title);
+if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
+
+header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+header('Content-Disposition: attachment; filename="VESTRA-Selection-'.date('Y-m-d').'.xlsx"');
+header('X-Content-Type-Options: nosniff');
+header('Content-Length: '.strlen($xlsx));
+echo $xlsx;

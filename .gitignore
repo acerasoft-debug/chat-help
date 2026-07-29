@@ -1,0 +1,12 @@
+# credentials — never commit
+.env
+
+# user account data — never commit
+vestra/data/accounts.json
+
+# buyer/seller conversations + moderation log — never commit
+vestra/data/messages.json
+vestra/data/blocked_messages.json
+
+# composer dependencies
+vestra/vendor/

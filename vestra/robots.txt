@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /forgot
+Disallow: /reset
+Disallow: /buyer
+Disallow: /seller
+Disallow: /cart
+Disallow: /linesheet
+Disallow: /catalog
+Disallow: /data/
+Disallow: /vendor/
+Disallow: /sheets/
+Disallow: /uploads/
+
+Sitemap: https://vestrasales.com/sitemap.xml
