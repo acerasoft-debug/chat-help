@@ -555,6 +555,33 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     }
   }
 
+  // Optional editorial hero band ('hero' => ['kicker'=>..,'title'=>..]) — sits directly under the
+  // masthead on the same dark ground, so together they read as one magazine-style hero. Additive.
+  $heroBandHtml='';
+  if(!empty($opts['hero']['title'])){
+    $kick=(string)($opts['hero']['kicker']??'');
+    $heroBandHtml='<div style="background:#14110c;padding:2px 28px 30px">'
+      .($kick!==''?'<div style="color:#a97f2c;font-size:11px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;margin:0 0 12px">'.htmlspecialchars($kick,ENT_QUOTES,'UTF-8').'</div>':'')
+      .'<div style="color:#f4ecd8;font-family:Georgia,\'Times New Roman\',serif;font-size:27px;line-height:1.24;font-weight:700">'.htmlspecialchars((string)$opts['hero']['title'],ENT_QUOTES,'UTF-8').'</div>'
+      .'</div>';
+  }
+
+  // Optional "featured houses" brand strip ('brands' => [name,..]) — centered serif names split by
+  // gold dots. Gives the multi-brand campaign an elegant, editorial signature. Additive.
+  $brandsHtml='';
+  if(!empty($opts['brands']) && is_array($opts['brands'])){
+    $names=array_slice(array_values(array_filter(array_map('strval',$opts['brands']),fn($s)=>trim($s)!=='')),0,8);
+    if($names){
+      $sep='<span style="color:#c9a86a;padding:0 9px">&bull;</span>';
+      $joined=implode($sep,array_map(fn($n)=>'<span style="white-space:nowrap">'.htmlspecialchars($n,ENT_QUOTES,'UTF-8').'</span>',$names));
+      $brandsHtml='<div style="padding:2px 28px 18px;text-align:center">'
+        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin:0 0 9px">Featured houses</div>'
+        .'<div style="color:#3a3428;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;line-height:2">'.$joined.'</div>'
+        .'<div style="width:38px;height:2px;background:#c9a86a;margin:16px auto 0"></div>'
+        .'</div>';
+    }
+  }
+
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     .'<title>VESTRA</title></head>'
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
@@ -573,6 +600,55 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .'</div>'
     .'<p style="text-align:center;color:#9b9585;font-size:11px;margin:18px 0 0">VESTRA — verified B2B wholesale marketplace</p>'
     .'</div></body></html>';
+}
+
+/* Build the premium "authentic designer wholesale" campaign email → [subject, plainBody, opts].
+ * One place for the outreach content so preview sends and real sends stay identical, and every
+ * aesthetic tweak lives here. The featured-brand strip and the per-brand Excel catalogue links
+ * are derived from the LIVE catalogue (vestra_products), so the mail always reflects real stock.
+ * $company personalises the opening line when provided. */
+function vestra_campaign_preview(string $company=''): array {
+  $counts=[]; $brands=[];
+  if(function_exists('vestra_products')){
+    foreach(vestra_products() as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $counts[$b]=($counts[$b]??0)+1; }
+    arsort($counts); $brands=array_slice(array_keys($counts),0,8);
+  }
+  $downloads=[];
+  foreach($brands as $b){ $downloads[]=['label'=>$b,'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)]; }
+  if(!$downloads) $downloads[]=['label'=>'Full selection','url'=>'https://vestrasales.com/catalog'];
+
+  $subject='Les Garage de Paris × VESTRA — the authentic designer wholesale edit';
+  $body=implode("\n",[
+    $company!=='' ? "Hello — a note for {$company}." : "Hello,",
+    "",
+    "A brief introduction from Les Garage de Paris, through VESTRA — the KYC-verified B2B marketplace for authentic designer fashion at wholesale.",
+    "",
+    "We supply premium multi-brand boutiques with the houses their clients ask for by name — 100% authentic, authenticity-verified on delivery, on clear invoice terms.",
+    "",
+    "The current selection is below as ready-to-open Excel line-sheets. Trade pricing is reserved for verified partners — register once (it's free) and every price unlocks instantly.",
+    "",
+    "Tell me your brand mix and I'll curate a selection for your floor.",
+    "",
+    "Warm regards,",
+    "Les Garage de Paris · via VESTRA",
+    "",
+    "—",
+    "Les Garage de Paris via VESTRA (operated by acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
+    "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+  ]);
+  $opts=[
+    'hero'=>['kicker'=>'Authentic designer wholesale','title'=>'The houses your clients ask for — at trade terms.'],
+    'brands'=>$brands,
+    'badge'=>'KYC-verified · authenticity-checked · escrow-protected',
+    'downloads'=>['title'=>'Line-sheets — download (Excel)','items'=>$downloads],
+    'rows'=>[
+      ['label'=>'Authenticity','value'=>'Verified on delivery'],
+      ['label'=>'Payment','value'=>'Escrow-protected invoice'],
+      ['label'=>'Minimums','value'=>'Low — capsule-friendly','strong'=>true],
+    ],
+    'button'=>['label'=>'Register for trade pricing','url'=>'https://vestrasales.com/register'],
+  ];
+  return [$subject,$body,$opts];
 }
 
 /* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
