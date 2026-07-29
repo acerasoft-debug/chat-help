@@ -142,6 +142,17 @@ jobs:
                      " email(hex)=" . bin2hex($e) . "\n";
               }
             }
+
+            echo "\n== henuz gonderilmemis (status!=contacted, last_contacted_at bos) leadlerin detayi ==\n";
+            foreach ($leads as $l) {
+              if (($l['status'] ?? '') === 'contacted' || ($l['last_contacted_at'] ?? '') !== '') continue;
+              if (($l['email'] ?? '') === '') continue;
+              echo "  * " . ($l['company'] ?? '?') . " | ulke=" . ($l['country'] ?? '-') .
+                   " | category=" . ($l['category'] !== '' && isset($l['category']) ? $l['category'] : '(bos)') .
+                   " | website=" . ($l['website'] ?: '(yok)') .
+                   " | source=" . ($l['source'] ?? '?') .
+                   " | notes=" . ($l['notes'] ?: '(yok)') . "\n";
+            }
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
