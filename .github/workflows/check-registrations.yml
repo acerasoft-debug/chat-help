@@ -132,6 +132,16 @@ jobs:
             } else {
               echo "  hic calismamis.\n";
             }
+
+            echo "\n== supheli/garbled email adresleri (skip_emails icin tam byte'lar) ==\n";
+            foreach ($leads as $l) {
+              $e = (string)($l['email'] ?? '');
+              if ($e !== '' && preg_match('/[^\x20-\x7E]|\*/', $e)) {
+                echo "  company=" . json_encode($l['company'] ?? '', JSON_UNESCAPED_SLASHES) .
+                     " email(json)=" . json_encode($e, JSON_UNESCAPED_SLASHES) .
+                     " email(hex)=" . bin2hex($e) . "\n";
+              }
+            }
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
