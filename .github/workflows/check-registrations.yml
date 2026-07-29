@@ -52,12 +52,12 @@ jobs:
             require $home."/public_html/inc/leads.php";
 
             $leads = vestra_leads();
-            // Websitesi olan ve henuz taranmamis leadler; email'i olanlar (kampanya icin en
-            // degerliler) one alinir ki zaman asimi olsa bile onlar mutlaka taranmis olsun.
+            // Websitesi olan TUM leadler yeniden taranir (tespit mantigi degisti: kelime-siniri
+            // eslesmesi -- eski etro=retro/metro yanlis-pozitifleri temizlenecek). Email'i olanlar
+            // (kampanya icin en degerliler) one alinir ki zaman asimi olsa bile onlar taranmis olsun.
             $idx = [];
             foreach ($leads as $i => $l) {
               if (($l['website'] ?? '') === '') continue;
-              if (array_key_exists('premium', $l)) continue;
               $idx[] = $i;
             }
             usort($idx, function($a,$b) use ($leads){
