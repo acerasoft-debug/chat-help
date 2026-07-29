@@ -1,0 +1,43 @@
+name: (Test) Doğrulama e-postası gönder
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Elle tetiklenir. Taze bir plus-adresli test kaydı (acerasoft+verifytest@gmail.com,
+# Gmail bunu acerasoft@gmail.com kutusuna düşürür) oluşturur; require_email_verify açık
+# olduğu için kayıt anında GERÇEK doğrulama e-postası gider. Gelen e-postadaki linke
+# tıklayınca yeni premium "email doğrulandı" ekranı açılır. Idempotent: her çalışmada
+# eski test kaydını silip yeniden oluşturur (yeni, geçerli token).
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Taze test kaydı ile doğrulama e-postası tetikle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_verify_test.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/auth.php";
+            $email = "acerasoft+verifytest@gmail.com";
+            // idempotent: eski test kaydini sil
+            $accs = auth_accounts();
+            $accs = array_values(array_filter($accs, fn($a)=>strtolower($a['email']??'')!==$email));
+            auth_save_accounts($accs);
+            // taze kayit -> require_email_verify acik oldugundan dogrulama emaili gider
+            $r = auth_register(['email'=>$email,'password'=>'Test12345!','password2'=>'Test12345!','type'=>'buyer','name'=>'Verify Test','company'=>'Verify Test Co']);
+            if (is_string($r)) { echo "SONUC (beklenmedik): {$r}\n"; exit(1); }
+            echo "GONDERILDI: dogrulama emaili -> {$email} (kutu: acerasoft@gmail.com)\n";
+            echo "status={$r['status']} email_verified=".var_export($r['email_verified'],true)." verify_sent_ok=".var_export($r['verify_sent_ok']??null,true)."\n";
+            echo "test hesabi id: {$r['id']}\n";
+            PHPEOF
+            php /tmp/vestra_verify_test.php
+            rm -f /tmp/vestra_verify_test.php
