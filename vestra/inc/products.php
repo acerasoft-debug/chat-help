@@ -64,6 +64,34 @@ function vestra_demo_products(){
       'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
       'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 320 pc → €25/pc
     ],
+    [
+      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
+      'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,
+      'colors'=>['Black','White','Navy','Grey'],
+      'images'=>['/uploads/amiri/amiri-core-polo-black.png','/uploads/amiri/amiri-core-polo-white.png',
+                 '/uploads/amiri/amiri-core-polo-navy.png','/uploads/amiri/amiri-core-polo-grey.png'],
+      'linesheet'=>true,'sheet_file'=>'ami-paris-polo.pdf',
+      'specs'=>[
+        'Composition'=>'100% organic cotton piqué',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Signature'=>'Ami de Cœur embroidered heart-A crest',
+        'Care'=>'Machine wash 30°C · wash inside out · do not tumble dry',
+        'Packaging'=>'Cartons of 10 per colour · mixed sizes S·M·L·XL·XXL',
+        'Season'=>'SS26 · Summer',
+        'Made in'=>'Portugal / EU',
+        'Authenticity'=>'Verified on delivery · proof of sourcing on request',
+      ],
+      'variants'=>[
+        ['art'=>'BFUPL001.760.001','model'=>'Ami de Cœur','color'=>'Black','image'=>'/uploads/amiri/amiri-core-polo-black.png'],
+        ['art'=>'BFUPL001.760.100','model'=>'Ami de Cœur','color'=>'White','image'=>'/uploads/amiri/amiri-core-polo-white.png'],
+        ['art'=>'BFUPL001.760.430','model'=>'Ami de Cœur','color'=>'Navy','image'=>'/uploads/amiri/amiri-core-polo-navy.png'],
+        ['art'=>'BFUPL001.760.095','model'=>'Ami de Cœur','color'=>'Grey','image'=>'/uploads/amiri/amiri-core-polo-grey.png'],
+      ],
+      'tiers'=>[['min'=>50,'price'=>42.00],['min'=>150,'price'=>36.00],['min'=>300,'price'=>32.00]],
+    ],
   ];
   return vestra_apply_price_overrides($P);
 }
@@ -105,7 +133,7 @@ function vestra_save_product_overrides(array $ov): void {
 }
 /* Which products are demo (override-backed) vs live listings (listings.json-backed). */
 function vestra_is_demo_product(string $id): bool {
-  foreach(['lac-pique-polo'] as $d){ if($d===$id) return true; }
+  foreach(['lac-pique-polo','amiri-core-polo'] as $d){ if($d===$id) return true; }
   return false;
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
