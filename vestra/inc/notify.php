@@ -147,9 +147,11 @@ function vestra_premium_brandlist(): array {
     'saint laurent','givenchy','balmain','kenzo','celine','céline','chloé','chloe','isabel marant',
     'ami paris','maison margiela','margiela','jacquemus','courrèges','courreges','sandro','maje',
     // Other luxury / premium-contemporary / premium-streetwear
-    'burberry','hugo boss','tommy hilfiger','calvin klein','michael kors','off-white','off white','palm angels',
+    'burberry','hugo boss','tommy hilfiger','calvin klein','michael kors','off-white','palm angels',
     'canada goose','golden goose','common projects','autry','philipp plein','balenciaga','bottega veneta',
-    'alexander mcqueen','stella mccartney','acne studios','napapijri','colmar','blauer','aspesi','k-way',
+    'alexander mcqueen','stella mccartney','acne studios','napapijri','aspesi','k-way',
+    // Deliberately NOT listed — too ambiguous as bare substrings even with word boundaries:
+    //   'colmar' (a French city), 'blauer' (German "bluer"), 'off white' (a plain colour name).
   ];
 }
 /* Scan a boutique's own website for premium-brand mentions. Returns the matched premium
@@ -164,9 +166,16 @@ function vestra_premium_brands(string $website): array {
   }
   if($base==='') return [];
   $brands=vestra_premium_brandlist(); $matches=[];
+  // Whole-token match, NOT bare substring: a brand name must not be preceded/followed by a
+  // letter. Without this, short names hit inside ordinary words — "etro" matched "rETRO" and
+  // "mETRO", flooding the list with false positives. Unicode-aware (\p{L}, /u) so accented
+  // brands (Chloé, Courrèges) and accented surrounding text both behave.
   $scan=function(string $html) use ($brands,&$matches){
     $t=strtolower($html);
-    foreach($brands as $b){ if($b!=='' && str_contains($t,$b)) $matches[$b]=true; }
+    foreach($brands as $b){
+      if($b==='' || isset($matches[$b])) continue;
+      if(preg_match('/(?<!\p{L})'.preg_quote($b,'/').'(?!\p{L})/iu',$t)) $matches[$b]=true;
+    }
   };
   $scan($home);
   $paths=['/brands','/brand','/designers','/marche','/marchi','/marken','/marcas','/marques','/collections','/shop'];
