@@ -269,6 +269,19 @@ function vestra_discover_blocklist(): array {
     'zalando','farfetch','ssense','asos','amazon',
   ];
 }
+/* True when a company/brand name matches a big-chain / monobrand entry on the discovery
+ * blocklist. Discovery already skips these when ADDING a lead, but this lets the SEND path
+ * apply the exact same rule again as a safety net — so a big store that was imported by
+ * hand (CSV / "Add prospect") or added before a name joined the blocklist is never actually
+ * emailed an offer. Same substring rule as discovery, so behaviour is identical everywhere. */
+function vestra_name_is_blocked(string $company, string $brand=''): bool {
+  $k=strtolower(trim($company)); $b2=strtolower(trim($brand));
+  if($k==='' && $b2==='') return false;
+  foreach(vestra_discover_blocklist() as $b){
+    if(($k!=='' && str_contains($k,$b)) || ($b2!=='' && str_contains($b2,$b))) return true;
+  }
+  return false;
+}
 /* $country is the search scope (required — matches an OSM country-level admin boundary).
  * $city is an optional narrowing filter: blank searches the whole country, set it to search
  * just that city instead (same as the old behaviour). Country-wide queries scan a much

@@ -750,6 +750,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(!in_array($l['id']??'',$ids,true)) continue;
       if(($l['status']??'')==='unsubscribed') continue; // never re-email an opt-out
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)) continue; // research lead without an email yet
+      if(vestra_name_is_blocked((string)($l['company']??''),(string)($l['brand']??''))) continue; // buyuk magaza/tek-marka -- teklif gonderme
       if(($l['last_contacted_at']??'')!=='') continue; // already emailed once — no auto-resend
       [$subject,$body]=vestra_lead_render_email($l,$tpl);
       if(vestra_send_mail($l['email'],$subject,$body,'',$senderName,$sc,$heroImg)){
@@ -782,6 +783,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $res['company']=$l['company']??''; $res['email']=$l['email']??''; $res['error']='';
       if(($l['status']??'')==='unsubscribed'){ $res['error']='unsub'; break; }
       if(!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL)){ $res['error']='noemail'; break; }
+      /* Big chain / monobrand flagship — never send them an offer, even if one slipped into
+         the list by hand. Same blocklist discovery uses, applied here as a hard safety net. */
+      if(vestra_name_is_blocked((string)($l['company']??''),(string)($l['brand']??''))){ $res['error']='blocked'; break; }
       /* Already emailed once — never auto-resend the same outreach to the same
          boutique. The lead stays in the list either way; this only blocks a repeat
          send (accidental re-select, a second "run all", etc.), not the record itself. */
@@ -3044,6 +3048,7 @@ function runAutomationNow(btn){
           var line=document.createElement('div'); line.style.fontSize='12px'; line.style.padding='2px 0';
           if(d.ok){ ok++; line.style.color='#1f9d63'; line.innerHTML='✓ '+(d.company||d.email||'')+' <span style="color:var(--mut)">'+(d.email||'')+'</span>'; }
           else if(d.error==='already_sent'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">already emailed, skipped</span>'; }
+          else if(d.error==='blocked'){ skip++; line.style.color='var(--mut)'; line.innerHTML='– '+(d.company||d.email||'')+' <span style="color:var(--mut)">big chain / brand store, skipped</span>'; }
           else { fail++; line.style.color='#c0392b'; line.innerHTML='✗ '+(d.company||d.email||'')+' — '+(d.error||'failed'); }
           log.appendChild(line); log.scrollTop=log.scrollHeight; i++; setTimeout(next,250);
         }).catch(function(){ fail++; i++; setTimeout(next,250); });
