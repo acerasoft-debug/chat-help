@@ -256,6 +256,11 @@ function vestra_discover_blocklist(): array {
     'birkenstock','geox','skechers',
     // big supermarket/department-store chains
     'monoprix',
+    // smaller specialty/designer brands' OWN stores — same logic as the flagships above
+    // (a multi-brand boutique that also stocks these is still a fine lead; only their
+    // single-brand outlets are excluded here)
+    'repetto','polène','polene','de fursac','armor lux','jacadi','princesse tam','tamaris',
+    'veja','thomas sabo','boggi milano','free people','dinh van',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
@@ -302,8 +307,16 @@ function vestra_discover_osm(string $country, string $city='', int $limit=80): a
     $t=$el['tags']??[]; $name=trim((string)($t['name']??'')); if($name==='') continue;
     $k=strtolower($name); if(isset($seen[$k])) continue; $seen[$k]=true;
     $brandL=strtolower((string)($t['brand']??''));
+    // A `brand` tag is OSM's own convention for "this location represents ONE company"
+    // (every chain/franchise location gets one) — genuine independent multi-brand
+    // boutiques don't carry it, since there's no single brand to name. VESTRA wants
+    // multi-brand retailers (they're the ones sourcing from several wholesalers, not
+    // a single label's own outlet), so skip anything brand-tagged regardless of whether
+    // that specific brand is on the static blocklist below — catches monobrand stores
+    // the fixed name list was never going to enumerate.
+    if($brandL!=='') continue;
     $blocked=false;
-    foreach($block as $b){ if(str_contains($k,$b) || ($brandL!==''&&str_contains($brandL,$b))){ $blocked=true; break; } }
+    foreach($block as $b){ if(str_contains($k,$b)){ $blocked=true; break; } }
     if($blocked) continue;
     $web=(string)($t['website']??($t['contact:website']??($t['url']??'')));
     $email=(string)($t['email']??($t['contact:email']??''));
