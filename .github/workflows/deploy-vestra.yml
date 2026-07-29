@@ -39,9 +39,10 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
           script: |
-            VUP=$(find "$HOME" -maxdepth 6 -type d -path '*/vestra/uploads' -not -path '*/public_html/*' 2>/dev/null | head -1)
-            if [ -n "$VUP" ]; then
+            # deploy.sh: REPO=~/vestra-repo, LIVE=~/public_html (uploads/ ana rsync'te haric).
+            VUP="$HOME/vestra-repo/vestra/uploads"
+            if [ -d "$VUP" ]; then
               rsync -a "$VUP/" "$HOME/public_html/uploads/" && echo "uploads senkron OK: $VUP -> public_html/uploads"
             else
-              echo "UYARI: git vestra/uploads bulunamadi — atlaniyor"
+              echo "UYARI: $VUP yok — atlaniyor"
             fi
