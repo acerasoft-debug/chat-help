@@ -14,6 +14,12 @@ Deploy-fertige SEO-Bausteine für chat-help.com. Drei Content-Säulen:
 | `seo-strategy.md` | Keyword-Map, Seitenarchitektur, On-Page-Checkliste, Content-Ideen, Technik | Referenz/Fahrplan |
 | `robots.txt` | Crawler-Regeln (Dev-/Diagnose-Skripte ausschließen) | Web-Root: `chat-help.com/robots.txt` |
 | `sitemap.xml` | Sitemap-Vorlage mit hreflang-Alternates | Web-Root: `chat-help.com/sitemap.xml` |
+| `google-play-button.html` | „Get it on Google Play"-Button (HTML, 4 Varianten: dunkel/gold · DE/EN), verlinkt die App | Snippet in Seite/Footer/CTA einfügen |
+| `google-play-badge-*.png` | Fertige Button-Bilder (transparent, Fallback) | z. B. Bio-Links, E-Mails |
+
+**App:** ChatHelp ist bei Google Play – `com.acerasoft.chathelp`
+(<https://play.google.com/store/apps/details?id=com.acerasoft.chathelp>). Der Link ist in
+`head-de.html`/`head-en.html` als `sameAs` + `installUrl`/`downloadUrl` hinterlegt (App-SEO).
 
 ## In 6 Schritten live
 
