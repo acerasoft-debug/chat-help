@@ -128,6 +128,58 @@ function vestra_scrape_email(string $website): string {
   return vestra_best_email($scores,$domain);
 }
 
+/* Premium / designer labels a multi-brand fashion boutique would carry. A shop's own website
+ * MENTIONING these (in its nav, a /brands page, product listings) is the strongest cheap signal
+ * that it stocks premium fashion — exactly the tier VESTRA wholesales, so exactly the customer
+ * we want. Note this is the OPPOSITE use of the discovery blocklist: there a brand name in the
+ * shop's NAME means "monobrand flagship, skip"; here a brand name in the shop's CONTENT means
+ * "multi-brand boutique that carries it, target". Names overlap on purpose. */
+function vestra_premium_brandlist(): array {
+  return [
+    // VESTRA's own catalogue tier
+    'lacoste','dsquared','ralph lauren','polo ralph','dolce & gabbana','dolce&gabbana','amiri',
+    // Italian luxury / premium
+    'gucci','prada','miu miu','versace','emporio armani','giorgio armani','fendi','valentino',
+    'moschino','missoni','etro','marni','brunello cucinelli','loro piana','kiton','ermenegildo zegna','zegna',
+    'stone island','c.p. company','cp company','moncler','herno','woolrich','parajumpers','paul & shark',
+    'jacob cohen','dondup','peuterey','save the duck','liu jo','pinko','twinset','patrizia pepe','elisabetta franchi',
+    // French luxury / premium
+    'saint laurent','givenchy','balmain','kenzo','celine','céline','chloé','chloe','isabel marant',
+    'ami paris','maison margiela','margiela','jacquemus','courrèges','courreges','sandro','maje',
+    // Other luxury / premium-contemporary / premium-streetwear
+    'burberry','hugo boss','tommy hilfiger','calvin klein','michael kors','off-white','off white','palm angels',
+    'canada goose','golden goose','common projects','autry','philipp plein','balenciaga','bottega veneta',
+    'alexander mcqueen','stella mccartney','acne studios','napapijri','colmar','blauer','aspesi','k-way',
+  ];
+}
+/* Scan a boutique's own website for premium-brand mentions. Returns the matched premium
+ * brands (deduped, capped) — empty means none detected / site unreachable. Reuses the same
+ * fetch helpers and early-exit discipline as the email scraper; brand/designer index pages
+ * (/brands, /marche, /marken …) carry the richest signal so they're checked after the home. */
+function vestra_premium_brands(string $website): array {
+  $domain=vestra_domain_of($website); if($domain==='') return [];
+  $base=''; $home='';
+  foreach(['https://'.$domain,'https://www.'.$domain,'http://'.$domain] as $b){
+    $h=vestra_http_get($b.'/',8); if($h!==''){ $base=$b; $home=$h; break; }
+  }
+  if($base==='') return [];
+  $brands=vestra_premium_brandlist(); $matches=[];
+  $scan=function(string $html) use ($brands,&$matches){
+    $t=strtolower($html);
+    foreach($brands as $b){ if($b!=='' && str_contains($t,$b)) $matches[$b]=true; }
+  };
+  $scan($home);
+  $paths=['/brands','/brand','/designers','/marche','/marchi','/marken','/marcas','/marques','/collections','/shop'];
+  $req=0;
+  foreach($paths as $p){
+    if($req>=4) break;                             // hard cap on requests per site
+    if($req>=2 && count($matches)>=2) break;       // home + a couple of pages is enough once we have hits
+    $html=vestra_http_get($base.$p,8); $req++;
+    if($html!=='') $scan($html);
+  }
+  return array_slice(array_keys($matches),0,12);
+}
+
 /* Look up a business email for a company website. Cascade:
  *   1) email-finder API (Hunter.io / Anymailfinder) IF a key is configured — verified addresses;
  *   2) free fallback — read the site's own contact/imprint pages (no key, works out of the box).

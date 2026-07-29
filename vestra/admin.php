@@ -3058,10 +3058,16 @@ function runAutomationNow(btn){
     </script>
     <div class="atscroll"><table class="atable">
       <tr><th class="ac"><input type="checkbox" onclick="leadToggleAll(this)"></th><th class="ac">Company</th><th class="ac">Contact</th><th class="ac">Email</th><th class="ac">Country</th><th class="ac">Source</th><th class="ac">Category</th><th class="ac">Status</th><th class="ac">Last contacted</th><th class="ac"></th></tr>
-      <?php foreach(array_reverse($leads) as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $alreadySent=($l['last_contacted_at']??'')!==''; $findable=($noEmail && !$unsub && !empty($l['website'])); ?>
+      <?php
+        // Premium-brand-selling boutiques float to the top (they're the best VESTRA targets);
+        // newest-first order is preserved within each group. `premium` is set by the site-scan.
+        $leadsView=array_reverse($leads);
+        usort($leadsView, fn($a,$b)=>(!empty($b['premium'])?1:0)-(!empty($a['premium'])?1:0));
+      ?>
+      <?php foreach($leadsView as $l): $unsub=($l['status']??'')==='unsubscribed'; $noEmail=!filter_var($l['email']??'',FILTER_VALIDATE_EMAIL); $alreadySent=($l['last_contacted_at']??'')!==''; $findable=($noEmail && !$unsub && !empty($l['website'])); $prem=!empty($l['premium']); $premBrands=implode(', ', array_map(fn($b)=>ucwords((string)$b), (array)($l['premium_brands']??[]))); ?>
       <tr style="opacity:<?= $unsub?.5:($noEmail?.72:1) ?>" data-id="<?= htmlspecialchars($l['id']??'') ?>" data-findable="<?= $findable?'1':'0' ?>">
         <td class="ac"><input class="leadchk" type="checkbox" name="lead_ids[]" value="<?= htmlspecialchars($l['id']??'') ?>" title="<?= ($unsub||$noEmail)?'Send skips this one automatically — still selectable to delete':($alreadySent?'Already emailed — send skips it automatically (no auto-resend), still selectable to delete':'') ?>"></td>
-        <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
+        <td class="ac"><b><?= htmlspecialchars($l['company']??'') ?></b><?php if($prem): ?> <span title="Premium markalar tespit edildi: <?= htmlspecialchars($premBrands?:'—') ?>" style="display:inline-block;font-size:9px;font-weight:700;letter-spacing:.04em;color:#8a6420;background:rgba(201,168,106,.16);border:1px solid rgba(201,168,106,.5);border-radius:5px;padding:1px 5px;vertical-align:middle">★ PREMIUM</span><?php endif; ?><?php if(!empty($l['website'])): ?><div class="ahint"><?= htmlspecialchars($l['website']) ?></div><?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['contact_name']??'') ?: '—' ?></td>
         <td class="ac" style="font-size:11px"><?php if(!$noEmail): ?><span style="cursor:pointer" title="Click to edit" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','<?= htmlspecialchars($l['email']) ?>')"><?= htmlspecialchars($l['email']) ?></span><?php elseif(!$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadSetEmail('<?= htmlspecialchars($l['id']??'') ?>','')">＋ Add email</button><?php if($finderOn && !empty($l['website'])): ?> <button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" onclick="leadFindEmail('<?= htmlspecialchars($l['id']??'') ?>')" title="Look up a verified email from the website">🔍 Find</button><?php endif; ?><?php else: ?>—<?php endif; ?></td>
         <td class="ac"><?= htmlspecialchars($l['country']??'') ?: '—' ?></td>
