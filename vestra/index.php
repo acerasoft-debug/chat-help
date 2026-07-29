@@ -193,6 +193,14 @@ $t = $T[$lang];
 $SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
 $_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
 $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][$lang] ?? 'en_US';
+// Keyword sets (category / buyer-intent terms; localized). Kept trademark-neutral on purpose.
+$_kw = [
+ 'en'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, wholesale clothing marketplace, KYC-verified suppliers, boutique wholesale supplier, multi-brand wholesale, designer clothing wholesale Europe, verified wholesale fashion, buy wholesale clothing online',
+ 'fr'=>'grossiste mode B2B, vente en gros de marque, grossiste vêtements de créateur authentiques, marketplace de gros, fournisseurs vérifiés KYC, grossiste multimarque, mode de créateur en gros Europe, acheter vêtements en gros',
+ 'it'=>'moda ingrosso B2B, ingrosso abbigliamento firmato, capi di design autentici ingrosso, marketplace ingrosso moda, fornitori verificati KYC, ingrosso multimarca, moda firmata ingrosso Europa, comprare abbigliamento ingrosso',
+ 'es'=>'moda al por mayor B2B, mayorista de marca, ropa de diseñador auténtica al por mayor, marketplace mayorista de moda, proveedores verificados KYC, mayorista multimarca, moda de diseñador al por mayor Europa, comprar ropa al por mayor',
+ 'de'=>'B2B Mode Großhandel, Marken Großhandel, authentische Designer Großhandel, Großhandel Bekleidung, KYC-verifizierte Lieferanten, Multibrand Großhandel, Designermode Großhandel Europa, Bekleidung im Großhandel kaufen',
+][$lang] ?? '';
 ?>
 <link rel="canonical" href="<?= htmlspecialchars($_hh($lang)) ?>">
 <?php foreach (array_keys($LANGS) as $_l): ?>
@@ -200,6 +208,7 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
 <?php endforeach; ?>
 <link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_hh('en')) ?>">
 <meta name="robots" content="index, follow, max-image-preview:large">
+<?php if ($_kw !== ''): ?><meta name="keywords" content="<?= htmlspecialchars($_kw) ?>"><?php endif; ?>
 <meta property="og:site_name" content="VESTRA">
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= htmlspecialchars($BRAND.' — '.$t['tagline']) ?>">
@@ -213,8 +222,10 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
 <meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <script type="application/ld+json"><?= json_encode([
   '@context'=>'https://schema.org','@type'=>'Organization','name'=>'VESTRA','url'=>$SEO_HOST,
-  'logo'=>$OG_IMAGE,'email'=>$CONTACT,'areaServed'=>'EU',
+  'logo'=>$OG_IMAGE,'email'=>$CONTACT,'areaServed'=>'EU','slogan'=>$t['tagline'],
   'description'=>'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.',
+  'knowsAbout'=>['B2B fashion wholesale','authentic branded apparel','designer clothing wholesale','multi-brand boutique sourcing','textile wholesale','KYC-verified suppliers'],
+  'keywords'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, KYC-verified suppliers, multi-brand boutique wholesale, wholesale clothing marketplace Europe',
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
 <script type="application/ld+json"><?= json_encode([
   '@context'=>'https://schema.org','@type'=>'WebSite','name'=>'VESTRA','url'=>$SEO_HOST,
