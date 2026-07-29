@@ -254,7 +254,8 @@ function auth_register(array $d): array|string {
         auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
     } else {
         [$subj, $body, $aOpts] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type);
-        vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $aOpts);
+        $sent = vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $aOpts);
+        auth_update($acc['id'], ['ack_sent_at' => date('c'), 'ack_sent_ok' => $sent]);
     }
     return $acc;
 }

@@ -8,6 +8,7 @@ $lang  = function_exists('vlang') ? vlang() : 'en';
 
 if ($token !== '') {
     $list = auth_accounts();
+    $verified = null;
     foreach ($list as &$a) {
         if (($a['email_token'] ?? '') === $token && ($a['status'] ?? '') === 'pending_email') {
             $a['email_verified'] = true;
@@ -15,11 +16,22 @@ if ($token !== '') {
             $a['status']         = 'pending'; // awaiting KYB review
             $lang = $a['lang'] ?? $lang;
             $ok   = true;
+            $verified = $a;
             break;
         }
     }
     unset($a);
-    if ($ok) auth_save_accounts($list);
+    if ($ok) {
+        auth_save_accounts($list);
+        // With require_email_verify on, auth_register()'s "please upload your KYC
+        // documents" ack email never fires (that's the else-branch of a check this
+        // account already failed). Send it now, right after the address is confirmed
+        // real — otherwise a verified user is never told what to do next.
+        require_once __DIR__.'/inc/notify.php';
+        [$asub, $abody, $aOpts] = vestra_ack_text($lang, $verified['name'] ?: $verified['company'], $verified['type'] ?? 'buyer');
+        $sent = vestra_send_mail($verified['email'], $asub, $abody, '', '', null, '', $aOpts);
+        auth_update($verified['id'], ['ack_sent_at' => date('c'), 'ack_sent_ok' => $sent]);
+    }
 }
 
 /* Localized copy for the confirmation / error screen. */

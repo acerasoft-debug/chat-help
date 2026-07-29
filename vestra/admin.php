@@ -1841,6 +1841,13 @@ function sendUserMessage(uid,name){
         </div>
       <?php elseif(!empty($a['email_verified'])): ?>
         <?= abadge('✓ Verified','#1f9d63') ?>
+        <?php if(!empty($a['ack_sent_at'])):
+          $ackOk = $a['ack_sent_ok'] ?? true;
+        ?>
+          <div class="ahint" style="margin-top:2px;<?= $ackOk?'':'color:#c0392b' ?>" title="Next-step 'upload your documents' email">
+            <?= $ackOk?'✓ next-step mail sent':'⚠ next-step mail failed' ?> <?= htmlspecialchars(date('d.m H:i',strtotime($a['ack_sent_at']))) ?>
+          </div>
+        <?php endif; ?>
       <?php else: ?>
         <span class="ahint">—</span>
       <?php endif; ?>
