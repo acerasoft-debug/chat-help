@@ -38,8 +38,8 @@ $NAV='shop'; require __DIR__.'/inc/head.php';
 $mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
-$photosLocked = !$APPROVED && $images;   // photos require an APPROVED account (freischaltung), not just a login
-if(!$APPROVED) $images = [];
+$photosLocked = !$MEMBER && $images;   // photos require being signed in (any status) — not full KYB approval
+if(!$MEMBER) $images = [];
 /* Where the locked-photos CTA sends the viewer: guests sign in; signed-in-but-unverified
    accounts go straight to their verification tab. */
 $verifyHref = !$AUTH_USER
@@ -485,7 +485,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php foreach ($variants as $v): $cn = $v['color'] ?? ''; ?>
         <tr>
           <td><div class="vcol">
-            <?php if ($APPROVED && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="" loading="lazy">
+            <?php if ($MEMBER && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="" loading="lazy">
             <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars($pal[$cn] ?? '#888') ?>"></span><?php endif; ?>
             <?= htmlspecialchars(t($cn)) ?>
           </div></td>
@@ -504,7 +504,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     <h2><?= t('You might also like') ?></h2>
     <div class="shopgrid">
       <?php foreach ($related as $rp): $rfrom = vestra_from_price($rp);
-        $rimgs = ($APPROVED && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
+        $rimgs = ($MEMBER && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars($rp['accent'] ?? '#2a2b31') ?>,#0e0e11)">

@@ -115,14 +115,14 @@ footer a{color:#d8bd86}
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
-          /* Approved (freigeschaltet) members see the catalogue photo-forward, like the
+          /* Signed-in members (any status) see the catalogue photo-forward, like the
              showroom: the first product photo is the card front and the SECOND crossfades
-             in on hover (or while the card is centered in view on touch). Unverified
-             viewers get NO photo — only the brand tile stays as the gate. */
-          $imgs = ($APPROVED && !empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
-          $img0 = $imgs[0] ?? '';   // base photo (approved only)
+             in on hover (or while the card is centered in view on touch). Guests get NO
+             photo — only the brand tile stays as the gate. */
+          $imgs = ($MEMBER && !empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
+          $img0 = $imgs[0] ?? '';   // base photo (members only)
           $img1 = $imgs[1] ?? '';   // second photo → hover reveal
-          $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
+          $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
           <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
