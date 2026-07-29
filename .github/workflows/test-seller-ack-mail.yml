@@ -1,0 +1,79 @@
+name: (Test) Satıcı 'belgelerini yükle' e-postasını uçtan uca test et
+on:
+  workflow_dispatch:
+    inputs:
+      to:
+        description: "Test alıcı e-postası (Gmail + trick ile aynı kutuya düşer)"
+        required: false
+        default: "acerasoft+sellerack@gmail.com"
+      type:
+        description: "Hesap tipi (seller|buyer)"
+        required: false
+        default: "seller"
+
+permissions:
+  contents: read
+
+# Elle tetiklenir. require_email_verify ACIK olduğu için gerçek akış: register ->
+# doğrulama emaili -> /verify linkine tıklama -> (YENİ) 'belgelerini yükle' emaili.
+# Sahte re-implementasyon değil: gerçek CANLI /verify endpoint'ini HTTP üzerinden
+# çağırarak TÜM zinciri uçtan uca test eder. Idempotent: eski test kaydını silip
+# yeniden oluşturur.
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kayıt + canlı /verify çağrısı + 'sonraki adım' emaili kontrolü
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          TEST_TO: ${{ github.event.inputs.to }}
+          TEST_TYPE: ${{ github.event.inputs.type }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          envs: TEST_TO,TEST_TYPE
+          script: |
+            cat > /tmp/vestra_ack_step1.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/auth.php";
+            $email = getenv("TEST_TO") ?: "acerasoft+sellerack@gmail.com";
+            $type  = getenv("TEST_TYPE") ?: "seller";
+
+            // idempotent: eski test kaydini sil
+            $accs = auth_accounts();
+            $accs = array_values(array_filter($accs, fn($a)=>strtolower($a['email']??'')!==strtolower($email)));
+            auth_save_accounts($accs);
+
+            $r = auth_register(['email'=>$email,'password'=>'Test12345!','password2'=>'Test12345!','type'=>$type,'name'=>'Ack Test','company'=>'Ack Test Co']);
+            if (is_string($r)) { echo "KAYIT HATASI (beklenmedik): {$r}\n"; exit(1); }
+            echo "1) KAYIT: status={$r['status']} verify_sent_ok=".var_export($r['verify_sent_ok']??null,true)."\n";
+            echo "TOKEN:{$r['email_token']}\n";
+            PHPEOF
+            php /tmp/vestra_ack_step1.php | tee /tmp/vestra_ack_out1.txt
+            TOKEN=$(grep '^TOKEN:' /tmp/vestra_ack_out1.txt | cut -d: -f2)
+
+            echo ""
+            echo "2) GERCEK CANLI /verify ENDPOINTINI CAGIRIYORUM:"
+            HTTP_CODE=$(curl -s -o /tmp/vestra_verify_resp.html -w "%{http_code}" "https://vestrasales.com/verify?token=${TOKEN}")
+            echo "   HTTP ${HTTP_CODE}"
+            grep -oE '<h1>[^<]*</h1>' /tmp/vestra_verify_resp.html || true
+
+            echo ""
+            cat > /tmp/vestra_ack_step2.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/auth.php";
+            $email = getenv("TEST_TO") ?: "acerasoft+sellerack@gmail.com";
+            $acc = auth_find($email);
+            if (!$acc) { echo "3) HESAP BULUNAMADI\n"; exit(1); }
+            echo "3) DOGRULAMA SONRASI HESAP DURUMU:\n";
+            echo "   status={$acc['status']} email_verified=".var_export($acc['email_verified']??null,true)."\n";
+            echo "   ack_sent_at=".($acc['ack_sent_at']??'(yok)')." ack_sent_ok=".var_export($acc['ack_sent_ok']??null,true)."\n";
+            echo ($acc['ack_sent_ok'] ?? false) ? "\nSONUC: BASARILI — 'belgelerini yukle' emaili gitti ({$email})\n" : "\nSONUC: BASARISIZ — email gitmedi, sunucu error_log'una bak\n";
+            PHPEOF
+            php /tmp/vestra_ack_step2.php
+            rm -f /tmp/vestra_ack_step1.php /tmp/vestra_ack_step2.php /tmp/vestra_ack_out1.txt /tmp/vestra_verify_resp.html
