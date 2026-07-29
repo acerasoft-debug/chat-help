@@ -2,6 +2,9 @@
 $products = vestra_products();
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
+/* Per-brand line-sheet downloads (public .xlsx with photos + codes, no pricing). */
+$brandCounts = []; foreach($products as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $brandCounts[$b]=($brandCounts[$b]??0)+1; }
+arsort($brandCounts);
 ?>
 <style>
 /* Großhandelskatalog — "premium white" theme, scoped to /shop only. The dark site
@@ -77,6 +80,21 @@ footer a{color:#d8bd86}
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16h5"/></svg>
           PDF <?= t('catalog') ?>
         </a>
+      </div>
+
+      <div class="filterblock">
+        <div class="filter-title"><?= t('Line-sheets by brand') ?></div>
+        <a class="filter-export" href="/catalog">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+          <?= t('All brands') ?> · Excel
+        </a>
+        <?php foreach($brandCounts as $b=>$cnt): ?>
+          <a class="filter-export" href="/catalog?brand=<?= rawurlencode($b) ?>" title="<?= htmlspecialchars(sprintf(t('%s line-sheet (Excel, with photos)'), $b)) ?>">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+            <?= htmlspecialchars($b) ?><span class="fcount"><?= $cnt ?></span>
+          </a>
+        <?php endforeach; ?>
+        <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).') ?></p>
       </div>
     </aside>
 
