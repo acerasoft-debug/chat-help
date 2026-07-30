@@ -61,8 +61,30 @@ jobs:
             set -e
             cat > /tmp/vestra_setprices.php <<'PHPEOF'
             <?php
+            /* The host runs with display_errors off, so a fatal dies silently with exit
+               255 and no output at all -- which is unreadable in CI. Force errors to
+               stdout for this one-shot script. */
+            ini_set('display_errors', '1');
+            ini_set('display_startup_errors', '1');
+            error_reporting(E_ALL);
+            set_error_handler(function($no,$str,$file,$line){
+              fwrite(STDERR, "PHP HATA: {$str} ({$file}:{$line})\n"); return false;
+            });
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'], [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR], true)) {
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+              }
+            });
+
             $home = getenv("HOME");
-            require $home."/public_html/inc/products.php";
+            $inc  = $home."/public_html/inc/products.php";
+            if (!is_readable($inc)) { fwrite(STDERR, "HATA: {$inc} okunamadi\n"); exit(1); }
+            require $inc;
+
+            foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn) {
+              if (!function_exists($fn)) { fwrite(STDERR, "HATA: {$fn}() tanimli degil\n"); exit(1); }
+            }
 
             $brand = trim((string)getenv("P_BRAND"));
             $cat   = trim((string)getenv("P_CAT"));
@@ -103,12 +125,15 @@ jobs:
                   $line[] = "list ".($old === null ? '(yok)' : $old)." -> {$new}";
                   $all[$i]['list'] = $new;
                   // tiers drive the actual order price; leaving them stale would show one
-                  // price and charge another. Rewrite the first tier to match.
+                  // price and charge another. Rewrite every tier to match.
                   if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                    $n = 0;
                     foreach ($p['tiers'] as $ti => $t) {
-                      $all[$i]['tiers'][$ti]['price'] = $new;
+                      // A tier that is not an array would fatal on ['price'] assignment.
+                      if (!is_array($t)) { $line[] = "UYARI: tier[{$ti}] dizi degil, atlandi"; continue; }
+                      $all[$i]['tiers'][$ti]['price'] = $new; $n++;
                     }
-                    $line[] = "tiers(".count($p['tiers']).") -> {$new}";
+                    if ($n) $line[] = "tiers({$n}) -> {$new}";
                   }
                   $changes++;
                 }
@@ -118,8 +143,11 @@ jobs:
                 if ((int)$old !== $new) {
                   $line[] = "moq ".($old === null ? '(yok)' : $old)." -> {$new}";
                   $all[$i]['moq'] = $new;
+                  // First tier gates the minimum. Guard the shape: tiers may be keyed
+                  // other than 0, or hold non-arrays, either of which would fatal.
                   if (!empty($all[$i]['tiers']) && is_array($all[$i]['tiers'])) {
-                    $all[$i]['tiers'][0]['min'] = $new;   // first tier gates the minimum
+                    $k = array_key_first($all[$i]['tiers']);
+                    if (is_array($all[$i]['tiers'][$k] ?? null)) $all[$i]['tiers'][$k]['min'] = $new;
                   }
                   $changes++;
                 }
