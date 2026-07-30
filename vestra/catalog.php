@@ -20,11 +20,20 @@
 require __DIR__.'/inc/products.php';
 require __DIR__.'/inc/xlsx.php';
 
-$brandQ = trim((string)($_GET['brand'] ?? ''));
+/* Accepts one brand ("Lacoste") or several, comma-separated
+   ("Lacoste,Amiri"), so a buyer can pull exactly the brands they care about in a
+   single sheet instead of downloading each one and merging by hand. */
+$brandQ  = trim((string)($_GET['brand'] ?? ''));
+$wanted  = array_values(array_filter(array_map('trim', explode(',', $brandQ)), fn($b) => $b !== ''));
 
 $items = [];
 foreach (vestra_products() as $p) {
-    if ($brandQ !== '' && strcasecmp(trim((string)($p['brand'] ?? '')), $brandQ) !== 0) continue;
+    if ($wanted) {
+        $b = trim((string)($p['brand'] ?? ''));
+        $hit = false;
+        foreach ($wanted as $w) { if (strcasecmp($b, $w) === 0) { $hit = true; break; } }
+        if (!$hit) continue;
+    }
     $items[] = $p;
 }
 
@@ -82,12 +91,28 @@ if (!$rows) {
 // Footer note (no photo): drives registration; keeps trade pricing gated.
 $rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
 
-$title = $brandQ !== '' ? $brandQ : 'VESTRA Selection';
+$title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
 $xlsx = vestra_xlsx_with_photos($headers, $rows, $title);
 if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
 
+/* Delivery. These sheets run 1.7-17.8 MB because every row embeds a photo, and at
+   that size the transfer is what breaks, not the build.
+   1. Any buffered output -- a stray newline or BOM from an include -- would sit in
+      front of the zip header and make Excel reject the file. Discard it.
+   2. zlib.output_compression is commonly on for shared hosting. It would gzip the
+      body while the Content-Length below still advertises the UNCOMPRESSED size, so
+      the client stops reading early and saves a truncated, unopenable file. A .xlsx
+      is a zip and is already compressed, so re-compressing only costs CPU anyway. */
+while (ob_get_level() > 0) ob_end_clean();
+if (function_exists('ini_set')) { @ini_set('zlib.output_compression', 'Off'); }
+@ini_set('max_execution_time', '120');
+
+$fname = 'VESTRA-Selection-'.date('Y-m-d').'.xlsx';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="VESTRA-Selection-'.date('Y-m-d').'.xlsx"');
+header('Content-Disposition: attachment; filename="'.$fname.'"');
 header('X-Content-Type-Options: nosniff');
-header('Content-Length: '.strlen($xlsx));
+header('Content-Length: '.strlen($xlsx));   // now truthful: no buffer, no compression
+header('Accept-Ranges: none');
+header('Cache-Control: private, max-age=300');
 echo $xlsx;
+flush();
