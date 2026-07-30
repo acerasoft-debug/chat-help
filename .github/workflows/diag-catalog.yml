@@ -70,7 +70,13 @@ jobs:
             SHOPCOUNT=$(echo "$BODY" | grep -oE 'id="shopcount"[^>]*>[^<]*' | head -1)
             echo "  render: kart=${CARDS}"
             echo "  ${SHOPCOUNT}"
-            pkill -f "php -S 127.0.0.1:8971" 2>/dev/null || true
+            # pkill -f against a loose pattern can match the wrapping shell itself and
+            # SIGTERM it -- exactly what happened here, killing the script (exit 143)
+            # right after all real checks had already printed. The runner tears the
+            # whole container down after the job anyway, so skip pkill and let step 5
+            # actually run instead of dying on cleanup.
+            PHP_PID=$(pgrep -f "php -S 127.0.0.1:8971" | head -1)
+            [ -n "$PHP_PID" ] && kill "$PHP_PID" 2>/dev/null || true
 
             echo ""
             echo "===== 5. LINE-SHEET (catalog.php) HALA CALISIYOR MU ====="
