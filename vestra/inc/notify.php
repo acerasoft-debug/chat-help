@@ -1162,8 +1162,29 @@ function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,
   if(!vestra_cfg('mail_enabled',false)) return false;
   if(vestra_cfg('mail_api_key','')!==''){
     $ok = vestra_api_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage,$opts);
-    if(!$ok) error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
-    return $ok;
+    if($ok) return true;
+    error_log("[VESTRA Mail] API send failed to {$to} — subject: {$subject}");
+    /* Second transport. The primary API has a monthly/daily allowance; once it is spent
+     * every further send is refused and the campaign simply stops. If a backup SMTP
+     * transport is configured (Amazon SES, Scaleway, any SMTP provider — vestra_smtp_send
+     * speaks STARTTLS + AUTH LOGIN, which all of them offer), carry on through it.
+     *
+     * Guarded by vestra_api_definitively_rejected(): retry ONLY when the provider
+     * answered with an HTTP status, meaning nothing was sent. On an ambiguous network
+     * failure we accept losing the message rather than risk mailing the same boutique
+     * twice — a duplicate cold email costs more goodwill than a miss.
+     *
+     * Set mail_fallback_smtp=true in config to arm this; it is off by default so a
+     * misconfigured backup can never silently take over the primary path. */
+    if(vestra_cfg('mail_fallback_smtp',false) && vestra_api_definitively_rejected()
+       && vestra_cfg('smtp_host','')!=='' && vestra_cfg('smtp_pass','')!==''){
+      error_log("[VESTRA Mail] primary refused — retrying {$to} via fallback SMTP");
+      $ok2 = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage,$opts);
+      error_log($ok2 ? "[VESTRA Mail] fallback SMTP delivered to {$to}"
+                     : "[VESTRA Mail] fallback SMTP ALSO failed for {$to}");
+      return $ok2;
+    }
+    return false;
   }
   if(vestra_cfg('smtp_host','')!==''){
     $ok = vestra_smtp_send($to,$subject,$body,$replyTo,$fromName,null,$heroImage,$opts);
@@ -1269,11 +1290,30 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
     CURLOPT_TIMEOUT=>20,
   ]);
   $resp=curl_exec($ch);
-  if($resp===false){ error_log('[VESTRA API] curl error: '.curl_error($ch)); curl_close($ch); return false; }
+  if($resp===false){
+    /* Network/transport error: the request may or may not have reached the provider.
+     * Record it as AMBIGUOUS so the caller does NOT retry on a second transport --
+     * a timeout that arrives after the provider already accepted the message would
+     * otherwise send the same recipient two copies. */
+    error_log('[VESTRA API] curl error: '.curl_error($ch)); curl_close($ch);
+    $GLOBALS['vestra_api_last_rejected']=false;
+    return false;
+  }
   $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
-  if($code>=200 && $code<300) return true;
+  if($code>=200 && $code<300){ $GLOBALS['vestra_api_last_rejected']=false; return true; }
+  /* Definitive rejection with an HTTP status: the provider refused it and nothing was
+   * sent, so a fallback transport is safe. Quota exhaustion lands here (Brevo answers
+   * 402 "not enough credits"), which is exactly the case worth failing over. */
+  $GLOBALS['vestra_api_last_rejected']=true;
   error_log("[VESTRA API] {$provider} HTTP {$code}: ".substr((string)$resp,0,300));
   return false;
+}
+
+/* True when the last vestra_api_send() was refused by the provider with an HTTP status
+ * (quota, bad sender, rejected recipient) rather than failing ambiguously mid-flight.
+ * Only then may the caller retry the same message on a different transport. */
+function vestra_api_definitively_rejected(): bool {
+  return !empty($GLOBALS['vestra_api_last_rejected']);
 }
 
 /* notify the operator address(es) configured in inc/config.php */

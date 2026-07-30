@@ -21,7 +21,7 @@ foreach (vestra_products() as $p) {
 foreach (vestra_journal_published() as $a) {
   $urls[] = ['/journal?slug='.rawurlencode($a['slug'] ?? ''), 'monthly', '0.5'];
 }
-$langs = array_keys(vlang_list());   // en, de, fr, it, es
+$langs = array_keys(vlang_list());   // derived, not hardcoded — every site language is emitted
 echo '<?xml version="1.0" encoding="UTF-8"?>'."\n";
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'."\n";
 foreach ($urls as [$path, $freq, $prio]) {

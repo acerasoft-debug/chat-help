@@ -36,10 +36,19 @@ $_seoSep   = ($qs !== '' ? '&' : '?');
 $_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
 $CANONICAL = $_seoHref(vlang());
 $OG_IMAGE  = $OG_IMAGE ?? $SEO_HOST.'/inc/og-image.png';   // pages may set a specific image (e.g. product photo)
-$OG_LOCALE = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][vlang()] ?? 'en_US';
+$OG_LOCALE = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES',
+              'nl'=>'nl_NL','pt'=>'pt_PT','cs'=>'cs_CZ','pl'=>'pl_PL','el'=>'el_GR'][vlang()] ?? 'en_US';
 $NOINDEX   = $NOINDEX ?? false;
 ?>
 <meta name="description" content="<?= htmlspecialchars($META) ?>">
+<?php
+/* Keywords, per language. Google has ignored this tag for over a decade — it is here
+   because the operator asked for it and it is harmless; Bing/Yandex still read it
+   weakly. It is NOT what ranks the site: the <title>, the description above and real
+   indexable content do that. Translated so it at least matches the page language. */
+$KEYWORDS = $KEYWORDS ?? t('wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing');
+?>
+<meta name="keywords" content="<?= htmlspecialchars($KEYWORDS) ?>">
 <link rel="canonical" href="<?= htmlspecialchars($CANONICAL) ?>">
 <?php foreach (array_keys(vlang_list()) as $_l): ?>
 <link rel="alternate" hreflang="<?= $_l ?>" href="<?= htmlspecialchars($_seoHref($_l)) ?>">

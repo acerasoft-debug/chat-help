@@ -8,7 +8,14 @@
  */
 if(!function_exists('vlang')){
 
-function vlang_list(){ return ['en'=>'EN','de'=>'DE','fr'=>'FR','it'=>'IT','es'=>'ES']; }
+/* Languages the SITE serves. Kept in step with the markets we actually email: nl/pt/cs/pl/el
+ * were added because the outreach campaign writes to Dutch, Portuguese, Czech, Polish and
+ * Greek boutiques, and sending someone a mail in their language only to land them on an
+ * English-only page wastes the click. t() falls back to the English key for any string a
+ * dictionary has not translated yet, so a partial dictionary is safe — the SEO-critical
+ * strings (title, description) are translated first. */
+function vlang_list(){ return ['en'=>'EN','de'=>'DE','fr'=>'FR','it'=>'IT','es'=>'ES',
+                              'nl'=>'NL','pt'=>'PT','cs'=>'CS','pl'=>'PL','el'=>'EL']; }
 
 /* Best match for the visitor's device/browser language (phone language travels
  * in the Accept-Language header). Maps regional tags (de-AT, fr-CA…) to our base
