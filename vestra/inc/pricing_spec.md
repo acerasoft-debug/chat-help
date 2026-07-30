@@ -140,3 +140,41 @@ over real HTTP: all five headers present.
 
 An edge cache may still hold the old copy; that needs purging once, after which
 the headers keep it from recurring.
+
+## Later pricing (2026-07-30, evening)
+
+| Group | Price | Note |
+|---|---|---|
+| Jeans | **120.00** | REVISED from 110.00 |
+| Jeans shorts | **90.00** | unchanged |
+| Badeshorts (swim shorts) | **39.90** | new |
+| Fendi — T-shirts | **80.00** | new brand |
+| Fendi — Polos | **110.00** | new brand |
+| Fendi — Sweatshirts | **125.00** | new brand |
+
+Fendi has no products and no photo folder yet.
+
+## Categories — actual state (read-only check, 2026-07-30 22:33)
+
+    'Hoodies & Sweatshirts'   67  (live 8 / pending 59)  D&G 7, Lacoste 1, Balenciaga 20, Burberry 39
+    'Polos'                    6  (live 6 / pending 0)   D&G 5, Ralph Lauren 1
+    'Sweatshirts'              7  (live 7 / pending 0)   DSQUARED2 7   <-- the stray one
+    'T-Shirts'               107  (live 72 / pending 35) D&G 57, Lacoste 3, RL 1, DSQUARED2 11, BALMAIN 35
+
+'Sweatshirts' was the duplicate section: 7 DSQUARED2 products sitting apart from
+the main 'Hoodies & Sweatshirts'. Merged into it.
+
+## Categories still needed
+
+Swim shorts, boxers and women's swimwear have nowhere correct to sit. Proposed,
+matching the existing English naming and separating men's from women's:
+
+    'Swim Shorts'          men's Badeshorts
+    'Underwear'            boxers / briefs
+    'Women's Swimwear'     Badeanzug für Frauen, bikinis
+    'Jeans'                D&G jeans (folder now fetched)
+    'Jeans Shorts'
+
+These cannot be populated until the contact sheets identify which product is
+which -- the whole point of the current correction pass. Assigning them from
+folder names would repeat the original error.
