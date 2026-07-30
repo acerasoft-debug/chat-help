@@ -13,6 +13,14 @@ on:
         description: "Ülke (opsiyonel; SADECE tek e-posta eklerken uygulanır)"
         required: false
         default: ""
+      category:
+        description: "Kategori / segment etiketi — TÜM eklenen e-postalara uygulanır (ör. 'Amazon Seller'). Admin > Prospects tablosunda Category sütununda görünür."
+        required: false
+        default: ""
+      source:
+        description: "Kaynak etiketi — TÜM eklenen e-postalara uygulanır (boşsa 'manual'). Admin'de Source sütununda görünür."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -33,13 +41,15 @@ jobs:
           LEAD_EMAILS: ${{ github.event.inputs.emails }}
           LEAD_COMPANY: ${{ github.event.inputs.company }}
           LEAD_COUNTRY: ${{ github.event.inputs.country }}
+          LEAD_CATEGORY: ${{ github.event.inputs.category }}
+          LEAD_SOURCE: ${{ github.event.inputs.source }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 6m
-          envs: LEAD_EMAILS,LEAD_COMPANY,LEAD_COUNTRY
+          envs: LEAD_EMAILS,LEAD_COMPANY,LEAD_COUNTRY,LEAD_CATEGORY,LEAD_SOURCE
           script: |
             cat > /tmp/vestra_add_lead.php <<'PHPEOF'
             <?php
@@ -54,6 +64,10 @@ jobs:
             $single = (count($emails) === 1);
             $ovCompany = $single ? trim((string)getenv("LEAD_COMPANY")) : '';
             $ovCountry = $single ? trim((string)getenv("LEAD_COUNTRY")) : '';
+            // Segment tags apply to the WHOLE batch (unlike company/country, which describe one
+            // business): a segment like "Amazon Seller" is exactly what you add several at a time.
+            $ovCategory = trim((string)getenv("LEAD_CATEGORY"));
+            $ovSource   = trim((string)getenv("LEAD_SOURCE"));
 
             $leads = vestra_leads();
             $seen = [];
@@ -92,12 +106,12 @@ jobs:
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>'',
                 'company'=>$company,'contact_name'=>'',
                 'email'=>$email,'country'=>$country,
-                'website'=>$website,'source'=>'manual','category'=>'',
+                'website'=>$website,'source'=>($ovSource!==''?$ovSource:'manual'),'category'=>$ovCategory,
                 'notes'=>'','status'=>'new','last_contacted_at'=>'','unsub_token'=>bin2hex(random_bytes(16)),
                 'premium'=>!empty($pb),'premium_brands'=>$pb,
               ];
               $added++;
-              echo "  + EKLENDI: {$company} <{$email}> | ulke=".($country?:'-')." | premium=".(!empty($pb)?('EVET ('.implode(', ', $pb).')'):'hayir')."\n";
+              echo "  + EKLENDI: {$company} <{$email}> | ulke=".($country?:'-')." | segment=".($ovCategory?:'-')." | premium=".(!empty($pb)?('EVET ('.implode(', ', $pb).')'):'hayir')."\n";
             }
             if ($added > 0) vestra_save_leads($leads);
             echo "\n{$added} eklendi. toplam lead: ".count($leads)."\n";
