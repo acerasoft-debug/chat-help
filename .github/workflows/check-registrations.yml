@@ -196,3 +196,18 @@ jobs:
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
+
+      # SON adim olarak duruyor: Brevo cikti'si log'un okunabilir kuyrugunda kalsin.
+      # Bastaki curl adimlarinin cikti'si, aradaki uzun PHP echo'sunun altinda kaliyor.
+      - name: Brevo plan + kota (gunluk limit gercekten var mi?)
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          TODAY=$(date -u +%F)
+          echo "== hesap plani (ucretsiz mi, odemeli mi -- gunluk 300 limiti buna bagli) =="
+          curl -sS "https://api.brevo.com/v3/account" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          echo "== BUGUN (${TODAY}) Brevo uzerinden giden TOPLAM (kampanya + islemsel) =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
