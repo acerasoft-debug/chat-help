@@ -2,6 +2,23 @@
 /** VESTRA shared header — start session, member gate, nav. Set $PAGE before include. */
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/auth.php';
+
+/* Never let a cache hold on to a rendered page. These are dynamic: /shop reflects
+   listings.json, and prices, MOQs and size runs change without any file being
+   deployed, so there is no URL change for a cache to notice. A CDN or browser
+   holding an old copy shows a catalogue that silently disagrees with the database
+   -- which is exactly what happened here: the server was rendering 96 products
+   while the site still showed a much older 8.
+   Sent before any output; guarded because some entry points emit earlier. */
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    // Cloudflare and other edges honour this even under a "cache everything" rule.
+    header('CDN-Cache-Control: no-store');
+    header('Cloudflare-CDN-Cache-Control: no-store');
+    header('Vary: Cookie, Accept-Language');   // member vs guest, and per language
+}
+
 if (session_status() === PHP_SESSION_NONE) session_start();
 $AUTH_USER = auth_user();
 /* The site owner (admin session) sees the catalogue exactly as a fully-verified
