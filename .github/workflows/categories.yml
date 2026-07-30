@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "list = sadece göster | merge = kaynak kategoriyi hedefe taşı"
+        description: "list = göster | audit = ad/kategori çelişkilerini bul | merge = taşı"
         required: true
         default: "list"
       from_cat:
@@ -76,6 +76,39 @@ jobs:
                 implode(', ', array_map(fn($k,$v)=>"$k:$v", array_keys($s['brands']), $s['brands'])));
             }
 
+            if ($act === 'audit') {
+              /* Urun ADI ile cat alani celisenleri bulur. Adda gecen anahtar kelime
+                 kategoriyi ele veriyor: "Polo Shirt" adli urun 'Polos' disindaysa
+                 yanlis yerdedir. Kategori klasorden tahmin edildigi icin bu tur
+                 kaymalar var; bu tarama hepsini mekanik olarak ortaya cikarir. */
+              $rules = [
+                'Polos'                 => '/\bpolo\b/i',
+                'Jeans Shorts'          => '/\b(denim|jean)\s*shorts?\b/i',
+                'Jeans'                 => '/\bjeans?\b/i',
+                'Hoodies & Sweatshirts' => '/\b(hoodie|sweatshirt|sweat|crewneck)\b/i',
+                'T-Shirts'              => '/\bt-?shirts?\b/i',
+                'Swim Shorts'           => '/\b(swim\s*shorts?|badeshorts?|boardshorts?)\b/i',
+                'Underwear'             => '/\b(boxer|brief|underwear)\b/i',
+                "Women's Swimwear"      => '/\b(bikini|swimsuit|badeanzug|one-?piece)\b/i',
+              ];
+              echo "\n===== AD / KATEGORI CELISKILERI =====\n";
+              $bad = 0;
+              foreach ($all as $p) {
+                $nm  = (string)($p['name'] ?? '');
+                $cur = (string)($p['cat'] ?? '');
+                /* Adin isaret ettigi kategori: en spesifik kural once gelsin diye
+                   dizi sirasi korunuyor ("denim shorts" once, sonra "jeans"). */
+                $should = null;
+                foreach ($rules as $cat => $re) { if (preg_match($re, $nm)) { $should = $cat; break; } }
+                if ($should === null || $should === $cur) continue;
+                $bad++;
+                printf("  %-26s | %-16s | %-40s\n      cat='%s'  ->  ad '%s' diyor\n",
+                  $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr($nm,0,40), $cur, $should);
+              }
+              echo "\ncelisen urun: {$bad}\n";
+              echo "(audit) — hicbir sey degistirilmedi.\n";
+              exit(0);
+            }
             if ($act !== 'merge') { echo "\n(list) — hicbir sey degistirilmedi.\n"; exit(0); }
 
             if ($from === '' || $to === '') { fwrite(STDERR,"\nHATA: merge icin from_cat ve to_cat gerekli\n"); exit(1); }
