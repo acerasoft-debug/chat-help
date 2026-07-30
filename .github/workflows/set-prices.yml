@@ -71,17 +71,16 @@ jobs:
 
       - name: Fiyatları ayarla
         uses: appleboy/ssh-action@v1.0.3
-        env:
-          P_JSON: ${{ env.P_JSON }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: P_JSON
-          script_stop: true
+          command_timeout: 10m
           script: |
-            set -e
+            echo "ADIM 1: baglanti tamam"
+            export P_JSON='${{ env.P_JSON }}'
+            echo "ADIM 2: P_JSON uzunluk=${#P_JSON}"
             cat > /tmp/vestra_setprices.php <<'PHPEOF'
             <?php
             /* The host runs with display_errors off, so a fatal dies silently with exit
@@ -235,5 +234,10 @@ jobs:
             }
             echo "KAYDEDILDI -- {$changes} alan guncellendi, {$hits} urun tarandi.\n";
             PHPEOF
-            php /tmp/vestra_setprices.php
+            echo "ADIM 3: dosya yazildi ($(wc -l < /tmp/vestra_setprices.php) satir)"
+            php -l /tmp/vestra_setprices.php
+            echo "ADIM 4: sozdizimi tamam, calistiriliyor"
+            php /tmp/vestra_setprices.php; RC=$?
+            echo "ADIM 5: php cikis kodu=$RC"
             rm -f /tmp/vestra_setprices.php
+            exit $RC
