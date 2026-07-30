@@ -5,13 +5,28 @@ This file is documentation only; nothing reads it at runtime.
 
 ## Agreed prices
 
-| Group | Wholesale price | MOQ | Notes |
-|---|---|---|---|
-| BALMAIN — heavily embroidered / printed | **59.90 EUR** | **20** | Awaiting real model codes (see blocker below) |
-| Dolce & Gabbana — T-shirts | **49.90 EUR** | — | `dg-1012xx`, already in catalogue |
-| Dolce & Gabbana — Body / bodysuits | **39.90 EUR** | — | IDs not yet confirmed in catalogue |
-| Jeans | **110.00 EUR** | size series | Sized on the D&G jeans run, see below |
-| Jeans shorts | **90.00 EUR** | size series | Same size run as jeans |
+| Group | Wholesale price | MOQ | Pack / series | Status |
+|---|---|---|---|---|
+| BALMAIN — heavily embroidered / printed | **59.90** | **20** | — | blocked, no model codes |
+| D&G — T-shirts | **49.90** | not given | not given | ~60 items, ready to price |
+| D&G — Polos | **60.00** | **20** | 10/pack | 4 items, ready to price |
+| D&G — Hoodies & Sweatshirts | **90.00** | **20** | 10/pack | 7 items, ready to price |
+| D&G — Body / bodysuits | **39.90** | not given | not given | no such products yet |
+| Jeans | **110.00** | **20** | 10/series | no such products yet |
+| Jeans shorts | **90.00** | **20** | 10/series | no such products yet |
+
+Open question: the T-shirts were given a price but no MOQ or pack. Left untouched
+rather than assumed, since polos and sweatshirts both got 10/pack + MOQ 20.
+
+## Pack run for tops (S–XXL) — 10 per pack
+
+    S×1 · M×2 · L×3 · XL×3 · XXL×1 · 10/paket
+
+MOQ 20 = 2 packs. The S–XXL split was not specified, so it mirrors the logic used
+on the jeans run: tails light, middle weighted. Matches the house format already in
+use on the live Lacoste listing (`S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack`).
+
+Minimum order value: polos 1,200 EUR, hoodies/sweatshirts 1,800 EUR.
 
 ## D&G jeans sizing — VERIFIED
 
@@ -54,8 +69,8 @@ Verified against the live listings (read-only inspect, 2026-07-30):
 | Category | In catalogue? | Action |
 |---|---|---|
 | T-Shirts | yes, ~60 items `dg-1012xx` | can be priced at 49.90 now |
-| Polos | yes, 4 items | no price instruction given |
-| Hoodies & Sweatshirts | yes, 7 items | no price instruction given |
+| Polos | yes, 4 items | 60.00 + 10/pack + MOQ 20 |
+| Hoodies & Sweatshirts | yes, 7 items | 90.00 + 10/pack + MOQ 20 |
 | Body / bodysuits | **no** | needs product data before 39.90 can apply |
 | Jeans | **no** | needs product data before 110 + series can apply |
 | Jeans shorts | **no** | needs product data before 90 + series can apply |
