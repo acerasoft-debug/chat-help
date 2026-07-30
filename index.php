@@ -1,13 +1,15 @@
 <?php
 /**
- * chat-help.com (kök) -> chat-help.com/chat/ yönlendirmesi
+ * chat-help.com (kök) — Startseite.
  * --------------------------------------------------------
- * PHP ile, "asla cache'leme" başlıklarıyla. Böylece tüm cihazlar/tarayıcılar
- * her seferinde taze yönlendirme alır (statik index.html'in aksine cache'lenmez).
- * nginx index.php'yi index.html'den önce çalıştırdığı için bu öncelikli olur.
+ * FRÜHER: sofortige Weiterleitung auf /chat/  →  größter SEO-Blocker,
+ * weil Google an der Startseite keinen indexierbaren Inhalt fand.
+ * JETZT: Wir liefern die echte Landingpage (index.html) mit Status 200 aus.
+ * nginx führt index.php vor index.html aus, deshalb geben wir die HTML-Datei
+ * hier bewusst selbst aus (eine einzige Inhaltsquelle: index.html).
+ * Der Button „Jetzt starten" in der Seite führt mit einem Klick in die App (/chat/).
  */
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Pragma: no-cache');
-header('Expires: 0');
-header('Location: /chat/', true, 302);   // 302 = geçici (301 kalıcı cache'lenir, istemiyoruz)
-exit;
+header('Content-Type: text/html; charset=utf-8');
+// Kurz cachebar (Startseite ist statisch); CDN/Browser dürfen zwischenspeichern.
+header('Cache-Control: public, max-age=600');
+readfile(__DIR__ . '/index.html');
