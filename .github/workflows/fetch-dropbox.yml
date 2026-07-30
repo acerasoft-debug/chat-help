@@ -113,30 +113,32 @@ jobs:
           echo; echo "staged dosya sayisi: $(find staged -type f | wc -l)"
           echo "LABEL=$LABEL" >> "$GITHUB_ENV"
 
+      # scp-action (drone-scp) sunucunun shell profilinden gelen "tput: No value for
+      # $TERM" stderr ciktisini hata sayip transferi geri aliyor. Duz scp/ssh
+      # kullanip TERM=dumb veriyoruz: hem tput susuyor hem stderr'e karsi hassas
+      # bir sarmalayici kalmiyor.
       - name: Sunucuya yükle (uploads/<etiket>/)
         if: ${{ github.event.inputs.upload == 'true' }}
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: "staged/*"
-          target: "public_html/uploads/${{ env.LABEL }}/"
-          strip_components: 1
-
-      - name: Yükleme doğrulama
-        if: ${{ github.event.inputs.upload == 'true' }}
-        uses: appleboy/ssh-action@v1.0.3
         env:
-          V_LABEL: ${{ env.LABEL }}
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: V_LABEL
-          script: |
-            echo "sunucudaki uploads/${V_LABEL}/ icerigi:"
-            ls -la "$HOME/public_html/uploads/${V_LABEL}/" | head -80
-            echo "toplam: $(ls "$HOME/public_html/uploads/${V_LABEL}/" | wc -l) dosya"
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+          TERM: dumb
+        run: |
+          set -e
+          PORT="${SSH_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+          N=$(find staged -type f | wc -l)
+          echo "yuklenecek dosya: $N"
+          [ "$N" -gt 0 ] || { echo "HATA: staged bos"; exit 1; }
+
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "mkdir -p ~/public_html/uploads/${LABEL} && chmod 755 ~/public_html/uploads/${LABEL}"
+          scp $SSHOPT -q staged/* "$SSH_USER@$SSH_HOST:public_html/uploads/${LABEL}/"
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "chmod 644 ~/public_html/uploads/${LABEL}/* 2>/dev/null; ls -1 ~/public_html/uploads/${LABEL}/ | wc -l | xargs -I{} echo 'sunucudaki dosya sayisi: {}'; ls -la ~/public_html/uploads/${LABEL}/ | head -60"
+          echo "YUKLEME TAMAM -> uploads/${LABEL}/"
