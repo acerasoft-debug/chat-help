@@ -676,9 +676,20 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
     .'<div style="max-width:560px;margin:0 auto;padding:32px 16px">'
     .'<div style="background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e6e0d5">'
-    .'<div style="background:#14110c;padding:22px 28px">'
-    .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em">VESTRA</span>'
-    .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span></div>'
+    /* Masthead: our own logo mark + wordmark. Table-based and vertically aligned because
+       Outlook ignores flex/inline-block alignment. The mark is a PNG (Gmail and Outlook strip
+       inline SVG) served from the site over https, and the wordmark stays live TEXT rather than
+       being baked into the image — most clients block remote images by default, so the brand
+       must still read when the logo never loads. */
+    .'<div style="background:#14110c;padding:20px 28px">'
+    .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+    .'<td valign="middle" style="padding-right:10px;line-height:0">'
+    .'<img src="https://vestrasales.com/icon-192.png" width="30" height="30" alt=""'
+    .' style="display:block;width:30px;height:30px;border:0;border-radius:7px"></td>'
+    .'<td valign="middle" style="line-height:1">'
+    .'<span style="color:#d8bd86;font-size:20px;font-weight:700;letter-spacing:.02em;font-family:Georgia,\'Times New Roman\',serif">VESTRA</span>'
+    .'<span style="color:#8a8272;font-size:12px;margin-left:6px">sales</span>'
+    .'</td></tr></table></div>'
     .$heroBandHtml
     .$heroHtml
     .$badgeHtml
