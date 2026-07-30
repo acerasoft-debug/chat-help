@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       brand:
-        description: "Marka (listings.json'daki 'brand' alanında geçen metin, örn: Dolce)"
+        description: "Marka (örn: Dolce). * = TÜM ürünler"
         required: true
         default: "Dolce"
       cat:
@@ -146,7 +146,10 @@ jobs:
             foreach ($all as $i => $p) {
               $b = (string)($p['brand'] ?? '');
               $c = (string)($p['cat'] ?? '');
-              if (stripos($b, $brand) === false) continue;
+              // '*' targets every listing. Sweeping with a single letter instead
+              // silently skips anything whose brand lacks it -- an earlier run matched
+              // only 73 of 94 that way and looked complete.
+              if ($brand !== '*' && stripos($b, $brand) === false) continue;
               if ($cat !== '' && strcasecmp(trim($c), $cat) !== 0) continue;
               $hits++;
               $id = (string)($p['id'] ?? '?');
@@ -206,7 +209,7 @@ jobs:
               fwrite(STDERR, "Mevcut kategoriler:\n");
               $cats = [];
               foreach (vestra_listings() as $p) {
-                if (stripos((string)($p['brand'] ?? ''), $brand) !== false) {
+                if ($brand === '*' || stripos((string)($p['brand'] ?? ''), $brand) !== false) {
                   $cats[(string)($p['cat'] ?? '?')] = true;
                 }
               }
