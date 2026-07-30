@@ -5,11 +5,15 @@ on:
       brand:
         description: "Marka (örn: Dolce). * = TÜM ürünler"
         required: true
-        default: "Dolce"
+        default: "*"
       cat:
-        description: "Kategori (tam eşleşme, örn: T-Shirts / Polos / Jeans). Boş = markanın hepsi"
+        # Default is empty ON PURPOSE. Actions substitutes the default whenever the
+        # input arrives empty, so a non-empty default silently narrows every "all
+        # categories" run to that one category -- a sweep meant for the whole
+        # catalogue quietly touched only T-Shirts and still reported success.
+        description: "Kategori (tam eşleşme, örn: T-Shirts / Polos). Boş veya * = TÜM kategoriler"
         required: false
-        default: "T-Shirts"
+        default: ""
       price:
         description: "Toptan fiyat EUR (örn: 49.90). Boş = fiyata dokunma"
         required: false
@@ -150,7 +154,7 @@ jobs:
               // silently skips anything whose brand lacks it -- an earlier run matched
               // only 73 of 94 that way and looked complete.
               if ($brand !== '*' && stripos($b, $brand) === false) continue;
-              if ($cat !== '' && strcasecmp(trim($c), $cat) !== 0) continue;
+              if ($cat !== '' && $cat !== '*' && strcasecmp(trim($c), $cat) !== 0) continue;
               $hits++;
               $id = (string)($p['id'] ?? '?');
               $line = [];
