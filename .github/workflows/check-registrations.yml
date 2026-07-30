@@ -211,3 +211,13 @@ jobs:
           echo "== BUGUN (${TODAY}) Brevo uzerinden giden TOPLAM (kampanya + islemsel) =="
           curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          # Hard bounce = adres kalici olarak yok. Bu oran yukselince saglayici hesabi
+          # askiya alir ve KAMPANYA ile birlikte siparis onayi / e-posta dogrulama da
+          # kesilir. Asagidaki listeyi send-outreach'in mark_bounced girdisine verip
+          # o leadleri olu isaretleyin -- bir daha denenmesinler.
+          START=$(date -u -d '-7 days' +%F)
+          echo "== HARD BOUNCE eden adresler (${START} .. ${TODAY}) — send-outreach > mark_bounced icin =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/events?event=hardBounces&startDate=${START}&endDate=${TODAY}&limit=500" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            | python3 -c 'import sys,json; e=json.load(sys.stdin).get("events") or []; a=sorted({(x.get("email") or "").strip().lower() for x in e if (x.get("email") or "").strip()}); print("tekil adres:",len(a)); print(", ".join(a))'
