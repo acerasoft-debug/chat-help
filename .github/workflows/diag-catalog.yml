@@ -1,18 +1,18 @@
-name: (Salt-okunur) Teşhis — canlı durum tam kontrol
+name: (Salt-okunur) Yüklenen görselleri markaya göre listele
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Salt-okunur. Bu oturumda yapılan HER değişikliğin sunucuda gerçekten canlı
-# olduğunu tek seferde doğrular: ürün sayısı, dg-101209 tekilliği, fiyat/paket
-# metni, bounce sayısı, shop.php render, cache başlıkları. Hiçbir şeyi DEĞİŞTİRMEZ.
+# Salt-okunur. uploads/balmain, uploads/balenciaga-burberry, uploads/shorts-sweats
+# altındaki TÜM dosyaları marka tahminiyle gruplayıp tam listeyi basar — ürün
+# satırlarını gerçek kodlarla kurabilmek için. Hiçbir şeyi DEĞİŞTİRMEZ.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Tam kontrol
+      - name: Listele
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -21,66 +21,37 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 10m
           script: |
-            echo "===== GIT DURUMU (sunucudaki kod) ====="
-            cd "$HOME/public_html" && git rev-parse --short HEAD 2>/dev/null || echo "  (git repo degil -- deploy script ile kopyalaniyor olabilir)"
-            echo ""
-
-            cat > /tmp/diag_full.php <<'PHPEOF'
+            cat > /tmp/diag_imgs.php <<'PHPEOF'
             <?php
-            ini_set('display_errors','1'); error_reporting(E_ALL);
             $doc = getenv("HOME")."/public_html";
-            require $doc."/inc/products.php";
-
-            echo "===== 1. URUN SAYISI ve dg-101209 =====\n";
-            $listings = vestra_listings();
-            echo "  listings.json kayit: ".count($listings)."\n";
-            $dg101209 = 0;
-            foreach ($listings as $p) if ((string)($p['id']??'')==='dg-101209') $dg101209++;
-            echo "  dg-101209 tekrari: {$dg101209} ".($dg101209===1 ? "(DOGRU -- tekil)" : "(SORUN)")."\n";
-
-            echo "\n===== 2. FIYAT / PAKET METNI (ornek urunler) =====\n";
-            $checkIds = ['dg-101281','dg-101234','dg-101268','lgp-lacoste-trim-tshirt'];
-            foreach ($listings as $p) {
-              $id = (string)($p['id']??'');
-              if (!in_array($id, $checkIds, true)) continue;
-              printf("  %-26s list=%-6s moq=%-4s sizes=%s\n",
-                $id, $p['list']??'?', $p['moq']??'?', $p['sizes']??'(yok)');
+            $dirs = ['balmain','balenciaga-burberry','shorts-sweats'];
+            $byBrand = [];
+            $total = 0;
+            foreach ($dirs as $d) {
+              $p = "{$doc}/uploads/{$d}";
+              if (!is_dir($p)) { echo "YOK: uploads/{$d}\n"; continue; }
+              foreach (scandir($p) as $f) {
+                if ($f === '.' || $f === '..') continue;
+                if (!preg_match('/\.(jpe?g|png|webp)$/i', $f)) continue;
+                $total++;
+                $l = strtolower($f);
+                // Marka tahmini: dosya adindaki markaya isaret eden parcalar.
+                if (preg_match('/^(balmain|balma-n)/', $l))                 $b = 'BALMAIN';
+                elseif (preg_match('/^(balenciaga|balenciag|balencaga|balncaga|blcg|blnc)/', $l)) $b = 'Balenciaga';
+                elseif (preg_match('/^(burberry|burbeery)/', $l))           $b = 'Burberry';
+                elseif (preg_match('/^d-g-/', $l))                          $b = 'Dolce & Gabbana';
+                else                                                        $b = '(BELIRSIZ)';
+                $byBrand[$b][] = "uploads/{$d}/{$f}";
+              }
             }
-
-            echo "\n===== 3. LEAD BOUNCE DURUMU =====\n";
-            require_once $doc."/inc/leads.php";
-            $leads = vestra_leads();
-            $st = [];
-            foreach ($leads as $l) { $s=(string)($l['status']??'?'); $st[$s]=($st[$s]??0)+1; }
-            foreach ($st as $k=>$v) echo "  {$k}: {$v}\n";
-            echo "  toplam: ".count($leads)."\n";
+            ksort($byBrand);
+            echo "TOPLAM GORSEL: {$total}\n\n";
+            foreach ($byBrand as $b => $files) {
+              sort($files);
+              echo "===== {$b} — ".count($files)." gorsel =====\n";
+              foreach ($files as $f) echo "  {$f}\n";
+              echo "\n";
+            }
             PHPEOF
-            php /tmp/diag_full.php
-            rm -f /tmp/diag_full.php
-
-            echo ""
-            echo "===== 4. shop.php RENDER + CACHE BASLIKLARI (gercek HTTP) ====="
-            HOST=$(cat "$HOME/public_html/.vestra_host" 2>/dev/null || echo "127.0.0.1")
-            cd "$HOME/public_html"
-            php -S 127.0.0.1:8971 -t . >/tmp/php_diag.log 2>&1 &
-            disown
-            sleep 2
-            HDRS=$(curl -sSI "http://127.0.0.1:8971/shop.php" 2>&1)
-            echo "$HDRS" | grep -iE "^(HTTP|cache-control|pragma|cdn-cache|vary)" | sed 's/^/  /'
-            BODY=$(curl -sS "http://127.0.0.1:8971/shop.php" 2>&1)
-            CARDS=$(echo "$BODY" | grep -o 'class="scard' | wc -l | tr -d ' ')
-            SHOPCOUNT=$(echo "$BODY" | grep -oE 'id="shopcount"[^>]*>[^<]*' | head -1)
-            echo "  render: kart=${CARDS}"
-            echo "  ${SHOPCOUNT}"
-            # Explicitly killing the backgrounded dev server -- by pkill -f pattern OR
-            # by pid -- left bash job control reporting that job's terminated status as
-            # the SCRIPT's own exit code (143 = SIGTERM), even though every real check
-            # above had already printed cleanly. `disown` removes it from job control so
-            # its eventual death (when this SSH session ends) is never attributed to the
-            # script. No kill at all: the runner tears the container down right after.
-
-            echo ""
-            echo "===== 5. LINE-SHEET (catalog.php) HALA CALISIYOR MU ====="
-            cd "$HOME/public_html" && OUT=$(REQUEST_METHOD=GET php -r '$_GET["brand"]="Dolce"; include "catalog.php";' 2>&1)
-            MAGIC=$(printf '%s' "$OUT" | head -c4 | xxd -p 2>/dev/null || echo "?")
-            echo "  dg catalog boyut: $(printf '%s' "$OUT" | wc -c) bayt, magic=${MAGIC} $([ "$MAGIC" = "504b0304" ] && echo GECERLI || echo BOZUK)"
+            php /tmp/diag_imgs.php
+            rm -f /tmp/diag_imgs.php
