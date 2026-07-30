@@ -2,8 +2,8 @@ name: Kataloğa yeni ürünler ekle (doğrulamalı)
 on:
   workflow_dispatch:
     inputs:
-      products_b64:
-        description: "base64(JSON dizi) — eklenecek ürün satırları"
+      file:
+        description: "Ürün tanım dosyası (repo kökünden yol, örn: product-batches/batch1.json)"
         required: true
       dry_run:
         description: "true = SADECE ne ekleneceğini yaz, KAYDETME"
@@ -13,16 +13,33 @@ on:
 permissions:
   contents: read
 
-# listings.json'a yeni ürün satırları ekler. Katı doğrulama — HEPSİ ya da HİÇBİRİ:
+# listings.json'a yeni ürün satırları ekler. Ürün tanımları REPODAKI bir JSON
+# dosyasından okunur — workflow_dispatch girdisinin ~64KB sınırı yok, ve eklenen
+# her satır git geçmişinde denetlenebilir kalıyor.
+#
+# Katı doğrulama — HEPSİ ya da HİÇBİRİ:
 #  - id/brand/name/cat/sku/list/moq zorunlu; fiyat>0, moq>=1
 #  - her ürünün en az 1 görseli olmalı ve o dosya SUNUCUDA GERÇEKTEN VAR olmalı
-#    (fetch-dropbox ile yüklenmiş olmalı) — fotoğrafsız/hayalet ürün eklenemez
 #  - id ve marka+SKU mevcut katalogla ve kendi içinde çakışamaz
 # Kaydetmeden önce zaman damgalı yedek alır, sonra geri okuyup sayıyı doğrular.
 jobs:
   add:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Dosyayı oku ve kodla
+        env:
+          RAW_FILE: ${{ github.event.inputs.file }}
+        run: |
+          set -e
+          case "$RAW_FILE" in
+            */../*|/*|*..*) echo "HATA: gecersiz yol"; exit 1 ;;
+          esac
+          [ -f "$RAW_FILE" ] || { echo "HATA: dosya yok: $RAW_FILE"; exit 1; }
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d,list) and d, 'JSON dizi degil/bos'; print(f'urun sayisi: {len(d)}')" "$RAW_FILE"
+          echo "P_JSON=$(base64 -w0 < "$RAW_FILE")" >> "$GITHUB_ENV"
+
       - name: Ürünleri ekle
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -33,7 +50,7 @@ jobs:
           command_timeout: 10m
           script: |
             echo "ADIM 1: baglanti tamam"
-            export P_JSON='${{ github.event.inputs.products_b64 }}'
+            export P_JSON='${{ env.P_JSON }}'
             export P_DRY='${{ github.event.inputs.dry_run }}'
             echo "ADIM 2: P_JSON uzunluk=${#P_JSON}"
             cat > /tmp/vestra_addproducts.php <<'PHPEOF'
