@@ -1,0 +1,114 @@
+[
+ {
+  "id": "dgj-gy07cd-g8do4",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Light Wash",
+  "cat": "Jeans",
+  "sku": "GY07CD G8DO4",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07cd-g8do4.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07CD G8DO4. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy07cd-g8et4",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Stone Wash",
+  "cat": "Jeans",
+  "sku": "GY07CD G8ET4",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07cd-g8et4.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07CD G8ET4. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy07cd-g8eu0",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Mid Blue",
+  "cat": "Jeans",
+  "sku": "GY07CD G8EU0",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07cd-g8eu0.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07CD G8EU0. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy07cd-g8do0",
+  "brand": "Dolce & Gabbana",
+  "name": "5-Pocket Jeans — Distressed",
+  "cat": "Jeans",
+  "sku": "GY07CD G8DO0",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07cdg8do0.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07CD G8DO0. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy07ld-g8dm8",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans — Dark Rinse",
+  "cat": "Jeans",
+  "sku": "GY07LD G8DM8",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07ld-g8dm8.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07LD G8DM8. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy07ld-g8do8",
+  "brand": "Dolce & Gabbana",
+  "name": "Slim Fit Jeans — Light Blue",
+  "cat": "Jeans",
+  "sku": "GY07LD G8DO8",
+  "list": 120.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy07ldg8do8.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY07LD G8DO8. EEA stock with full invoice trail."
+ },
+ {
+  "id": "dgj-gy4jed-g8dn0",
+  "brand": "Dolce & Gabbana",
+  "name": "Denim Shorts — Dark Wash",
+  "cat": "Jeans Shorts",
+  "sku": "GY4JED G8DN0",
+  "list": 90.0,
+  "moq": 20,
+  "unit": "pc",
+  "mode": "sale",
+  "sizes": "44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri",
+  "images": [
+   "/uploads/dg-jeans/d-g-gy4jed-g8dn0.jpg"
+  ],
+  "desc": "Original Dolce & Gabbana, model GY4JED G8DN0. EEA stock with full invoice trail."
+ }
+]
