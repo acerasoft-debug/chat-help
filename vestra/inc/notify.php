@@ -116,7 +116,10 @@ function vestra_email_is_junk(string $email): bool {
        // were the shop's. Only the platform's own domain is blocked — a shop whose mailbox merely
        // happens to be hosted there still has its own domain and is unaffected.
        .'|@webador\.|@wix\.com|@squarespace\.|@shopify\.|@jimdo\.|@webnode\.|@weebly\.|@strikingly\.'
-       .'|@site123\.|@ionos\.|@one\.com|@hostpoint\.|@infomaniak\.|@web\.com)#i';
+       .'|@site123\.|@ionos\.|@one\.com|@hostpoint\.|@infomaniak\.|@web\.com'
+       // Same failure, more platforms — each was caught mid-campaign on a real lead:
+       // support@jouwweb.nl (NL site builder), blog@wordpress.com, domains@loopia.com (SE host).
+       .'|@jouwweb\.|@wordpress\.com|@loopia\.|@hostinger\.|@wordpress\.org|@automattic\.)#i';
   return (bool)preg_match($junk,$e);
 }
 
@@ -373,6 +376,23 @@ function vestra_discover_blocklist(): array {
     'dries van noten','philipp plein','phillip plein','stone island','bensimon',
     'torfs','lucardi','state of art','costes','juttu','the society shop','mayerline',
     'cavallaro','yaya','mascolori','schoenen slaets','buffalini','pedico','modemakers',
+    // Nordic own-label houses + chains (Oslo/Stockholm/Copenhagen discovery). Same rule as
+    // every flagship above: the label's own store buys from its own factory, not from us.
+    'acne studios','norrøna','norrona','holzweiler','polarn o. pyret','polarnopyret',
+    'b.young','byoung','bytimo','by timo','cathrine hammel','woolland','nøstebarn','nostebarn','woden',
+    'lillelam','ganni','norse projects','helly hansen','fjällräven','fjallraven','dressmann',
+    'cubus','bik bok','carlings','varner','bestseller','jack and jones','name it','only & sons',
+    'partyland','fretex',
+    // second-hand / charity chains — same reason as the charities above: donated stock, no buying
+    'think twice','uff vintage','uffnorge','myrorna','erikshjälpen','erikshjalpen',
+    // Belgian couture house — own label, made-to-measure, not a reseller
+    'natan',
+    // Adjacent trades that aren't clothing retail at all: dancewear, cobblers/orthopaedic
+    // shoemakers, embroidery/print services and fabric shops. They were harvested under
+    // shop=clothes|shoes but none of them resells ready-to-wear designer stock.
+    'dansebutikk','danseboutique','dansebutik','danceshop','dance shop',
+    'skomaker','skomager','schuhmacher','cordonnerie','orthopedie','orthopädie','orthopadie',
+    'ortopedi','orthopaedic','borduur','stoffen','tissus','stofferie',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
