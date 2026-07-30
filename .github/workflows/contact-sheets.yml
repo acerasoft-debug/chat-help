@@ -1,0 +1,88 @@
+name: Görsel kontak sayfaları üret (kategori doğrulaması için)
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Sunucudaki uploads/ görsellerinden ETIKETLI kontak sayfalari (montaj) uretir ve
+# repoya isler. Amac: her urunun GERCEKTEN ne oldugunu (t-shirt mi, sweatshirt mi,
+# boxer mi, mayo mu) fotografa bakarak dogrulayabilmek -- kategori klasor adindan
+# tahmin edildigi icin yanlis siniflanan urunler var.
+#
+# Orijinaller ~180MB; repoya kucuk kucultulmus kareler halinde, sayfa basina 24
+# gorsel ve altlarinda dosya adi (= model kodu) ile giriyor. Boylece ~11 sayfadan
+# butun katalog gozle kontrol edilebiliyor.
+jobs:
+  sheets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/charming-franklin-1ynmuj
+
+      - name: Görselleri sunucudan çek ve kontak sayfası yap
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+          TERM: dumb
+        run: |
+          set -e
+          PORT="${SSH_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+          mkdir -p raw
+          for d in balmain balenciaga-burberry shorts-sweats; do
+            mkdir -p "raw/$d"
+            ssh $SSHOPT "$SSH_USER@$SSH_HOST" "cd ~/public_html/uploads/$d && tar -czf - ." | tar -xzf - -C "raw/$d"
+            echo "$d: $(find raw/$d -type f | wc -l) dosya"
+          done
+
+          rm -rf contact-sheets && mkdir -p contact-sheets
+          # Her klasor icin: kucult, dosya adiyla etiketle, 6x4=24'luk sayfalar yap.
+          for d in balmain balenciaga-burberry shorts-sweats; do
+            i=0; page=1; batch=""
+            for f in $(find "raw/$d" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort); do
+              batch="$batch $f"
+              i=$((i+1))
+              if [ $((i % 24)) -eq 0 ]; then
+                montage $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
+                  -background white -fill black -pointsize 11 \
+                  "contact-sheets/${d}-$(printf '%02d' $page).jpg" 2>/dev/null || true
+                echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (24 gorsel)"
+                page=$((page+1)); batch=""
+              fi
+            done
+            if [ -n "$batch" ]; then
+              montage $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
+                -background white -fill black -pointsize 11 \
+                "contact-sheets/${d}-$(printf '%02d' $page).jpg" 2>/dev/null || true
+              echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (kalan)"
+            fi
+          done
+
+          echo; echo "uretilen sayfa:"; ls -la contact-sheets/ | tail -n +2
+          echo "toplam boyut: $(du -sh contact-sheets | cut -f1)"
+
+      - name: Repoya işle
+        run: |
+          set -e
+          git config user.name "acerasoft-debug"
+          git config user.email "acerasoft@gmail.com"
+          git add contact-sheets
+          if git diff --cached --quiet; then echo "degisiklik yok"; exit 0; fi
+          git commit -m "Contact sheets for visual category verification
+
+Categories were inferred from the source folder, not from the products
+themselves, so t-shirts were filed as sweatshirts, boxers as sweatshirts and
+swimwear miscategorised. These labelled montages make every uploaded image
+checkable against its model code so the catalogue can be corrected from what the
+products actually are.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+          git push origin claude/charming-franklin-1ynmuj
