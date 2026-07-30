@@ -41,21 +41,44 @@ jobs:
   set-prices:
     runs-on: ubuntu-latest
     steps:
+      # The beden serisi value contains spaces and multibyte characters ("S×1 · M×2 ·
+      # ... 10/paket"). Passed straight through the ssh action's envs, the remote
+      # export line is not safely quoted, so the shell chokes on it and script_stop's
+      # set -e aborts the run BEFORE php is ever reached -- which is why the first
+      # attempts died with exit 255 and produced no output whatsoever.
+      #
+      # Pack every input into one JSON blob and base64 it here instead. What crosses
+      # the wire is then plain ASCII with no spaces or shell metacharacters. Values
+      # reach this step through env:, never through shell interpolation of ${{ }},
+      # so a quote in an input cannot break out into the runner's shell either.
+      - name: Girdileri kodla
+        env:
+          RAW_BRAND: ${{ github.event.inputs.brand }}
+          RAW_CAT: ${{ github.event.inputs.cat }}
+          RAW_PRICE: ${{ github.event.inputs.price }}
+          RAW_MOQ: ${{ github.event.inputs.moq }}
+          RAW_SIZES: ${{ github.event.inputs.sizes }}
+          RAW_DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import base64, json, os
+          blob = {k: os.environ.get('RAW_'+k.upper(), '')
+                  for k in ['brand','cat','price','moq','sizes','dry']}
+          print('P_JSON=' + base64.b64encode(
+              json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
+          PY
+          echo "kodlandi: $(echo "$P_JSON" | wc -c) bayt"
+
       - name: Fiyatları ayarla
         uses: appleboy/ssh-action@v1.0.3
         env:
-          P_BRAND: ${{ github.event.inputs.brand }}
-          P_CAT: ${{ github.event.inputs.cat }}
-          P_PRICE: ${{ github.event.inputs.price }}
-          P_MOQ: ${{ github.event.inputs.moq }}
-          P_SIZES: ${{ github.event.inputs.sizes }}
-          P_DRY: ${{ github.event.inputs.dry_run }}
+          P_JSON: ${{ env.P_JSON }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          envs: P_BRAND,P_CAT,P_PRICE,P_MOQ,P_SIZES,P_DRY
+          envs: P_JSON
           script_stop: true
           script: |
             set -e
@@ -86,12 +109,24 @@ jobs:
               if (!function_exists($fn)) { fwrite(STDERR, "HATA: {$fn}() tanimli degil\n"); exit(1); }
             }
 
-            $brand = trim((string)getenv("P_BRAND"));
-            $cat   = trim((string)getenv("P_CAT"));
-            $price = trim((string)getenv("P_PRICE"));
-            $moq   = trim((string)getenv("P_MOQ"));
-            $sizes = trim((string)getenv("P_SIZES"));
-            $dry   = strtolower(trim((string)getenv("P_DRY"))) !== 'false';
+            /* Inputs arrive as one base64'd JSON blob -- see the encode step for why. */
+            $raw = (string)getenv("P_JSON");
+            if ($raw === '') { fwrite(STDERR, "HATA: P_JSON bos -- girdiler ulasmadi\n"); exit(1); }
+            $dec = base64_decode($raw, true);
+            if ($dec === false) { fwrite(STDERR, "HATA: P_JSON base64 cozulemedi\n"); exit(1); }
+            $in = json_decode($dec, true);
+            if (!is_array($in)) { fwrite(STDERR, "HATA: P_JSON gecerli JSON degil: ".substr($dec,0,120)."\n"); exit(1); }
+
+            $brand = trim((string)($in['brand'] ?? ''));
+            $cat   = trim((string)($in['cat']   ?? ''));
+            $price = trim((string)($in['price'] ?? ''));
+            $moq   = trim((string)($in['moq']   ?? ''));
+            $sizes = trim((string)($in['sizes'] ?? ''));
+            $dry   = strtolower(trim((string)($in['dry'] ?? 'true'))) !== 'false';
+
+            echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' moq='{$moq}'\n";
+            echo "          beden='{$sizes}'\n";
+            echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
             if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
             if ($price === '' && $moq === '' && $sizes === '') {
