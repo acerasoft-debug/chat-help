@@ -8,9 +8,9 @@ Deploy-fertige SEO-Bausteine für chat-help.com. Drei Content-Säulen:
 
 | Datei | Was | Wohin |
 |---|---|---|
-| `head-de.html` | Kompletter SEO-`<head>` (Deutsch): Title, Meta, Open Graph, Twitter, JSON-LD (Organization, WebSite, SoftwareApplication, Service, **FAQPage**) | in den `<head>` der Startseite einfügen |
-| `head-en.html` | Dasselbe für die englische/UK-Seite | in den `<head>` von `/en/` |
-| `og-de.png` / `og-en.png` | Share-Bild 1200×630 (Open Graph/Twitter) | ins Web-Root: `chat-help.com/og-de.png`, `…/og-en.png` |
+| `head-de.html … head-it.html` | Kompletter SEO-`<head>` je Sprache (**de, en, fr, tr, ru, es, it**): Title, Meta, OG, Twitter, JSON-LD (Organization, WebSite, SoftwareApplication, Service, **FAQPage**) + **hreflang**-Cluster | je in den `<head>` der Sprach-URL (`/`, `/en/`, `/fr/` …) |
+| `og-de.png … og-it.png` | Share-Bild 1200×630 je Sprache (Open Graph/Twitter) | ins Web-Root: `chat-help.com/og-XX.png` |
+| `seo-multilang.md` | **Mehrsprachiges SEO korrekt:** URL-je-Sprache + hreflang, IP nur für Menschen (nicht Bots), fertige PHP-Snippets | Anleitung |
 | `seo-strategy.md` | Keyword-Map, Seitenarchitektur, On-Page-Checkliste, Content-Ideen, Technik | Referenz/Fahrplan |
 | `robots.txt` | Crawler-Regeln (Dev-/Diagnose-Skripte ausschließen) | Web-Root: `chat-help.com/robots.txt` |
 | `sitemap.xml` | Sitemap-Vorlage mit hreflang-Alternates | Web-Root: `chat-help.com/sitemap.xml` |
