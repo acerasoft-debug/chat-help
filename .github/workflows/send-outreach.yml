@@ -95,8 +95,27 @@ jobs:
               'poland'=>'pl','polska'=>'pl',
               'spain'=>'es','españa'=>'es','espana'=>'es',
               'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
+              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
             ];
-            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
+            // Multilingual countries: one country, several languages, so the COUNTRY alone can't
+            // decide. Lead rows carry no city field (vestra_leads_add drops it) — the city survives
+            // inside notes via the OSM address, so match city names there and fall back to the
+            // country's majority language when the address doesn't name a known city.
+            $REGION_LANG = [
+              'switzerland' => ['default'=>'de','match'=>[
+                'fr'=>['geneva','genève','geneve','genf','lausanne','montreux','neuchâtel','neuchatel','fribourg','sion','vevey','nyon','yverdon','morges','carouge'],
+                'it'=>['lugano','locarno','bellinzona','mendrisio','chiasso','ascona'],
+              ]],
+              'schweiz' => ['default'=>'de','match'=>[]],
+              'suisse'  => ['default'=>'fr','match'=>[]],
+              'luxembourg' => ['default'=>'fr','match'=>[
+                'de'=>['echternach','vianden','diekirch','wiltz','clervaux'],
+              ]],
+              'belgium' => ['default'=>'nl','match'=>[
+                'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
+              ]],
+            ];
+            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','de'=>'DE/Almanca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
@@ -150,7 +169,16 @@ jobs:
               $company = (string)($l['company'] ?? '');
               $email   = strtolower(trim((string)($l['email'] ?? '')));
               $country = (string)($l['country'] ?? '');
-              $lang    = $LANG_MAP[strtolower(trim($country))] ?? 'en';
+              $ckey    = strtolower(trim($country));
+              if (isset($REGION_LANG[$ckey])) {
+                $lang = $REGION_LANG[$ckey]['default'];
+                $hay  = strtolower($company.' '.(string)($l['notes'] ?? '').' '.(string)($l['website'] ?? ''));
+                foreach ($REGION_LANG[$ckey]['match'] as $lg => $needles) {
+                  foreach ($needles as $nd) { if (str_contains($hay, $nd)) { $lang = $lg; break 2; } }
+                }
+              } else {
+                $lang = $LANG_MAP[$ckey] ?? 'en';
+              }
               $flag    = $FLAG_LABELS[$lang] ?? 'EN/Ingilizce';
               $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
 

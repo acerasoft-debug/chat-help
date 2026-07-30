@@ -702,6 +702,43 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
     return [$subject,$body,$opts];
   }
 
+  if($lang==='de'){
+    $subject="Les Garage de Paris × VESTRA — die authentische Designer-Auswahl im Großhandel";
+    $body=implode("\n",[
+      $company!=='' ? "Guten Tag — eine Nachricht für {$company}." : "Guten Tag,",
+      "",
+      "Eine kurze Vorstellung von Les Garage de Paris, über VESTRA — den KYC-verifizierten B2B-Marktplatz für authentische Designermode zu Großhandelspreisen.",
+      "",
+      "Wir beliefern Premium-Multibrand-Boutiquen mit den Häusern, nach denen ihre Kundschaft namentlich fragt — 100% authentisch, Echtheit bei Lieferung geprüft, zu klaren Rechnungsbedingungen.",
+      "",
+      "Die aktuelle Auswahl finden Sie unten als fertige Excel-Line-Sheets. Großhandelspreise sind verifizierten Partnern vorbehalten — registrieren Sie sich einmal (kostenlos) und jeder Preis wird sofort freigeschaltet.",
+      "",
+      "Nennen Sie mir Ihren Markenmix und ich stelle eine Auswahl für Ihre Fläche zusammen.",
+      "",
+      "Mit freundlichen Grüßen,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (betrieben von acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als potenzieller Premium-Handelspartner identifiziert.",
+      "Sofort abmelden: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Authentische Designermode im Großhandel','title'=>'Die Häuser, nach denen Ihre Kundschaft fragt — zu Handelskonditionen.'],
+      'brands'=>$brands,
+      'brands_title'=>'Ausgewählte Häuser',
+      'brands_hint'=>'Tippen Sie auf ein Haus für das Line-Sheet',
+      'badge'=>'KYC-verifiziert · Echtheit geprüft · Escrow-geschützt',
+      'downloads'=>['title'=>'Line-Sheets — Download (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Echtheit','value'=>'Bei Lieferung geprüft'],
+        ['label'=>'Zahlung','value'=>'Escrow-geschützte Rechnung'],
+        ['label'=>'Mindestmengen','value'=>'Niedrig — Capsule-geeignet','strong'=>true],
+      ],
+      'button'=>['label'=>'Für Großhandelspreise registrieren','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
   if($lang==='fr'){
     $subject="Les Garage de Paris × VESTRA — la sélection authentique de mode de créateurs en gros";
     $body=implode("\n",[
