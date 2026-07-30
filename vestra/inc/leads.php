@@ -74,6 +74,10 @@ function vestra_lead_status_label(string $s): string {
         'converted'    => 'Converted',
         'declined'     => 'Declined',
         'unsubscribed' => 'Unsubscribed',
+        /* Address rejected permanently by the receiving server. Without this arm it fell
+         * through to 'New', which reads as "not contacted yet" — the opposite of the truth
+         * and an invitation to retry an address that can only hurt sender reputation. */
+        'bounced'      => 'Bounced (dead address)',
         default        => 'New',
     };
 }

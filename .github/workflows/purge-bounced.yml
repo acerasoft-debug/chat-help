@@ -1,0 +1,148 @@
+name: (Lead) Hard-bounce eden adresleri temizle
+
+# Brevo'dan GERÇEK hard-bounce listesini çeker ve o leadleri data/leads.json'da
+# ölü olarak işaretler (status=bounced) — böylece bir daha ASLA denenmezler.
+#
+# Neden gerekli: hard bounce oranı yükseldiğinde sağlayıcı (Brevo, SES, hepsi)
+# hesabı askıya alır. Bu, kampanyayı değil sipariş onayı / e-posta doğrulama
+# gibi İŞLEMSEL postaları da keser — yani asıl risk orada. Ölü adresi tekrar
+# denemek hem kotadan yer yer hem itibarı aşağı çeker.
+#
+# dry_run=true (VARSAYILAN): hiçbir şeyi DEĞİŞTİRMEZ, sadece ne yapacağını yazar.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kaç günlük bounce geçmişi taransın (1-90)"
+        required: false
+        default: "7"
+      dry_run:
+        description: "Deneme (değişiklik yok) — gerçekten işaretlemek için 'false' yaz"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Brevo'dan hard-bounce adreslerini çek
+        id: fetch
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+          DAYS: ${{ github.event.inputs.days }}
+        run: |
+          set -e
+          D="${DAYS:-7}"
+          case "$D" in ''|*[!0-9]*) D=7 ;; esac
+          [ "$D" -lt 1 ] && D=1
+          [ "$D" -gt 90 ] && D=90
+          START=$(date -u -d "-${D} days" +%F)
+          END=$(date -u +%F)
+          echo "aralik: ${START} .. ${END}"
+
+          # Brevo sayfalama yapar; hepsini toplayana kadar offset'i ilerlet.
+          : > /tmp/bounced.txt
+          OFFSET=0
+          while : ; do
+            RESP=$(curl -sS --fail-with-body \
+              "https://api.brevo.com/v3/smtp/statistics/events?event=hardBounces&startDate=${START}&endDate=${END}&limit=100&offset=${OFFSET}" \
+              -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json")
+            N=$(printf '%s' "$RESP" | python3 -c 'import sys,json; print(len(json.load(sys.stdin).get("events") or []))')
+            if [ "$N" = "0" ]; then break; fi
+            # Tek satir python: `run: |` blogunda girintisiz cok satirli kod blogu
+            # bitiriyor ve YAML parse hatasi veriyor -- o yuzden one-liner.
+            printf '%s' "$RESP" | python3 -c 'import sys,json; [print(e["email"].strip().lower()) for e in (json.load(sys.stdin).get("events") or []) if (e.get("email") or "").strip()]' >> /tmp/bounced.txt
+            OFFSET=$((OFFSET + 100))
+            # 20 sayfa (2000 event) makul bir ust sinir; asilirsa log'a yaz.
+            if [ "$OFFSET" -ge 2000 ]; then echo "UYARI: 2000 event ust sinirina ulasildi, daha fazlasi taranmadi"; break; fi
+          done
+
+          sort -u /tmp/bounced.txt > /tmp/bounced_uniq.txt
+          COUNT=$(wc -l < /tmp/bounced_uniq.txt | tr -d ' ')
+          echo "tekil hard-bounce adres sayisi: ${COUNT}"
+          if [ "$COUNT" = "0" ]; then
+            echo "hicbir hard bounce yok -- yapilacak is yok."
+          fi
+          # Adresleri sonraki adima virgullu tek satir olarak gecir.
+          echo "emails=$(paste -sd, /tmp/bounced_uniq.txt)" >> "$GITHUB_OUTPUT"
+          echo "count=${COUNT}" >> "$GITHUB_OUTPUT"
+          echo ""
+          echo "== hard-bounce eden adresler =="
+          cat /tmp/bounced_uniq.txt
+
+      - name: Leadleri ölü olarak işaretle
+        if: steps.fetch.outputs.count != '0'
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          BOUNCED: ${{ steps.fetch.outputs.emails }}
+          PURGE_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 5m
+          envs: BOUNCED,PURGE_DRY
+          script: |
+            cat > /tmp/vestra_purge_bounced.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+
+            $DRY = strtolower(trim((string)getenv("PURGE_DRY"))) !== 'false';
+            $raw = (string)getenv("BOUNCED");
+            $list = [];
+            foreach (preg_split('/[\s,;]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) as $e) {
+              $e = strtolower(trim($e));
+              if ($e !== '') $list[$e] = true;
+            }
+            if (!$list) { echo "adres gelmedi -- cikiliyor\n"; exit(0); }
+            echo ($DRY ? "== DENEME (degisiklik yok) ==\n" : "== GERCEK: leadler isaretleniyor ==\n");
+            echo "gelen hard-bounce adresi: " . count($list) . "\n\n";
+
+            $leads = vestra_leads();
+            $lf = $home."/public_html/data/leads.json";
+            if (!$DRY && is_readable($lf)) @copy($lf, $lf.".bak.".date("Ymd_His"));
+
+            $hit = 0; $already = 0; $notfound = array_fill_keys(array_keys($list), true);
+            foreach ($leads as $i => $l) {
+              $e = strtolower(trim((string)($l['email'] ?? '')));
+              if ($e === '' || !isset($list[$e])) continue;
+              unset($notfound[$e]);
+              if (($l['status'] ?? '') === 'bounced') { $already++; continue; }
+              echo "  x OLU: " . ($l['company'] ?? '?') . " <{$e}> | ulke=" . ($l['country'] ?? '-') . "\n";
+              if (!$DRY) {
+                $leads[$i]['status'] = 'bounced';
+                $leads[$i]['bounced_at'] = date('c');
+                /* last_contacted_at olduğu gibi kalıyor: gönderim seçicisi zaten onu
+                   görüp atlıyor. status=bounced ise adminde ayırt edilebilir olmasi
+                   ve ileride 'contacted' diye yeniden denenmemesi icin. */
+                $note = trim((string)($leads[$i]['notes'] ?? ''));
+                $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'hard-bounce ' . date('Y-m-d'));
+              }
+              $hit++;
+            }
+
+            if (!$DRY && $hit > 0) vestra_save_leads($leads);
+
+            echo "\n----\n";
+            echo "isaretlenen (yeni)      : {$hit}\n";
+            echo "zaten isaretliydi       : {$already}\n";
+            echo "listede bulunamayan     : " . count($notfound) . "\n";
+            if ($notfound) {
+              /* Brevo'da bounce etmis ama leads.json'da olmayan adresler: islemsel
+                 postalar (siparis/dogrulama) ya da elle yapilmis testler. Bilgi amacli. */
+              foreach (array_slice(array_keys($notfound), 0, 20) as $e) echo "  ? {$e} (lead degil -- islemsel/test olabilir)\n";
+            }
+            $byStatus = [];
+            foreach ($leads as $l) { $s = $l['status'] ?? '(yok)'; $byStatus[$s] = ($byStatus[$s] ?? 0) + 1; }
+            echo "\nlead durum dagilimi:\n";
+            foreach ($byStatus as $s => $c) echo "  {$s}: {$c}\n";
+            echo "\n" . ($DRY ? "DENEME bitti. Gerceklestirmek icin dry_run=false ile calistir.\n" : "BITTI.\n");
+            PHPEOF
+            php /tmp/vestra_purge_bounced.php
+            rm -f /tmp/vestra_purge_bounced.php
