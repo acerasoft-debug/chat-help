@@ -1,0 +1,99 @@
+name: Tekrarlayan ürünü tekilleştir
+on:
+  workflow_dispatch:
+    inputs:
+      id:
+        description: "Tekilleştirilecek ürün id'si (örn: dg-101209)"
+        required: true
+        default: "dg-101209"
+      dry_run:
+        description: "true = SADECE göster, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# Verilen id listings.json'da birden fazla kez geçiyorsa, ilk satırı tutar ve
+# sonraki tekrarları siler. Sadece brand/name/cat/sku/list/moq/sizes/images alanları
+# TAMAMEN AYNI olan satırları tekrar sayar -- gerçekten farklı iki ürün aynı id'yi
+# taşıyorsa (veri hatası, silme değil) dokunmaz ve HATA verir, elle çözülmesi gerekir.
+jobs:
+  dedupe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tekilleştir
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          D_ID: ${{ github.event.inputs.id }}
+          D_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: D_ID,D_DRY
+          script: |
+            cat > /tmp/vestra_dedupe.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $id  = trim((string)getenv("D_ID"));
+            $dry = strtolower(trim((string)getenv("D_DRY"))) !== 'false';
+            if ($id === '') { fwrite(STDERR, "HATA: id bos\n"); exit(1); }
+
+            $all = vestra_listings();
+            $rows = [];
+            foreach ($all as $i => $p) {
+              if ((string)($p['id'] ?? '') === $id) $rows[] = $i;
+            }
+            echo "id={$id}: ".count($rows)." kez bulundu\n\n";
+            if (count($rows) < 2) { echo "tekrar yok -- yapilacak is yok.\n"; exit(0); }
+            if (count($rows) > 2) {
+              fwrite(STDERR, "HATA: 2'den fazla tekrar var (".count($rows)."), elle incelenmeli\n"); exit(1);
+            }
+
+            // Fields that must match for this to be a safe, mechanical dedupe rather
+            // than two distinct products that were mistakenly given the same id.
+            $mustMatch = ['brand','name','cat','sku','list','moq','sizes','images'];
+            [$a, $b] = $rows;
+            $pa = $all[$a]; $pb = $all[$b];
+            foreach ($mustMatch as $k) {
+              if (json_encode($pa[$k] ?? null) !== json_encode($pb[$k] ?? null)) {
+                fwrite(STDERR, "HATA: '{$k}' alani farkli -- guvenli tekillestirme degil, ELLE incelenmeli\n");
+                fwrite(STDERR, "  satir #{$a}: ".json_encode($pa[$k] ?? null)."\n");
+                fwrite(STDERR, "  satir #{$b}: ".json_encode($pb[$k] ?? null)."\n");
+                exit(1);
+              }
+            }
+
+            echo "guvenlik kontrolu gecti: brand/name/cat/sku/list/moq/sizes/images ayni\n\n";
+            foreach (['desc','accent','colors'] as $k) {
+              echo "  {$k}:\n";
+              echo "    satir #{$a} = ".json_encode($pa[$k] ?? null)."\n";
+              echo "    satir #{$b} = ".json_encode($pb[$k] ?? null)."\n";
+            }
+            echo "\nkarar: satir #{$a} tutulacak (ilk eklenen), satir #{$b} silinecek.\n";
+
+            if ($dry) { echo "\nDRY RUN -- hicbir sey kaydedilmedi. Uygulamak icin dry_run=false.\n"; exit(0); }
+
+            $dir = vestra_data_dir();
+            $src = $dir.'/listings.json';
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($src, $bak)) { fwrite(STDERR, "HATA: yedek alinamadi, kaydetmiyorum\n"); exit(1); }
+            echo "yedek: {$bak}\n";
+
+            unset($all[$b]);
+            vestra_save_listings(array_values($all));
+
+            clearstatcache();
+            $check = vestra_listings();
+            $left = 0; foreach ($check as $p) if ((string)($p['id'] ?? '') === $id) $left++;
+            if ($left !== 1) { fwrite(STDERR, "HATA: kayittan sonra {$left} kopya kaldi (1 beklendi)! yedek: {$bak}\n"); exit(1); }
+            echo "KAYDEDILDI -- 1 kopya silindi, {$id} artik tek satir.\n";
+            PHPEOF
+            php /tmp/vestra_dedupe.php
+            rm -f /tmp/vestra_dedupe.php
