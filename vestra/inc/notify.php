@@ -412,7 +412,12 @@ function vestra_discover_osm(string $country, string $city='', int $limit=80): a
   // for country-wide search, without excluding any plausible city match.
   $adminFilter=$wide?'["admin_level"="2"]':'["admin_level"~"^([3-9]|10)$"]';
   $timeout=$wide?55:45;
-  $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather|tailor|jewelry|watches)$';
+  // Apparel trades only. jewelry/watches/tailor were harvested at first and turned out to be
+  // the wrong audience for a designer-CLOTHING wholesale offer: a jeweller or a watch dealer
+  // buys neither, and a tailor makes garments instead of reselling them (they were already
+  // excluded from sends by hand). Dropping them at the source keeps the list on-target and
+  // spends the email-lookup budget on shops that can actually order.
+  $shopRe='^(clothes|boutique|fashion|fashion_accessories|shoes|bag|leather)$';
   $f='["shop"~"'.$shopRe.'"]';
   // OSM tags admin boundaries with the LOCAL name in `name` (e.g. "Deutschland") and the
   // English name in a separate `name:en` tag when it differs. Matching only `name` silently

@@ -54,6 +54,10 @@ on:
         description: "Bu regex'e uyan e-postaları atla (PCRE, örn. '/^mizzo@/') — garbled/scraper adresleri byte'larını bilmeden dışlamak için."
         required: false
         default: ""
+      skip_categories:
+        description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -74,13 +78,14 @@ jobs:
           SEND_NOT_COUNTRY: ${{ github.event.inputs.exclude_countries }}
           SEND_FORCE_LANG: ${{ github.event.inputs.force_lang }}
           SEND_SKIP_RE: ${{ github.event.inputs.skip_email_regex }}
+          SEND_SKIP_CAT: ${{ github.event.inputs.skip_categories }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -90,10 +95,13 @@ jobs:
             require $home."/public_html/inc/products.php";
             require $home."/public_html/inc/leads.php";
 
+            $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
             $COUNT = (int)(getenv("SEND_COUNT") ?: 10);
             if ($COUNT < 1) $COUNT = 1;
-            if ($COUNT > 50) $COUNT = 50;            // hard cap — one batch never exceeds 50
-            $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
+            // Hard cap of 50 applies to REAL sends only — it exists so one accidental run can
+            // never blast the whole list. A dry-run sends nothing, and truncating it at 50 hid
+            // the rest of the queue: screening decisions need the whole list, not its head.
+            if (!$DRY && $COUNT > 50) $COUNT = 50;
             $FROM = 'Les Garage de Paris';
             // Country -> campaign language. Falls back to English for anything not listed.
             $LANG_MAP = [
@@ -136,6 +144,13 @@ jobs:
             }
             $SKIP_RE = trim((string)getenv("SEND_SKIP_RE"));
             if ($SKIP_RE !== '' && @preg_match($SKIP_RE, '') === false) { echo "HATA: skip_email_regex gecersiz PCRE deseni: {$SKIP_RE}\n"; exit(1); }
+            // Category exclusion. Discovery stores the OSM shop tag verbatim as
+            // "Retailer (jewelry)" / "Retailer (watches)" / "Retailer (tailor)", so the shop's
+            // actual TYPE is on the record — far more reliable than guessing trade from the
+            // company name ("Trancanelli", "Bel Arte" and "Yanis 1965" are all jewellers).
+            // Matched as a case-insensitive substring, so "jewelry" catches "Retailer (jewelry)".
+            $SKIP_CAT = [];
+            foreach (explode(',', (string)getenv("SEND_SKIP_CAT")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_CAT[] = $s; }
 
             $leads = vestra_leads();
 
@@ -168,6 +183,12 @@ jobs:
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
               if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
+              if ($SKIP_CAT && !$ONLY) {                                       // wrong trade (jeweller/watchmaker/tailor…) — apparel campaign doesn't apply
+                $catL = strtolower((string)($l['category'] ?? ''));
+                $bad = false;
+                foreach ($SKIP_CAT as $c) { if ($catL !== '' && str_contains($catL, $c)) { $bad = true; break; } }
+                if ($bad) continue;
+              }
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
@@ -181,7 +202,7 @@ jobs:
             $idx = [];
             foreach ($leads as $i => $l) { $id = (string)($l['id'] ?? ''); if ($id !== '') $idx[$id] = $i; }
 
-            $sent = 0; $fail = 0; $langCounts = [];
+            $sent = 0; $fail = 0; $langCounts = []; $catCounts = [];
             foreach ($picked as $l) {
               $company = (string)($l['company'] ?? '');
               $email   = strtolower(trim((string)($l['email'] ?? '')));
@@ -205,7 +226,11 @@ jobs:
               $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
 
               if ($DRY) {
-                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag}\n";
+                // Category is printed on every dry-run line: it's the field that decides whether
+                // this recipient is even in the right trade, so screening needs it visible.
+                $cat = trim((string)($l['category'] ?? ''));
+                $catCounts[$cat !== '' ? $cat : '(kategorisiz)'] = ($catCounts[$cat !== '' ? $cat : '(kategorisiz)'] ?? 0) + 1;
+                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag} | kat=" . ($cat !== '' ? $cat : '(bos)') . "\n";
                 continue;
               }
 
@@ -245,6 +270,11 @@ jobs:
             echo "dil dagilimi (secilen): ";
             foreach ($langCounts as $lc => $cnt) echo "{$lc}={$cnt}  ";
             echo "\n";
+            if ($DRY && $catCounts) {
+              arsort($catCounts);
+              echo "kategori dagilimi (secilen):\n";
+              foreach ($catCounts as $cc => $cnt) echo "  {$cc}: {$cnt}\n";
+            }
             if ($DRY) {
               echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
             } else {
