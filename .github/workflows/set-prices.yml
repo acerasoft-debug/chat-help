@@ -1,0 +1,176 @@
+name: Ürün fiyatı / beden serisi ayarla
+on:
+  workflow_dispatch:
+    inputs:
+      brand:
+        description: "Marka (listings.json'daki 'brand' alanında geçen metin, örn: Dolce)"
+        required: true
+        default: "Dolce"
+      cat:
+        description: "Kategori (tam eşleşme, örn: T-Shirts / Polos / Jeans). Boş = markanın hepsi"
+        required: false
+        default: "T-Shirts"
+      price:
+        description: "Toptan fiyat EUR (örn: 49.90). Boş = fiyata dokunma"
+        required: false
+        default: ""
+      moq:
+        description: "En az alım adedi (örn: 20). Boş = dokunma"
+        required: false
+        default: ""
+      sizes:
+        description: "Beden serisi metni (örn: 44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri). Boş = dokunma"
+        required: false
+        default: ""
+      dry_run:
+        description: "true = SADECE ne değişeceğini yaz, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# listings.json içindeki CANLI ürünlerin fiyat/MOQ/beden alanlarını topluca ayarlar.
+# Ürünler sunucudaki listings.json'da durur (kodda değil), bu yüzden deploy ile
+# değiştirilemezler -- bu iş için ayrı bir workflow gerekiyor.
+#
+# dry_run=true ile başlayın: hangi ürünün nesi değişecek diye satır satır yazar,
+# hiçbir şeye dokunmaz. Çıktıyı doğruladıktan sonra dry_run=false ile tekrar çalıştırın.
+# Kaydetmeden önce listings.json'un zaman damgalı yedeğini alır.
+jobs:
+  set-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fiyatları ayarla
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          P_BRAND: ${{ github.event.inputs.brand }}
+          P_CAT: ${{ github.event.inputs.cat }}
+          P_PRICE: ${{ github.event.inputs.price }}
+          P_MOQ: ${{ github.event.inputs.moq }}
+          P_SIZES: ${{ github.event.inputs.sizes }}
+          P_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: P_BRAND,P_CAT,P_PRICE,P_MOQ,P_SIZES,P_DRY
+          script_stop: true
+          script: |
+            set -e
+            cat > /tmp/vestra_setprices.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $brand = trim((string)getenv("P_BRAND"));
+            $cat   = trim((string)getenv("P_CAT"));
+            $price = trim((string)getenv("P_PRICE"));
+            $moq   = trim((string)getenv("P_MOQ"));
+            $sizes = trim((string)getenv("P_SIZES"));
+            $dry   = strtolower(trim((string)getenv("P_DRY"))) !== 'false';
+
+            if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
+            if ($price === '' && $moq === '' && $sizes === '') {
+              fwrite(STDERR, "HATA: price/moq/sizes hepsi bos -- yapacak is yok\n"); exit(1);
+            }
+            // Reject a malformed price outright rather than writing 0.00 over real pricing.
+            if ($price !== '' && (!is_numeric($price) || (float)$price <= 0)) {
+              fwrite(STDERR, "HATA: gecersiz fiyat '{$price}'\n"); exit(1);
+            }
+            if ($moq !== '' && (!ctype_digit($moq) || (int)$moq < 1)) {
+              fwrite(STDERR, "HATA: gecersiz MOQ '{$moq}'\n"); exit(1);
+            }
+
+            $all = vestra_listings();
+            if (!count($all)) { fwrite(STDERR, "HATA: listings.json bos/okunamadi\n"); exit(1); }
+
+            $hits = 0; $changes = 0;
+            foreach ($all as $i => $p) {
+              $b = (string)($p['brand'] ?? '');
+              $c = (string)($p['cat'] ?? '');
+              if (stripos($b, $brand) === false) continue;
+              if ($cat !== '' && strcasecmp(trim($c), $cat) !== 0) continue;
+              $hits++;
+              $id = (string)($p['id'] ?? '?');
+              $line = [];
+
+              if ($price !== '') {
+                $new = (float)$price;
+                $old = $p['list'] ?? null;
+                if ((float)$old !== $new) {
+                  $line[] = "list ".($old === null ? '(yok)' : $old)." -> {$new}";
+                  $all[$i]['list'] = $new;
+                  // tiers drive the actual order price; leaving them stale would show one
+                  // price and charge another. Rewrite the first tier to match.
+                  if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                    foreach ($p['tiers'] as $ti => $t) {
+                      $all[$i]['tiers'][$ti]['price'] = $new;
+                    }
+                    $line[] = "tiers(".count($p['tiers']).") -> {$new}";
+                  }
+                  $changes++;
+                }
+              }
+              if ($moq !== '') {
+                $new = (int)$moq; $old = $p['moq'] ?? null;
+                if ((int)$old !== $new) {
+                  $line[] = "moq ".($old === null ? '(yok)' : $old)." -> {$new}";
+                  $all[$i]['moq'] = $new;
+                  if (!empty($all[$i]['tiers']) && is_array($all[$i]['tiers'])) {
+                    $all[$i]['tiers'][0]['min'] = $new;   // first tier gates the minimum
+                  }
+                  $changes++;
+                }
+              }
+              if ($sizes !== '') {
+                $old = (string)($p['sizes'] ?? '');
+                if ($old !== $sizes) {
+                  $line[] = "sizes '".($old === '' ? '(yok)' : $old)."' -> '{$sizes}'";
+                  $all[$i]['sizes'] = $sizes;
+                  $changes++;
+                }
+              }
+
+              if ($line) echo "  {$id} | {$b} | {$c}\n      ".implode("\n      ", $line)."\n";
+            }
+
+            echo "\nfiltreye uyan urun: {$hits}\n";
+            echo "degisecek alan: {$changes}\n";
+
+            if (!$hits) {
+              fwrite(STDERR, "\nUYARI: hicbir urun eslesmedi -- marka/kategori yazimini kontrol edin.\n");
+              fwrite(STDERR, "Mevcut kategoriler:\n");
+              $cats = [];
+              foreach (vestra_listings() as $p) {
+                if (stripos((string)($p['brand'] ?? ''), $brand) !== false) {
+                  $cats[(string)($p['cat'] ?? '?')] = true;
+                }
+              }
+              foreach (array_keys($cats) as $k) fwrite(STDERR, "  - {$k}\n");
+              exit(1);
+            }
+
+            if ($dry) { echo "\nDRY RUN -- hicbir sey kaydedilmedi. Uygulamak icin dry_run=false.\n"; exit(0); }
+            if (!$changes) { echo "\nDegisiklik yok -- kaydetmeye gerek kalmadi.\n"; exit(0); }
+
+            // Timestamped backup before any write, so a wrong filter is recoverable.
+            $dir = vestra_data_dir();
+            $src = $dir.'/listings.json';
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($src, $bak)) { fwrite(STDERR, "HATA: yedek alinamadi, kaydetmiyorum\n"); exit(1); }
+            echo "yedek: {$bak}\n";
+
+            vestra_save_listings($all);
+
+            // Read back and confirm the write actually landed.
+            clearstatcache();
+            $check = vestra_listings();
+            if (count($check) !== count($all)) {
+              fwrite(STDERR, "HATA: kayittan sonra urun sayisi degisti! yedek: {$bak}\n"); exit(1);
+            }
+            echo "KAYDEDILDI -- {$changes} alan guncellendi, {$hits} urun tarandi.\n";
+            PHPEOF
+            php /tmp/vestra_setprices.php
+            rm -f /tmp/vestra_setprices.php
