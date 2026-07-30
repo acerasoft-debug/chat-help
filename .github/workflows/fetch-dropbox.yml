@@ -1,0 +1,134 @@
+name: Dropbox klasörünü indir — listele / sunucuya yükle
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Dropbox klasör linki (paylaşım linki, dl=0 olabilir)"
+        required: true
+      label:
+        description: "Klasör etiketi — görseller uploads/<etiket>/ altına gider (küçük harf/rakam/tire)"
+        required: true
+      upload:
+        description: "false = SADECE listele (hiçbir şey yüklenmez), true = görselleri sunucuya yükle"
+        required: true
+        default: "false"
+
+permissions:
+  contents: read
+
+# Neden bu workflow var: bu oturumun sandbox ortamı Dropbox'a çıkamıyor (egress
+# 403), ama GitHub'ın Actions runner'ları kendi ağını kullanır — bu reponun tüm
+# dış ağ işi (Brevo, Overpass, sunucuya SSH) zaten runner'larda döner. İndirme
+# tamamen runner'da olur; görseller runner'dan doğrudan sunucuya SCP'lenir.
+#
+# upload=false: klasörü zip olarak indirir, içeriği boyut+çözünürlükle listeler,
+# HİÇBİR yere yüklemez. Önce bununla dosya adlarını (model kodlarını) görürüz.
+# upload=true: aynı indirme + dosya adlarını web-güvenli normalize edip
+# public_html/uploads/<etiket>/ altına SCP'ler. Orijinal→yeni ad eşlemesini basar.
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: İndir ve listele
+        env:
+          RAW_URL: ${{ github.event.inputs.url }}
+          RAW_LABEL: ${{ github.event.inputs.label }}
+        run: |
+          set -e
+          LABEL=$(printf '%s' "$RAW_LABEL" | tr 'A-Z' 'a-z' | tr -cd 'a-z0-9-')
+          [ -n "$LABEL" ] || { echo "HATA: etiket bos/gecersiz"; exit 1; }
+          echo "etiket: $LABEL"
+
+          # dl=0 -> dl=1 zip akisi verir; hic dl yoksa ekle.
+          URL=$(printf '%s' "$RAW_URL" | sed 's/dl=0/dl=1/')
+          case "$URL" in *dl=1*) : ;; *) URL="${URL}&dl=1" ;; esac
+          echo "indirilecek: $URL"
+
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          curl -sSL -A "$UA" --max-time 900 -o folder.zip "$URL" || true
+          TYPE=$(file -b folder.zip 2>/dev/null || echo '?')
+          echo "dosya tipi: $TYPE"
+
+          if ! printf '%s' "$TYPE" | grep -qi zip; then
+            echo "-- zip gelmedi; cevabin basi: --"
+            head -c 400 folder.zip | tr -d '\0' || true; echo
+            # Alt-klasor linki zip vermediyse kok paylasimi dene (yol kismini at).
+            ROOT=$(printf '%s' "$URL" | sed -E 's#(scl/fo/[^/]+/[^/?]+)/[^?]*#\1#')
+            if [ "$ROOT" != "$URL" ]; then
+              echo "kok paylasim deneniyor: $ROOT"
+              curl -sSL -A "$UA" --max-time 900 -o folder.zip "$ROOT" || true
+              TYPE=$(file -b folder.zip 2>/dev/null || echo '?')
+              echo "dosya tipi: $TYPE"
+            fi
+          fi
+          printf '%s' "$TYPE" | grep -qi zip || { echo "HATA: zip alinamadi (link auth istiyor ya da olu olabilir)"; exit 1; }
+
+          echo; echo "===== ZIP ICERIGI ====="
+          unzip -l folder.zip
+
+          mkdir -p ex && unzip -q -o folder.zip -d ex
+          echo; echo "===== DOSYALAR (boyut + cozunurluk) ====="
+          find ex -type f | sort | while IFS= read -r f; do
+            rel="${f#ex/}"
+            sz=$(stat -c%s "$f")
+            low=$(printf '%s' "$f" | tr 'A-Z' 'a-z')
+            case "$low" in
+              *.jpg|*.jpeg|*.png|*.webp)
+                dim=$(identify -format '%wx%h' "$f[0]" 2>/dev/null || echo '?')
+                printf '  %9s B  %-11s %s\n' "$sz" "$dim" "$rel" ;;
+              *)
+                printf '  %9s B  %-11s %s  (gorsel degil / desteklenmeyen tip)\n' "$sz" '-' "$rel" ;;
+            esac
+          done
+
+          # Yukleme adimi icin normalize edilmis kopyalar hazirla (upload=false ise
+          # sadece eslemeyi gosterir, SCP adimi kosullu oldugundan yuklenmez).
+          mkdir -p staged
+          echo; echo "===== AD NORMALIZASYONU (orijinal -> uploads/${LABEL}/yeni) ====="
+          find ex -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) | sort | while IFS= read -r f; do
+            base=$(basename "$f")
+            ext="${base##*.}"; ext=$(printf '%s' "$ext" | tr 'A-Z' 'a-z')
+            stem="${base%.*}"
+            norm=$(printf '%s' "$stem" | tr 'A-Z' 'a-z' | sed -E 's/[[:space:]]+/-/g; s/[^a-z0-9._-]+/-/g; s/-+/-/g; s/^-|-$//g')
+            [ -n "$norm" ] || norm="img"
+            out="staged/${norm}.${ext}"
+            n=2; while [ -e "$out" ]; do out="staged/${norm}-${n}.${ext}"; n=$((n+1)); done
+            # webp'i png'ye cevir: xlsx gomucu ve eski Excel webp okumuyor.
+            if [ "$ext" = "webp" ]; then
+              out="${out%.webp}.png"
+              convert "$f" "$out" 2>/dev/null || cp "$f" "$out"
+            else
+              cp "$f" "$out"
+            fi
+            printf '  %-60s -> %s\n' "${f#ex/}" "uploads/${LABEL}/$(basename "$out")"
+          done
+          echo; echo "staged dosya sayisi: $(find staged -type f | wc -l)"
+          echo "LABEL=$LABEL" >> "$GITHUB_ENV"
+
+      - name: Sunucuya yükle (uploads/<etiket>/)
+        if: ${{ github.event.inputs.upload == 'true' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "staged/*"
+          target: "public_html/uploads/${{ env.LABEL }}/"
+          strip_components: 1
+
+      - name: Yükleme doğrulama
+        if: ${{ github.event.inputs.upload == 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          V_LABEL: ${{ env.LABEL }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          envs: V_LABEL
+          script: |
+            echo "sunucudaki uploads/${V_LABEL}/ icerigi:"
+            ls -la "$HOME/public_html/uploads/${V_LABEL}/" | head -80
+            echo "toplam: $(ls "$HOME/public_html/uploads/${V_LABEL}/" | wc -l) dosya"
