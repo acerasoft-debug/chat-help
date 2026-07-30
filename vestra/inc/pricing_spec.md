@@ -84,8 +84,15 @@ Verified against the live listings (read-only inspect, 2026-07-30):
 | Jeans | **no** | needs product data before 110 + series can apply |
 | Jeans shorts | **no** | needs product data before 90 + series can apply |
 
-Also noted: `dg-101209` ("Oversized Vertical Logo T-Shirt") appears TWICE in the
-catalogue with the same image. Worth de-duplicating.
+`dg-101209` duplicate — RESOLVED 2026-07-30. Both rows shared brand/name/cat/sku/
+list/moq/sizes AND the same single image file; only desc/accent/colors differed.
+The second row's desc had a corrupted model code (embedded newline + stray "G"
+after "G8PN9TG7M1D") and claimed colour "White" against the same photo the first
+row used for "Black" -- no White photo exists for this SKU, so the second row was
+judged a copy-paste accident, not a real second colourway, and removed. Backup:
+listings.json.bak-20260730-164731. If a genuine White variant exists, it needs a
+real photo and should be re-added as a proper second image/variant, not a second
+top-level row.
 
 ## What the D&G change actually did
 
