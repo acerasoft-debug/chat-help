@@ -98,6 +98,11 @@ function vestra_email_is_junk(string $email): bool {
   // NB: 'mail'/'info'/'contact' are deliberately NOT here — they're real generic mailboxes
   // (vestra_best_email even scores them positively) and several live leads use mail@.
   if(in_array($lp,['example','sample','demo','tests','yourname','your-name','youremail','your-email','username'],true)) return true;
+  /* "firstname.lastname" contact-form boilerplate, in the languages we harvest: nom.prenom
+     (FR) was actually selected for a real send from a Lyon boutique's page. */
+  if(in_array($lp,['nom.prenom','prenom.nom','vorname.nachname','nachname.vorname',
+                   'nombre.apellido','apellido.nombre','naam.achternaam','nome.cognome',
+                   'firstname.lastname','first.last','ad.soyad'],true)) return true;
   // Role mailboxes that reach no human — a reply is impossible, so outreach is pointless.
   if(in_array($lp,['noreply','no-reply','donotreply','do-not-reply','postmaster','webmaster',
                    'abuse','privacy','gdpr','dpo','hostmaster','sentry','mailer-daemon'],true)) return true;
@@ -398,7 +403,12 @@ function vestra_discover_blocklist(): array {
     // Austrian/German own labels found in the Vienna sweep
     'hannes roether','michel mayer','elfenkleid',
     'skomaker','skomager','schuhmacher','cordonnerie','orthopedie','orthopädie','orthopadie',
-    'ortopedi','orthopaedic','borduur','stoffen','tissus','stofferie',
+    'ortopedi','orthopaedic','borduur','stoffen','tissus','stofferie','tejidos',
+    // Military surplus and fabric/workwear houses from the Vilnius/Seville sweep
+    'armijai','military surplus','vestuario laboral','abbigliamento da lavoro',
+    // Own-label houses / monobrand stores: Baltics, Italy, France (Turin/Lyon/Riga sweep)
+    'camel active','pako lorente','maison standards','bleuforêt','bleuforet','hartford',
+    'heschung','laurence bras','primo emporio',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
