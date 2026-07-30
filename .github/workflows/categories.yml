@@ -1,0 +1,113 @@
+name: Kategorileri listele / birleştir
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "list = sadece göster | merge = kaynak kategoriyi hedefe taşı"
+        required: true
+        default: "list"
+      from_cat:
+        description: "merge için: taşınacak (silinecek) kategori adı — TAM eşleşme"
+        required: false
+        default: ""
+      to_cat:
+        description: "merge için: hedef kategori adı"
+        required: false
+        default: ""
+      dry_run:
+        description: "true = SADECE göster, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# list  : listings.json'daki tum kategorileri urun sayisi + marka dagilimiyla yazar.
+#         Yazma yok. Once bununla hangi kategori fazlalik, gorulur.
+# merge : from_cat'teki her urunu to_cat'e tasir. Kategori "silinmez" -- ici
+#         bosalinca zaten listelerde gorunmez; urun SILINMEZ, sadece cat degisir.
+jobs:
+  cats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Çalıştır
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            export C_ACT='${{ github.event.inputs.action }}'
+            export C_FROM='${{ github.event.inputs.from_cat }}'
+            export C_TO='${{ github.event.inputs.to_cat }}'
+            export C_DRY='${{ github.event.inputs.dry_run }}'
+            cat > /tmp/vestra_cats.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $act  = strtolower(trim((string)getenv("C_ACT")));
+            $from = trim((string)getenv("C_FROM"));
+            $to   = trim((string)getenv("C_TO"));
+            $dry  = strtolower(trim((string)getenv("C_DRY"))) !== 'false';
+            $all  = vestra_listings();
+
+            /* Kategori dagilimi: ad, urun sayisi, canli/bekleyen ayrimi, markalar.
+               Ayni ismin bosluk/buyuk-kucuk harf varyantlari ayri satir olarak
+               gorunsun diye ham deger kullaniliyor -- "fazladan sweatshirt bolumu"
+               tam olarak boyle bir varyanttan dogmus olabilir. */
+            $stat = [];
+            foreach ($all as $p) {
+              $c = (string)($p['cat'] ?? '(bos)');
+              if (!isset($stat[$c])) $stat[$c] = ['n'=>0,'live'=>0,'pend'=>0,'brands'=>[]];
+              $stat[$c]['n']++;
+              if ((string)($p['status'] ?? 'approved') === 'approved') $stat[$c]['live']++; else $stat[$c]['pend']++;
+              $b = (string)($p['brand'] ?? '?');
+              $stat[$c]['brands'][$b] = ($stat[$c]['brands'][$b] ?? 0) + 1;
+            }
+            ksort($stat);
+            echo "===== KATEGORILER (".count($stat).") =====\n";
+            foreach ($stat as $c => $s) {
+              printf("  %-32s %3d urun (canli %3d / bekleyen %3d)  [%s]\n",
+                "'".$c."'", $s['n'], $s['live'], $s['pend'],
+                implode(', ', array_map(fn($k,$v)=>"$k:$v", array_keys($s['brands']), $s['brands'])));
+            }
+
+            if ($act !== 'merge') { echo "\n(list) — hicbir sey degistirilmedi.\n"; exit(0); }
+
+            if ($from === '' || $to === '') { fwrite(STDERR,"\nHATA: merge icin from_cat ve to_cat gerekli\n"); exit(1); }
+            if ($from === $to) { fwrite(STDERR,"\nHATA: from_cat ve to_cat ayni\n"); exit(1); }
+            if (!isset($stat[$from])) { fwrite(STDERR,"\nHATA: kaynak kategori yok: '{$from}'\n"); exit(1); }
+            if (!isset($stat[$to]))   { fwrite(STDERR,"\nHATA: hedef kategori yok: '{$to}' (yazim hatasi olmasin)\n"); exit(1); }
+
+            echo "\n===== BIRLESTIRME: '{$from}' -> '{$to}' =====\n";
+            $moved = 0;
+            foreach ($all as $i => $p) {
+              if ((string)($p['cat'] ?? '') !== $from) continue;
+              printf("  %-24s | %-16s | %s\n", $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr((string)($p['name'] ?? ''),0,44));
+              $all[$i]['cat'] = $to; $moved++;
+            }
+            echo "tasinacak: {$moved}\n";
+            if (!$moved) { echo "yapacak is yok.\n"; exit(0); }
+            if ($dry) { echo "\nDRY RUN — kaydedilmedi.\n"; exit(0); }
+
+            $dir = vestra_data_dir();
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($dir.'/listings.json', $bak)) { fwrite(STDERR,"HATA: yedek alinamadi\n"); exit(1); }
+            echo "\nyedek: {$bak}\n";
+            vestra_save_listings(array_values($all));
+
+            clearstatcache();
+            $check = vestra_listings();
+            if (count($check) !== count($all)) { fwrite(STDERR,"HATA: urun sayisi degisti! yedek: {$bak}\n"); exit(1); }
+            $left = 0; foreach ($check as $p) if ((string)($p['cat'] ?? '') === $from) $left++;
+            if ($left !== 0) { fwrite(STDERR,"HATA: '{$from}' altinda hala {$left} urun var! yedek: {$bak}\n"); exit(1); }
+            echo "KAYDEDILDI — {$moved} urun '{$to}' altina tasindi, '{$from}' bosaldi.\n";
+            PHPEOF
+            php -l /tmp/vestra_cats.php
+            php /tmp/vestra_cats.php; RC=$?
+            rm -f /tmp/vestra_cats.php
+            exit $RC
