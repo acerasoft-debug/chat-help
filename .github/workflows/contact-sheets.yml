@@ -38,6 +38,10 @@ jobs:
           TERM: dumb
         run: |
           set -e
+          # Klasor listesi tek yerde: yeni bir Dropbox klasoru cekildiginde
+          # buraya eklenir, hem indirme hem montaj dongusu ayni listeyi kullanir.
+          FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy"
+          echo "klasorler: $FOLDERS"
           PORT="${SSH_PORT:-22}"
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
@@ -45,8 +49,11 @@ jobs:
           SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
 
           mkdir -p raw
-          for d in balmain balenciaga-burberry shorts-sweats; do
+          for d in $FOLDERS; do
             mkdir -p "raw/$d"
+            if ! ssh $SSHOPT "$SSH_USER@$SSH_HOST" "test -d ~/public_html/uploads/$d"; then
+              echo "$d: sunucuda YOK, atlaniyor"; continue
+            fi
             ssh $SSHOPT "$SSH_USER@$SSH_HOST" "cd ~/public_html/uploads/$d && tar -czf - ." | tar -xzf - -C "raw/$d"
             echo "$d: $(find raw/$d -type f | wc -l) dosya"
           done
@@ -61,7 +68,8 @@ jobs:
           echo "montaj komutu: $MG"
           rm -rf contact-sheets && mkdir -p contact-sheets
           # Her klasor icin: kucult, dosya adiyla etiketle, 6x4=24'luk sayfalar yap.
-          for d in balmain balenciaga-burberry shorts-sweats; do
+          for d in $FOLDERS; do
+            [ -d "raw/$d" ] || continue
             i=0; page=1; batch=""
             for f in $(find "raw/$d" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort); do
               batch="$batch $f"
