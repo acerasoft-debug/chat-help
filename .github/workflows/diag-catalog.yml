@@ -1,13 +1,13 @@
-name: (Salt-okunur) Teşhis — shop sayfası kaç ürün basıyor
+name: (Salt-okunur) Teşhis — dg-101209 kaç kez var, farkli mi
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Salt-okunur. shop.php'yi sunucuda render edip DOM'a kaç ürün kartı bastığını sayar.
-# vestra_products() 96 ürün döndürürken sayfada 8 görünüyorsa fark burada ortaya çıkar.
-# Hiçbir şeyi DEĞİŞTİRMEZ.
+# Salt-okunur. dg-101209 listings.json'da birden fazla kez geçiyor mu, geçiyorsa
+# satirlar birbirinin ayni mi yoksa farkli alanlari mi var, gosterir. Hicbir seyi
+# DEGISTIRMEZ.
 jobs:
   diag:
     runs-on: ubuntu-latest
@@ -21,56 +21,45 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 10m
           script: |
-            cat > /tmp/diag_shop.php <<'PHPEOF'
+            cat > /tmp/diag_dup.php <<'PHPEOF'
             <?php
-            /* Errors are off on this host, so a fatal mid-render truncates the page
-               silently -- exactly what "products are not live" would look like. */
-            ini_set('display_errors','1'); error_reporting(E_ALL);
-            register_shutdown_function(function(){
-              $e = error_get_last();
-              if ($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
-                fwrite(STDERR, "\nPHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
-            });
-            $doc = getenv("HOME")."/public_html";
-            require $doc."/inc/products.php";
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            $all = vestra_listings();
 
-            $all = vestra_products();
-            echo "vestra_products(): ".count($all)." urun\n";
-            $raw = vestra_listings();
-            echo "vestra_listings():  ".count($raw)." kayit\n";
-
-            // status is what gates a listing into the live catalogue.
-            $st = [];
-            foreach ($raw as $p) { $s = (string)($p['status'] ?? 'approved'); $st[$s] = ($st[$s] ?? 0) + 1; }
-            echo "status dagilimi: "; foreach ($st as $k=>$v) echo "{$k}={$v} "; echo "\n";
-
-            // vestra_from_price() runs per card; if it throws, the grid stops mid-way.
-            $bad = 0;
-            foreach ($all as $p) {
-              try { $f = vestra_from_price($p); }
-              catch (Throwable $e) {
-                $bad++;
-                echo "  FIYAT HATASI ".($p['id'] ?? '?').": ".$e->getMessage()."\n";
-                if ($bad > 5) { echo "  ... kesildi\n"; break; }
-              }
+            $idx = [];
+            foreach ($all as $i => $p) {
+              $id = (string)($p['id'] ?? '');
+              if ($id === '') continue;
+              $idx[$id][] = $i;
             }
-            echo "from_price patlayan urun: {$bad}\n";
+            $dupes = array_filter($idx, fn($v) => count($v) > 1);
+            echo "toplam kayit: ".count($all)."\n";
+            echo "tekrarlayan id sayisi: ".count($dupes)."\n\n";
+            foreach ($dupes as $id => $rows) {
+              echo "== {$id} ({$id}) — ".count($rows)." kez ==\n";
+              $prev = null;
+              foreach ($rows as $r) {
+                $p = $all[$r];
+                echo "  satir #{$r}:\n";
+                foreach (['brand','name','cat','sku','list','moq','sizes','images','added_at'] as $k) {
+                  $v = $p[$k] ?? null;
+                  echo "    {$k} = ".(is_array($v) ? json_encode($v) : (string)$v)."\n";
+                }
+                if ($prev !== null) {
+                  $diffKeys = [];
+                  $allKeys = array_unique(array_merge(array_keys($prev), array_keys($p)));
+                  foreach ($allKeys as $k) {
+                    $a = $prev[$k] ?? null; $b = $p[$k] ?? null;
+                    if (json_encode($a) !== json_encode($b)) $diffKeys[] = $k;
+                  }
+                  echo "  >> onceki satirdan farkli alanlar: ".($diffKeys ? implode(', ',$diffKeys) : '(YOK — tamamen ayni)')."\n";
+                }
+                $prev = $p;
+              }
+              echo "\n";
+            }
+            if (!$dupes) echo "tekrarlayan id yok.\n";
             PHPEOF
-            php /tmp/diag_shop.php 2>&1 | sed 's/^/  /'
-            rm -f /tmp/diag_shop.php
-
-            echo ""
-            echo "===== shop.php RENDER (misafir ve uye) ====="
-            for MODE in guest member; do
-              OUT=$(cd "$HOME/public_html" && REQUEST_METHOD=GET QUERY_STRING="" php -r '
-                ini_set("display_errors","1"); error_reporting(E_ALL);
-                if (getenv("VMODE")==="member") { $_GET["demo_member"]=1; }
-                ob_start(); include "shop.php"; $h=ob_get_clean();
-                $cards = substr_count($h, "class=\"scard");
-                if (!$cards) $cards = substr_count($h, "scard");
-                fwrite(STDERR, sprintf("kart=%d html=%d bayt shopcount=%s\n",
-                  $cards, strlen($h),
-                  preg_match("/id=\"shopcount\"[^>]*>([^<]*)/",$h,$m) ? trim($m[1]) : "?"));
-              ' VMODE=$MODE 2>&1 >/dev/null)
-              echo "  ${MODE}: ${OUT}"
-            done
+            php /tmp/diag_dup.php
+            rm -f /tmp/diag_dup.php
