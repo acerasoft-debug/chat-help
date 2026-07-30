@@ -390,7 +390,13 @@ function vestra_discover_blocklist(): array {
     // Adjacent trades that aren't clothing retail at all: dancewear, cobblers/orthopaedic
     // shoemakers, embroidery/print services and fabric shops. They were harvested under
     // shop=clothes|shoes but none of them resells ready-to-wear designer stock.
-    'dansebutikk','danseboutique','dansebutik','danceshop','dance shop',
+    'dansebutikk','danseboutique','dansebutik','danceshop','dance shop','tanzschuhe','tanzboutique',
+    // Workwear and folk/traditional dress (Vienna sweep): both are clothing retail on paper,
+    // neither buys designer ready-to-wear. These terms recur across the whole German market.
+    'berufsbekleidung','arbeitskleidung','workwear','del lavoro','abbigliamento da lavoro',
+    'trachten','dirndl','lederhosen','original salzburger',
+    // Austrian/German own labels found in the Vienna sweep
+    'hannes roether','michel mayer','elfenkleid',
     'skomaker','skomager','schuhmacher','cordonnerie','orthopedie','orthopädie','orthopadie',
     'ortopedi','orthopaedic','borduur','stoffen','tissus','stofferie',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
