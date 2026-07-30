@@ -43,6 +43,14 @@ jobs:
             echo "$d: $(find raw/$d -type f | wc -l) dosya"
           done
 
+          # ImageMagick 7'de `montage` ayri bir komut olarak gelmeyebiliyor;
+          # varsa onu, yoksa `magick montage` kullaniyoruz. Hatalari ARTIK
+          # yutmuyoruz -- ilk denemede `|| true` yuzunden hicbir sayfa
+          # uretilmedigi halde is "basarili" gorunmustu.
+          if command -v montage >/dev/null 2>&1; then MG="montage"
+          elif command -v magick  >/dev/null 2>&1; then MG="magick montage"
+          else echo "HATA: ImageMagick yok"; exit 1; fi
+          echo "montaj komutu: $MG"
           rm -rf contact-sheets && mkdir -p contact-sheets
           # Her klasor icin: kucult, dosya adiyla etiketle, 6x4=24'luk sayfalar yap.
           for d in balmain balenciaga-burberry shorts-sweats; do
@@ -51,22 +59,25 @@ jobs:
               batch="$batch $f"
               i=$((i+1))
               if [ $((i % 24)) -eq 0 ]; then
-                montage $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
+                $MG $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
                   -background white -fill black -pointsize 11 \
-                  "contact-sheets/${d}-$(printf '%02d' $page).jpg" 2>/dev/null || true
+                  "contact-sheets/${d}-$(printf '%02d' $page).jpg"
                 echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (24 gorsel)"
                 page=$((page+1)); batch=""
               fi
             done
             if [ -n "$batch" ]; then
-              montage $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
+              $MG $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
                 -background white -fill black -pointsize 11 \
-                "contact-sheets/${d}-$(printf '%02d' $page).jpg" 2>/dev/null || true
+                "contact-sheets/${d}-$(printf '%02d' $page).jpg"
               echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (kalan)"
             fi
           done
 
-          echo; echo "uretilen sayfa:"; ls -la contact-sheets/ | tail -n +2
+          N=$(find contact-sheets -type f | wc -l)
+          echo; echo "uretilen sayfa: $N"
+          [ "$N" -gt 0 ] || { echo "HATA: hic sayfa uretilmedi"; exit 1; }
+          ls -la contact-sheets/ | tail -n +2
           echo "toplam boyut: $(du -sh contact-sheets | cut -f1)"
 
       - name: Repoya işle
