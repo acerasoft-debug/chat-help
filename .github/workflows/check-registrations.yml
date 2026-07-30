@@ -27,6 +27,12 @@ jobs:
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=20" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
           echo ""
+          echo "== BUGUN Brevo uzerinden gonderilen TOPLAM e-posta (kampanya + islemsel) =="
+          # Brevo'nun kendi sayaci: gunluk 300 limitine sayilan gercek rakam budur.
+          TODAY=$(date -u +%F)
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
           echo "== kayitli sender listesi (dogrulanmis mi degil mi) =="
           curl -sS "https://api.brevo.com/v3/senders" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
@@ -162,7 +168,26 @@ jobs:
               if (($l['status'] ?? '') === 'unsubscribed') { $unsub++; continue; }
               if (($l['last_contacted_at'] ?? '') !== '' || ($l['status'] ?? '') === 'contacted') $sent++; else $notSent++;
             }
+            /* Kampanya e-postalarinin GUNE gore dagilimi. "Bugun kac gitti?" sorusunun
+               cevabi tek toplam sayidan cikmiyor -- last_contacted_at damgasini gune
+               gore saymak gerekiyor. */
+            $byDay = [];
+            foreach ($leads as $l) {
+              $ts = (string)($l['last_contacted_at'] ?? '');
+              if ($ts === '') continue;
+              $d = substr($ts, 0, 10);
+              if ($d !== '') $byDay[$d] = ($byDay[$d] ?? 0) + 1;
+            }
+            krsort($byDay);
+            echo "\n== kampanya e-postasi gonderimi (gune gore, son 10 gun) ==\n";
+            $today = date('Y-m-d');
+            foreach (array_slice($byDay, 0, 10, true) as $d => $c) {
+              echo "  {$d}: {$c}" . ($d === $today ? "   <-- BUGUN" : "") . "\n";
+            }
+            $todayCount = $byDay[$today] ?? 0;
+
             echo "\n\n================= OZET =================\n";
+            echo "BUGUN gonderilen kampanya e-postasi: {$todayCount}\n";
             echo "TOPLAM lead                : " . count($leads) . "\n";
             echo "E-POSTA GONDERILDI (gercek): {$sent}\n";
             echo "henuz gonderilmedi         : {$notSent}\n";
