@@ -12,6 +12,12 @@ This file is documentation only; nothing reads it at runtime.
 | Balenciaga — Boxers | **24.90** | **40** | not given | blocked, no model codes |
 | Burberry — Hoodies | **120.00** | not given | not given | blocked, no model codes |
 | Burberry — Polos | **60.00** | not given | not given | blocked, no model codes |
+| 3rd folder — Shorts | **49.90** | **20** | 10/pack | blocked, no model codes |
+| 3rd folder — Sweat / Hoodies | **120.00** | not given | not given | blocked, no model codes |
+| Balenciaga — Sweatshirts | **140.00** | not given | not given | blocked, no model codes |
+| Balenciaga — Boxers | **24.90** | **40** | not given | blocked, no model codes |
+| Burberry — Hoodies | **120.00** | not given | not given | blocked, no model codes |
+| Burberry — Polos | **60.00** | not given | not given | blocked, no model codes |
 | D&G — T-shirts | **49.90** | **20** | 10/pack | APPLIED 2026-07-30, 58 items |
 | D&G — Polos | **60.00** | **20** | 10/pack | APPLIED 2026-07-30, 4 items |
 | D&G — Hoodies & Sweatshirts | **90.00** | **20** | 10/pack | APPLIED 2026-07-30, 7 items |
@@ -107,3 +113,24 @@ catalogue that sells authenticated goods would be ordered against by a real bout
 To unblock, any one of: attach the files in chat (how the Lacoste/Amiri/D&G products
 were added), paste the folder's file listing as text, or allow `dropbox.com` in the
 environment's network policy.
+
+## Why the catalogue looked empty — caching, not data
+
+The operator reported the products were not live. They were: a read-only render on
+the server produced 96 product cards and a server-side count of 96, with all 94
+listings approved and no price-helper failures. The site was showing 8, a state the
+catalogue left long ago.
+
+No page sent any cache header. /shop is dynamic -- it reflects listings.json, and
+prices, MOQs and size runs change with no file deployed and therefore no URL change
+for a cache to notice -- so an edge or browser cache could hold a rendered copy
+indefinitely. The repo's cloudflare-cache-fix.sh only ever covered chat-help.com
+and /chat/, never vestrasales.com.
+
+inc/head.php now sends no-store (plus CDN-Cache-Control and the Cloudflare-specific
+variant, honoured even under a "cache everything" rule) and a Vary on Cookie and
+Accept-Language so member and guest, and each language, stay distinct. Verified
+over real HTTP: all five headers present.
+
+An edge cache may still hold the old copy; that needs purging once, after which
+the headers keep it from recurring.
