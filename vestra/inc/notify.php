@@ -105,7 +105,13 @@ function vestra_email_is_junk(string $email): bool {
   $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg'
        .'|domain\.com$|email\.com$|email\.address$|test@|@test\.|voorbeeld|beispiel|exemple\.|esempio|ejemplo'
        .'|xxx@xxx|xxx\.xxx|your-email|youremail|your@email|email@email|name@domain|user@domain|abc@abc'
-       .'|screenshot|keydown|keyup|onclick|javascript|defaultvendors|theme\.js|\.js$|\.escape$)#i';
+       .'|screenshot|keydown|keyup|onclick|javascript|defaultvendors|theme\.js|\.js$|\.escape$'
+       // Website-builder / hosting platforms: a shop built on one of these leaves the PLATFORM's
+       // own support address in the page footer ("powered by …"), which then gets scraped as if it
+       // were the shop's. Only the platform's own domain is blocked — a shop whose mailbox merely
+       // happens to be hosted there still has its own domain and is unaffected.
+       .'|@webador\.|@wix\.com|@squarespace\.|@shopify\.|@jimdo\.|@webnode\.|@weebly\.|@strikingly\.'
+       .'|@site123\.|@ionos\.|@one\.com|@hostpoint\.|@infomaniak\.|@web\.com)#i';
   return (bool)preg_match($junk,$e);
 }
 
@@ -349,10 +355,11 @@ function vestra_discover_blocklist(): array {
     // single-brand outlets are excluded here)
     'repetto','polène','polene','de fursac','armor lux','jacadi','princesse tam','tamaris',
     'veja','thomas sabo','boggi milano','free people','dinh van',
-    // Swiss single-brand stores / large chains found in Zurich+Geneva discovery
-    'freitag','breguet',"arc'teryx",'arcteryx','qwstion','christ uhren',
+    // Swiss single-brand stores / large chains found in Zurich+Geneva+Basel discovery
+    'freitag','breguet',"arc'teryx",'arcteryx','qwstion','christ uhren','bucherer',
     // charity / thrift chains — they receive donations, they don't buy wholesale
     'caritas','heilsarmee','salvation army','emmaus','emmaüs',
+    'rotkreuz','rotes kreuz','red cross','croix-rouge','oxfam','goodwill',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
