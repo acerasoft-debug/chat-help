@@ -9,7 +9,7 @@
 require_once __DIR__.'/inc/i18n.php';
 $PAGE = t('Help & Concierge');
 $NAV  = 'help';
-$META = 'VESTRA Help & Concierge — support for B2B buyers and sellers on the verified wholesale fashion marketplace: onboarding, KYB business verification, placing orders, invoicing and dispute resolution.';
+$META = t('VESTRA Help & Concierge — support for B2B buyers and sellers on the verified wholesale fashion marketplace: onboarding, KYB business verification, placing orders, invoicing and dispute resolution.');
 $q    = trim($_GET['q'] ?? '');
 
 /* Icon helper — tasteful gold line icons, same stroke language as the header mark. */

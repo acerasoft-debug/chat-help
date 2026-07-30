@@ -4,7 +4,7 @@ $cats = vestra_faq();
 $cat  = $_GET['cat'] ?? 'about';
 if(!isset($cats[$cat])) $cat = array_key_first($cats);
 $PAGE = t('Frequently Asked Questions'); $NAV='faq';
-$META = 'VESTRA FAQ — how B2B wholesale works on a KYC-verified marketplace: seller verification, invoice-based ordering, minimum orders, authenticity guarantees, shipping and returns for boutiques and multi-brand retailers.';
+$META = t('VESTRA FAQ — how B2B wholesale works on a KYC-verified marketplace: seller verification, invoice-based ordering, minimum orders, authenticity guarantees, shipping and returns for boutiques and multi-brand retailers.');
 // FAQPage rich-result schema, built from the live Q&A so Google can show an FAQ snippet.
 $_faqQ = [];
 foreach ($cats as $c) foreach (($c['items'] ?? []) as $it) {

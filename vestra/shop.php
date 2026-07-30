@@ -1,4 +1,4 @@
-<?php require __DIR__.'/inc/products.php'; $PAGE=t('Catalog'); $NAV='shop'; $META='Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.'; require __DIR__.'/inc/head.php';
+<?php require __DIR__.'/inc/products.php'; $PAGE=t('Catalog'); $NAV='shop'; $META=t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.'); require __DIR__.'/inc/head.php';
 $products = vestra_products();
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);

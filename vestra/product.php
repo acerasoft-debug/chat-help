@@ -7,7 +7,7 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require _
 
 $PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
-$META = sprintf('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.',
+$META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.'),
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
 $_purl = 'https://vestrasales.com/product?id='.rawurlencode($p['id'] ?? '');
 $_pimgs = [];
