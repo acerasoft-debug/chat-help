@@ -8,9 +8,13 @@ This file is documentation only; nothing reads it at runtime.
 | Group | Wholesale price | MOQ | Pack / series | Status |
 |---|---|---|---|---|
 | BALMAIN — heavily embroidered / printed | **59.90** | **20** | — | blocked, no model codes |
-| D&G — T-shirts | **49.90** | **20** | 10/pack | ~60 items, ready to price |
-| D&G — Polos | **60.00** | **20** | 10/pack | 4 items, ready to price |
-| D&G — Hoodies & Sweatshirts | **90.00** | **20** | 10/pack | 7 items, ready to price |
+| Balenciaga — Sweatshirts | **140.00** | not given | not given | blocked, no model codes |
+| Balenciaga — Boxers | **24.90** | **40** | not given | blocked, no model codes |
+| Burberry — Hoodies | **120.00** | not given | not given | blocked, no model codes |
+| Burberry — Polos | **60.00** | not given | not given | blocked, no model codes |
+| D&G — T-shirts | **49.90** | **20** | 10/pack | APPLIED 2026-07-30, 58 items |
+| D&G — Polos | **60.00** | **20** | 10/pack | APPLIED 2026-07-30, 4 items |
+| D&G — Hoodies & Sweatshirts | **90.00** | **20** | 10/pack | APPLIED 2026-07-30, 7 items |
 | D&G — Body / bodysuits | **39.90** | not given | not given | no such products yet |
 | Jeans | **110.00** | **20** | 10/series | no such products yet |
 | Jeans shorts | **90.00** | **20** | 10/series | no such products yet |
@@ -78,10 +82,19 @@ Verified against the live listings (read-only inspect, 2026-07-30):
 Also noted: `dg-101209` ("Oversized Vertical Logo T-Shirt") appears TWICE in the
 catalogue with the same image. Worth de-duplicating.
 
-## Blocker — BALMAIN
+## What the D&G change actually did
 
-The operator supplied a Dropbox folder link for the BALMAIN products. This
-environment's egress policy refuses it:
+The dry-run exposed the previous state, which was a much larger change than price
+alone. T-shirts were 69.90 in cartons of 200 (S×20 · M×60 · L×60 · XL×40 · XXL×20).
+They are now 49.90 in packs of 10 with MOQ 20. That is a 29% price cut but a 93%
+cut in minimum order value: 13,980 EUR down to 998 EUR. Flagged to the operator as
+a repositioning toward small boutiques rather than a pricing tweak.
+
+## Blocker — BALMAIN, Balenciaga, Burberry
+
+The operator supplied Dropbox folder links for the BALMAIN and the
+Balenciaga/Burberry products. This environment's egress policy refuses both, the
+second one exactly as it refused the first:
 
     kind:   connect_rejected
     detail: gateway answered 403 to CONNECT (policy denial)
