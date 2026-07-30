@@ -101,16 +101,11 @@ jobs:
             // decide. Lead rows carry no city field (vestra_leads_add drops it) — the city survives
             // inside notes via the OSM address, so match city names there and fall back to the
             // country's majority language when the address doesn't name a known city.
+            //
+            // Switzerland and Luxembourg are deliberately NOT here: English is the agreed
+            // language for both (widely used in business there), so they fall through to the
+            // LANG_MAP miss below and get 'en'.
             $REGION_LANG = [
-              'switzerland' => ['default'=>'de','match'=>[
-                'fr'=>['geneva','genève','geneve','genf','lausanne','montreux','neuchâtel','neuchatel','fribourg','sion','vevey','nyon','yverdon','morges','carouge'],
-                'it'=>['lugano','locarno','bellinzona','mendrisio','chiasso','ascona'],
-              ]],
-              'schweiz' => ['default'=>'de','match'=>[]],
-              'suisse'  => ['default'=>'fr','match'=>[]],
-              'luxembourg' => ['default'=>'fr','match'=>[
-                'de'=>['echternach','vianden','diekirch','wiltz','clervaux'],
-              ]],
               'belgium' => ['default'=>'nl','match'=>[
                 'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
               ]],
