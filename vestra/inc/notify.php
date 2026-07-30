@@ -93,6 +93,11 @@ function vestra_email_is_junk(string $email): bool {
   if($e==='' || !filter_var($e,FILTER_VALIDATE_EMAIL)) return true;
   [$lp,$dp]=array_pad(explode('@',$e,2),2,'');
   if(!preg_match('/[a-z0-9]/',$lp)) return true;   // local part with no letters/digits at all ("--@…")
+  // Placeholder LOCAL parts on an otherwise ordinary domain ("example@mail.com" was scraped from
+  // a boilerplate contact form). The domain-side patterns below can't see these.
+  // NB: 'mail'/'info'/'contact' are deliberately NOT here — they're real generic mailboxes
+  // (vestra_best_email even scores them positively) and several live leads use mail@.
+  if(in_array($lp,['example','sample','demo','tests','yourname','your-name','youremail','your-email','username'],true)) return true;
   // Role mailboxes that reach no human — a reply is impossible, so outreach is pointless.
   if(in_array($lp,['noreply','no-reply','donotreply','do-not-reply','postmaster','webmaster',
                    'abuse','privacy','gdpr','dpo','hostmaster','sentry','mailer-daemon'],true)) return true;
@@ -360,6 +365,10 @@ function vestra_discover_blocklist(): array {
     // charity / thrift chains — they receive donations, they don't buy wholesale
     'caritas','heilsarmee','salvation army','emmaus','emmaüs',
     'rotkreuz','rotes kreuz','red cross','croix-rouge','oxfam','goodwill',
+    'petits riens','spullenhulp','kringloop','rode kruis',
+    // single-brand houses / own-label chains found in the Brussels + Antwerp discovery
+    'chopard','delvaux','frey wille','freywille','scabal','twinset','lanieri','gemmyo',
+    'comptoir des cotonniers',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
