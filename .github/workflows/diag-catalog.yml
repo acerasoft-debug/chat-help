@@ -1,0 +1,110 @@
+name: (Salt-okunur) Teşhis — line-sheet indirmesi + set-prices hatası
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Salt-okunur teşhis. İki soruyu cevaplar:
+#  1) /catalog?brand=... indirmesi neden BOŞ dosya veriyor? Her marka için xlsx'i
+#     sunucuda üretip boyut / geçerlilik / tepe bellek ölçer. Hiçbir şey yazmaz.
+#  2) set-prices neden çıkış 255 ile ve HİÇ çıktısız ölüyor? PHP sürümünü,
+#     display_errors/memory_limit ayarlarını ve script'in php -l sonucunu yazar.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Teşhis
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          script: |
+            echo "===== 1. PHP ORTAMI ====="
+            php -v 2>&1 | head -2
+            php -r 'foreach(["display_errors","memory_limit","max_execution_time","post_max_size"] as $k) printf("  %-20s = %s\n",$k,ini_get($k));'
+            echo "  PHP_VERSION_ID = $(php -r 'echo PHP_VERSION_ID;')"
+            for f in array_key_first str_contains getimagesize gd_info; do
+              php -r "printf('  %-16s %s\n','$f', function_exists('$f')?'VAR':'YOK');"
+            done
+
+            echo ""
+            echo "===== 2. set-prices SCRIPT'I NEDEN OLUYOR? ====="
+            cat > /tmp/diag_sp.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            $inc  = $home."/public_html/inc/products.php";
+            echo "  products.php okunabilir: ".(is_readable($inc)?"EVET":"HAYIR")."\n";
+            require $inc;
+            foreach (['vestra_listings','vestra_save_listings','vestra_data_dir','vestra_products'] as $fn) {
+              printf("  %-22s %s\n", $fn, function_exists($fn) ? 'VAR' : 'YOK <-- SORUN');
+            }
+            $l = vestra_listings();
+            echo "  listings.json urun sayisi: ".count($l)."\n";
+            $dg = 0; $tierBad = 0;
+            foreach ($l as $p) {
+              if (stripos((string)($p['brand']??''),'Dolce')!==false) $dg++;
+              if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                foreach ($p['tiers'] as $t) if (!is_array($t)) $tierBad++;
+              }
+            }
+            echo "  Dolce urun: {$dg}\n";
+            echo "  dizi-olmayan tier: {$tierBad}\n";
+            PHPEOF
+            echo "  --- php -l sonucu ---"
+            php -l /tmp/diag_sp.php 2>&1 | sed 's/^/  /'
+            echo "  --- calistir ---"
+            php /tmp/diag_sp.php 2>&1 | sed 's/^/  /' || echo "  CIKIS KODU: $?"
+            rm -f /tmp/diag_sp.php
+
+            echo ""
+            echo "===== 3. LINE-SHEET (catalog.php) HER MARKA ICIN ====="
+            cat > /tmp/diag_cat.php <<'PHPEOF'
+            <?php
+            $home = getenv("HOME");
+            $doc  = $home."/public_html";
+            require $doc."/inc/products.php";
+
+            $brands = [];
+            foreach (vestra_products() as $p) {
+              $b = trim((string)($p['brand'] ?? ''));
+              if ($b !== '') $brands[$b] = ($brands[$b] ?? 0) + 1;
+            }
+            arsort($brands);
+            echo "  markalar: ".count($brands)."\n\n";
+
+            // '' = the "All brands" link, which has no brand parameter at all.
+            foreach (array_merge([''], array_keys($brands)) as $b) {
+              $label = $b === '' ? '<TUM MARKALAR>' : $b;
+              $cnt   = $b === '' ? array_sum($brands) : $brands[$b];
+              // Run the real endpoint in a child process so a fatal or a memory
+              // exhaustion kills only that child and the loop keeps going.
+              $cmd = 'cd '.escapeshellarg($doc).' && '
+                   . 'REQUEST_METHOD=GET php -r '
+                   . escapeshellarg('$_GET["brand"]='.var_export($b,true).'; ob_start(); include "catalog.php"; $o=ob_get_clean(); fwrite(STDERR, sprintf("%d %d", strlen($o), memory_get_peak_usage(true))); echo $o;')
+                   . ' 2>/tmp/diag_meta.txt';
+              $out = shell_exec($cmd);
+              $meta = trim((string)@file_get_contents('/tmp/diag_meta.txt'));
+              $parts = preg_split('/\s+/', $meta);
+              $len  = (int)($parts[0] ?? 0);
+              $peak = (int)($parts[1] ?? 0);
+              $magic = substr((string)$out, 0, 4);
+              $ok = ($magic === "PK\x03\x04");
+              printf("  %-24s urun=%-4d cikti=%9d B  tepe=%6.1f MB  zip=%s%s\n",
+                mb_substr($label,0,24), $cnt, strlen((string)$out), $peak/1048576,
+                $ok ? 'GECERLI' : 'BOZUK/BOS',
+                $ok ? '' : '   <-- SORUN BURADA');
+              if (!$ok) {
+                // Show whatever came out instead of a zip -- usually the PHP error text.
+                $head = trim(substr(preg_replace('/\s+/', ' ', (string)$out), 0, 300));
+                echo "      cikti basi: ".($head === '' ? '(TAMAMEN BOS)' : $head)."\n";
+                $err = trim((string)@file_get_contents('/tmp/diag_meta.txt'));
+              }
+            }
+            @unlink('/tmp/diag_meta.txt');
+            PHPEOF
+            php /tmp/diag_cat.php 2>&1 || echo "  CIKIS KODU: $?"
+            rm -f /tmp/diag_cat.php
