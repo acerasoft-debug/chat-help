@@ -138,7 +138,9 @@ jobs:
           echo "yuklenecek dosya: $N"
           [ "$N" -gt 0 ] || { echo "HATA: staged bos"; exit 1; }
 
-          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "mkdir -p ~/public_html/uploads/${LABEL} && chmod 755 ~/public_html/uploads/${LABEL}"
-          scp $SSHOPT -q staged/* "$SSH_USER@$SSH_HOST:public_html/uploads/${LABEL}/"
-          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "chmod 644 ~/public_html/uploads/${LABEL}/* 2>/dev/null; ls -1 ~/public_html/uploads/${LABEL}/ | wc -l | xargs -I{} echo 'sunucudaki dosya sayisi: {}'; ls -la ~/public_html/uploads/${LABEL}/ | head -60"
+          # scp'ye glob ile dosya listesi vermek adlardaki bosluk/ozel karakterlerde
+          # patliyor ("stat local ... No such file"). Tek tar akisi gonderiyoruz:
+          # kelime bolunmesi yok, dosya adi ne olursa olsun aynen karsiya geciyor.
+          tar -C staged -czf - . | ssh $SSHOPT "$SSH_USER@$SSH_HOST" \
+            "mkdir -p ~/public_html/uploads/${LABEL} && tar -xzf - -C ~/public_html/uploads/${LABEL} && chmod 755 ~/public_html/uploads/${LABEL} && chmod 644 ~/public_html/uploads/${LABEL}/* 2>/dev/null; echo \"sunucudaki dosya: \$(ls -1 ~/public_html/uploads/${LABEL}/ | wc -l)\"; ls -la ~/public_html/uploads/${LABEL}/ | head -60"
           echo "YUKLEME TAMAM -> uploads/${LABEL}/"
