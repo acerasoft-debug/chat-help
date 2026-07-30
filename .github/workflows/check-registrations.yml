@@ -143,16 +143,31 @@ jobs:
               }
             }
 
-            echo "\n== henuz gonderilmemis (status!=contacted, last_contacted_at bos) leadlerin detayi ==\n";
-            foreach ($leads as $l) {
-              if (($l['status'] ?? '') === 'contacted' || ($l['last_contacted_at'] ?? '') !== '') continue;
-              if (($l['email'] ?? '') === '') continue;
+            echo "\n== henuz gonderilmemis leadler (ilk 40; tam sayi asagidaki OZET'te) ==\n";
+            $pending = array_values(array_filter($leads, fn($l) =>
+              ($l['status'] ?? '') !== 'contacted' && ($l['last_contacted_at'] ?? '') === '' && ($l['email'] ?? '') !== ''
+            ));
+            foreach (array_slice($pending, 0, 40) as $l) {
               echo "  * " . ($l['company'] ?? '?') . " | ulke=" . ($l['country'] ?? '-') .
-                   " | category=" . ($l['category'] !== '' && isset($l['category']) ? $l['category'] : '(bos)') .
-                   " | website=" . ($l['website'] ?: '(yok)') .
-                   " | source=" . ($l['source'] ?? '?') .
-                   " | notes=" . ($l['notes'] ?: '(yok)') . "\n";
+                   " | category=" . (($l['category'] ?? '') !== '' ? $l['category'] : '(bos)') .
+                   " | source=" . ($l['source'] ?? '?') . "\n";
             }
+            if (count($pending) > 40) echo "  ... (+" . (count($pending) - 40) . " tane daha)\n";
+
+            /* SUMMARY LAST: the pending list above can run to hundreds of lines and was pushing
+               the counts out of the readable tail of the job log — the one number anyone opens
+               this report for. Keep it at the very bottom. */
+            $sent = 0; $notSent = 0; $unsub = 0;
+            foreach ($leads as $l) {
+              if (($l['status'] ?? '') === 'unsubscribed') { $unsub++; continue; }
+              if (($l['last_contacted_at'] ?? '') !== '' || ($l['status'] ?? '') === 'contacted') $sent++; else $notSent++;
+            }
+            echo "\n\n================= OZET =================\n";
+            echo "TOPLAM lead                : " . count($leads) . "\n";
+            echo "E-POSTA GONDERILDI (gercek): {$sent}\n";
+            echo "henuz gonderilmedi         : {$notSent}\n";
+            echo "abonelikten cikti          : {$unsub}\n";
+            echo "========================================\n";
             PHPEOF
             php /tmp/vestra_regcheck.php
             rm -f /tmp/vestra_regcheck.php
