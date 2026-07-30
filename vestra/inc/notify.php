@@ -81,18 +81,41 @@ function vestra_harvest_emails(string $html, array &$scores): void {
     $e=strtolower($e); if(filter_var($e,FILTER_VALIDATE_EMAIL)) $scores[$e]=($scores[$e]??0)+1; }
 }
 
-/* Rank harvested candidates: own-domain + generic mailbox wins; role/junk addresses lose. */
-function vestra_best_email(array $scores, string $domain): string {
-  if(!$scores) return '';
+/* Is this a scraped artefact / placeholder / unreachable role mailbox rather than a real
+ * business inbox? filter_var() is not enough on its own: "--@keydown.escape" (a JS event
+ * name), "defaultvendors@layout.theme.js" (a theme asset path) and "your@email.address"
+ * are all syntactically valid yet undeliverable, and mailing them costs real sender
+ * reputation. Used BOTH when harvesting (below) and again on the SEND path as a safety net,
+ * so an address that entered the list before a pattern was known is still never mailed —
+ * same belt-and-braces approach as vestra_name_is_blocked(). */
+function vestra_email_is_junk(string $email): bool {
+  $e=strtolower(trim($email));
+  if($e==='' || !filter_var($e,FILTER_VALIDATE_EMAIL)) return true;
+  [$lp,$dp]=array_pad(explode('@',$e,2),2,'');
+  if(!preg_match('/[a-z0-9]/',$lp)) return true;   // local part with no letters/digits at all ("--@…")
+  // Role mailboxes that reach no human — a reply is impossible, so outreach is pointless.
+  if(in_array($lp,['noreply','no-reply','donotreply','do-not-reply','postmaster','webmaster',
+                   'abuse','privacy','gdpr','dpo','hostmaster','sentry','mailer-daemon'],true)) return true;
   // "example" placeholder text in the site's own contact-form boilerplate ("your-email@example.com")
   // gets scraped as if it were a real address — cross-market fix, not just English: voorbeeld=NL,
   // beispiel=DE, exemple=FR, esempio=IT, ejemplo=ES all mean "example"; xxx@xxx/name@domain/
   // user@domain/email@email/abc@abc are generic instructional placeholders in any language.
-  $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg|domain\.com$|email\.com$|test@|@test\.|voorbeeld|beispiel|exemple\.|esempio|ejemplo|xxx@xxx|xxx\.xxx|your-email|youremail|email@email|name@domain|user@domain|abc@abc)#i';
+  // The tail of the pattern catches front-end scraping artefacts: JS event names, theme/asset
+  // paths and screenshot filenames that a page's markup can leave behind.
+  $junk='#(example\.|@example|sentry|wixpress|@2x|godaddy|yourdomain|@sentry|\.png|\.jpg|\.jpeg|\.gif|\.webp|\.svg'
+       .'|domain\.com$|email\.com$|email\.address$|test@|@test\.|voorbeeld|beispiel|exemple\.|esempio|ejemplo'
+       .'|xxx@xxx|xxx\.xxx|your-email|youremail|your@email|email@email|name@domain|user@domain|abc@abc'
+       .'|screenshot|keydown|keyup|onclick|javascript|defaultvendors|theme\.js|\.js$|\.escape$)#i';
+  return (bool)preg_match($junk,$e);
+}
+
+/* Rank harvested candidates: own-domain + generic mailbox wins; role/junk addresses lose. */
+function vestra_best_email(array $scores, string $domain): string {
+  if(!$scores) return '';
   $generic=['info','contact','kontakt','sales','hello','office','mail','enquiries','enquiry','shop','service','support','hallo','bonjour','contatti','ventas','team','commercial','wholesale'];
   $best=''; $bestScore=-999;
   foreach($scores as $e=>$sig){
-    if(preg_match($junk,$e)) continue;
+    if(vestra_email_is_junk((string)$e)) continue;
     [$lp,$dp]=array_pad(explode('@',$e,2),2,'');
     $s=$sig;
     if($dp===$domain || str_ends_with($dp,'.'.$domain)) $s+=12;                       // on the company's own domain
@@ -326,6 +349,10 @@ function vestra_discover_blocklist(): array {
     // single-brand outlets are excluded here)
     'repetto','polène','polene','de fursac','armor lux','jacadi','princesse tam','tamaris',
     'veja','thomas sabo','boggi milano','free people','dinh van',
+    // Swiss single-brand stores / large chains found in Zurich+Geneva discovery
+    'freitag','breguet',"arc'teryx",'arcteryx','qwstion','christ uhren',
+    // charity / thrift chains — they receive donations, they don't buy wholesale
+    'caritas','heilsarmee','salvation army','emmaus','emmaüs',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];

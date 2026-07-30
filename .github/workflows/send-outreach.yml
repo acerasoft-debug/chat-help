@@ -137,6 +137,7 @@ jobs:
             foreach ($leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
+              if (vestra_email_is_junk($email)) continue;                        // scraped artefact / placeholder / noreply — would hard-bounce
               if (isset($SKIP[$email])) continue;                                // explicitly excluded this run
               if ($SKIP_RE !== '' && preg_match($SKIP_RE, $email)) continue;      // regex-excluded (garbled/scraper addresses)
               if ($ONLY && !isset($ONLY[$email])) continue;                      // allowlist mode: only these addresses
