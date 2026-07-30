@@ -16,6 +16,34 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # deploy.sh içindeki `git pull`, uzak dal force-push'landığında "divergent
+      # branches" ile ölür (fatal: Need to specify how to reconcile) ve deploy hiç
+      # çalışmaz. Sunucudaki klon bir çalışma kopyası değil, origin'in AYNASI olmalı:
+      # birleştirmek yerine sıfırlıyoruz. Böylece geçmişin yeniden yazılması deploy'u
+      # bir daha kırmaz. Canlı site ayrı bir dizin (~/public_html) olduğu ve uploads/
+      # oraya additive rsync'lendiği için satıcı yüklemeleri bundan etkilenmez.
+      - name: Sunucudaki klonu origin ile eşitle (force-push'a dayanıklı)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 3m
+          script: |
+            set -e
+            REPO="$HOME/vestra-repo"
+            BR="${{ github.ref_name }}"
+            if [ ! -d "$REPO/.git" ]; then
+              echo "UYARI: $REPO bir git klonu degil -- atlaniyor, deploy.sh kendi isini yapacak"
+              exit 0
+            fi
+            cd "$REPO"
+            echo "oncesi : $(git rev-parse --short HEAD)"
+            git fetch --prune origin "$BR"
+            git reset --hard "origin/${BR}"
+            echo "sonrasi: $(git rev-parse --short HEAD)  (origin/${BR})"
+
       - name: Sunucuda deploy.sh çalıştır
         uses: appleboy/ssh-action@v1.0.3
         with:
