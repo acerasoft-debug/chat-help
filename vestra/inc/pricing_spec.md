@@ -30,11 +30,10 @@ should match polos and sweatshirts (10/pack, MOQ 20 = 998 EUR minimum order).
 
 ## Pack run for tops (S–XXL) — 10 per pack
 
-    S×1 · M×2 · L×3 · XL×3 · XXL×1 · 10/paket
+    S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10/paket
 
-MOQ 20 = 2 packs. The S–XXL split was not specified, so it mirrors the logic used
-on the jeans run: tails light, middle weighted. Matches the house format already in
-use on the live Lacoste listing (`S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack`).
+MOQ 20 = 2 packs. CORRECTED by operator 2026-07-30: M×3, XL×2 (was M×2, XL×3).
+Still totals 10. Applied live across all 94 listings via set-prices brand=*, cat=*.
 
 Minimum order value: polos 1,200 EUR, hoodies/sweatshirts 1,800 EUR.
 
