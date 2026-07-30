@@ -100,19 +100,32 @@ jobs:
             echo "  OSM: ".count($rows)." dukkan bulundu".($osmOk ? '' : '   [UYARI: Overpass yanit vermedi -- tekrar denenebilir]')."\n"; flush();
 
             $toAdd = [];
+            /* Bulunanlari ARA ARA kaydet. Sehir sureci disaridan `timeout` ile kesilebiliyor
+               (bkz. CITY_HARD); tek kayit sonda olsa kesilen sehrin TUM emegi cope giderdi.
+               Her 15 e-postali dukkanda yaziyoruz: kesilse bile o ana kadarki leadler duruyor.
+               Not: vestra_leads_add oku-degistir-yaz yapiyor, o yuzden cok siklastirmiyoruz. */
+            $flush = function() use (&$toAdd, &$st) {
+              if (!$toAdd) return;
+              [$added, ] = vestra_leads_add($toAdd);
+              $st['added'] += count($added);
+              $toAdd = [];
+            };
             foreach ($rows as $r) {
               if (time() - $start > $budget) { echo "  (zaman butcesi {$budget}s doldu -- kalan dukkanlar taranmadi)\n"; flush(); break; }
               $email = strtolower(trim((string)($r['email'] ?? '')));
               if ($email === '') { $w = (string)($r['website'] ?? ''); if ($w !== '') $email = vestra_find_email($w); }
               $st['checked']++;
-              if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) { $r['email'] = $email; $toAdd[] = $r; $st['mail']++; }
+              if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $r['email'] = $email; $toAdd[] = $r; $st['mail']++;
+                if (count($toAdd) >= 15) $flush();
+              }
               /* Heartbeat: uzun taramada SSH kanalini mesgul tutar (sessiz kanal dusuruluyor)
                  ve ilerlemeyi canli gosterir. */
-              if ($st['checked'] % 10 === 0) { echo "  ... {$st['checked']}/{$st['found']} tarandi, {$st['mail']} e-postali\n"; flush(); }
+              if ($st['checked'] % 10 === 0) { echo "  ... {$st['checked']}/{$st['found']} tarandi, {$st['mail']} e-postali, {$st['added']} kayitli\n"; flush(); }
             }
             unset($rows);   // bellegi birak: host'un bellek limitine carpmamak icin
 
-            if ($toAdd) { [$added, ] = vestra_leads_add($toAdd); $st['added'] = count($added); }
+            $flush();
             $st['done'] = true;
             echo "  = {$city}: tarandi {$st['checked']}, e-postali {$st['mail']}, YENI EKLENDI {$st['added']}\n";
             echo "  TOPLAM lead (hepsi e-postali): ".count(vestra_leads())."\n";
@@ -128,7 +141,16 @@ jobs:
             PLACES="${DISCOVER_PLACES:-Greece|Rhodes, Spain|Ibiza, Spain|Palma}"
             RUN_START=$(date +%s)
             MAX_RUN=1200        # 20 dk: 25m'lik command_timeout'a carpip yarida kesilmemek icin
-            TOTAL=0; OKC=0; KILLED=0; NORESP=0
+            TOTAL=0; OKC=0; KILLED=0; NORESP=0; HARDKILL=0
+
+            # Sehir basina KESIN duvar. PHP'nin kendi $budget kontrolu dukkanlar ARASINDA
+            # calisiyor: tek bir dukkanin e-posta taramasi ~11 yolu 12s timeout ile deniyor,
+            # yani butce dolduktan sonra bile ~2 dk daha surebilir; DNS'te takilan bir istek
+            # ise hic donmeyebilir. O yuzden sureci disaridan `timeout` ile kesiyoruz --
+            # PHP'nin ya da curl'un isbirligi yapmasina bagli olmayan tek siniri budur.
+            CITY_HARD=$(( ${CITY_BUDGET:-420} + 150 ))
+            if command -v timeout >/dev/null 2>&1; then RUNCITY="timeout -k 15 ${CITY_HARD}"; else RUNCITY=""; fi
+            if [ -z "$RUNCITY" ]; then echo "(uyari: 'timeout' yok -- sehir basina kesin sinir uygulanamiyor)"; fi
 
             OLD_IFS="$IFS"
             IFS=','
@@ -139,20 +161,27 @@ jobs:
               city=$(printf '%s' "${place#*|}"    | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
               if [ -z "$country" ] || [ -z "$city" ]; then IFS=','; continue; fi
 
+              # Bir sehri, KESIN suresi genel sinira sigmiyorsa hic BASLATMA. Eskiden sadece
+              # "sinir doldu mu" bakiliyordu, o yuzden sinira 1s kalmisken baslayan sehir
+              # calismaya devam edip tum isi command_timeout'un otesine tasiyabiliyordu.
               NOW=$(date +%s)
-              if [ $((NOW - RUN_START)) -gt $MAX_RUN ]; then
-                echo "!! Genel sure siniri (${MAX_RUN}s) doldu -- kalan sehirler ATLANDI (ayri calistirin)"
+              ELAPSED=$((NOW - RUN_START))
+              if [ $((ELAPSED + CITY_HARD)) -gt $MAX_RUN ]; then
+                echo "!! Genel sure siniri: ${city} ve sonrasi ATLANDI (gecen ${ELAPSED}s + sehir siniri ${CITY_HARD}s > ${MAX_RUN}s) -- ayri calistirin"
                 break
               fi
 
               TOTAL=$((TOTAL + 1))
-              php /tmp/vestra_discover_city.php "$country" "$city"
+              $RUNCITY php /tmp/vestra_discover_city.php "$country" "$city"
               rc=$?
               if [ $rc -eq 0 ]; then
                 OKC=$((OKC + 1))
               elif [ $rc -eq 3 ]; then
                 NORESP=$((NORESP + 1))
                 echo "  !! ${city}: Overpass hicbir mirror'dan yanit vermedi -- bu sehri tek basina tekrar deneyin"
+              elif [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+                HARDKILL=$((HARDKILL + 1))
+                echo "  !! ${city}: kesin sure siniri (${CITY_HARD}s) doldu, surec kesildi -- o ana kadar EKLENEN leadler korundu, sonraki sehre geciliyor"
               else
                 KILLED=$((KILLED + 1))
                 echo "  !! ${city}: surec beklenmedik sekilde bitti (rc=${rc}; host oldurmus olabilir) -- sonraki sehre geciliyor"
@@ -163,7 +192,7 @@ jobs:
             IFS="$OLD_IFS"
 
             rm -f /tmp/vestra_discover_city.php /tmp/vestra_discover_purge.php
-            echo "== OZET: ${TOTAL} sehir denendi | ${OKC} tamam | ${NORESP} Overpass yanit yok | ${KILLED} surec hatasi =="
+            echo "== OZET: ${TOTAL} sehir denendi | ${OKC} tamam | ${NORESP} Overpass yanit yok | ${HARDKILL} sure siniri | ${KILLED} surec hatasi =="
             if [ "$TOTAL" -gt 0 ] && [ "$OKC" -eq 0 ]; then
               echo "HATA: hicbir sehir tamamlanamadi."
               exit 1
