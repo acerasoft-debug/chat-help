@@ -21,6 +21,14 @@ jobs:
         with:
           ref: claude/charming-franklin-1ynmuj
 
+      # ubuntu-latest imajinda artik ImageMagick gelmiyor (montage da magick de
+      # yok -- onceki calisma tam bu yuzden "ImageMagick yok" ile dustu).
+      - name: ImageMagick kur
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq imagemagick
+          montage --version | head -1 || magick --version | head -1
+
       - name: Görselleri sunucudan çek ve kontak sayfası yap
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
