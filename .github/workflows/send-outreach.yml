@@ -151,7 +151,11 @@ jobs:
               if (($l['status'] ?? '') === 'unsubscribed') continue;             // opted out
               if (($l['last_contacted_at'] ?? '') !== '') continue;              // already emailed once
               if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
-              if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
+              // Big-chain / flagship safety net — skipped in allowlist mode: only_emails means the
+              // operator named these exact addresses, so the name heuristic must not silently drop
+              // them. It fires on substrings, and a hand-curated segment can legitimately contain a
+              // blocked word (an Amazon SELLER named "Stilato amazon" is a target, not Amazon itself).
+              if (!$ONLY && vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue;
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
               if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
