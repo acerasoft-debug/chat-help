@@ -8,15 +8,15 @@ This file is documentation only; nothing reads it at runtime.
 | Group | Wholesale price | MOQ | Pack / series | Status |
 |---|---|---|---|---|
 | BALMAIN — heavily embroidered / printed | **59.90** | **20** | — | blocked, no model codes |
-| D&G — T-shirts | **49.90** | not given | not given | ~60 items, ready to price |
+| D&G — T-shirts | **49.90** | **20** | 10/pack | ~60 items, ready to price |
 | D&G — Polos | **60.00** | **20** | 10/pack | 4 items, ready to price |
 | D&G — Hoodies & Sweatshirts | **90.00** | **20** | 10/pack | 7 items, ready to price |
 | D&G — Body / bodysuits | **39.90** | not given | not given | no such products yet |
 | Jeans | **110.00** | **20** | 10/series | no such products yet |
 | Jeans shorts | **90.00** | **20** | 10/series | no such products yet |
 
-Open question: the T-shirts were given a price but no MOQ or pack. Left untouched
-rather than assumed, since polos and sweatshirts both got 10/pack + MOQ 20.
+T-shirt MOQ/pack was not in the original instruction; the operator confirmed it
+should match polos and sweatshirts (10/pack, MOQ 20 = 998 EUR minimum order).
 
 ## Pack run for tops (S–XXL) — 10 per pack
 
