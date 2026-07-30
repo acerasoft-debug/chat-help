@@ -61,7 +61,9 @@ jobs:
             echo ""
             echo "===== 4. shop.php RENDER + CACHE BASLIKLARI (gercek HTTP) ====="
             HOST=$(cat "$HOME/public_html/.vestra_host" 2>/dev/null || echo "127.0.0.1")
-            cd "$HOME/public_html" && (php -S 127.0.0.1:8971 -t . >/tmp/php_diag.log 2>&1 &)
+            cd "$HOME/public_html"
+            php -S 127.0.0.1:8971 -t . >/tmp/php_diag.log 2>&1 &
+            disown
             sleep 2
             HDRS=$(curl -sSI "http://127.0.0.1:8971/shop.php" 2>&1)
             echo "$HDRS" | grep -iE "^(HTTP|cache-control|pragma|cdn-cache|vary)" | sed 's/^/  /'
@@ -70,13 +72,12 @@ jobs:
             SHOPCOUNT=$(echo "$BODY" | grep -oE 'id="shopcount"[^>]*>[^<]*' | head -1)
             echo "  render: kart=${CARDS}"
             echo "  ${SHOPCOUNT}"
-            # pkill -f against a loose pattern can match the wrapping shell itself and
-            # SIGTERM it -- exactly what happened here, killing the script (exit 143)
-            # right after all real checks had already printed. The runner tears the
-            # whole container down after the job anyway, so skip pkill and let step 5
-            # actually run instead of dying on cleanup.
-            PHP_PID=$(pgrep -f "php -S 127.0.0.1:8971" | head -1)
-            [ -n "$PHP_PID" ] && kill "$PHP_PID" 2>/dev/null || true
+            # Explicitly killing the backgrounded dev server -- by pkill -f pattern OR
+            # by pid -- left bash job control reporting that job's terminated status as
+            # the SCRIPT's own exit code (143 = SIGTERM), even though every real check
+            # above had already printed cleanly. `disown` removes it from job control so
+            # its eventual death (when this SSH session ends) is never attributed to the
+            # script. No kill at all: the runner tears the container down right after.
 
             echo ""
             echo "===== 5. LINE-SHEET (catalog.php) HALA CALISIYOR MU ====="
