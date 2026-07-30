@@ -42,6 +42,10 @@ on:
         description: "Sadece bu ülke(ler)deki leadlere gönder (virgülle ayrılabilir). Boşsa tüm ülkeler."
         required: false
         default: ""
+      exclude_countries:
+        description: "Bu ülke(ler)e GÖNDERME (virgülle ayrılabilir). Leadler listede kalır, sadece gönderim dışı tutulur."
+        required: false
+        default: ""
       skip_email_regex:
         description: "Bu regex'e uyan e-postaları atla (PCRE, örn. '/^mizzo@/') — garbled/scraper adresleri byte'larını bilmeden dışlamak için."
         required: false
@@ -63,6 +67,7 @@ jobs:
           SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
           SEND_ONLY: ${{ github.event.inputs.only_emails }}
           SEND_COUNTRY: ${{ github.event.inputs.country_filter }}
+          SEND_NOT_COUNTRY: ${{ github.event.inputs.exclude_countries }}
           SEND_SKIP_RE: ${{ github.event.inputs.skip_email_regex }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -70,7 +75,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_SKIP_RE
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_SKIP_RE
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -118,6 +123,8 @@ jobs:
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_ONLY"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $ONLY[strtolower(trim($s))] = true; }
             $COUNTRIES = [];
             foreach (explode(',', (string)getenv("SEND_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $COUNTRIES[$s] = true; }
+            $NOT_COUNTRIES = [];
+            foreach (explode(',', (string)getenv("SEND_NOT_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $NOT_COUNTRIES[$s] = true; }
             $SKIP_RE = trim((string)getenv("SEND_SKIP_RE"));
             if ($SKIP_RE !== '' && @preg_match($SKIP_RE, '') === false) { echo "HATA: skip_email_regex gecersiz PCRE deseni: {$SKIP_RE}\n"; exit(1); }
 
@@ -147,6 +154,7 @@ jobs:
               if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
+              if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
