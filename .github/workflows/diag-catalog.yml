@@ -1,18 +1,18 @@
-name: (Salt-okunur) Teşhis — dg-101209 kaç kez var, farkli mi
+name: (Salt-okunur) Teşhis — canlı durum tam kontrol
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Salt-okunur. dg-101209 listings.json'da birden fazla kez geçiyor mu, geçiyorsa
-# satirlar birbirinin ayni mi yoksa farkli alanlari mi var, gosterir. Hicbir seyi
-# DEGISTIRMEZ.
+# Salt-okunur. Bu oturumda yapılan HER değişikliğin sunucuda gerçekten canlı
+# olduğunu tek seferde doğrular: ürün sayısı, dg-101209 tekilliği, fiyat/paket
+# metni, bounce sayısı, shop.php render, cache başlıkları. Hiçbir şeyi DEĞİŞTİRMEZ.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Teşhis
+      - name: Tam kontrol
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -21,45 +21,59 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 10m
           script: |
-            cat > /tmp/diag_dup.php <<'PHPEOF'
-            <?php
-            $home = getenv("HOME");
-            require $home."/public_html/inc/products.php";
-            $all = vestra_listings();
+            echo "===== GIT DURUMU (sunucudaki kod) ====="
+            cd "$HOME/public_html" && git rev-parse --short HEAD 2>/dev/null || echo "  (git repo degil -- deploy script ile kopyalaniyor olabilir)"
+            echo ""
 
-            $idx = [];
-            foreach ($all as $i => $p) {
-              $id = (string)($p['id'] ?? '');
-              if ($id === '') continue;
-              $idx[$id][] = $i;
+            cat > /tmp/diag_full.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+
+            echo "===== 1. URUN SAYISI ve dg-101209 =====\n";
+            $listings = vestra_listings();
+            echo "  listings.json kayit: ".count($listings)."\n";
+            $dg101209 = 0;
+            foreach ($listings as $p) if ((string)($p['id']??'')==='dg-101209') $dg101209++;
+            echo "  dg-101209 tekrari: {$dg101209} ".($dg101209===1 ? "(DOGRU -- tekil)" : "(SORUN)")."\n";
+
+            echo "\n===== 2. FIYAT / PAKET METNI (ornek urunler) =====\n";
+            $checkIds = ['dg-101281','dg-101234','dg-101268','lgp-lacoste-trim-tshirt'];
+            foreach ($listings as $p) {
+              $id = (string)($p['id']??'');
+              if (!in_array($id, $checkIds, true)) continue;
+              printf("  %-26s list=%-6s moq=%-4s sizes=%s\n",
+                $id, $p['list']??'?', $p['moq']??'?', $p['sizes']??'(yok)');
             }
-            $dupes = array_filter($idx, fn($v) => count($v) > 1);
-            echo "toplam kayit: ".count($all)."\n";
-            echo "tekrarlayan id sayisi: ".count($dupes)."\n\n";
-            foreach ($dupes as $id => $rows) {
-              echo "== {$id} ({$id}) — ".count($rows)." kez ==\n";
-              $prev = null;
-              foreach ($rows as $r) {
-                $p = $all[$r];
-                echo "  satir #{$r}:\n";
-                foreach (['brand','name','cat','sku','list','moq','sizes','images','added_at'] as $k) {
-                  $v = $p[$k] ?? null;
-                  echo "    {$k} = ".(is_array($v) ? json_encode($v) : (string)$v)."\n";
-                }
-                if ($prev !== null) {
-                  $diffKeys = [];
-                  $allKeys = array_unique(array_merge(array_keys($prev), array_keys($p)));
-                  foreach ($allKeys as $k) {
-                    $a = $prev[$k] ?? null; $b = $p[$k] ?? null;
-                    if (json_encode($a) !== json_encode($b)) $diffKeys[] = $k;
-                  }
-                  echo "  >> onceki satirdan farkli alanlar: ".($diffKeys ? implode(', ',$diffKeys) : '(YOK — tamamen ayni)')."\n";
-                }
-                $prev = $p;
-              }
-              echo "\n";
-            }
-            if (!$dupes) echo "tekrarlayan id yok.\n";
+
+            echo "\n===== 3. LEAD BOUNCE DURUMU =====\n";
+            require_once $doc."/inc/leads.php";
+            $leads = vestra_leads();
+            $st = [];
+            foreach ($leads as $l) { $s=(string)($l['status']??'?'); $st[$s]=($st[$s]??0)+1; }
+            foreach ($st as $k=>$v) echo "  {$k}: {$v}\n";
+            echo "  toplam: ".count($leads)."\n";
             PHPEOF
-            php /tmp/diag_dup.php
-            rm -f /tmp/diag_dup.php
+            php /tmp/diag_full.php
+            rm -f /tmp/diag_full.php
+
+            echo ""
+            echo "===== 4. shop.php RENDER + CACHE BASLIKLARI (gercek HTTP) ====="
+            HOST=$(cat "$HOME/public_html/.vestra_host" 2>/dev/null || echo "127.0.0.1")
+            cd "$HOME/public_html" && (php -S 127.0.0.1:8971 -t . >/tmp/php_diag.log 2>&1 &)
+            sleep 2
+            HDRS=$(curl -sSI "http://127.0.0.1:8971/shop.php" 2>&1)
+            echo "$HDRS" | grep -iE "^(HTTP|cache-control|pragma|cdn-cache|vary)" | sed 's/^/  /'
+            BODY=$(curl -sS "http://127.0.0.1:8971/shop.php" 2>&1)
+            CARDS=$(echo "$BODY" | grep -o 'class="scard' | wc -l | tr -d ' ')
+            SHOPCOUNT=$(echo "$BODY" | grep -oE 'id="shopcount"[^>]*>[^<]*' | head -1)
+            echo "  render: kart=${CARDS}"
+            echo "  ${SHOPCOUNT}"
+            pkill -f "php -S 127.0.0.1:8971" 2>/dev/null || true
+
+            echo ""
+            echo "===== 5. LINE-SHEET (catalog.php) HALA CALISIYOR MU ====="
+            cd "$HOME/public_html" && OUT=$(REQUEST_METHOD=GET php -r '$_GET["brand"]="Dolce"; include "catalog.php";' 2>&1)
+            MAGIC=$(printf '%s' "$OUT" | head -c4 | xxd -p 2>/dev/null || echo "?")
+            echo "  dg catalog boyut: $(printf '%s' "$OUT" | wc -c) bayt, magic=${MAGIC} $([ "$MAGIC" = "504b0304" ] && echo GECERLI || echo BOZUK)"
