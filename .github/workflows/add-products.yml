@@ -1,0 +1,141 @@
+name: Kataloğa yeni ürünler ekle (doğrulamalı)
+on:
+  workflow_dispatch:
+    inputs:
+      products_b64:
+        description: "base64(JSON dizi) — eklenecek ürün satırları"
+        required: true
+      dry_run:
+        description: "true = SADECE ne ekleneceğini yaz, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# listings.json'a yeni ürün satırları ekler. Katı doğrulama — HEPSİ ya da HİÇBİRİ:
+#  - id/brand/name/cat/sku/list/moq zorunlu; fiyat>0, moq>=1
+#  - her ürünün en az 1 görseli olmalı ve o dosya SUNUCUDA GERÇEKTEN VAR olmalı
+#    (fetch-dropbox ile yüklenmiş olmalı) — fotoğrafsız/hayalet ürün eklenemez
+#  - id ve marka+SKU mevcut katalogla ve kendi içinde çakışamaz
+# Kaydetmeden önce zaman damgalı yedek alır, sonra geri okuyup sayıyı doğrular.
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ürünleri ekle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            echo "ADIM 1: baglanti tamam"
+            export P_JSON='${{ github.event.inputs.products_b64 }}'
+            export P_DRY='${{ github.event.inputs.dry_run }}'
+            echo "ADIM 2: P_JSON uzunluk=${#P_JSON}"
+            cat > /tmp/vestra_addproducts.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); ini_set('display_startup_errors','1'); error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+            });
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            require $doc."/inc/products.php";
+            foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn)
+              if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+
+            $dry = strtolower(trim((string)getenv("P_DRY"))) !== 'false';
+            $dec = base64_decode((string)getenv("P_JSON"), true);
+            if ($dec === false) { fwrite(STDERR,"HATA: base64 cozulemedi\n"); exit(1); }
+            $rows = json_decode($dec, true);
+            if (!is_array($rows) || !$rows) { fwrite(STDERR,"HATA: JSON dizi degil/bos\n"); exit(1); }
+
+            $existing = vestra_listings();
+            $seenId = []; $seenBS = [];
+            foreach ($existing as $p) {
+              $seenId[strtolower((string)($p['id']??''))] = true;
+              $seenBS[strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')))] = true;
+            }
+
+            $errors = []; $clean = [];
+            foreach ($rows as $i => $r) {
+              $ctx = "satir ".($i+1);
+              $id    = strtolower(trim((string)($r['id'] ?? '')));
+              $brand = trim((string)($r['brand'] ?? ''));
+              $name  = trim((string)($r['name'] ?? ''));
+              $cat   = trim((string)($r['cat'] ?? ''));
+              $sku   = trim((string)($r['sku'] ?? ''));
+              $list  = $r['list'] ?? null;
+              $moq   = $r['moq'] ?? null;
+              if (!preg_match('/^[a-z0-9][a-z0-9-]{2,59}$/', $id)) { $errors[]="{$ctx}: gecersiz id '{$id}'"; continue; }
+              if ($brand===''||$name===''||$cat===''||$sku==='') { $errors[]="{$ctx} ({$id}): brand/name/cat/sku bos"; continue; }
+              if (!is_numeric($list) || (float)$list <= 0) { $errors[]="{$ctx} ({$id}): gecersiz fiyat"; continue; }
+              if (!is_numeric($moq) || (int)$moq < 1) { $errors[]="{$ctx} ({$id}): gecersiz MOQ"; continue; }
+              $imgs = $r['images'] ?? [];
+              if (!is_array($imgs) || !count($imgs)) { $errors[]="{$ctx} ({$id}): gorsel yok — fotografsiz urun eklenemez"; continue; }
+              foreach ($imgs as $img) {
+                if (!is_string($img) || !preg_match('#^/uploads/[a-z0-9._/-]+$#', $img)) { $errors[]="{$ctx} ({$id}): gecersiz gorsel yolu '".(is_string($img)?$img:'?')."'"; continue 2; }
+                if (!is_file($doc.$img)) { $errors[]="{$ctx} ({$id}): gorsel SUNUCUDA YOK: {$img}"; continue 2; }
+              }
+              $bs = strtolower(trim($brand.'|'.$sku));
+              if (isset($seenId[$id])) { $errors[]="{$ctx} ({$id}): bu id zaten var"; continue; }
+              if (isset($seenBS[$bs])) { $errors[]="{$ctx} ({$id}): {$brand}+{$sku} zaten var"; continue; }
+              $seenId[$id]=true; $seenBS[$bs]=true;
+
+              $row = [
+                'id'=>$id, 'brand'=>$brand, 'name'=>$name, 'cat'=>$cat, 'sku'=>$sku,
+                'moq'=>(int)$moq, 'unit'=>trim((string)($r['unit'] ?? 'pc')) ?: 'pc',
+                'mode'=>trim((string)($r['mode'] ?? 'sale')) ?: 'sale',
+                'list'=>(float)$list,
+                'verified'=>true, 'status'=>'approved',
+                'images'=>array_values($imgs),
+                'tiers'=>[['min'=>(int)$moq, 'price'=>(float)$list]],
+                'added_at'=>date('c'),
+              ];
+              if (!empty($r['sizes']) && is_string($r['sizes'])) $row['sizes'] = trim($r['sizes']);
+              if (!empty($r['desc'])  && is_string($r['desc']))  $row['desc']  = trim($r['desc']);
+              if (!empty($r['colors']) && is_array($r['colors'])) $row['colors'] = array_values(array_filter($r['colors'],'is_string'));
+              $clean[] = $row;
+            }
+
+            if ($errors) {
+              fwrite(STDERR, "DOGRULAMA HATALARI (hicbir sey eklenmedi):\n");
+              foreach ($errors as $e) fwrite(STDERR, "  - {$e}\n");
+              exit(1);
+            }
+
+            echo "dogrulama gecti: ".count($clean)." urun\n\n";
+            foreach ($clean as $r) {
+              printf("  + %-24s | %-16s | %-38s | %s | %.2f EUR | MOQ %d | foto %d\n",
+                $r['id'], $r['brand'], mb_substr($r['name'],0,38), $r['cat'], $r['list'], $r['moq'], count($r['images']));
+            }
+            if ($dry) { echo "\nDRY RUN — hicbir sey kaydedilmedi. Eklemek icin dry_run=false.\n"; exit(0); }
+
+            $dir = vestra_data_dir();
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($dir.'/listings.json', $bak)) { fwrite(STDERR,"HATA: yedek alinamadi\n"); exit(1); }
+            echo "\nyedek: {$bak}\n";
+
+            $before = count($existing);
+            foreach ($clean as $r) $existing[] = $r;
+            vestra_save_listings(array_values($existing));
+
+            clearstatcache();
+            $check = vestra_listings();
+            if (count($check) !== $before + count($clean)) {
+              fwrite(STDERR, "HATA: kayit sonrasi sayi tutmadi! yedek: {$bak}\n"); exit(1);
+            }
+            echo "KAYDEDILDI — ".count($clean)." yeni urun, katalog ".$before." -> ".count($check)."\n";
+            PHPEOF
+            echo "ADIM 3: dosya yazildi ($(wc -l < /tmp/vestra_addproducts.php) satir)"
+            php -l /tmp/vestra_addproducts.php
+            echo "ADIM 4: calistiriliyor"
+            php /tmp/vestra_addproducts.php; RC=$?
+            echo "ADIM 5: cikis kodu=$RC"
+            rm -f /tmp/vestra_addproducts.php
+            exit $RC
