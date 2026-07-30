@@ -28,23 +28,40 @@ Italian men's sizing, confirmed against published D&G size charts:
 
 Source: LookSize / SizeChartly / e-Outlet D&G jeans size guides.
 
-## Size series (pack) — NOT VERIFIED, needs operator confirmation
+## Size series — CONFIRMED by operator
 
-The operator asked for the standard series to be looked up ("13-15-18 serisi kaçsa").
-**No brand publishes this** — a "serie" is the supplier's own packing decision, not a
-D&G specification, so there is nothing authoritative to cite. Rather than guess a
-number and present it as researched, here are three bell-curve runs over the verified
-44–54 range, weighted to the middle sizes as denim normally is:
+48 and 50 at 2 each, 54 at 1, ten per series, minimum order 20.
 
-| Series | 44 | 46 | 48 | 50 | 52 | 54 | Total |
-|---|---|---|---|---|---|---|---|
-| A | 1 | 2 | 3 | 3 | 2 | 2 | **13** |
-| B | 1 | 2 | 4 | 4 | 2 | 2 | **15** |
-| C | 2 | 3 | 4 | 4 | 3 | 2 | **18** |
+| 44 | 46 | 48 | 50 | 52 | 54 | Total |
+|---|---|---|---|---|---|---|
+| 1 | 2 | 2 | 2 | 2 | 1 | **10** |
 
-Once one is chosen it goes into the product's `sizes` field in the existing format,
-e.g. `44×1 · 46×2 · 48×3 · 50×3 · 52×2 · 54×2 · 13/serie`, and `moq` is set to the
-series total (or a multiple of it).
+The operator pinned 48, 50 and 54 and gave the total; 44/46/52 were left open, so
+the tails (44, 54) take 1 and the middle four take 2, which is the only symmetric
+run that also sums to 10. Correct here if a different split was intended.
+
+`sizes` field text:
+
+    44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri
+
+`moq` = 20 = 2 series. At 110 EUR that is 2,200 EUR minimum for jeans; at 90 EUR,
+1,800 EUR for jeans shorts.
+
+## What the D&G catalogue actually contains
+
+Verified against the live listings (read-only inspect, 2026-07-30):
+
+| Category | In catalogue? | Action |
+|---|---|---|
+| T-Shirts | yes, ~60 items `dg-1012xx` | can be priced at 49.90 now |
+| Polos | yes, 4 items | no price instruction given |
+| Hoodies & Sweatshirts | yes, 7 items | no price instruction given |
+| Body / bodysuits | **no** | needs product data before 39.90 can apply |
+| Jeans | **no** | needs product data before 110 + series can apply |
+| Jeans shorts | **no** | needs product data before 90 + series can apply |
+
+Also noted: `dg-101209` ("Oversized Vertical Logo T-Shirt") appears TWICE in the
+catalogue with the same image. Worth de-duplicating.
 
 ## Blocker — BALMAIN
 
