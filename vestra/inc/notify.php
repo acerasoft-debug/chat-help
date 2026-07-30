@@ -641,8 +641,12 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .$downloadsHtml
     .$buttonHtml
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
+    .'<div style="padding:18px 28px 24px;border-top:1px solid #e6e0d5;text-align:center">'
+    .'<div style="width:30px;height:2px;background:#c9a86a;margin:0 auto 12px"></div>'
+    .'<div style="font-family:Georgia,\'Times New Roman\',serif;color:#14110c;font-size:15px;font-weight:700;letter-spacing:.1em">VESTRASALES</div>'
+    .'<div style="color:#9b9585;font-size:11px;margin-top:4px">Verified B2B wholesale marketplace · vestrasales.com</div>'
     .'</div>'
-    .'<p style="text-align:center;color:#9b9585;font-size:11px;margin:18px 0 0">VESTRA — verified B2B wholesale marketplace</p>'
+    .'</div>'
     .'</div></body></html>';
 }
 
