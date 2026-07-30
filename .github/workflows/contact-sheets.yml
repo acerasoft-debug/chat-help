@@ -76,13 +76,17 @@ jobs:
           git config user.email "acerasoft@gmail.com"
           git add contact-sheets
           if git diff --cached --quiet; then echo "degisiklik yok"; exit 0; fi
-          git commit -m "Contact sheets for visual category verification
-
-Categories were inferred from the source folder, not from the products
-themselves, so t-shirts were filed as sweatshirts, boxers as sweatshirts and
-swimwear miscategorised. These labelled montages make every uploaded image
-checkable against its model code so the catalogue can be corrected from what the
-products actually are.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+          # Mesaji dosyaya yaziyoruz: cok satirli metni dogrudan git'e vermek
+          # YAML blok girintisini bozuyor.
+          {
+            echo "Contact sheets for visual category verification"
+            echo
+            echo "Categories were inferred from the source folder, not from the products"
+            echo "themselves, so t-shirts were filed as sweatshirts, boxers as sweatshirts"
+            echo "and swimwear miscategorised. These labelled montages make every uploaded"
+            echo "image checkable against its model code."
+            echo
+            echo "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+          } > /tmp/cs_msg.txt
+          git commit -q -F /tmp/cs_msg.txt
           git push origin claude/charming-franklin-1ynmuj
