@@ -66,7 +66,15 @@ jobs:
           echo; echo "===== ZIP ICERIGI ====="
           unzip -l folder.zip
 
-          mkdir -p ex && unzip -q -o folder.zip -d ex
+          # Dropbox zip'i kokte mutlak yol/garip isimler tasiyabiliyor; unzip bunlara
+          # 'mapname: conversion failed' + exit 2 veriyor. -j ile dizin yapisini
+          # tamamen at (zaten duz bir gorsel listesi lazim), || true ile kismi
+          # cikarma hatasi tum isi dusurmesin -- sonra dosya sayisini dogruluyoruz.
+          mkdir -p ex
+          unzip -q -o -j -UU folder.zip -d ex || true
+          COUNT=$(find ex -type f | wc -l)
+          echo "cikarilan dosya: $COUNT"
+          [ "$COUNT" -gt 0 ] || { echo "HATA: zip'ten hic dosya cikmadi"; exit 1; }
           echo; echo "===== DOSYALAR (boyut + cozunurluk) ====="
           find ex -type f | sort | while IFS= read -r f; do
             rel="${f#ex/}"
