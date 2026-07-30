@@ -511,3 +511,21 @@ function vestra_requests(){
     ['id'=>'r1038','title'=>'Branded socks, bulk clearance','cat'=>'Basics','qty'=>'1,000 pack','target'=>'best offer','country'=>'ES','offers'=>0,'age'=>'1d'],
   ];
 }
+
+/* The size-mix string is stored as free text on the listing (e.g.
+   "S×1 · M×2 · L×3 · XL×3 · XXL×1 · 10/pack"), so the trailing unit word would
+   otherwise appear in one fixed language on every localised page. Translate just
+   that token at render time and leave the numbers and size codes alone -- they are
+   the same in every market. Accepts the Turkish and English spellings that already
+   exist in the data so old listings localise without a migration. */
+function vestra_sizes_label(string $sizes): string {
+    if ($sizes === '') return '';
+    return preg_replace_callback(
+        '~(\d+)\s*/\s*(pack|paket|packs|seri|series|serie)\b~iu',
+        function ($m) {
+            $isSeries = stripos($m[2], 'ser') === 0;
+            return $m[1].'/'.t($isSeries ? 'series' : 'pack');
+        },
+        $sizes
+    ) ?? $sizes;
+}

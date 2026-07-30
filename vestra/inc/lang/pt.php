@@ -25,4 +25,6 @@ return array (
   'Create account' => 'Criar conta',
   'Journal' => 'Journal',
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'moda por grosso, marketplace moda B2B, roupa de designer por grosso, roupa de marca por grosso, fornecedor boutique, comprar roupa por grosso Europa, grossistas verificados, sourcing de moda, stocks roupa de marca, grossista têxtil',
+  'pack' => 'pacote',
+  'series' => 'série',
 );

@@ -951,4 +951,6 @@ return array (
   'Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.' => 'Catalogo all\'ingrosso VESTRA — moda di marca e firmata autentica per boutique. Venditori verificati KYC, prezzi all\'ingrosso dopo la registrazione, minimi bassi, ordini B2B con fattura in tutta Europa.',
   '%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.' => '%s — %s all\'ingrosso. %sFornitore B2B verificato su VESTRA — ordini con fattura in tutta Europa.',
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'moda ingrosso, marketplace moda B2B, abbigliamento firmato ingrosso, abbigliamento di marca ingrosso, fornitore boutique, comprare abbigliamento ingrosso Europa, grossisti verificati, sourcing moda, stock abbigliamento firmato, ingrosso tessile',
+  'pack' => 'confezione',
+  'series' => 'serie',
 );

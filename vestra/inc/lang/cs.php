@@ -25,4 +25,6 @@ return array (
   'Create account' => 'Vytvořit účet',
   'Journal' => 'Journal',
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'móda velkoobchod, B2B módní tržiště, designérské oblečení velkoobchod, značkové oblečení velkoobchod, dodavatel pro butik, nákup oblečení velkoobchod Evropa, ověření velkoobchodníci, sourcing módy, výprodej značkového oblečení, textilní velkoobchod',
+  'pack' => 'balení',
+  'series' => 'série',
 );

@@ -25,4 +25,6 @@ return array (
   'Create account' => 'Account aanmaken',
   'Journal' => 'Journal',
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'mode groothandel, B2B mode marktplaats, designerkleding groothandel, merkkleding groothandel, boutique leverancier, kleding groothandel Europa kopen, gecontroleerde groothandels, mode sourcing, partijhandel merkkleding, textiel groothandel',
+  'pack' => 'pak',
+  'series' => 'serie',
 );

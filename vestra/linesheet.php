@@ -63,7 +63,7 @@ $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
   <tr><th colspan="9" style="background:#0e0e11;color:#fff;font-size:16px;text-align:left"><?= $h($p['brand'].' — '.$p['name']) ?></th></tr>
   <tr>
     <td colspan="9" style="text-align:left">
-      SKU <?= $h($p['sku']) ?> · <?= $h($p['cat']) ?> · MOQ <?= (int)$p['moq'] ?> <?= $h($unit) ?> · Pack <?= $pack ?> <?= $h($unit) ?> · <?= $h($p['sizes'] ?? '') ?> · <?= $h(strip_tags((string)($p['origin'] ?? ''))) ?>
+      SKU <?= $h($p['sku']) ?> · <?= $h($p['cat']) ?> · MOQ <?= (int)$p['moq'] ?> <?= $h($unit) ?> · Pack <?= $pack ?> <?= $h($unit) ?> · <?= $h(vestra_sizes_label((string)($p['sizes'] ?? ''))) ?> · <?= $h(strip_tags((string)($p['origin'] ?? ''))) ?>
     </td>
   </tr>
   <tr style="background:#f3c614;font-weight:bold">
