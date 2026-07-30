@@ -369,6 +369,10 @@ function vestra_discover_blocklist(): array {
     // single-brand houses / own-label chains found in the Brussels + Antwerp discovery
     'chopard','delvaux','frey wille','freywille','scabal','twinset','lanieri','gemmyo',
     'comptoir des cotonniers',
+    // designer own-brand stores + large BE/NL retail chains (Antwerp/Rotterdam discovery)
+    'dries van noten','philipp plein','phillip plein','stone island','bensimon',
+    'torfs','lucardi','state of art','costes','juttu','the society shop','mayerline',
+    'cavallaro','yaya','mascolori','schoenen slaets','buffalini','pedico','modemakers',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
   ];
