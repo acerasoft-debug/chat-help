@@ -1,0 +1,100 @@
+name: Ürünleri beklemeye al / geri aç (status)
+on:
+  workflow_dispatch:
+    inputs:
+      prefixes:
+        description: "id önekleri, virgülle (örn: blm-,blc-,bur-,dgn-)"
+        required: true
+        default: "blm-,blc-,bur-,dgn-"
+      status:
+        description: "pending = katalogdan çek | approved = geri aç"
+        required: true
+        default: "pending"
+      dry_run:
+        description: "true = SADECE göster, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# Verilen id onekleriyle baslayan urunlerin status alanini degistirir.
+# pending yapilanlar vestra_live_listings() tarafindan elenir: katalogdan
+# tamamen kalkarlar ama listings.json'daki verileri (kod, fiyat, foto) aynen
+# durur, approved ile tek adimda geri gelirler. SILME DEGIL.
+#
+# Neden: 252 yeni urunun kategorisi kaynak klasorden tahmin edilmisti; t-shirt
+# sweatshirt, boxer sweatshirt, mayo yanlis kategoride gorunuyor. Yanlis
+# kategoriyle satista durmalarindansa gorunmez olmalari dogru.
+jobs:
+  hold:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Durumu değiştir
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            export H_PRE='${{ github.event.inputs.prefixes }}'
+            export H_ST='${{ github.event.inputs.status }}'
+            export H_DRY='${{ github.event.inputs.dry_run }}'
+            cat > /tmp/vestra_hold.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $st  = trim((string)getenv("H_ST"));
+            $dry = strtolower(trim((string)getenv("H_DRY"))) !== 'false';
+            if (!in_array($st, ['pending','approved'], true)) {
+              fwrite(STDERR, "HATA: status yalnizca pending veya approved olabilir\n"); exit(1);
+            }
+            $pre = array_values(array_filter(array_map('trim',
+                     explode(',', (string)getenv("H_PRE")))));
+            if (!$pre) { fwrite(STDERR, "HATA: onek verilmedi\n"); exit(1); }
+            echo "onekler: ".implode(', ', $pre)."\n";
+            echo "hedef status: {$st}\n";
+            echo "dry_run: ".($dry ? 'EVET' : 'HAYIR')."\n\n";
+
+            $all = vestra_listings();
+            $hit = 0; $changed = 0; $byBrand = [];
+            foreach ($all as $i => $p) {
+              $id = strtolower((string)($p['id'] ?? ''));
+              $match = false;
+              foreach ($pre as $x) { if ($x !== '' && strpos($id, strtolower($x)) === 0) { $match = true; break; } }
+              if (!$match) continue;
+              $hit++;
+              $b = (string)($p['brand'] ?? '?');
+              $byBrand[$b] = ($byBrand[$b] ?? 0) + 1;
+              if ((string)($p['status'] ?? 'approved') !== $st) { $all[$i]['status'] = $st; $changed++; }
+            }
+            echo "eslesen urun: {$hit}\n";
+            foreach ($byBrand as $b => $n) echo "  {$b}: {$n}\n";
+            echo "durumu degisecek: {$changed}\n";
+            if (!$hit) { fwrite(STDERR, "\nUYARI: hicbir urun eslesmedi\n"); exit(1); }
+
+            if ($dry) { echo "\nDRY RUN — kaydedilmedi.\n"; exit(0); }
+            if (!$changed) { echo "\nHepsi zaten '{$st}' — kaydetmeye gerek yok.\n"; exit(0); }
+
+            $dir = vestra_data_dir();
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($dir.'/listings.json', $bak)) { fwrite(STDERR,"HATA: yedek alinamadi\n"); exit(1); }
+            echo "\nyedek: {$bak}\n";
+            vestra_save_listings(array_values($all));
+
+            clearstatcache();
+            $check = vestra_listings();
+            if (count($check) !== count($all)) {
+              fwrite(STDERR, "HATA: kayit sonrasi urun sayisi degisti! yedek: {$bak}\n"); exit(1);
+            }
+            $live = count(vestra_live_listings());
+            echo "KAYDEDILDI — {$changed} urun '{$st}'. Toplam kayit: ".count($check).", canli: {$live}\n";
+            PHPEOF
+            php -l /tmp/vestra_hold.php
+            php /tmp/vestra_hold.php; RC=$?
+            rm -f /tmp/vestra_hold.php
+            exit $RC
