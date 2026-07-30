@@ -381,6 +381,39 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['status'=>'active']);
     header('Location: /admin?tab=users&msg=activated'); exit;
   }
+  /* Permanently delete an account. Suspending only hides it, so there was no way to get rid
+     of a test/spam signup. Irreversible, hence: a timestamped backup of accounts.json first,
+     and the seller's listings go with them — leaving those behind would keep products on the
+     catalogue pointing at a seller_uid that no longer resolves (buyers could still open and
+     order them). Refuses while the seller still has a live order, so nothing in flight is
+     orphaned; suspend covers that case instead. */
+  if($act==='delete_account'){
+    $uid=(string)($_POST['uid']??'');
+    $victim=null;
+    foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $victim=$a; break; } }
+    if(!$victim){ header('Location: /admin?tab=users&msg=acct_notfound'); exit; }
+
+    $openOrders=0;
+    foreach(vestra_read_csv('orders.csv') as $o){
+      if(in_array(strtolower((string)($o['status']??'')),['completed','cancelled','refunded'],true)) continue;
+      foreach(vestra_order_lines($o)['lines'] as $l){
+        if((string)($l['seller_uid']??'')===$uid){ $openOrders++; break; }
+      }
+    }
+    if($openOrders>0){ header('Location: /admin?tab=users&msg=acct_has_orders'); exit; }
+
+    $af=vestra_data_dir().'/accounts.json';
+    if(is_readable($af)) @copy($af,$af.'.bak.'.date('Ymd_His'));
+
+    $kept=array_values(array_filter(auth_accounts(), fn($a)=>($a['id']??'')!==$uid));
+    auth_save_accounts($kept);
+
+    $ls=vestra_listings(); $before=count($ls);
+    $ls=array_values(array_filter($ls, fn($l)=>(string)($l['seller_uid']??'')!==$uid));
+    if(count($ls)!==$before) vestra_save_listings($ls);
+
+    header('Location: /admin?tab=users&msg=acct_deleted'); exit;
+  }
   /* Admin-managed membership plan (comp / manual upgrade). Sets the tier + marks
      it active; '' clears it back to no plan. Drives commission rate + listing
      quota + Elite perks. Granting a paid tier to a seller also flips
@@ -1231,6 +1264,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $msgs=[
     'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
     'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
+    'acct_deleted'=>'✓ Account permanently deleted (backup saved; their listings were removed too).',
+    'acct_has_orders'=>'⚠ Not deleted — this seller still has open orders. Complete or cancel them first, or suspend the account instead.',
+    'acct_notfound'=>'⚠ Account not found — nothing was deleted.',
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
@@ -1893,6 +1929,9 @@ function sendUserMessage(uid,name){
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <button type="button" class="abtn" onclick="sendUserMessage('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>','<?= htmlspecialchars($a['company']??($a['name']??'this account'),ENT_QUOTES) ?>')" title="Start an on-platform message thread — reaches them even with no email on file">💬 Message</button>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>
+      <?= fBtn('🗑 Delete','delete_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.55)',
+            'PERMANENTLY delete '.($a['company']?:($a['name']?:($a['email']??'this account'))).'?'."\n\n".
+            'Their listings will be removed from the catalogue too. This cannot be undone (a backup of accounts.json is saved on the server). Blocked if they still have open orders — suspend instead.') ?>
     </div></td>
   </tr>
   <tr class="udetail" id="ud-<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>" style="display:none;background:rgba(201,168,106,.06)">
