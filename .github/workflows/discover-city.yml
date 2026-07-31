@@ -14,6 +14,10 @@ on:
         description: "Şehir başına e-posta tarama bütçesi (saniye)"
         required: false
         default: "420"
+      city_limit:
+        description: "Şehir başına aday dükkan sayısı (80 = eski sabit tavan, büyük şehirlerde artırın)"
+        required: false
+        default: "80"
 
 permissions:
   contents: read
@@ -40,13 +44,14 @@ jobs:
           DISCOVER_PLACES: ${{ github.event.inputs.places }}
           PURGE_EMAILLESS: ${{ github.event.inputs.purge_emailless }}
           CITY_BUDGET: ${{ github.event.inputs.city_budget }}
+          CITY_LIMIT: ${{ github.event.inputs.city_limit }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 25m
-          envs: DISCOVER_PLACES,PURGE_EMAILLESS,CITY_BUDGET
+          envs: DISCOVER_PLACES,PURGE_EMAILLESS,CITY_BUDGET,CITY_LIMIT
           script: |
             cat > /tmp/vestra_discover_purge.php <<'PHPEOF'
             <?php
@@ -83,6 +88,9 @@ jobs:
 
             $budget = (int)(getenv("CITY_BUDGET") ?: 420);
             if ($budget < 60) $budget = 60;
+            $CITY_LIMIT = (int)(getenv("CITY_LIMIT") ?: 80);
+            if ($CITY_LIMIT < 10)  $CITY_LIMIT = 10;
+            if ($CITY_LIMIT > 400) $CITY_LIMIT = 400;   // Overpass zaten en fazla 400 eleman donduruyor
             $start  = time();
 
             $st = ['city'=>$city,'found'=>0,'checked'=>0,'mail'=>0,'added'=>0,'done'=>false];
@@ -94,7 +102,13 @@ jobs:
             });
 
             echo "* {$city} ({$country}): Overpass sorgusu basliyor (bu adim uzun surebilir)...\n"; flush();
-            $rows  = vestra_discover_osm($country, $city, 80);
+            /* Sehir basina aday sayisi. 80'de SABITKEN buyuk sehirler tukenmis gibi
+               gorunuyordu: vestra_discover_osm once "sitesi olanlar" diye SIRALAYIP
+               array_slice ile ilk N'i aliyor, yani ayni sehir tekrar tarandiginda
+               HEP AYNI 80 dukkan donuyor. Paris/Milano/Roma'da 80'den cok butik var;
+               ikinci tarama sifir yeni kayit vermesinin sebebi sehrin bitmesi degil,
+               bu tavandi. Artik disaridan ayarlanabiliyor. */
+            $rows  = vestra_discover_osm($country, $city, $CITY_LIMIT);
             $osmOk = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
             $st['found'] = count($rows);
             echo "  OSM: ".count($rows)." dukkan bulundu".($osmOk ? '' : '   [UYARI: Overpass yanit vermedi -- tekrar denenebilir]')."\n"; flush();
