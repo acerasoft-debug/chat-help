@@ -1,0 +1,532 @@
+[
+  {
+    "match": "blm-ah0eg000bc27",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-ah1eg010",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-ah1eg010bc",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-bkbga0700116",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's Swimwear",
+    "price": "130.00"
+  },
+  {
+    "match": "blm-bkbu30810",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's Swimwear",
+    "price": "130.00"
+  },
+  {
+    "match": "blm-bkbu90650",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's Swimwear",
+    "price": "130.00"
+  },
+  {
+    "match": "blm-bwb640410",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Swim Shorts",
+    "price": "90.00"
+  },
+  {
+    "match": "blm-bwb64041001",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Swim Shorts",
+    "price": "90.00"
+  },
+  {
+    "match": "blm-bwb64041062815",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Swim Shorts",
+    "price": "90.00"
+  },
+  {
+    "match": "blm-th01601i232",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-vh4ef000g077eah",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-vh4eh000",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1ef000b138gdv",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1ef000b138mai",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1ef000b138sdq",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1ef001287jgfq",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1jq040b139mai",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-wh1jq055275jgfq",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xf1ee005",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts"
+  },
+  {
+    "match": "blm-xf1ee005bb",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts"
+  },
+  {
+    "match": "blm-xf1ee005bb01",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts"
+  },
+  {
+    "match": "blm-xh16b005",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xh1ef000",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xh1ef000bb04",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xh1eg000bb19",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xh1gb005",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blm-xh1gb005bb04",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts"
+  },
+  {
+    "match": "blc-600583tmvf5",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "blc-612966",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-612966tlvb3",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-612966tlvf1",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-612966tmvg7",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-612966tnvn4",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-612966tnvn4w",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-620973tkv72",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "blc-641675tlvf9",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-674986tlvl8",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "blc-676589",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-676589tlvg70901",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-681314tlvh4",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "blc-tmvf5",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "blc-tnvg9",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "99.90"
+  },
+  {
+    "match": "bur-4567629",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8014004",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8014006",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8015515",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Swim Shorts",
+    "price": "90.00"
+  },
+  {
+    "match": "bur-80170071",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8017294",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Swim Shorts",
+    "price": "90.00"
+  },
+  {
+    "match": "bur-8039175",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's Swimwear",
+    "price": "130.00"
+  },
+  {
+    "match": "bur-8040702",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8041699",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8041966",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8042699",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "bur-80427521",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "bur-8043239",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-80450048045013",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "bur-8045006",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "bur-80450158045005",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Hoodies & Sweatshirts"
+  },
+  {
+    "match": "bur-8045493",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8045494",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8045495",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8045876",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8047728",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8047729",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8047732",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8048289",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8049457",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8050166",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8051239",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8051398",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8051399",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8052065",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8052066",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8052068",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8052119",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8052965",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8053424",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-8053773",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Polos",
+    "price": "60.00"
+  },
+  {
+    "match": "bur-8055206",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "T-Shirts",
+    "price": "59.90"
+  },
+  {
+    "match": "bur-80552511",
+    "expect": 1,
+    "status": "approved",
+    "_cat": "Women's T-Shirts",
+    "price": "59.90"
+  }
+]
