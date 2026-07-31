@@ -10,6 +10,10 @@ on:
         description: "Başta mevcut e-postasız leadleri sil (yedekli)"
         required: false
         default: "true"
+      city_budget:
+        description: "Şehir başına e-posta tarama bütçesi (saniye)"
+        required: false
+        default: "420"
 
 permissions:
   contents: read
@@ -19,6 +23,13 @@ permissions:
 # büyük zincir/tek-marka mağazalarını eler (blocklist + brand etiketi), yalnızca E-POSTASI
 # BULUNANLARI ekler (OSM etiketi → Hunter → site tarama), e-posta yoksa EKLEMEZ.
 # Sonuç: sistemde yalnızca e-postalı leadler kalır. Hiçbir e-posta GÖNDERMEZ.
+#
+# DAYANIKLILIK: her şehir KENDİ php sürecinde çalışır. Paylaşımlı hosting uzun/ağır bir CLI
+# işini SIGKILL ile öldürdüğünde ("remote command exited without exit status") eskiden TÜM
+# çalışma çöpe gidiyordu; artık sadece o şehir kaybedilir, önceki şehirlerin leadleri kayıtlı
+# kalır ve sonraki şehre geçilir. Çıktı her adımda flush edilir: hem log'da canlı ilerleme
+# görünür (öldürülse bile nerede kaldığı belli olur), hem uzun Overpass beklemelerinde
+# sessiz kalan SSH kanalı NAT/firewall idle timeout'una takılmaz.
 jobs:
   discover:
     runs-on: ubuntu-latest
@@ -28,66 +39,161 @@ jobs:
         env:
           DISCOVER_PLACES: ${{ github.event.inputs.places }}
           PURGE_EMAILLESS: ${{ github.event.inputs.purge_emailless }}
+          CITY_BUDGET: ${{ github.event.inputs.city_budget }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 25m
-          envs: DISCOVER_PLACES,PURGE_EMAILLESS
+          envs: DISCOVER_PLACES,PURGE_EMAILLESS,CITY_BUDGET
           script: |
-            cat > /tmp/vestra_discover_city.php <<'PHPEOF'
+            cat > /tmp/vestra_discover_purge.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
             require $home."/public_html/inc/products.php";
             require_once $home."/public_html/inc/leads.php";
             require_once $home."/public_html/inc/notify.php";
-            @set_time_limit(0);
-
             $hasEmail = fn($l) => filter_var(strtolower(trim((string)($l['email'] ?? ''))), FILTER_VALIDATE_EMAIL) !== false;
-
-            // (1) mevcut e-postasiz leadleri sil (yedekli)
-            if (strtolower(trim((string)getenv("PURGE_EMAILLESS"))) !== 'false') {
-              $lf = $home."/public_html/data/leads.json";
-              if (is_readable($lf)) @copy($lf, $lf.".bak.".date("Ymd_His"));
-              $all = vestra_leads(); $before = count($all);
-              $kept = array_values(array_filter($all, $hasEmail));
-              vestra_save_leads($kept);
-              echo "PURGE: {$before} lead vardi -> ".($before - count($kept))." e-postasiz silindi, ".count($kept)." kaldi (hepsi e-postali)\n\n";
-            }
-
-            $raw = trim((string)getenv("DISCOVER_PLACES"));
-            if ($raw === '') $raw = "Greece|Rhodes, Spain|Ibiza, Spain|Palma";
-            $places = [];
-            foreach (explode(',', $raw) as $p) {
-              $p = trim($p); if ($p === '' || strpos($p, '|') === false) continue;
-              [$c, $ct] = array_map('trim', explode('|', $p, 2));
-              if ($c !== '' && $ct !== '') $places[] = [$c, $ct];
-            }
-            if (!$places) { echo "TOPLAM lead: ".count(vestra_leads())."\n"; exit(0); }
-
-            $start = time(); $budget = 1080; // ~18 dk e-posta arama butcesi
-            $tFound = 0; $tAdded = 0; $eFound = 0; $eChecked = 0; $budgetHit = false;
-
-            foreach ($places as [$country, $city]) {
-              $rows = vestra_discover_osm($country, $city, 80);
-              $ok = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
-              $tFound += count($rows);
-              $toAdd = []; $cityChecked = 0;
-              foreach ($rows as $r) {
-                if (time() - $start > $budget) { $budgetHit = true; break; }
-                $email = strtolower(trim((string)($r['email'] ?? '')));
-                if ($email === '') { $w = (string)($r['website'] ?? ''); if ($w !== '') $email = vestra_find_email($w); }
-                $eChecked++; $cityChecked++;
-                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) { $r['email'] = $email; $toAdd[] = $r; $eFound++; }
-              }
-              [$added, ] = $toAdd ? vestra_leads_add($toAdd) : [[], 0];
-              $tAdded += count($added);
-              echo "* {$city} ({$country}): bulundu ".count($rows).", tarandi {$cityChecked}, e-postali ".count($toAdd).", yeni eklendi ".count($added).($ok?'':'  [UYARI: Overpass eksik olabilir]')."\n";
-              if ($budgetHit) { echo "    (zaman butcesi doldu -- kalan sehir/dukkanlar taranmadi)\n"; break; }
-            }
-            echo "\n== KESIF: {$tFound} bulundu, {$eChecked} tarandi, {$eFound} e-postali, {$tAdded} yeni eklendi ==\n";
-            echo "TOPLAM lead (hepsi e-postali): ".count(vestra_leads())."\n";
+            $lf = $home."/public_html/data/leads.json";
+            if (is_readable($lf)) @copy($lf, $lf.".bak.".date("Ymd_His"));
+            $all = vestra_leads(); $before = count($all);
+            $kept = array_values(array_filter($all, $hasEmail));
+            vestra_save_leads($kept);
+            echo "PURGE: {$before} lead vardi -> ".($before - count($kept))." e-postasiz silindi, ".count($kept)." kaldi (hepsi e-postali)\n";
             PHPEOF
-            php /tmp/vestra_discover_city.php
-            rm -f /tmp/vestra_discover_city.php
+
+            cat > /tmp/vestra_discover_city.php <<'PHPEOF'
+            <?php
+            /* TEK şehir = TEK süreç. Host bu süreci öldürürse yalnızca bu şehir kaybedilir;
+               daha önce eklenen leadler diskte kayıtlı kalır ve bash döngüsü sonraki şehre geçer. */
+            @set_time_limit(0);
+            @ini_set('memory_limit', '256M');
+            @ini_set('implicit_flush', '1');
+            while (ob_get_level() > 0) { @ob_end_flush(); }   // hiç tamponlama: log canlı aksın
+
+            $home = getenv("HOME");
+            require $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+            require_once $home."/public_html/inc/notify.php";
+
+            $country = trim((string)($argv[1] ?? ''));
+            $city    = trim((string)($argv[2] ?? ''));
+            if ($country === '' || $city === '') { fwrite(STDERR, "kullanim: php bu.php <Ulke> <Sehir>\n"); exit(2); }
+
+            $budget = (int)(getenv("CITY_BUDGET") ?: 420);
+            if ($budget < 60) $budget = 60;
+            $start  = time();
+
+            $st = ['city'=>$city,'found'=>0,'checked'=>0,'mail'=>0,'added'=>0,'done'=>false];
+            /* SIGKILL/fatal halinde bile nerede kaldigimizi yaz -- eskiden hicbir sey gorunmuyordu. */
+            register_shutdown_function(function() use (&$st) {
+              if ($st['done']) return;
+              echo "  ! YARIM KALDI ({$st['city']}): bulundu {$st['found']}, tarandi {$st['checked']}, e-postali {$st['mail']}, eklendi {$st['added']}\n";
+              flush();
+            });
+
+            echo "* {$city} ({$country}): Overpass sorgusu basliyor (bu adim uzun surebilir)...\n"; flush();
+            $rows  = vestra_discover_osm($country, $city, 80);
+            $osmOk = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
+            $st['found'] = count($rows);
+            echo "  OSM: ".count($rows)." dukkan bulundu".($osmOk ? '' : '   [UYARI: Overpass yanit vermedi -- tekrar denenebilir]')."\n"; flush();
+
+            $toAdd = [];
+            /* Bulunanlari ARA ARA kaydet. Sehir sureci disaridan `timeout` ile kesilebiliyor
+               (bkz. CITY_HARD); tek kayit sonda olsa kesilen sehrin TUM emegi cope giderdi.
+               Her 15 e-postali dukkanda yaziyoruz: kesilse bile o ana kadarki leadler duruyor.
+               Not: vestra_leads_add oku-degistir-yaz yapiyor, o yuzden cok siklastirmiyoruz. */
+            $flush = function() use (&$toAdd, &$st) {
+              if (!$toAdd) return;
+              [$added, ] = vestra_leads_add($toAdd);
+              $st['added'] += count($added);
+              $toAdd = [];
+            };
+            foreach ($rows as $r) {
+              if (time() - $start > $budget) { echo "  (zaman butcesi {$budget}s doldu -- kalan dukkanlar taranmadi)\n"; flush(); break; }
+              $email = strtolower(trim((string)($r['email'] ?? '')));
+              if ($email === '') { $w = (string)($r['website'] ?? ''); if ($w !== '') $email = vestra_find_email($w); }
+              $st['checked']++;
+              if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $r['email'] = $email; $toAdd[] = $r; $st['mail']++;
+                if (count($toAdd) >= 15) $flush();
+              }
+              /* Heartbeat: uzun taramada SSH kanalini mesgul tutar (sessiz kanal dusuruluyor)
+                 ve ilerlemeyi canli gosterir. */
+              if ($st['checked'] % 10 === 0) { echo "  ... {$st['checked']}/{$st['found']} tarandi, {$st['mail']} e-postali, {$st['added']} kayitli\n"; flush(); }
+            }
+            unset($rows);   // bellegi birak: host'un bellek limitine carpmamak icin
+
+            $flush();
+            $st['done'] = true;
+            echo "  = {$city}: tarandi {$st['checked']}, e-postali {$st['mail']}, YENI EKLENDI {$st['added']}\n";
+            echo "  TOPLAM lead (hepsi e-postali): ".count(vestra_leads())."\n";
+            flush();
+            exit(($st['found'] === 0 && !$osmOk) ? 3 : 0);   // 3 = Overpass hicbir mirror'dan yanit vermedi
+            PHPEOF
+
+            if [ "$(printf '%s' "${PURGE_EMAILLESS}" | tr 'A-Z' 'a-z')" != "false" ]; then
+              php /tmp/vestra_discover_purge.php
+              echo ""
+            fi
+
+            PLACES="${DISCOVER_PLACES:-Greece|Rhodes, Spain|Ibiza, Spain|Palma}"
+            RUN_START=$(date +%s)
+            MAX_RUN=1200        # 20 dk: 25m'lik command_timeout'a carpip yarida kesilmemek icin
+            TOTAL=0; OKC=0; KILLED=0; NORESP=0; HARDKILL=0
+
+            # Sehir basina KESIN duvar. PHP'nin kendi $budget kontrolu dukkanlar ARASINDA
+            # calisiyor: tek bir dukkanin e-posta taramasi ~11 yolu 12s timeout ile deniyor,
+            # yani butce dolduktan sonra bile ~2 dk daha surebilir; DNS'te takilan bir istek
+            # ise hic donmeyebilir. O yuzden sureci disaridan `timeout` ile kesiyoruz --
+            # PHP'nin ya da curl'un isbirligi yapmasina bagli olmayan tek siniri budur.
+            CITY_HARD=$(( ${CITY_BUDGET:-420} + 150 ))
+            if command -v timeout >/dev/null 2>&1; then RUNCITY="timeout -k 15 ${CITY_HARD}"; else RUNCITY=""; fi
+            if [ -z "$RUNCITY" ]; then echo "(uyari: 'timeout' yok -- sehir basina kesin sinir uygulanamiyor)"; fi
+
+            OLD_IFS="$IFS"
+            IFS=','
+            for place in $PLACES; do
+              IFS="$OLD_IFS"
+              case "$place" in *"|"*) ;; *) IFS=','; continue ;; esac
+              country=$(printf '%s' "${place%%|*}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              city=$(printf '%s' "${place#*|}"    | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+              if [ -z "$country" ] || [ -z "$city" ]; then IFS=','; continue; fi
+
+              # Bir sehri, KESIN suresi genel sinira sigmiyorsa hic BASLATMA. Eskiden sadece
+              # "sinir doldu mu" bakiliyordu, o yuzden sinira 1s kalmisken baslayan sehir
+              # calismaya devam edip tum isi command_timeout'un otesine tasiyabiliyordu.
+              NOW=$(date +%s)
+              ELAPSED=$((NOW - RUN_START))
+              if [ $((ELAPSED + CITY_HARD)) -gt $MAX_RUN ]; then
+                echo "!! Genel sure siniri: ${city} ve sonrasi ATLANDI (gecen ${ELAPSED}s + sehir siniri ${CITY_HARD}s > ${MAX_RUN}s) -- ayri calistirin"
+                break
+              fi
+
+              TOTAL=$((TOTAL + 1))
+              $RUNCITY php /tmp/vestra_discover_city.php "$country" "$city"
+              rc=$?
+              if [ $rc -eq 0 ]; then
+                OKC=$((OKC + 1))
+              elif [ $rc -eq 3 ]; then
+                NORESP=$((NORESP + 1))
+                echo "  !! ${city}: Overpass hicbir mirror'dan yanit vermedi -- bu sehri tek basina tekrar deneyin"
+              elif [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+                HARDKILL=$((HARDKILL + 1))
+                echo "  !! ${city}: kesin sure siniri (${CITY_HARD}s) doldu, surec kesildi -- o ana kadar EKLENEN leadler korundu, sonraki sehre geciliyor"
+              else
+                KILLED=$((KILLED + 1))
+                echo "  !! ${city}: surec beklenmedik sekilde bitti (rc=${rc}; host oldurmus olabilir) -- sonraki sehre geciliyor"
+              fi
+              echo ""
+              IFS=','
+            done
+            IFS="$OLD_IFS"
+
+            rm -f /tmp/vestra_discover_city.php /tmp/vestra_discover_purge.php
+            echo "== OZET: ${TOTAL} sehir denendi | ${OKC} tamam | ${NORESP} Overpass yanit yok | ${HARDKILL} sure siniri | ${KILLED} surec hatasi =="
+            if [ "$TOTAL" -gt 0 ] && [ "$OKC" -eq 0 ]; then
+              echo "HATA: hicbir sehir tamamlanamadi."
+              exit 1
+            fi
