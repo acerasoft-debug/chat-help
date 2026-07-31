@@ -1,9 +1,9 @@
 [
   {
-    "match": "XH16B005 BB04",
+    "match": "XH16B005",
     "expect": 1,
     "cat": "Polos",
-    "_why": "contact-sheets/balmain-01.jpg — white collared polo, stored as T-Shirts"
+    "_why": "balmain-01 tile 19 (balmain-xh16b005.jpg) — white polo, three views, stored as T-Shirts. There is no XH16B005 BB04: the earlier attempt used that code and matched nothing. BB04 belongs to XH1EF000 and XH1GB005, not to this one"
   },
   {
     "match": "XH1GB005 BB04",
