@@ -1,0 +1,61 @@
+name: (Lead) Gönderim istatistiği (güne göre)
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Kaç günlük döküm gösterilsin"
+        required: false
+        default: "14"
+
+permissions:
+  contents: read
+
+# Salt-okunur. last_contacted_at alanini gune gore gruplayip kac email
+# gonderildigini yazar.
+#
+# Neden: "bugun kac email gonderildi" sorusunun cevabi oturum notlarindan degil,
+# leads.json'dan gelmeli. Oturum boyunca tutulan toplam sayac, birden fazla gune
+# yayilan kampanyalari ayirt etmiyor ve sadece bu oturumda yapilan gonderimleri
+# sayiyor -- zamanlanmis islerin gonderdiklerini kacirir.
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: İstatistikleri çıkar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: DAYS
+          script: |
+            cd ~/public_html
+            php -r '
+              $days = (int)(getenv("DAYS") ?: 14);
+              require_once "inc/leads.php";
+              $leads = vestra_leads();
+              $byDay = []; $everSent = 0;
+              foreach ($leads as $l) {
+                $t = trim((string)($l["last_contacted_at"] ?? ""));
+                if ($t === "") continue;
+                $everSent++;
+                $d = substr(date("c", strtotime($t)), 0, 10);
+                $byDay[$d] = ($byDay[$d] ?? 0) + 1;
+              }
+              krsort($byDay);
+              $today = date("Y-m-d");
+              echo "toplam lead      : ".count($leads)."\n";
+              echo "hic email gideni : ".$everSent."\n";
+              echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n\n";
+              echo "gune gore dokum (en yeni ustte):\n";
+              $n = 0;
+              foreach ($byDay as $d => $c) {
+                if ($n++ >= $days) break;
+                printf("  %s  %4d  %s%s\n", $d, $c, str_repeat("#", min(60, $c)),
+                       $d === $today ? "   <= BUGUN" : "");
+              }
+            '
+        env:
+          DAYS: ${{ github.event.inputs.days }}
