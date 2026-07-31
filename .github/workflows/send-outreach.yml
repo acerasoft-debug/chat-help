@@ -34,6 +34,14 @@ on:
         description: "Sadece premium marka satan leadlere gönder (true/false)"
         required: false
         default: "false"
+      min_brands:
+        # premium_only tek bir marka eslesmesiyle yetiniyor; bu ise TEK MARKALI bir
+        # bayiyi de gecirir. Operator "sadece karisik marka satanlar" dedigi icin
+        # esik ayrilabilir hale getirildi: 2 = sitesinde EN AZ IKI ayri premium marka
+        # gecen magazalar (gercek multi-brand), 0/1 = eski davranis.
+        description: "Multi-brand esigi: sitesinde en az kac AYRI premium marka gecsin (2 = sadece karisik marka satanlar)"
+        required: false
+        default: "0"
       only_emails:
         description: "Sadece bu e-posta(lar)a gönder (allowlist; virgül/boşlukla ayrılır). Boşsa normal seçim."
         required: false
@@ -73,6 +81,7 @@ jobs:
           SEND_DRY: ${{ github.event.inputs.dry_run }}
           SEND_SKIP: ${{ github.event.inputs.skip_emails }}
           SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
+          SEND_MIN_BRANDS: ${{ github.event.inputs.min_brands }}
           SEND_ONLY: ${{ github.event.inputs.only_emails }}
           SEND_COUNTRY: ${{ github.event.inputs.country_filter }}
           SEND_NOT_COUNTRY: ${{ github.event.inputs.exclude_countries }}
@@ -132,6 +141,7 @@ jobs:
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
+            $MIN_BRANDS = (int)trim((string)getenv('SEND_MIN_BRANDS'));
             $ONLY = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_ONLY"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $ONLY[strtolower(trim($s))] = true; }
             $COUNTRIES = [];
@@ -181,6 +191,12 @@ jobs:
               // blocked word (an Amazon SELLER named "Stilato amazon" is a target, not Amazon itself).
               if (!$ONLY && vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue;
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
+              /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
+                 name, which a single-brand reseller or a label's own store also does. A
+                 genuine multi-brand boutique carries several, so requiring N distinct
+                 detected brands is what actually separates "stocks other people's labels"
+                 from "sells its own". Off by default (0). */
+              if ($MIN_BRANDS > 0 && count(array_filter((array)($l['premium_brands'] ?? []))) < $MIN_BRANDS) continue;
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
               if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
               if ($SKIP_CAT && !$ONLY) {                                       // wrong trade (jeweller/watchmaker/tailor…) — apparel campaign doesn't apply
