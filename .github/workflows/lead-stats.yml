@@ -32,30 +32,38 @@ jobs:
           envs: DAYS
           script: |
             cd ~/public_html
-            php -r '
-              $days = (int)(getenv("DAYS") ?: 14);
-              require_once "inc/leads.php";
-              $leads = vestra_leads();
-              $byDay = []; $everSent = 0;
-              foreach ($leads as $l) {
-                $t = trim((string)($l["last_contacted_at"] ?? ""));
-                if ($t === "") continue;
-                $everSent++;
-                $d = substr(date("c", strtotime($t)), 0, 10);
-                $byDay[$d] = ($byDay[$d] ?? 0) + 1;
-              }
-              krsort($byDay);
-              $today = date("Y-m-d");
-              echo "toplam lead      : ".count($leads)."\n";
-              echo "hic email gideni : ".$everSent."\n";
-              echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n\n";
-              echo "gune gore dokum (en yeni ustte):\n";
-              $n = 0;
-              foreach ($byDay as $d => $c) {
-                if ($n++ >= $days) break;
-                printf("  %s  %4d  %s%s\n", $d, $c, str_repeat("#", min(60, $c)),
-                       $d === $today ? "   <= BUGUN" : "");
-              }
-            '
+            # Cok satirli `php -r` cPanel'in ea_php_cli sarmalayicisini kiriyor
+            # ("Unsuccessful stat on filename containing newline"): betigi gecici
+            # bir dosyaya yazip calistiriyoruz -- diger is akislarinin yaptigi gibi.
+            cat > /tmp/vestra_lead_stats.php <<'PHPEOF'
+            <?php
+            $days = (int)(getenv('DAYS') ?: 14);
+            require_once __DIR__.'/inc/leads.php';
+            $leads = vestra_leads();
+            $byDay = []; $everSent = 0;
+            foreach ($leads as $l) {
+              $t = trim((string)($l['last_contacted_at'] ?? ''));
+              if ($t === '') continue;
+              $everSent++;
+              $d = date('Y-m-d', strtotime($t));
+              $byDay[$d] = ($byDay[$d] ?? 0) + 1;
+            }
+            krsort($byDay);
+            $today = date('Y-m-d');
+            echo "toplam lead      : ".count($leads)."\n";
+            echo "hic email gideni : ".$everSent."\n";
+            echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n\n";
+            echo "gune gore dokum (en yeni ustte):\n";
+            $n = 0;
+            foreach ($byDay as $d => $c) {
+              if ($n++ >= $days) break;
+              printf("  %s  %4d  %s%s\n", $d, $c, str_repeat('#', min(60, $c)),
+                     $d === $today ? '   <= BUGUN' : '');
+            }
+            PHPEOF
+            # __DIR__ /tmp'yi gosterecegi icin betigi public_html icinden calistiriyoruz.
+            cp /tmp/vestra_lead_stats.php ./vestra_lead_stats_tmp.php
+            php ./vestra_lead_stats_tmp.php
+            rm -f ./vestra_lead_stats_tmp.php /tmp/vestra_lead_stats.php
         env:
           DAYS: ${{ github.event.inputs.days }}
