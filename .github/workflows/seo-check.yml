@@ -27,7 +27,15 @@ jobs:
         run: |
           set -e
           BASE="https://vestrasales.com"
-          UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          # Iki ayri kimlikle bakiyoruz. Googlebot UA'si GitHub runner IP'sinden
+          # geldigi icin ters-DNS dogrulamasindan gecmez; iyi yapilandirilmis bir
+          # WAF bunu "sahte Googlebot" sayip challenge sayfasi dondurur. Yani
+          # challenge gormek tek basina "site indekslenemiyor" demek DEGIL.
+          # Ayrimi yapabilmek icin normal tarayici kimligiyle de cekiyoruz:
+          #   Chrome OK  + Googlebot challenge  -> WAF bot dogrulamasi (beklenen)
+          #   Chrome de challenge               -> gercek sorun, sayfa hic acilmiyor
+          UA_BOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          UA_WEB="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           PATH_="${P:-/}"
           for L in en de fr it es; do
             if [ "$L" = "en" ]; then URL="${BASE}${PATH_}"
@@ -37,9 +45,20 @@ jobs:
             echo "================================================================"
             echo "  $L  ->  $URL"
             echo "================================================================"
-            # Googlebot olarak cekiyoruz: uye olmayan ziyaretcinin gordugu HTML bu.
-            curl -sS -A "$UA" --max-time 30 -o /tmp/p.html "$URL" || { echo "  CEKILEMEDI"; continue; }
-            echo "  HTML boyutu: $(wc -c < /tmp/p.html) bayt"
+            # Once bot kimligi: challenge yiyor mu?
+            curl -sS -A "$UA_BOT" --max-time 30 -o /tmp/bot.html "$URL" || true
+            if grep -qiE 'one moment|just a moment|checking your browser|challenge-platform|cf-browser-verification' /tmp/bot.html 2>/dev/null; then
+              echo "  Googlebot UA  : CHALLENGE ($(wc -c < /tmp/bot.html) bayt) — bot dogrulama sayfasi"
+            else
+              echo "  Googlebot UA  : normal sayfa ($(wc -c < /tmp/bot.html) bayt)"
+            fi
+            # Asil olcum normal tarayici kimligiyle: uye olmayan ziyaretcinin gordugu HTML.
+            curl -sS -A "$UA_WEB" --max-time 30 -o /tmp/p.html "$URL" || { echo "  CEKILEMEDI"; continue; }
+            if grep -qiE 'one moment|just a moment|checking your browser|challenge-platform' /tmp/p.html 2>/dev/null; then
+              echo "  Tarayici UA   : CHALLENGE ($(wc -c < /tmp/p.html) bayt) — CIDDI: sayfa kimseye acilmiyor"
+            else
+              echo "  Tarayici UA   : normal sayfa ($(wc -c < /tmp/p.html) bayt)"
+            fi
             echo
             echo "  --- title ---"
             grep -oiE '<title>[^<]*</title>' /tmp/p.html | head -1 | sed 's/^/  /'
