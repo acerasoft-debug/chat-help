@@ -1,15 +1,21 @@
 [
   {
-    "match": "XH16B005",
+    "match": "XH16B005 BB04",
     "expect": 1,
     "cat": "Polos",
     "_why": "contact-sheets/balmain-01.jpg — white collared polo, stored as T-Shirts"
   },
   {
-    "match": "XH1GB005",
-    "expect": 2,
+    "match": "XH1GB005 BB04",
+    "expect": 1,
     "cat": "Polos",
-    "_why": "two rows share this code (pink open-collar and navy polo); both are polos, both stored as T-Shirts. expect=2 is deliberate — a bare XH1GB005 also matches XH1GB005 BB04"
+    "_why": "pink open-collar polo, stored as T-Shirts"
+  },
+  {
+    "match": "XH1GB005",
+    "expect": 1,
+    "cat": "Polos",
+    "_why": "navy polo, stored as T-Shirts. Listed separately from XH1GB005 BB04 because exact-SKU match wins over substring: a bare XH1GB005 resolves to this row alone, never to both"
   },
   {
     "match": "WH1JQ040B139MAI",
