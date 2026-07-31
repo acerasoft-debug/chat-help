@@ -359,40 +359,44 @@ $_kw = [
   .hero.hasfilm{padding:120px 0 92px}
   .hero.hasfilm>.wrap{position:relative;z-index:2}
   .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
-  .herofilm .hf{position:absolute;inset:0;background-size:cover;background-position:center 22%;
-    opacity:0;transform:scale(1.06);will-change:opacity,transform;
+  /* Product shots are tall and centred on white, so `cover` at a tight crop pushes
+     the garment right up against the viewer -- a swimsuit in particular ended up
+     filling the frame. Pulling the focal point down to the middle and starting the
+     drift almost unzoomed keeps the whole piece in shot with air around it. */
+  .herofilm .hf{position:absolute;inset:0;background-size:cover;background-position:center 45%;
+    opacity:0;transform:scale(1.02);will-change:opacity,transform;
     animation:heroFilm var(--hfdur,36s) cubic-bezier(.4,0,.2,1) infinite}
   /* Each frame owns 1/N of the cycle and the stagger is 6s, so the visible slice has to
      be expressed as a share of the whole: N frames x 6s = cycle, one frame's slot = 100/N%.
      Written for the 6-frame case and overridden below when there are fewer, because a
      fixed 18% window would leave the hero empty between frames on a short catalogue. */
   @keyframes heroFilm{
-    0%{opacity:0;transform:scale(1.06)}
+    0%{opacity:0;transform:scale(1.02)}
     4%{opacity:.55}
     14%{opacity:.55}
-    18%{opacity:0;transform:scale(1.13)}
-    100%{opacity:0;transform:scale(1.13)}
+    18%{opacity:0;transform:scale(1.07)}
+    100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="24s"] .hf{animation-name:heroFilm4}
   @keyframes heroFilm4{
-    0%{opacity:0;transform:scale(1.06)}
+    0%{opacity:0;transform:scale(1.02)}
     6%{opacity:.55} 21%{opacity:.55}
-    27%{opacity:0;transform:scale(1.13)}
-    100%{opacity:0;transform:scale(1.13)}
+    27%{opacity:0;transform:scale(1.07)}
+    100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="30s"] .hf{animation-name:heroFilm5}
   @keyframes heroFilm5{
-    0%{opacity:0;transform:scale(1.06)}
+    0%{opacity:0;transform:scale(1.02)}
     5%{opacity:.55} 17%{opacity:.55}
-    22%{opacity:0;transform:scale(1.13)}
-    100%{opacity:0;transform:scale(1.13)}
+    22%{opacity:0;transform:scale(1.07)}
+    100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="18s"] .hf{animation-name:heroFilm3}
   @keyframes heroFilm3{
-    0%{opacity:0;transform:scale(1.06)}
+    0%{opacity:0;transform:scale(1.02)}
     8%{opacity:.55} 27%{opacity:.55}
-    35%{opacity:0;transform:scale(1.13)}
-    100%{opacity:0;transform:scale(1.13)}
+    35%{opacity:0;transform:scale(1.07)}
+    100%{opacity:0;transform:scale(1.07)}
   }
   /* The veil is what keeps the headline legible over any photograph — without it the
      contrast swings with every frame and the type becomes unreadable on the light ones. */
