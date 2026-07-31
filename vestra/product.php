@@ -69,6 +69,27 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     <a href="/"><?= t('Home') ?></a> · <a href="/shop"><?= t('Catalog') ?></a> · <?= htmlspecialchars($p['brand']) ?>
   </div>
 
+<?php if(!$MEMBER): ?>
+  <!-- Unregistered visitors get the product rendered but unreadable: the whole detail block
+       is blurred behind a lock panel. The markup is deliberately still emitted rather than
+       withheld, because a search-engine crawler arrives as an unregistered visitor too --
+       stripping the text server-side would empty every product page out of the index and
+       undo the SEO work. Blur is a display treatment; the page still carries its content,
+       its structured data and its meta description for crawlers. -->
+  <div class="lockwrap">
+    <div class="lockveil" aria-hidden="true"></div>
+    <div class="lockpanel">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <h3><?= t('Verified buyers only') ?></h3>
+      <p><?= t('Register free to see this product, its photos and trade pricing.') ?></p>
+      <div class="lockbtns">
+        <a class="btn btn-p" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-o" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>"><?= t('Sign in') ?></a>
+      </div>
+    </div>
+    <div class="lockblur" inert>
+<?php endif; ?>
+
   <div class="pdetail">
     <!-- ── Gallery ────────────────────────────────────────────────────────── -->
     <div class="gal-col">
@@ -76,7 +97,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <!-- Approved viewers open on the product photo; the brand card is the LAST
              slide. Non-approved viewers have no photos, so the card is all they see. -->
         <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px<?= $images ? ';display:none' : '' ?>">
-          <?php $blogo=vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="bname" style="font-size:38px;font-family:\'Playfair Display\',serif;font-weight:700;opacity:.9">'.htmlspecialchars($p['brand']).'</span>'; ?>
+          <?php echo vestra_brand_card($p['brand']); ?>
           <?php if($photosLocked): ?>
             <a href="<?= htmlspecialchars($verifyHref) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
@@ -524,7 +545,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars($rp['accent'] ?? '#2a2b31') ?>,#0e0e11)">
             <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
-            <?php if (!$rimg) { $bl = vestra_brand_logo($rp['brand'] ?? ''); echo $bl ?: '<span class="sbname">'.htmlspecialchars($rp['brand'] ?? '').'</span>'; } ?>
+            <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
             <?php if (($rp['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
             <?php elseif (($rp['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
           </div>
@@ -547,6 +568,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
     </div>
   </section>
   <?php endif; ?>
+<?php if(!$MEMBER): ?>
+    </div><!-- /.lockblur -->
+  </div><!-- /.lockwrap -->
+<?php endif; ?>
 </div>
 
 <?php if($images): ?>

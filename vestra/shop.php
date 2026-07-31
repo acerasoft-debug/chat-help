@@ -36,6 +36,21 @@ footer a{color:#d8bd86}
 
     <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
     <aside class="shopside">
+      <?php if(!$MEMBER): ?>
+      <!-- Unregistered visitors get no search, no category list and no downloads: the
+           whole sidebar collapses to a registration panel. The product grid below still
+           renders (so the page keeps its content for crawlers and shows what is on
+           offer), but nothing here lets a guest slice the catalogue or take a file. -->
+      <div class="filterblock lockside">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <div class="filter-title" style="border:0;padding-left:0"><?= t('Trade access') ?></div>
+        <p class="hint" style="margin:0 0 14px;font-size:12px;line-height:1.6">
+          <?= t('Search, categories, line-sheets and trade pricing open up once you register. Free, and takes a minute.') ?>
+        </p>
+        <a class="btn btn-p btn-sm" style="width:100%;justify-content:center;margin-bottom:8px" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-o btn-sm" style="width:100%;justify-content:center" href="/login?back=/shop"><?= t('Sign in') ?></a>
+      </div>
+      <?php else: ?>
       <div class="filterblock">
         <div class="filter-title"><?= t('Search') ?></div>
         <div class="filter-searchbox">
@@ -96,6 +111,7 @@ footer a{color:#d8bd86}
         <?php endforeach; ?>
         <p class="hint" style="margin:8px 6px 0;font-size:11.5px;line-height:1.5"><?= t('Excel with product photos &amp; identification codes · no pricing (trade prices unlock after free registration).') ?></p>
       </div>
+      <?php endif; ?>
     </aside>
 
     <!-- ── Main content ──────────────────────────────────────────────────── -->
@@ -103,6 +119,7 @@ footer a{color:#d8bd86}
       <div class="shopbar">
         <span class="shopcount" id="shopcount"><?= count($products) ?> <?= t('products') ?></span>
         <span class="grow"></span>
+        <?php if($MEMBER): /* sorting is a catalogue tool like search — guests get neither */ ?>
         <select class="sortsel" id="sortsel" onchange="applyFilters()">
           <option value="def"><?= t('Default order') ?></option>
           <option value="price_asc"><?= t('Price: low → high') ?></option>
@@ -110,6 +127,7 @@ footer a{color:#d8bd86}
           <option value="newest"><?= t('Newest first') ?></option>
           <option value="name"><?= t('Name A–Z') ?></option>
         </select>
+        <?php endif; ?>
       </div>
 
       <div class="shopgrid" id="shopgrid">
@@ -141,7 +159,7 @@ footer a{color:#d8bd86}
                   <?= t('Verified seller') ?>
                 </span>
               <?php endif; ?>
-              <?php if(!$img0){ $blogo = vestra_brand_logo($p['brand']); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand']).'</span>'; } ?>
+              <?php if(!$img0) echo vestra_brand_card($p['brand']); ?>
               <?php if($p['mode']==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
               <?php elseif($p['mode']==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
               <?php if($isNew): ?><span class="snewbadge"><?= t('NEW') ?></span><?php endif; ?>
@@ -192,8 +210,13 @@ document.querySelectorAll('.fcheck').forEach(function(el){
 });
 
 function applyFilters(){
-  var q=(document.getElementById('fsearch').value||'').toLowerCase().trim();
-  var sort=document.getElementById('sortsel').value;
+  /* The search box and the sort select only exist for registered visitors -- guests get
+     the registration panel instead of the filter sidebar. Read them defensively so this
+     runs (and the product count stays correct) on the guest view too, instead of throwing
+     on a null and leaving the rest of the page's scripts dead. */
+  var qEl=document.getElementById('fsearch'), sortEl=document.getElementById('sortsel');
+  var q=((qEl&&qEl.value)||'').toLowerCase().trim();
+  var sort=(sortEl&&sortEl.value)||'def';
   var cards=Array.from(document.querySelectorAll('#shopgrid .scard'));
   var visible=[];
   cards.forEach(function(c){

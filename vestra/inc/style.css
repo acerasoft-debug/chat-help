@@ -669,3 +669,59 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 
 /* Büyütecin açılabildiğini belli et — sessiz bir özellik keşfedilmez. */
 .gal-img{ cursor:zoom-in }
+
+/* ── Locked product page (unregistered visitors) ───────────────────────────────
+   The product markup is still rendered — a crawler is an unregistered visitor, and
+   withholding the text server-side would empty every product page out of the search
+   index. Blur is the display treatment; `inert` (plus the pointer/selection rules
+   below) is what actually stops a visitor reading, selecting, tabbing into or
+   clicking anything underneath. */
+.lockwrap{position:relative;margin-top:8px}
+.lockblur{filter:blur(9px) saturate(.72);opacity:.5;pointer-events:none;user-select:none;
+  -webkit-user-select:none;transform:scale(1.012);transform-origin:top center}
+.lockblur *{cursor:default!important}
+.lockveil{position:absolute;inset:0;z-index:5;
+  background:radial-gradient(120% 70% at 50% 32%,rgba(20,17,12,.30) 0%,rgba(20,17,12,.80) 78%)}
+.lockpanel{position:absolute;left:50%;top:120px;transform:translateX(-50%);z-index:6;
+  width:min(440px,calc(100% - 32px));text-align:center;padding:34px 30px 30px;
+  background:rgba(26,22,16,.82);backdrop-filter:blur(22px) saturate(1.3);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3);
+  border:1px solid rgba(169,127,44,.34);border-radius:20px;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05) inset}
+.lockpanel svg{margin:0 auto 12px;display:block}
+.lockpanel h3{margin:0 0 8px;font-family:'Playfair Display',serif;font-size:22px;color:#f3ead8}
+.lockpanel p{margin:0 0 20px;color:#c3b9a5;font-size:13.5px;line-height:1.6}
+.lockbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+@media(max-width:640px){.lockpanel{top:64px;padding:26px 20px 22px}}
+
+/* ── Brand cards ──────────────────────────────────────────────────────────────
+   Every product without a photo falls back to a brand card. Previously only six
+   brands had a wordmark and the rest rendered as raw text on a flat gradient, so
+   most of the catalogue's guest view looked unfinished. Cards now get a consistent
+   treatment: a soft radial lift, a hairline frame and a monogram fallback for any
+   brand with no wordmark of its own. */
+.sthumb,.thumb,.gal-placeholder{position:relative;isolation:isolate}
+.sthumb::before,.thumb::before,.gal-placeholder::before{content:'';position:absolute;inset:0;z-index:0;
+  background:radial-gradient(96% 70% at 50% 18%,rgba(255,255,255,.13) 0%,transparent 62%)}
+.scard:hover .brand-logo{filter:drop-shadow(0 3px 20px rgba(0,0,0,.8));transform:translateY(-2px)}
+.brand-logo{transition:filter .35s cubic-bezier(.16,.66,.25,1),transform .35s cubic-bezier(.16,.66,.25,1)}
+
+/* Monogram fallback — first letters of the brand, set in the display face with a
+   rule under it, so an unmapped brand still reads as a designed card. */
+.bmono{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:0 16px;text-align:center}
+.bmono .bmono-mark{font-family:'Playfair Display',serif;font-weight:700;line-height:1;
+  color:#fff;letter-spacing:3px;text-shadow:0 2px 16px rgba(0,0,0,.62)}
+.bmono .bmono-name{font-family:'Helvetica Neue',Arial,sans-serif;font-size:9px;font-weight:600;
+  letter-spacing:2.6px;text-transform:uppercase;color:rgba(255,255,255,.66);
+  padding-top:7px;border-top:1px solid rgba(255,255,255,.24);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scard .bmono .bmono-mark{font-size:30px}
+.pcard .bmono .bmono-mark{font-size:34px}
+.gal-placeholder .bmono .bmono-mark{font-size:52px;letter-spacing:5px}
+.gal-placeholder .bmono .bmono-name{font-size:11px;letter-spacing:4px}
+
+/* Guest sidebar — replaces search / categories / exports with one registration panel. */
+.lockside{text-align:center;padding:24px 18px 20px}
+.lockside svg{margin:0 auto 10px;display:block}
+.lockside .filter-title{justify-content:center;text-align:center;margin-bottom:6px}

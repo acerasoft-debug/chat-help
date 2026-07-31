@@ -185,7 +185,69 @@ function vestra_brand_logo($brand){
       'font-family="\'Helvetica Neue\',Arial,sans-serif" font-size="8.5" font-weight="400" letter-spacing="4">'.
       'DOLCE &amp; GABBANA</text></svg>',
   ];
-  return $L[$brand] ?? null;
+  if (isset($L[$brand])) return $L[$brand];
+
+  /* Wordmarks for the brands added from the supplier folders. Each is set in the house
+     that brand actually uses -- a serif with wide tracking for the Paris/Milan houses, a
+     tight grotesque for the streetwear labels -- so a catalogue page of mixed brands reads
+     as designed rather than as a list of fallback text. Type only: these are typographic
+     settings of the name, not reproductions of anyone's logo artwork. */
+  $serif  = "Georgia,'Times New Roman',serif";
+  $sans   = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+  $W = [
+    'BALMAIN'        => [$serif, 22, 400, 8,   'BALMAIN',        'PARIS'],
+    'Balenciaga'     => [$sans,  19, 500, 5.5, 'BALENCIAGA',     null],
+    'Burberry'       => [$serif, 21, 400, 5,   'BURBERRY',       'LONDON'],
+    'Fendi'          => [$sans,  27, 700, 7,   'FENDI',          'ROMA'],
+    'Givenchy'       => [$serif, 21, 400, 6,   'GIVENCHY',       'PARIS'],
+    'Gucci'          => [$serif, 28, 400, 8,   'GUCCI',          null],
+    'Valentino'      => [$serif, 21, 400, 5,   'VALENTINO',      'GARAVANI'],
+    'Versace'        => [$serif, 22, 400, 6,   'VERSACE',        'MILANO'],
+    'Marcelo Burlon' => [$sans,  15, 700, 2.4, 'MARCELO BURLON', 'COUNTY OF MILAN'],
+    'GCDS'           => [$sans,  32, 800, 4,   'GCDS',           null],
+  ];
+  if (isset($W[$brand])) {
+    [$ff, $size, $weight, $track, $main, $sub] = $W[$brand];
+    $e = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+    $svg = '<svg viewBox="0 0 230 72" xmlns="http://www.w3.org/2000/svg" class="brand-logo">';
+    if ($sub === null) {
+      $svg .= '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '
+            . 'font-family="'.$e($ff).'" font-size="'.$size.'" font-weight="'.$weight.'" '
+            . 'letter-spacing="'.$track.'">'.$e($main).'</text>';
+    } else {
+      $svg .= '<text x="50%" y="40%" dominant-baseline="middle" text-anchor="middle" fill="white" '
+            . 'font-family="'.$e($ff).'" font-size="'.$size.'" font-weight="'.$weight.'" '
+            . 'letter-spacing="'.$track.'">'.$e($main).'</text>'
+            . '<line x1="26%" y1="60%" x2="74%" y2="60%" stroke="rgba(255,255,255,.28)" stroke-width="0.7"/>'
+            . '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" '
+            . 'fill="rgba(255,255,255,.55)" font-family="'.$e($sans).'" font-size="8.5" '
+            . 'font-weight="400" letter-spacing="3.4">'.$e($sub).'</text>';
+    }
+    return $svg.'</svg>';
+  }
+  return null;
+}
+
+/* Brand card for a product with no photo. Returns the brand's wordmark when there is one,
+   otherwise a monogram card built from the name -- so a brand nobody has drawn a wordmark
+   for still renders as a designed tile instead of a bare string. Every caller that used to
+   write `$logo ?: '<span>'.$brand.'</span>'` should use this instead. */
+function vestra_brand_card($brand): string {
+    $brand = trim((string)$brand);
+    if ($brand === '') return '';
+    $logo = vestra_brand_logo($brand);
+    if ($logo) return $logo;
+
+    /* Initials: first letter of each of the first two words ("Marcelo Burlon" -> MB), or the
+       first two letters when the name is a single word ("Amiri" -> AM). */
+    $words = preg_split('/[\s&]+/u', $brand, -1, PREG_SPLIT_NO_EMPTY) ?: [$brand];
+    if (count($words) >= 2) {
+        $mark = mb_strtoupper(mb_substr($words[0], 0, 1).mb_substr($words[1], 0, 1));
+    } else {
+        $mark = mb_strtoupper(mb_substr($brand, 0, 2));
+    }
+    return '<span class="bmono"><span class="bmono-mark">'.htmlspecialchars($mark).'</span>'
+         . '<span class="bmono-name">'.htmlspecialchars($brand).'</span></span>';
 }
 
 /* seller-added listings (saved by the seller panel) merged into the live catalog */

@@ -88,7 +88,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
           <?php if (!empty($p['verified'])): ?>
             <span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span>
           <?php endif; ?>
-          <?php if (!$img0): $blogo = vestra_brand_logo($p['brand'] ?? ''); echo $blogo ?: '<span class="sbname">'.htmlspecialchars($p['brand'] ?? '').'</span>'; endif; ?>
+          <?php if (!$img0) echo vestra_brand_card($p['brand'] ?? ''); ?>
           <?php if (($p['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
           <?php elseif (($p['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
           <?php if ($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
