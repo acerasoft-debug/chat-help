@@ -116,4 +116,16 @@ jobs:
             echo "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
           } > /tmp/cs_msg.txt
           git commit -q -F /tmp/cs_msg.txt
-          git push origin claude/charming-franklin-1ynmuj
+          # This job runs for minutes while other commits land on the same branch,
+          # so a plain push loses the race and throws away sheets that were already
+          # built. Rebase onto whatever arrived and retry.
+          for try in 1 2 3 4 5; do
+            if git push origin claude/charming-franklin-1ynmuj; then
+              echo "push tamam (deneme $try)"; exit 0
+            fi
+            echo "push reddedildi, rebase edip tekrar deniyorum ($try)"
+            git fetch origin claude/charming-franklin-1ynmuj
+            git rebase FETCH_HEAD || { echo "HATA: rebase catisti"; exit 1; }
+            sleep $((try * 3))
+          done
+          echo "HATA: 5 denemede push edilemedi"; exit 1
