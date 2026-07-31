@@ -589,3 +589,83 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
   .phgrid{grid-template-columns:repeat(2,1fr)}
   .gal-thumbs .gal-thumb{width:54px;height:54px}
 }
+
+/* ── Ürün fotoğrafı büyüteci ─────────────────────────────────────────────────
+   Toptancı satın alma kararını dokudan verir: örgü sıklığı, dikiş, baskının
+   çatlayıp çatlamadığı. Kart boyu fotoğraf bunu göstermez, o yüzden orijinal
+   dosyayı 1:1 açıyoruz. Masaüstü: imleç lensi + sağda panel. Dokunmatik: tam
+   ekran, pinch/çift-dokunuş. Katmanlar JS ile açılır; JS yoksa hiç görünmezler,
+   galeri eskisi gibi çalışmaya devam eder. */
+.vzoom-lens{
+  position:absolute; pointer-events:none; opacity:0; z-index:6;
+  border-radius:2px; background:rgba(255,255,255,.10);
+  box-shadow:0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(0,0,0,.28), 0 10px 26px rgba(0,0,0,.32);
+  backdrop-filter:brightness(1.06);
+  transition:opacity .16s ease;
+  will-change:transform;
+}
+.vzoom-lens.on{ opacity:1 }
+
+.vzoom-panel{
+  position:absolute; top:0; left:calc(100% + 18px);
+  width:min(46vw,540px); aspect-ratio:1/1;
+  opacity:0; visibility:hidden; z-index:40;
+  background:#0e0e11; border:1px solid rgba(255,255,255,.10); border-radius:10px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55); overflow:hidden;
+  transition:opacity .18s ease, visibility .18s;
+}
+.vzoom-panel.on{ opacity:1; visibility:visible }
+.vzoom-surface{
+  position:absolute; inset:0;
+  background-repeat:no-repeat;
+  /* Ölçek JS'te: her zaman görüntünün doğal pikseli, yumuşatma yok. */
+  image-rendering:-webkit-optimize-contrast;
+  will-change:background-position;
+}
+.vzoom-badge{
+  position:absolute; right:10px; bottom:10px; z-index:2;
+  font:600 10.5px/1 ui-sans-serif,system-ui,sans-serif; letter-spacing:.08em;
+  color:#e8e2d6; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.16);
+  padding:5px 8px; border-radius:999px; backdrop-filter:blur(6px);
+}
+/* Panel yan tarafa sığmıyorsa (dar ekran/sağ kenar) hiç açma — lens de kapanır. */
+@media (max-width:1180px){ .vzoom-panel,.vzoom-lens{ display:none } }
+
+/* Tam ekran (dokunmatik ve tıklayınca masaüstü) */
+.vzoom-full{
+  position:fixed; inset:0; z-index:9999; display:none;
+  background:rgba(8,8,10,.97); touch-action:none; overscroll-behavior:contain;
+}
+.vzoom-full.on{ display:block }
+.vzoom-stage{
+  position:absolute; inset:0; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  cursor:grab;
+}
+.vzoom-stage.dragging{ cursor:grabbing }
+.vzoom-stage img{
+  max-width:100%; max-height:100%; user-select:none; -webkit-user-drag:none;
+  transform-origin:0 0; will-change:transform;
+}
+.vzoom-close{
+  position:absolute; top:14px; right:16px; z-index:2;
+  width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18);
+  color:#f2eee6; font-size:26px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s ease;
+}
+.vzoom-close:hover{ background:rgba(255,255,255,.16) }
+.vzoom-bar{
+  position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:2;
+  display:flex; align-items:center; gap:10px; max-width:92vw;
+  padding:8px 14px; border-radius:999px;
+  background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(8px);
+  font:500 12px/1 ui-sans-serif,system-ui,sans-serif; color:#e8e2d6;
+}
+.vzoom-bar b{ font-weight:700; letter-spacing:.04em; min-width:44px; text-align:center }
+.vzoom-bar i{ font-style:normal; opacity:.72; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+
+/* Büyütecin açılabildiğini belli et — sessiz bir özellik keşfedilmez. */
+.gal-img{ cursor:zoom-in }

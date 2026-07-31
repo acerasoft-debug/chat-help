@@ -953,4 +953,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'mode en gros, marketplace mode B2B, vêtements de créateurs en gros, vêtements de marque en gros, fournisseur boutique, acheter vêtements en gros Europe, grossistes vérifiés, sourcing mode, destockage marque, grossiste textile',
   'pack' => 'lot',
   'series' => 'série',
+  'Zoom' => 'Zoom',
+  'Close' => 'Fermer',
+  'Double-tap or pinch to zoom · drag to pan' => 'Double-tap ou pincez pour zoomer · glissez pour déplacer',
 );

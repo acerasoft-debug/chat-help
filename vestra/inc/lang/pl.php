@@ -27,4 +27,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'moda hurt, hurtownia mody B2B, odzież designerska hurt, odzież markowa hurt, dostawca dla butiku, kupić odzież hurtowo Europa, zweryfikowani hurtownicy, sourcing mody, outlet odzieży markowej, hurtownia tekstylna',
   'pack' => 'paczka',
   'series' => 'seria',
+  'Zoom' => 'Powiększ',
+  'Close' => 'Zamknij',
+  'Double-tap or pinch to zoom · drag to pan' => 'Dwukrotne dotknięcie lub uszczypnięcie powiększa · przeciągnij, aby przesunąć',
 );

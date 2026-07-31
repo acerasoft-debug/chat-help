@@ -27,4 +27,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'móda velkoobchod, B2B módní tržiště, designérské oblečení velkoobchod, značkové oblečení velkoobchod, dodavatel pro butik, nákup oblečení velkoobchod Evropa, ověření velkoobchodníci, sourcing módy, výprodej značkového oblečení, textilní velkoobchod',
   'pack' => 'balení',
   'series' => 'série',
+  'Zoom' => 'Přiblížit',
+  'Close' => 'Zavřít',
+  'Double-tap or pinch to zoom · drag to pan' => 'Dvojité klepnutí nebo sevření pro přiblížení · tažením posunete',
 );

@@ -956,4 +956,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'Mode Großhandel, B2B Modemarktplatz, Designerkleidung Großhandel, Markenkleidung Großhandel, Boutique Lieferant, Kleidung großhandel Europa kaufen, geprüfte Großhändler, Modebeschaffung, Restposten Markenkleidung, Textil Großhandel',
   'pack' => 'Pack',
   'series' => 'Serie',
+  'Zoom' => 'Vergrößern',
+  'Close' => 'Schließen',
+  'Double-tap or pinch to zoom · drag to pan' => 'Doppeltippen oder zwei Finger zum Zoomen · ziehen zum Bewegen',
 );

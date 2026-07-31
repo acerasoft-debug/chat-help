@@ -27,4 +27,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'moda por grosso, marketplace moda B2B, roupa de designer por grosso, roupa de marca por grosso, fornecedor boutique, comprar roupa por grosso Europa, grossistas verificados, sourcing de moda, stocks roupa de marca, grossista têxtil',
   'pack' => 'pacote',
   'series' => 'série',
+  'Zoom' => 'Zoom',
+  'Close' => 'Fechar',
+  'Double-tap or pinch to zoom · drag to pan' => 'Toque duplo ou pinça para ampliar · arraste para mover',
 );

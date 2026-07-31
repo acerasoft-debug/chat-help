@@ -27,4 +27,7 @@ return array (
   'wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing' => 'μόδα χονδρική, αγορά μόδας B2B, επώνυμα ρούχα χονδρική, ρούχα σχεδιαστών χονδρική, προμηθευτής μπουτίκ, αγορά ρούχων χονδρική Ευρώπη, πιστοποιημένοι χονδρέμποροι, sourcing μόδας, στοκ επώνυμων ρούχων, χονδρική υφασμάτων',
   'pack' => 'πακέτο',
   'series' => 'σειρά',
+  'Zoom' => 'Μεγέθυνση',
+  'Close' => 'Κλείσιμο',
+  'Double-tap or pinch to zoom · drag to pan' => 'Διπλό πάτημα ή τσίμπημα για μεγέθυνση · σύρετε για μετακίνηση',
 );

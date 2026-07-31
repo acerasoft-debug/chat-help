@@ -93,6 +93,20 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php elseif($mode==='offer'): ?><span class="modetag offer"><?= t('Open to offers') ?></span><?php endif; ?>
         <?php if(!empty($p['verified'])): ?><span class="gal-vbadge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
       </div>
+      <?php if($images && $MEMBER): ?>
+      <!-- Premium zoom katmanlari. Bir toptanci kumasin dokusunu, dikisi ve baski
+           kalitesini gormek ister; kucuk bir kart fotografi bunu gostermez. Masaustunde
+           imlecin altindaki bolge sagdaki panelde orijinal cozunurlukte acilir,
+           dokunmatikte tam ekran pinch-zoom. Kaynak HER ZAMAN orijinal dosya.
+           Sadece uyelere: fotograflar zaten freischaltung ile kapali. -->
+      <div class="vzoom-lens" id="vzoomLens" aria-hidden="true"></div>
+      <div class="vzoom-panel" id="vzoomPanel" aria-hidden="true"><div class="vzoom-surface" id="vzoomSurface"></div><span class="vzoom-badge" id="vzoomBadge">1:1</span></div>
+      <div class="vzoom-full" id="vzoomFull" role="dialog" aria-modal="true" aria-label="<?= htmlspecialchars(t('Zoom')) ?>">
+        <button class="vzoom-close" id="vzoomClose" aria-label="<?= htmlspecialchars(t('Close')) ?>">&times;</button>
+        <div class="vzoom-stage" id="vzoomStage"><img id="vzoomFullImg" alt="<?= htmlspecialchars($p['name']) ?>" draggable="false"></div>
+        <div class="vzoom-bar"><b id="vzoomPct">100%</b><i id="vzoomTip"><?= htmlspecialchars(t('Double-tap or pinch to zoom · drag to pan')) ?></i></div>
+      </div>
+      <?php endif; ?>
       <?php if($images): ?>
       <div class="gal-thumbs" id="gal-thumbs">
         <?php foreach($images as $i=>$img): ?>
@@ -554,6 +568,157 @@ document.addEventListener('keydown', function(e){
   if(e.key==='ArrowLeft') galGo(-1);
   if(e.key==='ArrowRight') galGo(1);
 });
+
+/* ── Büyüteç ────────────────────────────────────────────────────────────────
+   Masaüstü: imleç lensi + yanda 1:1 panel. Dokunmatik/tık: tam ekran, pinch ve
+   çift-dokunuşla yakınlaştırma, sürükleyerek gezinme.
+   Panel ölçeği görüntünün DOĞAL boyutuna göre hesaplanır; ekrandaki küçültülmüş
+   kopyayı büyütmek bulanık verir, oysa asıl amaç dokuyu göstermek. */
+(function(){
+  var main   = document.getElementById('gal-main-img');
+  var lens   = document.getElementById('vzoomLens');
+  var panel  = document.getElementById('vzoomPanel');
+  var surf   = document.getElementById('vzoomSurface');
+  var badge  = document.getElementById('vzoomBadge');
+  var full   = document.getElementById('vzoomFull');
+  var stage  = document.getElementById('vzoomStage');
+  var fimg   = document.getElementById('vzoomFullImg');
+  var pct    = document.getElementById('vzoomPct');
+  if(!main || !full) return;           // üye değilse katmanlar basılmaz
+
+  var LENS = 150;                       // lens kenarı (px)
+  var nat  = {w:0,h:0};                 // aktif görüntünün doğal boyutu
+
+  function measure(){
+    nat.w = main.naturalWidth || 0;
+    nat.h = main.naturalHeight || 0;
+  }
+  measure();
+  main.addEventListener('load', measure);
+
+  /* Masaüstü lens+panel. Doğal boyut okunamadıysa (henüz yüklenmediyse) hiç
+     açma: yanlış ölçekli bir panel göstermektense hiç göstermemek doğru. */
+  function lensMove(e){
+    if(!nat.w || panel.offsetParent === null) return;
+    var r = main.getBoundingClientRect();
+    var x = e.clientX - r.left, y = e.clientY - r.top;
+    if(x < 0 || y < 0 || x > r.width || y > r.height){ lensOff(); return; }
+
+    var half = LENS/2;
+    var lx = Math.max(0, Math.min(x - half, r.width  - LENS));
+    var ly = Math.max(0, Math.min(y - half, r.height - LENS));
+    lens.style.width = lens.style.height = LENS+'px';
+    lens.style.transform = 'translate('+lx+'px,'+ly+'px)';
+    lens.classList.add('on');
+
+    /* Panelde 1:1: doğal piksel / ekran pikseli. */
+    var scale = nat.w / r.width;
+    var pw = panel.clientWidth, ph = panel.clientHeight;
+    surf.style.backgroundImage = 'url("'+main.src+'")';
+    surf.style.backgroundSize  = (r.width*scale)+'px '+(r.height*scale)+'px';
+    surf.style.backgroundPosition =
+      (-(lx*scale) + (pw - LENS*scale)/2)+'px '+
+      (-(ly*scale) + (ph - LENS*scale)/2)+'px';
+    panel.classList.add('on');
+    if(badge) badge.textContent = scale >= 1 ? '1:1' : Math.round(scale*100)+'%';
+  }
+  function lensOff(){ lens.classList.remove('on'); panel.classList.remove('on'); }
+
+  /* Kaba işaretçide (parmak) lens anlamsız — sadece tam ekran. */
+  if(window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+    main.addEventListener('mousemove', lensMove);
+    main.addEventListener('mouseleave', lensOff);
+  }
+
+  /* ── Tam ekran ── */
+  var z=1, tx=0, ty=0, base=1;
+  function apply(){
+    fimg.style.transform = 'translate('+tx+'px,'+ty+'px) scale('+z+')';
+    if(pct) pct.textContent = Math.round(z*base*100)+'%';
+  }
+  function clamp(){
+    /* Görüntüyü sahnenin dışına kaçırma: her eksende taşma kadar izin ver. */
+    var r = fimg.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    var ox = Math.max(0, (r.width  - s.width )/2);
+    var oy = Math.max(0, (r.height - s.height)/2);
+    tx = Math.max(-ox, Math.min(ox, tx));
+    ty = Math.max(-oy, Math.min(oy, ty));
+  }
+  function openFull(){
+    if(galIdx >= galN) return;          // marka kartı, fotoğraf değil
+    fimg.src = galImgs[galIdx];
+    z=1; tx=0; ty=0;
+    full.classList.add('on');
+    document.body.style.overflow='hidden';
+    fimg.onload = function(){
+      var r = fimg.getBoundingClientRect();
+      base = (fimg.naturalWidth && r.width) ? (r.width/fimg.naturalWidth) : 1;
+      apply();
+    };
+    apply();
+  }
+  function closeFull(){
+    full.classList.remove('on');
+    document.body.style.overflow='';
+  }
+  main.addEventListener('click', openFull);
+  document.getElementById('vzoomClose').addEventListener('click', closeFull);
+  full.addEventListener('click', function(e){ if(e.target === full || e.target === stage) closeFull(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && full.classList.contains('on')) closeFull(); });
+
+  /* Tekerlek: imlecin altındaki nokta sabit kalacak şekilde yakınlaştır. */
+  stage.addEventListener('wheel', function(e){
+    if(!full.classList.contains('on')) return;
+    e.preventDefault();
+    var prev=z;
+    z = Math.max(1, Math.min(6, z * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+    var s = stage.getBoundingClientRect();
+    var cx = e.clientX - s.left - s.width/2  - tx;
+    var cy = e.clientY - s.top  - s.height/2 - ty;
+    tx -= cx*(z/prev - 1); ty -= cy*(z/prev - 1);
+    clamp(); apply();
+  }, {passive:false});
+
+  /* Sürükle (fare + tek parmak) */
+  var drag=false, sx=0, sy=0;
+  stage.addEventListener('pointerdown', function(e){
+    if(!full.classList.contains('on') || e.pointerType==='touch' && pts.size>1) return;
+    drag=true; sx=e.clientX-tx; sy=e.clientY-ty;
+    stage.classList.add('dragging'); stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', function(e){
+    if(!drag || pts.size>1) return;
+    tx=e.clientX-sx; ty=e.clientY-sy; clamp(); apply();
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    stage.addEventListener(ev, function(){ drag=false; stage.classList.remove('dragging'); });
+  });
+
+  /* Pinch: iki parmak arası mesafe oranı kadar ölçekle. */
+  var pts = new Map(), pd0=0, pz0=1;
+  stage.addEventListener('pointerdown', function(e){ pts.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pts.size===2){ pd0=dist(); pz0=z; } });
+  stage.addEventListener('pointermove', function(e){
+    if(!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2 && pd0>0){ z = Math.max(1, Math.min(6, pz0 * (dist()/pd0))); clamp(); apply(); }
+  });
+  ['pointerup','pointercancel'].forEach(function(ev){
+    stage.addEventListener(ev, function(e){ pts.delete(e.pointerId); if(pts.size<2) pd0=0; });
+  });
+  function dist(){
+    var a=Array.from(pts.values()); if(a.length<2) return 0;
+    return Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y);
+  }
+
+  /* Çift dokunuş / çift tık: 1x ↔ 2.5x */
+  var lastTap=0;
+  stage.addEventListener('pointerup', function(e){
+    if(pts.size) return;
+    var now = e.timeStamp;
+    if(now - lastTap < 320){ z = (z>1.05) ? 1 : 2.5; tx=0; ty=0; clamp(); apply(); lastTap=0; }
+    else lastTap = now;
+  });
+})();
 </script>
 <?php endif; ?>
 <script>
