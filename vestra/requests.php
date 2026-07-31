@@ -19,6 +19,31 @@ $userReqs=array_reverse($userReqs);
 $offersByRef=[]; $fo=__DIR__.'/data/request_offers.csv';
 if(is_readable($fo) && ($h=@fopen($fo,'r'))){ $head=fgetcsv($h, null, ',', '"', '\\'); while(($row=fgetcsv($h, null, ',', '"', '\\'))!==false){ if($head){ $n=count($head); $row=array_slice(array_pad($row,$n,''),0,$n); $o=array_combine($head,$row); $offersByRef[$o['request_ref']??''][]=$o; } } fclose($h); }
 
+/* Example requests — shown so a new board is not an empty page, and marked as examples on
+   every card. They are NOT written to requests.csv and NOT counted in the stats above: a
+   seller who answers a request discloses their company, e-mail, unit price and delivery
+   terms into request_offers.csv, and against an invented buyer there is no address for any
+   of it to reach. So these carry no "Make an offer" button at all — they demonstrate what a
+   good request looks like and point the reader at the form. Real requests always render
+   above them. Delete this array once the board carries genuine traffic. */
+$exampleReqs = [
+  ['title'=>t('Looking for Italian-made polo piqués, 300–500 pcs'),
+   'cat'=>'Polos','qty'=>'300–500','target'=>'55–70 €','country'=>'IT',
+   'notes'=>t('Multi-brand store, two locations. Prefer mixed-size packs, S–XXL, classic colours plus one seasonal. Need invoice with full EU trail and delivery before the next season set.')],
+  ['title'=>t('Designer t-shirts for a summer capsule — mixed brands'),
+   'cat'=>'T-Shirts','qty'=>'200+','target'=>'45–65 €','country'=>'ES',
+   'notes'=>t('Boutique on the coast, high summer footfall. Open to several brands in one order if the assortment works. Photos and article codes needed before we commit.')],
+  ['title'=>t('Premium denim, Italian sizing 44–54'),
+   'cat'=>'Jeans','qty'=>'120–200','target'=>'120–160 €','country'=>'DE',
+   'notes'=>t('Two stores in southern Germany. Distressed and clean washes both sell for us; would take a mixed series. Series of 10 per model is fine.')],
+  ['title'=>t('Sweatshirts & hoodies for autumn — streetwear labels'),
+   'cat'=>'Hoodies & Sweatshirts','qty'=>'150–300','target'=>'80–110 €','country'=>'FR',
+   'notes'=>t('Buying for autumn/winter. Interested in logo-forward pieces that photograph well online. Can take a first test order and repeat if sell-through holds.')],
+  ['title'=>t('Swim shorts and beachwear, immediate delivery'),
+   'cat'=>'Swim Shorts','qty'=>'250','target'=>'40–60 €','country'=>'GR',
+   'notes'=>t('Island resort shops, season already running, so stock on hand matters more than price. Would confirm the same week if photos and availability check out.')],
+];
+
 $openCount=count($userReqs);
 $offerCount=array_sum(array_map('count',$offersByRef));
 $cats=vestra_cats();
@@ -58,7 +83,7 @@ function vestra_req_age(string $ts): string {
       <h3 class="blocktitle"><?= t('Open requests') ?> <span class="hint">— <?= t('newest first') ?></span></h3>
       <div class="reqlist">
         <?php if(!$userReqs): ?>
-          <div class="empty" style="padding:44px 20px"><?= t('No open requests yet — be the first: post what you\'re looking for and verified sellers will come to you.') ?></div>
+          <div class="empty" style="padding:26px 20px"><?= t('No open requests yet — be the first: post what you\'re looking for and verified sellers will come to you.') ?></div>
         <?php endif; ?>
         <?php foreach($userReqs as $r):
           $ref=$r['ref']??'';
@@ -118,6 +143,35 @@ function vestra_req_age(string $ts): string {
             <?php endif; ?>
           </div>
         <?php endforeach; ?>
+
+        <?php if($exampleReqs): ?>
+          <div class="exhead">
+            <span class="exline"></span>
+            <span class="exlabel"><?= t('What a good request looks like') ?></span>
+            <span class="exline"></span>
+          </div>
+          <p class="hint" style="margin:0 0 12px;font-size:12.5px;line-height:1.55">
+            <?= t('These are illustrations, not live buyers — they show the detail that gets a fast, accurate quote. Post yours and it appears above them.') ?>
+          </p>
+          <?php foreach($exampleReqs as $x): ?>
+            <div class="reqcard isexample">
+              <div class="reqtop">
+                <span class="status example"><?= t('Example') ?></span>
+              </div>
+              <div class="reqtitle"><?= htmlspecialchars($x['title']) ?></div>
+              <div class="reqmeta">
+                <span><?= htmlspecialchars(t($x['cat'])) ?></span>
+                <span><?= t('Qty') ?> <b><?= htmlspecialchars($x['qty']) ?></b></span>
+                <span><?= t('Target') ?> <b><?= htmlspecialchars($x['target']) ?></b></span>
+                <span>📍 <?= htmlspecialchars($x['country']) ?></span>
+              </div>
+              <p class="hint" style="margin:8px 0 0;line-height:1.5"><?= htmlspecialchars($x['notes']) ?></p>
+              <div class="reqact">
+                <a class="btn btn-o btn-sm" href="#post"><?= t('Post a request like this') ?></a>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
     </div>
 

@@ -725,3 +725,13 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .lockside{text-align:center;padding:24px 18px 20px}
 .lockside svg{margin:0 auto 10px;display:block}
 .lockside .filter-title{justify-content:center;text-align:center;margin-bottom:6px}
+
+/* Sourcing board — example requests. Visibly a demonstration, never a live buyer:
+   no offer button, muted card, and a divider that separates them from real
+   requests, which always render above. */
+.exhead{display:flex;align-items:center;gap:12px;margin:26px 0 10px}
+.exline{flex:1;height:1px;background:var(--line)}
+.exlabel{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--mut);white-space:nowrap}
+.reqcard.isexample{opacity:.9;border-style:dashed}
+.reqcard.isexample .reqtitle{color:var(--mut)}
+.status.example{background:rgba(169,127,44,.14);color:var(--acc);border:1px solid rgba(169,127,44,.34)}

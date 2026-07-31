@@ -13,6 +13,27 @@ $LOGGED    = !empty($_SESSION['uid']);
 $panelHref = ($_SESSION['utype'] ?? '') === 'seller' ? '/seller' : '/buyer';
 require_once __DIR__.'/inc/i18n.php';
 
+/* Hero film — a slow cross-fade of real catalogue photography behind the headline.
+   Frames are drawn from the live catalogue rather than a stock clip: they are the
+   operator's own product shots, so there is no licensing question and no external
+   host to fetch from (the site's CSP would block one anyway). It is an image
+   sequence, not an <video>, which keeps it to a few hundred KB, needs no codec and
+   still reads as a fashion film. Falls back silently to the plain hero if the
+   catalogue has no photos yet. */
+$HERO_FRAMES = [];
+if (@include_once __DIR__.'/inc/products.php') {
+    $seen = [];
+    foreach (vestra_products() as $hp) {
+        $b = (string)($hp['brand'] ?? '');
+        if ($b === '' || isset($seen[$b])) continue;          // one frame per brand — variety, not repetition
+        $im = !empty($hp['images'][0]) ? $hp['images'][0] : (function_exists('vestra_primary_image') ? vestra_primary_image($hp) : '');
+        if (!$im || $im[0] !== '/' || !is_file(__DIR__.$im)) continue;
+        $seen[$b] = true;
+        $HERO_FRAMES[] = $im;
+        if (count($HERO_FRAMES) >= 6) break;
+    }
+}
+
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
 $lang  = vlang();
 
@@ -290,6 +311,57 @@ $_kw = [
     padding:7px 15px;border-radius:999px;margin-bottom:26px;background:rgba(201,168,106,.06)}
   .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pulse 2.4s infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,168,106,.5)}70%{box-shadow:0 0 0 8px rgba(201,168,106,0)}100%{box-shadow:0 0 0 0 rgba(201,168,106,0)}}
+  /* Hero film: each frame fades up, drifts slowly, fades out; the sequence loops.
+     Total cycle = frames x 6s, and each frame's delay is staggered by 6s so exactly
+     one is visible at a time. Sits behind everything (z-index 0) with the content
+     lifted above it. */
+  .hero.hasfilm{padding:120px 0 92px}
+  .hero.hasfilm>.wrap{position:relative;z-index:2}
+  .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
+  .herofilm .hf{position:absolute;inset:0;background-size:cover;background-position:center 22%;
+    opacity:0;transform:scale(1.06);will-change:opacity,transform;
+    animation:heroFilm var(--hfdur,36s) cubic-bezier(.4,0,.2,1) infinite}
+  /* Each frame owns 1/N of the cycle and the stagger is 6s, so the visible slice has to
+     be expressed as a share of the whole: N frames x 6s = cycle, one frame's slot = 100/N%.
+     Written for the 6-frame case and overridden below when there are fewer, because a
+     fixed 18% window would leave the hero empty between frames on a short catalogue. */
+  @keyframes heroFilm{
+    0%{opacity:0;transform:scale(1.06)}
+    4%{opacity:.55}
+    14%{opacity:.55}
+    18%{opacity:0;transform:scale(1.13)}
+    100%{opacity:0;transform:scale(1.13)}
+  }
+  .herofilm[style*="24s"] .hf{animation-name:heroFilm4}
+  @keyframes heroFilm4{
+    0%{opacity:0;transform:scale(1.06)}
+    6%{opacity:.55} 21%{opacity:.55}
+    27%{opacity:0;transform:scale(1.13)}
+    100%{opacity:0;transform:scale(1.13)}
+  }
+  .herofilm[style*="30s"] .hf{animation-name:heroFilm5}
+  @keyframes heroFilm5{
+    0%{opacity:0;transform:scale(1.06)}
+    5%{opacity:.55} 17%{opacity:.55}
+    22%{opacity:0;transform:scale(1.13)}
+    100%{opacity:0;transform:scale(1.13)}
+  }
+  .herofilm[style*="18s"] .hf{animation-name:heroFilm3}
+  @keyframes heroFilm3{
+    0%{opacity:0;transform:scale(1.06)}
+    8%{opacity:.55} 27%{opacity:.55}
+    35%{opacity:0;transform:scale(1.13)}
+    100%{opacity:0;transform:scale(1.13)}
+  }
+  /* The veil is what keeps the headline legible over any photograph — without it the
+     contrast swings with every frame and the type becomes unreadable on the light ones. */
+  .herofilm-veil{position:absolute;inset:0;
+    background:linear-gradient(to bottom,rgba(14,14,17,.86) 0%,rgba(14,14,17,.66) 42%,rgba(14,14,17,.93) 100%),
+               radial-gradient(62% 58% at 50% 34%,rgba(201,168,106,.16),transparent 70%)}
+  @media(prefers-reduced-motion:reduce){
+    .herofilm .hf{animation:none;opacity:0;transform:none}
+    .herofilm .hf:first-child{opacity:.5}
+  }
   .hero h1{font-size:clamp(34px,6.2vw,62px);margin:0 0 20px}
   .hero>.wrap>p{font-size:clamp(16px,2.4vw,20px);color:var(--mut);max-width:630px;margin:0 auto 36px}
   .btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -433,7 +505,15 @@ $_kw = [
 </header>
 
 <span id="top"></span>
-<section class="hero">
+<section class="hero<?= $HERO_FRAMES ? ' hasfilm' : '' ?>">
+  <?php if($HERO_FRAMES): ?>
+  <div class="herofilm" aria-hidden="true" style="--hfdur:<?= count($HERO_FRAMES) * 6 ?>s">
+    <?php foreach($HERO_FRAMES as $i=>$f): ?>
+      <div class="hf" style="background-image:url('<?= htmlspecialchars($f) ?>');animation-delay:<?= $i * 6 ?>s"></div>
+    <?php endforeach; ?>
+    <div class="herofilm-veil"></div>
+  </div>
+  <?php endif; ?>
   <div class="wrap">
     <div class="pill"><span class="dot"></span> <?= $t['pill'] ?></div>
     <h1><?= $t['h1'] ?></h1>

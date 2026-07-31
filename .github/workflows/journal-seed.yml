@@ -1,0 +1,66 @@
+name: Journal — yeni makaleleri yayına al
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# inc/journal_seed.json'daki makaleleri data/journal.json'a aktarir.
+#
+# journal.php bu tohumlamayi SADECE hic yayinlanmis makale yokken calistirir
+# (!vestra_journal_published()), yani dosyaya yeni makale eklemek tek basina
+# canliya cikarmaz -- admin panelindeki dugmeye basmak ya da bu isi calistirmak
+# gerekir. Sayfa her goruntulendiginde ~100KB'lik tohum dosyasini okumamak icin
+# tetikleyici bilincli olarak elde birakildi.
+#
+# vestra_journal_seed_starters() idempotent: ayni baslik varsa tekrar eklemez,
+# sadece eksik dil cevirilerini geri doldurur ve admin'in duzenledigi metne
+# dokunmaz. Iki kez calistirmak zararsizdir.
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tohumla
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/vestra_jseed.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/journal.php";
+            foreach (['vestra_journal_seed_starters','vestra_journal_published','vestra_journal_starters'] as $fn)
+              if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+
+            $before = count(vestra_journal_published());
+            $seeds  = vestra_journal_starters();
+            echo "tohum dosyasindaki makale: ".count($seeds)."\n";
+            echo "yayindaki makale (once) : {$before}\n";
+
+            $n = vestra_journal_seed_starters();
+            clearstatcache();
+            $after = count(vestra_journal_published());
+            echo "degisen kayit           : {$n}\n";
+            echo "yayindaki makale (sonra): {$after}\n\n";
+
+            /* Her makalenin hangi dillerde oldugunu yaz: eksik ceviri sessizce
+               Ingilizce'ye dusuyor, bu yuzden gorunur olmasi lazim. */
+            $want = ['de','es','fr','it'];
+            foreach (vestra_journal_published() as $a) {
+              $have = array_keys(array_filter((array)($a['i18n'] ?? [])));
+              $miss = array_values(array_diff($want, $have));
+              printf("  %-58s %s%s\n", mb_substr((string)($a['title'] ?? '?'),0,58),
+                     'en+'.implode(',', $have), $miss ? '   EKSIK: '.implode(',', $miss) : '');
+            }
+            if ($after < $before) { fwrite(STDERR,"\nHATA: makale sayisi azaldi!\n"); exit(1); }
+            echo "\nTAMAM\n";
+            PHPEOF
+            php -l /tmp/vestra_jseed.php
+            php /tmp/vestra_jseed.php; RC=$?
+            rm -f /tmp/vestra_jseed.php
+            exit $RC
