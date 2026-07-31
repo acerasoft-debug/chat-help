@@ -207,3 +207,23 @@ the plain tracksuit set at 245.00 and the patterned/monogram piece at 290.00.
 Which is which is only visible in the photo, so this folder in particular must be
 reviewed on its contact sheet before any product is built — a wrong guess here is
 a 45 EUR error per unit, not just a wrong label.
+
+## Pricing added 2026-07-31 (later)
+
+| Brand | Group | Price | Status |
+|---|---|---|---|
+| Fendi | T-shirts | **79.90** | folder fetched, nothing added |
+| Givenchy | T-shirts | **79.90** | CORRECTED from 80.00, applied to the 24 live rows |
+| Valentino | (all) | **59.90** | folder fetched, nothing added |
+| Gucci | T-shirts | **99.90** | folder fetched, nothing added |
+| Gucci | Polos | **120.00** | folder fetched, nothing added |
+
+Givenchy t-shirts went in at 80.00 before the operator gave 79.90; corrected in
+place via set-prices rather than left to drift.
+
+Folders now on the server with NO products yet: marcelo-burlon, gcds, fendi-sweat,
+fendi-tshirt, valentino, gucci. All six are in contact-sheets.yml FOLDERS so one
+run produces every sheet.
+
+Valentino was given a single price with no category split, so its sheet also has
+to say which items are t-shirts and which are something else before rows exist.
