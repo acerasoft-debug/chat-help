@@ -1,0 +1,7 @@
+[
+  { "match": "blm-bwb640410",      "expect": 1, "price": "55.00", "_why": "BALMAIN swim shorts, black/white stripe" },
+  { "match": "blm-bwb64041001",    "expect": 1, "price": "55.00", "_why": "BALMAIN swim shorts, black/white" },
+  { "match": "blm-bwb64041062815", "expect": 1, "price": "55.00", "_why": "BALMAIN swim shorts, red stripe drawstring" },
+  { "match": "bur-8015515",        "expect": 1, "price": "49.90", "_why": "Burberry swim shorts, PLAIN light blue — shorts-sweats-01 tile 22" },
+  { "match": "bur-8017294",        "expect": 1, "price": "54.90", "_why": "Burberry swim shorts, CHECK pattern — shorts-sweats-01 tile 24. The plain/patterned split maps onto these two exactly" }
+]
