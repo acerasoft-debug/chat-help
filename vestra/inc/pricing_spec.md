@@ -251,3 +251,79 @@ margin loss, not a cosmetic error.
 
 What is missing is a per-product category setter: categories.yml only merges a
 whole category into another, which cannot move five specific rows out of 35.
+
+RESOLVED 2026-07-31: `set-product.yml` now does exactly that. It takes a JSON
+file of `{match, expect, cat, price, moq, sizes, status}` rows, resolves each
+`match` against id / SKU / image filename / product name (punctuation and case
+ignored, because the same model code appears as `S74LB0764`, `dsq-s74lb0764.jpg`
+and `S74LB0764` in three different fields), and refuses the whole run if any row
+matches a different number of products than `expect` says it should.
+
+`expect` is the important part. `BWB410400` alone covers four separate colourways
+in the shorts-sweats folder; a tool that silently changed all four when the
+operator meant one would reproduce the original bug in a new place.
+
+## DSQUARED2 (2026-07-31)
+
+| Group | Price | Note |
+|---|---|---|
+| Jeans | **150.00 – 190.00** | "modele göre" — per model, rule not yet given |
+| Jeans shorts (denim) | **125.00 – 130.00** | per model, same open question |
+| Shorts (jersey / sweat) | **49.90** | given alongside the t-shirt tier |
+| Sweatshirts | **90.00** | DSQUARED/SWEAT folder |
+| T-shirts | **49.90** | DSQUARED/T-SHIRT folder |
+| Polos | **64.00** | DSQUARED/T-SHIRT folder |
+
+Two separate shorts prices were given and they do NOT contradict each other; they
+land on different products. 125–130 came in the jeans context (denim shorts);
+49.90 came with the t-shirt tier (jersey/track shorts). Recorded that way. If
+both were meant for the same item, the later number wins and this needs saying.
+
+The two ranges are the open item. A range is not a price: something has to decide
+which model is 150 and which is 190. That is a margin decision, not something a
+photo settles, so it is not being guessed — see "Open question" below.
+
+## DSQUARED2 sizing — VERIFIED
+
+Italian sizing, confirmed against published DSQUARED2 charts (static.webshopapp
+jeans size PDF, tradeinn, e-Outlet, LookSize):
+
+| IT | 42 | 44 | 46 | 48 | 50 | 52 | 54 |
+|---|---|---|---|---|---|---|---|
+| US waist | 32 | 34 | 36 | 38 | 40 | 42 | 44 |
+
+Note this is offset from D&G: DSQ2 IT 44 = US 34, D&G IT 44 = waist 28–29. The
+two brands' jeans must NOT share a size run.
+
+## Open question — which DSQ model takes which price
+
+The operator gave `150-190` for jeans and `125-130` for denim shorts, "modele
+göre". Filenames are bare model codes (`S74LB0764`), and DSQUARED2's code scheme
+is not publicly documented, so the code cannot be mapped to a price tier.
+
+Interim rule applied, stated openly so it can be overridden in one run:
+
+    plain / clean wash          -> low end  (jeans 150, denim shorts 125)
+    distressed, painted, patched,
+    heavily treated             -> high end (jeans 190, denim shorts 130)
+
+This is readable from the contact sheet and matches how DSQUARED2 actually prices
+its own range, but it is an assumption. `set-product.yml` can re-tier any subset
+by model code once the operator gives the real split.
+
+## Givenchy — REPRICED 2026-07-31 (supersedes the Fendi tier)
+
+| Group | Was | Now |
+|---|---|---|
+| T-shirts | 79.90 | **69.90** |
+| Polos | 110.00 | **99.90** |
+| Sweatshirts | 125.00 | **120.00** |
+| Tracksuit set | — | **190.00** |
+
+Givenchy was originally put on Fendi's tier because the operator said "givenchy de
+ayni fiyat fendi ile". That is now superseded: Givenchy has its own, lower tier.
+The 24 live Givenchy t-shirt rows are at 79.90 and must come down to 69.90.
+
+Fendi keeps its own numbers: t-shirt 79.90, polo 110.00, sweatshirt 125.00,
+tracksuit set 245.00, patterned/monogram 290.00. Note the two brands' tracksuit
+sets are now 55 EUR apart, so they must not be bulk-priced together.
