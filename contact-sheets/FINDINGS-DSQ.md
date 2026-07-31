@@ -86,3 +86,43 @@ Not invented, not guessed, not added:
 
 The tracksuit set is the one worth a decision soonest — it is a complete outfit
 sitting unpriced while its components' prices are known.
+
+---
+
+# Applied — 2026-07-31
+
+| Batch | Rows | Result |
+|---|---|---|
+| `dsq-all.json` | 46 | **added**, catalogue 145 -> 191 |
+| `brands-verified.json` | 70 | **added**, catalogue 191 -> 261 |
+| `balmain-cats.json` | 5 | **applied** — 3 polos, 2 sweatshirts moved out of T-Shirts |
+
+BALMAIN is now fully verified against both its sheets. balmain-01 tiles 19, 23
+and 24 are polos; tiles 17 and 18 are sweatshirts; every other image across
+balmain-01 and balmain-02 is genuinely a t-shirt. 29 images, 29 accounted for.
+
+The BALMAIN correction took three attempts and every failure was the guard doing
+its job rather than a bug:
+
+1. `expect: 2` on `XH1GB005` — rejected. Exact-SKU match beats substring, so the
+   bare code resolves to one row and never also to `XH1GB005 BB04`.
+2. `XH16B005 BB04` — rejected, zero matches. Reading balmain-01 against its
+   manifest showed why: the file is `balmain-xh16b005.jpg`. There is no BB04
+   variant of that code; BB04 belongs to `XH1EF000` and `XH1GB005`.
+3. `XH16B005` — applied.
+
+Nothing was written on either failed attempt. A tool that had "helpfully" matched
+the closest row instead would have silently moved the wrong product.
+
+## Still unpriced across all brands
+
+| Brand | Item |
+|---|---|
+| DSQUARED2 | chino trousers x2, cotton cargo shorts, hooded tracksuit set |
+| Fendi | puffer gilet |
+| Givenchy | joggers |
+| Gucci | sweatshirts, hoodies, tracksuits, shirt, cardigan, joggers (~9) |
+| Valentino | polos x2, hoodies x2, tracksuit |
+
+Valentino was given one number (59.90) with no category split; it has been
+applied to that folder's five t-shirts only.
