@@ -53,7 +53,13 @@ jobs:
             $from = trim((string)getenv("C_FROM"));
             $to   = trim((string)getenv("C_TO"));
             $dry  = strtolower(trim((string)getenv("C_DRY"))) !== 'false';
+            /* Yazma islemleri SADECE listings.json'a yapilabilir; tohum urunler
+               products.php'nin icinde kodla gelir. Ama DENETIM ikisini de gormeli:
+               onceki audit yalnizca listings.json'a bakti ve tam bu yuzden
+               amiri-core-polo'yu (tohum urun, Polos disinda duruyordu) kacirdi ve
+               "0 celiski" diye rapor verdi. */
             $all  = vestra_listings();
+            $seed = function_exists('vestra_seed_catalog') ? vestra_seed_catalog() : [];
 
             /* Kategori dagilimi: ad, urun sayisi, canli/bekleyen ayrimi, markalar.
                Ayni ismin bosluk/buyuk-kucuk harf varyantlari ayri satir olarak
