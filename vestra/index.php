@@ -28,8 +28,8 @@ if (@include_once __DIR__.'/inc/products.php') {
        there is colour or a print in the shot. Category order below IS the running
        order, so the sequence opens on swimwear and denim rather than on whatever
        happens to sort first. */
-    $WANT = ["Women's Swimwear", 'Jeans', 'T-Shirts', 'Swim Shorts',
-             'Hoodies & Sweatshirts', 'Polos', "Women's T-Shirts", 'Tracksuit Sets'];
+    $WANT = ["Women's Swimwear", "Women's T-Shirts", 'Jeans', 'Swim Shorts',
+             'Hoodies & Sweatshirts', "Women's Polos", 'Polos', 'T-Shirts', 'Tracksuit Sets'];
     /* Colour and print words that actually appear in these product names. A photo of
        a "Red Print T-Shirt" carries the screen; a "Logo T-Shirt, Black" does not. */
     $COLOUR = '/\b(red|pink|orange|yellow|green|blue|purple|turquoise|teal|cream|beige|camel|
@@ -45,14 +45,11 @@ if (@include_once __DIR__.'/inc/products.php') {
         $pos = array_search($cat, $WANT, true);
         if ($pos === false) continue;
         $nm = (string)($hp['name'] ?? '');
-        $brand = (string)($hp['brand'] ?? '');
-        /* Operator pin: the BALMAIN t-shirt that appears is the BLACK one. It reads as
-           the anchor shot of the sequence, so it beats the colour preference rather
-           than competing with it. */
-        $pin = ($brand === 'BALMAIN' && $cat === 'T-Shirts'
-                && preg_match('/\bblack\b/i', $nm)) ? -1 : 0;
-        /* Sort key: category order, then the pin, then colourful names before plain. */
-        $pool[] = [$pos, $pin, preg_match($COLOUR, $nm) ? 0 : 1, $cat, $im];
+        /* Sort key: category order first, then colourful names ahead of plain ones.
+           The BALMAIN black tee that used to be pinned here has been dropped -- the
+           operator asked for a second women's piece in that slot instead, and
+           Women's T-Shirts now sits second in the running order. */
+        $pool[] = [$pos, 0, preg_match($COLOUR, $nm) ? 0 : 1, $cat, $im];
     }
     usort($pool, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
 
