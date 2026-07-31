@@ -1,0 +1,68 @@
+name: (Teşhis) SEO etiketlerini canlı sayfadan doğrula
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Kontrol edilecek yol"
+        required: false
+        default: "/"
+
+permissions:
+  contents: read
+
+# Salt-okunur. Ana sayfayi 5 dilde cekip <title>, meta description, meta keywords
+# ve JSON-LD knowsAbout alanlarini OLDUGU GIBI yazar.
+#
+# Neden gerekli: "SEO guclendi" demek ile etiketin gercekten sunucudan o sekilde
+# ciktigini GORMEK ayni sey degil. $_brandKw katalogdan uretiliyor -- katalog bos
+# donerse veya vestra_products() cagrilamazsa marka anahtar kelimeleri sessizce
+# kaybolur ve sayfa yine 200 doner. Tek kanit ham HTML'dir.
+jobs:
+  seo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Meta etiketleri çek
+        env:
+          P: ${{ github.event.inputs.path }}
+        run: |
+          set -e
+          BASE="https://vestrasales.com"
+          UA="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+          PATH_="${P:-/}"
+          for L in en de fr it es; do
+            if [ "$L" = "en" ]; then URL="${BASE}${PATH_}"
+            else
+              case "$PATH_" in *\?*) URL="${BASE}${PATH_}&lang=$L";; *) URL="${BASE}${PATH_}?lang=$L";; esac
+            fi
+            echo "================================================================"
+            echo "  $L  ->  $URL"
+            echo "================================================================"
+            # Googlebot olarak cekiyoruz: uye olmayan ziyaretcinin gordugu HTML bu.
+            curl -sS -A "$UA" --max-time 30 -o /tmp/p.html "$URL" || { echo "  CEKILEMEDI"; continue; }
+            echo "  HTML boyutu: $(wc -c < /tmp/p.html) bayt"
+            echo
+            echo "  --- title ---"
+            grep -oiE '<title>[^<]*</title>' /tmp/p.html | head -1 | sed 's/^/  /'
+            echo "  --- meta description ---"
+            grep -oiE '<meta name="description" content="[^"]*"' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
+            echo "  --- meta keywords ---"
+            grep -oiE '<meta name="keywords" content="[^"]*"' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
+            echo "  --- hreflang ---"
+            grep -c 'rel="alternate" hreflang' /tmp/p.html | sed 's/^/  adet: /'
+            echo "  --- JSON-LD knowsAbout ---"
+            grep -oE '"knowsAbout":\[[^]]*\]' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
+            echo
+            # Marka anahtar kelimesi gercekten var mi? Dile gore "toptan" sozcugu degisiyor.
+            case "$L" in
+              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; *) W="wholesale";;
+            esac
+            echo "  --- kontrol ---"
+            for B in Balenciaga Burberry Gucci DSQUARED2 Valentino Fendi; do
+              if grep -qiE "$B[^,\"]*$W" /tmp/p.html; then
+                echo "  OK   \"$B $W\" sayfada var"
+              else
+                echo "  YOK  \"$B $W\" BULUNAMADI"
+              fi
+            done
+            echo
+          done
