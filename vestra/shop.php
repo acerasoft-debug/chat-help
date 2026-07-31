@@ -150,7 +150,7 @@ footer a{color:#d8bd86}
              data-price="<?= !$MEMBER ? '' : ($p['mode']==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
-            <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)">
+            <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
               <?php if($img0): ?><img src="<?= htmlspecialchars($img0) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
               <?php if($img1): ?><img src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy" class="sthumbi sthumbi-reveal"><?php endif; ?>
               <?php if(!empty($p['verified'])): ?>

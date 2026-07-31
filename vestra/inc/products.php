@@ -250,6 +250,21 @@ function vestra_brand_card($brand): string {
          . '<span class="bmono-name">'.htmlspecialchars($brand).'</span></span>';
 }
 
+/* Card background colour. Products added through the batch importer carry no 'accent'
+   field -- the seed catalogue set one by hand and nothing else ever did -- so every one of
+   them rendered with an empty gradient AND logged an "Undefined array key" warning on each
+   page view. Rather than patch a default into five call sites, resolve it here: an explicit
+   accent wins, otherwise the brand name picks a stable colour from a small palette, so two
+   products of the same brand always match and a new brand still looks deliberate. */
+function vestra_accent(array $p): string {
+    $a = trim((string)($p['accent'] ?? ''));
+    if ($a !== '') return $a;
+    $pal = ['#2f3140','#3a2f2a','#26323a','#332a38','#2a3a30','#3a3226','#2c2c34','#382a2a'];
+    $brand = strtolower(trim((string)($p['brand'] ?? '')));
+    if ($brand === '') return $pal[0];
+    return $pal[hexdec(substr(md5($brand), 0, 2)) % count($pal)];
+}
+
 /* seller-added listings (saved by the seller panel) merged into the live catalog */
 function vestra_data_dir(){ return dirname(__DIR__).'/data'; }
 function vestra_listings(){ $f=vestra_data_dir().'/listings.json'; if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; } return []; }

@@ -82,7 +82,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
         $img0 = $imgs[0] ?? ''; $img1 = $imgs[1] ?? '';
       ?>
       <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>">
-        <div class="sthumb" style="background:linear-gradient(135deg,<?= $p['accent'] ?? '#2a2b31' ?>,#0e0e11)">
+        <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
           <?php if ($img0): ?><img class="sthumbi" src="<?= htmlspecialchars($img0) ?>" alt="" loading="lazy"><?php endif; ?>
           <?php if ($img1): ?><img class="sthumbi sthumbi-reveal" src="<?= htmlspecialchars($img1) ?>" alt="" loading="lazy"><?php endif; ?>
           <?php if (!empty($p['verified'])): ?>

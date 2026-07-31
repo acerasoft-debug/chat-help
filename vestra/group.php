@@ -39,7 +39,7 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
   <div class="gwrap">
     <!-- LEFT: the pool -->
     <div>
-      <div class="ghero" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
+      <div class="ghero" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
         <?php if(!empty($p['image']) && $MEMBER): ?><img src="<?=htmlspecialchars($p['image'])?>" alt=""><?php endif; ?>
         <span class="bn"><?=htmlspecialchars($p['brand'])?></span>
       </div>

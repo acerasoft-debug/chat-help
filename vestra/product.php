@@ -96,7 +96,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <div class="gal-main" id="gal-wrap">
         <!-- Approved viewers open on the product photo; the brand card is the LAST
              slide. Non-approved viewers have no photos, so the card is all they see. -->
-        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11);flex-direction:column;gap:14px<?= $images ? ';display:none' : '' ?>">
+        <div class="gal-placeholder" id="gal-card" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11);flex-direction:column;gap:14px<?= $images ? ';display:none' : '' ?>">
           <?php echo vestra_brand_card($p['brand']); ?>
           <?php if($photosLocked): ?>
             <a href="<?= htmlspecialchars($verifyHref) ?>" style="display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(14,14,17,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);padding:7px 14px;border-radius:999px;position:relative;z-index:3">
@@ -136,7 +136,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </button>
         <?php endforeach; ?>
         <button class="gal-thumb" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
-          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= $p['accent'] ?>,#0e0e11)"></span>
+          <span style="display:block;width:100%;height:100%;background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)"></span>
         </button>
       </div>
       <?php endif; ?>
@@ -542,7 +542,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         $rimgs = ($MEMBER && !empty($rp['images']) && is_array($rp['images'])) ? array_values(array_filter($rp['images'])) : [];
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
-          <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars($rp['accent'] ?? '#2a2b31') ?>,#0e0e11)">
+          <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
             <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>

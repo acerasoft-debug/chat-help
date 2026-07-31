@@ -73,7 +73,7 @@ $isBuyer=$AUTH_USER && ($AUTH_USER['type']??'')==='buyer';
       $sellerUid=$p['seller_uid']??''; ?>
       <div class="gpool">
         <a href="/group?id=<?=urlencode($p['id'])?>" style="text-decoration:none;color:inherit;display:block">
-          <div class="top" style="background:linear-gradient(135deg,<?=$p['accent']?>,#0e0e11)">
+          <div class="top" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
             <?php if(!empty($p['image']) && $MEMBER): ?><img src="<?=htmlspecialchars($p['image'])?>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55"><?php endif; ?>
             <?php if($save>0): ?><span class="savebadge">−<?=$save?>%</span><?php endif; ?>
             <span class="bn" style="position:relative"><?=htmlspecialchars($p['brand'])?></span>
