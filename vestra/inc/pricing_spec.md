@@ -178,3 +178,24 @@ matching the existing English naming and separating men's from women's:
 These cannot be populated until the contact sheets identify which product is
 which -- the whole point of the current correction pass. Assigning them from
 folder names would repeat the original error.
+
+## Later brands (2026-07-31)
+
+| Brand | Group | Price | Status |
+|---|---|---|---|
+| Givenchy | T-shirts | 80.00 | 24 ADDED (sheet 1 verified) |
+| Givenchy | Hoodie BMJ0HC3Y7M | 125.00 | 1 ADDED (hooded in photo) |
+| Givenchy | remaining 8 files | — | sheet 2 unreviewed, NOT added |
+| Marcelo Burlon | Sweatshirts | 90.00 | folder fetched, nothing added |
+| Marcelo Burlon | T-shirts | 59.90 | folder fetched, nothing added |
+| GCDS | Sweatshirts | 90.00 | folder fetched, nothing added |
+| GCDS | T-shirts | 59.90 | folder fetched, nothing added |
+
+Givenchy follows the Fendi tier the operator set (t-shirt 80 / polo 110 /
+sweatshirt 125). Marcelo Burlon and GCDS share their own tier: sweatshirt 90,
+t-shirt 59.90.
+
+Marcelo Burlon and GCDS images are on the server but NO products exist for them:
+their contact sheets have not been generated or reviewed, and assigning a category
+from the folder name is the exact mistake being corrected. Regenerate the sheets
+(contact-sheets.yml FOLDERS), read them, then build the batches.
