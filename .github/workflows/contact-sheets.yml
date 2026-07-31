@@ -67,26 +67,40 @@ jobs:
           else echo "HATA: ImageMagick yok"; exit 1; fi
           echo "montaj komutu: $MG"
           rm -rf contact-sheets && mkdir -p contact-sheets
-          # Her klasor icin: kucult, dosya adiyla etiketle, 6x4=24'luk sayfalar yap.
+          # Her klasor icin: kucult, numarayla etiketle, 6x4=24'luk sayfalar yap.
+          #
+          # ONEMLI: onceki surum dosya adini (%f) etiket olarak basiyordu, ama 11
+          # punto ile "BALENCIAGA 674838 4A8B8" okunmuyor -- model kodunu goremeyince
+          # butun dogrulama yontemi cokuyor. Artik her kareye sadece SIRA NUMARASI
+          # basiliyor (buyuk ve net), ve ayni klasore bir .txt manifest yaziliyor:
+          # numara -> dosya adi. Gorsel + manifest birlikte okununca kod tahmine
+          # gerek kalmadan kesin cikiyor.
           for d in $FOLDERS; do
             [ -d "raw/$d" ] || continue
-            i=0; page=1; batch=""
+            i=0; page=1; batch=""; n_in_page=0
+            man="contact-sheets/${d}-01.txt"; : > "$man"
             for f in $(find "raw/$d" -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' \) | sort); do
               batch="$batch $f"
-              i=$((i+1))
+              i=$((i+1)); n_in_page=$((n_in_page+1))
+              printf '%2d  %s\n' "$n_in_page" "$(basename "$f")" >> "$man"
               if [ $((i % 24)) -eq 0 ]; then
-                $MG $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
-                  -background white -fill black -pointsize 11 \
-                  "contact-sheets/${d}-$(printf '%02d' $page).jpg"
-                echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (24 gorsel)"
-                page=$((page+1)); batch=""
+                P=$(printf '%02d' $page)
+                $MG $batch -label '%[fx:t+1]' -tile 6x4 -geometry 200x200+6+6 \
+                  -background white -fill black -pointsize 22 \
+                  "contact-sheets/${d}-${P}.jpg"
+                echo "  yazildi: ${d}-${P}.jpg + .txt (24 gorsel)"
+                page=$((page+1)); batch=""; n_in_page=0
+                man="contact-sheets/${d}-$(printf '%02d' $page).txt"; : > "$man"
               fi
             done
             if [ -n "$batch" ]; then
-              $MG $batch -label '%f' -tile 6x4 -geometry 200x200+6+6 \
-                -background white -fill black -pointsize 11 \
-                "contact-sheets/${d}-$(printf '%02d' $page).jpg"
-              echo "  yazildi: ${d}-$(printf '%02d' $page).jpg (kalan)"
+              P=$(printf '%02d' $page)
+              $MG $batch -label '%[fx:t+1]' -tile 6x4 -geometry 200x200+6+6 \
+                -background white -fill black -pointsize 22 \
+                "contact-sheets/${d}-${P}.jpg"
+              echo "  yazildi: ${d}-${P}.jpg + .txt (kalan)"
+            else
+              rm -f "$man"
             fi
           done
 
