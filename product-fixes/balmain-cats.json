@@ -1,0 +1,26 @@
+[
+  {
+    "match": "XH16B005",
+    "expect": 1,
+    "cat": "Polos",
+    "_why": "contact-sheets/balmain-01.jpg — white collared polo, stored as T-Shirts"
+  },
+  {
+    "match": "XH1GB005",
+    "expect": 2,
+    "cat": "Polos",
+    "_why": "two rows share this code (pink open-collar and navy polo); both are polos, both stored as T-Shirts. expect=2 is deliberate — a bare XH1GB005 also matches XH1GB005 BB04"
+  },
+  {
+    "match": "WH1JQ040B139MAI",
+    "expect": 1,
+    "cat": "Hoodies & Sweatshirts",
+    "_why": "red sweat worn with matching track shorts"
+  },
+  {
+    "match": "WH1JQ055275JGFQ",
+    "expect": 1,
+    "cat": "Hoodies & Sweatshirts",
+    "_why": "white crewneck sweat with yellow sleeve stripes"
+  }
+]
