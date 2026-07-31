@@ -2,7 +2,8 @@ name: (Lead) Kampanya e-postası gönder (gerçek — Les Garage de Paris)
 
 # Elle tetiklenir. Listedeki UYGUN prospect'lere premium logo-duvarlı kampanyayı
 # gönderir (builder: inc/notify.php · vestra_campaign_preview). Dil MÜŞTERİNİN
-# ÜLKESİNE göre: Hollanda → Flemenkçe (nl), diğer herkes → İngilizce (en).
+# ÜLKESİNE göre otomatik seçilir (Hollanda→nl, Fransa→fr, İtalya→it, Portekiz→pt,
+# Çekya→cs, Polonya→pl, İspanya→es, Yunanistan→el), listede olmayan her ülke → İngilizce (en).
 #
 # Uygunluk kuralları (hepsi sağlanmalı):
 #   • geçerli e-posta var
@@ -33,8 +34,36 @@ on:
         description: "Sadece premium marka satan leadlere gönder (true/false)"
         required: false
         default: "false"
+      min_brands:
+        # premium_only tek bir marka eslesmesiyle yetiniyor; bu ise TEK MARKALI bir
+        # bayiyi de gecirir. Operator "sadece karisik marka satanlar" dedigi icin
+        # esik ayrilabilir hale getirildi: 2 = sitesinde EN AZ IKI ayri premium marka
+        # gecen magazalar (gercek multi-brand), 0/1 = eski davranis.
+        description: "Multi-brand esigi: sitesinde en az kac AYRI premium marka gecsin (2 = sadece karisik marka satanlar)"
+        required: false
+        default: "0"
       only_emails:
         description: "Sadece bu e-posta(lar)a gönder (allowlist; virgül/boşlukla ayrılır). Boşsa normal seçim."
+        required: false
+        default: ""
+      country_filter:
+        description: "Sadece bu ülke(ler)deki leadlere gönder (virgülle ayrılabilir). Boşsa tüm ülkeler."
+        required: false
+        default: ""
+      exclude_countries:
+        description: "Bu ülke(ler)e GÖNDERME (virgülle ayrılabilir). Leadler listede kalır, sadece gönderim dışı tutulur."
+        required: false
+        default: ""
+      force_lang:
+        description: "Ülkeye bakmadan TÜM bu gönderimi bu dilde yolla (en/de/fr/it/es/nl/pt/cs/pl/el). Boşsa ülkeye göre otomatik."
+        required: false
+        default: ""
+      skip_email_regex:
+        description: "Bu regex'e uyan e-postaları atla (PCRE, örn. '/^mizzo@/') — garbled/scraper adresleri byte'larını bilmeden dışlamak için."
+        required: false
+        default: ""
+      skip_categories:
+        description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
         required: false
         default: ""
 
@@ -52,14 +81,20 @@ jobs:
           SEND_DRY: ${{ github.event.inputs.dry_run }}
           SEND_SKIP: ${{ github.event.inputs.skip_emails }}
           SEND_PREMIUM: ${{ github.event.inputs.premium_only }}
+          SEND_MIN_BRANDS: ${{ github.event.inputs.min_brands }}
           SEND_ONLY: ${{ github.event.inputs.only_emails }}
+          SEND_COUNTRY: ${{ github.event.inputs.country_filter }}
+          SEND_NOT_COUNTRY: ${{ github.event.inputs.exclude_countries }}
+          SEND_FORCE_LANG: ${{ github.event.inputs.force_lang }}
+          SEND_SKIP_RE: ${{ github.event.inputs.skip_email_regex }}
+          SEND_SKIP_CAT: ${{ github.event.inputs.skip_categories }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -69,17 +104,63 @@ jobs:
             require $home."/public_html/inc/products.php";
             require $home."/public_html/inc/leads.php";
 
+            $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
             $COUNT = (int)(getenv("SEND_COUNT") ?: 10);
             if ($COUNT < 1) $COUNT = 1;
-            if ($COUNT > 50) $COUNT = 50;            // hard cap — one batch never exceeds 50
-            $DRY = strtolower(trim((string)getenv("SEND_DRY"))) !== 'false'; // send ONLY when explicitly false
+            // Hard cap of 50 applies to REAL sends only — it exists so one accidental run can
+            // never blast the whole list. A dry-run sends nothing, and truncating it at 50 hid
+            // the rest of the queue: screening decisions need the whole list, not its head.
+            if (!$DRY && $COUNT > 50) $COUNT = 50;
             $FROM = 'Les Garage de Paris';
-            $NL = ['netherlands','the netherlands','nederland','holland','nl'];
+            // Country -> campaign language. Falls back to English for anything not listed.
+            $LANG_MAP = [
+              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'france'=>'fr',
+              'italy'=>'it','italia'=>'it',
+              'portugal'=>'pt',
+              'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
+              'poland'=>'pl','polska'=>'pl',
+              'spain'=>'es','españa'=>'es','espana'=>'es',
+              'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
+              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+            ];
+            // Multilingual countries: one country, several languages, so the COUNTRY alone can't
+            // decide. Lead rows carry no city field (vestra_leads_add drops it) — the city survives
+            // inside notes via the OSM address, so match city names there and fall back to the
+            // country's majority language when the address doesn't name a known city.
+            //
+            // Switzerland and Luxembourg are deliberately NOT here: English is the agreed
+            // language for both (widely used in business there), so they fall through to the
+            // LANG_MAP miss below and get 'en'.
+            $REGION_LANG = [
+              'belgium' => ['default'=>'nl','match'=>[
+                'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
+              ]],
+            ];
+            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','de'=>'DE/Almanca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
+            $MIN_BRANDS = (int)trim((string)getenv('SEND_MIN_BRANDS'));
             $ONLY = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_ONLY"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $ONLY[strtolower(trim($s))] = true; }
+            $COUNTRIES = [];
+            foreach (explode(',', (string)getenv("SEND_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $COUNTRIES[$s] = true; }
+            $NOT_COUNTRIES = [];
+            foreach (explode(',', (string)getenv("SEND_NOT_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $NOT_COUNTRIES[$s] = true; }
+            $FORCE_LANG = strtolower(trim((string)getenv("SEND_FORCE_LANG")));
+            if ($FORCE_LANG !== '' && !in_array($FORCE_LANG, ['en','de','fr','it','es','nl','pt','cs','pl','el'], true)) {
+              echo "HATA: force_lang gecersiz: {$FORCE_LANG} (izinli: en,de,fr,it,es,nl,pt,cs,pl,el)\n"; exit(1);
+            }
+            $SKIP_RE = trim((string)getenv("SEND_SKIP_RE"));
+            if ($SKIP_RE !== '' && @preg_match($SKIP_RE, '') === false) { echo "HATA: skip_email_regex gecersiz PCRE deseni: {$SKIP_RE}\n"; exit(1); }
+            // Category exclusion. Discovery stores the OSM shop tag verbatim as
+            // "Retailer (jewelry)" / "Retailer (watches)" / "Retailer (tailor)", so the shop's
+            // actual TYPE is on the record — far more reliable than guessing trade from the
+            // company name ("Trancanelli", "Bel Arte" and "Yanis 1965" are all jewellers).
+            // Matched as a case-insensitive substring, so "jewelry" catches "Retailer (jewelry)".
+            $SKIP_CAT = [];
+            foreach (explode(',', (string)getenv("SEND_SKIP_CAT")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_CAT[] = $s; }
 
             $leads = vestra_leads();
 
@@ -97,13 +178,33 @@ jobs:
             foreach ($leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
+              if (vestra_email_is_junk($email)) continue;                        // scraped artefact / placeholder / noreply — would hard-bounce
               if (isset($SKIP[$email])) continue;                                // explicitly excluded this run
+              if ($SKIP_RE !== '' && preg_match($SKIP_RE, $email)) continue;      // regex-excluded (garbled/scraper addresses)
               if ($ONLY && !isset($ONLY[$email])) continue;                      // allowlist mode: only these addresses
               if (($l['status'] ?? '') === 'unsubscribed') continue;             // opted out
               if (($l['last_contacted_at'] ?? '') !== '') continue;              // already emailed once
               if (isset($contacted[$email]) || isset($seen[$email])) continue;   // never the same address twice
-              if (vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue; // big chain / flagship
+              // Big-chain / flagship safety net — skipped in allowlist mode: only_emails means the
+              // operator named these exact addresses, so the name heuristic must not silently drop
+              // them. It fires on substrings, and a hand-curated segment can legitimately contain a
+              // blocked word (an Amazon SELLER named "Stilato amazon" is a target, not Amazon itself).
+              if (!$ONLY && vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue;
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
+              /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
+                 name, which a single-brand reseller or a label's own store also does. A
+                 genuine multi-brand boutique carries several, so requiring N distinct
+                 detected brands is what actually separates "stocks other people's labels"
+                 from "sells its own". Off by default (0). */
+              if ($MIN_BRANDS > 0 && count(array_filter((array)($l['premium_brands'] ?? []))) < $MIN_BRANDS) continue;
+              if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
+              if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
+              if ($SKIP_CAT && !$ONLY) {                                       // wrong trade (jeweller/watchmaker/tailor…) — apparel campaign doesn't apply
+                $catL = strtolower((string)($l['category'] ?? ''));
+                $bad = false;
+                foreach ($SKIP_CAT as $c) { if ($catL !== '' && str_contains($catL, $c)) { $bad = true; break; } }
+                if ($bad) continue;
+              }
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
@@ -117,17 +218,35 @@ jobs:
             $idx = [];
             foreach ($leads as $i => $l) { $id = (string)($l['id'] ?? ''); if ($id !== '') $idx[$id] = $i; }
 
-            $sent = 0; $fail = 0; $nlN = 0; $enN = 0;
+            $sent = 0; $fail = 0; $langCounts = []; $catCounts = [];
             foreach ($picked as $l) {
               $company = (string)($l['company'] ?? '');
               $email   = strtolower(trim((string)($l['email'] ?? '')));
               $country = (string)($l['country'] ?? '');
-              $lang    = in_array(strtolower(trim($country)), $NL, true) ? 'nl' : 'en';
-              $flag    = $lang === 'nl' ? 'NL/Flemenkce' : 'EN/Ingilizce';
-              $lang === 'nl' ? $nlN++ : $enN++;
+              $ckey    = strtolower(trim($country));
+              if ($FORCE_LANG !== '') {
+                // Explicit override for a curated batch (e.g. international marketplace sellers
+                // who trade in English regardless of where they're registered). Beats faking the
+                // lead's country, which would corrupt the record and mislead every later run.
+                $lang = $FORCE_LANG;
+              } elseif (isset($REGION_LANG[$ckey])) {
+                $lang = $REGION_LANG[$ckey]['default'];
+                $hay  = strtolower($company.' '.(string)($l['notes'] ?? '').' '.(string)($l['website'] ?? ''));
+                foreach ($REGION_LANG[$ckey]['match'] as $lg => $needles) {
+                  foreach ($needles as $nd) { if (str_contains($hay, $nd)) { $lang = $lg; break 2; } }
+                }
+              } else {
+                $lang = $LANG_MAP[$ckey] ?? 'en';
+              }
+              $flag    = $FLAG_LABELS[$lang] ?? 'EN/Ingilizce';
+              $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
 
               if ($DRY) {
-                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag}\n";
+                // Category is printed on every dry-run line: it's the field that decides whether
+                // this recipient is even in the right trade, so screening needs it visible.
+                $cat = trim((string)($l['category'] ?? ''));
+                $catCounts[$cat !== '' ? $cat : '(kategorisiz)'] = ($catCounts[$cat !== '' ? $cat : '(kategorisiz)'] ?? 0) + 1;
+                echo "  • {$company} <{$email}> | ulke=" . ($country ?: '-') . " | dil={$flag} | kat=" . ($cat !== '' ? $cat : '(bos)') . "\n";
                 continue;
               }
 
@@ -164,7 +283,14 @@ jobs:
             if (!$DRY && $sent > 0) vestra_save_leads($leads);
 
             echo "\n----\n";
-            echo "dil dagilimi (secilen): NL={$nlN}  EN={$enN}\n";
+            echo "dil dagilimi (secilen): ";
+            foreach ($langCounts as $lc => $cnt) echo "{$lc}={$cnt}  ";
+            echo "\n";
+            if ($DRY && $catCounts) {
+              arsort($catCounts);
+              echo "kategori dagilimi (secilen):\n";
+              foreach ($catCounts as $cc => $cnt) echo "  {$cc}: {$cnt}\n";
+            }
             if ($DRY) {
               echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
             } else {
