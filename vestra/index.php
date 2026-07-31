@@ -36,11 +36,17 @@ if (@include_once __DIR__.'/inc/products.php') {
                  print|printed|floral|check|monogram|allover|rainbow|stripe|striped|
                  tiger|baroque|distressed|wings|crest)\b/ix';
 
+    /* Frames the operator has taken out of the film by name. Kept as a list rather
+       than a one-off condition because "not that one" is a recurring note and the
+       product stays perfectly saleable -- it is only excluded from the homepage. */
+    $HERO_SKIP = ['burberry-8039175'];
+
     $pool = [];
     foreach (vestra_products() as $hp) {
         $im = !empty($hp['images'][0]) ? $hp['images'][0]
             : (function_exists('vestra_primary_image') ? vestra_primary_image($hp) : '');
         if (!$im || $im[0] !== '/' || !is_file(__DIR__.$im)) continue;
+        foreach ($HERO_SKIP as $sk) { if (stripos($im, $sk) !== false) continue 2; }
         $cat = (string)($hp['cat'] ?? '');
         $pos = array_search($cat, $WANT, true);
         if ($pos === false) continue;
