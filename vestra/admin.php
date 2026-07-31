@@ -961,6 +961,47 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=users&msg='.$msg); exit;
   }
 
+  /* ── Hesap silme ───────────────────────────────────────────────────────────
+     Kalici ve geri alinamaz, o yuzden dar tutuldu:
+      - Silmeden once hesabin JSON yedegi data/deleted-accounts/ altina yazilir.
+        GDPR silme talebi de gelse, "yanlis hesabi sildim" kazasi da olsa, ticari
+        kayit (kimin siparis verdigi) tamamen ucup gitmemeli.
+      - Siparisi/faturasi olan hesap SILINMEZ. Fatura kaydi hesaba baglidir;
+        silinirse gecmis siparisler sahipsiz kalir ve muhasebe izi kopar.
+        Boyle bir hesabi kapatmak isteyen once siparisleri arsivlemeli.
+      - Kendi admin oturumunu degil, sadece musteri hesaplarini hedefler. */
+  if($act==='delete_account'){
+    $uid=trim($_POST['uid']??'');
+    $msg='del_none';
+    if($uid!==''){
+      $accs=auth_accounts();
+      $target=null;
+      foreach($accs as $a){ if(($a['id']??'')===$uid){ $target=$a; break; } }
+      if(!$target){ $msg='del_notfound'; }
+      else {
+        /* Siparis/fatura bagi var mi? Varsa silme -- ticari iz kopar. */
+        $hasOrders=false;
+        if(function_exists('vestra_orders')){
+          foreach(vestra_orders() as $o){
+            if((string)($o['buyer_uid']??'')===$uid || (string)($o['seller_uid']??'')===$uid){ $hasOrders=true; break; }
+          }
+        }
+        if($hasOrders){ $msg='del_hasorders'; }
+        else {
+          $dir=vestra_data_dir().'/deleted-accounts';
+          if(!is_dir($dir)) @mkdir($dir,0775,true);
+          @file_put_contents($dir.'/'.preg_replace('/[^a-z0-9_-]/i','',$uid).'-'.gmdate('Ymd-His').'.json',
+            json_encode($target+['deleted_at'=>gmdate('c')], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
+          $left=[];
+          foreach($accs as $a){ if(($a['id']??'')!==$uid) $left[]=$a; }
+          if(count($left)===count($accs)){ $msg='del_notfound'; }
+          else { auth_save_accounts($left); $msg='del_ok'; }
+        }
+      }
+    }
+    header('Location: /admin?tab=users&msg='.$msg); exit;
+  }
+
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
   if($act==='send_push'){
     require_once __DIR__.'/inc/push.php';
@@ -1289,6 +1330,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'ai_saved'=>'✓ AI personalisation key saved.',
     'replied'=>'✓ Reply sent.','msg_err'=>'⚠ Could not start that conversation — try again.',
     'email_set'=>'✓ Email updated.','email_invalid'=>'⚠ Enter a valid email address (or leave it blank).','email_dupe'=>'⚠ Another account already uses that email.',
+    'del_ok'=>'✓ Account deleted. A JSON backup was written to data/deleted-accounts/.',
+    'del_hasorders'=>'⚠ Not deleted — this account has orders or invoices. Deleting it would orphan those records and break the accounting trail; archive the orders first.',
+    'del_notfound'=>'⚠ Not deleted — account not found (already removed?).',
+    'del_none'=>'⚠ Not deleted — no account selected.',
   ];
 
   /* Consistent 16px line icons per tab — replaces the mismatched emoji so the
@@ -1853,6 +1898,15 @@ function sendUserMessage(uid,name){
         <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'') ?>">
         <input type="email" name="email" value="<?= htmlspecialchars($a['email']??'') ?>" placeholder="no email on file" title="Notifications (orders, offers, messages) silently fail without this" style="width:145px;padding:3px 6px;border:1px solid <?= empty($a['email'])?'#c0392b':'var(--line)' ?>;border-radius:5px;background:var(--bg);color:var(--ink);font-size:11.5px">
         <button class="abtn" type="submit" style="font-size:11px;padding:3px 7px" title="Save email">💾</button>
+      </form>
+      <!-- Silme, e-posta formunun DISINDA ayri bir form: ayni forma koymak
+           Enter'a basinca yanlislikla silme riski yaratirdi. Onay metni sirketi
+           ve e-postayi yazar, boylece yanlis satiri silmek zorlasir. -->
+      <form method="post" style="margin:4px 0 0" onsubmit="return confirm('Delete this account permanently?\n\n<?= htmlspecialchars(addslashes(($a['company']?:($a['name']??'—')).' · '.($a['email']?:'no email')), ENT_QUOTES) ?>\n\nA JSON backup is kept. Accounts with orders or invoices cannot be deleted.')">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="delete_account">
+        <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'') ?>">
+        <button class="abtn" type="submit" style="font-size:10.5px;padding:2px 7px;color:#c0392b" title="Delete this customer account">🗑 Delete</button>
       </form>
     </td>
     <td class="ac"><?= typePill($a['type']??'') ?></td>
