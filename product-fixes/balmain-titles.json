@@ -1,0 +1,33 @@
+[
+  {
+    "match": "WH1JQ040B139MAI",
+    "expect": 1,
+    "name": "BALMAIN Tracksuit Set — WH1JQ040B139MAI",
+    "price": "180.00",
+    "_why": "Operator: it is a tracksuit at 180. Category stays as it is; only the title was wrong."
+  },
+  {
+    "match": "WH1JQ055275JGFQ",
+    "expect": 1,
+    "name": "BALMAIN Sweatshirt — WH1JQ055275JGFQ",
+    "_why": "Title still said T-Shirt after the category moved to Hoodies & Sweatshirts."
+  },
+  {
+    "match": "XH16B005",
+    "expect": 1,
+    "name": "BALMAIN Polo — XH16B005",
+    "_why": "Title still said T-Shirt after the category moved to Polos."
+  },
+  {
+    "match": "XH1GB005 BB04",
+    "expect": 1,
+    "name": "BALMAIN Polo — XH1GB005 BB04",
+    "_why": "Title still said T-Shirt after the category moved to Polos."
+  },
+  {
+    "match": "XH1GB005",
+    "expect": 1,
+    "name": "BALMAIN Polo — XH1GB005",
+    "_why": "Title still said T-Shirt after the category moved to Polos."
+  }
+]
