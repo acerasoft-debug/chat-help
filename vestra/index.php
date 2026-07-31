@@ -258,7 +258,27 @@ $t = $T[$lang];
 $SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
 $_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
 $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][$lang] ?? 'en_US';
-// Keyword sets (category / buyer-intent terms; localized). Kept trademark-neutral on purpose.
+/* Brand names, taken from the LIVE catalogue rather than typed in. Two reasons.
+   Truthfulness: the page can only ever name a house that is actually in stock, so
+   the copy cannot drift into claiming a brand that was never carried. And reach:
+   "Balenciaga wholesale" is what a buyer types, and it is a factual description of
+   genuine EEA stock sold with an invoice trail -- nominative use, not a claim of
+   authorisation or affiliation, which is why nothing here says "official" or
+   "authorised dealer". Capped so the tags stay a summary rather than a keyword dump. */
+$_brands = [];
+if (function_exists('vestra_products')) {
+    foreach (vestra_products() as $_bp) {
+        $_b = trim((string)($_bp['brand'] ?? ''));
+        if ($_b !== '' && !in_array($_b, $_brands, true)) $_brands[] = $_b;
+    }
+}
+sort($_brands);
+$_brandList = implode(', ', array_slice($_brands, 0, 14));
+/* "<brand> wholesale" in the visitor's language -- the phrase buyers actually search. */
+$_wholesaleWord = ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel'][$lang] ?? 'wholesale';
+$_brandKw = implode(', ', array_map(fn($b) => $b.' '.$_wholesaleWord, array_slice($_brands, 0, 12)));
+
+// Keyword sets (category / buyer-intent terms; localized), with the stocked houses appended.
 $_kw = [
  'en'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, wholesale clothing marketplace, KYC-verified suppliers, boutique wholesale supplier, multi-brand wholesale, designer clothing wholesale Europe, verified wholesale fashion, buy wholesale clothing online',
  'fr'=>'grossiste mode B2B, vente en gros de marque, grossiste vêtements de créateur authentiques, marketplace de gros, fournisseurs vérifiés KYC, grossiste multimarque, mode de créateur en gros Europe, acheter vêtements en gros',
@@ -266,6 +286,7 @@ $_kw = [
  'es'=>'moda al por mayor B2B, mayorista de marca, ropa de diseñador auténtica al por mayor, marketplace mayorista de moda, proveedores verificados KYC, mayorista multimarca, moda de diseñador al por mayor Europa, comprar ropa al por mayor',
  'de'=>'B2B Mode Großhandel, Marken Großhandel, authentische Designer Großhandel, Großhandel Bekleidung, KYC-verifizierte Lieferanten, Multibrand Großhandel, Designermode Großhandel Europa, Bekleidung im Großhandel kaufen',
 ][$lang] ?? '';
+if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 ?>
 <link rel="canonical" href="<?= htmlspecialchars($_hh($lang)) ?>">
 <?php foreach (array_keys($LANGS) as $_l): ?>
@@ -288,8 +309,15 @@ $_kw = [
 <script type="application/ld+json"><?= json_encode([
   '@context'=>'https://schema.org','@type'=>'Organization','name'=>'VESTRA','url'=>$SEO_HOST,
   'logo'=>$OG_IMAGE,'email'=>$CONTACT,'areaServed'=>'EU','slogan'=>$t['tagline'],
-  'description'=>'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.',
-  'knowsAbout'=>['B2B fashion wholesale','authentic branded apparel','designer clothing wholesale','multi-brand boutique sourcing','textile wholesale','KYC-verified suppliers'],
+  'description'=>'Verified B2B fashion wholesale marketplace — authentic branded apparel from KYC-verified sellers across Europe'.($_brandList !== '' ? '. Stocked houses: '.$_brandList.'.' : '.'),
+  /* knowsAbout carries the stocked houses into structured data. meta keywords are
+     ignored by every major engine; JSON-LD is not, and this is the field that tells
+     a crawler what the business actually deals in. Same live list as the tags, so it
+     can never name a brand the catalogue does not hold. */
+  'knowsAbout'=>array_merge(
+     ['B2B fashion wholesale','authentic branded apparel','designer clothing wholesale',
+      'multi-brand boutique sourcing','textile wholesale','KYC-verified suppliers'],
+     array_slice($_brands, 0, 14)),
   'keywords'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, KYC-verified suppliers, multi-brand boutique wholesale, wholesale clothing marketplace Europe',
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
 <script type="application/ld+json"><?= json_encode([
