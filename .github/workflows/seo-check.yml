@@ -91,7 +91,16 @@ jobs:
           # Challenge sayfasini kimin bastigini basliklar soyler: Cloudflare mi,
           # LiteSpeed/Hostinger mi, baska bir katman mi. Duzeltmeyi hangi panelde
           # yapacagimiz buna bagli.
+          echo "############ YANIT BASLIKLARI ############"
           curl -sSI --max-time 20 https://vestrasales.com/ | sed 's/^/  /' || true
+          echo "############ /sitemap.xml disaridan ############"
+          curl -sS -o /tmp/sm.xml -w '  kod=%{http_code} boyut=%{size_download}\n' \
+               --max-time 20 https://vestrasales.com/sitemap.xml || true
+          head -c 200 /tmp/sm.xml | sed 's/^/  /'; echo
+          echo "############ /robots.txt disaridan ############"
+          curl -sS -o /tmp/rb.txt -w '  kod=%{http_code} boyut=%{size_download}\n' \
+               --max-time 20 https://vestrasales.com/robots.txt || true
+          head -c 200 /tmp/rb.txt | sed 's/^/  /'; echo
 
       - name: Sunucunun kendi ürettiği HTML (WAF'ı atlayarak)
         uses: appleboy/ssh-action@v1.0.3
@@ -107,15 +116,29 @@ jobs:
             # "etiketler uretiliyor mu" sorusu ile "disaridan gorunuyor mu" sorusu
             # birbirinden ayriliyor -- ikisi farkli sorun ve farkli cozum.
             cd ~/public_html
-            for L in en de it; do
+            # DIKKAT: `QUERY_STRING=... php index.php` ile $_GET DOLMAZ -- PHP CLI
+            # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
+            # Ingilizce ciktiyi verdi ve sanki ceviri bozukmus gibi gorundu. $_GET'i
+            # dogrudan kuruyoruz.
+            for L in en de it es fr; do
               echo "=================== $L ==================="
-              if [ "$L" = "en" ]; then Q=""; else Q="lang=$L"; fi
-              OUT=$(REQUEST_METHOD=GET REQUEST_URI="/?$Q" QUERY_STRING="$Q" \
-                    HTTP_HOST=vestrasales.com HTTPS=on php index.php 2>/dev/null)
+              OUT=$(php -r '
+                $l = $argv[1];
+                $_GET = $l === "en" ? [] : ["lang" => $l];
+                $_SERVER["REQUEST_URI"]  = $l === "en" ? "/" : "/?lang=$l";
+                $_SERVER["HTTP_HOST"]    = "vestrasales.com";
+                $_SERVER["REQUEST_METHOD"]="GET";
+                $_SERVER["HTTPS"]        = "on";
+                include "index.php";
+              ' "$L" 2>/dev/null)
               echo "  uretilen HTML: $(printf '%s' "$OUT" | wc -c) bayt"
               printf '%s' "$OUT" | grep -oiE '<meta name="keywords" content="[^"]*"' | head -1 | fold -w 140 -s | sed 's/^/  /'
-              printf '%s' "$OUT" | grep -oE '"knowsAbout":\[[^]]*\]' | head -1 | fold -w 140 -s | sed 's/^/  /'
               echo
             done
             echo "== robots.txt =="; head -20 robots.txt 2>/dev/null || echo "  robots.txt YOK"
-            echo; echo "== sitemap var mi =="; ls -la sitemap*.xml 2>/dev/null || echo "  sitemap YOK"
+            echo
+            echo "== sitemap (/sitemap.xml -> sitemap.php, diskte .xml OLMAMASI normal) =="
+            SM=$(php -r '$_SERVER["HTTP_HOST"]="vestrasales.com"; include "sitemap.php";' 2>&1)
+            echo "  cikti: $(printf '%s' "$SM" | wc -c) bayt, $(printf '%s' "$SM" | grep -c '<loc>') URL"
+            printf '%s' "$SM" | grep -iE 'fatal|error|warning' | head -3 | sed 's/^/  HATA: /'
+            printf '%s' "$SM" | head -4 | sed 's/^/  /'
