@@ -190,6 +190,8 @@ folder names would repeat the original error.
 | Marcelo Burlon | T-shirts | 59.90 | folder fetched, nothing added |
 | GCDS | Sweatshirts | 90.00 | folder fetched, nothing added |
 | GCDS | T-shirts | 59.90 | folder fetched, nothing added |
+| Fendi | Tracksuit set (SWEAT folder) | 245.00 | folder fetched, nothing added |
+| Fendi | Patterned / monogram sweat | 290.00 | folder fetched, nothing added |
 
 Givenchy follows the Fendi tier the operator set (t-shirt 80 / polo 110 /
 sweatshirt 125). Marcelo Burlon and GCDS share their own tier: sweatshirt 90,
@@ -199,3 +201,9 @@ Marcelo Burlon and GCDS images are on the server but NO products exist for them:
 their contact sheets have not been generated or reviewed, and assigning a category
 from the folder name is the exact mistake being corrected. Regenerate the sheets
 (contact-sheets.yml FOLDERS), read them, then build the batches.
+
+Fendi SWEAT folder carries two price points that CANNOT be told apart by filename:
+the plain tracksuit set at 245.00 and the patterned/monogram piece at 290.00.
+Which is which is only visible in the photo, so this folder in particular must be
+reviewed on its contact sheet before any product is built — a wrong guess here is
+a 45 EUR error per unit, not just a wrong label.
