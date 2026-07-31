@@ -227,3 +227,27 @@ run produces every sheet.
 
 Valentino was given a single price with no category split, so its sheet also has
 to say which items are t-shirts and which are something else before rows exist.
+
+## BALMAIN t-shirts 59.90 (2026-07-31)
+
+Applied to the BALMAIN rows filed as T-Shirts. They are all still `pending`, so
+this is preparation, not a live price change.
+
+Five of those rows are NOT t-shirts. Verified from contact-sheets/balmain-01.jpg:
+
+| Model code | Should be |
+|---|---|
+| XH16B005 BB04 | Polos |
+| XH1GB005 BB04 | Polos |
+| XH1GB005 | Polos |
+| WH1JQ040B139MAI | Hoodies & Sweatshirts |
+| WH1JQ055275JGFQ | Hoodies & Sweatshirts |
+
+They have just been priced as t-shirts along with the rest, because the bulk tool
+filters by the stored category and that category is still wrong. Harmless while
+they are pending, but their categories AND prices must both be corrected before
+anything is set back to approved — a polo sold at the t-shirt price is a real
+margin loss, not a cosmetic error.
+
+What is missing is a per-product category setter: categories.yml only merges a
+whole category into another, which cannot move five specific rows out of 35.
