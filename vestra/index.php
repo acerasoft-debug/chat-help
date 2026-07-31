@@ -22,15 +22,56 @@ require_once __DIR__.'/inc/i18n.php';
    catalogue has no photos yet. */
 $HERO_FRAMES = [];
 if (@include_once __DIR__.'/inc/products.php') {
-    $seen = [];
+    /* The film should look like a season, not a rail of black t-shirts. Frames are
+       picked to be visually different from each other: a women's swimsuit and a pair
+       of jeans are requested outright, and the rest favour pieces whose name says
+       there is colour or a print in the shot. Category order below IS the running
+       order, so the sequence opens on swimwear and denim rather than on whatever
+       happens to sort first. */
+    $WANT = ["Women's Swimwear", 'Jeans', 'T-Shirts', 'Swim Shorts',
+             'Hoodies & Sweatshirts', 'Polos', "Women's T-Shirts", 'Tracksuit Sets'];
+    /* Colour and print words that actually appear in these product names. A photo of
+       a "Red Print T-Shirt" carries the screen; a "Logo T-Shirt, Black" does not. */
+    $COLOUR = '/\b(red|pink|orange|yellow|green|blue|purple|turquoise|teal|cream|beige|camel|
+                 print|printed|floral|check|monogram|allover|rainbow|stripe|striped|
+                 tiger|baroque|distressed|wings|crest)\b/ix';
+
+    $pool = [];
     foreach (vestra_products() as $hp) {
-        $b = (string)($hp['brand'] ?? '');
-        if ($b === '' || isset($seen[$b])) continue;          // one frame per brand — variety, not repetition
-        $im = !empty($hp['images'][0]) ? $hp['images'][0] : (function_exists('vestra_primary_image') ? vestra_primary_image($hp) : '');
+        $im = !empty($hp['images'][0]) ? $hp['images'][0]
+            : (function_exists('vestra_primary_image') ? vestra_primary_image($hp) : '');
         if (!$im || $im[0] !== '/' || !is_file(__DIR__.$im)) continue;
-        $seen[$b] = true;
+        $cat = (string)($hp['cat'] ?? '');
+        $pos = array_search($cat, $WANT, true);
+        if ($pos === false) continue;
+        $nm = (string)($hp['name'] ?? '');
+        $brand = (string)($hp['brand'] ?? '');
+        /* Operator pin: the BALMAIN t-shirt that appears is the BLACK one. It reads as
+           the anchor shot of the sequence, so it beats the colour preference rather
+           than competing with it. */
+        $pin = ($brand === 'BALMAIN' && $cat === 'T-Shirts'
+                && preg_match('/\bblack\b/i', $nm)) ? -1 : 0;
+        /* Sort key: category order, then the pin, then colourful names before plain. */
+        $pool[] = [$pos, $pin, preg_match($COLOUR, $nm) ? 0 : 1, $cat, $im];
+    }
+    usort($pool, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
+
+    /* One frame per category so no two consecutive shots look alike. */
+    $usedCat = [];
+    foreach ($pool as [, , , $cat, $im]) {
+        if (isset($usedCat[$cat])) continue;
+        $usedCat[$cat] = true;
         $HERO_FRAMES[] = $im;
         if (count($HERO_FRAMES) >= 6) break;
+    }
+    /* Short catalogue: top the sequence up with anything left rather than run a
+       two-frame film. */
+    if (count($HERO_FRAMES) < 4) {
+        foreach ($pool as [, , , , $im]) {
+            if (in_array($im, $HERO_FRAMES, true)) continue;
+            $HERO_FRAMES[] = $im;
+            if (count($HERO_FRAMES) >= 6) break;
+        }
     }
 }
 
