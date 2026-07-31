@@ -1,0 +1,10 @@
+[
+  {
+    "match": "bur-8052119",
+    "expect": 1,
+    "cat": "Women's T-Shirts",
+    "name": "Burberry Women's Monogram T-Shirt — 8052119",
+    "price": "59.90",
+    "_why": "Operator correction. I read the allover-TB frame as a polo placket on the contact sheet; it is a t-shirt. At 200px a monogram print around the neckline reads like a collar, which is exactly the kind of call the operator can make and a thumbnail cannot."
+  }
+]
