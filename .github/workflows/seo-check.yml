@@ -85,3 +85,37 @@ jobs:
             done
             echo
           done
+
+      - name: WAF kimliği (yanıt başlıkları)
+        run: |
+          # Challenge sayfasini kimin bastigini basliklar soyler: Cloudflare mi,
+          # LiteSpeed/Hostinger mi, baska bir katman mi. Duzeltmeyi hangi panelde
+          # yapacagimiz buna bagli.
+          curl -sSI --max-time 20 https://vestrasales.com/ | sed 's/^/  /' || true
+
+      - name: Sunucunun kendi ürettiği HTML (WAF'ı atlayarak)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            # Disaridan gelen istek WAF challenge'ina takiliyor; bu adim sunucunun
+            # KENDI icinden localhost'a istek atar, yani WAF devrede degil. Boylece
+            # "etiketler uretiliyor mu" sorusu ile "disaridan gorunuyor mu" sorusu
+            # birbirinden ayriliyor -- ikisi farkli sorun ve farkli cozum.
+            cd ~/public_html
+            for L in en de it; do
+              echo "=================== $L ==================="
+              if [ "$L" = "en" ]; then Q=""; else Q="lang=$L"; fi
+              OUT=$(REQUEST_METHOD=GET REQUEST_URI="/?$Q" QUERY_STRING="$Q" \
+                    HTTP_HOST=vestrasales.com HTTPS=on php index.php 2>/dev/null)
+              echo "  uretilen HTML: $(printf '%s' "$OUT" | wc -c) bayt"
+              printf '%s' "$OUT" | grep -oiE '<meta name="keywords" content="[^"]*"' | head -1 | fold -w 140 -s | sed 's/^/  /'
+              printf '%s' "$OUT" | grep -oE '"knowsAbout":\[[^]]*\]' | head -1 | fold -w 140 -s | sed 's/^/  /'
+              echo
+            done
+            echo "== robots.txt =="; head -20 robots.txt 2>/dev/null || echo "  robots.txt YOK"
+            echo; echo "== sitemap var mi =="; ls -la sitemap*.xml 2>/dev/null || echo "  sitemap YOK"
