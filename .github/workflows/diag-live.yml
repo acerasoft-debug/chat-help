@@ -1,0 +1,74 @@
+name: (Teşhis) Canlı sayfaları kontrol et
+on:
+  workflow_dispatch:
+    inputs:
+      paths:
+        description: "Kontrol edilecek yollar, boşlukla ayrık"
+        required: false
+        default: "/ /shop /seller /buyer /login /register /requests /journal /product?id=dsq-s74gl0064-900"
+
+permissions:
+  contents: read
+
+# Salt-okunur. Runner'dan canli siteye HTTP istegi atar ve her sayfa icin durum kodu,
+# boyut, sure ve icerikte PHP hata izi olup olmadigini yazar. Ayrica sunucuda disk /
+# PHP error log durumuna bakar.
+#
+# Neden: "sayfa calismiyor" tek basina 500 mu, bos sayfa mi, JS hatasi mi ayirt
+# ettirmiyor. Bu is, tahmin etmeden once hangisi oldugunu soyler.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: HTTP kontrolü
+        env:
+          PATHS: ${{ github.event.inputs.paths }}
+        run: |
+          set -e
+          BASE="https://vestrasales.com"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          printf '%-46s %-6s %-9s %-7s %s\n' "YOL" "KOD" "BOYUT" "SURE" "NOT"
+          for p in $PATHS; do
+            out=$(curl -sS -A "$UA" -o /tmp/body.html -w '%{http_code} %{size_download} %{time_total}' \
+                  --max-time 30 "${BASE}${p}" 2>/dev/null || echo "000 0 0")
+            code=$(echo "$out" | awk '{print $1}')
+            size=$(echo "$out" | awk '{print $2}')
+            secs=$(echo "$out" | awk '{print $3}')
+            note=""
+            # Bir PHP fatal'i cogu zaman 200 ile doner (display_errors kapaliysa BOS 200),
+            # bu yuzden sadece durum koduna bakmak yetmiyor -- govdeyi de tariyoruz.
+            if grep -qiE 'fatal error|parse error|uncaught|call to undefined|allowed memory' /tmp/body.html 2>/dev/null; then
+              note="PHP HATASI GOVDEDE"
+            elif [ "$size" -lt 500 ] 2>/dev/null; then
+              note="govde cok kucuk (bos sayfa / sessiz fatal olabilir)"
+            elif ! grep -qi '</html>' /tmp/body.html 2>/dev/null; then
+              note="</html> yok — cikti yarida kesilmis"
+            fi
+            printf '%-46s %-6s %-9s %-7s %s\n' "$p" "$code" "$size" "$secs" "$note"
+            if [ -n "$note" ]; then
+              echo "    --- govdenin son 400 baytı ---"
+              tail -c 400 /tmp/body.html | tr -d '\0' | sed 's/^/    /'
+              echo
+            fi
+          done
+
+      - name: Sunucu sağlığı (disk / PHP hata günlüğü)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
+            echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
+            echo; echo "== son PHP hatalari =="
+            for L in ~/public_html/error_log ~/error_log ~/logs/error_log /var/log/php-fpm/error.log; do
+              [ -f "$L" ] && { echo "-- $L --"; tail -25 "$L"; }
+            done
+            echo; echo "== listings.json =="
+            ls -la ~/public_html/data/listings.json 2>/dev/null
+            php -r '$d=json_decode(file_get_contents(getenv("HOME")."/public_html/data/listings.json"),true);
+                    echo is_array($d)?("gecerli JSON, ".count($d)." urun\n"):"BOZUK JSON!\n";'
+            echo; echo "== yedek sayisi =="; ls -1 ~/public_html/data/listings.json.bak-* 2>/dev/null | wc -l
