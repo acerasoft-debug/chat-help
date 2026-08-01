@@ -1,0 +1,101 @@
+name: (Teşhis) Admin "müşteri bul" düğmesi neden çalışmıyor
+on:
+  workflow_dispatch:
+    inputs:
+      country:
+        description: "Ülke (admin'de seçtiğin gibi)"
+        required: false
+        default: "Netherlands"
+      city:
+        description: "Şehir (boş bırakılabilir — admin'de de opsiyonel)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Salt-okunur. admin.php'deki discover_leads eyleminin YAPTIGI SEYIN AYNISINI
+# calistirir ve her adimda ne dondugunu yazar.
+#
+# Neden gerekli: admin'deki dugme AJAX ile JSON doner; tarayicida sadece "0 bulundu"
+# ya da bos bir sonuc gorunur, ASIL sebep gorunmez. Ayni cagriyi sunucuda calistirip
+# Overpass'in gercekte ne dondurdugunu, fonksiyonlarin yuklu olup olmadigini ve
+# PHP hatasi olup olmadigini acikca gosteriyoruz.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Admin akışını birebir çalıştır
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          C: ${{ github.event.inputs.country }}
+          CT: ${{ github.event.inputs.city }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 12m
+          envs: C,CT
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_diag_admin.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1');
+            while (ob_get_level() > 0) { @ob_end_flush(); }
+            $home = getenv("HOME");
+
+            echo "== 1) admin.php'nin yukledigi gibi yukle ==\n";
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+            foreach (['vestra_discover_osm','vestra_leads_add','vestra_osm_ok','vestra_overpass','vestra_discover_blocklist'] as $f) {
+              printf("  %-28s %s\n", $f, function_exists($f) ? 'VAR' : '*** YOK ***');
+            }
+
+            $country = trim((string)getenv('C'));
+            $city    = trim((string)getenv('CT'));
+            echo "\n== 2) admin ile ayni cagri: vestra_discover_osm('{$country}', '{$city}', 80) ==\n";
+            $t0 = time();
+            $rows = $country !== '' ? vestra_discover_osm($country, $city, 80) : [];
+            $secs = time() - $t0;
+            $osmOk = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
+            echo "  sure        : {$secs} sn\n";
+            echo "  donen satir : ".count($rows)."\n";
+            echo "  overpass ok : ".($osmOk ? 'EVET (mirror cevap verdi)' : 'HAYIR (tum mirrorlar dustu)')."\n";
+
+            if (!$rows) {
+              echo "\n  >> SIFIR SONUC. Sebep ayrimi:\n";
+              echo ($osmOk
+                ? "     Overpass CEVAP VERDI ama bu alan adiyla hic dukkan eslesmedi.\n".
+                  "     Yani sorun baglanti degil, ALAN ADI COZUMLEMESI. Sorgu\n".
+                  "     area[name=\"{$country}\"] ariyor; OSM'de ulke/sehir baska adla kayitli olabilir\n".
+                  "     ya da ayni adda birden fazla buyuk alan var ve sorgu zaman asimina ugruyor.\n"
+                : "     Overpass'in TUM aynalari cevap vermedi -- gecici kesinti ya da hiz limiti.\n".
+                  "     Bu durumda admin'deki dugme de hep 0 gosterir. Birazdan tekrar denenmeli.\n");
+            } else {
+              echo "\n  ilk 5 sonuc:\n";
+              foreach (array_slice($rows,0,5) as $r)
+                printf("   %-34s %-28s %s\n",
+                  mb_substr((string)($r['company']??''),0,32),
+                  mb_substr((string)($r['website']??''),0,26),
+                  (string)($r['email']??'(eposta yok)'));
+              echo "\n  >> Bu ulke icin kesif CALISIYOR.\n";
+            }
+
+            echo "\n== 3) admin sadece E-POSTASI OLANI mi ekliyor? ==\n";
+            $withMail = 0; foreach ($rows as $r) if (trim((string)($r['email']??'')) !== '') $withMail++;
+            echo "  e-postasi OSM etiketinde hazir gelen: {$withMail} / ".count($rows)."\n";
+            echo "  (admin discover_leads e-postasiz olanlari da ekler; e-posta ikinci adimda\n";
+            echo "   'find_lead_email_one' ile tek tek aranir. O adim yavas oldugu icin\n";
+            echo "   tarayicida is bitmemis gibi gorunebiliyor.)\n";
+
+            echo "\n== 4) son PHP hatalari ==\n";
+            foreach ([$home."/public_html/error_log", $home."/error_log"] as $L) {
+              if (is_file($L)) { echo "-- ".basename($L)." --\n"; echo implode('', array_slice(file($L), -12)); }
+            }
+            PHPEOF
+            cp /tmp/vestra_diag_admin.php ./vestra_diag_admin_tmp.php
+            php ./vestra_diag_admin_tmp.php
+            rm -f ./vestra_diag_admin_tmp.php /tmp/vestra_diag_admin.php
