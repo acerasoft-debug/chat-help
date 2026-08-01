@@ -107,16 +107,79 @@ jobs:
               $m = strtolower(trim((string)($l['email'] ?? '')));
               if ($m !== '') $byMail[$m] = $i;
             }
+            /* Sitenin KENDI bilgilerini oku: firma adi, ulke, telefon.
+               Alan adini firma adi diye yazmak listeyi okunmaz yapiyordu
+               ("mientus.com" yerine "mientus Online Store"). Ulke ise dil secimini
+               belirliyor -- bos kalirsa herkes Ingilizce aliyor. */
+            $siteInfo = function(string $website) : array {
+              $out = ['company'=>'', 'country'=>'', 'phone'=>''];
+              $domain = vestra_domain_of($website); if ($domain === '') return $out;
+              $base = ''; $home = '';
+              foreach (['https://'.$domain, 'https://www.'.$domain, 'http://'.$domain] as $b) {
+                $h = vestra_http_get($b.'/', 10); if ($h !== '') { $base = $b; $home = $h; break; }
+              }
+              if ($home === '') return $out;
+
+              // firma adi: og:site_name > <title> (site adi disindaki slogan kirpilir)
+              if (preg_match('#<meta[^>]+property=["\']og:site_name["\'][^>]+content=["\']([^"\']+)#i', $home, $m)) {
+                $out['company'] = trim(html_entity_decode($m[1], ENT_QUOTES|ENT_HTML5, 'UTF-8'));
+              } elseif (preg_match('#<title[^>]*>(.*?)</title>#is', $home, $m)) {
+                $t = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES|ENT_HTML5, 'UTF-8'));
+                foreach ([' | ', ' – ', ' — ', ' - ', ' :: '] as $sep) {
+                  if (str_contains($t, $sep)) { $parts = explode($sep, $t); $t = trim($parts[0]); break; }
+                }
+                $out['company'] = mb_substr($t, 0, 80);
+              }
+
+              // telefon + ulke: once ana sayfa, sonra kunye/iletisim sayfalari
+              $hay = $home;
+              foreach (['/impressum','/imprint','/kontakt','/contact','/contatti','/contacto','/about'] as $p) {
+                if ($out['country'] !== '' && $out['phone'] !== '') break;
+                $x = vestra_http_get($base.$p, 8); if ($x !== '') $hay .= "\n".$x;
+              }
+              if (preg_match('#(\+\d[\d\s().\-]{7,20})#', $hay, $m)) $out['phone'] = trim($m[1]);
+
+              /* Ulke: sayfada gecen ulke adi (kendi dilinde de olabilir). Bulunamazsa
+                 alan adi uzantisindan cikar -- .de/.it/.nl gibi uzantilar guvenilir. */
+              $COUNTRY_WORDS = [
+                'Germany'=>['deutschland','germany'], 'Austria'=>['österreich','osterreich','austria'],
+                'Switzerland'=>['schweiz','suisse','svizzera','switzerland'],
+                'Netherlands'=>['nederland','netherlands','holland'],
+                'Belgium'=>['belgië','belgie','belgique','belgium'],
+                'France'=>['france'], 'Italy'=>['italia','italy'],
+                'Spain'=>['españa','espana','spain'], 'Portugal'=>['portugal'],
+                'Greece'=>['ελλάδα','greece'], 'Poland'=>['polska','poland'],
+                'Czechia'=>['česká','ceska','czech'], 'Norway'=>['norge','norway'],
+                'Sweden'=>['sverige','sweden'], 'Denmark'=>['danmark','denmark'],
+                'Finland'=>['suomi','finland'], 'Ireland'=>['ireland','éire'],
+                'United Kingdom'=>['united kingdom','england','scotland'],
+                'United States'=>['united states'],
+              ];
+              $low = mb_strtolower($hay);
+              foreach ($COUNTRY_WORDS as $cn => $words)
+                foreach ($words as $w) if (str_contains($low, $w)) { $out['country'] = $cn; break 2; }
+              if ($out['country'] === '') {
+                $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
+                        'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
+                        'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
+                        'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom'];
+                $bits = explode('.', $domain);
+                $out['country'] = $TLD[strtolower(end($bits))] ?? '';
+              }
+              return $out;
+            };
+
             $added = 0;
             foreach (array_keys($wanted) as $mail) {
               if (isset($byMail[$mail])) { echo "  = zaten var : {$mail}\n"; continue; }
               $domain  = substr(strrchr($mail, '@'), 1);
-              $website = 'https://'.$domain;
-              $company = function_exists('vestra_site_title') ? (string)vestra_site_title($website) : '';
-              if ($company === '') $company = $domain;
+              $website = $fromLink[$mail] ?? ('https://'.$domain);
+              $info    = $siteInfo($website);
+              $company = $info['company'] !== '' ? $info['company'] : $domain;
               $leads[] = [
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>'',
-                'company'=>$company, 'contact_name'=>'', 'email'=>$mail, 'country'=>'',
+                'company'=>$company, 'contact_name'=>'', 'email'=>$mail,
+                'country'=>$info['country'], 'phone'=>$info['phone'],
                 'website'=>$website, 'source'=>'manual', 'category'=>'',
                 'notes'=>'', 'status'=>'new', 'last_contacted_at'=>'',
                 'unsub_token'=>bin2hex(random_bytes(16)),
@@ -124,7 +187,10 @@ jobs:
               ];
               $byMail[$mail] = count($leads) - 1;
               $added++;
-              echo "  + EKLENDI   : {$company} <{$mail}>\n";
+              printf("  + EKLENDI   : %-34s <%s>\n                ulke=%s  tel=%s\n",
+                     mb_substr($company,0,32), $mail,
+                     $info['country'] !== '' ? $info['country'] : '(bulunamadi)',
+                     $info['phone'] !== '' ? $info['phone'] : '-');
               flush();
             }
             if ($added > 0) vestra_save_leads($leads);
