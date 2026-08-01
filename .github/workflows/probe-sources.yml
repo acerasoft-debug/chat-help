@@ -96,8 +96,15 @@ jobs:
                 if ($bin === '' || strlen($bin) < 500) { fwrite(STDERR, "HATA: gorsel gelmedi (boyut=".strlen($bin).")\n"); exit(1); }
                 $info = @getimagesizefromstring($bin);
                 if ($info === false) { fwrite(STDERR, "HATA: gecerli gorsel degil\n"); exit(1); }
-                $extMap = [IMAGETYPE_JPEG=>'jpg', IMAGETYPE_PNG=>'png', IMAGETYPE_WEBP=>'webp'];
-                $ext = $extMap[$info[2]] ?? 'jpg';
+                $ext = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$info['mime']] ?? 'jpg';
+                // xlsx gomucu (inc/xlsx.php) webp okumuyor -- PNG'ye cevir (GD destekliyorsa).
+                if ($ext === 'webp' && function_exists('imagecreatefromwebp')) {
+                  $im = @imagecreatefromstring($bin);
+                  if ($im !== false) {
+                    ob_start(); imagepng($im); $png = ob_get_clean(); imagedestroy($im);
+                    if ($png !== false && strlen($png) > 0) { $bin = $png; $ext = 'png'; }
+                  }
+                }
                 $dir = $home."/public_html/uploads/{$label}";
                 if (!is_dir($dir)) mkdir($dir, 0755, true);
                 $n = 1; $out = "{$dir}/{$label}-{$n}.{$ext}";
