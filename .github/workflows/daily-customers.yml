@@ -12,6 +12,10 @@ on:
         description: "Bugünkü şehirler (boş = takvimden otomatik seç)"
         required: false
         default: ""
+      cities_per_day:
+        description: "Günde kaç şehir taransın (havuzdan sırayla)"
+        required: false
+        default: "8"
       skip_discovery:
         description: "true = keşif yapma, sadece tara ve gönder"
         required: false
@@ -47,13 +51,16 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           IN_CITIES: ${{ github.event.inputs.cities }}
+          CITIES_PER_DAY: ${{ github.event.inputs.cities_per_day }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 22m
-          envs: IN_CITIES
+          # 8 sehir x (~60 sn Overpass + ~225 sn e-posta taramasi) ~ 38 dakika.
+          # 22m'de adim ortadan kesiliyor ve son sehirlerin emegi kayboluyordu.
+          command_timeout: 55m
+          envs: IN_CITIES,CITIES_PER_DAY
           script: |
             cd ~/public_html
             cat > /tmp/vestra_daily_discover.php <<'PHPEOF'
@@ -66,7 +73,9 @@ jobs:
             require_once  $home."/public_html/inc/leads.php";
             require_once  $home."/public_html/inc/notify.php";
 
-            /* Sehir havuzu. ALMANYA YOK -- operator haric tuttu.
+            /* Sehir havuzu. ALMANYA sadece 3 sehirle temsil ediliyor: operator once
+               tamamen haric tutmus, sonra "alabilirsin ama az" demisti. Berlin bilerek
+               yok -- daha once taranmisti (80 dukkanin 55'i e-postaya cevrilmisti).
                Burada olmayan adlar bilerek yok: "New York", "Miami", "Miami Beach",
                "Copenhagen"/"Kobenhavn" ve "Stockholm" denendi ve hepsi 2-3 dakika
                harcayip SIFIR dondu. Sebep: sorgu OSM'de admin_level 3-10 arasi
@@ -90,7 +99,8 @@ jobs:
               'United States|Nashville','United States|Minneapolis','United States|Las Vegas',
               'United States|Scottsdale','United States|Charlotte','United States|Detroit',
               'Canada|Toronto','Canada|Montreal','Canada|Vancouver','Canada|Calgary',
-              // --- DACH / Alpine (Almanya operator talimatiyla HARIC) ---
+              // --- DACH / Alpine ---
+              'Germany|Dusseldorf','Germany|Munich','Germany|Hamburg',
               'Switzerland|Zurich','Switzerland|Geneva','Switzerland|Basel','Switzerland|Bern',
               'Switzerland|Lausanne','Switzerland|Lugano',
               'Austria|Vienna','Austria|Salzburg','Austria|Graz','Austria|Innsbruck','Austria|Linz',
@@ -132,11 +142,14 @@ jobs:
               $todays = array_filter(array_map('trim', explode(',', $in)));
             } else {
               /* Takvime gore don: her gun havuzdan 3 sehir, sirayla ilerler. Boylece
-                 ayni sehir ust uste taranmaz ve havuz ~3 haftada bir devreder. */
+                 ayni sehir ust uste taranmaz ve havuz sirayla devreder. */
+              $per  = (int)(getenv('CITIES_PER_DAY') ?: 8);
+              if ($per < 1)  $per = 1;
+              if ($per > 20) $per = 20;   // ust sinir: is adiminin sure butcesi
               $day  = (int)date('z') + (int)date('Y') * 366;
               $n    = count($POOL);
               $todays = [];
-              for ($k = 0; $k < 3; $k++) $todays[] = $POOL[(($day * 3) + $k) % $n];
+              for ($k = 0; $k < $per; $k++) $todays[] = $POOL[(($day * $per) + $k) % $n];
             }
             echo "bugunun sehirleri: ".implode(' | ', $todays)."\n\n";
 
@@ -155,7 +168,13 @@ jobs:
               /* Sadece e-postasi COZULEBILENI ekle. E-posta OSM etiketinde varsa
                  dogrudan, yoksa sitesinden okunuyor. Bulunamayani eklemiyoruz --
                  gonderilemeyecek bir kayit listeyi sisirmekten baska ise yaramaz. */
-              $toAdd = []; $checked = 0; $budget = 300; $t1 = time();
+              /* Sehir basina e-posta tarama butcesi, sehir sayisina gore paylastiriliyor.
+                 Sabit 300 sn ile 8 sehir 40 dakikayi asiyor ve adim zaman asimina ugruyor --
+                 o zaman SON sehirlerin emegi tamamen kayboluyor. Toplam butceyi bolmek,
+                 sehir sayisi artinca her sehirden biraz daha az taramak demek; ama hepsi
+                 taraniyor ve hicbiri yarida kesilmiyor. */
+              $toAdd = []; $checked = 0; $t1 = time();
+              $budget = (int)max(90, floor(1800 / max(1, count($todays))));
               foreach ($rows as $r) {
                 if (time() - $t1 > $budget) { echo "  (sure butcesi doldu, kalan atlandi)\n"; break; }
                 $email = strtolower(trim((string)($r['email'] ?? '')));
