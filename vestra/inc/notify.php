@@ -712,6 +712,34 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     }
   }
 
+  /* Urun fotograf seridi ('shots' => [['img'=>,'label'=>,'url'=>], ..]).
+     Table tabanli: Outlook flex/inline-block hizalamasini yok sayiyor. Her karenin
+     ALTINDA marka adi METIN olarak duruyor -- cogu istemci uzak gorselleri varsayilan
+     olarak engelliyor, gorsel hic yuklenmese bile serit anlamli kalmali. */
+  $shotsHtml='';
+  if(!empty($opts['shots']) && is_array($opts['shots'])){
+    $cells=[];
+    foreach(array_slice($opts['shots'],0,3) as $s){
+      $img=(string)($s['img']??''); $lab=(string)($s['label']??''); $url=(string)($s['url']??'');
+      if($img==='') continue;
+      $inner='<img src="'.htmlspecialchars($img,ENT_QUOTES,'UTF-8').'" width="160" alt="'.htmlspecialchars($lab,ENT_QUOTES,'UTF-8').'"'
+            .' style="display:block;width:100%;max-width:160px;height:auto;border:0;border-radius:8px;border:1px solid #e6e0d5">'
+            .'<div style="color:#5c5449;font-size:11px;letter-spacing:.12em;text-transform:uppercase;text-align:center;margin:6px 0 0">'
+            .htmlspecialchars($lab,ENT_QUOTES,'UTF-8').'</div>';
+      $cells[]=$url!==''
+        ? '<a href="'.htmlspecialchars($url,ENT_QUOTES,'UTF-8').'" style="text-decoration:none">'.$inner.'</a>'
+        : $inner;
+    }
+    if($cells){
+      $tds=''; foreach($cells as $c){ $tds.='<td valign="top" style="padding:4px">'.$c.'</td>'; }
+      $shotsHtml='<div style="padding:0 23px 18px">'
+        .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;text-align:center;margin:2px 0 12px">'
+        .htmlspecialchars((string)($opts['shots_title']??'From the current selection'),ENT_QUOTES,'UTF-8').'</div>'
+        .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>'.$tds.'</tr></table>'
+        .'</div>';
+    }
+  }
+
   return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     .'<title>VESTRA</title></head>'
     .'<body style="margin:0;padding:0;background:#f4f2ee;font-family:Georgia,\'Times New Roman\',serif">'
@@ -737,6 +765,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
     .$rowsHtml
     .$brandsHtml
+    .$shotsHtml
     .$downloadsHtml
     .$buttonHtml
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
@@ -755,14 +784,60 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
  * are derived from the LIVE catalogue (vestra_products), so the mail always reflects real stock.
  * $company personalises the opening line when provided. */
 function vestra_campaign_preview(string $company='', string $lang='en'): array {
-  $counts=[]; $brands=[];
+  $counts=[]; $brands=[]; $shots=[];
   if(function_exists('vestra_products')){
-    foreach(vestra_products() as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $counts[$b]=($counts[$b]??0)+1; }
-    arsort($counts); $brands=array_slice(array_keys($counts),0,8);
+    $all=vestra_products();
+    foreach($all as $p){ $b=trim((string)($p['brand']??'')); if($b==='') continue; $counts[$b]=($counts[$b]??0)+1; }
+    arsort($counts);
+    $brands=array_slice(array_keys($counts),0,10);
+
+    /* Denim ayri tutuluyor. Sirf urun ADEDINE gore ilk 10'u alinca jeans hic
+       gorunmeyebiliyor -- katalogda tisort/sweat adedi denimden cok fazla, oysa
+       denim satisi en yuksek sepet degerine sahip kalem. En az iki denim evi
+       listeye garanti ediliyor; zaten ilk 10'daysa hicbir sey degismiyor. */
+    $denimBrands=[];
+    foreach($all as $p){
+      $cat=strtolower((string)($p['cat']??''));
+      if(!str_contains($cat,'jean') && !str_contains($cat,'denim')) continue;
+      $b=trim((string)($p['brand']??'')); if($b==='') continue;
+      $denimBrands[$b]=($denimBrands[$b]??0)+1;
+    }
+    arsort($denimBrands);
+    $forced=array_slice(array_keys($denimBrands),0,2);
+    foreach($forced as $b){
+      if(!in_array($b,$brands,true)){ array_pop($brands); array_unshift($brands,$b); }
+    }
+
+    /* Fotograf seridi: denim once. Cold e-postada urun gormek, marka adi okumaktan
+       cok daha ikna edici. Gorseller katalog sayfasindaki ile ayni -- fiyat yok,
+       o yuzden uye olmayan birine gostermekte sakinca yok. */
+    $seen=[];
+    foreach([true,false] as $denimPass){
+      foreach($all as $p){
+        if(count($shots)>=3) break 2;
+        $cat=strtolower((string)($p['cat']??''));
+        $isDenim=str_contains($cat,'jean')||str_contains($cat,'denim');
+        if($denimPass!==$isDenim) continue;
+        $b=trim((string)($p['brand']??'')); if($b===''||isset($seen[$b])) continue;
+        $imgs=$p['images']??[]; $img=is_array($imgs)&&$imgs?(string)$imgs[0]:'';
+        if($img==='') continue;
+        if(!preg_match('#^https?://#i',$img)) $img='https://vestrasales.com'.(str_starts_with($img,'/')?'':'/').$img;
+        $seen[$b]=true;
+        $shots[]=['img'=>$img,'label'=>$b,
+                  'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+      }
+    }
   }
   $downloads=[];
   foreach($brands as $b){ $downloads[]=['label'=>$b,'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)]; }
   if(!$downloads) $downloads[]=['label'=>'Full selection','url'=>'https://vestrasales.com/catalog'];
+
+  // Fotograf seridi basligi, alicinin dilinde.
+  $shotsTitle=[
+    'nl'=>'Uit de actuele selectie','de'=>'Aus der aktuellen Auswahl','fr'=>'De la sélection actuelle',
+    'it'=>'Dalla selezione attuale','es'=>'De la selección actual','pt'=>'Da seleção atual',
+    'cs'=>'Z aktuální nabídky','pl'=>'Z aktualnej oferty','el'=>'Από την τρέχουσα συλλογή',
+  ][$lang] ?? 'From the current selection';
 
   if($lang==='nl'){
     $subject='Les Garage de Paris × VESTRA — de authentieke designer groothandelselectie';
@@ -790,6 +865,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Uitgelichte merken',
       'brands_hint'=>'Tik op een merk voor de line-sheet',
       'badge'=>'KYC-geverifieerd · echtheid gecontroleerd · escrow-beschermd',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — download (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Echtheid','value'=>'Gecontroleerd bij levering'],
@@ -827,6 +904,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Ausgewählte Häuser',
       'brands_hint'=>'Tippen Sie auf ein Haus für das Line-Sheet',
       'badge'=>'KYC-verifiziert · Echtheit geprüft · Escrow-geschützt',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-Sheets — Download (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Echtheit','value'=>'Bei Lieferung geprüft'],
@@ -864,6 +943,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Maisons en vedette',
       'brands_hint'=>'Touchez une maison pour ouvrir son line-sheet',
       'badge'=>'Vérifié KYC · authenticité contrôlée · protégé par séquestre',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — télécharger (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Authenticité','value'=>'Vérifiée à la livraison'],
@@ -901,6 +982,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Maison in evidenza',
       'brands_hint'=>'Toccare una maison per aprire il line-sheet',
       'badge'=>'Verificato KYC · autenticità controllata · protetto da escrow',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheet — scarica (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Autenticità','value'=>'Verificata alla consegna'],
@@ -938,6 +1021,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Marcas em destaque',
       'brands_hint'=>'Toque numa marca para abrir o line-sheet',
       'badge'=>'Verificado por KYC · autenticidade verificada · protegido por escrow',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — descarregar (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Autenticidade','value'=>'Verificada na entrega'],
@@ -975,6 +1060,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Vybrané značky',
       'brands_hint'=>'Klepnutím na značku otevřete ceník',
       'badge'=>'Ověřeno KYC · pravost kontrolována · chráněno escrow',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Ceníky — stáhnout (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Pravost','value'=>'Ověřena při doručení'],
@@ -1012,6 +1099,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Wyróżnione marki',
       'brands_hint'=>'Dotknij marki, aby otworzyć jej line-sheet',
       'badge'=>'Zweryfikowano KYC · autentyczność sprawdzona · chronione escrow',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — pobierz (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Autentyczność','value'=>'Weryfikowana przy dostawie'],
@@ -1049,6 +1138,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Firmas destacadas',
       'brands_hint'=>'Toque una firma para abrir su line-sheet',
       'badge'=>'Verificado KYC · autenticidad comprobada · protegido por depósito en garantía',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — descargar (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Autenticidad','value'=>'Verificada en la entrega'],
@@ -1086,6 +1177,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       'brands_title'=>'Επιλεγμένοι οίκοι',
       'brands_hint'=>'Πατήστε σε έναν οίκο για να ανοίξετε το line-sheet',
       'badge'=>'Επαληθευμένο KYC · ελεγμένη αυθεντικότητα · προστασία escrow',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
       'downloads'=>['title'=>'Line-sheets — λήψη (Excel)','items'=>$downloads],
       'rows'=>[
         ['label'=>'Αυθεντικότητα','value'=>'Ελέγχεται κατά την παράδοση'],
@@ -1122,6 +1215,8 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
     'brands_title'=>'Featured houses',
     'brands_hint'=>'Tap a house to open its line-sheet',
     'badge'=>'KYC-verified · authenticity-checked · escrow-protected',
+    'shots'=>$shots,
+    'shots_title'=>$shotsTitle,
     'downloads'=>['title'=>'Line-sheets — download (Excel)','items'=>$downloads],
     'rows'=>[
       ['label'=>'Authenticity','value'=>'Verified on delivery'],
