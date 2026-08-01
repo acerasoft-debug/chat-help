@@ -800,7 +800,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
  * aesthetic tweak lives here. The featured-brand strip and the per-brand Excel catalogue links
  * are derived from the LIVE catalogue (vestra_products), so the mail always reflects real stock.
  * $company personalises the opening line when provided. */
-function vestra_campaign_preview(string $company='', string $lang='en'): array {
+function vestra_campaign_preview(string $company='', string $lang='en', string $featureCat=''): array {
   $counts=[]; $brands=[]; $shots=[];
   if(function_exists('vestra_products')){
     $all=vestra_products();
@@ -825,16 +825,39 @@ function vestra_campaign_preview(string $company='', string $lang='en'): array {
       if(!in_array($b,$brands,true)){ array_pop($brands); array_unshift($brands,$b); }
     }
 
-    /* Fotograf seridi: denim once. Cold e-postada urun gormek, marka adi okumaktan
-       cok daha ikna edici. Gorseller katalog sayfasindaki ile ayni -- fiyat yok,
-       o yuzden uye olmayan birine gostermekte sakinca yok. */
+    /* Operator tek seferlik bir gonderim icin belirli bir kategoriyi one cikarmak
+       isteyebilir (orn. Ibiza/Mallorca butiklerine mayo/short) -- denimle ayni
+       mantik, $featureCat bos oldugunda (butun diger cagrilar) hicbir sey degismez. */
+    $featureCatLower = strtolower(trim($featureCat));
+    if($featureCatLower !== ''){
+      $featBrands=[];
+      foreach($all as $p){
+        $cat=strtolower((string)($p['cat']??''));
+        if(!str_contains($cat,$featureCatLower)) continue;
+        $b=trim((string)($p['brand']??'')); if($b==='') continue;
+        $featBrands[$b]=($featBrands[$b]??0)+1;
+      }
+      arsort($featBrands);
+      foreach(array_slice(array_keys($featBrands),0,2) as $b){
+        if(!in_array($b,$brands,true)){ array_pop($brands); array_unshift($brands,$b); }
+      }
+    }
+
+    /* Fotograf seridi: istenen kategori (varsa) once, sonra denim, sonra genel.
+       Cold e-postada urun gormek, marka adi okumaktan cok daha ikna edici.
+       Gorseller katalog sayfasindaki ile ayni -- fiyat yok, o yuzden uye olmayan
+       birine gostermekte sakinca yok. */
     $seen=[];
-    foreach([true,false] as $denimPass){
+    $passes = $featureCatLower !== '' ? ['feat','denim','other'] : ['denim','other'];
+    foreach($passes as $pass){
       foreach($all as $p){
         if(count($shots)>=3) break 2;
         $cat=strtolower((string)($p['cat']??''));
         $isDenim=str_contains($cat,'jean')||str_contains($cat,'denim');
-        if($denimPass!==$isDenim) continue;
+        $isFeat=$featureCatLower!==''&&str_contains($cat,$featureCatLower);
+        if($pass==='feat'   && !$isFeat) continue;
+        if($pass==='denim'  && (!$isDenim || $isFeat)) continue;
+        if($pass==='other'  && ($isDenim || $isFeat)) continue;
         $b=trim((string)($p['brand']??'')); if($b===''||isset($seen[$b])) continue;
         $imgs=$p['images']??[]; $img=is_array($imgs)&&$imgs?(string)$imgs[0]:'';
         if($img==='') continue;
