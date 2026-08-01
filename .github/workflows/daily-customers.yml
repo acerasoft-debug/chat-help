@@ -75,26 +75,56 @@ jobs:
                alan olunca sorgu zaman asimina ugruyor ve sessizce bos donuyor.
                Onun yerine ilce/borough adlari (Manhattan, Brooklyn) kullaniliyor. */
             $POOL = [
+              // --- Nordics ---
               'Norway|Oslo','Norway|Bergen','Norway|Trondheim','Norway|Stavanger',
+              'Sweden|Gothenburg','Sweden|Malmo','Sweden|Uppsala',
+              'Denmark|Aarhus','Denmark|Odense','Denmark|Aalborg',
+              'Finland|Helsinki','Finland|Tampere','Finland|Turku',
+              'Iceland|Reykjavik',
+              // --- North America ---
               'United States|Manhattan','United States|Brooklyn','United States|Los Angeles',
               'United States|Chicago','United States|San Francisco','United States|Boston',
               'United States|Seattle','United States|Philadelphia','United States|Austin',
               'United States|Denver','United States|Portland','United States|Atlanta',
               'United States|Dallas','United States|Houston','United States|San Diego',
-              'United States|Nashville','United States|Minneapolis',
+              'United States|Nashville','United States|Minneapolis','United States|Las Vegas',
+              'United States|Scottsdale','United States|Charlotte','United States|Detroit',
+              'Canada|Toronto','Canada|Montreal','Canada|Vancouver','Canada|Calgary',
+              // --- DACH / Alpine (Almanya operator talimatiyla HARIC) ---
               'Switzerland|Zurich','Switzerland|Geneva','Switzerland|Basel','Switzerland|Bern',
-              'Austria|Vienna','Austria|Salzburg','Austria|Graz',
+              'Switzerland|Lausanne','Switzerland|Lugano',
+              'Austria|Vienna','Austria|Salzburg','Austria|Graz','Austria|Innsbruck','Austria|Linz',
+              // --- Benelux ---
               'Netherlands|Amsterdam','Netherlands|Rotterdam','Netherlands|Utrecht',
-              'Ireland|Dublin','Ireland|Cork',
+              'Netherlands|Eindhoven','Netherlands|The Hague',
+              'Belgium|Antwerp','Belgium|Ghent','Belgium|Bruges','Belgium|Leuven',
+              'Luxembourg|Luxembourg',
+              // --- Britain & Ireland ---
               'United Kingdom|London','United Kingdom|Manchester','United Kingdom|Edinburgh',
               'United Kingdom|Glasgow','United Kingdom|Birmingham','United Kingdom|Bristol',
-              'Finland|Helsinki','Finland|Tampere',
-              'Poland|Warsaw','Poland|Krakow','Czechia|Prague','Hungary|Budapest',
-              'Italy|Milan','Italy|Rome','Italy|Florence','Italy|Bologna','Italy|Turin','Italy|Verona',
+              'United Kingdom|Leeds','United Kingdom|Liverpool','United Kingdom|Brighton',
+              'Ireland|Dublin','Ireland|Cork','Ireland|Galway',
+              // --- Southern Europe ---
+              'Italy|Milan','Italy|Rome','Italy|Florence','Italy|Bologna','Italy|Turin',
+              'Italy|Verona','Italy|Padua','Italy|Genoa','Italy|Bari','Italy|Palermo','Italy|Catania',
               'Spain|Madrid','Spain|Barcelona','Spain|Valencia','Spain|Seville',
+              'Spain|Bilbao','Spain|Malaga','Spain|Zaragoza','Spain|Murcia',
+              'Portugal|Lisbon','Portugal|Porto','Portugal|Braga',
+              'Greece|Athens','Greece|Thessaloniki','Greece|Patras',
+              'Malta|Valletta','Cyprus|Limassol','Cyprus|Nicosia',
+              // --- France ---
               'France|Paris','France|Nice','France|Lyon','France|Bordeaux','France|Toulouse',
-              'Portugal|Lisbon','Portugal|Porto',
-              'Belgium|Antwerp','Belgium|Ghent',
+              'France|Marseille','France|Nantes','France|Strasbourg','France|Lille','France|Montpellier',
+              'Monaco|Monaco',
+              // --- Central & Eastern Europe ---
+              'Poland|Warsaw','Poland|Krakow','Poland|Wroclaw','Poland|Poznan','Poland|Gdansk',
+              'Czechia|Prague','Czechia|Brno',
+              'Hungary|Budapest','Hungary|Debrecen',
+              'Slovakia|Bratislava','Slovenia|Ljubljana',
+              'Croatia|Zagreb','Croatia|Split',
+              'Romania|Bucharest','Romania|Cluj-Napoca','Bulgaria|Sofia',
+              'Estonia|Tallinn','Latvia|Riga','Lithuania|Vilnius',
+              'Serbia|Belgrade',
             ];
 
             $in = trim((string)getenv('IN_CITIES'));
