@@ -6,6 +6,10 @@ on:
         description: "Marka filtresi (boş = hepsi)"
         required: false
         default: "Lacoste"
+      cat:
+        description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -20,22 +24,25 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           INSPECT_BRAND: ${{ github.event.inputs.brand }}
+          INSPECT_CAT: ${{ github.event.inputs.cat }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND
+          envs: INSPECT_BRAND,INSPECT_CAT
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
             require $home."/public_html/inc/products.php";
             $bf = strtolower(trim((string)getenv("INSPECT_BRAND")));
+            $cf = trim((string)getenv("INSPECT_CAT"));
             foreach (vestra_products() as $p) {
               $brand = (string)($p['brand'] ?? '');
               if ($bf !== '' && stripos($brand, $bf) === false) continue;
+              if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
               elseif (!empty($p['image'])) $imgs = [$p['image']];
