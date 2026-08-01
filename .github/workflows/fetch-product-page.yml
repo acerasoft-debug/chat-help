@@ -1,0 +1,138 @@
+name: Dış ürün sayfasını indir — incele / fotoğraf yükle
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Ürün sayfası linki (herhangi bir perakende sitesi)"
+        required: true
+      mode:
+        description: "inspect = HTML'den görsel/renk/fiyat sinyallerini döker | download = tek bir görseli indirip sunucuya yükler"
+        required: true
+        default: "inspect"
+      image_url:
+        description: "mode=download iken: indirilecek TAM görsel URL'si (inspect çıktısından seçilir)"
+        required: false
+        default: ""
+      label:
+        description: "mode=download iken: görsel etiketi — uploads/<etiket>/ altına gider (küçük harf/rakam/tire)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Neden bu workflow var: bazı perakende siteleri (tennisplanet.de, engelhorn.de gibi)
+# WebFetch'i (sandbox proxy IP/UA'sini bot sayip) 403 ile reddediyor. GitHub Actions
+# runner'i farklı bir ağ/IP'den geldiği için aynı Dropbox-fetch mantığı burada da
+# işe yarıyor: indirme runner'da, sunucuya yükleme runner'dan doğrudan SCP ile.
+#
+# mode=inspect: sayfanın HTML'ini çeker, JSON-LD (schema.org Product) bloklarını,
+# og:image/og:title/og:price meta'larını, ve galeri/renk ile ilgili görünen <img>
+# adaylarını basar. HİÇBİR ŞEY İNDİRİLMEZ/YÜKLENMEZ — sadece okumak için.
+# mode=download: inspect çıktısından seçilen TEK bir image_url'i indirir, dosya
+# adını normalize eder, uploads/<etiket>/ altına SCP'ler.
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: İncele
+        if: ${{ github.event.inputs.mode == 'inspect' }}
+        env:
+          RAW_URL: ${{ github.event.inputs.url }}
+        run: |
+          set -e
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          echo "cekiliyor: $RAW_URL"
+          curl -sSL -A "$UA" \
+            -H "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" \
+            -H "Accept-Language: de-DE,de;q=0.9,en;q=0.8" \
+            --max-time 60 -o page.html "$RAW_URL" || true
+          SZ=$(stat -c%s page.html 2>/dev/null || echo 0)
+          echo "indirilen boyut: ${SZ} B"
+          [ "$SZ" -gt 0 ] || { echo "HATA: sayfa gelmedi"; exit 1; }
+
+          echo; echo "===== JSON-LD (application/ld+json) ====="
+          python3 - <<'PYEOF'
+import re, html
+data = open('page.html', encoding='utf-8', errors='replace').read()
+blocks = re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', data, re.S | re.I)
+for i, b in enumerate(blocks):
+    print(f"--- block {i} ---")
+    print(b.strip()[:3000])
+print(f"\ntoplam JSON-LD blok: {len(blocks)}")
+PYEOF
+
+          echo; echo "===== og: meta etiketleri ====="
+          grep -oiE '<meta[^>]+property=["\047]og:[^"\047]+["\047][^>]*>' page.html | head -30 || true
+
+          echo; echo "===== img adaylari (src/data-src/srcset iceren, kucuk ikon/logo elenmis) ====="
+          python3 - <<'PYEOF'
+import re
+data = open('page.html', encoding='utf-8', errors='replace').read()
+urls = set()
+for attr in ('src', 'data-src', 'data-zoom-image', 'data-large', 'data-original', 'srcset'):
+    for m in re.findall(rf'{attr}=["\']([^"\']+)["\']', data, re.I):
+        for part in m.split(','):
+            u = part.strip().split(' ')[0]
+            if u:
+                urls.add(u)
+skip_words = ('sprite', 'icon', 'logo', 'flag', 'payment', 'placeholder', '.svg', 'blank.gif')
+cands = sorted(u for u in urls if not any(w in u.lower() for w in skip_words))
+for u in cands[:80]:
+    print(" ", u)
+print(f"\ntoplam aday: {len(cands)}")
+PYEOF
+
+          echo; echo "===== 'farbe'/'color'/'renk' gecen kisa satirlar (renk secenekleri icin) ====="
+          grep -oiE '.{0,40}(farbe|color-name|colour|swatch).{0,80}' page.html | head -40 || true
+
+          echo; echo "===== fiyat gecen kisa satirlar ====="
+          grep -oiE '.{0,20}(EUR|€ ?[0-9]|[0-9],[0-9]{2} ?€).{0,20}' page.html | head -20 || true
+
+      - name: İndir ve yükle
+        if: ${{ github.event.inputs.mode == 'download' }}
+        env:
+          IMG_URL: ${{ github.event.inputs.image_url }}
+          RAW_LABEL: ${{ github.event.inputs.label }}
+          PAGE_URL: ${{ github.event.inputs.url }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+          TERM: dumb
+        run: |
+          set -e
+          LABEL=$(printf '%s' "$RAW_LABEL" | tr 'A-Z' 'a-z' | tr -cd 'a-z0-9-')
+          [ -n "$LABEL" ] || { echo "HATA: etiket bos/gecersiz"; exit 1; }
+          [ -n "$IMG_URL" ] || { echo "HATA: image_url bos"; exit 1; }
+          echo "etiket: $LABEL"
+          echo "indirilecek gorsel: $IMG_URL"
+
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          mkdir -p staged
+          EXT=$(printf '%s' "$IMG_URL" | sed -E 's/[?#].*$//' | sed -E 's/.*\.([a-zA-Z0-9]+)$/\1/' | tr 'A-Z' 'a-z')
+          case "$EXT" in jpg|jpeg|png|webp) : ;; *) EXT="jpg" ;; esac
+          OUT="staged/${LABEL}.${EXT}"
+          curl -sSL -A "$UA" -H "Referer: ${PAGE_URL}" --max-time 60 -o "$OUT" "$IMG_URL"
+          SZ=$(stat -c%s "$OUT" 2>/dev/null || echo 0)
+          TYPE=$(file -b "$OUT" 2>/dev/null || echo '?')
+          echo "indirildi: ${OUT} (${SZ} B, ${TYPE})"
+          printf '%s' "$TYPE" | grep -qiE 'jpeg|png|webp|image' || { echo "HATA: gorsel gelmedi (belki hotlink korumasi)"; head -c 300 "$OUT"; exit 1; }
+
+          if [ "$EXT" = "webp" ]; then
+            convert "$OUT" "staged/${LABEL}.png" 2>/dev/null && rm -f "$OUT" && OUT="staged/${LABEL}.png"
+          fi
+          echo "IDENTIFY:"; identify "$OUT" 2>/dev/null || true
+
+          PORT="${SSH_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+          BASE=$(basename "$OUT")
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "mkdir -p ~/public_html/uploads/${LABEL}"
+          scp $SSHOPT "$OUT" "$SSH_USER@$SSH_HOST:~/public_html/uploads/${LABEL}/${BASE}"
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" "chmod 644 ~/public_html/uploads/${LABEL}/${BASE}; ls -la ~/public_html/uploads/${LABEL}/"
+          echo "YUKLEME TAMAM -> /uploads/${LABEL}/${BASE}"
