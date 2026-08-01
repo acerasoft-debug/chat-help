@@ -1,0 +1,200 @@
+name: (Lead) Adres ekle + tara + gönder (tek adım)
+on:
+  workflow_dispatch:
+    inputs:
+      emails:
+        description: "E-posta adresleri — virgül, boşluk ya da satır sonu ile ayır"
+        required: true
+      send:
+        description: "true = ekledikten sonra hemen gönder | false = sadece ekle ve tara"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+# Operatorun ELLE verdigi adresler icin tek adimlik is: ekler, sitesini tarayip
+# hangi premium markalari tasidigini kaydeder, ve gonderir.
+#
+# NEDEN MARKA FILTRESI UYGULANMIYOR: bu adresleri operator kendisi secti. Otomatik
+# kesiften gelen leadler icin min_brands=2 sarti var cunku OSM dukkanin ne sattigini
+# bilmiyor; ama operator sektoru taniyor ve verdigi adreslerin uygunlugunu zaten
+# degerlendirmis oluyor. Olculen fark buyuk: elle verilen adreslerin ~%86'sinda
+# premium marka bulundu, OSM'den gelenlerin %4'unde. Ayrica site taramasi bazen
+# gercek bir butikte de bos donuyor (JS ile yuklenen katalog, korumali site) --
+# boyle bir durumda gecerli musteriyi elemek yanlis olur. Marka taramasi yine de
+# yapiliyor, ama BILGI olarak: kaydediliyor ve raporlaniyor, engellemiyor.
+#
+# TEK SUREC: ekleme, tarama ve gonderme ayni betikte SIRAYLA calisir. Ayri isler
+# olarak paralel calistirildiginda ikisi de leads.json'i oku-degistir-yaz yaptigi
+# icin biri digerinin yazdigini eziyordu -- gonderim kaydi kaybolunca ayni adrese
+# ikinci kez e-posta gidiyordu.
+jobs:
+  addsend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ekle, tara, gönder
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IN_EMAILS: ${{ github.event.inputs.emails }}
+          DO_SEND: ${{ github.event.inputs.send }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 20m
+          envs: IN_EMAILS,DO_SEND
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_add_send.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('memory_limit','256M');
+            @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            $DO_SEND = strtolower(trim((string)getenv('DO_SEND'))) !== 'false';
+            $raw     = (string)getenv('IN_EMAILS');
+
+            $wanted = [];
+            foreach (preg_split('/[\s,;]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) as $e) {
+              $e = strtolower(trim($e, " \t\n\r<>\"'"));
+              if (filter_var($e, FILTER_VALIDATE_EMAIL)) $wanted[$e] = true;
+            }
+            if (!$wanted) { echo "gecerli e-posta bulunamadi\n"; exit(1); }
+            echo "verilen gecerli adres: ".count($wanted)."\n\n";
+
+            /* ---- 1) EKLE (zaten varsa dokunma) ---- */
+            $leads = vestra_leads();
+            $byMail = [];
+            foreach ($leads as $i => $l) {
+              $m = strtolower(trim((string)($l['email'] ?? '')));
+              if ($m !== '') $byMail[$m] = $i;
+            }
+            $added = 0;
+            foreach (array_keys($wanted) as $mail) {
+              if (isset($byMail[$mail])) { echo "  = zaten var : {$mail}\n"; continue; }
+              $domain  = substr(strrchr($mail, '@'), 1);
+              $website = 'https://'.$domain;
+              $company = function_exists('vestra_site_title') ? (string)vestra_site_title($website) : '';
+              if ($company === '') $company = $domain;
+              $leads[] = [
+                'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>'',
+                'company'=>$company, 'contact_name'=>'', 'email'=>$mail, 'country'=>'',
+                'website'=>$website, 'source'=>'manual', 'category'=>'',
+                'notes'=>'', 'status'=>'new', 'last_contacted_at'=>'',
+                'unsub_token'=>bin2hex(random_bytes(16)),
+                'premium'=>false, 'premium_brands'=>[],
+              ];
+              $byMail[$mail] = count($leads) - 1;
+              $added++;
+              echo "  + EKLENDI   : {$company} <{$mail}>\n";
+              flush();
+            }
+            if ($added > 0) vestra_save_leads($leads);
+            echo "\n{$added} eklendi. toplam lead: ".count($leads)."\n\n";
+
+            /* ---- 2) TARA (bilgi amacli -- engellemiyor) ---- */
+            echo "-- marka taramasi --\n";
+            $touched = 0;
+            foreach (array_keys($wanted) as $mail) {
+              $i = $byMail[$mail] ?? null; if ($i === null) continue;
+              $pb = $leads[$i]['premium_brands'] ?? [];
+              if (is_array($pb) && $pb) { printf("  %-34s %s\n", $mail, implode(', ', array_slice($pb,0,6))); continue; }
+              $w  = (string)($leads[$i]['website'] ?? '');
+              $pb = $w !== '' ? vestra_premium_brands($w) : [];
+              $leads[$i]['premium_brands'] = $pb;
+              $leads[$i]['premium']        = !empty($pb);
+              $touched++;
+              printf("  %-34s %s\n", $mail, $pb ? implode(', ', array_slice($pb,0,6)) : '(marka bulunamadi -- yine de gonderilecek)');
+              flush();
+            }
+            if ($touched > 0) vestra_save_leads($leads);
+            echo "\n";
+
+            if (!$DO_SEND) { echo "send=false -- gonderim yapilmadi.\n"; exit(0); }
+
+            /* ---- 3) GONDER ----
+               Dil esleme ve gonderim, send-outreach.yml ile AYNI mantik: ulke -> dil,
+               cok dilli ulkelerde adres icindeki sehir adina bak, bulunamazsa Ingilizce. */
+            $FROM = 'Les Garage de Paris';
+            $LANG_MAP = [
+              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'france'=>'fr',
+              'italy'=>'it','italia'=>'it',
+              'portugal'=>'pt',
+              'czech republic'=>'cs','czechia'=>'cs','česko'=>'cs','cesko'=>'cs',
+              'poland'=>'pl','polska'=>'pl',
+              'spain'=>'es','españa'=>'es','espana'=>'es',
+              'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
+              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+            ];
+            $REGION_LANG = [
+              'belgium' => ['default'=>'nl','match'=>[
+                'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
+              ]],
+            ];
+            $FLAG = ['nl'=>'NL','fr'=>'FR','de'=>'DE','it'=>'IT','pt'=>'PT','cs'=>'CS','pl'=>'PL','es'=>'ES','el'=>'EL','en'=>'EN'];
+            /* Ulke bos ise e-posta uzantisindan tahmin et: elle verilen adreslerde
+               ulke alani cogu zaman bos kaliyor ve o zaman herkes Ingilizce aliyordu. */
+            $TLD_LANG = ['de'=>'de','at'=>'de','ch'=>'en','nl'=>'nl','be'=>'nl','fr'=>'fr','it'=>'it',
+                         'es'=>'es','pt'=>'pt','gr'=>'el','pl'=>'pl','cz'=>'cs'];
+
+            echo "-- gonderim --\n";
+            $sent = 0; $fail = 0; $skip = 0;
+            foreach (array_keys($wanted) as $mail) {
+              $i = $byMail[$mail] ?? null; if ($i === null) continue;
+              $l = $leads[$i];
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') {
+                echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
+              }
+              if (!empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$mail}\n"; $skip++; continue; }
+
+              $company = (string)($l['company'] ?? '');
+              $ckey    = strtolower(trim((string)($l['country'] ?? '')));
+              if (isset($REGION_LANG[$ckey])) {
+                $lang = $REGION_LANG[$ckey]['default'];
+                $hay  = strtolower($company.' '.(string)($l['notes'] ?? '').' '.(string)($l['website'] ?? ''));
+                foreach ($REGION_LANG[$ckey]['match'] as $lg => $needles) {
+                  foreach ($needles as $nd) { if (str_contains($hay, $nd)) { $lang = $lg; break 2; } }
+                }
+              } elseif (isset($LANG_MAP[$ckey])) {
+                $lang = $LANG_MAP[$ckey];
+              } else {
+                $tld  = strtolower((string)(explode('.', substr(strrchr($mail,'@'),1))[count(explode('.', substr(strrchr($mail,'@'),1)))-1] ?? ''));
+                $lang = $TLD_LANG[$tld] ?? 'en';
+              }
+
+              list($subject, $body, $opts) = vestra_campaign_preview($company, $lang);
+              $token = (string)($l['unsub_token'] ?? '');
+              if ($token !== '') {
+                $body = str_replace(
+                  'https://vestrasales.com/lead-unsubscribe',
+                  'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($token),
+                  $body
+                );
+              }
+              $ok = vestra_send_mail($mail, $subject, $body, '', $FROM, null, '', $opts);
+              if ($ok) {
+                $leads[$i]['last_contacted_at'] = date('c');
+                if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+                $leads[$i]['last_campaign'] = 'les-garage/'.$lang;
+                $sent++;
+                echo "  + GONDERILDI: {$company} <{$mail}> | dil=".($FLAG[$lang] ?? 'EN')."\n";
+              } else {
+                $fail++;
+                echo "  x HATA      : {$mail}\n";
+              }
+              flush();
+            }
+            if ($sent > 0) vestra_save_leads($leads);
+            echo "\nBITTI. gonderildi: {$sent}, atlandi: {$skip}, hata: {$fail}\n";
+            PHPEOF
+            cp /tmp/vestra_add_send.php ./vestra_add_send_tmp.php
+            php ./vestra_add_send_tmp.php
+            rm -f ./vestra_add_send_tmp.php /tmp/vestra_add_send.php
