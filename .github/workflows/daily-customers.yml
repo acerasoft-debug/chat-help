@@ -1,0 +1,301 @@
+name: (Günlük) Butik bul + tara + gönder
+on:
+  schedule:
+    - cron: '0 7 * * *'      # her gün 07:00 UTC
+  workflow_dispatch:
+    inputs:
+      daily_target:
+        description: "Günlük gönderim tavanı"
+        required: false
+        default: "260"
+      cities:
+        description: "Bugünkü şehirler (boş = takvimden otomatik seç)"
+        required: false
+        default: ""
+      skip_discovery:
+        description: "true = keşif yapma, sadece tara ve gönder"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+# GUNLUK MUSTERI BULMA HATTI. Uc adim, hepsi AYNI is icinde ve SIRAYLA:
+#   1) kesif  -- OSM'den o gunun sehirlerindeki butikleri bul, e-postasi olani ekle
+#   2) tarama -- eklenenlerin sitesini gezip hangi premium markalari tasidigini yaz
+#   3) gonderim -- SADECE 2+ farkli premium marka tasiyanlara, dili ulkesine gore
+#
+# NEDEN AYRI IS DEGIL DE AYRI ADIM: tarama ve gonderim ikisi de leads.json'i
+# oku-degistir-yaz yapiyor. Paralel calistiklarinda tarama, gonderimin yazdigi
+# "bu adrese gonderildi" kaydinin ustune yazabiliyor -- kayit gidince ayni butik
+# ertesi gun ikinci kez e-posta aliyor. Adimlar sirayla oldugu icin bu olamaz.
+#
+# GERCEKCI BEKLENTI: gunluk tavan 260 ama pratikte O KADAR CIKMAZ. Olculen oran:
+# OSM'den bulunan dukkanlarin ~%4'u "cok markali premium butik" kriterini gecti
+# (418 dukkan -> 27 uygun). Gunde 260 UYGUN lead icin gunde ~6.500 dukkan taramak
+# gerekirdi; paylasimli sunucuda ve Overpass hiz limitleriyle bu mumkun degil.
+# Gunluk gercekci cikti 10-40 arasi. Tavan, kriteri gevsetmek yerine kalitede
+# israr edildigi icin boyle; sayiyi buyutmenin yolu ELLE verilen adresler
+# (add-and-send.yml), onlarin uygunluk orani ~%86.
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    steps:
+      # ---------- 1) KESIF ----------
+      - name: 1. Keşif (OSM)
+        if: ${{ github.event.inputs.skip_discovery != 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IN_CITIES: ${{ github.event.inputs.cities }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 22m
+          envs: IN_CITIES
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_daily_discover.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('memory_limit','256M');
+            @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            /* Sehir havuzu. ALMANYA YOK -- operator haric tuttu.
+               Burada olmayan adlar bilerek yok: "New York", "Miami", "Miami Beach",
+               "Copenhagen"/"Kobenhavn" ve "Stockholm" denendi ve hepsi 2-3 dakika
+               harcayip SIFIR dondu. Sebep: sorgu OSM'de admin_level 3-10 arasi
+               ayni ADA sahip alani ariyor; "New York" admin_level 4'te EYALET,
+               sehrin kaydi "City of New York". Ayni ada sahip birden fazla buyuk
+               alan olunca sorgu zaman asimina ugruyor ve sessizce bos donuyor.
+               Onun yerine ilce/borough adlari (Manhattan, Brooklyn) kullaniliyor. */
+            $POOL = [
+              'Norway|Oslo','Norway|Bergen','Norway|Trondheim','Norway|Stavanger',
+              'United States|Manhattan','United States|Brooklyn','United States|Los Angeles',
+              'United States|Chicago','United States|San Francisco','United States|Boston',
+              'United States|Seattle','United States|Philadelphia','United States|Austin',
+              'United States|Denver','United States|Portland','United States|Atlanta',
+              'United States|Dallas','United States|Houston','United States|San Diego',
+              'United States|Nashville','United States|Minneapolis',
+              'Switzerland|Zurich','Switzerland|Geneva','Switzerland|Basel','Switzerland|Bern',
+              'Austria|Vienna','Austria|Salzburg','Austria|Graz',
+              'Netherlands|Amsterdam','Netherlands|Rotterdam','Netherlands|Utrecht',
+              'Ireland|Dublin','Ireland|Cork',
+              'United Kingdom|London','United Kingdom|Manchester','United Kingdom|Edinburgh',
+              'United Kingdom|Glasgow','United Kingdom|Birmingham','United Kingdom|Bristol',
+              'Finland|Helsinki','Finland|Tampere',
+              'Poland|Warsaw','Poland|Krakow','Czechia|Prague','Hungary|Budapest',
+              'Italy|Milan','Italy|Rome','Italy|Florence','Italy|Bologna','Italy|Turin','Italy|Verona',
+              'Spain|Madrid','Spain|Barcelona','Spain|Valencia','Spain|Seville',
+              'France|Paris','France|Nice','France|Lyon','France|Bordeaux','France|Toulouse',
+              'Portugal|Lisbon','Portugal|Porto',
+              'Belgium|Antwerp','Belgium|Ghent',
+            ];
+
+            $in = trim((string)getenv('IN_CITIES'));
+            if ($in !== '') {
+              $todays = array_filter(array_map('trim', explode(',', $in)));
+            } else {
+              /* Takvime gore don: her gun havuzdan 3 sehir, sirayla ilerler. Boylece
+                 ayni sehir ust uste taranmaz ve havuz ~3 haftada bir devreder. */
+              $day  = (int)date('z') + (int)date('Y') * 366;
+              $n    = count($POOL);
+              $todays = [];
+              for ($k = 0; $k < 3; $k++) $todays[] = $POOL[(($day * 3) + $k) % $n];
+            }
+            echo "bugunun sehirleri: ".implode(' | ', $todays)."\n\n";
+
+            $before = count(vestra_leads());
+            foreach ($todays as $pair) {
+              [$country, $city] = array_pad(explode('|', $pair, 2), 2, '');
+              $country = trim($country); $city = trim($city);
+              if ($country === '') continue;
+              echo "* {$city} ({$country}) ...\n"; flush();
+              $t0   = time();
+              $rows = vestra_discover_osm($country, $city, 120);
+              $ok   = function_exists('vestra_osm_ok') ? vestra_osm_ok() : true;
+              echo "  OSM: ".count($rows)." dukkan (".(time()-$t0)." sn)".($ok?'':'  [UYARI: Overpass cevap vermedi]')."\n"; flush();
+              if (!$rows) continue;
+
+              /* Sadece e-postasi COZULEBILENI ekle. E-posta OSM etiketinde varsa
+                 dogrudan, yoksa sitesinden okunuyor. Bulunamayani eklemiyoruz --
+                 gonderilemeyecek bir kayit listeyi sisirmekten baska ise yaramaz. */
+              $toAdd = []; $checked = 0; $budget = 300; $t1 = time();
+              foreach ($rows as $r) {
+                if (time() - $t1 > $budget) { echo "  (sure butcesi doldu, kalan atlandi)\n"; break; }
+                $email = strtolower(trim((string)($r['email'] ?? '')));
+                if ($email === '') {
+                  $w = (string)($r['website'] ?? '');
+                  if ($w !== '') $email = vestra_find_email($w);
+                }
+                $checked++;
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                  $r['email'] = $email; $toAdd[] = $r;
+                }
+                if ($checked % 20 === 0) { echo "  ... {$checked} tarandi, ".count($toAdd)." e-postali\n"; flush(); }
+              }
+              if ($toAdd) { [$a,] = vestra_leads_add($toAdd); echo "  + ".count($a)." yeni lead\n"; }
+              flush();
+            }
+            $after = count(vestra_leads());
+            echo "\nKESIF BITTI. yeni lead: ".($after-$before)." | toplam: {$after}\n";
+            PHPEOF
+            cp /tmp/vestra_daily_discover.php ./vestra_dd_tmp.php
+            php ./vestra_dd_tmp.php
+            rm -f ./vestra_dd_tmp.php /tmp/vestra_daily_discover.php
+
+      # ---------- 2) TARAMA ----------
+      - name: 2. Marka taraması
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 22m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_daily_scan.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('memory_limit','256M');
+            @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            $leads = vestra_leads(); $budget = 1000; $t0 = time();
+            $need = [];
+            foreach ($leads as $i => $l) {
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;   // gonderilmise gerek yok
+              if (!empty($l['_screened'])) continue;
+              $pb = $l['premium_brands'] ?? null;
+              if (is_array($pb) && $pb) continue;
+              $w = trim((string)($l['website'] ?? ''));
+              if ($w === '') continue;
+              $need[$i] = $w;
+            }
+            echo "taranacak: ".count($need)."\n";
+            $done = 0; $hit = 0;
+            foreach ($need as $i => $w) {
+              if (time() - $t0 > $budget) { echo "  (butce doldu, kalan ".(count($need)-$done)." yarin taranacak)\n"; break; }
+              $pb = vestra_premium_brands($w);
+              $leads[$i]['premium_brands'] = $pb;
+              $leads[$i]['premium']        = !empty($pb);
+              $leads[$i]['_screened']      = true;
+              $done++; if (count($pb) >= 2) $hit++;
+              if ($done % 25 === 0) { echo "  ... {$done}/".count($need).", {$hit} tanesi 2+ marka\n"; flush(); }
+            }
+            if ($done > 0) vestra_save_leads($leads);
+            echo "TARAMA BITTI. tarandi: {$done}, 2+ marka: {$hit}\n";
+            PHPEOF
+            cp /tmp/vestra_daily_scan.php ./vestra_ds_tmp.php
+            php ./vestra_ds_tmp.php
+            rm -f ./vestra_ds_tmp.php /tmp/vestra_daily_scan.php
+
+      # ---------- 3) GONDERIM ----------
+      - name: 3. Gönderim (yalnızca 2+ premium marka)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          TARGET: ${{ github.event.inputs.daily_target }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: TARGET
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_daily_send.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1');
+            while (ob_get_level() > 0) { @ob_end_flush(); }
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            $TARGET = (int)(getenv('TARGET') ?: 260); if ($TARGET < 1) $TARGET = 260;
+            $FROM   = 'Les Garage de Paris';
+            $LANG_MAP = [
+              'netherlands'=>'nl','the netherlands'=>'nl','nederland'=>'nl','holland'=>'nl',
+              'france'=>'fr','italy'=>'it','italia'=>'it','portugal'=>'pt',
+              'czech republic'=>'cs','czechia'=>'cs','poland'=>'pl','polska'=>'pl',
+              'spain'=>'es','españa'=>'es','espana'=>'es','greece'=>'el',
+              'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+            ];
+            $REGION_LANG = ['belgium'=>['default'=>'nl','match'=>[
+              'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai'],
+            ]]];
+            $block = vestra_discover_blocklist();
+
+            $leads = vestra_leads();
+            $picked = [];
+            foreach ($leads as $i => $l) {
+              if (count($picked) >= $TARGET) break;
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') continue;
+              if (!empty($l['unsubscribed'])) continue;
+              $mail = strtolower(trim((string)($l['email'] ?? '')));
+              if (!filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
+
+              /* KRITER: en az IKI ayri premium marka. Tek marka = monobrand bayi,
+                 sifir = kendi etiketini satan dukkan; operator ikisini de istemiyor. */
+              $pb = $l['premium_brands'] ?? [];
+              if (!is_array($pb) || count($pb) < 2) continue;
+
+              $name = strtolower((string)($l['company'] ?? ''));
+              $isChain = false;
+              foreach ($block as $b) if ($b !== '' && str_contains($name, $b)) { $isChain = true; break; }
+              if ($isChain) continue;
+
+              $ctg = strtolower((string)($l['category'] ?? ''));
+              if (str_contains($ctg,'shoes') || str_contains($ctg,'bag') || str_contains($ctg,'leather')) continue;
+
+              $picked[$i] = $l;
+            }
+            echo "uygun secilen: ".count($picked)." / tavan: {$TARGET}\n\n";
+            if (!$picked) { echo "Bugun kriterleri gecen yeni lead yok -- gonderim yapilmadi.\n"; exit(0); }
+
+            $sent = 0; $fail = 0; $langCounts = [];
+            foreach ($picked as $i => $l) {
+              $company = (string)($l['company'] ?? '');
+              $mail    = strtolower(trim((string)($l['email'] ?? '')));
+              $ckey    = strtolower(trim((string)($l['country'] ?? '')));
+              if (isset($REGION_LANG[$ckey])) {
+                $lang = $REGION_LANG[$ckey]['default'];
+                $hay  = strtolower($company.' '.(string)($l['notes'] ?? '').' '.(string)($l['website'] ?? ''));
+                foreach ($REGION_LANG[$ckey]['match'] as $lg => $nds)
+                  foreach ($nds as $nd) if (str_contains($hay, $nd)) { $lang = $lg; break 2; }
+              } else {
+                $lang = $LANG_MAP[$ckey] ?? 'en';
+              }
+              list($subject, $body, $opts) = vestra_campaign_preview($company, $lang);
+              $token = (string)($l['unsub_token'] ?? '');
+              if ($token !== '') $body = str_replace(
+                'https://vestrasales.com/lead-unsubscribe',
+                'https://vestrasales.com/lead-unsubscribe?token='.rawurlencode($token), $body);
+
+              if (vestra_send_mail($mail, $subject, $body, '', $FROM, null, '', $opts)) {
+                $leads[$i]['last_contacted_at'] = date('c');
+                if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+                $leads[$i]['last_campaign'] = 'les-garage/'.$lang;
+                $sent++; $langCounts[$lang] = ($langCounts[$lang] ?? 0) + 1;
+                echo "  + {$company} <{$mail}> [{$lang}] ".implode(', ', array_slice($l['premium_brands'],0,3))."\n";
+              } else { $fail++; echo "  x HATA: {$mail}\n"; }
+              flush();
+            }
+            if ($sent > 0) vestra_save_leads($leads);
+            echo "\n----\ndil dagilimi: "; foreach ($langCounts as $k=>$v) echo "{$k}={$v}  ";
+            echo "\nGUNLUK BITTI. gonderildi: {$sent}, hata: {$fail}, toplam lead: ".count($leads)."\n";
+            PHPEOF
+            cp /tmp/vestra_daily_send.php ./vestra_dsend_tmp.php
+            php ./vestra_dsend_tmp.php
+            rm -f ./vestra_dsend_tmp.php /tmp/vestra_daily_send.php

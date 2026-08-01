@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       emails:
-        description: "E-posta adresleri — virgül, boşluk ya da satır sonu ile ayır"
+        description: "E-posta VEYA site linki — karışık olabilir, virgül/boşluk/satır sonu ile ayır"
         required: true
       send:
         description: "true = ekledikten sonra hemen gönder | false = sadece ekle ve tara"
@@ -61,13 +61,44 @@ jobs:
             $DO_SEND = strtolower(trim((string)getenv('DO_SEND'))) !== 'false';
             $raw     = (string)getenv('IN_EMAILS');
 
-            $wanted = [];
-            foreach (preg_split('/[\s,;]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) as $e) {
-              $e = strtolower(trim($e, " \t\n\r<>\"'"));
-              if (filter_var($e, FILTER_VALIDATE_EMAIL)) $wanted[$e] = true;
+            /* Girdi HEM e-posta HEM site linki olabilir, karisik da olabilir.
+               Link verildiginde e-posta sitesinden okunur (iletisim/kunye sayfalari).
+               Operator cogu zaman butigi link olarak biliyor, adresini degil. */
+            $wanted = [];      // email => true
+            $fromLink = [];    // email => kaynak link (raporlamak icin)
+            $noMail = [];      // e-postasi bulunamayan linkler
+            foreach (preg_split('/[\s,;]+/', $raw, -1, PREG_SPLIT_NO_EMPTY) as $tok) {
+              $tok = trim($tok, " \t\n\r<>\"'()[]");
+              if ($tok === '') continue;
+              if (filter_var($tok, FILTER_VALIDATE_EMAIL)) { $wanted[strtolower($tok)] = true; continue; }
+
+              // link / alan adi mi?
+              $cand = $tok;
+              if (!preg_match('#^https?://#i', $cand)) {
+                if (!preg_match('#^[a-z0-9][a-z0-9.\-]*\.[a-z]{2,}#i', $cand)) continue;   // ne mail ne site
+                $cand = 'https://'.$cand;
+              }
+              echo "  ... link cozumleniyor: {$cand}\n"; flush();
+              $mail = vestra_find_email($cand);
+              if ($mail !== '' && filter_var($mail, FILTER_VALIDATE_EMAIL)) {
+                $mail = strtolower($mail);
+                $wanted[$mail] = true; $fromLink[$mail] = $cand;
+                echo "      -> {$mail}\n";
+              } else {
+                $noMail[] = $cand;
+                echo "      -> e-posta BULUNAMADI (sitede yayinlanmis adres yok)\n";
+              }
+              flush();
             }
-            if (!$wanted) { echo "gecerli e-posta bulunamadi\n"; exit(1); }
-            echo "verilen gecerli adres: ".count($wanted)."\n\n";
+            if (!$wanted) {
+              echo "\nGecerli e-posta bulunamadi.\n";
+              if ($noMail) echo "Su linklerde yayinlanmis e-posta yoktu: ".implode(', ', $noMail)."\n";
+              exit(1);
+            }
+            echo "\nislenecek adres: ".count($wanted);
+            if ($fromLink) echo " (".count($fromLink)." tanesi linkten cozuldu)";
+            if ($noMail)   echo " | e-postasi bulunamayan link: ".count($noMail);
+            echo "\n\n";
 
             /* ---- 1) EKLE (zaten varsa dokunma) ---- */
             $leads = vestra_leads();
