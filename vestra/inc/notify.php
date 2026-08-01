@@ -284,7 +284,23 @@ function vestra_osm_ok(?bool $set = null): bool {
   if ($set !== null) $ok = $set;
   return $ok;
 }
+/* Son sorguda Overpass'in KENDI ic zaman asimina dusup dusmedigi.
+ *
+ * Bu, vestra_osm_ok()'tan AYRI bir bilgi ve ayri olmasi sart. Overpass agir bir
+ * sorguya HTTP 200 + {"elements":[],"remark":"... timed out ..."} donuyor; baska
+ * bir ayna da ayni sorguya temiz ama BOS cevap verebiliyor. O durumda osm_ok
+ * true kaliyor ve cagiran taraf "bu bolgede hic dukkan yok" sonucunu cikariyor --
+ * oysa gercek sebep sorgunun agir olmasi. Admin'deki "musteri bul" dugmesi tam
+ * bu yuzden ulke genelinde hep "0 bulundu" gosteriyordu: Hollanda'da elbette
+ * dukkan var, sorgu tamamlanamiyordu. Bunu ayri tutunca cagiran taraf "bos" ile
+ * "yetismedi"yi ayirt edip kullaniciya dogru seyi soyleyebiliyor. */
+function vestra_osm_timeout(?bool $set = null): bool {
+  static $t = false;
+  if ($set !== null) $t = $set;
+  return $t;
+}
 function vestra_overpass(string $ql): string {
+  vestra_osm_timeout(false);   // her cagriyi temiz baslat: bayrak ONCEKI sorgudan kalmasin
   // Free public Overpass mirrors are prone to transient 502/503/504 under load, especially
   // for whole-country queries — four independent instances plus one same-mirror retry on a
   // 5xx (a momentary spike often clears within a couple of seconds) makes a total outage
@@ -323,6 +339,7 @@ function vestra_overpass(string $ql): string {
         $lastEmpty=$r;
         break; // no point retrying the same mirror on a legitimately-empty answer — try the next one
       }
+      if($softTimeout) vestra_osm_timeout(true);
       if($code) error_log("[VESTRA osm] {$ep} HTTP {$code}".($softTimeout?' (Overpass ic zaman asimi remark)':'')." (deneme {$attempt})");
       if($attempt===1 && (in_array($code,[502,503,504],true) || $softTimeout)){ sleep(2); continue; } // transient — retry same mirror once
       break;

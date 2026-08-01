@@ -735,9 +735,28 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
     $rows=$country!==''?vestra_discover_osm($country,$city,80):[];
     $osmOk=$country!==''?vestra_osm_ok():true;
+    $timedOut=function_exists('vestra_osm_timeout')?vestra_osm_timeout():false;
     [$addedRows,$skipped]=$rows?vestra_leads_add($rows):[[],0];
     $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
-    echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds,'osm_ok'=>$osmOk]); exit;
+    /* Bos sonucun SEBEBINI soyle. Ciplak "0 bulundu" en yaniltici cikti: kullanici
+       "bu ulkede butik yokmus" saniyor, oysa neredeyse her zaman sorgu agir geldigi
+       icin Overpass yetismiyor. Sehir verilince ayni sorgu calisiyor. */
+    $note='';
+    if(!$rows){
+      if($timedOut){
+        $note=$city===''
+          ? 'Overpass ülke geneli sorguda zaman aşımına uğradı — ülke çok geniş. Şehir yazıp tekrar deneyin (ör. Amsterdam, Milan, Zurich); şehir bazlı arama çalışıyor.'
+          : 'Overpass zaman aşımına uğradı — sunucu şu an yoğun. Birkaç dakika sonra tekrar deneyin.';
+      } elseif(!$osmOk){
+        $note='OpenStreetMap sunucularının hiçbiri yanıt vermedi. Geçici bir kesinti; birkaç dakika sonra tekrar deneyin.';
+      } elseif($city===''){
+        $note='Sonuç boş. Ülke geneli aramalar çoğu zaman tamamlanamıyor — bir şehir yazıp deneyin.';
+      } else {
+        $note='Bu şehir için OSM\'de aradığımız kategorilerde kayıtlı dükkan bulunamadı. Şehir adını yerel dilde de deneyebilirsiniz.';
+      }
+    }
+    echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds,
+                      'osm_ok'=>$osmOk,'timed_out'=>$timedOut,'note'=>$note]); exit;
   }
   /* Written by the "Run now" button once its live discovery + email-lookup finishes, so a
      manual run leaves the exact same status trail as the 09:00 cron (inc/leads.php). */
@@ -3052,8 +3071,22 @@ function findCustomersLive(btn){
     var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
     line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
     log.appendChild(line);
+    /* Sunucunun yazdigi sebep. Ciplak "0 bulundu" kullaniciyi "burada butik yok"
+       sanmaya itiyordu; asil sebep neredeyse her zaman sorgunun agir gelmesi. */
+    if(d.note){
+      var n=document.createElement('div'); n.style.fontSize='12px'; n.style.padding='4px 0';
+      n.style.color=d.timed_out?'#c0392b':'#8a6d1f';
+      n.textContent=(d.timed_out?'⚠ ':'ℹ ')+d.note;
+      log.appendChild(n);
+    }
     var ids=d.newIds||[];
-    if(!ids.length){ bar.textContent=d.osm_ok===false?'✗ OSM search failed — try again.':'✓ Done — no new customers needed an email lookup.'; btn.disabled=false; return; }
+    if(!ids.length){
+      bar.textContent = d.timed_out ? '✗ Overpass timed out — add a city and retry.'
+                      : d.osm_ok===false ? '✗ OSM search failed — try again.'
+                      : (d.total||0)===0 ? '✗ No shops found — see the note above.'
+                      : '✓ Done — no new customers needed an email lookup.';
+      btn.disabled=false; return;
+    }
     runEmailFinderQueue(ids, log,
       function(i,n){ bar.textContent='Checking emails '+i+' / '+n+'…'; },
       function(ok,fail,n){ bar.textContent='✓ Done — '+ok+' email(s) found, '+fail+' not found, of '+n+' new customers. Refresh to see them.'; btn.disabled=false; });
