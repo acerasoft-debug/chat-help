@@ -1,0 +1,119 @@
+name: (Lead) Kriterlere uymayanları listeden çıkar
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = sadece göster, SİLME | false = gerçekten sil"
+        required: false
+        default: "true"
+      drop:
+        description: "Silinecek sınıflar (virgülle): zincir,textil_degil,kendi_markasi,tek_marka"
+        required: false
+        default: "zincir,textil_degil,kendi_markasi,tek_marka"
+
+permissions:
+  contents: read
+
+# Operatorun kriterlerine uymayan leadleri listeden cikarir:
+#   zincir        -> buyuk zincir / monobrand flagship (isim blocklist'te)
+#   textil_degil  -> ayakkabi / canta / deri (giyim degil)
+#   kendi_markasi -> sitesi tarandi, HIC ucuncu-taraf premium marka yok
+#   tek_marka     -> sadece 1 premium marka (monobrand bayi)
+#
+# GUVENLIK 1: yalnizca HENUZ E-POSTA GONDERILMEMIS leadler silinir. Gonderilmis bir
+# leadi silmek "ayni adrese iki kez gonderme" korumasini bozar -- kayit gidince adres
+# yeniden uygun hale gelir ve ayni butik ikinci kez e-posta alir. Gonderilmis kayitlar
+# arsiv olarak kalmali.
+# GUVENLIK 2: taranmamis / sitesi olmayan leadler ASLA silinmez. Marka verisi yoklugu
+# "kriteri karsilamiyor" demek degil, "daha bakilmadi" demek.
+# GUVENLIK 3: silmeden once zaman damgali yedek alinir.
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ayıkla ve çıkar
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DRY: ${{ github.event.inputs.dry_run }}
+          DROP: ${{ github.event.inputs.drop }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: DRY,DROP
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_purge_leads.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            $DRY  = strtolower(trim((string)getenv('DRY')))  !== 'false';
+            $DROP = array_filter(array_map('trim', explode(',', strtolower((string)getenv('DROP')))));
+            $DROP = array_flip($DROP);
+
+            $leads = vestra_leads();
+            $block = vestra_discover_blocklist();
+
+            $classify = function(array $l) use ($block) {
+              $name = strtolower(trim((string)($l['company'] ?? '')));
+              $ctg  = strtolower((string)($l['category'] ?? ''));
+              $pb   = $l['premium_brands'] ?? null;
+              $n    = is_array($pb) ? count($pb) : -1;
+              foreach ($block as $b) if ($b !== '' && str_contains($name, $b)) return 'zincir';
+              if (str_contains($ctg,'shoes') || str_contains($ctg,'bag') || str_contains($ctg,'leather')) return 'textil_degil';
+              if ($n < 0)   return 'bilinmiyor';
+              if ($n === 0) return 'kendi_markasi';
+              if ($n === 1) return 'tek_marka';
+              return 'hedef';
+            };
+
+            $keep = []; $removed = []; $stats = []; $skipSent = 0;
+            foreach ($leads as $l) {
+              $cls = $classify($l);
+              $stats[$cls] = ($stats[$cls] ?? 0) + 1;
+              $sent = trim((string)($l['last_contacted_at'] ?? '')) !== '';
+              if (isset($DROP[$cls])) {
+                if ($sent) { $skipSent++; $keep[] = $l; continue; }   // gonderilmise dokunma
+                $removed[] = $l + ['_cls'=>$cls];
+                continue;
+              }
+              $keep[] = $l;
+            }
+
+            echo "== TUM LISTENIN SINIFLARI ==\n";
+            ksort($stats);
+            foreach ($stats as $k => $v) printf("  %-16s %5d\n", $k, $v);
+            echo "\n";
+            echo "silinecek siniflar : ".implode(', ', array_keys($DROP))."\n";
+            echo "toplam lead        : ".count($leads)."\n";
+            echo "CIKARILACAK        : ".count($removed)."\n";
+            echo "kalacak            : ".count($keep)."\n";
+            echo "gonderilmis oldugu icin KORUNAN: {$skipSent}\n\n";
+
+            $byCls = [];
+            foreach ($removed as $r) $byCls[$r['_cls']][] = $r;
+            foreach ($byCls as $c => $rows) {
+              echo "-- {$c}: ".count($rows)." --\n";
+              foreach (array_slice($rows, 0, 10) as $r)
+                printf("   %-38s %s\n", mb_substr((string)($r['company'] ?? ''),0,36), (string)($r['email'] ?? ''));
+              if (count($rows) > 10) echo "   ... ve ".(count($rows)-10)." tane daha\n";
+              echo "\n";
+            }
+
+            if ($DRY) { echo "DRY-RUN: hicbir sey silinmedi. Gercekten silmek icin dry_run=false.\n"; exit(0); }
+
+            $lf = $home."/public_html/data/leads.json";
+            $bak = $lf.".bak-purge-".date("Ymd_His");
+            if (is_readable($lf)) { copy($lf, $bak); echo "yedek: ".basename($bak)."\n"; }
+            vestra_save_leads($keep);
+            echo "SILINDI: ".count($removed)." lead cikarildi. yeni toplam: ".count($keep)."\n";
+            PHPEOF
+            cp /tmp/vestra_purge_leads.php ./vestra_purge_tmp.php
+            php ./vestra_purge_tmp.php
+            rm -f ./vestra_purge_tmp.php /tmp/vestra_purge_leads.php
