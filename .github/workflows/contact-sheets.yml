@@ -40,7 +40,7 @@ jobs:
           set -e
           # Klasor listesi tek yerde: yeni bir Dropbox klasoru cekildiginde
           # buraya eklenir, hem indirme hem montaj dongusu ayni listeyi kullanir.
-          FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy marcelo-burlon gcds fendi-sweat fendi-tshirt valentino gucci versace dsq-jeans dsq-sweat dsq-tshirt givenchy-sweat swim-shorts gucci2"
+          FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy marcelo-burlon gcds fendi-sweat fendi-tshirt valentino gucci versace dsq-jeans dsq-sweat dsq-tshirt givenchy-sweat swim-shorts gucci2 dsquared2-new dg-tshirt dg-sweat balmain-swim dg-swim dsq-swim givenchy-swim dg-root4 mixed-root-c"
           echo "klasorler: $FOLDERS"
           PORT="${SSH_PORT:-22}"
           install -m 700 -d ~/.ssh
