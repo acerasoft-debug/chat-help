@@ -41,7 +41,7 @@ jobs:
             $cf = trim((string)getenv("INSPECT_CAT"));
             foreach (vestra_products() as $p) {
               $brand = (string)($p['brand'] ?? '');
-              if ($bf !== '' && stripos($brand, $bf) === false) continue;
+              if ($bf !== '' && $bf !== '*' && stripos($brand, $bf) === false) continue;
               if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
