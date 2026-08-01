@@ -825,36 +825,52 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
       if(!in_array($b,$brands,true)){ array_pop($brands); array_unshift($brands,$b); }
     }
 
-    /* Operator tek seferlik bir gonderim icin belirli bir kategoriyi one cikarmak
-       isteyebilir (orn. Ibiza/Mallorca butiklerine mayo/short) -- denimle ayni
-       mantik, $featureCat bos oldugunda (butun diger cagrilar) hicbir sey degismez. */
-    $featureCatLower = strtolower(trim($featureCat));
-    if($featureCatLower !== ''){
+    /* Operator tek seferlik bir gonderim icin bir ya da birden fazla kategoriyi
+       one cikarmak isteyebilir (orn. Ibiza/Mallorca butiklerine mayo/short/bikini
+       -- virgulle ayrilmis kisa anahtar kelimeler, "swim,short" gibi: "swim" hem
+       "Swim Shorts" hem "Women's Swimwear" (bikini) icinde geciyor, "short" hem
+       "Shorts" hem "Jeans Shorts" icinde -- tek tek tam kategori adi gerekmiyor.
+       $featureCat bos oldugunda (butun diger cagrilar) hicbir sey degismez. */
+    $featureNeedles = array_values(array_filter(array_map(
+      fn($s) => strtolower(trim($s)), explode(',', $featureCat)
+    ), fn($s) => $s !== ''));
+    $isFeatCat = function(string $cat) use ($featureNeedles): bool {
+      foreach($featureNeedles as $needle) if(str_contains($cat,$needle)) return true;
+      return false;
+    };
+    if($featureNeedles){
       $featBrands=[];
       foreach($all as $p){
         $cat=strtolower((string)($p['cat']??''));
-        if(!str_contains($cat,$featureCatLower)) continue;
+        if(!$isFeatCat($cat)) continue;
         $b=trim((string)($p['brand']??'')); if($b==='') continue;
         $featBrands[$b]=($featBrands[$b]??0)+1;
       }
       arsort($featBrands);
-      foreach(array_slice(array_keys($featBrands),0,2) as $b){
+      foreach(array_slice(array_keys($featBrands),0,3) as $b){
         if(!in_array($b,$brands,true)){ array_pop($brands); array_unshift($brands,$b); }
       }
     }
 
-    /* Fotograf seridi: istenen kategori (varsa) once, sonra denim, sonra genel.
+    /* Fotograf seridi: istenen kategori(ler) (varsa) once, sonra denim, sonra
+       genel. Birden fazla feature kategorisi varsa serit 4'e cikiyor (2 feat +
+       denim + genel) ki hicbiri digerini tamamen disarida birakmasin.
        Cold e-postada urun gormek, marka adi okumaktan cok daha ikna edici.
        Gorseller katalog sayfasindaki ile ayni -- fiyat yok, o yuzden uye olmayan
        birine gostermekte sakinca yok. */
     $seen=[];
-    $passes = $featureCatLower !== '' ? ['feat','denim','other'] : ['denim','other'];
+    $shotLimit  = $featureNeedles ? 4 : 3;
+    $featShots  = 0; $featCap = 2;   // en fazla 2 kare feature kategoriye ayrilir,
+                                      // gerisi denim + genele kaliyor -- tek kategori
+                                      // butun seridi kaplamasin diye.
+    $passes = $featureNeedles ? ['feat','denim','other'] : ['denim','other'];
     foreach($passes as $pass){
       foreach($all as $p){
-        if(count($shots)>=3) break 2;
+        if(count($shots)>=$shotLimit) break 2;
+        if($pass==='feat' && $featShots>=$featCap) break;
         $cat=strtolower((string)($p['cat']??''));
         $isDenim=str_contains($cat,'jean')||str_contains($cat,'denim');
-        $isFeat=$featureCatLower!==''&&str_contains($cat,$featureCatLower);
+        $isFeat=$isFeatCat($cat);
         if($pass==='feat'   && !$isFeat) continue;
         if($pass==='denim'  && (!$isDenim || $isFeat)) continue;
         if($pass==='other'  && ($isDenim || $isFeat)) continue;
@@ -863,6 +879,7 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
         if($img==='') continue;
         if(!preg_match('#^https?://#i',$img)) $img='https://vestrasales.com'.(str_starts_with($img,'/')?'':'/').$img;
         $seen[$b]=true;
+        if($pass==='feat') $featShots++;
         $shots[]=['img'=>$img,'label'=>$b,
                   'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
       }

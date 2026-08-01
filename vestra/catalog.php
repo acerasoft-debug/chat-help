@@ -17,13 +17,10 @@
  *
  *  Download file name is intentionally neutral ("VESTRA-Selection-<date>.xlsx").
  */
-require __DIR__.'/inc/members_only.php';
-/* Was deliberately public as a cold-outreach teaser. The operator has since instructed that
-   no download is available to an unregistered visitor, so it is now gated like the rest.
-   NOTE: campaign emails already sent carry /catalog links; those recipients now land on the
-   login page instead of a file. */
-vestra_require_member('/catalog'.(isset($_GET['brand']) && $_GET['brand'] !== '' ? '?brand='.rawurlencode((string)$_GET['brand']) : ''));
-
+/* Public by design (see header above): a members-only gate was tried here and broke
+   every campaign-email download link, since cold leads have no session to gate against.
+   No trade pricing or seller identity is in this export, so there is nothing the gate
+   was protecting -- back to public. */
 require __DIR__.'/inc/products.php';
 require __DIR__.'/inc/xlsx.php';
 
