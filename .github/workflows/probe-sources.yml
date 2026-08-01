@@ -1,0 +1,103 @@
+name: (Keşif) Yeni lead kaynaklarını yoklama testi
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Salt-okunur SONDA. Hicbir sey eklemez/gondermez.
+#
+# Amac: OSM'nin verimi %4 cikti (418 dukkan -> 27 uygun). Marka BAYI LISTELERI
+# teoride cok daha iyi olmali, cunku listelenen her magaza zaten tanimi geregi
+# cok markali premium butik. Ama bu sayfalarin cogu JavaScript ile yukleniyor
+# olabilir -- oyleyse sunucudan duz HTTP ile cekilemez ve fikir kagit ustunde kalir.
+#
+# Bu is, uzerine sistem kurmadan ONCE varsayimi test eder: her aday kaynagi ceker,
+# HTML icinde gercekten magaza adi/alan adi var mi diye bakar ve sayar. Sonuca gore
+# hangi kaynagin ise yaradigina veriye bakarak karar veririz.
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynakları yokla
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_probe.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1');
+            while (ob_get_level() > 0) { @ob_end_flush(); }
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            /* Aday kaynaklar. Iki tur:
+               - "bayi/magaza bulucu": markanin kendi sitesinde nerede satiliyor listesi
+               - "dizin": coklu perakendeci listeleyen acik sayfalar               */
+            $targets = [
+              ['Stone Island store locator', 'https://www.stoneisland.com/en/store-locator'],
+              ['C.P. Company stockists',     'https://www.cpcompany.com/en/store-locator'],
+              ['Save The Duck store locator','https://www.savetheduck.com/en/store-locator'],
+              ['Autry dealer locator',       'https://www.autry.com/en/store-locator'],
+              ['Golden Goose stores',        'https://www.goldengoose.com/en/store-locator'],
+              ['K-Way stores',               'https://www.k-way.com/en/store-locator'],
+              ['Herno store locator',        'https://www.herno.com/en/stores'],
+              ['Pitti Uomo exhibitors',      'https://www.pittimmagine.com/en/corporate/fairs/uomo.html'],
+              ['Premium Berlin exhibitors',  'https://www.premiumberlin.com/exhibitors'],
+              ['Who is Next exhibitors',     'https://www.whosnext.com/en/exhibitors'],
+            ];
+
+            /* Bir sayfa "ise yarar" mi? Olcut: icinde DIS alan adlari (magaza siteleri)
+               ya da e-posta gecmesi. Sadece 200 donmesi yetmez -- JS iskeleti de 200 doner. */
+            $selfHosts = ['stoneisland','cpcompany','savetheduck','autry','goldengoose','k-way','herno',
+                          'pittimmagine','premiumberlin','whosnext','google','facebook','instagram',
+                          'twitter','youtube','linkedin','cloudflare','cookiebot','onetrust','gstatic',
+                          'googletagmanager','doubleclick','shopify','akamai','w3.org','schema.org'];
+
+            printf("%-30s %-6s %-9s %-7s %-7s %s\n", "KAYNAK", "KOD", "BOYUT", "DISALAN", "EPOSTA", "DEGERLENDIRME");
+            echo str_repeat('-', 110)."\n";
+            foreach ($targets as [$name, $url]) {
+              $html = vestra_http_get($url, 15);
+              $code = $html === '' ? 0 : 200;
+              $size = strlen($html);
+
+              // dis alan adlarini topla
+              $hosts = [];
+              if (preg_match_all('#https?://([a-z0-9.\-]+\.[a-z]{2,})#i', $html, $m)) {
+                foreach ($m[1] as $h) {
+                  $h = strtolower($h);
+                  $skip = false;
+                  foreach ($selfHosts as $s) if (str_contains($h, $s)) { $skip = true; break; }
+                  if (!$skip) $hosts[$h] = true;
+                }
+              }
+              $mails = [];
+              if (preg_match_all('/[A-Z0-9._%%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i', $html, $me)) {
+                foreach ($me[0] as $e) $mails[strtolower($e)] = true;
+              }
+
+              $verdict = '';
+              if ($size === 0)                       $verdict = 'CEKILEMEDI (engel / zaman asimi)';
+              elseif ($size < 3000)                  $verdict = 'cok kucuk -- muhtemelen yonlendirme';
+              elseif (count($hosts) < 5 && !$mails)  $verdict = 'JS iskeleti -- veri HTML icinde YOK';
+              else                                   $verdict = 'KULLANILABILIR';
+
+              printf("%-30s %-6s %-9s %-7d %-7d %s\n",
+                     mb_substr($name,0,28), $code ?: '000', $size, count($hosts), count($mails), $verdict);
+              if ($verdict === 'KULLANILABILIR') {
+                $sample = array_slice(array_keys($hosts), 0, 6);
+                echo "      ornek alan adlari: ".implode(', ', $sample)."\n";
+              }
+              flush();
+            }
+            PHPEOF
+            cp /tmp/vestra_probe.php ./vestra_probe_tmp.php
+            php ./vestra_probe_tmp.php
+            rm -f ./vestra_probe_tmp.php /tmp/vestra_probe.php
