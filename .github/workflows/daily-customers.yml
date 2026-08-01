@@ -1,7 +1,10 @@
 name: (Günlük) Butik bul + tara + gönder
 on:
-  schedule:
-    - cron: '0 7 * * *'      # her gün 07:00 UTC
+  # OTOMATIK TETIKLEME KAPALI (2026-08-01) -- kullanici istegiyle durduruldu:
+  # "herhangi bir calisan sistem varsa kapat, cok guc ve token harcadik".
+  # Tekrar gunluk otomatik calismasini istersen asagidaki iki satiri geri ac:
+  #   schedule:
+  #     - cron: '0 7 * * *'      # her gun 07:00 UTC
   workflow_dispatch:
     inputs:
       daily_target:
