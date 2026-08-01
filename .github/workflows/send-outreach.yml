@@ -39,9 +39,14 @@ on:
         # bayiyi de gecirir. Operator "sadece karisik marka satanlar" dedigi icin
         # esik ayrilabilir hale getirildi: 2 = sitesinde EN AZ IKI ayri premium marka
         # gecen magazalar (gercek multi-brand), 0/1 = eski davranis.
-        description: "Multi-brand esigi: sitesinde en az kac AYRI premium marka gecsin (2 = sadece karisik marka satanlar)"
+        # VARSAYILAN 2. Onceden 0 idi ve bu, parametreyi vermeden calistirilan bir
+        # gonderimin HICBIR marka filtresi uygulamamasina yol acti: kostum dukkanlarina,
+        # rozet ureticisine ve bir Shopify sablon adresine (hi@mystore.com) kampanya
+        # gitti. Guvenli varsayilan, operatorun asil kuralidir -- "sadece karisik marka
+        # satanlar". Eski davranis hala mumkun ama artik ACIKCA 0 yazmak gerekiyor.
+        description: "Multi-brand esigi: sitesinde en az kac AYRI premium marka gecsin (2 = sadece karisik marka satanlar, VARSAYILAN)"
         required: false
-        default: "0"
+        default: "2"
       only_emails:
         description: "Sadece bu e-posta(lar)a gönder (allowlist; virgül/boşlukla ayrılır). Boşsa normal seçim."
         required: false
