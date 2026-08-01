@@ -1,0 +1,155 @@
+name: (Lead) Gönderilmemişleri tara ve ayıkla
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "rapor = sadece say/sınıflandır (yazma yok) | tara = siteleri tara ve etiketle"
+        required: false
+        default: "rapor"
+      budget:
+        description: "Tarama bütçesi (saniye) — tara modunda"
+        required: false
+        default: "900"
+
+permissions:
+  contents: read
+
+# Gonderilmemis leadleri operatorun kriterlerine gore ayirir:
+#   BUYUK ZINCIR        -> isim blocklist'te (Zara, H&M, Nike, Galeries Lafayette...)
+#   KENDI MARKASI       -> sitesinde HIC ucuncu-taraf premium marka yok = kendi etiketini satiyor
+#   TEK MARKA           -> sadece 1 premium marka = monobrand bayi
+#   TEXTIL DEGIL        -> kategori ayakkabi/canta/deri (giyim degil)
+#   HEDEF               -> 2+ farkli premium marka tasiyan cok markali butik
+#
+# "rapor" modu hicbir sey yazmaz, sadece mevcut veriyle sayar. "tara" modu
+# premium_brands verisi OLMAYAN leadlerin sitesini gezip markalari tespit eder ve
+# leade yazar -- kesif (discover-city) marka taramasi yapmadigi icin OSM'den gelen
+# leadlerin bu alani bos geliyor, dolayisiyla min_brands filtresi onlari eliyor.
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tara / raporla
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MODE: ${{ github.event.inputs.mode }}
+          BUDGET: ${{ github.event.inputs.budget }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 25m
+          envs: MODE,BUDGET
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_screen.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('memory_limit','256M');
+            @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+            require_once  $home."/public_html/inc/notify.php";
+
+            $MODE   = strtolower(trim((string)getenv('MODE')  ?: 'rapor'));
+            $BUDGET = (int)(getenv('BUDGET') ?: 900);
+            $start  = time();
+
+            $leads = vestra_leads();
+            $block = vestra_discover_blocklist();
+
+            /* ---- 1) Gonderilmis / gonderilmemis ---- */
+            $sent = 0; $unsent = [];
+            foreach ($leads as $i => $l) {
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') { $sent++; continue; }
+              if (!empty($l['unsubscribed'])) continue;          // cikanlari hic sayma
+              $unsent[$i] = $l;
+            }
+            echo "toplam lead        : ".count($leads)."\n";
+            echo "GONDERILMIS        : {$sent}\n";
+            echo "GONDERILMEMIS      : ".count($unsent)."\n\n";
+
+            /* ---- 2) Gerekirse markalari tara ---- */
+            if ($MODE === 'tara') {
+              $need = [];
+              foreach ($unsent as $i => $l) {
+                $pb = $l['premium_brands'] ?? null;
+                if (is_array($pb) && count($pb) > 0) continue;   // zaten var
+                if (isset($l['_screened']) && $l['_screened']) continue;
+                $w = trim((string)($l['website'] ?? ''));
+                if ($w === '') continue;                          // site yoksa taranamaz
+                $need[$i] = $w;
+              }
+              echo "taranacak (site var, marka verisi yok): ".count($need)."\n";
+              $done = 0; $hit = 0;
+              foreach ($need as $i => $w) {
+                if (time() - $start > $BUDGET) { echo "  (butce {$BUDGET}s doldu -- kalan ".(count($need)-$done)." tanesi taranmadi)\n"; break; }
+                $pb = vestra_premium_brands($w);
+                $leads[$i]['premium_brands'] = $pb;
+                $leads[$i]['premium']        = !empty($pb);
+                $leads[$i]['_screened']      = true;              // site ulasilamasa bile tekrar denemeyelim
+                $unsent[$i]                  = $leads[$i];
+                $done++; if ($pb) $hit++;
+                if ($done % 10 === 0) { echo "  ... {$done}/".count($need)." tarandi, {$hit} tanesinde premium marka bulundu\n"; flush(); }
+              }
+              if ($done > 0) { vestra_save_leads($leads); echo "  {$done} lead tarandi, {$hit} tanesinde marka bulundu. kaydedildi.\n"; }
+              echo "\n";
+            }
+
+            /* ---- 3) Siniflandirma ---- */
+            $cat = ['HEDEF'=>[], 'TEK_MARKA'=>[], 'KENDI_MARKASI'=>[], 'ZINCIR'=>[], 'TEXTIL_DEGIL'=>[], 'BILINMIYOR'=>[]];
+            foreach ($unsent as $i => $l) {
+              $name = strtolower(trim((string)($l['company'] ?? '')));
+              $pb   = $l['premium_brands'] ?? null;
+              $n    = is_array($pb) ? count($pb) : -1;            // -1 = hic taranmamis
+              $ctg  = strtolower((string)($l['category'] ?? ''));
+
+              $isChain = false;
+              foreach ($block as $b) { if ($b !== '' && str_contains($name, $b)) { $isChain = true; break; } }
+
+              /* Giyim disi ticaret: kesif ayakkabi/canta/deri de topluyor. Bunlar moda ama
+                 TEKSTIL degil -- operator bunlari ayri istedi. */
+              $nonTextile = (str_contains($ctg,'shoes') || str_contains($ctg,'bag') || str_contains($ctg,'leather'));
+
+              if     ($isChain)      $cat['ZINCIR'][]       = $l;
+              elseif ($nonTextile)   $cat['TEXTIL_DEGIL'][] = $l;
+              elseif ($n < 0)        $cat['BILINMIYOR'][]   = $l;
+              elseif ($n === 0)      $cat['KENDI_MARKASI'][]= $l;
+              elseif ($n === 1)      $cat['TEK_MARKA'][]    = $l;
+              else                   $cat['HEDEF'][]        = $l;
+            }
+
+            $lbl = [
+              'HEDEF'        => 'HEDEF        (2+ premium marka -- cok markali butik)',
+              'TEK_MARKA'    => 'TEK MARKA    (1 premium marka -- monobrand bayi)',
+              'KENDI_MARKASI'=> 'KENDI MARKASI(site taranmis, hic premium marka yok)',
+              'ZINCIR'       => 'BUYUK ZINCIR (isim blocklist ile eslesti)',
+              'TEXTIL_DEGIL' => 'TEXTIL DEGIL (ayakkabi / canta / deri)',
+              'BILINMIYOR'   => 'BILINMIYOR   (henuz taranmadi ya da sitesi yok)',
+            ];
+            echo "==== GONDERILMEMIS LEADLERIN AYIKLAMASI ====\n";
+            foreach ($lbl as $k => $t) printf("  %-52s %5d\n", $t, count($cat[$k]));
+            echo "\n";
+            echo "GONDERILEBILIR (HEDEF)  : ".count($cat['HEDEF'])."\n";
+            echo "ELENEN                  : ".(count($cat['ZINCIR'])+count($cat['TEXTIL_DEGIL'])+count($cat['KENDI_MARKASI'])+count($cat['TEK_MARKA']))."\n\n";
+
+            /* Ornekler: karar dogru mu, gozle bakilabilsin. */
+            foreach (['HEDEF','TEK_MARKA','KENDI_MARKASI','ZINCIR','TEXTIL_DEGIL'] as $k) {
+              if (!$cat[$k]) continue;
+              echo "-- {$k} ornekleri --\n";
+              foreach (array_slice($cat[$k], 0, 8) as $l) {
+                $pb = $l['premium_brands'] ?? [];
+                printf("   %-38s %-30s %s\n",
+                  mb_substr((string)($l['company'] ?? ''), 0, 36),
+                  mb_substr((string)($l['email']   ?? ''), 0, 28),
+                  is_array($pb) && $pb ? implode(', ', array_slice($pb,0,4)) : '-');
+              }
+              echo "\n";
+            }
+            PHPEOF
+            cp /tmp/vestra_screen.php ./vestra_screen_tmp.php
+            php ./vestra_screen_tmp.php
+            rm -f ./vestra_screen_tmp.php /tmp/vestra_screen.php
