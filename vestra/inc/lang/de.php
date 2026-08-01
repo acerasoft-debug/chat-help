@@ -1,6 +1,23 @@
 <?php
 /* VESTRA UI strings — DE (auto-sorted; English keys → translations) */
 return array (
+  'Sample order' => 'Musterbestellung',
+  'Want to check it in hand first?' => 'Erst in der Hand prüfen, bevor Sie bestellen?',
+  'Size or note (optional)' => 'Größe oder Anmerkung (optional)',
+  'e.g. size M, or a note for us' => 'z. B. Größe M, oder eine Anmerkung für uns',
+  'EU-wide, shipping included.' => 'EU-weit, inkl. Versand.',
+  'The exact size you request may not always be available — we ship the closest match from current sample stock.' => 'Die gewünschte Größe ist nicht immer verfügbar — wir versenden die nächstliegende Option aus dem aktuellen Musterbestand.',
+  'Order sample' => 'Muster bestellen',
+  'Sign in to order a sample' => 'Anmelden, um ein Muster zu bestellen',
+  'Sample order confirmed' => 'Musterbestellung bestätigt',
+  'Finishing up…' => 'Wird abgeschlossen…',
+  'Order ref' => 'Bestellnummer',
+  'Amount paid' => 'Bezahlter Betrag',
+  'EU-wide shipping included' => 'EU-weiter Versand inklusive',
+  'Size / note' => 'Größe / Anmerkung',
+  'The exact size you requested may not always be available — we ship the closest match from current sample stock.' => 'Die gewünschte Größe ist nicht immer verfügbar — wir versenden die nächstliegende Option aus dem aktuellen Musterbestand.',
+  'Continue browsing' => 'Weiter stöbern',
+  'Payment is still being confirmed. Refresh this page in a moment.' => 'Die Zahlung wird noch bestätigt. Laden Sie diese Seite gleich noch einmal.',
   'Stock is being confirmed.' => 'Der Bestand wird gerade bestätigt.',
   'Invoice within the day' => 'Rechnung noch heute',
   "Once confirmed, your invoice — with the seller's bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders." => 'Sobald der Bestand bestätigt ist, wird Ihnen Ihre Rechnung — mit den Bankdaten des Verkäufers — per E-Mail zugesandt und Ihrem Konto hinzugefügt, in der Regel noch am selben Tag. Die Zahlung erfolgt per Banküberweisung gegen diese Rechnung; die Ware wird nach Zahlungseingang versandt. Alles unter „Meine Bestellungen" verfolgen.',

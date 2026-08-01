@@ -401,6 +401,26 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php endif; ?>
         <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
+        <?php if(!$isOwnListing && !empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price']>0): ?>
+        <div class="order-box" style="margin-top:14px">
+          <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
+          <details class="offerdetails">
+            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= eur((float)$p['sample_price']) ?></summary>
+            <?php if($AUTH_USER): ?>
+            <form method="post" action="/sample-checkout" style="margin-top:12px">
+              <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
+              <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+              <label class="hint"><?= t('Size or note (optional)') ?></label>
+              <input type="text" name="note" maxlength="200" placeholder="<?= htmlspecialchars(t('e.g. size M, or a note for us')) ?>" style="width:100%">
+              <div class="hint" style="margin-top:8px"><?= t('EU-wide, shipping included.') ?> <?= t('The exact size you request may not always be available — we ship the closest match from current sample stock.') ?></div>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= eur((float)$p['sample_price']) ?></button>
+            </form>
+            <?php else: ?>
+            <a class="btn btn-p" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center;margin-top:12px"><?= t('Sign in to order a sample') ?></a>
+            <?php endif; ?>
+          </details>
+        </div>
+        <?php endif; ?>
         <?php if(!$isOwnListing): ?>
         <div class="order-box" style="margin-top:14px">
           <?php if($AUTH_USER): ?>

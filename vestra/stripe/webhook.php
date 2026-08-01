@@ -19,6 +19,7 @@ require_once __DIR__ . '/../inc/products.php';
 require_once __DIR__ . '/../inc/notify.php';
 require_once __DIR__ . '/../inc/stripe.php';
 require_once __DIR__ . '/../inc/escrow.php';
+require_once __DIR__ . '/../inc/samples.php';
 
 // Must read raw body before any output or other reads
 $payload   = (string) file_get_contents('php://input');
@@ -57,13 +58,21 @@ switch ($type) {
             auth_update($account['id'], ['stripe_commission_pm' => $pm]);
             break;
         }
-        // Escrow order paid — direct charge on the seller's connected account.
-        // (Delivered here as a CONNECTED-account event, so enable "listen to
-        // events on connected accounts" on this webhook endpoint.)
+        // mode=payment covers two DIFFERENT things sharing one Checkout mode:
+        // escrow orders (direct charge on a seller's connected account) and
+        // sample orders (charged on VESTRA's own platform account). metadata.kind
+        // tells them apart — both checkout paths set it explicitly, so this never
+        // has to guess; unset/unknown kind is treated as escrow for backward
+        // compatibility with sessions created before sample orders existed.
         if (($obj->mode ?? '') === 'payment') {
-            $ref = $obj->client_reference_id ?? ($obj->metadata->order_ref ?? '');
-            $pi  = is_string($obj->payment_intent ?? null) ? $obj->payment_intent : ($obj->payment_intent->id ?? '');
-            if ($ref !== '') {
+            $kind = $obj->metadata->kind ?? 'escrow';
+            $ref  = $obj->client_reference_id ?? ($obj->metadata->order_ref ?? '');
+            $pi   = is_string($obj->payment_intent ?? null) ? $obj->payment_intent : ($obj->payment_intent->id ?? '');
+            if ($ref === '') break;
+            if ($kind === 'sample') {
+                $rec = sample_mark_paid($ref, $pi);
+                if ($rec) sample_fulfill($rec);
+            } else {
                 $rec = escrow_mark_paid($ref, $pi);
                 if ($rec) escrow_fulfill($rec);
             }

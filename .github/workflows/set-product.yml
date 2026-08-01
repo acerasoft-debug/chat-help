@@ -96,7 +96,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -117,6 +117,9 @@ jobs:
               }
               if (isset($set['moq']) && ((int)$set['moq'] < 1)) {
                 $errors[] = "{$ctx} ({$m}): gecersiz moq '{$set['moq']}'"; continue;
+              }
+              if (isset($set['sample_price']) && (!is_numeric($set['sample_price']) || (float)$set['sample_price'] <= 0)) {
+                $errors[] = "{$ctx} ({$m}): gecersiz sample_price '{$set['sample_price']}'"; continue;
               }
               if (isset($set['status']) && !in_array($set['status'], ['approved','pending'], true)) {
                 $errors[] = "{$ctx} ({$m}): status 'approved' ya da 'pending' olmali"; continue;
@@ -180,6 +183,12 @@ jobs:
                     }
                     if ($c) $line[] = "tiers({$c}) -> {$new}";
                   }
+                  $changes++;
+                } elseif ($k === 'sample_price') {
+                  $new = (float)$v; $old = (float)($p['sample_price'] ?? 0);
+                  if ($old === $new) continue;
+                  $line[] = "sample_price {$old} -> {$new}";
+                  $all[$i]['sample_price'] = $new;
                   $changes++;
                 } elseif ($k === 'moq') {
                   $new = (int)$v; $old = (int)($p['moq'] ?? 0);
