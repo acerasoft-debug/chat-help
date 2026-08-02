@@ -85,6 +85,34 @@ jobs:
               }
               echo "\n";
             }
+
+            // Ask Brevo itself what happened to this address recently -- error_log only
+            // records FAILURES (a 2xx send logs nothing), so silence there is not proof
+            // of success. The provider's own event log is the only way to tell "sent
+            // and delivered" apart from "sent but bounced/blocked/spam-filtered" apart
+            // from "never actually reached Brevo".
+            if ($apiKey !== '') {
+              echo "\n===== BREVO OLAY GECMISI (acerasoft@gmail.com, son 3 gun) =====\n";
+              $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
+                'email'     => 'acerasoft@gmail.com',
+                'startDate' => gmdate('Y-m-d', strtotime('-3 days')),
+                'endDate'   => gmdate('Y-m-d', strtotime('+1 day')),
+                'limit'     => 50,
+              ]));
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
+                CURLOPT_HTTPHEADER=>['api-key: '.$apiKey, 'Accept: application/json']]);
+              $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+              if ($code >= 200 && $code < 300) {
+                $d = json_decode((string)$resp, true);
+                $events = $d['events'] ?? [];
+                if (!$events) echo "  (hic olay yok -- Brevo'ya hic ulasmamis olabilir)\n";
+                foreach ($events as $ev) {
+                  echo "  ".($ev['date']??'?')." | ".($ev['event']??'?')." | konu: ".mb_substr((string)($ev['subject']??''),0,70)."\n";
+                }
+              } else {
+                echo "  HATA: Brevo events HTTP {$code}: ".mb_substr((string)$resp,0,200)."\n";
+              }
+            }
             PHPEOF
             php -l /tmp/diag_msg.php
             php /tmp/diag_msg.php
