@@ -18,6 +18,10 @@ on:
         description: "MOD B: referans için önce bu ürün id'sinin tam kaydını yazdır (opsiyonel)"
         required: false
         default: ""
+      image_map:
+        description: "MOD C: satır satır 'uploads/altindaki/yol.ext|https://gorsel-url' -- bilinen CDN url'lerini dogrudan indirir"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -53,6 +57,7 @@ jobs:
             export URLS='${{ github.event.inputs.urls }}'
             export PREFIX='${{ github.event.inputs.prefix }}'
             export DUMP_ID='${{ github.event.inputs.dump_id }}'
+            export IMAGE_MAP='${{ github.event.inputs.image_map }}'
             cat > /tmp/vestra_fetchimg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -113,6 +118,36 @@ jobs:
                 if ($vcolors) echo "  varyant secenekleri: ".implode(', ', array_keys($vcolors))."\n";
               }
               exit(0);
+            }
+
+            $imageMap = trim((string)getenv("IMAGE_MAP"));
+            if ($imageMap !== '') {
+              echo "===== MOD C: DOGRUDAN URL -> DOSYA INDIRME =====\n";
+              $ok = 0; $fail = 0;
+              foreach (preg_split('/\r?\n/', $imageMap) as $line) {
+                $line = trim($line);
+                if ($line === '') continue;
+                $parts = explode('|', $line, 2);
+                if (count($parts) !== 2) { echo "  ATLANDI (format 'yol|url' degil): {$line}\n"; $fail++; continue; }
+                [$rel, $src] = [trim($parts[0]), trim($parts[1])];
+                if (!preg_match('#^[a-z0-9][a-z0-9/_.-]*$#i', $rel) || strpos($rel, '..') !== false) { echo "  RED: gecersiz hedef yol '{$rel}'\n"; $fail++; continue; }
+                if (!preg_match('#^https://#i', $src)) { echo "  RED: gecersiz kaynak URL '{$src}'\n"; $fail++; continue; }
+                $absDir = $doc.'/uploads/'.dirname($rel);
+                if (!is_dir($absDir) && !@mkdir($absDir, 0755, true)) { echo "  HATA: klasor olusturulamadi {$absDir}\n"; $fail++; continue; }
+                [$icode, $bin, , $ierr] = vestra_fetch($src, $ua, true);
+                if ($icode < 200 || $icode >= 300 || $bin === false || strlen($bin) < 800) { echo "  HATA: indirilemedi '{$rel}' (kod={$icode} {$ierr})\n"; $fail++; continue; }
+                $abs = $doc.'/uploads/'.$rel;
+                if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; $fail++; continue; }
+                $dim = @getimagesize($abs);
+                if ($dim === false || $dim[0] < 150 || $dim[1] < 150) {
+                  @unlink($abs);
+                  echo "  RED: gecersiz/cok kucuk gorsel '{$rel}' -- SILINDI\n"; $fail++; continue;
+                }
+                echo "  OK -> /uploads/{$rel} (".$dim[0]."x".$dim[1].")\n";
+                $ok++;
+              }
+              echo "\nTOPLAM: {$ok} basarili, {$fail} basarisiz\n";
+              exit($fail > 0 ? 1 : 0);
             }
 
             $dumpId = trim((string)getenv("DUMP_ID"));
