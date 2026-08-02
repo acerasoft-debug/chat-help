@@ -74,3 +74,38 @@ jobs:
             else
               echo "UYARI: $VUP yok — atlaniyor"
             fi
+
+      # Dropship partner API (api/dropship.php) icin DROPSHIP_API_KEY gerekiyor.
+      # SADECE yoksa uretir/yazar -- zaten varsa DOKUNMAZ, bu yuzden her deploy'da
+      # calismasi bir partner entegrasyonunu bozmaz. .env repo'nun DISINDA
+      # (~/.env, public_html'in bir ust dizini, web'den erisilemez) -- key hicbir
+      # zaman git'e commit edilmiyor. Kasitli rotasyon icin ayri, elle yapilan bir
+      # adim gerekir (bu adim rotate ETMEZ).
+      - name: Dropship API key yoksa oluştur (.env, idempotent)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 1m
+          script: |
+            cat > /tmp/vestra_dropkey.php <<'PHPEOF'
+            <?php
+            $envFile = getenv("HOME")."/.env";
+            $lines = is_readable($envFile) ? file($envFile, FILE_IGNORE_NEW_LINES) : [];
+            foreach ($lines as $l) {
+                if (preg_match('/^DROPSHIP_API_KEY\s*=\s*(.+)$/', trim($l), $m)) {
+                    echo "DROPSHIP_API_KEY zaten kurulu (...".substr(trim($m[1], " \t\"'"), -6)."), dokunulmadi.\n";
+                    exit(0);
+                }
+            }
+            $newKey = bin2hex(random_bytes(32));
+            $lines[] = "DROPSHIP_API_KEY={$newKey}";
+            file_put_contents($envFile, implode("\n", $lines) . "\n");
+            @chmod($envFile, 0600);
+            echo "DROPSHIP_API_KEY ilk kez olusturuldu:\n";
+            echo $newKey . "\n";
+            PHPEOF
+            php /tmp/vestra_dropkey.php
+            rm -f /tmp/vestra_dropkey.php
