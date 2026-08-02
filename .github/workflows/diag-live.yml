@@ -6,6 +6,10 @@ on:
         description: "Kontrol edilecek yollar, boşlukla ayrık"
         required: false
         default: "/ /shop /seller /buyer /login /register /requests /journal /product?id=dsq-s74gl0064-900"
+      grep_pairs:
+        description: "Opsiyonel içerik kontrolü, satır satır 'yol::aranan-metin' (ör: /shop::lac-polo-paris)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -51,6 +55,22 @@ jobs:
               echo
             fi
           done
+
+          GREP_PAIRS='${{ github.event.inputs.grep_pairs }}'
+          if [ -n "$GREP_PAIRS" ]; then
+            echo; echo "===== ICERIK KONTROLU ====="
+            echo "$GREP_PAIRS" | while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              gp="${line%%::*}"; needle="${line#*::}"
+              curl -sS -A "$UA" -o /tmp/gbody.html --max-time 30 "${BASE}${gp}" 2>/dev/null || true
+              if grep -qF "$needle" /tmp/gbody.html 2>/dev/null; then
+                n=$(grep -oF "$needle" /tmp/gbody.html | wc -l)
+                echo "  BULUNDU  (${n}x)  ${gp} :: ${needle}"
+              else
+                echo "  YOK           ${gp} :: ${needle}"
+              fi
+            done
+          fi
 
       - name: Sunucu sağlığı (disk / PHP hata günlüğü)
         uses: appleboy/ssh-action@v1.0.3
