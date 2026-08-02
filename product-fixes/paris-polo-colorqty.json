@@ -1,0 +1,30 @@
+[
+ {
+  "match": "lac-polo-paris",
+  "expect": 1,
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Light Blue",
+   "Navy",
+   "Bordeaux",
+   "Green",
+   "Blue",
+   "Beige",
+   "Red",
+   "White",
+   "Black"
+  ],
+  "images": [
+   "/uploads/lacoste/paris-polo/light-blue.avif",
+   "/uploads/lacoste/paris-polo/navy.avif",
+   "/uploads/lacoste/paris-polo/bordeaux.jpg",
+   "/uploads/lacoste/paris-polo/green.avif",
+   "/uploads/lacoste/paris-polo/blue.avif",
+   "/uploads/lacoste/paris-polo/beige.avif",
+   "/uploads/lacoste/paris-polo/red.avif",
+   "/uploads/lacoste/paris-polo/white.avif",
+   "/uploads/lacoste/paris-polo/black.avif"
+  ]
+ }
+]
