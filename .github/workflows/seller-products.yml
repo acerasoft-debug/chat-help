@@ -3,15 +3,22 @@ on:
   workflow_dispatch:
     inputs:
       query:
-        description: "Hesap arama metni (company/name içinde, büyük/küçük harf önemsiz, virgülle birden fazla)"
-        required: true
+        description: "Hesap arama metni (company/name içinde, virgülle birden fazla). BOŞ + brand doluysa marka modu."
+        required: false
+        default: ""
+      brand:
+        description: "Marka modu: bu markadaki TÜM ürünleri (hangi satıcıya ait olursa olsun) listeler"
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
-# Salt-okunur. Arama metnine (virgulle ayrilmis, birden fazla olabilir) uyan
-# HER hesap icin: hesap bilgisi + o hesabin seller_uid'sine sahip TUM urunler
-# (sample_price'a bakmaksizin, listings.json + demo katalog dahil).
+# Salt-okunur. Iki mod:
+#  - query doluysa: her hesap icin o hesabin seller_uid'sine sahip TUM urunler.
+#  - brand doluysa: o markadaki TUM urunler + HANGI saticiya ait olduklari
+#    (satici yoksa "demo/platform", varsa isim+id) -- toplu tasima oncesi
+#    kapsami gormek icin.
 jobs:
   list:
     runs-on: ubuntu-latest
@@ -26,6 +33,7 @@ jobs:
           command_timeout: 5m
           script: |
             export Q='${{ github.event.inputs.query }}'
+            export BRAND='${{ github.event.inputs.brand }}'
             cat > /tmp/seller_products.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -39,11 +47,31 @@ jobs:
             require $doc."/inc/auth.php";
             require $doc."/inc/products.php";
 
-            $terms = array_filter(array_map('trim', explode(',', strtolower((string)getenv("Q")))));
-            if (!$terms) { fwrite(STDERR, "HATA: arama metni bos\n"); exit(1); }
-
             $products = vestra_products();
             $accounts = auth_accounts();
+            $byId = [];
+            foreach ($accounts as $a) $byId[(string)($a['id']??'')] = $a;
+
+            $brand = trim((string)getenv("BRAND"));
+            if ($brand !== '') {
+              echo "===== MARKA: '{$brand}' (hangi saticiya ait olursa olsun) =====\n";
+              $hits = array_values(array_filter($products, fn($p) => stripos((string)($p['brand']??''), $brand) !== false));
+              if (!$hits) { echo "  *** bu markada urun yok ***\n"; exit(0); }
+              foreach ($hits as $p) {
+                $su = (string)($p['seller_uid'] ?? '');
+                $sLabel = $su === '' ? '(satici yok -- demo/platform)' : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '?')." (id={$su})");
+                if ($su !== '' && !isset($byId[$su])) $sLabel = "*** HESAP BULUNAMADI (id={$su}) ***";
+                echo "  ".($p['id']??'?')." | ".($p['name']??'?')." | cat=".($p['cat']??'?')
+                   ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
+                   ." | status=".($p['status']??'approved')
+                   ." | satici: {$sLabel}\n";
+              }
+              echo "\nTOPLAM: ".count($hits)." urun\n";
+              exit(0);
+            }
+
+            $terms = array_filter(array_map('trim', explode(',', strtolower((string)getenv("Q")))));
+            if (!$terms) { fwrite(STDERR, "HATA: query ve brand ikisi de bos\n"); exit(1); }
 
             foreach ($terms as $term) {
               echo "===== ARAMA: '{$term}' =====\n";
