@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs','dropship'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -159,6 +159,27 @@ jobs:
                 foreach ($set['specs'] as $sk => $sv) {
                   if (!is_string($sk) || $sk === '' || !is_string($sv) || $sv === '') { $errors[] = "{$ctx} ({$m}): specs icinde gecersiz anahtar/deger"; continue 2; }
                 }
+              }
+              if (isset($set['dropship'])) {
+                $d = $set['dropship'];
+                if (!is_array($d)) { $errors[] = "{$ctx} ({$m}): dropship bir nesne olmali"; continue; }
+                if (!isset($d['price']) || !is_numeric($d['price']) || (float)$d['price'] <= 0) { $errors[] = "{$ctx} ({$m}): dropship.price gecersiz"; continue; }
+                if (!isset($d['ship_fr']) || !is_numeric($d['ship_fr']) || (float)$d['ship_fr'] < 0) { $errors[] = "{$ctx} ({$m}): dropship.ship_fr gecersiz"; continue; }
+                if (!isset($d['ship_eu']) || !is_numeric($d['ship_eu']) || (float)$d['ship_eu'] < 0) { $errors[] = "{$ctx} ({$m}): dropship.ship_eu gecersiz"; continue; }
+                if (!isset($d['stock']) || !is_array($d['stock']) || !$d['stock']) { $errors[] = "{$ctx} ({$m}): dropship.stock bos-olmayan {renk:{beden:adet}} nesnesi olmali"; continue; }
+                foreach ($d['stock'] as $colour => $sizes) {
+                  if (!is_string($colour) || $colour === '' || !is_array($sizes) || !$sizes) { $errors[] = "{$ctx} ({$m}): dropship.stock icinde gecersiz renk '{$colour}'"; continue 2; }
+                  foreach ($sizes as $sz => $qty) {
+                    if (!is_string($sz) || $sz === '' || !is_numeric($qty) || (int)$qty < 0) { $errors[] = "{$ctx} ({$m}): dropship.stock.{$colour} icinde gecersiz beden/adet"; continue 3; }
+                  }
+                }
+                $set['dropship'] = [
+                  'enabled' => true,
+                  'price'   => (float)$d['price'],
+                  'ship_fr' => (float)$d['ship_fr'],
+                  'ship_eu' => (float)$d['ship_eu'],
+                  'stock'   => $d['stock'],
+                ];
               }
 
               $mn = $norm($m);
@@ -247,6 +268,13 @@ jobs:
                   if ($old === $new) continue;
                   $line[] = "{$k} (".count($old).") -> (".count($new)."): ".implode(', ', $k === 'colors' ? $new : array_map('basename', $new));
                   $all[$i][$k] = $new;
+                  $changes++;
+                } elseif ($k === 'dropship') {
+                  $old = $p['dropship'] ?? null;
+                  if ($old === $v) continue;
+                  $colours = implode(', ', array_keys($v['stock']));
+                  $line[] = "dropship price={$v['price']} ship_fr={$v['ship_fr']} ship_eu={$v['ship_eu']} stock[{$colours}]";
+                  $all[$i]['dropship'] = $v;
                   $changes++;
                 } elseif ($k === 'specs') {
                   /* Merge rather than replace -- a demo product's existing specs

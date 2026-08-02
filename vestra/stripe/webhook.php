@@ -20,6 +20,7 @@ require_once __DIR__ . '/../inc/notify.php';
 require_once __DIR__ . '/../inc/stripe.php';
 require_once __DIR__ . '/../inc/escrow.php';
 require_once __DIR__ . '/../inc/samples.php';
+require_once __DIR__ . '/../inc/dropship.php';
 
 // Must read raw body before any output or other reads
 $payload   = (string) file_get_contents('php://input');
@@ -59,11 +60,13 @@ switch ($type) {
             break;
         }
         // mode=payment covers two DIFFERENT things sharing one Checkout mode:
-        // escrow orders (direct charge on a seller's connected account) and
-        // sample orders (charged on VESTRA's own platform account). metadata.kind
-        // tells them apart — both checkout paths set it explicitly, so this never
-        // has to guess; unset/unknown kind is treated as escrow for backward
-        // compatibility with sessions created before sample orders existed.
+        // escrow orders (direct charge on a seller's connected account),
+        // sample orders and dropship API orders (both charged the same two
+        // ways sample orders are) share this one mode=payment path.
+        // metadata.kind tells them apart — every checkout path sets it
+        // explicitly, so this never has to guess; unset/unknown kind is
+        // treated as escrow for backward compatibility with sessions
+        // created before sample/dropship orders existed.
         if (($obj->mode ?? '') === 'payment') {
             $kind = $obj->metadata->kind ?? 'escrow';
             $ref  = $obj->client_reference_id ?? ($obj->metadata->order_ref ?? '');
@@ -72,6 +75,21 @@ switch ($type) {
             if ($kind === 'sample') {
                 $rec = sample_mark_paid($ref, $pi);
                 if ($rec) sample_fulfill($rec);
+            } elseif ($kind === 'dropship') {
+                // Checkout collected the buyer's shipping address for us (see
+                // api/dropship.php's shipping_address_collection) — pull it off
+                // the session so the seller has something to actually ship to.
+                $shipTo = null;
+                $sa = $obj->shipping_details->address ?? $obj->shipping->address ?? null;
+                if ($sa) {
+                    $shipTo = [
+                        'name'        => $obj->shipping_details->name ?? ($obj->shipping->name ?? ''),
+                        'line1'       => $sa->line1 ?? '', 'line2' => $sa->line2 ?? '',
+                        'postal_code' => $sa->postal_code ?? '', 'city' => $sa->city ?? '', 'country' => $sa->country ?? '',
+                    ];
+                }
+                $rec = dropship_mark_paid($ref, $pi, $shipTo);
+                if ($rec) dropship_fulfill($rec);
             } else {
                 $rec = escrow_mark_paid($ref, $pi);
                 if ($rec) escrow_fulfill($rec);

@@ -1,0 +1,71 @@
+name: Dropship API key oluştur/kur
+
+# Elle tetiklenir. Sunucuda ~/.env icinde DROPSHIP_API_KEY yoksa 32 byte'lik
+# kriptografik rastgele bir key uretir ve ekler; zaten varsa DOKUNMAZ (idempotent
+# -- var olan bir partner entegrasyonunu kirmadan tekrar tekrar calistirilabilir).
+# Key hicbir zaman git'e commit edilmez, sadece bu is calistirmasinin log'unda
+# BIR KEZ gosterilir -- oradan alip partnere iletin.
+#
+# force_rotate=true ile mevcut key'i iptal edip YENI bir key uretir (partnerin
+# eski key'i o an gecersiz olur -- sadece kasitli rotasyon icin kullanin).
+on:
+  workflow_dispatch:
+    inputs:
+      force_rotate:
+        description: "true = mevcut key'i iptal edip yenisini uret (partner entegrasyonunu kirar)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  set-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucuda .env icine DROPSHIP_API_KEY yaz
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          FORCE_ROTATE: ${{ github.event.inputs.force_rotate }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: FORCE_ROTATE
+          script: |
+            cat > /tmp/vestra_dropkey.php <<'PHPEOF'
+            <?php
+            $envFile = getenv("HOME")."/.env";
+            $rotate  = getenv("FORCE_ROTATE") === "true";
+
+            $lines = is_readable($envFile) ? file($envFile, FILE_IGNORE_NEW_LINES) : [];
+            $existingIdx = null; $existingVal = "";
+            foreach ($lines as $i => $l) {
+                if (preg_match('/^DROPSHIP_API_KEY\s*=\s*(.*)$/', trim($l), $m)) { $existingIdx = $i; $existingVal = trim($m[1], " \t\"'"); break; }
+            }
+
+            if ($existingIdx !== null && !$rotate) {
+                echo "DROPSHIP_API_KEY zaten kurulu, DOKUNULMADI (degistirmek icin force_rotate=true ile calistirin).\n";
+                echo "Mevcut key'in son 6 hanesi: ..." . substr($existingVal, -6) . "\n";
+                exit(0);
+            }
+
+            $newKey = bin2hex(random_bytes(32)); // 64 hex char, 256-bit
+            $line = "DROPSHIP_API_KEY={$newKey}";
+            if ($existingIdx !== null) {
+                $lines[$existingIdx] = $line;
+                echo "DROPSHIP_API_KEY ROTATE edildi (eski key artik gecersiz).\n";
+            } else {
+                $lines[] = $line;
+                echo "DROPSHIP_API_KEY ilk kez olusturuldu.\n";
+            }
+            file_put_contents($envFile, implode("\n", $lines) . "\n");
+            @chmod($envFile, 0600);
+
+            echo "\n=== YENI KEY (bunu partnerle SADECE guvenli bir kanaldan paylasin -- bu log'da bir kez gorunur) ===\n";
+            echo $newKey . "\n";
+            echo "===============================================================================\n";
+            PHPEOF
+            php /tmp/vestra_dropkey.php
+            rm -f /tmp/vestra_dropkey.php
