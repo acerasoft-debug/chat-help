@@ -122,16 +122,33 @@ jobs:
 
             $imageMap = trim((string)getenv("IMAGE_MAP"));
             if ($imageMap !== '') {
-              echo "===== MOD C: DOGRUDAN URL -> DOSYA INDIRME =====\n";
+              echo "===== MOD C: URUN SAYFASI -> DOSYA INDIRME (Shopify JSON, sunucu tarafinda cozulur) =====\n";
+              // Girdi 'hedef|urun_sayfasi_url' -- gercek CDN gorsel URL'si BURADA,
+              // sunucuda cozulur ve indirilir; asla disaridan tasinmaz (uzun sayisal
+              // shop-id path parcalari harici gosterimlerde yanlislikla
+              // maskelenebiliyor -- sayfa handle'lari duz metin oldugu icin guvenli).
               $ok = 0; $fail = 0;
               foreach (preg_split('/\r?\n/', $imageMap) as $line) {
                 $line = trim($line);
                 if ($line === '') continue;
                 $parts = explode('|', $line, 2);
-                if (count($parts) !== 2) { echo "  ATLANDI (format 'yol|url' degil): {$line}\n"; $fail++; continue; }
-                [$rel, $src] = [trim($parts[0]), trim($parts[1])];
+                if (count($parts) !== 2) { echo "  ATLANDI (format 'yol|urun-sayfasi-url' degil): {$line}\n"; $fail++; continue; }
+                [$rel, $pageUrl] = [trim($parts[0]), trim($parts[1])];
                 if (!preg_match('#^[a-z0-9][a-z0-9/_.-]*$#i', $rel) || strpos($rel, '..') !== false) { echo "  RED: gecersiz hedef yol '{$rel}'\n"; $fail++; continue; }
-                if (!preg_match('#^https://#i', $src)) { echo "  RED: gecersiz kaynak URL '{$src}'\n"; $fail++; continue; }
+                if (!preg_match('#^https://#i', $pageUrl)) { echo "  RED: gecersiz sayfa URL '{$pageUrl}'\n"; $fail++; continue; }
+
+                $src = null;
+                $prod = shopify_product_json($pageUrl, $ua);
+                if ($prod) {
+                  $src = $prod['images'][0]['src'] ?? ($prod['image']['src'] ?? null);
+                } else {
+                  [$pcode, $phtml] = vestra_fetch($pageUrl, $ua);
+                  if ($pcode >= 200 && $pcode < 300 && $phtml !== false) $src = first_image_url_html($phtml);
+                }
+                if (!$src) { echo "  HATA: '{$rel}' icin gorsel bulunamadi ({$pageUrl})\n"; $fail++; continue; }
+                if (strpos($src, '//') === 0) $src = 'https:'.$src;
+                elseif (strpos($src, 'http') !== 0) { echo "  HATA: '{$rel}' gorsel URL'si bagil, atlandi\n"; $fail++; continue; }
+
                 $absDir = $doc.'/uploads/'.dirname($rel);
                 if (!is_dir($absDir) && !@mkdir($absDir, 0755, true)) { echo "  HATA: klasor olusturulamadi {$absDir}\n"; $fail++; continue; }
                 [$icode, $bin, , $ierr] = vestra_fetch($src, $ua, true);
