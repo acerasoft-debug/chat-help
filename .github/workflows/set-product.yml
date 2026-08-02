@@ -69,9 +69,16 @@ jobs:
                 fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
             });
             $home = getenv("HOME");
+            require $home."/public_html/inc/auth.php";
             require $home."/public_html/inc/products.php";
             foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn)
               if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+
+            /* seller_uid dogrulamasi icin: hedef id gercek, type=seller bir hesaba
+               ait olmali -- yoksa yazim hatasiyla urun sahipsiz/hayalet bir uid'e
+               baglanip kimse odeme goremez. */
+            $sellerIds = [];
+            foreach (auth_accounts() as $acc) if (($acc['type'] ?? '') === 'seller') $sellerIds[(string)($acc['id'] ?? '')] = true;
 
             $dry = strtolower(trim((string)getenv("P_DRY"))) !== 'false';
             $dec = base64_decode((string)getenv("P_JSON"), true);
@@ -96,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -123,6 +130,9 @@ jobs:
               }
               if (isset($set['status']) && !in_array($set['status'], ['approved','pending'], true)) {
                 $errors[] = "{$ctx} ({$m}): status 'approved' ya da 'pending' olmali"; continue;
+              }
+              if (isset($set['seller_uid']) && !isset($sellerIds[(string)$set['seller_uid']])) {
+                $errors[] = "{$ctx} ({$m}): seller_uid '{$set['seller_uid']}' gecerli bir seller hesabina ait degil"; continue;
               }
 
               $mn = $norm($m);
