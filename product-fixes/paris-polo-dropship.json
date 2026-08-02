@@ -1,0 +1,10 @@
+[
+ {
+  "match": "lac-polo-paris",
+  "expect": 1,
+  "specs": {
+   "Dropshipping": "Available — Black, White, Navy, Green",
+   "Dropship size run (per colour)": "S×2 · M×2 · L×5 · XL×3 · XXL×2"
+  }
+ }
+]
