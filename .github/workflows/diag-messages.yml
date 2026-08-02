@@ -96,7 +96,7 @@ jobs:
               $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
                 'email'     => 'acerasoft@gmail.com',
                 'startDate' => gmdate('Y-m-d', strtotime('-3 days')),
-                'endDate'   => gmdate('Y-m-d', strtotime('+1 day')),
+                'endDate'   => gmdate('Y-m-d'),
                 'limit'     => 50,
               ]));
               curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
