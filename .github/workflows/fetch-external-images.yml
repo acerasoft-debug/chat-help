@@ -144,7 +144,17 @@ jobs:
               $rel = '/uploads/'.dirname($prefix).'/'.$fname;
               $abs = $doc.$rel;
               if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; continue; }
-              echo "  OK -> {$rel} (".strlen($bin)." bayt)\n";
+              $dim = @getimagesize($abs);
+              if ($dim === false) {
+                @unlink($abs);
+                echo "  RED: gecerli bir gorsel degil (muhtemelen sayfa JS ile render ediyor, HTML'de placeholder/ikon yakalandi) -- SILINDI, kaydedilmedi\n";
+                continue;
+              }
+              if ($dim[0] < 200 || $dim[1] < 200) {
+                echo "  UYARI: gorsel cok kucuk (".$dim[0]."x".$dim[1].") -- muhtemelen ikon/placeholder, urun fotosu degil. Dosya '{$rel}' olarak birakildi ama KULLANMADAN once kontrol et.\n";
+                continue;
+              }
+              echo "  OK -> {$rel} (".$dim[0]."x".$dim[1].", ".strlen($bin)." bayt)\n";
             }
             PHPEOF
             php -l /tmp/vestra_fetchimg.php
