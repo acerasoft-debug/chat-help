@@ -1,0 +1,288 @@
+[
+ {
+  "id": "lac-pima-tshirt",
+  "brand": "Lacoste",
+  "name": "Cotton Pima T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "TH6709",
+  "moq": 104,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 19.9,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "White",
+   "Navy",
+   "Black",
+   "Green",
+   "Blue",
+   "Beige",
+   "Pink",
+   "Red"
+  ],
+  "images": [
+   "/uploads/lacoste/pima-tshirt/white.avif",
+   "/uploads/lacoste/pima-tshirt/navy.avif",
+   "/uploads/lacoste/pima-tshirt/black.avif",
+   "/uploads/lacoste/pima-tshirt/green.avif",
+   "/uploads/lacoste/pima-tshirt/blue.jpg",
+   "/uploads/lacoste/pima-tshirt/beige.avif",
+   "/uploads/lacoste/pima-tshirt/pink.avif",
+   "/uploads/lacoste/pima-tshirt/red.avif"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Cotton Pima T-Shirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 104 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-logotrim-polo",
+  "brand": "Lacoste",
+  "name": "Regular Fit Logo Trim L.12.12 Polo Shirt",
+  "cat": "Polos",
+  "sku": "PH9863",
+  "moq": 80,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 29.9,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Bordeaux",
+   "Navy",
+   "Black",
+   "White"
+  ],
+  "images": [
+   "/uploads/lacoste/logotrim-polo/bordeaux.jpg",
+   "/uploads/lacoste/logotrim-polo/navy.jpg",
+   "/uploads/lacoste/logotrim-polo/black.jpg",
+   "/uploads/lacoste/logotrim-polo/white.jpg"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Regular Fit Logo Trim L.12.12 Polo Shirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 80 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-fleece-hoodie",
+  "brand": "Lacoste",
+  "name": "Fleece Hoodie",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "SH9623",
+  "moq": 56,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 49.9,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Beige",
+   "Navy",
+   "Black",
+   "Light Blue",
+   "Green",
+   "Bordeaux",
+   "White",
+   "Blue"
+  ],
+  "images": [
+   "/uploads/lacoste/fleece-hoodie/beige.webp",
+   "/uploads/lacoste/fleece-hoodie/navy.avif",
+   "/uploads/lacoste/fleece-hoodie/black.webp",
+   "/uploads/lacoste/fleece-hoodie/light-blue.jpg",
+   "/uploads/lacoste/fleece-hoodie/green.jpg",
+   "/uploads/lacoste/fleece-hoodie/bordeaux.jpg",
+   "/uploads/lacoste/fleece-hoodie/white.jpg",
+   "/uploads/lacoste/fleece-hoodie/blue.jpg"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Fleece Hoodie — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 56 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-slim-sweatpants",
+  "brand": "Lacoste",
+  "name": "Slim Fit Sweatpants",
+  "cat": "Activewear",
+  "sku": "XH9624",
+  "moq": 56,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 55.0,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Blue",
+   "Beige",
+   "Green",
+   "Black",
+   "Navy"
+  ],
+  "images": [
+   "/uploads/lacoste/slim-sweatpants/blue.jpg",
+   "/uploads/lacoste/slim-sweatpants/beige.avif",
+   "/uploads/lacoste/slim-sweatpants/green.avif",
+   "/uploads/lacoste/slim-sweatpants/black.avif",
+   "/uploads/lacoste/slim-sweatpants/navy.avif"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Slim Fit Sweatpants — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 56 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-highneck-sweatshirt",
+  "brand": "Lacoste",
+  "name": "Zip-Up High Neck Interlock Sweatshirt",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "SH1927",
+  "moq": 56,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 55.0,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "White",
+   "Blue",
+   "Beige",
+   "Navy",
+   "Black"
+  ],
+  "images": [
+   "/uploads/lacoste/highneck-sweatshirt/white.avif",
+   "/uploads/lacoste/highneck-sweatshirt/blue.avif",
+   "/uploads/lacoste/highneck-sweatshirt/beige.avif",
+   "/uploads/lacoste/highneck-sweatshirt/navy.avif",
+   "/uploads/lacoste/highneck-sweatshirt/black.avif"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Zip-Up High Neck Interlock Sweatshirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 56 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-pima-vneck",
+  "brand": "Lacoste",
+  "name": "Lightweight Cotton Pima V-Neck T-Shirt",
+  "cat": "T-Shirts",
+  "sku": "TH6710",
+  "moq": 104,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 19.9,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "White",
+   "Green",
+   "Black",
+   "Navy"
+  ],
+  "images": [
+   "/uploads/lacoste/pima-vneck/white.avif",
+   "/uploads/lacoste/pima-vneck/green.avif",
+   "/uploads/lacoste/pima-vneck/black.avif",
+   "/uploads/lacoste/pima-vneck/navy.avif"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Lightweight Cotton Pima V-Neck T-Shirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 104 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-monogram-polo",
+  "brand": "Lacoste",
+  "name": "Classic Fit Monogram Jacquard Polo Shirt",
+  "cat": "Polos",
+  "sku": "DH1417",
+  "moq": 80,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 35.0,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 2,
+  "colors": [
+   "Black",
+   "Blue"
+  ],
+  "images": [
+   "/uploads/lacoste/monogram-polo/black.avif",
+   "/uploads/lacoste/monogram-polo/blue.webp"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Classic Fit Monogram Jacquard Polo Shirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 80 pc, at least 2 colours."
+ },
+ {
+  "id": "lac-zip-hoodie",
+  "brand": "Lacoste",
+  "name": "Zip Up Fleece Hoodie",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "SH9626",
+  "moq": 56,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 55.0,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Blue",
+   "Bordeaux",
+   "Beige",
+   "White",
+   "Green",
+   "Black",
+   "Navy"
+  ],
+  "images": [
+   "/uploads/lacoste/zip-hoodie/blue.jpg",
+   "/uploads/lacoste/zip-hoodie/bordeaux.webp",
+   "/uploads/lacoste/zip-hoodie/beige.avif",
+   "/uploads/lacoste/zip-hoodie/white.avif",
+   "/uploads/lacoste/zip-hoodie/green.avif",
+   "/uploads/lacoste/zip-hoodie/black.avif",
+   "/uploads/lacoste/zip-hoodie/navy.avif"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Zip Up Fleece Hoodie — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 56 pc, at least 4 colours."
+ },
+ {
+  "id": "lac-crew-sweatshirt",
+  "brand": "Lacoste",
+  "name": "Fleece Crew Neck Sweatshirt",
+  "cat": "Hoodies & Sweatshirts",
+  "sku": "SH9608",
+  "moq": 56,
+  "unit": "pc",
+  "mode": "sale",
+  "list": 55.0,
+  "sizes": "S×1 · M×2 · L×2 · XL×2 · XXL×1 · 8/pack",
+  "size_step": 8,
+  "min_colors": 4,
+  "colors": [
+   "Navy",
+   "Black",
+   "Bordeaux",
+   "Light Blue",
+   "Red",
+   "Green",
+   "Blue",
+   "White",
+   "Beige",
+   "Pink"
+  ],
+  "images": [
+   "/uploads/lacoste/crew-sweatshirt/navy.jpg",
+   "/uploads/lacoste/crew-sweatshirt/black.avif",
+   "/uploads/lacoste/crew-sweatshirt/bordeaux.jpg",
+   "/uploads/lacoste/crew-sweatshirt/light-blue.jpg",
+   "/uploads/lacoste/crew-sweatshirt/red.png",
+   "/uploads/lacoste/crew-sweatshirt/green.jpg",
+   "/uploads/lacoste/crew-sweatshirt/blue.jpg",
+   "/uploads/lacoste/crew-sweatshirt/white.jpg",
+   "/uploads/lacoste/crew-sweatshirt/beige.jpg",
+   "/uploads/lacoste/crew-sweatshirt/pink.jpg"
+  ],
+  "seller_uid": "7ab30f26afedd840",
+  "desc": "Fleece Crew Neck Sweatshirt — Lacoste, sold in cartons of 8 per colour (mixed sizes S-XXL). Minimum order 56 pc, at least 4 colours."
+ }
+]
