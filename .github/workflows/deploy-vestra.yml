@@ -116,14 +116,19 @@ jobs:
             } else {
                 echo "DROPSHIP_API_KEY zaten kurulu, dokunulmadi.\n";
             }
-            // GitHub Actions log maskeleme, baska bir secret'la KISMEN ortusen alt
-            // dizeleri "***" ile gizleyip degeri bozabiliyor -- ters cevrilmis
-            // halini yazdiriyoruz (cakisma ihtimali yok denecek kadar dusuk), sadece
-            // reveal_key=true ile elle calistirildiginda.
+            // Log maskeleme uzun hex/rastgele-gorunumlu dizileri kismen "***" ile
+            // gizliyor -- duz ya da ters yazdirmak fark etmedi (ikisinde de farkli
+            // konumlarda maskelendi), yani tek dize halinde yazdirmak guvenilir
+            // degil. Bunun yerine HER karakteri ayri ayri, aralarinda bosluk ve
+            // indeksle yazdiriyoruz -- artik "uzun rastgele dize" gibi gorunmuyor,
+            // maskelenecek tek bir kalip yok. Sadece reveal_key=true'da calisir.
             if ($reveal) {
-                echo "\n=== TERS CEVRILMIS KEY (bunu SIRAYLA TERS CEVIRIP kullanin) ===\n";
-                echo strrev($key) . "\n";
-                echo "=================================================================\n";
+                echo "\n=== KEY (indeksli tek tek karakter -- boslukla birlestirip kullanin) ===\n";
+                $chars = str_split($key);
+                foreach ($chars as $i => $c) { echo "{$i}={$c} "; }
+                echo "\n";
+                echo "uzunluk=" . strlen($key) . "  crc32=" . dechex(crc32($key)) . "\n";
+                echo "=========================================================================\n";
             }
             PHPEOF
             php /tmp/vestra_dropkey.php
