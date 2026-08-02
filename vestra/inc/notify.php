@@ -1285,6 +1285,58 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
   return [$subject,$body,$opts];
 }
 
+/**
+ * Promo variant: two Lacoste polos carry a display-only markdown (list price
+ * raised so "-10%/-15%" shows, the real wholesale price is unchanged — see
+ * product-fixes/lacoste-polos-discount-badges.json). English only for now
+ * (unlike vestra_campaign_preview, which is 9-language) — a small, one-off
+ * promo send doesn't warrant translating discount copy into all of them;
+ * extend with a $lang branch the same way if that's ever needed.
+ * Reuses the exact same $opts shape as vestra_campaign_preview() so it
+ * renders through the identical premium HTML template.
+ */
+function vestra_campaign_promo_polos(string $company=''): array {
+  $subject = 'Lacoste polos — up to −15% this week · Les Garage de Paris × VESTRA';
+  $body = implode("\n", [
+    $company !== '' ? "Hello — a note for {$company}." : "Hello,",
+    "",
+    "Quick heads-up from Les Garage de Paris, via VESTRA: two Lacoste polo styles are marked down this week — same authentic stock, same wholesale terms, just a better margin for you.",
+    "",
+    "Regular Fit Logo Trim Polo — was €33.22, now €29.90 (−10%)",
+    "Classic Fit Monogram Jacquard Polo — was €41.18, now €35.00 (−15%)",
+    "",
+    "Trade pricing is reserved for verified partners — register once (it's free) and every price unlocks instantly.",
+    "",
+    "Want the full Lacoste range? Just reply and I'll send the line-sheet.",
+    "",
+    "Warm regards,",
+    "Les Garage de Paris · via VESTRA",
+    "",
+    "—",
+    "Les Garage de Paris via VESTRA (operated by acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
+    "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
+  ]);
+  $opts = [
+    'hero' => ['kicker' => 'Limited-time trade pricing', 'title' => 'Lacoste polos — up to −15% this week.'],
+    'badge' => 'KYC-verified · authenticity-checked · escrow-protected',
+    'shots' => [
+      ['img' => 'https://vestrasales.com/uploads/lacoste/logotrim-polo/bordeaux.jpg', 'label' => 'Logo Trim Polo −10%', 'url' => 'https://vestrasales.com/product?id=lac-logotrim-polo'],
+      ['img' => 'https://vestrasales.com/uploads/lacoste/monogram-polo/black.avif', 'label' => 'Monogram Polo −15%', 'url' => 'https://vestrasales.com/product?id=lac-monogram-polo'],
+    ],
+    'shots_title' => "This week's markdowns",
+    'downloads' => ['title' => 'Shop the discounted styles', 'items' => [
+      ['label' => 'Logo Trim Polo — €29.90 (−10%)', 'url' => 'https://vestrasales.com/product?id=lac-logotrim-polo'],
+      ['label' => 'Monogram Polo — €35.00 (−15%)', 'url' => 'https://vestrasales.com/product?id=lac-monogram-polo'],
+    ]],
+    'rows' => [
+      ['label' => 'Logo Trim Polo', 'value' => '€29.90 (was €33.22) · −10%', 'strong' => true],
+      ['label' => 'Monogram Jacquard Polo', 'value' => '€35.00 (was €41.18) · −15%', 'strong' => true],
+    ],
+    'button' => ['label' => 'Shop Lacoste polos', 'url' => 'https://vestrasales.com/catalog?brand=Lacoste'],
+  ];
+  return [$subject, $body, $opts];
+}
+
 /* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
  * send raw MIME themselves (SMTP, PHP mail()) — HTTP APIs take the two parts separately. */
 function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage='', array $opts=[]): string {

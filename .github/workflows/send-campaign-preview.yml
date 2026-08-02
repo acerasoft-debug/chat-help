@@ -12,6 +12,10 @@ on:
         description: "Alıcı e-posta (boş bırakılırsa acerasoft@gmail.com)"
         required: false
         default: "acerasoft@gmail.com"
+      variant:
+        description: "Hangi kampanya: premium (genel, çok dilli) ya da polos_promo (Lacoste polo indirim duyurusu, EN)"
+        required: false
+        default: "premium"
 
 permissions:
   contents: read
@@ -24,26 +28,31 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           CAMP_TO: ${{ github.event.inputs.to }}
+          CAMP_VARIANT: ${{ github.event.inputs.variant }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 4m
-          envs: CAMP_TO
+          envs: CAMP_TO,CAMP_VARIANT
           script: |
             TO="$CAMP_TO"
             case "$TO" in *@*) ;; *) TO="acerasoft@gmail.com" ;; esac
+            VARIANT="$CAMP_VARIANT"
+            case "$VARIANT" in polos_promo) ;; *) VARIANT="premium" ;; esac
             cat > /tmp/vestra_camp_preview.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
             require $home."/public_html/inc/notify.php";
             require $home."/public_html/inc/products.php";
             $to = $argv[1] ?? 'acerasoft@gmail.com';
+            $variant = $argv[2] ?? 'premium';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { echo "GECERSIZ ALICI\n"; exit(1); }
-            list($subject, $body, $opts) = vestra_campaign_preview();
+            list($subject, $body, $opts) = $variant === 'polos_promo' ? vestra_campaign_promo_polos() : vestra_campaign_preview();
+            echo "varyant: {$variant}\n";
             $ok = vestra_send_mail($to, $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
             echo $ok ? "GONDERILDI -> {$to}\n" : "HATA: gonderim basarisiz\n";
             PHPEOF
-            php /tmp/vestra_camp_preview.php "$TO"
+            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT"
             rm -f /tmp/vestra_camp_preview.php
