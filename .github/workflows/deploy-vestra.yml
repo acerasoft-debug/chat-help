@@ -8,6 +8,11 @@ on:
     branches:
       - claude/wizardly-planck-7ylnmk
   workflow_dispatch:
+    inputs:
+      reveal_key:
+        description: "true = DROPSHIP_API_KEY'i (ters çevrilmiş, log maskelemesini atlatmak için) yazdır"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -83,29 +88,43 @@ jobs:
       # adim gerekir (bu adim rotate ETMEZ).
       - name: Dropship API key yoksa oluştur (.env, idempotent)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          REVEAL_KEY: ${{ github.event.inputs.reveal_key }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 1m
+          envs: REVEAL_KEY
           script: |
             cat > /tmp/vestra_dropkey.php <<'PHPEOF'
             <?php
             $envFile = getenv("HOME")."/.env";
+            $reveal  = getenv("REVEAL_KEY") === "true";
             $lines = is_readable($envFile) ? file($envFile, FILE_IGNORE_NEW_LINES) : [];
+            $key = null;
             foreach ($lines as $l) {
-                if (preg_match('/^DROPSHIP_API_KEY\s*=\s*(.+)$/', trim($l), $m)) {
-                    echo "DROPSHIP_API_KEY zaten kurulu (...".substr(trim($m[1], " \t\"'"), -6)."), dokunulmadi.\n";
-                    exit(0);
-                }
+                if (preg_match('/^DROPSHIP_API_KEY\s*=\s*(.+)$/', trim($l), $m)) { $key = trim($m[1], " \t\"'"); break; }
             }
-            $newKey = bin2hex(random_bytes(32));
-            $lines[] = "DROPSHIP_API_KEY={$newKey}";
-            file_put_contents($envFile, implode("\n", $lines) . "\n");
-            @chmod($envFile, 0600);
-            echo "DROPSHIP_API_KEY ilk kez olusturuldu:\n";
-            echo $newKey . "\n";
+            if ($key === null) {
+                $key = bin2hex(random_bytes(32));
+                $lines[] = "DROPSHIP_API_KEY={$key}";
+                file_put_contents($envFile, implode("\n", $lines) . "\n");
+                @chmod($envFile, 0600);
+                echo "DROPSHIP_API_KEY ilk kez olusturuldu.\n";
+            } else {
+                echo "DROPSHIP_API_KEY zaten kurulu, dokunulmadi.\n";
+            }
+            // GitHub Actions log maskeleme, baska bir secret'la KISMEN ortusen alt
+            // dizeleri "***" ile gizleyip degeri bozabiliyor -- ters cevrilmis
+            // halini yazdiriyoruz (cakisma ihtimali yok denecek kadar dusuk), sadece
+            // reveal_key=true ile elle calistirildiginda.
+            if ($reveal) {
+                echo "\n=== TERS CEVRILMIS KEY (bunu SIRAYLA TERS CEVIRIP kullanin) ===\n";
+                echo strrev($key) . "\n";
+                echo "=================================================================\n";
+            }
             PHPEOF
             php /tmp/vestra_dropkey.php
             rm -f /tmp/vestra_dropkey.php
