@@ -106,3 +106,4 @@ jobs:
             rm -f ./vestra_lead_stats_tmp.php /tmp/vestra_lead_stats.php
         env:
           DAYS: ${{ github.event.inputs.days }}
+          SEARCH: ${{ github.event.inputs.search }}
