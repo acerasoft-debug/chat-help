@@ -10,6 +10,10 @@ on:
         description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
         required: false
         default: ""
+      name:
+        description: "Ürün adında bu metni ara (alt dize, boş = hepsi) — marka/kategori bilinmeden ürün bulmak için"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -25,13 +29,14 @@ jobs:
         env:
           INSPECT_BRAND: ${{ github.event.inputs.brand }}
           INSPECT_CAT: ${{ github.event.inputs.cat }}
+          INSPECT_NAME: ${{ github.event.inputs.name }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -39,10 +44,12 @@ jobs:
             require $home."/public_html/inc/products.php";
             $bf = strtolower(trim((string)getenv("INSPECT_BRAND")));
             $cf = trim((string)getenv("INSPECT_CAT"));
+            $nf = strtolower(trim((string)getenv("INSPECT_NAME")));
             foreach (vestra_products() as $p) {
               $brand = (string)($p['brand'] ?? '');
               if ($bf !== '' && $bf !== '*' && stripos($brand, $bf) === false) continue;
               if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
+              if ($nf !== '' && stripos((string)($p['name'] ?? ''), $nf) === false) continue;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
               elseif (!empty($p['image'])) $imgs = [$p['image']];
