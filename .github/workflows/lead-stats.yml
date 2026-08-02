@@ -10,6 +10,10 @@ on:
         description: "Opsiyonel: firma/email/website/notlarda ara (virgülle birden fazla terim = VEYA, ör. 'ibiza,mallorca,barcelona'), eşleşen HER lead'i gönderim durumuyla listele"
         required: false
         default: ""
+      mail_quota:
+        description: "true = Brevo hesabinin plan/kredi durumunu ve bugunku gonderim istatistigini (Brevo tarafi) de goster"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -113,3 +117,23 @@ jobs:
         env:
           DAYS: ${{ github.event.inputs.days }}
           SEARCH: ${{ github.event.inputs.search }}
+
+      - name: Brevo plan/kota durumu (opsiyonel)
+        if: ${{ github.event.inputs.mail_quota == 'true' }}
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+        run: |
+          if [ -z "${MAIL_API_KEY}" ]; then
+            echo "::warning::MAIL_API_KEY secret'ı tanımlı değil, Brevo kontrolü atlandı."
+            exit 0
+          fi
+          echo "== HESAP / PLAN =="
+          curl -sS "https://api.brevo.com/v3/account" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            -w "\nHTTP_CODE:%{http_code}\n"
+          echo ""
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "== BUGUN (UTC ${TODAY}) - Brevo agregat rapor =="
+          curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
+            -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
+            -w "\nHTTP_CODE:%{http_code}\n"
