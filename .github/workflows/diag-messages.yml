@@ -1,0 +1,98 @@
+name: (Salt-okunur) Mesaj bildirimlerini teşhis et
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Salt-okunur. data/messages.json'daki her thread icin: son mesaj, okunma
+# durumu (buyer/seller), karsi taraf hesabinin cozulup cozulemedigi + email'i
+# var mi, ve vestra_msg_send()'in mail gonderme yolunu (mail_enabled/api/smtp)
+# kontrol eder. Ayrica error_log'dan VESTRA Mail/API/SMTP satirlarini gosterir.
+# Hicbir sey DEGISTIRMEZ, mesaj GONDERMEZ.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kontrol et
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/diag_msg.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+            });
+            $home = getenv("HOME");
+            $doc  = $home."/public_html";
+            require $doc."/inc/auth.php";
+            require $doc."/inc/notify.php";
+            require $doc."/inc/messages.php";
+
+            echo "===== MAIL AYARLARI =====\n";
+            echo "mail_enabled     = ".(vestra_cfg('mail_enabled',false)?'true':'false')."\n";
+            $apiKey = (string)vestra_cfg('mail_api_key','');
+            echo "mail_api_provider= ".vestra_cfg('mail_api_provider','brevo')."\n";
+            echo "mail_api_key     = ".($apiKey!==''?('SET, uzunluk='.strlen($apiKey)):'(bos)')."\n";
+            echo "smtp_host        = ".((string)vestra_cfg('smtp_host','')!==''?vestra_cfg('smtp_host',''):'(bos)')."\n";
+            echo "mail_from        = ".vestra_cfg('mail_from','support@vestrasales.com')."\n";
+            $notifyList = vestra_cfg('notify',[]); if (is_string($notifyList)) $notifyList=[$notifyList];
+            echo "notify (admin)   = ".implode(', ', (array)$notifyList)."\n\n";
+
+            $accounts = auth_accounts();
+            $byId = [];
+            foreach ($accounts as $a) $byId[(string)($a['id']??'')] = $a;
+
+            $threads = vestra_msg_threads();
+            usort($threads, fn($a,$b) => strtotime($b['last_at']??'1970-01-01') <=> strtotime($a['last_at']??'1970-01-01'));
+            echo "===== THREAD SAYISI: ".count($threads)." =====\n\n";
+
+            foreach ($threads as $t) {
+              $bUid = (string)($t['buyer_uid']??''); $sUid = (string)($t['seller_uid']??'');
+              $msgs = $t['messages'] ?? [];
+              $last = end($msgs);
+              $lastFrom = $last ? ($last['from']??'?') : '(yok)';
+              $lastText = $last ? mb_substr((string)($last['text']??($last['meta']['kind']??'')),0,60) : '';
+              $lastAt   = $last['at'] ?? '';
+
+              echo "--- thread ".($t['id']??'?')." | listing=".($t['listing_id']??'')." | son=".($t['last_at']??'')." ---\n";
+              echo "  mesaj sayisi: ".count($msgs)." | son gonderen: {$lastFrom} @ {$lastAt}\n";
+              echo "  son metin: \"{$lastText}\"\n";
+
+              foreach (['buyer'=>$bUid, 'seller'=>$sUid] as $role => $uid) {
+                if ($uid === '') { echo "  [{$role}] uid bos\n"; continue; }
+                $label = $uid === VESTRA_SUPPORT_UID ? 'VESTRA Support' : null;
+                $acc = $byId[$uid] ?? null;
+                $unread = vestra_msg_unread($t, $uid);
+                $readSeen = $t['read'][$uid] ?? '(hic yok)';
+                if ($label !== null) {
+                  echo "  [{$role}] {$uid} = VESTRA Support (sentetik) | okunmamis={$unread}\n";
+                } elseif ($acc === null) {
+                  echo "  [{$role}] {$uid} = *** HESAP BULUNAMADI (silinmis/gecersiz uid) *** | okunmamis={$unread} | read[uid]=".json_encode($readSeen)."\n";
+                } else {
+                  $em = (string)($acc['email'] ?? '');
+                  $nm = $acc['company'] ?: ($acc['name'] ?: '(isimsiz)');
+                  echo "  [{$role}] {$uid} = \"{$nm}\" | email=".($em!==''?$em:'*** EMAIL YOK ***')." | okunmamis={$unread} | read[uid]=".json_encode($readSeen)."\n";
+                }
+              }
+              echo "\n";
+            }
+            PHPEOF
+            php -l /tmp/diag_msg.php
+            php /tmp/diag_msg.php
+            echo; echo "===== SON MAIL LOG SATIRLARI (VESTRA Mail/API/SMTP/message) ====="
+            for L in ~/public_html/error_log ~/error_log ~/logs/error_log; do
+              if [ -f "$L" ]; then
+                echo "-- $L --"
+                grep -iE 'VESTRA (Mail|API|SMTP|Message)|not emailed' "$L" | tail -60
+              fi
+            done
+            rm -f /tmp/diag_msg.php
