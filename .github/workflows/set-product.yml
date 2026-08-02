@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -153,6 +153,12 @@ jobs:
               }
               if (isset($set['min_colors']) && (!is_numeric($set['min_colors']) || (int)$set['min_colors'] < 1)) {
                 $errors[] = "{$ctx} ({$m}): gecersiz min_colors '{$set['min_colors']}'"; continue;
+              }
+              if (isset($set['specs'])) {
+                if (!is_array($set['specs']) || !$set['specs']) { $errors[] = "{$ctx} ({$m}): specs bos-olmayan {anahtar:deger} nesnesi olmali"; continue; }
+                foreach ($set['specs'] as $sk => $sv) {
+                  if (!is_string($sk) || $sk === '' || !is_string($sv) || $sv === '') { $errors[] = "{$ctx} ({$m}): specs icinde gecersiz anahtar/deger"; continue 2; }
+                }
               }
 
               $mn = $norm($m);
@@ -241,6 +247,17 @@ jobs:
                   if ($old === $new) continue;
                   $line[] = "{$k} (".count($old).") -> (".count($new)."): ".implode(', ', $k === 'colors' ? $new : array_map('basename', $new));
                   $all[$i][$k] = $new;
+                  $changes++;
+                } elseif ($k === 'specs') {
+                  /* Merge rather than replace -- a demo product's existing specs
+                     (Composition, Fit, Care, ...) should survive a one-off addition
+                     like a dropshipping note, not get wiped by it. */
+                  $old = (array)($p['specs'] ?? []);
+                  $new = array_merge($old, $v);
+                  if ($old === $new) continue;
+                  $added = array_diff_key($v, $old) ?: $v;
+                  $line[] = "specs +".count($added).": ".implode(', ', array_keys($added));
+                  $all[$i]['specs'] = $new;
                   $changes++;
                 } else {
                   $new = (string)$v; $old = (string)($p[$k] ?? '');
