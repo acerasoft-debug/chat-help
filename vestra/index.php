@@ -41,12 +41,28 @@ if (@include_once __DIR__.'/inc/products.php') {
        product stays perfectly saleable -- it is only excluded from the homepage. */
     $HERO_SKIP = ['burberry-8039175'];
 
-    $pool = [];
+    /* The film crops full-bleed across a wide, short band (background-size:cover),
+       so a tall product packshot (a plain flat-lay/carton photo, common on freshly
+       imported catalogue lines) gets zoomed into a near-abstract sliver of fabric
+       instead of reading as a garment. Reject only clearly-unsuited outliers -- this
+       is a sanity floor, not a strict landscape requirement. */
+    $heroFits = function(string $im): bool {
+        $dim = @getimagesize(__DIR__.$im);
+        if (!$dim || $dim[0] <= 0 || $dim[1] <= 0) return true; // can't measure -> don't block it
+        return ($dim[1] / $dim[0]) <= 1.6;
+    };
+
+    $pool = []; $pinnedFrames = [];
     foreach (vestra_products() as $hp) {
         $im = !empty($hp['images'][0]) ? $hp['images'][0]
             : (function_exists('vestra_primary_image') ? vestra_primary_image($hp) : '');
         if (!$im || $im[0] !== '/' || !is_file(__DIR__.$im)) continue;
         foreach ($HERO_SKIP as $sk) { if (stripos($im, $sk) !== false) continue 2; }
+        if (!$heroFits($im)) continue;
+        /* A product the operator has pinned (currently also pinned to the top of
+           /shop) opens the film regardless of category -- it is the flagship piece
+           of the moment, so it should lead rather than wait its turn in $WANT. */
+        if (!empty($hp['pinned']) && !in_array($im, $pinnedFrames, true)) $pinnedFrames[] = $im;
         $cat = (string)($hp['cat'] ?? '');
         $pos = array_search($cat, $WANT, true);
         if ($pos === false) continue;
@@ -59,10 +75,12 @@ if (@include_once __DIR__.'/inc/products.php') {
     }
     usort($pool, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
 
+    $HERO_FRAMES = array_slice($pinnedFrames, 0, 6);
+
     /* One frame per category so no two consecutive shots look alike. */
     $usedCat = [];
     foreach ($pool as [, , , $cat, $im]) {
-        if (isset($usedCat[$cat])) continue;
+        if (isset($usedCat[$cat]) || in_array($im, $HERO_FRAMES, true)) continue;
         $usedCat[$cat] = true;
         $HERO_FRAMES[] = $im;
         if (count($HERO_FRAMES) >= 6) break;

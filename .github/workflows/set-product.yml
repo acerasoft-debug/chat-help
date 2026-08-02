@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {

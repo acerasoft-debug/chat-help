@@ -1,5 +1,13 @@
 <?php require __DIR__.'/inc/products.php'; $PAGE=t('Catalog'); $NAV='shop'; $META=t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.'); require __DIR__.'/inc/head.php';
 $products = vestra_products();
+/* Pinned products (operator-curated, e.g. this week's flagship listing) lead the
+   default grid ahead of everything else, in the order they were pinned. A manual
+   partition rather than a sort key keeps every other product's relative order
+   exactly as vestra_products() returned it -- pinning one item must not reshuffle
+   the other 299. */
+$pinned = []; $rest = [];
+foreach ($products as $p) { if (!empty($p['pinned'])) $pinned[] = $p; else $rest[] = $p; }
+$products = array_merge($pinned, $rest);
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
 /* Per-brand line-sheet downloads (public .xlsx with photos + codes, no pricing). */
