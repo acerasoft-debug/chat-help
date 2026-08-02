@@ -504,6 +504,14 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 /* Shop product grid */
 .shopgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .scard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:.2s;text-decoration:none;color:var(--ink)}
+/* Pinned product: a 2×2 block instead of 1×1, so the operator's flagship listing
+   reads as a lead tile rather than just sitting first in an otherwise-uniform grid.
+   Sits first in DOM order (shop.php partitions pinned products to the front), so the
+   grid's default sparse auto-placement fills in around it with no gaps at any
+   column count -- no per-breakpoint override needed. */
+.scard-featured{grid-column:span 2;grid-row:span 2}
+.scard-featured .stitle{font-size:16px}
+.scard-featured .samt{font-size:22px}
 .scard:hover{border-color:rgba(201,168,106,.38);transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
 .sthumb{aspect-ratio:3/4;display:grid;place-items:center;position:relative;color:#fff;overflow:hidden}
 .sthumb::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.12)}

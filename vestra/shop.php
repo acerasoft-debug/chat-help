@@ -151,7 +151,7 @@ footer a{color:#d8bd86}
           $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           ?>
-          <a class="scard" href="/product?id=<?= urlencode($p['id']) ?>"
+          <a class="scard<?= !empty($p['pinned']) ? ' scard-featured' : '' ?>" href="/product?id=<?= urlencode($p['id']) ?>"
              data-idx="<?= $idx ?>"
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
              data-mode="<?= htmlspecialchars($p['mode']??'fixed') ?>"
