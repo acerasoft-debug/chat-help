@@ -60,6 +60,14 @@ jobs:
               echo "  *** dg-101202 artik listings.json'da yok ***\n";
             }
 
+            echo "\n===== sample_price alani olan TUM urunler =====\n";
+            foreach (vestra_products() as $p) {
+              if (empty($p['sample_price']) || !is_numeric($p['sample_price']) || (float)$p['sample_price'] <= 0) continue;
+              $su = (string)($p['seller_uid'] ?? '');
+              $suLabel = $su === '' ? '(satici yok -- demo/platform urunu)' : $su;
+              echo "  ".($p['id']??'?')." | ".($p['brand']??'?')." | sample_price=".$p['sample_price']." | seller_uid=".$suLabel."\n";
+            }
+
             echo "===== MAIL AYARLARI =====\n";
             echo "mail_enabled     = ".(vestra_cfg('mail_enabled',false)?'true':'false')."\n";
             $apiKey = (string)vestra_cfg('mail_api_key','');
