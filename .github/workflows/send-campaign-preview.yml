@@ -16,6 +16,10 @@ on:
         description: "Hangi kampanya: premium (genel, çok dilli) ya da polos_promo (Lacoste polo indirim duyurusu, EN)"
         required: false
         default: "premium"
+      render_only:
+        description: "true = e-posta GÖNDERME, sadece nihai HTML'i (görseller gömülü) günlüğe yaz"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -24,23 +28,25 @@ jobs:
   send:
     runs-on: ubuntu-latest
     steps:
-      - name: Kampanya önizlemesini gönder
+      - name: Kampanya önizlemesini gönder / render et
         uses: appleboy/ssh-action@v1.0.3
         env:
           CAMP_TO: ${{ github.event.inputs.to }}
           CAMP_VARIANT: ${{ github.event.inputs.variant }}
+          CAMP_RENDER_ONLY: ${{ github.event.inputs.render_only }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 4m
-          envs: CAMP_TO,CAMP_VARIANT
+          envs: CAMP_TO,CAMP_VARIANT,CAMP_RENDER_ONLY
           script: |
             TO="$CAMP_TO"
             case "$TO" in *@*) ;; *) TO="acerasoft@gmail.com" ;; esac
             VARIANT="$CAMP_VARIANT"
             case "$VARIANT" in polos_promo) ;; *) VARIANT="premium" ;; esac
+            RENDER_ONLY="$CAMP_RENDER_ONLY"
             cat > /tmp/vestra_camp_preview.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
@@ -48,11 +54,40 @@ jobs:
             require $home."/public_html/inc/products.php";
             $to = $argv[1] ?? 'acerasoft@gmail.com';
             $variant = $argv[2] ?? 'premium';
-            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { echo "GECERSIZ ALICI\n"; exit(1); }
+            $renderOnly = strtolower(trim((string)($argv[3] ?? ''))) === 'true';
             list($subject, $body, $opts) = $variant === 'polos_promo' ? vestra_campaign_promo_polos() : vestra_campaign_preview();
             echo "varyant: {$variant}\n";
+
+            if ($renderOnly) {
+              /* Gorselleri (site ile ayni sunucuda oldugundan) diskten okuyup base64 data URI'ye
+                 ceviriyoruz -- boylece cikan HTML disari hicbir istek atmadan, tek basina acilabilir. */
+              $inline = function(string $src) use ($home): string {
+                $rel = preg_replace('#^https?://[^/]+#', '', $src);
+                $file = $home.'/public_html'.$rel;
+                if (!is_file($file)) return $src;
+                $bytes = @file_get_contents($file);
+                if ($bytes === false) return $src;
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                $mime = ['avif'=>'image/avif','png'=>'image/png','webp'=>'image/webp','jpg'=>'image/jpeg','jpeg'=>'image/jpeg'][$ext] ?? 'image/jpeg';
+                return 'data:'.$mime.';base64,'.base64_encode($bytes);
+              };
+              if (!empty($opts['shots']) && is_array($opts['shots'])) {
+                foreach ($opts['shots'] as $i => $s) {
+                  if (!empty($s['img'])) $opts['shots'][$i]['img'] = $inline((string)$s['img']);
+                }
+              }
+              $html = vestra_html_email($body, '', $opts);
+              $html = str_replace('https://vestrasales.com/icon-192.png', $inline('https://vestrasales.com/icon-192.png'), $html);
+              echo "SUBJECT: {$subject}\n";
+              echo "===B64_START===\n";
+              echo chunk_split(base64_encode($html), 200, "\n");
+              echo "===B64_END===\n";
+              exit(0);
+            }
+
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { echo "GECERSIZ ALICI\n"; exit(1); }
             $ok = vestra_send_mail($to, $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
             echo $ok ? "GONDERILDI -> {$to}\n" : "HATA: gonderim basarisiz\n";
             PHPEOF
-            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT"
+            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY"
             rm -f /tmp/vestra_camp_preview.php
