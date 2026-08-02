@@ -139,11 +139,25 @@ jobs:
                 $abs = $doc.'/uploads/'.$rel;
                 if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; $fail++; continue; }
                 $dim = @getimagesize($abs);
-                if ($dim === false || $dim[0] < 150 || $dim[1] < 150) {
-                  @unlink($abs);
-                  echo "  RED: gecersiz/cok kucuk gorsel '{$rel}' -- SILINDI\n"; $fail++; continue;
+                if ($dim !== false) {
+                  if ($dim[0] < 150 || $dim[1] < 150) {
+                    @unlink($abs);
+                    echo "  RED: gorsel cok kucuk '{$rel}' (".$dim[0]."x".$dim[1].") -- SILINDI\n"; $fail++; continue;
+                  }
+                  echo "  OK -> /uploads/{$rel} (".$dim[0]."x".$dim[1].")\n";
+                } else {
+                  // getimagesize() may not decode AVIF on this PHP/GD build even for a
+                  // genuinely valid file -- sniff the container magic bytes instead of
+                  // rejecting outright, and lean on file size (placeholders run <3KB).
+                  $isAvif = strpos(substr($bin,4,12), 'ftyp') !== false;
+                  $isWebp = substr($bin,0,4) === 'RIFF' && substr($bin,8,4) === 'WEBP';
+                  if (($isAvif || $isWebp) && strlen($bin) >= 4000) {
+                    echo "  OK (boyut dogrulamasi -- ".($isAvif?'avif':'webp').", getimagesize bu formati cozemedi) -> /uploads/{$rel} (".strlen($bin)." bayt)\n";
+                  } else {
+                    @unlink($abs);
+                    echo "  RED: gecersiz gorsel '{$rel}' -- SILINDI\n"; $fail++; continue;
+                  }
                 }
-                echo "  OK -> /uploads/{$rel} (".$dim[0]."x".$dim[1].")\n";
                 $ok++;
               }
               echo "\nTOPLAM: {$ok} basarili, {$fail} basarisiz\n";
