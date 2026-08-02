@@ -1,0 +1,85 @@
+name: Stripe Connect durumunu kontrol et + önbelleği tazele
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Hesap arama metni (company/name içinde, büyük/küçük harf önemsiz)"
+        required: true
+        default: "les garage"
+
+permissions:
+  contents: read
+
+# Eslesen HER seller icin stripe_connect_status()'u CANLI cagirir (Stripe'a
+# gercek bir API istegi) ve escrow_seller_ready($seller, true) ile ayni
+# mantigi kullanarak escrow_ready onbellek bayragini tazeler -- webhook
+# account.updated ile TAM AYNI kural (charges_enabled). Boylece sample-checkout
+# ve wholesale escrow, bir sonraki istekte gecerli durumu hemen gorur; bir
+# sonraki Stripe webhook'unu beklemeye gerek kalmaz.
+# TEK yazma: sadece escrow_ready alani, SADECE deger gercekten degistiyse.
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kontrol et
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            echo "ADIM 1: baglanti tamam"
+            export Q='${{ github.event.inputs.query }}'
+            cat > /tmp/refresh_connect.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+            });
+            $home = getenv("HOME");
+            $doc  = $home."/public_html";
+            require $doc."/inc/auth.php";
+            require $doc."/inc/stripe.php";
+            require $doc."/inc/escrow.php";
+
+            $q = strtolower(trim((string)getenv("Q")));
+            if ($q === '') { fwrite(STDERR, "HATA: arama metni bos\n"); exit(1); }
+
+            $found = false;
+            foreach (auth_accounts() as $a) {
+              $hay = strtolower(($a['company']??'').' '.($a['name']??''));
+              if (strpos($hay, $q) === false) continue;
+              $found = true;
+              echo "===== ".($a['company'] ?: $a['name'])." (id=".($a['id']??'?').") =====\n";
+              echo "  email          = ".(($a['email']??'')!==''?$a['email']:'*** YOK ***')."\n";
+              echo "  stripe_account_id = ".(!empty($a['stripe_account_id'])?$a['stripe_account_id']:'*** YOK ***')."\n";
+              echo "  escrow_ready (onceki onbellek) = ".(!empty($a['escrow_ready'])?'true':'false')."\n";
+
+              if (empty($a['stripe_account_id'])) {
+                echo "  -> Connect hesabi hic olusturulmamis, canli kontrol atlaniyor.\n\n";
+                continue;
+              }
+
+              $st = stripe_connect_status($a);
+              echo "  --- CANLI Stripe durumu ---\n";
+              echo "  charges_enabled   = ".(!empty($st['charges_enabled'])?'true':'false')."\n";
+              echo "  payouts_enabled   = ".(!empty($st['payouts_enabled'])?'true':'false')."\n";
+              echo "  details_submitted = ".(!empty($st['details_submitted'])?'true':'false')."\n";
+              if (isset($st['error'])) echo "  HATA: ".$st['error']."\n";
+
+              // Ayni kural: webhook'un account.updated'da ve escrow_seller_ready($s,true)'nun
+              // kullandigi TEK KISTAS -- charges_enabled. payouts_enabled/details_submitted
+              // sadece bilgi amacli yukarida gosterildi.
+              $readyNow = escrow_seller_ready($a, true); // CANLI kontrol + onbellegi TAZELER (degistiyse)
+              echo "  -> escrow_ready (tazelendi) = ".($readyNow?'true':'false')."\n";
+              echo "  -> Sample/escrow siparisleri artik ".($readyNow?"BU SATICIYA dogrudan gidecek.":"hala VESTRA platform hesabindan gececek.")."\n\n";
+            }
+            if (!$found) echo "*** '{$q}' ile eslesen hesap yok ***\n";
+            PHPEOF
+            php -l /tmp/refresh_connect.php
+            php /tmp/refresh_connect.php
+            rm -f /tmp/refresh_connect.php
