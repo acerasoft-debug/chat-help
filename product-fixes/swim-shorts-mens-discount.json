@@ -1,0 +1,7 @@
+[
+  {"match": "blm-bwb640410",      "expect": 1, "sale_list": 59.78, "_why": "BALMAIN Swim Shorts — was-price for a display -8% (tiers[0] stays 55.00)"},
+  {"match": "blm-bwb64041001",    "expect": 1, "sale_list": 59.78, "_why": "BALMAIN Swim Shorts — was-price for a display -8% (tiers[0] stays 55.00)"},
+  {"match": "blm-bwb64041062815", "expect": 1, "sale_list": 59.78, "_why": "BALMAIN Swim Shorts — was-price for a display -8% (tiers[0] stays 55.00)"},
+  {"match": "bur-8015515",        "expect": 1, "sale_list": 54.24, "_why": "Burberry Swim Shorts (plain) — was-price for a display -8% (tiers[0] stays 49.90)"},
+  {"match": "bur-8017294",        "expect": 1, "sale_list": 59.67, "_why": "Burberry Swim Shorts (check) — was-price for a display -8% (tiers[0] stays 54.90)"}
+]
