@@ -103,29 +103,35 @@ jobs:
               if (preg_match('#<img[^>]+src=["\']([^"\']*/cdn/shop/[^"\']+)["\']#i', $html, $m)) return $m[1];
               return null;
             }
+            // Shopify product titles/variant selectors usually spell out the colourway
+            // (e.g. "... Polo Shirt - Bordeaux", or a selected swatch label) — pull every
+            // plausible signal so colours can be named without ever opening the image.
+            function color_hints(string $html): string {
+              $hints = [];
+              if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) $hints[] = 'title='.trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES));
+              if (preg_match('#<h1[^>]*>(.*?)</h1>#is', $html, $m)) $hints[] = 'h1='.trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES));
+              if (preg_match('#"color"\s*:\s*"([^"]+)"#i', $html, $m)) $hints[] = 'jsonld_color='.$m[1];
+              if (preg_match('#\bcolou?r\b["\':\s]+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-]{2,20})#i', $html, $m)) $hints[] = 'inline_color='.trim($m[1]);
+              return implode(' | ', array_slice(array_unique($hints), 0, 4));
+            }
 
             echo "===== GORSEL CEKME (".count($urls)." URL) =====\n";
-            printf("%-90s %-6s %-40s %s\n", "URL", "KOD", "BASLIK", "SONUC");
             $n = 0;
             foreach ($urls as $url) {
               $n++;
-              if (!preg_match('#^https://#i', $url)) { printf("%-90s %-6s %-40s %s\n", $url, '-', '-', "ATLANDI: https degil"); continue; }
+              echo "--- ".$url." ---\n";
+              if (!preg_match('#^https://#i', $url)) { echo "  ATLANDI: https degil\n"; continue; }
               [$code, $html, , $err] = vestra_fetch($url, $ua);
-              if ($code < 200 || $code >= 300 || $html === false) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code ?: '000', '-', "HATA: sayfa cekilemedi ({$err})");
-                continue;
-              }
-              $title = '';
-              if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $tm)) $title = trim(html_entity_decode(strip_tags($tm[1]), ENT_QUOTES));
+              if ($code < 200 || $code >= 300 || $html === false) { echo "  HATA: sayfa cekilemedi (kod={$code} {$err})\n"; continue; }
+              echo "  renk ipuclari: ".color_hints($html)."\n";
               $img = first_image_url($html);
-              if (!$img) { printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel bulunamadi"); continue; }
+              if (!$img) { echo "  HATA: gorsel bulunamadi\n"; continue; }
               if (strpos($img, '//') === 0) $img = 'https:'.$img;
-              elseif (strpos($img, 'http') !== 0) { printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel URL bagil, atlandi ({$img})"); continue; }
+              elseif (strpos($img, 'http') !== 0) { echo "  HATA: gorsel URL bagil, atlandi ({$img})\n"; continue; }
 
               [$icode, $bin, $ictype, $ierr] = vestra_fetch($img, $ua, true);
               if ($icode < 200 || $icode >= 300 || $bin === false || strlen($bin) < 800) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: gorsel indirilemedi ({$icode} {$ierr})");
-                continue;
+                echo "  HATA: gorsel indirilemedi (kod={$icode} {$ierr})\n"; continue;
               }
               $ext = 'jpg';
               if (preg_match('#\.(jpe?g|png|webp)(\?|$)#i', $img, $em)) $ext = strtolower($em[1]);
@@ -137,11 +143,8 @@ jobs:
               $fname = basename($prefix).'-'.$slug.'.'.$ext;
               $rel = '/uploads/'.dirname($prefix).'/'.$fname;
               $abs = $doc.$rel;
-              if (@file_put_contents($abs, $bin) === false) {
-                printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "HATA: yazilamadi {$abs}");
-                continue;
-              }
-              printf("%-90s %-6s %-40s %s\n", mb_substr($url,0,90), $code, mb_substr($title,0,40), "OK -> {$rel} (".strlen($bin)." bayt)");
+              if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; continue; }
+              echo "  OK -> {$rel} (".strlen($bin)." bayt)\n";
             }
             PHPEOF
             php -l /tmp/vestra_fetchimg.php
