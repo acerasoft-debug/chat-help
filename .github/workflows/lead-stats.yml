@@ -7,7 +7,7 @@ on:
         required: false
         default: "14"
       search:
-        description: "Opsiyonel: firma/email/website/notlarda bu metni ara, eşleşen HER lead'i gönderim durumuyla listele"
+        description: "Opsiyonel: firma/email/website/notlarda ara (virgülle birden fazla terim = VEYA, ör. 'ibiza,mallorca,barcelona'), eşleşen HER lead'i gönderim durumuyla listele"
         required: false
         default: ""
 
@@ -46,21 +46,27 @@ jobs:
             // oldu -- bos ciktiyi "hic gonderim yok" diye okumak cok kolaydi.
             ini_set('display_errors', '1'); error_reporting(E_ALL);
             $days = (int)(getenv('DAYS') ?: 14);
-            $search = strtolower(trim((string)getenv('SEARCH')));
+            // Virgulle birden fazla terim verilebilir (OR): "ibiza,mallorca,barcelona"
+            $searchTerms = array_values(array_filter(array_map(
+              fn($s) => strtolower(trim($s)), explode(',', (string)getenv('SEARCH'))
+            ), fn($s) => $s !== ''));
             // leads.php kendi basligi ile soyluyor: cagiran taraf products.php'yi
             // ONCE yuklemis olmali (vestra_read_json/vestra_write_json oradan gelir).
             require_once __DIR__.'/inc/products.php';
             require_once __DIR__.'/inc/leads.php';
             $leads = vestra_leads();
 
-            if ($search !== '') {
+            if ($searchTerms) {
+              $search = implode(', ', $searchTerms);
               $hits = [];
               foreach ($leads as $l) {
                 $hay = strtolower(
                   ($l['company'] ?? '').' '.($l['email'] ?? '').' '.
                   ($l['website'] ?? '').' '.($l['notes'] ?? '').' '.($l['country'] ?? '')
                 );
-                if (str_contains($hay, $search)) $hits[] = $l;
+                $match = false;
+                foreach ($searchTerms as $t) { if (str_contains($hay, $t)) { $match = true; break; } }
+                if ($match) $hits[] = $l;
               }
               echo "==== ARAMA: \"{$search}\" -- ".count($hits)." eslesme ====\n\n";
               $sentN = 0;
