@@ -36,6 +36,29 @@ jobs:
             require $doc."/inc/auth.php";
             require $doc."/inc/notify.php";
             require $doc."/inc/messages.php";
+            require $doc."/inc/products.php";
+
+            echo "===== 'LES GARAGE' HESAP ARAMASI =====\n";
+            $found = false;
+            foreach (auth_accounts() as $a) {
+              $hay = strtolower(($a['company']??'').' '.($a['name']??''));
+              if (strpos($hay,'les garage') !== false) {
+                $found = true;
+                echo "  id=".($a['id']??'?')." | type=".($a['type']??'?')." | company=\"".($a['company']??'')."\" | name=\"".($a['name']??'')."\" | email=".($a['email']??'')."\n";
+                echo "    stripe_account_id = ".(!empty($a['stripe_account_id'])?$a['stripe_account_id']:'*** YOK -- Connect onboarding yapilmamis ***')."\n";
+              }
+            }
+            if (!$found) echo "  *** 'Les Garage' adinda hicbir HESAP bulunamadi (silinmis olabilir) ***\n";
+
+            echo "\n===== dg-101202 canli listing durumu =====\n";
+            $listing = vestra_listing_by_id('dg-101202');
+            if ($listing) {
+              echo "  seller_uid = ".($listing['seller_uid']??'(bos)')."\n";
+              echo "  brand/name = ".($listing['brand']??'?')." / ".($listing['name']??'?')."\n";
+              echo "  status     = ".($listing['status']??'?')."\n";
+            } else {
+              echo "  *** dg-101202 artik listings.json'da yok ***\n";
+            }
 
             echo "===== MAIL AYARLARI =====\n";
             echo "mail_enabled     = ".(vestra_cfg('mail_enabled',false)?'true':'false')."\n";
