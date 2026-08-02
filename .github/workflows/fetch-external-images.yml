@@ -1,33 +1,45 @@
-name: Dış siteden ürün görseli çek + kaydet
+name: Dış siteden ürün görseli/koleksiyon çek
 on:
   workflow_dispatch:
     inputs:
+      collection_url:
+        description: "MOD A: Shopify koleksiyon URL'si (örn: https://site.com/collections/lacoste) -- TUM urunleri JSON API ile listeler, hicbir sey indirmez"
+        required: false
+        default: ""
       urls:
-        description: "Ürün sayfası URL'leri (satır satır veya boşlukla ayrılmış)"
-        required: true
+        description: "MOD B: tek tek ürün sayfası URL'leri (satır satır/boşlukla) -- ilk fotoyu indirir"
+        required: false
+        default: ""
       prefix:
-        description: "Kayıt yolu ön eki (uploads/ altında, örn: lacoste/paris-polo)"
-        required: true
+        description: "MOD B: kayıt yolu ön eki (uploads/ altında, örn: lacoste/paris-polo)"
+        required: false
         default: "lacoste/paris-polo"
       dump_id:
-        description: "Referans için önce bu ürün id'sinin tam kaydını yazdır (opsiyonel)"
+        description: "MOD B: referans için önce bu ürün id'sinin tam kaydını yazdır (opsiyonel)"
         required: false
-        default: "lac-polo-paris"
+        default: ""
 
 permissions:
   contents: read
 
-# Sandbox oturumunun agent-proxy'si bazı dış siteleri (org politikası) engelleyebiliyor,
+# Sandbox oturumunun agent-proxy'si bazi dis siteleri (org politikasi) engelleyebiliyor,
 # ama SUNUCUNUN kendi internet erisimi zaten Brevo/Overpass/Hunter cagirilarinda calisiyor
-# — o yuzden gorsel indirmeyi PRODUCTION SUNUCUDAN yapiyoruz, sandboxtan degil.
-# Her URL icin: sayfa HTML'i cekilir, JSON-LD/og:image/ilk cdn gorseli bulunur, indirilir,
-# uploads/<prefix>-<N>.<ext> olarak KAYDEDILIR (N = URL'nin sonundaki sayi, yoksa sira no).
-# Sadece yeni dosya YAZAR; mevcut hicbir urun/JSON kaydini DEGISTIRMEZ.
+# -- o yuzden her seyi PRODUCTION SUNUCUDAN yapiyoruz, sandboxtan degil.
+#
+# MOD A (collection_url doldurulursa): Shopify'in herkese acik products.json
+# API'sini kullanir (curl {collection_url}/products.json?limit=250&page=N) --
+# HTML regex'e guvenmez, gercek baslik/tip/etiket/TUM varyant gorselleri doner.
+# Salt-okunur, HICBIR SEY YAZMAZ -- sadece rapor basar.
+#
+# MOD B (urls doldurulursa): tek urun sayfalari icin once ayni Shopify JSON
+# API'sini ({url}.json) dener (guvenilir), olmazsa HTML'den JSON-LD/og:image'a
+# duser. Indirilen gorsel gercekten >=200x200 degilse (ikon/placeholder tespiti)
+# KAYDETMEZ. Sadece uploads/ altina yeni dosya YAZAR; JSON kayitlarina dokunmaz.
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
-      - name: Çek ve kaydet
+      - name: Çek
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -37,6 +49,7 @@ jobs:
           command_timeout: 5m
           script: |
             echo "ADIM 1: baglanti tamam"
+            export COLL_URL='${{ github.event.inputs.collection_url }}'
             export URLS='${{ github.event.inputs.urls }}'
             export PREFIX='${{ github.event.inputs.prefix }}'
             export DUMP_ID='${{ github.event.inputs.dump_id }}'
@@ -51,23 +64,6 @@ jobs:
             $home = getenv("HOME"); $doc = $home."/public_html";
             require $doc."/inc/products.php";
 
-            $dumpId = trim((string)getenv("DUMP_ID"));
-            if ($dumpId !== '') {
-              echo "===== MEVCUT KAYIT: {$dumpId} =====\n";
-              $found = null;
-              foreach (vestra_products() as $p) { if (($p['id']??'')===$dumpId) { $found=$p; break; } }
-              echo $found ? json_encode($found, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n\n" : "  *** bulunamadi ***\n\n";
-            }
-
-            $prefix = trim((string)getenv("PREFIX"));
-            if ($prefix === '' || !preg_match('#^[a-z0-9][a-z0-9/_-]*$#', $prefix)) { fwrite(STDERR, "HATA: gecersiz prefix\n"); exit(1); }
-            $destDir = $doc.'/uploads/'.dirname($prefix);
-            if (!is_dir($destDir) && !@mkdir($destDir, 0755, true)) { fwrite(STDERR, "HATA: klasor olusturulamadi: {$destDir}\n"); exit(1); }
-
-            $raw = (string)getenv("URLS");
-            $urls = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $raw))));
-            if (!$urls) { fwrite(STDERR, "HATA: URL yok\n"); exit(1); }
-
             $ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
             function vestra_fetch(string $url, string $ua, bool $binary = false) {
@@ -75,7 +71,7 @@ jobs:
               curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5,
                 CURLOPT_TIMEOUT => 25, CURLOPT_USERAGENT => $ua,
-                CURLOPT_HTTPHEADER => $binary ? [] : ['Accept: text/html'],
+                CURLOPT_HTTPHEADER => $binary ? [] : ['Accept: application/json,text/html'],
               ]);
               $body = curl_exec($ch);
               $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -85,7 +81,69 @@ jobs:
               return [$code, $body, $ctype, $err];
             }
 
-            function first_image_url(string $html): ?string {
+            $collUrl = trim((string)getenv("COLL_URL"));
+            if ($collUrl !== '') {
+              echo "===== MOD A: KOLEKSIYON KESFI =====\n";
+              $base = rtrim(preg_replace('#/products\.json.*$#','',$collUrl), '/');
+              $all = []; $page = 1;
+              do {
+                $u = $base.'/products.json?limit=250&page='.$page;
+                [$code, $body, , $err] = vestra_fetch($u, $ua);
+                if ($code < 200 || $code >= 300 || $body === false) { echo "  HATA (sayfa {$page}): kod={$code} {$err}\n"; break; }
+                $d = json_decode((string)$body, true);
+                $items = $d['products'] ?? null;
+                if (!is_array($items) || !$items) break;
+                foreach ($items as $it) $all[] = $it;
+                echo "  sayfa {$page}: ".count($items)." urun\n";
+                $page++;
+              } while (count($items) >= 250 && $page <= 5);
+
+              if (!$all) { echo "  *** hic urun bulunamadi -- bu site Shopify JSON API'sini acik tutmuyor olabilir ***\n"; exit(0); }
+              echo "\nTOPLAM: ".count($all)." urun (varyant renkleri dahil degil, her satir 1 Shopify urunu)\n\n";
+              foreach ($all as $p) {
+                $imgs = array_map(fn($i)=>$i['src']??'', $p['images'] ?? []);
+                $vcolors = [];
+                foreach (($p['variants'] ?? []) as $v) {
+                  foreach (['option1','option2','option3'] as $k) if (!empty($v[$k]) && preg_match('/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-\/]{1,24}$/', $v[$k])) $vcolors[$v[$k]] = true;
+                }
+                echo "--- ".($p['handle']??'?')." ---\n";
+                echo "  baslik    : ".($p['title']??'?')."\n";
+                echo "  tip/etiket: ".($p['product_type']??'?')." | ".($p['tags']??'')."\n";
+                echo "  gorsel say: ".count($imgs)." | ilk gorsel: ".(reset($imgs) ?: '-')."\n";
+                if ($vcolors) echo "  varyant secenekleri: ".implode(', ', array_keys($vcolors))."\n";
+              }
+              exit(0);
+            }
+
+            $dumpId = trim((string)getenv("DUMP_ID"));
+            if ($dumpId !== '') {
+              echo "===== MEVCUT KAYIT: {$dumpId} =====\n";
+              $found = null;
+              foreach (vestra_products() as $p) { if (($p['id']??'')===$dumpId) { $found=$p; break; } }
+              echo $found ? json_encode($found, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n\n" : "  *** bulunamadi ***\n\n";
+            }
+
+            $prefix = trim((string)getenv("PREFIX"));
+            $raw = (string)getenv("URLS");
+            $urls = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $raw))));
+            if (!$urls) { fwrite(STDERR, "HATA: ne collection_url ne de urls verildi\n"); exit(1); }
+            if ($prefix === '' || !preg_match('#^[a-z0-9][a-z0-9/_-]*$#', $prefix)) { fwrite(STDERR, "HATA: gecersiz prefix\n"); exit(1); }
+            $destDir = $doc.'/uploads/'.dirname($prefix);
+            if (!is_dir($destDir) && !@mkdir($destDir, 0755, true)) { fwrite(STDERR, "HATA: klasor olusturulamadi: {$destDir}\n"); exit(1); }
+
+            // Shopify'in herkese acik {product-url}.json API'si -- HTML/JS render'a
+            // bagli kalmadan gercek baslik + TUM varyant gorsellerini dondurur.
+            function shopify_product_json(string $pageUrl, string $ua): ?array {
+              $clean = preg_replace('#\?.*$#', '', $pageUrl);
+              if (!preg_match('#/products/([a-z0-9-]+)$#i', $clean, $m)) return null;
+              $base = preg_replace('#/products/[a-z0-9-]+$#i', '', $clean);
+              [$code, $body] = vestra_fetch($base.'/products/'.$m[1].'.json', $ua);
+              if ($code < 200 || $code >= 300 || $body === false) return null;
+              $d = json_decode((string)$body, true);
+              return $d['product'] ?? null;
+            }
+
+            function first_image_url_html(string $html): ?string {
               if (preg_match_all('#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $m)) {
                 foreach ($m[1] as $block) {
                   $d = json_decode(trim($block), true);
@@ -103,28 +161,27 @@ jobs:
               if (preg_match('#<img[^>]+src=["\']([^"\']*/cdn/shop/[^"\']+)["\']#i', $html, $m)) return $m[1];
               return null;
             }
-            // Shopify product titles/variant selectors usually spell out the colourway
-            // (e.g. "... Polo Shirt - Bordeaux", or a selected swatch label) — pull every
-            // plausible signal so colours can be named without ever opening the image.
-            function color_hints(string $html): string {
-              $hints = [];
-              if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $m)) $hints[] = 'title='.trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES));
-              if (preg_match('#<h1[^>]*>(.*?)</h1>#is', $html, $m)) $hints[] = 'h1='.trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES));
-              if (preg_match('#"color"\s*:\s*"([^"]+)"#i', $html, $m)) $hints[] = 'jsonld_color='.$m[1];
-              if (preg_match('#\bcolou?r\b["\':\s]+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-]{2,20})#i', $html, $m)) $hints[] = 'inline_color='.trim($m[1]);
-              return implode(' | ', array_slice(array_unique($hints), 0, 4));
-            }
 
-            echo "===== GORSEL CEKME (".count($urls)." URL) =====\n";
+            echo "===== MOD B: GORSEL CEKME (".count($urls)." URL) =====\n";
             $n = 0;
             foreach ($urls as $url) {
               $n++;
               echo "--- ".$url." ---\n";
               if (!preg_match('#^https://#i', $url)) { echo "  ATLANDI: https degil\n"; continue; }
-              [$code, $html, , $err] = vestra_fetch($url, $ua);
-              if ($code < 200 || $code >= 300 || $html === false) { echo "  HATA: sayfa cekilemedi (kod={$code} {$err})\n"; continue; }
-              echo "  renk ipuclari: ".color_hints($html)."\n";
-              $img = first_image_url($html);
+
+              $img = null; $title = '';
+              $prod = shopify_product_json($url, $ua);
+              if ($prod) {
+                $title = (string)($prod['title'] ?? '');
+                $img = $prod['images'][0]['src'] ?? ($prod['image']['src'] ?? null);
+                echo "  kaynak: Shopify JSON API | baslik: {$title}\n";
+              } else {
+                [$code, $html, , $err] = vestra_fetch($url, $ua);
+                if ($code < 200 || $code >= 300 || $html === false) { echo "  HATA: sayfa cekilemedi (kod={$code} {$err})\n"; continue; }
+                if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $tm)) $title = trim(html_entity_decode(strip_tags($tm[1]), ENT_QUOTES));
+                echo "  kaynak: HTML fallback | baslik: {$title}\n";
+                $img = first_image_url_html($html);
+              }
               if (!$img) { echo "  HATA: gorsel bulunamadi\n"; continue; }
               if (strpos($img, '//') === 0) $img = 'https:'.$img;
               elseif (strpos($img, 'http') !== 0) { echo "  HATA: gorsel URL bagil, atlandi ({$img})\n"; continue; }
@@ -147,11 +204,12 @@ jobs:
               $dim = @getimagesize($abs);
               if ($dim === false) {
                 @unlink($abs);
-                echo "  RED: gecerli bir gorsel degil (muhtemelen sayfa JS ile render ediyor, HTML'de placeholder/ikon yakalandi) -- SILINDI, kaydedilmedi\n";
+                echo "  RED: gecerli bir gorsel degil -- SILINDI, kaydedilmedi\n";
                 continue;
               }
               if ($dim[0] < 200 || $dim[1] < 200) {
-                echo "  UYARI: gorsel cok kucuk (".$dim[0]."x".$dim[1].") -- muhtemelen ikon/placeholder, urun fotosu degil. Dosya '{$rel}' olarak birakildi ama KULLANMADAN once kontrol et.\n";
+                @unlink($abs);
+                echo "  RED: gorsel cok kucuk (".$dim[0]."x".$dim[1].") -- ikon/placeholder, SILINDI\n";
                 continue;
               }
               echo "  OK -> {$rel} (".$dim[0]."x".$dim[1].", ".strlen($bin)." bayt)\n";
