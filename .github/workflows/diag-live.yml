@@ -84,11 +84,11 @@ jobs:
           BASE="https://vestrasales.com/api/dropship.php"
 
           echo "== key'siz istek (401 bekleniyor) =="
-          curl -sS -o /tmp/d1.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
+          curl -sS -L -o /tmp/d1.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
           cat /tmp/d1.json; echo
 
           echo; echo "== stok sorgusu (200 bekleniyor) =="
-          curl -sS -H "Authorization: Bearer ${DKEY}" -o /tmp/d2.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
+          curl -sS -L -H "Authorization: Bearer ${DKEY}" -o /tmp/d2.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
           cat /tmp/d2.json; echo
 
           echo; echo "== stokta olmayan beden (400/404/409 bekleniyor) =="
