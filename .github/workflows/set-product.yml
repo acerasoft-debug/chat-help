@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -127,6 +127,17 @@ jobs:
               }
               if (isset($set['sample_price']) && (!is_numeric($set['sample_price']) || (float)$set['sample_price'] <= 0)) {
                 $errors[] = "{$ctx} ({$m}): gecersiz sample_price '{$set['sample_price']}'"; continue;
+              }
+              /* sale_list: SADECE "was" fiyatini (uzeri cizili list) degistirir, tiers'a
+                 (gercekten tahsil edilen tutara) DOKUNMAZ -- 'price' alaninin aksine.
+                 Gorunurde indirim rozeti ("-%X") gostermek icin ama gercek satis
+                 fiyatini degistirmemek icin var: liste fiyatini yukari cekip aradaki
+                 farki indirim gibi gostermek. mode='sale' olmayan bir urunde badge hic
+                 gorunmez (product.php sadece mode==='sale' iken 'was' satirini basiyor)
+                 -- bu yuzden hedef urunun zaten sale modunda olmasi bekleniyor,
+                 burada mode'u degistirmiyoruz. */
+              if (isset($set['sale_list']) && (!is_numeric($set['sale_list']) || (float)$set['sale_list'] <= 0)) {
+                $errors[] = "{$ctx} ({$m}): gecersiz sale_list '{$set['sale_list']}'"; continue;
               }
               if (isset($set['status']) && !in_array($set['status'], ['approved','pending'], true)) {
                 $errors[] = "{$ctx} ({$m}): status 'approved' ya da 'pending' olmali"; continue;
@@ -283,6 +294,14 @@ jobs:
                   if (!$removed) continue;
                   $line[] = "specs -".count($removed).": ".implode(', ', $removed);
                   $all[$i]['specs'] = $new;
+                  $changes++;
+                } elseif ($k === 'sale_list') {
+                  $new = (float)$v; $old = (float)($p['list'] ?? 0);
+                  if ($old === $new) continue;
+                  $base = !empty($p['tiers'][0]['price']) ? (float)$p['tiers'][0]['price'] : $old;
+                  $disc = $new > 0 ? (int)round(100*($new-$base)/$new) : 0;
+                  $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers[0] {$base} degismedi, gorunen indirim ~%{$disc})";
+                  $all[$i]['list'] = $new;
                   $changes++;
                 } elseif ($k === 'dropship') {
                   $old = $p['dropship'] ?? null;
