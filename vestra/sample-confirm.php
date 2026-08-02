@@ -25,7 +25,10 @@ if (!$allowed) { header('Location: /login?back=' . urlencode('/sample-confirm?re
 if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
     require_once __DIR__ . '/inc/stripe.php';
     try {
-        $sess = stripe_api('GET', '/v1/checkout/sessions/' . $rec['session_id']);
+        // A direct-charge sample's session lives on the SELLER's connected account,
+        // not the platform — same Stripe-Account routing stripe_escrow_checkout() used
+        // to create it in the first place.
+        $sess = stripe_api('GET', '/v1/checkout/sessions/' . $rec['session_id'], [], $rec['acct_id'] ?? '');
         if (($sess->payment_status ?? '') === 'paid') {
             $pi = is_string($sess->payment_intent ?? null) ? $sess->payment_intent : ($sess->payment_intent->id ?? '');
             $paidRec = sample_mark_paid($ref, $pi);

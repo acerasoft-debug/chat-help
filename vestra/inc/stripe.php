@@ -324,17 +324,17 @@ function stripe_connect_status(array $seller): array {
  * price_data, so no pre-made Prices needed). $appFeeCents is the platform
  * commission. Returns the Session object (->url is the payment page).
  */
-function stripe_escrow_checkout(string $acctId, array $lineItems, int $appFeeCents, string $ref, string $buyerEmail = '', string $currency = 'eur'): object {
+function stripe_escrow_checkout(string $acctId, array $lineItems, int $appFeeCents, string $ref, string $buyerEmail = '', string $currency = 'eur', string $kind = 'escrow', string $successUrl = '', string $cancelUrl = '', array $extra = []): object {
     $params = [
         'mode'                => 'payment',
-        'success_url'         => 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref).'&paid=1',
-        'cancel_url'          => 'https://vestrasales.com/cart?ref='.rawurlencode($ref),
+        'success_url'         => $successUrl !== '' ? $successUrl : 'https://vestrasales.com/order-confirm?ref='.rawurlencode($ref).'&paid=1',
+        'cancel_url'          => $cancelUrl !== '' ? $cancelUrl : 'https://vestrasales.com/cart?ref='.rawurlencode($ref),
         'client_reference_id' => $ref,
         'payment_intent_data' => [
             'application_fee_amount' => $appFeeCents,
-            'metadata'               => ['order_ref' => $ref, 'kind' => 'escrow'],
+            'metadata'               => ['order_ref' => $ref, 'kind' => $kind],
         ],
-        'metadata'            => ['order_ref' => $ref, 'kind' => 'escrow'],
+        'metadata'            => ['order_ref' => $ref, 'kind' => $kind],
     ];
     if ($buyerEmail !== '') $params['customer_email'] = $buyerEmail;
     foreach (array_values($lineItems) as $i => $li) {
@@ -347,6 +347,9 @@ function stripe_escrow_checkout(string $acctId, array $lineItems, int $appFeeCen
             ],
         ];
     }
+    // Caller-supplied extras (e.g. shipping_address_collection for a sample sale) —
+    // merged last so they can't clobber the core session shape above.
+    if ($extra) $params = array_replace_recursive($params, $extra);
     return stripe_api('POST', '/v1/checkout/sessions', $params, $acctId);
 }
 

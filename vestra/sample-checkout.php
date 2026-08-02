@@ -2,14 +2,18 @@
 /**
  * VESTRA — Sample order Checkout session creator ("Muster Bestellung").
  * POST /sample-checkout  (body: id=<product id>, note=<optional size/note>)
- * Single-unit purchase at $p['sample_price'], charged on VESTRA's own Stripe
- * account (mode=payment) — not the per-seller escrow/Connect path, since
- * VESTRA is collecting the sample payment itself, not a connected seller.
+ * Single-unit purchase at $p['sample_price']. Two paths:
+ *   - product has an owning seller who finished Stripe Connect onboarding →
+ *     direct charge ON their connected account (same mechanism as wholesale
+ *     escrow), so the money settles into THEIR Stripe balance, not VESTRA's.
+ *   - no seller, or seller not Connect-ready yet → charged on VESTRA's own
+ *     platform account, same as before this existed.
  */
 require_once __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/products.php';
 require_once __DIR__ . '/inc/stripe.php';
+require_once __DIR__ . '/inc/escrow.php';
 require_once __DIR__ . '/inc/samples.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
@@ -46,7 +50,21 @@ $cents  = (int) round($amount * 100);
 
 $ref = 'SPL-' . strtoupper(bin2hex(random_bytes(4)));
 
-sample_save([
+// Resolve the product's seller (if any) and whether they can receive a direct
+// charge — same readiness check the wholesale escrow cart uses.
+$seller = null;
+if (!empty($p['seller_uid'])) {
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $p['seller_uid']) { $seller = $a; break; } }
+}
+$directCharge = $seller && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
+
+$feeCents = 0; $payout = $amount;
+if ($directCharge) {
+    $feeCents = (int) round($cents * vestra_seller_commission_rate($seller['membership_tier'] ?? ''));
+    $payout   = round($amount - $feeCents / 100, 2);
+}
+
+$rec = [
     'ref'            => $ref,
     'product_id'     => $p['id'],
     'brand'          => (string)($p['brand'] ?? ''),
@@ -61,36 +79,50 @@ sample_save([
     'currency'       => 'eur',
     'status'         => 'pending',
     'created'        => date('c'),
-]);
+];
+if ($seller) $rec['seller_uid'] = $seller['id'];
+if ($directCharge) { $rec['acct_id'] = $seller['stripe_account_id']; $rec['fee'] = $feeCents / 100; $rec['payout'] = $payout; }
+sample_save($rec);
 
 // EU-wide only — the sample price already includes shipping within the EU.
 $EU_COUNTRIES = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
                   'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
+$lineName = 'Sample — ' . trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? ''));
+$lineDesc = 'EU-wide shipping included. ' . ($note !== '' ? 'Size/note: ' . $note : '');
+$successUrl = 'https://vestrasales.com/sample-confirm?ref=' . rawurlencode($ref) . '&paid=1';
+$cancelUrl  = 'https://vestrasales.com' . $backUrl;
 
 try {
-    $customerId = stripe_ensure_customer($user);
+    if ($directCharge) {
+        $session = stripe_escrow_checkout(
+            $seller['stripe_account_id'],
+            [['name' => $lineName, 'amount' => $cents, 'qty' => 1]],
+            $feeCents, $ref, $user['email'] ?? '', 'eur', 'sample',
+            $successUrl, $cancelUrl,
+            ['shipping_address_collection' => ['allowed_countries' => $EU_COUNTRIES]]
+        );
+    } else {
+        $customerId = stripe_ensure_customer($user);
 
-    $session = stripe_api('POST', '/v1/checkout/sessions', [
-        'mode'                       => 'payment',
-        'customer'                   => $customerId,
-        'client_reference_id'        => $ref,
-        'line_items'                 => [[
-            'quantity'   => 1,
-            'price_data' => [
-                'currency'     => 'eur',
-                'unit_amount'  => $cents,
-                'product_data' => [
-                    'name'        => 'Sample — ' . trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? '')),
-                    'description' => 'EU-wide shipping included. ' . ($note !== '' ? 'Size/note: ' . $note : ''),
+        $session = stripe_api('POST', '/v1/checkout/sessions', [
+            'mode'                       => 'payment',
+            'customer'                   => $customerId,
+            'client_reference_id'        => $ref,
+            'line_items'                 => [[
+                'quantity'   => 1,
+                'price_data' => [
+                    'currency'     => 'eur',
+                    'unit_amount'  => $cents,
+                    'product_data' => ['name' => $lineName, 'description' => $lineDesc],
                 ],
-            ],
-        ]],
-        'shipping_address_collection' => ['allowed_countries' => $EU_COUNTRIES],
-        'metadata'                   => ['kind' => 'sample', 'order_ref' => $ref],
-        'payment_intent_data'        => ['metadata' => ['kind' => 'sample', 'order_ref' => $ref]],
-        'success_url'                => 'https://vestrasales.com/sample-confirm?ref=' . rawurlencode($ref) . '&paid=1',
-        'cancel_url'                 => 'https://vestrasales.com' . $backUrl,
-    ]);
+            ]],
+            'shipping_address_collection' => ['allowed_countries' => $EU_COUNTRIES],
+            'metadata'                   => ['kind' => 'sample', 'order_ref' => $ref],
+            'payment_intent_data'        => ['metadata' => ['kind' => 'sample', 'order_ref' => $ref]],
+            'success_url'                => $successUrl,
+            'cancel_url'                 => $cancelUrl,
+        ]);
+    }
 
     sample_update($ref, ['session_id' => $session->id ?? '']);
 

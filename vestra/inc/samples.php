@@ -3,21 +3,30 @@
  * VESTRA — sample-order state ("Muster Bestellung").
  *
  * A sample order is a single-unit purchase at a fixed price (set per product
- * via $p['sample_price']), charged on VESTRA's own Stripe account — unlike a
- * wholesale order, there is no seller invoice/escrow lifecycle here, just
- * pending → paid. Mirrors the shape of inc/escrow.php but deliberately
- * smaller: no release/refund step, since VESTRA collects the sample payment
- * directly rather than holding a seller's funds in escrow.
+ * via $p['sample_price']). Two payment paths, chosen at checkout:
+ *   - the product has no seller, or its seller hasn't finished Stripe Connect
+ *     onboarding → charged on VESTRA's own platform account (pending → paid),
+ *     same as before.
+ *   - the seller IS Connect-ready → charged as a direct charge on the
+ *     SELLER's connected account (same mechanism as wholesale escrow), so
+ *     the money settles into their own Stripe balance, not VESTRA's. That
+ *     balance is HELD (manual payout, same as escrow) until released — see
+ *     sample_do_release() — because newly-charged card funds aren't
+ *     available to pay out immediately regardless.
  *
  *   ref            SPL-xxxxxxxx
  *   product_id / brand / name / sku
  *   buyer_id / buyer_email / buyer_company
  *   note           free-text size choice or note from the buyer (optional)
  *   amount         EUR (float), EU-wide shipping included
+ *   seller_uid     set when the product has an owning seller (either path)
+ *   acct_id        set ONLY for a direct-charge sale — seller's acct_… id
+ *   fee            application fee taken on a direct-charge sale (EUR)
+ *   payout         seller's net share on a direct-charge sale (EUR)
  *   session_id     cs_…   Checkout Session (set at creation)
  *   payment_intent pi_…   set once paid
- *   status         pending → paid
- *   created / paid_at
+ *   status         pending → paid → released (direct-charge only)
+ *   created / paid_at / released_at
  */
 
 function samples_file(): string { return __DIR__ . '/../data/samples.json'; }
@@ -98,6 +107,10 @@ function sample_fulfill(array $rec): void {
             "— VESTRA · vestrasales.com");
     }
 
+    $directCharge = !empty($rec['acct_id']);
+    $payoutLine = $directCharge
+        ? "Seller payout: €".number_format((float)($rec['payout'] ?? 0), 2)." — HELD on their Stripe balance until you release it (Admin → Orders → Sample orders).\n"
+        : '';
     vestra_notify(
         "Sample order paid — {$ref}",
         "A sample order has been paid.\n\n".
@@ -105,7 +118,46 @@ function sample_fulfill(array $rec): void {
         "Item: {$rec['brand']} {$rec['name']}".(!empty($rec['sku'])?" (".$rec['sku'].")":"")."\n".
         "Buyer: ".($rec['buyer_company'] ?: $rec['buyer_name'])." <{$rec['buyer_email']}>\n".
         ($note !== '' ? "Size / note: {$note}\n" : '').
-        "Amount: €{$amount}\n\n".
-        "Ship it and mark it sent — there is no seller escrow step for samples, VESTRA collected the payment directly."
+        "Amount: €{$amount}\n".
+        $payoutLine."\n".
+        ($directCharge
+            ? "Ship it and mark it sent."
+            : "Ship it and mark it sent — there is no seller escrow step for this one, VESTRA collected the payment directly.")
     );
+}
+
+/**
+ * RELEASE a direct-charge sample's held funds to the seller. Mirrors
+ * escrow_do_release() exactly (same available-balance cap — newly-charged
+ * card funds are typically still "pending" in Stripe for a few days, so this
+ * can legitimately return "nothing available yet" right after payment; that
+ * is expected, not a bug — try again once the charge has settled).
+ */
+function sample_do_release(string $ref): array {
+    require_once __DIR__ . '/stripe.php';
+    $rec = sample_get($ref);
+    if (!$rec) return ['ok'=>false, 'msg'=>'Unknown sample order.'];
+    if (empty($rec['acct_id'])) return ['ok'=>false, 'msg'=>'This sample was collected on the platform account — nothing to release.'];
+    if (($rec['status'] ?? '') === 'released') return ['ok'=>true, 'msg'=>'Already released.'];
+    if (($rec['status'] ?? '') !== 'paid') return ['ok'=>false, 'msg'=>'Order is not paid yet (status: '.($rec['status'] ?? '?').').'];
+    $want = isset($rec['payout']) ? (int) round(((float)$rec['payout']) * 100) : null;
+    try {
+        $cur   = $rec['currency'] ?? 'eur';
+        $bal   = stripe_escrow_balance($rec['acct_id']);
+        $avail = (int) ($bal['available'][$cur] ?? 0);
+        $amt   = ($want === null) ? $avail : min($want, $avail);
+        if ($amt <= 0) return ['ok'=>false, 'msg'=>'Nothing available to release yet — card funds may still be settling. Try again shortly.'];
+        $p = stripe_escrow_release($rec['acct_id'], $amt, $cur, $ref);
+        sample_update($ref, ['status'=>'released', 'released_at'=>date('c'), 'payout_id'=>$p->id ?? '']);
+        $paid = number_format(((int)($p->amount ?? 0))/100, 2);
+        if (!empty($rec['seller_uid'])) {
+            require_once __DIR__.'/push.php';
+            vestra_push_send($rec['seller_uid'], 'VESTRA — sample payout released 🎉',
+                'Sample '.$ref.' — €'.$paid.' is on its way to your bank.', '/seller?tab=orders');
+        }
+        return ['ok'=>true, 'msg'=>'Released €'.$paid.' to the seller.'];
+    } catch (\Throwable $e) {
+        error_log('[VESTRA Sample] release failed '.$ref.': '.$e->getMessage());
+        return ['ok'=>false, 'msg'=>'Stripe error: '.$e->getMessage()];
+    }
 }

@@ -10,6 +10,7 @@ require_once __DIR__.'/inc/notify.php';
 require_once __DIR__.'/inc/stripe.php';
 require_once __DIR__.'/inc/commission.php';
 require_once __DIR__.'/inc/escrow.php';
+require_once __DIR__.'/inc/samples.php';
 require_once __DIR__.'/inc/journal.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
@@ -587,6 +588,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       }
     }
     header('Location: /admin?tab=orders&msg='.($r['ok']?'esc_released':'esc_err')); exit;
+  }
+  if($act==='sample_release'){
+    $ref=(string)($_POST['ref']??''); $rec=sample_get($ref);
+    $r=sample_do_release($ref);
+    if($r['ok'] && $rec && !empty($rec['seller_uid'])){
+      require_once __DIR__.'/inc/notify.php';
+      $seller=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$rec['seller_uid']){ $seller=$a; break; } }
+      if($seller && !empty($seller['email'])){
+        $payout=(float)($rec['payout']??0);
+        vestra_send_mail($seller['email'], "VESTRA — sample payout released ({$ref})",
+          "Hello ".($seller['name']?:($seller['company']?:'there')).",\n\n".
+          "Your payout for sample order {$ref} (€".number_format($payout,2).") has been released and is on its way to your bank.\n\n".
+          "— VESTRA · vestrasales.com");
+      }
+    }
+    header('Location: /admin?tab=orders&msg='.($r['ok']?'spl_released':'spl_err')); exit;
   }
   if($act==='escrow_refund'){
     $ref=(string)($_POST['ref']??''); $rec=escrow_get($ref);
@@ -1308,6 +1325,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $escrowAll   = escrow_all();
   $escHeld     = array_filter($escrowAll, fn($e)=>($e['status']??'')==='held');
   $escHeldSum  = array_sum(array_map(fn($e)=>(float)($e['total']??0), $escHeld));
+
+  // Sample orders (direct-charge only) awaiting release — mirrors escrow above.
+  $splAll      = samples_all();
+  $splHeld     = array_filter($splAll, fn($s)=>($s['status']??'')==='paid' && !empty($s['acct_id']));
+  $splHeldSum  = array_sum(array_map(fn($s)=>(float)($s['payout']??0), $splHeld));
   $escReleased = count(array_filter($escrowAll, fn($e)=>($e['status']??'')==='released'));
   $escRefunded = count(array_filter($escrowAll, fn($e)=>($e['status']??'')==='refunded'));
   // Membership + Connect readiness across sellers.
@@ -1610,6 +1632,29 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
         <form method="post" onsubmit="return confirm('Release the held funds to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#1f9d63">Release</button></form>
         <form method="post" onsubmit="return confirm('Refund the buyer in full? This cancels the sale.')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="escrow_refund"><input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b">Refund</button></form>
       </div></td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+</div>
+<?php endif; ?>
+
+<?php if($splHeld): ?>
+<div class="acard" style="margin-bottom:18px">
+  <div class="acard-hd"><h3>📦 Sample payouts held (<?= count($splHeld) ?> · <?= eur($splHeldSum) ?>)</h3></div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Ref','Buyer','Seller','Payout','Paid','Action'],true) ?>
+    <?php foreach(array_slice(array_reverse(array_values($splHeld)),0,8) as $s):
+      $sName=''; foreach($accounts as $sa){ if(($sa['id']??'')===($s['seller_uid']??'')){ $sName=$sa['company']?:($sa['name']??''); break; } }
+      $sref=$s['ref']??''; ?>
+    <tr>
+      <td><span class="atag"><?= htmlspecialchars(substr($sref,0,12)) ?></span></td>
+      <td><?= htmlspecialchars($s['buyer_company']??($s['buyer_name']??($s['buyer_email']??'—'))) ?></td>
+      <td><?= htmlspecialchars($sName?:'—') ?></td>
+      <td><b><?= eur($s['payout']??0) ?></b></td>
+      <td class="ahint"><?= htmlspecialchars(substr($s['paid_at']??'',0,10)) ?></td>
+      <td>
+        <form method="post" onsubmit="return confirm('Release the held payout to the seller?')" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="sample_release"><input type="hidden" name="ref" value="<?= htmlspecialchars($sref) ?>"><button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#1f9d63">Release</button></form>
+      </td>
     </tr>
     <?php endforeach; ?>
   </table></div>
