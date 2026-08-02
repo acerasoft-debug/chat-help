@@ -1,0 +1,72 @@
+name: (Salt-okunur) Satıcının ürünlerini listele
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Hesap arama metni (company/name içinde, büyük/küçük harf önemsiz, virgülle birden fazla)"
+        required: true
+
+permissions:
+  contents: read
+
+# Salt-okunur. Arama metnine (virgulle ayrilmis, birden fazla olabilir) uyan
+# HER hesap icin: hesap bilgisi + o hesabin seller_uid'sine sahip TUM urunler
+# (sample_price'a bakmaksizin, listings.json + demo katalog dahil).
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Listele
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            export Q='${{ github.event.inputs.query }}'
+            cat > /tmp/seller_products.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+            });
+            $home = getenv("HOME");
+            $doc  = $home."/public_html";
+            require $doc."/inc/auth.php";
+            require $doc."/inc/products.php";
+
+            $terms = array_filter(array_map('trim', explode(',', strtolower((string)getenv("Q")))));
+            if (!$terms) { fwrite(STDERR, "HATA: arama metni bos\n"); exit(1); }
+
+            $products = vestra_products();
+            $accounts = auth_accounts();
+
+            foreach ($terms as $term) {
+              echo "===== ARAMA: '{$term}' =====\n";
+              $matched = [];
+              foreach ($accounts as $a) {
+                $hay = strtolower(($a['company']??'').' '.($a['name']??''));
+                if (strpos($hay, $term) !== false) $matched[] = $a;
+              }
+              if (!$matched) { echo "  *** hesap bulunamadi ***\n\n"; continue; }
+              foreach ($matched as $a) {
+                echo "  --- ".($a['company'] ?: $a['name'])." (id=".($a['id']??'?').", email=".($a['email']?:'YOK').") ---\n";
+                $mine = array_values(array_filter($products, fn($p) => ($p['seller_uid'] ?? '') === $a['id']));
+                if (!$mine) { echo "      (bu hesaba bagli hicbir urun yok)\n\n"; continue; }
+                foreach ($mine as $p) {
+                  echo "      ".($p['id']??'?')." | ".($p['brand']??'?')." | ".($p['name']??'?')." | cat=".($p['cat']??'?')
+                     ." | sku=".($p['sku']??'')." | fiyat=".($p['list']??'?')
+                     ." | sample_price=".(!empty($p['sample_price'])?$p['sample_price']:'-')
+                     ." | status=".($p['status']??'approved')."\n";
+                }
+                echo "      TOPLAM: ".count($mine)." urun\n\n";
+              }
+            }
+            PHPEOF
+            php -l /tmp/seller_products.php
+            php /tmp/seller_products.php
+            rm -f /tmp/seller_products.php
