@@ -50,8 +50,13 @@ jobs:
               $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
               echo "   gorsel({$nv} varyant): ".(count($imgs) ? count($imgs)." adet, ilk=".$imgs[0] : "YOK")."\n";
-              echo "   sku=".($p['sku'] ?? '(yok)')." | fiyat=".($p['list'] ?? '?')." EUR | moq=".($p['moq'] ?? '?')." ".($p['unit'] ?? 'pc')."\n";
+              echo "   sku=".($p['sku'] ?? '(yok)')." | fiyat(list)=".($p['list'] ?? '?')." EUR | moq=".($p['moq'] ?? '?')." ".($p['unit'] ?? 'pc')."\n";
               echo "   sizes=".($p['sizes'] ?? '(yok)')."\n";
+              if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                $t = [];
+                foreach ($p['tiers'] as $tier) $t[] = ($tier['min'] ?? '?')."+ -> €".($tier['price'] ?? '?');
+                echo "   tiers: ".implode(' | ', $t)."\n";
+              }
             }
             PHPEOF
             php /tmp/vestra_inspect.php
