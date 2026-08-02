@@ -401,6 +401,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php endif; ?>
         <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
+        <?php if(!$isOwnListing && !empty($p['dropship']['enabled'])): ?>
+        <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
+        <?php endif; ?>
         <?php if(!$isOwnListing && !empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price']>0): ?>
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>

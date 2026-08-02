@@ -1,17 +1,18 @@
 <?php
 /**
- * VESTRA — dropship API order state.
+ * VESTRA — dropship order state + checkout.
  *
- * A dropship order is placed via the external API (api/dropship.php) by a
- * partner's own system, not through the VESTRA web UI — the buyer is the
- * partner's end customer, never a logged-in VESTRA account. Same two
- * payment paths as sample orders (see inc/samples.php): direct charge on
- * the seller's connected account when Connect-ready, otherwise VESTRA's
- * platform account.
+ * A dropship order is a single-item purchase at a product's dropship.price,
+ * placed either through the external API (api/dropship.php, a partner's own
+ * system) or the on-site "Buy now" form (dropship-checkout.php) — either
+ * way the buyer is whoever completes Stripe Checkout, never necessarily a
+ * logged-in VESTRA account. Same two payment paths as sample orders (see
+ * inc/samples.php): direct charge on the seller's connected account when
+ * Connect-ready, otherwise VESTRA's platform account.
  *
  *   ref                DRP-xxxxxxxx
  *   product_id / brand / name / sku / colour / size / qty
- *   partner_reference  the caller's own order id, echoed back (optional)
+ *   partner_reference  the API caller's own order id, echoed back (optional)
  *   customer_email/name  optional, supplied by the caller
  *   shipping_address   filled in from Stripe once paid
  *   amount             EUR (float) — item total; shipping is a separate
@@ -23,6 +24,9 @@
  */
 
 require_once __DIR__ . '/products.php';
+require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/stripe.php';
+require_once __DIR__ . '/escrow.php';
 
 function dropship_file(): string { return __DIR__ . '/../data/dropship_orders.json'; }
 
@@ -59,6 +63,135 @@ function dropship_update(string $ref, array $patch): ?array {
 /** How many units are left for one product/colour/size (0 if unknown). */
 function dropship_stock_left(array $p, string $colour, string $size): int {
     return (int)($p['dropship']['stock'][$colour][$size] ?? 0);
+}
+
+/**
+ * Create a pending dropship order + a Stripe Checkout Session for it, and
+ * return either {ok:true, ref, checkout_url} or {ok:false, error, message,
+ * status}. Shared by api/dropship.php (partner API, JSON) and
+ * dropship-checkout.php (on-site "Buy now" form, redirect) so the payment
+ * logic exists exactly once.
+ */
+function dropship_create_order(
+    array $p, string $colour, string $size, int $qty,
+    string $custEmail = '', string $custName = '', string $partnerRef = '',
+    ?string $successUrl = null, ?string $cancelUrl = null
+): array {
+    if ($colour === '' || $size === '') {
+        return ['ok' => false, 'error' => 'missing_fields', 'message' => 'colour and size are required', 'status' => 400];
+    }
+    if ($custEmail !== '' && !filter_var($custEmail, FILTER_VALIDATE_EMAIL)) {
+        return ['ok' => false, 'error' => 'invalid_email', 'message' => 'invalid customer_email', 'status' => 400];
+    }
+    if (empty($p['dropship']['enabled'])) {
+        return ['ok' => false, 'error' => 'not_dropship_enabled', 'message' => 'this product is not dropship-enabled', 'status' => 404];
+    }
+
+    $qty = max(1, $qty);
+    $left = dropship_stock_left($p, $colour, $size);
+    if ($left <= 0 || $qty > $left) {
+        return ['ok' => false, 'error' => 'out_of_stock', 'message' => "Only {$left} left in {$colour} / {$size}.", 'status' => 409];
+    }
+    if (!stripe_available()) {
+        return ['ok' => false, 'error' => 'payments_unavailable', 'message' => 'payments are not configured', 'status' => 503];
+    }
+
+    $unit   = (float)$p['dropship']['price'];
+    $amount = round($unit * $qty, 2);
+    $cents  = (int) round($amount * 100);
+
+    $ref = 'DRP-' . strtoupper(bin2hex(random_bytes(4)));
+
+    // Resolve the product's seller and whether they can receive a direct charge —
+    // same readiness check the wholesale escrow cart and sample orders use.
+    $seller = null;
+    if (!empty($p['seller_uid'])) {
+        foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $p['seller_uid']) { $seller = $a; break; } }
+    }
+    $directCharge = $seller && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
+
+    $feeCents = 0; $payout = $amount;
+    if ($directCharge) {
+        $feeCents = (int) round($cents * vestra_seller_commission_rate($seller['membership_tier'] ?? ''));
+        $payout   = round($amount - $feeCents / 100, 2);
+    }
+
+    $rec = [
+        'ref'               => $ref,
+        'product_id'        => $p['id'],
+        'brand'             => (string)($p['brand'] ?? ''),
+        'name'              => (string)($p['name'] ?? ''),
+        'sku'               => (string)($p['sku'] ?? ''),
+        'colour'            => $colour,
+        'size'              => $size,
+        'qty'               => $qty,
+        'partner_reference' => $partnerRef,
+        'customer_email'    => $custEmail,
+        'customer_name'     => $custName,
+        'amount'            => $amount,
+        'currency'          => 'eur',
+        'status'            => 'pending',
+        'created'           => date('c'),
+    ];
+    if ($seller) $rec['seller_uid'] = $seller['id'];
+    if ($directCharge) { $rec['acct_id'] = $seller['stripe_account_id']; $rec['fee'] = $feeCents / 100; $rec['payout'] = $payout; }
+    dropship_save($rec);
+
+    // France vs rest-of-EU are offered as two named shipping options — Checkout
+    // collects the address either way, so the buyer picks the one that matches
+    // where they actually are.
+    $EU_COUNTRIES = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
+                      'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
+    $lineName = trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? '')) . " — {$colour} / {$size}";
+    $successUrl = $successUrl ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref) . '&paid=1');
+    $cancelUrl  = $cancelUrl  ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref));
+
+    $extra = [
+        'shipping_address_collection' => ['allowed_countries' => $EU_COUNTRIES],
+        'shipping_options' => [
+            ['shipping_rate_data' => ['type' => 'fixed_amount',
+                'fixed_amount' => ['amount' => (int)round((float)$p['dropship']['ship_fr'] * 100), 'currency' => 'eur'],
+                'display_name' => 'France delivery']],
+            ['shipping_rate_data' => ['type' => 'fixed_amount',
+                'fixed_amount' => ['amount' => (int)round((float)$p['dropship']['ship_eu'] * 100), 'currency' => 'eur'],
+                'display_name' => 'Rest-of-EU delivery']],
+        ],
+    ];
+
+    try {
+        if ($directCharge) {
+            $session = stripe_escrow_checkout(
+                $seller['stripe_account_id'],
+                [['name' => $lineName, 'amount' => $cents, 'qty' => 1]],
+                $feeCents, $ref, $custEmail, 'eur', 'dropship',
+                $successUrl, $cancelUrl, $extra
+            );
+        } else {
+            $params = [
+                'mode'                => 'payment',
+                'client_reference_id' => $ref,
+                'line_items'          => [[
+                    'quantity'   => 1,
+                    'price_data' => [
+                        'currency'     => 'eur',
+                        'unit_amount'  => $cents,
+                        'product_data' => ['name' => $lineName],
+                    ],
+                ]],
+                'metadata'            => ['kind' => 'dropship', 'order_ref' => $ref],
+                'payment_intent_data' => ['metadata' => ['kind' => 'dropship', 'order_ref' => $ref]],
+                'success_url'         => $successUrl,
+                'cancel_url'          => $cancelUrl,
+            ] + $extra;
+            if ($custEmail !== '') $params['customer_email'] = $custEmail;
+            $session = stripe_api('POST', '/v1/checkout/sessions', $params);
+        }
+        dropship_update($ref, ['session_id' => $session->id ?? '']);
+        return ['ok' => true, 'ref' => $ref, 'reference' => $partnerRef, 'checkout_url' => $session->url];
+    } catch (\Throwable $e) {
+        error_log('[VESTRA dropship] Checkout error: ' . $e->getMessage());
+        return ['ok' => false, 'error' => 'stripe_error', 'message' => $e->getMessage(), 'status' => 502];
+    }
 }
 
 /** Mark a dropship order PAID. Idempotent: only flips pending→paid once. */

@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs','dropship'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -158,6 +158,12 @@ jobs:
                 if (!is_array($set['specs']) || !$set['specs']) { $errors[] = "{$ctx} ({$m}): specs bos-olmayan {anahtar:deger} nesnesi olmali"; continue; }
                 foreach ($set['specs'] as $sk => $sv) {
                   if (!is_string($sk) || $sk === '' || !is_string($sv) || $sv === '') { $errors[] = "{$ctx} ({$m}): specs icinde gecersiz anahtar/deger"; continue 2; }
+                }
+              }
+              if (isset($set['specs_remove'])) {
+                if (!is_array($set['specs_remove']) || !$set['specs_remove']) { $errors[] = "{$ctx} ({$m}): specs_remove bos-olmayan anahtar dizisi olmali"; continue; }
+                foreach ($set['specs_remove'] as $sk) {
+                  if (!is_string($sk) || $sk === '') { $errors[] = "{$ctx} ({$m}): specs_remove icinde gecersiz anahtar"; continue 2; }
                 }
               }
               if (isset($set['dropship'])) {
@@ -268,6 +274,15 @@ jobs:
                   if ($old === $new) continue;
                   $line[] = "{$k} (".count($old).") -> (".count($new)."): ".implode(', ', $k === 'colors' ? $new : array_map('basename', $new));
                   $all[$i][$k] = $new;
+                  $changes++;
+                } elseif ($k === 'specs_remove') {
+                  $old = (array)($p['specs'] ?? []);
+                  $new = $old;
+                  $removed = [];
+                  foreach ($v as $sk) { if (array_key_exists($sk, $new)) { unset($new[$sk]); $removed[] = $sk; } }
+                  if (!$removed) continue;
+                  $line[] = "specs -".count($removed).": ".implode(', ', $removed);
+                  $all[$i]['specs'] = $new;
                   $changes++;
                 } elseif ($k === 'dropship') {
                   $old = $p['dropship'] ?? null;
