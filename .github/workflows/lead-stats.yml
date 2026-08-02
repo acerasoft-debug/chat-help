@@ -6,6 +6,10 @@ on:
         description: "Kaç günlük döküm gösterilsin"
         required: false
         default: "14"
+      search:
+        description: "Opsiyonel: firma/email/website/notlarda bu metni ara, eşleşen HER lead'i gönderim durumuyla listele"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -29,7 +33,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: DAYS
+          envs: DAYS,SEARCH
           script: |
             cd ~/public_html
             # Cok satirli `php -r` cPanel'in ea_php_cli sarmalayicisini kiriyor
@@ -42,11 +46,39 @@ jobs:
             // oldu -- bos ciktiyi "hic gonderim yok" diye okumak cok kolaydi.
             ini_set('display_errors', '1'); error_reporting(E_ALL);
             $days = (int)(getenv('DAYS') ?: 14);
+            $search = strtolower(trim((string)getenv('SEARCH')));
             // leads.php kendi basligi ile soyluyor: cagiran taraf products.php'yi
             // ONCE yuklemis olmali (vestra_read_json/vestra_write_json oradan gelir).
             require_once __DIR__.'/inc/products.php';
             require_once __DIR__.'/inc/leads.php';
             $leads = vestra_leads();
+
+            if ($search !== '') {
+              $hits = [];
+              foreach ($leads as $l) {
+                $hay = strtolower(
+                  ($l['company'] ?? '').' '.($l['email'] ?? '').' '.
+                  ($l['website'] ?? '').' '.($l['notes'] ?? '').' '.($l['country'] ?? '')
+                );
+                if (str_contains($hay, $search)) $hits[] = $l;
+              }
+              echo "==== ARAMA: \"{$search}\" -- ".count($hits)." eslesme ====\n\n";
+              $sentN = 0;
+              foreach ($hits as $l) {
+                $sent = trim((string)($l['last_contacted_at'] ?? '')) !== '';
+                if ($sent) $sentN++;
+                printf("  %s  %-34s %-32s eklendi=%s %s\n",
+                  $sent ? 'GONDERILDI' : 'BEKLIYOR  ',
+                  mb_substr((string)($l['company'] ?? ''), 0, 32),
+                  (string)($l['email'] ?? ''),
+                  substr((string)($l['added_at'] ?? ''), 0, 10),
+                  $sent ? ('-> '.substr((string)($l['last_contacted_at']),0,10).' ('.($l['last_campaign']??'?').')') : ''
+                );
+              }
+              echo "\ngonderilen: {$sentN} / ".count($hits)."\n";
+              exit(0);
+            }
+
             $byDay = []; $everSent = 0;
             foreach ($leads as $l) {
               $t = trim((string)($l['last_contacted_at'] ?? ''));
