@@ -62,6 +62,7 @@ jobs:
                 fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
             });
             $home = getenv("HOME"); $doc = $home."/public_html";
+            require $doc."/inc/auth.php";
             require $doc."/inc/products.php";
             foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn)
               if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
@@ -78,6 +79,8 @@ jobs:
               $seenId[strtolower((string)($p['id']??''))] = true;
               $seenBS[strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')))] = true;
             }
+            $sellerIds = [];
+            foreach (auth_accounts() as $acc) if (($acc['type'] ?? '') === 'seller') $sellerIds[(string)($acc['id'] ?? '')] = true;
 
             $errors = []; $clean = [];
             foreach ($rows as $i => $r) {
@@ -117,6 +120,13 @@ jobs:
               if (!empty($r['sizes']) && is_string($r['sizes'])) $row['sizes'] = trim($r['sizes']);
               if (!empty($r['desc'])  && is_string($r['desc']))  $row['desc']  = trim($r['desc']);
               if (!empty($r['colors']) && is_array($r['colors'])) $row['colors'] = array_values(array_filter($r['colors'],'is_string'));
+              if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
+              if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
+              if (!empty($r['seller_uid'])) {
+                $su = (string)$r['seller_uid'];
+                if (!isset($sellerIds[$su])) { $errors[]="{$ctx} ({$id}): seller_uid '{$su}' gecerli bir seller hesabina ait degil"; continue; }
+                $row['seller_uid'] = $su;
+              }
               $clean[] = $row;
             }
 
