@@ -103,7 +103,7 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','seller_uid','colors','images','size_step','min_colors'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -133,6 +133,26 @@ jobs:
               }
               if (isset($set['seller_uid']) && !isset($sellerIds[(string)$set['seller_uid']])) {
                 $errors[] = "{$ctx} ({$m}): seller_uid '{$set['seller_uid']}' gecerli bir seller hesabina ait degil"; continue;
+              }
+              if (isset($set['colors'])) {
+                if (!is_array($set['colors']) || !$set['colors'] || array_filter($set['colors'], fn($c)=>!is_string($c)||$c==='')) {
+                  $errors[] = "{$ctx} ({$m}): colors bos-olmayan string dizisi olmali"; continue;
+                }
+                $set['colors'] = array_values($set['colors']);
+              }
+              if (isset($set['images'])) {
+                if (!is_array($set['images']) || !$set['images']) { $errors[] = "{$ctx} ({$m}): images bos-olmayan dizi olmali"; continue; }
+                foreach ($set['images'] as $img) {
+                  if (!is_string($img) || !preg_match('#^/uploads/[a-z0-9._/-]+$#i', $img)) { $errors[] = "{$ctx} ({$m}): gecersiz gorsel yolu '".(is_string($img)?$img:'?')."'"; continue 2; }
+                  if (!is_file($home.'/public_html'.$img)) { $errors[] = "{$ctx} ({$m}): gorsel SUNUCUDA YOK: {$img}"; continue 2; }
+                }
+                $set['images'] = array_values($set['images']);
+              }
+              if (isset($set['size_step']) && (!is_numeric($set['size_step']) || (int)$set['size_step'] < 2)) {
+                $errors[] = "{$ctx} ({$m}): gecersiz size_step '{$set['size_step']}'"; continue;
+              }
+              if (isset($set['min_colors']) && (!is_numeric($set['min_colors']) || (int)$set['min_colors'] < 1)) {
+                $errors[] = "{$ctx} ({$m}): gecersiz min_colors '{$set['min_colors']}'"; continue;
               }
 
               $mn = $norm($m);
@@ -209,6 +229,18 @@ jobs:
                     $k0 = array_key_first($all[$i]['tiers']);
                     if (is_array($all[$i]['tiers'][$k0] ?? null)) $all[$i]['tiers'][$k0]['min'] = $new;
                   }
+                  $changes++;
+                } elseif ($k === 'size_step' || $k === 'min_colors') {
+                  $new = (int)$v; $old = (int)($p[$k] ?? 0);
+                  if ($old === $new) continue;
+                  $line[] = "{$k} {$old} -> {$new}";
+                  $all[$i][$k] = $new;
+                  $changes++;
+                } elseif ($k === 'colors' || $k === 'images') {
+                  $new = array_values($v); $old = array_values((array)($p[$k] ?? []));
+                  if ($old === $new) continue;
+                  $line[] = "{$k} (".count($old).") -> (".count($new)."): ".implode(', ', $k === 'colors' ? $new : array_map('basename', $new));
+                  $all[$i][$k] = $new;
                   $changes++;
                 } else {
                   $new = (string)$v; $old = (string)($p[$k] ?? '');
