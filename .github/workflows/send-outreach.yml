@@ -71,6 +71,10 @@ on:
         description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
         required: false
         default: ""
+      reset_contacted:
+        description: "BAKIM: gönderim YAPMAZ. Sadece bu e-posta(lar)ın last_contacted_at damgasını temizler (virgül/boşlukla ayrılır) — ör. yanlış dilde gitmiş bir adrese kasıtlı düzeltme göndermeden önce. Doluysa bu çalıştırma SADECE bunu yapar ve çıkar."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -93,13 +97,14 @@ jobs:
           SEND_FORCE_LANG: ${{ github.event.inputs.force_lang }}
           SEND_SKIP_RE: ${{ github.event.inputs.skip_email_regex }}
           SEND_SKIP_CAT: ${{ github.event.inputs.skip_categories }}
+          SEND_RESET: ${{ github.event.inputs.reset_contacted }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_RESET
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -172,6 +177,34 @@ jobs:
             foreach (explode(',', (string)getenv("SEND_SKIP_CAT")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_CAT[] = $s; }
 
             $leads = vestra_leads();
+
+            // BAKIM MODU: sadece damga temizler, HICBIR SEY GONDERMEZ, hemen cikar. Yanlis
+            // dilde gitmis bir adrese kasitli duzeltme gondermeden once last_contacted_at'i
+            // sifirlamak icin -- normal gonderim mantigina hic girmez, bu yuzden bir SSH
+            // collision sonrasi bu adimin kor kor tekrarlanmasi bile ikinci bir e-posta
+            // GONDERMEZ (sadece damgayi tekrar temizler, zaten temizse fark etmez).
+            $RESET = [];
+            foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_RESET"), -1, PREG_SPLIT_NO_EMPTY) as $s) {
+              $s = strtolower(trim($s)); if ($s !== '') $RESET[$s] = true;
+            }
+            if ($RESET) {
+              $touched = 0; $notFound = array_keys($RESET);
+              foreach ($leads as $i => $l) {
+                $e = strtolower(trim((string)($l['email'] ?? '')));
+                if (!isset($RESET[$e])) continue;
+                $notFound = array_diff($notFound, [$e]);
+                if (($leads[$i]['last_contacted_at'] ?? '') === '') { echo "  - zaten temiz: {$e}\n"; continue; }
+                $leads[$i]['last_contacted_at'] = '';
+                $note = trim((string)($leads[$i]['notes'] ?? ''));
+                $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'reset-for-lang-correction ' . date('Y-m-d'));
+                $touched++;
+                echo "  + damga temizlendi: {$e}\n";
+              }
+              if ($touched > 0) vestra_save_leads($leads);
+              foreach ($notFound as $nf) echo "  ! bulunamadi (lead listesinde yok): {$nf}\n";
+              echo "\nBAKIM BITTI. temizlenen: {$touched} / istenen: " . count($RESET) . " -- gonderim YAPILMADI.\n";
+              exit(0);
+            }
 
             // Every e-mail already contacted (across ALL lead records) — so an address is never
             // emailed a second time even if it somehow appears on two lead rows.
