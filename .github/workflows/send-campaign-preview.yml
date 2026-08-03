@@ -61,19 +61,34 @@ jobs:
             if ($renderOnly) {
               /* Gorselleri (site ile ayni sunucuda oldugundan) diskten okuyup base64 data URI'ye
                  ceviriyoruz -- boylece cikan HTML disari hicbir istek atmadan, tek basina acilabilir.
-                 GH Actions log capture has a practical size ceiling (~1MB total base64): skip
-                 inlining any source file over 40KB (leave it as a live https URL -- that image
-                 just won't render in an offline preview, but the run stays fetchable in one log read). */
-              $inlineBudget = 200 * 1024;
+                 GH Actions log capture has a practical size ceiling (~1MB total base64): the
+                 catalog's uploaded product photos run well past that as-is, so anything over the
+                 small-file budget gets GD-downscaled to a small JPEG instead of skipped outright --
+                 the preview should still show a real photo, just not full-resolution. */
+              $inlineBudget = 40 * 1024;
               $inline = function(string $src) use ($home, $inlineBudget): string {
                 $rel = preg_replace('#^https?://[^/]+#', '', $src);
                 $file = $home.'/public_html'.$rel;
-                if (!is_file($file) || filesize($file) > $inlineBudget) return $src;
-                $bytes = @file_get_contents($file);
-                if ($bytes === false) return $src;
-                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                $mime = ['avif'=>'image/avif','png'=>'image/png','webp'=>'image/webp','jpg'=>'image/jpeg','jpeg'=>'image/jpeg'][$ext] ?? 'image/jpeg';
-                return 'data:'.$mime.';base64,'.base64_encode($bytes);
+                if (!is_file($file)) return $src;
+                if (filesize($file) <= $inlineBudget) {
+                  $bytes = @file_get_contents($file);
+                  if ($bytes === false) return $src;
+                  $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                  $mime = ['avif'=>'image/avif','png'=>'image/png','webp'=>'image/webp','jpg'=>'image/jpeg','jpeg'=>'image/jpeg'][$ext] ?? 'image/jpeg';
+                  return 'data:'.$mime.';base64,'.base64_encode($bytes);
+                }
+                if (!function_exists('imagecreatefromstring')) return $src;
+                $raw = @file_get_contents($file);
+                if ($raw === false) return $src;
+                $im = @imagecreatefromstring($raw);
+                if (!$im) return $src;
+                $w = imagesx($im); $h = imagesy($im);
+                $newW = min(360, $w); $newH = max(1, (int)round($h * $newW / max(1,$w)));
+                $small = imagecreatetruecolor($newW, $newH);
+                imagecopyresampled($small, $im, 0,0,0,0, $newW,$newH, $w,$h);
+                ob_start(); imagejpeg($small, null, 62); $jpg = ob_get_clean();
+                imagedestroy($im); imagedestroy($small);
+                return $jpg !== false ? 'data:image/jpeg;base64,'.base64_encode($jpg) : $src;
               };
               if (!empty($opts['shots']) && is_array($opts['shots'])) {
                 foreach ($opts['shots'] as $i => $s) {
