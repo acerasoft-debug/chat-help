@@ -858,7 +858,10 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
        Cold e-postada urun gormek, marka adi okumaktan cok daha ikna edici.
        Gorseller katalog sayfasindaki ile ayni -- fiyat yok, o yuzden uye olmayan
        birine gostermekte sakinca yok. */
-    $seen=[];
+    /* Operatorun elle "bunu da goster" dedigi 2 urun serit basina sabitleniyor.
+       Marka'lari $seen'e once yaziyoruz ki asagidaki otomatik dongu ayni markadan
+       baska bir parca secip yerlerini almasin. */
+    $seen=['DSQUARED2'=>true,'BALMAIN'=>true];
     $shotLimit  = $featureNeedles ? 4 : 3;
     $featShots  = 0; $featCap = 2;   // en fazla 2 kare feature kategoriye ayrilir,
                                       // gerisi denim + genele kaliyor -- tek kategori
@@ -882,6 +885,21 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
         if($pass==='feat') $featShots++;
         $shots[]=['img'=>$img,'label'=>$b,
                   'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+      }
+    }
+    $forcedShots=[
+      ['id'=>'blm-bkbga0700116','label'=>'BALMAIN'],
+      ['id'=>'dsq-s74lb1026','label'=>'DSQUARED2'],
+    ];
+    foreach(array_reverse($forcedShots) as $f){
+      foreach($all as $p){
+        if((string)($p['id']??'')!==$f['id']) continue;
+        $imgs=$p['images']??[]; $img=is_array($imgs)&&$imgs?(string)$imgs[0]:'';
+        if($img==='') break;
+        if(!preg_match('#^https?://#i',$img)) $img='https://vestrasales.com'.(str_starts_with($img,'/')?'':'/').$img;
+        array_unshift($shots,['img'=>$img,'label'=>$f['label'],
+                               'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($f['label'])]);
+        break;
       }
     }
   }
