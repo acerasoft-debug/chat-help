@@ -113,6 +113,7 @@ $T = [
  'p2t'=>'Buyer protection','p2d'=>'Pay by invoice with a full paper trail. If goods don\'t match the listing, a structured dispute process steps in.',
  'p3t'=>'Transaction integrity','p3d'=>'Every order is logged, timestamped, and tied to the verified seller account — a clear paper trail for both sides of the trade.',
  'hsub'=>'Trust, by design — for both sides of the trade.',
+ 'brands_t'=>'The houses in stock','brands_s'=>'A live snapshot of verified inventory — every name below is currently sourced through a KYC-checked seller.',
  's1t'=>'Get verified','s1d'=>'Sellers and buyers complete a quick business verification. Approved members see live wholesale pricing.',
  's2t'=>'Source & order','s2d'=>'Browse listings from verified seller businesses — branded & textile basics. Order on clear invoice terms.',
  's3t'=>'Trade with confidence','s3d'=>'Verified seller credentials, documented invoicing and a structured dispute process cover every trade.',
@@ -145,6 +146,7 @@ $T = [
  'p2t'=>'Protection acheteur','p2d'=>"Paiement sur facture avec une traçabilité complète. Si la marchandise ne correspond pas à l'annonce, un processus de litige structuré s'enclenche.",
  'p3t'=>'Intégrité des transactions','p3d'=>"Chaque commande est enregistrée, horodatée et liée au compte du vendeur vérifié — une trace claire pour les deux parties.",
  'hsub'=>'La confiance par conception — pour les deux parties.',
+ 'brands_t'=>'Les maisons en stock','brands_s'=>'Un aperçu en direct du stock vérifié — chaque nom ci-dessous provient d\'un vendeur vérifié KYC.',
  's1t'=>'Faites-vous vérifier','s1d'=>'Vendeurs et acheteurs effectuent une vérification d\'entreprise rapide. Les membres approuvés voient les prix en direct.',
  's2t'=>'Sourcez & commandez','s2d'=>'Parcourez des annonces de vendeurs vérifiés — articles de marque et basiques textiles. Commandez sur facture, en toute clarté.',
  's3t'=>'Échangez en confiance','s3d'=>'Vérification des vendeurs, facturation documentée et processus de litige structuré.',
@@ -177,6 +179,7 @@ $T = [
  'p2t'=>'Protezione acquirente','p2d'=>"Pagamento su fattura con tracciabilità completa. Se la merce non corrisponde all'annuncio, si attiva un processo di reclamo strutturato.",
  'p3t'=>'Integrità delle transazioni','p3d'=>"Ogni ordine è registrato, con marca temporale e collegato all'account del venditore verificato — una traccia chiara per entrambe le parti.",
  'hsub'=>'Fiducia per progettazione — per entrambe le parti.',
+ 'brands_t'=>'Le maison disponibili','brands_s'=>'Un\'istantanea live dello stock verificato — ogni marchio qui sotto proviene da un venditore verificato KYC.',
  's1t'=>'Verificati','s1d'=>'Venditori e acquirenti completano una rapida verifica aziendale. I membri approvati vedono i prezzi in tempo reale.',
  's2t'=>'Cerca & ordina','s2d'=>'Sfoglia annunci di venditori verificati — capi di marca e basici tessili. Ordina con chiare condizioni di fatturazione.',
  's3t'=>'Commercia con fiducia','s3d'=>'Verifica dei venditori, fatturazione documentata e processo di reclamo strutturato per ogni transazione.',
@@ -209,6 +212,7 @@ $T = [
  'p2t'=>'Protección al comprador','p2d'=>'Pago por factura con trazabilidad completa. Si la mercancía no coincide con el anuncio, se activa un proceso de disputa estructurado.',
  'p3t'=>'Integridad de transacciones','p3d'=>'Cada pedido queda registrado, con marca de tiempo y vinculado a la cuenta del vendedor verificado — un historial claro para ambas partes.',
  'hsub'=>'Confianza por diseño — para ambas partes.',
+ 'brands_t'=>'Las maisons disponibles','brands_s'=>'Una instantánea en vivo del stock verificado — cada firma aquí procede de un vendedor verificado KYC.',
  's1t'=>'Verifícate','s1d'=>'Vendedores y compradores completan una verificación empresarial rápida. Los miembros aprobados ven precios mayoristas en vivo.',
  's2t'=>'Busca & pide','s2d'=>'Explora anuncios de vendedores verificados — productos de marca y básicos textiles. Pide con condiciones de facturación claras.',
  's3t'=>'Comercia con confianza','s3d'=>'Verificación de vendedores, facturación documentada y proceso de disputa estructurado en cada operación.',
@@ -241,6 +245,7 @@ $T = [
  'p2t'=>'Käuferschutz','p2d'=>'Zahlung auf Rechnung mit lückenloser Dokumentation. Entspricht die Ware nicht dem Angebot, greift ein strukturiertes Streitverfahren.',
  'p3t'=>'Transaktionsintegrität','p3d'=>'Jede Bestellung wird protokolliert, mit Zeitstempel versehen und dem verifizierten Verkäuferkonto zugeordnet — ein klarer Nachweis für beide Seiten.',
  'hsub'=>'Vertrauen durch Design — für beide Seiten des Handels.',
+ 'brands_t'=>'Die Marken im Bestand','brands_s'=>'Eine Live-Momentaufnahme des verifizierten Bestands — jeder Name hier stammt von einem KYC-geprüften Verkäufer.',
  's1t'=>'Verifizieren lassen','s1d'=>'Verkäufer und Käufer durchlaufen eine schnelle Geschäftsverifizierung. Freigegebene Mitglieder sehen Live-Großhandelspreise.',
  's2t'=>'Finden & bestellen','s2d'=>'Inserate von verifizierten Verkäufer-Unternehmen durchstöbern — Markenware & Textil-Basics. Auf klare Rechnungskonditionen bestellen.',
  's3t'=>'Mit Vertrauen handeln','s3d'=>'Verifizierte Verkäuferdaten, dokumentierte Rechnungsstellung und ein strukturiertes Streitverfahren sichern jeden Handel.',
@@ -479,6 +484,22 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   .card h3{font-size:19px;margin:0 0 8px}
   .card p{color:var(--mut);font-size:15px;margin:0}
 
+  /* ── Brand wall — every house currently live in the catalogue ── */
+  .brandwall{background:linear-gradient(180deg,var(--bg2),var(--bg));
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:76px 0 80px}
+  .bw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    border-top:1px solid var(--line);border-left:1px solid var(--line)}
+  .bw-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;min-height:104px;
+    padding:26px 18px;text-decoration:none;transition:background .25s ease}
+  .bw-cell:hover{background:rgba(201,168,106,.07)}
+  .bw-cell .brand-logo{width:100%;max-width:150px;height:auto;opacity:.8;
+    filter:drop-shadow(0 1px 8px rgba(0,0,0,.5));transition:opacity .25s ease,transform .25s ease}
+  .bw-cell:hover .brand-logo{opacity:1;transform:translateY(-2px)}
+  .bw-cell .bmono{gap:5px}
+  .bw-cell .bmono-mark{font-size:26px}
+  .bw-cell .bmono-name{font-size:8.5px;letter-spacing:2px}
+
   .sec-title{text-align:center;margin:0 0 8px;font-size:clamp(26px,4vw,38px)}
   .sec-sub{text-align:center;color:var(--mut);margin:0 auto 46px;max-width:520px}
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
@@ -555,6 +576,9 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     .join-cards{grid-template-columns:1fr}
     .hero{padding:64px 0 44px}
     .trustline{gap:14px}
+    .brandwall{padding:56px 0 60px}
+    .bw-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+    .bw-cell{min-height:84px;padding:18px 12px}
   }
 </style>
 </head>
@@ -572,6 +596,7 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
       <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
       <a href="/faq">FAQ</a>
+      <?php if ($_brands): ?><a href="#brands"><?= $t['brands_t'] ?></a><?php endif; ?>
       <a href="#how"><?= $t['how'] ?></a>
       <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <span class="langs">
@@ -636,6 +661,20 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     </div>
   </div>
 </section>
+
+<?php if ($_brands): ?>
+<section class="brandwall reveal" id="brands">
+  <div class="wrap">
+    <h2 class="sec-title"><?= $t['brands_t'] ?></h2>
+    <p class="sec-sub" style="margin-bottom:34px"><?= $t['brands_s'] ?></p>
+    <div class="bw-grid">
+      <?php foreach ($_brands as $_b): ?>
+      <a class="bw-cell" href="/shop" title="<?= htmlspecialchars($_b) ?>"><?= vestra_brand_card($_b) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
 
 <div class="wrap">
   <section class="pillars" id="why">
