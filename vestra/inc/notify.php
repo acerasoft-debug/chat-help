@@ -1267,15 +1267,15 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
 
   $subject='Les Garage de Paris × VESTRA — the authentic designer wholesale edit';
   $body=implode("\n",[
-    $company!=='' ? "Hello — a note for {$company}." : "Hello,",
+    $company!=='' ? "For {$company}." : "Hello,",
     "",
-    "A brief introduction from Les Garage de Paris, through VESTRA — the KYC-verified B2B marketplace for authentic designer fashion at wholesale.",
+    "Les Garage de Paris sources authentic designer fashion for multi-brand boutiques, through VESTRA — the KYC-verified B2B marketplace built for the trade.",
     "",
-    "We supply premium multi-brand boutiques with the houses their clients ask for by name — 100% authentic, authenticity-verified on delivery, on clear invoice terms.",
+    "We supply the houses your clients already ask for by name — 100% authentic, verified on delivery, on clear invoice terms.",
     "",
-    "The current selection is below as ready-to-open Excel line-sheets. Trade pricing is reserved for verified partners — register once (it's free) and every price unlocks instantly.",
+    "The current selection follows below as ready-to-open Excel line-sheets. Trade pricing is reserved for verified partners — register once, it's free, and every price unlocks instantly.",
     "",
-    "Tell me your brand mix and I'll curate a selection for your floor.",
+    "Share your brand mix and I'll curate a selection for your floor.",
     "",
     "Warm regards,",
     "Les Garage de Paris · via VESTRA",
@@ -1285,7 +1285,7 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
     "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
   ]);
   $opts=[
-    'hero'=>['kicker'=>'Authentic designer wholesale','title'=>'The houses your clients ask for — at trade terms.'],
+    'hero'=>['kicker'=>'Authentic designer wholesale — sourced in Paris','title'=>'The houses your best clients already ask for — now at trade terms.'],
     'brands'=>$brands,
     'brands_title'=>'Featured houses',
     'brands_hint'=>'Tap a house to open its line-sheet',
