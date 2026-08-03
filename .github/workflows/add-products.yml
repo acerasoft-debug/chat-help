@@ -96,6 +96,23 @@ jobs:
               if ($brand===''||$name===''||$cat===''||$sku==='') { $errors[]="{$ctx} ({$id}): brand/name/cat/sku bos"; continue; }
               if (!is_numeric($list) || (float)$list <= 0) { $errors[]="{$ctx} ({$id}): gecersiz fiyat"; continue; }
               if (!is_numeric($moq) || (int)$moq < 1) { $errors[]="{$ctx} ({$id}): gecersiz MOQ"; continue; }
+              /* Coktan-az kademeli fiyatlandirma (ornek: 80 ad. 26.90, 160 ad. 25.00).
+                 Verilmezse asagida tek kademeli varsayilana duser -- mevcut butun
+                 batch dosyalari bunu vermiyor, davranislari degismez. */
+              $tiers = null;
+              if (isset($r['tiers'])) {
+                if (!is_array($r['tiers']) || !$r['tiers']) { $errors[]="{$ctx} ({$id}): tiers bos olmayan dizi olmali"; continue; }
+                $tiers = []; $prevMin = 0; $tiersOk = true;
+                foreach ($r['tiers'] as $t) {
+                  if (!is_array($t) || !isset($t['min'],$t['price']) || !is_numeric($t['min']) || (int)$t['min'] < 1
+                      || !is_numeric($t['price']) || (float)$t['price'] <= 0 || (int)$t['min'] <= $prevMin) {
+                    $tiersOk = false; break;
+                  }
+                  $prevMin = (int)$t['min'];
+                  $tiers[] = ['min'=>(int)$t['min'], 'price'=>(float)$t['price']];
+                }
+                if (!$tiersOk) { $errors[]="{$ctx} ({$id}): gecersiz tiers (min kesin artan tam sayi >=1, price>0 olmali)"; continue; }
+              }
               $imgs = $r['images'] ?? [];
               if (!is_array($imgs) || !count($imgs)) { $errors[]="{$ctx} ({$id}): gorsel yok — fotografsiz urun eklenemez"; continue; }
               foreach ($imgs as $img) {
@@ -114,12 +131,13 @@ jobs:
                 'list'=>(float)$list,
                 'verified'=>true, 'status'=>'approved',
                 'images'=>array_values($imgs),
-                'tiers'=>[['min'=>(int)$moq, 'price'=>(float)$list]],
+                'tiers'=>$tiers ?? [['min'=>(int)$moq, 'price'=>(float)$list]],
                 'added_at'=>date('c'),
               ];
               if (!empty($r['sizes']) && is_string($r['sizes'])) $row['sizes'] = trim($r['sizes']);
               if (!empty($r['desc'])  && is_string($r['desc']))  $row['desc']  = trim($r['desc']);
               if (!empty($r['colors']) && is_array($r['colors'])) $row['colors'] = array_values(array_filter($r['colors'],'is_string'));
+              if (!empty($r['pinned'])) $row['pinned'] = true;
               if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
               if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
               if (!empty($r['seller_uid'])) {
