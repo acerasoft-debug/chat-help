@@ -64,7 +64,7 @@ jobs:
                  GH Actions log capture has a practical size ceiling (~1MB total base64): skip
                  inlining any source file over 40KB (leave it as a live https URL -- that image
                  just won't render in an offline preview, but the run stays fetchable in one log read). */
-              $inlineBudget = 40 * 1024;
+              $inlineBudget = 200 * 1024;
               $inline = function(string $src) use ($home, $inlineBudget): string {
                 $rel = preg_replace('#^https?://[^/]+#', '', $src);
                 $file = $home.'/public_html'.$rel;
