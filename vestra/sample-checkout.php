@@ -8,6 +8,9 @@
  *     escrow), so the money settles into THEIR Stripe balance, not VESTRA's.
  *   - no seller, or seller not Connect-ready yet → charged on VESTRA's own
  *     platform account, same as before this existed.
+ * A product can also set sample_platform_pay=true to force the second path
+ * even when it has a Connect-ready seller — the listing stays owned by that
+ * seller, only the sample payout is redirected to VESTRA's own account.
  */
 require_once __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/auth.php';
@@ -57,6 +60,7 @@ if (!empty($p['seller_uid'])) {
     foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $p['seller_uid']) { $seller = $a; break; } }
 }
 $directCharge = $seller && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
+if (!empty($p['sample_platform_pay'])) $directCharge = false;
 
 $feeCents = 0; $payout = $amount;
 if ($directCharge) {
