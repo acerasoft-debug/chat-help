@@ -736,7 +736,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
   $shotsHtml='';
   if(!empty($opts['shots']) && is_array($opts['shots'])){
     $cells=[];
-    foreach(array_slice($opts['shots'],0,3) as $s){
+    foreach($opts['shots'] as $s){
       $img=(string)($s['img']??''); $lab=(string)($s['label']??''); $url=(string)($s['url']??'');
       if($img==='') continue;
       $inner='<img src="'.htmlspecialchars($img,ENT_QUOTES,'UTF-8').'" width="160" alt="'.htmlspecialchars($lab,ENT_QUOTES,'UTF-8').'"'
@@ -748,11 +748,18 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
         : $inner;
     }
     if($cells){
-      $tds=''; foreach($cells as $c){ $tds.='<td valign="top" style="padding:4px">'.$c.'</td>'; }
+      /* 3 hucre/satir, birden fazla <tr>: eskiden TEK satirda kacsa hepsi
+         yan yana diziliyordu -- 3'ten fazla oldugunda konteynerin disina
+         tasiyordu (hicbir sarma yoktu). array_chunk ile satirlara boluyoruz. */
+      $rowsHtmlShots='';
+      foreach(array_chunk($cells,3) as $rowCells){
+        $tds=''; foreach($rowCells as $c){ $tds.='<td valign="top" width="33%" style="padding:4px">'.$c.'</td>'; }
+        $rowsHtmlShots.='<tr>'.$tds.'</tr>';
+      }
       $shotsHtml='<div style="padding:0 23px 18px">'
         .'<div style="color:#8a6d1f;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;text-align:center;margin:2px 0 12px">'
         .htmlspecialchars((string)($opts['shots_title']??'From the current selection'),ENT_QUOTES,'UTF-8').'</div>'
-        .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr>'.$tds.'</tr></table>'
+        .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">'.$rowsHtmlShots.'</table>'
         .'</div>';
     }
   }
@@ -862,11 +869,16 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
        Marka'lari $seen'e once yaziyoruz ki asagidaki otomatik dongu ayni markadan
        baska bir parca secip yerlerini almasin. */
     $seen=['DSQUARED2'=>true,'BALMAIN'=>true];
-    $shotLimit  = $featureNeedles ? 4 : 3;
+    /* Operator istegiyle: feature-kategori yokken serit T-Shirts / Hoodies &
+       Sweatshirts'ten marka basina 1 parca ile 12'ye kadar doluyor (2 sabit +
+       10 apparel -- katalogda tam 10 farkli marka var, o yuzden baska bir
+       pass'e gerek yok; katalog degisirse serit sadece daha kisa doldurur,
+       ilgisiz kategoriden tamamlama YAPILMAZ). */
+    $shotLimit  = $featureNeedles ? 4 : 12;
     $featShots  = 0; $featCap = 2;   // en fazla 2 kare feature kategoriye ayrilir,
                                       // gerisi denim + genele kaliyor -- tek kategori
                                       // butun seridi kaplamasin diye.
-    $passes = $featureNeedles ? ['feat','denim','other'] : ['denim','other'];
+    $passes = $featureNeedles ? ['feat','denim','other'] : ['apparel'];
     foreach($passes as $pass){
       foreach($all as $p){
         if(count($shots)>=$shotLimit) break 2;
@@ -874,9 +886,11 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
         $cat=strtolower((string)($p['cat']??''));
         $isDenim=str_contains($cat,'jean')||str_contains($cat,'denim');
         $isFeat=$isFeatCat($cat);
-        if($pass==='feat'   && !$isFeat) continue;
-        if($pass==='denim'  && (!$isDenim || $isFeat)) continue;
-        if($pass==='other'  && ($isDenim || $isFeat)) continue;
+        $isApparel=str_contains($cat,'t-shirt')||str_contains($cat,'hoodie')||str_contains($cat,'sweatshirt');
+        if($pass==='feat'    && !$isFeat) continue;
+        if($pass==='apparel' && !$isApparel) continue;
+        if($pass==='denim'   && (!$isDenim || $isFeat)) continue;
+        if($pass==='other'   && ($isDenim || $isFeat)) continue;
         $b=trim((string)($p['brand']??'')); if($b===''||isset($seen[$b])) continue;
         $imgs=$p['images']??[]; $img=is_array($imgs)&&$imgs?(string)$imgs[0]:'';
         if($img==='') continue;
