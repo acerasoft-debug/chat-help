@@ -60,11 +60,15 @@ jobs:
 
             if ($renderOnly) {
               /* Gorselleri (site ile ayni sunucuda oldugundan) diskten okuyup base64 data URI'ye
-                 ceviriyoruz -- boylece cikan HTML disari hicbir istek atmadan, tek basina acilabilir. */
-              $inline = function(string $src) use ($home): string {
+                 ceviriyoruz -- boylece cikan HTML disari hicbir istek atmadan, tek basina acilabilir.
+                 GH Actions log capture has a practical size ceiling (~1MB total base64): skip
+                 inlining any source file over 40KB (leave it as a live https URL -- that image
+                 just won't render in an offline preview, but the run stays fetchable in one log read). */
+              $inlineBudget = 40 * 1024;
+              $inline = function(string $src) use ($home, $inlineBudget): string {
                 $rel = preg_replace('#^https?://[^/]+#', '', $src);
                 $file = $home.'/public_html'.$rel;
-                if (!is_file($file)) return $src;
+                if (!is_file($file) || filesize($file) > $inlineBudget) return $src;
                 $bytes = @file_get_contents($file);
                 if ($bytes === false) return $src;
                 $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
@@ -72,16 +76,13 @@ jobs:
                 return 'data:'.$mime.';base64,'.base64_encode($bytes);
               };
               if (!empty($opts['shots']) && is_array($opts['shots'])) {
-                /* GH Actions log capture has a practical size ceiling (~1MB base64):
-                   the 'premium' variant's full shot strip blows past it. Cap to a
-                   representative sample so render_only stays fetchable in one log read. */
-                $opts['shots'] = array_slice($opts['shots'], 0, 5);
                 foreach ($opts['shots'] as $i => $s) {
                   if (!empty($s['img'])) $opts['shots'][$i]['img'] = $inline((string)$s['img']);
                 }
               }
               $html = vestra_html_email($body, '', $opts);
               $html = str_replace('https://vestrasales.com/icon-192.png', $inline('https://vestrasales.com/icon-192.png'), $html);
+              echo "HTML_BYTES: ".strlen($html)."\n";
               echo "SUBJECT: {$subject}\n";
               echo "===B64_START===\n";
               echo chunk_split(base64_encode($html), 200, "\n");
