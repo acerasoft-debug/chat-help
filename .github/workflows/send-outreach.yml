@@ -128,6 +128,10 @@ jobs:
               'spain'=>'es','españa'=>'es','espana'=>'es',
               'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
               'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+              'russia'=>'ru','russian federation'=>'ru','россия'=>'ru',
+              'japan'=>'ja','日本'=>'ja',
+              'south korea'=>'ko','korea'=>'ko','republic of korea'=>'ko','대한민국'=>'ko',
+              'azerbaijan'=>'az','azərbaycan'=>'az',
             ];
             // Multilingual countries: one country, several languages, so the COUNTRY alone can't
             // decide. Lead rows carry no city field (vestra_leads_add drops it) — the city survives
@@ -142,7 +146,7 @@ jobs:
                 'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
               ]],
             ];
-            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','de'=>'DE/Almanca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce'];
+            $FLAG_LABELS = ['nl'=>'NL/Flemenkce','fr'=>'FR/Fransizca','de'=>'DE/Almanca','it'=>'IT/Italyanca','pt'=>'PT/Portekizce','cs'=>'CS/Cekce','pl'=>'PL/Lehce','es'=>'ES/Ispanyolca','el'=>'EL/Yunanca','en'=>'EN/Ingilizce','ru'=>'RU/Rusca','ja'=>'JA/Japonca','ko'=>'KO/Korece','az'=>'AZ/Azerice'];
             $SKIP = [];
             foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_SKIP"), -1, PREG_SPLIT_NO_EMPTY) as $s) { $SKIP[strtolower(trim($s))] = true; }
             $PREMIUM = strtolower(trim((string)getenv("SEND_PREMIUM"))) === 'true';
@@ -154,8 +158,8 @@ jobs:
             $NOT_COUNTRIES = [];
             foreach (explode(',', (string)getenv("SEND_NOT_COUNTRY")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $NOT_COUNTRIES[$s] = true; }
             $FORCE_LANG = strtolower(trim((string)getenv("SEND_FORCE_LANG")));
-            if ($FORCE_LANG !== '' && !in_array($FORCE_LANG, ['en','de','fr','it','es','nl','pt','cs','pl','el'], true)) {
-              echo "HATA: force_lang gecersiz: {$FORCE_LANG} (izinli: en,de,fr,it,es,nl,pt,cs,pl,el)\n"; exit(1);
+            if ($FORCE_LANG !== '' && !in_array($FORCE_LANG, ['en','de','fr','it','es','nl','pt','cs','pl','el','ru','ja','ko','az'], true)) {
+              echo "HATA: force_lang gecersiz: {$FORCE_LANG} (izinli: en,de,fr,it,es,nl,pt,cs,pl,el,ru,ja,ko,az)\n"; exit(1);
             }
             $SKIP_RE = trim((string)getenv("SEND_SKIP_RE"));
             if ($SKIP_RE !== '' && @preg_match($SKIP_RE, '') === false) { echo "HATA: skip_email_regex gecersiz PCRE deseni: {$SKIP_RE}\n"; exit(1); }

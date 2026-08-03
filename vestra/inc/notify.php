@@ -926,6 +926,7 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
     'nl'=>'Uit de actuele selectie','de'=>'Aus der aktuellen Auswahl','fr'=>'De la sélection actuelle',
     'it'=>'Dalla selezione attuale','es'=>'De la selección actual','pt'=>'Da seleção atual',
     'cs'=>'Z aktuální nabídky','pl'=>'Z aktualnej oferty','el'=>'Από την τρέχουσα συλλογή',
+    'ru'=>'Из текущей подборки','ja'=>'現在のセレクションより','ko'=>'현재 셀렉션에서','az'=>'Cari seçimdən',
   ][$lang] ?? 'From the current selection';
 
   if($lang==='nl'){
@@ -1275,6 +1276,162 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
         ['label'=>'Ελάχιστες ποσότητες','value'=>'Χαμηλές — ιδανικές για capsule collections','strong'=>true],
       ],
       'button'=>['label'=>'Εγγραφείτε για τιμές χονδρικής','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='ru'){
+    $subject='Les Garage de Paris × VESTRA — подлинная дизайнерская мода для оптовых закупок';
+    $body=implode("\n",[
+      $company!=='' ? "Здравствуйте — сообщение для {$company}." : "Здравствуйте,",
+      "",
+      "Les Garage de Paris представляет подлинную дизайнерскую моду мультибрендовым бутикам через VESTRA — B2B-маркетплейс с KYC-верификацией для профессиональных байеров.",
+      "",
+      "Мы поставляем именно те дома моды, которые ваши клиенты уже просят по имени — 100% подлинность, проверка при доставке, прозрачные условия по счетам.",
+      "",
+      "Актуальная подборка приведена ниже в виде готовых прайс-листов Excel. Оптовые цены доступны только верифицированным партнёрам — зарегистрируйтесь один раз (бесплатно), и все цены откроются мгновенно.",
+      "",
+      "Сообщите свой микс брендов, и я подберу подборку для вашего магазина.",
+      "",
+      "С уважением,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (управляется компанией acerasoft LLC). Разовое деловое сообщение — ваш магазин был отмечен как потенциальный премиальный торговый партнёр.",
+      "Отписаться мгновенно: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Подлинная дизайнерская мода оптом','title'=>'Дома моды, которые уже просят ваши клиенты — на оптовых условиях.'],
+      'brands'=>$brands,
+      'brands_title'=>'Избранные дома',
+      'brands_hint'=>'Нажмите на бренд, чтобы открыть прайс-лист',
+      'badge'=>'KYC-верификация · проверка подлинности · защита сделки через эскроу',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
+      'downloads'=>['title'=>'Прайс-листы — скачать (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Подлинность','value'=>'Проверяется при доставке'],
+        ['label'=>'Оплата','value'=>'Счёт с защитой эскроу'],
+        ['label'=>'Минимальный заказ','value'=>'Низкий — подходит для капсульных коллекций','strong'=>true],
+      ],
+      'button'=>['label'=>'Зарегистрироваться для оптовых цен','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='ja'){
+    $subject='Les Garage de Paris × VESTRA — 本物のデザイナーズブランドを卸価格で';
+    $body=implode("\n",[
+      $company!=='' ? "{$company} 様、ご案内です。" : "こんにちは、",
+      "",
+      "Les Garage de Paris は、KYC認証済みのB2Bマーケットプレイス VESTRA を通じて、マルチブランドブティック向けに本物のデザイナーズファッションを卸価格で提供しています。",
+      "",
+      "お客様が指名で求めるブランドを、100%正規品・配送時の真贋確認付き・明確な請求条件でお届けします。",
+      "",
+      "現在のセレクションは、以下からすぐに開けるExcelラインシートでご覧いただけます。卸価格は認証済みパートナー限定です — 一度ご登録いただければ(無料)、すべての価格がすぐに表示されます。",
+      "",
+      "お取り扱いブランドの傾向をお知らせいただければ、貴店向けのセレクションをご提案します。",
+      "",
+      "よろしくお願いいたします、",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA(運営: acerasoft LLC)。一度限りのビジネスメールです — 貴店はプレミアム取引先候補として選ばれました。",
+      "配信停止はこちら: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'本物のデザイナーズ卸売','title'=>'お客様が指名で求めるブランドを、卸条件で。'],
+      'brands'=>$brands,
+      'brands_title'=>'注目のブランド',
+      'brands_hint'=>'ブランドをタップするとラインシートが開きます',
+      'badge'=>'KYC認証済み · 真贋確認済み · エスクロー決済保護',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
+      'downloads'=>['title'=>'ラインシート — Excelでダウンロード','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'真贋','value'=>'配送時に確認'],
+        ['label'=>'お支払い','value'=>'エスクロー保護付き請求'],
+        ['label'=>'最小ロット','value'=>'少量から対応','strong'=>true],
+      ],
+      'button'=>['label'=>'卸価格を見るには登録','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='ko'){
+    $subject='Les Garage de Paris × VESTRA — 정품 디자이너 브랜드를 도매가로';
+    $body=implode("\n",[
+      $company!=='' ? "안녕하세요 — {$company} 님께 드리는 메시지입니다." : "안녕하세요,",
+      "",
+      "Les Garage de Paris는 KYC 인증 B2B 마켓플레이스 VESTRA를 통해 멀티브랜드 편집숍에 정품 디자이너 패션을 도매가로 공급합니다.",
+      "",
+      "고객이 이름으로 찾는 바로 그 브랜드를 100% 정품, 배송 시 진품 확인, 명확한 인보이스 조건으로 제공합니다.",
+      "",
+      "현재 셀렉션은 아래에서 바로 열어볼 수 있는 엑셀 라인시트로 확인하실 수 있습니다. 도매가는 인증된 파트너에게만 제공됩니다 — 한 번만 등록하시면(무료) 모든 가격이 즉시 공개됩니다.",
+      "",
+      "취급하시는 브랜드 구성을 알려주시면 매장에 맞는 셀렉션을 준비해 드리겠습니다.",
+      "",
+      "감사합니다,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA(운영: acerasoft LLC). 일회성 비즈니스 메시지입니다 — 귀하의 매장이 프리미엄 거래 파트너 후보로 확인되었습니다.",
+      "즉시 수신 거부: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'정품 디자이너 도매','title'=>'고객이 이름으로 찾는 바로 그 브랜드를, 도매 조건으로.'],
+      'brands'=>$brands,
+      'brands_title'=>'주요 브랜드',
+      'brands_hint'=>'브랜드를 탭하면 라인시트가 열립니다',
+      'badge'=>'KYC 인증 · 정품 확인 · 에스크로 보호 결제',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
+      'downloads'=>['title'=>'라인시트 — 엑셀 다운로드','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'정품 여부','value'=>'배송 시 확인'],
+        ['label'=>'결제','value'=>'에스크로 보호 인보이스'],
+        ['label'=>'최소 수량','value'=>'소량 주문 가능','strong'=>true],
+      ],
+      'button'=>['label'=>'도매가 확인을 위해 등록하기','url'=>'https://vestrasales.com/register'],
+    ];
+    return [$subject,$body,$opts];
+  }
+
+  if($lang==='az'){
+    $subject='Les Garage de Paris × VESTRA — topdan qiymətlərlə orijinal dizayner moda';
+    $body=implode("\n",[
+      $company!=='' ? "Salam — {$company} üçün qısa məlumat." : "Salam,",
+      "",
+      "Les Garage de Paris, VESTRA vasitəsilə — orijinal dizayner modası üçün KYC ilə təsdiqlənmiş B2B bazarı — çoxbrendli butiklərə topdan mal təqdim edir.",
+      "",
+      "Müştərilərinizin adını çəkərək soruşduğu brendləri təmin edirik — 100% orijinal, çatdırılma zamanı həqiqiliyi yoxlanılmış, aydın faktura şərtləri ilə.",
+      "",
+      "Cari seçim aşağıda hazır Excel line-sheet formatında verilib. Topdan qiymətlər yalnız təsdiqlənmiş partnyorlar üçündür — bir dəfə (pulsuz) qeydiyyatdan keçin, bütün qiymətlər dərhal açılsın.",
+      "",
+      "Brend çeşidinizi bildirin, mağazanız üçün seçim hazırlayım.",
+      "",
+      "Hörmətlə,",
+      "Les Garage de Paris · via VESTRA",
+      "",
+      "—",
+      "Les Garage de Paris via VESTRA (acerasoft LLC tərəfindən idarə olunur). Bir dəfəlik biznes mesajı — mağazanız potensial premium ticarət partnyoru kimi müəyyən edilib.",
+      "Dərhal abunəlikdən çıxın: https://vestrasales.com/lead-unsubscribe",
+    ]);
+    $opts=[
+      'hero'=>['kicker'=>'Orijinal dizayner topdan satışı','title'=>'Müştərilərinizin artıq adını çəkərək soruşduğu brendlər — indi topdan şərtlərlə.'],
+      'brands'=>$brands,
+      'brands_title'=>'Seçilmiş brendlər',
+      'brands_hint'=>'Line-sheet üçün brendə toxunun',
+      'badge'=>'KYC təsdiqlənib · həqiqilik yoxlanılıb · escrow ilə qorunur',
+      'shots'=>$shots,
+      'shots_title'=>$shotsTitle,
+      'downloads'=>['title'=>'Line-sheet-lər — yüklə (Excel)','items'=>$downloads],
+      'rows'=>[
+        ['label'=>'Orijinallıq','value'=>'Çatdırılma zamanı yoxlanılır'],
+        ['label'=>'Ödəniş','value'=>'Escrow ilə qorunan faktura'],
+        ['label'=>'Minimum sifariş','value'=>'Aşağı — kapsul kolleksiyalar üçün əlverişli','strong'=>true],
+      ],
+      'button'=>['label'=>'Topdan qiymətlər üçün qeydiyyatdan keçin','url'=>'https://vestrasales.com/register'],
     ];
     return [$subject,$body,$opts];
   }

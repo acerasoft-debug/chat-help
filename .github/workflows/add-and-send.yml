@@ -236,17 +236,22 @@ jobs:
               'spain'=>'es','españa'=>'es','espana'=>'es',
               'greece'=>'el','ελλάδα'=>'el','ellada'=>'el',
               'germany'=>'de','deutschland'=>'de','austria'=>'de','österreich'=>'de','osterreich'=>'de',
+              'russia'=>'ru','russian federation'=>'ru','россия'=>'ru',
+              'japan'=>'ja','日本'=>'ja',
+              'south korea'=>'ko','korea'=>'ko','republic of korea'=>'ko','대한민국'=>'ko',
+              'azerbaijan'=>'az','azərbaycan'=>'az',
             ];
             $REGION_LANG = [
               'belgium' => ['default'=>'nl','match'=>[
                 'fr'=>['bruxelles','brussels','brussel','liège','liege','namur','charleroi','mons','tournai','arlon','wavre','verviers'],
               ]],
             ];
-            $FLAG = ['nl'=>'NL','fr'=>'FR','de'=>'DE','it'=>'IT','pt'=>'PT','cs'=>'CS','pl'=>'PL','es'=>'ES','el'=>'EL','en'=>'EN'];
+            $FLAG = ['nl'=>'NL','fr'=>'FR','de'=>'DE','it'=>'IT','pt'=>'PT','cs'=>'CS','pl'=>'PL','es'=>'ES','el'=>'EL','en'=>'EN','ru'=>'RU','ja'=>'JA','ko'=>'KO','az'=>'AZ'];
             /* Ulke bos ise e-posta uzantisindan tahmin et: elle verilen adreslerde
                ulke alani cogu zaman bos kaliyor ve o zaman herkes Ingilizce aliyordu. */
             $TLD_LANG = ['de'=>'de','at'=>'de','ch'=>'en','nl'=>'nl','be'=>'nl','fr'=>'fr','it'=>'it',
-                         'es'=>'es','pt'=>'pt','gr'=>'el','pl'=>'pl','cz'=>'cs'];
+                         'es'=>'es','pt'=>'pt','gr'=>'el','pl'=>'pl','cz'=>'cs',
+                         'ru'=>'ru','jp'=>'ja','kr'=>'ko','az'=>'az'];
 
             echo "-- gonderim --\n";
             $sent = 0; $fail = 0; $skip = 0;
