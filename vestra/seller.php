@@ -349,6 +349,14 @@ if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && isset($_GET['p
     echo json_encode(['last' => $ok ? ($t['last_at']??'') : '']);
     exit;
 }
+// Mark an opened thread read here, before head.php computes the nav badge below —
+// otherwise the badge still shows the just-read thread as unread for this whole page view.
+if (($_GET['tab']??'')==='messages' && !empty($_GET['thread']) && $_SERVER['REQUEST_METHOD']==='GET') {
+    $t = vestra_msg_find_thread($_GET['thread']);
+    if ($t && !empty($_SESSION['uid']) && ($t['seller_uid']??'') === $_SESSION['uid']) {
+        vestra_msg_mark_read($_GET['thread'], $_SESSION['uid']);
+    }
+}
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='send_message') {
     $uid = $_SESSION['uid'] ?? '';
     $tid = $_POST['thread_id'] ?? '';
@@ -998,7 +1006,7 @@ if($tab==='overview'){
   $tid = $_GET['thread'] ?? '';
   $thread = $tid ? vestra_msg_find_thread($tid) : null;
   if ($thread && ($thread['seller_uid']??'') !== $uid) $thread = null;
-  if ($thread) vestra_msg_mark_read($tid, $uid);
+  // (marked read earlier, before head.php rendered the nav badge — see top of file)
   $myThreads = vestra_msg_my_threads($uid);
 
   $listHtml = '<div class="mssearch"><input id="mfilter" placeholder="'.htmlspecialchars(t('Search conversations…')).'" oninput="mFilterThreads(this.value)"></div>';
