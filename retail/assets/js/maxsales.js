@@ -152,8 +152,10 @@
     if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
   });
 
-  /* ---------------------------------------- ürün görselleri: ilk açılış efekti */
-  document.querySelectorAll('.pdp__shot img, .card__media img').forEach(function (img) {
+  /* ---------------------------------------- ürün görselleri: ilk açılış efekti
+     .card__alt hariç: onun görünürlüğünü CSS hover'ı yönetiyor, buradaki satır
+     içi opacity:1 o kuralı ezip ikinci kareyi kalıcı olarak açıyordu. */
+  document.querySelectorAll('.pdp__shot img, .card__media img:not(.card__alt)').forEach(function (img) {
     if (img.complete) return;
     img.style.opacity = '0';
     img.addEventListener('load', function () {

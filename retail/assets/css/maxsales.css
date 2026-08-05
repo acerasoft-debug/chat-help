@@ -247,6 +247,16 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .card:hover .card__media img{transform:scale(1.045)}
 .card.is-out .card__media img{filter:grayscale(1) opacity(.55)}
+/* İkinci kare: üzerine gelince yumuşak geçişle beliriyor. Dokunmatik cihazda
+   hover yok — orada hiç görünmez, ilk kare olduğu gibi kalır. */
+.card__alt{position:absolute;inset:0;opacity:0;transition:opacity .55s var(--ease)}
+@media (hover:hover){
+  .card__media:hover .card__alt,.card__media:focus-visible .card__alt{opacity:1}
+}
+@media (prefers-reduced-motion:reduce){
+  .card__media img{transition:opacity .55s var(--ease)}
+  .card:hover .card__media img{transform:none}
+}
 .card__badge{
   position:absolute;top:11px;left:11px;background:var(--ink);color:var(--bone);
   font-size:9.5px;letter-spacing:.17em;text-transform:uppercase;padding:5px 9px;
@@ -411,7 +421,14 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .pdp__media{display:grid;gap:10px;grid-template-columns:1fr}
 .pdp__media--multi{grid-template-columns:repeat(2,1fr)}
 .pdp__shot{background:var(--bone-2);aspect-ratio:4/5;overflow:hidden;border-radius:var(--r)}
-.pdp__shot:first-child:nth-last-child(odd){grid-column:1/-1;aspect-ratio:1/1}
+/* Tek kare varsa tam genişlik; galeri çoklu ise 2×2 eşit ızgara.
+   TEK sayıda kare varsa (3, 5, 7 …) ilk kadraj tam genişlikte kahraman kare
+   olur ve geri kalan çift sayı 2×2'yi tam doldurur — çift sayıda ise düz
+   ızgara zaten kusursuz, kahraman kare kurulmaz (yoksa altta yetim kalır). */
+.pdp__media:not(.pdp__media--multi) .pdp__shot{aspect-ratio:1/1}
+.pdp__media--multi .pdp__shot:first-child:nth-last-child(n+3):nth-last-child(odd){
+  grid-column:1/-1;aspect-ratio:1/1;
+}
 .pdp__shot img{width:100%;height:100%;object-fit:cover}
 .pdp__side{position:sticky;top:96px;display:flex;flex-direction:column;gap:20px}
 @media (max-width:940px){.pdp__side{position:static}}
@@ -828,3 +845,13 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .nf form{display:flex;gap:8px;max-width:420px;margin:0 auto 26px}
 .nf input{flex:1;border:1px solid var(--bone-3);background:var(--bone);padding:13px;font:inherit;border-radius:var(--r)}
 .nf input:focus{outline:none;border-color:var(--ink)}
+
+/* Ürün metninin giriş cümlesi — gövdeden bir tık öne çıksın. */
+/* .panel p (0,1,1) bunu yenmesin diye seçici .panel ile birlikte yazıldı —
+   yoksa giriş cümlesi gövde metninden KÜÇÜK çıkıyordu (13.5px). */
+.panel .pdp__lead,.pdp__lead{
+  font-family:var(--serif);font-size:17.5px;line-height:1.45;color:var(--ink);
+  margin-bottom:6px;letter-spacing:.002em;
+}
+.vault .panel .pdp__lead,.vault .pdp__lead{color:var(--bone)}
+.panel p+p{margin-top:9px}

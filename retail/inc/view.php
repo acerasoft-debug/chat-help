@@ -302,6 +302,12 @@ function vr_card(array $p, array $o = []): void
   <a class="card__media" href="<?= h(vr_product_url($p)) ?>">
     <img src="<?= h(vr_product_image($p)) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
          loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async" width="600" height="750">
+    <?php // İkinci kare yalnızca üzerine gelince görünür; dekoratif olduğu için
+          // alt="" ve aria-hidden — ekran okuyucu aynı ürünü iki kez okumasın.
+          $alt2 = vr_product_image_alt($p); if ($alt2 !== ''): ?>
+      <img class="card__alt" src="<?= h($alt2) ?>" alt="" aria-hidden="true"
+           loading="lazy" decoding="async" width="600" height="750">
+    <?php endif; ?>
     <?php if (!empty($o['badge'])): ?><span class="card__badge"><?= h((string)$o['badge']) ?></span><?php endif; ?>
     <?php if ($seller['type'] === 'private'): ?><span class="card__badge card__badge--priv"><?= te('seller_private') ?></span><?php endif; ?>
     <?php if ($soldOut): ?><span class="card__out"><?= te('sold_out') ?></span><?php endif; ?>

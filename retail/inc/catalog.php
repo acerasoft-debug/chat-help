@@ -364,6 +364,18 @@ function vr_product_image(array $p, int $index = 0): string
 }
 
 /**
+ * Vitrin kartının üzerine gelince beliren ikinci kare. Gerçek fotoğrafı olan
+ * satırda ikinci fotoğraf; olmayanda flat-lay kadrajı (yakın detay kartlık
+ * boyutta okunmuyor). İkinci kare yoksa boş döner ve kart tek görselle kalır.
+ */
+function vr_product_image_alt(array $p): string
+{
+    if (!empty($p['images'][1])) return (string)$p['images'][1];
+    if (!empty($p['images']))    return '';
+    return vr_url('assets/art.php', ['s' => substr(sha1($p['id']), 0, 12), 'c' => $p['cat'], 'v' => 2]);
+}
+
+/**
  * Görüntülenecek ürün adı: marka zaten ayrı gösterildiği için addan baştaki
  * marka tekrarını atıyoruz. Sepet, kasa, e-posta ve Stripe satırları da bunu
  * kullanır — yoksa her yerde "BALENCIAGA BALENCIAGA …" çıkıyor.
@@ -374,6 +386,28 @@ function vr_card_name(array $p): string
     $b = trim((string)($p['brand'] ?? ''));
     if ($b !== '' && stripos($n, $b) === 0) $n = trim(substr($n, strlen($b)));
     return $n !== '' ? $n : (string)($p['sku'] ?? '');
+}
+
+/**
+ * Ürün galerisi. Gerçek fotoğraf varsa onlar; yoksa aynı siluetin beş farklı
+ * kadrajı (önden, detay, flat lay, arkadan, kumaş makro) — ürün sayfası tek
+ * kareyle yetinmesin. Gerçek fotoğraf GELDİĞİ anda üretilenler kendiliğinden
+ * çekilir.
+ *
+ * Beş kare, dört değil: tek sayıda kare olduğunda ilk kadraj tam genişliğe
+ * yayılıp altına 2×2 ızgara geliyor (bkz. .pdp__media--multi) — sütun boyu
+ * sağdaki satın alma sütununa yaklaşıyor, altta boş oluk kalmıyor.
+ */
+function vr_product_gallery(array $p, int $max = 5): array
+{
+    if (!empty($p['images'])) return array_slice($p['images'], 0, $max);
+
+    $seed = substr(sha1((string)$p['id']), 0, 12);
+    $out  = [];
+    for ($v = 0; $v < $max; $v++) {
+        $out[] = vr_url('assets/art.php', ['s' => $seed, 'c' => $p['cat'], 'v' => $v]);
+    }
+    return $out;
 }
 
 function vr_product_url(array $p): string

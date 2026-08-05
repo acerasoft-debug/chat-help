@@ -16,6 +16,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
+require_once __DIR__ . '/inc/copy.php';
 
 $id = trim((string)($_GET['id'] ?? ''));
 $p  = $id !== '' ? vr_product($id) : null;
@@ -52,7 +53,7 @@ $sizeErr  = !empty($_GET['nosize']);
 
 vr_layout_start([
     'title'    => $p['brand'] . ' ' . vr_card_name($p),
-    'desc'     => $p['desc'] !== '' ? $p['desc'] : ($p['brand'] . ' ' . $p['name'] . ' — ' . t('tagline')),
+    'desc'     => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
     'og_image' => vr_product_image($p),
     'jsonld'   => [
         vr_jsonld_product($p, $vaultLot ? (int)$vaultLot['state']['cents'] : null),
@@ -79,10 +80,9 @@ vr_layout_start([
            Her görsel kendi dosyasına giden bir bağlantı: JavaScript kapalıyken
            tıklayınca tam boy açılıyor. JS varsa aynı bağlantıyı yakalayıp
            büyüteç katmanında gösteriyoruz (assets/js). -->
-      <div class="pdp__media<?= count($p['images']) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
-        <?php
-        $shots = $p['images'] ?: [vr_product_image($p)];
-        foreach (array_slice($shots, 0, 6) as $i => $src): ?>
+      <?php $shots = vr_product_gallery($p, 5); ?>
+      <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
+        <?php foreach ($shots as $i => $src): ?>
           <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
             <img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : '')) ?>"
@@ -194,27 +194,27 @@ vr_layout_start([
           <p><?= te('provenance_body') ?></p>
         </div>
 
-        <?php if ($p['desc'] !== ''): ?>
+        <?php $copy = vr_product_copy($p); ?>
+        <div class="panel">
+          <h2><?= te('description') ?></h2>
+          <?php if (($copy['lead'] ?? '') !== ''): ?>
+            <p class="pdp__lead"><?= h($copy['lead']) ?></p>
+          <?php endif; ?>
+          <?php foreach ($copy['paras'] as $para): ?>
+            <p><?= h($para) ?></p>
+          <?php endforeach; ?>
+        </div>
+
+        <?php if ($copy['facts']): ?>
           <div class="panel">
-            <h2><?= te('description') ?></h2>
-            <p><?= h($p['desc']) ?></p>
+            <h2><?= te('details') ?></h2>
+            <dl class="dl">
+              <?php foreach ($copy['facts'] as $label => $value): ?>
+                <dt><?= h($label) ?></dt><dd><?= h($value) ?></dd>
+              <?php endforeach; ?>
+            </dl>
           </div>
         <?php endif; ?>
-
-        <div class="panel">
-          <h2><?= te('details') ?></h2>
-          <dl class="dl">
-            <?php if ($p['sku'] !== ''): ?><dt><?= te('sku') ?></dt><dd><?= h($p['sku']) ?></dd><?php endif; ?>
-            <dt><?= te('house') ?></dt><dd><?= h($p['brand']) ?></dd>
-            <dt><?= te('category') ?></dt><dd><?= h(vr_cat_label($p['cat'])) ?></dd>
-            <dt><?= te('condition') ?></dt>
-            <dd><?= ($p['condition'] ?? 'new') === 'new' ? te('condition_new') : te('condition_used') ?></dd>
-            <?php if ($p['sizes'] && !($single ?? false)): ?>
-              <dt><?= te('size_run') ?></dt>
-              <dd><?= h(implode(' · ', array_map(fn($s) => $s['label'] . '×' . $s['qty'], $p['sizes']))) ?></dd>
-            <?php endif; ?>
-          </dl>
-        </div>
 
         <div class="panel">
           <h2><?= te('returns_title') ?></h2>

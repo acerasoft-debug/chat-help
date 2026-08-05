@@ -19,6 +19,13 @@ $seed = preg_replace('/[^A-Za-z0-9._-]/', '', (string)($_GET['s'] ?? 'maxsales')
 $cat  = mb_substr((string)($_GET['c'] ?? ''), 0, 40);
 $w    = max(120, min(1600, (int)($_GET['w'] ?? 800)));
 $h    = max(120, min(1600, (int)($_GET['h'] ?? 1000)));
+/**
+ * Görünüm: 0 = önden, 1 = yakın detay, 2 = düz yerleşim (flat lay),
+ *          3 = arkadan, 4 = kumaş makro.
+ * Aynı ürünün galerisinde tek bir kare yerine beş farklı kadraj olsun diye —
+ * fotoğrafı olmayan satır da gerçek bir ürün sayfası gibi dursun.
+ */
+$view = max(0, min(4, (int)($_GET['v'] ?? 0)));
 
 // Tohumdan deterministik sayı üretici (kriptografik değil, sadece tekrarlanabilir).
 $state = hexdec(substr(hash('sha256', $seed . '|' . $cat), 0, 12)) ?: 1;
@@ -80,8 +87,18 @@ $art = match ($shape) {
         'lines' => ['M44,21 L50,33 L56,21', 'M50,33 L50,49', 'M46,36 L46,37', 'M46,44 L46,45', 'M34,95 Q50,98 66,95'],
     ],
     'hoodie' => [
-        'main' => 'M33,29 Q50,16 67,29 L82,37 L74,52 L67,47 L67,104 Q50,108 33,104 L33,47 L26,52 L18,37 Z',
-        'lines' => ['M38,28 Q50,40 62,28', 'M36,79 L64,79 L64,90 L36,90 Z', 'M33,98 Q50,101 67,98'],
+        // Kapüşon gövdenin ARKASINA çiziliyor (behind) — omuz hattı üstüne binsin.
+        // Kusursuz kubbe kask gibi duruyordu; tepesi hafif yassı ve asimetrik.
+        'behind' => 'M33,33 C31,14 40,8 50,8 C61,8 68,14 66,33 Z',
+        // Yaka kavisi kapüşonun altında kaldığı için düz tutuldu; eskiden
+        // y=16'ya kadar çıkıp kapüşonun içinde ikinci bir kubbe çiziyordu.
+        'main' => 'M33,29 Q50,23 67,29 L82,37 L74,52 L67,47 L67,104 Q50,108 33,104 L33,47 L26,52 L18,37 Z',
+        'lines' => [
+            'M39,31 C38,18 44,15 50,15 C56,15 62,18 61,31',   // kapüşon ağzı
+            'M45,30 L44,46', 'M55,30 L54,44',                 // büzgü ipleri
+            'M36,77 L64,77 L64,89 L36,89 Z',                  // kanguru cep
+            'M33,98 Q50,101 67,98',                           // bel ribanası
+        ],
     ],
     'knit' => [
         'main' => 'M34,27 Q50,19 66,27 L80,35 L73,49 L66,45 L66,100 Q50,104 34,100 L34,45 L27,49 L20,35 Z',
@@ -122,11 +139,26 @@ $art = match ($shape) {
 };
 
 // ---------------------------------------------------------------- kompozisyon
-$sx = $w / 100;
-$sy = $h / 125;
-$s  = min($sx, $sy) * 0.92;                     // orantıyı koru, kenarda pay bırak
-$ox = ($w - 100 * $s) / 2;
-$oy = ($h - 125 * $s) / 2;
+/**
+ * Kadraj görünüme göre değişiyor:
+ *  0 önden      — tam boy, ortalanmış
+ *  1 detay      — üst gövdeye yakınlaşma (yaka/omuz bölgesi)
+ *  2 flat lay   — hafif küçültülmüş ve döndürülmüş, masaya serilmiş gibi
+ *  3 arkadan    — aynalanmış, detay çizgileri olmadan
+ */
+[$zoom, $panX, $panY, $tilt, $mirror] = match ($view) {
+    1 => [2.00, 0.00,  0.46, 0.0,  false],   // yaka + omuz
+    2 => [0.80, 0.00,  0.00, -13.0, false],
+    3 => [0.92, 0.00,  0.00, 0.0,  true],
+    // Etek ucu / yan dikiş makrosu. 3.4 kat yakınlaşma kadrajı çerçevenin
+    // kenarına düşürüyordu; 2.2 kat gövdenin sol alt köşesine (≈41,86) oturuyor.
+    4 => [2.20, 0.18, -0.42, 0.0,  false],
+    default => [0.92, 0.0, 0.0, 0.0, false],
+};
+
+$s  = min($w / 100, $h / 125) * $zoom;
+$ox = ($w - 100 * $s) / 2 + $panX * $w;
+$oy = ($h - 125 * $s) / 2 + $panY * $h;
 
 $glowX = round($rnd(0.3, 0.7), 3);
 $glowY = round($rnd(0.2, 0.45), 3);
@@ -167,15 +199,23 @@ $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $
     . '<rect width="100%" height="100%" fill="url(#glow)"/>'
     . $folds
 
-    . '<g transform="translate(' . round($ox, 2) . ' ' . round($oy, 2) . ') scale(' . round($s, 4) . ')">'
+    . '<g transform="translate(' . round($ox, 2) . ' ' . round($oy, 2) . ') scale(' . round($s, 4) . ')'
+    . ($tilt != 0.0 ? ' rotate(' . round($tilt, 1) . ' 50 62)' : '')
+    . ($mirror ? ' translate(100 0) scale(-1 1)' : '') . '">'
+    // Kapüşon gibi parçalar gövdenin arkasında kalmalı.
+    . (isset($art['behind'])
+        ? '<path d="' . $art['behind'] . '" fill="url(#cloth)" stroke="' . $ink . '" stroke-opacity="0.45"'
+          . ' stroke-width="' . ($view === 1 ? '0.7' : '1.1') . '" stroke-linejoin="round"/>'
+        : '')
     . '<path d="' . $art['main'] . '" fill="url(#cloth)" stroke="' . $ink . '" stroke-opacity="0.55"'
-    . ' stroke-width="1.1" stroke-linejoin="round"/>'
-    . $detail
+    . ' stroke-width="' . ($view === 1 ? '0.7' : '1.1') . '" stroke-linejoin="round"/>'
+    // Arkadan görünüşte ön detayları (cep, placket, düğme) çizmiyoruz.
+    . ($view === 3 ? '' : $detail)
     . '</g>'
 
     . '<rect width="100%" height="100%" filter="url(#grain)" opacity="0.05"/>'
     . '<rect x="10.5" y="10.5" width="' . ($w - 21) . '" height="' . ($h - 21) . '" fill="none"'
-    . ' stroke="' . $ink . '" stroke-opacity="0.18"/>'
+    . ' stroke="' . $ink . '" stroke-opacity="' . ($view === 1 ? '0.10' : '0.18') . '"/>'
     . '<text x="50%" y="' . round($h - $h * 0.05, 1) . '" text-anchor="middle" fill="' . $ink . '"'
     . ' fill-opacity="0.40" font-family="Georgia,serif"'
     . ' font-size="' . max(9, (int)round(min($w, $h) * 0.030)) . '"'

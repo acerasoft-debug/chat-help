@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
 require_once __DIR__ . '/inc/alerts.php';
+require_once __DIR__ . '/inc/copy.php';
 
 // ---- alarm kurma (POST) ve iptal (e-postadaki bağlantı)
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'alert') {
@@ -62,7 +63,7 @@ if ($single !== null) {
 
     vr_layout_start([
         'title'  => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . t('vault_title'),
-        'desc'   => t('vault_lede'),
+        'desc'   => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . vr_product_teaser($p),
         'og_image' => vr_product_image($p),
         'body_class' => 'is-vault',
         'jsonld' => [
@@ -84,12 +85,15 @@ if ($single !== null) {
     ]); ?>
 
     <div class="pdp">
-      <div class="pdp__media<?= count($p['images']) > 1 ? ' pdp__media--multi' : '' ?>">
-        <?php
-        $shots = $p['images'] ?: [vr_product_image($p)];
-        foreach (array_slice($shots, 0, 4) as $i => $src): ?>
-          <div class="pdp__shot"><img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
-               loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" width="800" height="1000"></div>
+      <?php $shots = vr_product_gallery($p, 5); ?>
+      <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
+        <?php foreach ($shots as $i => $src): ?>
+          <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
+             aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
+            <img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
+                 loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" width="800" height="1000">
+            <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>
+          </a>
         <?php endforeach; ?>
       </div>
 
@@ -227,12 +231,14 @@ if ($single !== null) {
           </div>
         </div>
 
-        <?php if ($p['desc'] !== ''): ?>
-          <div class="panel" style="border-color:rgba(245,242,236,.16)">
-            <h2 style="color:var(--brass-text)"><?= te('description') ?></h2>
-            <p style="color:var(--muted)"><?= h($p['desc']) ?></p>
-          </div>
-        <?php endif; ?>
+        <?php $copy = vr_product_copy($p); ?>
+        <div class="panel" style="border-color:rgba(245,242,236,.16)">
+          <h2 style="color:var(--brass-text)"><?= te('description') ?></h2>
+          <?php if (($copy['lead'] ?? '') !== ''): ?>
+            <p class="pdp__lead"><?= h($copy['lead']) ?></p>
+          <?php endif; ?>
+          <?php foreach ($copy['paras'] as $para): ?><p><?= h($para) ?></p><?php endforeach; ?>
+        </div>
       </div>
     </div>
   </div>
