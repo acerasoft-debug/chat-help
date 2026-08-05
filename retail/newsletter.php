@@ -47,6 +47,41 @@ if ($confirm !== '') {
     $err = t('order_not_found');
 }
 
+// ------------------------------------------------------------------ abonelik iptali
+/**
+ * Abmeldung. Datenschutzerklärung "her e-postada abonelikten çıkma bağlantısı"
+ * diyor — o bağlantının gerçekten çalışması gerek. Jeton, e-postadan HMAC ile
+ * türetiliyor: listede saklanan ayrı bir alan yok, bağlantı süresiz geçerli ve
+ * tahmin edilemez.
+ */
+$unsub = trim((string)($_GET['unsubscribe'] ?? ''));
+if ($unsub !== '') {
+    $hit = false;
+
+    vr_store_mutate(VR_NEWS_FILE, static function ($rows) use ($unsub, &$hit) {
+        if (!is_array($rows)) return null;
+        foreach ($rows as $i => $r) {
+            $mail = (string)($r['email'] ?? '');
+            if ($mail === '' || !hash_equals(vr_unsub_token($mail), $unsub)) continue;
+            unset($rows[$i]);              // kaydı tutmuyoruz: silmek en temiz iptal
+            $hit = true;
+            return array_values($rows);
+        }
+        return null;
+    });
+
+    if ($hit) {
+        // Üyelik çerezini de düşür, yoksa erken erişim açık kalır.
+        @setcookie('vr_member', '', [
+            'expires' => time() - 3600,
+            'path'    => vr_base_url() === '' ? '/' : vr_base_url() . '/',
+        ]);
+        $done = t('unsub_ok');
+    } else {
+        $err = t('unsub_fail');
+    }
+}
+
 // ------------------------------------------------------------- abonelik isteği
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     vr_csrf_check();
@@ -100,18 +135,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     }
 }
 
-vr_layout_start(['title' => t('news_title'), 'robots' => 'noindex,follow']);
+$isUnsub = $unsub !== '';
+
+vr_layout_start([
+    'title'  => $isUnsub ? t('unsub_title') : t('news_title'),
+    'robots' => 'noindex,follow',
+]);
 ?>
 <section class="sec">
   <div class="wrap wrap--narrow">
-    <h1 class="sechead__t"><?= te('news_title') ?></h1>
+    <h1 class="sechead__t"><?= $isUnsub ? te('unsub_title') : te('news_title') ?></h1>
     <p class="sechead__s" style="margin:12px 0 26px">
-      <?= te('news_sub', ['hours' => (int)vr_config('vault_member_head_start_hours', 12)]) ?>
+      <?= $isUnsub ? te('unsub_ok') : te('news_sub', ['hours' => (int)vr_config('vault_member_head_start_hours', 12)]) ?>
     </p>
 
     <?php if ($done !== ''): ?>
       <div class="flash flash--ok" style="margin-bottom:18px"><?= h($done) ?></div>
-      <a class="btn btn--ghost" href="<?= h(vr_url('outlet.php')) ?>"><span><?= te('nav_outlet') ?></span></a>
+      <a class="btn btn--ghost" href="<?= h(vr_url($isUnsub ? '/' : 'outlet.php')) ?>">
+        <span><?= $isUnsub ? te('nav_shop') : te('nav_outlet') ?></span>
+      </a>
 
     <?php else: ?>
       <?php if ($err !== ''): ?>

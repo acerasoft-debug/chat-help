@@ -279,6 +279,11 @@ $hours = (int)vr_config('vault_step_hours', 24);
   allgemeinen Freischaltung. Die Mitgliedschaft ist kostenlos und jederzeit widerrufbar; ein
   Anspruch auf Vorabzugang besteht nicht.
 </p>
+<p>
+  11.8 Ein gesetzter Preisalarm und das Merken eines Stückes reservieren dieses <strong>nicht</strong>
+  und begründen kein Vorkaufsrecht. Die Benachrichtigung erfolgt einmalig und ohne Gewähr für
+  Zustellung oder Zeitpunkt; maßgeblich bleibt allein die Verfügbarkeit im Moment der Bestellung.
+</p>
 
 <h2 id="s12">12. Echtheit und Herkunft</h2>
 <p>

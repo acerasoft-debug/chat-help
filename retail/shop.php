@@ -187,4 +187,6 @@ vr_layout_start([
   </div>
 </section>
 
+<?php vr_seen_strip(); ?>
+
 <?php vr_layout_end(); ?>

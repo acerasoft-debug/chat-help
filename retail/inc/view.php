@@ -20,6 +20,7 @@ require_once __DIR__ . '/cart.php';
 require_once __DIR__ . '/vault.php';
 require_once __DIR__ . '/accounts.php';
 require_once __DIR__ . '/stripe.php';   // vr_payment_methods() ödeme güven satırı için
+require_once __DIR__ . '/lists.php';    // Merkliste + son bakılanlar
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */
 function vr_asset_v(): string
@@ -141,6 +142,10 @@ function vr_header(): void
         <button type="submit" aria-label="<?= te('search_submit') ?>"><?= vr_icon('search') ?></button>
       </form>
 
+      <a class="tool tool--wish" href="<?= h(vr_url('wishlist.php')) ?>" aria-label="<?= te('nav_wish') ?>">
+        <?= vr_icon('heart') ?><?php $wn = vr_wish_count(); if ($wn > 0): ?><i class="bag__n"><?= (int)$wn ?></i><?php endif; ?>
+      </a>
+
       <a class="tool" href="<?= h(vr_url($seller ? 'seller/index.php' : 'seller/login.php')) ?>"
          aria-label="<?= te('nav_account') ?>"><?= vr_icon('user') ?></a>
 
@@ -159,7 +164,9 @@ function vr_header(): void
     <a href="<?= h(vr_url('outlet.php')) ?>"><?= te('nav_outlet') ?></a>
     <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
     <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
+    <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
     <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
+    <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
     <a href="<?= h(vr_url($seller ? 'seller/index.php' : 'seller/login.php')) ?>"><?= te('nav_account') ?></a>
     <div class="drawer__langs"><?= vr_lang_switch() ?></div>
   </div>
@@ -199,6 +206,8 @@ function vr_footer(): void
       <a href="<?= h(vr_url('outlet.php')) ?>"><?= te('nav_outlet') ?></a>
       <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
       <a href="<?= h(vr_url('shop.php', ['seller' => 'private'])) ?>"><?= te('seller_private') ?></a>
+      <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
+      <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
     </nav>
 
     <nav class="foot__col" aria-label="<?= te('footer_service') ?>">
@@ -208,6 +217,8 @@ function vr_footer(): void
       <a href="<?= h(vr_url('legal/zahlung.php')) ?>"><?= te('legal_payment') ?></a>
       <a href="<?= h(vr_url('legal/rueckgabe.php')) ?>"><?= te('legal_returns') ?></a>
       <a href="<?= h(vr_url('order.php')) ?>"><?= te('order_status') ?></a>
+      <a href="<?= h(vr_url('size-guide.php')) ?>"><?= te('size_guide') ?></a>
+      <a href="<?= h(vr_url('contact.php')) ?>"><?= te('nav_contact') ?></a>
     </nav>
 
     <nav class="foot__col" aria-label="<?= te('footer_legal') ?>">
@@ -265,6 +276,10 @@ function vr_icon(string $name, int $size = 20): string
         'doc'    => '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h6M10 16h6"/>',
         'truck'  => '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.7"/><circle cx="17" cy="18" r="1.7"/>',
         'shield' => '<path d="M12 3l7 3v6c0 4-3 7.4-7 9-4-1.6-7-5-7-9V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/>',
+        'heart'  => '<path d="M12 20s-7-4.6-7-9.6A4.4 4.4 0 0 1 12 7a4.4 4.4 0 0 1 7 3.4c0 5-7 9.6-7 9.6z"/>',
+        'ruler'  => '<rect x="2.5" y="8.5" width="19" height="7" rx="1"/><path d="M7 8.5v3M11 8.5v4M15 8.5v3M19 8.5v4"/>',
+        'mail'   => '<rect x="3" y="5.5" width="18" height="13" rx="1.5"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+        'star'   => '<path d="M12 4l2.4 5 5.6.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.6-.8z"/>',
     ];
     $d = $paths[$name] ?? '';
     return '<svg class="ico" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none"'
@@ -291,6 +306,9 @@ function vr_card(array $p, array $o = []): void
     <?php if ($seller['type'] === 'private'): ?><span class="card__badge card__badge--priv"><?= te('seller_private') ?></span><?php endif; ?>
     <?php if ($soldOut): ?><span class="card__out"><?= te('sold_out') ?></span><?php endif; ?>
   </a>
+  <?php // Merkliste düğmesi bağlantının DIŞINDA: <a> içine <form> koymak
+        // geçersiz HTML ve tıklama davranışı öngörülemez oluyor.
+        vr_wish_button($p); ?>
   <div class="card__body">
     <p class="card__brand"><?= h($p['brand']) ?></p>
     <h3 class="card__name"><a href="<?= h(vr_product_url($p)) ?>"><?= h(vr_card_name($p)) ?></a></h3>
@@ -340,6 +358,7 @@ function vr_vault_card(array $v, array $o = []): void
     <span class="lot__step"><?= te('vault_stage', ['x' => (int)$st['step'] + 1, 'y' => (int)$st['steps'] + 1]) ?></span>
     <?php if ($v['sold']): ?><span class="lot__sold"><?= te('vault_gone') ?></span><?php endif; ?>
   </a>
+  <?php vr_wish_button($p); ?>
 
   <div class="lot__body">
     <p class="lot__brand"><?= h($p['brand']) ?></p>
@@ -497,6 +516,18 @@ function vr_jsonld_breadcrumbs(array $items): array
         ]);
     }
     return ['@type' => 'BreadcrumbList', 'itemListElement' => $list];
+}
+
+/** "Son bakılanlar" şeridi — boşsa hiç basılmaz. */
+function vr_seen_strip(string $excludeId = ''): void
+{
+    $rows = vr_seen_products($excludeId, 6);
+    if (count($rows) < 2) return;      // tek parça şerit olmaz
+
+    echo '<section class="sec sec--tight"><div class="wrap">';
+    vr_section_head(t('seen_title'));
+    vr_grid($rows, ['class' => 'grid--6']);
+    echo '</div></section>';
 }
 
 /** Kırıntı yolu (görsel). */

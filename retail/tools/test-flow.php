@@ -37,6 +37,8 @@ putenv('VR_NO_MAIL=1');
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/orders.php';
 require_once __DIR__ . '/../inc/listings.php';
+require_once __DIR__ . '/../inc/alerts.php';
+require_once __DIR__ . '/../inc/lists.php';
 
 $pass = 0;
 $fail = 0;
@@ -306,6 +308,101 @@ vr_cart_clear(false);
 vr_cart_add('tp-ready', 'M', 99);
 $lines = vr_cart_lines()['lines'];
 ok((int)$lines[0]['qty'] <= 2, 'Menge auf verfügbaren Bestand begrenzt', 'qty=' . (int)$lines[0]['qty']);
+
+
+// ===========================================================================
+head('7. Vault-Preisalarm');
+
+vr_store_write(VR_VAULT_FILE, ['lots' => [[
+    'lot_id' => 'alertlot', 'product_id' => 'tp-own', 'open_cents' => 20000, 'floor_cents' => 10000,
+    'steps' => 4, 'step_hours' => 24, 'start_at' => $now - 3600, 'status' => 'open',
+]]]);
+
+// Geçerli eşik: taban ile güncel fiyat arasında.
+[$aOk, $aKey] = vr_alert_add('alertlot', 'watcher@test.local', 15000, 'de');
+ok($aOk, 'Alarm gesetzt (Boden < Wunsch < aktuell)', $aKey);
+
+// Güncel fiyatın üstü → reddedilmeli (zaten geçilmiş bir eşik).
+[$hiOk] = vr_alert_add('alertlot', 'watcher@test.local', 25000);
+ok(!$hiOk, 'Wunschpreis über dem aktuellen Preis wird abgelehnt');
+
+// Tabanın altı → asla tetiklenmez, reddedilmeli.
+[$loOk] = vr_alert_add('alertlot', 'watcher@test.local', 5000);
+ok(!$loOk, 'Wunschpreis unter dem Bodenpreis wird abgelehnt');
+
+// Aynı los + aynı adres → yeni satır değil, eşik güncellemesi.
+vr_alert_add('alertlot', 'watcher@test.local', 14000);
+ok(count(vr_alerts_all()) === 1, 'Zweiter Alarm desselben Nutzers ersetzt den ersten',
+   count(vr_alerts_all()) . ' Datensatz');
+
+[$badMail] = vr_alert_add('alertlot', 'kein-email', 14000);
+ok(!$badMail, 'Ungültige E-Mail wird abgelehnt');
+
+// Henüz tetiklenmemeli (güncel 200 > eşik 140).
+$run = vr_alerts_run(true);
+ok($run['sent'] === 0, 'Probelauf sendet nichts', 'geprüft ' . $run['checked']);
+
+// Eşiği güncel fiyatın üstüne çekip gerçek gönderimi doğrula.
+$rows = vr_alerts_all();
+$rows[0]['threshold_cents'] = 30000;
+vr_store_write(VR_ALERTS_FILE, $rows);
+
+$run2 = vr_alerts_run(false);
+ok($run2['sent'] === 1, 'Erreichter Wunschpreis löst genau eine Mail aus');
+ok(count(vr_alerts_all()) === 0, 'Alarm ist danach verbraucht (kein zweiter Versand)');
+
+$run3 = vr_alerts_run(false);
+ok($run3['sent'] === 0, 'Zweiter Lauf sendet nichts mehr');
+
+// Satılmış losun alarmı sessizce düşer — "verpasst" postası atmıyoruz.
+vr_alert_add('alertlot', 'watcher2@test.local', 15000);
+vr_vault_mark_sold('alertlot', 'o-x');
+$run4 = vr_alerts_run(false);
+ok($run4['sent'] === 0 && $run4['dropped'] === 1, 'Verkauftes Los: Alarm wird entfernt, keine Mail');
+
+// İptal jetonu
+vr_store_write(VR_VAULT_FILE, ['lots' => [[
+    'lot_id' => 'alertlot2', 'product_id' => 'tp-own', 'open_cents' => 20000, 'floor_cents' => 10000,
+    'steps' => 4, 'step_hours' => 24, 'start_at' => $now - 3600, 'status' => 'open',
+]]]);
+vr_alert_add('alertlot2', 'cancel@test.local', 15000);
+$id = (string)vr_alerts_all()[0]['id'];
+ok(!vr_alert_cancel('falscher-token'), 'Falscher Storno-Token wird abgelehnt');
+ok(vr_alert_cancel(vr_alert_token($id)), 'Storno-Link löscht den Alarm');
+ok(count(vr_alerts_all()) === 0, 'Alarm ist weg');
+
+// ===========================================================================
+head('8. Merkliste und zuletzt angesehen');
+
+$_COOKIE = [];
+ok(vr_wish_count() === 0, 'Leere Merkliste');
+vr_wish_toggle('tp-ready');
+ok(vr_wish_has('tp-ready'), 'Artikel gemerkt', 'Cookie: ' . (string)($_COOKIE[VR_WISH_COOKIE] ?? ''));
+ok(vr_wish_count() === 1, 'Zähler stimmt');
+vr_wish_toggle('tp-ready');
+ok(!vr_wish_has('tp-ready'), 'Nochmal tippen entfernt wieder');
+
+// Çerezden gelen çöp değer temizlenmeli (XSS/enjeksiyon yüzeyi bırakmayalım).
+$_COOKIE[VR_WISH_COOKIE] = 'tp-ready,<script>alert(1)</script>,tp-own,../../etc/passwd';
+$ids = vr_wish_ids();
+ok($ids === ['tp-ready', 'tp-own'], 'Ungültige Cookie-Einträge werden verworfen', implode(',', $ids));
+
+$_COOKIE = [];
+vr_seen_push('tp-ready');
+vr_seen_push('tp-priv');
+vr_seen_push('tp-ready');                       // tekrar: başa taşınmalı, çift olmamalı
+$seen = vr_list_read(VR_SEEN_COOKIE, VR_SEEN_MAX);
+ok($seen === ['tp-ready', 'tp-priv'], 'Zuletzt angesehen: neueste zuerst, keine Duplikate', implode(',', $seen));
+ok(count(vr_seen_products('tp-ready')) === 1, 'Aktueller Artikel wird aus der Liste gefiltert');
+
+// ===========================================================================
+head('9. Abmeldung (Newsletter)');
+
+$tok = vr_unsub_token('someone@test.local');
+ok(strlen($tok) === 32, 'Abmelde-Token hat feste Länge', $tok);
+ok($tok === vr_unsub_token('SOMEONE@test.local '), 'Token ignoriert Groß-/Kleinschreibung und Leerzeichen');
+ok($tok !== vr_unsub_token('other@test.local'), 'Andere Adresse → anderer Token');
+ok(str_contains(vr_unsub_url('someone@test.local'), $tok), 'Abmelde-URL enthält den Token');
 
 // ===========================================================================
 echo "\n" . str_repeat('=', 74) . "\n";

@@ -39,8 +39,11 @@ $mail  = $email !== '' ? '<a href="mailto:' . h($email) . '">' . h($email) . '</
       Komfort (Countdown, Mengenschalter, sanfte Einblendungen).</li>
   <li><strong>Tastaturbedienung:</strong> alle interaktiven Elemente sind erreichbar, mit sichtbarem
       Fokusring; ein „Zum Inhalt springen“-Link steht am Seitenanfang.</li>
-  <li><strong>Kontraste:</strong> Text erfüllt mindestens 4,5:1 gegenüber dem Hintergrund; im dunklen
-      Vault-Bereich wurden Preis- und Hinweistexte entsprechend aufgehellt.</li>
+  <li><strong>Kontraste:</strong> jeder Textknoten auf den Hauptseiten wurde automatisiert gemessen
+      (tatsächlich gerenderte Farbe gegen tatsächlich gerenderten Hintergrund, inklusive
+      Transparenzen). Alle erreichen mindestens 4,5:1, große Schrift mindestens 3:1. Im dunklen
+      Vault-Bereich gelten dafür eigene Grauwerte, und Akzentfarben haben auf hellem Grund eine
+      dunklere Textvariante.</li>
   <li><strong>Struktur:</strong> eine H1 pro Seite, logische Überschriftenebenen, Landmarken
       (<code>header</code>, <code>nav</code>, <code>main</code>, <code>footer</code>), beschriftete
       Formularfelder, verknüpfte Fehlermeldungen.</li>
@@ -51,7 +54,14 @@ $mail  = $email !== '' ? '<a href="mailto:' . h($email) . '">' . h($email) . '</
   <li><strong>Zoom und kleine Bildschirme:</strong> das Layout bleibt bis 400 % Zoom nutzbar, ohne
       horizontales Scrollen des Seiteninhalts.</li>
   <li><strong>Sprache:</strong> die Seitensprache ist im HTML ausgezeichnet und über die
-      Sprachauswahl umschaltbar.</li>
+      Sprachauswahl umschaltbar (zehn Sprachen).</li>
+  <li><strong>Bildergalerie:</strong> jedes Produktbild ist ein normaler Link auf die Bilddatei.
+      Ohne JavaScript öffnet es sich direkt; mit JavaScript in einer Lightbox, die sich mit
+      Esc schließen und mit den Pfeiltasten durchblättern lässt.</li>
+  <li><strong>Suchvorschläge:</strong> mit Pfeiltasten und Enter bedienbar, mit Esc zu schließen.
+      Das Suchfeld selbst funktioniert auch ohne Vorschläge als gewöhnliches Formular.</li>
+  <li><strong>Merkliste:</strong> als Formular umgesetzt; der Zustand steht in
+      <code>aria-pressed</code> und wird auch ohne JavaScript korrekt gespeichert.</li>
 </ul>
 
 <h3>Bekannte Einschränkungen</h3>
@@ -89,9 +99,10 @@ $mail  = $email !== '' ? '<a href="mailto:' . h($email) . '">' . h($email) . '</
 <h2>Erstellung dieser Erklärung</h2>
 <p>
   Diese Erklärung wurde am <?= h(vr_date(strtotime('2026-08-01'))) ?> auf Grundlage einer internen
-  Selbstbewertung erstellt: Prüfung mit Tastaturnavigation, Kontrastmessung der eingesetzten
-  Farbwerte, Test mit deaktiviertem JavaScript sowie Prüfung der Seitenstruktur. Wir aktualisieren
-  sie, wenn sich der Shop wesentlich ändert.
+  Selbstbewertung erstellt: Tastaturnavigation, automatisierte Kontrastmessung aller Textknoten in
+  einem echten Browser, Test mit deaktiviertem JavaScript, Prüfung der Überschriftenstruktur und
+  der Formularbeschriftungen. Ein externes Audit hat nicht stattgefunden. Wir aktualisieren die
+  Erklärung, wenn sich der Shop wesentlich ändert.
 </p>
 
 <?php vr_doc_end(); ?>

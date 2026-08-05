@@ -171,7 +171,19 @@ function vr_catalog(): array
         }
     }
 
-    // 2) perakende satıcı ürünleri — aynı id varsa perakende satır kazanır
+    // 2) içe aktarılmış katalog (tools/import-live.php) — perakende AYRI bir
+    //    sunucudaysa canlı katalogun kopyası buradan gelir. Aynı sunucudaysa bu
+    //    dosya hiç oluşmaz ve adım sessizce atlanır.
+    $imported = vr_store_read('retail-imported.json', []);
+    if (is_array($imported)) {
+        foreach ($imported as $row) {
+            if (!is_array($row)) continue;
+            $n = vr_normalize_product($row, 'b2b');
+            if ($n) $cat[$n['id']] = $n;
+        }
+    }
+
+    // 3) perakende satıcı ürünleri — aynı id varsa perakende satır kazanır
     $retail = vr_store_read('retail-listings.json', []);
     if (is_array($retail)) {
         foreach ($retail as $row) {
@@ -181,7 +193,7 @@ function vr_catalog(): array
         }
     }
 
-    // 3) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
+    // 4) hiç veri yoksa vitrin boş kalmasın — demo katalog (bariz etiketli)
     if (!$cat && vr_config('demo_catalog')) {
         $demo = json_decode((string)@file_get_contents(VR_ROOT . '/data/seed/demo-catalog.json'), true);
         if (is_array($demo)) {

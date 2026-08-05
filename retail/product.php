@@ -38,6 +38,10 @@ foreach (vr_vault_lots(['include_sold' => true]) as $v) {
     if ($v['product']['id'] === $p['id']) { $vaultLot = $v; break; }
 }
 
+// Son bakılanlar çerezine ekle (görüntüleme kaydı yalnızca kullanıcının
+// cihazında kalıyor; sunucuda profil oluşmuyor).
+vr_seen_push((string)$p['id']);
+
 $seller   = vr_product_seller($p);
 $related  = vr_related($p, 4);
 $soldOut  = (int)$p['stock'] < 1;
@@ -71,24 +75,32 @@ vr_layout_start([
     ]); ?>
 
     <div class="pdp">
-      <!-- ------------------------------------------------------- görseller -->
-      <div class="pdp__media<?= count($p['images']) > 1 ? ' pdp__media--multi' : '' ?>">
+      <!-- ------------------------------------------------------- görseller
+           Her görsel kendi dosyasına giden bir bağlantı: JavaScript kapalıyken
+           tıklayınca tam boy açılıyor. JS varsa aynı bağlantıyı yakalayıp
+           büyüteç katmanında gösteriyoruz (assets/js). -->
+      <div class="pdp__media<?= count($p['images']) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
         <?php
         $shots = $p['images'] ?: [vr_product_image($p)];
         foreach (array_slice($shots, 0, 6) as $i => $src): ?>
-          <div class="pdp__shot">
+          <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
+             aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
             <img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : '')) ?>"
                  loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" <?= $i === 0 ? 'fetchpriority="high"' : '' ?>
                  width="800" height="1000">
-          </div>
+            <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>
+          </a>
         <?php endforeach; ?>
       </div>
 
       <!-- ------------------------------------------------------- satın alma -->
       <div class="pdp__side">
-        <div>
-          <p class="pdp__brand"><a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h($p['brand']) ?></a></p>
-          <h1><?= h(vr_card_name($p)) ?></h1>
+        <div class="pdp__head">
+          <div>
+            <p class="pdp__brand"><a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h($p['brand']) ?></a></p>
+            <h1><?= h(vr_card_name($p)) ?></h1>
+          </div>
+          <?php vr_wish_button($p, true); ?>
         </div>
 
         <?php if ($vaultLot !== null): ?>
@@ -140,7 +152,12 @@ vr_layout_start([
                 </p>
               <?php else: ?>
                 <div class="panel" style="border:0;padding-top:0;margin-bottom:16px">
-                  <h2><?= te('select_size') ?></h2>
+                  <h2 class="panel__h">
+                    <span><?= te('select_size') ?></span>
+                    <a class="link" href="<?= h(vr_url('size-guide.php', ['cat' => $p['cat']])) ?>">
+                      <?= vr_icon('ruler', 14) ?> <?= te('size_guide') ?>
+                    </a>
+                  </h2>
                   <div class="sizes">
                     <?php foreach ($p['sizes'] as $s): ?>
                       <label class="size">
@@ -228,5 +245,7 @@ vr_layout_start([
   </div>
 </section>
 <?php endif; ?>
+
+<?php vr_seen_strip((string)$p['id']); ?>
 
 <?php vr_layout_end(); ?>

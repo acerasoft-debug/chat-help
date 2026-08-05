@@ -15,6 +15,31 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
+require_once __DIR__ . '/inc/alerts.php';
+
+// ---- alarm kurma (POST) ve iptal (e-postadaki bağlantı)
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'alert') {
+    vr_csrf_check();
+    $lotFor = (string)($_POST['lot'] ?? '');
+
+    if (!vr_rate_ok('alert', 10, 900)) {
+        vr_flash(t('login_throttled'), 'err');
+    } else {
+        // "249,90" / "249.90" / "249" → kuruş
+        $raw = str_replace([' ', "\u{202F}", '€'], '', (string)($_POST['price'] ?? ''));
+        $cents = (int)round(((float)str_replace(',', '.', $raw)) * 100);
+
+        [$ok, $key] = vr_alert_add($lotFor, (string)($_POST['email'] ?? ''), $cents, vr_lang());
+        vr_flash(t($key), $ok ? 'ok' : 'err');
+    }
+    vr_redirect('outlet.php', ['lot' => $lotFor]);
+}
+
+if (!empty($_GET['cancel_alert'])) {
+    $gone = vr_alert_cancel((string)$_GET['cancel_alert']);
+    vr_flash(t($gone ? 'unsub_ok' : 'unsub_fail'), $gone ? 'ok' : 'err');
+    vr_redirect('outlet.php');
+}
 
 $lotId = trim((string)($_GET['lot'] ?? ''));
 $single = $lotId !== '' ? vr_vault_find($lotId) : null;
@@ -70,13 +95,13 @@ if ($single !== null) {
 
       <div class="pdp__side">
         <div>
-          <p class="pdp__brand" style="color:var(--brass)"><?= h($p['brand']) ?></p>
+          <p class="pdp__brand" style="color:var(--brass-text)"><?= h($p['brand']) ?></p>
           <h1><?= h(vr_card_name($p)) ?></h1>
         </div>
 
         <!-- fiyat bloğu: plan tam görünür -->
         <div class="panel" style="border-color:rgba(245,242,236,.16)">
-          <h2 style="color:var(--brass)"><?= te('vault_price_now') ?></h2>
+          <h2 style="color:var(--brass-text)"><?= te('vault_price_now') ?></h2>
           <div class="lot__price">
             <span class="lot__now" style="font-size:clamp(34px,4.4vw,52px)"><?= h(vr_money((int)$st['cents'])) ?></span>
             <?php if ($st['reference'] !== null): ?><s class="lot__ref"><?= h(vr_money((int)$st['reference'])) ?></s><?php endif; ?>
@@ -109,7 +134,7 @@ if ($single !== null) {
 
         <?php if ($locked): ?>
           <div class="notice"><?= te('vault_early', ['time' => vr_until($single['members_until'])]) ?>
-            <a class="link" style="color:var(--brass)" href="<?= h(vr_url('/')) ?>#member"><?= te('news_cta') ?></a>
+            <a class="link" style="color:var(--brass-text)" href="<?= h(vr_url('/')) ?>#member"><?= te('news_cta') ?></a>
           </div>
         <?php elseif ($single['sold'] || !$single['available']): ?>
           <span class="btn btn--block is-disabled"><span><?= te('vault_gone') ?></span></span>
@@ -129,9 +154,39 @@ if ($single !== null) {
           </p>
         <?php endif; ?>
 
+        <!-- fiyat alarmı: kullanıcı istediği fiyatı söylesin, biz haber verelim -->
+        <?php if (!$single['sold'] && $st['phase'] === 'live' && !$st['at_floor']): ?>
+          <div class="alert">
+            <h2><?= te('alert_t') ?></h2>
+            <p><?= te('alert_b') ?></p>
+            <form method="post" action="<?= h(vr_url('outlet.php')) ?>">
+              <?= vr_csrf_field() ?>
+              <input type="hidden" name="action" value="alert">
+              <input type="hidden" name="lot" value="<?= h($single['lot_id']) ?>">
+              <div class="alert__row">
+                <label class="vh" for="al-mail"><?= te('news_email') ?></label>
+                <input id="al-mail" type="email" name="email" required placeholder="<?= te('news_email') ?>" autocomplete="email">
+                <label class="vh" for="al-price"><?= te('alert_price') ?></label>
+                <input id="al-price" type="text" inputmode="decimal" name="price" required
+                       style="flex:0 1 130px"
+                       value="<?= h(vr_money((int)($st['next_cents'] ?? $st['floor_cents']), false)) ?>"
+                       aria-describedby="al-hint">
+                <button class="btn btn--brass btn--sm" type="submit"><span><?= te('alert_cta') ?></span></button>
+              </div>
+              <p id="al-hint" class="lot__legal" style="margin-top:10px">
+                <?= te('vault_floor_price') ?>: <?= h(vr_money((int)$st['floor_cents'])) ?> ·
+                <?= te('vault_price_now') ?>: <?= h(vr_money((int)$st['cents'])) ?>
+                <?php $an = vr_alert_count($single['lot_id']); if ($an >= 3): ?>
+                  · <?= (int)$an ?> <?= te('alert_t') ?>
+                <?php endif; ?>
+              </p>
+            </form>
+          </div>
+        <?php endif; ?>
+
         <!-- planın tamamı: hangi kademede ne olacak -->
         <div class="panel" style="border-color:rgba(245,242,236,.16)">
-          <h2 style="color:var(--brass)"><?= te('vault_how') ?></h2>
+          <h2 style="color:var(--brass-text)"><?= te('vault_how') ?></h2>
           <table class="table" style="color:var(--muted)">
             <thead><tr>
               <th style="color:var(--muted-2)"><?= te('vault_stage', ['x' => '#', 'y' => (int)$st['steps'] + 1]) ?></th>
@@ -174,7 +229,7 @@ if ($single !== null) {
 
         <?php if ($p['desc'] !== ''): ?>
           <div class="panel" style="border-color:rgba(245,242,236,.16)">
-            <h2 style="color:var(--brass)"><?= te('description') ?></h2>
+            <h2 style="color:var(--brass-text)"><?= te('description') ?></h2>
             <p style="color:var(--muted)"><?= h($p['desc']) ?></p>
           </div>
         <?php endif; ?>

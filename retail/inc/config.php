@@ -140,8 +140,8 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             'stripe_tax'         => false, // true → vergiyi Stripe Tax hesaplar
 
             // ---- perakende fiyatlama (B2B kataloğundan türetme)
-            'retail_multiplier'  => 2.40,  // toptan birim fiyat × kat sayı
-            'retail_round_to'    => 900,   // kuruş: ...,90 ile bitir (cazip fiyat)
+            'retail_multiplier'  => 3.00,  // toptan birim fiyat × 3
+            'retail_round_to'    => 900,   // 10 €'luk ızgarada …9,00 ile bitir
             'retail_min_cents'   => 2900,
 
             // ---- pazaryeri komisyonu (Stripe Connect application fee)

@@ -20,6 +20,8 @@ if (PHP_SAPI !== 'cli') {
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/orders.php';
 require_once __DIR__ . '/../inc/listings.php';
+require_once __DIR__ . '/../inc/alerts.php';
+require_once __DIR__ . '/../inc/journal-content.php';
 
 $withStripe = in_array('--stripe', $argv, true);
 $fail = 0;
@@ -130,6 +132,36 @@ foreach ($listings as $l) if ((string)($l['status'] ?? '') === 'review') $pendin
 line('OK', 'Verkäuferangebote', count($listings) . ' (' . $pending . ' in Prüfung)');
 if ($pending > 0) line('WARN', '  Prüfung offen', 'php tools/moderate.php list');
 
+// ------------------------------------------------------------- sayfa bütünlüğü
+head('Seiten');
+$pages = [
+    'index.php', 'shop.php', 'product.php', 'outlet.php', 'brands.php', 'cart.php',
+    'checkout.php', 'order.php', 'sell.php', 'faq.php', 'journal.php', 'size-guide.php',
+    'contact.php', 'wishlist.php', 'newsletter.php', '404.php', 'sitemap.php', 'robots.php',
+    'api/webhook.php', 'api/suggest.php',
+    'seller/index.php', 'seller/login.php', 'seller/register.php', 'seller/listing.php',
+    'seller/payouts.php', 'seller/orders.php', 'seller/logout.php',
+];
+$missing = [];
+foreach ($pages as $f) {
+    if (!is_readable(VR_ROOT . '/' . $f)) $missing[] = $f;
+}
+line($missing ? 'FAIL' : 'OK', 'Storefront-Seiten', $missing ? 'fehlt: ' . implode(', ', $missing) : count($pages) . ' Dateien');
+
+$legal = ['impressum', 'agb', 'widerruf', 'rueckgabe', 'versand', 'zahlung', 'datenschutz',
+          'cookies', 'verkaeufer', 'streitbeilegung', 'barrierefreiheit'];
+$lMiss = [];
+foreach ($legal as $f) {
+    if (!is_readable(VR_ROOT . '/legal/' . $f . '.php')) $lMiss[] = $f;
+}
+line($lMiss ? 'FAIL' : 'OK', 'Rechtstexte', $lMiss ? 'fehlt: ' . implode(', ', $lMiss) : count($legal) . ' Dokumente');
+line('OK', 'Journal-Beiträge', count(vr_journal_entries()) . ' Artikel');
+
+$alerts = vr_alerts_all();
+line('OK', 'Offene Preisalarme', count($alerts) . ($alerts ? ' (php tools/vault-alerts.php list)' : ''));
+$msgs = vr_store_read('retail-messages.json', []);
+line('OK', 'Kontaktnachrichten', is_array($msgs) ? (string)count($msgs) : '0');
+
 // -------------------------------------------------------------------- Stripe
 head('Stripe');
 $cfg = vr_stripe_settings();
@@ -140,6 +172,7 @@ line($cfg['publishable_key'] !== '' ? 'OK' : 'WARN', 'Publishable Key',
 line($cfg['webhook_ready'] ? 'OK' : 'FAIL', 'Webhook Secret',
      $cfg['webhook_ready'] ? 'vorhanden' : 'FEHLT — Bestellungen werden nie als bezahlt markiert');
 line('OK', 'Webhook-URL', vr_abs('api/webhook.php'));
+line('OK', 'Alarm-Cron', 'stündlich: .github/workflows/vault-alerts.yml');
 line('OK', 'Provision', sprintf('Händler %s%% · privat %s%% · Vault %s%% · fix %s',
     (int)vr_config('fee_bps_business') / 100, (int)vr_config('fee_bps_private') / 100,
     (int)vr_config('fee_bps_outlet') / 100, vr_money((int)vr_config('fee_fixed_cents'))));

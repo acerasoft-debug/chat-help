@@ -12,7 +12,11 @@
   # /outlet/<lot> ve /product/<id> okunabilir yollar
   RewriteRule ^product/([A-Za-z0-9._-]+)/?$  product.php?id=$1  [L,QSA]
   RewriteRule ^outlet/([A-Za-z0-9._-]+)/?$   outlet.php?lot=$1  [L,QSA]
+  RewriteRule ^journal/([a-z0-9-]+)/?$       journal.php?a=$1   [L,QSA]
 </IfModule>
+
+# ---- bulunamadi sayfasi (arama + oneri sunuyor, kuru bir hata degil)
+ErrorDocument 404 /404.php
 
 # ---- veri ve arac dizinleri web'den kapali
 RedirectMatch 404 ^/(.*/)?data/

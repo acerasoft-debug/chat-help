@@ -68,13 +68,65 @@ $mail  = vr_mail_settings();
     <tr><td><code>vr_member</code></td>
         <td>Vault-Erstzugang nach bestätigter Newsletter-Anmeldung (signierter Wert, keine
             Klartext-E-Mail)</td><td>1 Jahr</td></tr>
+    <tr><td><code>vr_wish</code></td><td>Merkliste — nur Artikelkennungen</td><td>180 Tage</td></tr>
+    <tr><td><code>vr_seen</code></td><td>zuletzt angesehene Artikel — nur Artikelkennungen</td><td>30 Tage</td></tr>
   </tbody>
 </table>
 <p>
   Weitere Hinweise: <a href="<?= h(vr_url('legal/cookies.php')) ?>"><?= te('legal_cookies') ?></a>.
 </p>
 
-<h2>5. Bestellung und Vertragsabwicklung</h2>
+<h2>5. Merkliste und zuletzt angesehene Artikel</h2>
+<p>
+  Merkliste und „Zuletzt angesehen“ speichern wir <strong>ausschließlich in einem Cookie auf Ihrem
+  Gerät</strong>. Der Cookie enthält nur Artikelkennungen (z. B. <code>blm-ah0eg000</code>) — keinen
+  Namen, keine E-Mail-Adresse, keine Kennung, die Sie identifizierbar macht. Auf unseren Servern
+  entsteht dazu kein Profil und keine Zuordnung zu Ihrer Person.
+</p>
+<ul>
+  <li><strong>Zweck:</strong> die von Ihnen ausdrücklich gewünschte Funktion</li>
+  <li><strong>Rechtsgrundlage:</strong> § 25 Abs. 2 Nr. 2 TDDDG (technisch erforderlich für den
+      vom Nutzer angeforderten Dienst); soweit personenbezogen, Art. 6 Abs. 1 lit. f DSGVO</li>
+  <li><strong>Speicherdauer:</strong> Merkliste 180 Tage, zuletzt angesehen 30 Tage — oder bis Sie
+      die Cookies löschen</li>
+</ul>
+
+<h2>6. Kontaktformular</h2>
+<p>
+  Nutzen Sie das Kontaktformular, verarbeiten wir Ihre E-Mail-Adresse, optional Name und
+  Bestellnummer sowie den Inhalt Ihrer Nachricht. Eine Kopie wird auf unserem Server gespeichert,
+  damit keine Anfrage verloren geht, wenn der E-Mail-Versand scheitert.
+</p>
+<ul>
+  <li><strong>Zweck:</strong> Beantwortung Ihrer Anfrage</li>
+  <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO bei Bestellbezug, sonst
+      Art. 6 Abs. 1 lit. f DSGVO</li>
+  <li><strong>Speicherdauer:</strong> bis zur abschließenden Bearbeitung, danach längstens sechs
+      Monate; bei Bestellbezug gelten die handelsrechtlichen Fristen</li>
+</ul>
+<p>
+  Zur Spamabwehr setzen wir ein unsichtbares Formularfeld und eine Zeitmessung ein. Es wird
+  <em>kein</em> externer Captcha-Dienst eingebunden — dadurch werden keine Daten an Dritte
+  übertragen.
+</p>
+
+<h2>7. Preisalarm im Vault</h2>
+<p>
+  Wenn Sie für ein Los einen Preisalarm setzen, speichern wir Ihre E-Mail-Adresse, das Los, Ihren
+  Wunschpreis, den Zeitpunkt und einen gesalzenen Hashwert Ihrer IP-Adresse als Nachweis.
+</p>
+<ul>
+  <li><strong>Zweck:</strong> die eine von Ihnen angeforderte Benachrichtigung</li>
+  <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
+  <li><strong>Speicherdauer:</strong> bis zum Versand der Benachrichtigung, längstens 90 Tage.
+      Danach wird der Datensatz vollständig gelöscht.</li>
+</ul>
+<p>
+  Es wird <strong>genau eine</strong> E-Mail versendet; danach ist der Alarm verbraucht. Erinnerungen
+  oder Werbung folgen nicht. Jeder Alarm lässt sich über den Link in der E-Mail sofort löschen.
+</p>
+
+<h2>8. Bestellung und Vertragsabwicklung</h2>
 <p>
   Für eine Bestellung verarbeiten wir: Name, Liefer- und Rechnungsadresse, E-Mail-Adresse,
   bestellte Artikel, Preise, Zahlungsstatus, Bestellnummer sowie einen Nachweis Ihrer Zustimmung zu
@@ -96,7 +148,7 @@ $mail  = vr_mail_settings();
   Verantwortlicher. Nicht übermittelt werden Zahlungsdaten und Angaben zu Artikeln anderer Verkäufer.
 </p>
 
-<h2>6. Zahlungsabwicklung (Stripe)</h2>
+<h2>9. Zahlungsabwicklung (Stripe)</h2>
 <p>
   Zahlungen werden über Stripe Payments Europe, Limited, 1 Grand Canal Street Lower, Grand Canal
   Dock, Dublin, Irland abgewickelt. Ihre Zahlungsdaten geben Sie direkt bei Stripe ein; wir erhalten
@@ -117,7 +169,7 @@ $mail  = vr_mail_settings();
 </p>
 <p>Datenschutzhinweise von Stripe: <a href="https://stripe.com/privacy" rel="noopener">stripe.com/privacy</a></p>
 
-<h2>7. E-Mail-Versand</h2>
+<h2>10. E-Mail-Versand</h2>
 <p>
   Transaktions-E-Mails (Bestellbestätigung, Versandmitteilung, Verkäuferbenachrichtigung) und
   Newsletter versenden wir über
@@ -130,7 +182,7 @@ $mail  = vr_mail_settings();
   <li><strong>Auftragsverarbeitung:</strong> Es besteht ein Vertrag nach Art. 28 DSGVO.</li>
 </ul>
 
-<h2>8. Newsletter / Vault-Mitgliedschaft</h2>
+<h2>11. Newsletter / Vault-Mitgliedschaft</h2>
 <p>
   Die Anmeldung erfolgt im Double-Opt-in-Verfahren: nach Eingabe der Adresse erhalten Sie eine
   Bestätigungs-E-Mail; erst mit Klick auf den Link wird die Anmeldung wirksam. Zum Nachweis
@@ -143,7 +195,7 @@ $mail  = vr_mail_settings();
   berührt nicht die Rechtmäßigkeit der bis dahin erfolgten Verarbeitung.
 </p>
 
-<h2>9. Verkäuferkonten</h2>
+<h2>12. Verkäuferkonten</h2>
 <p>
   Für ein Verkäuferkonto verarbeiten wir: Name, ggf. Firmenname, E-Mail-Adresse, Land, ggf.
   USt-IdNr., Verkäufertyp (gewerblich/privat), Passwort (nur als kryptografischer Hash, niemals im
@@ -158,7 +210,7 @@ $mail  = vr_mail_settings();
       lediglich der Status „<?= te('seller_private') ?>“ angezeigt, kein vollständiger Name.</li>
 </ul>
 
-<h2>10. Sicherheitsmaßnahmen und Protokolle</h2>
+<h2>13. Sicherheitsmaßnahmen und Protokolle</h2>
 <p>
   Wir führen technische Protokolle über fehlgeschlagene Anmeldeversuche, Zahlungsfehler und
   Webhook-Ereignisse. Sie enthalten Zeitpunkt, Ereignisart und technische Kennungen; E-Mail-Adressen
@@ -170,7 +222,7 @@ $mail  = vr_mail_settings();
   Einweg-Hashverfahren gespeichert.
 </p>
 
-<h2>11. Ihre Rechte</h2>
+<h2>14. Ihre Rechte</h2>
 <p>Sie haben jederzeit das Recht auf:</p>
 <ul>
   <li>Auskunft über die zu Ihrer Person gespeicherten Daten (Art. 15 DSGVO)</li>
@@ -188,7 +240,7 @@ $mail  = vr_mail_settings();
   der Behörde Ihres gewöhnlichen Aufenthaltsorts.
 </p>
 
-<h2>12. Änderungen</h2>
+<h2>15. Änderungen</h2>
 <p>
   Wir passen diese Erklärung an, wenn sich die tatsächliche Verarbeitung ändert — etwa bei Einsatz
   eines neuen Dienstleisters. Es gilt die jeweils auf dieser Seite veröffentlichte Fassung.

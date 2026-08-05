@@ -100,7 +100,7 @@ vr_layout_start([
       ];
       foreach ($steps as [$n, $title, $body]): ?>
         <div class="step" style="border-color:var(--bone-3)" data-reveal>
-          <b style="color:var(--brass)"><?= h($n) ?></b>
+          <b style="color:var(--brass-text)"><?= h($n) ?></b>
           <h3><?= h($title) ?></h3>
           <p><?= h($body) ?></p>
         </div>

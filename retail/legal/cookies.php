@@ -49,6 +49,20 @@ vr_doc_start('legal_cookies', '2026-08-01');
           Hashwert Ihrer E-Mail-Adresse und eine Signatur — nicht Ihre Adresse im Klartext.</td>
       <td>1 Jahr</td>
     </tr>
+    <tr>
+      <td><code>vr_wish</code></td>
+      <td>funktional</td>
+      <td>Ihre Merkliste. Inhalt: eine Liste von Artikelkennungen, sonst nichts. Wird nicht an den
+          Server gemeldet, außer wenn Sie die Merklisten-Seite selbst öffnen.</td>
+      <td>180 Tage</td>
+    </tr>
+    <tr>
+      <td><code>vr_seen</code></td>
+      <td>funktional</td>
+      <td>Die zuletzt von Ihnen angesehenen Artikel, damit Sie sie wiederfinden. Ebenfalls nur
+          Artikelkennungen.</td>
+      <td>30 Tage</td>
+    </tr>
   </tbody>
 </table>
 

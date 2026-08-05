@@ -4,6 +4,9 @@ Perakende (B2C) mağaza katmanı: vitrin, ürün sayfası, **Premium Outlet (Vau
 sepet, Stripe ödeme, satıcı kaydı (Anmeldung) ve Stripe **Connect** ile satıcı
 ödemeleri — özel satıcılar (Privatverkäufer) dahil. İşletmeci: **Acerasoft LLC**.
 
+Ayrıca: Merkliste, son bakılanlar, görsel büyüteci, arama önerileri, Vault fiyat
+alarmı, Größenberatung, Kontakt formu, Journal ve arama sunan 404 sayfası.
+
 Bağımlılık yok: composer yok, npm yok, veritabanı yok. PHP 8.1+ ve `curl` yeter.
 Canlı B2B kataloğunu (`data/listings.json`) **salt okunur** kullanır, ona hiçbir
 koşulda yazmaz.
@@ -180,8 +183,78 @@ Sık kullanılanlar:
 
 ## 4. Katalog ve fiyat
 
+### vestrasales.com ürünleri buraya nasıl gelir?
+
+**Aynı sunucuya kurulduysa: kendiliğinden.** Vitrin `~/public_html/data/listings.json`
+dosyasını doğrudan okur — canlı toptan katalogdaki HER ürün, perakende fiyatıyla
+vitrine düşer. İçe aktarma, kopyalama, senkron işi yok; toptan tarafta fiyat
+değişince perakende de değişir.
+
+**Ayrı sunucuya kurulduysa** (ya da donmuş bir kopya isteniyorsa):
+
+```bash
+# aynı sunucuda, dosyadan (en hızlısı)
+php tools/import-live.php --from=~/public_html --images
+
+# başka sunucudan, HTTPS üzerinden
+php tools/import-live.php --from=https://vestrasales.com --images
+
+# önce ne olacağını gör
+php tools/import-live.php --from=~/public_html --dry
+```
+
+Actions'tan da çalıştırılabilir: **Canlı katalogu perakendeye aktar**.
+Sonuç `data/retail-imported.json` dosyasına yazılır; canlı `listings.json`'a
+dokunulmaz.
+
+### Fiyat: ×3
+
+`retail_multiplier` **3.00**. Toptan birim fiyat üçle çarpılır ve 10 €'luk
+ızgarada "…9,00" ile biten en yakın değere yuvarlanır:
+
+| Toptan | ×3 | Vitrin |
+|---|---|---|
+| 59,90 € | 179,70 € | **179,00 €** |
+| 89,00 € | 267,00 € | **269,00 €** |
+| 119,00 € | 357,00 € | **359,00 €** |
+| 149,00 € | 447,00 € | **449,00 €** |
+
+Çarpanı değiştirmek tek satır: `data/retail-settings.json` → `"retail_multiplier": 3.0`.
+Tek bir ürüne özel fiyat isterseniz o satıra `retail_price` yazın — çarpanı ezer.
+
+### Ürün fotoğrafları
+
+* **Canlı sitenin kendi fotoğrafları** (`/uploads/...`) içe aktarımda birlikte
+  gelir (`--images`). Ürün başına kaç fotoğraf varsa hepsi taşınır ve ürün
+  sayfasında galeri + büyüteç olarak gösterilir.
+* **Ek fotoğraf** eklemek için URL listesi verin:
+
+  ```json
+  { "blm-ah0eg000bc27": ["https://…/1.jpg", "https://…/2.jpg"],
+    "AH1EG010": ["https://…/detay.jpg"] }
+  ```
+
+  ```bash
+  php tools/import-live.php --from=~/public_html --images --extra=extra.json
+  ```
+
+  Anahtar ürün id'si veya SKU olabilir. İndirilen dosya gerçekten görsel mi diye
+  kontrol edilir, `/uploads/imported/` altına rastgele adla yazılır ve klasörde
+  PHP yürütme kapatılır.
+
+> **Telif uyarısı:** Araç internette kendiliğinden fotoğraf ARAMAZ. Marka
+> sitelerinden ya da başka perakendecilerden alınan ürün fotoğrafları o
+> sitelerin/fotoğrafçıların telifindedir; kendi mağazanızda yayınlamak
+> uyarı-ihtar (Abmahnung) riski demektir. `--extra` listesine yalnızca kendi
+> çektiğiniz veya tedarikçinizin size kullanım hakkıyla verdiği görselleri
+> koyun. Tedarikçi fotoğrafları zaten canlı sitede `/uploads/` altında duruyor —
+> ilk madde onları getiriyor.
+
+* **Fotoğrafsız satır** boş kalmaz: kategoriye göre çizilen bir giysi silueti
+  üretilir (`assets/art.php`) — tişört, hoodie, jean, mont, çanta, ayakkabı…
+
 * **B2B satırları** (`data/listings.json`) salt okunur okunur. Perakende fiyat:
-  `retail_price` varsa o, yoksa `list × retail_multiplier`, `…,90` ile biten
+  `retail_price` varsa o, yoksa `list × retail_multiplier`, "…9,00" ile biten
   cazip fiyata yuvarlanır.
 * **Beden/stok**, B2B satırındaki `"sizes"` metninden ayrıştırılır:
   `"S×1 · M×3 · L×3 · 10/pack"` → S:1, M:3, L:3 (paket bilgisi otomatik elenir).
@@ -217,7 +290,34 @@ Doğrulaması: `php tools/test-flow.php` (62 test, Stripe'a istek atmaz).
 
 ---
 
-## 6. Satıcılar (Anmeldung)
+## 6. Vitrin özellikleri
+
+| Özellik | Nerede | Nasıl çalışır |
+|---|---|---|
+| **Merkliste** | kart + ürün sayfasındaki kalp | Çerezde yalnızca ürün id'si; sunucuda profil yok. JS varsa sayfa yenilenmeden, yoksa form gönderimiyle. |
+| **Son bakılanlar** | ürün + katalog sayfası altı | Son 12 ürün, 30 gün, yine sadece çerez. |
+| **Görsel büyüteci** | ürün sayfası | Her görsel dosyaya giden normal bir bağlantı; JS varsa Esc/←/→ ile gezilen katman. |
+| **Arama önerileri** | üst çubuk | `api/suggest.php`, 220 ms gecikmeli, klavyeyle gezilebilir. Sonuç yoksa marka önerir. JS kapalıysa kutu normal form olarak çalışır. |
+| **Vault fiyat alarmı** | los sayfası | "Şu fiyata inince haber ver" — **tek** e-posta, sonra alarm silinir. Eşik güncel fiyatın altında ve tabanın üstünde olmak zorunda. |
+| **Größenberatung** | `size-guide.php` | IT/DE/FR/UK-US dönüşüm tabloları, ölçüm talimatı, ev bazında kalıp notları. Ürün sayfasındaki beden başlığından ilgili sekmeye açılır. |
+| **Kontakt** | `contact.php` | Gerçekten gönderir; kopyası `retail-messages.json`'a yazılır. Spam koruması bal küpü + zaman ölçümü (dış captcha YOK). |
+| **Journal** | `journal.php` | Beş editoryal yazı (herkunft, Vault mekaniği, bakım, kalıp, privat/gewerblich) — DE + EN. |
+| **404** | `404.php` | Adresteki kelimelerden ürün önerir, arama kutusu ve canlı Vault losları sunar. |
+
+### Fiyat alarmı — işletme tarafı
+
+```bash
+php tools/vault-alerts.php --dry     # kimseye yazmadan ne olacağını göster
+php tools/vault-alerts.php           # gönder (saatte bir cron)
+php tools/vault-alerts.php list      # kurulu alarmlar
+```
+
+Zamanlama: `.github/workflows/vault-alerts.yml` (saat başı). Her alarm en fazla
+**bir** posta üretir; hatırlatma/"son şans" postası üretecek bir kod yolu yok.
+
+---
+
+## 7. Satıcılar (Anmeldung)
 
 Akış: `sell.php` → `seller/register.php` → `seller/payouts.php` (Stripe Connect)
 → `seller/listing.php` → moderasyon → canlı.
@@ -253,7 +353,7 @@ dışlanabilir — alıcı bunu **ödeme öncesinde** ayrıca onaylar.
 
 ---
 
-## 7. Hukuki sayfalar
+## 8. Hukuki sayfalar
 
 `legal/` altında, Almanca (bağlayıcı dil):
 
@@ -276,7 +376,7 @@ Google Fonts yok (tipografi sistem yazı tipleriyle). Yalnızca teknik zorunlu
 
 ---
 
-## 8. Diller
+## 9. Diller
 
 10 dil: `en` (varsayılan) · `de` · `fr` · `it` · `es` · `ru` · `az` · `da` ·
 `sv` · `nl` (Flamanca, hreflang `nl-BE`).
@@ -290,20 +390,39 @@ Kapsamı görmek için: `php tools/selftest.php` → "Sprachen" bölümü.
 
 ---
 
-## 9. Araçlar
+## Erişilebilirlik (BFSG)
+
+Ana sayfaların **her metin düğümü** gerçek tarayıcıda ölçüldü: gerçekten
+render edilen renk, gerçekten render edilen zemine karşı (şeffaflıklar dahil).
+Tümü WCAG 2.1 AA eşiğini geçiyor — küçük metin 4,5:1, büyük metin 3:1.
+
+Bunun için iki şey gerekti: koyu bölgelerde (Vault, hero, altlık) grilerin
+yeniden tanımlanması ve pirinç/kızıl vurguların açık zeminde daha koyu bir
+metin varyantına (`--brass-text`, `--ember-text`) bağlanması. Ölçümü tekrar
+etmek istersen `legal/barrierefreiheit.php` neyin nasıl test edildiğini yazıyor.
+
+JavaScript kapalıyken site tam çalışır — beliriş efekti bile
+`@media (scripting: enabled)` ile korumalı, yani betik çalışmazsa içerik
+gizli kalmaz.
+
+---
+
+## 10. Araçlar
 
 | Komut | Ne yapar |
 |---|---|
 | `php tools/selftest.php [--stripe]` | kurulum kontrolü; `--stripe` gerçek API çağrısı yapar |
-| `php tools/test-flow.php` | 62 akış testi (fiyat planı, komisyon, webhook imzası, idempotency) — geçici dizinde çalışır, canlı veriye dokunmaz |
+| `php tools/test-flow.php` | 86 akış testi (fiyat planı, komisyon, webhook imzası, idempotency, alarmlar, Merkliste, abonelik iptali) — geçici dizinde çalışır, canlı veriye dokunmaz |
 | `php tools/vault-open.php` | Vault losu aç/kapat/listele |
 | `php tools/moderate.php` | ilan moderasyonu, satıcı listesi |
+| `php tools/vault-alerts.php` | fiyat alarmlarını gönder/listele |
+| `php tools/import-live.php` | canlı katalogu + görselleri içe aktar |
 
 Hepsi **yalnızca CLI**; web'den çağrılırsa 403 döner.
 
 ---
 
-## 10. Güvenlik notları
+## 11. Güvenlik notları
 
 * Fiyat hiçbir zaman istemciden gelmez; sepette yalnızca kimlikler tutulur.
 * Tüm POST'larda CSRF token; giriş/kayıt/ödeme/newsletter'da hız sınırı.
@@ -313,10 +432,14 @@ Hepsi **yalnızca CLI**; web'den çağrılırsa 403 döner.
 * JSON yazma atomik (`rename`), eşzamanlı değişiklikler `flock` ile serileşir.
 * CSP başlığı: `default-src 'self'`, dış script/font/görsel yok.
 * Webhook: imza + zaman toleransı + işlenen olay id kaydı (çift işleme yok).
+* Yüklenen görseller içerik doğrulamasından geçer, yeniden kodlanır (EXIF silinir)
+  ve klasörde PHP yürütme kapatılır.
+* Kontakt formunda dış captcha yok: bal küpü + zaman ölçümü + hız sınırı.
+* Merkliste/son bakılanlar çerezleri okunurken doğrulanır — çöp değer atılır.
 
 ---
 
-## 11. Bilinen sınırlar
+## 12. Bilinen sınırlar
 
 * Ödemeyi **webhook** kesinleştirir. Webhook secret girilmezse siparişler
   `pending` kalır (dönüş sayfası yedek doğrulama yapar ama tek başına yeterli

@@ -44,6 +44,14 @@ function vr_mail_send(string $to, string $subject, string $html, array $o = []):
             'textContent' => $text,
         ];
         if ($replyTo !== '') $payload['replyTo'] = ['email' => $replyTo];
+        if (!empty($o['unsubscribe'])) {
+            // Gmail/Outlook'un "Abmelden" düğmesi bu başlıkları okur. Reklam
+            // postalarında zorunlu sayılıyor ve teslim edilebilirliği artırıyor.
+            $payload['headers'] = [
+                'List-Unsubscribe' => '<' . $o['unsubscribe'] . '>',
+                'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
+            ];
+        }
         if (!empty($o['bcc']) && filter_var((string)$o['bcc'], FILTER_VALIDATE_EMAIL)) {
             $payload['bcc'] = [['email' => (string)$o['bcc']]];
         }
@@ -78,9 +86,29 @@ function vr_mail_send(string $to, string $subject, string $html, array $o = []):
         'From: ' . vr_mail_encode_name($fromName) . ' <' . $from . '>',
     ];
     if ($replyTo !== '') $headers[] = 'Reply-To: ' . $replyTo;
+    if (!empty($o['unsubscribe'])) {
+        $headers[] = 'List-Unsubscribe: <' . $o['unsubscribe'] . '>';
+        $headers[] = 'List-Unsubscribe-Post: List-Unsubscribe=One-Click';
+    }
 
     $ok = @mail($to, vr_mail_encode_name($subject), $html, implode("\r\n", $headers));
     return $ok ? [true, ''] : [false, 'gonderilemedi'];
+}
+
+/**
+ * Abonelikten çıkma jetonu — e-postadan HMAC ile türetilir.
+ * Listede ayrı bir alan tutmuyoruz: bağlantı her zaman aynı, süresiz geçerli
+ * ve adresi bilmeyen biri üretemez.
+ */
+function vr_unsub_token(string $email): string
+{
+    require_once __DIR__ . '/vault.php';           // vr_member_secret()
+    return substr(hash_hmac('sha256', 'unsub|' . strtolower(trim($email)), vr_member_secret()), 0, 32);
+}
+
+function vr_unsub_url(string $email): string
+{
+    return vr_abs('newsletter.php', ['unsubscribe' => vr_unsub_token($email)]);
 }
 
 /** Başlıkta UTF-8 güvenli kodlama (Almanca umlaut'lar bozulmasın). */
@@ -241,8 +269,14 @@ function vr_mail_newsletter_confirm(string $email, string $token): void
         . te('news_cta') . '</a></p>'
         . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>';
 
+    $body .= '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">'
+          . 'Sie haben diese E-Mail angefordert. Nicht gewollt? Dann ignorieren Sie sie einfach — '
+          . 'ohne Bestätigung wird nichts eingetragen. '
+          . '<a href="' . h(vr_unsub_url($email)) . '" style="color:#8a8578">Abmelden</a></p>';
+
     vr_mail_send($email, vr_config('brand') . ' — ' . t('news_title'),
-        vr_mail_layout(t('news_title'), $body, t('news_sub', ['hours' => 12])));
+        vr_mail_layout(t('news_title'), $body, t('news_sub', ['hours' => 12])),
+        ['unsubscribe' => vr_unsub_url($email)]);
 }
 
 /**

@@ -108,14 +108,24 @@ function vr_amount(int $cents): string
     return number_format($cents / 100, 2, '.', '');
 }
 
-/** Cazip fiyata yuvarla: 25 872 kuruş → 25 900 (…,90 ile biter). */
+/**
+ * Cazip fiyata yuvarla: 10 €'luk ızgarada "…9,00" ile biten en YAKIN değere.
+ * 17 970 → 17 900 (179,00 €) · 18 400 → 18 900 (189,00 €)
+ *
+ * En yakını seçiyoruz, yukarı değil: 3 × 59,90 = 179,70 iken 189,00 basmak
+ * müşteriye ~9 € fazla, kataloğun tamamında sistematik bir sapma demekti.
+ */
 function vr_charm_round(int $cents): int
 {
     $step = max(1, (int)vr_config('retail_round_to', 900));
-    $unit = 1000;                            // 10,00 € ızgarası
+    $unit = 1000;                                    // 10,00 € ızgarası
     $base = (int)floor($cents / $unit) * $unit;
-    $out  = $base + $step;
-    if ($out < $cents) $out += $unit;        // aşağı yuvarlamayalım
+
+    $low  = $base + $step;
+    if ($low > $cents) $low -= $unit;                // alttaki cazip fiyat
+    $high = $low + $unit;                            // üstteki cazip fiyat
+
+    $out = ($cents - $low) <= ($high - $cents) ? $low : $high;
     return max((int)vr_config('retail_min_cents', 2900), $out);
 }
 

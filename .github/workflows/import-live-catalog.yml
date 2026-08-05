@@ -1,0 +1,95 @@
+name: Canlı katalogu perakendeye aktar
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Kaynak: canlı kurulumun yolu (aynı sunucu) veya https adresi"
+        required: true
+        default: "~/public_html"
+      images:
+        description: "true = görselleri de kopyala/indir"
+        required: true
+        default: "true"
+      extra_images:
+        description: "Ek görsel dosyası (repo kökünden yol, örn: product-images/extra.json) — boş bırakılabilir"
+        required: false
+        default: ""
+      dry_run:
+        description: "true = SADECE ne olacağını yaz, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# Canlı B2B katalogunu (listings.json + /uploads görselleri) perakende katmanına
+# aktarır ve fiyatları retail_multiplier (varsayılan ×3) ile hesaplatır.
+#
+# ÖNEMLİ: perakende katmanı canlı siteyle AYNI sunucudaysa bu iş GEREKSİZDİR —
+# vitrin listings.json'u zaten doğrudan okuyor, tüm ürünler kendiliğinden ×3
+# fiyatla görünüyor. Bu iş yalnızca şu iki durum için:
+#   • perakende ayrı bir sunucuda/domainde duracaksa,
+#   • katalogun donmuş bir kopyası (yedek/staging) istenirse.
+#
+# Yazma yalnızca data/retail-imported.json ve uploads/ altına olur.
+# Canlı listings.json'a bu iş de DOKUNMAZ.
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ek görsel dosyasını oku (varsa)
+        id: extra
+        env:
+          RAW: ${{ github.event.inputs.extra_images }}
+        run: |
+          set -e
+          if [ -z "$RAW" ]; then echo "has=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          case "$RAW" in */../*|/*|*..*) echo "HATA: gecersiz yol"; exit 1 ;; esac
+          [ -f "$RAW" ] || { echo "HATA: dosya yok: $RAW"; exit 1; }
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d,dict), 'JSON nesnesi degil'; print(f'{len(d)} urun icin ek gorsel')" "$RAW"
+          echo "has=true" >> "$GITHUB_OUTPUT"
+          echo "B64=$(base64 -w0 < "$RAW")" >> "$GITHUB_ENV"
+
+      - name: Sunucuda içe aktar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 30m
+          envs: B64
+          script: |
+            set -e
+            # Perakende katmanı nereye kurulu?
+            DIR=""
+            for c in ~/public_html/shop ~/public_html/retail ~/public_html; do
+              if [ -f "$c/tools/import-live.php" ]; then DIR="$c"; break; fi
+            done
+            [ -n "$DIR" ] || { echo "::error::perakende katmani bulunamadi"; exit 1; }
+            cd "$DIR"
+            echo "kurulum: $DIR"
+
+            SRC='${{ github.event.inputs.source }}'
+            # ~ genişletmesi ssh-action'da otomatik olmuyor.
+            case "$SRC" in "~"*) SRC="$HOME${SRC#\~}" ;; esac
+            echo "kaynak : $SRC"
+
+            ARGS="--from=$SRC"
+            [ '${{ github.event.inputs.images }}' = 'true' ] && ARGS="$ARGS --images"
+            [ '${{ github.event.inputs.dry_run }}' = 'true' ] && ARGS="$ARGS --dry"
+
+            if [ -n "$B64" ]; then
+              echo "$B64" | base64 -d > /tmp/extra-images.json
+              ARGS="$ARGS --extra=/tmp/extra-images.json"
+              echo "ek gorsel dosyasi: $(wc -c < /tmp/extra-images.json) bayt"
+            fi
+
+            php tools/import-live.php $ARGS
+            rm -f /tmp/extra-images.json
+
+            echo
+            echo "== katalog durumu =="
+            php tools/selftest.php 2>&1 | sed -n '/Katalog/,/Vault/p' || true

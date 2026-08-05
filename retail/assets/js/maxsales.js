@@ -163,4 +163,165 @@
     // Yükleme hata verirse görsel gizli kalmasın.
     img.addEventListener('error', function () { img.style.opacity = '1'; }, { once: true });
   });
+
+  /* ------------------------------------------------------ galeri büyüteci
+     Her görsel zaten kendi dosyasına giden bir bağlantı; JS kapalıyken
+     tarayıcı görseli tam boy açar. Burada o bağlantıyı yakalayıp katmanda
+     gösteriyoruz — klavyeyle (Esc, ←, →) de gezilebiliyor. */
+  var zoomLinks = Array.prototype.slice.call(document.querySelectorAll('[data-zoom]'));
+  if (zoomLinks.length) {
+    var box = null, idx = 0, opener = null;
+
+    var render = function () {
+      var link = zoomLinks[idx];
+      box.querySelector('img').src = link.getAttribute('href');
+      box.querySelector('img').alt = (link.querySelector('img') || {}).alt || '';
+      var counter = box.querySelector('.lightbox__n');
+      counter.textContent = zoomLinks.length > 1 ? (idx + 1) + ' / ' + zoomLinks.length : '';
+      box.querySelectorAll('.lightbox__nav').forEach(function (b) {
+        b.hidden = zoomLinks.length < 2;
+      });
+    };
+
+    var close = function () {
+      box.hidden = true;
+      document.body.style.overflow = '';
+      if (opener) opener.focus();
+    };
+
+    var build = function () {
+      box = document.createElement('div');
+      box.className = 'lightbox';
+      box.hidden = true;
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+      box.innerHTML =
+        '<button class="lightbox__x" type="button" aria-label="Close">&times;</button>' +
+        '<button class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous">&#8249;</button>' +
+        '<img alt="">' +
+        '<button class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next">&#8250;</button>' +
+        '<span class="lightbox__n"></span>';
+      document.body.appendChild(box);
+
+      box.addEventListener('click', function (e) {
+        if (e.target === box || e.target.closest('.lightbox__x')) { close(); return; }
+        if (e.target.closest('.lightbox__nav--prev')) { idx = (idx - 1 + zoomLinks.length) % zoomLinks.length; render(); }
+        if (e.target.closest('.lightbox__nav--next')) { idx = (idx + 1) % zoomLinks.length; render(); }
+      });
+      document.addEventListener('keydown', function (e) {
+        if (box.hidden) return;
+        if (e.key === 'Escape') close();
+        if (e.key === 'ArrowLeft')  { idx = (idx - 1 + zoomLinks.length) % zoomLinks.length; render(); }
+        if (e.key === 'ArrowRight') { idx = (idx + 1) % zoomLinks.length; render(); }
+      });
+    };
+
+    zoomLinks.forEach(function (link, i) {
+      link.addEventListener('click', function (e) {
+        // Yeni sekmede açmak isteyeni engellemeyelim.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        if (!box) build();
+        idx = i; opener = link;
+        render();
+        box.hidden = false;
+        document.body.style.overflow = 'hidden';
+        box.querySelector('.lightbox__x').focus();
+      });
+    });
+  }
+
+  /* -------------------------------------------------- Merkliste: sayfasız
+     Form zaten çalışıyor (POST + yönlendirme). JS varsa aynı isteği arka
+     planda yollayıp sadece kalbi güncelliyoruz — sayfa sıçramasın. */
+  document.addEventListener('submit', function (e) {
+    var form = e.target.closest('[data-wish]');
+    if (!form || !window.fetch) return;
+    e.preventDefault();
+
+    var btn = form.querySelector('.wish');
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'X-Requested-With': 'fetch' },
+      credentials: 'same-origin'
+    }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d) { form.submit(); return; }          // beklenmedik cevap → normal gönderim
+      btn.classList.toggle('is-on', !!d.saved);
+      btn.setAttribute('aria-pressed', d.saved ? 'true' : 'false');
+      var label = btn.querySelector('span');
+      if (label && d.label) label.textContent = d.label;
+      var counter = document.querySelector('.tool--wish .bag__n');
+      if (d.count > 0) {
+        if (!counter) {
+          counter = document.createElement('i');
+          counter.className = 'bag__n';
+          document.querySelector('.tool--wish').appendChild(counter);
+        }
+        counter.textContent = d.count;
+      } else if (counter) {
+        counter.remove();
+      }
+    }).catch(function () { form.submit(); });
+  });
+
+  /* ------------------------------------------------------- arama önerileri */
+  var searchForm = document.querySelector('.search');
+  var searchInput = searchForm && searchForm.querySelector('input[name="q"]');
+  if (searchInput && window.fetch) {
+    var panel = document.createElement('div');
+    panel.className = 'suggest';
+    panel.hidden = true;
+    panel.setAttribute('role', 'listbox');
+    searchForm.appendChild(panel);
+
+    var timer = null, cur = -1;
+
+    var hide = function () { panel.hidden = true; cur = -1; };
+
+    var run = function () {
+      var q = searchInput.value.trim();
+      if (q.length < 2) { hide(); return; }
+
+      fetch(searchForm.getAttribute('action').split('?')[0].replace(/shop\.php$/, 'api/suggest.php')
+            + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.items || !d.items.length) { hide(); return; }
+          panel.innerHTML = d.items.map(function (it) {
+            return '<a href="' + it.url + '" role="option">' +
+                   '<img src="' + it.img + '" alt="" loading="lazy">' +
+                   '<span><span class="suggest__b">' + it.brand + '</span>' +
+                   '<span class="suggest__t">' + it.name + '</span></span>' +
+                   '<span class="suggest__p">' + it.price + '</span></a>';
+          }).join('');
+          panel.hidden = false;
+          cur = -1;
+        }).catch(hide);
+    };
+
+    searchInput.addEventListener('input', function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(run, 220);         // yazarken her tuşta istek atmayalım
+    });
+    searchInput.addEventListener('keydown', function (e) {
+      var items = panel.querySelectorAll('a');
+      if (panel.hidden || !items.length) return;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        items[Math.max(0, cur)].classList.remove('is-cur');
+        cur = e.key === 'ArrowDown' ? (cur + 1) % items.length : (cur - 1 + items.length) % items.length;
+        items[cur].classList.add('is-cur');
+        items[cur].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && cur >= 0) {
+        e.preventDefault();
+        window.location.href = items[cur].getAttribute('href');
+      } else if (e.key === 'Escape') {
+        hide();
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (!searchForm.contains(e.target)) hide();
+    });
+  }
 })();

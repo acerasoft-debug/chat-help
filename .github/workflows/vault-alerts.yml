@@ -1,0 +1,56 @@
+name: Vault fiyat alarmlarını gönder
+on:
+  schedule:
+    # Saat başı. Kademeler saatlerce sürdüğü için bu çözünürlük fazlasıyla
+    # yeterli; dakikalık kontrol gereksiz yük olurdu.
+    - cron: '7 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = kimseye posta atma, sadece ne olacağını yaz"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# Kullanıcının kurduğu "şu fiyata inince haber ver" alarmlarını kontrol eder.
+# Her alarm en fazla BİR posta üretir ve ardından silinir — hatırlatma yok.
+#
+# NOT: schedule yalnızca default branch'ten çalışır (bkz. AGENTS-SETUP.md).
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alarmları işle
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            # Perakende katmanının kurulu olduğu yeri bul: alt klasör mü, kök mü?
+            DIR=""
+            for c in ~/public_html/shop ~/public_html/retail ~/public_html; do
+              if [ -f "$c/tools/vault-alerts.php" ]; then DIR="$c"; break; fi
+            done
+            if [ -z "$DIR" ]; then
+              echo "::error::MAXSALES perakende katmani bulunamadi (tools/vault-alerts.php yok)"
+              exit 1
+            fi
+            echo "kurulum: $DIR"
+            cd "$DIR"
+
+            DRY='${{ github.event.inputs.dry_run }}'
+            # Zamanlanmış çalıştırmada girdi boş gelir → gerçek gönderim.
+            if [ "$DRY" = "true" ]; then
+              php tools/vault-alerts.php --dry
+            else
+              php tools/vault-alerts.php
+            fi
+
+            echo
+            echo "== kalan alarmlar =="
+            php tools/vault-alerts.php list || true

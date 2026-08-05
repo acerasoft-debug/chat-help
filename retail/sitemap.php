@@ -51,6 +51,15 @@ $emit('outlet.php', [], 'hourly', '0.9');      // fiyat sürekli değişiyor
 $emit('brands.php', [], 'weekly', '0.7');
 $emit('sell.php', [], 'monthly', '0.7');
 $emit('faq.php', [], 'monthly', '0.6');
+$emit('journal.php', [], 'monthly', '0.7');
+$emit('size-guide.php', [], 'yearly', '0.6');
+$emit('contact.php', [], 'yearly', '0.5');
+
+// Journal yazıları
+require_once __DIR__ . '/inc/journal-content.php';
+foreach (array_keys(vr_journal_entries()) as $slug) {
+    $emit('journal.php', ['a' => $slug], 'monthly', '0.6');
+}
 
 foreach (['impressum', 'agb', 'widerruf', 'rueckgabe', 'versand', 'zahlung',
           'datenschutz', 'cookies', 'verkaeufer', 'streitbeilegung', 'barrierefreiheit'] as $doc) {
