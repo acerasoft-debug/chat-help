@@ -961,4 +961,7 @@ return array (
   'references' => 'referencias',
   'Filter by brand' => 'Filtrar por marca',
   'Wholesale' => 'Mayorista',
+  'brands ready to quote' => 'marcas listas para cotizar',
+  'Just added to the catalog' => 'Recién añadidos al catálogo',
+  'Browse all' => 'Ver todo',
 );

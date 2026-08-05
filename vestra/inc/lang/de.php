@@ -981,4 +981,7 @@ return array (
   'references' => 'Artikel',
   'Filter by brand' => 'Nach Marke filtern',
   'Wholesale' => 'Großhandel',
+  'brands ready to quote' => 'Marken angebotsbereit',
+  'Just added to the catalog' => 'Neu im Katalog',
+  'Browse all' => 'Alle ansehen',
 );

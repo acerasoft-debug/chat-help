@@ -238,6 +238,23 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .reqstats .stat{display:flex;flex-direction:column}
 .reqstats .stat b{font-family:'Playfair Display',serif;font-size:23px;color:var(--acc);line-height:1.1}
 .reqstats .stat span{font-size:12.5px;color:var(--mut)}
+/* "Katalogda yeni" rayi — panonun talep tarafi henuz bosken sayfada duran gercek
+   hareket. Yatay kaydirilir, boylece dar ekranda gövde yana kaymaz. */
+.reqfresh{margin:0 0 26px}
+.reqfresh-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:11px}
+.reqfresh-title{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.reqfresh-head a{font-size:12.5px;text-decoration:none}
+.reqfresh-rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(132px,1fr);gap:12px;
+  overflow-x:auto;padding-bottom:4px;scrollbar-width:thin;scroll-snap-type:x proximity}
+.reqfresh-card{display:flex;flex-direction:column;gap:5px;text-decoration:none;color:inherit;
+  scroll-snap-align:start;transition:transform .35s var(--ease,ease)}
+.reqfresh-card:hover{transform:translateY(-2px)}
+.reqfresh-thumb{position:relative;display:block;aspect-ratio:3/4;border-radius:11px;overflow:hidden;
+  border:1px solid var(--line)}
+.reqfresh-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.reqfresh-brand{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)}
+.reqfresh-name{font-size:12.5px;color:var(--mut);line-height:1.35;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .reqlayout{display:grid;grid-template-columns:1.4fr 1fr;gap:26px;align-items:start}
 .blocktitle{font-size:18px;margin:0 0 14px}
 .reqlist{display:flex;flex-direction:column;gap:12px}

@@ -26,6 +26,13 @@ on:
         description: "Beden serisi metni (örn: 44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1 · 10/seri). Boş = dokunma"
         required: false
         default: ""
+      allow_offers:
+        # Fiyatı GİZLEMEZ. Ürün fiyatlı kalır, altına "Teklif ver" paneli açılır
+        # (ürün sayfasındaki hazır panel, $p['offers'] bayrağına bağlı). Zaten
+        # mode=offer olan ürünler bu bayrağı almaz -- onlarda pazarlık zaten tek yol.
+        description: "Teklif alma: yes = aç, no = kapat, boş = dokunma"
+        required: false
+        default: ""
       dry_run:
         description: "true = SADECE ne değişeceğini yaz, KAYDETME"
         required: true
@@ -62,12 +69,13 @@ jobs:
           RAW_PRICE: ${{ github.event.inputs.price }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
           RAW_SIZES: ${{ github.event.inputs.sizes }}
+          RAW_OFFERS: ${{ github.event.inputs.allow_offers }}
           RAW_DRY: ${{ github.event.inputs.dry_run }}
         run: |
           python3 - <<'PY' >> "$GITHUB_ENV"
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
-                  for k in ['brand','cat','price','moq','sizes','dry']}
+                  for k in ['brand','cat','price','moq','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
@@ -125,15 +133,27 @@ jobs:
             $price = trim((string)($in['price'] ?? ''));
             $moq   = trim((string)($in['moq']   ?? ''));
             $sizes = trim((string)($in['sizes'] ?? ''));
+            $offIn = strtolower(trim((string)($in['offers'] ?? '')));
             $dry   = strtolower(trim((string)($in['dry'] ?? 'true'))) !== 'false';
+
+            /* Bos = dokunma. Sadece acik "evet"/"hayir" kabul edilir: yazim hatasi
+               olan bir deger sessizce "kapat" diye yorumlanip tum katalogdan teklif
+               panelini kaldirmasin. */
+            $offers = null;
+            if ($offIn !== '') {
+              if (in_array($offIn, ['yes','true','1','evet','ac','open'], true))      $offers = true;
+              elseif (in_array($offIn, ['no','false','0','hayir','kapat'], true))     $offers = false;
+              else { fwrite(STDERR, "HATA: allow_offers gecersiz '{$offIn}' -- yes / no / bos olmali\n"); exit(1); }
+            }
 
             echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' moq='{$moq}'\n";
             echo "          beden='{$sizes}'\n";
+            echo "          teklif_al=".($offers === null ? '(dokunma)' : ($offers ? 'AC' : 'KAPAT'))."\n";
             echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
             if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
-            if ($price === '' && $moq === '' && $sizes === '') {
-              fwrite(STDERR, "HATA: price/moq/sizes hepsi bos -- yapacak is yok\n"); exit(1);
+            if ($price === '' && $moq === '' && $sizes === '' && $offers === null) {
+              fwrite(STDERR, "HATA: price/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
             }
             // Reject a malformed price outright rather than writing 0.00 over real pricing.
             if ($price !== '' && (!is_numeric($price) || (float)$price <= 0)) {
@@ -199,6 +219,20 @@ jobs:
                   $line[] = "sizes '".($old === '' ? '(yok)' : $old)."' -> '{$sizes}'";
                   $all[$i]['sizes'] = $sizes;
                   $changes++;
+                }
+              }
+              if ($offers !== null) {
+                /* mode=offer urunlerde pazarlik zaten TEK yol; bayrak orada anlamsiz
+                   ve seller formu da (seller.php) ayni sarti koyuyor. */
+                if (($p['mode'] ?? '') === 'offer') {
+                  if (!empty($p['offers'])) { unset($all[$i]['offers']); $line[] = "offers -> (mode=offer, bayrak kaldirildi)"; $changes++; }
+                } else {
+                  $old = !empty($p['offers']);
+                  if ($old !== $offers) {
+                    if ($offers) $all[$i]['offers'] = true; else unset($all[$i]['offers']);
+                    $line[] = "offers ".($old ? 'acik' : 'kapali')." -> ".($offers ? 'ACIK' : 'kapali');
+                    $changes++;
+                  }
                 }
               }
 

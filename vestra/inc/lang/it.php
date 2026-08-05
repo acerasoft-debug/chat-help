@@ -961,4 +961,7 @@ return array (
   'references' => 'referenze',
   'Filter by brand' => 'Filtra per marca',
   'Wholesale' => 'Ingrosso',
+  'brands ready to quote' => 'marchi pronti a quotare',
+  'Just added to the catalog' => 'Appena aggiunti al catalogo',
+  'Browse all' => 'Vedi tutti',
 );

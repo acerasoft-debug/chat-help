@@ -961,4 +961,7 @@ return array (
   'references' => 'références',
   'Filter by brand' => 'Filtrer par marque',
   'Wholesale' => 'Gros',
+  'brands ready to quote' => 'marques prêtes à coter',
+  'Just added to the catalog' => 'Nouveautés du catalogue',
+  'Browse all' => 'Voir tout',
 );

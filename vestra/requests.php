@@ -47,6 +47,21 @@ $exampleReqs = [
 $openCount=count($userReqs);
 $offerCount=array_sum(array_map('count',$offersByRef));
 $cats=vestra_cats();
+
+/* Arz tarafi rakamlari. Pano yeniyken "0 acik talep / 0 teklif" iki sifir gosteriyordu
+   ve bir alicinin gordugu ilk sey buydu -- talep yoklugu, tedarik yoklugu gibi okunuyor.
+   Oysa arz tarafi bos degil: katalog dolu ve saticilar dogrulanmis. Asagidaki sayilarin
+   hepsi CANLI veriden gelir, hicbiri uydurma degil; sifir olanlar zaten gizleniyor. */
+$liveProducts = vestra_products();
+$liveCount    = count($liveProducts);
+$brandCount   = count(array_unique(array_filter(array_map(
+    static fn($p) => trim((string)($p['brand'] ?? '')), $liveProducts))));
+/* Panoda gercek hareket: en yeni ilanlar. Talep tarafi hic yazi almamis olsa bile
+   sayfada gercekten olan bir sey durur, ve okuyucuyu katalogda ise yarar bir yere atar. */
+$freshest = $liveProducts;
+usort($freshest, static fn($a, $b) =>
+    strtotime((string)($b['added_at'] ?? '1970-01-01')) <=> strtotime((string)($a['added_at'] ?? '1970-01-01')));
+$freshest = array_slice(array_filter($freshest, static fn($p) => !empty($p['added_at'])), 0, 6);
 $isSeller=$AUTH_USER && ($AUTH_USER['type']??'')==='seller';
 $myEmail=strtolower($AUTH_USER['email']??'');
 
@@ -71,11 +86,38 @@ function vestra_req_age(string $ts): string {
   <?php endif; ?>
 
   <div class="reqstats">
-    <div class="stat"><b><?=$openCount?></b><span><?= t('open requests') ?></span></div>
-    <div class="stat"><b><?=$offerCount?></b><span><?= t('offers sent') ?></span></div>
-    <div class="stat"><b>~24h</b><span><?= t('avg. first offer') ?></span></div>
+    <?php /* Talep tarafi rakamlari sadece GERCEKTEN varsa cikar: "0 acik talep" yazmak
+             panoyu olu gosteriyor ve zaten altindaki liste ayni seyi soyluyor. */ ?>
+    <?php if($openCount): ?><div class="stat"><b><?=$openCount?></b><span><?= t('open requests') ?></span></div><?php endif; ?>
+    <?php if($offerCount): ?><div class="stat"><b><?=$offerCount?></b><span><?= t('offers sent') ?></span></div><?php endif; ?>
+    <div class="stat"><b><?=$liveCount?></b><span><?= t('live listings') ?></span></div>
+    <div class="stat"><b><?=$brandCount?></b><span><?= t('brands ready to quote') ?></span></div>
     <div class="stat"><b>✓ <?= t('verified') ?></b><span><?= t('sellers only') ?></span></div>
   </div>
+
+  <?php if($freshest): ?>
+  <div class="reqfresh">
+    <div class="reqfresh-head">
+      <span class="reqfresh-title"><?= t('Just added to the catalog') ?></span>
+      <a class="acc" href="/shop"><?= t('Browse all') ?> →</a>
+    </div>
+    <div class="reqfresh-rail">
+      <?php foreach($freshest as $fp):
+        /* Fotograflar katalogla AYNI kurala tabi: misafire gosterilmez, marka karosu
+           kapi olarak kalir. Burada gevsetmek, /shop'taki kapiyi anlamsiz kilardi. */
+        $fimg = $MEMBER ? vestra_primary_image($fp) : ''; ?>
+        <a class="reqfresh-card" href="/product?id=<?= urlencode((string)($fp['id'] ?? '')) ?>">
+          <span class="reqfresh-thumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($fp)) ?>,#0e0e11)">
+            <?php if($fimg): ?><img src="<?= htmlspecialchars($fimg) ?>" alt="" loading="lazy">
+            <?php else: echo vestra_brand_card((string)($fp['brand'] ?? '')); endif; ?>
+          </span>
+          <span class="reqfresh-brand"><?= htmlspecialchars((string)($fp['brand'] ?? '')) ?></span>
+          <span class="reqfresh-name"><?= htmlspecialchars((string)($fp['name'] ?? '')) ?></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
 
   <div class="reqlayout">
     <!-- the queue -->
