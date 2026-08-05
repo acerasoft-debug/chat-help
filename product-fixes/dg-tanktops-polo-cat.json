@@ -1,0 +1,23 @@
+[
+ {
+  "match": "dgn-g8kg5tfu7avb",
+  "expect": 1,
+  "cat": "Tank Tops"
+ },
+ {
+  "match": "dgn-g8kg5tfu7avm",
+  "expect": 1,
+  "cat": "Tank Tops"
+ },
+ {
+  "match": "dgn-g8kg5tfu7avw",
+  "expect": 1,
+  "cat": "Tank Tops"
+ },
+ {
+  "match": "dgn-g8lj1zfu7en",
+  "expect": 1,
+  "cat": "Polos",
+  "name": "Contrast-Trim Polo — Black"
+ }
+]
