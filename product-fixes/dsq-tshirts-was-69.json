@@ -1,0 +1,67 @@
+[
+ {
+  "match": "S71GD1552",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD1394",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD1399",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD1400",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD1106",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S79G0010",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S79G0063",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S79G0068",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S79G0065",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74G0096",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S79G0010B",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD0969",
+  "expect": 1,
+  "sale_list": 69.0
+ },
+ {
+  "match": "S74GD0969-1",
+  "expect": 1,
+  "sale_list": 69.0
+ }
+]
