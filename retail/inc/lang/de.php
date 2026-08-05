@@ -47,6 +47,10 @@ return [
     'sec_vault_sub'      => 'Ein Preis pro Stück, und er fällt nach einem Plan, den Sie sehen können. Länger warten heißt weniger zahlen — wenn es nicht vorher jemand nimmt.',
     'sec_brands'         => 'Häuser im Bestand',
     'sec_editorial'      => 'Warum MAXSALES',
+    'home_manifesto'      => 'Knappheit erfinden wir nicht. Wir veröffentlichen sie.',
+    'home_manifesto_note' => 'Der Preisplan jedes Loses steht fest und ist öffentlich, bevor die erste Stufe fällt',
+    'stage_pause'         => 'Hintergrundfilm anhalten',
+    'stage_play'          => 'Hintergrundfilm abspielen',
     'sec_new'            => 'Neu diese Woche',
     'view_all'           => 'Alle ansehen',
 

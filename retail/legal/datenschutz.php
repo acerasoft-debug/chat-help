@@ -59,7 +59,7 @@ $mail  = vr_mail_settings();
   Wir verwenden ausschließlich technisch notwendige Cookies. Eine Einwilligung ist dafür nach
   § 25 Abs. 2 Nr. 2 TDDDG nicht erforderlich — deshalb sehen Sie bei uns kein Cookie-Banner.
 </p>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Name</th><th>Zweck</th><th>Dauer</th></tr></thead>
   <tbody>
     <tr><td><code><?= h((string)vr_config('session_name', 'maxsales_retail')) ?></code></td>
@@ -71,7 +71,7 @@ $mail  = vr_mail_settings();
     <tr><td><code>vr_wish</code></td><td>Merkliste — nur Artikelkennungen</td><td>180 Tage</td></tr>
     <tr><td><code>vr_seen</code></td><td>zuletzt angesehene Artikel — nur Artikelkennungen</td><td>30 Tage</td></tr>
   </tbody>
-</table>
+</table></div>
 <p>
   Weitere Hinweise: <a href="<?= h(vr_url('legal/cookies.php')) ?>"><?= te('legal_cookies') ?></a>.
 </p>

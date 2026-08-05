@@ -152,6 +152,27 @@
     if (form) form.requestSubmit ? form.requestSubmit() : form.submit();
   });
 
+  /* --------------------------------------------------------- sahne kampanya filmi
+     Video etiketinde bilerek autoplay YOK: oynatmayı burası başlatıyor, böylece
+     JS kapalıyken hareket hiç doğmuyor ve duraklatma düğmesinin çalışmadığı bir
+     durum kalmıyor (WCAG 2.2.2). Kare geçişli CSS filmini duraklatmak için JS
+     gerekmiyor, onu işaret kutusu tek başına hallediyor. */
+  var stageVid = document.querySelector('.stage__vid[data-autoplay]');
+  if (stageVid) {
+    var stageBox = document.getElementById('stage-pause');
+    var stagePlay = function () {
+      var pr = stageVid.play();
+      if (pr && pr.catch) pr.catch(function () { /* tarayıcı reddederse poster kalır */ });
+    };
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!still) stagePlay();
+    if (stageBox) {
+      stageBox.addEventListener('change', function () {
+        if (stageBox.checked) stageVid.pause(); else stagePlay();
+      });
+    }
+  }
+
   /* ---------------------------------------- ürün görselleri: ilk açılış efekti
      .card__alt hariç: onun görünürlüğünü CSS hover'ı yönetiyor, buradaki satır
      içi opacity:1 o kuralı ezip ikinci kareyi kalıcı olarak açıyordu. */

@@ -42,6 +42,10 @@ return [
     'sec_vault_sub'      => 'Un prezzo per pezzo, che scende secondo un piano visibile. Aspettare costa meno — se prima non lo prende qualcun altro.',
     'sec_brands'         => 'Maison in stock',
     'sec_editorial'      => 'Perché MAXSALES',
+    'home_manifesto'      => 'Non inventiamo la scarsità. La pubblichiamo.',
+    'home_manifesto_note' => 'Il calendario dei prezzi di ogni lotto è fissato e pubblico prima del primo ribasso',
+    'stage_pause'         => 'Metti in pausa il filmato di sfondo',
+    'stage_play'          => 'Riproduci il filmato di sfondo',
     'sec_new'            => 'Nuovo questa settimana',
     'view_all'           => 'Vedi tutto',
 

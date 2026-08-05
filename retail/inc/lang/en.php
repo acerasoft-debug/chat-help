@@ -50,6 +50,10 @@ return [
     'sec_vault_sub'      => 'One price per piece, and it falls on a schedule you can see. Wait longer, pay less — if someone else does not take it first.',
     'sec_brands'         => 'Houses in stock',
     'sec_editorial'      => 'Why MAXSALES',
+    'home_manifesto'      => 'We do not invent scarcity. We publish it.',
+    'home_manifesto_note' => 'Every lot\'s price schedule is fixed and public before the first drop',
+    'stage_pause'         => 'Pause the background film',
+    'stage_play'          => 'Play the background film',
     'sec_new'            => 'New this week',
     'view_all'           => 'View all',
 

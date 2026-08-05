@@ -29,7 +29,7 @@ $mode = vr_stripe_settings()['mode'];
 </p>
 
 <h2>Verfügbare Zahlungsarten</h2>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Zahlungsart</th><th>Abbuchung</th><th>Hinweis</th></tr></thead>
   <tbody>
     <tr><td>Visa, Mastercard, American Express</td><td>sofort</td>
@@ -41,7 +41,7 @@ $mode = vr_stripe_settings()['mode'];
     <tr><td>SEPA-Lastschrift</td><td>1–3 Bankarbeitstage</td>
         <td>Versand nach Zahlungsfreigabe</td></tr>
   </tbody>
-</table>
+</table></div>
 <p style="font-size:13px;color:var(--muted)">
   Welche Zahlungsarten tatsächlich angezeigt werden, hängt von Lieferland, Betrag und Gerät ab —
   Stripe blendet nur ein, was für Ihre Bestellung nutzbar ist. Zusätzliche Kosten entstehen Ihnen

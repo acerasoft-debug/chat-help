@@ -46,6 +46,10 @@ return [
     'sec_vault_sub'      => 'Un prix par pièce, qui baisse selon un calendrier visible. Attendre coûte moins cher — si personne ne la prend avant.',
     'sec_brands'         => 'Maisons en stock',
     'sec_editorial'      => 'Pourquoi MAXSALES',
+    'home_manifesto'      => 'Nous n\'inventons pas la rareté. Nous la publions.',
+    'home_manifesto_note' => 'Le calendrier de prix de chaque lot est fixé et public avant la première baisse',
+    'stage_pause'         => 'Mettre le film d\'arrière-plan en pause',
+    'stage_play'          => 'Lancer le film d\'arrière-plan',
     'sec_new'            => 'Nouveau cette semaine',
     'view_all'           => 'Voir tout',
 

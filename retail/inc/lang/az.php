@@ -42,6 +42,10 @@ return [
     'sec_vault_sub'      => 'Hər parça üçün bir qiymət və o, gördüyünüz cədvəl üzrə düşür. Çox gözləsəniz az ödəyirsiniz — əgər başqası daha tez götürməzsə.',
     'sec_brands'         => 'Anbarda olan evlər',
     'sec_editorial'      => 'Niyə MAXSALES',
+    'home_manifesto'      => 'Biz qıtlıq uydurmuruq. Onu dərc edirik.',
+    'home_manifesto_note' => 'Hər lotun qiymət cədvəli ilk enişdən əvvəl müəyyən olunur və açıq elan edilir',
+    'stage_pause'         => 'Fon videosunu dayandır',
+    'stage_play'          => 'Fon videosunu oynat',
     'sec_new'            => 'Bu həftə yeni',
     'view_all'           => 'Hamısına bax',
 

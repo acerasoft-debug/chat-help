@@ -42,6 +42,10 @@ return [
     'sec_vault_sub'      => 'Ett pris per plagg, och det faller enligt ett schema du kan se. Vänta längre, betala mindre — om ingen tar det först.',
     'sec_brands'         => 'Hus i lager',
     'sec_editorial'      => 'Varför MAXSALES',
+    'home_manifesto'      => 'Vi uppfinner inte bristen. Vi publicerar den.',
+    'home_manifesto_note' => 'Varje posts prisschema är fastställt och offentligt före det första prisfallet',
+    'stage_pause'         => 'Pausa bakgrundsfilmen',
+    'stage_play'          => 'Spela upp bakgrundsfilmen',
     'sec_new'            => 'Nytt denna vecka',
     'view_all'           => 'Visa alla',
 

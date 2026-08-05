@@ -114,7 +114,7 @@ vr_layout_start([
         <?php endforeach; ?>
       </nav>
 
-      <div style="overflow-x:auto">
+      <div class="tablewrap" tabindex="0">
         <table>
           <thead><tr><?php foreach ($t['head'] as $th): ?><th><?= h($th) ?></th><?php endforeach; ?></tr></thead>
           <tbody>
@@ -161,6 +161,7 @@ vr_layout_start([
       </div>
 
       <h2>Was Sie über diese Häuser wissen sollten</h2>
+      <div class="tablewrap" tabindex="0">
       <table>
         <thead><tr><th>Haus</th><th>Passform</th><th>Empfehlung</th></tr></thead>
         <tbody>
@@ -178,6 +179,7 @@ vr_layout_start([
           <tr><td>GCDS</td><td>Streetwear, weit</td><td>eine Größe kleiner, wenn Sie normal tragen möchten</td></tr>
         </tbody>
       </table>
+      </div>
       <p style="font-size:13px;color:var(--muted)">
         Die Angaben beruhen auf den Rückläufern und Messungen aus unserem eigenen Bestand. Sie sind
         Erfahrungswerte, keine Herstellerangaben — einzelne Modelle können abweichen. Steht in der

@@ -26,6 +26,12 @@ $h    = max(120, min(1600, (int)($_GET['h'] ?? 1000)));
  * fotoğrafı olmayan satır da gerçek bir ürün sayfası gibi dursun.
  */
 $view = max(0, min(4, (int)($_GET['v'] ?? 0)));
+/**
+ * Kampanya kadrajı (m=campaign): anasayfanın sahne görseli. Tek bir ürün
+ * yerine bir defile sırası — farklı ölçeklerde üç siluet, güçlü yan ışık,
+ * çerçeve ve filigran yok (üstünde zaten devasa tipografi duruyor).
+ */
+$campaign = ($_GET['m'] ?? '') === 'campaign';
 
 // Tohumdan deterministik sayı üretici (kriptografik değil, sadece tekrarlanabilir).
 $state = hexdec(substr(hash('sha256', $seed . '|' . $cat), 0, 12)) ?: 1;
@@ -47,7 +53,9 @@ $palettes = [
     ['#2a2622', '#3b352e', '#e0cfa8'],   // deve tüyü
     ['#efe9dd', '#ded5c4', '#8d8171'],   // kemik (açık kart)
 ];
-$pi = (int)floor($rnd(0, count($palettes) - 0.001));
+// Kampanya sahnesi her zaman koyu: son palet açık tonlu ve üstündeki
+// beyaz tipografi orada okunmaz.
+$pi = (int)floor($rnd(0, count($palettes) - ($campaign ? 1 : 0) - 0.001));
 [$c1, $c2, $c3] = $palettes[$pi];
 $light = $pi === count($palettes) - 1;              // açık paletde çizgi koyu olmalı
 $ink   = $light ? '#3a352c' : $c3;
@@ -179,6 +187,48 @@ foreach ($art['lines'] as $d) {
              . ' stroke-width="0.8" stroke-linecap="round"/>';
 }
 
+/**
+ * Defile sırası. Altı figür kadrajın ALT yarısında bir sıra oluşturuyor:
+ * üstteki yarı başlık tipografisine kalıyor, siluetler onun altından geçiyor.
+ * Kenara doğru hem alçalıyorlar hem soluyorlar — uzaklık hissi.
+ *
+ * Ölçekler sabit; tohum yalnızca birkaç pikselik kaydırma ve opaklık için
+ * kullanılıyor, böylece kadraj her yenilemede aynı kalıyor ama ölü bir
+ * simetriye de düşmüyor.
+ */
+$runway = '';
+if ($campaign) {
+    $figures = [
+        // [siluet, x oranı, boy oranı, opaklık]
+        ['knit',     0.085, 0.52, 0.42],
+        ['dress',    0.225, 0.66, 0.60],
+        ['coat',     0.380, 0.82, 0.92],
+        ['trousers', 0.545, 0.72, 0.74],
+        ['dress',    0.700, 0.60, 0.54],
+        ['coat',     0.880, 0.48, 0.38],
+    ];
+    $shapes = [
+        'knit'     => 'M34,27 Q50,19 66,27 L80,35 L73,49 L66,45 L66,100 Q50,104 34,100 L34,45 L27,49 L20,35 Z',
+        'coat'     => 'M33,25 L45,20 L50,27 L55,20 L67,25 L80,34 L74,50 L68,46 L70,112 Q50,116 30,112 L32,46 L26,50 L20,34 Z',
+        'dress'    => 'M36,25 L45,20 Q50,26 55,20 L64,25 L72,33 L66,44 L62,41 L72,108 Q50,113 28,108 L38,41 L34,44 L28,33 Z',
+        'trousers' => 'M32,22 L68,22 L70,34 L66,112 L54,112 L50,58 L46,112 L34,112 L30,34 Z',
+    ];
+    $ground = $h * 0.965;                      // ortak zemin çizgisi
+    foreach ($figures as [$key, $fx, $fs, $fo]) {
+        $fh = $h * 0.62 * $fs;                 // en uzun figür kadrajın ~%51'i
+        $sc = $fh / 125;
+        $x  = $w * $fx - 50 * $sc + $rnd(-0.008, 0.008) * $w;
+        $y  = $ground - 125 * $sc;
+        $runway .= '<g transform="translate(' . round($x, 1) . ' ' . round($y, 1) . ') scale(' . round($sc, 4) . ')"'
+                 . ' opacity="' . round($fo + $rnd(-0.025, 0.025), 3) . '">'
+                 . '<path d="' . $shapes[$key] . '" fill="url(#cloth)" stroke="' . $ink . '"'
+                 . ' stroke-opacity="0.95" stroke-width="0.9" stroke-linejoin="round"/></g>';
+    }
+    // Zemin: figürlerin altında ince bir ışık çizgisi, podyum hissi.
+    $runway .= '<rect x="0" y="' . round($ground, 1) . '" width="' . $w . '" height="1" fill="' . $c3
+             . '" fill-opacity="0.22"/>';
+}
+
 $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $h . '"'
     . ' viewBox="0 0 ' . $w . ' ' . $h . '" role="img" aria-label="MAXSALES">'
     . '<defs>'
@@ -199,7 +249,8 @@ $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $
     . '<rect width="100%" height="100%" fill="url(#glow)"/>'
     . $folds
 
-    . '<g transform="translate(' . round($ox, 2) . ' ' . round($oy, 2) . ') scale(' . round($s, 4) . ')'
+    // Kampanya kadrajında tek ürün siluetinin yerini defile sırası alıyor.
+    . ($campaign ? $runway : '<g transform="translate(' . round($ox, 2) . ' ' . round($oy, 2) . ') scale(' . round($s, 4) . ')'
     . ($tilt != 0.0 ? ' rotate(' . round($tilt, 1) . ' 50 62)' : '')
     . ($mirror ? ' translate(100 0) scale(-1 1)' : '') . '">'
     // Kapüşon gibi parçalar gövdenin arkasında kalmalı.
@@ -211,15 +262,18 @@ $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $w . '" height="' . $
     . ' stroke-width="' . ($view === 1 ? '0.7' : '1.1') . '" stroke-linejoin="round"/>'
     // Arkadan görünüşte ön detayları (cep, placket, düğme) çizmiyoruz.
     . ($view === 3 ? '' : $detail)
-    . '</g>'
+    . '</g>')
 
     . '<rect width="100%" height="100%" filter="url(#grain)" opacity="0.05"/>'
-    . '<rect x="10.5" y="10.5" width="' . ($w - 21) . '" height="' . ($h - 21) . '" fill="none"'
-    . ' stroke="' . $ink . '" stroke-opacity="' . ($view === 1 ? '0.10' : '0.18') . '"/>'
-    . '<text x="50%" y="' . round($h - $h * 0.05, 1) . '" text-anchor="middle" fill="' . $ink . '"'
-    . ' fill-opacity="0.40" font-family="Georgia,serif"'
-    . ' font-size="' . max(9, (int)round(min($w, $h) * 0.030)) . '"'
-    . ' letter-spacing="' . max(2, (int)round(min($w, $h) * 0.011)) . '">MAXSALES</text>'
+    // Kampanya kadrajında çerçeve ve filigran yok: üstüne devasa tipografi
+    // ve altın bir çerçeve zaten CSS tarafından biniyor.
+    . ($campaign ? '' :
+        '<rect x="10.5" y="10.5" width="' . ($w - 21) . '" height="' . ($h - 21) . '" fill="none"'
+      . ' stroke="' . $ink . '" stroke-opacity="' . ($view === 1 ? '0.10' : '0.18') . '"/>'
+      . '<text x="50%" y="' . round($h - $h * 0.05, 1) . '" text-anchor="middle" fill="' . $ink . '"'
+      . ' fill-opacity="0.40" font-family="Georgia,serif"'
+      . ' font-size="' . max(9, (int)round(min($w, $h) * 0.030)) . '"'
+      . ' letter-spacing="' . max(2, (int)round(min($w, $h) * 0.011)) . '">MAXSALES</text>')
     . '</svg>';
 
 header('Content-Type: image/svg+xml; charset=utf-8');

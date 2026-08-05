@@ -23,7 +23,7 @@ vr_doc_start('legal_cookies', '2026-08-01');
 </div>
 
 <h2>Vollständige Liste</h2>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Name</th><th>Typ</th><th>Zweck</th><th>Speicherdauer</th></tr></thead>
   <tbody>
     <tr>
@@ -64,7 +64,7 @@ vr_doc_start('legal_cookies', '2026-08-01');
       <td>30 Tage</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <h2>Cookies von Stripe</h2>
 <p>

@@ -42,6 +42,10 @@ return [
     'sec_vault_sub'      => 'Un precio por pieza que baja según un calendario visible. Esperar cuesta menos — si nadie la toma antes.',
     'sec_brands'         => 'Casas en stock',
     'sec_editorial'      => 'Por qué MAXSALES',
+    'home_manifesto'      => 'No inventamos la escasez. La publicamos.',
+    'home_manifesto_note' => 'El calendario de precios de cada lote es fijo y público antes de la primera bajada',
+    'stage_pause'         => 'Pausar el vídeo de fondo',
+    'stage_play'          => 'Reproducir el vídeo de fondo',
     'sec_new'            => 'Nuevo esta semana',
     'view_all'           => 'Ver todo',
 

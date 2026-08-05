@@ -48,6 +48,10 @@ return [
     'sec_vault_sub'      => 'Één prijs per stuk, en die daalt volgens een schema dat je kan zien. Langer wachten betekent minder betalen — als niemand het eerder neemt.',
     'sec_brands'         => 'Huizen in voorraad',
     'sec_editorial'      => 'Waarom MAXSALES',
+    'home_manifesto'      => 'Wij verzinnen geen schaarste. Wij publiceren ze.',
+    'home_manifesto_note' => 'Het prijsschema van elk lot ligt vast en is openbaar vóór de eerste daling',
+    'stage_pause'         => 'Achtergrondfilm pauzeren',
+    'stage_play'          => 'Achtergrondfilm afspelen',
     'sec_new'            => 'Nieuw deze week',
     'view_all'           => 'Alles bekijken',
 

@@ -53,14 +53,14 @@ $hours = (int)vr_config('vault_step_hours', 24);
   1.2 Auf der Plattform werden drei Arten von Angeboten geführt, jeweils gekennzeichnet auf der
   Produktseite:
 </p>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Kennzeichnung</th><th>Verkäufer</th><th>Vertragspartner des Kaufvertrags</th></tr></thead>
   <tbody>
     <tr><td><?= h($brand) ?>-Bestand</td><td>der Betreiber selbst</td><td><?= h($co) ?></td></tr>
     <tr><td>Händler</td><td>gewerblicher Drittverkäufer</td><td>der jeweilige Händler</td></tr>
     <tr><td>Privatverkäufer</td><td>Privatperson</td><td>die jeweilige Privatperson</td></tr>
   </tbody>
-</table>
+</table></div>
 <p>
   1.3 Bei Angeboten von Drittverkäufern kommt der Kaufvertrag ausschließlich zwischen Ihnen und dem
   jeweiligen Verkäufer zustande. Der Betreiber wird nicht Vertragspartei des Kaufvertrags. Für die

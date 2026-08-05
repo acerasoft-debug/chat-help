@@ -42,6 +42,10 @@ return [
     'sec_vault_sub'      => 'Én pris pr. stykke, og den falder efter en plan du kan se. Vent længere, betal mindre — hvis ingen tager det først.',
     'sec_brands'         => 'Huse på lager',
     'sec_editorial'      => 'Hvorfor MAXSALES',
+    'home_manifesto'      => 'Vi opfinder ikke knaphed. Vi offentliggør den.',
+    'home_manifesto_note' => 'Hvert partis prisplan ligger fast og er offentlig, før det første fald sker',
+    'stage_pause'         => 'Sæt baggrundsfilmen på pause',
+    'stage_play'          => 'Afspil baggrundsfilmen',
     'sec_new'            => 'Nyt denne uge',
     'view_all'           => 'Se alle',
 

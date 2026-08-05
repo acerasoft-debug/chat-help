@@ -21,7 +21,7 @@ $zones = [
 ?>
 
 <h2>Versandkosten und Laufzeiten</h2>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead>
     <tr><th>Zielgebiet</th><th>Versandkosten</th><th>Versandfrei ab</th><th>Laufzeit</th></tr>
   </thead>
@@ -36,7 +36,7 @@ $zones = [
     </tr>
   <?php endforeach; ?>
   </tbody>
-</table>
+</table></div>
 <p>
   Alle Beträge sind Endpreise inklusive Umsatzsteuer. Die für Ihre Bestellung geltenden
   Versandkosten werden im Warenkorb angezeigt, sobald Sie das Lieferland gewählt haben, und im

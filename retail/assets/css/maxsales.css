@@ -130,10 +130,27 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .burger span{display:block;width:20px;height:1.4px;background:var(--ink);margin:4px 0;transition:transform .3s}
 
 @media (max-width:1080px){
-  .site__inner{grid-template-columns:auto 1fr auto;min-height:62px}
+  /* minmax(0,1fr): auto yerine sıfır tabanlı, yoksa orta sütun kelime
+     genişliğinin altına inemiyor ve başlık satırı taşıyor. */
+  .site__inner{grid-template-columns:auto minmax(0,1fr) auto;min-height:62px;gap:12px}
   .nav{display:none}
   .burger{display:block}
   .search{display:none}
+}
+/* Dar telefonlarda hamburger + kelime markası + üç araç 390 px'e sığmıyordu:
+   satır 32 px taşıyor, bütün sayfalarda yatay kaydırma açıyordu. Kelime
+   markasını ve araç aralıklarını küçültüyoruz; dokunma hedefleri 32 px'in
+   altına inmiyor. */
+@media (max-width:560px){
+  .site__inner{gap:8px;min-height:58px}
+  .wordmark{font-size:17px;letter-spacing:.2em;padding-right:0}
+  .wordmark__dot{width:3px;height:3px}
+  .tools{gap:2px}
+  .tool{padding:6px}
+  .burger{padding:10px 6px}
+}
+@media (max-width:380px){
+  .wordmark{font-size:15px;letter-spacing:.13em}
 }
 
 /* ------------------------------------------------------------- çekmece */
@@ -281,7 +298,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    koyu bağlamda değişkenler yeniden tanımlanıyor. Ölçülen: --muted 8,9:1,
    --muted-2 6,5:1. Vault'ta gösterilen "son 30 günün en düşük fiyatı" gibi
    satırlar yasal zorunluluk — okunur olmaları şart. */
-.vault,.hero,.foot,.member{
+.vault,.hero,.foot,.member,.stage,.manifesto{
   --muted:#b4aea0;
   --muted-2:#9a9384;
   --brass-text:var(--brass-2);   /* mürekkep üzerinde 13:1 */
@@ -577,6 +594,9 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .doc a{border-bottom:1px solid var(--bone-3)}
 .doc a:hover{border-color:var(--ink)}
 .doc table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+/* Dar ekranda tablo kendi kutusunda kaysın, sayfa değil. */
+.tablewrap{overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+.tablewrap table{margin:0;min-width:420px}
 .doc th,.doc td{border:1px solid var(--bone-3);padding:9px 11px;text-align:left;vertical-align:top}
 .doc th{background:var(--bone-2);font-size:12px;letter-spacing:.06em}
 .doc__box{border:1px solid var(--bone-3);background:var(--bone-2);padding:18px 20px;margin:20px 0;font-size:13.5px}
@@ -646,7 +666,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .done__next ol,.done__next ul{padding:0;margin:0;display:grid;gap:12px}
 
 /* ---------------------------------------------------------------- diller */
-.langs{display:flex;gap:1px;margin-top:18px}
+.langs{display:flex;flex-wrap:wrap;gap:1px;margin-top:18px}
 .lang{
   font-size:10.5px;letter-spacing:.15em;padding:6px 9px;color:var(--muted-2);border:1px solid transparent;
 }
@@ -663,8 +683,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   max-width:var(--wrap);margin:0 auto;padding:0 var(--gut);
   display:grid;gap:clamp(26px,3vw,44px);grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,.85fr));
 }
-@media (max-width:900px){.foot__top{grid-template-columns:1fr 1fr}}
-@media (max-width:520px){.foot__top{grid-template-columns:1fr}}
+@media (max-width:900px){.foot__top{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:520px){.foot__top{grid-template-columns:minmax(0,1fr)}}
 .wordmark--foot{color:var(--bone);font-size:20px}
 .foot__tag{font-family:var(--serif);font-size:15px;color:var(--brass-text);margin-top:12px}
 .foot__note{font-size:12px;line-height:1.6;margin-top:14px;max-width:44ch}
@@ -855,3 +875,221 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .vault .panel .pdp__lead,.vault .pdp__lead{color:var(--bone)}
 .panel p+p{margin-top:9px}
+
+/* =========================================================================
+   ANASAYFA — "maison" düzeni
+   Fark şu: perakende anasayfası kutu içinde kutu diziyor; moda evinin
+   anasayfası sayfayı bir dergi gibi kuruyor. Buradaki araçlar o yüzden
+   kenardan kenara sahne, bölüm numaraları, kadrajdan taşan yatay ray,
+   devasa tipografiyle bir manifesto bandı ve tek tek satır olarak dizilmiş
+   ev listesi. Hepsi JS'siz çalışıyor.
+   ========================================================================= */
+
+/* ------------------------------------------------------------ sahne (hero) */
+.stage{
+  position:relative;background:var(--ink);color:var(--bone);overflow:hidden;
+  min-height:clamp(600px,88svh,1000px);display:grid;grid-template-rows:1fr auto;
+}
+.stage__art{position:absolute;inset:0}
+.stage__art img{width:100%;height:100%;object-fit:cover;opacity:.86}
+.stage::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(118% 74% at 50% 6%,rgba(201,162,77,.15),transparent 58%),
+    linear-gradient(to bottom,rgba(10,10,14,.82) 0%,rgba(10,10,14,.52) 30%,rgba(10,10,14,.40) 64%,rgba(10,10,14,.86) 100%);
+}
+/* İnce altın çerçeve — kadrajı bir kampanya sayfası gibi kapatıyor. */
+.stage__frame{
+  position:absolute;inset:clamp(11px,1.5vw,24px);border:1px solid rgba(201,162,77,.26);
+  pointer-events:none;z-index:3;
+}
+.stage__in{
+  position:relative;z-index:4;grid-area:1/1;align-self:center;text-align:center;
+  width:100%;max-width:var(--wrap);margin:0 auto;
+  padding:clamp(74px,10vw,132px) var(--gut) clamp(26px,4vw,44px);
+}
+
+/* Süsleme: iki ince çizgi arasında bir eşkenar dörtgen. */
+.orn{display:flex;align-items:center;justify-content:center;gap:13px;color:var(--brass-2)}
+.orn i{width:6px;height:6px;background:currentColor;transform:rotate(45deg);display:block;flex:0 0 auto}
+.orn::before,.orn::after{content:"";height:1px;flex:0 0 clamp(28px,6vw,80px);background:currentColor;opacity:.5}
+
+.stage__eyebrow{
+  margin-top:19px;font-size:10.5px;letter-spacing:.36em;text-transform:uppercase;color:var(--brass-2);
+}
+.stage h1{
+  margin-top:clamp(16px,2.2vw,28px);font-size:clamp(38px,7.2vw,112px);line-height:.95;
+  letter-spacing:-.036em;max-width:15ch;margin-inline:auto;text-wrap:balance;
+}
+.stage__sub{
+  margin:clamp(20px,2.6vw,30px) auto 0;max-width:56ch;
+  font-size:clamp(14px,1.25vw,16.5px);color:color-mix(in oklab,var(--bone) 76%,transparent);
+}
+.stage__act{display:flex;flex-wrap:wrap;gap:14px 26px;justify-content:center;margin-top:clamp(28px,3.4vw,42px)}
+/* İkinci eylem düğme değil, altı çizili büyük harf bağlantı — kasa dili
+   yerine dergi dili. */
+.stage__link{
+  display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--bone);padding-bottom:5px;
+  border-bottom:1px solid rgba(245,242,236,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
+}
+.stage__link:hover{color:var(--brass-2);border-bottom-color:var(--brass-2)}
+
+/* Sahnenin dibindeki ölçü şeridi: rakamlar dizilmiş, aralarında ince çizgi. */
+.stage__meta{
+  position:relative;z-index:4;grid-area:2/1;border-top:1px solid rgba(245,242,236,.16);
+  background:linear-gradient(to bottom,rgba(10,10,14,.5),rgba(10,10,14,.85));
+  display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
+}
+@media (max-width:640px){.stage__meta{grid-auto-flow:row;grid-auto-columns:auto}}
+.stage__meta div{
+  padding:clamp(16px,2.2vw,26px) var(--gut);text-align:center;
+  border-left:1px solid rgba(245,242,236,.16);
+}
+.stage__meta div:first-child{border-left:0}
+@media (max-width:640px){
+  .stage__meta div{border-left:0;border-top:1px solid rgba(245,242,236,.16)}
+  .stage__meta div:first-child{border-top:0}
+}
+.stage__meta b{
+  display:block;font-family:var(--serif);font-size:clamp(22px,2.4vw,32px);font-weight:500;
+  font-variant-numeric:tabular-nums;color:var(--bone);line-height:1.1;
+}
+.stage__meta>div>span{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted-2)}
+.stage__meta b span{font:inherit;letter-spacing:.01em;text-transform:none;color:inherit}
+
+/* ------------------------------------------------------- bölüm başlığı (ev) */
+.chap{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:clamp(16px,3vw,40px);
+  margin-bottom:clamp(28px,3.6vw,50px);
+}
+@media (max-width:820px){.chap{grid-template-columns:minmax(0,1fr);row-gap:16px}.chap__more{justify-self:start}}
+.chap__n{
+  display:flex;align-items:center;gap:12px;margin-bottom:clamp(13px,1.6vw,20px);
+  font-size:10.5px;letter-spacing:.3em;color:var(--brass-text);font-variant-numeric:tabular-nums;
+}
+.chap__n::after{content:"";height:1px;width:clamp(26px,4vw,54px);background:currentColor;opacity:.6}
+.chap__t{font-size:clamp(27px,3.6vw,52px);letter-spacing:-.028em}
+.chap__s{margin-top:11px;max-width:60ch;font-size:14.5px;color:var(--muted)}
+.chap__more{
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;padding-bottom:.5em;
+  font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  border-bottom:1px solid var(--bone-3);transition:color .3s var(--ease),border-color .3s var(--ease);
+}
+.chap__more:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.vault .chap__more{border-bottom-color:rgba(245,242,236,.3)}
+.vault .chap__more:hover{color:var(--bone);border-bottom-color:var(--bone)}
+
+/* ------------------------------------------------------------- yatay ray
+   Izgara sarmak yerine kadrajdan taşan tek sıra. İlk kart sayfa oluğuyla
+   hizalı başlıyor, son kart sağ kenardan çıkıyor — "devamı var" demenin
+   ok çizmeden yolu. Kaydırma tarayıcının kendi işi, JS yok. */
+.rail{
+  overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  scroll-padding-left:max(var(--gut),calc((100% - var(--wrap))/2 + var(--gut)));
+  padding-bottom:14px;scrollbar-width:thin;scrollbar-color:var(--bone-3) transparent;
+}
+.rail::-webkit-scrollbar{height:3px}
+.rail::-webkit-scrollbar-thumb{background:var(--bone-3)}
+.vault .rail{scrollbar-color:rgba(245,242,236,.3) transparent}
+.vault .rail::-webkit-scrollbar-thumb{background:rgba(245,242,236,.3)}
+.rail__track{
+  display:flex;gap:clamp(14px,1.6vw,24px);width:max-content;
+  padding-inline:max(var(--gut),calc((100% - var(--wrap))/2 + var(--gut)));
+}
+.rail__track>*{flex:0 0 clamp(216px,23vw,318px);scroll-snap-align:start}
+.rail__track>.lot{flex-basis:clamp(260px,30vw,396px)}
+
+/* --------------------------------------------------------- manifesto bandı */
+.manifesto{
+  background:var(--ink);color:var(--bone);position:relative;overflow:hidden;
+  padding:clamp(72px,11vw,152px) 0;text-align:center;
+}
+.manifesto::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(90% 120% at 50% 50%,rgba(201,162,77,.13),transparent 66%);
+}
+.manifesto__in{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:0 var(--gut)}
+.manifesto p{
+  margin-top:clamp(24px,3.4vw,44px);font-family:var(--serif);
+  font-size:clamp(28px,5.2vw,74px);line-height:1.04;letter-spacing:-.032em;text-wrap:balance;
+}
+.manifesto__note{
+  margin-top:clamp(22px,3vw,38px)!important;font-family:var(--sans)!important;
+  font-size:11px!important;letter-spacing:.22em!important;line-height:1.8!important;
+  text-transform:uppercase;color:var(--muted-2);
+}
+
+/* -------------------------------------------------------------- ev listesi
+   Rozet ızgarası değil, jenerik gibi tek tek satırlar. Sayı sağda, üzerine
+   gelince pirinç. */
+.houselist{border-top:1px solid var(--bone-3)}
+.houselist a{
+  display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+  padding:clamp(13px,1.7vw,22px) 2px;border-bottom:1px solid var(--bone-3);
+  font-family:var(--serif);font-size:clamp(21px,3vw,38px);letter-spacing:-.02em;
+  transition:color .3s var(--ease),padding-left .35s var(--ease);
+}
+.houselist a:hover,.houselist a:focus-visible{color:var(--brass-text);padding-left:clamp(8px,1.2vw,18px)}
+.houselist i{
+  font-style:normal;font-family:var(--sans);font-size:10.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap;
+}
+@media (prefers-reduced-motion:reduce){
+  .houselist a:hover,.houselist a:focus-visible{padding-left:2px}
+}
+
+/* ------------------------------------------------------------ sahne filmi
+   Gerçek kampanya filmi yoksa üç kampanya karesi yavaşça büyüyerek birbirine
+   geçiyor — video dosyası olmadan sinema hissi. Operatör assets/media/hero.mp4
+   koyduğu anda yerini gerçek videoya bırakıyor.
+   Hareket 5 saniyeden uzun sürdüğü için duraklatma düğmesi ŞART (WCAG 2.2.2);
+   düğme salt CSS ile çalışıyor, JS gerektirmiyor. */
+.stage__film{position:absolute;inset:0}
+.stage__film img,.stage__vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage__vid{opacity:.86}
+.stage__film img{opacity:0;transform:scale(1.035);animation:stagefilm 33s var(--ease) infinite}
+.stage__film img:nth-child(2){animation-delay:11s}
+.stage__film img:nth-child(3){animation-delay:22s}
+@keyframes stagefilm{
+  0%  {opacity:0;   transform:scale(1.035) translate3d(0,0,0)}
+  4%  {opacity:.86}
+  30% {opacity:.86}
+  36% {opacity:0}
+  40% {opacity:0;   transform:scale(1.13) translate3d(-1.1%,-.7%,0)}
+  100%{opacity:0;   transform:scale(1.035) translate3d(0,0,0)}
+}
+
+/* Duraklatma: kutu işaretliyken hem film hem sayaç durur. */
+.stage__pausebox:checked ~ .stage__art .stage__film img{animation-play-state:paused}
+.stage__pause{
+  grid-area:1/1;justify-self:end;align-self:end;position:relative;z-index:5;
+  margin:0 clamp(20px,2.6vw,40px) clamp(18px,2.4vw,34px) 0;
+  width:36px;height:36px;border:1px solid rgba(245,242,236,.32);border-radius:50%;
+  display:grid;place-items:center;cursor:pointer;
+  background:rgba(10,10,14,.42);backdrop-filter:blur(5px);
+  transition:border-color .3s var(--ease),background .3s var(--ease);
+}
+.stage__pause:hover{border-color:var(--brass-2);background:rgba(10,10,14,.66)}
+.stage__pausebox:focus-visible + .stage__art + .stage__pause{outline:2px solid var(--brass);outline-offset:3px}
+/* Duraklat = iki dikey çubuk; oynat = üçgen. Tek elemanla, ikon dosyasız. */
+.stage__pause-i{
+  width:9px;height:11px;border-left:2px solid var(--bone);border-right:2px solid var(--bone);
+}
+.stage__pausebox:checked ~ .stage__pause .stage__pause-i{
+  width:0;height:0;border:0;border-left:9px solid var(--bone);
+  border-top:6px solid transparent;border-bottom:6px solid transparent;margin-left:3px;
+}
+.stage__pausebox:checked ~ .stage__pause .stage__pause-a,
+.stage__pause-b{display:none}
+.stage__pausebox:checked ~ .stage__pause .stage__pause-b{display:inline}
+
+/* Hareketi azaltılmış tercihte film hiç oynamaz: ilk kare durur. */
+@media (prefers-reduced-motion:reduce){
+  .stage__film img{animation:none;opacity:0;transform:none}
+  .stage__film img:first-child{opacity:.86}
+  .stage__pause{display:none}
+}
+/* Kayan tablo kutusu klavyeyle de kaydırılabilmeli (WCAG 2.1.1); odaklanınca
+   görünür olsun diye kendi çerçevesi var. */
+.tablewrap:focus-visible{outline:2px solid var(--brass);outline-offset:2px}

@@ -441,6 +441,43 @@ function vr_section_head(string $title, string $sub = '', ?string $moreUrl = nul
 <?php
 }
 
+/**
+ * Anasayfanın bölüm başlığı: solda bölüm numarası, ortada başlık, sağda
+ * "hepsini gör". Numara dile bağlı değil, o yüzden çeviri gerektirmiyor.
+ */
+function vr_chapter(string $n, string $title, string $sub = '', ?string $moreUrl = null, string $moreLabel = ''): void
+{
+?>
+<div class="chap" data-reveal>
+  <div>
+    <span class="chap__n" aria-hidden="true"><?= h($n) ?></span>
+    <h2 class="chap__t"><?= h($title) ?></h2>
+    <?php if ($sub !== ''): ?><p class="chap__s"><?= h($sub) ?></p><?php endif; ?>
+  </div>
+  <?php if ($moreUrl): ?>
+    <a class="chap__more" href="<?= h($moreUrl) ?>"><?= h($moreLabel ?: t('view_all')) ?><?= vr_icon('arrow', 15) ?></a>
+  <?php endif; ?>
+</div>
+<?php
+}
+
+/**
+ * Sahnenin kampanya filmi. Operatör assets/media/hero.(mp4|webm) koyduysa
+ * gerçek video oynuyor; koymadıysa üretilen kampanya kareleri sinematik
+ * geçişle dönüyor. Sunucuda dosya yoksa hiçbir şey bozulmuyor.
+ */
+function vr_hero_video(): ?array
+{
+    foreach ([['hero.mp4', 'video/mp4'], ['hero.webm', 'video/webm']] as [$file, $type]) {
+        $path = VR_ROOT . '/assets/media/' . $file;
+        if (is_file($path) && filesize($path) > 0) {
+            // Dosya değişince tarayıcı eskisine yapışmasın.
+            return ['src' => vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]), 'type' => $type];
+        }
+    }
+    return null;
+}
+
 /** Demo veriyle çalışıyorsak bunu gizlemiyoruz — dürüstlük meselesi. */
 function vr_demo_banner(): void
 {

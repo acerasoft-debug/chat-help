@@ -137,13 +137,13 @@ $fixed = vr_money((int)vr_config('fee_fixed_cents', 35));
 
 <h2 id="v6">6. Provision</h2>
 <p>6.1 Für jeden über die Plattform vermittelten Verkauf fällt eine Provision an:</p>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Verkäufertyp</th><th>Provision</th><th>Premium Outlet (Vault)</th></tr></thead>
   <tbody>
     <tr><td>Händler</td><td><?= h($feeB) ?> % + <?= h($fixed) ?> je verkauftem Artikel</td><td><?= h($feeV) ?> %</td></tr>
     <tr><td>Privatverkäufer</td><td><?= h($feeP) ?> % + <?= h($fixed) ?> je verkauftem Artikel</td><td><?= h($feeV) ?> %</td></tr>
   </tbody>
-</table>
+</table></div>
 <p>
   6.2 Bemessungsgrundlage ist der Bruttoverkaufspreis der Artikel des Verkäufers. Versandkosten sind
   nicht Teil der Bemessungsgrundlage und verbleiben beim Betreiber, der die Versandkosten gegenüber

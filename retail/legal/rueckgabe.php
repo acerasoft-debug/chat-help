@@ -17,7 +17,7 @@ $email = trim((string)(vr_config('company')['email'] ?? ''));
 ?>
 
 <h2>Auf einen Blick</h2>
-<table>
+<div class="tablewrap" tabindex="0"><table>
   <thead><tr><th>Verkäufer</th><th>Frist</th><th>Kosten der Rücksendung</th></tr></thead>
   <tbody>
     <tr><td><?= h((string)vr_config('brand')) ?>-Bestand</td>
@@ -30,7 +30,7 @@ $email = trim((string)(vr_config('company')['email'] ?? ''));
         <td>kein gesetzliches Widerrufsrecht</td>
         <td>Rücknahme nur bei Abweichung von der Beschreibung</td></tr>
   </tbody>
-</table>
+</table></div>
 
 <h2>So senden Sie zurück</h2>
 <ol>

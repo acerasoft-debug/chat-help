@@ -52,7 +52,7 @@ vr_layout_start([
             $r = $range[$brand] ?? ['min' => 0, 'max' => 0];
         ?>
           <article class="doc__box" style="margin:0" data-reveal>
-            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:14px">
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 14px">
               <h2 style="font-family:var(--serif);font-size:23px;letter-spacing:.04em">
                 <a href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>"><?= h((string)$brand) ?></a>
               </h2>
