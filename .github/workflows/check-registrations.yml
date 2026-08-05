@@ -186,6 +186,25 @@ jobs:
             }
             $todayCount = $byDay[$today] ?? 0;
 
+            /* "Bunlar outlet miydi?" gibi sorulari veriyle cevaplamak icin: SON gonderilen
+               batch'in (son 2 saat) kaynak/kategori dagilimi -- gonderim loglari kaynagi
+               yazmiyor, bu yuzden last_contacted_at zaman damgasindan geriye dogru bakiyoruz. */
+            echo "\n== SON GONDERIM (son 2 saat) -- kaynak/kategori dagilimi ==\n";
+            $cutoff = time() - 2*3600;
+            $recentSrc = []; $recentCat = []; $recentCount = 0;
+            foreach ($leads as $l) {
+              $ts = strtotime((string)($l['last_contacted_at'] ?? ''));
+              if (!$ts || $ts < $cutoff) continue;
+              $recentCount++;
+              $s = $l['source'] ?? '(yok)'; $recentSrc[$s] = ($recentSrc[$s] ?? 0) + 1;
+              $c = trim((string)($l['category'] ?? '')); $recentCat[$c !== '' ? $c : '(kategorisiz)'] = ($recentCat[$c !== '' ? $c : '(kategorisiz)'] ?? 0) + 1;
+            }
+            echo "son 2 saatte gonderilen: {$recentCount}\n";
+            arsort($recentSrc);
+            echo "kaynaga gore:\n"; foreach ($recentSrc as $s => $c) echo "  {$s}: {$c}\n";
+            arsort($recentCat);
+            echo "kategoriye gore:\n"; foreach ($recentCat as $c => $n) echo "  {$c}: {$n}\n";
+
             echo "\n\n================= OZET =================\n";
             echo "BUGUN gonderilen kampanya e-postasi: {$todayCount}\n";
             echo "TOPLAM lead                : " . count($leads) . "\n";
