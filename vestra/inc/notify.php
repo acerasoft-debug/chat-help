@@ -241,6 +241,13 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
   if($domain==='') return '';
   $key=$keyOverride!==''?$keyOverride:(string)vestra_cfg('finder_key','');
   $provider=strtolower($providerOverride!==''?$providerOverride:(string)vestra_cfg('finder_provider','hunter'));
+  /* Olu anahtar mandali. Anahtar reddedilirse (401/403) SONRAKI her cagri da
+     reddedilecek: bir tarama turunda bu, yuzlerce 25 saniyelik istek ve yuzlerce
+     ayni hata satiri demek (son taramada 675 tane). Bir kez ogrenip bu istek
+     boyunca API'yi atliyoruz -- ucretsiz site-tarama yedegi zaten calisiyor,
+     yani kesif durmuyor, sadece olu kapiyi calmayi birakiyor. */
+  static $keyDead = [];
+  if($key!=='' && isset($keyDead[$provider.'|'.$key])) $key='';
   // 1) API finder — only when a key exists.
   if($key!==''){
     $api='';
@@ -252,7 +259,10 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
       $r=curl_exec($ch); $code=curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
       if($code>=200&&$code<300){ $d=json_decode((string)$r,true); $e=$d['email']??($d['results'][0]['email']??'');
         if(is_string($e)&&filter_var($e,FILTER_VALIDATE_EMAIL)) $api=strtolower($e); }
-      elseif($code) error_log("[VESTRA finder] anymailfinder HTTP {$code}");
+      elseif($code){
+        if($code===401||$code===403){ $keyDead[$provider.'|'.$key]=true; error_log("[VESTRA finder] anymailfinder HTTP {$code} — anahtar reddedildi, bu istek boyunca API atlaniyor (ucretsiz yedege dusuluyor)"); }
+        else error_log("[VESTRA finder] anymailfinder HTTP {$code}");
+      }
     } else {
       // Hunter.io domain-search (default)
       $ch=curl_init('https://api.hunter.io/v2/domain-search?domain='.urlencode($domain).'&api_key='.urlencode($key));
@@ -263,7 +273,10 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
         // rank: prefer generic (info@/sales@) then higher confidence
         usort($emails,fn($a,$b)=>((($b['type']??'')==='generic'?100:0)+($b['confidence']??0))<=>((($a['type']??'')==='generic'?100:0)+($a['confidence']??0)));
         foreach($emails as $e){ if(!empty($e['value'])&&filter_var($e['value'],FILTER_VALIDATE_EMAIL)){ $api=strtolower($e['value']); break; } }
-      } elseif($code){ error_log("[VESTRA finder] hunter HTTP {$code}"); }
+      } elseif($code){
+        if($code===401||$code===403){ $keyDead[$provider.'|'.$key]=true; error_log("[VESTRA finder] hunter HTTP {$code} — anahtar reddedildi, bu istek boyunca API atlaniyor (ucretsiz yedege dusuluyor)"); }
+        else error_log("[VESTRA finder] hunter HTTP {$code}");
+      }
     }
     if($api!=='') return $api;
   }

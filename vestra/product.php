@@ -35,7 +35,9 @@ $JSONLD = [
   ]],
 ];
 $NAV='shop'; require __DIR__.'/inc/head.php';
-$mode=$p['mode']; $from=vestra_from_price($p); $disc=vestra_discount($p);
+/* $mode = VITRIN modu, ham veri degil: liste fiyati kademe fiyatina esitse urun
+   "sale" olarak kayitli olsa bile sabit fiyatli gosterilir (bkz. vestra_on_sale). */
+$mode=vestra_display_mode($p); $from=vestra_from_price($p); $disc=vestra_discount($p);
 $offered=isset($_GET['offered']);
 $images = !empty($p['images'])&&is_array($p['images']) ? $p['images'] : (vestra_primary_image($p)?[vestra_primary_image($p)]:[]);
 $photosLocked = !$MEMBER && $images;   // photos require being signed in (any status) — not full KYB approval
@@ -575,8 +577,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
-            <?php if (($rp['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
-            <?php elseif (($rp['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+            <?php $rmode = vestra_display_mode($rp); ?>
+            <?php if ($rmode === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($rp) ?>%</span>
+            <?php elseif ($rmode === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
           </div>
           <div class="sbody">
             <span class="sbrand"><?= htmlspecialchars($rp['brand'] ?? '') ?></span>

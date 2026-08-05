@@ -228,6 +228,7 @@ footer a{color:#d8bd86}
       <div class="shopgrid" id="shopgrid">
         <?php foreach($products as $idx=>$p):
           $from = vestra_from_price($p);
+          $dmode = vestra_display_mode($p);   // gercek indirimi olmayan "sale" burada fixed sayilir
           /* Signed-in members (any status) see the catalogue photo-forward, like the
              showroom: the first product photo is the card front and the SECOND crossfades
              in on hover (or while the card is centered in view on touch). Guests get NO
@@ -252,8 +253,8 @@ footer a{color:#d8bd86}
              data-idx="<?= $idx ?>"
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
              data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
-             data-mode="<?= htmlspecialchars($p['mode']??'fixed') ?>"
-             data-price="<?= !$MEMBER ? '' : ($p['mode']==='offer' ? 999999 : $from) ?>"
+             data-mode="<?= htmlspecialchars($dmode) ?>"
+             data-price="<?= !$MEMBER ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
             <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
@@ -266,8 +267,8 @@ footer a{color:#d8bd86}
                 </span>
               <?php endif; ?>
               <?php if(!$img0) echo vestra_brand_card($p['brand']); ?>
-              <?php if($p['mode']==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
-              <?php elseif($p['mode']==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+              <?php if($dmode==='sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
+              <?php elseif($dmode==='offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
               <?php if($isNew): ?><span class="snewbadge"><?= t('NEW') ?></span><?php endif; ?>
               <?php if($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
             </div>
@@ -280,9 +281,9 @@ footer a{color:#d8bd86}
               <div class="sprice">
                 <?php if(!$MEMBER): ?>
                   <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
-                <?php elseif($p['mode']==='offer'): ?>
+                <?php elseif($dmode==='offer'): ?>
                   <span class="soffer">💬 <?= t('Open to offers') ?></span>
-                <?php elseif($p['mode']==='sale'): ?>
+                <?php elseif($dmode==='sale'): ?>
                   <span class="swas"><?= eur($p['list']??0) ?></span>
                   <span class="samt"><?= eur($from) ?></span>
                   <span class="sfrom">/<?= htmlspecialchars($p['unit']??'pc') ?></span>

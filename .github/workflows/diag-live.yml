@@ -155,7 +155,17 @@ jobs:
             $prods = vestra_products();
             echo "toplam urun: ".count($prods)."\n";
 
-            $ids = []; $skus = []; $knownCats = function_exists('vestra_all_cats') ? vestra_all_cats() : [];
+            /* vestra_all_cats() GRUPLU dondurur (grup => [altkategoriler]); duz liste degil.
+               Duzlestirmeden karsilastirinca hicbir kategori eslesmiyor ve tarama her urunu
+               "tanimsiz kategori" diye isaretliyordu -- veri degil, taramanin hatasiydi. */
+            $ids = []; $skus = [];
+            $knownCats = [];
+            if (function_exists('vestra_all_cats')) {
+              foreach (vestra_all_cats() as $grp => $subs) {
+                if (is_array($subs)) { foreach ($subs as $s) $knownCats[] = (string)$s; }
+                else $knownCats[] = (string)$subs;
+              }
+            }
             $noImg = []; $brokenImg = []; $zeroDisc = []; $noPrice = []; $noMoq = [];
             $dupId = []; $dupSku = []; $badCat = []; $cqBad = [];
 

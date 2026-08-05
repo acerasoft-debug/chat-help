@@ -412,6 +412,14 @@ function vestra_parse_colorqty_tokens(array $p, array $tokens): ?array {
 function vestra_unit_price($p,$qty){ if(empty($p['tiers'])) return 0.0; $price=$p['tiers'][0]['price']; foreach($p['tiers'] as $t){ if($qty>=$t['min']) $price=(float)$t['price']; } return $price; }
 function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
 function vestra_discount($p){ if(($p['mode']??'')!=='sale'||empty($p['list'])) return 0; return (int)round(100*($p['list']-vestra_from_price($p))/$p['list']); }
+/* Bir urun ancak liste fiyati gercekten kademe fiyatinin USTUNDEyse "indirimli"dir.
+   Veri kayiyor: kademe fiyatini guncelleyip 'list' alanina dokunmayinca mode='sale'
+   ama list == fiyat kaliyordu; vitrinde "-%0" rozeti ve ayni sayinin uzeri cizili
+   hali cikiyordu. Musteriye donuk her yer artik ham mode'u degil bunu soruyor. */
+function vestra_on_sale($p){ return ($p['mode'] ?? '') === 'sale' && vestra_discount($p) > 0; }
+/* Vitrinde gecerli mod: gercek indirimi olmayan bir "sale" urunu sadece sabit
+   fiyatli bir urundur — rozeti de, ustu cizili fiyati da, filtresi de oyle davranir. */
+function vestra_display_mode($p){ $m = $p['mode'] ?? 'fixed'; return ($m === 'sale' && !vestra_on_sale($p)) ? 'fixed' : $m; }
 function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
 
 /* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────

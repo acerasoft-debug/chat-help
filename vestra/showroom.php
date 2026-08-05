@@ -71,6 +71,7 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
   <div class="shopgrid">
     <?php foreach ($items as $p):
       $from = vestra_from_price($p);
+      $dmode = vestra_display_mode($p);   // gercek indirimi olmayan "sale" burada fixed sayilir
       $imgCount = $APPROVED ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
       ?>
       <?php
@@ -89,8 +90,8 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
             <span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span>
           <?php endif; ?>
           <?php if (!$img0) echo vestra_brand_card($p['brand'] ?? ''); ?>
-          <?php if (($p['mode'] ?? '') === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
-          <?php elseif (($p['mode'] ?? '') === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
+          <?php if ($dmode === 'sale'): ?><span class="smodetag sale">−<?= vestra_discount($p) ?>%</span>
+          <?php elseif ($dmode === 'offer'): ?><span class="smodetag offer"><?= t('Offers') ?></span><?php endif; ?>
           <?php if ($imgCount > 1): ?><span class="sphotocount">🖼 <?= $imgCount ?></span><?php endif; ?>
         </div>
         <div class="sbody">
@@ -101,9 +102,9 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
           <div class="sprice">
             <?php if (!$MEMBER): ?>
               <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
-            <?php elseif (($p['mode'] ?? '') === 'offer'): ?>
+            <?php elseif ($dmode === 'offer'): ?>
               <span class="soffer">💬 <?= t('Open to offers') ?></span>
-            <?php elseif (($p['mode'] ?? '') === 'sale'): ?>
+            <?php elseif ($dmode === 'sale'): ?>
               <span class="swas"><?= eur($p['list'] ?? 0) ?></span>
               <span class="samt"><?= eur($from) ?></span>
               <span class="sfrom">/<?= htmlspecialchars($p['unit'] ?? 'pc') ?></span>
