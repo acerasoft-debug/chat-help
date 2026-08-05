@@ -1,0 +1,2 @@
+# Veri dizini web'den erisilemez. (nginx: location ~ /data/ { deny all; })
+Require all denied

@@ -1,0 +1,274 @@
+<?php
+/**
+ * PREMIUM OUTLET — Vault
+ * ----------------------
+ * İki görünüm aynı dosyada:
+ *   ?lot=<id> yoksa  → tüm loslar (oda görünümü)
+ *   ?lot=<id> varsa  → tek losun detay sayfası (plan tablosu dahil)
+ *
+ * Sayfanın ayırt edici yeri, indirimi "kırmızı yüzde" ile değil PLANI
+ * göstererek anlatması: hangi kademede olduğu, bir sonraki fiyatın ne olacağı,
+ * ne zaman düşeceği ve nerede duracağı açık. Fiyat iddiaları PAngV §11'e göre
+ * yalnızca gerçek bir önceki fiyat varsa basılıyor (bkz. inc/vault.php).
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/inc/view.php';
+
+$lotId = trim((string)($_GET['lot'] ?? ''));
+$single = $lotId !== '' ? vr_vault_find($lotId) : null;
+
+if ($lotId !== '' && $single === null) {
+    http_response_code(404);
+}
+
+$steps = (int)vr_config('vault_steps', 6);
+$hours = (int)vr_config('vault_step_hours', 24);
+
+// ---------------------------------------------------------------------------
+// TEK LOS GÖRÜNÜMÜ
+// ---------------------------------------------------------------------------
+if ($single !== null) {
+    $p  = $single['product'];
+    $st = $single['state'];
+    $seller = vr_product_seller($p);
+    $locked = $single['members_only'] && !vr_is_member();
+
+    vr_layout_start([
+        'title'  => $p['brand'] . ' ' . vr_card_name($p) . ' — ' . t('vault_title'),
+        'desc'   => t('vault_lede'),
+        'og_image' => vr_product_image($p),
+        'body_class' => 'is-vault',
+        'jsonld' => [
+            vr_jsonld_product($p, (int)$st['cents']),
+            vr_jsonld_breadcrumbs([
+                (string)vr_config('brand') => vr_url('/'),
+                t('vault_title')           => vr_url('outlet.php'),
+                $p['brand']                => null,
+            ]),
+        ],
+    ]);
+?>
+<section class="sec vault">
+  <div class="wrap">
+    <?php vr_breadcrumbs([
+        t('nav_outlet') => vr_url('outlet.php'),
+        $p['brand']     => vr_url('shop.php', ['brand' => $p['brand']]),
+        vr_card_name($p) => null,
+    ]); ?>
+
+    <div class="pdp">
+      <div class="pdp__media<?= count($p['images']) > 1 ? ' pdp__media--multi' : '' ?>">
+        <?php
+        $shots = $p['images'] ?: [vr_product_image($p)];
+        foreach (array_slice($shots, 0, 4) as $i => $src): ?>
+          <div class="pdp__shot"><img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
+               loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" width="800" height="1000"></div>
+        <?php endforeach; ?>
+      </div>
+
+      <div class="pdp__side">
+        <div>
+          <p class="pdp__brand" style="color:var(--brass)"><?= h($p['brand']) ?></p>
+          <h1><?= h(vr_card_name($p)) ?></h1>
+        </div>
+
+        <!-- fiyat bloğu: plan tam görünür -->
+        <div class="panel" style="border-color:rgba(245,242,236,.16)">
+          <h2 style="color:var(--brass)"><?= te('vault_price_now') ?></h2>
+          <div class="lot__price">
+            <span class="lot__now" style="font-size:clamp(34px,4.4vw,52px)"><?= h(vr_money((int)$st['cents'])) ?></span>
+            <?php if ($st['reference'] !== null): ?><s class="lot__ref"><?= h(vr_money((int)$st['reference'])) ?></s><?php endif; ?>
+          </div>
+          <p class="pdp__vat" style="color:var(--muted-2)">
+            <?= te('vat_incl', ['rate' => (int)vr_config('vat_rate_bps', 1900) / 100]) ?>
+          </p>
+          <?php if ($st['reference'] !== null): ?>
+            <p class="lot__legal"><?= te('vault_lowest30', ['amount' => vr_money((int)$st['reference'])]) ?></p>
+          <?php endif; ?>
+          <?php if (!empty($single['rrp_cents']) && (int)$single['rrp_cents'] > (int)$st['cents']): ?>
+            <p class="lot__legal"><?= te('vault_rrp', ['amount' => vr_money((int)$single['rrp_cents'])]) ?></p>
+          <?php endif; ?>
+
+          <div class="lot__meter" style="margin-top:12px">
+            <span style="--p:<?= (int)round(($st['step'] / max(1, $st['steps'])) * 100) ?>%"></span>
+          </div>
+
+          <?php if (!$single['sold'] && $st['next_at']): ?>
+            <p class="lot__drop">
+              <?= vr_icon('clock', 15) ?>
+              <span><?= te('vault_next_drop') ?></span>
+              <span class="lot__cd" data-countdown="<?= (int)$st['next_at'] ?>">—</span>
+              <span class="lot__then"><?= te('vault_next_price', ['amount' => vr_money((int)$st['next_cents'])]) ?></span>
+            </p>
+          <?php elseif (!$single['sold']): ?>
+            <p class="lot__drop lot__drop--floor"><?= te('vault_at_floor') ?> · <?= te('vault_floor_note') ?></p>
+          <?php endif; ?>
+        </div>
+
+        <?php if ($locked): ?>
+          <div class="notice"><?= te('vault_early', ['time' => vr_until($single['members_until'])]) ?>
+            <a class="link" style="color:var(--brass)" href="<?= h(vr_url('/')) ?>#member"><?= te('news_cta') ?></a>
+          </div>
+        <?php elseif ($single['sold'] || !$single['available']): ?>
+          <span class="btn btn--block is-disabled"><span><?= te('vault_gone') ?></span></span>
+        <?php else: ?>
+          <form method="post" action="<?= h(vr_url('cart.php')) ?>">
+            <?= vr_csrf_field() ?>
+            <input type="hidden" name="action" value="add">
+            <input type="hidden" name="pid" value="<?= h($p['id']) ?>">
+            <input type="hidden" name="lot" value="<?= h($single['lot_id']) ?>">
+            <input type="hidden" name="size" value="<?= h($p['sizes'][0]['label'] ?? 'ONE') ?>">
+            <button class="btn btn--brass btn--block btn--lg" type="submit">
+              <span><?= te('vault_take_it', ['amount' => vr_money((int)$st['cents'])]) ?></span>
+            </button>
+          </form>
+          <p style="font-size:11.5px;color:var(--muted-2)">
+            <?= vr_icon('lock', 13) ?> <?= te('checkout_stripe') ?>
+          </p>
+        <?php endif; ?>
+
+        <!-- planın tamamı: hangi kademede ne olacak -->
+        <div class="panel" style="border-color:rgba(245,242,236,.16)">
+          <h2 style="color:var(--brass)"><?= te('vault_how') ?></h2>
+          <table class="table" style="color:var(--muted)">
+            <thead><tr>
+              <th style="color:var(--muted-2)"><?= te('vault_stage', ['x' => '#', 'y' => (int)$st['steps'] + 1]) ?></th>
+              <th style="color:var(--muted-2)"><?= te('filter_price') ?></th>
+              <th style="color:var(--muted-2)"><?= te('vault_next_drop') ?></th>
+            </tr></thead>
+            <tbody>
+            <?php
+            $open  = (int)$st['open_cents'];
+            $floor = (int)$st['floor_cents'];
+            $n     = (int)$st['steps'];
+            for ($i = 0; $i <= $n; $i++) {
+                $price = $i === 0 ? $open : ($i >= $n ? $floor : (int)round($open - ($open - $floor) * ($i / $n)));
+                // Kademe başlangıcı: mevcut kademenin zamanından geriye/ileriye adım.
+                $at = ($st['next_at'] ?? 0) > 0
+                    ? (int)$st['next_at'] + ($i - (int)$st['step'] - 1) * $hours * 3600
+                    : 0;
+                $isNow = $i === (int)$st['step'];
+                echo '<tr' . ($isNow ? ' style="color:var(--bone)"' : '') . '>';
+                echo '<td>' . ($i + 1) . ($isNow ? ' · ' . h(t('vault_live_now')) : '') . '</td>';
+                echo '<td style="font-variant-numeric:tabular-nums">' . h(vr_money($price)) . '</td>';
+                echo '<td>' . ($at > 0 ? h(vr_date($at, true)) : '—') . '</td>';
+                echo '</tr>';
+            }
+            ?>
+            </tbody>
+          </table>
+          <p class="lot__legal"><?= te('vault_fairness_b') ?></p>
+        </div>
+
+        <!-- satıcı + hukuki durum -->
+        <div class="panel panel--seller" style="border-color:rgba(245,242,236,.16)">
+          <?= vr_icon($seller['type'] === 'private' ? 'user' : 'shield', 22) ?>
+          <div>
+            <p class="seller__name" style="color:var(--bone)"><?= h($seller['name']) ?></p>
+            <p class="seller__type"><?= te('sold_by') ?> · <?= te('seller_' . $seller['type']) ?></p>
+            <p class="seller__note"><?= te('seller_' . $seller['type'] . '_note', ['days' => (int)vr_config('return_days', 30)]) ?></p>
+          </div>
+        </div>
+
+        <?php if ($p['desc'] !== ''): ?>
+          <div class="panel" style="border-color:rgba(245,242,236,.16)">
+            <h2 style="color:var(--brass)"><?= te('description') ?></h2>
+            <p style="color:var(--muted)"><?= h($p['desc']) ?></p>
+          </div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
+</section>
+
+<?php
+    $more = array_values(array_filter(vr_vault_lots(['limit' => 4]), fn($v) => $v['lot_id'] !== $single['lot_id']));
+    if ($more):
+?>
+<section class="sec vault" style="padding-top:0">
+  <div class="wrap">
+    <?php vr_section_head(t('sec_vault'), '', vr_url('outlet.php')); ?>
+    <div class="lots"><?php foreach (array_slice($more, 0, 3) as $v) vr_vault_card($v); ?></div>
+  </div>
+</section>
+<?php endif;
+
+    vr_layout_end();
+    exit;
+}
+
+// ---------------------------------------------------------------------------
+// ODA GÖRÜNÜMÜ — tüm loslar
+// ---------------------------------------------------------------------------
+$lots   = vr_vault_lots(['include_sold' => true]);
+$live   = array_values(array_filter($lots, fn($v) => !$v['sold']));
+$sold   = array_values(array_filter($lots, fn($v) => $v['sold']));
+$member = vr_is_member();
+
+vr_layout_start([
+    'title' => t('vault_title'),
+    'desc'  => t('vault_lede'),
+    'body_class' => 'is-vault',
+    'jsonld' => [vr_jsonld_breadcrumbs([
+        (string)vr_config('brand') => vr_url('/'),
+        t('vault_title')           => null,
+    ])],
+]);
+?>
+<section class="sec vault">
+  <div class="wrap">
+    <p class="eyebrow"><?= te('vault_live_now') ?> · <?= te('vault_lots_n', ['n' => count($live)]) ?></p>
+    <h1 style="font-size:clamp(34px,5.4vw,72px);max-width:20ch"><?= te('vault_title') ?></h1>
+    <p class="lede" style="margin-top:22px"><?= te('vault_lede') ?></p>
+
+    <?php if (!$member): ?>
+      <p style="margin-top:22px">
+        <a class="btn btn--brass btn--sm" href="<?= h(vr_url('/')) ?>#member">
+          <span><?= te('news_cta') ?></span><?= vr_icon('arrow', 15) ?>
+        </a>
+      </p>
+    <?php endif; ?>
+
+    <hr class="rule" style="margin:clamp(34px,4.4vw,58px) 0">
+
+    <div class="steps">
+      <div class="step" data-reveal>
+        <b>01</b><h3><?= te('vault_step1_t') ?></h3>
+        <p><?= te('vault_step1_b', ['steps' => $steps + 1]) ?></p>
+      </div>
+      <div class="step" data-reveal>
+        <b>02</b><h3><?= te('vault_step2_t') ?></h3>
+        <p><?= te('vault_step2_b', ['hours' => $hours]) ?></p>
+      </div>
+      <div class="step" data-reveal>
+        <b>03</b><h3><?= te('vault_step3_t') ?></h3>
+        <p><?= te('vault_step3_b') ?></p>
+      </div>
+      <div class="step" data-reveal>
+        <b>04</b><h3><?= te('vault_fairness') ?></h3>
+        <p><?= te('vault_fairness_b') ?></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec vault" style="padding-top:0">
+  <div class="wrap">
+    <?php if (!$live && !$sold): ?>
+      <p class="lede"><?= te('vault_empty') ?></p>
+      <p style="margin-top:20px"><a class="btn btn--light" href="<?= h(vr_url('shop.php')) ?>"><span><?= te('nav_shop') ?></span></a></p>
+    <?php else: ?>
+      <div class="lots"><?php foreach ($live as $i => $v) vr_vault_card($v, ['eager' => $i < 3]); ?></div>
+
+      <?php if ($sold): ?>
+        <hr class="rule" style="margin:clamp(38px,5vw,64px) 0">
+        <?php vr_section_head(t('vault_gone'), ''); ?>
+        <div class="lots"><?php foreach (array_slice($sold, 0, 6) as $v) vr_vault_card($v); ?></div>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+</section>
+
+<?php vr_layout_end(); ?>

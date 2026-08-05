@@ -1,0 +1,59 @@
+{
+ "lots": [
+  {
+   "lot_id": "demo-lot-1",
+   "product_id": "demo-balenciaga-1",
+   "open_cents": 34900,
+   "floor_cents": 17900,
+   "rrp_cents": 59000,
+   "steps": 6,
+   "step_hours": 24,
+   "start_offset_hours": -30,
+   "status": "open"
+  },
+  {
+   "lot_id": "demo-lot-2",
+   "product_id": "demo-valentino-1",
+   "open_cents": 39900,
+   "floor_cents": 19900,
+   "rrp_cents": 69000,
+   "steps": 6,
+   "step_hours": 24,
+   "start_offset_hours": -74,
+   "status": "open"
+  },
+  {
+   "lot_id": "demo-lot-3",
+   "product_id": "demo-burberry-1",
+   "open_cents": 24900,
+   "floor_cents": 12900,
+   "rrp_cents": 42000,
+   "steps": 6,
+   "step_hours": 24,
+   "start_offset_hours": -6,
+   "status": "open"
+  },
+  {
+   "lot_id": "demo-lot-4",
+   "product_id": "demo-dolcegabbana-1",
+   "open_cents": 32900,
+   "floor_cents": 16900,
+   "rrp_cents": 56000,
+   "steps": 6,
+   "step_hours": 24,
+   "start_offset_hours": -120,
+   "status": "open"
+  },
+  {
+   "lot_id": "demo-lot-5",
+   "product_id": "demo-dsquared2-2",
+   "open_cents": 28900,
+   "floor_cents": 14900,
+   "rrp_cents": 48000,
+   "steps": 6,
+   "step_hours": 24,
+   "start_offset_hours": 2,
+   "status": "open"
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+# Canli veri repoya girmez: siparis, satici, uye ve stok dosyalari kisisel veri
+# icerir; ayrica sunucu ile repo arasinda catisma yaratir.
+*
+!.gitignore
+!.htaccess
+!seed/
+!seed/*.json
