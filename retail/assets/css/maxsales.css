@@ -1093,3 +1093,46 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* Kayan tablo kutusu klavyeyle de kaydırılabilmeli (WCAG 2.1.1); odaklanınca
    görünür olsun diye kendi çerçevesi var. */
 .tablewrap:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ----------------------------------------------------------- editoryal ikili
+   İki tam boy kare, aralarında oluk yok, kenardan kenara. Metin görselin
+   üstünde durduğu için her karonun kendi karartması var — kontrast görselin
+   ne kadar açık olduğuna bakmadan garanti. */
+.editorial{
+  --muted:#b4aea0;--muted-2:#9a9384;--brass-text:var(--brass-2);
+  display:grid;grid-template-columns:1fr 1fr;background:var(--ink);
+}
+@media (max-width:820px){.editorial{grid-template-columns:1fr}}
+.etile{
+  position:relative;display:block;overflow:hidden;color:var(--bone);
+  min-height:clamp(420px,52vw,680px);
+}
+.etile img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.72;
+  transform:scale(1.01);transition:transform 1.2s var(--ease),opacity .6s var(--ease);
+}
+.etile:hover img,.etile:focus-visible img{transform:scale(1.06);opacity:.82}
+.etile::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(to top,rgba(10,10,14,.9) 4%,rgba(10,10,14,.5) 46%,rgba(10,10,14,.3) 100%);
+}
+/* İki karo arasındaki ince pirinç ayrım — dikişi belli etmek yerine süs. */
+.etile+.etile{box-shadow:inset 1px 0 0 rgba(201,162,77,.24)}
+@media (max-width:820px){.etile+.etile{box-shadow:inset 0 1px 0 rgba(201,162,77,.24)}}
+.etile__in{
+  position:absolute;inset:auto 0 0 0;z-index:2;
+  padding:clamp(26px,4vw,54px);display:grid;justify-items:start;gap:14px;
+}
+.etile__in .orn{justify-content:flex-start}
+.etile__in .orn::before{display:none}
+.etile h2{font-size:clamp(24px,2.9vw,40px);letter-spacing:-.028em;max-width:17ch;text-wrap:balance}
+.etile p{font-size:14px;color:color-mix(in oklab,var(--bone) 78%,transparent);max-width:46ch}
+.etile__go{
+  display:inline-flex;align-items:center;gap:9px;margin-top:4px;padding-bottom:5px;
+  font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+  border-bottom:1px solid rgba(245,242,236,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
+}
+.etile:hover .etile__go,.etile:focus-visible .etile__go{color:var(--brass-2);border-bottom-color:var(--brass-2)}
+@media (prefers-reduced-motion:reduce){
+  .etile img,.etile:hover img{transform:none}
+}

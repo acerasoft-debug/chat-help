@@ -1,0 +1,5 @@
+# Ürün fotoğrafları işletme verisidir, kaynak kodu değil: içe aktarma sırasında
+# buraya inerler ve depoya GİRMEZLER. Marka fotoğrafları çoğu zaman üçüncü
+# tarafa ait; depoya alınmaları hem gereksiz hem riskli.
+*
+!.gitignore

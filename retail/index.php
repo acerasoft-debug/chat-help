@@ -40,7 +40,12 @@ for ($i = 0; $i < 3; $i++) {
         's' => $stageSeed . '-' . $i, 'm' => 'campaign', 'w' => 1600, 'h' => 900,
     ]);
 }
-$stageVideo = vr_hero_video();
+$stageMedia = vr_hero_media();
+
+// Editoryal karolar: gerçek fotoğrafı olan ürünler öncelikli.
+$tileSkip = [];
+$tileA = vr_editorial_image($lots ? array_column($lots, 'product') : [], $stageSeed . '-a', $tileSkip);
+$tileB = vr_editorial_image($curated, $stageSeed . '-b', $tileSkip);
 
 vr_layout_start([
     'desc'    => t('hero_sub'),
@@ -64,15 +69,19 @@ vr_layout_start([
   <input type="checkbox" id="stage-pause" class="stage__pausebox vh">
 
   <div class="stage__art">
-    <?php if ($stageVideo): ?>
+    <?php if ($stageMedia && $stageMedia['kind'] === 'video'): ?>
       <?php /* autoplay ÖZELLİKLE yok: oynatmayı JS başlatıyor, böylece JS
                kapalıyken hareket hiç doğmuyor ve duraklatma düğmesinin
                çalışmadığı bir durum kalmıyor. */ ?>
       <video class="stage__vid" muted loop playsinline preload="none"
              poster="<?= h($stageFrames[0]) ?>" aria-hidden="true" tabindex="-1"
              data-autoplay>
-        <source src="<?= h($stageVideo['src']) ?>" type="<?= h($stageVideo['type']) ?>">
+        <source src="<?= h($stageMedia['src']) ?>" type="<?= h($stageMedia['type']) ?>">
       </video>
+    <?php elseif ($stageMedia): ?>
+      <?php /* Gerçek kampanya fotoğrafı: hareket yok, duraklatılacak bir şey de yok. */ ?>
+      <img class="stage__still" src="<?= h($stageMedia['src']) ?>" alt="" aria-hidden="true"
+           fetchpriority="high" decoding="async">
     <?php else: ?>
       <div class="stage__film">
         <?php foreach ($stageFrames as $i => $src): ?>
@@ -131,6 +140,31 @@ vr_layout_start([
       <?php foreach ($curated as $i => $p) vr_card($p, ['size_hint' => true, 'eager' => $i < 4]); ?>
     </div>
   </div>
+</section>
+
+<!-- ------------------------------------------------------- editoryal ikili
+     İki tam boy kare, aralarında oluk yok, kenardan kenara. Perakende
+     ızgarası burada susuyor ve sayfa bir kampanya sayfasına dönüyor.
+     Görsel: elde gerçek ürün fotoğrafı varsa o, yoksa kampanya karesi. -->
+<section class="editorial">
+  <a class="etile" href="<?= h(vr_url('outlet.php')) ?>">
+    <img src="<?= h($tileA) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+    <div class="etile__in">
+      <span class="orn" aria-hidden="true"><i></i></span>
+      <h2><?= te('vault_title') ?></h2>
+      <p><?= te('sec_vault_sub') ?></p>
+      <span class="etile__go"><?= te('nav_outlet') ?><?= vr_icon('arrow', 15) ?></span>
+    </div>
+  </a>
+  <a class="etile" href="<?= h(vr_url('sell.php')) ?>">
+    <img src="<?= h($tileB) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+    <div class="etile__in">
+      <span class="orn" aria-hidden="true"><i></i></span>
+      <h2><?= te('sell_hero_t') ?></h2>
+      <p><?= te('sell_hero_b') ?></p>
+      <span class="etile__go"><?= te('nav_sell') ?><?= vr_icon('arrow', 15) ?></span>
+    </div>
+  </a>
 </section>
 
 <!-- ------------------------------------------------------------- manifesto -->

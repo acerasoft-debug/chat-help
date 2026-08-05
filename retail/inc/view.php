@@ -462,20 +462,55 @@ function vr_chapter(string $n, string $title, string $sub = '', ?string $moreUrl
 }
 
 /**
- * Sahnenin kampanya filmi. Operatör assets/media/hero.(mp4|webm) koyduysa
- * gerçek video oynuyor; koymadıysa üretilen kampanya kareleri sinematik
- * geçişle dönüyor. Sunucuda dosya yoksa hiçbir şey bozulmuyor.
+ * Sahnenin kampanya görseli. Sıra:
+ *   1. assets/media/hero.(mp4|webm)  → gerçek kampanya filmi
+ *   2. assets/media/hero.(jpg|webp|png) → gerçek kampanya fotoğrafı
+ *   3. hiçbiri yoksa null → üretilen kampanya kareleri sinematik geçişle döner
+ *
+ * Yani gerçek malzeme geldiği anda kod değişmeden devreye giriyor; gelmezse
+ * anasayfa boş kalmıyor. Dosya yoksa hiçbir şey bozulmuyor.
  */
-function vr_hero_video(): ?array
+function vr_hero_media(): ?array
 {
-    foreach ([['hero.mp4', 'video/mp4'], ['hero.webm', 'video/webm']] as [$file, $type]) {
+    $kinds = [
+        ['hero.mp4',  'video', 'video/mp4'],
+        ['hero.webm', 'video', 'video/webm'],
+        ['hero.jpg',  'image', 'image/jpeg'],
+        ['hero.jpeg', 'image', 'image/jpeg'],
+        ['hero.webp', 'image', 'image/webp'],
+        ['hero.png',  'image', 'image/png'],
+    ];
+    foreach ($kinds as [$file, $kind, $type]) {
         $path = VR_ROOT . '/assets/media/' . $file;
         if (is_file($path) && filesize($path) > 0) {
             // Dosya değişince tarayıcı eskisine yapışmasın.
-            return ['src' => vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]), 'type' => $type];
+            return [
+                'kind' => $kind,
+                'type' => $type,
+                'src'  => vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]),
+            ];
         }
     }
     return null;
+}
+
+/**
+ * Editoryal karo için görsel seçer: elde GERÇEK fotoğrafı olan ürün varsa
+ * onunkini, yoksa üretilen kampanya karesini döndürür. Karolar tam genişlikte
+ * ve dikey olduğu için ürün fotoğrafı burada iyi duruyor.
+ *
+ * $skip: aynı fotoğraf iki karoda çıkmasın diye daha önce kullanılanlar.
+ */
+function vr_editorial_image(array $rows, string $seed, array &$skip): string
+{
+    foreach ($rows as $p) {
+        $img = (string)($p['images'][0] ?? '');
+        if ($img !== '' && !in_array($img, $skip, true)) {
+            $skip[] = $img;
+            return $img;
+        }
+    }
+    return vr_url('assets/art.php', ['s' => $seed, 'm' => 'campaign', 'w' => 1200, 'h' => 1500]);
 }
 
 /** Demo veriyle çalışıyorsak bunu gizlemiyoruz — dürüstlük meselesi. */
