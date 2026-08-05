@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: claude/charming-franklin-1ynmuj
+          ref: claude/wizardly-planck-7ylnmk
 
       # ubuntu-latest imajinda artik ImageMagick gelmiyor (montage da magick de
       # yok -- onceki calisma tam bu yuzden "ImageMagick yok" ile dustu).
@@ -134,11 +134,11 @@ jobs:
           # so a plain push loses the race and throws away sheets that were already
           # built. Rebase onto whatever arrived and retry.
           for try in 1 2 3 4 5; do
-            if git push origin claude/charming-franklin-1ynmuj; then
+            if git push origin claude/wizardly-planck-7ylnmk; then
               echo "push tamam (deneme $try)"; exit 0
             fi
             echo "push reddedildi, rebase edip tekrar deniyorum ($try)"
-            git fetch origin claude/charming-franklin-1ynmuj
+            git fetch origin claude/wizardly-planck-7ylnmk
             git rebase FETCH_HEAD || { echo "HATA: rebase catisti"; exit 1; }
             sleep $((try * 3))
           done
