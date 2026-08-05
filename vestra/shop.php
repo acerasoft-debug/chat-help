@@ -28,13 +28,100 @@ body{background:#f4f2ee}
 .shopwrap .scard:hover{box-shadow:0 12px 30px rgba(60,50,30,.16);border-color:rgba(169,127,44,.4)}
 footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
 footer a{color:#d8bd86}
+
+/* ── Editorial masthead ──────────────────────────────────────────────────── */
+.sphead{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:26px}
+.sphead-eyebrow{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--acc);font-weight:700;margin-bottom:10px}
+.sphead h1{font-size:clamp(30px,5vw,54px);margin:0 0 8px;letter-spacing:-.022em}
+.sphead p{max-width:52ch;text-wrap:pretty}
+
+/* ── Brand rail — the houses in stock, in their own wordmarks ─────────────
+   A dark band under the cream masthead: the wordmarks are drawn white, so they
+   need the near-black ground the rest of the site gives them. Scrolls sideways
+   on its own rather than wrapping, so the row reads as one continuous strip. */
+.brandrail{display:flex;gap:0;overflow-x:auto;overflow-y:hidden;margin:0 0 30px;
+  background:linear-gradient(180deg,#141318,#0e0e11);border:1px solid #262229;border-radius:14px;
+  scrollbar-width:thin;scrollbar-color:rgba(201,168,106,.45) transparent;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px -18px rgba(38,30,15,.55);
+  /* .shopwrap repaints --acc to the deeper gold that reads on cream; this band is
+     near-black, so it takes the dark-theme gold back for its own descendants. */
+  --acc:#c9a86a}
+.brandrail::-webkit-scrollbar{height:6px}
+.brandrail::-webkit-scrollbar-thumb{background:rgba(201,168,106,.4);border-radius:3px}
+.brail-cell{flex:0 0 auto;width:154px;height:86px;display:flex;align-items:center;justify-content:center;
+  position:relative;background:transparent;border:0;border-right:1px solid rgba(255,255,255,.07);
+  cursor:pointer;padding:16px 18px;transition:background .35s var(--ease)}
+.brail-cell:last-child{border-right:0}
+.brail-cell:hover{background:rgba(201,168,106,.09)}
+.brail-cell .brand-logo{width:100%;max-width:112px;height:auto;opacity:.68;
+  filter:drop-shadow(0 1px 8px rgba(0,0,0,.55));transition:opacity .35s var(--ease),transform .35s var(--ease)}
+.brail-cell:hover .brand-logo,.brail-cell.on .brand-logo{opacity:1;transform:translateY(-2px)}
+/* Active house is marked by a gold underline that draws in, not by a fill. */
+.brail-cell::after{content:'';position:absolute;left:50%;right:50%;bottom:0;height:2px;background:var(--acc);
+  opacity:0;transition:left .45s var(--ease),right .45s var(--ease),opacity .45s var(--ease)}
+.brail-cell.on::after,.brail-cell:hover::after{left:10%;right:10%;opacity:1}
+.brail-n{position:absolute;top:9px;right:11px;font-size:9px;font-weight:700;letter-spacing:.06em;
+  color:rgba(255,255,255,.42);font-variant-numeric:tabular-nums}
+.brail-all{width:104px}
+.brail-allx{font-family:'Playfair Display',Georgia,serif;font-size:19px;color:#fff;opacity:.82;
+  letter-spacing:.03em}
+.brail-cell.on .brail-allx{opacity:1}
+/* The monogram fallback is drawn for the dark site theme; it needs its own sizing here. */
+.brail-cell .bmono-mark{font-size:23px}
+.brail-cell .bmono-name{font-size:8px;letter-spacing:.22em}
+@media(max-width:640px){
+  .brail-cell{width:126px;height:74px;padding:12px 14px}
+  .brail-cell .brand-logo{max-width:92px}
+  .sphead{padding:26px 0 16px}
+}
+
+/* ── Mosaic shapes ───────────────────────────────────────────────────────
+   Wide tiles get a landscape crop instead of the 3/4 portrait, otherwise a
+   double-width card would tower over its neighbours. */
+.shopwrap .scard-wide{grid-column:span 2}
+.shopwrap .scard-wide .sthumb{aspect-ratio:16/10}
+.shopwrap .scard-wide .stitle{font-size:15px}
+.shopwrap .scard-wide .samt{font-size:20px}
+.shopwrap .scard-tall .sthumb{aspect-ratio:3/4.5}
+@media(max-width:900px){
+  .shopwrap .scard-wide{grid-column:span 1}
+  .shopwrap .scard-wide .sthumb{aspect-ratio:3/4}
+}
+
+/* ── Card craft ──────────────────────────────────────────────────────────
+   A gold hairline draws across the top of the card and the photo settles a
+   touch on hover — the same gesture as the brand rail, so the page has one
+   vocabulary rather than three. */
+.shopwrap .scard{position:relative}
+.shopwrap .scard::before{content:'';position:absolute;top:0;left:50%;right:50%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--acc),transparent);z-index:5;opacity:0;
+  transition:left .5s var(--ease),right .5s var(--ease),opacity .5s var(--ease)}
+.shopwrap .scard:hover::before{left:0;right:0;opacity:1}
+.shopwrap .scard:hover .sbrand{letter-spacing:.19em}
+.shopwrap .sbrand{transition:letter-spacing .45s var(--ease)}
 </style>
 <div class="wrap wide shopwrap">
-  <div class="phead">
+  <div class="phead sphead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
+    <div class="sphead-eyebrow"><?= t('Wholesale') ?> · <?= count($brandCounts) ?> <?= t('houses') ?> · <?= count($products) ?> <?= t('references') ?></div>
     <h1><?= t('Wholesale catalog') ?></h1>
     <p><?= t('Verified branded & textile fashion — minimum order & bulk pricing per product.') ?></p>
   </div>
+
+  <?php if($brandCounts): /* Brand rail — the houses in stock, set in their own wordmarks.
+       Doubles as navigation: a tap filters the grid to that house. Rendered for guests too
+       (the grid is public), so it stays a showpiece rather than a members-only tool. */ ?>
+  <div class="brandrail" role="group" aria-label="<?= htmlspecialchars(t('Filter by brand')) ?>">
+    <button type="button" class="brail-cell brail-all on" data-brand=""><span class="brail-allx"><?= t('All') ?></span></button>
+    <?php foreach($brandCounts as $b=>$cnt): ?>
+      <button type="button" class="brail-cell" data-brand="<?= htmlspecialchars($b) ?>" title="<?= htmlspecialchars($b) ?> · <?= $cnt ?>">
+        <?= vestra_brand_card($b) ?>
+        <span class="brail-n"><?= $cnt ?></span>
+      </button>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <?php if(!$MEMBER): ?>
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
@@ -150,10 +237,21 @@ footer a{color:#d8bd86}
           $img1 = $imgs[1] ?? '';   // second photo → hover reveal
           $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
+          /* Editorial rhythm: every 7th tile runs wide (landscape crop), every 11th runs
+             tall. A uniform 4-up grid of 343 identical portrait tiles reads as a
+             spreadsheet; breaking it on a fixed cadence reads as a lookbook. Pinned
+             products already take a 2x2 lead tile, so they opt out of the cadence.
+             The grid packs dense, so filtering never leaves a hole behind a big tile. */
+          $shape = '';
+          if (empty($p['pinned'])) {
+            if     ($idx % 7  === 3) $shape = ' scard-wide';
+            elseif ($idx % 11 === 6) $shape = ' scard-tall';
+          }
           ?>
-          <a class="scard<?= !empty($p['pinned']) ? ' scard-featured' : '' ?>" href="/product?id=<?= urlencode($p['id']) ?>"
+          <a class="scard<?= !empty($p['pinned']) ? ' scard-featured' : $shape ?>" href="/product?id=<?= urlencode($p['id']) ?>"
              data-idx="<?= $idx ?>"
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
+             data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
              data-mode="<?= htmlspecialchars($p['mode']??'fixed') ?>"
              data-price="<?= !$MEMBER ? '' : ($p['mode']==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
@@ -204,7 +302,7 @@ footer a{color:#d8bd86}
 </div>
 
 <script>
-var curCat='', curMode='';
+var curCat='', curMode='', curBrand='';
 
 document.querySelectorAll('.fcheck').forEach(function(el){
   el.addEventListener('click', function(){
@@ -213,6 +311,21 @@ document.querySelectorAll('.fcheck').forEach(function(el){
     el.classList.add('on');
     if(type==='cat') curCat=val;
     else curMode=val;
+    applyFilters();
+  });
+});
+
+/* Brand rail. Its own filter rather than a shortcut into the search box, so it works
+   on the guest view too -- guests get no search input but the grid is still rendered. */
+document.querySelectorAll('.brail-cell').forEach(function(el){
+  el.addEventListener('click', function(){
+    var b=el.dataset.brand||'';
+    curBrand=(curBrand===b&&b!=='')?'':b;   // tapping the active house clears it
+    document.querySelectorAll('.brail-cell').forEach(function(x){ x.classList.remove('on'); });
+    var active=curBrand===''
+      ? document.querySelector('.brail-cell.brail-all')
+      : document.querySelector('.brail-cell[data-brand="'+curBrand.replace(/"/g,'\\"')+'"]');
+    if(active) active.classList.add('on');
     applyFilters();
   });
 });
@@ -228,7 +341,7 @@ function applyFilters(){
   var cards=Array.from(document.querySelectorAll('#shopgrid .scard'));
   var visible=[];
   cards.forEach(function(c){
-    var show=(curCat===''||c.dataset.cat===curCat)&&(curMode===''||c.dataset.mode===curMode)&&(!q||c.dataset.search.indexOf(q)>=0);
+    var show=(curCat===''||c.dataset.cat===curCat)&&(curMode===''||c.dataset.mode===curMode)&&(curBrand===''||c.dataset.brand===curBrand)&&(!q||c.dataset.search.indexOf(q)>=0);
     c.style.display=show?'flex':'none';
     if(show) visible.push(c);
   });

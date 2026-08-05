@@ -976,4 +976,9 @@ return array (
   'Zoom' => 'Vergrößern',
   'Close' => 'Schließen',
   'Double-tap or pinch to zoom · drag to pan' => 'Doppeltippen oder zwei Finger zum Zoomen · ziehen zum Bewegen',
+  /* catalogue brand rail + editorial masthead */
+  'houses' => 'Häuser',
+  'references' => 'Artikel',
+  'Filter by brand' => 'Nach Marke filtern',
+  'Wholesale' => 'Großhandel',
 );

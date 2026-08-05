@@ -956,4 +956,9 @@ return array (
   'Zoom' => 'Zoom',
   'Close' => 'Cerrar',
   'Double-tap or pinch to zoom · drag to pan' => 'Doble toque o pellizca para ampliar · arrastra para mover',
+  /* catalogue brand rail + editorial masthead */
+  'houses' => 'casas',
+  'references' => 'referencias',
+  'Filter by brand' => 'Filtrar por marca',
+  'Wholesale' => 'Mayorista',
 );

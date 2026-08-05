@@ -517,7 +517,9 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .sortsel:focus{border-color:rgba(201,168,106,.4)}
 
 /* Shop product grid */
-.shopgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+/* dense: the catalogue mixes 1x1, 2x1 and 2x2 tiles, and filtering hides cards in
+   place — without dense packing every hidden wide tile would leave a visible hole. */
+.shopgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;grid-auto-flow:dense}
 .scard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--ink);
   transition:border-color .35s var(--ease),transform .35s var(--ease),box-shadow .35s var(--ease)}
 /* Pinned product: a 2×2 block instead of 1×1, so the operator's flagship listing
