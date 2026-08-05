@@ -353,18 +353,29 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#0e0e11;--bg2:#15151a;--ink:#f4f1ea;--mut:#9a988f;
-    --acc:<?= htmlspecialchars($ACCENT) ?>;--line:rgba(255,255,255,.08);}
+    --acc:<?= htmlspecialchars($ACCENT) ?>;--line:rgba(255,255,255,.08);
+    /* Same house curve as inc/style.css — this page carries its own copy because it
+       does not load the shared stylesheet. */
+    --ease:cubic-bezier(.16,.66,.25,1);}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-    line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    text-rendering:optimizeLegibility;overflow-x:hidden}
   a{color:inherit;text-decoration:none}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
-  h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1.12;letter-spacing:-.5px}
+  /* Tracking in em so the correction scales with the size; the display step is tighter
+     than the card-heading step, which a single -.5px could never express. */
+  h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1.12;
+    letter-spacing:-.012em;text-wrap:balance}
+  h1{letter-spacing:-.022em}
+  ::selection{background:rgba(201,168,106,.28);color:var(--ink)}
+  :where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+    outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
   .acc{color:var(--acc)}
   section{scroll-margin-top:84px}
   svg{display:block}
@@ -426,36 +437,36 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      fixed 18% window would leave the hero empty between frames on a short catalogue. */
   @keyframes heroFilm{
     0%{opacity:0;transform:scale(1.02)}
-    4%{opacity:.55}
-    14%{opacity:.55}
+    4%{opacity:.82}
+    14%{opacity:.82}
     18%{opacity:0;transform:scale(1.07)}
     100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="24s"] .hf{animation-name:heroFilm4}
   @keyframes heroFilm4{
     0%{opacity:0;transform:scale(1.02)}
-    6%{opacity:.55} 21%{opacity:.55}
+    6%{opacity:.82} 21%{opacity:.82}
     27%{opacity:0;transform:scale(1.07)}
     100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="30s"] .hf{animation-name:heroFilm5}
   @keyframes heroFilm5{
     0%{opacity:0;transform:scale(1.02)}
-    5%{opacity:.55} 17%{opacity:.55}
+    5%{opacity:.82} 17%{opacity:.82}
     22%{opacity:0;transform:scale(1.07)}
     100%{opacity:0;transform:scale(1.07)}
   }
   .herofilm[style*="18s"] .hf{animation-name:heroFilm3}
   @keyframes heroFilm3{
     0%{opacity:0;transform:scale(1.02)}
-    8%{opacity:.55} 27%{opacity:.55}
+    8%{opacity:.82} 27%{opacity:.82}
     35%{opacity:0;transform:scale(1.07)}
     100%{opacity:0;transform:scale(1.07)}
   }
   /* The veil is what keeps the headline legible over any photograph — without it the
      contrast swings with every frame and the type becomes unreadable on the light ones. */
   .herofilm-veil{position:absolute;inset:0;
-    background:linear-gradient(to bottom,rgba(14,14,17,.86) 0%,rgba(14,14,17,.66) 42%,rgba(14,14,17,.93) 100%),
+    background:linear-gradient(to bottom,rgba(14,14,17,.80) 0%,rgba(14,14,17,.46) 42%,rgba(14,14,17,.90) 100%),
                radial-gradient(62% 58% at 50% 34%,rgba(201,168,106,.16),transparent 70%)}
   @media(prefers-reduced-motion:reduce){
     .herofilm .hf{animation:none;opacity:0;transform:none}
@@ -484,21 +495,40 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   .card h3{font-size:19px;margin:0 0 8px}
   .card p{color:var(--mut);font-size:15px;margin:0}
 
-  /* ── Brand wall — every house currently live in the catalogue ── */
+  /* ── Brand wall — every house currently live in the catalogue ──
+     auto-fit stretched each cell to fill the row, so a short brand list rendered as
+     a handful of enormous boxes around a 150px logo (~55% dead space). auto-fill with
+     a max column width keeps the cell close to the wordmark it holds, and the grid
+     centres so a partial last row doesn't read as a broken table. */
   .brandwall{background:linear-gradient(180deg,var(--bg2),var(--bg));
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:76px 0 80px}
-  .bw-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  .bw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    max-width:960px;margin:0 auto;justify-content:center;
     border-top:1px solid var(--line);border-left:1px solid var(--line)}
   .bw-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;min-height:104px;
-    padding:26px 18px;text-decoration:none;transition:background .25s ease}
+    display:flex;align-items:center;justify-content:center;aspect-ratio:16/9;min-height:104px;
+    padding:22px 18px;text-decoration:none;position:relative;
+    transition:background .35s var(--ease)}
   .bw-cell:hover{background:rgba(201,168,106,.07)}
-  .bw-cell .brand-logo{width:100%;max-width:150px;height:auto;opacity:.8;
-    filter:drop-shadow(0 1px 8px rgba(0,0,0,.5));transition:opacity .25s ease,transform .25s ease}
+  /* Gold hairline draws in from the centre on hover — the one flourish on this module. */
+  .bw-cell::after{content:'';position:absolute;left:50%;right:50%;bottom:-1px;height:1px;
+    background:var(--acc);opacity:0;transition:left .45s var(--ease),right .45s var(--ease),opacity .45s var(--ease)}
+  .bw-cell:hover::after{left:0;right:0;opacity:.75}
+  .bw-cell .brand-logo{width:100%;max-width:132px;height:auto;opacity:.72;
+    filter:drop-shadow(0 1px 8px rgba(0,0,0,.5));
+    transition:opacity .35s var(--ease),transform .35s var(--ease)}
   .bw-cell:hover .brand-logo{opacity:1;transform:translateY(-2px)}
-  .bw-cell .bmono{gap:5px}
-  .bw-cell .bmono-mark{font-size:26px}
-  .bw-cell .bmono-name{font-size:8.5px;letter-spacing:2px}
+  /* Monogram fallback for any house with no drawn wordmark. The base rules live in
+     inc/style.css, which this page does not load — without them the mark rendered in
+     body Inter, lowercase and with no rule under it. Restated here. */
+  .bw-cell .bmono{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;
+    gap:5px;padding:0 12px;text-align:center}
+  .bw-cell .bmono-mark{font-family:'Playfair Display',serif;font-weight:700;line-height:1;
+    color:#fff;font-size:26px;letter-spacing:.1em;text-shadow:0 2px 16px rgba(0,0,0,.62)}
+  .bw-cell .bmono-name{font-family:'Inter',Arial,sans-serif;font-size:8.5px;font-weight:600;
+    letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.66);
+    padding-top:6px;border-top:1px solid rgba(255,255,255,.24);max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   .sec-title{text-align:center;margin:0 0 8px;font-size:clamp(26px,4vw,38px)}
   .sec-sub{text-align:center;color:var(--mut);margin:0 auto 46px;max-width:520px}

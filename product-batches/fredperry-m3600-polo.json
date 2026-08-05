@@ -1,0 +1,25 @@
+[
+ {
+  "id": "fp-m3600-polo",
+  "brand": "Fred Perry",
+  "name": "The Fred Perry Shirt — M3600 Twin Tipped",
+  "cat": "Polos",
+  "sku": "M3600",
+  "list": 39.0,
+  "moq": 48,
+  "unit": "pc",
+  "mode": "fixed",
+  "colors": ["Black", "White", "Navy", "Bordeaux", "Green", "Light Blue"],
+  "size_step": 8,
+  "min_colors": 2,
+  "sizes": "Cartons of 8 · S×1 · M×2 · L×2 · XL×2 · XXL×1 · min 48 pc (≥2 colours)",
+  "tiers": [
+   { "min": 48, "price": 39.0 },
+   { "min": 96, "price": 35.5 },
+   { "min": 192, "price": 32.0 }
+  ],
+  "images": [],
+  "desc": "Original Fred Perry, the M3600 twin tipped shirt in cotton piqué with the embroidered Laurel Wreath at the chest, two-button placket and twin tipping at collar and cuffs. Mixed-colour, mixed-size carton assortment. EEA stock with full invoice trail.",
+  "seller_uid": "7ab30f26afedd840"
+ }
+]

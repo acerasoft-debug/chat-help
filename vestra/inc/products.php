@@ -200,6 +200,7 @@ function vestra_brand_logo($brand){
     'Burberry'       => [$serif, 21, 400, 5,   'BURBERRY',       'LONDON'],
     'Casablanca'     => [$serif, 22, 400, 5,   'CASABLANCA',     'PARIS'],
     'Fendi'          => [$sans,  27, 700, 7,   'FENDI',          'ROMA'],
+    'Fred Perry'     => [$serif, 20, 400, 4,   'FRED PERRY',     'EST. 1952'],
     'Givenchy'       => [$serif, 21, 400, 6,   'GIVENCHY',       'PARIS'],
     'Gucci'          => [$serif, 28, 400, 8,   'GUCCI',          null],
     'Jacquemus'      => [$sans,  25, 500, 6,   'JACQUEMUS',      null],

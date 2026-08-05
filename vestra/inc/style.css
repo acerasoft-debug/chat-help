@@ -2,14 +2,29 @@
 :root{
   --bg:#0e0e11; --bg2:#15151a; --bg3:#1b1b21; --ink:#f4f1ea; --mut:#9a988f;
   --acc:#c9a86a; --line:rgba(255,255,255,.08); --ok:#7ad6a0; --bad:#ef9a9a;
+  /* One house easing curve. Everything that moves should use this — a slow, weighted
+     settle rather than the browser's default `ease`, which reads springy and cheap. */
+  --ease:cubic-bezier(.16,.66,.25,1);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);
   font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
-  line-height:1.6;-webkit-font-smoothing:antialiased}
+  line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility}
 a{color:inherit;text-decoration:none}
-h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-.5px;line-height:1.15}
+/* Tracking as em, not px, so the optical correction scales with the size it's set at.
+   A flat -.5px is ~-.008em on a 62px hero (no correction at all) and ~-.026em on an
+   18px card heading (too tight for a serif) — the same declaration doing two wrong
+   things. Display sizes get their own tighter step below. */
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;letter-spacing:-.012em;
+  line-height:1.15;text-wrap:balance}
+h1{letter-spacing:-.022em}
+::selection{background:rgba(201,168,106,.28);color:var(--ink)}
+/* Keyboard focus was falling back to the UA ring everywhere — a blue Chrome halo on
+   the cream catalogue. One gold ring, on every interactive surface. */
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
 .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
 .wrap.wide{max-width:1500px} /* catalog / shop — roomier grid on wide screens */
 .acc{color:var(--acc)}
@@ -503,7 +518,8 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 
 /* Shop product grid */
 .shopgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.scard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:.2s;text-decoration:none;color:var(--ink)}
+.scard{background:var(--bg2);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--ink);
+  transition:border-color .35s var(--ease),transform .35s var(--ease),box-shadow .35s var(--ease)}
 /* Pinned product: a 2×2 block instead of 1×1, so the operator's flagship listing
    reads as a lead tile rather than just sitting first in an otherwise-uniform grid.
    Sits first in DOM order (shop.php partitions pinned products to the front), so the
@@ -514,8 +530,13 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .scard-featured .samt{font-size:22px}
 .scard:hover{border-color:rgba(201,168,106,.38);transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
 .sthumb{aspect-ratio:3/4;display:grid;place-items:center;position:relative;color:#fff;overflow:hidden}
-.sthumb::before{content:'';position:absolute;inset:0;background:rgba(0,0,0,.12)}
-.sthumb.has-img::after{content:'';position:absolute;bottom:0;left:0;right:0;height:55%;background:linear-gradient(transparent,rgba(0,0,0,.6));pointer-events:none}
+/* Legibility scrim under the corner badges. Unconditional on purpose: the tile is
+   either a photo or a dark brand-card gradient, and both need the bottom corners
+   seated so .snewbadge / .sphotocount never sit on a blown-out white packshot.
+   (It used to be gated on a .has-img class that no template ever emitted, so it
+   simply never rendered.) Below the badges (z4), above the photo (z0/z3). */
+.sthumb::after{content:'';position:absolute;bottom:0;left:0;right:0;height:55%;
+  background:linear-gradient(transparent,rgba(0,0,0,.55));pointer-events:none;z-index:3}
 .sthumbi{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform .45s ease}
 .scard:hover .sthumbi{transform:scale(1.06)}
 /* Photo reveal (approved members only): the brand tile stays the card front; on hover
@@ -531,14 +552,17 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .smodetag.offer{background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3)}
 .snewbadge{position:absolute;bottom:10px;left:10px;font-size:9px;font-weight:800;letter-spacing:1px;background:var(--acc);color:#1a1408;padding:3px 8px;border-radius:999px;z-index:4}
 .sphotocount{position:absolute;bottom:10px;right:10px;font-size:10px;background:rgba(0,0,0,.55);color:#fff;padding:3px 7px;border-radius:999px;z-index:4;border:1px solid rgba(255,255,255,.18)}
-.sbody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:3px;flex:1}
-.sbrand{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--acc);font-weight:700}
-.stitle{font-weight:600;font-size:13.5px;line-height:1.3;margin:1px 0}
-.smeta{font-size:11px;color:var(--mut)}
-.sprice{margin-top:auto;padding-top:8px;font-size:13px;display:flex;align-items:baseline;gap:4px;flex-wrap:wrap}
+.sbody{padding:13px 15px 15px;display:flex;flex-direction:column;gap:3px;flex:1}
+.sbrand{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--acc);font-weight:700}
+.stitle{font-weight:600;font-size:13.5px;line-height:1.32;margin:1px 0;text-wrap:balance}
+.smeta{font-size:11px;color:var(--mut);font-variant-numeric:tabular-nums}
+/* Price row is the one place digits must line up card-to-card down the grid. */
+.sprice{margin-top:auto;padding-top:9px;font-size:13px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap;
+  font-variant-numeric:tabular-nums}
 .sfrom{color:var(--mut);font-size:11px}
-.samt{font-size:18px;font-weight:700}
-.swas{color:var(--mut);font-size:12px;text-decoration:line-through}
+.samt{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.swas{color:var(--mut);font-size:12px;text-decoration:line-through;text-decoration-thickness:1px;
+  text-underline-offset:2px;opacity:.75}
 .slock{color:var(--mut);font-size:12px;display:flex;align-items:center;gap:5px}
 .soffer{color:var(--acc);font-size:12px}
 
@@ -709,8 +733,13 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
    treatment: a soft radial lift, a hairline frame and a monogram fallback for any
    brand with no wordmark of its own. */
 .sthumb,.thumb,.gal-placeholder{position:relative;isolation:isolate}
+/* Radial lift + a whisper of overall darkening. The lift alone was brightening photo
+   tiles rather than seating them (it silently replaced an earlier rgba(0,0,0,.12)
+   wash declared further up this file); layering both keeps the top-centre glow on
+   brand cards while still grounding full-bleed photography. */
 .sthumb::before,.thumb::before,.gal-placeholder::before{content:'';position:absolute;inset:0;z-index:0;
-  background:radial-gradient(96% 70% at 50% 18%,rgba(255,255,255,.13) 0%,transparent 62%)}
+  background:radial-gradient(96% 70% at 50% 18%,rgba(255,255,255,.13) 0%,transparent 62%),
+             linear-gradient(rgba(0,0,0,.10),rgba(0,0,0,.10))}
 .scard:hover .brand-logo{filter:drop-shadow(0 3px 20px rgba(0,0,0,.8));transform:translateY(-2px)}
 .brand-logo{transition:filter .35s cubic-bezier(.16,.66,.25,1),transform .35s cubic-bezier(.16,.66,.25,1)}
 
