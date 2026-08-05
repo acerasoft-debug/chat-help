@@ -119,5 +119,6 @@ window.vestraEnablePush = async function(){
   } catch (e) { return 'error'; }
 };
 </script>
+<?php require_once __DIR__.'/tabbar.php'; ?>
 </body>
 </html>

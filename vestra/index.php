@@ -38,8 +38,10 @@ if (@include_once __DIR__.'/inc/products.php') {
 
     /* Frames the operator has taken out of the film by name. Kept as a list rather
        than a one-off condition because "not that one" is a recurring note and the
-       product stays perfectly saleable -- it is only excluded from the homepage. */
-    $HERO_SKIP = ['burberry-8039175'];
+       product stays perfectly saleable -- it is only excluded from the homepage.
+       Matched against the image PATH, so a folder-level fragment ('rl/csf-polo')
+       takes a whole colourway line out in one entry. */
+    $HERO_SKIP = ['burberry-8039175', 'rl/csf-polo'];
 
     /* The film crops full-bleed across a wide, short band (background-size:cover),
        so a tall product packshot (a plain flat-lay/carton photo, common on freshly
@@ -421,14 +423,24 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      Total cycle = frames x 6s, and each frame's delay is staggered by 6s so exactly
      one is visible at a time. Sits behind everything (z-index 0) with the content
      lifted above it. */
-  .hero.hasfilm{padding:120px 0 92px}
-  .hero.hasfilm>.wrap{position:relative;z-index:2}
+  /* Give the film band a floor so a contained packshot has room to read as a garment
+     rather than a stamp. Capped in vh so it never pushes the CTAs below the fold. */
+  .hero.hasfilm{padding:120px 0 92px;min-height:min(78vh,700px);display:flex;align-items:center}
+  .hero.hasfilm>.wrap{position:relative;z-index:2;width:100%}
   .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
-  /* Product shots are tall and centred on white, so `cover` at a tight crop pushes
-     the garment right up against the viewer -- a swimsuit in particular ended up
-     filling the frame. Pulling the focal point down to the middle and starting the
-     drift almost unzoomed keeps the whole piece in shot with air around it. */
-  .herofilm .hf{position:absolute;inset:0;background-size:cover;background-position:center 45%;
+  /* A soft spotlight behind the garment so a contained frame reads as a lit product
+     on a dark stage rather than a small picture floating in an empty band. */
+  .herofilm::before{content:'';position:absolute;inset:0;z-index:0;
+    background:radial-gradient(42% 58% at 50% 46%,rgba(255,255,255,.075),transparent 72%)}
+  /* `contain`, not `cover`. These are tall product packshots and the hero is a wide,
+     short band: covering a 3:4 shot into a ~3:1 band scales it to the band's WIDTH,
+     so roughly three quarters of the garment is cropped away and the visitor sees an
+     abstract sliver of fabric. Containing it fits the frame by its long edge instead,
+     so the whole piece is always in shot -- identical behaviour on a phone, where the
+     band is nearly square and the same image fits by width. Nothing is ever cut off.
+     min-height gives the contained frame real presence on a desktop viewport. */
+  .herofilm .hf{position:absolute;inset:0;background-size:contain;background-position:center;
+    background-repeat:no-repeat;
     opacity:0;transform:scale(1.02);will-change:opacity,transform;
     animation:heroFilm var(--hfdur,36s) cubic-bezier(.4,0,.2,1) infinite}
   /* Each frame owns 1/N of the cycle and the stagger is 6s, so the visible slice has to
@@ -605,9 +617,13 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     .pillars,.steps{grid-template-columns:1fr}
     .join-cards{grid-template-columns:1fr}
     .hero{padding:64px 0 44px}
+    /* On a phone the band is nearly square, so the contained packshot already fills
+       most of the width -- it needs less height here than on a wide desktop, and the
+       headline has to stay above the fold. */
+    .hero.hasfilm{padding:76px 0 56px;min-height:auto}
     .trustline{gap:14px}
     .brandwall{padding:56px 0 60px}
-    .bw-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+    .bw-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));max-width:none}
     .bw-cell{min-height:84px;padding:18px 12px}
   }
 </style>
@@ -880,5 +896,6 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     }
   }catch(e){ document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');}); }
 </script>
+<?php require_once __DIR__.'/inc/tabbar.php'; ?>
 </body>
 </html>
