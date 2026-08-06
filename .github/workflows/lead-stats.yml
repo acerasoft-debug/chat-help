@@ -14,6 +14,14 @@ on:
         description: "true = Brevo hesabinin plan/kredi durumunu ve bugunku gonderim istatistigini (Brevo tarafi) de goster"
         required: false
         default: "false"
+      brevo_events:
+        description: "Bu adres(ler)e Brevo GERCEKTEN e-posta gonderdi mi (virgul/bosluk ile ayrilir). SSH yarida koptugunda kullanilir."
+        required: false
+        default: ""
+      events_since:
+        description: "brevo_events icin baslangic tarihi (YYYY-AA-GG). Bos = bugun."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -137,3 +145,45 @@ jobs:
           curl -sS "https://api.brevo.com/v3/smtp/statistics/aggregatedReport?startDate=${TODAY}&endDate=${TODAY}" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
             -w "\nHTTP_CODE:%{http_code}\n"
+
+      # Bir SSH oturumu yarida koptugunda "e-posta gitti mi" sorusunun cevabi
+      # leads.json'dan OKUNAMAZ: damgalar dongu bittikten SONRA toplu kaydediliyor,
+      # yani gonderim yapilip kayit yapilmadan olen bir calisma "hic gonderilmemis"
+      # gibi gorunur. Tek guvenilir kaynak gonderen tarafi -- Brevo'nun kendi olay
+      # kaydi. Adres bazinda sorar; bos donen adrese o tarihten beri e-posta
+      # CIKMAMISTIR, dolayisiyla tekrar gondermek guvenlidir.
+      - name: Brevo olay kaydı (adres bazında — gerçekten gitti mi?)
+        if: ${{ github.event.inputs.brevo_events != '' }}
+        env:
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+          BREVO_EVENTS: ${{ github.event.inputs.brevo_events }}
+          EVENTS_SINCE: ${{ github.event.inputs.events_since }}
+        run: |
+          if [ -z "${MAIL_API_KEY}" ]; then
+            echo "::warning::MAIL_API_KEY tanımlı değil, kontrol atlandı."; exit 0
+          fi
+          FROM_DATE="${EVENTS_SINCE:-$(date -u +%Y-%m-%d)}"
+          TO_DATE=$(date -u +%Y-%m-%d)
+          echo "== BREVO OLAY KAYDI (${FROM_DATE} .. ${TO_DATE}) =="
+          printf '%-38s %s\n' "ADRES" "OLAYLAR"
+          TOTAL=0
+          for E in $(echo "${BREVO_EVENTS}" | tr ',;' '  '); do
+            [ -n "$E" ] || continue
+            RESP=$(curl -sS -G "https://api.brevo.com/v3/smtp/statistics/events" \
+                     --data-urlencode "email=${E}" \
+                     --data-urlencode "startDate=${FROM_DATE}" \
+                     --data-urlencode "endDate=${TO_DATE}" \
+                     --data-urlencode "limit=100" \
+                     -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json")
+            N=$(echo "$RESP" | grep -o '"event"' | wc -l | tr -d ' ')
+            KINDS=$(echo "$RESP" | grep -o '"event":"[a-zA-Z]*"' | sed 's/.*://' | tr -d '"' | sort -u | paste -sd, -)
+            TOTAL=$((TOTAL + N))
+            printf '%-38s %s\n' "$E" "${N} olay ${KINDS:+($KINDS)}"
+          done
+          echo "----"
+          echo "toplam olay: ${TOTAL}"
+          if [ "$TOTAL" -eq 0 ]; then
+            echo "SONUC: bu adreslere ${FROM_DATE} tarihinden beri HIC e-posta cikmamis -- tekrar gondermek guvenli."
+          else
+            echo "SONUC: en az bir adrese e-posta CIKMIS -- korlemesine tekrar gonderme, once yukaridaki dokumu oku."
+          fi
