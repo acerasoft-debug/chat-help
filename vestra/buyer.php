@@ -235,7 +235,13 @@ if($tab==='overview'){
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';
   echo '<style>
     .ordlist{display:flex;flex-direction:column;gap:12px}
-    .ordcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(60,50,30,.05)}
+    .ordcard{position:relative;overflow:hidden;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px 18px 16px 20px;box-shadow:0 1px 3px rgba(60,50,30,.05);transition:box-shadow .18s ease,transform .18s ease}
+    .ordcard:hover{box-shadow:0 6px 20px rgba(60,50,30,.10);transform:translateY(-1px)}
+    /* A hairline in the accent colour marks the orders that are waiting on US. It reads
+       at a glance down a long list, without shouting like a full-width banner would. */
+    .ordcard-review::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc)}
+    .ordreview{margin:11px 0 0;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5;
+      background:color-mix(in srgb,var(--acc) 9%,transparent);border:1px solid color-mix(in srgb,var(--acc) 26%,transparent)}
     .ordcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
     .ordref{font-weight:700;font-size:15px;color:var(--ink)}
     .ordref:hover{color:var(--acc)}
@@ -263,10 +269,17 @@ if($tab==='overview'){
       $er  = escrow_get($ref);
       $isHeld = $er && ($er['status']??'')==='held';
       $escBadge = $er ? '<div style="margin-top:5px">'.escrow_badge($er['status']??'').'</div>' : '';
-      if ($st==='completed') { $stClass='offers'; $stLabel=t('Completed'); }
+      /* "Awaiting payment" on an order with no invoice yet blames the buyer for a wait
+         that is ours, so a fresh order reads as in review until the invoice is issued. */
+      $inReview = vestra_order_in_review($ref, $st);
+      if ($inReview)          { $stClass='open'; $stLabel=t('In review'); }
+      elseif($st==='completed'){ $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
       elseif($st==='paid')    { $stClass='offers'; $stLabel=t('Paid — preparing shipment'); }
       else { $stClass='open'; $stLabel=t('Awaiting payment'); }
+      $reviewNote = $inReview
+        ? '<div class="ordreview">🔎 '.htmlspecialchars(vestra_order_review_note((string)($o['timestamp']??''))).'</div>'
+        : '';
       $confirmBtn='';
       if($st==='shipped'){
         $confirmBtn='<form method="post" action="/buyer?tab=orders" '.
@@ -280,12 +293,13 @@ if($tab==='overview'){
         $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
       }
       $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
-      echo '<div class="ordcard">'.
+      echo '<div class="ordcard'.($inReview?' ordcard-review':'').'">'.
         '<div class="ordcard-top">'.
           '<div><a class="ordref" href="/buyer?tab=orders&view='.urlencode($ref).'">#'.htmlspecialchars($ref).'</a>'.
           '<div class="hint" style="margin-top:2px">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></div>'.
           '<div style="text-align:right"><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.'</div>'.
         '</div>'.
+        $reviewNote.
         (($o['items']??'')!==''?'<div class="ordcard-items">'.htmlspecialchars($o['items']).'</div>':'').
         $trk.
         '<div class="ordcard-foot">'.

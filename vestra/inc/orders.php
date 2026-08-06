@@ -69,17 +69,49 @@ const VESTRA_ORDER_STEPS = ['pending', 'paid', 'shipped', 'completed'];
 
 function vestra_order_status_label(string $status): string {
     return match ($status) {
+        'review' => t('In review'),
         'paid' => t('Paid'), 'shipped' => t('Shipped'), 'completed' => t('Completed'),
         default => t('Awaiting payment'),
     };
 }
 
-/** Visual step tracker (Awaiting payment → Paid → Shipped → Completed). */
-function vestra_order_timeline_html(string $currentStatus): string {
-    $idx = array_search($currentStatus, VESTRA_ORDER_STEPS, true);
+/**
+ * Is this order still being checked over rather than waiting to be paid?
+ *
+ * A fresh order sits at 'pending', which the tracker labels "Awaiting payment" — but
+ * invoicing is suspended at checkout, so until the operator confirms stock and issues
+ * the invoice there is nothing for the buyer to pay against. Showing them a payment
+ * prompt with no invoice and no bank details reads as "we are waiting on you" when the
+ * truth is the opposite, and it contradicts the confirmation mail, which promises the
+ * invoice is coming once stock is confirmed.
+ *
+ * Derived from whether an invoice exists rather than stored as its own status: the
+ * invoice IS the fact that separates the two states, so this can never drift out of
+ * sync with reality, and issuing an invoice moves the order on with no extra step.
+ */
+function vestra_order_in_review(string $ref, string $status): bool {
+    if ($status !== 'pending' || $ref === '') return false;
+    if (!function_exists('vestra_invoices_for_ref')) require_once __DIR__.'/invoice.php';
+    return !vestra_invoices_for_ref($ref);
+}
+
+/** What the buyer is told while the order is in review. */
+function vestra_order_review_note(string $orderDate = ''): string {
+    $d = $orderDate !== '' ? substr($orderDate, 0, 10) : '';
+    return ($d !== '' ? $d.' — ' : '')
+        . t('Your order is being reviewed. We will confirm stock and contact you shortly.');
+}
+
+/**
+ * Visual step tracker. In review the chain gains a leading step, so the buyer sees a
+ * stage they are actually in rather than being parked on "Awaiting payment".
+ */
+function vestra_order_timeline_html(string $currentStatus, bool $inReview = false): string {
+    $steps = $inReview ? array_merge(['review'], VESTRA_ORDER_STEPS) : VESTRA_ORDER_STEPS;
+    $idx = $inReview ? 0 : array_search($currentStatus, VESTRA_ORDER_STEPS, true);
     if ($idx === false) $idx = 0;
     $out = '<div class="otimeline">';
-    foreach (VESTRA_ORDER_STEPS as $i => $st) {
+    foreach ($steps as $i => $st) {
         $cls = $i < $idx ? 'done' : ($i === $idx ? 'now' : '');
         $out .= '<div class="otstep '.$cls.'"><span class="otdot"></span><span class="otlabel">'.vestra_order_status_label($st).'</span></div>';
     }
@@ -99,7 +131,14 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
 
     $h = '<div class="panelcard">';
     $h .= '<div class="pcfhead"><h3>'.t('Order').' <span class="atag">'.htmlspecialchars($ref).'</span></h3><a class="btn btn-o btn-sm" href="'.htmlspecialchars($backHref).'">← '.t('Back to orders').'</a></div>';
-    $h .= vestra_order_timeline_html($status);
+    $inReview = vestra_order_in_review($ref, $status);
+    $h .= vestra_order_timeline_html($status, $inReview);
+    /* Said once, plainly, at the top — this is the answer to the only question a buyer
+       has on a fresh order, and it is the same thing the confirmation mail promised. */
+    if ($inReview) {
+        $h .= '<div class="oreview"><span class="oreview-i">🔎</span><div><b>'.t('In review').'</b>'
+            . '<div>'.htmlspecialchars(vestra_order_review_note((string)($orderRow['timestamp'] ?? ''))).'</div></div></div>';
+    }
 
     // Payment method + escrow state + delivery address, parsed from the order record —
     // the three facts both sides ask about first.

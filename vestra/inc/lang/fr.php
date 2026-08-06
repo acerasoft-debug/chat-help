@@ -60,6 +60,7 @@ return array (
   'Available colours' => 'Couleurs disponibles',
   'Available when your whole cart is from one verified seller.' => 'Disponible lorsque tout votre panier provient d’un seul vendeur vérifié.',
   'Awaiting payment' => 'En attente de paiement',
+  'Your order is being reviewed. We will confirm stock and contact you shortly.' => 'Votre commande est en cours de vérification. Nous confirmons la disponibilité et vous recontactons très prochainement.',
   'BIC / SWIFT' => 'BIC / SWIFT',
   'Babywear' => 'Mode bébé',
   'Back' => 'Retour',
