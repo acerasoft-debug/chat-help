@@ -240,3 +240,80 @@ jobs:
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?event=hardBounces&startDate=${START}&endDate=${TODAY}&limit=500" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" \
             | python3 -c 'import sys,json; e=json.load(sys.stdin).get("events") or []; a=sorted({(x.get("email") or "").strip().lower() for x in e if (x.get("email") or "").strip()}); print("tekil adres:",len(a)); print(", ".join(a))'
+
+      # Gutschein sistemi CANLI kodda gercekten calisiyor mu + kayitli hangi musteriye
+      # ne gidecek. Salt-okunur: kod URETMEZ, e-posta GONDERMEZ. Kendi test kodunu
+      # bellekte degil gercek dosyada olusturup sonunda geri siler, cunku "deploy edilen
+      # surum calisiyor mu" sorusunun cevabi ancak sunucudaki dosyalarla alinabilir.
+      - name: Gutschein sistemi kendi kendini test etsin + kampanya önizlemesi (salt-okunur)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_voucher_selftest.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            require_once __DIR__.'/inc/i18n.php';
+            require_once __DIR__.'/inc/vouchers.php';
+
+            $ok=0; $bad=0;
+            $chk=function($label,$got,$want) use (&$ok,&$bad){
+              $g=is_float($got)?number_format($got,2,'.',''):var_export($got,true);
+              $w=is_float($want)?number_format($want,2,'.',''):var_export($want,true);
+              if($g===$w){$ok++; echo "  ok   {$label} = {$g}\n";}
+              else {$bad++; echo "  HATA {$label} = {$g} (beklenen {$w})\n";}
+            };
+
+            echo "== CANLI KOD KENDI KENDINI TEST EDIYOR ==\n";
+            $TEST='VES-SELFTEST-DELETEME';
+            $all=voucher_all(); $had=isset($all[$TEST]);
+            voucher_create(['code'=>$TEST,'type'=>'percent','value'=>5,'email'=>'selftest@vestrasales.invalid',
+                            'first_order_only'=>true,'max_uses'=>1,'expiry'=>date('Y-m-d',strtotime('+1 year')),
+                            'campaign'=>'selftest']);
+
+            $v=voucher_validate($TEST,'selftest@vestrasales.invalid',1000);
+            $chk('gecerli kod kabul edildi', is_array($v), true);
+            $chk('1000 uzerinden %5', is_array($v)?voucher_discount($v,1000):-1.0, 50.00);
+            $chk('indirim sepeti asamaz', is_array($v)?voucher_discount($v,10):-1.0, 10.00);
+            $chk('baska musteriye kapali', voucher_validate($TEST,'someone@else.com',1000), 'wrong_customer');
+            $chk('bilinmeyen kod', voucher_validate('YOK-YOK-YOK','selftest@vestrasales.invalid',1000), 'not_found');
+            $chk('TEK KULLANIM: ilk redeem', voucher_redeem($TEST,'SELFTEST-REF','selftest@vestrasales.invalid',50.0), true);
+            $chk('TEK KULLANIM: ikinci redeem reddedildi', voucher_redeem($TEST,'SELFTEST-REF2','selftest@vestrasales.invalid',50.0), false);
+            $chk('kullanildiktan sonra dogrulanmiyor', voucher_validate($TEST,'selftest@vestrasales.invalid',1000), 'used');
+
+            /* Test kodunu birak: canli veride "selftest" diye bir kupon kalmamali. */
+            $all=voucher_all(); unset($all[$TEST]); voucher_save($all);
+            $chk('test kodu temizlendi', voucher_find($TEST)===null, true);
+
+            echo "\nSONUC: {$ok} gecti, {$bad} kaldi\n\n";
+
+            echo "== KAMPANYA ONIZLEMESI (hicbir sey uretilmez/gonderilmez) ==\n";
+            $rep = voucher_welcome_run(['percent'=>5,'months'=>6,'audience'=>'buyers','limit'=>500,'dry'=>true]);
+            echo "hedef musteri : {$rep['targets']}\n";
+            echo "kampanya      : {$rep['campaign']}  ·  gecerlilik {$rep['expiry']}\n";
+            $new=0;$retry=0;$already=0;
+            foreach($rep['rows'] as $r){
+              $s=(string)($r['status']??'');
+              if($s==='new') $new++; elseif($s==='retry') $retry++; elseif($s==='already') $already++;
+            }
+            echo "yeni kod alacak: {$new}  ·  kodu var postasi gitmemis: {$retry}  ·  zaten almis: {$already}\n";
+            /* Gizlilik: bu log public repoda duruyor. Musteri adresleri YAZILMAZ --
+               sadece alan adi ve dil, kimin hedeflendigini gormeye yetiyor. */
+            echo "\nhedefler (adres maskeli):\n";
+            foreach($rep['rows'] as $r){
+              $e=(string)($r['email']??''); if($e==='') continue;
+              $at=strrpos($e,'@'); $dom=$at!==false?substr($e,$at+1):'?';
+              printf("  %-10s %-28s dil=%s\n", (string)($r['status']??''), '***@'.$dom, (string)($r['lang']??'en'));
+            }
+            echo "\nHicbir kod uretilmedi, hicbir e-posta gonderilmedi.\n";
+            exit($bad>0?1:0);
+            PHPEOF
+            cp /tmp/vestra_voucher_selftest.php ./vestra_voucher_selftest_tmp.php
+            php ./vestra_voucher_selftest_tmp.php; RC=$?
+            rm -f ./vestra_voucher_selftest_tmp.php /tmp/vestra_voucher_selftest.php
+            exit $RC
