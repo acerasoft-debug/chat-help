@@ -34,6 +34,26 @@ require_once __DIR__ . '/boot.php';
 function vr_house_notes(): array
 {
     return [
+        'LACOSTE' => [
+            'de' => ['Französisches Haus, 1933 aus dem Tennissport heraus gegründet; das Petit Piqué stammt von dort.', 'gerade, sportliche Passform — entspricht der Tabelle'],
+            'en' => ['A French house founded out of tennis in 1933; the petit piqué comes from there.', 'a straight, sporting fit — true to the table'],
+        ],
+        'RALPH LAUREN' => [
+            'de' => ['Amerikanisches Haus, das aus dem Sportswear-Kanon einen eigenen Stil gemacht hat.', 'großzügig geschnitten — im Zweifel eine Nummer kleiner'],
+            'en' => ['An American house that made its own idiom out of the sportswear canon.', 'cut generously — size down if in doubt'],
+        ],
+        'HUGO BOSS' => [
+            'de' => ['Deutsches Haus, seit den 1970ern für nüchtern geschnittene Konfektion bekannt.', 'schmale, aber nicht enge Passform — entspricht der Tabelle'],
+            'en' => ['A German house known since the 1970s for soberly cut tailoring.', 'a slim but not tight fit — true to the table'],
+        ],
+        'TOMMY HILFIGER' => [
+            'de' => ['Amerikanisches Haus mit Preppy-Wurzeln und gleichbleibenden Schnitten.', 'entspannte Passform — entspricht der Tabelle'],
+            'en' => ['An American house with preppy roots and consistent cuts.', 'a relaxed fit — true to the table'],
+        ],
+        'CALVIN KLEIN' => [
+            'de' => ['New Yorker Haus, das die Reduktion zum Prinzip gemacht hat.', 'schmal geschnitten — bei kräftigem Oberkörper eine Nummer größer'],
+            'en' => ['A New York house that turned reduction into a principle.', 'cut slim — size up for a broader build'],
+        ],
         'BALENCIAGA' => [
             'de' => ['Pariser Haus, das die Silhouette bewusst überdehnt.', 'oversized geschnitten — im Zweifel eine Nummer kleiner'],
             'en' => ['A Paris house that deliberately overextends the silhouette.', 'cut oversized — size down if in doubt'],
@@ -194,9 +214,22 @@ function vr_product_copy(array $p): array
     $sizes = (array)($p['sizes'] ?? []);
     $days  = (int)vr_config('return_days', 30);
 
-    // Operatörün elle yazdığı metin varsa motor devreye girmez.
-    if (trim((string)($p['copy'] ?? '')) !== '') {
-        return ['lead' => '', 'paras' => [trim((string)$p['copy'])], 'facts' => []];
+    // Operatörün yazdığı ya da içe aktarılan metin varsa motor devreye girmez.
+    // Boş satırlar paragraf sınırıdır; ilk cümle kısa ise giriş satırı olur —
+    // aktarılan metin de sayfada üretilen metinle aynı ritmi tutsun.
+    $own = trim((string)($p['copy'] ?? ''));
+    if ($own !== '') {
+        $paras = array_values(array_filter(array_map(
+            static fn(string $x): string => trim(preg_replace('/[ \t]*\n[ \t]*/', ' ', $x) ?? $x),
+            preg_split('/\n\s*\n/u', $own) ?: [$own]
+        ), static fn(string $x): bool => $x !== ''));
+
+        $lead = '';
+        if ($paras && mb_strlen($paras[0]) <= 120) $lead = array_shift($paras);
+
+        // Bilgi tablosu üretilen metinden bağımsız: doğrulanmış alanlardan
+        // geliyor, o yüzden aktarılan metinle birlikte de gösteriliyor.
+        return ['lead' => $lead, 'paras' => $paras, 'facts' => vr_product_facts($p)];
     }
 
     $house = vr_house_notes()[$brand] ?? null;
@@ -258,10 +291,26 @@ function vr_product_copy(array $p): array
         ? "Aus EU-Bestand mit dokumentierter Einkaufshistorie. Passt es nicht, geht es innerhalb von {$days} Tagen zurück — Anprobieren ist ausdrücklich vorgesehen."
         : "From EU stock with documented purchase history. If it does not fit, it goes back within {$days} days — trying it on is expected.";
 
-    // ---- künye satırları
+    return ['lead' => $lead, 'paras' => $paras, 'facts' => vr_product_facts($p)];
+}
+
+/**
+ * Künye satırları. Metinden BAĞIMSIZ: yalnızca doğrulanmış alanlardan
+ * (model kodu, ev, kategori, durum, beden seti) kuruluyor. Bu yüzden hem
+ * üretilen metinle hem de içe aktarılmış metinle birlikte gösterilebiliyor.
+ */
+function vr_product_facts(array $p): array
+{
+    $lang  = vr_lang() === 'de' ? 'de' : 'en';
+    $de    = $lang === 'de';
+    $sku   = trim((string)($p['sku'] ?? ''));
+    $sizes = (array)($p['sizes'] ?? []);
+    $cat   = (string)($p['cat'] ?? '');
+    $used  = ($p['condition'] ?? 'new') !== 'new';
+
     $facts = [];
     if ($sku !== '')  $facts[t('sku')] = $sku;
-    $facts[t('house')]     = $brand;
+    $facts[t('house')]     = strtoupper(trim((string)($p['brand'] ?? '')));
     $facts[t('category')]  = vr_cat_label($cat);
     $facts[t('condition')] = $used ? t('condition_used') : t('condition_new');
     if ($sizes) {
@@ -270,10 +319,10 @@ function vr_product_copy(array $p): array
             $sizes
         ));
     }
-    $occasion = $catN['occasion_' . $lang] ?? '';
+    $occasion = vr_category_notes($cat)['occasion_' . $lang] ?? '';
     if ($occasion !== '') $facts[$de ? 'Getragen zu' : 'Worn for'] = $occasion;
 
-    return ['lead' => $lead, 'paras' => $paras, 'facts' => $facts];
+    return $facts;
 }
 
 /**

@@ -141,6 +141,12 @@ function vr_normalize_product(array $p, string $source): ?array
         'rrp_cents'   => isset($p['rrp']) && (float)$p['rrp'] > 0 ? (int)round((float)$p['rrp'] * 100) : null,
         'images'      => $images,
         'desc'        => trim((string)($p['desc'] ?? '')),
+        // Operatörün yazdığı/aktardığı metin: doluysa metin üreteci devre dışı
+        // kalır (bkz. inc/copy.php). Boşsa üretilen metin kullanılır.
+        'copy'        => trim((string)($p['copy'] ?? '')),
+        // Satırın geldiği dış kaynak (mağaza, kaynak id, ürün adresi). 'source'
+        // adı zaten hangi DOSYADAN geldiğini tutuyor, o yüzden ayrı ad.
+        'origin'      => is_array($p['origin'] ?? null) ? $p['origin'] : null,
         'sizes'       => $sizes,
         'stock'       => $stock,
         'seller_uid'  => (string)($p['seller_uid'] ?? ''),
