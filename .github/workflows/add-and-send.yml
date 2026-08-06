@@ -172,17 +172,45 @@ jobs:
                 'Russia'=>['россия','russia','москва','moscow'],
                 'Azerbaijan'=>['azərbaycan','azerbaijan','bakı','baku'],
               ];
-              $low = mb_strtolower($hay);
-              foreach ($COUNTRY_WORDS as $cn => $words)
-                foreach ($words as $w) if (str_contains($low, $w)) { $out['country'] = $cn; break 2; }
+              /* SIRA: uzanti -> sayfanin yazi sistemi -> sayfada gecen ulke adi.
+                 Onceki surumde ilk bakilan yer ulke adlariydi ve olculen sonuc yanlisti:
+                 Kore'li magazalarin kargo/teslimat sayfasinda "Germany, Italy, France"
+                 yaziyor, ilk eslesme de Almanya cikiyordu. 3 Agustos gonderiminde Seul'deki
+                 dort butik Almanca, biri Italyanca kampanya aldi. Uzanti ve sayfanin yazi
+                 sistemi magazanin KENDISI hakkinda bilgi verir; kargo listesindeki ulke
+                 adlari magazanin nereye gonderdigi hakkindadir -- ayni sey degil. */
+
+              /* 1) Ulke kodu uzantisi. .co.kr / .de gibi uzantilar magazaya aittir. */
+              $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
+                      'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
+                      'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
+                      'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom',
+                      'kr'=>'South Korea','jp'=>'Japan','ru'=>'Russia','az'=>'Azerbaijan'];
+              $bits = explode('.', $domain);
+              $out['country'] = $TLD[strtolower(end($bits))] ?? '';
+
+              /* 2) Uzanti genel (.com/.net) ise sayfanin yazi sistemine bak. Sayfasi bastan
+                 asagi Hangul olan bir magaza, kargo tablosunda Almanya yaziyor diye Alman
+                 olmaz. Esik tek bir kelimeyi degil, sayfanin gercekten o dilde yazildigini
+                 arar. */
               if ($out['country'] === '') {
-                $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
-                        'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
-                        'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
-                        'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom',
-                        'kr'=>'South Korea','jp'=>'Japan','ru'=>'Russia','az'=>'Azerbaijan'];
-                $bits = explode('.', $domain);
-                $out['country'] = $TLD[strtolower(end($bits))] ?? '';
+                $SCRIPT = [
+                  'South Korea' => '/[\x{AC00}-\x{D7A3}]/u',              // Hangul
+                  'Japan'       => '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}]/u', // hiragana + katakana
+                  'Russia'      => '/[\x{0400}-\x{04FF}]/u',              // Kiril
+                ];
+                foreach ($SCRIPT as $cn => $re) {
+                  if (preg_match_all($re, $hay) >= 30) { $out['country'] = $cn; break; }
+                }
+              }
+
+              /* 3) Son care: sayfada (ve alan adinda) gecen ulke/sehir adi. Alan adi da
+                 haystack'e giriyor cunku "samplestoreseoul.com" gibi isimler sitenin
+                 tamamen Ingilizce oldugu durumda tek ipucu olabiliyor. */
+              if ($out['country'] === '') {
+                $low = mb_strtolower($hay.' '.$domain);
+                foreach ($COUNTRY_WORDS as $cn => $words)
+                  foreach ($words as $w) if (str_contains($low, $w)) { $out['country'] = $cn; break 2; }
               }
               return $out;
             };
