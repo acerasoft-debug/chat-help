@@ -417,4 +417,21 @@ return [
     'date'                 => 'Tarix',
     'status'               => 'Vəziyyət',
     'neckline'             => 'Yaxa',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Endirim kodu',
+    'vou_remove'         => 'Sil',
+    'vou_applied'        => 'Kod tətbiq olundu — {amount} endirim.',
+    'vou_line'           => 'Kod {code}',
+    'vou_unknown'        => 'Bu kod etibarsızdır.',
+    'vou_expired'        => 'Bu kodun vaxtı bitib.',
+    'vou_not_yet'        => 'Bu kod hələ qüvvəyə minməyib.',
+    'vou_used_up'        => 'Bu kod artıq istifadə olunub.',
+    'vou_min'            => 'Sifariş məbləği bu kod üçün azdır.',
+    'vou_login'          => 'Bu kodu istifadə etmək üçün daxil olun — hesabınıza bağlıdır.',
+    'vou_first_only'     => 'Bu kod yalnız ilk sifariş üçündür.',
+    'vou_not_applicable' => 'Bu kod bu səbətə tətbiq oluna bilmir.',
+    'vou_welcome_title'  => 'Xoş gəldin kodunuz',
+    'vou_welcome_body'   => 'Ünvanınızı təsdiqlədiyiniz üçün təşəkkür edirik. İlk sifarişinizə {pct}% endirim.',
+    'vou_welcome_terms'  => 'Bir dəfə, {days} gün etibarlı, başqa kodlarla birləşmir. Endirim mala aiddir, çatdırılmaya deyil.',
 ];

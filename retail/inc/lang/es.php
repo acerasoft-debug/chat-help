@@ -417,4 +417,21 @@ return [
     'date'                 => 'Fecha',
     'status'               => 'Estado',
     'neckline'             => 'Escote',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Código de descuento',
+    'vou_remove'         => 'Quitar',
+    'vou_applied'        => 'Código aplicado — {amount} de descuento.',
+    'vou_line'           => 'Código {code}',
+    'vou_unknown'        => 'Ese código no es válido.',
+    'vou_expired'        => 'Ese código ha caducado.',
+    'vou_not_yet'        => 'Ese código todavía no está activo.',
+    'vou_used_up'        => 'Ese código ya se ha usado.',
+    'vou_min'            => 'El importe del pedido es demasiado bajo para este código.',
+    'vou_login'          => 'Inicia sesión para usar este código — pertenece a tu cuenta.',
+    'vou_first_only'     => 'Este código solo vale para un primer pedido.',
+    'vou_not_applicable' => 'Este código no se puede aplicar a esta cesta.',
+    'vou_welcome_title'  => 'Tu código de bienvenida',
+    'vou_welcome_body'   => 'Gracias por confirmar tu dirección. Aquí tienes un {pct}% en tu primer pedido.',
+    'vou_welcome_terms'  => 'Un solo uso, válido {days} días, no acumulable. El descuento se aplica a la mercancía, no al envío.',
 ];

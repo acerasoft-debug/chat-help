@@ -423,4 +423,21 @@ return [
     'date'                 => 'Datum',
     'status'               => 'Status',
     'neckline'             => 'Ausschnitt',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Gutscheincode',
+    'vou_remove'         => 'Entfernen',
+    'vou_applied'        => 'Code eingelöst — {amount} Nachlass.',
+    'vou_line'           => 'Code {code}',
+    'vou_unknown'        => 'Dieser Code ist nicht gültig.',
+    'vou_expired'        => 'Dieser Code ist abgelaufen.',
+    'vou_not_yet'        => 'Dieser Code gilt noch nicht.',
+    'vou_used_up'        => 'Dieser Code wurde bereits eingelöst.',
+    'vou_min'            => 'Der Bestellwert ist für diesen Code zu niedrig.',
+    'vou_login'          => 'Bitte melden Sie sich an — dieser Code gehört zu Ihrem Konto.',
+    'vou_first_only'     => 'Dieser Code gilt nur für eine erste Bestellung.',
+    'vou_not_applicable' => 'Dieser Code lässt sich auf diesen Warenkorb nicht anwenden.',
+    'vou_welcome_title'  => 'Ihr Willkommensgutschein',
+    'vou_welcome_body'   => 'Danke für die Bestätigung Ihrer Adresse. Hier sind {pct}% auf Ihre erste Bestellung.',
+    'vou_welcome_terms'  => 'Einmal einlösbar, {days} Tage gültig, nicht mit anderen Codes kombinierbar. Der Nachlass gilt auf die Ware, nicht auf den Versand.',
 ];

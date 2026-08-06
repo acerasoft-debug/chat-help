@@ -132,6 +132,12 @@
   document.addEventListener('submit', function (e) {
     var form = e.target.closest('[data-needs-size]');
     if (!form) return;
+    /* Tek bedenli üründe beden GİZLİ input olarak geliyor (value="ONE") ve
+       gizli input asla :checked olmaz. Bu yüzden aşağıdaki kontrol tek bedenli
+       her üründe formu blokluyordu — JS açıkken çanta, kemer ve tek parça
+       ürünler sepete hiç eklenemiyordu. Önce gerçekten seçilecek bir beden
+       var mı ona bakıyoruz. */
+    if (!form.querySelector('input[name="size"][type="radio"]')) return;
     if (form.querySelector('input[name="size"]:checked')) return;
 
     e.preventDefault();

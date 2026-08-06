@@ -329,3 +329,29 @@ function vr_mail_customer_reset(string $email, string $rawToken): void
     vr_mail_send($email, vr_config('brand') . ' — ' . t('acc_reset_title'),
         vr_mail_layout(t('acc_reset_title'), $body, t('acc_reset_mail_lead')));
 }
+
+/**
+ * Willkommensgutschein. Wird verschickt, sobald die Adresse bestätigt ist —
+ * vorher wäre der Code an eine Adresse gegangen, die dem Empfänger womöglich
+ * gar nicht gehört.
+ */
+function vr_mail_welcome_voucher(string $email, string $code): void
+{
+    $pct = rtrim(rtrim(number_format((int)vr_config('welcome_discount_bps', 500) / 100, 2, ',', '.'), '0'), ',');
+    $days = (int)vr_config('welcome_valid_days', 90);
+
+    $body = '<p>' . te('vou_welcome_body', ['pct' => $pct]) . '</p>'
+        . '<p style="margin:22px 0;text-align:center">'
+        . '<span style="display:inline-block;border:1px solid #c9a24d;padding:14px 26px;'
+        . 'font-family:Helvetica,Arial,sans-serif;font-size:19px;letter-spacing:.22em;color:#12121a">'
+        . h($code) . '</span></p>'
+        . '<p style="text-align:center"><a href="' . h(vr_abs('shop.php')) . '" '
+        . 'style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;'
+        . 'padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . te('nav_shop') . '</a></p>'
+        . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">'
+        . te('vou_welcome_terms', ['days' => $days]) . '</p>';
+
+    vr_mail_send($email, vr_config('brand') . ' — ' . t('vou_welcome_title'),
+        vr_mail_layout(t('vou_welcome_title'), $body, t('vou_welcome_body', ['pct' => $pct])));
+}

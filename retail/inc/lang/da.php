@@ -417,4 +417,21 @@ return [
     'date'                 => 'Dato',
     'status'               => 'Status',
     'neckline'             => 'Halsudskæring',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Rabatkode',
+    'vou_remove'         => 'Fjern',
+    'vou_applied'        => 'Koden er brugt — {amount} i rabat.',
+    'vou_line'           => 'Kode {code}',
+    'vou_unknown'        => 'Koden er ikke gyldig.',
+    'vou_expired'        => 'Koden er udløbet.',
+    'vou_not_yet'        => 'Koden gælder endnu ikke.',
+    'vou_used_up'        => 'Koden er allerede brugt.',
+    'vou_min'            => 'Ordrebeløbet er for lavt til denne kode.',
+    'vou_login'          => 'Log ind for at bruge koden — den hører til din konto.',
+    'vou_first_only'     => 'Koden gælder kun en første ordre.',
+    'vou_not_applicable' => 'Koden kan ikke bruges på denne kurv.',
+    'vou_welcome_title'  => 'Din velkomstkode',
+    'vou_welcome_body'   => 'Tak fordi du bekræftede din adresse. Her er {pct}% på din første ordre.',
+    'vou_welcome_terms'  => 'Kan bruges én gang, gælder i {days} dage, kan ikke kombineres. Rabatten gælder varerne, ikke fragten.',
 ];

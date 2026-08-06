@@ -148,6 +148,37 @@ function vr_stripe_log(string $what, int $status, array $ctx = []): void
  * $order: orders.php'nin ürettiği sipariş dizisi (satırlar, kargo, toplamlar).
  * Dönüş: [ok, session_dizisi_veya_hata_metni]
  */
+/**
+ * Sipariş için tek kullanımlık Stripe kuponu. Kimlik olarak sipariş id'si
+ * kullanılıyor: aynı sipariş için tekrar denenirse Stripe aynı kuponu döndürür
+ * (idempotency), ikinci bir indirim oluşmaz.
+ *
+ * Dönüş: [ok, kupon_id|hata]
+ */
+function vr_stripe_coupon(int $amountCents, string $code, string $orderId): array
+{
+    $cur = strtolower((string)vr_config('currency', 'eur'));
+    $id  = 'ord-' . preg_replace('/[^a-zA-Z0-9-]/', '', $orderId);
+
+    $res = vr_stripe_request('POST', 'coupons', [
+        'id'              => $id,
+        'amount_off'      => $amountCents,
+        'currency'        => $cur,
+        'duration'        => 'once',
+        'max_redemptions' => 1,
+        'name'            => $code !== '' ? mb_substr($code, 0, 40) : 'Gutschein',
+        'metadata'        => ['order_id' => $orderId, 'voucher' => mb_substr($code, 0, 40)],
+    ], ['idempotency_key' => 'coupon-' . $id]);
+
+    if ($res['ok']) return [true, (string)($res['data']['id'] ?? $id)];
+
+    // Zaten varsa (aynı siparişin ikinci denemesi) onu kullan.
+    $g = vr_stripe_request('GET', 'coupons/' . urlencode($id), []);
+    if ($g['ok'] && !empty($g['data']['valid'])) return [true, $id];
+
+    return [false, (string)($res['error'] ?: 'coupon_failed')];
+}
+
 function vr_stripe_create_checkout(array $order): array
 {
     $cur = strtolower((string)vr_config('currency', 'eur'));
@@ -220,6 +251,28 @@ function vr_stripe_create_checkout(array $order): array
 
     if (vr_config('stripe_tax')) {
         $params['automatic_tax'] = ['enabled' => true];
+    }
+
+    /**
+     * ---- Gutschein
+     * Stripe kabul etmediği için satır tutarlarını elle kırpmıyoruz: bir kupon
+     * nesnesi oluşturup Checkout'a veriyoruz. Böylece indirim Stripe'ın kendi
+     * makbuzunda ve panelinde ayrı bir satır olarak görünüyor — muhasebe
+     * tarafında "neden eksik tahsilat" sorusu doğmuyor.
+     *
+     * Kupon TUTAR olarak oluşturuluyor (yüzde değil): indirimi zaten biz
+     * hesapladık ve komisyonla sınırladık; yüzde verseydik Stripe kargoyu da
+     * kapsayabilir ve iki taraf farklı rakam bulurdu.
+     *
+     * Kupon oluşturulamazsa (ağ/anahtar sorunu) ödeme indirimsiz TAM tutardan
+     * geçmesin diye işlemi durduruyoruz — müşteriden fazla tahsilat yapmaktansa
+     * hata göstermek doğru.
+     */
+    $discount = (int)($order['discount_cents'] ?? 0);
+    if ($discount > 0) {
+        [$cok, $coupon] = vr_stripe_coupon($discount, (string)($order['voucher_code'] ?? ''), $order['id']);
+        if (!$cok) return [false, 'stripe_error', $coupon];
+        $params['discounts'] = [['coupon' => $coupon]];
     }
 
     // ---- Connect: tek satıcı ve hazırsa doğrudan hedefe aktar

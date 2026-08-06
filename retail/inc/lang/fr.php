@@ -421,4 +421,21 @@ return [
     'date'                 => 'Date',
     'status'               => 'Statut',
     'neckline'             => 'Encolure',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Code de réduction',
+    'vou_remove'         => 'Retirer',
+    'vou_applied'        => 'Code appliqué — {amount} de remise.',
+    'vou_line'           => 'Code {code}',
+    'vou_unknown'        => 'Ce code n\'est pas valide.',
+    'vou_expired'        => 'Ce code a expiré.',
+    'vou_not_yet'        => 'Ce code n\'est pas encore actif.',
+    'vou_used_up'        => 'Ce code a déjà été utilisé.',
+    'vou_min'            => 'Le montant de la commande est trop faible pour ce code.',
+    'vou_login'          => 'Connectez-vous pour utiliser ce code — il est lié à votre compte.',
+    'vou_first_only'     => 'Ce code ne vaut que pour une première commande.',
+    'vou_not_applicable' => 'Ce code ne peut pas s\'appliquer à ce panier.',
+    'vou_welcome_title'  => 'Votre code de bienvenue',
+    'vou_welcome_body'   => 'Merci d\'avoir confirmé votre adresse. Voici {pct}% sur votre première commande.',
+    'vou_welcome_terms'  => 'Valable une fois, pendant {days} jours, non cumulable. La remise porte sur les articles, pas sur la livraison.',
 ];

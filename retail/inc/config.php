@@ -204,6 +204,12 @@ function vr_config(?string $key = null, mixed $default = null): mixed
                  'de' => 'Rundhals', 'en' => 'Crew neck'],
             ],
 
+            // ---- Gutschein / kupon
+            // Kayıt olup e-postasını doğrulayan her müşteriye otomatik
+            // gönderilen ilk sipariş indirimi. 0 = otomatik kupon kapalı.
+            'welcome_discount_bps' => 500,   // %5
+            'welcome_valid_days'   => 90,
+
             // ---- pazaryeri komisyonu (Stripe Connect application fee)
             'fee_bps_business'   => 1200,  // %12 tüccar satıcı
             'fee_bps_private'    => 900,   // %9  özel satıcı (Privatverkäufer)

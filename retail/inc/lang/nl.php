@@ -423,4 +423,21 @@ return [
     'date'                 => 'Datum',
     'status'               => 'Status',
     'neckline'             => 'Halslijn',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Kortingscode',
+    'vou_remove'         => 'Verwijderen',
+    'vou_applied'        => 'Code toegepast — {amount} korting.',
+    'vou_line'           => 'Code {code}',
+    'vou_unknown'        => 'Deze code is niet geldig.',
+    'vou_expired'        => 'Deze code is verlopen.',
+    'vou_not_yet'        => 'Deze code geldt nog niet.',
+    'vou_used_up'        => 'Deze code is al gebruikt.',
+    'vou_min'            => 'Het bestelbedrag is te laag voor deze code.',
+    'vou_login'          => 'Meld u aan om deze code te gebruiken — hij hoort bij uw account.',
+    'vou_first_only'     => 'Deze code geldt alleen voor een eerste bestelling.',
+    'vou_not_applicable' => 'Deze code is op dit winkelmandje niet toe te passen.',
+    'vou_welcome_title'  => 'Uw welkomstcode',
+    'vou_welcome_body'   => 'Bedankt voor het bevestigen van uw adres. Hier is {pct}% op uw eerste bestelling.',
+    'vou_welcome_terms'  => 'Eenmalig, {days} dagen geldig, niet te combineren. De korting geldt op de artikelen, niet op de verzending.',
 ];

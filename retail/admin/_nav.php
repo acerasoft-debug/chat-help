@@ -15,6 +15,7 @@ function vr_admin_head(string $title): void
         'orders.php'    => 'Bestellungen',
         'listings.php'  => 'Angebote',
         'vault.php'     => 'Vault',
+        'vouchers.php'  => 'Gutscheine',
         'sellers.php'   => 'Verkäufer',
         'customers.php' => 'Kunden',
         'members.php'   => 'Newsletter',

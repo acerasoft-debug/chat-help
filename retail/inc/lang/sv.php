@@ -417,4 +417,21 @@ return [
     'date'                 => 'Datum',
     'status'               => 'Status',
     'neckline'             => 'Halsringning',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Rabattkod',
+    'vou_remove'         => 'Ta bort',
+    'vou_applied'        => 'Koden är använd — {amount} i rabatt.',
+    'vou_line'           => 'Kod {code}',
+    'vou_unknown'        => 'Koden är inte giltig.',
+    'vou_expired'        => 'Koden har gått ut.',
+    'vou_not_yet'        => 'Koden gäller inte än.',
+    'vou_used_up'        => 'Koden är redan använd.',
+    'vou_min'            => 'Ordersumman är för låg för den här koden.',
+    'vou_login'          => 'Logga in för att använda koden — den hör till ditt konto.',
+    'vou_first_only'     => 'Koden gäller bara en första beställning.',
+    'vou_not_applicable' => 'Koden går inte att använda på den här varukorgen.',
+    'vou_welcome_title'  => 'Din välkomstkod',
+    'vou_welcome_body'   => 'Tack för att du bekräftade din adress. Här är {pct}% på din första beställning.',
+    'vou_welcome_terms'  => 'Gäller en gång, i {days} dagar, kan inte kombineras. Rabatten gäller varorna, inte frakten.',
 ];

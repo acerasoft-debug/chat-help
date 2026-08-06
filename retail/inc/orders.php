@@ -132,10 +132,44 @@ function vr_order_build(string $country): array
         $payoutMode = 'separate';
     }
 
+    // ---- Gutschein
+    /**
+     * İndirimi PLATFORM üstleniyor: satıcının payı hiç değişmiyor, nakit
+     * tamamen bizim komisyonumuzdan iniyor. Aksi hâlde kendi kampanyamızın
+     * bedelini satıcıya ödetmiş olurduk.
+     *
+     * Bu yüzden indirim komisyonla sınırlı — vr_voucher_check() zaten bunu
+     * denetliyor ve aşan kuponu kabul etmiyor; buradaki min() son emniyet.
+     */
+    require_once __DIR__ . '/vouchers.php';
+    $voucher  = vr_voucher_current();
+    $discount = 0;
+
+    if ($voucher !== '') {
+        $email = '';
+        if (function_exists('vr_current_customer')) {
+            $me = vr_current_customer();
+            $email = (string)($me['email'] ?? '');
+        }
+        // Kendi stoğumuzda komisyon yok ama para da bizde kalıyor: orada
+        // indirimin üst sınırı satırın kendi tutarı.
+        $ownGross = (int)($bySeller['vestra']['gross'] ?? 0);
+        $cap = $commissionTotal + $ownGross;
+
+        [$vok, $vcents] = vr_voucher_check($voucher, (int)$t['subtotal'], $cap, $email);
+        if ($vok) {
+            $discount = min($vcents, $cap);
+        } else {
+            $voucher = '';                 // geçersizse sessizce düşür
+            vr_voucher_clear();
+        }
+    }
+
     // destination modelinde Stripe'a bildirdiğimiz application_fee, komisyonun
     // ÜSTÜNE kargoyu da içerir: aksi halde kargo bedeli satıcıya giderdi.
+    // İndirim de buradan iniyor — satıcının payı korunuyor.
     $applicationFee = $payoutMode === 'destination'
-        ? $commissionTotal + (int)$t['ship_cents']
+        ? max(0, $commissionTotal + (int)$t['ship_cents'] - $discount)
         : 0;
 
     $order = [
@@ -154,11 +188,15 @@ function vr_order_build(string $country): array
         'ship_label'     => (string)($t['shipping']['label'] ?? ''),
         'ship_zone'      => (string)($t['shipping']['zone'] ?? ''),
         'ship_country'   => strtoupper($country),
-        'total_cents'    => (int)$t['total'],
-        'vat_cents'      => (int)$t['vat'],
+        'discount_cents' => $discount,
+        'voucher_code'   => $discount > 0 ? $voucher : '',
+        'total_cents'    => max(0, (int)$t['total'] - $discount),
+        'vat_cents'      => vr_config('prices_include_vat')
+                            ? vr_vat_part(max(0, (int)$t['total'] - $discount)) : 0,
 
         'by_seller'            => $bySeller,
-        'commission_cents'     => $commissionTotal,
+        'commission_cents'     => max(0, $commissionTotal - $discount),
+        'commission_gross_cents' => $commissionTotal,
         'application_fee_cents' => $applicationFee,
         'payout_mode'          => $payoutMode,
         'destination'          => $destination,
@@ -284,10 +322,22 @@ function vr_order_mark_paid(string $orderId, array $stripeData = []): ?array
         }
     }
 
-    // 3) Satıcı payları
+    // 3) Gutschein sayacı — ödeme gerçekleştiğinde, yazarken değil. Yarıda
+    //    bırakılan bir kasa hiçbir kuponu harcamıyor. Fonksiyon idempotent:
+    //    aynı sipariş id'si sayacı bir kez artırıyor.
+    if (($order['voucher_code'] ?? '') !== '') {
+        require_once __DIR__ . '/vouchers.php';
+        vr_voucher_redeem(
+            (string)$order['voucher_code'],
+            (string)$order['id'],
+            (string)($order['customer']['email'] ?? '')
+        );
+    }
+
+    // 4) Satıcı payları
     $order = vr_order_payout($order) ?? $order;
 
-    // 4) Bildirimler — mail hatası siparişi bozmaz, sadece kaydedilir.
+    // 5) Bildirimler — mail hatası siparişi bozmaz, sadece kaydedilir.
     try {
         vr_mail_order_buyer($order);
         vr_mail_order_sellers($order);

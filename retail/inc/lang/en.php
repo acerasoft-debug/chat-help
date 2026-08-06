@@ -434,4 +434,21 @@ return [
     'date'                 => 'Date',
     'status'               => 'Status',
     'neckline'             => 'Neckline',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Discount code',
+    'vou_remove'         => 'Remove',
+    'vou_applied'        => 'Code applied — {amount} off.',
+    'vou_line'           => 'Code {code}',
+    'vou_unknown'        => 'That code is not valid.',
+    'vou_expired'        => 'That code has expired.',
+    'vou_not_yet'        => 'That code is not active yet.',
+    'vou_used_up'        => 'That code has already been used.',
+    'vou_min'            => 'The order value is too low for this code.',
+    'vou_login'          => 'Sign in to use this code — it belongs to your account.',
+    'vou_first_only'     => 'This code is only for a first order.',
+    'vou_not_applicable' => 'This code cannot be applied to this basket.',
+    'vou_welcome_title'  => 'Your welcome code',
+    'vou_welcome_body'   => 'Thank you for confirming your address. Here is {pct}% off your first order.',
+    'vou_welcome_terms'  => 'One order, valid for {days} days, not combinable with other codes. The discount applies to the goods, not to shipping.',
 ];

@@ -1153,3 +1153,20 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   display:block;margin-top:5px;font-size:10px;letter-spacing:.2em;
   text-transform:uppercase;color:var(--muted);
 }
+
+/* ------------------------------------------------------------- Gutschein
+   Sepet özetindeki kod alanı ve indirim satırı. Kod tek satırda kalsın,
+   büyük harf ve geniş harf aralığıyla okunsun — e-postadan elle giriliyor. */
+.vou{display:flex;gap:6px;margin:10px 0 4px}
+.vou input{
+  flex:1;min-width:0;padding:9px 11px;border:1px solid var(--bone-3);background:var(--bone);
+  font:inherit;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);
+}
+.vou input:focus{outline:none;border-color:var(--ink)}
+.vou input::placeholder{letter-spacing:.06em;text-transform:none;color:var(--muted-2)}
+.srow--cut span:last-child{color:var(--ember-text);font-variant-numeric:tabular-nums}
+/* Doğrulama sayfasındaki kupon kutusu. */
+.vou__code{
+  display:inline-block;margin-top:10px;border:1px solid var(--brass);padding:12px 22px;
+  font-size:18px;letter-spacing:.22em;font-variant-numeric:tabular-nums;
+}

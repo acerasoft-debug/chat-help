@@ -417,4 +417,21 @@ return [
     'date'                 => 'Data',
     'status'               => 'Stato',
     'neckline'             => 'Scollo',
+
+    // ---- Gutschein / kupon
+    'vou_label'          => 'Codice sconto',
+    'vou_remove'         => 'Rimuovi',
+    'vou_applied'        => 'Codice applicato — {amount} di sconto.',
+    'vou_line'           => 'Codice {code}',
+    'vou_unknown'        => 'Questo codice non è valido.',
+    'vou_expired'        => 'Questo codice è scaduto.',
+    'vou_not_yet'        => 'Questo codice non è ancora attivo.',
+    'vou_used_up'        => 'Questo codice è già stato usato.',
+    'vou_min'            => 'L\'importo dell\'ordine è troppo basso per questo codice.',
+    'vou_login'          => 'Accedi per usare questo codice — è legato al tuo account.',
+    'vou_first_only'     => 'Questo codice vale solo per un primo ordine.',
+    'vou_not_applicable' => 'Questo codice non è applicabile a questo carrello.',
+    'vou_welcome_title'  => 'Il tuo codice di benvenuto',
+    'vou_welcome_body'   => 'Grazie per aver confermato il tuo indirizzo. Ecco il {pct}% sul primo ordine.',
+    'vou_welcome_terms'  => 'Valido una volta, per {days} giorni, non cumulabile. Lo sconto vale sulla merce, non sulla spedizione.',
 ];

@@ -17,6 +17,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
     switch ($action) {
+        case 'voucher':
+            /**
+             * Kupon uygulama. Kodun kendisi oturumda tutuluyor, sepette
+             * değil — sepet paylaşılabilir bir yapı, kupon ise kişiye ve
+             * oturuma bağlı. Geçerlilik burada BİR KEZ, sipariş kurulurken
+             * TEKRAR denetleniyor; arada fiyat değişse bile tutar doğru kalır.
+             */
+            require_once __DIR__ . '/inc/vouchers.php';
+            $code = (string)($_POST['code'] ?? '');
+
+            if (trim($code) === '') {
+                vr_voucher_clear();
+                vr_redirect('cart.php', $country !== '' ? ['country' => $country] : []);
+            }
+            if (!vr_rate_ok('vou', 15, 600)) {
+                vr_flash(t('login_throttled'), 'err');
+                vr_redirect('cart.php', $country !== '' ? ['country' => $country] : []);
+            }
+
+            $tt    = vr_cart_totals($country !== '' ? $country : null);
+            $email = '';
+            if (function_exists('vr_current_customer')) {
+                $me = vr_current_customer();
+                $email = (string)($me['email'] ?? '');
+            }
+            [$vok, $vcents, $verr] = vr_voucher_check($code, (int)$tt['subtotal'], PHP_INT_MAX, $email);
+            if ($vok) {
+                vr_voucher_set($code);
+                vr_flash(t('vou_applied', ['amount' => vr_money($vcents)]), 'ok');
+            } else {
+                vr_voucher_clear();
+                vr_flash(t($verr), 'err');
+            }
+            vr_redirect('cart.php', $country !== '' ? ['country' => $country] : []);
+
         case 'add':
             $pid  = (string)($_POST['pid'] ?? '');
             $size = (string)($_POST['size'] ?? '');
@@ -179,11 +214,45 @@ vr_layout_start(['title' => t('cart_title'), 'robots' => 'noindex,nofollow']);
             </div>
           <?php endif; ?>
 
+          <?php
+          // ---- Gutschein
+          require_once __DIR__ . '/inc/vouchers.php';
+          $vcode = vr_voucher_current();
+          $vcut  = 0;
+          if ($vcode !== '') {
+              $vmail = '';
+              if (function_exists('vr_current_customer')) {
+                  $vme = vr_current_customer();
+                  $vmail = (string)($vme['email'] ?? '');
+              }
+              [$vv, $vcut] = vr_voucher_check($vcode, (int)$t['subtotal'], PHP_INT_MAX, $vmail);
+              if (!$vv) { $vcut = 0; vr_voucher_clear(); $vcode = ''; }
+          }
+          ?>
+          <?php if ($vcut > 0): ?>
+            <div class="srow srow--cut">
+              <span><?= te('vou_line', ['code' => h($vcode)]) ?></span>
+              <span>−<?= h(vr_money($vcut)) ?></span>
+            </div>
+          <?php endif; ?>
+
+          <form method="post" action="<?= h(vr_url('cart.php')) ?>" class="vou">
+            <?= vr_csrf_field() ?>
+            <input type="hidden" name="action" value="voucher">
+            <label class="vh" for="vou"><?= te('vou_label') ?></label>
+            <input id="vou" name="code" type="text" autocomplete="off" spellcheck="false"
+                   placeholder="<?= te('vou_label') ?>" value="<?= h($vcode) ?>">
+            <button class="btn btn--ghost btn--sm" type="submit">
+              <span><?= $vcode !== '' ? te('vou_remove') : te('apply') ?></span>
+            </button>
+          </form>
+
           <div class="srow srow--total">
-            <span><?= te('total') ?></span><span><?= h(vr_money((int)$t['total'])) ?></span>
+            <span><?= te('total') ?></span><span><?= h(vr_money(max(0, (int)$t['total'] - $vcut))) ?></span>
           </div>
-          <?php if ((int)$t['vat'] > 0): ?>
-            <div class="srow srow--muted"><span><?= te('vat_of_which', ['amount' => vr_money((int)$t['vat'])]) ?></span></div>
+          <?php $vatShown = $vcut > 0 ? vr_vat_part(max(0, (int)$t['total'] - $vcut)) : (int)$t['vat']; ?>
+          <?php if ($vatShown > 0): ?>
+            <div class="srow srow--muted"><span><?= te('vat_of_which', ['amount' => vr_money($vatShown)]) ?></span></div>
           <?php endif; ?>
 
           <a class="btn btn--block btn--lg" href="<?= h(vr_url('checkout.php', $country !== '' ? ['country' => $country] : [])) ?>">
