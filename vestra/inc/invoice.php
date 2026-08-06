@@ -198,8 +198,27 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $y -= 4;
     $pdf->line($left, $y, $right, $y, 0.7, 0.5);
     $y -= 18;
-    $pdf->textR($colUnit, $y, 10, 'Goods total', true);
-    $pdf->textR($right - 4, $y, 11, eur($goodsTotal), true);
+    /* A voucher must be a visible line, not a quietly reduced goods total: this document is
+       the seller's invoice and the basis of the bank transfer, so the buyer has to be able to
+       reconcile it against the order confirmation line for line. On a multi-seller order the
+       amount here is only this seller's apportioned share (see vestra_issue_order_invoices). */
+    $discount = round((float)($order['discount'] ?? 0), 2);
+    if ($discount > 0) {
+        $pdf->textR($colUnit, $y, 10, 'Goods total');
+        $pdf->textR($right - 4, $y, 10, eur($goodsTotal));
+        $y -= 15;
+        $vcode = trim((string)($order['voucher_code'] ?? ''));
+        $pdf->textR($colUnit, $y, 10, 'Voucher'.($vcode !== '' ? ' '.$vcode : ''));
+        $pdf->textR($right - 4, $y, 10, '-'.eur($discount));
+        $y -= 6;
+        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35);
+        $y -= 15;
+        $pdf->textR($colUnit, $y, 10, 'Total', true);
+        $pdf->textR($right - 4, $y, 11, eur(max(0, $goodsTotal - $discount)), true);
+    } else {
+        $pdf->textR($colUnit, $y, 10, 'Goods total', true);
+        $pdf->textR($right - 4, $y, 11, eur($goodsTotal), true);
+    }
     $y -= 34;
 
     $need(40);
@@ -298,11 +317,36 @@ function vestra_issue_order_invoices(string $ref): array {
     ];
     $bySeller = [];
     foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+
+    /* A voucher discounts the ORDER, but invoices are issued per seller. Putting the whole
+       discount on each slice would deduct it as many times as there are sellers, so it is
+       split in proportion to each seller's goods value, and the last slice takes the rounding
+       remainder — the per-invoice amounts then add back up to exactly what was granted. */
+    $orderDiscount = round((float)($orderRow['discount'] ?? 0), 2);
+    $voucherCode   = trim((string)($orderRow['voucher_code'] ?? ''));
+    $goodsTotal = 0.0;
+    foreach ($ld['lines'] as $l) { $goodsTotal += (float)($l['line'] ?? 0); }
+    $shares = [];
+    if ($orderDiscount > 0 && $goodsTotal > 0) {
+        $acc = 0.0; $keys = array_keys($bySeller); $lastKey = end($keys);
+        foreach ($bySeller as $sid => $sellerItems) {
+            $sellerGoods = 0.0;
+            foreach ($sellerItems as $l) { $sellerGoods += (float)($l['line'] ?? 0); }
+            $share = ($sid === $lastKey)
+                ? round($orderDiscount - $acc, 2)
+                : round($orderDiscount * ($sellerGoods / $goodsTotal), 2);
+            $shares[$sid] = max(0.0, $share);
+            $acc = round($acc + $shares[$sid], 2);
+        }
+    }
+
     $issued = [];
     foreach ($bySeller as $sid => $sellerItems) {
         $sellerAcc = null;
         if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
-        $iv = vestra_ensure_invoice($orderMeta, $sellerItems, $sellerAcc, true);
+        $meta = $orderMeta;
+        if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
+        $iv = vestra_ensure_invoice($meta, $sellerItems, $sellerAcc, true);
         if (!empty($iv['no'])) $issued[] = $iv;
     }
     return $issued;

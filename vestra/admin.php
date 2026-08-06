@@ -2,6 +2,7 @@
 /** VESTRA — Admin Panel */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/promos.php';
+require_once __DIR__.'/inc/vouchers.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/invoice.php';
 require_once __DIR__.'/inc/orders.php';
@@ -634,6 +635,26 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $all=promo_all(); $k=strtoupper($_POST['toggle_code']??'');
     if(isset($all[$k])){ $all[$k]['active']=!($all[$k]['active']??true); promo_save($all); }
     header('Location: /admin?tab=marketing&msg=promo_toggled'); exit;
+  }
+
+  /* Customer discount vouchers — separate store from the seller invite codes above. */
+  if($act==='create_voucher'){
+    voucher_create([
+      'code'=>$_POST['v_code']??'', 'type'=>($_POST['v_type']??'percent')==='fixed'?'fixed':'percent',
+      'value'=>$_POST['v_value']??0, 'email'=>$_POST['v_email']??'',
+      'first_order_only'=>!empty($_POST['v_first']), 'min_subtotal'=>$_POST['v_min']??0,
+      'max_uses'=>$_POST['v_max']??1, 'expiry'=>$_POST['v_expiry']??'', 'campaign'=>$_POST['v_campaign']??'',
+    ]);
+    header('Location: /admin?tab=marketing&msg=voucher_ok'); exit;
+  }
+  if($act==='toggle_voucher'){
+    $all=voucher_all(); $k=voucher_norm($_POST['v_toggle']??'');
+    if(isset($all[$k])){ $all[$k]['active']=!($all[$k]['active']??true); voucher_save($all); }
+    header('Location: /admin?tab=marketing&msg=voucher_toggled'); exit;
+  }
+  if($act==='delete_voucher'){
+    $all=voucher_all(); unset($all[voucher_norm($_POST['v_del']??'')]); voucher_save($all);
+    header('Location: /admin?tab=marketing&msg=voucher_del'); exit;
   }
 
   // ── Seller prospecting (lead CRM + templated outreach) ──────────────────────
@@ -1293,6 +1314,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $orderSt   = vestra_read_json('order_statuses.json');
   $offerResp = vestra_read_json('offer_responses.json');
   $promos    = promo_all();
+  $vouchers  = voucher_all();
 
   $sellers      = array_filter($accounts,fn($a)=>($a['type']??'')==='seller');
   $buyers       = array_filter($accounts,fn($a)=>($a['type']??'')==='buyer');
@@ -1356,6 +1378,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
+    'voucher_ok'=>'✓ Voucher created.','voucher_del'=>'Voucher deleted.','voucher_toggled'=>'Voucher status changed.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
     'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
@@ -1454,7 +1477,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'prices','💶','Prices &amp; MOQ') ?>
 
   <div class="sgrp">Growth</div>
-  <?= navLink($tab,'marketing','🎟️','Promo codes ('.count($promos).')') ?>
+  <?= navLink($tab,'marketing','🎟️','Vouchers &amp; codes ('.(count($vouchers)+count($promos)).')') ?>
   <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
   <?= navLink($tab,'notify','🔔','Notifications') ?>
 </nav>
@@ -2637,6 +2660,74 @@ elseif($tab==='listings'):
 
 <?php // ══════════════════════════════════════════════════════ MARKETING
 elseif($tab==='marketing'): ?>
+<?php
+/* Customer vouchers first: these are the ones that move money on an order, so redemption
+   needs to be visible at a glance. The seller invite codes below never touch an invoice. */
+$vRedeemed = 0; $vGranted = 0.0;
+foreach($vouchers as $v){
+  foreach((array)($v['used_by']??[]) as $u){ $vRedeemed++; $vGranted += (float)($u['amount']??0); }
+}
+$vSorted = $vouchers;
+uasort($vSorted, fn($a,$b)=>strcmp((string)($b['created']??''),(string)($a['created']??'')));
+?>
+<div class="acard" style="margin-bottom:18px">
+  <div class="acard-hd"><h3>🎟️ Customer vouchers (Gutschein) — <?= count($vouchers) ?> codes · <?= $vRedeemed ?> redeemed · <?= eur($vGranted) ?> granted</h3></div>
+  <div class="acard-body">
+  <form method="post" class="aform" style="margin-bottom:16px">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="create_voucher">
+    <div class="acols2">
+      <div class="afield"><label>Code (blank = auto)</label><input name="v_code" placeholder="VES-A1B2-C3D4" style="text-transform:uppercase"></div>
+      <div class="afield"><label>Campaign tag</label><input name="v_campaign" placeholder="welcome5"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>Type</label><select name="v_type"><option value="percent">Percent (%)</option><option value="fixed">Fixed (€)</option></select></div>
+      <div class="afield"><label>Value</label><input name="v_value" type="number" step="0.01" value="5"></div>
+    </div>
+    <div class="afield"><label>Bind to customer e-mail (blank = anyone)</label><input name="v_email" type="email" placeholder="buyer@shop.com"></div>
+    <div class="acols2">
+      <div class="afield"><label>Min. order (€, 0 = none)</label><input name="v_min" type="number" step="0.01" value="0"></div>
+      <div class="afield"><label>Max uses (0 = ∞)</label><input name="v_max" type="number" value="1"></div>
+    </div>
+    <div class="acols2">
+      <div class="afield"><label>Expiry</label><input type="date" name="v_expiry" value="<?= date('Y-m-d', strtotime('+6 months')) ?>"></div>
+      <div class="afield" style="display:flex;align-items:flex-end"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="v_first" value="1" checked> First order only</label></div>
+    </div>
+    <button class="abtn primary" type="submit">＋ Create voucher</button>
+  </form>
+
+  <?php if(!$vouchers): ?><div class="aempty">No vouchers yet.</div><?php else: ?>
+  <div style="overflow-x:auto">
+  <table class="atable"><thead><tr>
+    <th>Code</th><th>Value</th><th>Bound to</th><th>Campaign</th><th>Used</th><th>Expiry</th><th>Status</th><th></th>
+  </tr></thead><tbody>
+  <?php $shown=0; foreach($vSorted as $code=>$v): if($shown++>=60) break;
+    $used=(int)($v['used']??0); $max=(int)($v['max_uses']??1);
+    $exp=trim((string)($v['expiry']??''));
+    $isExpired = $exp!=='' && strtotime($exp)<time();
+    $active = ($v['active']??true) && !$isExpired && ($max===0 || $used<$max);
+  ?>
+    <tr>
+      <td><code style="font-size:12px"><?= htmlspecialchars($code) ?></code></td>
+      <td><?= htmlspecialchars(voucher_label($v)) ?><?= !empty($v['first_order_only'])?' <span class="ahint">· 1st order</span>':'' ?></td>
+      <td style="font-size:12px"><?= $v['email']!=='' ? htmlspecialchars($v['email']) : '<span class="ahint">anyone</span>' ?></td>
+      <td style="font-size:12px"><?= htmlspecialchars((string)($v['campaign']??'')) ?></td>
+      <td><?= $used ?><?= $max>0?' / '.$max:'' ?><?php if($used>0): $la=end($v['used_by']); ?><div class="ahint" style="font-size:11px"><?= htmlspecialchars((string)($la['ref']??'')) ?> · <?= eur((float)($la['amount']??0)) ?></div><?php endif; ?></td>
+      <td style="font-size:12px"><?= $exp!==''?htmlspecialchars($exp):'—' ?></td>
+      <td><?= $active?'<span style="color:#3fb27f">● active</span>':'<span class="ahint">○ '.($isExpired?'expired':($used>=$max&&$max>0?'used':'off')).'</span>' ?></td>
+      <td style="white-space:nowrap">
+        <form method="post" style="display:inline"><?= csrfField() ?><input type="hidden" name="_action" value="toggle_voucher"><input type="hidden" name="v_toggle" value="<?= htmlspecialchars($code) ?>"><button class="abtn" type="submit">on/off</button></form>
+        <form method="post" style="display:inline" onsubmit="return confirm('Delete <?= htmlspecialchars($code) ?>?')"><?= csrfField() ?><input type="hidden" name="_action" value="delete_voucher"><input type="hidden" name="v_del" value="<?= htmlspecialchars($code) ?>"><button class="abtn" type="submit">✕</button></form>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody></table>
+  </div>
+  <?php if(count($vouchers)>60): ?><p class="ahint">Showing the 60 most recent of <?= count($vouchers) ?>.</p><?php endif; ?>
+  <?php endif; ?>
+  </div>
+</div>
+
 <div class="acols2">
 <div class="acard">
   <div class="acard-hd"><h3>Create promo code</h3></div>

@@ -60,6 +60,7 @@ if (stripe_available()) {
       <?php if (VESTRA_FEE_BUYER > 0): ?>
       <div class="line"><span><?= t('Buyer-protection fee') ?> (<?=round(VESTRA_FEE_BUYER*100)?>%)</span><span id="bfee"></span></div>
       <?php endif; ?>
+      <div class="line" id="voucherLine" style="display:none;color:var(--acc)"><span>🎟️ <?= t('Voucher') ?> <span id="voucherCodeLbl"></span></span><span id="voucherAmt"></span></div>
       <div class="line" id="escrowFeeLine" style="display:none"><span>🛡️ <?= t('Buyer protection (escrow)') ?> (<?=round(VESTRA_ESCROW_FEE_BUYER*100,1)?>%)</span><span id="escrowFee"></span></div>
       <div class="line big"><span><?= t('Total (you pay)') ?></span><span id="grand"></span></div>
       <?php if (VESTRA_FEE_BUYER > 0): ?>
@@ -83,6 +84,15 @@ if (stripe_available()) {
         $_SESSION['order_tokens'] = array_slice($_SESSION['order_tokens'], -20, null, true);
       } ?>
       <input type="hidden" name="order_token" value="<?= $orderTok ?>">
+
+      <h3 style="margin:24px 0 10px"><?= t('Voucher code') ?></h3>
+      <div style="display:flex;gap:10px;align-items:center;max-width:680px;flex-wrap:wrap">
+        <input name="voucher" id="voucherInput" value="<?= htmlspecialchars(strtoupper((string)($_GET['voucher'] ?? ''))) ?>"
+               placeholder="<?= htmlspecialchars(t('e.g. VES-A1B2-C3D4')) ?>" autocomplete="off"
+               style="flex:1;min-width:220px;text-transform:uppercase;letter-spacing:1.2px">
+        <button class="btn" type="button" id="voucherBtn"><?= t('Apply') ?></button>
+      </div>
+      <p class="hint" id="voucherMsg" style="margin:8px 0 0;max-width:680px"></p>
 
       <h3 style="margin:24px 0 10px"><?= t('Payment method') ?></h3>
       <div class="paysel">
@@ -185,13 +195,47 @@ function render(){
   document.getElementById('rows').innerHTML=rows;
   syncPay(c); // enable/disable escrow (may force bank) before pricing the fee
   var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
-  var efee=isEsc?sub*ESCROW_FEE_RATE:0;
+  /* The voucher comes off the goods value FIRST, so the escrow fee is charged on what the
+     buyer actually pays rather than on the pre-discount figure. order.php applies the same
+     order server-side; this is only the preview. */
+  var disc = VOUCHER.discount>0 ? Math.min(VOUCHER.discount, sub) : 0;
+  var net  = sub - disc;
+  var efee=isEsc?net*ESCROW_FEE_RATE:0;
   var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';
   var efeeEl=document.getElementById('escrowFee'); if(efeeEl) efeeEl.textContent=eur(efee);
+  var vLine=document.getElementById('voucherLine');
+  if(vLine){
+    vLine.style.display = disc>0 ? '' : 'none';
+    document.getElementById('voucherCodeLbl').textContent = disc>0 ? ('('+VOUCHER.code+')') : '';
+    document.getElementById('voucherAmt').textContent = '−'+eur(disc);
+  }
   document.getElementById('sub').textContent=eur(sub);
-  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(sub*<?=VESTRA_FEE_BUYER?>);
-  document.getElementById('grand').textContent=eur(sub+efee);
+  var bfeeEl=document.getElementById('bfee'); if(bfeeEl) bfeeEl.textContent=eur(net*<?=VESTRA_FEE_BUYER?>);
+  document.getElementById('grand').textContent=eur(net+efee);
   document.getElementById('cartField').value=JSON.stringify(c);
+}
+
+/* Voucher preview. Everything here is cosmetic: order.php revalidates the code against the
+   signed-in account and recomputes the discount, so a tampered VOUCHER object buys nothing. */
+var VOUCHER={code:'',discount:0};
+function cartSubtotal(){ var s=0; VCart.all().forEach(function(x){ s+=x.qty*x.unit; }); return s; }
+function voucherApply(){
+  var inp=document.getElementById('voucherInput'), msg=document.getElementById('voucherMsg');
+  if(!inp) return;
+  var code=(inp.value||'').trim().toUpperCase();
+  inp.value=code;
+  if(!code){ VOUCHER={code:'',discount:0}; msg.textContent=''; msg.style.color=''; render(); return; }
+  msg.style.color=''; msg.textContent='…';
+  var body='code='+encodeURIComponent(code)+'&subtotal='+encodeURIComponent(cartSubtotal());
+  fetch('/voucher-check',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.ok){ VOUCHER={code:d.code,discount:Number(d.discount)||0}; msg.style.color='var(--acc)'; }
+      else { VOUCHER={code:'',discount:0}; msg.style.color='#d9534f'; }
+      msg.textContent=(d && d.msg)||'';
+      render();
+    })
+    .catch(function(){ msg.style.color='#d9534f'; msg.textContent=<?= json_encode(t('Could not check the code right now — it will still be applied to your order if valid.')) ?>; });
 }
 document.getElementById('rows').addEventListener('click', function(e){
   var id = e.target && e.target.dataset ? e.target.dataset.removeId : null;
@@ -203,8 +247,19 @@ document.getElementById('rows').addEventListener('click', function(e){
 document.getElementById('orderForm') && document.getElementById('orderForm').addEventListener('submit',function(){
   document.getElementById('cartField').value=JSON.stringify(VCart.all());
 });
+(function(){
+  var b=document.getElementById('voucherBtn'), i=document.getElementById('voucherInput');
+  if(b) b.addEventListener('click', voucherApply);
+  /* Enter inside the code box must check the code, not submit the whole order — an order
+     placed by pressing Enter after typing a voucher would skip the preview entirely. */
+  if(i) i.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); voucherApply(); } });
+})();
 /* VCart is defined in foot.php which loads after this block — use DOMContentLoaded */
-document.addEventListener('DOMContentLoaded', function(){ render(); });
+document.addEventListener('DOMContentLoaded', function(){
+  render();
+  /* A code arriving as ?voucher=… (the link in the welcome mail) checks itself on load. */
+  var i=document.getElementById('voucherInput'); if(i && i.value.trim()) voucherApply();
+});
 </script>
 <?php endif; ?>
 <?php require __DIR__.'/inc/foot.php';

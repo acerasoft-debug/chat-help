@@ -4,6 +4,7 @@ require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/auth.php';
 require_once __DIR__.'/inc/escrow.php';
 require_once __DIR__.'/inc/stripe.php';
+require_once __DIR__.'/inc/vouchers.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 $CONTACT='support@vestrasales.com'; $NOTIFY=false;
 /* Buyer's chosen payment method: 'escrow' (card, held) or 'bank' (invoice/transfer). */
@@ -72,6 +73,30 @@ foreach($cart as $it){
   $lines[]=['sku'=>$p['sku'],'brand'=>$p['brand'],'name'=>$p['name'],'qty'=>$qty,'unit'=>$unit,'line'=>$line,'colors'=>$colors,'seller_uid'=>$p['seller_uid']??''];
 }
 if(!$lines){ header('Location: /cart'); exit; }
+
+/* ── Voucher ──────────────────────────────────────────────────────────────────
+   Revalidated here from the stored record, never from what the cart posted: the page
+   sends only the code, and the discount is recomputed against the freshly re-priced
+   subtotal. A code that fails validation is DROPPED rather than refused — the buyer's
+   order still goes through at full price and the confirmation says the code was not
+   applied. Rejecting the whole order over a mistyped voucher loses the sale.
+   The redemption itself happens after the order is safely written. */
+$voucherCode = ''; $discount = 0.0; $voucherNote = '';
+$voucherIn = voucher_norm((string)($_POST['voucher'] ?? ''));
+if($voucherIn !== ''){
+  $vres = voucher_validate($voucherIn, $email, $subtotal);
+  if(is_array($vres)){
+    $discount    = voucher_discount($vres, $subtotal);
+    $voucherCode = (string)$vres['code'];
+    $voucherNote = 'Voucher '.$voucherCode.' (-'.voucher_label($vres).') = -'.eur($discount).'. ';
+  } else {
+    $voucherNote = 'Voucher '.$voucherIn.' NOT applied ('.$vres.'). ';
+  }
+}
+/* Everything downstream — fees, buyer total, seller payout — prices off the discounted
+   goods value, so the escrow fee is charged on what the buyer actually pays. */
+$subtotalGross = $subtotal;
+$subtotal      = round($subtotal - $discount, 2);
 /* Platform commission. Escrow (Treuhand) orders carry a FIXED buyer-protection fee
    (VESTRA_ESCROW_FEE_BUYER, 3.8%) plus the seller's tiered membership commission
    (3.5/3.2/2.8%), collected together as the Stripe application fee on the direct
@@ -98,18 +123,30 @@ $ref='VES-'.strtoupper(substr(md5($email.implode('',array_column($lines,'sku')).
 
 $dir=__DIR__.'/data'; if(!is_dir($dir)) @mkdir($dir,0775,true);
 $file=$dir.'/orders.csv'; $new=!file_exists($file);
+/* voucher_code/discount are new trailing columns. On a live server orders.csv already
+   exists with the old header, and the reader pads short rows with '' — so the header is
+   rewritten in place (data rows untouched) and historic orders simply read as no voucher. */
+$ORDER_CSV_HEADER=['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version','voucher_code','discount'];
+if(!$new) vestra_csv_ensure_header('orders.csv', $ORDER_CSV_HEADER);
 if($fh=@fopen($file,'a')){
-  if($new) fputcsv($fh,['timestamp','ref','company','vat','name','email','country','phone','items','subtotal','commission','payout','total','notes','consent','terms_version'],',','"','\\');
+  if($new) fputcsv($fh,$ORDER_CSV_HEADER,',','"','\\');
   $items=implode(' | ', array_map(function($l){return $l['qty'].'x '.$l['sku'].' @'.$l['unit'];}, $lines));
   $colorNotes=implode(' | ', array_map(fn($l)=>$l['sku'].': '.implode(', ',$l['colors']),
     array_filter($lines, fn($l)=>!empty($l['colors']))));
   $methodLabel=$payMethod==='escrow'?'Payment: Secure escrow (card). ':'Payment: Bank transfer. ';
   $shipNote=$shipAddr!==''?'Deliver to: '.$shipAddr.'. ':'';
-  $notes=trim($methodLabel.$shipNote.($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??''));
+  /* The voucher note goes at the END, after the buyer's own text: vestra_order_notes_colors()
+     matches "Colours — …" anchored at the start, so nothing may be inserted ahead of it. */
+  $notes=trim($methodLabel.$shipNote.($colorNotes!==''?'Colours — '.$colorNotes.'. ':'').trim($_POST['notes']??'').($voucherNote!==''?' '.$voucherNote:''));
   fputcsv($fh,[date('c'),$ref,$company,trim($_POST['vat']??''),$name,$email,trim($_POST['country']??''),
-    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION],',','"','\\');
+    trim($_POST['phone']??''),$items,$subtotal,$commission,$payout,$total,$notes,'yes',VESTRA_TERMS_VERSION,
+    $voucherCode,$discount>0?number_format($discount,2,'.',''):''],',','"','\\');
   fclose($fh);
 }
+
+/* Spend the code only now — after the row is on disk. Redeeming before the write would burn
+   a single-use voucher on an order that never got recorded. */
+if($voucherCode!=='' && $discount>0) voucher_redeem($voucherCode,$ref,$email,$discount);
 
 /* ── Escrow (direct charge + delayed payout) ─────────────────────────────────
    Buyer pays by card ON the seller's connected Stripe account (a direct charge);
@@ -124,9 +161,22 @@ if($payMethod==='escrow'){
 
   $amountCents=(int)round($total*100);
   $feeCents=(int)round($commission*100);
-  /* Itemise for the Stripe page; the protection-fee line absorbs rounding so the sum == amount. */
-  $li=[]; $acc=0;
-  foreach($lines as $l){ $c=(int)round($l['line']*100); if($c<=0) continue; $li[]=['name'=>$l['qty'].'× '.$l['brand'].' '.$l['name'],'amount'=>$c,'qty'=>1]; $acc+=$c; }
+  /* Itemise for the Stripe page; the protection-fee line absorbs rounding so the sum == amount.
+     With a voucher the goods lines must carry the DISCOUNTED value: Stripe has no negative
+     line item, so a discount cannot be shown as its own row. Billing the gross lines and
+     letting the protection line go negative is not an option either — it is dropped by the
+     >0 guard below and the itemisation would then total more than the amount actually
+     charged. So each line is scaled by the same ratio and the last one absorbs the rounding,
+     which makes the goods lines sum to exactly the discounted subtotal. */
+  $li=[]; $acc=0; $last=null;
+  $ratio = $subtotalGross>0 ? ($subtotal/$subtotalGross) : 1.0;
+  foreach($lines as $l){
+    $c=(int)round($l['line']*$ratio*100); if($c<=0) continue;
+    $li[]=['name'=>$l['qty'].'× '.$l['brand'].' '.$l['name'],'amount'=>$c,'qty'=>1];
+    $acc+=$c; $last=count($li)-1;
+  }
+  $goodsCents=(int)round($subtotal*100);
+  if($last!==null && $acc!==$goodsCents){ $li[$last]['amount'] += ($goodsCents-$acc); $acc=$goodsCents; }
   $protCents=$amountCents-$acc;
   if($protCents>0) $li[]=['name'=>'Buyer protection fee','amount'=>$protCents,'qty'=>1];
 
@@ -144,6 +194,7 @@ if($payMethod==='escrow'){
     'buyer_id'=>(!empty($_SESSION['uid'])?$_SESSION['uid']:''),
     'items'=>array_map(fn($l)=>['sku'=>$l['sku'],'brand'=>$l['brand'],'name'=>$l['name'],'qty'=>$l['qty'],'unit'=>$l['unit'],'line'=>$l['line'],'colors'=>$l['colors']],$lines),
     'subtotal'=>$subtotal,'buyer_fee'=>$buyer_fee,'seller_fee'=>$seller_fee,'commission'=>$commission,'total'=>$total,'payout'=>$payout,
+    'subtotal_gross'=>$subtotalGross,'voucher_code'=>$voucherCode,'discount'=>$discount,
   ]);
   $_SESSION['order_refs'][$ref]=time();
   if($orderTok !== ''){ $_SESSION['order_token_done'][$orderTok] = $ref; }
@@ -152,14 +203,22 @@ if($payMethod==='escrow'){
 
 $body="New VESTRA order request {$ref}\n\nCompany: {$company}\nContact: {$name} <{$email}>\nCountry: ".trim($_POST['country']??'')."   Phone: ".trim($_POST['phone']??'')."\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n";
 foreach($lines as $l){ $body.="  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":"")."\n"; }
+if($discount>0) $body.="\nGoods €{$subtotalGross}\nVoucher {$voucherCode} −€{$discount}";
+elseif($voucherNote!=='') $body.="\n".trim($voucherNote);
 $body.="\nSubtotal €{$subtotal}\nBuyer pays €{$total}\n".($commission>0?"VESTRA commission €{$commission} (seller €{$seller_fee} + buyer €{$buyer_fee}) · Seller payout €{$payout}\n":"No platform fees (membership model) · Seller receives €{$payout}\n")."Notes: ".trim($_POST['notes']??'')."\n";
 vestra_notify("New order {$ref} — {$company}", $body, $email);
 
 $FEE_BUYER_PCT=round($FEE_BUYER*100);
 $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"";
+/* The buyer is told either way: that the voucher came off, or that the code they typed
+   did not apply — silently ignoring a code the buyer believes they used is how a
+   "where is my discount?" support mail starts. */
+$voucherLine = $discount>0
+  ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n"
+  : ($voucherIn!=='' ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : "");
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
-  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\nBuyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+  "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
 
 /* Notify the seller(s) who own the ordered listings */
 if(!empty($lines)){
