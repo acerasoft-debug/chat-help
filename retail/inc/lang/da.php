@@ -416,4 +416,5 @@ return [
     'acc_delete_done'        => 'Din konto er slettet.',
     'date'                 => 'Dato',
     'status'               => 'Status',
+    'neckline'             => 'Halsudskæring',
 ];

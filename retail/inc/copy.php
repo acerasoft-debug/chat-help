@@ -319,10 +319,34 @@ function vr_product_facts(array $p): array
             $sizes
         ));
     }
+    // İşletmecinin bildirdiği kesim bilgisi (örn. Lacoste tişörtler: Rundhals).
+    // Metin motoru bunu ÜRETMİYOR — yalnızca yapılandırmada yazan basılıyor.
+    $cut = vr_cut_note((string)($p['brand'] ?? ''), $cat, $lang);
+    if ($cut !== '') $facts[t('neckline')] = $cut;
+
     $occasion = vr_category_notes($cat)['occasion_' . $lang] ?? '';
     if ($occasion !== '') $facts[$de ? 'Getragen zu' : 'Worn for'] = $occasion;
 
     return $facts;
+}
+
+/**
+ * Marka + kategori için doğrulanmış kesim/yaka bilgisi. Yapılandırmada
+ * karşılığı yoksa boş döner ve künyede o satır hiç çıkmaz.
+ */
+function vr_cut_note(string $brand, string $cat, string $lang): string
+{
+    $brand = strtoupper(trim($brand));
+    if ($brand === '') return '';
+
+    foreach ((array)vr_config('cut_notes', []) as $n) {
+        if (strtoupper(trim((string)($n['brand'] ?? ''))) !== $brand) continue;
+        $nc = trim((string)($n['cat'] ?? ''));
+        if ($nc !== '' && mb_strtolower($nc) !== mb_strtolower(trim($cat))) continue;
+        $v = trim((string)($n[$lang] ?? $n['en'] ?? ''));
+        if ($v !== '') return $v;
+    }
+    return '';
 }
 
 /**

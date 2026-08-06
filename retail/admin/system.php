@@ -77,6 +77,34 @@ vr_admin_head('System');
       $cc = vr_geo_country(); echo $cc === '' ? 'nicht gemeldet' : h($cc); ?></dd>
 </div>
 
+<h2 class="sechead__t" style="font-size:20px;margin:34px 0 12px">Feste Outlet-Preise</h2>
+<?php $rules = (array)vr_config('price_rules', []); ?>
+<?php if (!$rules): ?>
+  <p style="color:var(--muted);font-size:14px">Keine festen Preise gesetzt — es gilt der Faktor.</p>
+<?php else: ?>
+  <p style="font-size:12.5px;color:var(--muted);margin-bottom:12px">
+    Der erste Treffer gewinnt. Trifft eine Regel, gelten weder Faktor noch Rundung.
+    Geändert wird das in <code>inc/config.php</code> unter <code>price_rules</code>;
+    ein erneuter Import ist dafür nicht nötig.
+  </p>
+  <div class="tablewrap" tabindex="0">
+    <table class="table">
+      <thead><tr><th>#</th><th>Marke</th><th>Kategorie</th><th>Name enthält</th><th>Preis</th></tr></thead>
+      <tbody>
+      <?php foreach ($rules as $i => $r): ?>
+        <tr>
+          <td><?= $i + 1 ?></td>
+          <td><?= h((string)($r['brand'] ?? '')) ?></td>
+          <td><?= h(trim((string)($r['cat'] ?? '')) ?: 'alle') ?></td>
+          <td><?= h(trim((string)($r['match'] ?? '')) ?: '—') ?></td>
+          <td><?= h(vr_money((int)($r['cents'] ?? 0))) ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+<?php endif; ?>
+
 <h2 class="sechead__t" style="font-size:20px;margin:34px 0 12px">Werkzeuge</h2>
 <p style="font-size:13.5px;line-height:1.9">
   Diese Aufgaben laufen bewusst nur über die Kommandozeile:<br>

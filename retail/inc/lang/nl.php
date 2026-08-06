@@ -422,4 +422,5 @@ return [
     'acc_delete_done'        => 'Uw account is verwijderd.',
     'date'                 => 'Datum',
     'status'               => 'Status',
+    'neckline'             => 'Halslijn',
 ];

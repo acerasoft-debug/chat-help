@@ -67,6 +67,30 @@ function vr_derive_retail_cents(float $wholesale): int
     return vr_charm_round((int)round($wholesale * $mult * 100));
 }
 
+/**
+ * Sabit outlet fiyatı ara. Eşleşen kural varsa kuruş, yoksa null.
+ * Kurallar sırayla denenir, ilk eşleşen kazanır (bkz. inc/config.php).
+ */
+function vr_price_rule(string $brand, string $cat, string $name): ?int
+{
+    $brand = strtoupper(trim($brand));
+    if ($brand === '') return null;
+
+    foreach ((array)vr_config('price_rules', []) as $r) {
+        if (strtoupper(trim((string)($r['brand'] ?? ''))) !== $brand) continue;
+
+        $rc = trim((string)($r['cat'] ?? ''));
+        if ($rc !== '' && mb_strtolower($rc) !== mb_strtolower(trim($cat))) continue;
+
+        $re = (string)($r['match'] ?? '');
+        if ($re !== '' && !preg_match($re, $name)) continue;
+
+        $cents = (int)($r['cents'] ?? 0);
+        if ($cents > 0) return $cents;
+    }
+    return null;
+}
+
 /** Ham katalog satırını tek biçimli perakende ürününe çevir. */
 function vr_normalize_product(array $p, string $source): ?array
 {
@@ -78,7 +102,20 @@ function vr_normalize_product(array $p, string $source): ?array
     if (!empty($p['hold']) || !empty($p['hidden'])) return null;
 
     // ---- fiyat
-    if (isset($p['retail_price']) && (float)$p['retail_price'] > 0) {
+    // Sabit outlet fiyatı her şeyin önünde: eşleşen kural varsa çarpan da
+    // yuvarlama da devreye girmiyor, yazan rakam basılıyor.
+    // match YALNIZCA ürün adına uygulanır. Kategoriyi de katarsak
+    // "Hoodies & Sweatshirts" içindeki "hood" yüzünden o kategorideki HER
+    // ürün kapüşonlu sayılır ve fermuarlı/düz sweat kuralları hiç çalışmaz.
+    $ruleCents = vr_price_rule(
+        (string)($p['brand'] ?? ''),
+        (string)($p['cat'] ?? ''),
+        trim((string)($p['name'] ?? ''))
+    );
+
+    if ($ruleCents !== null) {
+        $price = $ruleCents;
+    } elseif (isset($p['retail_price']) && (float)$p['retail_price'] > 0) {
         $price = (int)round((float)$p['retail_price'] * 100);
     } elseif (isset($p['price_cents']) && (int)$p['price_cents'] > 0) {
         $price = (int)$p['price_cents'];

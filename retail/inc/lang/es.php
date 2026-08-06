@@ -416,4 +416,5 @@ return [
     'acc_delete_done'        => 'Tu cuenta se ha eliminado.',
     'date'                 => 'Fecha',
     'status'               => 'Estado',
+    'neckline'             => 'Escote',
 ];

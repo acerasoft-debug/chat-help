@@ -416,4 +416,5 @@ return [
     'acc_delete_done'        => 'Il tuo account è stato eliminato.',
     'date'                 => 'Data',
     'status'               => 'Stato',
+    'neckline'             => 'Scollo',
 ];

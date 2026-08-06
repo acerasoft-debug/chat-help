@@ -422,4 +422,5 @@ return [
     'acc_delete_done'        => 'Ihr Konto wurde gelöscht.',
     'date'                 => 'Datum',
     'status'               => 'Status',
+    'neckline'             => 'Ausschnitt',
 ];

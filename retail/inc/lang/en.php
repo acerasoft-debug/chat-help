@@ -433,4 +433,5 @@ return [
     'acc_delete_done'        => 'Your account has been deleted.',
     'date'                 => 'Date',
     'status'               => 'Status',
+    'neckline'             => 'Neckline',
 ];

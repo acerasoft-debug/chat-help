@@ -161,6 +161,49 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             'retail_round_to'    => 900,   // 10 €'luk ızgarada …9,00 ile bitir
             'retail_min_cents'   => 2900,
 
+            /**
+             * ---- SABİT OUTLET FİYATLARI
+             * Marka + kategoriye göre sabit satış fiyatı. Bir kural eşleşirse
+             * çarpan da yuvarlama da devre dışı kalır; yazan rakam neyse o
+             * basılır. Kaynak fark etmez — B2B satırı, içe aktarılmış satır ya
+             * da satıcı ilanı, hepsi buradan geçer.
+             *
+             * Kurallar SIRAYLA denenir, İLK eşleşen kazanır. Bu yüzden özel
+             * olan (kapüşonlu, fermuarlı) genel olandan ÖNCE gelmeli.
+             *
+             *   brand  zorunlu, büyük harf, tam eşleşme
+             *   cat    isteğe bağlı; boşsa markanın tüm kategorileri
+             *   match  isteğe bağlı; ürün adına uygulanan düzenli ifade
+             *   cents  satış fiyatı, kuruş
+             *
+             * Fiyatı değiştirmek için yalnızca burayı düzenlemek yeter —
+             * katalogu yeniden içe aktarmaya gerek yok.
+             */
+            'price_rules' => [
+                ['brand' => 'LACOSTE', 'cat' => 'Polos',    'cents' =>  8000],
+                ['brand' => 'LACOSTE', 'cat' => 'T-Shirts', 'cents' =>  3990],
+                // Kapüşonlu → 119,00
+                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts',
+                 'match' => '/hood|kapuz|capuch|cappucc/iu',       'cents' => 11900],
+                // Fermuarlı sweat ceket → 99,90
+                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts',
+                 'match' => '/zip|jacke|jacket|veste|blouson/iu',  'cents' =>  9990],
+                // Düz sweatshirt → 89,90
+                ['brand' => 'LACOSTE', 'cat' => 'Hoodies & Sweatshirts', 'cents' => 8990],
+            ],
+
+            /**
+             * ---- DOĞRULANMIŞ KESİM BİLGİSİ
+             * Marka + kategori için işletmecinin bildiği kesin bilgi. Künye
+             * tablosunda ayrı bir satır olarak çıkar. Metin ÜRETİLMEZ, sadece
+             * burada yazan basılır — uydurma yaka/kumaş bilgisi çıkmasın diye
+             * metin motoruna değil, künyeye bağlı.
+             */
+            'cut_notes' => [
+                ['brand' => 'LACOSTE', 'cat' => 'T-Shirts',
+                 'de' => 'Rundhals', 'en' => 'Crew neck'],
+            ],
+
             // ---- pazaryeri komisyonu (Stripe Connect application fee)
             'fee_bps_business'   => 1200,  // %12 tüccar satıcı
             'fee_bps_private'    => 900,   // %9  özel satıcı (Privatverkäufer)

@@ -416,4 +416,5 @@ return [
     'acc_delete_done'        => 'Hesabınız silindi.',
     'date'                 => 'Tarix',
     'status'               => 'Vəziyyət',
+    'neckline'             => 'Yaxa',
 ];
