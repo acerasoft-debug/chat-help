@@ -1,6 +1,11 @@
 name: Görsel kontak sayfaları üret (kategori doğrulaması için)
 on:
   workflow_dispatch:
+    inputs:
+      folders:
+        description: "Sadece bu klasörler (boşlukla ayrık, ör: fredperry). Boş = aşağıdaki tam liste."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -35,6 +40,7 @@ jobs:
           SSH_HOST: ${{ secrets.DEPLOY_HOST }}
           SSH_USER: ${{ secrets.DEPLOY_USER }}
           SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+          FOLDERS_IN: ${{ github.event.inputs.folders }}
           TERM: dumb
         run: |
           set -e
@@ -44,7 +50,11 @@ jobs:
           # canli urunleri var ama sayfasi yoktu, yani katalogdaki 41 satir gozle
           # hic dogrulanamiyordu -- listenin eksik olmasi, kontrolun eksik olmasi
           # demek. Sunucuda olmayan klasor zaten atlaniyor, fazladan yazmak zarasiz.
-          FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy marcelo-burlon gcds fendi-sweat fendi-tshirt valentino gucci versace dsq-jeans dsq-sweat dsq-tshirt givenchy-sweat swim-shorts gucci2 dsquared2-new dg-tshirt dg-sweat balmain-swim dg-swim dsq-swim givenchy-swim dg-root4 mixed-root-c casablanca rl jacquemus lacoste lac-tee dsquared"
+          ALL_FOLDERS="balmain balenciaga-burberry shorts-sweats dg-jeans givenchy marcelo-burlon gcds fendi-sweat fendi-tshirt valentino gucci versace dsq-jeans dsq-sweat dsq-tshirt givenchy-sweat swim-shorts gucci2 dsquared2-new dg-tshirt dg-sweat balmain-swim dg-swim dsq-swim givenchy-swim dg-root4 mixed-root-c casablanca rl jacquemus lacoste lac-tee dsquared fredperry"
+          # Tek bir klasoru dogrulamak icin butun listeyi (33 klasor, ~180MB) yeniden
+          # cekmek gerekmiyordu; `folders` girdisi verilirse sadece o klasor islenir.
+          FOLDERS="${FOLDERS_IN:-}"
+          [ -n "$FOLDERS" ] || FOLDERS="$ALL_FOLDERS"
           echo "klasorler: $FOLDERS"
           PORT="${SSH_PORT:-22}"
           install -m 700 -d ~/.ssh
@@ -74,10 +84,14 @@ jobs:
           # gozle dogrulanmis kategori duzeltmeleri orada duruyor. Klasoru duz
           # `rm -rf` ile silmek onlari da goturur ve `git add contact-sheets`
           # silinmeyi commit'e yazar; yani tek bir calistirma butun inceleme
-          # kaydini yok eder. Once kenara al, sonra geri koy.
-          mkdir -p /tmp/cs_keep && cp -f contact-sheets/*.md /tmp/cs_keep/ 2>/dev/null || true
-          rm -rf contact-sheets && mkdir -p contact-sheets
-          cp -f /tmp/cs_keep/*.md contact-sheets/ 2>/dev/null || true
+          # kaydini yok eder. Ustelik `folders` ile tek klasor calistirildiginda
+          # `rm -rf`, bu calistirmada yeniden uretilmeyecek 32 klasorun sayfalarini
+          # da silerdi. O yuzden silme SADECE simdi yeniden uretilecek klasorlerin
+          # kendi sayfalariyla sinirli; .md dosyalarina hic dokunulmuyor.
+          mkdir -p contact-sheets
+          for d in $FOLDERS; do
+            rm -f "contact-sheets/${d}"-[0-9][0-9].jpg "contact-sheets/${d}"-[0-9][0-9].txt
+          done
           # Her klasor icin: kucult, numarayla etiketle, 6x4=24'luk sayfalar yap.
           #
           # ONEMLI: onceki surum dosya adini (%f) etiket olarak basiyordu, ama 11
@@ -115,7 +129,14 @@ jobs:
             fi
           done
 
-          N=$(find contact-sheets -type f | wc -l)
+          # Bu kontrol eskiden butun klasordeki dosyalari sayiyordu; bu sadece
+          # dizin hemen once bosaltildigi icin "bu calistirma bir sey uretti mi"
+          # sorusuna cevap veriyordu. Artik eski sayfalar yerinde durdugundan,
+          # sayim bu calistirmanin ele aldigi klasorlerle sinirli olmali.
+          N=0
+          for d in $FOLDERS; do
+            N=$((N + $(ls "contact-sheets/${d}"-[0-9][0-9].jpg 2>/dev/null | wc -l)))
+          done
           echo; echo "uretilen sayfa: $N"
           [ "$N" -gt 0 ] || { echo "HATA: hic sayfa uretilmedi"; exit 1; }
           ls -la contact-sheets/ | tail -n +2

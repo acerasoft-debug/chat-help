@@ -18,7 +18,11 @@
    { "min": 96, "price": 35.5 },
    { "min": 192, "price": 32.0 }
   ],
-  "images": [],
+  "images": [
+   "/uploads/fredperry/m3600-navy.jpg",
+   "/uploads/fredperry/m3600-snow-white.jpg",
+   "/uploads/fredperry/m3600-green.jpg"
+  ],
   "desc": "Original Fred Perry, the M3600 twin tipped shirt in cotton piqué with the embroidered Laurel Wreath at the chest, two-button placket and twin tipping at collar and cuffs. Mixed-colour, mixed-size carton assortment. EEA stock with full invoice trail.",
   "seller_uid": "7ab30f26afedd840"
  }
