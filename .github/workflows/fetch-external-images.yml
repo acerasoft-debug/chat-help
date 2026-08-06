@@ -102,6 +102,12 @@ jobs:
               return [$code, $body, $ctype, $err];
             }
 
+            /* products.json'da 'tags' bazi magazalarda dizi, bazilarinda virgullu tek
+               string olarak geliyor. Dizi hali dogrudan birlestirilince PHP her urun
+               icin bir "Array to string conversion" uyarisi basiyordu -- 16 magazalik
+               bir taramada bu, sonucu goremeyecek kadar cok satir demek. */
+            function tags_str($t): string { return is_array($t) ? implode(', ', $t) : (string)$t; }
+
             /* MOD D: bir modeli TASIYAN magazayi bulmak icin. Tek tek koleksiyon URL'si
                denemek pahali -- cogu magaza bot korumasi yuzunden 401/403 donuyor ve her
                deneme ayri bir workflow calismasi demek. Burada bir listedeki her magazanin
@@ -129,7 +135,7 @@ jobs:
                   if (!is_array($items) || !$items) { if ($page === 1) echo "--- {$base}: urun donmedi (Shopify degil ya da JSON kapali)\n"; break; }
                   $scanned += count($items);
                   foreach ($items as $p) {
-                    $hay = strtolower(($p['title'] ?? '').' '.($p['handle'] ?? '').' '.($p['product_type'] ?? '').' '.($p['tags'] ?? ''));
+                    $hay = strtolower(($p['title'] ?? '').' '.($p['handle'] ?? '').' '.($p['product_type'] ?? '').' '.tags_str($p['tags'] ?? ''));
                     foreach (($p['variants'] ?? []) as $v) $hay .= ' '.strtolower((string)($v['sku'] ?? ''));
                     $match = false;
                     foreach ($terms as $t) if (strpos($hay, strtolower($t)) !== false) { $match = true; break; }
@@ -182,7 +188,7 @@ jobs:
                 }
                 echo "--- ".($p['handle']??'?')." ---\n";
                 echo "  baslik    : ".($p['title']??'?')."\n";
-                echo "  tip/etiket: ".($p['product_type']??'?')." | ".($p['tags']??'')."\n";
+                echo "  tip/etiket: ".($p['product_type']??'?')." | ".tags_str($p['tags']??'')."\n";
                 echo "  gorsel say: ".count($imgs)." | ilk gorsel: ".(reset($imgs) ?: '-')."\n";
                 if ($vcolors) echo "  varyant secenekleri: ".implode(', ', array_keys($vcolors))."\n";
               }
