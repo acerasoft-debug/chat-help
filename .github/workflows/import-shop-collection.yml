@@ -31,17 +31,21 @@ on:
         required: true
         default: "1.0"
       images:
-        description: "true = Bilder herunterladen (Rechte vorher prüfen)"
+        description: "true = ALLE Produktfotos herunterladen (Rechte vorher prüfen)"
         required: true
-        default: "false"
+        default: "true"
+      max_images:
+        description: "Bilder je Artikel. 0 = alle"
+        required: true
+        default: "0"
       commit:
-        description: "true = Ergebnis in den Branch committen"
+        description: "true = Ergebnis (Katalog + Bilder) in den Branch committen"
         required: true
-        default: "false"
+        default: "true"
       dry_run:
         description: "true = NUR berichten, nichts schreiben"
         required: true
-        default: "true"
+        default: "false"
 
 permissions:
   contents: write
@@ -72,6 +76,7 @@ jobs:
           BR:   ${{ github.event.inputs.brand }}
           MUL:  ${{ github.event.inputs.multiplier }}
           IMG:  ${{ github.event.inputs.images }}
+          MAXI: ${{ github.event.inputs.max_images }}
           DRY:  ${{ github.event.inputs.dry_run }}
         run: |
           set -e
@@ -81,7 +86,7 @@ jobs:
           mkdir -p data uploads
           ARGS="--from=$SRC --multiplier=$MUL"
           [ -n "$BR" ]      && ARGS="$ARGS --brand=$BR"
-          [ "$IMG" = true ] && ARGS="$ARGS --images"
+          [ "$IMG" = true ] && ARGS="$ARGS --images --max-images=${MAXI:-0}"
           [ "$DRY" = true ] && ARGS="$ARGS --dry"
           echo "php tools/import-shop.php $ARGS"
           php tools/import-shop.php $ARGS 2>&1 | tee ../import-report.txt
@@ -94,6 +99,11 @@ jobs:
             echo '```'
             cat import-report.txt 2>/dev/null || echo '(kein Bericht)'
             echo '```'
+            if [ -d retail/uploads/imported ]; then
+              echo "### Bilder"
+              echo "$(find retail/uploads/imported -type f | wc -l) Datei(en), $(du -sh retail/uploads/imported | cut -f1) gesamt"
+              echo
+            fi
             if [ -f retail/data/retail-imported.json ]; then
               echo "### Katalogdatei"
               php -r '$d=json_decode(file_get_contents("retail/data/retail-imported.json"),true);

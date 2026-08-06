@@ -47,7 +47,7 @@ require_once __DIR__ . '/../inc/uploads.php';
 
 // ------------------------------------------------------------------ Argumente
 $opt = ['from' => '', 'brand' => '', 'cat' => '', 'images' => false, 'dry' => false,
-        'limit' => 0, 'multiplier' => 1.0, 'qty' => 1, 'prefix' => ''];
+        'limit' => 0, 'multiplier' => 1.0, 'qty' => 1, 'prefix' => '', 'max_images' => 0];
 foreach (array_slice($argv, 1) as $a) {
     if (str_starts_with($a, '--from='))            $opt['from']  = substr($a, 7);
     elseif (str_starts_with($a, '--brand='))       $opt['brand'] = strtoupper(trim(substr($a, 8)));
@@ -56,6 +56,7 @@ foreach (array_slice($argv, 1) as $a) {
     elseif (str_starts_with($a, '--multiplier='))  $opt['multiplier'] = max(0.01, (float)substr($a, 13));
     elseif (str_starts_with($a, '--qty='))         $opt['qty']   = max(1, (int)substr($a, 6));
     elseif (str_starts_with($a, '--prefix='))      $opt['prefix'] = preg_replace('/[^a-z0-9-]/', '', strtolower(substr($a, 9))) ?: '';
+    elseif (str_starts_with($a, '--max-images=')) $opt['max_images'] = max(0, (int)substr($a, 13));
     elseif ($a === '--images')                     $opt['images'] = true;
     elseif ($a === '--dry')                        $opt['dry']    = true;
 }
@@ -73,6 +74,7 @@ if ($opt['from'] === '' || !preg_match('#^https?://#', $opt['from'])) {
                             liefert keine echten Bestände)
       --prefix=fbh          Präfix der Artikel-IDs (Standard: aus der Domain)
       --images              Bilder herunterladen — Rechte vorher prüfen
+      --max-images=0        Bilder je Artikel; 0 = ALLE (Standard)
       --limit=20            nur die ersten N Artikel (Test)
       --dry                 nichts schreiben, nur berichten
 
@@ -92,7 +94,9 @@ echo "MAXSALES — Shop-Import" . ($opt['dry'] ? ' (Probelauf)' : '') . "\n";
 echo str_repeat('=', 68) . "\n";
 echo "Quelle    : {$from}\n";
 echo "Faktor    : ×" . rtrim(rtrim(number_format($opt['multiplier'], 2, ',', ''), '0'), ',') . "\n";
-echo "Bilder    : " . ($opt['images'] ? 'werden geladen' : 'NICHT geladen (erzeugte Grafik bleibt)') . "\n";
+echo "Bilder    : " . ($opt['images']
+    ? ('werden geladen — ' . ($opt['max_images'] > 0 ? 'max. ' . $opt['max_images'] . ' je Artikel' : 'ALLE je Artikel'))
+    : 'NICHT geladen (erzeugte Grafik bleibt)') . "\n";
 echo "ID-Präfix : {$opt['prefix']}-\n\n";
 
 // ------------------------------------------------------------------ Helfer
@@ -294,7 +298,10 @@ foreach ($products as $p) {
     $images = [];
     foreach ((array)($p['images'] ?? []) as $i => $im) {
         $src = (string)($im['src'] ?? '');
-        if ($src === '' || $i >= 6) continue;
+        // Standardmaessig ALLE Bilder eines Artikels. Shopify liefert die
+        // Reihenfolge des Shops, das erste ist das Hauptbild.
+        if ($src === '') continue;
+        if ($opt['max_images'] > 0 && $i >= $opt['max_images']) continue;
         if (!$opt['images']) continue;
 
         $ext = strtolower(pathinfo((string)parse_url($src, PHP_URL_PATH), PATHINFO_EXTENSION)) ?: 'jpg';
