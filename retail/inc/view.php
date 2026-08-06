@@ -21,6 +21,7 @@ require_once __DIR__ . '/vault.php';
 require_once __DIR__ . '/accounts.php';
 require_once __DIR__ . '/stripe.php';   // vr_payment_methods() ödeme güven satırı için
 require_once __DIR__ . '/lists.php';    // Merkliste + son bakılanlar
+require_once __DIR__ . '/customers.php'; // alıcı hesapları (başlıktaki kişi ikonu)
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */
 function vr_asset_v(): string
@@ -110,6 +111,8 @@ function vr_header(): void
     $cartN  = vr_cart_count();
     $seller = null;
     if (function_exists('vr_current_seller')) $seller = vr_current_seller();
+    $customer = null;
+    if (function_exists('vr_current_customer')) $customer = vr_current_customer();
     $days = (int)vr_config('return_days', 30);
 ?>
 <div class="ticker" aria-hidden="true"><div class="ticker__track">
@@ -146,7 +149,11 @@ function vr_header(): void
         <?= vr_icon('heart') ?><?php $wn = vr_wish_count(); if ($wn > 0): ?><i class="bag__n"><?= (int)$wn ?></i><?php endif; ?>
       </a>
 
-      <a class="tool" href="<?= h(vr_url($seller ? 'seller/index.php' : 'seller/login.php')) ?>"
+      <?php // Kişi ikonu: müşteri girişliyse hesap paneli, satıcı girişliyse
+            // satıcı paneli, ikisi de değilse müşteri girişi.
+            $acctUrl = $customer !== null ? 'account/index.php'
+                     : ($seller !== null ? 'seller/index.php' : 'account/login.php'); ?>
+      <a class="tool" href="<?= h(vr_url($acctUrl)) ?>"
          aria-label="<?= te('nav_account') ?>"><?= vr_icon('user') ?></a>
 
       <a class="tool tool--bag" href="<?= h(vr_url('cart.php')) ?>" aria-label="<?= te('nav_cart') ?>">
@@ -167,7 +174,7 @@ function vr_header(): void
     <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
     <a href="<?= h(vr_url('faq.php')) ?>"><?= te('nav_faq') ?></a>
     <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
-    <a href="<?= h(vr_url($seller ? 'seller/index.php' : 'seller/login.php')) ?>"><?= te('nav_account') ?></a>
+    <a href="<?= h(vr_url($acctUrl)) ?>"><?= te('nav_account') ?></a>
     <div class="drawer__langs"><?= vr_lang_switch() ?></div>
   </div>
 </div>
@@ -217,6 +224,7 @@ function vr_footer(): void
       <a href="<?= h(vr_url('legal/zahlung.php')) ?>"><?= te('legal_payment') ?></a>
       <a href="<?= h(vr_url('legal/rueckgabe.php')) ?>"><?= te('legal_returns') ?></a>
       <a href="<?= h(vr_url('order.php')) ?>"><?= te('order_status') ?></a>
+      <a href="<?= h(vr_url('account/login.php')) ?>"><?= te('acc_title') ?></a>
       <a href="<?= h(vr_url('size-guide.php')) ?>"><?= te('size_guide') ?></a>
       <a href="<?= h(vr_url('contact.php')) ?>"><?= te('nav_contact') ?></a>
     </nav>

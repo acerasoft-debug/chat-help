@@ -38,11 +38,23 @@ function vr_lang_init(): void
 
     if ($lang === null) {
         // Tarayıcı tercihi: Accept-Language'in ilk eşleşen dili.
+        // Bu, IP'den ÖNCE gelir ve bilerek öyle: ziyaretçinin tarayıcısında
+        // yazdığı dil açık bir tercihtir, bulunduğu ülke ise sadece tahmin.
+        // Fransa'daki Alman "de" istiyorsa "de" alır.
         $al = strtolower((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
         foreach (explode(',', $al) as $part) {
             $code = substr(trim(explode(';', $part)[0]), 0, 2);
             if ($code !== '' && in_array($code, $langs, true)) { $lang = $code; break; }
         }
+    }
+
+    if ($lang === null) {
+        // Tarayıcı dili hiçbir dilimizle eşleşmedi (örn. Türkçe tarayıcı).
+        // Son tahmin: önümüzdeki katmanın bildirdiği ülke. Kendi IP aramamız
+        // yok, dış servise çağrı yok — ayrıntı inc/geo.php'de.
+        require_once __DIR__ . '/geo.php';
+        $byGeo = vr_country_lang(vr_geo_country());
+        if ($byGeo !== '') $lang = $byGeo;
     }
 
     $GLOBALS['vr_lang'] = $lang ?? (string)vr_config('primary_lang', 'en');

@@ -151,7 +151,7 @@ function vr_seller_login(string $email, string $pw): array
     if ((string)($s['status'] ?? 'active') !== 'active') return [false, 'login_failed'];
 
     vr_session_start();
-    session_regenerate_id(true);                    // oturum sabitlemeye karşı
+    vr_session_reid();                              // oturum sabitlemeye karşı
     $_SESSION['vr_seller_id'] = $s['id'];
     return [true, ''];
 }
@@ -160,7 +160,7 @@ function vr_seller_logout(): void
 {
     vr_session_start();
     unset($_SESSION['vr_seller_id']);
-    session_regenerate_id(true);
+    vr_session_reid();
 }
 
 function vr_current_seller(): ?array

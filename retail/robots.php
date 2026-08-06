@@ -14,7 +14,7 @@ $base = vr_base_url();
 echo "User-agent: *\n";
 // Kişisel/işlemsel alanlar taranmasın: hem gereksiz yük hem gizlilik.
 foreach (['cart.php', 'checkout.php', 'order.php', 'newsletter.php', 'wishlist.php',
-          'seller/', 'api/', 'tools/', 'data/'] as $p) {
+          'seller/', 'account/', 'admin/', 'api/', 'tools/', 'data/'] as $p) {
     echo "Disallow: {$base}/{$p}\n";
 }
 // Filtre kombinasyonları sonsuz sayıda URL üretir; asıl sayfalar zaten açık.

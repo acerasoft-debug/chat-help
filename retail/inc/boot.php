@@ -18,6 +18,22 @@ if (vr_config('debug')) {
 }
 
 // ------------------------------------------------------------------ oturum
+/**
+ * Oturum kimliğini tazele — oturum sabitlemesine (session fixation) karşı her
+ * girişte çağrılır.
+ *
+ * Çıktı zaten gönderilmişse PHP yeni çerezi yazamaz ve uyarı basar. Normal bir
+ * sayfa akışında bu olmaz (giriş her zaman yönlendirmeyle biter); yalnızca CLI
+ * testlerinde ve hata ayıklama çıktısı olan sayfalarda olur. Orada tazeleme
+ * zaten anlamsız — sessizce atlıyoruz, gizlice başarısız olan bir güvenlik
+ * önlemi bırakmıyoruz.
+ */
+function vr_session_reid(): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent()) return;
+    session_regenerate_id(true);
+}
+
 function vr_session_start(): void
 {
     if (session_status() === PHP_SESSION_ACTIVE) return;

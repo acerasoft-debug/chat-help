@@ -1136,3 +1136,20 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 @media (prefers-reduced-motion:reduce){
   .etile img,.etile:hover img{transform:none}
 }
+
+/* --------------------------------------------------------- panel rakamları
+   Müşteri ve yönetim panellerinde küçük sayı kutuları. Kart değil: ince
+   çizgiyle ayrılmış sütunlar, sitenin geri kalanıyla aynı dil. */
+.stats{
+  display:grid;gap:1px;background:var(--bone-3);border:1px solid var(--bone-3);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));
+}
+.stats>div{background:var(--bone);padding:clamp(14px,1.8vw,20px)}
+.stats b{
+  display:block;font-family:var(--serif);font-size:clamp(19px,2.2vw,27px);font-weight:500;
+  font-variant-numeric:tabular-nums;line-height:1.15;
+}
+.stats span{
+  display:block;margin-top:5px;font-size:10px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);
+}

@@ -297,3 +297,35 @@ function vr_withdrawal_text_plain(): string
         . "über Ihren Entschluss, diesen Vertrag zu widerrufen, informieren. "
         . "Bei Käufen von Privatverkäufern besteht kein gesetzliches Widerrufsrecht.";
 }
+
+/**
+ * Hesap e-postası doğrulama bağlantısı.
+ * Jetonun HAM hâli yalnızca burada, yani yalnızca posta kutusuna gider;
+ * dosyada sadece sha256'sı duruyor (bkz. inc/customers.php).
+ */
+function vr_mail_customer_verify(string $email, string $rawToken): void
+{
+    $url = vr_abs('account/verify.php', ['e' => $email, 't' => $rawToken]);
+    $body = '<p>' . te('acc_verify_mail_lead') . '</p>'
+        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . te('acc_verify_cta') . '</a></p>'
+        . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>'
+        . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">' . te('acc_verify_mail_note') . '</p>';
+
+    vr_mail_send($email, vr_config('brand') . ' — ' . t('acc_verify_title'),
+        vr_mail_layout(t('acc_verify_title'), $body, t('acc_verify_mail_lead')));
+}
+
+/** Şifre sıfırlama bağlantısı. Jeton tek kullanımlık ve 1 saat geçerli. */
+function vr_mail_customer_reset(string $email, string $rawToken): void
+{
+    $url = vr_abs('account/reset.php', ['e' => $email, 't' => $rawToken]);
+    $body = '<p>' . te('acc_reset_mail_lead') . '</p>'
+        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . te('acc_reset_cta') . '</a></p>'
+        . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>'
+        . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">' . te('acc_reset_mail_note') . '</p>';
+
+    vr_mail_send($email, vr_config('brand') . ' — ' . t('acc_reset_title'),
+        vr_mail_layout(t('acc_reset_title'), $body, t('acc_reset_mail_lead')));
+}

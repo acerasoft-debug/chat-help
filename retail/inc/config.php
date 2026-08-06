@@ -61,17 +61,34 @@ function vr_base_url(): string
     // ondan URL ön eki türetmek yanlış sonuç verir. Araçlar için kök varsayıyoruz.
     if (PHP_SAPI === 'cli') return $base = '';
 
-    // SCRIPT_NAME = /retail/product.php  → /retail   (seller/ ve legal/ bir alt
-    // dizinde olduğu için tek seviye yukarı çıkmak yetmez; bilinen alt dizinleri
-    // adıyla kırpıyoruz.)
     $script = '/' . ltrim(str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php')), '/');
-    $dir    = rtrim(dirname($script), '/');
-    foreach (['/seller', '/api', '/legal', '/tools'] as $sub) {
-        if (substr($dir, -strlen($sub)) === $sub) {
-            $dir = substr($dir, 0, -strlen($sub));
-            break;
+
+    /**
+     * Ön eki alt dizin ADLARINDAN türetmiyoruz. Eskiden bilinen bir liste vardı
+     * (seller, api, legal, tools) ve listeye girmeyen her yeni klasör — account,
+     * admin — bağlantıları ikiye katlıyordu: /account/account/login.php.
+     *
+     * Doğrusu dosya sisteminden saymak: çalışan betiğin VR_ROOT'a göre kaç
+     * seviye derinde olduğunu bul, URL yolundan o kadar segment kırp. Klasör
+     * adından bağımsız, yeni klasör eklendiğinde kendiliğinden doğru.
+     */
+    $file = str_replace('\\', '/', (string)($_SERVER['SCRIPT_FILENAME'] ?? ''));
+    $root = str_replace('\\', '/', (string)(realpath(VR_ROOT) ?: VR_ROOT));
+    if ($file !== '' && $root !== '') {
+        $real = str_replace('\\', '/', (string)(realpath($file) ?: $file));
+        if (str_starts_with($real, $root . '/')) {
+            $rel   = substr($real, strlen($root) + 1);         // account/login.php
+            $depth = substr_count($rel, '/');                  // kaç klasör derinde
+            $parts = explode('/', trim($script, '/'));
+            array_pop($parts);                                 // dosya adı
+            for ($i = 0; $i < $depth && $parts; $i++) array_pop($parts);
+            return $base = $parts ? '/' . implode('/', $parts) : '';
         }
     }
+
+    // Yol eşleşmesi kurulamadıysa (sembolik bağ, alışılmadık kurulum) eski
+    // davranışa dön: bir seviye yukarı.
+    $dir = rtrim(dirname($script), '/');
     return $base = ($dir === '/' ? '' : $dir);
 }
 
