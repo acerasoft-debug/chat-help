@@ -216,6 +216,13 @@ $feeNote=$FEE_BUYER_PCT>0?" (includes {$FEE_BUYER_PCT}% buyer-protection fee)":"
 $voucherLine = $discount>0
   ? "Goods: €{$subtotalGross}\nVoucher {$voucherCode}: −€{$discount}\n"
   : ($voucherIn!=='' ? "Note: voucher code {$voucherIn} could not be applied to this order.\n" : "");
+/* The seller funds the voucher: the discount comes off the goods value, so their payout is
+   lower than the line items add up to. The lines above are listed at full price, so without
+   this the mail simply does not reconcile and the first thing the seller notices is a short
+   payout with no explanation. Name it on the same screen as the number. */
+$voucherSellerLine = $discount>0
+  ? "\nGoods total: €{$subtotalGross}\nBuyer voucher {$voucherCode}: −€{$discount} (deducted from the goods value)\n"
+  : "";
 /* Confirmation to buyer — always on */
 vestra_send_mail($email, "VESTRA — order {$ref} received",
   "Hello {$name},\n\nThank you — your VESTRA order request ({$ref}) has been received.\n\nWe are confirming stock now. Once confirmed, your PDF invoice (with the seller's bank details) will be emailed to you and added to your account — usually within the day. Payment is then by bank transfer against that invoice; goods ship after the transfer arrives. (Other payment methods are temporarily suspended.)\n\n{$voucherLine}Buyer pays: €{$total}{$feeNote}\n".($shipAddr!==''?"Delivery address: {$shipAddr}\n":'')."\n--- Order summary ---\n".implode("\n",array_map(fn($l)=>"  {$l['qty']}x {$l['sku']} {$l['brand']} {$l['name']} @ €{$l['unit']} = €{$l['line']}".(!empty($l['colors'])?" [".implode(", ",$l['colors'])."]":""),$lines))."\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
@@ -248,7 +255,7 @@ if(!empty($lines)){
       foreach(auth_accounts() as $acc){
         if(($acc['id']??'')!==$sid||empty($acc['email'])) continue;
         vestra_send_mail($acc['email'], "VESTRA — new order {$ref} for your listing",
-          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
+          "Hello ".($acc['name']?:($acc['company']?:'there')).",\n\nA buyer placed an order for your product on VESTRA:\n\nOrder ref: {$ref}\nBuyer company: {$company}\n".($shipAddr!==''?"Deliver to: {$shipAddr}\n":'')."\n".implode("\n",array_map(fn($x)=>"  {$x['qty']}x {$x['sku']} {$x['brand']} {$x['name']} @ €{$x['unit']}".(!empty($x['colors'])?" [".implode(", ",$x['colors'])."]":""),$lines))."\n".$voucherSellerLine."\nSubtotal: €{$subtotal}".($seller_fee>0?"   Your payout (after commission): €{$payout}":"   Your payout: €{$payout} (the ".round(VESTRA_COMMISSION_RATE*100,1)."% platform commission is charged separately to your commission card once you mark this order paid)")."\n\nThe buyer pays your invoice by bank transfer — please confirm availability and watch for the payment, then ship and mark the order as shipped.\n\nView in your seller dashboard:\nhttps://vestrasales.com/seller?tab=orders\n\n— VESTRA · vestrasales.com");
         break;
       }
       break;
