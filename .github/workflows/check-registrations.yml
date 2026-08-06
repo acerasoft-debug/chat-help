@@ -279,16 +279,29 @@ jobs:
             $v=voucher_validate($TEST,'selftest@vestrasales.invalid',1000);
             $chk('gecerli kod kabul edildi', is_array($v), true);
             $chk('1000 uzerinden %5', is_array($v)?voucher_discount($v,1000):-1.0, 50.00);
-            $chk('indirim sepeti asamaz', is_array($v)?voucher_discount($v,10):-1.0, 10.00);
+            $chk('kucuk sepette %5 (10 EUR)', is_array($v)?voucher_discount($v,10):-1.0, 0.50);
+            $chk('kurus yuvarlama (33.33 EUR)', is_array($v)?voucher_discount($v,33.33):-1.0, 1.67);
+
+            /* Tavan kuralini YUZDE bir kuponla sinamak anlamsiz -- yuzde zaten sepeti asamaz,
+               ilk surumde tam bu yuzden 0.50 cikip "hata" gibi gorundu. Kural sadece SABIT
+               tutarli kuponda is yapiyor: 25 EUR'luk kupon 10 EUR'luk sepette 10 ile sinirli
+               kalmali, yoksa siparis eksi bakiyeye duser. */
+            $TESTF='VES-SELFTEST-FIXED-DELETEME';
+            voucher_create(['code'=>$TESTF,'type'=>'fixed','value'=>25,'email'=>'',
+                            'first_order_only'=>false,'max_uses'=>0,'expiry'=>date('Y-m-d',strtotime('+1 year')),
+                            'campaign'=>'selftest']);
+            $vf=voucher_find($TESTF);
+            $chk('sabit 25 EUR indirimi', voucher_discount($vf,1000), 25.00);
+            $chk('SABIT kupon sepeti asamaz', voucher_discount($vf,10), 10.00);
             $chk('baska musteriye kapali', voucher_validate($TEST,'someone@else.com',1000), 'wrong_customer');
             $chk('bilinmeyen kod', voucher_validate('YOK-YOK-YOK','selftest@vestrasales.invalid',1000), 'not_found');
             $chk('TEK KULLANIM: ilk redeem', voucher_redeem($TEST,'SELFTEST-REF','selftest@vestrasales.invalid',50.0), true);
             $chk('TEK KULLANIM: ikinci redeem reddedildi', voucher_redeem($TEST,'SELFTEST-REF2','selftest@vestrasales.invalid',50.0), false);
             $chk('kullanildiktan sonra dogrulanmiyor', voucher_validate($TEST,'selftest@vestrasales.invalid',1000), 'used');
 
-            /* Test kodunu birak: canli veride "selftest" diye bir kupon kalmamali. */
-            $all=voucher_all(); unset($all[$TEST]); voucher_save($all);
-            $chk('test kodu temizlendi', voucher_find($TEST)===null, true);
+            /* Test kodlarini birak: canli veride "selftest" diye bir kupon kalmamali. */
+            $all=voucher_all(); unset($all[$TEST], $all[$TESTF]); voucher_save($all);
+            $chk('test kodlari temizlendi', voucher_find($TEST)===null && voucher_find($TESTF)===null, true);
 
             echo "\nSONUC: {$ok} gecti, {$bad} kaldi\n\n";
 
