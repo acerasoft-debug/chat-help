@@ -22,6 +22,14 @@ on:
         description: "MOD C: satır satır 'uploads/altindaki/yol.ext|https://gorsel-url' -- bilinen CDN url'lerini dogrudan indirir"
         required: false
         default: ""
+      search_stores:
+        description: "MOD D: aranacak mağaza kök URL'leri (satır satır/virgülle) -- her birinin products.json'unda arar, hicbir sey indirmez"
+        required: false
+        default: ""
+      search_term:
+        description: "MOD D: aranan metin(ler), virgülle ayrık (baslik/handle/SKU icinde aranir, ör: M3600,Twin Tipped)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -39,6 +47,12 @@ permissions:
 # API'sini ({url}.json) dener (guvenilir), olmazsa HTML'den JSON-LD/og:image'a
 # duser. Indirilen gorsel gercekten >=200x200 degilse (ikon/placeholder tespiti)
 # KAYDETMEZ. Sadece uploads/ altina yeni dosya YAZAR; JSON kayitlarina dokunmaz.
+#
+# MOD D (search_stores doldurulursa): hangi magazanin aranan modeli tasidigini
+# BULUR. MOD A tek magaza deniyor ve cogu magaza bot korumasi yuzunden 401/403
+# donuyor -- her deneme ayri bir calisma demek. MOD D bir listedeki her magazayi
+# tek calismada tarar ve sadece eslesen urunleri, MOD C'ye dogrudan verilebilecek
+# sayfa URL'siyle birlikte yazar. Salt-okunur.
 jobs:
   fetch:
     runs-on: ubuntu-latest
@@ -58,6 +72,8 @@ jobs:
             export PREFIX='${{ github.event.inputs.prefix }}'
             export DUMP_ID='${{ github.event.inputs.dump_id }}'
             export IMAGE_MAP='${{ github.event.inputs.image_map }}'
+            export SEARCH_STORES='${{ github.event.inputs.search_stores }}'
+            export SEARCH_TERM='${{ github.event.inputs.search_term }}'
             cat > /tmp/vestra_fetchimg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -84,6 +100,59 @@ jobs:
               $err = curl_error($ch);
               curl_close($ch);
               return [$code, $body, $ctype, $err];
+            }
+
+            /* MOD D: bir modeli TASIYAN magazayi bulmak icin. Tek tek koleksiyon URL'si
+               denemek pahali -- cogu magaza bot korumasi yuzunden 401/403 donuyor ve her
+               deneme ayri bir workflow calismasi demek. Burada bir listedeki her magazanin
+               products.json'u taranir ve SADECE arananla eslesen satirlar basilir, boylece
+               tek calismada onlarca magaza elenir. Salt-okunur: hicbir sey indirilmez,
+               bulunan urun sayfasi URL'si dogrudan MOD C'ye verilebilecek bicimde yazilir. */
+            $searchStores = trim((string)getenv("SEARCH_STORES"));
+            $searchTerm   = trim((string)getenv("SEARCH_TERM"));
+            if ($searchStores !== '') {
+              echo "===== MOD D: COKLU MAGAZA ARAMASI =====\n";
+              $terms = array_values(array_filter(array_map('trim', explode(',', $searchTerm))));
+              if (!$terms) { fwrite(STDERR, "HATA: search_term bos\n"); exit(1); }
+              echo "aranan: ".implode(' | ', $terms)."\n\n";
+              $stores = array_values(array_filter(array_map('trim', preg_split('/[\s,]+/', $searchStores))));
+              $hits = 0;
+              foreach ($stores as $store) {
+                if (!preg_match('#^https://#i', $store)) { echo "--- {$store}: ATLANDI (https degil)\n"; continue; }
+                $base = rtrim(preg_replace('#/products\.json.*$#','',$store), '/');
+                $host = preg_replace('#^(https://[^/]+).*$#i', '$1', $base);
+                $found = 0; $scanned = 0;
+                for ($page = 1; $page <= 3; $page++) {
+                  [$code, $body, , $err] = vestra_fetch($base.'/products.json?limit=250&page='.$page, $ua);
+                  if ($code < 200 || $code >= 300 || $body === false) { echo "--- {$base}: kod={$code} {$err}\n"; break; }
+                  $items = json_decode((string)$body, true)['products'] ?? null;
+                  if (!is_array($items) || !$items) { if ($page === 1) echo "--- {$base}: urun donmedi (Shopify degil ya da JSON kapali)\n"; break; }
+                  $scanned += count($items);
+                  foreach ($items as $p) {
+                    $hay = strtolower(($p['title'] ?? '').' '.($p['handle'] ?? '').' '.($p['product_type'] ?? '').' '.($p['tags'] ?? ''));
+                    foreach (($p['variants'] ?? []) as $v) $hay .= ' '.strtolower((string)($v['sku'] ?? ''));
+                    $match = false;
+                    foreach ($terms as $t) if (strpos($hay, strtolower($t)) !== false) { $match = true; break; }
+                    if (!$match) continue;
+                    $found++; $hits++;
+                    $imgs = array_map(fn($i)=>$i['src']??'', $p['images'] ?? []);
+                    $vcolors = [];
+                    foreach (($p['variants'] ?? []) as $v) {
+                      foreach (['option1','option2','option3'] as $k)
+                        if (!empty($v[$k]) && preg_match('/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ \-\/]{1,24}$/', $v[$k])) $vcolors[$v[$k]] = true;
+                    }
+                    echo "  * ".($p['title'] ?? '?')."\n";
+                    echo "    sayfa   : {$host}/products/".($p['handle'] ?? '')."\n";
+                    echo "    gorsel  : ".count($imgs)." adet | ilk: ".(reset($imgs) ?: '-')."\n";
+                    if ($vcolors) echo "    secenek : ".implode(', ', array_keys($vcolors))."\n";
+                  }
+                  if (count($items) < 250) break;
+                }
+                if ($found) echo "--- {$base}: {$found} eslesme ({$scanned} urun tarandi)\n\n";
+                elseif ($scanned) echo "--- {$base}: eslesme yok ({$scanned} urun tarandi)\n";
+              }
+              echo "\nTOPLAM: {$hits} eslesme\n";
+              exit($hits > 0 ? 0 : 1);
             }
 
             $collUrl = trim((string)getenv("COLL_URL"));
