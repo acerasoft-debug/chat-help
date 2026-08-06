@@ -1,0 +1,178 @@
+name: (Gutschein) Kayıtlı müşterilere ilk sipariş indirim kodu gönder
+on:
+  workflow_dispatch:
+    inputs:
+      percent:
+        description: "İndirim yüzdesi"
+        required: false
+        default: "5"
+      expiry_months:
+        description: "Kaç ay geçerli olsun"
+        required: false
+        default: "6"
+      audience:
+        description: "buyers = sadece alıcı hesaplar (varsayılan) | all = satıcılar da dahil"
+        required: false
+        default: "buyers"
+      only_emails:
+        description: "Sadece bu adres(ler)e (virgül/boşlukla ayrılır). Boşsa tüm hedef kitle."
+        required: false
+        default: ""
+      limit:
+        description: "Bu çalıştırmada en fazla kaç gönderim (Brevo kotasını aşmamak için)"
+        required: false
+        default: "200"
+      dry_run:
+        description: "true = kimseye gönderme, sadece kimin ne alacağını listele"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+# Her kayitli musteriye KISIYE OZEL bir ilk-siparis indirim kodu uretir ve e-postayla yollar.
+#
+# Neden herkese ayni kod degil: tek bir paylasilan kod ilk forumda yayinlandigi anda
+# herkesin kodu olur, kim kullandi bilinmez ve "ilk siparis" kurali uygulanamaz. Kisiye
+# ozel kod hesaba baglidir, tek kullanimliktir ve hangi siparise dustugu kayda gecer.
+#
+# YARIDA KALIRSA: bugun bir SSH oturumu tam gonderim sirasinda koptu ve "gonderildi mi"
+# sorusu cevapsiz kaldi. Bu is o yuzden iki asamali isaretleniyor -- once kod yazilir,
+# e-posta gidince kodun uzerine mailed_at damgasi vurulur. Tekrar calistirildiginda
+# mailed_at'i OLAN atlanir (ikinci e-posta gitmez), kodu olup postasi gitmemis olan ise
+# ayni kodla yeniden denenir (kimse kodsuz kalmaz). Yani is her zaman guvenle tekrarlanabilir.
+jobs:
+  vouchers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kod üret ve gönder
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          V_PCT: ${{ github.event.inputs.percent }}
+          V_MONTHS: ${{ github.event.inputs.expiry_months }}
+          V_AUDIENCE: ${{ github.event.inputs.audience }}
+          V_ONLY: ${{ github.event.inputs.only_emails }}
+          V_LIMIT: ${{ github.event.inputs.limit }}
+          V_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: V_PCT,V_MONTHS,V_AUDIENCE,V_ONLY,V_LIMIT,V_DRY
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_welcome_voucher.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+
+            require_once __DIR__.'/inc/products.php';
+            require_once __DIR__.'/inc/auth.php';
+            require_once __DIR__.'/inc/i18n.php';
+            require_once __DIR__.'/inc/vouchers.php';
+            require_once __DIR__.'/inc/notify.php';
+            require_once __DIR__.'/inc/email_templates.php';
+
+            $PCT    = (float)(getenv('V_PCT') ?: 5);
+            $MONTHS = max(1, (int)(getenv('V_MONTHS') ?: 6));
+            $AUD    = strtolower(trim((string)getenv('V_AUDIENCE'))) === 'all' ? 'all' : 'buyers';
+            $LIMIT  = max(1, (int)(getenv('V_LIMIT') ?: 200));
+            $DRY    = strtolower(trim((string)getenv('V_DRY'))) !== 'false';
+            $CAMPAIGN = 'welcome'.rtrim(rtrim(number_format($PCT,2,'.',''),'0'),'.');
+            $EXPIRY   = date('Y-m-d', strtotime("+{$MONTHS} months"));
+
+            $ONLY = [];
+            foreach (preg_split('/[\s,;]+/', (string)getenv('V_ONLY'), -1, PREG_SPLIT_NO_EMPTY) as $e) {
+              $e = strtolower(trim($e)); if ($e !== '') $ONLY[$e] = true;
+            }
+
+            echo "kampanya : {$CAMPAIGN}  ({$PCT}% · ilk siparis · gecerlilik {$EXPIRY})\n";
+            echo "kitle    : {$AUD}".($ONLY ? '  (allowlist: '.count($ONLY).' adres)' : '')."\n";
+            echo $DRY ? "MOD      : DENEME -- hicbir e-posta gonderilmeyecek\n\n" : "MOD      : GERCEK GONDERIM\n\n";
+
+            /* Bir hesabin bu kampanyadan kodu var mi? Varsa hangi kod ve postalanmis mi.
+               Kod uretmeden once bakiliyor: ikinci bir kod uretmek, musteriye iki gecerli
+               kod vermek demek olurdu. */
+            $existingFor = function (string $email) use ($CAMPAIGN): ?array {
+              $email = strtolower(trim($email));
+              foreach (voucher_all() as $code => $v) {
+                if (strtolower(trim((string)($v['email'] ?? ''))) !== $email) continue;
+                if ((string)($v['campaign'] ?? '') !== $CAMPAIGN) continue;
+                return $v + ['code' => $code];
+              }
+              return null;
+            };
+
+            $targets = [];
+            foreach (auth_accounts() as $acc) {
+              $email = strtolower(trim((string)($acc['email'] ?? '')));
+              if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+              $type = (string)($acc['type'] ?? '');
+              if ($AUD === 'buyers' && $type !== 'buyer') continue;
+              if ($ONLY && !isset($ONLY[$email])) continue;
+              $targets[$email] = $acc;   // ayni adres iki hesapta ise bir kez
+            }
+            echo "hedef hesap: ".count($targets)."\n\n";
+
+            $made = 0; $sent = 0; $skipped = 0; $failed = 0; $reused = 0;
+            foreach ($targets as $email => $acc) {
+              if ($sent >= $LIMIT) { echo "  … limit ({$LIMIT}) doldu, kalanlar bir sonraki calistirmaya\n"; break; }
+
+              $name = trim((string)($acc['company'] ?? '')) ?: (trim((string)($acc['name'] ?? '')) ?: 'there');
+              $lang = substr((string)($acc['lang'] ?? 'en'), 0, 2) ?: 'en';
+
+              $have = $existingFor($email);
+              if ($have && !empty($have['mailed_at'])) {
+                echo "  = ATLANDI (kodu var, postasi gitmis): {$email} -> {$have['code']}\n"; $skipped++; continue;
+              }
+
+              if ($have) { $code = (string)$have['code']; $reused++; }
+              elseif ($DRY) { $code = '(uretilecek)'; }
+              else {
+                $v = voucher_create([
+                  'type' => 'percent', 'value' => $PCT, 'email' => $email,
+                  'first_order_only' => true, 'max_uses' => 1,
+                  'expiry' => $EXPIRY, 'campaign' => $CAMPAIGN,
+                ]);
+                $code = (string)$v['code']; $made++;
+              }
+
+              if ($DRY) {
+                printf("  + %-34s %-26s dil=%s  kod=%s%s\n", mb_substr($name,0,32), $email, $lang, $code,
+                       $have ? '  (mevcut kod, postasi gitmemis)' : '');
+                continue;
+              }
+
+              [$subject, $body, $opts] = vestra_tpl_welcome_voucher(
+                $lang, $name, $code, rtrim(rtrim(number_format($PCT,2,'.',''),'0'),'.').'%',
+                date('d.m.Y', strtotime($EXPIRY))
+              );
+              $ok = vestra_send_mail($email, $subject, $body, '', 'VESTRA', null, '', $opts);
+              if ($ok) {
+                /* Damga ancak posta gittikten SONRA. Ters sirada olsaydi, gonderim
+                   hatasi alan musteri "postasi gitmis" sayilip bir daha hic yazilmazdi. */
+                $all = voucher_all();
+                if (isset($all[$code])) { $all[$code]['mailed_at'] = date('c'); voucher_save($all); }
+                $sent++;
+                printf("  + GONDERILDI %-26s dil=%s  kod=%s\n", $email, $lang, $code);
+              } else {
+                $failed++;
+                printf("  x HATA       %-26s kod=%s (kod duruyor, is tekrar calistirilinca yeniden denenir)\n", $email, $code);
+              }
+              flush();
+            }
+
+            echo "\n----\n";
+            if ($DRY) {
+              echo "DENEME bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
+            } else {
+              echo "BITTI. yeni kod: {$made}, tekrar kullanilan kod: {$reused}, gonderildi: {$sent}, atlandi: {$skipped}, hata: {$failed}\n";
+            }
+            PHPEOF
+            cp /tmp/vestra_welcome_voucher.php ./vestra_welcome_voucher_tmp.php
+            php -l ./vestra_welcome_voucher_tmp.php
+            php ./vestra_welcome_voucher_tmp.php; RC=$?
+            rm -f ./vestra_welcome_voucher_tmp.php /tmp/vestra_welcome_voucher.php
+            exit $RC

@@ -237,6 +237,50 @@ function vestra_tpl_kyb_approved(string $lang, string $name, string $type, strin
   return [$subject, $body, $opts];
 }
 
+/* Welcome voucher — a personal first-order discount code for a registered customer.
+   The code is printed in the body as well as sitting on the button, because a buyer who
+   forwards the mail to whoever places their orders needs the code itself to survive the
+   forward; a button alone does not. The link carries ?voucher= so the cart fills it in. */
+function vestra_tpl_welcome_voucher(string $lang, string $name, string $code, string $valueLabel, string $expiry): array {
+  $Lb  = vestra_email_labels($lang);
+  $url = 'https://vestrasales.com/shop?voucher='.rawurlencode($code);
+  $BADGE = ['en'=>'🎟️ Your voucher','de'=>'🎟️ Ihr Gutschein','fr'=>'🎟️ Votre bon',
+            'it'=>'🎟️ Il tuo buono','es'=>'🎟️ Tu vale'];
+  $BTN   = ['en'=>'Browse the catalogue','de'=>'Zum Katalog','fr'=>'Voir le catalogue',
+            'it'=>'Vai al catalogo','es'=>'Ver el catálogo'];
+  $ROWL  = ['en'=>['Voucher code','Discount','Valid until'],'de'=>['Gutscheincode','Rabatt','Gültig bis'],
+            'fr'=>['Code du bon','Remise','Valable jusqu\'au'],'it'=>['Codice buono','Sconto','Valido fino al'],
+            'es'=>['Código del vale','Descuento','Válido hasta']];
+  $rl = $ROWL[$lang] ?? $ROWL['en'];
+  $opts = [
+    'badge' => $BADGE[$lang] ?? $BADGE['en'],
+    'rows'  => [
+      ['label'=>$rl[0],'value'=>$code,'strong'=>true],
+      ['label'=>$rl[1],'value'=>$valueLabel],
+      ['label'=>$rl[2],'value'=>$expiry],
+    ],
+    'button' => ['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$url],
+  ];
+  $T = [
+    'en'=>["Your %2\$s welcome voucher for your first VESTRA order",
+      "Hello %1\$s,\n\nThank you for registering with VESTRA. Here is %2\$s off your first wholesale order.\n\nYour code: %3\$s\n\nEnter it in the cart under \"Voucher code\" before placing the order. The code is tied to your account, can be used once, and is valid on a first order until %4\$s."],
+    'de'=>["Ihr %2\$s Willkommensgutschein für Ihre erste VESTRA-Bestellung",
+      "Hallo %1\$s,\n\nvielen Dank für Ihre Registrierung bei VESTRA. Hier sind %2\$s Rabatt auf Ihre erste Großhandelsbestellung.\n\nIhr Code: %3\$s\n\nGeben Sie ihn im Warenkorb unter \"Gutscheincode\" ein, bevor Sie die Bestellung abschicken. Der Code ist an Ihr Konto gebunden, einmal einlösbar und für eine Erstbestellung bis zum %4\$s gültig."],
+    'fr'=>["Votre bon de bienvenue de %2\$s pour votre première commande VESTRA",
+      "Bonjour %1\$s,\n\nMerci de votre inscription sur VESTRA. Voici %2\$s de remise sur votre première commande en gros.\n\nVotre code : %3\$s\n\nSaisissez-le dans le panier sous « Code du bon » avant de valider la commande. Le code est lié à votre compte, utilisable une fois, et valable sur une première commande jusqu'au %4\$s."],
+    'it'=>["Il tuo buono di benvenuto del %2\$s per il primo ordine VESTRA",
+      "Ciao %1\$s,\n\ngrazie per esserti registrato su VESTRA. Ecco %2\$s di sconto sul tuo primo ordine all'ingrosso.\n\nIl tuo codice: %3\$s\n\nInseriscilo nel carrello alla voce \"Codice buono\" prima di confermare l'ordine. Il codice è collegato al tuo account, utilizzabile una volta e valido su un primo ordine fino al %4\$s."],
+    'es'=>["Tu vale de bienvenida del %2\$s para tu primer pedido VESTRA",
+      "Hola %1\$s,\n\ngracias por registrarte en VESTRA. Aquí tienes un %2\$s de descuento en tu primer pedido mayorista.\n\nTu código: %3\$s\n\nIntrodúcelo en el carrito en \"Código del vale\" antes de confirmar el pedido. El código está vinculado a tu cuenta, se puede usar una vez y es válido en un primer pedido hasta el %4\$s."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  return [
+    sprintf($subjT, $name, $valueLabel, $code, $expiry),
+    sprintf($bodyT, $name, $valueLabel, $code, $expiry)."\n\n—\nVESTRA · vestrasales.com",
+    $opts,
+  ];
+}
+
 /* Membership tier changed (comp / manual upgrade by admin). */
 function vestra_tpl_membership_changed(string $lang, string $name, string $tierLabel, string $panelUrl): array {
   $Lb = vestra_email_labels($lang);
