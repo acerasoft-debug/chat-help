@@ -160,6 +160,17 @@ jobs:
                 'Finland'=>['suomi','finland'], 'Ireland'=>['ireland','éire'],
                 'United Kingdom'=>['united kingdom','england','scotland'],
                 'United States'=>['united states'],
+                /* Avrupa disi dorduncu grup: gonderim tarafi ru/ja/ko/az sablonlarini
+                   ZATEN tasiyor, ama tespit tarafi bu ulkeleri hic uretemiyordu -- yani
+                   bir Kore butigi icin ulke bos kaliyor, dil de e-posta uzantisina
+                   dusuyordu. Sonuc: kasina.co.kr Korece, boontheshop.com Ingilizce alir.
+                   Ayni magaza grubunun iki adresi iki ayri dil demek. Ulke adlarindan
+                   sonra sehir adlari da bakiliyor cunku Korece sitelerin cogu "Korea"
+                   yazmiyor ama adresinde "Seoul" geciyor. */
+                'South Korea'=>['대한민국','한국','south korea','republic of korea','korea','서울','seoul'],
+                'Japan'=>['日本','japan','東京','tokyo'],
+                'Russia'=>['россия','russia','москва','moscow'],
+                'Azerbaijan'=>['azərbaycan','azerbaijan','bakı','baku'],
               ];
               $low = mb_strtolower($hay);
               foreach ($COUNTRY_WORDS as $cn => $words)
@@ -168,20 +179,33 @@ jobs:
                 $TLD = ['de'=>'Germany','at'=>'Austria','ch'=>'Switzerland','nl'=>'Netherlands',
                         'be'=>'Belgium','fr'=>'France','it'=>'Italy','es'=>'Spain','pt'=>'Portugal',
                         'gr'=>'Greece','pl'=>'Poland','cz'=>'Czechia','no'=>'Norway','se'=>'Sweden',
-                        'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom'];
+                        'dk'=>'Denmark','fi'=>'Finland','ie'=>'Ireland','uk'=>'United Kingdom',
+                        'kr'=>'South Korea','jp'=>'Japan','ru'=>'Russia','az'=>'Azerbaijan'];
                 $bits = explode('.', $domain);
                 $out['country'] = $TLD[strtolower(end($bits))] ?? '';
               }
               return $out;
             };
 
+            /* Serbest posta saglayicilari. Bunlarda alan adi firmaya ait DEGIL, o yuzden
+               ondan site uretmek yanlis: shop@gmail.com icin website=https://gmail.com
+               yaziliyor, site taramasi Gmail'in ana sayfasini okuyup firma adini "Gmail"
+               kaydediyor ve marka taramasi Google'i tariyordu. Boyle adreslerde site hic
+               taranmaz; firma adi olarak adresin @ oncesi yazilir -- operatorun verdigi
+               bilgi budur, uydurmak yerine oldugu gibi durur. */
+            $FREEMAIL = ['gmail.com','googlemail.com','naver.com','daum.net','hanmail.net',
+                         'yahoo.com','hotmail.com','outlook.com','live.com','icloud.com',
+                         'qq.com','163.com','mail.ru','yandex.ru'];
+
             $added = 0;
             foreach (array_keys($wanted) as $mail) {
               if (isset($byMail[$mail])) { echo "  = zaten var : {$mail}\n"; continue; }
               $domain  = substr(strrchr($mail, '@'), 1);
-              $website = $fromLink[$mail] ?? ('https://'.$domain);
-              $info    = $siteInfo($website);
-              $company = $info['company'] !== '' ? $info['company'] : $domain;
+              $isFree  = in_array(strtolower($domain), $FREEMAIL, true);
+              $website = $fromLink[$mail] ?? ($isFree ? '' : 'https://'.$domain);
+              $info    = $website !== '' ? $siteInfo($website) : ['company'=>'','country'=>'','phone'=>''];
+              $company = $info['company'] !== '' ? $info['company']
+                       : ($isFree ? (string)strstr($mail, '@', true) : $domain);
               $leads[] = [
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>'',
                 'company'=>$company, 'contact_name'=>'', 'email'=>$mail,
