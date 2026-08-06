@@ -656,6 +656,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $all=voucher_all(); unset($all[voucher_norm($_POST['v_del']??'')]); voucher_save($all);
     header('Location: /admin?tab=marketing&msg=voucher_del'); exit;
   }
+  /* Welcome campaign. The preview writes nothing; the send is capped and safe to repeat
+     (see voucher_welcome_run) so a browser timeout mid-send can be retried by clicking again. */
+  if($act==='welcome_vouchers'){
+    $rep = voucher_welcome_run([
+      'percent'=>$_POST['w_pct']??5, 'months'=>$_POST['w_months']??6,
+      'audience'=>($_POST['w_aud']??'buyers'), 'limit'=>$_POST['w_limit']??200,
+      'dry'=>(($_POST['w_mode']??'dry')!=='send'),
+    ]);
+    $_SESSION['welcome_report'] = $rep;
+    header('Location: /admin?tab=marketing&msg='.((($_POST['w_mode']??'dry')!=='send')?'welcome_dry':'welcome_sent')); exit;
+  }
 
   // ── Seller prospecting (lead CRM + templated outreach) ──────────────────────
   if($act==='add_lead'){
@@ -1379,6 +1390,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'voucher_ok'=>'✓ Voucher created.','voucher_del'=>'Voucher deleted.','voucher_toggled'=>'Voucher status changed.',
+    'welcome_dry'=>'Preview only — nothing was created or sent. See the list below.',
+    'welcome_sent'=>'✓ Welcome vouchers issued and emailed. See the result below.',
     'doc_requested'=>'Document requested.','doc_reviewed'=>'Document reviewed.',
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
     'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
@@ -2670,6 +2683,51 @@ foreach($vouchers as $v){
 $vSorted = $vouchers;
 uasort($vSorted, fn($a,$b)=>strcmp((string)($b['created']??''),(string)($a['created']??'')));
 ?>
+<div class="acard" style="margin-bottom:18px">
+  <div class="acard-hd"><h3>🎁 Welcome campaign — 5% off the first order, one personal code per customer</h3></div>
+  <div class="acard-body">
+    <p class="ahint" style="margin-top:0">Issues a code bound to each registered customer's e-mail (single use, first order only) and mails it in their own language. <b>Preview first.</b> Running it again never sends a second mail to anyone who already received one — it only picks up customers whose code went out unmailed, so a timeout mid-run is safe to retry.</p>
+    <form method="post" class="aform">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="welcome_vouchers">
+      <div class="acols2">
+        <div class="afield"><label>Discount %</label><input name="w_pct" type="number" step="0.5" value="5"></div>
+        <div class="afield"><label>Valid for (months)</label><input name="w_months" type="number" value="6"></div>
+      </div>
+      <div class="acols2">
+        <div class="afield"><label>Audience</label><select name="w_aud"><option value="buyers">Buyer accounts only</option><option value="all">All accounts (incl. sellers)</option></select></div>
+        <div class="afield"><label>Max sends this run</label><input name="w_limit" type="number" value="200"></div>
+      </div>
+      <button class="abtn" type="submit" name="w_mode" value="dry">👁 Preview (sends nothing)</button>
+      <button class="abtn primary" type="submit" name="w_mode" value="send" onclick="return confirm('Issue codes and send the e-mails now?')">✉ Issue &amp; send</button>
+    </form>
+    <?php $wr = $_SESSION['welcome_report'] ?? null; unset($_SESSION['welcome_report']); if($wr): ?>
+      <div style="margin-top:14px;padding:12px;border:1px solid var(--line,#333);border-radius:10px">
+        <b><?= (int)$wr['targets'] ?> customers</b> · campaign <code><?= htmlspecialchars($wr['campaign']) ?></code> · valid to <?= htmlspecialchars($wr['expiry']) ?><br>
+        <span class="ahint">new codes <?= (int)$wr['made'] ?> · reused <?= (int)$wr['reused'] ?> · sent <?= (int)$wr['sent'] ?> · already had one <?= (int)$wr['skipped'] ?> · failed <?= (int)$wr['failed'] ?></span>
+        <div style="max-height:260px;overflow:auto;margin-top:10px">
+        <table class="atable"><tbody>
+        <?php foreach($wr['rows'] as $r): if(($r['status']??'')==='limit'){ echo '<tr><td colspan="4" class="ahint">… per-run limit reached; run again for the rest</td></tr>'; continue; } ?>
+          <tr>
+            <td style="font-size:12px"><?= htmlspecialchars((string)($r['name']??'')) ?></td>
+            <td style="font-size:12px"><?= htmlspecialchars((string)($r['email']??'')) ?></td>
+            <td><code style="font-size:11px"><?= htmlspecialchars((string)($r['code']??'')) ?></code></td>
+            <td style="font-size:12px"><?= match((string)($r['status']??'')){
+              'sent'=>'<span style="color:#3fb27f">✓ sent</span>',
+              'new'=>'would create + send',
+              'retry'=>'has code, mail not sent yet',
+              'already'=>'<span class="ahint">already mailed</span>',
+              'failed'=>'<span style="color:#d9534f">✗ send failed</span>',
+              default=>htmlspecialchars((string)($r['status']??'')) } ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="acard" style="margin-bottom:18px">
   <div class="acard-hd"><h3>🎟️ Customer vouchers (Gutschein) — <?= count($vouchers) ?> codes · <?= $vRedeemed ?> redeemed · <?= eur($vGranted) ?> granted</h3></div>
   <div class="acard-body">

@@ -155,6 +155,101 @@ function voucher_generate(string $prefix = 'VES'): string {
     return strtoupper($prefix).'-'.substr($out, 0, 4).'-'.substr($out, 4, 4);
 }
 
+/**
+ * Issue (and optionally mail) a personal welcome voucher to every registered customer.
+ *
+ * One shared code would stop being a welcome offer the moment it is posted anywhere — it
+ * becomes everyone's code, nobody knows who spent it, and "first order" cannot be enforced
+ * against an account. So each customer gets their own, bound to their address.
+ *
+ * SAFE TO RUN TWICE. The code is written first and stamped mailed_at only once the send
+ * succeeds, so a run that dies halfway (a dropped SSH session, a PHP timeout) leaves a
+ * recoverable state: a re-run skips anyone already stamped and retries anyone holding an
+ * unmailed code with that same code. Nobody gets two mails; nobody is left with nothing.
+ *
+ * $opts: percent, months, audience ('buyers'|'all'), only (array of e-mails), limit, dry
+ * Returns a report: ['rows'=>[…], 'made','sent','skipped','failed','reused','campaign','expiry']
+ */
+function voucher_welcome_run(array $opts): array {
+    require_once __DIR__.'/auth.php';
+    require_once __DIR__.'/notify.php';
+    require_once __DIR__.'/email_templates.php';
+
+    $pct     = (float)($opts['percent'] ?? 5);
+    $months  = max(1, (int)($opts['months'] ?? 6));
+    $aud     = (($opts['audience'] ?? 'buyers') === 'all') ? 'all' : 'buyers';
+    $limit   = max(1, (int)($opts['limit'] ?? 200));
+    $dry     = !empty($opts['dry']);
+    $only    = [];
+    foreach ((array)($opts['only'] ?? []) as $e) { $e = strtolower(trim((string)$e)); if ($e !== '') $only[$e] = true; }
+
+    $campaign = 'welcome'.rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
+    $expiry   = date('Y-m-d', strtotime("+{$months} months"));
+    $valueLbl = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'%';
+
+    /* Which accounts already hold a code from THIS campaign — looked up once rather than
+       re-scanning the whole store per account. */
+    $held = [];
+    foreach (voucher_all() as $code => $v) {
+        if ((string)($v['campaign'] ?? '') !== $campaign) continue;
+        $e = strtolower(trim((string)($v['email'] ?? '')));
+        if ($e !== '') $held[$e] = ['code' => $code, 'mailed_at' => (string)($v['mailed_at'] ?? '')];
+    }
+
+    $targets = [];
+    foreach (auth_accounts() as $acc) {
+        $email = strtolower(trim((string)($acc['email'] ?? '')));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
+        if ($aud === 'buyers' && (string)($acc['type'] ?? '') !== 'buyer') continue;
+        if ($only && !isset($only[$email])) continue;
+        $targets[$email] = $acc;                 // same address on two accounts → once
+    }
+
+    $rep = ['rows' => [], 'made' => 0, 'sent' => 0, 'skipped' => 0, 'failed' => 0, 'reused' => 0,
+            'campaign' => $campaign, 'expiry' => $expiry, 'targets' => count($targets)];
+
+    foreach ($targets as $email => $acc) {
+        if ($rep['sent'] >= $limit) { $rep['rows'][] = ['email' => '', 'status' => 'limit', 'code' => '']; break; }
+
+        $name = trim((string)($acc['company'] ?? '')) ?: (trim((string)($acc['name'] ?? '')) ?: 'there');
+        $lang = substr((string)($acc['lang'] ?? 'en'), 0, 2) ?: 'en';
+        $have = $held[$email] ?? null;
+
+        if ($have && $have['mailed_at'] !== '') {
+            $rep['skipped']++;
+            $rep['rows'][] = ['email' => $email, 'name' => $name, 'status' => 'already', 'code' => $have['code']];
+            continue;
+        }
+        if ($have)      { $code = $have['code']; $rep['reused']++; }
+        elseif ($dry)   { $code = '(new)'; }
+        else            { $code = (string)voucher_create([
+                              'type' => 'percent', 'value' => $pct, 'email' => $email,
+                              'first_order_only' => true, 'max_uses' => 1,
+                              'expiry' => $expiry, 'campaign' => $campaign,
+                          ])['code']; $rep['made']++; }
+
+        if ($dry) {
+            $rep['rows'][] = ['email' => $email, 'name' => $name, 'status' => $have ? 'retry' : 'new',
+                              'code' => $code, 'lang' => $lang];
+            continue;
+        }
+
+        [$subject, $body, $mopts] = vestra_tpl_welcome_voucher($lang, $name, $code, $valueLbl, date('d.m.Y', strtotime($expiry)));
+        if (vestra_send_mail($email, $subject, $body, '', 'VESTRA', null, '', $mopts)) {
+            /* Stamp only after the send. The other order would mark a failed send as done
+               and that customer would never be written to again. */
+            $all = voucher_all();
+            if (isset($all[$code])) { $all[$code]['mailed_at'] = date('c'); voucher_save($all); }
+            $rep['sent']++;
+            $rep['rows'][] = ['email' => $email, 'name' => $name, 'status' => 'sent', 'code' => $code, 'lang' => $lang];
+        } else {
+            $rep['failed']++;
+            $rep['rows'][] = ['email' => $email, 'name' => $name, 'status' => 'failed', 'code' => $code, 'lang' => $lang];
+        }
+    }
+    return $rep;
+}
+
 /** Error key → buyer-facing sentence. */
 function voucher_error_text(string $key): string {
     return match ($key) {
