@@ -1,0 +1,153 @@
+name: Fremde Kollektion importieren
+
+# Holt eine Shopify-Kollektion und legt sie als Katalogdatei ab.
+#
+# WARUM ALS ACTION UND NICHT LOKAL: Die Entwicklungsumgebung des Agenten darf
+# nur github.com und die Paketregister erreichen; jeder andere Host wird vom
+# Gateway mit 403 abgewiesen. Der GitHub-Runner hat freies Netz. Damit ist das
+# hier der einzige Weg, den Import ohne SSH-Zugang auf den Server auszuführen.
+#
+# Ergebnis liegt als Artefakt bereit (retail-imported.json und optional die
+# Bilder) und lässt sich auf Wunsch direkt in den Branch committen.
+#
+# RECHTE: Fotos und Beschreibungen eines fremden Shops sind in aller Regel
+# urheberrechtlich geschützt, die Datenbank zusätzlich über §87b UrhG. Bilder
+# werden deshalb nur mit "images: true" geladen und nur mit "commit: true"
+# eingecheckt. Die Entscheidung trifft der Betreiber.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Kollektions-URL, z. B. https://fashionbrandshome.com/collections/lacoste"
+        required: true
+        default: "https://fashionbrandshome.com/collections/lacoste"
+      brand:
+        description: "Marke erzwingen (leer = Feld vendor des Shops)"
+        required: false
+        default: ""
+      multiplier:
+        description: "Preisfaktor. 1.0 = Preise des Quellshops übernehmen"
+        required: true
+        default: "1.0"
+      images:
+        description: "true = ALLE Produktfotos herunterladen (Rechte vorher prüfen)"
+        required: true
+        default: "true"
+      max_images:
+        description: "Bilder je Artikel. 0 = alle"
+        required: true
+        default: "0"
+      commit:
+        description: "true = Ergebnis (Katalog + Bilder) in den Branch committen"
+        required: true
+        default: "true"
+      dry_run:
+        description: "true = NUR berichten, nichts schreiben"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP bereitstellen
+        run: php -v && php -m | grep -i curl
+
+      - name: Eingaben prüfen
+        env:
+          SRC: ${{ github.event.inputs.source }}
+        run: |
+          set -e
+          case "$SRC" in
+            https://*) : ;;
+            *) echo "::error::source muss mit https:// beginnen"; exit 1 ;;
+          esac
+          echo "Quelle: $SRC"
+
+      - name: Kollektion importieren
+        env:
+          SRC:  ${{ github.event.inputs.source }}
+          BR:   ${{ github.event.inputs.brand }}
+          MUL:  ${{ github.event.inputs.multiplier }}
+          IMG:  ${{ github.event.inputs.images }}
+          MAXI: ${{ github.event.inputs.max_images }}
+          DRY:  ${{ github.event.inputs.dry_run }}
+        run: |
+          set -e
+          cd retail
+          # Der Import schreibt nur in data/ und uploads/ — beide liegen im
+          # Workspace, die Live-Installation wird nicht angefasst.
+          mkdir -p data uploads
+          ARGS="--from=$SRC --multiplier=$MUL"
+          [ -n "$BR" ]      && ARGS="$ARGS --brand=$BR"
+          [ "$IMG" = true ] && ARGS="$ARGS --images --max-images=${MAXI:-0}"
+          [ "$DRY" = true ] && ARGS="$ARGS --dry"
+          echo "php tools/import-shop.php $ARGS"
+          php tools/import-shop.php $ARGS 2>&1 | tee ../import-report.txt
+
+      - name: Ergebnis zusammenfassen
+        if: always()
+        run: |
+          {
+            echo '## Import-Bericht'
+            echo '```'
+            cat import-report.txt 2>/dev/null || echo '(kein Bericht)'
+            echo '```'
+            if [ -d retail/uploads/imported ]; then
+              echo "### Bilder"
+              echo "$(find retail/uploads/imported -type f | wc -l) Datei(en), $(du -sh retail/uploads/imported | cut -f1) gesamt"
+              echo
+            fi
+            if [ -f retail/data/retail-imported.json ]; then
+              echo "### Katalogdatei"
+              php -r '$d=json_decode(file_get_contents("retail/data/retail-imported.json"),true);
+                printf("%d Artikel\n\n", count($d));
+                printf("| Marke | Artikel | Modellcode | Kategorie | Preis | Größen | Bilder |\n");
+                printf("|---|---|---|---|---|---|---|\n");
+                foreach (array_slice($d,0,80) as $r) {
+                  $sz = [];
+                  foreach ((array)($r["size_stock"] ?? []) as $k=>$v) $sz[] = "$k×$v";
+                  printf("| %s | %s | %s | %s | %s | %s | %d |\n",
+                    $r["brand"] ?? "", $r["name"] ?? "", $r["sku"] ?? "",
+                    $r["cat"] ?? "", number_format((float)($r["retail_price"] ?? 0),2,",","."),
+                    implode(" ", $sz), count((array)($r["images"] ?? [])));
+                }'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Als Artefakt ablegen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: katalog-import
+          path: |
+            retail/data/retail-imported.json
+            retail/uploads/imported/**
+            import-report.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: In den Branch committen
+        if: ${{ github.event.inputs.commit == 'true' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          # data/ und uploads/ sind bewusst ignoriert (Betriebsdaten, fremde
+          # Fotos). Für diesen Schritt heben wir das gezielt mit -f auf.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f retail/data/retail-imported.json
+          if [ "${{ github.event.inputs.images }}" = "true" ]; then
+            git add -f retail/uploads/imported || true
+          fi
+          if git diff --cached --quiet; then
+            echo "Keine Änderung."
+          else
+            git commit -m "retail: Katalogimport aus ${{ github.event.inputs.source }}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
