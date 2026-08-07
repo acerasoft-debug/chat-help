@@ -265,6 +265,10 @@ jobs:
                 'shipping' => round((float)($order['shipping'] ?? 0), 2),
                 'shipping_label' => trim((string)($order['shipping_label'] ?? '')),
                 'partial_shipments' => !empty($order['partial_shipments']),
+                'incoterms' => trim((string)($order['incoterms'] ?? '')),
+                'origin' => trim((string)($order['origin'] ?? '')),
+                'export_reason' => trim((string)($order['export_reason'] ?? '')),
+                'vat_note' => trim((string)($order['vat_note'] ?? '')),
                 'buyer' => $buyer,
               ];
               /* Faturayi KIM kesiyor: satirlarin sahibi. Bunu uydurmuyoruz -- urunun

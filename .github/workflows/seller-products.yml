@@ -299,6 +299,34 @@ jobs:
                    .($in['shipping_label'] ?? '-').")\n";
             }
 
+            /* Sevkiyat kunyesi: teslim sekli, mensei, ihracat sebebi ve KDV notu. Fatura
+               bunlari yalnizca DOLUYSA basiyor -- tahmin edilen bir Incoterm %25 ithalat
+               vergisini kimin odeyecegine karar verir, tahmin edilen bir mensei ise yanlis
+               beyandir. Bos birakmak, uydurmaktan iyidir. */
+            $shipMeta = array_intersect_key($in, array_flip(['incoterms','origin','export_reason','vat_note']));
+            if ($shipMeta) {
+                $ref3 = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($in['assign_ref'] ?? $in['shipping_ref'] ?? ''));
+                $csv  = $doc.'/data/orders.csv';
+                $rows = vestra_read_csv('orders.csv');
+                $hdr  = $rows ? array_keys($rows[0]) : [];
+                foreach (array_keys($shipMeta) as $col) if (!in_array($col, $hdr, true)) $hdr[] = $col;
+                vestra_csv_ensure_header('orders.csv', $hdr);
+                $rows = vestra_read_csv('orders.csv');
+                copy($csv, $csv.'.bak-'.date('Ymd-His'));
+                $hit = 0;
+                foreach ($rows as $i => $r) {
+                    if (($r['ref'] ?? '') !== $ref3) continue;
+                    foreach ($shipMeta as $col => $val) $rows[$i][$col] = (string)$val;
+                    $hit++;
+                }
+                if (!$hit) { fwrite(STDERR, "sevkiyat kunyesi icin siparis bulunamadi: {$ref3}\n"); exit(1); }
+                $fh = fopen($csv, 'w');
+                fputcsv($fh, $hdr, ',', '"', '\\');
+                foreach ($rows as $r) { $line = []; foreach ($hdr as $c) $line[] = (string)($r[$c] ?? ''); fputcsv($fh, $line, ',', '"', '\\'); }
+                fclose($fh);
+                foreach ($shipMeta as $col => $val) echo "kunye     : {$col} = {$val}\n";
+            }
+
             /* Siparisin urunlerini bu saticiya bagla. seller_uid bos kaldigi surece fatura
                VESTRA adina cikiyor ve odeme kutusu hic gorunmuyor -- fatura kimin kesecegi
                satirin sahibine bagli, ayri bir secim degil. */

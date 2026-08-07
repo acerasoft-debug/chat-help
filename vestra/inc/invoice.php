@@ -363,6 +363,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $y -= 30;
 
     $goodsTotal = 0.0;
+    $totalQty   = 0;
     foreach ($items as $it) {
         $desc = trim(($it['brand'] ?? '').' '.($it['name'] ?? ''));
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
@@ -379,6 +380,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $pdf->text($colUnit, $y, 9, eur($it['unit'] ?? 0));
         $pdf->textR($right - 4, $y, 9, eur($it['line'] ?? 0));
         $goodsTotal += (float)($it['line'] ?? 0);
+        $totalQty   += (int)($it['qty'] ?? 0);
         $y -= $rowH;
     }
 
@@ -414,6 +416,37 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $pdf->textR($right - 4, $y, 11, eur($grand), true);
     $y -= 34;
 
+    /* ── Shipment and customs particulars ──
+       This invoice is not only the demand for payment: it is the document the goods travel
+       on. A carrier, a customs broker and the buyer's own accountant each read it for
+       something the price table does not say.
+       VAT is the one that cannot be left out. A Dutch company charging nothing on a
+       five-figure sale has to say on the face of the invoice WHY, or the buyer's accountant
+       books it wrongly and the seller's own return has an unexplained zero-rated supply.
+       Incoterms and origin are printed only when the order carries them — a guessed delivery
+       term decides who pays a 25% import charge, and a guessed origin is a false declaration.
+       Better a gap the operator can see than a confident invention. */
+    $shipRows = [];
+    $shipRows[] = ['Total quantity', number_format($totalQty).' pcs in '.count($items).' line items'];
+    $shipRows[] = ['Currency', 'EUR — all amounts in euro'];
+    if (!empty($order['incoterms']))      $shipRows[] = ['Delivery terms', (string)$order['incoterms']];
+    if (!empty($order['origin']))         $shipRows[] = ['Country of origin', (string)$order['origin']];
+    if (!empty($order['export_reason']))  $shipRows[] = ['Reason for export', (string)$order['export_reason']];
+    if (!empty($order['vat_note']))       $shipRows[] = ['VAT', (string)$order['vat_note']];
+
+    $need(24 + count($shipRows) * 12);
+    $pdf->line($left, $y + 10, $right, $y + 10, 0.5, 0.75);
+    $pdf->text($left, $y, 8.5, 'Shipment particulars', true);
+    $y -= 13;
+    foreach ($shipRows as [$k, $v]) {
+        $pdf->text($left, $y, 8, $k.':');
+        foreach (vestra_invoice_wrap($v, $width - 110, 8) as $j => $vl) {
+            $pdf->text($left + 106, $y - ($j * 10), 8, $vl);
+        }
+        $y -= max(12, count(vestra_invoice_wrap($v, $width - 110, 8)) * 10 + 2);
+    }
+    $y -= 10;
+
     /* Advance payment, stated on the invoice itself. An invoice that offers a credit period
        is the buyer's finance department's authority to take it, whatever was agreed in the
        thread — so the document has to carry the same term as the deal: money first, goods
@@ -440,6 +473,17 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $y -= 2;
     }
     foreach ($pdf->wrap('This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.', $width, 8) as $fl) {
+        $pdf->text($left, $y, 8, $fl); $y -= 11;
+    }
+
+    /* The certification a commercial invoice is expected to carry when it accompanies goods
+       across a border. Brokers look for this sentence; without it some ask for the invoice to
+       be reissued, which on a part-shipped order means holding a consignment at the border
+       over a missing line of boilerplate. */
+    $y -= 4;
+    $need(26);
+    foreach ($pdf->wrap('We certify that the information on this invoice is true and correct, and that the '
+        .'contents of this shipment are as stated above.', $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;
     }
 
@@ -565,6 +609,12 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
         'shipping' => round((float)($orderRow['shipping'] ?? 0), 2),
         'shipping_label' => trim((string)($orderRow['shipping_label'] ?? '')),
         'partial_shipments' => !empty($orderRow['partial_shipments']),
+        /* Shipment particulars: printed when set, silent when not — see the footer block in
+           vestra_render_invoice_pdf() for why none of these are ever guessed. */
+        'incoterms'     => trim((string)($orderRow['incoterms'] ?? '')),
+        'origin'        => trim((string)($orderRow['origin'] ?? '')),
+        'export_reason' => trim((string)($orderRow['export_reason'] ?? '')),
+        'vat_note'      => trim((string)($orderRow['vat_note'] ?? '')),
         'buyer' => vestra_invoice_buyer($orderRow),
     ];
     $bySeller = [];
