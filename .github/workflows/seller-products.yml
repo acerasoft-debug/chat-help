@@ -303,7 +303,10 @@ jobs:
                bunlari yalnizca DOLUYSA basiyor -- tahmin edilen bir Incoterm %25 ithalat
                vergisini kimin odeyecegine karar verir, tahmin edilen bir mensei ise yanlis
                beyandir. Bos birakmak, uydurmaktan iyidir. */
-            $shipMeta = array_intersect_key($in, array_flip(['incoterms','origin','export_reason','vat_note']));
+            /* 'total' de burada: siparisin "alici ne oduyor" rakami. Navlun sonradan
+               eklendiginde bu sutun eski haliyle kaliyor ve alicinin panelinde faturadan
+               farkli bir tutar gorunuyordu. */
+            $shipMeta = array_intersect_key($in, array_flip(['incoterms','origin','export_reason','vat_note','total']));
             if ($shipMeta) {
                 $ref3 = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($in['assign_ref'] ?? $in['shipping_ref'] ?? ''));
                 $csv  = $doc.'/data/orders.csv';
