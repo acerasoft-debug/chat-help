@@ -99,8 +99,12 @@ jobs:
           if [ -n "$BRAND_PROBE" ]; then
             echo; echo "===== IZGARA SIRASI ($BRAND_PROBE) ====="
             curl -sS -A "$UA" -o /tmp/pbody.html --max-time 30 "${BASE}${BRAND_PROBE}" 2>/dev/null || true
-            grep -o 'data-brand="[^"]*"' /tmp/pbody.html \
-              | sed 's/data-brand="//; s/"$//' | head -24 | nl -w3 -s'. '
+            # data-brand tek basina yetmiyor: ustteki marka filtresi tuslari da tasiyor ve
+            # ilk 18 eslesmeyi onlar yiyor. Kart oldugunun kaniti data-ord -- sadece urun
+            # kartlarinda var. Nitelikler ayri satirlarda durdugu icin once tek satira indir.
+            tr -s '\n ' '  ' < /tmp/pbody.html \
+              | grep -o 'data-ord="[0-9]*" data-cat="[^"]*" data-brand="[^"]*"' \
+              | sed 's/.*data-brand="//; s/"$//' | head -24 | nl -w3 -s'. '
           fi
 
       - name: Dropship API uçtan uca test
