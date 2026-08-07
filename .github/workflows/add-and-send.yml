@@ -13,6 +13,10 @@ on:
         description: "Fotoğraf şeridinde öne çıkarılacak kategori (boş = varsayılan davranış, sadece denim önceliklenir)"
         required: false
         default: ""
+      country:
+        description: "Bu partideki adreslerin ülkesi (ör: Italy, Spain, France, Germany). Verilirse tespit yerine bu kullanılır ve KAYITLI leadlerin ülkesi de düzeltilir. Çok ülkeli kurumsal sitelerde tespit güvenilmez."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -43,13 +47,14 @@ jobs:
           IN_EMAILS: ${{ github.event.inputs.emails }}
           DO_SEND: ${{ github.event.inputs.send }}
           FEATURE_CAT: ${{ github.event.inputs.feature_category }}
+          IN_COUNTRY: ${{ github.event.inputs.country }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 20m
-          envs: IN_EMAILS,DO_SEND,FEATURE_CAT
+          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY
           script: |
             cd ~/public_html
             cat > /tmp/vestra_add_send.php <<'PHPEOF'
@@ -66,6 +71,11 @@ jobs:
             $DO_SEND = strtolower(trim((string)getenv('DO_SEND'))) !== 'false';
             $raw     = (string)getenv('IN_EMAILS');
             $FEATCAT = trim((string)getenv('FEATURE_CAT'));
+            /* Operatorun beyan ettigi ulke. Verildiginde tespitin onune gecer -- coklu
+               ulkeli kurumsal sitelerde (McArthurGlen, Value Retail, VIA Outlets) tespit
+               calismiyor: site zaten her ulkeyi listeliyor. Operator outlet'in nerede
+               oldugunu biliyor, site bilmiyor. */
+            $FORCE_COUNTRY = trim((string)getenv('IN_COUNTRY'));
 
             /* Girdi HEM e-posta HEM site linki olabilir, karisik da olabilir.
                Link verildiginde e-posta sitesinden okunur (iletisim/kunye sayfalari).
@@ -189,7 +199,26 @@ jobs:
               $bits = explode('.', $domain);
               $out['country'] = $TLD[strtolower(end($bits))] ?? '';
 
-              /* 2) Uzanti genel (.com/.net) ise sayfanin yazi sistemine bak. Sayfasi bastan
+              /* 2) Telefonun ulke kodu. Bir firma KENDI numarasini yayinlar; sayfada gecen
+                 ulke adlari ise nereye gonderdigini ya da hangi dilleri sundugunu anlatir --
+                 ayni sey degil. 7 Agustos partisinde olculen: esqui-outlet.com "Italy"
+                 cikti (telefon +34), elisabettafranchi.com "Germany" (telefon +39),
+                 outletcity.com "South Korea" (telefon +49, sitede Korece sayfa var).
+                 Ucunde de telefon dogruydu. Uzun kodlar once, yoksa +49 "+4" ile karisir. */
+              if ($out['country'] === '' && $out['phone'] !== '') {
+                $DIAL = ['994'=>'Azerbaijan','420'=>'Czechia','358'=>'Finland','353'=>'Ireland',
+                         '351'=>'Portugal','49'=>'Germany','43'=>'Austria','41'=>'Switzerland',
+                         '31'=>'Netherlands','32'=>'Belgium','33'=>'France','39'=>'Italy',
+                         '34'=>'Spain','30'=>'Greece','48'=>'Poland','47'=>'Norway',
+                         '46'=>'Sweden','45'=>'Denmark','44'=>'United Kingdom',
+                         '82'=>'South Korea','81'=>'Japan','7'=>'Russia'];
+                $digits = preg_replace('/\D/', '', $out['phone']);
+                foreach ($DIAL as $code => $cn) {
+                  if (str_starts_with($digits, $code)) { $out['country'] = $cn; break; }
+                }
+              }
+
+              /* 3) Uzanti genel (.com/.net) ve telefon da yoksa sayfanin yazi sistemine bak. Sayfasi bastan
                  asagi Hangul olan bir magaza, kargo tablosunda Almanya yaziyor diye Alman
                  olmaz. Esik tek bir kelimeyi degil, sayfanin gercekten o dilde yazildigini
                  arar. */
@@ -204,7 +233,7 @@ jobs:
                 }
               }
 
-              /* 3) Son care: sayfada (ve alan adinda) gecen ulke/sehir adi. Alan adi da
+              /* 4) Son care: sayfada (ve alan adinda) gecen ulke/sehir adi. Alan adi da
                  haystack'e giriyor cunku "samplestoreseoul.com" gibi isimler sitenin
                  tamamen Ingilizce oldugu durumda tek ipucu olabiliyor. */
               if ($out['country'] === '') {
@@ -225,9 +254,22 @@ jobs:
                          'yahoo.com','hotmail.com','outlook.com','live.com','icloud.com',
                          'qq.com','163.com','mail.ru','yandex.ru'];
 
-            $added = 0;
+            $added = 0; $fixed = 0;
             foreach (array_keys($wanted) as $mail) {
-              if (isset($byMail[$mail])) { echo "  = zaten var : {$mail}\n"; continue; }
+              if (isset($byMail[$mail])) {
+                /* Kayitli adres. Ulke ELLE verildiyse burada duzeltiyoruz: aksi halde
+                   ilk eklemedeki yanlis tespit kalici oluyor ve yanlis ulke yanlis DIL
+                   demek -- Italyan bir outlet'e Almanca kampanya gider. */
+                $j = $byMail[$mail];
+                $old = (string)($leads[$j]['country'] ?? '');
+                if ($FORCE_COUNTRY !== '' && strcasecmp($old, $FORCE_COUNTRY) !== 0) {
+                  $leads[$j]['country'] = $FORCE_COUNTRY; $fixed++;
+                  echo "  = zaten var : {$mail}  (ulke duzeltildi: ".($old !== '' ? $old : '(bos)')." -> {$FORCE_COUNTRY})\n";
+                } else {
+                  echo "  = zaten var : {$mail}\n";
+                }
+                continue;
+              }
               $domain  = substr(strrchr($mail, '@'), 1);
               $isFree  = in_array(strtolower($domain), $FREEMAIL, true);
               $website = $fromLink[$mail] ?? ($isFree ? '' : 'https://'.$domain);
@@ -237,7 +279,8 @@ jobs:
               $leads[] = [
                 'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))), 'added_at'=>date('c'), 'owner_uid'=>'',
                 'company'=>$company, 'contact_name'=>'', 'email'=>$mail,
-                'country'=>$info['country'], 'phone'=>$info['phone'],
+                'country'=>($FORCE_COUNTRY !== '' ? $FORCE_COUNTRY : $info['country']),
+                'phone'=>$info['phone'],
                 'website'=>$website, 'source'=>'manual', 'category'=>'',
                 'notes'=>'', 'status'=>'new', 'last_contacted_at'=>'',
                 'unsub_token'=>bin2hex(random_bytes(16)),
@@ -247,12 +290,14 @@ jobs:
               $added++;
               printf("  + EKLENDI   : %-34s <%s>\n                ulke=%s  tel=%s\n",
                      mb_substr($company,0,32), $mail,
-                     $info['country'] !== '' ? $info['country'] : '(bulunamadi)',
+                     $FORCE_COUNTRY !== '' ? $FORCE_COUNTRY.' (elle)'
+                       : ($info['country'] !== '' ? $info['country'] : '(bulunamadi)'),
                      $info['phone'] !== '' ? $info['phone'] : '-');
               flush();
             }
-            if ($added > 0) vestra_save_leads($leads);
-            echo "\n{$added} eklendi. toplam lead: ".count($leads)."\n\n";
+            if ($added > 0 || $fixed > 0) vestra_save_leads($leads);
+            echo "\n{$added} eklendi".($fixed > 0 ? ", {$fixed} kaydin ulkesi duzeltildi" : "").
+                 ". toplam lead: ".count($leads)."\n\n";
 
             /* ---- 2) TARA (bilgi amacli -- engellemiyor) ---- */
             echo "-- marka taramasi --\n";
