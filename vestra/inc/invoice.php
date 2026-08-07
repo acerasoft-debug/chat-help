@@ -335,11 +335,34 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
     file_put_contents($pdfPath, $bytes, LOCK_EX);
     file_put_contents($metaPath, json_encode([
         'no' => $no, 'ref' => $order['ref'], 'seller_key' => $sellerKey, 'issued_at' => date('c'),
+        /* Kept so the download name can carry the buyer without the serving endpoint
+           re-reading orders/offers/requests to find out who the invoice belongs to. */
+        'buyer' => trim((string)(($order['buyer']['company'] ?? '') ?: ($order['buyer']['name'] ?? ''))),
     ], JSON_PRETTY_PRINT), LOCK_EX);
     return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey];
 }
 
 /** Invoices already issued for a ref (order or offer) — for rendering download links. No regeneration. */
+/**
+ * Name the file gets when it is downloaded: buyer and order reference.
+ *
+ * "invoice.pdf" in a downloads folder is indistinguishable from every other invoice, and the
+ * reference alone still needs looking up. Both parties file these by who and which order, so
+ * the name carries both. Falls back to the reference when the buyer is unknown — invoices
+ * issued before this was recorded have no buyer in their meta.
+ */
+function vestra_invoice_download_name(string $ref, string $sellerKey): string {
+    $meta  = @json_decode((string)@file_get_contents(vestra_invoice_meta_file($ref, $sellerKey)), true);
+    $buyer = is_array($meta) ? trim((string)($meta['buyer'] ?? '')) : '';
+    $slug  = '';
+    if ($buyer !== '') {
+        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $buyer);
+        $slug  = trim(preg_replace('/-+/', '-', preg_replace('/[^A-Za-z0-9]+/', '-', (string)$ascii)), '-');
+        $slug  = mb_substr($slug, 0, 60);
+    }
+    return ($slug !== '' ? $slug.'-' : '').$ref.'.pdf';
+}
+
 function vestra_invoices_for_ref(string $ref): array {
     $dir = vestra_invoice_dir();
     $safeRef = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);

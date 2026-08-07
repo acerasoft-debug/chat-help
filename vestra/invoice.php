@@ -47,7 +47,7 @@ if (!empty($_SESSION['vadmin'])) $allowed = true;
 if (!$allowed) { http_response_code(403); exit('Forbidden'); }
 
 header('Content-Type: application/pdf');
-header('Content-Disposition: inline; filename="'.$ref.'-invoice.pdf"');
+header('Content-Disposition: inline; filename="'.vestra_invoice_download_name($ref, $sellerKey).'"');
 header('Content-Length: '.filesize($path));
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: private, no-store');
