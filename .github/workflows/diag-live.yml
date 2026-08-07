@@ -10,6 +10,10 @@ on:
         description: "Opsiyonel içerik kontrolü, satır satır 'yol::aranan-metin' (ör: /shop::lac-polo-paris)"
         required: false
         default: ""
+      brand_probe:
+        description: "Verilen yolda ızgaranın ilk 24 kartının markasını sırayla yazar (ör: /shop) — katalog sıralaması gerçekten istendiği gibi mi?"
+        required: false
+        default: ""
       full_audit:
         description: "true = ürün/lead/hesap/yapılandırma genelinde eksik taraması da çalıştır (salt-okunur)"
         required: false
@@ -86,6 +90,17 @@ jobs:
                 echo "  YOK           ${gp} :: ${needle}"
               fi
             done
+          fi
+
+          # "Sayfada BALMAIN var mi" ile "izgara BALMAIN ile mi aciliyor" ayri sorular:
+          # icerik kontrolu varligi sayar, sirayi gormez. Bu blok kartlarin markasini
+          # DOM sirasiyla yazar, yani ziyaretcinin ilk ekranda gercekten ne gordugunu.
+          BRAND_PROBE='${{ github.event.inputs.brand_probe }}'
+          if [ -n "$BRAND_PROBE" ]; then
+            echo; echo "===== IZGARA SIRASI ($BRAND_PROBE) ====="
+            curl -sS -A "$UA" -o /tmp/pbody.html --max-time 30 "${BASE}${BRAND_PROBE}" 2>/dev/null || true
+            grep -o 'data-brand="[^"]*"' /tmp/pbody.html \
+              | sed 's/data-brand="//; s/"$//' | head -24 | nl -w3 -s'. '
           fi
 
       - name: Dropship API uçtan uca test
