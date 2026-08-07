@@ -131,6 +131,34 @@ jobs:
             echo "banka    : ".($accounts[$idx]['bank_name'] ?? '(bos)')." | sahip: ".($accounts[$idx]['bank_holder'] ?? '(bos)')."\n";
             echo "IBAN     : ".$mask((string)($accounts[$idx]['bank_iban'] ?? ''))."   (log'a tam yazilmaz)\n";
 
+            /* Navlun siparis satirinda durur: tek sevkiyatin tasima bedelini saticilara
+               bolmek kimsenin mutabakat yapamayacagi rakamlar uretir. Sutun yoksa basliga
+               eklenir -- eski siparisler bos deger alir, hicbir sey bozulmaz. */
+            if (isset($in['shipping'])) {
+                $ref2 = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($in['assign_ref'] ?? $in['shipping_ref'] ?? ''));
+                $csv  = $doc.'/data/orders.csv';
+                $rows = vestra_read_csv('orders.csv');
+                $hdr  = $rows ? array_keys($rows[0]) : [];
+                foreach (['shipping','shipping_label'] as $col) if (!in_array($col, $hdr, true)) $hdr[] = $col;
+                vestra_csv_ensure_header('orders.csv', $hdr);
+                $rows = vestra_read_csv('orders.csv');
+                copy($csv, $csv.'.bak-'.date('Ymd-His'));
+                $hit = 0;
+                foreach ($rows as $i => $r) {
+                    if (($r['ref'] ?? '') !== $ref2) continue;
+                    $rows[$i]['shipping'] = number_format((float)$in['shipping'], 2, '.', '');
+                    $rows[$i]['shipping_label'] = (string)($in['shipping_label'] ?? '');
+                    $hit++;
+                }
+                if (!$hit) { fwrite(STDERR, "navlun icin siparis bulunamadi: {$ref2}\n"); exit(1); }
+                $fh = fopen($csv, 'w');
+                fputcsv($fh, $hdr, ',', '"', '\\');
+                foreach ($rows as $r) { $line = []; foreach ($hdr as $c) $line[] = (string)($r[$c] ?? ''); fputcsv($fh, $line, ',', '"', '\\'); }
+                fclose($fh);
+                echo "navlun    : {$ref2} -> ".number_format((float)$in['shipping'], 2)." EUR ("
+                   .($in['shipping_label'] ?? '-').")\n";
+            }
+
             /* Siparisin urunlerini bu saticiya bagla. seller_uid bos kaldigi surece fatura
                VESTRA adina cikiyor ve odeme kutusu hic gorunmuyor -- fatura kimin kesecegi
                satirin sahibine bagli, ayri bir secim degil. */

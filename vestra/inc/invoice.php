@@ -124,6 +124,17 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $b['name'] ?? '', $b['email'] ?? '',
     ], fn($v) => $v !== ''));
 
+    /* Wrap each block to its own column before pairing them up. A company address written as
+       one line — street, district, post code, city — is easily wider than half the page, and
+       unwrapped it ran straight across into the buyer's block on the right. */
+    $wrapCol = function (array $lines) use ($colW): array {
+        $out = [];
+        foreach ($lines as $l) foreach (vestra_invoice_wrap($l, $colW - 8, 9) as $w) $out[] = $w;
+        return $out;
+    };
+    $sellerLines = $wrapCol($sellerLines);
+    $buyerLines  = $wrapCol($buyerLines);
+
     $n = max(count($sellerLines), count($buyerLines));
     for ($i = 0; $i < $n; $i++) {
         if (isset($sellerLines[$i])) $pdf->text($fromX, $y, 9, $sellerLines[$i]);
@@ -198,31 +209,36 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $y -= $rowH;
     }
 
-    $need(60);
+    /* A voucher and the freight charge must each be a visible line, not folded quietly into
+       the goods total: this document is the seller's invoice and the basis of the bank
+       transfer, so the buyer has to be able to reconcile it against the order confirmation
+       line for line. On a multi-seller order the discount here is only this seller's
+       apportioned share (see vestra_issue_order_invoices). */
+    $discount = round((float)($order['discount'] ?? 0), 2);
+    $shipping = round((float)($order['shipping'] ?? 0), 2);
+    $shipLbl  = trim((string)($order['shipping_label'] ?? '')) ?: 'Shipping';
+
+    $rows = [];
+    if ($discount > 0 || $shipping > 0) $rows[] = ['Goods total', eur($goodsTotal)];
+    if ($discount > 0) {
+        $vcode = trim((string)($order['voucher_code'] ?? ''));
+        $rows[] = ['Voucher'.($vcode !== '' ? ' '.$vcode : ''), '-'.eur($discount)];
+    }
+    if ($shipping > 0) $rows[] = [$shipLbl, eur($shipping)];
+    $grand = max(0, $goodsTotal - $discount) + $shipping;
+
+    $need(60 + count($rows) * 15);
     $y -= 4;
     $pdf->line($left, $y, $right, $y, 0.7, 0.5);
     $y -= 18;
-    /* A voucher must be a visible line, not a quietly reduced goods total: this document is
-       the seller's invoice and the basis of the bank transfer, so the buyer has to be able to
-       reconcile it against the order confirmation line for line. On a multi-seller order the
-       amount here is only this seller's apportioned share (see vestra_issue_order_invoices). */
-    $discount = round((float)($order['discount'] ?? 0), 2);
-    if ($discount > 0) {
-        $pdf->textR($colUnit, $y, 10, 'Goods total');
-        $pdf->textR($right - 4, $y, 10, eur($goodsTotal));
+    foreach ($rows as [$label, $amount]) {
+        $pdf->textR($colUnit, $y, 10, $label);
+        $pdf->textR($right - 4, $y, 10, $amount);
         $y -= 15;
-        $vcode = trim((string)($order['voucher_code'] ?? ''));
-        $pdf->textR($colUnit, $y, 10, 'Voucher'.($vcode !== '' ? ' '.$vcode : ''));
-        $pdf->textR($right - 4, $y, 10, '-'.eur($discount));
-        $y -= 6;
-        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35);
-        $y -= 15;
-        $pdf->textR($colUnit, $y, 10, 'Total', true);
-        $pdf->textR($right - 4, $y, 11, eur(max(0, $goodsTotal - $discount)), true);
-    } else {
-        $pdf->textR($colUnit, $y, 10, 'Goods total', true);
-        $pdf->textR($right - 4, $y, 11, eur($goodsTotal), true);
     }
+    if ($rows) { $y += 9; $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15; }
+    $pdf->textR($colUnit, $y, 10, $rows ? 'Total' : 'Goods total', true);
+    $pdf->textR($right - 4, $y, 11, eur($grand), true);
     $y -= 34;
 
     $need(40);
@@ -313,6 +329,11 @@ function vestra_issue_order_invoices(string $ref): array {
     if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
     $orderMeta = [
         'ref' => $ref, 'date' => $orderRow['timestamp'] ?? date('c'),
+        /* Freight is charged on the order, not per seller: splitting one consignment's
+           carriage across sellers would invent numbers nobody can reconcile. It rides on
+           the first invoice; a second seller's invoice shows goods only. */
+        'shipping' => round((float)($orderRow['shipping'] ?? 0), 2),
+        'shipping_label' => trim((string)($orderRow['shipping_label'] ?? '')),
         'buyer' => [
             'company' => $orderRow['company'] ?? '', 'vat' => $orderRow['vat'] ?? '',
             'name' => $orderRow['name'] ?? '', 'email' => $orderRow['email'] ?? '',
@@ -350,6 +371,7 @@ function vestra_issue_order_invoices(string $ref): array {
         if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
         $meta = $orderMeta;
         if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
+        if ($sid !== array_key_first($bySeller)) { $meta['shipping'] = 0.0; }   // carriage billed once
         $iv = vestra_ensure_invoice($meta, $sellerItems, $sellerAcc, true);
         if (!empty($iv['no'])) $issued[] = $iv;
     }
