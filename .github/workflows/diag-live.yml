@@ -23,7 +23,7 @@ on:
         required: false
         default: ""
       order_sheet_pubkey:
-        description: "order_sheet_ref ile zorunlu: PDF'in şifreleneceği RSA public key (PEM, base64). Bu depo herkese açık, log da öyle — PDF şifresiz yazılmaz."
+        description: "Boş bırakılırsa sadece sipariş denetimi çalışır. Verilirse PDF de üretilip bu RSA public key (PEM, base64) ile şifrelenip döner — bu depo herkese açık, log da öyle, PDF şifresiz yazılmaz."
         required: false
         default: ""
 
@@ -147,7 +147,7 @@ jobs:
       #
       # Ozet satirlari (satir sayisi, SKU, adet) bilerek yazilmaz; sadece boyut ve SHA-256
       # yazilir, cunku kirpilmis bir log sessizce bozuk PDF uretir ve bunu fark etmek gerekir.
-      - name: Sipariş sayfası (tarafsız PDF, şifreli)
+      - name: Sipariş denetimi (+ istenirse tarafsız PDF, şifreli)
         if: ${{ github.event.inputs.order_sheet_ref != '' }}
         env:
           SHEET_REF: ${{ github.event.inputs.order_sheet_ref }}
@@ -167,25 +167,58 @@ jobs:
             $doc = getenv("HOME")."/public_html";
             require $doc."/inc/products.php";
             require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";   // fatura var mi sorusu icin, lazy yuklenmesin
 
             $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SHEET_REF'));
             if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
-            $pub = openssl_pkey_get_public((string)base64_decode((string)getenv('SHEET_PUBKEY'), true));
-            if (!$pub) { fwrite(STDERR, "public key okunamadi -- order_sheet_pubkey gerekli\n"); exit(1); }
+            $pubRaw = trim((string)getenv('SHEET_PUBKEY'));
+            $pub = $pubRaw === '' ? null : openssl_pkey_get_public((string)base64_decode($pubRaw, true));
+            if ($pubRaw !== '' && !$pub) { fwrite(STDERR, "public key okunamadi\n"); exit(1); }
 
             $order = null;
             foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $order = $r; break; }
             if (!$order) { fwrite(STDERR, "siparis bulunamadi\n"); exit(1); }
 
-            $lines = vestra_order_lines($order)['lines'];
-            $missing = 0;
+            /* ---- DENETIM ----------------------------------------------------------------
+               orders.csv'deki ham "items" alaninda kac kalem var, bunlarin kaci ayristirilip
+               panellere/faturaya ulasiyor? Bu ucu birbirini tutmuyorsa satir sessizce
+               dusuyor demektir -- boslukli SKU hatasinin belirtisi tam olarak buydu.
+               Log herkese acik oldugu icin SKU/adet/tutar DEGIL, sadece sayilar yazilir. */
+            $raw    = (string)($order['items'] ?? '');
+            $segs   = $raw === '' ? 0 : count(explode(' | ', $raw));
+            $parsed = count(vestra_parse_order_items($raw));
+            $lines  = vestra_order_lines($order)['lines'];
+            $ok     = ($segs === $parsed && $parsed === count($lines));
+            echo "items alanindaki kalem   : {$segs}\n";
+            echo "ayristirilan satir       : {$parsed}\n";
+            echo "vestra_order_lines()     : ".count($lines)."   <- admin/alici/satici paneli ve fatura bunu kullanir\n";
+            echo "  => ".($ok ? "TAMAM, satir dusmuyor" : "UYUSMAZLIK -- satir dusuyor")."\n";
+
+            /* Katalogda bulunamayan SKU faturaya "artik listelenmiyor" diye girer. */
+            $unmatched = 0; $units = 0; $goods = 0.0; $missing = 0;
             foreach ($lines as $l) {
+              if (!vestra_product_by_sku((string)($l['sku'] ?? ''))) $unmatched++;
+              $units += (int)($l['qty'] ?? 0);
+              $goods += (float)($l['line'] ?? 0);
               $img = (string)($l['image'] ?? '');
               if ($img === '' || !is_file($doc.$img)) $missing++;
             }
-            echo "satir      : ".count($lines)."\n";
-            echo "fotosuz    : {$missing}\n";
-            echo "GD         : ".(function_exists('imagecreatefromstring') ? 'var' : 'YOK')."\n";
+            echo "toplam adet              : {$units}\n";
+            echo "katalogda bulunamayan SKU: {$unmatched}\n";
+            echo "fotosuz satir            : {$missing}\n";
+
+            /* Para kontrolu: mal toplami eksi indirim, orders.csv'deki toplami tutmali.
+               Fark escrow'da alici koruma bedeli kadar olur, baska durumda 0 olmali.
+               Tutari degil, sadece FARKI yaziyoruz -- 0.00 hicbir sey sizdirmaz. */
+            $delta = round((float)($order['total'] ?? 0) - ($goods - (float)($order['discount'] ?? 0)), 2);
+            echo "toplam farki (kayitli - mal): ".number_format($delta, 2)."  "
+               .(abs($delta) < 0.01 ? "(tutuyor)" : "(escrow koruma bedeli ya da UYUSMAZLIK)")."\n";
+
+            $inv = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];
+            echo "kesilmis fatura          : ".(count($inv) ?: 'yok (siparis inceleniyor)')."\n";
+            echo "GD                       : ".(function_exists('imagecreatefromstring') ? 'var' : 'YOK')."\n";
+
+            if (!$pub) { echo "\n(public key verilmedi -- PDF uretilmedi, sadece denetim)\n"; exit($ok ? 0 : 1); }
 
             $pdf = vestra_render_order_sheet_pdf($order, $lines);
             echo "bayt       : ".strlen($pdf)."\n";
