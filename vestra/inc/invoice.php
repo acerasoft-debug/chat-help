@@ -197,11 +197,22 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     // ── Header ──
     /* The mark, then the wordmark as live text beside it. Not one baked image: the name has
        to survive a reader that fails on the logo, and text stays selectable and searchable
-       in the buyer's document system. The mark is centred on the two text lines rather than
-       hung off the cap line, so the block reads as one lockup. */
-    $markSide = 26.0;
-    $markX    = $left + $markSide + 11;
-    vestra_pdf_mark($pdf, $left, $y - 1.5, $markSide);
+       in the buyer's document system. If the file is missing the wordmark simply starts at
+       the margin and the header still reads correctly.
+       Taken from the 512px icon at 256px and quality 95, not the 192px one at 80: a logo is
+       flat colour and hard edges, the worst case for JPEG, and at the default quality the
+       gold V picked up a visible halo. It costs about 8 KB.
+       Corners rounded to the proportion in favicon.svg (7 of 32): the icon file is a square
+       raster because a phone's OS does the rounding, and on paper nothing does — untouched it
+       prints as a hard black tile next to the wordmark.
+       Centred on both text lines rather than hung off the cap line, so the mark and the
+       wordmark read as one lockup instead of two things that happen to be adjacent. */
+    $markSide = 30.0;
+    $markX    = $left;
+    $logo     = vestra_pdf_thumb('/icon-512.png', 256, 95);
+    if ($logo !== '' && $pdf->imageJpeg($logo, $left, $y - 1.5 - $markSide / 2, $markSide, $markSide, $markSide * 7 / 32)) {
+        $markX = $left + $markSide + 11;
+    }
     $pdf->text($markX, $y, 20, 'VESTRA', true);
     $pdf->text($markX, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);

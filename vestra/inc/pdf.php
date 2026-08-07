@@ -21,7 +21,7 @@
  * accepts. Returns '' when the file is missing or GD is unavailable; the caller draws a
  * placeholder rather than failing.
  */
-function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
+function vestra_pdf_thumb(string $src, int $maxPx = 200, int $quality = 80): string {
     $src = trim($src);
     if ($src === '' || $src[0] !== '/') return '';
     $file = dirname(__DIR__).$src;
@@ -44,31 +44,12 @@ function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
     // Cut-outs are shot on white; without this fill a transparent PNG lands on black.
     imagefilledrectangle($dst, 0, 0, $nw, $nh, imagecolorallocate($dst, 255, 255, 255));
     imagecopyresampled($dst, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    ob_start(); imagejpeg($dst, null, 80); $out = (string)ob_get_clean();
+    /* Product photos ride at the default quality — there are dozens per document and the file
+       size is theirs. A logo is one small image with hard edges and flat colour, exactly what
+       JPEG handles worst, so the caller can pay a few KB for it and keep the edges clean. */
+    ob_start(); imagejpeg($dst, null, max(1, min(100, $quality))); $out = (string)ob_get_clean();
     imagedestroy($im); imagedestroy($dst);
     return $out;
-}
-
-/**
- * The VESTRA mark — the rounded square with the V inside it, in the proportions of
- * favicon.svg, drawn as vectors.
- *
- * Not the PWA icon re-encoded: that file is a small raster on the brand's near-black plate,
- * which prints on a white invoice as a dark postage stamp, and JPEG (the only thing
- * /DCTDecode reads) frays every one of its hard edges. Drawn into the content stream it is
- * dark-on-white, sharp at any zoom, a few hundred bytes, and needs neither GD nor the file.
- *
- * ($x,$yMid) is the left edge and the vertical centre of the square, so a caller can centre
- * the mark on a block of text without doing the arithmetic.
- */
-function vestra_pdf_mark(VestraPdf $pdf, float $x, float $yMid, float $side, float $gray = 0.10): void {
-    $y = $yMid - $side / 2;
-    $pdf->roundRect($x, $y, $side, $side, 0.263 * $side, 0.089 * $side, $gray);
-    $pdf->polyline([
-        [$x + 0.263 * $side, $y + 0.700 * $side],
-        [$x + 0.500 * $side, $y + 0.258 * $side],
-        [$x + 0.737 * $side, $y + 0.700 * $side],
-    ], 0.105 * $side, $gray);
 }
 
 class VestraPdf {
@@ -131,31 +112,6 @@ class VestraPdf {
     }
 
     /**
-     * Rounded-rectangle outline; ($x,$y) is the bottom-left corner. Corners are drawn as
-     * Bézier arcs (0.5523 is the standard circle-from-cubic constant), so they stay round at
-     * any zoom instead of stepping like a scaled bitmap would.
-     */
-    public function roundRect(float $x, float $y, float $w, float $h, float $r, float $lw = 1.0, float $gray = 0.1): void {
-        $r  = min($r, $w / 2, $h / 2);
-        $k  = $r * 0.5523;
-        $x2 = $x + $w; $y2 = $y + $h;
-        $s  = sprintf("q %.2F w %.3F G 1 J 1 j\n%.2F %.2F m\n", $lw, $gray, $x + $r, $y);
-        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2 - $r, $y,  $x2 - $r + $k, $y,  $x2, $y + $r - $k,  $x2, $y + $r);
-        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2, $y2 - $r, $x2, $y2 - $r + $k, $x2 - $r + $k, $y2, $x2 - $r, $y2);
-        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x + $r, $y2, $x + $r - $k, $y2, $x, $y2 - $r + $k,  $x, $y2 - $r);
-        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x, $y + $r,  $x, $y + $r - $k,  $x + $r - $k, $y,  $x + $r, $y);
-        $this->cur .= $s."h S Q\n";
-    }
-
-    /** Open stroked path through [[x,y],…], round caps and joins. */
-    public function polyline(array $pts, float $lw = 1.0, float $gray = 0.1): void {
-        if (count($pts) < 2) return;
-        $s = sprintf("q %.2F w %.3F G 1 J 1 j\n", $lw, $gray);
-        foreach (array_values($pts) as $i => $p) $s .= sprintf("%.2F %.2F %s\n", $p[0], $p[1], $i ? 'l' : 'm');
-        $this->cur .= $s."S Q\n";
-    }
-
-    /**
      * Place a JPEG inside the box whose bottom-left corner is ($x,$y), scaled to fit and
      * centred so photos of different crops still line up in a column.
      *
@@ -165,7 +121,7 @@ class VestraPdf {
      * bytes cannot be described: one unreadable photo should cost that row's thumbnail,
      * not the whole document.
      */
-    public function imageJpeg(string $jpeg, float $x, float $y, float $boxW, float $boxH): bool {
+    public function imageJpeg(string $jpeg, float $x, float $y, float $boxW, float $boxH, float $radius = 0.0): bool {
         $info = self::jpegInfo($jpeg);
         if (!$info || $info['w'] < 1 || $info['h'] < 1) return false;
 
@@ -181,8 +137,30 @@ class VestraPdf {
         $s  = min($boxW / $info['w'], $boxH / $info['h']);
         $w  = $info['w'] * $s;  $h  = $info['h'] * $s;
         $ox = $x + ($boxW - $w) / 2;  $oy = $y + ($boxH - $h) / 2;
-        $this->cur .= sprintf("q %.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n", $w, $h, $ox, $oy, $key);
+        $this->cur .= "q\n".self::roundClip($ox, $oy, $w, $h, $radius)
+            .sprintf("%.2F 0 0 %.2F %.2F %.2F cm /%s Do Q\n", $w, $h, $ox, $oy, $key);
         return true;
+    }
+
+    /**
+     * Clip path confining the next drawing to a rounded rectangle; '' when $r is 0.
+     *
+     * The site's logo files are square rasters — the rounded plate you see on a phone is the
+     * OS clipping the icon, and nothing clips it on paper, so the mark lands on an invoice as
+     * a hard black tile. Corners are quarter-circle Béziers (0.5523 is the standard
+     * circle-from-cubic constant).
+     */
+    private static function roundClip(float $x, float $y, float $w, float $h, float $r): string {
+        $r = min($r, $w / 2, $h / 2);
+        if ($r <= 0) return '';
+        $k  = $r * 0.5523;
+        $x2 = $x + $w; $y2 = $y + $h;
+        $p  = sprintf("%.2F %.2F m\n", $x + $r, $y);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2 - $r, $y,  $x2 - $r + $k, $y,  $x2, $y + $r - $k,  $x2, $y + $r);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2, $y2 - $r, $x2, $y2 - $r + $k, $x2 - $r + $k, $y2, $x2 - $r, $y2);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x + $r, $y2, $x + $r - $k, $y2, $x, $y2 - $r + $k,  $x, $y2 - $r);
+        $p .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x, $y + $r,  $x, $y + $r - $k,  $x + $r - $k, $y,  $x + $r, $y);
+        return $p."h W n\n";
     }
 
     /** Pixel size and component count from the JPEG's frame header; null if it isn't one. */
