@@ -246,6 +246,21 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         ? 'Paid in full via VESTRA secure escrow. Funds are released to the seller once the buyer confirms delivery.'
         : 'Payment due within 14 days via bank transfer to the account shown above (if provided).', false);
     $y -= 12;
+
+    /* An order delivered in instalments has to say so on its invoice. Without it the first
+       short consignment reads as an invoice discrepancy to the buyer's finance team, and to
+       a customs broker as goods missing from the declared entry. Saying it here makes the
+       short delivery the expected thing and points at the document that governs each box —
+       the invoice value covers the whole order, the entry value never does. */
+    if (!empty($order['partial_shipments'])) {
+        $need(30);
+        foreach ($pdf->wrap('Partial shipments permitted. The goods are delivered in instalments against this '
+            .'invoice; each consignment travels with its own packing list stating the items and the value in that '
+            .'consignment, which is the value to be declared for that entry.', $width, 8) as $fl) {
+            $pdf->text($left, $y, 8, $fl); $y -= 11;
+        }
+        $y -= 2;
+    }
     foreach ($pdf->wrap('This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.', $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;
     }
@@ -334,6 +349,7 @@ function vestra_issue_order_invoices(string $ref): array {
            the first invoice; a second seller's invoice shows goods only. */
         'shipping' => round((float)($orderRow['shipping'] ?? 0), 2),
         'shipping_label' => trim((string)($orderRow['shipping_label'] ?? '')),
+        'partial_shipments' => !empty($orderRow['partial_shipments']),
         'buyer' => [
             'company' => $orderRow['company'] ?? '', 'vat' => $orderRow['vat'] ?? '',
             'name' => $orderRow['name'] ?? '', 'email' => $orderRow['email'] ?? '',

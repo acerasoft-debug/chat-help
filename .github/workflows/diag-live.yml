@@ -257,6 +257,7 @@ jobs:
                 'voucher_code' => trim((string)($order['voucher_code'] ?? '')),
                 'shipping' => round((float)($order['shipping'] ?? 0), 2),
                 'shipping_label' => trim((string)($order['shipping_label'] ?? '')),
+                'partial_shipments' => !empty($order['partial_shipments']),
                 'buyer' => [
                   'company' => $order['company'] ?? '', 'vat' => $order['vat'] ?? '',
                   'name' => $order['name'] ?? '', 'email' => $order['email'] ?? '',

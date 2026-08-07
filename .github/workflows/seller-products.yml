@@ -139,7 +139,7 @@ jobs:
                 $csv  = $doc.'/data/orders.csv';
                 $rows = vestra_read_csv('orders.csv');
                 $hdr  = $rows ? array_keys($rows[0]) : [];
-                foreach (['shipping','shipping_label'] as $col) if (!in_array($col, $hdr, true)) $hdr[] = $col;
+                foreach (['shipping','shipping_label','partial_shipments'] as $col) if (!in_array($col, $hdr, true)) $hdr[] = $col;
                 vestra_csv_ensure_header('orders.csv', $hdr);
                 $rows = vestra_read_csv('orders.csv');
                 copy($csv, $csv.'.bak-'.date('Ymd-His'));
@@ -148,6 +148,7 @@ jobs:
                     if (($r['ref'] ?? '') !== $ref2) continue;
                     $rows[$i]['shipping'] = number_format((float)$in['shipping'], 2, '.', '');
                     $rows[$i]['shipping_label'] = (string)($in['shipping_label'] ?? '');
+                    $rows[$i]['partial_shipments'] = !empty($in['partial_shipments']) ? '1' : '';
                     $hit++;
                 }
                 if (!$hit) { fwrite(STDERR, "navlun icin siparis bulunamadi: {$ref2}\n"); exit(1); }
