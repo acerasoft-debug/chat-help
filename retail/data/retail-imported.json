@@ -3,9 +3,9 @@
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-6",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — White",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
             "ONE": 1
@@ -23,16 +23,16 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-6",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-6"
         },
-        "imported_at": 1786116709,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt White TH6709001\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions:\n\nMachine wash at 30°C\nIron at medium temperature\nDo not tumble dry\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-5",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Navy Blue",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
             "ONE": 1
@@ -50,16 +50,16 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-5",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-5"
         },
-        "imported_at": 1786116710,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Navy TH6709166\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions:\n\nMachine wash at 30°C\nIron at medium temperature\nDo not tumble dry\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-copy-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Black",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
             "ONE": 1
@@ -78,16 +78,16 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-copy-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-copy-1"
         },
-        "imported_at": 1786116713,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Black TH6709031\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions:\n\nMachine wash at 30°C\nIron at medium temperature\nDo not tumble dry\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Green",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
             "ONE": 1
@@ -105,19 +105,23 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-4"
         },
-        "imported_at": 1786116715,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Green TH6709132\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions:\n\nMachine wash at 30°C\nIron at medium temperature\nDo not tumble dry\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-trim-cotton-jersey-t-shirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Trim Cotton Jersey T-shirt",
+        "name": "Lacoste Trim Cotton Jersey T-shirt — Bordeaux",
         "sku": "LACOSTE-TRIM-COTTON-JERS",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 40,
         "size_stock": {
-            "BORDEAUX": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-trim-cotton-jersey-t-shirt-3-1.avif",
@@ -133,19 +137,23 @@
             "handle": "lacoste-trim-cotton-jersey-t-shirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-trim-cotton-jersey-t-shirt-3"
         },
-        "imported_at": 1786116717,
+        "imported_at": 1786117151,
         "copy": "Lacoste Trim Cotton Jersey T-shirt Bordeaux TH98420476 \n\n· Cotton jersey\n\n· Regular fit, straight cut\n\n· Ribbed finish on collar\n\n· Lacoste branded contrast trim on chest\n\n· Sewn-on embroidered crocodile on chest\n\n· Cotton (100%)\n\n· Regular fit\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-trim-cotton-jersey-t-shirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Trim Cotton Jersey T-shirt",
+        "name": "Lacoste Trim Cotton Jersey T-shirt — Navy",
         "sku": "LACOSTE-TRIM-COTTON-JERS",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 40,
         "size_stock": {
-            "NAVY": 5
+            "S": 1,
+            "L": 1,
+            "M": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-trim-cotton-jersey-t-shirt-2-1.avif",
@@ -159,19 +167,23 @@
             "handle": "lacoste-trim-cotton-jersey-t-shirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-trim-cotton-jersey-t-shirt-2"
         },
-        "imported_at": 1786116719,
+        "imported_at": 1786117151,
         "copy": "Lacoste Trim Cotton Jersey T-Shirt Navy TH98420166\n\n· Cotton jersey\n\n· Regular fit, straight cut\n\n· Ribbed finish on collar\n\n· Lacoste branded contrast trim on chest\n\n· \nSewn-on embroidered crocodile on chest\n\n· Cotton (100%)\n\n· \nRegular fit\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-trim-cotton-jersey-t-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Trim Cotton Jersey T-shirt",
+        "name": "Lacoste Trim Cotton Jersey T-shirt — White",
         "sku": "LACOSTE-TRIM-COTTON-JERS",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 40,
         "size_stock": {
-            "WHITE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-trim-cotton-jersey-t-shirt-1-1.jpg",
@@ -187,19 +199,23 @@
             "handle": "lacoste-trim-cotton-jersey-t-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-trim-cotton-jersey-t-shirt-1"
         },
-        "imported_at": 1786116722,
+        "imported_at": 1786117151,
         "copy": "Lacoste Trim Cotton Jersey T-shirt White TH9842001"
     },
     {
         "id": "fashionb-lacoste-trim-cotton-jersey-t-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Trim Cotton Jersey T-shirt",
+        "name": "Lacoste Trim Cotton Jersey T-shirt — Black",
         "sku": "LACOSTE-TRIM-COTTON-JERS",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 40,
         "size_stock": {
-            "BLACK": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-trim-cotton-jersey-t-shirt-1.jpg",
@@ -215,19 +231,23 @@
             "handle": "lacoste-trim-cotton-jersey-t-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-trim-cotton-jersey-t-shirt"
         },
-        "imported_at": 1786116724,
+        "imported_at": 1786117151,
         "copy": "Lacoste Trim Cotton Jersey T-shirt Black TH9842031"
     },
     {
         "id": "fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt",
+        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt — Bordeaux",
         "sku": "LACOSTE-REGULAR-FIT-LOGO",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 60,
         "size_stock": {
-            "BORDEAUX": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3-1.jpg",
@@ -243,19 +263,23 @@
             "handle": "lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-3"
         },
-        "imported_at": 1786116727,
+        "imported_at": 1786117151,
         "copy": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt Bordeaux PH96830476"
     },
     {
         "id": "fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt",
+        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt — Navy",
         "sku": "LACOSTE-REGULAR-FIT-LOGO",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 60,
         "size_stock": {
-            "NAVY": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-2-1.jpg",
@@ -271,19 +295,23 @@
             "handle": "lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-2"
         },
-        "imported_at": 1786116729,
+        "imported_at": 1786117151,
         "copy": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt Navy PH96830166"
     },
     {
         "id": "fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt",
+        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt — Black",
         "sku": "LACOSTE-REGULAR-FIT-LOGO",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 60,
         "size_stock": {
-            "BLACK": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1-1.jpg",
@@ -299,19 +327,23 @@
             "handle": "lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1"
         },
-        "imported_at": 1786116732,
+        "imported_at": 1786117151,
         "copy": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt Black PH9863031"
     },
     {
         "id": "fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt",
+        "name": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt — White",
         "sku": "LACOSTE-REGULAR-FIT-LOGO",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 60,
         "size_stock": {
-            "WHITE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-regular-fit-logo-trim-l-12-12-polo-shirt-1.jpg",
@@ -326,16 +358,16 @@
             "handle": "lacoste-regular-fit-logo-trim-l-12-12-polo-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-regular-fit-logo-trim-l-12-12-polo-shirt"
         },
-        "imported_at": 1786116734,
+        "imported_at": 1786117151,
         "copy": "Lacoste Regular Fit Logo Trim L.12.12 Polo Shirt White PH9863001"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Beige",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 70,
         "size_stock": {
             "ONE": 1
@@ -353,15 +385,15 @@
             "handle": "lacoste-men-fleece-hoodie-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-2"
         },
-        "imported_at": 1786116736
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Navy Blue",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -380,16 +412,16 @@
             "handle": "lacoste-men-fleece-hoodie-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-1"
         },
-        "imported_at": 1786116739,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie Navy Blue\n\nSH9623 00 166"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Black",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -409,18 +441,19 @@
             "handle": "lacoste-men-fleece-hoodie",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie"
         },
-        "imported_at": 1786116742
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-slim-fit-sweatpants-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Slim Fit Sweatpants",
+        "name": "Lacoste Men Slim Fit Sweatpants — Blue",
         "sku": "LACOSTE-MEN-SLIM-FIT-SWE",
-        "cat": "Sonstiges",
+        "cat": "Trousers",
         "retail_price": 70,
         "size_stock": {
-            "BLUE": 2
+            "S": 1,
+            "XS": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-1.jpg",
@@ -438,19 +471,21 @@
             "handle": "lacoste-men-slim-fit-sweatpants-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-slim-fit-sweatpants-3"
         },
-        "imported_at": 1786116746,
+        "imported_at": 1786117151,
         "copy": "Lacoste Slim Fit Sweatpants Blue XH9624004XA"
     },
     {
         "id": "fashionb-lacoste-men-slim-fit-sweatpants-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Slim Fit Sweatpants",
+        "name": "Lacoste Men Slim Fit Sweatpants — Beige",
         "sku": "LACOSTE-MEN-SLIM-FIT-SWE",
-        "cat": "Sonstiges",
+        "cat": "Trousers",
         "retail_price": 70,
         "size_stock": {
-            "BEIGE": 3
+            "M": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-2-1.avif",
@@ -467,19 +502,22 @@
             "handle": "lacoste-men-slim-fit-sweatpants-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-slim-fit-sweatpants-2"
         },
-        "imported_at": 1786116749,
+        "imported_at": 1786117151,
         "copy": "Lacoste Slim Fit SWeatpants Beige XH96240002S"
     },
     {
         "id": "fashionb-lacoste-men-slim-fit-sweatpants-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Slim Fit Sweatpants",
+        "name": "Lacoste Men Slim Fit Sweatpants — Green",
         "sku": "LACOSTE-MEN-SLIM-FIT-SWE",
-        "cat": "Sonstiges",
+        "cat": "Trousers",
         "retail_price": 70,
         "size_stock": {
-            "GREEN": 4
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-1-1.avif",
@@ -497,16 +535,16 @@
             "handle": "lacoste-men-slim-fit-sweatpants-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-slim-fit-sweatpants-1"
         },
-        "imported_at": 1786116753,
+        "imported_at": 1786117151,
         "copy": "Lacoste Men Slim Fit Sweatpants Green XH962400132"
     },
     {
         "id": "fashionb-slim-fit-sweatpants",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Slim Men Slim Fit Sweatpants",
+        "name": "Slim Men Slim Fit Sweatpants — Navy Blue",
         "sku": "SLIM-FIT-SWEATPANTS",
-        "cat": "Sonstiges",
+        "cat": "Trousers",
         "retail_price": 70,
         "size_stock": {
             "ONE": 1
@@ -526,16 +564,16 @@
             "handle": "slim-fit-sweatpants",
             "url": "https://fashionbrandshome.com/products/slim-fit-sweatpants"
         },
-        "imported_at": 1786116756,
+        "imported_at": 1786117151,
         "copy": "Lascoste Slim Fit Sweatpants Midnight Blue XH962400166"
     },
     {
         "id": "fashionb-lacoste-men-slim-fit-sweatpants",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Slim Fit Sweatpants",
+        "name": "Lacoste Men Slim Fit Sweatpants — Black",
         "sku": "LACOSTE-MEN-SLIM-FIT-SWE",
-        "cat": "Sonstiges",
+        "cat": "Trousers",
         "retail_price": 70,
         "size_stock": {
             "ONE": 1
@@ -555,19 +593,20 @@
             "handle": "lacoste-men-slim-fit-sweatpants",
             "url": "https://fashionbrandshome.com/products/lacoste-men-slim-fit-sweatpants"
         },
-        "imported_at": 1786116760,
+        "imported_at": 1786117151,
         "copy": "Lacoste Slim Fit Sweatpants Black XH962400031"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-high-neck-interlock-sweatshirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip-Up High Neck Interlock Sweatshirt",
+        "name": "Lacoste Men Zip-Up High Neck Interlock Sweatshirt — White",
         "sku": "LACOSTE-MEN-ZIP-UP-HIGH-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 75,
         "size_stock": {
-            "WHITE": 2
+            "L": 1,
+            "M": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-high-neck-interlock-sweatshirt-1-1.avif",
@@ -584,19 +623,21 @@
             "handle": "lacoste-men-zip-up-high-neck-interlock-sweatshirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-high-neck-interlock-sweatshirt-1"
         },
-        "imported_at": 1786116763,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up High Neck Sweatshirt White SH19270001"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-high-neck-interlock-sweatshirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip-Up High Neck Interlock Sweatshirt",
+        "name": "Lacoste Men Zip-Up High Neck Interlock Sweatshirt — Blue",
         "sku": "LACOSTE-MEN-ZIP-UP-HIGH-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 75,
         "size_stock": {
-            "BLUE": 3
+            "S": 1,
+            "M": 1,
+            "L": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-high-neck-interlock-sweatshirt-1.avif",
@@ -613,16 +654,16 @@
             "handle": "lacoste-men-zip-up-high-neck-interlock-sweatshirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-high-neck-interlock-sweatshirt"
         },
-        "imported_at": 1786116766,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up High Neck Sweatshirt Blue SH192700HD9"
     },
     {
         "id": "fashionb-zip-up-men-high-neck-interlock-sweatshirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Zip-Up Men High Neck Interlock Sweatshirt",
+        "name": "Zip-Up Men High Neck Interlock Sweatshirt — Beige",
         "sku": "ZIP-UP-MEN-HIGH-NECK-INT",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 75,
         "size_stock": {
             "ONE": 1
@@ -642,19 +683,23 @@
             "handle": "zip-up-men-high-neck-interlock-sweatshirt-3",
             "url": "https://fashionbrandshome.com/products/zip-up-men-high-neck-interlock-sweatshirt-3"
         },
-        "imported_at": 1786116770,
+        "imported_at": 1786117151,
         "copy": "Lacoste High Neck Sweatshirt Beige SH1927002S"
     },
     {
         "id": "fashionb-zip-up-men-high-neck-interlock-sweatshirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Zip-Up Men High Neck Interlock Sweatshirt",
+        "name": "Zip-Up Men High Neck Interlock Sweatshirt — Navy Blue",
         "sku": "ZIP-UP-MEN-HIGH-NECK-INT",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 75,
         "size_stock": {
-            "NAVY BLUE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-zip-up-men-high-neck-interlock-sweatshirt-1-1.avif",
@@ -672,19 +717,19 @@
             "handle": "zip-up-men-high-neck-interlock-sweatshirt-1",
             "url": "https://fashionbrandshome.com/products/zip-up-men-high-neck-interlock-sweatshirt-1"
         },
-        "imported_at": 1786116773,
+        "imported_at": 1786117151,
         "copy": "Lacoste High Neck Sweatshirt Midnight Blue SH192700166"
     },
     {
         "id": "fashionb-zip-up-men-high-neck-interlock-sweatshirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Zip-Up Men High Neck Interlock Sweatshirt",
+        "name": "Zip-Up Men High Neck Interlock Sweatshirt — Black",
         "sku": "ZIP-UP-MEN-HIGH-NECK-INT",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 75,
         "size_stock": {
-            "BLACK": 1
+            "S": 1
         },
         "images": [
             "/uploads/imported/fashionb-zip-up-men-high-neck-interlock-sweatshirt-1.avif",
@@ -702,18 +747,20 @@
             "handle": "zip-up-men-high-neck-interlock-sweatshirt",
             "url": "https://fashionbrandshome.com/products/zip-up-men-high-neck-interlock-sweatshirt"
         },
-        "imported_at": 1786116777
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt",
+        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt — White",
         "sku": "LACOSTE-MEN-LIGHTWEIGHT-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "WHITE": 3
+            "S": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-3-1.avif",
@@ -730,18 +777,20 @@
             "handle": "lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-3"
         },
-        "imported_at": 1786116780
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt",
+        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt — Black",
         "sku": "LACOSTE-MEN-LIGHTWEIGHT-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "BLACK": 3
+            "S": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-1-1.avif",
@@ -757,18 +806,20 @@
             "handle": "lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-1"
         },
-        "imported_at": 1786116783
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt",
+        "name": "Lacoste Men Lightweight Cotton Pima V Neck T-shirt — Navy Blue",
         "sku": "LACOSTE-MEN-LIGHTWEIGHT-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "NAVY BLUE": 3
+            "S": 1,
+            "M": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-lightweight-cotton-pima-v-neck-t-shirt-1.avif",
@@ -784,18 +835,20 @@
             "handle": "lacoste-men-lightweight-cotton-pima-v-neck-t-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-lightweight-cotton-pima-v-neck-t-shirt"
         },
-        "imported_at": 1786116785
+        "imported_at": 1786117151
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Blue",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "BLUE": 3
+            "M": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-3-1.jpg",
@@ -810,19 +863,19 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-3"
         },
-        "imported_at": 1786116788,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Blue TH67093D3"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Light Blue",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "LIGHT BLUE": 1
+            "S": 1
         },
         "images": [],
         "seller_type": "vestra",
@@ -832,19 +885,20 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-2"
         },
-        "imported_at": 1786116788,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Blue TH6709HBP"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Beige",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "BEIGE": 2
+            "S": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1-1.avif",
@@ -860,19 +914,20 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-1"
         },
-        "imported_at": 1786116790,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Beige TH670902S"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt-copy",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Light Pink",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "LIGHT PINK": 2
+            "S": 1,
+            "L": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-copy-1.avif",
@@ -888,19 +943,21 @@
             "handle": "lacoste-men-cotton-pima-t-shirt-copy",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt-copy"
         },
-        "imported_at": 1786116793,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Light Pink TH6709T01\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions\n\nMachine wash at 30°C\n\nIron at medium temperature\n\nDo not tumble dry\n\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-men-cotton-pima-t-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Cotton Pima T-Shirt",
+        "name": "Lacoste Men Cotton Pima T-Shirt — Red",
         "sku": "LACOSTE-MEN-COTTON-PIMA-",
-        "cat": "Sonstiges",
+        "cat": "T-Shirts",
         "retail_price": 30,
         "size_stock": {
-            "RED": 3
+            "M": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-cotton-pima-t-shirt-1.avif",
@@ -915,16 +972,16 @@
             "handle": "lacoste-men-cotton-pima-t-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-cotton-pima-t-shirt"
         },
-        "imported_at": 1786116795,
+        "imported_at": 1786117151,
         "copy": "Lacoste Cotton Pima T-Shirt Red TH6709240\n\nFit: Regular fit\nNeckline: Crew neck \nMaterial: 100% Pima Cotton\nDetailing: Embroidered crocodile logo on the chest\nMeasurements: \n\nPit to pit:\n\n3/S: 51cm\n\n4/M:53cm\n\n5/L:56 cm\n\n6/XL:59 cm\n\n7/XXL:61 cm \n\nCare Instructions:\n\nMachine wash at 30°C\nIron at medium temperature\nDo not tumble dry\nDo not bleach"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-copy-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Light Blue",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -944,16 +1001,16 @@
             "handle": "lacoste-men-fleece-hoodie-copy-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-copy-4"
         },
-        "imported_at": 1786116799,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie SH9623 00 T01 \n\n \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-copy-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Green",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -972,16 +1029,16 @@
             "handle": "lacoste-men-fleece-hoodie-copy-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-copy-3"
         },
-        "imported_at": 1786116803,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie Pine Green SH9623 00 132\n\nPremium Blend: Organic brushed cotton & recycled polyester\nIconic Detail: Signature embroidered crocodile on the chest\nFunctional Elements: Kangaroo pocket & jersey-lined hood\nComfort Fit: Classic fit for natural ease\nComposition: Main Fabric: 84% Cotton, 16% Polyester\nHood Lining: 100% Cotton\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-copy-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Bordeaux",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -1001,16 +1058,16 @@
             "handle": "lacoste-men-fleece-hoodie-copy-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-copy-2"
         },
-        "imported_at": 1786116807,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie Bordeaux SH9623 00 BZD\n\nPremium Blend: Organic brushed cotton & recycled polyester\nIconic Detail: Signature embroidered crocodile on the chest\nFunctional Elements: Kangaroo pocket & jersey-lined hood\nComfort Fit: Classic fit for natural ease\nComposition: Main Fabric: 84% Cotton, 16% Polyester\nHood Lining: 100% Cotton\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-copy-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — White",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -1029,16 +1086,16 @@
             "handle": "lacoste-men-fleece-hoodie-copy-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-copy-1"
         },
-        "imported_at": 1786116810,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie White SH9623 00 001\n\nPremium Blend: Organic brushed cotton & recycled polyester\nIconic Detail: Signature embroidered crocodile on the chest\nFunctional Elements: Kangaroo pocket & jersey-lined hood\nComfort Fit: Classic fit for natural ease\nComposition: Main Fabric: 84% Cotton, 16% Polyester\nHood Lining: 100% Cotton\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-hoodie-copy",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Blue",
         "sku": "LACOSTE-MEN-FLEECE-HOODI",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
             "ONE": 1
@@ -1057,19 +1114,19 @@
             "handle": "lacoste-men-fleece-hoodie-copy",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-hoodie-copy"
         },
-        "imported_at": 1786116814,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie Blue SH9623 04XA\n\nPremium Blend: Organic brushed cotton & recycled polyester\nIconic Detail: Signature embroidered crocodile on the chest\nFunctional Elements: Kangaroo pocket & jersey-lined hood\nComfort Fit: Classic fit for natural ease\nComposition: Main Fabric: 84% Cotton, 16% Polyester\nHood Lining: 100% Cotton\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-copy",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Hoodie",
+        "name": "Lacoste Men Fleece Hoodie — Beige",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "BEIGE": 1
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-copy-1.jpg",
@@ -1082,19 +1139,20 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-copy",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-copy"
         },
-        "imported_at": 1786116815,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Hoodie Vert Khaki SH9623 00 BMY \n\nPremium Blend: Organic brushed cotton & recycled polyester\nIconic Detail: Signature embroidered crocodile on the chest\nFunctional Elements: Kangaroo pocket & jersey-lined hood\nComfort Fit: Classic fit for natural ease\nComposition: Main Fabric: 84% Cotton, 16% Polyester\nHood Lining: 100% Cotton\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt",
+        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Beige",
         "sku": "LACOSTE-MEN-CLASSIC-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 59,
         "size_stock": {
-            "BEIGE": 2
+            "S": 1,
+            "M": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2-1.avif",
@@ -1111,19 +1169,19 @@
             "handle": "lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-classic-fit-monogram-jacquard-polo-shirt-2"
         },
-        "imported_at": 1786116818,
+        "imported_at": 1786117151,
         "copy": "Lacoste Classic Fit Monogram Jacquard Polo Shirt Beige DH141706IR\n\nMaterial: Recycled polyester jacquard and organic cotton blend\nDetails: Jacquard knit monogram, two soft-touch buttons\nBranding: Embroidered crocodile on the chest\nComposition: Main Fabric: 58% Polyester, 38% Cotton, 4% Polyamide\n\nFit: Classic, comfortable fit\n\nIf you hesitate between two sizes, we recommend that you choose a larger size than your usual size.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt",
+        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Black",
         "sku": "LACOSTE-MEN-CLASSIC-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 59,
         "size_stock": {
-            "BLACK": 1
+            "S": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1-1.avif",
@@ -1140,19 +1198,20 @@
             "handle": "lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1"
         },
-        "imported_at": 1786116822,
+        "imported_at": 1786117151,
         "copy": "Lacoste Classic Fit Monogram Jacquard Polo Shirt Black DH141704PC \n\nMaterial: Recycled polyester jacquard and organic cotton blend\nDetails: Jacquard knit monogram, two soft-touch buttons\nBranding: Embroidered crocodile on the chest\nComposition: Main Fabric: 58% Polyester, 38% Cotton, 4% Polyamide\n\nFit: Classic, comfortable fit\n\nIf you hesitate between two sizes, we recommend that you choose a larger size than your usual size.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt",
+        "name": "Lacoste Men Classic Fit Monogram Jacquard Polo Shirt — Blue",
         "sku": "LACOSTE-MEN-CLASSIC-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 59,
         "size_stock": {
-            "BLUE": 2
+            "S": 1,
+            "L": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-classic-fit-monogram-jacquard-polo-shirt-1.webp",
@@ -1167,19 +1226,20 @@
             "handle": "lacoste-men-classic-fit-monogram-jacquard-polo-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-classic-fit-monogram-jacquard-polo-shirt"
         },
-        "imported_at": 1786116825,
+        "imported_at": 1786117151,
         "copy": "Lacoste Classic Fit Monogram Jacquard Polo Shirt Blue DH141700QIE\n\nMaterial: Recycled polyester jacquard and organic cotton blend\nDetails: Jacquard knit monogram, two soft-touch buttons\nBranding: Embroidered crocodile on the chest\nComposition: Main Fabric: 58% Polyester, 38% Cotton, 4% Polyamide\n\nFit: Classic, comfortable fit\n\nIf you hesitate between two sizes, we recommend that you choose a larger size than your usual size.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-6",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Blue",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "BLUE": 2
+            "S": 1,
+            "L": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-6-1.jpg",
@@ -1195,19 +1255,20 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-6",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-6"
         },
-        "imported_at": 1786116828,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie Blue SH9626004XA \n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-5",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Bordeaux",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
-            "BORDEAUX": 2
+            "S": 1,
+            "M": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-5-1.webp",
@@ -1220,19 +1281,19 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-5",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-5"
         },
-        "imported_at": 1786116829,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie Bordseaux SH962600BZD \n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Beige",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "BEIGE": 1
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-4-1.avif",
@@ -1248,19 +1309,20 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-4"
         },
-        "imported_at": 1786116832,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie Beige SH96260002S \n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — White",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "WHITE": 2
+            "S": 1,
+            "M": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-3-1.avif",
@@ -1276,19 +1338,20 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-3"
         },
-        "imported_at": 1786116835,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie White SH962600001\n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Green",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "GREEN": 2
+            "S": 1,
+            "L": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-2-1.avif",
@@ -1305,19 +1368,20 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-2"
         },
-        "imported_at": 1786116838,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie Green SH962600132 \n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Black",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "BLACK": 2
+            "M": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-1-1.avif",
@@ -1334,19 +1398,21 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie-1"
         },
-        "imported_at": 1786116841,
+        "imported_at": 1786117151,
         "copy": "Lacoste Zip Up Fleece Hoodie SH96260031 \n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-zip-up-fleece-hoodie",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Zip Up Fleece Hoodie",
+        "name": "Lacoste Men Zip Up Fleece Hoodie — Navy Blue",
         "sku": "LACOSTE-MEN-ZIP-UP-FLEEC",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 69,
         "size_stock": {
-            "NAVY BLUE": 3
+            "S": 1,
+            "L": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-zip-up-fleece-hoodie-1.avif",
@@ -1363,19 +1429,21 @@
             "handle": "lacoste-men-zip-up-fleece-hoodie",
             "url": "https://fashionbrandshome.com/products/lacoste-men-zip-up-fleece-hoodie"
         },
-        "imported_at": 1786116844,
+        "imported_at": 1786117151,
         "copy": "Lacoste zip up Fleece Hoodie SH962600166\n\nFit: Classic fit for natural ease.\nPockets: Functional kangaroo pocket.\nHood: Soft jersey-lined hood.\nDetails: Signature embroidered crocodile logo.\nComposition: 84% Organic Brushed Cotton, 16% Recycled Polyester.\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Light Blue",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "LIGHT BLUE": 3
+            "M": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8-1.avif",
@@ -1392,16 +1460,16 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-8"
         },
-        "imported_at": 1786116848,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Light Blue PH552200T01 \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Navy Blue",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
             "ONE": 1
@@ -1421,19 +1489,20 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-7"
         },
-        "imported_at": 1786116851,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Midnight Blue PH552200166 \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Bordeaux",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BORDEAUX": 2
+            "M": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6-1.jpg",
@@ -1448,19 +1517,21 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-6"
         },
-        "imported_at": 1786116855,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Bordeaux PH552200BZD \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Green",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "GREEN": 3
+            "S": 1,
+            "M": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5-1.avif",
@@ -1477,19 +1548,23 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-5"
         },
-        "imported_at": 1786116858,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Pine Green PH552200132 \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Saphire Blue",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "SAPHIRE BLUE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4-1.avif",
@@ -1506,19 +1581,21 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-4"
         },
-        "imported_at": 1786116862,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo PH552200C4X \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Beige",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BEIGE": 3
+            "M": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3-1.avif",
@@ -1534,19 +1611,23 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-3"
         },
-        "imported_at": 1786116864,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Beige PH55220002S\n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Red",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "RED": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2-1.avif",
@@ -1563,19 +1644,23 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-2"
         },
-        "imported_at": 1786116867,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Red PH552200240\n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — White",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "WHITE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1-1.avif",
@@ -1592,19 +1677,23 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1"
         },
-        "imported_at": 1786116871,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo White PH552200001\n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\n\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt",
+        "name": "Lacoste Men Regular Fit Paris Strech Pique Polo Shirt — Black",
         "sku": "LACOSTE-MEN-REGULAR-FIT-",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BLACK": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-regular-fit-paris-strech-pique-polo-shirt-1.avif",
@@ -1621,16 +1710,16 @@
             "handle": "lacoste-men-regular-fit-paris-strech-pique-polo-shirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-regular-fit-paris-strech-pique-polo-shirt"
         },
-        "imported_at": 1786116874,
+        "imported_at": 1786117151,
         "copy": "Lacoste Paris Polo Black PH552200031 \n\nPremium Cotton: Crafted from Cotton fibers meeting Lacoste's strict quality standards.\nSleek Details: Hidden button placket for a clean, sophisticated look.\nSignature Branding: Minimalist, embroidered tone-on-tone crocodile.\nPerfect Cut: Timeless regular fit with ribbed collar and cuffs that hold their shape.\n\nRegular Fit\n\nComposition: Main Fabric: 94% Cotton, 6% Elastane (added stretch for comfort and wrinkle resistance)\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-10",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12 Original Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12 Original Polo Shirt — Navy Blue",
         "sku": "LACOSTE-MEN-POLOSHIRT-10",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
             "ONE": 1
@@ -1650,16 +1739,16 @@
             "handle": "lacoste-men-poloshirt-10",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-10"
         },
-        "imported_at": 1786116877,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.1200166 Midnight Blue\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-7",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Navy",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1677,19 +1766,24 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-7",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-7"
         },
-        "imported_at": 1786116879,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Navy SH96080166\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-9",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12 Original Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12 Original Polo Shirt — Blue",
         "sku": "LACOSTE-MEN-POLOSHIRT-9",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BLUE": 6
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1,
+            "3XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-9-1.avif",
@@ -1705,16 +1799,16 @@
             "handle": "lacoste-men-poloshirt-9",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-9"
         },
-        "imported_at": 1786116883,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.12 04XA Blue\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-6",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Black",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1732,16 +1826,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-6",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-6"
         },
-        "imported_at": 1786116884,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Black SH96080031\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Bordeaux",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1759,16 +1853,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-3"
         },
-        "imported_at": 1786116887,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Bordeaux SH96080BZD \n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-5",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Light Blue",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1786,16 +1880,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-5",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-5"
         },
-        "imported_at": 1786116889,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Light Blue SH96080T01\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Red",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1814,16 +1908,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-4"
         },
-        "imported_at": 1786116893,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Red SH96080240\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-copy",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Green",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1841,16 +1935,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-copy",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-copy"
         },
-        "imported_at": 1786116895,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Pine Green SH96080132\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Blue",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1869,16 +1963,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-2"
         },
-        "imported_at": 1786116898,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Blue SH960804XA\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — White",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1896,16 +1990,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy-1"
         },
-        "imported_at": 1786116901,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt White SH96080001\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt-copy",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Beige",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1924,16 +2018,16 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt-copy",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt-copy"
         },
-        "imported_at": 1786116904,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt SH9608002S\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-fleece-crew-neck-sweatshirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Fleece Crew Neck Sweatshirt",
+        "name": "Lacoste Men Fleece Crew Neck Sweatshirt — Pink",
         "sku": "LACOSTE-MEN-FLEECE-CREW-",
-        "cat": "Sonstiges",
+        "cat": "Hoodies & Sweatshirts",
         "retail_price": 65,
         "size_stock": {
             "ONE": 1
@@ -1951,19 +2045,22 @@
             "handle": "lacoste-men-fleece-crew-neck-sweatshirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-fleece-crew-neck-sweatshirt"
         },
-        "imported_at": 1786116906,
+        "imported_at": 1786117151,
         "copy": "Lacoste Fleece Sweatshirt Light Pink SH96080T03\n\nMaterial: Soft, warm cotton fleece.\n\nCrew neck\n\nSignature embroidered crocodile accent on the chest\n\nClassic fit\n\nComposition: 84% Cotton, 16% Polyester \n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-8",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Beige",
         "sku": "LACOSTE-MEN-POLOSHIRT-8",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BEIGE": 4
+            "S": 1,
+            "M": 1,
+            "XL": 1,
+            "3XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-8-1.avif",
@@ -1980,16 +2077,16 @@
             "handle": "lacoste-men-poloshirt-8",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-8"
         },
-        "imported_at": 1786116909,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.12 00 02S Beige\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-7",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Black",
         "sku": "LACOSTE-MEN-POLOSHIRT-7",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
             "ONE": 1
@@ -2008,19 +2105,22 @@
             "handle": "lacoste-men-poloshirt-7",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-7"
         },
-        "imported_at": 1786116912,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.12 00 031 Black \n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-6",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — White",
         "sku": "LACOSTE-MEN-POLOSHIRT-6",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "WHITE": 4
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-6-1.avif",
@@ -2036,19 +2136,21 @@
             "handle": "lacoste-men-poloshirt-6",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-6"
         },
-        "imported_at": 1786116915,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.120001 White\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-4",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Yellow",
         "sku": "LACOSTE-MEN-POLOSHIRT-4",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "YELLOW": 3
+            "S": 1,
+            "M": 1,
+            "3XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-4-1.avif",
@@ -2065,19 +2167,24 @@
             "handle": "lacoste-men-poloshirt-4",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-4"
         },
-        "imported_at": 1786116918,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.12 00107 Pastel Yellow\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-3",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Bordeaux",
         "sku": "LACOSTE-MEN-POLOSHIRT-3",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "BORDEAUX": 6
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1,
+            "3XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-3-1.avif",
@@ -2094,19 +2201,23 @@
             "handle": "lacoste-men-poloshirt-3",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-3"
         },
-        "imported_at": 1786116921,
+        "imported_at": 1786117151,
         "copy": "Lascoste L.12.1200476 Bordeaux\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-2",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Saphire Blue",
         "sku": "LACOSTE-MEN-POLOSHIRT-2",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "SAPHIRE BLUE": 5
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-2-1.avif",
@@ -2122,16 +2233,16 @@
             "handle": "lacoste-men-poloshirt-2",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-2"
         },
-        "imported_at": 1786116924,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.12004CX Saphire Blue\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-1",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Green",
         "sku": "LACOSTE-MEN-POLOSHIRT-1",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
             "ONE": 1
@@ -2150,19 +2261,21 @@
             "handle": "lacoste-men-poloshirt-1",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-1"
         },
-        "imported_at": 1786116927,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.1200132 Pine Green \n\n· \n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-laxoste-men-poloshirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Pink",
         "sku": "LAXOSTE-MEN-POLOSHIRT",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "PINK": 3
+            "S": 1,
+            "L": 1,
+            "2XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-laxoste-men-poloshirt-1.avif",
@@ -2179,19 +2292,24 @@
             "handle": "laxoste-men-poloshirt",
             "url": "https://fashionbrandshome.com/products/laxoste-men-poloshirt"
         },
-        "imported_at": 1786116930,
+        "imported_at": 1786117151,
         "copy": "Lsacoste L.12 1200T03 Light Pink\n\n \n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· \nSignature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Light Blue",
         "sku": "LACOSTE-MEN-POLOSHIRT",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "LIGHT BLUE": 6
+            "S": 1,
+            "L": 1,
+            "M": 1,
+            "XL": 1,
+            "2XL": 1,
+            "3XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-1.avif",
@@ -2207,19 +2325,22 @@
             "handle": "lacoste-men-poloshirt",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt"
         },
-        "imported_at": 1786116933,
+        "imported_at": 1786117151,
         "copy": "Lacoste Classic Fit L.12.1200T01 Light Blue\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\n· Machine wash on a normal cycle (max 30 ºC) \n\n· Do not use bleach \n\n· Do not dry - clean\n\n· Line dry recommended\n\n· Do not tumble dry\n\n·"
     },
     {
         "id": "fashionb-lacoste-men-poloshirt-5",
         "status": "active",
         "brand": "LACOSTE",
-        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt",
+        "name": "Lacoste Men Classic Fit L.12.12  Polo Shirt — Red",
         "sku": "LACOSTE-MEN-POLOSHIRT-5",
-        "cat": "Sonstiges",
+        "cat": "Polos",
         "retail_price": 45,
         "size_stock": {
-            "RED": 4
+            "S": 1,
+            "M": 1,
+            "L": 1,
+            "XL": 1
         },
         "images": [
             "/uploads/imported/fashionb-lacoste-men-poloshirt-5-1.avif",
@@ -2236,7 +2357,7 @@
             "handle": "lacoste-men-poloshirt-5",
             "url": "https://fashionbrandshome.com/products/lacoste-men-poloshirt-5"
         },
-        "imported_at": 1786116936,
+        "imported_at": 1786117151,
         "copy": "Lacoste L.12.1200240 Red\n\n· Classic fit, comfortable sleeves\n\n· Rib-knit finish at the neck and cuffs\n\n· Authentic mother-of-pearl buttons\n\n· Clean-cut side splits\n\n· Signature embroidered crocodile accent on the chest\n\nCARE\n\nMachine wash on a normal cycle (max 30ºC)\n\nDo not use bleach\n\nDo not dry-clean\n\nDry line recommended\n\nDo not tumble dry"
     }
 ]
