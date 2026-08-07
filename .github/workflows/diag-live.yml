@@ -19,7 +19,11 @@ on:
         required: false
         default: ""
       order_sheet_ref:
-        description: "Verilirse bu sipariş için tarafsız 'order sheet' PDF'i üretip base64 olarak log'a yazar (ör: VES-CF0B4185)"
+        description: "Verilirse bu sipariş için tarafsız 'order sheet' PDF'i üretir (ör: VES-CF0B4185)"
+        required: false
+        default: ""
+      order_sheet_pubkey:
+        description: "order_sheet_ref ile zorunlu: PDF'in şifreleneceği RSA public key (PEM, base64). Bu depo herkese açık, log da öyle — PDF şifresiz yazılmaz."
         required: false
         default: ""
 
@@ -132,17 +136,22 @@ jobs:
                     echo is_array($d)?("gecerli JSON, ".count($d)." urun\n"):"BOZUK JSON!\n";'
             echo; echo "== yedek sayisi =="; ls -1 ~/public_html/data/listings.json.bak-* 2>/dev/null | wc -l
 
-      # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir (urun fotograflari ve
-      # orders.csv sadece orada var) ve base64 olarak log'a yazar.
+      # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir -- orders.csv de urun
+      # fotograflari da sadece orada var -- ve cagirana geri verir.
       #
-      # Log'a alici adi/e-postasi/adresi HIC girmez: sayfanin kendisi de sadece siparis
-      # numarasi, model kodu, foto ve adet tasir -- fiyat ve alici kimligi yok. Butunluk
-      # icin bayt sayisi ve SHA-256 da yazilir, cunku kirpilmis bir log sessizce bozuk
-      # PDF uretir.
-      - name: Sipariş sayfası (tarafsız PDF)
+      # PDF log'a ACIK yazilmaz. Bu depo herkese acik, dolayisiyla Actions log'u da oyle;
+      # sayfada alici kimligi ve fiyat olmasa bile bir musterinin siparis icerigini herkese
+      # acik bir yere birakmak dogru degil. Onun yerine tek kullanimlik bir AES anahtariyla
+      # sifrelenir, o anahtar da cagiranin RSA public key'i ile sarilir: log'da yalnizca
+      # sifreli metin durur, acabilen tek taraf private key'i elinde tutan calisma olur.
+      #
+      # Ozet satirlari (satir sayisi, SKU, adet) bilerek yazilmaz; sadece boyut ve SHA-256
+      # yazilir, cunku kirpilmis bir log sessizce bozuk PDF uretir ve bunu fark etmek gerekir.
+      - name: Sipariş sayfası (tarafsız PDF, şifreli)
         if: ${{ github.event.inputs.order_sheet_ref != '' }}
         env:
           SHEET_REF: ${{ github.event.inputs.order_sheet_ref }}
+          SHEET_PUBKEY: ${{ github.event.inputs.order_sheet_pubkey }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -150,7 +159,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: SHEET_REF
+          envs: SHEET_REF,SHEET_PUBKEY
           script: |
             set -e
             cat > /tmp/vestra_sheet.php <<'PHPEOF'
@@ -161,35 +170,44 @@ jobs:
 
             $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SHEET_REF'));
             if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
+            $pub = openssl_pkey_get_public((string)base64_decode((string)getenv('SHEET_PUBKEY'), true));
+            if (!$pub) { fwrite(STDERR, "public key okunamadi -- order_sheet_pubkey gerekli\n"); exit(1); }
 
             $order = null;
             foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $order = $r; break; }
-            if (!$order) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            if (!$order) { fwrite(STDERR, "siparis bulunamadi\n"); exit(1); }
 
             $lines = vestra_order_lines($order)['lines'];
-            echo "ref        : {$ref}\n";
-            echo "satir      : ".count($lines)."\n";
-            echo "GD         : ".(function_exists('imagecreatefromstring') ? 'var' : 'YOK')."\n";
+            $missing = 0;
             foreach ($lines as $l) {
               $img = (string)($l['image'] ?? '');
-              printf("  %-22s x%-5d foto=%s\n", (string)($l['sku'] ?? '?'), (int)($l['qty'] ?? 0),
-                     $img === '' ? 'YOK' : (is_file($doc.$img) ? 'var' : "DISKTE YOK ({$img})"));
+              if ($img === '' || !is_file($doc.$img)) $missing++;
             }
+            echo "satir      : ".count($lines)."\n";
+            echo "fotosuz    : {$missing}\n";
+            echo "GD         : ".(function_exists('imagecreatefromstring') ? 'var' : 'YOK')."\n";
 
             $pdf = vestra_render_order_sheet_pdf($order, $lines);
-            file_put_contents('/tmp/vestra_sheet.pdf', $pdf);
             echo "bayt       : ".strlen($pdf)."\n";
             echo "sha256     : ".hash('sha256', $pdf)."\n";
-            /* Sayfada marka izi kalmadigini burada da dogrula -- amaci bu. */
+            /* Sayfada marka izi kalmadigini burada da dogrula -- isin amaci bu. */
             foreach (['VESTRA','vestrasales','acerasoft'] as $n)
               echo "  iz {$n}: ".(str_contains($pdf, $n) ? 'VAR (HATA)' : 'yok')."\n";
+
+            $aes = random_bytes(32); $iv = random_bytes(16);
+            $ct  = openssl_encrypt($pdf, 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $iv);
+            if ($ct === false || !openssl_public_encrypt($aes, $ek, $pub, OPENSSL_PKCS1_OAEP_PADDING)) {
+              fwrite(STDERR, "sifreleme basarisiz\n"); exit(1);
+            }
+            echo "KEY ".base64_encode($ek)."\n";
+            echo "IV  ".base64_encode($iv)."\n";
+            echo "-----BEGIN SHEET ENC-----\n";
+            foreach (str_split(base64_encode($ct), 200) as $chunk) echo $chunk."\n";
+            echo "-----END SHEET ENC-----\n";
             PHPEOF
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
-            echo "-----BEGIN SHEET BASE64-----"
-            base64 -w 200 /tmp/vestra_sheet.pdf 2>/dev/null || base64 /tmp/vestra_sheet.pdf
-            echo "-----END SHEET BASE64-----"
-            rm -f /tmp/vestra_sheet.php /tmp/vestra_sheet.pdf
+            rm -f /tmp/vestra_sheet.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
