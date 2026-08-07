@@ -11,11 +11,19 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). Boş = sadece listeler."
         required: false
         default: ""
       payload:
         description: "admin_mode=apply için: sunucunun public key'i ile şifrelenmiş satıcı bilgisi (KEY.IV.GOVDE, rakamsız base64)"
+        required: false
+        default: ""
+      issue_ref:
+        description: "admin_mode=issue için: faturası kesilecek sipariş (ör: VES-CF0B4185). Numara verilir, PDF kaydedilir, MÜŞTERİYE E-POSTA GİTMEZ."
+        required: false
+        default: ""
+      issue_pubkey:
+        description: "admin_mode=issue için: kesilen PDF'in şifreleneceği RSA public key (PEM, base64). Depo herkese açık, PDF şifresiz dönmez."
         required: false
         default: ""
 
@@ -61,6 +69,75 @@ jobs:
               $pub  = openssl_pkey_get_details($priv)["key"];
               echo "PUBKEY ".base64_encode($pub)."\n";
             '
+
+      # Faturayi KESER. Kesim ile GONDERIM burada bilerek ayri: admin.php'nin "Fatura kes"
+      # dugmesi ikisini birlikte yapiyor, biz sadece ilkini istiyoruz -- belge numarasini
+      # alsin, PDF kaydedilsin, ama musteriye hicbir sey gitmesin. vestra_notify_* cagrisi
+      # yok; onay geldikten sonra gonderim ayri bir adim.
+      #
+      # Idempotent: ayni ref ikinci kez calistirilirsa kesilmis fatura oldugu gibi doner,
+      # yeni numara uretilmez.
+      - name: Faturayı kes (issue) — e-posta göndermez
+        if: ${{ github.event.inputs.admin_mode == 'issue' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          ISSUE_REF: ${{ github.event.inputs.issue_ref }}
+          ISSUE_PUBKEY: ${{ github.event.inputs.issue_pubkey }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: ISSUE_REF,ISSUE_PUBKEY
+          script: |
+            set -e
+            cat > /tmp/vestra_issue.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('ISSUE_REF'));
+            if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
+            $pub = openssl_pkey_get_public((string)base64_decode(trim((string)getenv('ISSUE_PUBKEY')), true));
+            if (!$pub) { fwrite(STDERR, "public key okunamadi\n"); exit(1); }
+
+            $before = vestra_invoices_for_ref($ref);
+            $issued = vestra_issue_order_invoices($ref);
+            if (!$issued) { fwrite(STDERR, "fatura kesilemedi (siparis yok ya da satir yok)\n"); exit(1); }
+            echo "onceden kesilmis : ".(count($before) ?: 'yok')."\n";
+            echo "fatura sayisi    : ".count($issued)."\n";
+            foreach ($issued as $iv) {
+              echo "  no: ".$iv['no']."  satici: ".$iv['seller_key']."  dosya: ".(is_file($iv['path']) ? 'var' : 'YOK')."\n";
+            }
+            echo "e-posta          : GONDERILMEDI (bilerek -- gonderim ayri adim)\n";
+
+            /* Birden fazla satici olsaydi her PDF ayri donerdi; bu sipariste tek taraf var. */
+            $pdf = (string)@file_get_contents($issued[0]['path']);
+            if ($pdf === '') { fwrite(STDERR, "PDF okunamadi\n"); exit(1); }
+            echo "bayt             : ".strlen($pdf)."\n";
+            echo "sha256           : ".hash('sha256', $pdf)."\n";
+
+            $aes = random_bytes(32); $iv2 = random_bytes(16);
+            $ct  = openssl_encrypt($pdf, 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $iv2);
+            if ($ct === false || !openssl_public_encrypt($aes, $ek, $pub, OPENSSL_PKCS1_OAEP_PADDING)) {
+              fwrite(STDERR, "sifreleme basarisiz\n"); exit(1);
+            }
+            /* Rakamsiz base64 -- kisa sayisal bir secret (DEPLOY_PORT) rastgele base64
+               icinde *** ile maskelenip govdeyi sessizce bozuyordu. */
+            $enc = fn(string $b) => strtr(base64_encode($b), '0123456789', '!$%&#,;?@~');
+            echo "KEY ".$enc($ek)."\n";
+            echo "IV  ".$enc($iv2)."\n";
+            echo "-----BEGIN INVOICE ENC-----\n";
+            foreach (str_split($enc($ct), 200) as $ln) echo $ln."\n";
+            echo "-----END INVOICE ENC-----\n";
+            PHPEOF
+            php /tmp/vestra_issue.php
+            rm -f /tmp/vestra_issue.php
 
       - name: Satıcı kimliğini uygula (apply)
         if: ${{ github.event.inputs.admin_mode == 'apply' }}
