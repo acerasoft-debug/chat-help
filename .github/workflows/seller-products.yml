@@ -10,6 +10,14 @@ on:
         description: "Marka modu: bu markadaki TÜM ürünleri (hangi satıcıya ait olursa olsun) listeler"
         required: false
         default: ""
+      admin_mode:
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. Boş = sadece listeler."
+        required: false
+        default: ""
+      payload:
+        description: "admin_mode=apply için: sunucunun public key'i ile şifrelenmiş satıcı bilgisi (KEY.IV.GOVDE, rakamsız base64)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -23,7 +31,129 @@ jobs:
   list:
     runs-on: ubuntu-latest
     steps:
+      # Satici kimligi ve banka bilgisi ICERI dogru sifreli tasinir.
+      #
+      # Neden: bu depo herkese acik, dolayisiyla Actions log'u ve calisma girdileri de
+      # oyle ve kalici. Bir IBAN gizli bir sir degil -- her faturada zaten yaziyor -- ama
+      # "su sirketin alacak hesabi bu" bilgisini herkese acik, indekslenen bir sayfada
+      # birakmak fatura sahteciligi yapanlarin isini kolaylastirir. Bu yuzden sunucu bir
+      # anahtar cifti uretiyor (keygen), ben bilgileri onun public key'i ile sifreliyorum,
+      # log'da sadece sifreli metin duruyor.
+      - name: Şifreleme anahtarı üret (keygen)
+        if: ${{ github.event.inputs.admin_mode == 'keygen' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            php -r '
+              $f = getenv("HOME")."/.vestra_inbox_key.pem";
+              if (!is_file($f)) {
+                $k = openssl_pkey_new(["private_key_bits"=>3072,"private_key_type"=>OPENSSL_KEYTYPE_RSA]);
+                openssl_pkey_export($k, $priv);
+                file_put_contents($f, $priv); chmod($f, 0600);
+                echo "yeni anahtar uretildi\n";
+              } else { echo "anahtar zaten var, korunuyor\n"; }
+              $priv = openssl_pkey_get_private((string)file_get_contents($f));
+              $pub  = openssl_pkey_get_details($priv)["key"];
+              echo "PUBKEY ".base64_encode($pub)."\n";
+            '
+
+      - name: Satıcı kimliğini uygula (apply)
+        if: ${{ github.event.inputs.admin_mode == 'apply' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PAYLOAD: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: PAYLOAD
+          script: |
+            set -e
+            cat > /tmp/vestra_seller_apply.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME"); $doc = $home."/public_html";
+            require $doc."/inc/auth.php";
+            require $doc."/inc/products.php";
+
+            /* Payload: KEY.IV.GOVDE -- rakamsiz base64 (bkz. diag-live: kisa sayisal bir
+               secret rastgele base64 icinde *** ile maskeleniyor ve govdeyi bozuyor). */
+            $dec = fn(string $x) => base64_decode(strtr($x, '!$%&#,;?@~', '0123456789'), true);
+            $parts = explode('.', trim((string)getenv('PAYLOAD')));
+            if (count($parts) !== 3) { fwrite(STDERR, "payload bicimi hatali\n"); exit(1); }
+            $priv = openssl_pkey_get_private((string)@file_get_contents($home."/.vestra_inbox_key.pem"));
+            if (!$priv) { fwrite(STDERR, "sunucuda anahtar yok -- once admin_mode=keygen calistir\n"); exit(1); }
+            if (!openssl_private_decrypt($dec($parts[0]), $aes, $priv, OPENSSL_PKCS1_OAEP_PADDING)) {
+              fwrite(STDERR, "anahtar acilamadi\n"); exit(1);
+            }
+            $json = openssl_decrypt($dec($parts[2]), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $dec($parts[1]));
+            $in = $json === false ? null : json_decode($json, true);
+            if (!is_array($in) || empty($in['account_id'])) { fwrite(STDERR, "govde cozulemedi\n"); exit(1); }
+
+            $accFile = $doc.'/data/accounts.json';
+            $accounts = auth_accounts();
+            $idx = null;
+            foreach ($accounts as $i => $a) if ((string)($a['id'] ?? '') === (string)$in['account_id']) { $idx = $i; break; }
+            if ($idx === null) { fwrite(STDERR, "hesap bulunamadi\n"); exit(1); }
+
+            copy($accFile, $accFile.'.bak-'.date('Ymd-His'));
+            $before = $accounts[$idx]['company'] ?? '';
+            /* Sadece verilen alanlar yazilir; parola/e-posta/id/tip'e dokunulmaz. */
+            foreach (['company','address','country','vat_id','reg_number',
+                      'bank_name','bank_holder','bank_iban','bank_bic'] as $f) {
+              if (isset($in[$f]) && $in[$f] !== '') $accounts[$idx][$f] = (string)$in[$f];
+            }
+            auth_save_accounts($accounts);
+            $mask = fn($v) => $v === '' ? '(bos)' : (mb_strlen($v) <= 4 ? '****' : str_repeat('*', mb_strlen($v)-4).mb_substr($v,-4));
+            echo "hesap    : {$in['account_id']}\n";
+            echo "sirket   : {$before} -> ".($accounts[$idx]['company'] ?? '')."\n";
+            echo "VAT      : ".($accounts[$idx]['vat_id'] ?? '(bos)')."\n";
+            echo "banka    : ".($accounts[$idx]['bank_name'] ?? '(bos)')." | sahip: ".($accounts[$idx]['bank_holder'] ?? '(bos)')."\n";
+            echo "IBAN     : ".$mask((string)($accounts[$idx]['bank_iban'] ?? ''))."   (log'a tam yazilmaz)\n";
+
+            /* Siparisin urunlerini bu saticiya bagla. seller_uid bos kaldigi surece fatura
+               VESTRA adina cikiyor ve odeme kutusu hic gorunmuyor -- fatura kimin kesecegi
+               satirin sahibine bagli, ayri bir secim degil. */
+            if (!empty($in['assign_ref'])) {
+              $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)$in['assign_ref']);
+              $order = null;
+              foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $order = $r; break; }
+              if (!$order) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+              $skus = [];
+              foreach (vestra_parse_order_items((string)($order['items'] ?? '')) as $it) $skus[$it['sku']] = true;
+
+              $lfile = $doc.'/data/listings.json';
+              $listings = json_decode((string)file_get_contents($lfile), true);
+              if (!is_array($listings)) { fwrite(STDERR, "listings.json bozuk\n"); exit(1); }
+              copy($lfile, $lfile.'.bak-'.date('Ymd-His'));
+              $moved = 0; $already = 0; $missing = $skus;
+              foreach ($listings as $i => $p) {
+                $sku = (string)($p['sku'] ?? '');
+                if ($sku === '' || !isset($skus[$sku])) continue;
+                unset($missing[$sku]);
+                if ((string)($p['seller_uid'] ?? '') === (string)$in['account_id']) { $already++; continue; }
+                $listings[$i]['seller_uid'] = (string)$in['account_id'];
+                $moved++;
+              }
+              file_put_contents($lfile, json_encode($listings, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES), LOCK_EX);
+              echo "\nsiparis {$ref}: ".count($skus)." SKU | tasinan: {$moved} | zaten bagli: {$already}"
+                 .($missing ? " | KATALOGDA YOK: ".count($missing) : "")."\n";
+              foreach (array_keys($missing) as $m) echo "  ! bulunamadi: {$m}\n";
+            }
+            PHPEOF
+            php -l /tmp/vestra_seller_apply.php
+            php /tmp/vestra_seller_apply.php
+            rm -f /tmp/vestra_seller_apply.php
+
       - name: Listele
+        if: ${{ github.event.inputs.admin_mode == '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
