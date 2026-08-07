@@ -26,6 +26,10 @@ on:
         description: "Verilirse bu sipariş için tarafsız 'order sheet' PDF'i üretir (ör: VES-CF0B4185)"
         required: false
         default: ""
+      order_doc:
+        description: "order_sheet_ref ile: 'sheet' (varsayılan, tarafsız sipariş sayfası) veya 'invoice' (fatura ÖNİZLEMESİ — hiçbir şey kaydedilmez, e-posta gitmez)"
+        required: false
+        default: "sheet"
       order_sheet_pubkey:
         description: "Boş bırakılırsa sadece sipariş denetimi çalışır. Verilirse PDF de üretilip bu RSA public key (PEM, base64) ile şifrelenip döner — bu depo herkese açık, log da öyle, PDF şifresiz yazılmaz."
         required: false
@@ -171,6 +175,7 @@ jobs:
         env:
           SHEET_REF: ${{ github.event.inputs.order_sheet_ref }}
           SHEET_PUBKEY: ${{ github.event.inputs.order_sheet_pubkey }}
+          SHEET_DOC: ${{ github.event.inputs.order_doc }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -178,7 +183,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: SHEET_REF,SHEET_PUBKEY
+          envs: SHEET_REF,SHEET_PUBKEY,SHEET_DOC
           script: |
             set -e
             cat > /tmp/vestra_sheet.php <<'PHPEOF'
@@ -187,6 +192,7 @@ jobs:
             require $doc."/inc/products.php";
             require_once $doc."/inc/orders.php";
             require_once $doc."/inc/invoice.php";   // fatura var mi sorusu icin, lazy yuklenmesin
+            require_once $doc."/inc/auth.php";       // satici hesabini cozmek icin
 
             $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SHEET_REF'));
             if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
@@ -239,12 +245,57 @@ jobs:
 
             if (!$pub) { echo "\n(public key verilmedi -- PDF uretilmedi, sadece denetim)\n"; exit($ok ? 0 : 1); }
 
-            $pdf = vestra_render_order_sheet_pdf($order, $lines);
+            if (strtolower(trim((string)getenv('SHEET_DOC'))) === 'invoice') {
+              /* FATURA ONIZLEMESI. vestra_issue_order_invoices() ile AYNI verileri kurar ama
+                 hicbir sey yazmaz ve kimseye e-posta gitmez: numara DRAFT, dosya olusmaz,
+                 siparis "inceleniyor" durumunda kalir. Amac, kesmeden once gorup onaylamak. */
+              $address = '';
+              if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($order['notes'] ?? ''), $m)) $address = trim($m[1]);
+              $meta = [
+                'ref' => $ref, 'date' => $order['timestamp'] ?? date('c'),
+                'discount' => round((float)($order['discount'] ?? 0), 2),
+                'voucher_code' => trim((string)($order['voucher_code'] ?? '')),
+                'buyer' => [
+                  'company' => $order['company'] ?? '', 'vat' => $order['vat'] ?? '',
+                  'name' => $order['name'] ?? '', 'email' => $order['email'] ?? '',
+                  'country' => $order['country'] ?? '', 'address' => $address,
+                ],
+              ];
+              /* Faturayi KIM kesiyor: satirlarin sahibi. Bunu uydurmuyoruz -- urunun
+                 seller_uid'i kimse fatura da onun. Birden fazla satici varsa gercek
+                 kesimde her birine ayri fatura cikar; onizlemede hepsini gosteriyoruz. */
+              $bySeller = [];
+              foreach ($lines as $l) { $bySeller[($l['seller_uid'] ?: 'vestra')][] = $l; }
+              echo "faturayi kesecek : ".count($bySeller)." taraf\n";
+              $parts = [];
+              foreach ($bySeller as $sid => $items) {
+                $acc = null;
+                if ($sid !== 'vestra') foreach (auth_accounts() as $a) if (($a['id'] ?? '') === $sid) { $acc = $a; break; }
+                $who = $acc ? ($acc['company'] ?: ($acc['name'] ?: $sid)) : 'VESTRA (acerasoft LLC)';
+                /* Banka alanlari faturanin odeme kutusunu olusturuyor. DEGERLERI yazmiyoruz
+                   (log herkese acik), sadece dolu mu bos mu. */
+                $bankSet = $acc ? array_filter([
+                  'bank_name' => !empty($acc['bank_name']), 'bank_holder' => !empty($acc['bank_holder']),
+                  'bank_iban' => !empty($acc['bank_iban']), 'bank_bic' => !empty($acc['bank_bic']),
+                ]) : [];
+                printf("  %-28s %2d satir | banka alanlari: %s\n", mb_substr($who,0,26), count($items),
+                       $acc ? (count($bankSet)."/4 dolu".(count($bankSet)<4 ? ' -- ODEME KUTUSU EKSIK CIKAR' : '')) : 'satici hesabi yok');
+                $parts[] = vestra_render_invoice_pdf($meta, $items, $acc, 'DRAFT-PREVIEW');
+              }
+              /* Birden fazla satici varsa ilkini gonderiyoruz; digerlerini ayri istersen
+                 kesimde zaten ayri dosya olarak cikacaklar. */
+              $pdf = $parts[0];
+              echo "onizleme         : fatura (KESILMEDI, kaydedilmedi, e-posta gitmedi)\n";
+            } else {
+              $pdf = vestra_render_order_sheet_pdf($order, $lines);
+            }
             echo "bayt       : ".strlen($pdf)."\n";
             echo "sha256     : ".hash('sha256', $pdf)."\n";
-            /* Sayfada marka izi kalmadigini burada da dogrula -- isin amaci bu. */
-            foreach (['VESTRA','vestrasales','acerasoft'] as $n)
-              echo "  iz {$n}: ".(str_contains($pdf, $n) ? 'VAR (HATA)' : 'yok')."\n";
+            /* Tarafsiz sayfada marka izi kalmamali -- isin amaci bu. Faturada TAM TERSI:
+               VESTRA basligi olmasi gerekiyor, o yuzden kontrol sadece sheet icin. */
+            if (strtolower(trim((string)getenv('SHEET_DOC'))) !== 'invoice')
+              foreach (['VESTRA','vestrasales','acerasoft'] as $n)
+                echo "  iz {$n}: ".(str_contains($pdf, $n) ? 'VAR (HATA)' : 'yok')."\n";
 
             $aes = random_bytes(32); $iv = random_bytes(16);
             $ct  = openssl_encrypt($pdf, 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $iv);
