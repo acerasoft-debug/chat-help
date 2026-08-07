@@ -319,11 +319,23 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $y -= ($boxH + 14);
     } else {
         // ── Bank details (seller-issued invoices only, when provided) ──
+        /* The reference the payer must quote. Without one stated, a large transfer arrives
+           carrying whatever the buyer's clerk typed, and matching it becomes somebody's
+           afternoon.
+           Invoice number first: the seller's books close against it, and the sequence is the
+           seller's own (numbered per seller per year), so it is the one string that means
+           something on their side of the payment. The order reference follows because that is
+           what the buyer's purchasing system tracks, what every message about this sale
+           quotes, and what ties the bank statement back to a marketplace order when a
+           part-shipment is queried months later. Together they stay under 35 characters, so
+           no bank truncates them. */
+        $payRef = trim($invoiceNo.' / '.(string)($order['ref'] ?? ''), ' /');
         $bankLines = $sellerAcc ? array_values(array_filter([
             !empty($sellerAcc['bank_name'])   ? 'Bank: '.$sellerAcc['bank_name'] : '',
             !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
             !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
             !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
+            $payRef !== '' ? 'Payment reference: '.$payRef : '',
         ], fn($v) => $v !== '')) : [];
         if ($bankLines) {
             $boxH = 16 + count($bankLines) * 13;
