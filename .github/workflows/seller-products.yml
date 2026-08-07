@@ -26,6 +26,10 @@ on:
         description: "admin_mode=issue ile 'true': kesilmiş faturayı AYNI numarayla yeniden üretir. Sadece daha müşteriye gitmemiş bir belgedeki hatayı düzeltmek için."
         required: false
         default: "false"
+      issue_number:
+        description: "issue_redraft ile: faturanın sıra numarasını bu sayıya çeker (ör: 102 -> INV-2026-000102) ve satıcının sayacını oradan devam ettirir. Boş = numaraya dokunma."
+        required: false
+        default: ""
       issue_pubkey:
         description: "admin_mode=issue için: kesilen PDF'in şifreleneceği RSA public key (PEM, base64). Depo herkese açık, PDF şifresiz dönmez."
         required: false
@@ -88,13 +92,14 @@ jobs:
           ISSUE_REF: ${{ github.event.inputs.issue_ref }}
           ISSUE_PUBKEY: ${{ github.event.inputs.issue_pubkey }}
           ISSUE_REDRAFT: ${{ github.event.inputs.issue_redraft }}
+          ISSUE_NUMBER: ${{ github.event.inputs.issue_number }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: ISSUE_REF,ISSUE_PUBKEY,ISSUE_REDRAFT
+          envs: ISSUE_REF,ISSUE_PUBKEY,ISSUE_REDRAFT,ISSUE_NUMBER
           script: |
             set -e
             cat > /tmp/vestra_issue.php <<'PHPEOF'
@@ -112,6 +117,36 @@ jobs:
             if (!$pub) { fwrite(STDERR, "public key okunamadi\n"); exit(1); }
 
             $redraft = strtolower(trim((string)getenv('ISSUE_REDRAFT'))) === 'true';
+
+            /* Numarayi elle kaydirma. vestra_ensure_invoice() redraft'ta meta'daki numarayi
+               oldugu gibi kullaniyor, o yuzden once meta'yi, sonra sayaci yaziyoruz --
+               boylece bir sonraki fatura buradan devam eder, ayni numara iki kez cikmaz.
+               Sadece redraft ile birlikte calisir: kesilmis ve HENUZ GONDERILMEMIS bir
+               belgenin numarasini duzeltmek icindir. */
+            $forceNo = (int)trim((string)getenv('ISSUE_NUMBER'));
+            if ($redraft && $forceNo > 0) {
+              $year = date('Y');
+              $dir  = vestra_invoice_dir();
+              $safe = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+              $metas = glob($dir.'/'.$safe.'__*.json') ?: [];
+              if (count($metas) !== 1) {
+                fwrite(STDERR, "numara degistirme tek faturali siparis icin: ".count($metas)." meta bulundu\n"); exit(1);
+              }
+              $m = json_decode((string)file_get_contents($metas[0]), true) ?: [];
+              $oldNo = (string)($m['no'] ?? '');
+              $newNo = sprintf('INV-%s-%06d', $year, $forceNo);
+              $m['no'] = $newNo;
+              file_put_contents($metas[0], json_encode($m, JSON_PRETTY_PRINT), LOCK_EX);
+
+              $seqFile = $doc.'/data/invoice_seq.json';
+              $seq = json_decode((string)@file_get_contents($seqFile), true);
+              if (!is_array($seq)) $seq = [];
+              $k = ((string)($m['seller_key'] ?? '')).'-'.$year;
+              $seq[$k] = max((int)($seq[$k] ?? 0), $forceNo);
+              file_put_contents($seqFile, json_encode($seq, JSON_PRETTY_PRINT), LOCK_EX);
+              echo "numara           : {$oldNo} -> {$newNo}  (sayac {$k} = {$seq[$k]}, sonraki ".($seq[$k]+1).")\n";
+            }
+
             $before = vestra_invoices_for_ref($ref);
             $issued = vestra_issue_order_invoices($ref, $redraft);
             if (!$issued) { fwrite(STDERR, "fatura kesilemedi (siparis yok ya da satir yok)\n"); exit(1); }
