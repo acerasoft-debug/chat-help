@@ -561,12 +561,19 @@ function vestra_listing_by_sku(string $sku): ?array {
     foreach (vestra_listings() as $l) if (($l['sku']??'') === $sku) return $l;
     return null;
 }
-/* Parse the "12x SKU-123 @19.99 | 5x SKU-456 @9.99" string order.php writes into orders.csv's items column. */
+/* Parse the "12x SKU-123 @19.99 | 5x SKU-456 @9.99" string order.php writes into orders.csv's items column.
+ *
+ * The SKU is matched greedily up to the final "@price" rather than as a single non-space run:
+ * some catalogue codes genuinely contain spaces ("G80A3T FU7EQ W"). With \S+ the whole segment
+ * failed to match and the line was dropped without a trace — the order stayed intact in
+ * orders.csv and in the confirmation mail, but every later read of it (buyer/seller/admin views,
+ * the invoice and its per-seller split, order_has_seller_sku) silently lost those items and the
+ * money attached to them. */
 function vestra_parse_order_items(string $items): array {
     $out = [];
     foreach (explode(' | ', $items) as $seg) {
-        if (preg_match('/^(\d+)x\s+(\S+)\s+@([\d.]+)$/', trim($seg), $m)) {
-            $out[] = ['qty'=>(int)$m[1], 'sku'=>$m[2], 'unit'=>(float)$m[3]];
+        if (preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', trim($seg), $m)) {
+            $out[] = ['qty'=>(int)$m[1], 'sku'=>trim($m[2]), 'unit'=>(float)$m[3]];
         }
     }
     return $out;

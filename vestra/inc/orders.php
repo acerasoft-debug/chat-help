@@ -431,8 +431,8 @@ function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
 function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
     require_once __DIR__.'/pdf.php';
     $pdf   = new VestraPdf();
-    $left  = 50.0; $right = 545.0; $bottom = 60.0;
-    $imgW  = 74.0;                    // photo column, square
+    $left  = 50.0; $right = 545.0; $bottom = 50.0;
+    $imgW  = 68.0;                    // photo column, square
     $txtX  = $left + $imgW + 14;
     $textW = $right - $txtX - 74;     // leave the right edge for the quantity
     $y     = VestraPdf::PAGE_H - 62;
@@ -459,12 +459,24 @@ function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
     foreach ($lines as $l) {
         $qty    = (int)($l['qty'] ?? 0);
         $units += $qty;
-        $name   = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
+        $sku    = trim((string)($l['sku'] ?? ''));
+        $brand  = trim((string)($l['brand'] ?? ''));
+        $name   = trim((string)($l['name'] ?? ''));
         $cols   = array_values(array_filter(array_map('trim', array_map('strval', (array)($l['colors'] ?? []))), fn($c) => $c !== ''));
 
-        $nameLines = $pdf->wrap($name, $textW, 10, true);
+        /* Catalogue names frequently already open with the brand and close with the model
+           code that the SKU line shows directly above ("BALMAIN BALMAIN Swimsuit —
+           BKBU30810"). Harmless in a product page heading, but on a one-item-per-row
+           picking sheet it reads as duplication. */
+        if ($brand !== '' && stripos($name, $brand) === 0) $brand = '';
+        if ($sku !== '') {
+            $cut = preg_replace('/\s*[—–-]\s*'.preg_quote($sku, '/').'\s*$/ui', '', $name);
+            if (is_string($cut) && $cut !== '') $name = trim($cut);
+        }
+
+        $nameLines = $pdf->wrap(trim($brand.' '.$name), $textW, 10, true);
         $colLines  = $cols ? $pdf->wrap('Colours: '.implode(', ', $cols), $textW, 8.5) : [];
-        $rowH = max($imgW, 14 + count($nameLines) * 12 + count($colLines) * 11) + 18;
+        $rowH = max($imgW, 14 + count($nameLines) * 12 + count($colLines) * 11) + 14;
 
         if ($y - $rowH < $bottom) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 62; $header(); }
         $top = $y;
