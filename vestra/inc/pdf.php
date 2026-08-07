@@ -49,6 +49,28 @@ function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
     return $out;
 }
 
+/**
+ * The VESTRA mark — the rounded square with the V inside it, in the proportions of
+ * favicon.svg, drawn as vectors.
+ *
+ * Not the PWA icon re-encoded: that file is a small raster on the brand's near-black plate,
+ * which prints on a white invoice as a dark postage stamp, and JPEG (the only thing
+ * /DCTDecode reads) frays every one of its hard edges. Drawn into the content stream it is
+ * dark-on-white, sharp at any zoom, a few hundred bytes, and needs neither GD nor the file.
+ *
+ * ($x,$yMid) is the left edge and the vertical centre of the square, so a caller can centre
+ * the mark on a block of text without doing the arithmetic.
+ */
+function vestra_pdf_mark(VestraPdf $pdf, float $x, float $yMid, float $side, float $gray = 0.10): void {
+    $y = $yMid - $side / 2;
+    $pdf->roundRect($x, $y, $side, $side, 0.263 * $side, 0.089 * $side, $gray);
+    $pdf->polyline([
+        [$x + 0.263 * $side, $y + 0.700 * $side],
+        [$x + 0.500 * $side, $y + 0.258 * $side],
+        [$x + 0.737 * $side, $y + 0.700 * $side],
+    ], 0.105 * $side, $gray);
+}
+
 class VestraPdf {
     const PAGE_W = 595; // A4 in points, 72dpi
     const PAGE_H = 842;
@@ -106,6 +128,31 @@ class VestraPdf {
 
     public function rectFill(float $x, float $y, float $w, float $h, float $gray = 0.93): void {
         $this->cur .= sprintf("%.2F g %.2F %.2F %.2F %.2F re f 0 g\n", $gray, $x, $y, $w, $h);
+    }
+
+    /**
+     * Rounded-rectangle outline; ($x,$y) is the bottom-left corner. Corners are drawn as
+     * Bézier arcs (0.5523 is the standard circle-from-cubic constant), so they stay round at
+     * any zoom instead of stepping like a scaled bitmap would.
+     */
+    public function roundRect(float $x, float $y, float $w, float $h, float $r, float $lw = 1.0, float $gray = 0.1): void {
+        $r  = min($r, $w / 2, $h / 2);
+        $k  = $r * 0.5523;
+        $x2 = $x + $w; $y2 = $y + $h;
+        $s  = sprintf("q %.2F w %.3F G 1 J 1 j\n%.2F %.2F m\n", $lw, $gray, $x + $r, $y);
+        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2 - $r, $y,  $x2 - $r + $k, $y,  $x2, $y + $r - $k,  $x2, $y + $r);
+        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x2, $y2 - $r, $x2, $y2 - $r + $k, $x2 - $r + $k, $y2, $x2 - $r, $y2);
+        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x + $r, $y2, $x + $r - $k, $y2, $x, $y2 - $r + $k,  $x, $y2 - $r);
+        $s .= sprintf("%.2F %.2F l %.2F %.2F %.2F %.2F %.2F %.2F c\n", $x, $y + $r,  $x, $y + $r - $k,  $x + $r - $k, $y,  $x + $r, $y);
+        $this->cur .= $s."h S Q\n";
+    }
+
+    /** Open stroked path through [[x,y],…], round caps and joins. */
+    public function polyline(array $pts, float $lw = 1.0, float $gray = 0.1): void {
+        if (count($pts) < 2) return;
+        $s = sprintf("q %.2F w %.3F G 1 J 1 j\n", $lw, $gray);
+        foreach (array_values($pts) as $i => $p) $s .= sprintf("%.2F %.2F %s\n", $p[0], $p[1], $i ? 'l' : 'm');
+        $this->cur .= $s."S Q\n";
     }
 
     /**

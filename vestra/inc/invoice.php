@@ -112,11 +112,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     // ── Header ──
     /* The mark, then the wordmark as live text beside it. Not one baked image: the name has
        to survive a reader that fails on the logo, and text stays selectable and searchable
-       in the buyer's document system. If the file is missing the wordmark simply starts at
-       the margin and the header still reads correctly. */
-    $markX = $left;
-    $logo  = vestra_pdf_thumb('/icon-192.png', 128);
-    if ($logo !== '' && $pdf->imageJpeg($logo, $left, $y - 13, 32, 32)) $markX = $left + 40;
+       in the buyer's document system. The mark is centred on the two text lines rather than
+       hung off the cap line, so the block reads as one lockup. */
+    $markSide = 26.0;
+    $markX    = $left + $markSide + 11;
+    vestra_pdf_mark($pdf, $left, $y - 1.5, $markSide);
     $pdf->text($markX, $y, 20, 'VESTRA', true);
     $pdf->text($markX, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);
@@ -277,11 +277,16 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $pdf->textR($right - 4, $y, 11, eur($grand), true);
     $y -= 34;
 
+    /* Advance payment, stated on the invoice itself. An invoice that offers a credit period
+       is the buyer's finance department's authority to take it, whatever was agreed in the
+       thread — so the document has to carry the same term as the deal: money first, goods
+       after. */
     $need(40);
-    $pdf->text($left, $y, 8, $paid
+    $terms = $paid
         ? 'Paid in full via VESTRA secure escrow. Funds are released to the seller once the buyer confirms delivery.'
-        : 'Payment due within 14 days via bank transfer to the account shown above (if provided).', false);
-    $y -= 12;
+        : 'Payment terms: 100% advance. Goods are dispatched after the full invoice amount is received in the account shown above.';
+    foreach ($pdf->wrap($terms, $width, 8) as $fl) { $pdf->text($left, $y, 8, $fl); $y -= 11; }
+    $y -= 3;
 
     /* An order delivered in instalments has to say so on its invoice. Without it the first
        short consignment reads as an invoice discrepancy to the buyer's finance team, and to
