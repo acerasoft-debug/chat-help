@@ -31,6 +31,31 @@ function vestra_doc_type_label(string $lang, string $type): string {
   return ($L[$lang] ?? $L['en'])[$type] ?? $type;
 }
 
+/**
+ * Sign-off for mail a person at VESTRA writes — support replies and admin-started threads —
+ * as opposed to the system's own notifications, which stay unsigned.
+ *
+ * Pass the result as $opts['signature']; vestra_html_email() renders the card and the
+ * text/plain alternative gets the same lines (see vestra_email_signature_html()).
+ *
+ * The reply address is read from config rather than written here so it can never drift from
+ * the identity the mail is actually sent under. $agent names the individual writing, for
+ * threads where a person takes ownership; left empty the signature stays departmental.
+ */
+function vestra_support_signature(string $lang='en', string $agent=''): array {
+  $roles=[
+    'en'=>'Client Services', 'de'=>'Kundenbetreuung', 'fr'=>'Service clients',
+    'it'=>'Servizio clienti', 'es'=>'Atención al cliente',
+  ];
+  return [
+    'name'  => 'VESTRA Support',
+    'role'  => $roles[$lang] ?? $roles['en'],
+    'agent' => trim($agent),
+    'email' => (string)(function_exists('vestra_cfg') ? vestra_cfg('mail_from','support@vestrasales.com') : 'support@vestrasales.com'),
+    'site'  => 'vestrasales.com',
+  ];
+}
+
 /* Shared vocabulary reused across templates (row labels, button labels, status
  * badges) so every template speaks the same terms instead of drifting. */
 function vestra_email_labels(string $lang): array {

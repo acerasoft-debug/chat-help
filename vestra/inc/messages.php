@@ -150,6 +150,10 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
             $panel = ($recAcc['type']??'') === 'seller' ? 'seller' : 'buyer';
             [$mSubj,$mBody,$mOpts] = vestra_tpl_message(vestra_user_lang($recAcc), $recAcc['name']?:($recAcc['company']?:'there'),
               $fromLabel, "https://vestrasales.com/{$panel}?tab=messages");
+            /* A note from VESTRA Support was written by a person, so it signs off like one.
+               Messages between two members stay unsigned — the sender is the other company,
+               and putting our signature under their message would misattribute it. */
+            if ($fromUid === VESTRA_SUPPORT_UID) $mOpts['signature'] = vestra_support_signature(vestra_user_lang($recAcc));
             vestra_send_mail($recAcc['email'], $mSubj, $mBody, $fromEmail, $fromLabel, null, '', $mOpts);
         } else {
             // No usable email on file — logging in is the ONLY way this recipient would ever

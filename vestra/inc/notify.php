@@ -805,6 +805,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .$shotsHtml
     .$downloadsHtml
     .$buttonHtml
+    .(!empty($opts['signature']) && is_array($opts['signature']) ? vestra_email_signature_html($opts['signature']) : '')
     .($footerHtml!==''?'<div style="padding:14px 28px 24px;border-top:1px solid #e6e0d5;margin-top:6px">'.$footerHtml.'</div>':'')
     .'<div style="padding:18px 28px 24px;border-top:1px solid #e6e0d5;text-align:center">'
     .'<div style="width:30px;height:2px;background:#c9a86a;margin:0 auto 12px"></div>'
@@ -1541,10 +1542,85 @@ function vestra_campaign_promo_polos(string $company=''): array {
 
 /* Builds a multipart/alternative body (plain text + the HTML shell above) for transports that
  * send raw MIME themselves (SMTP, PHP mail()) — HTTP APIs take the two parts separately. */
+/**
+ * Sign-off card for mail written by a person at VESTRA rather than emitted by the system.
+ *
+ * No postal address, on purpose: this is a signature, not an imprint. The legal and company
+ * details belong on the site, and five lines of address under every reply turn a personal
+ * answer back into a form letter. What a recipient actually needs is who wrote, in what
+ * capacity, and where to reply.
+ *
+ * Table-based because Outlook ignores flex and inline-block alignment, and the name stays
+ * live TEXT next to the mark rather than being baked into it — most clients block remote
+ * images by default, and a signature that disappears with the image is not a signature.
+ *
+ * $sig keys, all optional: name, role, agent (the individual writing), email, site.
+ */
+function vestra_email_signature_html(array $sig): string {
+  $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
+  $name =trim((string)($sig['name']  ?? 'VESTRA Support'));
+  $role =trim((string)($sig['role']  ?? ''));
+  $agent=trim((string)($sig['agent'] ?? ''));
+  $mail =trim((string)($sig['email'] ?? ''));
+  $site =trim((string)($sig['site']  ?? 'vestrasales.com'));
+  if($name==='' && $mail==='') return '';
+
+  $contact='';
+  if($mail!=='') $contact.='<a href="mailto:'.$e($mail).'" style="color:#8a6d1f;text-decoration:none;font-size:13px">'.$e($mail).'</a>';
+  if($site!=='') $contact.=($contact!==''?'<br>':'')
+    .'<a href="https://'.$e($site).'" style="color:#9b9585;text-decoration:none;font-size:12px">'.$e($site).'</a>';
+
+  return '<div style="margin:2px 28px 22px">'
+    .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;'
+    .'background:#faf8f3;border:1px solid #ece6d8;border-radius:10px"><tr>'
+    /* alt="VESTRA" with the mark's own colours on the <img>: clients that block remote
+       images fall back to the alt text inside the styled box, so a blocked logo still
+       leaves a dark gold monogram rather than a hole in the card. */
+    .'<td valign="top" width="62" style="padding:16px 0 16px 16px;line-height:0">'
+    .'<img src="https://vestrasales.com/icon-192.png" width="46" height="46" alt="VESTRA"'
+    .' style="display:block;width:46px;height:46px;border:0;border-radius:10px;background:#14110c;'
+    .'color:#d8bd86;font-family:Georgia,\'Times New Roman\',serif;font-size:10px;font-weight:700;'
+    .'letter-spacing:.04em;text-align:center;line-height:46px"></td>'
+    .'<td valign="top" style="padding:16px 16px 16px 12px">'
+    .'<div style="font-family:Georgia,\'Times New Roman\',serif;color:#14110c;font-size:15px;font-weight:700;letter-spacing:.02em">'.$e($name).'</div>'
+    .($role!==''?'<div style="color:#a97f2c;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin:3px 0 0">'.$e($role).'</div>':'')
+    .($agent!==''?'<div style="color:#5c5449;font-size:13px;margin:7px 0 0">'.$e($agent).'</div>':'')
+    .'<div style="width:26px;height:2px;background:#c9a86a;margin:11px 0 9px"></div>'
+    .$contact
+    .'</td></tr></table></div>';
+}
+
+/** The same signature as plain text, for the text/plain alternative. */
+function vestra_email_signature_text(array $sig): string {
+  $lines=array_values(array_filter(array_map('trim',[
+    (string)($sig['name']  ?? 'VESTRA Support'),
+    (string)($sig['role']  ?? ''),
+    (string)($sig['agent'] ?? ''),
+    (string)($sig['email'] ?? ''),
+    (string)($sig['site']  ?? 'vestrasales.com'),
+  ]), fn($v)=>$v!==''));
+  // "-- " (dash dash space) is the RFC 3676 signature marker; clients use it to fold the
+  // block away on reply instead of quoting it back.
+  return $lines ? "-- \n".implode("\n",$lines) : '';
+}
+
+/**
+ * Text alternative of an email.
+ *
+ * The signature is declared once in $opts and rendered into both alternatives from there.
+ * Appending it to $bodyPlain instead would also feed it through the HTML paragraph
+ * renderer, and the recipient would get the card and the text one under the other.
+ */
+function vestra_mail_text_part(string $bodyPlain, array $opts): string {
+  $sig=(!empty($opts['signature']) && is_array($opts['signature']))
+    ? vestra_email_signature_text($opts['signature']) : '';
+  return $sig==='' ? $bodyPlain : rtrim($bodyPlain)."\n\n".$sig;
+}
+
 function vestra_mime_multipart(string $bodyPlain, string $boundary, string $heroImage='', array $opts=[]): string {
   $html=vestra_html_email($bodyPlain,$heroImage,$opts);
   return "--{$boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
-       .$bodyPlain."\r\n\r\n"
+       .vestra_mail_text_part($bodyPlain,$opts)."\r\n\r\n"
        ."--{$boundary}\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n"
        .$html."\r\n\r\n--{$boundary}--";
 }
@@ -1672,7 +1748,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
   if($provider==='resend'){
     $url='https://api.resend.com/emails';
     $headers=['Authorization: Bearer '.$key,'Content-Type: application/json'];
-    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>$body,'html'=>vestra_html_email($body,$heroImage,$opts)];
+    $payload=['from'=>"{$name} <{$from}>",'to'=>[$to],'subject'=>$subject,'text'=>vestra_mail_text_part($body,$opts),'html'=>vestra_html_email($body,$heroImage,$opts)];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['reply_to']=$replyTo;
   } else { // brevo (default)
     $url='https://api.brevo.com/v3/smtp/email';
@@ -1681,7 +1757,7 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
       'sender'=>['name'=>$name,'email'=>$from],
       'to'=>[['email'=>$to]],
       'subject'=>$subject,
-      'textContent'=>$body,
+      'textContent'=>vestra_mail_text_part($body,$opts),
       'htmlContent'=>vestra_html_email($body,$heroImage,$opts),
     ];
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
