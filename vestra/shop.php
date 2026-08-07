@@ -1,13 +1,33 @@
 <?php require __DIR__.'/inc/products.php'; $PAGE=t('Catalog'); $NAV='shop'; $META=t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.'); require __DIR__.'/inc/head.php';
 $products = vestra_products();
-/* Pinned products (operator-curated, e.g. this week's flagship listing) lead the
-   default grid ahead of everything else, in the order they were pinned. A manual
-   partition rather than a sort key keeps every other product's relative order
-   exactly as vestra_products() returned it -- pinning one item must not reshuffle
-   the other 299. */
-$pinned = []; $rest = [];
-foreach ($products as $p) { if (!empty($p['pinned'])) $pinned[] = $p; else $rest[] = $p; }
-$products = array_merge($pinned, $rest);
+/* Where vestra_products() put each item before any reordering. The "newest" sort
+   uses catalogue position as its proxy for age, so it has to read the original
+   position -- lifting whole houses to the front would otherwise present them as the
+   oldest stock on the page. */
+foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
+
+/* Default grid order, front to back:
+     1. pinned products (operator-curated flagship listings), in the order pinned;
+     2. the lead houses below, in the order listed -- the labels the catalogue opens
+        with, so a first-time visitor lands on the strongest stock rather than on
+        whatever happens to sit at the top of the file;
+     3. everything else.
+   Partitions rather than a sort key, so inside each group products keep exactly the
+   order vestra_products() returned -- promoting a brand must not reshuffle the
+   other 300. */
+$leadBrands = ['BALMAIN', 'DSQUARED2'];
+$pinned = []; $lead = []; $rest = [];
+foreach ($products as $p) {
+    if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+    $i = array_search(strtoupper(trim((string)($p['brand'] ?? ''))), $leadBrands, true);
+    if ($i !== false) { $lead[$i][] = $p; continue; }
+    $rest[] = $p;
+}
+$products = $pinned;
+foreach (array_keys($leadBrands) as $i) {
+    if (!empty($lead[$i])) $products = array_merge($products, $lead[$i]);
+}
+$products = array_merge($products, $rest);
 $catCounts = []; foreach($products as $p){ $c=$p['cat']??'Other'; $catCounts[$c]=($catCounts[$c]??0)+1; }
 arsort($catCounts);
 /* Per-brand line-sheet downloads (public .xlsx with photos + codes, no pricing). */
@@ -251,6 +271,7 @@ footer a{color:#d8bd86}
           ?>
           <a class="scard<?= !empty($p['pinned']) ? ' scard-featured' : $shape ?>" href="/product?id=<?= urlencode($p['id']) ?>"
              data-idx="<?= $idx ?>"
+             data-ord="<?= (int)($p['_ord'] ?? $idx) ?>"
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
              data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
              data-mode="<?= htmlspecialchars($dmode) ?>"
@@ -350,7 +371,10 @@ function applyFilters(){
     visible.sort(function(a,b){
       if(sort==='price_asc')  return parseFloat(a.dataset.price)-parseFloat(b.dataset.price);
       if(sort==='price_desc') return parseFloat(b.dataset.price)-parseFloat(a.dataset.price);
-      if(sort==='newest')     return parseInt(b.dataset.idx)-parseInt(a.dataset.idx);
+      /* data-ord, not data-idx: idx is the position on the page, which the pinned and
+         lead-brand promotion has already rearranged. ord is where the catalogue itself
+         put the product, which is what "newest" is a proxy for. */
+      if(sort==='newest')     return parseInt(b.dataset.ord)-parseInt(a.dataset.ord);
       if(sort==='name')       return a.dataset.name.localeCompare(b.dataset.name);
       return 0;
     });
