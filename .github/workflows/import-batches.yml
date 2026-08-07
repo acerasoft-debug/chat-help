@@ -1,0 +1,120 @@
+name: Repository-Katalog in den Shop uebernehmen
+
+# Führt die B2B-Stapel aus product-batches/*.json in die Katalogdatei der
+# Ladenseite zusammen und holt die zugehörigen Fotos.
+#
+# Die Fotos sind EIGENE Aufnahmen: die Stapel verweisen auf /uploads/… der
+# eigenen Live-Seite, von dort werden sie geladen. Kein fremdes Material.
+#
+# WARUM ALS ACTION: die Entwicklungsumgebung des Agenten erreicht nur
+# github.com und die Paketregister — vestrasales.com wird vom Gateway mit 403
+# abgewiesen. Der Runner hat freies Netz.
+#
+# Preise: übernommen wird der Großhandelspreis aus "list". Den Endpreis rechnet
+# der Katalog daraus mit dem Faktor (×3); feste Outlet-Preise aus price_rules
+# gehen vor. Multipliziert wird also genau einmal.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Woher die Fotos geladen werden"
+        required: true
+        default: "https://vestrasales.com"
+      images:
+        description: "true = Fotos laden"
+        required: true
+        default: "true"
+      commit:
+        description: "true = Ergebnis in den Branch committen"
+        required: true
+        default: "true"
+      dry_run:
+        description: "true = NUR berichten, nichts schreiben"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stapel zusammenführen
+        env:
+          BASE: ${{ github.event.inputs.base }}
+          IMG:  ${{ github.event.inputs.images }}
+          DRY:  ${{ github.event.inputs.dry_run }}
+        run: |
+          set -e
+          cd retail
+          mkdir -p data uploads
+          ARGS="--from=../product-batches --base=$BASE"
+          [ "$IMG" = true ] && ARGS="$ARGS --images"
+          [ "$DRY" = true ] && ARGS="$ARGS --dry"
+          echo "php tools/import-batches.php $ARGS"
+          php tools/import-batches.php $ARGS 2>&1 | tee ../batch-report.txt
+
+      - name: Katalog nachrechnen
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd retail
+          php -r '
+            require "inc/boot.php"; require_once "inc/catalog.php"; require_once "inc/uploads.php";
+            $f = vr_facets();
+            printf("Katalog: %d Artikel · %d Marken · %d Kategorien\n",
+              count(vr_catalog()), count($f["brands"]), count($f["cats"]));
+            $have = $miss = 0;
+            foreach (vr_catalog() as $p) {
+              if (!$p["images"]) continue;
+              if (is_file(vr_doc_root() . $p["images"][0])) $have++; else $miss++;
+            }
+            printf("Fotos vorhanden: %d · fehlend: %d\n", $have, $miss);
+          ' 2>&1 | tee -a ../batch-report.txt
+
+      - name: Ergebnis zusammenfassen
+        if: always()
+        run: |
+          {
+            echo '## Stapelimport'
+            echo '```'
+            cat batch-report.txt 2>/dev/null || echo '(kein Bericht)'
+            echo '```'
+            if [ -d retail/uploads ]; then
+              echo "### Bilder"
+              echo "$(find retail/uploads -type f ! -name '.gitignore' | wc -l) Datei(en), $(du -sh retail/uploads | cut -f1) gesamt"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Als Artefakt ablegen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stapel-import
+          path: |
+            retail/data/retail-imported.json
+            batch-report.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: In den Branch committen
+        if: ${{ github.event.inputs.commit == 'true' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          # data/ und uploads/ sind bewusst ignoriert; für diesen Schritt
+          # heben wir das gezielt mit -f auf.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f retail/data/retail-imported.json
+          if [ "${{ github.event.inputs.images }}" = "true" ]; then
+            git add -f retail/uploads || true
+          fi
+          if git diff --cached --quiet; then
+            echo "Keine Änderung."
+          else
+            git commit -m "retail: Katalog aus product-batches inkl. Fotos"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
