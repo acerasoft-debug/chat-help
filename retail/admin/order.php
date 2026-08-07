@@ -72,6 +72,12 @@ vr_admin_head('Bestellung ' . (string)$o['number']);
       <?php endforeach; ?>
       <tr><td>Versand<?php if (($o['ship_label'] ?? '') !== ''): ?> · <?= h((string)$o['ship_label']) ?><?php endif; ?></td>
           <td style="text-align:right"><?= h(vr_money((int)$o['ship_cents'])) ?></td></tr>
+              <?php if ((int)($o['discount_cents'] ?? 0) > 0): ?>
+                <tr>
+                  <td><?= h('Gutschein ' . (string)($o["voucher_code"] ?? "")) ?></td>
+                  <td style="text-align:right;color:var(--ember-text)">−<?= h(vr_money((int)$o['discount_cents'])) ?></td>
+                </tr>
+              <?php endif; ?>
       <tr><td><strong>Gesamt</strong> <span style="color:var(--muted)">(davon <?= h(vr_money((int)$o['vat_cents'])) ?> MwSt.)</span></td>
           <td style="text-align:right"><strong><?= h(vr_money((int)$o['total_cents'])) ?></strong></td></tr>
       </tbody>

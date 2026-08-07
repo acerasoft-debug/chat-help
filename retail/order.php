@@ -193,6 +193,12 @@ vr_layout_start(['title' => $order['number'], 'robots' => 'noindex,nofollow']);
           <span><?= te('shipping') ?><?= ($order['ship_label'] ?? '') !== '' ? ' · ' . h((string)$order['ship_label']) : '' ?></span>
           <span><?= (int)$order['ship_cents'] === 0 ? te('shipping_free') : h(vr_money((int)$order['ship_cents'])) ?></span>
         </div>
+        <?php if ((int)($order['discount_cents'] ?? 0) > 0): ?>
+          <div class="srow srow--cut">
+            <span><?= te('vou_line', ['code' => h((string)($order['voucher_code'] ?? ''))]) ?></span>
+            <span>−<?= h(vr_money((int)$order['discount_cents'])) ?></span>
+          </div>
+        <?php endif; ?>
         <div class="srow srow--total"><span><?= te('total') ?></span><span><?= h(vr_money((int)$order['total_cents'])) ?></span></div>
         <?php if ((int)($order['vat_cents'] ?? 0) > 0): ?>
           <div class="srow srow--muted"><span><?= te('vat_of_which', ['amount' => vr_money((int)$order['vat_cents'])]) ?></span></div>

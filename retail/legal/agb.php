@@ -39,8 +39,9 @@ $hours = (int)vr_config('vault_step_hours', 24);
   <a href="#s11">11. Premium Outlet (Vault)</a>
   <a href="#s12">12. Echtheit und Herkunft</a>
   <a href="#s13">13. Haftung</a>
-  <a href="#s14">14. Datenschutz</a>
-  <a href="#s15">15. Schlussbestimmungen</a>
+  <a href="#s14">14. Gutscheine</a>
+  <a href="#s15">15. Datenschutz</a>
+  <a href="#s16">16. Schlussbestimmungen</a>
 </nav>
 
 <h2 id="s1">1. Geltungsbereich und Vertragspartner</h2>
@@ -319,7 +320,39 @@ $hours = (int)vr_config('vault_step_hours', 24);
   13.4 Für die ununterbrochene Verfügbarkeit der Plattform wird keine Gewähr übernommen.
 </p>
 
-<h2 id="s14">14. Datenschutz</h2>
+<h2 id="s14">14. Gutscheine</h2>
+<p>
+  14.1 Aktionsgutscheine (Gutscheine, die nicht käuflich erworben, sondern im Rahmen einer
+  Werbeaktion ausgegeben wurden) sind nur im angegebenen Zeitraum und nur einmal einlösbar.
+  Nach Ablauf der Gültigkeit ist eine Einlösung ausgeschlossen; eine Verlängerung erfolgt nicht.
+</p>
+<p>
+  14.2 Der Gutscheinwert wird auf den Warenwert angerechnet, nicht auf Versandkosten. Eine
+  Barauszahlung, Verzinsung oder Restwertgutschrift des Gutscheinwerts ist ausgeschlossen.
+</p>
+<p>
+  14.3 Ist ein Gutschein an eine E-Mail-Adresse gebunden oder ausdrücklich als Willkommens- bzw.
+  Erstbestellungsgutschein gekennzeichnet, kann ihn nur die Inhaberin oder der Inhaber dieser
+  Adresse und nur für die erste bezahlte Bestellung einlösen. Eine Übertragung auf Dritte oder
+  der Weiterverkauf ist ausgeschlossen.
+</p>
+<p>
+  14.4 Mehrere Gutscheine sind nicht miteinander kombinierbar, soweit in den Bedingungen des
+  jeweiligen Gutscheins nichts anderes bestimmt ist. Ein Mindestbestellwert gilt, wenn er beim
+  Gutschein angegeben ist; maßgeblich ist der Warenwert ohne Versandkosten.
+</p>
+<p>
+  14.5 Widerrufen Sie eine Bestellung ganz oder teilweise, erstatten wir den tatsächlich
+  gezahlten Betrag. Ein eingelöster Aktionsgutschein lebt dabei nicht wieder auf; ein Anspruch
+  auf Ausgabe eines neuen Gutscheins besteht nicht.
+</p>
+<p>
+  14.6 Bei begründetem Verdacht auf missbräuchliche Verwendung — insbesondere bei mehrfach
+  angelegten Konten zur wiederholten Nutzung von Erstbestellungsgutscheinen — können wir
+  einzelne Gutscheine sperren.
+</p>
+
+<h2 id="s15">15. Datenschutz</h2>
 <p>
   Informationen zur Verarbeitung Ihrer personenbezogenen Daten finden Sie in der
   <a href="<?= h(vr_url('legal/datenschutz.php')) ?>"><?= te('legal_privacy') ?></a>.
@@ -327,22 +360,22 @@ $hours = (int)vr_config('vault_step_hours', 24);
   Daten an den jeweiligen Verkäufer weiter.
 </p>
 
-<h2 id="s15">15. Schlussbestimmungen</h2>
+<h2 id="s16">16. Schlussbestimmungen</h2>
 <p>
-  15.1 Es gilt das Recht der Bundesrepublik Deutschland. Bei Verbrauchern mit Wohnsitz in einem
+  16.1 Es gilt das Recht der Bundesrepublik Deutschland. Bei Verbrauchern mit Wohnsitz in einem
   anderen Staat bleiben die zwingenden Verbraucherschutzvorschriften ihres Aufenthaltsstaates
   unberührt (Art. 6 Abs. 2 Rom-I-VO).
 </p>
 <p>
-  15.2 Erfüllungsort und Gerichtsstand richten sich nach den gesetzlichen Vorschriften. Für
+  16.2 Erfüllungsort und Gerichtsstand richten sich nach den gesetzlichen Vorschriften. Für
   Verbraucher gelten die gesetzlichen Gerichtsstände.
 </p>
 <p>
-  15.3 Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen
+  16.3 Sollten einzelne Bestimmungen dieser AGB unwirksam sein, bleibt die Wirksamkeit der übrigen
   Bestimmungen unberührt. An die Stelle der unwirksamen Bestimmung tritt die gesetzliche Regelung.
 </p>
 <p>
-  15.4 Wir behalten uns vor, diese AGB mit Wirkung für die Zukunft zu ändern. Für bereits
+  16.4 Wir behalten uns vor, diese AGB mit Wirkung für die Zukunft zu ändern. Für bereits
   geschlossene Verträge gilt die Fassung, die bei Vertragsschluss abrufbar war; die jeweils
   akzeptierte Fassung wird zu Ihrer Bestellung gespeichert (aktuelle Fassung:
   <?= h(VR_TERMS_VERSION) ?>).

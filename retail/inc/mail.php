@@ -168,6 +168,13 @@ function vr_mail_lines_table(array $order): string
         . '<tr><td colspan="2" style="height:10px"></td></tr>'
         . $sum(t('subtotal'), vr_money((int)$order['subtotal_cents']))
         . $sum(t('shipping') . ' (' . $order['ship_label'] . ')', (int)$order['ship_cents'] === 0 ? t('shipping_free') : vr_money((int)$order['ship_cents']))
+        // İndirim teyitte GÖRÜNMEK zorunda: §312f BGB'ye göre onay, sözleşmenin
+        // gerçek içeriğini yansıtmalı — müşteri neden eksik tahsilat olduğunu
+        // faturasında görebilmeli.
+        . ((int)($order['discount_cents'] ?? 0) > 0
+            ? $sum(t('vou_line', ['code' => (string)($order['voucher_code'] ?? '')]),
+                   '−' . vr_money((int)$order['discount_cents']))
+            : '')
         . $sum(t('total'), vr_money((int)$order['total_cents']), true)
         . ((int)($order['vat_cents'] ?? 0) > 0
             ? '<tr><td colspan="2" style="font-size:12px;color:#8a8578;padding-top:4px">'

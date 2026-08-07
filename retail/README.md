@@ -383,8 +383,21 @@ Google Fonts yok (tipografi sistem yazı tipleriyle). Yalnızca teknik zorunlu
 
 `?lang=de` ile geçilir, seçim çerezde saklanır, `hreflang` etiketleri her sayfada
 basılır. Eksik anahtar → İngilizce karşılığı (asla boş/kırık metin).
-`en` ve `de` %100; diğerleri vitrin + sepet + kasa + Vault kapsıyor, satıcı
-paneli ve hukuki metinler İngilizce/Almanca'ya düşüyor.
+
+**Dil seçim sırası:** `?lang=` → çerez → tarayıcının `Accept-Language`'ı →
+ziyaretçinin ülkesi → varsayılan. Tarayıcı dili ülkeyi bilerek yener: dil bir
+beyandır, konum yalnızca tahmindir.
+
+**Ülke nereden geliyor:** önündeki katmanın zaten gönderdiği başlıktan
+(`CF-IPCountry`, `X-Geo-Country`, `GEOIP_COUNTRY_CODE` …). Kendi IP aramamız
+yok, dış servise çağrı yok, IP hiçbir yere yazılmıyor — bir GeoIP çağrısı
+üçüncü tarafa veri aktarımı olurdu ve sitenin rıza bandsız uyumluluğunu
+bozardı. Başlık yoksa hiçbir şey bozulmaz, `Accept-Language` karar verir.
+Yerel denemek için: `VR_GEO_COUNTRY=DE php -S …`
+
+Bütün metinler **on dilde de birebir eşleşiyor** — eksik/fazla anahtar sıfır.
+Yönetim paneli bilinçli olarak yalnızca Almanca: operatöre özel ve CLI
+araçlarıyla aynı dilde.
 
 Kapsamı görmek için: `php tools/selftest.php` → "Sprachen" bölümü.
 
@@ -407,16 +420,78 @@ gizli kalmaz.
 
 ---
 
+## 9b. Müşteri hesapları, yönetim ve kuponlar
+
+### Müşteri hesabı — isteğe bağlı
+`account/` altında: kayıt, giriş, e-posta doğrulama, şifre unuttum/sıfırlama,
+panel, sipariş geçmişi, sipariş detayı, adresli profil, şifre değiştirme,
+hesap silme. **Satın almak için hesap gerekmiyor** — misafir ödeme açık.
+
+Kritik kural: **sipariş geçmişi ancak e-posta doğrulandıktan sonra açılıyor.**
+Aksi hâlde biri başkasının adresiyle hesap açıp o kişinin siparişlerini,
+adresini ve satın aldıklarını görebilirdi.
+
+Kayıt ve "şifremi unuttum" adres kayıtlı olsa da olmasa da **aynı** cevabı
+veriyor; yoksa formlar "kim müşteri" sorgusuna dönerdi. Doğrulama ve sıfırlama
+jetonları dosyada yalnızca sha256 olarak duruyor, ikisi de tek kullanımlık
+(48 saat / 1 saat).
+
+Hesap silme DSGVO Art. 17: hesap gider, **siparişler kalır** — §147 AO ve
+§257 HGB on yıl saklama emrediyor. Bu, silme ekranında da yazıyor.
+
+### Yönetim paneli
+`admin/` altında: özet, siparişler (filtre + arama), sipariş detayı (kargo
+kaydı, iç not), ilan denetimi, Vault losu açma/kapatma, kuponlar, satıcı
+askıya alma, müşteri hesapları, bülten + CSV, sistem durumu.
+
+Kurulum: `php tools/admin-user.php set <e-posta> <şifre>`. Çalıştırılmadan
+panel **kapalı**. Şifre hash'li, `data/admin.json` (chmod 600) ya da
+`VR_ADMIN_USER` + `VR_ADMIN_PW_HASH`. Oturum 8 saatte düşer, oturum anahtarı
+müşteri ve satıcıdan ayrı. İsteğe bağlı IP kısıtı: `VR_ADMIN_IPS="1.2.3.4"`.
+
+Panelde **para hareketi yok** — iade Stripe'tan yürür. Vault planı da
+değiştirilemez, yalnızca açılır ve kapanır: sahte indirim tam olarak sonradan
+tabanı yükseltmekle doğar.
+
+Panel CLI araçlarının yerine değil yanına geliyor; SSH'i olan zaten sunucunun
+sahibi.
+
+### Kuponlar
+Yüzde ya da sabit tutar; minimum sepet, geçerlilik aralığı, kullanım limiti,
+tek e-postaya bağlama, "sadece ilk sipariş", aç/kapa.
+
+**İndirimi platform üstlenir:** satıcının payı değişmez, tutar bizim
+komisyonumuzdan iner. İndirim komisyonu aşarsa kupon reddedilir — sessizce
+kırpılmaz. Sayaç **ödeme anında** artar (yarıda kalan kasa kupon harcamaz) ve
+sipariş numarası üzerinden idempotenttir.
+
+Stripe tarafında satır tutarları kırpılmaz; bir coupon nesnesi oluşturulup
+Checkout'a verilir, böylece indirim Stripe'ın makbuzunda ayrı satır olur.
+Coupon oluşturulamazsa ödeme **durur** — tam tutar tahsil edilmez.
+
+**Karşılama kuponu:** e-postasını doğrulayan her hesaba otomatik %5, ilk
+siparişe, 90 gün, adrese bağlı, tek kullanım. Kayıtta değil doğrulamada
+veriliyor; tekrar doğrulamak kupon biriktirmiyor. Ayar:
+`welcome_discount_bps` (500 = %5) ve `welcome_valid_days`; `0` kapatır.
+
+Gutschein koşulları AGB madde 14'te yazılı.
+
+---
+
 ## 10. Araçlar
 
 | Komut | Ne yapar |
 |---|---|
 | `php tools/selftest.php [--stripe]` | kurulum kontrolü; `--stripe` gerçek API çağrısı yapar |
 | `php tools/test-flow.php` | 86 akış testi (fiyat planı, komisyon, webhook imzası, idempotency, alarmlar, Merkliste, abonelik iptali) — geçici dizinde çalışır, canlı veriye dokunmaz |
+| `php tools/test-account.php` | 39 hesap testi (kayıt, doğrulama, sipariş gizliliği, şifre sıfırlama, hesap silme) |
+| `php tools/test-voucher.php` | 39 kupon testi (hesaplama, koşullar, komisyon tavanı, tek kullanım, karşılama kuponu) |
+| `php tools/admin-user.php set <e-posta> <şifre>` | yönetim panelinin girişini kurar; çalıştırılmadan panel kapalı |
 | `php tools/vault-open.php` | Vault losu aç/kapat/listele |
 | `php tools/moderate.php` | ilan moderasyonu, satıcı listesi |
 | `php tools/vault-alerts.php` | fiyat alarmlarını gönder/listele |
-| `php tools/import-live.php` | canlı katalogu + görselleri içe aktar |
+| `php tools/import-live.php` | canlı B2B katalogunu + görselleri içe aktar (×3 fiyat) |
+| `php tools/import-shop.php` | yabancı bir Shopify koleksiyonunu içe aktar (ürün, beden, foto, açıklama, model kodu) |
 
 Hepsi **yalnızca CLI**; web'den çağrılırsa 403 döner.
 

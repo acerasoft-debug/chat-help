@@ -132,12 +132,60 @@ foreach ($listings as $l) if ((string)($l['status'] ?? '') === 'review') $pendin
 line('OK', 'Verkäuferangebote', count($listings) . ' (' . $pending . ' in Prüfung)');
 if ($pending > 0) line('WARN', '  Prüfung offen', 'php tools/moderate.php list');
 
+// ------------------------------------------------------- Kunden & Gutscheine
+head('Kundenkonten & Gutscheine');
+require_once __DIR__ . '/../inc/customers.php';
+require_once __DIR__ . '/../inc/vouchers.php';
+
+$customers = vr_customers();
+$verified = 0;
+foreach ($customers as $c) if (!empty($c['verified'])) $verified++;
+line('OK', 'Kundenkonten', count($customers) . ' (davon ' . $verified . ' bestätigt)');
+line('OK', 'Gastbestellung', 'offen — ein Konto ist freiwillig');
+
+$vouchers = vr_vouchers();
+$vActive = 0;
+foreach ($vouchers as $v) if (!empty($v['active'])) $vActive++;
+line('OK', 'Gutscheincodes', count($vouchers) . ' (davon ' . $vActive . ' aktiv)');
+$bps = (int)vr_config('welcome_discount_bps', 0);
+line('OK', 'Willkommensrabatt', $bps > 0
+    ? rtrim(rtrim(number_format($bps / 100, 2, ',', '.'), '0'), ',') . ' % · '
+      . (int)vr_config('welcome_valid_days', 90) . ' Tage'
+    : 'aus');
+
+// ------------------------------------------------------------------ Verwaltung
+head('Verwaltung');
+require_once __DIR__ . '/../inc/admin.php';
+if (vr_admin_unconfigured()) {
+    line('WARN', 'Panel', 'kein Administrator — php tools/admin-user.php set <E-Mail> <Passwort>');
+} else {
+    $src = getenv('VR_ADMIN_USER') ? 'Umgebungsvariable' : 'data/admin.json';
+    line('OK', 'Panel', 'eingerichtet (' . $src . ')');
+}
+$ips = trim((string)getenv('VR_ADMIN_IPS'));
+line('OK', 'IP-Freigabe', $ips !== '' ? $ips : 'keine (nur Passwortschutz)');
+
+// ------------------------------------------------------------------- Sprache
+head('Sprache nach Land');
+require_once __DIR__ . '/../inc/geo.php';
+$cc = vr_geo_country();
+line('OK', 'Land laut Vorschaltebene', $cc !== ''
+    ? $cc . ' → ' . (vr_country_lang($cc) ?: 'keine Zuordnung, Standard greift')
+    : 'nicht gemeldet (CF-IPCountry o. ä. fehlt — Accept-Language entscheidet)');
+
 // ------------------------------------------------------------- sayfa bütünlüğü
 head('Seiten');
 $pages = [
     'index.php', 'shop.php', 'product.php', 'outlet.php', 'brands.php', 'cart.php',
     'checkout.php', 'order.php', 'sell.php', 'faq.php', 'journal.php', 'size-guide.php',
     'contact.php', 'wishlist.php', 'newsletter.php', '404.php', 'sitemap.php', 'robots.php',
+    'account/register.php', 'account/login.php', 'account/logout.php', 'account/verify.php',
+    'account/forgot.php', 'account/reset.php', 'account/index.php', 'account/orders.php',
+    'account/order.php', 'account/profile.php', 'account/security.php', 'account/_nav.php',
+    'admin/login.php', 'admin/logout.php', 'admin/index.php', 'admin/orders.php',
+    'admin/order.php', 'admin/listings.php', 'admin/vault.php', 'admin/vouchers.php',
+    'admin/sellers.php', 'admin/customers.php', 'admin/members.php', 'admin/system.php',
+    'admin/_nav.php',
     'api/webhook.php', 'api/suggest.php',
     'seller/index.php', 'seller/login.php', 'seller/register.php', 'seller/listing.php',
     'seller/payouts.php', 'seller/orders.php', 'seller/logout.php',

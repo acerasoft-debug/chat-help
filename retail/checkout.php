@@ -167,9 +167,37 @@ vr_layout_start(['title' => t('checkout_title'), 'robots' => 'noindex,nofollow']
           <span><?= te('shipping') ?> · <?= h((string)$ship['label']) ?></span>
           <span><?= (int)$t['ship_cents'] === 0 ? te('shipping_free') : h(vr_money((int)$t['ship_cents'])) ?></span>
         </div>
-        <div class="srow srow--total"><span><?= te('total') ?></span><span><?= h(vr_money((int)$t['total'])) ?></span></div>
-        <?php if ((int)$t['vat'] > 0): ?>
-          <div class="srow srow--muted"><span><?= te('vat_of_which', ['amount' => vr_money((int)$t['vat'])]) ?></span></div>
+        <?php
+        /**
+         * Kasa özeti sepetle AYNI rakamı göstermek zorunda; kupon burada
+         * yeniden değerlendiriliyor çünkü arada fiyat ya da kuponun durumu
+         * değişmiş olabilir. Ödeme tutarını yine de sunucu vr_order_build()
+         * içinde bir kez daha hesaplıyor — bu satır sadece gösterim.
+         */
+        require_once __DIR__ . '/inc/vouchers.php';
+        $vcode = vr_voucher_current();
+        $vcut  = 0;
+        if ($vcode !== '') {
+            $vmail = '';
+            if (function_exists('vr_current_customer')) {
+                $vme = vr_current_customer();
+                $vmail = (string)($vme['email'] ?? '');
+            }
+            [$vv, $vcut] = vr_voucher_check($vcode, (int)$t['subtotal'], PHP_INT_MAX, $vmail);
+            if (!$vv) $vcut = 0;
+        }
+        $shownTotal = max(0, (int)$t['total'] - $vcut);
+        $shownVat   = vr_config('prices_include_vat') ? vr_vat_part($shownTotal) : 0;
+        ?>
+        <?php if ($vcut > 0): ?>
+          <div class="srow srow--cut">
+            <span><?= te('vou_line', ['code' => h($vcode)]) ?></span>
+            <span>−<?= h(vr_money($vcut)) ?></span>
+          </div>
+        <?php endif; ?>
+        <div class="srow srow--total"><span><?= te('total') ?></span><span><?= h(vr_money($shownTotal)) ?></span></div>
+        <?php if ($shownVat > 0): ?>
+          <div class="srow srow--muted"><span><?= te('vat_of_which', ['amount' => vr_money($shownVat)]) ?></span></div>
         <?php endif; ?>
 
         <a class="xlink" href="<?= h(vr_url('cart.php')) ?>" style="margin-top:6px"><?= te('back') ?> · <?= te('cart_title') ?></a>

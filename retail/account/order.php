@@ -50,6 +50,12 @@ vr_layout_start(['title' => t('order_number') . ' ' . $o['number'], 'robots' => 
                     <span style="color:var(--muted)"> · <?= h((string)$o['ship_label']) ?></span><?php endif; ?></td>
                 <td style="text-align:right"><?= (int)$o['ship_cents'] === 0 ? te('shipping_free') : h(vr_money((int)$o['ship_cents'])) ?></td>
               </tr>
+              <?php if ((int)($o['discount_cents'] ?? 0) > 0): ?>
+                <tr>
+                  <td><?= te('vou_line', ['code' => h((string)($o["voucher_code"] ?? ""))]) ?></td>
+                  <td style="text-align:right;color:var(--ember-text)">−<?= h(vr_money((int)$o['discount_cents'])) ?></td>
+                </tr>
+              <?php endif; ?>
               <tr>
                 <td><strong><?= te('total') ?></strong></td>
                 <td style="text-align:right"><strong><?= h(vr_money((int)$o['total_cents'])) ?></strong></td>
