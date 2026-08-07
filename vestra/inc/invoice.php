@@ -487,6 +487,24 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $pdf->text($left, $y, 8, $fl); $y -= 11;
     }
 
+    /* ── Page footer ──
+       A sheet of an invoice that gets separated from the rest — and they do, once a broker
+       photocopies one page or a printer collates two jobs — carries nothing on it saying what
+       it belongs to. The mark and the two references make every page identify itself, and
+       "page 1 of 2" is what tells a reader a second page existed at all.
+       Stamped after layout because the page count is not known until the last row is drawn. */
+    $ref = trim((string)($order['ref'] ?? ''));
+    $pdf->stampEachPage(function (VestraPdf $p, int $n, int $total) use ($left, $right, $invoiceNo, $ref) {
+        $fy = 44.0;
+        $p->line($left, $fy + 16, $right, $fy + 16, 0.5, 0.8);
+        $tx = $left;
+        $mk = vestra_pdf_thumb('/icon-512.png', 256, 95);   // already embedded once by the header
+        if ($mk !== '' && $p->imageJpeg($mk, $left, $fy - 3, 15, 15, 15 * 7 / 32)) $tx = $left + 21;
+        $p->text($tx, $fy + 2, 8, 'VESTRA', true);
+        $p->text($tx + 44, $fy + 2, 7.5, trim('Invoice '.$invoiceNo.($ref !== '' ? '   ·   Order '.$ref : '')));
+        $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
+    });
+
     return $pdf->output();
 }
 

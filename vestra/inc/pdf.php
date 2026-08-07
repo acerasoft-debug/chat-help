@@ -67,6 +67,28 @@ class VestraPdf {
         $this->cur = '';
     }
 
+    /**
+     * Draw the same furniture on every page once the document is finished.
+     *
+     * Page footers cannot be drawn as the pages are laid out, because "page 2 of 5" is not
+     * knowable until page 5 exists. The callback receives ($pdf, $pageNumber, $pageCount) and
+     * draws through the normal methods; the output is appended to that page's stream, so it
+     * lands on top of the content already there.
+     */
+    public function stampEachPage(callable $draw): void {
+        $all = $this->pages;
+        $all[] = $this->cur;
+        $total = count($all);
+        $held  = [];
+        foreach ($all as $i => $content) {
+            $this->cur = '';                      // every draw call appends here
+            $draw($this, $i + 1, $total);
+            $held[$i] = $content.$this->cur;
+        }
+        $this->cur   = array_pop($held);
+        $this->pages = $held;
+    }
+
     private function esc(string $s): string {
         $conv = @iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $s);
         if ($conv === false) $conv = preg_replace('/[^\x20-\x7E]/', '?', $s) ?? '';
