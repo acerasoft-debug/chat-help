@@ -249,7 +249,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
         !empty($b['vat']) ? 'VAT ID: '.$b['vat'] : '',
-        $b['name'] ?? '', $b['email'] ?? '',
+        $b['name'] ?? '',
+        /* No buyer e-mail, for the same reason the seller's is absent. An invoice is not a
+           contact sheet: it is forwarded to carriers, brokers and banks, and it sits in an
+           archive for years. Company, address, VAT and the person to ask for are what it has
+           to carry; the mailbox belongs in the account, not on a document that travels. */
     ], fn($v) => $v !== ''));
 
     /* Wrap each block to its own column before pairing them up. A company address written as
@@ -419,13 +423,26 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
 function vestra_auto_invoice_enabled(): bool {
     return defined('VESTRA_AUTO_INVOICE') ? (bool) VESTRA_AUTO_INVOICE : false;
 }
-function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bool $force = false): array {
+/* $redraft re-renders an already-issued invoice in place, KEEPING its number.
+   For correcting a document that has not yet left the building — a wrong buyer
+   detail spotted between issuing and sending. It is deliberately not what
+   happens by default and never what happens automatically: once an invoice has
+   gone to the buyer, the number is theirs and a correction is a credit note plus
+   a new invoice, not a quiet rewrite of the file behind it. */
+function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bool $force = false, bool $redraft = false): array {
     $sellerKey = vestra_invoice_seller_key($sellerAcc);
     $pdfPath  = vestra_invoice_file($order['ref'], $sellerKey);
     $metaPath = vestra_invoice_meta_file($order['ref'], $sellerKey);
     if (is_file($pdfPath) && is_file($metaPath)) {
         $meta = json_decode((string)file_get_contents($metaPath), true) ?: [];
-        return ['no' => $meta['no'] ?? '', 'path' => $pdfPath, 'seller_key' => $sellerKey];
+        $no   = (string)($meta['no'] ?? '');
+        if (!$redraft || $no === '') {
+            return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey];
+        }
+        $meta['redrafted_at'] = date('c');
+        file_put_contents($pdfPath, vestra_render_invoice_pdf($order, $items, $sellerAcc, $no), LOCK_EX);
+        file_put_contents($metaPath, json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX);
+        return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey, 'redrafted' => true];
     }
     /* Suspended: no invoice is created until stock is confirmed and it is issued by hand. */
     if (!$force && !vestra_auto_invoice_enabled()) {
@@ -445,13 +462,14 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
 
 /** Invoices already issued for a ref (order or offer) — for rendering download links. No regeneration. */
 /**
- * Name the file gets when it is downloaded: the order reference, nothing else.
+ * Name the file gets when it is downloaded: what it is, then which order — Invoice-VES-XXXX.
  *
- * "invoice.pdf" in a downloads folder is indistinguishable from every other invoice, so the
- * name has to carry something. The reference is enough to file it and to find it again, and
- * it is the one identifier both sides of the sale already quote. It also travels better than
- * the buyer's name would: an invoice gets forwarded to freight forwarders, customs brokers
- * and banks, and the file name is the part that shows up in a mail client's attachment list.
+ * Both halves earn their place. "Invoice" says what the attachment is without opening it,
+ * which matters because these get forwarded to freight forwarders, customs brokers and banks
+ * who receive several different documents against one shipment. The reference is what both
+ * sides of the sale already quote, so it is what the file gets filed under, and it goes last
+ * so a folder of them sorts by document type first. The buyer's name is deliberately not in
+ * it — the file travels further than the sale does.
  *
  * One exception. A cart spanning several sellers produces one invoice per seller for the same
  * reference, and they cannot all be called the same thing — the second download would land as
@@ -459,10 +477,10 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
  */
 function vestra_invoice_download_name(string $ref, string $sellerKey): string {
     $safe = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
-    if (count(glob(vestra_invoice_dir().'/'.$safe.'__*.json') ?: []) <= 1) return $safe.'.pdf';
+    if (count(glob(vestra_invoice_dir().'/'.$safe.'__*.json') ?: []) <= 1) return 'Invoice-'.$safe.'.pdf';
     $meta = @json_decode((string)@file_get_contents(vestra_invoice_meta_file($ref, $sellerKey)), true);
     $no   = is_array($meta) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string)($meta['no'] ?? '')) : '';
-    return $safe.($no !== '' ? '-'.$no : '').'.pdf';
+    return 'Invoice-'.($no !== '' ? $no.'-' : '').$safe.'.pdf';
 }
 
 function vestra_invoices_for_ref(string $ref): array {
@@ -494,7 +512,7 @@ function vestra_invoices_for_ref(string $ref): array {
  * and per-seller line data from orders.csv (address recovered from the notes).
  * Idempotent: already-issued invoices are returned untouched. Returns the list.
  */
-function vestra_issue_order_invoices(string $ref): array {
+function vestra_issue_order_invoices(string $ref, bool $redraft = false): array {
     require_once __DIR__.'/orders.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $orderRow = null;
@@ -544,7 +562,7 @@ function vestra_issue_order_invoices(string $ref): array {
         $meta = $orderMeta;
         if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
         if ($sid !== array_key_first($bySeller)) { $meta['shipping'] = 0.0; }   // carriage billed once
-        $iv = vestra_ensure_invoice($meta, $sellerItems, $sellerAcc, true);
+        $iv = vestra_ensure_invoice($meta, $sellerItems, $sellerAcc, true, $redraft);
         if (!empty($iv['no'])) $issued[] = $iv;
     }
     return $issued;

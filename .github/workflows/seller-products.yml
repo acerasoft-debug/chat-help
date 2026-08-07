@@ -22,6 +22,10 @@ on:
         description: "admin_mode=issue için: faturası kesilecek sipariş (ör: VES-CF0B4185). Numara verilir, PDF kaydedilir, MÜŞTERİYE E-POSTA GİTMEZ."
         required: false
         default: ""
+      issue_redraft:
+        description: "admin_mode=issue ile 'true': kesilmiş faturayı AYNI numarayla yeniden üretir. Sadece daha müşteriye gitmemiş bir belgedeki hatayı düzeltmek için."
+        required: false
+        default: "false"
       issue_pubkey:
         description: "admin_mode=issue için: kesilen PDF'in şifreleneceği RSA public key (PEM, base64). Depo herkese açık, PDF şifresiz dönmez."
         required: false
@@ -83,13 +87,14 @@ jobs:
         env:
           ISSUE_REF: ${{ github.event.inputs.issue_ref }}
           ISSUE_PUBKEY: ${{ github.event.inputs.issue_pubkey }}
+          ISSUE_REDRAFT: ${{ github.event.inputs.issue_redraft }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: ISSUE_REF,ISSUE_PUBKEY
+          envs: ISSUE_REF,ISSUE_PUBKEY,ISSUE_REDRAFT
           script: |
             set -e
             cat > /tmp/vestra_issue.php <<'PHPEOF'
@@ -106,13 +111,25 @@ jobs:
             $pub = openssl_pkey_get_public((string)base64_decode(trim((string)getenv('ISSUE_PUBKEY')), true));
             if (!$pub) { fwrite(STDERR, "public key okunamadi\n"); exit(1); }
 
+            $redraft = strtolower(trim((string)getenv('ISSUE_REDRAFT'))) === 'true';
             $before = vestra_invoices_for_ref($ref);
-            $issued = vestra_issue_order_invoices($ref);
+            $issued = vestra_issue_order_invoices($ref, $redraft);
             if (!$issued) { fwrite(STDERR, "fatura kesilemedi (siparis yok ya da satir yok)\n"); exit(1); }
             echo "onceden kesilmis : ".(count($before) ?: 'yok')."\n";
             echo "fatura sayisi    : ".count($issued)."\n";
             foreach ($issued as $iv) {
-              echo "  no: ".$iv['no']."  satici: ".$iv['seller_key']."  dosya: ".(is_file($iv['path']) ? 'var' : 'YOK')."\n";
+              echo "  no: ".$iv['no']."  satici: ".$iv['seller_key']."  dosya: ".(is_file($iv['path']) ? 'var' : 'YOK')
+                 .(!empty($iv['redrafted']) ? "  (AYNI numarayla yeniden uretildi)" : "")."\n";
+            }
+            /* Faturanin uzerinde ne yazdigi tek gercek kaynak belgenin kendisi; alici blogunu
+               log'a yazamayiz (herkese acik), ama ULKE alaninin duzelip duzelmedigini gormek
+               gerekiyor -- bir ulke adi kisisel veri degil. */
+            $ordRow = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $ordRow = $r; break; }
+            if ($ordRow) {
+              $bq = vestra_invoice_buyer($ordRow);
+              echo "alici ulkesi     : ".($bq['country'] !== '' ? $bq['country'] : 'YOK')."\n";
+              echo "alici adresi     : ".($bq['address'] !== '' ? mb_strlen($bq['address'])." karakter" : 'YOK')."\n";
             }
             echo "e-posta          : GONDERILMEDI (bilerek -- gonderim ayri adim)\n";
 
@@ -172,13 +189,23 @@ jobs:
             }
             $json = openssl_decrypt($dec($parts[2]), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, $dec($parts[1]));
             $in = $json === false ? null : json_decode($json, true);
-            if (!is_array($in) || empty($in['account_id'])) { fwrite(STDERR, "govde cozulemedi\n"); exit(1); }
+            if (!is_array($in) || (empty($in['account_id']) && empty($in['account_email']))) {
+              fwrite(STDERR, "govde cozulemedi (account_id ya da account_email gerekli)\n"); exit(1);
+            }
 
             $accFile = $doc.'/data/accounts.json';
             $accounts = auth_accounts();
             $idx = null;
-            foreach ($accounts as $i => $a) if ((string)($a['id'] ?? '') === (string)$in['account_id']) { $idx = $i; break; }
+            /* Hesabi id ile buluyoruz; id elde yoksa e-posta ile. Alici hesaplarinin id'si
+               hicbir yerde gorunmuyor, elimizde olan tek tanitici e-posta adresi. */
+            if (!empty($in['account_id'])) {
+              foreach ($accounts as $i => $a) if ((string)($a['id'] ?? '') === (string)$in['account_id']) { $idx = $i; break; }
+            } else {
+              $want = strtolower(trim((string)$in['account_email']));
+              foreach ($accounts as $i => $a) if (strtolower(trim((string)($a['email'] ?? ''))) === $want) { $idx = $i; break; }
+            }
             if ($idx === null) { fwrite(STDERR, "hesap bulunamadi\n"); exit(1); }
+            $in['account_id'] = (string)($accounts[$idx]['id'] ?? '');
 
             copy($accFile, $accFile.'.bak-'.date('Ymd-His'));
             $before = $accounts[$idx]['company'] ?? '';
