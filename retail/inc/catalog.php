@@ -443,14 +443,37 @@ function vr_card_name(array $p): string
  */
 function vr_product_gallery(array $p, int $max = 5): array
 {
-    if (!empty($p['images'])) return array_slice($p['images'], 0, $max);
+    $real = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
 
+    // Üç ve üzeri gerçek fotoğraf varsa galeri zaten dolu — üretilen kareye
+    // gerek yok.
+    if (count($real) >= 3) return array_slice($real, 0, $max);
+
+    /**
+     * Bir ya da iki gerçek fotoğrafta galeriyi ÜRETİLEN kadrajlarla
+     * tamamlıyoruz. Alternatifi tek başına duran bir kare: ürün sayfasının
+     * yarısı boş kalıyor ve parça ucuz görünüyor.
+     *
+     * Gerçek fotoğraf DAİMA başta; üretilenler fotoğraf taklidi değil,
+     * bilinçli çizgi kadrajlar — bir başkasının fotoğrafını buraya koymuyoruz.
+     * Üçüncü fotoğraf geldiği an üretilenler kendiliğinden çekiliyor.
+     */
     $seed = substr(sha1((string)$p['id']), 0, 12);
-    $out  = [];
-    for ($v = 0; $v < $max; $v++) {
+    $out  = $real;
+
+    // Tek sayıda kare: ilk kadraj tam genişlik + altına 2×2 ızgara
+    // (bkz. .pdp__media--multi). Çift sayı düz ızgarada da kusursuz.
+    $target = $max;
+    if ($target % 2 === 0) $target--;
+
+    // Gerçek fotoğraf varsa önden görünüşü (v=0) atlıyoruz: onun yerini
+    // zaten fotoğraf tutuyor, iki kez aynı açı olmasın.
+    $v = $real ? 1 : 0;
+    while (count($out) < $target && $v <= 4) {
         $out[] = vr_url('assets/art.php', ['s' => $seed, 'c' => $p['cat'], 'v' => $v]);
+        $v++;
     }
-    return $out;
+    return array_slice($out, 0, $max);
 }
 
 function vr_product_url(array $p): string

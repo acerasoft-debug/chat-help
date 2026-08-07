@@ -25,6 +25,10 @@ on:
         description: "true = Fotos laden"
         required: true
         default: "true"
+      extra_images:
+        description: "true = zusaetzlich nach 2./3./4. Foto suchen (Live-Katalog, Produktseite, Geschwisterdateien)"
+        required: true
+        default: "true"
       commit:
         description: "true = Ergebnis in den Branch committen"
         required: true
@@ -57,6 +61,17 @@ jobs:
           [ "$DRY" = true ] && ARGS="$ARGS --dry"
           echo "php tools/import-batches.php $ARGS"
           php tools/import-batches.php $ARGS 2>&1 | tee ../batch-report.txt
+
+      - name: Weitere Fotos suchen
+        if: ${{ github.event.inputs.extra_images == 'true' && github.event.inputs.dry_run != 'true' }}
+        env:
+          BASE: ${{ github.event.inputs.base }}
+        run: |
+          set -e
+          cd retail
+          # Sucht nur fuer Artikel mit weniger als vier Fotos und nur auf der
+          # eigenen Seite. Kein Streifzug durch fremde Shops.
+          php tools/fetch-extra-images.php --base="$BASE" --want=4 2>&1 | tee -a ../batch-report.txt
 
       - name: Katalog nachrechnen
         if: ${{ github.event.inputs.dry_run != 'true' }}
