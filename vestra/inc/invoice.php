@@ -445,23 +445,24 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
 
 /** Invoices already issued for a ref (order or offer) — for rendering download links. No regeneration. */
 /**
- * Name the file gets when it is downloaded: buyer and order reference.
+ * Name the file gets when it is downloaded: the order reference, nothing else.
  *
- * "invoice.pdf" in a downloads folder is indistinguishable from every other invoice, and the
- * reference alone still needs looking up. Both parties file these by who and which order, so
- * the name carries both. Falls back to the reference when the buyer is unknown — invoices
- * issued before this was recorded have no buyer in their meta.
+ * "invoice.pdf" in a downloads folder is indistinguishable from every other invoice, so the
+ * name has to carry something. The reference is enough to file it and to find it again, and
+ * it is the one identifier both sides of the sale already quote. It also travels better than
+ * the buyer's name would: an invoice gets forwarded to freight forwarders, customs brokers
+ * and banks, and the file name is the part that shows up in a mail client's attachment list.
+ *
+ * One exception. A cart spanning several sellers produces one invoice per seller for the same
+ * reference, and they cannot all be called the same thing — the second download would land as
+ * "(1)" or overwrite the first. Only then is the invoice number added to tell them apart.
  */
 function vestra_invoice_download_name(string $ref, string $sellerKey): string {
-    $meta  = @json_decode((string)@file_get_contents(vestra_invoice_meta_file($ref, $sellerKey)), true);
-    $buyer = is_array($meta) ? trim((string)($meta['buyer'] ?? '')) : '';
-    $slug  = '';
-    if ($buyer !== '') {
-        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $buyer);
-        $slug  = trim(preg_replace('/-+/', '-', preg_replace('/[^A-Za-z0-9]+/', '-', (string)$ascii)), '-');
-        $slug  = mb_substr($slug, 0, 60);
-    }
-    return ($slug !== '' ? $slug.'-' : '').$ref.'.pdf';
+    $safe = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if (count(glob(vestra_invoice_dir().'/'.$safe.'__*.json') ?: []) <= 1) return $safe.'.pdf';
+    $meta = @json_decode((string)@file_get_contents(vestra_invoice_meta_file($ref, $sellerKey)), true);
+    $no   = is_array($meta) ? preg_replace('/[^A-Za-z0-9_-]/', '', (string)($meta['no'] ?? '')) : '';
+    return $safe.($no !== '' ? '-'.$no : '').'.pdf';
 }
 
 function vestra_invoices_for_ref(string $ref): array {
