@@ -18,6 +18,10 @@ on:
         description: "Verilirse api/dropship.php'yi bu Bearer key ile uçtan uca test eder (log'a yazılmaz)"
         required: false
         default: ""
+      order_sheet_ref:
+        description: "Verilirse bu sipariş için tarafsız 'order sheet' PDF'i üretip base64 olarak log'a yazar (ör: VES-CF0B4185)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -127,6 +131,65 @@ jobs:
             php -r '$d=json_decode(file_get_contents(getenv("HOME")."/public_html/data/listings.json"),true);
                     echo is_array($d)?("gecerli JSON, ".count($d)." urun\n"):"BOZUK JSON!\n";'
             echo; echo "== yedek sayisi =="; ls -1 ~/public_html/data/listings.json.bak-* 2>/dev/null | wc -l
+
+      # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir (urun fotograflari ve
+      # orders.csv sadece orada var) ve base64 olarak log'a yazar.
+      #
+      # Log'a alici adi/e-postasi/adresi HIC girmez: sayfanin kendisi de sadece siparis
+      # numarasi, model kodu, foto ve adet tasir -- fiyat ve alici kimligi yok. Butunluk
+      # icin bayt sayisi ve SHA-256 da yazilir, cunku kirpilmis bir log sessizce bozuk
+      # PDF uretir.
+      - name: Sipariş sayfası (tarafsız PDF)
+        if: ${{ github.event.inputs.order_sheet_ref != '' }}
+        env:
+          SHEET_REF: ${{ github.event.inputs.order_sheet_ref }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: SHEET_REF
+          script: |
+            set -e
+            cat > /tmp/vestra_sheet.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SHEET_REF'));
+            if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
+
+            $order = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $order = $r; break; }
+            if (!$order) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            $lines = vestra_order_lines($order)['lines'];
+            echo "ref        : {$ref}\n";
+            echo "satir      : ".count($lines)."\n";
+            echo "GD         : ".(function_exists('imagecreatefromstring') ? 'var' : 'YOK')."\n";
+            foreach ($lines as $l) {
+              $img = (string)($l['image'] ?? '');
+              printf("  %-22s x%-5d foto=%s\n", (string)($l['sku'] ?? '?'), (int)($l['qty'] ?? 0),
+                     $img === '' ? 'YOK' : (is_file($doc.$img) ? 'var' : "DISKTE YOK ({$img})"));
+            }
+
+            $pdf = vestra_render_order_sheet_pdf($order, $lines);
+            file_put_contents('/tmp/vestra_sheet.pdf', $pdf);
+            echo "bayt       : ".strlen($pdf)."\n";
+            echo "sha256     : ".hash('sha256', $pdf)."\n";
+            /* Sayfada marka izi kalmadigini burada da dogrula -- amaci bu. */
+            foreach (['VESTRA','vestrasales','acerasoft'] as $n)
+              echo "  iz {$n}: ".(str_contains($pdf, $n) ? 'VAR (HATA)' : 'yok')."\n";
+            PHPEOF
+            php -l /tmp/vestra_sheet.php
+            php /tmp/vestra_sheet.php
+            echo "-----BEGIN SHEET BASE64-----"
+            base64 -w 200 /tmp/vestra_sheet.pdf 2>/dev/null || base64 /tmp/vestra_sheet.pdf
+            echo "-----END SHEET BASE64-----"
+            rm -f /tmp/vestra_sheet.php /tmp/vestra_sheet.pdf
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'

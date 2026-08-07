@@ -381,3 +381,118 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
     }
     return $pdf->output();
 }
+
+/**
+ * Catalogue photo as a small baseline JPEG, ready for VestraPdf::imageJpeg().
+ *
+ * Re-encoded rather than passed straight through: the originals run to several MB, and the
+ * folder holds PNG, WebP and progressive JPEG alongside baseline — none of which /DCTDecode
+ * accepts. Returns '' when the file is missing or GD is unavailable; the caller draws a
+ * placeholder rather than failing.
+ */
+function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
+    $src = trim($src);
+    if ($src === '' || $src[0] !== '/') return '';
+    $file = dirname(__DIR__).$src;
+    if (!is_file($file)) return '';
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') return '';
+    if (!function_exists('imagecreatefromstring')) {
+        // No GD on this host: pass a JPEG through untouched if it is small enough to
+        // carry, and give up on anything else rather than embedding what /DCTDecode
+        // cannot read. imageJpeg() still validates the bytes before they go in.
+        return (strlen($raw) <= 1500000 && substr($raw, 0, 2) === "\xFF\xD8") ? $raw : '';
+    }
+    $im = @imagecreatefromstring($raw);
+    if (!$im) return '';
+
+    $w = imagesx($im); $h = imagesy($im);
+    $s  = min(1.0, $maxPx / max($w, $h));
+    $nw = max(1, (int)round($w * $s)); $nh = max(1, (int)round($h * $s));
+    $dst = imagecreatetruecolor($nw, $nh);
+    // Cut-outs are shot on white; without this fill a transparent PNG lands on black.
+    imagefilledrectangle($dst, 0, 0, $nw, $nh, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    ob_start(); imagejpeg($dst, null, 80); $out = (string)ob_get_clean();
+    imagedestroy($im); imagedestroy($dst);
+    return $out;
+}
+
+/**
+ * Neutral order sheet — the same goods as the order summary, laid out to be handed to a
+ * third party.
+ *
+ * Carries the order number, the photos, the model codes and the quantities, and nothing
+ * else: no marketplace name, no buyer identity, no prices. A picking list forwarded to a
+ * supplier should tell them what to pull off the shelf and reveal neither who is buying
+ * nor what anyone is paying. The branded, priced document stays at
+ * vestra_render_order_pdf() and is only reachable from the customer's own account.
+ */
+function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
+    require_once __DIR__.'/pdf.php';
+    $pdf   = new VestraPdf();
+    $left  = 50.0; $right = 545.0; $bottom = 60.0;
+    $imgW  = 74.0;                    // photo column, square
+    $txtX  = $left + $imgW + 14;
+    $textW = $right - $txtX - 74;     // leave the right edge for the quantity
+    $y     = VestraPdf::PAGE_H - 62;
+
+    $ref  = (string)($orderRow['ref'] ?? '');
+    $date = substr((string)($orderRow['timestamp'] ?? ''), 0, 10);
+
+    $header = function () use ($pdf, $left, $right, $ref, $date, &$y) {
+        $pdf->text($left, $y, 16, 'ORDER SHEET', true);
+        $pdf->textR($right, $y + 2, 11, 'No. '.$ref, true);
+        if ($date !== '') $pdf->textR($right, $y - 11, 9, $date);
+        $y -= 18;
+        $pdf->line($left, $y, $right, $y, 1.0, 0.15);
+        $y -= 20;
+        $pdf->text($left, $y, 8.5, 'ITEM', true);
+        $pdf->textR($right, $y, 8.5, 'QUANTITY', true);
+        $y -= 8;
+        $pdf->line($left, $y, $right, $y, 0.5, 0.72);
+        $y -= 22;
+    };
+    $header();
+
+    $units = 0;
+    foreach ($lines as $l) {
+        $qty    = (int)($l['qty'] ?? 0);
+        $units += $qty;
+        $name   = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
+        $cols   = array_values(array_filter(array_map('trim', array_map('strval', (array)($l['colors'] ?? []))), fn($c) => $c !== ''));
+
+        $nameLines = $pdf->wrap($name, $textW, 10, true);
+        $colLines  = $cols ? $pdf->wrap('Colours: '.implode(', ', $cols), $textW, 8.5) : [];
+        $rowH = max($imgW, 14 + count($nameLines) * 12 + count($colLines) * 11) + 18;
+
+        if ($y - $rowH < $bottom) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 62; $header(); }
+        $top = $y;
+
+        $jpg = vestra_pdf_thumb((string)($l['image'] ?? ''));
+        if ($jpg === '' || !$pdf->imageJpeg($jpg, $left, $top - $imgW, $imgW, $imgW)) {
+            $pdf->rectFill($left, $top - $imgW, $imgW, $imgW, 0.95);
+            $pdf->textR($left + $imgW / 2 + 14, $top - $imgW / 2 - 3, 7.5, 'no photo');
+        }
+
+        $ty  = $top - 11;
+        $sku = trim((string)($l['sku'] ?? ''));
+        if ($sku !== '') { $pdf->text($txtX, $ty, 8.5, $sku); $ty -= 14; }
+        foreach ($nameLines as $nl) { $pdf->text($txtX, $ty, 10, $nl, true); $ty -= 12; }
+        foreach ($colLines as $cl)  { $pdf->text($txtX, $ty, 8.5, $cl);      $ty -= 11; }
+
+        $pdf->textR($right, $top - 14, 15, (string)$qty, true);
+        $pdf->textR($right, $top - 27, 8, 'pcs');
+
+        $y = $top - $rowH;
+        $pdf->line($left, $y + 9, $right, $y + 9, 0.4, 0.84);
+    }
+
+    if ($y - 40 < $bottom) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 62; }
+    $y -= 4;
+    $pdf->line($left, $y, $right, $y, 0.9, 0.25); $y -= 18;
+    $n = count($lines);
+    $pdf->text($left, $y, 10, $n.' '.($n === 1 ? 'model' : 'models'), true);
+    $pdf->textR($right, $y, 13, $units.' pcs total', true);
+    return $pdf->output();
+}
