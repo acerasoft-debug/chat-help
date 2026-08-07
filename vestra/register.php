@@ -132,7 +132,11 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
       <div class="frow" style="margin-bottom:0">
         <div class="authfield">
           <label><?= t('Country') ?> *</label>
-          <input name="country" required maxlength="3" placeholder="DE" value="<?= htmlspecialchars($d['country']??'') ?>">
+          <?php /* maxlength was 3, for an ISO code. Buyers type the country name instead, and
+                   the browser silently truncated it — one account reached the invoice as "Nor".
+                   Both forms are accepted now and normalised to a full name where they are
+                   printed; a name is never cut short to look like a code. */ ?>
+          <input name="country" required maxlength="56" placeholder="DE" value="<?= htmlspecialchars($d['country']??'') ?>">
         </div>
         <div class="authfield">
           <label><?= t('Phone') ?></label>

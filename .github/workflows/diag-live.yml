@@ -249,8 +249,15 @@ jobs:
               /* FATURA ONIZLEMESI. vestra_issue_order_invoices() ile AYNI verileri kurar ama
                  hicbir sey yazmaz ve kimseye e-posta gitmez: numara DRAFT, dosya olusmaz,
                  siparis "inceleniyor" durumunda kalir. Amac, kesmeden once gorup onaylamak. */
-              $address = '';
-              if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($order['notes'] ?? ''), $m)) $address = trim($m[1]);
+              /* Alici blogunu gercek kesim ile AYNI fonksiyon kuruyor (vestra_invoice_buyer):
+                 onaylanan belge ile kesilen belge birbirinden ayrilamasin. */
+              $buyer = vestra_invoice_buyer($order);
+              /* Log herkese acik: adresin KENDISI degil, dolu mu ve nereden geldigi yazilir. */
+              printf("alici adresi     : %s (%d karakter)\n",
+                     $buyer['address'] === '' ? 'YOK -- gumruk/UPS icin eksik'
+                       : (str_contains((string)($order['notes'] ?? ''), 'Deliver to:') ? 'siparis notundan' : 'kayitli hesaptan'),
+                     mb_strlen($buyer['address']));
+              printf("alici ulkesi     : %s\n", $buyer['country'] !== '' ? $buyer['country'] : 'YOK');
               $meta = [
                 'ref' => $ref, 'date' => $order['timestamp'] ?? date('c'),
                 'discount' => round((float)($order['discount'] ?? 0), 2),
@@ -258,11 +265,7 @@ jobs:
                 'shipping' => round((float)($order['shipping'] ?? 0), 2),
                 'shipping_label' => trim((string)($order['shipping_label'] ?? '')),
                 'partial_shipments' => !empty($order['partial_shipments']),
-                'buyer' => [
-                  'company' => $order['company'] ?? '', 'vat' => $order['vat'] ?? '',
-                  'name' => $order['name'] ?? '', 'email' => $order['email'] ?? '',
-                  'country' => $order['country'] ?? '', 'address' => $address,
-                ],
+                'buyer' => $buyer,
               ];
               /* Faturayi KIM kesiyor: satirlarin sahibi. Bunu uydurmuyoruz -- urunun
                  seller_uid'i kimse fatura da onun. Birden fazla satici varsa gercek

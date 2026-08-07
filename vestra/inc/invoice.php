@@ -26,6 +26,91 @@ function vestra_invoice_dir(): string {
     return $dir;
 }
 
+/**
+ * A country as it belongs on an invoice: the full name.
+ *
+ * The registration form capped the field at three characters for an ISO code, so buyers who
+ * typed their country name had it truncated by the browser — "Norway" reached an invoice as
+ * "Nor". The field is wider now, but the accounts created before that still hold the stump,
+ * and a customs entry cannot be filed against "Nor".
+ *
+ * ISO-2 codes resolve directly; anything shorter than a name resolves by prefix, but only
+ * when exactly one country matches — "Ind" stays "Ind" rather than becoming a guess between
+ * India and Indonesia. Anything already spelled out is returned untouched.
+ */
+function vestra_country_name(string $v): string {
+    $v = trim($v);
+    if ($v === '') return '';
+    static $iso = [
+        'AT'=>'Austria','BE'=>'Belgium','BG'=>'Bulgaria','CH'=>'Switzerland','CY'=>'Cyprus',
+        'CZ'=>'Czechia','DE'=>'Germany','DK'=>'Denmark','EE'=>'Estonia','ES'=>'Spain',
+        'FI'=>'Finland','FR'=>'France','GB'=>'United Kingdom','UK'=>'United Kingdom',
+        'GR'=>'Greece','HR'=>'Croatia','HU'=>'Hungary','IE'=>'Ireland','IS'=>'Iceland',
+        'IT'=>'Italy','LI'=>'Liechtenstein','LT'=>'Lithuania','LU'=>'Luxembourg','LV'=>'Latvia',
+        'MC'=>'Monaco','MT'=>'Malta','NL'=>'Netherlands','NO'=>'Norway','PL'=>'Poland',
+        'PT'=>'Portugal','RO'=>'Romania','RS'=>'Serbia','SE'=>'Sweden','SI'=>'Slovenia',
+        'SK'=>'Slovakia','TR'=>'Türkiye','UA'=>'Ukraine',
+        'AE'=>'United Arab Emirates','AZ'=>'Azerbaijan','CA'=>'Canada','JP'=>'Japan',
+        'KR'=>'South Korea','US'=>'United States','QA'=>'Qatar','SA'=>'Saudi Arabia',
+        /* Beyond the markets we sell to: these are here so a truncated stump has something
+           to collide with. "Mal" resolved to Malta while Malaysia and Mali were missing from
+           the list — a unique match against an incomplete list is a wrong country on a customs
+           document, which is worse than leaving the stump alone. */
+        'AL'=>'Albania','AM'=>'Armenia','AR'=>'Argentina','AU'=>'Australia','BA'=>'Bosnia and Herzegovina',
+        'BH'=>'Bahrain','BR'=>'Brazil','BY'=>'Belarus','CL'=>'Chile','CN'=>'China','EG'=>'Egypt',
+        'GE'=>'Georgia','ID'=>'Indonesia','IL'=>'Israel','IN'=>'India','KW'=>'Kuwait','KZ'=>'Kazakhstan',
+        'MA'=>'Morocco','MD'=>'Moldova','ME'=>'Montenegro','MK'=>'North Macedonia','ML'=>'Mali',
+        'MX'=>'Mexico','MY'=>'Malaysia','NZ'=>'New Zealand','RU'=>'Russia','SG'=>'Singapore',
+        'TH'=>'Thailand','TW'=>'Taiwan','ZA'=>'South Africa',
+    ];
+    $up = mb_strtoupper($v);
+    if (isset($iso[$up])) return $iso[$up];
+    if (mb_strlen($v) <= 4) {
+        $hit = '';
+        foreach ($iso as $name) {
+            if (stripos($name, $v) === 0) { if ($hit !== '' && $hit !== $name) return $v; $hit = $name; }
+        }
+        if ($hit !== '') return $hit;
+    }
+    return $v;
+}
+
+/**
+ * The "Bill To" block for an order, from every place the buyer's details actually live.
+ *
+ * orders.csv carries what the order form collected, which for an account-holder is thin: the
+ * delivery address is only present when the buyer filled the optional "deliver to" box, and
+ * it lands in the free-text notes rather than a column. Where the order is silent the buyer's
+ * registered account answers — that is the address they gave us, and an invoice without one
+ * is no use to UPS, to the export declaration, or to the buyer's own finance department.
+ *
+ * Shared by the real issuing path and the preview so the document that gets approved is
+ * byte-for-byte the document that gets issued.
+ */
+function vestra_invoice_buyer(array $orderRow): array {
+    $address = '';
+    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
+
+    $acc   = null;
+    $email = strtolower(trim((string)($orderRow['email'] ?? '')));
+    if ($email !== '' && function_exists('auth_accounts')) {
+        foreach (auth_accounts() as $a) {
+            if (strtolower(trim((string)($a['email'] ?? ''))) === $email) { $acc = $a; break; }
+        }
+    }
+    $pick = fn(string $orderKey, string $accKey) =>
+        trim((string)($orderRow[$orderKey] ?? '')) ?: trim((string)($acc[$accKey] ?? ''));
+
+    return [
+        'company' => $pick('company', 'company'),
+        'vat'     => $pick('vat', 'vat_id'),
+        'name'    => $pick('name', 'name'),
+        'email'   => $orderRow['email'] ?? '',
+        'country' => vestra_country_name($pick('country', 'country')),
+        'address' => $address !== '' ? $address : trim((string)($acc['address'] ?? '')),
+    ];
+}
+
 /** Filesystem-safe issuer key: the seller's account id, or 'vestra' for sellerless lines. */
 function vestra_invoice_seller_key(?array $sellerAcc): string {
     return ($sellerAcc['id'] ?? '') !== '' ? $sellerAcc['id'] : 'vestra';
@@ -403,9 +488,8 @@ function vestra_issue_order_invoices(string $ref): array {
     $orderRow = null;
     foreach (vestra_read_csv('orders.csv') as $row) { if (($row['ref'] ?? '') === $ref) { $orderRow = $row; break; } }
     if (!$orderRow) return [];
+    require_once __DIR__.'/auth.php';   // the buyer block falls back to the registered account
     $ld = vestra_order_lines($orderRow);
-    $address = '';
-    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
     $orderMeta = [
         'ref' => $ref, 'date' => $orderRow['timestamp'] ?? date('c'),
         /* Freight is charged on the order, not per seller: splitting one consignment's
@@ -414,11 +498,7 @@ function vestra_issue_order_invoices(string $ref): array {
         'shipping' => round((float)($orderRow['shipping'] ?? 0), 2),
         'shipping_label' => trim((string)($orderRow['shipping_label'] ?? '')),
         'partial_shipments' => !empty($orderRow['partial_shipments']),
-        'buyer' => [
-            'company' => $orderRow['company'] ?? '', 'vat' => $orderRow['vat'] ?? '',
-            'name' => $orderRow['name'] ?? '', 'email' => $orderRow['email'] ?? '',
-            'country' => $orderRow['country'] ?? '', 'address' => $address,
-        ],
+        'buyer' => vestra_invoice_buyer($orderRow),
     ];
     $bySeller = [];
     foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
