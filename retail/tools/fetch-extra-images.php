@@ -107,10 +107,20 @@ function fx_siblings(string $rel): array
     $base = $stem;
     if (preg_match('/^(.*?)-(\d{1,2})$/', $stem, $m) && (int)$m[2] <= 9) $base = $m[1];
 
-    $sfx = ['-2', '-3', '-4', '-b', '-c', '-d', '-back', '-detail', '-2', '-side'];
+    // Reihenfolge = Trefferwahrscheinlichkeit. Die Liste ist bewusst kurz:
+    // jeder Kandidat kostet eine HEAD-Anfrage, und bei 400 Artikeln summiert
+    // sich das. Zuerst die Endung des vorhandenen Fotos, denn ein Shop
+    // speichert Geschwisterbilder fast immer im selben Format.
+    $sfx = ['-2', '-b', '-3', '-back', '-c', '-4', '-detail', '-side'];
     $out = [];
     foreach ($sfx as $s) {
-        foreach ([$ext, '.jpg', '.webp'] as $e) {
+        $cand = $base . $s . $ext;
+        if ($cand !== $rel) $out[$cand] = true;
+    }
+    // Nur für die drei häufigsten Endungen noch die anderen Formate.
+    foreach (['-2', '-b', '-3'] as $s) {
+        foreach (['.jpg', '.webp'] as $e) {
+            if ($e === $ext) continue;
             $cand = $base . $s . $e;
             if ($cand !== $rel) $out[$cand] = true;
         }
@@ -187,7 +197,7 @@ foreach ($catalog as $id => $p) {
             if ($r['ok'] && str_contains(strtolower($r['type']), 'image')) {
                 $found[] = $cand; $fromProbe++;
             }
-            usleep(120000);
+            usleep(60000);
         }
     }
 

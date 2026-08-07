@@ -129,7 +129,22 @@ jobs:
           fi
           if git diff --cached --quiet; then
             echo "Keine Änderung."
-          else
-            git commit -m "retail: Katalog aus product-batches inkl. Fotos"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            exit 0
           fi
+          git commit -m "retail: Katalog aus product-batches inkl. Fotos"
+
+          # Der Branch kann sich waehrend des Laufs bewegt haben — ein Import
+          # dauert eine halbe Stunde, und in der Zeit wird weitergearbeitet.
+          # Ohne Rebase scheitert der Push und die ganze Arbeit ist weg.
+          for i in 1 2 3 4; do
+            git fetch origin "$GITHUB_REF_NAME" || true
+            git rebase "origin/${GITHUB_REF_NAME}" || { git rebase --abort || true; }
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Push erfolgreich."
+              exit 0
+            fi
+            echo "Push abgewiesen — neuer Versuch in $((i * 5))s"
+            sleep $((i * 5))
+          done
+          echo "Push nach vier Versuchen nicht moeglich. Ergebnis liegt als Artefakt bereit."
+          exit 1
