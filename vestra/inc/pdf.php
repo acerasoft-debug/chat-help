@@ -13,6 +13,42 @@
  * sheet. Callers own all layout/cursor logic; this class only turns drawing
  * calls into a valid PDF byte stream.
  */
+/**
+ * Any site image as a small baseline JPEG, ready for VestraPdf::imageJpeg().
+ *
+ * Re-encoded rather than passed straight through: the originals run to several MB, and the
+ * folder holds PNG, WebP and progressive JPEG alongside baseline — none of which /DCTDecode
+ * accepts. Returns '' when the file is missing or GD is unavailable; the caller draws a
+ * placeholder rather than failing.
+ */
+function vestra_pdf_thumb(string $src, int $maxPx = 200): string {
+    $src = trim($src);
+    if ($src === '' || $src[0] !== '/') return '';
+    $file = dirname(__DIR__).$src;
+    if (!is_file($file)) return '';
+    $raw = @file_get_contents($file);
+    if ($raw === false || $raw === '') return '';
+    if (!function_exists('imagecreatefromstring')) {
+        // No GD on this host: pass a JPEG through untouched if it is small enough to
+        // carry, and give up on anything else rather than embedding what /DCTDecode
+        // cannot read. imageJpeg() still validates the bytes before they go in.
+        return (strlen($raw) <= 1500000 && substr($raw, 0, 2) === "\xFF\xD8") ? $raw : '';
+    }
+    $im = @imagecreatefromstring($raw);
+    if (!$im) return '';
+
+    $w = imagesx($im); $h = imagesy($im);
+    $s  = min(1.0, $maxPx / max($w, $h));
+    $nw = max(1, (int)round($w * $s)); $nh = max(1, (int)round($h * $s));
+    $dst = imagecreatetruecolor($nw, $nh);
+    // Cut-outs are shot on white; without this fill a transparent PNG lands on black.
+    imagefilledrectangle($dst, 0, 0, $nw, $nh, imagecolorallocate($dst, 255, 255, 255));
+    imagecopyresampled($dst, $im, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    ob_start(); imagejpeg($dst, null, 80); $out = (string)ob_get_clean();
+    imagedestroy($im); imagedestroy($dst);
+    return $out;
+}
+
 class VestraPdf {
     const PAGE_W = 595; // A4 in points, 72dpi
     const PAGE_H = 842;

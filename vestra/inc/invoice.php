@@ -58,14 +58,39 @@ function vestra_next_invoice_no(string $sellerKey): string {
     return sprintf('INV-%s-%06d', $year, $n);
 }
 
-/** Naive word-wrap using VestraPdf's width estimate (kept here so callers don't need a PDF instance). */
+/**
+ * Word-wrap using VestraPdf's width estimate (kept here so callers don't need a PDF instance).
+ *
+ * Breaks inside a word when the word itself is wider than the column. Splitting on spaces
+ * alone leaves a model code like WH1JQ040B139MAI whole, and a whole code wider than the SKU
+ * column does not wrap — it just keeps drawing, straight over the description beside it.
+ */
 function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = false): array {
-    $words = preg_split('/\s+/', trim($s));
+    $wide = fn(string $t): float => mb_strlen($t) * $size * ($bold ? 0.60 : 0.52);
+    $chop = function (string $w) use ($wide, $maxW): array {
+        $out = []; $cur = '';
+        foreach (preg_split('//u', $w, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
+            if ($cur !== '' && $wide($cur.$ch) > $maxW) { $out[] = $cur; $cur = ''; }
+            $cur .= $ch;
+        }
+        if ($cur !== '') $out[] = $cur;
+        return $out;
+    };
+
     $lines = []; $cur = '';
-    foreach ($words as $w) {
+    foreach (preg_split('/\s+/', trim($s)) as $w) {
         if ($w === '') continue;
+        if ($maxW > 0 && $wide($w) > $maxW) {
+            /* Unbreakable and too wide: close the current line, then let the pieces stand on
+               their own so nothing is space-joined back into an over-wide line. */
+            if ($cur !== '') { $lines[] = $cur; $cur = ''; }
+            $pieces = $chop($w);
+            $cur = (string)array_pop($pieces);
+            foreach ($pieces as $p) $lines[] = $p;
+            continue;
+        }
         $try = $cur === '' ? $w : $cur.' '.$w;
-        if (mb_strlen($try) * $size * ($bold ? 0.60 : 0.52) > $maxW && $cur !== '') { $lines[] = $cur; $cur = $w; }
+        if ($wide($try) > $maxW && $cur !== '') { $lines[] = $cur; $cur = $w; }
         else $cur = $try;
     }
     if ($cur !== '') $lines[] = $cur;
@@ -85,8 +110,15 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $need = function(float $h) use (&$y, $bottom, $newPage) { if ($y - $h < $bottom) $newPage(); };
 
     // ── Header ──
-    $pdf->text($left, $y, 20, 'VESTRA', true);
-    $pdf->text($left, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
+    /* The mark, then the wordmark as live text beside it. Not one baked image: the name has
+       to survive a reader that fails on the logo, and text stays selectable and searchable
+       in the buyer's document system. If the file is missing the wordmark simply starts at
+       the margin and the header still reads correctly. */
+    $markX = $left;
+    $logo  = vestra_pdf_thumb('/icon-192.png', 128);
+    if ($logo !== '' && $pdf->imageJpeg($logo, $left, $y - 13, 32, 32)) $markX = $left + 40;
+    $pdf->text($markX, $y, 20, 'VESTRA', true);
+    $pdf->text($markX, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);
     $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.$invoiceNo);
     $pdf->textR($right, $y - 30, 9, 'Date:  '.substr($order['date'] ?? date('c'), 0, 10));
@@ -180,7 +212,10 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
 
     // ── Line-items table ──
     $need(50);
-    $colSku = $left + 4; $colDesc = $left + 75; $colCol = $left + 260; $colQty = $left + 355; $colUnit = $left + 400;
+    /* The SKU column carries full manufacturer model codes (WH1JQ040B139MAI, WV0MG10W7SS0NI),
+       which is what the buyer and the customs entry match against, so it gets the room it
+       needs rather than the description's leftovers. */
+    $colSku = $left + 4; $colDesc = $left + 92; $colCol = $left + 265; $colQty = $left + 355; $colUnit = $left + 400;
     $pdf->rectFill($left, $y - 14, $width, 18, 0.88);
     $pdf->text($colSku, $y - 9, 8.5, 'SKU', true);
     $pdf->text($colDesc, $y - 9, 8.5, 'Description', true);
@@ -194,9 +229,10 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     foreach ($items as $it) {
         $desc = trim(($it['brand'] ?? '').' '.($it['name'] ?? ''));
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
-        $rowH = max(13, count($descLines) * 11) + 8;
+        $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8);
+        $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
         $need($rowH);
-        $pdf->text($colSku, $y, 9, (string)($it['sku'] ?? ''));
+        foreach ($skuLines as $j => $sl)  $pdf->text($colSku,  $y - ($j * 10), 8, $sl);
         foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
         if (!empty($it['colors'])) {
             $colTxt = implode(', ', (array)$it['colors']);
