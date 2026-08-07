@@ -101,12 +101,23 @@ function vestra_invoice_buyer(array $orderRow): array {
     $pick = fn(string $orderKey, string $accKey) =>
         trim((string)($orderRow[$orderKey] ?? '')) ?: trim((string)($acc[$accKey] ?? ''));
 
+    /* Country is the one field where the order is not the better source. It was copied from
+       whatever the buyer's profile held at the time, which for accounts created under the old
+       three-character limit is a stump — the order carries "Nor" forever even after the
+       account is corrected to "Norway". So: take the account's value when the order's still
+       looks truncated and the account's does not. Everything else prefers the order, which is
+       the record of what was actually agreed. */
+    $ctryOrder = vestra_country_name(trim((string)($orderRow['country'] ?? '')));
+    $ctryAcc   = vestra_country_name(trim((string)($acc['country'] ?? '')));
+    $country   = ($ctryOrder === '' || (mb_strlen($ctryOrder) <= 4 && mb_strlen($ctryAcc) > 4))
+        ? ($ctryAcc ?: $ctryOrder) : $ctryOrder;
+
     return [
         'company' => $pick('company', 'company'),
         'vat'     => $pick('vat', 'vat_id'),
         'name'    => $pick('name', 'name'),
         'email'   => $orderRow['email'] ?? '',
-        'country' => vestra_country_name($pick('country', 'country')),
+        'country' => $country,
         'address' => $address !== '' ? $address : trim((string)($acc['address'] ?? '')),
     ];
 }
