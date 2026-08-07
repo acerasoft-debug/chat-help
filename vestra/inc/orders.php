@@ -175,7 +175,11 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
         if ($viewerRole === 'seller' && $iv['seller_key'] !== $viewerUid) continue;
         $invLinks .= '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin:10px 10px 0 0">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
     }
-    if ($invLinks !== '') $h .= '<div>'.$invLinks.'</div>';
+    /* The order summary is always downloadable, invoice or not — before the invoice is
+       issued it is the only paper the buyer has, and that is precisely when a purchasing
+       team asks them for one. */
+    $invLinks .= '<a class="btn btn-o btn-sm" href="/order-pdf?ref='.urlencode($ref).'" style="margin:10px 10px 0 0">⤓ '.t('Download order summary (PDF)').'</a>';
+    $h .= '<div>'.$invLinks.'</div>';
     $h .= '</div>'; // end line-items column
 
     // Side column: counterpart info + tracking/notes
@@ -270,4 +274,110 @@ function vestra_orders_fix_dup_refs(): int {
     rename($tmp, $file);   // atomic swap — readers never see a half-written file
     vestra_write_json('order_statuses.json', $statuses);
     return $fixed;
+}
+
+/**
+ * Order summary as a PDF — the buyer's own copy of what they ordered.
+ *
+ * Deliberately NOT an invoice. The invoice is the seller's demand for payment: it carries
+ * an invoice number, the seller's bank details and a due date, and it is issued by hand
+ * once stock is confirmed. This is available from the moment the order exists, which is
+ * exactly the window where the buyer has nothing on paper and their own colleagues are
+ * asking what was ordered. Labelling it "Order summary" and stamping "not an invoice" on
+ * it keeps the two from being paid against each other by mistake.
+ *
+ * Each line carries the model code, because that is what a buyer matches against their
+ * own system and what they quote back to us in an e-mail.
+ */
+function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLabel): string {
+    require_once __DIR__.'/pdf.php';
+    $pdf = new VestraPdf();
+    $left = 50.0; $right = 545.0; $width = $right - $left; $bottom = 70.0;
+    $y = VestraPdf::PAGE_H - 60;
+    $newPage = function() use (&$y, $pdf) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 60; };
+    $need = function(float $h) use (&$y, $bottom, $newPage) { if ($y - $h < $bottom) $newPage(); };
+    $ref = (string)($orderRow['ref'] ?? '');
+
+    $pdf->text($left, $y, 20, 'VESTRA', true);
+    $pdf->text($left, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
+    $pdf->textR($right, $y, 18, 'ORDER SUMMARY', true);
+    $pdf->textR($right, $y - 18, 9, 'Order ref:  '.$ref);
+    $pdf->textR($right, $y - 30, 9, 'Date:  '.substr((string)($orderRow['timestamp'] ?? ''), 0, 10));
+    $pdf->textR($right, $y - 42, 9, 'Status:  '.$statusLabel);
+    $y -= 66;
+    $pdf->line($left, $y, $right, $y, 1.0, 0.15);
+    $y -= 22;
+
+    $pdf->text($left, $y, 10, 'Buyer', true); $y -= 15;
+    foreach (array_filter([
+        (string)($orderRow['company'] ?? ''),
+        (string)($orderRow['name'] ?? ''),
+        (string)($orderRow['email'] ?? ''),
+        ((string)($orderRow['vat'] ?? '') !== '' ? 'VAT ID: '.$orderRow['vat'] : ''),
+        (string)($orderRow['country'] ?? ''),
+    ], fn($v) => trim((string)$v) !== '') as $bl) { $pdf->text($left, $y, 9, $bl); $y -= 13; }
+    $y -= 10;
+
+    $colSku = $left; $colDesc = $left + 96; $colQty = $right - 168; $colUnit = $right - 96;
+    $pdf->rectFill($left - 6, $y - 5, $width + 12, 20, 0.94);
+    $pdf->text($colSku, $y, 9, 'Model / SKU', true);
+    $pdf->text($colDesc, $y, 9, 'Product', true);
+    $pdf->textR($colQty + 34, $y, 9, 'Qty', true);
+    $pdf->textR($colUnit + 40, $y, 9, 'Unit', true);
+    $pdf->textR($right - 4, $y, 9, 'Line', true);
+    $y -= 24;
+
+    $goods = 0.0;
+    foreach ($lines as $l) {
+        $desc = trim((string)($l['brand'] ?? '').' '.(string)($l['name'] ?? ''));
+        $descLines = $pdf->wrap($desc, $colQty - $colDesc - 8, 9);
+        $rowH = max(13, count($descLines) * 11) + 8;
+        $need($rowH);
+        $pdf->text($colSku, $y, 9, (string)($l['sku'] ?? ''));
+        foreach ($descLines as $j => $dl) $pdf->text($colDesc, $y - ($j * 11), 9, $dl);
+        if (!empty($l['colors'])) {
+            foreach ($pdf->wrap(implode(', ', (array)$l['colors']), $colQty - $colDesc - 8, 8) as $j => $cl)
+                $pdf->text($colDesc, $y - (count($descLines) * 11) - ($j * 10) + 1, 8, $cl);
+        }
+        $pdf->textR($colQty + 34, $y, 9, (string)(int)($l['qty'] ?? 0));
+        $pdf->textR($colUnit + 40, $y, 9, eur($l['unit'] ?? 0));
+        $pdf->textR($right - 4, $y, 9, eur($l['line'] ?? 0));
+        $goods += (float)($l['line'] ?? 0);
+        $y -= $rowH + (!empty($l['colors']) ? 10 : 0);
+    }
+
+    $need(70);
+    $y -= 4; $pdf->line($left, $y, $right, $y, 0.7, 0.5); $y -= 18;
+    $discount = round((float)($orderRow['discount'] ?? 0), 2);
+    if ($discount > 0) {
+        $pdf->textR($colUnit, $y, 10, 'Goods total');
+        $pdf->textR($right - 4, $y, 10, eur($goods)); $y -= 15;
+        $vc = trim((string)($orderRow['voucher_code'] ?? ''));
+        $pdf->textR($colUnit, $y, 10, 'Voucher'.($vc !== '' ? ' '.$vc : ''));
+        $pdf->textR($right - 4, $y, 10, '-'.eur($discount)); $y -= 6;
+        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15;
+    }
+    /* On an escrow order the buyer also pays the protection fee, so the total is above what
+       the goods lines add up to. Left unnamed it just looks like the arithmetic is wrong. */
+    $total = isset($orderRow['total']) ? round((float)$orderRow['total'], 2) : round(max(0, $goods - $discount), 2);
+    $fee   = round($total - ($goods - $discount), 2);
+    if ($fee > 0.009) {
+        if ($discount <= 0) {
+            $pdf->textR($colUnit, $y, 10, 'Goods total');
+            $pdf->textR($right - 4, $y, 10, eur($goods)); $y -= 15;
+        }
+        $pdf->textR($colUnit, $y, 10, 'Buyer protection fee');
+        $pdf->textR($right - 4, $y, 10, eur($fee)); $y -= 6;
+        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15;
+    }
+    $pdf->textR($colUnit, $y, 10, 'Total', true);
+    $pdf->textR($right - 4, $y, 11, eur($total), true);
+    $y -= 30;
+
+    $need(40);
+    foreach ($pdf->wrap('This is an order summary for your records — not an invoice and not a demand for payment. '
+        .'Your invoice, with the seller\'s bank details, is issued once stock is confirmed and is sent to you separately.', $width, 8) as $fl) {
+        $pdf->text($left, $y, 8, $fl); $y -= 11;
+    }
+    return $pdf->output();
 }

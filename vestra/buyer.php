@@ -246,6 +246,17 @@ if($tab==='overview'){
     .ordref{font-weight:700;font-size:15px;color:var(--ink)}
     .ordref:hover{color:var(--acc)}
     .ordcard-items{color:var(--mut);font-size:13.5px;margin:10px 0 0;line-height:1.5}
+    .ordprods{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column}
+    .ordprod{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+    .ordprod:first-child{border-top:0;padding-top:2px}
+    .ordprod-i{width:46px;height:46px;flex-shrink:0;border-radius:8px;object-fit:cover;background:var(--bg);border:1px solid var(--line)}
+    .ordprod-i0{display:block}
+    .ordprod-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .ordprod-l{font-weight:600;color:var(--ink);text-decoration:none}
+    .ordprod-l:hover{color:var(--acc);text-decoration:underline}
+    .ordprod-m{color:var(--mut);font-size:12.5px}
+    .ordprod-s{font-weight:600;white-space:nowrap}
+    @media(max-width:480px){.ordprod-i{width:38px;height:38px}.ordprod-m{font-size:11.5px}}
     .ordcard-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:13px;padding-top:13px;border-top:1px solid var(--line)}
     .ordtotal{font-family:\'Playfair Display\',serif;font-size:22px;font-weight:700}
     .ordacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
@@ -293,6 +304,26 @@ if($tab==='overview'){
         $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
       }
       $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
+      /* The raw items field ("2x SKU @25 | …") is the storage format, not something a buyer
+         should have to decode. Rebuild the real lines so each product is named, pictured and
+         clickable straight through to its page — the thing they actually want to re-check. */
+      $prodHtml = '';
+      foreach (vestra_order_lines($o)['lines'] as $l) {
+        $label = trim(($l['brand'] ?? '').' '.($l['name'] ?? ''));
+        $title = $l['id']
+          ? '<a class="ordprod-l" href="/product?id='.urlencode($l['id']).'">'.htmlspecialchars($label).'</a>'
+          : htmlspecialchars($label);
+        $cols = !empty($l['colors']) ? ' · '.htmlspecialchars(implode(', ', (array)$l['colors'])) : '';
+        $prodHtml .= '<li class="ordprod">'.
+          ($l['image'] ? '<img class="ordprod-i" src="'.htmlspecialchars($l['image']).'" alt="" loading="lazy">'
+                       : '<span class="ordprod-i ordprod-i0"></span>').
+          '<span class="ordprod-t">'.$title.
+            '<span class="ordprod-m">'.(int)$l['qty'].' × '.eur($l['unit']).' · SKU '.htmlspecialchars((string)$l['sku']).$cols.'</span>'.
+          '</span>'.
+          '<span class="ordprod-s">'.eur($l['line']).'</span></li>';
+      }
+      if ($prodHtml !== '') $prodHtml = '<ul class="ordprods">'.$prodHtml.'</ul>';
+      elseif (($o['items'] ?? '') !== '') $prodHtml = '<div class="ordcard-items">'.htmlspecialchars($o['items']).'</div>';
       echo '<div class="ordcard'.($inReview?' ordcard-review':'').'">'.
         '<div class="ordcard-top">'.
           '<div><a class="ordref" href="/buyer?tab=orders&view='.urlencode($ref).'">#'.htmlspecialchars($ref).'</a>'.
@@ -300,11 +331,12 @@ if($tab==='overview'){
           '<div style="text-align:right"><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.'</div>'.
         '</div>'.
         $reviewNote.
-        (($o['items']??'')!==''?'<div class="ordcard-items">'.htmlspecialchars($o['items']).'</div>':'').
+        $prodHtml.
         $trk.
         '<div class="ordcard-foot">'.
           '<div class="ordtotal">'.eur($o['total']??0).'</div>'.
           '<div class="ordacts">'.$confirmBtn.$invLinks.
+            '<a class="btn btn-o btn-sm" href="/order-pdf?ref='.urlencode($ref).'">⤓ PDF</a>'.
             '<a class="btn btn-o btn-sm" href="/buyer?tab=orders&view='.urlencode($ref).'">'.t('View details').' →</a>'.
           '</div>'.
         '</div>'.
