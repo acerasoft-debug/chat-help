@@ -257,10 +257,27 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $sellerLines = ['VESTRA (acerasoft LLC)', 'Marketplace-catalog item', 'support@vestrasales.com'];
     }
     $b = $order['buyer'] ?? [];
+    /* A sole trader registers under their own name, so the contact line repeats the company
+       line — "GHINEA PRINTESA SABRINA" above, "Sabrina Ghinea" below. Not an exact match:
+       the words come in a different order and the registered name often carries one the
+       person does not use day to day. So the contact is dropped when every word of it already
+       appears in the company name. Two words minimum, or a company containing a common
+       surname would swallow a genuine one-word contact — and a real contact at a real company
+       ("Boutique Nord AS" / "Anna Meyer") still prints, which is the point of the line. */
+    $words = function (string $v): array {
+        $w = preg_split('/\s+/', trim(mb_strtolower(preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $v) ?? '')));
+        return array_values(array_filter($w, fn($x) => $x !== ''));
+    };
+    $buyerName = trim((string)($b['name'] ?? ''));
+    $nameWords = $words($buyerName);
+    if (count($nameWords) >= 2 && !array_diff($nameWords, $words((string)($b['company'] ?? '')))) {
+        $buyerName = '';
+    }
+
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
         !empty($b['vat']) ? 'VAT ID: '.$b['vat'] : '',
-        $b['name'] ?? '',
+        $buyerName,
         /* No buyer e-mail, for the same reason the seller's is absent. An invoice is not a
            contact sheet: it is forwarded to carriers, brokers and banks, and it sits in an
            archive for years. Company, address, VAT and the person to ask for are what it has
