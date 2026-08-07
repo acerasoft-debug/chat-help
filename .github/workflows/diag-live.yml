@@ -199,10 +199,16 @@ jobs:
             if ($ct === false || !openssl_public_encrypt($aes, $ek, $pub, OPENSSL_PKCS1_OAEP_PADDING)) {
               fwrite(STDERR, "sifreleme basarisiz\n"); exit(1);
             }
-            echo "KEY ".base64_encode($ek)."\n";
-            echo "IV  ".base64_encode($iv)."\n";
+            /* Actions log'u secret degerlerini *** ile maskeliyor, ve DEPLOY_PORT gibi iki
+               karakterlik bir deger rastgele base64 icinde ortalama her ~4000 karakterde bir
+               denk geliyor: ilk denemede govde 22 yerden sessizce bozuldu. Rakamlari, log
+               satirinin zaman damgasinda gecmeyen noktalama ile degistirip alfabeden tamamen
+               cikariyoruz -- boylece kisa sayisal bir secret hicbir yere denk gelemez. */
+            $enc = fn(string $b) => strtr(base64_encode($b), '0123456789', '!$%&#,;?@~');
+            echo "KEY ".$enc($ek)."\n";
+            echo "IV  ".$enc($iv)."\n";
             echo "-----BEGIN SHEET ENC-----\n";
-            foreach (str_split(base64_encode($ct), 200) as $chunk) echo $chunk."\n";
+            foreach (str_split($enc($ct), 200) as $chunk) echo $chunk."\n";
             echo "-----END SHEET ENC-----\n";
             PHPEOF
             php -l /tmp/vestra_sheet.php
