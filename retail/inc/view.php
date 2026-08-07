@@ -229,6 +229,16 @@ function vr_footer(): void
       <a href="<?= h(vr_url('contact.php')) ?>"><?= te('nav_contact') ?></a>
     </nav>
 
+    <nav class="foot__col" aria-label="<?= te('footer_company') ?>">
+      <h2><?= te('footer_company') ?></h2>
+      <a href="<?= h(vr_url('about.php')) ?>"><?= te('about_title') ?></a>
+      <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
+      <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
+      <a href="<?= h(vr_url('seller/login.php')) ?>"><?= te('sell_login') ?></a>
+      <a href="<?= h(vr_url('newsletter.php')) ?>"><?= te('news_title') ?></a>
+      <a href="<?= h(vr_url('legal/streitbeilegung.php')) ?>"><?= te('legal_disputes') ?></a>
+    </nav>
+
     <nav class="foot__col" aria-label="<?= te('footer_legal') ?>">
       <h2><?= te('footer_legal') ?></h2>
       <a href="<?= h(vr_url('legal/impressum.php')) ?>"><?= te('legal_imprint') ?></a>

@@ -72,7 +72,10 @@ vr_layout_start([
           <a class="link" href="<?= h(vr_url('legal/versand.php')) ?>"><?= te('legal_shipping') ?></a> ·
           <a class="link" href="<?= h(vr_url('legal/rueckgabe.php')) ?>"><?= te('legal_returns') ?></a> ·
           <a class="link" href="<?= h(vr_url('legal/widerruf.php')) ?>"><?= te('legal_withdrawal') ?></a> ·
-          <a class="link" href="<?= h(vr_url('legal/agb.php')) ?>"><?= te('legal_terms') ?></a>
+          <a class="link" href="<?= h(vr_url('legal/agb.php')) ?>"><?= te('legal_terms') ?></a> ·
+          <a class="link" href="<?= h(vr_url('account/login.php')) ?>"><?= te('acc_title') ?></a> ·
+          <a class="link" href="<?= h(vr_url('size-guide.php')) ?>"><?= te('size_guide') ?></a> ·
+          <a class="link" href="<?= h(vr_url('about.php')) ?>"><?= te('about_title') ?></a>
         </p>
       </div>
     </div>

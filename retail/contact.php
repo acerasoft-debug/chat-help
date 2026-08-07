@@ -26,6 +26,8 @@ $subjects = [
     'return'   => t('faq_cat_return'),
     'vault'    => t('faq_cat_vault'),
     'size'     => t('size_guide'),
+    'account'  => t('faq_cat_account'),
+    'voucher'  => t('faq_cat_voucher'),
     'sell'     => t('faq_cat_sell'),
     'other'    => t('more'),
 ];
