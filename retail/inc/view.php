@@ -521,14 +521,38 @@ function vr_hero_media(): ?array
  */
 function vr_editorial_image(array $rows, string $seed, array &$skip): string
 {
-    foreach ($rows as $p) {
-        $img = (string)($p['images'][0] ?? '');
-        if ($img !== '' && !in_array($img, $skip, true)) {
-            $skip[] = $img;
-            return $img;
+    // İki tur: önce tek özneli çekimler, sonra kalan her şey.
+    //
+    // Toptancının dosyalarının bir kısmı ızgara kontakt sayfası — bir kadrajda
+    // sekiz küçük ürün ve altta model kodu. Ürün sayfasında sorun değil, ama
+    // tam boy editoryal karoda site anında depo çıktısına benziyor. İndeks
+    // (data/photo-quality.json) hangisinin öyle olduğunu önceden biliyor;
+    // indeks yoksa hiçbir şey değişmiyor, eski davranış geçerli.
+    $grid = vr_photo_grid_index();
+
+    foreach ([true, false] as $preferSingle) {
+        foreach ($rows as $p) {
+            foreach ((array)($p['images'] ?? []) as $img) {
+                $img = (string)$img;
+                if ($img === '' || in_array($img, $skip, true)) continue;
+                if ($preferSingle && isset($grid[$img])) continue;
+                $skip[] = $img;
+                return $img;
+            }
         }
     }
     return vr_url('assets/art.php', ['s' => $seed, 'm' => 'campaign', 'w' => 1200, 'h' => 1500]);
+}
+
+/** Izgara kontakt sayfası olan fotoğrafların yol => 1 haritası. */
+function vr_photo_grid_index(): array
+{
+    static $ix = null;
+    if ($ix === null) {
+        $raw = vr_store_read('photo-quality.json', []);
+        $ix  = is_array($raw) ? $raw : [];
+    }
+    return $ix;
 }
 
 /** Demo veriyle çalışıyorsak bunu gizlemiyoruz — dürüstlük meselesi. */
