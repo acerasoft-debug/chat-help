@@ -108,7 +108,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             $sellerAcc['country'] ?? '',
             !empty($sellerAcc['vat_id'])    ? 'VAT ID: '.$sellerAcc['vat_id'] : '',
             !empty($sellerAcc['reg_number'])? 'Reg. no: '.$sellerAcc['reg_number'] : '',
-            $sellerAcc['email'] ?? '',
+            /* No seller e-mail. The address on the account is a login credential, not a
+               billing contact, and it is usually a personal one — printing it turns a
+               company invoice into a person's mailbox and invites the buyer to settle the
+               order off-platform. Company, address, VAT and registration number are what
+               an invoice has to carry; correspondence goes through VESTRA. */
         ], fn($v) => $v !== ''));
     } else {
         $sellerLines = ['VESTRA (acerasoft LLC)', 'Marketplace-catalog item', 'support@vestrasales.com'];

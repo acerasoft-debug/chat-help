@@ -105,10 +105,23 @@ jobs:
 
             copy($accFile, $accFile.'.bak-'.date('Ymd-His'));
             $before = $accounts[$idx]['company'] ?? '';
-            /* Sadece verilen alanlar yazilir; parola/e-posta/id/tip'e dokunulmaz. */
-            foreach (['company','address','country','vat_id','reg_number',
+            /* Sadece verilen alanlar yazilir; parola/id/tip'e dokunulmaz. */
+            foreach (['company','name','address','country','vat_id','reg_number',
                       'bank_name','bank_holder','bank_iban','bank_bic'] as $f) {
               if (isset($in[$f]) && $in[$f] !== '') $accounts[$idx][$f] = (string)$in[$f];
+            }
+            /* E-posta hem GIRIS bilgisi hem de bildirim adresi. Baska bir hesap ayni adresi
+               kullaniyorsa girisi belirsiz hale getirir -- degistirmeden once bakiyoruz. */
+            if (!empty($in['email'])) {
+              $new = strtolower(trim((string)$in['email']));
+              foreach ($accounts as $j => $a2) {
+                if ($j !== $idx && strtolower(trim((string)($a2['email'] ?? ''))) === $new) {
+                  fwrite(STDERR, "bu e-posta baska bir hesapta kayitli -- degistirilmedi\n"); exit(1);
+                }
+              }
+              $oldMail = (string)($accounts[$idx]['email'] ?? '');
+              $accounts[$idx]['email'] = $new;
+              echo "e-posta  : {$oldMail} -> {$new}   (GIRIS adresi de bu oldu)\n";
             }
             auth_save_accounts($accounts);
             $mask = fn($v) => $v === '' ? '(bos)' : (mb_strlen($v) <= 4 ? '****' : str_repeat('*', mb_strlen($v)-4).mb_substr($v,-4));
