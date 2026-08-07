@@ -235,8 +235,9 @@ jobs:
             /* Para kontrolu: mal toplami eksi indirim, orders.csv'deki toplami tutmali.
                Fark escrow'da alici koruma bedeli kadar olur, baska durumda 0 olmali.
                Tutari degil, sadece FARKI yaziyoruz -- 0.00 hicbir sey sizdirmaz. */
-            $delta = round((float)($order['total'] ?? 0) - ($goods - (float)($order['discount'] ?? 0)), 2);
-            echo "toplam farki (kayitli - mal): ".number_format($delta, 2)."  "
+            $delta = round((float)($order['total'] ?? 0)
+                   - ($goods - (float)($order['discount'] ?? 0) + (float)($order['shipping'] ?? 0)), 2);
+            echo "toplam farki (kayitli - mal - navlun): ".number_format($delta, 2)."  "
                .(abs($delta) < 0.01 ? "(tutuyor)" : "(escrow koruma bedeli ya da UYUSMAZLIK)")."\n";
 
             $inv = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];

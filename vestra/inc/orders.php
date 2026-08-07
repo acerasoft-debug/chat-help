@@ -349,26 +349,33 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
     $need(70);
     $y -= 4; $pdf->line($left, $y, $right, $y, 0.7, 0.5); $y -= 18;
     $discount = round((float)($orderRow['discount'] ?? 0), 2);
+    $shipping = round((float)($orderRow['shipping'] ?? 0), 2);
+    $shipLbl  = trim((string)($orderRow['shipping_label'] ?? '')) ?: 'Shipping';
+    $total    = isset($orderRow['total']) ? round((float)$orderRow['total'], 2)
+                                          : round(max(0, $goods - $discount) + $shipping, 2);
+
+    /* Whatever the total carries over and above goods less discount has to be named. Freight
+       is named from the order's own shipping line; anything still left after that is the
+       escrow protection fee, which the buyer also pays on a card order. Unnamed, either one
+       just reads as the arithmetic being wrong — and freight labelled "buyer protection fee",
+       which is what happened before the shipping line existed, reads worse than that. */
+    $rows = [];
     if ($discount > 0) {
+        $vc = trim((string)($orderRow['voucher_code'] ?? ''));
+        $rows[] = ['Voucher'.($vc !== '' ? ' '.$vc : ''), '-'.eur($discount)];
+    }
+    if ($shipping > 0) $rows[] = [$shipLbl, eur($shipping)];
+    $fee = round($total - ($goods - $discount) - $shipping, 2);
+    if ($fee > 0.009) $rows[] = ['Buyer protection fee', eur($fee)];
+
+    if ($rows) {
         $pdf->textR($colUnit, $y, 10, 'Goods total');
         $pdf->textR($right - 4, $y, 10, eur($goods)); $y -= 15;
-        $vc = trim((string)($orderRow['voucher_code'] ?? ''));
-        $pdf->textR($colUnit, $y, 10, 'Voucher'.($vc !== '' ? ' '.$vc : ''));
-        $pdf->textR($right - 4, $y, 10, '-'.eur($discount)); $y -= 6;
-        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15;
-    }
-    /* On an escrow order the buyer also pays the protection fee, so the total is above what
-       the goods lines add up to. Left unnamed it just looks like the arithmetic is wrong. */
-    $total = isset($orderRow['total']) ? round((float)$orderRow['total'], 2) : round(max(0, $goods - $discount), 2);
-    $fee   = round($total - ($goods - $discount), 2);
-    if ($fee > 0.009) {
-        if ($discount <= 0) {
-            $pdf->textR($colUnit, $y, 10, 'Goods total');
-            $pdf->textR($right - 4, $y, 10, eur($goods)); $y -= 15;
+        foreach ($rows as [$label, $amount]) {
+            $pdf->textR($colUnit, $y, 10, $label);
+            $pdf->textR($right - 4, $y, 10, $amount); $y -= 15;
         }
-        $pdf->textR($colUnit, $y, 10, 'Buyer protection fee');
-        $pdf->textR($right - 4, $y, 10, eur($fee)); $y -= 6;
-        $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15;
+        $y += 9; $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15;
     }
     $pdf->textR($colUnit, $y, 10, 'Total', true);
     $pdf->textR($right - 4, $y, 11, eur($total), true);
