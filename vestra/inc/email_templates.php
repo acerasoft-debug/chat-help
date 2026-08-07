@@ -39,10 +39,9 @@ function vestra_doc_type_label(string $lang, string $type): string {
  * text/plain alternative gets the same lines (see vestra_email_signature_html()).
  *
  * The reply address is read from config rather than written here so it can never drift from
- * the identity the mail is actually sent under. $agent names the individual writing, for
- * threads where a person takes ownership; left empty the signature stays departmental.
+ * the identity the mail is actually sent under.
  */
-function vestra_support_signature(string $lang='en', string $agent=''): array {
+function vestra_support_signature(string $lang='en'): array {
   $roles=[
     'en'=>'Client Services', 'de'=>'Kundenbetreuung', 'fr'=>'Service clients',
     'it'=>'Servizio clienti', 'es'=>'Atención al cliente',
@@ -50,7 +49,6 @@ function vestra_support_signature(string $lang='en', string $agent=''): array {
   return [
     'name'  => 'VESTRA Support',
     'role'  => $roles[$lang] ?? $roles['en'],
-    'agent' => trim($agent),
     'email' => (string)(function_exists('vestra_cfg') ? vestra_cfg('mail_from','support@vestrasales.com') : 'support@vestrasales.com'),
     'site'  => 'vestrasales.com',
   ];

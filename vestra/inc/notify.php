@@ -1554,13 +1554,16 @@ function vestra_campaign_promo_polos(string $company=''): array {
  * live TEXT next to the mark rather than being baked into it — most clients block remote
  * images by default, and a signature that disappears with the image is not a signature.
  *
- * $sig keys, all optional: name, role, agent (the individual writing), email, site.
+ * The sign-off is departmental on purpose — no individual's name. Support is answered by
+ * whoever is on the desk, and a name in the signature invites the reply to go to a person
+ * who may not pick it up.
+ *
+ * $sig keys, all optional: name, role, email, site.
  */
 function vestra_email_signature_html(array $sig): string {
   $e=fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
   $name =trim((string)($sig['name']  ?? 'VESTRA Support'));
   $role =trim((string)($sig['role']  ?? ''));
-  $agent=trim((string)($sig['agent'] ?? ''));
   $mail =trim((string)($sig['email'] ?? ''));
   $site =trim((string)($sig['site']  ?? 'vestrasales.com'));
   if($name==='' && $mail==='') return '';
@@ -1584,7 +1587,6 @@ function vestra_email_signature_html(array $sig): string {
     .'<td valign="top" style="padding:16px 16px 16px 12px">'
     .'<div style="font-family:Georgia,\'Times New Roman\',serif;color:#14110c;font-size:15px;font-weight:700;letter-spacing:.02em">'.$e($name).'</div>'
     .($role!==''?'<div style="color:#a97f2c;font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;margin:3px 0 0">'.$e($role).'</div>':'')
-    .($agent!==''?'<div style="color:#5c5449;font-size:13px;margin:7px 0 0">'.$e($agent).'</div>':'')
     .'<div style="width:26px;height:2px;background:#c9a86a;margin:11px 0 9px"></div>'
     .$contact
     .'</td></tr></table></div>';
@@ -1595,7 +1597,6 @@ function vestra_email_signature_text(array $sig): string {
   $lines=array_values(array_filter(array_map('trim',[
     (string)($sig['name']  ?? 'VESTRA Support'),
     (string)($sig['role']  ?? ''),
-    (string)($sig['agent'] ?? ''),
     (string)($sig['email'] ?? ''),
     (string)($sig['site']  ?? 'vestrasales.com'),
   ]), fn($v)=>$v!==''));
