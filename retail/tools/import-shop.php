@@ -153,6 +153,9 @@ function is_cat(string $raw): string
     // enthält die Zeichenfolge "tshirt" und landete ohne \b bei den T-Shirts.
     $map = [
         'polo'                       => 'Polos',
+        // VOR der Sweat-Regel: "Sweatpants" enthält "sweat" und landete sonst
+        // bei den Sweatshirts, obwohl es eine Hose ist.
+        'sweatpant|sweathose|jogginghose|jogger|track\s?pant' => 'Trousers',
         'hood|sweat|felpa'           => 'Hoodies & Sweatshirts',
         '\bt-?shirts?\b|\btees?\b'   => 'T-Shirts',
         'jean|denim'                 => 'Jeans',
@@ -173,6 +176,33 @@ function is_cat(string $raw): string
         if (preg_match('/' . $re . '/u', $k)) return $label;
     }
     return mb_convert_case(trim($raw), MB_CASE_TITLE, 'UTF-8');
+}
+
+
+/**
+ * Welche Variantenoption ist die Größe, welche die Farbe?
+ *
+ * Shopify legt bis zu drei Optionen an ("Color", "Size", …) und liefert die
+ * Werte als option1/2/3. Blind option1 zu nehmen ist der klassische Fehler:
+ * bei Lacoste ist option1 die FARBE und option2 die Größe — dann landen
+ * "WHITE" und "BORDEAUX" im Größenfeld und die echten Größen gehen verloren.
+ *
+ * Rückgabe: [größen_index, farb_index]; 0 = nicht vorhanden.
+ */
+function is_option_map(array $product): array
+{
+    $size = 0; $color = 0;
+    foreach ((array)($product['options'] ?? []) as $i => $o) {
+        $n = mb_strtolower(trim((string)($o['name'] ?? '')));
+        if ($n === '') continue;
+        if ($size === 0 && preg_match('/size|gr(ö|oe)sse|taille|talla|taglia|maat|storlek|st(ø|oe)rrelse|beden|размер/u', $n)) {
+            $size = $i + 1;
+        }
+        if ($color === 0 && preg_match('/colou?r|farbe|couleur|colore|kleur|f(ä|ae)rg|farve|renk|цвет/u', $n)) {
+            $color = $i + 1;
+        }
+    }
+    return [$size, $color];
 }
 
 // -------------------------------------------------- Kollektion einlesen
@@ -247,13 +277,23 @@ foreach ($products as $p) {
 
     $brand = $opt['brand'] !== '' ? $opt['brand'] : strtoupper(trim((string)($p['vendor'] ?? '')));
     if ($brand === '') $brand = 'OHNE MARKE';
-    $cat = $opt['cat'] !== '' ? $opt['cat'] : is_cat((string)($p['product_type'] ?? ''));
+    // Kategori: önce mağazanın product_type'ı. Bu alan pek çok Shopify
+    // mağazasında boş — o zaman ürün BAŞLIĞINDAN türetiyoruz, yoksa katalogun
+    // tamamı "Sonstiges" olur ve marka/kategori fiyat kuralları hiç tutmaz.
+    $cat = $opt['cat'];
+    if ($cat === '') {
+        $cat = is_cat((string)($p['product_type'] ?? ''));
+        if ($cat === 'Sonstiges') $cat = is_cat($title);
+    }
 
     // Größen aus den Varianten. Die öffentliche API nennt keine echten
     // Bestände, nur available — deshalb je verfügbarer Größe --qty Stück.
-    $sizes = [];
-    $price = 0.0;
-    $skus  = [];
+    [$sizeIdx, $colorIdx] = is_option_map($p);
+
+    $sizes  = [];
+    $colors = [];
+    $price  = 0.0;
+    $skus   = [];
     foreach ((array)($p['variants'] ?? []) as $v) {
         $pv = (float)($v['price'] ?? 0);
         if ($pv > 0 && ($price === 0.0 || $pv < $price)) $price = $pv;
@@ -263,17 +303,39 @@ foreach ($products as $p) {
         // echten Nummer mit weg ("…-21G-4").
         $vs = trim((string)($v['sku'] ?? ''));
         if ($vs !== '') {
-            $lbl = trim((string)($v['option1'] ?? $v['title'] ?? ''));
+            $lbl = trim((string)($v['option' . ($sizeIdx ?: 1)] ?? $v['title'] ?? ''));
             if ($lbl !== '' && preg_match('/^(.*?)[-_ .]?' . preg_quote($lbl, '/') . '$/iu', $vs, $mm)) {
                 $vs = $mm[1] !== '' ? $mm[1] : $vs;
             }
             $skus[] = $vs;
         }
+        // Farbe merken wir uns auch von ausverkauften Varianten: sie gehört
+        // zum Artikel, nicht zum Bestand.
+        if ($colorIdx > 0) {
+            $c = trim((string)($v['option' . $colorIdx] ?? ''));
+            if ($c !== '') $colors[$c] = true;
+        }
+
         if (isset($v['available']) && !$v['available']) continue;
 
-        $label = strtoupper(trim((string)($v['option1'] ?? $v['title'] ?? '')));
-        if ($label === '' || $label === 'DEFAULT TITLE') $label = 'ONE';
+        $label = $sizeIdx > 0
+            ? strtoupper(trim((string)($v['option' . $sizeIdx] ?? '')))
+            : strtoupper(trim((string)($v['title'] ?? '')));
+        // Ohne Größenoption gibt es nichts auszuwählen — dann ein Einheitsmaß.
+        if ($sizeIdx === 0 || $label === '' || $label === 'DEFAULT TITLE') $label = 'ONE';
         $sizes[$label] = ($sizes[$label] ?? 0) + $opt['qty'];
+    }
+
+    /**
+     * Farbe in den Namen. Der Shop legt jede Farbe als eigenes Produkt an;
+     * ohne den Zusatz stehen zwölf Zeilen mit identischem Namen
+     * ("Men Classic Fit L.12.12 Polo Shirt") nebeneinander und niemand sieht,
+     * worin sie sich unterscheiden. Nur bei genau einer Farbe — bei mehreren
+     * ist die Farbe eine Auswahl und gehört nicht in den Titel.
+     */
+    if (count($colors) === 1) {
+        $c = mb_convert_case(trim((string)array_key_first($colors)), MB_CASE_TITLE, 'UTF-8');
+        if ($c !== '' && mb_stripos($title, $c) === false) $title .= ' — ' . $c;
     }
 
     if ($price <= 0) { $noPrice++; continue; }
