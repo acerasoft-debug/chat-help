@@ -163,6 +163,8 @@ return [
     'vault_opens_in'     => 'Opens in {time}',
     'vault_empty'        => 'The Vault is being restocked. New lots open within days.',
     'vault_lots_n'       => '{n} lots live',
+    'vault_upcoming'     => 'Opening next',
+    'vault_upcoming_b'   => 'The schedule for the days ahead. Every lot enters at its opening price and starts falling the minute it opens.',
     'vault_saving'       => '{pct}% below opening',
     'vault_fairness'     => 'Fair by design',
     'vault_fairness_b'   => 'The schedule is fixed when a lot opens and cannot be changed afterwards. Prices are computed on our server from that schedule — never in your browser, and never per visitor.',

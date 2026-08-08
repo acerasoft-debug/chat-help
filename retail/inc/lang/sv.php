@@ -151,6 +151,8 @@ return [
     'vault_opens_in'     => 'Öppnar om {time}',
     'vault_empty'        => 'Vault fylls på. Nya lotter öppnar inom några dagar.',
     'vault_lots_n'       => '{n} aktiva lotter',
+    'vault_upcoming'     => 'Öppnar snart',
+    'vault_upcoming_b'   => 'Schemat för de kommande dagarna. Varje lot startar på sitt öppningspris och faller från första minuten.',
     'vault_saving'       => '{pct}% under öppningspriset',
     'vault_fairness'     => 'Rättvist av konstruktion',
     'vault_fairness_b'   => 'Schemat låses när en lott öppnar. Priser beräknas på vår server — aldrig i din webbläsare och aldrig per besökare.',

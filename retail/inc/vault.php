@@ -362,7 +362,12 @@ function vr_vault_open(string $productId, int $openCents, int $floorCents, array
     ];
     if (!empty($o['rrp_cents'])) $lot['rrp_cents'] = (int)$o['rrp_cents'];
 
-    $head = (float)vr_config('vault_member_head_start_hours', 12);
+    // Üye önceliği los başına ayarlanabilir. Sıfır verilirse los ilk saniyeden
+    // itibaren herkese açık. Gerekli, çünkü her losa öncelik konursa yeni
+    // ziyaretçi Vault'u baştan sona kilitli görüyor — teşvik değil duvar olur.
+    $head = isset($o['members_head_hours'])
+        ? (float)$o['members_head_hours']
+        : (float)vr_config('vault_member_head_start_hours', 12);
     if ($head > 0) $lot['members_only_until'] = $lot['start_at'] + (int)round($head * 3600);
 
     $ok = false;

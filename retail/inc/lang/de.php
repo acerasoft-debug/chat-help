@@ -157,6 +157,8 @@ return [
     'vault_opens_in'     => 'Öffnet in {time}',
     'vault_empty'        => 'Der Vault wird neu bestückt. Neue Lose öffnen in wenigen Tagen.',
     'vault_lots_n'       => '{n} Lose live',
+    'vault_upcoming'     => 'Demnächst im Vault',
+    'vault_upcoming_b'   => 'Der Fahrplan der nächsten Tage. Jedes Los startet zu seinem Eröffnungspreis und fällt ab der ersten Minute.',
     'vault_saving'       => '{pct}% unter Eröffnungspreis',
     'vault_fairness'     => 'Fair konstruiert',
     'vault_fairness_b'   => 'Der Plan wird beim Öffnen eines Loses festgeschrieben und danach nicht mehr geändert. Preise berechnet unser Server aus diesem Plan — nie Ihr Browser, und nie pro Besucher.',

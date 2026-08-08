@@ -454,12 +454,7 @@ function vr_query(array $o = []): array
         case 'price_desc': usort($rows, fn($a, $b) => $b['price_cents'] <=> $a['price_cents']); break;
         case 'new':        usort($rows, fn($a, $b) => ($b['created_at'] <=> $a['created_at']) ?: strcmp($a['id'], $b['id'])); break;
         default:
-            // Öne çıkanlar → stokta olanlar → marka adı. Rastgelelik yok: aynı
-            // ziyaretçi aynı sırayı görsün, sayfalama tutarlı kalsın.
-            usort($rows, function ($a, $b) {
-                return [$b['featured'], $a['stock'] > 0 ? 0 : 1, $a['brand'], $a['name']]
-                   <=> [$a['featured'], $b['stock'] > 0 ? 0 : 1, $b['brand'], $b['name']];
-            });
+            $rows = vr_showcase_order($rows);
     }
 
     $per  = max(1, (int)($o['per_page'] ?? vr_config('per_page', 24)));
@@ -474,6 +469,93 @@ function vr_query(array $o = []): array
         'pages' => $pages,
         'per'   => $per,
     ];
+}
+
+/**
+ * Vitrin sırası — "Featured" seçildiğinde (varsayılan) kullanılan dizilim.
+ *
+ * NEDEN ÖZEL BİR SIRA
+ * -------------------
+ * Önceki sıra marka adına göre alfabetikti. Sonuç: mağazanın ilk sayfası
+ * baştan sona BALMAIN iç çamaşırıydı — 24 karenin 24'ü mayo ve boxer. Katalog
+ * iyi, ilk izlenim felaketti. Bir mağazanın vitrini ne rastgele ne alfabetik
+ * dizilir; en iyi duran parça öne konur ve evler birbirine karıştırılır.
+ *
+ * İki kural:
+ *   1. Parçanın kendi hâli — gerçek ve tek özneli fotoğrafı olan, birden çok
+ *      kadrajı bulunan, kategorisi vitrinlik olan parça öne geçer.
+ *   2. Evler sırayla — her evden bir parça, sonra tekrar başa. Böylece ilk
+ *      sayfada on üç evin hepsi görünüyor.
+ *
+ * Rastgelelik yok: aynı ziyaretçi aynı sırayı görür, sayfalama tutarlı kalır.
+ */
+function vr_showcase_order(array $rows): array
+{
+    if (count($rows) < 2) return $rows;
+
+    $grid = vr_photo_grid_index();
+    $rank = function (array $p) use ($grid): array {
+        $real = $single = 0;
+        foreach ((array)($p['images'] ?? []) as $img) {
+            $img = (string)$img;
+            if ($img === '' || !str_starts_with($img, '/uploads/')) continue;
+            $real++;
+            if (!isset($grid[$img])) $single++;
+        }
+        return [
+            empty($p['featured']) ? 1 : 0,
+            ($p['stock'] ?? 0) > 0 ? 0 : 1,
+            $single > 0 ? 0 : 1,              // ızgara kontakt sayfası geriye
+            vr_showcase_cat_rank((string)($p['cat'] ?? '')),
+            -min($real, 4),                   // çok kadrajlı öne
+            -(int)($p['price_cents'] ?? 0),   // pahalı olan evin vitrin parçası
+            (string)($p['name'] ?? ''),
+        ];
+    };
+
+    // Evlere ayır, her evin içini sırala.
+    $houses = [];
+    foreach ($rows as $p) {
+        $houses[(string)($p['brand'] ?? '')][] = $p;
+    }
+    foreach ($houses as &$list) {
+        usort($list, fn($a, $b) => $rank($a) <=> $rank($b));
+    }
+    unset($list);
+
+    // Evler kendi en iyi parçasına göre sıralanır: en güçlü ev başı çeker.
+    uasort($houses, fn($a, $b) => $rank($a[0]) <=> $rank($b[0]));
+
+    // Sırayla topla.
+    $out  = [];
+    $more = true;
+    for ($i = 0; $more; $i++) {
+        $more = false;
+        foreach ($houses as $list) {
+            if (isset($list[$i])) {
+                $out[] = $list[$i];
+                $more  = true;
+            }
+        }
+    }
+    return $out;
+}
+
+/**
+ * Kategorinin vitrindeki yeri. Küçük sayı öne gelir.
+ *
+ * Sıra ticari: dışarıdan görünen, fotoğrafı iyi duran ve sepet tutarı yüksek
+ * parçalar önde; iç giyim ve mayo en sonda. Listede olmayan kategori ortada
+ * kalır, yani yeni bir kategori eklendiğinde hiçbir şey bozulmuyor.
+ */
+function vr_showcase_cat_rank(string $cat): int
+{
+    static $order = [
+        'jacken' => 1, 'tracksuit sets' => 2, 'hoodies & sweatshirts' => 3,
+        'westen' => 4, 'polos' => 5, 't-shirts' => 6, 'jeans' => 7,
+        'trousers' => 8, 'shorts' => 9, 'jeans shorts' => 10, 'bademode' => 20,
+    ];
+    return $order[mb_strtolower(trim($cat))] ?? 12;
 }
 
 /** Filtre kenar çubuğu için marka/kategori sayımları. */

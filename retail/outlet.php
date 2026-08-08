@@ -268,6 +268,16 @@ $live   = array_values(array_filter($lots, fn($v) => !$v['sold']));
 $sold   = array_values(array_filter($lots, fn($v) => $v['sold']));
 $member = vr_is_member();
 
+// Planlanmış loslar da sayfada duruyor. Sadece canlı olanları göstermek iki
+// şeyi birden kaybettiriyordu: sayfanın altı boş kalıyor ve ziyaretçi geri
+// gelmek için bir sebep bulamıyor. Takvim ikisini de veriyor — üstelik
+// uydurma bir kıtlık yaratmadan, çünkü tarihler gerçek plandan geliyor.
+$soon = array_values(array_filter(
+    vr_vault_lots(['include_scheduled' => true]),
+    fn($v) => $v['state']['phase'] === 'scheduled'
+));
+usort($soon, fn($a, $b) => $a['state']['next_at'] <=> $b['state']['next_at']);
+
 vr_layout_start([
     'title' => t('vault_title'),
     'desc'  => t('vault_lede'),
@@ -328,6 +338,31 @@ vr_layout_start([
         <?php vr_section_head(t('vault_gone'), ''); ?>
         <div class="lots"><?php foreach (array_slice($sold, 0, 6) as $v) vr_vault_card($v); ?></div>
       <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($soon): ?>
+      <hr class="rule" style="margin:clamp(38px,5vw,64px) 0">
+      <?php vr_section_head(t('vault_upcoming'), t('vault_upcoming_b')); ?>
+      <ol class="soon">
+        <?php foreach ($soon as $v): $p = $v['product']; $at = (int)$v['state']['next_at']; ?>
+          <li class="soon__row" data-reveal>
+            <img class="soon__img" src="<?= h(vr_product_image($p)) ?>" alt="" aria-hidden="true"
+                 loading="lazy" decoding="async" width="120" height="150">
+            <div class="soon__who">
+              <p class="soon__brand"><?= h($p['brand']) ?></p>
+              <p class="soon__name"><?= h(vr_card_name($p)) ?></p>
+            </div>
+            <p class="soon__when">
+              <?= h(vr_date($at)) ?>
+              <span><?= te('vault_opens_in', ['time' => vr_until($at)]) ?></span>
+            </p>
+            <p class="soon__price">
+              <?= h(vr_money((int)$v['state']['open_cents'])) ?>
+              <span><?= te('vault_floor_price') ?> <?= h(vr_money((int)$v['state']['floor_cents'])) ?></span>
+            </p>
+          </li>
+        <?php endforeach; ?>
+      </ol>
     <?php endif; ?>
   </div>
 </section>

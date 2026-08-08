@@ -151,6 +151,8 @@ return [
     'vault_opens_in'     => '{time} sonra açılır',
     'vault_empty'        => 'Vault yenilənir. Yeni lotlar bir neçə gün içində açılacaq.',
     'vault_lots_n'       => '{n} aktiv lot',
+    'vault_upcoming'     => 'Tezliklə Vault-da',
+    'vault_upcoming_b'   => 'Yaxın günlərin cədvəli. Hər lot açılış qiyməti ilə başlayır və ilk dəqiqədən aşağı düşür.',
     'vault_saving'       => 'Açılış qiymətindən {pct}% aşağı',
     'vault_fairness'     => 'Quruluşca ədalətli',
     'vault_fairness_b'   => 'Cədvəl lot açılarkən yazılır. Qiymətləri serverimiz hesablayır — brauzeriniz deyil, ziyarətçiyə görə də dəyişmir.',

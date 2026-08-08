@@ -151,6 +151,8 @@ return [
     'vault_opens_in'     => 'Åbner om {time}',
     'vault_empty'        => 'Vault fyldes op. Nye lots åbner inden for få dage.',
     'vault_lots_n'       => '{n} aktive lots',
+    'vault_upcoming'     => 'Åbner snart',
+    'vault_upcoming_b'   => 'Planen for de kommende dage. Hvert lot starter til sin åbningspris og falder fra første minut.',
     'vault_saving'       => '{pct}% under åbningsprisen',
     'vault_fairness'     => 'Fair af design',
     'vault_fairness_b'   => 'Planen fastlægges, når et lot åbner. Priser beregnes på vores server — aldrig i din browser og aldrig pr. besøgende.',

@@ -157,6 +157,8 @@ return [
     'vault_opens_in'     => 'Opent in {time}',
     'vault_empty'        => 'De Vault wordt bijgevuld. Nieuwe loten openen binnen enkele dagen.',
     'vault_lots_n'       => '{n} actieve loten',
+    'vault_upcoming'     => 'Binnenkort in de Vault',
+    'vault_upcoming_b'   => 'Het schema voor de komende dagen. Elk lot start op zijn openingsprijs en daalt vanaf de eerste minuut.',
     'vault_saving'       => '{pct}% onder de openingsprijs',
     'vault_fairness'     => 'Eerlijk door opzet',
     'vault_fairness_b'   => 'Het schema wordt vastgelegd wanneer een lot opent. Prijzen worden op onze server berekend — nooit in je browser en nooit per bezoeker.',

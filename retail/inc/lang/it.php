@@ -151,6 +151,8 @@ return [
     'vault_opens_in'     => 'Apre in {time}',
     'vault_empty'        => 'Il Vault è in riassortimento. Nuovi lotti a breve.',
     'vault_lots_n'       => '{n} lotti attivi',
+    'vault_upcoming'     => 'Prossime aperture',
+    'vault_upcoming_b'   => 'Il calendario dei prossimi giorni. Ogni lotto parte dal suo prezzo di apertura e scende dal primo minuto.',
     'vault_saving'       => '{pct}% sotto l’apertura',
     'vault_fairness'     => 'Equo per costruzione',
     'vault_fairness_b'   => 'Il piano è fissato all’apertura del lotto. I prezzi li calcola il nostro server, mai il tuo browser e mai per singolo visitatore.',
