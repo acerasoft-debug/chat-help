@@ -967,4 +967,6 @@ return array (
   'more' => 'de plus',
   '%s wholesale — Catalog' => '%s en gros — Catalogue',
   '%s and more, at trade prices for boutiques.' => '%s et plus, à prix de gros pour les boutiques.',
+  'Houses in stock: %s.' => 'Maisons en stock : %s.',
+  'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.' => 'Marketplace B2B vérifiée de mode en gros — vêtements de marque et basiques textiles auprès de vendeurs vérifiés KYC dans toute l\'Europe.',
 );

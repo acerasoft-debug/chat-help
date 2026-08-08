@@ -106,8 +106,14 @@ $_ld = array_merge([
   [
     '@context' => 'https://schema.org', '@type' => 'Organization',
     'name' => 'VESTRA', 'url' => $SEO_HOST, 'logo' => $OG_IMAGE,
-    'description' => 'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.',
+    /* Localised: a search engine reads this in the language of the page it found, and an
+       English sentence on a German page is a mismatch it can see. The brands come from
+       live stock so the entity description names what is actually sold here. */
+    'description' => trim(t('Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.')
+        .(($_ldBrands = (function_exists('vestra_seo_brands') ? implode(', ', vestra_seo_brands(10)) : '')) !== ''
+            ? ' '.sprintf(t('Houses in stock: %s.'), $_ldBrands) : '')),
     'areaServed' => 'EU', 'email' => 'support@vestrasales.com',
+    'inLanguage' => vlang(),
   ],
   [
     '@context' => 'https://schema.org', '@type' => 'WebSite',
