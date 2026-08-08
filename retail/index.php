@@ -105,8 +105,11 @@ vr_layout_start([
       <?php /* autoplay ÖZELLİKLE yok: oynatmayı JS başlatıyor, böylece JS
                kapalıyken hareket hiç doğmuyor ve duraklatma düğmesinin
                çalışmadığı bir durum kalmıyor. */ ?>
+      <?php /* Afiş filmin kendi ilk karesi; yoksa üretilen kampanya karesi.
+               Film oynamaya başlayana kadar (ve JS kapalıysa hep) ekranda
+               duran şey bu — gerçek ürünler olmalı. */ ?>
       <video class="stage__vid" muted loop playsinline preload="none"
-             poster="<?= h($stageFrames[0]) ?>" aria-hidden="true" tabindex="-1"
+             poster="<?= h($stageMedia['poster'] ?? $stageFrames[0]) ?>" aria-hidden="true" tabindex="-1"
              data-autoplay>
         <source src="<?= h($stageMedia['src']) ?>" type="<?= h($stageMedia['type']) ?>">
       </video>
@@ -194,7 +197,7 @@ vr_layout_start([
     ?>
     <?php if ($bandA && $bandA['kind'] === 'video'): ?>
       <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
-             poster="<?= h($tileA) ?>" aria-hidden="true" tabindex="-1">
+             poster="<?= h($bandA['poster'] ?? $tileA) ?>" aria-hidden="true" tabindex="-1">
         <source src="<?= h($bandA['src']) ?>" type="<?= h($bandA['type']) ?>">
       </video>
     <?php else: ?>
@@ -219,7 +222,7 @@ vr_layout_start([
     <?php $bandB = vr_hero_media('band-shop'); ?>
     <?php if ($bandB && $bandB['kind'] === 'video'): ?>
       <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
-             poster="<?= h($tileB) ?>" aria-hidden="true" tabindex="-1">
+             poster="<?= h($bandB['poster'] ?? $tileB) ?>" aria-hidden="true" tabindex="-1">
         <source src="<?= h($bandB['src']) ?>" type="<?= h($bandB['type']) ?>">
       </video>
     <?php else: ?>

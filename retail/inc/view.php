@@ -505,10 +505,32 @@ function vr_hero_media(string $name = 'hero'): ?array
         if (is_file($path) && filesize($path) > 0) {
             // Dosya değişince tarayıcı eskisine yapışmasın.
             return [
-                'kind' => $kind,
-                'type' => $type,
-                'src'  => vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]),
+                'kind'   => $kind,
+                'type'   => $type,
+                'src'    => vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]),
+                'poster' => $kind === 'video' ? vr_hero_poster($name) : null,
             ];
+        }
+    }
+    return null;
+}
+
+/**
+ * Filmin kendi ilk karesi. build-hero.php filmi yazarken yanına
+ * "{$name}-poster.jpg" bırakıyor; varsa afiş olarak o kullanılmalı.
+ *
+ * Önemi şu: film preload="none" ile duruyor ve oynatmayı JS başlatıyor. Yani
+ * ilk saniyede — ve JS hiç çalışmazsa hep — ekranda yalnızca afiş var. Afiş
+ * üretilmiş soyut kare olursa ziyaretçi ana sayfayı ürünsüz, boş bir zemin
+ * olarak görüyor. Filmin kendi karesi gerçek ürünleri gösteriyor.
+ */
+function vr_hero_poster(string $name): ?string
+{
+    foreach (['jpg', 'webp', 'png'] as $ext) {
+        $file = "{$name}-poster.{$ext}";
+        $path = VR_ROOT . '/assets/media/' . $file;
+        if (is_file($path) && filesize($path) > 0) {
+            return vr_url('assets/media/' . $file, ['v' => (string)filemtime($path)]);
         }
     }
     return null;
