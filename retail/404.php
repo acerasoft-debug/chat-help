@@ -20,12 +20,22 @@ $path = (string)($_SERVER['REQUEST_URI'] ?? '');
 $hint = trim((string)($_GET['q'] ?? ''));
 if ($hint === '') {
     $words = preg_split('/[^A-Za-z0-9]+/', urldecode($path)) ?: [];
-    $words = array_filter($words, static fn($w) =>
-        mb_strlen($w) >= 3 && !in_array(strtolower($w), ['php', 'www', 'html', 'index', 'product', 'shop', 'retail', 'outlet', 'lot', 'id'], true));
+    $words = array_filter($words, static function ($w) {
+        if (in_array(strtolower($w), ['php', 'www', 'html', 'index', 'product', 'shop', 'retail', 'outlet', 'lot', 'id'], true)) {
+            return false;
+        }
+        // Salt rakam ATILIYOR. Adresteki "404" model kodlarının içinde
+        // rastlantıyla geçiyor (BWB640410, BWB64041001 …) ve 404 sayfası
+        // "bunu mu aradınız?" başlığıyla üç mayo öneriyordu. Bir kelime ya
+        // en az üç HARF içermeli ya da harf+rakam karışımı bir model kodu
+        // uzunluğunda olmalı.
+        $letters = preg_match_all('/[A-Za-z]/', $w);
+        return $letters >= 3 || (mb_strlen($w) >= 6 && $letters > 0);
+    });
     $hint = implode(' ', array_slice(array_values($words), 0, 3));
 }
 
-$guesses = $hint !== '' ? vr_query(['q' => $hint, 'per_page' => 4, 'in_stock' => true])['rows'] : [];
+$guesses = $hint !== '' ? vr_query(['q' => $hint, 'per_page' => 4, 'in_stock' => true, 'exclude_vault' => true])['rows'] : [];
 if (!$guesses) {
     // Tahmin tutmadıysa da boş sayfa göstermeyelim: haftanın seçkisi.
     $guesses = vr_query(['per_page' => 4, 'in_stock' => true, 'exclude_vault' => true])['rows'];

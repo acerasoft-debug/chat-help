@@ -22,14 +22,14 @@ $id = trim((string)($_GET['id'] ?? ''));
 $p  = $id !== '' ? vr_product($id) : null;
 
 if ($p === null) {
-    http_response_code(404);
-    vr_layout_start(['title' => t('no_results'), 'robots' => 'noindex']);
-    echo '<section class="sec"><div class="wrap wrap--narrow" style="text-align:center">';
-    echo '<h1 class="sechead__t">' . te('no_results') . '</h1>';
-    echo '<p class="sechead__s" style="margin:14px auto 26px">' . te('no_results_hint') . '</p>';
-    echo '<a class="btn" href="' . h(vr_url('shop.php')) . '"><span>' . te('nav_shop') . '</span></a>';
-    echo '</div></section>';
-    vr_layout_end();
+    /* Satılmış ya da yanlış yazılmış bir ürün adresi 404 SAYFASINA gidiyor.
+       Burada kendi kısa mesajı vardı: "Nothing matches those filters. Try a
+       wider price range, or clear the house filter." — mağaza ızgarasının
+       boş sonuç metni, tek bir ürün adresinde hiçbir anlamı yok, üstelik
+       ekranda arama kutusu ve tek bir öneri bile bırakmıyordu. 404 sayfası
+       adresten model kodunu çıkarıp benzerlerini gösteriyor; tek parça
+       satıldığında alıcının önüne konması gereken tam olarak o. */
+    require __DIR__ . '/404.php';
     exit;
 }
 
