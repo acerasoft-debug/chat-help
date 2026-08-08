@@ -41,7 +41,7 @@ require __DIR__.'/inc/head.php';
     <h1><?= t('Sell to verified B2B buyers across Europe') ?></h1>
     <p><?= t('VESTRA connects wholesale fashion sellers with verified business buyers. List your products in minutes — built-in buyer protection, group buy engine, and zero upfront cost.') ?></p>
     <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:16px;padding:15px 30px">
-      <?= t('Start selling — it\'s free') ?></a>
+      <?= t('Start selling now') ?></a>
     <div style="margin-top:12px;font-size:13px;color:var(--mut)"><?= t('No listing fees · No subscription · Pay only when you sell') ?></div>
   </div>
 

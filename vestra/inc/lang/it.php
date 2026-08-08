@@ -679,7 +679,6 @@ return array (
   'Sourcing requests' => 'Richieste di approvvigionamento',
   'Sportswear' => 'Sportswear',
   'Start selling now' => 'Inizi a vendere ora',
-  'Start selling — it\'s free' => 'Inizi a vendere — è gratis',
   'Starter' => 'Starter',
   'Starter, Pro and Elite differ in monthly listing quota and commission rate. A one-time onboarding fee applies. Compare them on the Membership page.' => 'Starter, Pro ed Elite differiscono per quota mensile di annunci e tasso di commissione. Si applica una quota di iscrizione una tantum. Confrontali nella pagina Abbonamento.',
   'Status' => 'Stato',
