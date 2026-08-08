@@ -1,0 +1,122 @@
+name: (Lead) Adresleri kalıcı olarak sustur
+
+on:
+  workflow_dispatch:
+    inputs:
+      emails:
+        description: "Susturulacak adresler (virgül veya yeni satırla ayrık)"
+        required: true
+      reason:
+        description: "Not (kayda yazılır)"
+        required: false
+        default: "operator request"
+      dry_run:
+        description: "true = sadece göster, YAZMA"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+# Verilen adresleri status=unsubscribed yapar. send-outreach.yml bu durumdaki
+# kaydı atlıyor, dolayısıyla bir daha ASLA e-posta gitmez.
+#
+# NEDEN SİLMİYORUZ, SUSTURUYORUZ
+# ------------------------------
+# Kaydı silmek korumayı bozar: adres listeden kalkınca bir sonraki tarama onu
+# yeniden "yeni lead" diye bulur ve aynı butik ikinci kez e-posta alır.
+# Susturulan kayıt yerinde kalır ve kalkan görevi görür.
+#
+# Ayrıca GDPR açısından doğrusu da bu: itiraz eden kişinin adresini, bir daha
+# işlenmemesini sağlamak amacıyla bir bastırma listesinde tutmak Art. 21 Abs. 3
+# kapsamında meşru — hatta gereklidir, aksi hâlde itiraz uygulanamaz.
+jobs:
+  suppress:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sustur
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EMAILS: ${{ github.event.inputs.emails }}
+          REASON: ${{ github.event.inputs.reason }}
+          DRY:    ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: EMAILS,REASON,DRY
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_suppress.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+
+            $DRY    = strtolower(trim((string)getenv('DRY'))) !== 'false';
+            $REASON = trim((string)getenv('REASON')) ?: 'operator request';
+
+            // Virgül, noktalı virgül, boşluk ve yeni satır — hepsi ayırıcı.
+            $raw  = (string)getenv('EMAILS');
+            $want = [];
+            foreach (preg_split('/[\s,;]+/', $raw) as $e) {
+                $e = strtolower(trim($e));
+                if ($e !== '' && filter_var($e, FILTER_VALIDATE_EMAIL)) $want[$e] = true;
+            }
+            if (!$want) { echo "Gecerli adres yok.\n"; exit(1); }
+            printf("Istenen: %d adres\n\n", count($want));
+
+            $leads = vestra_leads();
+            $hit = 0; $already = 0; $miss = $want;
+
+            foreach ($leads as $i => $l) {
+                $e = strtolower(trim((string)($l['email'] ?? '')));
+                if ($e === '' || !isset($want[$e])) continue;
+                unset($miss[$e]);
+
+                if (($l['status'] ?? '') === 'unsubscribed') {
+                    printf("  = %-42s zaten susturulmus\n", $e);
+                    $already++;
+                    continue;
+                }
+                printf("  %s %-42s %s -> unsubscribed\n", $DRY ? '~' : '+', $e, $l['status'] ?? '(bos)');
+                if (!$DRY) {
+                    $leads[$i]['status']            = 'unsubscribed';
+                    $leads[$i]['unsubscribed_at']   = date('c');
+                    $leads[$i]['unsubscribe_note']  = $REASON;
+                }
+                $hit++;
+            }
+
+            // Listede olmayan adresler: yine de kalkan olarak EKLENIYOR, yoksa
+            // bir sonraki tarama onlari yeni lead sanip e-posta gonderir.
+            foreach (array_keys($miss) as $e) {
+                printf("  %s %-42s listede yok -> kalkan kayit\n", $DRY ? '~' : '+', $e);
+                if (!$DRY) {
+                    $leads[] = [
+                        'email'           => $e,
+                        'status'          => 'unsubscribed',
+                        'source'          => 'suppression',
+                        'unsubscribed_at' => date('c'),
+                        'unsubscribe_note'=> $REASON,
+                    ];
+                }
+                $hit++;
+            }
+
+            printf("\nToplam: %d islendi, %d zaten susturulmustu\n", $hit, $already);
+
+            if ($DRY) { echo "\nProbelauf — hicbir sey yazilmadi.\n"; exit(0); }
+
+            $bak = $home."/public_html/data/leads.backup." . date('Ymd-His') . ".json";
+            @copy($home."/public_html/data/leads.json", $bak);
+            echo "Yedek: {$bak}\n";
+
+            vestra_save_leads($leads);
+            echo "Kaydedildi.\n";
+            PHPEOF
+            php /tmp/vestra_suppress.php
+            rm -f /tmp/vestra_suppress.php
