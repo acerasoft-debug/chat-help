@@ -40,6 +40,11 @@ if ($slug !== '') {
           <h1 class="jr-title"><?= htmlspecialchars($art['title'] ?? '') ?></h1>
           <div class="jr-meta"><?= htmlspecialchars($art['author'] ?? 'VESTRA Editorial') ?> · <?= $fmtDate($art['created'] ?? '') ?> · <?= vestra_journal_reading_min($art['body'] ?? '') ?> <?= t('min read') ?></div>
           <div class="jr-hero-img" role="img" aria-label="<?= htmlspecialchars($art['title'] ?? '') ?>" style="background-image:<?= vestra_journal_cover_bg($art) ?>"></div>
+          <?php /* CC-BY / CC-BY-SA covers must name the photographer wherever they appear. */
+                $_cr = vestra_journal_credit(vestra_journal_cover_path($art));
+                if ($_cr !== ''): ?>
+            <div class="jr-credit"><?= htmlspecialchars($_cr) ?></div>
+          <?php endif; ?>
           <div class="jr-body"><?= vestra_journal_body_html($art['body'] ?? '') ?></div>
           <div class="jr-share">
             <a class="btn btn-o" href="/journal">← <?= t('All articles') ?></a>
@@ -170,7 +175,10 @@ footer a:hover{color:#ffffff}
 .jr-title{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);line-height:1.15;margin:0 0 14px}
 .jr-article .jr-meta{margin-bottom:22px}
 .jr-cover{width:100%;border-radius:16px;margin-bottom:26px;border:1px solid var(--line)}
-.jr-hero-img{width:100%;aspect-ratio:21/9;border-radius:16px;margin-bottom:26px;border:1px solid var(--line);background-size:cover;background-position:center}
+.jr-hero-img{width:100%;aspect-ratio:21/9;border-radius:16px;margin-bottom:10px;border:1px solid var(--line);background-size:cover;background-position:center}
+/* Photographer credit — required by the CC licences the editorial photos arrive under.
+   Understated on purpose: legally necessary, visually quiet. */
+.jr-credit{font-size:11.5px;color:var(--mut);opacity:.75;margin:0 0 24px;text-align:right}
 .jr-body{font-size:17px;line-height:1.75;color:var(--ink)}
 .jr-body p{margin:0 0 20px}
 /* Inline article figures — see the [img:…] construct in vestra_journal_body_html(). */

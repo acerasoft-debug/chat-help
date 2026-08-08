@@ -148,20 +148,66 @@ SVG;
  * design and never breaks. Drop editorial files into that folder and set each article's
  * 'cover' from the admin, or extend the map below. */
 function vestra_journal_model_photo(array $p): string {
-    static $map = [
-        // 'article-slug' => '/uploads/journal/whatever.jpg',
-    ];
-    return $map[(string)($p['slug'] ?? '')] ?? '';
+    $pool = vestra_journal_photo_pool();
+    if (!$pool) return '';
+    $slug = (string)($p['slug'] ?? '');
+    if ($slug === '') return '';
+    /* Stable pick, so an article keeps the same cover between page loads. */
+    return $pool[crc32($slug) % count($pool)];
+}
+
+/* Editorial photos available under /uploads/journal, newest-agnostic and cached per
+   request. Only files that carry a credit entry are offered: the CC-BY / CC-BY-SA
+   licences these arrive under require the photographer to be named wherever the image
+   is shown, so an uncredited file is one we are not allowed to publish. */
+function vestra_journal_photo_pool(): array {
+    static $pool = null;
+    if ($pool !== null) return $pool;
+    $pool = [];
+    foreach (vestra_journal_credits() as $file => $c) {
+        if (!empty($c['artist']) && is_readable(__DIR__.'/../uploads/journal/'.$file)) {
+            $pool[] = '/uploads/journal/'.$file;
+        }
+    }
+    sort($pool);
+    return $pool;
+}
+
+/** file name => ['artist','license','source','desc'], written by the journal-photos job. */
+function vestra_journal_credits(): array {
+    static $c = null;
+    if ($c !== null) return $c;
+    $c = [];
+    $f = __DIR__.'/../uploads/journal/credits.json';
+    if (is_readable($f)) {
+        $j = json_decode((string)file_get_contents($f), true);
+        if (is_array($j)) $c = $j;
+    }
+    return $c;
+}
+
+/** Attribution line for an image path, or '' when the file needs none (our own art). */
+function vestra_journal_credit(string $path): string {
+    if (strpos($path, '/uploads/journal/') !== 0) return '';
+    $c = vestra_journal_credits()[basename($path)] ?? null;
+    if (!$c || empty($c['artist'])) return '';
+    $s = $c['artist'];
+    if (!empty($c['license'])) $s .= ' · '.$c['license'];
+    return $s;
 }
 /* Full CSS background-image value for a cover: the real photo (admin cover, or a
    keyword model photo) layered OVER the generated editorial SVG data-URI, so if
    the photo fails to load the art shows through instead of a blank/broken block. */
 function vestra_journal_cover_bg(array $p): string {
-    $svg = "url('data:image/svg+xml;base64,".base64_encode(vestra_journal_cover_svg($p))."')";
-    if (!empty($p['cover'])) return "url('".$p['cover']."'), ".$svg;
-    $model = vestra_journal_model_photo($p);
-    if ($model !== '')       return "url('".$model."'), ".$svg;
-    return $svg;
+    $svg  = "url('data:image/svg+xml;base64,".base64_encode(vestra_journal_cover_svg($p))."')";
+    $path = vestra_journal_cover_path($p);
+    return $path !== '' ? "url('".$path."'), ".$svg : $svg;
+}
+
+/** The photo an article's cover resolves to ('' when it falls back to the generated art). */
+function vestra_journal_cover_path(array $p): string {
+    if (!empty($p['cover'])) return (string)$p['cover'];
+    return vestra_journal_model_photo($p);
 }
 /* Return the article with title/excerpt/body swapped to the reader's language
    when a translation exists under $a['i18n'][$lang]; English is the base/fallback. */
