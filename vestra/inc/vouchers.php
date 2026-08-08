@@ -182,6 +182,13 @@ function voucher_welcome_run(array $opts): array {
     $dry     = !empty($opts['dry']);
     $only    = [];
     foreach ((array)($opts['only'] ?? []) as $e) { $e = strtolower(trim((string)$e)); if ($e !== '') $only[$e] = true; }
+    /* Countries to leave out of the run — a campaign is not always meant for every market
+       (different pricing, a distributor already covering it, a promotion that cannot be
+       honoured there). Matched on the account's stored country, case-insensitively. */
+    $skipCountry = [];
+    foreach ((array)($opts['exclude_countries'] ?? []) as $c) {
+        $c = strtolower(trim((string)$c)); if ($c !== '') $skipCountry[$c] = true;
+    }
 
     $campaign = 'welcome'.rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
     $expiry   = date('Y-m-d', strtotime("+{$months} months"));
@@ -197,16 +204,22 @@ function voucher_welcome_run(array $opts): array {
     }
 
     $targets = [];
+    $excluded = [];
     foreach (auth_accounts() as $acc) {
         $email = strtolower(trim((string)($acc['email'] ?? '')));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;
         if ($aud === 'buyers' && (string)($acc['type'] ?? '') !== 'buyer') continue;
         if ($only && !isset($only[$email])) continue;
+        if ($skipCountry && isset($skipCountry[strtolower(trim((string)($acc['country'] ?? '')))])) {
+            $excluded[] = ['email' => $email, 'country' => (string)($acc['country'] ?? '')];
+            continue;
+        }
         $targets[$email] = $acc;                 // same address on two accounts → once
     }
 
     $rep = ['rows' => [], 'made' => 0, 'sent' => 0, 'skipped' => 0, 'failed' => 0, 'reused' => 0,
-            'campaign' => $campaign, 'expiry' => $expiry, 'targets' => count($targets)];
+            'campaign' => $campaign, 'expiry' => $expiry, 'targets' => count($targets),
+            'excluded' => $excluded];
 
     foreach ($targets as $email => $acc) {
         if ($rep['sent'] >= $limit) { $rep['rows'][] = ['email' => '', 'status' => 'limit', 'code' => '']; break; }

@@ -671,6 +671,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       'percent'=>$_POST['w_pct']??5, 'months'=>$_POST['w_months']??6,
       'audience'=>($_POST['w_aud']??'buyers'), 'limit'=>$_POST['w_limit']??200,
       'dry'=>(($_POST['w_mode']??'dry')!=='send'),
+      'exclude_countries'=>preg_split('/[,;\n]+/', (string)($_POST['w_notc']??''), -1, PREG_SPLIT_NO_EMPTY),
     ]);
     $_SESSION['welcome_report'] = $rep;
     header('Location: /admin?tab=marketing&msg='.((($_POST['w_mode']??'dry')!=='send')?'welcome_dry':'welcome_sent')); exit;
@@ -2740,6 +2741,10 @@ uasort($vSorted, fn($a,$b)=>strcmp((string)($b['created']??''),(string)($a['crea
         <div class="afield"><label>Audience</label><select name="w_aud"><option value="buyers">Buyer accounts only</option><option value="all">All accounts (incl. sellers)</option></select></div>
         <div class="afield"><label>Max sends this run</label><input name="w_limit" type="number" value="200"></div>
       </div>
+      <div class="afield"><label>Leave out these countries</label>
+        <input name="w_notc" placeholder="e.g. Norway, Switzerland — comma separated, blank = everyone">
+        <span class="ahint">Matched on the customer's stored country. Excluded customers are listed in the preview.</span>
+      </div>
       <button class="abtn" type="submit" name="w_mode" value="dry">👁 Preview (sends nothing)</button>
       <button class="abtn primary" type="submit" name="w_mode" value="send" onclick="return confirm('Issue codes and send the e-mails now?')">✉ Issue &amp; send</button>
     </form>
@@ -2747,6 +2752,11 @@ uasort($vSorted, fn($a,$b)=>strcmp((string)($b['created']??''),(string)($a['crea
       <div style="margin-top:14px;padding:12px;border:1px solid var(--line,#333);border-radius:10px">
         <b><?= (int)$wr['targets'] ?> customers</b> · campaign <code><?= htmlspecialchars($wr['campaign']) ?></code> · valid to <?= htmlspecialchars($wr['expiry']) ?><br>
         <span class="ahint">new codes <?= (int)$wr['made'] ?> · reused <?= (int)$wr['reused'] ?> · sent <?= (int)$wr['sent'] ?> · already had one <?= (int)$wr['skipped'] ?> · failed <?= (int)$wr['failed'] ?></span>
+        <?php if(!empty($wr['excluded'])): ?>
+          <div class="ahint" style="margin-top:6px">Left out by country (<?= count($wr['excluded']) ?>):
+            <?php $ex=[]; foreach($wr['excluded'] as $e) $ex[] = htmlspecialchars($e['email']).' ('.htmlspecialchars($e['country']).')'; echo implode(' · ', $ex); ?>
+          </div>
+        <?php endif; ?>
         <div style="max-height:260px;overflow:auto;margin-top:10px">
         <table class="atable"><tbody>
         <?php foreach($wr['rows'] as $r): if(($r['status']??'')==='limit'){ echo '<tr><td colspan="4" class="ahint">… per-run limit reached; run again for the rest</td></tr>'; continue; } ?>
