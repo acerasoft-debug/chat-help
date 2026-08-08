@@ -73,6 +73,7 @@ return [
     'shop_title'         => 'La surface de vente',
     'shop_sub'           => 'Prix fixe, expédition immédiate.',
     'filters'            => 'Filtres',
+    'filter_open'        => 'Filtrer',
     'filter_brand'       => 'Maison',
     'filter_cat'         => 'Catégorie',
     'filter_price'       => 'Prix',

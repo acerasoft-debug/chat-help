@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'La superficie de venta',
     'shop_sub'           => 'Precio fijo, envío inmediato.',
     'filters'            => 'Filtros',
+    'filter_open'        => 'Filtrar',
     'filter_brand'       => 'Casa',
     'filter_cat'         => 'Categoría',
     'filter_price'       => 'Precio',

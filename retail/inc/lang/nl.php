@@ -75,6 +75,7 @@ return [
     'shop_title'         => 'De winkelvloer',
     'shop_sub'           => 'Vaste prijs, onmiddellijke verzending.',
     'filters'            => 'Filters',
+    'filter_open'        => 'Filteren',
     'filter_brand'       => 'Huis',
     'filter_cat'         => 'Categorie',
     'filter_price'       => 'Prijs',

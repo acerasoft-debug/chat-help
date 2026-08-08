@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'Торговый зал',
     'shop_sub'           => 'Фиксированная цена, немедленная отправка.',
     'filters'            => 'Фильтры',
+    'filter_open'        => 'Фильтр',
     'filter_brand'       => 'Дом',
     'filter_cat'         => 'Категория',
     'filter_price'       => 'Цена',

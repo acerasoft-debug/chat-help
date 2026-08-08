@@ -254,6 +254,24 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .grid--4{grid-template-columns:repeat(auto-fill,minmax(min(100%,262px),1fr))}
 .grid--2{grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr))}
 
+/* Telefonda ürün ızgarası İKİ sütun.
+   262 px'lik alt sınır 390 px'lik bir ekranda tek sütuna düşüyordu: on iki
+   parçalık seçki on iki ekran boyu sürüyor, ana sayfa 29 000 piksele
+   çıkıyordu. Kimse bir vitrini böyle gezmez — her moda uygulaması telefonda
+   iki sütun gösterir, çünkü karşılaştırma göz hareketiyle oluyor.
+
+   :has(.card) ile sınırlı: aynı .grid sınıfı düğme çiftlerinde ve marka
+   kutularında da kullanılıyor, onların tek sütun kalması gerekiyor. */
+@media (max-width:640px){
+  .grid:has(.card){grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 10px}
+  .grid:has(.card) .card__brand{font-size:9px;letter-spacing:.16em}
+  .grid:has(.card) .card__name{font-size:13.5px;line-height:1.32}
+  .grid:has(.card) .card__price{font-size:13px}
+  /* Beden satırı 170 px'lik kartta ikinci satıra taşıyor ve kartları
+     birbirinden farklı yükseklikte bırakıyor. */
+  .grid:has(.card) .card__sizes{display:none}
+}
+
 .card{display:flex;flex-direction:column}
 .card__media{
   position:relative;display:block;background:var(--bone-2);aspect-ratio:4/5;overflow:hidden;border-radius:var(--r);
@@ -538,8 +556,28 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* ---------------------------------------------------------- filtre / shop */
 .shop{display:grid;grid-template-columns:212px minmax(0,1fr);gap:clamp(24px,3vw,48px);align-items:start}
 @media (max-width:900px){.shop{grid-template-columns:1fr}}
-.filters{position:sticky;top:96px;display:grid;gap:24px;font-size:13.5px}
-@media (max-width:900px){.filters{position:static}}
+.filters{position:sticky;top:96px;font-size:13.5px}
+.filters__body{display:grid;gap:24px}
+.filters__toggle{
+  display:none;                      /* masaüstünde gerek yok, panel hep açık */
+  align-items:center;justify-content:space-between;gap:12px;cursor:pointer;
+  padding:12px 14px;border:1px solid var(--bone-3);border-radius:var(--r);
+  font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  list-style:none;margin-bottom:18px;
+}
+.filters__toggle::-webkit-details-marker{display:none}
+.filters__toggle svg{transition:transform .3s var(--ease)}
+.filters[open]>.filters__toggle{color:var(--ink);border-color:var(--ink)}
+.filters[open]>.filters__toggle svg{transform:rotate(90deg)}
+@media (max-width:900px){
+  .filters{position:static}
+  .filters__toggle{display:flex}
+}
+@media (min-width:901px){
+  /* <details> kapalıyken tarayıcı gövdeyi display:none yapıyor; masaüstünde
+     panel her zaman görünmeli, o yüzden bunu geri alıyoruz. */
+  .filters>.filters__body{display:grid !important}
+}
 .filters h2{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;font-family:var(--sans);color:var(--muted);margin-bottom:10px}
 .filters a{display:flex;justify-content:space-between;gap:10px;padding:4px 0;color:var(--muted)}
 .filters a:hover{color:var(--ink)}

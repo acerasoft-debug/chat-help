@@ -76,7 +76,22 @@ vr_layout_start([
 
     <div class="shop">
       <!-- ------------------------------------------------------- filtreler -->
-      <aside class="filters">
+      <?php
+      /* Telefonda filtre paneli KAPALI açılıyor.
+         Aksi hâlde mağaza sayfası on üç ev + on bir kategori + satıcı tipi +
+         fiyat ile başlıyor: alıcı ilk ürünü görmek için iki ekran boyu filtre
+         geçiyordu. Masaüstünde panel her zaman açık (aşağıdaki medya
+         sorgusu summary'yi gizleyip gövdeyi görünür tutuyor), yani JS'siz
+         çalışıyor ve klavye/ekran okuyucu için <details> zaten doğru öğe.
+         Bir filtre seçiliyse panel açık geliyor — seçimini görmek isteyen
+         kişi onu aramamalı. */
+      ?>
+      <details class="filters"<?= $filtered ? ' open' : '' ?>>
+        <summary class="filters__toggle">
+          <span><?= te('filter_open') ?></span>
+          <?= vr_icon('arrow', 15) ?>
+        </summary>
+        <div class="filters__body">
         <?php if ($filtered): ?>
           <a class="btn btn--ghost btn--sm" href="<?= h(vr_url('shop.php')) ?>"><span><?= te('reset') ?></span></a>
         <?php endif; ?>
@@ -126,7 +141,8 @@ vr_layout_start([
           </div>
           <button class="btn btn--ghost btn--sm" style="margin-top:10px;width:100%" type="submit"><span><?= te('apply') ?></span></button>
         </form>
-      </aside>
+        </div>
+      </details>
 
       <!-- ---------------------------------------------------------- sonuçlar -->
       <div>

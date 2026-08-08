@@ -74,6 +74,7 @@ return [
     'shop_title'         => 'Die Verkaufsfläche',
     'shop_sub'           => 'Fester Preis, sofortiger Versand.',
     'filters'            => 'Filter',
+    'filter_open'        => 'Filter',
     'filter_brand'       => 'Haus',
     'filter_cat'         => 'Kategorie',
     'filter_price'       => 'Preis',

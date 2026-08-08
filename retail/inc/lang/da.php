@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'Butiksgulvet',
     'shop_sub'           => 'Fast pris, afsendes straks.',
     'filters'            => 'Filtre',
+    'filter_open'        => 'Filtrér',
     'filter_brand'       => 'Hus',
     'filter_cat'         => 'Kategori',
     'filter_price'       => 'Pris',

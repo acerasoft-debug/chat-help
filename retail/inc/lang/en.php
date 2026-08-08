@@ -78,6 +78,7 @@ return [
     'shop_title'         => 'The shop floor',
     'shop_sub'           => 'Fixed price, immediate dispatch.',
     'filters'            => 'Filters',
+    'filter_open'        => 'Filter',
     'filter_brand'       => 'House',
     'filter_cat'         => 'Category',
     'filter_price'       => 'Price',

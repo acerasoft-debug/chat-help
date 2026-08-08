@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'Butiksgolvet',
     'shop_sub'           => 'Fast pris, skickas omgående.',
     'filters'            => 'Filter',
+    'filter_open'        => 'Filtrera',
     'filter_brand'       => 'Hus',
     'filter_cat'         => 'Kategori',
     'filter_price'       => 'Pris',

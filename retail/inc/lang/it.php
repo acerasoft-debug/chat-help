@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'La superficie di vendita',
     'shop_sub'           => 'Prezzo fisso, spedizione immediata.',
     'filters'            => 'Filtri',
+    'filter_open'        => 'Filtra',
     'filter_brand'       => 'Maison',
     'filter_cat'         => 'Categoria',
     'filter_price'       => 'Prezzo',

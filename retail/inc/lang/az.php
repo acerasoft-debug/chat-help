@@ -69,6 +69,7 @@ return [
     'shop_title'         => 'Satış sahəsi',
     'shop_sub'           => 'Sabit qiymət, dərhal göndəriş.',
     'filters'            => 'Filtrlər',
+    'filter_open'        => 'Süzgəc',
     'filter_brand'       => 'Ev',
     'filter_cat'         => 'Kateqoriya',
     'filter_price'       => 'Qiymət',
