@@ -23,8 +23,40 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/inc/view.php';
 
-$curated = vr_query(['per_page' => 10, 'in_stock' => true, 'exclude_vault' => true])['rows'];
-$fresh   = vr_query(['per_page' => 4, 'sort' => 'new', 'in_stock' => true, 'exclude_vault' => true])['rows'];
+// Vitrin ürünle açılıyor. Önceki hâlde ana sayfanın ilk ekranı sahne, ikinci
+// ekranı yatay bir raydı; ziyaretçi ürün görmeden iki ekran kaydırıyordu.
+// Şimdi sahnenin hemen altında 12'lik bir ızgara var.
+$fresh   = vr_query(['per_page' => 8, 'sort' => 'new', 'in_stock' => true, 'exclude_vault' => true])['rows'];
+
+/**
+ * Vitrin seçkisi: marka başına bir parça, sırayla.
+ *
+ * Düz "ilk 12" kataloğun kendi sırasını alıyordu ve o sıra markaya göre:
+ * ana sayfa on iki Balmain mayosuyla açılıyordu. Sıralı dağıtım (her
+ * markadan bir tane, sonra ikinci tur) hem markaları hem kategorileri
+ * ilk ekrana getiriyor.
+ *
+ * Fotoğrafı ızgara kontakt sayfası olanlar geriye atılıyor: vitrinde
+ * tek çekim duruyor.
+ */
+$pool = vr_query(['per_page' => 400, 'in_stock' => true, 'exclude_vault' => true])['rows'];
+$grid = vr_photo_grid_index();
+$byBrand = [];
+foreach ($pool as $p) {
+    $first = (string)($p['images'][0] ?? '');
+    $rank  = ($first !== '' && !isset($grid[$first])) ? 0 : 1;
+    $byBrand[$p['brand']][$rank][] = $p;
+}
+$curated = [];
+for ($round = 0; $round < 4 && count($curated) < 12; $round++) {
+    foreach ($byBrand as $brand => $ranks) {
+        if (count($curated) >= 12) break;
+        $take = array_shift($ranks[0]) ?? array_shift($ranks[1]) ?? null;
+        if ($take === null) continue;
+        $byBrand[$brand] = $ranks;
+        $curated[] = $take;
+    }
+}
 $lots    = vr_vault_lots(['limit' => 6]);
 $facets  = vr_facets();
 $total   = vr_query(['per_page' => 1])['total'];
@@ -133,12 +165,17 @@ vr_layout_start([
   <div class="wrap">
     <?php vr_chapter('I', t('sec_curated'), t('sec_curated_sub'), vr_url('shop.php')); ?>
   </div>
-  <?php /* Izgara değil ray: son kart sağ kenardan taşıyor, "devamı var"ı ok
-           çizmeden söylüyor. Kaydırma tarayıcının kendi işi. */ ?>
-  <div class="rail">
-    <div class="rail__track">
-      <?php foreach ($curated as $i => $p) vr_card($p, ['size_hint' => true, 'eager' => $i < 4]); ?>
-    </div>
+  <?php /* Ray değil ızgara. Ray zarifti ama masaüstünde aynı anda dört kart
+           gösteriyordu ve geri kalanı yatay kaydırmanın arkasına saklıyordu —
+           ziyaretçinin ilk gördüğü şey bir avuç ürün oluyordu. Izgara on iki
+           parçayı birden açıyor. */ ?>
+  <div class="wrap">
+    <?php vr_grid($curated, ['class' => 'grid--4', 'size_hint' => true, 'eager_first' => true]); ?>
+    <p style="text-align:center;margin-top:clamp(28px,3.5vw,44px)">
+      <a class="btn btn--ghost btn--lg" href="<?= h(vr_url('shop.php')) ?>">
+        <span><?= te('sec_curated') ?> — <?= te('results_n', ['n' => (int)$total]) ?></span><?= vr_icon('arrow', 16) ?>
+      </a>
+    </p>
   </div>
 </section>
 
@@ -148,7 +185,21 @@ vr_layout_start([
      Görsel: elde gerçek ürün fotoğrafı varsa o, yoksa kampanya karesi. -->
 <section class="editorial">
   <a class="etile" href="<?= h(vr_url('outlet.php')) ?>">
-    <img src="<?= h($tileA) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+    <?php
+    /* Karo da hareketli olabiliyor. assets/media/band-vault.webm varsa video,
+       yoksa fotoğraf — ikisi de yoksa üretilmiş kampanya karesi. Oynatmayı
+       yine JS başlatıyor: JS kapalıysa poster duruyor ve hareket hiç doğmuyor
+       (WCAG 2.2.2, sahnedekiyle aynı kural). */
+    $bandA = vr_hero_media('band-vault');
+    ?>
+    <?php if ($bandA && $bandA['kind'] === 'video'): ?>
+      <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
+             poster="<?= h($tileA) ?>" aria-hidden="true" tabindex="-1">
+        <source src="<?= h($bandA['src']) ?>" type="<?= h($bandA['type']) ?>">
+      </video>
+    <?php else: ?>
+      <img src="<?= h($tileA) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+    <?php endif; ?>
     <div class="etile__in">
       <span class="orn" aria-hidden="true"><i></i></span>
       <h2><?= te('vault_title') ?></h2>
@@ -156,13 +207,32 @@ vr_layout_start([
       <span class="etile__go"><?= te('nav_outlet') ?><?= vr_icon('arrow', 15) ?></span>
     </div>
   </a>
-  <a class="etile" href="<?= h(vr_url('sell.php')) ?>">
-    <img src="<?= h($tileB) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+  <?php
+  /* İkinci karo eskiden "Verkaufen" idi. Ana sayfanın yarısını satıcı
+     çağrısına vermek alıcıyı ürüne değil kayıt formuna yolluyordu; o çağrı
+     artık yalnızca altlıkta duruyor. Yerine en dolu kategori geçti. */
+  $topCat = $facets['cats'] ?: [];
+  arsort($topCat);
+  $catName = (string)(array_key_first($topCat) ?? '');
+  ?>
+  <a class="etile" href="<?= h(vr_url('shop.php', $catName !== '' ? ['cat' => $catName] : [])) ?>">
+    <?php $bandB = vr_hero_media('band-shop'); ?>
+    <?php if ($bandB && $bandB['kind'] === 'video'): ?>
+      <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
+             poster="<?= h($tileB) ?>" aria-hidden="true" tabindex="-1">
+        <source src="<?= h($bandB['src']) ?>" type="<?= h($bandB['type']) ?>">
+      </video>
+    <?php else: ?>
+      <img src="<?= h($tileB) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+    <?php endif; ?>
     <div class="etile__in">
       <span class="orn" aria-hidden="true"><i></i></span>
-      <h2><?= te('sell_hero_t') ?></h2>
-      <p><?= te('sell_hero_b') ?></p>
-      <span class="etile__go"><?= te('nav_sell') ?><?= vr_icon('arrow', 15) ?></span>
+      <h2><?= h($catName !== '' ? $catName : t('nav_shop')) ?></h2>
+      <p><?= te('sec_curated_sub') ?></p>
+      <span class="etile__go">
+        <?= $catName !== '' ? te('results_n', ['n' => (int)$topCat[$catName]]) : te('nav_shop') ?>
+        <?= vr_icon('arrow', 15) ?>
+      </span>
     </div>
   </a>
 </section>

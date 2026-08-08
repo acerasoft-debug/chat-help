@@ -173,6 +173,27 @@ function vr_normalize_product(array $p, string $source): ?array
         if (is_string($img) && preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $img)) $images[] = $img;
     }
 
+    // Izgara kontakt sayfaları arkaya.
+    //
+    // Toptancının bazı dosyaları tek çekim değil: bir kadrajda sekiz küçük
+    // ürün, altında model kodu. Ürün sayfasında kalmalarında sakınca yok —
+    // alıcı beden dökümünü orada görüyor. Ama kart görselinin ONLARDAN biri
+    // olması vitrini depo çıktısına çeviriyor, üstelik kırpılınca kadrajın
+    // ortasındaki yazı büyüyor.
+    //
+    // Sıralama KARARLI: aynı gruptakilerin kendi arasındaki sırası bozulmuyor,
+    // yalnızca ızgaralar sona alınıyor. İndeks yoksa hiçbir şey değişmez.
+    if (count($images) > 1) {
+        $grid = vr_photo_grid_index();
+        if ($grid) {
+            $clean = $dirty = [];
+            foreach ($images as $img) {
+                if (isset($grid[$img])) $dirty[] = $img; else $clean[] = $img;
+            }
+            if ($clean) $images = array_merge($clean, $dirty);
+        }
+    }
+
     $sellerType = strtolower((string)($p['seller_type'] ?? ''));
     if (!in_array($sellerType, ['business', 'private', 'vestra'], true)) {
         // B2B kataloğundaki satıcısız satırlar bizim kendi stoğumuz.
@@ -517,4 +538,15 @@ function vr_category_fix(): array
         $fix = is_array($raw) ? $raw : [];
     }
     return $fix;
+}
+
+/** Izgara kontakt sayfası olan fotoğrafların yol => 1 haritası. */
+function vr_photo_grid_index(): array
+{
+    static $ix = null;
+    if ($ix === null) {
+        $raw = vr_store_read('photo-quality.json', []);
+        $ix  = is_array($raw) ? $raw : [];
+    }
+    return $ix;
 }

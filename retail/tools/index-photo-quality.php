@@ -126,6 +126,17 @@ foreach (vr_catalog() as $p) {
 
         $v = pq_is_single($file);
         if ($v === null) { $bad++; continue; }
+
+        // Geniş kadraj da vitrine uygun değil. Kart dikey (2:3); 1,15'ten
+        // geniş bir görsel ya kırpılırken yarısını kaybediyor ya da iki
+        // panelli olduğu için ortasından bölünmüş bir ürün gösteriyor.
+        // Izgara testinden kaçan çok panelli dosyaları da bu yakalıyor:
+        // ölçtüğümüz bir Burberry karesinde alt şeritte modelin bacakları
+        // olduğu için yazı testi tetiklenmemişti.
+        if ($v) {
+            $dim = @getimagesize($file);
+            if ($dim && $dim[1] > 0 && $dim[0] / $dim[1] > 1.15) $v = false;
+        }
         // Yalnızca ızgara olanları yazıyoruz: dosya küçük kalsın, varsayılan
         // "sorun yok" olsun. Bilinmeyen bir fotoğraf cezalandırılmasın.
         if (!$v) { $index[$rel] = 1; $grid++; } else { $single++; }

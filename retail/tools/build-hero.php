@@ -50,6 +50,9 @@ $opt = [
     'crf'     => 30,
     'dry'     => false,
     'ffmpeg'  => '',
+    'name'    => 'hero',   // assets/media/<name>.webm
+    'skip'    => 0,        // seçimde ilk N adayı atla — ikinci film başka kareler alsın
+    'ratio'   => '16:9',
 ];
 foreach (array_slice($argv, 1) as $a) {
     if (str_starts_with($a, '--seconds='))    $opt['seconds'] = max(12, (int)substr($a, 10));
@@ -57,6 +60,9 @@ foreach (array_slice($argv, 1) as $a) {
     elseif (str_starts_with($a, '--frames=')) $opt['frames']  = max(4, min(14, (int)substr($a, 9)));
     elseif (str_starts_with($a, '--crf='))    $opt['crf']     = max(18, min(36, (int)substr($a, 6)));
     elseif (str_starts_with($a, '--ffmpeg=')) $opt['ffmpeg']  = substr($a, 9);
+    elseif (str_starts_with($a, '--name='))   $opt['name']    = preg_replace('/[^a-z0-9-]/', '', substr($a, 7));
+    elseif (str_starts_with($a, '--skip='))   $opt['skip']    = max(0, (int)substr($a, 7));
+    elseif (str_starts_with($a, '--ratio='))  $opt['ratio']   = substr($a, 8);
     elseif ($a === '--dry')                   $opt['dry']     = true;
 }
 
@@ -78,7 +84,9 @@ echo str_repeat('=', 68) . "\n";
 $H = 1080;                                   // şerit yüksekliği
 $FW = (int)round($H * 2 / 3);                // kare genişliği (2:3 dikey)
 $outW = $opt['width'];
-$outH = (int)round($outW * 9 / 16);
+[$rw, $rh] = array_map('intval', explode(':', $opt['ratio']) + [1 => 9]);
+if ($rw < 1 || $rh < 1) { $rw = 16; $rh = 9; }
+$outH = (int)round($outW * $rh / $rw);
 
 // ------------------------------------------------------------------ seçim
 /** Beyaz piksel oranı — düz ürün çekimini modelli çekimden ayırt eder. */
@@ -212,11 +220,12 @@ if (!$pool) { echo "Keine geeigneten Aufnahmen gefunden.\n"; exit(1); }
 
 // Büyükten küçüğe bak, beyazlık ölç, marka başına iki kare.
 usort($pool, static fn($a, $b) => $b['px'] <=> $a['px']);
-$picked = []; $perBrand = []; $checked = 0;
+$picked = []; $perBrand = []; $checked = 0; $skipped = 0;
 foreach ($pool as $c) {
     if (count($picked) >= $opt['frames']) break;
     if (($perBrand[$c['brand']] ?? 0) >= 2) continue;
     if (++$checked > 500) break;
+    if ($skipped < $opt['skip']) { $skipped++; continue; }
     $wf = bh_whiteness($c['file']);
     if ($wf > 0.55) continue;
     if (!bh_is_single($c['file'])) continue;      // ızgara kontakt sayfası — sahnede işi yok
@@ -276,7 +285,7 @@ foreach ($picked as $i => $c) {
 
 $mediaDir = VR_ROOT . '/assets/media';
 @mkdir($mediaDir, 0755, true);
-$stripFile = $mediaDir . '/.hero-strip.jpg';
+$stripFile = $mediaDir . '/.' . $opt['name'] . '-strip.jpg';
 imagejpeg($strip, $stripFile, 90);
 imagedestroy($strip);
 printf("\nStreifen   : %dx%d  (%.1f MB)\n", $stripW * 2, $H, filesize($stripFile) / 1048576);
@@ -299,8 +308,8 @@ if (!$h264 && !$vp8) {
     exit(1);
 }
 
-$out = $mediaDir . '/hero.' . ($h264 ? 'mp4' : 'webm');
-$jpg = $mediaDir . '/hero-poster.jpg';
+$out = $mediaDir . '/' . $opt['name'] . '.' . ($h264 ? 'mp4' : 'webm');
+$jpg = $mediaDir . '/' . $opt['name'] . '-poster.jpg';
 $t   = $opt['seconds'];
 
 $codec = $h264
@@ -319,8 +328,8 @@ $codec = $h264
  */
 $fps    = 20;
 $total  = $t * $fps;
-$srcW   = (int)round($H * 16 / 9);
-$tmpDir = $mediaDir . '/.frames';
+$srcW   = (int)round($H * $rw / $rh);
+$tmpDir = $mediaDir . '/.frames-' . $opt['name'];
 @mkdir($tmpDir, 0755, true);
 array_map('unlink', glob($tmpDir . '/*.jpg') ?: []);
 
@@ -354,7 +363,7 @@ if (!is_file($out) || filesize($out) < 10240) {
 
 // Poster: ilk kare. Video yüklenene kadar görünen şey bu. Bu ffmpeg'de
 // JPEG kodlayıcı olmayabiliyor, o yüzden PNG üzerinden GD ile çeviriyoruz.
-$png = $mediaDir . '/.hero-poster.png';
+$png = $mediaDir . '/.' . $opt['name'] . '-poster.png';
 @shell_exec(sprintf('%s -y -loglevel error -i %s -vframes 1 %s 2>&1',
     escapeshellcmd($ff), escapeshellarg($out), escapeshellarg($png)));
 if (is_file($png)) {

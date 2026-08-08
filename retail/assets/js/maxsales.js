@@ -163,6 +163,27 @@
      JS kapalıyken hareket hiç doğmuyor ve duraklatma düğmesinin çalışmadığı bir
      durum kalmıyor (WCAG 2.2.2). Kare geçişli CSS filmini duraklatmak için JS
      gerekmiyor, onu işaret kutusu tek başına hallediyor. */
+  /* Karo filmleri: ekrana girince oynat, çıkınca durdur. Ana sayfada üç
+     video var; hepsini birden çalıştırmak mobilde işlemciyi boşuna yakıyor
+     ve pil tüketiyor. Sahne filmi bu kuralın dışında — o zaten ilk ekranda. */
+  var bandVids = document.querySelectorAll('.etile__vid[data-autoplay]');
+  if (bandVids.length && window.IntersectionObserver) {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            var pr = e.target.play();
+            if (pr && pr.catch) pr.catch(function () {});
+          } else {
+            e.target.pause();
+          }
+        });
+      }, { threshold: 0.25 });
+      bandVids.forEach(function (v) { io.observe(v); });
+    }
+  }
+
   var stageVid = document.querySelector('.stage__vid[data-autoplay]');
   if (stageVid) {
     var stageBox = document.getElementById('stage-pause');

@@ -134,7 +134,8 @@ function vr_header(): void
       <a href="<?= h(vr_url('shop.php')) ?>"><?= te('nav_shop') ?></a>
       <a class="nav__vault" href="<?= h(vr_url('outlet.php')) ?>"><?= te('nav_outlet') ?><i class="pulse"></i></a>
       <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
-      <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
+      <?php /* "Verkaufen" bilerek YOK: üst gezinme alıcının yolu, satıcı
+               çağrısı altlıkta duruyor. */ ?>
     </nav>
 
     <div class="tools">
@@ -488,15 +489,16 @@ function vr_chapter(string $n, string $title, string $sub = '', ?string $moreUrl
  * Yani gerçek malzeme geldiği anda kod değişmeden devreye giriyor; gelmezse
  * anasayfa boş kalmıyor. Dosya yoksa hiçbir şey bozulmuyor.
  */
-function vr_hero_media(): ?array
+function vr_hero_media(string $name = 'hero'): ?array
 {
+    $name  = preg_replace('/[^a-z0-9-]/', '', $name) ?: 'hero';
     $kinds = [
-        ['hero.mp4',  'video', 'video/mp4'],
-        ['hero.webm', 'video', 'video/webm'],
-        ['hero.jpg',  'image', 'image/jpeg'],
-        ['hero.jpeg', 'image', 'image/jpeg'],
-        ['hero.webp', 'image', 'image/webp'],
-        ['hero.png',  'image', 'image/png'],
+        ["{$name}.mp4",  'video', 'video/mp4'],
+        ["{$name}.webm", 'video', 'video/webm'],
+        ["{$name}.jpg",  'image', 'image/jpeg'],
+        ["{$name}.jpeg", 'image', 'image/jpeg'],
+        ["{$name}.webp", 'image', 'image/webp'],
+        ["{$name}.png",  'image', 'image/png'],
     ];
     foreach ($kinds as [$file, $kind, $type]) {
         $path = VR_ROOT . '/assets/media/' . $file;
@@ -544,16 +546,6 @@ function vr_editorial_image(array $rows, string $seed, array &$skip): string
     return vr_url('assets/art.php', ['s' => $seed, 'm' => 'campaign', 'w' => 1200, 'h' => 1500]);
 }
 
-/** Izgara kontakt sayfası olan fotoğrafların yol => 1 haritası. */
-function vr_photo_grid_index(): array
-{
-    static $ix = null;
-    if ($ix === null) {
-        $raw = vr_store_read('photo-quality.json', []);
-        $ix  = is_array($raw) ? $raw : [];
-    }
-    return $ix;
-}
 
 /** Demo veriyle çalışıyorsak bunu gizlemiyoruz — dürüstlük meselesi. */
 function vr_demo_banner(): void
