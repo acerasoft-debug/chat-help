@@ -91,6 +91,36 @@ function vr_price_rule(string $brand, string $cat, string $name): ?int
     return null;
 }
 
+/**
+ * Resmî fiyat (UVP) ara: önce SKU, sonra marka + kategori.
+ * Dönüş kuruş, yoksa null.
+ *
+ * Tablo data/official-prices.json'da ve ELLE dolduruluyor — kaynak
+ * stapellerde resmî fiyat yok. Boş bırakılan satırlar hiçbir şey yapmıyor:
+ * o ürünler eski fiyatlamada kalıyor ve üstü çizili fiyat basılmıyor.
+ */
+function vr_official_rrp(string $brand, string $cat, string $sku): ?int
+{
+    static $bySku = null, $byCat = null;
+    if ($bySku === null) {
+        $bySku = $byCat = [];
+        foreach ((array)vr_store_read('official-prices.json', []) as $r) {
+            if (!is_array($r)) continue;
+            $rrp = (float)($r['rrp'] ?? 0);
+            if ($rrp <= 0) continue;
+            $cents = (int)round($rrp * 100);
+            $s = strtoupper(trim((string)($r['sku'] ?? '')));
+            if ($s !== '') { $bySku[$s] = $cents; continue; }
+            $k = strtoupper(trim((string)($r['brand'] ?? ''))) . '||' . mb_strtolower(trim((string)($r['cat'] ?? '')));
+            $byCat[$k] = $cents;
+        }
+    }
+    $s = strtoupper(trim($sku));
+    if ($s !== '' && isset($bySku[$s])) return $bySku[$s];
+    $k = strtoupper(trim($brand)) . '||' . mb_strtolower(trim($cat));
+    return $byCat[$k] ?? null;
+}
+
 /** Ham katalog satırını tek biçimli perakende ürününe çevir. */
 function vr_normalize_product(array $p, string $source): ?array
 {
@@ -128,8 +158,22 @@ function vr_normalize_product(array $p, string $source): ?array
         trim((string)($p['name'] ?? ''))
     );
 
+    // Resmî fiyat girilmişse satış fiyatı ondan türüyor: UVP − %20
+    // (official_discount_bps). Sabit outlet kuralları yine önde — onlar
+    // işletmecinin bilerek dikte ettiği rakamlar, otomatik hesap onları
+    // ezmemeli.
+    $rrpCents = vr_official_rrp(
+        (string)($p['brand'] ?? ''),
+        (string)($p['cat'] ?? ''),
+        (string)($p['sku'] ?? '')
+    );
+    if ($rrpCents !== null && !isset($p['rrp'])) $p['rrp'] = $rrpCents / 100;
+
     if ($ruleCents !== null) {
         $price = $ruleCents;
+    } elseif ($rrpCents !== null) {
+        $bps   = (int)vr_config('official_discount_bps', 2000);
+        $price = vr_charm_round((int)round($rrpCents * (10000 - $bps) / 10000));
     } elseif (isset($p['retail_price']) && (float)$p['retail_price'] > 0) {
         $price = (int)round((float)$p['retail_price'] * 100);
     } elseif (isset($p['price_cents']) && (int)$p['price_cents'] > 0) {

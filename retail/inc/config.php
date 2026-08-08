@@ -207,6 +207,11 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             // ---- Gutschein / kupon
             // Kayıt olup e-postasını doğrulayan her müşteriye otomatik
             // gönderilen ilk sipariş indirimi. 0 = otomatik kupon kapalı.
+            // Resmî fiyattan (UVP) indirim. data/official-prices.json
+            // doldurulduğunda satış fiyatı buradan hesaplanıyor ve UVP ürün
+            // sayfasında üstü çizili görünüyor. Tablo boşsa hiçbir etkisi yok.
+            'official_discount_bps' => 2000,  // %20
+
             'welcome_discount_bps' => 500,   // %5
             'welcome_valid_days'   => 90,
 
