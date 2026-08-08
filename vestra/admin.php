@@ -3460,7 +3460,8 @@ function runAutomationNow(btn){
           </select>
           <?php endif; ?>
         </td>
-        <td class="ac" style="font-size:11px"><?= $l['last_contacted_at'] ? htmlspecialchars(substr($l['last_contacted_at'],0,10)) : '—' ?></td>
+        <?php /* Leads imported before this field existed have no key at all. */ ?>
+        <td class="ac" style="font-size:11px"><?= !empty($l['last_contacted_at']) ? htmlspecialchars(substr((string)$l['last_contacted_at'],0,10)) : '—' ?></td>
         <td class="ac"><button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadDelete('<?= htmlspecialchars($l['id']??'') ?>')">Delete</button></td>
       </tr>
       <?php endforeach; ?>

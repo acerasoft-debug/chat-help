@@ -540,8 +540,12 @@ function vestra_seller_monthly_quota_limit(string $tier): ?int {
 function vestra_seller_commission_rate(string $tier): float {
     return match ($tier) { 'pro' => 0.032, 'premium' => 0.028, default => VESTRA_COMMISSION_RATE };
 }
-function vestra_seller_monthly_quota_used(array $acc): int {
-    $rec = $acc['listing_quota'] ?? null;
+/* Nullable on purpose: seller.php reads this straight off $AUTH_USER, which is null when a
+   session has expired between page loads. With an `array` type that was a fatal TypeError —
+   the whole seller dashboard 500'd instead of bouncing the visitor to the login page (the
+   live error log had it five times). No account simply means nothing used yet. */
+function vestra_seller_monthly_quota_used(?array $acc): int {
+    $rec = is_array($acc) ? ($acc['listing_quota'] ?? null) : null;
     if (!is_array($rec) || ($rec['month'] ?? '') !== date('Y-m')) return 0;
     return (int)($rec['count'] ?? 0);
 }
