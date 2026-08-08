@@ -134,42 +134,24 @@ SVG;
    reshuffle on every load. It is layered OVER the generated editorial art (see
    vestra_journal_cover_bg), so a photo that can't load simply reveals the art —
    never a broken image. An admin-set cover (Journal editor) overrides it. */
+/* Editorial cover photography for an article, when we have any.
+ *
+ * Two things this must NOT be, both of which it has been:
+ *   - loremflickr.com keyword URLs (random third-party images of goods we do not sell,
+ *     blank whenever the service was slow);
+ *   - catalogue packshots from /uploads (product shots on white — that is the shop's
+ *     imagery, not a magazine's).
+ *
+ * The journal wants fashion/editorial photography, and the project owns none yet. Until
+ * such files exist under /uploads/journal/, this returns nothing and every cover falls
+ * back to vestra_journal_cover_svg() — the generated on-brand art, which is a deliberate
+ * design and never breaks. Drop editorial files into that folder and set each article's
+ * 'cover' from the admin, or extend the map below. */
 function vestra_journal_model_photo(array $p): string {
-    /* Our own catalogue photography, not stock. These used to be loremflickr.com URLs —
-       random third-party images keyed on words like "fashion,model", which meant the
-       journal illustrated wholesale articles with pictures of goods we do not sell, and
-       went blank whenever that service was slow or unreachable. Every path below is a
-       file in /uploads that the catalogue itself already serves. */
-    static $pool = [
-        '/uploads/lacoste/l1212-green.jpg',
-        '/uploads/lacoste/l1212-navy.jpg',
-        '/uploads/lacoste/l1212-bordeaux.jpg',
-        '/uploads/lacoste/l1212-beige.jpg',
-        '/uploads/lac-paris/paris-polo-green.png',
-        '/uploads/rl/csf-polo-darkgreen.jpg',
-        '/uploads/rl/csf-polo-white.png',
-        '/uploads/amiri/amiri-core-polo-black.png',
-        '/uploads/amiri/amiri-core-polo-navy.png',
-        '/uploads/dsquared/dsq-101211.png',
-        '/uploads/lac-sweat/lacoste-sweat-beige.png',
-        '/uploads/lac-hoodie/lacoste-hoodie-navy.png',
-        '/uploads/lac-vneck/lacoste-vneck-navy.png',
-        '/uploads/lac-trim/lacoste-trim-polo-1.png',
-    ];
-    /* Where an article is about a specific garment, show that garment. */
     static $map = [
-        'the-enduring-business-of-the-piqu-polo'                     => '/uploads/lacoste/l1212-black.jpg',
-        'build-a-colour-assortment-that-actually-sells'             => '/uploads/lacoste/l1212-yellow.jpg',
-        'how-presentation-lifts-sell-through-on-a-wholesale-rail'    => '/uploads/lac-trim/lacoste-trim-polo-2.png',
-        'why-mixed-size-packs-outsell-single-size-buys'             => '/uploads/lacoste/l1212-white.jpg',
-        'seasonless-staples-building-a-core-that-never-goes-on-sale' => '/uploads/lac-vneck/lacoste-vneck-black.png',
-        'the-resale-boom-and-what-it-means-for-wholesale-buyers'    => '/uploads/dsquared/dsq-101212.png',
+        // 'article-slug' => '/uploads/journal/whatever.jpg',
     ];
-    $slug = (string)($p['slug'] ?? '');
-    if (isset($map[$slug])) return $map[$slug];
-    /* Otherwise a stable pick, so an article keeps the same cover across page loads
-       instead of reshuffling every render. */
-    return $slug === '' ? '' : $pool[crc32($slug) % count($pool)];
+    return $map[(string)($p['slug'] ?? '')] ?? '';
 }
 /* Full CSS background-image value for a cover: the real photo (admin cover, or a
    keyword model photo) layered OVER the generated editorial SVG data-URI, so if
