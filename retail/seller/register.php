@@ -128,7 +128,7 @@ vr_layout_start(['title' => t('register') . ' · ' . t('nav_sell'), 'robots' => 
             <option value="<?= h($c) ?>" <?= $in['country'] === $c ? 'selected' : '' ?>><?= h($c) ?></option>
           <?php endforeach; ?>
         </select>
-        <small>Stripe prüft Ihre Identität im Land des Kontos. Später nicht änderbar.</small>
+        <small><?= te('seller_country_hint') ?></small>
       </div>
 
       <div class="field">

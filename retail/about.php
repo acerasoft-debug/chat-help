@@ -55,6 +55,35 @@ vr_layout_start([
       <h1><?= te('about_title') ?></h1>
       <p class="pdp__lead" style="margin:14px 0 4px"><?= te('about_sub') ?></p>
 
+      <?php
+      /* Bir moda evinin "hakkımızda" sayfası salt metin olamaz. Dört kadraj,
+         vitrinlik fotoğraflar arasından ve dördü dört ayrı evden — sayfa
+         mağazanın parçası gibi dursun, kurumsal bir bildiri gibi değil. */
+      require_once __DIR__ . '/inc/catalog.php';
+      $strip = [];
+      $seenHouse = [];
+      foreach (vr_query(['per_page' => 40, 'in_stock' => true, 'exclude_vault' => true])['rows'] as $sp) {
+          if (isset($seenHouse[$sp['brand']])) continue;
+          $img = vr_product_image($sp);
+          if (!str_starts_with($img, '/uploads/')) continue;
+          $seenHouse[$sp['brand']] = true;
+          $strip[] = [$img, $sp];
+          if (count($strip) >= 8) break;
+      }
+      // Sayfanın altındaki "This week, curated" ilk dördü gösteriyor; şerit
+      // beşinciden başlıyor ki aynı dört parça iki kez çıkmasın.
+      $strip = count($strip) > 4 ? array_slice($strip, 4, 4) : array_slice($strip, 0, 4);
+      if ($strip): ?>
+        <div class="aboutstrip">
+          <?php foreach ($strip as $i => [$img, $sp]): ?>
+            <a href="<?= h(vr_product_url($sp)) ?>" aria-label="<?= h($sp['brand'] . ' ' . vr_card_name($sp)) ?>">
+              <img src="<?= h($img) ?>" alt="" aria-hidden="true" width="400" height="500"
+                   loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
       <hr class="rule" style="margin:34px 0 30px">
 
       <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -86,5 +115,10 @@ vr_layout_start([
       </div>
     </div>
   </div>
+</section>
+
+<?php /* Sayfa bir bağlantı listesiyle değil, satılan şeyle bitsin. */ ?>
+<section class="sec sec--tight" style="padding-top:0">
+  <div class="wrap"><?php vr_empty_suggestions(); ?></div>
 </section>
 <?php vr_layout_end(); ?>

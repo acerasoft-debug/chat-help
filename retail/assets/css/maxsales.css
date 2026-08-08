@@ -1380,3 +1380,12 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   display:inline-block;margin-top:10px;border:1px solid var(--brass);padding:12px 22px;
   font-size:18px;letter-spacing:.22em;font-variant-numeric:tabular-nums;
 }
+
+/* "Hakkımızda" sayfasındaki kadraj şeridi. Dört fotoğraf, dört ev — sayfa
+   kurumsal bildiri değil mağazanın parçası gibi dursun. Telefonda ikişerli. */
+.aboutstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:26px 0 4px}
+.aboutstrip img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;border-radius:var(--r);background:var(--bone-2)}
+.aboutstrip a{display:block;overflow:hidden;border-radius:var(--r)}
+.aboutstrip img{transition:transform .9s var(--ease)}
+.aboutstrip a:hover img{transform:scale(1.05)}
+@media (max-width:640px){.aboutstrip{grid-template-columns:repeat(2,1fr)}}

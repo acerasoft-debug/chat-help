@@ -160,7 +160,7 @@ vr_layout_start([
             <div class="field">
               <label for="message"><?= te('contact_msg') ?></label>
               <textarea id="message" name="message" required minlength="10"><?= h($in['message']) ?></textarea>
-              <small>Modellcode, Größe oder Bestellnummer helfen uns, sofort zu antworten.</small>
+              <small><?= te('contact_msg_hint') ?></small>
             </div>
 
             <button class="btn btn--lg" type="submit"><span><?= te('contact_send') ?></span><?= vr_icon('arrow', 16) ?></button>

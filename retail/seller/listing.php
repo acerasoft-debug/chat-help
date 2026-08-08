@@ -91,7 +91,7 @@ vr_layout_start(['title' => $listing !== null ? t('edit') : t('listing_new_t'), 
             <div class="field<?= isset($errors['sku']) ? ' field--err' : '' ?>">
               <label for="sku"><?= te('l_sku') ?></label>
               <input id="sku" name="sku" value="<?= h($in['sku']) ?>" placeholder="AH0EG000BC27">
-              <small>Modellcode hilft Käufern beim Vergleich und uns bei der Prüfung.</small>
+              <small><?= te('l_sku_hint') ?></small>
             </div>
           </div>
 
