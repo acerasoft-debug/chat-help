@@ -121,6 +121,40 @@ function vr_official_rrp(string $brand, string $cat, string $sku): ?int
     return $byCat[$k] ?? null;
 }
 
+/**
+ * Marka basamağı × kategori çarpanı → satış fiyatı (kuruş), yoksa null.
+ *
+ * Cazip yuvarlama (X9) BİLEREK uygulanmıyor: işletmecinin verdiği çapalar
+ * 220 ve 550 gibi tam sayılar, X9'a çevirmek dediğini bozardı. Tam avroya
+ * yuvarlanıyor, o kadar.
+ */
+function vr_tier_price(string $brand, string $cat): ?int
+{
+    $base = (array)vr_config('brand_base_eur', []);
+    $fact = (array)vr_config('cat_factor', []);
+    if (!$base || !$fact) return null;
+
+    $b = null;
+    foreach ($base as $name => $eur) {
+        if (strcasecmp(trim($name), trim($brand)) === 0) { $b = (float)$eur; break; }
+    }
+    if ($b === null || $b <= 0) return null;
+
+    $f = null;
+    foreach ($fact as $name => $mult) {
+        if (strcasecmp(trim($name), trim($cat)) === 0) { $f = (float)$mult; break; }
+    }
+    if ($f === null || $f <= 0) return null;
+
+    // Taban fiyat (T-Shirt, çarpan 1,0) AYNEN kalıyor: işletmecinin verdiği
+    // rakam o. Türetilen kategoriler 5 avroluk ızgaraya oturuyor — çarpım
+    // 264,10 ya da 323,00 gibi dağınık sayılar üretiyor ve bir vitrinde
+    // düşünülmemiş duruyor. 5'lik ızgara çapaları bozmuyor (220, 550, 95
+    // zaten beşin katı; 139 çarpansız olduğu için hiç dokunulmuyor).
+    if (abs($f - 1.0) < 0.0001) return (int)round($b) * 100;
+    return (int)(round($b * $f / 5) * 5) * 100;
+}
+
 /** Ham katalog satırını tek biçimli perakende ürününe çevir. */
 function vr_normalize_product(array $p, string $source): ?array
 {
@@ -174,6 +208,8 @@ function vr_normalize_product(array $p, string $source): ?array
     } elseif ($rrpCents !== null) {
         $bps   = (int)vr_config('official_discount_bps', 2000);
         $price = vr_charm_round((int)round($rrpCents * (10000 - $bps) / 10000));
+    } elseif (($tierCents = vr_tier_price((string)($p['brand'] ?? ''), (string)($p['cat'] ?? ''))) !== null) {
+        $price = $tierCents;
     } elseif (isset($p['retail_price']) && (float)$p['retail_price'] > 0) {
         $price = (int)round((float)$p['retail_price'] * 100);
     } elseif (isset($p['price_cents']) && (int)$p['price_cents'] > 0) {

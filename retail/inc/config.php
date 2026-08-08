@@ -179,6 +179,59 @@ function vr_config(?string $key = null, mixed $default = null): mixed
              * Fiyatı değiştirmek için yalnızca burayı düzenlemek yeter —
              * katalogu yeniden içe aktarmaya gerek yok.
              */
+            /**
+             * MARKA BASAMAĞI × KATEGORİ ÇARPANI
+             * ---------------------------------
+             * 478 ürünün fiyatı toptan veriden gelemiyor: kaynak stapellerde
+             * parti başına tek rakam var, Burberry'nin 62 ürünü aynı fiyatı
+             * taşıyordu. Onun yerine işletmecinin verdiği çapalardan bir ölçek
+             * kuruldu.
+             *
+             * ÇAPALAR (işletmeci verdi):
+             *   Gucci T-Shirt 220 · Gucci Tracksuit 550 · Balmain T-Shirt 139
+             *   DSQUARED2 T-Shirt 89–99
+             *
+             * Gucci'nin iki rakamı tam 2,5 kat: 220 × 2,5 = 550. Kategori
+             * çarpanları bu orana oturtuldu, yani ölçek işletmecinin kendi
+             * fiyatlamasından türüyor, dışarıdan dayatılmıyor.
+             *
+             * Taban = o markanın T-SHIRT fiyatı (avro). Diğer kategoriler
+             * çarpanla çıkıyor. Rakamlar CAZİP YUVARLAMAYA (X9) sokulmuyor:
+             * verilen çapalar 220 ve 550 gibi tam sayılar, X9'a çevirmek
+             * işletmecinin dediğini bozardı.
+             *
+             * Adı geçmeyen markalar ("Givenchy ve diğerlerini premium olarak
+             * ona göre yap") bu basamağa yerleştirildi. Bunlar BİR ÖNERİ:
+             * rakamı değiştirmek tek satır.
+             */
+            'brand_base_eur' => [
+                'BALENCIAGA'      => 240,
+                'GUCCI'           => 220,   // çapa
+                'VALENTINO'       => 230,
+                'FENDI'           => 210,
+                'VERSACE'         => 190,
+                'GIVENCHY'        => 180,
+                'DOLCE & GABBANA' => 170,
+                'BURBERRY'        => 160,
+                'BALMAIN'         => 139,   // çapa
+                'MARCELO BURLON'  => 120,
+                'GCDS'            => 110,
+                'DSQUARED2'       => 95,    // çapa: 89–99 aralığının ortası
+            ],
+            'cat_factor' => [
+                'Bademode'              => 0.85,
+                'T-Shirts'              => 1.00,
+                'Shorts'                => 1.10,
+                'Polos'                 => 1.15,
+                'Jeans Shorts'          => 1.35,
+                'Trousers'              => 1.60,
+                'Jeans'                 => 1.90,
+                'Hoodies & Sweatshirts' => 1.90,
+                'Westen'                => 2.20,
+                'Tracksuit Sets'        => 2.50,   // çapa: 220 × 2,5 = 550
+                'Jacken'                => 3.00,
+            ],
+
             'price_rules' => [
                 ['brand' => 'LACOSTE', 'cat' => 'Polos',    'cents' =>  8000],
                 ['brand' => 'LACOSTE', 'cat' => 'T-Shirts', 'cents' =>  3990],
