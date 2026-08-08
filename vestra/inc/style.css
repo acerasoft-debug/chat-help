@@ -161,6 +161,13 @@ input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
 .ctable th,.ctable td{padding:14px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 .ctable th{color:var(--mut);font-weight:500;font-size:12.5px}
 .ctable .r{text-align:right}
+/* Order "Items" cell — a <td> ignores max-width under auto table layout, so the bound has to
+   live on a block inside it. overflow-wrap lets long unbroken SKUs break instead of widening
+   the column and pushing the rest of the table out of view. */
+.itemscell{overflow-wrap:anywhere;line-height:1.45}
+.itemsline{white-space:normal}
+.itemsline b{color:var(--ink);font-weight:600}
+.itemsmore{color:var(--mut);font-size:.85em;margin-top:2px}
 .ctable .x{color:var(--mut);cursor:pointer}
 .ctable .x:hover{color:var(--bad)}
 .summary{display:flex;justify-content:flex-end;margin:22px 0}

@@ -965,4 +965,5 @@ return array (
   'brands ready to quote' => 'marchi pronti a quotare',
   'Just added to the catalog' => 'Appena aggiunti al catalogo',
   'Browse all' => 'Vedi tutti',
+  'more' => 'altri',
 );

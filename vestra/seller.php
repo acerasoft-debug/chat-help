@@ -896,7 +896,7 @@ if($tab==='overview'){
       $stLabel  = $st==='completed'?t('Completed'):($st==='shipped'?t('Shipped'):($st==='paid'?t('Paid — ship now'):t('Awaiting payment')));
       echo '<tr><td><a class="acc" href="/seller?tab=orders&view='.urlencode($ref).'"><b>'.htmlspecialchars($ref).'</b></a><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td>'.htmlspecialchars($o['company']??'').'<div class="hint">'.htmlspecialchars($o['email']??'').'</div></td>'.
-        '<td class="hint">'.htmlspecialchars($o['items']??'').'</td>'.
+        '<td class="hint">'.vestra_order_items_cell($o['items']??'').'</td>'.
         '<td class="r">'.eur($o['total']??0).'</td>'.
         '<td><span class="status '.$stClass.'">'.$stLabel.'</span>'.$escBadge.
           ($st==='shipped'&&!empty($orderSt[$ref]['tracking'])?'<div class="hint">'.htmlspecialchars($orderSt[$ref]['tracking']).'</div>':'').'</td>'.

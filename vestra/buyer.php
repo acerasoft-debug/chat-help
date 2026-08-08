@@ -245,7 +245,7 @@ if($tab==='overview'){
     .ordcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
     .ordref{font-weight:700;font-size:15px;color:var(--ink)}
     .ordref:hover{color:var(--acc)}
-    .ordcard-items{color:var(--mut);font-size:13.5px;margin:10px 0 0;line-height:1.5}
+    .ordcard-items{color:var(--mut);font-size:13.5px;margin:10px 0 0;line-height:1.5;overflow-wrap:anywhere}
     .ordprods{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column}
     .ordprod{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
     .ordprod:first-child{border-top:0;padding-top:2px}

@@ -985,4 +985,5 @@ return array (
   'brands ready to quote' => 'Marken angebotsbereit',
   'Just added to the catalog' => 'Neu im Katalog',
   'Browse all' => 'Alle ansehen',
+  'more' => 'weitere',
 );

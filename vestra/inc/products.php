@@ -578,6 +578,36 @@ function vestra_parse_order_items(string $items): array {
     }
     return $out;
 }
+/* Render an order's stored items string for a table cell.
+ *
+ * The stored format is one segment per line item ("80x sku-a @32.00 | 40x sku-b @39.90"), so it
+ * grows without bound as an order gets larger — real B2B carts run to a dozen lines. Printed raw
+ * into a <td> that made the whole table unusable: a table cell in the default (auto) layout
+ * algorithm IGNORES max-width, so the column simply widened to fit the string and squeezed every
+ * other column out of the viewport. A block-level wrapper is not sized by the table algorithm and
+ * does honour max-width, which is why the markup below is a <div> inside the cell rather than
+ * styling on the cell itself.
+ *
+ * Shows the first $show lines and folds the rest into a count; the untruncated string stays
+ * reachable as the title tooltip. Falls back to the raw (but bounded) text for rows whose format
+ * predates the parser. */
+function vestra_order_items_cell(string $items, int $show = 2, int $px = 210): string {
+    $wrap = '<div class="itemscell" style="max-width:'.(int)$px.'px"';
+    $lines = vestra_parse_order_items($items);
+    if (!$lines) {
+        return $items === '' ? '<span class="itemsmore">—</span>'
+                             : $wrap.'>'.htmlspecialchars($items).'</div>';
+    }
+    $out = '';
+    foreach (array_slice($lines, 0, $show) as $l) {
+        $out .= '<div class="itemsline"><b>'.(int)$l['qty'].'×</b> '.htmlspecialchars($l['sku']).'</div>';
+    }
+    if (($rest = count($lines) - $show) > 0) {
+        $out .= '<div class="itemsmore">+'.$rest.' '.htmlspecialchars(t('more')).'</div>';
+    }
+    return $wrap.' title="'.htmlspecialchars($items).'">'.$out.'</div>';
+}
+
 /* An order can bundle SKUs from several sellers (buyer's cart isn't seller-partitioned) — true if
    at least one line item in this order row belongs to the given seller's SKU list. */
 function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {

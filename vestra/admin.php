@@ -1223,6 +1223,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 .atable tbody tr{transition:background .1s}
 .atable tbody tr:hover td.ac{background:rgba(169,127,44,.05)}
 .atscroll{overflow-x:auto}
+/* see vestra_order_items_cell(): the max-width has to sit on a block inside the cell,
+   because a <td> under auto table layout ignores it entirely */
+.itemscell{overflow-wrap:anywhere;line-height:1.4}
+.itemsline b{color:var(--ink);font-weight:600}
+.itemsmore{color:var(--mut);font-size:10px;margin-top:2px}
 /* buttons */
 .abtn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;transition:.12s;text-decoration:none;font-weight:500}
 .abtn:hover{border-color:var(--acc);color:var(--acc);background:rgba(169,127,44,.05)}
@@ -2278,7 +2283,7 @@ if($__dupRefs): ?>
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($o['timestamp']??'',0,10)) ?></td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
-    <td class="ac" style="max-width:140px;font-size:11px"><?= htmlspecialchars($o['items']??'') ?></td>
+    <td class="ac" style="font-size:11px"><?= vestra_order_items_cell($o['items']??'', 2, 160) ?></td>
     <td class="ac"><b><?= eur($o['total']??0) ?></b></td>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
