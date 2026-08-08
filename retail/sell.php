@@ -58,8 +58,8 @@ vr_layout_start([
           <?= te('sell_fee_biz', ['pct' => $feeB, 'fixed' => $fixed]) ?>
         </p>
         <ul style="font-size:13px;color:var(--muted);margin-top:12px;padding-left:20px">
-          <li>Rechnung mit MwSt., gesetzliche Gewährleistung</li>
-          <li>Widerrufsrecht für Verbraucher (14 Tage)</li>
+          <li><?= te('sell_biz_l1') ?></li>
+          <li><?= te('sell_biz_l2') ?></li>
           <li>Stripe Connect: business_type <code>company</code></li>
         </ul>
       </div>
@@ -72,14 +72,12 @@ vr_layout_start([
           <?= te('sell_fee_priv', ['pct' => $feeP, 'fixed' => $fixed]) ?>
         </p>
         <ul style="font-size:13px;color:var(--muted);margin-top:12px;padding-left:20px">
-          <li>Angebote sichtbar als „<?= te('seller_private') ?>“</li>
-          <li>Kein Widerrufsrecht, Gewährleistung ausschließbar</li>
+          <li><?= te('sell_priv_l1', ['type' => t('seller_private')]) ?></li>
+          <li><?= te('sell_priv_l2') ?></li>
           <li>Stripe Connect: business_type <code>individual</code></li>
         </ul>
         <p style="font-size:12px;color:var(--muted-2);margin-top:12px">
-          Wer regelmäßig und mit Gewinnabsicht verkauft, handelt gewerblich — dann bitte als
-          <?= te('sell_biz_t') ?> anmelden. Wir prüfen das Volumen und melden uns, wenn ein
-          Wechsel nötig ist.
+          <?= te('sell_priv_note', ['biz' => t('sell_biz_t')]) ?>
         </p>
       </div>
     </div>
@@ -93,9 +91,9 @@ vr_layout_start([
     <div class="steps" style="color:var(--text)">
       <?php
       $steps = [
-          ['01', t('sell_step1'), 'Name, E-Mail, Verkäufertyp. Zwei Minuten.'],
+          ['01', t('sell_step1'), t('sell_step1_b')],
           ['02', t('sell_step2'), t('sell_payout_b')],
-          ['03', t('sell_step3'), 'Marke, Modellcode, Größen, Preis, Bilder.'],
+          ['03', t('sell_step3'), t('sell_step3_b')],
           ['04', t('sell_step4'), t('sell_rules_b')],
       ];
       foreach ($steps as [$n, $title, $body]): ?>
@@ -125,9 +123,10 @@ vr_layout_start([
 
       <h3><?= te('sell_payout_t') ?></h3>
       <p><?= te('sell_payout_b') ?></p>
-      <p>Versandkosten trägt und behält <?= h((string)vr_config('brand')) ?> — sie sind nicht Teil
-         Ihres Auszahlungsbetrags. Details in den
-         <a href="<?= h(vr_url('legal/verkaeufer.php')) ?>"><?= te('legal_seller_terms') ?></a>.</p>
+      <p>
+        <?= te('sell_ship_note', ['brand' => (string)vr_config('brand')]) ?>
+        <a href="<?= h(vr_url('legal/verkaeufer.php')) ?>"><?= te('legal_seller_terms') ?></a>
+      </p>
 
       <h3><?= te('sell_rules_t') ?></h3>
       <p><?= te('sell_rules_b') ?></p>

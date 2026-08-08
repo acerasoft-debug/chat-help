@@ -30,16 +30,16 @@ if (isset($_GET['tab']) && in_array((string)$_GET['tab'], ['tops', 'bottoms', 's
 }
 
 $tabs = [
-    'tops'    => 'Oberteile · Tops',
-    'bottoms' => 'Hosen · Bottoms',
-    'shoes'   => 'Schuhe · Shoes',
-    'belts'   => 'Gürtel · Belts',
+    'tops'    => t('sg_tab_tops'),
+    'bottoms' => t('sg_tab_bottoms'),
+    'shoes'   => t('sg_tab_shoes'),
+    'belts'   => t('sg_tab_belts'),
 ];
 
 // Tablolar: [etiket satırı, veri satırları]
 $tables = [
     'tops' => [
-        'head' => ['IT', 'DE / EU', 'FR', 'UK / US', 'Intl.', 'Brust (cm)', 'Taille (cm)'],
+        'head' => ['IT', 'DE / EU', 'FR', 'UK / US', 'Intl.', t('sg_chest'), t('sg_waist')],
         'rows' => [
             ['44', '44', '38', '34', 'XS',  '86–90',   '72–76'],
             ['46', '46', '40', '36', 'S',   '90–94',   '76–80'],
@@ -51,7 +51,7 @@ $tables = [
         ],
     ],
     'bottoms' => [
-        'head' => ['IT', 'DE / EU', 'Zoll (Denim)', 'UK / US', 'Intl.', 'Taille (cm)', 'Hüfte (cm)'],
+        'head' => ['IT', 'DE / EU', t('sg_inch'), 'UK / US', 'Intl.', t('sg_waist'), t('sg_hip')],
         'rows' => [
             ['44', '44', '28', '28', 'XS',  '72–76',   '88–92'],
             ['46', '46', '30', '30', 'S',   '76–80',   '92–96'],
@@ -63,7 +63,7 @@ $tables = [
         ],
     ],
     'shoes' => [
-        'head' => ['EU', 'UK', 'US (Herren)', 'US (Damen)', 'Fußlänge (cm)'],
+        'head' => ['EU', 'UK', t('sg_us_m'), t('sg_us_w'), t('sg_footlen')],
         'rows' => [
             ['39', '5.5',  '6',    '8',    '24,8'],
             ['40', '6.5',  '7',    '9',    '25,4'],
@@ -76,7 +76,7 @@ $tables = [
         ],
     ],
     'belts' => [
-        'head' => ['Gürtelgröße', 'Taille (cm)', 'Passende Hosengröße IT', 'Intl.'],
+        'head' => [t('sg_beltsize'), t('sg_waist'), t('sg_trouser_it'), 'Intl.'],
         'rows' => [
             ['80',  '72–78',   '44–46', 'XS'],
             ['85',  '78–83',   '46–48', 'S'],
@@ -128,75 +128,60 @@ vr_layout_start([
       </div>
 
       <div class="doc__box">
-        <strong>Die Zahlen sind Körpermaße, nicht Kleidungsmaße.</strong>
-        <p style="margin-top:8px">
-          Messen Sie sich selbst und suchen Sie die Zeile, in die Ihre Maße fallen — nicht die Größe,
-          die im letzten Kleidungsstück stand. Zwischen zwei Zeilen: bei körpernahen Schnitten
-          (Hemden, Polos, Denim) die größere nehmen, bei weiten Schnitten (Hoodies, Mäntel) die kleinere.
-        </p>
+        <strong><?= te('sg_body_t') ?></strong>
+        <p style="margin-top:8px"><?= te('sg_body_b') ?></p>
       </div>
 
-      <h2>In zwei Minuten selbst messen</h2>
+      <h2><?= te('sg_measure_t') ?></h2>
       <div class="measure">
-        <div>
-          <b>Brust</b>
-          <p>Maßband waagerecht um die stärkste Stelle der Brust, unter den Achseln durch. Locker
-             anliegend, nicht zusammenziehen. Arme entspannt hängen lassen.</p>
-        </div>
-        <div>
-          <b>Taille</b>
-          <p>Um die schmalste Stelle des Rumpfes, etwa auf Höhe des Bauchnabels. Normal atmen und
-             den Bauch nicht einziehen — sonst sitzt später der Bund zu eng.</p>
-        </div>
-        <div>
-          <b>Hüfte</b>
-          <p>Um die breiteste Stelle des Gesäßes, Füße geschlossen. Für Jeans und Hosen der
-             wichtigere der beiden Werte.</p>
-        </div>
-        <div>
-          <b>Fußlänge</b>
-          <p>Abends messen (Füße sind dann am größten): auf ein Blatt stellen, Ferse und längsten
-             Zeh anzeichnen, Abstand messen. Beide Füße messen und den größeren Wert nehmen.</p>
-        </div>
+        <?php foreach ([['sg_m_chest','sg_m_chest_b'],['sg_m_waist','sg_m_waist_b'],
+                        ['sg_m_hip','sg_m_hip_b'],['sg_m_foot','sg_m_foot_b']] as [$lab, $body]): ?>
+          <div>
+            <b><?= te($lab) ?></b>
+            <p><?= te($body) ?></p>
+          </div>
+        <?php endforeach; ?>
       </div>
 
-      <h2>Was Sie über diese Häuser wissen sollten</h2>
+      <?php
+      /* Ev tablosu artık BURADA yazmıyor: kaynak inc/copy.php içindeki
+         vr_house_notes(). İki yerde iki farklı kalıp notu, bedenini ona göre
+         seçen müşteriyi yanıltıyor — ürün sayfası ile bu sayfa aynı cümleyi
+         göstermeli. Yalnızca katalogda gerçekten bulunan evler listeleniyor. */
+      require_once __DIR__ . '/inc/copy.php';
+      $lang    = vr_lang() === 'de' ? 'de' : 'en';
+      $inStock = array_change_key_case(vr_facets()['brands'], CASE_UPPER);
+      $notes   = [];
+      foreach (vr_house_notes() as $house => $n) {
+          if (!isset($inStock[strtoupper($house)])) continue;
+          $fit = trim((string)($n[$lang][1] ?? $n['en'][1] ?? ''));
+          if ($fit !== '') $notes[$house] = $fit;
+      }
+      ksort($notes, SORT_NATURAL | SORT_FLAG_CASE);
+      if ($notes):
+      ?>
+      <h2><?= te('sg_houses_t') ?></h2>
       <div class="tablewrap" tabindex="0">
       <table>
-        <thead><tr><th>Haus</th><th>Passform</th><th>Empfehlung</th></tr></thead>
+        <thead><tr><th><?= te('sg_th_house') ?></th><th><?= te('sg_th_fit') ?></th></tr></thead>
         <tbody>
-          <tr><td>Balenciaga</td><td>oversized, betont weit geschnitten</td>
-              <td>T-Shirts und Hoodies fallen ein bis zwei Größen größer aus — im Zweifel kleiner wählen</td></tr>
-          <tr><td>Dsquared2</td><td>schmal, kurz geschnitten</td>
-              <td>Denim und Shirts fallen klein aus — eine Größe größer nehmen</td></tr>
-          <tr><td>Dolce&amp;Gabbana</td><td>italienisch tailliert</td>
-              <td>entspricht der Tabelle; bei breiten Schultern eine Größe größer</td></tr>
-          <tr><td>Balmain</td><td>schmale Schulter, taillierter Schnitt</td>
-              <td>bei kräftigem Oberkörper eine Größe größer</td></tr>
-          <tr><td>Burberry</td><td>klassisch, regular</td><td>entspricht der Tabelle</td></tr>
-          <tr><td>Givenchy</td><td>gerade, leicht weit</td><td>entspricht der Tabelle</td></tr>
-          <tr><td>Valentino</td><td>regular bis leicht weit</td><td>entspricht der Tabelle</td></tr>
-          <tr><td>GCDS</td><td>Streetwear, weit</td><td>eine Größe kleiner, wenn Sie normal tragen möchten</td></tr>
+          <?php foreach ($notes as $house => $fit): ?>
+            <tr><td style="font-weight:600"><?= h($house) ?></td><td><?= h($fit) ?></td></tr>
+          <?php endforeach; ?>
         </tbody>
       </table>
       </div>
-      <p style="font-size:13px;color:var(--muted)">
-        Die Angaben beruhen auf den Rückläufern und Messungen aus unserem eigenen Bestand. Sie sind
-        Erfahrungswerte, keine Herstellerangaben — einzelne Modelle können abweichen. Steht in der
-        Artikelbeschreibung ein konkretes Maß, hat dieses Vorrang.
-      </p>
+      <p style="font-size:13px;color:var(--muted)"><?= te('sg_houses_note') ?></p>
+      <?php endif; ?>
 
-      <h2>Immer noch unsicher?</h2>
-      <p>
-        Schreiben Sie uns mit dem Modellcode und Ihren Maßen — wir messen das konkrete Stück nach und
-        antworten mit den echten Zentimetern, bevor Sie bestellen.
-      </p>
+      <h2><?= te('sg_unsure_t') ?></h2>
+      <p><?= te('sg_unsure_b') ?></p>
       <p>
         <a class="btn btn--ghost" href="<?= h(vr_url('contact.php')) ?>"><span><?= te('nav_contact') ?></span><?= vr_icon('arrow', 16) ?></a>
       </p>
 
       <p style="font-size:13px;color:var(--muted);margin-top:26px">
-        Passt es trotzdem nicht? <?= te('order_next_3', ['days' => (int)vr_config('return_days', 30)]) ?>
+        <?= te('sg_still') ?> <?= te('order_next_3', ['days' => (int)vr_config('return_days', 30)]) ?>
         <a class="link" href="<?= h(vr_url('legal/rueckgabe.php')) ?>"><?= te('legal_returns') ?></a>
       </p>
     </div>
