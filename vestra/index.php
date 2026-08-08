@@ -384,15 +384,25 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 
   header{position:sticky;top:0;z-index:30;background:rgba(14,14,17,.72);
     backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
-  nav{display:flex;align-items:center;justify-content:space-between;height:66px}
-  .logo{display:flex;align-items:center;gap:10px;font-family:'Playfair Display',serif;
-    font-size:22px;font-weight:700;letter-spacing:1.5px}
+  /* The nav carries 6 links + 5 languages + sign-in + CTA; that does not fit the 1080px
+     reading measure the rest of the page uses, and .wrap capped it there no matter how
+     wide the window got. The header gets its own measure so the menu has somewhere to go. */
+  header .wrap{max-width:1280px}
+  nav{display:flex;align-items:center;justify-content:space-between;height:66px;gap:18px}
+  /* The logo must never shrink or be crowded: .nav-links is white-space:nowrap, so
+     without a floor of its own the menu grew until it sat flush against the wordmark
+     (measured gap: 0px at every desktop width, in every language). */
+  .logo{display:flex;align-items:center;gap:10px;flex:0 0 auto;font-family:'Playfair Display',serif;
+    font-size:22px;font-weight:700;letter-spacing:1.5px;margin-right:clamp(1.25rem,3vw,2.5rem)}
   .logo .mark{width:30px;height:30px}
   .logo-sub{font-family:'Inter',system-ui,sans-serif;font-weight:500;font-size:.62em;letter-spacing:1.1px;
     margin-left:.22em;text-transform:lowercase;font-style:normal;
     background:linear-gradient(100deg,#e8cf95,var(--acc) 55%,#a8854a);
     -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--acc)}
-  .nav-links{display:flex;align-items:center;gap:19px;font-size:14px;font-weight:500;white-space:nowrap}
+  /* 16px, not 19: French is the widest of the five languages and left only ~14px of slack.
+     The webfonts load after this CSS, so the measure has to survive a slightly wider
+     Playfair/Inter than the fallback — the tighter gap buys that headroom. */
+  .nav-links{display:flex;align-items:center;gap:16px;font-size:14px;font-weight:500;white-space:nowrap}
   .nav-links>a{color:var(--mut);transition:color .2s}
   .nav-links>a:hover{color:var(--ink)}
   .nav-cta{border:1px solid var(--line);padding:9px 18px;border-radius:999px;color:var(--ink)!important;transition:.2s}
@@ -612,7 +622,10 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   @keyframes revealauto{to{opacity:1;transform:none}}
   @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;animation:none}.dot{animation:none}}
 
-  @media(max-width:1024px){.nav-links{display:none}.burger{display:block}}
+  /* 1280, not 1024: the full menu genuinely needs ~1266px in French (the longest of the
+     five languages). Below that it used to overflow and jam against the logo instead of
+     collapsing, so the drawer — which carries every item — takes over earlier. */
+  @media(max-width:1280px){.nav-links{display:none}.burger{display:block}}
   @media(max-width:760px){
     .pillars,.steps{grid-template-columns:1fr}
     .join-cards{grid-template-columns:1fr}
@@ -642,9 +655,15 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
       <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
       <a href="/faq">FAQ</a>
-      <?php if ($_brands): ?><a href="#brands"><?= $t['brands_t'] ?></a><?php endif; ?>
+      <?php /* short label here, not $t['brands_t'] — that is a full section heading
+               ("Die Marken im Bestand", "Las maisons disponibles") and as a nav item it
+               alone pushed the menu ~120px wider than the header could hold. */ ?>
+      <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken'][$lang] ?></a><?php endif; ?>
       <a href="#how"><?= $t['how'] ?></a>
-      <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
+      <?php /* brand name dropped from this label only (the drawer and footer keep it) —
+               redundant three centimetres from the wordmark, and it cost ~65px of header
+               width in every language. */ ?>
+      <a href="#why"><?= $t['why'] ?></a>
       <span class="langs">
         <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
       </span>
@@ -659,6 +678,7 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
     <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
     <a href="/faq">FAQ</a>
+    <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken'][$lang] ?></a><?php endif; ?>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden'][$lang] ?></a><?php endif; ?>
