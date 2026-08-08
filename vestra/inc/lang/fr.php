@@ -965,4 +965,6 @@ return array (
   'Just added to the catalog' => 'Nouveautés du catalogue',
   'Browse all' => 'Voir tout',
   'more' => 'de plus',
+  '%s wholesale — Catalog' => '%s en gros — Catalogue',
+  '%s and more, at trade prices for boutiques.' => '%s et plus, à prix de gros pour les boutiques.',
 );

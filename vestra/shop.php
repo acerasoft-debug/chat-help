@@ -1,4 +1,18 @@
-<?php require __DIR__.'/inc/products.php'; $PAGE=t('Catalog'); $NAV='shop'; $META=t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.'); require __DIR__.'/inc/head.php';
+<?php
+require __DIR__.'/inc/products.php';
+$NAV = 'shop';
+/* The catalogue is the page a brand search should land on, so the houses in stock belong
+   in its title and description rather than only in the keyword tag. Both fall back to the
+   plain wording when nothing is stocked, and the brand list comes from live inventory. */
+$_shopBrands = vestra_seo_brands(6);
+$PAGE = $_shopBrands
+    ? sprintf(t('%s wholesale — Catalog'), implode(', ', array_slice($_shopBrands, 0, 4)))
+    : t('Catalog');
+$META = t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer fashion for boutiques. KYC-verified sellers, trade pricing on registration, low minimums, invoice-based B2B ordering across Europe.');
+if ($_shopBrands) {
+    $META = sprintf(t('%s and more, at trade prices for boutiques.'), implode(', ', $_shopBrands)).' '.$META;
+}
+require __DIR__.'/inc/head.php';
 $products = vestra_products();
 /* Where vestra_products() put each item before any reordering. The "newest" sort
    uses catalogue position as its proxy for age, so it has to read the original

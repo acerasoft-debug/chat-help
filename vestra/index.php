@@ -290,18 +290,13 @@ $_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'
    genuine EEA stock sold with an invoice trail -- nominative use, not a claim of
    authorisation or affiliation, which is why nothing here says "official" or
    "authorised dealer". Capped so the tags stay a summary rather than a keyword dump. */
-$_brands = [];
-if (function_exists('vestra_products')) {
-    foreach (vestra_products() as $_bp) {
-        $_b = trim((string)($_bp['brand'] ?? ''));
-        if ($_b !== '' && !in_array($_b, $_brands, true)) $_brands[] = $_b;
-    }
-}
-sort($_brands);
-$_brandList = implode(', ', array_slice($_brands, 0, 14));
-/* "<brand> wholesale" in the visitor's language -- the phrase buyers actually search. */
-$_wholesaleWord = ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel'][$lang] ?? 'wholesale';
-$_brandKw = implode(', ', array_map(fn($b) => $b.' '.$_wholesaleWord, array_slice($_brands, 0, 12)));
+/* Shared with every other page via inc/head.php — see vestra_seo_brands() in
+   inc/products.php. This used to be a second copy of the same list-building here, which
+   meant the homepage and the rest of the site could disagree about what we stock. */
+$_brands        = function_exists('vestra_seo_brands') ? vestra_seo_brands(0) : [];
+$_brandList     = implode(', ', array_slice($_brands, 0, 14));
+$_wholesaleWord = function_exists('vestra_seo_wholesale_word') ? vestra_seo_wholesale_word($lang) : 'wholesale';
+$_brandKw       = function_exists('vestra_seo_brand_keywords') ? vestra_seo_brand_keywords($lang, 12) : '';
 
 // Keyword sets (category / buyer-intent terms; localized), with the stocked houses appended.
 $_kw = [

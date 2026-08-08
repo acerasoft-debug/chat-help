@@ -617,6 +617,40 @@ function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {
     }
     return false;
 }
+/* ── SEO: the houses actually in stock ───────────────────────────────────────────────
+ *
+ * Buyers do not search "B2B fashion marketplace". They search "Lacoste Großhandel" or
+ * "comprar Gucci al por mayor" — a brand name plus the wholesale word in their own
+ * language. These helpers build that from live inventory, so the tags describe what is
+ * genuinely on the site today rather than a list someone has to remember to update.
+ *
+ * Nominative use only: naming a brand we hold genuine EEA stock of. Nothing here claims
+ * to be an official or authorised dealer, which is why no such word appears.
+ */
+function vestra_seo_brands(int $max = 14): array {
+    static $all = null;
+    if ($all === null) {
+        $all = [];
+        foreach (vestra_products() as $p) {
+            $b = trim((string)($p['brand'] ?? ''));
+            if ($b !== '' && !in_array($b, $all, true)) $all[] = $b;
+        }
+        sort($all);
+    }
+    return $max > 0 ? array_slice($all, 0, $max) : $all;
+}
+
+/** "wholesale" in the visitor's language — the word that actually appears in the query. */
+function vestra_seo_wholesale_word(string $lang): string {
+    return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel'][$lang] ?? 'wholesale';
+}
+
+/** "Lacoste wholesale, Gucci wholesale, …" in the visitor's language; '' when nothing is stocked. */
+function vestra_seo_brand_keywords(string $lang, int $max = 12): string {
+    $w = vestra_seo_wholesale_word($lang);
+    return implode(', ', array_map(fn($b) => $b.' '.$w, vestra_seo_brands($max)));
+}
+
 function vestra_read_json(string $name): array {
     $f = vestra_data_dir().'/'.$name;
     if (!is_readable($f)) return [];

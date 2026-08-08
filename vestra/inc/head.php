@@ -63,6 +63,14 @@ $NOINDEX   = $NOINDEX ?? false;
    weakly. It is NOT what ranks the site: the <title>, the description above and real
    indexable content do that. Translated so it at least matches the page language. */
 $KEYWORDS = $KEYWORDS ?? t('wholesale fashion, B2B fashion marketplace, designer clothing wholesale, branded apparel wholesale, boutique supplier, buy wholesale clothing Europe, verified wholesale sellers, fashion sourcing');
+/* Append the houses actually in stock, as "<brand> <wholesale-word-in-this-language>".
+   Category terms alone match nobody: the query a boutique types is a brand name plus
+   "Großhandel" / "al por mayor" / "ingrosso". Built from live inventory (see
+   vestra_seo_brand_keywords) so it never advertises a brand we no longer carry. */
+if (function_exists('vestra_seo_brand_keywords')) {
+    $_bkw = vestra_seo_brand_keywords(vlang());
+    if ($_bkw !== '') $KEYWORDS = ($KEYWORDS !== '' ? $KEYWORDS.', ' : '').$_bkw;
+}
 ?>
 <meta name="keywords" content="<?= htmlspecialchars($KEYWORDS) ?>">
 <link rel="canonical" href="<?= htmlspecialchars($CANONICAL) ?>">
