@@ -197,6 +197,63 @@ function vr_category_notes(string $cat): array
 }
 
 /**
+ * Tedarikçi açıklamasından perakendede gösterilebilecek kısmı süz.
+ *
+ * NEDEN CÜMLE CÜMLE
+ * -----------------
+ * Önceki hâli birkaç kalıbı tek tek siliyordu ve arada kalanlar sayfaya
+ * düşüyordu. Bir Fendi ceketinin açıklamasında müşteriye şu yazıyordu:
+ *
+ *   "Supplier photo carries no article number; VS-FD-S01 is a VESTRA
+ *    internal reference, not the maker's code."
+ *
+ * Bu bir depo notu — üstelik perakende markasının adı bile değil. 398
+ * üründen 28'inde bu cümle, 86'sında "10/paket" vardı. Kalıp eklemek yerine
+ * yön tersine çevrildi: cümle ancak İÇİNDE toptan işareti YOKSA geçiyor.
+ * Yeni bir depo şablonu geldiğinde de sessizce elenir.
+ *
+ * Metin silinmiyor, yalnızca gösterilmiyor: ham açıklama katalogda duruyor.
+ */
+function vr_supplier_note(string $desc, string $brand): string
+{
+    $desc = trim($desc);
+    if ($desc === '') return '';
+
+    // Toptan işaretleri. Hepsi küçük harfle aranıyor.
+    $block = [
+        'vestra', 'internal reference', 'interne referenz', 'supplier photo',
+        'lieferantenfoto', 'article number', 'artikelnummer', 'maker\'s code',
+        '/pack', '/paket', 'per pack', 'pro paket', 'moq', 'carton', 'karton',
+        'wholesale', 'großhandel', 'grosshandel', 'b2b', 'invoice trail',
+        'rechnungskette', 'retail price derived', 'stock with full',
+    ];
+
+    $keep = [];
+    // Nokta ve noktalı virgülden bölüyoruz: depo notu genelde ayrı bir cümle.
+    foreach (preg_split('/(?<=[.;])\s+/u', $desc) ?: [] as $sentence) {
+        $s  = trim($sentence);
+        if ($s === '') continue;
+        $lc = mb_strtolower($s);
+
+        foreach ($block as $bad) {
+            if (mb_strpos($lc, $bad) !== false) { $s = ''; break; }
+        }
+        if ($s === '') continue;
+
+        // Beden dökümü ("S×1 · M×3 …") ve "Original <Ev>" künyede zaten var.
+        if (preg_match('/^\s*(S|M|L|XL|XXL|\d{2})\s*×\s*\d/u', $s)) continue;
+        if (preg_match('/^\s*Original\s+' . preg_quote($brand, '/') . '\b/i', $s)) continue;
+        if (preg_match('/(EEA|EU)\s+stock/i', $s)) continue;
+
+        $keep[] = $s;
+    }
+
+    $out = trim(implode(' ', $keep), " .·—-\t\n");
+    // Tek kelimelik artıklar cümle değil; sayfaya konmasın.
+    return mb_strlen($out) > 15 ? $out : '';
+}
+
+/**
  * Ürün metnini kur.
  * Dönüş: ['lead' => string, 'paras' => string[], 'facts' => [etiket => değer]]
  */
@@ -252,14 +309,7 @@ function vr_product_copy(array $p): array
     }
 
     // ---- tedarikçi açıklaması (varsa) — kendi cümlelerimize karıştırmadan
-    $supplier = trim((string)($p['desc'] ?? ''));
-    // Toptan şablon cümlelerini ayıklıyoruz: perakende sayfasında "EEA stock
-    // with full invoice trail" zaten Herkunft bloğunda yazıyor, tekrar olmasın.
-    $supplier = trim(preg_replace('/\b(EEA|EU)\s+stock[^.]*\.?/i', '', $supplier) ?? $supplier);
-    $supplier = trim(preg_replace('/\bS×\d[^.]*\./u', '', $supplier) ?? $supplier);
-    $supplier = trim(preg_replace('/\bOriginal\s+' . preg_quote($brand, '/') . '[^.]*\.?/i', '', $supplier) ?? $supplier);
-    $supplier = trim(preg_replace('/Retail price derived[^.]*\.?/i', '', $supplier) ?? $supplier);
-    $supplier = trim($supplier, " .·—-\t\n");
+    $supplier = vr_supplier_note((string)($p['desc'] ?? ''), $brand);
     if ($supplier !== '' && mb_strlen($supplier) > 15) {
         $paras[] = $supplier . (str_ends_with($supplier, '.') ? '' : '.');
     }
@@ -309,7 +359,12 @@ function vr_product_facts(array $p): array
     $used  = ($p['condition'] ?? 'new') !== 'new';
 
     $facts = [];
-    if ($sku !== '')  $facts[t('sku')] = $sku;
+    // Künyedeki kod ya evin kendi model numarası ya bizim iç referansımız.
+    // İkisi aynı satırda "Modellcode" diye gösterilemez: alıcı o kodu üreticide
+    // arıyor ve bulamıyor. Kendi verdiğimiz kodlar VS- ile başlıyor.
+    if ($sku !== '') {
+        $facts[preg_match('/^VS-/i', $sku) ? t('sku_internal') : t('sku')] = $sku;
+    }
     $facts[t('house')]     = strtoupper(trim((string)($p['brand'] ?? '')));
     $facts[t('category')]  = vr_cat_label($cat);
     $facts[t('condition')] = $used ? t('condition_used') : t('condition_new');

@@ -118,6 +118,7 @@ return [
     'details'            => 'Detallar',
     'description'        => 'Təsvir',
     'sku'                => 'Model kodu',
+    'sku_internal'      => 'Bizim istinadımız',
     'house'              => 'Ev',
     'category'           => 'Kateqoriya',
     'returns_title'      => 'Qaytarma və çatdırılma',

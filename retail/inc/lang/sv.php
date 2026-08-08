@@ -118,6 +118,7 @@ return [
     'details'            => 'Detaljer',
     'description'        => 'Beskrivning',
     'sku'                => 'Modellkod',
+    'sku_internal'      => 'Vår referens',
     'house'              => 'Hus',
     'category'           => 'Kategori',
     'returns_title'      => 'Retur och leverans',

@@ -128,6 +128,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Description',
     'sku'                => 'Model code',
+    'sku_internal'      => 'Our reference',
     'house'              => 'House',
     'category'           => 'Category',
     'returns_title'      => 'Returns & delivery',

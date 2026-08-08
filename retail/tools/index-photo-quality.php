@@ -135,7 +135,23 @@ foreach (vr_catalog() as $p) {
         // olduğu için yazı testi tetiklenmemişti.
         if ($v) {
             $dim = @getimagesize($file);
-            if ($dim && $dim[1] > 0 && $dim[0] / $dim[1] > 1.15) $v = false;
+            if ($dim && $dim[1] > 0) {
+                $ratio = $dim[0] / $dim[1];
+
+                // 1,15 fazla gevşekti. Ölçtüğümüz bir Dolce & Gabbana karesi
+                // 2744×2483 — oran 1,11, yani kuraldan kaçıyor — ama içinde
+                // altı ayrı model var ve marka sayfasında öyle çıkıyordu.
+                // Bu katalogda moda çekimi dikeydir; kareye yakın bir kadraj
+                // neredeyse her zaman ya kontakt sayfası ya paket görseli.
+                if ($ratio > 1.02) $v = false;
+
+                // Çözünürlük tabanı. Kart 4:5 ve tam genişlikte editoryal karo
+                // ekranı kaplıyor; 340×340'lık bir kırpım oraya konduğunda
+                // bulanık çıkıyor ve tek başına "ucuz site" izlenimi veriyor.
+                // Ürün sayfasında kalmaya devam ediyorlar, sadece vitrine
+                // çıkmıyorlar.
+                if ($dim[0] < 600 || $dim[1] < 700) $v = false;
+            }
         }
         // Yalnızca ızgara olanları yazıyoruz: dosya küçük kalsın, varsayılan
         // "sorun yok" olsun. Bilinmeyen bir fotoğraf cezalandırılmasın.

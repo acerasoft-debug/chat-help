@@ -124,6 +124,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Beschrijving',
     'sku'                => 'Modelcode',
+    'sku_internal'      => 'Onze referentie',
     'house'              => 'Huis',
     'category'           => 'Categorie',
     'returns_title'      => 'Retour en levering',

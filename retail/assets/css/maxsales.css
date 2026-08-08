@@ -326,6 +326,14 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .vault .panel p,.vault .panel li,.vault .dl dd,.vault .seller__name{color:var(--bone)}
 .vault .panel .lot__legal,.vault .panel .pdp__vat,.vault .seller__note{color:var(--muted-2)}
 .vault .dl dt,.vault .seller__type{color:var(--muted)}
+/* Beden çipleri açık zemin için çizilmişti: kenarlık kemik rengi, seçiliyken
+   zemin mürekkep. Vault sayfası koyu, yani ikisi de görünmez oluyordu. */
+.vault .size{border-color:rgba(245,242,236,.26);color:var(--bone)}
+.vault .size:hover{border-color:rgba(201,162,77,.6)}
+.vault .size:has(input:checked){background:var(--brass);border-color:var(--brass);color:var(--ink)}
+.vault .size:has(input:checked) i{color:rgba(10,10,14,.62)}
+.vault .size i{color:var(--muted-2)}
+.vault .field__err{color:var(--ember,#e0654a)}
 .vault .panel h2{color:var(--brass-text)}
 .vault .link{border-bottom-color:rgba(245,242,236,.3)}
 .vault .link:hover{border-bottom-color:var(--brass)}
@@ -474,6 +482,25 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   grid-column:1/-1;aspect-ratio:1/1;
 }
 .pdp__shot img{width:100%;height:100%;object-fit:cover}
+
+/* Masaüstünde galeri TEK sütun.
+   2×2 ızgara medya sütununu kısa bırakıyordu: yan sütun bir buçuk ekran
+   uzunken solda yarım ekranlık boş bir alan kalıyor, sayfa yarım kalmış gibi
+   duruyordu. Tek sütunda kadraj büyüyor (parça gerçekten görülüyor), medya
+   sütunu yan sütunu geçiyor ve yapışkan yan sütun okurken yerinde kalıyor.
+   Dar ekranda 2×2 kalıyor — orada tam genişlik kadraj devasa olurdu. */
+@media (min-width:941px){
+  .pdp__media--multi{grid-template-columns:1fr}
+  .pdp__media--multi .pdp__shot,
+  .pdp__media--multi .pdp__shot:first-child:nth-last-child(n+3):nth-last-child(odd){
+    aspect-ratio:4/5;
+  }
+  /* Tek kadraj: yan sütun ondan uzun olduğu için fotoğraf yapışıyor ve okuma
+     boyunca yanında duruyor. Aksi hâlde tek fotoğrafın altı ekran boyu boş
+     kalırdı — üretilen kadrajlarla doldurma denendi, daha kötüydü. */
+  .pdp__media:not(.pdp__media--multi){position:sticky;top:96px}
+}
+
 .pdp__side{position:sticky;top:96px;display:flex;flex-direction:column;gap:20px}
 @media (max-width:940px){.pdp__side{position:static}}
 .pdp__brand{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}

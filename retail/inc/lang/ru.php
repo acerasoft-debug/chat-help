@@ -118,6 +118,7 @@ return [
     'details'            => 'Детали',
     'description'        => 'Описание',
     'sku'                => 'Код модели',
+    'sku_internal'      => 'Наш артикул',
     'house'              => 'Дом',
     'category'           => 'Категория',
     'returns_title'      => 'Возврат и доставка',

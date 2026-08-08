@@ -123,6 +123,7 @@ return [
     'details'            => 'Details',
     'description'        => 'Beschreibung',
     'sku'                => 'Modellcode',
+    'sku_internal'      => 'Unsere Referenz',
     'house'              => 'Haus',
     'category'           => 'Kategorie',
     'returns_title'      => 'Rückgabe & Lieferung',

@@ -143,12 +143,44 @@ if ($single !== null) {
         <?php elseif ($single['sold'] || !$single['available']): ?>
           <span class="btn btn--block is-disabled"><span><?= te('vault_gone') ?></span></span>
         <?php else: ?>
-          <form method="post" action="<?= h(vr_url('cart.php')) ?>">
+          <?php
+          /* Beden seçimi burada da gerekli. Önceden los formu bedeni sessizce
+             dizinin ilkine sabitliyordu; beden seti olan bir parçada (S×1 ·
+             M×3 · L×3 …) alıcı istediğini seçemiyor, eline başka beden
+             geçiyordu. Mağaza sayfasındaki davranışın aynısı. */
+          $lotSizes = array_values(array_filter((array)$p['sizes'], fn($s) => (int)($s['qty'] ?? 0) > 0));
+          $oneSize  = count($lotSizes) <= 1;
+          ?>
+          <form method="post" action="<?= h(vr_url('cart.php')) ?>" <?= $oneSize ? '' : 'data-needs-size' ?>>
             <?= vr_csrf_field() ?>
             <input type="hidden" name="action" value="add">
             <input type="hidden" name="pid" value="<?= h($p['id']) ?>">
             <input type="hidden" name="lot" value="<?= h($single['lot_id']) ?>">
-            <input type="hidden" name="size" value="<?= h($p['sizes'][0]['label'] ?? 'ONE') ?>">
+
+            <?php if ($oneSize): ?>
+              <input type="hidden" name="size" value="<?= h($lotSizes[0]['label'] ?? 'ONE') ?>">
+            <?php else: ?>
+              <div class="panel" style="border:0;padding:0;margin-bottom:16px">
+                <h2 class="panel__h" style="color:var(--brass-text)">
+                  <span><?= te('select_size') ?></span>
+                  <a class="link" style="color:var(--brass-text)"
+                     href="<?= h(vr_url('size-guide.php', ['cat' => $p['cat']])) ?>">
+                    <?= vr_icon('ruler', 14) ?> <?= te('size_guide') ?>
+                  </a>
+                </h2>
+                <div class="sizes">
+                  <?php foreach ($lotSizes as $s): ?>
+                    <label class="size">
+                      <input type="radio" name="size" value="<?= h($s['label']) ?>">
+                      <?= h($s['label']) ?>
+                      <?php if ((int)$s['qty'] <= 2): ?><i><?= (int)$s['qty'] ?>×</i><?php endif; ?>
+                    </label>
+                  <?php endforeach; ?>
+                </div>
+                <p class="field__err" data-size-error hidden><?= te('size_missing') ?></p>
+              </div>
+            <?php endif; ?>
+
             <button class="btn btn--brass btn--block btn--lg" type="submit">
               <span><?= te('vault_take_it', ['amount' => vr_money((int)$st['cents'])]) ?></span>
             </button>
