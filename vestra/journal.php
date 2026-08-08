@@ -173,6 +173,10 @@ footer a:hover{color:#ffffff}
 .jr-hero-img{width:100%;aspect-ratio:21/9;border-radius:16px;margin-bottom:26px;border:1px solid var(--line);background-size:cover;background-position:center}
 .jr-body{font-size:17px;line-height:1.75;color:var(--ink)}
 .jr-body p{margin:0 0 20px}
+/* Inline article figures — see the [img:…] construct in vestra_journal_body_html(). */
+.jr-fig{margin:30px 0;padding:0}
+.jr-fig img{width:100%;display:block;border-radius:14px;border:1px solid var(--line);background:#f4f1ec}
+.jr-fig figcaption{margin-top:10px;font-size:13.5px;line-height:1.5;color:var(--mut);text-align:center}
 .jr-share{display:flex;gap:10px;flex-wrap:wrap;margin:36px 0 8px;padding-top:24px;border-top:1px solid var(--line)}
 .jr-more-h{font-family:'Playfair Display',serif;font-size:22px;margin:44px 0 18px}
 @media(max-width:820px){ .jr-grid{grid-template-columns:1fr 1fr} .jr-feature{grid-template-columns:1fr} .jr-feature-img{min-height:200px} }

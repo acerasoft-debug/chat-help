@@ -60,13 +60,33 @@ function vestra_journal_toggle(string $id): void {
     unset($p);
     vestra_write_json('journal.json', $all);
 }
-/** Safe plain-text → HTML: escape, blank lines become paragraphs, single newlines <br>. */
+/** Safe plain-text → HTML: escape, blank lines become paragraphs, single newlines <br>.
+ *
+ * A block consisting only of [img:/uploads/…] or [img:/uploads/…|caption] becomes a figure.
+ * Deliberately NOT general HTML or Markdown: bodies are admin-editable, so the renderer stays
+ * escape-everything and understands exactly one extra construct. The path is required to be a
+ * site-relative /uploads/ file — no scheme, no host, no traversal — so a body can never point
+ * the reader at a third-party URL or smuggle an attribute out of the src. */
 function vestra_journal_body_html(string $body): string {
     $body = str_replace(["\r\n", "\r"], "\n", $body);
     $out = '';
     foreach (preg_split('/\n{2,}/', trim($body)) as $b) {
         $b = trim($b);
-        if ($b !== '') $out .= '<p>'.nl2br(htmlspecialchars($b)).'</p>';
+        if ($b === '') continue;
+        if (preg_match('/^\[img:([^|\]]+)(?:\|([^\]]*))?\]$/', $b, $m)) {
+            $src = trim($m[1]);
+            if (preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $src) && strpos($src, '..') === false) {
+                $cap = trim($m[2] ?? '');
+                $out .= '<figure class="jr-fig"><img src="'.htmlspecialchars($src).'" alt="'
+                     .htmlspecialchars($cap).'" loading="lazy" decoding="async">'
+                     .($cap !== '' ? '<figcaption>'.htmlspecialchars($cap).'</figcaption>' : '')
+                     .'</figure>';
+                continue;
+            }
+            /* Malformed or off-site path: fall through and print it as text rather than
+               silently dropping a line the author wrote. */
+        }
+        $out .= '<p>'.nl2br(htmlspecialchars($b)).'</p>';
     }
     return $out;
 }
@@ -115,16 +135,41 @@ SVG;
    vestra_journal_cover_bg), so a photo that can't load simply reveals the art —
    never a broken image. An admin-set cover (Journal editor) overrides it. */
 function vestra_journal_model_photo(array $p): string {
-    static $map = [
-        'the-enduring-business-of-the-piqu-polo'                     => ['menswear,fashion,model', 12],
-        'build-a-colour-assortment-that-actually-sells'             => ['fashion,model,colourful', 23],
-        'how-presentation-lifts-sell-through-on-a-wholesale-rail'    => ['fashion,boutique,style',  34],
-        'why-mixed-size-packs-outsell-single-size-buys'             => ['fashion,clothing,apparel', 45],
-        'seasonless-staples-building-a-core-that-never-goes-on-sale' => ['fashion,model,minimal',   56],
-        'the-resale-boom-and-what-it-means-for-wholesale-buyers'    => ['fashion,style,streetwear', 67],
+    /* Our own catalogue photography, not stock. These used to be loremflickr.com URLs —
+       random third-party images keyed on words like "fashion,model", which meant the
+       journal illustrated wholesale articles with pictures of goods we do not sell, and
+       went blank whenever that service was slow or unreachable. Every path below is a
+       file in /uploads that the catalogue itself already serves. */
+    static $pool = [
+        '/uploads/lacoste/l1212-green.jpg',
+        '/uploads/lacoste/l1212-navy.jpg',
+        '/uploads/lacoste/l1212-bordeaux.jpg',
+        '/uploads/lacoste/l1212-beige.jpg',
+        '/uploads/lac-paris/paris-polo-green.png',
+        '/uploads/rl/csf-polo-darkgreen.jpg',
+        '/uploads/rl/csf-polo-white.png',
+        '/uploads/amiri/amiri-core-polo-black.png',
+        '/uploads/amiri/amiri-core-polo-navy.png',
+        '/uploads/dsquared/dsq-101211.png',
+        '/uploads/lac-sweat/lacoste-sweat-beige.png',
+        '/uploads/lac-hoodie/lacoste-hoodie-navy.png',
+        '/uploads/lac-vneck/lacoste-vneck-navy.png',
+        '/uploads/lac-trim/lacoste-trim-polo-1.png',
     ];
-    $m = $map[$p['slug'] ?? ''] ?? null;
-    return $m ? ('https://loremflickr.com/1200/800/'.$m[0].'?lock='.$m[1]) : '';
+    /* Where an article is about a specific garment, show that garment. */
+    static $map = [
+        'the-enduring-business-of-the-piqu-polo'                     => '/uploads/lacoste/l1212-black.jpg',
+        'build-a-colour-assortment-that-actually-sells'             => '/uploads/lacoste/l1212-yellow.jpg',
+        'how-presentation-lifts-sell-through-on-a-wholesale-rail'    => '/uploads/lac-trim/lacoste-trim-polo-2.png',
+        'why-mixed-size-packs-outsell-single-size-buys'             => '/uploads/lacoste/l1212-white.jpg',
+        'seasonless-staples-building-a-core-that-never-goes-on-sale' => '/uploads/lac-vneck/lacoste-vneck-black.png',
+        'the-resale-boom-and-what-it-means-for-wholesale-buyers'    => '/uploads/dsquared/dsq-101212.png',
+    ];
+    $slug = (string)($p['slug'] ?? '');
+    if (isset($map[$slug])) return $map[$slug];
+    /* Otherwise a stable pick, so an article keeps the same cover across page loads
+       instead of reshuffling every render. */
+    return $slug === '' ? '' : $pool[crc32($slug) % count($pool)];
 }
 /* Full CSS background-image value for a cover: the real photo (admin cover, or a
    keyword model photo) layered OVER the generated editorial SVG data-URI, so if
