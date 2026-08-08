@@ -458,4 +458,6 @@ return [
     'about_f_brands'  => 'təmsil olunan ev',
     'about_f_langs'   => 'mağazanın dili',
     'about_f_returns' => 'gün öz malımızın qaytarılması',
+    'sec_cats'     => 'Kateqoriyalar',
+    'sec_cats_sub' => 'On bir kateqoriya — çimərlik geyimindən gödəkçəyə. Hər parça Avropa qalıqlarından.',
 ];

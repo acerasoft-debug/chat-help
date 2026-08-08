@@ -257,7 +257,20 @@ vr_layout_start([
       <div class="rail__track"><?php foreach ($lots as $v) vr_vault_card($v); ?></div>
     </div>
   <?php else: ?>
-    <div class="wrap"><p class="lede"><?= te('vault_empty') ?></p></div>
+    <?php
+    /* Vault boşken burası yedi yüz piksel "şu anda los yok" yazısıydı.
+       Bir vitrinde boş oda olmaz: onun yerine kataloğun en pahalı parçaları
+       geçiyor. Hem oda dolu duruyor hem de ziyaretçi Vault'un ne tür bir
+       malı düşürdüğünü görüyor. Loslar açılır açılmaz bu blok kendiliğinden
+       kayboluyor. */
+    $teaser = vr_query(['per_page' => 6, 'sort' => 'price_desc', 'in_stock' => true, 'exclude_vault' => true])['rows'];
+    ?>
+    <div class="wrap"><p class="lede" style="margin-bottom:clamp(24px,3vw,38px)"><?= te('vault_empty') ?></p></div>
+    <?php if ($teaser): ?>
+      <div class="rail">
+        <div class="rail__track"><?php foreach ($teaser as $p) vr_card($p, ['size_hint' => true]); ?></div>
+      </div>
+    <?php endif; ?>
   <?php endif; ?>
 
   <div class="wrap">
@@ -293,10 +306,90 @@ vr_layout_start([
     $top = $facets['brands'];
     arsort($top);
     ?>
-    <div class="houselist" data-reveal>
+    <?php
+    /* Eskiden burası bin iki yüz piksellik düz bir metin listesiydi: sekiz
+       marka adı ve yanlarında sayı. Bir moda evinin vitrininde marka, adıyla
+       değil malıyla tanıtılır — her karo artık o markanın gerçek bir
+       parçasını gösteriyor.
+       Görsel seçimi: ızgara kontakt sayfası olmayan ilk fotoğraf. */
+    $gridIx = vr_photo_grid_index();
+    $shot = [];
+    foreach ($pool as $p) {
+        $b = $p['brand'];
+        if (isset($shot[$b])) continue;
+        foreach ((array)$p['images'] as $img) {
+            if ($img !== '' && !isset($gridIx[$img])) { $shot[$b] = $img; break; }
+        }
+    }
+    ?>
+    <div class="houses" data-reveal>
       <?php foreach (array_slice($top, 0, 8, true) as $brand => $n): ?>
-        <a href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
-          <span><?= h($brand) ?></span><i><?= te('results_n', ['n' => (int)$n]) ?></i>
+        <a class="house" href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
+          <span class="house__art">
+            <?php if (!empty($shot[$brand])): ?>
+              <img src="<?= h($shot[$brand]) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+            <?php endif; ?>
+          </span>
+          <span class="house__in">
+            <b><?= h($brand) ?></b>
+            <i><?= te('results_n', ['n' => (int)$n]) ?></i>
+          </span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
+<!-- ------------------------------------------------------------ kategoriler
+     Sitede kategoriye giden tek yol shop'un yan filtresiydi; ana sayfada
+     "ne satıyorsunuz" sorusunun görsel cevabı yoktu. Kenardan kenara bir
+     ray: her karo bir kategori, üzerinde o kategoriden gerçek bir parça. -->
+<?php
+/* Kategori başına bir fotoğraf — ama HER KAREDE BAŞKA BİR EV.
+   İlk denemede beş karonun beşi de Balmain'di: havuz markaya göre sıralı
+   olduğu için her kategorinin ilk ürünü aynı evden çıkıyordu. Kullanılan
+   markayı işaretleyip bir sonraki kategoride başkasını arıyoruz; hiç
+   kalmazsa tekrara izin veriliyor, boş karo kalmasın. */
+$cats = $facets['cats'];
+arsort($cats);
+$catShot = [];
+$usedBrand = [];
+foreach ([true, false] as $freshBrand) {
+    foreach ($cats as $c => $_) {
+        if (isset($catShot[$c])) continue;
+        foreach ($pool as $p) {
+            if ($p['cat'] !== $c) continue;
+            if ($freshBrand && isset($usedBrand[$p['brand']])) continue;
+            foreach ((array)$p['images'] as $img) {
+                if ($img !== '' && !isset($gridIx[$img])) {
+                    $catShot[$c] = $img;
+                    $usedBrand[$p['brand']] = true;
+                    break 2;
+                }
+            }
+        }
+    }
+}
+?>
+<?php if (count($cats) > 2): ?>
+<section class="sec">
+  <div class="wrap">
+    <?php vr_chapter('IV', t('sec_cats'), t('sec_cats_sub'), vr_url('shop.php')); ?>
+  </div>
+  <div class="rail">
+    <div class="rail__track cats">
+      <?php foreach ($cats as $cat => $n): ?>
+        <a class="cat" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
+          <span class="cat__art">
+            <?php if (!empty($catShot[$cat])): ?>
+              <img src="<?= h($catShot[$cat]) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+            <?php endif; ?>
+          </span>
+          <span class="cat__in">
+            <b><?= h($cat) ?></b>
+            <i><?= te('results_n', ['n' => (int)$n]) ?></i>
+          </span>
         </a>
       <?php endforeach; ?>
     </div>
@@ -307,7 +400,7 @@ vr_layout_start([
 <!-- -------------------------------------------------------------- güven şeridi -->
 <section class="sec sec--tight">
   <div class="wrap">
-    <?php vr_chapter('IV', t('sec_editorial')); ?>
+    <?php vr_chapter('V', t('sec_editorial')); ?>
     <div class="trust">
       <?php
       $trust = [
@@ -331,7 +424,7 @@ vr_layout_start([
 <?php if ($fresh): ?>
 <section class="sec">
   <div class="wrap">
-    <?php vr_chapter('V', t('sec_new'), '', vr_url('shop.php', ['sort' => 'new'])); ?>
+    <?php vr_chapter('VI', t('sec_new'), '', vr_url('shop.php', ['sort' => 'new'])); ?>
     <?php vr_grid($fresh, ['class' => 'grid--4']); ?>
   </div>
 </section>

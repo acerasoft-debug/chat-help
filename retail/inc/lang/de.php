@@ -464,4 +464,6 @@ return [
     'about_f_brands'  => 'vertretene Häuser',
     'about_f_langs'   => 'Sprachen im Laden',
     'about_f_returns' => 'Tage Rückgabe auf eigenen Bestand',
+    'sec_cats'     => 'Nach Kategorie',
+    'sec_cats_sub' => 'Elf Kategorien, von Bademode bis Jacke. Jedes Stück aus europäischem Bestand.',
 ];

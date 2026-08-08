@@ -458,4 +458,6 @@ return [
     'about_f_brands'  => 'repræsenterede huse',
     'about_f_langs'   => 'sprog i butikken',
     'about_f_returns' => 'dages retur på eget lager',
+    'sec_cats'     => 'Efter kategori',
+    'sec_cats_sub' => 'Elleve kategorier, fra badetøj til jakke. Hvert stykke fra europæisk lager.',
 ];

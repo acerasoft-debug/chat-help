@@ -143,6 +143,23 @@ foreach (vr_catalog() as $p) {
     }
 }
 
+/**
+ * Elle dışlama listesi — data/photo-exclude.json
+ *
+ * Piksel ölçen sezgisel her seferinde birkaç kareyi kaçırıyor: ölçtüğümüz bir
+ * Burberry karesi 2358×2496 (dikey, yani genişlik kuralına takılmıyor), iki
+ * modeli yan yana gösteriyor ve altında model kodu var — ne koridor testine
+ * ne yazı testine yakalanıyor. Bu tür tek tük durumlar için eşik oynatmak
+ * yanlış takas: her ayar başka bir kareyi bozuyor.
+ *
+ * Liste basit bir yol dizisi. Buradakiler her koşulda vitrin dışı sayılıyor;
+ * ürün sayfasında görünmeye devam ediyorlar.
+ */
+foreach ((array)vr_store_read('photo-exclude.json', []) as $rel) {
+    $rel = (string)$rel;
+    if ($rel !== '' && !isset($index[$rel])) { $index[$rel] = 1; $grid++; $single = max(0, $single - 1); }
+}
+
 vr_store_write('photo-quality.json', $index);
 
 printf("Geprüft : %d\n", $single + $grid);

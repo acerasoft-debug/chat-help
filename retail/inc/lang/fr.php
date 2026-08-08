@@ -462,4 +462,6 @@ return [
     'about_f_brands'  => 'maisons représentées',
     'about_f_langs'   => 'langues disponibles',
     'about_f_returns' => 'jours pour retourner notre propre stock',
+    'sec_cats'     => 'Par catégorie',
+    'sec_cats_sub' => 'Onze catégories, du maillot de bain à la veste. Chaque pièce issue de stocks européens.',
 ];

@@ -475,4 +475,6 @@ return [
     'about_f_brands'  => 'Houses represented',
     'about_f_langs'   => 'Languages the shop speaks',
     'about_f_returns' => 'Days to return our own stock',
+    'sec_cats'     => 'Shop by category',
+    'sec_cats_sub' => 'Eleven categories, from swimwear to outerwear. Every piece from European stock.',
 ];

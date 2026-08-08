@@ -458,4 +458,6 @@ return [
     'about_f_brands'  => 'representerade hus',
     'about_f_langs'   => 'språk i butiken',
     'about_f_returns' => 'dagars retur på eget lager',
+    'sec_cats'     => 'Efter kategori',
+    'sec_cats_sub' => 'Elva kategorier, från badkläder till jacka. Varje plagg från europeiskt lager.',
 ];

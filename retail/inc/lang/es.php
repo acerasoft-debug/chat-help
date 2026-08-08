@@ -458,4 +458,6 @@ return [
     'about_f_brands'  => 'casas representadas',
     'about_f_langs'   => 'idiomas disponibles',
     'about_f_returns' => 'días para devolver nuestro propio stock',
+    'sec_cats'     => 'Por categoría',
+    'sec_cats_sub' => 'Once categorías, del bañador a la chaqueta. Cada pieza de stock europeo.',
 ];

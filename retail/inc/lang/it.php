@@ -458,4 +458,6 @@ return [
     'about_f_brands'  => 'case rappresentate',
     'about_f_langs'   => 'lingue disponibili',
     'about_f_returns' => 'giorni per rendere il nostro stock',
+    'sec_cats'     => 'Per categoria',
+    'sec_cats_sub' => 'Undici categorie, dal costume alla giacca. Ogni capo da giacenze europee.',
 ];

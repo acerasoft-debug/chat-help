@@ -464,4 +464,6 @@ return [
     'about_f_brands'  => 'vertegenwoordigde huizen',
     'about_f_langs'   => 'talen in de winkel',
     'about_f_returns' => 'dagen retour op eigen voorraad',
+    'sec_cats'     => 'Op categorie',
+    'sec_cats_sub' => 'Elf categorieën, van badmode tot jas. Elk stuk uit Europese voorraad.',
 ];
