@@ -465,6 +465,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='journal_delete'){ vestra_journal_delete($_POST['jid']??''); header('Location: /admin?tab=journal&msg=journal_deleted'); exit; }
   if($act==='journal_toggle'){ vestra_journal_toggle($_POST['jid']??''); header('Location: /admin?tab=journal&msg=journal_toggled'); exit; }
   if($act==='journal_seed'){ $n=vestra_journal_seed_starters(); header('Location: /admin?tab=journal&msg=journal_seeded&n='.$n); exit; }
+  /* Editorial cover photography. Kept as an admin action rather than a scheduled job: it
+     reaches out to a third party and writes files, so it happens when someone asks for it. */
+  if($act==='journal_photos'){
+    $dry = ($_POST['dry'] ?? '1') !== '0';
+    $r = vestra_journal_fetch_photos([], 6, 1400, $dry);
+    $_SESSION['journal_photo_report'] = $r;
+    header('Location: /admin?tab=journal&msg='.($dry ? 'journal_photos_dry' : 'journal_photos_done')); exit;
+  }
   if($act==='resend_verify'){
     $uid=$_POST['uid']??'';
     foreach(auth_accounts() as $a){
@@ -1541,6 +1549,35 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Title and message are required.</div>
 <?php elseif($msg==='journal_seeded'): ?>
 <div class="amsg ok">✓ Loaded <?= (int)($_GET['n']??0) ?> starter article(s)<?= ((int)($_GET['n']??0)===0)?' — they were already present':'' ?>. Edit or unpublish them any time below.</div>
+<?php elseif($msg==='journal_photos_dry' || $msg==='journal_photos_done'):
+  $jr = $_SESSION['journal_photo_report'] ?? null; unset($_SESSION['journal_photo_report']);
+  $jdry = ($msg==='journal_photos_dry'); ?>
+<div class="amsg <?= ($jr && !$jdry && (int)$jr['saved']>0) ? 'ok' : '' ?>" style="<?= ($jr && !$jdry && (int)$jr['saved']>0) ? '' : 'background:rgba(201,168,106,.08);border:1px solid rgba(201,168,106,.3)' ?>">
+  <?php if(!$jr): ?>No report available.
+  <?php else: ?>
+    <b><?= $jdry ? 'Preview' : '✓ Downloaded' ?>:</b>
+    <?= (int)$jr['examined'] ?> file(s) examined,
+    <?= $jdry ? count($jr['files']).' usable' : (int)$jr['saved'].' saved to uploads/journal/' ?>.
+    <?php if(!empty($jr['skipped'])): ?>
+      <div class="ahint" style="margin-top:6px">Rejected —
+        <?php $sk=[]; foreach($jr['skipped'] as $why=>$cnt) $sk[]=htmlspecialchars($why).': '.(int)$cnt; echo implode(' · ', $sk); ?>
+      </div>
+    <?php endif; ?>
+    <?php if(!empty($jr['files'])): ?>
+      <div style="margin-top:8px;max-height:230px;overflow:auto;font-size:11.5px;line-height:1.7">
+        <?php foreach($jr['files'] as $f): ?>
+          <div><?= htmlspecialchars($f['file']) ?> · <?= (int)$f['width'] ?>px ·
+            <span style="color:var(--acc)"><?= htmlspecialchars($f['license']) ?></span> ·
+            <?= htmlspecialchars($f['artist']) ?></div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+    <?php if(!empty($jr['errors'])): ?>
+      <div class="ahint" style="margin-top:6px;color:#c0392b"><?= htmlspecialchars(implode(' · ', array_slice($jr['errors'],0,4))) ?></div>
+    <?php endif; ?>
+    <?php if($jdry): ?><div class="ahint" style="margin-top:6px">Nothing was written. Use “Fetch editorial photos” to download these.</div><?php endif; ?>
+  <?php endif; ?>
+</div>
 <?php elseif($msg==='lgp_sync'): $lgpN=(int)($_GET['n']??0); $lgpU=(int)($_GET['upd']??0); ?>
 <div class="amsg ok">✓ Les Garage Paris:
   <?= $lgpN>0 ? $lgpN.' listing(s) added' : '' ?><?= ($lgpN>0 && $lgpU>0)?' · ':'' ?><?= $lgpU>0 ? $lgpU.' existing listing(s) refreshed' : '' ?><?= ($lgpN===0 && $lgpU===0) ? 'nothing to do — already up to date.' : '.' ?></div>
@@ -3625,9 +3662,19 @@ elseif($tab==='journal'):
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
   <div><h2 style="font-size:18px;font-weight:700">📰 Journal</h2>
   <p class="ahint" style="margin-top:4px">Publish fashion, brand &amp; market articles. Published pieces appear at <a href="/journal" target="_blank" style="color:var(--acc)">/journal ↗</a>.</p></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
   <form method="post" action="/admin"><?= csrfField() ?><input type="hidden" name="_action" value="journal_seed">
     <button class="abtn" type="submit" title="Add six ready-made, fully translated (EN/DE/FR/IT/ES) starter articles you can edit — running it again back-fills translations onto older starters">✨ Load starter articles</button>
   </form>
+  <form method="post" action="/admin"><?= csrfField() ?><input type="hidden" name="_action" value="journal_photos">
+    <input type="hidden" name="dry" value="1">
+    <button class="abtn" type="submit" title="List the fashion photos Wikimedia Commons would supply — downloads nothing">🔍 Preview editorial photos</button>
+  </form>
+  <form method="post" action="/admin" onsubmit="return confirm('Download the previewed fashion photos into uploads/journal/?')"><?= csrfField() ?>
+    <input type="hidden" name="_action" value="journal_photos"><input type="hidden" name="dry" value="0">
+    <button class="abtn" type="submit" title="Download commercially-usable fashion photography from Wikimedia Commons into uploads/journal/, recording the photographer for each — articles without their own cover then draw from this pool">📷 Fetch editorial photos</button>
+  </form>
+  </div>
 </div>
 
 <div class="acols2" style="align-items:start">

@@ -186,6 +186,117 @@ function vestra_journal_credits(): array {
     return $c;
 }
 
+/** Default subjects for the editorial photo fetch — fashion, not product packshots. */
+function vestra_journal_photo_queries(): array {
+    return [
+        'fashion editorial photography',
+        'fashion model portrait studio',
+        'fashion boutique interior',
+        'clothing rail retail store',
+        'menswear lookbook',
+        'textile fabric detail macro',
+    ];
+}
+
+/* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
+ * shot each one in credits.json.
+ *
+ * Commons needs no API key, which is why it is the source; the price is the licence, which
+ * requires the photographer to be named wherever the picture appears. That is why nothing
+ * here writes an image without also writing its credit — vestra_journal_photo_pool() only
+ * offers credited files, so an image can never reach a page unattributed.
+ *
+ * Commercial-use filter: this is a commercial site, so NonCommercial, NoDerivatives and
+ * fair-use files are rejected outright.
+ *
+ * Returns a report: ['examined'=>int,'saved'=>int,'skipped'=>[reason=>n],'files'=>[…],'errors'=>[…]]
+ */
+function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $minWidth = 1400, bool $dry = true): array {
+    $dir = __DIR__.'/../uploads/journal';
+    $rep = ['examined'=>0, 'saved'=>0, 'skipped'=>[], 'files'=>[], 'errors'=>[]];
+    $queries = $queries ?: vestra_journal_photo_queries();
+    $per = max(1, $per); $minWidth = max(400, $minWidth);
+
+    $bump = function (string $why) use (&$rep) { $rep['skipped'][$why] = ($rep['skipped'][$why] ?? 0) + 1; };
+
+    $licOk = function (string $l): bool {
+        $l = strtolower($l);
+        if ($l === '') return false;
+        foreach (['non-commercial','noncommercial','-nc','fair use','no derivative','-nd'] as $bad)
+            if (strpos($l, $bad) !== false) return false;
+        foreach (['cc0','public domain','cc by','cc-by','attribution'] as $ok)
+            if (strpos($l, $ok) !== false) return true;
+        return false;
+    };
+    $get = function (string $url) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true,
+            CURLOPT_TIMEOUT=>60, CURLOPT_CONNECTTIMEOUT=>20,
+            // Commons blocks callers that do not identify themselves.
+            CURLOPT_USERAGENT=>'VESTRA-Journal/1.0 (https://vestrasales.com; support@vestrasales.com)',
+        ]);
+        $b = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        return $code === 200 ? $b : null;
+    };
+    $clean = fn($s) => trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$s), ENT_QUOTES, 'UTF-8')));
+
+    if (!$dry && !is_dir($dir)) @mkdir($dir, 0755, true);
+    $credits = vestra_journal_credits();
+
+    foreach ($queries as $q) {
+        $q = trim($q); if ($q === '') continue;
+        $raw = $get('https://commons.wikimedia.org/w/api.php?action=query&format=json'
+            .'&generator=search&gsrnamespace=6&gsrlimit=40&gsrsearch='.rawurlencode($q)
+            .'&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1600');
+        if ($raw === null) { $rep['errors'][] = 'no API response for: '.$q; continue; }
+        $pages = json_decode($raw, true)['query']['pages'] ?? [];
+        if (!$pages) { $rep['errors'][] = 'no results for: '.$q; continue; }
+
+        $n = 0;
+        foreach ($pages as $p) {
+            if ($n >= $per) break;
+            $ii = $p['imageinfo'][0] ?? null; if (!$ii) continue;
+            $rep['examined']++;
+            $mime = (string)($ii['mime'] ?? '');
+            if (strpos($mime, 'image/') !== 0 || strpos($mime, 'svg') !== false) { $bump('not a raster image'); continue; }
+            if ((int)($ii['width'] ?? 0) < $minWidth) { $bump('too small'); continue; }
+
+            $em = $ii['extmetadata'] ?? [];
+            $license = $clean($em['LicenseShortName']['value'] ?? '');
+            if (!$licOk($license)) { $bump('licence not usable commercially'); continue; }
+            $artist = $clean($em['Artist']['value'] ?? '') ?: 'Wikimedia Commons';
+            if (mb_strlen($artist) > 70) $artist = mb_substr($artist, 0, 70).'…';
+
+            $title = (string)($p['title'] ?? '');
+            $src   = (string)($ii['thumburl'] ?? $ii['url'] ?? ''); if ($src === '') { $bump('no url'); continue; }
+            $ext   = strtolower((string)pathinfo((string)parse_url($src, PHP_URL_PATH), PATHINFO_EXTENSION));
+            if (!in_array($ext, ['jpg','jpeg','png','webp'], true)) $ext = 'jpg';
+            $name  = substr(strtolower(trim(preg_replace('/[^a-z0-9]+/i','-', preg_replace('/^File:/','',$title)), '-')), 0, 60).'.'.$ext;
+
+            $n++;
+            $rep['files'][] = ['file'=>$name, 'width'=>(int)($ii['width'] ?? 0), 'license'=>$license, 'artist'=>$artist];
+            if ($dry) continue;
+
+            $bin = $get($src);
+            if ($bin === null || strlen($bin) < 8000) { $rep['errors'][] = 'download failed: '.$name; continue; }
+            file_put_contents($dir.'/'.$name, $bin);
+            $credits[$name] = [
+                'artist'  => $artist,
+                'license' => $license,
+                'source'  => 'https://commons.wikimedia.org/wiki/'.rawurlencode(str_replace(' ', '_', $title)),
+                'desc'    => mb_substr($clean($em['ImageDescription']['value'] ?? ''), 0, 140),
+            ];
+            $rep['saved']++;
+        }
+    }
+    if (!$dry && $rep['saved'] > 0) {
+        file_put_contents($dir.'/credits.json',
+            json_encode($credits, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
+    }
+    return $rep;
+}
+
 /** Attribution line for an image path, or '' when the file needs none (our own art). */
 function vestra_journal_credit(string $path): string {
     if (strpos($path, '/uploads/journal/') !== 0) return '';
