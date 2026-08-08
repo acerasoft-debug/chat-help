@@ -101,6 +101,21 @@ function vr_normalize_product(array $p, string $source): ?array
     if (!in_array($status, VR_SELLABLE_STATUS, true)) return null;
     if (!empty($p['hold']) || !empty($p['hidden'])) return null;
 
+    // Kategori/isim düzeltmesi — HER ŞEYDEN ÖNCE.
+    //
+    // Toptan stapellerdeki "cat" ve "name" güvenilmez: aynı şablon bir
+    // markanın tüm ürünlerine yapıştırılmış, mayoya "T-Shirt" diyor.
+    // Düzeltme gözle yapıldı ve ayrı bir katmanda duruyor (data/
+    // category-fix.json) ki bir sonraki içe aktarma onu ezmesin.
+    //
+    // Burada, fiyat kuralları ve metin motoru çalışmadan önce uygulanıyor:
+    // ikisi de ürün adına bakıyor, yanlış adla yanlış karar verirlerdi.
+    $cf = vr_category_fix();
+    if (isset($cf[$id])) {
+        if (($cf[$id]['cat'] ?? '') !== '')  $p['cat']  = (string)$cf[$id]['cat'];
+        if (($cf[$id]['name'] ?? '') !== '') $p['name'] = (string)$cf[$id]['name'];
+    }
+
     // ---- fiyat
     // Sabit outlet fiyatı her şeyin önünde: eşleşen kural varsa çarpan da
     // yuvarlama da devreye girmiyor, yazan rakam basılıyor.
@@ -486,4 +501,20 @@ function vr_cat_label(string $cat): string
 {
     $map = vr_dict()['cat_' . vr_slug($cat)] ?? null;
     return is_string($map) ? $map : $cat;
+}
+
+/**
+ * Gözle yapılmış kategori/isim düzeltmeleri.
+ *
+ * Dosya yoksa boş dizi döner ve hiçbir şey değişmez — düzeltme katmanı
+ * isteğe bağlıdır, katalog onsuz da çalışır.
+ */
+function vr_category_fix(): array
+{
+    static $fix = null;
+    if ($fix === null) {
+        $raw = vr_store_read('category-fix.json', []);
+        $fix = is_array($raw) ? $raw : [];
+    }
+    return $fix;
 }
