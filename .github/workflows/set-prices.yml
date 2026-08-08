@@ -18,6 +18,14 @@ on:
         description: "Toptan fiyat EUR (örn: 49.90). Boş = fiyata dokunma"
         required: false
         default: ""
+      list_price:
+        # Ayri bir girdi cunku 'price' hem list'i hem kademeleri ayni degere yaziyor --
+        # bu da indirimi sifirlar (vestra_discount list ile satis farkindan hesaplar).
+        # Ustu cizili "onceki fiyat" istiyorsan burayi doldur: list buraya, kademeler
+        # price'a gider ve urun mode='sale' olur.
+        description: "Üstü çizili ESKİ fiyat EUR (örn: 129.00) — VEYA 'keep' yazarsan ürünün ŞU ANKİ fiyatı eski fiyat olur. Doldurulursa ürün İNDİRİMLİ gösterilir. Boş = indirim yok"
+        required: false
+        default: ""
       moq:
         description: "En az alım adedi (örn: 20). Boş = dokunma"
         required: false
@@ -67,6 +75,7 @@ jobs:
           RAW_BRAND: ${{ github.event.inputs.brand }}
           RAW_CAT: ${{ github.event.inputs.cat }}
           RAW_PRICE: ${{ github.event.inputs.price }}
+          RAW_LIST_PRICE: ${{ github.event.inputs.list_price }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
           RAW_SIZES: ${{ github.event.inputs.sizes }}
           RAW_OFFERS: ${{ github.event.inputs.allow_offers }}
@@ -75,7 +84,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_ENV"
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
-                  for k in ['brand','cat','price','moq','sizes','offers','dry']}
+                  for k in ['brand','cat','price','list_price','moq','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
@@ -131,6 +140,7 @@ jobs:
             $brand = trim((string)($in['brand'] ?? ''));
             $cat   = trim((string)($in['cat']   ?? ''));
             $price = trim((string)($in['price'] ?? ''));
+            $listP = trim((string)($in['list_price'] ?? ''));
             $moq   = trim((string)($in['moq']   ?? ''));
             $sizes = trim((string)($in['sizes'] ?? ''));
             $offIn = strtolower(trim((string)($in['offers'] ?? '')));
@@ -152,8 +162,26 @@ jobs:
             echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
             if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
-            if ($price === '' && $moq === '' && $sizes === '' && $offers === null) {
-              fwrite(STDERR, "HATA: price/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
+            if ($price === '' && $listP === '' && $moq === '' && $sizes === '' && $offers === null) {
+              fwrite(STDERR, "HATA: price/list_price/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
+            }
+            /* 'keep' = her urunun mevcut fiyatini eski fiyat yap. "86'ya indir" derken
+               dogru davranis bu: ustu cizili rakam uydurulmaz, urunun bugunku fiyati olur.
+               Katalog genelinde tek bir eski fiyat zaten dogru olmazdi -- her urunun
+               fiyati farkli. */
+            $listKeep = (strtolower($listP) === 'keep');
+            if ($listKeep) $listP = 'keep';
+            elseif ($listP !== '' && (!is_numeric($listP) || (float)$listP <= 0)) {
+              fwrite(STDERR, "HATA: gecersiz list_price '{$listP}' -- sayi ya da 'keep' olmali\n"); exit(1);
+            }
+            /* Bir indirim ancak eski fiyat yenisinden yuksekse indirimdir. Esit ya da
+               dusuk verilirse rozet "-0%" olur ya da eksiye duser -- sessizce yazmak
+               yerine burada durduruyoruz. */
+            if (!$listKeep && $listP !== '' && $price !== '' && (float)$listP <= (float)$price) {
+              fwrite(STDERR, "HATA: list_price ({$listP}) satis fiyatindan ({$price}) buyuk olmali\n"); exit(1);
+            }
+            if ($listP !== '' && $price === '') {
+              fwrite(STDERR, "HATA: list_price verildi ama price bos -- indirimli fiyat da gerekli\n"); exit(1);
             }
             // Reject a malformed price outright rather than writing 0.00 over real pricing.
             if ($price !== '' && (!is_numeric($price) || (float)$price <= 0)) {
@@ -166,7 +194,7 @@ jobs:
             $all = vestra_listings();
             if (!count($all)) { fwrite(STDERR, "HATA: listings.json bos/okunamadi\n"); exit(1); }
 
-            $hits = 0; $changes = 0;
+            $hits = 0; $changes = 0; $skipped = 0;
             foreach ($all as $i => $p) {
               $b = (string)($p['brand'] ?? '');
               $c = (string)($p['cat'] ?? '');
@@ -181,21 +209,62 @@ jobs:
 
               if ($price !== '') {
                 $new = (float)$price;
-                $old = $p['list'] ?? null;
-                if ((float)$old !== $new) {
-                  $line[] = "list ".($old === null ? '(yok)' : $old)." -> {$new}";
-                  $all[$i]['list'] = $new;
-                  // tiers drive the actual order price; leaving them stale would show one
-                  // price and charge another. Rewrite every tier to match.
-                  if (!empty($p['tiers']) && is_array($p['tiers'])) {
-                    $n = 0;
-                    foreach ($p['tiers'] as $ti => $t) {
-                      // A tier that is not an array would fatal on ['price'] assignment.
-                      if (!is_array($t)) { $line[] = "UYARI: tier[{$ti}] dizi degil, atlandi"; continue; }
-                      $all[$i]['tiers'][$ti]['price'] = $new; $n++;
-                    }
-                    if ($n) $line[] = "tiers({$n}) -> {$new}";
+                /* Two shapes here. Without list_price the product is plain fixed-price and
+                   list tracks the tiers, as before. With list_price the two deliberately
+                   diverge: list is the struck-through "was", the tiers are what is charged,
+                   and vestra_discount() reads the gap between them to size the badge. */
+                if ($listKeep) {
+                  /* The product's own current price becomes the "was". A product already
+                     at or below the new figure is not being discounted -- writing it would
+                     print a "-0%" badge or a negative one, so it is reported and left alone. */
+                  $wantList = (float)($p['list'] ?? 0);
+                  if ($wantList <= $new) {
+                    $line[] = "ATLANDI: mevcut fiyat ({$wantList}) yeni fiyattan ({$new}) yuksek degil";
+                    $skipped++;
+                    if ($line) echo "  ".str_pad($id, 28)." ".implode(' | ', $line)."\n";
+                    continue;
                   }
+                } else {
+                  $wantList = ($listP !== '') ? (float)$listP : $new;
+                }
+                $oldList  = $p['list'] ?? null;
+                $touched  = false;
+
+                if ((float)$oldList !== $wantList) {
+                  $line[] = "list ".($oldList === null ? '(yok)' : $oldList)." -> {$wantList}";
+                  $all[$i]['list'] = $wantList;
+                  $touched = true;
+                }
+                // tiers drive the actual order price; leaving them stale would show one
+                // price and charge another. Rewrite every tier to match.
+                if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                  $n = 0;
+                  foreach ($p['tiers'] as $ti => $t) {
+                    // A tier that is not an array would fatal on ['price'] assignment.
+                    if (!is_array($t)) { $line[] = "UYARI: tier[{$ti}] dizi degil, atlandi"; continue; }
+                    if ((float)($t['price'] ?? 0) === $new) continue;
+                    $all[$i]['tiers'][$ti]['price'] = $new; $n++;
+                  }
+                  if ($n) { $line[] = "tiers({$n}) -> {$new}"; $touched = true; }
+                }
+                /* mode gates the badge: vestra_on_sale() ignores list unless mode is 'sale',
+                   so writing the prices without this shows the new figure at full price. A
+                   product already negotiated ('offer') keeps its mode -- turning that into a
+                   sale would remove the offer panel buyers are using. */
+                $curMode = (string)($p['mode'] ?? 'fixed');
+                if ($listP !== '' && $curMode !== 'offer' && $curMode !== 'sale') {
+                  $line[] = "mode {$curMode} -> sale";
+                  $all[$i]['mode'] = 'sale';
+                  $touched = true;
+                } elseif ($listP === '' && $curMode === 'sale') {
+                  // price without a "was" means the discount is over.
+                  $line[] = "mode sale -> fixed";
+                  $all[$i]['mode'] = 'fixed';
+                  $touched = true;
+                }
+                if ($touched) {
+                  $pct = ($listP !== '' && $wantList > 0) ? (int)round(100*($wantList-$new)/$wantList) : 0;
+                  if ($pct > 0) $line[] = "indirim -%{$pct}";
                   $changes++;
                 }
               }
@@ -239,7 +308,7 @@ jobs:
               if ($line) echo "  {$id} | {$b} | {$c}\n      ".implode("\n      ", $line)."\n";
             }
 
-            echo "\nfiltreye uyan urun: {$hits}\n";
+            echo "\nfiltreye uyan urun: {$hits}".($skipped ? "  (indirime uygun olmayan, atlanan: {$skipped})" : "")."\n";
             echo "degisecek alan: {$changes}\n";
 
             if (!$hits) {
@@ -273,7 +342,7 @@ jobs:
             if (count($check) !== count($all)) {
               fwrite(STDERR, "HATA: kayittan sonra urun sayisi degisti! yedek: {$bak}\n"); exit(1);
             }
-            echo "KAYDEDILDI -- {$changes} alan guncellendi, {$hits} urun tarandi.\n";
+            echo "KAYDEDILDI -- {$changes} alan guncellendi, {$hits} urun tarandi".($skipped ? ", {$skipped} atlandi" : "").".\n";
             PHPEOF
             echo "ADIM 3: dosya yazildi ($(wc -l < /tmp/vestra_setprices.php) satir)"
             php -l /tmp/vestra_setprices.php
