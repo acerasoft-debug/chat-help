@@ -342,15 +342,17 @@ vr_layout_start([
 <?php endif; ?>
 
 <!-- ------------------------------------------------------------ kategoriler
-     Sitede kategoriye giden tek yol shop'un yan filtresiydi; ana sayfada
-     "ne satıyorsunuz" sorusunun görsel cevabı yoktu. Kenardan kenara bir
-     ray: her karo bir kategori, üzerinde o kategoriden gerçek bir parça. -->
+     İki katman. Üstte kategori karoları — ad fotoğrafın ÜZERİNDE, altında
+     değil: küçük bir etiket satırı kadraja eşlik eden bir yazı gibi durmuyor,
+     ızgaraya iliştirilmiş bir dipnot gibi duruyordu.
+
+     Altta ise asıl istenen şey: her kategorinin İÇİNDE ürünler. Kategoriye
+     tıklamadan da ne satıldığı görünüyor, ve iki bölüm arasındaki ölü boşluk
+     ürünle doluyor. -->
 <?php
-/* Kategori başına bir fotoğraf — ama HER KAREDE BAŞKA BİR EV.
+/* Kategori başına bir kapak fotoğrafı — HER KAREDE BAŞKA BİR EV.
    İlk denemede beş karonun beşi de Balmain'di: havuz markaya göre sıralı
-   olduğu için her kategorinin ilk ürünü aynı evden çıkıyordu. Kullanılan
-   markayı işaretleyip bir sonraki kategoride başkasını arıyoruz; hiç
-   kalmazsa tekrara izin veriliyor, boş karo kalmasın. */
+   olduğu için her kategorinin ilk ürünü aynı evden çıkıyordu. */
 $cats = $facets['cats'];
 arsort($cats);
 $catShot = [];
@@ -371,6 +373,32 @@ foreach ([true, false] as $freshBrand) {
         }
     }
 }
+
+/* Her kategorinin kendi ürünleri. Kartlar marka çeşitliliğine göre seçiliyor:
+   bir kategorinin dört karesi de aynı evden olursa bölüm katalog değil tek
+   marka vitrini gibi duruyor. */
+$catRows = [];
+foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
+    $seenBrand = [];
+    $rows = [];
+    // Kapak karesi bloğun içinde TEKRAR ETMESİN: aynı fotoğraf üstte büyük,
+    // hemen altında küçük görününce özensiz duruyor.
+    $cover = (string)($catShot[$cat] ?? '');
+    foreach ([true, false] as $freshBrand) {
+        foreach ($pool as $p) {
+            if (count($rows) >= 4) break 2;
+            if ($p['cat'] !== $cat) continue;
+            if (in_array($p, $rows, true)) continue;
+            if ($freshBrand && isset($seenBrand[$p['brand']])) continue;
+            $first = (string)($p['images'][0] ?? '');
+            if ($first === '' || isset($gridIx[$first])) continue;
+            if ($cover !== '' && $first === $cover) continue;
+            $seenBrand[$p['brand']] = true;
+            $rows[] = $p;
+        }
+    }
+    if (count($rows) >= 4) $catRows[$cat] = $rows;
+}
 ?>
 <?php if (count($cats) > 2): ?>
 <section class="sec">
@@ -385,15 +413,27 @@ foreach ([true, false] as $freshBrand) {
             <?php if (!empty($catShot[$cat])): ?>
               <img src="<?= h($catShot[$cat]) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
             <?php endif; ?>
-          </span>
-          <span class="cat__in">
-            <b><?= h($cat) ?></b>
-            <i><?= te('results_n', ['n' => (int)$n]) ?></i>
+            <span class="cat__in">
+              <b><?= h($cat) ?></b>
+              <i><?= te('results_n', ['n' => (int)$n]) ?></i>
+            </span>
           </span>
         </a>
       <?php endforeach; ?>
     </div>
   </div>
+
+  <?php foreach ($catRows as $cat => $rows): ?>
+    <div class="wrap catblock">
+      <div class="catblock__head">
+        <h3><?= h($cat) ?></h3>
+        <a class="sechead__more" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
+          <?= te('results_n', ['n' => (int)$cats[$cat]]) ?><?= vr_icon('arrow', 14) ?>
+        </a>
+      </div>
+      <?php vr_grid($rows, ['class' => 'grid--4', 'size_hint' => true]); ?>
+    </div>
+  <?php endforeach; ?>
 </section>
 <?php endif; ?>
 
