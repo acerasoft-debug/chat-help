@@ -186,6 +186,16 @@ function bh_is_single(string $file): bool
  */
 $manual = vr_store_read('hero-frames.json', []);
 if (is_array($manual) && $manual) {
+    // --skip ve --frames burada da geçerli: aynı listeden birden fazla film
+    // çıkarılabilsin diye. Liste dairesel okunuyor, yani skip listenin
+    // sonunu aşsa bile film boş kalmıyor.
+    $manual = array_values($manual);
+    $n = count($manual);
+    $want = min($opt['frames'], $n);
+    $slice = [];
+    for ($i = 0; $i < $want; $i++) $slice[] = $manual[($opt['skip'] + $i) % $n];
+    $manual = $slice;
+
     $picked = [];
     foreach ($manual as $rel) {
         $rel  = (string)$rel;

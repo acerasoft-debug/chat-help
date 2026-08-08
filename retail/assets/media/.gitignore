@@ -1,0 +1,5 @@
+# Kampanya filminin ara ürünleri. build-hero.php bunları üretir ve normalde
+# kendisi siler; iş yarıda kesilirse geride kalıyorlar ve depoda işleri yok:
+# şerit 3 MB, kare klasörü 900 dosya.
+.*-strip.jpg
+.frames-*/
