@@ -68,6 +68,7 @@ vr_layout_start([
     <?php if (!$rows): ?>
       <div class="notice"><strong><?= te('wish_empty') ?></strong></div>
       <a class="btn" href="<?= h(vr_url('shop.php')) ?>"><span><?= te('cart_empty_cta') ?></span></a>
+      <?php vr_empty_suggestions(); ?>
     <?php else: ?>
       <?php vr_grid($rows, ['size_hint' => true, 'eager_first' => true, 'class' => 'grid--4']); ?>
     <?php endif; ?>

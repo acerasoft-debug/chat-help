@@ -673,3 +673,25 @@ function vr_breadcrumbs(array $items): void
     }
     echo '</ol></nav>';
 }
+
+/**
+ * Boş durumların altına konan öneri şeridi.
+ *
+ * Boş sepet ve boş liste sayfaları tek bir uyarı kutusu ve bir düğmeden
+ * ibaretti — ekranın onda dokuzu boş. Bir mağazada kimse müşteriyi boş bir
+ * odada bırakmıyor. Dört parça, vitrin sırasından: her biri başka bir evden,
+ * fotoğrafı vitrinlik olanlardan.
+ */
+function vr_empty_suggestions(int $n = 4): void
+{
+    $rows = vr_query([
+        'per_page'      => $n,
+        'in_stock'      => true,
+        'exclude_vault' => true,
+    ])['rows'];
+    if (!$rows) return;
+
+    echo '<hr class="rule" style="margin:clamp(34px,4.4vw,56px) 0">';
+    vr_section_head(t('sec_curated'), '', vr_url('shop.php'));
+    vr_grid($rows, ['class' => 'grid--4', 'size_hint' => true]);
+}

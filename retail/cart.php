@@ -118,6 +118,9 @@ vr_layout_start(['title' => t('cart_title'), 'robots' => 'noindex,nofollow']);
     <?php if (!$t['lines']): ?>
       <div class="notice"><strong><?= te('cart_empty') ?></strong></div>
       <a class="btn" href="<?= h(vr_url('shop.php')) ?>"><span><?= te('cart_empty_cta') ?></span></a>
+      <?php /* Boş sepet bir çıkmaz olmamalı: dört parça koyuyoruz ki ziyaretçi
+               "mağazaya dön" düğmesini aramak zorunda kalmasın. */ ?>
+      <?php vr_empty_suggestions(); ?>
 
     <?php else: ?>
       <div class="cart">

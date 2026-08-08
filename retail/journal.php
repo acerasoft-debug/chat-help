@@ -19,8 +19,16 @@ if ($slug !== '' && $one === null) {
     vr_redirect('journal.php');
 }
 
-$art = static fn(string $seed, int $w = 900, int $h = 560): string =>
-    vr_url('assets/art.php', ['s' => 'journal-' . $seed, 'c' => 'editorial', 'w' => $w, 'h' => $h]);
+/**
+ * Yazının görseli. Önce katalogdan gerçek bir kadraj denenir; katalog boşsa
+ * (kurulumun ilk günü) üretilen kompozisyona düşülür — sayfa hiçbir durumda
+ * görselsiz kalmasın.
+ */
+$art = static function (string $seed, int $w = 900, int $h = 560): string {
+    $real = vr_journal_image($seed);
+    if ($real !== null) return $real;
+    return vr_url('assets/art.php', ['s' => 'journal-' . $seed, 'c' => 'editorial', 'w' => $w, 'h' => $h]);
+};
 
 // ---------------------------------------------------------------- tek yazı
 if ($one !== null) {

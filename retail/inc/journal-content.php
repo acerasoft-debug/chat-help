@@ -141,3 +141,52 @@ function vr_journal_entries(): array
 
     return vr_lang() === 'de' ? $de : $en;
 }
+
+/**
+ * Yazının görseli — üretilmiş kompozisyon değil, katalogdan gerçek bir kadraj.
+ *
+ * NEDEN DEĞİŞTİ
+ * -------------
+ * Beş yazının beşi de aynı üretilmiş tişört çizimini gösteriyordu: liste
+ * sayfası birbirinin aynı beş koyu dikdörtgendi. Journal'ın işi güven
+ * kazandırmak; aynı çizimi beş kez basan bir sayfa bunu yapmıyor.
+ *
+ * Seçim rastgele değil: vitrinlik (tek özneli, yeterli çözünürlükte) kadrajlar
+ * arasından, yazının listedeki sırasına göre sabit adımla alınıyor. Aynı yazı
+ * her seferinde aynı fotoğrafı gösteriyor ve beş yazı beş farklı fotoğraf
+ * alıyor. Katalog değişirse görsel de değişir — sorun değil, hiçbir yazı belli
+ * bir parçadan söz etmiyor.
+ */
+function vr_journal_image(string $slug): ?string
+{
+    static $pool = null;
+
+    if ($pool === null) {
+        require_once __DIR__ . '/catalog.php';
+        $grid = vr_photo_grid_index();
+        $pool = [];
+        foreach (vr_catalog() as $p) {
+            foreach ((array)($p['images'] ?? []) as $img) {
+                $img = (string)$img;
+                if ($img === '' || !str_starts_with($img, '/uploads/')) continue;
+                if (isset($grid[$img])) continue;
+                $pool[] = $img;
+                break;                       // ürün başına bir kadraj yeter
+            }
+        }
+        // Yola göre sıralamak markaları kümeliyor (aynı klasör = aynı ev) ve
+        // beş yazının üçü arka arkaya Lacoste polosu çıkıyordu. Yolun
+        // özetine göre sıralamak evleri karıştırıyor — ve yine sabit.
+        usort($pool, fn($a, $b) => strcmp(md5($a), md5($b)));
+    }
+
+    if (!$pool) return null;
+
+    $slugs = array_keys(vr_journal_entries());
+    $i     = array_search($slug, $slugs, true);
+    if ($i === false) $i = 0;
+
+    // Asal adım: yazılar havuzun birbirine uzak yerlerinden fotoğraf alıyor,
+    // yan yana duran iki kart aynı çekimin iki karesi olmuyor.
+    return $pool[(int)((($i + 1) * 197) % count($pool))];
+}
