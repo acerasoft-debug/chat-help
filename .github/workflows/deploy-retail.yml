@@ -116,9 +116,21 @@ jobs:
           [ "$T" = "." ] && DEST="~/public_html"
           SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
 
+          # HANGİ uploads/ KLASÖRÜ?
+          # ------------------
+          # Fotoğraflar katalogda "/uploads/..." mutlak yoluyla duruyor ve
+          # assets/img.php onları vr_doc_root() altında arıyor. Paylaşımlı
+          # barındırmada DOCUMENT_ROOT ~/public_html, yani /uploads/x.jpg
+          # public_html/uploads/x.jpg demek. Biz shop/uploads'a yazmıştık:
+          # yeni bölünmüş paneller sunucuda bulunamıyordu ve ANA SAYFA tam da
+          # o panelleri seçtiği için (vitrinlik kadraj tercihi) ürün
+          # fotoğrafları çıkmıyordu. Veri klasöründeki aynı çözümleme.
+          UPL=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../uploads ]; then cd ${DEST}/../uploads && pwd; else mkdir -p ${DEST}/uploads && cd ${DEST}/uploads && pwd; fi")
+          echo "fotoğraf klasörü: $UPL"
+
           echo "-- fotoğraflar (silmeden)"
           rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
-            retail/uploads/ "${SRV}:${DEST}/uploads/"
+            retail/uploads/ "${SRV}:${UPL}/"
 
           # HANGİ data/ KLASÖRÜ?
           # ------------------
@@ -183,6 +195,22 @@ jobs:
           curl -sS -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
           echo "kart sayısı: $(grep -o 'class=\"card\"' /tmp/shop.html | wc -l)"
           echo "fiyat sayısı: $(grep -o 'card__price' /tmp/shop.html | wc -l)"
+
+          # FOTOĞRAFLAR GERÇEKTEN GELİYOR MU?
+          # Kart saymak yetmiyor: kart var ama görseli 404 ise sayfa boş
+          # görünüyor — tam olarak "ana sayfada ürün fotoları çıkmıyor"
+          # şikâyeti buydu. Ana sayfadan on görsel adresi çekip tek tek
+          # sorguluyoruz.
+          curl -sS -L --max-time 25 "${BASE}/index.php" -o /tmp/home.html || true
+          imgs=$(grep -oE 'assets/img\.php\?[^"]+' /tmp/home.html | sed 's/&amp;/\&/g' | head -10)
+          bad=0; n=0
+          for q in $imgs; do
+            n=$((n+1))
+            c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${BASE}/${q}" || echo 000)
+            [ "$c" = "200" ] || { bad=$((bad+1)); echo "  görsel $c: ${q:0:70}"; }
+          done
+          echo "ana sayfa görselleri: $n denendi, $bad hatalı"
+          [ "$bad" -eq 0 ] || { echo "::error::ana sayfa görselleri açılmıyor"; fail=1; }
           [ "$fail" -eq 0 ] || { echo "::error::yayın doğrulaması başarısız"; exit 1; }
           echo "YAYIN DOĞRULANDI -> $BASE"
 
