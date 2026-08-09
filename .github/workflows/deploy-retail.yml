@@ -157,7 +157,16 @@ jobs:
           BASE="https://vestrasales.com"
           [ "$T" = "." ] || BASE="$BASE/$T"
           fail=0
-          for u in "" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
+          # Klasörün kendisi (".../shop") AYRI ele alınıyor: orası sunucunun
+          # DirectoryIndex ayarına bağlı ve barındırma AllowOverride vermiyorsa
+          # .htaccess'teki satır yok sayılıyor. Uygulamanın çalışıp
+          # çalışmadığını index.php söyler; klasör girişi ayrı bir konu, o
+          # yüzden uyarı, hata değil.
+          root_code=$(curl -sS -o /tmp/root.html -w '%{http_code}' -L --max-time 25 "${BASE}/" || echo 000)
+          echo "klasör girişi (/): $root_code $(wc -c < /tmp/root.html) bayt"
+          [ "$root_code" = "200" ] || echo "::warning::klasör girişi $root_code — ziyaretçiyi /index.php'ye yönlendirin ya da barındırmada DirectoryIndex açtırın"
+
+          for u in "/index.php" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
             code=$(curl -sS -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
             size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
             printf '%-28s %s  %s bayt\n' "${u:-/}" "$code" "$size"
