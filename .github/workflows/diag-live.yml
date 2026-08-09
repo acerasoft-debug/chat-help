@@ -18,6 +18,10 @@ on:
         description: "true = ürün/lead/hesap/yapılandırma genelinde eksik taraması da çalıştır (salt-okunur)"
         required: false
         default: "false"
+      fix_shop_shadow:
+        description: "true = bir sayfayı gölgeleyen dizini public_html DIŞINA taşı (403 onarımı). Silmez, taşır."
+        required: false
+        default: "false"
       dropship_api_key:
         description: "Verilirse api/dropship.php'yi bu Bearer key ile uçtan uca test eder (log'a yazılmaz)"
         required: false
@@ -140,12 +144,15 @@ jobs:
 
       - name: Sunucu sağlığı (disk / PHP hata günlüğü)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          FIX_SHADOW: ${{ github.event.inputs.fix_shop_shadow }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
+          envs: FIX_SHADOW
           script: |
             echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
@@ -168,6 +175,34 @@ jobs:
             [ "$found" = 0 ] && echo "  cakisan dizin yok"
             echo; echo "== shop.php dosya durumu =="
             ls -l ~/public_html/shop.php 2>/dev/null || echo "  shop.php YOK!"
+
+            # Onarim. SILMIYOR, public_html DISINA tasiyor: 403 aninda kalkar ve
+            # icinde beklenmedik bir sey cikarsa geri koymak tek komut. Canli bir
+            # sunucuda rm -rf calistirmak icin ortada yeterli sebep yok.
+            if [ "${FIX_SHADOW:-false}" = "true" ]; then
+              echo; echo "== GOLGE DIZIN ONARIMI =="
+              for f in ~/public_html/*.php; do
+                b=$(basename "$f" .php)
+                D=~/public_html/"$b"
+                [ -d "$D" ] || continue
+                echo "  '$b' icin:"
+                echo "    boyut: $(du -sh "$D" | cut -f1), dosya: $(find "$D" -type f | wc -l)"
+                # Once kanit: bu dizinde olup canli kokte olmayan dosya var mi?
+                uniq=0
+                for g in $(find "$D" -type f | head -400); do
+                  rel="${g#$D/}"
+                  [ -e ~/public_html/"$rel" ] || { echo "    BENZERSIZ: $rel"; uniq=$((uniq+1)); }
+                done
+                [ "$uniq" = 0 ] && echo "    (ilk 400 dosyanin hepsinin kokte karsiligi var -- saf kopya)"
+                DEST=~/"_golge-${b}-$(date -u +%Y%m%d-%H%M%S)"
+                mv "$D" "$DEST" && echo "    TASINDI -> $DEST" || { echo "    HATA: tasinamadi"; exit 1; }
+                [ -d "$D" ] && { echo "    HATA: dizin hala duruyor"; exit 1; }
+                code=$(curl -s -o /dev/null -w '%{http_code}' -L "https://vestrasales.com/$b")
+                echo "    canli /$b -> HTTP $code"
+                [ "$code" = "200" ] || { echo "    UYARI: hala 200 degil"; exit 1; }
+              done
+              echo "  onarim tamam."
+            fi
             echo; echo "== son PHP hatalari =="
             for L in ~/public_html/error_log ~/error_log ~/logs/error_log /var/log/php-fpm/error.log; do
               [ -f "$L" ] && { echo "-- $L --"; tail -25 "$L"; }
