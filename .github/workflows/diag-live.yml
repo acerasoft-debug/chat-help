@@ -223,6 +223,15 @@ jobs:
                     echo is_array($d)?("gecerli JSON, ".count($d)." urun\n"):"BOZUK JSON!\n";'
             echo; echo "== yedek sayisi =="; ls -1 ~/public_html/data/listings.json.bak-* 2>/dev/null | wc -l
 
+            # Ana sayfalarin durumu, ADIMIN SONUNDA. Ustteki HTTP tablosu isin en
+            # basinda yaziliyor ve uzun bir log'da kuyruktan okurken ona ulasilamiyor;
+            # asil merak edilen "ayakta mi" sorusunun cevabi da hep o tabloda kaliyordu.
+            echo; echo "== canli sayfa durumlari =="
+            for u in / /shop /catalog /journal /product?id=lac-polo-paris /login /cart; do
+              printf '  %-34s %s\n' "$u" \
+                "$(curl -s -o /dev/null -w '%{http_code}  %{time_total}s  %{size_download}B' -L "https://vestrasales.com$u")"
+            done
+
       # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir -- orders.csv de urun
       # fotograflari da sadece orada var -- ve cagirana geri verir.
       #
