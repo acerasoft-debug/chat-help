@@ -14,14 +14,18 @@
   DirectorySlash Off
   RewriteRule ^membership/?$ membership.php [L]
 
-  # /shop de aynı durumda: public_html/shop/ diye bir klasör beliriyor ve aşağıdaki
-  # genel kural "klasör varsa dokunma" (!-d) dediği için /shop kataloğu yerine
-  # Options -Indexes'in 13 baytlık 403'ünü veriyor. Klasörü iki kez taşıdım; iki kez
-  # geri geldi -- yani onu üreten şey deploy değil, ve nereden geldiğini bilmeden
-  # üçüncü kez taşımak aynı arızayı üçüncü kez beklemek olurdu. Bu kural sorunu
-  # kaynağından bağımsız kılıyor: /shop artık klasör var mı yok mu diye bakmadan
-  # doğrudan shop.php'ye gidiyor. Klasör yerinde kalabilir, zararı yok.
-  # (İçindeki farklı site ~/_golge-shop-20260809-123507 altında duruyor.)
+  # /shop yüzeyde aynı durumda: public_html/shop/ diye bir klasör var, aşağıdaki genel
+  # kural "klasör varsa dokunma" (!-d) diyor, sonuç 403. Ama bu kural /membership'teki
+  # gibi ÇÖZMÜYOR ve sebebini yazmadan bırakmak yanıltıcı olurdu: o klasör aslında
+  # ikinci bir sitenin kökü ve KENDİ .htaccess'inde `RewriteEngine On` taşıyor.
+  # Apache'de bir alt dizin kendi rewrite yapılandırmasını tanımlayınca üstündekini
+  # DEVRALMAZ (RewriteOptions Inherit yoksa) -- /shop isteği o klasörün bağlamına
+  # düştüğü için aşağıdaki satır o istek sırasında hiç değerlendirilmiyor. Kuralın
+  # yerinde durmasının tek nedeni, klasör bir gün oradan kalkarsa /shop'un aynı
+  # arızaya geri dönmemesi; tek başına yeterli DEĞİL.
+  # Kalıcı çözüm iki sitenin aynı yolu paylaşmamasından geçiyor ve bu bir ürün kararı:
+  # ya katalog /shop'ta kalır ve diğer site başka bir yola taşınır, ya tersi.
+  # (Klasörün taşınan kopyası ~/_golge-shop-20260809-123507 altında duruyor.)
   RewriteRule ^shop/?$ shop.php [L]
 
   # /sitemap.xml → dinamik sitemap.php
