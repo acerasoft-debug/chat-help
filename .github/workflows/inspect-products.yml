@@ -14,6 +14,14 @@ on:
         description: "Ürün adında bu metni ara (alt dize, boş = hepsi) — marka/kategori bilinmeden ürün bulmak için"
         required: false
         default: ""
+      img_contains:
+        description: "Görsel yolunda bu metin geçen ürünler (ör: balenciaga-burberry/) — kontak sayfası klasörüyle eşleştirmek için"
+        required: false
+        default: ""
+      compact:
+        description: "true = ürün başına TEK satır: id | cat | görsel-adı (uzun listeler kütük kuyruğuna sığsın)"
+        required: false
+        default: "false"
       check_images:
         description: "true = her görselin dosyası sunucuda GERÇEKTEN var mı, kontrol et"
         required: false
@@ -45,6 +53,8 @@ jobs:
           INSPECT_CAT: ${{ github.event.inputs.cat }}
           INSPECT_NAME: ${{ github.event.inputs.name }}
           INSPECT_IMGCHK: ${{ github.event.inputs.check_images }}
+          INSPECT_IMGIN: ${{ github.event.inputs.img_contains }}
+          INSPECT_COMPACT: ${{ github.event.inputs.compact }}
           INSPECT_MISSONLY: ${{ github.event.inputs.missing_only }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -52,7 +62,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -64,6 +74,13 @@ jobs:
             $nf = strtolower(trim((string)getenv("INSPECT_NAME")));
             $imgchk   = strtolower(trim((string)getenv("INSPECT_IMGCHK")))   === 'true';
             $missonly = strtolower(trim((string)getenv("INSPECT_MISSONLY"))) === 'true';
+            /* Kontak sayfalari klasor klasor uretiliyor (ornegin uploads/balenciaga-burberry/),
+               ama urunlerin markasi klasor adiyla ayni degil -- o klasorde dokuz marka var.
+               Sayfayi canli satirlarla eslestirmenin tek dogru yolu GORSEL YOLU. */
+            $imgin    = strtolower(trim((string)getenv("INSPECT_IMGIN")));
+            /* Tek satirlik cikti: 94 urunluk bir klasor normal bicimde 376 satir eder ve
+               Actions API kutugun yalnizca SONUNU verdigi icin bas taraf okunamaz olur. */
+            $compact  = strtolower(trim((string)getenv("INSPECT_COMPACT"))) === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -97,6 +114,11 @@ jobs:
               if ($bf !== '' && $bf !== '*' && stripos($brand, $bf) === false) continue;
               if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
               if ($nf !== '' && stripos((string)($p['name'] ?? ''), $nf) === false) continue;
+              if ($imgin !== '') {
+                $hit = false;
+                foreach ($imagesOf($p) as $im) if (stripos($im, $imgin) !== false) { $hit = true; break; }
+                if (!$hit) continue;
+              }
               $nProd++;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
@@ -112,6 +134,12 @@ jobs:
                 if ($missonly && !$bad) continue;
               }
 
+              if ($compact) {
+                printf("%-26s | %-22s | %s\n", (string)($p['id'] ?? '?'), (string)($p['cat'] ?? '?'),
+                       count($imgs) ? basename((string)$imgs[0]) : '(gorsel yok)');
+                foreach ($bad as $b2) echo "   KAYIP GORSEL: {$b2}\n";
+                continue;
+              }
               $demo = function_exists('vestra_is_demo_product') && vestra_is_demo_product((string)($p['id'] ?? '')) ? 'DEMO(kodda)' : 'canli-listing';
               $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
