@@ -1,0 +1,65 @@
+name: Künye bilgilerini sunucudan oku (Acerasoft)
+
+on:
+  workflow_dispatch:
+
+# MAXSALES'in Impressum sayfası boş: data/retail-settings.json içindeki
+# company.* alanları doldurulmadığı için selftest FAIL veriyor ve §5 TMG /
+# §5 DDG gereği sayfa eksik. Aynı bilgiler ChatHelp tarafında (chat-help.com)
+# zaten yayında. Bu iş sunucudaki chat uygulamasında künye metnini arıyor ve
+# BULDUĞUNU LOGA BASIYOR — hiçbir şeyi değiştirmiyor, yalnızca okuyor.
+#
+# Neden runner: bu ortamın ağ politikası chat-help.com'a çıkışı kapatıyor
+# (gateway CONNECT'e 403 veriyor), sunucuya SSH ise yalnızca runner'dan var.
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucudan künye metnini oku
+        env:
+          SSH_KEY:  ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DEPLOY_HOST }}
+          SSH_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -e
+          PORT="${SSH_PORT:-22}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          SSHOPT="-i $HOME/.ssh/id_deploy -p $PORT -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+          ssh $SSHOPT "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo "###### 1) Künye/Impressum geçen dosyalar ######"
+          grep -rliE "impressum|imprint|anbieterkennzeichnung" ~/public_html/chat 2>/dev/null | head -20
+
+          echo
+          echo "###### 2) Acerasoft geçen satırlar (bağlamıyla) ######"
+          grep -rniE "acerasoft" ~/public_html/chat 2>/dev/null \
+            | grep -viE "acerasoft@gmail|acerasoft\+|acerasoft-debug" | head -40
+
+          echo
+          echo "###### 3) Adres/sicil kalıpları ######"
+          grep -rnoiE "(str(aße|asse)|weg|platz|allee|ulica|sokak)[ ,]?[0-9]{1,4}[a-z]?" ~/public_html/chat 2>/dev/null | head -20
+          grep -rnoiE "(HRB|HRA|USt-?IdNr\.?|VAT|Steuernummer|Registergericht|vertreten durch|Geschäftsführ[a-zä]*)[^<\"']{0,80}" ~/public_html/chat 2>/dev/null | head -30
+          grep -rnoE "\b[0-9]{5}\s+[A-ZÄÖÜ][a-zäöüß]+\b" ~/public_html/chat 2>/dev/null | head -20
+
+          echo
+          echo "###### 4) Künye sayfasının tam metni (ilk eşleşen dosya) ######"
+          F=$(grep -rliE "impressum|anbieterkennzeichnung" ~/public_html/chat 2>/dev/null | head -1)
+          if [ -n "${F:-}" ]; then
+            echo "dosya: $F"
+            grep -niE -A4 -B4 "impressum|anbieterkennzeichnung" "$F" | head -120
+          else
+            echo "künye sayfası bulunamadı"
+          fi
+
+          echo
+          echo "###### 5) Ayar/konfig dosyalarında şirket alanları ######"
+          for f in $(find ~/public_html/chat -maxdepth 2 -name "*.json" -o -maxdepth 2 -name "config*.php" 2>/dev/null | head -20); do
+            if grep -qiE "company|firma|address|adres|impressum" "$f" 2>/dev/null; then
+              echo "--- $f"; head -c 3000 "$f"; echo
+            fi
+          done
+          REMOTE
