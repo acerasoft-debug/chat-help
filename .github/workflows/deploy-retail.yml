@@ -3,15 +3,23 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Hedef klasör (public_html altında, örn: shop). Kök için: ."
+        description: "Hedef: public_html altında klasör (shop) · kök için . · ya da ev dizinine göre tam yol (~/maxsales_de)"
         required: true
-        default: "shop"
+        default: "~/maxsales_de"
+      verify_url:
+        description: "Yayın doğrulamasının bakacağı adres (örn: https://maxsales.vestrasales.com). Boşsa hedeften türetilir."
+        required: false
+        default: ""
       dry_run:
         description: "true = SADECE ne kopyalanacağını yaz, KOPYALAMA"
         required: true
         default: "true"
       sync_media:
         description: "true = katalog dosyalarını ve yeni ürün fotoğraflarını da gönder"
+        required: false
+        default: "false"
+      sync_vault:
+        description: "true = Vault los listesini de gönder (SUNUCUDAKİNİN ÜZERİNE YAZAR)"
         required: false
         default: "false"
 
@@ -72,8 +80,16 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
 
-          DEST="~/public_html/${T}"
-          [ "$T" = "." ] && DEST="~/public_html"
+          # Hedef "~" ile basliyorsa oldugu gibi kullaniliyor: MAXSALES artik
+          # public_html DISINDA kendi kokunde duruyor (~/maxsales_de). Iceride
+          # duramiyor cunku Vestra tarafinda tanimadigi klasorleri kenara
+          # tasiyan bir duzen betigi var - her deploy bir sure sonra
+          # _golge-shop-* olarak rafa kalkiyordu (olculdu).
+          case "$T" in
+            "~"*) DEST="$T" ;;
+            ".")  DEST="~/public_html" ;;
+            *)    DEST="~/public_html/${T}" ;;
+          esac
 
           rsync -az --delete \
             --exclude 'data/' \
@@ -108,23 +124,140 @@ jobs:
           #      gidiyor. Sipariş, müşteri, satıcı ve Stripe dosyalarına
           #      dokunulmuyor.
           SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          DEST="~/public_html/${T}"
-          [ "$T" = "." ] && DEST="~/public_html"
+          case "$T" in
+            "~"*) DEST="$T" ;;
+            ".")  DEST="~/public_html" ;;
+            *)    DEST="~/public_html/${T}" ;;
+          esac
           SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+
+          # HANGİ uploads/ KLASÖRÜ?
+          # ------------------
+          # Fotoğraflar katalogda "/uploads/..." mutlak yoluyla duruyor ve
+          # assets/img.php onları vr_doc_root() altında arıyor. Paylaşımlı
+          # barındırmada DOCUMENT_ROOT ~/public_html, yani /uploads/x.jpg
+          # public_html/uploads/x.jpg demek. Biz shop/uploads'a yazmıştık:
+          # yeni bölünmüş paneller sunucuda bulunamıyordu ve ANA SAYFA tam da
+          # o panelleri seçtiği için (vitrinlik kadraj tercihi) ürün
+          # fotoğrafları çıkmıyordu. Veri klasöründeki aynı çözümleme.
+          UPL=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../uploads ]; then cd ${DEST}/../uploads && pwd; else mkdir -p ${DEST}/uploads && cd ${DEST}/uploads && pwd; fi")
+          echo "fotoğraf klasörü: $UPL"
 
           echo "-- fotoğraflar (silmeden)"
           rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
-            retail/uploads/ "${SRV}:${DEST}/uploads/"
+            retail/uploads/ "${SRV}:${UPL}/"
+
+          # HANGİ data/ KLASÖRÜ?
+          # ------------------
+          # Uygulama (vr_data_dir) alt klasöre kurulduğunda ÜSTTEKİ data/
+          # klasörünü kullanıyor: müşteri, sipariş ve canlı katalog B2B
+          # tarafıyla paylaşılsın diye. İlk yayında bunu atladık ve katalog
+          # dosyalarını ${DEST}/data'ya yazdık; uygulama oraya hiç bakmadığı
+          # için canlı sitede 478 parçalık MAXSALES kataloğu yerine B2B'nin
+          # 344 satırı görünüyordu ve Vault boştu (los ürün kimlikleri o
+          # katalogda yok). Aynı çözümlemeyi burada tekrarlıyoruz.
+          DATA=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../data ]; then cd ${DEST}/../data && pwd; else mkdir -p ${DEST}/data && cd ${DEST}/data && pwd; fi")
+          echo "veri klasörü: $DATA"
 
           echo "-- katalog dosyaları (beyaz liste)"
           for f in retail-imported.json photo-quality.json photo-exclude.json \
                    category-fix.json official-prices.json hero-frames.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
-            rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DEST}/data/$f"
+            rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"
           done
 
+          # Vault los listesi AYRI bir anahtarla.
+          # retail-vault.json beyaz listede değil, çünkü los planı bir kez
+          # yazılıp değişmeyen ticari veri: işletmeci sunucuda bir los açtıysa
+          # sonraki deploy onu silmemeli. İlk kurulumda kadro göndermek için
+          # bu anahtar bilerek ayrı ve varsayılan olarak kapalı.
+          if [ "${{ github.event.inputs.sync_vault }}" = "true" ] && [ -f retail/data/retail-vault.json ]; then
+            echo "-- Vault los listesi (üzerine yazar)"
+            ssh $SSHOPT "$SRV" "[ -f ${DATA}/retail-vault.json ] && cp ${DATA}/retail-vault.json ${DATA}/retail-vault.backup.\$(date +%Y%m%d-%H%M%S).json || true"
+            rsync -az -e "ssh $SSHOPT" retail/data/retail-vault.json "${SRV}:${DATA}/retail-vault.json"
+            echo "   gönderildi (öncekinin yedeği alındı)"
+          fi
+
           echo "MEDYA SENKRONU TAMAM"
+
+      - name: Yayın doğrulaması (dışarıdan)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          T: ${{ github.event.inputs.target }}
+          V: ${{ github.event.inputs.verify_url }}
+        run: |
+          # Sunucuda selftest çalışıyor ama o dosya sisteminden bakıyor.
+          # Asıl soru şu: dışarıdan bir tarayıcı sayfayı alabiliyor mu?
+          if [ -n "$V" ]; then
+            BASE="${V%/}"
+          else
+            case "$T" in
+              "~"*)
+                echo "::warning::hedef kendi kökünde ($T) ama verify_url verilmedi — dışarıdan doğrulama atlandı"
+                exit 0 ;;
+            esac
+            BASE="https://vestrasales.com"
+            [ "$T" = "." ] || BASE="$BASE/$T"
+          fi
+          echo "doğrulanan adres: $BASE"
+          fail=0
+          # Klasörün kendisi (".../shop") AYRI ele alınıyor: orası sunucunun
+          # DirectoryIndex ayarına bağlı ve barındırma AllowOverride vermiyorsa
+          # .htaccess'teki satır yok sayılıyor. Uygulamanın çalışıp
+          # çalışmadığını index.php söyler; klasör girişi ayrı bir konu, o
+          # yüzden uyarı, hata değil.
+          root_code=$(curl -sS -o /tmp/root.html -w '%{http_code}' -L --max-time 25 "${BASE}/" || echo 000)
+          echo "klasör girişi (/): $root_code $(wc -c < /tmp/root.html) bayt"
+          [ "$root_code" = "200" ] || echo "::warning::klasör girişi $root_code — ziyaretçiyi /index.php'ye yönlendirin ya da barındırmada DirectoryIndex açtırın"
+
+          # CEVABI KİM VERİYOR?
+          # -------------------
+          # Bu adım bir kez yalan söyledi: "yayında" dedi, oysa gelen sayfa
+          # Vestra'nın B2B sitesiydi. Sebebi şu — B2B aynı yollara (index.php,
+          # shop.php) 200 ve dolu bir gövdeyle cevap veriyor, üstelik /shop/
+          # altındaki her şeyi kendi köküne yönlendiriyor. Kod + boyut bakan
+          # bir kontrol ikisini ayırt edemez.
+          # Onun için artık sayfada MAXSALES imzası aranıyor. İmza yoksa
+          # cevabı başka bir uygulama veriyordur; deploy başarılı sayılmaz.
+          for u in "/index.php" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
+            code=$(curl -sS -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
+            size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
+            sig=$(grep -c 'MAXSALES' /tmp/pg.html 2>/dev/null || echo 0)
+            printf '%-28s %s  %s bayt  imza:%s\n' "${u:-/}" "$code" "$size" "$sig"
+            [ "$code" = "200" ] && [ "$size" -gt 3000 ] || fail=1
+            if [ "$sig" -eq 0 ]; then
+              echo "::error::${BASE}${u} MAXSALES imzası taşımıyor — bu cevap perakende sitesinden gelmiyor"
+              fail=1
+            fi
+          done
+          # Ürün kartı gerçekten basılıyor mu?
+          curl -sS -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
+          echo "kart sayısı: $(grep -o 'class=\"card\"' /tmp/shop.html | wc -l)"
+          echo "fiyat sayısı: $(grep -o 'card__price' /tmp/shop.html | wc -l)"
+
+          # FOTOĞRAFLAR GERÇEKTEN GELİYOR MU?
+          # Kart saymak yetmiyor: kart var ama görseli 404 ise sayfa boş
+          # görünüyor — tam olarak "ana sayfada ürün fotoları çıkmıyor"
+          # şikâyeti buydu. Ana sayfadan on görsel adresi çekip tek tek
+          # sorguluyoruz.
+          curl -sS -L --max-time 25 "${BASE}/index.php" -o /tmp/home.html || true
+          # src="..." İÇİNDEKİ tam adres. Önceki hâli srcset'i de yakalıyor ve
+          # boşluktan bölünce "900w", "300w," gibi parçaları adres sanıyordu:
+          # 21 "hata"nın çoğu ölçüm hatasıydı, sitenin değil.
+          imgs=$(grep -oE 'src="[^"]*assets/img\.php\?[^"]*"' /tmp/home.html \
+                 | sed -e 's/^src="//' -e 's/"$//' -e 's/&amp;/\&/g' \
+                 | sed -e 's#^/shop/##' -e 's#^/##' | sort -u | head -10)
+          bad=0; n=0
+          for q in $imgs; do
+            n=$((n+1))
+            c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${BASE}/${q}" || echo 000)
+            [ "$c" = "200" ] || { bad=$((bad+1)); echo "  görsel $c: ${q:0:70}"; }
+          done
+          echo "ana sayfa görselleri: $n denendi, $bad hatalı"
+          [ "$bad" -eq 0 ] || { echo "::error::ana sayfa görselleri açılmıyor"; fail=1; }
+          [ "$fail" -eq 0 ] || { echo "::error::yayın doğrulaması başarısız"; exit 1; }
+          echo "YAYIN DOĞRULANDI -> $BASE"
 
       - name: Kuru çalıştırma (yalnızca liste)
         if: ${{ github.event.inputs.dry_run == 'true' }}
@@ -146,11 +279,19 @@ jobs:
           command_timeout: 5m
           script: |
             T='${{ github.event.inputs.target }}'
-            DIR=~/public_html/$T
-            [ "$T" = "." ] && DIR=~/public_html
+            case "$T" in
+              "~"*) DIR=$(eval echo "$T") ;;
+              ".")  DIR=$HOME/public_html ;;
+              *)    DIR=$HOME/public_html/$T ;;
+            esac
 
-            mkdir -p ~/public_html/data
-            chmod 750 ~/public_html/data
+            # Veri klasoru: vr_data_dir() once VR_ROOT/../data'ya bakiyor.
+            # Kendi kokunde duran kurulumda bu $HOME/data oluyor -- hicbir
+            # belge kokunun altinda degil, yani siparis ve musteri dosyalari
+            # web'den istenemiyor. public_html altindaki kurulumda ise
+            # public_html/data cikiyor, eski davranis aynen suruyor.
+            mkdir -p "$DIR/../data"
+            chmod 750 "$DIR/../data"
 
             cd "$DIR"
             echo "== Kurulum kontrolu =="
