@@ -139,8 +139,17 @@ jobs:
           # public_html/uploads/x.jpg demek. Biz shop/uploads'a yazmıştık:
           # yeni bölünmüş paneller sunucuda bulunamıyordu ve ANA SAYFA tam da
           # o panelleri seçtiği için (vitrinlik kadraj tercihi) ürün
-          # fotoğrafları çıkmıyordu. Veri klasöründeki aynı çözümleme.
-          UPL=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../uploads ]; then cd ${DEST}/../uploads && pwd; else mkdir -p ${DEST}/uploads && cd ${DEST}/uploads && pwd; fi")
+          # fotoğrafları çıkmıyordu.
+          #
+          # Kural aslında tek: uploads/ DOCUMENT_ROOT'un altındadır. Alt klasör
+          # kurulumunda kök public_html olduğu için bir üste çıkmak gerekiyor;
+          # kendi kökünde duran kurulumda ise kök DEST'in kendisi, bir üste
+          # çıkmak $HOME/uploads'a sapardı — orada bir şey yok, klasör orada
+          # açılır ve web'den hiç görünmezdi.
+          case "$T" in
+            "~"*) UPL=$(ssh $SSHOPT "$SRV" "mkdir -p ${DEST}/uploads && cd ${DEST}/uploads && pwd") ;;
+            *)    UPL=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../uploads ]; then cd ${DEST}/../uploads && pwd; else mkdir -p ${DEST}/uploads && cd ${DEST}/uploads && pwd; fi") ;;
+          esac
           echo "fotoğraf klasörü: $UPL"
 
           echo "-- fotoğraflar (silmeden)"
