@@ -90,6 +90,17 @@ wrong category**, and batch2's Hoodies & Sweatshirts count has gone from 73 to
 14 — which is roughly what a folder called "sweats" should have produced in the
 first place.
 
+### `balenciaga-burberry-07` — reviewed, 13 of 23 rows corrected
+
+The first sheet where a good share of the rows were already right: ten really
+are crewneck sweats or hoodies and were left alone. The other thirteen are two
+t-shirts, three tracksuit sets (jacket and trousers, side-taped), two pairs of
+denim shorts and six pairs of jeans.
+
+The three tracksuits are worth noting because they are the first rows to reach
+`Tracksuit Sets` from these batches — the category existed but nothing the
+folder produced had ever been put in it.
+
 ### Before importing: check images against the LIVE catalogue, not just each other
 
 Two found so far, both in batch2:
@@ -98,6 +109,8 @@ Two found so far, both in batch2:
 |---|---|---|
 | `dgn-g7jv9` | `d-g-g7jv9-1.jpg` | `dgn-g7jv91` (T-Shirts) |
 | `dgn-g8pl4tg7f2h` | `d-g-g8pl4t-g7f2h-0.jpg` | `dgn-g8pl4tg7f2h0` (Polos) |
+| `dgn-g9ow6z` | `d-g-g9ow6z-darkblue.jpg` | `dgn-g9ow6zdarkblue` (Hoodies & Sweatshirts) |
+| `dgn-g8gw9` | `d-g-gwnxad-g8gw9.jpg` | `dgn-gwnxadg8gw9` (Jeans Shorts) |
 
 Same garment, two ids each. The duplicate-id scan cannot see these because the
 ids differ; only the image matches. Note both live rows are in the category the
