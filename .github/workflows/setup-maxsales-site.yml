@@ -184,11 +184,16 @@ jobs:
                 done
               done
               echo
+              # Yedek dosyalar ayri sayiliyor: B2B'nin data klasorunde 150'yi
+              # askin *.bak-* var ve hepsini basmak asil listeyi bogyordu.
               echo "  -- kopyalanmayanlar (B2B'nin ya da bilerek disarida):"
-              ls -1 "$OLDDATA" 2>/dev/null | while read -r b; do
+              nbak=0
+              for b in $(ls -1 "$OLDDATA" 2>/dev/null); do
                 [ -e "$NEWDATA/$b" ] && continue
+                case "$b" in *.bak|*.bak-*|*.bak.*|*.backup.*) nbak=$((nbak+1)); continue ;; esac
                 echo "     $b"
               done
+              echo "     (+ $nbak adet yedek dosya, listelenmedi)"
             else
               echo "  $OLDDATA yok — atlandi"
             fi
