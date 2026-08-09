@@ -27,11 +27,16 @@
  * zeminli çekimde görünümler arasında kütlenin sıfıra indiği temiz koridorlar
  * var. Koridor yeterince genişse (kadrajın %2.5'i) orası kesim yeri.
  *
- * Koridoru olmayan, panelleri bitişik şeritler bilerek dışarıda: onlar için
- * "paneller eşit genişliktedir, dikişe göre böl" diye ikinci bir yöntem
- * yazıldı ve denendi — kesim çizgileri mankenlerin ortasından geçti, çünkü
- * paneller eşit değil. Bu şeritler oldukları gibi kalıyor; kart onları
- * kırpmadan, bulanık zemin üstünde bütün olarak gösteriyor (vr_img_fit).
+ * Koridorun boş değil yalnızca İNCE olduğu şeritler için ikinci bir yöntem
+ * var (mv_dips): kütle sıfıra inmiyor ama belirgin biçimde çöküyor. Orada
+ * asıl fren çöküşün kendisi değil, parçaların eşit çıkması — panel şeridi
+ * eşit böler, bir paltonun beli bölmez.
+ *
+ * Denenip BIRAKILAN üçüncü bir yol: "paneller eşittir, kadrajı k'ya böl".
+ * Ölçüm gerektirmediği için cazipti; kesim çizgileri mankenlerin ortasından
+ * geçti, çünkü paneller çoğu zaman eşit değil ve eşitlik tek başına yeterli
+ * kanıt sayılamıyor. Hiçbir yöntemin tutmadığı şeritler olduğu gibi kalıyor;
+ * kart onları kırpmadan, bulanık zemin üstünde bütün gösteriyor (vr_img_fit).
  * Kötü bir kesim, sığdırılmış bir şeritten çok daha kötü.
  *
  * Güvenlik frenleri — biri bile tutmazsa dosyaya dokunulmuyor:
@@ -96,7 +101,7 @@ if (!$shape) { echo "Önce: php tools/index-photo-shape.php\n"; exit(1); }
  * Ölçüm 400 px genişliğe küçültülmüş kopyada; sonuç tam çözünürlüğe
  * ölçeklenerek dönüyor.
  */
-function mv_columns(string $abs, int $fullW, int $fullH): array
+function mv_columns(string $abs, int $fullW, int $fullH, ?array &$profile = null): array
 {
     $src = @imagecreatefromjpeg($abs);
     if (!$src) return [];
@@ -136,6 +141,9 @@ function mv_columns(string $abs, int $fullW, int $fullH): array
         }
     }
     imagedestroy($src);
+
+    // Profil ikinci yönteme de lazım — bu yöntem boş dönse bile elde kalsın.
+    $profile = ['col' => $col, 'w' => $w];
 
     $peak = max($col);
     if ($peak <= 0) return [];
@@ -192,6 +200,75 @@ function mv_columns(string $abs, int $fullW, int $fullH): array
     return $out;
 }
 
+/**
+ * İkinci yöntem: koridoru boş DEĞİL, yalnızca ince olan şeritler.
+ *
+ * Bir kısım kadrajda paneller bitişik ve zemin gri: iki görünüm arasında
+ * kütle sıfıra inmiyor, sadece belirgin biçimde çöküyor (ölçülen bir Fendi
+ * karesinde 344'ten 175'e). Birinci yöntem burada hiçbir şey göremiyor.
+ *
+ * Yalnız "çöküş var" demek tehlikeli: bir paltonun beli de çöküş yapar.
+ * Bu yüzden asıl fren çöküşün kendisi değil, SONUCUN EŞİTLİĞİ — panel
+ * şeritleri eşit bölünür, bir giysinin beli eşit bölmez. Parçalar
+ * birbirinden %12'den fazla farklıysa kesim yapılmıyor.
+ *
+ * @return array<int,array{0:int,1:int}> [[x, genişlik], …]
+ */
+function mv_dips(array $col, int $w, int $fullW, int $fullH): array
+{
+    $sorted = $col; sort($sorted);
+    $median = $sorted[intdiv(count($sorted), 2)];
+    if ($median <= 1) return [];
+
+    // çöküş koşuları
+    $dips = []; $start = null;
+    for ($x = 0; $x < $w; $x++) {
+        if ($col[$x] < $median * 0.65) { if ($start === null) $start = $x; }
+        elseif ($start !== null) { $dips[] = [$start, $x - 1]; $start = null; }
+    }
+    if ($start !== null) $dips[] = [$start, $w - 1];
+
+    $cuts = [];
+    foreach ($dips as [$a, $b]) {
+        $len = $b - $a + 1;
+        if ($len < max(2, (int)round($w * 0.008)) || $len > $w * 0.07) continue;
+        // kenardaki çöküş kesim değil, kadrajın kendi boşluğu
+        if ($a < $w * 0.12 || $b > $w * 0.88) continue;
+        // iki yanı da dolu olacak: gerçek bir dikiş, tek taraflı bir iniş değil
+        $l = $col[max(0, $a - 5)] ?? 0;
+        $r = $col[min($w - 1, $b + 5)] ?? 0;
+        if ($l < $median * 0.92 || $r < $median * 0.92) continue;
+        $cuts[] = (int)round(($a + $b) / 2);
+    }
+    if (!$cuts || count($cuts) > 4) return [];
+
+    // kesim noktalarından parçalar
+    $bounds = array_merge([0], $cuts, [$w]);
+    $parts = [];
+    for ($i = 0; $i < count($bounds) - 1; $i++) {
+        $pw = $bounds[$i + 1] - $bounds[$i];
+        if ($pw < $w * 0.15) return [];
+        $parts[] = [$bounds[$i], $pw];
+    }
+
+    // EŞİTLİK FRENİ — panel şeridi eşit böler, giysinin beli bölmez
+    $widths = array_column($parts, 1);
+    if (max($widths) > min($widths) * 1.12) return [];
+
+    // tam çözünürlüğe ölçekle ve ortak frenlerden geçir
+    $out = [];
+    foreach ($parts as [$px, $pw]) {
+        $x0 = (int)round($px / $w * $fullW);
+        $x1 = (int)round(($px + $pw) / $w * $fullW);
+        $fw = $x1 - $x0;
+        if ($fw < 300) return [];
+        $r = $fw / $fullH;
+        if ($r < 0.28 || $r > 1.70) return [];
+        $out[] = [$x0, $fw];
+    }
+    return $out;
+}
+
 // ---------------------------------------------------------------- çalışma
 $catalog = vr_catalog();
 printf("MAXSALES — çok görünümlü şerit ayırma%s\n%s\n", $dry ? ' (Probelauf)' : '', str_repeat('=', 66));
@@ -225,7 +302,14 @@ foreach ($catalog as $id => $p) {
         $info = @getimagesize($abs);
         if (!$info) { $newList[] = $rel; continue; }
 
-        $parts = mv_columns($abs, (int)$info[0], (int)$info[1]);
+        $profile = null;
+        $parts = mv_columns($abs, (int)$info[0], (int)$info[1], $profile);
+
+        // Boş koridor yoksa ince koridor arıyoruz (bkz. mv_dips).
+        if (count($parts) < 2 && is_array($profile)) {
+            $parts = mv_dips($profile['col'], $profile['w'], (int)$info[0], (int)$info[1]);
+        }
+
         if (count($parts) < 2) { $newList[] = $rel; $keep++; continue; }
 
         $cuts[$rel] = $parts;
