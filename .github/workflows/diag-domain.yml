@@ -87,4 +87,22 @@ jobs:
             done
             echo
           done
-          echo "Sunucunun IP'si (vestrasales.com uzerinden): $(dig +short A vestrasales.com | head -1)"
+          IP=$(dig +short A vestrasales.com | head -1)
+          echo "Sunucunun IP'si (vestrasales.com uzerinden): $IP"
+          echo
+          echo "== DNS'i ATLAYARAK site cevap veriyor mu =="
+          # Alt adın DNS kaydı GoDaddy tarafında yok, o yüzden tarayıcı
+          # sunucuya gelemiyor. Ama sunucudaki vhost hazır: adresi IP ile
+          # verip Host başlığını elle yazarsak tam da tarayıcının yapacağı
+          # istek oluşuyor. Böylece "DNS eksik" ile "site çalışmıyor"
+          # birbirinden ayrılıyor — ikisi de aynı beyaz ekranı gösterir.
+          for p in / /index.php /shop.php; do
+            code=$(curl -sS -o /tmp/h.html -w '%{http_code}' --max-time 25 \
+                   --resolve "maxsales-test.vestrasales.com:443:$IP" \
+                   "https://maxsales-test.vestrasales.com$p" 2>/dev/null || echo 000)
+            sig=$(grep -c 'MAXSALES' /tmp/h.html 2>/dev/null || echo 0)
+            size=$(wc -c < /tmp/h.html 2>/dev/null || echo 0)
+            printf '   %-14s %s  %s bayt  MAXSALES imzasi:%s\n' "$p" "$code" "$size" "$sig"
+          done
+          echo
+          echo "   imza>0 ise site AYAKTA; geriye yalnizca DNS kaydi kaliyor."
