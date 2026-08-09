@@ -77,12 +77,30 @@ function vestra_journal_body_html(string $body, array $art = []): string {
        them at render time also means one insertion covers all five languages, and a
        piece never carries a marker pointing at a file that has not arrived yet. */
     if ($art && !preg_grep('/^\[img:/', $blocks)) {
-        $shots = vestra_journal_body_photos($art);
-        if ($shots && count($blocks) >= 4) {
-            $cuts = [max(1, intdiv(count($blocks), 3)), max(2, intdiv(count($blocks) * 2, 3))];
+        $B = count($blocks);
+        /* How many photographs a piece carries follows how long it is, rather than being
+           fixed at two. A four-paragraph note broken up three times is mostly pictures;
+           a twelve-paragraph piece with two is a wall of text with a break in it. One
+           image per three paragraphs, floored at two and capped at four — past four the
+           reader is scrolling through a gallery looking for where the argument resumed. */
+        $shots = vestra_journal_body_photos($art, max(2, min(4, intdiv($B, 3))));
+        if ($shots && $B >= 4) {
+            /* Evenly spaced: n images across B blocks sit at B*j/(n+1). Never at index 0 —
+               an article opens with its own first paragraph, not with a photograph — and
+               never past the last block, which would leave a picture with nothing after it. */
+            $cuts = [];
+            for ($j = 1; $j <= count($shots); $j++) {
+                $at = max(1, intdiv($B * $j, count($shots) + 1));
+                /* at least one paragraph between two pictures — on a short piece the even
+                   spacing collapses to adjacent slots and the images stack with a single
+                   line wedged between them */
+                if ($cuts && $at <= end($cuts) + 1) $at = end($cuts) + 2;
+                if ($at >= $B) break;
+                $cuts[] = $at;
+            }
             $mixed = []; $k = 0;
             foreach ($blocks as $i => $b) {
-                if ($k < count($shots) && $i === $cuts[$k]) {
+                if ($k < count($cuts) && $i === $cuts[$k]) {
                     $cap = vestra_journal_credit($shots[$k]);
                     $mixed[] = '[img:'.$shots[$k].($cap !== '' ? '|'.$cap : '').']';
                     $k++;
@@ -462,6 +480,7 @@ function vestra_journal_credits(bool $fresh = false): array {
  *  illustrate them better than a portrait does. */
 function vestra_journal_photo_queries(): array {
     return [
+        /* the original twelve */
         'denim fabric',
         'wool knitwear',
         'textile fabric',
@@ -474,6 +493,31 @@ function vestra_journal_photo_queries(): array {
         'garment factory',
         'silk fabric',
         'knitted sweater',
+        /* Widened because twenty-one articles were drawing covers and body shots from one
+           small pool, so the same photograph turned up on several pieces. Each addition
+           names a cloth, a weave or a workroom — the two things Commons indexes well and
+           the journal can legally publish. Every term here has a matching entry in
+           vestra_journal_photo_require(); a query whose word is not on that list returns
+           results that are then all rejected, which reads as "Commons has nothing" when
+           in fact we filtered it out ourselves. */
+        'tweed fabric',
+        'corduroy',
+        'velvet fabric',
+        'cashmere wool',
+        'embroidery textile',
+        'weaving loom',
+        'spinning wheel wool',
+        'textile dyeing',
+        'sewing machine',
+        'thread spool',
+        'haberdashery shop',
+        'mannequin clothing',
+        'cotton mill',
+        'jacquard weaving',
+        'tartan cloth',
+        'houndstooth fabric',
+        'gingham fabric',
+        'flax fibre',
     ];
 }
 
@@ -490,7 +534,15 @@ function vestra_journal_photo_require(): array {
     return ['denim', 'fabric', 'textile', 'tailor', 'atelier', 'couture', 'sewing', 'sewn',
             'yarn', 'wool', 'merino', 'knit', 'linen', 'cotton', 'silk', 'garment', 'apparel',
             'clothes', 'clothing', 'boutique', 'dressmak', 'weav', 'loom', 'spinning', 'thread',
-            'costume', 'shirt', 'knitwear', 'sweater'];
+            'costume', 'shirt', 'knitwear', 'sweater',
+            /* cloths, weaves and workroom subjects added alongside the widened query list.
+               'mill' is deliberately absent even though 'cotton mill' is queried: it matches
+               Miller, Millennium and every Mill Street, and the cotton in the query already
+               carries those results through. Whole words where a fragment would over-match --
+               'dyeing' and 'dyed' rather than 'dye', which any surname Dyer would satisfy. */
+            'tweed', 'corduroy', 'velvet', 'cashmere', 'embroider', 'dyeing', 'dyed',
+            'spool', 'bobbin', 'haberdash', 'mannequin', 'jacquard', 'tartan', 'houndstooth',
+            'gingham', 'flax'];
 }
 
 /** Commons titles carrying any of these are never published, whatever their licence.
@@ -513,7 +565,13 @@ function vestra_journal_photo_reject(): array {
                barracks — a labour-conditions picture, not a trade one. Storm and flood
                damage arrives through clothes-shop queries the same way. */
             'dog sweater', 'dog coat', 'dog jumper', 'barracks', 'flood', 'hurricane',
-            'katrina', 'debris', 'silty', 'barbie'];
+            'katrina', 'debris', 'silty', 'barbie',
+            /* 'velvet' earns its place in the require list as a cloth, but the word belongs
+               to a band, a bloodless coup and an insect before it belongs to fabric. */
+            'velvet underground', 'velvet revolution', 'velvet ant', 'velvet worm',
+            /* a mannequin in a war museum is wearing a uniform, and one in a shop window at
+               Halloween is a costume display -- neither is the clothing trade */
+            'museum', 'halloween', 'waxwork', 'madame tussaud'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
