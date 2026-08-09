@@ -327,13 +327,21 @@ function vestra_mask_seller(string $s): string {
     return $s === '' ? '' : mb_strtoupper(mb_substr($s, 0, 1)).'···';
 }
 /* Full Fashion & Accessories taxonomy (grouped) — used by the seller's product form. */
+/* Satici panelindeki kategori acilir listesi buradan geliyor (seller.php: urun ekle
+   ve urun duzenle). Bu yuzden listede OLMAYAN bir kategori sadece "secilemez" degil:
+   duzenleme formu, urunun kategorisi listede yoksa "Other" secenegini SECILI getiriyor
+   (seller.php'deki in_array kontrolu), yani satici o urunu acip kaydettiginde dogru
+   kategori "Other" ile eziliyor. Katalogda kullanilan 6 kategori (Jeans Shorts,
+   Swim Shorts, Tracksuit Sets ve uc kadin kategorisi) burada yoktu ve o kategorilerde
+   34 canli urun duruyor -- hepsi bu tuzagin icindeydi. Taksonomi katalogun gercekten
+   sattigi seyi yansitmali; asagidakiler o yuzden eklendi. */
 function vestra_all_cats(){
   return [
-    'Tops'               => ['T-Shirts','Polos','Shirts','Blouses','Sweaters & Knitwear','Cardigans','Hoodies & Sweatshirts','Tank Tops'],
-    'Bottoms'            => ['Trousers & Chinos','Jeans','Shorts','Skirts','Leggings'],
+    'Tops'               => ['T-Shirts',"Women's T-Shirts",'Polos','Shirts','Blouses','Sweaters & Knitwear','Cardigans','Hoodies & Sweatshirts','Tank Tops'],
+    'Bottoms'            => ['Trousers & Chinos','Jeans',"Women's Jeans",'Shorts','Jeans Shorts','Skirts','Leggings'],
     'Outerwear'          => ['Jackets','Coats','Blazers','Vests & Gilets'],
     'Dresses & Suits'    => ['Dresses','Suits','Jumpsuits & Playsuits'],
-    'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Swimwear'],
+    'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Tracksuit Sets','Swimwear','Swim Shorts',"Women's Swimwear"],
     'Underwear & Socks'  => ['Underwear','Lingerie','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
     'Footwear'           => ['Sneakers','Boots','Sandals','Heels','Flats','Loafers','Slippers'],
     'Bags & Luggage'     => ['Handbags','Backpacks','Tote Bags','Wallets & Purses','Travel & Luggage'],
