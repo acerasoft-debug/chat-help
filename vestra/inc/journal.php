@@ -765,8 +765,19 @@ function vestra_journal_starters(): array {
 /** Load starter articles into data/journal.json. New titles are added in full;
  *  an existing starter (matched by title) has its translations back-filled if it
  *  has none yet — so clicking again upgrades older English-only starters in place
- *  without touching any article the admin has since edited. Returns count changed. */
-function vestra_journal_seed_starters(): int {
+ *  without touching any article the admin has since edited. Returns count changed.
+ *
+ *  $refresh republishes the shipped text over an article that already exists —
+ *  body, excerpt and every translation. It is off by default and stays that way
+ *  at both ordinary call sites, because the whole point of the normal path is
+ *  that it cannot flatten something edited in the admin panel. It exists because
+ *  without it, rewriting an article in journal_seed.json changes nothing on the
+ *  site: the title still matches, so the record is skipped and the old body
+ *  stays published. Translations are replaced rather than merged — once the
+ *  English is rewritten, a translation of the previous version is no longer a
+ *  translation of what is on the page. id, slug, published and created survive,
+ *  so a refresh keeps the article's URL and does not silently unpublish it. */
+function vestra_journal_seed_starters(bool $refresh = false): int {
     $all = vestra_read_json('journal.json');
     $byTitle = [];
     foreach ($all as $idx => $p) $byTitle[strtolower(trim((string)($p['title'] ?? '')))] = $idx;
@@ -775,6 +786,17 @@ function vestra_journal_seed_starters(): int {
         $key = strtolower(trim($s['title']));
         if (isset($byTitle[$key])) {
             $idx = $byTitle[$key];
+            if ($refresh) {
+                $was = $all[$idx];
+                foreach (['body', 'excerpt', 'category', 'author'] as $f)
+                    if (isset($s[$f]) && $s[$f] !== '') $all[$idx][$f] = $s[$f];
+                $all[$idx]['i18n'] = $s['i18n'] ?? [];
+                /* Only count and re-stamp a record that actually moved, so running a
+                   refresh twice reports 0 the second time instead of claiming it
+                   rewrote everything again. */
+                if ($all[$idx] !== $was) { $all[$idx]['updated'] = date('c'); $changed++; }
+                continue;
+            }
             $cur = (isset($all[$idx]['i18n']) && is_array($all[$idx]['i18n'])) ? $all[$idx]['i18n'] : [];
             $touched = false;
             foreach (($s['i18n'] ?? []) as $l => $tr) {          // add any language the stored record lacks;
