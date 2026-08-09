@@ -101,6 +101,16 @@ The three tracksuits are worth noting because they are the first rows to reach
 `Tracksuit Sets` from these batches — the category existed but nothing the
 folder produced had ever been put in it.
 
+### `balenciaga-burberry-08` — reviewed, 12 rows corrected
+
+Seven pairs of jeans, four packs of boxer briefs and one t-shirt, all stored as
+"Sweatshirt". `F9N24ZHU7H9` really is a hooded sweat and was left alone.
+
+The underwear matters more than the count suggests. `shorts-sweats-01` already
+found boxers filed as sweatshirts, and this is the same fault in a second
+folder, so it is not a one-off slip in one import — it is what happens whenever
+the folder name is treated as the category.
+
 ### Before importing: check images against the LIVE catalogue, not just each other
 
 Two found so far, both in batch2:
