@@ -14,6 +14,10 @@ on:
         description: "true = katalog dosyalarını ve yeni ürün fotoğraflarını da gönder"
         required: false
         default: "false"
+      sync_vault:
+        description: "true = Vault los listesini de gönder (SUNUCUDAKİNİN ÜZERİNE YAZAR)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -129,7 +133,42 @@ jobs:
             echo "   $f gönderildi"
           done
 
+          # Vault los listesi AYRI bir anahtarla.
+          # retail-vault.json beyaz listede değil, çünkü los planı bir kez
+          # yazılıp değişmeyen ticari veri: işletmeci sunucuda bir los açtıysa
+          # sonraki deploy onu silmemeli. İlk kurulumda kadro göndermek için
+          # bu anahtar bilerek ayrı ve varsayılan olarak kapalı.
+          if [ "${{ github.event.inputs.sync_vault }}" = "true" ] && [ -f retail/data/retail-vault.json ]; then
+            echo "-- Vault los listesi (üzerine yazar)"
+            ssh $SSHOPT "$SRV" "[ -f ${DEST}/data/retail-vault.json ] && cp ${DEST}/data/retail-vault.json ${DEST}/data/retail-vault.backup.\$(date +%Y%m%d-%H%M%S).json || true"
+            rsync -az -e "ssh $SSHOPT" retail/data/retail-vault.json "${SRV}:${DEST}/data/retail-vault.json"
+            echo "   gönderildi (öncekinin yedeği alındı)"
+          fi
+
           echo "MEDYA SENKRONU TAMAM"
+
+      - name: Yayın doğrulaması (dışarıdan)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          T: ${{ github.event.inputs.target }}
+        run: |
+          # Sunucuda selftest çalışıyor ama o dosya sisteminden bakıyor.
+          # Asıl soru şu: dışarıdan bir tarayıcı sayfayı alabiliyor mu?
+          BASE="https://vestrasales.com"
+          [ "$T" = "." ] || BASE="$BASE/$T"
+          fail=0
+          for u in "" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
+            code=$(curl -sS -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
+            size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
+            printf '%-28s %s  %s bayt\n' "${u:-/}" "$code" "$size"
+            [ "$code" = "200" ] && [ "$size" -gt 3000 ] || fail=1
+          done
+          # Ürün kartı gerçekten basılıyor mu?
+          curl -sS -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
+          echo "kart sayısı: $(grep -o 'class=\"card\"' /tmp/shop.html | wc -l)"
+          echo "fiyat sayısı: $(grep -o 'card__price' /tmp/shop.html | wc -l)"
+          [ "$fail" -eq 0 ] || { echo "::error::yayın doğrulaması başarısız"; exit 1; }
+          echo "YAYIN DOĞRULANDI -> $BASE"
 
       - name: Kuru çalıştırma (yalnızca liste)
         if: ${{ github.event.inputs.dry_run == 'true' }}
