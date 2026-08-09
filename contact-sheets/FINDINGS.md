@@ -17,6 +17,40 @@ images with the filename (= model code) printed under each one.
 | `balenciaga-burberry-04..17` | 342 | **not needed for live rows** (see coverage note) |
 | `shorts-sweats-01..10` | 236 | not yet |
 
+## batch2 / batch3 cannot be imported as they stand
+
+All 158 rows carry one of just two categories — `Hoodies & Sweatshirts` (109)
+and `Shorts` (49) — because that is what the two source folders were called.
+Every row maps to a contact sheet, so each one can be checked; they sit in
+twelve sheets:
+
+`balenciaga-burberry-02` (1), `-03` (5), `-04` (21), `-05` (22), `-06` (21),
+`-07` (23), `-08` (15), `dg-swim-01` (11), `mixed-root-c-01` (13), `-02` (5),
+`shorts-sweats-03` (11), `shorts-sweats-04` (10).
+
+### The generator emitted some products twice, under both categories
+
+`dgn-m4e48tfusfw` and `dgn-f9o00tgdcnu` each appear twice with the **same id and
+the same image**, once named "Sweatshirt" in `Hoodies & Sweatshirts` and once
+"Shorts" in `Shorts`. Whatever built these walked the folder once per category
+and took the name and category from the pass rather than from the product. Two
+rows sharing an id do not just look untidy: on import one silently overwrites
+the other, so which of the two survives is arbitrary.
+
+### `dg-swim-01` — reviewed, 12 rows corrected
+
+Every one of the 24 tiles is men's swim shorts: drawstring waist, mesh lining,
+several photographed with the drawstring pouch D&G ships them in, models on the
+beach. The rows were stored as `Shorts` (and one as `Hoodies & Sweatshirts`).
+
+All 12 are now `Swim Shorts`, with names to match, and the duplicate
+`dgn-m4e48tfusfw` "Sweatshirt" row is gone — tile 12 is plainly a pair of black
+swim shorts, so that row was wrong in both name and category.
+
+`dgn-f9o00tgdcnu` is left alone for now: its photo sits on
+`balenciaga-burberry-04` and `shorts-sweats-03`, neither reviewed yet, and
+guessing which of its two rows is right would repeat the original mistake.
+
 ## Coverage: only three of the seventeen sheets matter
 
 The folder has **44 live product rows**, and every one of them appears on sheets
