@@ -1,4 +1,4 @@
-name: (Teşhis) maxsales.de için sunucuyu incele
+name: (Teşhis) Alan adı yetkileri ve DNS
 
 on:
   workflow_dispatch:
@@ -11,58 +11,80 @@ on:
 permissions:
   contents: read
 
-# SALT OKUNUR sayılır: yalnızca geçici bir kontrol dosyası yazıp siliyor.
+# SALT OKUNUR. Hiçbir şey yazmıyor, silmiyor, açmıyor.
 #
-# Soru: /shop yayında ama $HOME/public_html/shop yok. Site hangi dizinden
-# sunuluyor? Tahmin etmek yerine uygulamanın içine bir dosya koyup web'den
-# okuyoruz — dönen cevap DOCUMENT_ROOT'u ve gerçek yolu söylüyor.
+# NİYE VAR
+# ========
+# maxsales.de'yi sunucuya bağlamak iki kez reddedildi:
+#   uapi Domains    add_domain      -> Can't locate Cpanel/API/Domains.pm
+#   uapi AddonDomain addaddondomain -> Can't locate Cpanel/API/AddonDomain.pm
+# Yani bu cPanel kurulumunda ek alan modülleri hiç yüklü değil. SubDomain
+# modülü ise çalışıyor (maxsales-test.vestrasales.com açıldı).
+#
+# Ayrı bir sorun daha ölçüldü: cPanel'de açılan alt ad dışarıdan
+# çözülmüyor. Çünkü vestrasales.com'un yetkili sunucuları bu makine değil,
+# GoDaddy'nin ns71/ns72.domaincontrol.com sunucuları — cPanel'in yazdığı
+# bölge dosyasını kimse sormuyor.
+#
+# Bu iş, "paket ek alana izin veriyor mu, yoksa modüller mi eksik" sorusunu
+# tahminle değil ölçümle cevaplasın diye var: hesabın özellik listesi,
+# alan sayısı sınırı ve mevcut alanlar okunuyor.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Kontrol dosyasını koy
+      - name: Sunucudaki yetkiler
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 3m
+          command_timeout: 4m
           script: |
-            echo "== ev dizini: shop benzeri her sey =="
-            ls -ld "$HOME"/*shop* "$HOME"/public_html/*shop* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo "== cPanel surumu =="
+            cat /usr/local/cpanel/version 2>/dev/null || echo "  okunamadi"
             echo
-            echo "== _golge-* dizinleri (boyut ve tarih) =="
-            du -sh "$HOME"/_golge-* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo "== yuklu UAPI modulleri (alan adiyla ilgili) =="
+            ls /usr/local/cpanel/Cpanel/API/ 2>/dev/null | grep -iE 'domain|sub|park' | sed 's/^/  /' || echo "  liste okunamadi"
             echo
-            echo "== public_html gercek yol =="
-            readlink -f "$HOME/public_html"
+            echo "== hesap sinirlari =="
+            # MAXADDON / MAXSUB paket sinirlari. "0" = hic izin yok,
+            # "unlimited" = sinirsiz. Modul eksikligi ile paket yasagi ayri
+            # seyler; ikisini birbirine karistirmamak icin ikisi de okunuyor.
+            uapi --output=jsonpretty StatsBar get_stats display='addondomains|subdomains|parkeddomains' 2>&1 \
+              | grep -E '"(name|count|max|item)"' | sed 's/^/  /' | head -40
             echo
-            echo "== kontrol dosyasi yaziliyor =="
-            for d in "$HOME"/_golge-shop-* "$HOME/public_html"; do
-              [ -d "$d" ] || continue
-              printf '%s' "$d" > "$d/_where.txt" 2>/dev/null && echo "  yazildi: $d/_where.txt"
-            done
+            echo "== tanimli alanlar =="
+            uapi --output=jsonpretty DomainInfo list_domains 2>&1 \
+              | grep -oE '"[a-z0-9.-]+\.[a-z]{2,}"' | sort -u | sed 's/^/  /'
+            echo
+            echo "== belge kokleri =="
+            uapi --output=jsonpretty DomainInfo domains_data 2>&1 \
+              | grep -E '"(domain|documentroot)"' | sed 's/^/  /' | head -30
 
-      - name: Web'den oku
+      - name: DNS gerçekte ne diyor
+        if: always()
+        env:
+          D: ${{ github.event.inputs.domain }}
         run: |
-          for u in "https://vestrasales.com/shop/_where.txt" "https://vestrasales.com/_where.txt"; do
-            echo "-- $u"
-            curl -sS --max-time 20 "$u" | head -3 || true
+          # Yetkili sunucuya DOĞRUDAN soruyoruz. Ara belleğe düşmüş eski bir
+          # "yok" cevabı ölçümü yanıltmasın diye: alt ad cPanel'de açılmadan
+          # önce sorulmuştu ve olumsuz cevap bir süre saklanıyor.
+          for z in vestrasales.com "$D"; do
+            echo "== $z"
+            dig +short NS "$z" | sed 's/^/   NS  /'
+            ns=$(dig +short NS "$z" | head -1)
+            for name in "$z" "www.$z" "maxsales-test.vestrasales.com"; do
+              case "$name" in *"$z"*|maxsales-test*) ;; *) continue ;; esac
+              printf '   %-38s' "$name"
+              if [ -n "$ns" ]; then
+                a=$(dig +short A "$name" "@$ns" 2>/dev/null | tr '\n' ' ')
+                echo "A(yetkili)= ${a:-YOK}"
+              else
+                echo "yetkili sunucu bulunamadi"
+              fi
+            done
             echo
           done
-          echo "-- /shop/ calisiyor mu"
-          curl -sS -o /dev/null -w '  kod=%{http_code}\n' --max-time 20 "https://vestrasales.com/shop/" || true
-
-      - name: Kontrol dosyasını sil
-        if: always()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 2m
-          script: |
-            rm -f "$HOME"/_golge-shop-*/_where.txt "$HOME/public_html/_where.txt"
-            echo "temizlendi"
+          echo "Sunucunun IP'si (vestrasales.com uzerinden): $(dig +short A vestrasales.com | head -1)"
