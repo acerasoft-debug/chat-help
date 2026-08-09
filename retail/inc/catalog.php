@@ -625,14 +625,62 @@ function vr_product_image(array $p, int $index = 0): string
 }
 
 /**
+ * Kartlık sıra: ürünün kareleri, 4:5 karoda en iyi duracak olan başta.
+ *
+ * Dosya sırası tedarikçinin klasör sırası; onun kadrajla bir ilgisi yok. Bir
+ * üründe hem düzgün bir boy çekimi hem de ızgaradan ayrılmış enlemesine bir
+ * detay paneli varsa vitrine boy çekimi çıkmalı — detay ikinci kareye düşsün.
+ *
+ * Sıralama üç şeye bakıyor: kontakt sayfası mı (en ağır ceza), oranı karoya ne
+ * kadar yakın, dosya sırası (eşitlikte ilk gelen kazanıyor — mevcut davranış
+ * hiç bozulmasın diye).
+ */
+function vr_card_frames(array $p): array
+{
+    $imgs = array_values(array_filter((array)($p['images'] ?? []), 'strlen'));
+    if (count($imgs) < 2) return $imgs;
+
+    $grid  = vr_photo_grid_index();
+    $shape = function_exists('vr_photo_shape_index') ? vr_photo_shape_index() : [];
+
+    $score = [];
+    foreach ($imgs as $i => $img) {
+        $s = 0.0;
+        if (isset($grid[$img])) $s += 100;                 // ızgara: en sona
+        // İki–üç mankenli kare: bilgi olarak iyi, karo olarak kötü. Aynı yüz
+        // yan yana iki kez görününce sayfa çoğaltılmış gibi duruyor.
+        $s += max(0, (int)($shape[$img]['n'] ?? 1) - 1) * 14;
+        $r = (float)($shape[$img]['r'] ?? 0.8);
+        if ($r > 0) {
+            // 0.8'e logaritmik uzaklık: 0.4 ile 1.6 aynı ağırlıkta cezalansın.
+            $s += abs(log($r / 0.8)) * 10;
+        }
+        $s += $i * 0.35;                                   // dosya sırası: hafif tercih
+        $score[$i] = $s;
+    }
+    asort($score);
+    $out = [];
+    foreach (array_keys($score) as $i) $out[] = $imgs[$i];
+    return $out;
+}
+
+/** Vitrin kartının yüzü: karoya en iyi oturan kare. */
+function vr_card_image(array $p): string
+{
+    $f = vr_card_frames($p);
+    return $f[0] ?? vr_product_image($p);
+}
+
+/**
  * Vitrin kartının üzerine gelince beliren ikinci kare. Gerçek fotoğrafı olan
  * satırda ikinci fotoğraf; olmayanda flat-lay kadrajı (yakın detay kartlık
  * boyutta okunmuyor). İkinci kare yoksa boş döner ve kart tek görselle kalır.
  */
 function vr_product_image_alt(array $p): string
 {
-    if (!empty($p['images'][1])) return (string)$p['images'][1];
-    if (!empty($p['images']))    return '';
+    $f = vr_card_frames($p);
+    if (isset($f[1])) return (string)$f[1];
+    if ($f)           return '';
     return vr_url('assets/art.php', ['s' => substr(sha1($p['id']), 0, 12), 'c' => $p['cat'], 'v' => 2]);
 }
 

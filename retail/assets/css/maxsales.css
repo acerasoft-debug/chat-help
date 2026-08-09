@@ -276,21 +276,45 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .card__media{
   position:relative;display:block;background:var(--bone-2);aspect-ratio:4/5;overflow:hidden;border-radius:var(--r);
 }
-.card__media img{
-  width:100%;height:100%;object-fit:cover;
+
+/* --- Kare yerleşimi -------------------------------------------------------
+   Karo 4:5; fotoğraflar 0.33 ile 2.2 arasında. Oranı tutan kareye cover,
+   tutmayana contain veriliyor ve arkası dolduruluyor: paket çekiminde karenin
+   kendi kenar rengiyle (fr--tint), sokak/mekân çekiminde aynı karenin bulanık
+   büyütmesiyle (fr--pad). Hangisinin hangisi olduğuna sunucu karar veriyor —
+   data/photo-shape.json, bkz. vr_img_fit(). */
+.fr{position:absolute;inset:0;display:block;overflow:hidden;background:var(--tint,var(--bone-2))}
+.fr img{
+  position:relative;width:100%;height:100%;object-fit:cover;object-position:var(--pos,50% 50%);
   transition:transform 1s var(--ease),filter .5s var(--ease);
 }
-.card:hover .card__media img{transform:scale(1.045)}
-.card.is-out .card__media img{filter:grayscale(1) opacity(.55)}
+.fr--pad img,.fr--tint img{object-fit:contain}
+/* Bulanık zemin: aynı görselin 180 px'lik hâli, tarayıcı onu zaten indirdi.
+   inset negatif — blur kenarda saydamlaşmasın diye kutunun dışına taşıyor. */
+.fr--pad::before{
+  content:"";position:absolute;inset:-12%;
+  background:var(--blur) center/cover no-repeat;
+  filter:blur(22px) saturate(.72) brightness(1.06);
+  opacity:.85;
+}
+.card__media img{width:100%;height:100%}
+.card:hover .fr img{transform:scale(1.045)}
+/* Tek kareli ürün: üzerine gelince ikinci fotoğraf yok, o yüzden kart ölü
+   duruyordu. Aynı karenin özneye doğru yakınlaşması hem dürüst hem de
+   kartların hepsinin aynı şekilde cevap vermesini sağlıyor. */
+.card__media--solo:hover .fr img{transform:scale(1.28)}
+.card__media--solo .fr img{transform-origin:var(--pos,50% 50%)}
+.card.is-out .fr img{filter:grayscale(1) opacity(.55)}
+.card.is-out .fr::before{filter:blur(22px) grayscale(1);opacity:.4}
 /* İkinci kare: üzerine gelince yumuşak geçişle beliriyor. Dokunmatik cihazda
    hover yok — orada hiç görünmez, ilk kare olduğu gibi kalır. */
-.card__alt{position:absolute;inset:0;opacity:0;transition:opacity .55s var(--ease)}
+.card__alt{opacity:0;transition:opacity .55s var(--ease)}
 @media (hover:hover){
   .card__media:hover .card__alt,.card__media:focus-visible .card__alt{opacity:1}
 }
 @media (prefers-reduced-motion:reduce){
-  .card__media img{transition:opacity .55s var(--ease)}
-  .card:hover .card__media img{transform:none}
+  .fr img{transition:opacity .55s var(--ease)}
+  .card:hover .fr img{transform:none}
 }
 .card__badge{
   position:absolute;top:11px;left:11px;background:var(--ink);color:var(--bone);
@@ -378,7 +402,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .lot:hover{border-color:rgba(201,162,77,.5);transform:translateY(-3px)}
 .lot__media{position:relative;aspect-ratio:1/1;background:var(--ink-3);overflow:hidden}
-.lot__media img{width:100%;height:100%;object-fit:cover;opacity:.94;transition:transform .9s var(--ease)}
+.lot__media img{opacity:.94;transition:transform .9s var(--ease)}
+.lot__media .fr{background:var(--ink-3)}
 .lot:hover .lot__media img{transform:scale(1.05)}
 .lot__step{
   position:absolute;top:12px;left:12px;background:rgba(10,10,14,.72);color:var(--brass-2);
@@ -505,7 +530,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .pdp__media--multi .pdp__shot:first-child:nth-last-child(n+3):nth-last-child(odd){
   grid-column:1/-1;aspect-ratio:1/1;
 }
-.pdp__shot img{width:100%;height:100%;object-fit:cover}
+.pdp__zoom{z-index:2}
 
 /* Masaüstünde galeri TEK sütun.
    2×2 ızgara medya sütununu kısa bırakıyordu: yan sütun bir buçuk ekran
@@ -1389,9 +1414,9 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 
 /* "Hakkımızda" sayfasındaki kadraj şeridi. Dört fotoğraf, dört ev — sayfa
    kurumsal bildiri değil mağazanın parçası gibi dursun. Telefonda ikişerli. */
+.thumb45{position:relative;display:block;aspect-ratio:4/5;overflow:hidden;border-radius:var(--r);background:var(--bone-2)}
 .aboutstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:26px 0 4px}
-.aboutstrip img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;border-radius:var(--r);background:var(--bone-2)}
-.aboutstrip a{display:block;overflow:hidden;border-radius:var(--r)}
+.aboutstrip a{display:block;position:relative;aspect-ratio:4/5;overflow:hidden;border-radius:var(--r);background:var(--bone-2)}
 .aboutstrip img{transition:transform .9s var(--ease)}
 .aboutstrip a:hover img{transform:scale(1.05)}
 @media (max-width:640px){.aboutstrip{grid-template-columns:repeat(2,1fr)}}

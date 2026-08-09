@@ -82,15 +82,27 @@ vr_layout_start([
            büyüteç katmanında gösteriyoruz (assets/js). -->
       <?php $shots = vr_product_gallery($p, 5); ?>
       <div class="pdp__media<?= count($shots) > 1 ? ' pdp__media--multi' : '' ?>" data-gallery>
-        <?php foreach ($shots as $i => $src): ?>
+        <?php foreach ($shots as $i => $src):
+            $box = count($shots) > 1 ? 0.8 : 1.0;
+            // Tek kareli üründe kutuyu fotoğrafa uyduruyoruz. Enlemesine bir
+            // kareyi zorla 1:1'e sokmak, ürünün üstüne ve altına kocaman
+            // bulanık şerit koymak demek — ürün sayfasında bunun mazereti yok.
+            if (count($shots) === 1) {
+                $r = (float)(vr_photo_shape_index()[$src]['r'] ?? 0);
+                if ($r > 0) $box = max(0.62, min(1.5, $r));
+            }
+        ?>
           <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
+             <?= count($shots) === 1 ? 'style="aspect-ratio:' . h((string)round($box, 3)) . '"' : '' ?>
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
-            <img src="<?= h(vr_img($src, 900)) ?>"
-                 srcset="<?= h(vr_img_srcset($src, [420, 600, 900, 1400])) ?>"
-                 sizes="(max-width:940px) 96vw, 640px"
-                 alt="<?= h($p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : '')) ?>"
-                 loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" <?= $i === 0 ? 'fetchpriority="high"' : '' ?>
-                 width="800" height="1000">
+            <?php vr_frame($src, [
+                'box'    => $box,
+                'w'      => 900,
+                'widths' => [420, 600, 900, 1400],
+                'sizes'  => '(max-width:940px) 96vw, 640px',
+                'alt'    => $p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : ''),
+                'eager'  => $i === 0,
+            ]); ?>
             <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>
           </a>
         <?php endforeach; ?>

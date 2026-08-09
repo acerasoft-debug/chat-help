@@ -71,11 +71,12 @@ vr_layout_start([
               <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
                 <?php foreach ($preview as $p): ?>
                   <a href="<?= h(vr_product_url($p)) ?>" style="display:block">
-                    <?php $bimg = vr_product_image($p); ?>
-                    <img src="<?= h(vr_img($bimg, 300)) ?>" srcset="<?= h(vr_img_srcset($bimg, [180, 300, 420])) ?>"
-                         sizes="(max-width:940px) 30vw, 180px"
-                         alt="<?= h($p['name']) ?>" loading="lazy"
-                         width="200" height="250" style="aspect-ratio:4/5;object-fit:cover">
+                    <span class="thumb45"><?php vr_frame(vr_card_image($p), [
+                        'w'      => 300,
+                        'widths' => [180, 300, 420],
+                        'sizes'  => '(max-width:940px) 30vw, 180px',
+                        'alt'    => $p['name'],
+                    ]); ?></span>
                   </a>
                 <?php endforeach; ?>
               </div>

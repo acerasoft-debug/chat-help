@@ -318,20 +318,24 @@ function vr_card(array $p, array $o = []): void
     $low     = !$soldOut && (int)$p['stock'] <= 2;
 ?>
 <article class="card<?= $soldOut ? ' is-out' : '' ?>" data-reveal>
-  <a class="card__media" href="<?= h(vr_product_url($p)) ?>">
-    <?php $cimg = vr_product_image($p); ?>
-    <img src="<?= h(vr_img($cimg, 600)) ?>" srcset="<?= h(vr_img_srcset($cimg, [300, 600, 900])) ?>"
-         sizes="(max-width:640px) 48vw, (max-width:1100px) 32vw, 300px"
-         alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
-         loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async" width="600" height="750">
-    <?php // İkinci kare yalnızca üzerine gelince görünür; dekoratif olduğu için
+  <?php $cimg = vr_card_image($p);
+        $alt2 = vr_product_image_alt($p);
+        $solo = ($alt2 === '' || $alt2 === $cimg); ?>
+  <a class="card__media<?= $solo ? ' card__media--solo' : '' ?>" href="<?= h(vr_product_url($p)) ?>">
+    <?php vr_frame($cimg, [
+              'alt'   => $p['brand'] . ' ' . $p['name'],
+              'sizes' => '(max-width:640px) 48vw, (max-width:1100px) 32vw, 300px',
+              'eager' => !empty($o['eager']),
+          ]);
+          // İkinci kare yalnızca üzerine gelince görünür; dekoratif olduğu için
           // alt="" ve aria-hidden — ekran okuyucu aynı ürünü iki kez okumasın.
-          $alt2 = vr_product_image_alt($p); if ($alt2 !== ''): ?>
-      <img class="card__alt" src="<?= h(vr_img($alt2, 600)) ?>"
-           srcset="<?= h(vr_img_srcset($alt2, [300, 600])) ?>"
-           sizes="(max-width:640px) 48vw, 300px"
-           alt="" aria-hidden="true" loading="lazy" decoding="async" width="600" height="750">
-    <?php endif; ?>
+          if (!$solo) {
+              vr_frame($alt2, [
+                  'class'  => 'card__alt',
+                  'widths' => [300, 600],
+                  'sizes'  => '(max-width:640px) 48vw, 300px',
+              ]);
+          } ?>
     <?php if (!empty($o['badge'])): ?><span class="card__badge"><?= h((string)$o['badge']) ?></span><?php endif; ?>
     <?php if ($seller['type'] === 'private'): ?><span class="card__badge card__badge--priv"><?= te('seller_private') ?></span><?php endif; ?>
     <?php if ($soldOut): ?><span class="card__out"><?= te('sold_out') ?></span><?php endif; ?>
@@ -383,11 +387,14 @@ function vr_vault_card(array $v, array $o = []): void
 <article class="lot<?= $v['sold'] ? ' is-sold' : '' ?><?= $locked ? ' is-locked' : '' ?>" data-reveal
          <?= $st['next_at'] ? 'data-next="' . (int)$st['next_at'] . '"' : '' ?>>
   <a class="lot__media" href="<?= h(vr_url('outlet.php', ['lot' => $v['lot_id']])) ?>">
-    <?php $limg = vr_product_image($p); ?>
-    <img src="<?= h(vr_img($limg, 600)) ?>" srcset="<?= h(vr_img_srcset($limg, [300, 600, 900])) ?>"
-         sizes="(max-width:640px) 92vw, 380px"
-         alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
-         loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async" width="600" height="750">
+    <?php vr_frame(vr_card_image($p), [
+        'box'    => 1.0,          // Vault karosu kare
+        'no_pad' => true,         // koyu zeminde beyaz şerit istemiyoruz
+        'w'      => 600,
+        'sizes'  => '(max-width:640px) 92vw, 380px',
+        'alt'    => $p['brand'] . ' ' . $p['name'],
+        'eager'  => !empty($o['eager']),
+    ]); ?>
     <span class="lot__step"><?= te('vault_stage', ['x' => (int)$st['step'] + 1, 'y' => (int)$st['steps'] + 1]) ?></span>
     <?php if ($v['sold']): ?><span class="lot__sold"><?= te('vault_gone') ?></span><?php endif; ?>
   </a>
@@ -560,13 +567,17 @@ function vr_editorial_image(array $rows, string $seed, array &$skip): string
     // tam boy editoryal karoda site anında depo çıktısına benziyor. İndeks
     // (data/photo-quality.json) hangisinin öyle olduğunu önceden biliyor;
     // indeks yoksa hiçbir şey değişmiyor, eski davranış geçerli.
-    $grid = vr_photo_grid_index();
+    $grid  = vr_photo_grid_index();
+    $shape = vr_photo_shape_index();
 
     foreach ([true, false] as $preferSingle) {
         foreach ($rows as $p) {
             foreach ((array)($p['images'] ?? []) as $img) {
                 $img = (string)$img;
                 if ($img === '' || in_array($img, $skip, true)) continue;
+                // Tam boy bantta iki mankenli kare de aynı sorunu yapıyor:
+                // aynı yüz iki kez, sayfa kopyalanmış gibi görünüyor.
+                if ($preferSingle && (int)($shape[$img]['n'] ?? 1) > 1) continue;
                 if ($preferSingle && isset($grid[$img])) continue;
                 $skip[] = $img;
                 return $img;
@@ -729,4 +740,96 @@ function vr_img_srcset(string $rel, array $widths = [300, 600, 900]): string
     $out = [];
     foreach ($widths as $w) $out[] = vr_img($rel, (int)$w) . ' ' . (int)$w . 'w';
     return implode(', ', $out);
+}
+
+/**
+ * Bir kareyi verilen kutuya nasıl yerleştireceğimiz.
+ *
+ * Kart 4:5 (0.80). Elimizdeki kareler 0.33 ile 2.2 arasında geziyor: askıda
+ * çekilmiş palto upuzun, ızgaradan ayrılmış aksesuar paneli enlemesine. Hepsine
+ * cover verirsek uzunun yüzü, geniş olanın omuzları kesiliyor.
+ *
+ * Kural iki basamaklı:
+ *   oran kutuya yakınsa      → cover, özne merkezine göre hafifçe kaydırılmış
+ *   oran kutudan uzaksa      → contain; arkası paket çekimiyse karenin kendi
+ *                              kenar rengiyle, değilse aynı karenin bulanık
+ *                              büyütmesiyle dolduruluyor (ek indirme yok,
+ *                              tarayıcı 180 px'lik hâli zaten önbellekte
+ *                              tutuyor).
+ *
+ * İndeks yoksa (data/photo-shape.json) her şey eski davranışa, düz cover'a
+ * düşüyor — ölçüm katmanı isteğe bağlı.
+ */
+function vr_photo_shape_index(): array
+{
+    static $ix = null;
+    if ($ix === null) {
+        $raw = vr_store_read('photo-shape.json', []);
+        $ix  = is_array($raw) ? $raw : [];
+    }
+    return $ix;
+}
+
+/**
+ * @param float $box hedef kutunun en/boy oranı (kart 0.8)
+ * @return array{mode:string,style:string} mode: 'cover' | 'pad' | 'tint'
+ */
+function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true): array
+{
+    $s = vr_photo_shape_index()[$rel] ?? null;
+    if (!is_array($s) || empty($s['r'])) return ['mode' => 'cover', 'style' => ''];
+
+    $r = (float)$s['r'];
+
+    // Kutuya yakın: kırpma payı her iki eksende de %18'in altında kalıyor,
+    // göz bunu kırpma olarak görmüyor.
+    //
+    // $allowPad false ise (Vault: koyu zeminli karo) oran ne olursa olsun
+    // cover kalıyor; beyaz paket çekimini koyu kartın ortasına beyaz bir kare
+    // olarak oturtmak bölümün bütün havasını bozuyor. Orada tek yaptığımız,
+    // kırpmayı öznenin bulunduğu yere doğru kaydırmak.
+    if (!$allowPad || ($r > $box * 0.82 && $r < $box * 1.22)) {
+        // Özne merkezi ortadaysa hiç uğraşma; kenara kaymışsa kırpmayı oraya
+        // doğru çek — uzun bir paltoda alt kenar yerine yakayı korumak için.
+        $cx = isset($s['cx']) ? max(20, min(80, (int)$s['cx'])) : 50;
+        $cy = isset($s['cy']) ? max(20, min(80, (int)$s['cy'])) : 50;
+        $st = ($cx === 50 && $cy === 50) ? '' : sprintf('--pos:%d%% %d%%', $cx, $cy);
+        return ['mode' => 'cover', 'style' => $st];
+    }
+
+    $bg = preg_match('/^#[0-9a-f]{6}$/i', (string)($s['bg'] ?? '')) ? $s['bg'] : '#f4f2ee';
+
+    if (!empty($s['flat'])) {
+        return ['mode' => 'tint', 'style' => '--tint:' . $bg];
+    }
+    return [
+        'mode'  => 'pad',
+        'style' => '--tint:' . $bg . ';--blur:url(' . vr_img($rel, 180) . ')',
+    ];
+}
+
+/**
+ * Kartın yüzü ve üzerine gelince beliren ikinci kare — <span class="fr">
+ * sarmalıyla birlikte.
+ *
+ * Sarmal şart: bulanık zemin ayrı bir katman (::before) ve fotoğrafın kendisi
+ * onun üstünde duruyor; ikisi tek <img> üzerinde olamıyor çünkü filter
+ * fotoğrafı da bulandırırdı.
+ */
+function vr_frame(string $rel, array $o = []): void
+{
+    if ($rel === '') return;
+    $fit  = vr_img_fit($rel, (float)($o['box'] ?? 0.8), empty($o['no_pad']));
+    $w    = (int)($o['w'] ?? 600);
+    $set  = (array)($o['widths'] ?? [300, 600, 900]);
+    $cls  = 'fr fr--' . $fit['mode'] . (!empty($o['class']) ? ' ' . $o['class'] : '');
+?>
+<span class="<?= h($cls) ?>"<?= $fit['style'] !== '' ? ' style="' . h($fit['style']) . '"' : '' ?>>
+  <img src="<?= h(vr_img($rel, $w)) ?>" srcset="<?= h(vr_img_srcset($rel, $set)) ?>"
+       sizes="<?= h((string)($o['sizes'] ?? '300px')) ?>"
+       alt="<?= h((string)($o['alt'] ?? '')) ?>"<?= empty($o['alt']) ? ' aria-hidden="true"' : '' ?>
+       loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async"
+       width="<?= $w ?>" height="<?= (int)round($w / (float)($o['box'] ?? 0.8)) ?>">
+</span>
+<?php
 }

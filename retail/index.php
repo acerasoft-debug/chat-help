@@ -26,7 +26,10 @@ require_once __DIR__ . '/inc/view.php';
 // Vitrin ürünle açılıyor. Önceki hâlde ana sayfanın ilk ekranı sahne, ikinci
 // ekranı yatay bir raydı; ziyaretçi ürün görmeden iki ekran kaydırıyordu.
 // Şimdi sahnenin hemen altında 12'lik bir ızgara var.
-$fresh   = vr_query(['per_page' => 8, 'sort' => 'new', 'in_stock' => true, 'exclude_vault' => true])['rows'];
+/* "Yeni gelenler" sayfanın EN ALTINDA basılıyor ama sorgusu en üstte;
+   defterin dolması için havuzu geniş alıp süzmeyi basma anına bırakıyoruz.
+   Bkz. aşağıdaki $taken defteri. */
+$freshPool = vr_query(['per_page' => 24, 'sort' => 'new', 'in_stock' => true, 'exclude_vault' => true])['rows'];
 
 /**
  * Vitrin seçkisi: marka başına bir parça, sırayla.
@@ -41,6 +44,28 @@ $fresh   = vr_query(['per_page' => 8, 'sort' => 'new', 'in_stock' => true, 'excl
  */
 $pool = vr_query(['per_page' => 400, 'in_stock' => true, 'exclude_vault' => true])['rows'];
 $grid = vr_photo_grid_index();
+
+/* AYNI ÜRÜN SAYFADA İKİ KEZ ÇIKMASIN.
+   Ölçüldü: ana sayfada 72 ürün bağlantısı, 32 farklı ürün — dördü iki ayrı
+   bölümde birden görünüyordu. Seçki, kategori blokları ve "yeni gelenler"
+   aynı havuzdan besleniyor ve birbirinden habersizdi. Ziyaretçi aynı
+   sweatshirt'ü üç kez görünce katalog küçük sanıyor.
+
+   Tek bir defter tutuyoruz: bir ürün basıldığı anda buraya yazılıyor,
+   sonraki bölümler onu atlıyor. Sıra önemli — önce seçki, sonra kategori
+   blokları, en sonda yeni gelenler; en iyi parçalar en üstte kalıyor. */
+$taken = [];
+$mark   = function (array $rows) use (&$taken): array {
+    foreach ($rows as $r) $taken[(string)$r['id']] = true;
+    return $rows;
+};
+/* DİKKAT: ok fonksiyonu (fn) dış değişkeni DEĞERE göre yakalıyor; öyle
+   yazıldığında $taken hep tanımlandığı andaki boş hâliyle görülüyor ve
+   süzme hiç çalışmıyordu — ölçtük, tekrar sayısı hiç değişmedi. Referansla
+   yakalayan klasik closure gerekiyor. */
+$freeOf = function (array $p) use (&$taken): bool {
+    return !isset($taken[(string)$p['id']]);
+};
 $byBrand = [];
 foreach ($pool as $p) {
     $first = (string)($p['images'][0] ?? '');
@@ -57,6 +82,7 @@ for ($round = 0; $round < 4 && count($curated) < 12; $round++) {
         $curated[] = $take;
     }
 }
+$mark($curated);
 $lots    = vr_vault_lots(['limit' => 6]);
 $facets  = vr_facets();
 $total   = vr_query(['per_page' => 1])['total'];
@@ -268,7 +294,16 @@ vr_layout_start([
        geçiyor. Hem oda dolu duruyor hem de ziyaretçi Vault'un ne tür bir
        malı düşürdüğünü görüyor. Loslar açılır açılmaz bu blok kendiliğinden
        kayboluyor. */
-    $teaser = vr_query(['per_page' => 6, 'sort' => 'price_desc', 'in_stock' => true, 'exclude_vault' => true])['rows'];
+    /* Vault boşken gösterilen teaser da deftere uyuyor: aynı parça hem
+       seçkide hem burada çıkarsa bölüm "Vault'ta ne var" sorusunu değil
+       "bu sweatshirt'ü kaç kez göreceğim" sorusunu doğuruyor. */
+    $teaser = [];
+    foreach (vr_query(['per_page' => 24, 'sort' => 'price_desc', 'in_stock' => true, 'exclude_vault' => true])['rows'] as $tp) {
+        if (count($teaser) >= 6) break;
+        if (!$freeOf($tp)) continue;
+        $teaser[] = $tp;
+    }
+    $mark($teaser);
     ?>
     <div class="wrap"><p class="lede" style="margin-bottom:clamp(24px,3vw,38px)"><?= te('vault_empty') ?></p></div>
     <?php if ($teaser): ?>
@@ -396,6 +431,7 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
         foreach ($pool as $p) {
             if (count($rows) >= 4) break 2;
             if ($p['cat'] !== $cat) continue;
+            if (!$freeOf($p)) continue;                 // başka bölümde çıktı
             if (in_array($p, $rows, true)) continue;
             if ($freshBrand && isset($seenBrand[$p['brand']])) continue;
             $first = (string)($p['images'][0] ?? '');
@@ -405,7 +441,7 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
             $rows[] = $p;
         }
     }
-    if (count($rows) >= 4) $catRows[$cat] = $rows;
+    if (count($rows) >= 4) $catRows[$cat] = $mark($rows);
 }
 ?>
 <?php if (count($cats) > 2): ?>
@@ -472,6 +508,17 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
 </section>
 
 <!-- ------------------------------------------------------------- yeni gelenler -->
+<?php
+/* Defterde olmayan ilk sekiz yeni parça. Süzme burada, çünkü defter ancak
+   seçki ve kategori blokları basıldıktan sonra tamamlanıyor. */
+$fresh = [];
+foreach ($freshPool as $fp) {
+    if (count($fresh) >= 8) break;
+    if (!$freeOf($fp)) continue;
+    $fresh[] = $fp;
+}
+$mark($fresh);
+?>
 <?php if ($fresh): ?>
 <section class="sec">
   <div class="wrap">
