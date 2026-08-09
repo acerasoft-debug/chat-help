@@ -84,8 +84,10 @@ for ($round = 0; $round < 4 && count($curated) < 12; $round++) {
 }
 $mark($curated);
 $lots    = vr_vault_lots(['limit' => 6]);
-$facets  = vr_facets();
-$total   = vr_query(['per_page' => 1])['total'];
+// Sayimlar magaza sayfasiyla AYNI temelde: orada Vault losu listelenmiyor.
+// Ayni temeli kullanmazsak karoda "50 parca" yaziyor, tiklayinca 45 geliyor.
+$facets  = vr_facets(['exclude_vault' => true]);
+$total   = vr_query(['per_page' => 1, 'exclude_vault' => true])['total'];
 $nextDrop = vr_vault_next_drop();
 $days    = (int)vr_config('return_days', 30);
 
