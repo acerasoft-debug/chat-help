@@ -67,11 +67,34 @@ function vestra_journal_toggle(string $id): void {
  * escape-everything and understands exactly one extra construct. The path is required to be a
  * site-relative /uploads/ file — no scheme, no host, no traversal — so a body can never point
  * the reader at a third-party URL or smuggle an attribute out of the src. */
-function vestra_journal_body_html(string $body): string {
+function vestra_journal_body_html(string $body, array $art = []): string {
     $body = str_replace(["\r\n", "\r"], "\n", $body);
+    $blocks = array_values(array_filter(array_map('trim', preg_split('/\n{2,}/', trim($body))), 'strlen'));
+
+    /* Editorial photographs are woven in here rather than written into the article text,
+       because the text ships in the repo and the photographs do not: they are fetched to
+       the server, so their filenames are not known when the piece is written. Placing
+       them at render time also means one insertion covers all five languages, and a
+       piece never carries a marker pointing at a file that has not arrived yet. */
+    if ($art && !preg_grep('/^\[img:/', $blocks)) {
+        $shots = vestra_journal_body_photos($art);
+        if ($shots && count($blocks) >= 4) {
+            $cuts = [max(1, intdiv(count($blocks), 3)), max(2, intdiv(count($blocks) * 2, 3))];
+            $mixed = []; $k = 0;
+            foreach ($blocks as $i => $b) {
+                if ($k < count($shots) && $i === $cuts[$k]) {
+                    $cap = vestra_journal_credit($shots[$k]);
+                    $mixed[] = '[img:'.$shots[$k].($cap !== '' ? '|'.$cap : '').']';
+                    $k++;
+                }
+                $mixed[] = $b;
+            }
+            $blocks = $mixed;
+        }
+    }
+
     $out = '';
-    foreach (preg_split('/\n{2,}/', trim($body)) as $b) {
-        $b = trim($b);
+    foreach ($blocks as $b) {
         if ($b === '') continue;
         if (preg_match('/^\[img:([^|\]]+)(?:\|([^\]]*))?\]$/', $b, $m)) {
             $src = trim($m[1]);
@@ -89,6 +112,20 @@ function vestra_journal_body_html(string $body): string {
         $out .= '<p>'.nl2br(htmlspecialchars($b)).'</p>';
     }
     return $out;
+}
+/* Two photographs for the body of an article, chosen stably from the credited pool and
+   never repeating the one already used as the cover. The two picks sit half the pool
+   apart so a short pool still yields two different pictures. */
+function vestra_journal_body_photos(array $art, int $n = 2): array {
+    $cover = vestra_journal_cover_path($art);
+    $pool  = array_values(array_filter(vestra_journal_photo_pool(), fn($p) => $p !== $cover));
+    $c     = count($pool);
+    if ($c === 0) return [];
+    $i0   = crc32(($art['slug'] ?? '').'|body') % $c;
+    $step = max(1, intdiv($c, max(1, $n)));
+    $out  = [];
+    for ($i = 0; $i < min($n, $c); $i++) $out[] = $pool[($i0 + $i * $step) % $c];
+    return array_values(array_unique($out));
 }
 function vestra_journal_reading_min(string $body): int {
     return max(1, (int)ceil(str_word_count(strip_tags($body)) / 200));

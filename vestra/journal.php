@@ -45,7 +45,7 @@ if ($slug !== '') {
                 if ($_cr !== ''): ?>
             <div class="jr-credit"><?= htmlspecialchars($_cr) ?></div>
           <?php endif; ?>
-          <div class="jr-body"><?= vestra_journal_body_html($art['body'] ?? '') ?></div>
+          <div class="jr-body"><?= vestra_journal_body_html($art['body'] ?? '', $art) ?></div>
           <div class="jr-share">
             <a class="btn btn-o" href="/journal">← <?= t('All articles') ?></a>
             <a class="btn btn-p" href="/shop"><?= t('Browse the catalogue') ?> →</a>

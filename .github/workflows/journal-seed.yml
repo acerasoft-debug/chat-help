@@ -1,9 +1,24 @@
 name: Journal — yeni makaleleri yayına al
 on:
   workflow_dispatch:
+    inputs:
+      photos:
+        description: "Sorgu basina indirilecek editoryal foto sayisi (0 = foto indirme, sadece tohumla)"
+        required: false
+        default: "0"
+      photos_dry:
+        description: "true = fotolari SADECE listele, indirme"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
+
+# NOT: foto indirme adimi bu ise BILEREK eklendi. Ayri bir journal-photos.yml
+# yazilmisti ama workflow_dispatch bir isi ancak VARSAYILAN dalda dosyasi varsa
+# gorunur kilar; yeni dosya sadece bu dalda oldugu icin hic tetiklenemedi. Bu is
+# ise varsayilan dalda mevcut, dolayisiyla bu daldan calistirildiginda bu daldaki
+# surumu -- yani asagidaki adimi -- calistirir.
 
 # inc/journal_seed.json'daki makaleleri data/journal.json'a aktarir.
 #
@@ -20,6 +35,51 @@ jobs:
   seed:
     runs-on: ubuntu-latest
     steps:
+      - name: Editoryal fotograflari indir
+        if: ${{ github.event.inputs.photos != '' && github.event.inputs.photos != '0' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PH_PER: ${{ github.event.inputs.photos }}
+          PH_DRY: ${{ github.event.inputs.photos_dry }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: PH_PER,PH_DRY
+          script: |
+            cat > /tmp/vestra_jphotos.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0);
+            $home = getenv("HOME");
+            require $home."/public_html/inc/journal.php";
+            if (!function_exists('vestra_journal_fetch_photos')) { fwrite(STDERR,"HATA: fetch fonksiyonu yok\n"); exit(1); }
+
+            $per = max(1, (int)getenv('PH_PER'));
+            $dry = strtolower(trim((string)getenv('PH_DRY'))) === 'true';
+            echo "sorgu basina: {$per}   ".($dry ? "(KURU -- indirmez)" : "(indirir)")."\n\n";
+
+            $rep = vestra_journal_fetch_photos([], $per, 1400, $dry);
+            echo "incelenen : ".$rep['examined']."\n";
+            echo "kaydedilen: ".$rep['saved']."\n";
+            if ($rep['skipped']) { echo "atlanan   :\n"; foreach ($rep['skipped'] as $why=>$n) printf("   %-38s %d\n", $why, $n); }
+            if ($rep['files'])   { echo "\ndosyalar:\n"; foreach ($rep['files'] as $f) echo "   ".$f."\n"; }
+            if ($rep['errors'])  { echo "\nhatalar:\n";  foreach ($rep['errors'] as $e) echo "   ".$e."\n"; }
+
+            /* Kredisi olmayan dosya yayinlanamaz (CC-BY fotografciyi anmayi sart kosuyor),
+               o yuzden havuzun gercekten dolduguna bakiyoruz -- "kaydedildi" demek yetmez. */
+            clearstatcache();
+            $pool = vestra_journal_photo_pool();
+            echo "\nkredili havuz: ".count($pool)." foto\n";
+            foreach (array_slice($pool, 0, 8) as $f) echo "   ".$f."  -- ".vestra_journal_credit($f)."\n";
+            PHPEOF
+            php -l /tmp/vestra_jphotos.php
+            php /tmp/vestra_jphotos.php; RC=$?
+            rm -f /tmp/vestra_jphotos.php
+            exit $RC
+
       - name: Tohumla
         uses: appleboy/ssh-action@v1.0.3
         with:
