@@ -111,6 +111,29 @@ found boxers filed as sweatshirts, and this is the same fault in a second
 folder, so it is not a one-off slip in one import — it is what happens whenever
 the folder name is treated as the category.
 
+### `shorts-sweats-03` and `-04` — reviewed, 38 rows corrected
+
+A folder named "shorts-sweats" whose two sheets contain, between them, thirty
+t-shirts, three polos, a tracksuit set, a zip sweat and **two padded gilets**.
+The gilets were stored as `Shorts`.
+
+The gilets go to `Vests & Gilets`, which the taxonomy already lists. It becomes
+a live category with two products in it, which is thin — but a padded gilet
+under "Shorts" is not a presentation problem, it is wrong, and a buyer filtering
+Shorts finds outerwear.
+
+### Where the two original categories ended up
+
+After eight sheets, the two folder-derived categories have almost emptied:
+
+| Category | Before | After |
+|---|---|---|
+| `Hoodies & Sweatshirts` | 109 | 23 |
+| `Shorts` | 49 | **0** |
+
+Not one of the 49 rows called "Shorts" was a pair of shorts. They were t-shirts,
+jeans, denim shorts, swim shorts, boxer briefs, polos and gilets.
+
 ### Before importing: check images against the LIVE catalogue, not just each other
 
 Two found so far, both in batch2:
