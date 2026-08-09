@@ -47,9 +47,30 @@ All 12 are now `Swim Shorts`, with names to match, and the duplicate
 `dgn-m4e48tfusfw` "Sweatshirt" row is gone — tile 12 is plainly a pair of black
 swim shorts, so that row was wrong in both name and category.
 
-`dgn-f9o00tgdcnu` is left alone for now: its photo sits on
-`balenciaga-burberry-04` and `shorts-sweats-03`, neither reviewed yet, and
-guessing which of its two rows is right would repeat the original mistake.
+### `balenciaga-burberry-04` — reviewed, 16 rows corrected
+
+Every one of its 21 rows was named "Hoodie" or "Sweatshirt" and filed under
+Hoodies & Sweatshirts. The photographs show almost no hoodies:
+
+| Was | Actually | Rows |
+|---|---|---|
+| Hoodies & Sweatshirts | **T-Shirts** | `8056724`, `8057089`, `8057109`, `8057370`, `8063476`, `8064397`, `8065187`, `8069612`, `8070146`, `8118963`, `8118964`, `F8L61TG7XAZ`, `F8N13TG7BVH` |
+| Hoodies & Sweatshirts | **Polos** | `80570881` (camel piqué, collar and placket) |
+| Hoodies & Sweatshirts | **Tank Tops** | `F8O59Z` (sleeveless, DG logo) |
+| Hoodies & Sweatshirts | **Jeans** | `FTAH6DG8EY7` (distressed denim trousers) |
+
+Four were already right and were left alone: `80572891` (hooded sweat with
+matching track pants), `8057525` (light blue hoodie), `F9N26ZFU7DU` (red
+sweatshirt) and `F9O00TGDCNU` (white hoodie).
+
+That last one settles the duplicate: `dgn-f9o00tgdcnu` is a hoodie, so the
+second row calling it "Shorts" was the wrong one and is removed.
+
+**No gender was assigned.** Several of these are photographed on female models,
+but this sheet carries no printed `WOMEN` label the way sheet 03 does, and a
+model's gender is not the same evidence as the seller's own labelling. They go
+to plain `T-Shirts`; splitting out women's rows needs the source line sheet, not
+a guess.
 
 ## Coverage: only three of the seventeen sheets matter
 
