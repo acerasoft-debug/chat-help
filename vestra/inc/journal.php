@@ -429,15 +429,21 @@ function vestra_journal_credits(): array {
     return $c;
 }
 
-/** Default subjects for the editorial photo fetch — fashion, not product packshots. */
+/** Default subjects for the editorial photo fetch — fashion, not product packshots.
+ *  Kept to two or three plain words each: the first pass used phrases like
+ *  "clothing rail retail store" and "textile fabric detail macro", and Commons
+ *  returned nothing at all for three of six — its search wants subjects, not
+ *  descriptions of a shot. */
 function vestra_journal_photo_queries(): array {
     return [
-        'fashion editorial photography',
-        'fashion model portrait studio',
-        'fashion boutique interior',
-        'clothing rail retail store',
-        'menswear lookbook',
-        'textile fabric detail macro',
+        'fashion photography',
+        'fashion model',
+        'clothing store interior',
+        'boutique clothes shop',
+        'textile fabric',
+        'denim jeans',
+        'knitwear sweater',
+        'fashion week runway',
     ];
 }
 
@@ -489,9 +495,13 @@ function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $min
 
     foreach ($queries as $q) {
         $q = trim($q); if ($q === '') continue;
+        /* iiprop MUST list mime: the first run asked for url|size|extmetadata, so every
+           result came back without a mime type and the raster check below rejected all
+           120 of them. filetype:bitmap keeps SVGs and PDFs out of the results entirely
+           rather than fetching and discarding them. */
         $raw = $get('https://commons.wikimedia.org/w/api.php?action=query&format=json'
-            .'&generator=search&gsrnamespace=6&gsrlimit=40&gsrsearch='.rawurlencode($q)
-            .'&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1600');
+            .'&generator=search&gsrnamespace=6&gsrlimit=40&gsrsearch='.rawurlencode($q.' filetype:bitmap')
+            .'&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=1600');
         if ($raw === null) { $rep['errors'][] = 'no API response for: '.$q; continue; }
         $pages = json_decode($raw, true)['query']['pages'] ?? [];
         if (!$pages) { $rep['errors'][] = 'no results for: '.$q; continue; }
