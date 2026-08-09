@@ -218,21 +218,39 @@ jobs:
           fi
           echo "doğrulanan adres: $BASE"
 
-          # DNS BEKLEME
-          # -----------
-          # Yeni açılan bir alt ad hemen çözülmüyor. İlk denemede
-          # "Could not resolve host" alındı ve doğrulama, dosyalar sunucuda
-          # dururken düştü. Adres çözülene kadar kısa bir süre bekliyoruz;
-          # çözülmezse yine hata veriyoruz — sessizce geçmiyor.
+          # DNS YOKKEN DE DOĞRULA
+          # ---------------------
+          # Yeni açılan bir ad hemen çözülmüyor; bazen hiç çözülmüyor. Bu
+          # kurulumda alan adının DNS'i başka sağlayıcıda: cPanel'de alt ad
+          # açmak yetmiyor, kaydın oraya elle girilmesi gerekiyor. Yani
+          # "çözülene kadar bekle" tek başına yetersiz — kayıt girilene
+          # kadar HİÇBİR deploy doğrulanamaz, her seferinde kırmızı döner ve
+          # asıl soru ("yeni sürüm sunucuda çalışıyor mu?") cevapsız kalır.
+          #
+          # Çözüm: ad çözülmüyorsa isteği sunucunun IP'sine yönlendirip Host
+          # başlığını elle yazıyoruz — tarayıcının göndereceğinin aynısı.
+          # Böylece "DNS eksik" ile "site bozuk" ayrışıyor; ikisi de aynı
+          # boş ekranı verdiği için bu ayrım şart. Ölçüldü ve çalışıyor.
           HOSTONLY=$(echo "$BASE" | sed -e 's#^https\?://##' -e 's#/.*##' -e 's#:.*##')
-          for i in 1 2 3 4 5 6 7 8 9 10; do
+          PATHONLY=$(echo "$BASE" | sed -e 's#^https\?://[^/]*##')
+          CURLX=""
+          for i in 1 2 3 4 5 6; do
             getent hosts "$HOSTONLY" > /dev/null 2>&1 && break
-            echo "  DNS henüz çözmedi ($HOSTONLY), 15 sn bekleniyor [$i/10]"
-            sleep 15
+            echo "  DNS henüz çözmedi ($HOSTONLY), 10 sn bekleniyor [$i/6]"
+            sleep 10
           done
           if ! getent hosts "$HOSTONLY" > /dev/null 2>&1; then
-            echo "::error::$HOSTONLY çözülemedi — alan adı kaydı henüz yayılmamış olabilir"
-            exit 1
+            SRVIP=$(getent hosts vestrasales.com | awk '{print $1; exit}')
+            if [ -z "$SRVIP" ]; then
+              echo "::error::$HOSTONLY çözülemedi ve sunucu IP'si de bulunamadı"
+              exit 1
+            fi
+            # http: sertifika bu ad için henüz yok — AutoSSL doğrulayamadığı
+            # bir ada sertifika vermiyor, o da DNS'i bekliyor.
+            BASE="http://${HOSTONLY}${PATHONLY}"
+            CURLX="--resolve ${HOSTONLY}:80:${SRVIP}"
+            echo "::warning::$HOSTONLY DNS'te yok — doğrulama Host başlığıyla $SRVIP üzerinden yapılıyor (DNS kaydı hâlâ gerekli)"
+            echo "doğrulanan adres (DNS atlanarak): $BASE"
           fi
 
           fail=0
@@ -241,7 +259,7 @@ jobs:
           # .htaccess'teki satır yok sayılıyor. Uygulamanın çalışıp
           # çalışmadığını index.php söyler; klasör girişi ayrı bir konu, o
           # yüzden uyarı, hata değil.
-          root_code=$(curl -sS -o /tmp/root.html -w '%{http_code}' -L --max-time 25 "${BASE}/" || echo 000)
+          root_code=$(curl -sS $CURLX -o /tmp/root.html -w '%{http_code}' -L --max-time 25 "${BASE}/" || echo 000)
           echo "klasör girişi (/): $root_code $(wc -c < /tmp/root.html) bayt"
           [ "$root_code" = "200" ] || echo "::warning::klasör girişi $root_code — ziyaretçiyi /index.php'ye yönlendirin ya da barındırmada DirectoryIndex açtırın"
 
@@ -255,7 +273,7 @@ jobs:
           # Onun için artık sayfada MAXSALES imzası aranıyor. İmza yoksa
           # cevabı başka bir uygulama veriyordur; deploy başarılı sayılmaz.
           for u in "/index.php" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
-            code=$(curl -sS -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
+            code=$(curl -sS $CURLX -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
             size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
             sig=$(grep -c 'MAXSALES' /tmp/pg.html 2>/dev/null || echo 0)
             printf '%-28s %s  %s bayt  imza:%s\n' "${u:-/}" "$code" "$size" "$sig"
@@ -266,7 +284,7 @@ jobs:
             fi
           done
           # Ürün kartı gerçekten basılıyor mu?
-          curl -sS -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
+          curl -sS $CURLX -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
           echo "kart sayısı: $(grep -o 'class=\"card\"' /tmp/shop.html | wc -l)"
           echo "fiyat sayısı: $(grep -o 'card__price' /tmp/shop.html | wc -l)"
 
@@ -275,7 +293,7 @@ jobs:
           # görünüyor — tam olarak "ana sayfada ürün fotoları çıkmıyor"
           # şikâyeti buydu. Ana sayfadan on görsel adresi çekip tek tek
           # sorguluyoruz.
-          curl -sS -L --max-time 25 "${BASE}/index.php" -o /tmp/home.html || true
+          curl -sS $CURLX -L --max-time 25 "${BASE}/index.php" -o /tmp/home.html || true
           # src="..." İÇİNDEKİ tam adres. Önceki hâli srcset'i de yakalıyor ve
           # boşluktan bölünce "900w", "300w," gibi parçaları adres sanıyordu:
           # 21 "hata"nın çoğu ölçüm hatasıydı, sitenin değil.
@@ -285,7 +303,7 @@ jobs:
           bad=0; n=0
           for q in $imgs; do
             n=$((n+1))
-            c=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${BASE}/${q}" || echo 000)
+            c=$(curl -sS $CURLX -o /dev/null -w '%{http_code}' --max-time 20 "${BASE}/${q}" || echo 000)
             [ "$c" = "200" ] || { bad=$((bad+1)); echo "  görsel $c: ${q:0:70}"; }
           done
           echo "ana sayfa görselleri: $n denendi, $bad hatalı"
