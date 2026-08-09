@@ -806,6 +806,21 @@ function vr_card_frames(array $p): array
         // İki–üç mankenli kare: bilgi olarak iyi, karo olarak kötü. Aynı yüz
         // yan yana iki kez görününce sayfa çoğaltılmış gibi duruyor.
         $s += max(0, (int)($shape[$img]['n'] ?? 1) - 1) * 14;
+
+        // Doluluk: kadrajın ne kadarı zeminden farklı. Düşük olması iki şey
+        // demek olabiliyor — kare gerçekten boş, ya da beyaz zeminde beyaz
+        // ürün var. İkisini ayırmayı denedim; kenar enerjisi de renk farkı da
+        // ikisine aynı sayıyı veriyor, çünkü beyaz gömleğin kenarı zaten
+        // yumuşak. O yüzden kare ATILMIYOR — yalnızca kart yüzü yarışında
+        // geriye düşüyor. Aynı ürünün dolu bir karesi varsa vitrine o çıkar;
+        // yoksa elimizdeki tek şey odur ve göstermek gizlemekten iyidir.
+        //
+        // Ceza ızgara cezasından (100) BÜYÜK: ölçülen bir Lacoste tişörtünde
+        // dört kareden üçü neredeyse boş, dördüncüsü ızgara sanılmış gerçek
+        // bir manken çekimiydi ve karoya boş olanlardan biri çıkıyordu.
+        // Kadrajda birkaç ürün olması, kadrajda hiçbir şey olmamasından iyi.
+        $fill = $shape[$img]['fill'] ?? null;
+        if ($fill !== null && (float)$fill < 0.03) $s += 120;
         $r = (float)($shape[$img]['r'] ?? 0.8);
         if ($r > 0) {
             // 0.8'e logaritmik uzaklık: 0.4 ile 1.6 aynı ağırlıkta cezalansın.

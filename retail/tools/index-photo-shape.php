@@ -142,6 +142,19 @@ foreach ($list as $rel) {
             $entry['cy'] = (int)round(($ty / $m) / max(1, $h - 1) * 100);
         }
 
+        // Doluluk: kadrajın yüzde kaçı zeminden farklı. Beslemede içi boş
+        // kareler var — kimi tamamen tek renk, kimi köşesinde bir gölge.
+        // Kartta bembeyaz bir kutu olarak çıkıyorlar. Ölçü burada duruyor,
+        // ayıklamayı tools/drop-blank-photos.php yapıyor.
+        $px = 0;
+        for ($y = 0; $y < $h; $y++) {
+            for ($x = 0; $x < $w; $x++) {
+                $c = imagecolorat($im, $x, $y);
+                if (abs((($c >> 16) & 255) - $ar) + abs((($c >> 8) & 255) - $ag) + abs(($c & 255) - $ab) > 30) $px++;
+            }
+        }
+        $entry['fill'] = round($px / max(1, $w * $h), 4);
+
         // ---- kaç özne var: düz zeminli karelerde sütun kütlesi profili
         //
         // Toptancının bazı kareleri iki ya da üç mankeni yan yana koyuyor.
