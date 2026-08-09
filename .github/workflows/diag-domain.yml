@@ -1,68 +1,79 @@
-name: (Teşhis) maxsales.de için sunucuyu incele
+name: (Teşhis) /shop nereden sunuluyor
 
 on:
   workflow_dispatch:
     inputs:
-      domain:
-        description: "İncelenecek alan adı"
-        required: true
-        default: "maxsales.de"
+      note:
+        description: "Not (kayıt için)"
+        required: false
+        default: "golge klasorler ve /shop yonlendirmesi"
 
 permissions:
   contents: read
 
-# SALT OKUNUR sayılır: yalnızca geçici bir kontrol dosyası yazıp siliyor.
+# SALT OKUNUR. Hiçbir şey silmiyor, taşımıyor, oluşturmuyor.
 #
-# Soru: /shop yayında ama $HOME/public_html/shop yok. Site hangi dizinden
-# sunuluyor? Tahmin etmek yerine uygulamanın içine bir dosya koyup web'den
-# okuyoruz — dönen cevap DOCUMENT_ROOT'u ve gerçek yolu söylüyor.
+# Üç soru:
+#   1) public_html/shop yok ama /shop 200 dönüyor — hangi kural yapıyor bunu?
+#   2) _golge-shop-* klasörleri ne kadar yer tutuyor, içlerinde ne var?
+#   3) Hangisi (varsa) canlı siteyi besliyor?
+#
+# (3) kritik: kullanıcı "sil" dedi ama biri canlı mağazayı besliyorsa silmek
+# dükkânı kapatır. Silmeden önce kanıt.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Kontrol dosyasını koy
+      - name: Sunucu
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 3m
+          command_timeout: 5m
           script: |
-            echo "== ev dizini: shop benzeri her sey =="
-            ls -ld "$HOME"/*shop* "$HOME"/public_html/*shop* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo "===== 1) public_html/.htaccess icinde shop gecen satirlar ====="
+            grep -n -i 'shop' "$HOME/public_html/.htaccess" 2>/dev/null | head -40 || echo "  eslesme yok"
             echo
-            echo "== _golge-* dizinleri (boyut ve tarih) =="
-            du -sh "$HOME"/_golge-* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo "===== 2) .htaccess TAM (ilk 80 satir) ====="
+            sed -n '1,80p' "$HOME/public_html/.htaccess" 2>/dev/null || echo "  okunamadi"
             echo
-            echo "== public_html gercek yol =="
-            readlink -f "$HOME/public_html"
+            echo "===== 3) public_html icinde adinda shop gecen her sey ====="
+            ls -ld "$HOME"/public_html/*shop* 2>/dev/null | sed 's/^/  /' || echo "  yok"
             echo
-            echo "== kontrol dosyasi yaziliyor =="
-            for d in "$HOME"/_golge-shop-* "$HOME/public_html"; do
+            echo "===== 4) golge klasorler ====="
+            for d in "$HOME"/_golge-shop-*; do
               [ -d "$d" ] || continue
-              printf '%s' "$d" > "$d/_where.txt" 2>/dev/null && echo "  yazildi: $d/_where.txt"
+              printf '  %s  %s  dosya=%s\n' "$(du -sh "$d" | cut -f1)" "$d" "$(find "$d" -type f | wc -l)"
             done
-
-      - name: Web'den oku
-        run: |
-          for u in "https://vestrasales.com/shop/_where.txt" "https://vestrasales.com/_where.txt"; do
-            echo "-- $u"
-            curl -sS --max-time 20 "$u" | head -3 || true
             echo
-          done
-          echo "-- /shop/ calisiyor mu"
-          curl -sS -o /dev/null -w '  kod=%{http_code}\n' --max-time 20 "https://vestrasales.com/shop/" || true
+            echo "===== 5) golge klasorlerde index.php surumu (ilk satirlarda ipucu) ====="
+            for d in "$HOME"/_golge-shop-*; do
+              [ -f "$d/index.php" ] || continue
+              printf '  %s : %s bayt, %s\n' "$(basename "$d")" "$(stat -c %s "$d/index.php")" "$(stat -c %y "$d/index.php" | cut -d. -f1)"
+            done
+            echo
+            echo "===== 6) golge klasorler web'den erisilebiliyor mu (public_html icinde mi) ====="
+            case "$(readlink -f "$HOME"/_golge-shop-* 2>/dev/null | head -1)" in
+              "$(readlink -f "$HOME/public_html")"*) echo "  EVET - public_html altinda" ;;
+              *) echo "  HAYIR - public_html disinda (web'den dogrudan istenemez)" ;;
+            esac
+            echo
+            echo "===== 7) cPanel: alanlarin kok dizinleri ====="
+            uapi --output=jsonpretty DomainInfo list_domains 2>&1 | head -20
+            echo
+            echo "===== 8) docroot listesi (varsa) ====="
+            uapi --output=jsonpretty DomainInfo single_domain_data domain=vestrasales.com 2>&1 | grep -iE 'documentroot|homedir|domain' | head -10
 
-      - name: Kontrol dosyasını sil
-        if: always()
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 2m
-          script: |
-            rm -f "$HOME"/_golge-shop-*/_where.txt "$HOME/public_html/_where.txt"
-            echo "temizlendi"
+      - name: Web tarafi
+        run: |
+          B="https://vestrasales.com"
+          for p in "/shop/" "/shop/index.php" "/shop/shop.php" "/shop/assets/css/maxsales.css" "/shop/nonexistent-xyz.php"; do
+            code=$(curl -sS -o /tmp/b -w '%{http_code}' --max-time 20 "$B$p" || echo 000)
+            size=$(wc -c < /tmp/b 2>/dev/null || echo 0)
+            printf '  %-40s %s  %s bayt\n' "$p" "$code" "$size"
+          done
+          echo
+          echo "-- /shop/ ilk satirlar"
+          curl -sS --max-time 20 "$B/shop/" | head -12
