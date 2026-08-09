@@ -146,27 +146,45 @@ function cs_trim_caption(array $rows, int $h): int
 }
 
 /**
+ * Weißrinnen finden und daraus Bandgrenzen bauen.
+ * Rückgabe: Liste von [start, länge].
+ *
+ * Die Funktion kennt keine Achse: mit dem Spaltenprofil liefert sie senkrechte
+ * Panels, mit dem Zeilenprofil waagerechte. Das ist der Grund, warum sie hier
+ * so allgemein steht — die Bögen des Großhändlers sind nicht nur nebeneinander
+ * gesetzt, sondern oft ein Raster aus zwei bis drei Reihen.
+ */
+function cs_bands(array $prof, int $len, float $thr = 0.005): array
+{
+    return cs_panels($prof, $len, $thr);
+}
+
+/**
  * Senkrechte Weißrinnen finden und daraus Panelgrenzen bauen.
  * Rückgabe: Liste von [x, breite].
  */
-function cs_panels(array $cols, int $w): array
+function cs_gutters(array $prof, int $len, float $thr = 0.005): array
 {
-    $minGutter = max(6, (int)($w * 0.004));
+    $minGutter = max(6, (int)($len * 0.004));
 
-    // Rinnen sammeln.
     $gutters = []; $start = null;
-    for ($x = 0; $x < $w; $x++) {
-        if ($cols[$x] < 0.005) {
+    for ($x = 0; $x < $len; $x++) {
+        if ($prof[$x] < $thr) {
             if ($start === null) $start = $x;
         } elseif ($start !== null) {
             if ($x - $start >= $minGutter) $gutters[] = [$start, $x - $start];
             $start = null;
         }
     }
-    if ($start !== null && $w - $start >= $minGutter) $gutters[] = [$start, $w - $start];
+    if ($start !== null && $len - $start >= $minGutter) $gutters[] = [$start, $len - $start];
 
     // Randrinnen sind kein Trenner, sondern Rand.
-    $inner = array_values(array_filter($gutters, static fn($g) => $g[0] > $w * 0.06 && $g[0] + $g[1] < $w * 0.94));
+    return array_values(array_filter($gutters, static fn($g) => $g[0] > $len * 0.06 && $g[0] + $g[1] < $len * 0.94));
+}
+
+function cs_panels(array $cols, int $w, float $thr = 0.005): array
+{
+    $inner = cs_gutters($cols, $w, $thr);
     if (!$inner) return [];
 
     // Aus den Rinnenmitten Schnitte machen.
@@ -178,6 +196,74 @@ function cs_panels(array $cols, int $w): array
         $panels[] = [$edges[$i], $edges[$i + 1] - $edges[$i]];
     }
     return $panels;
+}
+
+/** Bir dikdörtgenin içinde ne kadar "içerik" var (0 = bembeyaz). */
+function cs_density(\GdImage $im, int $x, int $y, int $w, int $h): float
+{
+    $sub = imagecrop($im, ['x' => $x, 'y' => $y, 'width' => $w, 'height' => $h]);
+    if (!$sub instanceof \GdImage) return 1.0;
+    $rows = cs_profile($sub, false, 6);
+    imagedestroy($sub);
+    return $rows ? array_sum($rows) / count($rows) : 1.0;
+}
+
+/**
+ * Bir kareyi hücrelere ÖZYİNELEMELİ olarak ayır.
+ *
+ * NEDEN ÖZYİNELEME
+ * ----------------
+ * Önceki iki sürüm önce sütun bantlarını, sonra satır bantlarını buluyor ve
+ * kesişimlerini hücre sayıyordu. Bu yalnızca DÜZGÜN ızgarada doğru. Toptancının
+ * bogenlerinin çoğu düzgün değil: ölçtüğümüz bir Burberry karesinde üstte iki
+ * geniş panel, altta iki dar panel var; kesişim yöntemi orada dört yerine
+ * yamuk hücreler üretiyor ve doğrulamaya takılıyor. Sonuç: kare hiç
+ * bölünmüyor ve üç ürünlü bir kadraj ürün kartı oluyordu.
+ *
+ * Özyineleme bunu doğal olarak çözüyor: her adımda EN GENİŞ iç oluk hangi
+ * eksende ise oradan ikiye bölünüyor, iki parçanın her biri kendi içinde
+ * yeniden aranıyor. Düzgün ızgara da, yamuk yerleşim de aynı yoldan çıkıyor.
+ *
+ * Derinlik üçle sınırlı (en çok sekiz hücre) ve her bölme en az 200 px'lik
+ * parçalar bırakmalı — yoksa gürültü, kumaş deseni ya da modelin bacak arası
+ * "oluk" sanılıp ürün ortadan ikiye bölünür.
+ */
+function cs_cells(\GdImage $im, int $x, int $y, int $w, int $h, int $depth = 0): array
+{
+    $self = [[$x, $y, $w, $h]];
+    if ($depth >= 3 || $w < 400 || $h < 400) return $self;
+
+    $sub = imagecrop($im, ['x' => $x, 'y' => $y, 'width' => $w, 'height' => $h]);
+    if (!$sub instanceof \GdImage) return $self;
+
+    $best = null;   // [eksen, kesim, genişlik]
+    foreach ([0.005, 0.02, 0.05] as $thr) {
+        foreach ([[true, $w], [false, $h]] as [$isCol, $len]) {
+            $prof = cs_profile($sub, $isCol, 4);
+            foreach (cs_gutters($prof, $len, $thr) as [$gs, $gw]) {
+                // Bölme her iki yana en az 200 px bırakmalı.
+                $cut = (int)($gs + $gw / 2);
+                if ($cut < 200 || $len - $cut < 200) continue;
+                if ($best === null || $gw > $best[2]) $best = [$isCol, $cut, $gw];
+            }
+        }
+        if ($best !== null) break;   // en katı eşikte bulunduysa gevşetme
+    }
+    imagedestroy($sub);
+
+    if ($best === null) return $self;
+
+    [$isCol, $cut] = $best;
+    if ($isCol) {
+        return array_merge(
+            cs_cells($im, $x,        $y, $cut,      $h, $depth + 1),
+            cs_cells($im, $x + $cut, $y, $w - $cut, $h, $depth + 1)
+        );
+    }
+    return array_merge(
+        cs_cells($im, $x, $y,        $w, $cut,      $depth + 1),
+        cs_cells($im, $x, $y + $cut, $w, $h - $cut, $depth + 1)
+    );
 }
 
 /**
@@ -194,21 +280,39 @@ function cs_free(string $abs): bool
     return isset($GLOBALS['cs_written'][$abs]);
 }
 
-/** Weißrand eines Panels wegschneiden. */
-function cs_tighten(\GdImage $im, int $x, int $w, int $h): array
+/**
+ * Weißrand einer Zelle wegschneiden — in BEIDEN Richtungen.
+ * Rückgabe: [x, breite, y, höhe].
+ *
+ * Waagerecht allein reichte, solange ein Bogen eine einzige Reihe war. Beim
+ * Raster steht über und unter jedem Motiv eine Rinne; ohne senkrechtes
+ * Beschneiden bekäme jede Zelle die volle Bogenhöhe und damit ein Format,
+ * das die Prüfung (0,45–1,6) nie besteht.
+ */
+function cs_tighten(\GdImage $im, int $x, int $w, int $y = 0, ?int $h = null): array
 {
-    $sub = imagecrop($im, ['x' => $x, 'y' => 0, 'width' => $w, 'height' => $h]);
-    if (!$sub instanceof \GdImage) return [$x, $w];
+    $h = $h ?? imagesy($im);
+    $sub = imagecrop($im, ['x' => $x, 'y' => $y, 'width' => $w, 'height' => $h]);
+    if (!$sub instanceof \GdImage) return [$x, $w, $y, $h];
+
     $cols = cs_profile($sub, true, 6);
+    $rows = cs_profile($sub, false, 6);
     imagedestroy($sub);
 
     $l = 0; $r = $w - 1;
     while ($l < $r && $cols[$l] < 0.005) $l++;
     while ($r > $l && $cols[$r] < 0.005) $r--;
+
+    $t = 0; $b = $h - 1;
+    while ($t < $b && $rows[$t] < 0.005) $t++;
+    while ($b > $t && $rows[$b] < 0.005) $b--;
+
     // Etwas Luft stehen lassen — auf Kante beschnittene Ware wirkt eng.
-    $pad = (int)($w * 0.02);
-    $l = max(0, $l - $pad); $r = min($w - 1, $r + $pad);
-    return [$x + $l, max(1, $r - $l + 1)];
+    $padX = (int)($w * 0.02); $padY = (int)($h * 0.02);
+    $l = max(0, $l - $padX); $r = min($w - 1, $r + $padX);
+    $t = max(0, $t - $padY); $b = min($h - 1, $b + $padY);
+
+    return [$x + $l, max(1, $r - $l + 1), $y + $t, max(1, $b - $t + 1)];
 }
 
 // --------------------------------------------------------------------- Lauf
@@ -255,17 +359,49 @@ foreach ($catalog as $id => $p) {
             ? (imagecrop($im, ['x' => 0, 'y' => 0, 'width' => $w, 'height' => $cutH]) ?: $im)
             : $im;
 
-        $cols   = cs_profile($work, true);
-        $panels = cs_panels($cols, $w);
+        /* IKI EKSENDE BÖLME.
+           İlk sürüm yalnızca dikey oluk arıyordu, yani bir bogen tek sıra
+           kabul ediliyordu. Oysa toptancının dosyalarının büyük kısmı ızgara:
+           ölçtüğümüz bir Dolce & Gabbana karesi 2744×2483 içinde altı ayrı
+           model taşıyor — üç sütun, iki satır. Tek eksende bakınca üç panel
+           çıkıyor ama her panel hâlâ iki ürün gösteriyor, oran testine de
+           takılıyordu. Sonuç: 478 üründen 244'ünün vitrinlik tek kadrajı yoktu.
 
-        // Kabul kriterleri.
-        $ok = count($panels) >= 2 && count($panels) <= 5;
-        if ($ok) {
-            foreach ($panels as [$px, $pw]) {
-                [$tx, $tw] = cs_tighten($work, $px, $pw, $cutH);
-                $ratio = $tw / max(1, $cutH);
-                if ($tw < 200 || $ratio < 0.45 || $ratio > 1.6) { $ok = false; break; }
+           Artık satır ve sütun bantları ayrı bulunuyor, kesişimleri hücre.
+           Tek satır çıkarsa davranış eskisiyle aynı. */
+        /* Hücreleri özyinelemeli bul (bkz. cs_cells). Düzgün ızgara da,
+           üstte iki geniş altta iki dar panel gibi yamuk yerleşim de aynı
+           yoldan çıkıyor. */
+        $panels = [];
+        $ok = false;
+        $cells = cs_cells($work, 0, 0, $w, $cutH);
+
+        // Üst sınır sekiz: daha kalabalık bir kare artık ürün çekimi değil,
+        // katalog sayfası — onu bölmek işe yaramıyor.
+        if (count($cells) >= 2 && count($cells) <= 8) {
+            $ok = true;
+            foreach ($cells as [$cx, $cy, $cw, $ch]) {
+                [$tx, $tw, $ty, $th] = cs_tighten($work, $cx, $cw, $cy, $ch);
+
+                /* Yazı hücresi ATILIYOR, ama bölmeyi bozmuyor.
+                   Bazı bogenlerde model kodu kendi kutusunda duruyor
+                   ("BALENCIAGA 612966TLVF1 UNISEX") ve oluk testine göre
+                   düpedüz bir panel. Kesip galeriye koyduğumuzda ürün
+                   fotoğrafı diye bir yazı karesi çıkıyor. Doluluk oranı
+                   %5'in altındaysa orada ürün yok. Bu hücre eleniyor,
+                   diğerleri yazılmaya devam ediyor. */
+                if (cs_density($work, $tx, $ty, $tw, $th) < 0.05) continue;
+
+                $ratio = $tw / max(1, $th);
+                /* Alt oran sınırı 0,45 değil 0,33: bir Dolce & Gabbana bogeni
+                   2744×2483 ve üç ayakta model taşıyor, her panel 915×2483,
+                   yani oran 0,37. Ayakta boy çekimi bu kadar dar olur. */
+                if ($tw < 200 || $th < 200 || $ratio < 0.33 || $ratio > 1.6) { $ok = false; break; }
+                $panels[] = [$tx, $tw, $ty, $th];
             }
+            // Yazı hücreleri elendikten sonra elde tek panel kaldıysa bölmenin
+            // anlamı yok: orijinal zaten o ürünün kadrajı.
+            if (count($panels) < 2) $ok = false;
         }
 
         if (!$ok) {
@@ -304,12 +440,11 @@ foreach ($catalog as $id => $p) {
         }
 
         $written = 0;
-        foreach ($panels as $i => [$px, $pw]) {
-            [$tx, $tw] = cs_tighten($work, $px, $pw, $cutH);
+        foreach ($panels as $i => [$tx, $tw, $ty, $th]) {
             $dest = $targets[$i];
             if ($opt['dry']) { $newList[] = $dest; $written++; continue; }
 
-            $cut = imagecrop($work, ['x' => $tx, 'y' => 0, 'width' => $tw, 'height' => $cutH]);
+            $cut = imagecrop($work, ['x' => $tx, 'y' => $ty, 'width' => $tw, 'height' => $th]);
             if (!$cut instanceof \GdImage) continue;
             if (imagejpeg($cut, vr_doc_root() . $dest, $opt['quality'])) {
                 @chmod(vr_doc_root() . $dest, 0644);
