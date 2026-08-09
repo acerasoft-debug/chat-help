@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+
+# Account, cart and session pages. Nothing here ranks, and a crawler that walks
+# them just spends budget that the catalogue needs.
 Disallow: /admin
 Disallow: /login
 Disallow: /register
@@ -8,11 +11,33 @@ Disallow: /reset
 Disallow: /buyer
 Disallow: /seller
 Disallow: /cart
+
+# These rules are prefix matches, so "/seller" also swallowed the public seller
+# landing page. A longer Allow beats a shorter Disallow, which puts it back.
+Allow: /seller-invite
+
+# Generated downloads: every request builds an xlsx or a PDF from scratch, and
+# there is nothing in them to index.
 Disallow: /linesheet
 Disallow: /catalog
+
 Disallow: /data/
 Disallow: /vendor/
 Disallow: /sheets/
+
+# /uploads holds two very different things: product photography, and line sheets
+# a seller uploaded (sheet_*.xlsx/xls/csv), which carry their own trade pricing.
+# Blocking the whole folder kept the sheets private but also made every og:image
+# and every Product-schema image uncrawlable, so no listing could earn an image
+# in search. Only real image files are opened up; everything else stays closed.
 Disallow: /uploads/
+Allow: /uploads/*.jpg$
+Allow: /uploads/*.jpeg$
+Allow: /uploads/*.png$
+Allow: /uploads/*.webp$
+Allow: /uploads/*.gif$
+Allow: /uploads/*.JPG$
+Allow: /uploads/*.JPEG$
+Allow: /uploads/*.PNG$
 
 Sitemap: https://vestrasales.com/sitemap.xml

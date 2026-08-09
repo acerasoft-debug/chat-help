@@ -969,4 +969,6 @@ return array (
   '%s and more, at trade prices for boutiques.' => '%s y más, a precios mayoristas para boutiques.',
   'Houses in stock: %s.' => 'Firmas disponibles: %s.',
   'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.' => 'Marketplace B2B verificado de moda al por mayor — ropa de marca y básicos textiles de vendedores verificados KYC en toda Europa.',
+  'Sell on VESTRA' => 'Vender en VESTRA',
+  'Sell wholesale on VESTRA — reach KYC-verified boutique buyers across Europe. List branded stock, get paid against invoices, and keep your pricing and buyer list to yourself.' => 'Venda al por mayor en VESTRA — llegue a compradores de boutiques verificados por KYC en toda Europa. Publique stock de marca, cobre contra factura y conserve sus precios y su cartera de clientes.',
 );

@@ -1,5 +1,9 @@
 <?php
-$PAGE = 'Sell on VESTRA'; $NAV = 'sell';
+require_once __DIR__.'/inc/i18n.php';   // t() — head.php loads it too, but only after $PAGE/$META are read
+$PAGE = t('Sell on VESTRA'); $NAV = 'sell';
+/* This is the landing page sellers arrive on from outreach, and it is in the sitemap, so
+   it needs its own description rather than the site-wide fallback every page shares. */
+$META = t('Sell wholesale on VESTRA — reach KYC-verified boutique buyers across Europe. List branded stock, get paid against invoices, and keep your pricing and buyer list to yourself.');
 $code = htmlspecialchars(strtoupper($_GET['code'] ?? 'VESTRA2026'));
 require __DIR__.'/inc/head.php';
 ?>

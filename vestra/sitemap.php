@@ -13,7 +13,11 @@ $urls = [
   ['/journal', 'daily', '0.7'],
   ['/help', 'monthly', '0.5'],
   ['/faq', 'monthly', '0.5'],
-  ['/register', 'monthly', '0.5'],
+  /* /register is deliberately absent: robots.txt disallows it along with the rest of
+     the account pages, and listing a blocked URL here only invites the "indexed,
+     though blocked" result with no snippet. /seller-invite takes its place — it is
+     the public landing page sellers are actually meant to arrive on. */
+  ['/seller-invite', 'monthly', '0.6'],
 ];
 foreach (vestra_products() as $p) {
   $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6'];
