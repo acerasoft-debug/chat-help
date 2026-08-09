@@ -194,10 +194,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="hint" style="margin:14px 0">🔒 <?= $AUTH_USER ? t('Complete verification to download the line sheet (PDF & Excel).') : t('Sign in to download the line sheet (PDF & Excel).') ?></div>
         <?php endif; ?>
       <?php elseif(!empty($p['sheet'])): ?>
-        <a class="btn btn-o btn-sm" style="margin:14px 0" href="<?= htmlspecialchars($p['sheet']) ?>" target="_blank" rel="noopener">
+        <?php /* The seller's own price list — same members-only gate as the generated pair.
+                 This used to be a direct /uploads/ link shown to everyone, logged out included. */ ?>
+        <?php if($APPROVED): ?>
+        <a class="btn btn-o btn-sm" style="margin:14px 0" href="/linesheet?id=<?= urlencode($p['id']) ?>&fmt=file">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 21h16"/></svg>
           <?= t('Line sheet') ?> (<?= strtoupper(htmlspecialchars(pathinfo($p['sheet'],PATHINFO_EXTENSION))) ?>)
         </a>
+        <?php else: ?>
+        <div class="hint" style="margin:14px 0">🔒 <?= $AUTH_USER ? t('Complete verification to download the line sheet (PDF & Excel).') : t('Sign in to download the line sheet (PDF & Excel).') ?></div>
+        <?php endif; ?>
       <?php endif; ?>
 
       <?php if(!empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>

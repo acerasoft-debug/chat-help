@@ -1,5 +1,14 @@
-# VESTRA uploads — serve media (images, sheets) only, never execute code here.
+# VESTRA uploads — serve product media only, never execute code here.
 Options -Indexes
 <FilesMatch "(?i)\.(php\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$">
+  Require all denied
+</FilesMatch>
+
+# Seller-uploaded line sheets carry that seller's wholesale prices, and the site
+# promises those are visible to verified businesses only. The filenames are random,
+# but a link that has been forwarded once stays fetchable forever, so obscurity is
+# not the control. Apache refuses them here; /linesheet?fmt=file reads them from
+# disk after checking the session, which .htaccess does not affect.
+<FilesMatch "(?i)^sheet_">
   Require all denied
 </FilesMatch>

@@ -10,7 +10,11 @@ require_once __DIR__.'/inc/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $p = vestra_find($_GET['id'] ?? '');
-if (!$p || empty($p['linesheet'])) { http_response_code(404); exit('Not found'); }
+/* 'linesheet' flags the generated pdf/xls pair; 'sheet' is a file the seller uploaded
+   themselves. Both are trade documents and both go through the gate below — the
+   uploaded one used to be linked straight out of /uploads, which meant a seller's
+   price list was one click away for anyone who opened the product page. */
+if (!$p || (empty($p['linesheet']) && empty($p['sheet']))) { http_response_code(404); exit('Not found'); }
 
 /* Approved members only — the sheets contain product photography and trade terms,
    both of which are freischaltung-gated (login alone is not enough). */
@@ -22,8 +26,31 @@ if (empty($_SESSION['vadmin']) && !auth_user_approved($AUTH_USER)) {
     exit;
 }
 
-$fmt = ($_GET['fmt'] ?? 'pdf') === 'xls' ? 'xls' : 'pdf';
+$fmt = $_GET['fmt'] ?? 'pdf';
+if (!in_array($fmt, ['pdf', 'xls', 'file'], true)) $fmt = 'pdf';
 $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $p['brand'].' '.$p['name']));
+
+/* The seller's own upload, streamed from disk. basename() is what keeps the stored
+   path from reaching outside uploads/ — the record is written by us, but it is read
+   back from a JSON file, so it is treated as input rather than trusted. */
+if ($fmt === 'file') {
+    $stored = basename((string)($p['sheet'] ?? ''));
+    $file   = __DIR__.'/uploads/'.$stored;
+    if ($stored === '' || !is_file($file)) { http_response_code(404); exit('Sheet not available'); }
+    $ext  = strtolower(pathinfo($stored, PATHINFO_EXTENSION));
+    $mime = ['xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+             'xls'  => 'application/vnd.ms-excel',
+             'csv'  => 'text/csv'][$ext] ?? 'application/octet-stream';
+    header('Content-Type: '.$mime);
+    header('Content-Disposition: attachment; filename="'.$slug.'-linesheet.'.$ext.'"');
+    header('Content-Length: '.filesize($file));
+    header('X-Content-Type-Options: nosniff');
+    readfile($file); exit;
+}
+
+/* pdf and xls stay reserved for listings flagged 'linesheet'. Widening the guard above
+   to admit uploaded sheets must not also hand those listings the generated pair. */
+if (empty($p['linesheet'])) { http_response_code(404); exit('Not found'); }
 
 if ($fmt === 'pdf') {
     $file = __DIR__.'/sheets/'.basename((string)($p['sheet_file'] ?? ''));

@@ -482,9 +482,14 @@ function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])
 function vestra_save_upload_photo(array $f): string {
   $updir = dirname(__DIR__).'/uploads';
   if(!is_dir($updir)) @mkdir($updir,0755,true);
-  if(!is_file($updir.'/.htaccess')){
-    @file_put_contents($updir.'/.htaccess',
-      "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n");
+  /* Rewritten when the sheet rule is missing, not only when the file is absent: the
+     deny-code rule shipped first, so every existing install already has an .htaccess
+     here and a create-if-missing check would never add the line-sheet rule to it. */
+  $ht = $updir.'/.htaccess';
+  if(!is_file($ht) || strpos((string)@file_get_contents($ht), '^sheet_') === false){
+    @file_put_contents($ht,
+      "Options -Indexes\n<FilesMatch \"(?i)\\.(php\\d*|phtml|phar|pl|py|cgi|sh|asp|aspx|jsp)$\">\n  Require all denied\n</FilesMatch>\n"
+     ."<FilesMatch \"(?i)^sheet_\">\n  Require all denied\n</FilesMatch>\n");
   }
   if(($f['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($f['size']??0)<=0||$f['size']>5*1024*1024) return '';
   $info=@getimagesize($f['tmp_name']); if(!$info) return '';
