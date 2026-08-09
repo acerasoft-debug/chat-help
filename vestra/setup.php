@@ -3,6 +3,20 @@
 $cfg = __DIR__.'/inc/config.php';
 $done = false; $err = '';
 
+/* "One-time" was enforced only by the self-delete below, and that does not hold:
+   this file is tracked in git, so every deploy rsyncs it back into public_html.
+   inc/config.php is not tracked, so it only ever exists on a configured server —
+   which makes its presence the reliable test for "setup already ran".
+   Without this, an unauthenticated POST of admin_pass=<8+ chars> rewrote the
+   config: the sender's password became the admin password, and every other key
+   in the file (mail credentials, dropship settings) was dropped on the floor,
+   since the template below writes a fixed five-key file. */
+if (is_file($cfg)) {
+    http_response_code(410);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit("Setup has already been completed on this installation.\n");
+}
+
 if($_SERVER['REQUEST_METHOD']==='POST'){
   $pass = $_POST['admin_pass'] ?? '';
   $notify = trim($_POST['notify'] ?? 'acerasoft@gmail.com');
