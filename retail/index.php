@@ -366,12 +366,13 @@ vr_layout_start([
       <?php foreach (array_slice($top, 0, 8, true) as $brand => $n): ?>
         <a class="house" href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
           <span class="house__art">
-            <?php if (!empty($shot[$brand])): ?>
-              <img src="<?= h(vr_img($shot[$brand], 420)) ?>"
-                   srcset="<?= h(vr_img_srcset($shot[$brand], [180, 300, 420])) ?>"
-                   sizes="(max-width:640px) 46vw, 240px"
-                   alt="" aria-hidden="true" loading="lazy" decoding="async">
-            <?php endif; ?>
+            <?php if (!empty($shot[$brand])) vr_frame($shot[$brand], [
+                'box'    => 0.75,      // .house__art 3/4
+                'no_pad' => true,      // perde altında bulanık zemin işe yaramaz
+                'w'      => 420,
+                'widths' => [180, 300, 420],
+                'sizes'  => '(max-width:640px) 46vw, 240px',
+            ]); ?>
           </span>
           <span class="house__in">
             <b><?= h($brand) ?></b>
@@ -454,12 +455,13 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
       <?php foreach ($cats as $cat => $n): ?>
         <a class="cat" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
           <span class="cat__art">
-            <?php if (!empty($catShot[$cat])): ?>
-              <img src="<?= h(vr_img($catShot[$cat], 420)) ?>"
-                   srcset="<?= h(vr_img_srcset($catShot[$cat], [300, 420, 600])) ?>"
-                   sizes="(max-width:640px) 62vw, 300px"
-                   alt="" aria-hidden="true" loading="lazy" decoding="async">
-            <?php endif; ?>
+            <?php if (!empty($catShot[$cat])) vr_frame($catShot[$cat], [
+                'box'    => 0.75,      // .cat__art 3/4
+                'no_pad' => true,
+                'w'      => 420,
+                'widths' => [300, 420, 600],
+                'sizes'  => '(max-width:640px) 62vw, 300px',
+            ]); ?>
             <span class="cat__in">
               <b><?= h($cat) ?></b>
               <i><?= te('results_n', ['n' => (int)$n]) ?></i>

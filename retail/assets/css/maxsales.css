@@ -1169,9 +1169,9 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   aspect-ratio:3/4;
 }
 .cat__art img{
-  width:100%;height:100%;object-fit:cover;display:block;
   transform:scale(1.03);transition:transform 1.2s var(--ease);
 }
+.cat__art .fr{background:var(--bone-2)}
 .cat:hover .cat__art img,.cat:focus-visible .cat__art img{transform:scale(1.1)}
 .cat__art::after{
   content:"";position:absolute;inset:0;
@@ -1231,10 +1231,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   aspect-ratio:3/4;
 }
 .house__art img{
-  width:100%;height:100%;object-fit:cover;display:block;
   transform:scale(1.02);transition:transform 1.1s var(--ease),filter .5s var(--ease);
   filter:saturate(.92);
 }
+.house__art .fr{background:var(--bone-2)}
 .house:hover .house__art img,.house:focus-visible .house__art img{
   transform:scale(1.09);filter:saturate(1);
 }
