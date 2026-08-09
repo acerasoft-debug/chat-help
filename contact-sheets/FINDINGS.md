@@ -122,17 +122,41 @@ a live category with two products in it, which is thin — but a padded gilet
 under "Shorts" is not a presentation problem, it is wrong, and a buyer filtering
 Shorts finds outerwear.
 
-### Where the two original categories ended up
+### All twelve sheets reviewed — batch2 and batch3 are ready to price
 
-After eight sheets, the two folder-derived categories have almost emptied:
+`balenciaga-burberry-02`, `-03` and `mixed-root-c-01`/`-02` held only seven rows
+not already covered by another sheet: five Burberry t-shirts (`8055307`,
+`80553091`, `8056176 B1488`, `8100517`, and `81048891` via `shorts-sweats-03`)
+and two hooded sweats with matching bottoms (`8055312`, `8055318`, plus
+`8055356`) that were correctly filed and left alone.
+
+Final state of the 156 rows, against the two categories they started with:
 
 | Category | Before | After |
 |---|---|---|
-| `Hoodies & Sweatshirts` | 109 | 23 |
+| `Hoodies & Sweatshirts` | 109 | 19 |
 | `Shorts` | 49 | **0** |
+| `T-Shirts` | 0 | 89 |
+| `Jeans` | 0 | 15 |
+| `Swim Shorts` | 0 | 12 |
+| `Polos` | 0 | 6 |
+| `Jeans Shorts` | 0 | 4 |
+| `Tracksuit Sets` | 0 | 4 |
+| `Underwear` | 0 | 4 |
+| `Vests & Gilets` | 0 | 2 |
+| `Tank Tops` | 0 | 1 |
 
-Not one of the 49 rows called "Shorts" was a pair of shorts. They were t-shirts,
-jeans, denim shorts, swim shorts, boxer briefs, polos and gilets.
+Not one of the 49 rows called "Shorts" was a pair of shorts, and 90 of the 109
+"Sweatshirt" rows were not sweatshirts. **119 of 156 rows — 76% — carried the
+wrong category**, which is what taking the category from a folder name costs
+when the folder holds nine brands and a dozen garment types.
+
+### What still has to happen before these go live
+
+1. Prices, MOQ and size runs — none of these rows has been through that.
+2. The four image-level duplicates below.
+3. Import as `status: pending`, verify, then flip to approved. `hold-products.yml`
+   already does that, and it is the step that makes a mistake reversible.
 
 ### Before importing: check images against the LIVE catalogue, not just each other
 
