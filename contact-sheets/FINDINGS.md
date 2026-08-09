@@ -13,9 +13,44 @@ images with the filename (= model code) printed under each one.
 | Sheets | Images | Reviewed |
 |---|---|---|
 | `balmain-01..02` | 29 | **yes** |
-| `balenciaga-burberry-01` | 24 | **yes — already correct live, see below** |
-| `balenciaga-burberry-02..17` | 366 | not yet |
+| `balenciaga-burberry-01..03` | 72 | **yes — covers every live row, all correct** |
+| `balenciaga-burberry-04..17` | 342 | **not needed for live rows** (see coverage note) |
 | `shorts-sweats-01..10` | 236 | not yet |
+
+## Coverage: only three of the seventeen sheets matter
+
+The folder has **44 live product rows**, and every one of them appears on sheets
+01, 02 or 03. Sheets 04–17 tile images that no live row references — photos that
+were uploaded but never turned into products. Reviewing them cannot correct a
+category, because there is nothing to correct; they are only useful when those
+images are eventually made into rows.
+
+This was computed rather than assumed: the live rows come from
+`inspect-products.yml` (`img_contains: balenciaga-burberry/`, `compact: true`,
+44 lines) and were joined by image filename against all 17 `.txt` tile maps.
+So "17 sheets to review" was really three, and all three are now done.
+
+## `balenciaga-burberry-01..03` — reviewed, no corrections needed
+
+All 44 live rows checked against their photo. Every one is in the right
+category: Balenciaga briefs under Underwear, its printed tees under T-Shirts,
+the allover-logo shorts under Shorts, hoodies and crewnecks under Hoodies &
+Sweatshirts, the purple women's tee and the Burberry women's tops under Women's
+T-Shirts, the women's denim under Women's Jeans, Burberry's collared piqués
+under Polos, and `8049455` (black denim shorts) under Jeans Shorts.
+
+Nothing was moved, because nothing was wrong.
+
+### Two things the sheets raise that photos cannot settle
+
+- **Denim sets.** `662853TJW90` and `TWJ90` are a denim jacket *and* jeans
+  photographed together, filed under Jeans / Women's Jeans.
+- **Hoodie-and-trouser sets.** `8045004+8045013`, `8045006` and
+  `8045015+8045005` are a hooded sweat with matching joggers, filed under
+  Hoodies & Sweatshirts. A `Tracksuit Sets` category exists.
+
+Both are merchandising calls — is the product the top, or the set? — so they are
+recorded, not changed.
 
 ## Read the LIVE rows, not `product-batches/batch1.json`
 
