@@ -217,6 +217,24 @@ jobs:
             [ "$T" = "." ] || BASE="$BASE/$T"
           fi
           echo "doğrulanan adres: $BASE"
+
+          # DNS BEKLEME
+          # -----------
+          # Yeni açılan bir alt ad hemen çözülmüyor. İlk denemede
+          # "Could not resolve host" alındı ve doğrulama, dosyalar sunucuda
+          # dururken düştü. Adres çözülene kadar kısa bir süre bekliyoruz;
+          # çözülmezse yine hata veriyoruz — sessizce geçmiyor.
+          HOSTONLY=$(echo "$BASE" | sed -e 's#^https\?://##' -e 's#/.*##' -e 's#:.*##')
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            getent hosts "$HOSTONLY" > /dev/null 2>&1 && break
+            echo "  DNS henüz çözmedi ($HOSTONLY), 15 sn bekleniyor [$i/10]"
+            sleep 15
+          done
+          if ! getent hosts "$HOSTONLY" > /dev/null 2>&1; then
+            echo "::error::$HOSTONLY çözülemedi — alan adı kaydı henüz yayılmamış olabilir"
+            exit 1
+          fi
+
           fail=0
           # Klasörün kendisi (".../shop") AYRI ele alınıyor: orası sunucunun
           # DirectoryIndex ayarına bağlı ve barındırma AllowOverride vermiyorsa
@@ -285,7 +303,12 @@ jobs:
           echo "Gercekten yayina almak icin dry_run=false ile tekrar calistir."
 
       - name: Kurulum kontrolü (sunucuda)
-        if: ${{ github.event.inputs.dry_run != 'true' }}
+        # always() BİLEREK: dışarıdan doğrulama düştüğünde asıl soru "sunucuda
+        # ne var?" oluyor ve tam o anda bu adım atlanıyordu. Bir kez oldu —
+        # alt adın DNS'i daha yayılmamıştı, dosyalar yerindeydi ama bunu
+        # gösterecek adım çalışmadı. İş yine kırmızı kalıyor, sadece teşhis
+        # de basılıyor.
+        if: ${{ always() && github.event.inputs.dry_run != 'true' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
