@@ -149,6 +149,25 @@ jobs:
           script: |
             echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
+
+            # /shop 403 verdi (Apache'nin kendi 13 baytlik cevabi, PHP'den degil).
+            # Kok .htaccess'teki temiz-URL kurali `RewriteCond %{REQUEST_FILENAME} !-d`
+            # tasiyor: hedef bir DIZIN ise .php'ye yonlendirme atlanir, `Options -Indexes`
+            # de listelemeyi yasakladigi icin sonuc 403 olur. Yani sayfa adiyla ayni ada
+            # sahip bos bir dizin, o sayfayi tek basina eriselemez yapar.
+            echo; echo "== sayfa adiyla CAKISAN dizinler (403 sebebi) =="
+            found=0
+            for f in ~/public_html/*.php; do
+              b=$(basename "$f" .php)
+              if [ -d ~/public_html/"$b" ]; then
+                found=1
+                echo "  CAKISMA: /$b  ->  dizin VAR, $b.php golgede kaliyor"
+                ls -la ~/public_html/"$b" | head -8
+              fi
+            done
+            [ "$found" = 0 ] && echo "  cakisan dizin yok"
+            echo; echo "== shop.php dosya durumu =="
+            ls -l ~/public_html/shop.php 2>/dev/null || echo "  shop.php YOK!"
             echo; echo "== son PHP hatalari =="
             for L in ~/public_html/error_log ~/error_log ~/logs/error_log /var/log/php-fpm/error.log; do
               [ -f "$L" ] && { echo "-- $L --"; tail -25 "$L"; }

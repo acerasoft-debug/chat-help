@@ -87,15 +87,25 @@ jobs:
                  kategoriyi ele veriyor: "Polo Shirt" adli urun 'Polos' disindaysa
                  yanlis yerdedir. Kategori klasorden tahmin edildigi icin bu tur
                  kaymalar var; bu tarama hepsini mekanik olarak ortaya cikarir. */
+              /* SIRA ONEMLI: dongu ILK eslesmede duruyor, yani en spesifik kural once
+                 gelmeli. Ilk surumde kadin kategorileri hic yoktu ve "Tracksuit Set"
+                 kurali eksikti; sonuc olarak DOGRU yerdeki 12 urunun 11'i "celisik"
+                 diye isaretlendi -- "Women's T-Shirt" adi 'T-Shirts' kuralina takiliyor,
+                 oysa 'Women's T-Shirts' daha dogru olan, daha ozel kategori. Bu tur bir
+                 yanlis alarm zararsiz degil: uyari dogru veriyi "duzeltmeye" davet
+                 ediyor, yani araci dinleyen biri katalogu bozardi. */
               $rules = [
-                'Polos'                 => '/\bpolo\b/i',
+                'Tracksuit Sets'        => '/\b(tracksuit|track\s*suit)\b/i',
+                "Women's Swimwear"      => '/\b(bikini|swimsuit|badeanzug|one-?piece)\b/i',
+                "Women's Jeans"         => "/\bwom(?:en|an)'?s?\b.*\bjeans?\b/i",
+                "Women's T-Shirts"      => "/\bwom(?:en|an)'?s?\b.*\bt-?shirts?\b/i",
                 'Jeans Shorts'          => '/\b(denim|jean)\s*shorts?\b/i',
+                'Swim Shorts'           => '/\b(swim\s*shorts?|badeshorts?|boardshorts?)\b/i',
+                'Polos'                 => '/\bpolo\b/i',
+                'Underwear'             => '/\b(boxer|brief|underwear)\b/i',
                 'Jeans'                 => '/\bjeans?\b/i',
                 'Hoodies & Sweatshirts' => '/\b(hoodie|sweatshirt|sweat|crewneck)\b/i',
                 'T-Shirts'              => '/\bt-?shirts?\b/i',
-                'Swim Shorts'           => '/\b(swim\s*shorts?|badeshorts?|boardshorts?)\b/i',
-                'Underwear'             => '/\b(boxer|brief|underwear)\b/i',
-                "Women's Swimwear"      => '/\b(bikini|swimsuit|badeanzug|one-?piece)\b/i',
               ];
               echo "\n===== AD / KATEGORI CELISKILERI =====\n";
               $bad = 0;
