@@ -430,21 +430,44 @@ function vestra_journal_credits(): array {
 }
 
 /** Default subjects for the editorial photo fetch — fashion, not product packshots.
- *  Kept to two or three plain words each: the first pass used phrases like
+ *  Kept to two or three plain words each: an early pass used phrases like
  *  "clothing rail retail store" and "textile fabric detail macro", and Commons
  *  returned nothing at all for three of six — its search wants subjects, not
- *  descriptions of a shot. */
+ *  descriptions of a shot.
+ *
+ *  Deliberately about cloth, craft and shop floors rather than people. Asking Commons
+ *  for "fashion model" or "fashion week" returns red-carpet pictures of named
+ *  individuals, and a CC licence grants copyright permission only — it says nothing
+ *  about the subject's likeness, which a commercial B2B page would be trading on.
+ *  These articles are about buying, pricing and assortment anyway, so cloth and rails
+ *  illustrate them better than a portrait does. */
 function vestra_journal_photo_queries(): array {
     return [
-        'fashion photography',
-        'fashion model',
-        'clothing store interior',
-        'boutique clothes shop',
-        'textile fabric',
-        'denim jeans',
-        'knitwear sweater',
-        'fashion week runway',
+        'denim fabric',
+        'wool knitwear',
+        'cotton textile',
+        'clothing rail',
+        'clothes shop interior',
+        'boutique window display',
+        'tailor workshop',
+        'sewing atelier',
+        'folded shirts',
+        'linen fabric',
+        'yarn wool',
+        'leather workshop',
     ];
+}
+
+/** Commons titles carrying any of these are never published, whatever their licence.
+ *
+ *  Three separate reasons, all found by reading an actual shortlist rather than guessing:
+ *  awareness campaigns arrive under garment words but are about assault, not clothing
+ *  ("Denim Day"); museum accession shots are the catalogue packshot this journal is
+ *  explicitly not illustrated with; and children are not a subject a wholesale site
+ *  should be putting on a page at all. */
+function vestra_journal_photo_reject(): array {
+    return ['denim day', 'objectnr', 'inventarisnummer', 'accession', 'child', 'kinder',
+            'baby', 'nude', 'lingerie model', 'red carpet', 'premiere', 'award'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
@@ -515,17 +538,27 @@ function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $min
             if (strpos($mime, 'image/') !== 0 || strpos($mime, 'svg') !== false) { $bump('not a raster image'); continue; }
             if ((int)($ii['width'] ?? 0) < $minWidth) { $bump('too small'); continue; }
 
+            $title   = (string)($p['title'] ?? '');
+            $lcTitle = mb_strtolower($title);
+            foreach (vestra_journal_photo_reject() as $bad)
+                if (strpos($lcTitle, $bad) !== false) { $bump('subject not suitable'); continue 2; }
+
             $em = $ii['extmetadata'] ?? [];
             $license = $clean($em['LicenseShortName']['value'] ?? '');
             if (!$licOk($license)) { $bump('licence not usable commercially'); continue; }
             $artist = $clean($em['Artist']['value'] ?? '') ?: 'Wikimedia Commons';
             if (mb_strlen($artist) > 70) $artist = mb_substr($artist, 0, 70).'…';
 
-            $title = (string)($p['title'] ?? '');
             $src   = (string)($ii['thumburl'] ?? $ii['url'] ?? ''); if ($src === '') { $bump('no url'); continue; }
             $ext   = strtolower((string)pathinfo((string)parse_url($src, PHP_URL_PATH), PATHINFO_EXTENSION));
             if (!in_array($ext, ['jpg','jpeg','png','webp'], true)) $ext = 'jpg';
-            $name  = substr(strtolower(trim(preg_replace('/[^a-z0-9]+/i','-', preg_replace('/^File:/','',$title)), '-')), 0, 60).'.'.$ext;
+            /* The 60-char cut is what keeps the name readable, but it also made ten
+               different "Fashion time modeling photography in Tbilisi, Iranian model …"
+               files collapse onto one path: nine downloads overwritten, and a credit
+               line naming the wrong photograph. The title hash restores uniqueness
+               without giving up the readable stem. */
+            $stem  = substr(strtolower(trim(preg_replace('/[^a-z0-9]+/i','-', preg_replace('/^File:/','',$title)), '-')), 0, 52);
+            $name  = trim($stem, '-').'-'.substr(dechex(crc32($title)), 0, 6).'.'.$ext;
 
             $n++;
             $rep['files'][] = ['file'=>$name, 'width'=>(int)($ii['width'] ?? 0), 'license'=>$license, 'artist'=>$artist];
