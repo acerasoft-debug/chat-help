@@ -96,13 +96,24 @@ jobs:
           # verip Host başlığını elle yazarsak tam da tarayıcının yapacağı
           # istek oluşuyor. Böylece "DNS eksik" ile "site çalışmıyor"
           # birbirinden ayrılıyor — ikisi de aynı beyaz ekranı gösterir.
+          # HTTP, HTTPS DEĞİL — bilerek.
+          # HTTPS denendi, üç istek de bağlanamadan düştü. Sebep sertifika:
+          # AutoSSL bir adı ancak dışarıdan doğrulayabilirse sertifika
+          # veriyor, bu ad ise henüz çözülmüyor. Yani sertifika DNS'i,
+          # DNS de bizi bekliyor. Şu an sorduğumuz soru "TLS hazır mı"
+          # değil, "uygulama doğru kökten cevap veriyor mu" — onu 80'den
+          # sormak yeterli. DNS geldiğinde AutoSSL sertifikayı kendi verir.
+          : > /tmp/h.html
           for p in / /index.php /shop.php; do
             code=$(curl -sS -o /tmp/h.html -w '%{http_code}' --max-time 25 \
-                   --resolve "maxsales-test.vestrasales.com:443:$IP" \
-                   "https://maxsales-test.vestrasales.com$p" 2>/dev/null || echo 000)
+                   --resolve "maxsales-test.vestrasales.com:80:$IP" \
+                   "http://maxsales-test.vestrasales.com$p" 2>&1 | tail -1 || echo 000)
             sig=$(grep -c 'MAXSALES' /tmp/h.html 2>/dev/null || echo 0)
             size=$(wc -c < /tmp/h.html 2>/dev/null || echo 0)
             printf '   %-14s %s  %s bayt  MAXSALES imzasi:%s\n' "$p" "$code" "$size" "$sig"
           done
+          echo "   -- cevabin ilk basligi:"
+          curl -sSI --max-time 20 --resolve "maxsales-test.vestrasales.com:80:$IP" \
+               "http://maxsales-test.vestrasales.com/index.php" 2>&1 | head -6 | sed 's/^/      /'
           echo
           echo "   imza>0 ise site AYAKTA; geriye yalnizca DNS kaydi kaliyor."
