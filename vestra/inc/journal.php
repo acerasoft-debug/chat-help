@@ -449,17 +449,33 @@ function vestra_journal_photo_queries(): array {
     return [
         'denim fabric',
         'wool knitwear',
-        'cotton textile',
-        'clothing rail',
+        'textile fabric',
         'clothes shop interior',
         'boutique window display',
         'tailor workshop',
         'sewing atelier',
-        'folded shirts',
         'linen fabric',
-        'yarn wool',
-        'leather workshop',
+        'wool yarn',
+        'garment factory',
+        'silk fabric',
+        'knitted sweater',
     ];
+}
+
+/** A Commons title must contain one of these or the file is not published.
+ *
+ *  Commons searches description text, not just titles, so a query drags in whatever
+ *  happens to mention the words. 'clothing rail' returned the interior of a Bergen
+ *  LIGHT RAIL tram; 'folded shirts' returned an airplane and a Godzilla show booth;
+ *  'leather workshop' returned an iPhone in a leather case. Blocking bad subjects
+ *  one at a time cannot win against that -- the junk is unbounded and unpredictable,
+ *  while what belongs here is a short, nameable list. So the test is inverted: say
+ *  what the journal illustrates itself with, and let everything else fall away. */
+function vestra_journal_photo_require(): array {
+    return ['denim', 'fabric', 'textile', 'tailor', 'atelier', 'couture', 'sewing', 'sewn',
+            'yarn', 'wool', 'merino', 'knit', 'linen', 'cotton', 'silk', 'garment', 'apparel',
+            'clothes', 'clothing', 'boutique', 'dressmak', 'weav', 'loom', 'spinning', 'thread',
+            'costume', 'shirt', 'knitwear', 'sweater'];
 }
 
 /** Commons titles carrying any of these are never published, whatever their licence.
@@ -471,7 +487,13 @@ function vestra_journal_photo_queries(): array {
  *  should be putting on a page at all. */
 function vestra_journal_photo_reject(): array {
     return ['denim day', 'objectnr', 'inventarisnummer', 'accession', 'child', 'kinder',
-            'baby', 'nude', 'lingerie model', 'red carpet', 'premiere', 'award'];
+            'baby', 'nude', 'lingerie model', 'red carpet', 'premiere', 'award',
+            /* drawings and renders answer these queries too, and read as clip art next to
+               a photograph — 'A solarpunk tailor workshop' came back from 'tailor workshop' */
+            'solarpunk', 'illustration', 'drawing', 'painting', 'engraving', 'clipart', 'logo',
+            /* a mill's front gate and a heritage plaque both mention the textile mill they
+               belong to, and both photograph as signage rather than as cloth */
+            'gate of', 'sign of', 'signboard'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
@@ -544,6 +566,10 @@ function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $min
 
             $title   = (string)($p['title'] ?? '');
             $lcTitle = mb_strtolower($title);
+            $onTopic = false;
+            foreach (vestra_journal_photo_require() as $word)
+                if (strpos($lcTitle, $word) !== false) { $onTopic = true; break; }
+            if (!$onTopic) { $bump('off topic'); continue; }
             foreach (vestra_journal_photo_reject() as $bad)
                 if (strpos($lcTitle, $bad) !== false) { $bump('subject not suitable'); continue 2; }
 
