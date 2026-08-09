@@ -726,14 +726,35 @@ function vr_swatch_image(array $p): string
     return vr_card_image($p);
 }
 
-/** Bu ürünün grubundaki tüm satırlar (kendisi dahil). Grup yoksa boş dizi. */
+/**
+ * Bu ürünün grubundaki satırlar (kendisi dahil). Grup yoksa boş dizi.
+ *
+ * Renk başına bir satır: beslemede bir zip-up kapüşonlu iki kez açılmış
+ * ("…-copy", iki fotoğraf, üstelik adında "Zip Up" eksik) ve renk şeridinde
+ * yan yana iki "Beige" çıkıyordu. Aynı rengi iki kez göstermek, ikisinin
+ * farkını arattırıyor — fark yok.
+ *
+ * Elenen satır katalogda ve adresinde duruyor; burada gizlenen tek şey
+ * şeritteki tekrar. Hangisinin kalacağına vr_variant_index sırası karar
+ * veriyor: önce stoktaki, sonra fotoğrafı çok olan. Ürünün kendisi ne olursa
+ * olsun listede kalıyor — bulunduğunuz sayfanın karesi şeritten düşmesin.
+ */
 function vr_variant_siblings(array $p): array
 {
     $ids = vr_variant_index()[vr_variant_key($p)] ?? [];
     if (!$ids) return [];
     $cat = vr_catalog();
+
     $out = [];
-    foreach ($ids as $id) if (isset($cat[$id])) $out[] = $cat[$id];
+    $seen = [];
+    foreach ($ids as $id) {
+        if (!isset($cat[$id])) continue;
+        $row = $cat[$id];
+        $col = mb_strtolower(vr_variant_colour($row));
+        if ($col !== '' && isset($seen[$col]) && $id !== (string)$p['id']) continue;
+        $seen[$col] = true;
+        $out[] = $row;
+    }
     return $out;
 }
 
