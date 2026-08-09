@@ -90,7 +90,10 @@ foreach ($list as $rel) {
     $info = @getimagesize($abs);
     if (!$info || $info[0] < 8 || $info[1] < 8) { $fail++; continue; }
 
-    $entry = ['r' => round($info[0] / $info[1], 3)];
+    // Piksel ölçüsü de saklanıyor: kart 300 px'te basıyor, ürün sayfası
+    // 900'de. "Vitrine uygun değil" kararı ikisi için aynı olamaz — 500×640
+    // bir kare kartta gayet net, ürün sayfasında bulanık.
+    $entry = ['r' => round($info[0] / $info[1], 3), 'w' => (int)$info[0], 'h' => (int)$info[1]];
 
     $im = ps_thumb($abs);
     if ($im) {

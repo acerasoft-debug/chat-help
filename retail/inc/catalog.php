@@ -646,7 +646,18 @@ function vr_card_frames(array $p): array
     $score = [];
     foreach ($imgs as $i => $img) {
         $s = 0.0;
-        if (isset($grid[$img])) $s += 100;                 // ızgara: en sona
+        $iw = (int)($shape[$img]['w'] ?? 0);
+        $ih = (int)($shape[$img]['h'] ?? 0);
+        $small = $iw > 0 && ($iw < 600 || $ih < 700);
+
+        // data/photo-quality.json "vitrine uygun değil" diyor. İki ayrı sebep
+        // var ve ağırlıkları aynı olamaz: gerçek ızgara kontakt sayfası karoda
+        // felaket, küçük dosya ise 300 px'lik kartta gayet net. Küçüklüğü
+        // burada ayırıyoruz, yoksa iyi bir kare sırf 560 px geniş diye sona
+        // atılıyor ve yerine bir ızgara geçiyordu.
+        if (isset($grid[$img])) $s += $small ? 6 : 100;
+        elseif ($small)         $s += 6;
+
         // İki–üç mankenli kare: bilgi olarak iyi, karo olarak kötü. Aynı yüz
         // yan yana iki kez görününce sayfa çoğaltılmış gibi duruyor.
         $s += max(0, (int)($shape[$img]['n'] ?? 1) - 1) * 14;
