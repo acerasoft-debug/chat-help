@@ -1,0 +1,198 @@
+name: (Görsel) MAXSALES tek dosya önizleme
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "Bakılacak ad"
+        required: true
+        default: "maxsales-test.vestrasales.com"
+
+permissions:
+  contents: write
+
+# NİYE VAR
+# ========
+# Site ~/maxsales_de kökünde çalışıyor ama tıklanabilir bir adresi yok: adın
+# DNS kaydı GoDaddy tarafında girilmedi. Ekran görüntüsü yetmiyor —
+# işletmeci sayfayı açıp gezmek, telefonunda göstermek istiyor.
+#
+# Bu iş sayfayı tarayıcıda açıp (bot duvarını aşarak) TEK DOSYAYA katlıyor:
+# stil dosyaları <style> içine, görseller data: adresine, betikler atılıyor.
+# Çıkan .html hiçbir dış isteğe ihtiyaç duymuyor, dolayısıyla herhangi bir
+# yerde açılabiliyor. Canlı site değil, o anın kopyası — sepet ve arama
+# çalışmaz; amaç tasarımı ve kataloğu göstermek.
+jobs:
+  snap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/vestra-premium-retail-site-rxj4va
+
+      - name: Sunucu IP'si
+        id: ip
+        run: |
+          IP=$(dig +short A vestrasales.com | head -1)
+          [ -n "$IP" ] || { echo "::error::sunucu IP'si bulunamadi"; exit 1; }
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+
+      - name: Playwright kur
+        run: |
+          npm init -y > /dev/null 2>&1
+          npm i -D playwright@latest > /dev/null 2>&1
+          npx playwright install chromium > /dev/null 2>&1
+
+      - name: Sayfaları katla
+        env:
+          H: ${{ github.event.inputs.host }}
+          IP: ${{ steps.ip.outputs.ip }}
+        run: |
+          mkdir -p .preview
+          cat > snap.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import { writeFileSync } from 'fs';
+
+          const H = process.env.H, IP = process.env.IP, base = `http://${H}`;
+          const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                   + '(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
+
+          const browser = await chromium.launch({
+            args: [`--host-resolver-rules=MAP ${H} ${IP}`, '--disable-blink-features=AutomationControlled'],
+          });
+          const ctx = await browser.newContext({
+            viewport: { width: 1440, height: 1200 }, userAgent: UA, locale: 'de-DE',
+          });
+          const page = await ctx.newPage();
+
+          const pages = [
+            { file: 'index.html', path: '/' },
+            { file: 'shop.html',  path: '/shop.php' },
+            { file: 'outlet.html', path: '/outlet.php' },
+          ];
+
+          for (const p of pages) {
+            const url = base + p.path;
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+
+            // Bot duvarı: veri merkezi IP'si sorgulanıyor, ara sayfa
+            // JavaScript ile çözülüyor. Ölçüldü, bekleyip yenilemek yetiyor.
+            for (let t = 0; t < 6; t++) {
+              if (!/being verified|Just a moment/i.test(await page.content())) break;
+              await page.waitForTimeout(4000);
+              await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 }).catch(() => {});
+            }
+
+            // Tembel görselleri tetikle: kartların çoğu loading="lazy",
+            // kaydırmadan indirilmiyorlar ve kopyada boş kutu kalıyorlar.
+            await page.evaluate(async () => {
+              const step = window.innerHeight * 0.8;
+              for (let y = 0; y < document.body.scrollHeight; y += step) {
+                window.scrollTo(0, y);
+                await new Promise(r => setTimeout(r, 250));
+              }
+              window.scrollTo(0, 0);
+            });
+            await page.waitForTimeout(1500);
+
+            const html = await page.evaluate(async () => {
+              const toData = async (u) => {
+                try {
+                  const r = await fetch(u);
+                  if (!r.ok) return null;
+                  const b = await r.blob();
+                  if (b.size > 900_000) return null;         // dev dosyalari atla
+                  return await new Promise((res) => {
+                    const fr = new FileReader();
+                    fr.onload = () => res(fr.result);
+                    fr.onerror = () => res(null);
+                    fr.readAsDataURL(b);
+                  });
+                } catch { return null; }
+              };
+
+              // 1) stil dosyalari <style> icine
+              for (const l of Array.from(document.querySelectorAll('link[rel="stylesheet"]'))) {
+                try {
+                  const css = await (await fetch(l.href)).text();
+                  const s = document.createElement('style');
+                  s.textContent = css;
+                  l.replaceWith(s);
+                } catch {}
+              }
+
+              // 2) gorseller data: adresine. srcset siliniyor, yoksa
+              //    tarayici yine agdan istemeye calisir ve kopya bos kalir.
+              await Promise.all(Array.from(document.images).map(async (img) => {
+                const u = img.currentSrc || img.src;
+                if (!u || u.startsWith('data:')) return;
+                const d = await toData(u);
+                img.removeAttribute('srcset');
+                img.removeAttribute('loading');
+                if (d) img.src = d; else img.remove();
+              }));
+              for (const s of Array.from(document.querySelectorAll('source[srcset]'))) s.remove();
+
+              // 3) satir ici style icindeki url(...) — kart arka planlari
+              for (const el of Array.from(document.querySelectorAll('[style*="url("]'))) {
+                const m = el.getAttribute('style').match(/url\(([^)]+)\)/);
+                if (!m) continue;
+                const raw = m[1].replace(/['"]/g, '');
+                if (raw.startsWith('data:')) continue;
+                const d = await toData(new URL(raw, location.href).href);
+                if (d) el.setAttribute('style', el.getAttribute('style').replace(m[1], `"${d}"`));
+              }
+
+              // 4) video yerine posteri birak: dosya cok buyuk, kopyayi
+              //    16 MB sinirinin uzerine cikariyor.
+              for (const v of Array.from(document.querySelectorAll('video'))) {
+                const poster = v.getAttribute('poster');
+                if (poster) {
+                  const img = document.createElement('img');
+                  img.src = poster;
+                  img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+                  v.replaceWith(img);
+                } else v.remove();
+              }
+              for (const v of Array.from(document.querySelectorAll('video'))) {
+                const d = v.getAttribute('src') ? await toData(v.src) : null;
+                if (d) v.src = d; else v.remove();
+              }
+
+              // 5) betikler atiliyor: kopya durgun bir sayfa, calisan bir
+              //    magaza degil. Kalirlarsa sunucuya istek atmaya calisip
+              //    hata veriyorlar.
+              for (const s of Array.from(document.querySelectorAll('script'))) s.remove();
+
+              // 6) baglantilar: uc sayfa birbirine bagli kalsin, gerisi
+              //    olu. Calismayan baglantiya tiklamak kirik izlenimi verir.
+              for (const a of Array.from(document.querySelectorAll('a[href]'))) {
+                const h = a.getAttribute('href') || '';
+                if (/(^|\/)index\.php$|^\/$/.test(h))      a.setAttribute('href', 'index.html');
+                else if (/shop\.php/.test(h) && !/\?/.test(h))  a.setAttribute('href', 'shop.html');
+                else if (/outlet\.php/.test(h) && !/\?/.test(h)) a.setAttribute('href', 'outlet.html');
+                else { a.setAttribute('href', '#'); a.style.cursor = 'default'; }
+              }
+              return '<!doctype html>\n' + document.documentElement.outerHTML;
+            });
+
+            const kb = Math.round(Buffer.byteLength(html) / 1024);
+            const bos = (html.match(/<img/g) || []).length;
+            console.log(`${p.file}: ${kb} KB · ${bos} gorsel`);
+            writeFileSync('.preview/' + p.file, html);
+          }
+          await browser.close();
+          JS
+          node snap.mjs
+          ls -la .preview/ | sed 's/^/  /'
+
+      - name: Dala işle
+        run: |
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add .preview
+          git commit -m "gecici: MAXSALES tek dosya onizleme" || { echo "degisiklik yok"; exit 0; }
+          for i in 1 2 3 4; do
+            git push origin HEAD:claude/vestra-premium-retail-site-rxj4va && break
+            sleep $((2**i)); git pull --rebase origin claude/vestra-premium-retail-site-rxj4va || true
+          done
