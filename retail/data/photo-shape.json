@@ -701,6 +701,22 @@
         "cx": 51,
         "cy": 59
     },
+    "/uploads/balenciaga-burberry/blcg-620973-tkv72-v1.jpg": {
+        "r": 0.578,
+        "w": 389,
+        "h": 673,
+        "bg": "#fcfaf9",
+        "cx": 52,
+        "cy": 55
+    },
+    "/uploads/balenciaga-burberry/blcg-620973-tkv72-v2.jpg": {
+        "r": 0.572,
+        "w": 385,
+        "h": 673,
+        "bg": "#faf7f6",
+        "cx": 49,
+        "cy": 54
+    },
     "/uploads/balenciaga-burberry/blcg-620973-tkv72.jpg": {
         "r": 1.162,
         "w": 782,
@@ -1706,6 +1722,22 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/balenciaga-burberry/burberry-8070146-v1.jpg": {
+        "r": 0.52,
+        "w": 682,
+        "h": 1312,
+        "bg": "#f0f0f3",
+        "cx": 52,
+        "cy": 57
+    },
+    "/uploads/balenciaga-burberry/burberry-8070146-v2.jpg": {
+        "r": 0.47,
+        "w": 617,
+        "h": 1312,
+        "bg": "#e8e9ec",
+        "cx": 55,
+        "cy": 59
+    },
     "/uploads/balenciaga-burberry/burberry-8070146.jpg": {
         "r": 0.991,
         "w": 1300,
@@ -1772,6 +1804,22 @@
         "cx": 48,
         "cy": 51
     },
+    "/uploads/balenciaga-burberry/burberry-8118964-v1.jpg": {
+        "r": 1.123,
+        "w": 2480,
+        "h": 2208,
+        "bg": "#e4e0dc",
+        "cx": 46,
+        "cy": 65
+    },
+    "/uploads/balenciaga-burberry/burberry-8118964-v2.jpg": {
+        "r": 0.466,
+        "w": 1029,
+        "h": 2208,
+        "bg": "#e8e8e6",
+        "cx": 50,
+        "cy": 54
+    },
     "/uploads/balenciaga-burberry/burberry-8118964.jpg": {
         "r": 1.696,
         "w": 3744,
@@ -1830,6 +1878,23 @@
         "flat": 1,
         "cx": 51,
         "cy": 54
+    },
+    "/uploads/balenciaga-burberry/d-g-f8n13t-g7bvh-v1.jpg": {
+        "r": 0.718,
+        "w": 1023,
+        "h": 1424,
+        "bg": "#faf9f9",
+        "cx": 49,
+        "cy": 38,
+        "trim": 0.05
+    },
+    "/uploads/balenciaga-burberry/d-g-f8n13t-g7bvh-v2.jpg": {
+        "r": 0.471,
+        "w": 670,
+        "h": 1424,
+        "bg": "#f5f3f2",
+        "cx": 51,
+        "cy": 52
     },
     "/uploads/balenciaga-burberry/d-g-f8n13t-g7bvh.jpg": {
         "r": 1.169,
@@ -1905,6 +1970,22 @@
         "cx": 50,
         "cy": 41
     },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7-p1-v1.jpg": {
+        "r": 0.707,
+        "w": 879,
+        "h": 1244,
+        "bg": "#eae6e4",
+        "cx": 49,
+        "cy": 43
+    },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7-p1-v2.jpg": {
+        "r": 0.4,
+        "w": 497,
+        "h": 1244,
+        "bg": "#e9e7e5",
+        "cx": 50,
+        "cy": 41
+    },
     "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7-p1.jpg": {
         "r": 1.087,
         "w": 1352,
@@ -1912,6 +1993,22 @@
         "bg": "#e3dfdc",
         "cx": 49,
         "cy": 43
+    },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7-v1.jpg": {
+        "r": 0.632,
+        "w": 855,
+        "h": 1352,
+        "bg": "#e9e5e3",
+        "cx": 49,
+        "cy": 44
+    },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7-v2.jpg": {
+        "r": 0.368,
+        "w": 497,
+        "h": 1352,
+        "bg": "#eae8e7",
+        "cx": 50,
+        "cy": 42
     },
     "/uploads/balenciaga-burberry/d-g-ftah6dg8ey7.jpg": {
         "r": 1,
@@ -1942,6 +2039,22 @@
         "w": 415,
         "h": 1330,
         "bg": "#eae7e7",
+        "cx": 48,
+        "cy": 40
+    },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ez5-p1-v1.jpg": {
+        "r": 0.732,
+        "w": 973,
+        "h": 1330,
+        "bg": "#f2f1f0",
+        "cx": 48,
+        "cy": 44
+    },
+    "/uploads/balenciaga-burberry/d-g-ftah6dg8ez5-p1-v2.jpg": {
+        "r": 0.314,
+        "w": 417,
+        "h": 1330,
+        "bg": "#eae8e7",
         "cx": 48,
         "cy": 40
     },
@@ -2010,6 +2123,25 @@
         "bg": "#e5e2e0",
         "cx": 51,
         "cy": 53
+    },
+    "/uploads/balenciaga-burberry/d-g-g7ded-v1.jpg": {
+        "r": 0.643,
+        "w": 874,
+        "h": 1360,
+        "bg": "#f7f7f7",
+        "flat": 1,
+        "cx": 50,
+        "cy": 45,
+        "trim": 0.067
+    },
+    "/uploads/balenciaga-burberry/d-g-g7ded-v2.jpg": {
+        "r": 0.746,
+        "w": 1014,
+        "h": 1360,
+        "bg": "#f8f6f4",
+        "cx": 52,
+        "cy": 52,
+        "trim": 0.067
     },
     "/uploads/balenciaga-burberry/d-g-g7ded.jpg": {
         "r": 1.368,
@@ -2117,6 +2249,22 @@
         "cx": 47,
         "cy": 63
     },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v1.jpg": {
+        "r": 0.781,
+        "w": 1037,
+        "h": 1327,
+        "bg": "#fafafa",
+        "cx": 53,
+        "cy": 23
+    },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1-v2.jpg": {
+        "r": 0.549,
+        "w": 729,
+        "h": 1327,
+        "bg": "#dbd7d6",
+        "cx": 51,
+        "cy": 51
+    },
     "/uploads/balenciaga-burberry/d-g-g8kbazg7c6-p1.jpg": {
         "r": 1.308,
         "w": 1736,
@@ -2183,6 +2331,24 @@
         "cx": 50,
         "cy": 41
     },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7c7g-v1.jpg": {
+        "r": 1.035,
+        "w": 1490,
+        "h": 1440,
+        "bg": "#fbf9f8",
+        "cx": 59,
+        "cy": 46,
+        "n": 2,
+        "trim": 0.095
+    },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7c7g-v2.jpg": {
+        "r": 0.414,
+        "w": 596,
+        "h": 1440,
+        "bg": "#e7ded7",
+        "cx": 50,
+        "cy": 42
+    },
     "/uploads/balenciaga-burberry/d-g-g8kbazg7c7g.jpg": {
         "r": 1.689,
         "w": 2432,
@@ -2205,6 +2371,24 @@
         "h": 1302,
         "bg": "#ede8e7",
         "cx": 53,
+        "cy": 54
+    },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7d9u-v1.jpg": {
+        "r": 1.052,
+        "w": 1498,
+        "h": 1424,
+        "bg": "#f8f7f6",
+        "cx": 47,
+        "cy": 44,
+        "n": 2,
+        "trim": 0.061
+    },
+    "/uploads/balenciaga-burberry/d-g-g8kbazg7d9u-v2.jpg": {
+        "r": 0.553,
+        "w": 788,
+        "h": 1424,
+        "bg": "#eeeae8",
+        "cx": 49,
         "cy": 54
     },
     "/uploads/balenciaga-burberry/d-g-g8kbazg7d9u.jpg": {
@@ -2330,6 +2514,24 @@
         "cx": 55,
         "cy": 54
     },
+    "/uploads/balenciaga-burberry/d-g-g8ol0zfu7e-v1.jpg": {
+        "r": 0.672,
+        "w": 1697,
+        "h": 2526,
+        "bg": "#f3f2f2",
+        "cx": 50,
+        "cy": 51,
+        "trim": 0.025
+    },
+    "/uploads/balenciaga-burberry/d-g-g8ol0zfu7e-v2.jpg": {
+        "r": 0.434,
+        "w": 1097,
+        "h": 2526,
+        "bg": "#f4f4f3",
+        "flat": 1,
+        "cx": 50,
+        "cy": 56
+    },
     "/uploads/balenciaga-burberry/d-g-g8ol0zfu7e.jpg": {
         "r": 1.143,
         "w": 2888,
@@ -2406,6 +2608,24 @@
         "cx": 52,
         "cy": 49
     },
+    "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-v1.jpg": {
+        "r": 0.757,
+        "w": 1023,
+        "h": 1351,
+        "bg": "#f1f1f1",
+        "flat": 1,
+        "cx": 49,
+        "cy": 48
+    },
+    "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1-v2.jpg": {
+        "r": 0.731,
+        "w": 988,
+        "h": 1351,
+        "bg": "#f3f2f1",
+        "flat": 1,
+        "cx": 52,
+        "cy": 47
+    },
     "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-1.jpg": {
         "r": 1.463,
         "w": 1976,
@@ -2451,6 +2671,24 @@
         "bg": "#e4e6e8",
         "cx": 48,
         "cy": 59
+    },
+    "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v1.jpg": {
+        "r": 0.997,
+        "w": 1140,
+        "h": 1144,
+        "bg": "#f6f6f8",
+        "cx": 52,
+        "cy": 51,
+        "n": 3,
+        "trim": 0.092
+    },
+    "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g-v2.jpg": {
+        "r": 0.323,
+        "w": 370,
+        "h": 1144,
+        "bg": "#e6e8ea",
+        "cx": 66,
+        "cy": 77
     },
     "/uploads/balenciaga-burberry/d-g-g8ol6z-g7c8g.jpg": {
         "r": 1.294,
@@ -2665,6 +2903,25 @@
         "bg": "#d9d8d8",
         "cx": 50,
         "cy": 47
+    },
+    "/uploads/balenciaga-burberry/d-g-g8pe3tfu7eq-v1.jpg": {
+        "r": 0.689,
+        "w": 1886,
+        "h": 2736,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 42,
+        "trim": 0.083
+    },
+    "/uploads/balenciaga-burberry/d-g-g8pe3tfu7eq-v2.jpg": {
+        "r": 0.538,
+        "w": 1472,
+        "h": 2736,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 52,
+        "cy": 56
     },
     "/uploads/balenciaga-burberry/d-g-g8pe3tfu7eq.jpg": {
         "r": 1.237,
@@ -2896,6 +3153,24 @@
         "cx": 49,
         "cy": 49
     },
+    "/uploads/balenciaga-burberry/d-g-g8po1tfugk4-v1.jpg": {
+        "r": 0.767,
+        "w": 730,
+        "h": 952,
+        "bg": "#fdfdfc",
+        "flat": 1,
+        "cx": 51,
+        "cy": 41,
+        "trim": 0.108
+    },
+    "/uploads/balenciaga-burberry/d-g-g8po1tfugk4-v2.jpg": {
+        "r": 0.991,
+        "w": 943,
+        "h": 952,
+        "bg": "#f0efed",
+        "cx": 52,
+        "cy": 50
+    },
     "/uploads/balenciaga-burberry/d-g-g8po1tfugk4.jpg": {
         "r": 1.723,
         "w": 1640,
@@ -2920,6 +3195,23 @@
         "bg": "#a9a49e",
         "cx": 51,
         "cy": 50
+    },
+    "/uploads/balenciaga-burberry/d-g-g8pq0zhu7ma-v1.jpg": {
+        "r": 0.756,
+        "w": 1049,
+        "h": 1388,
+        "bg": "#f9f9f6",
+        "cx": 49,
+        "cy": 47,
+        "trim": 0.058
+    },
+    "/uploads/balenciaga-burberry/d-g-g8pq0zhu7ma-v2.jpg": {
+        "r": 0.685,
+        "w": 951,
+        "h": 1388,
+        "bg": "#c9c6c0",
+        "cx": 52,
+        "cy": 52
     },
     "/uploads/balenciaga-burberry/d-g-g8pq0zhu7ma.jpg": {
         "r": 1.412,
@@ -3289,6 +3581,24 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/balenciaga-burberry/d-g-g8ra2zg7j6f-v1.jpg": {
+        "r": 0.68,
+        "w": 1023,
+        "h": 1504,
+        "bg": "#fcfcfc",
+        "flat": 1,
+        "cx": 50,
+        "cy": 44,
+        "trim": 0.083
+    },
+    "/uploads/balenciaga-burberry/d-g-g8ra2zg7j6f-v2.jpg": {
+        "r": 0.567,
+        "w": 853,
+        "h": 1504,
+        "bg": "#f0ecea",
+        "cx": 52,
+        "cy": 53
+    },
     "/uploads/balenciaga-burberry/d-g-g8ra2zg7j6f.jpg": {
         "r": 1.226,
         "w": 1844,
@@ -3487,6 +3797,22 @@
         "cx": 50,
         "cy": 48
     },
+    "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v1.jpg": {
+        "r": 0.599,
+        "w": 951,
+        "h": 1588,
+        "bg": "#eeecea",
+        "cx": 45,
+        "cy": 67
+    },
+    "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e-v2.jpg": {
+        "r": 0.635,
+        "w": 1009,
+        "h": 1588,
+        "bg": "#f2efee",
+        "cx": 45,
+        "cy": 66
+    },
     "/uploads/balenciaga-burberry/d-g-g9xh2z-g7d0e.jpg": {
         "r": 1.204,
         "w": 1912,
@@ -3545,6 +3871,23 @@
         "cx": 50,
         "cy": 43
     },
+    "/uploads/balenciaga-burberry/d-g-g9xi2zhu7al-v1.jpg": {
+        "r": 0.724,
+        "w": 999,
+        "h": 1379,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 49
+    },
+    "/uploads/balenciaga-burberry/d-g-g9xi2zhu7al-v2.jpg": {
+        "r": 0.666,
+        "w": 918,
+        "h": 1379,
+        "bg": "#fcfafa",
+        "cx": 47,
+        "cy": 54
+    },
     "/uploads/balenciaga-burberry/d-g-g9xi2zhu7al.jpg": {
         "r": 1.366,
         "w": 1884,
@@ -3580,6 +3923,24 @@
         "cx": 50,
         "cy": 57
     },
+    "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-p2-v1.jpg": {
+        "r": 0.516,
+        "w": 492,
+        "h": 954,
+        "bg": "#f5f5f5",
+        "flat": 1,
+        "cx": 53,
+        "cy": 56
+    },
+    "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-p2-v2.jpg": {
+        "r": 0.496,
+        "w": 473,
+        "h": 954,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 52
+    },
     "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-p2.jpg": {
         "r": 0.996,
         "w": 950,
@@ -3599,6 +3960,24 @@
         "cx": 49,
         "cy": 51
     },
+    "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-v2-v1.jpg": {
+        "r": 0.469,
+        "w": 488,
+        "h": 1040,
+        "bg": "#f4f4f4",
+        "flat": 1,
+        "cx": 53,
+        "cy": 55
+    },
+    "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-v2-v2.jpg": {
+        "r": 0.453,
+        "w": 471,
+        "h": 1040,
+        "bg": "#f5f5f5",
+        "flat": 1,
+        "cx": 50,
+        "cy": 52
+    },
     "/uploads/balenciaga-burberry/d-g-g9yi0z-hi7wk-v2.jpg": {
         "r": 0.929,
         "w": 966,
@@ -3616,6 +3995,22 @@
         "bg": "#e4dfdd",
         "cx": 49,
         "cy": 51
+    },
+    "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-v1.jpg": {
+        "r": 0.697,
+        "w": 931,
+        "h": 1336,
+        "bg": "#eceae8",
+        "cx": 48,
+        "cy": 58
+    },
+    "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du-v2.jpg": {
+        "r": 0.769,
+        "w": 1027,
+        "h": 1336,
+        "bg": "#eeedec",
+        "cx": 40,
+        "cy": 65
     },
     "/uploads/balenciaga-burberry/d-g-g9zk9z-fu7du.jpg": {
         "r": 1.437,
@@ -4063,6 +4458,22 @@
         "cx": 51,
         "cy": 44
     },
+    "/uploads/balenciaga-burberry/d-g-gy07cd-g8gw9-v1.jpg": {
+        "r": 0.383,
+        "w": 500,
+        "h": 1304,
+        "bg": "#e4dfdc",
+        "cx": 53,
+        "cy": 44
+    },
+    "/uploads/balenciaga-burberry/d-g-gy07cd-g8gw9-v2.jpg": {
+        "r": 0.358,
+        "w": 467,
+        "h": 1304,
+        "bg": "#d6cfcb",
+        "cx": 52,
+        "cy": 46
+    },
     "/uploads/balenciaga-burberry/d-g-gy07cd-g8gw9.jpg": {
         "r": 0.727,
         "w": 948,
@@ -4247,6 +4658,24 @@
         "cx": 50,
         "cy": 42
     },
+    "/uploads/balenciaga-burberry/d-g-gy07ldg8et3-v1.jpg": {
+        "r": 0.418,
+        "w": 1154,
+        "h": 2760,
+        "bg": "#f4f1ef",
+        "cx": 48,
+        "cy": 41,
+        "trim": 0.075
+    },
+    "/uploads/balenciaga-burberry/d-g-gy07ldg8et3-v2.jpg": {
+        "r": 0.435,
+        "w": 1201,
+        "h": 2760,
+        "bg": "#f5f2f1",
+        "cx": 50,
+        "cy": 41,
+        "trim": 0.075
+    },
     "/uploads/balenciaga-burberry/d-g-gy07ldg8et3.jpg": {
         "r": 0.841,
         "w": 2320,
@@ -4385,6 +4814,25 @@
         "cx": 50,
         "cy": 56
     },
+    "/uploads/balenciaga-burberry/d-g-m4d90jfueb0-v1.jpg": {
+        "r": 0.853,
+        "w": 341,
+        "h": 400,
+        "bg": "#fbfbfb",
+        "cx": 50,
+        "cy": 44,
+        "trim": 0.142
+    },
+    "/uploads/balenciaga-burberry/d-g-m4d90jfueb0-v2.jpg": {
+        "r": 0.883,
+        "w": 353,
+        "h": 400,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 44,
+        "trim": 0.142
+    },
     "/uploads/balenciaga-burberry/d-g-m4d90jfueb0.jpg": {
         "r": 1.76,
         "w": 704,
@@ -4453,6 +4901,24 @@
         "bg": "#eeeeee",
         "cx": 50,
         "cy": 53
+    },
+    "/uploads/balenciaga-burberry/d-g-m4e67j-ouaig-v1.jpg": {
+        "r": 1.057,
+        "w": 1023,
+        "h": 968,
+        "bg": "#f5f5f5",
+        "cx": 49,
+        "cy": 47
+    },
+    "/uploads/balenciaga-burberry/d-g-m4e67j-ouaig-v2.jpg": {
+        "r": 1.021,
+        "w": 988,
+        "h": 968,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 49,
+        "cy": 45,
+        "trim": 0.119
     },
     "/uploads/balenciaga-burberry/d-g-m4e67j-ouaig.jpg": {
         "r": 2.083,
@@ -4686,6 +5152,22 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/balmain/balmain-xh1ef000-bb04-v1.jpg": {
+        "r": 0.688,
+        "w": 630,
+        "h": 916,
+        "bg": "#e4e5e6",
+        "cx": 50,
+        "cy": 52
+    },
+    "/uploads/balmain/balmain-xh1ef000-bb04-v2.jpg": {
+        "r": 0.607,
+        "w": 556,
+        "h": 916,
+        "bg": "#e0e1e1",
+        "cx": 51,
+        "cy": 52
+    },
     "/uploads/balmain/balmain-xh1ef000-bb04.jpg": {
         "r": 1.293,
         "w": 1184,
@@ -4808,6 +5290,23 @@
         "cx": 54,
         "cy": 49
     },
+    "/uploads/dg-jeans/d-g-gy07cd-g8et4-v1.jpg": {
+        "r": 0.826,
+        "w": 1146,
+        "h": 1388,
+        "bg": "#f5f1f1",
+        "cx": 52,
+        "cy": 43,
+        "n": 2
+    },
+    "/uploads/dg-jeans/d-g-gy07cd-g8et4-v2.jpg": {
+        "r": 0.611,
+        "w": 848,
+        "h": 1388,
+        "bg": "#f3ebe9",
+        "cx": 52,
+        "cy": 50
+    },
     "/uploads/dg-jeans/d-g-gy07cd-g8et4.jpg": {
         "r": 1.429,
         "w": 1984,
@@ -4888,6 +5387,22 @@
         "cx": 48,
         "cy": 51
     },
+    "/uploads/dg-jeans/d-g-gy07cdg8do0-v1.jpg": {
+        "r": 0.434,
+        "w": 437,
+        "h": 1008,
+        "bg": "#f5f3f2",
+        "cx": 49,
+        "cy": 40
+    },
+    "/uploads/dg-jeans/d-g-gy07cdg8do0-v2.jpg": {
+        "r": 1.147,
+        "w": 1156,
+        "h": 1008,
+        "bg": "#f1e7e2",
+        "cx": 53,
+        "cy": 47
+    },
     "/uploads/dg-jeans/d-g-gy07cdg8do0.jpg": {
         "r": 1.55,
         "w": 1562,
@@ -4895,6 +5410,22 @@
         "bg": "#f4edea",
         "cx": 54,
         "cy": 45
+    },
+    "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1-v1.jpg": {
+        "r": 0.394,
+        "w": 525,
+        "h": 1332,
+        "bg": "#f4f3f3",
+        "cx": 49,
+        "cy": 47
+    },
+    "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1-v2.jpg": {
+        "r": 0.843,
+        "w": 1123,
+        "h": 1332,
+        "bg": "#e6e4e2",
+        "cx": 51,
+        "cy": 43
     },
     "/uploads/dg-jeans/d-g-gy07ld-g8dm8-p1.jpg": {
         "r": 1.213,
@@ -5633,6 +6164,26 @@
         "cx": 50,
         "cy": 55
     },
+    "/uploads/dsq-jeans/dsquared-s74mu0686-v1.jpg": {
+        "r": 0.79,
+        "w": 901,
+        "h": 1140,
+        "bg": "#fdfdfe",
+        "flat": 1,
+        "cx": 49,
+        "cy": 50,
+        "trim": 0.083
+    },
+    "/uploads/dsq-jeans/dsquared-s74mu0686-v2.jpg": {
+        "r": 0.749,
+        "w": 854,
+        "h": 1140,
+        "bg": "#fdfdfd",
+        "flat": 1,
+        "cx": 49,
+        "cy": 50,
+        "trim": 0.092
+    },
     "/uploads/dsq-jeans/dsquared-s74mu0686.jpg": {
         "r": 1.604,
         "w": 1828,
@@ -6317,6 +6868,23 @@
         "cx": 50,
         "cy": 53
     },
+    "/uploads/fendi-tshirt/fendi-fy0936aitzf0745-v1.jpg": {
+        "r": 0.705,
+        "w": 570,
+        "h": 808,
+        "bg": "#f9f9f9",
+        "flat": 1,
+        "cx": 49,
+        "cy": 42
+    },
+    "/uploads/fendi-tshirt/fendi-fy0936aitzf0745-v2.jpg": {
+        "r": 1.532,
+        "w": 1238,
+        "h": 808,
+        "bg": "#f7eedb",
+        "cx": 53,
+        "cy": 48
+    },
     "/uploads/fendi-tshirt/fendi-fy0936aitzf0745.jpg": {
         "r": 2.188,
         "w": 1768,
@@ -6368,6 +6936,26 @@
         "bg": "#eaeae8",
         "cx": 49,
         "cy": 61
+    },
+    "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0-v1.jpg": {
+        "r": 0.666,
+        "w": 397,
+        "h": 596,
+        "bg": "#f6f7f7",
+        "flat": 1,
+        "cx": 53,
+        "cy": 35,
+        "trim": 0.075
+    },
+    "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0-v2.jpg": {
+        "r": 1.495,
+        "w": 891,
+        "h": 596,
+        "bg": "#f4f3f1",
+        "cx": 54,
+        "cy": 48,
+        "n": 2,
+        "trim": 0.075
     },
     "/uploads/fendi-tshirt/fendi-fy0936aiu8f0ze0.jpg": {
         "r": 2.114,
@@ -6544,6 +7132,23 @@
         "bg": "#dfdee0",
         "cx": 52,
         "cy": 53
+    },
+    "/uploads/gcds/gcds-cc94m021004.06-v1.jpg": {
+        "r": 0.743,
+        "w": 1046,
+        "h": 1408,
+        "bg": "#fbfbfb",
+        "cx": 47,
+        "cy": 47,
+        "trim": 0.067
+    },
+    "/uploads/gcds/gcds-cc94m021004.06-v2.jpg": {
+        "r": 0.608,
+        "w": 856,
+        "h": 1408,
+        "bg": "#ece7e6",
+        "cx": 55,
+        "cy": 62
     },
     "/uploads/gcds/gcds-cc94m021004.06.jpg": {
         "r": 1.389,
@@ -6902,6 +7507,24 @@
         "cx": 50,
         "cy": 51
     },
+    "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2-v1.jpg": {
+        "r": 0.461,
+        "w": 772,
+        "h": 1676,
+        "bg": "#f7f7f7",
+        "flat": 1,
+        "cx": 51,
+        "cy": 53,
+        "trim": 0.067
+    },
+    "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2-v2.jpg": {
+        "r": 0.855,
+        "w": 1433,
+        "h": 1676,
+        "bg": "#eeeeee",
+        "cx": 51,
+        "cy": 52
+    },
     "/uploads/givenchy-sweat/gvcn-bmj0cq3y6v-v2.jpg": {
         "r": 1.326,
         "w": 2222,
@@ -7180,6 +7803,23 @@
         "cx": 50,
         "cy": 53
     },
+    "/uploads/givenchy/g-venchy-bm71dm3y6-v1.jpg": {
+        "r": 0.447,
+        "w": 677,
+        "h": 1516,
+        "bg": "#f1f1f1",
+        "cx": 50,
+        "cy": 56
+    },
+    "/uploads/givenchy/g-venchy-bm71dm3y6-v2.jpg": {
+        "r": 0.46,
+        "w": 697,
+        "h": 1516,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 55
+    },
     "/uploads/givenchy/g-venchy-bm71dm3y6.jpg": {
         "r": 0.916,
         "w": 1388,
@@ -7243,6 +7883,32 @@
         "bg": "#e6e0e6",
         "cx": 50,
         "cy": 51
+    },
+    "/uploads/givenchy/givenchy-bm716g3ya-v1.jpg": {
+        "r": 0.449,
+        "w": 353,
+        "h": 786,
+        "bg": "#f7f7f7",
+        "flat": 1,
+        "cx": 49,
+        "cy": 52
+    },
+    "/uploads/givenchy/givenchy-bm716g3ya-v2.jpg": {
+        "r": 0.458,
+        "w": 360,
+        "h": 786,
+        "bg": "#f4f4f4",
+        "cx": 51,
+        "cy": 53,
+        "trim": 0.075
+    },
+    "/uploads/givenchy/givenchy-bm716g3ya-v3.jpg": {
+        "r": 0.868,
+        "w": 682,
+        "h": 786,
+        "bg": "#ece8ea",
+        "cx": 51,
+        "cy": 50
     },
     "/uploads/givenchy/givenchy-bm716g3ya.jpg": {
         "r": 1.743,
@@ -7626,6 +8292,33 @@
         "cx": 51,
         "cy": 55
     },
+    "/uploads/givenchy/givenchy-bm716n3y7n-v1.jpg": {
+        "r": 0.458,
+        "w": 359,
+        "h": 784,
+        "bg": "#f9f9f9",
+        "flat": 1,
+        "cx": 50,
+        "cy": 51
+    },
+    "/uploads/givenchy/givenchy-bm716n3y7n-v2.jpg": {
+        "r": 0.463,
+        "w": 363,
+        "h": 784,
+        "bg": "#fafafa",
+        "flat": 1,
+        "cx": 51,
+        "cy": 54,
+        "trim": 0.108
+    },
+    "/uploads/givenchy/givenchy-bm716n3y7n-v3.jpg": {
+        "r": 0.912,
+        "w": 715,
+        "h": 784,
+        "bg": "#ebf0f0",
+        "cx": 51,
+        "cy": 55
+    },
     "/uploads/givenchy/givenchy-bm716n3y7n.jpg": {
         "r": 1.852,
         "w": 1452,
@@ -7959,6 +8652,23 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/gucci/gucci-645259_xjc6j_-v1.jpg": {
+        "r": 0.852,
+        "w": 966,
+        "h": 1134,
+        "bg": "#ececec",
+        "cx": 48,
+        "cy": 55,
+        "n": 2
+    },
+    "/uploads/gucci/gucci-645259_xjc6j_-v2.jpg": {
+        "r": 0.585,
+        "w": 663,
+        "h": 1134,
+        "bg": "#ececec",
+        "cx": 46,
+        "cy": 49
+    },
     "/uploads/gucci/gucci-645259_xjc6j_.jpg": {
         "r": 1.425,
         "w": 1616,
@@ -8047,6 +8757,22 @@
         "h": 463,
         "bg": "#d8d8d7",
         "cx": 50,
+        "cy": 51
+    },
+    "/uploads/gucci/gucci-xjdxm-v1.jpg": {
+        "r": 0.619,
+        "w": 319,
+        "h": 515,
+        "bg": "#e5e3e3",
+        "cx": 49,
+        "cy": 51
+    },
+    "/uploads/gucci/gucci-xjdxm-v2.jpg": {
+        "r": 0.639,
+        "w": 329,
+        "h": 515,
+        "bg": "#e8e7e7",
+        "cx": 51,
         "cy": 51
     },
     "/uploads/gucci/gucci-xjdxm.jpg": {
@@ -10554,6 +11280,24 @@
         "cy": 50,
         "n": 2
     },
+    "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-6-v1.jpg": {
+        "r": 0.425,
+        "w": 467,
+        "h": 1100,
+        "bg": "#e9e8ea",
+        "flat": 1,
+        "cx": 57,
+        "cy": 48
+    },
+    "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-6-v2.jpg": {
+        "r": 0.283,
+        "w": 311,
+        "h": 1100,
+        "bg": "#e1e1e3",
+        "cx": 62,
+        "cy": 83,
+        "trim": 0.183
+    },
     "/uploads/imported/fashionb-lacoste-men-slim-fit-sweatpants-3-6.jpg": {
         "r": 1,
         "w": 1100,
@@ -12105,6 +12849,26 @@
         "cx": 50,
         "cy": 51
     },
+    "/uploads/shorts-sweats/balmain-bwb210400-black-v1.jpg": {
+        "r": 1.115,
+        "w": 426,
+        "h": 382,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 49,
+        "cy": 37,
+        "trim": 0.157
+    },
+    "/uploads/shorts-sweats/balmain-bwb210400-black-v2.jpg": {
+        "r": 1.042,
+        "w": 398,
+        "h": 382,
+        "bg": "#fdfdfd",
+        "flat": 1,
+        "cx": 53,
+        "cy": 41,
+        "trim": 0.157
+    },
     "/uploads/shorts-sweats/balmain-bwb210400-black.jpg": {
         "r": 2.126,
         "w": 812,
@@ -12161,6 +12925,26 @@
         "cx": 50,
         "cy": 54
     },
+    "/uploads/shorts-sweats/balmain-bwb410360-v1.jpg": {
+        "r": 1.038,
+        "w": 438,
+        "h": 422,
+        "bg": "#fefefe",
+        "flat": 1,
+        "cx": 51,
+        "cy": 44,
+        "trim": 0.147
+    },
+    "/uploads/shorts-sweats/balmain-bwb410360-v2.jpg": {
+        "r": 0.839,
+        "w": 354,
+        "h": 422,
+        "bg": "#fefefd",
+        "flat": 1,
+        "cx": 49,
+        "cy": 45,
+        "trim": 0.142
+    },
     "/uploads/shorts-sweats/balmain-bwb410360.jpg": {
         "r": 1.938,
         "w": 818,
@@ -12188,6 +12972,26 @@
         "flat": 1,
         "cx": 50,
         "cy": 52
+    },
+    "/uploads/shorts-sweats/balmain-bwb410400-black-v1.jpg": {
+        "r": 0.982,
+        "w": 432,
+        "h": 440,
+        "bg": "#fcfcfd",
+        "flat": 1,
+        "cx": 50,
+        "cy": 41,
+        "trim": 0.142
+    },
+    "/uploads/shorts-sweats/balmain-bwb410400-black-v2.jpg": {
+        "r": 0.807,
+        "w": 355,
+        "h": 440,
+        "bg": "#fdfdfd",
+        "flat": 1,
+        "cx": 49,
+        "cy": 42,
+        "trim": 0.142
     },
     "/uploads/shorts-sweats/balmain-bwb410400-black.jpg": {
         "r": 1.945,
@@ -12246,6 +13050,26 @@
         "flat": 1,
         "cx": 51,
         "cy": 51
+    },
+    "/uploads/shorts-sweats/balmain-bwb410400-white-v1.jpg": {
+        "r": 1.028,
+        "w": 438,
+        "h": 426,
+        "bg": "#fffffe",
+        "flat": 1,
+        "cx": 52,
+        "cy": 41,
+        "trim": 0.128
+    },
+    "/uploads/shorts-sweats/balmain-bwb410400-white-v2.jpg": {
+        "r": 0.84,
+        "w": 358,
+        "h": 426,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 41,
+        "trim": 0.125
     },
     "/uploads/shorts-sweats/balmain-bwb410400-white.jpg": {
         "r": 1.92,
@@ -12523,6 +13347,30 @@
         "cx": 50,
         "cy": 51
     },
+    "/uploads/shorts-sweats/burberry-80170071-v1.jpg": {
+        "r": 0.651,
+        "w": 646,
+        "h": 992,
+        "bg": "#e9e9e9",
+        "cx": 49,
+        "cy": 47
+    },
+    "/uploads/shorts-sweats/burberry-80170071-v2.jpg": {
+        "r": 0.493,
+        "w": 489,
+        "h": 992,
+        "bg": "#dfdfdf",
+        "cx": 49,
+        "cy": 56
+    },
+    "/uploads/shorts-sweats/burberry-80170071-v3.jpg": {
+        "r": 0.513,
+        "w": 509,
+        "h": 992,
+        "bg": "#dededf",
+        "cx": 50,
+        "cy": 56
+    },
     "/uploads/shorts-sweats/burberry-80170071.jpg": {
         "r": 1.629,
         "w": 1616,
@@ -12727,6 +13575,22 @@
         "cx": 54,
         "cy": 51
     },
+    "/uploads/shorts-sweats/burberry-80427521-v1.jpg": {
+        "r": 0.625,
+        "w": 638,
+        "h": 1020,
+        "bg": "#eaeaea",
+        "cx": 49,
+        "cy": 48
+    },
+    "/uploads/shorts-sweats/burberry-80427521-v2.jpg": {
+        "r": 0.514,
+        "w": 524,
+        "h": 1020,
+        "bg": "#e2e2e2",
+        "cx": 50,
+        "cy": 55
+    },
     "/uploads/shorts-sweats/burberry-80427521.jpg": {
         "r": 1.118,
         "w": 1140,
@@ -12858,6 +13722,22 @@
         "bg": "#d9d5d7",
         "cx": 50,
         "cy": 55
+    },
+    "/uploads/shorts-sweats/burberry-8045495-v1.jpg": {
+        "r": 0.556,
+        "w": 754,
+        "h": 1356,
+        "bg": "#f1edee",
+        "cx": 55,
+        "cy": 61
+    },
+    "/uploads/shorts-sweats/burberry-8045495-v2.jpg": {
+        "r": 0.611,
+        "w": 829,
+        "h": 1356,
+        "bg": "#f1eef0",
+        "cx": 53,
+        "cy": 61
     },
     "/uploads/shorts-sweats/burberry-8045495.jpg": {
         "r": 1.165,
@@ -13043,6 +13923,22 @@
         "bg": "#e7e6e7",
         "cx": 50,
         "cy": 52
+    },
+    "/uploads/shorts-sweats/burberry-8051239-v1.jpg": {
+        "r": 0.767,
+        "w": 1028,
+        "h": 1341,
+        "bg": "#f9f8f8",
+        "cx": 49,
+        "cy": 49
+    },
+    "/uploads/shorts-sweats/burberry-8051239-v2.jpg": {
+        "r": 0.503,
+        "w": 674,
+        "h": 1341,
+        "bg": "#f5f4f5",
+        "cx": 50,
+        "cy": 53
     },
     "/uploads/shorts-sweats/burberry-8051239.jpg": {
         "r": 1.241,
@@ -13299,6 +14195,32 @@
         "cx": 47,
         "cy": 58
     },
+    "/uploads/shorts-sweats/d-g-4a06t-fhmci-v1.jpg": {
+        "r": 0.788,
+        "w": 506,
+        "h": 642,
+        "bg": "#f8efe7",
+        "cx": 48,
+        "cy": 47
+    },
+    "/uploads/shorts-sweats/d-g-4a06t-fhmci-v2.jpg": {
+        "r": 0.855,
+        "w": 549,
+        "h": 642,
+        "bg": "#f4e8df",
+        "cx": 49,
+        "cy": 49
+    },
+    "/uploads/shorts-sweats/d-g-4a06t-fhmci-v3.jpg": {
+        "r": 0.991,
+        "w": 636,
+        "h": 642,
+        "bg": "#fcfcfb",
+        "flat": 1,
+        "cx": 48,
+        "cy": 51,
+        "trim": 0.1
+    },
     "/uploads/shorts-sweats/d-g-4a06t-fhmci.jpg": {
         "r": 2.695,
         "w": 1730,
@@ -13378,6 +14300,25 @@
         "bg": "#e7e5e4",
         "cx": 52,
         "cy": 57
+    },
+    "/uploads/shorts-sweats/d-g-f9o00tgdcnu-v1.jpg": {
+        "r": 0.591,
+        "w": 1536,
+        "h": 2600,
+        "bg": "#f3f3f3",
+        "cx": 57,
+        "cy": 57,
+        "n": 2,
+        "trim": 0.075
+    },
+    "/uploads/shorts-sweats/d-g-f9o00tgdcnu-v2.jpg": {
+        "r": 0.462,
+        "w": 1202,
+        "h": 2600,
+        "bg": "#f4f4f4",
+        "flat": 1,
+        "cx": 51,
+        "cy": 64
     },
     "/uploads/shorts-sweats/d-g-f9o00tgdcnu.jpg": {
         "r": 1.028,
@@ -13485,6 +14426,32 @@
         "bg": "#e1e1e0",
         "cx": 52,
         "cy": 49
+    },
+    "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v1.jpg": {
+        "r": 0.293,
+        "w": 375,
+        "h": 1280,
+        "bg": "#efefef",
+        "cx": 50,
+        "cy": 50
+    },
+    "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v2.jpg": {
+        "r": 0.309,
+        "w": 395,
+        "h": 1280,
+        "bg": "#f0f0f0",
+        "cx": 53,
+        "cy": 52
+    },
+    "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n-v3.jpg": {
+        "r": 0.655,
+        "w": 838,
+        "h": 1280,
+        "bg": "#f4f4f4",
+        "flat": 1,
+        "cx": 50,
+        "cy": 47,
+        "trim": 0.058
     },
     "/uploads/shorts-sweats/d-g-g8pl4zg7nyy_n.jpg": {
         "r": 1.259,
@@ -13631,6 +14598,23 @@
         "cx": 52,
         "cy": 71
     },
+    "/uploads/shorts-sweats/d-g-g8pn9tg7m8f-v1.jpg": {
+        "r": 0.819,
+        "w": 1942,
+        "h": 2371,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 39
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9tg7m8f-v2.jpg": {
+        "r": 0.877,
+        "w": 2080,
+        "h": 2371,
+        "bg": "#f4f4f4",
+        "cx": 54,
+        "cy": 69
+    },
     "/uploads/shorts-sweats/d-g-g8pn9tg7m8f.jpg": {
         "r": 1.663,
         "w": 3944,
@@ -13676,6 +14660,31 @@
         "cx": 72,
         "cy": 58,
         "n": 2
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9tg7ntw-v1.jpg": {
+        "r": 0.48,
+        "w": 1222,
+        "h": 2544,
+        "bg": "#f2f2f2",
+        "cx": 46,
+        "cy": 55
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9tg7ntw-v2.jpg": {
+        "r": 0.507,
+        "w": 1291,
+        "h": 2544,
+        "bg": "#f5f5f5",
+        "flat": 1,
+        "cx": 45,
+        "cy": 58
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9tg7ntw-v3.jpg": {
+        "r": 0.803,
+        "w": 2044,
+        "h": 2544,
+        "bg": "#f4f4f4",
+        "cx": 59,
+        "cy": 62
     },
     "/uploads/shorts-sweats/d-g-g8pn9tg7ntw.jpg": {
         "r": 1.796,
@@ -13876,6 +14885,31 @@
         "cx": 62,
         "cy": 55
     },
+    "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v1.jpg": {
+        "r": 0.481,
+        "w": 1231,
+        "h": 2560,
+        "bg": "#f2f2f2",
+        "cx": 50,
+        "cy": 60
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v2.jpg": {
+        "r": 0.35,
+        "w": 895,
+        "h": 2560,
+        "bg": "#f2f3f3",
+        "flat": 1,
+        "cx": 44,
+        "cy": 64
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9zg7nye-v3.jpg": {
+        "r": 0.402,
+        "w": 1030,
+        "h": 2560,
+        "bg": "#f0f0ee",
+        "cx": 49,
+        "cy": 55
+    },
     "/uploads/shorts-sweats/d-g-g8pn9zg7nye.jpg": {
         "r": 1.503,
         "w": 3848,
@@ -13907,6 +14941,22 @@
         "h": 2466,
         "bg": "#dfd3c7",
         "cx": 50,
+        "cy": 51
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-v1.jpg": {
+        "r": 1.146,
+        "w": 3072,
+        "h": 2680,
+        "bg": "#ede7e1",
+        "cx": 49,
+        "cy": 54
+    },
+    "/uploads/shorts-sweats/d-g-g8pn9zg7nye_-v2.jpg": {
+        "r": 0.769,
+        "w": 2061,
+        "h": 2680,
+        "bg": "#ede7e1",
+        "cx": 51,
         "cy": 51
     },
     "/uploads/shorts-sweats/d-g-g8pn9zg7nye_.jpg": {
@@ -13974,6 +15024,26 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/shorts-sweats/d-g-g8ri4tg7k5x-v1.jpg": {
+        "r": 0.822,
+        "w": 1954,
+        "h": 2376,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 45,
+        "trim": 0.067
+    },
+    "/uploads/shorts-sweats/d-g-g8ri4tg7k5x-v2.jpg": {
+        "r": 0.811,
+        "w": 1926,
+        "h": 2376,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 51,
+        "cy": 46,
+        "trim": 0.067
+    },
     "/uploads/shorts-sweats/d-g-g8ri4tg7k5x.jpg": {
         "r": 1.613,
         "w": 3832,
@@ -13999,6 +15069,24 @@
         "bg": "#d9d9d9",
         "cx": 50,
         "cy": 50
+    },
+    "/uploads/shorts-sweats/d-g-g8rk6tg7k4y-v1.jpg": {
+        "r": 0.759,
+        "w": 1949,
+        "h": 2568,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 44
+    },
+    "/uploads/shorts-sweats/d-g-g8rk6tg7k4y-v2.jpg": {
+        "r": 0.748,
+        "w": 1921,
+        "h": 2568,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 50,
+        "cy": 44
     },
     "/uploads/shorts-sweats/d-g-g8rk6tg7k4y.jpg": {
         "r": 1.511,
@@ -14047,6 +15135,26 @@
         "cx": 48,
         "cy": 43,
         "n": 3
+    },
+    "/uploads/shorts-sweats/d-g-g8rk6tg7lgy-v2-v1.jpg": {
+        "r": 0.811,
+        "w": 1914,
+        "h": 2361,
+        "bg": "#f6f6f6",
+        "flat": 1,
+        "cx": 47,
+        "cy": 45,
+        "n": 2
+    },
+    "/uploads/shorts-sweats/d-g-g8rk6tg7lgy-v2-v2.jpg": {
+        "r": 0.803,
+        "w": 1895,
+        "h": 2361,
+        "bg": "#f5f5f5",
+        "flat": 1,
+        "cx": 42,
+        "cy": 52,
+        "n": 2
     },
     "/uploads/shorts-sweats/d-g-g8rk6tg7lgy-v2.jpg": {
         "r": 1.622,
@@ -14117,6 +15225,30 @@
         "cx": 50,
         "cy": 52
     },
+    "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v1.jpg": {
+        "r": 0.606,
+        "w": 1425,
+        "h": 2352,
+        "bg": "#ececec",
+        "cx": 49,
+        "cy": 47
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v2.jpg": {
+        "r": 0.763,
+        "w": 1795,
+        "h": 2352,
+        "bg": "#ece9e8",
+        "cx": 47,
+        "cy": 51
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0-v3.jpg": {
+        "r": 0.544,
+        "w": 1279,
+        "h": 2352,
+        "bg": "#e3e0df",
+        "cx": 52,
+        "cy": 54
+    },
     "/uploads/shorts-sweats/d-g-g8rn8tg7n7a-f0.jpg": {
         "r": 1.908,
         "w": 4488,
@@ -14180,6 +15312,22 @@
         "bg": "#bbb9b9",
         "cx": 50,
         "cy": 49
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v1.jpg": {
+        "r": 0.531,
+        "w": 382,
+        "h": 720,
+        "bg": "#e6e4e1",
+        "cx": 48,
+        "cy": 54
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v2.jpg": {
+        "r": 0.464,
+        "w": 334,
+        "h": 720,
+        "bg": "#dfdddb",
+        "cx": 52,
+        "cy": 53
     },
     "/uploads/shorts-sweats/d-g-g8rn8tg7nuc.jpg": {
         "r": 0.978,
@@ -14307,6 +15455,32 @@
         "bg": "#d0cecc",
         "cx": 48,
         "cy": 50
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v1.jpg": {
+        "r": 0.723,
+        "w": 1026,
+        "h": 1420,
+        "bg": "#fcfcfc",
+        "flat": 1,
+        "cx": 50,
+        "cy": 45,
+        "trim": 0.092
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v2.jpg": {
+        "r": 0.53,
+        "w": 753,
+        "h": 1420,
+        "bg": "#f0efee",
+        "cx": 48,
+        "cy": 52
+    },
+    "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q-v3.jpg": {
+        "r": 0.296,
+        "w": 421,
+        "h": 1420,
+        "bg": "#f2f1f1",
+        "cx": 49,
+        "cy": 43
     },
     "/uploads/shorts-sweats/d-g-g8rn8z-g7n4q.jpg": {
         "r": 1.538,
@@ -14482,6 +15656,23 @@
         "cx": 49,
         "cy": 51
     },
+    "/uploads/shorts-sweats/d-g-g9ahstg7nyd-p1-v1-v1.jpg": {
+        "r": 0.365,
+        "w": 906,
+        "h": 2483,
+        "bg": "#f9f9f9",
+        "cx": 49,
+        "cy": 40
+    },
+    "/uploads/shorts-sweats/d-g-g9ahstg7nyd-p1-v1-v2.jpg": {
+        "r": 0.352,
+        "w": 874,
+        "h": 2483,
+        "bg": "#f5f5f5",
+        "flat": 1,
+        "cx": 51,
+        "cy": 53
+    },
     "/uploads/shorts-sweats/d-g-g9ahstg7nyd-p1-v1.jpg": {
         "r": 0.737,
         "w": 1831,
@@ -14500,6 +15691,22 @@
         "flat": 1,
         "cx": 50,
         "cy": 51
+    },
+    "/uploads/shorts-sweats/d-g-g9ahstg7nyd-v1-v1.jpg": {
+        "r": 0.304,
+        "w": 906,
+        "h": 2976,
+        "bg": "#f6f6f6",
+        "cx": 50,
+        "cy": 34
+    },
+    "/uploads/shorts-sweats/d-g-g9ahstg7nyd-v1-v2.jpg": {
+        "r": 0.294,
+        "w": 874,
+        "h": 2976,
+        "bg": "#f4f4f4",
+        "cx": 50,
+        "cy": 50
     },
     "/uploads/shorts-sweats/d-g-g9ahstg7nyd-v1.jpg": {
         "r": 0.615,
@@ -14728,6 +15935,33 @@
         "cx": 50,
         "cy": 50
     },
+    "/uploads/shorts-sweats/d-g-m4b11tfusfw-v1.jpg": {
+        "r": 0.912,
+        "w": 1029,
+        "h": 1128,
+        "bg": "#f9fafa",
+        "cx": 48,
+        "cy": 44
+    },
+    "/uploads/shorts-sweats/d-g-m4b11tfusfw-v2.jpg": {
+        "r": 0.9,
+        "w": 1015,
+        "h": 1128,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 46,
+        "trim": 0.092
+    },
+    "/uploads/shorts-sweats/d-g-m4b11tfusfw-v3.jpg": {
+        "r": 0.802,
+        "w": 905,
+        "h": 1128,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 43
+    },
     "/uploads/shorts-sweats/d-g-m4b11tfusfw.jpg": {
         "r": 2.589,
         "w": 2920,
@@ -14759,6 +15993,22 @@
         "bg": "#eedacf",
         "cx": 51,
         "cy": 46
+    },
+    "/uploads/shorts-sweats/d-g-m4b85t-fumtp-v1.jpg": {
+        "r": 1.56,
+        "w": 1747,
+        "h": 1120,
+        "bg": "#f3edea",
+        "cx": 42,
+        "cy": 48
+    },
+    "/uploads/shorts-sweats/d-g-m4b85t-fumtp-v2.jpg": {
+        "r": 0.894,
+        "w": 1001,
+        "h": 1120,
+        "bg": "#f0e2d9",
+        "cx": 52,
+        "cy": 45
     },
     "/uploads/shorts-sweats/d-g-m4b85t-fumtp.jpg": {
         "r": 2.4,
@@ -14926,6 +16176,22 @@
         "cx": 50,
         "cy": 52
     },
+    "/uploads/valentino/vltn-vv3mg10v74634u-v1.jpg": {
+        "r": 0.404,
+        "w": 483,
+        "h": 1196,
+        "bg": "#f2f0ec",
+        "cx": 55,
+        "cy": 58
+    },
+    "/uploads/valentino/vltn-vv3mg10v74634u-v2.jpg": {
+        "r": 0.381,
+        "w": 456,
+        "h": 1196,
+        "bg": "#f3f1ed",
+        "cx": 55,
+        "cy": 58
+    },
     "/uploads/valentino/vltn-vv3mg10v74634u.jpg": {
         "r": 0.923,
         "w": 1104,
@@ -14967,6 +16233,23 @@
         "bg": "#c8bdbe",
         "cx": 51,
         "cy": 50
+    },
+    "/uploads/valentino/vltn-wv3mg10v7llu23-v1.jpg": {
+        "r": 1.197,
+        "w": 2413,
+        "h": 2016,
+        "bg": "#f2efeb",
+        "cx": 53,
+        "cy": 53,
+        "n": 2
+    },
+    "/uploads/valentino/vltn-wv3mg10v7llu23-v2.jpg": {
+        "r": 0.486,
+        "w": 980,
+        "h": 2016,
+        "bg": "#e8e3de",
+        "cx": 54,
+        "cy": 56
     },
     "/uploads/valentino/vltn-wv3mg10v7llu23.jpg": {
         "r": 1.663,

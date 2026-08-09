@@ -121,9 +121,15 @@ function mv_columns(string $abs, int $fullW, int $fullH): array
     }
     $ar = $rs / $n; $ag = $gs / $n; $ab = $bs / $n;
 
+    // Alt şerit ölçüme girmiyor. Kadrajların altında toptancının bastığı model
+    // kodu var ve o yazı ortada, tam koridorun geçtiği yerde duruyor: koridoru
+    // dolduruyor, profil "her sütun dolu" diyor ve üç görünümlük apaçık bir
+    // şerit bölünmeden kalıyordu. Ölçülen dört örnekte sebep buydu.
+    $yMax = (int)round($h * 0.88);
+
     $col = array_fill(0, $w, 0.0);
     for ($x = 0; $x < $w; $x++) {
-        for ($y = 0; $y < $h; $y++) {
+        for ($y = 0; $y < $yMax; $y++) {
             $c = imagecolorat($src, $x, $y);
             $d = abs((($c >> 16) & 255) - $ar) + abs((($c >> 8) & 255) - $ag) + abs(($c & 255) - $ab);
             if ($d > 30) $col[$x] += 1.0;
@@ -135,7 +141,7 @@ function mv_columns(string $abs, int $fullW, int $fullH): array
     if ($peak <= 0) return [];
 
     $thr    = $peak * 0.035;                 // bunun altı "boş sütun"
-    $minGap = max(3, (int)round($w * 0.025));
+    $minGap = max(3, (int)round($w * 0.016));
 
     // dolu koşuları bul
     $runs = []; $start = null;
