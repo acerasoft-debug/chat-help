@@ -13,8 +13,49 @@ images with the filename (= model code) printed under each one.
 | Sheets | Images | Reviewed |
 |---|---|---|
 | `balmain-01..02` | 29 | **yes** |
-| `balenciaga-burberry-01..17` | 390 | not yet |
+| `balenciaga-burberry-01` | 24 | **yes — already correct live, see below** |
+| `balenciaga-burberry-02..17` | 366 | not yet |
 | `shorts-sweats-01..10` | 236 | not yet |
+
+## Read the LIVE rows, not `product-batches/batch1.json`
+
+`batch1.json` still shows every Balenciaga row as `Hoodies & Sweatshirts` — the
+folder-derived category this whole exercise exists to undo. That file is the
+*input* that was imported once; the corrections since then were written to
+`listings.json` on the server and were never back-ported to it. Comparing sheets
+against `batch1.json` therefore reports faults that were fixed weeks ago, and
+"correcting" them would move products that are already right.
+
+Use `inspect-products.yml` (brand filter) for the current state. It prints
+`id | cat | first image`, and the image filename is what the sheet's `.txt`
+tile map keys on, so the two line up directly.
+
+## `balenciaga-burberry-01` — reviewed, no corrections needed
+
+All 24 tiles read from the photo and checked against the live rows. Every
+Balenciaga row this sheet covers is already in the right category:
+
+| Model code | Photo shows | Live category |
+|---|---|---|
+| `4A8B8` | briefs, black + white | Underwear |
+| `612966TLVF1` | printed tee | T-Shirts |
+| `612966TMVG7` | beige tee | T-Shirts |
+| `641675TLVF9` | washed blue tee | T-Shirts |
+| `672410TLLJ4` | allover-logo shorts | Shorts |
+| `674986TLVL8` | cream crewneck sweat | Hoodies & Sweatshirts |
+| `676589` | black Simpsons tee | T-Shirts |
+| `676589TLVG70901` | white Simpsons tee | T-Shirts |
+| `681314TLVH4` | purple women's tee | Women's T-Shirts |
+| `681734TJW60` | women's jeans | Women's Jeans |
+| `TMVF5` | brown hoodie | Hoodies & Sweatshirts |
+
+The sheet also tiles BALMAIN, DSQUARED2 and GIVENCHY images (a denim jacket, two
+sleeveless BALMAIN tops, two cropped DSQ2 tops) that have no row in `batch1.json`
+at all — they belong to the folders covered by the other sheets.
+
+One open question this sheet raises but cannot answer: `662853TJW90` and `TWJ90`
+are **denim sets** (jacket + jeans) filed under `Jeans` / `Women's Jeans`. There
+is no "sets" category, so this is a product decision, not a mis-file.
 
 ## Confirmed corrections — BALMAIN
 
