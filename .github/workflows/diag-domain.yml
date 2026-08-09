@@ -115,5 +115,28 @@ jobs:
           echo "   -- cevabin ilk basligi:"
           curl -sSI --max-time 20 --resolve "maxsales-test.vestrasales.com:80:$IP" \
                "http://maxsales-test.vestrasales.com/index.php" 2>&1 | head -6 | sed 's/^/      /'
+
+          # FOTOGRAFLAR YENI KOKTEN GELIYOR MU
+          # Kart saymak yetmez: kart var ama gorseli 404 ise sayfa bos
+          # gorunur. Yeni kokte /uploads yolu bastan cozuluyor (belge koku
+          # degisti), o yuzden asil risk burada. Ana sayfadan on adres cekip
+          # tek tek soruyoruz.
+          echo
+          echo "== fotograflar =="
+          curl -sS --max-time 25 --resolve "maxsales-test.vestrasales.com:80:$IP" \
+               "http://maxsales-test.vestrasales.com/index.php" -o /tmp/home.html 2>/dev/null || true
+          imgs=$(grep -oE 'src="[^"]*assets/img\.php\?[^"]*"' /tmp/home.html \
+                 | sed -e 's/^src="//' -e 's/"$//' -e 's/&amp;/\&/g' -e 's#^/##' \
+                 | sort -u | head -10)
+          bad=0; n=0
+          for q in $imgs; do
+            n=$((n+1))
+            c=$(curl -sS -o /tmp/i.bin -w '%{http_code}' --max-time 20 \
+                --resolve "maxsales-test.vestrasales.com:80:$IP" \
+                "http://maxsales-test.vestrasales.com/${q}" 2>/dev/null || echo 000)
+            b=$(wc -c < /tmp/i.bin 2>/dev/null || echo 0)
+            [ "$c" = "200" ] && [ "$b" -gt 500 ] || { bad=$((bad+1)); echo "   HATA $c ${b}b: ${q:0:64}"; }
+          done
+          echo "   $n gorsel denendi, $bad hatali"
           echo
           echo "   imza>0 ise site AYAKTA; geriye yalnizca DNS kaydi kaliyor."
