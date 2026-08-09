@@ -166,7 +166,7 @@ vr_layout_start(['title' => $order['number'], 'robots' => 'noindex,nofollow']);
       <div>
         <?php foreach ((array)$order['lines'] as $ln): ?>
           <div class="citem">
-            <div class="citem__img"><img src="<?= h((string)$ln['image']) ?>" alt="" loading="lazy" width="200" height="250"></div>
+            <div class="citem__img"><img src="<?= h(vr_img((string)$ln['image'], 180)) ?>" alt="" loading="lazy" width="200" height="250"></div>
             <div>
               <p class="citem__brand"><?= h((string)$ln['brand']) ?></p>
               <p class="citem__name"><?= h((string)$ln['name']) ?></p>

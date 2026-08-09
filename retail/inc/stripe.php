@@ -195,8 +195,12 @@ function vr_stripe_create_checkout(array $order): array
         if ($descParts) $product['description'] = mb_substr(implode(' · ', $descParts), 0, 250);
 
         // Görseli Stripe kendi sunucusundan çeker: mutlak ve halka açık olmalı.
+        // Ölçeklenmiş kopyayı veriyoruz — Stripe ödeme sayfasında kareyi
+        // küçük gösteriyor, oraya 3 MB'lık orijinali yollamanın anlamı yok
+        // ve büyük dosyada çekme zaman aşımına düşebiliyor.
         if (!empty($ln['image'])) {
             $img = (string)$ln['image'];
+            if (!str_starts_with($img, 'http') && function_exists('vr_img')) $img = vr_img($img, 600);
             $product['images'] = [str_starts_with($img, 'http') ? $img : vr_origin() . $img];
         }
 

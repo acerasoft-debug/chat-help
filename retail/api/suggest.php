@@ -40,7 +40,9 @@ foreach ($rows as $p) {
         'name'  => mb_substr(vr_card_name($p), 0, 60),
         'price' => vr_money((int)$p['price_cents']),
         'url'   => vr_url('product.php', ['id' => $p['id']]),
-        'img'   => vr_product_image($p),
+        // Öneri kutusundaki kare 48 piksel; oraya 2744 pikselli dosya
+        // göndermenin anlamı yok (bkz. assets/img.php).
+        'img'   => vr_img(vr_product_image($p), 180),
     ];
 }
 

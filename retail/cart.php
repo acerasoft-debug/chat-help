@@ -133,7 +133,7 @@ vr_layout_start(['title' => t('cart_title'), 'robots' => 'noindex,nofollow']);
           <?php foreach ($t['lines'] as $ln): ?>
             <div class="citem">
               <a class="citem__img" href="<?= h($ln['url']) ?>">
-                <img src="<?= h($ln['image']) ?>" alt="" loading="lazy" width="200" height="250">
+                <img src="<?= h(vr_img((string)$ln['image'], 300)) ?>" alt="" loading="lazy" width="200" height="250">
               </a>
 
               <div>
