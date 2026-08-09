@@ -77,23 +77,26 @@ if (@include_once __DIR__.'/inc/products.php') {
     }
     usort($pool, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
 
-    $HERO_FRAMES = array_slice($pinnedFrames, 0, 6);
+    /* Five plates hold up to six frames each, so thirty is the most the strip can
+       show. The old cap was six — one frame per category — which left every plate
+       holding a single photograph that never changed. */
+    $HERO_MAX = 30;
+    $HERO_FRAMES = array_slice($pinnedFrames, 0, 3);
 
-    /* One frame per category so no two consecutive shots look alike. */
-    $usedCat = [];
+    /* Round-robin across categories rather than one frame each: taking one per
+       category filled the strip with the first six categories in $WANT and the
+       jeans and sweatshirts further down the order never appeared at all. Dealing
+       in rotation gives every category a turn before any category gets a second. */
+    $byCat = [];
     foreach ($pool as [, , , $cat, $im]) {
-        if (isset($usedCat[$cat]) || in_array($im, $HERO_FRAMES, true)) continue;
-        $usedCat[$cat] = true;
-        $HERO_FRAMES[] = $im;
-        if (count($HERO_FRAMES) >= 6) break;
+        if (in_array($im, $HERO_FRAMES, true)) continue;
+        $byCat[$cat][] = $im;
     }
-    /* Short catalogue: top the sequence up with anything left rather than run a
-       two-frame film. */
-    if (count($HERO_FRAMES) < 4) {
-        foreach ($pool as [, , , , $im]) {
-            if (in_array($im, $HERO_FRAMES, true)) continue;
-            $HERO_FRAMES[] = $im;
-            if (count($HERO_FRAMES) >= 6) break;
+    while (count($HERO_FRAMES) < $HERO_MAX && $byCat) {
+        foreach ($byCat as $cat => $ims) {
+            if (!$ims) { unset($byCat[$cat]); continue; }
+            $HERO_FRAMES[] = array_shift($byCat[$cat]);
+            if (count($HERO_FRAMES) >= $HERO_MAX) break 2;
         }
     }
 }
@@ -460,8 +463,11 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   .hplate .hf{position:absolute;inset:0;background-size:contain;background-position:center;
     background-repeat:no-repeat;opacity:0;will-change:opacity,transform;
     animation-timing-function:cubic-bezier(.4,0,.2,1);animation-iteration-count:infinite;
-    /* backwards, so a plate whose turn is staggered a second or two into the future
-       shows its opening frame immediately instead of sitting empty until it starts. */
+    /* The plate stagger is applied as a NEGATIVE delay, which starts the animation
+       already part-way through instead of holding it back: a positive offset left the
+       later plates blank for their first few seconds, because the frame's own opening
+       keyframe is transparent and no fill-mode can conjure a picture out of it.
+       backwards still covers the first frame of the first plate, whose delay is 0. */
     animation-fill-mode:backwards}
   /* A soft sheen across the plate so five identical cards do not read as a spreadsheet. */
   .hplate:after{content:'';position:absolute;inset:0;pointer-events:none;
@@ -753,7 +759,7 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
           <?php foreach (array_slice($frames, 0, 6) as $i => $f): ?>
             <div class="hf" style="background-image:url('<?= htmlspecialchars($f) ?>');
               animation-duration:<?= $n * $slot ?>s;
-              animation-delay:<?= round($i * $slot + $pi * 1.3, 1) ?>s"></div>
+              animation-delay:<?= round($i * $slot - $pi * 1.3, 1) ?>s"></div>
           <?php endforeach; ?>
         </div>
       <?php endforeach; ?>
