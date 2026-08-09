@@ -338,7 +338,27 @@ function vr_catalog(): array
         foreach ($imported as $row) {
             if (!is_array($row)) continue;
             $n = vr_normalize_product($row, 'b2b');
-            if ($n) $cat[$n['id']] = $n;
+            if (!$n) continue;
+
+            /* FOTOĞRAFLAR BİRLEŞİYOR, ÜZERİNE YAZILMIYOR.
+               Aynı ürün hem canlı katalogda hem içe aktarılmış stapelde
+               olabiliyor ve iki satırın fotoğraf listesi aynı olmak zorunda
+               değil: canlı tarafta operatörün sonradan eklediği kareler,
+               stapelde bizim böldüğümüz paneller var. Satırı olduğu gibi
+               değiştirmek canlı taraftakileri sessizce siliyordu — kendi
+               fotoğrafımızı kendimiz kaybediyorduk.
+
+               Sıra korunuyor: içe aktarılan liste önde (kategori/fiyat
+               düzeltmeleri onunla geldi), canlı tarafın fazlası arkada.
+               Katalog sonra vitrinlik olanı zaten öne alıyor. */
+            if (isset($cat[$n['id']])) {
+                $merged = array_values(array_unique(array_merge(
+                    array_filter((array)$n['images'], 'strlen'),
+                    array_filter((array)($cat[$n['id']]['images'] ?? []), 'strlen')
+                )));
+                if ($merged) $n['images'] = $merged;
+            }
+            $cat[$n['id']] = $n;
         }
     }
 
