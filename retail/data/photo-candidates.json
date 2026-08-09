@@ -1,0 +1,71 @@
+{
+    "blm-wh1ef000b138gdv": {
+        "source": [
+            "https://www.endclothing.com/us/balmain-logo-t-shirt-wh1ef000b138-gdv.html"
+        ],
+        "candidates": [
+            {
+                "url": "https://media.endclothing.com/media/catalog/product/2/0/20-05-2021_GH_WH1EF000B138-GDV_1_1.jpg",
+                "file": "/uploads/candidates/blm-wh1ef000b138gdv/b1dcd858c9.webp"
+            }
+        ]
+    },
+    "dgn-g8pt1tg7jv9": {
+        "source": [
+            "https://thecorner.com/eu-en/cotton-crew-neck-t-shirt-g8pt1tg7jv9_a0417-p"
+        ],
+        "candidates": [
+            {
+                "url": "https://cdn.shopify.com/s/files/1/0620/1442/3226/products/G8PT1TG7JV9_A0417-4.jpg?v=1710858044",
+                "file": "/uploads/candidates/dgn-g8pt1tg7jv9/f5f1005fa9.webp"
+            },
+            {
+                "url": "https://cdn.shopify.com/s/files/1/0620/1442/3226/products/G8PT1TG7JV9_A0417-4_300x@2x.jpg?v=1710858044",
+                "file": "/uploads/candidates/dgn-g8pt1tg7jv9/1318acc06b.jpg"
+            }
+        ]
+    },
+    "dsq-s74gu0424": {
+        "source": [
+            "https://www.soledadmoda.com/catalogue/DSQUARED2-sweat-col-rond-homme-en-coton-imprim-chim-re-S74GU0424-blanc"
+        ],
+        "candidates": [
+            {
+                "url": "https://x.cloudsdata.net/6h/images/products/originals/65de09cb42a23_20240208112717clippedrev1.jpeg",
+                "file": "/uploads/candidates/dsq-s74gu0424/2f364db67e.jpg"
+            },
+            {
+                "url": "https://x.cloudsdata.net/6h/images/products/originals/65de09cb97fd0_20240208111722clippedrev1.jpeg",
+                "file": "/uploads/candidates/dsq-s74gu0424/70b1c00453.jpg"
+            },
+            {
+                "url": "https://x.cloudsdata.net/6h/images/products/originals/65de09cbb2561_20240208111931clippedrev1.jpeg",
+                "file": "/uploads/candidates/dsq-s74gu0424/8719f12e33.jpg"
+            },
+            {
+                "url": "https://x.cloudsdata.net/6h/images/products/originals/65de09cb7128d_20240208111927clippedrev1.jpeg",
+                "file": "/uploads/candidates/dsq-s74gu0424/860de2d59f.jpg"
+            }
+        ]
+    },
+    "fnd-t04": {
+        "source": [
+            "https://www.luxuryfashionstores.ch/en/18219/fendi-faf532-a8k5-ff-roma-amor-t-shirt_p",
+            "https://giglio.com/eng/clothing-men_t-shirt-fendi-faf532ad3v.html?cSel=002"
+        ],
+        "candidates": [
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/54-53-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-1.jpg",
+                "file": "/uploads/candidates/fnd-t04/12b3d93ee8.jpg"
+            },
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/33-64-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-2.jpg",
+                "file": "/uploads/candidates/fnd-t04/5fc62a4522.jpg"
+            },
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/9-84-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-3.jpg",
+                "file": "/uploads/candidates/fnd-t04/cf6edc2f39.jpg"
+            }
+        ]
+    }
+}
