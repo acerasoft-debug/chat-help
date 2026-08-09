@@ -29,7 +29,21 @@ $args = [
     'exclude_vault' => true,
 ];
 $res    = vr_query($args);
-$facets = vr_facets(['exclude_vault' => true, 'q' => $q, 'seller' => $seller]);
+
+/* Sayımlar SEÇİLİ FİLTREYE göre.
+   Önceden her iki liste de tüm katalogdan sayılıyordu: T-Shirts kategorisinde
+   219 parça varken kenar çubuğu "Dolce & Gabbana 139" yazıyordu — o 139, tüm
+   kategorilerdeki D&G sayısı. Tıklayınca 139 değil 41 sonuç geliyor ve rakam
+   yalan çıkıyor.
+
+   Her liste kendi ekseni HARİÇ diğer filtrelerle sayılıyor: markalar seçili
+   kategoriye göre, kategoriler seçili markaya göre. Böylece rakam tıklama
+   sonucunun ta kendisi oluyor ve sıfır sonuçlu bir satır hiç görünmüyor. */
+$base   = ['exclude_vault' => true, 'q' => $q, 'seller' => $seller, 'min' => $min, 'max' => $max];
+$facets = [
+    'brands' => vr_facets($base + ['cat' => $cat])['brands'],
+    'cats'   => vr_facets($base + ['brand' => $brand])['cats'],
+];
 
 $filtered = ($q !== '' || $brand !== '' || $cat !== '' || $seller !== '' || $min !== '' || $max !== '');
 
@@ -67,12 +81,55 @@ vr_layout_start([
         $title                     => null,
     ])); ?>
 
-    <div class="sechead">
-      <div>
-        <h1 class="sechead__t"><?= h($title) ?></h1>
-        <p class="sechead__s"><?= $q !== '' ? te('results_n', ['n' => (int)$res['total']]) : te('shop_sub') ?></p>
+    <?php
+    /* KATEGORİ VE MARKA SAYFALARINA KİMLİK.
+       Bir kategoriye girince ekranda yalnızca "T-Shirts" başlığı ve altında
+       mağazanın genel sloganı vardı: 219 parçalık bir bölümün kapağı düz
+       yazıydı. Buradaki şerit o bölümün kendi parçalarından üç kadraj
+       gösteriyor — kapak fotoğrafı satın alınmıyor, koleksiyonun içinden
+       çıkıyor. Yalnızca filtresiz ilk sayfada; arama sonucunda ya da fiyat
+       filtresi varken kapak koymak yanıltıcı olurdu. */
+    $hero = [];
+    if (($cat !== '' || $brand !== '') && $q === '' && $page === 1 && $min === '' && $max === '') {
+        $gridIx = vr_photo_grid_index();
+        $seen   = [];
+        /* Kapak kadrajları ilk satırdan SONRA başlıyor: aksi hâlde şeritteki
+           üç fotoğraf, hemen altındaki ilk üç kartın aynısı oluyor ve sayfa
+           kekeliyor. Yeterli ürün yoksa baştan alınıyor. */
+        $pick = count($res['rows']) > 9 ? array_slice($res['rows'], 6) : $res['rows'];
+        foreach ($pick as $hp) {
+            if (count($hero) >= 3) break;
+            if (isset($seen[$hp['brand'] . '|' . $hp['cat']])) continue;
+            foreach ((array)$hp['images'] as $img) {
+                $img = (string)$img;
+                if ($img === '' || !str_starts_with($img, '/uploads/') || isset($gridIx[$img])) continue;
+                $hero[] = $img;
+                $seen[$hp['brand'] . '|' . $hp['cat']] = true;
+                break;
+            }
+        }
+    }
+    ?>
+    <?php if (count($hero) >= 2): ?>
+      <div class="taxo">
+        <div class="taxo__art" aria-hidden="true">
+          <?php foreach ($hero as $i => $img): ?>
+            <img src="<?= h($img) ?>" alt="" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
+          <?php endforeach; ?>
+        </div>
+        <div class="taxo__in">
+          <h1><?= h($title) ?></h1>
+          <p><?= te('results_n', ['n' => (int)$res['total']]) ?> · <?= te('shop_sub') ?></p>
+        </div>
       </div>
-    </div>
+    <?php else: ?>
+      <div class="sechead">
+        <div>
+          <h1 class="sechead__t"><?= h($title) ?></h1>
+          <p class="sechead__s"><?= $q !== '' ? te('results_n', ['n' => (int)$res['total']]) : te('shop_sub') ?></p>
+        </div>
+      </div>
+    <?php endif; ?>
 
     <div class="shop">
       <!-- ------------------------------------------------------- filtreler -->
@@ -86,7 +143,18 @@ vr_layout_start([
          Bir filtre seçiliyse panel açık geliyor — seçimini görmek isteyen
          kişi onu aramamalı. */
       ?>
-      <details class="filters"<?= $filtered ? ' open' : '' ?>>
+      <?php
+      /* Panel telefonda ne zaman AÇIK gelir?
+         "Bir filtre var" ölçütü fazla genişti: ana sayfadan bir kategoriye
+         tıklayan kişi de filtreli sayılıyor ve karşısında yine iki ekranlık
+         liste buluyordu. Tek başına kategori ya da tek başına marka bir
+         filtre değil, sayfanın kendisi. Panel ancak kullanıcı GERÇEKTEN
+         daralttıysa açılıyor: arama, fiyat aralığı, satıcı tipi ya da marka
+         ve kategorinin birlikte seçilmesi. */
+      $narrowed = $q !== '' || $seller !== '' || $min !== '' || $max !== ''
+               || ($brand !== '' && $cat !== '');
+      ?>
+      <details class="filters"<?= $narrowed ? ' open' : '' ?>>
         <summary class="filters__toggle">
           <span><?= te('filter_open') ?></span>
           <?= vr_icon('arrow', 15) ?>
