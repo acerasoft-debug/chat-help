@@ -255,9 +255,21 @@ jobs:
               echo "  [kuru] uapi AddonDomain addaddondomain dir=$R newdomain=$D subdomain=$(echo "$D" | cut -d. -f1)"
               ADDON_OK=1
             else
-              if uapi --output=jsonpretty AddonDomain addaddondomain \
-                      dir="$R" newdomain="$D" subdomain="$(echo "$D" | cut -d. -f1)" 2>&1 \
-                   | tee /tmp/addon.out | head -40; then :; fi
+              # İKİ AYRI API — cPanel sürümüne göre.
+              # Yeni sürümlerde ek alan / alt alan / park edilmiş alan ayrımı
+              # kaldırıldı ve hepsi Domains::add_domain'e taşındı; eski
+              # AddonDomain modülü artık kurulu değil. Bu sunucuda ölçüldü:
+              #   Can't locate Cpanel/API/AddonDomain.pm in @INC
+              # Onun icin once yeni API deneniyor, olmazsa eskisi.
+              : > /tmp/addon.out
+              uapi --output=jsonpretty Domains add_domain \
+                   domain="$D" dir="$R" 2>&1 | tee -a /tmp/addon.out | head -40
+              if ! grep -q '"errors" *: *null' /tmp/addon.out; then
+                echo "  -- Domains::add_domain olmadi, eski API deneniyor"
+                uapi --output=jsonpretty AddonDomain addaddondomain \
+                     dir="$R" newdomain="$D" subdomain="$(echo "$D" | cut -d. -f1)" 2>&1 \
+                  | tee -a /tmp/addon.out | head -40
+              fi
               if grep -q '"errors" *: *null' /tmp/addon.out; then
                 ADDON_OK=1
                 echo "  acildi. test adresi: $(echo "$D" | cut -d. -f1).vestrasales.com"
