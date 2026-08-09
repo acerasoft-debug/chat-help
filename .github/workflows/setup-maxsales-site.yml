@@ -1,0 +1,314 @@
+name: MAXSALES'i Vestra'dan ayır (kendi kökü + alan adları)
+
+on:
+  workflow_dispatch:
+    inputs:
+      docroot:
+        description: "Yeni belge kökü (ev dizinine göre, public_html DIŞINDA)"
+        required: true
+        default: "maxsales_de"
+      addon_domain:
+        description: "Ek alan adı (boş = açma). Açılınca <ad>.vestrasales.com test adresi de kendiliğinden gelir."
+        required: false
+        default: "maxsales.de"
+      test_subdomain:
+        description: "Ek alan açılamazsa yedek test alt adı (boş = açma). Sonuç: <ad>.vestrasales.com"
+        required: false
+        default: "maxsales-test"
+      copy_uploads:
+        description: "true = fotoğraf arşivini de kendi köküne kopyala (yer ister)"
+        required: false
+        default: "true"
+      dry_run:
+        description: "true = SADECE ne yapılacağını yaz"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# NİYE BU İŞ VAR
+# ==============
+# vestrasales.com (Vestra, B2B) ile MAXSALES (perakende) bugüne kadar aynı
+# belge kökünü paylaşıyordu: perakende ~/public_html/shop altındaydı. İki
+# sorun çıktı.
+#
+#   1. Ayrı site değildi. /shop/ yolları B2B'nin .htaccess'ine takılıyor,
+#      alan adı Vestra'nın, kök dizin Vestra'nın. "İki siteyi ayır" demek
+#      pratikte "perakendeyi kendi köküne çıkar" demek.
+#   2. public_html içinde tanımadığı klasörleri kenara taşıyan bir düzen
+#      betiği var. Her deploy'dan bir süre sonra shop/ klasörü
+#      _golge-shop-<tarih> olarak rafa kalkmış hâlde bulundu; membership/
+#      klasörüne de aynısı olmuş. Ölçüldü, tahmin değil. Betiği bulup
+#      kapatmak yerine perakendeyi onun bakmadığı yere koyuyoruz.
+#
+# YENİ DÜZEN
+# ==========
+#   ~/public_html/        Vestra B2B — DOKUNULMUYOR
+#   ~/<docroot>/          MAXSALES belge kökü (varsayılan ~/maxsales_de)
+#   ~/<docroot>/uploads/  MAXSALES fotoğraf arşivi
+#   ~/data/               MAXSALES veri klasörü
+#
+# ~/data NİYE ORADA
+# -----------------
+# vr_data_dir() sırayla VR_ROOT/../data ve VR_ROOT/data'ya bakıyor. Kök
+# ~/maxsales_de olunca ilki $HOME/data'ya denk geliyor: hiçbir belge kökünün
+# altında değil, yani sipariş ve müşteri dosyaları web'den istenemez.
+# İkinci aday (~/maxsales_de/data) çalışırdı ama gizliliği .htaccess'in
+# okunmasına bağlardı. Barındırmanın AllowOverride'ı bir gün kapanırsa
+# ilkinde hiçbir şey olmaz, ikincisinde sipariş dosyaları açığa çıkardı.
+#
+# HİÇBİR ŞEY SİLİNMİYOR
+# =====================
+# İşletmeci "dosyalar silinmeden ayır" dedi. Bu iş yalnızca KOPYALIYOR:
+# rsync --ignore-existing, mv yok, rm yok, --delete yok. public_html
+# tarafındaki her dosya yerinde kalıyor. Kopyalama yarıda kesilse bile
+# eski kurulum çalışmaya devam eder.
+#
+# listings.json İSTİSNA
+# ---------------------
+# Canlı B2B kataloğu. Perakende onu SALT OKUR (inc/catalog.php: "$b2b"),
+# asla yazmaz. Kopyalasak MAXSALES donmuş bir stok gösterirdi; onun yerine
+# sembolik bağ kuruluyor, iki site aynı canlı katalogdan besleniyor.
+# Ayırmak istenen sunum katmanı, ürün kaynağı değil.
+#
+# admin.json KOPYALANMIYOR
+# ------------------------
+# İsim B2B'de de kullanılıyor olabilir; kopyalarsak oradaki bir yönetici
+# hesabı MAXSALES panelini de açardı. Panel kapalı kalsın, hesabı
+# tools/admin-user.php ile işletmeci kendisi açsın.
+#
+# DNS
+# ===
+# Bu iş DNS'i DEĞİŞTİRMEZ. maxsales.de şu an Strato'yu gösteriyor
+# (NS docks01/shades01.rzone.de, A 81.169.145.64). Ek alan burada
+# tanımlansa bile tarayıcı sunucuya gelmez. Onun için test alt adı var:
+# DNS taşınmadan siteyi gerçek bir alan adı üzerinden görebilelim.
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Girdileri doğrula
+        env:
+          R: ${{ github.event.inputs.docroot }}
+          S: ${{ github.event.inputs.test_subdomain }}
+          D: ${{ github.event.inputs.addon_domain }}
+        run: |
+          set -e
+          case "$R" in
+            ""|/*|*..*|*/*) echo "HATA: docroot ev dizinine göre tek bir klasör adı olmalı"; exit 1 ;;
+            public_html)    echo "HATA: docroot public_html olamaz — ayırmanın amacı bu"; exit 1 ;;
+          esac
+          case "$S" in
+            *[!a-z0-9-]*) echo "HATA: alt ad yalnizca a-z 0-9 - icerebilir"; exit 1 ;;
+          esac
+          case "$D" in
+            ""|*[!a-z0-9.-]*) [ -z "$D" ] || { echo "HATA: gecersiz alan adi"; exit 1; } ;;
+          esac
+          echo "docroot=$R  alt ad=$S  ek alan=$D"
+
+      - name: Ayır
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          R: ${{ github.event.inputs.docroot }}
+          S: ${{ github.event.inputs.test_subdomain }}
+          D: ${{ github.event.inputs.addon_domain }}
+          CU: ${{ github.event.inputs.copy_uploads }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 30m
+          envs: R,S,D,CU,DRY
+          script: |
+            set -u
+            NEW="$HOME/$R"
+            OLD="$HOME/public_html/shop"
+            OLDDATA="$HOME/public_html/data"
+            NEWDATA="$HOME/data"
+            run() { if [ "$DRY" = "true" ]; then echo "  [kuru] $*"; else eval "$@"; fi; }
+
+            echo "== 0) mevcut durum =="
+            echo "  ev      : $HOME"
+            df -h "$HOME" | tail -1 | sed 's/^/  disk  : /'
+            for p in "$HOME/public_html" "$OLD" "$OLDDATA" "$NEW" "$NEWDATA"; do
+              if [ -e "$p" ]; then printf '  var    : %s (%s)\n' "$p" "$(du -sh "$p" 2>/dev/null | cut -f1)"
+              else printf '  yok    : %s\n' "$p"; fi
+            done
+            echo
+
+            # YER YETİYOR MU
+            # Fotoğraf arşivi kopyalanacaksa yarıda kalmasın: boş alan
+            # arşivin 1.2 katından azsa hiç başlamıyoruz. Yarım kopya
+            # kırık kart demek ve temizlemesi elle iş.
+            if [ "$CU" = "true" ] && [ -d "$HOME/public_html/uploads" ]; then
+              NEEDK=$(du -sk "$HOME/public_html/uploads" | cut -f1)
+              FREEK=$(df -Pk "$HOME" | tail -1 | awk '{print $4}')
+              echo "== yer kontrolu =="
+              echo "  gereken (x1.2): $(( NEEDK * 12 / 10 / 1024 )) MB"
+              echo "  bos           : $(( FREEK / 1024 )) MB"
+              if [ "$FREEK" -lt $(( NEEDK * 12 / 10 )) ]; then
+                echo "HATA: fotograf arsivi icin yer yok. copy_uploads=false ile tekrar calistir."
+                exit 1
+              fi
+              echo
+            fi
+
+            echo "== 1) yeni kok =="
+            run "mkdir -p '$NEW'"
+            run "chmod 755 '$NEW'"
+            echo
+
+            echo "== 2) veri klasoru (belge kokunun disinda) =="
+            run "mkdir -p '$NEWDATA'"
+            run "chmod 750 '$NEWDATA'"
+            echo
+
+            echo "== 3) perakende veri dosyalari (KOPYA, ustune yazmadan) =="
+            if [ -d "$OLDDATA" ]; then
+              # Beyaz liste bilerek dar: yalnizca perakendenin kendi yazdigi
+              # ve okudugu dosyalar. Gerisi B2B'nin, orada kaliyor.
+              for f in retail-*.json retail-*.json.lock retail-secret.key retail-stripe.log \
+                       category-fix.json official-prices.json hero-frames.json \
+                       photo-quality.json photo-shape.json photo-exclude.json \
+                       image-sources.json approved-photos.json multiview-split.json \
+                       stripe_settings.json email_settings.json; do
+                for src in "$OLDDATA"/$f; do
+                  [ -f "$src" ] || continue
+                  b=$(basename "$src")
+                  if [ -e "$NEWDATA/$b" ]; then echo "  atlandi (zaten var): $b"; continue; fi
+                  run "cp -p '$src' '$NEWDATA/$b'"
+                  [ "$DRY" = "true" ] || echo "  kopyalandi: $b ($(du -h "$NEWDATA/$b" | cut -f1))"
+                done
+              done
+              echo
+              echo "  -- kopyalanmayanlar (B2B'nin ya da bilerek disarida):"
+              ls -1 "$OLDDATA" 2>/dev/null | while read -r b; do
+                [ -e "$NEWDATA/$b" ] && continue
+                echo "     $b"
+              done
+            else
+              echo "  $OLDDATA yok — atlandi"
+            fi
+            echo
+
+            echo "== 4) canli B2B katalogu (sembolik bag, salt okunur kullanim) =="
+            if [ -e "$NEWDATA/listings.json" ] && [ ! -L "$NEWDATA/listings.json" ]; then
+              echo "  UYARI: $NEWDATA/listings.json gercek dosya — dokunulmuyor."
+            elif [ -L "$NEWDATA/listings.json" ]; then
+              echo "  zaten bag -> $(readlink -f "$NEWDATA/listings.json")"
+            elif [ -f "$OLDDATA/listings.json" ]; then
+              run "ln -s '$OLDDATA/listings.json' '$NEWDATA/listings.json'"
+              [ "$DRY" = "true" ] || echo "  kuruldu -> $(readlink -f "$NEWDATA/listings.json")"
+            else
+              echo "  $OLDDATA/listings.json yok — bag kurulmadi (katalog retail-imported.json'dan gelir)"
+            fi
+            echo
+
+            echo "== 5) fotograf arsivi =="
+            if [ "$CU" != "true" ]; then
+              echo "  copy_uploads=false — atlandi"
+            elif [ -d "$HOME/public_html/uploads" ]; then
+              # --ignore-existing: yeni kokte zaten duran bir fotograf
+              # ustune yazilmiyor. --delete YOK: iki taraf da eksilmiyor.
+              run "rsync -a --ignore-existing --exclude '.thumbs/' '$HOME/public_html/uploads/' '$NEW/uploads/'"
+              [ "$DRY" = "true" ] || echo "  $(find "$NEW/uploads" -type f | wc -l) dosya, $(du -sh "$NEW/uploads" | cut -f1)"
+            else
+              echo "  kaynak yok — atlandi"
+            fi
+            echo
+
+            echo "== 6) uygulama dosyalari =="
+            # Kodun kendisini bu is tasimiyor: deploy-retail.yml zaten depodan
+            # gonderiyor ve orasi tek dogru kaynak. Burada kopyalasaydik iki
+            # farkli surum olusabilirdi. Eski kurulumdan yalnizca kodun
+            # gelmedigi durumda uyari veriyoruz.
+            if [ -f "$NEW/index.php" ]; then
+              echo "  kod yerinde: $(find "$NEW" -maxdepth 1 -name '*.php' | wc -l) PHP dosyasi kokte"
+            else
+              echo "  kod HENUZ YOK — ayirma bittikten sonra deploy-retail.yml'i"
+              echo "  target=~/$R ile calistirin."
+            fi
+            echo
+
+            # SIRA ONEMLI: once ek alan, sonra yedek alt ad.
+            # cPanel'de addaddondomain zaten "<subdomain>.<ana alan>" seklinde
+            # bir alt ad uretiyor: maxsales.de icin maxsales.vestrasales.com.
+            # Alt adi once acsaydik ek alan "bu alt ad zaten var" diye
+            # reddedilirdi. Ek alan acilirsa test adresi bedava geliyor,
+            # yedek alt ada hic gerek kalmiyor.
+            echo "== 7) ek alan =="
+            ADDON_OK=0
+            if [ -z "$D" ]; then
+              echo "  istenmedi — atlandi"
+            elif uapi --output=jsonpretty DomainInfo list_domains 2>/dev/null | grep -q "\"$D\""; then
+              echo "  $D zaten tanimli — atlandi"
+              ADDON_OK=1
+            elif [ "$DRY" = "true" ]; then
+              echo "  [kuru] uapi AddonDomain addaddondomain dir=$R newdomain=$D subdomain=$(echo "$D" | cut -d. -f1)"
+              ADDON_OK=1
+            else
+              if uapi --output=jsonpretty AddonDomain addaddondomain \
+                      dir="$R" newdomain="$D" subdomain="$(echo "$D" | cut -d. -f1)" 2>&1 \
+                   | tee /tmp/addon.out | head -40; then :; fi
+              if grep -q '"errors" *: *null' /tmp/addon.out; then
+                ADDON_OK=1
+                echo "  acildi. test adresi: $(echo "$D" | cut -d. -f1).vestrasales.com"
+              else
+                echo "  ACILAMADI — asagidaki yedek alt ad denenecek."
+                echo "  (bazi paylasimli paketler ek alan kokunu public_html"
+                echo "   disinda kabul etmiyor; alt ad genelde kabul ediyor.)"
+              fi
+            fi
+            echo
+
+            echo "== 8) yedek test alt adi =="
+            if [ "$ADDON_OK" = "1" ]; then
+              echo "  gerek yok — ek alan kendi test adresini getirdi"
+            elif [ -z "$S" ]; then
+              echo "  istenmedi — atlandi"
+            elif uapi --output=jsonpretty SubDomain list_subdomains 2>/dev/null | grep -q "\"$S\.vestrasales\.com\""; then
+              echo "  $S.vestrasales.com zaten var — atlandi"
+            elif [ "$DRY" = "true" ]; then
+              echo "  [kuru] uapi SubDomain addsubdomain domain=$S rootdomain=vestrasales.com dir=$R"
+            else
+              uapi --output=jsonpretty SubDomain addsubdomain \
+                   domain="$S" rootdomain="vestrasales.com" dir="$R" 2>&1 | head -40
+            fi
+            echo
+
+            echo "== 9) sonuc =="
+            ls -ld "$NEW" "$NEWDATA" 2>&1 | sed 's/^/  /'
+            echo "  --- alan adlari:"
+            uapi --output=jsonpretty DomainInfo list_domains 2>&1 \
+              | grep -oE '"[a-z0-9.-]+\.[a-z]{2,}"' | sort -u | sed 's/^/     /' | head -20
+            echo
+            echo "  --- public_html'e dokunuldu mu: hayir (yalnizca okundu)"
+            ls -ld "$HOME/public_html" "$OLDDATA" 2>&1 | sed 's/^/     /'
+
+      - name: Alan adları ne döndürüyor
+        if: always()
+        env:
+          S: ${{ github.event.inputs.test_subdomain }}
+          D: ${{ github.event.inputs.addon_domain }}
+        run: |
+          # İmza aranıyor: B2B de aynı yollara 200 veriyor, yalnızca kod
+          # bakmak "yayında" sanısına yol açıyor. Bir kez oldu.
+          check() {
+            [ -n "$1" ] || return 0
+            echo "-- $1"
+            dig +short A "$1" | sed 's/^/     A   /' || true
+            for u in "https://$1/" "https://$1/index.php"; do
+              code=$(curl -sS -o /tmp/p.html -w '%{http_code}' -L --max-time 25 "$u" 2>/dev/null || echo 000)
+              sig=$(grep -c 'MAXSALES' /tmp/p.html 2>/dev/null || echo 0)
+              printf '     %-46s %s  imza:%s\n' "$u" "$code" "$sig"
+            done
+          }
+          [ -z "$D" ] || check "$(echo "$D" | cut -d. -f1).vestrasales.com"
+          [ -z "$S" ] || check "$S.vestrasales.com"
+          check "$D"
+          echo
+          echo "imza:0 = cevabi veren MAXSALES degil (B2B ya da park sayfasi)."
+          echo "A kaydi bu sunucuyu gostermiyorsa ek alan tek basina yetmez."

@@ -3,9 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Hedef klasör (public_html altında, örn: shop). Kök için: ."
+        description: "Hedef: public_html altında klasör (shop) · kök için . · ya da ev dizinine göre tam yol (~/maxsales_de)"
         required: true
-        default: "shop"
+        default: "~/maxsales_de"
+      verify_url:
+        description: "Yayın doğrulamasının bakacağı adres (örn: https://maxsales.vestrasales.com). Boşsa hedeften türetilir."
+        required: false
+        default: ""
       dry_run:
         description: "true = SADECE ne kopyalanacağını yaz, KOPYALAMA"
         required: true
@@ -76,8 +80,16 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
 
-          DEST="~/public_html/${T}"
-          [ "$T" = "." ] && DEST="~/public_html"
+          # Hedef "~" ile basliyorsa oldugu gibi kullaniliyor: MAXSALES artik
+          # public_html DISINDA kendi kokunde duruyor (~/maxsales_de). Iceride
+          # duramiyor cunku Vestra tarafinda tanimadigi klasorleri kenara
+          # tasiyan bir duzen betigi var - her deploy bir sure sonra
+          # _golge-shop-* olarak rafa kalkiyordu (olculdu).
+          case "$T" in
+            "~"*) DEST="$T" ;;
+            ".")  DEST="~/public_html" ;;
+            *)    DEST="~/public_html/${T}" ;;
+          esac
 
           rsync -az --delete \
             --exclude 'data/' \
@@ -112,8 +124,11 @@ jobs:
           #      gidiyor. Sipariş, müşteri, satıcı ve Stripe dosyalarına
           #      dokunulmuyor.
           SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          DEST="~/public_html/${T}"
-          [ "$T" = "." ] && DEST="~/public_html"
+          case "$T" in
+            "~"*) DEST="$T" ;;
+            ".")  DEST="~/public_html" ;;
+            *)    DEST="~/public_html/${T}" ;;
+          esac
           SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
 
           # HANGİ uploads/ KLASÖRÜ?
@@ -170,11 +185,22 @@ jobs:
         if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           T: ${{ github.event.inputs.target }}
+          V: ${{ github.event.inputs.verify_url }}
         run: |
           # Sunucuda selftest çalışıyor ama o dosya sisteminden bakıyor.
           # Asıl soru şu: dışarıdan bir tarayıcı sayfayı alabiliyor mu?
-          BASE="https://vestrasales.com"
-          [ "$T" = "." ] || BASE="$BASE/$T"
+          if [ -n "$V" ]; then
+            BASE="${V%/}"
+          else
+            case "$T" in
+              "~"*)
+                echo "::warning::hedef kendi kökünde ($T) ama verify_url verilmedi — dışarıdan doğrulama atlandı"
+                exit 0 ;;
+            esac
+            BASE="https://vestrasales.com"
+            [ "$T" = "." ] || BASE="$BASE/$T"
+          fi
+          echo "doğrulanan adres: $BASE"
           fail=0
           # Klasörün kendisi (".../shop") AYRI ele alınıyor: orası sunucunun
           # DirectoryIndex ayarına bağlı ve barındırma AllowOverride vermiyorsa
@@ -185,11 +211,25 @@ jobs:
           echo "klasör girişi (/): $root_code $(wc -c < /tmp/root.html) bayt"
           [ "$root_code" = "200" ] || echo "::warning::klasör girişi $root_code — ziyaretçiyi /index.php'ye yönlendirin ya da barındırmada DirectoryIndex açtırın"
 
+          # CEVABI KİM VERİYOR?
+          # -------------------
+          # Bu adım bir kez yalan söyledi: "yayında" dedi, oysa gelen sayfa
+          # Vestra'nın B2B sitesiydi. Sebebi şu — B2B aynı yollara (index.php,
+          # shop.php) 200 ve dolu bir gövdeyle cevap veriyor, üstelik /shop/
+          # altındaki her şeyi kendi köküne yönlendiriyor. Kod + boyut bakan
+          # bir kontrol ikisini ayırt edemez.
+          # Onun için artık sayfada MAXSALES imzası aranıyor. İmza yoksa
+          # cevabı başka bir uygulama veriyordur; deploy başarılı sayılmaz.
           for u in "/index.php" "/shop.php" "/outlet.php" "/legal/impressum.php"; do
             code=$(curl -sS -o /tmp/pg.html -w '%{http_code}' -L --max-time 25 "${BASE}${u}" || echo 000)
             size=$(wc -c < /tmp/pg.html 2>/dev/null || echo 0)
-            printf '%-28s %s  %s bayt\n' "${u:-/}" "$code" "$size"
+            sig=$(grep -c 'MAXSALES' /tmp/pg.html 2>/dev/null || echo 0)
+            printf '%-28s %s  %s bayt  imza:%s\n' "${u:-/}" "$code" "$size" "$sig"
             [ "$code" = "200" ] && [ "$size" -gt 3000 ] || fail=1
+            if [ "$sig" -eq 0 ]; then
+              echo "::error::${BASE}${u} MAXSALES imzası taşımıyor — bu cevap perakende sitesinden gelmiyor"
+              fail=1
+            fi
           done
           # Ürün kartı gerçekten basılıyor mu?
           curl -sS -L --max-time 25 "${BASE}/shop.php" -o /tmp/shop.html || true
@@ -239,11 +279,19 @@ jobs:
           command_timeout: 5m
           script: |
             T='${{ github.event.inputs.target }}'
-            DIR=~/public_html/$T
-            [ "$T" = "." ] && DIR=~/public_html
+            case "$T" in
+              "~"*) DIR=$(eval echo "$T") ;;
+              ".")  DIR=$HOME/public_html ;;
+              *)    DIR=$HOME/public_html/$T ;;
+            esac
 
-            mkdir -p ~/public_html/data
-            chmod 750 ~/public_html/data
+            # Veri klasoru: vr_data_dir() once VR_ROOT/../data'ya bakiyor.
+            # Kendi kokunde duran kurulumda bu $HOME/data oluyor -- hicbir
+            # belge kokunun altinda degil, yani siparis ve musteri dosyalari
+            # web'den istenemiyor. public_html altindaki kurulumda ise
+            # public_html/data cikiyor, eski davranis aynen suruyor.
+            mkdir -p "$DIR/../data"
+            chmod 750 "$DIR/../data"
 
             cd "$DIR"
             echo "== Kurulum kontrolu =="
