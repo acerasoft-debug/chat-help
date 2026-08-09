@@ -1,0 +1,92 @@
+name: (Teşhis) maxsales.de için sunucuyu incele
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "İncelenecek alan adı"
+        required: true
+        default: "maxsales.de"
+
+permissions:
+  contents: read
+
+# SALT OKUNUR. Hiçbir şey oluşturmuyor, silmiyor, taşımıyor.
+#
+# Amaç tek bir soruyu cevaplamak: maxsales.de'yi bu sunucuya ek alan olarak
+# bağlamak için hangi yol açık? Üç ihtimal var ve hangisinin geçerli olduğunu
+# tahmin etmeden bilmek gerekiyor:
+#
+#   1) cPanel var ve uapi komut satırından çalışıyor  → ek alanı biz açabiliriz
+#   2) Panel var ama komut satırı kapalı              → panelden elle açılacak
+#   3) Düz sunucu (Apache/nginx vhost)                → yapılandırma dosyası
+#
+# Ayrıca alanın şu an nereye baktığına ve sunucunun kendini hangi adlarla
+# tanıdığına bakıyoruz: DNS hazır değilse ek alanı açmak tek başına yetmiyor.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: DNS — alan nereye bakıyor
+        env:
+          D: ${{ github.event.inputs.domain }}
+        run: |
+          echo "== $D =="
+          dig +short A "$D"        | sed 's/^/  A     /' || true
+          dig +short AAAA "$D"     | sed 's/^/  AAAA  /' || true
+          dig +short NS "$D"       | sed 's/^/  NS    /' || true
+          echo "== www.$D =="
+          dig +short A "www.$D"    | sed 's/^/  A     /' || true
+          echo "== karşılaştırma: vestrasales.com =="
+          dig +short A vestrasales.com | sed 's/^/  A     /' || true
+
+      - name: HTTP — alan şu an ne döndürüyor
+        env:
+          D: ${{ github.event.inputs.domain }}
+        run: |
+          for u in "http://$D/" "https://$D/"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$u" 2>/dev/null || echo "000")
+            echo "  $u -> $code"
+          done
+
+      - name: Sunucu — panel ve dizin düzeni
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            echo "== kimlik =="
+            id; echo "HOME=$HOME"; hostname
+            echo
+            echo "== ev dizini =="
+            ls -la "$HOME" | head -30
+            echo
+            echo "== public_html =="
+            ls -la "$HOME/public_html" | head -30
+            echo
+            echo "== cPanel var mi =="
+            for c in uapi cpapi2 whmapi1; do
+              if command -v $c >/dev/null 2>&1; then echo "  VAR: $c ($(command -v $c))"; else echo "  yok: $c"; fi
+            done
+            echo
+            echo "== mevcut alanlar (cPanel) =="
+            if command -v uapi >/dev/null 2>&1; then
+              uapi --output=jsonpretty DomainInfo list_domains 2>&1 | head -60 || echo "  uapi cagrisi basarisiz"
+            else
+              echo "  uapi yok - atlandi"
+            fi
+            echo
+            echo "== web sunucusu =="
+            (httpd -v 2>/dev/null || apache2 -v 2>/dev/null || nginx -v 2>&1 || echo "  tespit edilemedi") | head -3
+            echo
+            echo "== PHP =="
+            php -v 2>/dev/null | head -2 || echo "  php yok"
+            echo
+            echo "== disk =="
+            df -h "$HOME" | tail -2
+            echo
+            echo "== shop klasoru =="
+            ls -la "$HOME/public_html/shop" 2>/dev/null | head -12 || echo "  shop yok"
