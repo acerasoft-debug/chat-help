@@ -313,10 +313,23 @@ jobs:
             if [ -d "$HOME/public_html/shop" ]; then
               echo "  VAR: $(ls -ld "$HOME/public_html/shop")"
               echo "  ilk 10 girdi:"; ls -A "$HOME/public_html/shop" | head -10 | sed 's/^/    /'
-              [ -f "$HOME/public_html/shop/.htaccess" ] && echo "  DIKKAT: shop/.htaccess VAR (kendi kurallarini dayatabilir)"
+              # Kural ust dizinde DOGRU duruyor ama /shop hala 403. Geriye tek destekli
+              # aciklama olarak bunun icerigi kaliyor: Apache .htaccess'leri docroot'tan
+              # asagi dogru BIRLESTIRIR, yani bu dosya da her /shop isteginde okunuyor.
+              if [ -f "$HOME/public_html/shop/.htaccess" ]; then
+                echo "  -- shop/.htaccess (ilk 40 satir) --"
+                sed -n 1,40p "$HOME/public_html/shop/.htaccess" | sed 's/^/    /'
+              else
+                echo "  shop/.htaccess yok"
+              fi
             else
               echo "  yok"
             fi
+            # Bu adimin EN SONUNDA, cunku kutuk uzayinca API yalnizca sonu veriyor:
+            # kararin dayandigi tek sayi burasi.
+            echo; echo "== /shop simdi =="
+            curl -s -o /tmp/s.html -w '  kod=%{http_code}  boyut=%{size_download}B\n' -L https://vestrasales.com/shop
+            head -c 200 /tmp/s.html | sed 's/^/    /'; echo
 
       # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir -- orders.csv de urun
       # fotograflari da sadece orada var -- ve cagirana geri verir.
