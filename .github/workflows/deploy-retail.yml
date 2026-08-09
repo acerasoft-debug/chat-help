@@ -120,16 +120,23 @@ jobs:
           rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
             retail/uploads/ "${SRV}:${DEST}/uploads/"
 
-          # data/ kod senkronunda hariç tutulduğu için ilk yayında hedefte
-          # o klasör hiç oluşmuyor; rsync "No such file or directory" ile
-          # düşüyordu. Önce açıyoruz.
-          ssh $SSHOPT "$SRV" "mkdir -p ${DEST}/data && chmod 750 ${DEST}/data"
+          # HANGİ data/ KLASÖRÜ?
+          # ------------------
+          # Uygulama (vr_data_dir) alt klasöre kurulduğunda ÜSTTEKİ data/
+          # klasörünü kullanıyor: müşteri, sipariş ve canlı katalog B2B
+          # tarafıyla paylaşılsın diye. İlk yayında bunu atladık ve katalog
+          # dosyalarını ${DEST}/data'ya yazdık; uygulama oraya hiç bakmadığı
+          # için canlı sitede 478 parçalık MAXSALES kataloğu yerine B2B'nin
+          # 344 satırı görünüyordu ve Vault boştu (los ürün kimlikleri o
+          # katalogda yok). Aynı çözümlemeyi burada tekrarlıyoruz.
+          DATA=$(ssh $SSHOPT "$SRV" "if [ -d ${DEST}/../data ]; then cd ${DEST}/../data && pwd; else mkdir -p ${DEST}/data && cd ${DEST}/data && pwd; fi")
+          echo "veri klasörü: $DATA"
 
           echo "-- katalog dosyaları (beyaz liste)"
           for f in retail-imported.json photo-quality.json photo-exclude.json \
                    category-fix.json official-prices.json hero-frames.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
-            rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DEST}/data/$f"
+            rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"
           done
 
@@ -140,8 +147,8 @@ jobs:
           # bu anahtar bilerek ayrı ve varsayılan olarak kapalı.
           if [ "${{ github.event.inputs.sync_vault }}" = "true" ] && [ -f retail/data/retail-vault.json ]; then
             echo "-- Vault los listesi (üzerine yazar)"
-            ssh $SSHOPT "$SRV" "[ -f ${DEST}/data/retail-vault.json ] && cp ${DEST}/data/retail-vault.json ${DEST}/data/retail-vault.backup.\$(date +%Y%m%d-%H%M%S).json || true"
-            rsync -az -e "ssh $SSHOPT" retail/data/retail-vault.json "${SRV}:${DEST}/data/retail-vault.json"
+            ssh $SSHOPT "$SRV" "[ -f ${DATA}/retail-vault.json ] && cp ${DATA}/retail-vault.json ${DATA}/retail-vault.backup.\$(date +%Y%m%d-%H%M%S).json || true"
+            rsync -az -e "ssh $SSHOPT" retail/data/retail-vault.json "${SRV}:${DATA}/retail-vault.json"
             echo "   gönderildi (öncekinin yedeği alındı)"
           fi
 
