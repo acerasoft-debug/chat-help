@@ -53,33 +53,109 @@ jobs:
             $from = trim((string)getenv("C_FROM"));
             $to   = trim((string)getenv("C_TO"));
             $dry  = strtolower(trim((string)getenv("C_DRY"))) !== 'false';
-            /* Yazma islemleri SADECE listings.json'a yapilabilir; tohum urunler
-               products.php'nin icinde kodla gelir. Ama DENETIM ikisini de gormeli:
-               onceki audit yalnizca listings.json'a bakti ve tam bu yuzden
-               amiri-core-polo'yu (tohum urun, Polos disinda duruyordu) kacirdi ve
-               "0 celiski" diye rapor verdi. */
-            $all  = vestra_listings();
-            $seed = function_exists('vestra_seed_catalog') ? vestra_seed_catalog() : [];
+            /* Katalogda gorunen urun UC kaynaktan gelir ve bu denetim UCUNU de
+               gormek zorunda:
+                 listing -- listings.json (tek yazilabilir kaynak)
+                 demo    -- products.php icinde kodla gelen urunler (amiri-core-polo bunlardan)
+                 tohum   -- inc/dsquared_seed.json
+               Onceki surum yalnizca listings.json'a bakiyordu. Bir onceki commit
+               ($seed satirini ekleyen) bunu duzeltmeyi amacladi ama degiskeni HIC
+               kullanmadi, dolayisiyla denetim yine tek kaynakliydi ve "0 celiski"
+               dedi -- yorumun tam da yanlis oldugunu soyledigi rapor.
+               Olcut sudur: ziyaretcinin /shop'ta gordugu her urun taranmali.
+               vestra_products() tam olarak onu dondurur; ustune listings.json'daki
+               BEKLEYEN urunler de eklenir, boylece hata yayina cikmadan yakalanir. */
+            $listings = vestra_listings();
+            $shown    = vestra_products();                      // demo + canli listing + gölgelenmemis tohum
+            $seedRaw  = function_exists('vestra_seed_catalog') ? vestra_seed_catalog() : [];
+
+            /* Bir urunun kaynagini id ile belirle: yazma kararlari buna bagli,
+               cunku merge SADECE listing satirlarina dokunabilir. */
+            $listingIds = []; foreach ($listings as $p) $listingIds[(string)($p['id'] ?? '')] = true;
+            $seedIds    = []; foreach ($seedRaw  as $p) $seedIds[(string)($p['id'] ?? '')]    = true;
+            $srcOf = function(array $p) use ($listingIds, $seedIds): string {
+              $id = (string)($p['id'] ?? '');
+              if (isset($listingIds[$id])) return 'listing';
+              if (isset($seedIds[$id]))    return 'tohum';
+              return 'demo';
+            };
+
+            /* Denetim kumesi: gorunen her urun + henuz onaylanmamis listing'ler.
+               vestra_products() onaylanmayanlari elediginden ikisinin birlesimi
+               gerekiyor; id ile tekillestiriliyor. */
+            $audit = []; foreach ($shown as $p) $audit[(string)($p['id'] ?? '')] = $p;
+            foreach ($listings as $p) {
+              if ((string)($p['status'] ?? 'approved') === 'approved') continue;
+              $audit[(string)($p['id'] ?? '')] = $p;
+            }
+            $audit = array_values($audit);
 
             /* Kategori dagilimi: ad, urun sayisi, canli/bekleyen ayrimi, markalar.
                Ayni ismin bosluk/buyuk-kucuk harf varyantlari ayri satir olarak
                gorunsun diye ham deger kullaniliyor -- "fazladan sweatshirt bolumu"
                tam olarak boyle bir varyanttan dogmus olabilir. */
             $stat = [];
-            foreach ($all as $p) {
+            foreach ($audit as $p) {
               $c = (string)($p['cat'] ?? '(bos)');
-              if (!isset($stat[$c])) $stat[$c] = ['n'=>0,'live'=>0,'pend'=>0,'brands'=>[]];
+              if (!isset($stat[$c])) $stat[$c] = ['n'=>0,'live'=>0,'pend'=>0,'brands'=>[],'src'=>[]];
               $stat[$c]['n']++;
               if ((string)($p['status'] ?? 'approved') === 'approved') $stat[$c]['live']++; else $stat[$c]['pend']++;
               $b = (string)($p['brand'] ?? '?');
               $stat[$c]['brands'][$b] = ($stat[$c]['brands'][$b] ?? 0) + 1;
+              $s = $srcOf($p);
+              $stat[$c]['src'][$s] = ($stat[$c]['src'][$s] ?? 0) + 1;
             }
             ksort($stat);
             echo "===== KATEGORILER (".count($stat).") =====\n";
             foreach ($stat as $c => $s) {
-              printf("  %-32s %3d urun (canli %3d / bekleyen %3d)  [%s]\n",
+              printf("  %-32s %3d urun (canli %3d / bekleyen %3d) {%s}  [%s]\n",
                 "'".$c."'", $s['n'], $s['live'], $s['pend'],
+                implode(' ', array_map(fn($k,$v)=>"$k:$v", array_keys($s['src']), $s['src'])),
                 implode(', ', array_map(fn($k,$v)=>"$k:$v", array_keys($s['brands']), $s['brands'])));
+            }
+
+            /* Kategori ADLARININ kendisi arasindaki cakismalar. Urun-ici celiski
+               taramasi bunu goremez: 'Sweatshirts' ve 'Hoodies & Sweatshirts'
+               altindaki her urun kendi kategorisiyle uyumludur, ama ziyaretci
+               kenar cubugunda ayni seyin iki filtresini gorur ve aradigi urunun
+               yarisini kacirir.
+               KURAL DAR TUTULDU. Ilk denemem "biri digerinin icinde geciyorsa"
+               diyordu; harfler birlestirilince "sweatshirts" dizisi "tshirts"i
+               iceriyor ve 'Sweatshirts' ile 'T-Shirts' cakisik ilan edildi -- iki
+               ayri urun grubu. Duz alt-kume de calismaz: "Women's T-Shirts",
+               'T-Shirts'i kapsar ama bu KASITLI bir daraltma, hata degil.
+               Gercek cakisma sudur: bir ad, digerinin '&'/',' ile ayrilmis
+               SECENEKLERINDEN biriyle birebir aynidir ('Hoodies & Sweatshirts'
+               varken ayrica 'Sweatshirts'), ya da ikisi yalnizca yazim/tekil-cogul
+               farkiyla ayni addir. */
+            $norm  = fn(string $s) => preg_replace('/[^a-z0-9]+/', '', mb_strtolower($s));
+            $parts = function(string $s) use ($norm): array {
+              $out = [];
+              foreach (preg_split('/\s*[&,\/]\s*|\s+ve\s+/i', $s) as $piece) {
+                $n = $norm($piece); if ($n !== '') $out[] = $n;
+              }
+              return $out;
+            };
+            $same = fn(string $a, string $b) => $a === $b || $a === $b.'s' || $b === $a.'s';
+            $names = array_keys($stat);
+            $dupes = [];
+            for ($i = 0; $i < count($names); $i++) {
+              for ($j = $i + 1; $j < count($names); $j++) {
+                $a = $norm($names[$i]); $b = $norm($names[$j]);
+                if ($a === '' || $b === '') continue;
+                $hit = $same($a, $b);
+                if (!$hit) foreach ($parts($names[$i]) as $pa) if ($same($pa, $b)) { $hit = true; break; }
+                if (!$hit) foreach ($parts($names[$j]) as $pb) if ($same($pb, $a)) { $hit = true; break; }
+                if ($hit) $dupes[] = [$names[$i], $names[$j]];
+              }
+            }
+            if ($dupes) {
+              echo "\n===== CAKISAN KATEGORI ADLARI =====\n";
+              foreach ($dupes as $d) {
+                printf("  '%s' (%d urun)  <->  '%s' (%d urun)\n",
+                  $d[0], $stat[$d[0]]['n'], $d[1], $stat[$d[1]]['n']);
+              }
+              echo "cakisan cift: ".count($dupes)."\n";
             }
 
             if ($act === 'audit') {
@@ -109,7 +185,7 @@ jobs:
               ];
               echo "\n===== AD / KATEGORI CELISKILERI =====\n";
               $bad = 0;
-              foreach ($all as $p) {
+              foreach ($audit as $p) {
                 $nm  = (string)($p['name'] ?? '');
                 $cur = (string)($p['cat'] ?? '');
                 /* Adin isaret ettigi kategori: en spesifik kural once gelsin diye
@@ -118,10 +194,13 @@ jobs:
                 foreach ($rules as $cat => $re) { if (preg_match($re, $nm)) { $should = $cat; break; } }
                 if ($should === null || $should === $cur) continue;
                 $bad++;
-                printf("  %-26s | %-16s | %-40s\n      cat='%s'  ->  ad '%s' diyor\n",
-                  $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr($nm,0,40), $cur, $should);
+                /* Kaynak da yaziliyor: 'listing' olanlar bu araciyla tasinabilir,
+                   'demo'/'tohum' olanlar depodaki dosyada duruyor ve kod degisikligi
+                   ister. Kaynagi bilmeden "duzelttim" demek mumkun degil. */
+                printf("  %-26s | %-16s | %-40s\n      cat='%s'  ->  ad '%s' diyor   [kaynak: %s]\n",
+                  $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr($nm,0,40), $cur, $should, $srcOf($p));
               }
-              echo "\ncelisen urun: {$bad}\n";
+              echo "\ntaranan urun: ".count($audit)."   celisen urun: {$bad}\n";
               echo "(audit) — hicbir sey degistirilmedi.\n";
               exit(0);
             }
@@ -134,10 +213,24 @@ jobs:
 
             echo "\n===== BIRLESTIRME: '{$from}' -> '{$to}' =====\n";
             $moved = 0;
-            foreach ($all as $i => $p) {
+            foreach ($listings as $i => $p) {
               if ((string)($p['cat'] ?? '') !== $from) continue;
               printf("  %-24s | %-16s | %s\n", $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr((string)($p['name'] ?? ''),0,44));
-              $all[$i]['cat'] = $to; $moved++;
+              $listings[$i]['cat'] = $to; $moved++;
+            }
+            /* Ayni kategoride depodan gelen urun varsa merge onlara ULASAMAZ.
+               Sessizce atlanirsa kategori "bosaldi" sanilir ama /shop'ta durmaya
+               devam eder; o yuzden acikca sayilip yaziliyor. */
+            $stuck = [];
+            foreach ($audit as $p) {
+              if ((string)($p['cat'] ?? '') !== $from) continue;
+              $s = $srcOf($p);
+              if ($s !== 'listing') $stuck[] = [$p['id'] ?? '?', $p['brand'] ?? '?', $s];
+            }
+            if ($stuck) {
+              echo "\nDIKKAT — bu arac tasiyamaz (depodaki dosyada, kod degisikligi gerekir):\n";
+              foreach ($stuck as $s) printf("  %-24s | %-16s | kaynak: %s\n", $s[0], $s[1], $s[2]);
+              echo "  bu ".count($stuck)." urun '{$from}' altinda kalacak.\n";
             }
             echo "tasinacak: {$moved}\n";
             if (!$moved) { echo "yapacak is yok.\n"; exit(0); }
@@ -147,14 +240,16 @@ jobs:
             $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
             if (!@copy($dir.'/listings.json', $bak)) { fwrite(STDERR,"HATA: yedek alinamadi\n"); exit(1); }
             echo "\nyedek: {$bak}\n";
-            vestra_save_listings(array_values($all));
+            vestra_save_listings(array_values($listings));
 
             clearstatcache();
             $check = vestra_listings();
-            if (count($check) !== count($all)) { fwrite(STDERR,"HATA: urun sayisi degisti! yedek: {$bak}\n"); exit(1); }
+            if (count($check) !== count($listings)) { fwrite(STDERR,"HATA: urun sayisi degisti! yedek: {$bak}\n"); exit(1); }
             $left = 0; foreach ($check as $p) if ((string)($p['cat'] ?? '') === $from) $left++;
-            if ($left !== 0) { fwrite(STDERR,"HATA: '{$from}' altinda hala {$left} urun var! yedek: {$bak}\n"); exit(1); }
-            echo "KAYDEDILDI — {$moved} urun '{$to}' altina tasindi, '{$from}' bosaldi.\n";
+            if ($left !== 0) { fwrite(STDERR,"HATA: '{$from}' altinda hala {$left} listing var! yedek: {$bak}\n"); exit(1); }
+            echo "KAYDEDILDI — {$moved} urun '{$to}' altina tasindi.\n";
+            echo $stuck ? "UYARI: '{$from}' bosalmadi — ".count($stuck)." depo urunu duruyor.\n"
+                        : "'{$from}' bosaldi.\n";
             PHPEOF
             php -l /tmp/vestra_cats.php
             php /tmp/vestra_cats.php; RC=$?
