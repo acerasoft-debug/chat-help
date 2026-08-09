@@ -72,6 +72,26 @@ model's gender is not the same evidence as the seller's own labelling. They go
 to plain `T-Shirts`; splitting out women's rows needs the source line sheet, not
 a guess.
 
+### `balenciaga-burberry-05` — reviewed, all 22 rows corrected
+
+Every row was named "Sweatshirt" under Hoodies & Sweatshirts. **Not one of the
+22 is a sweatshirt**: 18 are t-shirts, two are denim shorts (`G8FE8` women's,
+`G8FR9` men's), one is a pair of jeans (`FTAH6DG8EZ5`) and one is a black polo
+with a contrast collar (`G8OL0ZFU7E`).
+
+### Before importing: check images against the LIVE catalogue, not just each other
+
+`dgn-g7jv9` in batch2 carries the image `d-g-g7jv9-1.jpg` — and the live
+catalogue already has `dgn-g7jv91` with that same photo, under T-Shirts. Same
+garment, two ids. The duplicate-id scan cannot see this because the ids differ;
+only the image matches.
+
+Importing it would put the same product on the shelf twice, which a buyer reads
+as two different articles. So the pre-import check is not just "no repeated id
+inside the batches" but also **"no image already used by a live row"**. The live
+side comes from `inspect-products.yml` with `compact: true`, which prints the
+image filename for exactly this purpose.
+
 ## Coverage: only three of the seventeen sheets matter
 
 The folder has **44 live product rows**, and every one of them appears on sheets
