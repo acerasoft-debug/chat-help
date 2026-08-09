@@ -1,6 +1,12 @@
 # MAXSALES Retail — Apache/LiteSpeed kurallari
 # nginx kullaniyorsan bu dosya OKUNMAZ; README'deki nginx karsiliklarina bak.
 
+# ---- klasor girisi
+# Alt klasore kurulumda (ornek: /shop) sunucu klasorun kendisi istendiginde
+# hicbir dosyayla eslesmiyor ve "Options -Indexes" yuzunden 403 doniyordu.
+# Olculdu: https://vestrasales.com/shop -> 403, 13 bayt. Acikca belirtiyoruz.
+DirectoryIndex index.php index.html
+
 # ---- temiz URL'ler (istege bagli): /product/<id> -> product.php?id=<id>
 <IfModule mod_rewrite.c>
   RewriteEngine On
@@ -16,7 +22,16 @@
 </IfModule>
 
 # ---- bulunamadi sayfasi (arama + oneri sunuyor, kuru bir hata degil)
-ErrorDocument 404 /404.php
+#
+# ErrorDocument MUTLAK yol ister ve mutlak yol alt klasorde YANLIS hedefi
+# gosteriyor: /shop altinda "/404.php" alan adinin kokundeki B2B sitesinin
+# sayfasina gidiyor. RewriteRule'un hedefi ise .htaccess'in bulundugu
+# klasore gore cozuluyor, yani kurulum nereye yapilirsa yapilsin dogru.
+<IfModule mod_rewrite.c>
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . 404.php [L]
+</IfModule>
 
 # ---- veri ve arac dizinleri web'den kapali
 RedirectMatch 404 ^/(.*/)?data/
