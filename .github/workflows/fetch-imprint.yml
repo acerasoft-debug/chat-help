@@ -31,35 +31,37 @@ jobs:
 
           ssh $SSHOPT "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
           set -u
-          echo "###### 1) Künye/Impressum geçen dosyalar ######"
-          grep -rliE "impressum|imprint|anbieterkennzeichnung" ~/public_html/chat 2>/dev/null | head -20
+          echo "###### 0) Sunucuda ne var ######"
+          echo "-- ev dizini:"; ls -1 ~ | head -30
+          echo "-- public_html:"; ls -1 ~/public_html 2>/dev/null | head -40
+          echo "-- domain klasörleri:"; ls -d ~/*/public_html ~/domains/*/public_html ~/*/htdocs 2>/dev/null | head -20
 
           echo
-          echo "###### 2) Acerasoft geçen satırlar (bağlamıyla) ######"
-          grep -rniE "acerasoft" ~/public_html/chat 2>/dev/null \
+          echo "###### 1) Künye geçen dosyalar (tüm ev dizini) ######"
+          grep -rliE "impressum|anbieterkennzeichnung|imprint" ~ \
+            --include=*.php --include=*.html --include=*.js --include=*.json 2>/dev/null | head -30
+
+          echo
+          echo "###### 2) Acerasoft geçen satırlar ######"
+          grep -rniE "acerasoft" ~ --include=*.php --include=*.html --include=*.js --include=*.json 2>/dev/null \
             | grep -viE "acerasoft@gmail|acerasoft\+|acerasoft-debug" | head -40
 
           echo
-          echo "###### 3) Adres/sicil kalıpları ######"
-          grep -rnoiE "(str(aße|asse)|weg|platz|allee|ulica|sokak)[ ,]?[0-9]{1,4}[a-z]?" ~/public_html/chat 2>/dev/null | head -20
-          grep -rnoiE "(HRB|HRA|USt-?IdNr\.?|VAT|Steuernummer|Registergericht|vertreten durch|Geschäftsführ[a-zä]*)[^<\"']{0,80}" ~/public_html/chat 2>/dev/null | head -30
-          grep -rnoE "\b[0-9]{5}\s+[A-ZÄÖÜ][a-zäöüß]+\b" ~/public_html/chat 2>/dev/null | head -20
+          echo "###### 3) Sicil / temsil / vergi kalıpları ######"
+          grep -rnoiE "(HRB|HRA|USt-?IdNr\.?|Steuernummer|Registergericht|vertreten durch|Geschäftsführ[a-zä]*|Sitz der Gesellschaft)[^<\"']{0,90}" ~ \
+            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -30
 
           echo
-          echo "###### 4) Künye sayfasının tam metni (ilk eşleşen dosya) ######"
-          F=$(grep -rliE "impressum|anbieterkennzeichnung" ~/public_html/chat 2>/dev/null | head -1)
-          if [ -n "${F:-}" ]; then
-            echo "dosya: $F"
-            grep -niE -A4 -B4 "impressum|anbieterkennzeichnung" "$F" | head -120
-          else
-            echo "künye sayfası bulunamadı"
-          fi
+          echo "###### 4) Adres kalıpları ######"
+          grep -rnoiE "[A-ZÄÖÜ][a-zäöüß]+(str(aße|asse)|weg|platz|allee)\.? ?[0-9]{1,4}[a-z]?" ~ \
+            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -20
+          grep -rnoE "\b[0-9]{5} [A-ZÄÖÜ][a-zäöüß]+" ~ \
+            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -20
 
           echo
-          echo "###### 5) Ayar/konfig dosyalarında şirket alanları ######"
-          for f in $(find ~/public_html/chat -maxdepth 2 -name "*.json" -o -maxdepth 2 -name "config*.php" 2>/dev/null | head -20); do
-            if grep -qiE "company|firma|address|adres|impressum" "$f" 2>/dev/null; then
-              echo "--- $f"; head -c 3000 "$f"; echo
-            fi
+          echo "###### 5) Künye sayfasının tam metni ######"
+          for F in $(grep -rliE "impressum|anbieterkennzeichnung" ~ --include=*.php --include=*.html 2>/dev/null | head -3); do
+            echo "--- dosya: $F"
+            grep -niE -A6 -B6 "impressum|anbieterkennzeichnung" "$F" | head -80
           done
           REMOTE
