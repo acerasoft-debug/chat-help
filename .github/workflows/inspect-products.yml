@@ -14,6 +14,14 @@ on:
         description: "Ürün adında bu metni ara (alt dize, boş = hepsi) — marka/kategori bilinmeden ürün bulmak için"
         required: false
         default: ""
+      check_images:
+        description: "true = her görselin dosyası sunucuda GERÇEKTEN var mı, kontrol et"
+        required: false
+        default: "false"
+      missing_only:
+        description: "true = sadece görseli eksik/bozuk ürünleri yaz (check_images ile birlikte)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -30,29 +38,74 @@ jobs:
           INSPECT_BRAND: ${{ github.event.inputs.brand }}
           INSPECT_CAT: ${{ github.event.inputs.cat }}
           INSPECT_NAME: ${{ github.event.inputs.name }}
+          INSPECT_IMGCHK: ${{ github.event.inputs.check_images }}
+          INSPECT_MISSONLY: ${{ github.event.inputs.missing_only }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
             $home = getenv("HOME");
-            require $home."/public_html/inc/products.php";
+            $root = $home."/public_html";
+            require $root."/inc/products.php";
             $bf = strtolower(trim((string)getenv("INSPECT_BRAND")));
             $cf = trim((string)getenv("INSPECT_CAT"));
             $nf = strtolower(trim((string)getenv("INSPECT_NAME")));
+            $imgchk   = strtolower(trim((string)getenv("INSPECT_IMGCHK")))   === 'true';
+            $missonly = strtolower(trim((string)getenv("INSPECT_MISSONLY"))) === 'true';
+
+            /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
+               renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
+               renk secen alici tam onlari goruyor, ve /catalog xlsx'i her renk icin ayri
+               satir uretirken yine onlari gomuyor. */
+            $imagesOf = function(array $p): array {
+              $out = [];
+              if (!empty($p['images']) && is_array($p['images'])) foreach ($p['images'] as $i) $out[] = (string)$i;
+              if (!empty($p['image'])) $out[] = (string)$p['image'];
+              if (!empty($p['variants']) && is_array($p['variants'])) {
+                foreach ($p['variants'] as $v) if (!empty($v['image'])) $out[] = (string)$v['image'];
+              }
+              $out = array_values(array_unique(array_filter($out, fn($s) => trim($s) !== '')));
+              return $out;
+            };
+            /* '/uploads/..' web yolu -> diskteki dosya. Bos dosya da kayip sayilir:
+               0 baytlik bir .jpg tarayicida kirik ikon olarak cikar, is_file ise true doner. */
+            $probe = function(string $img) use ($root): string {
+              $img = trim($img);
+              if ($img === '') return 'bos';
+              if (preg_match('#^https?://#i', $img)) return 'disURL';
+              if ($img[0] !== '/') return 'gecersizYol';
+              $f = $root.$img;
+              if (!is_file($f)) return 'YOK';
+              return (@filesize($f) > 0) ? 'ok' : 'BOSDOSYA';
+            };
+
+            $nProd = 0; $nImg = 0; $nBad = 0; $nProdBad = 0; $nProdNoImg = 0; $badList = [];
             foreach (vestra_products() as $p) {
               $brand = (string)($p['brand'] ?? '');
               if ($bf !== '' && $bf !== '*' && stripos($brand, $bf) === false) continue;
               if ($cf !== '' && strcasecmp(trim((string)($p['cat'] ?? '')), $cf) !== 0) continue;
               if ($nf !== '' && stripos((string)($p['name'] ?? ''), $nf) === false) continue;
+              $nProd++;
               $imgs = [];
               if (!empty($p['images']) && is_array($p['images'])) $imgs = $p['images'];
               elseif (!empty($p['image'])) $imgs = [$p['image']];
+
+              $bad = [];
+              if ($imgchk) {
+                $all = $imagesOf($p);
+                $nImg += count($all);
+                if (!count($all)) $nProdNoImg++;
+                foreach ($all as $img) { $r = $probe($img); if ($r !== 'ok') { $bad[] = $r.'  '.$img; $nBad++; } }
+                if ($bad) { $nProdBad++; $badList[] = [(string)($p['id'] ?? '?'), $brand, count($all), count($bad)]; }
+                if ($missonly && !$bad) continue;
+              }
+
               $demo = function_exists('vestra_is_demo_product') && vestra_is_demo_product((string)($p['id'] ?? '')) ? 'DEMO(kodda)' : 'canli-listing';
               $nv = !empty($p['variants']) && is_array($p['variants']) ? count($p['variants']) : 0;
               echo "id=".($p['id'] ?? '?')." | {$brand} | ".($p['name'] ?? '?')." | cat=".($p['cat'] ?? '?')." | mode=".($p['mode'] ?? '?')." | {$demo}\n";
@@ -64,6 +117,17 @@ jobs:
                 foreach ($p['tiers'] as $tier) $t[] = ($tier['min'] ?? '?')."+ -> €".($tier['price'] ?? '?');
                 echo "   tiers: ".implode(' | ', $t)."\n";
               }
+              foreach ($bad as $b) echo "   KAYIP GORSEL: {$b}\n";
+            }
+
+            /* Ozet EN SONDA: kutuk cok uzarsa API yalnizca sonunu veriyor, bas taraf
+               ulasilamaz oluyor. Karar verilecek sayi burada dursun. */
+            if ($imgchk) {
+              echo "\n===== GORSEL DENETIMI =====\n";
+              printf("urun: %d   referans verilen gorsel: %d   kayip/bozuk: %d\n", $nProd, $nImg, $nBad);
+              printf("en az bir gorseli kayip urun: %d   hic gorseli olmayan urun: %d\n", $nProdBad, $nProdNoImg);
+              foreach ($badList as $b) printf("  %-26s | %-16s | %d gorselin %d'i kayip\n", $b[0], $b[1], $b[2], $b[3]);
+              echo $nBad ? "SONUC: KIRIK FOTO VAR\n" : "SONUC: TUM FOTOLAR YERINDE\n";
             }
             PHPEOF
             php /tmp/vestra_inspect.php
