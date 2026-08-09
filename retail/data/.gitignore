@@ -19,3 +19,9 @@
 !category-fix.json
 !official-prices.json
 !hero-frames.json
+
+# Dis kaynak fotograf hatti: adres listesi ELLE yaziliyor, aday defteri ise
+# runner tarafindan yaziliyor. Ikisi de kisisel veri degil; depoda olmazsa
+# runner listeyi goremez ve indirdiginin kaydi kaybolur.
+!image-sources.json
+!photo-candidates.json

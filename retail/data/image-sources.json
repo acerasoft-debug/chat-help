@@ -1,0 +1,44 @@
+{
+    "rights_confirmed": true,
+    "note": "Model kodu aramasiyla bulunan urun sayfalari. Isletmecinin 9 Agustos 2026 tarihli talimatiyla toplandi; yayimlama karari ve sorumlulugu isletmeciye ait. Indirilenler ADAY olarak uploads/candidates/ altina iner, hicbiri otomatik baglanmaz - onay uploads/candidates/_sheets/ kolajina bakilarak tools/approve-candidates.php ile verilir.",
+    "items": [
+        {
+            "id": "blm-wh1ef000b138gdv",
+            "sku": "WH1EF000B138GDV",
+            "urls": ["https://www.endclothing.com/us/balmain-logo-t-shirt-wh1ef000b138-gdv.html"]
+        },
+        {
+            "id": "blm-wh1ef000b138mai",
+            "sku": "WH1EF000B138MAI",
+            "urls": ["https://www.endclothing.com/us/balmain-logo-t-shirt-wh1ef000b138-mai.html"]
+        },
+        {
+            "id": "blm-wh1ef000b138sdq",
+            "sku": "WH1EF000B138SDQ",
+            "urls": ["https://www.endclothing.com/us/balmain-logo-t-shirt-wh1ef000b138-sdq.html"]
+        },
+        {
+            "id": "dgn-g8pt1tg7jv9",
+            "sku": "G8PT1TG7JV9",
+            "urls": ["https://thecorner.com/eu-en/cotton-crew-neck-t-shirt-g8pt1tg7jv9_a0417-p"]
+        },
+        {
+            "id": "dgn-g8pn9tg7j6b",
+            "sku": "G8PN9TG7J6B",
+            "urls": ["https://www.farfetch.com/eg/shopping/men/dolce-gabbana-logo-print-cotton-t-shirt-item-20047694.aspx"]
+        },
+        {
+            "id": "dsq-s74gu0424",
+            "sku": "S74GU0424",
+            "urls": ["https://www.soledadmoda.com/catalogue/DSQUARED2-sweat-col-rond-homme-en-coton-imprim-chim-re-S74GU0424-blanc"]
+        },
+        {
+            "id": "fnd-t04",
+            "sku": "FAF532",
+            "urls": [
+                "https://www.luxuryfashionstores.ch/en/18219/fendi-faf532-a8k5-ff-roma-amor-t-shirt_p",
+                "https://giglio.com/eng/clothing-men_t-shirt-fendi-faf532ad3v.html?cSel=002"
+            ]
+        }
+    ]
+}
