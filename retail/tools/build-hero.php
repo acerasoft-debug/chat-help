@@ -88,6 +88,13 @@ $outW = $opt['width'];
 if ($rw < 1 || $rh < 1) { $rw = 16; $rh = 9; }
 $outH = (int)round($outW * $rh / $rw);
 
+// H.264 tek sayılı kenar kabul etmiyor: 1100x825 istendiğinde libx264 hiç
+// çıktı vermeden kapanıyor ve dosya 0 baytta kalıyor (ölçüldü). VP8 buna
+// katlanıyordu, o yüzden eski bantlar sorunsuz üretilmişti. İki kenarı da
+// çift sayıya yuvarlıyoruz — bir pikselin görüntüye etkisi yok.
+$outW -= $outW % 2;
+$outH -= $outH % 2;
+
 // ------------------------------------------------------------------ seçim
 /** Beyaz piksel oranı — düz ürün çekimini modelli çekimden ayırt eder. */
 function bh_whiteness(string $file): float
@@ -388,5 +395,5 @@ if (is_file($jpg)) @chmod($jpg, 0644);
 
 printf("\nFilm       : assets/media/%s  %.1f MB · %ds · %dx%d\n",
        basename($out), filesize($out) / 1048576, $t, $outW, $outH);
-if (is_file($jpg)) printf("Poster     : assets/media/hero-poster.jpg  %d KB\n", (int)(filesize($jpg) / 1024));
+if (is_file($jpg)) printf("Poster     : assets/media/%s-poster.jpg  %d KB\n", $opt['name'], (int)(filesize($jpg) / 1024));
 echo "\nDie Startseite nimmt den Film ab sofort automatisch (vr_hero_media).\n";
