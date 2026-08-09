@@ -1,0 +1,93 @@
+name: Ürün fotoğrafı adaylarını indir
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Çalışılacak dal"
+        required: true
+        default: "claude/vestra-premium-retail-site-rxj4va"
+      dry_run:
+        description: "true = sadece dene, dosya yazma"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+# NEDEN RUNNER'DA
+# --------------
+# Geliştirme kapsayıcısının dışarı çıkışı kapalı (proxy her isteği 403'lüyor),
+# dolayısıyla ürün sayfaları oradan açılamıyor. Runner'ın açık interneti var.
+#
+# NE YAPAR
+# --------
+# data/image-sources.json'daki sayfaları açar, ürün fotoğraflarını bulur,
+# indirir ve uploads/candidates/<ürün-id>/ altına ADAY olarak koyar. Her ürün
+# için bir kontrol kolajı üretir (solda eldeki kare, sağda adaylar) ve hepsini
+# dala geri işler. HİÇBİRİ ürüne bağlanmaz — bağlama işi gözle onaydan sonra,
+# tools/approve-candidates.php ile yapılır.
+#
+# Neden otomatik bağlamıyoruz: model kodu araması doğru sayfayı çoğu zaman
+# buluyor ama aynı kodun beş rengi, kadın/erkek bedeni ve farklı sezonu
+# olabiliyor. Yanlış fotoğrafı ürüne bağlamak tek fotoğrafla kalmaktan kötü.
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+
+      - name: PHP + GD
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq php-cli php-gd php-mbstring php-curl
+          php -v && php -m | grep -i '^gd$'
+
+      - name: Kaynak listesini göster
+        working-directory: retail
+        run: |
+          echo "--- data/image-sources.json ---"
+          php -r '$d=json_decode(file_get_contents("data/image-sources.json"),true);
+            printf("rights_confirmed: %s\nitems: %d\n", var_export($d["rights_confirmed"]??null,true), count($d["items"]??[]));'
+
+      - name: İndir
+        working-directory: retail
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            php tools/fetch-photo-candidates.php --dry
+          else
+            php tools/fetch-photo-candidates.php
+          fi
+
+      - name: Dala işle
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          if [ -z "$(ls -A retail/uploads/candidates 2>/dev/null)" ]; then
+            echo "Aday inmedi — işlenecek bir şey yok."
+            exit 0
+          fi
+          git config user.name  "Claude"
+          git config user.email "noreply@anthropic.com"
+          # uploads/ .gitignore'da: adayları açıkça ekliyoruz.
+          git add -f retail/uploads/candidates
+          git add retail/data/photo-candidates.json || true
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok."
+            exit 0
+          fi
+          git commit -m "retail: Fotograf adaylari indirildi (otomatik, baglanmadi)
+
+          Kaynak: data/image-sources.json
+          Adaylar uploads/candidates/ altinda, kontrol kolajlari
+          uploads/candidates/_sheets/ icinde. Hicbiri urune bagli degil."
+          git push origin HEAD:${{ github.event.inputs.branch }}
+
+      - name: Özet
+        if: always()
+        working-directory: retail
+        run: |
+          echo "--- inen adaylar ---"
+          find uploads/candidates -type f 2>/dev/null | head -60 || echo "(yok)"
