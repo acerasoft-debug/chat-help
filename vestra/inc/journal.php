@@ -100,8 +100,12 @@ function vestra_journal_body_html(string $body, array $art = []): string {
             $src = trim($m[1]);
             if (preg_match('#^/uploads/[A-Za-z0-9._/-]+$#', $src) && strpos($src, '..') === false) {
                 $cap = trim($m[2] ?? '');
+                /* alt describes the picture, figcaption names the photographer. Reusing the
+                   credit as alt read "Photographer · CC BY-SA 4.0" to a screen reader, which
+                   tells someone who cannot see the image nothing about what is in it. */
+                $alt = vestra_journal_photo_desc($src) ?: $cap;
                 $out .= '<figure class="jr-fig"><img src="'.htmlspecialchars($src).'" alt="'
-                     .htmlspecialchars($cap).'" loading="lazy" decoding="async">'
+                     .htmlspecialchars($alt).'" loading="lazy" decoding="async">'
                      .($cap !== '' ? '<figcaption>'.htmlspecialchars($cap).'</figcaption>' : '')
                      .'</figure>';
                 continue;
@@ -581,6 +585,15 @@ function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $min
             json_encode($credits, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));
     }
     return $rep;
+}
+
+/* What the photograph shows, for alt text — Commons' own description, cleaned of the
+   markup and language wrappers it arrives wrapped in. Empty when the uploader wrote
+   none, in which case the caller falls back rather than inventing a description. */
+function vestra_journal_photo_desc(string $path): string {
+    $c = vestra_journal_credits()[basename($path)] ?? null;
+    $d = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)($c['desc'] ?? '')), ENT_QUOTES, 'UTF-8')));
+    return mb_strlen($d) > 140 ? mb_substr($d, 0, 137).'…' : $d;
 }
 
 /** Attribution line for an image path, or '' when the file needs none (our own art). */
