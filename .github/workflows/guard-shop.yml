@@ -1,0 +1,90 @@
+name: /shop nöbetçisi (çakışan dizini kenara al)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# NEDEN VAR
+# public_html/shop/ ikinci bir sitenin koku ve o site oraya yeniden kuruldukca
+# VESTRA katalogu 403 veriyor. Bir gunde dort kez oldu (12:35, 12:50, 13:28,
+# 16:34) -- duzensiz araliklarla, yani cron degil, o sitenin kendi deploy'u.
+#
+# .htaccess ILE COZULEMEZ, denendi: o dizin kendi `RewriteEngine On`'unu
+# tasiyor ve Apache bir alt dizin kendi rewrite yapilandirmasini tanimladiginda
+# ustundekini DEVRALMAZ, degistirir -- yani kok .htaccess'teki `^shop/?$`
+# kurali o istek icin hic degerlendirilmiyor. RewriteOptions InheritDownBefore
+# de ise yaramiyor: devralinan kural alt dizinin kapsaminda calisir, orada
+# eslesecegi yol bos dizedir.
+#
+# Kalici cozum o sitenin baska bir dizine kurulmasi ve bu bizim tarafimizda
+# degil. Bu is o gune kadar kesinti suresini "fark edene kadar"dan "en fazla
+# 15 dakika"ya indiriyor.
+#
+# SILMEZ. Dizini ~/_golge-shop-<zaman> altina TASIR, icerik korunur.
+#
+# DIKKAT -- ZAMANLAMA HENUZ CALISMIYOR: GitHub `schedule` tetikleyicisini
+# yalnizca VARSAYILAN daldaki dosyadan okur (burada claude/charming-franklin-1ynmuj).
+# Bu dosya o dala girene kadar 15 dakikalik nobet BASLAMAZ; su an sadece elle
+# (workflow_dispatch) calisir. Birlestirilmeden "koruma var" sanmak, olmayan bir
+# guvenlik agina guvenmek olur.
+#
+# Once HTTP ile bakar; sayfa 200 ise sunucuya HIC baglanmaz. Host, arka arkaya
+# gelen SSH baglantilarini kisitliyor, ve 15 dakikada bir bosuna baglanmanin
+# anlami yok.
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: /shop ayakta mı
+        id: check
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          code=$(curl -sS -A "$UA" -o /tmp/b.html -w '%{http_code}' --max-time 30 https://vestrasales.com/shop || echo 000)
+          size=$(wc -c < /tmp/b.html)
+          echo "kod=$code  boyut=${size}B"
+          # 200 + govde makul buyuklukte ise sorun yok. Sadece koda bakmak yetmez:
+          # bos bir 200 de katalogun yuklenmedigi anlamina gelir.
+          if [ "$code" = "200" ] && [ "$size" -gt 20000 ]; then
+            echo "durum=iyi" >> "$GITHUB_OUTPUT"
+            echo "OK -- sunucuya baglanilmiyor."
+          else
+            echo "durum=bozuk" >> "$GITHUB_OUTPUT"
+            echo "BOZUK -- onarim adimina geciliyor."
+          fi
+
+      - name: Çakışan dizini kenara al
+        if: steps.check.outputs.durum == 'bozuk'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            D="$HOME/public_html/shop"
+            if [ ! -d "$D" ]; then
+              echo "Cakisan dizin YOK -- /shop baska bir sebepten bozuk."
+              echo "Bu is onu duzeltemez; diag-live.yml ile bakilmali."
+              exit 0
+            fi
+            TS=$(date +%Y%m%d-%H%M%S)
+            DEST="$HOME/_golge-shop-$TS"
+            echo "tasiniyor: $D -> $DEST"
+            mv "$D" "$DEST" || { echo "HATA: tasinamadi"; exit 1; }
+            echo "icerik korundu: $(find "$DEST" -type f | wc -l) dosya"
+
+            # Disk birikmesi: her tekrar bir kopya birakiyor. SILMIYORUZ --
+            # bunlar baska bir sitenin dosyalari ve silme karari bizim degil.
+            # Ama birikince haber vermek gerekiyor.
+            N=$(ls -1d "$HOME"/_golge-shop-* 2>/dev/null | wc -l)
+            SZ=$(du -sh "$HOME"/_golge-shop-* 2>/dev/null | awk '{s+=$1} END {print NR" kopya"}')
+            echo "toplam saklanan kopya: $N"
+            [ "$N" -gt 5 ] && echo "UYARI: $N kopya birikti -- hangilerinin silinebilecegine operator karar vermeli"
+
+            echo "== /shop simdi =="
+            curl -s -o /dev/null -w '  kod=%{http_code}  boyut=%{size_download}B\n' -L https://vestrasales.com/shop
