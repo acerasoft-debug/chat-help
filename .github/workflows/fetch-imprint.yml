@@ -31,37 +31,18 @@ jobs:
 
           ssh $SSHOPT "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
           set -u
-          echo "###### 0) Sunucuda ne var ######"
-          echo "-- ev dizini:"; ls -1 ~ | head -30
-          echo "-- public_html:"; ls -1 ~/public_html 2>/dev/null | head -40
-          echo "-- domain klasörleri:"; ls -d ~/*/public_html ~/domains/*/public_html ~/*/htdocs 2>/dev/null | head -20
-
-          echo
-          echo "###### 1) Künye geçen dosyalar (tüm ev dizini) ######"
-          grep -rliE "impressum|anbieterkennzeichnung|imprint" ~ \
-            --include=*.php --include=*.html --include=*.js --include=*.json 2>/dev/null | head -30
-
-          echo
-          echo "###### 2) Acerasoft geçen satırlar ######"
-          grep -rniE "acerasoft" ~ --include=*.php --include=*.html --include=*.js --include=*.json 2>/dev/null \
-            | grep -viE "acerasoft@gmail|acerasoft\+|acerasoft-debug" | head -40
-
-          echo
-          echo "###### 3) Sicil / temsil / vergi kalıpları ######"
-          grep -rnoiE "(HRB|HRA|USt-?IdNr\.?|Steuernummer|Registergericht|vertreten durch|Geschäftsführ[a-zä]*|Sitz der Gesellschaft)[^<\"']{0,90}" ~ \
-            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -30
-
-          echo
-          echo "###### 4) Adres kalıpları ######"
-          grep -rnoiE "[A-ZÄÖÜ][a-zäöüß]+(str(aße|asse)|weg|platz|allee)\.? ?[0-9]{1,4}[a-z]?" ~ \
-            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -20
-          grep -rnoE "\b[0-9]{5} [A-ZÄÖÜ][a-zäöüß]+" ~ \
-            --include=*.php --include=*.html --include=*.json 2>/dev/null | head -20
-
-          echo
-          echo "###### 5) Künye sayfasının tam metni ######"
-          for F in $(grep -rliE "impressum|anbieterkennzeichnung" ~ --include=*.php --include=*.html 2>/dev/null | head -3); do
-            echo "--- dosya: $F"
-            grep -niE -A6 -B6 "impressum|anbieterkennzeichnung" "$F" | head -80
+          # Künye VESTRA'nın hukuk metinlerinde bulundu: inc/legal/de.php
+          # içindeki 'imprint' bloğu. Tamamını okuyoruz — MAXSALES'in
+          # data/retail-settings.json alanları buradan doldurulacak.
+          for F in ~/public_html/inc/legal/de.php ~/repo/vestra/inc/legal/de.php ~/CANLI_KLASOR/inc/legal/de.php; do
+            [ -f "$F" ] || continue
+            echo "###### $F ######"
+            sed -n '1,90p' "$F"
+            echo
+            break
           done
+
+          echo
+          echo "###### İletişim / e-posta ayarları ######"
+          grep -rnoiE "(support|info|kontakt|hello)@[a-z0-9.-]+" ~/public_html/inc ~/public_html/*.php 2>/dev/null | head -10
           REMOTE
