@@ -91,6 +91,18 @@ if (function_exists('vestra_seo_brand_keywords')) {
 <meta name="twitter:description" content="<?= htmlspecialchars($META) ?>">
 <meta name="twitter:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <meta name="theme-color" content="#0e0e11">
+<?php /* Installed-app behaviour. iOS does not read the manifest's `display` on older
+         versions, so without apple-mobile-web-app-capable an "Add to Home Screen"
+         icon opened inside Safari's chrome instead of as a standalone app —
+         Android honoured `display: standalone` all along, which is why this only
+         ever looked broken on iPhone. mobile-web-app-capable is the standard
+         spelling of the same thing. Status bar is opaque black to match the dark
+         header; black-translucent would draw under the clock and needs
+         safe-area padding the layout does not carry yet. */ ?>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="VESTRA">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">

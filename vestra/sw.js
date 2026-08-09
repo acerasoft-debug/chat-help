@@ -1,8 +1,12 @@
 /* VESTRA service worker — makes the site installable (PWA) and handles Web Push.
    Deliberately minimal: no HTML caching (the marketplace is dynamic/session-based),
-   just a tiny static-asset cache + the push → fetch-pending → notify pipeline. */
-const CACHE = 'vestra-v1';
-const STATIC = ['/inc/style.css', '/favicon.svg', '/icon-192.png', '/icon-512.png'];
+   just a tiny static-asset cache + the push → fetch-pending → notify pipeline.
+
+   Bump CACHE whenever this list changes — activate deletes every other cache, so
+   the bump is what actually retires the old one. */
+const CACHE = 'vestra-v2';
+const OFFLINE = '/offline.html';
+const STATIC = ['/inc/style.css', '/favicon.svg', '/icon-192.png', '/icon-512.png', OFFLINE];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(STATIC)).catch(() => {}));
@@ -16,8 +20,19 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-/* Cache-first for the few static assets above; everything else straight to network. */
+/* Page loads stay network-first and are never cached — prices, stock and session
+   state must not be served from memory. The only thing kept for offline is the
+   fallback page, so a dead connection shows VESTRA rather than the browser's
+   error screen. Installed to the home screen, that error screen is what a user
+   reads as "the app is broken". */
 self.addEventListener('fetch', (e) => {
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(OFFLINE).then((hit) => hit || Response.error()))
+    );
+    return;
+  }
+
   const url = new URL(e.request.url);
   if (e.request.method === 'GET' && url.origin === location.origin && STATIC.includes(url.pathname)) {
     e.respondWith(
