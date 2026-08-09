@@ -827,6 +827,13 @@ function vr_card_frames(array $p): array
             $s += abs(log($r / 0.8)) * 10;
         }
         $s += $i * 0.35;                                   // dosya sırası: hafif tercih
+
+        // Dışarıdan gelen kare (uploads/licensed/) küçük bir ceza alıyor.
+        // Bunları EKSİK ikinci-üçüncü fotoğraf için indirdik, kart yüzünü
+        // devralsınlar diye değil: ölçülen bir Dsquared2'de karoya katlanmış
+        // bir detay çekimi çıktı ve elimizdeki manken çekimi ikinci sıraya
+        // düştü. Ceza küçük — ürünün kendi karesi kötüyse yine öne geçiyor.
+        if (str_starts_with($img, '/uploads/licensed/')) $s += 4;
         $score[$i] = $s;
     }
     asort($score);
@@ -835,9 +842,25 @@ function vr_card_frames(array $p): array
     return $out;
 }
 
-/** Vitrin kartının yüzü: karoya en iyi oturan kare. */
+/**
+ * Vitrin kartının yüzü: karoya en iyi oturan kare.
+ *
+ * Sıralama piksel ölçüyor, kadrajın ne anlattığını bilmiyor. Ölçülen bir
+ * Dsquared2'de ürünün kendi karesi 640x640 ve küçük, indirilen kareler
+ * 2264x2641; sıralama haklı olarak büyüğü seçiyor ama seçtiği kare katlanmış
+ * bir detay çekimi, oysa aynı üründe giyilmiş bir kare var. Bu "hangisi daha
+ * iyi anlatıyor" sorusu ve otomatiğe bağlanacak bir yanı yok.
+ *
+ * O yüzden düzeltme katmanında (data/category-fix.json) isteğe bağlı bir
+ * "face" alanı var: yazılan yol o ürünün karosu oluyor. Yol ürünün kendi
+ * fotoğrafları arasında değilse yok sayılıyor — yanlış yazım sessizce
+ * başka bir ürünün karesini basmasın.
+ */
 function vr_card_image(array $p): string
 {
+    $pin = (string)(vr_category_fix()[(string)$p['id']]['face'] ?? '');
+    if ($pin !== '' && in_array($pin, (array)($p['images'] ?? []), true)) return $pin;
+
     $f = vr_card_frames($p);
     return $f[0] ?? vr_product_image($p);
 }
@@ -897,7 +920,16 @@ function vr_product_gallery(array $p, int $max = 5): array
      * yalnızca hiç fotoğraf YOKSA devreye giriyor — o zaman da alternatifi
      * boş bir kutu.
      */
-    if ($real) return array_slice($real, 0, $max);
+    if ($real) {
+        // Galerinin ilk karesi ile karonun yüzü AYNI olmalı: vitrinden
+        // tıklayan kişi tıkladığı fotoğrafı bekliyor. Dosya sırası bunu
+        // garanti etmiyor — yüz sıralamayla ya da elle sabitlenmiş olabilir.
+        $face = vr_card_image($p);
+        if (str_starts_with($face, '/uploads/') && in_array($face, $real, true)) {
+            $real = array_merge([$face], array_values(array_filter($real, fn($x) => $x !== $face)));
+        }
+        return array_slice($real, 0, $max);
+    }
 
     $seed = substr(sha1((string)$p['id']), 0, 12);
     return [vr_url('assets/art.php', ['s' => $seed, 'c' => $p['cat'], 'v' => 0])];

@@ -13540,6 +13540,66 @@
         "fill": 0.0233,
         "n": 5
     },
+    "/uploads/licensed/balmain/b1dcd858c9.webp": {
+        "r": 1,
+        "w": 1000,
+        "h": 1000,
+        "bg": "#fefefe",
+        "flat": 1,
+        "cx": 57,
+        "cy": 34,
+        "fill": 0.0915,
+        "n": 3
+    },
+    "/uploads/licensed/dolce-gabbana/f5f1005fa9.webp": {
+        "r": 0.667,
+        "w": 1920,
+        "h": 2880,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 48,
+        "fill": 0.3877
+    },
+    "/uploads/licensed/dsquared2/2f364db67e.jpg": {
+        "r": 0.843,
+        "w": 2172,
+        "h": 2577,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 49,
+        "fill": 0.5052
+    },
+    "/uploads/licensed/dsquared2/70b1c00453.jpg": {
+        "r": 0.857,
+        "w": 2264,
+        "h": 2641,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 49,
+        "cy": 52,
+        "fill": 0.5853
+    },
+    "/uploads/licensed/dsquared2/860de2d59f.jpg": {
+        "r": 0.923,
+        "w": 2371,
+        "h": 2570,
+        "bg": "#ffffff",
+        "flat": 1,
+        "cx": 50,
+        "cy": 55,
+        "fill": 0.5349
+    },
+    "/uploads/licensed/dsquared2/8719f12e33.jpg": {
+        "r": 0.703,
+        "w": 2137,
+        "h": 3039,
+        "bg": "#dad5d4",
+        "cx": 49,
+        "cy": 58,
+        "fill": 0.6889
+    },
     "/uploads/marcelo-burlon/cmaa018f20jer0011016-p1.jpg": {
         "r": 0.687,
         "w": 250,
