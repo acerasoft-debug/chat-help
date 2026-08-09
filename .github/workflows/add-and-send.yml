@@ -258,7 +258,16 @@ jobs:
                  kabul ediliyor. Beraberlik varsa hic tahmin edilmiyor -- Ingilizce'ye
                  dusmek, yanlis dilde e-posta gondermekten iyi. */
               if ($out['country'] === '') {
-                $low  = mb_strtolower($hay.' '.$domain);
+                $low = mb_strtolower($hay.' '.$domain);
+                /* "Made in Italy" bir URUNUN nereden geldigini soyler, MAGAZANIN nerede
+                   oldugunu degil -- ve moda sitelerinde her urun aciklamasinda tekrar eder,
+                   yani sayma kuralini da kandirir. 9 Agustos: Cruise Fashion (Glasgow)
+                   Italyanca, Goodhood (Londra) Japonca kampanya aldi; ikisi de Ingiliz
+                   magazasi, ikisinin de katalogu "made in Italy" / "made in Japan" dolu.
+                   Menseyi anlatan kaliplar ulke adiyla birlikte siliniyor. */
+                $low = preg_replace(
+                  '/\b(made|designed|crafted|assembled|woven|knitted|produced|manufactured|imported)\s+(in|from)\s+[\p{L}]+/iu',
+                  ' ', $low);
                 $hits = [];
                 foreach ($COUNTRY_WORDS as $cn => $words) {
                   $n = 0;
