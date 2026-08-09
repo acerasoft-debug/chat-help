@@ -412,10 +412,18 @@ function vestra_journal_photo_pool(bool $fresh = false): array {
     if ($fresh) $pool = null;
     if ($pool !== null) return $pool;
     $pool = [];
+    $reject = vestra_journal_photo_reject();
     foreach (vestra_journal_credits($fresh) as $file => $c) {
-        if (!empty($c['artist']) && is_readable(__DIR__.'/../uploads/journal/'.$file)) {
-            $pool[] = '/uploads/journal/'.$file;
-        }
+        if (empty($c['artist']) || !is_readable(__DIR__.'/../uploads/journal/'.$file)) continue;
+        /* The same reject list is applied here, not only at fetch time. Files downloaded
+           before a subject was ruled out would otherwise stay publishable forever, and
+           the pool is the last gate before a picture reaches a page — so ruling something
+           out here takes it off the site without needing to touch the server. Hyphens
+           become spaces first: the stored name is the Commons title with its spaces
+           replaced, so 'Dog sweater 2.jpg' is on disk as 'dog-sweater-2-…'. */
+        $name = str_replace('-', ' ', mb_strtolower($file));
+        foreach ($reject as $bad) if (strpos($name, $bad) !== false) continue 2;
+        $pool[] = '/uploads/journal/'.$file;
     }
     sort($pool);
     return $pool;
@@ -505,7 +513,7 @@ function vestra_journal_photo_reject(): array {
                barracks — a labour-conditions picture, not a trade one. Storm and flood
                damage arrives through clothes-shop queries the same way. */
             'dog sweater', 'dog coat', 'dog jumper', 'barracks', 'flood', 'hurricane',
-            'katrina', 'debris'];
+            'katrina', 'debris', 'silty', 'barbie'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
