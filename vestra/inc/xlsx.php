@@ -7,11 +7,18 @@
  * .xlsx with drawing anchors pointing at embedded media. This builds one by hand with
  * ZipArchive + literal XML (no composer / PhpSpreadsheet needed).
  *
- * vestra_xlsx_with_photos($headers, $rows, $title):
+ * vestra_xlsx_with_photos_file($headers, $rows, $title):
  *   $headers : ['#','Brand','Product',...]  (last column is the photo column)
  *   $rows    : [ ['cells'=>['1','Lacoste',...], 'image'=>'/abs/path.jpg'|''], ... ]
- *   returns  : the .xlsx binary string, or '' on failure.
+ *   returns  : path to the finished .xlsx on disk (caller streams it, then deletes), or ''.
  * Each row's image (if the file exists + is png/jpeg) is drawn floating over the last cell.
+ *
+ * Returns a PATH, not the bytes. It used to return the whole file as a string, and with a
+ * photo per row that was three copies of the catalogue in memory at once: every photo read
+ * into $imgs, the same binaries again in $mediaFiles, then the finished workbook slurped
+ * back. /catalog died on it -- "Allowed memory size of 134217728 bytes exhausted". Photos
+ * now go into the zip straight from disk via addFile(), so peak memory no longer grows
+ * with the size of the catalogue.
  */
 
 function vestra_xlsx_col(int $i): string { // 0-based -> A,B,...,Z,AA,...
@@ -23,7 +30,7 @@ function vestra_xlsx_esc(string $s): string {
   return htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8');
 }
 
-function vestra_xlsx_with_photos(array $headers, array $rows, string $title = 'VESTRA'): string {
+function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title = 'VESTRA'): string {
   if (!class_exists('ZipArchive')) return '';
   $ncol     = max(1, count($headers));
   $photoCol = $ncol - 1;                 // last column reserved for the photo
@@ -41,15 +48,17 @@ function vestra_xlsx_with_photos(array $headers, array $rows, string $title = 'V
     $mime = $info['mime'] ?? '';
     $ext  = $mime === 'image/png' ? 'png' : ($mime === 'image/jpeg' ? 'jpeg' : '');
     if ($ext === '') continue;            // only png/jpeg embed reliably
-    $bin = @file_get_contents($path);
-    if ($bin === false || $bin === '') continue;
+    // Only the PATH is kept. getimagesize() above already proved the file is readable
+    // and a real image, so there is nothing more to learn by loading it here — and
+    // loading it here is exactly what exhausted memory once the catalogue grew.
+    if (@filesize($path) < 1) continue;
     // scale into the box, keep aspect
     $w = (int)$info[0]; $h = (int)$info[1];
     if ($w < 1 || $h < 1) continue;
     $scale = min($imgBox / $w, $imgBox / $h, 1.0);
     $dw = max(1, (int)round($w * $scale)); $dh = max(1, (int)round($h * $scale));
     $sheetRow = $ri + 2;                  // +1 header row, +1 for 1-based
-    $imgs[$sheetRow] = ['bin' => $bin, 'ext' => $ext, 'w' => $dw, 'h' => $dh];
+    $imgs[$sheetRow] = ['path' => $path, 'ext' => $ext, 'w' => $dw, 'h' => $dh];
   }
 
   // ---- sheet1.xml ------------------------------------------------------------
@@ -110,7 +119,7 @@ function vestra_xlsx_with_photos(array $headers, array $rows, string $title = 'V
         . '<xdr:spPr><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
         . '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
       $ext = $im['ext'];
-      $mediaFiles['xl/media/image' . $i . '.' . $ext] = $im['bin'];
+      $mediaFiles['xl/media/image' . $i . '.' . $ext] = $im['path'];
       $drawingRels .= '<Relationship Id="rId' . $i . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image' . $i . '.' . $ext . '"/>';
     }
     $drawing = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -195,10 +204,11 @@ function vestra_xlsx_with_photos(array $headers, array $rows, string $title = 'V
     $zip->addFromString('xl/drawings/_rels/drawing1.xml.rels',
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' . $drawingRels . '</Relationships>');
-    foreach ($mediaFiles as $name => $bin) $zip->addFromString($name, $bin);
+    /* addFile, addFromString'in aksine dosyayi simdi okumaz -- zip kapanirken
+       diskten akitir. Katalog buyudukce tepe bellek artik buyumuyor. */
+    foreach ($mediaFiles as $name => $src) $zip->addFile($src, $name);
   }
-  $zip->close();
-  $out = @file_get_contents($tmp);
-  @unlink($tmp);
-  return $out === false ? '' : $out;
+  if (!$zip->close()) { @unlink($tmp); return ''; }
+  /* Biten dosyayi string'e OKUMUYORUZ: cagiran readfile() ile akitip siliyor. */
+  return is_file($tmp) && filesize($tmp) > 0 ? $tmp : '';
 }

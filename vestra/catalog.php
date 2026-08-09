@@ -96,7 +96,7 @@ if (!$rows) {
 $rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
 
 $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
-$xlsx = vestra_xlsx_with_photos($headers, $rows, $title);
+$xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title);
 if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
 
 /* Delivery. These sheets run 1.7-17.8 MB because every row embeds a photo, and at
@@ -115,8 +115,12 @@ $fname = 'VESTRA-Selection-'.date('Y-m-d').'.xlsx';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="'.$fname.'"');
 header('X-Content-Type-Options: nosniff');
-header('Content-Length: '.strlen($xlsx));   // now truthful: no buffer, no compression
+header('Content-Length: '.filesize($xlsx));  // now truthful: no buffer, no compression
 header('Accept-Ranges: none');
 header('Cache-Control: private, max-age=300');
-echo $xlsx;
+/* Streamed, not echoed. Holding the finished workbook in a string was the last of the
+   three catalogue-sized copies that pushed this page past the 128 MB limit; readfile()
+   sends it in chunks, so the response size no longer sets the memory ceiling. */
+readfile($xlsx);
+@unlink($xlsx);
 flush();
