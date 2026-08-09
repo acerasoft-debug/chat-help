@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       brand:
-        description: "Marka filtresi (boş = hepsi)"
+        description: "Marka filtresi — * = HEPSI. Boş bırakma: GitHub boş değeri 'verilmedi' sayıp varsayılanı uygular"
         required: false
-        default: "Lacoste"
+        default: "*"
       cat:
         description: "Kategori filtresi, tam eşleşme (boş = hepsi)"
         required: false
@@ -28,6 +28,12 @@ permissions:
 
 # Salt-okunur. Katalog ürünlerini (demo + canlı listing) listeler: id, marka, ad, kategori,
 # görsel sayısı/ilk görsel, varyant sayısı, demo mu canlı mı. Hiçbir şeyi DEĞİŞTİRMEZ.
+#
+# brand VARSAYILANI '*' (hepsi) -- eskiden 'Lacoste' idi ve bu sessiz bir tuzaktı:
+# görsel denetimi brand='' ile çalıştırıldığında GitHub boş değeri "verilmedi" sayıp
+# varsayılanı uyguladı, tarama 346 ürün yerine yalnız 12 Lacoste ürününe daraldı ve
+# "TÜM FOTOLAR YERINDE" yazdı. Rapor doğruydu, kapsamı değildi. Denetim aracının
+# varsayılanı dar olmamalı; tek marka isteyen adını yazar.
 jobs:
   inspect:
     runs-on: ubuntu-latest
