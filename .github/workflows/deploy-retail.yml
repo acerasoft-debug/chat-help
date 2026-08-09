@@ -202,7 +202,12 @@ jobs:
           # şikâyeti buydu. Ana sayfadan on görsel adresi çekip tek tek
           # sorguluyoruz.
           curl -sS -L --max-time 25 "${BASE}/index.php" -o /tmp/home.html || true
-          imgs=$(grep -oE 'assets/img\.php\?[^"]+' /tmp/home.html | sed 's/&amp;/\&/g' | head -10)
+          # src="..." İÇİNDEKİ tam adres. Önceki hâli srcset'i de yakalıyor ve
+          # boşluktan bölünce "900w", "300w," gibi parçaları adres sanıyordu:
+          # 21 "hata"nın çoğu ölçüm hatasıydı, sitenin değil.
+          imgs=$(grep -oE 'src="[^"]*assets/img\.php\?[^"]*"' /tmp/home.html \
+                 | sed -e 's/^src="//' -e 's/"$//' -e 's/&amp;/\&/g' \
+                 | sed -e 's#^/shop/##' -e 's#^/##' | sort -u | head -10)
           bad=0; n=0
           for q in $imgs; do
             n=$((n+1))
