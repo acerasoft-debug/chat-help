@@ -571,7 +571,15 @@ function vestra_journal_photo_reject(): array {
             'velvet underground', 'velvet revolution', 'velvet ant', 'velvet worm',
             /* a mannequin in a war museum is wearing a uniform, and one in a shop window at
                Halloween is a costume display -- neither is the clothing trade */
-            'museum', 'halloween', 'waxwork', 'madame tussaud'];
+            'museum', 'halloween', 'waxwork', 'madame tussaud',
+            /* Read off the first fetch that used the widened query list, which is how every
+               other entry here was found. Two failures the existing list did not cover:
+               'spinning wheel wool' returned three Delacroix lithographs of Marguerite at
+               her wheel -- artwork, and the existing 'drawing'/'engraving' guards miss it
+               because the title names the sitter, not the medium; and 'gingham fabric'
+               returned a named idol at a promotional event, which is the likeness problem
+               'red carpet' and 'premiere' exist to stop, arriving through a cloth word. */
+            'au rouet', 'lithograph', 'bnk48', 'akb48', 'roadshow', 'idol'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
