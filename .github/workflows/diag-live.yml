@@ -176,6 +176,27 @@ jobs:
             echo; echo "== shop.php dosya durumu =="
             ls -l ~/public_html/shop.php 2>/dev/null || echo "  shop.php YOK!"
 
+            # public_html'den tasimak yetmiyor: /shop 12:44'te 200'e dondu, iki deploy
+            # sonra 12:48'de yine 403 oldu. deploy.sh sunucudaki klondan public_html'e
+            # rsync ediyor ve `git reset --hard` IZLENMEYEN dizinlere dokunmuyor, o
+            # yuzden klonun icine konmus bir dizin her deploy'da geri geliyor. Kaynak
+            # burasi; belirti oradaki kopya.
+            echo; echo "== sunucudaki klonda izlenmeyen sayfa-adi dizinleri =="
+            REPO="$HOME/vestra-repo/vestra"
+            if [ -d "$REPO" ]; then
+              rfound=0
+              for f in ~/public_html/*.php; do
+                b=$(basename "$f" .php)
+                [ -d "$REPO/$b" ] || continue
+                rfound=1
+                tracked=$(cd "$HOME/vestra-repo" && git ls-files "vestra/$b" | wc -l)
+                echo "  $REPO/$b  ->  git'te izlenen dosya: $tracked $([ "$tracked" = 0 ] && echo '(IZLENMIYOR -- her deploy geri koyar)')"
+              done
+              [ "$rfound" = 0 ] && echo "  klonda cakisan dizin yok"
+            else
+              echo "  $REPO yok"
+            fi
+
             # Onarim. SILMIYOR, public_html DISINA tasiyor: 403 aninda kalkar ve
             # icinde beklenmedik bir sey cikarsa geri koymak tek komut. Canli bir
             # sunucuda rm -rf calistirmak icin ortada yeterli sebep yok.
@@ -204,7 +225,16 @@ jobs:
                   [ -e ~/public_html/"$rel" ] || { echo "    BENZERSIZ: $rel"; uniq=$((uniq+1)); }
                 done
                 [ "$uniq" = 0 ] && echo "    (ilk 400 dosyanin hepsinin kokte karsiligi var -- saf kopya)"
-                DEST=~/"_golge-${b}-$(date -u +%Y%m%d-%H%M%S)"
+                STAMP=$(date -u +%Y%m%d-%H%M%S)
+                # ONCE kaynak: klondaki izlenmeyen kopya kalirsa bir sonraki deploy
+                # her seyi geri koyar ve sayfa yeniden 403'e duser.
+                SRC="$HOME/vestra-repo/vestra/$b"
+                if [ -d "$SRC" ]; then
+                  mv "$SRC" ~/"_golge-kaynak-${b}-${STAMP}" \
+                    && echo "    KAYNAK TASINDI -> ~/_golge-kaynak-${b}-${STAMP}" \
+                    || { echo "    HATA: kaynak tasinamadi"; exit 1; }
+                fi
+                DEST=~/"_golge-${b}-${STAMP}"
                 mv "$D" "$DEST" && echo "    TASINDI -> $DEST" || { echo "    HATA: tasinamadi"; exit 1; }
                 [ -d "$D" ] && { echo "    HATA: dizin hala duruyor"; exit 1; }
                 code=$(curl -s -o /dev/null -w '%{http_code}' -L "https://vestrasales.com/$b")
