@@ -160,8 +160,15 @@ jobs:
           echo "veri klasörü: $DATA"
 
           echo "-- katalog dosyaları (beyaz liste)"
-          for f in retail-imported.json photo-quality.json photo-exclude.json \
-                   category-fix.json official-prices.json hero-frames.json; do
+          # photo-shape.json BU LİSTEDE OLMALI: vr_img_fit() her görselin
+          # kendi ölçüsüne göre cover/pad/tint seçiyor ve o ölçüler burada
+          # duruyor. Listede yoktu — sunucuda dosya hiç oluşmadı, dolayısıyla
+          # canlı sitede bütün kartlar düz "cover"a düşüyordu: dar görseller
+          # kırpılıyor, kare olanlar taşıyordu. Ayırma işinin kuru
+          # çalıştırmasında public_html/data içinde olmadığı görüldü.
+          for f in retail-imported.json photo-quality.json photo-shape.json \
+                   photo-exclude.json category-fix.json official-prices.json \
+                   hero-frames.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
             rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"
