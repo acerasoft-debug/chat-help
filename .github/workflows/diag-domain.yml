@@ -13,16 +13,12 @@ permissions:
 
 # SALT OKUNUR. Hiçbir şey oluşturmuyor, silmiyor, taşımıyor.
 #
-# Amaç tek bir soruyu cevaplamak: maxsales.de'yi bu sunucuya ek alan olarak
-# bağlamak için hangi yol açık? Üç ihtimal var ve hangisinin geçerli olduğunu
-# tahmin etmeden bilmek gerekiyor:
+# İki soru:
+#   1) maxsales.de'yi ek alan olarak bağlamak için hangi yol açık?
+#   2) Perakende uygulaması sunucuda TAM OLARAK nerede duruyor?
 #
-#   1) cPanel var ve uapi komut satırından çalışıyor  → ek alanı biz açabiliriz
-#   2) Panel var ama komut satırı kapalı              → panelden elle açılacak
-#   3) Düz sunucu (Apache/nginx vhost)                → yapılandırma dosyası
-#
-# Ayrıca alanın şu an nereye baktığına ve sunucunun kendini hangi adlarla
-# tanıdığına bakıyoruz: DNS hazır değilse ek alanı açmak tek başına yetmiyor.
+# (2) neden: bağlama işi "public_html/shop yok" dedi, oysa site o adresten
+# yayında. Bu çelişkiyi tahminle kapatmak yanlış — dosyayı arıyoruz.
 jobs:
   diag:
     runs-on: ubuntu-latest
@@ -32,61 +28,42 @@ jobs:
           D: ${{ github.event.inputs.domain }}
         run: |
           echo "== $D =="
-          dig +short A "$D"        | sed 's/^/  A     /' || true
-          dig +short AAAA "$D"     | sed 's/^/  AAAA  /' || true
-          dig +short NS "$D"       | sed 's/^/  NS    /' || true
-          echo "== www.$D =="
-          dig +short A "www.$D"    | sed 's/^/  A     /' || true
-          echo "== karşılaştırma: vestrasales.com =="
-          dig +short A vestrasales.com | sed 's/^/  A     /' || true
+          dig +short A "$D"    | sed 's/^/  A     /' || true
+          dig +short AAAA "$D" | sed 's/^/  AAAA  /' || true
+          dig +short NS "$D"   | sed 's/^/  NS    /' || true
 
-      - name: HTTP — alan şu an ne döndürüyor
-        env:
-          D: ${{ github.event.inputs.domain }}
-        run: |
-          for u in "http://$D/" "https://$D/"; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$u" 2>/dev/null || echo "000")
-            echo "  $u -> $code"
-          done
-
-      - name: Sunucu — panel ve dizin düzeni
+      - name: Sunucu — uygulama nerede
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 3m
+          command_timeout: 4m
           script: |
-            echo "== kimlik =="
-            id; echo "HOME=$HOME"; hostname
+            echo "HOME=$HOME"
             echo
-            echo "== ev dizini =="
-            ls -la "$HOME" | head -30
+            echo "== public_html TAM liste (dizinler) =="
+            find "$HOME/public_html" -maxdepth 1 -type d -printf '  %f\n' | sort
             echo
-            echo "== public_html =="
-            ls -la "$HOME/public_html" | head -30
+            echo "== public_html TAM liste (sembolik baglar) =="
+            find "$HOME/public_html" -maxdepth 1 -type l -printf '  %f -> %l\n' | sort || echo "  yok"
             echo
-            echo "== cPanel var mi =="
-            for c in uapi cpapi2 whmapi1; do
-              if command -v $c >/dev/null 2>&1; then echo "  VAR: $c ($(command -v $c))"; else echo "  yok: $c"; fi
+            echo "== ev dizininde tilde ile olusmus dizin var mi =="
+            ls -la "$HOME" | grep -E '^[dl].* [~]' || echo "  yok"
+            echo
+            echo "== perakende index.php nerede (inc/view.php komsulugu) =="
+            find "$HOME" -maxdepth 4 -name 'view.php' -path '*/inc/*' -printf '  %h\n' 2>/dev/null | head -10
+            echo
+            echo "== 'MAXSALES' gecen index.php'ler =="
+            for f in $(find "$HOME" -maxdepth 3 -name 'index.php' 2>/dev/null | head -20); do
+              if grep -q "vr_layout_start\|MAXSALES" "$f" 2>/dev/null; then echo "  $f"; fi
             done
             echo
-            echo "== mevcut alanlar (cPanel) =="
-            if command -v uapi >/dev/null 2>&1; then
-              uapi --output=jsonpretty DomainInfo list_domains 2>&1 | head -60 || echo "  uapi cagrisi basarisiz"
-            else
-              echo "  uapi yok - atlandi"
-            fi
+            echo "== shop dizini stat =="
+            stat -c '  %n  %F  %s' "$HOME/public_html/shop" 2>&1 | head -3
             echo
-            echo "== web sunucusu =="
-            (httpd -v 2>/dev/null || apache2 -v 2>/dev/null || nginx -v 2>&1 || echo "  tespit edilemedi") | head -3
-            echo
-            echo "== PHP =="
-            php -v 2>/dev/null | head -2 || echo "  php yok"
-            echo
-            echo "== disk =="
-            df -h "$HOME" | tail -2
-            echo
-            echo "== shop klasoru =="
-            ls -la "$HOME/public_html/shop" 2>/dev/null | head -12 || echo "  shop yok"
+            echo "== uploads / data nerede =="
+            for d in "$HOME/public_html/uploads" "$HOME/public_html/data" "$HOME/public_html/shop/uploads" "$HOME/public_html/shop/data"; do
+              if [ -e "$d" ]; then echo "  VAR: $d  ($(find "$d" -maxdepth 1 | wc -l) girdi)"; else echo "  yok: $d"; fi
+            done
