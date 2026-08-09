@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+  Klasör girişi için emniyet kemeri.
+
+  Alt klasöre kurulumda (örnek: /shop) klasörün kendisi istendiğinde sunucu
+  403 dönüyordu: DirectoryIndex index.php'yi denemiyor ve .htaccess'e yazdığımız
+  satır barındırmada yok sayılıyor. Ölçüldü — /shop/shop.php 200 ve 61 KB,
+  /shop 403 ve 13 bayt: uygulama çalışıyor, yalnızca kapı kapalı.
+
+  index.html neredeyse her sunucunun varsayılan dizin dosyasıdır. Bu sayfa
+  yalnızca index.php'ye geçiriyor: JavaScript ile anında, JavaScript yoksa
+  meta refresh ile, ikisi de olmazsa bağlantıyla. Sunucu index.php'yi kendi
+  başına açabiliyorsa bu dosya zaten hiç okunmaz.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="0; url=index.php">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="index.php">
+<title>MAXSALES</title>
+<script>location.replace('index.php');</script>
+<style>
+  html,body{height:100%;margin:0;background:#0a0a0e;color:#c9a24d;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  .w{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+  .m{font-size:20px;letter-spacing:.24em;text-transform:uppercase;color:#f5f2ec}
+  .m i{font-style:normal;color:#c9a24d}
+  a{color:#c9a24d}
+</style>
+</head>
+<body>
+<div class="w">
+  <p class="m">MAXSALES<i>.</i></p>
+  <p><a href="index.php">Enter the shop</a></p>
+</div>
+</body>
+</html>
