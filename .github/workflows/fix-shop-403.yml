@@ -1,0 +1,81 @@
+name: (Onarım) /shop 403 — gölge dizini kaldır
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "false = SADECE göster (varsayılan) | true = dizini public_html DIŞINA taşı"
+        required: true
+        default: "false"
+
+permissions:
+  contents: read
+
+# /shop 403 veriyordu: public_html/shop/ diye bir DIZIN olusmus (9 Agu 05:18) ve
+# icinde sitenin kendi kopyasi duruyor -- bir rsync yanlis hedefe yazmis olmali.
+# Kok .htaccess'teki temiz-URL kurali `RewriteCond %{REQUEST_FILENAME} !-d` tasiyor:
+# hedef bir dizinse shop.php'ye yonlendirme atlanir, `Options -Indexes` de listelemeyi
+# yasakladigi icin Apache 403 dondurur. shop.php'nin kendisi saglam; sorun sadece
+# ayni adi tasiyan bu dizin.
+#
+# SILMIYOR, TASIYOR: ~/_shop-golge-<zaman> altina aliniyor. 403 aninda kalkar, ve
+# icinde beklenmedik bir sey cikarsa geri koymak tek komut. Canli sunucuda rm -rf
+# calistirmak icin ortada yeterli sebep yok.
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gölge dizini incele / taşı
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          APPLY: ${{ github.event.inputs.apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: APPLY
+          script: |
+            set -u
+            D="$HOME/public_html/shop"
+
+            if [ ! -d "$D" ]; then
+              echo "public_html/shop dizini yok — yapacak is kalmamis."
+              exit 0
+            fi
+
+            echo "== gölge dizin =="
+            ls -ld "$D"
+            echo "  boyut : $(du -sh "$D" | cut -f1)"
+            echo "  dosya : $(find "$D" -type f | wc -l)"
+            echo
+            echo "== ilk seviye icerik =="
+            ls -la "$D" | head -25
+            echo
+            # Kopyanin gercekten kopya oldugunu gostersin: canli koktekiyle ayni adlar.
+            echo "== bu dizinde OLUP kokte OLMAYAN dosyalar (benzersiz icerik var mi) =="
+            uniq=0
+            while IFS= read -r f; do
+              rel="${f#$D/}"
+              if [ ! -e "$HOME/public_html/$rel" ]; then echo "  BENZERSIZ: $rel"; uniq=$((uniq+1)); fi
+            done < <(find "$D" -type f | head -400)
+            [ "$uniq" = 0 ] && echo "  (ilk 400 dosyanin hepsinin kokte karsiligi var — saf kopya)"
+            echo
+
+            if [ "$APPLY" != "true" ]; then
+              echo "KURU CALISMA — hicbir sey tasinmadi. Tasimak icin apply=true."
+              exit 0
+            fi
+
+            DEST="$HOME/_shop-golge-$(date -u +%Y%m%d-%H%M%S)"
+            mv "$D" "$DEST" || { echo "HATA: tasinamadi"; exit 1; }
+            echo "TASINDI -> $DEST"
+            echo
+            echo "== dogrulama =="
+            [ -d "$HOME/public_html/shop" ] && { echo "HATA: dizin hala duruyor!"; exit 1; }
+            echo "  public_html/shop artik yok"
+            ls -l "$HOME/public_html/shop.php" || { echo "HATA: shop.php kayip!"; exit 1; }
+            code=$(curl -s -o /dev/null -w '%{http_code}' -L https://vestrasales.com/shop)
+            echo "  canli /shop -> HTTP $code"
+            [ "$code" = "200" ] || { echo "UYARI: hala 200 degil"; exit 1; }
+            echo "TAMAM — katalog geri geldi."
