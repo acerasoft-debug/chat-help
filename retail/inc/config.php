@@ -108,6 +108,27 @@ function vr_origin(): string
     return ($https ? 'https://' : 'http://') . $host;
 }
 
+/**
+ * İstek mağazanın asıl adresine mi geldi?
+ *
+ * Yalnızca robots.txt için kullanılıyor: yardımcı adreslerden (test alt adı,
+ * cPanel'in ürettiği alt adlar) gelen istekte tarayıcıya "burayı dizine
+ * ekleme" diyoruz. Yönlendirme YAPMIYORUZ — DNS taşınmadan önce asıl adres
+ * cevap vermiyor, oraya yönlendirmek siteyi tamamen erişilemez yapardı.
+ */
+function vr_is_canonical_host(): bool
+{
+    $allow = (array)vr_config('canonical_hosts', []);
+    if (!$allow) return true;
+
+    $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    $host = preg_replace('/:\d+$/', '', $host);
+    foreach ($allow as $h) {
+        if ($host === strtolower(trim((string)$h))) return true;
+    }
+    return false;
+}
+
 // ------------------------------------------------------------------- ayarlar
 /**
  * Tek yapılandırma sözlüğü. Sunucuya özel değerler data/retail-settings.json
@@ -122,6 +143,16 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             // ---- marka
             'brand'            => 'MAXSALES',
             'brand_tagline_key' => 'tagline',
+            /**
+             * Mağazanın asıl alan adı. Site birden fazla adresten cevap
+             * verebiliyor: DNS taşınana kadar test için açılan
+             * maxsales.vestrasales.com, cPanel'in her ek alanla birlikte
+             * ürettiği alt adlar, bir de asıl adres. Hepsi aynı sayfaları
+             * döndürdüğü için arama motoru bunları çoğaltılmış içerik sayar
+             * ve hangisini sıralayacağına kendisi karar verir.
+             * Liste boş bırakılırsa denetim kapanır (yerel geliştirme).
+             */
+            'canonical_hosts'  => ['maxsales.de', 'www.maxsales.de'],
             'primary_lang'     => 'en',
             // Canlı B2B sitesinin 5 dili + ayrıca istenen 5 pazar:
             // ru (Rusça), az (Azerbaycanca), da (Danca), sv (İsveççe),
