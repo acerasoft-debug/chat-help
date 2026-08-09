@@ -1,0 +1,167 @@
+name: MAXSALES perakende katmanını yayına al
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Hedef klasör (public_html altında, örn: shop). Kök için: ."
+        required: true
+        default: "shop"
+      dry_run:
+        description: "true = SADECE ne kopyalanacağını yaz, KOPYALAMA"
+        required: true
+        default: "true"
+      sync_media:
+        description: "true = katalog dosyalarını ve yeni ürün fotoğraflarını da gönder"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+# retail/ klasörünü sunucuya kopyalar ve ardından kurulum kontrolünü çalıştırır.
+#
+# Neden rsync + --delete DEĞİL de --delete-excluded ile seçili hariç tutma:
+# hedefte data/ ve uploads/ CANLI veri barındırıyor. Düz bir --delete bunları
+# siler. Bu yüzden ikisi de --exclude listesinde; kod tamamen senkronlanır ama
+# veriye dokunulmaz.
+#
+# Gizli anahtarlar (Stripe/Brevo) bu workflow ile GİTMEZ — onlar sunucudaki
+# data/stripe_settings.json ve data/email_settings.json içinde durur.
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Girdileri doğrula
+        env:
+          T: ${{ github.event.inputs.target }}
+        run: |
+          set -e
+          case "$T" in
+            */../*|/*|*..*) echo "HATA: gecersiz hedef yol"; exit 1 ;;
+          esac
+          [ -d retail ] || { echo "HATA: retail/ klasoru repoda yok"; exit 1; }
+          echo "kopyalanacak dosya sayisi: $(find retail -type f | wc -l)"
+
+      - name: PHP sözdizimi kontrolü (tüm dosyalar)
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq php-cli > /dev/null
+          fail=0
+          while IFS= read -r f; do
+            out=$(php -l "$f" 2>&1) || { echo "$out"; fail=1; }
+          done < <(find retail -name '*.php')
+          [ "$fail" -eq 0 ] || { echo "::error::PHP sozdizimi hatasi var, yayina alinmadi"; exit 1; }
+          echo "tum PHP dosyalari temiz"
+
+      - name: Akış testleri
+        run: |
+          set -e
+          cd retail
+          php tools/test-flow.php
+
+      - name: Sunucuya kopyala
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          T: ${{ github.event.inputs.target }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+
+          DEST="~/public_html/${T}"
+          [ "$T" = "." ] && DEST="~/public_html"
+
+          rsync -az --delete \
+            --exclude 'data/' \
+            --exclude 'uploads/' \
+            --exclude '.git*' \
+            -e "ssh $SSHOPT" \
+            retail/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEST}/"
+
+          echo "KOPYALAMA TAMAM -> ${DEST}"
+
+      - name: Katalog ve fotoğrafları gönder (isteğe bağlı)
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.sync_media == 'true' }}
+        env:
+          T: ${{ github.event.inputs.target }}
+        run: |
+          set -e
+          # NEDEN AYRI VE İSTEĞE BAĞLI
+          # --------------------------
+          # Yukarıdaki rsync data/ ve uploads/ klasörlerini bilerek atlıyor:
+          # ikisi de sunucuda CANLI veri barındırıyor (siparişler, müşteri
+          # hesapları, yüklenen fotoğraflar) ve düz bir senkron onları siler.
+          #
+          # Ama katalog depoda değişiyor: kontakt sayfaları burada panellere
+          # ayrılıyor ve retail-imported.json o yeni dosyaları gösteriyor.
+          # Yalnızca kodu gönderirsek sunucudaki katalog eski kalır ve sayfa
+          # var olmayan görselleri ister — kırık kartlar.
+          #
+          # Bu adım o boşluğu kapatıyor ama iki güvenlikle:
+          #   1. uploads/ SİLMEDEN kopyalanıyor (--delete YOK): sunucuda olup
+          #      depoda olmayan bir fotoğraf yerinde kalır.
+          #   2. data/ altından yalnızca BEYAZ LİSTEDEKİ katalog dosyaları
+          #      gidiyor. Sipariş, müşteri, satıcı ve Stripe dosyalarına
+          #      dokunulmuyor.
+          SSHOPT="-i ~/.ssh/id_deploy -o StrictHostKeyChecking=no -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          DEST="~/public_html/${T}"
+          [ "$T" = "." ] && DEST="~/public_html"
+          SRV="${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}"
+
+          echo "-- fotoğraflar (silmeden)"
+          rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
+            retail/uploads/ "${SRV}:${DEST}/uploads/"
+
+          echo "-- katalog dosyaları (beyaz liste)"
+          for f in retail-imported.json photo-quality.json photo-exclude.json \
+                   category-fix.json official-prices.json hero-frames.json; do
+            [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
+            rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DEST}/data/$f"
+            echo "   $f gönderildi"
+          done
+
+          echo "MEDYA SENKRONU TAMAM"
+
+      - name: Kuru çalıştırma (yalnızca liste)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "DRY RUN — kopyalanacak dosyalar:"
+          find retail -type f | sed 's/^/  /' | head -80
+          echo "  ... toplam $(find retail -type f | wc -l) dosya"
+          echo
+          echo "Gercekten yayina almak icin dry_run=false ile tekrar calistir."
+
+      - name: Kurulum kontrolü (sunucuda)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            T='${{ github.event.inputs.target }}'
+            DIR=~/public_html/$T
+            [ "$T" = "." ] && DIR=~/public_html
+
+            mkdir -p ~/public_html/data
+            chmod 750 ~/public_html/data
+
+            cd "$DIR"
+            echo "== Kurulum kontrolu =="
+            # selftest FAIL donerse (ornegin Stripe anahtari yok) bunu gormek
+            # istiyoruz ama deploy'u dusurmuyoruz -- kod zaten yuklendi.
+            php tools/selftest.php || true
+
+            echo
+            echo "== Vault durumu =="
+            php tools/vault-open.php list || true
+
+            echo
+            echo "== Bekleyen ilan var mi =="
+            php tools/moderate.php list review || true
