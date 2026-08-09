@@ -708,6 +708,24 @@ function vr_variant_index(): array
     return $ix;
 }
 
+/**
+ * Renk karesinde gösterilecek fotoğraf.
+ *
+ * Kart yüzü çoğu üründe mankenli bir çekim; 62 pikselde o kare bir omuz
+ * kırpması oluyor ve rengi okumak imkânsız. Renk seçerken bakılan tek şey
+ * renk, o yüzden burada düz zeminli paket çekimi tercih ediliyor. Yoksa
+ * kartın kendi karesine düşüyor — hiçbir ürün karesiz kalmıyor.
+ */
+function vr_swatch_image(array $p): string
+{
+    $shape = function_exists('vr_photo_shape_index') ? vr_photo_shape_index() : [];
+    foreach (vr_card_frames($p) as $img) {
+        $m = $shape[$img] ?? null;
+        if (is_array($m) && !empty($m['flat']) && (int)($m['n'] ?? 1) === 1) return $img;
+    }
+    return vr_card_image($p);
+}
+
 /** Bu ürünün grubundaki tüm satırlar (kendisi dahil). Grup yoksa boş dizi. */
 function vr_variant_siblings(array $p): array
 {

@@ -163,11 +163,21 @@ vr_layout_start([
                     $on  = $sv['id'] === $p['id'];
                     $col = vr_variant_colour($sv);
                     $lbl = $col !== '' ? $col : vr_card_name($sv);
+                    /* Fotoğrafı olmayan çeşit — beslemede bir satırın kareleri
+                       hiç gelmemiş. Üretilmiş grafik burada koyu bir kare olarak
+                       çıkıyor ve "Light Blue" yazan yerde haki bir kutu duruyor:
+                       rengi yanlış göstermektense hiç göstermemek doğru. */
+                    $svImg  = vr_swatch_image($sv);
+                    $svReal = str_starts_with($svImg, '/uploads/');
                 ?>
                   <a class="swatch<?= $on ? ' is-on' : '' ?><?= (int)$sv['stock'] < 1 ? ' is-out' : '' ?>"
                      href="<?= h(vr_product_url($sv)) ?>" title="<?= h($lbl) ?>"
                      <?= $on ? 'aria-current="page"' : '' ?>>
-                    <?php vr_frame(vr_card_image($sv), ['w' => 180, 'widths' => [180, 300], 'sizes' => '62px']); ?>
+                    <?php if ($svReal) {
+                        vr_frame($svImg, ['w' => 180, 'widths' => [180, 300], 'sizes' => '62px']);
+                    } else { ?>
+                      <span class="fr swatch__none" aria-hidden="true"></span>
+                    <?php } ?>
                     <span class="swatch__l"><?= h($lbl) ?></span>
                   </a>
                 <?php endforeach; ?>

@@ -1507,3 +1507,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .swatch.is-on .swatch__l{color:var(--ink)}
 
 .card__sizes--col{color:var(--ink);opacity:.72}
+/* Fotoğrafı olmayan çeşit: boş bir kare değil, çapraz taralı bir yer tutucu.
+   "Fotoğraf yok" demek, yanlış renk göstermekten iyi. */
+.swatch__none{
+  background:
+    repeating-linear-gradient(-45deg,transparent 0 5px,rgba(0,0,0,.05) 5px 6px),
+    var(--bone-2);
+}
