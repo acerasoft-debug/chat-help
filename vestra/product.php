@@ -6,6 +6,9 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require _
   require __DIR__.'/inc/foot.php'; exit; }
 
 $PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
+/* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the
+   only description these files carry — an empty one costs the listing image search. */
+$_imgAlt = trim(($p['brand'] ?? '').' '.($p['name'] ?? ''));
 $_pcat = $p['cat'] ?? 'fashion'; $_pmoq = (int)($p['moq'] ?? 0); $_punit = $p['unit'] ?? 'pc';
 $META = sprintf(t('%s — wholesale %s. %sVerified B2B supplier on VESTRA — invoice-based ordering across Europe.'),
         $PAGE, $_pcat, $_pmoq ? "MOQ {$_pmoq} {$_punit}. " : '');
@@ -108,7 +111,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <?php endif; ?>
         </div>
         <?php if($images): ?>
-          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($p['name']) ?>">
+          <img class="gal-img" id="gal-main-img" src="<?= htmlspecialchars($images[0]) ?>" alt="<?= htmlspecialchars($_imgAlt) ?>">
           <button class="gal-nav prev" onclick="galGo(-1)" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
           <button class="gal-nav next" onclick="galGo(1)" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
         <?php endif; ?>
@@ -134,7 +137,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <div class="gal-thumbs" id="gal-thumbs">
         <?php foreach($images as $i=>$img): ?>
           <button class="gal-thumb <?= $i===0?'active':'' ?>" onclick="galSet(<?= $i ?>)">
-            <img src="<?= htmlspecialchars($img) ?>" alt="" loading="lazy">
+            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($_imgAlt.' — '.sprintf(t('photo %d'), $i + 1)) ?>" loading="lazy">
           </button>
         <?php endforeach; ?>
         <button class="gal-thumb" onclick="galSet(<?= count($images) ?>)" title="<?= htmlspecialchars($p['brand']) ?>">
@@ -551,7 +554,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php foreach ($variants as $v): $cn = $v['color'] ?? ''; ?>
         <tr>
           <td><div class="vcol">
-            <?php if ($MEMBER && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="" loading="lazy">
+            <?php if ($MEMBER && !empty($v['image'])): ?><img class="varthumb" src="<?= htmlspecialchars($v['image']) ?>" alt="<?= htmlspecialchars(trim($_imgAlt.' '.t($cn))) ?>" loading="lazy">
             <?php else: ?><span class="vdot" style="background:<?= htmlspecialchars($pal[$cn] ?? '#888') ?>"></span><?php endif; ?>
             <?= htmlspecialchars(t($cn)) ?>
           </div></td>
@@ -574,7 +577,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         $rimg = $rimgs[0] ?? ''; ?>
         <a class="scard" href="/product?id=<?= urlencode($rp['id']) ?>">
           <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($rp)) ?>,#0e0e11)">
-            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="" loading="lazy" class="sthumbi"><?php endif; ?>
+            <?php if ($rimg): ?><img src="<?= htmlspecialchars($rimg) ?>" alt="<?= htmlspecialchars(trim(($rp['brand'] ?? '').' '.($rp['name'] ?? ''))) ?>" loading="lazy" class="sthumbi"><?php endif; ?>
             <?php if (!empty($rp['verified'])): ?><span class="svbadge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= t('Verified seller') ?></span><?php endif; ?>
             <?php if (!$rimg) echo vestra_brand_card($rp['brand'] ?? ''); ?>
             <?php $rmode = vestra_display_mode($rp); ?>

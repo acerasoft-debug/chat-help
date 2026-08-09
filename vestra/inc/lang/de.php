@@ -991,4 +991,5 @@ return array (
   'Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.' => 'Verifizierter B2B-Marktplatz für Modegroßhandel — Markenbekleidung und Textil-Basics von KYC-geprüften Verkäufern in ganz Europa.',
   'Sell on VESTRA' => 'Auf VESTRA verkaufen',
   'Sell wholesale on VESTRA — reach KYC-verified boutique buyers across Europe. List branded stock, get paid against invoices, and keep your pricing and buyer list to yourself.' => 'Großhandel auf VESTRA verkaufen — erreichen Sie KYC-geprüfte Boutique-Einkäufer in ganz Europa. Markenware einstellen, per Rechnung bezahlt werden, und Preise wie Kundenliste bleiben bei Ihnen.',
+  'photo %d' => 'Foto %d',
 );
