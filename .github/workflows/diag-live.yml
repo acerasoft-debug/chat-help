@@ -226,6 +226,12 @@ jobs:
             # Ana sayfalarin durumu, ADIMIN SONUNDA. Ustteki HTTP tablosu isin en
             # basinda yaziliyor ve uzun bir log'da kuyruktan okurken ona ulasilamiyor;
             # asil merak edilen "ayakta mi" sorusunun cevabi da hep o tabloda kaliyordu.
+            # Katalog Excel'i fotograflari kucultmek icin GD kullaniyor; GD yoksa sessizce
+            # orijinal boyuta donuyor (127 MB'lik dosya). Sessiz olmasin.
+            echo; echo "== GD (katalog fotograf kucultme) =="
+            php -r 'echo function_exists("imagescale") ? "  GD var -- fotograflar kucultuluyor\n"
+                                                       : "  GD YOK -- katalog tam boyutta gomuyor!\n";'
+
             echo; echo "== canli sayfa durumlari =="
             for u in / /shop /catalog /journal /product?id=lac-polo-paris /login /cart; do
               printf '  %-34s %s\n' "$u" \

@@ -30,6 +30,38 @@ function vestra_xlsx_esc(string $s): string {
   return htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8');
 }
 
+/* Shrink a photo to what the sheet actually displays and return the temp copy's path,
+   or '' to say "use the original".
+ *
+ * The cell shows a 96px box, but the workbook embedded each photo at full camera
+ * resolution: the live catalogue came out at 127 MB, which a buyer on a phone cannot
+ * download — nearly as broken as the 500 it replaced. Embedding at 2x the display box
+ * is indistinguishable on screen, including on a high-DPI one.
+ *
+ * Falls back to the original on any doubt (no GD, decode failure, already small). A
+ * bigger file is a far better outcome than a corrupt one. */
+function vestra_xlsx_thumb(string $path, string $ext, int $maxPx, string $tmpDir): string {
+  if (!function_exists('imagecreatefromjpeg') || !function_exists('imagescale')) return '';
+  $info = @getimagesize($path);
+  if (!$info || max((int)$info[0], (int)$info[1]) <= $maxPx) return '';   // already small enough
+  $src = $ext === 'png' ? @imagecreatefrompng($path) : @imagecreatefromjpeg($path);
+  if (!$src) return '';
+  $w = imagesx($src); $h = imagesy($src);
+  $nw = $w >= $h ? $maxPx : max(1, (int)round($w * $maxPx / $h));
+  $dst = @imagescale($src, $nw);
+  imagedestroy($src);
+  if (!$dst) return '';
+  $out = $tmpDir . '/vx_' . bin2hex(random_bytes(6)) . '.' . $ext;
+  $ok  = $ext === 'png'
+       ? @imagepng($dst, $out, 8)
+       : @imagejpeg($dst, $out, 82);
+  imagedestroy($dst);
+  if (!$ok || !is_file($out) || filesize($out) < 1) { @unlink($out); return ''; }
+  /* Only worth it if it actually got smaller. */
+  if (filesize($out) >= filesize($path)) { @unlink($out); return ''; }
+  return $out;
+}
+
 function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title = 'VESTRA'): string {
   if (!class_exists('ZipArchive')) return '';
   $ncol     = max(1, count($headers));
@@ -37,6 +69,10 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
   $EMU      = 9525;                       // EMU per pixel @96dpi
   $imgBox   = 96;                         // max photo box (px) inside the cell
   $rowH     = 78;                         // data row height (pt) to fit the photo
+  $embedPx  = $imgBox * 2;                // embed at 2x the display box — crisp on high-DPI,
+                                          // and nothing like the full-resolution original
+  $tmpDir   = sys_get_temp_dir();
+  $shrunk   = [];                         // temp thumbnails, removed once the zip is closed
 
   // ---- resolve images (validate type + dimensions) ---------------------------
   $imgs = [];   // [rowNumber(1-based sheet row) => ['bin'=>,'ext'=>,'w'=>,'h'=>]]
@@ -58,6 +94,9 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
     $scale = min($imgBox / $w, $imgBox / $h, 1.0);
     $dw = max(1, (int)round($w * $scale)); $dh = max(1, (int)round($h * $scale));
     $sheetRow = $ri + 2;                  // +1 header row, +1 for 1-based
+    /* Embed a copy sized for the cell, not the original camera file. */
+    $thumb = vestra_xlsx_thumb($path, $ext, $embedPx, $tmpDir);
+    if ($thumb !== '') { $shrunk[] = $thumb; $path = $thumb; }
     $imgs[$sheetRow] = ['path' => $path, 'ext' => $ext, 'w' => $dw, 'h' => $dh];
   }
 
@@ -208,7 +247,10 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
        diskten akitir. Katalog buyudukce tepe bellek artik buyumuyor. */
     foreach ($mediaFiles as $name => $src) $zip->addFile($src, $name);
   }
-  if (!$zip->close()) { @unlink($tmp); return ''; }
+  $closed = $zip->close();
+  /* Thumbnails are read during close(), so they can only go afterwards. */
+  foreach ($shrunk as $f) @unlink($f);
+  if (!$closed) { @unlink($tmp); return ''; }
   /* Biten dosyayi string'e OKUMUYORUZ: cagiran readfile() ile akitip siliyor. */
   return is_file($tmp) && filesize($tmp) > 0 ? $tmp : '';
 }
