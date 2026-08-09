@@ -116,6 +116,11 @@ jobs:
           rsync -az --exclude '.thumbs/' -e "ssh $SSHOPT" \
             retail/uploads/ "${SRV}:${DEST}/uploads/"
 
+          # data/ kod senkronunda hariç tutulduğu için ilk yayında hedefte
+          # o klasör hiç oluşmuyor; rsync "No such file or directory" ile
+          # düşüyordu. Önce açıyoruz.
+          ssh $SSHOPT "$SRV" "mkdir -p ${DEST}/data && chmod 750 ${DEST}/data"
+
           echo "-- katalog dosyaları (beyaz liste)"
           for f in retail-imported.json photo-quality.json photo-exclude.json \
                    category-fix.json official-prices.json hero-frames.json; do
