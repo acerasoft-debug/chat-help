@@ -96,8 +96,54 @@ if (!$rows) {
 $rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
 
 $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
-$xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title);
-if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
+
+/* ── Onbellek ────────────────────────────────────────────────────────────────
+   Bu sayfa her istekte 344 fotografi GD ile kucultup zip'liyor: canli olcum
+   8-9 saniye. Ucret kampanya e-postasindaki linke tiklayan soguk aliciya
+   cikiyor -- 9 saniye bekleyen cogu kisi geri donuyor, yani bu dogrudan bir
+   donusum kaybi. Cikti tamamen girdiye bagli oldugu icin guvenle saklanabilir.
+
+   Anahtar, ciktiyi degistirebilecek HER SEYI iceriyor: marka filtresi,
+   listings.json'in son degisim zamani + boyutu, ve uretici kodun (bu dosya +
+   xlsx.php) mtime'i. Boylece bir urun degisince ya da kod deploy edilince
+   anahtar kendiliginden degisiyor -- "onbellegi temizlemeyi unutmak" diye bir
+   durum olusmuyor, bayat katalog gonderme riski yok. Sure siniri YOK, cunku
+   sure degil icerik belirleyici. */
+$cacheDir = vestra_data_dir().'/cache';           // data/ web'den kapali (data/.htaccess)
+$lj       = vestra_data_dir().'/listings.json';
+$key      = sha1(implode('|', [
+    'v1',
+    strtolower(implode(',', $wanted)),
+    (string)@filemtime($lj), (string)@filesize($lj),
+    (string)@filemtime(__FILE__), (string)@filemtime(__DIR__.'/inc/xlsx.php'),
+]));
+$cacheFile = $cacheDir.'/catalog-'.$key.'.xlsx';
+$fromCache = is_file($cacheFile) && filesize($cacheFile) > 0;
+
+if ($fromCache) {
+    $xlsx = $cacheFile;
+} else {
+    $xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title);
+    if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
+    if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
+    /* Once gecici ada yaz, sonra rename: rename atomik, dolayisiyla ayni anda
+       gelen ikinci bir istek yarim yazilmis bir dosyayi asla gormuyor. */
+    $tmp = $cacheFile.'.'.getmypid().'.part';
+    if (@copy($xlsx, $tmp) && @rename($tmp, $cacheFile)) {
+        @unlink($xlsx);
+        $xlsx = $cacheFile;
+        $fromCache = true;          // artik onbellekteki dosyayi sunuyoruz: silinmemeli
+        /* Eski anahtarlari temizle: her urun degisikligi yeni bir dosya uretir,
+           birikirse disk dolar. Bu marka icin en yeni 3 dosya kalir. */
+        $old = glob($cacheDir.'/catalog-*.xlsx') ?: [];
+        if (count($old) > 6) {
+            usort($old, fn($a, $b) => filemtime($b) <=> filemtime($a));
+            foreach (array_slice($old, 6) as $stale) @unlink($stale);
+        }
+    } else {
+        @unlink($tmp);              // yazamadik: onbelleksiz devam, istek yine de tamamlanir
+    }
+}
 
 /* Delivery. These sheets run 1.7-17.8 MB because every row embeds a photo, and at
    that size the transfer is what breaks, not the build.
@@ -122,5 +168,5 @@ header('Cache-Control: private, max-age=300');
    three catalogue-sized copies that pushed this page past the 128 MB limit; readfile()
    sends it in chunks, so the response size no longer sets the memory ceiling. */
 readfile($xlsx);
-@unlink($xlsx);
+if (!$fromCache) @unlink($xlsx);   // onbellege alinamamis tek kullanimlik dosya
 flush();
