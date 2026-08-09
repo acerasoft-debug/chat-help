@@ -166,10 +166,28 @@
   /* Karo filmleri: ekrana girince oynat, çıkınca durdur. Ana sayfada üç
      video var; hepsini birden çalıştırmak mobilde işlemciyi boşuna yakıyor
      ve pil tüketiyor. Sahne filmi bu kuralın dışında — o zaten ilk ekranda. */
+  /* Film oynatılmalı mı?
+     Sahnedeki film 3,1 MB, iki bant filmi 2 MB'ın üzerinde. Masaüstünde bu
+     bedel makul; telefonda değil. Ölçtük: ana sayfa 390 px genişlikte 3,66 MB
+     iniyordu ve bunun 3,2 MB'ı filmdi — geri kalan bütün sayfa 0,4 MB.
+     Dar ekranda, veri tasarrufu açıkken ya da yavaş bağlantıda film hiç
+     indirilmiyor; yerinde filmin kendi ilk karesi (gerçek ürün fotoğrafı)
+     duruyor. Kullanıcı bir şey kaybetmiyor, sayfa açılıyor. */
+  function vrPlayFilms() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    if (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) return false;
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (c) {
+      if (c.saveData) return false;
+      if (/2g|slow-2g|3g/.test(String(c.effectiveType || ''))) return false;
+    }
+    return true;
+  }
+  var vrFilms = vrPlayFilms();
+
   var bandVids = document.querySelectorAll('.etile__vid[data-autoplay]');
-  if (bandVids.length && window.IntersectionObserver) {
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduce) {
+  if (bandVids.length && window.IntersectionObserver && vrFilms) {
+    {
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
           if (e.isIntersecting) {
@@ -191,8 +209,7 @@
       var pr = stageVid.play();
       if (pr && pr.catch) pr.catch(function () { /* tarayıcı reddederse poster kalır */ });
     };
-    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!still) stagePlay();
+    if (vrFilms) stagePlay();
     if (stageBox) {
       stageBox.addEventListener('change', function () {
         if (stageBox.checked) stageVid.pause(); else stagePlay();

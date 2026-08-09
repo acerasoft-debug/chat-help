@@ -85,7 +85,10 @@ vr_layout_start([
         <?php foreach ($shots as $i => $src): ?>
           <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
-            <img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : '')) ?>"
+            <img src="<?= h(vr_img($src, 900)) ?>"
+                 srcset="<?= h(vr_img_srcset($src, [420, 600, 900, 1400])) ?>"
+                 sizes="(max-width:940px) 96vw, 640px"
+                 alt="<?= h($p['brand'] . ' ' . $p['name'] . ($i > 0 ? ' — ' . ($i + 1) : '')) ?>"
                  loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" <?= $i === 0 ? 'fetchpriority="high"' : '' ?>
                  width="800" height="1000">
             <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>

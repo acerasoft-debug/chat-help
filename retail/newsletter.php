@@ -197,7 +197,7 @@ if ($soon):
     <ol class="soon">
       <?php foreach (array_slice($soon, 0, 5) as $v): $p = $v['product']; $at = (int)$v['state']['next_at']; ?>
         <li class="soon__row">
-          <img class="soon__img" src="<?= h(vr_product_image($p)) ?>" alt="" aria-hidden="true"
+          <img class="soon__img" src="<?= h(vr_img(vr_product_image($p), 180)) ?>" alt="" aria-hidden="true"
                loading="lazy" decoding="async" width="120" height="150">
           <div class="soon__who">
             <p class="soon__brand"><?= h($p['brand']) ?></p>

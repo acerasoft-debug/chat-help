@@ -319,13 +319,18 @@ function vr_card(array $p, array $o = []): void
 ?>
 <article class="card<?= $soldOut ? ' is-out' : '' ?>" data-reveal>
   <a class="card__media" href="<?= h(vr_product_url($p)) ?>">
-    <img src="<?= h(vr_product_image($p)) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
+    <?php $cimg = vr_product_image($p); ?>
+    <img src="<?= h(vr_img($cimg, 600)) ?>" srcset="<?= h(vr_img_srcset($cimg, [300, 600, 900])) ?>"
+         sizes="(max-width:640px) 48vw, (max-width:1100px) 32vw, 300px"
+         alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
          loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async" width="600" height="750">
     <?php // İkinci kare yalnızca üzerine gelince görünür; dekoratif olduğu için
           // alt="" ve aria-hidden — ekran okuyucu aynı ürünü iki kez okumasın.
           $alt2 = vr_product_image_alt($p); if ($alt2 !== ''): ?>
-      <img class="card__alt" src="<?= h($alt2) ?>" alt="" aria-hidden="true"
-           loading="lazy" decoding="async" width="600" height="750">
+      <img class="card__alt" src="<?= h(vr_img($alt2, 600)) ?>"
+           srcset="<?= h(vr_img_srcset($alt2, [300, 600])) ?>"
+           sizes="(max-width:640px) 48vw, 300px"
+           alt="" aria-hidden="true" loading="lazy" decoding="async" width="600" height="750">
     <?php endif; ?>
     <?php if (!empty($o['badge'])): ?><span class="card__badge"><?= h((string)$o['badge']) ?></span><?php endif; ?>
     <?php if ($seller['type'] === 'private'): ?><span class="card__badge card__badge--priv"><?= te('seller_private') ?></span><?php endif; ?>
@@ -378,7 +383,10 @@ function vr_vault_card(array $v, array $o = []): void
 <article class="lot<?= $v['sold'] ? ' is-sold' : '' ?><?= $locked ? ' is-locked' : '' ?>" data-reveal
          <?= $st['next_at'] ? 'data-next="' . (int)$st['next_at'] . '"' : '' ?>>
   <a class="lot__media" href="<?= h(vr_url('outlet.php', ['lot' => $v['lot_id']])) ?>">
-    <img src="<?= h(vr_product_image($p)) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
+    <?php $limg = vr_product_image($p); ?>
+    <img src="<?= h(vr_img($limg, 600)) ?>" srcset="<?= h(vr_img_srcset($limg, [300, 600, 900])) ?>"
+         sizes="(max-width:640px) 92vw, 380px"
+         alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
          loading="<?= empty($o['eager']) ? 'lazy' : 'eager' ?>" decoding="async" width="600" height="750">
     <span class="lot__step"><?= te('vault_stage', ['x' => (int)$st['step'] + 1, 'y' => (int)$st['steps'] + 1]) ?></span>
     <?php if ($v['sold']): ?><span class="lot__sold"><?= te('vault_gone') ?></span><?php endif; ?>
@@ -694,4 +702,31 @@ function vr_empty_suggestions(int $n = 4): void
     echo '<hr class="rule" style="margin:clamp(34px,4.4vw,56px) 0">';
     vr_section_head(t('sec_curated'), '', vr_url('shop.php'));
     vr_grid($rows, ['class' => 'grid--4', 'size_hint' => true]);
+}
+
+// ------------------------------------------------------------- görsel ölçek
+/**
+ * Ürün fotoğrafının belirli genişlikteki hâli.
+ *
+ * Toptancı dosyaları 2000–3500 piksel; kart telefonda 170 piksel. Ölçekleyici
+ * (assets/img.php) araya girmezse yirmi dört kartlık bir sayfa 7 MB iniyor.
+ * /uploads/ dışındaki yollar (üretilen kampanya kareleri, art.php) olduğu
+ * gibi geçiyor — onların zaten istenen boyutu var.
+ */
+function vr_img(string $rel, int $w = 600): string
+{
+    if ($rel === '' || !str_starts_with($rel, '/uploads/')) return $rel;
+    return vr_url('assets/img.php', ['p' => $rel, 'w' => (string)$w]);
+}
+
+/**
+ * srcset dizesi. Tarayıcı ekran genişliğine ve piksel yoğunluğuna göre
+ * hangisini indireceğine kendi karar versin.
+ */
+function vr_img_srcset(string $rel, array $widths = [300, 600, 900]): string
+{
+    if ($rel === '' || !str_starts_with($rel, '/uploads/')) return '';
+    $out = [];
+    foreach ($widths as $w) $out[] = vr_img($rel, (int)$w) . ' ' . (int)$w . 'w';
+    return implode(', ', $out);
 }

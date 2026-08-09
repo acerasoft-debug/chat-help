@@ -90,7 +90,10 @@ if ($single !== null) {
         <?php foreach ($shots as $i => $src): ?>
           <a class="pdp__shot" href="<?= h($src) ?>" data-zoom
              aria-label="<?= te('zoom') ?>: <?= h($p['brand'] . ' ' . vr_card_name($p)) ?>">
-            <img src="<?= h($src) ?>" alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
+            <img src="<?= h(vr_img($src, 900)) ?>"
+                 srcset="<?= h(vr_img_srcset($src, [420, 600, 900, 1400])) ?>"
+                 sizes="(max-width:940px) 96vw, 640px"
+                 alt="<?= h($p['brand'] . ' ' . $p['name']) ?>"
                  loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" width="800" height="1000">
             <span class="pdp__zoom" aria-hidden="true"><?= vr_icon('search', 16) ?></span>
           </a>
@@ -378,7 +381,7 @@ vr_layout_start([
       <ol class="soon">
         <?php foreach ($soon as $v): $p = $v['product']; $at = (int)$v['state']['next_at']; ?>
           <li class="soon__row" data-reveal>
-            <img class="soon__img" src="<?= h(vr_product_image($p)) ?>" alt="" aria-hidden="true"
+            <img class="soon__img" src="<?= h(vr_img(vr_product_image($p), 180)) ?>" alt="" aria-hidden="true"
                  loading="lazy" decoding="async" width="120" height="150">
             <div class="soon__who">
               <p class="soon__brand"><?= h($p['brand']) ?></p>

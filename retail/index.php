@@ -197,11 +197,12 @@ vr_layout_start([
     ?>
     <?php if ($bandA && $bandA['kind'] === 'video'): ?>
       <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
-             poster="<?= h($bandA['poster'] ?? $tileA) ?>" aria-hidden="true" tabindex="-1">
+             poster="<?= h(vr_img($bandA['poster'] ?? $tileA, 900)) ?>" aria-hidden="true" tabindex="-1">
         <source src="<?= h($bandA['src']) ?>" type="<?= h($bandA['type']) ?>">
       </video>
     <?php else: ?>
-      <img src="<?= h($tileA) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <img src="<?= h(vr_img($tileA, 900)) ?>" srcset="<?= h(vr_img_srcset($tileA, [420, 600, 900])) ?>"
+             sizes="(max-width:900px) 96vw, 48vw" alt="" aria-hidden="true" loading="lazy" decoding="async">
     <?php endif; ?>
     <div class="etile__in">
       <span class="orn" aria-hidden="true"><i></i></span>
@@ -222,11 +223,12 @@ vr_layout_start([
     <?php $bandB = vr_hero_media('band-shop'); ?>
     <?php if ($bandB && $bandB['kind'] === 'video'): ?>
       <video class="etile__vid" muted loop playsinline preload="none" data-autoplay
-             poster="<?= h($bandB['poster'] ?? $tileB) ?>" aria-hidden="true" tabindex="-1">
+             poster="<?= h(vr_img($bandB['poster'] ?? $tileB, 900)) ?>" aria-hidden="true" tabindex="-1">
         <source src="<?= h($bandB['src']) ?>" type="<?= h($bandB['type']) ?>">
       </video>
     <?php else: ?>
-      <img src="<?= h($tileB) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+      <img src="<?= h(vr_img($tileB, 900)) ?>" srcset="<?= h(vr_img_srcset($tileB, [420, 600, 900])) ?>"
+             sizes="(max-width:900px) 96vw, 48vw" alt="" aria-hidden="true" loading="lazy" decoding="async">
     <?php endif; ?>
     <div class="etile__in">
       <span class="orn" aria-hidden="true"><i></i></span>
@@ -330,7 +332,10 @@ vr_layout_start([
         <a class="house" href="<?= h(vr_url('shop.php', ['brand' => $brand])) ?>">
           <span class="house__art">
             <?php if (!empty($shot[$brand])): ?>
-              <img src="<?= h($shot[$brand]) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+              <img src="<?= h(vr_img($shot[$brand], 420)) ?>"
+                   srcset="<?= h(vr_img_srcset($shot[$brand], [180, 300, 420])) ?>"
+                   sizes="(max-width:640px) 46vw, 240px"
+                   alt="" aria-hidden="true" loading="lazy" decoding="async">
             <?php endif; ?>
           </span>
           <span class="house__in">
@@ -414,7 +419,10 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
         <a class="cat" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
           <span class="cat__art">
             <?php if (!empty($catShot[$cat])): ?>
-              <img src="<?= h($catShot[$cat]) ?>" alt="" aria-hidden="true" loading="lazy" decoding="async">
+              <img src="<?= h(vr_img($catShot[$cat], 420)) ?>"
+                   srcset="<?= h(vr_img_srcset($catShot[$cat], [300, 420, 600])) ?>"
+                   sizes="(max-width:640px) 62vw, 300px"
+                   alt="" aria-hidden="true" loading="lazy" decoding="async">
             <?php endif; ?>
             <span class="cat__in">
               <b><?= h($cat) ?></b>

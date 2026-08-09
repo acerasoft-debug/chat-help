@@ -3,3 +3,7 @@
 # tarafa ait; depoya alınmaları hem gereksiz hem riskli.
 *
 !.gitignore
+
+# Ölçekleyicinin (assets/img.php) ürettiği kopyalar. Türetilmiş veri:
+# kaynak dosyadan her an yeniden üretilir, depoda yeri yok.
+.thumbs/

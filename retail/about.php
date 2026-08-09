@@ -77,7 +77,9 @@ vr_layout_start([
         <div class="aboutstrip">
           <?php foreach ($strip as $i => [$img, $sp]): ?>
             <a href="<?= h(vr_product_url($sp)) ?>" aria-label="<?= h($sp['brand'] . ' ' . vr_card_name($sp)) ?>">
-              <img src="<?= h($img) ?>" alt="" aria-hidden="true" width="400" height="500"
+              <img src="<?= h(vr_img($img, 420)) ?>" srcset="<?= h(vr_img_srcset($img, [300, 420, 600])) ?>"
+                   sizes="(max-width:640px) 46vw, 200px"
+                   alt="" aria-hidden="true" width="400" height="500"
                    loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
             </a>
           <?php endforeach; ?>

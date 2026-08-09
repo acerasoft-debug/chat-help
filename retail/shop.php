@@ -114,7 +114,9 @@ vr_layout_start([
       <div class="taxo">
         <div class="taxo__art" aria-hidden="true">
           <?php foreach ($hero as $i => $img): ?>
-            <img src="<?= h($img) ?>" alt="" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
+            <img src="<?= h(vr_img($img, 600)) ?>" srcset="<?= h(vr_img_srcset($img, [300, 600, 900])) ?>"
+                 sizes="(max-width:640px) 48vw, 33vw"
+                 alt="" loading="<?= $i === 0 ? 'eager' : 'lazy' ?>" decoding="async">
           <?php endforeach; ?>
         </div>
         <div class="taxo__in">
