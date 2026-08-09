@@ -132,23 +132,38 @@ function vr_config(?string $key = null, mixed $default = null): mixed
             'currency_symbol'  => '€',
             'locale_default'   => 'de-DE',
 
-            // ---- işletmeci (Impressum). BOŞ olanları doldurmadan Impressum
-            //      sayfası "eksik" uyarısı basar — uydurma veri YOK.
+            /**
+             * ---- işletmeci (Impressum)
+             *
+             * Değerler UYDURULMADI: VESTRA'nın yayındaki hukuk metinlerinden
+             * (sunucudaki inc/legal/de.php, 'imprint' bloğu) birebir alındı.
+             * İki site aynı tüzel kişiye ait; künye de aynı olmak zorunda,
+             * yoksa iki farklı işletmeci beyanı ortaya çıkar.
+             *
+             * reg_number BİLEREK BOŞ: Delaware dosya numarası o metinde
+             * yazmıyor ve künyeye tahmin yazılamaz (§5 DDG yanlış beyan).
+             * Numara gelene kadar selftest bu satırda FAIL veriyor — istenen
+             * davranış bu.
+             */
             'company' => [
-                'legal_name'   => 'Acerasoft LLC',
-                'form'         => 'Limited Liability Company (LLC)',
-                'street'       => '',      // ör. "123 Example Street, Suite 4"
-                'city'         => '',      // ör. "Sheridan"
-                'zip'          => '',
-                'state'        => '',
-                'country'      => '',      // ör. "United States"
-                'reg_authority' => '',     // ör. "Wyoming Secretary of State"
-                'reg_number'   => '',      // Filing ID / EIN
+                'legal_name'   => 'acerasoft LLC',
+                'form'         => 'US Limited Liability Company (State of Delaware)',
+                'street'       => '8 The Green, Suite B',
+                'city'         => 'Dover',
+                'zip'          => '19901',
+                'state'        => 'Delaware',
+                'country'      => 'USA',
+                'reg_authority' => 'Delaware Division of Corporations',
+                'reg_number'   => '',      // Delaware File Number — eksik
                 'vat_id'       => '',      // USt-IdNr. varsa
-                'represented_by' => '',    // yönetici/üye adı
+                'represented_by' => 'Management',
                 'email'        => 'support@vestrasales.com',
                 'phone'        => '',
-                'eu_rep'       => '',      // GDPR Art. 27 AB temsilcisi (varsa)
+                'eu_rep'       => '',      // DSGVO Art. 27 AB temsilcisi (varsa)
+                // Uyuşmazlıklarda geçerli hukuk — VESTRA sözleşmeleriyle aynı.
+                'law'          => 'State of Delaware, USA',
+                'email_legal'   => 'legal@vestrasales.com',
+                'email_privacy' => 'privacy@vestrasales.com',
             ],
 
             // ---- para/vergi
