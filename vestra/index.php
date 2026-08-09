@@ -430,64 +430,84 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      lifted above it. */
   /* Give the film band a floor so a contained packshot has room to read as a garment
      rather than a stamp. Capped in vh so it never pushes the CTAs below the fold. */
-  .hero.hasfilm{padding:120px 0 92px;min-height:min(78vh,700px);display:flex;align-items:center}
+  .hero.hasfilm{padding:132px 0 104px;min-height:min(80vh,720px);display:flex;align-items:center}
   .hero.hasfilm>.wrap{position:relative;z-index:2;width:100%}
   .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
-  /* A soft spotlight behind the garment so a contained frame reads as a lit product
-     on a dark stage rather than a small picture floating in an empty band. */
-  .herofilm::before{content:'';position:absolute;inset:0;z-index:0;
-    background:radial-gradient(42% 58% at 50% 46%,rgba(255,255,255,.075),transparent 72%)}
-  /* `contain`, not `cover`. These are tall product packshots and the hero is a wide,
-     short band: covering a 3:4 shot into a ~3:1 band scales it to the band's WIDTH,
-     so roughly three quarters of the garment is cropped away and the visitor sees an
-     abstract sliver of fabric. Containing it fits the frame by its long edge instead,
-     so the whole piece is always in shot -- identical behaviour on a phone, where the
-     band is nearly square and the same image fits by width. Nothing is ever cut off.
-     min-height gives the contained frame real presence on a desktop viewport. */
-  .herofilm .hf{position:absolute;inset:0;background-size:contain;background-position:center;
-    background-repeat:no-repeat;
-    opacity:0;transform:scale(1.02);will-change:opacity,transform;
-    animation:heroFilm var(--hfdur,36s) cubic-bezier(.4,0,.2,1) infinite}
-  /* Each frame owns 1/N of the cycle and the stagger is 6s, so the visible slice has to
-     be expressed as a share of the whole: N frames x 6s = cycle, one frame's slot = 100/N%.
-     Written for the 6-frame case and overridden below when there are fewer, because a
-     fixed 18% window would leave the hero empty between frames on a short catalogue. */
-  @keyframes heroFilm{
-    0%{opacity:0;transform:scale(1.02)}
-    4%{opacity:.82}
-    14%{opacity:.82}
-    18%{opacity:0;transform:scale(1.07)}
-    100%{opacity:0;transform:scale(1.07)}
-  }
-  .herofilm[style*="24s"] .hf{animation-name:heroFilm4}
-  @keyframes heroFilm4{
-    0%{opacity:0;transform:scale(1.02)}
-    6%{opacity:.82} 21%{opacity:.82}
-    27%{opacity:0;transform:scale(1.07)}
-    100%{opacity:0;transform:scale(1.07)}
-  }
-  .herofilm[style*="30s"] .hf{animation-name:heroFilm5}
-  @keyframes heroFilm5{
-    0%{opacity:0;transform:scale(1.02)}
-    5%{opacity:.82} 17%{opacity:.82}
-    22%{opacity:0;transform:scale(1.07)}
-    100%{opacity:0;transform:scale(1.07)}
-  }
-  .herofilm[style*="18s"] .hf{animation-name:heroFilm3}
-  @keyframes heroFilm3{
-    0%{opacity:0;transform:scale(1.02)}
-    8%{opacity:.82} 27%{opacity:.82}
-    35%{opacity:0;transform:scale(1.07)}
-    100%{opacity:0;transform:scale(1.07)}
-  }
-  /* The veil is what keeps the headline legible over any photograph — without it the
-     contrast swings with every frame and the type becomes unreadable on the light ones. */
+
+  /* The catalogue is packshots — a garment on a studio sweep — and a packshot cannot be
+     bled across a dark page: its light background arrives with it and shows as a grey
+     rectangle with a straight edge, while a black polo on a near-black stage disappears
+     entirely. Measured on this hero: at every point in the cycle the garment read as a
+     smudge and the sweep as a box behind the headline.
+     So the photography is presented as what it is — plates. Each piece sits on its own
+     lit card in a strip below the call to action, where a light ground is correct and a
+     hairline frame makes it look deliberate. The headline gets a clean graded stage with
+     nothing behind it, so the type is crisp at every moment instead of fighting a photo
+     whose brightness changes every seven seconds. */
+  .herostrip{display:flex;gap:13px;justify-content:center;margin:46px auto 0;max-width:660px;
+    padding:0 4px}
+  .hplate{position:relative;flex:1 1 0;aspect-ratio:3/4;border-radius:14px;overflow:hidden;
+    /* Near-white, because the packshot arrives with its own white sweep: a warmer plate
+       showed that sweep as a second rectangle inside the first. Matching them makes the
+       garment sit on the plate instead of on a card on a plate. */
+    background:linear-gradient(165deg,#fbfaf8,#eeebe5);
+    border:1px solid rgba(201,168,106,.30);
+    box-shadow:0 18px 40px -22px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.5);
+    transition:transform .5s cubic-bezier(.4,0,.2,1), box-shadow .5s}
+  .hplate:hover{transform:translateY(-6px);box-shadow:0 26px 54px -22px rgba(0,0,0,.95)}
+  /* `contain`: the plate is 3:4 and so is the shot, but a squarer photo must still fit
+     whole rather than be cropped into an abstract sliver of fabric. */
+  .hplate .hf{position:absolute;inset:0;background-size:contain;background-position:center;
+    background-repeat:no-repeat;opacity:0;will-change:opacity,transform;
+    animation-timing-function:cubic-bezier(.4,0,.2,1);animation-iteration-count:infinite;
+    /* backwards, so a plate whose turn is staggered a second or two into the future
+       shows its opening frame immediately instead of sitting empty until it starts. */
+    animation-fill-mode:backwards}
+  /* A soft sheen across the plate so five identical cards do not read as a spreadsheet. */
+  .hplate:after{content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(150deg,rgba(255,255,255,.30),transparent 44%),
+               radial-gradient(80% 60% at 50% 108%,rgba(60,52,40,.13),transparent 70%)}
+
+  /* Each frame owns 1/N of the cycle, so the visible window has to be written as a
+     share of the whole — a fixed window would leave the column empty between frames
+     on a short catalogue. The count is emitted as a class rather than sniffed out of
+     the inline style, so it stays correct however many frames the catalogue yields. */
+  .hfn1 .hf{animation-name:hf1} .hfn2 .hf{animation-name:hf2} .hfn3 .hf{animation-name:hf3}
+  .hfn4 .hf{animation-name:hf4} .hfn5 .hf{animation-name:hf5} .hfn6 .hf{animation-name:hf6}
+  /* Each frame holds its whole slot and only fades out while the next one is fading in.
+     Written as separate windows the plate went blank between frames -- a frame ended at
+     ~80% of its slot and the next did not start until 100%, so five white cards blinked
+     empty every few seconds. The 10% overlap is what makes the strip continuous. */
+  @keyframes hf1{0%,100%{opacity:1;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  @keyframes hf2{0%{opacity:0;transform:scale(1) translateY(5px)}5.0%{opacity:1;transform:scale(1.01)}50.0%{opacity:1}55.0%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
+  @keyframes hf3{0%{opacity:0;transform:scale(1) translateY(5px)}3.33%{opacity:1;transform:scale(1.01)}33.33%{opacity:1}36.67%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
+  @keyframes hf4{0%{opacity:0;transform:scale(1) translateY(5px)}2.5%{opacity:1;transform:scale(1.01)}25.0%{opacity:1}27.5%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
+  @keyframes hf5{0%{opacity:0;transform:scale(1) translateY(5px)}2.0%{opacity:1;transform:scale(1.01)}20.0%{opacity:1}22.0%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
+  @keyframes hf6{0%{opacity:0;transform:scale(1) translateY(5px)}1.67%{opacity:1;transform:scale(1.01)}16.67%{opacity:1}18.33%{opacity:0;transform:scale(1.06) translateY(-5px)}100%{opacity:0;transform:scale(1.06) translateY(-5px)}}
+
+  /* The stage the type stands on: a warm key from the upper right, a cool floor at the
+     lower left, and a vignette pinning the corners. Gradients rather than a photograph,
+     so the headline's contrast is the same at every moment. */
   .herofilm-veil{position:absolute;inset:0;
-    background:linear-gradient(to bottom,rgba(14,14,17,.80) 0%,rgba(14,14,17,.46) 42%,rgba(14,14,17,.90) 100%),
-               radial-gradient(62% 58% at 50% 34%,rgba(201,168,106,.16),transparent 70%)}
+    background:
+      radial-gradient(70% 60% at 50% 34%,rgba(38,34,30,.55),rgba(14,14,17,.96) 78%),
+      radial-gradient(42% 48% at 80% 8%,rgba(201,168,106,.24),transparent 72%),
+      radial-gradient(48% 44% at 14% 98%,rgba(92,112,152,.14),transparent 74%),
+      linear-gradient(to bottom,rgba(14,14,17,.55) 0%,rgba(14,14,17,.18) 40%,rgba(14,14,17,.92) 100%)}
+  /* Fine film grain, the same trick the journal covers use: it costs one inline SVG and
+     stops the large flat gradients from banding on a wide screen. */
+  .herofilm-grain{position:absolute;inset:0;opacity:.055;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>")}
+  /* A hairline of light where the band meets the page below — the seam a graded still
+     would have, and the cue that the hero is a frame rather than a background colour. */
+  .hero.hasfilm:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;z-index:1;
+    background:linear-gradient(to right,transparent,rgba(201,168,106,.34),transparent)}
+  /* Fewer plates as the strip narrows — five cards on a phone would be thumbnails. */
+  @media(max-width:820px){ .herostrip{gap:10px;max-width:520px} .hplate:nth-child(n+4){display:none} }
+  @media(max-width:520px){ .herostrip{max-width:340px} .hplate:nth-child(n+3){display:none} }
   @media(prefers-reduced-motion:reduce){
-    .herofilm .hf{animation:none;opacity:0;transform:none}
-    .herofilm .hf:first-child{opacity:.5}
+    .hplate .hf{animation:none;opacity:0;transform:none}
+    .hplate .hf:first-child{opacity:1}
   }
   .hero h1{font-size:clamp(34px,6.2vw,62px);margin:0 0 20px}
   .hero>.wrap>p{font-size:clamp(16px,2.4vw,20px);color:var(--mut);max-width:630px;margin:0 auto 36px}
@@ -687,11 +707,9 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 <span id="top"></span>
 <section class="hero<?= $HERO_FRAMES ? ' hasfilm' : '' ?>">
   <?php if($HERO_FRAMES): ?>
-  <div class="herofilm" aria-hidden="true" style="--hfdur:<?= count($HERO_FRAMES) * 6 ?>s">
-    <?php foreach($HERO_FRAMES as $i=>$f): ?>
-      <div class="hf" style="background-image:url('<?= htmlspecialchars($f) ?>');animation-delay:<?= $i * 6 ?>s"></div>
-    <?php endforeach; ?>
+  <div class="herofilm" aria-hidden="true">
     <div class="herofilm-veil"></div>
+    <div class="herofilm-grain"></div>
   </div>
   <?php endif; ?>
   <div class="wrap">
@@ -720,6 +738,27 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> <?= $t[$k] ?></span>
       <?php } ?>
     </div>
+    <?php if($HERO_FRAMES):
+      /* Five plates, each cycling through its own share of the running order. Frames are
+         dealt round-robin so neighbouring plates never hold the same piece, and each
+         plate is offset in time so the strip never changes all at once. */
+      $HP = 5; $slot = 7;
+      $plates = array_fill(0, $HP, []);
+      foreach ($HERO_FRAMES as $i => $f) $plates[$i % $HP][] = $f;
+      $plates = array_values(array_filter($plates));
+    ?>
+    <div class="herostrip" aria-hidden="true">
+      <?php foreach ($plates as $pi => $frames): $n = max(1, min(6, count($frames))); ?>
+        <div class="hplate hfn<?= $n ?>">
+          <?php foreach (array_slice($frames, 0, 6) as $i => $f): ?>
+            <div class="hf" style="background-image:url('<?= htmlspecialchars($f) ?>');
+              animation-duration:<?= $n * $slot ?>s;
+              animation-delay:<?= round($i * $slot + $pi * 1.3, 1) ?>s"></div>
+          <?php endforeach; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
   </div>
 </section>
 
