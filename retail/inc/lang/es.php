@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'días para devolver nuestro propio stock',
     'sec_cats'     => 'Por categoría',
     'sec_cats_sub' => 'Once categorías, del bañador a la chaqueta. Cada pieza de stock europeo.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'Camisetas',
+    'cat_hoodies-sweatshirts' => 'Sudaderas y hoodies',
+    'cat_polos' => 'Polos',
+    'cat_jeans' => 'Vaqueros',
+    'cat_bademode' => 'Baño',
+    'cat_tracksuit-sets' => 'Chándales',
+    'cat_jeans-shorts' => 'Shorts vaqueros',
+    'cat_jacken' => 'Chaquetas',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Pantalones',
+    'cat_westen' => 'Chalecos',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Color · {n} disponibles',
+    'n_colours' => '{n} colores',
 ];

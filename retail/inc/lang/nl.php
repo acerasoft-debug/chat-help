@@ -512,4 +512,22 @@ return [
     'about_f_returns' => 'dagen retour op eigen voorraad',
     'sec_cats'     => 'Op categorie',
     'sec_cats_sub' => 'Elf categorieën, van badmode tot jas. Elk stuk uit Europese voorraad.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & sweaters',
+    'cat_polos' => 'Polo\'s',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Badmode',
+    'cat_tracksuit-sets' => 'Trainingspakken',
+    'cat_jeans-shorts' => 'Jeansshorts',
+    'cat_jacken' => 'Jassen',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Broeken',
+    'cat_westen' => 'Bodywarmers',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Kleur · {n} beschikbaar',
+    'n_colours' => '{n} kleuren',
 ];

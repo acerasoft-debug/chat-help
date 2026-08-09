@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'gün öz malımızın qaytarılması',
     'sec_cats'     => 'Kateqoriyalar',
     'sec_cats_sub' => 'On bir kateqoriya — çimərlik geyimindən gödəkçəyə. Hər parça Avropa qalıqlarından.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'Futbolkalar',
+    'cat_hoodies-sweatshirts' => 'Hudi və svitşotlar',
+    'cat_polos' => 'Polo köynəklər',
+    'cat_jeans' => 'Cinslər',
+    'cat_bademode' => 'Çimərlik geyimi',
+    'cat_tracksuit-sets' => 'İdman kostyumları',
+    'cat_jeans-shorts' => 'Cins şortlar',
+    'cat_jacken' => 'Gödəkçələr',
+    'cat_shorts' => 'Şortlar',
+    'cat_trousers' => 'Şalvarlar',
+    'cat_westen' => 'Jiletlər',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Rəng · {n} mövcuddur',
+    'n_colours' => '{n} rəng',
 ];

@@ -467,6 +467,28 @@ function vr_query(array $o = []): array
         }));
     }
 
+    // Renk çeşitleri tek karoda. Süzgeçlerden SONRA yapılıyor: kullanıcı
+    // "yalnız stokta" dediyse temsilci de stoktakiler arasından seçilsin.
+    // Kapatmak için group_variants => false — ürün sayfasındaki renk şeridi ve
+    // sepet gibi yerler tekil satırı görmek zorunda.
+    if (($o['group_variants'] ?? true) && !isset($o['ids'])) {
+        $ix   = vr_variant_index();
+        $rank = [];                       // id => grup içindeki sıra
+        foreach ($ix as $ids) foreach ($ids as $i => $id) $rank[$id] = $i;
+
+        $bestOf = [];                     // anahtar => o an elde kalan en iyi sıra
+        foreach ($rows as $p) {
+            if (!isset($rank[$p['id']])) continue;
+            $k = vr_variant_key($p);
+            $r = $rank[$p['id']];
+            if (!isset($bestOf[$k]) || $r < $bestOf[$k]) $bestOf[$k] = $r;
+        }
+        $rows = array_values(array_filter($rows, function ($p) use ($rank, $bestOf) {
+            if (!isset($rank[$p['id']])) return true;          // çeşidi yok
+            return $rank[$p['id']] === $bestOf[vr_variant_key($p)];
+        }));
+    }
+
     $total = count($rows);
 
     switch ((string)($o['sort'] ?? 'featured')) {
@@ -610,6 +632,90 @@ function vr_related(array $product, int $limit = 4): array
             if (count($out) >= $limit) break;
         }
     }
+    return $out;
+}
+
+// ------------------------------------------------------------ renk çeşitleri
+/**
+ * Aynı modelin renk çeşitleri.
+ *
+ * Toptancı beslemesi her rengi AYRI ürün olarak açmış: dokuz "Men Cotton Pima
+ * T-Shirt", aynı SKU, aynı fiyat, adın sonunda renk. Vitrinde bunlar yan yana
+ * düşünce sayfa aynı ürünü tekrar basıyormuş gibi görünüyor — bakan kişi
+ * haklı olarak "bunlar ikiz" diyor.
+ *
+ * Çözüm ürünleri silmek değil; hepsi gerçek ve hepsi satılık. Listede modelin
+ * BİR karosu duruyor, diğer renkler ürün sayfasında seçiliyor.
+ *
+ * Gruplama anahtarı marka + SKU. SKU yoksa marka + renksiz ad; renk adın
+ * sonunda uzun tireyle ayrılmış duruyor ("… — Navy Blue").
+ */
+function vr_variant_key(array $p): string
+{
+    $brand = mb_strtolower(trim((string)($p['brand'] ?? '')));
+    $sku   = strtolower(preg_replace('/[^A-Za-z0-9]/', '', (string)($p['sku'] ?? '')) ?? '');
+    if ($sku !== '') return $brand . '|' . $sku;
+    return $brand . '|' . mb_strtolower(vr_variant_base_name($p));
+}
+
+/** Renk ekinden arındırılmış model adı. */
+function vr_variant_base_name(array $p): string
+{
+    $n = vr_card_name($p);
+    $i = mb_strpos($n, ' — ');
+    return $i === false ? trim($n) : trim(mb_substr($n, 0, $i));
+}
+
+/** Bu satırın rengi — adın sonundaki ek. Yoksa boş. */
+function vr_variant_colour(array $p): string
+{
+    $n = vr_card_name($p);
+    $i = mb_strpos($n, ' — ');
+    return $i === false ? '' : trim(mb_substr($n, $i + 3));
+}
+
+/**
+ * anahtar => [ürün id'leri]. Yalnızca birden fazla üyesi olan gruplar.
+ *
+ * Sıra sabit: önce stoktakiler, sonra fotoğrafı çok olan, sonra id. Vitrine
+ * çıkan temsilci bu sıranın ilki — her istekte aynı karo görünsün diye
+ * rastgelelik yok.
+ */
+function vr_variant_index(): array
+{
+    static $ix = null;
+    if ($ix !== null) return $ix;
+
+    $cat = vr_catalog();
+    $groups = [];
+    foreach ($cat as $id => $p) $groups[vr_variant_key($p)][] = (string)$id;
+
+    $ix = [];
+    foreach ($groups as $k => $ids) {
+        if (count($ids) < 2) continue;
+        usort($ids, function ($a, $b) use ($cat) {
+            $pa = $cat[$a]; $pb = $cat[$b];
+            $sa = (int)$pa['stock'] > 0 ? 1 : 0;
+            $sb = (int)$pb['stock'] > 0 ? 1 : 0;
+            if ($sa !== $sb) return $sb <=> $sa;
+            $ia = count(array_filter((array)($pa['images'] ?? []), 'strlen'));
+            $ib = count(array_filter((array)($pb['images'] ?? []), 'strlen'));
+            if ($ia !== $ib) return $ib <=> $ia;
+            return strcmp($a, $b);
+        });
+        $ix[$k] = $ids;
+    }
+    return $ix;
+}
+
+/** Bu ürünün grubundaki tüm satırlar (kendisi dahil). Grup yoksa boş dizi. */
+function vr_variant_siblings(array $p): array
+{
+    $ids = vr_variant_index()[vr_variant_key($p)] ?? [];
+    if (!$ids) return [];
+    $cat = vr_catalog();
+    $out = [];
+    foreach ($ids as $id) if (isset($cat[$id])) $out[] = $cat[$id];
     return $out;
 }
 

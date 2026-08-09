@@ -512,4 +512,22 @@ return [
     'about_f_returns' => 'Tage Rückgabe auf eigenen Bestand',
     'sec_cats'     => 'Nach Kategorie',
     'sec_cats_sub' => 'Elf Kategorien, von Bademode bis Jacke. Jedes Stück aus europäischem Bestand.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-Shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & Sweatshirts',
+    'cat_polos' => 'Poloshirts',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Bademode',
+    'cat_tracksuit-sets' => 'Trainingsanzüge',
+    'cat_jeans-shorts' => 'Jeansshorts',
+    'cat_jacken' => 'Jacken',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Hosen',
+    'cat_westen' => 'Westen',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Farbe · {n} verfügbar',
+    'n_colours' => '{n} Farben',
 ];

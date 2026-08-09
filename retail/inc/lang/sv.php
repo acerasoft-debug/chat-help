@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'dagars retur på eget lager',
     'sec_cats'     => 'Efter kategori',
     'sec_cats_sub' => 'Elva kategorier, från badkläder till jacka. Varje plagg från europeiskt lager.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & sweatshirts',
+    'cat_polos' => 'Pikéer',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Badkläder',
+    'cat_tracksuit-sets' => 'Träningsset',
+    'cat_jeans-shorts' => 'Jeansshorts',
+    'cat_jacken' => 'Jackor',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Byxor',
+    'cat_westen' => 'Västar',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Färg · {n} tillgängliga',
+    'n_colours' => '{n} färger',
 ];

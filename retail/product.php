@@ -149,6 +149,32 @@ vr_layout_start([
             <?php endif; ?>
           </p>
 
+          <?php
+          /* Renk şeridi.
+             Toptancı beslemesi her rengi ayrı ürün olarak açtığı için vitrinde
+             modelin tek karosu duruyor (bkz. vr_variant_index). Diğer renklere
+             giden tek kapı burası — şerit olmazsa o satırlar erişilemez kalır. */
+          $siblings = vr_variant_siblings($p);
+          if (count($siblings) > 1): ?>
+            <div class="swatches">
+              <h2 class="panel__h"><span><?= te('select_colour', ['n' => count($siblings)]) ?></span></h2>
+              <div class="swatches__row">
+                <?php foreach ($siblings as $sv):
+                    $on  = $sv['id'] === $p['id'];
+                    $col = vr_variant_colour($sv);
+                    $lbl = $col !== '' ? $col : vr_card_name($sv);
+                ?>
+                  <a class="swatch<?= $on ? ' is-on' : '' ?><?= (int)$sv['stock'] < 1 ? ' is-out' : '' ?>"
+                     href="<?= h(vr_product_url($sv)) ?>" title="<?= h($lbl) ?>"
+                     <?= $on ? 'aria-current="page"' : '' ?>>
+                    <?php vr_frame(vr_card_image($sv), ['w' => 180, 'widths' => [180, 300], 'sizes' => '62px']); ?>
+                    <span class="swatch__l"><?= h($lbl) ?></span>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
+
           <?php if ($soldOut): ?>
             <span class="btn btn--block is-disabled"><span><?= te('sold_out') ?></span></span>
             <p style="font-size:12.5px;color:var(--muted)"><?= te('you_may_like') ?> ↓</p>

@@ -428,13 +428,26 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
     // Kapak karesi bloğun içinde TEKRAR ETMESİN: aynı fotoğraf üstte büyük,
     // hemen altında küçük görününce özensiz duruyor.
     $cover = (string)($catShot[$cat] ?? '');
-    foreach ([true, false] as $freshBrand) {
-        foreach ($pool as $p) {
-            if (count($rows) >= 4) break 2;
+
+    // Havuz ilk 400 satır; bir kategoride dört AYRI ev çıkmayabiliyor ve
+    // eskiden ikinci tur aynı evden ikinci bir kareyi alıyordu — ekranda iki
+    // mavi Lacoste yan yana. Artık ikinci tur yok; yetmezse o kategorinin
+    // kendi sorgusundan devam ediyoruz, aynı ev kuralı hiç gevşemiyor.
+    $sources = [$pool, null];
+    foreach ($sources as $si => $src) {
+        if (count($rows) >= 4) break;
+        if ($src === null) {
+            $src = vr_query([
+                'cat' => $cat, 'in_stock' => true, 'exclude_vault' => true,
+                'per_page' => 60, 'sort' => 'featured',
+            ])['rows'];
+        }
+        foreach ($src as $p) {
+            if (count($rows) >= 4) break;
             if ($p['cat'] !== $cat) continue;
             if (!$freeOf($p)) continue;                 // başka bölümde çıktı
-            if (in_array($p, $rows, true)) continue;
-            if ($freshBrand && isset($seenBrand[$p['brand']])) continue;
+            if (isset($seenBrand[$p['brand']])) continue;
+            foreach ($rows as $r) if ($r['id'] === $p['id']) continue 2;
             $first = (string)($p['images'][0] ?? '');
             if ($first === '' || isset($gridIx[$first])) continue;
             if ($cover !== '' && $first === $cover) continue;
@@ -463,7 +476,7 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
                 'sizes'  => '(max-width:640px) 62vw, 300px',
             ]); ?>
             <span class="cat__in">
-              <b><?= h($cat) ?></b>
+              <b><?= h(vr_cat_label($cat)) ?></b>
               <i><?= te('results_n', ['n' => (int)$n]) ?></i>
             </span>
           </span>
@@ -475,7 +488,7 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
   <?php foreach ($catRows as $cat => $rows): ?>
     <div class="wrap catblock">
       <div class="catblock__head">
-        <h3><?= h($cat) ?></h3>
+        <h3><?= h(vr_cat_label($cat)) ?></h3>
         <a class="sechead__more" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
           <?= te('results_n', ['n' => (int)$cats[$cat]]) ?><?= vr_icon('arrow', 14) ?>
         </a>

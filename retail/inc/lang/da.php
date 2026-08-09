@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'dages retur på eget lager',
     'sec_cats'     => 'Efter kategori',
     'sec_cats_sub' => 'Elleve kategorier, fra badetøj til jakke. Hvert stykke fra europæisk lager.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & sweatshirts',
+    'cat_polos' => 'Polotrøjer',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Badetøj',
+    'cat_tracksuit-sets' => 'Træningssæt',
+    'cat_jeans-shorts' => 'Denimshorts',
+    'cat_jacken' => 'Jakker',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Bukser',
+    'cat_westen' => 'Veste',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Farve · {n} tilgængelige',
+    'n_colours' => '{n} farver',
 ];

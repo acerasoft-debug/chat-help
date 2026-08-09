@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'дней на возврат нашего товара',
     'sec_cats'     => 'По категориям',
     'sec_cats_sub' => 'Одиннадцать категорий — от пляжной одежды до верхней. Каждая вещь из европейских остатков.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'Футболки',
+    'cat_hoodies-sweatshirts' => 'Худи и свитшоты',
+    'cat_polos' => 'Поло',
+    'cat_jeans' => 'Джинсы',
+    'cat_bademode' => 'Пляжная одежда',
+    'cat_tracksuit-sets' => 'Спортивные костюмы',
+    'cat_jeans-shorts' => 'Джинсовые шорты',
+    'cat_jacken' => 'Куртки',
+    'cat_shorts' => 'Шорты',
+    'cat_trousers' => 'Брюки',
+    'cat_westen' => 'Жилеты',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Цвет · доступно {n}',
+    'n_colours' => '{n} цвета',
 ];

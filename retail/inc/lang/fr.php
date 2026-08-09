@@ -510,4 +510,22 @@ return [
     'about_f_returns' => 'jours pour retourner notre propre stock',
     'sec_cats'     => 'Par catégorie',
     'sec_cats_sub' => 'Onze catégories, du maillot de bain à la veste. Chaque pièce issue de stocks européens.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & sweats',
+    'cat_polos' => 'Polos',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Maillots de bain',
+    'cat_tracksuit-sets' => 'Ensembles de survêtement',
+    'cat_jeans-shorts' => 'Shorts en jean',
+    'cat_jacken' => 'Vestes',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Pantalons',
+    'cat_westen' => 'Gilets',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Couleur · {n} disponibles',
+    'n_colours' => '{n} coloris',
 ];

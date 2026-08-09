@@ -506,4 +506,22 @@ return [
     'about_f_returns' => 'giorni per rendere il nostro stock',
     'sec_cats'     => 'Per categoria',
     'sec_cats_sub' => 'Undici categorie, dal costume alla giacca. Ogni capo da giacenze europee.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-shirt',
+    'cat_hoodies-sweatshirts' => 'Felpe & hoodie',
+    'cat_polos' => 'Polo',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Beachwear',
+    'cat_tracksuit-sets' => 'Tute',
+    'cat_jeans-shorts' => 'Shorts di jeans',
+    'cat_jacken' => 'Giacche',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Pantaloni',
+    'cat_westen' => 'Gilet',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Colore · {n} disponibili',
+    'n_colours' => '{n} colori',
 ];

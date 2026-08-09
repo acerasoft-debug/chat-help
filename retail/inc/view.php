@@ -208,49 +208,46 @@ function vr_footer(): void
       <?= vr_lang_switch() ?>
     </div>
 
-    <nav class="foot__col" aria-label="<?= te('nav_shop') ?>">
-      <h2><?= te('nav_shop') ?></h2>
-      <a href="<?= h(vr_url('shop.php', ['sort' => 'new'])) ?>"><?= te('nav_new') ?></a>
-      <a href="<?= h(vr_url('outlet.php')) ?>"><?= te('nav_outlet') ?></a>
-      <a href="<?= h(vr_url('brands.php')) ?>"><?= te('nav_brands') ?></a>
-      <a href="<?= h(vr_url('shop.php', ['seller' => 'private'])) ?>"><?= te('seller_private') ?></a>
-      <a href="<?= h(vr_url('wishlist.php')) ?>"><?= te('nav_wish') ?></a>
-      <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
-    </nav>
-
-    <nav class="foot__col" aria-label="<?= te('footer_service') ?>">
-      <h2><?= te('footer_service') ?></h2>
-      <a href="<?= h(vr_url('faq.php')) ?>"><?= te('faq_title') ?></a>
-      <a href="<?= h(vr_url('legal/versand.php')) ?>"><?= te('legal_shipping') ?></a>
-      <a href="<?= h(vr_url('legal/zahlung.php')) ?>"><?= te('legal_payment') ?></a>
-      <a href="<?= h(vr_url('legal/rueckgabe.php')) ?>"><?= te('legal_returns') ?></a>
-      <a href="<?= h(vr_url('order.php')) ?>"><?= te('order_status') ?></a>
-      <a href="<?= h(vr_url('account/login.php')) ?>"><?= te('acc_title') ?></a>
-      <a href="<?= h(vr_url('size-guide.php')) ?>"><?= te('size_guide') ?></a>
-      <a href="<?= h(vr_url('contact.php')) ?>"><?= te('nav_contact') ?></a>
-    </nav>
-
-    <nav class="foot__col" aria-label="<?= te('footer_company') ?>">
-      <h2><?= te('footer_company') ?></h2>
-      <a href="<?= h(vr_url('about.php')) ?>"><?= te('about_title') ?></a>
-      <a href="<?= h(vr_url('journal.php')) ?>"><?= te('nav_journal') ?></a>
-      <a href="<?= h(vr_url('sell.php')) ?>"><?= te('nav_sell') ?></a>
-      <a href="<?= h(vr_url('seller/login.php')) ?>"><?= te('sell_login') ?></a>
-      <a href="<?= h(vr_url('newsletter.php')) ?>"><?= te('news_title') ?></a>
-      <a href="<?= h(vr_url('legal/streitbeilegung.php')) ?>"><?= te('legal_disputes') ?></a>
-    </nav>
-
-    <nav class="foot__col" aria-label="<?= te('footer_legal') ?>">
-      <h2><?= te('footer_legal') ?></h2>
-      <a href="<?= h(vr_url('legal/impressum.php')) ?>"><?= te('legal_imprint') ?></a>
-      <a href="<?= h(vr_url('legal/agb.php')) ?>"><?= te('legal_terms') ?></a>
-      <a href="<?= h(vr_url('legal/widerruf.php')) ?>"><?= te('legal_withdrawal') ?></a>
-      <a href="<?= h(vr_url('legal/datenschutz.php')) ?>"><?= te('legal_privacy') ?></a>
-      <a href="<?= h(vr_url('legal/verkaeufer.php')) ?>"><?= te('legal_seller_terms') ?></a>
-      <a href="<?= h(vr_url('legal/cookies.php')) ?>"><?= te('legal_cookies') ?></a>
-      <a href="<?= h(vr_url('legal/streitbeilegung.php')) ?>"><?= te('legal_disputes') ?></a>
-      <a href="<?= h(vr_url('legal/barrierefreiheit.php')) ?>"><?= te('legal_accessibility') ?></a>
-    </nav>
+    <?php
+    /* Sütunlar. Her bağlantı YALNIZCA bir sütunda: eskiden Journal hem
+       Mağaza'da hem Şirket'te, Streitbeilegung hem Şirket'te hem Hukuk'ta
+       duruyordu. Alt bilgide aynı adı iki kez görmek, hangisinin doğru
+       olduğunu düşündürüyor. */
+    vr_foot_col(t('nav_shop'), [
+        [vr_url('shop.php', ['sort' => 'new']),          t('nav_new')],
+        [vr_url('outlet.php'),                           t('nav_outlet')],
+        [vr_url('brands.php'),                           t('nav_brands')],
+        [vr_url('shop.php', ['seller' => 'private']),    t('seller_private')],
+        [vr_url('wishlist.php'),                         t('nav_wish')],
+    ]);
+    vr_foot_col(t('footer_service'), [
+        [vr_url('faq.php'),                  t('faq_title')],
+        [vr_url('legal/versand.php'),        t('legal_shipping')],
+        [vr_url('legal/zahlung.php'),        t('legal_payment')],
+        [vr_url('legal/rueckgabe.php'),      t('legal_returns')],
+        [vr_url('order.php'),                t('order_status')],
+        [vr_url('account/login.php'),        t('acc_title')],
+        [vr_url('size-guide.php'),           t('size_guide')],
+        [vr_url('contact.php'),              t('nav_contact')],
+    ]);
+    vr_foot_col(t('footer_company'), [
+        [vr_url('about.php'),        t('about_title')],
+        [vr_url('journal.php'),      t('nav_journal')],
+        [vr_url('sell.php'),         t('nav_sell')],
+        [vr_url('seller/login.php'), t('sell_login')],
+        [vr_url('newsletter.php'),   t('news_title')],
+    ]);
+    vr_foot_col(t('footer_legal'), [
+        [vr_url('legal/impressum.php'),       t('legal_imprint')],
+        [vr_url('legal/agb.php'),             t('legal_terms')],
+        [vr_url('legal/widerruf.php'),        t('legal_withdrawal')],
+        [vr_url('legal/datenschutz.php'),     t('legal_privacy')],
+        [vr_url('legal/verkaeufer.php'),      t('legal_seller_terms')],
+        [vr_url('legal/cookies.php'),         t('legal_cookies')],
+        [vr_url('legal/streitbeilegung.php'), t('legal_disputes')],
+        [vr_url('legal/barrierefreiheit.php'), t('legal_accessibility')],
+    ]);
+    ?>
   </div>
 
   <div class="foot__pay"><?php foreach (vr_payment_marks() as $m): ?><span class="pay"><?= h($m) ?></span><?php endforeach; ?></div>
@@ -260,6 +257,33 @@ function vr_footer(): void
     <p><?= te('footer_vat_note') ?> <?= te('order_next_3', ['days' => $days]) ?></p>
   </div>
 </footer>
+<?php
+}
+
+/**
+ * Alt bilgi sütunu.
+ *
+ * Telefonda dört sütun alt alta iniyor ve alt bilgi yirmi altı satırlık bir
+ * merdivene dönüşüyordu — ekranın üç boyu. Sütunlar artık <details>: dar
+ * ekranda başlığa dokununca açılıyor, geniş ekranda CSS içeriği koşulsuz
+ * gösterdiği için açık/kapalı durumun bir hükmü kalmıyor.
+ *
+ * JavaScript yok. CSS hiç yüklenmese bile bağlantılar dokunarak açılıyor,
+ * yani en kötü durumda erişilebilirlik kaybı olmuyor.
+ */
+function vr_foot_col(string $label, array $links): void
+{
+?>
+<nav class="foot__col" aria-label="<?= h($label) ?>">
+  <details class="foot__d">
+    <summary><h2><?= h($label) ?></h2></summary>
+    <div class="foot__links">
+      <?php foreach ($links as [$href, $text]): ?>
+        <a href="<?= h($href) ?>"><?= h($text) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </details>
+</nav>
 <?php
 }
 
@@ -352,7 +376,13 @@ function vr_card(array $p, array $o = []): void
         <s><?= h(vr_money((int)$p['rrp_cents'])) ?></s>
       <?php endif; ?>
     </p>
-    <?php if (!empty($o['size_hint']) && $p['sizes']): ?>
+    <?php
+    /* Kaç renk var. Vitrinde modelin tek karosu duruyor; bu satır olmadan
+       müşteri diğer sekiz rengin varlığını hiç bilmiyor. */
+    $nCol = count(vr_variant_siblings($p));
+    if ($nCol > 1): ?>
+      <p class="card__sizes card__sizes--col"><?= te('n_colours', ['n' => $nCol]) ?></p>
+    <?php elseif (!empty($o['size_hint']) && $p['sizes']): ?>
       <p class="card__sizes"><?php
         echo h(implode(' · ', array_map(fn($s) => $s['label'] === 'ONE' ? t('one_of_one') : $s['label'], array_slice($p['sizes'], 0, 6))));
       ?></p>

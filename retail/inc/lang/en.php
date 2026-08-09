@@ -523,4 +523,22 @@ return [
     'about_f_returns' => 'Days to return our own stock',
     'sec_cats'     => 'Shop by category',
     'sec_cats_sub' => 'Eleven categories, from swimwear to outerwear. Every piece from European stock.',
+
+    // Kategori adlari. Veride karisik duruyor (yarisi Almanca);
+    // gorunen ad her dilde buradan geliyor - bkz. vr_cat_label().
+    'cat_t-shirts' => 'T-Shirts',
+    'cat_hoodies-sweatshirts' => 'Hoodies & Sweatshirts',
+    'cat_polos' => 'Polo Shirts',
+    'cat_jeans' => 'Jeans',
+    'cat_bademode' => 'Swimwear',
+    'cat_tracksuit-sets' => 'Tracksuit Sets',
+    'cat_jeans-shorts' => 'Denim Shorts',
+    'cat_jacken' => 'Jackets',
+    'cat_shorts' => 'Shorts',
+    'cat_trousers' => 'Trousers',
+    'cat_westen' => 'Gilets',
+
+    // Renk cesitleri - bkz. vr_variant_index().
+    'select_colour' => 'Colour · {n} available',
+    'n_colours' => '{n} colours',
 ];

@@ -815,16 +815,47 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* 940px'in altında dört sütun 160px'e düşüyor ve "Erklärung zur
    Barrierefreiheit" gibi uzun başlıklar üç satıra kırılıyor — ikiye in. */
 @media (max-width:940px){.foot__top{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:420px){.foot__top{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:620px){.foot__top{grid-template-columns:minmax(0,1fr)}}
 .wordmark--foot{color:var(--bone);font-size:20px}
 .foot__tag{font-family:var(--serif);font-size:15px;color:var(--brass-text);margin-top:12px}
 .foot__note{font-size:12px;line-height:1.6;margin-top:14px;max-width:44ch}
 .foot__col h2{
   font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--bone);
-  font-family:var(--sans);font-weight:500;margin-bottom:13px;
+  font-family:var(--sans);font-weight:500;margin:0;
 }
 .foot__col a{display:block;font-size:13px;padding:4px 0;transition:color .2s}
 .foot__col a:hover{color:var(--bone)}
+
+/* Sütunlar <details>. GENİŞ ekranda açılır kapanır olmasınlar diye içerik
+   koşulsuz gösteriliyor ve ok gizleniyor — open niteliğinin bir hükmü yok.
+   Dar ekranda (620px altı) native davranış geri geliyor: dört başlık, biri
+   dokununca açılıyor. */
+.foot__d > summary{list-style:none;cursor:default;margin-bottom:13px}
+.foot__d > summary::-webkit-details-marker{display:none}
+.foot__d > summary::marker{content:""}
+/* Kapali bir <details> icerigini geri getirmek iki satir istiyor: eski
+   motorlarda display:none, yeni Chromium'da ::details-content uzerinde
+   content-visibility:hidden. Yalnizca birini yazinca genis ekranda butun
+   baglantilar kayboluyordu - olculdu. */
+.foot__d > .foot__links{display:block}
+.foot__d::details-content{content-visibility:visible;block-size:auto}
+@media (max-width:620px){
+  .foot__d > summary{
+    cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+    gap:12px;padding:13px 0;margin:0;border-bottom:1px solid rgba(245,242,236,.12);
+  }
+  .foot__d > summary::after{
+    content:"";width:7px;height:7px;flex:none;margin-right:2px;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(45deg) translate(-2px,-2px);transition:transform .25s var(--ease);
+  }
+  .foot__d[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+  .foot__d > .foot__links{padding:8px 0 14px}
+  .foot__d:not([open]) > .foot__links{display:none}
+  .foot__d:not([open])::details-content{content-visibility:hidden;block-size:0}
+  .foot__col{margin:0}
+  .foot__top{gap:0}
+}
 .foot__pay{
   max-width:var(--wrap);margin:clamp(34px,4vw,56px) auto 0;padding:22px var(--gut) 0;
   border-top:1px solid rgba(245,242,236,.12);display:flex;flex-wrap:wrap;gap:9px;
@@ -1449,3 +1480,30 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   .taxo__art img:nth-child(n+3){display:none}
   .taxo__art img{aspect-ratio:3/4}
 }
+
+/* --- Renk şeridi (ürün sayfası) -------------------------------------------
+   Beslemede her renk ayrı ürün; vitrinde modelin tek karosu duruyor ve diğer
+   renklere buradan geçiliyor. Kare 4:5 çünkü kartın küçültülmüşü — aynı
+   fotoğrafın 180 px'lik hâli, tarayıcı için ek indirme değil. */
+.swatches{margin:0 0 18px}
+.swatches .panel__h{margin-bottom:10px}
+.swatches__row{display:flex;flex-wrap:wrap;gap:9px}
+.swatch{
+  display:block;width:62px;text-decoration:none;color:var(--muted);
+}
+.swatch .fr{
+  position:relative;display:block;width:62px;aspect-ratio:4/5;overflow:hidden;
+  border-radius:var(--r);background:var(--bone-2);
+  box-shadow:inset 0 0 0 1px var(--line);
+  transition:box-shadow .25s var(--ease);
+}
+.swatch:hover .fr,.swatch:focus-visible .fr{box-shadow:inset 0 0 0 1px var(--ink)}
+.swatch.is-on .fr{box-shadow:inset 0 0 0 2px var(--ink)}
+.swatch.is-out .fr{opacity:.45}
+.swatch__l{
+  display:block;margin-top:5px;font-size:10.5px;line-height:1.3;
+  letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.swatch.is-on .swatch__l{color:var(--ink)}
+
+.card__sizes--col{color:var(--ink);opacity:.72}
