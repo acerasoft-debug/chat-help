@@ -143,20 +143,24 @@ jobs:
                 if (d) el.setAttribute('style', el.getAttribute('style').replace(m[1], `"${d}"`));
               }
 
-              // 4) video yerine posteri birak: dosya cok buyuk, kopyayi
-              //    16 MB sinirinin uzerine cikariyor.
+              // 4) video yerine posteri birak: video dosyasi kopyayi 16 MB
+              //    sinirinin uzerine cikariyor.
+              //
+              //    POSTER BURADA data: YAPILIYOR — adres birakmak yetmiyor.
+              //    Ilk surumde poster'i oldugu gibi birakmistim; goruntu
+              //    yukaridaki inleme turundan SONRA olustugu icin hicbir
+              //    zaman gomulmedi ve kopyada uc kirik kare kaldi. Biri
+              //    hero'nun ta kendisiydi: sayfanin en ustu kapkara aciliyor,
+              //    site bozuk gorunuyordu. Olculdu ve duzeltildi.
               for (const v of Array.from(document.querySelectorAll('video'))) {
                 const poster = v.getAttribute('poster');
-                if (poster) {
-                  const img = document.createElement('img');
-                  img.src = poster;
-                  img.style.cssText = 'width:100%;height:100%;object-fit:cover';
-                  v.replaceWith(img);
-                } else v.remove();
-              }
-              for (const v of Array.from(document.querySelectorAll('video'))) {
-                const d = v.getAttribute('src') ? await toData(v.src) : null;
-                if (d) v.src = d; else v.remove();
+                if (!poster) { v.remove(); continue; }
+                const d = await toData(new URL(poster, location.href).href);
+                if (!d) { v.remove(); continue; }
+                const img = document.createElement('img');
+                img.src = d;
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+                v.replaceWith(img);
               }
 
               // 5) betikler atiliyor: kopya durgun bir sayfa, calisan bir
