@@ -82,11 +82,21 @@ jobs:
 
             /* Denetim kumesi: gorunen her urun + henuz onaylanmamis listing'ler.
                vestra_products() onaylanmayanlari elediginden ikisinin birlesimi
-               gerekiyor; id ile tekillestiriliyor. */
-            $audit = []; foreach ($shown as $p) $audit[(string)($p['id'] ?? '')] = $p;
+               gerekiyor; id ile tekillestiriliyor.
+               ID'siz satirlar icin id ANAHTAR OLARAK KULLANILAMAZ: hepsi '' anahtarina
+               duser ve biri digerlerinin ustune yazar, yani denetim kumesi sessizce
+               kuculur -- "346 urun tarandi" der ama taramamistir. Bugun boyle satir
+               yok (346 = 344 listing + 2 demo, kayip yok) ama tek bir id'siz satir bu
+               sayimi sessizce bozacagi icin anahtar simdiden ayristiriliyor. */
+            $seq = 0;
+            $key = function(array $p) use (&$seq): string {
+              $id = trim((string)($p['id'] ?? ''));
+              return $id !== '' ? 'id:'.$id : 'noid:'.(++$seq);
+            };
+            $audit = []; foreach ($shown as $p) $audit[$key($p)] = $p;
             foreach ($listings as $p) {
               if ((string)($p['status'] ?? 'approved') === 'approved') continue;
-              $audit[(string)($p['id'] ?? '')] = $p;
+              $audit[$key($p)] = $p;
             }
             $audit = array_values($audit);
 
