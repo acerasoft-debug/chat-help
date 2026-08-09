@@ -79,12 +79,29 @@ Every row was named "Sweatshirt" under Hoodies & Sweatshirts. **Not one of the
 `G8FR9` men's), one is a pair of jeans (`FTAH6DG8EZ5`) and one is a black polo
 with a contrast collar (`G8OL0ZFU7E`).
 
+### `balenciaga-burberry-06` — reviewed, all 21 rows corrected
+
+Same story as 05: every row named "Sweatshirt" under Hoodies & Sweatshirts, and
+the photos show twenty t-shirts (crew and V-neck) plus one black polo with a
+buttoned placket, `G8PL4TG7F2H`.
+
+Running total across the four sheets reviewed: **71 of 158 pending rows had the
+wrong category**, and batch2's Hoodies & Sweatshirts count has gone from 73 to
+14 — which is roughly what a folder called "sweats" should have produced in the
+first place.
+
 ### Before importing: check images against the LIVE catalogue, not just each other
 
-`dgn-g7jv9` in batch2 carries the image `d-g-g7jv9-1.jpg` — and the live
-catalogue already has `dgn-g7jv91` with that same photo, under T-Shirts. Same
-garment, two ids. The duplicate-id scan cannot see this because the ids differ;
-only the image matches.
+Two found so far, both in batch2:
+
+| Pending row | Image | Already live as |
+|---|---|---|
+| `dgn-g7jv9` | `d-g-g7jv9-1.jpg` | `dgn-g7jv91` (T-Shirts) |
+| `dgn-g8pl4tg7f2h` | `d-g-g8pl4t-g7f2h-0.jpg` | `dgn-g8pl4tg7f2h0` (Polos) |
+
+Same garment, two ids each. The duplicate-id scan cannot see these because the
+ids differ; only the image matches. Note both live rows are in the category the
+photo supports, so the live side is the one that is right.
 
 Importing it would put the same product on the shelf twice, which a buyer reads
 as two different articles. So the pre-import check is not just "no repeated id
