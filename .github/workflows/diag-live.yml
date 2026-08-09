@@ -540,6 +540,7 @@ jobs:
               }
             }
             $noImg = []; $brokenImg = []; $zeroDisc = []; $noPrice = []; $noMoq = [];
+            $saleNoDisc = 0;   // bilgi amacli sayac; eksik sayisina katilmaz
             $dupId = []; $dupSku = []; $badCat = []; $cqBad = [];
 
             foreach ($prods as $p) {
@@ -558,9 +559,21 @@ jobs:
                 if ($im[0] === '/' && !is_file($doc.$im)) $brokenImg[] = "{$id} -> {$im}";
               }
 
-              // indirim rozeti: mode=sale ama gercek indirim yok -> musteriye "-%0" gorunur
-              if (($p['mode'] ?? '') === 'sale' && vestra_discount($p) <= 0)
+              /* Bu kontrol "musteriye -%0 rozeti gorunuyor" diyordu ve 346 urunun 304'unu
+                 isaretliyordu -- ama rozet HIC cizilmiyor: /shop, /showroom ve urun
+                 sayfasinin ucu de once vestra_display_mode() cagiriyor, o da gercek
+                 indirimi olmayan 'sale'i 'fixed'e dusuruyor. Yani veriye bakip render
+                 katmaninin zaten engelledigi bir belirti iddia ediyordu; toplam 340
+                 isaretin 304'u buydu ve gercek bulgular bunun altinda kayboluyordu.
+                 Olcut artik ekranda ne oldugu: display_mode 'sale' derken indirim 0 ise
+                 sorun var. Bu bugun imkansiz, ve olmasi gereken de bu -- kontrol,
+                 render mantigi bozulursa uyarsin diye duruyor. */
+              if (vestra_display_mode($p) === 'sale' && vestra_discount($p) <= 0)
                 $zeroDisc[] = "{$id} | {$nm} | list=".($p['list'] ?? '?')." from=".vestra_from_price($p);
+              /* Indirimsiz 'sale' kaydi yine de bilgi olarak sayiliyor: zararsiz ama
+                 çogu zaman iceri aktarimda indirimli fiyatin hic girilmedigini gosterir.
+                 EKSIK SAYISINA KATILMIYOR -- gorunur bir kusur degil. */
+              if (($p['mode'] ?? '') === 'sale' && vestra_discount($p) <= 0) $saleNoDisc++;
 
               if (empty($p['tiers']) || vestra_from_price($p) <= 0) $noPrice[] = "{$id} | {$nm}";
               if ((int)($p['moq'] ?? 0) <= 0) $noMoq[] = "{$id} | {$nm}";
@@ -586,7 +599,8 @@ jobs:
             };
             $rep("fotografi HIC olmayan urun", $noImg);
             $rep("gorsel yolu var ama DOSYA DISKTE YOK", $brokenImg);
-            $rep("mode=sale ama indirim %0 (musteriye '-%0' rozeti gorunur)", $zeroDisc);
+            $rep("ekranda 'sale' yaziyor ama indirim %0 (render mantigi bozulmus olur)", $zeroDisc);
+            if ($saleNoDisc) printf("  --  bilgi: mode=sale ama indirimi olmayan urun: %d (rozet cizilmiyor, eksik sayilmiyor)\n", $saleNoDisc);
             $rep("fiyati/tier'i olmayan urun", $noPrice);
             $rep("MOQ'su 0/eksik urun", $noMoq);
             $rep("kategorisi bos ya da tanimsiz", $badCat);
