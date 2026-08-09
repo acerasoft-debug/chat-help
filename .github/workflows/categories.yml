@@ -192,6 +192,7 @@ jobs:
               ];
               echo "\n===== AD / KATEGORI CELISKILERI =====\n";
               $bad = 0;
+              $mute = [];   // adi hicbir kurala uymayan urunler: denetimin KOR NOKTASI
               foreach ($audit as $p) {
                 $nm  = (string)($p['name'] ?? '');
                 $cur = (string)($p['cat'] ?? '');
@@ -199,7 +200,8 @@ jobs:
                    dizi sirasi korunuyor ("denim shorts" once, sonra "jeans"). */
                 $should = null;
                 foreach ($rules as $cat => $re) { if (preg_match($re, $nm)) { $should = $cat; break; } }
-                if ($should === null || $should === $cur) continue;
+                if ($should === null) { $mute[$cur !== '' ? $cur : '(bos)'][] = $nm; continue; }
+                if ($should === $cur) continue;
                 $bad++;
                 /* Kaynak da yaziliyor: 'listing' olanlar bu araciyla tasinabilir,
                    'demo'/'tohum' olanlar depodaki dosyada duruyor ve kod degisikligi
@@ -207,7 +209,24 @@ jobs:
                 printf("  %-26s | %-16s | %-40s\n      cat='%s'  ->  ad '%s' diyor   [kaynak: %s]\n",
                   $p['id'] ?? '?', $p['brand'] ?? '?', mb_substr($nm,0,40), $cur, $should, $srcOf($p));
               }
-              echo "\ntaranan urun: ".count($audit)."   celisen urun: {$bad}\n";
+              /* "346 urunde 1 celiski" tek basina "345'i dogrulandi" demek DEGIL.
+                 Adinda hicbir kural kelimesi gecmeyen urun ne dogrulanabilir ne
+                 celiskili sayilabilir; sessizce gecerse rapor oldugundan genis bir
+                 kapsam iddia eder. Sayisi ve hangi kategorilerde toplandiklari
+                 yaziliyor -- bir kategori bastan asagi "sessiz" ise kural eksigi
+                 oradadir. */
+              $muted = 0; foreach ($mute as $list) $muted += count($list);
+              if ($muted) {
+                echo "\n===== ADI KURAL VERMEYEN URUNLER (denetlenemedi) =====\n";
+                ksort($mute);
+                foreach ($mute as $cat => $list) {
+                  $n = count($list); $tot = $stat[$cat]['n'] ?? $n;
+                  printf("  %-32s %3d / %3d   ornek: %s\n", "'".$cat."'", $n, $tot,
+                    mb_substr(implode(' | ', array_slice($list, 0, 2)), 0, 62));
+                }
+              }
+              printf("\ntaranan urun: %d   celisen: %d   denetlenebilen: %d   adi kural vermeyen: %d\n",
+                count($audit), $bad, count($audit) - $muted, $muted);
               echo "(audit) — hicbir sey degistirilmedi.\n";
               exit(0);
             }
