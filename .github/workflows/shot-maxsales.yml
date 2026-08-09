@@ -65,8 +65,33 @@ jobs:
           // gidebiliyor. Sertifika olmadığı için http; AutoSSL çözülmeyen
           // bir ada sertifika vermiyor.
           const browser = await chromium.launch({
-            args: [`--host-resolver-rules=MAP ${H} ${IP}`, '--ignore-certificate-errors'],
+            args: [
+              `--host-resolver-rules=MAP ${H} ${IP}`,
+              '--ignore-certificate-errors',
+              '--disable-blink-features=AutomationControlled',
+            ],
           });
+
+          // BOT DUVARI
+          // İlk denemede beş kadraj da aynı sayfayı gösterdi: GoDaddy'nin
+          // "Please wait while your request is being verified…" ara sayfası.
+          // Veri merkezi IP'si sorgulanıyor. curl aynı anda gerçek sayfayı
+          // alıyordu (123 KB, MAXSALES imzası 9) — yani site sağlam, sorun
+          // yalnızca tarayıcının kapıda tutulması. Ara sayfa JavaScript ile
+          // kendini çözüyor; beklemek ve gerekirse yenilemek yetiyor.
+          const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+                   + '(KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
+
+          async function pastGate(page, url) {
+            for (let tur = 1; tur <= 6; tur++) {
+              const body = await page.content();
+              if (!/being verified|Just a moment|Checking your browser/i.test(body)) return true;
+              console.log(`    bot duvari, bekleniyor [${tur}/6]`);
+              await page.waitForTimeout(4000);
+              try { await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 }); } catch {}
+            }
+            return false;
+          }
 
           const shots = [
             { name: '1-anasayfa-masaustu', path: '/',            w: 1440, h: 1400, full: false },
@@ -84,10 +109,20 @@ jobs:
               deviceScaleFactor: 1,
               isMobile: s.w < 500,
               hasTouch: s.w < 500,
+              userAgent: s.w < 500
+                ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 '
+                  + '(KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+                : UA,
+              locale: 'de-DE',
             });
             const page = await ctx.newPage();
             try {
               const r = await page.goto(base + s.path, { waitUntil: 'networkidle', timeout: 45000 });
+              if (!await pastGate(page, base + s.path)) {
+                console.log(`${s.name}: BOT DUVARI asilamadi — kadraj alinmadi`);
+                await ctx.close();
+                continue;
+              }
               // Tembel yüklenen görseller kadraja girsin diye biraz kaydırıp
               // başa dönüyoruz; yoksa ekran görüntüsünde boş kutular çıkıyor.
               // Sayfayı sonuna kadar kademeli kaydırıyoruz: kartların çoğu
