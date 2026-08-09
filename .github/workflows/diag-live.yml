@@ -185,7 +185,17 @@ jobs:
                 b=$(basename "$f" .php)
                 D=~/public_html/"$b"
                 [ -d "$D" ] || continue
-                echo "  '$b' icin:"
+                # Her cakisma ariza degil. /membership altinda Stripe'in donus sayfalari
+                # (success.php, cancel.php) duruyor ve kok .htaccess'te ona ozel bir
+                # RewriteRule var, dolayisiyla sayfa sorunsuz aciliyor. Sadece "ayni adda
+                # dizin var" diye tasimak odeme donuslerini kirardi. Olcut dizinin varligi
+                # degil, sayfanin GERCEKTEN bozuk olmasi: once canliya bakiyoruz.
+                pre=$(curl -s -o /dev/null -w '%{http_code}' -L "https://vestrasales.com/$b")
+                echo "  '$b' icin: canli durum $pre"
+                if [ "$pre" = "200" ]; then
+                  echo "    sayfa zaten calisiyor -- dokunulmuyor"
+                  continue
+                fi
                 echo "    boyut: $(du -sh "$D" | cut -f1), dosya: $(find "$D" -type f | wc -l)"
                 # Once kanit: bu dizinde olup canli kokte olmayan dosya var mi?
                 uniq=0
