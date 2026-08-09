@@ -325,6 +325,30 @@ jobs:
             else
               echo "  yok"
             fi
+            # ---- KLASORU GERI GETIREN NE? --------------------------------------
+            # /shop dordunc,u kez 403 verdi. Kural ust .htaccess'te DOGRU duruyor ama
+            # o dizin kendi RewriteEngine'ini tasidigi icin Apache ust kurallari
+            # oraya DEVRETMIYOR; yani bu .htaccess ile cozulemez. Tek cozum dizinin
+            # orada OLMAMASI, dolayisiyla onu kimin yarattigini bulmak gerekiyor.
+            echo; echo "== klasoru kim geri getiriyor =="
+            echo "-- kac kez tasidik (her onarim bir kopya birakiyor) --"
+            ls -1d "$HOME"/_golge-shop-* 2>/dev/null | sed 's/^/    /' || echo "    (kopya yok)"
+            echo "-- shop/ bir git klonu mu (kimin deploy'u) --"
+            if [ -d "$HOME/public_html/shop/.git" ]; then
+              git --git-dir="$HOME/public_html/shop/.git" remote -v 2>/dev/null | sed 's/^/    /'
+              git --git-dir="$HOME/public_html/shop/.git" log -1 --format='    son commit: %h %ci %s' 2>/dev/null
+            else
+              echo "    .git yok -- git ile gelmiyorlar"
+            fi
+            echo "-- dizindeki EN YENI 8 dosya (ne zaman yazildi) --"
+            find "$HOME/public_html/shop" -type f -printf '%T@ %TY-%Tm-%Td %TH:%TM  %p\n' 2>/dev/null \
+              | sort -rn | head -8 | cut -d' ' -f2- | sed 's/^/    /'
+            echo "-- crontab --"
+            crontab -l 2>/dev/null | grep -v '^#' | sed 's/^/    /' || echo "    (crontab yok / okunamadi)"
+            echo "-- ~/ altinda 'public_html/shop' gecen betikler --"
+            grep -rl 'public_html/shop' "$HOME" --include='*.sh' --include='*.php' --include='*.py' \
+                 --exclude-dir=public_html --exclude-dir=vestra-repo 2>/dev/null | head -5 | sed 's/^/    /'
+
             # Bu adimin EN SONUNDA, cunku kutuk uzayinca API yalnizca sonu veriyor:
             # kararin dayandigi tek sayi burasi.
             echo; echo "== /shop simdi =="
