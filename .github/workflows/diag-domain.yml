@@ -1,0 +1,68 @@
+name: (Teşhis) maxsales.de için sunucuyu incele
+
+on:
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: "İncelenecek alan adı"
+        required: true
+        default: "maxsales.de"
+
+permissions:
+  contents: read
+
+# SALT OKUNUR sayılır: yalnızca geçici bir kontrol dosyası yazıp siliyor.
+#
+# Soru: /shop yayında ama $HOME/public_html/shop yok. Site hangi dizinden
+# sunuluyor? Tahmin etmek yerine uygulamanın içine bir dosya koyup web'den
+# okuyoruz — dönen cevap DOCUMENT_ROOT'u ve gerçek yolu söylüyor.
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kontrol dosyasını koy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            echo "== ev dizini: shop benzeri her sey =="
+            ls -ld "$HOME"/*shop* "$HOME"/public_html/*shop* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo
+            echo "== _golge-* dizinleri (boyut ve tarih) =="
+            du -sh "$HOME"/_golge-* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo
+            echo "== public_html gercek yol =="
+            readlink -f "$HOME/public_html"
+            echo
+            echo "== kontrol dosyasi yaziliyor =="
+            for d in "$HOME"/_golge-shop-* "$HOME/public_html"; do
+              [ -d "$d" ] || continue
+              printf '%s' "$d" > "$d/_where.txt" 2>/dev/null && echo "  yazildi: $d/_where.txt"
+            done
+
+      - name: Web'den oku
+        run: |
+          for u in "https://vestrasales.com/shop/_where.txt" "https://vestrasales.com/_where.txt"; do
+            echo "-- $u"
+            curl -sS --max-time 20 "$u" | head -3 || true
+            echo
+          done
+          echo "-- /shop/ calisiyor mu"
+          curl -sS -o /dev/null -w '  kod=%{http_code}\n' --max-time 20 "https://vestrasales.com/shop/" || true
+
+      - name: Kontrol dosyasını sil
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            rm -f "$HOME"/_golge-shop-*/_where.txt "$HOME/public_html/_where.txt"
+            echo "temizlendi"
