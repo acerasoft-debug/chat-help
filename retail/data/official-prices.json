@@ -1,0 +1,320 @@
+[
+    {
+        "brand": "BALMAIN",
+        "cat": "Bademode",
+        "rrp": 0,
+        "n": 11
+    },
+    {
+        "brand": "BALMAIN",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "BALMAIN",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "BALMAIN",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 16
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "Bademode",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 4
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "Jacken",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "Jeans",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "Shorts",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Balenciaga",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 11
+    },
+    {
+        "brand": "Burberry",
+        "cat": "Bademode",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "Burberry",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Burberry",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 8
+    },
+    {
+        "brand": "Burberry",
+        "cat": "Shorts",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Burberry",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 40
+    },
+    {
+        "brand": "Burberry",
+        "cat": "Tracksuit Sets",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 6
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "Jeans",
+        "rrp": 0,
+        "n": 27
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "Jeans Shorts",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "Shorts",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "DSQUARED2",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Bademode",
+        "rrp": 0,
+        "n": 16
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 11
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Jacken",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Jeans",
+        "rrp": 0,
+        "n": 20
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Jeans Shorts",
+        "rrp": 0,
+        "n": 6
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 73
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Tracksuit Sets",
+        "rrp": 0,
+        "n": 6
+    },
+    {
+        "brand": "Dolce & Gabbana",
+        "cat": "Westen",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "Fendi",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Fendi",
+        "cat": "Jacken",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "Fendi",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 1
+    },
+    {
+        "brand": "Fendi",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 14
+    },
+    {
+        "brand": "Fendi",
+        "cat": "Tracksuit Sets",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "GCDS",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "GCDS",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Givenchy",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 7
+    },
+    {
+        "brand": "Givenchy",
+        "cat": "Jacken",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "Givenchy",
+        "cat": "Shorts",
+        "rrp": 0,
+        "n": 2
+    },
+    {
+        "brand": "Givenchy",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 23
+    },
+    {
+        "brand": "Givenchy",
+        "cat": "Tracksuit Sets",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Gucci",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "Gucci",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 12
+    },
+    {
+        "brand": "LACOSTE",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 31
+    },
+    {
+        "brand": "LACOSTE",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 28
+    },
+    {
+        "brand": "LACOSTE",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 16
+    },
+    {
+        "brand": "LACOSTE",
+        "cat": "Trousers",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Marcelo Burlon",
+        "cat": "Hoodies & Sweatshirts",
+        "rrp": 0,
+        "n": 4
+    },
+    {
+        "brand": "Marcelo Burlon",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 3
+    },
+    {
+        "brand": "Valentino",
+        "cat": "T-Shirts",
+        "rrp": 0,
+        "n": 5
+    },
+    {
+        "brand": "Versace",
+        "cat": "Polos",
+        "rrp": 0,
+        "n": 1
+    }
+]

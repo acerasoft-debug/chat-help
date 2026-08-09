@@ -5,3 +5,16 @@
 !.htaccess
 !seed/
 !seed/*.json
+
+# İSTİSNA — türetilmiş katalog dosyalari.
+# Bunlar kisisel veri degil, araclarin urettigi ve UYGULAMANIN CALISMASI ICIN
+# GEREKEN yapilandirma: kategori duzeltmeleri, fotograf kalite indeksi, los
+# plani. Depoda olmayinca deploy bunlari gonderemiyor ve canli sitede
+# kategoriler yanlisa donuyor, Vault bos kaliyor -- olculdu.
+!retail-imported.json
+!retail-vault.json
+!photo-quality.json
+!photo-exclude.json
+!category-fix.json
+!official-prices.json
+!hero-frames.json
