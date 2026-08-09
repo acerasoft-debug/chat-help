@@ -1,0 +1,109 @@
+name: (Görsel) MAXSALES ekran görüntüsü
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: "Bakılacak ad"
+        required: true
+        default: "maxsales-test.vestrasales.com"
+
+permissions:
+  contents: read
+
+# NİYE VAR
+# ========
+# Site ~/maxsales_de kökünde çalışıyor ama tarayıcıyla açılamıyor: adın DNS
+# kaydı GoDaddy tarafında yok. İşletmeci haklı olarak "göster" diyor ve
+# gösterecek bir bağlantı yok.
+#
+# Çözüm: tarayıcıyı adın IP'sini biliyormuş gibi çalıştırmak. Chromium'un
+# --host-resolver-rules anahtarı tam bunu yapıyor; sayfa, DNS kaydı
+# girilmiş gibi yükleniyor. Böylece kayıt beklenirken sitenin gerçek hâli
+# görülebiliyor.
+#
+# SALT OKUNUR: yalnızca sayfa açıp resim çekiyor.
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sunucu IP'si
+        id: ip
+        env:
+          H: ${{ github.event.inputs.host }}
+        run: |
+          IP=$(dig +short A vestrasales.com | head -1)
+          [ -n "$IP" ] || { echo "::error::sunucu IP'si bulunamadi"; exit 1; }
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          echo "$H -> $IP"
+
+      - name: Playwright kur
+        run: |
+          npm init -y > /dev/null 2>&1
+          npm i -D playwright@latest > /dev/null 2>&1
+          npx playwright install chromium > /dev/null 2>&1
+          echo "hazir"
+
+      - name: Sayfaları çek
+        env:
+          H: ${{ github.event.inputs.host }}
+          IP: ${{ steps.ip.outputs.ip }}
+        run: |
+          mkdir -p shots
+          cat > shot.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const H  = process.env.H;
+          const IP = process.env.IP;
+          const base = `http://${H}`;
+
+          // Adı IP'ye elle bağlıyoruz: DNS kaydı yokken tarayıcı böyle
+          // gidebiliyor. Sertifika olmadığı için http; AutoSSL çözülmeyen
+          // bir ada sertifika vermiyor.
+          const browser = await chromium.launch({
+            args: [`--host-resolver-rules=MAP ${H} ${IP}`, '--ignore-certificate-errors'],
+          });
+
+          const shots = [
+            { name: '1-anasayfa-masaustu', path: '/',            w: 1440, h: 1400, full: false },
+            { name: '2-anasayfa-mobil',    path: '/',            w:  390, h:  844, full: false },
+            { name: '3-magaza-mobil',      path: '/shop.php',    w:  390, h:  844, full: false },
+            { name: '4-magaza-masaustu',   path: '/shop.php',    w: 1440, h: 1200, full: false },
+            { name: '5-outlet-masaustu',   path: '/outlet.php',  w: 1440, h: 1200, full: false },
+          ];
+
+          for (const s of shots) {
+            const ctx = await browser.newContext({
+              viewport: { width: s.w, height: s.h },
+              deviceScaleFactor: 2,
+              isMobile: s.w < 500,
+              hasTouch: s.w < 500,
+            });
+            const page = await ctx.newPage();
+            try {
+              const r = await page.goto(base + s.path, { waitUntil: 'networkidle', timeout: 45000 });
+              // Tembel yüklenen görseller kadraja girsin diye biraz kaydırıp
+              // başa dönüyoruz; yoksa ekran görüntüsünde boş kutular çıkıyor.
+              await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+              await page.waitForTimeout(1500);
+              await page.evaluate(() => window.scrollTo(0, 0));
+              await page.waitForTimeout(800);
+              await page.screenshot({ path: `shots/${s.name}.png`, fullPage: s.full });
+              const imgs = await page.evaluate(() =>
+                Array.from(document.images).filter(i => i.naturalWidth === 0).length);
+              console.log(`${s.name}: ${r.status()} · yuklenmeyen gorsel: ${imgs}`);
+            } catch (e) {
+              console.log(`${s.name}: HATA ${e.message}`);
+            }
+            await ctx.close();
+          }
+          await browser.close();
+          JS
+          node shot.mjs
+          ls -la shots/ | sed 's/^/  /'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maxsales-ekran
+          path: shots/
+          retention-days: 7
