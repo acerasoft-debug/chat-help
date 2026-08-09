@@ -65,7 +65,11 @@ jobs:
             echo "incelenen : ".$rep['examined']."\n";
             echo "kaydedilen: ".$rep['saved']."\n";
             if ($rep['skipped']) { echo "atlanan   :\n"; foreach ($rep['skipped'] as $why=>$n) printf("   %-38s %d\n", $why, $n); }
-            if ($rep['files'])   { echo "\ndosyalar:\n"; foreach ($rep['files'] as $f) echo "   ".$f."\n"; }
+            /* files[] bir kayit dizisi -- duz echo "Array" yaziyordu. Hangi fotografin
+               indigini GORMEK sart: makale gorseli editoryal moda fotografi olacak,
+               katalog urun cekimi ya da alakasiz bir resim olmayacak. */
+            if ($rep['files'])   { echo "\ndosyalar:\n"; foreach ($rep['files'] as $f)
+              printf("   %-58s %5dpx  %-22s %s\n", $f['file'], $f['width'], $f['license'], mb_substr($f['artist'],0,34)); }
             if ($rep['errors'])  { echo "\nhatalar:\n";  foreach ($rep['errors'] as $e) echo "   ".$e."\n"; }
 
             /* Kredisi olmayan dosya yayinlanamaz (CC-BY fotografciyi anmayi sart kosuyor),
