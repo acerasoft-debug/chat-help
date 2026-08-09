@@ -172,6 +172,7 @@ jobs:
                  ediyor, yani araci dinleyen biri katalogu bozardi. */
               $rules = [
                 'Tracksuit Sets'        => '/\b(tracksuit|track\s*suit)\b/i',
+                'Activewear'            => '/\b(sweatpants|joggers?|track\s*pants|leggings)\b/i',
                 "Women's Swimwear"      => '/\b(bikini|swimsuit|badeanzug|one-?piece)\b/i',
                 "Women's Jeans"         => "/\bwom(?:en|an)'?s?\b.*\bjeans?\b/i",
                 "Women's T-Shirts"      => "/\bwom(?:en|an)'?s?\b.*\bt[\s-]?shirts?\b/i",
@@ -184,11 +185,11 @@ jobs:
                    dogru yerdeki tisortleri toptan "sorta tasi" diye isaretlerdi. */
                 'Shorts'                => '/\bshorts\b/i',
                 'Polos'                 => '/\bpolo\b/i',
-                'Underwear'             => '/\b(boxer|brief|underwear)\b/i',
+                'Underwear'             => '/\b(boxers?|briefs?|underwear|thongs?)\b/i',
                 'Jeans'                 => '/\bjeans?\b/i',
                 'Tank Tops'             => '/\b(tank\s*top|vest\s*top|singlet)\b/i',
                 'Hoodies & Sweatshirts' => '/\b(hoodie|sweatshirt|sweat|crewneck)\b/i',
-                'T-Shirts'              => '/\bt[\s-]?shirts?\b/i',
+                'T-Shirts'              => '/\b(t[\s-]?shirts?|tees?)\b/i',
               ];
               echo "\n===== AD / KATEGORI CELISKILERI =====\n";
               $bad = 0;
