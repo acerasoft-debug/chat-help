@@ -245,11 +245,33 @@ jobs:
 
               /* 4) Son care: sayfada (ve alan adinda) gecen ulke/sehir adi. Alan adi da
                  haystack'e giriyor cunku "samplestoreseoul.com" gibi isimler sitenin
-                 tamamen Ingilizce oldugu durumda tek ipucu olabiliyor. */
+                 tamamen Ingilizce oldugu durumda tek ipucu olabiliyor.
+
+                 ILK ESLESME ALINAMAZ: 9 Agustos'ta Carraig Donn, Life Style Sports ve
+                 Guinness Storehouse Almanca, Avoca Italyanca, DublinLeather Fransizca
+                 kampanya aldi -- besi de Irlandali. Sebep: kargo/teslimat tablosunda
+                 "Germany, France, Italy..." yaziyor ve tarama listedeki ilk ulkeyi
+                 magazanin ulkesi sandi. Bir kargo tablosunda ONLARCA ulke gecer; bir
+                 magazanin KENDI ulkesi ise sayfa boyunca tekrar eder (adres, "made in",
+                 iletisim). Onun icin artik gecis SAYILIYOR: tek ulke geciyorsa o, birden
+                 fazlaysa yalnizca acik ara onde olan (en az 3 kez ve ikincinin iki kati)
+                 kabul ediliyor. Beraberlik varsa hic tahmin edilmiyor -- Ingilizce'ye
+                 dusmek, yanlis dilde e-posta gondermekten iyi. */
               if ($out['country'] === '') {
-                $low = mb_strtolower($hay.' '.$domain);
-                foreach ($COUNTRY_WORDS as $cn => $words)
-                  foreach ($words as $w) if (str_contains($low, $w)) { $out['country'] = $cn; break 2; }
+                $low  = mb_strtolower($hay.' '.$domain);
+                $hits = [];
+                foreach ($COUNTRY_WORDS as $cn => $words) {
+                  $n = 0;
+                  foreach ($words as $w) $n += substr_count($low, $w);
+                  if ($n > 0) $hits[$cn] = $n;
+                }
+                if (count($hits) === 1) {
+                  $out['country'] = array_key_first($hits);
+                } elseif (count($hits) > 1) {
+                  arsort($hits);
+                  $v = array_values($hits);
+                  if ($v[0] >= 3 && $v[0] >= $v[1] * 2) $out['country'] = array_key_first($hits);
+                }
               }
               return $out;
             };
