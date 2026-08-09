@@ -407,11 +407,12 @@ function vestra_journal_model_photo(array $p): string {
    request. Only files that carry a credit entry are offered: the CC-BY / CC-BY-SA
    licences these arrive under require the photographer to be named wherever the image
    is shown, so an uncredited file is one we are not allowed to publish. */
-function vestra_journal_photo_pool(): array {
+function vestra_journal_photo_pool(bool $fresh = false): array {
     static $pool = null;
+    if ($fresh) $pool = null;
     if ($pool !== null) return $pool;
     $pool = [];
-    foreach (vestra_journal_credits() as $file => $c) {
+    foreach (vestra_journal_credits($fresh) as $file => $c) {
         if (!empty($c['artist']) && is_readable(__DIR__.'/../uploads/journal/'.$file)) {
             $pool[] = '/uploads/journal/'.$file;
         }
@@ -421,8 +422,14 @@ function vestra_journal_photo_pool(): array {
 }
 
 /** file name => ['artist','license','source','desc'], written by the journal-photos job. */
-function vestra_journal_credits(): array {
+function vestra_journal_credits(bool $fresh = false): array {
     static $c = null;
+    /* The fetch job reads credits, downloads, writes credits, then asks how big the pool
+       got — and got 0 every time, because this static still held the pre-download copy.
+       clearstatcache() does not touch PHP statics, so the caller needs a way to say
+       "re-read from disk". Page rendering never passes it and keeps the one-read-per-
+       request behaviour this cache exists for. */
+    if ($fresh) $c = null;
     if ($c !== null) return $c;
     $c = [];
     $f = __DIR__.'/../uploads/journal/credits.json';
@@ -493,7 +500,12 @@ function vestra_journal_photo_reject(): array {
             'solarpunk', 'illustration', 'drawing', 'painting', 'engraving', 'clipart', 'logo',
             /* a mill's front gate and a heritage plaque both mention the textile mill they
                belong to, and both photograph as signage rather than as cloth */
-            'gate of', 'sign of', 'signboard'];
+            'gate of', 'sign of', 'signboard',
+            /* 'knitted sweater' found a dog in one, and 'garment factory' found workers'
+               barracks — a labour-conditions picture, not a trade one. Storm and flood
+               damage arrives through clothes-shop queries the same way. */
+            'dog sweater', 'dog coat', 'dog jumper', 'barracks', 'flood', 'hurricane',
+            'katrina', 'debris'];
 }
 
 /* Fetch editorial photography from Wikimedia Commons into uploads/journal/ and record who
