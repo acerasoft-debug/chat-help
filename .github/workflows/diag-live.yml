@@ -22,6 +22,10 @@ on:
         description: "true = bir sayfayı gölgeleyen dizini public_html DIŞINA taşı (403 onarımı). Silmez, taşır."
         required: false
         default: "false"
+      htaccess_report:
+        description: "true = canlı .htaccess ile depodakini karşılaştır, deploy.sh'ın neyi kopyaladığını yaz (salt-okunur)"
+        required: false
+        default: "false"
       dropship_api_key:
         description: "Verilirse api/dropship.php'yi bu Bearer key ile uçtan uca test eder (log'a yazılmaz)"
         required: false
@@ -267,6 +271,52 @@ jobs:
               printf '  %-34s %s\n' "$u" \
                 "$(curl -s -o /dev/null -w '%{http_code}  %{time_total}s  %{size_download}B' -L "https://vestrasales.com$u")"
             done
+
+      # /shop icin .htaccess'e acik bir yonlendirme kurali ekledim, deploy gecti, sayfa
+      # yine 403 verdi. Iki ihtimal var ve ikisi cok farkli isler gerektiriyor: kural
+      # sunucudaki dosyaya HIC ulasmadi (deploy.sh .htaccess'i kopyalamiyor), ya da
+      # ulasti ama etkisiz (baska bir .htaccess veya AllowOverride araya giriyor).
+      # deploy.sh depoda degil, sadece sunucuda -- o yuzden ne kopyaladigini buradan
+      # okumak gerekiyor. Salt-okunur: hicbir sey yazmaz/tasimaz.
+      - name: .htaccess ve deploy kapsamı raporu
+        if: github.event.inputs.htaccess_report == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            L="$HOME/public_html/.htaccess"; R="$HOME/vestra-repo/vestra/.htaccess"
+            echo "== canli .htaccess =="
+            ls -l "$L" 2>/dev/null || echo "  YOK: $L"
+            echo "== depodaki .htaccess (sunucu klonu) =="
+            ls -l "$R" 2>/dev/null || echo "  YOK: $R"
+            echo; echo "== shop kurali hangisinde var =="
+            for f in "$L" "$R"; do
+              if [ -f "$f" ]; then
+                if grep -q '\^shop/\?\$' "$f"; then echo "  VAR : $f"; else echo "  YOK : $f"; fi
+              fi
+            done
+            echo; echo "== iki dosya ayni mi =="
+            if [ -f "$L" ] && [ -f "$R" ]; then
+              if cmp -s "$L" "$R"; then echo "  ayni"; else echo "  FARKLI -- deploy .htaccess'i tasimamis olabilir"; diff "$R" "$L" | head -20; fi
+            fi
+            echo; echo "== deploy.sh icinde .htaccess/rsync ile ilgili satirlar =="
+            if [ -f "$HOME/deploy.sh" ]; then
+              grep -n 'rsync\|exclude\|htaccess\|--delete' "$HOME/deploy.sh" | head -25
+            else
+              echo "  ~/deploy.sh yok"
+            fi
+            echo; echo "== golge dizin =="
+            if [ -d "$HOME/public_html/shop" ]; then
+              echo "  VAR: $(ls -ld "$HOME/public_html/shop")"
+              echo "  ilk 10 girdi:"; ls -A "$HOME/public_html/shop" | head -10 | sed 's/^/    /'
+              [ -f "$HOME/public_html/shop/.htaccess" ] && echo "  DIKKAT: shop/.htaccess VAR (kendi kurallarini dayatabilir)"
+            else
+              echo "  yok"
+            fi
 
       # Siparisin tarafsiz "order sheet" PDF'ini sunucuda uretir -- orders.csv de urun
       # fotograflari da sadece orada var -- ve cagirana geri verir.
