@@ -339,21 +339,24 @@ vr_layout_start([
 
     <hr class="rule" style="margin:clamp(34px,4.4vw,58px) 0">
 
+    <?php /* Başlıklar h2: bu dört kutu sayfanın h1'inden sonraki ilk düzey.
+             h3 kullanıldığında ekran okuyucu h1'den h3'e atlıyor ve arada
+             kaybolmuş bir bölüm olduğunu sanıyor (WCAG 1.3.1). */ ?>
     <div class="steps">
       <div class="step" data-reveal>
-        <b>01</b><h3><?= te('vault_step1_t') ?></h3>
+        <b>01</b><h2><?= te('vault_step1_t') ?></h2>
         <p><?= te('vault_step1_b', ['steps' => $steps + 1]) ?></p>
       </div>
       <div class="step" data-reveal>
-        <b>02</b><h3><?= te('vault_step2_t') ?></h3>
+        <b>02</b><h2><?= te('vault_step2_t') ?></h2>
         <p><?= te('vault_step2_b', ['hours' => $hours]) ?></p>
       </div>
       <div class="step" data-reveal>
-        <b>03</b><h3><?= te('vault_step3_t') ?></h3>
+        <b>03</b><h2><?= te('vault_step3_t') ?></h2>
         <p><?= te('vault_step3_b') ?></p>
       </div>
       <div class="step" data-reveal>
-        <b>04</b><h3><?= te('vault_fairness') ?></h3>
+        <b>04</b><h2><?= te('vault_fairness') ?></h2>
         <p><?= te('vault_fairness_b') ?></p>
       </div>
     </div>

@@ -96,12 +96,20 @@ if ($one !== null) {
           if ($key === $slug) continue;
           if (++$shown > 3) break; ?>
         <article class="jcard" data-reveal>
-          <a class="jcard__media" href="<?= h(vr_url('journal.php', ['a' => $key])) ?>">
+          <?php /* Kadraj bağlantısının erişilebilir adı yok: içinde yalnızca
+                   dekoratif bir görsel var ve ekran okuyucu "bağlantı" deyip
+                   susuyordu. Aynı yere giden başlık bağlantısı hemen altında,
+                   yani bu ikinci bağlantı yardımcı teknoloji için gürültü —
+                   ağaçtan çıkarıyoruz. Fare ve dokunma davranışı değişmiyor. */ ?>
+          <a class="jcard__media" href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"
+             aria-hidden="true" tabindex="-1">
             <img src="<?= h($art($key, 700, 440)) ?>" alt="" width="700" height="440" loading="lazy">
           </a>
           <div class="jcard__body">
             <p class="jcard__kicker"><?= h($e['kicker']) ?></p>
-            <h3><a href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"><?= h($e['title']) ?></a></h3>
+            <?php /* h2: kart başlıkları sayfanın h1'inden sonraki ilk düzey.
+                     h3 olduğunda ekran okuyucu bir düzey atlıyor (WCAG 1.3.1). */ ?>
+            <h2 class="jcard__t"><a href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"><?= h($e['title']) ?></a></h2>
             <p><?= h(mb_substr($e['lead'], 0, 120)) ?></p>
           </div>
         </article>
@@ -138,12 +146,20 @@ vr_layout_start([
     <div class="jgrid">
       <?php foreach ($entries as $key => $e): ?>
         <article class="jcard" data-reveal>
-          <a class="jcard__media" href="<?= h(vr_url('journal.php', ['a' => $key])) ?>">
+          <?php /* Kadraj bağlantısının erişilebilir adı yok: içinde yalnızca
+                   dekoratif bir görsel var ve ekran okuyucu "bağlantı" deyip
+                   susuyordu. Aynı yere giden başlık bağlantısı hemen altında,
+                   yani bu ikinci bağlantı yardımcı teknoloji için gürültü —
+                   ağaçtan çıkarıyoruz. Fare ve dokunma davranışı değişmiyor. */ ?>
+          <a class="jcard__media" href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"
+             aria-hidden="true" tabindex="-1">
             <img src="<?= h($art($key, 700, 440)) ?>" alt="" width="700" height="440" loading="lazy">
           </a>
           <div class="jcard__body">
             <p class="jcard__kicker"><?= h($e['kicker']) ?></p>
-            <h3><a href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"><?= h($e['title']) ?></a></h3>
+            <?php /* h2: kart başlıkları sayfanın h1'inden sonraki ilk düzey.
+                     h3 olduğunda ekran okuyucu bir düzey atlıyor (WCAG 1.3.1). */ ?>
+            <h2 class="jcard__t"><a href="<?= h(vr_url('journal.php', ['a' => $key])) ?>"><?= h($e['title']) ?></a></h2>
             <p><?= h($e['lead']) ?></p>
             <span class="jcard__more"><?= te('more') ?></span>
           </div>
