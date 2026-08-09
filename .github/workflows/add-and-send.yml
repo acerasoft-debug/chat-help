@@ -221,15 +221,25 @@ jobs:
               /* 3) Uzanti genel (.com/.net) ve telefon da yoksa sayfanin yazi sistemine bak. Sayfasi bastan
                  asagi Hangul olan bir magaza, kargo tablosunda Almanya yaziyor diye Alman
                  olmaz. Esik tek bir kelimeyi degil, sayfanin gercekten o dilde yazildigini
-                 arar. */
+                 arar.
+
+                 MUTLAK SAYI YETMIYOR: 9 Agustos'ta folkster.com (Kilkenny) Rusca,
+                 omdivaboutique.com (Dublin) Korece kampanya aldi. Ikisi de bastan asagi
+                 Ingilizce Irlanda butigi; sayfada dil/para birimi secici ya da ceviri
+                 eklentisi 30 Kiril/Hangul karakteri gecmeye yetmis. Artik ORAN da
+                 araniyor: o yazi sistemi, sayfadaki Latin harflerinin yaninda gorunur
+                 bir agirliga sahip olmali. Gercekten Korece bir sitede oran 1'in
+                 uzerinde; ingilizce bir sitedeki ceviri menusunde binde birkac. */
               if ($out['country'] === '') {
                 $SCRIPT = [
                   'South Korea' => '/[\x{AC00}-\x{D7A3}]/u',              // Hangul
                   'Japan'       => '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}]/u', // hiragana + katakana
                   'Russia'      => '/[\x{0400}-\x{04FF}]/u',              // Kiril
                 ];
+                $latin = preg_match_all('/[A-Za-z]/', $hay);
                 foreach ($SCRIPT as $cn => $re) {
-                  if (preg_match_all($re, $hay) >= 30) { $out['country'] = $cn; break; }
+                  $n = preg_match_all($re, $hay);
+                  if ($n >= 30 && $n >= $latin * 0.08) { $out['country'] = $cn; break; }
                 }
               }
 
