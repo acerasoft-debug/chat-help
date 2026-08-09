@@ -1,79 +1,90 @@
-name: (Teşhis) /shop nereden sunuluyor
+name: (Teşhis) Alan adı yetkileri ve DNS
 
 on:
   workflow_dispatch:
     inputs:
-      note:
-        description: "Not (kayıt için)"
-        required: false
-        default: "golge klasorler ve /shop yonlendirmesi"
+      domain:
+        description: "İncelenecek alan adı"
+        required: true
+        default: "maxsales.de"
 
 permissions:
   contents: read
 
-# SALT OKUNUR. Hiçbir şey silmiyor, taşımıyor, oluşturmuyor.
+# SALT OKUNUR. Hiçbir şey yazmıyor, silmiyor, açmıyor.
 #
-# Üç soru:
-#   1) public_html/shop yok ama /shop 200 dönüyor — hangi kural yapıyor bunu?
-#   2) _golge-shop-* klasörleri ne kadar yer tutuyor, içlerinde ne var?
-#   3) Hangisi (varsa) canlı siteyi besliyor?
+# NİYE VAR
+# ========
+# maxsales.de'yi sunucuya bağlamak iki kez reddedildi:
+#   uapi Domains    add_domain      -> Can't locate Cpanel/API/Domains.pm
+#   uapi AddonDomain addaddondomain -> Can't locate Cpanel/API/AddonDomain.pm
+# Yani bu cPanel kurulumunda ek alan modülleri hiç yüklü değil. SubDomain
+# modülü ise çalışıyor (maxsales-test.vestrasales.com açıldı).
 #
-# (3) kritik: kullanıcı "sil" dedi ama biri canlı mağazayı besliyorsa silmek
-# dükkânı kapatır. Silmeden önce kanıt.
+# Ayrı bir sorun daha ölçüldü: cPanel'de açılan alt ad dışarıdan
+# çözülmüyor. Çünkü vestrasales.com'un yetkili sunucuları bu makine değil,
+# GoDaddy'nin ns71/ns72.domaincontrol.com sunucuları — cPanel'in yazdığı
+# bölge dosyasını kimse sormuyor.
+#
+# Bu iş, "paket ek alana izin veriyor mu, yoksa modüller mi eksik" sorusunu
+# tahminle değil ölçümle cevaplasın diye var: hesabın özellik listesi,
+# alan sayısı sınırı ve mevcut alanlar okunuyor.
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Sunucu
+      - name: Sunucudaki yetkiler
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          command_timeout: 5m
+          command_timeout: 4m
           script: |
-            echo "===== 1) public_html/.htaccess icinde shop gecen satirlar ====="
-            grep -n -i 'shop' "$HOME/public_html/.htaccess" 2>/dev/null | head -40 || echo "  eslesme yok"
+            echo "== cPanel surumu =="
+            cat /usr/local/cpanel/version 2>/dev/null || echo "  okunamadi"
             echo
-            echo "===== 2) .htaccess TAM (ilk 80 satir) ====="
-            sed -n '1,80p' "$HOME/public_html/.htaccess" 2>/dev/null || echo "  okunamadi"
+            echo "== yuklu UAPI modulleri (alan adiyla ilgili) =="
+            ls /usr/local/cpanel/Cpanel/API/ 2>/dev/null | grep -iE 'domain|sub|park' | sed 's/^/  /' || echo "  liste okunamadi"
             echo
-            echo "===== 3) public_html icinde adinda shop gecen her sey ====="
-            ls -ld "$HOME"/public_html/*shop* 2>/dev/null | sed 's/^/  /' || echo "  yok"
+            echo "== hesap sinirlari =="
+            # MAXADDON / MAXSUB paket sinirlari. "0" = hic izin yok,
+            # "unlimited" = sinirsiz. Modul eksikligi ile paket yasagi ayri
+            # seyler; ikisini birbirine karistirmamak icin ikisi de okunuyor.
+            uapi --output=jsonpretty StatsBar get_stats display='addondomains|subdomains|parkeddomains' 2>&1 \
+              | grep -E '"(name|count|max|item)"' | sed 's/^/  /' | head -40
             echo
-            echo "===== 4) golge klasorler ====="
-            for d in "$HOME"/_golge-shop-*; do
-              [ -d "$d" ] || continue
-              printf '  %s  %s  dosya=%s\n' "$(du -sh "$d" | cut -f1)" "$d" "$(find "$d" -type f | wc -l)"
-            done
+            echo "== tanimli alanlar =="
+            uapi --output=jsonpretty DomainInfo list_domains 2>&1 \
+              | grep -oE '"[a-z0-9.-]+\.[a-z]{2,}"' | sort -u | sed 's/^/  /'
             echo
-            echo "===== 5) golge klasorlerde index.php surumu (ilk satirlarda ipucu) ====="
-            for d in "$HOME"/_golge-shop-*; do
-              [ -f "$d/index.php" ] || continue
-              printf '  %s : %s bayt, %s\n' "$(basename "$d")" "$(stat -c %s "$d/index.php")" "$(stat -c %y "$d/index.php" | cut -d. -f1)"
-            done
-            echo
-            echo "===== 6) golge klasorler web'den erisilebiliyor mu (public_html icinde mi) ====="
-            case "$(readlink -f "$HOME"/_golge-shop-* 2>/dev/null | head -1)" in
-              "$(readlink -f "$HOME/public_html")"*) echo "  EVET - public_html altinda" ;;
-              *) echo "  HAYIR - public_html disinda (web'den dogrudan istenemez)" ;;
-            esac
-            echo
-            echo "===== 7) cPanel: alanlarin kok dizinleri ====="
-            uapi --output=jsonpretty DomainInfo list_domains 2>&1 | head -20
-            echo
-            echo "===== 8) docroot listesi (varsa) ====="
-            uapi --output=jsonpretty DomainInfo single_domain_data domain=vestrasales.com 2>&1 | grep -iE 'documentroot|homedir|domain' | head -10
+            echo "== belge kokleri =="
+            uapi --output=jsonpretty DomainInfo domains_data 2>&1 \
+              | grep -E '"(domain|documentroot)"' | sed 's/^/  /' | head -30
 
-      - name: Web tarafi
+      - name: DNS gerçekte ne diyor
+        if: always()
+        env:
+          D: ${{ github.event.inputs.domain }}
         run: |
-          B="https://vestrasales.com"
-          for p in "/shop/" "/shop/index.php" "/shop/shop.php" "/shop/assets/css/maxsales.css" "/shop/nonexistent-xyz.php"; do
-            code=$(curl -sS -o /tmp/b -w '%{http_code}' --max-time 20 "$B$p" || echo 000)
-            size=$(wc -c < /tmp/b 2>/dev/null || echo 0)
-            printf '  %-40s %s  %s bayt\n' "$p" "$code" "$size"
+          # Yetkili sunucuya DOĞRUDAN soruyoruz. Ara belleğe düşmüş eski bir
+          # "yok" cevabı ölçümü yanıltmasın diye: alt ad cPanel'de açılmadan
+          # önce sorulmuştu ve olumsuz cevap bir süre saklanıyor.
+          for z in vestrasales.com "$D"; do
+            echo "== $z"
+            dig +short NS "$z" | sed 's/^/   NS  /'
+            ns=$(dig +short NS "$z" | head -1)
+            for name in "$z" "www.$z" "maxsales-test.vestrasales.com"; do
+              case "$name" in *"$z"*|maxsales-test*) ;; *) continue ;; esac
+              printf '   %-38s' "$name"
+              if [ -n "$ns" ]; then
+                a=$(dig +short A "$name" "@$ns" 2>/dev/null | tr '\n' ' ')
+                echo "A(yetkili)= ${a:-YOK}"
+              else
+                echo "yetkili sunucu bulunamadi"
+              fi
+            done
+            echo
           done
-          echo
-          echo "-- /shop/ ilk satirlar"
-          curl -sS --max-time 20 "$B/shop/" | head -12
+          echo "Sunucunun IP'si (vestrasales.com uzerinden): $(dig +short A vestrasales.com | head -1)"
