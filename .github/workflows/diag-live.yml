@@ -64,7 +64,10 @@ jobs:
           BASE="https://vestrasales.com"
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           printf '%-46s %-6s %-9s %-7s %s\n' "YOL" "KOD" "BOYUT" "SURE" "NOT"
-          for p in $PATHS; do
+          # Yollar bosluk YA DA virgulle ayrilabilsin. Ikisi de dogal geliyor ve
+          # virgulle yazildiginda tum dizge TEK yol sayilip 404 donuyordu -- yani
+          # "sayfa yok" diyen bir rapor, aslinda sorulmamis bir soru icin.
+          for p in $(echo "$PATHS" | tr ',' ' '); do
             out=$(curl -sS -A "$UA" -o /tmp/body.html -w '%{http_code} %{size_download} %{time_total}' \
                   --max-time 30 "${BASE}${p}" 2>/dev/null || echo "000 0 0")
             code=$(echo "$out" | awk '{print $1}')
@@ -91,7 +94,7 @@ jobs:
           GREP_PAIRS='${{ github.event.inputs.grep_pairs }}'
           if [ -n "$GREP_PAIRS" ]; then
             echo; echo "===== ICERIK KONTROLU ====="
-            echo "$GREP_PAIRS" | while IFS= read -r line; do
+            echo "$GREP_PAIRS" | sed 's/||/\n/g' | while IFS= read -r line; do
               [ -z "$line" ] && continue
               gp="${line%%::*}"; needle="${line#*::}"
               curl -sS -A "$UA" -o /tmp/gbody.html --max-time 30 "${BASE}${gp}" 2>/dev/null || true
@@ -272,7 +275,7 @@ jobs:
             # tablosu adimin basinda yaziliyor ve uzun bir kutukte kuyruktan okunamiyor;
             # bu yuzden "sordugum yol ne dondu" sorusu hep cevapsiz kaliyordu. Sorulan
             # yollarin SONDA tekrar edilmesi o bosluğu kapatiyor.
-            LIST="${DIAG_PATHS:-}"
+            LIST="$(echo "${DIAG_PATHS:-}" | tr ',' ' ')"
             [ -z "$LIST" ] && LIST="/ /shop /catalog /journal /product?id=lac-polo-paris /login /cart"
             for u in $LIST; do
               printf '  %-34s %s\n' "$u" \
