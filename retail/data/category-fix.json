@@ -275,7 +275,8 @@
     },
     "dgn-ftah6dg8ez5": {
         "cat": "Jeans",
-        "name": "Dolce & Gabbana Jeans FTAH6DG8EZ5"
+        "name": "Dolce & Gabbana Jeans FTAH6DG8EZ5",
+        "face": "/uploads/balenciaga-burberry/d-g-ftah6dg8ez5-p1-p2-v1.jpg"
     },
     "dgn-g7d9u": {
         "cat": "T-Shirts",
@@ -551,7 +552,8 @@
     },
     "dgn-g8rn8tg7nuc": {
         "cat": "T-Shirts",
-        "name": "Dolce & Gabbana T-Shirt G8RN8TG7NUC"
+        "name": "Dolce & Gabbana T-Shirt G8RN8TG7NUC",
+        "face": "/uploads/shorts-sweats/d-g-g8rn8tg7nuc-v1.jpg"
     },
     "dgn-g8rn8zg7m8v": {
         "cat": "T-Shirts",
@@ -655,7 +657,8 @@
     },
     "dgn-gy07ldg8et3": {
         "cat": "Jeans",
-        "name": "Dolce & Gabbana Jeans GY07LDG8ET3"
+        "name": "Dolce & Gabbana Jeans GY07LDG8ET3",
+        "face": "/uploads/balenciaga-burberry/d-g-gy07ldg8et3-p1.jpg"
     },
     "dgn-gy07ldg8eu4": {
         "cat": "Jeans",
@@ -1063,5 +1066,8 @@
     },
     "dsq-s74gu0424": {
         "face": "/uploads/licensed/dsquared2/860de2d59f.jpg"
+    },
+    "gvy-bm71ct3y6b": {
+        "face": "/uploads/givenchy/givenchy-bm71ct3y6b-p1.jpg"
     }
 }

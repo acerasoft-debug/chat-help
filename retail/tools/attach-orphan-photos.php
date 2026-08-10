@@ -47,6 +47,8 @@ if (PHP_SAPI !== 'cli') {
 
 require_once __DIR__ . '/../inc/view.php';
 require_once __DIR__ . '/../inc/uploads.php';
+require_once __DIR__ . '/lib-photo-match.php';
+require_once __DIR__ . '/lib-photo-colour.php';
 
 $dry   = in_array('--dry', $argv, true);
 $limit = 0;
@@ -81,7 +83,7 @@ foreach ($catalog as $id => $p) {
         $img = (string)$img;
         if ($img === '') continue;
         $owned[$img] = true;
-        $st = ao_stem($img);
+        $st = pm_stem($img);
         if (strlen($st) >= 6) $byStem[$st][$id] = true;
     }
     $sku = ao_key((string)($p['sku'] ?? ''));
@@ -99,7 +101,16 @@ if (is_dir($root)) {
     foreach ($it as $f) {
         if (!$f->isFile()) continue;
         $abs = $f->getPathname();
-        if (str_contains($abs, '/.thumbs/')) continue;
+        // .orig/ ZORUNLU OLARAK DIŞARIDA.
+        // Orası trim-caption-bands.php'nin yedeği: tedarikçi model kodu
+        // şeridi HÂLÂ ÜZERİNDE olan kırpılmamış asıllar. İlk çalıştırmada
+        // burası elenmiyordu ve 39 üründe kart yüzü kırpılmamış asıla
+        // geçti — yani şeridi kestiğimiz fotoğraflar vitrine geri geldi.
+        // Ölçüldü, geri alındı. candidates/ de aynı sebeple dışarıda:
+        // orası onay bekleyen indirmeler, katalog değil.
+        foreach (['/.thumbs/', '/.orig/', '/candidates/'] as $skipDir) {
+            if (str_contains($abs, $skipDir)) continue 2;
+        }
         if (!preg_match('/\.(jpe?g|png|webp|avif)$/i', $abs)) continue;
         $all[] = '/uploads/' . substr($abs, strlen($root) + 1);
     }
@@ -107,46 +118,58 @@ if (is_dir($root)) {
 sort($all);
 
 $orphans = array_values(array_filter($all, fn($r) => !isset($owned[$r])));
+$idx = pm_build_index($catalog);
 printf("MAXSALES — sahipsiz fotoğraf eşleştirme%s\n", $dry ? ' (Probelauf)' : '');
 echo str_repeat('=', 68) . "\n";
 printf("diskte %d · katalogda %d · sahipsiz %d\n\n", count($all), count($owned), count($orphans));
 
 // ---- eşleştir
 $add = [];              // ürün kimliği => [dosya, …]
-$stemHit = $codeHit = $ambiguous = $noHit = 0;
+$stemHit = $codeHit = $ambiguous = $noHit = $rejected = 0;
+$rejectBy = [];
+$refPx = [];
+$docRoot = vr_doc_root();
 
 foreach ($orphans as $rel) {
     if ($limit > 0 && count($add) >= $limit) break;
-    $stem = ao_stem($rel);
-    if (strlen($stem) < 6) { $noHit++; continue; }
 
-    // 1) gövde eşleşmesi
-    $hits = array_keys($byStem[$stem] ?? []);
-    $how  = 'gövde';
-
-    // 2) model kodu
-    if (!$hits) {
-        $how  = 'kod';
-        $seen = [];
-        foreach ($byCode as $code => $ids) {
-            if (strlen($code) < 6) continue;
-            if (str_contains($stem, $code) || str_contains($code, $stem)) {
-                foreach (array_keys($ids) as $i) $seen[$i] = true;
-            }
-        }
-        $hits = array_keys($seen);
-    }
+    // Kural ortak kitaplikta (lib-photo-match.php): once TAM model kodu,
+    // en uzun kod kazanacak sekilde; sonra govde. Denetim araci ayni
+    // fonksiyonu cagiriyor, boylece kolajda gorulen ile yazilan ayni.
+    [$hits, $how] = pm_match($rel, $idx, $byStem);
 
     if (!$hits)            { $noHit++; continue; }
     if (count($hits) > 1)  { $ambiguous++; continue; }
 
-    $add[$hits[0]][] = $rel;
+    // RENK KAPISI (lib-photo-colour.php)
+    // Ad eşleşmesi ürünü buluyor ama rengi garanti etmiyor: tedarikçi aynı
+    // gövde kodunu bütün renkler için kullanıyor. Gözle bakıldı — turuncu
+    // tişörte beyaz kareler, siyah boksere beyaz, siyah mayoya fuşya
+    // bağlanıyordu. Bunlar buradan geçmiyor. Ayrıca üzerinde yalnızca model
+    // numarası yazan tedarikçi kartları da eleniyor.
+    $id = $hits[0];
+    if (!isset($refPx[$id])) {
+        $refPx[$id] = false;
+        foreach ((array)($catalog[$id]['images'] ?? []) as $u) {
+            $m = cac_pixels($docRoot . '/' . ltrim((string)$u, '/'));
+            if ($m && $m[1] > 0.03) { $refPx[$id] = $m; break; }
+        }
+    }
+    $cm = cac_pixels($docRoot . '/' . ltrim($rel, '/'));
+    if ($refPx[$id] && $cm) {
+        [$karar, ] = cac_decide($refPx[$id][0], $refPx[$id][1], $cm[0], $cm[1]);
+        if ($karar !== 'kabul') { $rejected++; $rejectBy[$karar] = ($rejectBy[$karar] ?? 0) + 1; continue; }
+    }
+
+    $add[$id][] = $rel;
     if ($how === 'gövde') $stemHit++; else $codeHit++;
 }
 
 printf("eşleşti  : %d dosya (%d gövde, %d model kodu) → %d ürün\n", $stemHit + $codeHit, $stemHit, $codeHit, count($add));
 printf("belirsiz : %d (birden çok ürüne uyuyor — bağlanmadı)\n", $ambiguous);
-printf("eşleşmedi: %d\n\n", $noHit);
+printf("eşleşmedi: %d\n", $noHit);
+printf("renk/yazı kapısı: %d elendi (%s)\n\n", $rejected,
+       $rejectBy ? implode(', ', array_map(fn($k, $v) => "$k: $v", array_keys($rejectBy), $rejectBy)) : '-');
 
 if (!$add) { echo "Yapılacak bir şey yok.\n"; exit(0); }
 
