@@ -67,7 +67,9 @@ jobs:
                olmadigi icin su an tetiklenemiyor. Buradaki kod ORNEKTIR, gercek bir kupon
                yazilmaz: amac gorunumu onaylamak, kullanilabilir kod uretmek degil. */
             if ($variant === 'voucher') {
-              require $home."/public_html/inc/email_templates.php";
+              /* email_templates.php'yi BURADA cekmiyoruz: notify.php zaten require_once ile
+                 aliyor. Duz `require` ile ikinci kez cekmek "Cannot redeclare" ile olumcul
+                 hata veriyordu -- display_errors kapali oldugu icin de sessizce. */
               $lang = $argv[4] ?? 'de';
               list($subject, $body, $opts) = vestra_tpl_welcome_voucher(
                 $lang, 'Boutique Meyer GmbH', 'VES-ORNEK-KOD', '5%', date('d.m.Y', strtotime('+6 months')));
@@ -127,5 +129,10 @@ jobs:
             $ok = vestra_send_mail($to, $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
             echo $ok ? "GONDERILDI -> {$to}\n" : "HATA: gonderim basarisiz\n";
             PHPEOF
-            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY" "$LANG_IN"
+            php -l /tmp/vestra_camp_preview.php
+            # Cikis kodu ONCE yakalanip sonra donduruluyor. Eskiden `php ...; rm -f ...` idi:
+            # rm'in kodu php'ninkini eziyordu, boylece bir PHP fatal'i adimi YESIL birakiyordu
+            # -- bir onizleme "gonderildi" gorunup hic gitmedi.
+            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY" "$LANG_IN"; RC=$?
             rm -f /tmp/vestra_camp_preview.php
+            exit $RC
