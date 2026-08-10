@@ -1,0 +1,207 @@
+name: Ürün metinlerinde toplu düzeltme (bul → değiştir)
+on:
+  workflow_dispatch:
+    inputs:
+      find:
+        description: "Aranacak metin — HARFİ HARFİNE (regex değil). Örn: 10/seri"
+        required: true
+        default: ""
+      replace:
+        description: "Yerine yazılacak metin. Boş bırakılırsa bulunan metin SİLİNİR"
+        required: false
+        default: ""
+      fields:
+        # '*' bilerek destekleniyor: bir kelimenin SADECE bilinen alanlarda geçtigini
+        # varsaymak, ceviri alanlarinda ya da henuz gormedigimiz bir anahtarda kalan
+        # kopyayi gozden kacirmanin en kolay yolu. Once '*' ile kuru calistirip
+        # kelimenin gercekte nerelerde durdugunu gormek daha guvenli.
+        description: "Hangi alanlar (virgülle): sizes,desc,name,cat,colors — veya * = ürün kaydındaki TÜM metinler"
+        required: false
+        default: "sizes,desc"
+      brand:
+        description: "Marka filtresi (örn: DSQUARED2). * = tüm markalar"
+        required: false
+        default: "*"
+      case_sensitive:
+        description: "true = büyük/küçük harf duyarlı ara. false = duyarsız"
+        required: false
+        default: "false"
+      dry_run:
+        description: "true = SADECE ne değişeceğini yaz, KAYDETME"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+# Canli urun verisindeki (data/listings.json) metinleri toplu duzeltir.
+#
+# NEDEN AYRI BIR IS. set-prices.yml bir alanin TAMAMINI yeni bir degerle degistirir;
+# burada gereken ise bir metnin ICINDEKI bir parcayi degistirmek. "44×1 · 46×2 ·
+# 48×2 · 50×2 · 52×2 · 54×1 · 10/seri" satirinda sadece "10/seri" kismi yanlis --
+# beden dagilimi dogru. Tum alani yeniden yazmak, her urunun kendi beden serisini
+# elle tekrar girmek demekti.
+#
+# GUVENLIK: arama HARFI HARFINE, regex degil (preg_quote yok, str_replace var) --
+# yani "10/seri" icindeki '/' bir sey bolmuyor, '.' her karakteri eslemiyor.
+# Kaydetmeden once zaman damgali yedek alinir ve yazimdan sonra urun sayisi
+# dogrulanir. dry_run=true varsayilan.
+jobs:
+  fix-text:
+    runs-on: ubuntu-latest
+    steps:
+      # Aranan/yazilacak metinler bosluk ve cok baytli karakter iceriyor ("·", "×").
+      # ssh-action'in envs yolu bunlari kabuk icinde guvenle tirnaklamiyor; set-prices
+      # bu yuzden exit 255 ile olmustu. Girdileri tek bir base64 JSON blobuna sarip
+      # gonderiyoruz: telde giden sey saf ASCII, bosluksuz, kabuk metakarakteri yok.
+      - name: Girdileri kodla
+        env:
+          RAW_FIND: ${{ github.event.inputs.find }}
+          RAW_REPLACE: ${{ github.event.inputs.replace }}
+          RAW_FIELDS: ${{ github.event.inputs.fields }}
+          RAW_BRAND: ${{ github.event.inputs.brand }}
+          RAW_CASE: ${{ github.event.inputs.case_sensitive }}
+          RAW_DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import base64, json, os
+          blob = {k: os.environ.get('RAW_'+k.upper(), '')
+                  for k in ['find','replace','fields','brand','case','dry']}
+          print('F_JSON=' + base64.b64encode(
+              json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
+          PY
+          echo "kodlandi: $(echo "$F_JSON" | wc -c) bayt"
+
+      - name: Metinleri düzelt
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            export F_JSON='${{ env.F_JSON }}'
+            cat > /tmp/vestra_fixtext.php <<'PHPEOF'
+            <?php
+            /* Sunucuda display_errors kapali: olumcul hata ciktisiz olarak 255 ile
+               oluyor ve CI'da okunamiyor. Bu tek seferlik betik icin acilir. */
+            ini_set('display_errors','1'); ini_set('display_startup_errors','1');
+            error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e = error_get_last();
+              if ($e && in_array($e['type'], [E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR], true)) {
+                fwrite(STDERR, "PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+              }
+            });
+
+            $home = getenv("HOME");
+            $inc  = $home."/public_html/inc/products.php";
+            if (!is_readable($inc)) { fwrite(STDERR, "HATA: {$inc} okunamadi\n"); exit(1); }
+            require $inc;
+            foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn) {
+              if (!function_exists($fn)) { fwrite(STDERR, "HATA: {$fn}() tanimli degil\n"); exit(1); }
+            }
+
+            $raw = (string)getenv("F_JSON");
+            if ($raw === '') { fwrite(STDERR, "HATA: F_JSON bos -- girdiler ulasmadi\n"); exit(1); }
+            $dec = base64_decode($raw, true);
+            $in  = $dec === false ? null : json_decode($dec, true);
+            if (!is_array($in)) { fwrite(STDERR, "HATA: F_JSON cozulemedi\n"); exit(1); }
+
+            $find    = (string)($in['find'] ?? '');
+            $replace = (string)($in['replace'] ?? '');
+            $brand   = trim((string)($in['brand'] ?? '*')) ?: '*';
+            $cs      = strtolower(trim((string)($in['case'] ?? ''))) === 'true';
+            $dry     = strtolower(trim((string)($in['dry'] ?? 'true'))) !== 'false';
+            $fieldsIn= trim((string)($in['fields'] ?? 'sizes,desc'));
+            $fields  = array_values(array_filter(array_map('trim', explode(',', $fieldsIn))));
+            if (!$fields) $fields = ['sizes','desc'];
+            $allFields = in_array('*', $fields, true);
+
+            if ($find === '') { fwrite(STDERR, "HATA: 'find' bos -- her seyi eslerdi\n"); exit(1); }
+            if ($find === $replace) { fwrite(STDERR, "HATA: find ve replace ayni\n"); exit(1); }
+
+            echo "aranan   : '{$find}'\n";
+            echo "yazilacak: '".($replace === '' ? '(SILINIYOR)' : $replace)."'\n";
+            echo "alanlar  : ".($allFields ? '* (tum metinler)' : implode(', ', $fields))."\n";
+            echo "marka    : {$brand}   buyuk/kucuk harf duyarli: ".($cs ? 'evet' : 'hayir')."\n\n";
+
+            $rep = $cs
+              ? fn(string $s): string => str_replace($find, $replace, $s)
+              : fn(string $s): string => str_ireplace($find, $replace, $s);
+            $has = $cs
+              ? fn(string $s): bool => str_contains($s, $find)
+              : fn(string $s): bool => stripos($s, $find) !== false;
+
+            /* Bir alan duz metin de olabilir, dizi de (renk listesi, ceviriler).
+               Ic ice dizilerde de yurur; anahtarlara dokunmaz, sadece degerlere. */
+            $walk = function ($v) use (&$walk, $rep, $has, &$touched) {
+              if (is_string($v)) {
+                if ($has($v)) { $touched++; return $rep($v); }
+                return $v;
+              }
+              if (is_array($v)) { foreach ($v as $k => $vv) $v[$k] = $walk($vv); }
+              return $v;
+            };
+
+            $all = vestra_listings();
+            $prodHits = 0; $fieldHits = 0; $scanned = 0;
+            foreach ($all as $i => $p) {
+              $b = (string)($p['brand'] ?? '');
+              if ($brand !== '*' && stripos($b, $brand) === false) continue;
+              $scanned++;
+              $id = (string)($p['id'] ?? '?');
+              $lines = [];
+
+              $keys = $allFields ? array_keys($p) : $fields;
+              foreach ($keys as $k) {
+                if (!array_key_exists($k, $p)) continue;
+                /* 'id' ve 'slug' bilerek disarida: bunlar urunun adresi. Icinde aranan
+                   metin gecse bile degistirmek her linki, her siparis kaydini kirar. */
+                if ($k === 'id' || $k === 'slug') continue;
+                $touched = 0;
+                $new = $walk($p[$k]);
+                if ($touched === 0) continue;
+                $fieldHits += $touched;
+                $before = is_string($p[$k]) ? $p[$k] : json_encode($p[$k], JSON_UNESCAPED_UNICODE);
+                $after  = is_string($new)   ? $new   : json_encode($new,   JSON_UNESCAPED_UNICODE);
+                $lines[] = sprintf("%-8s %s\n           -> %s", $k,
+                    mb_strimwidth($before, 0, 110, '…'), mb_strimwidth($after, 0, 110, '…'));
+                $all[$i][$k] = $new;
+              }
+              if ($lines) { $prodHits++; echo "  {$id} | {$b}\n    ".implode("\n    ", $lines)."\n"; }
+            }
+
+            echo "\ntaranan urun: {$scanned}   eslesen urun: {$prodHits}   degisen metin: {$fieldHits}\n";
+            if (!$fieldHits) { echo "Degisiklik yok.\n"; exit(0); }
+            if ($dry) { echo "\nDRY RUN -- hicbir sey kaydedilmedi. Uygulamak icin dry_run=false.\n"; exit(0); }
+
+            $dir = vestra_data_dir();
+            $src = $dir.'/listings.json';
+            $bak = $dir.'/listings.json.bak-'.gmdate('Ymd-His');
+            if (!@copy($src, $bak)) { fwrite(STDERR, "HATA: yedek alinamadi, kaydetmiyorum\n"); exit(1); }
+            echo "yedek: {$bak}\n";
+
+            vestra_save_listings($all);
+
+            /* Geri okuyup dogrula: urun sayisi degismemeli ve aranan metin gitmis olmali. */
+            clearstatcache();
+            $check = vestra_listings();
+            if (count($check) !== count($all)) {
+              fwrite(STDERR, "HATA: kayittan sonra urun sayisi degisti! yedek: {$bak}\n"); exit(1);
+            }
+            $left = 0;
+            foreach ($check as $p) {
+              $j = json_encode($p, JSON_UNESCAPED_UNICODE);
+              if ($j !== false && $has($j)) $left++;
+            }
+            echo "KAYDEDILDI -- {$fieldHits} metin guncellendi, {$prodHits} urun.\n";
+            if ($left) fwrite(STDERR, "UYARI: '{$find}' hala {$left} urunde geciyor (alan filtresi disinda kalmis olabilir).\n");
+            else echo "dogrulama: '{$find}' artik hicbir urunde gecmiyor.\n";
+            PHPEOF
+            php -l /tmp/vestra_fixtext.php
+            php /tmp/vestra_fixtext.php; RC=$?
+            echo "php cikis kodu=$RC"
+            rm -f /tmp/vestra_fixtext.php
+            exit $RC
