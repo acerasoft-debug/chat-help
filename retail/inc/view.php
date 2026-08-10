@@ -350,12 +350,14 @@ function vr_card(array $p, array $o = []): void
               'alt'   => $p['brand'] . ' ' . $p['name'],
               'sizes' => '(max-width:640px) 48vw, (max-width:1100px) 32vw, 300px',
               'eager' => !empty($o['eager']),
+              'tile'  => true,
           ]);
           // İkinci kare yalnızca üzerine gelince görünür; dekoratif olduğu için
           // alt="" ve aria-hidden — ekran okuyucu aynı ürünü iki kez okumasın.
           if (!$solo) {
               vr_frame($alt2, [
                   'class'  => 'card__alt',
+                  'tile'   => true,
                   'widths' => [300, 600],
                   'sizes'  => '(max-width:640px) 48vw, 300px',
               ]);
@@ -804,7 +806,7 @@ function vr_photo_shape_index(): array
  * @param float $box hedef kutunun en/boy oranı (kart 0.8)
  * @return array{mode:string,style:string} mode: 'cover' | 'pad' | 'tint'
  */
-function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true): array
+function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true, bool $tile = false): array
 {
     $s = vr_photo_shape_index()[$rel] ?? null;
     if (!is_array($s) || empty($s['r'])) return ['mode' => 'cover', 'style' => ''];
@@ -818,7 +820,20 @@ function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true): array
     // cover kalıyor; beyaz paket çekimini koyu kartın ortasına beyaz bir kare
     // olarak oturtmak bölümün bütün havasını bozuyor. Orada tek yaptığımız,
     // kırpmayı öznenin bulunduğu yere doğru kaydırmak.
-    if (!$allowPad || ($r > $box * 0.82 && $r < $box * 1.22)) {
+    // VİTRİN KAROSU DAR KAREYİ KIRPAR — ürün sayfası kırpmaz.
+    //
+    // Çok uzun kareler (r < 0.62, çoğu boy çekimi) karoya sığdırılınca ürün
+    // ortada küçücük kalıyor ve iki yanı bulanık dolgu bandı oluyordu; 64
+    // kartta böyleydi. Öncesi/sonrası kolajı yapıldı: on iki örneğin
+    // hepsinde kırpılmış hâl daha iyi — giysi kadrajı dolduruyor, desen
+    // okunuyor, bant yok. Kırpma özne merkezine göre yapılıyor, o yüzden
+    // giysi değil çoğunlukla arka plan gidiyor.
+    //
+    // Bu YALNIZCA karo için. Ürün sayfasında amaç parçayı bütün görmek;
+    // orada dolgu doğru davranış, kırpmak müşteriden bilgi saklamak olur.
+    $tileCrop = $tile && $r > 0 && $r < 0.62;
+
+    if (!$allowPad || $tileCrop || ($r > $box * 0.82 && $r < $box * 1.22)) {
         // Özne merkezi ortadaysa hiç uğraşma; kenara kaymışsa kırpmayı oraya
         // doğru çek — uzun bir paltoda alt kenar yerine yakayı korumak için.
         $cx = isset($s['cx']) ? max(20, min(80, (int)$s['cx'])) : 50;
@@ -849,7 +864,7 @@ function vr_img_fit(string $rel, float $box = 0.8, bool $allowPad = true): array
 function vr_frame(string $rel, array $o = []): void
 {
     if ($rel === '') return;
-    $fit  = vr_img_fit($rel, (float)($o['box'] ?? 0.8), empty($o['no_pad']));
+    $fit  = vr_img_fit($rel, (float)($o['box'] ?? 0.8), empty($o['no_pad']), !empty($o['tile']));
     $w    = (int)($o['w'] ?? 600);
     $set  = (array)($o['widths'] ?? [300, 600, 900]);
     $cls  = 'fr fr--' . $fit['mode'] . (!empty($o['class']) ? ' ' . $o['class'] : '');
