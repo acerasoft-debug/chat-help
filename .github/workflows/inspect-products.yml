@@ -30,6 +30,14 @@ on:
         description: "true = sadece görseli eksik/bozuk ürünleri yaz (check_images ile birlikte)"
         required: false
         default: "false"
+      orphans:
+        description: "true = uploads/ altında HİÇBİR ürüne bağlı olmayan görselleri listele + kök adı eşleşenleri 2. foto adayı olarak eşleştir"
+        required: false
+        default: "false"
+      dims:
+        description: "true = her ürünün görsellerinin piksel boyutunu ve dosya boyutunu yaz (kalite denetimi)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -56,13 +64,15 @@ jobs:
           INSPECT_IMGIN: ${{ github.event.inputs.img_contains }}
           INSPECT_COMPACT: ${{ github.event.inputs.compact }}
           INSPECT_MISSONLY: ${{ github.event.inputs.missing_only }}
+          INSPECT_ORPHANS: ${{ github.event.inputs.orphans }}
+          INSPECT_DIMS: ${{ github.event.inputs.dims }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -81,6 +91,8 @@ jobs:
             /* Tek satirlik cikti: 94 urunluk bir klasor normal bicimde 376 satir eder ve
                Actions API kutugun yalnizca SONUNU verdigi icin bas taraf okunamaz olur. */
             $compact  = strtolower(trim((string)getenv("INSPECT_COMPACT"))) === 'true';
+            $orphans  = strtolower(trim((string)getenv("INSPECT_ORPHANS"))) === 'true';
+            $dims     = strtolower(trim((string)getenv("INSPECT_DIMS")))    === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -154,6 +166,111 @@ jobs:
               foreach ($bad as $b) echo "   KAYIP GORSEL: {$b}\n";
             }
 
+            /* ── Bagsiz gorseller + 2. foto adaylari ────────────────────────────────
+               Katalogda 346 urune karsilik 429 gorsel var, yani cogu urunde tek kare.
+               Ikinci kareyi UYDURMAK yerine diskte zaten duran dosyalardan bulmak
+               gerekiyor: bu bolum uploads/ altindaki her gorseli tarar, hicbir urune
+               referans verilmemis olanlari ayirir ve kok adi eslesenleri aday olarak
+               yazar.
+
+               Eslesme kurali: dosya adinin sonundaki varyant ekini (-2, _2, -b, -back,
+               -detail, -alt, -side, -flat, -model, " (1)") atinca geriye kalan kok,
+               AYNI KLASORDEKI bir urun gorselinin koku ile birebir tutuyorsa aday sayilir.
+               Ayni klasor sarti onemli: iki ayri markada "polo-white.jpg" bulunabiliyor ve
+               klasor olmadan bunlar birbirine karisir.
+
+               SALT OKUNUR -- hicbir sey yazmaz, sadece raporlar. */
+            if ($orphans) {
+              $ref = [];                       // normalize edilmis yol => urun id
+              foreach ($all as $p2) {
+                foreach ((array)($p2['images'] ?? []) as $im) {
+                  $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
+                  $ref[strtolower($rel)] = (string)($p2['id'] ?? '?');
+                }
+              }
+              $stem = function(string $file): string {
+                $b = strtolower(pathinfo($file, PATHINFO_FILENAME));
+                $b = preg_replace('/\s*\(\d+\)$/', '', $b);
+                /* Ayirici ZORUNLU. Once '[-_ ]?' yazilmisti ve bu, 'b' ile biten her adi
+                   kirpiyordu: club -> clu, tab -> ta. Yanlis kirpilan bir kok baska bir
+                   rengin karesiyle eslesir ve urun sayfasina yanlis giysi koyar -- 346
+                   urun icinde fark edilmesi cok zor bir hata. Ayirici sart olunca
+                   'polo2.jpg' gibi ayiricisiz varyantlar kaciyor; aday kaçirmak yanlis
+                   aday uretmekten iyidir, cunku kaçani insan gozu bulur, yanlisi bulmaz. */
+                $b = preg_replace('/[-_ ](2|3|4|5|b|back|rueck|detail|alt|side|flat|model|zoom|close)$/', '', $b);
+                return $b;
+              };
+              $files = [];
+              $dir = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/uploads', FilesystemIterator::SKIP_DOTS));
+              foreach ($dir as $f) {
+                if (!$f->isFile()) continue;
+                $ext = strtolower($f->getExtension());
+                if (!in_array($ext, ['jpg','jpeg','png','webp','avif','gif'], true)) continue;
+                if (strpos($f->getFilename(), 'sheet_') === 0) continue;   // satici line-sheet'leri urun gorseli degil
+                $rel = '/uploads'.substr($f->getPathname(), strlen($root.'/uploads'));
+                $files[] = str_replace('\\', '/', $rel);
+              }
+              sort($files);
+              /* kok => ayni klasordeki referansli dosyalar */
+              $byStem = [];
+              foreach ($files as $rel) {
+                if (!isset($ref[strtolower($rel)])) continue;
+                $byStem[dirname($rel).'|'.$stem($rel)][] = $rel;
+              }
+              $orphanList = []; $cand = []; $nOrphan = 0;
+              foreach ($files as $rel) {
+                if (isset($ref[strtolower($rel)])) continue;
+                $nOrphan++;
+                $key = dirname($rel).'|'.$stem($rel);
+                if (isset($byStem[$key])) {
+                  $owner = $ref[strtolower($byStem[$key][0])] ?? '?';
+                  $cand[$owner][] = $rel;
+                } else {
+                  $orphanList[] = $rel;
+                }
+              }
+              echo "\n===== GORSEL ENVANTERI =====\n";
+              printf("uploads/ altindaki gorsel: %d   urune bagli: %d   bagsiz: %d\n",
+                     count($files), count($files) - $nOrphan, $nOrphan);
+              printf("2. foto adayi bulunan urun: %d   toplam aday kare: %d\n",
+                     count($cand), array_sum(array_map('count', $cand)));
+              echo "\n-- 2. FOTO ADAYLARI (urun => diskte duran, kok adi eslesen kare) --\n";
+              $shown = 0;
+              foreach ($cand as $pid => $list) {
+                if ($shown++ >= 60) { printf("  ... ve %d urun daha\n", count($cand) - 60); break; }
+                printf("  %-30s %s\n", $pid, implode('  ', array_map('basename', $list)));
+              }
+              echo "\n-- BAGSIZ, ESLESMEYEN (ilk 40) --\n";
+              foreach (array_slice($orphanList, 0, 40) as $o) echo "  {$o}\n";
+              if (count($orphanList) > 40) printf("  ... ve %d dosya daha\n", count($orphanList) - 40);
+            }
+
+            /* ── Gorsel kalitesi ──────────────────────────────────────────────────────
+               "Kaliteyi duzelt" demek once olcmek demek: hangi kare kucuk, hangisi
+               asiri sikistirilmis. Urun sayfasindaki sahne 4:5 ve genis ekranda ~560px
+               gosteriliyor, retina icin 1120px kenar gerekiyor -- 800px altindaki her
+               kare orada yumusak cikar. */
+            if ($dims) {
+              $small = []; $tot = 0; $sum = 0;
+              foreach ($all as $p2) {
+                foreach ((array)($p2['images'] ?? []) as $im) {
+                  $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
+                  $file = $root.$rel;
+                  if (!is_file($file)) continue;
+                  $inf = @getimagesize($file); if (!$inf) continue;
+                  $tot++; $sum += max($inf[0], $inf[1]);
+                  if (max($inf[0], $inf[1]) < 800)
+                    $small[] = [(string)($p2['id'] ?? '?'), basename($rel), $inf[0], $inf[1], filesize($file)];
+                }
+              }
+              echo "\n===== GORSEL KALITESI =====\n";
+              printf("olculen kare: %d   ortalama uzun kenar: %d px\n", $tot, $tot ? (int)round($sum/$tot) : 0);
+              printf("800px altinda (urun sayfasinda yumusak cikar): %d\n", count($small));
+              foreach (array_slice($small, 0, 40) as $s2)
+                printf("  %-28s %-34s %4dx%-4d  %d KB\n", $s2[0], substr($s2[1],0,34), $s2[2], $s2[3], (int)round($s2[4]/1024));
+              if (count($small) > 40) printf("  ... ve %d kare daha\n", count($small) - 40);
+            }
+
             /* Ozet EN SONDA: kutuk cok uzarsa API yalnizca sonunu veriyor, bas taraf
                ulasilamaz oluyor. Karar verilecek sayi burada dursun. */
             if ($imgchk) {
@@ -164,5 +281,10 @@ jobs:
               echo $nBad ? "SONUC: KIRIK FOTO VAR\n" : "SONUC: TUM FOTOLAR YERINDE\n";
             }
             PHPEOF
-            php /tmp/vestra_inspect.php
+            php -l /tmp/vestra_inspect.php
+            # Cikis kodu ONCE yakalanip sonra donduruluyor. `php ...` ardindan gelen `rm`
+            # onun kodunu eziyordu: bir PHP fatal'i bu adimi YESIL birakirdi ve rapor
+            # "sorun yok" gibi okunurdu. Bu tuzak bugun kupon isinde bir kez isledi.
+            php /tmp/vestra_inspect.php; RC=$?
             rm -f /tmp/vestra_inspect.php
+            exit $RC
