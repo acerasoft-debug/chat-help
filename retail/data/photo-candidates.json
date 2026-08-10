@@ -1,1 +1,22 @@
-[]
+{
+    "fnd-t04": {
+        "source": [
+            "https://www.luxuryfashionstores.ch/en/18219/fendi-faf532-a8k5-ff-roma-amor-t-shirt_p",
+            "https://giglio.com/eng/clothing-men_t-shirt-fendi-faf532ad3v.html?cSel=002"
+        ],
+        "candidates": [
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/54-53-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-1.jpg",
+                "file": "/uploads/candidates/fnd-t04/12b3d93ee8.jpg"
+            },
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/33-64-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-2.jpg",
+                "file": "/uploads/candidates/fnd-t04/5fc62a4522.jpg"
+            },
+            {
+                "url": "https://www.luxuryfashionstores.ch/_CMS/repository/Normal/9-84-FAF532-A8K5-F0ZNM-T-SHIRT-FF-ROMA-AMOR-WHITE-FENDI-T-SHIRT-3.jpg",
+                "file": "/uploads/candidates/fnd-t04/cf6edc2f39.jpg"
+            }
+        ]
+    }
+}
