@@ -150,13 +150,14 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           FIX_SHADOW: ${{ github.event.inputs.fix_shop_shadow }}
+          DIAG_PATHS: ${{ github.event.inputs.paths }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: FIX_SHADOW
+          envs: FIX_SHADOW,DIAG_PATHS
           script: |
             echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
@@ -267,7 +268,13 @@ jobs:
                                                        : "  GD YOK -- katalog tam boyutta gomuyor!\n";'
 
             echo; echo "== canli sayfa durumlari =="
-            for u in / /shop /catalog /journal /product?id=lac-polo-paris /login /cart; do
+            # Istenen yollar varsa ONLAR, yoksa varsayilan ana sayfalar. Ustteki HTTP
+            # tablosu adimin basinda yaziliyor ve uzun bir kutukte kuyruktan okunamiyor;
+            # bu yuzden "sordugum yol ne dondu" sorusu hep cevapsiz kaliyordu. Sorulan
+            # yollarin SONDA tekrar edilmesi o bosluğu kapatiyor.
+            LIST="${DIAG_PATHS:-}"
+            [ -z "$LIST" ] && LIST="/ /shop /catalog /journal /product?id=lac-polo-paris /login /cart"
+            for u in $LIST; do
               printf '  %-34s %s\n' "$u" \
                 "$(curl -s -o /dev/null -w '%{http_code}  %{time_total}s  %{size_download}B' -L "https://vestrasales.com$u")"
             done
