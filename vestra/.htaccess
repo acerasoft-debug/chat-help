@@ -38,6 +38,10 @@
   RewriteRule ^wholesale-list\.pdf$ wholesale-list.php [QSA,L]
   # Ayni liste Excel olarak: alici siralayip suzup kendi alim tablosuna yapistirabilsin.
   RewriteRule ^wholesale-list\.xlsx$ wholesale-xlsx.php [QSA,L]
+  # Marka marka indirme sayfasi. Katalogdan kendisi ureyor: elle yazilan bir marka
+  # listesi ilk yeni markada bayatlar, ve yanlis yazilan bir marka adi hata degil BOS
+  # liste dondurur -- sessiz oldugu icin de fark edilmez.
+  RewriteRule ^price-lists/?$ price-lists.php [L]
 
   # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
 
