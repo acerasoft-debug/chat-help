@@ -1084,7 +1084,13 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .stage h1{
   margin-top:clamp(16px,2.2vw,28px);font-size:clamp(38px,7.2vw,112px);line-height:.95;
-  letter-spacing:-.036em;max-width:15ch;margin-inline:auto;text-wrap:balance;
+  /* Ölçü 15ch'ten 18ch'e çıktı. 15ch'te başlık her genişlikte DÖRT satıra
+     kırılıyordu ve ikinci satırın ucunda tek başına bir "At" kalıyordu:
+     "everyone wants. At / the moment they". 18ch'te üç satır oluyor, nokta
+     satır ortasına düşüyor ve blok 1440'ta 394 → 296 px kısalıyor — yani
+     düğmeler yukarı geliyor, filmden daha çok görünüyor.
+     1920/1280/1024/768/390'da tek tek ölçüldü: hepsinde 4 → 3 satır. */
+  letter-spacing:-.036em;max-width:18ch;margin-inline:auto;text-wrap:balance;
 }
 .stage__sub{
   margin:clamp(20px,2.6vw,30px) auto 0;max-width:56ch;
