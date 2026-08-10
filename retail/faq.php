@@ -38,9 +38,10 @@ vr_layout_start([
 ?>
 <section class="sec sec--tight">
   <div class="wrap">
-    <?php vr_breadcrumbs([t('faq_title') => null]); ?>
-
     <div class="faq">
+      <?php /* Kırıntı yolu ortalanmış sütunun İÇİNDE — dışarıdayken sayfanın
+         sol kenarına (51 px) yapışıyor, başlık ise 223'ten başlıyordu. */ ?>
+      <?php vr_breadcrumbs([t('faq_title') => null]); ?>
       <h1 class="sechead__t"><?= te('faq_title') ?></h1>
       <p class="sechead__s" style="margin:12px 0 8px"><?= te('faq_sub') ?></p>
 

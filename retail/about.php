@@ -49,9 +49,12 @@ vr_layout_start([
 ?>
 <section class="sec sec--tight">
   <div class="wrap">
-    <?php vr_breadcrumbs([t('about_title') => null]); ?>
-
     <div class="doc">
+      <?php /* Kırıntı yolu .doc'un İÇİNDE olmalı. Dışarıdayken sayfanın sol
+         kenarına (51 px) yapışıyor, oysa .doc ortalanmış bir sütun ve başlık
+         243 pikselden başlıyordu — iki farklı sol kenar. Künye sayfaları
+         (legal/_doc.php) zaten böyle yapıyor; about tek istisnaydı. */ ?>
+      <?php vr_breadcrumbs([t('about_title') => null]); ?>
       <h1><?= te('about_title') ?></h1>
       <p class="pdp__lead" style="margin:14px 0 4px"><?= te('about_sub') ?></p>
 
