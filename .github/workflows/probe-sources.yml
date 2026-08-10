@@ -529,20 +529,47 @@ jobs:
 
               if (!$cands) { echo "                           -- fiyat bulunamadi\n"; flush(); continue; }
 
-              /* Ayni sayfada birden cok aday olabilir (indirimli + eski fiyat, beden
-                 basina teklif...). UVP istedigimiz icin EN YUKSEK olani aliyoruz:
-                 indirimli fiyat tavsiye edilen perakende fiyati degildir. */
-              $best = null;
+              /* ONCE KAYNAK, SONRA BUYUKLUK. Bir urun sayfasinda birden cok fiyat
+                 gecer: sayfanin kendi urunu, altindaki "bunlari da begenebilirsiniz"
+                 karuseli, indirimli/eski fiyat ciftleri.
+                 "En yukseği al" tek basina yanlisti: Balenciaga'nin t-shirt sayfasinda
+                 JSON-LD dogru fiyati (EUR 595) veriyordu, ama karuselde duran 2150'lik
+                 bir ceket daha buyuk oldugu icin o seciliyordu -- yani sayfadaki BASKA
+                 bir urunun fiyati.
+                 Dogru sira: JSON-LD > og:meta > microdata > ham JSON. Once en guvenilir
+                 katmanda EUR fiyati ara; ancak o katman bos ise bir alttakine in.
+                 Indirim/eski fiyat ayrimi icin "en yuksek" kurali KATMAN ICINDE hala
+                 gecerli -- indirimli fiyat UVP degildir. */
+              $tiers = ['jsonld' => 0, 'meta' => 1, 'microdata' => 2, 'ham-json' => 3];
+              $tierOf = function (string $src) use ($tiers): int {
+                foreach ($tiers as $p => $rank) if (str_starts_with($src, $p)) return $rank;
+                return 9;
+              };
+              $best = null; $bestTier = 99;
               foreach ($cands as $c) {
-                if ($c[2] !== '' && $c[2] !== $want) continue;
-                if ($best === null || $c[1] > $best[1]) $best = $c;
+                if ($c[2] !== $want) continue;           // para birimi ACIKCA eslesmeli
+                $t = $tierOf($c[0]);
+                if ($t < $bestTier || ($t === $bestTier && $best !== null && $c[1] > $best[1])) {
+                  $best = $c; $bestTier = $t;
+                }
               }
+              /* Para birimi yazmayan aday YAZILMAZ. Bir sayinin EUR oldugunu varsaymak,
+                 musteriye 115 dolarlik bir poloyu 115 EUR diye gostermenin yoludur;
+                 raporda gorunur ama 'rrp' alanina girmez. */
               $offCur = $best === null;
-              if ($offCur) { foreach ($cands as $c) if ($best === null || $c[1] > $best[1]) $best = $c; }
+              if ($offCur) {
+                foreach ($cands as $c) {
+                  $t = $tierOf($c[0]);
+                  if ($t < $bestTier || ($t === $bestTier && $best !== null && $c[1] > $best[1])) {
+                    $best = $c; $bestTier = $t;
+                  }
+                }
+              }
 
               printf("                           %s %.2f  [%s]%s\n",
                      $best[2] !== '' ? $best[2] : '?', $best[1], $best[0],
-                     $offCur ? "  << {$want} DEGIL -- yazilmayacak" : '');
+                     $offCur ? ($best[2] === '' ? "  << para birimi belirsiz -- yazilmayacak"
+                                                : "  << {$want} DEGIL -- yazilmayacak") : '');
               if (count($cands) > 1) {
                 $others = [];
                 foreach ($cands as $c) $others[] = sprintf('%s%.2f[%s]', $c[2] !== '' ? $c[2].' ' : '', $c[1], $c[0]);
