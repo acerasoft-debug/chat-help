@@ -41,6 +41,10 @@ return [
 
     'ticker'             => 'Belegte Herkunft · EU-Bestand · Fallende Vault-Preise · Kostenlose Rücksendung innerhalb von {days} Tagen · Sichere Zahlung über Stripe · Jede Woche neue Drops',
     'topbar'             => 'Belegte Herkunft · EU-Bestand · Kostenlose Rücksendung binnen {days} Tagen',
+    'audience_women'       => 'Damen',
+    'size_unconfirmed_t'   => 'Größenlauf wird beim Haus bestätigt.',
+    'size_unconfirmed_b'   => 'Dieses Stück erreichte uns mit dem Größenraster, das unser Lieferant für Oberteile verwendet (S–XXL). Denim wird nicht so bemessen, und wir raten nicht: Fragen Sie uns, wir bestätigen die genaue Größe vor der Bestellung.',
+    'size_unconfirmed_cta' => 'Zu diesem Stück anfragen',
 
     'sec_curated'        => 'Diese Woche, kuratiert',
     'sec_curated_sub'    => 'Zwölf Stücke, von Hand ausgewählt. Weg ist weg — die meisten kommen als einzelner Größensatz.',

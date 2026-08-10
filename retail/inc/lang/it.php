@@ -36,6 +36,10 @@ return [
     'hero_stat_drop'     => 'prossimo ribasso',
     'ticker'             => 'Provenienza documentata · Stock UE · Prezzi Vault in discesa · Reso gratuito entro {days} giorni · Pagamento sicuro con Stripe',
     'topbar'             => 'Provenienza verificata · Stock UE · Reso gratuito entro {days} giorni',
+    'audience_women'       => 'Donna',
+    'size_unconfirmed_t'   => 'Taglie in corso di conferma con la maison.',
+    'size_unconfirmed_b'   => 'Questo pezzo ci è arrivato con la griglia taglie che il nostro fornitore usa per i capi superiori (S–XXL). Il denim non si misura così e noi non tiriamo a indovinare: ci scriva e confermeremo la taglia esatta prima dell’ordine.',
+    'size_unconfirmed_cta' => 'Chiedere informazioni',
 
     'sec_curated'        => 'Questa settimana, selezionato',
     'sec_curated_sub'    => 'Dodici pezzi scelti a mano. Quando finiscono, finiscono.',

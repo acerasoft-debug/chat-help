@@ -49,6 +49,12 @@ function vr_cart_add(string $pid, string $size, int $qty = 1, string $lot = ''):
     $p = vr_product($pid);
     if ($p === null) return [false, 'cart_gone'];
 
+    /* Beden dökümü doğrulanmamış satır sepete GİRMEZ.
+       Ürün sayfasında beden seçici zaten gösterilmiyor, ama tek savunma orası
+       olamaz: pid ve size doğrudan POST edilebiliyor. Yanlış beden göndermek
+       iade değil, ayıplı mal meselesi — o yüzden kontrol burada, sunucuda. */
+    if (!empty($p['sizes_unconfirmed'])) return [false, 'size_unconfirmed'];
+
     $size = strtoupper(trim($size)) ?: 'ONE';
     $qty  = max(1, min(10, $qty));
 

@@ -36,6 +36,10 @@ return [
     'hero_stat_drop'     => 'növbəti endirim',
     'ticker'             => 'Sübut edilmiş mənşə · AB anbarı · Vault-da düşən qiymətlər · {days} gün içində pulsuz qaytarma · Stripe ilə təhlükəsiz ödəniş',
     'topbar'             => 'Təsdiqlənmiş mənşə · Aİ stoku · {days} gün ərzində pulsuz qaytarma',
+    'audience_women'       => 'Qadın',
+    'size_unconfirmed_t'   => 'Ölçü sırası ev ilə dəqiqləşdirilir.',
+    'size_unconfirmed_b'   => 'Bu parça bizə təchizatçımızın üst geyim üçün istifadə etdiyi ölçü sırası (S–XXL) ilə gəlib. Cins bu sistemlə ölçülmür və biz təxmin etmirik: bizə yazın, sifarişdən əvvəl dəqiq ölçünü təsdiqləyək.',
+    'size_unconfirmed_cta' => 'Bu parça haqqında soruşun',
 
     'sec_curated'        => 'Bu həftə, seçilmiş',
     'sec_curated_sub'    => 'Əllə seçilmiş on iki parça. Bitdisə bitdi.',

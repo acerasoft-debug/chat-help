@@ -40,6 +40,10 @@ return [
     'hero_stat_drop'     => 'prochaine baisse',
     'ticker'             => 'Provenance vérifiée · Stock UE · Prix dégressifs dans le Vault · Retour gratuit sous {days} jours · Paiement sécurisé via Stripe',
     'topbar'             => 'Provenance vérifiée · Stock UE · Retours gratuits sous {days} jours',
+    'audience_women'       => 'Femme',
+    'size_unconfirmed_t'   => 'Tailles en cours de confirmation auprès de la maison.',
+    'size_unconfirmed_b'   => 'Cette pièce nous est parvenue avec la grille de tailles que notre fournisseur applique aux hauts (S–XXL). Le denim ne se mesure pas ainsi et nous ne devinons pas : demandez-nous, nous confirmerons la taille exacte avant commande.',
+    'size_unconfirmed_cta' => 'Se renseigner sur cette pièce',
 
     'sec_curated'        => 'Cette semaine, sélectionné',
     'sec_curated_sub'    => 'Douze pièces choisies à la main. Une fois parties, elles ne reviennent pas.',

@@ -36,6 +36,10 @@ return [
     'hero_stat_drop'     => 'næste prisfald',
     'ticker'             => 'Dokumenteret oprindelse · EU-lager · Faldende Vault-priser · Gratis retur inden for {days} dage · Sikker betaling via Stripe',
     'topbar'             => 'Dokumenteret herkomst · EU-lager · Gratis retur inden for {days} dage',
+    'audience_women'       => 'Dame',
+    'size_unconfirmed_t'   => 'Størrelsesudvalget bekræftes hos huset.',
+    'size_unconfirmed_b'   => 'Dette stykke kom til os med den størrelsesfordeling, vores leverandør bruger til overdele (S–XXL). Denim måles ikke sådan, og vi gætter ikke: spørg os, så bekræfter vi den præcise størrelse før bestilling.',
+    'size_unconfirmed_cta' => 'Spørg om dette stykke',
 
     'sec_curated'        => 'Denne uge, udvalgt',
     'sec_curated_sub'    => 'Tolv stykker valgt i hånden. Når de er væk, er de væk.',

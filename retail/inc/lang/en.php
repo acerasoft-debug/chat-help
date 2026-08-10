@@ -44,6 +44,10 @@ return [
 
     'ticker'             => 'Verified provenance · EU stock · Falling Vault prices · Free returns within {days} days · Secure payment via Stripe · New drops every week',
     'topbar'             => 'Verified provenance · EU stock · Free returns within {days} days',
+    'audience_women'       => 'Women',
+    'size_unconfirmed_t'   => 'Size run being confirmed with the house.',
+    'size_unconfirmed_b'   => 'This piece reached us with the size breakdown our supplier uses for tops (S–XXL). Denim is not sized that way, so we will not guess: ask us and we will confirm the exact size before you order.',
+    'size_unconfirmed_cta' => 'Ask about this piece',
 
     'sec_curated'        => 'This week, curated',
     'sec_curated_sub'    => 'Twelve pieces chosen by hand. When they are gone, they are gone — most arrive as a single size run.',

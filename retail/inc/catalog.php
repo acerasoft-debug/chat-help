@@ -308,6 +308,9 @@ function vr_normalize_product(array $p, string $source): ?array
         'created_at'  => (int)($p['created_at'] ?? $p['added_at'] ?? 0),
         'featured'    => !empty($p['featured']),
         'demo'        => !empty($p['demo']),
+        // Gözle doğrulanmış düzeltmeler — bkz. vr_product_review().
+        'audience'    => (string)(vr_product_review()[$id]['audience'] ?? ''),
+        'sizes_unconfirmed' => !empty(vr_product_review()[$id]['sizes_unconfirmed']),
         'slug'        => vr_slug(($p['brand'] ?? '') . '-' . $name),
     ];
 }
@@ -1115,6 +1118,23 @@ function vr_category_fix(): array
         $fix = is_array($raw) ? $raw : [];
     }
     return $fix;
+}
+
+/**
+ * Gözle doğrulanmış ürün düzeltmeleri (data/product-review.json).
+ *
+ * İki şey tutuyor: fotoğraftan okunan hedef kitle (audience) ve beden
+ * dökümüne güvenilip güvenilmediği (sizes_unconfirmed). Ayrı bir katman,
+ * çünkü besleme her içe aktarmada baştan yazılıyor.
+ */
+function vr_product_review(): array
+{
+    static $rv = null;
+    if ($rv === null) {
+        $raw = vr_store_read('product-review.json', []);
+        $rv  = is_array($raw['items'] ?? null) ? $raw['items'] : [];
+    }
+    return $rv;
 }
 
 /** Izgara kontakt sayfası olan fotoğrafların yol => 1 haritası. */

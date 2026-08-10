@@ -376,7 +376,10 @@ function vr_card(array $p, array $o = []): void
         // geçersiz HTML ve tıklama davranışı öngörülemez oluyor.
         vr_wish_button($p); ?>
   <div class="card__body">
-    <p class="card__brand"><?= h($p['brand']) ?></p>
+    <p class="card__brand"><?= h($p['brand']) ?><?php
+      /* Kadın parçalar erkek kataloğunun içinde işaretsiz duruyordu. */
+      if (($p['audience'] ?? '') === 'women') echo ' · ' . te('audience_women');
+    ?></p>
     <h3 class="card__name"><a href="<?= h(vr_product_url($p)) ?>"><?= h(vr_card_name($p)) ?></a></h3>
     <p class="card__price">
       <?= h(vr_money((int)$p['price_cents'])) ?>

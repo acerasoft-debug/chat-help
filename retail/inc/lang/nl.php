@@ -42,6 +42,10 @@ return [
     'hero_stat_drop'     => 'volgende prijsdaling',
     'ticker'             => 'Bewezen herkomst · EU-voorraad · Dalende Vault-prijzen · Gratis retour binnen {days} dagen · Veilig betalen via Stripe',
     'topbar'             => 'Bewezen herkomst · EU-voorraad · Gratis retour binnen {days} dagen',
+    'audience_women'       => 'Dames',
+    'size_unconfirmed_t'   => 'Maatverdeling wordt bij het huis bevestigd.',
+    'size_unconfirmed_b'   => 'Dit stuk kwam bij ons binnen met de maatverdeling die onze leverancier voor bovenkleding gebruikt (S–XXL). Denim wordt zo niet gemeten en wij gokken niet: vraag het ons, wij bevestigen de exacte maat vóór uw bestelling.',
+    'size_unconfirmed_cta' => 'Vraag naar dit stuk',
 
     'sec_curated'        => 'Deze week, gecureerd',
     'sec_curated_sub'    => 'Twaalf stukken met de hand gekozen. Weg is weg.',

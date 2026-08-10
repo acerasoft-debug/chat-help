@@ -112,7 +112,17 @@ vr_layout_start([
       <div class="pdp__side">
         <div class="pdp__head">
           <div>
-            <p class="pdp__brand"><a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h($p['brand']) ?></a></p>
+            <p class="pdp__brand">
+              <a href="<?= h(vr_url('shop.php', ['brand' => $p['brand']])) ?>"><?= h($p['brand']) ?></a>
+              <?php /* Katalog neredeyse tamamen erkek giyim. Kadın parçalar
+                 aralarında hiçbir işaret olmadan duruyordu — kadın bir kot
+                 pantolon, yanındaki on erkek kotla aynı görünüyordu. Yalnızca
+                 kadın parça işaretleniyor; erkek varsayılan olduğu için her
+                 karta etiket basmak gürültü olurdu. */ ?>
+              <?php if (($p['audience'] ?? '') === 'women'): ?>
+                <span class="pill" style="margin-left:8px"><?= te('audience_women') ?></span>
+              <?php endif; ?>
+            </p>
             <h1><?= h(vr_card_name($p)) ?></h1>
           </div>
           <?php vr_wish_button($p, true); ?>
@@ -185,7 +195,19 @@ vr_layout_start([
             </div>
           <?php endif; ?>
 
-          <?php if ($soldOut): ?>
+          <?php if (!empty($p['sizes_unconfirmed'])): ?>
+            <?php /* Beden dökümüne güvenilmiyor: toptan besleme üst giyim paket
+               eğrisini (S·M·L·XL·XXL) denim satırlarına da basmış. Denim bu
+               sistemle ölçülmez. Hangi bedenin stokta olduğunu bilmediğimiz
+               için yanlış beden göndermektense satırı satışa kapatıyoruz —
+               ürün görünür kalıyor ki soran sorabilsin. */ ?>
+            <div class="notice" style="margin-bottom:14px">
+              <strong><?= te('size_unconfirmed_t') ?></strong><br><?= te('size_unconfirmed_b') ?>
+            </div>
+            <a class="btn btn--block btn--lg" href="<?= h(vr_url('contact.php')) ?>">
+              <span><?= te('size_unconfirmed_cta') ?></span>
+            </a>
+          <?php elseif ($soldOut): ?>
             <span class="btn btn--block is-disabled"><span><?= te('sold_out') ?></span></span>
             <p style="font-size:12.5px;color:var(--muted)"><?= te('you_may_like') ?> ↓</p>
           <?php else: ?>
