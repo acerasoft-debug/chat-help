@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
       rrp_urls:
-        description: "UVP ÇEKME: satır satır (veya ';' ile) 'ürün-id=https://marka-sitesi/ürün'. Doluysa yukarıdaki yoklama ÇALIŞMAZ"
+        description: "UVP ÇEKME: ';' ile ayrılmış 'ürün-id=https://marka-sitesi/ürün' — arama sayfası veriyorsan sonuna '|ÜRÜNKODU' ekle. Doluysa yukarıdaki yoklama ÇALIŞMAZ"
         required: false
         default: ""
       rrp_apply:
@@ -301,9 +301,12 @@ jobs:
             $apply = strtolower(trim((string)($in['apply'] ?? ''))) === 'true';
             $want  = strtoupper(trim((string)($in['cur'] ?? 'EUR'))) ?: 'EUR';
 
-            /* Satirlar: "id=URL", "id=URL=KOD" ya da sadece "URL". ';' de ayirici
+            /* Satirlar: "id=URL", "id=URL|KOD" ya da sadece "URL". ';' de ayirici
                sayilir, cunku Actions'in tek satirlik girdi kutusuna yeni satir yazmak
                zor.
+
+               KOD ayiricisi '|', '=' DEGIL: arama adresleri "?q=..." iceriyor, yani
+               '=' zaten URL'nin bir parcasi. '=' ile ayirmak adresi ortasindan keserdi.
 
                UCUNCU ALAN (KOD) verilirse URL bir ARAMA sayfasi sayilir. Neden gerekli:
                arama sayfasindaki fiyatlar oneri karuseline ait -- Balenciaga'nin arama
@@ -318,8 +321,8 @@ jobs:
               $l = trim($l);
               if ($l === '') continue;
               $id = ''; $code = '';
-              if (preg_match('#^([A-Za-z0-9._-]+)\s*=\s*(https?://[^=]+?)(?:\s*=\s*([A-Za-z0-9._-]+))?$#', $l, $m)) {
-                $id = $m[1]; $l = $m[2]; $code = $m[3] ?? '';
+              if (preg_match('~^([A-Za-z0-9._-]+)\s*=\s*(https?://[^|]+?)(?:\s*\|\s*([A-Za-z0-9._-]+))?$~', $l, $m)) {
+                $id = $m[1]; $l = trim($m[2]); $code = $m[3] ?? '';
               }
               elseif (!preg_match('#^https?://#', $l)) { fwrite(STDERR, "atlandi (URL degil): {$l}\n"); continue; }
               $jobs[] = ['id' => $id, 'url' => $l, 'code' => $code];
