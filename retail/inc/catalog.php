@@ -879,16 +879,79 @@ function vr_product_image_alt(array $p): string
 }
 
 /**
+ * Adın sonundaki tedarikçi ürün kodunu ayıklar.
+ *
+ * Toptan listelerde ad "BALMAIN T-Shirt AH0EG000BC27" biçiminde geliyor: kod
+ * adın PARÇASI değil, yanına yapıştırılmış künye. Vitrinde 358 karonun başlığı
+ * böyle görünüyordu ve mağazayı depo listesine çeviriyordu. Kod kaybolmuyor —
+ * ürün sayfasındaki künyede "Modellcode" satırında zaten duruyor (inc/copy.php,
+ * vr_product_facts) ve alıcı orada bulabiliyor.
+ *
+ * Yalnızca ürünün KENDİ kodu siliniyor: karşılaştırma normalize edilmiş
+ * (harf-rakam dışı atılmış, büyük harf) tam sözcük eşleşmesi. Bu yüzden gerçek
+ * bir sözcüğü yanlışlıkla silmesi mümkün değil — "FAF546-A8JN" gidiyor,
+ * "Tape Track Jacket, Blue" olduğu gibi kalıyor.
+ */
+function vr_strip_article_no(string $name, string $sku): string
+{
+    $skuN = strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $sku));
+    if (strlen($skuN) < 5) return $name;          // kısa kod sözcüğe benziyor, dokunma
+
+    if (!preg_match_all('/[A-Za-z0-9][A-Za-z0-9\/-]*/u', $name, $mm, PREG_OFFSET_CAPTURE)) return $name;
+    $tok = $mm[0];
+
+    // Kod ada tek sözcük olarak da ("FAF546-A8JN") iki sözcüğe bölünmüş olarak
+    // da ("616036 XJDV9") girmiş olabilir. Bu yüzden 1–3 ardışık sözcüğün
+    // birleşimine bakılıyor.
+    //
+    // Çok sözcüklü eşleşmede EK ŞART: birleşim en az bir rakam taşımalı.
+    // Bu olmadan sku'su adın slug'ı olan satırlar ("Slim Fit Sweatpants" /
+    // SLIM-FIT-SWEATPANTS) adlarını tümden kaybederdi.
+    $cut = null;
+    for ($i = 0, $n = count($tok); $i < $n && $cut === null; $i++) {
+        $acc = '';
+        for ($len = 1; $len <= 3 && $i + $len <= $n; $len++) {
+            $acc .= strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $tok[$i + $len - 1][0]));
+            if ($acc !== $skuN) continue;
+            if ($len > 1 && !preg_match('/\d/', $acc)) continue;
+            $last = $tok[$i + $len - 1];
+            $cut  = [$tok[$i][1], $last[1] + strlen($last[0])];
+            break;
+        }
+    }
+    if ($cut === null) return $name;
+
+    $out = substr($name, 0, $cut[0]) . substr($name, $cut[1]);
+
+    // Kod gidince geriye kalan bağlaç ve boşlukları topla: "Zip Hoodie Jacke — "
+    // ya da "T-Shirt ," gibi kırık kuyruklar kalmasın.
+    $out = (string)preg_replace('/\s+/u', ' ', $out);
+    $out = (string)preg_replace('/[\s,;·\/|]*(?:—|–|-)?[\s,;·\/|]*$/u', '', $out);
+
+    return trim($out) !== '' ? trim($out) : trim($name);
+}
+
+/**
  * Görüntülenecek ürün adı: marka zaten ayrı gösterildiği için addan baştaki
  * marka tekrarını atıyoruz. Sepet, kasa, e-posta ve Stripe satırları da bunu
  * kullanır — yoksa her yerde "BALENCIAGA BALENCIAGA …" çıkıyor.
+ *
+ * Tedarikçi kodu da burada düşüyor (bkz. vr_strip_article_no). Sepet ve fatura
+ * satırında da kod olmadan görünüyor; sipariş kaydı ürünün id'sini ve sku'sunu
+ * ayrı alanlarda tuttuğu için izlenebilirlik değişmiyor.
  */
 function vr_card_name(array $p): string
 {
     $n = trim((string)($p['name'] ?? ''));
     $b = trim((string)($p['brand'] ?? ''));
     if ($b !== '' && stripos($n, $b) === 0) $n = trim(substr($n, strlen($b)));
-    return $n !== '' ? $n : (string)($p['sku'] ?? '');
+    $n = vr_strip_article_no($n, (string)($p['sku'] ?? ''));
+    if ($n !== '') return $n;
+
+    // Adı yalnızca koddan ibaret olan satır: kodu göstermektense parçanın ne
+    // olduğunu göster. Kategori etiketi çevrili ve okunur.
+    $cat = vr_cat_label((string)($p['cat'] ?? ''));
+    return $cat !== '' ? $cat : (string)($p['sku'] ?? '');
 }
 
 /**
