@@ -5,7 +5,7 @@
  *   /price-lists
  *
  * WHY A PAGE RATHER THAN A LIST OF LINKS. The per-brand downloads are just
- * /wholesale-list.pdf?brand=X, so a colleague could in principle be handed the pattern and
+ * /price-list?brand=X, so a colleague could in principle be handed the pattern and
  * left to type brand names. That fails twice: the spelling has to match the catalogue
  * exactly (a typo silently yields an empty list rather than an error), and a hand-written
  * list goes stale the day a brand is added. This page is generated from the live
@@ -20,7 +20,7 @@ require_once __DIR__.'/inc/i18n.php';
 
 $PAGE = t('Wholesale price lists');
 $NAV  = '';
-$META = t('VESTRA wholesale price lists — download the full trade catalogue or a single brand as PDF or Excel. Prices per piece, minimum order quantities, sizes and product links.');
+$META = t('VESTRA wholesale price lists — browse the full trade catalogue or a single brand on the site, or take it as Excel. Prices per piece, minimum order quantities, sizes and product links.');
 
 /* Count and total per brand from the live catalogue. Articles without a price to quote are
    left out here for the same reason the price list leaves them out: a row with no number
@@ -81,8 +81,8 @@ require __DIR__.'/inc/head.php';
     <p><?= t('Every article we hold, with the trade price per piece, the minimum order quantity, sizes, the manufacturer\'s article number and a link to the live product page. Prices in EUR, excluding VAT and freight.') ?></p>
     <p><?= t('The Excel is the same list in a form you can sort, filter and paste into your own buying sheet.') ?></p>
     <div class="pl-all">
-      <a class="pl-btn solid" href="/wholesale-list.xlsx"><?= t('All brands — Excel') ?></a>
-      <a class="pl-btn ghost" href="/wholesale-list.pdf"><?= t('All brands — PDF') ?></a>
+      <a class="pl-btn solid" href="/price-list"><?= t('Browse the full list') ?></a>
+      <a class="pl-btn ghost" href="/wholesale-list.xlsx"><?= t('All brands — Excel') ?></a>
     </div>
     <p class="pl-note"><?= sprintf(t('%1$d articles across %2$d brands. Payment is escrow-protected up to EUR 3,000 per order — the platform holds the money and releases it to the seller only after you confirm the goods arrived as described — or against invoice above that. Delivery within the EU, Greece included, is typically 7 to 14 working days.'), $totalArticles, count($brands)) ?></p>
   </div>
@@ -111,8 +111,8 @@ require __DIR__.'/inc/head.php';
         <td class="pl-from">€<?= number_format($info['min'], 2) ?></td>
         <td>
           <div class="pl-dl">
+            <a href="/price-list?brand=<?= $q ?>"><?= t('VIEW') ?> →</a>
             <a href="/wholesale-list.xlsx?brand=<?= $q ?>">EXCEL ↓</a>
-            <a href="/wholesale-list.pdf?brand=<?= $q ?>">PDF ↓</a>
           </div>
         </td>
       </tr>

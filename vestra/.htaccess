@@ -42,6 +42,9 @@
   # listesi ilk yeni markada bayatlar, ve yanlis yazilan bir marka adi hata degil BOS
   # liste dondurur -- sessiz oldugu icin de fark edilmez.
   RewriteRule ^price-lists/?$ price-lists.php [L]
+  # Katalogun kendisi SAYFA olarak. PDF yerine bu: her urun gercek bir baglanti,
+  # tarayicidan aranabiliyor, telefonda okuyucu istemiyor ve markaya link verilebiliyor.
+  RewriteRule ^price-list/?$ price-list.php [QSA,L]
 
   # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
 
