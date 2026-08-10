@@ -301,17 +301,28 @@ jobs:
             $apply = strtolower(trim((string)($in['apply'] ?? ''))) === 'true';
             $want  = strtoupper(trim((string)($in['cur'] ?? 'EUR'))) ?: 'EUR';
 
-            /* Satirlar: "id=URL" ya da sadece "URL". ';' de ayirici sayilir, cunku
-               Actions'in tek satirlik girdi kutusuna yeni satir yazmak zor. */
+            /* Satirlar: "id=URL", "id=URL=KOD" ya da sadece "URL". ';' de ayirici
+               sayilir, cunku Actions'in tek satirlik girdi kutusuna yeni satir yazmak
+               zor.
+
+               UCUNCU ALAN (KOD) verilirse URL bir ARAMA sayfasi sayilir. Neden gerekli:
+               arama sayfasindaki fiyatlar oneri karuseline ait -- Balenciaga'nin arama
+               sayfasi ana sayfayla AYNI sekiz fiyati donduruyordu, yani aranan urunun
+               fiyati degil. Fiyati dogru urune baglamanin tek guvenli yolu, sonuclar
+               icinden ADRESINDE O KODU GECEN baglantiyi bulup asil urun sayfasini
+               acmak. Kod gecen baglanti yoksa bu satir fiyatsiz kalir -- yanlis urunun
+               fiyatini yazmaktansa bos birakmak dogru. */
             $lines = preg_split('/[\r\n;]+/', (string)($in['urls'] ?? ''));
             $jobs = [];
             foreach ($lines as $l) {
               $l = trim($l);
               if ($l === '') continue;
-              $id = '';
-              if (preg_match('#^([A-Za-z0-9._-]+)\s*=\s*(https?://.+)$#', $l, $m)) { $id = $m[1]; $l = $m[2]; }
+              $id = ''; $code = '';
+              if (preg_match('#^([A-Za-z0-9._-]+)\s*=\s*(https?://[^=]+?)(?:\s*=\s*([A-Za-z0-9._-]+))?$#', $l, $m)) {
+                $id = $m[1]; $l = $m[2]; $code = $m[3] ?? '';
+              }
               elseif (!preg_match('#^https?://#', $l)) { fwrite(STDERR, "atlandi (URL degil): {$l}\n"); continue; }
-              $jobs[] = ['id' => $id, 'url' => $l];
+              $jobs[] = ['id' => $id, 'url' => $l, 'code' => $code];
             }
             if (!$jobs) { fwrite(STDERR, "HATA: islenecek URL yok\n"); exit(1); }
             echo count($jobs)." adres, para birimi filtresi: {$want}, yazma: ".($apply ? 'ACIK' : 'kapali')."\n\n";
@@ -443,16 +454,62 @@ jobs:
               return '';
             }
 
+            /* Arama sonuclari icinden ADRESINDE kodu gecen ilk baglantiyi bul.
+               Ayni alan adinda kalinir: harici bir pazaryerine atlayip oradaki fiyati
+               "markanin UVP'si" diye yazmak, tam olarak kacinmak istedigimiz sey. */
+            function rrp_pick_link(string $html, string $base, string $code): string {
+              $host = parse_url($base, PHP_URL_HOST);
+              $scheme = parse_url($base, PHP_URL_SCHEME) ?: 'https';
+              $needle = strtolower($code);
+              /* Ayirici '~', '#' degil: desende '#' de geciyor ve ayirici olsaydi
+                 deseni erkenden bitirirdi. Boyle bir hata sessizdir -- her sayfada
+                 "baglanti bulunamadi" der, yani ozellik hic calismadan calisiyor
+                 gorunur. */
+              if (!preg_match_all('~href\s*=\s*["\']([^"\']+)["\']~i', $html, $m)) return '';
+              foreach ($m[1] as $h) {
+                $h  = explode('#', $h)[0];        // sayfa ici bag: adresin parcasi degil
+                if ($h === '') continue;
+                $low = strtolower($h);
+                if (!str_contains($low, $needle)) continue;
+                if (str_starts_with($h, '//'))      $u = $scheme.':'.$h;
+                elseif (str_starts_with($h, '/'))   $u = $scheme.'://'.$host.$h;
+                elseif (preg_match('#^https?://#i', $h)) $u = $h;
+                else continue;
+                if (parse_url($u, PHP_URL_HOST) !== $host) continue;   // ayni alan adi sarti
+                return $u;
+              }
+              return '';
+            }
+
             $found = [];   // id => fiyat
             foreach ($jobs as $k => $job) {
-              [$code, $html, $err] = rrp_fetch($job['url']);
+              [$status, $html, $err] = rrp_fetch($job['url']);
               $tag = $job['id'] !== '' ? $job['id'] : '(id yok)';
               if ($html === '') {
-                printf("%-26s HTTP %-4s --  CEKILEMEDI %s\n", $tag, $code ?: '000', $err !== '' ? "({$err})" : '');
+                printf("%-26s HTTP %-4s --  CEKILEMEDI %s\n", $tag, $status ?: '000', $err !== '' ? "({$err})" : '');
                 flush(); continue;
               }
+
+              /* Arama sayfasiysa asil urun sayfasina gec. */
+              if ($job['code'] !== '') {
+                $hit = rrp_pick_link($html, $job['url'], $job['code']);
+                if ($hit === '') {
+                  printf("%-26s HTTP %-4d %7d B  arama: '%s' gecen baglanti YOK\n", $tag, $status, strlen($html), $job['code']);
+                  flush();
+                  if ($k < count($jobs) - 1) usleep(1500000);
+                  continue;
+                }
+                printf("%-26s arama -> %s\n", $tag, mb_strimwidth($hit, 0, 96, '…'));
+                usleep(1200000);
+                [$status, $html, $err] = rrp_fetch($hit);
+                if ($html === '') {
+                  printf("%-26s HTTP %-4s --  urun sayfasi CEKILEMEDI %s\n", $tag, $status ?: '000', $err !== '' ? "({$err})" : '');
+                  flush(); continue;
+                }
+              }
+
               $cands = rrp_extract($html);
-              printf("%-26s HTTP %-4d %7d B  %s\n", $tag, $code, strlen($html), mb_strimwidth(rrp_title($html), 0, 70, '…'));
+              printf("%-26s HTTP %-4d %7d B  %s\n", $tag, $status, strlen($html), mb_strimwidth(rrp_title($html), 0, 70, '…'));
 
               if (!$cands) { echo "                           -- fiyat bulunamadi\n"; flush(); continue; }
 
