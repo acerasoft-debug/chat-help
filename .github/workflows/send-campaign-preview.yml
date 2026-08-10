@@ -13,9 +13,13 @@ on:
         required: false
         default: "acerasoft@gmail.com"
       variant:
-        description: "Hangi kampanya: premium (genel, çok dilli) ya da polos_promo (Lacoste polo indirim duyurusu, EN)"
+        description: "premium (genel) | polos_promo (Lacoste polo, EN) | voucher (hoş geldin kuponu — TEK adrese önizleme)"
         required: false
         default: "premium"
+      lang:
+        description: "voucher önizlemesi hangi dilde: de | en | fr | it | es"
+        required: false
+        default: "de"
       render_only:
         description: "true = e-posta GÖNDERME, sadece nihai HTML'i (görseller gömülü) günlüğe yaz"
         required: false
@@ -34,18 +38,21 @@ jobs:
           CAMP_TO: ${{ github.event.inputs.to }}
           CAMP_VARIANT: ${{ github.event.inputs.variant }}
           CAMP_RENDER_ONLY: ${{ github.event.inputs.render_only }}
+          CAMP_LANG: ${{ github.event.inputs.lang }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 4m
-          envs: CAMP_TO,CAMP_VARIANT,CAMP_RENDER_ONLY
+          envs: CAMP_TO,CAMP_VARIANT,CAMP_RENDER_ONLY,CAMP_LANG
           script: |
             TO="$CAMP_TO"
             case "$TO" in *@*) ;; *) TO="acerasoft@gmail.com" ;; esac
             VARIANT="$CAMP_VARIANT"
-            case "$VARIANT" in polos_promo) ;; *) VARIANT="premium" ;; esac
+            case "$VARIANT" in polos_promo|voucher) ;; *) VARIANT="premium" ;; esac
+            LANG_IN="$CAMP_LANG"
+            case "$LANG_IN" in de|en|fr|it|es) ;; *) LANG_IN="de" ;; esac
             RENDER_ONLY="$CAMP_RENDER_ONLY"
             cat > /tmp/vestra_camp_preview.php <<'PHPEOF'
             <?php
@@ -55,7 +62,18 @@ jobs:
             $to = $argv[1] ?? 'acerasoft@gmail.com';
             $variant = $argv[2] ?? 'premium';
             $renderOnly = strtolower(trim((string)($argv[3] ?? ''))) === 'true';
-            list($subject, $body, $opts) = $variant === 'polos_promo' ? vestra_campaign_promo_polos() : vestra_campaign_preview();
+            /* voucher: hos geldin kuponunun TEK adrese onizlemesi. Bu is sozlesmesi geregi
+               tek alici -- toplu gonderim welcome-voucher.yml'in isi, o da varsayilan dalda
+               olmadigi icin su an tetiklenemiyor. Buradaki kod ORNEKTIR, gercek bir kupon
+               yazilmaz: amac gorunumu onaylamak, kullanilabilir kod uretmek degil. */
+            if ($variant === 'voucher') {
+              require $home."/public_html/inc/email_templates.php";
+              $lang = $argv[4] ?? 'de';
+              list($subject, $body, $opts) = vestra_tpl_welcome_voucher(
+                $lang, 'Boutique Meyer GmbH', 'VES-ORNEK-KOD', '5%', date('d.m.Y', strtotime('+6 months')));
+            } else {
+              list($subject, $body, $opts) = $variant === 'polos_promo' ? vestra_campaign_promo_polos() : vestra_campaign_preview();
+            }
             echo "varyant: {$variant}\n";
 
             if ($renderOnly) {
@@ -109,5 +127,5 @@ jobs:
             $ok = vestra_send_mail($to, $subject, $body, '', 'Les Garage de Paris', null, '', $opts);
             echo $ok ? "GONDERILDI -> {$to}\n" : "HATA: gonderim basarisiz\n";
             PHPEOF
-            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY"
+            php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY" "$LANG_IN"
             rm -f /tmp/vestra_camp_preview.php
