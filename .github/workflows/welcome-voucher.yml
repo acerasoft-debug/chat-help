@@ -1,0 +1,112 @@
+name: (Gutschein) Kayıtlı müşterilere ilk sipariş indirim kodu gönder
+on:
+  workflow_dispatch:
+    inputs:
+      percent:
+        description: "İndirim yüzdesi"
+        required: false
+        default: "5"
+      expiry_months:
+        description: "Kaç ay geçerli olsun"
+        required: false
+        default: "6"
+      audience:
+        description: "buyers = sadece alıcı hesaplar (varsayılan) | all = satıcılar da dahil"
+        required: false
+        default: "buyers"
+      only_emails:
+        description: "Sadece bu adres(ler)e (virgül/boşlukla ayrılır). Boşsa tüm hedef kitle."
+        required: false
+        default: ""
+      exclude_countries:
+        description: "Bu ülkelerdeki müşterilere GÖNDERME (virgülle ayır, ör: Norway)"
+        required: false
+        default: ""
+      limit:
+        description: "Bu çalıştırmada en fazla kaç gönderim (Brevo kotasını aşmamak için)"
+        required: false
+        default: "200"
+      dry_run:
+        description: "true = kimseye gönderme, sadece kimin ne alacağını listele"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+# Her kayitli musteriye KISIYE OZEL bir ilk-siparis indirim kodu uretir ve e-postayla yollar.
+#
+# Neden herkese ayni kod degil: tek bir paylasilan kod ilk forumda yayinlandigi anda
+# herkesin kodu olur, kim kullandi bilinmez ve "ilk siparis" kurali uygulanamaz. Kisiye
+# ozel kod hesaba baglidir, tek kullanimliktir ve hangi siparise dustugu kayda gecer.
+#
+# YARIDA KALIRSA: bugun bir SSH oturumu tam gonderim sirasinda koptu ve "gonderildi mi"
+# sorusu cevapsiz kaldi. Bu is o yuzden iki asamali isaretleniyor -- once kod yazilir,
+# e-posta gidince kodun uzerine mailed_at damgasi vurulur. Tekrar calistirildiginda
+# mailed_at'i OLAN atlanir (ikinci e-posta gitmez), kodu olup postasi gitmemis olan ise
+# ayni kodla yeniden denenir (kimse kodsuz kalmaz). Yani is her zaman guvenle tekrarlanabilir.
+jobs:
+  vouchers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kod üret ve gönder
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          V_PCT: ${{ github.event.inputs.percent }}
+          V_MONTHS: ${{ github.event.inputs.expiry_months }}
+          V_AUDIENCE: ${{ github.event.inputs.audience }}
+          V_ONLY: ${{ github.event.inputs.only_emails }}
+          V_NOTC: ${{ github.event.inputs.exclude_countries }}
+          V_LIMIT: ${{ github.event.inputs.limit }}
+          V_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: V_PCT,V_MONTHS,V_AUDIENCE,V_ONLY,V_NOTC,V_LIMIT,V_DRY
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_welcome_voucher.php <<'PHPEOF'
+            <?php
+            /* Thin wrapper. The campaign itself is voucher_welcome_run() in inc/vouchers.php,
+               which the admin panel button also calls -- this file used to carry its own copy
+               of the same logic, so a fix in one place silently missed the other. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1'); while (ob_get_level() > 0) { @ob_end_flush(); }
+            require_once __DIR__.'/inc/vouchers.php';
+            if (!function_exists('voucher_welcome_run')) { fwrite(STDERR, "HATA: voucher_welcome_run() yok -- once deploy\n"); exit(1); }
+
+            $dry = strtolower(trim((string)getenv('V_DRY'))) !== 'false';
+            $rep = voucher_welcome_run([
+              'percent' => (float)(getenv('V_PCT') ?: 5),
+              'months'  => (int)(getenv('V_MONTHS') ?: 6),
+              'audience'=> getenv('V_AUDIENCE') ?: 'buyers',
+              'limit'   => (int)(getenv('V_LIMIT') ?: 200),
+              'dry'     => $dry,
+              'only'    => preg_split('/[\s,;]+/', (string)getenv('V_ONLY'), -1, PREG_SPLIT_NO_EMPTY),
+              'exclude_countries' => preg_split('/[,;]+/', (string)getenv('V_NOTC'), -1, PREG_SPLIT_NO_EMPTY),
+            ]);
+
+            printf("kampanya : %s  (gecerlilik %s)\n", $rep['campaign'], $rep['expiry']);
+            printf("hedef    : %d musteri\n", $rep['targets']);
+            echo $dry ? "MOD      : DENEME -- hicbir e-posta gonderilmeyecek\n\n" : "MOD      : GERCEK GONDERIM\n\n";
+            foreach ($rep['rows'] as $r) {
+              if (($r['status'] ?? '') === 'limit') { echo "  ... calistirma limiti doldu; kalani icin tekrar calistir\n"; continue; }
+              printf("  %-34s %-22s %s\n", substr((string)($r['email'] ?? ''),0,34), (string)($r['code'] ?? ''), (string)($r['status'] ?? ''));
+            }
+            if (!empty($rep['excluded'])) {
+              echo "\nulke nedeniyle haric tutulan (", count($rep['excluded']), "):\n";
+              foreach ($rep['excluded'] as $e) printf("  %-34s %s\n", $e['email'], $e['country']);
+            }
+            echo "\n----\n";
+            printf("%s yeni kod: %d, tekrar kullanilan: %d, gonderildi: %d, atlandi: %d, hata: %d\n",
+              $dry ? "DENEME bitti." : "BITTI.", $rep['made'], $rep['reused'], $rep['sent'], $rep['skipped'], $rep['failed']);
+            if ($dry) echo "Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
+            PHPEOF
+            cp /tmp/vestra_welcome_voucher.php ./vestra_welcome_voucher_tmp.php
+            php -l ./vestra_welcome_voucher_tmp.php
+            php ./vestra_welcome_voucher_tmp.php; RC=$?
+            rm -f ./vestra_welcome_voucher_tmp.php /tmp/vestra_welcome_voucher.php
+            exit $RC

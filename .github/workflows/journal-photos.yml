@@ -1,0 +1,78 @@
+name: Journal — Wikimedia'dan moda fotoğrafı çek
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "Aranacak konular (satır satır). Boş = varsayılan moda listesi."
+        required: false
+        default: ""
+      per_query:
+        description: "Her konudan kaç fotoğraf indirilsin"
+        required: false
+        default: "6"
+      min_width:
+        description: "Bundan dar orijinaller elenir (piksel)"
+        required: false
+        default: "1400"
+      dry_run:
+        description: "true = hiçbir şey indirme, sadece bulunanları listele"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+# Journal editoryal bolumu icin moda fotografi indirir: uploads/journal/ altina
+# kaydeder ve uploads/journal/credits.json'a kunye yazar.
+#
+# NEDEN WIKIMEDIA: API anahtari istemez. Karsiliginda lisans sarti var -- CC-BY ve
+# CC-BY-SA gorsellerde fotografcinin adi sayfada GORUNMEK zorunda. inc/journal.php
+# icindeki vestra_journal_credit() bunu okuyup her gorselin altina basar; kunye
+# olmadan gorsel gosterilmez.
+#
+# TICARI KULLANIM FILTRESI: vestrasales.com ticari bir site, dolayisiyla NonCommercial
+# (CC-BY-NC*) ve "Fair use" dosyalari ELENIR -- bunlar burada kullanilamaz. Sadece
+# CC0 / Public domain / CC-BY / CC-BY-SA gecer.
+#
+# Sandbox'in agent-proxy'si dis siteleri engelledigi icin her sey SUNUCUDAN yapilir.
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Çek
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IN_QUERIES: ${{ github.event.inputs.queries }}
+          IN_PER: ${{ github.event.inputs.per_query }}
+          IN_MINW: ${{ github.event.inputs.min_width }}
+          IN_DRY: ${{ github.event.inputs.dry_run }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 20m
+          envs: IN_QUERIES,IN_PER,IN_MINW,IN_DRY
+          script: |
+            cat > /tmp/vestra_jphotos.php <<'PHPEOF'
+            <?php
+            /* Thin wrapper: the fetch itself lives in inc/journal.php so the admin button
+               and this job cannot drift apart. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            require getenv("HOME")."/public_html/inc/journal.php";
+            if (!function_exists('vestra_journal_fetch_photos')) { fwrite(STDERR,"HATA: fonksiyon yok -- once deploy\n"); exit(1); }
+            $qs  = array_values(array_filter(array_map('trim', preg_split('/[\r\n]+/', (string)getenv("IN_QUERIES")))));
+            $dry = strtolower(trim((string)getenv("IN_DRY"))) !== 'false';
+            $r = vestra_journal_fetch_photos($qs, (int)(getenv("IN_PER") ?: 6), (int)(getenv("IN_MINW") ?: 1400), $dry);
+            foreach ($r['files'] as $f)
+                printf("  %-62s %5dpx  %-22s %s\n", substr($f['file'],0,62), $f['width'], $f['license'], $f['artist']);
+            if ($r['skipped']) { echo "\nelenen:\n"; foreach ($r['skipped'] as $why=>$n) printf("  %-42s %d\n", $why, $n); }
+            foreach (array_slice($r['errors'],0,8) as $e) echo "  HATA: $e\n";
+            printf("\nBITTI. incelenen: %d  indirilen: %d%s\n", $r['examined'], $r['saved'], $dry ? "  (DRY-RUN, hicbir sey yazilmadi)" : "");
+            PHPEOF
+            php /tmp/vestra_jphotos.php
+            rm -f /tmp/vestra_jphotos.php
+            if [ "$IN_DRY" = "false" ]; then
+              echo "--- uploads/journal ---"
+              ls -la "$HOME/public_html/uploads/journal" | head -40
+            fi
