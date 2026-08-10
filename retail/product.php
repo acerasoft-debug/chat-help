@@ -232,10 +232,21 @@ vr_layout_start([
                     </a>
                   </h2>
                   <div class="sizes">
+                    <?php /* Çipin altında bedenin KARŞILIĞI duruyor.
+                       Kuru bir "M" alt giyimde yetersiz: kot pantolon S/M/L ile
+                       ölçülmez. Karşılık uydurma değil, bu sitenin kendi beden
+                       rehberinde yayımladığı satır (inc/sizing.php, tek kaynak):
+                       alt giyimde M = IT 48 = 31 inç = 80–84 cm bel.
+                       Üst giyimde ve alt giyimde eşleme FARKLI — üst bedeni
+                       göğüsten, alt bedeni belden türüyor — o yüzden kategoriye
+                       göre seçiliyor. Karşılığı olmayan etikette (ONE gibi)
+                       hiçbir şey yazılmıyor. */ ?>
                     <?php foreach ($p['sizes'] as $s): ?>
+                      <?php $eq = vr_size_equiv_line((string)$p['cat'], (string)$s['label']); ?>
                       <label class="size">
                         <input type="radio" name="size" value="<?= h($s['label']) ?>">
                         <?= h($s['label']) ?>
+                        <?php if ($eq !== ''): ?><i class="size__eq"><?= h($eq) ?></i><?php endif; ?>
                         <?php if ((int)$s['qty'] <= 2): ?><i><?= (int)$s['qty'] ?>×</i><?php endif; ?>
                       </label>
                     <?php endforeach; ?>

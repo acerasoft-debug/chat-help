@@ -21,6 +21,7 @@ require_once __DIR__ . '/vault.php';
 require_once __DIR__ . '/accounts.php';
 require_once __DIR__ . '/stripe.php';   // vr_payment_methods() ödeme güven satırı için
 require_once __DIR__ . '/lists.php';    // Merkliste + son bakılanlar
+require_once __DIR__ . '/sizing.php';   // beden tabloları — ürün sayfası ve rehber ortak
 require_once __DIR__ . '/customers.php'; // alıcı hesapları (başlıktaki kişi ikonu)
 
 /** Sürüm etiketi — CSS/JS önbelleğini deploy'da tazelemek için. */

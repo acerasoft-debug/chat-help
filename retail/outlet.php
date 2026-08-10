@@ -323,7 +323,31 @@ vr_layout_start([
     ])],
 ]);
 ?>
-<section class="sec vault">
+<?php
+/* Vault kapağı artık FİLMLİ.
+   Önceki hâli düz siyah zemin üstünde yalnızca metindi: 1440 pikselde sağ
+   yarısı bomboş kalıyordu ve sayfa bir mağaza değil, bir şartlar sayfası gibi
+   açılıyordu. Oysa band-vault.mp4 zaten depoda duruyordu ve ana sayfada
+   kullanılıyordu — burada, yani asıl ait olduğu odada, kullanılmıyordu.
+
+   Kadraj ana sayfadaki sahneyle aynı dili konuşuyor (film + perde + ortalanmış
+   künye) ama daha alçak: burası kapak değil, odanın girişi. Lotlar hemen
+   altında başlıyor. */
+$vheroMedia = vr_hero_media('band-vault');
+?>
+<section class="sec vault vhero">
+  <?php if ($vheroMedia): ?>
+    <div class="vhero__art" aria-hidden="true">
+      <?php if ($vheroMedia['kind'] === 'video'): ?>
+        <video muted loop playsinline preload="none" data-autoplay
+               poster="<?= h($vheroMedia['poster'] ?? '') ?>" tabindex="-1">
+          <source src="<?= h($vheroMedia['src']) ?>" type="<?= h($vheroMedia['type']) ?>">
+        </video>
+      <?php else: ?>
+        <img src="<?= h(vr_img($vheroMedia['src'], 1600)) ?>" alt="" decoding="async">
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
   <div class="wrap">
     <p class="eyebrow"><?= te('vault_live_now') ?> · <?= te('vault_lots_n', ['n' => count($live)]) ?></p>
     <h1 style="font-size:clamp(34px,5.4vw,72px);max-width:20ch"><?= te('vault_title') ?></h1>
@@ -331,7 +355,7 @@ vr_layout_start([
 
     <?php if (!$member): ?>
       <p style="margin-top:22px">
-        <a class="btn btn--brass btn--sm" href="<?= h(vr_url('/')) ?>#member">
+        <a class="btn btn--light btn--sm" href="<?= h(vr_url('/')) ?>#member">
           <span><?= te('news_cta') ?></span><?= vr_icon('arrow', 15) ?>
         </a>
       </p>

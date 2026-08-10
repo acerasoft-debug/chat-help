@@ -19,12 +19,8 @@ require_once __DIR__ . '/inc/view.php';
 /** Ürün kategorisinden tabloyu seç. */
 $catParam = trim((string)($_GET['cat'] ?? ''));
 $k = mb_strtolower($catParam);
-$tab = match (true) {
-    (bool)preg_match('/jean|denim|trouser|pant|short|hose/u', $k) => 'bottoms',
-    (bool)preg_match('/shoe|sneaker|schuh|boot/u', $k)            => 'shoes',
-    (bool)preg_match('/belt|gürtel/u', $k)                        => 'belts',
-    default                                                        => 'tops',
-};
+// Eşleme inc/sizing.php'de — ürün sayfası da aynı kuralı kullanıyor.
+$tab = vr_size_table_for($k);
 if (isset($_GET['tab']) && in_array((string)$_GET['tab'], ['tops', 'bottoms', 'shoes', 'belts'], true)) {
     $tab = (string)$_GET['tab'];
 }
@@ -38,29 +34,16 @@ $tabs = [
 
 // Tablolar: [etiket satırı, veri satırları]
 $tables = [
+    // SATIRLAR inc/sizing.php'den geliyor. İkinci bir kopya tutmak iki
+    // tablonun zamanla ayrışması demek olurdu; ürün sayfasındaki beden çipi
+    // de aynı kaynağa bakıyor.
     'tops' => [
         'head' => ['IT', 'DE / EU', 'FR', 'UK / US', 'Intl.', t('sg_chest'), t('sg_waist')],
-        'rows' => [
-            ['44', '44', '38', '34', 'XS',  '86–90',   '72–76'],
-            ['46', '46', '40', '36', 'S',   '90–94',   '76–80'],
-            ['48', '48', '42', '38', 'M',   '94–98',   '80–84'],
-            ['50', '50', '44', '40', 'L',   '98–102',  '84–88'],
-            ['52', '52', '46', '42', 'XL',  '102–107', '88–94'],
-            ['54', '54', '48', '44', 'XXL', '107–112', '94–100'],
-            ['56', '56', '50', '46', '3XL', '112–118', '100–106'],
-        ],
+        'rows' => vr_size_rows('tops'),
     ],
     'bottoms' => [
         'head' => ['IT', 'DE / EU', t('sg_inch'), 'UK / US', 'Intl.', t('sg_waist'), t('sg_hip')],
-        'rows' => [
-            ['44', '44', '28', '28', 'XS',  '72–76',   '88–92'],
-            ['46', '46', '30', '30', 'S',   '76–80',   '92–96'],
-            ['48', '48', '31', '31', 'M',   '80–84',   '96–100'],
-            ['50', '50', '32', '32', 'L',   '84–88',   '100–104'],
-            ['52', '52', '34', '34', 'XL',  '88–94',   '104–109'],
-            ['54', '54', '36', '36', 'XXL', '94–100',  '109–114'],
-            ['56', '56', '38', '38', '3XL', '100–106', '114–119'],
-        ],
+        'rows' => vr_size_rows('bottoms'),
     ],
     'shoes' => [
         'head' => ['EU', 'UK', t('sg_us_m'), t('sg_us_w'), t('sg_footlen')],
