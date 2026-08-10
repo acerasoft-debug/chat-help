@@ -44,6 +44,7 @@ return [
 
     'sec_curated'        => 'Deze week, gecureerd',
     'sec_curated_sub'    => 'Twaalf stukken met de hand gekozen. Weg is weg.',
+    'sec_cat_tile_sub'   => 'Het diepste rek van het huis — complete maatreeksen zolang de voorraad strekt. Elk stuk EER-voorraad, met factuur erachter.',
     'sec_vault'          => 'De Vault',
     'sec_vault_sub'      => 'Één prijs per stuk, en die daalt volgens een schema dat je kan zien. Langer wachten betekent minder betalen — als niemand het eerder neemt.',
     'sec_brands'         => 'Huizen in voorraad',
@@ -526,6 +527,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Broeken',
     'cat_westen' => 'Bodywarmers',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-shirt',
+    'item_hoodies-sweatshirts'  => 'Sweatshirt',
+    'item_polos'                => 'Poloshirt',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Zwemkleding',
+    'item_tracksuit-sets'       => 'Trainingspak',
+    'item_jeans-shorts'         => 'Jeansshort',
+    'item_jacken'               => 'Jas',
+    'item_shorts'               => 'Short',
+    'item_trousers'             => 'Broek',
+    'item_westen'               => 'Bodywarmer',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Kleur · {n} beschikbaar',

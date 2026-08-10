@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'Denne uge, udvalgt',
     'sec_curated_sub'    => 'Tolv stykker valgt i hånden. Når de er væk, er de væk.',
+    'sec_cat_tile_sub'   => 'Husets dybeste stang — komplette størrelsesserier, så længe lager haves. Hvert stykke er EØS-varer med faktura bag sig.',
     'sec_vault'          => 'Vault',
     'sec_vault_sub'      => 'Én pris pr. stykke, og den falder efter en plan du kan se. Vent længere, betal mindre — hvis ingen tager det først.',
     'sec_brands'         => 'Huse på lager',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Bukser',
     'cat_westen' => 'Veste',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-shirt',
+    'item_hoodies-sweatshirts'  => 'Sweatshirt',
+    'item_polos'                => 'Polo',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Badetøj',
+    'item_tracksuit-sets'       => 'Træningsdragt',
+    'item_jeans-shorts'         => 'Denimshorts',
+    'item_jacken'               => 'Jakke',
+    'item_shorts'               => 'Shorts',
+    'item_trousers'             => 'Bukser',
+    'item_westen'               => 'Vest',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Farve · {n} tilgængelige',

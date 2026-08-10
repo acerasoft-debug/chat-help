@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'Denna vecka, utvalt',
     'sec_curated_sub'    => 'Tolv plagg valda för hand. När de är slut är de slut.',
+    'sec_cat_tile_sub'   => 'Husets djupaste ställning — kompletta storleksserier så länge lagret räcker. Varje plagg är EES-lager, med faktura bakom sig.',
     'sec_vault'          => 'Vault',
     'sec_vault_sub'      => 'Ett pris per plagg, och det faller enligt ett schema du kan se. Vänta längre, betala mindre — om ingen tar det först.',
     'sec_brands'         => 'Hus i lager',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Byxor',
     'cat_westen' => 'Västar',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-shirt',
+    'item_hoodies-sweatshirts'  => 'Sweatshirt',
+    'item_polos'                => 'Piké',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Badkläder',
+    'item_tracksuit-sets'       => 'Träningsoverall',
+    'item_jeans-shorts'         => 'Jeansshorts',
+    'item_jacken'               => 'Jacka',
+    'item_shorts'               => 'Shorts',
+    'item_trousers'             => 'Byxor',
+    'item_westen'               => 'Väst',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Färg · {n} tillgängliga',

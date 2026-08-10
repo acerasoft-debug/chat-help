@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'Esta semana, seleccionado',
     'sec_curated_sub'    => 'Doce piezas elegidas a mano. Cuando se acaban, se acaban.',
+    'sec_cat_tile_sub'   => 'La percha más surtida de la casa — tallajes completos mientras duren. Cada pieza es stock EEE, con factura detrás.',
     'sec_vault'          => 'El Vault',
     'sec_vault_sub'      => 'Un precio por pieza que baja según un calendario visible. Esperar cuesta menos — si nadie la toma antes.',
     'sec_brands'         => 'Casas en stock',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Pantalones',
     'cat_westen' => 'Chalecos',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'Camiseta',
+    'item_hoodies-sweatshirts'  => 'Sudadera',
+    'item_polos'                => 'Polo',
+    'item_jeans'                => 'Vaqueros',
+    'item_bademode'             => 'Bañador',
+    'item_tracksuit-sets'       => 'Chándal',
+    'item_jeans-shorts'         => 'Short vaquero',
+    'item_jacken'               => 'Chaqueta',
+    'item_shorts'               => 'Short',
+    'item_trousers'             => 'Pantalón',
+    'item_westen'               => 'Chaleco',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Color · {n} disponibles',

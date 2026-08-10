@@ -46,6 +46,7 @@ return [
 
     'sec_curated'        => 'This week, curated',
     'sec_curated_sub'    => 'Twelve pieces chosen by hand. When they are gone, they are gone — most arrive as a single size run.',
+    'sec_cat_tile_sub'   => 'The deepest rail in the house — full size runs while they last. Every piece EEA stock, with the invoice behind it.',
     'sec_vault'          => 'The Vault',
     'sec_vault_sub'      => 'One price per piece, and it falls on a schedule you can see. Wait longer, pay less — if someone else does not take it first.',
     'sec_brands'         => 'Houses in stock',
@@ -537,6 +538,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Trousers',
     'cat_westen' => 'Gilets',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-Shirt',
+    'item_hoodies-sweatshirts'  => 'Sweatshirt',
+    'item_polos'                => 'Polo Shirt',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Swimwear',
+    'item_tracksuit-sets'       => 'Tracksuit',
+    'item_jeans-shorts'         => 'Denim Shorts',
+    'item_jacken'               => 'Jacket',
+    'item_shorts'               => 'Shorts',
+    'item_trousers'             => 'Trousers',
+    'item_westen'               => 'Gilet',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Colour · {n} available',

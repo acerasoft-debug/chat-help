@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'Bu həftə, seçilmiş',
     'sec_curated_sub'    => 'Əllə seçilmiş on iki parça. Bitdisə bitdi.',
+    'sec_cat_tile_sub'   => 'Evin ən dolu asqısı — ehtiyat bitənədək tam ölçü sıraları. Hər parça AİƏ stoku, arxasında fakturası ilə.',
     'sec_vault'          => 'Vault',
     'sec_vault_sub'      => 'Hər parça üçün bir qiymət və o, gördüyünüz cədvəl üzrə düşür. Çox gözləsəniz az ödəyirsiniz — əgər başqası daha tez götürməzsə.',
     'sec_brands'         => 'Anbarda olan evlər',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Şortlar',
     'cat_trousers' => 'Şalvarlar',
     'cat_westen' => 'Jiletlər',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'Futbolka',
+    'item_hoodies-sweatshirts'  => 'Svitşot',
+    'item_polos'                => 'Polo',
+    'item_jeans'                => 'Cins şalvar',
+    'item_bademode'             => 'Çimərlik geyimi',
+    'item_tracksuit-sets'       => 'İdman kostyumu',
+    'item_jeans-shorts'         => 'Cins şort',
+    'item_jacken'               => 'Gödəkçə',
+    'item_shorts'               => 'Şort',
+    'item_trousers'             => 'Şalvar',
+    'item_westen'               => 'Jilet',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Rəng · {n} mövcuddur',

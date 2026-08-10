@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'На этой неделе, отобрано',
     'sec_curated_sub'    => 'Двенадцать вещей, выбранных вручную. Ушло — значит ушло.',
+    'sec_cat_tile_sub'   => 'Самая полная вешалка дома — полные размерные ряды, пока они есть. Каждая вещь — сток ЕЭЗ, со счётом за ней.',
     'sec_vault'          => 'Vault',
     'sec_vault_sub'      => 'Одна цена за вещь, и она падает по видимому расписанию. Дольше ждёте — меньше платите, если кто-то не забрал раньше.',
     'sec_brands'         => 'Дома в наличии',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Шорты',
     'cat_trousers' => 'Брюки',
     'cat_westen' => 'Жилеты',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'Футболка',
+    'item_hoodies-sweatshirts'  => 'Свитшот',
+    'item_polos'                => 'Поло',
+    'item_jeans'                => 'Джинсы',
+    'item_bademode'             => 'Пляжная одежда',
+    'item_tracksuit-sets'       => 'Спортивный костюм',
+    'item_jeans-shorts'         => 'Джинсовые шорты',
+    'item_jacken'               => 'Куртка',
+    'item_shorts'               => 'Шорты',
+    'item_trousers'             => 'Брюки',
+    'item_westen'               => 'Жилет',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Цвет · доступно {n}',

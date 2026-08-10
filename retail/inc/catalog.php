@@ -932,6 +932,44 @@ function vr_strip_article_no(string $name, string $sku): string
 }
 
 /**
+ * Ad, kategorinin kendi adından ibaret mi?
+ *
+ * Toptan verideki adların yarısı Almanca ve çoğu yalnızca kategori sözcüğü:
+ * "Bademode", "Trainingsanzug", "Jacke". İngilizce vitrinde bunlar olduğu gibi
+ * duruyordu. Kategori adının çevirisi ZATEN var (inc/lang/*.php, cat_*), o
+ * yüzden böyle bir satırda çeviriyi kullanmak hem doğru hem okunur:
+ * "Bademode" → "Swimwear", "Jacken" → "Jackets".
+ *
+ * Yalnızca TAM eşleşme sayılıyor. "Logo T-Shirt" ya da "Distressed Jeans" gibi
+ * kategoriden fazlasını söyleyen adlar olduğu gibi kalıyor — orada tedarikçinin
+ * verdiği bilgi var ve onu atmak bilgi kaybı olur.
+ */
+function vr_name_is_bare_category(string $name, string $cat): bool
+{
+    $norm = static function (string $s): string {
+        $s = mb_strtolower(trim($s));
+        $s = (string)preg_replace('/[^\p{L}\p{N}]+/u', '', $s);
+        // Çoğul toleransı: "T-Shirt" ↔ "T-Shirts", "Jacke" ↔ "Jacken".
+        return (string)preg_replace('/(en|n|s)$/u', '', $s);
+    };
+
+    $n = $norm($name);
+    if ($n === '') return false;
+    if ($n === $norm($cat)) return true;
+
+    // Kategori adıyla yazımı tutmayan ama aynı şeyi söyleyen sözcükler.
+    // Liste bilerek kısa: yalnızca veride GERÇEKTEN geçen ve tek başına
+    // kategori bildiren adlar var.
+    $synonym = [
+        'trainingsanzug' => 'Tracksuit Sets',
+        'poloshirt'      => 'Polos',
+        'badeshort'      => 'Bademode',
+        'badehose'       => 'Bademode',
+    ];
+    return isset($synonym[$n]) && $norm($synonym[$n]) === $norm($cat);
+}
+
+/**
  * Görüntülenecek ürün adı: marka zaten ayrı gösterildiği için addan baştaki
  * marka tekrarını atıyoruz. Sepet, kasa, e-posta ve Stripe satırları da bunu
  * kullanır — yoksa her yerde "BALENCIAGA BALENCIAGA …" çıkıyor.
@@ -946,12 +984,16 @@ function vr_card_name(array $p): string
     $b = trim((string)($p['brand'] ?? ''));
     if ($b !== '' && stripos($n, $b) === 0) $n = trim(substr($n, strlen($b)));
     $n = vr_strip_article_no($n, (string)($p['sku'] ?? ''));
-    if ($n !== '') return $n;
 
-    // Adı yalnızca koddan ibaret olan satır: kodu göstermektense parçanın ne
-    // olduğunu göster. Kategori etiketi çevrili ve okunur.
-    $cat = vr_cat_label((string)($p['cat'] ?? ''));
-    return $cat !== '' ? $cat : (string)($p['sku'] ?? '');
+    // Ad kategori sözcüğünden ibaretse çevrili etiketi kullan; adı yalnızca
+    // koddan ibaret olan satırda da kodu değil parçanın ne olduğunu göster.
+    $cat = (string)($p['cat'] ?? '');
+    if ($n === '' || vr_name_is_bare_category($n, $cat)) {
+        $label = vr_item_label($cat);
+        if ($label !== '') return $label;
+    }
+
+    return $n !== '' ? $n : (string)($p['sku'] ?? '');
 }
 
 /**
@@ -1008,6 +1050,22 @@ function vr_cat_label(string $cat): string
 {
     $map = vr_dict()['cat_' . vr_slug($cat)] ?? null;
     return is_string($map) ? $map : $cat;
+}
+
+/**
+ * TEKİL parça adı — "T-Shirts" değil "T-Shirt".
+ *
+ * Kategori etiketi bir rafın adı ve çoğul; tek bir ürünün başlığı olarak
+ * kullanılamaz ("DOLCE & GABBANA / T-Shirts / 425,00 €" yanlış okunuyor).
+ * Bu yüzden ayrı bir tekil sözlük var (inc/lang/*.php, item_*).
+ *
+ * Karşılığı yoksa çoğul etikete düşüyor: yeni bir kategori eklendiğinde
+ * başlık yine dolu çıkıyor, yalnızca çekimi kusurlu oluyor.
+ */
+function vr_item_label(string $cat): string
+{
+    $map = vr_dict()['item_' . vr_slug($cat)] ?? null;
+    return is_string($map) && $map !== '' ? $map : vr_cat_label($cat);
 }
 
 /**

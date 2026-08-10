@@ -43,6 +43,7 @@ return [
 
     'sec_curated'        => 'Diese Woche, kuratiert',
     'sec_curated_sub'    => 'Zwölf Stücke, von Hand ausgewählt. Weg ist weg — die meisten kommen als einzelner Größensatz.',
+    'sec_cat_tile_sub'   => 'Die tiefste Stange im Haus — komplette Größensätze, solange sie reichen. Jedes Stück EWR-Ware, mit Rechnung dahinter.',
     'sec_vault'          => 'Der Vault',
     'sec_vault_sub'      => 'Ein Preis pro Stück, und er fällt nach einem Plan, den Sie sehen können. Länger warten heißt weniger zahlen — wenn es nicht vorher jemand nimmt.',
     'sec_brands'         => 'Häuser im Bestand',
@@ -526,6 +527,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Hosen',
     'cat_westen' => 'Westen',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-Shirt',
+    'item_hoodies-sweatshirts'  => 'Sweatshirt',
+    'item_polos'                => 'Poloshirt',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Bademode',
+    'item_tracksuit-sets'       => 'Trainingsanzug',
+    'item_jeans-shorts'         => 'Jeansshorts',
+    'item_jacken'               => 'Jacke',
+    'item_shorts'               => 'Shorts',
+    'item_trousers'             => 'Hose',
+    'item_westen'               => 'Weste',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Farbe · {n} verfügbar',

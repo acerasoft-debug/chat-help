@@ -38,6 +38,7 @@ return [
 
     'sec_curated'        => 'Questa settimana, selezionato',
     'sec_curated_sub'    => 'Dodici pezzi scelti a mano. Quando finiscono, finiscono.',
+    'sec_cat_tile_sub'   => 'Lo stand più fornito della casa — taglie complete finché durano. Ogni pezzo è merce SEE, con fattura alle spalle.',
     'sec_vault'          => 'Il Vault',
     'sec_vault_sub'      => 'Un prezzo per pezzo, che scende secondo un piano visibile. Aspettare costa meno — se prima non lo prende qualcun altro.',
     'sec_brands'         => 'Maison in stock',
@@ -520,6 +521,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Pantaloni',
     'cat_westen' => 'Gilet',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-shirt',
+    'item_hoodies-sweatshirts'  => 'Felpa',
+    'item_polos'                => 'Polo',
+    'item_jeans'                => 'Jeans',
+    'item_bademode'             => 'Costume da bagno',
+    'item_tracksuit-sets'       => 'Tuta',
+    'item_jeans-shorts'         => 'Shorts di jeans',
+    'item_jacken'               => 'Giacca',
+    'item_shorts'               => 'Shorts',
+    'item_trousers'             => 'Pantaloni',
+    'item_westen'               => 'Gilet',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Colore · {n} disponibili',

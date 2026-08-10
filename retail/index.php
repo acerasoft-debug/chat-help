@@ -261,7 +261,11 @@ vr_layout_start([
     <div class="etile__in">
       <span class="orn" aria-hidden="true"><i></i></span>
       <h2><?= h($catName !== '' ? $catName : t('nav_shop')) ?></h2>
-      <p><?= te('sec_curated_sub') ?></p>
+      <?php /* Bu karo kuratörlü sıranın metnini ödünç alıyordu: "Elle seçilmiş
+         on iki parça" yazarken hemen altında "206 parça" gösteriyordu. Kendi
+         metni var artık — bu karo en DOLU kategoriye açılıyor, on iki parçalık
+         seçkiye değil. */ ?>
+      <p><?= te('sec_cat_tile_sub') ?></p>
       <span class="etile__go">
         <?= $catName !== '' ? te('results_n', ['n' => (int)$topCat[$catName]]) : te('nav_shop') ?>
         <?= vr_icon('arrow', 15) ?>

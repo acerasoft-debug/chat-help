@@ -42,6 +42,7 @@ return [
 
     'sec_curated'        => 'Cette semaine, sélectionné',
     'sec_curated_sub'    => 'Douze pièces choisies à la main. Une fois parties, elles ne reviennent pas.',
+    'sec_cat_tile_sub'   => 'Le portant le plus fourni de la maison — séries de tailles complètes tant qu’il en reste. Chaque pièce en stock EEE, facture à l’appui.',
     'sec_vault'          => 'Le Vault',
     'sec_vault_sub'      => 'Un prix par pièce, qui baisse selon un calendrier visible. Attendre coûte moins cher — si personne ne la prend avant.',
     'sec_brands'         => 'Maisons en stock',
@@ -524,6 +525,20 @@ return [
     'cat_shorts' => 'Shorts',
     'cat_trousers' => 'Pantalons',
     'cat_westen' => 'Gilets',
+
+    // Tekil parca adi - adi yalnizca kategori sozcugunden ibaret
+    // olan satirlarda kullaniliyor (bkz. vr_item_label).
+    'item_t-shirts'             => 'T-shirt',
+    'item_hoodies-sweatshirts'  => 'Sweat-shirt',
+    'item_polos'                => 'Polo',
+    'item_jeans'                => 'Jean',
+    'item_bademode'             => 'Maillot de bain',
+    'item_tracksuit-sets'       => 'Survêtement',
+    'item_jeans-shorts'         => 'Short en jean',
+    'item_jacken'               => 'Veste',
+    'item_shorts'               => 'Short',
+    'item_trousers'             => 'Pantalon',
+    'item_westen'               => 'Gilet',
 
     // Renk cesitleri - bkz. vr_variant_index().
     'select_colour' => 'Couleur · {n} disponibles',
