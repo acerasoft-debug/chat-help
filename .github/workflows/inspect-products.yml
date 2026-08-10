@@ -205,7 +205,12 @@ jobs:
                    urun icinde fark edilmesi cok zor bir hata. Ayirici sart olunca
                    'polo2.jpg' gibi ayiricisiz varyantlar kaciyor; aday kaçirmak yanlis
                    aday uretmekten iyidir, cunku kaçani insan gozu bulur, yanlisi bulmaz. */
-                $b = preg_replace('/[-_ ](2|3|4|5|b|back|rueck|detail|alt|side|flat|model|zoom|close)$/', '', $b);
+                /* p1/p2/p3 ve v1/v2 bu katalogun GERCEK duzeni -- ilk envanterde
+                   balenciaga-612966-p1.jpg ve -p2.jpg gibi binlerce dosya "eslesmeyen"
+                   kutusuna dustu, cunku kural bu ekleri tanimiyordu. Urunun kendisi
+                   eksiz adi (balenciaga-612966.jpg) kullaniyor, ikinci karesi -p2 olarak
+                   diskte zaten duruyor. */
+                $b = preg_replace('/[-_ ](2|3|4|5|b|back|rueck|detail|alt|side|flat|model|zoom|close|p[1-9]|v[1-9])$/', '', $b);
                 return $b;
               };
               $files = [];
