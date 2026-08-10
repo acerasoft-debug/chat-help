@@ -87,6 +87,8 @@ return [
     'result_1'           => '1 parça',
     'no_results'         => 'Bu filtrlərə uyğun heç nə yoxdur.',
     'no_results_hint'    => 'Qiymət aralığını genişləndirin və ya ev filtrini götürün.',
+    'no_search_results'  => '“{q}” üzrə heç nə tapılmadı.',
+    'no_search_hint'     => 'Ev adını, kateqoriyanı və ya etiketdəki model kodunu yoxlayın.',
     'prev'               => 'Əvvəlki',
     'next'               => 'Sonrakı',
     'page_x_of_y'        => 'Səhifə {x} / {y}',

@@ -87,6 +87,8 @@ return [
     'result_1'           => '1 pezzo',
     'no_results'         => 'Nessun risultato con questi filtri.',
     'no_results_hint'    => 'Allarga la fascia di prezzo o togli il filtro maison.',
+    'no_search_results'  => 'Nessun pezzo corrisponde a «{q}».',
+    'no_search_hint'     => 'Provi il nome di una maison, una categoria o il codice modello sull’etichetta.',
     'prev'               => 'Precedente',
     'next'               => 'Successivo',
     'page_x_of_y'        => 'Pagina {x} di {y}',

@@ -87,6 +87,8 @@ return [
     'result_1'           => '1 stykke',
     'no_results'         => 'Intet matcher disse filtre.',
     'no_results_hint'    => 'Prøv et bredere prisinterval, eller fjern husfiltret.',
+    'no_search_results'  => 'Intet stykke matcher “{q}”.',
+    'no_search_hint'     => 'Prøv et husnavn, en kategori eller modelkoden fra mærket.',
     'prev'               => 'Forrige',
     'next'               => 'Næste',
     'page_x_of_y'        => 'Side {x} af {y}',

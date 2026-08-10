@@ -87,6 +87,8 @@ return [
     'result_1'           => '1 pieza',
     'no_results'         => 'Nada coincide con esos filtros.',
     'no_results_hint'    => 'Amplía el rango de precio o quita el filtro de casa.',
+    'no_search_results'  => 'Ninguna pieza coincide con «{q}».',
+    'no_search_hint'     => 'Pruebe con el nombre de una casa, una categoría o el código de modelo de la etiqueta.',
     'prev'               => 'Anterior',
     'next'               => 'Siguiente',
     'page_x_of_y'        => 'Página {x} de {y}',

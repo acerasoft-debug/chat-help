@@ -155,6 +155,13 @@ vr_layout_start([
          ve kategorinin birlikte seçilmesi. */
       $narrowed = $q !== '' || $seller !== '' || $min !== '' || $max !== ''
                || ($brand !== '' && $cat !== '');
+
+      /* Sonuç sıfırsa panel telefonda KAPALI kalıyor.
+         Aksi hâlde "hiçbir şey eşleşmedi" iletisi ve onun altındaki RESET
+         düğmesi iki ekran filtrenin ARKASINDA kalıyordu — yani kişinin en çok
+         ihtiyaç duyduğu anda görünmüyordu. Sonuç varken panelin açık gelmesi
+         doğru davranış; boş sonuçta yanlış. */
+      if ((int)$res['total'] === 0) $narrowed = false;
       ?>
       <details class="filters"<?= $narrowed ? ' open' : '' ?>>
         <summary class="filters__toggle">
@@ -236,8 +243,16 @@ vr_layout_start([
         </div>
 
         <?php if (!$res['rows']): ?>
+          <?php /* Arama boşa çıktıysa filtre metni yanlış: kimse filtre
+             seçmedi, bir sözcük yazdı. "Fiyat aralığını genişletin" demek
+             onu olmayan bir düğmeye yolluyor. Aramaya kendi metni verildi ve
+             aradığı sözcük iletide geçiyor — yazım hatasını orada görüyor. */ ?>
           <div class="notice">
-            <strong><?= te('no_results') ?></strong><br><?= te('no_results_hint') ?>
+            <?php if ($q !== ''): ?>
+              <strong><?= te('no_search_results', ['q' => $q]) ?></strong><br><?= te('no_search_hint') ?>
+            <?php else: ?>
+              <strong><?= te('no_results') ?></strong><br><?= te('no_results_hint') ?>
+            <?php endif; ?>
           </div>
           <a class="btn btn--ghost" href="<?= h(vr_url('shop.php')) ?>"><span><?= te('reset') ?></span></a>
         <?php else: ?>

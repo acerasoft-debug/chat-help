@@ -93,6 +93,8 @@ return [
     'result_1'           => '1 stuk',
     'no_results'         => 'Niets past bij deze filters.',
     'no_results_hint'    => 'Probeer een ruimere prijsvork of verwijder het huisfilter.',
+    'no_search_results'  => 'Geen stuk komt overeen met “{q}”.',
+    'no_search_hint'     => 'Probeer een huisnaam, een categorie of de modelcode van het label.',
     'prev'               => 'Vorige',
     'next'               => 'Volgende',
     'page_x_of_y'        => 'Pagina {x} van {y}',

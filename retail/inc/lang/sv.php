@@ -87,6 +87,8 @@ return [
     'result_1'           => '1 plagg',
     'no_results'         => 'Inget matchar dessa filter.',
     'no_results_hint'    => 'Prova ett bredare prisintervall eller ta bort husfiltret.',
+    'no_search_results'  => 'Inget plagg matchar ”{q}”.',
+    'no_search_hint'     => 'Prova ett husnamn, en kategori eller modellkoden från etiketten.',
     'prev'               => 'Föregående',
     'next'               => 'Nästa',
     'page_x_of_y'        => 'Sida {x} av {y}',

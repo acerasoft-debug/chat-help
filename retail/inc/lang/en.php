@@ -96,6 +96,8 @@ return [
     'result_1'           => '1 piece',
     'no_results'         => 'Nothing matches those filters.',
     'no_results_hint'    => 'Try a wider price range, or clear the house filter.',
+    'no_search_results'  => 'No piece matches “{q}”.',
+    'no_search_hint'     => 'Try a house name, a category, or the model code from the label.',
     'prev'               => 'Previous',
     'next'               => 'Next',
     'page_x_of_y'        => 'Page {x} of {y}',

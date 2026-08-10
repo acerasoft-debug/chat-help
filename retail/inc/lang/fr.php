@@ -91,6 +91,8 @@ return [
     'result_1'           => '1 pièce',
     'no_results'         => 'Aucun résultat pour ces filtres.',
     'no_results_hint'    => 'Élargissez la fourchette de prix ou retirez le filtre maison.',
+    'no_search_results'  => 'Aucune pièce ne correspond à « {q} ».',
+    'no_search_hint'     => 'Essayez un nom de maison, une catégorie ou le code modèle de l’étiquette.',
     'prev'               => 'Précédent',
     'next'               => 'Suivant',
     'page_x_of_y'        => 'Page {x} sur {y}',

@@ -92,6 +92,8 @@ return [
     'result_1'           => '1 Stück',
     'no_results'         => 'Zu diesen Filtern passt nichts.',
     'no_results_hint'    => 'Größere Preisspanne wählen oder den Häuser-Filter entfernen.',
+    'no_search_results'  => 'Zu „{q}“ passt kein Stück.',
+    'no_search_hint'     => 'Versuchen Sie einen Hausnamen, eine Kategorie oder den Modellcode vom Etikett.',
     'prev'               => 'Zurück',
     'next'               => 'Weiter',
     'page_x_of_y'        => 'Seite {x} von {y}',
