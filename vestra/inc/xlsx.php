@@ -254,3 +254,26 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
   /* Biten dosyayi string'e OKUMUYORUZ: cagiran readfile() ile akitip siliyor. */
   return is_file($tmp) && filesize($tmp) > 0 ? $tmp : '';
 }
+
+/* ── Shared export helpers ─────────────────────────────────────────────────
+   Both catalogue exports need these. They lived in catalog.php, which meant a second
+   exporter could not use them without copying -- and copying a path helper is how two
+   exports end up disagreeing about where photos are. */
+/* A never-empty identification code for a row: variant article code → product SKU →
+   uppercased id. Lets every product/colour carry a code buyers can reference. */
+function vestra_export_code(array $p, array $v = []): string {
+    $art = trim((string)($v['art'] ?? ''));
+    if ($art !== '') return $art;
+    $sku = trim((string)($p['sku'] ?? ''));
+    if ($sku !== '') return $sku;
+    $id = trim((string)($p['id'] ?? ''));
+    return $id !== '' ? strtoupper($id) : '';
+}
+/* Resolve a web image path ("/uploads/..") to a local file for embedding, or '' if absent.
+   dirname(__DIR__), NOT __DIR__: this used to live in catalog.php at the web root, where
+   __DIR__ was that root. From inc/ the same expression would resolve to inc/uploads/... ,
+   which exists nowhere -- every photo would vanish from every export without one error. */
+function vestra_export_local(string $img): string {
+    if ($img !== '' && $img[0] === '/') { $c = dirname(__DIR__).$img; if (is_file($c)) return $c; }
+    return '';
+}

@@ -41,21 +41,6 @@ foreach (vestra_products() as $p) {
     $items[] = $p;
 }
 
-/* A never-empty identification code for a row: variant article code → product SKU →
-   uppercased id. Lets every product/colour carry a code buyers can reference. */
-function vestra_export_code(array $p, array $v = []): string {
-    $art = trim((string)($v['art'] ?? ''));
-    if ($art !== '') return $art;
-    $sku = trim((string)($p['sku'] ?? ''));
-    if ($sku !== '') return $sku;
-    $id = trim((string)($p['id'] ?? ''));
-    return $id !== '' ? strtoupper($id) : '';
-}
-/* Resolve a web image path ("/uploads/..") to a local file for embedding, or '' if absent. */
-function vestra_export_local(string $img): string {
-    if ($img !== '' && $img[0] === '/') { $c = __DIR__.$img; if (is_file($c)) return $c; }
-    return '';
-}
 
 $headers = ['#', 'Brand', 'Product', 'Colour', 'Article / Code', 'Model / Ref', 'MOQ', 'Photo'];
 $rows = [];

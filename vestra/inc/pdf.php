@@ -61,10 +61,29 @@ class VestraPdf {
     private string $cur = '';
     /** @var array<string,array> embedded JPEGs, keyed by the /ImN name used in content streams */
     private array $imgs = [];
+    /** @var array<int,array<int,array{0:float,1:float,2:float,3:float,4:string}>> per-page link rects */
+    private array $links = [];
 
     public function addPage(): void {
         $this->pages[] = $this->cur;
         $this->cur = '';
+    }
+
+    /**
+     * A clickable region on the current page.
+     *
+     * Printing a URL as text is readable but dead: a price list gets opened on a phone and
+     * forwarded as an attachment, and nobody retypes vestrasales.com/product?id=blc-612966
+     * by hand. The visible text stays — it survives printing and copy-paste — and this puts
+     * a real annotation over it so the same thing is also tappable.
+     *
+     * ($x,$y) is the bottom-left of the rect in PDF coordinates, matching text().
+     * Call it while laying the page out; annotations added from inside stampEachPage()
+     * would have no page to attach to, so footers keep to plain text.
+     */
+    public function link(float $x, float $y, float $w, float $h, string $url): void {
+        if ($url === '' || $w <= 0 || $h <= 0) return;
+        $this->links[count($this->pages)][] = [$x, $y, $x + $w, $y + $h, $url];
     }
 
     /**
@@ -185,6 +204,13 @@ class VestraPdf {
         return $p."h W n\n";
     }
 
+    /** A URL inside a PDF string literal. Only the three delimiters need escaping, and a URL
+     *  is ASCII by construction here, so this stays separate from esc() — that one transcodes
+     *  to CP1252 for display text, which would mangle a percent-encoded address. */
+    private static function escUri(string $u): string {
+        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $u);
+    }
+
     /** Pixel size and component count from the JPEG's frame header; null if it isn't one. */
     private static function jpegInfo(string $d): ?array {
         $len = strlen($d);
@@ -246,11 +272,26 @@ class VestraPdf {
         $res = '/Font << /F1 3 0 R /F2 4 0 R >>'.($xobj !== '' ? ' /XObject << '.trim($xobj).' >>' : '');
 
         $kids = [];
-        foreach ($pages as $content) {
+        foreach ($pages as $pageIdx => $content) {
             $pageId = $id++; $contentId = $id++;
             $kids[] = "$pageId 0 R";
+            /* Link annotations are their own objects and the page points at them. /Border
+               [0 0 0] keeps the viewer from drawing its default blue box over the text —
+               the address is already visible, the annotation only makes it tappable. */
+            $annots = '';
+            if (!empty($this->links[$pageIdx])) {
+                $refs = [];
+                foreach ($this->links[$pageIdx] as [$x1, $y1, $x2, $y2, $url]) {
+                    $aId = $id++;
+                    $objs[$aId] = '<< /Type /Annot /Subtype /Link /Rect ['
+                        .sprintf('%.2F %.2F %.2F %.2F', $x1, $y1, $x2, $y2)
+                        .'] /Border [0 0 0] /A << /S /URI /URI ('.self::escUri($url).') >> >>';
+                    $refs[] = $aId.' 0 R';
+                }
+                $annots = ' /Annots ['.implode(' ', $refs).']';
+            }
             $objs[$pageId] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '.self::PAGE_W.' '.self::PAGE_H.
-                '] /Resources << '.$res.' >> /Contents '.$contentId.' 0 R >>';
+                '] /Resources << '.$res.' >>'.$annots.' /Contents '.$contentId.' 0 R >>';
             $streams[$contentId] = ['<<', $content];
         }
         $objs[2] = '<< /Type /Pages /Kids ['.implode(' ', $kids).'] /Count '.count($kids).' >>';

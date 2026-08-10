@@ -36,6 +36,8 @@
   # e-postayla gönderiliyor ve ".pdf" ile biten bir bağlantı, tıklanmadan önce
   # ne olduğunu söylüyor. Marka süzgeci sorgu dizesiyle: ?brand=Balmain
   RewriteRule ^wholesale-list\.pdf$ wholesale-list.php [QSA,L]
+  # Ayni liste Excel olarak: alici siralayip suzup kendi alim tablosuna yapistirabilsin.
+  RewriteRule ^wholesale-list\.xlsx$ wholesale-xlsx.php [QSA,L]
 
   # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
 
