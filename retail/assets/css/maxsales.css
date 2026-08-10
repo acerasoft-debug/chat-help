@@ -1508,9 +1508,19 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 
 .card__sizes--col{color:var(--ink);opacity:.72}
 /* Fotoğrafı olmayan çeşit: boş bir kare değil, çapraz taralı bir yer tutucu.
-   "Fotoğraf yok" demek, yanlış renk göstermekten iyi. */
+   "Fotoğraf yok" demek, yanlış renk göstermekten iyi.
+
+   Tarama %5 opaklıktaydı ve 62 pikselde hiç görünmüyordu: kare düpedüz boş
+   duruyordu, yani "Light Blue" yazan yerde bej bir kutu vardı — tam da
+   kaçınmak istediğimiz şey. Kontrast görünür seviyeye çekildi ve ortaya bir
+   tire kondu; artık kare "burada fotoğraf yok" diyor, "bu renk bej" demiyor. */
 .swatch__none{
+  position:relative;
   background:
-    repeating-linear-gradient(-45deg,transparent 0 5px,rgba(0,0,0,.05) 5px 6px),
+    repeating-linear-gradient(-45deg,transparent 0 5px,rgba(0,0,0,.10) 5px 7px),
     var(--bone-2);
+}
+.swatch__none::after{
+  content:"";position:absolute;left:50%;top:50%;width:16px;height:1px;
+  transform:translate(-50%,-50%);background:var(--muted-2);opacity:.7;
 }
