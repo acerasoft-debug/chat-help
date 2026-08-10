@@ -267,20 +267,33 @@ function vestra_tpl_kyb_approved(string $lang, string $name, string $type, strin
 function vestra_tpl_welcome_voucher(string $lang, string $name, string $code, string $valueLabel, string $expiry): array {
   $Lb  = vestra_email_labels($lang);
   $url = 'https://vestrasales.com/shop?voucher='.rawurlencode($code);
-  $BADGE = ['en'=>'🎟️ Your voucher','de'=>'🎟️ Ihr Gutschein','fr'=>'🎟️ Votre bon',
-            'it'=>'🎟️ Il tuo buono','es'=>'🎟️ Tu vale'];
   $BTN   = ['en'=>'Browse the catalogue','de'=>'Zum Katalog','fr'=>'Voir le catalogue',
             'it'=>'Vai al catalogo','es'=>'Ver el catálogo'];
   $ROWL  = ['en'=>['Voucher code','Discount','Valid until'],'de'=>['Gutscheincode','Rabatt','Gültig bis'],
             'fr'=>['Code du bon','Remise','Valable jusqu\'au'],'it'=>['Codice buono','Sconto','Valido fino al'],
             'es'=>['Código del vale','Descuento','Válido hasta']];
   $rl = $ROWL[$lang] ?? $ROWL['en'];
+  $KICK = ['en'=>'Welcome voucher','de'=>'Willkommensgutschein','fr'=>'Bon de bienvenue',
+           'it'=>'Buono di benvenuto','es'=>'Vale de bienvenida'];
+  $CAP  = ['en'=>'off your first wholesale order',
+           'de'=>'Rabatt auf Ihre erste Großhandelsbestellung',
+           'fr'=>'de remise sur votre première commande en gros',
+           'it'=>'di sconto sul tuo primo ordine all\'ingrosso',
+           'es'=>'de descuento en tu primer pedido mayorista'];
+  /* The coupon block instead of the generic rows, and no badge above it. Through the rows
+     the whole offer arrived as one grey line — the same furniture this shell puts under a
+     plan change or an escrow release, for the one mail whose entire job is to carry a code.
+     The badge is dropped because the coupon's own kicker already names it; keeping both
+     printed "Your voucher" twice, six lines apart. */
   $opts = [
-    'badge' => $BADGE[$lang] ?? $BADGE['en'],
-    'rows'  => [
-      ['label'=>$rl[0],'value'=>$code,'strong'=>true],
-      ['label'=>$rl[1],'value'=>$valueLabel],
-      ['label'=>$rl[2],'value'=>$expiry],
+    'voucher' => [
+      'kicker'       => $KICK[$lang] ?? $KICK['en'],
+      'amount'       => $valueLabel,
+      'caption'      => $CAP[$lang] ?? $CAP['en'],
+      'code_label'   => $rl[0],
+      'code'         => $code,
+      'expiry_label' => $rl[2],
+      'expiry'       => $expiry,
     ],
     'button' => ['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$url],
   ];

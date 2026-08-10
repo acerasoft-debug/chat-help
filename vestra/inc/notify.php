@@ -674,6 +674,44 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
       .htmlspecialchars($btnLabel,ENT_QUOTES,'UTF-8').'</a></div>';
   }
 
+  /* Optional voucher coupon ('voucher' => ['kicker','amount','caption','code_label','code',
+     'expiry_label','expiry']). The welcome voucher used to render through the generic
+     label/value rows, which put the whole offer on one grey line reading
+     "Voucher code    VES-4KQ2-8ZTF" -- the same furniture as a plan change or an escrow
+     release. The one thing this mail exists to carry is the code, so it gets a coupon:
+     the percentage as the hero, the code in a ruled field beneath it.
+
+     Table-based with bgcolor attributes as well as CSS, because Outlook renders through
+     Word and drops background-image and most box styling on a <div>; a dashed border and
+     a solid bgcolor are the two decorations that survive everywhere. No web font -- the
+     code is set in the client's monospace so the character shapes stay unambiguous when
+     someone reads it off a screen to type it in. */
+  $voucherHtml='';
+  if(!empty($opts['voucher']['code'])){
+    $v=$opts['voucher'];
+    $esc=fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8');
+    $kick=(string)($v['kicker']??''); $amount=(string)($v['amount']??'');
+    $cap=(string)($v['caption']??''); $expL=(string)($v['expiry_label']??'');
+    $exp=(string)($v['expiry']??''); $codeL=(string)($v['code_label']??'');
+    $voucherHtml='<div style="padding:6px 28px 22px">'
+      .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#14110c"'
+      .' style="border-collapse:separate;background:#14110c;border:1px solid #a97f2c;border-radius:12px">'
+      .'<tr><td align="center" style="padding:26px 22px 24px">'
+      .($kick!==''?'<div style="color:#a97f2c;font-size:10.5px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;margin:0 0 14px">'.$esc($kick).'</div>':'')
+      .($amount!==''?'<div style="color:#e8cf95;font-family:Georgia,\'Times New Roman\',serif;font-size:52px;line-height:1;font-weight:700;margin:0 0 6px">'.$esc($amount).'</div>':'')
+      .($cap!==''?'<div style="color:#b9b0a0;font-size:13px;line-height:1.5;margin:0 0 20px">'.$esc($cap).'</div>':'')
+      /* the code field: light ticket on the dark panel, ruled rather than filled, so it
+         reads as something to be torn off and used */
+      .'<table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4ecd8"'
+      .' style="border-collapse:separate;background:#f4ecd8;border:2px dashed #a97f2c;border-radius:9px">'
+      .'<tr><td align="center" style="padding:13px 26px">'
+      .($codeL!==''?'<div style="color:#8a6d1f;font-size:9.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin:0 0 5px">'.$esc($codeL).'</div>':'')
+      .'<div style="color:#14110c;font-family:\'Courier New\',Courier,monospace;font-size:21px;font-weight:700;letter-spacing:.14em;line-height:1.2">'.$esc($v['code']).'</div>'
+      .'</td></tr></table>'
+      .($exp!==''?'<div style="color:#8a8272;font-size:11.5px;margin:16px 0 0">'.$esc(trim($expL.' '.$exp)).'</div>':'')
+      .'</td></tr></table></div>';
+  }
+
   // Optional download list ('downloads' => ['title'=>..,'items'=>[['label'=>,'url'=>],..]]) —
   // renders each as a labelled row with a compact gold download button. Used for campaign
   // line-sheet / catalogue (Excel) links; additive, callers that pass none are unaffected.
@@ -800,6 +838,7 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     .$heroHtml
     .$badgeHtml
     .'<div style="padding:20px 28px 8px">'.$mainHtml.'</div>'
+    .$voucherHtml
     .$rowsHtml
     .$brandsHtml
     .$shotsHtml
