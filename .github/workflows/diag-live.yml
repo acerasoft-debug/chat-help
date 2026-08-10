@@ -154,13 +154,14 @@ jobs:
         env:
           FIX_SHADOW: ${{ github.event.inputs.fix_shop_shadow }}
           DIAG_PATHS: ${{ github.event.inputs.paths }}
+          DIAG_GREP: ${{ github.event.inputs.grep_pairs }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: FIX_SHADOW,DIAG_PATHS
+          envs: FIX_SHADOW,DIAG_PATHS,DIAG_GREP
           script: |
             echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
@@ -281,6 +282,27 @@ jobs:
               printf '  %-34s %s\n' "$u" \
                 "$(curl -s -o /dev/null -w '%{http_code}  %{time_total}s  %{size_download}B' -L "https://vestrasales.com$u")"
             done
+
+            # Icerik kontrolu SUNUCUDAN. Ayni kontrol runner'dan da yapiliyor ama
+            # oradan bakildiginda site iki ayri sayfa icin de ~7 KB'lik ayni genel
+            # cevabi veriyor (barindirmanin bot korumasi); sunucunun kendi istegine
+            # ise 359 KB'lik gercek sayfa geliyor. Yani runner'dan yapilan arama
+            # sayfada olan bir metni de "YOK" diye bildiriyordu -- yanlis negatif,
+            # ve en kotu turden: bir seyi bozdugunuza inandiran.
+            if [ -n "${DIAG_GREP:-}" ]; then
+              echo; echo "== ICERIK KONTROLU (sunucudan) =="
+              echo "$DIAG_GREP" | sed 's/||/\n/g' | while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                gp="${line%%::*}"; needle="${line#*::}"
+                curl -sS -o /tmp/vgbody.html --max-time 30 "https://vestrasales.com${gp}" 2>/dev/null || true
+                if grep -qF "$needle" /tmp/vgbody.html 2>/dev/null; then
+                  printf '  BULUNDU (%3sx)  %-14s :: %s\n' "$(grep -oF "$needle" /tmp/vgbody.html | wc -l | tr -d ' ')" "$gp" "$needle"
+                else
+                  printf '  YOK            %-14s :: %s\n' "$gp" "$needle"
+                fi
+              done
+              rm -f /tmp/vgbody.html
+            fi
 
       # /shop icin .htaccess'e acik bir yonlendirme kurali ekledim, deploy gecti, sayfa
       # yine 403 verdi. Iki ihtimal var ve ikisi cok farkli isler gerektiriyor: kural
