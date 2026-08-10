@@ -472,13 +472,26 @@ jobs:
               foreach ($m[1] as $h) {
                 $h  = explode('#', $h)[0];        // sayfa ici bag: adresin parcasi degil
                 if ($h === '') continue;
-                $low = strtolower($h);
-                if (!str_contains($low, $needle)) continue;
                 if (str_starts_with($h, '//'))      $u = $scheme.':'.$h;
                 elseif (str_starts_with($h, '/'))   $u = $scheme.'://'.$host.$h;
-                elseif (preg_match('#^https?://#i', $h)) $u = $h;
+                elseif (preg_match('~^https?://~i', $h)) $u = $h;
                 else continue;
                 if (parse_url($u, PHP_URL_HOST) !== $host) continue;   // ayni alan adi sarti
+
+                /* Kod ADRES YOLUNDA gecmeli, sorgu dizesinde degil. Sorguya da bakinca
+                   arama sayfasinin kendisi eslesiyordu: Balenciaga'nin sonuc sayfasindaki
+                   "?q=612966" bagi baska bir ulkenin ARAMA sayfasina gidiyor ve kodu
+                   tasidigi icin "urun sayfasi" sanilip yeniden cekiliyordu -- sonsuz bir
+                   daire ve yine karusel fiyatlari. */
+                $path = strtolower((string)parse_url($u, PHP_URL_PATH));
+                if ($path === '' || !str_contains($path, $needle)) continue;
+
+                /* Statik dosyalar: D\&G'nin sonuc sayfasinda urun kodunu TASIYAN ilk bag
+                   urunun fotografiydi (demandware.static/.../g8kg5t...jpg). Bir gorseli
+                   cekip icinde fiyat aramak bos is. */
+                if (preg_match('~\.(jpe?g|png|gif|webp|avif|svg|css|js|json|xml|pdf|ico)$~', $path)) continue;
+                if (preg_match('~/(dw/image|static|assets|cdn|media)/~', $path)) continue;
+
                 return $u;
               }
               return '';
