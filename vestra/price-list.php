@@ -22,7 +22,6 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/i18n.php';
 
-const PL_RETAIL_MULTIPLE = 3.0;
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
 
@@ -153,7 +152,7 @@ require __DIR__.'/inc/head.php';
       $hasTiers = $best < $price - 0.001;
       $rrp = (float)($p['rrp'] ?? 0);
       $realRrp = $rrp > 0;
-      if (!$realRrp) $rrp = $best * PL_RETAIL_MULTIPLE;
+      if (!$realRrp) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
       $id = (string)($p['id'] ?? '');
       $ident = trim((string)($p['sku'] ?? ''));
       if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
@@ -182,7 +181,7 @@ require __DIR__.'/inc/head.php';
       </div>
       <div class="pc-rrp pc-num">
         <b>€<?= number_format($rrp, 2) ?></b>
-        <span class="src <?= $realRrp ? 'real' : 'guide' ?>"><?= $realRrp ? t('RRP') : t('guide ×3') ?></span>
+        <span class="src <?= $realRrp ? 'real' : 'guide' ?>"><?= $realRrp ? t('RRP') : sprintf(t('guide ×%d'), VESTRA_RETAIL_MULTIPLE) ?></span>
       </div>
     </div>
     <?php endforeach; ?>
@@ -191,7 +190,7 @@ require __DIR__.'/inc/head.php';
   <p class="pc-foot">
     <b><?= t('Payment') ?>.</b> <?= t('Escrow-protected up to €3,000 per order: the platform holds the payment and releases it to the seller only after the goods reach you and you confirm they are as described. Above that, or on request, we invoice and the goods are released for dispatch once payment is received.') ?><br>
     <b><?= t('Delivery') ?>.</b> <?= t('Within the EU, typically 7–14 working days from release of the order. Freight is quoted per order.') ?><br>
-    <b><?= t('Retail column') ?>.</b> <?= t('“RRP” is the brand’s own recommended price where it is on file. “guide ×3” is our estimate at three times wholesale — not a brand-set price.') ?>
+    <b><?= t('Retail column') ?>.</b> <?= sprintf(t('“RRP” is the brand’s own recommended price where it is on file. “guide ×%1$d” is our estimate at %1$d times wholesale — not a brand-set price.'), VESTRA_RETAIL_MULTIPLE) ?>
   </p>
   <?php endif; ?>
 </div>

@@ -23,7 +23,6 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
 
-const WX_RETAIL_MULTIPLE = 3.0;
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
 
@@ -61,7 +60,7 @@ foreach ($byBrand as $brand => $list) {
 
         $rrp = (float)($p['rrp'] ?? 0);
         $real = $rrp > 0;
-        if (!$real) $rrp = $best * WX_RETAIL_MULTIPLE;
+        if (!$real) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
 
         $id    = (string)($p['id'] ?? '');
         $ident = trim((string)($p['sku'] ?? ''));
@@ -82,7 +81,7 @@ foreach ($byBrand as $brand => $list) {
             number_format($price, 2, '.', ''),
             $hasTiers ? number_format($best, 2, '.', '') : '',
             number_format($rrp, 2, '.', ''),
-            $real ? 'brand RRP' : 'guide x'.number_format(WX_RETAIL_MULTIPLE, 0),
+            $real ? 'brand RRP' : 'guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0),
             $id !== '' ? 'https://vestrasales.com/product?id='.$id : '',
             '',
         ], 'image' => function_exists('vestra_export_local')
@@ -97,7 +96,7 @@ $rows[] = ['cells' => ['', '', '', '', 'Escrow-protected payment up to EUR 3,000
     .'we invoice and release the goods once payment is received.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
 $rows[] = ['cells' => ['', '', '', '', 'Delivery within the EU (Greece included) typically 7-14 working days from release. '
     .'Freight quoted per order. MOQ is per article; no seasonal or collection minimum.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
-$rows[] = ['cells' => ['', '', '', '', 'Retail source "guide x3" is our estimate at three times wholesale, not a brand-set price. '
+$rows[] = ['cells' => ['', '', '', '', 'Retail source "guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0).'" is our estimate at '.number_format(VESTRA_RETAIL_MULTIPLE, 0).' times wholesale, not a brand-set price. '
     .'"brand RRP" is the brand\'s own recommended price as supplied.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
 /* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
    a forwarded copy should be one click from the current list. */

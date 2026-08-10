@@ -33,7 +33,6 @@ require_once __DIR__.'/inc/pdf.php';
 /* Floor, not a target. Three times wholesale is the lower end of what these goods carry
    at retail; a buyer working out whether a line clears their costs needs the conservative
    number, not the flattering one. */
-const WL_RETAIL_MULTIPLE = 3.0;
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
 
@@ -74,7 +73,7 @@ $header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $to
         $pdf->text($L, $y, 9, $total.' articles  ·  EUR per piece, excluding VAT and freight  ·  issued '.date('d M Y'));
         $y -= 12;
         $pdf->text($L, $y, 9, 'RETAIL column: "RRP" = the brand\'s own recommended price. "guide" = wholesale x'
-            .number_format(WL_RETAIL_MULTIPLE, 0).', our estimate, not a brand figure.');
+            .number_format(VESTRA_RETAIL_MULTIPLE, 0).', our estimate, not a brand figure.');
         $y -= 12;
         $pdf->text($L, $y, 9, 'ART. NO is the manufacturer\'s own article number; the smaller code beside it is the VESTRA reference.');
         $y -= 12;
@@ -143,7 +142,7 @@ foreach ($byBrand as $brand => $rows) {
 
         $rrp     = (float)($p['rrp'] ?? 0);
         $isRealRrp = $rrp > 0;
-        if (!$isRealRrp) $rrp = $best * WL_RETAIL_MULTIPLE;
+        if (!$isRealRrp) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
 
         $id  = (string)($p['id'] ?? '');
         $url = 'https://vestrasales.com/product?id='.rawurlencode($id);
@@ -199,7 +198,7 @@ foreach ($byBrand as $brand => $rows) {
         if ($hasTiers) $pdf->textR($X_WHOLE - $pdf->strWidth($num, 10, true) - 3, $rowMid, 6.5, 'from');
 
         $pdf->textR($X_RETAIL, $rowMid, 9, 'EUR '.number_format($rrp, 2));
-        $pdf->textR($X_RETAIL, $rowMid - 9, 6.5, $isRealRrp ? 'RRP' : 'guide x'.number_format(WL_RETAIL_MULTIPLE, 0));
+        $pdf->textR($X_RETAIL, $rowMid - 9, 6.5, $isRealRrp ? 'RRP' : 'guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0));
 
         $y -= $ROW_H;
         $pdf->line($L, $y + 6, $R, $y + 6, 0.4, 0.88);
@@ -244,7 +243,7 @@ $pdf->stampEachPage(function (VestraPdf $d, int $n, int $of) use ($L, $R, $BOTTO
     $d->text($L, $BOTTOM - 20, 7.5, 'VESTRA · vestrasales.com · support@vestrasales.com');
     $d->textR($R, $BOTTOM - 20, 7.5, 'Page '.$n.' of '.$of);
     $d->text($L, $BOTTOM - 30, 7, 'EUR per piece, excluding VAT and freight. RETAIL marked "guide" is wholesale x'
-        .number_format(WL_RETAIL_MULTIPLE, 0).', our estimate, not a brand-set price.');
+        .number_format(VESTRA_RETAIL_MULTIPLE, 0).', our estimate, not a brand-set price.');
 });
 
 $slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';

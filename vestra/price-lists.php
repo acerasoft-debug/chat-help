@@ -121,7 +121,7 @@ require __DIR__.'/inc/head.php';
   </table>
 
   <p class="pl-note" style="margin-top:26px">
-    <?= t('The retail column in both files is marked on every row: "RRP" where the brand\'s own recommended price is on file, and "guide x3" where it is our estimate at three times wholesale. The two are never merged, because a recommended price for branded goods belongs to the brand.') ?>
+    <?= sprintf(t('The retail column in both files is marked on every row: "RRP" where the brand\'s own recommended price is on file, and "guide x%1$d" where it is our estimate at %1$d times wholesale. The two are never merged, because a recommended price for branded goods belongs to the brand.'), VESTRA_RETAIL_MULTIPLE) ?>
   </p>
 </div>
 
