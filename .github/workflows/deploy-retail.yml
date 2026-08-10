@@ -175,9 +175,13 @@ jobs:
           # canlı sitede bütün kartlar düz "cover"a düşüyordu: dar görseller
           # kırpılıyor, kare olanlar taşıyordu. Ayırma işinin kuru
           # çalıştırmasında public_html/data içinde olmadığı görüldü.
+          # product-review.json listeye SONRADAN eklendi. Bu liste bir beyaz
+          # liste, yani yeni bir veri katmanı eklendiğinde buraya yazılmazsa
+          # sunucuda hiç oluşmuyor ve düzeltme canlıda görünmüyor — photo-shape
+          # ile tam olarak bu yaşandı.
           for f in retail-imported.json photo-quality.json photo-shape.json \
                    photo-exclude.json category-fix.json official-prices.json \
-                   hero-frames.json; do
+                   product-review.json hero-frames.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
             rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"
