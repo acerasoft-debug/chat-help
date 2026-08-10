@@ -135,12 +135,27 @@ footer a{color:#d8bd86}
 .shopwrap .scard:hover .sbrand{letter-spacing:.19em}
 .shopwrap .sbrand{transition:letter-spacing .45s var(--ease)}
 </style>
+<style>
+  /* Uc baglanti, basligin hemen altinda: izgarayi bolmeden ama gozden kacmadan. */
+  .sphead-links{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 0;font-size:13.5px}
+  .sphead-links a{color:var(--acc);border-bottom:1px solid rgba(201,168,106,.32);padding-bottom:2px;transition:.18s}
+  .sphead-links a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+</style>
 <div class="wrap wide shopwrap">
   <div class="phead sphead">
     <div class="crumbs"><a href="/"><?= t('Home') ?></a> · <?= t('Catalog') ?></div>
     <div class="sphead-eyebrow"><?= t('Wholesale') ?> · <?= count($brandCounts) ?> <?= t('houses') ?> · <?= count($products) ?> <?= t('references') ?></div>
     <h1><?= t('Wholesale catalog') ?></h1>
     <p><?= t('Verified branded & textile fashion — minimum order & bulk pricing per product.') ?></p>
+    <?php /* The grid is for browsing one garment at a time; a buyer pricing a whole order
+             wants every article, price and MOQ on one screen instead. That view exists at
+             /price-list, and without a way in from here nobody finds it -- the address was
+             only ever going out by e-mail. */ ?>
+    <div class="sphead-links">
+      <a href="/price-list"><?= t('Full price list') ?> →</a>
+      <a href="/price-lists"><?= t('By brand') ?> →</a>
+      <a href="/wholesale-list.xlsx"><?= t('Excel') ?> ↓</a>
+    </div>
   </div>
 
   <?php if($brandCounts): /* Brand rail — the houses in stock, set in their own wordmarks.

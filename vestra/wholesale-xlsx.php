@@ -99,6 +99,11 @@ $rows[] = ['cells' => ['', '', '', '', 'Delivery within the EU (Greece included)
     .'Freight quoted per order. MOQ is per article; no seasonal or collection minimum.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
 $rows[] = ['cells' => ['', '', '', '', 'Retail source "guide x3" is our estimate at three times wholesale, not a brand-set price. '
     .'"brand RRP" is the brand\'s own recommended price as supplied.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
+/* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
+   a forwarded copy should be one click from the current list. */
+$rows[] = ['cells' => ['', '', '', '', 'Always-current version of this list: https://vestrasales.com/price-list'
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  ·  every brand: https://vestrasales.com/price-lists',
+    '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
 
 $title = $brandFilter !== '' ? $brandFilter.' wholesale' : 'VESTRA wholesale';
 $file  = vestra_xlsx_with_photos_file($headers, $rows, $title);

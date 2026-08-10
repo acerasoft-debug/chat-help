@@ -79,6 +79,9 @@ if (!$rows) {
 }
 // Footer note (no photo): drives registration; keeps trade pricing gated.
 $rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
+/* This file carries no prices by design, so it has to say where they are. A recipient
+   who was sent the catalogue and wants a number should not have to ask for it. */
+$rows[] = ['cells' => ['', '', 'Prices, minimum order quantities and sizes for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', ''], 'image' => ''];
 
 $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
 
