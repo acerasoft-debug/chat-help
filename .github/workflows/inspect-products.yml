@@ -181,8 +181,16 @@ jobs:
 
                SALT OKUNUR -- hicbir sey yazmaz, sadece raporlar. */
             if ($orphans) {
+              /* Urunler burada yeniden aliniyor. Ilk yazimda $all kullanilmisti; o ad bu
+                 betikte gercekten var ama BASKA bir sey: goruntu denetimi dongusunun
+                 icinde TEK bir urunun gorsellerini tutuyor, ve yalnizca check_images
+                 acikken. Bu bolum check_images=false ile calistirilinca degisken hic
+                 tanimlanmadi, PHP dongüyü sessizce bos gecti ve rapor "urune bagli: 0 /
+                 olculen kare: 0" diye kendinden emin bir sifir tablosu bastı -- is yine
+                 yesil dondu. Ayni adin iki anlami oldugu icin burada acik ad kullaniliyor. */
+              $prods = vestra_products();
               $ref = [];                       // normalize edilmis yol => urun id
-              foreach ($all as $p2) {
+              foreach ($prods as $p2) {
                 foreach ((array)($p2['images'] ?? []) as $im) {
                   $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
                   $ref[strtolower($rel)] = (string)($p2['id'] ?? '?');
@@ -207,6 +215,10 @@ jobs:
                 $ext = strtolower($f->getExtension());
                 if (!in_array($ext, ['jpg','jpeg','png','webp','avif','gif'], true)) continue;
                 if (strpos($f->getFilename(), 'sheet_') === 0) continue;   // satici line-sheet'leri urun gorseli degil
+                /* .thumbs/ site'in kendi onbellegi: 3880 dosyanin neredeyse tamami oradan
+                   geliyordu ve hicbiri ikinci kare adayi degil, hepsi zaten var olan bir
+                   karenin kucultulmus kopyasi. Nokta ile baslayan her klasor elenir. */
+                if (strpos($rel0 = str_replace('\\', '/', substr($f->getPathname(), strlen($root))), '/uploads/.') === 0) continue;
                 $rel = '/uploads'.substr($f->getPathname(), strlen($root.'/uploads'));
                 $files[] = str_replace('\\', '/', $rel);
               }
@@ -251,8 +263,9 @@ jobs:
                gosteriliyor, retina icin 1120px kenar gerekiyor -- 800px altindaki her
                kare orada yumusak cikar. */
             if ($dims) {
+              $prods = vestra_products();
               $small = []; $tot = 0; $sum = 0;
-              foreach ($all as $p2) {
+              foreach ($prods as $p2) {
                 foreach ((array)($p2['images'] ?? []) as $im) {
                   $rel = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', (string)$im), '/');
                   $file = $root.$rel;
