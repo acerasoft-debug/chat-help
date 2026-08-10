@@ -31,6 +31,12 @@
   # /sitemap.xml → dinamik sitemap.php
   RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
+  # /wholesale-list.pdf → toptan fiyat listesi (gerçek PDF üretir).
+  # Uzantılı adres BİLEREK: bu dosyanın adresi hesabı olmayan bir müşteriye
+  # e-postayla gönderiliyor ve ".pdf" ile biten bir bağlantı, tıklanmadan önce
+  # ne olduğunu söylüyor. Marka süzgeci sorgu dizesiyle: ?brand=Balmain
+  RewriteRule ^wholesale-list\.pdf$ wholesale-list.php [QSA,L]
+
   # ── Temiz adresler: /shop  →  /shop.php (uzantı görünmez) ──────────────
 
   # index.php  →  /
