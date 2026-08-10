@@ -35,6 +35,7 @@ return [
     'hero_stat_brands'   => 'maison',
     'hero_stat_drop'     => 'prossimo ribasso',
     'ticker'             => 'Provenienza documentata · Stock UE · Prezzi Vault in discesa · Reso gratuito entro {days} giorni · Pagamento sicuro con Stripe',
+    'topbar'             => 'Provenienza verificata · Stock UE · Reso gratuito entro {days} giorni',
 
     'sec_curated'        => 'Questa settimana, selezionato',
     'sec_curated_sub'    => 'Dodici pezzi scelti a mano. Quando finiscono, finiscono.',

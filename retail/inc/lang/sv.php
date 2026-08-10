@@ -35,6 +35,7 @@ return [
     'hero_stat_brands'   => 'hus',
     'hero_stat_drop'     => 'nästa prissänkning',
     'ticker'             => 'Dokumenterat ursprung · EU-lager · Fallande Vault-priser · Fri retur inom {days} dagar · Säker betalning via Stripe',
+    'topbar'             => 'Verifierat ursprung · EU-lager · Fri retur inom {days} dagar',
 
     'sec_curated'        => 'Denna vecka, utvalt',
     'sec_curated_sub'    => 'Tolv plagg valda för hand. När de är slut är de slut.',

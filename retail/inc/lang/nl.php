@@ -41,6 +41,7 @@ return [
     'hero_stat_brands'   => 'huizen',
     'hero_stat_drop'     => 'volgende prijsdaling',
     'ticker'             => 'Bewezen herkomst · EU-voorraad · Dalende Vault-prijzen · Gratis retour binnen {days} dagen · Veilig betalen via Stripe',
+    'topbar'             => 'Bewezen herkomst · EU-voorraad · Gratis retour binnen {days} dagen',
 
     'sec_curated'        => 'Deze week, gecureerd',
     'sec_curated_sub'    => 'Twaalf stukken met de hand gekozen. Weg is weg.',

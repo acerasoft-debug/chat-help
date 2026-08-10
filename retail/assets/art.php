@@ -44,14 +44,17 @@ $rnd = static function (float $min = 0.0, float $max = 1.0) use (&$state): float
  * Palet: mürekkep/kemik/pirinç ailesi. Amaç fotoğraf taklidi değil, kumaş
  * ve gölge hissi. Son palet açık tonlu — ızgarada hep koyu kart olmasın.
  */
+// Palet nötrleşti: arayüzde renk kalmadığı için üretilmiş kare de renk
+// taşımamalı — yoksa ızgarada gerçek fotoğrafların yanında tek renkli bir
+// kutu olarak sırıtıyor.
 $palettes = [
-    ['#15151d', '#26262f', '#c9a24d'],   // ink + brass
-    ['#1d1a17', '#332c25', '#d8c39a'],   // tütün
-    ['#171b1a', '#252d2b', '#a8b5ab'],   // adaçayı
-    ['#1a1618', '#2c2429', '#c98d8d'],   // gül
-    ['#14171d', '#222836', '#9aa8c0'],   // gece mavisi
-    ['#2a2622', '#3b352e', '#e0cfa8'],   // deve tüyü
-    ['#efe9dd', '#ded5c4', '#8d8171'],   // kemik (açık kart)
+    ['#000000', '#141414', '#3a3a3a'],
+    ['#0d0d0d', '#1c1c1c', '#454545'],
+    ['#121212', '#242424', '#505050'],
+    ['#181818', '#2b2b2b', '#5a5a5a'],
+    ['#1e1e1e', '#333333', '#666666'],
+    ['#252525', '#3a3a3a', '#727272'],
+    ['#f0f0f0', '#e0e0e0', '#8a8a8a'],   // açık kart
 ];
 // Kampanya sahnesi her zaman koyu: son palet açık tonlu ve üstündeki
 // beyaz tipografi orada okunmaz.

@@ -39,6 +39,7 @@ return [
     'hero_stat_brands'   => 'maisons',
     'hero_stat_drop'     => 'prochaine baisse',
     'ticker'             => 'Provenance vérifiée · Stock UE · Prix dégressifs dans le Vault · Retour gratuit sous {days} jours · Paiement sécurisé via Stripe',
+    'topbar'             => 'Provenance vérifiée · Stock UE · Retours gratuits sous {days} jours',
 
     'sec_curated'        => 'Cette semaine, sélectionné',
     'sec_curated_sub'    => 'Douze pièces choisies à la main. Une fois parties, elles ne reviennent pas.',

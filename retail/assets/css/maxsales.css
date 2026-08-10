@@ -4,36 +4,42 @@
    Renk düzeni: kemik beyazı vitrin + mürekkep siyahı "Vault" odası.
    ========================================================================= */
 
+/* PALET: kırılmamış beyaz + mürekkep siyahı. Vurgu rengi YOK.
+   ------------------------------------------------------------------------
+   Eski düzen kemik beyazı zemin üstünde pirinç sarısı vurgu kullanıyordu.
+   Sarı vurgu üst segment modada kullanılmıyor; oteldeki lobi ya da kuyumcu
+   dili oluyor. Bu vitrinde rengi ÜRÜN veriyor — arayüz siyah beyaz kalıyor
+   ki kırmızı kapüşonlu, mavi eşofman, Burberry ekosesi öne çıksın.
+
+   --brass / --brass-2 adları duruyor: ikisi zaten anlamca "açık zemindeki
+   vurgu" ve "koyu zemindeki vurgu" demekti, 60 yerde kullanılıyorlar. Adı
+   değiştirmek yerine değerleri değişti. */
 :root{
-  --ink:#0a0a0e;
-  --ink-2:#14141b;
-  --ink-3:#22222c;
-  --bone:#f5f2ec;
-  --bone-2:#eae5db;
-  --bone-3:#ddd6c8;
-  --brass:#c9a24d;      /* dolgu/çizgi rengi — metin için değil */
-  --brass-2:#e6d3a3;
-  --ember:#c4553a;
-  /* Pirinç ve kızıl, kemik zeminde metin olarak 2,1:1 ve 4,0:1 veriyor —
-     ikisi de küçük punto için yetersiz. Metinde bu koyu karşılıkları
-     kullanıyoruz (5,3:1 ve 5,7:1); koyu odada aşağıda tekrar açılıyorlar. */
-  --brass-text:#7d5f14;
+  --ink:#000;
+  --ink-2:#111;
+  --ink-3:#1e1e1e;
+  --bone:#fff;
+  --bone-2:#f4f4f4;
+  --bone-3:#e2e2e2;
+  --brass:#000;         /* açık zeminde vurgu: dolgu/çizgi */
+  --brass-2:#fff;       /* koyu zeminde vurgu */
+  --ember:#b3341c;
+  --brass-text:#000;
   --ember-text:#a33f26;
-  --text:#16161d;
-  /* Bu iki ton kemik zeminde 4,5:1'i GEÇMEK zorunda: ikisi de gövde metninde
+  --text:#000;
+  /* Bu iki ton beyaz zeminde 4,5:1'i GEÇMEK zorunda: ikisi de gövde metninde
      kullanılıyor (beden satırı, satıcı tipi, kırıntı yolu, dipnotlar).
-     Ölçülen: --muted 6,2:1 · --muted-2 4,7:1 — eski değerler 4,8 ve 3,2 idi,
-     yani ikincisi küçük puntoda okunaklılık sınırının altındaydı. */
-  --muted:#5f5a4c;
-  --muted-2:#6b6557;
+     Ölçülen: --muted 7,4:1 · --muted-2 5,3:1. */
+  --muted:#555;
+  --muted-2:#6b6b6b;
 
   --serif:ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua","Times New Roman",serif;
   --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 
   --wrap:1360px;
   --gut:clamp(18px,4vw,52px);
-  --r:2px;                       /* köşeler neredeyse keskin: lüks perakende dili */
-  --shadow:0 1px 2px rgba(10,10,14,.05),0 12px 40px -22px rgba(10,10,14,.35);
+  --r:0;                         /* köşe yok: galeri dili */
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 12px 40px -22px rgba(0,0,0,.35);
   --ease:cubic-bezier(.22,.61,.36,1);
 }
 
@@ -51,7 +57,7 @@ button{font:inherit;color:inherit}
 h1,h2,h3,h4{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;line-height:1.08;margin:0}
 p{margin:0}
 s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--muted) 70%,transparent)}
-::selection{background:var(--brass);color:var(--ink)}
+::selection{background:var(--ink);color:var(--bone)}
 
 :focus-visible{outline:2px solid var(--brass);outline-offset:3px}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -66,13 +72,16 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .rule{height:1px;background:var(--bone-3);border:0;margin:0}
 
 /* ---------------------------------------------------------------- ticker */
-.ticker{background:var(--ink);color:var(--brass-2);overflow:hidden;font-family:var(--sans)}
-.ticker__track{display:flex;width:max-content;animation:slide 58s linear infinite}
-.ticker__item{
-  padding:9px 26px;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;white-space:nowrap;
+.ticker{
+  background:var(--ink);color:var(--brass-2);font-family:var(--sans);
+  display:flex;justify-content:center;text-align:center;padding:0 var(--gut);
 }
-@keyframes slide{to{transform:translateX(-33.333%)}}
-@media (prefers-reduced-motion:reduce){.ticker__track{animation:none}}
+.ticker__item{
+  padding:9px 0;font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+  /* Dar ekranda sarmalıyor: eskiden nowrap idi, ama o kayan şerit içindi.
+     Sabit şeritte nowrap yatay taşma demek olurdu. */
+  line-height:1.7;
+}
 
 /* ---------------------------------------------------------------- başlık */
 .site{
@@ -154,7 +163,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 
 /* ------------------------------------------------------------- çekmece */
-.drawer{position:fixed;inset:0;z-index:120;background:rgba(10,10,14,.5);animation:fade .25s var(--ease)}
+.drawer{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.5);animation:fade .25s var(--ease)}
 .drawer[hidden]{display:none}
 .drawer__panel{
   position:absolute;inset:0 auto 0 0;width:min(86vw,360px);background:var(--bone);
@@ -187,11 +196,12 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .btn--ghost{background:none;color:var(--ink)}
 .btn--ghost::before{background:var(--ink)}
 .btn--ghost:hover{color:var(--bone)}
-.btn--brass{background:var(--brass);border-color:var(--brass);color:var(--ink)}
+.btn--brass{background:var(--ink);border-color:var(--ink);color:var(--bone)}
 .btn--brass::before{background:var(--brass-2)}
 .btn--brass:hover{color:var(--ink)}
 .btn--light{background:var(--bone);border-color:var(--bone);color:var(--ink)}
-.btn--light::before{background:var(--brass)}
+.btn--light::before{background:var(--ink)}
+.btn--light:hover{color:var(--bone)}
 .btn--block{width:100%}
 .btn--sm{padding:11px 18px;font-size:10.5px;letter-spacing:.16em}
 .btn--lg{padding:18px 40px}
@@ -211,8 +221,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .hero::after{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:
-    radial-gradient(115% 82% at 78% 18%,rgba(201,162,77,.20),transparent 62%),
-    linear-gradient(to top,rgba(10,10,14,.94) 6%,rgba(10,10,14,.55) 46%,rgba(10,10,14,.22) 100%);
+    radial-gradient(115% 82% at 78% 18%,rgba(255,255,255,.07),transparent 62%),
+    linear-gradient(to top,rgba(0,0,0,.94) 6%,rgba(0,0,0,.55) 46%,rgba(0,0,0,.22) 100%);
 }
 .hero__in{position:relative;z-index:2;width:100%;max-width:var(--wrap);margin:0 auto;padding:0 var(--gut) clamp(42px,6vw,80px)}
 .eyebrow{
@@ -225,7 +235,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .hero__cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
 .hero__stats{
   display:flex;flex-wrap:wrap;gap:clamp(20px,4vw,56px);margin-top:clamp(34px,5vw,60px);
-  padding-top:24px;border-top:1px solid rgba(245,242,236,.16);
+  padding-top:24px;border-top:1px solid rgba(255,255,255,.16);
 }
 .hero__stat b{
   display:block;font-family:var(--serif);font-size:clamp(24px,2.6vw,36px);font-weight:500;
@@ -350,19 +360,19 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .vault::before{
   content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
   background:
-    radial-gradient(60% 46% at 12% 0%,rgba(201,162,77,.16),transparent 66%),
+    radial-gradient(60% 46% at 12% 0%,rgba(255,255,255,.06),transparent 66%),
     radial-gradient(52% 40% at 92% 96%,rgba(196,85,58,.13),transparent 64%);
 }
 .vault>*{position:relative}
 .vault h1,.vault h2,.vault h3{color:var(--bone)}
 .vault .sechead__s,.vault .lede{color:color-mix(in oklab,var(--bone) 66%,transparent)}
-.vault .sechead__more{border-color:rgba(245,242,236,.28)}
-.vault .sechead__more:hover{border-color:var(--brass)}
-.vault .rule{background:rgba(245,242,236,.14)}
-.vault .table th,.vault .table td{border-bottom-color:rgba(245,242,236,.12)}
-.vault .table tbody tr:hover{background:rgba(245,242,236,.05)}
-.vault .doc__box{background:var(--ink-2);border-color:rgba(245,242,236,.14);color:var(--muted)}
-.vault .panel{border-top-color:rgba(245,242,236,.16)}
+.vault .sechead__more{border-color:rgba(255,255,255,.28)}
+.vault .sechead__more:hover{border-color:var(--brass-2)}
+.vault .rule{background:rgba(255,255,255,.14)}
+.vault .table th,.vault .table td{border-bottom-color:rgba(255,255,255,.12)}
+.vault .table tbody tr:hover{background:rgba(255,255,255,.05)}
+.vault .doc__box{background:var(--ink-2);border-color:rgba(255,255,255,.14);color:var(--muted)}
+.vault .panel{border-top-color:rgba(255,255,255,.16)}
 /* .panel p{color:var(--text)} açık vitrin için doğru, koyu odada metni
    görünmez yapıyordu (ölçülen 1,1:1). Vault içinde geri alıyoruz. */
 .vault .panel p,.vault .panel li,.vault .dl dd,.vault .seller__name{color:var(--bone)}
@@ -370,23 +380,23 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .vault .dl dt,.vault .seller__type{color:var(--muted)}
 /* Beden çipleri açık zemin için çizilmişti: kenarlık kemik rengi, seçiliyken
    zemin mürekkep. Vault sayfası koyu, yani ikisi de görünmez oluyordu. */
-.vault .size{border-color:rgba(245,242,236,.26);color:var(--bone)}
-.vault .size:hover{border-color:rgba(201,162,77,.6)}
-.vault .size:has(input:checked){background:var(--brass);border-color:var(--brass);color:var(--ink)}
-.vault .size:has(input:checked) i{color:rgba(10,10,14,.62)}
+.vault .size{border-color:rgba(255,255,255,.26);color:var(--bone)}
+.vault .size:hover{border-color:rgba(255,255,255,.55)}
+.vault .size:has(input:checked){background:var(--brass-2);border-color:var(--brass-2);color:var(--ink)}
+.vault .size:has(input:checked) i{color:rgba(0,0,0,.62)}
 .vault .size i{color:var(--muted-2)}
 .vault .field__err{color:var(--ember,#e0654a)}
 .vault .panel h2{color:var(--brass-text)}
-.vault .link{border-bottom-color:rgba(245,242,236,.3)}
-.vault .link:hover{border-bottom-color:var(--brass)}
+.vault .link{border-bottom-color:rgba(255,255,255,.3)}
+.vault .link:hover{border-bottom-color:var(--brass-2)}
 .vault .field input,.vault .field select,.vault .field textarea{
-  background:transparent;border-color:rgba(245,242,236,.22);color:var(--bone);
+  background:transparent;border-color:rgba(255,255,255,.22);color:var(--bone);
 }
-.vault .btn--ghost{color:var(--bone);border-color:rgba(245,242,236,.4)}
+.vault .btn--ghost{color:var(--bone);border-color:rgba(255,255,255,.4)}
 .vault .btn--ghost::before{background:var(--bone)}
 .vault .btn--ghost:hover{color:var(--ink)}
 .vault .crumbs{color:var(--muted-2)}
-.vault .crumbs li+li::before{color:rgba(245,242,236,.25)}
+.vault .crumbs li+li::before{color:rgba(255,255,255,.25)}
 .vault .sizetabs a{background:var(--ink-2);color:var(--muted)}
 
 .lede{max-width:62ch;font-size:clamp(15px,1.5vw,18.5px);color:var(--muted)}
@@ -396,22 +406,22 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));
 }
 .lot{
-  background:var(--ink-2);border:1px solid rgba(245,242,236,.10);border-radius:var(--r);
+  background:var(--ink-2);border:1px solid rgba(255,255,255,.10);border-radius:var(--r);
   display:flex;flex-direction:column;overflow:hidden;position:relative;
   transition:border-color .35s var(--ease),transform .35s var(--ease);
 }
-.lot:hover{border-color:rgba(201,162,77,.5);transform:translateY(-3px)}
+.lot:hover{border-color:rgba(255,255,255,.45);transform:translateY(-3px)}
 .lot__media{position:relative;aspect-ratio:1/1;background:var(--ink-3);overflow:hidden}
 .lot__media img{opacity:.94;transition:transform .9s var(--ease)}
 .lot__media .fr{background:var(--ink-3)}
 .lot:hover .lot__media img{transform:scale(1.05)}
 .lot__step{
-  position:absolute;top:12px;left:12px;background:rgba(10,10,14,.72);color:var(--brass-2);
+  position:absolute;top:12px;left:12px;background:rgba(0,0,0,.72);color:var(--brass-2);
   font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;padding:5px 10px;
-  backdrop-filter:blur(6px);border:1px solid rgba(201,162,77,.28);
+  backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.24);
 }
 .lot__sold{
-  position:absolute;inset:0;display:grid;place-items:center;background:rgba(10,10,14,.66);
+  position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.66);
   font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--bone);backdrop-filter:blur(2px);
 }
 .lot.is-sold .lot__media img{filter:grayscale(1)}
@@ -432,8 +442,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .lot__drop--floor{color:var(--muted-2)}
 .lot__cd{font-weight:600;letter-spacing:.06em}
 .lot__then{color:var(--muted-2)}
-.lot__meter{height:2px;background:rgba(245,242,236,.13);margin:4px 0 6px;overflow:hidden}
-.lot__meter span{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,var(--brass),var(--ember))}
+.lot__meter{height:2px;background:rgba(255,255,255,.13);margin:4px 0 6px;overflow:hidden}
+.lot__meter span{display:block;height:100%;width:var(--p,0%);background:linear-gradient(90deg,var(--brass-2),var(--ember))}
 .lot__body form{margin-top:auto}
 .lot.is-locked .lot__now{color:var(--muted-2)}
 
@@ -454,7 +464,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .soon__when span,.soon__price span{display:block;font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.02em}
 /* Aynı şerit hem koyu Vault sayfasında hem açık bülten sayfasında kullanılıyor. */
-.vault .soon,.vault .soon__row{border-color:rgba(245,242,236,.12)}
+.vault .soon,.vault .soon__row{border-color:rgba(255,255,255,.12)}
 .vault .soon__img{background:var(--ink-3);opacity:.9}
 .vault .soon__brand{color:var(--brass-text)}
 .vault .soon__name,.vault .soon__when,.vault .soon__price{color:var(--bone)}
@@ -472,7 +482,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 
 /* Vault mekaniği anlatım şeridi */
 .steps{display:grid;gap:clamp(18px,2.4vw,34px);grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
-.step{border-top:1px solid rgba(245,242,236,.2);padding-top:18px}
+.step{border-top:1px solid rgba(255,255,255,.2);padding-top:18px}
 .step b{
   display:block;font-family:var(--serif);font-size:13px;letter-spacing:.2em;color:var(--brass-text);
   margin-bottom:9px;font-weight:500;
@@ -501,14 +511,14 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .member{background:var(--ink-2);color:var(--bone);border-radius:var(--r);padding:clamp(28px,4vw,56px);overflow:hidden;position:relative}
 .member::after{
   content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(70% 100% at 100% 0%,rgba(201,162,77,.18),transparent 60%);
+  background:radial-gradient(70% 100% at 100% 0%,rgba(255,255,255,.06),transparent 60%);
 }
 .member>*{position:relative}
 .member h2{font-size:clamp(24px,3vw,38px);max-width:24ch}
 .member p{color:color-mix(in oklab,var(--bone) 68%,transparent);margin-top:12px;max-width:52ch;font-size:14.5px}
 .member form{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px;max-width:560px}
 .member input[type=email]{
-  flex:1 1 240px;background:transparent;border:0;border-bottom:1px solid rgba(245,242,236,.32);
+  flex:1 1 240px;background:transparent;border:0;border-bottom:1px solid rgba(255,255,255,.32);
   color:var(--bone);padding:13px 2px;font-size:15px;
 }
 .member input[type=email]::placeholder{color:var(--muted-2)}
@@ -698,7 +708,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .notice--demo{border-left-color:var(--ember)}
 .notice strong{color:var(--text)}
-.vault .notice{background:var(--ink-2);border-color:rgba(245,242,236,.14);color:var(--muted-2)}
+.vault .notice{background:var(--ink-2);border-color:rgba(255,255,255,.14);color:var(--muted-2)}
 
 /* -------------------------------------------------------------- kırıntı */
 .crumbs{margin-bottom:22px}
@@ -770,7 +780,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .pill--live{background:#e8f0e9;border-color:#c3d8c8;color:#2f6640}
 .pill--review{background:#f3ecdb;border-color:#e0d0a8;color:#7a6220}
 .pill--out{background:#f6e6e2;border-color:#e2c3ba;color:#8d3f2c}
-.pill--brass{background:var(--brass);border-color:var(--brass);color:var(--ink)}
+.pill--brass{background:var(--ink);border-color:var(--ink);color:var(--bone)}
 
 /* ------------------------------------------------------------ sipariş sonu */
 .done{max-width:640px;margin:0 auto;text-align:center}
@@ -795,7 +805,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .lang:hover{color:var(--ink)}
 .lang.is-on{border-color:var(--bone-3);color:var(--ink)}
-.foot .lang:hover,.foot .lang.is-on{color:var(--bone);border-color:rgba(245,242,236,.25)}
+.foot .lang:hover,.foot .lang.is-on{color:var(--bone);border-color:rgba(255,255,255,.25)}
 
 /* ---------------------------------------------------------------- altlık */
 /* margin-top YOK: koyu bir bölümden (Vault, hero) hemen sonra gelen altlıkta
@@ -842,7 +852,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 @media (max-width:620px){
   .foot__d > summary{
     cursor:pointer;display:flex;align-items:center;justify-content:space-between;
-    gap:12px;padding:13px 0;margin:0;border-bottom:1px solid rgba(245,242,236,.12);
+    gap:12px;padding:13px 0;margin:0;border-bottom:1px solid rgba(255,255,255,.12);
   }
   .foot__d > summary::after{
     content:"";width:7px;height:7px;flex:none;margin-right:2px;
@@ -858,10 +868,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .foot__pay{
   max-width:var(--wrap);margin:clamp(34px,4vw,56px) auto 0;padding:22px var(--gut) 0;
-  border-top:1px solid rgba(245,242,236,.12);display:flex;flex-wrap:wrap;gap:9px;
+  border-top:1px solid rgba(255,255,255,.12);display:flex;flex-wrap:wrap;gap:9px;
 }
 .pay{
-  border:1px solid rgba(245,242,236,.18);padding:5px 10px;font-size:9.5px;letter-spacing:.14em;
+  border:1px solid rgba(255,255,255,.18);padding:5px 10px;font-size:9.5px;letter-spacing:.14em;
 }
 .foot__bottom{
   max-width:var(--wrap);margin:22px auto 0;padding:0 var(--gut);
@@ -916,7 +926,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .wish--lg:hover{background:var(--bone-2);transform:none}
 .wish--lg.is-on{border-color:var(--ember)}
 .lot .wishform{top:10px;right:10px}
-.lot .wish{background:rgba(10,10,14,.6);color:var(--bone);border:1px solid rgba(245,242,236,.18)}
+.lot .wish{background:rgba(0,0,0,.6);color:var(--bone);border:1px solid rgba(255,255,255,.18)}
 .lot .wish.is-on{color:var(--ember-text)}
 
 .pdp__head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
@@ -933,17 +943,17 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .pdp__shot:hover .pdp__zoom,.pdp__shot:focus-visible .pdp__zoom{opacity:1;transform:none}
 
 .lightbox{
-  position:fixed;inset:0;z-index:200;background:rgba(10,10,14,.94);
+  position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.94);
   display:grid;place-items:center;padding:clamp(12px,4vw,52px);animation:fade .2s var(--ease);
 }
 .lightbox[hidden]{display:none}
 .lightbox img{max-width:100%;max-height:88vh;object-fit:contain;box-shadow:0 30px 90px -40px #000}
 .lightbox__x,.lightbox__nav{
-  position:absolute;border:1px solid rgba(245,242,236,.28);background:rgba(10,10,14,.5);
+  position:absolute;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.5);
   color:var(--bone);width:46px;height:46px;border-radius:50%;cursor:pointer;font-size:22px;
   display:grid;place-items:center;transition:background .2s,border-color .2s;
 }
-.lightbox__x:hover,.lightbox__nav:hover{background:rgba(245,242,236,.14);border-color:var(--brass)}
+.lightbox__x:hover,.lightbox__nav:hover{background:rgba(255,255,255,.14);border-color:var(--brass-2)}
 .lightbox__x{top:18px;right:18px}
 .lightbox__nav--prev{left:18px;top:50%;transform:translateY(-50%)}
 .lightbox__nav--next{right:18px;top:50%;transform:translateY(-50%)}
@@ -993,15 +1003,15 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   border-bottom:1px solid var(--bone-3);align-self:flex-start;padding-bottom:4px}
 
 /* ------------------------------------------------------------ Vault-Alarm */
-.alert{border:1px solid rgba(245,242,236,.16);border-radius:var(--r);padding:18px}
+.alert{border:1px solid rgba(255,255,255,.16);border-radius:var(--r);padding:18px}
 .alert h2{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-family:var(--sans);color:var(--brass-text)}
 .alert p{font-size:13px;color:var(--muted);margin:8px 0 14px}
 .alert__row{display:flex;gap:8px;flex-wrap:wrap}
 .alert__row input{
-  flex:1 1 130px;background:transparent;border:1px solid rgba(245,242,236,.22);color:var(--bone);
+  flex:1 1 130px;background:transparent;border:1px solid rgba(255,255,255,.22);color:var(--bone);
   padding:11px 12px;font:inherit;font-size:14px;border-radius:var(--r);
 }
-.alert__row input:focus{outline:none;border-color:var(--brass)}
+.alert__row input:focus{outline:none;border-color:var(--brass-2)}
 .alert__row input::placeholder{color:var(--muted-2)}
 
 /* --------------------------------------------------------------- arama önerisi */
@@ -1063,13 +1073,13 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
     /* Ortaya bakan katman. Alttaki dikey geçiş ortada en zayıf yerinde
        (%40–52) ve metin bloğu tam orada duruyor: kırmızı kapüşonlunun üstüne
        denk gelen satırlar ölçümde 4,5 sınırının altına düşüyordu. */
-    radial-gradient(76% 60% at 50% 50%,rgba(10,10,14,.34),transparent 72%),
-    radial-gradient(118% 74% at 50% 6%,rgba(201,162,77,.15),transparent 58%),
-    linear-gradient(to bottom,rgba(10,10,14,.82) 0%,rgba(10,10,14,.52) 30%,rgba(10,10,14,.40) 64%,rgba(10,10,14,.86) 100%);
+    radial-gradient(76% 60% at 50% 50%,rgba(0,0,0,.34),transparent 72%),
+    radial-gradient(118% 74% at 50% 6%,rgba(255,255,255,.05),transparent 58%),
+    linear-gradient(to bottom,rgba(0,0,0,.82) 0%,rgba(0,0,0,.52) 30%,rgba(0,0,0,.40) 64%,rgba(0,0,0,.86) 100%);
 }
 /* İnce altın çerçeve — kadrajı bir kampanya sayfası gibi kapatıyor. */
 .stage__frame{
-  position:absolute;inset:clamp(11px,1.5vw,24px);border:1px solid rgba(201,162,77,.26);
+  position:absolute;inset:clamp(11px,1.5vw,24px);border:1px solid rgba(255,255,255,.18);
   pointer-events:none;z-index:3;
 }
 .stage__in{
@@ -1084,19 +1094,23 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    o yüzden bir kutu gibi görünmüyor. */
 .stage__in::before{
   content:"";position:absolute;inset:-6% -10%;z-index:-1;pointer-events:none;
-  background:radial-gradient(62% 58% at 50% 50%,rgba(10,10,14,.34),transparent 78%);
+  background:radial-gradient(62% 58% at 50% 50%,rgba(0,0,0,.34),transparent 78%);
 }
 /* Telefonda perde daha koyu. Film aynı film ama kadraj dar: object-fit:cover
    yatay videoyu kırptığı için metnin arkasına kalabalık ve parlak bölge
    düşüyor, masaüstündeki .34 orada 4,04'te kalıyordu (gerek 4,5). */
 @media (max-width:700px){
   .stage__in::before{
-    background:radial-gradient(78% 62% at 50% 50%,rgba(10,10,14,.52),transparent 82%);
+    background:radial-gradient(78% 62% at 50% 50%,rgba(0,0,0,.52),transparent 82%);
   }
 }
 
-/* Süsleme: iki ince çizgi arasında bir eşkenar dörtgen. */
-.orn{display:flex;align-items:center;justify-content:center;gap:13px;color:var(--brass-2)}
+/* Süsleme kaldırıldı: iki çizgi arasındaki eşkenar dörtgen.
+   Bu tür bezeme modern lüks perakendede kullanılmıyor — sayfayı davetiye
+   ya da menü kartı diline çekiyor. Yerini boşluk alıyor; boşluk zaten bu
+   tasarımın en pahalı malzemesi. */
+.orn{display:none}
+.orn--legacy{display:flex;align-items:center;justify-content:center;gap:13px;color:var(--brass-2)}
 .orn i{width:6px;height:6px;background:currentColor;transform:rotate(45deg);display:block;flex:0 0 auto}
 .orn::before,.orn::after{content:"";height:1px;flex:0 0 clamp(28px,6vw,80px);background:currentColor;opacity:.5}
 
@@ -1126,24 +1140,24 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .stage__link{
   display:inline-flex;align-items:center;gap:9px;font-size:11px;letter-spacing:.24em;
   text-transform:uppercase;color:var(--bone);padding-bottom:5px;
-  border-bottom:1px solid rgba(245,242,236,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
+  border-bottom:1px solid rgba(255,255,255,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
 }
 .stage__link:hover{color:var(--brass-2);border-bottom-color:var(--brass-2)}
 
 /* Sahnenin dibindeki ölçü şeridi: rakamlar dizilmiş, aralarında ince çizgi. */
 .stage__meta{
-  position:relative;z-index:4;grid-area:2/1;border-top:1px solid rgba(245,242,236,.16);
-  background:linear-gradient(to bottom,rgba(10,10,14,.5),rgba(10,10,14,.85));
+  position:relative;z-index:4;grid-area:2/1;border-top:1px solid rgba(255,255,255,.16);
+  background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,.85));
   display:grid;grid-auto-flow:column;grid-auto-columns:1fr;
 }
 @media (max-width:640px){.stage__meta{grid-auto-flow:row;grid-auto-columns:auto}}
 .stage__meta div{
   padding:clamp(16px,2.2vw,26px) var(--gut);text-align:center;
-  border-left:1px solid rgba(245,242,236,.16);
+  border-left:1px solid rgba(255,255,255,.16);
 }
 .stage__meta div:first-child{border-left:0}
 @media (max-width:640px){
-  .stage__meta div{border-left:0;border-top:1px solid rgba(245,242,236,.16)}
+  .stage__meta div{border-left:0;border-top:1px solid rgba(255,255,255,.16)}
   .stage__meta div:first-child{border-top:0}
 }
 .stage__meta b{
@@ -1172,7 +1186,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   border-bottom:1px solid var(--bone-3);transition:color .3s var(--ease),border-color .3s var(--ease);
 }
 .chap__more:hover{color:var(--ink);border-bottom-color:var(--ink)}
-.vault .chap__more{border-bottom-color:rgba(245,242,236,.3)}
+.vault .chap__more{border-bottom-color:rgba(255,255,255,.3)}
 .vault .chap__more:hover{color:var(--bone);border-bottom-color:var(--bone)}
 
 /* ------------------------------------------------------------- yatay ray
@@ -1186,8 +1200,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .rail::-webkit-scrollbar{height:3px}
 .rail::-webkit-scrollbar-thumb{background:var(--bone-3)}
-.vault .rail{scrollbar-color:rgba(245,242,236,.3) transparent}
-.vault .rail::-webkit-scrollbar-thumb{background:rgba(245,242,236,.3)}
+.vault .rail{scrollbar-color:rgba(255,255,255,.3) transparent}
+.vault .rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3)}
 .rail__track{
   display:flex;gap:clamp(14px,1.6vw,24px);width:max-content;
   padding-inline:max(var(--gut),calc((100% - var(--wrap))/2 + var(--gut)));
@@ -1202,7 +1216,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .manifesto::before{
   content:"";position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(90% 120% at 50% 50%,rgba(201,162,77,.13),transparent 66%);
+  background:radial-gradient(90% 120% at 50% 50%,rgba(255,255,255,.05),transparent 66%);
 }
 .manifesto__in{position:relative;z-index:2;max-width:1120px;margin:0 auto;padding:0 var(--gut)}
 .manifesto p{
@@ -1239,7 +1253,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
  /* Perde bilerek koyu ve yüksek: kapak fotoğraflarının bir kısmı beyaz
      zeminli ürün çekimi, orada açık bir geçiş beyaz yazıyı okunmaz
      bırakıyordu. Ölçülen en kötü durumda (Balmain pembe tişört) yazı 8:1. */
-  background:linear-gradient(to top,rgba(10,10,14,.9) 0%,rgba(10,10,14,.62) 24%,rgba(10,10,14,.18) 55%,rgba(10,10,14,0) 78%);
+  background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.62) 24%,rgba(0,0,0,.18) 55%,rgba(0,0,0,0) 78%);
 }
 .cat__in{
   position:absolute;left:0;right:0;bottom:0;z-index:2;
@@ -1257,7 +1271,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* İnce pirinç alt çizgi hover'da soldan sağa çiziliyor — karonun tıklanabilir
    olduğunu okla söylemek yerine gösteriyor. */
 .cat::after{
-  content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--brass);
+  content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--brass-2);
   transition:width .5s var(--ease);z-index:3;
 }
 .cat:hover::after,.cat:focus-visible::after{width:100%}
@@ -1301,7 +1315,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .house__art::after{
   content:"";position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(10,10,14,.42) 0%,rgba(10,10,14,0) 52%);
+  background:linear-gradient(to top,rgba(0,0,0,.42) 0%,rgba(0,0,0,0) 52%);
   opacity:0;transition:opacity .45s var(--ease);
 }
 .house:hover .house__art::after{opacity:1}
@@ -1364,13 +1378,13 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .stage__pause{
   grid-area:1/1;justify-self:end;align-self:end;position:relative;z-index:5;
   margin:0 clamp(20px,2.6vw,40px) clamp(18px,2.4vw,34px) 0;
-  width:36px;height:36px;border:1px solid rgba(245,242,236,.32);border-radius:50%;
+  width:36px;height:36px;border:1px solid rgba(255,255,255,.32);border-radius:50%;
   display:grid;place-items:center;cursor:pointer;
-  background:rgba(10,10,14,.42);backdrop-filter:blur(5px);
+  background:rgba(0,0,0,.42);backdrop-filter:blur(5px);
   transition:border-color .3s var(--ease),background .3s var(--ease);
 }
-.stage__pause:hover{border-color:var(--brass-2);background:rgba(10,10,14,.66)}
-.stage__pausebox:focus-visible + .stage__art + .stage__pause{outline:2px solid var(--brass);outline-offset:3px}
+.stage__pause:hover{border-color:var(--brass-2);background:rgba(0,0,0,.66)}
+.stage__pausebox:focus-visible + .stage__art + .stage__pause{outline:2px solid var(--brass-2);outline-offset:3px}
 /* Duraklat = iki dikey çubuk; oynat = üçgen. Tek elemanla, ikon dosyasız. */
 .stage__pause-i{
   width:9px;height:11px;border-left:2px solid var(--bone);border-right:2px solid var(--bone);
@@ -1398,7 +1412,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    üstünde durduğu için her karonun kendi karartması var — kontrast görselin
    ne kadar açık olduğuna bakmadan garanti. */
 .editorial{
-  --muted:#b4aea0;--muted-2:#9a9384;--brass-text:var(--brass-2);
+  --muted:#b0b0b0;--muted-2:#949494;--brass-text:var(--brass-2);
   display:grid;grid-template-columns:1fr 1fr;background:var(--ink);
 }
 @media (max-width:820px){.editorial{grid-template-columns:1fr}}
@@ -1416,11 +1430,11 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 @media (prefers-reduced-motion:reduce){.etile__vid{display:none}}
 .etile::after{
   content:"";position:absolute;inset:0;
-  background:linear-gradient(to top,rgba(10,10,14,.9) 4%,rgba(10,10,14,.5) 46%,rgba(10,10,14,.3) 100%);
+  background:linear-gradient(to top,rgba(0,0,0,.9) 4%,rgba(0,0,0,.5) 46%,rgba(0,0,0,.3) 100%);
 }
 /* İki karo arasındaki ince pirinç ayrım — dikişi belli etmek yerine süs. */
-.etile+.etile{box-shadow:inset 1px 0 0 rgba(201,162,77,.24)}
-@media (max-width:820px){.etile+.etile{box-shadow:inset 0 1px 0 rgba(201,162,77,.24)}}
+.etile+.etile{box-shadow:inset 1px 0 0 rgba(255,255,255,.18)}
+@media (max-width:820px){.etile+.etile{box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}}
 .etile__in{
   position:absolute;inset:auto 0 0 0;z-index:2;
   padding:clamp(26px,4vw,54px);display:grid;justify-items:start;gap:14px;
@@ -1432,7 +1446,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .etile__go{
   display:inline-flex;align-items:center;gap:9px;margin-top:4px;padding-bottom:5px;
   font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
-  border-bottom:1px solid rgba(245,242,236,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
+  border-bottom:1px solid rgba(255,255,255,.42);transition:border-color .3s var(--ease),color .3s var(--ease);
 }
 .etile:hover .etile__go,.etile:focus-visible .etile__go{color:var(--brass-2);border-bottom-color:var(--brass-2)}
 @media (prefers-reduced-motion:reduce){
@@ -1493,7 +1507,7 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .taxo__art img:nth-child(n+4){display:none}
 .taxo::after{
   content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(to top,rgba(10,10,14,.86) 0%,rgba(10,10,14,.5) 26%,rgba(10,10,14,.08) 58%,rgba(10,10,14,0) 78%);
+  background:linear-gradient(to top,rgba(0,0,0,.86) 0%,rgba(0,0,0,.5) 26%,rgba(0,0,0,.08) 58%,rgba(0,0,0,0) 78%);
 }
 .taxo__in{
   position:absolute;left:0;right:0;bottom:0;z-index:2;color:var(--bone);

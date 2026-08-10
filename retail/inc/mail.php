@@ -126,9 +126,9 @@ function vr_mail_layout(string $title, string $bodyHtml, string $preheader = '')
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-        . '<body style="margin:0;padding:0;background:#f5f2ec;font-family:Georgia,\'Times New Roman\',serif;color:#12121a">'
+        . '<body style="margin:0;padding:0;background:#ffffff;font-family:Georgia,\'Times New Roman\',serif;color:#000000">'
         . ($preheader !== '' ? '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' . h($preheader) . '</div>' : '')
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f2ec;padding:28px 12px">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;padding:28px 12px">'
         . '<tr><td align="center">'
         . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background:#fff;border:1px solid #e2ddd2">'
         . '<tr><td style="padding:26px 30px;border-bottom:1px solid #e2ddd2">'
@@ -193,25 +193,25 @@ function vr_mail_order_buyer(array $order): void
     $days     = (int)vr_config('return_days', 30);
 
     $body = '<p>' . te('order_thanks') . '</p>'
-        . '<p style="font-size:13px;color:#5c584e">' . te('order_number') . ': <strong>' . h($order['number']) . '</strong></p>'
+        . '<p style="font-size:13px;color:#555555">' . te('order_number') . ': <strong>' . h($order['number']) . '</strong></p>'
         . vr_mail_lines_table($order)
-        . '<p style="margin-top:22px"><a href="' . h($orderUrl) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . '<p style="margin-top:22px"><a href="' . h($orderUrl) . '" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
         . te('order_status') . '</a></p>'
-        . '<p style="font-size:13px;color:#5c584e;margin-top:20px">' . te('order_next_1') . ' ' . te('order_next_2') . '</p>'
-        . '<p style="font-size:13px;color:#5c584e">' . te('order_next_3', ['days' => $days]) . '</p>';
+        . '<p style="font-size:13px;color:#555555;margin-top:20px">' . te('order_next_1') . ' ' . te('order_next_2') . '</p>'
+        . '<p style="font-size:13px;color:#555555">' . te('order_next_3', ['days' => $days]) . '</p>';
 
     if (!empty($order['has_private'])) {
-        $body .= '<p style="font-size:12.5px;color:#5c584e;border-left:3px solid #c9a24d;padding-left:12px">'
+        $body .= '<p style="font-size:12.5px;color:#555555;border-left:3px solid #000000;padding-left:12px">'
               . te('checkout_private_ack') . '</p>';
     }
 
     // Widerrufsbelehrung siparişte metin olarak GİTMEK zorunda — sadece linkle
     // yetinmek §312f Abs. 2 BGB açısından yeterli sayılmıyor.
     $body .= '<hr style="border:none;border-top:1px solid #e2ddd2;margin:24px 0">'
-        . '<div style="font-size:12px;color:#5c584e;line-height:1.6">'
+        . '<div style="font-size:12px;color:#555555;line-height:1.6">'
         . '<strong>' . te('legal_withdrawal') . '</strong><br>'
         . h(vr_withdrawal_text_plain())
-        . '<br><br><a href="' . h(vr_abs('legal/widerruf.php')) . '" style="color:#5c584e">' . h(vr_abs('legal/widerruf.php')) . '</a>'
+        . '<br><br><a href="' . h(vr_abs('legal/widerruf.php')) . '" style="color:#555555">' . h(vr_abs('legal/widerruf.php')) . '</a>'
         . '</div>';
 
     vr_mail_send($email, t('order_number') . ' ' . $order['number'] . ' · ' . vr_config('brand'),
@@ -259,7 +259,7 @@ function vr_mail_order_sellers(array $order): void
             . '<tr><td style="font-weight:700">' . te('your_payout') . '</td><td align="right" style="font-weight:700">' . h(vr_money((int)$row['net'])) . '</td></tr>'
             . '</table>'
             . ($addrHtml !== '' ? '<p style="font-size:13px;margin-top:18px"><strong>Lieferadresse</strong><br>' . $addrHtml . '</p>' : '')
-            . '<p style="font-size:13px;color:#5c584e">' . h(t('sell_payout_b')) . '</p>';
+            . '<p style="font-size:13px;color:#555555">' . h(t('sell_payout_b')) . '</p>';
 
         vr_mail_send((string)$s['email'], $order['number'] . ' · ' . vr_config('brand'),
             vr_mail_layout(t('seller_orders'), $body));
@@ -271,8 +271,8 @@ function vr_mail_newsletter_confirm(string $email, string $token): void
 {
     $url = vr_abs('newsletter.php', ['confirm' => $token]);
     $body = '<p>' . te('news_title') . '</p>'
-        . '<p style="font-size:14px;color:#5c584e">' . te('news_sub', ['hours' => (int)vr_config('vault_member_head_start_hours', 12)]) . '</p>'
-        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . '<p style="font-size:14px;color:#555555">' . te('news_sub', ['hours' => (int)vr_config('vault_member_head_start_hours', 12)]) . '</p>'
+        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
         . te('news_cta') . '</a></p>'
         . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>';
 
@@ -314,7 +314,7 @@ function vr_mail_customer_verify(string $email, string $rawToken): void
 {
     $url = vr_abs('account/verify.php', ['e' => $email, 't' => $rawToken]);
     $body = '<p>' . te('acc_verify_mail_lead') . '</p>'
-        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
         . te('acc_verify_cta') . '</a></p>'
         . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>'
         . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">' . te('acc_verify_mail_note') . '</p>';
@@ -328,7 +328,7 @@ function vr_mail_customer_reset(string $email, string $rawToken): void
 {
     $url = vr_abs('account/reset.php', ['e' => $email, 't' => $rawToken]);
     $body = '<p>' . te('acc_reset_mail_lead') . '</p>'
-        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
+        . '<p style="margin-top:20px"><a href="' . h($url) . '" style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
         . te('acc_reset_cta') . '</a></p>'
         . '<p style="font-size:12px;color:#8a8578">' . h($url) . '</p>'
         . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">' . te('acc_reset_mail_note') . '</p>';
@@ -349,11 +349,11 @@ function vr_mail_welcome_voucher(string $email, string $code): void
 
     $body = '<p>' . te('vou_welcome_body', ['pct' => $pct]) . '</p>'
         . '<p style="margin:22px 0;text-align:center">'
-        . '<span style="display:inline-block;border:1px solid #c9a24d;padding:14px 26px;'
-        . 'font-family:Helvetica,Arial,sans-serif;font-size:19px;letter-spacing:.22em;color:#12121a">'
+        . '<span style="display:inline-block;border:1px solid #000000;padding:14px 26px;'
+        . 'font-family:Helvetica,Arial,sans-serif;font-size:19px;letter-spacing:.22em;color:#000000">'
         . h($code) . '</span></p>'
         . '<p style="text-align:center"><a href="' . h(vr_abs('shop.php')) . '" '
-        . 'style="display:inline-block;background:#12121a;color:#f5f2ec;text-decoration:none;'
+        . 'style="display:inline-block;background:#000000;color:#ffffff;text-decoration:none;'
         . 'padding:12px 22px;letter-spacing:.1em;font-size:13px;font-family:Helvetica,Arial,sans-serif">'
         . te('nav_shop') . '</a></p>'
         . '<p style="font-size:11.5px;color:#8a8578;margin-top:22px">'

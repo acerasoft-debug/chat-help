@@ -35,6 +35,7 @@ return [
     'hero_stat_brands'   => 'huse',
     'hero_stat_drop'     => 'næste prisfald',
     'ticker'             => 'Dokumenteret oprindelse · EU-lager · Faldende Vault-priser · Gratis retur inden for {days} dage · Sikker betaling via Stripe',
+    'topbar'             => 'Dokumenteret herkomst · EU-lager · Gratis retur inden for {days} dage',
 
     'sec_curated'        => 'Denne uge, udvalgt',
     'sec_curated_sub'    => 'Tolv stykker valgt i hånden. Når de er væk, er de væk.',

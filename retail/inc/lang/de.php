@@ -40,6 +40,7 @@ return [
     'hero_stat_drop'     => 'nächste Preissenkung',
 
     'ticker'             => 'Belegte Herkunft · EU-Bestand · Fallende Vault-Preise · Kostenlose Rücksendung innerhalb von {days} Tagen · Sichere Zahlung über Stripe · Jede Woche neue Drops',
+    'topbar'             => 'Belegte Herkunft · EU-Bestand · Kostenlose Rücksendung binnen {days} Tagen',
 
     'sec_curated'        => 'Diese Woche, kuratiert',
     'sec_curated_sub'    => 'Zwölf Stücke, von Hand ausgewählt. Weg ist weg — die meisten kommen als einzelner Größensatz.',

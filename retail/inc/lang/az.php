@@ -35,6 +35,7 @@ return [
     'hero_stat_brands'   => 'ev',
     'hero_stat_drop'     => 'növbəti endirim',
     'ticker'             => 'Sübut edilmiş mənşə · AB anbarı · Vault-da düşən qiymətlər · {days} gün içində pulsuz qaytarma · Stripe ilə təhlükəsiz ödəniş',
+    'topbar'             => 'Təsdiqlənmiş mənşə · Aİ stoku · {days} gün ərzində pulsuz qaytarma',
 
     'sec_curated'        => 'Bu həftə, seçilmiş',
     'sec_curated_sub'    => 'Əllə seçilmiş on iki parça. Bitdisə bitdi.',

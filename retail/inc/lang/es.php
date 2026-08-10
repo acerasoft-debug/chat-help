@@ -35,6 +35,7 @@ return [
     'hero_stat_brands'   => 'casas',
     'hero_stat_drop'     => 'próxima bajada',
     'ticker'             => 'Procedencia acreditada · Stock UE · Precios descendentes en el Vault · Devolución gratis en {days} días · Pago seguro con Stripe',
+    'topbar'             => 'Procedencia verificada · Stock UE · Devoluciones gratuitas en {days} días',
 
     'sec_curated'        => 'Esta semana, seleccionado',
     'sec_curated_sub'    => 'Doce piezas elegidas a mano. Cuando se acaban, se acaban.',

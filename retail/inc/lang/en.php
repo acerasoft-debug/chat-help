@@ -43,6 +43,7 @@ return [
     'hero_stat_drop'     => 'next price drop',
 
     'ticker'             => 'Verified provenance · EU stock · Falling Vault prices · Free returns within {days} days · Secure payment via Stripe · New drops every week',
+    'topbar'             => 'Verified provenance · EU stock · Free returns within {days} days',
 
     'sec_curated'        => 'This week, curated',
     'sec_curated_sub'    => 'Twelve pieces chosen by hand. When they are gone, they are gone — most arrive as a single size run.',

@@ -115,9 +115,15 @@ function vr_header(): void
     if (function_exists('vr_current_customer')) $customer = vr_current_customer();
     $days = (int)vr_config('return_days', 30);
 ?>
-<div class="ticker" aria-hidden="true"><div class="ticker__track">
-<?php for ($i = 0; $i < 3; $i++): ?><span class="ticker__item"><?= te('ticker', ['days' => $days]) ?></span><?php endfor; ?>
-</div></div>
+<?php
+/* Üst şerit DURUYOR, kaymıyor.
+   Kayan promosyon şeridi indirim mağazası dili — üst segment modada hiçbir
+   evde yok. Altı iddiayı sonsuz döngüde geçirmek yerine üç tanesi sabit ve
+   ortalanmış duruyor. Düşen fiyat ve "her hafta yeni parça" iddiaları şeritten
+   çıktı: ikisi de reklam cümlesi, üstelik ikisi de sayfanın kendisinde zaten
+   görünüyor. Kalanlar güven bilgisi ve hepsi doğrulanabilir. */
+?>
+<div class="ticker" aria-hidden="true"><span class="ticker__item"><?= te('topbar', ['days' => $days]) ?></span></div>
 
 <header class="site" data-header>
   <div class="site__inner">
