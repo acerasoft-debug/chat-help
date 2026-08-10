@@ -38,6 +38,10 @@ on:
         description: "true = her ürünün görsellerinin piksel boyutunu ve dosya boyutunu yaz (kalite denetimi)"
         required: false
         default: "false"
+      lang_scan:
+        description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -66,13 +70,14 @@ jobs:
           INSPECT_MISSONLY: ${{ github.event.inputs.missing_only }}
           INSPECT_ORPHANS: ${{ github.event.inputs.orphans }}
           INSPECT_DIMS: ${{ github.event.inputs.dims }}
+          INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -93,6 +98,7 @@ jobs:
             $compact  = strtolower(trim((string)getenv("INSPECT_COMPACT"))) === 'true';
             $orphans  = strtolower(trim((string)getenv("INSPECT_ORPHANS"))) === 'true';
             $dims     = strtolower(trim((string)getenv("INSPECT_DIMS")))    === 'true';
+            $langscan = strtolower(trim((string)getenv("INSPECT_LANG")))    === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -287,6 +293,54 @@ jobs:
               foreach (array_slice($small, 0, 40) as $s2)
                 printf("  %-28s %-34s %4dx%-4d  %d KB\n", $s2[0], substr($s2[1],0,34), $s2[2], $s2[3], (int)round($s2[4]/1024));
               if (count($small) > 40) printf("  ... ve %d kare daha\n", count($small) - 40);
+            }
+
+            /* ── Turkce metin taramasi ───────────────────────────────────────────────
+               Toptan fiyat listesi yabanci alicilara gidiyor ve tamamen Ingilizce olmali.
+               Urun verisi elle girildigi icin araya Turkce kelimeler karisabiliyor.
+
+               IKI olcut birden: (1) Turkceye ozgu harfler -- c-cedilla, g-breve, noktasiz i,
+               o/u-umlaut, s-cedilla; (2) bu harfleri TASIMAYAN yaygin kelimeler ("seri",
+               "adet", "beden", "takim"...). Sadece harfe bakmak yetmez, cunku "seri" saf
+               ASCII; sadece kelime listesine bakmak da yetmez, cunku liste asla tam olmaz.
+
+               SALT OKUNUR. Bulduklarini yazar, hicbir seyi degistirmez -- ne yazilacagina
+               insan karar verir, cunku "seri" bir yerde "series" bir yerde "set" demek. */
+            if ($langscan) {
+              $prods = vestra_products();
+              $trChars = '/[\x{00E7}\x{00C7}\x{011F}\x{011E}\x{0131}\x{0130}\x{00F6}\x{00D6}\x{015F}\x{015E}\x{00FC}\x{00DC}]/u';
+              $trWords = ['seri','adet','beden','renk','takim','yaka','kol','desen','baski','kumas',
+                          'gomlek','pantolon','ceket','elbise','etek','canta','ayakkabi','kemer',
+                          'mont','kaban','tisort','sort','mayo','erkek','kadin','cocuk','yeni',
+                          'siyah','beyaz','lacivert','kirmizi','mavi','yesil','sari','gri','pembe'];
+              $hits = [];
+              foreach ($prods as $p2) {
+                $fields = [
+                  'name'   => (string)($p2['name'] ?? ''),
+                  'cat'    => (string)($p2['cat'] ?? ''),
+                  'sizes'  => (string)($p2['sizes'] ?? ''),
+                  'desc'   => (string)($p2['desc'] ?? ''),
+                  'colors' => implode(', ', array_filter((array)($p2['colors'] ?? []))),
+                ];
+                foreach ($fields as $fname => $val) {
+                  if ($val === '') continue;
+                  $why = [];
+                  if (preg_match($trChars, $val)) $why[] = 'TR-harf';
+                  /* Kelime sinirlariyla: "sort" kelimesi "shorts" icinde gecmesin,
+                     "kol" da "colour" icinde. */
+                  $plain = mb_strtolower($val);
+                  foreach ($trWords as $w) {
+                    if (preg_match('/(?<![a-z])'.preg_quote($w, '/').'(?![a-z])/u', $plain)) { $why[] = $w; }
+                  }
+                  if ($why) $hits[] = [(string)($p2['id'] ?? '?'), $fname, $val, implode(',', array_unique($why))];
+                }
+              }
+              echo "\n===== TURKCE METIN TARAMASI =====\n";
+              printf("taranan urun: %d   isaretlenen alan: %d\n", count($prods), count($hits));
+              foreach (array_slice($hits, 0, 80) as $h)
+                printf("  %-26s %-7s %-52s [%s]\n", $h[0], $h[1], mb_substr($h[2], 0, 52), $h[3]);
+              if (count($hits) > 80) printf("  ... ve %d alan daha\n", count($hits) - 80);
+              if (!$hits) echo "  Turkce metin bulunamadi.\n";
             }
 
             /* Ozet EN SONDA: kutuk cok uzarsa API yalnizca sonunu veriyor, bas taraf
