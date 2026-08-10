@@ -1060,6 +1060,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .stage::after{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:
+    /* Ortaya bakan katman. Alttaki dikey geçiş ortada en zayıf yerinde
+       (%40–52) ve metin bloğu tam orada duruyor: kırmızı kapüşonlunun üstüne
+       denk gelen satırlar ölçümde 4,5 sınırının altına düşüyordu. */
+    radial-gradient(76% 60% at 50% 50%,rgba(10,10,14,.34),transparent 72%),
     radial-gradient(118% 74% at 50% 6%,rgba(201,162,77,.15),transparent 58%),
     linear-gradient(to bottom,rgba(10,10,14,.82) 0%,rgba(10,10,14,.52) 30%,rgba(10,10,14,.40) 64%,rgba(10,10,14,.86) 100%);
 }
@@ -1072,6 +1076,23 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   position:relative;z-index:4;grid-area:1/1;align-self:center;text-align:center;
   width:100%;max-width:var(--wrap);margin:0 auto;
   padding:clamp(74px,10vw,132px) var(--gut) clamp(26px,4vw,44px);
+}
+/* Metnin KENDİ perdesi. Sayfa geneline yayılan geçiş, arkadaki karenin hangi
+   an durduğuna bağlı: film oynuyor ve bir sonraki kare daha parlak olabilir.
+   Bu katman yazının hemen arkasında durduğu için kontrast tabanı kareden
+   bağımsız — hangi an bakılırsa bakılsın aynı. Kenarları geniş ve yumuşak,
+   o yüzden bir kutu gibi görünmüyor. */
+.stage__in::before{
+  content:"";position:absolute;inset:-6% -10%;z-index:-1;pointer-events:none;
+  background:radial-gradient(62% 58% at 50% 50%,rgba(10,10,14,.34),transparent 78%);
+}
+/* Telefonda perde daha koyu. Film aynı film ama kadraj dar: object-fit:cover
+   yatay videoyu kırptığı için metnin arkasına kalabalık ve parlak bölge
+   düşüyor, masaüstündeki .34 orada 4,04'te kalıyordu (gerek 4,5). */
+@media (max-width:700px){
+  .stage__in::before{
+    background:radial-gradient(78% 62% at 50% 50%,rgba(10,10,14,.52),transparent 82%);
+  }
 }
 
 /* Süsleme: iki ince çizgi arasında bir eşkenar dörtgen. */
@@ -1094,7 +1115,10 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .stage__sub{
   margin:clamp(20px,2.6vw,30px) auto 0;max-width:56ch;
-  font-size:clamp(14px,1.25vw,16.5px);color:color-mix(in oklab,var(--bone) 76%,transparent);
+  /* %76 → %88. Yarı saydam metin zemine doğru yaklaşıyor, yani perdeyi
+     koyulaştırmak bu satıra en az fayda eden şey; kendi opaklığını artırmak
+     gerekiyordu. 17 pikselde %76 zaten inceydi. */
+  font-size:clamp(14px,1.25vw,16.5px);color:color-mix(in oklab,var(--bone) 88%,transparent);
 }
 .stage__act{display:flex;flex-wrap:wrap;gap:14px 26px;justify-content:center;margin-top:clamp(28px,3.4vw,42px)}
 /* İkinci eylem düğme değil, altı çizili büyük harf bağlantı — kasa dili
