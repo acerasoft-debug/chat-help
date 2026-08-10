@@ -1053,6 +1053,39 @@ function vr_cat_label(string $cat): string
 }
 
 /**
+ * Bu kod evin model numarası mı, bizim ürettiğimiz referans mı?
+ *
+ * İkisi künyede aynı satırda "Modellcode" diye gösterilemez: alıcı o kodu
+ * üreticide arıyor ve bulamıyor. Kendi verdiğimiz kodların bir kısmı VS- ile
+ * başlıyor, ama hepsi değil — bir kısmı ürün adından türetilmiş slug:
+ * "LACOSTE-MEN-COTTON-PIMA-". Bunlar üstelik içe aktarımda 24 karakterde
+ * kesilmiş, yani sonlarında sallanan bir tire var (68 satır 24 karakter,
+ * 36'sı tireyle bitiyor).
+ *
+ * Ayırt etme TAHMİNE dayanmıyor: kod, marka+addan üretildiyse normalize
+ * edilmiş hâli marka+adın normalize edilmiş hâlinin BAŞINDA durur. Gerçek
+ * model numaraları (AH0EG000BC27, 616036-XJDV9) bu testi geçmiyor, çünkü
+ * adın içinde geçseler bile adın BAŞINDA durmuyorlar.
+ */
+function vr_sku_is_internal(array $p): bool
+{
+    $sku = trim((string)($p['sku'] ?? ''));
+    if ($sku === '') return true;
+    if (preg_match('/^VS-/i', $sku)) return true;
+
+    $norm = static fn(string $s): string => strtoupper((string)preg_replace('/[^A-Za-z0-9]/', '', $s));
+    $s = $norm($sku);
+    if ($s === '') return true;
+
+    $name  = (string)($p['name'] ?? '');
+    $brand = (string)($p['brand'] ?? '');
+    foreach ([$norm($brand . ' ' . $name), $norm($name)] as $hay) {
+        if ($hay !== '' && str_starts_with($hay, $s)) return true;
+    }
+    return false;
+}
+
+/**
  * TEKİL parça adı — "T-Shirts" değil "T-Shirt".
  *
  * Kategori etiketi bir rafın adı ve çoğul; tek bir ürünün başlığı olarak

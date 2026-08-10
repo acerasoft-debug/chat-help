@@ -361,9 +361,14 @@ function vr_product_facts(array $p): array
     $facts = [];
     // Künyedeki kod ya evin kendi model numarası ya bizim iç referansımız.
     // İkisi aynı satırda "Modellcode" diye gösterilemez: alıcı o kodu üreticide
-    // arıyor ve bulamıyor. Kendi verdiğimiz kodlar VS- ile başlıyor.
+    // arıyor ve bulamıyor.
+    //
+    // Ayrım eskiden yalnızca "VS- ile başlıyor mu" idi; ürün adından türetilmiş
+    // slug kodlar ("LACOSTE-MEN-COTTON-PIMA-") bu testi geçemiyor ve 95 satırın
+    // 59'u yanlışlıkla "Modellcode" diye gösteriliyordu. Artık gerçek ayrım
+    // yapılıyor — bkz. vr_sku_is_internal().
     if ($sku !== '') {
-        $facts[preg_match('/^VS-/i', $sku) ? t('sku_internal') : t('sku')] = $sku;
+        $facts[vr_sku_is_internal($p) ? t('sku_internal') : t('sku')] = rtrim($sku, '-');
     }
     $facts[t('house')]     = strtoupper(trim((string)($p['brand'] ?? '')));
     $facts[t('category')]  = vr_cat_label($cat);
