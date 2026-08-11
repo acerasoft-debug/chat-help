@@ -181,7 +181,7 @@ jobs:
           # ile tam olarak bu yaşandı.
           for f in retail-imported.json photo-quality.json photo-shape.json \
                    photo-exclude.json category-fix.json official-prices.json \
-                   product-review.json hero-frames.json; do
+                   product-review.json face-crops.json hero-frames.json; do
             [ -f "retail/data/$f" ] || { echo "   $f — depoda yok, atlandı"; continue; }
             rsync -az -e "ssh $SSHOPT" "retail/data/$f" "${SRV}:${DATA}/$f"
             echo "   $f gönderildi"

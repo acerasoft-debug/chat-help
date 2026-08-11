@@ -52,6 +52,15 @@ foreach ($catalog as $p) {
         if ($img !== '' && str_starts_with($img, '/uploads/')) $list[$img] = true;
     }
 }
+/* Şeritten kesilmiş kart yüzleri de ölçülmeli. Bunlar ürünün images
+   dizisinde DEĞİL (ürün sayfasında şerit kalıyor, karoda kesim çıkıyor), o
+   yüzden yukarıdaki döngü onları görmüyordu. Ölçüsüz kalırlarsa karo
+   oran/doluluk mantığı varsayılana düşüyor ve kesimin bütün amacı kaçıyor. */
+foreach (vr_face_crops() as $c) {
+    $to = (string)($c['to'] ?? '');
+    if ($to !== '' && str_starts_with($to, '/uploads/')) $list[$to] = true;
+}
+
 $list = array_keys($list);
 
 printf("MAXSALES — fotoğraf biçim indeksi\n%s\n", str_repeat('=', 62));

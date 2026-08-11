@@ -861,11 +861,32 @@ function vr_card_frames(array $p): array
  */
 function vr_card_image(array $p): string
 {
+    // Elle sabitlenmiş yüz her şeyin önünde: bir insan bakıp karar vermiş.
     $pin = (string)(vr_category_fix()[(string)$p['id']]['face'] ?? '');
     if ($pin !== '' && in_array($pin, (array)($p['images'] ?? []), true)) return $pin;
 
+    /* Şeritten kesilmiş tek panel (bkz. tools/split-strips.php).
+       Bu ürünlerin elindeki tek kare yan yana 2-6 panelden oluşan bir şerit;
+       karoda altı küçük tişört yan yana duruyordu. Kesim ürünün KENDİ
+       karesinden geliyor, yeni bir fotoğraf değil — sadece doğru kadraj.
+       Ürün sayfasında şerit olduğu gibi kalıyor: orada bütün görünüşleri
+       görmek işe yarıyor, karoda yaramıyordu. */
+    $crop = (string)(vr_face_crops()[(string)$p['id']]['to'] ?? '');
+    if ($crop !== '') return $crop;
+
     $f = vr_card_frames($p);
     return $f[0] ?? vr_product_image($p);
+}
+
+/** Şeritten kesilmiş kart yüzleri: ürün id => ['from'=>…, 'to'=>…]. */
+function vr_face_crops(): array
+{
+    static $c = null;
+    if ($c === null) {
+        $raw = vr_store_read('face-crops.json', []);
+        $c   = is_array($raw) ? $raw : [];
+    }
+    return $c;
 }
 
 /**
