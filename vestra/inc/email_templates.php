@@ -22,11 +22,11 @@
  * back to the raw type string for any custom/unknown type an admin might request. */
 function vestra_doc_type_label(string $lang, string $type): string {
   $L = [
-    'en'=>['company_reg'=>'company registration certificate','vat_cert'=>'VAT/tax registration certificate','id_document'=>'government-issued ID','auth_letter'=>'authorization letter'],
-    'de'=>['company_reg'=>'Handelsregisterauszug','vat_cert'=>'Umsatzsteuer-/Steuerregistrierungsnachweis','id_document'=>'amtlichen Ausweis','auth_letter'=>'Vollmachtsschreiben'],
-    'fr'=>['company_reg'=>'extrait Kbis / immatriculation','vat_cert'=>'justificatif de TVA','id_document'=>'pièce d\'identité officielle','auth_letter'=>'lettre d\'autorisation'],
-    'it'=>['company_reg'=>'visura camerale','vat_cert'=>'certificato di partita IVA','id_document'=>'documento d\'identità','auth_letter'=>'lettera di autorizzazione'],
-    'es'=>['company_reg'=>'certificado de registro mercantil','vat_cert'=>'certificado de IVA','id_document'=>'documento de identidad oficial','auth_letter'=>'carta de autorización'],
+    'en'=>['trade_licence'=>'trade licence / business registration','company_reg'=>'company registration certificate','vat_cert'=>'VAT/tax registration certificate','id_document'=>'government-issued ID','auth_letter'=>'authorization letter'],
+    'de'=>['trade_licence'=>'Gewerbeschein','company_reg'=>'Handelsregisterauszug','vat_cert'=>'Umsatzsteuer-/Steuerregistrierungsnachweis','id_document'=>'amtlichen Ausweis','auth_letter'=>'Vollmachtsschreiben'],
+    'fr'=>['trade_licence'=>'licence commerciale / extrait d\'immatriculation','company_reg'=>'extrait Kbis / immatriculation','vat_cert'=>'justificatif de TVA','id_document'=>'pièce d\'identité officielle','auth_letter'=>'lettre d\'autorisation'],
+    'it'=>['trade_licence'=>'licenza commerciale / visura di attività','company_reg'=>'visura camerale','vat_cert'=>'certificato di partita IVA','id_document'=>'documento d\'identità','auth_letter'=>'lettera di autorizzazione'],
+    'es'=>['trade_licence'=>'licencia de actividad / alta censal','company_reg'=>'certificado de registro mercantil','vat_cert'=>'certificado de IVA','id_document'=>'documento de identidad oficial','auth_letter'=>'carta de autorización'],
   ];
   return ($L[$lang] ?? $L['en'])[$type] ?? $type;
 }

@@ -57,13 +57,20 @@ function auth_user(): ?array {
 }
 
 /* Freischaltung: is this account approved enough to see photos, seller identities and
-   catalog exports? Signed in AND (active / KYB-approved / verification docs submitted).
-   The single source of truth — head.php's $APPROVED and every gated endpoint use this. */
+   catalog exports? The single source of truth — head.php's $APPROVED and every gated
+   endpoint use this.
+   Two ways in, and BOTH are the owner's decision: status 'active' or kyb_status
+   'approved', which the admin KYB action sets together.
+
+   Uploading a document used to be enough on its own. It should not be: uploading is
+   the applicant's action, not ours, and anyone who attached a file — any file, to any
+   of the four requests — unlocked trade prices, seller identities and the full export
+   before a human had opened it. Submitting a document is now what it says it is, a
+   submission; access waits for the approval. */
 function auth_user_approved(?array $u): bool {
     return $u !== null && (
         ($u['status'] ?? '') === 'active'
         || ($u['kyb_status'] ?? '') === 'approved'
-        || count(array_filter($u['doc_requests'] ?? [], fn($r) => in_array($r['status'] ?? '', ['uploaded', 'approved'], true))) > 0
     );
 }
 
@@ -207,6 +214,7 @@ function auth_register(array $d): array|string {
     $ts = date('c');
     if($type === 'seller'){
         $acc['doc_requests'] = [
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>'Please upload your trade licence / business registration (Gewerbeschein or your country\'s equivalent). An account cannot be activated without it.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate (Handelsregister / KvK / equivalent).','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate (Umsatzsteuer-ID confirmation or equivalent).','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
@@ -214,6 +222,7 @@ function auth_register(array $d): array|string {
         ];
     } elseif($type === 'buyer'){
         $acc['doc_requests'] = [
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>'Please upload your trade licence / business registration (Gewerbeschein or your country\'s equivalent). An account cannot be activated without it.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate to complete buyer verification.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
         ];
@@ -369,6 +378,7 @@ function auth_docs_dir(string $uid): string {
 
 function auth_doc_types(): array {
     return [
+        'trade_licence'=> 'Trade Licence / Gewerbeschein',
         'company_reg'  => 'Company Registration',
         'vat_cert'     => 'VAT / Tax Certificate',
         'id_document'  => 'Government ID (Passport / National ID)',
