@@ -315,7 +315,12 @@ jobs:
             if ($langscan) {
               $prods = vestra_products();
               $trChars = '/[\x{00E7}\x{00C7}\x{011F}\x{011E}\x{0131}\x{0130}\x{00F6}\x{00D6}\x{015F}\x{015E}\x{00FC}\x{00DC}]/u';
-              $trWords = ['seri','adet','beden','renk','takim','yaka','kol','desen','baski','kumas',
+              /* Liste ilk turda 'paket'i kacirdi ve kelime 300'den fazla satirda
+                 duruyordu ("10/paket"). Kelime listesiyle calisan bir tarama asla tam
+                 olmaz -- bulunan her yeni ornek buraya eklenmeli, yoksa ayni bosluk
+                 bir dahaki sefere de ayni yerde durur. */
+              $trWords = ['seri','paket','koli','deste','cift','tane','kutu',
+                          'adet','beden','renk','takim','yaka','kol','desen','baski','kumas',
                           'gomlek','pantolon','ceket','elbise','etek','canta','ayakkabi','kemer',
                           'mont','kaban','tisort','sort','mayo','erkek','kadin','cocuk','yeni',
                           'siyah','beyaz','lacivert','kirmizi','mavi','yesil','sari','gri','pembe'];
