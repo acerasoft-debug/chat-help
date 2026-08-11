@@ -24,12 +24,21 @@ on:
         description: "true = e-posta GÖNDERME, sadece nihai HTML'i (görseller gömülü) günlüğe yaz"
         required: false
         default: "false"
+      wholesale_to:
+        description: "TOPTAN TEKLİF: alıcı adres. Doluysa yukarıdaki kampanya işi ÇALIŞMAZ — Petros'un sorularına cevap + tüm marka Excel'leri ek olarak gider"
+        required: false
+        default: ""
+      wholesale_send:
+        description: "TOPTAN TEKLİF: true = GERÇEKTEN gönder. false = sadece hazırla, ek boyutlarını yaz, GÖNDERME"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
 
 jobs:
   send:
+    if: github.event.inputs.wholesale_to == ''
     runs-on: ubuntu-latest
     steps:
       - name: Kampanya önizlemesini gönder / render et
@@ -135,4 +144,176 @@ jobs:
             # -- bir onizleme "gonderildi" gorunup hic gitmedi.
             php /tmp/vestra_camp_preview.php "$TO" "$VARIANT" "$RENDER_ONLY" "$LANG_IN"; RC=$?
             rm -f /tmp/vestra_camp_preview.php
+            exit $RC
+
+  wholesale:
+    if: github.event.inputs.wholesale_to != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Toptan teklifi hazırla ve gönder
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          WS_TO: ${{ github.event.inputs.wholesale_to }}
+          WS_SEND: ${{ github.event.inputs.wholesale_send }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 15m
+          envs: WS_TO,WS_SEND
+          script: |
+            cat > /tmp/vestra_ws.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            register_shutdown_function(function(){
+              $e=error_get_last();
+              if($e && in_array($e['type'],[E_ERROR,E_PARSE,E_CORE_ERROR,E_COMPILE_ERROR],true))
+                fwrite(STDERR,"PHP OLUMCUL: {$e['message']} ({$e['file']}:{$e['line']})\n");
+            });
+            $home=getenv("HOME");
+            require $home."/public_html/inc/products.php";
+
+            $to   = trim((string)getenv("WS_TO"));
+            $send = strtolower(trim((string)getenv("WS_SEND"))) === 'true';
+            if(!filter_var($to,FILTER_VALIDATE_EMAIL)){ fwrite(STDERR,"HATA: gecersiz adres: {$to}\n"); exit(1); }
+
+            /* Ekler canli sayfadan cekiliyor, ayri bir uretici yazilmiyor: alicinin
+               indirdigi dosya ile ekteki dosya ayni kod yolundan cikmali, yoksa ikisi
+               zamanla birbirinden ayrilir ve hangisinin dogru oldugu belirsizlesir. */
+            $base='https://vestrasales.com';
+            $grab=function(string $url) use (&$base): string {
+              $ch=curl_init($url);
+              curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>true,CURLOPT_TIMEOUT=>120]);
+              $b=curl_exec($ch); $c=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE); curl_close($ch);
+              return ($c===200 && is_string($b)) ? $b : '';
+            };
+
+            $brands=[];
+            foreach(vestra_products() as $p){
+              $b=trim((string)($p['brand']??''));
+              $price=(float)($p['list']??$p['price']??0);
+              if($b==='' || $price<=0) continue;
+              $brands[$b]=($brands[$b]??0)+1;
+            }
+            ksort($brands, SORT_NATURAL|SORT_FLAG_CASE);
+            echo "marka: ".count($brands)."   urun: ".array_sum($brands)."\n\n";
+
+            $atts=[]; $bytes=0; $dir=sys_get_temp_dir().'/vestra-ws';
+            @mkdir($dir,0700,true);
+            $all=$grab($base.'/wholesale-list.xlsx');
+            if($all!==''){
+              $f=$dir.'/VESTRA-wholesale-all-brands.xlsx'; file_put_contents($f,$all);
+              $atts[]=['name'=>'VESTRA-wholesale-all-brands.xlsx','path'=>$f];
+              $bytes+=strlen($all);
+              printf("  %-34s %8.1f KB\n",'TUM MARKALAR',strlen($all)/1024);
+            } else { fwrite(STDERR,"UYARI: tum-markalar dosyasi cekilemedi\n"); }
+
+            foreach(array_keys($brands) as $b){
+              $x=$grab($base.'/wholesale-list.xlsx?brand='.rawurlencode($b));
+              if($x===''){ fwrite(STDERR,"UYARI: '{$b}' cekilemedi, atlandi\n"); continue; }
+              $slug=strtolower(preg_replace('/[^A-Za-z0-9]+/','-',$b));
+              $name='VESTRA-'.$slug.'-wholesale.xlsx';
+              $f=$dir.'/'.$name; file_put_contents($f,$x);
+              $atts[]=['name'=>$name,'path'=>$f];
+              $bytes+=strlen($x);
+              printf("  %-34s %8.1f KB\n",$b,strlen($x)/1024);
+            }
+            printf("\nek: %d dosya, ham %.1f MB, base64 ~%.1f MB\n",
+                   count($atts), $bytes/1048576, $bytes*4/3/1048576);
+            /* Saglayici sinirini asarsak istek tumden reddedilir ve hicbir sey gitmez.
+               Once burada durup soyluyoruz. */
+            if($bytes*4/3 > 9*1048576){
+              fwrite(STDERR,"HATA: ekler ~9 MB sinirini asiyor, gonderilmedi.\n"); exit(1);
+            }
+
+            $nBrand=count($brands); $nArt=array_sum($brands);
+            $B=function(string $s):string{ return '<strong>'.$s.'</strong>'; };
+            $body=
+              '<p>Dear Mr Kokkinovasilis,</p>'
+             .'<p>Thank you for your enquiry and for the detail you gave about the store you are '
+             .'preparing — it makes it much easier to answer usefully. Everything you asked for is '
+             .'below, and the full trade list is attached: one workbook per brand, plus one '
+             .'containing all '.$nArt.' articles across '.$nBrand.' brands. Each row carries the '
+             .'manufacturer\'s article number, sizes, minimum order quantity, the trade price per '
+             .'piece and a link to the product page.</p>'
+
+             .'<h3>Prices and minimums</h3>'
+             .'<p>'.$B('Wholesale price list.').' Attached, and always current at '
+             .'<a href="https://vestrasales.com/price-list">vestrasales.com/price-list</a> '
+             .'(by brand: <a href="https://vestrasales.com/price-lists">/price-lists</a>). '
+             .'Prices are per piece in EUR, excluding VAT and freight.</p>'
+             .'<p>'.$B('Minimum order.').' Per article, and printed on every row — commonly 20 pieces '
+             .'on a T-shirt or hoodie, 80 on a polo, 104 on the Ralph Lauren tees. Sizes come as a '
+             .'fixed run (for example 44×1 · 46×2 · 48×2 · 50×2 · 52×2 · 54×1, 10 pcs/pack).</p>'
+             .'<p>'.$B('Minimum order value per season or collection.').' None. There is no seasonal '
+             .'commitment and no collection minimum — you can buy a single article and reorder or stop.</p>'
+             .'<p>'.$B('Recommended retail prices.').' Where the brand publishes one we quote it and '
+             .'mark the row RRP. Where it does not, we leave the column empty rather than print an '
+             .'estimate: a recommended price for branded goods belongs to the brand, not to us.</p>'
+
+             .'<h3>About your opening budget</h3>'
+             .'<p>You mentioned roughly EUR 300–1,000 per brand for the launch. I would rather be '
+             .'straight with you than let you find this in the spreadsheet: at our minimums that '
+             .'budget buys about one article per brand, and only at the lower price points — 20 '
+             .'pieces of a EUR 59.90 T-shirt is EUR 1,198, and a polo at 80 pieces is more. '
+             .'A realistic opening for the assortment you describe is one or two articles from three '
+             .'or four brands rather than a little of everything.</p>'
+             .'<p>If you would like to see and photograph the goods before committing, we can supply '
+             .'single sample pieces at sample price. That is usually the sensible first step for a '
+             .'store that has not launched yet.</p>'
+
+             .'<h3>Payment, delivery, reorders</h3>'
+             .'<p>'.$B('Payment.').' Up to EUR 3,000 per order the payment is escrow-protected: the '
+             .'platform holds your money and releases it to the seller only after the goods have '
+             .'reached you and you have confirmed they are as described. Above that amount, or at '
+             .'your request, we invoice and the goods are released for dispatch once payment is '
+             .'received.</p>'
+             .'<p>'.$B('Delivery to Greece.').' Typically 7 to 14 working days from release of the '
+             .'order. Freight is quoted per order once the packing weight and volume are known — it '
+             .'depends on the size of the order, so we do not publish a flat rate.</p>'
+             .'<p>'.$B('Reorders.').' Yes, subject to availability. Please treat availability as the '
+             .'real constraint here: this is stock, not open production, so an article can sell out '
+             .'and not return. If a line performs for you, tell us early and we will hold what is '
+             .'left while you decide.</p>'
+
+             .'<h3>Online sales and territory</h3>'
+             .'<p>Selling through your own website in Greece is not restricted by us, and we set no '
+             .'territorial or marketplace conditions. What we cannot do is grant you brand '
+             .'distribution rights or exclusivity — we are not the brands\' authorised distributor. '
+             .'We supply EEA-sourced stock with proof of origin available on request, and every '
+             .'seller on the platform is KYC-verified. Where a brand operates selective distribution, '
+             .'any agreement about using its name or imagery in your own marketing is between you '
+             .'and that brand. I would rather say this plainly now than have it surface after your '
+             .'first order.</p>'
+
+             .'<h3>Opening an account</h3>'
+             .'<p>Register free at <a href="https://vestrasales.com/register">vestrasales.com/register</a>. '
+             .'To trade we need your company registration, your VAT number (and EORI if you import '
+             .'from outside the EU), and the name of the person authorised to order. Verification is '
+             .'usually same-day.</p>'
+             .'<p>If it would help, send me the categories and the price band you want to open with '
+             .'and I will put together a focused proposal for your budget instead of leaving you to '
+             .'work through '.$nArt.' rows.</p>'
+             .'<p>Kind regards,<br>VESTRA Wholesale<br>'
+             .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
+             .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
+
+            $subject='VESTRA — wholesale price list, minimums and terms for Greece';
+
+            if(!$send){
+              echo "\nGONDERILMEDI (wholesale_send=false).\n";
+              echo "alici: {$to}\nkonu : {$subject}\ngovde: ".strlen($body)." bayt\n";
+              exit(0);
+            }
+            $ok=vestra_send_mail($to,$subject,$body,'support@vestrasales.com','VESTRA Wholesale',
+                                 null,'',['attachments'=>$atts]);
+            echo "\n".($ok ? "GONDERILDI -> {$to}  (".count($atts)." ek)\n"
+                           : "HATA: gonderilemedi -> {$to}\n");
+            exit($ok ? 0 : 1);
+            PHPEOF
+            php -l /tmp/vestra_ws.php
+            php /tmp/vestra_ws.php; RC=$?
+            echo "php cikis kodu=$RC"
+            rm -rf /tmp/vestra_ws.php /tmp/vestra-ws
             exit $RC

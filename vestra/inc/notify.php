@@ -1803,6 +1803,36 @@ function vestra_api_send($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$
     if($replyTo && filter_var($replyTo,FILTER_VALIDATE_EMAIL)) $payload['replyTo']=['email'=>$replyTo];
   }
 
+  /* Ekler. $opts['attachments'] = [['name'=>'x.xlsx','path'=>'/abs/yol'], ...]
+     ya da hazir base64 icin ['name'=>..., 'content'=>...].
+
+     Bir toptan fiyat listesi eninde sonunda alicinin kendi satin alma tablosuna
+     yapistirilir; linkle gonderilen dosya "sonra bakarim" olur, ekteki dosya
+     acilir. Iki saglayicinin alan adlari farkli: Brevo 'attachment', Resend
+     'attachments'.
+
+     Okunamayan dosya SESSIZCE atlanmiyor -- kutuge yaziliyor. Eksik ekli bir
+     teklif e-postasi, hic gonderilmemis olandan daha kotu: musteri listeyi
+     bekler, biz gonderdik saniriz. */
+  $atts=[];
+  foreach((array)($opts['attachments']??[]) as $a){
+    $n=trim((string)($a['name']??''));
+    if($n==='') continue;
+    $b64=(string)($a['content']??'');
+    if($b64===''){
+      $p=(string)($a['path']??'');
+      if($p==='' || !is_readable($p)){ error_log("[VESTRA Mail] ek okunamadi, atlandi: {$p}"); continue; }
+      $raw=@file_get_contents($p);
+      if($raw===false){ error_log("[VESTRA Mail] ek okunamadi, atlandi: {$p}"); continue; }
+      $b64=base64_encode($raw);
+    }
+    $atts[]=['name'=>$n,'content'=>$b64];
+  }
+  if($atts){
+    if($provider==='resend') $payload['attachments']=$atts;
+    else                     $payload['attachment']=$atts;
+  }
+
   $ch=curl_init($url);
   curl_setopt_array($ch,[
     CURLOPT_RETURNTRANSFER=>true,
