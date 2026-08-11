@@ -42,6 +42,10 @@ on:
         description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
         required: false
         default: "false"
+      price_list:
+        description: "true = toptan fiyat listesini sekmeyle ayrılmış olarak dök (marka, art.no, ad, kategori, beden, MOQ, toptan, perakende, kaynak)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -71,13 +75,14 @@ jobs:
           INSPECT_ORPHANS: ${{ github.event.inputs.orphans }}
           INSPECT_DIMS: ${{ github.event.inputs.dims }}
           INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
+          INSPECT_PLIST: ${{ github.event.inputs.price_list }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -99,6 +104,7 @@ jobs:
             $orphans  = strtolower(trim((string)getenv("INSPECT_ORPHANS"))) === 'true';
             $dims     = strtolower(trim((string)getenv("INSPECT_DIMS")))    === 'true';
             $langscan = strtolower(trim((string)getenv("INSPECT_LANG")))    === 'true';
+            $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -351,6 +357,50 @@ jobs:
               printf("en az bir gorseli kayip urun: %d   hic gorseli olmayan urun: %d\n", $nProdBad, $nProdNoImg);
               foreach ($badList as $b) printf("  %-26s | %-16s | %d gorselin %d'i kayip\n", $b[0], $b[1], $b[2], $b[3]);
               echo $nBad ? "SONUC: KIRIK FOTO VAR\n" : "SONUC: TUM FOTOLAR YERINDE\n";
+            }
+
+            /* ── Toptan fiyat listesi dokumu ────────────────────────────────────────
+               /price-list sayfasinin TASIDIGI ayni satirlar, sekmeyle ayrilmis olarak.
+               Amac sayfayi taklit etmek degil, ayni kaynaktan okunan veriyi bir kutuge
+               sigacak bicimde disari vermek: 344 satirlik HTML 359 KB, bu ~35 KB.
+
+               Perakende kurali sayfayla AYNI: urunun kendi 'rrp' alani varsa o, yoksa
+               toptan x VESTRA_RETAIL_MULTIPLE ve satir "guide" diye isaretli. Carpani
+               burada tekrar yazmiyoruz -- products.php'deki sabiti okuyor, yani liste
+               ile sayfanin ayrilmasi mumkun degil. */
+            if ($plist) {
+              $mult = defined('VESTRA_RETAIL_MULTIPLE') ? (float)VESTRA_RETAIL_MULTIPLE : 3.0;
+              echo "\n===== TOPTAN FIYAT LISTESI =====\n";
+              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tTOPTAN\tPERAKENDE\tKAYNAK\n";
+
+              $rows = [];
+              foreach (vestra_products() as $p2) {
+                $brand = trim((string)($p2['brand'] ?? ''));
+                $price = (float)($p2['list'] ?? $p2['price'] ?? 0);
+                if ($brand === '' || $price <= 0) continue;
+                $best = $price;
+                foreach ((array)($p2['tiers'] ?? []) as $t) {
+                  $tp = (float)($t['price'] ?? 0);
+                  if ($tp > 0 && $tp < $best) $best = $tp;
+                }
+                $rrp  = (float)($p2['rrp'] ?? 0);
+                $real = $rrp > 0;
+                if (!$real) $rrp = $best * $mult;
+                $id    = (string)($p2['id'] ?? '');
+                $ident = trim((string)($p2['sku'] ?? ''));
+                if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
+                $rows[] = [$brand, $ident, (string)($p2['name'] ?? ''), (string)($p2['cat'] ?? ''),
+                           (string)($p2['sizes'] ?? ''), ((string)($p2['moq'] ?? '')).' '.((string)($p2['unit'] ?? 'pc')),
+                           number_format($best, 2, '.', ''), number_format($rrp, 2, '.', ''),
+                           $real ? 'RRP' : 'guide x'.number_format($mult, 0)];
+              }
+              usort($rows, fn($a, $b) => [strtolower($a[0]), strtolower($a[2])] <=> [strtolower($b[0]), strtolower($b[2])]);
+              foreach ($rows as $r) echo implode("\t", $r)."\n";
+
+              $realN = 0; $sum = 0.0;
+              foreach ($rows as $r) { if ($r[8] === 'RRP') $realN++; $sum += (float)$r[6]; }
+              printf("\nsatir: %d   gercek RRP: %d   tahmin (guide x%s): %d   carpan: %s\n",
+                     count($rows), $realN, number_format($mult, 0), count($rows) - $realN, number_format($mult, 1));
             }
             PHPEOF
             php -l /tmp/vestra_inspect.php
