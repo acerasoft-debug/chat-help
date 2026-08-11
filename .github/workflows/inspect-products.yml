@@ -383,11 +383,13 @@ jobs:
                 $bname = trim((string)($p2['brand'] ?? ''));
                 $price = (float)($p2['list'] ?? $p2['price'] ?? 0);
                 if ($bname === '' || $price <= 0) continue;
-                /* Marka/kategori filtresine UYSUN. Ilk surum filtreyi yok sayip her
-                   zaman 344 satir basiyordu: tek bir markaya bakmak isteyen kisi
-                   butun katalogu aliyordu. */
-                if ($brand !== '*' && stripos($bname, $brand) === false) continue;
-                if ($cat !== '' && strcasecmp((string)($p2['cat'] ?? ''), $cat) !== 0) continue;
+                /* Filtreler $bf / $cf -- bu betikte girdiler bu adlarda tutuluyor.
+                   Ilk denemede $brand ve $cat yazmistim: $brand yukaridaki dongude her
+                   urunle yeniden atanan bir artik, $cat ise hic tanimli degil. Sonuc
+                   sifir satirdi ve "Lacoste'un fiyati yok" gibi okunuyordu -- oysa
+                   filtre kendi kendini eliyordu. */
+                if ($bf !== '' && $bf !== '*' && stripos($bname, $bf) === false) continue;
+                if ($cf !== '' && strcasecmp(trim((string)($p2['cat'] ?? '')), $cf) !== 0) continue;
                 $best = $price;
                 foreach ((array)($p2['tiers'] ?? []) as $t) {
                   $tp = (float)($t['price'] ?? 0);
