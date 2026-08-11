@@ -72,8 +72,8 @@ $header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $to
         $y -= 15;
         $pdf->text($L, $y, 9, $total.' articles  ·  EUR per piece, excluding VAT and freight  ·  issued '.date('d M Y'));
         $y -= 12;
-        $pdf->text($L, $y, 9, 'RETAIL column: "RRP" = the brand\'s own recommended price. "guide" = wholesale x'
-            .number_format(VESTRA_RETAIL_MULTIPLE, 0).', our estimate, not a brand figure.');
+        $pdf->text($L, $y, 9, 'RETAIL column: the brand\'s own recommended price where the brand publishes one. '
+            .'Blank where it does not -- we do not estimate a retail price on a brand\'s behalf.');
         $y -= 12;
         $pdf->text($L, $y, 9, 'ART. NO is the manufacturer\'s own article number; the smaller code beside it is the VESTRA reference.');
         $y -= 12;
@@ -133,16 +133,10 @@ foreach ($byBrand as $brand => $rows) {
         if ($y - $ROW_H < $BOTTOM) $page();
 
         $price = (float)($p['list'] ?? $p['price'] ?? 0);
-        $best  = $price;
-        foreach ((array)($p['tiers'] ?? []) as $t) {
-            $tp = (float)($t['price'] ?? 0);
-            if ($tp > 0 && $tp < $best) $best = $tp;
-        }
-        $hasTiers = $best < $price - 0.001;
+
 
         $rrp     = (float)($p['rrp'] ?? 0);
         $isRealRrp = $rrp > 0;
-        if (!$isRealRrp) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
 
         $id  = (string)($p['id'] ?? '');
         $url = 'https://vestrasales.com/product?id='.rawurlencode($id);
@@ -193,12 +187,14 @@ foreach ($byBrand as $brand => $rows) {
         $pdf->text($X_SIZES, $rowMid, 8, (string)($p['sizes'] ?? '—'));
         $pdf->textR($X_MOQ, $rowMid, 9, (string)($p['moq'] ?? '—').' '.(string)($p['unit'] ?? 'pc'), true);
 
-        $num = 'EUR '.number_format($best, 2);
-        $pdf->textR($X_WHOLE, $rowMid, 10, $num, true);
-        if ($hasTiers) $pdf->textR($X_WHOLE - $pdf->strWidth($num, 10, true) - 3, $rowMid, 6.5, 'from');
+        /* TEK fiyat: MOQ'da gecerli olan. Kademe tabanini "from ..." diye basmak,
+           listenin en gorunur sayisini en zor ulasilan sart yapiyordu. */
+        $pdf->textR($X_WHOLE, $rowMid, 10, 'EUR '.number_format($price, 2), true);
 
-        $pdf->textR($X_RETAIL, $rowMid, 9, 'EUR '.number_format($rrp, 2));
-        $pdf->textR($X_RETAIL, $rowMid - 9, 6.5, $isRealRrp ? 'RRP' : 'guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0));
+        if ($isRealRrp) {
+            $pdf->textR($X_RETAIL, $rowMid, 9, 'EUR '.number_format($rrp, 2));
+            $pdf->textR($X_RETAIL, $rowMid - 9, 6.5, 'RRP');
+        }
 
         $y -= $ROW_H;
         $pdf->line($L, $y + 6, $R, $y + 6, 0.4, 0.88);
@@ -242,8 +238,7 @@ $pdf->stampEachPage(function (VestraPdf $d, int $n, int $of) use ($L, $R, $BOTTO
     $d->line($L, $BOTTOM - 8, $R, $BOTTOM - 8, 0.5, 0.8);
     $d->text($L, $BOTTOM - 20, 7.5, 'VESTRA · vestrasales.com · support@vestrasales.com');
     $d->textR($R, $BOTTOM - 20, 7.5, 'Page '.$n.' of '.$of);
-    $d->text($L, $BOTTOM - 30, 7, 'EUR per piece, excluding VAT and freight. RETAIL marked "guide" is wholesale x'
-        .number_format(VESTRA_RETAIL_MULTIPLE, 0).', our estimate, not a brand-set price.');
+    $d->text($L, $BOTTOM - 30, 7, 'EUR per piece, excluding VAT and freight. RETAIL is the brand\'s own recommended price; blank where the brand publishes none.');
 });
 
 $slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';

@@ -20,16 +20,6 @@ if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038)
    constant is the Starter-tier (and fallback) rate; Pro/Elite get a lower rate — see
    vestra_seller_commission_rate() below. */
 if(!defined('VESTRA_COMMISSION_RATE')) define('VESTRA_COMMISSION_RATE', 0.035);
-/* Retail reference for the trade price lists. A product's own 'rrp' always wins --
-   that is the brand's published recommended price, read off the brand's own site.
-   Where we have none, the lists show wholesale x this figure and mark the row as an
-   estimate, never as a brand price.
-
-   ONE constant because three surfaces quote it: /price-list, /wholesale-list.xlsx and
-   the PDF. They each had their own copy, so changing the rule in one place would have
-   let a buyer open the page and the spreadsheet side by side and find two different
-   retail prices for the same article -- with nothing to say which was current. */
-if(!defined('VESTRA_RETAIL_MULTIPLE')) define('VESTRA_RETAIL_MULTIPLE', 3.0);
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/notify.php';
 if(!defined('VESTRA_TERMS_VERSION')) define('VESTRA_TERMS_VERSION','2026-06-26'); // legal acceptance version
@@ -38,7 +28,11 @@ function vestra_demo_products(){
   $P = [
     [
       'id'=>'lac-pique-polo','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc','sample_price'=>50.0,
+      /* 'list' = the one price the trade list quotes, valid at the 80 pc MOQ. Without it
+         this article had no price of its own, only the tier ladder below -- so the price
+         list left it out entirely, and the lowest number on the ladder (EUR 25.00 at 320 pc)
+         was the only Lacoste figure a reader ever saw. */
+      'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc','sample_price'=>50.0,'list'=>29.90,
       'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
       'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,

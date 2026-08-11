@@ -42,7 +42,7 @@ unset($rs);
 
 /* Photo LAST: vestra_xlsx_with_photos_file() reserves the final column for the image. */
 $headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Sizes',
-            'MOQ', 'Unit', 'Wholesale EUR', 'Tier from EUR', 'Retail EUR', 'Retail source',
+            'MOQ', 'Unit', 'Wholesale EUR', 'Retail EUR', 'Retail source',
             'Product link', 'Photo'];
 
 $rows = [];
@@ -51,16 +51,8 @@ foreach ($byBrand as $brand => $list) {
     foreach ($list as $p) {
         $n++;
         $price = (float)($p['list'] ?? $p['price'] ?? 0);
-        $best  = $price;
-        foreach ((array)($p['tiers'] ?? []) as $t) {
-            $tp = (float)($t['price'] ?? 0);
-            if ($tp > 0 && $tp < $best) $best = $tp;
-        }
-        $hasTiers = $best < $price - 0.001;
-
-        $rrp = (float)($p['rrp'] ?? 0);
-        $real = $rrp > 0;
-        if (!$real) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
+        $rrp   = (float)($p['rrp'] ?? 0);
+        $real  = $rrp > 0;
 
         $id    = (string)($p['id'] ?? '');
         $ident = trim((string)($p['sku'] ?? ''));
@@ -79,9 +71,8 @@ foreach ($byBrand as $brand => $list) {
             /* Plain numbers, no currency symbol: the header carries the unit and a bare
                number is what a buyer can sum, sort and multiply without cleaning first. */
             number_format($price, 2, '.', ''),
-            $hasTiers ? number_format($best, 2, '.', '') : '',
-            number_format($rrp, 2, '.', ''),
-            $real ? 'brand RRP' : 'guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0),
+            $real ? number_format($rrp, 2, '.', '') : '',
+            $real ? 'brand RRP' : '',
             $id !== '' ? 'https://vestrasales.com/product?id='.$id : '',
             '',
         ], 'image' => function_exists('vestra_export_local')
@@ -90,19 +81,27 @@ foreach ($byBrand as $brand => $list) {
     }
 }
 
+/* Alt notlar. Genisligi basliktan aliyor: satirlar elle 15 hucreye doldurulmustu ve
+   bir sutun kaldirilinca hepsi bir hucre tasiyordu. Not metni 5. sutunda basliyor
+   (urun adi sutunu), cunku orasi sayfada en genis olan. */
+$note = function (string $text) use ($headers): array {
+    $cells = array_fill(0, count($headers), '');
+    $cells[4] = $text;
+    return ['cells' => $cells, 'image' => ''];
+};
+
 $rows[] = ['cells' => array_fill(0, count($headers), ''), 'image' => ''];
-$rows[] = ['cells' => ['', '', '', '', 'Escrow-protected payment up to EUR 3,000 per order: the platform holds the money and '
+$rows[] = $note('Escrow-protected payment up to EUR 3,000 per order: the platform holds the money and '
     .'releases it to the seller only after you confirm the goods arrived as described. Above that, or on request, '
-    .'we invoice and release the goods once payment is received.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
-$rows[] = ['cells' => ['', '', '', '', 'Delivery within the EU (Greece included) typically 7-14 working days from release. '
-    .'Freight quoted per order. MOQ is per article; no seasonal or collection minimum.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
-$rows[] = ['cells' => ['', '', '', '', 'Retail source "guide x'.number_format(VESTRA_RETAIL_MULTIPLE, 0).'" is our estimate at '.number_format(VESTRA_RETAIL_MULTIPLE, 0).' times wholesale, not a brand-set price. '
-    .'"brand RRP" is the brand\'s own recommended price as supplied.', '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
+    .'we invoice and release the goods once payment is received.');
+$rows[] = $note('Delivery within the EU (Greece included) typically 7-14 working days from release. '
+    .'Freight quoted per order. MOQ is per article; no seasonal or collection minimum.');
+$rows[] = $note('RETAIL EUR is the brand\'s own recommended price, read from the brand\'s own site. '
+    .'Where a brand publishes none for an article the cell is empty: we do not estimate a retail price on a brand\'s behalf.');
 /* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
    a forwarded copy should be one click from the current list. */
-$rows[] = ['cells' => ['', '', '', '', 'Always-current version of this list: https://vestrasales.com/price-list'
-    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  ·  every brand: https://vestrasales.com/price-lists',
-    '', '', '', '', '', '', '', '', '', ''], 'image' => ''];
+$rows[] = $note('Always-current version of this list: https://vestrasales.com/price-list'
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  \u{00B7}  every brand: https://vestrasales.com/price-lists');
 
 $title = $brandFilter !== '' ? $brandFilter.' wholesale' : 'VESTRA wholesale';
 $file  = vestra_xlsx_with_photos_file($headers, $rows, $title);

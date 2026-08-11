@@ -143,16 +143,16 @@ require __DIR__.'/inc/head.php';
       <div style="text-align:right"><?= t('Retail') ?></div>
     </div>
     <?php foreach ($rows as $p):
+      /* TEK fiyat. Once burada urunun en ucuz kademesi "from EUR 25.00" diye
+         yaziliyordu; o rakam 320 adetlik bir basamaga aitti, yani listenin en gorunur
+         sayisi listedeki en zor ulasilan sarttı. Alici tek bir sayi ariyor, ve o sayi
+         MOQ'da gecerli olan fiyat olmali. */
       $price = (float)($p['list'] ?? $p['price'] ?? 0);
-      $best = $price;
-      foreach ((array)($p['tiers'] ?? []) as $t2) {
-        $tp = (float)($t2['price'] ?? 0);
-        if ($tp > 0 && $tp < $best) $best = $tp;
-      }
-      $hasTiers = $best < $price - 0.001;
+      /* Perakende SADECE markanin kendi yayinladigi fiyat. Tahmin (toptan x3) satiri
+         tamamen kalkti: bir tahmini perakende fiyatinin yaninda "guide" yazsa bile,
+         listeden fiyat okuyan biri onu marka fiyati saniyor. Bilmiyorsak bos. */
       $rrp = (float)($p['rrp'] ?? 0);
       $realRrp = $rrp > 0;
-      if (!$realRrp) $rrp = $best * VESTRA_RETAIL_MULTIPLE;
       $id = (string)($p['id'] ?? '');
       $ident = trim((string)($p['sku'] ?? ''));
       if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
@@ -176,12 +176,13 @@ require __DIR__.'/inc/head.php';
       <div class="pc-sizes"><?= htmlspecialchars((string)($p['sizes'] ?? '—')) ?></div>
       <div class="pc-moq pc-num"><?= htmlspecialchars((string)($p['moq'] ?? '—')) ?> <?= htmlspecialchars((string)($p['unit'] ?? 'pc')) ?></div>
       <div class="pc-price pc-num">
-        <?php if ($hasTiers): ?><span class="from"><?= t('from') ?></span><?php endif; ?>
-        <b>€<?= number_format($best, 2) ?></b>
+        <b>€<?= number_format($price, 2) ?></b>
       </div>
       <div class="pc-rrp pc-num">
-        <b>€<?= number_format($rrp, 2) ?></b>
-        <span class="src <?= $realRrp ? 'real' : 'guide' ?>"><?= $realRrp ? t('RRP') : sprintf(t('guide ×%d'), VESTRA_RETAIL_MULTIPLE) ?></span>
+        <?php if ($realRrp): ?>
+          <b>€<?= number_format($rrp, 2) ?></b>
+          <span class="src real"><?= t('RRP') ?></span>
+        <?php else: ?><span class="src none">—</span><?php endif; ?>
       </div>
     </div>
     <?php endforeach; ?>
@@ -190,7 +191,7 @@ require __DIR__.'/inc/head.php';
   <p class="pc-foot">
     <b><?= t('Payment') ?>.</b> <?= t('Escrow-protected up to €3,000 per order: the platform holds the payment and releases it to the seller only after the goods reach you and you confirm they are as described. Above that, or on request, we invoice and the goods are released for dispatch once payment is received.') ?><br>
     <b><?= t('Delivery') ?>.</b> <?= t('Within the EU, typically 7–14 working days from release of the order. Freight is quoted per order.') ?><br>
-    <b><?= t('Retail column') ?>.</b> <?= sprintf(t('“RRP” is the brand’s own recommended price where it is on file. “guide ×%1$d” is our estimate at %1$d times wholesale — not a brand-set price.'), VESTRA_RETAIL_MULTIPLE) ?>
+    <b><?= t('Retail column') ?>.</b> <?= t('“RRP” is the brand’s own recommended price, taken from the brand’s own site. Where a brand publishes none for an article, the column is left empty — we do not estimate a retail price on a brand’s behalf.') ?>
   </p>
   <?php endif; ?>
 </div>
