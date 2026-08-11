@@ -376,13 +376,18 @@ jobs:
             if ($plist) {
               $mult = defined('VESTRA_RETAIL_MULTIPLE') ? (float)VESTRA_RETAIL_MULTIPLE : 3.0;
               echo "\n===== TOPTAN FIYAT LISTESI =====\n";
-              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tTOPTAN\tPERAKENDE\tKAYNAK\n";
+              echo "MARKA\tART.NO\tURUN\tKATEGORI\tBEDEN\tMOQ\tLISTE\tKADEME\tPERAKENDE\tKAYNAK\n";
 
               $rows = [];
               foreach (vestra_products() as $p2) {
-                $brand = trim((string)($p2['brand'] ?? ''));
+                $bname = trim((string)($p2['brand'] ?? ''));
                 $price = (float)($p2['list'] ?? $p2['price'] ?? 0);
-                if ($brand === '' || $price <= 0) continue;
+                if ($bname === '' || $price <= 0) continue;
+                /* Marka/kategori filtresine UYSUN. Ilk surum filtreyi yok sayip her
+                   zaman 344 satir basiyordu: tek bir markaya bakmak isteyen kisi
+                   butun katalogu aliyordu. */
+                if ($brand !== '*' && stripos($bname, $brand) === false) continue;
+                if ($cat !== '' && strcasecmp((string)($p2['cat'] ?? ''), $cat) !== 0) continue;
                 $best = $price;
                 foreach ((array)($p2['tiers'] ?? []) as $t) {
                   $tp = (float)($t['price'] ?? 0);
@@ -394,18 +399,23 @@ jobs:
                 $id    = (string)($p2['id'] ?? '');
                 $ident = trim((string)($p2['sku'] ?? ''));
                 if ($ident === '') $ident = strtoupper(preg_replace('/^[a-z]{2,4}-/', '', $id));
-                $rows[] = [$brand, $ident, (string)($p2['name'] ?? ''), (string)($p2['cat'] ?? ''),
+                /* Liste fiyati ve kademe tabani AYRI sutunlar. Sayfa bugun kademe
+                   varsa en dusugunu "from ..." diye gosteriyor; ikisini yan yana
+                   gormeden hangisinin gosterildigini tartismak mumkun degil. */
+                $rows[] = [$bname, $ident, (string)($p2['name'] ?? ''), (string)($p2['cat'] ?? ''),
                            (string)($p2['sizes'] ?? ''), ((string)($p2['moq'] ?? '')).' '.((string)($p2['unit'] ?? 'pc')),
-                           number_format($best, 2, '.', ''), number_format($rrp, 2, '.', ''),
+                           number_format($price, 2, '.', ''),
+                           $best < $price - 0.001 ? number_format($best, 2, '.', '') : '-',
+                           number_format($rrp, 2, '.', ''),
                            $real ? 'RRP' : 'guide x'.number_format($mult, 0)];
               }
               usort($rows, fn($a, $b) => [strtolower($a[0]), strtolower($a[2])] <=> [strtolower($b[0]), strtolower($b[2])]);
               foreach ($rows as $r) echo implode("\t", $r)."\n";
 
-              $realN = 0; $sum = 0.0;
-              foreach ($rows as $r) { if ($r[8] === 'RRP') $realN++; $sum += (float)$r[6]; }
-              printf("\nsatir: %d   gercek RRP: %d   tahmin (guide x%s): %d   carpan: %s\n",
-                     count($rows), $realN, number_format($mult, 0), count($rows) - $realN, number_format($mult, 1));
+              $realN = 0; $tierN = 0;
+              foreach ($rows as $r) { if ($r[9] === 'RRP') $realN++; if ($r[7] !== '-') $tierN++; }
+              printf("\nsatir: %d   gercek RRP: %d   tahmin (guide x%s): %d   kademeli fiyati olan: %d\n",
+                     count($rows), $realN, number_format($mult, 0), count($rows) - $realN, $tierN);
             }
             PHPEOF
             php -l /tmp/vestra_inspect.php
