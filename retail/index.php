@@ -72,10 +72,15 @@ foreach ($pool as $p) {
     $rank  = ($first !== '' && !isset($grid[$first])) ? 0 : 1;
     $byBrand[$p['brand']][$rank][] = $p;
 }
+/* On İKİ değil on ÜÇ parça.
+   Sıra artık mozaik: ilk parça iki sütun iki satır kaplıyor, yani dört hücre
+   yiyor. On iki parçayla toplam 15 hücre doluyor ve dört sütunluk ızgaranın
+   son satırında bir boşluk kalıyordu. On üçüncü parça o boşluğu kapatıyor:
+   4 + 12 = 16, tam dört satır. */
 $curated = [];
-for ($round = 0; $round < 4 && count($curated) < 12; $round++) {
+for ($round = 0; $round < 4 && count($curated) < 13; $round++) {
     foreach ($byBrand as $brand => $ranks) {
-        if (count($curated) >= 12) break;
+        if (count($curated) >= 13) break;
         $take = array_shift($ranks[0]) ?? array_shift($ranks[1]) ?? null;
         if ($take === null) continue;
         $byBrand[$brand] = $ranks;
@@ -201,7 +206,8 @@ vr_layout_start([
            ziyaretçinin ilk gördüğü şey bir avuç ürün oluyordu. Izgara on iki
            parçayı birden açıyor. */ ?>
   <div class="wrap">
-    <?php vr_grid($curated, ['class' => 'grid--4', 'size_hint' => true, 'eager_first' => true]); ?>
+    <?php /* Mozaik: ilk parça iki sütun iki satır. Bkz. .grid--mosaic. */ ?>
+    <?php vr_grid($curated, ['class' => 'grid--4 grid--mosaic', 'size_hint' => true, 'eager_first' => true]); ?>
     <p style="text-align:center;margin-top:clamp(28px,3.5vw,44px)">
       <a class="btn btn--ghost btn--lg" href="<?= h(vr_url('shop.php')) ?>">
         <span><?= te('sec_curated') ?> — <?= te('results_n', ['n' => (int)$total]) ?></span><?= vr_icon('arrow', 16) ?>
@@ -209,6 +215,34 @@ vr_layout_start([
     </p>
   </div>
 </section>
+
+<!-- --------------------------------------------------------- ev şeridi
+     Elimizde kampanya fotoğrafı YOK — kütüphanedeki her kare beyaz fondaki
+     ürün çekimi. O yüzden sayfanın "an"ı görselden değil TİPOGRAFİDEN
+     geliyor: on iki evin adı, devasa puntoda, yavaşça geçiyor.
+
+     Bu, kaldırdığım promosyon şeridiyle aynı şey değil. O şerit altı iddia
+     sayıyordu ("ücretsiz iade", "her hafta yeni parça") — indirim mağazası
+     dili. Bu yalnızca isimler; moda evlerinin kendi vitrinlerinde kullandığı
+     bir jest ve sayfanın taşıdığı en güçlü bilgi zaten bu isimler.
+
+     Hareket prefers-reduced-motion'da duruyor, aria-hidden çünkü aynı liste
+     hemen altında bağlantı olarak duruyor. -->
+<?php
+$houseNames = array_keys($facets['brands']);
+sort($houseNames, SORT_NATURAL | SORT_FLAG_CASE);
+?>
+<?php if (count($houseNames) >= 4): ?>
+<section class="housereel" aria-hidden="true">
+  <div class="housereel__track">
+    <?php for ($pass = 0; $pass < 2; $pass++): ?>
+      <?php foreach ($houseNames as $hn): ?>
+        <span class="housereel__i"><?= h(strtoupper($hn)) ?></span><span class="housereel__d">&#9670;</span>
+      <?php endforeach; ?>
+    <?php endfor; ?>
+  </div>
+</section>
+<?php endif; ?>
 
 <!-- ------------------------------------------------------- editoryal ikili
      İki tam boy kare, aralarında oluk yok, kenardan kenara. Perakende

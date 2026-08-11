@@ -262,6 +262,23 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   grid-template-columns:repeat(auto-fill,minmax(min(100%,228px),1fr));
 }
 .grid--4{grid-template-columns:repeat(auto-fill,minmax(min(100%,262px),1fr))}
+
+/* MOZAİK — kuratöryel sıranın ölçek kontrastı.
+   On iki eşit karo bir duvar oluşturuyordu: 2019 piksel boyunca hiçbir şey
+   diğerinden önemli değildi ve göz hiçbir yerde durmuyordu. İlk parça artık
+   iki sütun iki satır kaplıyor; yanındaki karolar küçük kalıyor ve sıra bir
+   ızgara olmaktan çıkıp kompozisyon oluyor.
+
+   Yalnızca dört sütunun sığdığı genişlikte açılıyor. Altında üç ya da iki
+   sütun kalıyor ve büyük karo satırı bozar: telefonda hepsi eşit, orası
+   zaten tek sütun. */
+@media (min-width:1120px){
+  .grid--mosaic > :first-child{grid-column:span 2;grid-row:span 2}
+  /* Büyük karo iki satır boyunda; içindeki kare de o boyu doldurmalı,
+     yoksa altında boşluk kalıyor. */
+  .grid--mosaic > :first-child .fr{height:100%}
+  .grid--mosaic > :first-child .card__body{margin-top:14px}
+}
 .grid--2{grid-template-columns:repeat(auto-fill,minmax(min(100%,430px),1fr))}
 
 /* Telefonda ürün ızgarası İKİ sütun.
@@ -367,6 +384,31 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
     radial-gradient(52% 40% at 92% 96%,rgba(196,85,58,.13),transparent 64%);
 }
 .vault>*{position:relative}
+
+/* EV ŞERİDİ — sayfanın tipografik anı.
+   Kampanya fotoğrafımız olmadığı için "özel" hissi görselden değil puntodan
+   geliyor. İsimler serif ve devasa; aralarındaki eşkenar dörtgen tek süs ve
+   bilerek küçük. Üstünde ve altında ince çizgi — künye satırı gibi duruyor,
+   reklam bandı gibi değil. */
+.housereel{
+  border-top:1px solid var(--bone-3);border-bottom:1px solid var(--bone-3);
+  overflow:hidden;padding:clamp(18px,2.4vw,30px) 0;background:var(--bone);
+}
+.housereel__track{
+  display:flex;align-items:center;width:max-content;
+  animation:housereel 64s linear infinite;
+}
+.housereel__i{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(30px,5.6vw,86px);line-height:1;letter-spacing:-.02em;
+  white-space:nowrap;padding:0 clamp(16px,2vw,30px);color:var(--ink);
+}
+.housereel__d{color:var(--muted-2);font-size:clamp(7px,.8vw,11px);line-height:1}
+/* Liste iki tur basılıyor; -%50'de başa dönünce dikiş görünmüyor. */
+@keyframes housereel{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){
+  .housereel__track{animation:none;flex-wrap:wrap;width:auto;justify-content:center}
+}
 
 /* Vault kapağı: film + perde. Ana sayfadaki sahnenin alçak kardeşi.
    Film %38 opaklıkta duruyor — okunurluk için değil, DERİNLİK için orada;
@@ -1085,10 +1127,15 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 /* ------------------------------------------------------------ sahne (hero) */
 .stage{
   position:relative;background:var(--ink);color:var(--bone);overflow:hidden;
-  /* 88svh idi: sahne ekranı tam dolduruyor, ürünler ikinci kaydırmada
-     başlıyordu. 72svh'de başlık ve çağrı hâlâ rahat duruyor ama ilk kart
-     şeridinin üst kenarı görünüyor — "aşağıda ürün var" mesajı bedava. */
-  min-height:clamp(520px,72svh,860px);display:grid;grid-template-rows:1fr auto;
+  /* Yükseklik 72svh'ten 92svh'e çıktı.
+     72svh, ilk kart şeridinin üst kenarını göstersin diye seçilmişti — kitle
+     perakendesinin dönüşüm hilesi. Bedeli şuydu: sayfa açıldığında aynı anda
+     hem film hem bir sıra ürün görünüyor, yani sinematik an hiç oluşmuyor.
+     Üst segment evleri istisnasız tam ekran açar; ürün ikinci kaydırmada
+     başlar ve bu bir kayıp değil, duruş.
+     92 — 100 değil: altta ince bir şerit kalıyor, "devamı var" bunu söylemeye
+     yetiyor ve istatistik bandı ekranda kalıyor. */
+  min-height:clamp(560px,92svh,1040px);display:grid;grid-template-rows:1fr auto;
 }
 .stage__art{position:absolute;inset:0}
 .stage__art img{width:100%;height:100%;object-fit:cover;opacity:.86}
