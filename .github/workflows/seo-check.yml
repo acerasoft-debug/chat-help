@@ -134,7 +134,23 @@ jobs:
             done
             printf '%s' "$H" | grep -c 'application/ld+json' | sed 's/^/  JSON-LD blok: /'
             printf '%s' "$H" | grep -oE 'hreflang="[a-z-]+"' | sort -u | tr '\n' ' ' | sed 's/^/  hreflang: /'
-            echo; echo
+            echo
+
+            # 404 iki cok farkli sebepten gelir ve ikisinin cozumu ayridir: ya dosya
+            # sunucuya hic gitmemistir (deploy sorunu), ya da .htaccess'teki yeniden
+            # yazma kurali yoktur/eslesmiyordur (yonlendirme sorunu). Tahmin etmemek
+            # icin ikisini de yaziyoruz.
+            case "$(printf '%s' "$H" | sed -n 's/.*__CODE__//p')" in
+              404|403|500)
+                echo "  -- neden? --"
+                F="$(printf '%s' "$P" | cut -d/ -f2)"
+                ls -l "$HOME/public_html/${F}.php" 2>&1 | sed 's/^/  dosya: /'
+                grep -n "RewriteRule.*${F}" "$HOME/public_html/.htaccess" 2>/dev/null \
+                  | sed 's/^/  kural: /' || echo "  kural: .htaccess'te ${F} icin kural YOK"
+                ls -l "$HOME/public_html/.htaccess" 2>&1 | sed 's/^/  htaccess: /'
+                ;;
+            esac
+            echo
 
             # DIKKAT: `QUERY_STRING=... php index.php` ile $_GET DOLMAZ -- PHP CLI
             # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
