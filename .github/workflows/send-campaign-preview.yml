@@ -541,11 +541,13 @@ jobs:
              .'and as a printable list with photographs at '
              .'<a href="https://vestrasales.com/wholesale-list.pdf">/wholesale-list.pdf</a>. Nothing '
              .'needs to be requested first; all of it opens directly.</p>'
-             .'<p>'.$B('Terms outside the EU.').' Payment by bank transfer in advance against invoice '
-             .'— the only method we can accept outside the EU. Freight is quoted per order once '
-             .'packing weight and volume are known; import duty and consumption tax are payable by '
-             .'you as importer. A single sample piece can be supplied at sample price before any '
-             .'commitment, so the goods can be inspected and photographed first.</p>'
+             /* Odeme sarti soguk mektupta YOK ve bu bilerek boyle. Ilk temas mali
+                anlatir; "pesin havale" cumlesi gereksiz bir fren, escrow sozu ise her
+                ulkede tutulamayabilecek bir taahhut. Sart, karsi taraf ilgilendigini
+                soyledikten sonra -- siparis asamasinda -- konusulur. */
+             .'<p>'.$B('Before any commitment.').' A single sample piece can be supplied at sample '
+             .'price, so the goods can be inspected and photographed first. Freight is quoted per '
+             .'order once the packing weight and volume are known.</p>'
              .'<p>If European branded stock is of interest to your buying or merchandising team — or '
              .'to tenants in your centres — tell me which categories and price band you work with and '
              .'I will put together a focused selection rather than leaving you to work through '
@@ -554,7 +556,12 @@ jobs:
              .'<p>Kind regards,<br><br>'
              .$B('Marco Bellini').'<br>Customer Adviser · VESTRA Wholesale<br>'
              .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
-             .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
+             .'<a href="https://vestrasales.com">vestrasales.com</a></p>'
+             /* Cikma satiri. Kanada'da (CASL) ve bircok yerde soguk ticari e-postada
+                zorunlu; her yerde de dogru olan sey. Ustelik sikayet tusuna basilmasini
+                onledigi icin gonderen itibarini korur -- yani kendi cikarimiza. */
+             .'<p style="color:#8a8272;font-size:12px">If you would rather not hear from us again, '
+             .'reply with the word <em>unsubscribe</em> and I will remove this address.</p>';
 
             $subject='VESTRA — European branded stock, wholesale from '.$nBrand.' houses';
             endif;
