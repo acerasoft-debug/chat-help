@@ -503,27 +503,50 @@ foreach (array_slice($cats, 0, 4, true) as $cat => $n) {
   <div class="wrap">
     <?php vr_chapter('IV', t('sec_cats'), t('sec_cats_sub'), vr_url('shop.php')); ?>
   </div>
-  <div class="rail">
-    <div class="rail__track cats">
-      <?php foreach ($cats as $cat => $n): ?>
-        <a class="cat" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
-          <span class="cat__art">
-            <?php if (!empty($catShot[$cat])) vr_frame($catShot[$cat], [
-                'box'    => 0.75,      // .cat__art 3/4
-                'no_pad' => true,
-                'w'      => 420,
-                'widths' => [300, 420, 600],
-                'sizes'  => '(max-width:640px) 62vw, 300px',
-            ]); ?>
-            <span class="cat__in">
-              <b><?= h(vr_cat_label($cat)) ?></b>
-              <i><?= te('results_n', ['n' => (int)$n]) ?></i>
-            </span>
-          </span>
-        </a>
-      <?php endforeach; ?>
+  <?php
+  /* KATEGORİ FİLMİ.
+     Burası eskiden yatay kayan bir foto şeridiydi: on bir küçük karo, her
+     birinde beyaz fonda bir ürün ve üstünde kategori adı. Arkasından altı
+     ürün bloğu geliyordu ve bölüm 2750 piksel boyunca hiç yükselmiyordu —
+     sayfanın en uzun ve en düz parçasıydı.
+
+     Şimdi bölüm tam ekran bir filmle açılıyor ve kategoriler filmin üstünde
+     TİPOGRAFİK bir dizin olarak duruyor. On bir küçük fotoğrafın yaptığı işi
+     on bir satır punto daha iyi yapıyor: isimler okunuyor, sayılar görünüyor
+     ve göz bir yerde duruyor. Ürün blokları altında olduğu gibi kalıyor —
+     keşif orada oluyor.
+
+     Film band-shop.mp4: mağaza filmi, yani semantik olarak doğru olan. Aynı
+     film sayfanın yukarısındaki editoryal ikilide küçük bir karo olarak da
+     geçiyor; ölçek ve bağlam çok farklı ve aralarında ~2000 piksel var, o
+     yüzden tekrar gibi okunmuyor. Elimizde üç film var, on bir kategoriye
+     ayrı film düşmüyor — uydurmak yerine olanı iyi kullanıyorum. */
+  $catFilm = vr_hero_media('band-shop');
+  ?>
+  <section class="catfilm">
+    <div class="catfilm__art" aria-hidden="true">
+      <?php if ($catFilm && $catFilm['kind'] === 'video'): ?>
+        <video muted loop playsinline preload="none" data-autoplay
+               poster="<?= h($catFilm['poster'] ?? '') ?>" tabindex="-1">
+          <source src="<?= h($catFilm['src']) ?>" type="<?= h($catFilm['type']) ?>">
+        </video>
+      <?php elseif (!empty($catShot[array_key_first($cats)])): ?>
+        <img src="<?= h(vr_img($catShot[array_key_first($cats)], 1600)) ?>" alt="" decoding="async">
+      <?php endif; ?>
     </div>
-  </div>
+    <div class="wrap catfilm__in">
+      <ul class="catfilm__list">
+        <?php foreach ($cats as $cat => $n): ?>
+          <li>
+            <a class="catfilm__a" href="<?= h(vr_url('shop.php', ['cat' => $cat])) ?>">
+              <span><?= h(vr_cat_label($cat)) ?></span>
+              <i><?= (int)$n ?></i>
+            </a>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+  </section>
 
   <?php foreach ($catRows as $cat => $rows): ?>
     <div class="wrap catblock">

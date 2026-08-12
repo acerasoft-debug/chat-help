@@ -385,6 +385,55 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 .vault>*{position:relative}
 
+/* KATEGORİ FİLMİ — bölümün tam ekran açılışı.
+   Film arkada, %42 opaklıkta: derinlik için orada, okunurluk için değil.
+   Kontrastı sağlayan altındaki perde — böylece filmin hangi karesinde
+   durduğu fark etmiyor, taban sabit. Aynı yaklaşım kapakta ve Vault'ta da
+   kullanılıyor; ölçüldü ve üç yerde de sınırın üstünde. */
+.catfilm{
+  position:relative;overflow:hidden;background:var(--ink);color:var(--bone);
+  /* 84svh idi: dizin sekiz satır olduğu için altta 200 piksel ölü boşluk
+     kalıyordu. 72 hem sinematik hem dizine yakışıyor. */
+  min-height:clamp(520px,72svh,860px);display:grid;align-items:center;
+  margin:clamp(34px,4.5vw,64px) 0;
+}
+.catfilm__art{position:absolute;inset:0;z-index:0}
+.catfilm__art video,.catfilm__art img{
+  width:100%;height:100%;object-fit:cover;display:block;opacity:.42;
+}
+.catfilm::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(to bottom,rgba(0,0,0,.62) 0%,rgba(0,0,0,.44) 40%,rgba(0,0,0,.72) 100%),
+    radial-gradient(64% 58% at 28% 50%,rgba(0,0,0,.40),transparent 78%);
+}
+.catfilm__in{position:relative;z-index:2;width:100%}
+.catfilm__list{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));
+  gap:clamp(2px,.5vw,8px) clamp(20px,4vw,64px);
+}
+/* Satırlar arasında ince bir çizgi: dizin bir künye gibi okunuyor. */
+.catfilm__a{
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding:clamp(9px,1.1vw,15px) 0;border-bottom:1px solid rgba(255,255,255,.16);
+  font-family:var(--serif);font-weight:500;letter-spacing:-.02em;
+  font-size:clamp(21px,2.5vw,40px);line-height:1.12;color:var(--bone);
+  transition:padding-left .35s var(--ease),border-color .35s var(--ease);
+}
+.catfilm__a i{
+  font-style:normal;font-family:var(--sans);font-size:11px;letter-spacing:.2em;
+  color:color-mix(in oklab,var(--bone) 72%,transparent);flex:0 0 auto;
+  font-variant-numeric:tabular-nums;
+}
+.catfilm__a:hover,.catfilm__a:focus-visible{
+  padding-left:clamp(8px,1.4vw,20px);border-bottom-color:var(--bone);
+}
+@media (prefers-reduced-motion:reduce){
+  .catfilm__art video{display:none}
+  .catfilm__a{transition:none}
+}
+
 /* EV ŞERİDİ — sayfanın tipografik anı.
    Kampanya fotoğrafımız olmadığı için "özel" hissi görselden değil puntodan
    geliyor. İsimler serif ve devasa; aralarındaki eşkenar dörtgen tek süs ve
