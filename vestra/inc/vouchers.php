@@ -217,6 +217,23 @@ function voucher_welcome_run(array $opts): array {
         $targets[$email] = $acc;                 // same address on two accounts → once
     }
 
+    /* Prospects — an address we are talking to that has no account yet. A code is bound to
+       the ADDRESS, and voucher_validate() checks that binding rather than an account, so a
+       code issued now works the day they register with the same address and order.
+       Off unless explicitly asked for, and only for addresses named in 'only': a welcome
+       code is a thing you hand to someone, not something a bulk run should scatter. */
+    if (!empty($opts['allow_prospects'])) {
+        foreach (array_keys($only) as $email) {
+            if (isset($targets[$email])) continue;
+            $targets[$email] = [
+                'email'   => $email,
+                'company' => trim((string)($opts['prospect_name'] ?? '')),
+                'lang'    => substr((string)($opts['prospect_lang'] ?? 'en'), 0, 2),
+                'type'    => 'buyer',
+            ];
+        }
+    }
+
     $rep = ['rows' => [], 'made' => 0, 'sent' => 0, 'skipped' => 0, 'failed' => 0, 'reused' => 0,
             'campaign' => $campaign, 'expiry' => $expiry, 'targets' => count($targets),
             'excluded' => $excluded];
