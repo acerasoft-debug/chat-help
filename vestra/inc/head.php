@@ -26,9 +26,12 @@ $AUTH_USER = auth_user();
    product via the admin "View ↗" link never shows the locked brand card. */
 $IS_ADMIN = !empty($_SESSION['vadmin']);
 $MEMBER = $IS_ADMIN || $AUTH_USER !== null || !empty($_SESSION['member']);
-/* Freischaltung gate: product photos + seller identities are visible only to APPROVED
-   accounts — signed in AND (active / KYB-approved / verification documents submitted).
-   A mere registration without documents never unlocks photos or seller names. */
+/* Freischaltung gate: product photos, prices and seller identities are visible only to
+   APPROVED accounts — signed in AND activated by the owner (status 'active' /
+   kyb_status 'approved').
+   Submitting a document is no longer enough on its own; the comment used to say it was,
+   and said so for a while after the rule changed. A stale comment about an access rule
+   is worse than none: the next person reads it and believes uploading opens the account. */
 $APPROVED = $IS_ADMIN || auth_user_approved($AUTH_USER);
 $MSG_UNREAD = 0;
 if ($AUTH_USER) { require_once __DIR__.'/messages.php'; $MSG_UNREAD = vestra_msg_unread_count($AUTH_USER['id']); }
@@ -190,6 +193,29 @@ foreach ($_ld as $_schema) {
     </div>
   </nav></div>
 </header>
+<?php
+/* Bekleyen hesap uyarisi. Giris yapmis ama henuz aktiflestirilmemis kullanici
+   fiyatlari ve fotograflari goremiyor -- ve NEDENINI bilmiyor. Belge yukleme
+   sayfasi acik (buyer.php / seller.php onay sarti tasimiyor), ama kimse oraya
+   yonlendirmiyorsa acik olmasinin bir anlami yok: kullanici bos bir katalog
+   gorup gidiyor.
+   Yonetici bu uyariyi gormez ($IS_ADMIN zaten APPROVED). */
+if ($AUTH_USER && !$APPROVED):
+  $kycUrl = (($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc';
+?>
+<div class="vpending">
+  <strong><?= t('Your account is not activated yet.') ?></strong>
+  <?= t('Trade prices, product photographs and seller details stay hidden until we activate it. Upload your trade licence (Gewerbeschein or your country\'s equivalent) and we will review it — usually the same day.') ?>
+  <a href="<?= $kycUrl ?>"><?= t('Upload documents') ?> →</a>
+</div>
+<style>
+  .vpending{background:rgba(201,168,106,.12);border-bottom:1px solid var(--acc);
+    padding:13px 24px;font-size:14px;line-height:1.55;color:var(--ink);
+    display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;justify-content:center;text-align:center}
+  .vpending strong{color:var(--acc)}
+  .vpending a{font-weight:700;color:var(--acc);white-space:nowrap;text-decoration:underline}
+</style>
+<?php endif; ?>
 <script>
 /* close the mobile menu on outside tap / Escape */
 document.addEventListener('click',function(e){
