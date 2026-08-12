@@ -25,13 +25,17 @@ on:
         required: false
         default: "false"
       wholesale_to:
-        description: "TOPTAN TEKLİF: alıcı adres. Doluysa yukarıdaki kampanya işi ÇALIŞMAZ — Petros'un sorularına cevap + tüm marka Excel'leri ek olarak gider"
+        description: "TOPTAN TEKLİF: alıcı adres. Doluysa yukarıdaki kampanya işi ÇALIŞMAZ — sorulara cevap + tüm marka Excel'leri ek olarak gider"
         required: false
         default: ""
       wholesale_send:
         description: "TOPTAN TEKLİF: true = GERÇEKTEN gönder. false = sadece hazırla, ek boyutlarını yaz, GÖNDERME"
         required: false
         default: "false"
+      ws_letter:
+        description: "TOPTAN TEKLİF: hangi mektup — petros (Yunanistan) | symax (Japonya: AB dışı peşin ödeme, gümrük belgeleri)"
+        required: false
+        default: "petros"
 
 permissions:
   contents: read
@@ -155,13 +159,14 @@ jobs:
         env:
           WS_TO: ${{ github.event.inputs.wholesale_to }}
           WS_SEND: ${{ github.event.inputs.wholesale_send }}
+          WS_LETTER: ${{ github.event.inputs.ws_letter }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 15m
-          envs: WS_TO,WS_SEND
+          envs: WS_TO,WS_SEND,WS_LETTER
           script: |
             cat > /tmp/vestra_ws.php <<'PHPEOF'
             <?php
@@ -176,6 +181,12 @@ jobs:
 
             $to   = trim((string)getenv("WS_TO"));
             $send = strtolower(trim((string)getenv("WS_SEND"))) === 'true';
+            /* Hangi mektup. Bilinmeyen bir deger sessizce Petros'a dusmemeli: yanlis
+               ulkeye yanlis odeme sartlarini yollamak, hic gondermemekten kotu. */
+            $letter = strtolower(trim((string)getenv("WS_LETTER"))); if($letter==='') $letter='petros';
+            if(!in_array($letter,['petros','symax'],true)){
+              fwrite(STDERR,"HATA: bilinmeyen mektup: {$letter} (petros | symax)\n"); exit(1);
+            }
             if(!filter_var($to,FILTER_VALIDATE_EMAIL)){ fwrite(STDERR,"HATA: gecersiz adres: {$to}\n"); exit(1); }
 
             /* Ekler canli sayfadan cekiliyor, ayri bir uretici yazilmiyor: alicinin
@@ -229,6 +240,9 @@ jobs:
 
             $nBrand=count($brands); $nArt=array_sum($brands);
             $B=function(string $s):string{ return '<strong>'.$s.'</strong>'; };
+            $body=''; $subject='';
+
+            if($letter==='petros'):
             $body=
               '<p>Dear Mr Kokkinovasilis,</p>'
              .'<p>Thank you for your enquiry and for the detail you gave about the store you are '
@@ -281,7 +295,7 @@ jobs:
              .'<p>Selling through your own website in Greece is not restricted by us, and we set no '
              .'territorial or marketplace conditions. What we cannot do is grant you brand '
              .'distribution rights or exclusivity — we are not the brands\' authorised distributor. '
-             .'We supply EEA-sourced stock with proof of origin available on request, and every '
+             .'We supply EEA-sourced stock, and every '
              .'seller on the platform is KYC-verified. Where a brand operates selective distribution, '
              .'any agreement about using its name or imagery in your own marketing is between you '
              .'and that brand. I would rather say this plainly now than have it surface after your '
@@ -300,6 +314,110 @@ jobs:
              .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
 
             $subject='VESTRA — wholesale price list, minimums and terms for Greece';
+            endif;
+
+            /* Japonya. Ayri bir mektup olmasinin sebebi uslup degil, sartlar: escrow AB
+               icin, Japonya disinda -- odeme pesin, fatura ile, havale. Ayrica tedarik
+               zinciri belgesi konusu: musteriye degil, resmi talep uzerine dogrudan Japon
+               gumrugune ya da alicinin gumruk musavirine veriliyor. */
+            if($letter==='symax'):
+            $body=
+              '<p>Dear SelfOn,</p>'
+             .'<p>Thank you for your enquiry and for setting out so precisely what you need to '
+             .'review. I have answered each point below, and the full catalogue is attached — one '
+             .'workbook per brand, plus one containing all '.$nArt.' articles across '.$nBrand.' '
+             .'brands.</p>'
+
+             .'<h3>Catalogue, codes and stock</h3>'
+             .'<p>'.$B('Wholesale catalogue and price list.').' Attached as Excel, and always current '
+             .'at <a href="https://vestrasales.com/price-list">vestrasales.com/price-list</a> '
+             .'(by brand: <a href="https://vestrasales.com/price-lists">/price-lists</a>). Every row '
+             .'carries the manufacturer\'s own article number, our internal reference, sizes, minimum '
+             .'order quantity, the trade price per piece and a link to the product page.</p>'
+             .'<p>'.$B('SKU / style codes.').' Yes — the manufacturer\'s article number is on every row '
+             .'(for example DSQUARED2 S74LB0872, Lacoste PH5522, Balenciaga 641675). Where a brand '
+             .'also uses a colour or model code, it is shown beside it.</p>'
+             .'<p>'.$B('Current stock.').' Shown per article and broken down by size, so you can see '
+             .'the depth of a run before you ask. Please read stock as the binding constraint: this '
+             .'is standing stock, not open production. An article can sell out and not return, so '
+             .'quantities move and a figure confirmed today is confirmed for today.</p>'
+             .'<p>'.$B('Feed availability.').' We do not publish an automated product feed at the '
+             .'moment. The Excel is regenerated from the live catalogue every time it is downloaded, '
+             .'so scheduling that URL gives you the same effect as a daily feed. If a proper feed '
+             .'becomes important to you once we are trading, tell me and we will look at it '
+             .'seriously.</p>'
+             .'<p>'.$B('Minimum order.').' Per article, printed on every row — commonly 20 pieces on a '
+             .'T-shirt or hoodie, 80 on a polo, 104 on the Ralph Lauren tees. There is no seasonal '
+             .'commitment and no collection minimum.</p>'
+
+             .'<h3>Payment — outside the EU</h3>'
+             .'<p>Our escrow arrangement covers orders inside the EU. Japan sits outside it, so for '
+             .'your orders the terms are '.$B('payment in advance, against invoice, by bank transfer').', '
+             .'and the goods are released for dispatch once the funds have cleared.</p>'
+             .'<p>I would rather state that plainly at the start than have it appear at the first '
+             .'order. In practice it means we issue a proforma invoice with the goods, quantities and '
+             .'freight itemised; you transfer; we ship. For a first order I would suggest keeping the '
+             .'value modest so that both sides can see how the process runs before committing to a '
+             .'larger one.</p>'
+
+             .'<h3>Shipping to Japan</h3>'
+             .'<p>Export from the EU, so a customs declaration and a commercial export invoice '
+             .'accompany every shipment. Freight is quoted per order once the packing weight and '
+             .'volume are known — it depends heavily on order size, so we do not publish a flat rate. '
+             .'Transit is typically 2 to 4 weeks by sea and about a week by air; Japanese import duty '
+             .'and consumption tax are payable by you as importer.</p>'
+
+             .'<h3>Resale, marketplaces and documentation</h3>'
+             .'<p>I want to be exact here, because a vague answer would not serve you.</p>'
+             .'<p>We sell EEA-sourced stock. We are not the brands\' authorised distributor and we '
+             .'cannot grant you distribution rights, exclusivity, or permission to use a brand\'s name '
+             .'or imagery in your marketing. Where a brand operates selective distribution, any '
+             .'agreement of that kind is between you and that brand. The same applies to marketplace '
+             .'listing rules: Rakuten, Amazon and ZOZO each set their own requirements for branded '
+             .'goods, and meeting them is a matter between you and the platform.</p>'
+             .'<p>What we do guarantee is the goods themselves: every article is genuine and legally '
+             .'placed on the EEA market, and we stand behind that in writing on our commercial '
+             .'invoice.</p>'
+             .'<p>'.$B('Documentation at import.').' With every shipment you receive our commercial '
+             .'invoice, the packing list and the export paperwork the shipment requires — that is the '
+             .'file your broker declares from. Behind it we hold the purchase invoices proving the '
+             .'chain back to the source. Should Japan Customs question the origin or the authenticity '
+             .'of a consignment, we supply that chain directly and confidentially to Japan Customs, '
+             .'or to your authorised customs broker, on official request. It is deliberately not part '
+             .'of the shipping file and does not pass through the buyer: our purchase prices and our '
+             .'suppliers are commercially confidential, and a supplier who hands that file to a '
+             .'customer on request is telling you something about how they buy. Customs is entitled '
+             .'to see it. Please read this as an undertaking rather than a formality — if a '
+             .'consignment of ours is ever held, the documentation to release it exists and we will '
+             .'produce it.</p>'
+             .'<p>What we do not issue is a certificate of authenticity. I would treat any supplier '
+             .'who offers one for third-party stock with caution: that is a document only the brand '
+             .'can meaningfully issue, and a supplier-issued version of it carries no weight with '
+             .'anyone. The customs-facing chain above is the real equivalent, and it is the one that '
+             .'decides a clearance dispute.</p>'
+             .'<p>If your marketplace or your customs broker requires something specific, send me the '
+             .'requirement and I will tell you honestly whether we can meet it before you place an '
+             .'order rather than after.</p>'
+
+             .'<h3>Before an initial order</h3>'
+             .'<p>You asked to review inventory before selecting. That is the right instinct, and I '
+             .'would go one step further: we can supply single sample pieces at sample price so you '
+             .'can inspect and photograph the goods yourself before committing to quantity. For a '
+             .'business selling online, having your own photographs of the actual articles is usually '
+             .'worth more than any assurance I could put in an email.</p>'
+             .'<p>To open a trade account, register at '
+             .'<a href="https://vestrasales.com/register">vestrasales.com/register</a>. We need your '
+             .'company registration, your Japanese business registration number, and the name of the '
+             .'person authorised to order.</p>'
+             .'<p>Each workbook carries the product photograph inside the row, so you can work from it '
+             .'directly. Tell me which categories and price band you want to open with and I will put '
+             .'together a focused proposal rather than leaving you to work through '.$nArt.' rows.</p>'
+             .'<p>Kind regards,<br>VESTRA Wholesale<br>'
+             .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
+             .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
+
+            $subject='VESTRA — wholesale catalogue, terms and shipping to Japan';
+            endif;
 
             if(!$send){
               echo "\nGONDERILMEDI (wholesale_send=false).\n";
