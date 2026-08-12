@@ -25,7 +25,7 @@ on:
         required: false
         default: "false"
       wholesale_to:
-        description: "TOPTAN TEKLİF: alıcı adres. Doluysa yukarıdaki kampanya işi ÇALIŞMAZ — sorulara cevap + tüm marka Excel'leri ek olarak gider"
+        description: "TOPTAN TEKLİF: alıcı adres(ler)i — virgül/boşluk/satır ile ayrılabilir, en fazla 60. Doluysa yukarıdaki kampanya işi ÇALIŞMAZ"
         required: false
         default: ""
       wholesale_send:
@@ -33,7 +33,7 @@ on:
         required: false
         default: "false"
       ws_letter:
-        description: "TOPTAN TEKLİF: hangi mektup — petros (Yunanistan) | symax (Japonya, Excel ekli) | norway (kısa: belgeler alındı + parçalı sipariş, EKSİZ)"
+        description: "TOPTAN TEKLİF: hangi mektup — petros (Yunanistan) | symax (Japonya, Excel ekli) | norway (kısa, eksiz) | outlets (soğuk tanıtım, eksiz, KR konusuna (광고) eklenir)"
         required: false
         default: "petros"
 
@@ -179,15 +179,30 @@ jobs:
             $home=getenv("HOME");
             require $home."/public_html/inc/products.php";
 
-            $to   = trim((string)getenv("WS_TO"));
+            /* Birden fazla alici: virgul, bosluk ya da satir sonu ile ayrilir. Tek adres
+               yazmak eskisi gibi calisiyor. Ayni mektup 29 adrese gidecekse bunu 29 kez
+               elle tetiklemek hem zaman kaybi hem de birinin atlanmasi demek. */
+            $rawTo = (string)getenv("WS_TO");
+            $recips = array_values(array_unique(array_filter(array_map(
+              fn($s)=>strtolower(trim($s)),
+              preg_split('~[\s,;]+~', $rawTo) ?: []
+            ))));
             $send = strtolower(trim((string)getenv("WS_SEND"))) === 'true';
             /* Hangi mektup. Bilinmeyen bir deger sessizce Petros'a dusmemeli: yanlis
                ulkeye yanlis odeme sartlarini yollamak, hic gondermemekten kotu. */
             $letter = strtolower(trim((string)getenv("WS_LETTER"))); if($letter==='') $letter='petros';
-            if(!in_array($letter,['petros','symax','norway'],true)){
-              fwrite(STDERR,"HATA: bilinmeyen mektup: {$letter} (petros | symax | norway)\n"); exit(1);
+            if(!in_array($letter,['petros','symax','norway','outlets'],true)){
+              fwrite(STDERR,"HATA: bilinmeyen mektup: {$letter} (petros | symax | norway | outlets)\n"); exit(1);
             }
-            if(!filter_var($to,FILTER_VALIDATE_EMAIL)){ fwrite(STDERR,"HATA: gecersiz adres: {$to}\n"); exit(1); }
+            /* Gecersiz adresler once ayiklaniyor, gonderim sirasinda degil: yarim kalmis
+               bir kampanya "kime gitti kime gitmedi" sorusunu cevapsiz birakir. */
+            $bad = array_values(array_filter($recips, fn($e)=>!filter_var($e,FILTER_VALIDATE_EMAIL)));
+            $recips = array_values(array_filter($recips, fn($e)=>filter_var($e,FILTER_VALIDATE_EMAIL)));
+            foreach($bad as $b) fwrite(STDERR,"UYARI: gecersiz adres atlandi: {$b}\n");
+            if(!$recips){ fwrite(STDERR,"HATA: gecerli alici yok.\n"); exit(1); }
+            /* Kaza freni: elle tetiklenen bir isten yuzlerce adrese gitmesi istenmiyor. */
+            if(count($recips) > 60){ fwrite(STDERR,"HATA: ".count($recips)." alici cok fazla (sinir 60).\n"); exit(1); }
+            $to = $recips[0];
 
             /* Ekler canli sayfadan cekiliyor, ayri bir uretici yazilmiyor: alicinin
                indirdigi dosya ile ekteki dosya ayni kod yolundan cikmali, yoksa ikisi
@@ -228,7 +243,7 @@ jobs:
             /* Her mektup katalog tasimiyor. 'norway' kisa bir isleyis mektubu -- 18 Excel
                eklemek onu bir kampanyaya cevirirdi ve asil sorulan sey (hangi urunlerle
                baslamak istiyorsunuz) eklerin altinda kaybolurdu. */
-            $wantAtts = ($letter !== 'norway');
+            $wantAtts = !in_array($letter,['norway','outlets'],true);
 
             $atts=[]; $bytes=0; $dir=sys_get_temp_dir().'/vestra-ws';
             if($wantAtts):
@@ -499,6 +514,51 @@ jobs:
             $subject='VESTRA — documents received, and your order in part-deliveries';
             endif;
 
+            /* Japonya/Kore outlet isletmecilerine soguk tanitim. Ek YOK: soguk bir
+               e-postaya 18 dosya iliştirmek hem spam filtresine hem de silme tusuna
+               davetiyedir; katalog baglantiyla gidiyor.
+
+               Alicilarin bir kismi kiralama/yonetim birimi, yani mal satin almiyorlar.
+               Mektup bunu bildigini belli ediyor ve "sizin ya da merkezlerinizdeki
+               kiracilarin satin alma ekibi" diyerek dogru kisiye yonlendirilebilmeyi
+               kolaylastiriyor -- yanlis kutuya dusen bir teklif ancak boyle kurtulur. */
+            if($letter==='outlets'):
+            $fromName='Marco Bellini · VESTRA Wholesale';
+            $body=
+              '<p>Dear Sir or Madam,</p>'
+             .'<p>I am writing from VESTRA, a European B2B wholesale marketplace for branded '
+             .'fashion. We supply EEA-sourced stock from '.$nBrand.' houses — among them Burberry, '
+             .'Dolce &amp; Gabbana, DSQUARED2, Givenchy, Gucci, Valentino, Ralph Lauren, Lacoste '
+             .'and Fred Perry — to retailers, outlet operators and online stores.</p>'
+             .'<p>'.$B('What we hold.').' '.$nArt.' articles, with the trade price per piece in EUR '
+             .'excluding VAT and freight. Stock is shown per article and broken down by size, so '
+             .'the depth of a run is visible before you ask. Minimum order is per article — commonly '
+             .'20 pieces on a T-shirt, 80 on a polo — with no seasonal commitment and no collection '
+             .'minimum.</p>'
+             .'<p>'.$B('The price list.').' '
+             .'<a href="https://vestrasales.com/price-list">vestrasales.com/price-list</a> — by brand '
+             .'at <a href="https://vestrasales.com/price-lists">/price-lists</a>, as Excel per brand, '
+             .'and as a printable list with photographs at '
+             .'<a href="https://vestrasales.com/wholesale-list.pdf">/wholesale-list.pdf</a>. Nothing '
+             .'needs to be requested first; all of it opens directly.</p>'
+             .'<p>'.$B('Terms outside the EU.').' Payment by bank transfer in advance against invoice '
+             .'— the only method we can accept outside the EU. Freight is quoted per order once '
+             .'packing weight and volume are known; import duty and consumption tax are payable by '
+             .'you as importer. A single sample piece can be supplied at sample price before any '
+             .'commitment, so the goods can be inspected and photographed first.</p>'
+             .'<p>If European branded stock is of interest to your buying or merchandising team — or '
+             .'to tenants in your centres — tell me which categories and price band you work with and '
+             .'I will put together a focused selection rather than leaving you to work through '
+             .$nArt.' rows. If this is not the right desk for it, I would be grateful if you could '
+             .'pass it to the one that is.</p>'
+             .'<p>Kind regards,<br><br>'
+             .$B('Marco Bellini').'<br>Customer Adviser · VESTRA Wholesale<br>'
+             .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
+             .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
+
+            $subject='VESTRA — European branded stock, wholesale from '.$nBrand.' houses';
+            endif;
+
             if($body===''){ fwrite(STDERR,"HATA: govde bos.\n"); exit(1); }
 
             /* Genel bilgiler, imzanin ALTINDA ve her iki mektupta ayni. Mektubun govdesi
@@ -582,18 +642,39 @@ jobs:
             };
             $html=$style($body); $text=$toText($body);
 
+            /* Kore'de istenmeden gonderilen ticari e-postanin konu satirinda (광고)
+               ibaresi kanunen zorunlu (Bilgi ve Iletisim Aglari Kanunu m.50). Orada
+               standarttir, tuhaf durmaz; koymamak para cezasi konusudur. Sadece Kore
+               alan adlarina giden kopyalara ekleniyor. */
+            $krDomains=['lotte.net','shinsegaesimon.com','hyundai.com','ehyundai.com',
+                        'lotteshopping.com','shinsegae.com','ssg.com'];
+            $subjFor=function(string $addr) use ($subject,$krDomains):string{
+              $dom=strtolower(substr(strrchr($addr,'@') ?: '',1));
+              return in_array($dom,$krDomains,true) ? '(광고) '.$subject : $subject;
+            };
+
             if(!$send){
               echo "\nGONDERILMEDI (wholesale_send=false).\n";
-              echo "alici: {$to}\nkonu : {$subject}\n";
+              echo "alici: ".count($recips)." adres\n";
+              foreach($recips as $r) printf("  %-42s %s\n",$r,$subjFor($r));
               echo "html : ".strlen($html)." bayt\nmetin: ".strlen($text)." bayt\n\n";
               echo "----- METIN SURUMU -----\n".$text."\n";
               exit(0);
             }
-            $ok=vestra_send_mail($to,$subject,$text,'support@vestrasales.com',$fromName,
-                                 null,'',['attachments'=>$atts,'html'=>$html]);
-            echo "\n".($ok ? "GONDERILDI -> {$to}  (".count($atts)." ek)\n"
-                           : "HATA: gonderilemedi -> {$to}\n");
-            exit($ok ? 0 : 1);
+
+            $sent=0; $failed=[];
+            foreach($recips as $r){
+              $ok=vestra_send_mail($r,$subjFor($r),$text,'support@vestrasales.com',$fromName,
+                                   null,'',['attachments'=>$atts,'html'=>$html]);
+              if($ok){ $sent++; printf("  GONDERILDI  %s\n",$r); }
+              else   { $failed[]=$r; printf("  HATA        %s\n",$r); }
+              /* Saglayiciyi bir anda 29 istekle dovmemek icin kucuk bir ara. */
+              if(count($recips)>1) usleep(400000);
+            }
+            printf("\ntoplam %d adres: %d gonderildi, %d hata  (%d ek)\n",
+                   count($recips),$sent,count($failed),count($atts));
+            foreach($failed as $f) fwrite(STDERR,"gonderilemedi: {$f}\n");
+            exit($sent>0 ? 0 : 1);
             PHPEOF
             php -l /tmp/vestra_ws.php
             php /tmp/vestra_ws.php; RC=$?
