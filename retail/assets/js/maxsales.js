@@ -391,4 +391,31 @@
       if (!searchForm.contains(e.target)) hide();
     });
   }
+
+  /* --------------------------------------------------------- okuma çizgisi
+     Başlığın alt kenarındaki saç teli, sayfanın ne kadarının okunduğunu
+     gösteriyor. Değer bir CSS değişkenine yazılıyor; çizginin kendisi CSS'te
+     (bkz. .site::after), yani JS kapalıysa çizgi sıfırda kalıyor.
+
+     rAF ile kısılıyor: scroll olayı saniyede yüzlerce kez tetikleniyor ve her
+     birinde style yazmak kaydırmayı tutukluyordu. */
+  var head = document.querySelector('.site');
+  if (head) {
+    var lastPct = -1, praf = null;
+    var setProgress = function () {
+      praf = null;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      var pct = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
+      var r = Math.round(pct * 10) / 10;
+      if (r === lastPct) return;
+      lastPct = r;
+      head.style.setProperty('--vr-progress', r + '%');
+    };
+    setProgress();
+    window.addEventListener('scroll', function () {
+      if (praf) return;
+      praf = requestAnimationFrame(setProgress);
+    }, { passive: true });
+    window.addEventListener('resize', setProgress, { passive: true });
+  }
 })();

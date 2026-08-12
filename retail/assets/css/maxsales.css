@@ -89,6 +89,22 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
   backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid transparent;
   transition:border-color .3s var(--ease),background .3s var(--ease);
 }
+/* OKUMA ÇİZGİSİ — başlığın alt kenarında bir saç teli.
+   Sayfa 13 000 piksel; nerede olduğunu gösteren hiçbir işaret yoktu. Önce
+   sağ kenara yüzen bir bölüm dizini denedim ve ÖLÇÜMDE ÇÖPE GİTTİ: bu sayfada
+   birden fazla bölüm kenardan kenara taşıyor (Vault los şeridi, kategori
+   filmi), dizin de onların üstüne biniyordu — ürün kartının üstünde duran bir
+   dizin, dizinsizlikten kötü.
+
+   Bu sürüm çakışamaz: çizgi başlığın kendi alt kenarında duruyor, içeriğin
+   üstünde değil. Genişlik JS'ten geliyor (--vr-progress). JS yoksa çizgi
+   sıfırda kalıyor ve hiçbir şey bozulmuyor. */
+.site::after{
+  content:"";position:absolute;left:0;bottom:-1px;height:1px;
+  width:var(--vr-progress,0%);background:var(--ink);
+  transition:width .12s linear;pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){.site::after{transition:none}}
 .site.is-stuck{border-bottom-color:var(--bone-3);background:color-mix(in oklab,var(--bone) 96%,transparent)}
 .site__inner{
   max-width:var(--wrap);margin:0 auto;padding:0 var(--gut);
@@ -1331,9 +1347,21 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 .rail__track>.lot{flex-basis:clamp(260px,30vw,396px)}
 
 /* --------------------------------------------------------- manifesto bandı */
+/* MANİFESTO — bir levha, bir boşluk değil.
+   Ölçüldü: editoryal ikili (680) + manifesto (560) + Vault (1352) hepsi siyah
+   ve yan yana, yani y=3697'den 6288'e kadar 2592 piksel KESİNTİSİZ siyah
+   akıyordu — sayfanın beşte biri. Manifestonun tek satırı o boşlukta
+   yüzüyordu ve dolgu azaltmak bunu çözmezdi; sorun dolgu değil, sınırın
+   olmamasıydı.
+
+   Çözüm tipografik: üstte ve altta saç teli kalınlığında bir çizgi. Üç siyah
+   bölüm artık üç ayrı levha olarak okunuyor. Dolgu da bir tık daraldı, cümle
+   çizgilerin arasına oturuyor. */
 .manifesto{
   background:var(--ink);color:var(--bone);position:relative;overflow:hidden;
-  padding:clamp(72px,11vw,152px) 0;text-align:center;
+  padding:clamp(60px,8.5vw,116px) 0;text-align:center;
+  border-top:1px solid rgba(255,255,255,.14);
+  border-bottom:1px solid rgba(255,255,255,.14);
 }
 .manifesto::before{
   content:"";position:absolute;inset:0;pointer-events:none;
@@ -1481,7 +1509,22 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
    düğme salt CSS ile çalışıyor, JS gerektirmiyor. */
 .stage__film{position:absolute;inset:0}
 .stage__film img,.stage__vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.stage__vid{opacity:.86}
+/* Gerçek video da yavaşça yaklaşıyor.
+   Yedek karelerde (aşağıdaki stagefilm) bu hareket zaten vardı; video varken
+   kadraj çakılı duruyordu ve döngü ikinci turda fark ediliyordu — göz aynı
+   kesme noktasını tanıyor. Çok yavaş bir yaklaşma o dikişi gizliyor ve
+   kapağa nefes veriyor. alternate: geri sararken sıçrama olmuyor.
+   Duraklatma düğmesi bunu da durduruyor (WCAG 2.2.2) — aşağıdaki
+   :checked kuralına .stage__vid de eklendi. */
+.stage__vid{
+  opacity:.86;transform-origin:52% 42%;
+  animation:stagedrift 44s var(--ease) infinite alternate;
+}
+@keyframes stagedrift{
+  from{transform:scale(1.02) translate3d(0,0,0)}
+  to  {transform:scale(1.10) translate3d(-.9%,-.6%,0)}
+}
+@media (prefers-reduced-motion:reduce){.stage__vid{animation:none;transform:none}}
 .stage__film img{opacity:0;transform:scale(1.035);animation:stagefilm 33s var(--ease) infinite}
 .stage__film img:nth-child(2){animation-delay:11s}
 .stage__film img:nth-child(3){animation-delay:22s}
@@ -1495,7 +1538,8 @@ s{text-decoration-thickness:1px;text-decoration-color:color-mix(in oklab,var(--m
 }
 
 /* Duraklatma: kutu işaretliyken hem film hem sayaç durur. */
-.stage__pausebox:checked ~ .stage__art .stage__film img{animation-play-state:paused}
+.stage__pausebox:checked ~ .stage__art .stage__film img,
+.stage__pausebox:checked ~ .stage__art .stage__vid{animation-play-state:paused}
 .stage__pause{
   grid-area:1/1;justify-self:end;align-self:end;position:relative;z-index:5;
   margin:0 clamp(20px,2.6vw,40px) clamp(18px,2.4vw,34px) 0;
