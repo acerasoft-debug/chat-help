@@ -104,7 +104,10 @@ jobs:
 
       - name: Sunucunun kendi ürettiği HTML (WAF'ı atlayarak)
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEO_PATH: ${{ github.event.inputs.path }}
         with:
+          envs: SEO_PATH
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -116,6 +119,23 @@ jobs:
             # "etiketler uretiliyor mu" sorusu ile "disaridan gorunuyor mu" sorusu
             # birbirinden ayriliyor -- ikisi farkli sorun ve farkli cozum.
             cd ~/public_html
+            # Once ISTENEN YOLU Apache uzerinden cek. Bu adim uzun sure `path` girdisini
+            # yok sayip her zaman index.php'yi render etti: /wholesale/lacoste sorulup
+            # ana sayfa dogrulandi ve rapor "kontrol edildi" dedi. Localhost'a curl,
+            # .htaccess'i ve yeniden yazma kurallarini da gercekten calistirir --
+            # `php -r include` bunlarin hicbirini test etmez.
+            P="${SEO_PATH:-/}"
+            echo "=================== $P (Apache, localhost) ==================="
+            H=$(curl -s --max-time 25 -H "Host: vestrasales.com" "http://127.0.0.1${P}" \
+                  -w '\n__CODE__%{http_code}')
+            echo "  HTTP $(printf '%s' "$H" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$H" | wc -c) bayt"
+            for TAG in '<title>[^<]*' 'rel="canonical" href="[^"]*"' '<h1[^>]*>[^<]*'; do
+              printf '%s' "$H" | grep -oiE "$TAG" | head -1 | sed 's/^/  /'
+            done
+            printf '%s' "$H" | grep -c 'application/ld+json' | sed 's/^/  JSON-LD blok: /'
+            printf '%s' "$H" | grep -oE 'hreflang="[a-z-]+"' | sort -u | tr '\n' ' ' | sed 's/^/  hreflang: /'
+            echo; echo
+
             # DIKKAT: `QUERY_STRING=... php index.php` ile $_GET DOLMAZ -- PHP CLI
             # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
             # Ingilizce ciktiyi verdi ve sanki ceviri bozukmus gibi gorundu. $_GET'i
