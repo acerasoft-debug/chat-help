@@ -233,6 +233,11 @@ jobs:
               'calvinklein','tommy.com','pvh.com','kering','lvmh','ferragamo','bottegaveneta',
               'saintlaurent','celine','loewe','maxmara','diesel','stellamccartney','offwhite',
               'debeers','cartier','tiffany','swarovski','rolex','swatchgroup',
+              /* TEK MARKA satan magazalar. Kendi markasini satan bir magaza bizden
+                 baska marka almaz -- ve teklifimiz onun icin rakip malin teklifidir.
+                 Adresten otomatik anlasilmiyor; her liste elle bakilip buraya isleniyor,
+                 boylece ayni isim bir daha karsimiza cikarsa kendiliginden dusuyor. */
+              'migato','marasil','glou.gr','tsakirismallas','nak.gr','elisabettafranchi',
               /* zincirler */
               'inditex','zara.','hm.com','handm','mango.com','bershka','pullandbear',
               'massimodutti','uniqlo','fastretailing','primark','nike.com','adidas.',
