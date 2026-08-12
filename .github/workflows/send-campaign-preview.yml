@@ -32,6 +32,10 @@ on:
         description: "TOPTAN TEKLİF: true = GERÇEKTEN gönder. false = sadece hazırla, ek boyutlarını yaz, GÖNDERME"
         required: false
         default: "false"
+      ws_export_note:
+        description: "TOPTAN TEKLİF: true = mektuba 'tedarik ihracat kontrolü ve yaptırım taramasına tabidir' cümlesi eklenir (kısıtlı pazarlar)"
+        required: false
+        default: "false"
       ws_letter:
         description: "TOPTAN TEKLİF: hangi mektup — petros (Yunanistan) | symax (Japonya, Excel ekli) | norway (kısa, eksiz) | outlets (soğuk tanıtım, eksiz, KR konusuna (광고) eklenir)"
         required: false
@@ -160,13 +164,14 @@ jobs:
           WS_TO: ${{ github.event.inputs.wholesale_to }}
           WS_SEND: ${{ github.event.inputs.wholesale_send }}
           WS_LETTER: ${{ github.event.inputs.ws_letter }}
+          WS_EXPORT_NOTE: ${{ github.event.inputs.ws_export_note }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 15m
-          envs: WS_TO,WS_SEND,WS_LETTER
+          envs: WS_TO,WS_SEND,WS_LETTER,WS_EXPORT_NOTE
           script: |
             cat > /tmp/vestra_ws.php <<'PHPEOF'
             <?php
@@ -188,6 +193,11 @@ jobs:
               preg_split('~[\s,;]+~', $rawTo) ?: []
             ))));
             $send = strtolower(trim((string)getenv("WS_SEND"))) === 'true';
+            /* Kisitli pazarlar. E-posta gondermek ihracat degildir -- yasak malin fiili
+               sevkinde isler. Ama teklifi kayitsiz sartsiz birakmak, siparis geldiginde
+               "siz teklif ettiniz" cumlesine zemin hazirlar. Bu cumle, kalem kalem bakma
+               hakkini bastan sakli tutuyor; gercek ihracatcilarin standart ifadesidir. */
+            $exportNote = strtolower(trim((string)getenv("WS_EXPORT_NOTE"))) === 'true';
             /* Hangi mektup. Bilinmeyen bir deger sessizce Petros'a dusmemeli: yanlis
                ulkeye yanlis odeme sartlarini yollamak, hic gondermemekten kotu. */
             $letter = strtolower(trim((string)getenv("WS_LETTER"))); if($letter==='') $letter='petros';
@@ -357,6 +367,13 @@ jobs:
                 kendisiyle ilgilenen kisiye cevap yazar; isim ayrica sonraki yazismada
                 kime hitap edecegini belirler. Gonderen adresi dogrulanmis support@
                 olarak kaliyor -- teslimat itibari orada. */
+             .($exportNote
+               ? '<p>'.$B('One formality.').' Supply is subject to export-control and sanctions '
+                .'screening: every order is checked line by line against the rules that apply to '
+                .'its destination before it is confirmed. Where an article cannot lawfully be '
+                .'supplied to your market, I will say so at the quotation stage rather than after '
+                .'you have committed.</p>'
+               : '')
              .'<p>Kind regards,<br><br>'
              .$B('Marco Bellini').'<br>Customer Adviser · VESTRA Wholesale<br>'
              .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
