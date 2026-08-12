@@ -5,23 +5,21 @@
  * NOTHING IS STORED. The figures are derived from the product id, so listings.json is
  * never written to and switching this off is deleting a call, not migrating data back.
  *
- * DETERMINISTIC BY DESIGN. The quantities are seeded from the product id, so the same
- * article always shows the same numbers: on the page, in the Excel, in the PDF, and on
- * the next reload. Fresh mt_rand() on every request would have the buyer refresh the
- * page and see a different stock figure, and the spreadsheet they downloaded disagree
- * with the page they downloaded it from -- which reads as a broken system rather than a
- * moving one.
+ * DETERMINISTIC BY DESIGN. Seeded from the product id, so the same article always shows
+ * the same numbers: on the page, in the Excel, in the PDF, and on the next reload. Fresh
+ * randomness per request would have a buyer refresh the page and see a different stock
+ * figure, and the spreadsheet they downloaded disagree with the page they downloaded it
+ * from — which reads as a broken system rather than a moving one.
  *
- * SHAPE. Middle sizes carry the depth, the ends run thin: that is how a real size run is
- * bought and how it sells out. M and L heaviest, S and XXL lightest.
+ * TOTAL FIRST, THEN THE SPLIT. The article's total comes from its category band; the
+ * sizes divide that total by weight. The earlier version worked the other way round —
+ * a band per size, total falling out of the sum — and could not express "shorts run
+ * 500-600 a piece" without rewriting every band.
  */
 
-/* Rolled out brand by brand. Empty array = every brand.
-   Starting narrow because these numbers go in front of customers: four brands cover all
-   three shapes (deep stock, S-XXL, numeric jeans) and can be read on the live page before
-   the other thirteen inherit them. */
+/* Every brand. Narrow this array to roll the figures out gradually instead. */
 function vestra_stock_brands(): array {
-    return ['lacoste', 'ralph lauren', 'dsquared2', 'balenciaga'];
+    return [];
 }
 function vestra_stock_enabled(array $p): bool {
     $only = vestra_stock_brands();
@@ -29,7 +27,12 @@ function vestra_stock_enabled(array $p): bool {
     return in_array(strtolower(trim((string)($p['brand'] ?? ''))), $only, true);
 }
 
-/* Size ladder per category. Jeans are numeric and run 44-54; everything else is S-XXL. */
+/* Deep-stock lines: carried in volume, quoted in volume. */
+function vestra_stock_deep_brands(): array {
+    return ['lacoste', 'ralph lauren', 'fred perry'];
+}
+
+/* Size ladder per category. Denim is numeric and runs 44-54; everything else is S-XXL. */
 function vestra_stock_sizes(string $cat): array {
     $c = strtolower($cat);
     if (str_contains($c, 'jean') || str_contains($c, 'trouser') || str_contains($c, 'pant')) {
@@ -38,21 +41,34 @@ function vestra_stock_sizes(string $cat): array {
     return ['S', 'M', 'L', 'XL', 'XXL'];
 }
 
-/* Per-size band, as [min, max] within the operator's 50-100 range.
-   Bands rather than weights: the first version multiplied one random number by a weight
-   and then clamped anything under 50 back up to 50 -- and since every weight is at or
-   below 1.0, most sizes landed on the clamp. A whole run came out "50 50 51 50 50",
-   flat, which is the one shape that was explicitly not wanted. Bands cannot collapse:
-   M and L sit above XL, which sits above S and XXL, by construction. */
-function vestra_stock_bands(array $sizes): array {
-    $b = [
-        'S'  => [50, 64],  'M'  => [86, 100], 'L' => [82, 98], 'XL' => [66, 80], 'XXL' => [50, 62],
-        '44' => [50, 60],  '46' => [66, 78],  '48' => [86, 100],
-        '50' => [84, 100], '52' => [66, 78],  '54' => [50, 60],
+/* Relative depth per size — the shape of a bought run: middles deep, ends thin. */
+function vestra_stock_weights(array $sizes): array {
+    $w = [
+        'S'  => 0.62, 'M'  => 1.00, 'L'  => 1.00, 'XL' => 0.78, 'XXL' => 0.60,
+        '44' => 0.60, '46' => 0.80, '48' => 1.00, '50' => 1.00, '52' => 0.80, '54' => 0.60,
     ];
     $out = [];
-    foreach ($sizes as $s) $out[$s] = $b[$s] ?? [60, 80];
+    foreach ($sizes as $s) $out[$s] = $w[$s] ?? 0.80;
     return $out;
+}
+
+/**
+ * Total pieces per article, as [min, max].
+ *
+ * Order matters. "Jeans Shorts" matches both denim and shorts, and the two bands are far
+ * apart (100-200 against 500-600), so the tie is broken deliberately rather than by
+ * whichever str_contains ran first: it is checked against denim, because it is bought and
+ * sized like denim (the 44-54 ladder) even though the garment is a short. One line moves
+ * it if that reads wrong on the shelf.
+ */
+function vestra_stock_band(string $cat, string $brand): array {
+    if (in_array(strtolower(trim($brand)), vestra_stock_deep_brands(), true)) return [600, 820];
+
+    $c = strtolower($cat);
+    if (str_contains($c, 'swim') || str_contains($c, 'beach'))  return [50, 100];   // before shorts: "Swim Shorts"
+    if (str_contains($c, 'jean') || str_contains($c, 'denim'))  return [100, 200];  // before shorts: "Jeans Shorts"
+    if (str_contains($c, 'short'))                              return [500, 600];
+    return [100, 150];                                                              // tees, polos, sweats, the rest
 }
 
 /**
@@ -60,43 +76,34 @@ function vestra_stock_bands(array $sizes): array {
  */
 function vestra_stock_for(array $p): array {
     $id    = (string)($p['id'] ?? '');
-    $brand = strtolower(trim((string)($p['brand'] ?? '')));
-    $sizes = vestra_stock_sizes((string)($p['cat'] ?? ''));
-    $bands = vestra_stock_bands($sizes);
+    $brand = (string)($p['brand'] ?? '');
+    $cat   = (string)($p['cat'] ?? '');
+    $sizes = vestra_stock_sizes($cat);
+    $w     = vestra_stock_weights($sizes);
 
-    /* Seeded from the id: same article, same numbers, every time and everywhere. */
-    mt_srand(crc32('vestra-stock-v1|'.$id));
+    mt_srand(crc32('vestra-stock-v2|'.$id));
+    [$lo, $hi] = vestra_stock_band($cat, $brand);
+    $total = mt_rand($lo, $hi);
+    mt_srand();                                  // leave global randomness as we found it
 
-    /* Lacoste and Ralph Lauren are the deep-stock lines: 600 pieces minimum per article.
-       Five sizes capped at 100 each can only reach 500, so these two brands necessarily
-       run above the 50-100 per-size band -- the two instructions cannot both hold, and
-       the total is the one that matters commercially. Everyone else stays inside 50-100. */
-    $deep = ($brand === 'lacoste' || $brand === 'ralph lauren');
-    $mult = $deep ? 1.62 : 1.0;
+    /* Split by weight. Rounding each share independently loses or gains a few pieces
+       against the drawn total, so the drift is settled on the deepest size — the printed
+       per-size figures then add up to exactly the printed total. A stock list whose
+       column does not sum to its own total is the first thing a buyer notices. */
+    $sum   = array_sum($w);
+    $out   = [];
+    foreach ($sizes as $s) $out[$s] = max(1, (int)round($total * $w[$s] / $sum));
 
-    $out = [];
-    foreach ($sizes as $s) {
-        [$lo, $hi] = $bands[$s];
-        $out[$s] = (int)round(mt_rand($lo, $hi) * $mult);
+    $drift = $total - array_sum($out);
+    if ($drift !== 0) {
+        $deepest = array_keys($w, max($w))[0];
+        $out[$deepest] = max(1, $out[$deepest] + $drift);
     }
-
-    /* Top-up, if rounding leaves the total just under its floor. Depth is added to the
-       middle sizes, never to S or XXL -- adding it at the ends would undo the shape. */
-    $min = $deep ? 600 : 100;
-    $mid = array_slice($sizes, 1, max(1, count($sizes) - 2));
-    $guard = 0;
-    while (array_sum($out) < $min && $guard++ < 300) {
-        foreach ($mid as $s) {
-            $out[$s] += 4;
-            if (array_sum($out) >= $min) break;
-        }
-    }
-    mt_srand();                                       // leave global randomness as we found it
 
     return ['sizes' => $out, 'total' => array_sum($out)];
 }
 
-/* One-line rendering for the list: "S 61 · M 98 · L 94 · XL 76 · XXL 58  (387 pcs)" */
+/* One-line rendering: "S 18 · M 29 · L 29 · XL 23 · XXL 17  (116 pcs)" */
 function vestra_stock_line(array $st): string {
     $bits = [];
     foreach ($st['sizes'] as $s => $q) $bits[] = $s.' '.$q;
