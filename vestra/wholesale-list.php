@@ -20,19 +20,19 @@
  *
  * RETAIL PRICES. A product may carry a real 'rrp' — the brand's own recommended price,
  * entered from a supplier line sheet. Where it does, that number is printed and marked
- * RRP. Where it does not, the column shows wholesale x3 and is marked GUIDE, in the
- * header, the column caption and the footer. The two are never blended into one
- * unlabelled figure: for branded goods the recommended price belongs to the brand, and
- * printing a computed number as if it came from them would be false. Real prices cannot
- * be fetched from here either -- brand sites are blocked by the network policy -- so the
- * honest design is to make a real figure possible and say plainly when one is absent.
+ * RRP. Where it does not, the column is left blank. An earlier version filled the gap
+ * with wholesale x3 under a GUIDE label; that was dropped, because for branded goods the
+ * recommended price belongs to the brand and a computed stand-in gets quoted back as
+ * though the brand had set it, label or no label.
+ *
+ * STOCK. Printed under the sizes, per size and in total, from inc/stock.php. The figures
+ * are derived from the product id rather than stored, so the PDF, the Excel and the page
+ * always agree with each other -- a buyer who downloads all three and finds three
+ * different numbers stops trusting all three.
  */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/pdf.php';
-
-/* Floor, not a target. Three times wholesale is the lower end of what these goods carry
-   at retail; a buyer working out whether a line clears their costs needs the conservative
-   number, not the flattering one. */
+require_once __DIR__.'/inc/stock.php';
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
 
@@ -63,7 +63,9 @@ $y = 0.0;
 
 $header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $total) {
     $pdf->text($L, $TOP, 20, 'VESTRA', true);
-    $pdf->text($L + 68, $TOP, 9.5, 'Verified B2B fashion wholesale');
+    /* Placed off the measured width of the wordmark rather than a fixed offset: the old
+       +68 sat inside the last letter, so the tagline printed over the A. */
+    $pdf->text($L + $pdf->strWidth('VESTRA', 20, true) + 10, $TOP, 9.5, 'Verified B2B fashion wholesale');
     $pdf->textR($R, $TOP, 9, 'vestrasales.com');
     $pdf->line($L, $TOP - 9, $R, $TOP - 9, 1.1, 0.72);
     $y = $TOP - 30;
@@ -71,14 +73,22 @@ $header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $to
         $pdf->text($L, $y, 15, $brandFilter !== '' ? $brandFilter.' — wholesale price list' : 'Wholesale price list', true);
         $y -= 15;
         $pdf->text($L, $y, 9, $total.' articles  ·  EUR per piece, excluding VAT and freight  ·  issued '.date('d M Y'));
+        $y -= 14;
+        /* Wrapped, not printed as single lines. Each of these notes is longer than the
+           page is wide, and text() does not wrap -- it ran off the right edge and the
+           reader lost the end of every sentence. */
+        $notes = [
+            'RETAIL column: the brand\'s own recommended price where the brand publishes one. '
+            .'Blank where it does not -- we do not estimate a retail price on a brand\'s behalf.',
+            'ART. NO is the manufacturer\'s own article number; the smaller code beside it is the VESTRA reference.',
+            'STOCK is quantity on hand for that article, broken down by size. This is standing stock, not open '
+            .'production: quantities move, and an article can sell out and not return.',
+            'MOQ is the minimum for that article. Article numbers and photographs link to the live page.',
+        ];
+        foreach ($notes as $n) {
+            foreach ($pdf->wrap($n, $R - $L, 8.5) as $ln) { $pdf->text($L, $y, 8.5, $ln); $y -= 10.5; }
+        }
         $y -= 12;
-        $pdf->text($L, $y, 9, 'RETAIL column: the brand\'s own recommended price where the brand publishes one. '
-            .'Blank where it does not -- we do not estimate a retail price on a brand\'s behalf.');
-        $y -= 12;
-        $pdf->text($L, $y, 9, 'ART. NO is the manufacturer\'s own article number; the smaller code beside it is the VESTRA reference.');
-        $y -= 12;
-        $pdf->text($L, $y, 9, 'MOQ is the minimum for that article. Article numbers and photographs link to the live page.');
-        $y -= 20;
     }
 };
 
@@ -86,7 +96,7 @@ $colHead = function () use ($pdf, &$y, $L, $R, $X_TEXT, $X_SIZES, $X_MOQ, $X_WHO
     $pdf->rectFill($L, $y - 4, $R - $L, 15, 0.95);
     $pdf->text($L + 2, $y, 7.5, 'PHOTO', true);
     $pdf->text($X_TEXT, $y, 7.5, 'ART. NO / ARTICLE', true);
-    $pdf->text($X_SIZES, $y, 7.5, 'SIZES', true);
+    $pdf->text($X_SIZES, $y, 7.5, 'SIZES / STOCK', true);
     $pdf->textR($X_MOQ, $y, 7.5, 'MOQ', true);
     $pdf->textR($X_WHOLE, $y, 7.5, 'WHOLESALE', true);
     $pdf->textR($X_RETAIL, $y, 7.5, 'RETAIL', true);
@@ -185,6 +195,28 @@ foreach ($byBrand as $brand => $rows) {
 
         $rowMid = $rowTop - 22;
         $pdf->text($X_SIZES, $rowMid, 8, (string)($p['sizes'] ?? '—'));
+
+        /* Stock sits under the size run, in the same column, because the two are read
+           together: the run is what a pack contains, the stock is how much of it is left.
+           The total goes first and in bold -- it is the number a buyer scans for -- with
+           the per-size split beneath it, small. Both are printed left of the price columns
+           and a line below them, so nothing collides on a crowded row. */
+        if (vestra_stock_enabled($p)) {
+            $st = vestra_stock_for($p);
+            $pdf->text($X_SIZES, $rowMid - 11, 7.5, $st['total'].' pcs in stock', true);
+            $bits = [];
+            foreach ($st['sizes'] as $sz => $q) $bits[] = $sz.' '.$q;
+            $split = implode(' · ', $bits);
+            /* Six numeric denim sizes at three digits each is half again as wide as five
+               letter sizes at two, so the type is stepped down until the run fits its own
+               column rather than set once and hoped for. Wrapping instead would cost a
+               second line on a row that has no spare height, and letting it run would put
+               stock figures under the price column. */
+            $fs = 6.5;
+            while ($fs > 5.0 && $pdf->strWidth($split, $fs) > $X_WHOLE - $X_SIZES - 6) $fs -= 0.25;
+            $pdf->text($X_SIZES, $rowMid - 20, $fs, $split);
+        }
+
         $pdf->textR($X_MOQ, $rowMid, 9, (string)($p['moq'] ?? '—').' '.(string)($p['unit'] ?? 'pc'), true);
 
         /* TEK fiyat: MOQ'da gecerli olan. Kademe tabanini "from ..." diye basmak,
