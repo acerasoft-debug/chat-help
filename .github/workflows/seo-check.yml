@@ -148,6 +148,19 @@ jobs:
                 grep -n "RewriteRule.*${F}" "$HOME/public_html/.htaccess" 2>/dev/null \
                   | sed 's/^/  kural: /' || echo "  kural: .htaccess'te ${F} icin kural YOK"
                 ls -l "$HOME/public_html/.htaccess" 2>&1 | sed 's/^/  htaccess: /'
+                # Ayni yoldaki bir KLASOR kurali olduruyor mu? Bu barindirmada /shop
+                # tam olarak boyle kirilmisti: public_html/shop/ ikinci bir sitenin
+                # koku ve kendi RewriteEngine'ini tasiyor; Apache alt dizin kendi
+                # rewrite yapilandirmasini tanimlayinca ustunu DEVRALMIYOR, dolayisiyla
+                # ust .htaccess'teki kural o istek icin hic degerlendirilmiyor.
+                ls -ld "$HOME/public_html/${F}" 2>&1 | sed 's/^/  ayni adli klasor: /'
+                ls -l  "$HOME/public_html/${F}/.htaccess" 2>&1 | sed 's/^/  o klasorun htaccess: /'
+                # PHP dosyasina DOGRUDAN istek: calisiyorsa sorun yalnizca yonlendirmede.
+                D=$(curl -s --max-time 20 -H "Host: vestrasales.com" \
+                      "http://127.0.0.1/${F}.php?brand=$(printf '%s' "$P" | cut -d/ -f3)" \
+                      -w '\n__CODE__%{http_code}')
+                echo "  dogrudan ${F}.php: HTTP $(printf '%s' "$D" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$D" | wc -c) bayt"
+                printf '%s' "$D" | grep -oiE '<title>[^<]*' | head -1 | sed 's/^/    /'
                 ;;
             esac
             echo
