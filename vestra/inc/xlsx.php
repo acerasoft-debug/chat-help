@@ -274,6 +274,18 @@ function vestra_export_code(array $p, array $v = []): string {
    __DIR__ was that root. From inc/ the same expression would resolve to inc/uploads/... ,
    which exists nowhere -- every photo would vanish from every export without one error. */
 function vestra_export_local(string $img): string {
-    if ($img !== '' && $img[0] === '/') { $c = dirname(__DIR__).$img; if (is_file($c)) return $c; }
-    return '';
+    $img = trim($img);
+    if ($img === '') return '';
+    /* A photograph stored as "https://vestrasales.com/uploads/x.jpg" is the same file on
+       this disk as "/uploads/x.jpg", but only the second form used to resolve — the first
+       returned '' and the row went out photograph-less, silently. Sellers enter both
+       forms, so the host is stripped rather than the entry being called wrong. */
+    if (preg_match('~^https?://~i', $img)) {
+        $path = (string)parse_url($img, PHP_URL_PATH);
+        if ($path === '') return '';
+        $img = '/'.ltrim(rawurldecode($path), '/');
+    }
+    if ($img[0] !== '/') return '';
+    $c = dirname(__DIR__).$img;
+    return is_file($c) ? $c : '';
 }

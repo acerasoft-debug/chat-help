@@ -16,9 +16,9 @@
  *
  * PRICES AND CODES follow wholesale-list.php exactly:
  *   - ART. NO is the manufacturer's own article number; VESTRA REF is our internal id.
- *   - RETAIL is the brand's 'rrp' where one is stored, and wholesale x3 where it is not.
- *     The RETAIL SOURCE column says which of the two every single row is, so a computed
- *     number can never be mistaken for a brand-set one after a sort or a copy-paste.
+ *   - RETAIL is the brand's own 'rrp' where one is stored, and empty where none is. The
+ *     RETAIL SOURCE column marks the ones that are real, so after a sort or a paste into
+ *     another sheet a figure cannot lose the fact that the brand set it.
  */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
@@ -101,11 +101,17 @@ $note = function (string $text) use ($headers): array {
 };
 
 $rows[] = ['cells' => array_fill(0, count($headers), ''), 'image' => ''];
-$rows[] = $note('Escrow-protected payment up to EUR 3,000 per order: the platform holds the money and '
-    .'releases it to the seller only after you confirm the goods arrived as described. Above that, or on request, '
-    .'we invoice and release the goods once payment is received.');
-$rows[] = $note('Delivery within the EU (Greece included) typically 7-14 working days from release. '
-    .'Freight quoted per order. MOQ is per article; no seasonal or collection minimum.');
+/* Odeme sarti ULKEYE gore degisiyor ve bu dosya her ulkeye gidiyor: escrow AB ici,
+   AB disi pesin havale. Onceki not tek bir sart yaziyor ve "Yunanistan dahil" diyordu --
+   Petros'a yazilmisti, oysa ayni dosya Japonya'ya da gitti. Sart kisa ve ikisi birden. */
+$rows[] = $note('Payment — inside the EU: escrow-protected up to EUR 3,000 per order (the platform holds the '
+    .'money and releases it to the seller only after you confirm the goods arrived as described); above that, or '
+    .'on request, against invoice.');
+$rows[] = $note('Payment — outside the EU: bank transfer in advance, against invoice. Goods are released for '
+    .'dispatch once the funds have cleared.');
+$rows[] = $note('Delivery within the EU typically 7-14 working days from release; outside the EU about a week by '
+    .'air and 2-4 weeks by sea. Freight quoted per order. MOQ is per article; no seasonal or collection minimum. '
+    .'Import duty and taxes are payable by the buyer as importer.');
 $rows[] = $note('RETAIL EUR is the brand\'s own recommended price, read from the brand\'s own site. '
     .'Where a brand publishes none for an article the cell is empty: we do not estimate a retail price on a brand\'s behalf.');
 /* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from

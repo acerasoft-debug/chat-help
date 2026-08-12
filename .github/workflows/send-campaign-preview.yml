@@ -210,6 +210,21 @@ jobs:
             ksort($brands, SORT_NATURAL|SORT_FLAG_CASE);
             echo "marka: ".count($brands)."   urun: ".array_sum($brands)."\n\n";
 
+            /* Her satirda fotograf var mi -- tahmin degil, sayim. Fotograflar xlsx'in
+               icinde xl/media/ altinda birer dosya olarak duruyor ve satir basina bir
+               tane yaziliyor, yani medya sayisi = fotografli satir sayisi. Eksik foto
+               sessizce gecen bir kusur: dosya acilir, satirlar durur, sadece gorsel
+               yoktur -- ve bunu ilk fark eden musteri olur. */
+            $photos=function(string $file):int{
+              if(!class_exists('ZipArchive')) return -1;
+              $z=new ZipArchive; if($z->open($file)!==true) return -1;
+              $n=0;
+              for($i=0;$i<$z->numFiles;$i++)
+                if(str_starts_with((string)$z->getNameIndex($i),'xl/media/')) $n++;
+              $z->close(); return $n;
+            };
+            $short=0;
+
             $atts=[]; $bytes=0; $dir=sys_get_temp_dir().'/vestra-ws';
             @mkdir($dir,0700,true);
             $all=$grab($base.'/wholesale-list.xlsx');
@@ -217,10 +232,13 @@ jobs:
               $f=$dir.'/VESTRA-wholesale-all-brands.xlsx'; file_put_contents($f,$all);
               $atts[]=['name'=>'VESTRA-wholesale-all-brands.xlsx','path'=>$f];
               $bytes+=strlen($all);
-              printf("  %-34s %8.1f KB\n",'TUM MARKALAR',strlen($all)/1024);
+              $ph=$photos($f); $exp=array_sum($brands); $miss=max(0,$exp-$ph);
+              $short+=$miss;
+              printf("  %-24s %8.1f KB   foto %3d/%-3d %s\n",'TUM MARKALAR',strlen($all)/1024,
+                     $ph,$exp,$miss?'<-- '.$miss.' EKSIK':'');
             } else { fwrite(STDERR,"UYARI: tum-markalar dosyasi cekilemedi\n"); }
 
-            foreach(array_keys($brands) as $b){
+            foreach($brands as $b=>$cnt){
               $x=$grab($base.'/wholesale-list.xlsx?brand='.rawurlencode($b));
               if($x===''){ fwrite(STDERR,"UYARI: '{$b}' cekilemedi, atlandi\n"); continue; }
               $slug=strtolower(preg_replace('/[^A-Za-z0-9]+/','-',$b));
@@ -228,8 +246,12 @@ jobs:
               $f=$dir.'/'.$name; file_put_contents($f,$x);
               $atts[]=['name'=>$name,'path'=>$f];
               $bytes+=strlen($x);
-              printf("  %-34s %8.1f KB\n",$b,strlen($x)/1024);
+              $ph=$photos($f); $miss=max(0,$cnt-$ph); $short+=$miss;
+              printf("  %-24s %8.1f KB   foto %3d/%-3d %s\n",$b,strlen($x)/1024,
+                     $ph,$cnt,$miss?'<-- '.$miss.' EKSIK':'');
             }
+            echo $short===0 ? "\nfotograf: her satirda var.\n"
+                            : "\nUYARI: toplam {$short} satirda fotograf yok.\n";
             printf("\nek: %d dosya, ham %.1f MB, base64 ~%.1f MB\n",
                    count($atts), $bytes/1048576, $bytes*4/3/1048576);
             /* Saglayici sinirini asarsak istek tumden reddedilir ve hicbir sey gitmez.
@@ -353,7 +375,8 @@ jobs:
              .'<h3>Payment — outside the EU</h3>'
              .'<p>Our escrow arrangement covers orders inside the EU. Japan sits outside it, so for '
              .'your orders the terms are '.$B('payment in advance, against invoice, by bank transfer').', '
-             .'and the goods are released for dispatch once the funds have cleared.</p>'
+             .'and the goods are released for dispatch once the funds have cleared. Bank transfer is the '
+             .'only method we can accept outside the EU — no card, no PayPal, no escrow.</p>'
              .'<p>I would rather state that plainly at the start than have it appear at the first '
              .'order. In practice it means we issue a proforma invoice with the goods, quantities and '
              .'freight itemised; you transfer; we ship. For a first order I would suggest keeping the '
@@ -420,6 +443,48 @@ jobs:
             endif;
 
             if($body===''){ fwrite(STDERR,"HATA: govde bos.\n"); exit(1); }
+
+            /* Genel bilgiler, imzanin ALTINDA ve her iki mektupta ayni. Mektubun govdesi
+               alicinin sordugu seye cevap verir; burasi sormadigi ama ilk siparisten once
+               bilmesi gereken sartlar. Tek yerde durmasi onemli: iki mektuba ayri ayri
+               yazilsa biri guncellenip digeri eskide kalirdi.
+
+               Odeme AB ici / AB disi diye ikiye ayriliyor. Escrow AB icin; disarida tek
+               yol pesin banka havalesi -- kart/PayPal yok, escrow yok. */
+            $g=function(string $label,string $text) use ($B):string{
+              return '<p>'.$B($label).' '.$text.'</p>';
+            };
+            $body.=
+              '<h3>General information</h3>'
+             .$g('Prices.','Per piece in EUR, excluding VAT and freight. Every row carries the '
+                .'manufacturer\'s article number, our reference, sizes, stock, minimum order quantity, '
+                .'the trade price and a link to the product page.')
+             .$g('Minimum order.','Per article, printed on every row. No seasonal commitment and no '
+                .'collection minimum — a single article can be bought, reordered, or dropped.')
+             .$g('Stock.','Shown per article and broken down by size. Standing stock, not open '
+                .'production: quantities move and an article can sell out and not return.')
+             .$g('Payment inside the EU.','Escrow-protected up to EUR 3,000 per order — the platform holds '
+                .'the money and releases it to the seller only after you confirm the goods arrived as '
+                .'described. Above that, or on request, against invoice.')
+             .$g('Payment outside the EU.','Bank transfer in advance, against invoice — this is the only '
+                .'method we can accept outside the EU. No card, no PayPal and no escrow, and the goods are '
+                .'released for dispatch once the funds have cleared.')
+             .$g('Delivery.','Within the EU typically 7 to 14 working days from release of the order. '
+                .'Outside the EU about a week by air and 2 to 4 weeks by sea. Freight is quoted per order '
+                .'once packing weight and volume are known; import duty and taxes are payable by you as '
+                .'importer.')
+             .$g('Samples.','Single pieces at sample price, so you can inspect and photograph the goods '
+                .'before committing to quantity.')
+             .$g('The goods.','Genuine, EEA-sourced, every seller KYC-verified. We are not the brands\' '
+                .'authorised distributor and cannot grant distribution rights, exclusivity or permission to '
+                .'use a brand\'s name or imagery in your marketing.')
+             .$g('Opening an account.','Register at '
+                .'<a href="https://vestrasales.com/register">vestrasales.com/register</a> — company '
+                .'registration, VAT or EORI number (outside the EU: your local business registration) and '
+                .'the name of the person authorised to order.')
+             .$g('The attached workbooks.','One per brand plus one containing every article, each row with '
+                .'the product photograph inside it. The always-current version is at '
+                .'<a href="https://vestrasales.com/price-list">vestrasales.com/price-list</a>.');
 
             /* Sablon duz metin bekliyor: vestra_html_email() gelen metni escape edip
                paragrafliyor. Buraya HTML verildiginde etiketler okuyucuya METIN olarak

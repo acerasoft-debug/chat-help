@@ -194,7 +194,17 @@ foreach ($byBrand as $brand => $rows) {
         if ($id !== '') $pdf->link($X_TEXT, $ty - 2, $pdf->strWidth($short, 6.8), 9, $url);
 
         $rowMid = $rowTop - 22;
-        $pdf->text($X_SIZES, $rowMid, 8, (string)($p['sizes'] ?? '—'));
+
+        /* Wrapped inside its own column. "Lots of 8 · sizes 38 to 44 · min 80 pc" is four
+           times the width of "S-XXL" and text() does not wrap, so the long entries ran
+           straight through the MOQ column and printed on top of the wholesale price --
+           the two most important numbers on the row, illegible on exactly the articles
+           whose terms need reading. */
+        $sizeW = $X_MOQ - $X_SIZES - 8;
+        $sy    = $rowMid;
+        foreach (array_slice($pdf->wrap((string)($p['sizes'] ?? '—'), $sizeW, 7.5), 0, 3) as $ln) {
+            $pdf->text($X_SIZES, $sy, 7.5, $ln); $sy -= 9;
+        }
 
         /* Stock sits under the size run, in the same column, because the two are read
            together: the run is what a pack contains, the stock is how much of it is left.
@@ -203,7 +213,8 @@ foreach ($byBrand as $brand => $rows) {
            and a line below them, so nothing collides on a crowded row. */
         if (vestra_stock_enabled($p)) {
             $st = vestra_stock_for($p);
-            $pdf->text($X_SIZES, $rowMid - 11, 7.5, $st['total'].' pcs in stock', true);
+            $sy -= 2;
+            $pdf->text($X_SIZES, $sy, 7.5, $st['total'].' pcs in stock', true);
             $bits = [];
             foreach ($st['sizes'] as $sz => $q) $bits[] = $sz.' '.$q;
             $split = implode(' · ', $bits);
@@ -214,7 +225,7 @@ foreach ($byBrand as $brand => $rows) {
                stock figures under the price column. */
             $fs = 6.5;
             while ($fs > 5.0 && $pdf->strWidth($split, $fs) > $X_WHOLE - $X_SIZES - 6) $fs -= 0.25;
-            $pdf->text($X_SIZES, $rowMid - 20, $fs, $split);
+            $pdf->text($X_SIZES, $sy - 9, $fs, $split);
         }
 
         $pdf->textR($X_MOQ, $rowMid, 9, (string)($p['moq'] ?? '—').' '.(string)($p['unit'] ?? 'pc'), true);
@@ -240,16 +251,20 @@ $pdf->line($L, $y + 10, $R, $y + 10, 1.0, 0.55);
 $pdf->text($L, $y - 4, 11, 'Ordering, payment and delivery', true);
 $y -= 22;
 
+/* Odeme sarti bolgeye gore: escrow AB ici, AB disi pesin havale. Bu dosya her ulkeye
+   gidiyor, o yuzden ikisi de yaziyor -- ve tek bir ulke ornek olarak anilmiyor. */
 $terms = [
-  ['Escrow-protected payment (up to EUR 3,000 per order)',
+  ['Payment inside the EU — escrow-protected (up to EUR 3,000 per order)',
    'The platform holds the payment. You pay into a protected account, the goods ship, and the funds are '
   .'released to the seller only after the parcel has reached you and you have confirmed it is as described. '
-  .'If it is not, the money is still recoverable.'],
-  ['Payment against invoice',
-   'For orders above that threshold, or where you prefer it, we invoice the order and the goods are '
-  .'released for dispatch once the payment has been received.'],
+  .'If it is not, the money is still recoverable. Above that threshold, or where you prefer it, we invoice '
+  .'the order and the goods are released for dispatch once the payment has been received.'],
+  ['Payment outside the EU — bank transfer in advance',
+   'Against invoice, by bank transfer, and released for dispatch once the funds have cleared. This is the '
+  .'only method we can accept outside the EU: no card, no PayPal and no escrow.'],
   ['Delivery',
-   'Within the EU, typically 7 to 14 working days from release of the order. Greece is inside that range. '
+   'Within the EU, typically 7 to 14 working days from release of the order. Outside the EU, about a week '
+  .'by air and 2 to 4 weeks by sea, with import duty and taxes payable by you as importer. '
   .'Freight is quoted per order and depends on weight and volume.'],
   ['Minimum order quantities',
    'MOQ is per article and printed against every line. Denim and most bottoms run in packs of ten with a '
