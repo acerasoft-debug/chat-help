@@ -126,8 +126,19 @@ jobs:
             # `php -r include` bunlarin hicbirini test etmez.
             P="${SEO_PATH:-/}"
             echo "=================== $P (Apache, localhost) ==================="
-            H=$(curl -s --max-time 25 -H "Host: vestrasales.com" "http://127.0.0.1${P}" \
-                  -w '\n__CODE__%{http_code}')
+            # `curl -H "Host: ..." http://127.0.0.1/` KULLANMA. Bu paylasimli sunucuda
+            # duz HTTP ile localhost'a giden istek bu sitenin vhost'una dusmuyor ve HER
+            # yol icin "File Not Found" donuyor -- calistigini bildigimiz /shop.php dahil.
+            # Bir olcum araci her seye 404 diyorsa olctugu sey kendisidir: bu satir
+            # yuzunden yeni bir sayfanin canlida kirik oldugu rapor edildi, oysa kirik
+            # olan olcumdu. --resolve + https, SNI gonderdigi icin dogru vhost'a duser.
+            H=$(curl -sk --max-time 25 --resolve "vestrasales.com:443:127.0.0.1" \
+                  "https://vestrasales.com${P}" -w '\n__CODE__%{http_code}')
+            # Kontrol: bilinen calisan bir sayfa. Bu 200 degilse asagidaki hicbir sonuc
+            # sayfa hakkinda bir sey soylemez, sadece kanal hakkinda soyler.
+            CTRL=$(curl -sk --max-time 20 --resolve "vestrasales.com:443:127.0.0.1" \
+                  "https://vestrasales.com/shop" -o /dev/null -w '%{http_code}')
+            echo "  [kontrol /shop = $CTRL]" 
             echo "  HTTP $(printf '%s' "$H" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$H" | wc -c) bayt"
             for TAG in '<title>[^<]*' 'rel="canonical" href="[^"]*"' '<h1[^>]*>[^<]*'; do
               printf '%s' "$H" | grep -oiE "$TAG" | head -1 | sed 's/^/  /'
@@ -156,8 +167,8 @@ jobs:
                 ls -ld "$HOME/public_html/${F}" 2>&1 | sed 's/^/  ayni adli klasor: /'
                 ls -l  "$HOME/public_html/${F}/.htaccess" 2>&1 | sed 's/^/  o klasorun htaccess: /'
                 # PHP dosyasina DOGRUDAN istek: calisiyorsa sorun yalnizca yonlendirmede.
-                D=$(curl -s --max-time 20 -H "Host: vestrasales.com" \
-                      "http://127.0.0.1/${F}.php?brand=$(printf '%s' "$P" | cut -d/ -f3)" \
+                D=$(curl -sk --max-time 20 --resolve "vestrasales.com:443:127.0.0.1" \
+                      "https://vestrasales.com/${F}.php?brand=$(printf '%s' "$P" | cut -d/ -f3)" \
                       -w '\n__CODE__%{http_code}')
                 echo "  dogrudan ${F}.php: HTTP $(printf '%s' "$D" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$D" | wc -c) bayt"
                 printf '%s' "$D" | grep -oiE '<title>[^<]*' | head -1 | sed 's/^/    /'
