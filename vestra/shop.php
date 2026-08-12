@@ -58,6 +58,10 @@ body{background:#f4f2ee}
 .shopwrap .filterblock,.shopwrap .scard{box-shadow:0 1px 3px rgba(60,50,30,.05)}
 .shopwrap .fcheck:hover,.shopwrap .filter-export:hover{background:rgba(0,0,0,.045)}
 .shopwrap .fcheck.on{background:rgba(169,127,44,.08)}
+.bseo{display:flex;flex-wrap:wrap;gap:7px;margin:-6px 0 22px}
+.bseo a{font-size:12px;color:#6f695e;text-decoration:none;border:1px solid #e6e0d5;
+  background:#fff;border-radius:999px;padding:5px 12px}
+.bseo a:hover{border-color:#a97f2c;color:#a97f2c}
 .shopwrap .fcount{background:rgba(0,0,0,.05)}
 .shopwrap .scard:hover{box-shadow:0 12px 30px rgba(60,50,30,.16);border-color:rgba(169,127,44,.4)}
 footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
@@ -170,6 +174,16 @@ footer a{color:#d8bd86}
       </button>
     <?php endforeach; ?>
   </div>
+  <?php /* The rail above filters this page with JavaScript, so its cells are buttons and a
+           crawler follows none of them -- which left the per-brand landing pages reachable
+           only from the sitemap. These are real links to them: a buyer who wants just one
+           house gets a page about that house, and the pages get found. */ ?>
+  <nav class="bseo" aria-label="<?= htmlspecialchars(t('Wholesale by house')) ?>">
+    <?php foreach(array_keys($brandCounts) as $b): ?>
+      <a href="/wholesale/<?= urlencode(vestra_brand_slug($b)) ?>"><?= htmlspecialchars($b) ?>
+        <?= htmlspecialchars(vestra_seo_wholesale_word(vlang())) ?></a>
+    <?php endforeach; ?>
+  </nav>
   <?php endif; ?>
   <?php if(!$MEMBER): ?>
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>

@@ -666,10 +666,49 @@ function vestra_seo_wholesale_word(string $lang): string {
     return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel'][$lang] ?? 'wholesale';
 }
 
+/* Brand <-> URL slug. The landing pages live at /wholesale/<slug>, so the slug has to
+   survive a round trip: "DSQUARED2" -> "dsquared2", "Fred Perry" -> "fred-perry". The
+   reverse lookup goes through live stock rather than un-slugifying, because there is no
+   rule that turns "fred-perry" back into the exact capitalisation the catalogue uses. */
+function vestra_brand_slug(string $brand): string {
+    $s = strtolower(trim($brand));
+    $s = preg_replace('~[^a-z0-9]+~', '-', $s) ?? $s;
+    return trim($s, '-');
+}
+function vestra_brand_from_slug(string $slug): ?string {
+    $slug = vestra_brand_slug($slug);
+    foreach (vestra_seo_brands(0) as $b) if (vestra_brand_slug($b) === $slug) return $b;
+    return null;
+}
+
+/* The words a trade buyer actually types. "Lacoste wholesale" is one query; the buyer who
+   is ready to order searches "Lacoste B2B supplier", "Lacoste bulk", "Lacoste stock lot".
+   Those are the ones worth ranking for -- they carry intent, not curiosity. */
+function vestra_seo_b2b_terms(string $lang): array {
+    return [
+        'en' => ['wholesale', 'B2B supplier', 'bulk', 'stock lot', 'trade prices', 'for boutiques'],
+        'de' => ['Großhandel', 'B2B Lieferant', 'Restposten', 'Posten', 'Händlerpreise', 'für Boutiquen'],
+        'fr' => ['en gros', 'fournisseur B2B', 'grossiste', 'destockage', 'prix professionnels', 'pour boutiques'],
+        'es' => ['al por mayor', 'proveedor B2B', 'mayorista', 'lote de stock', 'precios de mayorista', 'para boutiques'],
+        'it' => ['ingrosso', 'fornitore B2B', 'grossista', 'stock lotto', 'prezzi allingrosso', 'per boutique'],
+    ][$lang] ?? [];
+}
+
 /** "Lacoste wholesale, Gucci wholesale, …" in the visitor's language; '' when nothing is stocked. */
 function vestra_seo_brand_keywords(string $lang, int $max = 12): string {
     $w = vestra_seo_wholesale_word($lang);
     return implode(', ', array_map(fn($b) => $b.' '.$w, vestra_seo_brands($max)));
+}
+
+/** One brand crossed with every B2B term: the keyword line for that brand's landing page. */
+function vestra_seo_brand_b2b_keywords(string $brand, string $lang): string {
+    $out = [];
+    foreach (vestra_seo_b2b_terms($lang) as $term) $out[] = $brand.' '.$term;
+    /* English too, on every language: a Greek or Polish buyer sourcing internationally
+       searches in English as often as in their own language, and we have no Greek or
+       Polish page to send them to. */
+    if ($lang !== 'en') foreach (vestra_seo_b2b_terms('en') as $term) $out[] = $brand.' '.$term;
+    return implode(', ', $out);
 }
 
 function vestra_read_json(string $name): array {

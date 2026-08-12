@@ -19,6 +19,12 @@ $urls = [
      the public landing page sellers are actually meant to arrive on. */
   ['/seller-invite', 'monthly', '0.6'],
 ];
+/* Per-brand B2B landing pages. These are the pages trade searches actually land on
+   ("Lacoste wholesale"), so they rank above individual listings here -- and they are
+   derived from live stock, so a sold-out house drops out of the sitemap by itself. */
+foreach (vestra_seo_brands(0) as $b) {
+  $urls[] = ['/wholesale/'.vestra_brand_slug($b), 'weekly', '0.8'];
+}
 foreach (vestra_products() as $p) {
   $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6'];
 }

@@ -50,7 +50,13 @@ $META = $META ?? t('Verified B2B fashion wholesale — branded apparel & textile
 $SEO_HOST  = 'https://vestrasales.com';
 $_seoPath  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $_seoPath  = preg_replace('/\.php$/', '', $_seoPath) ?: '/';   // canonical uses clean URLs (.htaccess serves them)
-$_seoQ     = $_GET; unset($_seoQ['lang']);            // keep product id etc., drop lang
+/* Read the query from the URI the visitor actually requested, NOT from $_GET.
+   .htaccess rewrites clean URLs into internal parameters -- /wholesale/lacoste arrives
+   as wholesale.php?brand=lacoste -- and $_GET shows the rewritten form. Building the
+   canonical from it published /wholesale/lacoste?brand=lacoste: the same page under a
+   second address, which is exactly the duplicate a canonical exists to prevent. */
+parse_str((string)parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY), $_seoQ);
+unset($_seoQ['lang']);                                 // keep product id etc., drop lang
 $_seoBase  = $_seoPath . (($qs = http_build_query($_seoQ)) !== '' ? '?'.$qs : '');
 $_seoSep   = ($qs !== '' ? '&' : '?');
 $_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
@@ -127,7 +133,11 @@ $_ld = array_merge([
     'description' => trim(t('Verified B2B fashion wholesale marketplace — branded apparel and textile basics from KYC-verified sellers across Europe.')
         .(($_ldBrands = (function_exists('vestra_seo_brands') ? implode(', ', vestra_seo_brands(10)) : '')) !== ''
             ? ' '.sprintf(t('Houses in stock: %s.'), $_ldBrands) : '')),
-    'areaServed' => 'EU', 'email' => 'support@vestrasales.com',
+    /* Not 'EU' any more, and that mattered: the marketplace ships to Japan, Korea,
+       Australia, the Gulf, Brazil and Chile, and an entity that declares itself European
+       is telling every search engine outside Europe that it is not for them. */
+    'areaServed' => ['Europe', 'Asia', 'Oceania', 'South America', 'Middle East', 'Africa'],
+    'email' => 'support@vestrasales.com',
     'inLanguage' => vlang(),
   ],
   [

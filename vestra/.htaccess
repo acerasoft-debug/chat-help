@@ -28,6 +28,13 @@
   # (Klasörün taşınan kopyası ~/_golge-shop-20260809-123507 altında duruyor.)
   RewriteRule ^shop/?$ shop.php [L]
 
+  # /wholesale/<marka> → markaya özel B2B iniş sayfası. Toptan alıcı "Lacoste wholesale"
+  # arar, "marketplace" aramaz; bu kural o aramanın ineceği sayfayı açar. Slug canlı
+  # stoktan çözülür, sabit listeden değil (bkz. wholesale.php).
+  # /wholesale-list.pdf ile çakışmaz: bu kalıp "wholesale" ardından EĞİK ÇİZGİ ister,
+  # fiyat listesi ise "wholesale-list" -- tire ile devam ettiği için hiç eşleşmez.
+  RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$ wholesale.php?brand=$1 [L,QSA]
+
   # /sitemap.xml → dinamik sitemap.php
   RewriteRule ^sitemap\.xml$ sitemap.php [L]
 
