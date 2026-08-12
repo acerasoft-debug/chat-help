@@ -636,7 +636,16 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
     }
     return $out;
   };
-  $mainHtml=$renderParas($main,'margin:0 0 18px;line-height:1.65;color:#3a3428;font-size:15px');
+  /* $bodyPlain is exactly that: plain text. Escaping and paragraphing it here is right
+     for every notification the platform sends, and wrong for the one case where the
+     caller has already composed a letter in HTML -- markup passed through $bodyPlain was
+     escaped and the reader got the tags printed at them as text. $opts['html'] lets such
+     a caller hand over the finished main block. $bodyPlain still carries the letter as
+     text, because it is what the text/plain part is built from: a client that refuses
+     HTML must not receive an empty message. */
+  $mainHtml=(isset($opts['html']) && trim((string)$opts['html'])!=='')
+    ? (string)$opts['html']
+    : $renderParas($main,'margin:0 0 18px;line-height:1.65;color:#3a3428;font-size:15px');
   $footerHtml=$footer!==''?$renderParas($footer,'margin:0 0 8px;line-height:1.5;color:#8a8272;font-size:12px'):'';
   $heroHtml=$heroImage!==''
     ?'<img src="'.htmlspecialchars($heroImage,ENT_QUOTES,'UTF-8').'" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto">'

@@ -419,13 +419,49 @@ jobs:
             $subject='VESTRA — wholesale catalogue, terms and shipping to Japan';
             endif;
 
+            if($body===''){ fwrite(STDERR,"HATA: govde bos.\n"); exit(1); }
+
+            /* Sablon duz metin bekliyor: vestra_html_email() gelen metni escape edip
+               paragrafliyor. Buraya HTML verildiginde etiketler okuyucuya METIN olarak
+               basildi -- ilk test e-postasi tam olarak boyle gitti. Dogrusu ikisini de
+               vermek: $text metin bolumu icin, $html ise hazir govde olarak. */
+            $style=function(string $h):string{
+              $h=str_replace('<p>','<p style="margin:0 0 18px;line-height:1.65;color:#3a3428;font-size:15px">',$h);
+              return str_replace('<h3>',
+                '<h3 style="margin:28px 0 12px;font-size:12px;font-weight:700;letter-spacing:.10em;'
+               .'text-transform:uppercase;color:#8a6d1f">',$h);
+            };
+            /* Metin surumu HTML'den turetiliyor, elle ikinci bir nusha tutulmuyor:
+               iki nusha zamanla birbirinden ayrilir ve hangisinin gittigi belirsizlesir. */
+            $toText=function(string $h):string{
+              $t=preg_replace('~<a\s[^>]*href="mailto:([^"]+)"[^>]*>(.*?)</a>~is','$2',$h);
+              /* Etiketin kendisi zaten adresse, "vestrasales.com/x (https://vestrasales.com/x)"
+                 diye iki kez yazmak yerine tek tam adres. */
+              $t=preg_replace_callback('~<a\s[^>]*href="([^"]+)"[^>]*>(.*?)</a>~is',function(array $m):string{
+                $u=$m[1]; $lbl=trim(strip_tags($m[2]));
+                $bare=rtrim((string)preg_replace('~^https?://~','',$u),'/');
+                return (rtrim($lbl,'/')===$bare) ? $u : $lbl.' ('.$u.')';
+              },$t);
+              $t=preg_replace('~<br\s*/?>~i',"\n",$t);
+              $t=preg_replace('~<h3[^>]*>~i',"\n\n",$t);
+              $t=preg_replace('~</h3>~i',"\n",$t);
+              $t=preg_replace('~</p>~i',"\n\n",$t);
+              $t=html_entity_decode(strip_tags($t),ENT_QUOTES,'UTF-8');
+              $t=preg_replace('~[ \t]+~',' ',$t);
+              $t=preg_replace('~\n{3,}~',"\n\n",$t);
+              return trim($t);
+            };
+            $html=$style($body); $text=$toText($body);
+
             if(!$send){
               echo "\nGONDERILMEDI (wholesale_send=false).\n";
-              echo "alici: {$to}\nkonu : {$subject}\ngovde: ".strlen($body)." bayt\n";
+              echo "alici: {$to}\nkonu : {$subject}\n";
+              echo "html : ".strlen($html)." bayt\nmetin: ".strlen($text)." bayt\n\n";
+              echo "----- METIN SURUMU -----\n".$text."\n";
               exit(0);
             }
-            $ok=vestra_send_mail($to,$subject,$body,'support@vestrasales.com','VESTRA Wholesale',
-                                 null,'',['attachments'=>$atts]);
+            $ok=vestra_send_mail($to,$subject,$text,'support@vestrasales.com','VESTRA Wholesale',
+                                 null,'',['attachments'=>$atts,'html'=>$html]);
             echo "\n".($ok ? "GONDERILDI -> {$to}  (".count($atts)." ek)\n"
                            : "HATA: gonderilemedi -> {$to}\n");
             exit($ok ? 0 : 1);
