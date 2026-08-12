@@ -239,7 +239,9 @@
   if (zoomLinks.length) {
     var box = null, idx = 0, opener = null;
 
+    var lbUnzoom = null;
     var render = function () {
+      if (lbUnzoom) lbUnzoom();          // kare değişince büyütme sıfırlanır
       var link = zoomLinks[idx];
       box.querySelector('img').src = link.getAttribute('href');
       box.querySelector('img').alt = (link.querySelector('img') || {}).alt || '';
@@ -251,6 +253,7 @@
     };
 
     var close = function () {
+      if (lbUnzoom) lbUnzoom();
       box.hidden = true;
       document.body.style.overflow = '';
       if (opener) opener.focus();
@@ -281,6 +284,49 @@
         if (e.key === 'ArrowLeft')  { idx = (idx - 1 + zoomLinks.length) % zoomLinks.length; render(); }
         if (e.key === 'ArrowRight') { idx = (idx + 1) % zoomLinks.length; render(); }
       });
+
+      /* Görüntüleyicide de büyütme: tıkla 1:1 ol, sürükleyerek gez.
+         Hover büyütmesi yalnızca gerçek imleçte çalışıyor; dokunmatikte
+         büyütmenin tek yolu burası. Ölçek yine dosyanın DOĞAL boyutuyla
+         sınırlı — üstüne çıkmak bulanıklık üretmekten başka bir şey yapmaz,
+         o yüzden kazanç yoksa tıklama hiçbir şey yapmıyor ve imleç
+         değişmiyor. */
+      var im = box.querySelector('img');
+      var zoomed = false, drag = null;
+      var canZoom = function () {
+        return im.naturalWidth > im.clientWidth * 1.25;
+      };
+      var unzoom = function () {
+        zoomed = false; drag = null;
+        im.classList.remove('is-zoom');
+        im.style.transform = '';
+        box.classList.remove('is-zoom');
+      };
+      lbUnzoom = unzoom;
+      im.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!zoomed) {
+          if (!canZoom()) return;
+          zoomed = true;
+          im.classList.add('is-zoom');
+          box.classList.add('is-zoom');
+          panTo(e);
+        } else { unzoom(); }
+      });
+      var panTo = function (e) {
+        if (!zoomed) return;
+        var r = im.getBoundingClientRect();
+        var px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        var py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+        var sx = Math.max(0, im.naturalWidth - box.clientWidth) * (px - 0.5);
+        var sy = Math.max(0, im.naturalHeight - box.clientHeight) * (py - 0.5);
+        // -50%,-50% ortalama; ikinci translate imlece göre kaydırma.
+        im.style.transform = 'translate(-50%,-50%) translate(' + (-sx) + 'px,' + (-sy) + 'px)';
+      };
+      im.addEventListener('mousemove', function (e) { if (zoomed && !drag) panTo(e); });
+      im.addEventListener('pointerdown', function (e) { if (zoomed) { drag = e; im.setPointerCapture(e.pointerId); } });
+      im.addEventListener('pointermove', function (e) { if (zoomed && drag) panTo(e); });
+      im.addEventListener('pointerup', function () { drag = null; });
     };
 
     zoomLinks.forEach(function (link, i) {
@@ -417,5 +463,59 @@
       praf = requestAnimationFrame(setProgress);
     }, { passive: true });
     window.addEventListener('resize', setProgress, { passive: true });
+  }
+
+  /* ------------------------------------------------- fotoğrafta 1:1 büyütme
+     Ürün sayfasında imleç kadrajın üstünde gezerken dosyanın GERÇEK
+     pikselleri gösteriliyor: arka plan katmanı orijinali 1:1 basıyor, imleç
+     yüzdesi de arka plan konumunu sürüyor. Yani büyütme "yakınlaştırma
+     taklidi" değil, dokumaya bakmak.
+
+     KAPI: dosya ekrandaki boyutundan anlamlı ölçüde büyük DEĞİLSE büyütme hiç
+     açılmıyor. Katalogdaki 2056 karenin 941'i 800 pikselden dar; onlarda
+     büyütmek bulanıklık üretmekten başka bir şey yapmaz. Yanlış bir vaat
+     vermemek için imleç de değişmiyor, katman da kurulmuyor.
+
+     Yalnızca gerçek imleçte (pointer:fine): dokunmatikte hover diye bir şey
+     yok, orada tam ekran görüntüleyici zaten var. */
+  var fine = window.matchMedia('(pointer:fine)').matches;
+  if (fine && !reduced) {
+    document.querySelectorAll('.pdp__shot[data-zoom]').forEach(function (shot) {
+      var full = shot.getAttribute('href') || '';
+      if (!full) return;
+      var layer = null, nat = null, probing = false;
+
+      var probe = function () {
+        if (probing || nat) return;
+        probing = true;
+        var im = new Image();
+        im.onload = function () {
+          nat = { w: im.naturalWidth, h: im.naturalHeight };
+          var r = shot.getBoundingClientRect();
+          // Kazanç yoksa hiç kurmuyoruz: %25'ten az fark gözle görülmüyor.
+          if (nat.w < r.width * 1.25) { nat = false; return; }
+          layer = document.createElement('span');
+          layer.className = 'pdp__mag';
+          layer.style.backgroundImage = 'url("' + full + '")';
+          layer.style.backgroundSize = nat.w + 'px ' + nat.h + 'px';
+          shot.appendChild(layer);
+          shot.classList.add('can-mag');
+        };
+        im.src = full;
+      };
+
+      shot.addEventListener('mouseenter', probe);
+      shot.addEventListener('mousemove', function (e) {
+        if (!layer || !nat) return;
+        var r = shot.getBoundingClientRect();
+        var px = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        var py = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+        // Kaydırılabilir alan: doğal boyut eksi görünen kutu.
+        layer.style.backgroundPosition =
+          (-px * Math.max(0, nat.w - r.width)) + 'px ' + (-py * Math.max(0, nat.h - r.height)) + 'px';
+        shot.classList.add('is-mag');
+      });
+      shot.addEventListener('mouseleave', function () { shot.classList.remove('is-mag'); });
+    });
   }
 })();
