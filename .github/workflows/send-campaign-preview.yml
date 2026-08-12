@@ -210,18 +210,18 @@ jobs:
             ksort($brands, SORT_NATURAL|SORT_FLAG_CASE);
             echo "marka: ".count($brands)."   urun: ".array_sum($brands)."\n\n";
 
-            /* Her satirda fotograf var mi -- tahmin degil, sayim. Fotograflar xlsx'in
-               icinde xl/media/ altinda birer dosya olarak duruyor ve satir basina bir
-               tane yaziliyor, yani medya sayisi = fotografli satir sayisi. Eksik foto
-               sessizce gecen bir kusur: dosya acilir, satirlar durur, sadece gorsel
-               yoktur -- ve bunu ilk fark eden musteri olur. */
-            $photos=function(string $file):int{
+            /* Her dosyada kac urun satiri var -- tahmin degil, sayim. Onceki surumde
+               burada fotograf sayilyordu; fotograflar Excel'den kaldirildi (bir kismi
+               musterinin Excel'inde bos kutu olarak cikiyordu), o yuzden sayilan sey
+               artik asil soru: liste eksiksiz mi gitti? Satir sayisi urun sayisindan
+               azsa dosya yarim demektir ve bunu ilk fark eden musteri olur. */
+            $sheetRows=function(string $file):int{
               if(!class_exists('ZipArchive')) return -1;
               $z=new ZipArchive; if($z->open($file)!==true) return -1;
-              $n=0;
-              for($i=0;$i<$z->numFiles;$i++)
-                if(str_starts_with((string)$z->getNameIndex($i),'xl/media/')) $n++;
-              $z->close(); return $n;
+              $xml=(string)$z->getFromName('xl/worksheets/sheet1.xml'); $z->close();
+              if($xml==='') return -1;
+              /* Baslik (1) + bos ayirici (1) + alt not (6) = 8; kalan urun satirlaridir. */
+              return max(0,substr_count($xml,'<row r="')-8);
             };
             $short=0;
 
@@ -232,10 +232,10 @@ jobs:
               $f=$dir.'/VESTRA-wholesale-all-brands.xlsx'; file_put_contents($f,$all);
               $atts[]=['name'=>'VESTRA-wholesale-all-brands.xlsx','path'=>$f];
               $bytes+=strlen($all);
-              $ph=$photos($f); $exp=array_sum($brands); $miss=max(0,$exp-$ph);
+              $rw=$sheetRows($f); $exp=array_sum($brands); $miss=max(0,$exp-$rw);
               $short+=$miss;
-              printf("  %-24s %8.1f KB   foto %3d/%-3d %s\n",'TUM MARKALAR',strlen($all)/1024,
-                     $ph,$exp,$miss?'<-- '.$miss.' EKSIK':'');
+              printf("  %-24s %8.1f KB   satir %3d/%-3d %s\n",'TUM MARKALAR',strlen($all)/1024,
+                     $rw,$exp,$miss?'<-- '.$miss.' EKSIK':'');
             } else { fwrite(STDERR,"UYARI: tum-markalar dosyasi cekilemedi\n"); }
 
             foreach($brands as $b=>$cnt){
@@ -246,12 +246,12 @@ jobs:
               $f=$dir.'/'.$name; file_put_contents($f,$x);
               $atts[]=['name'=>$name,'path'=>$f];
               $bytes+=strlen($x);
-              $ph=$photos($f); $miss=max(0,$cnt-$ph); $short+=$miss;
-              printf("  %-24s %8.1f KB   foto %3d/%-3d %s\n",$b,strlen($x)/1024,
-                     $ph,$cnt,$miss?'<-- '.$miss.' EKSIK':'');
+              $rw=$sheetRows($f); $miss=max(0,$cnt-$rw); $short+=$miss;
+              printf("  %-24s %8.1f KB   satir %3d/%-3d %s\n",$b,strlen($x)/1024,
+                     $rw,$cnt,$miss?'<-- '.$miss.' EKSIK':'');
             }
-            echo $short===0 ? "\nfotograf: her satirda var.\n"
-                            : "\nUYARI: toplam {$short} satirda fotograf yok.\n";
+            echo $short===0 ? "\nsatirlar: her dosyada tam.\n"
+                            : "\nUYARI: toplam {$short} urun satiri eksik.\n";
             printf("\nek: %d dosya, ham %.1f MB, base64 ~%.1f MB\n",
                    count($atts), $bytes/1048576, $bytes*4/3/1048576);
             /* Saglayici sinirini asarsak istek tumden reddedilir ve hicbir sey gitmez.
@@ -331,7 +331,12 @@ jobs:
              .'<p>If it would help, send me the categories and the price band you want to open with '
              .'and I will put together a focused proposal for your budget instead of leaving you to '
              .'work through '.$nArt.' rows.</p>'
-             .'<p>Kind regards,<br>VESTRA Wholesale<br>'
+             /* Mektubu bir insan imzaliyor. Bir toptan alici "VESTRA Wholesale"a degil,
+                kendisiyle ilgilenen kisiye cevap yazar; isim ayrica sonraki yazismada
+                kime hitap edecegini belirler. Gonderen adresi dogrulanmis support@
+                olarak kaliyor -- teslimat itibari orada. */
+             .'<p>Kind regards,<br><br>'
+             .$B('Marco Bellini').'<br>Customer Adviser · VESTRA Wholesale<br>'
              .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
              .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
 
@@ -432,10 +437,17 @@ jobs:
              .'<a href="https://vestrasales.com/register">vestrasales.com/register</a>. We need your '
              .'company registration, your Japanese business registration number, and the name of the '
              .'person authorised to order.</p>'
-             .'<p>Each workbook carries the product photograph inside the row, so you can work from it '
-             .'directly. Tell me which categories and price band you want to open with and I will put '
-             .'together a focused proposal rather than leaving you to work through '.$nArt.' rows.</p>'
-             .'<p>Kind regards,<br>VESTRA Wholesale<br>'
+             .'<p>Every row in the workbooks carries a link to the article\'s own page, where the '
+             .'photographs are shown at full size — and a printable list with the pictures in it is at '
+             .'<a href="https://vestrasales.com/wholesale-list.pdf">vestrasales.com/wholesale-list.pdf</a>. '
+             .'Tell me which categories and price band you want to open with and I will put together a '
+             .'focused proposal rather than leaving you to work through '.$nArt.' rows.</p>'
+             /* Mektubu bir insan imzaliyor. Bir toptan alici "VESTRA Wholesale"a degil,
+                kendisiyle ilgilenen kisiye cevap yazar; isim ayrica sonraki yazismada
+                kime hitap edecegini belirler. Gonderen adresi dogrulanmis support@
+                olarak kaliyor -- teslimat itibari orada. */
+             .'<p>Kind regards,<br><br>'
+             .$B('Marco Bellini').'<br>Customer Adviser · VESTRA Wholesale<br>'
              .'<a href="mailto:support@vestrasales.com">support@vestrasales.com</a> · '
              .'<a href="https://vestrasales.com">vestrasales.com</a></p>';
 
@@ -482,8 +494,10 @@ jobs:
                 .'<a href="https://vestrasales.com/register">vestrasales.com/register</a> — company '
                 .'registration, VAT or EORI number (outside the EU: your local business registration) and '
                 .'the name of the person authorised to order.')
-             .$g('The attached workbooks.','One per brand plus one containing every article, each row with '
-                .'the product photograph inside it. The always-current version is at '
+             .$g('The attached workbooks.','One per brand plus one containing every article. Every row links '
+                .'to the article\'s page, where the photographs are; a printable list with the pictures in it '
+                .'is at <a href="https://vestrasales.com/wholesale-list.pdf">vestrasales.com/wholesale-list.pdf</a>, '
+                .'and the always-current list at '
                 .'<a href="https://vestrasales.com/price-list">vestrasales.com/price-list</a>.');
 
             /* Sablon duz metin bekliyor: vestra_html_email() gelen metni escape edip

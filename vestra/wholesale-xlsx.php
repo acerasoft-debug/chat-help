@@ -41,10 +41,17 @@ foreach ($byBrand as &$rs) {
 }
 unset($rs);
 
-/* Photo LAST: vestra_xlsx_with_photos_file() reserves the final column for the image. */
+/* NO PHOTO COLUMN. The pictures were embedded in the sheet and a number of them showed
+   as empty boxes in the customer's Excel -- the file carried an image for every row, but
+   not every image rendered: where GD cannot re-encode a source file (a CMYK or progressive
+   JPEG) the original is embedded as-is, and Excel will not draw those. A price list with
+   holes in it looks like a catalogue with holes in it, which is worse than one that never
+   promised pictures. Every row still carries its product link, and the photographs are on
+   the page it opens -- always current, and 5.6 MB lighter as an attachment.
+   The PDF (wholesale-list.pdf) keeps its photographs: its own encoder handles CMYK. */
 $headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Sizes',
             'MOQ', 'Unit', 'Wholesale EUR', 'Retail EUR', 'Retail source',
-            'Stock total', 'Stock by size', 'Product link', 'Photo'];
+            'Stock total', 'Stock by size', 'Product link'];
 
 $rows = [];
 $n = 0;
@@ -84,10 +91,7 @@ foreach ($byBrand as $brand => $list) {
             $hasStock ? implode(' · ', array_map(fn($k, $v) => $k.' '.$v,
                         array_keys($stock['sizes']), $stock['sizes'])) : '',
             $id !== '' ? 'https://vestrasales.com/product?id='.$id : '',
-            '',
-        ], 'image' => function_exists('vestra_export_local')
-            ? vestra_export_local(vestra_primary_image($p))
-            : ''];
+        ], 'image' => ''];
     }
 }
 
@@ -114,6 +118,9 @@ $rows[] = $note('Delivery within the EU typically 7-14 working days from release
     .'Import duty and taxes are payable by the buyer as importer.');
 $rows[] = $note('RETAIL EUR is the brand\'s own recommended price, read from the brand\'s own site. '
     .'Where a brand publishes none for an article the cell is empty: we do not estimate a retail price on a brand\'s behalf.');
+$rows[] = $note('Photographs: the PRODUCT LINK column opens the article\'s page, where every photograph of it is '
+    .'shown at full size. A printable list with photographs in it: https://vestrasales.com/wholesale-list.pdf'
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : ''));
 /* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
    a forwarded copy should be one click from the current list. */
 $rows[] = $note('Always-current version of this list: https://vestrasales.com/price-list'

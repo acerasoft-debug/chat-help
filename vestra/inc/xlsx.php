@@ -100,6 +100,11 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
     $imgs[$sheetRow] = ['path' => $path, 'ext' => $ext, 'w' => $dw, 'h' => $dh];
   }
 
+  /* No images at all: do not reserve a column for them. The last column is blanked on
+     every row to leave room for the picture that overlays it, so a caller that passes
+     none used to lose whatever it put there -- silently, and only in the final column. */
+  if (!$imgs) $photoCol = -1;
+
   // ---- sheet1.xml ------------------------------------------------------------
   $colsXml = '<cols>';
   for ($c = 0; $c < $ncol; $c++) {
