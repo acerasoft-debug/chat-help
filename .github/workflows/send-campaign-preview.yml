@@ -32,6 +32,10 @@ on:
         description: "TOPTAN TEKLİF: true = GERÇEKTEN gönder. false = sadece hazırla, ek boyutlarını yaz, GÖNDERME"
         required: false
         default: "false"
+      ws_record_only:
+        description: "true = e-posta GÖNDERME, adresleri sadece 'gönderilenler defteri'ne işle (geçmişi kayda geçirmek için)"
+        required: false
+        default: "false"
       ws_export_note:
         description: "TOPTAN TEKLİF: true = mektuba 'tedarik ihracat kontrolü ve yaptırım taramasına tabidir' cümlesi eklenir (kısıtlı pazarlar)"
         required: false
@@ -165,13 +169,14 @@ jobs:
           WS_SEND: ${{ github.event.inputs.wholesale_send }}
           WS_LETTER: ${{ github.event.inputs.ws_letter }}
           WS_EXPORT_NOTE: ${{ github.event.inputs.ws_export_note }}
+          WS_RECORD_ONLY: ${{ github.event.inputs.ws_record_only }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 15m
-          envs: WS_TO,WS_SEND,WS_LETTER,WS_EXPORT_NOTE
+          envs: WS_TO,WS_SEND,WS_LETTER,WS_EXPORT_NOTE,WS_RECORD_ONLY
           script: |
             cat > /tmp/vestra_ws.php <<'PHPEOF'
             <?php
@@ -239,6 +244,7 @@ jobs:
                  boylece ayni isim bir daha karsimiza cikarsa kendiliginden dusuyor. */
               'migato','marasil','glou.gr','tsakirismallas','nak.gr','elisabettafranchi',
               'dale.no','norlender','sandnesgarn','brynje',
+              'cortana.es','isla-ibiza','charoruiz',
               /* zincirler */
               'inditex','zara.','hm.com','handm','mango.com','bershka','pullandbear',
               'massimodutti','uniqlo','fastretailing','primark','nike.com','adidas.',
@@ -259,6 +265,43 @@ jobs:
               printf("  -> %d adres engellendi, %d adres kaldi.\n\n",count($recips)-count($kept),count($kept));
             $recips=$kept;
             if(!$recips){ fwrite(STDERR,"HATA: butun aliciler engelli listede.\n"); exit(1); }
+
+            /* GONDERILENLER DEFTERI. Ayni soguk mektup ayni adrese iki kez gitmemeli:
+               ikinci kopya ilkinin degerini dusurur ve alicinin gozunde ozensizlik olur.
+               Kimin ne aldigini akilda tutmak insana birakilamaz -- 150 adresten sonra
+               kimse hatirlamaz. Kayit adres+MEKTUP bazinda: 'outlets' bir daha gitmez,
+               ama ayni kisiye gercek bir cevap mektubu yazmak serbest kalir. */
+            $ledgerFile = $home.'/public_html/data/outreach_sent.json';
+            $ledger = [];
+            if (is_readable($ledgerFile)) {
+              $j = json_decode((string)@file_get_contents($ledgerFile), true);
+              if (is_array($j)) $ledger = $j;
+            }
+            $ledgerPut = function(string $email, string $letter) use (&$ledger, $ledgerFile): void {
+              $ledger[$email][$letter] = date('c');
+              @file_put_contents($ledgerFile, json_encode($ledger, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+            };
+            $fresh = [];
+            foreach ($recips as $r) {
+              if (isset($ledger[$r][$letter])) {
+                printf("  ZATEN GONDERILDI  %-42s (%s)\n", $r, substr((string)$ledger[$r][$letter],0,10));
+                continue;
+              }
+              $fresh[] = $r;
+            }
+            if (count($fresh) !== count($recips))
+              printf("  -> %d adres daha once bu mektubu almisti, atlandi.\n\n", count($recips)-count($fresh));
+            $recips = $fresh;
+            if (!$recips) { echo "Gonderilecek yeni adres yok.\n"; exit(0); }
+
+            /* Sadece deftere yaz, e-posta gonderme. Bugune kadar elle gonderilmis
+               adresleri kayda gecirmek icin -- yoksa defter bos baslar ve ilk
+               calistirmada herkese ikinci kez gider. */
+            if (strtolower(trim((string)getenv('WS_RECORD_ONLY'))) === 'true') {
+              foreach ($recips as $r) { $ledgerPut($r, $letter); printf("  KAYDEDILDI  %s\n", $r); }
+              printf("\n%d adres deftere islendi, e-posta gonderilmedi.\n", count($recips));
+              exit(0);
+            }
 
             /* Kaza freni: elle tetiklenen bir isten yuzlerce adrese gitmesi istenmiyor. */
             if(count($recips) > 60){ fwrite(STDERR,"HATA: ".count($recips)." alici cok fazla (sinir 60).\n"); exit(1); }
@@ -740,7 +783,7 @@ jobs:
             foreach($recips as $r){
               $ok=vestra_send_mail($r,$subjFor($r),$text,'support@vestrasales.com',$fromName,
                                    null,'',['attachments'=>$atts,'html'=>$html]);
-              if($ok){ $sent++; printf("  GONDERILDI  %s\n",$r); }
+              if($ok){ $sent++; $ledgerPut($r,$letter); printf("  GONDERILDI  %s\n",$r); }
               else   { $failed[]=$r; printf("  HATA        %s\n",$r); }
               /* Saglayiciyi bir anda 29 istekle dovmemek icin kucuk bir ara. */
               if(count($recips)>1) usleep(400000);
