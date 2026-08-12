@@ -210,6 +210,49 @@ jobs:
             $recips = array_values(array_filter($recips, fn($e)=>filter_var($e,FILTER_VALIDATE_EMAIL)));
             foreach($bad as $b) fwrite(STDERR,"UYARI: gecersiz adres atlandi: {$b}\n");
             if(!$recips){ fwrite(STDERR,"HATA: gecerli alici yok.\n"); exit(1); }
+            /* MARKA SAHIPLERI, ZINCIRLER VE DISTRIBUTORLER -- her zaman engelli.
+               Grey-market kaynakli markali malin toptan teklifini, o markanin KENDISINE
+               ya da yetkili distributorune yollamak en kotu tur temastir: cevap gelmez,
+               marka hukuk birimine giden bir dosya acilir. Buyuk zincirler de markalarla
+               secici dagitim sozlesmesi altindadir, ayni sonucu dogurur.
+
+               Liste bilerek ALAN ADI PARCASI uzerinden calisiyor: 'ralphlauren' tek basina
+               .com/.es/.co.uk hepsini yakalar. Yeni bir marka ya da distributor cikarsa
+               buraya bir kelime eklemek yeterli.
+
+               AVM isletmecileri (Simon, Vicinity, McArthurGlen, Mitsui, Value Retail)
+               bu listede DEGIL: onlar kiraci yerlestiren ev sahibi, marka ya da zincir
+               degil -- zaten hedef kitlenin kendisi. */
+            $blockTokens = [
+              /* katalogdaki evler */
+              'balenciaga','balmain','burberry','casablancaparis','dolcegabbana','dsquared2',
+              'fendi','fredperry','gcds','givenchy','gucci','jacquemus','lacoste',
+              'marceloburlon','countyofmilan','ralphlauren','valentino','versace',
+              /* diger marka sahipleri */
+              'elisabettafranchi','stoneisland','armani','prada','moncler','hugoboss',
+              'calvinklein','tommy.com','pvh.com','kering','lvmh','ferragamo','bottegaveneta',
+              'saintlaurent','celine','loewe','maxmara','diesel','stellamccartney','offwhite',
+              /* zincirler */
+              'inditex','zara.','hm.com','handm','mango.com','bershka','pullandbear',
+              'massimodutti','uniqlo','fastretailing','primark','nike.com','adidas.',
+              'puma.com','decathlon',
+            ];
+            $isBlocked=function(string $addr) use ($blockTokens):string{
+              $dom=strtolower(substr(strrchr($addr,'@') ?: '',1));
+              foreach($blockTokens as $t) if(str_contains($dom,$t)) return $t;
+              return '';
+            };
+            $kept=[];
+            foreach($recips as $r){
+              $hit=$isBlocked($r);
+              if($hit!==''){ printf("  ENGELLI    %-42s (marka/zincir: %s)\n",$r,$hit); continue; }
+              $kept[]=$r;
+            }
+            if(count($kept)!==count($recips))
+              printf("  -> %d adres engellendi, %d adres kaldi.\n\n",count($recips)-count($kept),count($kept));
+            $recips=$kept;
+            if(!$recips){ fwrite(STDERR,"HATA: butun aliciler engelli listede.\n"); exit(1); }
+
             /* Kaza freni: elle tetiklenen bir isten yuzlerce adrese gitmesi istenmiyor. */
             if(count($recips) > 60){ fwrite(STDERR,"HATA: ".count($recips)." alici cok fazla (sinir 60).\n"); exit(1); }
             $to = $recips[0];
