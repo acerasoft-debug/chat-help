@@ -251,7 +251,13 @@ jobs:
                  Simon Property Group'a (ABD) ait, VIA Outlets pan-Avrupa bir fon ortakligi
                  -- ikisi de her iki olcute birden giriyor. Bolgesel ve bagimsiz merkezler
                  (FoxTown, Landquart, Aubonne) listede DEGIL: hedef kitle onlar. */
-              'simon.com','tangeroutlets','mcarthurglen','viaoutlets','ali-bin-ali',
+              'simon.com','tangeroutlets','mcarthurglen','viaoutlets',
+              /* DISTRIBUTORLER ve marka temsilcileri -- kesinlikle gonderilmez. Bir
+                 distributor bizim teklifimizi temsil ettigi markaya iletir; kazanc yok,
+                 risk var. Asagidakiler bu kural netlesmeden once bir kez yazildi, bir
+                 daha yazilmayacak. */
+              'ali-bin-ali','brandsvision','bigbrands.ae','brands-international',
+              'ros-management','gilbertluxurybrands','luxuryprgroup','bflgroup',
               'inditex','zara.','hm.com','handm','mango.com','bershka','pullandbear',
               'massimodutti','uniqlo','fastretailing','primark','nike.com','adidas.',
               'puma.com','decathlon',
