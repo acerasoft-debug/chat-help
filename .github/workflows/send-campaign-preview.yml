@@ -246,6 +246,12 @@ jobs:
               'dale.no','norlender','sandnesgarn','brynje',
               'cortana.es','isla-ibiza','charoruiz','johnstonsofelgin',
               /* zincirler */
+              /* ABD merkezli ve cok uluslu BUYUK isletmeciler. Operator kurali net:
+                 ABD'ye hicbir kosulda, buyuklere hicbir yerde. McArthurGlen'in cogunlugu
+                 Simon Property Group'a (ABD) ait, VIA Outlets pan-Avrupa bir fon ortakligi
+                 -- ikisi de her iki olcute birden giriyor. Bolgesel ve bagimsiz merkezler
+                 (FoxTown, Landquart, Aubonne) listede DEGIL: hedef kitle onlar. */
+              'simon.com','tangeroutlets','mcarthurglen','viaoutlets','ali-bin-ali',
               'inditex','zara.','hm.com','handm','mango.com','bershka','pullandbear',
               'massimodutti','uniqlo','fastretailing','primark','nike.com','adidas.',
               'puma.com','decathlon',
