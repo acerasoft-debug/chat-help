@@ -20,6 +20,7 @@
  *     and every row says which of the two it is.
  */
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/stock.php';
 require_once __DIR__.'/inc/i18n.php';
 
 
@@ -86,6 +87,11 @@ require __DIR__.'/inc/head.php';
   .pc-cat{font-size:11.5px;color:var(--mut)}
   .pc-num{font-variant-numeric:tabular-nums;white-space:nowrap}
   .pc-sizes{font-size:13px;color:var(--mut)}
+  .pc-stock{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;align-items:baseline;font-size:12px}
+  .pc-stock span{background:rgba(201,168,106,.10);border-radius:4px;padding:2px 6px;white-space:nowrap;
+    font-variant-numeric:tabular-nums;color:var(--ink)}
+  .pc-stock span b{color:var(--acc);font-weight:700}
+  .pc-stock em{font-style:normal;color:var(--mut);white-space:nowrap}
   .pc-moq{font-size:14px;font-weight:600;text-align:right}
   .pc-price{text-align:right}
   .pc-price b{font-size:17px;font-weight:700;letter-spacing:-.01em}
@@ -173,7 +179,15 @@ require __DIR__.'/inc/head.php';
         <div class="pc-name"><a href="<?= htmlspecialchars($href) ?>"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></a></div>
         <div class="pc-cat"><?= htmlspecialchars((string)($p['cat'] ?? '')) ?></div>
       </div>
-      <div class="pc-sizes"><?= htmlspecialchars((string)($p['sizes'] ?? '—')) ?></div>
+      <div class="pc-sizes">
+        <?= htmlspecialchars((string)($p['sizes'] ?? '—')) ?>
+        <?php if (vestra_stock_enabled($p)): $st = vestra_stock_for($p); ?>
+          <div class="pc-stock">
+            <?php foreach ($st['sizes'] as $sz => $q): ?><span><b><?= htmlspecialchars((string)$sz) ?></b> <?= (int)$q ?></span><?php endforeach; ?>
+            <em><?= sprintf(t('%d pcs in stock'), $st['total']) ?></em>
+          </div>
+        <?php endif; ?>
+      </div>
       <div class="pc-moq pc-num"><?= htmlspecialchars((string)($p['moq'] ?? '—')) ?> <?= htmlspecialchars((string)($p['unit'] ?? 'pc')) ?></div>
       <div class="pc-price pc-num">
         <b>€<?= number_format($price, 2) ?></b>

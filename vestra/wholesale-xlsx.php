@@ -22,6 +22,7 @@
  */
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
+require_once __DIR__.'/inc/stock.php';
 
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
@@ -43,7 +44,7 @@ unset($rs);
 /* Photo LAST: vestra_xlsx_with_photos_file() reserves the final column for the image. */
 $headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Sizes',
             'MOQ', 'Unit', 'Wholesale EUR', 'Retail EUR', 'Retail source',
-            'Product link', 'Photo'];
+            'Stock total', 'Stock by size', 'Product link', 'Photo'];
 
 $rows = [];
 $n = 0;
@@ -53,6 +54,9 @@ foreach ($byBrand as $brand => $list) {
         $price = (float)($p['list'] ?? $p['price'] ?? 0);
         $rrp   = (float)($p['rrp'] ?? 0);
         $real  = $rrp > 0;
+
+        $hasStock = vestra_stock_enabled($p);
+        $stock    = $hasStock ? vestra_stock_for($p) : ['sizes' => [], 'total' => 0];
 
         $id    = (string)($p['id'] ?? '');
         $ident = trim((string)($p['sku'] ?? ''));
@@ -73,6 +77,12 @@ foreach ($byBrand as $brand => $list) {
             number_format($price, 2, '.', ''),
             $real ? number_format($rrp, 2, '.', '') : '',
             $real ? 'brand RRP' : '',
+            /* Plain integer, so a buyer can sum and sort it. The by-size string sits in
+               its own column rather than inside the size run: the run is what we sell in,
+               the stock is what is left, and merging them makes both unreadable. */
+            $hasStock ? (string)$stock['total'] : '',
+            $hasStock ? implode(' · ', array_map(fn($k, $v) => $k.' '.$v,
+                        array_keys($stock['sizes']), $stock['sizes'])) : '',
             $id !== '' ? 'https://vestrasales.com/product?id='.$id : '',
             '',
         ], 'image' => function_exists('vestra_export_local')
@@ -101,7 +111,7 @@ $rows[] = $note('RETAIL EUR is the brand\'s own recommended price, read from the
 /* A spreadsheet goes stale the moment stock moves; the page does not. Anyone working from
    a forwarded copy should be one click from the current list. */
 $rows[] = $note('Always-current version of this list: https://vestrasales.com/price-list'
-    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  \u{00B7}  every brand: https://vestrasales.com/price-lists');
+    .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  ·  every brand: https://vestrasales.com/price-lists');
 
 $title = $brandFilter !== '' ? $brandFilter.' wholesale' : 'VESTRA wholesale';
 $file  = vestra_xlsx_with_photos_file($headers, $rows, $title);
