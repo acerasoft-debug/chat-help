@@ -79,6 +79,7 @@ require __DIR__.'/inc/head.php';
   <div class="pl-head">
     <h1><?= t('Wholesale price lists') ?></h1>
     <p><?= t('Every article we hold, with the trade price per piece, the minimum order quantity, sizes, the manufacturer\'s article number and a link to the live product page. Prices in EUR, excluding VAT and freight.') ?></p>
+    <p><?= t('Stock is shown per article and broken down by size, so you can see the depth of a run before you ask. This is standing stock, not open production: quantities move, and an article can sell out and not return.') ?></p>
     <p><?= t('The Excel is the same list in a form you can sort, filter and paste into your own buying sheet.') ?></p>
     <div class="pl-all">
       <a class="pl-btn solid" href="/price-list"><?= t('Browse the full list') ?></a>

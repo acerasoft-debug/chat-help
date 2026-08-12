@@ -972,4 +972,6 @@ return array (
   'Sell on VESTRA' => 'Vendi su VESTRA',
   'Sell wholesale on VESTRA — reach KYC-verified boutique buyers across Europe. List branded stock, get paid against invoices, and keep your pricing and buyer list to yourself.' => 'Vendi all\'ingrosso su VESTRA — raggiungi buyer di boutique verificati KYC in tutta Europa. Pubblica lo stock di marca, incassa a fronte di fattura e tieni per te prezzi e clientela.',
   'photo %d' => 'foto %d',
+  '%d pcs in stock' => '%d pz disponibili',
+  'Stock is shown per article and broken down by size, so you can see the depth of a run before you ask. This is standing stock, not open production: quantities move, and an article can sell out and not return.' => 'Lo stock è indicato per articolo e suddiviso per taglia, così vede la profondità di una serie prima ancora di chiederla. È merce disponibile, non produzione aperta: le quantità si muovono e un articolo può esaurirsi senza ritornare.',
 );
