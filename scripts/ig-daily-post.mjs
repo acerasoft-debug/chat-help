@@ -1,8 +1,7 @@
 // ChatHelp — Instagram günlük otomatik paylaşım (@chathelpp)
-// Instagram Login akışı (graph.instagram.com, token IGAA...). GitHub Actions'ta çalışır.
-// Token: process.env.IG_TOKEN (GitHub Secret). Sunucu/cPanel GEREKMEZ.
-// Rotasyon tarihe göre deterministik (state dosyası yok): her gün konu ilerler,
-// banka bitince başa döner. Reel'ler jsDelivr CDN'den servis edilir (content.json).
+// Instagram Login akışı (graph.instagram.com, IGAA token). GitHub Actions'ta çalışır; sunucu GEREKMEZ.
+// Her DİL kendi içeriğini tarihe göre döndürür (jenerik + ülke-özel konular).
+// Reel + ÖZEL KAPAK (cover_url) jsDelivr CDN'den; token IG_TOKEN Secret'ından.
 import { readFileSync } from 'node:fs';
 
 const TOKEN = process.env.IG_TOKEN;
@@ -18,17 +17,12 @@ const ALL = ['de','en','fr','tr','es','ru'];
 
 const content = JSON.parse(readFileSync('marketing/auto-post/content.json','utf8'));
 const items = content.items || [];
-const THUMB = content.cover_thumb_offset_ms ?? 1600;   // kapak: kara ilk kareyi atla
-const topics = [...new Set(items.map(i => i.topic))];   // konu sırası (görünme sırası)
+const THUMB = content.cover_thumb_offset_ms ?? 1600;   // cover_url yoksa: kara ilk kareyi atla
 
-// Gün sayısı (UTC) -> bugünkü konu
 const now = new Date();
-const doy = Math.floor(
-  (Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+const doy = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
    - Date.UTC(now.getUTCFullYear(), 0, 0)) / 86400000);
-const topic = topics[doy % topics.length];
 
-// Hangi dil(ler)? manuel input > cron eşlemesi > hepsi
 const langIn = (process.env.LANG_IN || '').trim();
 const sched  = (process.env.SCHEDULE || '').trim();
 const langs = langIn ? [langIn]
@@ -50,16 +44,16 @@ async function igUserId() {
   return j.user_id || j.id;
 }
 
-async function publishReel(uid, videoUrl, caption, thumbOffset) {
-  const base = { media_type: 'REELS', video_url: videoUrl, caption };
+async function publishReel(uid, it) {
+  const base  = { media_type: 'REELS', video_url: it.video, caption: it.caption };
+  const extra = { ...base };
+  if (it.cover) extra.cover_url = it.cover;                      // özel kapak görseli
+  else if (THUMB != null) extra.thumb_offset = String(it.thumb_offset ?? THUMB);
   let c;
   try {
-    // kapak karesi (ms): kara ilk kareyi atla
-    c = await api('POST', `/${uid}/media`,
-      thumbOffset != null ? { ...base, thumb_offset: String(thumbOffset) } : base);
-  } catch (e) {
-    if (thumbOffset == null) throw e;
-    console.error(`thumb_offset reddedildi, kapaksız deniyorum: ${e.message}`);
+    c = await api('POST', `/${uid}/media`, extra);
+  } catch (e) {                                                 // kapak/param reddedilirse post yine gitsin
+    console.error(`kapak/param reddedildi, sade deniyorum: ${e.message}`);
     c = await api('POST', `/${uid}/media`, base);
   }
   const cid = c.id;
@@ -75,18 +69,20 @@ async function publishReel(uid, videoUrl, caption, thumbOffset) {
 }
 
 const uid = await igUserId();
-console.log(`gün=${doy}  konu=${topic}  diller=${langs.join(',')}  ig_user=${uid}`);
-let ok = 0;
+console.log(`gün=${doy}  diller=${langs.join(',')}  ig_user=${uid}`);
+let ok = 0, total = 0;
 for (const lang of langs) {
-  const it = items.find(x => x.topic === topic && x.lang === lang);
-  if (!it) { console.log(`atlandı: ${topic}/${lang} içerik yok`); continue; }
+  const li = items.filter(x => x.lang === lang && x.video && x.caption);
+  if (!li.length) { console.log(`atlandı: ${lang} içerik yok`); continue; }
+  const it = li[doy % li.length];   // bu dilin sıradaki konusu (tarihe göre döner)
+  total++;
   try {
-    const mid = await publishReel(uid, it.video, it.caption, it.thumb_offset ?? THUMB);
-    console.log(`✓ YAYIN ${lang} ${it.id} -> media ${mid}`);
+    const mid = await publishReel(uid, it);
+    console.log(`✓ ${lang} ${it.id} -> media ${mid}`);
     ok++;
   } catch (e) {
-    console.error(`✗ HATA ${lang} ${it.id}: ${e.message}`);
+    console.error(`✗ ${lang} ${it.id}: ${e.message}`);
   }
 }
-console.log(`bitti: ${ok}/${langs.length} yayınlandı`);
-if (ok === 0) process.exit(1);
+console.log(`bitti: ${ok}/${total} yayınlandı`);
+if (total > 0 && ok === 0) process.exit(1);
