@@ -9,26 +9,22 @@ sıradaki reel'i Instagram'a atar. Kod hazır — sana düşen tek seferlik kuru
 
 ---
 
-## 0) Ön koşul (5 dk)
-1. Instagram'da **@chathelpp → Business/Creator hesabı** yap.
-2. Bir **Facebook Sayfası** oluştur ve Instagram'ı ona bağla (Meta Business Suite → Ayarlar → Bağlı hesaplar).
+> **Akış: Instagram Login** (token `IGAA…` ile başlar, `graph.instagram.com`).
+> Facebook Sayfası bağlama ve IG User ID avı **gerekmez** — kod, IG User ID'yi
+> token'dan otomatik çözer.
 
-## 1) Meta App oluştur
-1. <https://developers.facebook.com/apps> → **Create App** → tür: **Business**.
-2. Uygulamaya **Instagram Graph API** ürününü ekle.
-3. **App ID** ve **App Secret**'ı not al (App → Settings → Basic).
+## 0) Ön koşul (2 dk)
+- Instagram'da **@chathelpp → Business/Creator** hesabı olsun.
 
-## 2) IG User ID + uzun ömürlü token al
-**Graph API Explorer** ile (<https://developers.facebook.com/tools/explorer>):
-1. Sağ üstten uygulamanı seç → **Generate Access Token**. İzinler:
-   `instagram_basic`, `instagram_content_publish`, `pages_show_list`, `pages_read_engagement`, `business_management`.
-2. `GET /me/accounts` → Facebook Sayfanı ve **page id**'yi gör.
-3. `GET /{page-id}?fields=instagram_business_account` → dönen **id = IG User ID** (bunu `config.php` `ig_user_id`'e yaz).
-4. **Uzun ömürlü token** (60 gün) al — tarayıcıda şu URL'yi aç:
-   ```
-   https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=APP_ID&client_secret=APP_SECRET&fb_exchange_token=KISA_TOKEN
-   ```
-   Dönen `access_token` değerini **`token.txt`** içine tek satır yapıştır.
+## 1) Meta App'e Instagram ürününü ekle
+1. App Dashboard (Acerasoft) → **Add Product** → **Instagram**.
+2. **"API setup with Instagram login"** bölümüne gir.
+
+## 2) Token üret (IGAA…)
+1. Aynı sayfada **"Generate access tokens"** kısmında **@chathelpp**'i ekle/bağla.
+2. **Generate token** → izinleri onayla → **`IGAA…`** ile başlayan token çıkar.
+3. Bu token'ı **`token.txt`** içine tek satır yapıştır. (IG User ID gerekmez — otomatik.)
+   - Not: token açığa çıkarsa aynı ekrandan **yeniden üret**; eskisi geçersiz olur.
 
 ## 3) Dosyaları sunucuya koy
 1. `marketing/auto-post/` klasörünü sunucuna, **web kökünün DIŞINA** yükle

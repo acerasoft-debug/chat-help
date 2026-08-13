@@ -11,8 +11,11 @@
 return [
     'graph_version' => 'v21.0',
 
-    // Instagram Business hesabının ID'si (SETUP.md 3. adımda alınır)
-    'ig_user_id'    => getenv('IG_USER_ID') ?: 'BURAYA_IG_USER_ID',
+    // Instagram Login akışı (token IGAA... ile başlar) -> graph.instagram.com
+    'api_base'      => 'https://graph.instagram.com/v21.0',
+
+    // IG User ID: 'AUTO' bırak -> koddan token üzerinden otomatik çözülür (elle girmeye gerek yok)
+    'ig_user_id'    => getenv('IG_USER_ID') ?: 'AUTO',
 
     // Meta App bilgileri (token yenileme için)
     'app_id'        => getenv('FB_APP_ID') ?: '2503799493460693',
