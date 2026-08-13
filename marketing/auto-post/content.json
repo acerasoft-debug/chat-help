@@ -1,29 +1,41 @@
 {
-  "_note": "Konu bankası. Reel'ler jsDelivr CDN üzerinden PUBLIC yayınlanıyor (marketing/auto-post/reels/, @commit ile sabitli). Kapak için poster thumb_offset kullanır (kara ilk kareyi atlar). Yeni konsept: reels/ altına MP4 ekle, buraya 6 dilde satır ekle. Caption kısa+net+hashtag.",
+  "_note": "Konu bankası. Reel'ler + ÖZEL KAPAKLAR jsDelivr CDN'den (marketing/auto-post/reels + covers, @commit sabitli). Poster her DİL için kendi konularını tarihe göre döndürür. Yeni konsept: reels/ + covers/ ekle, buraya 'video' + 'cover' + kısa hashtag'li 'caption' ile satır ekle. cover verilirse Instagram onu kapak yapar; yoksa thumb_offset.",
   "cover_thumb_offset_ms": 1600,
-  "planned_topics": [
-    "chatgpt-vs (hazır)", "mieterhoehung-widerspruch", "bussgeldbescheid-einspruch",
-    "kuendigung-wohnung", "mahnung-schreiben", "nebenkosten-pruefen",
-    "arbeitszeugnis", "vertrag-widerrufen", "inkasso-abwehr", "dsgvo-auskunft",
-    "reklamation-gewaehrleistung", "fristen-retten"
-  ],
+  "cdn": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post",
   "items": [
-    { "id": "chatgpt-vs__de", "topic": "chatgpt-vs", "lang": "de", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-de.mp4",
+    { "id": "chatgpt-vs__de", "topic": "chatgpt-vs", "lang": "de",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-de.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-de.png",
       "caption": "Amtspost mit Frist? Dafür nicht ChatGPT. ⚖️ ChatHelp: echte Rechtsquellen, von 2 KIs geprüft – und per Fax/Brief/Einschreiben versendet. 📩\n#ChatGPT #KI #Recht #Widerspruch #Mieterhöhung #ChatHelp" },
 
-    { "id": "chatgpt-vs__en", "topic": "chatgpt-vs", "lang": "en", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-en.mp4",
+    { "id": "chatgpt-vs__en", "topic": "chatgpt-vs", "lang": "en",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-en.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-en.png",
       "caption": "Official letter with a deadline? Don't use ChatGPT. ⚖️ ChatHelp: real legal sources, checked by 2 AIs — then sent by post or fax. 📩\n#ChatGPT #AI #LegalTech #Legal #ChatHelp" },
 
-    { "id": "chatgpt-vs__fr", "topic": "chatgpt-vs", "lang": "fr", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-fr.mp4",
+    { "id": "chatgpt-vs__fr", "topic": "chatgpt-vs", "lang": "fr",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-fr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-fr.png",
       "caption": "Courrier officiel avec délai ? Pas ChatGPT. ⚖️ ChatHelp : vraies sources juridiques, vérifiées par 2 IA — et envoyées. 📩\n#IA #Droit #LegalTech #ChatHelp" },
 
-    { "id": "chatgpt-vs__tr", "topic": "chatgpt-vs", "lang": "tr", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-tr.mp4",
+    { "id": "chatgpt-vs__tr", "topic": "chatgpt-vs", "lang": "tr",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-tr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-tr.png",
       "caption": "Süreli resmî yazı? ChatGPT değil. ⚖️ ChatHelp: gerçek kaynaklar, 2 yapay zekâ kontrolü — ve gönderim (faks/posta/iadeli). 📩\n#YapayZeka #Hukuk #Dilekçe #ChatHelp" },
 
-    { "id": "chatgpt-vs__es", "topic": "chatgpt-vs", "lang": "es", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-es.mp4",
+    { "id": "chatgpt-vs__es", "topic": "chatgpt-vs", "lang": "es",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-es.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-es.png",
       "caption": "¿Carta oficial con plazo? ChatGPT no. ⚖️ ChatHelp: fuentes legales reales, revisadas por 2 IA — y enviadas. 📩\n#IA #Derecho #LegalTech #ChatHelp" },
 
-    { "id": "chatgpt-vs__ru", "topic": "chatgpt-vs", "lang": "ru", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-ru.mp4",
-      "caption": "Официальное письмо со сроком? Не ChatGPT. ⚖️ ChatHelp: реальные источники, проверка 2 ИИ — и отправка. 📩\n#ИИ #Право #ChatHelp" }
+    { "id": "chatgpt-vs__ru", "topic": "chatgpt-vs", "lang": "ru",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/reel2-ru.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-cgpt-ru.png",
+      "caption": "Официальное письмо со сроком? Не ChatGPT. ⚖️ ChatHelp: реальные источники, проверка 2 ИИ — и отправка. 📩\n#ИИ #Право #ChatHelp" },
+
+    { "id": "tr-vize__tr", "topic": "tr-vize", "lang": "tr",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/reels/visa-tr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@7f278ae31513d445c205df1088f8468de8cfffbf/marketing/auto-post/covers/cover-visa-tr.png",
+      "caption": "Schengen vizesi? En büyük ret sebebi: eksik belge. 📄 ChatHelp davet, mali beyan, işveren izni, seyahat planı gibi tüm destek belgelerini + net checklist'i hazırlar. (Randevu/başvuru senin — belgeler eksiksiz bizde.)\n#Schengen #vize #Türkiye #vizebelgeleri #ChatHelp" }
   ]
 }
