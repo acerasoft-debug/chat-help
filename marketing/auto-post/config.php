@@ -15,7 +15,7 @@ return [
     'ig_user_id'    => getenv('IG_USER_ID') ?: 'BURAYA_IG_USER_ID',
 
     // Meta App bilgileri (token yenileme için)
-    'app_id'        => getenv('FB_APP_ID') ?: 'BURAYA_APP_ID',
+    'app_id'        => getenv('FB_APP_ID') ?: '2503799493460693',
     'app_secret'    => getenv('FB_APP_SECRET') ?: '',   // boşsa app_secret.txt'ten okunur
 
     // Sırlar dosyada (repoda değil)
