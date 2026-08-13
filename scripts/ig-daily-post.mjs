@@ -18,6 +18,7 @@ const ALL = ['de','en','fr','tr','es','ru'];
 
 const content = JSON.parse(readFileSync('marketing/auto-post/content.json','utf8'));
 const items = content.items || [];
+const THUMB = content.cover_thumb_offset_ms ?? 1600;   // kapak: kara ilk kareyi atla
 const topics = [...new Set(items.map(i => i.topic))];   // konu sırası (görünme sırası)
 
 // Gün sayısı (UTC) -> bugünkü konu
@@ -49,8 +50,10 @@ async function igUserId() {
   return j.user_id || j.id;
 }
 
-async function publishReel(uid, videoUrl, caption) {
-  const c = await api('POST', `/${uid}/media`, { media_type: 'REELS', video_url: videoUrl, caption });
+async function publishReel(uid, videoUrl, caption, thumbOffset) {
+  const params = { media_type: 'REELS', video_url: videoUrl, caption };
+  if (thumbOffset != null) params.thumb_offset = String(thumbOffset);   // kapak karesi (ms)
+  const c = await api('POST', `/${uid}/media`, params);
   const cid = c.id;
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 5000));
@@ -70,7 +73,7 @@ for (const lang of langs) {
   const it = items.find(x => x.topic === topic && x.lang === lang);
   if (!it) { console.log(`atlandı: ${topic}/${lang} içerik yok`); continue; }
   try {
-    const mid = await publishReel(uid, it.video, it.caption);
+    const mid = await publishReel(uid, it.video, it.caption, it.thumb_offset ?? THUMB);
     console.log(`✓ YAYIN ${lang} ${it.id} -> media ${mid}`);
     ok++;
   } catch (e) {
