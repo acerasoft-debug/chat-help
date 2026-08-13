@@ -51,9 +51,17 @@ async function igUserId() {
 }
 
 async function publishReel(uid, videoUrl, caption, thumbOffset) {
-  const params = { media_type: 'REELS', video_url: videoUrl, caption };
-  if (thumbOffset != null) params.thumb_offset = String(thumbOffset);   // kapak karesi (ms)
-  const c = await api('POST', `/${uid}/media`, params);
+  const base = { media_type: 'REELS', video_url: videoUrl, caption };
+  let c;
+  try {
+    // kapak karesi (ms): kara ilk kareyi atla
+    c = await api('POST', `/${uid}/media`,
+      thumbOffset != null ? { ...base, thumb_offset: String(thumbOffset) } : base);
+  } catch (e) {
+    if (thumbOffset == null) throw e;
+    console.error(`thumb_offset reddedildi, kapaksız deniyorum: ${e.message}`);
+    c = await api('POST', `/${uid}/media`, base);
+  }
   const cid = c.id;
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 5000));
