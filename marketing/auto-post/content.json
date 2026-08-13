@@ -1,0 +1,28 @@
+{
+  "_note": "Konu bankası. Reel'ler jsDelivr CDN üzerinden PUBLIC yayınlanıyor (marketing/auto-post/reels/ klasöründeki dosyalar, @commit ile sabitli). Yeni konsept: reels/ altına MP4 ekle, buraya 6 dilde satır ekle, video URL'sini cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@COMMIT/marketing/auto-post/reels/DOSYA.mp4 yap. Reel yüklemek için sunucuya gerek YOK.",
+  "planned_topics": [
+    "chatgpt-vs (hazır)", "mieterhoehung-widerspruch", "bussgeldbescheid-einspruch",
+    "kuendigung-wohnung", "mahnung-schreiben", "nebenkosten-pruefen",
+    "arbeitszeugnis", "vertrag-widerrufen", "inkasso-abwehr", "dsgvo-auskunft",
+    "reklamation-gewaehrleistung", "fristen-retten"
+  ],
+  "items": [
+    { "id": "chatgpt-vs__de", "topic": "chatgpt-vs", "lang": "de", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-de.mp4",
+      "caption": "ChatGPT ist super – aber nicht für Amtspost. ⚖️ Bei Fristen zählt: echte Rechtsquellen, doppelt geprüft, fristwahrend verschickt. Genau das macht ChatHelp – Widerspruch, Antrag oder Brief, geschrieben und per Fax, Brief oder Einschreiben versendet. 📩 Kein Drucker, kein Stress. 👉 In der App – Google Play. #ChatGPT #KI #Recht #Widerspruch #Mieterhöhung #ChatHelp" },
+
+    { "id": "chatgpt-vs__en", "topic": "chatgpt-vs", "lang": "en", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-en.mp4",
+      "caption": "ChatGPT is great — but not for an official letter with a deadline. ⚖️ ChatHelp writes your appeal from real legal sources, double-checked by a 2nd AI — then sends it by post, fax or Signed For. 📩 No printer, no stress. 👉 In the app / Google Play. #LegalTech #AI #ChatGPT #ChatHelp" },
+
+    { "id": "chatgpt-vs__fr", "topic": "chatgpt-vs", "lang": "fr", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-fr.mp4",
+      "caption": "ChatGPT c'est bien — mais pas pour un courrier officiel avec un délai. ⚖️ ChatHelp rédige ta réclamation à partir de vraies sources juridiques, vérifiée par une 2ᵉ IA — puis l'envoie par courrier, fax ou recommandé. 📩 👉 Dans l'app / Google Play. #LegalTech #IA #Droit #ChatHelp" },
+
+    { "id": "chatgpt-vs__tr", "topic": "chatgpt-vs", "lang": "tr", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-tr.mp4",
+      "caption": "ChatGPT harika — ama süreli resmî yazı için değil. ⚖️ ChatHelp itirazını gerçek kaynaklardan yazar, 2. yapay zekâ kontrol eder — sonra posta, faks veya iadeli taahhütlü gönderir. 📩 👉 Uygulamada / Google Play. #Hukuk #YapayZeka #Dilekçe #ChatHelp" },
+
+    { "id": "chatgpt-vs__es", "topic": "chatgpt-vs", "lang": "es", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-es.mp4",
+      "caption": "ChatGPT está genial — pero no para una carta oficial con plazo. ⚖️ ChatHelp redacta tu reclamación con fuentes legales reales, revisada por una 2ª IA — y la envía por correo, fax o burofax. 📩 👉 En la app / Google Play. #LegalTech #IA #Derecho #ChatHelp" },
+
+    { "id": "chatgpt-vs__ru", "topic": "chatgpt-vs", "lang": "ru", "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@bba10b3cd73b54352800de5ce2e030834d263fde/marketing/auto-post/reels/reel2-ru.mp4",
+      "caption": "ChatGPT — это здорово, но не для официального письма со сроком. ⚖️ ChatHelp составит вашу жалобу по реальным источникам, проверит вторым ИИ — и отправит почтой, факсом или заказным. 📩 👉 В приложении / Google Play. #LegalTech #ИИ #Право #ChatHelp" }
+  ]
+}
