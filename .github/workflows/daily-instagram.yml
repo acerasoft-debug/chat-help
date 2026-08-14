@@ -27,6 +27,10 @@ on:
         description: 'Dil (de/en/fr/tr/es/ru) — boş bırakırsan hepsi'
         required: false
         default: ''
+      items:
+        description: "Belirli item id'leri (virgülle) — verilirse rotasyon yerine bunları atar"
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -48,4 +52,5 @@ jobs:
           IG_TOKEN: ${{ secrets.IG_TOKEN }}
           SCHEDULE: ${{ github.event.schedule }}
           LANG_IN: ${{ github.event.inputs.lang }}
+          ITEMS: ${{ github.event.inputs.items }}
         run: node scripts/ig-daily-post.mjs
