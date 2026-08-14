@@ -1,56 +1,56 @@
 {
   "_note": "Konu bankası. Reel'ler + ÖZEL KAPAKLAR jsDelivr CDN'den (@commit sabitli). Poster her DİL için kendi konularını tarihe göre döndürür; dilde >1 konu olunca kapak da her gün değişir. Müzik: chatgpt-vs=warm, visa=bright, Miete=resolute (prosedürel, reverb'lü). Ülke-özel: DE=Miete, TR=vize + (Almanya diasporası) Miete, RU=(Almanya diasporası) Miete. Almanya'daki Türk/Rus kullanıcılar için Miete kendi dillerinde, Almanca hukuk terimleri korunur.",
   "cover_thumb_offset_ms": 1600,
-  "cdn": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post",
+  "cdn": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post",
   "items": [
     { "id": "chatgpt-vs__de", "topic": "chatgpt-vs", "lang": "de",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-de.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-de.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-de.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-de.png",
       "caption": "Amtspost mit Frist? Dafür nicht ChatGPT. ⚖️ ChatHelp: echte Rechtsquellen, von 2 KIs geprüft – und per Fax/Brief/Einschreiben versendet. 📩\n#ChatGPT #KI #Recht #Widerspruch #Mieterhöhung #ChatHelp" },
 
     { "id": "de-miete__de", "topic": "de-miete", "lang": "de",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/miete-de.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-miete-de.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/miete-de.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-miete-de.png",
       "caption": "Mieterhöhung im Briefkasten? Erst prüfen – nicht ungeprüft zahlen. ⚖️ ChatHelp checkt §558 BGB, Kappungsgrenze & Mietspiegel – und schreibt den fristwahrenden Widerspruch, versandfertig. 📩\n#Mieterhöhung #Mietrecht #Widerspruch #BGB #Mietspiegel #ChatHelp" },
 
     { "id": "chatgpt-vs__en", "topic": "chatgpt-vs", "lang": "en",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-en.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-en.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-en.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-en.png",
       "caption": "Official letter with a deadline? Don't use ChatGPT. ⚖️ ChatHelp: real legal sources, checked by 2 AIs — then sent by post or fax. 📩\n#ChatGPT #AI #LegalTech #Legal #ChatHelp" },
 
     { "id": "chatgpt-vs__fr", "topic": "chatgpt-vs", "lang": "fr",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-fr.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-fr.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-fr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-fr.png",
       "caption": "Courrier officiel avec délai ? Pas ChatGPT. ⚖️ ChatHelp : vraies sources juridiques, vérifiées par 2 IA — et envoyées. 📩\n#IA #Droit #LegalTech #ChatHelp" },
 
     { "id": "chatgpt-vs__tr", "topic": "chatgpt-vs", "lang": "tr",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-tr.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-tr.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-tr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-tr.png",
       "caption": "Süreli resmî yazı? ChatGPT değil. ⚖️ ChatHelp: gerçek kaynaklar, 2 yapay zekâ kontrolü — ve gönderim (faks/posta/iadeli). 📩\n#YapayZeka #Hukuk #Dilekçe #ChatHelp" },
 
     { "id": "tr-vize__tr", "topic": "tr-vize", "lang": "tr",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/visa-tr.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-visa-tr.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/visa-tr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-visa-tr.png",
       "caption": "Schengen vizesi? En büyük ret sebebi: eksik belge. 📄 ChatHelp davet, mali beyan, işveren izni, seyahat planı gibi tüm destek belgelerini + net checklist'i hazırlar. (Randevu/başvuru senin — belgeler eksiksiz bizde.)\n#Schengen #vize #Türkiye #vizebelgeleri #ChatHelp" },
 
     { "id": "de-miete__tr", "topic": "de-miete", "lang": "tr",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/miete-tr.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-miete-tr.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/miete-tr.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-miete-tr.png",
       "caption": "Almanya'da kira zammı mektubu mu geldi? 📩 Ödemeden önce kontrol ettir. ChatHelp §558 BGB, Kappungsgrenze ve Mietspiegel'e göre inceler — ve süresinde geçerli itirazı (Widerspruch) gönderime hazır yazar.\n#Almanya #kira #Mieterhöhung #Widerspruch #Mietrecht #ChatHelp" },
 
     { "id": "chatgpt-vs__es", "topic": "chatgpt-vs", "lang": "es",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-es.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-es.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-es.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-es.png",
       "caption": "¿Carta oficial con plazo? ChatGPT no. ⚖️ ChatHelp: fuentes legales reales, revisadas por 2 IA — y enviadas. 📩\n#IA #Derecho #LegalTech #ChatHelp" },
 
     { "id": "chatgpt-vs__ru", "topic": "chatgpt-vs", "lang": "ru",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/reel2-ru.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-cgpt-ru.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/reel2-ru.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-cgpt-ru.png",
       "caption": "Официальное письмо со сроком? Не ChatGPT. ⚖️ ChatHelp: реальные источники, проверка 2 ИИ — и отправка. 📩\n#ИИ #Право #ChatHelp" },
 
     { "id": "de-miete__ru", "topic": "de-miete", "lang": "ru",
-      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/reels/miete-ru.mp4",
-      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@3a704a62a433e3554e8f5573101edb9c1232d5f7/marketing/auto-post/covers/cover-miete-ru.png",
+      "video": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/reels/miete-ru.mp4",
+      "cover": "https://cdn.jsdelivr.net/gh/acerasoft-debug/chat-help@b1688bb7a3b15384b7d64fcca05fd7b3f2cc3c78/marketing/auto-post/covers/cover-miete-ru.png",
       "caption": "Пришло письмо о повышении аренды в Германии? 📩 Не платите сразу. ChatHelp проверит его по §558 BGB, Kappungsgrenze и Mietspiegel — и напишет действительное возражение (Widerspruch), готовое к отправке в срок.\n#Германия #аренда #Mieterhöhung #Widerspruch #ChatHelp" }
   ]
 }
