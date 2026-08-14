@@ -8,10 +8,15 @@ const TOKEN = process.env.IG_TOKEN;
 if (!TOKEN) { console.error('HATA: IG_TOKEN yok (GitHub Secret ekle).'); process.exit(1); }
 const API = 'https://graph.instagram.com/v21.0';
 
-// Workflow'daki cron saatleri -> dil (bölge prime-time)
+// Workflow'daki cron saatleri -> dil. Hepsi Türkiye öğle saatine (TR=UTC+3)
+// kümelendi ki paylaşımlar canlı takip edilebilsin. daily-instagram.yml ile BİREBİR aynı olmalı.
 const SCHED2LANG = {
-  '0 7 * * *':'de', '0 11 * * *':'fr', '0 12 * * *':'en',
-  '0 14 * * *':'ru', '0 15 * * *':'tr', '0 18 * * *':'es',
+  '0 8 * * *':'tr',   // 11:00 TR
+  '20 8 * * *':'de',  // 11:20 TR
+  '40 8 * * *':'en',  // 11:40 TR
+  '0 9 * * *':'fr',   // 12:00 TR
+  '20 9 * * *':'es',  // 12:20 TR
+  '40 9 * * *':'ru',  // 12:40 TR
 };
 const ALL = ['de','en','fr','tr','es','ru'];
 

@@ -4,18 +4,23 @@ name: Günlük Instagram paylaşımı (@chathelpp)
 # Tamamen GitHub Actions'ta çalışır — sunucu/cPanel/host cron GEREKMEZ.
 # Reel'ler jsDelivr CDN'den (content.json), token GitHub Secret'ta (IG_TOKEN).
 #
-# ⚠️ ZAMANLAMA SADECE DEFAULT BRANCH'TEN ÇALIŞIR. Bu dosyayı default branch'e
-#    (charming-franklin) getir + repo Secret'ı IG_TOKEN'ı ekle. Sonra otomatik.
+# ⚠️ ZAMANLAMA SADECE DEFAULT BRANCH'TEN ÇALIŞIR. Bu dosya default branch'te
+#    (charming-franklin) + repo Secret'ı IG_TOKEN ekli. Sonrası otomatik.
 #    Elle test: Actions → bu workflow → "Run workflow" (lang seçebilirsin).
+#
+# SAATLER (UTC) — hepsi Türkiye öğle saatlerine denk gelsin diye kümelendi
+# (TR = UTC+3). Böylece paylaşımları canlı takip edebilirsin. GitHub cron'u
+# yoğunlukta birkaç dk gecikebilir; pencere 11:00–13:00 TR olacak şekilde bırakıldı.
+# NOT: Buradaki cron dizeleri poster'daki SCHED2LANG ile BİREBİR aynı olmalı.
 
 on:
   schedule:
-    - cron: '0 7 * * *'    # DE ~08-09 CET
-    - cron: '0 11 * * *'   # FR ~12-13 CET
-    - cron: '0 12 * * *'   # EN ~12-13 UK
-    - cron: '0 14 * * *'   # RU ~17 MSK
-    - cron: '0 15 * * *'   # TR ~18 (UTC+3)
-    - cron: '0 18 * * *'   # ES ~19-20 CET
+    - cron: '0 8 * * *'    # TR  -> 11:00 TR
+    - cron: '20 8 * * *'   # DE  -> 11:20 TR
+    - cron: '40 8 * * *'   # EN  -> 11:40 TR
+    - cron: '0 9 * * *'    # FR  -> 12:00 TR
+    - cron: '20 9 * * *'   # ES  -> 12:20 TR
+    - cron: '40 9 * * *'   # RU  -> 12:40 TR
   workflow_dispatch:
     inputs:
       lang:
