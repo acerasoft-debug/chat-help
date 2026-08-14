@@ -74,6 +74,22 @@ async function publishReel(uid, it) {
 }
 
 const uid = await igUserId();
+
+// ELLE ZORLAMA: ITEMS="id1,id2" verilirse rotasyon yerine bu item'ları sırayla atar.
+const itemsIn = (process.env.ITEMS || '').trim();
+if (itemsIn) {
+  const ids = itemsIn.split(',').map(s => s.trim()).filter(Boolean);
+  const chosen = ids.map(id => items.find(x => x.id === id)).filter(Boolean);
+  console.log(`ITEMS modu (${chosen.length}): ${chosen.map(x => x.id).join(', ')}  ig_user=${uid}`);
+  let okc = 0;
+  for (const it of chosen) {
+    try { const mid = await publishReel(uid, it); console.log(`✓ ${it.id} -> media ${mid}`); okc++; }
+    catch (e) { console.error(`✗ ${it.id}: ${e.message}`); }
+  }
+  console.log(`bitti: ${okc}/${chosen.length} yayınlandı`);
+  process.exit(chosen.length && okc === 0 ? 1 : 0);
+}
+
 console.log(`gün=${doy}  diller=${langs.join(',')}  ig_user=${uid}`);
 let ok = 0, total = 0;
 for (const lang of langs) {
