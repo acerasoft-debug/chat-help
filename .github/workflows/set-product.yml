@@ -103,7 +103,8 @@ jobs:
               return $norm(implode('|', array_map('strval', $bits)));
             };
 
-            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list'];
+            $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list',
+                        'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -199,6 +200,41 @@ jobs:
                 ];
               }
 
+              /* ─── Havuz (grup alimi) alanlari ───────────────────────────────
+                 Bu alanlar dogrudan PARA belirliyor: group_price alicinin odeyecegi
+                 birim fiyat, group_deposit_pct ise katilim aninda kartindan cekilecek
+                 oran. Bir yazim hatasi burada sessizce yanlis tahsilat demek, o yuzden
+                 hepsi tek tek dogrulaniyor. */
+              if (isset($set['group_price']) && (!is_numeric($set['group_price']) || (float)$set['group_price'] <= 0)) {
+                $errors[] = "{$ctx} ({$m}): gecersiz group_price '{$set['group_price']}'"; continue;
+              }
+              if (isset($set['group_target']) && (int)$set['group_target'] < 1) {
+                $errors[] = "{$ctx} ({$m}): group_target >= 1 olmali"; continue;
+              }
+              if (isset($set['group_deposit_pct'])) {
+                $dp = $set['group_deposit_pct'];
+                if (!is_numeric($dp) || (float)$dp < 0 || (float)$dp > 100) {
+                  $errors[] = "{$ctx} ({$m}): group_deposit_pct 0-100 arasi olmali, '{$dp}' verildi"; continue;
+                }
+              }
+              foreach (['group_balance_days','group_extend_days'] as $dk) {
+                if (isset($set[$dk]) && (int)$set[$dk] < 1) {
+                  $errors[] = "{$ctx} ({$m}): {$dk} >= 1 olmali"; continue 2;
+                }
+              }
+              foreach (['group_started','group_deadline'] as $tk) {
+                if (isset($set[$tk]) && strtotime((string)$set[$tk]) === false) {
+                  $errors[] = "{$ctx} ({$m}): {$tk} okunamayan tarih: '{$set[$tk]}'"; continue 2;
+                }
+              }
+              /* Havuz acan her satir son tarihi ACIKCA vermeli. Bos birakilirsa
+                 vestra_group_deadline() baslangici her sayfa yuklemesinde date('c')
+                 sayar; son tarih surekli 14 gun ileri kayar ve geri sayim asla
+                 bitmez -- havuz sonsuza kadar "acik" gorunur. */
+              if (!empty($set['group']) && !isset($set['group_deadline']) && !isset($set['group_started'])) {
+                $errors[] = "{$ctx} ({$m}): havuz aciliyor ama group_deadline/group_started yok — son tarih hic dolmaz"; continue;
+              }
+
               $mn = $norm($m);
               /* Once TAM eslesme (id ya da sku). Alt dize aramasi kisa kodlarda fazla
                  urune uyabiliyor; tam eslesme varsa o kazanir. */
@@ -217,6 +253,27 @@ jobs:
                           . ($found ? " -> ".implode(', ', array_slice($found,0,8)) : " -> hicbiri");
                 continue;
               }
+              /* Havuz fiyati urunun EN UCUZ kademesinin altinda olmali. Ustunde ya da
+                 esitse havuz tek basina almaya gore hicbir sey kazandirmaz: sayfa
+                 "-%0" yazar, ki kod tabani bu sahte indirim gorunumune karsi zaten
+                 uyariyor (vestra_on_sale). Bu kontrol bir kez gercekten gerekti --
+                 16.90'in aslinda 500+ fiyati oldugu, 19.90'in ise 20.00'lik tek
+                 kademenin 10 kurus altinda kaldigi fark edilmeseydi vitrine sifir
+                 indirimli bir havuz cikacakti. */
+              if (isset($set['group_price'])) {
+                foreach ($idx as $i) {
+                  $tp = [];
+                  foreach ((array)($all[$i]['tiers'] ?? []) as $t) if (isset($t['price'])) $tp[] = (float)$t['price'];
+                  if (!$tp) continue;
+                  $cheapest = min($tp);
+                  if ((float)$set['group_price'] >= $cheapest) {
+                    $errors[] = "{$ctx} ({$m}): group_price ".$set['group_price']." >= en ucuz kademe {$cheapest}"
+                              . " — havuz indirim vermez, vitrinde -%0 cikar";
+                    continue 2;
+                  }
+                }
+              }
+
               foreach ($idx as $i) $plan[] = [$i, $set, $m];
             }
 
@@ -320,6 +377,29 @@ jobs:
                   $added = array_diff_key($v, $old) ?: $v;
                   $line[] = "specs +".count($added).": ".implode(', ', array_keys($added));
                   $all[$i]['specs'] = $new;
+                  $changes++;
+                } elseif ($k === 'group') {
+                  /* Gercek boolean yaziliyor, "1"/"0" degil: kapatmak icin "false"
+                     yazildiginda genel dal bunu dolu bir string yapar ve
+                     !empty("false") TRUE dondurur -- havuz kapatilmak istenirken
+                     acik kalirdi. */
+                  $new = in_array(strtolower((string)$v), ['1','true','yes','evet'], true);
+                  $old = !empty($p['group']);
+                  if ($old === $new) continue;
+                  $line[] = "group ".($old?'acik':'kapali')." -> ".($new?'ACIK':'KAPALI');
+                  $all[$i]['group'] = $new;
+                  $changes++;
+                } elseif ($k === 'group_target' || $k === 'group_balance_days' || $k === 'group_extend_days') {
+                  $new = (int)$v; $old = (int)($p[$k] ?? 0);
+                  if ($old === $new) continue;
+                  $line[] = "{$k} {$old} -> {$new}";
+                  $all[$i][$k] = $new;
+                  $changes++;
+                } elseif ($k === 'group_price' || $k === 'group_deposit_pct') {
+                  $new = (float)$v; $old = (float)($p[$k] ?? 0);
+                  if (abs($old - $new) < 0.0001) continue;
+                  $line[] = "{$k} {$old} -> {$new}";
+                  $all[$i][$k] = $new;
                   $changes++;
                 } else {
                   $new = (string)$v; $old = (string)($p[$k] ?? '');
