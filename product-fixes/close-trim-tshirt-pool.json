@@ -1,0 +1,9 @@
+[
+  {
+    "match": "lgp-lacoste-trim-tshirt",
+    "expect": 1,
+    "group": "0",
+    "_why": "Havuz yanlis modele kurulmustu. Istenen urun lac-pima-tshirt (Cotton Pima T-Shirt, TH6709) -- 104 adet ve 19.90 EUR onun kendi moq'su ve kendi kademesi. Trim Jersey'de havuz kapatiliyor. Kapatmak guvenli: bu havuza hic katilim olmadi, dolayisiyla iade edilecek kapora da yok.",
+    "_why_keep_fields": "group_target/group_price/group_deposit_pct alanlari silinmiyor, sadece group=false yapiliyor. Havuz yeniden acilmak istenirse ayarlar duruyor; ayrica group=false iken hicbir yerde okunmuyorlar."
+  }
+]
