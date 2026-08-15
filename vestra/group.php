@@ -5,7 +5,8 @@ $p = vestra_group_pool($_GET['id'] ?? '');
 if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('This group buy is not available.').' <a class="acc" href="/groups">'.t('See open group buys →').'</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
-$PAGE=$p['name'].' — '.t('Group buy'); $NAV='groups'; require __DIR__.'/inc/head.php';
+$GTITLE=vestra_group_title($p); $GMODELS=vestra_group_models($p); $GASSORT=count($GMODELS)>1;
+$PAGE=$GTITLE.' — '.t('Group buy'); $NAV='groups'; require __DIR__.'/inc/head.php';
 $from=$p['tiers'][0]['price']??vestra_from_price($p); $joined=isset($_GET['joined']);
 $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
 /* Deposit pools charge on join; the legacy free-commitment pools do not. Every
@@ -39,6 +40,13 @@ $GMIN    = vestra_group_min_qty($p);
 .gcd{display:flex;gap:8px}
 .gcd .u{background:var(--card,#16161a);border:1px solid var(--line);border-radius:9px;padding:7px 0;min-width:52px;text-align:center}
 .gcd .u b{font-size:19px;display:block}.gcd .u span{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+/* Karma havuzun kapsadigi modeller */
+.gmods{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.gmod{display:flex;flex-direction:column;gap:5px;text-decoration:none;color:inherit}
+.gmod img,.gmod .ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:var(--card,#16161a)}
+.gmod .ph{display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut);text-align:center;padding:4px;line-height:1.3}
+.gmod .cap{font-size:10.5px;color:var(--mut);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmod:hover img,.gmod:hover .ph{border-color:rgba(201,168,106,.5)}
 </style>
 <div class="wrap">
   <div class="crumbs" style="margin-top:24px"><a href="/"><?= t('Home') ?></a> · <a href="/groups"><?= t('Group buys') ?></a> · <?=htmlspecialchars($p['brand'])?></div>
@@ -60,8 +68,26 @@ $GMIN    = vestra_group_min_qty($p);
         <?php if($heroImg !== '' && $MEMBER): ?><img src="<?=htmlspecialchars($heroImg)?>" alt=""><?php endif; ?>
         <span class="bn"><?=htmlspecialchars($p['brand'])?></span>
       </div>
-      <h1 style="margin:16px 0 4px"><?=htmlspecialchars($p['name'])?></h1>
+      <h1 style="margin:16px 0 4px"><?=htmlspecialchars($GTITLE)?></h1>
       <p class="sub"><?=htmlspecialchars($p['desc'])?></p>
+
+      <?php if($GASSORT): ?>
+        <h3 style="margin:22px 0 8px"><?= sprintf(t('%d models in this pool'), count($GMODELS)) ?></h3>
+        <p class="hint" style="margin:0 0 12px"><?= t('Your quantity is spread across these models. Tell us your split after the pool closes — or leave it to us and we send a balanced assortment.') ?></p>
+        <div class="gmods">
+          <?php foreach($GMODELS as $mdl): ?>
+            <a class="gmod" href="/product?id=<?=urlencode($mdl['id'])?>">
+              <?php /* Ayni uyelik kapisi: fotograflar site genelinde uyelere ozel. */ ?>
+              <?php if($MEMBER && $mdl['image']!==''): ?>
+                <img src="<?=htmlspecialchars($mdl['image'])?>" alt="<?=htmlspecialchars($mdl['name'])?>" loading="lazy">
+              <?php else: ?>
+                <span class="ph"><?= htmlspecialchars(substr($mdl['sku']!==''?$mdl['sku']:$mdl['name'],0,12)) ?></span>
+              <?php endif; ?>
+              <span class="cap"><?=htmlspecialchars($mdl['sku']!==''?$mdl['sku']:$mdl['name'])?></span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
       <div style="display:flex;align-items:center;gap:12px;margin:10px 0 2px">
         <span class="gpill <?=$p['_status']?>">

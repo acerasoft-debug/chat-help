@@ -454,6 +454,34 @@ function vestra_group_min_qty($p){
   if(!empty($p['group_min_qty'])) return max(1,(int)$p['group_min_qty']);
   return max(1,(int)($p['moq'] ?? 1));
 }
+/* ─── Assortment pools ──────────────────────────────────────────────────────
+   A pool is otherwise 1:1 with one product. An assortment pool still HAS a host
+   listing (so ids, seller, order plumbing all keep working) but covers several
+   catalogue models: the buyer commits a total quantity and spreads it across
+   them. group_models holds the member ids.
+
+   Ids that no longer resolve are dropped silently HERE but rejected at write
+   time by set-product.yml — a pool advertised as "10 models" that quietly
+   renders 8 would shortchange the buyer without anyone noticing. */
+function vestra_group_models($p): array {
+  $ids = $p['group_models'] ?? [];
+  if(!is_array($ids) || !$ids) return [];
+  $out = [];
+  foreach($ids as $id){
+    $m = vestra_find((string)$id);
+    if(!$m) continue;
+    $out[] = ['id'=>$m['id'], 'name'=>(string)($m['name']??''), 'sku'=>(string)($m['sku']??''),
+              'image'=>vestra_primary_image($m)];
+  }
+  return $out;
+}
+function vestra_group_is_assortment($p): bool { return count(vestra_group_models($p)) > 1; }
+/* Display name for a pool. An assortment is not "one product", so it carries its
+   own title; without one it falls back to the host listing's name. */
+function vestra_group_title($p): string {
+  $t = trim((string)($p['group_title'] ?? ''));
+  return $t !== '' ? $t : (string)($p['name'] ?? '');
+}
 /* Unlocked unit price once the target is met (seller override, else the lowest tier price). */
 function vestra_group_price($p){
   if(!empty($p['group_price'])) return (float)$p['group_price'];

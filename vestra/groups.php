@@ -74,13 +74,21 @@ $isBuyer=$AUTH_USER && ($AUTH_USER['type']??'')==='buyer';
       <div class="gpool">
         <a href="/group?id=<?=urlencode($p['id'])?>" style="text-decoration:none;color:inherit;display:block">
           <div class="top" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
-            <?php if(!empty($p['image']) && $MEMBER): ?><img src="<?=htmlspecialchars($p['image'])?>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55"><?php endif; ?>
+            <?php /* group.php ile ayni duzeltme: fotograflar images[] dizisinde, cogunda
+                     skaler 'image' alani hic yok -- bu kart fotografi olan bir havuzda bile
+                     bos renk blogu gosteriyordu. */ ?>
+            <?php $cardImg = vestra_primary_image($p); ?>
+            <?php if($cardImg !== '' && $MEMBER): ?><img src="<?=htmlspecialchars($cardImg)?>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55"><?php endif; ?>
             <?php if($save>0): ?><span class="savebadge">−<?=$save?>%</span><?php endif; ?>
             <span class="bn" style="position:relative"><?=htmlspecialchars($p['brand'])?></span>
           </div>
         </a>
         <div class="body">
-          <div class="pname"><a href="/group?id=<?=urlencode($p['id'])?>" style="color:inherit;text-decoration:none"><?=htmlspecialchars($p['name'])?></a></div>
+          <?php $cardModels = vestra_group_models($p); ?>
+          <div class="pname"><a href="/group?id=<?=urlencode($p['id'])?>" style="color:inherit;text-decoration:none"><?=htmlspecialchars(vestra_group_title($p))?></a></div>
+          <?php if(count($cardModels) > 1): ?>
+            <div class="hint" style="font-size:12px;margin-top:-4px"><?= sprintf(t('%d models · mixed assortment'), count($cardModels)) ?></div>
+          <?php endif; ?>
           <div class="gprice"><span class="now"><?=eur($tierTop)?></span><span class="hint">/ <?=htmlspecialchars($p['unit'])?></span><span class="was"><?=eur($from)?></span></div>
           <div class="gbar"><i style="width:<?=$p['_pct']?>%"></i></div>
           <div class="gmeta">

@@ -1,0 +1,32 @@
+[
+  {
+    "match": "dsq-101211",
+    "expect": 1,
+    "group": "1",
+    "group_title": "DSQUARED2 T-Shirt Assortment — 10 Models",
+    "group_models": [
+      "dsq-101211",
+      "dsq-101212",
+      "dsq-101213",
+      "dsq-101214",
+      "dsq-101215",
+      "dsq-101230",
+      "dsq-101231",
+      "dsq-101232",
+      "dsq-101233",
+      "dsq-101237"
+    ],
+    "group_target": "100",
+    "group_min_qty": "100",
+    "group_price": "35.00",
+    "group_deposit_pct": "8",
+    "group_balance_days": "7",
+    "group_extend_days": "7",
+    "group_started": "2026-08-15T00:00:00+00:00",
+    "group_deadline": "2026-08-29T23:59:59+00:00",
+    "_why": "Karma DSQUARED2 ti-shirt havuzu: 100 adet TOPLAM, 10 model arasina dagitilir, birim 35.00 EUR, %8 kapora Stripe'tan. Havuz dsq-101211 uzerinde barinuyor (bir havuz teknik olarak hala bir urune bagli) ama sayfada 10 modelin tamami fotograflariyla listeleniyor -- group_models bunun icin eklendi.",
+    "_why_price": "35.00, bu ti-shirtlerin tek kademesi olan 39.90'in %12 alti (liste/RRP 69 EUR'ya gore -%49). Havuz fiyati kademenin ALTINDA olmak zorunda, yoksa vitrinde -%0 cikar.",
+    "_why_models": "Katalogda 13 canli DSQUARED2 ti-shirt var; operator 10 istedi. Disarida kalanlar: dsq-101239, dsq-s74gd0969, dsq-s74gd0969-1. Hepsi ayni fiyat/moq yapisinda oldugu icin istenirse eklenebilir.",
+    "_why_min": "Kisi basi en az alim 100 = havuz hedefi 100. Ilk katilan havuzu tek basina doldurur; yani bu, 100 adetlik karma asgari siparisin %8 kaporali hali. Birden fazla alicinin birikmesi istenirse hedefin yukseltilmesi gerekir."
+  }
+]
