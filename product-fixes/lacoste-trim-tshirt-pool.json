@@ -5,13 +5,14 @@
     "group": "1",
     "group_target": "104",
     "group_price": "18.50",
-    "group_deposit_pct": "20",
+    "group_deposit_pct": "8",
     "group_balance_days": "7",
     "group_extend_days": "7",
     "group_started": "2026-08-15T00:00:00+00:00",
     "group_deadline": "2026-08-29T23:59:59+00:00",
     "_why": "Lacoste Trim Jersey T-Shirt havuzu. Hedef 104 adet TOPLAM (tum katilimcilarin toplami), kilidi acilan fiyat 18.50 EUR. Katilim aninda %20 kapora Stripe'tan tahsil edilir, kalan %80 havuz kapandiktan sonra 7 gun icinde odenir. Hedef tutmazsa havuz bir kez 7 gun uzatilir; yine tutmazsa kaporalar tam iade edilir (cron_pool_sweep.php).",
     "_why_price": "18.50, urunun TEK toptan kademesi olan 20.00 EUR'nun %7.5 altinda -- sayfada -%8 olarak cikar. Onceki 16.90 rakami ne sitede ne line sheet'te var; operatorun aktardigina gore 500+ alimda hak edilen fiyat. 104 adetlik bir havuza onu vermek hak edilmeyen bir fiyattan satmak olurdu, o yuzden hacme uyan bir ara fiyat secildi. 19.90 elendi: 20.00'in 10 kurus altinda kalir ve vitrinde -%0/1 diye gorunur, ki kod tabani bu sahte indirim gorunumune karsi zaten uyariyor (vestra_on_sale).",
+    "_why_deposit": "%8 kapora, %20 degil. Kapora VESTRA'nin kendi Stripe hesabina giriyor ve amaci VESTRA'nin komisyonunu pesin guvenceye almak: dolu havuzda 104 x 18.50 = 1924 EUR uzerinden %8 = 153.92 EUR toplanir, satici komisyonu ise en yuksek kademede %3.5 = 67.34 EUR. Yani kapora ucreti rahatca karsiliyor. Bedeli: dusuk kapora taahhudu zayiflatir (vazgecmek ucuzlar) ama iade yukumlulugu de ayni oranda kuculur.",
     "_why_deadline": "group_started ve group_deadline ikisi de ACIKCA yaziliyor. group_started bos birakilirsa vestra_group_deadline() onu her sayfa yuklemesinde date('c') sayar; son tarih boylece surekli 14 gun ileri kayar ve geri sayim asla bitmez -- havuz sonsuza kadar 'acik' kalir."
   }
 ]
