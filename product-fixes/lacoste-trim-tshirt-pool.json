@@ -1,0 +1,16 @@
+[
+  {
+    "match": "lgp-lacoste-trim-tshirt",
+    "expect": 1,
+    "group": "1",
+    "group_target": "104",
+    "group_price": "16.90",
+    "group_deposit_pct": "20",
+    "group_balance_days": "7",
+    "group_extend_days": "7",
+    "group_started": "2026-08-15T00:00:00+00:00",
+    "group_deadline": "2026-08-29T23:59:59+00:00",
+    "_why": "Lacoste Trim Jersey T-Shirt havuzu. Hedef 104 adet TOPLAM (tum katilimcilarin toplami), kilidi acilan fiyat 16.90 EUR. Katilim aninda %20 kapora Stripe'tan tahsil edilir, kalan %80 havuz kapandiktan sonra 7 gun icinde odenir. Hedef tutmazsa havuz bir kez 7 gun uzatilir; yine tutmazsa kaporalar tam iade edilir (cron_pool_sweep.php).",
+    "_why_deadline": "group_started ve group_deadline ikisi de ACIKCA yaziliyor. group_started bos birakilirsa vestra_group_deadline() onu her sayfa yuklemesinde date('c') sayar; son tarih boylece surekli 14 gun ileri kayar ve geri sayim asla bitmez -- havuz sonsuza kadar 'acik' kalir."
+  }
+]

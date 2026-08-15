@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/pools.php';
 $p = vestra_group_pool($_GET['id'] ?? '');
 if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('This group buy is not available.').' <a class="acc" href="/groups">'.t('See open group buys →').'</a></div></div>';
@@ -7,6 +8,15 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/he
 $PAGE=$p['name'].' — '.t('Group buy'); $NAV='groups'; require __DIR__.'/inc/head.php';
 $from=$p['tiers'][0]['price']??vestra_from_price($p); $joined=isset($_GET['joined']);
 $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
+/* Deposit pools charge on join; the legacy free-commitment pools do not. Every
+   money-facing branch below keys off $DEPOSIT so one pool type can never render
+   the other's copy — a "no charge now" line above a Stripe button would be a
+   misrepresentation, not a cosmetic slip. */
+$DEPOSIT = pool_has_deposit($p);
+$PCT     = pool_deposit_pct($p);
+$PCTLBL  = rtrim(rtrim(number_format($PCT,1),'0'),'.');
+$BALDAYS = pool_balance_days($p);
+[$TOT0,$DEP0,$BAL0] = pool_split($p,(int)$p['moq']);
 ?>
 <style>
 .gwrap{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;margin:26px 0 10px}
@@ -105,8 +115,12 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
           </div>
         <?php else: ?>
           <h3 style="margin:0 0 4px"><?= t('Join this pool') ?></h3>
-          <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. You’re only charged if the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
-          <form method="post" action="/group-join">
+          <?php if($DEPOSIT): ?>
+            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. A %s%% deposit is charged now to secure your place; the balance follows once the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), $PCTLBL, number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
+          <?php else: ?>
+            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. You’re only charged if the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
+          <?php endif; ?>
+          <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=$p['moq']?></label>
@@ -114,6 +128,18 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
             <div class="calc" style="margin:10px 0">
               <div class="total"><span id="gtot"><?=eur($p['_gprice']*$p['moq'])?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
             </div>
+            <?php if($DEPOSIT): ?>
+              <div class="calc" style="margin:10px 0;display:grid;gap:6px">
+                <div style="display:flex;justify-content:space-between;font-size:13.5px">
+                  <span><?= sprintf(t('Deposit now (%s%%)'), $PCTLBL) ?></span>
+                  <b id="gdep" style="color:var(--acc)"><?=eur($DEP0)?></b>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--mut)">
+                  <span><?= sprintf(t('Balance, due %d days after the pool closes'), $BALDAYS) ?></span>
+                  <b id="gbal"><?=eur($BAL0)?></b>
+                </div>
+              </div>
+            <?php endif; ?>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div><label class="hint"><?= t('Company') ?> *</label><input name="company" required style="width:100%"></div>
               <div><label class="hint"><?= t('Contact name') ?> *</label><input name="name" required style="width:100%"></div>
@@ -127,8 +153,12 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
                 '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
                 '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
             </label>
-            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Commit to the pool') ?></button>
-            <div class="hint" style="margin-top:10px"><?= t('No charge now. If the pool fails, you pay nothing.') ?></div>
+            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= $DEPOSIT ? sprintf(t('Pay %s deposit & join'), eur($DEP0)) : t('Commit to the pool') ?></button>
+            <?php if($DEPOSIT): ?>
+              <div class="hint" style="margin-top:10px"><?= t('Secure payment via Stripe. If the pool does not reach its target we extend it once — and if it still falls short, your deposit is refunded in full.') ?></div>
+            <?php else: ?>
+              <div class="hint" style="margin-top:10px"><?= t('No charge now. If the pool fails, you pay nothing.') ?></div>
+            <?php endif; ?>
           </form>
         <?php endif; ?>
       </div>
@@ -136,9 +166,18 @@ $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
   </div>
 </div>
 <script>
-var GP=<?=$p['_gprice']?>, GMOQ=<?=$p['moq']?>;
+var GP=<?=$p['_gprice']?>, GMOQ=<?=$p['moq']?>, GPCT=<?=$PCT?>;
+function geur(n){ return '€'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function gcalc(){ var q=parseInt(document.getElementById('gq').value)||0; if(q<GMOQ)q=GMOQ;
-  document.getElementById('gtot').textContent='€'+(GP*q).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  var tot=Math.round(GP*q*100)/100;
+  document.getElementById('gtot').textContent=geur(tot);
+  var dep=document.getElementById('gdep'); if(!dep) return;
+  /* Same order as pool_split(): round the deposit, derive the balance from it.
+     Computing both independently drifts a cent and the page stops matching the
+     Stripe amount the buyer is about to be charged. */
+  var d=Math.round(tot*GPCT)/100;
+  dep.textContent=geur(d);
+  document.getElementById('gbal').textContent=geur(Math.round((tot-d)*100)/100); }
 (function(){ var el=document.getElementById('cd'); if(!el) return;
   var dl=parseInt(el.dataset.deadline);
   function tick(){ var s=Math.max(0,Math.floor((dl-Date.now())/1000));

@@ -451,15 +451,39 @@ function vestra_group_price($p){
   if(!empty($p['group_price'])) return (float)$p['group_price'];
   return (float)vestra_from_price($p);
 }
+/* Deadline, honouring the one-time extension. A pool that misses its target is
+   extended once (group_extend_days) before anyone's deposit is refunded, so the
+   effective deadline moves — group_deadline itself is left untouched as the
+   record of what was originally promised. */
 function vestra_group_deadline($p){
+  if(!empty($p['group_extended_to'])) return $p['group_extended_to'];
   if(!empty($p['group_deadline'])) return $p['group_deadline'];
   $start=$p['group_started'] ?? date('c');
   return date('c', strtotime($start.' +'.VESTRA_GROUP_DEFAULT_DAYS.' days'));
 }
-/* Buyer commitments for one pool (newest first), read from data/groups.csv. */
+/* Buyer commitments for one pool (newest first).
+   Two sources, deliberately merged rather than migrated: the legacy no-payment
+   rows in data/groups.csv (pools opened before deposits existed — they are real
+   commitments and must keep counting) and the deposit-paid records in
+   data/pool_commits.json. Deposit records are normalised to the CSV row shape so
+   every caller — the pool page, the progress bar, admin — stays unaware of which
+   store a commitment came from. */
 function vestra_group_commits($poolId){
   $rows=vestra_read_csv('groups.csv');
-  return array_values(array_filter($rows, function($r) use ($poolId){ return ($r['pool_id']??'')===$poolId; }));
+  $out=array_values(array_filter($rows, function($r) use ($poolId){ return ($r['pool_id']??'')===$poolId; }));
+
+  require_once __DIR__.'/pools.php';
+  foreach(pool_commits_for($poolId) as $c){
+    $out[]=[
+      'timestamp'=>$c['created']??'', 'pool_id'=>$poolId, 'ref'=>$c['ref']??'',
+      'company'=>$c['company']??'', 'name'=>$c['name']??'', 'email'=>$c['email']??'',
+      'country'=>$c['country']??'', 'qty'=>$c['qty']??0,
+      'unit_price'=>$c['unit_price']??0, 'est_total'=>$c['total']??0,
+      'deposit_paid'=>$c['deposit']??0, 'status'=>$c['status']??'',
+    ];
+  }
+  usort($out, function($a,$b){ return strcmp($b['timestamp']??'', $a['timestamp']??''); });
+  return $out;
 }
 /* Enrich a product with live pool state (committed qty, % progress, days left, status). */
 function vestra_group_enrich($p){

@@ -1,0 +1,50 @@
+name: (Havuz) Grup alımı yaşam döngüsü — uzat / bakiye / iade
+
+# Kaporali havuzlarin OTOMATIK isleyen kismi. Her gun 06:00 UTC + elle tetikleme.
+#
+# Uc is yapar (vestra/cron_pool_sweep.php):
+#   1. hedef tuttu   -> katilimcilara bakiye faturasi, son odeme +7 gun
+#   2. sure doldu    -> havuz BIR KEZ 7 gun uzatilir
+#   3. yine tutmadi  -> her kaporanin TAMAMI Stripe'tan iade edilir
+#
+# 3. adim bu isin en kritik parcasi: hem odeme sayfasi hem onay e-postasi
+# "havuz dolmazsa kaporaniz tam iade edilir" diye soz veriyor. Bu is calismazsa
+# verilmis bir soz tutulmamis olur -- o yuzden zamanlamayi elle tetiklemeye
+# birakmiyoruz.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "true = SADECE ne olacagini yaz, HICBIR SEY degistirme (para da dokunma)"
+        required: true
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Havuzları süpür
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          # Zamanlanmis calismada dry_run girdisi YOKTUR; o durumda gercekten
+          # calismasi gerekir, cunku iadeyi ve bakiye faturasini geciktirmek
+          # dogrudan musteriye zarar verir. Elle tetiklemede varsayilan "true".
+          script: |
+            set -e
+            DRY="${{ github.event.inputs.dry_run }}"
+            cd "$HOME/public_html"
+            if [ "$DRY" = "true" ]; then
+              php cron_pool_sweep.php --dry-run
+            else
+              php cron_pool_sweep.php
+            fi
