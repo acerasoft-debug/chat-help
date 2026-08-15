@@ -1,0 +1,20 @@
+[
+  {
+    "match": "lac-pima-tshirt",
+    "expect": 1,
+    "name": "Basic Crew Neck T-Shirt",
+    "group": "1",
+    "group_target": "104",
+    "group_min_qty": "104",
+    "group_price": "18.50",
+    "group_deposit_pct": "8",
+    "group_balance_days": "7",
+    "group_extend_days": "7",
+    "group_started": "2026-08-15T00:00:00+00:00",
+    "group_deadline": "2026-08-29T23:59:59+00:00",
+    "_why": "Havuzun asil urunu bu: Lacoste Cotton Pima T-Shirt (TH6709), duz yuvarlak yaka basic model. 104 adet ve 19.90 EUR bu urunun KENDI moq'su ve kendi tek kademesi -- operatorun bastan beri verdigi rakamlar buraya aitti, havuz once yanlislikla Trim Jersey'e kurulmustu (o kapatildi).",
+    "_why_price": "18.50, urunun tek kademesi olan 19.90'in %7 alti. Havuz fiyati kademenin ALTINDA olmak zorunda, yoksa vitrinde -%0 cikar ve havuza girmenin gorunur bir sebebi kalmaz.",
+    "_why_min": "Kisi basi en az alim 104 -- operator acikca teyit etti. Sonucu bilerek kabul edildi: hedef de 104 oldugu icin ilk katilan havuzu tek basina doldurur, yani bu pratikte bir grup alimi degil, 104'luk asgari siparisin %8 kaporali hali. Birden fazla alicinin birikmesi istenirse hedefin yukseltilmesi gerekir (or. kisi basi 104, hedef 312 = 3 alici).",
+    "_why_name": "\"Cotton Pima T-Shirt\" -> \"Basic Crew Neck T-Shirt\". Katalog Ingilizce isimlendirildigi icin Rundhals yerine Crew Neck."
+  }
+]
