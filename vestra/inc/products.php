@@ -446,6 +446,14 @@ function vestra_group_target($p){
   if(!empty($p['group_target'])) return max(1,(int)$p['group_target']);
   $last=end($p['tiers']); return max(1,(int)($last['min']??$p['moq']));
 }
+/* Per-buyer minimum commitment for a pool. Separate from the product's own moq on
+   purpose: a pool can demand a far larger ticket than the same article's ordinary
+   wholesale minimum (this one asks 104 against a catalogue moq of 20), and writing
+   that into moq would move the minimum everywhere the product is sold. */
+function vestra_group_min_qty($p){
+  if(!empty($p['group_min_qty'])) return max(1,(int)$p['group_min_qty']);
+  return max(1,(int)($p['moq'] ?? 1));
+}
 /* Unlocked unit price once the target is met (seller override, else the lowest tier price). */
 function vestra_group_price($p){
   if(!empty($p['group_price'])) return (float)$p['group_price'];

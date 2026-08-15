@@ -4,6 +4,7 @@
     "expect": 1,
     "group": "1",
     "group_target": "104",
+    "group_min_qty": "104",
     "group_price": "18.50",
     "group_deposit_pct": "8",
     "group_balance_days": "7",

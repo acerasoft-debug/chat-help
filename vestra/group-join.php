@@ -10,7 +10,7 @@ if(!empty($_POST['website'])){ header('Location: /group?id='.urlencode($id).'&jo
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $company=$one($_POST['company']??''); $name=$one($_POST['name']??''); $email=trim($_POST['email']??'');
-$country=$one($_POST['country']??''); $qty=max((int)$p['moq'],(int)($_POST['qty']??0));
+$country=$one($_POST['country']??''); $qty=max(vestra_group_min_qty($p),(int)($_POST['qty']??0));
 if($company===''||$name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)){ header('Location: /group?id='.urlencode($id)); exit; }
 if(empty($_POST['consent'])){ header('Location: /group?id='.urlencode($id)); exit; } // Terms acceptance is mandatory
 

@@ -104,7 +104,7 @@ jobs:
             };
 
             $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list',
-                        'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline'];
+                        'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -210,6 +210,9 @@ jobs:
               }
               if (isset($set['group_target']) && (int)$set['group_target'] < 1) {
                 $errors[] = "{$ctx} ({$m}): group_target >= 1 olmali"; continue;
+              }
+              if (isset($set['group_min_qty']) && (int)$set['group_min_qty'] < 1) {
+                $errors[] = "{$ctx} ({$m}): group_min_qty >= 1 olmali"; continue;
               }
               if (isset($set['group_deposit_pct'])) {
                 $dp = $set['group_deposit_pct'];
@@ -389,7 +392,7 @@ jobs:
                   $line[] = "group ".($old?'acik':'kapali')." -> ".($new?'ACIK':'KAPALI');
                   $all[$i]['group'] = $new;
                   $changes++;
-                } elseif ($k === 'group_target' || $k === 'group_balance_days' || $k === 'group_extend_days') {
+                } elseif ($k === 'group_target' || $k === 'group_balance_days' || $k === 'group_extend_days' || $k === 'group_min_qty') {
                   $new = (int)$v; $old = (int)($p[$k] ?? 0);
                   if ($old === $new) continue;
                   $line[] = "{$k} {$old} -> {$new}";

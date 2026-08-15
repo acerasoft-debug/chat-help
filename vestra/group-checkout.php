@@ -45,9 +45,11 @@ if ($company === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL
     header('Location: ' . $backUrl . '&error=fields'); exit;
 }
 
-/* Quantity is clamped to the per-buyer minimum rather than rejected — the same
-   forgiving behaviour group-join.php has always had for a too-small number. */
-$qty = max((int) ($p['moq'] ?? 1), (int) ($_POST['qty'] ?? 0));
+/* Quantity is clamped to the pool's per-buyer minimum rather than rejected — the same
+   forgiving behaviour group-join.php has always had for a too-small number. The pool
+   minimum, not the product's moq: this pool asks 104 against a catalogue moq of 20,
+   and charging a deposit on 20 units would undercharge every tampered form post. */
+$qty = max(vestra_group_min_qty($p), (int) ($_POST['qty'] ?? 0));
 
 /* Unit price and deposit % are frozen onto the commitment: editing group_price
    or group_deposit_pct later must never change what an already-paying buyer

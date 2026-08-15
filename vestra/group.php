@@ -16,7 +16,8 @@ $DEPOSIT = pool_has_deposit($p);
 $PCT     = pool_deposit_pct($p);
 $PCTLBL  = rtrim(rtrim(number_format($PCT,1),'0'),'.');
 $BALDAYS = pool_balance_days($p);
-[$TOT0,$DEP0,$BAL0] = pool_split($p,(int)$p['moq']);
+$GMIN    = vestra_group_min_qty($p);
+[$TOT0,$DEP0,$BAL0] = pool_split($p,$GMIN);
 ?>
 <style>
 .gwrap{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;margin:26px 0 10px}
@@ -50,7 +51,13 @@ $BALDAYS = pool_balance_days($p);
     <!-- LEFT: the pool -->
     <div>
       <div class="ghero" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
-        <?php if(!empty($p['image']) && $MEMBER): ?><img src="<?=htmlspecialchars($p['image'])?>" alt=""><?php endif; ?>
+        <?php /* vestra_primary_image(), duz $p['image'] degil: urunlerin fotograflari
+                 images[] dizisinde duruyor ve cogunda skaler 'image' alani hic yok --
+                 bu sayfa o yuzden fotografi olan bir urunde bile bos renk blogu
+                 gosteriyordu. Uyelik kapisi korunuyor: fotograflar site genelinde
+                 uyelere ozel (bkz. shop.php). */ ?>
+        <?php $heroImg = vestra_primary_image($p); ?>
+        <?php if($heroImg !== '' && $MEMBER): ?><img src="<?=htmlspecialchars($heroImg)?>" alt=""><?php endif; ?>
         <span class="bn"><?=htmlspecialchars($p['brand'])?></span>
       </div>
       <h1 style="margin:16px 0 4px"><?=htmlspecialchars($p['name'])?></h1>
@@ -123,10 +130,10 @@ $BALDAYS = pool_balance_days($p);
           <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
-            <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=$p['moq']?></label>
-            <input type="number" name="qty" min="<?=$p['moq']?>" value="<?=$p['moq']?>" required style="width:100%" id="gq" oninput="gcalc()">
+            <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=number_format($GMIN)?></label>
+            <input type="number" name="qty" min="<?=$GMIN?>" value="<?=$GMIN?>" required style="width:100%" id="gq" oninput="gcalc()">
             <div class="calc" style="margin:10px 0">
-              <div class="total"><span id="gtot"><?=eur($p['_gprice']*$p['moq'])?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
+              <div class="total"><span id="gtot"><?=eur($TOT0)?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
             </div>
             <?php if($DEPOSIT): ?>
               <div class="calc" style="margin:10px 0;display:grid;gap:6px">
@@ -166,7 +173,7 @@ $BALDAYS = pool_balance_days($p);
   </div>
 </div>
 <script>
-var GP=<?=$p['_gprice']?>, GMOQ=<?=$p['moq']?>, GPCT=<?=$PCT?>;
+var GP=<?=$p['_gprice']?>, GMOQ=<?=$GMIN?>, GPCT=<?=$PCT?>;
 function geur(n){ return '€'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function gcalc(){ var q=parseInt(document.getElementById('gq').value)||0; if(q<GMOQ)q=GMOQ;
   var tot=Math.round(GP*q*100)/100;
