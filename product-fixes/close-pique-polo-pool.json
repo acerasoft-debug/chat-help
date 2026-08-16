@@ -1,0 +1,10 @@
+[
+  {
+    "match": "lac-pique-polo",
+    "expect": 1,
+    "group": "0",
+    "_why": "Operator istegiyle havuz kapatiliyor. Sadece group=false yaziliyor; urun katalogda kaliyor, sadece grup alimi listesinden dusuyor.",
+    "_why_keep_fields": "group_target/group_price gibi alanlar siliniyor degil. group=false iken hicbiri okunmuyor, ama havuz yeniden acilmak istenirse ayarlar yerinde duruyor.",
+    "_why_check": "Kapatmadan once havuza katilim olup olmadigi canli sayfadan kontrol edildi: 'Be the first to join this pool' satiri, hic taahhut YOKKEN cikiyor (group.php). Kaporali havuz olmadigi icin iade edilecek para da yok -- kapora sadece group_deposit_pct tanimli havuzlarda tahsil ediliyor, bu urunde tanimli degil."
+  }
+]
