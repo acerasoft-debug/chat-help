@@ -903,20 +903,26 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
   ];
   $t=$L[$lang] ?? $L['en'];
 
-  $rows=(array)($opts['rows']??[]);
+  /* Havuz rakamlari SADECE govdedeki paragrafta duruyor. Bir ara ustteki bilgi
+     kutusuna da eklenmisti; ayni fiyat/minimum/kapora iki kez goruntuleniyordu ve
+     kutu "orijinallik / odeme / minimum" gibi guven bilgileri icin -- oraya urun
+     teklifi koymak kutunun isini bulandiriyor. */
   $lines=[];
   foreach($open as $gp){
+    /* Havuz basligi urun adindan geliyor ve marka icermeyebiliyor: Lacoste havuzu
+       mektupta "Basic Crew Neck T-Shirt" diye cikiyordu -- alici bunun Lacoste
+       oldugunu anlamiyordu. Marka adi basta gecmiyorsa oneklenir. */
     $title = function_exists('vestra_group_title') ? vestra_group_title($gp) : (string)($gp['name']??'');
+    $brand = trim((string)($gp['brand']??''));
+    if($brand!=='' && stripos($title,$brand)===false) $title=$brand.' '.$title;
     $minQ  = function_exists('vestra_group_min_qty') ? vestra_group_min_qty($gp) : (int)($gp['moq']??1);
     $dep   = function_exists('pool_deposit_pct') ? pool_deposit_pct($gp) : 0.0;
     $depTxt= $dep>0 ? ' · '.rtrim(rtrim(number_format($dep,1),'0'),'.').'% '.$t['dep'] : '';
     $val   = '€'.number_format((float)$gp['_gprice'],2).' '.$t['unit']
            .' · '.$t['min'].' '.number_format($minQ).' '.(string)($gp['unit']??'pc').$depTxt;
-    $rows[]=['label'=>$title,'value'=>$val];
     $lines[]='· '.$title.' — '.$val.' · '.$t['until'].' '.date('d.m.Y', strtotime($gp['_deadline']))
             .'  https://vestrasales.com/group?id='.rawurlencode((string)$gp['id']);
   }
-  $opts['rows']=$rows;
   $opts['button']=['label'=>$t['cta'],'url'=>'https://vestrasales.com/groups'];
 
   /* Marka duvari yer darligindan ilk 10 markayi gosteriyor; geri kalanlar mektupta
