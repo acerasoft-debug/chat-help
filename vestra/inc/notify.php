@@ -943,9 +943,22 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
     }
   }
 
-  /* Havuz paragrafi imzadan ONCE giriyor: mektubun son sozu satis cagrisi degil,
-     imza olsun. Govdeye eklendigi icin hem duz metin hem HTML surumunde cikiyor. */
-  $body=rtrim($body)."\n\n".$t['h']."\n".$t['line']."\n".implode("\n",$lines)."\n";
+  /* Havuz metni MEKTUBUN GOVDESINE giriyor, kunyeye degil. vestra_html_email()
+     govdeyi "\n\n—\n" ayracindan ikiye boluyor: ustu mektup (15px, koyu), alti
+     kunye (12px, gri, abonelikten cikma satiri). Metni govdenin sonuna eklemek
+     onu ayracin ALTINA dusuruyordu -- yani kampanyanin asil mesaji, abonelikten
+     cikma linkinin altinda kunye punto­sunda cikiyordu. Ayrac varsa oncesine
+     ekleniyor, yoksa sona.
+
+     Imzadan sonra, "P.S." konumunda duruyor: imzadan ONCE koymak icin her dilin
+     kapanis cumlesini tanimak gerekirdi (14 dil), o da kirilgan. Rakamlar zaten
+     ustteki kutuda ve dugmede de goruntuleniyor. */
+  $poolTxt="\n\n".$t['h']."\n".$t['line']."\n".implode("\n",$lines);
+  $sep="\n\n—\n";
+  $at=strpos($body,$sep);
+  $body = $at===false
+    ? rtrim($body).$poolTxt."\n"
+    : rtrim(substr($body,0,$at)).$poolTxt.substr($body,$at);
 
   return [$subject,$body,$opts];
 }
