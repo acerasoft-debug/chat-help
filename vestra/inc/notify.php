@@ -869,7 +869,64 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
  * aesthetic tweak lives here. The featured-brand strip and the per-brand Excel catalogue links
  * are derived from the LIVE catalogue (vestra_products), so the mail always reflects real stock.
  * $company personalises the opening line when provided. */
-function vestra_campaign_preview(string $company='', string $lang='en', string $featureCat=''): array {
+/* Havuz (grup alimi) kampanyasi — mevcut kampanyanin UZERINE eklenir, yerine
+   gecmez. Ayri bir sablon yazmak yerine ek olarak kuruldu: kampanyanin 14 dilli
+   govdesi, marka duvari ve line-sheet listesi aynen kalsin, sadece acik havuzlar
+   eklensin.
+
+   $pools=false iken HICBIR SEY degismiyor -- bu fonksiyonu cagiran diger yerler
+   (onizleme, tekil gonderimler) eskisi gibi calisir. Havuz icerigi yalnizca
+   acikca istendiginde giriyor.
+
+   Rakamlar CANLI havuz verisinden okunuyor, mektuba elle yazilmiyor: bir havuzun
+   fiyati ya da son tarihi degistiginde mektup kendiliginde dogru kalir. Elle
+   yazilsaydi, bugun uc kez degisen havuz ayarlarindan sonra mektup coktan yanlis
+   olurdu. */
+function vestra_campaign_preview(string $company='', string $lang='en', string $featureCat='', bool $pools=false): array {
+  [$subject,$body,$opts] = vestra_campaign_preview_base($company,$lang,$featureCat);
+  if(!$pools || !function_exists('vestra_group_pools')) return [$subject,$body,$opts];
+
+  $open=[];
+  foreach(vestra_group_pools() as $gp){
+    if(($gp['_status']??'')!=='open') continue;
+    $open[]=$gp;
+  }
+  if(!$open) return [$subject,$body,$opts];   // acik havuz yoksa mektup degismez
+
+  $L=[
+    'en'=>['h'=>'Open group buys','line'=>'Join other verified boutiques on one order and the wholesale price unlocks for everyone.',
+           'unit'=>'per piece','min'=>'from','dep'=>'deposit','until'=>'closes','cta'=>'See open group buys'],
+    'fr'=>['h'=>'Achats groupés ouverts','line'=>'Rejoignez d\'autres boutiques vérifiées sur une même commande et le prix de gros se débloque pour tous.',
+           'unit'=>'la pièce','min'=>'à partir de','dep'=>'acompte','until'=>'clôture','cta'=>'Voir les achats groupés'],
+    'cs'=>['h'=>'Otevřené skupinové nákupy','line'=>'Připojte se k dalším ověřeným buticích na jedné objednávce a velkoobchodní cena se odemkne pro všechny.',
+           'unit'=>'za kus','min'=>'od','dep'=>'záloha','until'=>'uzavírá se','cta'=>'Zobrazit skupinové nákupy'],
+  ];
+  $t=$L[$lang] ?? $L['en'];
+
+  $rows=(array)($opts['rows']??[]);
+  $lines=[];
+  foreach($open as $gp){
+    $title = function_exists('vestra_group_title') ? vestra_group_title($gp) : (string)($gp['name']??'');
+    $minQ  = function_exists('vestra_group_min_qty') ? vestra_group_min_qty($gp) : (int)($gp['moq']??1);
+    $dep   = function_exists('pool_deposit_pct') ? pool_deposit_pct($gp) : 0.0;
+    $depTxt= $dep>0 ? ' · '.rtrim(rtrim(number_format($dep,1),'0'),'.').'% '.$t['dep'] : '';
+    $val   = '€'.number_format((float)$gp['_gprice'],2).' '.$t['unit']
+           .' · '.$t['min'].' '.number_format($minQ).' '.(string)($gp['unit']??'pc').$depTxt;
+    $rows[]=['label'=>$title,'value'=>$val];
+    $lines[]='· '.$title.' — '.$val.' · '.$t['until'].' '.date('d.m.Y', strtotime($gp['_deadline']))
+            .'  https://vestrasales.com/group?id='.rawurlencode((string)$gp['id']);
+  }
+  $opts['rows']=$rows;
+  $opts['button']=['label'=>$t['cta'],'url'=>'https://vestrasales.com/groups'];
+
+  /* Havuz paragrafi imzadan ONCE giriyor: mektubun son sozu satis cagrisi degil,
+     imza olsun. Govdeye eklendigi icin hem duz metin hem HTML surumunde cikiyor. */
+  $body=rtrim($body)."\n\n".$t['h']."\n".$t['line']."\n".implode("\n",$lines)."\n";
+
+  return [$subject,$body,$opts];
+}
+
+function vestra_campaign_preview_base(string $company='', string $lang='en', string $featureCat=''): array {
   $counts=[]; $brands=[]; $shots=[];
   if(function_exists('vestra_products')){
     $all=vestra_products();
