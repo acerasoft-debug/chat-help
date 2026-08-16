@@ -104,7 +104,7 @@ jobs:
             };
 
             $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list',
-                        'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty','group_models','group_title'];
+                        'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty','group_models','group_title','group_min_colors'];
             $errors = []; $plan = [];
 
             foreach ($fixes as $n => $fx) {
@@ -214,6 +214,13 @@ jobs:
               if (isset($set['group_min_qty']) && (int)$set['group_min_qty'] < 1) {
                 $errors[] = "{$ctx} ({$m}): group_min_qty >= 1 olmali"; continue;
               }
+              /* Secilmesi zorunlu renk sayisi, sunulan renk sayisindan fazla olamaz --
+                 aksi halde form ASLA gonderilemez: alici 4 renk secmek zorundadir ama
+                 ortada 3 renk vardir. Sunulan liste ayni istekte geliyorsa ondan,
+                 gelmiyorsa urunun mevcut listesinden sayiliyor. */
+              if (isset($set['group_min_colors']) && (int)$set['group_min_colors'] < 0) {
+                $errors[] = "{$ctx} ({$m}): group_min_colors negatif olamaz"; continue;
+              }
               /* Karma havuzun kapsadigi modeller: her id GERCEK bir urune cozulmeli.
                  Cozulemeyen bir id havuz sayfasinda sessizce atlanir -- alici 10 model
                  vaat edilen bir havuzda 8 model gorur ve eksigi fark etmez. */
@@ -287,6 +294,23 @@ jobs:
                   if ((float)$set['group_price'] >= $cheapest) {
                     $errors[] = "{$ctx} ({$m}): group_price ".$set['group_price']." >= en ucuz kademe {$cheapest}"
                               . " — havuz indirim vermez, vitrinde -%0 cikar";
+                    continue 2;
+                  }
+                }
+              }
+
+              /* Zorunlu renk sayisi sunulan renk sayisini asamaz: asarsa form ASLA
+                 gonderilemez -- alici 4 renk secmek zorundadir ama ortada 3 renk
+                 vardir ve dugme her tiklamada sessizce reddedilir. Sunulan liste
+                 ayni istekte geliyorsa ondan, gelmiyorsa urunun mevcut listesinden
+                 sayiliyor. */
+              if (!empty($set['group_min_colors'])) {
+                foreach ($idx as $i) {
+                  $offered = isset($set['colors']) && is_array($set['colors'])
+                           ? $set['colors'] : (array)($all[$i]['colors'] ?? []);
+                  if ((int)$set['group_min_colors'] > count($offered)) {
+                    $errors[] = "{$ctx} ({$m}): group_min_colors=".(int)$set['group_min_colors']
+                              . " ama sunulan renk sayisi ".count($offered)." — form hic gonderilemez";
                     continue 2;
                   }
                 }
@@ -407,7 +431,7 @@ jobs:
                   $line[] = "group ".($old?'acik':'kapali')." -> ".($new?'ACIK':'KAPALI');
                   $all[$i]['group'] = $new;
                   $changes++;
-                } elseif ($k === 'group_target' || $k === 'group_balance_days' || $k === 'group_extend_days' || $k === 'group_min_qty') {
+                } elseif ($k === 'group_target' || $k === 'group_balance_days' || $k === 'group_extend_days' || $k === 'group_min_qty' || $k === 'group_min_colors') {
                   $new = (int)$v; $old = (int)($p[$k] ?? 0);
                   if ($old === $new) continue;
                   $line[] = "{$k} {$old} -> {$new}";
