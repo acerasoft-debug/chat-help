@@ -2,11 +2,9 @@
   {
     "match": "lac-pima-tshirt",
     "expect": 1,
-    "colors": ["White", "Black", "Navy", "Green", "Red", "Beige", "Pink"],
     "group_min_colors": "4",
-    "_why": "Havuzda renk secimi acilabilsin diye urune renk listesi yaziliyor; liste bos oldugu surece secici hic gorunmuyordu.",
-    "_why_colors": "Renkler TAHMIN DEGIL: /uploads/lacoste/pima-tshirt/ altindaki dosyalar tek tek HTTP ile yoklandi. 200 donenler white/black/navy/green/red/beige/pink; 404 donenler grey, blue, bordeaux, yellow, lightblue, brown, orange, darkgrey, olive, khaki, purple, turquoise, cream, sky, lilac, mint. Adlar vestra_colors() paletiyle birebir eslesiyor, yoksa renk noktasi gri (#666) cikardi.",
-    "_why_count": "Uruntun 8 gorseli var ama 7 renk dosyasi bulundu. 8. gorsel yoklanan 16 renk adindan hicbiri degil -- muhtemelen detay/olcu gorseli. Renk listesi bu yuzden 7 ile sinirli tutuldu: olmayan bir rengi secilebilir yapmak, aliciya teslim edemeyecegimiz bir sey satmak olurdu.",
-    "_why_min": "group_min_colors=4: operator en az 4 renk secilebilsin dedi. 7 secenek icinden 4 zorunlu. set-product bu sayinin sunulan renk sayisini asmadigini da dogruluyor -- assaydi form hic gonderilemezdi."
+    "_why": "Havuzda en az 4 renk secimi zorunlu olsun. SADECE bu alan yaziliyor.",
+    "_why_not_colors": "Renk listesine DOKUNULMUYOR. Ilk denemede colors alanina 7 renk yazilacakti; kuru calistirma 'colors (8) -> (7)' dedi, yani uruntun zaten 8 rengi vardi ve yazsaydik gercek bir rengi silecektik. 7 rakami /uploads/lacoste/pima-tshirt/ altinda palet adiyla eslesen .avif dosyalarini HTTP ile yoklayarak bulunmustu; 8. rengin gorseli baska bir adlandirmada oldugu icin o taramaya takilmadi. Dosya adlarindan renk cikarmak, renk listesinin kendisini okumanin yerine gecmez.",
+    "_why_min": "7'den fazla renk sunuluyor, 4 zorunlu -- set-product zaten group_min_colors'in sunulan renk sayisini asmadigini dogruluyor, assaydi form hic gonderilemezdi."
   }
 ]
