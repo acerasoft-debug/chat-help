@@ -71,7 +71,12 @@ jobs:
             TO="$CAMP_TO"
             case "$TO" in *@*) ;; *) TO="acerasoft@gmail.com" ;; esac
             VARIANT="$CAMP_VARIANT"
-            case "$VARIANT" in polos_promo|voucher) ;; *) VARIANT="premium" ;; esac
+            # Beyaz liste: tanimadigi varyanti sessizce "premium"a cevirir. Guvenli
+            # varsayilan ama YENI BIR VARYANT EKLERKEN BURASI DA GUNCELLENMELI --
+            # 'pool' eklenip bu satir unutuldugunda onizleme havuz bolumu olmadan
+            # gitti ve log "varyant: premium" yazdigi icin ancak log okunarak fark
+            # edildi.
+            case "$VARIANT" in polos_promo|voucher|pool) ;; *) VARIANT="premium" ;; esac
             LANG_IN="$CAMP_LANG"
             case "$LANG_IN" in de|en|fr|it|es) ;; *) LANG_IN="de" ;; esac
             RENDER_ONLY="$CAMP_RENDER_ONLY"
