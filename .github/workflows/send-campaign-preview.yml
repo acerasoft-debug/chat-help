@@ -13,7 +13,7 @@ on:
         required: false
         default: "acerasoft@gmail.com"
       variant:
-        description: "premium (genel) | polos_promo (Lacoste polo, EN) | voucher (hoş geldin kuponu — TEK adrese önizleme)"
+        description: "premium (genel) | pool (premium + açık havuzlar bölümü) | polos_promo (Lacoste polo, EN) | voucher (hoş geldin kuponu — TEK adrese önizleme)"
         required: false
         default: "premium"
       lang:
@@ -95,7 +95,12 @@ jobs:
               list($subject, $body, $opts) = vestra_tpl_welcome_voucher(
                 $lang, 'Boutique Meyer GmbH', 'VES-ORNEK-KOD', '5%', date('d.m.Y', strtotime('+6 months')));
             } else {
-              list($subject, $body, $opts) = $variant === 'polos_promo' ? vestra_campaign_promo_polos() : vestra_campaign_preview();
+              /* 'pool' varyanti = normal premium kampanya + ACIK HAVUZLAR bolumu.
+                 Ayri bir sablon degil, ayni mektubun havuz eklentili hali -- yani
+                 onizlemede gordugunuz sey, gercekten gonderilecek olanin aynisi. */
+              list($subject, $body, $opts) = $variant === 'polos_promo'
+                ? vestra_campaign_promo_polos()
+                : vestra_campaign_preview('', 'en', '', $variant === 'pool');
             }
             echo "varyant: {$variant}\n";
 
