@@ -67,6 +67,14 @@ on:
         description: "Bu regex'e uyan e-postaları atla (PCRE, örn. '/^mizzo@/') — garbled/scraper adresleri byte'larını bilmeden dışlamak için."
         required: false
         default: ""
+      name_any:
+        description: "Sadece firma ADINDA bu parcalardan biri gecen leadlere gonder (virgulle ayrilir, or. 'outlet, factory store, stock'). Bos = ad filtresi yok. DIKKAT: yaklasik bir olcut -- adinda yazmayan outlet kacar."
+        required: false
+        default: ""
+      skip_names:
+        description: "Firma ADINDA bu parcalardan biri gecen leadlere GONDERME (virgulle ayrilir, or. 'h&m, zara, c&a'). Zincirleri elemek icin."
+        required: false
+        default: ""
       skip_categories:
         description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
         required: false
@@ -97,6 +105,8 @@ jobs:
           SEND_FORCE_LANG: ${{ github.event.inputs.force_lang }}
           SEND_SKIP_RE: ${{ github.event.inputs.skip_email_regex }}
           SEND_SKIP_CAT: ${{ github.event.inputs.skip_categories }}
+          SEND_NAME_ANY: ${{ github.event.inputs.name_any }}
+          SEND_SKIP_NAME: ${{ github.event.inputs.skip_names }}
           SEND_RESET: ${{ github.event.inputs.reset_contacted }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -104,7 +114,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_RESET
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -175,6 +185,9 @@ jobs:
             // Matched as a case-insensitive substring, so "jewelry" catches "Retailer (jewelry)".
             $SKIP_CAT = [];
             foreach (explode(',', (string)getenv("SEND_SKIP_CAT")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_CAT[] = $s; }
+            $NAME_ANY = []; $SKIP_NAME = [];
+            foreach (explode(',', (string)getenv("SEND_NAME_ANY"))  as $s) { $s = strtolower(trim($s)); if ($s !== '') $NAME_ANY[]  = $s; }
+            foreach (explode(',', (string)getenv("SEND_SKIP_NAME")) as $s) { $s = strtolower(trim($s)); if ($s !== '') $SKIP_NAME[] = $s; }
 
             $leads = vestra_leads();
 
@@ -245,6 +258,22 @@ jobs:
                 $catL = strtolower((string)($l['category'] ?? ''));
                 $bad = false;
                 foreach ($SKIP_CAT as $c) { if ($catL !== '' && str_contains($catL, $c)) { $bad = true; break; } }
+                if ($bad) continue;
+              }
+              /* Firma ADINA bakan iki filtre. Lead verisinde "outlet mu" ya da
+                 "zincir mi" diye bir alan YOK -- OSM sadece dukkan tipini veriyor
+                 (Retailer (clothes) gibi). Bu yuzden ada bakiyoruz, ki kusurlu bir
+                 olcut: adinda yazmayan bir outlet kacar, adinda "outlet" gecen
+                 bagimsiz bir dukkan outlet sayilir. Kesin degil, yaklasik. */
+              $nameL = strtolower((string)($l['company'] ?? ''));
+              if ($NAME_ANY && !$ONLY) {          // sadece adinda bunlardan biri gecenler
+                $hit = false;
+                foreach ($NAME_ANY as $n) { if ($n !== '' && str_contains($nameL, $n)) { $hit = true; break; } }
+                if (!$hit) continue;
+              }
+              if ($SKIP_NAME && !$ONLY) {         // bilinen zincirler
+                $bad = false;
+                foreach ($SKIP_NAME as $n) { if ($n !== '' && str_contains($nameL, $n)) { $bad = true; break; } }
                 if ($bad) continue;
               }
               $seen[$email] = true;
