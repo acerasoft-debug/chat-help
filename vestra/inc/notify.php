@@ -919,6 +919,30 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
   $opts['rows']=$rows;
   $opts['button']=['label'=>$t['cta'],'url'=>'https://vestrasales.com/groups'];
 
+  /* Marka duvari yer darligindan ilk 10 markayi gosteriyor; geri kalanlar mektupta
+     hic gecmiyordu. Kalan markalar line-sheet listesinin ALTINA ekleniyor -- oradaki
+     markalar zaten tiklanabilir link, digerleri de ayni bicimde giriyor. Govdeye
+     ayrica cumle olarak yazmadim: HTML'de ayni bilgi iki kez gorunurdu.
+
+     Liste SADECE onayli canli ilanlardan cikariliyor, vestra_products()'tan degil:
+     o fonksiyon demo urunleri ve seed katalogu da dondurur, yani satilamayacak bir
+     markayi mektupta "mevcut" diye saymis olurduk. */
+  if(function_exists('vestra_live_listings') && !empty($opts['downloads']['items'])){
+    $featured=[];
+    foreach((array)($opts['brands']??[]) as $b) $featured[strtolower(trim((string)$b))]=true;
+    $restCount=[];
+    foreach(vestra_live_listings() as $lp){
+      $b=trim((string)($lp['brand']??'')); if($b==='') continue;
+      if(isset($featured[strtolower($b)])) continue;
+      $restCount[$b]=($restCount[$b]??0)+1;
+    }
+    arsort($restCount);
+    foreach(array_keys($restCount) as $b){
+      $opts['downloads']['items'][]=['label'=>$b,
+        'url'=>'https://vestrasales.com/catalog?brand='.rawurlencode($b)];
+    }
+  }
+
   /* Havuz paragrafi imzadan ONCE giriyor: mektubun son sozu satis cagrisi degil,
      imza olsun. Govdeye eklendigi icin hem duz metin hem HTML surumunde cikiyor. */
   $body=rtrim($body)."\n\n".$t['h']."\n".$t['line']."\n".implode("\n",$lines)."\n";
