@@ -66,7 +66,13 @@ function vestra_demo_products(){
         ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
       ],
       'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
-      'group'=>true,'group_seed'=>96,'group_seed_n'=>5, // group-buy: pool to 320 pc → €25/pc
+      /* Havuz operator istegiyle kapatildi. group_seed=96 / group_seed_n=5 de birlikte
+         kaldirildi: o iki sayi "5 dogrulanmis butik, 96 adet taahhut etti" diye
+         gorunuyordu ama karsiliginda TEK bir gercek taahhut yoktu -- groups.csv bos.
+         Ziyaretci, kimsenin katilmadigi bir havuzu dolmakta sanip katiliyordu.
+         Kapatirken sayilari birakmak, havuz yeniden acildiginda ayni yanilticiligin
+         sessizce geri gelmesi demekti. */
+      'group'=>false,
     ],
     [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
