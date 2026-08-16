@@ -45,6 +45,7 @@ if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
                    . "Buyer: {$rec['name']} / {$rec['company']} <{$rec['email']}>  " . ($rec['country'] ?: '') . "\n"
                    . "Committed: {$rec['qty']} {$rec['unit']} @ €" . number_format((float) $rec['unit_price'], 2)
                    . " = €" . number_format((float) $rec['total'], 2) . "\n"
+                   . (!empty($rec['colors']) ? "Colours: " . implode(', ', (array) $rec['colors']) . "\n" : '')
                    . "Deposit paid: €" . number_format((float) $rec['deposit'], 2)
                    . "  ·  Balance due later: €" . number_format((float) $rec['balance'], 2) . "\n"
                    . ($after ? "Pool now: {$after['_committed']} / {$after['_target']} {$rec['unit']} ({$after['_pct']}%)"
@@ -56,6 +57,7 @@ if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
                   . "Your deposit for the {$rec['brand']} {$rec['product']} group buy is confirmed.\n\n"
                   . "Reference: {$ref}\n"
                   . "Committed: {$rec['qty']} {$rec['unit']} at €" . number_format((float) $rec['unit_price'], 2) . " per {$rec['unit']}\n"
+                  . (!empty($rec['colors']) ? "Colours: " . implode(', ', (array) $rec['colors']) . "\n" : '')
                   . "Order value: €" . number_format((float) $rec['total'], 2) . "\n"
                   . "Deposit paid today: €" . number_format((float) $rec['deposit'], 2) . "\n"
                   . "Balance to follow: €" . number_format((float) $rec['balance'], 2) . "\n\n"

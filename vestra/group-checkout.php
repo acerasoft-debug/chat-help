@@ -51,6 +51,21 @@ if ($company === '' || $name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL
    and charging a deposit on 20 units would undercharge every tampered form post. */
 $qty = max(vestra_group_min_qty($p), (int) ($_POST['qty'] ?? 0));
 
+/* Colour choice, validated SERVER-side. The page enforces the minimum in JS, but
+   a deposit is real money: a tampered or JS-less post must not buy its way into
+   the pool without the colour spread the pool is sold on. Only colours the
+   listing actually offers count — an unknown value is dropped, not trusted. */
+$minCol = vestra_group_min_colors($p);
+$offered = array_values(array_filter(array_map('strval', (array) ($p['colors'] ?? []))));
+$colors = [];
+foreach ((array) ($_POST['colors'] ?? []) as $c) {
+    $c = (string) $c;
+    if (in_array($c, $offered, true) && !in_array($c, $colors, true)) $colors[] = $c;
+}
+if ($minCol > 0 && count($colors) < $minCol) {
+    header('Location: ' . $backUrl . '&error=colors'); exit;
+}
+
 /* Unit price and deposit % are frozen onto the commitment: editing group_price
    or group_deposit_pct later must never change what an already-paying buyer
    owes, and the balance invoice is computed from these frozen numbers. */
@@ -76,6 +91,7 @@ pool_commit_save([
     'email'       => $email,
     'country'     => $country,
     'qty'         => $qty,
+    'colors'      => $colors,
     'unit'        => (string) ($p['unit'] ?? 'pc'),
     'unit_price'  => $unit,
     'total'       => $total,
@@ -92,9 +108,11 @@ pool_commit_save([
 $pctLabel  = rtrim(rtrim(number_format($pct, 1), '0'), '.');
 $lineName  = 'Group buy deposit — ' . trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? ''));
 $lineDesc  = sprintf(
-    '%s%% deposit on %d %s @ €%s (total €%s). Balance €%s due within %d days of the pool closing. Refunded in full if the pool does not reach its target.',
+    '%s%% deposit on %d %s @ €%s (total €%s).%s Balance €%s due within %d days of the pool closing. Refunded in full if the pool does not reach its target.',
     $pctLabel, $qty, (string) ($p['unit'] ?? 'pc'), number_format($unit, 2),
-    number_format($total, 2), number_format($balance, 2), pool_balance_days($p)
+    number_format($total, 2),
+    $colors ? ' Colours: ' . implode(', ', $colors) . '.' : '',
+    number_format($balance, 2), pool_balance_days($p)
 );
 
 $successUrl = 'https://vestrasales.com/group-confirm?ref=' . rawurlencode($ref) . '&paid=1';

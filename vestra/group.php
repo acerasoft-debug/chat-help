@@ -18,6 +18,7 @@ $PCT     = pool_deposit_pct($p);
 $PCTLBL  = rtrim(rtrim(number_format($PCT,1),'0'),'.');
 $BALDAYS = pool_balance_days($p);
 $GMIN    = vestra_group_min_qty($p);
+$GMINCOL = vestra_group_min_colors($p);
 [$TOT0,$DEP0,$BAL0] = pool_split($p,$GMIN);
 ?>
 <style>
@@ -70,6 +71,20 @@ $GMIN    = vestra_group_min_qty($p);
       </div>
       <h1 style="margin:16px 0 4px"><?=htmlspecialchars($GTITLE)?></h1>
       <p class="sub"><?=htmlspecialchars($p['desc'])?></p>
+
+      <?php /* Tek urunlu havuzda katalogdaki BUTUN fotograflar; karma havuzda
+               modellerin kendi fotograflari (asagidaki blok). Ikisi birden
+               gosterilmiyor -- karma havuzda barindirici urunun galerisi
+               yanilticidir, o sadece 10 modelden biri. */ ?>
+      <?php $GAL = $GASSORT ? [] : vestra_group_gallery($p); ?>
+      <?php if($MEMBER && count($GAL) > 1): ?>
+        <h3 style="margin:22px 0 8px"><?= sprintf(t('%d photos'), count($GAL)) ?></h3>
+        <div class="gmods">
+          <?php foreach($GAL as $gi): ?>
+            <span class="gmod"><img src="<?=htmlspecialchars($gi)?>" alt="<?=htmlspecialchars($p['name'])?>" loading="lazy"></span>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
 
       <?php if($GASSORT): ?>
         <h3 style="margin:22px 0 8px"><?= sprintf(t('%d models in this pool'), count($GMODELS)) ?></h3>
@@ -153,7 +168,11 @@ $GMIN    = vestra_group_min_qty($p);
           <?php else: ?>
             <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. You’re only charged if the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
           <?php endif; ?>
-          <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>">
+          <?php /* onsubmit dogrulamasi product.php'deki vcolOk() ile ayni mantik, ama
+                   bu sayfa product.php'yi yuklemedigi icin kendi kopyasi asagida.
+                   Sunucu tarafi (group-checkout.php) ayrica dogruluyor -- JS kapali
+                   bir tarayici kaporayi eksik renkle odeyemesin. */ ?>
+          <form method="post" action="<?= $DEPOSIT ? '/group-checkout' : '/group-join' ?>" onsubmit="return gcolOk(this)">
             <input type="hidden" name="id" value="<?=htmlspecialchars($p['id'])?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
             <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=number_format($GMIN)?></label>
@@ -161,6 +180,19 @@ $GMIN    = vestra_group_min_qty($p);
             <div class="calc" style="margin:10px 0">
               <div class="total"><span id="gtot"><?=eur($TOT0)?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
             </div>
+            <?php if($GMINCOL > 0 && !empty($p['colors'])): ?>
+              <?php /* Urun sayfasindaki ile AYNI bilesen (.colorpick/.colorchip/data-min):
+                       alici ayni kurali iki yerde iki farkli sekilde ogrenmesin. */ ?>
+              <div style="margin:12px 0">
+                <label class="hint"><?= t('Choose your colours') ?> — <?= sprintf(t('at least %d'), $GMINCOL) ?></label>
+                <div class="colorpick" data-min="<?=$GMINCOL?>">
+                  <?php $pal=vestra_colors(); foreach((array)$p['colors'] as $cn): ?>
+                    <label class="colorchip"><input type="checkbox" name="colors[]" value="<?=htmlspecialchars($cn)?>"><span class="cdot" style="background:<?= $pal[$cn]??'#666' ?>"></span><?=htmlspecialchars(t($cn))?></label>
+                  <?php endforeach; ?>
+                </div>
+                <div class="warn vcolwarn" style="display:none;margin-top:8px"><?= vestra_colours_warn($GMINCOL) ?></div>
+              </div>
+            <?php endif; ?>
             <?php if($DEPOSIT): ?>
               <div class="calc" style="margin:10px 0;display:grid;gap:6px">
                 <div style="display:flex;justify-content:space-between;font-size:13.5px">
@@ -199,6 +231,13 @@ $GMIN    = vestra_group_min_qty($p);
   </div>
 </div>
 <script>
+function gcolOk(f){
+  var cp=f.querySelector('.colorpick[data-min]'); if(!cp) return true;
+  var need=parseInt(cp.dataset.min)||0, got=cp.querySelectorAll('input:checked').length;
+  var w=f.querySelector('.vcolwarn');
+  if(got<need){ if(w) w.style.display='block'; return false; }
+  if(w) w.style.display='none'; return true;
+}
 var GP=<?=$p['_gprice']?>, GMOQ=<?=$GMIN?>, GPCT=<?=$PCT?>;
 function geur(n){ return '€'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function gcalc(){ var q=parseInt(document.getElementById('gq').value)||0; if(q<GMOQ)q=GMOQ;

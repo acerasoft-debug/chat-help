@@ -476,6 +476,24 @@ function vestra_group_models($p): array {
   return $out;
 }
 function vestra_group_is_assortment($p): bool { return count(vestra_group_models($p)) > 1; }
+/* Minimum number of colours a pool commitment must pick. Falls back to the
+   listing's own min_colors so a pool inherits the carton rule the product
+   already sells under; group_min_colors only exists to let a pool demand a
+   WIDER spread than the ordinary order flow does. 0 = no colour choice. */
+function vestra_group_min_colors($p): int {
+  if(isset($p['group_min_colors'])) return max(0,(int)$p['group_min_colors']);
+  return max(0,(int)($p['min_colors'] ?? 0));
+}
+/* Every photo the catalogue holds for a pool — the pool page shows the whole
+   set, not just the hero. Assortment pools show their members' photos instead
+   (see vestra_group_models). */
+function vestra_group_gallery($p): array {
+  $imgs = $p['images'] ?? [];
+  if(!is_array($imgs)) return [];
+  $out = [];
+  foreach($imgs as $im){ $im=trim((string)$im); if($im!=='') $out[]=$im; }
+  return $out;
+}
 /* Display name for a pool. An assortment is not "one product", so it carries its
    own title; without one it falls back to the host listing's name. */
 function vestra_group_title($p): string {
