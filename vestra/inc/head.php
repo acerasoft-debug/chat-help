@@ -88,6 +88,22 @@ if (function_exists('vestra_seo_brand_keywords')) {
 <?php endforeach; ?>
 <link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_seoHref('en')) ?>">
 <meta name="robots" content="<?= $NOINDEX ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
+<?php
+/* Arama motoru panel dogrulamasi. Token .env'den geliyor (public_html disinda),
+   koda gomulu degil -- boylece token degistiginde dosya duzenlemeye gerek yok.
+   Degisken bos ise HIC etiket basilmiyor: bos content'li bir dogrulama etiketi
+   Google'da "dogrulama basarisiz" olarak gorunur, hic olmamasindan kotudur.
+   Etiket sadece ana sayfada degil HER sayfada cikiyor; Google dogrulamayi
+   genelde kokten yapar ama alt sayfadan da kontrol edebiliyor. */
+$_verify = [
+  'google-site-verification' => trim((string)($_ENV['GOOGLE_SITE_VERIFICATION'] ?? '')),
+  'msvalidate.01'            => trim((string)($_ENV['BING_SITE_VERIFICATION']   ?? '')),
+  'yandex-verification'      => trim((string)($_ENV['YANDEX_SITE_VERIFICATION'] ?? '')),
+];
+foreach ($_verify as $_vName => $_vTok):
+  if ($_vTok === '') continue; ?>
+<meta name="<?= $_vName ?>" content="<?= htmlspecialchars($_vTok, ENT_QUOTES, 'UTF-8') ?>">
+<?php endforeach; ?>
 <meta property="og:site_name" content="VESTRA">
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
