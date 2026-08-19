@@ -1,0 +1,388 @@
+<?php
+/**
+ * ChatHelp — apply-adres-imza5 (CH_ADRES_IMZA5) — modalin KAPSAMLI surumu.
+ *  chPrintDoc'u EN DISTAN sarar, IMZA4/IMZA3 modalini pass-through ile devre
+ *  disi birakir (window.__addr3OK). IMZA4'un tum ozelliklerine EK olarak:
+ *   [A] Gonderim turu secici (yanyana): Normale Post / Einwurf-Einschreiben /
+ *       Einschreiben (Übergabe) / Fax. Fristkritik belgede (Kündigung,
+ *       Widerspruch, Widerruf, Einspruch, Frist, Mahnung) "Normale Post"
+ *       GIZLENIR — ispatlanamaz; sadece Einschreiben/Fax. Uyari gosterilir.
+ *   [B] Fax: alici faks numarasi alani; kullanici girer YA DA AI (deepseek)
+ *       yalniz KESIN bildigi resmi numarayi onerir (UNBEKANNT ise bos). Fax
+ *       PDF -> postversand send_fax (Phaxio) -> Sendebericht.
+ *   [C] Alici adresi AI ile tamamlanir ama ASLA uydurulmaz (kesin degilse
+ *       "(Adresse bitte selbst eintragen)").
+ *   [D] Eksik-alan korumasi: PDF/gonderim oncesi belgede "IBAN: ....",
+ *       "[FELD]", "____" gibi bos yerler varsa kullaniciya sorar (gonderimde
+ *       bloklar, ucretsiz baskida onay ister).
+ *   [E] Alici belgeye "An:" blogu + dilekce METNI Meine Themen'e (doc) kaydi.
+ *  Kademeli fiyat (paketsiz 2,99 / Basic 1,99 / Pro 1,50 / Elite 1,50);
+ *  Einwurf +3,00 / Einschreiben Übergabe +3,50 / Fax +1,00.
+ *  Modal her belgede tekrar acilir (proceed sonrasi bayrak sifirlanir).
+ *  node ✓ + harness ✓. Backend: apply-postversand.php (send_fax + registered).
+ * KULLANIM: pull2.php?key=...&files=apply-adres-imza5.php
+ */
+header('Content-Type: text/plain; charset=UTF-8');
+error_reporting(E_ERROR | E_PARSE);
+echo "apply-adres-imza5 BASLADI OK (PHP ".PHP_VERSION.")\n\n";
+$file = __DIR__.'/index.php';
+$src = @file_get_contents($file);
+if ($src===false) exit("index.php okunamadi\n");
+if (strpos($src,'CH_ADRES_IMZA5')!==false) exit("Zaten ekli (CH_ADRES_IMZA5).\n");
+if (strpos($src,'CH_ADRES_IMZA4')===false) exit("HATA: once CH_ADRES_IMZA4 gerekli.\n");
+
+$block = <<<'HTMLBLOCK'
+<script id="ch-adres-imza5-js">
+/* CH_ADRES_IMZA5 — alici belgeye + Themen icerik kaydi (IMZA3 kapsamli surum) */
+try{(function(){
+  function UIL(){ try{ return (localStorage.getItem('ch_uilang')||'de').slice(0,2); }catch(e){ return 'de'; } }
+  function CCX(){ try{ var m=localStorage.getItem('ch_cc_manual'); var c=localStorage.getItem('ch_cc'); var w=(typeof window.CC!=='undefined'&&window.CC)?window.CC:''; return String((m&&m.length===2?m:(c||w||'DE'))).toUpperCase(); }catch(e){ return 'DE'; } }
+  function API(){ return (typeof window.API!=='undefined'&&window.API)?window.API:'api.php'; }
+  function PVURL(){ var a=API(); var i=a.lastIndexOf('/'); return (i>=0?a.slice(0,i+1):'')+'postversand.php'; }
+  function prof(){ try{ var P=window.P; if(P&&(P.f1||P.f7)) return P; }catch(e){} try{ return JSON.parse(localStorage.getItem('ch_prof_v3')||'{}')||{}; }catch(e){ return {}; } }
+  function needsWet(html){ if(CCX()!=='DE') return false; var h=(html||'').toLowerCase(); return /k(ü|ue)ndigung[^<]{0,60}(arbeit|anstellung)|arbeitsvertrag|aufhebungsvertrag|b(ü|ue)rgschaft|testament|erbausschlagung|befristeter mietvertrag|mietvertrag[^<]{0,40}befristet|darlehensvertrag|verbraucherdarlehen/.test(h); }
+  function planNorm(p){ p=(''+(p||'')).toLowerCase().trim(); if(!p) return ''; if(/elite|unbegrenzt|unlimited|premium\+|max/.test(p)) return 'elite'; if(/\bpro\b|pro[_-]|professional/.test(p)) return 'pro'; if(/basic|basis|starter/.test(p)) return 'basic'; if(/free|gratis|kostenlos/.test(p)) return 'free'; return ''; }
+  /* Elite/Pro/Basic: TUM kaynaklardan en yuksek kademe (tek kaynak bayat olsa bile paket taninir) */
+  function plan(){ var cand=[]; try{ cand.push(localStorage.getItem('ch_plan')); }catch(e){} try{ var u=JSON.parse(localStorage.getItem('ch_user')||'{}'); if(u&&u.plan) cand.push(u.plan); }catch(e){} try{ if(window.P&&window.P.plan) cand.push(window.P.plan); }catch(e){} try{ if(typeof window.chPlan==='function') cand.push(window.chPlan()); }catch(e){} var rank={free:0,basic:1,pro:2,elite:3}, best='free', bestR=0; for(var i=0;i<cand.length;i++){ var n=planNorm(cand[i]); if(!n) continue; if(rank[n]>bestR){ bestR=rank[n]; best=n; } } return best; }
+  function priceStr(){ var p=plan(); if(/elite/.test(p)) return '1,50 €'; if(/pro/.test(p)) return '1,50 €'; if(/basic/.test(p)) return '1,99 €'; return '2,99 €'; }
+  function isLetter(html){ if(/vfA4/.test(html)) return false; var P=prof(); var clos=/Mit freundlichen Grüßen|Hochachtungsvoll|Mit freundlichem Gruß|freundlichen Grüßen|Sincerely|Best regards|Kind regards|Yours (faithfully|sincerely|truly)|Cordialement|Salutations distingu|Veuillez agr|Cordiali saluti|Distinti saluti|Atentamente|Saludos cordiales|Un saludo|Saygılar|İyi çalışmalar/i; return clos.test(html)||(P.f3&&html.indexOf(P.f3)!==-1); }
+  function T(k){
+    var L={
+      ttl:{de:'Empfänger, Adresse & Versand',tr:'Alıcı, Adres & Gönderim',en:'Recipient, address & sending'},
+      sub:{de:'Prüfen Sie die Angaben. Der Empfänger erscheint im Dokument.',tr:'Bilgileri kontrol edin. Alıcı belgede görünecek.',en:'Check details. The recipient appears in the document.'},
+      name:{de:'Ihr Name',tr:'Adınız Soyadınız',en:'Your name'},adr:{de:'Ihre Adresse',tr:'Adresiniz',en:'Your address'},plz:{de:'PLZ / Ort',tr:'Posta kodu / Şehir',en:'Postal / City'},
+      rec:{de:'Empfänger (Person/Firma/Behörde)',tr:'Alıcı (kişi/firma/kurum)',en:'Recipient'},
+      recph:{de:'Wird erkannt… oder Namen eintragen',tr:'Algılanıyor… ya da adı yazın',en:'Detecting… or type a name'},
+      recwarn:{de:'⚠️ Adresse evtl. unvollständig — bitte prüfen/ergänzen.',tr:'⚠️ Adres eksik olabilir — kontrol edin/tamamlayın.',en:'⚠️ Address may be incomplete — please verify.'},
+      sigsec:{de:'✍️ Unterschrift',tr:'✍️ İmza',en:'✍️ Signature'},
+      sigok:{de:'Unterschreiben (für Versand erforderlich):',tr:'İmzalayın (gönderim için gerekli):',en:'Sign (required for sending):'},
+      sigwet:{de:'⚠️ ORIGINAL-Unterschrift nötig (BGB §126). Ausdrucken & handschriftlich unterschreiben. Direktversand nicht möglich.',tr:'⚠️ ISLAK imza gerekli (BGB §126). Çıktı alıp elle imzalayın. Doğrudan gönderim mümkün değil.',en:'⚠️ Original signature required (BGB §126).'},
+      clr:{de:'Löschen',tr:'Temizle',en:'Clear'},
+      free:{de:'📄 Kostenlos selbst ausdrucken',tr:'📄 Ücretsiz kendim yazdırırım',en:'📄 Print myself (free)'},
+      send:{de:'✍️ Unterschreiben & an Empfänger senden',tr:'✍️ İmzala & alıcıya gönder',en:'✍️ Sign & send to recipient'},
+      home:{de:'✉️ Original nach Hause',tr:'✉️ Orijinali evime postala',en:'✉️ Original to my home'},
+      cancel:{de:'Abbrechen',tr:'Vazgeç',en:'Cancel'},
+      needsig:{de:'Bitte zuerst unterschreiben.',tr:'Lütfen önce imzalayın.',en:'Please sign first.'},
+      needrec:{de:'Bitte Empfänger angeben.',tr:'Lütfen alıcıyı girin.',en:'Enter recipient.'},
+      needbody:{de:'Der Dokumenttext ist zu kurz.',tr:'Belge metni çok kısa.',en:'Document text too short.'},
+      editlbl:{de:'📝 Dokumenttext (bei Bedarf korrigieren)',tr:'📝 Belge metni (gerekirse düzeltin)',en:'📝 Document text (edit if needed)'},
+      edithint:{de:'Diese Fassung wird an den Empfänger gesendet.',tr:'Bu metin alıcıya gönderilecek.',en:'This version is sent to the recipient.'},
+      confirmq:{de:'⚠️ Das Dokument wird jetzt verbindlich an „{r}" versendet. Fortfahren?',tr:'⚠️ Belge şimdi „{r}" adresine gönderilecek. Devam edilsin mi?',en:'⚠️ The document will be sent to „{r}". Continue?'},
+      confirmyes:{de:'✓ Bestätigen & senden',tr:'✓ Onayla & gönder',en:'✓ Confirm & send'},
+      back:{de:'← Zurück',tr:'← Geri',en:'← Back'},
+      proof:{de:'✓ Zustellnachweis',tr:'✓ İspatlı teslim',en:'✓ Proof of delivery'},
+      wetnote:{de:'Original-Unterschrift nötig: selbst ausdrucken & unterschreiben — ODER das Original per Post an Ihre eigene Adresse senden lassen, dort unterschreiben und selbst verschicken.',tr:'Islak imza gerekli: kendiniz yazdırıp imzalayın — YA DA orijinali kendi adresinize postalatın, imzalayıp kendiniz gönderin.',en:'Original signature required: print & sign yourself — OR have the original posted to your own address, sign it and send it yourself.'},
+      wethome:{de:'✉️ Original an meine Adresse (zum Unterschreiben)',tr:'✉️ Orijinali kendi adresime (imzalamak için)',en:'✉️ Original to my address (to sign)'},
+      needownaddr:{de:'Bitte Ihre Adresse (Straße + PLZ/Ort) angeben.',tr:'Lütfen adresinizi (sokak + PLZ/şehir) girin.',en:'Please enter your address (street + postal/city).'},
+      vnormal:{de:'✉️ Normale Post',tr:'✉️ Normal posta',en:'✉️ Normal post'},
+      reg_einwurf:{de:'📬 Einwurf-Einschreiben — Auslieferungsbeleg',tr:'📬 Einwurf-Einschreiben — teslim belgesi',en:'📬 Registered (mailbox) — delivery proof'},
+      reg_standard:{de:'📮 Einschreiben (Übergabe) — Unterschrift Empfänger',tr:'📮 Einschreiben (teslim) — alıcı imzası',en:'📮 Registered (handover) — recipient signs'},
+      fax:{de:'📠 Fax — mit Sendebericht',tr:'📠 Faks — gönderim raporlu',en:'📠 Fax — with transmission report'},
+      faxnr:{de:'Empfänger-Faxnummer',tr:'Alıcı faks numarası',en:'Recipient fax number'},
+      faxhint:{de:'Nur eine gesicherte Nummer verwenden — sonst selbst eintragen (keine erfundene Nummer).',tr:'Yalnızca kesin numara kullanın — değilse elle girin (uydurma yok).',en:'Use only a verified number — otherwise enter it yourself (no invented number).'},
+      fillwarn:{de:'⚠️ Offene Lücken im Dokument: {f} — bitte im Text oben ergänzen, bevor Sie fortfahren.',tr:'⚠️ Belgede boş alanlar var: {f} — devam etmeden önce yukarıdaki metinde doldurun.',en:'⚠️ Open gaps in the document: {f} — please fill them in above before continuing.'},
+      needfill:{de:'Bitte zuerst die offenen Felder ausfüllen: ',tr:'Lütfen önce boş alanları doldurun: ',en:'Please fill the open fields first: '},
+      fillany:{de:'Es sind noch Lücken offen ({f}). Trotzdem fortfahren?',tr:'Hâlâ boş alanlar var ({f}). Yine de devam edilsin mi?',en:'Some gaps remain ({f}). Continue anyway?'},
+      beweisnote:{de:'⚠️ Fristkritisch: Normale Post ist NICHT beweisbar. Bitte Einschreiben oder Fax.',tr:'⚠️ Süreye bağlı: Normal posta İSPATLANAMAZ. Einschreiben veya Faks seçin.',en:'⚠️ Deadline-critical: normal post is NOT provable. Choose registered or fax.'},
+      needfax:{de:'Bitte Faxnummer eingeben.',tr:'Lütfen faks numarası girin.',en:'Enter fax number.'},
+      faxcfg:{de:'Fax-Versand ist noch nicht aktiviert.',tr:'Faks gönderimi henüz etkin değil.',en:'Fax sending not yet enabled.'},
+      sending:{de:'⏳ Wird gesendet…',tr:'⏳ Gönderiliyor…',en:'⏳ Sending…'},
+      sentok:{de:'✓ Auftrag angenommen (Testmodus).',tr:'✓ Talep alındı (test modu).',en:'✓ Accepted (test mode).'},
+      senderr:{de:'Senden fehlgeschlagen: ',tr:'Gönderim başarısız: ',en:'Send failed: '},
+      homeok:{de:'Bestellung gespeichert.',tr:'Sipariş kaydedildi.',en:'Order saved.'},
+      saved:{de:'In „Meine Themen" gespeichert.',tr:'Meine Themen\'e kaydedildi.',en:'Saved to My Topics.'}
+    };
+    var l=UIL(); return (L[k]&&(L[k][l]||L[k].en))||'';
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function htmlText(html){
+    try{
+      var m=html.match(/<div class="a4"[^>]*>([\s\S]*?)<\/div>/);
+      var inner=m?m[1]:html;
+      inner=inner.replace(/<br\s*\/?>/gi,'\n').replace(/<\/(p|div|h[1-6])>/gi,'\n').replace(/<[^>]+>/g,'');
+      var ta=document.createElement('textarea'); ta.innerHTML=inner; var t=ta.value;
+      return t.replace(/\n{3,}/g,'\n\n').trim();
+    }catch(e){ return ''; }
+  }
+  /* ── boş/yer-tutucu alan tespiti (IBAN: ...., [FELD], ____) ── */
+  function missingFields(txt){
+    var out=[]; txt=String(txt||'');
+    var lab=/(IBAN|BIC|Kundennummer|Kundennr|Vertragsnummer|Vertragsnr|Aktenzeichen|Rechnungsnummer|Kontonummer|Mitgliedsnummer|Betrag|Datum|Az|Tarih|Numara)\s*[:\-]?\s*(\.{3,}|_{3,}|x{3,}|X{3,}|-{3,}|—{2,})/g;
+    var m; while((m=lab.exec(txt))){ if(out.indexOf(m[1])===-1) out.push(m[1]); if(out.length>=8) break; }
+    var br=txt.match(/\[[A-ZÄÖÜŞİĞÇ_ ]{2,}\]/g); if(br) br.forEach(function(x){ if(out.indexOf(x)===-1 && out.length<8) out.push(x); });
+    if(out.length<8 && /(_{5,}|\.{6,})/.test(txt) && out.indexOf('…')===-1) out.push('…');
+    return out.slice(0,8);
+  }
+  /* eksik alan akisi: modal ICINDE doldurma paneli (confirm yok) — CH_FIXPDF */
+  function _today(){ var d=new Date(); function z(n){return(n<10?'0':'')+n;} return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear(); }
+  function applyFill(){
+    var b=document.getElementById('ai-body'); if(!b) return;
+    var t=String(b.value||'');
+    try{ Array.prototype.forEach.call(document.querySelectorAll('#ai-fillp [data-mf]'),function(inp){
+      var k=inp.getAttribute('data-mf'); var v=String(inp.value||'').trim(); if(!v||k==='…') return;
+      if(k.charAt(0)==='['){ while(t.indexOf(k)!==-1) t=t.replace(k,v); return; }
+      var re=new RegExp('('+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[:\\-]?\\s*)(\\.{3,}|_{3,}|x{3,}|X{3,}|-{3,}|—{2,})');
+      t=t.replace(re,'$1'+v);
+    }); }catch(e){}
+    b.value=t;
+  }
+  function fillFlow(hard,cont){
+    var m=missingFields(bodyVal()); if(!m.length){ cont(); return; }
+    var old=document.getElementById('ai-fillp'); if(old) old.remove();
+    var acts=document.querySelector('#ai-box .ai-acts');
+    var p=document.createElement('div'); p.id='ai-fillp'; p.className='ai-warn'; p.style.cssText='width:100%;margin:8px 0';
+    var L=UIL();
+    var hd={de:'⚠️ Offene Angaben — bitte ergänzen:',tr:'⚠️ Eksik bilgiler — lütfen tamamlayın:',en:'⚠️ Missing details — please complete:'}[L]||'⚠️';
+    var bt1={de:'✔ Übernehmen & fortfahren',tr:'✔ Uygula & devam et',en:'✔ Apply & continue'}[L]||'✔';
+    var bt2={de:'Trotzdem drucken',tr:'Yine de yazdır',en:'Print anyway'}[L]||'Print';
+    var gap={de:'Weitere Lücken (… / ___) bitte oben im Text ergänzen.',tr:'Diğer boşlukları (… / ___) yukarıdaki metinde doldurun.',en:'Fill remaining gaps (… / ___) in the text above.'}[L]||'';
+    var h='<div style="font-weight:700;margin-bottom:6px">'+hd+'</div>';
+    m.forEach(function(f){
+      if(f==='…'){ h+='<div class="aik-hint" style="color:#ffcf7a;font-size:11px;margin:2px 0">'+gap+'</div>'; return; }
+      h+='<div style="margin:4px 0"><label style="font-size:11px;color:#ffd9a0">'+esc(f)+'</label><input class="ai-in" data-mf="'+esc(f)+'" style="margin-top:2px"'+(/datum|tarih/i.test(f)?' value="'+_today()+'"':'')+'></div>';
+    });
+    h+='<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button id="ai-fill-go" class="jb-mbtn p" style="flex:1">'+bt1+'</button>'+(!hard?'<button id="ai-fill-skip" class="jb-mbtn">'+bt2+'</button>':'')+'</div>';
+    p.innerHTML=h;
+    if(acts&&acts.parentNode) acts.parentNode.insertBefore(p,acts); else { var bx=document.getElementById('ai-box'); if(bx) bx.appendChild(p); }
+    try{ p.scrollIntoView({block:'center'}); }catch(e){}
+    var go=document.getElementById('ai-fill-go');
+    if(go) go.onclick=function(){ applyFill(); var rest=missingFields(bodyVal()).filter(function(x){ return x!=='…'; }); if(hard&&rest.length){ var pp=document.getElementById('ai-fillp'); if(pp) pp.remove(); fillFlow(true,cont); return; } var p2=document.getElementById('ai-fillp'); if(p2) p2.remove(); cont(); };
+    var sk=document.getElementById('ai-fill-skip');
+    if(sk) sk.onclick=function(){ var p3=document.getElementById('ai-fillp'); if(p3) p3.remove(); cont(); };
+  }
+  function fillGuard(hard){ return !missingFields(bodyVal()).length; }
+  /* ── [A] alici belgeye "An:" blogu olarak isle ── */
+  function injectRecip(html,rec){
+    try{
+      rec=String(rec||'').trim(); if(!rec) return html;
+      var first=rec.split('\n')[0].trim();
+      if(first && html.indexOf(first)!==-1) return html; /* zaten var */
+      var htmlBlock='<div class="ch-an" style="margin:0 0 18px 0;white-space:pre-line">'+esc(rec)+'</div>';
+      var m=html.match(/(<div class="a4"[^>]*>)/);
+      if(m){ return html.replace(m[1], m[1]+htmlBlock); }
+      return html;
+    }catch(e){ return html; }
+  }
+  /* ── [B] Themen'e icerik kaydet (dedup) ── */
+  function saveTopic(html){ saveTopicTxt(htmlText(html)); }
+  function saveTopicTxt(txt){
+    try{
+      txt=String(txt||'').trim(); if(txt.length<40) return;
+      var title=''; var mb=txt.match(/Betreff:?\s*(.+)/i)||txt.match(/Betrifft:?\s*(.+)/i);
+      if(mb) title=mb[1].trim().slice(0,70);
+      if(!title){ var ls=txt.split('\n').filter(function(x){ x=x.trim(); return x.length>6 && !/^(An:|Sehr geehrte|Mit freundlichen)/i.test(x); }); title=(ls[0]||'Dokument').slice(0,70); }
+      var tps=JSON.parse(localStorage.getItem('ch_topics')||'[]'); if(!Array.isArray(tps)) tps=[];
+      var key=txt.slice(0,50);
+      for(var i=0;i<tps.length;i++){ if(tps[i] && (tps[i].doc||tps[i].text||'').slice(0,50)===key){ tps[i].doc=txt; tps[i].ts=new Date().getTime(); localStorage.setItem('ch_topics',JSON.stringify(tps)); return; } }
+      /* Fall-merge: son 10 dk icinde acilmis, ICERIGI OLMAYAN auto-topic'e (Fall) belgeyi bagla */
+      var now=new Date().getTime();
+      for(var m=tps.length-1;m>=0;m--){ var tp=tps[m]; if(tp && !tp.doc && !tp.text && (now-(tp.created||tp.ts||0))<600000){ tp.doc=txt; tp.ts=now; localStorage.setItem('ch_topics',JSON.stringify(tps)); return; } }
+      tps.push({id:'d'+new Date().getTime(),title:'📄 '+title,doc:txt,ts:new Date().getTime(),keep:1,src:'doc'});
+      localStorage.setItem('ch_topics',JSON.stringify(tps.slice(-60)));
+    }catch(e){}
+  }
+
+  var CTX=null; var SIG={drawing:false,has:false,ctx:null,canvas:null};
+  function ovEl(){ var o=document.getElementById('ai-ov'); if(!o){ o=document.createElement('div'); o.id='ai-ov'; o.innerHTML='<div id="ai-box"></div>'; document.body.appendChild(o); o.addEventListener('click',function(e){ if(e.target===o) close(); }); } return o; }
+  function close(){ var o=document.getElementById('ai-ov'); if(o) o.classList.remove('on'); }
+  function setupSig(){
+    var c=document.getElementById('ai-sigpad'); if(!c) return;
+    try{ c.width=c.clientWidth*2; c.height=c.clientHeight*2; }catch(e){}
+    var ctx=c.getContext('2d'); try{ ctx.scale(2,2); }catch(e){}
+    try{ ctx.fillStyle='#fff'; ctx.fillRect(0,0,c.width,c.height); }catch(e){}
+    ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#0b1a3a';
+    SIG.canvas=c; SIG.ctx=ctx; SIG.has=false;
+    function pos(ev){ var r=c.getBoundingClientRect(); var t=(ev.touches&&ev.touches[0])||ev; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+    function down(ev){ ev.preventDefault(); SIG.drawing=true; var p=pos(ev); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+    function move(ev){ if(!SIG.drawing) return; ev.preventDefault(); var p=pos(ev); ctx.lineTo(p.x,p.y); ctx.stroke(); SIG.has=true; }
+    function up(){ SIG.drawing=false; }
+    c.addEventListener('pointerdown',down); c.addEventListener('pointermove',move); window.addEventListener('pointerup',up);
+    c.addEventListener('touchstart',down,{passive:false}); c.addEventListener('touchmove',move,{passive:false}); c.addEventListener('touchend',up);
+  }
+  function clearSig(){ try{ if(SIG.ctx&&SIG.canvas){ SIG.ctx.fillStyle='#fff'; SIG.ctx.fillRect(0,0,SIG.canvas.width,SIG.canvas.height); SIG.has=false; } }catch(e){} }
+  function sigJpeg(){ try{ return SIG.has?SIG.canvas.toDataURL('image/jpeg',0.92):''; }catch(e){ return ''; } }
+  function sigPng(){ try{ return SIG.has?SIG.canvas.toDataURL('image/png'):''; }catch(e){ return ''; } }
+
+  function recVal(){ return String((document.getElementById('ai-rec')||{}).value||'').trim(); }
+  var ORIG_BODY='';
+  /* CH_DOCFILL — imza adi + alici belgeye doldur */
+  function chSignerName(){ try{ var f1=(document.getElementById('ai-f1')||{}).value; if(f1&&(''+f1).trim()) return (''+f1).trim(); var P=prof(); return ((P.f1||'')+' '+(P.f2||'')).trim(); }catch(e){ return ''; } }
+  function chDocClean(text){ try{ text=String(text||''); var nm=chSignerName(); if(nm){ text=text.replace(/Acerasoft(\s+LLC)?/gi,nm); } return text; }catch(e){ return String(text||''); } }
+  function fillRecip(text,rec){ try{ rec=String(rec||'').trim(); if(!rec) return text; var lines=String(text||'').split('\n'); var di=-1,bi=-1; for(var i=0;i<lines.length;i++){ if(di<0 && /,\s*den\s+\d{1,2}\.\d{1,2}\.\d{2,4}/.test(lines[i])) di=i; if(bi<0 && /^\s*(Betreff|Betrifft)\s*:/i.test(lines[i])) bi=i; } var recFirst=rec.split('\n')[0].trim(); if(di>=0 && bi>di){ var area=lines.slice(di+1,bi).join('\n'); if(area.indexOf(recFirst)===-1 || /_{3,}|\.{4,}|…/.test(area)){ return lines.slice(0,di+1).join('\n')+'\n\n'+rec+'\n\n'+lines.slice(bi).join('\n'); } return text; } if(/_{4,}/.test(text)){ var adr=rec.split('\n').slice(1).join(', ')||rec; return text.replace(/_{4,}/, adr); } return text; }catch(e){ return String(text||''); } }
+  function fillRecipInBody(rec){ try{ var b=document.getElementById('ai-body'); if(!b) return; var t=fillRecip(b.value, rec); if(t!==b.value) b.value=t; }catch(e){} }
+  function bodyVal(){ var b=document.getElementById('ai-body'); return b?String(b.value||'').trim():(ORIG_BODY||htmlText(CTX.html)); }
+  function bodyEdited(){ var b=document.getElementById('ai-body'); var base=((CTX&&CTX.raw)||ORIG_BODY||'').trim(); return !!(b && String(b.value||'').trim() && String(b.value||'').trim()!==base); }
+  /* duzenlenmis metni yazdirilacak HTML'e uygula (a4 govdesini degistir) */
+  function applyEdited(html){
+    try{
+      if(!bodyEdited()) return html;
+      var htmlBody=esc(bodyVal()).replace(/\n/g,'<br>');
+      var m=html.match(/(<div class="a4"[^>]*>)([\s\S]*)(<\/div>)/);
+      if(m){ return html.replace(m[0], m[1]+'<div style="white-space:normal">'+htmlBody+'</div>'+m[3]); }
+    }catch(e){}
+    return html;
+  }
+  function proceed(html){ window.__addr3OK=true; window.__addrOK=true; try{ CTX.orig.call(window,html); }catch(e){ try{ CTX.orig(html); }catch(e2){} } setTimeout(function(){ try{ window.__addr3OK=false; window.__addrOK=false; }catch(e){} },2500); }
+  function saveProfAddr(html){
+    try{ var P=prof(), f3=(document.getElementById('ai-f3')||{}).value, f4=(document.getElementById('ai-f4')||{}).value;
+      if(f3!==undefined && P.f3 && f3 && f3!==P.f3) html=html.split(P.f3).join(f3);
+      if(f4!==undefined && P.f4 && f4 && f4!==P.f4) html=html.split(P.f4).join(f4);
+      if(window.P){ if(f3!==undefined) window.P.f3=f3; if(f4!==undefined) window.P.f4=f4; }
+      var pv=JSON.parse(localStorage.getItem('ch_prof_v3')||'{}')||{}; if(f3!==undefined)pv.f3=f3; if(f4!==undefined)pv.f4=f4; localStorage.setItem('ch_prof_v3',JSON.stringify(pv));
+    }catch(e){}
+    return html;
+  }
+  function finalHtml(withSigPng){
+    var html=saveProfAddr(CTX.html);
+    try{ var _nm=chSignerName(); if(_nm) html=html.replace(/Acerasoft(\s+LLC)?/gi,_nm); }catch(e){}
+    html=applyEdited(html);
+    html=injectRecip(html, recVal());
+    if(withSigPng){ var sig=sigPng(); if(sig){ var img='<div style="margin-top:24px"><img src="'+sig+'" style="height:62px"></div>'; if(/<\/body>/i.test(html)) html=html.replace(/<\/body>/i,img+'</body>'); else html=html+img; } }
+    return html;
+  }
+  function doFree(){ fillFlow(false,function(){ var html=finalHtml(true); saveTopicTxt(bodyVal()); close(); proceed(html); }); }
+  function ownRecip(){ var P=prof(); var nm=((P.f1||'')+' '+(P.f2||'')).trim(); var a3=(document.getElementById('ai-f3')||{}).value||P.f3||''; var a4=(document.getElementById('ai-f4')||{}).value||P.f4||''; return [nm,a3,a4].filter(function(x){ return x&&(''+x).trim(); }).join('\n'); }
+  function doHome(){
+    if(!fillGuard(true)){ fillFlow(true,function(){ doHome(); }); return; }
+    var own=ownRecip(); if(own.replace(/\s/g,'').length<8){ try{ alert(T('needownaddr')); }catch(e){} return; }
+    var P=prof(); var sender=((P.f1||'')+' '+(P.f2||'')).trim()+' - '+(P.f3||'')+' - '+(P.f4||'');
+    saveTopicTxt(bodyVal());
+    try{ var a=JSON.parse(localStorage.getItem('ch_mailorig_req')||'[]'); if(!Array.isArray(a))a=[]; a.push({ts:new Date().getTime(),adr:own,paid:0}); localStorage.setItem('ch_mailorig_req',JSON.stringify(a.slice(-50))); }catch(e){}
+    var btn=document.getElementById('ai-home'); var old=btn?btn.textContent:''; if(btn){ btn.textContent=T('sending'); btn.disabled=true; }
+    fetch(PVURL()+'?action=send_letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:bodyVal(),recipient:own,sender:sender})})
+     .then(function(r){ return r.json(); }).then(function(j){ if(btn){ btn.textContent=old; btn.disabled=false; }
+        if(j&&j.ok){ close(); try{ alert(T('sentok')); }catch(e){} } else { try{ alert(T('senderr')+((j&&(j.error||(j.result&&j.result.message)))||'?')); }catch(e){} } })
+     .catch(function(){ if(btn){ btn.textContent=old; btn.disabled=false; } try{ alert(T('senderr')+'network'); }catch(e){} });
+  }
+  /* [1] onceki onay: imza+alici+metin dogrula, [2] kesin onay bar'i goster */
+  function doSend(btn){
+    if(!SIG.has){ try{ alert(T('needsig')); }catch(e){} return; }
+    var rec=recVal(); if(rec.length<8){ try{ alert(T('needrec')); }catch(e){} return; }
+    if(bodyVal().length<20){ try{ alert(T('needbody')); }catch(e){} return; }
+    if(!fillGuard(true)){ var _sb=btn; fillFlow(true,function(){ doSend(_sb); }); return; }
+    var acts=document.querySelector('#ai-box .ai-acts'); if(!acts) return;
+    if(document.getElementById('ai-confirmbar')) return;
+    acts.style.display='none';
+    var bar=document.createElement('div'); bar.className='ai-acts'; bar.id='ai-confirmbar';
+    var frk=/widerruf|widerspruch|k(ü|ue)ndigung|einspruch|frist|mahnung/i.test(ORIG_BODY);
+    function _bnum(){ var p=plan(); if(/elite|pro/.test(p)) return 1.5; if(/basic/.test(p)) return 1.99; return 2.99; }
+    function _f2(n){ return n.toFixed(2).replace('.',',')+' €'; }
+    var _DEF=[{v:'normal',act:'send_letter',reg:'',add:0,de:1,frk:0,lab:T('vnormal')},{v:'einwurf',act:'send_letter',reg:'einwurf',flat:6.80,flat_np:7.80,de:1,proof:1,frk:1,lab:T('reg_einwurf')},{v:'standard',act:'send_letter',reg:'einschreiben',flat:5.99,flat_np:6.99,de:1,proof:1,frk:1,lab:T('reg_standard')},{v:'fax',act:'send_fax',reg:'',flat:1.99,flat_np:2.50,ppg:0.50,proof:1,frk:1,lab:T('fax')}];
+    var _isDE=(CCX()==='DE');
+    var _use=_DEF.filter(function(d){ return (frk?!!d.frk:true) && (!d.de || _isDE); });
+    var _dm=_isDE?(frk?'einwurf':'normal'):'fax';
+    /* paketsiz (free) ise sabit-fiyatli Einschreiben'e +1 € eklenir; normal/fax zaten base ile kademeli */
+    function _hasPkg(){ return /basic|pro|elite/.test(plan()); }
+    function _pages(){ try{ var t=(bodyVal&&bodyVal())||ORIG_BODY||''; var ln=0; t.split('\n').forEach(function(x){ ln+=Math.max(1,Math.ceil(x.length/90)); }); return Math.max(1,Math.ceil((ln+8)/42)); }catch(e){ return 1; } }
+    function _priceFor(v){ var d=null; for(var i=0;i<_DEF.length;i++) if(_DEF[i].v===v) d=_DEF[i]; if(d&&d.flat!=null){ var b=_hasPkg()? d.flat : (d.flat_np!=null? d.flat_np : d.flat+1); if(d.ppg) b+=d.ppg*Math.max(0,_pages()-1); return _f2(b); } return _f2(_bnum()+(d?(d.add||0):0)); }
+    function _opt(d){ return '<label class="ai-vopt" style="display:flex;align-items:center;gap:7px;width:100%;margin:1px 0;font-size:11.5px;color:#cfe0ff;cursor:pointer"><input type="radio" name="ai-vsa" value="'+d.v+'" data-act="'+d.act+'" data-reg="'+d.reg+'"'+(d.v===_dm?' checked':'')+'> <span>'+d.lab+' ('+_priceFor(d.v)+')'+(d.proof?' <span style="color:#42df94;font-weight:700">'+T('proof')+'</span>':'')+'</span></label>'; }
+    bar.innerHTML='<div class="ai-warn" style="width:100%;margin-bottom:6px">'+T('confirmq').replace('{r}',esc(rec.split('\n')[0]))+'</div>'
+      +(frk?'<div class="aik-hint" style="color:#ffb0b0;font-size:11px;margin:0 0 6px;width:100%">'+T('beweisnote')+'</div>':'')
+      +'<div style="width:100%;display:flex;flex-direction:column;gap:3px;margin:2px 0 6px">'+_use.map(_opt).join('')+'</div>'
+      +'<div id="ai-faxwrap" style="display:none;margin:2px 0 8px;width:100%"><input class="ai-in" id="ai-faxnr" placeholder="'+esc(T('faxnr'))+'"><div class="aik-hint" style="color:#9fb4d8;font-size:10.5px;margin-top:3px">'+T('faxhint')+'</div></div>'
+      +'<button id="ai-do">'+T('confirmyes')+' — <span id="ai-price">'+_priceFor(_dm)+'</span></button><button id="ai-back">'+T('back')+'</button>';
+    Array.prototype.forEach.call(bar.querySelectorAll('input[name=ai-vsa]'),function(rd){ rd.onchange=function(){
+      var fw=document.getElementById('ai-faxwrap'); if(fw) fw.style.display=(rd.value==='fax')?'':'none';
+      var pe=document.getElementById('ai-price'); if(pe) pe.textContent=_priceFor(rd.value);
+      if(rd.value==='fax'){ var fx=document.getElementById('ai-faxnr'); var nm=(recVal().split('\n')[0]||'').trim();
+        if(fx && !fx.value.trim() && nm.length>2){
+          fetch(API()+'?action=aichat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Nenne die OFFIZIELLE Faxnummer von "'+nm+'" NUR wenn du sie ABSOLUT SICHER kennst (Behörde/bekannte Firma). Bist du nicht sicher, antworte NUR mit dem Wort: UNBEKANNT. Erfinde KEINE Nummer. Nur die Nummer im Format +49..., sonst nichts.',history:[],provider:'deepseek',lang:'de',country:'DE'})})
+           .then(function(x){ return x.json(); }).then(function(j){ try{ var rp=String(j&&j.reply||''); if(/UNBEKANNT/i.test(rp)) return; var t=rp.replace(/[^\d+]/g,''); if(t.length>=6 && fx && !fx.value.trim()) fx.value=t; }catch(e){} }).catch(function(){});
+        }
+      }
+    }; });
+    acts.parentNode.insertBefore(bar,acts.nextSibling);
+    document.getElementById('ai-do').onclick=function(){ reallySend(this); };
+    document.getElementById('ai-back').onclick=function(){ bar.remove(); acts.style.display=''; };
+  }
+  function reallySend(btn){
+    var rec=recVal(); var txt=bodyVal(); saveTopicTxt(txt);
+    var P=prof(); var sender=((P.f1||'')+' '+(P.f2||'')).trim()+' - '+(P.f3||'')+' - '+(P.f4||'');
+    var _r=document.querySelector('input[name=ai-vsa]:checked')||{}; var _ds=(_r.dataset||{});
+    var _act=_ds.act||'send_letter'; var _reg=_ds.reg||'';
+    var _faxnr=String((document.getElementById('ai-faxnr')||{}).value||'').trim();
+    if(_act==='send_fax' && _faxnr.length<5){ try{ alert(T('needfax')); }catch(e){} return; }
+    var body={action:_act,text:txt,recipient:rec,sender:sender,sig_jpeg:sigJpeg(),registered:_reg,fax_number:_faxnr};
+    var old=btn.textContent; btn.textContent=T('sending'); btn.disabled=true;
+    fetch(PVURL()+'?action='+_act,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+     .then(function(r){ return r.json(); })
+     .then(function(j){ btn.textContent=old; btn.disabled=false;
+        if(j&&j.ok){ close(); try{ alert(T('sentok')); }catch(e){} } else { try{ alert(T('senderr')+((j&&(j.error||(j.result&&j.result.message)))||'?')); }catch(e){} } })
+     .catch(function(){ btn.textContent=old; btn.disabled=false; try{ alert(T('senderr')+'network'); }catch(e){} });
+  }
+  function extractRecipient(){
+    var el=document.getElementById('ai-rec'); if(!el) return;
+    var txt=htmlText(CTX.html).slice(0,1600);
+    var msg='Aus dem folgenden deutschen Brief die EMPFÄNGER-Anschrift extrahieren (Name/Firma/Behörde + Straße + PLZ Ort), je Zeile ein Element. Fehlt die Adresse: NUR ergänzen, wenn du die offizielle Postanschrift ABSOLUT SICHER kennst (Behörde/bekannte Firma) — erfinde NIEMALS Straße oder PLZ. Bist du unsicher, gib nur den Namen zurück und hänge in einer neuen Zeile „(Adresse bitte selbst eintragen)" an. Wenn kein Empfänger erkennbar: leere Antwort. NUR die Anschrift, keine Erklärung.\n\n'+txt;
+    fetch(API()+'?action=aichat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,history:[],provider:'deepseek',lang:'de',country:'DE'})})
+     .then(function(r){ return r.json(); })
+     .then(function(j){ try{ var t=(j&&j.reply)?String(j.reply).replace(/```[a-z]*\n?|```/g,'').trim():''; if(t&&t.length<240 && el && !el.value.trim()){ el.value=t; try{ fillRecipInBody(t); }catch(e){} var wl=document.getElementById('ai-recwarn'); if(wl) wl.style.display=(/\b\d{5}\b/.test(t)?'none':''); } }catch(e){} })
+     .catch(function(){});
+  }
+  function render(){
+    var P=prof(), box=document.getElementById('ai-box'); if(!box) return;
+    var wet=needsWet(CTX.html);
+    CTX.raw=htmlText(CTX.html); ORIG_BODY=chDocClean(CTX.raw);
+    try{ saveTopicTxt(ORIG_BODY); }catch(e){} /* behalten: icerik aninda kayit */
+    var h='<h3>📮 '+T('ttl')+'</h3><div class="sub">'+T('sub')+'</div>';
+    var _miss=missingFields(ORIG_BODY);
+    if(_miss.length) h+='<div class="ai-warn" id="ai-misswarn">'+T('fillwarn').replace('{f}',esc(_miss.join(', ')))+'</div>';
+    h+='<div class="ai-f"><label>'+T('rec')+'</label><textarea class="ai-in" id="ai-rec" rows="3" placeholder="'+esc(T('recph'))+'"></textarea><div class="aik-hint" id="ai-recwarn" style="display:none;color:#ffcf7a;font-size:11px;margin-top:3px">'+T('recwarn')+'</div></div>';
+    h+='<div class="ai-f"><label>'+T('editlbl')+'</label><textarea class="ai-in" id="ai-body" rows="9" style="font-size:12px;line-height:1.5">'+esc(ORIG_BODY)+'</textarea><div class="aik-hint" style="color:#9fb4d8;font-size:10.5px;margin-top:3px">'+T('edithint')+'</div></div>';
+    h+='<div class="ai-f"><label>'+T('name')+'</label><input class="ai-in" id="ai-f1" value="'+esc(((P.f1||'')+' '+(P.f2||'')).trim())+'"></div>';
+    h+='<div class="ai-f"><label>'+T('adr')+'</label><input class="ai-in" id="ai-f3" value="'+esc(P.f3||'')+'"></div>';
+    h+='<div class="ai-f"><label>'+T('plz')+'</label><input class="ai-in" id="ai-f4" value="'+esc(P.f4||'')+'"></div>';
+    h+='<div class="ai-sec">'+T('sigsec')+'</div>';
+    if(wet){ h+='<div class="ai-warn">'+T('sigwet')+'</div><div class="aik-hint" style="color:#ffd9a0;font-size:11px;margin:4px 0 0">'+T('wetnote')+'</div>'; }
+    else{ h+='<div class="sub" style="margin-bottom:6px">'+T('sigok')+'</div><canvas id="ai-sigpad"></canvas><div class="ai-sigrow"><button id="ai-sigclr">🗑 '+T('clr')+'</button></div>'; }
+    h+='<div class="ai-acts">';
+    if(!wet) h+='<button id="ai-send">'+T('send')+' — '+priceStr()+'</button>';
+    h+='<button id="ai-free">'+T('free')+'</button><button id="ai-home">'+(wet?T('wethome'):(T('home')+' — '+priceStr()))+'</button><button id="ai-cancel">'+T('cancel')+'</button></div>';
+    box.innerHTML=h;
+    if(!wet){ setupSig(); var cb=document.getElementById('ai-sigclr'); if(cb) cb.onclick=clearSig; extractRecipient(); var sb=document.getElementById('ai-send'); if(sb) sb.onclick=function(){ doSend(sb); }; }
+    document.getElementById('ai-free').onclick=doFree;
+    document.getElementById('ai-home').onclick=doHome;
+    document.getElementById('ai-cancel').onclick=function(){ close(); proceed(CTX.html); };
+  }
+  var g=0;(function wrap(){
+    try{
+      if(typeof window.chPrintDoc==='function' && !window.chPrintDoc.__addr5){
+        var _cpd=window.chPrintDoc;
+        var w=function(html){
+          try{
+            if(window.__addr3OK){ /* IMZA3/altini pass-through */ return _cpd.apply(this,arguments); }
+            if(typeof html==='string' && isLetter(html)){ CTX={html:html,orig:_cpd}; ovEl().classList.add('on'); render(); return; }
+          }catch(e){}
+          return _cpd.apply(this,arguments);
+        };
+        w.__addr5=1; w.__addr4=1; w.__addr3=1; w.__addr=1;
+        try{ if(_cpd.__ai2)w.__ai2=1; if(_cpd.__fit)w.__fit=1; if(_cpd.__vsfprn)w.__vsfprn=1; }catch(e){}
+        window.chPrintDoc=w;
+      }
+    }catch(e){}
+    if(g++<500) setTimeout(wrap,500);
+  })();
+})();}catch(e){}
+</script>
+HTMLBLOCK;
+
+$pos = strripos($src,'</body>');
+if ($pos===false) exit("HATA: </body> bulunamadi — index DEGISTIRILMEDI.\n");
+$new = substr($src,0,$pos).$block."\n".substr($src,$pos);
+$tmp = tempnam(sys_get_temp_dir(),'a4').'.php';
+file_put_contents($tmp,$new);
+$lo=[];$rc=0; exec('php -l '.escapeshellarg($tmp).' 2>&1',$lo,$rc); @unlink($tmp);
+if ($rc!==0) { echo "\nLINT HATASI — index DEGISTIRILMEDI:\n  ".implode("\n  ",$lo)."\n"; exit; }
+@file_put_contents($file.'.bak-adresimza5-'.date('Ymd-His'), $src);
+$w=@file_put_contents($file,$new);
+if ($w===false || $w<strlen($new)) { echo "\n✗ YAZMA HATASI.\n"; exit; }
+$chk=(string)@file_get_contents($file);
+if (strpos($chk,'CH_ADRES_IMZA5')===false) { echo "\n✗ DOGRULAMA BASARISIZ.\n"; exit; }
+echo "  ✓ DOGRULAMA: CH_ADRES_IMZA5 diskte (".strlen($chk)." bayt)\n";
+echo "\n✓ Gonderim turu secici (yanyana): Normale Post / Einwurf-Einschreiben /\n";
+echo "   Einschreiben (Übergabe) / Fax. Fristkritik belgede Normale Post GIZLI.\n";
+echo "✓ Fax: alici faks no (kullanici veya AI-kesin); send_fax (Phaxio) + Sendebericht.\n";
+echo "✓ Eksik alan korumasi: 'IBAN: ....' / '[FELD]' varsa PDF/gonderim oncesi sorar.\n";
+echo "✓ Alici 'An:' blogu + dilekce METNI Meine Themen'e kaydedilir.\n";
+echo "✓ Modal her belgede tekrar acilir; Elite/Pro 1,50 €.\n";
+echo "\nBackend gerekli: pull2.php?key=...&files=apply-postversand.php\n";
