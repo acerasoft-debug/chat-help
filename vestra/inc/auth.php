@@ -68,10 +68,15 @@ function auth_user(): ?array {
    before a human had opened it. Submitting a document is now what it says it is, a
    submission; access waits for the approval. */
 function auth_user_approved(?array $u): bool {
-    return $u !== null && (
-        ($u['status'] ?? '') === 'active'
-        || ($u['kyb_status'] ?? '') === 'approved'
-    );
+    if ($u === null) return false;
+    $base = (($u['status'] ?? '') === 'active') || (($u['kyb_status'] ?? '') === 'approved');
+    if (!$base) return false;
+    /* Gewerbe/trade-licence sarti. Kayit akisi bu belgeyi zaten istiyordu ve notunda
+       "An account cannot be activated without it" yaziyordu -- ama hicbir kod bunu
+       kontrol etmiyordu. Sart artik onayin parcasi: operator hesabi elle 'active'
+       yapsa bile, trade_licence ONAYLANMADAN katalog acilmaz.
+       Bayragi olmayan (zorunluluk oncesi) hesaplar etkilenmez. */
+    return auth_trade_unlocked($u);
 }
 
 function auth_set(array $acc): void {
@@ -208,6 +213,17 @@ function auth_register(array $d): array|string {
         'promo_benefit' => $promo_data['benefit'] ?? '',
         'promo_expiry'  => $promo_data['expiry']  ?? '',
         'created'       => date('c'),
+        /* Gewerbe/trade-licence zorunlulugu SADECE bu bayragi tasiyan hesaplara
+           uygulanir. Kayit sirasinda trade_licence belgesi ZATEN isteniyordu ve notu
+           "An account cannot be activated without it" diyordu -- ama hicbir yerde
+           uygulanmiyordu: kayit olan herkes belge yuklemeden fiyati ve fotograflari
+           goruyordu. Kural yaziliydi, kapi yoktu.
+
+           Bayrak, "bundan sonrakiler" ayrimini acikca tasiyor: mevcut hesaplarda bu
+           alan yok, dolayisiyla onlar kilitlenmiyor. Ayrimi doc_requests'in varligina
+           baglamak yanlis olurdu -- eski hesaplarda da o kayitlar var, hepsi bir gecede
+           kilitlenirdi. */
+        'trade_doc_required' => true,
         'doc_requests'  => [],
     ];
     // Auto document requests on registration
@@ -385,6 +401,20 @@ function auth_doc_types(): array {
         'auth_letter'  => 'Authorization Letter (if not director)',
         'other'        => 'Other document',
     ];
+}
+
+/* Ticari katalog (fiyat, fotograf, line-sheet) acik mi?
+   - Bayragi olmayan hesap = zorunluluk oncesi kayit -> her zaman acik.
+   - Bayragi olan hesap = trade_licence belgesi ONAYLANANA kadar kapali.
+   Sadece 'approved' aciyor: 'uploaded' yeterli degil, yoksa herhangi bir PDF
+   yukleyen kapiyi kendi kendine acardi. */
+function auth_trade_unlocked(?array $acc): bool {
+    if (!$acc) return false;
+    if (empty($acc['trade_doc_required'])) return true;
+    foreach ((array)($acc['doc_requests'] ?? []) as $r) {
+        if (($r['type'] ?? '') === 'trade_licence' && ($r['status'] ?? '') === 'approved') return true;
+    }
+    return false;
 }
 
 function auth_request_doc(string $uid, string $type, string $note=''): void {
