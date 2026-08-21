@@ -491,7 +491,12 @@ $orderSt=vestra_read_json('order_statuses.json');
 $cats=vestra_cats();
 $_ms  = $AUTH_USER['membership_status'] ?? '';
 $_kyb = $AUTH_USER['kyb_status'] ?? '';
-$canPublish = in_array($_ms, ['trialing','active'], true) || ($_ms === '' && $_kyb === 'approved');
+/* 'none' de "uyelik yok" demek: auth_register() bu alana 'none' yaziyor, bu kosul
+   ise sadece bos dizeyi kabul ediyordu -- KYB'si onayli saticilar panelde yayin
+   yapamiyordu. seller-add.php'deki ayni kosulla birlikte duzeltildi; ikisi ayni
+   kurali uyguluyor, ayri kalirlarsa panel "yayinla" der, kaydeden uc reddeder. */
+$_noMembership = ($_ms === '' || $_ms === 'none');
+$canPublish = in_array($_ms, ['trialing','active'], true) || ($_noMembership && $_kyb === 'approved');
 $quotaLimit = vestra_seller_monthly_quota_limit($AUTH_USER['membership_tier'] ?? '');
 $quotaUsed  = vestra_seller_monthly_quota_used($AUTH_USER);
 $quotaLeft  = $quotaLimit !== null ? max(0, $quotaLimit - $quotaUsed) : null;

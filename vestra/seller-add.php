@@ -12,7 +12,14 @@ if (!$_user || ($_user['type'] ?? '') !== 'seller') {
 }
 $_ms  = $_user['membership_status'] ?? '';
 $_kyb = $_user['kyb_status'] ?? '';
-if (!in_array($_ms, ['trialing', 'active'], true) && !($_ms === '' && $_kyb === 'approved')) {
+/* "Uyeligi yok ama KYB onayli" satici da urun ekleyebilmeli -- kural buydu, ama
+   uygulanmiyordu: auth_register() bu alana 'none' yaziyor, kosul ise === '' (bos
+   dize) ariyordu. 'none' !== '' oldugu icin bu dal HIC calismadi ve KYB'si onayli
+   her satici /membership?gate=1'e atildi. Iki degeri de "uyelik yok" saymak
+   gerekiyor; kaydin yazdigi deger ile kapinin bekledigi deger ayni olmayinca
+   kural kagit uzerinde kaliyor. */
+$_noMembership = ($_ms === '' || $_ms === 'none');
+if (!in_array($_ms, ['trialing', 'active'], true) && !($_noMembership && $_kyb === 'approved')) {
     header('Location: /membership?gate=1'); exit;
 }
 if (vestra_seller_quota_exhausted($_user)) {
