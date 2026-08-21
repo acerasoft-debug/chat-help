@@ -1,0 +1,8 @@
+[
+  {
+    "match": "guc-t07",
+    "expect": 1,
+    "pinned": true,
+    "_why": "Vitrin (2x2 scard-featured) urunu artik Gucci. Onceki adimda vitrini BOS biraktim, gerekcem 'Gucci urunlerinde tek fotograf var, gecis efekti calismaz' idi -- fazla temkinliydi: shop.php ikinci fotografi 'if($img1)' ile basiyor, yoksa etiketi hic uretmiyor. Yani tek fotografla kart bozulmuyor, sadece hover gecisi olmuyor. Bos vitrin, tek fotografli buyuk bir Gucci kartindan daha kotuydu.\n\nSecim guc-t07 (GG Print T-Shirt, White - XJDEZ): GG monogrami kucuk boyutta bile 'Gucci' diye okunuyor, vitrin karti icin en taninabilir imza. Alternatifler guc-t06 (Tiger) ve guc-p01 (Colour Block Polo); degistirmek tek satirlik is."
+  }
+]
