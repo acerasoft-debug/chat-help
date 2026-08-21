@@ -72,9 +72,14 @@ jobs:
               $search = implode(', ', $searchTerms);
               $hits = [];
               foreach ($leads as $l) {
+                // 'city' de aranmali: keşif her lead'e sehir yaziyor, ama arama
+                // haystack'inde yoktu -- "Napoli taranmis mi?" sorusu bu yuzden
+                // yanlis "0 eslesme" donduruyordu ve tarandigi halde tarandi
+                // sanilmayan sehirlere bosuna 12 dakikalik kesif harcaniyordu.
                 $hay = strtolower(
                   ($l['company'] ?? '').' '.($l['email'] ?? '').' '.
-                  ($l['website'] ?? '').' '.($l['notes'] ?? '').' '.($l['country'] ?? '')
+                  ($l['website'] ?? '').' '.($l['notes'] ?? '').' '.($l['country'] ?? '').' '.
+                  ($l['city'] ?? '')
                 );
                 $match = false;
                 foreach ($searchTerms as $t) { if (str_contains($hay, $t)) { $match = true; break; } }
@@ -85,13 +90,32 @@ jobs:
               foreach ($hits as $l) {
                 $sent = trim((string)($l['last_contacted_at'] ?? '')) !== '';
                 if ($sent) $sentN++;
-                printf("  %s  %-34s %-32s eklendi=%s %s\n",
+                printf("  %s  %-28s %-30s %-16s eklendi=%s %s\n",
                   $sent ? 'GONDERILDI' : 'BEKLIYOR  ',
-                  mb_substr((string)($l['company'] ?? ''), 0, 32),
+                  mb_substr((string)($l['company'] ?? ''), 0, 26),
                   (string)($l['email'] ?? ''),
+                  mb_substr((string)($l['city'] ?? ''), 0, 14),
                   substr((string)($l['added_at'] ?? ''), 0, 10),
                   $sent ? ('-> '.substr((string)($l['last_contacted_at']),0,10).' ('.($l['last_campaign']??'?').')') : ''
                 );
+              }
+              // Sehir dokumu: kesif hangi sehirleri tuketmis, nerede hala gonderilmemis
+              // adres kalmis -- tek tek satir okumadan gorunsun. Bu olmadan "Napoli'ye
+              // kesif atmaya deger mi?" sorusu ancak 12 dakikalik bir kesif KOSTURARAK
+              // cevaplanabiliyordu; cevap sistemde zaten duruyordu.
+              if ($hits) {
+                $byCity = [];
+                foreach ($hits as $l) {
+                  $c = trim((string)($l['city'] ?? '')) ?: '(sehir yok)';
+                  if (!isset($byCity[$c])) $byCity[$c] = ['n' => 0, 'sent' => 0];
+                  $byCity[$c]['n']++;
+                  if (trim((string)($l['last_contacted_at'] ?? '')) !== '') $byCity[$c]['sent']++;
+                }
+                uasort($byCity, fn($a, $b) => $b['n'] <=> $a['n']);
+                echo "\nsehir dokumu (lead / gonderilmis / BEKLEYEN):\n";
+                foreach ($byCity as $c => $v) {
+                  printf("  %-24s %4d / %4d / %4d\n", $c, $v['n'], $v['sent'], $v['n'] - $v['sent']);
+                }
               }
               echo "\ngonderilen: {$sentN} / ".count($hits)."\n";
               exit(0);
