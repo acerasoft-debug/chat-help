@@ -29,7 +29,11 @@ foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
    Partitions rather than a sort key, so inside each group products keep exactly the
    order vestra_products() returned -- promoting a brand must not reshuffle the
    other 300. */
-$leadBrands = ['BALMAIN', 'DSQUARED2'];
+/* Vitrin sirasi operator karari: katalog Gucci ile aciliyor, arkasinda Givenchy,
+   sonra Lacoste. Lacoste listeden cikarilmadi -- yalnizca iki hanenin arkasina
+   alindi ("biraz asagiya"), cunku dropship akisi (Stripe, stok, siparis) hala o
+   urune bagli ve gorunurlugunu tamamen kaybetmesi satisi dusurur. */
+$leadBrands = ['GUCCI', 'GIVENCHY', 'LACOSTE', 'BALMAIN', 'DSQUARED2'];
 $pinned = []; $lead = []; $rest = [];
 foreach ($products as $p) {
     if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
