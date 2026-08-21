@@ -194,6 +194,15 @@ function vestra_leads_add(array $rows, string $owner=''): array {
       'id'=>'LD'.strtoupper(bin2hex(random_bytes(4))),'added_at'=>date('c'),'owner_uid'=>$owner,
       'company'=>$company,'contact_name'=>trim((string)($r['contact_name']??'')),
       'email'=>$ev?$email:'','country'=>trim((string)($r['country']??'')),
+      /* Kesif her satira sehri yaziyor (vestra_discover_osm), ama bu sabit alan
+         listesi onu almiyordu: sehir kayit aninda sessizce dusuyordu. Sonuc,
+         "hangi sehirler tarandi" sorusunun sistemde cevabinin OLMAMASI -- oysa
+         veri elimize gelmisti. Sehir olmadan tuketilmis bir sehre yeniden kesif
+         atmayi ancak kesfi KOSTURUP gorebiliyoruz (bugun Milano/Roma/Floransa/
+         Madrid/Barcelona/Valencia'ya 12 dakika boyle harcandi, alti sehir de sifir
+         yeni kayit verdi). Mevcut kayitlarda bu alan yok; adres zaten notes icinde
+         duruyor, geriye donuk doldurma ayri bir is. */
+      'city'=>trim((string)($r['city']??'')),
       'website'=>trim((string)($r['website']??'')),'source'=>trim((string)($r['source']??''))?:'Discovery',
       'category'=>trim((string)($r['category']??'')),'notes'=>$notes,
       'status'=>'new','last_contacted_at'=>'','unsub_token'=>bin2hex(random_bytes(16)),
