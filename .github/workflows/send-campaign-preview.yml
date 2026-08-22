@@ -93,9 +93,9 @@ on:
         required: false
         default: ""
       inv_spec:
-        description: "FATURA: alan=değer, | ile ayrık. cur/unit/qty/ship/ship_label/colours(Ad:adet)/fx/fx_date/incoterms/export_reason/origin"
+        description: "FATURA: alan=değer, | ile ayrık. cur/unit/qty/ship/ship_label/colours(Ad:adet)/fx/fx_date/incoterms/export_reason/origin/lead_time"
         required: false
-        default: "cur=USD|unit=105.17|qty=20|ship=50|ship_label=Shipping (flat rate)|colours=Black:10,White:10|fx=1.1699|fx_date=21 Aug 2026|incoterms=DAP Sparks, NV (Incoterms 2020) — import duties, taxes and customs clearance payable by the buyer as importer of record|export_reason=Sale of goods"
+        default: "cur=USD|unit=105.17|qty=20|ship=50|ship_label=Shipping (flat rate)|colours=Black:10,White:10|fx=1.1699|fx_date=21 Aug 2026|lead_time=two weeks|incoterms=DAP Sparks, NV (Incoterms 2020) — import duties, taxes and customs clearance payable by the buyer as importer of record|export_reason=Sale of goods"
       inv_to:
         description: "FATURA: PDF'in gideceği adres. Boş = operatörün test kutusu."
         required: false
@@ -491,14 +491,34 @@ jobs:
             $real = strcasecmp($to, (string)($row['email'] ?? '')) === 0;
             echo "alici: {$to}".($real ? "   << GERCEK MUSTERI" : "   (test kutusu)")."\n";
 
-            $label = $commit ? ('Invoice '.$inv['no']) : 'Invoice DRAFT';
-            $body  = '<p>'.htmlspecialchars($label).' — '.htmlspecialchars($ref).'</p>'
-                   . '<p>'.htmlspecialchars($buyer['company']).'<br>'
-                   . number_format($goods + $ship, 2).' '.$cur.'</p>'
-                   . ($commit ? '' : '<p><b>DRAFT — not an invoice.</b></p>');
-            $ok = vestra_send_mail($to, 'VESTRA — '.$label.' '.$ref, $body,
-              'support@vestrasales.com', 'VESTRA', null, '',
-              ['attachments' => [['name' => basename($path), 'path' => $path]]]);
+            /* Mektup, aliciya gidecek GERCEK metin -- onizlemede de ayni sablon
+               kullaniliyor, cunku test edilmeyen bir mektup test edilmemis demektir.
+               Onizlemede basa bir uyari satiri ekleniyor ve konu isaretleniyor ki
+               operatorun kutusundaki taslak, gercek bir faturayla karistirilmasin. */
+            require_once $doc."/inc/email_templates.php";
+            $invNo = $commit ? $inv['no'] : 'DRAFT';
+            $colourNote = '';
+            foreach ($items as $it) {
+              foreach ((array)$it['colors'] as $c) {
+                $colourNote .= ($colourNote === '' ? '' : ', ').(int)$it['qty'].' × '.$c;
+              }
+            }
+            [$subject, $body, $mOpts] = vestra_tpl_invoice_issued(
+              $buyer['name'] !== '' ? $buyer['name'] : ($buyer['company'] !== '' ? $buyer['company'] : 'there'),
+              vestra_product_label($brand, $pname), $ref, $invNo,
+              $qty, $colourNote, $goods, $ship, $goods + $ship,
+              $cur === 'USD' ? 'US$' : '€',
+              (string)($spec['incoterms'] ?? ''), (string)($spec['lead_time'] ?? ''), $fxNote
+            );
+            if (!$commit) {
+              $subject = '[TASLAK] '.$subject;
+              $body = "*** TASLAK -- fatura HENUZ KESILMEDI, bu belge gecerli bir fatura DEGILDIR. ***\n\n".$body;
+            }
+            $mOpts['attachments'] = [['name' => basename($path), 'path' => $path]];
+
+            echo "\n== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
+            $ok = vestra_send_mail($to, $subject, $body,
+              'support@vestrasales.com', 'VESTRA', null, '', $mOpts);
             echo $ok ? "PDF GONDERILDI -> {$to}\n" : "GONDERILEMEDI (vestra_send_mail false dondu)\n";
             if (!$commit) @unlink($path);
             exit($ok ? 0 : 1);

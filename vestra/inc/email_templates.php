@@ -587,3 +587,80 @@ function vestra_tpl_order_details_needed(
       . "support@vestrasales.com · vestrasales.com";
     return [$subject, $body, $opts];
 }
+
+/**
+ * The letter a buyer gets when the invoice is issued and attached.
+ *
+ * A PDF arriving on its own is a demand with no context: the reader has to open it to find
+ * out what it is for, what the amount covers and what they are expected to do next. The
+ * figures are therefore repeated in the body — not because the PDF is untrustworthy, but
+ * because a purchasing clerk reads the mail on a phone and forwards it to whoever pays.
+ *
+ * The one instruction that earns its place: quote the order reference on the transfer. A
+ * five-figure payment that arrives carrying whatever the payer's clerk typed has to be
+ * matched by hand, and until it is matched the goods do not move.
+ *
+ * @param string $money  Currency symbol already chosen by the caller ('US$' / '€') — the
+ *                       invoice and the letter must not disagree about which one it is.
+ */
+function vestra_tpl_invoice_issued(
+    string $buyerName, string $product, string $ref, string $invoiceNo,
+    int $qty, string $colourNote, float $goods, float $shipping, float $total,
+    string $money = '€', string $incoterms = '', string $leadTime = '', string $fxNote = ''
+): array {
+    $fmt = fn(float $n) => $money.number_format($n, 2);
+    $rows = [
+        ['label'=>'Invoice',    'value'=>$invoiceNo],
+        ['label'=>'Order ref',  'value'=>$ref],
+        ['label'=>'Product',    'value'=>$product],
+        ['label'=>'Quantity',   'value'=>$qty.' pcs'.($colourNote !== '' ? ' — '.$colourNote : '')],
+    ];
+    /* Nakliye varsa mal ve nakliye AYRI satirda: tek bir "Toplam" gosterip icinde
+       navlun oldugunu soylememek, aliciya faturayi acip cikarma yaptiriyor. */
+    if ($shipping > 0) {
+        $rows[] = ['label'=>'Goods',    'value'=>$fmt($goods)];
+        $rows[] = ['label'=>'Shipping', 'value'=>$fmt($shipping)];
+    }
+    $rows[] = ['label'=>'Total due', 'value'=>$fmt($total), 'strong'=>true];
+
+    $opts = [
+        'badge'  => 'Invoice issued',
+        'rows'   => $rows,
+        'button' => ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=offers'],
+    ];
+
+    $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for confirming your details. The invoice for order {$ref} is attached, "
+      . "and a copy is available in your VESTRA account.\n\n"
+      . "Invoice {$invoiceNo} — total ".$fmt($total)
+      . ($shipping > 0 ? ", including shipping" : "").".\n\n"
+      . "Payment terms are 100% in advance. Please transfer the full amount to the account "
+      . "shown on the invoice and quote reference {$ref} — that reference is what matches "
+      . "your transfer to this order.\n\n"
+      /* Malin AVRUPA'dan ciktigi ve surenin ODEME ALINDIKTAN sonra basladigi, kabul
+         mektubunda ne icin yazildiysa burada da ayni sebeple yaziliyor: satici
+         Delaware kayitli, alici ABD'de -- soylenmezse mal ic piyasadan gelecek
+         sanilir, ve "iki hafta"yi siparis gununden sayan alici kendi odemesinin
+         gecikmesini bize yazar. */
+      . ($leadTime !== ''
+          ? "Dispatch and delivery: the goods are checked at our warehouse before dispatch "
+            ."and ship from Europe. Total delivery time is {$leadTime} on average, counted "
+            ."from receipt of payment.\n\n"
+          : '')
+      . ($incoterms !== '' ? "Delivery terms: {$incoterms}.\n\n" : '')
+      /* $fxNote bazen noktayla biter bazen bitmez; kosulsuz nokta "piece.." uretiyordu. */
+      . ($fxNote !== '' ? rtrim($fxNote, '.').".\n\n" : '')
+      /* Duzeltmeyi ODEMEDEN once istemek, hem aliciya hem bize is kazandiriyor:
+         kesilmis bir faturanin numarasi geri alinamaz, odeme sonrasi duzeltme
+         alacak dekontu + yeni fatura demek. */
+      . "If anything on the invoice needs correcting — the company name, the address or the "
+      . "tax ID — please tell us before you pay. Once payment has been made a correction "
+      . "means a credit note and a new invoice.\n\n"
+      . "—\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
