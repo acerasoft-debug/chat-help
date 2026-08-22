@@ -401,7 +401,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $v=trim((string)($_POST[$k]??''));
       if($v!=='') $cur[$k]=$v;   // bos alan mevcut degeri SILMEZ
     }
-    file_put_contents($f,json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($f,0600);
+    /* Yazdiktan sonra GERI OKUYOR. file_put_contents'in donusu goz ardi ediliyordu:
+       izin/disk sebebiyle yazamazsa kullanici "kaydedildi" sayfasina donuyor ve
+       hicbir sey kaydedilmemis oluyor. Bugun tam olarak bu soru soruldu -- "banka
+       bilgilerini girdim" denildi, sunucuda dosya YOKTU, ve panel bunu soyleyecek
+       hicbir sey basmamisti. Ayni desen bu projede birkac kez cikti: kural yazili,
+       kapi calismiyor, sonuc yesil. */
+    $ok = @file_put_contents($f,json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES),LOCK_EX);
+    @chmod($f,0600);
+    $back = is_readable($f) ? json_decode((string)file_get_contents($f),true) : null;
+    $stuck = is_array($back);
+    if($stuck) foreach($cur as $k=>$v){ if(trim((string)($back[$k]??''))!==trim((string)$v)){ $stuck=false; break; } }
+    if($ok===false || !$stuck){ header('Location: /admin?tab=orders&msg=platform_billing_failed'); exit; }
     header('Location: /admin?tab=orders&msg=platform_billing_saved'); exit;
   }
   if($act==='save_billing'){
@@ -1463,6 +1474,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'verify_resent'=>'Verification email resent.','manual_verified'=>'Email verified manually.',
     'badge_granted'=>'✓ Verified Seller badge granted.','badge_revoked'=>'Badge revoked.',
     'csrf_fail'=>'⚠ Security check failed — please retry the action from this page.',
+    /* Bu iki satir EKSIKTI. Form kaydediyordu ama hicbir sey yazmiyordu: kullanici
+       Save'e basip Orders sekmesine donuyor ve kaydin tutup tutmadigini anlamiyordu.
+       Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
+    'platform_billing_saved'=>'✓ Platform billing saved — verified on the server. Invoices will now carry the payment box.',
+    'platform_billing_failed'=>'⚠ Platform billing could NOT be written to the server — nothing was saved. Retry; if it repeats, the data directory is not writable.',
     'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
