@@ -305,18 +305,6 @@ jobs:
             }
 
             $seller = vestra_platform_seller();
-            $payable = trim((string)($seller['bank_account'] ?? '')) !== ''
-                    || trim((string)($seller['bank_iban'] ?? '')) !== '';
-            echo "satici: ".($seller['company'] ?? '?')."\n";
-            echo "odeme kutusu: ".($payable ? "basilabilir" : "BOS (banka bilgisi girilmemis)")."\n";
-            if ($commit && !$payable) {
-              fwrite(STDERR,
-                "\nDURDURULDU: banka bilgisi yok, kalici fatura kesilmiyor.\n".
-                "Fatura numarasi sirali ve geri alinamaz; odeme kutusu bos bir belge\n".
-                "kesilirse duzeltmenin yolu alacak dekontu + yeni fatura olur.\n".
-                "Once: /admin?tab=orders -> Platform billing, ya da PLATFORM_BANK_JSON gizli anahtari.\n");
-              exit(1);
-            }
 
             /* Alici bloku HESAPTAN geliyor: teklif satirinda yalnizca sirket adi ve
                e-posta var, faturaya adres ve vergi numarasi gerekiyor. Hesap yoksa
@@ -342,6 +330,27 @@ jobs:
             if (!in_array($cur, ['EUR', 'USD'], true)) {
               fwrite(STDERR, "desteklenmeyen para birimi: {$cur} (yalnizca EUR/USD)\n"); exit(1);
             }
+
+            /* Banka durağı PARA BIRIMINE gore. Once "hesap numarasi VAR MI" diye
+               bakiyordu; ABD hesabi dolu, fatura EUR olsa "var" deyip gecerdi ve
+               belge ABD routing'iyle Avrupa'ya giderdi -- o havale calismaz. Artik
+               faturanin kendi para birimine uygun ray var mi diye bakiliyor, tipki
+               belgenin bastigi kural gibi (vestra_payment_rails). Tek kural, iki yer. */
+            $rails = vestra_payment_rails($seller, $cur);
+            echo "satici: ".($seller['company'] ?? '?')."\n";
+            echo "odeme rayi ({$cur}): ".($rails ? "VAR (".count($rails)." satir)" : "YOK")."\n";
+            if ($commit && !$rails) {
+              fwrite(STDERR,
+                "\nDURDURULDU: {$cur} icin banka bilgisi yok, kalici fatura kesilmiyor.\n".
+                "Fatura numarasi sirali ve geri alinamaz; odeme kutusu bos bir belge\n".
+                "kesilirse duzeltmenin yolu alacak dekontu + yeni fatura olur.\n".
+                ($cur === 'USD'
+                  ? "USD icin gereken: bank_account + bank_routing (ABD hesabi).\n"
+                  : "{$cur} icin gereken: bank_iban (+ bank_bic). ABD hesabi bu para biriminde KULLANILMAZ.\n").
+                "Once: /admin?tab=orders -> Platform billing, ya da PLATFORM_BANK_JSON gizli anahtari.\n");
+              exit(1);
+            }
+
             $qty  = (int)($spec['qty']  ?? (int)($row['qty'] ?? 0));
             $unit = (float)($spec['unit'] ?? (float)($row['offer_unit'] ?? 0));
             $ship = (float)($spec['ship'] ?? 0);

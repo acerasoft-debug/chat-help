@@ -77,6 +77,48 @@ function vestra_format_tax_id(string $id, string $country): string {
     return preg_match('/^\d{9}$/', $id) ? substr($id, 0, 2).'-'.substr($id, 2) : $id;
 }
 
+/**
+ * The payment rails that belong on THIS invoice, chosen by its currency.
+ *
+ * A US domestic account and a European one are not interchangeable, and printing both
+ * is not a kindness — it is an invitation to use the wrong one. An ABA routing number
+ * is a US domestic instruction: a European buyer paying in euro cannot use it, and a
+ * bank that accepts the attempt converts at its own rate or bounces the transfer days
+ * later. The reverse holds too: an IBAN on a dollar invoice sends a US payer down an
+ * international route that costs them a fee they did not agree to.
+ *
+ * So the currency of the document decides. USD prints the US rails (account + ABA),
+ * anything else prints IBAN/BIC. When the matching pair is not configured the function
+ * returns nothing at all, and the caller drops the whole payment box: a buyer who sees
+ * no account asks for one, while a buyer who sees the wrong one wires money into a
+ * route that cannot receive it.
+ *
+ * @return string[] Ready-to-print lines, empty when this currency has no account.
+ */
+function vestra_payment_rails(array $acc, string $currency): array {
+    $g = fn(string $k) => trim((string)($acc[$k] ?? ''));
+    if (strtoupper(trim($currency)) === 'USD') {
+        if ($g('bank_account') === '' || $g('bank_routing') === '') return [];
+        return [
+            'Account number: '.$g('bank_account').($g('bank_acct_type') !== '' ? '  ('.$g('bank_acct_type').')' : ''),
+            'Routing number (ABA): '.$g('bank_routing'),
+        ];
+    }
+    if ($g('bank_iban') === '') return [];
+    /* BIC'i secerken dikkat: yapilandirma DUZ ve tek bir 'bank_bic' tutuyor. ABD
+       hesabi da tanimliysa o BIC ABD bankasinin olabilir, ve onu bir IBAN'in
+       yanina basmak alicinin bankasina birbirini tutmayan bir cift vermek demek.
+       Bu yuzden ABD hesabi varken BIC ancak ACIKCA 'bank_eur_bic' verilmisse
+       yaziliyor; yoksa hic yazilmiyor. Kayip degil: SEPA icinde IBAN tek basina
+       yeterli, BIC opsiyoneldir -- eksik bir alan, celisen bir ciftten iyidir. */
+    $hasUs = $g('bank_account') !== '' || $g('bank_routing') !== '';
+    $bic   = $g('bank_eur_bic') !== '' ? $g('bank_eur_bic') : ($hasUs ? '' : $g('bank_bic'));
+    return array_values(array_filter([
+        'IBAN: '.$g('bank_iban'),
+        $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
+    ], fn($v) => $v !== ''));
+}
+
 function vestra_invoice_dir(): string {
     $dir = dirname(__DIR__).'/data/invoices';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
@@ -420,11 +462,6 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            constant across the part-shipments this order will be delivered in — one string
            tying the bank statement back to the sale from either side. */
         $payRef = trim((string)($order['ref'] ?? ''));
-        /* IBAN/BIC ile routing/account BIRLIKTE degil, hangisi doluysa O yaziliyor.
-           ABD hesabinda IBAN yok; bos bir "IBAN:" satiri basmak, odemeyi yapacak
-           kisiye var olmayan bir alani aratmak demek. Ikisi de doluysa (ornegin bir
-           AB ve bir ABD hesabi) ikisi de basiliyor -- odeyen kendi tarafina uygun
-           olani secer, ki uluslararasi transferde ucuz olan da odur. */
         /* Satir sirasi bilincli: kutu TANIDIK isimle acilir (Account holder =
            faturayi kesen sirket), hesabin oturdugu kurum asagida teknik detay
            olarak durur. Onceki hali "Bank: Choice Financial Group" ile aciliyordu
@@ -436,17 +473,21 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            Faturada yazmazsa alici ya routing'i arayip ayni isme kendisi varir ya da
            "Mercury" tahmin eder -- ad routing ile eslesmez, havale doner. Etiket bu
            yuzden formun kendi dili: "Beneficiary bank". */
-        $bankLines = $sellerAcc ? array_values(array_filter([
-            !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
-            !empty($sellerAcc['bank_account']) ? 'Account number: '.$sellerAcc['bank_account']
-                .(!empty($sellerAcc['bank_acct_type']) ? '  ('.$sellerAcc['bank_acct_type'].')' : '') : '',
-            !empty($sellerAcc['bank_routing']) ? 'Routing number (ABA): '.$sellerAcc['bank_routing'] : '',
-            !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
-            !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
-            !empty($sellerAcc['bank_name'])   ? 'Beneficiary bank: '.$sellerAcc['bank_name'] : '',
-            !empty($sellerAcc['bank_address']) ? 'Bank address: '.$sellerAcc['bank_address'] : '',
-            $payRef !== '' ? 'Payment reference: '.$payRef : '',
-        ], fn($v) => $v !== '')) : [];
+        $rails = vestra_payment_rails($sellerAcc ?? [], $cur);
+        $bankLines = $sellerAcc ? array_values(array_filter(array_merge(
+            [!empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : ''],
+            $rails,
+            [
+              !empty($sellerAcc['bank_name'])   ? 'Beneficiary bank: '.$sellerAcc['bank_name'] : '',
+              !empty($sellerAcc['bank_address']) ? 'Bank address: '.$sellerAcc['bank_address'] : '',
+              $payRef !== '' ? 'Payment reference: '.$payRef : '',
+            ]
+        ), fn($v) => $v !== '')) : [];
+        /* Para birimine uygun hesap YOKSA kutu hic basilmiyor -- $rails bos donuyor
+           ve geriye yalnizca ad/adres/referans kaliyor, ki bunlarla odeme yapilamaz.
+           Bos bir kutu yerine hicbir kutu: alici "buraya gonderemiyorum" diye sorar,
+           yanlis rayla gondermeye kalkmaz. */
+        if (!$rails) $bankLines = [];
         if ($bankLines) {
             $boxH = 16 + count($bankLines) * 13;
             $need($boxH + 14);
