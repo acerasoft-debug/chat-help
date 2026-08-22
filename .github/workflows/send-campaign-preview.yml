@@ -441,7 +441,9 @@ jobs:
                  arada baska bir fatura kesilirse kayar. */
               $seqF = vestra_data_dir().'/invoice_seq.json';
               $seq  = is_readable($seqF) ? json_decode((string)file_get_contents($seqF), true) : [];
-              printf("kesilse alacagi numara: INV-%s-%06d  (sira harcanmadi)\n",
+              /* Bicim vestra_next_invoice_no() ile AYNI olmali (%04d): onizlemenin
+                 soyledigi numara, kesimin verecegi numaradan sekilce bile sapmamali. */
+              printf("kesilse alacagi numara: INV-%s-%04d  (sira harcanmadi)\n",
                 date('Y'), (int)(is_array($seq) ? ($seq['vestra-'.date('Y')] ?? 0) : 0) + 1);
               /* Numara YAKILMIYOR. Belgede "DRAFT" yaziyor ki onizleme kazara
                  musteriye gonderilirse fatura yerine gecmesin. */

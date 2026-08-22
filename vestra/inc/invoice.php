@@ -205,7 +205,10 @@ function vestra_next_invoice_no(string $sellerKey): string {
     ftruncate($fh, 0); rewind($fh);
     fwrite($fh, json_encode($seq, JSON_PRETTY_PRINT));
     flock($fh, LOCK_UN); fclose($fh);
-    return sprintf('INV-%s-%06d', $year, $n);
+    /* 4 hane, operatorun istegiyle (INV-2026-0009): alti sifirli hali telefonda
+       okunmuyor ve kimse yilda milyon fatura kesmiyor. sprintf %04d KIRPMAZ,
+       genisletir -- 10000'inci fatura INV-2026-10000 olur, numara tasmaz. */
+    return sprintf('INV-%s-%04d', $year, $n);
 }
 
 /**
