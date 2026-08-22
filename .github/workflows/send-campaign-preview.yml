@@ -44,13 +44,101 @@ on:
         description: "TOPTAN TEKLİF: hangi mektup — petros (Yunanistan) | symax (Japonya, Excel ekli) | norway (kısa, eksiz) | outlets (soğuk tanıtım, eksiz, KR konusuna (광고) eklenir)"
         required: false
         default: "petros"
+      # SIPARIS "eksik bilgi" mektubu. Ayri bir is akisi dosyasi olarak yazilmisti ama
+      # API ile tetiklenemedi: yeni workflow dosyalari yalnizca varsayilan dalda
+      # kayitli oluyor, ozellik dalindan dispatch 404 donuyor. Bu dosya zaten kayitli,
+      # o yuzden buraya katildi -- ayni sebeple check-mail-quota da buraya katilmisti.
+      order_ref:
+        description: "SİPARİŞ MEKTUBU: teklif referansı (ör. O39419). Doluysa YALNIZCA bu iş çalışır, kampanya işi çalışmaz."
+        required: false
+        default: ""
+      order_to:
+        description: "SİPARİŞ MEKTUBU: alıcı. Boş = operatörün test kutusu. Gerçek müşteriye gitmesi için adresini AÇIKÇA yazın."
+        required: false
+        default: ""
+      order_colours:
+        description: "SİPARİŞ MEKTUBU: renk dağılımı notu (ör. '10 x Black, 10 x White')"
+        required: false
+        default: ""
+      order_missing:
+        description: "SİPARİŞ MEKTUBU: istenecek maddeler — address,tax_id,incoterm,phone"
+        required: false
+        default: "address,tax_id,incoterm,phone"
+      order_send:
+        description: "SİPARİŞ MEKTUBU: true = GERÇEKTEN gönder. false (varsayılan) = sadece konu+gövdeyi yaz, GÖNDERME"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
 
 jobs:
+  order_letter:
+    if: github.event.inputs.order_ref != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sipariş "eksik bilgi" mektubu
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          O_REF: ${{ github.event.inputs.order_ref }}
+          O_TO: ${{ github.event.inputs.order_to }}
+          O_COLOURS: ${{ github.event.inputs.order_colours }}
+          O_MISSING: ${{ github.event.inputs.order_missing }}
+          O_SEND: ${{ github.event.inputs.order_send }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND
+          script: |
+            cat > /tmp/vestra_order_details.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/auth.php";
+
+            $ref = trim((string)getenv('O_REF'));
+            $row = null;
+            foreach (vestra_read_csv('offers.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "teklif bulunamadi: {$ref}\n"); exit(1); }
+
+            /* Alici hesabi varsa ondan, yoksa teklif satirindan: teklif her zaman bir is
+               e-postasi topluyor, yani hesabi olmayan aliciya da yazabiliyoruz. */
+            $acc = auth_find($row['email'] ?? '');
+            $buyerName = trim((string)($row['company'] ?? '')) ?: trim((string)($acc['name'] ?? '')) ?: 'there';
+            $missing = array_values(array_filter(array_map('trim', explode(',', (string)getenv('O_MISSING')))));
+
+            [$subject, $body, $opts] = vestra_tpl_order_details_needed(
+              $buyerName, (string)($row['product'] ?? ''), $ref,
+              (int)($row['qty'] ?? 0), (float)($row['offer_unit'] ?? 0), (float)($row['offer_total'] ?? 0),
+              trim((string)getenv('O_COLOURS')), $missing
+            );
+
+            $to = trim((string)getenv('O_TO'));
+            if ($to === '') $to = 'acerasoft@gmail.com';
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici: {$to}\n"); exit(1); }
+
+            echo "== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
+            echo "alici: {$to}".(strcasecmp($to, (string)($row['email'] ?? '')) === 0 ? "   << GERCEK MUSTERI" : "   (test kutusu)")."\n";
+
+            if (strtolower((string)getenv('O_SEND')) !== 'true') { echo "\norder_send=false -- GONDERILMEDI\n"; exit(0); }
+            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'VESTRA', null, '', $opts);
+            echo $ok ? "\nGONDERILDI -> {$to}\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_order_details.php ./vestra_order_details_tmp.php
+            php ./vestra_order_details_tmp.php
+            rc=$?
+            rm -f ./vestra_order_details_tmp.php /tmp/vestra_order_details.php
+            exit $rc
+
   send:
-    if: github.event.inputs.wholesale_to == ''
+    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == ''
     runs-on: ubuntu-latest
     steps:
       - name: Kampanya önizlemesini gönder / render et
