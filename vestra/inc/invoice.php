@@ -47,6 +47,30 @@ function vestra_platform_seller(): array {
     return $base;
 }
 
+/**
+ * A tax identifier as its own country writes it.
+ *
+ * A US EIN is nine digits and is written NN-NNNNNNN everywhere it is read by a human —
+ * on a W-9, in a customs entry, in a broker's file. The registration form stores whatever
+ * the buyer typed, and a buyer who types nine bare digits had them printed that way:
+ * "EIN: 568637722". Nothing is wrong with the number, but the reader has to count digits
+ * to satisfy themselves it is an EIN at all, and a customs broker checking a shipment
+ * should not have to.
+ *
+ * Only the shape changes, never the value: nine digits in, the same nine digits out with
+ * a hyphen. Anything that is not exactly nine digits is returned untouched — a buyer who
+ * already typed the hyphen keeps it, and a number that does not look like an EIN is not
+ * quietly reformatted into one. Non-US identifiers are left alone; VAT numbers carry
+ * their own country prefix and grouping conventions, and inventing a US shape for them
+ * would be worse than printing them as given.
+ */
+function vestra_format_tax_id(string $id, string $country): string {
+    $id = trim($id);
+    $c  = strtoupper(trim($country));
+    if ($c !== 'US' && $c !== 'USA' && $c !== 'UNITED STATES') return $id;
+    return preg_match('/^\d{9}$/', $id) ? substr($id, 0, 2).'-'.substr($id, 2) : $id;
+}
+
 function vestra_invoice_dir(): string {
     $dir = dirname(__DIR__).'/data/invoices';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
@@ -322,7 +346,10 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
 
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
-        !empty($b['vat']) ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '.$b['vat'] : '',
+        !empty($b['vat'])
+          ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '
+            .vestra_format_tax_id((string)$b['vat'], (string)($b['country'] ?? ''))
+          : '',
         $buyerName,
         /* No buyer e-mail, for the same reason the seller's is absent. An invoice is not a
            contact sheet: it is forwarded to carriers, brokers and banks, and it sits in an
