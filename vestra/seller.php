@@ -289,62 +289,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         break;
     }
     if ($ref && $ownsOffer && in_array($action, ['accept','decline','counter'], true) && !($action==='counter'&&$ctr<=0)) {
-        $rs = vestra_read_json('offer_responses.json');
-        $rs[$ref] = ['status'=>$action, 'counter_price'=>$action==='counter'?$ctr:null, 'responded_at'=>date('c')];
-        vestra_write_json('offer_responses.json', $rs);
-        /* Mirror the response into the buyer's Messages inbox as a highlighted card. */
-        $buyerAcc = auth_find($offerRow['email'] ?? '');
-        $prodName = trim(($offerListing['brand']??'').' '.($offerListing['name']??''));
-        if ($buyerAcc) {
-            require_once __DIR__.'/inc/messages.php';
-            vestra_msg_post_system($buyerAcc['id'], $uid, $offerListing['id'] ?? '', [
-                'kind'=>'offer_response', 'ref'=>$ref, 'status'=>$action,
-                'counter_price'=>$action==='counter'?$ctr:null,
-                'product'=>$prodName,
-            ]);
-            require_once __DIR__.'/inc/push.php';
-            $pushTxt = match($action){
-                'accept'  => ['VESTRA — offer accepted ✓', $prodName.' — your offer was accepted. Invoice is ready.'],
-                'counter' => ['VESTRA — counter offer ↩', $prodName.' — seller counters at €'.number_format($ctr,2).'/unit.'],
-                default   => ['VESTRA — offer declined', $prodName.' — the seller declined this offer.'],
-            };
-            vestra_push_send($buyerAcc['id'], $pushTxt[0], $pushTxt[1], '/buyer?tab=offers');
-        }
-        /* Email the buyer directly — works whether or not they have a VESTRA account,
-           since offers always collect a work email. This is the buyer's only notice if
-           they don't have push enabled or don't happen to check the site. Reads as
-           coming from the seller (Reply-To -> them) in the buyer's own saved language. */
-        require_once __DIR__.'/inc/notify.php';
-        if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
-            $buyerName = $offerRow['company'] ?? ($buyerAcc['name'] ?? 'there');
-            $meSeller = auth_user();
-            $sellerLabel = $meSeller ? ($meSeller['company'] ?: ($meSeller['name'] ?: 'VESTRA')) : 'VESTRA';
-            [$mSubject, $mBody, $mOpts] = vestra_tpl_offer_response(vestra_user_lang($buyerAcc), $action, $buyerName, $prodName, $ref, $action==='counter'?$ctr:null);
-            vestra_send_mail($offerRow['email'], $mSubject, $mBody, $meSeller['email']??'', $sellerLabel, null, '', $mOpts);
-        }
-        /* Accepted offer = a confirmed sale — auto-generate this seller's PDF invoice,
-           enriched with the buyer's full account details when they have one. */
-        if ($action === 'accept') {
-            require_once __DIR__.'/inc/invoice.php';
-            $sellerAcc = null;
-            foreach (auth_accounts() as $a) { if (($a['id']??'')===$uid) { $sellerAcc=$a; break; } }
-            $buyerFull = $buyerAcc ?: auth_find($offerRow['email'] ?? '');
-            $orderMeta = [
-                'ref'=>$ref, 'date'=>date('c'),
-                'buyer'=>[
-                    'company'=>$offerRow['company'] ?? ($buyerFull['company'] ?? ''),
-                    'vat'=>$buyerFull['vat_id'] ?? '', 'name'=>$buyerFull['name'] ?? '',
-                    'email'=>$offerRow['email'] ?? '', 'country'=>$buyerFull['country'] ?? '',
-                    'address'=>$buyerFull['address'] ?? '',
-                ],
-            ];
-            $items = [[
-                'sku'=>$offerListing['sku'] ?? '', 'brand'=>$offerListing['brand'] ?? '', 'name'=>$offerListing['name'] ?? '',
-                'colors'=>[], 'qty'=>(int)($offerRow['qty']??0), 'unit'=>(float)($offerRow['offer_unit']??0),
-                'line'=>(float)($offerRow['offer_total']??($offerRow['qty']*$offerRow['offer_unit'])),
-            ]];
-            vestra_ensure_invoice($orderMeta, $items, $sellerAcc);
-        }
+        /* Yanit mantigi inc/offers.php'ye tasindi: admin paneli de AYNI kodu
+           calistiriyor. Iki ayri kopya, iki ayri kural demek olurdu. Yetki karari
+           burada kaliyor -- yukaridaki $ownsOffer kontrolu. */
+        require_once __DIR__.'/inc/offers.php';
+        $meSeller = auth_user();
+        $sellerLabel = $meSeller ? (($meSeller['company'] ?: $meSeller['name']) ?: 'VESTRA') : 'VESTRA';
+        vestra_offer_respond($ref, $action, $ctr, $meSeller, $sellerLabel);
     }
     header('Location: /seller?tab=offers&responded=1'); exit;
 }

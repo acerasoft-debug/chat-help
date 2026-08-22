@@ -512,6 +512,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_request_doc($_POST['uid']??'', $_POST['doc_type']??'', trim($_POST['note']??''));
     header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_requested'); exit;
   }
+  /* Teklife yanit — OPERATOR olarak. Bu daha once hicbir yerde yoktu: satici ucu
+     sahiplik sarti ariyor (seller_uid === uid), kurasyonlu katalog urunlerinde ise
+     seller_uid YOK, dolayisiyla katalog urunune gelen bir teklifi hic kimse kabul
+     edemiyordu. Admin Teklifler sekmesi de salt-okunurdu. Gecerli bir teklif geliyor,
+     bildirim e-postasi gidiyor ve orada kaliyordu.
+     Yanit mantigi inc/offers.php'de, satici ucuyla AYNI kod. Buradaki yetki: operator. */
+  if($act==='offer_respond'){
+    require_once __DIR__.'/inc/offers.php';
+    $oRef = trim($_POST['ref'] ?? '');
+    $oAct = $_POST['response'] ?? '';
+    $oCtr = round((float)($_POST['counter_price'] ?? 0), 2);
+    $res  = vestra_offer_respond($oRef, $oAct, $oCtr, null, 'VESTRA');
+    header('Location: /admin?tab=offers&msg='.($res['ok'] ? 'offer_'.$oAct : 'offer_err')); exit;
+  }
   if($act==='review_doc'){
     $duid=$_POST['uid']??''; $dreq=$_POST['req_id']??''; $dstatus=$_POST['status']??''; $dnote=trim($_POST['admin_note']??'');
     $dacc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$duid){ $dacc=$a; break; } }
@@ -2439,9 +2453,27 @@ elseif($tab==='offers'):
 <?php if(!$offers): ?><div class="acard"><div class="aempty">No offers yet.</div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['Ref','Date','Product','SKU','Qty','€/u','Total','Buyer','Status','Counter'],true) ?>
+  <?= arow(['Ref','Date','Product','SKU','Qty','€/u','Total','Buyer','Status','Counter','Respond'],true) ?>
   <?php foreach(array_reverse($offers) as $o):
-    $ref=$o['ref']??''; $resp=$offerResp[$ref]??null; $rSt=$resp['status']??'pending'; ?>
+    $ref=$o['ref']??''; $resp=$offerResp[$ref]??null; $rSt=$resp['status']??'pending';
+    /* Bu sutun daha once YOKTU: tablo salt-okunurdu ve bir teklifi kabul etmenin
+       hicbir yolu yoktu. Satici ucu de katalog urunlerinde calismiyor (seller_uid
+       bos). Operator icin yanit formu burada; ayni kodu calistiriyor. */
+    $canRespond = ($rSt === 'pending');
+    $respondCell = $canRespond ? (
+      '<form method="post" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'
+      .csrfField()
+      .'<input type="hidden" name="_action" value="offer_respond">'
+      .'<input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">'
+      .'<button class="abtn" name="response" value="accept" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)" '
+      .'onclick="return confirm(\'Accept offer '.htmlspecialchars($ref, ENT_QUOTES).'? The buyer is emailed immediately.\')">✓ Accept</button>'
+      .'<button class="abtn" name="response" value="decline" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" '
+      .'onclick="return confirm(\'Decline offer '.htmlspecialchars($ref, ENT_QUOTES).'?\')">✗</button>'
+      .'<input name="counter_price" placeholder="€/u" inputmode="decimal" style="width:62px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px">'
+      .'<button class="abtn" name="response" value="counter" type="submit" style="color:#9a7320;border-color:rgba(154,115,32,.4)">↩</button>'
+      .'</form>'
+    ) : '<span class="ahint">'.htmlspecialchars(substr((string)($resp['responded_at']??''),0,10)).'</span>';
+  ?>
   <?= arow([
     '<span class="atag">'.htmlspecialchars(substr($ref,0,10)).'</span>',
     htmlspecialchars(substr($o['timestamp']??'',0,10)),
@@ -2453,6 +2485,7 @@ elseif($tab==='offers'):
     '<a href="mailto:'.htmlspecialchars($o['email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($o['email']??'').'</a>',
     match($rSt){'accept'=>abadge('✓ Accepted','#1f9d63'),'decline'=>abadge('✗ Declined','#c0392b'),'counter'=>abadge('↩ Counter','#9a7320'),default=>abadge('⏳ Pending','#888')},
     ($resp&&$rSt==='counter')?eur($resp['counter_price']??0):'—',
+    $respondCell,
   ]) ?>
   <?php endforeach; ?>
 </table></div></div>
