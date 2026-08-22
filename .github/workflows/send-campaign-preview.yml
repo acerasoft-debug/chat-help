@@ -84,6 +84,26 @@ on:
         description: "SİPARİŞ MEKTUBU: true = mektuptan ÖNCE teklifi KABUL olarak kaydet (alıcıya ayrıca standart bildirim GÖNDERİLMEZ — bu mektup zaten haberi veriyor)"
         required: false
         default: "false"
+      # FATURA KESME. Ayri bir dosya olarak yazilamaz (yeni is akisi dosyalari ozellik
+      # dalindan dispatch edilemiyor, 404), o yuzden buraya katildi -- order_letter ile
+      # ayni sebep. Girdiler DAR tutuldu: alan basina bir girdi yazmak bu dosyayi
+      # kullanilmaz hale getirirdi, hepsi tek bir 'inv_spec' icinde.
+      inv_ref:
+        description: "FATURA: teklif referansı (ör. O39419). Doluysa YALNIZCA fatura işi çalışır."
+        required: false
+        default: ""
+      inv_spec:
+        description: "FATURA: alan=değer, | ile ayrık. cur/unit/qty/ship/ship_label/colours(Ad:adet)/fx/fx_date/incoterms/export_reason/origin"
+        required: false
+        default: "cur=USD|unit=105.17|qty=20|ship=50|ship_label=Shipping (flat rate)|colours=Black:10,White:10|fx=1.1699|fx_date=21 Aug 2026|incoterms=DAP Sparks, NV (Incoterms 2020) — import duties, taxes and customs clearance payable by the buyer as importer of record|export_reason=Sale of goods"
+      inv_to:
+        description: "FATURA: PDF'in gideceği adres. Boş = operatörün test kutusu."
+        required: false
+        default: ""
+      inv_commit:
+        description: "FATURA: false (varsayılan) = ÖNİZLEME, hiçbir şey kaydedilmez. true = KALICI numarayla kes, siparişi orders.csv'ye yaz"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -216,8 +236,285 @@ jobs:
             rm -f ./vestra_order_details_tmp.php /tmp/vestra_order_details.php
             exit $rc
 
+  # Kabul edilmis bir teklif icin faturayi kesip PDF'i e-postayla yollar.
+  #
+  # Iki kip var ve fark kasitli:
+  #   inv_commit=false  -> ONIZLEME. Numara YAKILMAZ, diske hicbir sey yazilmaz,
+  #                        PDF /tmp'de uretilip gonderilir ve silinir.
+  #   inv_commit=true   -> KALICI. vestra_ensure_invoice($force=true) sirali numarayi
+  #                        alir, data/invoices/ altina yazar, orders.csv satiri eklenir.
+  #
+  # Kalici kipte BANKA SARTI var ve bilerek sert: platform_seller.json'da hesap
+  # numarasi (ya da IBAN) yoksa is DURUR. Sebep, numaranin geri alinamamasi --
+  # odeme kutusu bos bir fatura kesilirse alici parayi nereye gonderecegini
+  # belgeden ogrenemez ve duzeltmenin yolu "dosyayi degistirmek" degil, alacak
+  # dekontu + yeni fatura olur. Onizleme bu sarttan muaf: belgeyi gormek icin
+  # banka bilgisi gerekmiyor, sadece kesmek icin gerekiyor.
+  issue_invoice:
+    if: github.event.inputs.inv_ref != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Faturayı kes / önizle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          I_REF: ${{ github.event.inputs.inv_ref }}
+          I_SPEC: ${{ github.event.inputs.inv_spec }}
+          I_TO: ${{ github.event.inputs.inv_to }}
+          I_COMMIT: ${{ github.event.inputs.inv_commit }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: I_REF,I_SPEC,I_TO,I_COMMIT
+          script: |
+            cat > /tmp/vestra_issue_invoice.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/auth.php";
+
+            $ref    = trim((string)getenv('I_REF'));
+            $commit = strtolower(trim((string)getenv('I_COMMIT'))) === 'true';
+
+            /* 'a=1|b=2' -> ['a'=>'1','b'=>'2']. Ayirac boru, virgul DEGIL: adres ve
+               teslim sarti ("DAP Sparks, NV 89431, USA") virgul iceriyor ve virgulle
+               ayirsaydik alan ortasindan bolunurdu. */
+            $spec = [];
+            foreach (explode('|', (string)getenv('I_SPEC')) as $pair) {
+              if (!str_contains($pair, '=')) continue;
+              [$k, $v] = explode('=', $pair, 2);
+              $spec[strtolower(trim($k))] = trim($v);
+            }
+
+            $row = null;
+            foreach (vestra_read_csv('offers.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "teklif bulunamadi: {$ref}\n"); exit(1); }
+
+            /* Teklif KABUL edilmis olmali. Kabul edilmemis bir teklife fatura kesmek,
+               musterinin onaylamadigi bir tutar icin numara yakmak demek. */
+            $resp = vestra_read_json('offer_responses.json');
+            $st   = (string)($resp[$ref]['status'] ?? '');
+            if ($st !== 'accept') {
+              fwrite(STDERR, "teklif KABUL EDILMEMIS (durum: ".($st ?: 'yanit yok').") -- fatura kesilmez\n");
+              exit(1);
+            }
+
+            $seller = vestra_platform_seller();
+            $payable = trim((string)($seller['bank_account'] ?? '')) !== ''
+                    || trim((string)($seller['bank_iban'] ?? '')) !== '';
+            echo "satici: ".($seller['company'] ?? '?')."\n";
+            echo "odeme kutusu: ".($payable ? "basilabilir" : "BOS (banka bilgisi girilmemis)")."\n";
+            if ($commit && !$payable) {
+              fwrite(STDERR,
+                "\nDURDURULDU: banka bilgisi yok, kalici fatura kesilmiyor.\n".
+                "Fatura numarasi sirali ve geri alinamaz; odeme kutusu bos bir belge\n".
+                "kesilirse duzeltmenin yolu alacak dekontu + yeni fatura olur.\n".
+                "Once: /admin?tab=orders -> Platform billing, ya da PLATFORM_BANK_JSON gizli anahtari.\n");
+              exit(1);
+            }
+
+            /* Alici bloku HESAPTAN geliyor: teklif satirinda yalnizca sirket adi ve
+               e-posta var, faturaya adres ve vergi numarasi gerekiyor. Hesap yoksa
+               teklif satirina duselim -- eksik adresli bir fatura, faturasizliktan iyi. */
+            $acc = auth_find((string)($row['email'] ?? '')) ?: [];
+            $buyer = [
+              'company' => (string)($row['company'] ?? ($acc['company'] ?? '')),
+              'vat'     => (string)($acc['vat_id'] ?? ''),
+              'name'    => (string)($acc['name'] ?? ''),
+              'email'   => (string)($row['email'] ?? ''),
+              'country' => (string)($acc['country'] ?? ''),
+              'address' => (string)($acc['address'] ?? ''),
+            ];
+            foreach (['company','address','country','vat'] as $k) {
+              printf("  alici %-8s %s\n", $k, $buyer[$k] !== '' ? $buyer[$k] : '— EKSIK');
+            }
+
+            /* Yalnizca EUR ve USD. Renderer para birimi simgesini
+               `$cur === 'USD' ? 'US$' : '€'` diye seciyor, yani "GBP" verilirse belge
+               SESSIZCE euro isaretiyle cikardi -- rakamlar dogru, para birimi yanlis.
+               Desteklenmeyeni burada durdurmak, yanlis simgeli bir fatura kesmekten iyi. */
+            $cur  = strtoupper(trim($spec['cur'] ?? 'EUR'));
+            if (!in_array($cur, ['EUR', 'USD'], true)) {
+              fwrite(STDERR, "desteklenmeyen para birimi: {$cur} (yalnizca EUR/USD)\n"); exit(1);
+            }
+            $qty  = (int)($spec['qty']  ?? (int)($row['qty'] ?? 0));
+            $unit = (float)($spec['unit'] ?? (float)($row['offer_unit'] ?? 0));
+            $ship = (float)($spec['ship'] ?? 0);
+            if ($qty <= 0 || $unit <= 0) { fwrite(STDERR, "adet/birim fiyat gecersiz (qty={$qty} unit={$unit})\n"); exit(1); }
+
+            /* Kur dayanagi. Teklif EUR kabul edildi, fatura USD kesiliyor (odeme ABD
+               hesabina gidiyor), o yuzden belge hangi kurla cevrildigini SOYLEMELI.
+               Kur ELDEN veriliyor ve varsayilan bu: birim fiyat musteriye o kurla
+               teklif edildi. Bugunun kurunu cekseydik belgede birim fiyati URETMEYEN
+               bir kur yazardi -- alici 89,90 x kur hesabi yapip tutmayan bir rakam
+               bulurdu. Kur verilmezse ECB'den cekiliyor; o da olmazsa satir hic
+               yazilmiyor, cunku uydurulmus bir kur olmayan kurdan kotudur. */
+            $fxNote = ''; $eurUnit = (float)($row['offer_unit'] ?? 0);
+            if ($cur !== 'EUR') {
+              $rate = (float)($spec['fx'] ?? 0);
+              $rDate = trim((string)($spec['fx_date'] ?? ''));
+              if ($rate <= 0) {
+                $ch = curl_init('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml');
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15, CURLOPT_FOLLOWLOCATION=>true]);
+                $xml = (string)curl_exec($ch); $err = curl_error($ch); curl_close($ch);
+                if ($xml !== '' && preg_match("/currency=['\"]".$cur."['\"]\s+rate=['\"]([0-9.]+)['\"]/", $xml, $m)) {
+                  $rate  = (float)$m[1];
+                  $rDate = preg_match("/time=['\"]([0-9-]+)['\"]/", $xml, $dm) ? $dm[1] : date('Y-m-d');
+                  echo "kur: ECB {$rDate} -> 1 EUR = {$rate} {$cur}\n";
+                } else {
+                  echo "UYARI: ECB kuru cekilemedi (".($err ?: 'ayristirilamadi').") -- kur satiri YAZILMIYOR\n";
+                }
+              } else {
+                echo "kur: elden verildi -> 1 EUR = {$rate} {$cur}".($rDate !== '' ? " ({$rDate})" : '')."\n";
+              }
+              if ($rate > 0) {
+                $fxNote = 'Converted from EUR at 1 EUR = '.number_format($rate, 4).' '.$cur
+                        . ($rDate !== '' ? ' (ECB reference rate, '.$rDate.')' : '')
+                        . ($eurUnit > 0 ? '. Offer '.$ref.' was quoted at EUR '.number_format($eurUnit, 2).' per piece.' : '.');
+                /* Kur birim fiyati GERCEKTEN uretiyor mu? Uretmiyorsa belge kendi
+                   icinde celisir: alici 89,90 x 1,1699 yapar, faturadaki rakami
+                   bulamaz ve hangisinin gecerli oldugunu sorar. Durdurmuyoruz --
+                   operator bilerek baska bir birim yazmis olabilir -- ama sessiz de
+                   gecmiyoruz. */
+                if ($eurUnit > 0 && abs(round($eurUnit * $rate, 2) - $unit) >= 0.01) {
+                  printf("UYARI: %.2f EUR x %.4f = %.2f, faturadaki birim %.2f -- kur notu birim fiyati URETMIYOR\n",
+                    $eurUnit, $rate, round($eurUnit * $rate, 2), $unit);
+                }
+              }
+            }
+
+            $lst = vestra_listing_by_sku((string)($row['sku'] ?? ''));
+            $order = [
+              'ref' => $ref, 'date' => date('c'), 'buyer' => $buyer, 'currency' => $cur,
+              'shipping' => $ship,
+            ];
+            if (($spec['ship_label'] ?? '') !== '')    $order['shipping_label'] = $spec['ship_label'];
+            if (($spec['incoterms'] ?? '') !== '')     $order['incoterms']      = $spec['incoterms'];
+            if (($spec['origin'] ?? '')    !== '')     $order['origin']         = $spec['origin'];
+            if (($spec['export_reason'] ?? '') !== '') $order['export_reason']  = $spec['export_reason'];
+            if ($fxNote !== '')                        $order['fx_note']        = $fxNote;
+
+            /* Renk basina AYRI satir: "Black:10,White:10" -> iki kalem. Tek satirda 20
+               adet yazip renkleri not olarak eklemek, alicinin hangi renkten kac adet
+               aldigini faturadan gorememesi demek -- sevkiyatta dagilim tartisilir.
+               Iki nokta yoksa tek kalem + renk notu (eski davranis). */
+            $sku   = (string)($lst['sku']   ?? ($row['sku'] ?? ''));
+            $brand = (string)($lst['brand'] ?? '');
+            $pname = (string)($lst['name']  ?? ($row['product'] ?? ''));
+            $colSpec = trim((string)($spec['colours'] ?? ''));
+            $items = [];
+            if ($colSpec !== '' && str_contains($colSpec, ':')) {
+              $sum = 0;
+              foreach (explode(',', $colSpec) as $part) {
+                [$cName, $cQty] = array_pad(explode(':', $part, 2), 2, '');
+                $cName = trim($cName); $cQty = (int)trim($cQty);
+                if ($cName === '' || $cQty <= 0) continue;
+                $sum += $cQty;
+                $items[] = ['sku'=>$sku, 'brand'=>$brand, 'name'=>$pname, 'colors'=>[$cName],
+                            'qty'=>$cQty, 'unit'=>$unit, 'line'=>round($cQty * $unit, 2)];
+              }
+              /* Renk dagilimi toplam adedi tutmali. Tutmazsa fatura ile teklif farkli
+                 miktar soyler ve bu ancak alici sayarken ortaya cikar. */
+              if ($sum !== $qty) {
+                fwrite(STDERR, "renk dagilimi {$sum} adet, qty {$qty} -- tutmuyor\n"); exit(1);
+              }
+            } else {
+              $items[] = ['sku'=>$sku, 'brand'=>$brand, 'name'=>$pname,
+                          'colors'=>$colSpec !== '' ? array_map('trim', explode(',', $colSpec)) : [],
+                          'qty'=>$qty, 'unit'=>$unit, 'line'=>round($qty * $unit, 2)];
+            }
+            $goods = round(array_sum(array_column($items, 'line')), 2);
+            echo "kalem sayisi: ".count($items)."\n";
+            printf("kalem: %d x %.2f = %.2f  + nakliye %.2f  = TOPLAM %.2f %s\n",
+              $qty, $unit, $goods, $ship, $goods + $ship, $cur);
+
+            if (!$commit) {
+              /* Numara YAKILMIYOR. Belgede "DRAFT" yaziyor ki onizleme kazara
+                 musteriye gonderilirse fatura yerine gecmesin. */
+              $bytes = vestra_render_invoice_pdf($order, $items, $seller, 'DRAFT');
+              $path = '/tmp/Invoice-'.preg_replace('/[^A-Za-z0-9_-]/', '', $ref).'-DRAFT.pdf';
+              file_put_contents($path, $bytes);
+              echo "ONIZLEME: ".strlen($bytes)." bayt, diske KAYDEDILMEDI\n";
+            } else {
+              $inv = vestra_ensure_invoice($order, $items, $seller, true);
+              if (($inv['no'] ?? '') === '') { fwrite(STDERR, "fatura kesilemedi\n"); exit(1); }
+              $path = $inv['path'];
+              echo "KESILDI: {$inv['no']}  ->  {$path}\n";
+
+              /* Siparis satiri. Teklif EUR kabul edildi, fatura USD kesildi: orders.csv'de
+                 para birimi sutunu YOK ve alici paneli tutarlari eur() ile basiyor, o yuzden
+                 satira teklifin KENDI para birimindeki rakamlari yaziyoruz. Faturadaki USD
+                 tutarlar nota acikca yaziliyor -- iki rakam da dogru, hangisinin ne oldugu
+                 belgede duruyor. Sutuna uydurma bir cevrim yazmak, panelde sessizce yanlis
+                 bir toplam gostermek olurdu. */
+              $exists = false;
+              foreach (vestra_read_csv('orders.csv') as $o) if (($o['ref'] ?? '') === $ref) { $exists = true; break; }
+              if ($exists) {
+                echo "orders.csv: {$ref} zaten var -- ikinci satir YAZILMADI\n";
+              } else {
+                $H = ['timestamp','ref','company','vat','name','email','country','phone','items','subtotal',
+                      'commission','payout','total','notes','consent','terms_version','voucher_code','discount'];
+                vestra_csv_ensure_header('orders.csv', $H);
+                $eurSub  = round($qty * $eurUnit, 2);
+                /* vestra_order_notes_colors() "Colours — " ile BASLAYAN kismi ariyor,
+                   o yuzden renk notu 'Ad:adet' degil 'Ad, Ad' bicimiyle yaziliyor. */
+                $colNote = '';
+                foreach ($items as $it) foreach ((array)$it['colors'] as $c) $colNote .= ($colNote === '' ? '' : ', ').$c;
+                $notes = 'Payment: Bank transfer. '
+                       . ($buyer['address'] !== '' ? 'Deliver to: '.$buyer['address'].'. ' : '')
+                       . ($colNote !== '' ? 'Colours — '.$sku.': '.$colNote.'. ' : '')
+                       . 'Accepted offer '.$ref.'. Invoiced '.$inv['no'].' in '.$cur.': '
+                       . number_format($unit, 2).' x '.$qty.' = '.number_format($goods, 2)
+                       . ($ship > 0 ? ' + '.number_format($ship, 2).' shipping' : '')
+                       . ' = '.number_format($goods + $ship, 2).' '.$cur.'.'
+                       /* $fxNote bazen noktayla biter, bazen bitmez ("...per piece." /
+                          "...1.1699 USD"). Kosulsuz nokta eklemek "piece.." uretiyordu. */
+                       . ($fxNote !== '' ? ' '.rtrim($fxNote, '.').'.' : '');
+                $fh = fopen(vestra_data_dir().'/orders.csv', 'a');
+                fputcsv($fh, [date('c'), $ref, $buyer['company'], $buyer['vat'], $buyer['name'], $buyer['email'],
+                  $buyer['country'], (string)($acc['phone'] ?? ''),
+                  $qty.'x '.$sku.' @'.$eurUnit,
+                  $eurSub, 0, $eurSub, $eurSub, $notes, 'yes', VESTRA_TERMS_VERSION, '', ''], ',', '"', '\\');
+                fclose($fh);
+                echo "orders.csv: {$ref} yazildi (teklifin EUR tutarlari, fatura tutarlari notta)\n";
+              }
+            }
+
+            $to = trim((string)getenv('I_TO'));
+            if ($to === '') $to = 'acerasoft@gmail.com';
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici: {$to}\n"); exit(1); }
+            $real = strcasecmp($to, (string)($row['email'] ?? '')) === 0;
+            echo "alici: {$to}".($real ? "   << GERCEK MUSTERI" : "   (test kutusu)")."\n";
+
+            $label = $commit ? ('Invoice '.$inv['no']) : 'Invoice DRAFT';
+            $body  = '<p>'.htmlspecialchars($label).' — '.htmlspecialchars($ref).'</p>'
+                   . '<p>'.htmlspecialchars($buyer['company']).'<br>'
+                   . number_format($goods + $ship, 2).' '.$cur.'</p>'
+                   . ($commit ? '' : '<p><b>DRAFT — not an invoice.</b></p>');
+            $ok = vestra_send_mail($to, 'VESTRA — '.$label.' '.$ref, $body,
+              'support@vestrasales.com', 'VESTRA', null, '',
+              ['attachments' => [['name' => basename($path), 'path' => $path]]]);
+            echo $ok ? "PDF GONDERILDI -> {$to}\n" : "GONDERILEMEDI (vestra_send_mail false dondu)\n";
+            if (!$commit) @unlink($path);
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_issue_invoice.php ./vestra_issue_invoice_tmp.php
+            php ./vestra_issue_invoice_tmp.php
+            rc=$?
+            rm -f ./vestra_issue_invoice_tmp.php /tmp/vestra_issue_invoice.php
+            exit $rc
+
   send:
-    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == ''
+    # Kampanya isi VARSAYILAN dal: hicbir sey verilmezse o calisir. Yeni bir is
+    # eklerken buraya da yazilmali, yoksa "sadece fatura kesecektim" derken
+    # kampanya e-postasi da gider. set-mail-key'de tam bu hata yasandi.
+    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == '' && github.event.inputs.inv_ref == ''
     runs-on: ubuntu-latest
     steps:
       - name: Kampanya önizlemesini gönder / render et
