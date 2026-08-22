@@ -15,9 +15,25 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key (e-posta API anahtarı) | platform_bank (VESTRA'nın kendi fatura/banka bilgileri)"
+        description: "Ne yapılsın — mail_key | platform_bank (VESTRA'nın banka bilgileri) | customer_billing (bir müşterinin fatura adresi)"
         required: false
         default: "mail_key"
+      cust_uid:
+        description: "customer_billing: hesap id (ör. e38d3b085a4de4da)"
+        required: false
+        default: ""
+      cust_address:
+        description: "customer_billing: tam adres — sokak, şehir, eyalet, ZIP"
+        required: false
+        default: ""
+      cust_country:
+        description: "customer_billing: ülke (ör. US). Boşsa değişmez."
+        required: false
+        default: ""
+      cust_phone:
+        description: "customer_billing: telefon. Boşsa değişmez."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -178,4 +194,80 @@ jobs:
             php ./vestra_platwrite_tmp.php
             rc=$?
             rm -f ./vestra_platwrite_tmp.php /tmp/vestra_platwrite.php
+            exit $rc
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Bir musterinin FATURA ADRESINI yaz. Panelde bunun formu var (Users -> Edit
+  # billing details); bu is akisi ayni isi operator adina yapiyor.
+  #
+  # Neden bu bilgi girdi olarak gecirilebiliyor da banka bilgileri gecirilemiyor:
+  # burada yazilan sey bir ISLETME ADRESI -- zaten faturanin uzerinde, gumruk
+  # beyaninda ve kargo etiketinde gorunuyor, gizli bir veri degil. Banka
+  # routing+hesap ikilisi ise ABD'de ACH borclandirmaya yetiyor; o, acik bir
+  # log'a yazilamaz ve secret uzerinden gider (yukaridaki update-platform-bank).
+  #
+  # EIN bilerek BURADA YOK: zaten girilmis durumda ve gereksiz yere log'a
+  # dusurmenin anlami yok. Bos gelen alan mevcut degeri SILMEZ.
+  update-customer-billing:
+    if: github.event.inputs.task == 'customer_billing'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Müşteri fatura adresini güncelle
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          C_UID: ${{ github.event.inputs.cust_uid }}
+          C_ADDRESS: ${{ github.event.inputs.cust_address }}
+          C_COUNTRY: ${{ github.event.inputs.cust_country }}
+          C_PHONE: ${{ github.event.inputs.cust_phone }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: C_UID,C_ADDRESS,C_COUNTRY,C_PHONE
+          script: |
+            cat > /tmp/vestra_custbill.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $uid = preg_replace('/[^a-f0-9]/', '', (string)getenv('C_UID'));
+            if ($uid === '') { fwrite(STDERR, "cust_uid yok\n"); exit(1); }
+
+            $acc = null;
+            foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+            if (!$acc) { fwrite(STDERR, "hesap bulunamadi: {$uid}\n"); exit(1); }
+
+            $upd = [];
+            foreach (['address'=>'C_ADDRESS','country'=>'C_COUNTRY','phone'=>'C_PHONE'] as $field => $env) {
+              $v = trim((string)getenv($env));
+              if ($v !== '') $upd[$field] = $v;   // bos alan mevcut degeri silmez
+            }
+            if (!$upd) { fwrite(STDERR, "yazilacak alan yok\n"); exit(1); }
+
+            echo "hesap : ".($acc['company'] ?: $acc['name'] ?: $acc['email'])."\n";
+            foreach ($upd as $k => $v) {
+              printf("  %-8s %s  ->  %s\n", $k, trim((string)($acc[$k] ?? '')) ?: '(bos)', $v);
+            }
+            auth_update($uid, $upd);
+
+            /* Yazdiktan sonra GERI OKU. auth_update() sessizce basarisiz olursa
+               (dosya kilidi, izin) is "basarili" biter ve degisiklik yapildi
+               sanilir -- bu projede bugun birkac kez ayni desen cikti. */
+            $after = null;
+            foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $after = $a; break; } }
+            $ok = true;
+            foreach ($upd as $k => $v) {
+              if (trim((string)($after[$k] ?? '')) !== $v) { $ok = false; echo "  !! {$k} yazilamadi\n"; }
+            }
+            echo $ok ? "SONUC: kayit dogrulandi\n" : "SONUC: EN AZ BIR ALAN YAZILAMADI\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_custbill.php ./vestra_custbill_tmp.php
+            php ./vestra_custbill_tmp.php
+            rc=$?
+            rm -f ./vestra_custbill_tmp.php /tmp/vestra_custbill.php
             exit $rc
