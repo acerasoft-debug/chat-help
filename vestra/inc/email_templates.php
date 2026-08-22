@@ -486,7 +486,7 @@ function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, str
  */
 function vestra_tpl_order_details_needed(
     string $buyerName, string $product, string $ref, int $qty, float $unit, float $total,
-    string $colourNote = '', array $missing = []
+    string $colourNote = '', array $missing = [], float $usdRate = 0.0, string $rateNote = ''
 ): array {
     $rows = [
         ['label'=>'Product',    'value'=>$product],
@@ -495,6 +495,19 @@ function vestra_tpl_order_details_needed(
         ['label'=>'Unit price', 'value'=>'€'.number_format($unit, 2)],
         ['label'=>'Total',      'value'=>'€'.number_format($total, 2), 'strong'=>true],
     ];
+    /* USD karsiligi ABD'li alici icin isi kolaylastiriyor, ama sozlesme EUR uzerinden:
+       teklif EUR verildi, fatura EUR kesilecek. O yuzden satir "approx." diye ve KURU
+       ACIKCA yazarak geciyor. Kursuz bir dolar rakami, aliciya sabit bir dolar fiyati
+       taahhut etmis gibi okunur; odeme gunu kur oynayinca aradaki fark tartisma konusu
+       olur. Kur cekilemezse satir HIC basilmiyor -- yanlis ya da eski bir kur, hic
+       olmamasindan kotudur. */
+    if ($usdRate > 0) {
+        $rows[] = [
+            'label' => 'Total (approx.)',
+            'value' => 'US$'.number_format($total * $usdRate, 2)
+                     . ($rateNote !== '' ? '  ·  '.$rateNote : ''),
+        ];
+    }
     $opts = [
         'badge'  => 'Offer accepted',
         'rows'   => $rows,
@@ -523,6 +536,13 @@ function vestra_tpl_order_details_needed(
       . "To issue your invoice and prepare the shipment, please reply with the following:\n\n"
       . $askTxt . "\n\n"
       . "Payment terms are 100% in advance. Once the above is confirmed we will issue the invoice with our banking details, and the goods are dispatched as soon as payment is received.\n\n"
+      /* Kur satiri bilgi kutusunda "approx." diye geciyor; govdede de bir kez daha
+         soyluyoruz ki alici dolar rakamini sabit fiyat sanmasin. Faturayi EUR kesip
+         e-postada dolar yazip sonra "aslinda kur degisti" demek, satisi degil guveni
+         kaybettirir. */
+      . ($usdRate > 0
+          ? "The US dollar figure above is indicative only, converted at the reference rate shown. The order and the invoice are in euro, and the amount received depends on the rate applied by your bank on the day of payment.\n\n"
+          : '')
       . "If any of these details change the delivery country, please tell us — it affects the export paperwork, and we would rather correct it before the invoice is issued than after.\n\n"
       . "—\n"
       . "VESTRA · acerasoft LLC\n"

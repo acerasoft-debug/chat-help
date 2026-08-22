@@ -68,6 +68,10 @@ on:
         description: "SİPARİŞ MEKTUBU: true = GERÇEKTEN gönder. false (varsayılan) = sadece konu+gövdeyi yaz, GÖNDERME"
         required: false
         default: "false"
+      order_usd:
+        description: "SİPARİŞ MEKTUBU: USD karşılığı yazılsın mı — 'ecb' (ECB günlük referans kuru, önerilen) | boş (yazma) | elle bir kur (ör. 1.0850)"
+        required: false
+        default: "ecb"
 
 permissions:
   contents: read
@@ -85,13 +89,14 @@ jobs:
           O_COLOURS: ${{ github.event.inputs.order_colours }}
           O_MISSING: ${{ github.event.inputs.order_missing }}
           O_SEND: ${{ github.event.inputs.order_send }}
+          O_USD: ${{ github.event.inputs.order_usd }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND
+          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND,O_USD
           script: |
             cat > /tmp/vestra_order_details.php <<'PHPEOF'
             <?php
@@ -112,10 +117,38 @@ jobs:
             $buyerName = trim((string)($row['company'] ?? '')) ?: trim((string)($acc['name'] ?? '')) ?: 'there';
             $missing = array_values(array_filter(array_map('trim', explode(',', (string)getenv('O_MISSING')))));
 
+            /* USD karsiligi. Kur SUNUCUDAN cekiliyor: ECB'nin gunluk referans kuru,
+               ticari yazismada kabul goren ve dogrulanabilir kaynak. Cekilemezse USD
+               satiri HIC basilmiyor -- yanlis ya da eski bir kur, hic olmamasindan
+               kotudur, ve e-posta yine de gidiyor (kur, gonderimi bloke etmemeli).
+               Operator elle bir kur de verebilir: kendi bankasinin uyguladigi kur,
+               hesaba gercekte ne gececegini ECB'den daha iyi soyler. */
+            $usdRate = 0.0; $rateNote = '';
+            $usdIn = strtolower(trim((string)getenv('O_USD')));
+            if ($usdIn !== '' && $usdIn !== 'no' && $usdIn !== 'false') {
+              if (is_numeric($usdIn)) {
+                $usdRate  = (float)$usdIn;
+                $rateNote = 'at 1 EUR = '.number_format($usdRate, 4).' USD';
+              } else {
+                $ch = curl_init('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml');
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>15, CURLOPT_FOLLOWLOCATION=>true]);
+                $xml = (string)curl_exec($ch);
+                $err = curl_error($ch); curl_close($ch);
+                if ($xml !== '' && preg_match("/currency=['\"]USD['\"]\s+rate=['\"]([0-9.]+)['\"]/", $xml, $m)) {
+                  $usdRate = (float)$m[1];
+                  $d = preg_match("/time=['\"]([0-9-]+)['\"]/", $xml, $dm) ? $dm[1] : date('Y-m-d');
+                  $rateNote = 'ECB reference rate '.$d.', 1 EUR = '.number_format($usdRate, 4).' USD';
+                  echo "kur: ECB {$d} -> 1 EUR = {$usdRate} USD\n";
+                } else {
+                  echo "UYARI: ECB kuru cekilemedi (".($err ?: 'yanit ayristirilamadi').") -- USD satiri YAZILMIYOR, e-posta yine gidiyor\n";
+                }
+              }
+            }
+
             [$subject, $body, $opts] = vestra_tpl_order_details_needed(
               $buyerName, (string)($row['product'] ?? ''), $ref,
               (int)($row['qty'] ?? 0), (float)($row['offer_unit'] ?? 0), (float)($row['offer_total'] ?? 0),
-              trim((string)getenv('O_COLOURS')), $missing
+              trim((string)getenv('O_COLOURS')), $missing, $usdRate, $rateNote
             );
 
             $to = trim((string)getenv('O_TO'));
