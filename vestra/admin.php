@@ -375,6 +375,23 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=users&msg=kyb_ok'); exit;
   }
+  /* Musterinin FATURA BILGILERINI duzenle. Bu daha once HICBIR yerden yapilamiyordu:
+     auth_update() panelde yalnizca KYB/aski/uyelik icin cagriliyordu, sirket adi, adres,
+     vergi numarasi ve telefon salt-okunur gosteriliyordu. Sonuc: musteri bu bilgileri
+     e-postayla gonderdiginde operatorun onlari SISTEME yazacak yeri yoktu -- fatura
+     kesilirken hesapta hala eksik adres duruyordu.
+     Bos gelen alan YAZILMIYOR: kismi bir duzenleme (sadece adres girmek) diger alanlari
+     silmemeli. */
+  if($act==='save_billing'){
+    $uid = $_POST['uid'] ?? '';
+    $upd = [];
+    foreach (['company','name','address','city','postcode','country','vat_id','reg_number','phone'] as $f) {
+      $v = trim((string)($_POST[$f] ?? ''));
+      if ($v !== '') $upd[$f] = $v;
+    }
+    if ($uid !== '' && $upd) auth_update($uid, $upd);
+    header('Location: /admin?tab=users&msg=billing_saved#ud-'.urlencode($uid)); exit;
+  }
   if($act==='suspend_account'){
     auth_update($_POST['uid']??'',['status'=>'suspended']);
     header('Location: /admin?tab=users&msg=suspended'); exit;
@@ -2175,6 +2192,31 @@ function sendUserMessage(uid,name){
           <div style="font-size:13px;line-height:1.6"><?= htmlspecialchars(($a['name']??'')?:'—') ?><br><a href="mailto:<?= htmlspecialchars($a['email']??'') ?>" style="color:var(--acc)"><?= htmlspecialchars($a['email']??'') ?></a><?php if(!empty($a['phone'])): ?><br>📞 <?= htmlspecialchars($a['phone']) ?><?php endif; ?><?php if(!empty($a['website'])): ?><br>🔗 <a href="<?= htmlspecialchars($a['website']) ?>" target="_blank" rel="noopener" style="color:var(--acc)"><?= htmlspecialchars($a['website']) ?></a><?php endif; ?></div>
         </div>
       </div>
+      <?php
+      /* Musteri fatura bilgilerini yazmak icin. Yukarisi bunlari GOSTERIYOR ama
+         duzenlenemiyordu; musteri adresini e-postayla gonderdiginde operatorun
+         sisteme yazacak yeri yoktu ve fatura eksik adresle kesiliyordu.
+         Vergi numarasi etiketi ulkeye gore: ABD'li bir sirkete "VAT ID" sormak
+         var olmayan bir numarayi aratmaktir (bkz. vestra_tax_id_hint). */
+      $_tax = function_exists('vestra_tax_id_hint') ? vestra_tax_id_hint($a['country'] ?? '') : ['label'=>'VAT / Tax ID','placeholder'=>''];
+      ?>
+      <details style="margin-top:14px">
+        <summary style="cursor:pointer;font-size:12px;color:var(--acc)">✎ Edit billing details</summary>
+        <form method="post" style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;max-width:1040px">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="save_billing">
+          <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>">
+          <label style="font-size:11px;color:var(--mut)">Company<input name="company" value="<?= htmlspecialchars($a['company']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Contact name<input name="name" value="<?= htmlspecialchars($a['name']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Address (street, city, state, ZIP)<input name="address" value="<?= htmlspecialchars($a['address']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Country<input name="country" value="<?= htmlspecialchars($a['country']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($_tax['label']) ?><input name="vat_id" value="<?= htmlspecialchars($a['vat_id']??'') ?>" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Registration number<input name="reg_number" value="<?= htmlspecialchars($a['reg_number']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Phone<input name="phone" value="<?= htmlspecialchars($a['phone']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save billing details</button></div>
+        </form>
+        <div class="ahint" style="margin-top:6px;font-size:11px">Blank fields are left unchanged — this never clears data you don't retype.</div>
+      </details>
     </td>
   </tr>
   <?php endforeach; ?>
