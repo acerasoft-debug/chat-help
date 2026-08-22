@@ -547,12 +547,23 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        is the buyer's finance department's authority to take it, whatever was agreed in the
        thread — so the document has to carry the same term as the deal: money first, goods
        after. */
-    $need(40);
+    /* Kendi kutusunda ve baslikli. Onceden ust uste uc duz paragrafin ilkiydi: hepsi
+       ayni 8 punto, ayni siyah, aralarinda bosluk yok. Odeme sarti bir ihtilafta
+       dayanilan cumle, altindaki iki cumle ise tasimanin gerektirdigi klise metin --
+       ayni agirlikta basilmalari, onemli olani gorunmez yapiyordu. Kutu, belgedeki
+       odeme kutusuyla ayni dili konusuyor: bu da paraya dair. */
+    $termsHead = $paid ? 'Payment status' : 'Payment terms';
     $terms = $paid
         ? 'Paid in full via VESTRA secure escrow. Funds are released to the seller once the buyer confirms delivery.'
-        : 'Payment terms: 100% advance. Goods are dispatched after the full invoice amount is received in the account shown above.';
-    foreach ($pdf->wrap($terms, $width, 8) as $fl) { $pdf->text($left, $y, 8, $fl); $y -= 11; }
-    $y -= 3;
+        : '100% advance. Goods are dispatched after the full invoice amount is received in the account shown above.';
+    $termLines = $pdf->wrap($terms, $width - 20, 9);
+    $tBoxH = 16 + count($termLines) * 12;
+    $need($tBoxH + 14);
+    $pdf->rectFill($left, $y - $tBoxH + 6, $width, $tBoxH);
+    $ty = $y - 6;
+    $pdf->text($left + 10, $ty, 9, $termsHead, true);
+    foreach ($termLines as $fl) { $ty -= 12; $pdf->text($left + 10, $ty, 9, $fl); }
+    $y -= ($tBoxH + 12);
 
     /* An order delivered in instalments has to say so on its invoice. Without it the first
        short consignment reads as an invoice discrepancy to the buyer's finance team, and to
@@ -575,22 +586,38 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        demek, gumrukte ve bir ihtilafta belgeyi zayiflatan bir beyandir. O yuzden not
        yalnizca uclu satista basiliyor. */
     $platformIsSeller = stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
-    $closing = $platformIsSeller
-        ? 'This invoice is issued by '.$opName.' as seller of record for this sale.'
-        : 'This invoice is issued by the seller named above. VESTRA (Acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.';
-    foreach ($pdf->wrap($closing, $width, 8) as $fl) {
-        $pdf->text($left, $y, 8, $fl); $y -= 11;
-    }
 
+    /* Beyanlar. Ustteki sevkiyat tablosuyla AYNI etiket/deger duzeni kullaniliyor --
+       belge boyunca tek bir okuma aliskanligi olsun, ve gumruk musaviri aradigi
+       satiri cumlenin icinden ayiklamak yerine etiketten bulsun. Gri: bu metinler
+       tasinmak zorunda ama tutarlarla ayni agirlikta yarismamali.
+       Etiket bicimi kasitli: "Seller of record: Acerasoft LLC" ticari faturanin
+       standart ALANI, cumleye gomulmus hali degil. Uclu satista ise gercekten bir
+       feragat cumlesi gerekiyor, o cumle olarak kaliyor. */
+    $declRows = [[
+        'Seller of record',
+        $platformIsSeller ? $opName : (trim((string)($sellerAcc['company'] ?? '')) ?: 'the seller named above'),
+    ]];
+    if (!$platformIsSeller) {
+        $declRows[] = ['Marketplace', 'VESTRA (Acerasoft LLC) operates the marketplace connecting buyer and '
+            .'seller and is not the seller of record for this sale.'];
+    }
     /* The certification a commercial invoice is expected to carry when it accompanies goods
        across a border. Brokers look for this sentence; without it some ask for the invoice to
        be reissued, which on a part-shipped order means holding a consignment at the border
        over a missing line of boilerplate. */
+    $declRows[] = ['Declaration', 'We certify that the information on this invoice is true and correct, '
+        .'and that the contents of this shipment are as stated above.'];
+
+    $y -= 2;
+    $need(18 + count($declRows) * 12);
+    $pdf->line($left, $y + 8, $right, $y + 8, 0.5, 0.82);
     $y -= 4;
-    $need(26);
-    foreach ($pdf->wrap('We certify that the information on this invoice is true and correct, and that the '
-        .'contents of this shipment are as stated above.', $width, 8) as $fl) {
-        $pdf->text($left, $y, 8, $fl); $y -= 11;
+    foreach ($declRows as [$k, $v]) {
+        $vl = vestra_invoice_wrap($v, $width - 110, 7.5);
+        $pdf->text($left, $y, 7.5, $k, false, 0.45);
+        foreach ($vl as $i => $line) $pdf->text($left + 106, $y - ($i * 10), 7.5, $line, false, 0.35);
+        $y -= max(11, count($vl) * 10 + 1);
     }
 
     /* ── Page footer ──

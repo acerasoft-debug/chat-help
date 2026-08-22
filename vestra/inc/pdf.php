@@ -114,16 +114,26 @@ class VestraPdf {
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $conv);
     }
 
-    /** Left-aligned text; ($x,$y) is the text baseline origin, PDF coordinates (origin bottom-left). */
-    public function text(float $x, float $y, float $size, string $s, bool $bold = false): void {
+    /**
+     * Left-aligned text; ($x,$y) is the text baseline origin, PDF coordinates (origin bottom-left).
+     *
+     * $gray is the fill level, 0 black … 1 white. It exists so a document can separate what the
+     * reader needs from the boilerplate it is obliged to carry: a commercial invoice ends in
+     * several sentences of certification that must be printed and are almost never read, and set
+     * in the same black as the amounts they compete with them. Grey is restored to black straight
+     * after, so callers that do not ask for it are unaffected.
+     */
+    public function text(float $x, float $y, float $size, string $s, bool $bold = false, float $gray = 0.0): void {
         if ($s === '') return;
         $font = $bold ? 'F2' : 'F1';
-        $this->cur .= sprintf("BT /%s %.1F Tf %.2F %.2F Td (%s) Tj ET\n", $font, $size, $x, $y, $this->esc($s));
+        $g = $gray > 0 ? sprintf("%.2F g ", $gray) : '';
+        $this->cur .= sprintf("%sBT /%s %.1F Tf %.2F %.2F Td (%s) Tj ET%s\n",
+            $g, $font, $size, $x, $y, $this->esc($s), $gray > 0 ? ' 0 g' : '');
     }
 
     /** Right-aligned text ending at $xRight (approximate Helvetica average glyph width — fine for labels/amounts). */
-    public function textR(float $xRight, float $y, float $size, string $s, bool $bold = false): void {
-        $this->text($xRight - $this->strWidth($s, $size, $bold), $y, $size, $s, $bold);
+    public function textR(float $xRight, float $y, float $size, string $s, bool $bold = false, float $gray = 0.0): void {
+        $this->text($xRight - $this->strWidth($s, $size, $bold), $y, $size, $s, $bold, $gray);
     }
 
     public function strWidth(string $s, float $size, bool $bold = false): float {
