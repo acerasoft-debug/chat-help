@@ -472,10 +472,23 @@ jobs:
                 $v = trim((string)($a[$k] ?? ''));
                 if ($v !== '') printf("   %-18s %s\n", $k, mb_substr($v, 0, 120));
               }
+              /* Belgenin ADI ve boyutu yaziliyor, ICERIGI degil. "approved" isareti
+                 neyin yuklendigini soylemiyor -- dosya adi ("gewerbeanmeldung.pdf")
+                 cogu zaman soyluyor. Icerik log'a asla dokulmemeli: bu depo herkese
+                 acik ve bunlar ucuncu bir sirketin resmi belgeleri. Dosya diskte
+                 gercekten duruyor mu diye de bakiliyor: kayitta dosya adi olup
+                 diskte olmamasi, "onayli" gorunup elde hicbir sey olmamasi demek. */
               foreach ((array)($a['doc_requests'] ?? []) as $r) {
-                printf("   %-18s %s -> %s%s\n", 'belge',
-                  (string)($r['type'] ?? '?'), (string)($r['status'] ?? '?'),
-                  ($r['file'] ?? '') !== '' ? '  (dosya var)' : '  (DOSYA YOK)');
+                $fn = (string)($r['file'] ?? '');
+                $note = '(DOSYA YOK)';
+                if ($fn !== '') {
+                  $p = auth_doc_file_path((string)($a['id'] ?? ''), $fn);
+                  $note = is_file($p)
+                    ? sprintf('dosya: %s  (%d KB)', $fn, (int)round(filesize($p) / 1024))
+                    : sprintf('!! kayitta "%s" var ama DISKTE YOK', $fn);
+                }
+                printf("   %-18s %-16s -> %-10s %s\n", 'belge',
+                  (string)($r['type'] ?? '?'), (string)($r['status'] ?? '?'), $note);
               }
               echo "\n";
             }
