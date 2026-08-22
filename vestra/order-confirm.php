@@ -99,7 +99,7 @@ $PAGE = t('Order received'); $NAV = 'shop'; require __DIR__.'/inc/head.php';
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span class="status offers"><?= eur($goods) ?></span>
         <?php if ($iv): ?>
-          <a class="btn btn-p btn-sm" href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener">📄 <?= t('Download invoice') ?> <?= htmlspecialchars($iv['no']) ?></a>
+          <a class="btn btn-p btn-sm" href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener">📄 <?= t('Download invoice') ?> <?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
         <?php else: ?>
           <span class="status offers" style="opacity:.9">⏳ <?= t('Invoice within the day') ?></span>
         <?php endif; ?>

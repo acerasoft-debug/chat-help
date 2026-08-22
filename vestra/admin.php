@@ -2374,7 +2374,7 @@ elseif($tab==='orders'):
         </form>
         <?php endif; ?>
       <?php else: foreach($vinvs as $iv): ?>
-        <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:inline-block;margin-right:12px;font-size:12.5px">📄 <?= htmlspecialchars($iv['no']) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
+        <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:inline-block;margin-right:12px;font-size:12.5px">📄 <?= htmlspecialchars(vestra_invoice_link_label($iv)) ?> · <?= htmlspecialchars($iv['seller_label']) ?></a>
       <?php endforeach; endif; ?>
     </div>
   </div>
@@ -2480,7 +2480,7 @@ if($__dupRefs): ?>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
-      <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars($iv['no']) ?></a>
+      <a href="<?= htmlspecialchars($iv['url']) ?>" target="_blank" rel="noopener" style="color:var(--acc);display:block"><?= htmlspecialchars(vestra_invoice_link_label($iv)) ?></a>
     <?php endforeach; ?></td>
     <td class="ac" style="font-size:11px">
       <?php $coms=vestra_commissions_for_ref($ref); if(!$coms): ?><span style="color:var(--mut)">—</span>
@@ -2600,6 +2600,17 @@ elseif($tab==='offers'):
       .'<button class="abtn" name="response" value="counter" type="submit" style="color:#9a7320;border-color:rgba(154,115,32,.4)">↩</button>'
       .'</form>'
     ) : '<span class="ahint">'.htmlspecialchars(substr((string)($resp['responded_at']??''),0,10)).'</span>';
+    /* Kabul edilmis teklifin faturasi BURADAN da acilabilsin. Onceden fatura
+       yalnizca Orders sekmesindeydi; teklif uzerinden gelen bir satista operator
+       "kabul ettim, belge nerede" sorusuna sekme degistirerek cevap ariyordu.
+       Numara + tutar birlikte (vestra_invoice_link_label) -- belge acilmadan da
+       ne kesildigi gorunur. */
+    if ($rSt === 'accept') {
+      foreach (vestra_invoices_for_ref($ref) as $iv) {
+        $respondCell .= '<br><a href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" '
+          .'style="color:var(--acc);font-size:11.5px">📄 '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
+      }
+    }
   ?>
   <?= arow([
     '<span class="atag">'.htmlspecialchars(substr($ref,0,10)).'</span>',

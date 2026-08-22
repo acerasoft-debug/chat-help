@@ -38,6 +38,12 @@ function vestra_platform_seller(): array {
         'address' => '8 The Green, Suite B, Dover, Delaware 19901',
         'country' => 'US',
         'website' => 'vestrasales.com',
+        /* EIN kodda durabilir (banka rakamlarinin aksine): EIN bir odeme bilgisi
+           degil, kimlik bilgisidir -- her faturada, W-9'da ve resmi yazismada
+           zaten aciga cikar, onunla hesap borclandirilamaz. Operator acikca
+           yazilmasini istedi (22.08.2026). Faturada "EIN: 61-2070643" olarak
+           basilir; gumruk ve alicinin muhasebesi saticiyi bununla dogrular. */
+        'vat_id'  => '61-2070643',
     ];
     $f = vestra_data_dir().'/platform_seller.json';
     if (is_readable($f)) {
@@ -326,7 +332,10 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             $sellerAcc['company'] ?: ($sellerAcc['name'] ?? '') ?: 'Seller',
             $sellerAcc['address'] ?? '',
             $sellerAcc['country'] ?? '',
-            !empty($sellerAcc['vat_id'])    ? vestra_tax_id_hint((string)($sellerAcc['country'] ?? ''))['short'].': '.$sellerAcc['vat_id'] : '',
+            /* Ayni bicimleyici aliciyla ORTAK: satici EIN'i duz, alici EIN'i tireli
+               cikarsa belge kendi icinde iki ayri gosterim tasir. */
+            !empty($sellerAcc['vat_id'])    ? vestra_tax_id_hint((string)($sellerAcc['country'] ?? ''))['short'].': '
+                .vestra_format_tax_id((string)$sellerAcc['vat_id'], (string)($sellerAcc['country'] ?? '')) : '',
             !empty($sellerAcc['reg_number'])? 'Reg. no: '.$sellerAcc['reg_number'] : '',
             /* No seller e-mail. The address on the account is a login credential, not a
                billing contact, and it is usually a personal one — printing it turns a
@@ -705,11 +714,20 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
     $no = vestra_next_invoice_no($sellerKey);
     $bytes = vestra_render_invoice_pdf($order, $items, $sellerAcc, $no);
     file_put_contents($pdfPath, $bytes, LOCK_EX);
+    /* Tutar ve para birimi META'ya yaziliyor ki paneller "Invoice INV-2026-1009 ·
+       US$2,153.40" diyebilsin. Alternatif, her sayfa yuklemede PDF'i ya da siparis
+       satirlarini yeniden hesaplamakti; meta zaten belge basina bir kez yaziliyor
+       ve belgedeki rakam NEYSE panelde o gorunmeli -- yeniden hesaplanan bir rakam,
+       kesimden sonra degisen bir veriyle belgeden sapabilirdi. */
+    $goods = 0.0; foreach ($items as $it) $goods += (float)($it['line'] ?? 0);
+    $total = round($goods - (float)($order['discount'] ?? 0) + (float)($order['shipping'] ?? 0), 2);
     file_put_contents($metaPath, json_encode([
         'no' => $no, 'ref' => $order['ref'], 'seller_key' => $sellerKey, 'issued_at' => date('c'),
         /* Kept so the download name can carry the buyer without the serving endpoint
            re-reading orders/offers/requests to find out who the invoice belongs to. */
         'buyer' => trim((string)(($order['buyer']['company'] ?? '') ?: ($order['buyer']['name'] ?? ''))),
+        'currency' => strtoupper(trim((string)($order['currency'] ?? 'EUR'))),
+        'total'    => $total,
     ], JSON_PRETTY_PRINT), LOCK_EX);
     return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey];
 }
@@ -754,10 +772,33 @@ function vestra_invoices_for_ref(string $ref): array {
         $out[] = [
             'no' => $meta['no'] ?? '', 'seller_key' => $sellerKey, 'seller_label' => $label,
             'url' => '/invoice?ref='.urlencode($ref).'&seller='.urlencode($sellerKey),
+            'currency'  => (string)($meta['currency'] ?? ''),
+            'total'     => (float)($meta['total'] ?? 0),
+            'issued_at' => (string)($meta['issued_at'] ?? ''),
         ];
     }
     usort($out, fn($a, $b) => strcmp($a['no'], $b['no']));
     return $out;
+}
+
+/**
+ * Number + amount for an invoice link: "INV-2026-1009 · US$2,153.40".
+ *
+ * The word "Invoice" is deliberately NOT here — the panels translate it (t('Invoice')),
+ * and a helper that bakes the English word in would undo their localisation. Lives here
+ * so buyer, admin and seller views print the SAME line: the amount and its currency come
+ * from the invoice meta, i.e. from the document itself, never re-derived from order rows
+ * that may have moved since issue. Old metas predate the total field and simply have no
+ * amount; the label then falls back to the bare number rather than a fabricated zero.
+ */
+function vestra_invoice_link_label(array $iv): string {
+    $s = (string)($iv['no'] ?? '');
+    $t = (float)($iv['total'] ?? 0);
+    if ($t > 0) {
+        $sym = strtoupper((string)($iv['currency'] ?? '')) === 'USD' ? 'US$' : '€';
+        $s .= ' · '.$sym.number_format($t, 2, '.', ',');
+    }
+    return $s;
 }
 
 /**

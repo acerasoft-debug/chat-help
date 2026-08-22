@@ -301,7 +301,7 @@ if($tab==='overview'){
       }
       $invLinks='';
       foreach(vestra_invoices_for_ref($ref) as $iv){
-        $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a> ';
+        $invLinks.='<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a> ';
       }
       $trk = !empty($orderSt[$ref]['tracking']) ? '<div class="hint" style="margin-top:8px">🚚 '.t('Tracking').': '.htmlspecialchars($orderSt[$ref]['tracking']).'</div>' : '';
       /* The raw items field ("2x SKU @25 | …") is the storage format, not something a buyer
@@ -369,7 +369,7 @@ if($tab==='overview'){
           if ($accepted) {
             $stCell .= '<div style="margin-top:6px"><span class="status offers">✓ '.t('Accepted').'</span>';
             foreach(vestra_invoices_for_ref($oref) as $iv){
-              $stCell .= ' <a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+              $stCell .= ' <a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
             }
             $stCell .= '</div>';
           } elseif (!$anyAccepted) {
@@ -402,7 +402,7 @@ if($tab==='overview'){
       elseif($resp['status']==='accept') {
         $rCell='<span class="status offers">✓ '.t('Accepted').'</span>';
         foreach(vestra_invoices_for_ref($ref) as $iv){
-          $rCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+          $rCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
         }
       }
       elseif($resp['status']==='decline') { $rCell='<span class="status">✗ '.t('Declined').'</span>'; }

@@ -173,7 +173,7 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     $invLinks = '';
     foreach (vestra_invoices_for_ref($ref) as $iv) {
         if ($viewerRole === 'seller' && $iv['seller_key'] !== $viewerUid) continue;
-        $invLinks .= '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin:10px 10px 0 0">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+        $invLinks .= '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin:10px 10px 0 0">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
     }
     /* The order summary is always downloadable, invoice or not — before the invoice is
        issued it is the only paper the buyer has, and that is precisely when a purchasing

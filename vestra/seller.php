@@ -896,7 +896,7 @@ if($tab==='overview'){
       }
       foreach(vestra_invoices_for_ref($ref) as $iv){
         if($iv['seller_key']!==$uid) continue;
-        echo '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+        echo '<a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
       }
       echo '</td></tr>';
     }
@@ -924,7 +924,7 @@ if($tab==='overview'){
         if($rSt==='accept'){
           foreach(vestra_invoices_for_ref($ref) as $iv){
             if($iv['seller_key']!==$uid) continue;
-            $actCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+            $actCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
           }
         }
       } else {

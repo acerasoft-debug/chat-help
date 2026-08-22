@@ -283,7 +283,7 @@ function vestra_msg_system_html(array $m, string $viewerRole): string {
         }
         if ($accepted && $viewerRole === 'seller' && function_exists('vestra_invoices_for_ref')) {
             foreach (vestra_invoices_for_ref($meta['ref'] ?? '') as $iv) {
-                $body .= '<a class="mo-act" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars($iv['no']).'</a>';
+                $body .= '<a class="mo-act" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
             }
         }
         return '<div class="msgoffer'.($accepted?' ok':'').'">'.$body.$time.'</div>';
