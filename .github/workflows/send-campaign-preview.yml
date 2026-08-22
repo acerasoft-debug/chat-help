@@ -80,6 +80,10 @@ on:
         description: "SİPARİŞ MEKTUBU: ortalama teslim süresi (ör. 'approximately two weeks'). Boş = sevkiyat paragrafı yazılmaz."
         required: false
         default: "approximately two weeks"
+      order_accept:
+        description: "SİPARİŞ MEKTUBU: true = mektuptan ÖNCE teklifi KABUL olarak kaydet (alıcıya ayrıca standart bildirim GÖNDERİLMEZ — bu mektup zaten haberi veriyor)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -100,13 +104,14 @@ jobs:
           O_USD: ${{ github.event.inputs.order_usd }}
           O_SHIP: ${{ github.event.inputs.order_ship_usd }}
           O_LEAD: ${{ github.event.inputs.order_lead_time }}
+          O_ACCEPT: ${{ github.event.inputs.order_accept }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND,O_USD,O_SHIP,O_LEAD
+          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND,O_USD,O_SHIP,O_LEAD,O_ACCEPT
           script: |
             cat > /tmp/vestra_order_details.php <<'PHPEOF'
             <?php
@@ -123,6 +128,26 @@ jobs:
 
             /* Alici hesabi varsa ondan, yoksa teklif satirindan: teklif her zaman bir is
                e-postasi topluyor, yani hesabi olmayan aliciya da yazabiliyoruz. */
+            /* Istenirse teklifi KABUL olarak kaydet -- mektuptan ONCE, cunku mektup
+               "kabul edildi" diyor. Ters sirada gonderim basarili olup kayit
+               yazilamazsa musteri kabul edildigini bilir, sistem bilmez.
+               $notify=false: aliciya standart "teklif kabul edildi" bildirimi
+               GONDERILMIYOR. Bu mektup ayni haberi zaten veriyor ve ustune eksik
+               bilgileri istiyor; ikisi birden gitseydi musteri dakikalar arayla ayni
+               haberi iki kez alirdi. Sessiz olan BILDIRIM, kabulun kendisi degil. */
+            if (strtolower((string)getenv('O_ACCEPT')) === 'true') {
+              require_once $doc."/inc/offers.php";
+              $resp = vestra_read_json('offer_responses.json');
+              if (($resp[$ref]['status'] ?? '') !== '') {
+                echo "kabul: zaten '".$resp[$ref]['status']."' (".substr((string)($resp[$ref]['responded_at'] ?? ''),0,19).") -- tekrar kaydedilmedi\n";
+              } else {
+                $r = vestra_offer_respond($ref, 'accept', 0.0, null, 'VESTRA', false);
+                echo $r['ok'] ? "kabul: KAYDEDILDI (aliciya ayrica bildirim gonderilmedi)\n"
+                              : "kabul: BASARISIZ -- ".$r['error']."\n";
+                if (!$r['ok']) { fwrite(STDERR, "kabul kaydedilemedi, mektup gonderilmiyor\n"); exit(1); }
+              }
+            }
+
             $acc = auth_find($row['email'] ?? '');
             $buyerName = trim((string)($row['company'] ?? '')) ?: trim((string)($acc['name'] ?? '')) ?: 'there';
             $missing = array_values(array_filter(array_map('trim', explode(',', (string)getenv('O_MISSING')))));

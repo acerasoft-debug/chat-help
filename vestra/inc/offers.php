@@ -27,9 +27,14 @@ require_once __DIR__.'/auth.php';
  * @param float      $ctr     counter icin birim fiyat, digerlerinde 0
  * @param ?array     $actor   Yaniti veren hesap (satici) — operator icin null
  * @param string     $label   Alicinin e-postada gorecegi gonderen adi
+ * @param bool       $notify  false = aliciya BILDIRIM GONDERME (mesaj/push/e-posta).
+ *                            Yalnizca cagiran taraf yerine gececek DAHA DOLU bir mektup
+ *                            gonderiyorsa kullanilir: aksi halde alici dakikalar arayla
+ *                            ayni haberi iki kez alir. Kayit her halukarda yaziliyor --
+ *                            "sessiz" olan bildirim, kabulun kendisi degil.
  * @return array     ['ok'=>bool, 'error'=>string, 'invoice'=>?array]
  */
-function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA'): array {
+function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $actor, string $label = 'VESTRA', bool $notify = true): array {
     $ref = trim($ref);
     if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
     if (!in_array($action, ['accept', 'decline', 'counter'], true)) return ['ok' => false, 'error' => 'gecersiz islem'];
@@ -60,7 +65,7 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
         ? trim(($listing['brand'] ?? '').' '.($listing['name'] ?? ''))
         : trim((string)($offerRow['product'] ?? ''));
 
-    if ($buyerAcc) {
+    if ($notify && $buyerAcc) {
         require_once __DIR__.'/messages.php';
         vestra_msg_post_system($buyerAcc['id'], $actor['id'] ?? '', $listing['id'] ?? '', [
             'kind' => 'offer_response', 'ref' => $ref, 'status' => $action,
@@ -77,7 +82,7 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
     }
 
     require_once __DIR__.'/notify.php';
-    if (!empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
+    if ($notify && !empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
         $buyerName = $offerRow['company'] ?? ($buyerAcc['name'] ?? 'there');
         [$mSubject, $mBody, $mOpts] = vestra_tpl_offer_response(
             vestra_user_lang($buyerAcc), $action, $buyerName, $prodName, $ref,
