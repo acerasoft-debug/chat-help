@@ -194,6 +194,32 @@ jobs:
             PHPEOF
             php /tmp/vestra_platbill.php; rm -f /tmp/vestra_platbill.php
 
+            # Operator "panelden girdim, sistemde mevcut" dedi ama platform dosyasi yok.
+            # Banka bilgisi YANLIS KUTUYA -- bir HESABIN kendi banka alanlarina --
+            # girilmis olabilir: satici hesaplarinin fatura icin kendi bank_* alanlari
+            # var. Bu tarama hangi hesapta hangi alanin dolu oldugunu soyler; DEGERLER
+            # ASLA yazilmaz (log herkese acik), yalnizca alan adlari.
+            echo; echo "== hesaplarda dolu banka alanlari =="
+            cat > /tmp/vestra_acctbank.php <<'PHPEOF'
+            <?php
+            $af = getenv("HOME")."/public_html/data/accounts.json";
+            $accs = is_readable($af) ? json_decode((string)file_get_contents($af), true) : null;
+            if (!is_array($accs)) { echo "  accounts.json okunamadi\n"; exit(0); }
+            $bk = ['bank_holder','bank_name','bank_iban','bank_bic','bank_routing',
+                   'bank_account','bank_acct_type','bank_address'];
+            $hit = 0;
+            foreach ($accs as $a) {
+              $filled = array_values(array_filter($bk, fn($k) => trim((string)($a[$k] ?? '')) !== ''));
+              if (!$filled) continue;
+              $hit++;
+              printf("  %s <%s>  ->  %s\n",
+                (string)($a['company'] ?? ($a['name'] ?? '?')),
+                (string)($a['email'] ?? '?'), implode(', ', $filled));
+            }
+            if (!$hit) echo "  hicbir hesabin banka alani dolu degil\n";
+            PHPEOF
+            php /tmp/vestra_acctbank.php; rm -f /tmp/vestra_acctbank.php
+
             # /shop 403 verdi (Apache'nin kendi 13 baytlik cevabi, PHP'den degil).
             # Kok .htaccess'teki temiz-URL kurali `RewriteCond %{REQUEST_FILENAME} !-d`
             # tasiyor: hedef bir DIZIN ise .php'ye yonlendirme atlanir, `Options -Indexes`

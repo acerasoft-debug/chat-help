@@ -15,9 +15,13 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key | platform_bank (VESTRA'nın banka bilgileri) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi)"
+        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi)"
         required: false
         default: "mail_key"
+      src_email:
+        description: "platform_bank_from_account: banka bilgisinin durduğu hesabın e-postası"
+        required: false
+        default: ""
       cust_uid:
         description: "customer_billing: hesap id (ör. e38d3b085a4de4da)"
         required: false
@@ -220,6 +224,79 @@ jobs:
             php ./vestra_platselftest_tmp.php
             rc=$?
             rm -f ./vestra_platselftest_tmp.php /tmp/vestra_platselftest.php
+            exit $rc
+
+  # Banka bilgisi sunucuda ZATEN duruyorsa -- operator onu bir HESABIN kendi
+  # banka alanlarina girdiyse -- oradan platform_seller.json'a KOPYALAR.
+  #
+  # Kritik ozellik: rakamlar sunucudan DISARI CIKMAZ. Kopya tamamen sunucunun
+  # icinde olur; GitHub secret'ina, is akisi girdisine ve log'a hicbir deger
+  # yazilmaz (log yalnizca alan adi + karakter sayisi gorur). Operatorun
+  # "panelden girdim, sistemde mevcut" dedigi durumun dogru cozumu bu:
+  # bilgiyi yeniden istemek degil, durdugu kutudan dogru kutuya tasimak.
+  copy-bank-from-account:
+    if: github.event.inputs.task == 'platform_bank_from_account'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hesaptaki banka bilgisini platform dosyasına kopyala
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SRC_EMAIL: ${{ github.event.inputs.src_email }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: SRC_EMAIL
+          script: |
+            cat > /tmp/vestra_bankcopy.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            $src = strtolower(trim((string)getenv('SRC_EMAIL')));
+            if ($src === '') { fwrite(STDERR, "src_email gerekli\n"); exit(1); }
+
+            $accs = json_decode((string)@file_get_contents($doc."/data/accounts.json"), true);
+            if (!is_array($accs)) { fwrite(STDERR, "accounts.json okunamadi\n"); exit(1); }
+            $acc = null;
+            foreach ($accs as $a) if (strtolower((string)($a['email'] ?? '')) === $src) { $acc = $a; break; }
+            if (!$acc) { fwrite(STDERR, "hesap bulunamadi: {$src}\n"); exit(1); }
+            echo "kaynak hesap: ".(string)($acc['company'] ?? ($acc['name'] ?? '?'))." <{$src}>\n";
+
+            $bk = ['bank_holder','bank_name','bank_iban','bank_bic','bank_routing',
+                   'bank_account','bank_acct_type','bank_address'];
+            $take = [];
+            foreach ($bk as $k) {
+              $v = trim((string)($acc[$k] ?? ''));
+              if ($v !== '') $take[$k] = $v;
+              printf("  %-16s %s\n", $k, $v === '' ? '—' : 'DOLU ('.mb_strlen($v).' karakter)');
+            }
+            if (trim((string)($take['bank_account'] ?? '')) === '' && trim((string)($take['bank_iban'] ?? '')) === '') {
+              fwrite(STDERR, "bu hesapta hesap numarasi / IBAN YOK -- kopyalanacak sey yok\n"); exit(1);
+            }
+
+            $f = $doc."/data/platform_seller.json";
+            $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+            if (!is_array($cur)) $cur = [];
+            foreach ($take as $k => $v) $cur[$k] = $v;   // bos alan zaten $take'e girmedi
+            $n = @file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT), LOCK_EX);
+            @chmod($f, 0600);
+            if ($n === false) { fwrite(STDERR, "platform_seller.json YAZILAMADI\n"); exit(1); }
+
+            /* Geri okuyarak dogrula -- yaz-ve-inan bu projede defalarca yandi. */
+            $back = json_decode((string)@file_get_contents($f), true);
+            $ok = is_array($back);
+            if ($ok) foreach ($take as $k => $v) { if (trim((string)($back[$k] ?? '')) !== $v) { $ok = false; break; } }
+            echo $ok ? "SONUC: kopyalandi ve geri okumayla DOGRULANDI -- odeme kutusu artik basilabilir\n"
+                     : "SONUC: dogrulama TUTMADI -- dosyaya bakilmali\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_bankcopy.php ./vestra_bankcopy_tmp.php
+            php ./vestra_bankcopy_tmp.php
+            rc=$?
+            rm -f ./vestra_bankcopy_tmp.php /tmp/vestra_bankcopy.php
             exit $rc
 
   # Sunucudaki dosya: data/platform_seller.json (web'e kapali, .gitignore'da, 0600)
