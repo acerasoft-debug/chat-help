@@ -382,6 +382,28 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      kesilirken hesapta hala eksik adres duruyordu.
      Bos gelen alan YAZILMIYOR: kismi bir duzenleme (sadece adres girmek) diger alanlari
      silmemeli. */
+  /* PLATFORM'un kendi fatura kimligi + banka hesabi. Kurasyonlu katalog urunlerinde
+     satici hesabi YOK (seller_uid bos), o yuzden fatura kesilirken satici tarafi
+     bos kaliyor ve odeme kutusu hic basilmiyordu -- alici parayi nereye gonderecegini
+     faturadan ogrenemiyordu.
+     RAKAMLAR BURADAN GIRILIYOR, kodla degil: bu depo herkese acik ve ABD'de
+     routing+hesap ikilisi ACH borclandirma icin yeterli. Dosya data/ altinda,
+     web'e kapali (.htaccess), .gitignore'da ve 0600. Ayni sebeple workflow girdisi
+     olarak da gecirilemez: acik bir depoda Actions girdileri ve log'u herkese gorunur. */
+  if($act==='save_platform_billing'){
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    $f=$dir.'/platform_seller.json';
+    $cur=is_readable($f)?json_decode((string)file_get_contents($f),true):[]; if(!is_array($cur))$cur=[];
+    foreach(['company','address','country','email','website',
+             'bank_name','bank_holder','bank_iban','bank_bic',
+             'bank_routing','bank_account','bank_acct_type','bank_address',
+             'vat_id','reg_number'] as $k){
+      $v=trim((string)($_POST[$k]??''));
+      if($v!=='') $cur[$k]=$v;   // bos alan mevcut degeri SILMEZ
+    }
+    file_put_contents($f,json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($f,0600);
+    header('Location: /admin?tab=orders&msg=platform_billing_saved'); exit;
+  }
   if($act==='save_billing'){
     $uid = $_POST['uid'] ?? '';
     $upd = [];
@@ -2227,6 +2249,9 @@ function sendUserMessage(uid,name){
 
 <?php // ══════════════════════════════════════════════════════ ORDERS
 elseif($tab==='orders'):
+  require_once __DIR__.'/inc/invoice.php';
+  $PLAT = vestra_platform_seller();
+  $platHasBank = ($PLAT['bank_iban'] ?? '') !== '' || ($PLAT['bank_account'] ?? '') !== '';
   $cnt_ship=count(array_filter($orders,fn($o)=>($orderSt[$o['ref']??'']['status']??'')==='shipped'));
   $cnt_done=count(array_filter($orders,fn($o)=>($orderSt[$o['ref']??'']['status']??'')==='completed'));
   /* Full order dossier (?tab=orders&view=REF): everything about one order on
@@ -2234,6 +2259,50 @@ elseif($tab==='orders'):
      status control — so the admin never pieces an order together from a row. */
   $viewRef=trim($_GET['view']??''); $viewRow=null;
   if($viewRef!==''){ foreach($orders as $__o){ if(($__o['ref']??'')===$viewRef){ $viewRow=$__o; break; } } }
+?>
+<?php /* Platform kendi adina fatura kestiginde (kurasyonlu katalog urunleri: satici
+         hesabi yok) odeme kutusu buradan doluyor. Bos ise fatura banka bilgisi
+         OLMADAN cikar ve alici parayi nereye gonderecegini bilemez -- o yuzden
+         eksikse acik bir uyari duruyor, sessizce gecilmiyor. */ ?>
+<details class="acard" style="margin-bottom:14px" <?= $platHasBank ? '' : 'open' ?>>
+  <summary style="cursor:pointer;padding:12px 16px;font-size:13px">
+    🏦 Platform billing &amp; bank details — <b><?= htmlspecialchars($PLAT['company'] ?? 'acerasoft LLC') ?></b>
+    <?= $platHasBank
+        ? '<span class="ahint" style="margin-left:8px">on file</span>'
+        : '<span style="margin-left:8px;color:var(--bad)">not set — invoices will have no payment box</span>' ?>
+  </summary>
+  <div style="padding:0 16px 16px">
+    <div class="ahint" style="margin-bottom:10px;font-size:11.5px">
+      Used when VESTRA invoices in its own name (catalogue items with no seller account).
+      Stored on the server only — web-blocked, never in the code repository. Blank fields are left unchanged.
+    </div>
+    <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="save_platform_billing">
+      <?php
+      $pf = function(string $name, string $label, string $ph='') use ($PLAT) {
+        printf('<label style="font-size:11px;color:var(--mut)">%s<input name="%s" value="%s" placeholder="%s" style="width:100%%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>',
+          htmlspecialchars($label), htmlspecialchars($name),
+          htmlspecialchars((string)($PLAT[$name] ?? '')), htmlspecialchars($ph));
+      };
+      $pf('company','Legal company name');
+      $pf('address','Company address');
+      $pf('country','Country','US');
+      $pf('bank_holder','Account holder');
+      $pf('bank_name','Bank name');
+      $pf('bank_address','Bank address','4501 23rd Avenue S, Fargo, ND 58104, USA');
+      $pf('bank_routing','Routing number (ABA) — US','091311229');
+      $pf('bank_account','Account number — US');
+      $pf('bank_acct_type','Account type','Checking');
+      $pf('bank_iban','IBAN — EU (leave blank if none)');
+      $pf('bank_bic','BIC / SWIFT');
+      $pf('vat_id','Tax ID / EIN');
+      ?>
+      <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save platform billing</button></div>
+    </form>
+  </div>
+</details>
+<?php
   if($viewRow):
     $vst=$orderSt[$viewRef]??[]; $vstatus=$vst['status']??'pending';
     $vlines=vestra_order_lines($viewRow)['lines']??[];

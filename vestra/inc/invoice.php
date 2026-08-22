@@ -17,6 +17,36 @@
  */
 require_once __DIR__.'/pdf.php';
 
+/**
+ * Platform'un kendi satici kimligi (acerasoft LLC) + banka hesabi.
+ *
+ * Kurasyonlu katalog urunlerinde seller_uid YOK, dolayisiyla fatura kesilirken
+ * $sellerAcc null geliyor ve belge banka bilgisi OLMADAN cikiyordu: alici parayi
+ * nereye gonderecegini faturadan ogrenemiyordu.
+ *
+ * Kimlik burada sabit (index.php ve faq.php'deki tescilli bilgilerle ayni), BANKA
+ * bilgileri ise data/platform_seller.json'dan geliyor -- admin panelinden girilir,
+ * web'e kapali, .gitignore'da, 0600. Rakamlar bilerek kodda DEGIL: bu depo herkese
+ * acik ve ABD'de routing+hesap ikilisi ACH borclandirma icin yeterli.
+ *
+ * Dosya yoksa yalnizca kimlik doner: fatura yine kesilir, sadece odeme kutusu bos
+ * kalir. Eksik bir odeme kutusu, kesilemeyen bir faturadan iyidir.
+ */
+function vestra_platform_seller(): array {
+    $base = [
+        'company' => 'acerasoft LLC',
+        'address' => '8 The Green, Suite B, Dover, Delaware 19901',
+        'country' => 'US',
+        'website' => 'vestrasales.com',
+    ];
+    $f = vestra_data_dir().'/platform_seller.json';
+    if (is_readable($f)) {
+        $j = json_decode((string)file_get_contents($f), true);
+        if (is_array($j)) foreach ($j as $k => $v) { if ($v !== '' && $v !== null) $base[$k] = $v; }
+    }
+    return $base;
+}
+
 function vestra_invoice_dir(): string {
     $dir = dirname(__DIR__).'/data/invoices';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);

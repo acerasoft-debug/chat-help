@@ -119,7 +119,11 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
            yani burada PDF URETILMIYOR, sadece 'pending' donuyor. Kasitli -- stok teyit
            edilmeden ve eksik alici bilgileri tamamlanmadan numara yakilmasin. Faturayi
            operator elle kesiyor. */
-        $invoice = vestra_ensure_invoice($orderMeta, $items, $actor);
+        /* Satici hesabi yoksa (kurasyonlu katalog urunu) faturayi PLATFORM kesiyor:
+           acerasoft LLC kimligi + admin panelinden girilen banka hesabi. Onceden
+           null geciliyordu ve fatura banka bilgisi olmadan cikiyordu. */
+        $sellerAcc = $actor ?: vestra_platform_seller();
+        $invoice = vestra_ensure_invoice($orderMeta, $items, $sellerAcc);
     }
 
     return ['ok' => true, 'error' => '', 'invoice' => $invoice];

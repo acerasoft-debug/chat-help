@@ -8,5 +8,13 @@ vestra/data/accounts.json
 vestra/data/messages.json
 vestra/data/blocked_messages.json
 
+# operator settings written from the admin panel — never commit.
+# platform_seller.json carries the company's OWN bank details (US routing +
+# account number, or IBAN). This repository is public, and in the US that pair
+# is enough to pull money by ACH debit. email_settings.json carries the sending
+# credentials and the finder/AI API keys.
+vestra/data/platform_seller.json
+vestra/data/email_settings.json
+
 # composer dependencies
 vestra/vendor/
