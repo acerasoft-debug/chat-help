@@ -644,6 +644,34 @@ function vestra_seller_monthly_quota_limit(string $tier): ?int {
 function vestra_seller_commission_rate(string $tier): float {
     return VESTRA_COMMISSION_RATE;
 }
+/* ─── Vergi numarasi alani: soruyu ULKEYE gore sor ─────────────────────────────
+   Alan hep "VAT / Tax ID" etiketi ve "DE123456789" ipucu ile cikiyordu. ABD'de
+   KDV YOK; oradaki karsiligi IRS'in verdigi EIN. Amerikali bir kullaniciya Alman
+   KDV numarasi sorunca ya bos birakiyor ya "n/a" yaziyor -- canli kayitta tam
+   olarak bu var (vat_id = "n/a"), ustelik yanina bir "vat_cert" belgesi de
+   onaylanmis durumda. Alan zaten dogru alandi; yanlis olan soruydu.
+   Faturada da ayni etiket kullaniliyor: ABD'li bir firmaya "VAT ID" yazmak,
+   gumruk ve muhasebe tarafinda var olmayan bir numarayi ariyormus gibi durur. */
+function vestra_tax_id_hint(string $country): array {
+    $c = strtoupper(trim($country));
+    // Hem ISO kodu hem tam ad gelebiliyor (kayit formu ad, teshis kodu yaziyor).
+    if ($c === 'US' || $c === 'USA' || $c === 'UNITED STATES') {
+        return ['label' => 'EIN (Federal Tax ID)', 'placeholder' => '12-3456789', 'short' => 'EIN'];
+    }
+    if ($c === 'GB' || $c === 'UK' || $c === 'UNITED KINGDOM') {
+        return ['label' => 'VAT registration number', 'placeholder' => 'GB123456789', 'short' => 'VAT no.'];
+    }
+    if ($c === 'CH' || $c === 'SWITZERLAND' || $c === 'SCHWEIZ') {
+        return ['label' => 'UID / MWST number', 'placeholder' => 'CHE-123.456.789 MWST', 'short' => 'UID'];
+    }
+    if ($c === 'DE' || $c === 'GERMANY' || $c === 'DEUTSCHLAND' || $c === 'AT' || $c === 'AUSTRIA') {
+        return ['label' => 'USt-IdNr.', 'placeholder' => 'DE123456789', 'short' => 'USt-IdNr.'];
+    }
+    if ($c === 'TR' || $c === 'TURKEY' || $c === 'TÜRKIYE' || $c === 'TURKIYE') {
+        return ['label' => 'Vergi kimlik numarası', 'placeholder' => '1234567890', 'short' => 'VKN'];
+    }
+    return ['label' => 'VAT / Tax ID', 'placeholder' => 'DE123456789', 'short' => 'VAT ID'];
+}
 /* Nullable on purpose: seller.php reads this straight off $AUTH_USER, which is null when a
    session has expired between page loads. With an `array` type that was a fatal TypeError —
    the whole seller dashboard 500'd instead of bouncing the visitor to the login page (the

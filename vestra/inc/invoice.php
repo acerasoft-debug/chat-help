@@ -245,7 +245,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             $sellerAcc['company'] ?: ($sellerAcc['name'] ?? '') ?: 'Seller',
             $sellerAcc['address'] ?? '',
             $sellerAcc['country'] ?? '',
-            !empty($sellerAcc['vat_id'])    ? 'VAT ID: '.$sellerAcc['vat_id'] : '',
+            !empty($sellerAcc['vat_id'])    ? vestra_tax_id_hint((string)($sellerAcc['country'] ?? ''))['short'].': '.$sellerAcc['vat_id'] : '',
             !empty($sellerAcc['reg_number'])? 'Reg. no: '.$sellerAcc['reg_number'] : '',
             /* No seller e-mail. The address on the account is a login credential, not a
                billing contact, and it is usually a personal one — printing it turns a
@@ -276,7 +276,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
 
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
-        !empty($b['vat']) ? 'VAT ID: '.$b['vat'] : '',
+        !empty($b['vat']) ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '.$b['vat'] : '',
         $buyerName,
         /* No buyer e-mail, for the same reason the seller's is absent. An invoice is not a
            contact sheet: it is forwarded to carriers, brokers and banks, and it sits in an

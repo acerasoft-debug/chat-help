@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__.'/inc/i18n.php';
 require_once __DIR__.'/inc/auth.php';
+/* vestra_tax_id_hint() burada kullaniliyor ve products.php'de tanimli. Bu sayfa
+   products.php'yi yuklemiyordu, head.php de yuklemiyor -- require olmadan KAYIT
+   SAYFASI komple olumcul hataya duserdi. Sitenin en kritik sayfasinda sessiz bir
+   bagimlilik: alan etiketini ulkeye gore degistirmek, kayit alamamaya mal olurdu. */
+require_once __DIR__.'/inc/products.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 /* Already signed in → their panel, never a silent bounce back to the homepage
@@ -120,9 +125,17 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
         <input name="company" required placeholder="Company GmbH" value="<?= htmlspecialchars($d['company']??'') ?>">
       </div>
       <div class="frow" style="margin-bottom:0">
+        <?php
+        /* Kayit formu STATIK: ulke bu alanin ustunde secilse bile etiket canli
+           degismiyor (sayfa yeniden cizilmeden). O yuzden burada etiket ulkeye
+           gore degil, ipucu METNI her iki durumu da soyluyor. Formu geri donen
+           bir hatada $d dolu geliyor, o zaman dogru etiket cikiyor. */
+        $_tax = vestra_tax_id_hint($d['country'] ?? '');
+        ?>
         <div class="authfield">
-          <label><?= t('VAT / Tax ID') ?></label>
-          <input name="vat_id" placeholder="DE123456789" value="<?= htmlspecialchars($d['vat_id']??'') ?>">
+          <label><?= t($_tax['label']) ?></label>
+          <input name="vat_id" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>" value="<?= htmlspecialchars($d['vat_id']??'') ?>">
+          <div class="ahint" style="font-size:11px;margin-top:3px"><?= t('US company: enter your EIN (e.g. 12-3456789). There is no VAT in the United States.') ?></div>
         </div>
         <div class="authfield">
           <label><?= t('Registration number') ?></label>

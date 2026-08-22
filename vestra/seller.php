@@ -1311,7 +1311,8 @@ function sellerSend(btn){
       <div class="authsect"><?= t('Company info') ?></div>
       <div class="frow">
         <div><label><?= t('Company name') ?></label><input name="company" value="<?= htmlspecialchars($u['company']??'') ?>" placeholder="Company GmbH"></div>
-        <div><label><?= t('VAT / Tax ID') ?></label><input name="vat_id" value="<?= htmlspecialchars($u['vat_id']??'') ?>" placeholder="DE123456789"></div>
+        <?php $_tax = vestra_tax_id_hint($u['country'] ?? ''); ?>
+        <div><label><?= t($_tax['label']) ?></label><input name="vat_id" value="<?= htmlspecialchars($u['vat_id']??'') ?>" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>"></div>
       </div>
       <div class="frow">
         <div><label><?= t('Registration number') ?></label><input name="reg_number" value="<?= htmlspecialchars($u['reg_number']??'') ?>" placeholder="HRB 12345"></div>
