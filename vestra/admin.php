@@ -23,7 +23,20 @@ $err=false;
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
   $tkey='admin|'.($_SERVER['REMOTE_ADDR']??'');
   if(auth_throttled($tkey)){ $err=true; }
-  elseif(!$locked && hash_equals($PASS,(string)$_POST['pass'])){ auth_throttle_clear($tkey); $_SESSION['vadmin']=true; header('Location: /admin'); exit; }
+  elseif(!$locked && hash_equals($PASS,(string)$_POST['pass'])){
+    auth_throttle_clear($tkey); $_SESSION['vadmin']=true;
+    /* Giristen sonra GELINEN adrese don, duz /admin'e degil. Giris formu eylemsiz
+       ("<form method=post>") oldugu icin sorgu dizesiyle birlikte kendi URL'ine
+       gonderiyor; burada onu atmak, bir baglantiyla gelen her seyi sessizce
+       dusuruyordu -- on-doldurulmus banka formu cikisken acildiginda alanlar bos
+       geliyor ve kullanici "yine olmadi" diyordu.
+       Yalnizca /admin ile baslayan KENDI yollarimiz kabul ediliyor: disariya
+       yonlendirme (open redirect) acmamak icin. Ters egik cizgi de eleniyor --
+       "/\evil.com" bazi tarayicilarda dis adres gibi cozuluyor. */
+    $back = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if ($back === '' || !preg_match('#^/admin(\?|$)#', $back) || str_contains($back, '\\')) $back = '/admin';
+    header('Location: '.$back); exit;
+  }
   else { auth_throttle_hit($tkey); sleep(1); $err=true; }
 }
 $authed=!empty($_SESSION['vadmin']);
