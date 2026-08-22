@@ -40,7 +40,12 @@ permissions:
 
 jobs:
   update-mail-key:
-    if: github.event.inputs.task != 'platform_bank'
+    # Kosul once "!= 'platform_bank'" idi ve YANLISTI: task=customer_billing de bu
+    # kosulu sagliyor, dolayisiyla musteri adresi guncellenirken e-posta ayarlari da
+    # yeniden uygulanip bir test e-postasi gonderiliyordu. Bir gorev, kendisiyle
+    # ilgisiz baska bir gorevi tetiklememeli. Disláma listesi yerine ACIK esitlik:
+    # yeni bir task eklendiginde bu is kendiliginden dahil olmaz.
+    if: github.event.inputs.task == 'mail_key' || github.event.inputs.task == ''
     runs-on: ubuntu-latest
     steps:
       - name: MAIL_API_KEY secret'ı var mı kontrol et
