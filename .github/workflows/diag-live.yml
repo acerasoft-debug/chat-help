@@ -170,6 +170,30 @@ jobs:
             echo "== DISK =="; df -h ~ 2>/dev/null | tail -2
             echo; echo "== public_html boyutu =="; du -sh ~/public_html 2>/dev/null
 
+            # Platform fatura/banka yapilandirmasi. "Girdim mi, girmedim mi" sorusu
+            # tahminle degil kayitla cevaplanmali: eksikse fatura ODEME KUTUSU OLMADAN
+            # kesilir ve alici parayi nereye gonderecegini belgeden ogrenemez.
+            # DEGERLER YAZDIRILMIYOR, yalnizca dolu/bos. Bu depo herkese acik, Actions
+            # log'u da oyle; ABD'de routing + hesap ikilisi ACH borclandirma icin yeterli.
+            echo; echo "== platform fatura/banka yapilandirmasi =="
+            cat > /tmp/vestra_platbill.php <<'PHPEOF'
+            <?php
+            $f = getenv("HOME")."/public_html/data/platform_seller.json";
+            if (!is_readable($f)) { echo "  platform_seller.json YOK -- fatura banka bilgisi olmadan kesilir\n"; exit(0); }
+            $j = json_decode((string)file_get_contents($f), true);
+            if (!is_array($j)) { echo "  !! dosya var ama JSON okunamiyor\n"; exit(0); }
+            $need = ['company','address','country','bank_holder','bank_name','bank_address',
+                     'bank_routing','bank_account','bank_acct_type','bank_iban','bank_bic'];
+            foreach ($need as $k) {
+              $v = trim((string)($j[$k] ?? ''));
+              printf("  %-16s %s\n", $k, $v === '' ? '—' : 'DOLU ('.mb_strlen($v).' karakter)');
+            }
+            $payable = trim((string)($j['bank_iban'] ?? '')) !== '' || trim((string)($j['bank_account'] ?? '')) !== '';
+            echo $payable ? "  SONUC: odeme kutusu basilabilir\n"
+                          : "  SONUC: hesap numarasi YOK -- odeme kutusu BOS cikar\n";
+            PHPEOF
+            php /tmp/vestra_platbill.php; rm -f /tmp/vestra_platbill.php
+
             # /shop 403 verdi (Apache'nin kendi 13 baytlik cevabi, PHP'den degil).
             # Kok .htaccess'teki temiz-URL kurali `RewriteCond %{REQUEST_FILENAME} !-d`
             # tasiyor: hedef bir DIZIN ise .php'ye yonlendirme atlanir, `Options -Indexes`
