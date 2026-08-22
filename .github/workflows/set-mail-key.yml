@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key | platform_bank (VESTRA'nın banka bilgileri) | customer_billing (bir müşterinin fatura adresi)"
+        description: "Ne yapılsın — mail_key | platform_bank (VESTRA'nın banka bilgileri) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi)"
         required: false
         default: "mail_key"
       cust_uid:
@@ -130,6 +130,98 @@ jobs:
   #   {"bank_holder":"acerasoft LLC","bank_name":"...","bank_routing":"...",
   #    "bank_account":"...","bank_acct_type":"Checking","bank_address":"..."}
   #
+  # "Panele yazsam tutar mi?" sorusunu tahminle degil deneyerek cevaplar.
+  #
+  # Operator banka bilgilerini panele girdigini soyledi, sunucuda dosya YOKTU ve
+  # panel de bunu soyleyecek hicbir sey basmiyordu (o iki kusur ayrica duzeltildi).
+  # Geriye tek acik soru kaldi: PHP o dizine gercekten yazabiliyor mu? Yazamiyorsa
+  # form ne kadar duzgun olursa olsun giris her seferinde sessizce dusecek.
+  #
+  # Test GERCEK rakamlarla yapilmaz: yer tutucu bir deger yazilir, geri okunur,
+  # vestra_platform_seller() uzerinden gorunur mu diye bakilir ve SILINIR. Dosyayi
+  # birakmak daha kotu olurdu -- panel "on file" der, fatura da uydurma bir hesap
+  # numarasiyla cikardi.
+  platform-bank-selftest:
+    if: github.event.inputs.task == 'platform_bank_selftest'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Panel kaydı tutar mı — yaz / geri oku / sil
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_platselftest.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/invoice.php";
+
+            $dir = vestra_data_dir();
+            $f   = $dir.'/platform_seller.json';
+
+            echo "veri dizini : {$dir}\n";
+            echo "  var mi    : ".(is_dir($dir) ? 'evet' : 'HAYIR')."\n";
+            echo "  yazilabilir: ".(is_writable($dir) ? 'EVET' : 'HAYIR  <<< giris bu yuzden dusuyor')."\n";
+            if (is_dir($dir)) {
+              echo "  izinler   : ".substr(sprintf('%o', fileperms($dir)), -4)."\n";
+              $o = function_exists('posix_getpwuid') ? posix_getpwuid(fileowner($dir)) : null;
+              echo "  sahibi    : ".($o['name'] ?? fileowner($dir))."\n";
+              echo "  php kim   : ".(function_exists('posix_geteuid')
+                    ? ((posix_getpwuid(posix_geteuid())['name']) ?? posix_geteuid()) : get_current_user())."\n";
+            }
+
+            /* Var olan dosyayi EZMEYELIM. Bu is akisi bir teshis araci; operator
+               bilgileri girdikten SONRA calistirilirsa girdigi seyi silmemeli. */
+            if (is_file($f)) {
+              echo "\nplatform_seller.json ZATEN VAR -- test yazmiyor, dokunmuyor.\n";
+              $j = json_decode((string)file_get_contents($f), true);
+              echo is_array($j) ? "  gecerli JSON, ".count($j)." alan\n" : "  !! JSON okunamiyor\n";
+              exit(0);
+            }
+
+            echo "\n-- yazma denemesi (YER TUTUCU deger, sonra silinecek) --\n";
+            $probe = ['bank_name'=>'SELFTEST-DO-NOT-USE','bank_account'=>'SELFTEST-DO-NOT-USE'];
+            $n = @file_put_contents($f, json_encode($probe, JSON_PRETTY_PRINT), LOCK_EX);
+            if ($n === false) {
+              echo "  YAZILAMADI -- panelden girilen bilgi de ayni sekilde dusuyor.\n";
+              echo "SONUC: dizin PHP tarafindan yazilabilir DEGIL. Once bu duzeltilmeli.\n";
+              exit(1);
+            }
+            echo "  yazildi ({$n} bayt)\n";
+            @chmod($f, 0600);
+
+            $back = json_decode((string)@file_get_contents($f), true);
+            $okRead = is_array($back) && ($back['bank_account'] ?? '') === 'SELFTEST-DO-NOT-USE';
+            echo "  geri okuma: ".($okRead ? 'TAMAM' : 'BASARISIZ')."\n";
+
+            /* Faturanin gercekten kullandigi yol: renderer bu fonksiyonu cagiriyor.
+               Dosyanin diskte olmasi yetmez, buradan GORUNMESI gerekiyor. */
+            $seller  = vestra_platform_seller();
+            $okSeen  = ($seller['bank_account'] ?? '') === 'SELFTEST-DO-NOT-USE';
+            echo "  vestra_platform_seller() goruyor mu: ".($okSeen ? 'EVET' : 'HAYIR')."\n";
+
+            @unlink($f);
+            $okGone = !is_file($f);
+            echo "  yer tutucu silindi: ".($okGone ? 'EVET' : 'HAYIR -- ELLE SILIN: '.$f)."\n";
+
+            $all = $okRead && $okSeen && $okGone;
+            echo "\nSONUC: ".($all
+              ? "yol calisiyor. Panelden girilen banka bilgisi TUTAR ve fatura onu gorur."
+              : "yol BOZUK -- yukaridaki basarisiz adima bakin.")."\n";
+            exit($all ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_platselftest.php ./vestra_platselftest_tmp.php
+            php ./vestra_platselftest_tmp.php
+            rc=$?
+            rm -f ./vestra_platselftest_tmp.php /tmp/vestra_platselftest.php
+            exit $rc
+
   # Sunucudaki dosya: data/platform_seller.json (web'e kapali, .gitignore'da, 0600)
   # Bos gelen alan mevcut degeri SILMEZ -- kismi guncelleme guvenli.
   update-platform-bank:
