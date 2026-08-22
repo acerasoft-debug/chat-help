@@ -426,6 +426,7 @@ jobs:
             ini_set('display_errors','1'); error_reporting(E_ALL);
             $doc = getenv("HOME")."/public_html";
             require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";   // hesap kaydi ayri dosyada: data/accounts.json
             $needle = strtolower(trim((string)getenv('FIND_REF')));
             if ($needle === '') { fwrite(STDERR, "arama terimi yok\n"); exit(1); }
 
@@ -451,6 +452,32 @@ jobs:
               $d = vestra_read_json($f);
               $raw = strtolower(json_encode($d, JSON_UNESCAPED_UNICODE));
               if (str_contains($raw, $needle)) { $hits++; echo "== {$f}: eslesme VAR (".count($d)." kayit) ==\n\n"; }
+            }
+
+            /* Hesap kaydi ayri dosyada (data/accounts.json) ve aramada YOKTU: "bu alici
+               kim, nerede, belgesi var mi" sorusu bu yuzden cevaplanamiyordu.
+               Butun kayit basilmiyor -- parola ozeti, oturum ve dogrulama token'lari
+               log'a DUSMEMELI; bu depo da log da herkese acik. Sadece is bilgileri. */
+            $safe = ['id','type','company','name','email','country','city','address','postcode',
+                     'phone','vat_id','reg_no','status','kyb_status','membership_status',
+                     'membership_tier','created_at','trade_doc_required'];
+            foreach (auth_accounts() as $a) {
+              $hay = strtolower(implode(' ', array_map(
+                fn($k) => (string)($a[$k] ?? ''), $safe
+              )));
+              if (!str_contains($hay, $needle)) continue;
+              $hits++;
+              echo "== accounts.json ==\n";
+              foreach ($safe as $k) {
+                $v = trim((string)($a[$k] ?? ''));
+                if ($v !== '') printf("   %-18s %s\n", $k, mb_substr($v, 0, 120));
+              }
+              foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                printf("   %-18s %s -> %s%s\n", 'belge',
+                  (string)($r['type'] ?? '?'), (string)($r['status'] ?? '?'),
+                  ($r['file'] ?? '') !== '' ? '  (dosya var)' : '  (DOSYA YOK)');
+              }
+              echo "\n";
             }
 
             echo $hits === 0
