@@ -457,9 +457,16 @@ jobs:
             /* Hesap kaydi ayri dosyada (data/accounts.json) ve aramada YOKTU: "bu alici
                kim, nerede, belgesi var mi" sorusu bu yuzden cevaplanamiyordu.
                Butun kayit basilmiyor -- parola ozeti, oturum ve dogrulama token'lari
-               log'a DUSMEMELI; bu depo da log da herkese acik. Sadece is bilgileri. */
+               log'a DUSMEMELI; bu depo da log da herkese acik. Sadece is bilgileri.
+
+               Alan adlari KODDAKI adlarla birebir olmali. Ilk surumde 'reg_no'
+               yazmistim, gercek ad 'reg_number' (auth.php:204, seller.php:9).
+               Yanlis anahtar hata VERMIYOR, sessizce bos donuyor -- ve dolu bir
+               alan "bos" diye raporlaniyor. Bir teshis aracinda en kotu hata turu
+               budur: yanlis cevabi dogru gibi gosterir. Buraya alan eklerken adi
+               kodda dogrulayin. */
             $safe = ['id','type','company','name','email','country','city','address','postcode',
-                     'phone','vat_id','reg_no','status','kyb_status','membership_status',
+                     'phone','vat_id','reg_number','website','status','kyb_status','membership_status',
                      'membership_tier','created_at','trade_doc_required'];
             foreach (auth_accounts() as $a) {
               $hay = strtolower(implode(' ', array_map(
