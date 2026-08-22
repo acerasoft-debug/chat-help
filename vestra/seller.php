@@ -491,12 +491,11 @@ $orderSt=vestra_read_json('order_statuses.json');
 $cats=vestra_cats();
 $_ms  = $AUTH_USER['membership_status'] ?? '';
 $_kyb = $AUTH_USER['kyb_status'] ?? '';
-/* 'none' de "uyelik yok" demek: auth_register() bu alana 'none' yaziyor, bu kosul
-   ise sadece bos dizeyi kabul ediyordu -- KYB'si onayli saticilar panelde yayin
-   yapamiyordu. seller-add.php'deki ayni kosulla birlikte duzeltildi; ikisi ayni
-   kurali uyguluyor, ayri kalirlarsa panel "yayinla" der, kaydeden uc reddeder. */
-$_noMembership = ($_ms === '' || $_ms === 'none');
-$canPublish = in_array($_ms, ['trialing','active'], true) || ($_noMembership && $_kyb === 'approved');
+/* Satici tarafi UCRETSIZ (yalnizca satis komisyonu), o yuzden yayin hakki artik
+   odemeye degil sadece DOGRULAMAYA bagli. seller-add.php ayni kosulu uyguluyor;
+   ikisi ayri kalirsa panel "yayinla" der, kaydeden uc reddeder -- bu ikilik daha
+   once bir kez yasandi ve KYB'si onayli her satici /membership'e atildi. */
+$canPublish = ($_kyb === 'approved');
 $quotaLimit = vestra_seller_monthly_quota_limit($AUTH_USER['membership_tier'] ?? '');
 $quotaUsed  = vestra_seller_monthly_quota_used($AUTH_USER);
 $quotaLeft  = $quotaLimit !== null ? max(0, $quotaLimit - $quotaUsed) : null;
@@ -544,19 +543,19 @@ if($tab==='overview'){
     echo '<div class="banner info">💳 '.sprintf(t('Add a commission card so your %s%% platform commission is collected automatically when orders are paid — no manual invoicing.'), number_format($myRate*100,1)).
       ' <a class="acc" href="/seller?tab=profile">'.t('Add now →').'</a></div>';
   }
-  $msBadge = match($_ms){
-    'trialing' => '<span class="status open">⏳ '.t('Trial').'</span>',
-    'active'   => '<span class="status offers">✓ '.t('Active').'</span>',
-    'past_due' => '<span class="status" style="color:var(--bad)">⚠ '.t('Past due').'</span>',
-    'canceled' => '<span class="status" style="color:var(--mut)">✗ '.t('Canceled').'</span>',
-    default    => $canPublish ? '<span class="status offers">✓ '.t('Active').'</span>' : '<span class="status open">— '.t('None').'</span>',
-  };
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Membership').'</h3>'.$msBadge.'</div>';
-  if ($_ms === 'trialing') echo '<p class="hint">'.t('Your free trial is running. First charge in 30 days, cancel anytime from Stripe.').'</p>';
-  elseif ($_ms === 'past_due') echo '<p class="hint" style="color:var(--bad)">'.t('Your last payment failed — please update your payment method to keep your listings active.').'</p>';
-  elseif ($_ms === 'canceled') echo '<p class="hint">'.t('Your membership has ended. Reactivate to publish and keep listings live.').' <a class="acc" href="/membership">'.t('View plans').'</a></p>';
-  elseif (!$canPublish) echo '<p class="hint">'.t('Choose a plan to start publishing products.').' <a class="acc" href="/membership">'.t('View membership plans').'</a></p>';
-  else echo '<p class="hint">'.t('Legacy account — no active subscription required.').'</p>';
+  /* Selling on VESTRA is free; the platform earns only the sales commission. Bu
+     kart eskiden abonelik durumunu gosteriyordu (Trial / Active / Past due /
+     Canceled) ve yayin hakki ona bagliydi. Artik odenecek bir ucret yok, o yuzden
+     kart ne satiyor degil, NE ODENECEGINI soyluyor: 0 EUR + satista komisyon.
+     Halen acik bir Stripe aboneligi olan eski hesaplara ayrica iptal notu
+     dusuluyor -- sessizce birakilsalar odemeye devam ederlerdi. */
+  $feeRate = number_format(vestra_seller_commission_rate('') * 100, 1);
+  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Fees').'</h3>'
+     . '<span class="status offers">✓ '.t('Free to sell').'</span></div>';
+  echo '<p class="hint">'.sprintf(t('Listing products is free — no monthly fee and no listing limit. VESTRA only earns %s%% commission on orders you are actually paid for, charged automatically once you mark an order paid. Buyers never see or pay this.'), $feeRate).'</p>';
+  if (in_array($_ms, ['trialing','active','past_due'], true)) {
+    echo '<p class="hint" style="color:var(--bad)">'.t('You still have an older paid subscription running. It is no longer required — please cancel it so you are not charged again.').' <a class="acc" href="/membership">'.t('Manage subscription').'</a></p>';
+  }
   echo '</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Verification').'</h3>';
   $kybSt = $AUTH_USER['kyb_status']??'pending';
@@ -574,10 +573,16 @@ if($tab==='overview'){
 // ── ADD PRODUCT ───────────────────────────────────────────────────────────────
 } elseif($tab==='add'){
   if (!$canPublish) {
+    /* Odeme kapisi kalkti; kalan tek kapi dogrulama. Askiya alinmis hesap ile
+       hensuz onaylanmamis hesap ayni sey degil: birine "belgeni yukle" demek
+       yanlis yonlendirme olurdu, cunku belgesini zaten yuklemis olabilir. */
+    $suspended = ($_kyb === 'suspended');
     echo '<div class="panelcard" style="text-align:center;padding:44px 24px">
-      <h3 style="margin:0 0 10px">'.t('Active membership required').'</h3>
-      <p style="color:var(--mut);margin:0 0 20px">'.t('You need an active seller membership to publish products.').'</p>
-      <a class="btn btn-p" href="/membership">'.t('View membership plans').'</a>
+      <h3 style="margin:0 0 10px">'.($suspended ? t('Account suspended') : t('Verification required')).'</h3>
+      <p style="color:var(--mut);margin:0 0 20px">'.($suspended
+          ? t('Your account has been suspended, so new listings are on hold. Contact support for details.')
+          : t('Selling is free — we only need to verify your business first. Upload your trade licence and we will review it.')).'</p>'
+     .($suspended ? '' : '<a class="btn btn-p" href="/seller?tab=kyc">'.t('Verification').'</a>').'
     </div>';
   } else {
   $added=isset($_GET['added']);

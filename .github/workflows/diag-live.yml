@@ -42,6 +42,10 @@ on:
         description: "Boş bırakılırsa sadece sipariş denetimi çalışır. Verilirse PDF de üretilip bu RSA public key (PEM, base64) ile şifrelenip döner — bu depo herkese açık, log da öyle, PDF şifresiz yazılmaz."
         required: false
         default: ""
+      find_ref:
+        description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -398,6 +402,66 @@ jobs:
       #
       # Ozet satirlari (satir sayisi, SKU, adet) bilerek yazilmaz; sadece boyut ve SHA-256
       # yazilir, cunku kirpilmis bir log sessizce bozuk PDF uretir ve bunu fark etmek gerekir.
+      # "E-posta geldi ama panelde goremiyorum" sorusu, kaydin YOK oldugunu degil,
+      # BAKILAN YERDE olmadigini gosterir. Teklif offers.csv'ye, siparis orders.csv'ye
+      # yaziliyor ve panelde ayri sekmelerde duruyorlar; ayrica seller.php teklifleri
+      # saticinin KENDI SKU'lariyla suzuyor, yani kurasyonlu katalog urunune gelen bir
+      # teklifi hicbir satici gormuyor -- sadece admin goruyor. Bu adim dosyalarin
+      # kendisine bakiyor, boylece "kayboldu mu" sorusu tahminle cevaplanmiyor.
+      - name: Kayıt arama (hangi dosyada duruyor?)
+        if: ${{ github.event.inputs.find_ref != '' }}
+        env:
+          FIND_REF: ${{ github.event.inputs.find_ref }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: FIND_REF
+          script: |
+            cat > /tmp/vestra_find.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            $needle = strtolower(trim((string)getenv('FIND_REF')));
+            if ($needle === '') { fwrite(STDERR, "arama terimi yok\n"); exit(1); }
+
+            $csvFiles = ['orders.csv','offers.csv','requests.csv','request_offers.csv','signups.csv','groups.csv'];
+            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json'];
+            $hits = 0;
+
+            foreach ($csvFiles as $f) {
+              $rows = vestra_read_csv($f);
+              foreach ($rows as $i => $r) {
+                $hay = strtolower(implode(' | ', array_map('strval', $r)));
+                if (!str_contains($hay, $needle)) continue;
+                $hits++;
+                echo "== {$f} (satir ".($i+1)."/".count($rows).") ==\n";
+                foreach ($r as $k => $v) {
+                  $v = trim((string)$v);
+                  if ($v !== '') printf("   %-16s %s\n", $k, mb_substr($v, 0, 120));
+                }
+                echo "\n";
+              }
+            }
+            foreach ($jsonFiles as $f) {
+              $d = vestra_read_json($f);
+              $raw = strtolower(json_encode($d, JSON_UNESCAPED_UNICODE));
+              if (str_contains($raw, $needle)) { $hits++; echo "== {$f}: eslesme VAR (".count($d)." kayit) ==\n\n"; }
+            }
+
+            echo $hits === 0
+              ? "SONUC: \"{$needle}\" hicbir kayit dosyasinda YOK -- kayit gercekten olusmamis.\n"
+              : "SONUC: {$hits} yerde bulundu (yukarida). Kayit DURUYOR; panelde gorunmuyorsa yanlis sekmeye ya da bir suzgece takiliyor.\n";
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_find.php ./vestra_find_tmp.php
+            php ./vestra_find_tmp.php
+            rm -f ./vestra_find_tmp.php /tmp/vestra_find.php
+
       - name: Sipariş denetimi (+ istenirse tarafsız PDF, şifreli)
         if: ${{ github.event.inputs.order_sheet_ref != '' }}
         env:

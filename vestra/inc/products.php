@@ -625,21 +625,24 @@ function vestra_listing_owner(string $id): ?string {
     return $l ? ($l['seller_uid'] ?? '') : null;
 }
 
-/* ─── Monthly listing quota (Starter: 10/mo, Pro: 100/mo) ───────────────────────
-   Tracked as a counter on the account (month + count), NOT derived from how many
-   listings currently exist — so deleting a listing never frees up quota within the
-   same month. Premium (displayed as "Elite") returns null (no cap), matching its
-   "Unlimited listings" copy. */
+/* ─── Monthly listing quota ────────────────────────────────────────────────────
+   Satici tarafi UCRETSIZ: platform yalnizca satistan komisyon aliyor. Kota bir
+   odeme kaldiraciydi (Starter 10/ay, Pro 100/ay -- "daha fazlasi icin yukselt"),
+   odeme kalkinca dayanagi da kalmadi. Herkes icin null = sinirsiz.
+   $tier hala aliniyor: cagiran taraflarin hepsi tier gecirlyor ve imzayi
+   degistirmek bu isle ilgisiz dosyalari da degistirmek olurdu. */
 function vestra_seller_monthly_quota_limit(string $tier): ?int {
-    return match ($tier) { 'starter' => 10, 'pro' => 100, default => null };
+    return null;
 }
-/* ─── Per-tier commission rate — charged on top of the monthly membership, never
-   touching the buyer-facing total (see vestra_charge_order_commission()). Higher
-   tiers earn a lower rate as a retention incentive. Unknown/legacy tiers fall back
-   to the Starter rate (the highest), never to 0 — a missing tier must never mean
-   "no commission". */
+/* ─── Commission rate — artik platformun TEK gelir kalemi ──────────────────────
+   Eskiden kademeye gore degisiyordu (Pro %3,2 · Elite %2,8) ve aylik uyeligin
+   USTUNE biniyordu; dusuk oran, ucret odeyenlere verilen bir oduldu. Uyelik
+   kalkti, dolayisiyla indirimli oranlarin karsiligi da kalmadi: herkes ayni
+   orani odüyor. Tier'i olan eski hesaplar da bu orana geliyor -- birakilsalardi
+   ucret odemeyi biraktiklari halde indirimli oranda kalirlardi.
+   Alici tarafi bundan hic etkilenmiyor (bkz. vestra_charge_order_commission()). */
 function vestra_seller_commission_rate(string $tier): float {
-    return match ($tier) { 'pro' => 0.032, 'premium' => 0.028, default => VESTRA_COMMISSION_RATE };
+    return VESTRA_COMMISSION_RATE;
 }
 /* Nullable on purpose: seller.php reads this straight off $AUTH_USER, which is null when a
    session has expired between page loads. With an `array` type that was a fatal TypeError —

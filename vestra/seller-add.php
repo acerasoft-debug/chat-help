@@ -10,17 +10,15 @@ $_user = auth_user();
 if (!$_user || ($_user['type'] ?? '') !== 'seller') {
     header('Location: /login?back=' . urlencode('/seller')); exit;
 }
-$_ms  = $_user['membership_status'] ?? '';
 $_kyb = $_user['kyb_status'] ?? '';
-/* "Uyeligi yok ama KYB onayli" satici da urun ekleyebilmeli -- kural buydu, ama
-   uygulanmiyordu: auth_register() bu alana 'none' yaziyor, kosul ise === '' (bos
-   dize) ariyordu. 'none' !== '' oldugu icin bu dal HIC calismadi ve KYB'si onayli
-   her satici /membership?gate=1'e atildi. Iki degeri de "uyelik yok" saymak
-   gerekiyor; kaydin yazdigi deger ile kapinin bekledigi deger ayni olmayinca
-   kural kagit uzerinde kaliyor. */
-$_noMembership = ($_ms === '' || $_ms === 'none');
-if (!in_array($_ms, ['trialing', 'active'], true) && !($_noMembership && $_kyb === 'approved')) {
-    header('Location: /membership?gate=1'); exit;
+/* Satici tarafi UCRETSIZ: platform yalnizca satistan komisyon aliyor, o yuzden
+   urun eklemenin onunde ODEME kapisi yok. Geriye tek kapi kaliyor -- DOGRULAMA.
+   Bu kasitli: alici kataloga bakarken karsisindakinin gercek bir isletme oldugunu
+   varsayiyor, ve Gewerbe belgesi zorunlulugu da ayni yere dayaniyor.
+   'suspended' ayrica ele alinmali: match/in_array yerine acikca 'approved'
+   ariyoruz, yoksa askiya alinmis bir hesap "engellenmemis" sayilip gecerdi. */
+if ($_kyb !== 'approved') {
+    header('Location: /seller?tab=kyc&gate=1'); exit;
 }
 if (vestra_seller_quota_exhausted($_user)) {
     header('Location: /seller?tab=add&err=quota'); exit;
