@@ -434,6 +434,15 @@ jobs:
               $qty, $unit, $goods, $ship, $goods + $ship, $cur);
 
             if (!$commit) {
+              /* Bu fatura kesilse hangi numarayi alirdi? Sirayi HARCAMADAN bakiyoruz:
+                 dosya sadece okunuyor, vestra_next_invoice_no() cagrilmiyor (o artirir).
+                 Gerekli, cunku onizleme disinda bu numarayi ogrenmenin yolu yok ve
+                 kesmeden once belgenin numarasini bilmek gerekebiliyor. Kesin degil --
+                 arada baska bir fatura kesilirse kayar. */
+              $seqF = vestra_data_dir().'/invoice_seq.json';
+              $seq  = is_readable($seqF) ? json_decode((string)file_get_contents($seqF), true) : [];
+              printf("kesilse alacagi numara: INV-%s-%06d  (sira harcanmadi)\n",
+                date('Y'), (int)(is_array($seq) ? ($seq['vestra-'.date('Y')] ?? 0) : 0) + 1);
               /* Numara YAKILMIYOR. Belgede "DRAFT" yaziyor ki onizleme kazara
                  musteriye gonderilirse fatura yerine gecmesin. */
               $bytes = vestra_render_invoice_pdf($order, $items, $seller, 'DRAFT');
