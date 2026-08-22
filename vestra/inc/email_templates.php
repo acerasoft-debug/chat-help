@@ -673,8 +673,12 @@ function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, b
           . "cuando el pago del comprador está confirmado — no hay cargos fijos.\n"
           . "Panel → Perfil → «Commission card» → «Add commission card».\n\n"
 
-          . "4) Venta con pago protegido (opcional)\n"
-          . "Si {$vQuieren} ofrecer a sus clientes una compra con garantía, {$vConecten} su cuenta "
+          . "4) Venta con pago protegido (nuestra recomendación)\n"
+          /* Tavsiye BASA aliniyor, sonundaki "opsiyonel"den once: sonda kalsaydi
+             okuyan once "istege bagli" gorup maddeyi atlardi. Ikisi celismiyor --
+             tavsiye ediyoruz ama zorunlu degil, ve ikisini de acikca soyluyoruz. */
+          . "Es el método que recomendamos, sobre todo para las primeras operaciones con un "
+          . "comprador nuevo. Si {$vQuieren} ofrecer a sus clientes una compra con garantía, {$vConecten} su cuenta "
           . "con Stripe desde el panel y {$vCompleten} los pasos de verificación. Con el depósito "
           . "en garantía el importe queda retenido hasta que el comprador confirma la recepción, y "
           . "su liquidación (menos la comisión) se abona automáticamente. Stripe verifica su "
@@ -710,7 +714,8 @@ function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, b
       . "To settle the platform commission we need a card on file. Only {$pct} is charged on the "
       . "orders you sell, and only once the buyer's payment is confirmed — there are no fixed fees.\n"
       . "Dashboard → Profile → \"Commission card\" → \"Add commission card\".\n\n"
-      . "4) Protected payment (optional)\n"
+      . "4) Protected payment (our recommendation)\n"
+      . "This is the method we recommend, particularly for first orders with a new buyer. "
       . "To offer your customers a guaranteed purchase, connect your account to Stripe from the "
       . "dashboard and complete the verification steps. With escrow the amount is held until the "
       . "buyer confirms delivery, and your payout (less commission) is released automatically. "
