@@ -52,38 +52,10 @@ on:
         description: "SİPARİŞ MEKTUBU: teklif referansı (ör. O39419). Doluysa YALNIZCA bu iş çalışır, kampanya işi çalışmaz."
         required: false
         default: ""
-      order_to:
-        description: "SİPARİŞ MEKTUBU: alıcı. Boş = operatörün test kutusu. Gerçek müşteriye gitmesi için adresini AÇIKÇA yazın."
+      order_spec:
+        description: "SİPARİŞ MEKTUBU: alan=değer, | ile ayrık. to/colours/missing/send/usd/ship_usd/lead_time/accept"
         required: false
-        default: ""
-      order_colours:
-        description: "SİPARİŞ MEKTUBU: renk dağılımı notu (ör. '10 x Black, 10 x White')"
-        required: false
-        default: ""
-      order_missing:
-        description: "SİPARİŞ MEKTUBU: istenecek maddeler — address,tax_id,incoterm,phone"
-        required: false
-        default: "address,tax_id,incoterm,phone"
-      order_send:
-        description: "SİPARİŞ MEKTUBU: true = GERÇEKTEN gönder. false (varsayılan) = sadece konu+gövdeyi yaz, GÖNDERME"
-        required: false
-        default: "false"
-      order_usd:
-        description: "SİPARİŞ MEKTUBU: USD karşılığı yazılsın mı — 'ecb' (ECB günlük referans kuru, önerilen) | boş (yazma) | elle bir kur (ör. 1.0850)"
-        required: false
-        default: "ecb"
-      order_ship_usd:
-        description: "SİPARİŞ MEKTUBU: gönderim ücreti (USD). 0/boş = nakliye satırı yazılmaz."
-        required: false
-        default: "0"
-      order_lead_time:
-        description: "SİPARİŞ MEKTUBU: ortalama teslim süresi (ör. 'approximately two weeks'). Boş = sevkiyat paragrafı yazılmaz."
-        required: false
-        default: "approximately two weeks"
-      order_accept:
-        description: "SİPARİŞ MEKTUBU: true = mektuptan ÖNCE teklifi KABUL olarak kaydet (alıcıya ayrıca standart bildirim GÖNDERİLMEZ — bu mektup zaten haberi veriyor)"
-        required: false
-        default: "false"
+        default: "missing=address,tax_id,incoterm,phone|send=false|usd=ecb|ship_usd=0|lead_time=two weeks|accept=false"
       # FATURA KESME. Ayri bir dosya olarak yazilamaz (yeni is akisi dosyalari ozellik
       # dalindan dispatch edilemiyor, 404), o yuzden buraya katildi -- order_letter ile
       # ayni sebep. Girdiler DAR tutuldu: alan basina bir girdi yazmak bu dosyayi
@@ -113,18 +85,10 @@ on:
         description: "SATICI MEKTUBU: alıcı e-posta. Doluysa YALNIZCA bu iş çalışır."
         required: false
         default: ""
-      sel_name:
-        description: "SATICI MEKTUBU: hitap edilecek ad (ör. Calzados Pili Pérez)"
+      sel_spec:
+        description: "SATICI MEKTUBU: alan=değer, | ile ayrık. name/lang(es|en)/send(true|false)"
         required: false
-        default: ""
-      sel_lang:
-        description: "SATICI MEKTUBU: dil — es | en"
-        required: false
-        default: "es"
-      sel_send:
-        description: "SATICI MEKTUBU: true = GERÇEKTEN gönder. false (varsayılan) = sadece konu+gövdeyi yaz"
-        required: false
-        default: "false"
+        default: "lang=es|send=false"
 
 permissions:
   contents: read
@@ -138,21 +102,14 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           O_REF: ${{ github.event.inputs.order_ref }}
-          O_TO: ${{ github.event.inputs.order_to }}
-          O_COLOURS: ${{ github.event.inputs.order_colours }}
-          O_MISSING: ${{ github.event.inputs.order_missing }}
-          O_SEND: ${{ github.event.inputs.order_send }}
-          O_USD: ${{ github.event.inputs.order_usd }}
-          O_SHIP: ${{ github.event.inputs.order_ship_usd }}
-          O_LEAD: ${{ github.event.inputs.order_lead_time }}
-          O_ACCEPT: ${{ github.event.inputs.order_accept }}
+          O_SPEC: ${{ github.event.inputs.order_spec }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: O_REF,O_TO,O_COLOURS,O_MISSING,O_SEND,O_USD,O_SHIP,O_LEAD,O_ACCEPT
+          envs: O_REF,O_SPEC
           script: |
             cat > /tmp/vestra_order_details.php <<'PHPEOF'
             <?php
@@ -163,6 +120,16 @@ jobs:
             require_once $doc."/inc/auth.php";
 
             $ref = trim((string)getenv('O_REF'));
+            /* Sekiz ayri girdi yerine tek spec: workflow_dispatch 25 girdiyle sinirli
+               ve o siniri bir mektup isi tek basina yiyordu. Ayni kalip inv_spec ve
+               sel_spec'te de kullaniliyor -- uc mektup isi, tek okuma bicimi. */
+            $spec = [];
+            foreach (explode('|', (string)getenv('O_SPEC')) as $pair) {
+              if (!str_contains($pair, '=')) continue;
+              [$k, $v] = explode('=', $pair, 2);
+              $spec[strtolower(trim($k))] = trim($v);
+            }
+            $E = fn(string $k) => (string)($spec[$k] ?? '');
             $row = null;
             foreach (vestra_read_csv('offers.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
             if (!$row) { fwrite(STDERR, "teklif bulunamadi: {$ref}\n"); exit(1); }
@@ -176,7 +143,7 @@ jobs:
                GONDERILMIYOR. Bu mektup ayni haberi zaten veriyor ve ustune eksik
                bilgileri istiyor; ikisi birden gitseydi musteri dakikalar arayla ayni
                haberi iki kez alirdi. Sessiz olan BILDIRIM, kabulun kendisi degil. */
-            if (strtolower((string)getenv('O_ACCEPT')) === 'true') {
+            if (strtolower($E('accept')) === 'true') {
               require_once $doc."/inc/offers.php";
               $resp = vestra_read_json('offer_responses.json');
               if (($resp[$ref]['status'] ?? '') !== '') {
@@ -191,7 +158,7 @@ jobs:
 
             $acc = auth_find($row['email'] ?? '');
             $buyerName = trim((string)($row['company'] ?? '')) ?: trim((string)($acc['name'] ?? '')) ?: 'there';
-            $missing = array_values(array_filter(array_map('trim', explode(',', (string)getenv('O_MISSING')))));
+            $missing = array_values(array_filter(array_map('trim', explode(',', $E('missing')))));
 
             /* USD karsiligi. Kur SUNUCUDAN cekiliyor: ECB'nin gunluk referans kuru,
                ticari yazismada kabul goren ve dogrulanabilir kaynak. Cekilemezse USD
@@ -200,7 +167,7 @@ jobs:
                Operator elle bir kur de verebilir: kendi bankasinin uyguladigi kur,
                hesaba gercekte ne gececegini ECB'den daha iyi soyler. */
             $usdRate = 0.0; $rateNote = '';
-            $usdIn = strtolower(trim((string)getenv('O_USD')));
+            $usdIn = strtolower(trim($E('usd')));
             if ($usdIn !== '' && $usdIn !== 'no' && $usdIn !== 'false') {
               if (is_numeric($usdIn)) {
                 $usdRate  = (float)$usdIn;
@@ -234,18 +201,18 @@ jobs:
             [$subject, $body, $opts] = vestra_tpl_order_details_needed(
               $buyerName, $prodLabel, $ref,
               (int)($row['qty'] ?? 0), (float)($row['offer_unit'] ?? 0), (float)($row['offer_total'] ?? 0),
-              trim((string)getenv('O_COLOURS')), $missing, $usdRate, $rateNote,
-              (float)getenv('O_SHIP'), trim((string)getenv('O_LEAD'))
+              trim($E('colours')), $missing, $usdRate, $rateNote,
+              (float)$E('ship_usd'), trim($E('lead_time'))
             );
 
-            $to = trim((string)getenv('O_TO'));
+            $to = trim($E('to'));
             if ($to === '') $to = 'acerasoft@gmail.com';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici: {$to}\n"); exit(1); }
 
             echo "== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
             echo "alici: {$to}".(strcasecmp($to, (string)($row['email'] ?? '')) === 0 ? "   << GERCEK MUSTERI" : "   (test kutusu)")."\n";
 
-            if (strtolower((string)getenv('O_SEND')) !== 'true') { echo "\norder_send=false -- GONDERILMEDI\n"; exit(0); }
+            if (strtolower($E('send')) !== 'true') { echo "\norder_send=false -- GONDERILMEDI\n"; exit(0); }
             $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'VESTRA', null, '', $opts);
             echo $ok ? "\nGONDERILDI -> {$to}\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
             exit($ok ? 0 : 1);
@@ -607,16 +574,14 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           S_TO: ${{ github.event.inputs.sel_to }}
-          S_NAME: ${{ github.event.inputs.sel_name }}
-          S_LANG: ${{ github.event.inputs.sel_lang }}
-          S_SEND: ${{ github.event.inputs.sel_send }}
+          S_SPEC: ${{ github.event.inputs.sel_spec }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: S_TO,S_NAME,S_LANG,S_SEND
+          envs: S_TO,S_SPEC
           script: |
             cat > /tmp/vestra_seller_letter.php <<'PHPEOF'
             <?php
@@ -627,14 +592,21 @@ jobs:
             require_once $doc."/inc/auth.php";
             require_once $doc."/inc/email_templates.php";
 
-            $to   = trim((string)getenv('S_TO'));
-            $lang = strtolower(trim((string)getenv('S_LANG'))) ?: 'es';
+            $to = trim((string)getenv('S_TO'));
+            /* 'a=1|b=2' -> dizi. Ayirac boru: degerler virgul icerebiliyor. */
+            $spec = [];
+            foreach (explode('|', (string)getenv('S_SPEC')) as $pair) {
+              if (!str_contains($pair, '=')) continue;
+              [$k, $v] = explode('=', $pair, 2);
+              $spec[strtolower(trim($k))] = trim($v);
+            }
+            $lang = strtolower((string)($spec['lang'] ?? 'es')) ?: 'es';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici\n"); exit(1); }
 
             /* Hitap: once elle verilen ad, yoksa HESAPTAN. Hesap varsa sirket adi
                zaten dogru yazilmis olur; elle yazmak yazim hatasi riski demek. */
             $acc  = auth_find($to) ?: [];
-            $name = trim((string)getenv('S_NAME'));
+            $name = trim((string)($spec['name'] ?? ''));
             /* Sirket mi sahis mi: hitap kalibi buna bagli ve TAHMIN EDILMIYOR --
                hesapta company doluysa sirket, degilse sahis. Elle ad verildiginde
                de sirket varsayiliyor (bu platformda satici taraf isletmedir). */
@@ -653,7 +625,7 @@ jobs:
             [$subject, $body, $opts] = vestra_tpl_seller_onboarding($lang, $name, $rate, $isCompany);
 
             echo "\n== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
-            if (strtolower((string)getenv('S_SEND')) !== 'true') { echo "sel_send=false -- GONDERILMEDI\n"; exit(0); }
+            if (strtolower((string)($spec['send'] ?? '')) !== 'true') { echo "send=false -- GONDERILMEDI\n"; exit(0); }
             $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'VESTRA', null, '', $opts);
             echo $ok ? "GONDERILDI\n" : "GONDERILEMEDI (vestra_send_mail false dondu)\n";
             exit($ok ? 0 : 1);
