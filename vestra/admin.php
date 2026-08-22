@@ -118,6 +118,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $p['brand']=$one($_POST['brand']??($p['brand']??''));
       $p['name'] =$one($_POST['name'] ??($p['name'] ??''));
       $p['cat']  =$one($_POST['cat']  ??($p['cat']  ??''));
+      /* Bolme. Gecersiz/bos deger MEVCUDU korur, varsayilana DUSURMEZ: formda
+         alan bos gelirse (eski bir sekme, kismi bir gonderim) ayakkabi olarak
+         isaretlenmis bir urun sessizce Premium'a geri kaymasin. */
+      $sec = strtolower(trim((string)($_POST['section'] ?? '')));
+      if (isset(vestra_sections()[$sec])) $p['section'] = $sec;
       $p['sku']  =$one($_POST['sku']  ??($p['sku']  ??''));
       $p['moq']  =max(1,(int)($_POST['moq']??($p['moq']??1)));
       $mode=in_array($_POST['mode']??'',['fixed','sale','offer'],true)?$_POST['mode']:($p['mode']??'fixed');
@@ -2798,6 +2803,13 @@ elseif($tab==='listings'):
       <div class="acols2">
         <div class="afield"><label>Brand</label><input name="brand" value="<?= htmlspecialchars($ledit['brand']??'') ?>"></div>
         <div class="afield"><label>Product name</label><input name="name" value="<?= htmlspecialchars($ledit['name']??'') ?>"></div>
+        <div class="afield"><label>Storefront section</label>
+          <select name="section">
+            <?php $_cs = vestra_product_section($ledit ?? []); foreach(vestra_sections() as $_sk=>$_sl): ?>
+              <option value="<?= htmlspecialchars($_sk) ?>"<?= $_sk===$_cs?' selected':'' ?>><?= htmlspecialchars($_sl) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
       </div>
       <div class="acols3">
         <div class="afield"><label>Category</label><input name="cat" value="<?= htmlspecialchars($ledit['cat']??'') ?>"></div>

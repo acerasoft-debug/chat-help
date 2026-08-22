@@ -14,6 +14,19 @@ if ($_shopBrands) {
 }
 require __DIR__.'/inc/head.php';
 $products = vestra_products();
+
+/* Vitrin bolmesi. Bos ya da tanimsiz gelen ?section= PREMIUM'a duser -- eski bir
+   baglanti, bir arama motoru sonucu ya da elle yazilmis bir adres, bos bir izgara
+   yerine ana koleksiyonu acsin. */
+$SECTIONS = vestra_sections();
+$SECTION  = strtolower(trim((string)($_GET['section'] ?? '')));
+if (!isset($SECTIONS[$SECTION])) $SECTION = 'premium';
+/* Sayimlar SUZMEDEN once, tum katalog uzerinden: sekmede kac urun oldugunu
+   gostermek icin, ve bir bolme bosaldiginda sekmeyi gizleyebilmek icin. */
+$sectionCounts = [];
+foreach ($SECTIONS as $k => $_l) $sectionCounts[$k] = 0;
+foreach ($products as $p) $sectionCounts[vestra_product_section($p)]++;
+$products = array_values(array_filter($products, fn($p) => vestra_product_section($p) === $SECTION));
 /* Where vestra_products() put each item before any reordering. The "newest" sort
    uses catalogue position as its proxy for age, so it has to read the original
    position -- lifting whole houses to the front would otherwise present them as the
@@ -57,6 +70,13 @@ arsort($brandCounts);
    header stays as top chrome; body + footer are repainted here because this page
    only ever renders the catalog. Product-image tiles keep their dark gradient. */
 body{background:#f4f2ee}
+.secttabs{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+.secttab{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:1px solid #e6e0d5;
+  border-radius:999px;background:#fff;color:#6f695e;text-decoration:none;font-size:13.5px;
+  font-weight:600;letter-spacing:.01em;transition:border-color .15s,color .15s}
+.secttab:hover{border-color:#cbbf9f;color:#211d17}
+.secttab.on{background:#211d17;border-color:#211d17;color:#f4f2ee}
+.secttab .sectn{font-size:11px;font-weight:600;opacity:.65}
 .shopwrap{--bg:#f4f2ee;--bg2:#ffffff;--bg3:#f3efe8;--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;--ok:#1f9d63;--bad:#c0392b;color:var(--ink)}
 .shopwrap h1,.shopwrap h2,.shopwrap h3{color:var(--ink)}
 .shopwrap .filterblock,.shopwrap .scard{box-shadow:0 1px 3px rgba(60,50,30,.05)}
@@ -189,6 +209,18 @@ footer a{color:#d8bd86}
     <?php endforeach; ?>
   </nav>
   <?php endif; ?>
+  <?php /* Bolme sekmeleri. Bos bir bolmenin sekmesi BASILMIYOR: henuz ayakkabi
+           yuklenmemisken "Footwear" sekmesi acmak, tiklayana bos bir izgara
+           gostermek demek -- katalogda bir sey yokmus izlenimi birakir. */ ?>
+  <?php if (count(array_filter($sectionCounts)) > 1): ?>
+    <nav class="secttabs" aria-label="<?= htmlspecialchars(t('Collection')) ?>">
+      <?php foreach($SECTIONS as $sk => $sl): if(!$sectionCounts[$sk]) continue; ?>
+        <a class="secttab<?= $sk===$SECTION ? ' on' : '' ?>" href="/shop?section=<?= urlencode($sk) ?>">
+          <?= htmlspecialchars($sl) ?><span class="sectn"><?= (int)$sectionCounts[$sk] ?></span>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
   <?php if(!$MEMBER): ?>
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
@@ -199,20 +231,21 @@ footer a{color:#d8bd86}
     <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
     <aside class="shopside">
       <?php if(!$MEMBER): ?>
-      <!-- Unregistered visitors get no search, no category list and no downloads: the
-           whole sidebar collapses to a registration panel. The product grid below still
-           renders (so the page keeps its content for crawlers and shows what is on
-           offer), but nothing here lets a guest slice the catalogue or take a file. -->
+      <!-- Kayit paneli artik kenar cubugunun YERINE gecmiyor, BASINA ekleniyor.
+           Onceden misafire arama, kategori listesi ve indirmelerin tamami kapaliydi;
+           urunler goruntulense de katalog gezilemiyordu. Operator kurali net:
+           urunler herkese acik, YALNIZCA fiyat gizli. Indirmeler ayri bir konu ve
+           kapali kaliyor -- o dosya bir kayit magneti, urunun gorunurlugu degil. -->
       <div class="filterblock lockside">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
         <div class="filter-title" style="border:0;padding-left:0"><?= t('Trade access') ?></div>
         <p class="hint" style="margin:0 0 14px;font-size:12px;line-height:1.6">
-          <?= t('Search, categories, line-sheets and trade pricing open up once you register. Free, and takes a minute.') ?>
+          <?= t('Trade pricing and line-sheet downloads open up once you register. Free, and takes a minute.') ?>
         </p>
         <a class="btn btn-p btn-sm" style="width:100%;justify-content:center;margin-bottom:8px" href="/register"><?= t('Register free') ?></a>
         <a class="btn btn-o btn-sm" style="width:100%;justify-content:center" href="/login?back=/shop"><?= t('Sign in') ?></a>
       </div>
-      <?php else: ?>
+      <?php endif; ?>
       <div class="filterblock">
         <div class="filter-title"><?= t('Search') ?></div>
         <div class="filter-searchbox">
@@ -259,6 +292,11 @@ footer a{color:#d8bd86}
         </a>
       </div>
 
+      <?php /* Indirmeler UYE'ye ozel kaliyor. Bu dosya urunun gorunurlugu degil, bir
+               kayit magneti: fotograflı ve kodlu tam Excel'i kayitsiz vermek, katalogu
+               tek tiklamada disari kopyalanabilir yapardi. Arama ve kategoriler ise
+               artik herkese acik -- kural "urunler acik, fiyat gizli". */ ?>
+      <?php if($MEMBER): ?>
       <div class="filterblock">
         <div class="filter-title"><?= t('Line-sheets by brand') ?></div>
         <a class="filter-export" href="/catalog">
@@ -281,11 +319,16 @@ footer a{color:#d8bd86}
       <div class="shopbar">
         <span class="shopcount" id="shopcount"><?= count($products) ?> <?= t('products') ?></span>
         <span class="grow"></span>
-        <?php if($MEMBER): /* sorting is a catalogue tool like search — guests get neither */ ?>
+        <?php /* Siralama artik misafire de acik: bir katalog aracidir, fiyat degil.
+                 Fiyata gore siralama tek istisna -- fiyati gormeyene fiyata gore
+                 siralama sunmak, gizledigimiz bilgiyi siralamayla geri vermek olur. */ ?>
+        <?php if(true): ?>
         <select class="sortsel" id="sortsel" onchange="applyFilters()">
           <option value="def"><?= t('Default order') ?></option>
+          <?php if($MEMBER): ?>
           <option value="price_asc"><?= t('Price: low → high') ?></option>
           <option value="price_desc"><?= t('Price: high → low') ?></option>
+          <?php endif; ?>
           <option value="newest"><?= t('Newest first') ?></option>
           <option value="name"><?= t('Name A–Z') ?></option>
         </select>
@@ -300,10 +343,11 @@ footer a{color:#d8bd86}
              showroom: the first product photo is the card front and the SECOND crossfades
              in on hover (or while the card is centered in view on touch). Guests get NO
              photo — only the brand tile stays as the gate. */
-          $imgs = ($MEMBER && !empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
+          /* Galeri artik herkese acik: fotograf urunun kendisi, fiyat degil. */
+          $imgs = (!empty($p['images']) && is_array($p['images'])) ? array_values(array_filter($p['images'])) : [];
           $img0 = $imgs[0] ?? '';   // base photo (members only)
           $img1 = $imgs[1] ?? '';   // second photo → hover reveal
-          $imgCount = $MEMBER ? count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : [])) : 0;
+          $imgCount = count($p['images'] ?? (vestra_primary_image($p) ? [vestra_primary_image($p)] : []));
           $isNew = !empty($p['added_at']) && (strtotime($p['added_at']) > strtotime('-30 days'));
           /* Editorial rhythm: every 7th tile runs wide (landscape crop), every 11th runs
              tall. A uniform 4-up grid of 343 identical portrait tiles reads as a

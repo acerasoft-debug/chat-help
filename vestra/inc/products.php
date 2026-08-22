@@ -327,6 +327,33 @@ function vestra_products(){
     }
     return array_merge(vestra_demo_products(), $live, $seed);
 }
+/**
+ * Which storefront section a product belongs to.
+ *
+ * The catalogue was one flat list of 344 items — brand and category, no notion of a
+ * collection. That worked while everything in it was curated designer stock. It stops
+ * working the moment a partner's own range arrives: footwear from a Spanish wholesaler
+ * next to Balenciaga on the same grid reads as one assortment, and it flattens both.
+ *
+ * A stored field rather than a rule derived from brand or seller. A rule would be
+ * wrong the first time it is tested — a partner may well carry a premium house, and a
+ * curated line may be footwear — and a mis-shelved product is not a bug anyone reports,
+ * it is a product nobody finds. The operator decides, per item, and the field says so.
+ *
+ * Anything without the field is premium: that is what the existing catalogue is, and a
+ * default that silently empties the main section on deploy would be the worst outcome.
+ */
+function vestra_sections(): array {
+    return ['premium' => 'Premium Brands', 'footwear' => 'Footwear'];
+}
+function vestra_product_section(array $p): string {
+    $s = strtolower(trim((string)($p['section'] ?? '')));
+    return isset(vestra_sections()[$s]) ? $s : 'premium';
+}
+function vestra_section_label(string $s): string {
+    return vestra_sections()[strtolower(trim($s))] ?? vestra_sections()['premium'];
+}
+
 function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
