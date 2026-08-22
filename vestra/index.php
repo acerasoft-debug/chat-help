@@ -101,6 +101,23 @@ if (@include_once __DIR__.'/inc/products.php') {
     }
 }
 
+/* The same film as an actual video clip. It is built from these very packshots by
+   tools/hero-film/build.sh (garments on lit plates travelling across a dark stage),
+   NOT from stock footage -- there is no licence to honour and the pieces on screen
+   are ones a buyer can actually order.
+   Presence of the file is the switch: drop hero.mp4 in and the homepage uses it,
+   remove it and the CSS plate strip below takes over again. Nothing to configure.
+   filemtime is appended so a re-cut clip is not served from a stale cache. */
+$HERO_VIDEO = null;
+if (is_file(__DIR__.'/assets/hero/hero.mp4')) {
+    $_hvq = '?v='.@filemtime(__DIR__.'/assets/hero/hero.mp4');
+    $HERO_VIDEO = ['mp4' => '/assets/hero/hero.mp4'.$_hvq, 'webm' => '', 'poster' => ''];
+    if (is_file(__DIR__.'/assets/hero/hero.webm'))
+        $HERO_VIDEO['webm'] = '/assets/hero/hero.webm'.$_hvq;
+    if (is_file(__DIR__.'/assets/hero/hero-poster.jpg'))
+        $HERO_VIDEO['poster'] = '/assets/hero/hero-poster.jpg'.$_hvq;
+}
+
 $LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
 $lang  = vlang();
 
@@ -437,6 +454,40 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   .hero.hasfilm>.wrap{position:relative;z-index:2;width:100%}
   .herofilm{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none}
 
+  /* ── Hero film, video cut ───────────────────────────────────────────────────
+     The clip is already graded and vignetted when it is cut, so what goes over it
+     here is only a scrim for type contrast -- laying the full .herofilm-veil on top
+     of an already-graded clip crushed it to near-black. */
+  /* Anchored to the BOTTOM, not the centre. The band is wider than the clip's 16:9,
+     so `cover` has to lose some height -- centred it ate the bottom of the frame and
+     sliced every garment off mid-chest at the section seam. Anchoring the bottom
+     spends the crop on empty stage at the top instead, and the rail lands flush on
+     the seam where it belongs. */
+  .herovid-poster,.herovid{position:absolute;inset:0;width:100%;height:100%;
+    object-fit:cover;object-position:center bottom;
+    background-size:cover;background-position:center bottom}
+  .herovid{opacity:0;transition:opacity .9s ease}
+  .herovid.on{opacity:1}
+  /* Type to the top, rail along the base. Centred content sat right on the plates.
+     The band is also taller than the still version: with the clip anchored to its
+     bottom edge the rail always claims the last ~190px, and at 80vh the trust line
+     landed inside that. The extra height is what buys the two a lane each. */
+  .hero.hasvideo{padding:48px 0 44px;align-items:flex-start;min-height:min(88vh,820px)}
+  @media(max-height:840px){ .hero.hasvideo{padding-top:32px} }
+  /* Wide screens get the clip, so the still strip stands down. Below the breakpoint
+     the two swap -- see the phone rule further down. 700px matches the width the
+     loader script tests before it will fetch anything, so the picture and the
+     download decision can never disagree. */
+  .hero.hasvideo .herostrip{display:none}
+  .herofilm-scrim{position:absolute;inset:0;
+    background:
+      /* Weight on the type, not on the rail. The clip already carries its own grade,
+         so a heavy bottom stop here lands on the garments a SECOND time -- the pair
+         of them turned the rail to mud. Bottom is deliberately barely tinted. */
+      radial-gradient(64% 50% at 50% 36%,rgba(13,13,16,.74),rgba(13,13,16,.30) 74%,transparent),
+      linear-gradient(to bottom,rgba(13,13,16,.62) 0%,rgba(13,13,16,.12) 34%,
+                      rgba(13,13,16,.04) 66%,rgba(13,13,16,.16) 100%)}
+
   /* The catalogue is packshots — a garment on a studio sweep — and a packshot cannot be
      bled across a dark page: its light background arrives with it and shows as a grey
      rectangle with a straight edge, while a black polo on a near-black stage disappears
@@ -511,9 +562,21 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   /* Fewer plates as the strip narrows — five cards on a phone would be thumbnails. */
   @media(max-width:820px){ .herostrip{gap:10px;max-width:520px} .hplate:nth-child(n+4){display:none} }
   @media(max-width:520px){ .herostrip{max-width:340px} .hplate:nth-child(n+3){display:none} }
+  /* Phones: the clip and its poster step aside and the plate strip comes back. A 16:9
+     rail cropped to a phone's narrow band is one plate and a lot of empty stage, and
+     it landed behind the call to action. The scrim and grain stay -- they are the
+     hero's grade, not part of the film. */
+  @media(max-width:700px){
+    .hero.hasvideo .herovid,.hero.hasvideo .herovid-poster{display:none}
+    .hero.hasvideo .herostrip{display:flex}
+    .hero.hasvideo{align-items:center;padding:76px 0 56px;min-height:auto}
+  }
   @media(prefers-reduced-motion:reduce){
     .hplate .hf{animation:none;opacity:0;transform:none}
     .hplate .hf:first-child{opacity:1}
+    /* the loader already declines to fetch the clip here; this is the belt to that
+       brace, so a cached <video> cannot fade itself in either */
+    .herovid{display:none}
   }
   .hero h1{font-size:clamp(34px,6.2vw,62px);margin:0 0 20px}
   .hero>.wrap>p{font-size:clamp(16px,2.4vw,20px);color:var(--mut);max-width:630px;margin:0 auto 36px}
@@ -655,6 +718,10 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
        most of the width -- it needs less height here than on a wide desktop, and the
        headline has to stay above the fold. */
     .hero.hasfilm{padding:76px 0 56px;min-height:auto}
+    /* The clip is a wide 16:9 rail. Cropped to a phone's near-square band it becomes
+       two plates and a lot of empty stage, so the phone keeps the still frame and the
+       loader never fetches the megabytes over cellular. */
+    .hero.hasvideo{padding:76px 0 64px;min-height:56vh}
     .trustline{gap:14px}
     .brandwall{padding:56px 0 60px}
     .bw-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));max-width:none}
@@ -711,8 +778,26 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 </header>
 
 <span id="top"></span>
-<section class="hero<?= $HERO_FRAMES ? ' hasfilm' : '' ?>">
-  <?php if($HERO_FRAMES): ?>
+<section class="hero<?= ($HERO_FRAMES || $HERO_VIDEO) ? ' hasfilm' : '' ?><?= $HERO_VIDEO ? ' hasvideo' : '' ?>">
+  <?php if($HERO_VIDEO): ?>
+  <div class="herofilm" aria-hidden="true">
+    <?php /* The poster is painted as a background rather than left to the <video>
+             poster attribute alone: it is up on the first paint, so the band is never
+             a black hole while the clip is still arriving -- and on the devices below
+             that deliberately never fetch the clip, it IS the hero.
+             preload="none" + a data-src the script promotes: a phone on cellular, a
+             visitor who asked for less motion, and a narrow screen all get the still
+             and never spend the megabytes. */ ?>
+    <div class="herovid-poster"<?= $HERO_VIDEO['poster'] ? ' style="background-image:url('.htmlspecialchars($HERO_VIDEO['poster']).')"' : '' ?>></div>
+    <video class="herovid" muted loop playsinline preload="none" tabindex="-1"
+           disablepictureinpicture disableremoteplayback
+           <?= $HERO_VIDEO['poster'] ? 'poster="'.htmlspecialchars($HERO_VIDEO['poster']).'"' : '' ?>
+           <?= $HERO_VIDEO['webm'] ? 'data-webm="'.htmlspecialchars($HERO_VIDEO['webm']).'"' : '' ?>
+           data-mp4="<?= htmlspecialchars($HERO_VIDEO['mp4']) ?>"></video>
+    <div class="herofilm-scrim"></div>
+    <div class="herofilm-grain"></div>
+  </div>
+  <?php elseif($HERO_FRAMES): ?>
   <div class="herofilm" aria-hidden="true">
     <div class="herofilm-veil"></div>
     <div class="herofilm-grain"></div>
@@ -747,7 +832,12 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     <?php if($HERO_FRAMES):
       /* Five plates, each cycling through its own share of the running order. Frames are
          dealt round-robin so neighbouring plates never hold the same piece, and each
-         plate is offset in time so the strip never changes all at once. */
+         plate is offset in time so the strip never changes all at once.
+         Printed even when the clip exists, and hidden by CSS on wide screens: which of
+         the two the visitor gets is a question about the VIEWPORT, and PHP cannot see
+         one. Cropping a wide rail to a phone left a single plate wedged behind the call
+         to action -- worse than the strip a phone gets today -- so the phone keeps the
+         strip and the clip is hidden there instead. */
       $HP = 5; $slot = 7;
       $plates = array_fill(0, $HP, []);
       foreach ($HERO_FRAMES as $i => $f) $plates[$i % $HP][] = $f;
@@ -955,6 +1045,47 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');});
     }
   }catch(e){ document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in');}); }
+
+  /* Hero film. The <video> ships with preload="none" and no src at all, so the
+     default state of this page is "poster only, nothing downloaded". The clip is
+     attached solely when it is both wanted and affordable:
+       - the visitor has not asked for reduced motion
+       - the browser is not reporting Save-Data or a 2g-class connection
+       - the viewport is wide enough for a 16:9 rail to still read as one
+     Any of those failing is not an error -- the poster is a finished hero on its own.
+     It also pauses off-screen, because a looping clip under the footer is spending
+     battery to be seen by nobody. */
+  try{
+    var hv = document.querySelector('.herovid');
+    if (hv) {
+      var rm  = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var con = navigator.connection || {};
+      var thin = con.saveData === true || /(^|\-)2g$/.test(con.effectiveType || '');
+      if (!rm && !thin && Math.min(innerWidth, screen.width || innerWidth) >= 700) {
+        var wb = hv.getAttribute('data-webm');
+        if (wb && hv.canPlayType && hv.canPlayType('video/webm; codecs="vp9"')) {
+          hv.src = wb;
+        } else {
+          hv.src = hv.getAttribute('data-mp4');
+        }
+        hv.addEventListener('canplay', function(){ hv.classList.add('on'); }, { once:true });
+        /* Autoplay can still be refused (a power-saving phone, a browser setting).
+           Leaving the element faded in but frozen would show one arbitrary frame over
+           the poster, so a refusal drops us back to the poster instead. */
+        var pr = hv.play();
+        if (pr && pr.catch) pr.catch(function(){ hv.classList.remove('on'); });
+
+        if ('IntersectionObserver' in window) {
+          new IntersectionObserver(function(es){
+            es.forEach(function(e){
+              if (e.isIntersecting) { var p = hv.play(); if (p && p.catch) p.catch(function(){}); }
+              else hv.pause();
+            });
+          }, { threshold: 0.01 }).observe(hv);
+        }
+      }
+    }
+  }catch(e){}
 </script>
 <?php require_once __DIR__.'/inc/tabbar.php'; ?>
 </body>
