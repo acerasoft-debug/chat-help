@@ -229,6 +229,18 @@ function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = f
  * $items: list of ['sku','brand','name','colors'=>string[],'qty'=>int,'unit'=>float,'line'=>float]
  */
 function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc, string $invoiceNo): string {
+    /* Para birimi. Belge bugune kadar EUR'a SABITTI: tutarlar eur() ile basiliyor ve
+       "Currency" satiri duz "EUR" yaziyordu. ABD'li bir alicidan ABD'li bir hesaba
+       yapilan satista bu yanlis: alici dolar gonderir, fatura euro der, ve hesaba
+       gecen tutar faturadakiyle tutmaz.
+       Daha somut bir sebep: Mercury'nin wire talimatlari EUR ile USD icin FARKLI
+       banka yolu veriyor (USD -> Choice Financial Group dogrudan; EUR -> JP Morgan
+       uzerinden, zorunlu /FFC/ memo satiriyla). Yanlis para biriminde kesilen bir
+       fatura, aliciyi yanlis talimata yonlendirir.
+       Varsayilan EUR: mevcut butun faturalar oyle kesildi, davranis degismemeli. */
+    $cur  = strtoupper(trim((string)($order['currency'] ?? 'EUR')));
+    $sym  = $cur === 'USD' ? 'US$' : '€';
+    $money = fn($n) => $sym.number_format((float)$n, 2, '.', ',');
     $pdf = new VestraPdf();
     $left = 50.0; $right = 545.0; $width = $right - $left; $bottom = 70.0;
     $y = VestraPdf::PAGE_H - 60;
@@ -255,7 +267,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $markX = $left + $markSide + 11;
     }
     $pdf->text($markX, $y, 20, 'VESTRA', true);
-    $pdf->text($markX, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
+    /* Isletmeci adi tek yerden: banka kaydi "Acerasoft LLC" yaziyor, kodda ise
+       kucuk harfli 'acerasoft LLC' sabitti. Fatura ustte bir, altta baska turlu
+       yazarsa alicinin muhasebesi iki farkli sirket gorur. */
+    $opName = trim((string)(($sellerAcc['company'] ?? '') ?: 'acerasoft LLC'));
+    $pdf->text($markX, $y - 16, 8, $opName.'  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);
     $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.$invoiceNo);
     $pdf->textR($right, $y - 30, 9, 'Date:  '.substr($order['date'] ?? date('c'), 0, 10));
@@ -391,7 +407,14 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     /* The SKU column carries full manufacturer model codes (WH1JQ040B139MAI, WV0MG10W7SS0NI),
        which is what the buyer and the customs entry match against, so it gets the room it
        needs rather than the description's leftovers. */
-    $colSku = $left + 4; $colDesc = $left + 92; $colCol = $left + 265; $colQty = $left + 355; $colUnit = $left + 400;
+    /* Sutun konumlari para birimine gore kayiyor. "€89.90" ile "US$105.17" ayni
+       genislikte DEGIL: US$ oneki uc karakter fazla. EUR icin ayarlanmis konumlarla
+       USD basildiginda Unit ve Total sutunlari ust uste biniyor ve fatura
+       "US$105.17US$1,051.70" diye cikiyor -- musteriye giden bir belgede okunamaz.
+       USD'de Qty ve Unit sola aliniyor, aradaki bosluk Total'e kaliyor. */
+    $wide   = ($cur !== 'EUR');
+    $colSku = $left + 4; $colDesc = $left + 92; $colCol = $left + 265;
+    $colQty = $left + ($wide ? 338 : 355); $colUnit = $left + ($wide ? 376 : 400);
     $pdf->rectFill($left, $y - 14, $width, 18, 0.88);
     $pdf->text($colSku, $y - 9, 8.5, 'SKU', true);
     $pdf->text($colDesc, $y - 9, 8.5, 'Description', true);
@@ -418,8 +441,8 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             foreach (vestra_invoice_wrap($colTxt, $colQty - $colCol - 6, 8) as $j => $cl) $pdf->text($colCol, $y - ($j * 10), 8, $cl);
         }
         $pdf->text($colQty, $y, 9, (string)((int)($it['qty'] ?? 0)));
-        $pdf->text($colUnit, $y, 9, eur($it['unit'] ?? 0));
-        $pdf->textR($right - 4, $y, 9, eur($it['line'] ?? 0));
+        $pdf->text($colUnit, $y, 9, $money($it['unit'] ?? 0));
+        $pdf->textR($right - 4, $y, 9, $money($it['line'] ?? 0));
         $goodsTotal += (float)($it['line'] ?? 0);
         $totalQty   += (int)($it['qty'] ?? 0);
         $y -= $rowH;
@@ -435,12 +458,12 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $shipLbl  = trim((string)($order['shipping_label'] ?? '')) ?: 'Shipping';
 
     $rows = [];
-    if ($discount > 0 || $shipping > 0) $rows[] = ['Goods total', eur($goodsTotal)];
+    if ($discount > 0 || $shipping > 0) $rows[] = ['Goods total', $money($goodsTotal)];
     if ($discount > 0) {
         $vcode = trim((string)($order['voucher_code'] ?? ''));
-        $rows[] = ['Voucher'.($vcode !== '' ? ' '.$vcode : ''), '-'.eur($discount)];
+        $rows[] = ['Voucher'.($vcode !== '' ? ' '.$vcode : ''), '-'.$money($discount)];
     }
-    if ($shipping > 0) $rows[] = [$shipLbl, eur($shipping)];
+    if ($shipping > 0) $rows[] = [$shipLbl, $money($shipping)];
     $grand = max(0, $goodsTotal - $discount) + $shipping;
 
     $need(60 + count($rows) * 15);
@@ -454,7 +477,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     }
     if ($rows) { $y += 9; $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15; }
     $pdf->textR($colUnit, $y, 10, $rows ? 'Total' : 'Goods total', true);
-    $pdf->textR($right - 4, $y, 11, eur($grand), true);
+    $pdf->textR($right - 4, $y, 11, $money($grand), true);
     $y -= 34;
 
     /* ── Shipment and customs particulars ──
@@ -469,7 +492,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        Better a gap the operator can see than a confident invention. */
     $shipRows = [];
     $shipRows[] = ['Total quantity', number_format($totalQty).' pcs in '.count($items).' line items'];
-    $shipRows[] = ['Currency', 'EUR — all amounts in euro'];
+    $shipRows[] = ['Currency', $cur === 'USD' ? 'USD — all amounts in US dollars' : 'EUR — all amounts in euro'];
     if (!empty($order['incoterms']))      $shipRows[] = ['Delivery terms', (string)$order['incoterms']];
     if (!empty($order['origin']))         $shipRows[] = ['Country of origin', (string)$order['origin']];
     if (!empty($order['export_reason']))  $shipRows[] = ['Reason for export', (string)$order['export_reason']];
@@ -521,7 +544,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        yalnizca uclu satista basiliyor. */
     $platformIsSeller = stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
     $closing = $platformIsSeller
-        ? 'This invoice is issued by acerasoft LLC as seller of record for this sale.'
+        ? 'This invoice is issued by '.$opName.' as seller of record for this sale.'
         : 'This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.';
     foreach ($pdf->wrap($closing, $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;
