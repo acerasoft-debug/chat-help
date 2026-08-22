@@ -486,15 +486,37 @@ function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, str
  */
 function vestra_tpl_order_details_needed(
     string $buyerName, string $product, string $ref, int $qty, float $unit, float $total,
-    string $colourNote = '', array $missing = [], float $usdRate = 0.0, string $rateNote = ''
+    string $colourNote = '', array $missing = [], float $usdRate = 0.0, string $rateNote = '',
+    float $shipUsd = 0.0
 ): array {
     $rows = [
         ['label'=>'Product',    'value'=>$product],
         ['label'=>'Reference',  'value'=>$ref],
         ['label'=>'Quantity',   'value'=>$qty.' pcs'.($colourNote !== '' ? ' — '.$colourNote : '')],
         ['label'=>'Unit price', 'value'=>'€'.number_format($unit, 2)],
-        ['label'=>'Total',      'value'=>'€'.number_format($total, 2), 'strong'=>true],
     ];
+
+    /* Nakliye USD olarak belirleniyor ama siparis EUR. Ikisini ayni belgede yan yana
+       birakmak ("EUR 1.798 + US$50") aliciya toplami KENDISININ hesaplamasini birakir
+       ve iki para birimli bir toplam faturaya yazilamaz. O yuzden ucret ayni referans
+       kuruyla euroya cevriliyor, dolar karsiligi parantezde kaliyor ve TOPLAM tek para
+       biriminde veriliyor. */
+    $shipEur = ($shipUsd > 0 && $usdRate > 0) ? round($shipUsd / $usdRate, 2) : 0.0;
+    $grand   = $total + $shipEur;
+
+    if ($shipUsd > 0 && $usdRate > 0) {
+        $rows[] = ['label'=>'Goods',    'value'=>'€'.number_format($total, 2)];
+        $rows[] = ['label'=>'Shipping', 'value'=>'€'.number_format($shipEur, 2).'  (US$'.number_format($shipUsd, 2).')'];
+        $rows[] = ['label'=>'Total',    'value'=>'€'.number_format($grand, 2), 'strong'=>true];
+    } elseif ($shipUsd > 0) {
+        /* Kur yok: cevrim yapilamaz. Ucret kendi para biriminde ve AYRI duruyor;
+           uydurma bir kurla euro yazmaktansa toplami vermemek dogru. */
+        $rows[] = ['label'=>'Goods',    'value'=>'€'.number_format($total, 2), 'strong'=>true];
+        $rows[] = ['label'=>'Shipping', 'value'=>'US$'.number_format($shipUsd, 2).' — invoiced in euro at the rate on the invoice date'];
+    } else {
+        $rows[] = ['label'=>'Total',    'value'=>'€'.number_format($total, 2), 'strong'=>true];
+    }
+
     /* USD karsiligi ABD'li alici icin isi kolaylastiriyor, ama sozlesme EUR uzerinden:
        teklif EUR verildi, fatura EUR kesilecek. O yuzden satir "approx." diye ve KURU
        ACIKCA yazarak geciyor. Kursuz bir dolar rakami, aliciya sabit bir dolar fiyati
@@ -504,7 +526,7 @@ function vestra_tpl_order_details_needed(
     if ($usdRate > 0) {
         $rows[] = [
             'label' => 'Total (approx.)',
-            'value' => 'US$'.number_format($total * $usdRate, 2)
+            'value' => 'US$'.number_format($grand * $usdRate, 2)
                      . ($rateNote !== '' ? '  ·  '.$rateNote : ''),
         ];
     }
@@ -540,6 +562,9 @@ function vestra_tpl_order_details_needed(
          soyluyoruz ki alici dolar rakamini sabit fiyat sanmasin. Faturayi EUR kesip
          e-postada dolar yazip sonra "aslinda kur degisti" demek, satisi degil guveni
          kaybettirir. */
+      . ($shipUsd > 0
+          ? "Shipping is charged at a flat US$".number_format($shipUsd, 2).", shown above converted to euro.\n\n"
+          : '')
       . ($usdRate > 0
           ? "The US dollar figure above is indicative only, converted at the reference rate shown. The order and the invoice are in euro, and the amount received depends on the rate applied by your bank on the day of payment.\n\n"
           : '')
