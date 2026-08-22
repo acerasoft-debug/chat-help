@@ -199,6 +199,28 @@ jobs:
             # girilmis olabilir: satici hesaplarinin fatura icin kendi bank_* alanlari
             # var. Bu tarama hangi hesapta hangi alanin dolu oldugunu soyler; DEGERLER
             # ASLA yazilmaz (log herkese acik), yalnizca alan adlari.
+            # Giden postanin GORUNEN adresi. Anahtar DEGIL, gonderen adres ve
+            # saglayici yaziliyor: adres zaten her alicinin gordugu sey, gizli
+            # degil. Gerekli, cunku mail_from bu projede iki kez degisti
+            # (once acerasoft@gmail.com, domain dogrulaninca support@...) ve
+            # "bu e-posta hangi adresten gidiyor" sorusu ezberle cevaplanmamali.
+            echo; echo "== giden posta kimligi =="
+            cat > /tmp/vestra_mailid.php <<'PHPEOF'
+            <?php
+            $f = getenv("HOME")."/public_html/data/email_settings.json";
+            $j = is_readable($f) ? json_decode((string)file_get_contents($f), true) : null;
+            if (!is_array($j)) { echo "  email_settings.json yok -- kod varsayilani gecerli\n"; }
+            $from = trim((string)($j['mail_from'] ?? ''));
+            $name = trim((string)($j['smtp_name'] ?? ''));
+            printf("  gonderen adres : %s\n", $from !== '' ? $from : 'support@vestrasales.com  (kod varsayilani)');
+            printf("  gorunen ad     : %s\n", $name !== '' ? $name : 'VESTRA  (kod varsayilani)');
+            printf("  tasima         : %s\n",
+              trim((string)($j['mail_api_key'] ?? '')) !== '' ? 'API (Brevo/Resend)'
+              : (trim((string)($j['smtp_host'] ?? '')) !== '' ? 'SMTP' : 'yapilandirilmamis'));
+            printf("  gonderim acik  : %s\n", !empty($j['mail_enabled']) ? 'evet' : 'HAYIR');
+            PHPEOF
+            php /tmp/vestra_mailid.php; rm -f /tmp/vestra_mailid.php
+
             echo; echo "== hesaplarda dolu banka alanlari =="
             cat > /tmp/vestra_acctbank.php <<'PHPEOF'
             <?php
