@@ -1840,7 +1840,7 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
   <div class="atscroll"><table class="atable">
     <?= arow(['Ref','Buyer','Total','Status'],true) ?>
     <?php foreach($rec as $o): $st=$orderSt[$o['ref']??'']['status']??'pending'; ?>
-    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>',orderBadge($st)]) ?>
+    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($o['ref']??''))!=='')?'<div class="ahint" style="font-size:10.5px">'.htmlspecialchars($__iv).'</div>':''),orderBadge($st)]) ?>
     <?php endforeach; ?>
   </table></div>
   <?php } ?>
@@ -2380,7 +2380,7 @@ elseif($tab==='orders'):
       <?= arow(['Subtotal',eur($viewRow['subtotal']??0)]) ?>
       <?= arow(['Platform commission','<b style="color:#1f9d63">'.eur($viewRow['commission']??0).'</b>']) ?>
       <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
-      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>']) ?>
+      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'')]) ?>
     </table>
     <div style="margin-top:12px">
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Commission charges</div>
@@ -2505,7 +2505,7 @@ if($__dupRefs): ?>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
     <td class="ac" style="font-size:11px"><?= vestra_order_items_cell($o['items']??'', 2, 160) ?></td>
-    <td class="ac"><b><?= eur($o['total']??0) ?></b></td>
+    <td class="ac"><b><?= eur($o['total']??0) ?></b><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
@@ -2576,7 +2576,7 @@ elseif($tab==='invoices'): ?>
       <td><a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>"><?= htmlspecialchars($oref) ?></a></td>
       <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['name']??'') ?> · <?= htmlspecialchars($o['email']??'') ?></div></td>
       <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
-      <td><b><?= eur($o['total']??0) ?></b></td>
+      <td><b><?= eur($o['total']??0) ?></b><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
       <td>
         <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?> and email the buyer? Do this once stock is confirmed.')">
           <?= csrfField() ?>

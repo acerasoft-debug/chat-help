@@ -577,7 +577,26 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     if ($rows) { $y += 9; $pdf->line($colUnit - 60, $y, $right, $y, 0.5, 0.35); $y -= 15; }
     $pdf->textR($colUnit, $y, 10, $rows ? 'Total' : 'Goods total', true);
     $pdf->textR($right - 4, $y, 11, $money($grand), true);
-    $y -= 34;
+    $y -= 16;
+
+    /* Cevrim dayanagi TUTARLARIN ALTINDA. Onceden "Shipment particulars" tablosunda,
+       teslim sarti ve mensei arasinda duruyordu -- oraya sevkiyat icin bakilir, fiyat
+       icin degil. 89,90 x kur hesabini yapan muhasebeci rakami tutarlarin yaninda
+       arar; bulamayinca "neden dolar, hangi kurla?" diye sorar ve bu soru odemeyi
+       geciktirir. Parayla ilgili not, paranin yanina. */
+    if (!empty($order['fx_note'])) {
+        $need(24);
+        $y -= 6;
+        /* Dar sarma (tam genislik degil): satirlar saga hizali basiliyor ve genis
+           sarmada ikinci satir tek kelimeyle sagda asili kaliyordu. Daralinca blok
+           dengeli iki-uc satira boluniyor ve tutar sutunuyla hizali duruyor. */
+        foreach (vestra_invoice_wrap((string)$order['fx_note'], 300, 7.5) as $fl) {
+            $pdf->textR($right - 4, $y, 7.5, $fl, false, 0.35);
+            $y -= 10;
+        }
+        $y -= 4;
+    }
+    $y -= 14;
 
     /* ── Shipment and customs particulars ──
        This invoice is not only the demand for payment: it is the document the goods travel
@@ -596,11 +615,8 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     if (!empty($order['origin']))         $shipRows[] = ['Country of origin', (string)$order['origin']];
     if (!empty($order['export_reason']))  $shipRows[] = ['Reason for export', (string)$order['export_reason']];
     if (!empty($order['vat_note']))       $shipRows[] = ['VAT', (string)$order['vat_note']];
-    /* Fatura, teklifin verildigi para biriminden BASKA bir birimde kesildiginde
-       cevrimin dayanagi belgede yazili olmali. Yazili olmazsa alici hakli olarak
-       "neden dolar, hangi kurla?" diye sorar ve bu, odemeyi geciktiren bir soru
-       olur. Kur ve kaynagi yazilinca rakam tartisilir olmaktan cikar. */
-    if (!empty($order['fx_note']))        $shipRows[] = ['Exchange rate', (string)$order['fx_note']];
+    /* Kur notu burada DEGIL: tutarlarin hemen altinda basiliyor (yukariya bakin).
+       Iki yerde birden basmak belgeyi tekrara dusururdu. */
 
     $need(24 + count($shipRows) * 12);
     $pdf->line($left, $y + 10, $right, $y + 10, 0.5, 0.75);
@@ -832,6 +848,31 @@ function vestra_invoices_for_ref(string $ref): array {
  * that may have moved since issue. Old metas predate the total field and simply have no
  * amount; the label then falls back to the bare number rather than a fabricated zero.
  */
+/**
+ * What a panel adds next to a euro order total when the invoice was issued in another
+ * currency: " · Invoiced US$2,153.40".
+ *
+ * The two figures are NOT the same measurement and must not be printed as if they were.
+ * orders.csv carries the accepted offer in its own currency — goods only, because that is
+ * what the offer covered — while the invoice total is what the buyer actually owes,
+ * shipping included and converted. Writing "€1,798.00 (US$2,153.40)" would read as one
+ * amount expressed twice, and the reader would work out a rate that does not exist.
+ * Hence the word "Invoiced": it names the second figure as a different fact rather than
+ * a translation of the first.
+ *
+ * Returns '' when no invoice exists yet, or when it was issued in the same currency the
+ * panel already prints — a euro amount does not need "Invoiced €1,798.00" beside it.
+ */
+function vestra_order_invoiced_note(string $ref, string $panelCurrency = 'EUR'): string {
+    foreach (vestra_invoices_for_ref($ref) as $iv) {
+        $cur = strtoupper((string)($iv['currency'] ?? ''));
+        $tot = (float)($iv['total'] ?? 0);
+        if ($cur === '' || $tot <= 0 || $cur === strtoupper($panelCurrency)) continue;
+        return 'Invoiced '.($cur === 'USD' ? 'US$' : '€').number_format($tot, 2, '.', ',');
+    }
+    return '';
+}
+
 function vestra_invoice_link_label(array $iv): string {
     $s = (string)($iv['no'] ?? '');
     $t = (float)($iv['total'] ?? 0);

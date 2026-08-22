@@ -104,6 +104,10 @@ on:
         description: "FATURA: false (varsayılan) = ÖNİZLEME, hiçbir şey kaydedilmez. true = KALICI numarayla kes, siparişi orders.csv'ye yaz"
         required: false
         default: "false"
+      inv_redraft:
+        description: "FATURA: true = KESİLMİŞ faturayı AYNI numarayla yeniden bas (henüz müşteriye gitmemiş bir belgeyi düzeltmek için). inv_commit=true ile birlikte."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -261,13 +265,14 @@ jobs:
           I_SPEC: ${{ github.event.inputs.inv_spec }}
           I_TO: ${{ github.event.inputs.inv_to }}
           I_COMMIT: ${{ github.event.inputs.inv_commit }}
+          I_REDRAFT: ${{ github.event.inputs.inv_redraft }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: I_REF,I_SPEC,I_TO,I_COMMIT
+          envs: I_REF,I_SPEC,I_TO,I_COMMIT,I_REDRAFT
           script: |
             cat > /tmp/vestra_issue_invoice.php <<'PHPEOF'
             <?php
@@ -279,7 +284,12 @@ jobs:
             require_once $doc."/inc/auth.php";
 
             $ref    = trim((string)getenv('I_REF'));
-            $commit = strtolower(trim((string)getenv('I_COMMIT'))) === 'true';
+            $commit  = strtolower(trim((string)getenv('I_COMMIT'))) === 'true';
+            /* Kesilmis bir belgeyi AYNI numarayla yeniden basar. Yalnizca musteriye
+               HENUZ GITMEMIS bir belge icin mesru: numara alicinin eline gectikten
+               sonra duzeltme, dosyayi sessizce degistirmek degil, alacak dekontu +
+               yeni fatura olur. Kararin operatorun oldugu yer burasi. */
+            $redraft = strtolower(trim((string)getenv('I_REDRAFT'))) === 'true';
 
             /* 'a=1|b=2' -> ['a'=>'1','b'=>'2']. Ayirac boru, virgul DEGIL: adres ve
                teslim sarti ("DAP Sparks, NV 89431, USA") virgul iceriyor ve virgulle
@@ -382,9 +392,16 @@ jobs:
                 echo "kur: elden verildi -> 1 EUR = {$rate} {$cur}".($rDate !== '' ? " ({$rDate})" : '')."\n";
               }
               if ($rate > 0) {
-                $fxNote = 'Converted from EUR at 1 EUR = '.number_format($rate, 4).' '.$cur
-                        . ($rDate !== '' ? ' (ECB reference rate, '.$rDate.')' : '')
-                        . ($eurUnit > 0 ? '. Offer '.$ref.' was quoted at EUR '.number_format($eurUnit, 2).' per piece.' : '.');
+                /* Hesabin KENDISI yaziliyor, yalnizca kur degil: "EUR 89.90 x 1.1699 =
+                   US$105.17 per piece". Okuyan carpmayi kendi yapmak zorunda kalmasin --
+                   yaparsa ve yuvarlamadan birkac sent sapma cikarsa, faturayi degil
+                   kendi hesabini dogru sanar ve soru sorar. */
+                $fxNote = $eurUnit > 0
+                  ? 'Unit price converted from the offer currency: EUR '.number_format($eurUnit, 2)
+                    .' × '.number_format($rate, 4).' = '.($cur === 'USD' ? 'US$' : '€').number_format($unit, 2).' per piece'
+                    .($rDate !== '' ? '  (ECB reference rate, '.$rDate.')' : '').'.'
+                  : 'Converted from EUR at 1 EUR = '.number_format($rate, 4).' '.$cur
+                    . ($rDate !== '' ? ' (ECB reference rate, '.$rDate.')' : '').'.';
                 /* Kur birim fiyati GERCEKTEN uretiyor mu? Uretmiyorsa belge kendi
                    icinde celisir: alici 89,90 x 1,1699 yapar, faturadaki rakami
                    bulamaz ve hangisinin gecerli oldugunu sorar. Durdurmuyoruz --
@@ -462,7 +479,8 @@ jobs:
               file_put_contents($path, $bytes);
               echo "ONIZLEME: ".strlen($bytes)." bayt, diske KAYDEDILMEDI\n";
             } else {
-              $inv = vestra_ensure_invoice($order, $items, $seller, true);
+              $inv = vestra_ensure_invoice($order, $items, $seller, true, $redraft);
+              if (!empty($inv['redrafted'])) echo "YENIDEN BASILDI (ayni numara)\n";
               if (($inv['no'] ?? '') === '') { fwrite(STDERR, "fatura kesilemedi\n"); exit(1); }
               $path = $inv['path'];
               echo "KESILDI: {$inv['no']}  ->  {$path}\n";

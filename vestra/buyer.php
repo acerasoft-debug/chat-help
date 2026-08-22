@@ -334,7 +334,10 @@ if($tab==='overview'){
         $prodHtml.
         $trk.
         '<div class="ordcard-foot">'.
-          '<div class="ordtotal">'.eur($o['total']??0).'</div>'.
+          '<div class="ordtotal">'.eur($o['total']??0).
+            ((($__iv=vestra_order_invoiced_note($ref))!=='')
+              ? '<div class="hint" style="font-weight:400;font-size:11px">'.htmlspecialchars($__iv).'</div>' : '').
+          '</div>'.
           '<div class="ordacts">'.$confirmBtn.$invLinks.
             '<a class="btn btn-o btn-sm" href="/order-pdf?ref='.urlencode($ref).'">⤓ PDF</a>'.
             '<a class="btn btn-o btn-sm" href="/buyer?tab=orders&view='.urlencode($ref).'">'.t('View details').' →</a>'.
