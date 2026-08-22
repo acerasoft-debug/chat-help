@@ -374,7 +374,14 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $goodsTotal = 0.0;
     $totalQty   = 0;
     foreach ($items as $it) {
-        $desc = trim(($it['brand'] ?? '').' '.($it['name'] ?? ''));
+        /* Bazi katalog kayitlarinda marka adi urun ADININ icinde de duruyor
+           (brand "Balenciaga" + name "Balenciaga Print T-Shirt"). Duz birlestirme
+           faturaya "Balenciaga Balenciaga Print T-Shirt" yaziyordu -- musteriye ve
+           gumruge giden bir belgede ucuz duruyor. Ad zaten markayla basliyorsa
+           marka bir kez yaziliyor. */
+        $brand = trim((string)($it['brand'] ?? ''));
+        $name  = trim((string)($it['name'] ?? ''));
+        $desc  = ($brand !== '' && stripos($name, $brand) === 0) ? $name : trim($brand.' '.$name);
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
         $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8);
         $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
@@ -481,7 +488,17 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         }
         $y -= 2;
     }
-    foreach ($pdf->wrap('This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.', $width, 8) as $fl) {
+    /* "VESTRA satici degildir" notu, satici GERCEKTEN baskasi oldugunda dogrudur ve
+       gereklidir: pazar yeri kendini satisin tarafi yapmamalidir. Ama acerasoft LLC'nin
+       KENDI sattigi bir satista ayni cumle faturayi kendi icinde celiskiye dusuruyor --
+       ustte "From (Seller): acerasoft LLC" yazarken altta "acerasoft satici degildir"
+       demek, gumrukte ve bir ihtilafta belgeyi zayiflatan bir beyandir. O yuzden not
+       yalnizca uclu satista basiliyor. */
+    $platformIsSeller = stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
+    $closing = $platformIsSeller
+        ? 'This invoice is issued by acerasoft LLC as seller of record for this sale.'
+        : 'This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.';
+    foreach ($pdf->wrap($closing, $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;
     }
 
