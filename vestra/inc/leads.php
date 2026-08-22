@@ -123,7 +123,7 @@ function vestra_lead_render_email(array $lead, array $tpl): array {
     $body    = strtr($tpl['body'] ?? '', $map);
     $unsubUrl = 'https://vestrasales.com/lead-unsubscribe?token=' . urlencode($lead['unsub_token'] ?? '');
     $company  = $lead['company'] ?? 'your company';
-    $body .= "\n\n—\nVESTRA is operated by acerasoft LLC. This is a one-time business message from our ".
+    $body .= "\n\n—\nVESTRA is operated by Acerasoft LLC. This is a one-time business message from our ".
              "verified B2B wholesale marketplace — you're receiving it because {$company} was identified as a ".
              "potential trade partner by our team.\nDon't want to hear from us again? Unsubscribe instantly: {$unsubUrl}";
     return [$subject, $body];
@@ -153,7 +153,7 @@ function vestra_quote_render_email(string $company, string $contact, array $line
     if ($note !== '') $b .= $note . "\n\n";
     $b .= "Browse the full range or request a tailored quote: https://vestrasales.com/shop\n\n";
     $b .= "Best regards,\n".($senderName !== '' ? $senderName : 'The VESTRA team');
-    $b .= "\n\n—\n".($senderName !== '' ? $senderName.' via VESTRA (operated by acerasoft LLC)' : 'VESTRA is operated by acerasoft LLC').". You received this wholesale offer because {$who} was identified as a potential trade buyer.\n";
+    $b .= "\n\n—\n".($senderName !== '' ? $senderName.' via VESTRA (operated by Acerasoft LLC)' : 'VESTRA is operated by Acerasoft LLC').". You received this wholesale offer because {$who} was identified as a potential trade buyer.\n";
     $b .= $unsubUrl !== ''
         ? "Don't want these offers? Unsubscribe instantly: {$unsubUrl}"
         : "To opt out of future offers, just reply to this email.";

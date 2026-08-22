@@ -2,7 +2,7 @@
   'imprint'   => ['title'=>"Mentions légales", 'html'=>"
     <p>Informations conformément aux règles applicables en matière de commerce électronique et d&rsquo;information des consommateurs.</p>
     <h3>Exploitant</h3>
-    <ul><li><b>Société :</b> acerasoft LLC</li>
+    <ul><li><b>Société :</b> Acerasoft LLC</li>
     <li><b>Forme juridique :</b> Société à responsabilité limitée américaine (State of Delaware)</li>
     <li><b>Adresse du siège :</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
     <li><b>Représentée par :</b> Management</li>
@@ -14,7 +14,7 @@
     <p>La plateforme ODR de l&rsquo;UE est disponible à l&rsquo;adresse ec.europa.eu/consumers/odr. VESTRA s&rsquo;adresse aux entreprises (B2B).</p>
 "],
   'terms'     => ['title'=>"Conditions générales d&rsquo;utilisation", 'html'=>"
-    <p><b>Exploitant :</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;nous&rdquo;). <b>En vigueur :</b> 26 juin 2026.
+    <p><b>Exploitant :</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;nous&rdquo;). <b>En vigueur :</b> 26 juin 2026.
     En créant un compte, en rejoignant la liste d&rsquo;attente, en publiant une annonce, en passant commande ou en utilisant VESTRA de toute autre manière, vous confirmez que vous êtes une
     entreprise agissant à titre commercial et vous acceptez les présentes Conditions.</p>
     <h3>1. Ce qu&rsquo;est VESTRA</h3><p>VESTRA est une place de marché de vente en gros B2B qui met en relation des vendeurs et acheteurs professionnels vérifiés.
@@ -50,7 +50,7 @@
     les frais de plateforme effectivement payés par vous à VESTRA au cours des <b>three (3) months</b> précédant l&rsquo;événement à l&rsquo;origine de la réclamation,
     ou <b>EUR 100</b>. Rien n&rsquo;exclut la responsabilité qui ne peut être limitée par la loi (par ex. fraude, faute lourde, ou décès/dommage corporel
     causé par notre négligence) ; vos droits impératifs ne sont pas affectés.</p>
-    <h3>9. Indemnisation</h3><p>Vous acceptez d&rsquo;<b>indemniser, défendre et dégager de toute responsabilité</b> acerasoft LLC, ses sociétés affiliées, dirigeants,
+    <h3>9. Indemnisation</h3><p>Vous acceptez d&rsquo;<b>indemniser, défendre et dégager de toute responsabilité</b> Acerasoft LLC, ses sociétés affiliées, dirigeants,
     membres et personnel contre toute réclamation, demande, perte, responsabilité, amende, pénalité, dommage et frais juridiques raisonnables
     découlant de ou liés à votre utilisation de la plateforme, à vos marchandises, annonces ou contenus, à vos transactions, à votre violation
     des présentes Conditions ou de toute loi, ou à votre atteinte à un droit de tiers.</p>
@@ -72,7 +72,7 @@
     <p class='muted'>L&rsquo;acceptation est enregistrée lors de l&rsquo;inscription (date, version, langue). Contact : <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></p>
 "],
   'privacy'   => ['title'=>"Politique de confidentialité", 'html'=>"
-    <p><b>Responsable du traitement :</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Contact :</b> privacy@vestrasales.com. <b>En vigueur :</b> 26 juin 2026.</p>
+    <p><b>Responsable du traitement :</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Contact :</b> privacy@vestrasales.com. <b>En vigueur :</b> 26 juin 2026.</p>
     <h3>1. Données que nous collectons</h3><p>Données de compte &amp; de vérification (nom, informations sur l&rsquo;entreprise, numéro d&rsquo;identification fiscale/TVA, identité du bénéficiaire
     effectif &amp; justificatifs d&rsquo;adresse), données transactionnelles (commandes, annonces, communications) et données techniques/de journalisation.</p>
     <h3>2. Pourquoi (finalités &amp; bases juridiques)</h3><ul>
@@ -87,14 +87,14 @@
     autorité de contrôle.</p>
 "],
   'seller'    => ['title'=>"Contrat vendeur", 'html'=>"
-    <p>Entre acerasoft LLC et le vendeur professionnel enregistré. <b>En vigueur :</b> 26 juin 2026.</p>
+    <p>Entre Acerasoft LLC et le vendeur professionnel enregistré. <b>En vigueur :</b> 26 juin 2026.</p>
     <h3>1. Vérification</h3><p>Fournir et tenir à jour l&rsquo;enregistrement de l&rsquo;entreprise, le numéro d&rsquo;identification fiscale/TVA et l&rsquo;identité du bénéficiaire effectif.</p>
     <h3>2. Vendeur officiel</h3><p>Le vendeur est le vendeur légal de ses marchandises et est seul responsable de la conformité, de la sécurité,
     de la livraison, des garanties et des taxes. VESTRA est uniquement un intermédiaire et n&rsquo;est pas partie à la vente.</p>
     <h3>3. Authenticité &amp; droit de vendre</h3><p>Pour chaque article, le vendeur garantit que les marchandises sont <b>authentiques</b> et qu&rsquo;il est
     <b>autorisé/en droit de les vendre</b> sur le marché de destination (y compris l&rsquo;épuisement des droits de marque dans l&rsquo;EEA le cas échéant),
     et fournira une preuve d&rsquo;authenticité/de provenance sur demande.</p>
-    <h3>4. Indemnisation &amp; responsabilité</h3><p>Le vendeur indemnise et dégage acerasoft LLC de toute responsabilité concernant toute réclamation, perte, amende
+    <h3>4. Indemnisation &amp; responsabilité</h3><p>Le vendeur indemnise et dégage Acerasoft LLC de toute responsabilité concernant toute réclamation, perte, amende
     ou frais découlant de ses marchandises, annonces, violation de garanties ou atteinte à la propriété intellectuelle, et est responsable envers les acheteurs de ses marchandises ;
     la responsabilité de VESTRA est limitée comme indiqué dans les Conditions générales d&rsquo;utilisation.</p>
     <h3>5. Notification et retrait</h3><p>Le vendeur se conformera à la Politique de propriété intellectuelle &amp; de lutte contre la contrefaçon, répondra aux notifications et

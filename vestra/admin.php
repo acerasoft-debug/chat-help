@@ -2266,7 +2266,7 @@ elseif($tab==='orders'):
          eksikse acik bir uyari duruyor, sessizce gecilmiyor. */ ?>
 <details class="acard" style="margin-bottom:14px" <?= $platHasBank ? '' : 'open' ?>>
   <summary style="cursor:pointer;padding:12px 16px;font-size:13px">
-    🏦 Platform billing &amp; bank details — <b><?= htmlspecialchars($PLAT['company'] ?? 'acerasoft LLC') ?></b>
+    🏦 Platform billing &amp; bank details — <b><?= htmlspecialchars($PLAT['company'] ?? 'Acerasoft LLC') ?></b>
     <?= $platHasBank
         ? '<span class="ahint" style="margin-left:8px">on file</span>'
         : '<span style="margin-left:8px;color:var(--bad)">not set — invoices will have no payment box</span>' ?>

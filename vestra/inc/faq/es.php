@@ -22,7 +22,7 @@
       3 => 
       array (
         'q' => '¿Quién gestiona VESTRA?',
-        'a' => 'VESTRA es operada por acerasoft LLC, una sociedad de responsabilidad limitada estadounidense constituida en el Estado de Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contacto: legal@vestrasales.com.',
+        'a' => 'VESTRA es operada por Acerasoft LLC, una sociedad de responsabilidad limitada estadounidense constituida en el Estado de Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contacto: legal@vestrasales.com.',
       ),
       4 => 
       array (

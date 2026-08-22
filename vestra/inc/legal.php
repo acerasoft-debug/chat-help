@@ -35,7 +35,7 @@ function vestra_legal(){
 
 /* English source set. */
 function vestra_legal_en(){
-  $co='acerasoft LLC';
+  $co='Acerasoft LLC';
   $addr='8 The Green, Suite B, Dover, Delaware 19901, USA';
   $email='legal@vestrasales.com';
   $eff='26 June 2026';

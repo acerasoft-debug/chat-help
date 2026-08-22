@@ -2,7 +2,7 @@
   'imprint'   => ['title'=>"Impressum / Rechtliche Hinweise", 'html'=>"
     <p>Informationen gemäß den geltenden Vorschriften zum E-Commerce und zur Verbraucherinformation.</p>
     <h3>Betreiber</h3>
-    <ul><li><b>Unternehmen:</b> acerasoft LLC</li>
+    <ul><li><b>Unternehmen:</b> Acerasoft LLC</li>
     <li><b>Rechtsform:</b> US Limited Liability Company (State of Delaware)</li>
     <li><b>Eingetragene Anschrift:</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
     <li><b>Vertreten durch:</b> Management</li>
@@ -13,7 +13,7 @@
     <h3>Online-Streitbeilegung</h3>
     <p>Die OS-Plattform der EU ist unter ec.europa.eu/consumers/odr verfügbar. VESTRA bedient Unternehmen (B2B).</p>"],
   'terms'     => ['title'=>"Allgemeine Geschäftsbedingungen", 'html'=>"
-    <p><b>Betreiber:</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;wir&rdquo;). <b>Gültig ab:</b> 26. Juni 2026.
+    <p><b>Betreiber:</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;wir&rdquo;). <b>Gültig ab:</b> 26. Juni 2026.
     Durch die Erstellung eines Kontos, den Beitritt zur Warteliste, das Einstellen, das Bestellen oder die anderweitige Nutzung von VESTRA bestätigen Sie, dass Sie ein
     Unternehmen sind, das in gewerblicher Eigenschaft handelt, und Sie akzeptieren diese Bedingungen.</p>
     <h3>1. Was VESTRA ist</h3><p>VESTRA ist ein B2B-Großhandelsmarktplatz, der verifizierte gewerbliche Verkäufer und Käufer zusammenbringt.
@@ -49,7 +49,7 @@
     die Plattformgebühren, die Sie in den <b>drei (3) Monaten</b> vor dem schadensbegründenden Ereignis tatsächlich an VESTRA gezahlt haben,
     oder <b>EUR 100</b>. Nichts schließt eine Haftung aus, die gesetzlich nicht beschränkt werden kann (z. B. Betrug, grobe Fahrlässigkeit oder durch unsere Fahrlässigkeit verursachte
     Todesfälle/Körperverletzungen); Ihre zwingenden Rechte bleiben unberührt.</p>
-    <h3>9. Freistellung</h3><p>Sie verpflichten sich, acerasoft LLC, ihre verbundenen Unternehmen, leitenden Angestellten, Gesellschafter
+    <h3>9. Freistellung</h3><p>Sie verpflichten sich, Acerasoft LLC, ihre verbundenen Unternehmen, leitenden Angestellten, Gesellschafter
     und Mitarbeiter von sämtlichen Ansprüchen, Forderungen, Verlusten, Verbindlichkeiten, Bußgeldern, Strafen, Schäden und angemessenen Rechtskosten <b>freizustellen, zu verteidigen und schadlos zu halten</b>,
     die sich aus oder im Zusammenhang mit Ihrer Nutzung der Plattform, Ihren Waren, Angeboten oder Inhalten, Ihren Transaktionen, Ihrem Verstoß
     gegen diese Bedingungen oder gegen geltendes Recht oder Ihrer Verletzung von Rechten Dritter ergeben.</p>
@@ -70,7 +70,7 @@
     Verkauf von Vermögenswerten übertragen; Sie dürfen ohne unsere Zustimmung nicht übertragen. Wenn wir eine Bestimmung nicht durchsetzen, stellt dies keinen Verzicht dar.</p>
     <p class='muted'>Die Annahme wird bei der Registrierung erfasst (Datum, Version, Sprache). Kontakt: <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></p>"],
   'privacy'   => ['title'=>"Datenschutzerklärung", 'html'=>"
-    <p><b>Verantwortlicher:</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Kontakt:</b> privacy@vestrasales.com. <b>Gültig ab:</b> 26. Juni 2026.</p>
+    <p><b>Verantwortlicher:</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Kontakt:</b> privacy@vestrasales.com. <b>Gültig ab:</b> 26. Juni 2026.</p>
     <h3>1. Daten, die wir erheben</h3><p>Konto- &amp; Verifizierungsdaten (Name, Unternehmensangaben, Steuer-/USt-IdNr., Identität
     &amp; Adressdokumente der wirtschaftlich Berechtigten), Transaktionsdaten (Bestellungen, Angebote, Kommunikation) sowie technische Daten/Protokolldaten.</p>
     <h3>2. Warum (Zwecke &amp; Rechtsgrundlagen)</h3><ul>
@@ -84,14 +84,14 @@
     <h3>6. Ihre Rechte</h3><p>Auskunft, Berichtigung, Löschung, Einschränkung, Übertragbarkeit, Widerspruch sowie Beschwerde bei einer
     Aufsichtsbehörde.</p>"],
   'seller'    => ['title'=>"Verkäufervereinbarung", 'html'=>"
-    <p>Zwischen acerasoft LLC und dem registrierten gewerblichen Verkäufer. <b>Gültig ab:</b> 26. Juni 2026.</p>
+    <p>Zwischen Acerasoft LLC und dem registrierten gewerblichen Verkäufer. <b>Gültig ab:</b> 26. Juni 2026.</p>
     <h3>1. Verifizierung</h3><p>Stellen Sie die Gewerbeanmeldung, Steuer-/USt-IdNr. und die Identität der wirtschaftlich Berechtigten bereit und halten Sie diese aktuell.</p>
     <h3>2. Verkäufer im Rechtssinne</h3><p>Der Verkäufer ist der rechtliche Verkäufer seiner Waren und allein verantwortlich für Konformität, Sicherheit,
     Lieferung, Gewährleistungen und Steuern. VESTRA ist ausschließlich Vermittler und nicht Vertragspartei des Verkaufs.</p>
     <h3>3. Echtheit &amp; Verkaufsberechtigung</h3><p>Für jeden Artikel sichert der Verkäufer zu, dass die Waren <b>echt</b> sind und dass er
     <b>berechtigt/befugt ist, sie zu verkaufen</b> im Zielmarkt (einschließlich der markenrechtlichen Erschöpfung im EWR, soweit anwendbar),
     und wird auf Anfrage einen Echtheits-/Herkunftsnachweis erbringen.</p>
-    <h3>4. Freistellung &amp; Haftung</h3><p>Der Verkäufer stellt acerasoft LLC von sämtlichen Ansprüchen, Verlusten, Bußgeldern
+    <h3>4. Freistellung &amp; Haftung</h3><p>Der Verkäufer stellt Acerasoft LLC von sämtlichen Ansprüchen, Verlusten, Bußgeldern
     oder Kosten frei und schadlos, die aus seinen Waren, Angeboten, der Verletzung von Gewährleistungen oder einer IP-Verletzung entstehen, und haftet gegenüber Käufern für seine Waren;
     die Haftung von VESTRA ist gemäß den Allgemeinen Geschäftsbedingungen beschränkt.</p>
     <h3>5. Melde- und Entfernungsverfahren</h3><p>Der Verkäufer hält die Richtlinie zu geistigem Eigentum &amp; Fälschungsschutz ein, reagiert auf Meldungen und

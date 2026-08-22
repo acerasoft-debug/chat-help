@@ -577,7 +577,7 @@ function vestra_ai_personalize(array $lead, array $tpl, string $senderName='', s
   $map=['{{company}}'=>$company,'{{contact_name}}'=>($contact?:'there'),'{{country}}'=>$country];
   $subject=strtr($subject,$map); $body=strtr($body,$map);
   $unsubUrl='https://vestrasales.com/lead-unsubscribe?token='.urlencode((string)($lead['unsub_token']??''));
-  $body.="\n\n—\n".($senderName!==''?$senderName.' via VESTRA (operated by acerasoft LLC)':'VESTRA is operated by acerasoft LLC').
+  $body.="\n\n—\n".($senderName!==''?$senderName.' via VESTRA (operated by Acerasoft LLC)':'VESTRA is operated by Acerasoft LLC').
          ". You're receiving this one-time business message because {$company} was identified as a potential trade partner.\nUnsubscribe: {$unsubUrl}";
   return [$subject,$body];
 }
@@ -1108,7 +1108,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (beheerd door acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke premium handelspartner.",
+      "Les Garage de Paris via VESTRA (beheerd door Acerasoft LLC). Eenmalig zakelijk bericht — uw winkel is geïdentificeerd als mogelijke premium handelspartner.",
       "Direct uitschrijven: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1147,7 +1147,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (betrieben von acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als potenzieller Premium-Handelspartner identifiziert.",
+      "Les Garage de Paris via VESTRA (betrieben von Acerasoft LLC). Einmalige geschäftliche Nachricht — Ihr Geschäft wurde als potenzieller Premium-Handelspartner identifiziert.",
       "Sofort abmelden: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1186,7 +1186,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (exploité par acerasoft LLC). Message commercial unique — votre boutique a été identifiée comme partenaire commercial premium potentiel.",
+      "Les Garage de Paris via VESTRA (exploité par Acerasoft LLC). Message commercial unique — votre boutique a été identifiée comme partenaire commercial premium potentiel.",
       "Se désinscrire immédiatement : https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1225,7 +1225,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (gestito da acerasoft LLC). Messaggio commerciale una tantum — il vostro negozio è stato identificato come potenziale partner commerciale premium.",
+      "Les Garage de Paris via VESTRA (gestito da Acerasoft LLC). Messaggio commerciale una tantum — il vostro negozio è stato identificato come potenziale partner commerciale premium.",
       "Annulla l'iscrizione subito: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1264,7 +1264,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (operado pela acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como potencial parceiro comercial premium.",
+      "Les Garage de Paris via VESTRA (operado pela Acerasoft LLC). Mensagem comercial única — a sua loja foi identificada como potencial parceiro comercial premium.",
       "Cancelar subscrição imediatamente: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1303,7 +1303,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (provozuje acerasoft LLC). Jednorázová obchodní zpráva — váš obchod byl identifikován jako potenciální prémiový obchodní partner.",
+      "Les Garage de Paris via VESTRA (provozuje Acerasoft LLC). Jednorázová obchodní zpráva — váš obchod byl identifikován jako potenciální prémiový obchodní partner.",
       "Okamžité odhlášení: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1342,7 +1342,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (prowadzone przez acerasoft LLC). Jednorazowa wiadomość biznesowa — Twój sklep został zidentyfikowany jako potencjalny partner handlowy premium.",
+      "Les Garage de Paris via VESTRA (prowadzone przez Acerasoft LLC). Jednorazowa wiadomość biznesowa — Twój sklep został zidentyfikowany jako potencjalny partner handlowy premium.",
       "Natychmiastowa rezygnacja z subskrypcji: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1381,7 +1381,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (operado por acerasoft LLC). Mensaje comercial único — su tienda ha sido identificada como potencial socio comercial premium.",
+      "Les Garage de Paris via VESTRA (operado por Acerasoft LLC). Mensaje comercial único — su tienda ha sido identificada como potencial socio comercial premium.",
       "Cancelar suscripción al instante: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1420,7 +1420,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (λειτουργεί από την acerasoft LLC). Μοναδικό εμπορικό μήνυμα — το κατάστημά σας αναγνωρίστηκε ως πιθανός premium εμπορικός συνεργάτης.",
+      "Les Garage de Paris via VESTRA (λειτουργεί από την Acerasoft LLC). Μοναδικό εμπορικό μήνυμα — το κατάστημά σας αναγνωρίστηκε ως πιθανός premium εμπορικός συνεργάτης.",
       "Άμεση διαγραφή: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1459,7 +1459,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (управляется компанией acerasoft LLC). Разовое деловое сообщение — ваш магазин был отмечен как потенциальный премиальный торговый партнёр.",
+      "Les Garage de Paris via VESTRA (управляется компанией Acerasoft LLC). Разовое деловое сообщение — ваш магазин был отмечен как потенциальный премиальный торговый партнёр.",
       "Отписаться мгновенно: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1498,7 +1498,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA(運営: acerasoft LLC)。一度限りのビジネスメールです — 貴店はプレミアム取引先候補として選ばれました。",
+      "Les Garage de Paris via VESTRA(運営: Acerasoft LLC)。一度限りのビジネスメールです — 貴店はプレミアム取引先候補として選ばれました。",
       "配信停止はこちら: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1537,7 +1537,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA(운영: acerasoft LLC). 일회성 비즈니스 메시지입니다 — 귀하의 매장이 프리미엄 거래 파트너 후보로 확인되었습니다.",
+      "Les Garage de Paris via VESTRA(운영: Acerasoft LLC). 일회성 비즈니스 메시지입니다 — 귀하의 매장이 프리미엄 거래 파트너 후보로 확인되었습니다.",
       "즉시 수신 거부: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1576,7 +1576,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
       "Les Garage de Paris · via VESTRA",
       "",
       "—",
-      "Les Garage de Paris via VESTRA (acerasoft LLC tərəfindən idarə olunur). Bir dəfəlik biznes mesajı — mağazanız potensial premium ticarət partnyoru kimi müəyyən edilib.",
+      "Les Garage de Paris via VESTRA (Acerasoft LLC tərəfindən idarə olunur). Bir dəfəlik biznes mesajı — mağazanız potensial premium ticarət partnyoru kimi müəyyən edilib.",
       "Dərhal abunəlikdən çıxın: https://vestrasales.com/lead-unsubscribe",
     ]);
     $opts=[
@@ -1614,7 +1614,7 @@ function vestra_campaign_preview_base(string $company='', string $lang='en', str
     "Les Garage de Paris · via VESTRA",
     "",
     "—",
-    "Les Garage de Paris via VESTRA (operated by acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
+    "Les Garage de Paris via VESTRA (operated by Acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
     "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
   ]);
   $opts=[
@@ -1664,7 +1664,7 @@ function vestra_campaign_promo_polos(string $company=''): array {
     "Les Garage de Paris · via VESTRA",
     "",
     "—",
-    "Les Garage de Paris via VESTRA (operated by acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
+    "Les Garage de Paris via VESTRA (operated by Acerasoft LLC). One-time business message — your store was identified as a potential premium trade partner.",
     "Unsubscribe instantly: https://vestrasales.com/lead-unsubscribe",
   ]);
   $opts = [

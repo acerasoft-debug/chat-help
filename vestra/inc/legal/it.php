@@ -2,7 +2,7 @@
   'imprint'   => ['title'=>"Note legali / Informazioni sull'editore", 'html'=>"
     <p>Informazioni ai sensi delle norme applicabili in materia di e-commerce e di informazione ai consumatori.</p>
     <h3>Operatore</h3>
-    <ul><li><b>Societ&agrave;:</b> acerasoft LLC</li>
+    <ul><li><b>Societ&agrave;:</b> Acerasoft LLC</li>
     <li><b>Forma giuridica:</b> US Limited Liability Company (State of Delaware)</li>
     <li><b>Sede legale:</b> 8 The Green, Suite B, Dover, Delaware 19901, USA</li>
     <li><b>Rappresentata da:</b> Management</li>
@@ -13,7 +13,7 @@
     <h3>Risoluzione delle controversie online</h3>
     <p>La piattaforma ODR dell'UE &egrave; disponibile all'indirizzo ec.europa.eu/consumers/odr. VESTRA si rivolge alle imprese (B2B).</p>"],
   'terms'     => ['title'=>"Condizioni di servizio", 'html'=>"
-    <p><b>Operatore:</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;noi&rdquo;). <b>In vigore dal:</b> 26 giugno 2026.
+    <p><b>Operatore:</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA (&ldquo;VESTRA&rdquo;, &ldquo;noi&rdquo;). <b>In vigore dal:</b> 26 giugno 2026.
     Creando un account, iscrivendoti alla lista d'attesa, pubblicando inserzioni, effettuando ordini o utilizzando in altro modo VESTRA, confermi di essere un'
     impresa che agisce a titolo commerciale e accetti le presenti Condizioni.</p>
     <h3>1. Che cos'&egrave; VESTRA</h3><p>VESTRA &egrave; un marketplace di vendita all'ingrosso B2B che mette in contatto venditori e acquirenti commerciali verificati.
@@ -49,7 +49,7 @@
     le commissioni di piattaforma effettivamente pagate da te a VESTRA nei <b>three (3) months</b> precedenti l'evento che ha dato origine alla pretesa,
     o <b>EUR 100</b>. Nulla esclude la responsabilit&agrave; che non pu&ograve; essere limitata dalla legge (ad es. frode, colpa grave o morte/lesioni
     personali causate da nostra negligenza); i tuoi diritti inderogabili restano impregiudicati.</p>
-    <h3>9. Manleva</h3><p>Accetti di <b>manlevare, difendere e tenere indenni</b> acerasoft LLC, le sue affiliate, i suoi dirigenti,
+    <h3>9. Manleva</h3><p>Accetti di <b>manlevare, difendere e tenere indenni</b> Acerasoft LLC, le sue affiliate, i suoi dirigenti,
     membri e collaboratori da e contro qualsiasi pretesa, richiesta, perdita, responsabilit&agrave;, multa, sanzione, danno e ragionevole spesa
     legale derivante da o relativa al tuo utilizzo della piattaforma, ai tuoi beni, alle tue inserzioni o contenuti, alle tue transazioni, alla tua violazione
     delle presenti Condizioni o di qualsiasi legge, o alla tua violazione di qualsiasi diritto di terzi.</p>
@@ -70,7 +70,7 @@
     vendita di attivit&agrave;; tu non puoi effettuare cessioni senza il nostro consenso. La nostra mancata applicazione di una disposizione non costituisce una rinuncia.</p>
     <p class='muted'>L'accettazione &egrave; registrata al momento della registrazione (data, versione, lingua). Contatto: <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></p>"],
   'privacy'   => ['title'=>"Informativa sulla privacy", 'html'=>"
-    <p><b>Titolare del trattamento:</b> acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Contatto:</b> privacy@vestrasales.com. <b>In vigore dal:</b> 26 giugno 2026.</p>
+    <p><b>Titolare del trattamento:</b> Acerasoft LLC, 8 The Green, Suite B, Dover, Delaware 19901, USA. <b>Contatto:</b> privacy@vestrasales.com. <b>In vigore dal:</b> 26 giugno 2026.</p>
     <h3>1. Dati che raccogliamo</h3><p>Dati dell'account &amp; di verifica (nome, dettagli aziendali, codice fiscale/partita IVA, identit&agrave; del titolare
     effettivo &amp; documenti relativi all'indirizzo), dati transazionali (ordini, inserzioni, comunicazioni) e dati tecnici/di log.</p>
     <h3>2. Perch&eacute; (finalit&agrave; &amp; basi giuridiche)</h3><ul>
@@ -84,14 +84,14 @@
     <h3>6. I tuoi diritti</h3><p>Accesso, rettifica, cancellazione, limitazione, portabilit&agrave;, opposizione e reclamo a un'
     autorit&agrave; di controllo.</p>"],
   'seller'    => ['title'=>"Contratto del venditore", 'html'=>"
-    <p>Tra acerasoft LLC e il venditore commerciale registrato. <b>In vigore dal:</b> 26 giugno 2026.</p>
+    <p>Tra Acerasoft LLC e il venditore commerciale registrato. <b>In vigore dal:</b> 26 giugno 2026.</p>
     <h3>1. Verifica</h3><p>Fornire e mantenere aggiornati la registrazione dell'impresa, il codice fiscale/partita IVA e l'identit&agrave; del titolare effettivo.</p>
     <h3>2. Venditore di riferimento</h3><p>Il venditore &egrave; il venditore legale dei propri beni ed &egrave; l'unico responsabile della conformit&agrave;, della sicurezza,
     della consegna, delle garanzie e delle imposte. VESTRA &egrave; esclusivamente un intermediario e non &egrave; parte della vendita.</p>
     <h3>3. Autenticit&agrave; &amp; diritto di vendere</h3><p>Per ogni articolo il venditore garantisce che i beni sono <b>autentici</b> e di essere
     <b>autorizzato/legittimato a venderli</b> nel mercato di destinazione (compreso l'esaurimento del marchio nel SEE ove applicabile),
     e fornir&agrave; su richiesta la prova dell'autenticit&agrave;/provenienza.</p>
-    <h3>4. Manleva &amp; responsabilit&agrave;</h3><p>Il venditore manleva e tiene indenne acerasoft LLC da qualsiasi pretesa, perdita, multa
+    <h3>4. Manleva &amp; responsabilit&agrave;</h3><p>Il venditore manleva e tiene indenne Acerasoft LLC da qualsiasi pretesa, perdita, multa
     o spesa derivante dai propri beni, dalle proprie inserzioni, dalla violazione delle garanzie o dalla violazione IP, ed &egrave; responsabile verso gli acquirenti per i propri beni;
     la responsabilit&agrave; di VESTRA &egrave; limitata come stabilito nelle Condizioni di servizio.</p>
     <h3>5. Segnalazione e rimozione</h3><p>Il venditore si conformer&agrave; alla Politica IP &amp; anticontraffazione, risponder&agrave; alle segnalazioni e

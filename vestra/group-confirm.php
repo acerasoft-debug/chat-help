@@ -66,7 +66,7 @@ if (($rec['status'] ?? '') === 'pending' && isset($_GET['paid'])) {
                   . "· When the pool reaches its target we invoice the balance, payable within {$days} days.\n"
                   . "· If the pool does not reach its target, we extend it once. If it still falls short, "
                   . "your deposit is refunded in full — you pay nothing.\n\n"
-                  . "— VESTRA · acerasoft LLC";
+                  . "— VESTRA · Acerasoft LLC";
             vestra_send_mail($rec['email'], "VESTRA — deposit confirmed ({$rec['brand']} {$rec['product']})", $msg);
         }
     } catch (\Throwable $e) {

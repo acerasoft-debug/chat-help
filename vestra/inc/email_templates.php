@@ -582,7 +582,7 @@ function vestra_tpl_order_details_needed(
           : '')
       . "If any of these details change the delivery country, please tell us — it affects the export paperwork, and we would rather correct it before the invoice is issued than after.\n\n"
       . "—\n"
-      . "VESTRA · acerasoft LLC\n"
+      . "VESTRA · Acerasoft LLC\n"
       . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
       . "support@vestrasales.com · vestrasales.com";
     return [$subject, $body, $opts];

@@ -18,7 +18,7 @@
 require_once __DIR__.'/pdf.php';
 
 /**
- * Platform'un kendi satici kimligi (acerasoft LLC) + banka hesabi.
+ * Platform'un kendi satici kimligi (Acerasoft LLC) + banka hesabi.
  *
  * Kurasyonlu katalog urunlerinde seller_uid YOK, dolayisiyla fatura kesilirken
  * $sellerAcc null geliyor ve belge banka bilgisi OLMADAN cikiyordu: alici parayi
@@ -34,7 +34,7 @@ require_once __DIR__.'/pdf.php';
  */
 function vestra_platform_seller(): array {
     $base = [
-        'company' => 'acerasoft LLC',
+        'company' => 'Acerasoft LLC',
         'address' => '8 The Green, Suite B, Dover, Delaware 19901',
         'country' => 'US',
         'website' => 'vestrasales.com',
@@ -268,9 +268,9 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     }
     $pdf->text($markX, $y, 20, 'VESTRA', true);
     /* Isletmeci adi tek yerden: banka kaydi "Acerasoft LLC" yaziyor, kodda ise
-       kucuk harfli 'acerasoft LLC' sabitti. Fatura ustte bir, altta baska turlu
+       kucuk harfli 'Acerasoft LLC' sabitti. Fatura ustte bir, altta baska turlu
        yazarsa alicinin muhasebesi iki farkli sirket gorur. */
-    $opName = trim((string)(($sellerAcc['company'] ?? '') ?: 'acerasoft LLC'));
+    $opName = trim((string)(($sellerAcc['company'] ?? '') ?: 'Acerasoft LLC'));
     $pdf->text($markX, $y - 16, 8, $opName.'  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);
     $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.$invoiceNo);
@@ -300,7 +300,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
                an invoice has to carry; correspondence goes through VESTRA. */
         ], fn($v) => $v !== ''));
     } else {
-        $sellerLines = ['VESTRA (acerasoft LLC)', 'Marketplace-catalog item', 'support@vestrasales.com'];
+        $sellerLines = ['VESTRA (Acerasoft LLC)', 'Marketplace-catalog item', 'support@vestrasales.com'];
     }
     $b = $order['buyer'] ?? [];
     /* A sole trader registers under their own name, so the contact line repeats the company
@@ -537,15 +537,15 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $y -= 2;
     }
     /* "VESTRA satici degildir" notu, satici GERCEKTEN baskasi oldugunda dogrudur ve
-       gereklidir: pazar yeri kendini satisin tarafi yapmamalidir. Ama acerasoft LLC'nin
+       gereklidir: pazar yeri kendini satisin tarafi yapmamalidir. Ama Acerasoft LLC'nin
        KENDI sattigi bir satista ayni cumle faturayi kendi icinde celiskiye dusuruyor --
-       ustte "From (Seller): acerasoft LLC" yazarken altta "acerasoft satici degildir"
+       ustte "From (Seller): Acerasoft LLC" yazarken altta "acerasoft satici degildir"
        demek, gumrukte ve bir ihtilafta belgeyi zayiflatan bir beyandir. O yuzden not
        yalnizca uclu satista basiliyor. */
     $platformIsSeller = stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
     $closing = $platformIsSeller
         ? 'This invoice is issued by '.$opName.' as seller of record for this sale.'
-        : 'This invoice is issued by the seller named above. VESTRA (acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.';
+        : 'This invoice is issued by the seller named above. VESTRA (Acerasoft LLC) operates the marketplace connecting buyer and seller and is not the seller of record for this sale.';
     foreach ($pdf->wrap($closing, $width, 8) as $fl) {
         $pdf->text($left, $y, 8, $fl); $y -= 11;
     }

@@ -4,7 +4,7 @@ return [
   'imprint'=>['title'=>'Imprint / Legal Notice','html'=>"
     <p>Information pursuant to applicable e-commerce and consumer-information rules.</p>
     <h3>Operator</h3>
-    <ul><li><b>Company:</b> acerasoft LLC</li><li><b>Form:</b> US Limited Liability Company</li>
+    <ul><li><b>Company:</b> Acerasoft LLC</li><li><b>Form:</b> US Limited Liability Company</li>
     <li><b>Registered address:</b> [US registered address]</li><li><b>EIN:</b> [IRS EIN]</li>
     <li><b>Represented by:</b> [Managing member]</li>
     <li><b>Contact:</b> <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></li></ul>
@@ -15,7 +15,7 @@ return [
     <p>The EU ODR platform is available at ec.europa.eu/consumers/odr. VESTRA primarily serves businesses (B2B).</p>"],
 
   'terms'=>['title'=>'Terms of Service','html'=>"
-    <p><b>Operator:</b> acerasoft LLC. <b>Effective:</b> [date]. By using VESTRA you accept these Terms.</p>
+    <p><b>Operator:</b> Acerasoft LLC. <b>Effective:</b> [date]. By using VESTRA you accept these Terms.</p>
     <h3>1. What VESTRA is</h3><p>A B2B wholesale marketplace connecting verified business sellers and buyers.
     VESTRA is an <b>intermediary</b> and not a party to sales; it does not warehouse goods or custody funds (an
     external licensed escrow provider does).</p>
@@ -35,7 +35,7 @@ return [
     <p class='muted'>Contact: <a href='mailto:legal@vestrasales.com'>legal@vestrasales.com</a></p>"],
 
   'privacy'=>['title'=>'Privacy Policy','html'=>"
-    <p><b>Controller:</b> acerasoft LLC, [US registered address]. <b>Contact:</b> privacy@vestrasales.com.</p>
+    <p><b>Controller:</b> Acerasoft LLC, [US registered address]. <b>Contact:</b> privacy@vestrasales.com.</p>
     <h3>1. Data we collect</h3><p>Account &amp; verification data (name, business details, tax/VAT ID, beneficial-owner
     identity &amp; address documents), transactional data (orders, listings, communications) and technical/log data.</p>
     <h3>2. Why (purposes &amp; legal bases)</h3><ul>
@@ -50,7 +50,7 @@ return [
     supervisory authority.</p>"],
 
   'seller'=>['title'=>'Seller Agreement','html'=>"
-    <p>Between acerasoft LLC and the registered business seller.</p>
+    <p>Between Acerasoft LLC and the registered business seller.</p>
     <h3>1. Verification</h3><p>Provide and keep current business registration, tax/VAT ID and beneficial-owner identity.</p>
     <h3>2. Seller of record</h3><p>The seller is the legal seller of its goods and responsible for conformity, safety,
     delivery, warranties and taxes. VESTRA is an intermediary only.</p>

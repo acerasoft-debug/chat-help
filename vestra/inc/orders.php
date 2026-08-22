@@ -299,7 +299,7 @@ function vestra_render_order_pdf(array $orderRow, array $lines, string $statusLa
     $ref = (string)($orderRow['ref'] ?? '');
 
     $pdf->text($left, $y, 20, 'VESTRA', true);
-    $pdf->text($left, $y - 16, 8, 'acerasoft LLC  ·  vestrasales.com', false);
+    $pdf->text($left, $y - 16, 8, 'Acerasoft LLC  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 18, 'ORDER SUMMARY', true);
     $pdf->textR($right, $y - 18, 9, 'Order ref:  '.$ref);
     $pdf->textR($right, $y - 30, 9, 'Date:  '.substr((string)($orderRow['timestamp'] ?? ''), 0, 10));

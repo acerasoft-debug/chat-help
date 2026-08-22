@@ -73,7 +73,7 @@ foreach ($pools as $p) {
                  . "Balance now due: €" . number_format((float) $c['balance'], 2) . "\n"
                  . "Payment due by: {$dueHuman}\n\n"
                  . "We will send the payment link and the invoice separately. Goods are dispatched once the balance is settled.\n\n"
-                 . "— VESTRA · acerasoft LLC";
+                 . "— VESTRA · Acerasoft LLC";
             vestra_send_mail($c['email'], "VESTRA — balance due for {$label} ({$c['ref']})", $msg);
         }
         if ($n) {
@@ -106,7 +106,7 @@ foreach ($pools as $p) {
                  . "Your commitment of {$c['qty']} {$c['unit']} and your deposit of €"
                  . number_format((float) $c['deposit'], 2) . " stand unchanged.\n"
                  . "If the pool still falls short by the new date, your deposit is refunded in full.\n\n"
-                 . "Reference: {$c['ref']}\n\n— VESTRA · acerasoft LLC";
+                 . "Reference: {$c['ref']}\n\n— VESTRA · Acerasoft LLC";
             vestra_send_mail($c['email'], "VESTRA — {$label} group buy extended", $msg);
         }
         vestra_notify("Pool extended — {$label}", "Target missed at {$p['_committed']}/{$p['_target']}. Extended {$extraDays} days to " . date('d.m.Y', strtotime($newDl)) . ".");
@@ -135,7 +135,7 @@ foreach ($pools as $p) {
                  . "You owe nothing further.\n\n"
                  . "Reference: {$c['ref']}\n\n"
                  . "Thank you for taking part — we will let you know when this article opens again.\n\n"
-                 . "— VESTRA · acerasoft LLC";
+                 . "— VESTRA · Acerasoft LLC";
             vestra_send_mail($c['email'], "VESTRA — deposit refunded ({$label})", $msg);
             $ok++;
         } catch (\Throwable $e) {

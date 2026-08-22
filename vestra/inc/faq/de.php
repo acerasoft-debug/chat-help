@@ -22,7 +22,7 @@
       3 => 
       array (
         'q' => 'Wer betreibt VESTRA?',
-        'a' => 'VESTRA wird von acerasoft LLC betrieben, einer US-amerikanischen Limited Liability Company, eingetragen im Bundesstaat Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Kontakt: legal@vestrasales.com.',
+        'a' => 'VESTRA wird von Acerasoft LLC betrieben, einer US-amerikanischen Limited Liability Company, eingetragen im Bundesstaat Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Kontakt: legal@vestrasales.com.',
       ),
       4 => 
       array (

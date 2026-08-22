@@ -22,7 +22,7 @@
       3 => 
       array (
         'q' => 'Qui opère VESTRA ?',
-        'a' => 'VESTRA est exploitée par acerasoft LLC, une société à responsabilité limitée de droit américain immatriculée dans l\'État du Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contact : legal@vestrasales.com.',
+        'a' => 'VESTRA est exploitée par Acerasoft LLC, une société à responsabilité limitée de droit américain immatriculée dans l\'État du Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contact : legal@vestrasales.com.',
       ),
       4 => 
       array (

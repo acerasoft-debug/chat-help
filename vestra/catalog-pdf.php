@@ -71,7 +71,7 @@ if (!auth_user_approved($u)) {
 </table>
 
 <div class="foot">
-  VESTRA — acerasoft LLC. Prices indicative, exclusive of platform fees, taxes and shipping.
+  VESTRA — Acerasoft LLC. Prices indicative, exclusive of platform fees, taxes and shipping.
   Branded goods sold by verified sellers; authenticity &amp; right-to-sell warranted. Subject to availability.
 </div>
 

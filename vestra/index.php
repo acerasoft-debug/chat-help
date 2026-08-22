@@ -4,7 +4,7 @@
  */
 $BRAND   = 'VESTRA';
 $CONTACT = 'support@vestrasales.com';
-$COMPANY = 'acerasoft LLC';
+$COMPANY = 'Acerasoft LLC';
 $ACCENT  = '#c9a86a';
 /* Signed-in visitors get "open my dashboard" instead of register CTAs —
    register.php would only redirect them anyway (reads as a dead button). */

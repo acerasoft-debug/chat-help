@@ -45,7 +45,7 @@ function vestra_faq_en(){
     ['q'=>'Which countries does VESTRA serve?',
      'a'=>'VESTRA is open to verified businesses worldwide. However, we do not onboard users located in jurisdictions subject to international sanctions (OFAC, EU, UN). EEA-stock products are particularly suited to buyers within Europe.'],
     ['q'=>'Who operates VESTRA?',
-     'a'=>'VESTRA is operated by acerasoft LLC, a US Limited Liability Company registered in the State of Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contact: legal@vestrasales.com.'],
+     'a'=>'VESTRA is operated by Acerasoft LLC, a US Limited Liability Company registered in the State of Delaware (8 The Green, Suite B, Dover, Delaware 19901, USA). Contact: legal@vestrasales.com.'],
     ['q'=>'What makes VESTRA different from other wholesale platforms?',
      'a'=>'VESTRA combines KYC-verified sellers, documented invoice-based payment with automatic PDF invoices, Group Buying (pool with other buyers to unlock volume prices), and a Sourcing Requests board — all in one secure B2B environment designed for fashion wholesale.'],
   ]],
