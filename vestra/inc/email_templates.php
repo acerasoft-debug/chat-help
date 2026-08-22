@@ -589,6 +589,118 @@ function vestra_tpl_order_details_needed(
 }
 
 /**
+ * The letter a newly registered seller gets: what to do, in the order it has to happen.
+ *
+ * Four asks, and the order is the point. Publishing is free and needs nothing, so it comes
+ * first and the seller can act on it today; the catalogue offer removes the work that
+ * actually stops people (typing hundreds of references by hand); the commission card is
+ * required before money moves; Stripe is optional and clearly labelled as such. Putting the
+ * two payment steps first would read as a bill arriving before any benefit.
+ *
+ * Every link and label names something that exists in the seller panel — "Commission card",
+ * "Payouts & Escrow (Stripe)", both under /seller?tab=profile. A welcome letter that sends
+ * someone hunting for a button that is not there costs more trust than it builds.
+ *
+ * @param float $rate Commission as a fraction (0.035) — printed, never hardcoded in the
+ *                    text, so a rate change in one constant cannot leave this letter lying.
+ */
+function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, bool $isCompany = true): array {
+    /* Ispanyolcada ondalik ayirici VIRGUL: "3.5%" bir Ispanyol okura makine
+       cevirisi gibi gorunur, "3,5 %" dogal. Yuzde isaretinden onceki bosluk da
+       Ispanyolca yazim kuralidir. */
+    $pct  = $lang === 'es' ? number_format($rate * 100, 1, ',', '.').' %' : number_format($rate * 100, 1).'%';
+    /* Bir SIRKETE "Estimado/a Calzados Pili Perez:" diye hitap edilmez -- tekil
+       nezaket kalibi kisiye aittir. Ticari yazismada sirkete "Estimados senores:"
+       yazilir ve sirket adi ilk cumlede gecer. Sahis ise "Estimado/a X:" dogru.
+       Ayrimi cagiran biliyor (hesapta company mi name mi doluydu), tahmin
+       etmiyoruz. */
+    $greetEs = $isCompany ? 'Estimados señores:' : "Estimado/a {$name}:";
+    $openEs  = $isCompany
+        ? "Bienvenidos a VESTRA. La cuenta de vendedor de {$name} ya está activa y pueden empezar hoy mismo."
+        : "Bienvenido a VESTRA. Su cuenta de vendedor ya está activa y puede empezar hoy mismo.";
+    $opts = [
+        'badge'  => $lang === 'es' ? 'Cuenta de vendedor activa' : 'Seller account active',
+        'button' => [
+            'label' => $lang === 'es' ? 'Abrir mi panel' : 'Open my dashboard',
+            'url'   => 'https://vestrasales.com/seller',
+        ],
+    ];
+
+    if ($lang === 'es') {
+        $subject = 'VESTRA — su cuenta de vendedor está activa: publique sin coste';
+        $body =
+            $greetEs."\n\n"
+          . $openEs."\n\n"
+
+          . "1) Publicación gratuita\n"
+          . "Hasta la próxima revisión de las condiciones de la plataforma, publicar sus productos "
+          . "no tiene ningún coste: sin cuota de alta, sin mensualidad y sin límite de referencias. "
+          . "Puede subir su surtido completo de hombre, mujer y niño.\n\n"
+
+          . "2) Envíenos su catálogo y lo cargamos nosotros\n"
+          . "Si dispone de catálogo o tarifa (Excel, PDF o un enlace), respóndanos a este correo y "
+          . "nos encargamos de dar de alta los artículos por usted. Para cada referencia nos ayuda "
+          . "tener: código, descripción, materiales, tallas, precio mayorista, pedido mínimo y "
+          . "fotografías.\n\n"
+
+          . "3) Tarjeta para las comisiones\n"
+          . "Para poder liquidar la comisión de la plataforma necesitamos una tarjeta registrada en "
+          . "su cuenta. Se cobra únicamente el {$pct} sobre los pedidos que usted venda, y solo "
+          . "cuando el pago del comprador está confirmado — no hay cargos fijos.\n"
+          . "Panel → Perfil → «Commission card» → «Add commission card».\n\n"
+
+          . "4) Venta con pago protegido (opcional)\n"
+          . "Si quiere ofrecer a sus clientes una compra con garantía, conecte su cuenta con Stripe "
+          . "desde el panel y complete los pasos de verificación. Con el depósito en garantía el "
+          . "importe queda retenido hasta que el comprador confirma la recepción, y su liquidación "
+          . "(menos la comisión) se abona automáticamente. Stripe verifica su identidad y sus datos "
+          . "bancarios; VESTRA no los ve en ningún momento.\n"
+          . "Panel → Perfil → «Payouts & Escrow (Stripe)» → «Set up Stripe payouts».\n"
+          . "Es opcional: la transferencia bancaria contra factura sigue funcionando sin esto, pero "
+          . "un primer pedido se cierra con mucha más facilidad cuando el comprador ve el pago "
+          . "protegido.\n\n"
+
+          . "Si tiene cualquier duda, responda a este mensaje y le ayudamos.\n\n"
+          . "—\n"
+          . "VESTRA · Acerasoft LLC\n"
+          . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+          . "support@vestrasales.com · vestrasales.com";
+        return [$subject, $body, $opts];
+    }
+
+    $subject = 'VESTRA — your seller account is active: list free of charge';
+    $body =
+        "Dear {$name},\n\n"
+      . "Welcome to VESTRA. Your seller account is active and you can start today.\n\n"
+      . "1) Free listing\n"
+      . "Until the next review of the platform terms, listing your products costs you nothing: "
+      . "no joining fee, no monthly charge and no limit on the number of references. You can "
+      . "upload your full range for men, women and children.\n\n"
+      . "2) Send us your catalogue and we will load it\n"
+      . "If you have a catalogue or price list (Excel, PDF or a link), reply to this email and we "
+      . "will create the listings for you. For each reference it helps to have: code, description, "
+      . "materials, sizes, wholesale price, minimum order and photographs.\n\n"
+      . "3) Card for commission\n"
+      . "To settle the platform commission we need a card on file. Only {$pct} is charged on the "
+      . "orders you sell, and only once the buyer's payment is confirmed — there are no fixed fees.\n"
+      . "Dashboard → Profile → \"Commission card\" → \"Add commission card\".\n\n"
+      . "4) Protected payment (optional)\n"
+      . "To offer your customers a guaranteed purchase, connect your account to Stripe from the "
+      . "dashboard and complete the verification steps. With escrow the amount is held until the "
+      . "buyer confirms delivery, and your payout (less commission) is released automatically. "
+      . "Stripe verifies your identity and bank details; VESTRA never sees them.\n"
+      . "Dashboard → Profile → \"Payouts & Escrow (Stripe)\" → \"Set up Stripe payouts\".\n"
+      . "This is optional: bank transfer against an invoice still works without it, but a first "
+      . "order closes far more easily when the buyer sees protected payment.\n\n"
+      . "If anything is unclear, reply to this message and we will help.\n\n"
+      . "—\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * A person's name as a letter should open with it.
  *
  * Registration stores exactly what was typed, and people type their name in the same

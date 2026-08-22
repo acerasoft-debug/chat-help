@@ -109,6 +109,23 @@ on:
         required: false
         default: "false"
 
+      sel_to:
+        description: "SATICI MEKTUBU: alıcı e-posta. Doluysa YALNIZCA bu iş çalışır."
+        required: false
+        default: ""
+      sel_name:
+        description: "SATICI MEKTUBU: hitap edilecek ad (ör. Calzados Pili Pérez)"
+        required: false
+        default: ""
+      sel_lang:
+        description: "SATICI MEKTUBU: dil — es | en"
+        required: false
+        default: "es"
+      sel_send:
+        description: "SATICI MEKTUBU: true = GERÇEKTEN gönder. false (varsayılan) = sadece konu+gövdeyi yaz"
+        required: false
+        default: "false"
+
 permissions:
   contents: read
 
@@ -578,11 +595,81 @@ jobs:
             rm -f ./vestra_issue_invoice_tmp.php /tmp/vestra_issue_invoice.php
             exit $rc
 
+  # Yeni kayit olan bir saticiya gonderilen karsilama/yonlendirme mektubu.
+  # Metin sablonda (vestra_tpl_seller_onboarding) yasiyor, burada degil: ayni
+  # mektup her yeni saticiya gidecek ve iki yerde iki surum tutmak, birini
+  # guncelleyip digerini unutmak demek.
+  seller_letter:
+    if: github.event.inputs.sel_to != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Satıcı karşılama mektubu
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          S_TO: ${{ github.event.inputs.sel_to }}
+          S_NAME: ${{ github.event.inputs.sel_name }}
+          S_LANG: ${{ github.event.inputs.sel_lang }}
+          S_SEND: ${{ github.event.inputs.sel_send }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: S_TO,S_NAME,S_LANG,S_SEND
+          script: |
+            cat > /tmp/vestra_seller_letter.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/email_templates.php";
+
+            $to   = trim((string)getenv('S_TO'));
+            $lang = strtolower(trim((string)getenv('S_LANG'))) ?: 'es';
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici\n"); exit(1); }
+
+            /* Hitap: once elle verilen ad, yoksa HESAPTAN. Hesap varsa sirket adi
+               zaten dogru yazilmis olur; elle yazmak yazim hatasi riski demek. */
+            $acc  = auth_find($to) ?: [];
+            $name = trim((string)getenv('S_NAME'));
+            /* Sirket mi sahis mi: hitap kalibi buna bagli ve TAHMIN EDILMIYOR --
+               hesapta company doluysa sirket, degilse sahis. Elle ad verildiginde
+               de sirket varsayiliyor (bu platformda satici taraf isletmedir). */
+            $isCompany = trim((string)($acc['company'] ?? '')) !== '' || $name !== '';
+            if ($name === '') { $name = trim((string)($acc['company'] ?? '')); }
+            if ($name === '') { $name = trim((string)($acc['name'] ?? '')); $isCompany = false; }
+            if ($name === '') { $name = 'VESTRA'; $isCompany = true; }
+            echo "hesap: ".($acc ? "VAR (tip: ".($acc['type'] ?? '?').", durum: ".($acc['status'] ?? '?').")" : "YOK -- kayitsiz adrese yaziliyor")."\n";
+            echo "hitap: {$name}\n";
+            echo "dil  : {$lang}\n";
+
+            /* Komisyon orani SABIT DEGIL, kaynagindan okunuyor: oran degistiginde
+               mektup kendiliginden dogru kalsin. */
+            $rate = vestra_seller_commission_rate((string)($acc['membership_tier'] ?? ''));
+            echo "hitap turu: ".($isCompany ? 'sirket' : 'sahis')."\n";
+            [$subject, $body, $opts] = vestra_tpl_seller_onboarding($lang, $name, $rate, $isCompany);
+
+            echo "\n== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
+            if (strtolower((string)getenv('S_SEND')) !== 'true') { echo "sel_send=false -- GONDERILMEDI\n"; exit(0); }
+            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'VESTRA', null, '', $opts);
+            echo $ok ? "GONDERILDI\n" : "GONDERILEMEDI (vestra_send_mail false dondu)\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_seller_letter.php ./vestra_seller_letter_tmp.php
+            php ./vestra_seller_letter_tmp.php
+            rc=$?
+            rm -f ./vestra_seller_letter_tmp.php /tmp/vestra_seller_letter.php
+            exit $rc
+
   send:
     # Kampanya isi VARSAYILAN dal: hicbir sey verilmezse o calisir. Yeni bir is
     # eklerken buraya da yazilmali, yoksa "sadece fatura kesecektim" derken
     # kampanya e-postasi da gider. set-mail-key'de tam bu hata yasandi.
-    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == '' && github.event.inputs.inv_ref == ''
+    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == '' && github.event.inputs.inv_ref == '' && github.event.inputs.sel_to == ''
     runs-on: ubuntu-latest
     steps:
       - name: Kampanya önizlemesini gönder / render et
