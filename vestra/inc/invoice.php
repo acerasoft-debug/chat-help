@@ -416,14 +416,25 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            kisiye var olmayan bir alani aratmak demek. Ikisi de doluysa (ornegin bir
            AB ve bir ABD hesabi) ikisi de basiliyor -- odeyen kendi tarafina uygun
            olani secer, ki uluslararasi transferde ucuz olan da odur. */
+        /* Satir sirasi bilincli: kutu TANIDIK isimle acilir (Account holder =
+           faturayi kesen sirket), hesabin oturdugu kurum asagida teknik detay
+           olarak durur. Onceki hali "Bank: Choice Financial Group" ile aciliyordu
+           ve alicinin ilk gordugu sey hic duymadigi bir isim oluyordu -- fintech
+           hesaplarinda (Mercury/Brex/Relay) hesap lisansli bir ortak bankada
+           oturur ve alicinin taniyacagi isim satici, o banka degil.
+
+           Banka adi SILINEMEZ: odeyenin havale formunda alici banka alani zorunlu.
+           Faturada yazmazsa alici ya routing'i arayip ayni isme kendisi varir ya da
+           "Mercury" tahmin eder -- ad routing ile eslesmez, havale doner. Etiket bu
+           yuzden formun kendi dili: "Beneficiary bank". */
         $bankLines = $sellerAcc ? array_values(array_filter([
-            !empty($sellerAcc['bank_name'])   ? 'Bank: '.$sellerAcc['bank_name'] : '',
             !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
-            !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
-            !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
-            !empty($sellerAcc['bank_routing']) ? 'Routing number (ABA): '.$sellerAcc['bank_routing'] : '',
             !empty($sellerAcc['bank_account']) ? 'Account number: '.$sellerAcc['bank_account']
                 .(!empty($sellerAcc['bank_acct_type']) ? '  ('.$sellerAcc['bank_acct_type'].')' : '') : '',
+            !empty($sellerAcc['bank_routing']) ? 'Routing number (ABA): '.$sellerAcc['bank_routing'] : '',
+            !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
+            !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
+            !empty($sellerAcc['bank_name'])   ? 'Beneficiary bank: '.$sellerAcc['bank_name'] : '',
             !empty($sellerAcc['bank_address']) ? 'Bank address: '.$sellerAcc['bank_address'] : '',
             $payRef !== '' ? 'Payment reference: '.$payRef : '',
         ], fn($v) => $v !== '')) : [];
