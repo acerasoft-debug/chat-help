@@ -589,6 +589,27 @@ function vestra_tpl_order_details_needed(
 }
 
 /**
+ * A person's name as a letter should open with it.
+ *
+ * Registration stores exactly what was typed, and people type their name in the same
+ * lowercase they use for a password field — the live account for this buyer holds
+ * "samuel kozak". Printed straight into a salutation that reads "Dear samuel kozak,",
+ * which on a commercial invoice looks like a mail merge that went wrong.
+ *
+ * Only an all-lowercase name is touched. That single condition is what makes this safe:
+ * a name carrying any capital was written deliberately, and title-casing it would break
+ * exactly the names that most need leaving alone — "McDonald" would become "Mcdonald",
+ * "van der Berg" would become "Van Der Berg", "DKNY" would become "Dkny". The stored
+ * value is never rewritten; this is a display rule, and the account keeps what its owner
+ * typed.
+ */
+function vestra_display_name(string $name): string {
+    $name = trim($name);
+    if ($name === '' || preg_match('/\p{Lu}/u', $name)) return $name;
+    return mb_convert_case($name, MB_CASE_TITLE, 'UTF-8');
+}
+
+/**
  * The letter a buyer gets when the invoice is issued and attached.
  *
  * A PDF arriving on its own is a demand with no context: the reader has to open it to find
@@ -630,6 +651,7 @@ function vestra_tpl_invoice_issued(
     ];
 
     $subject = "VESTRA — invoice {$invoiceNo} for order {$ref}";
+    $buyerName = vestra_display_name($buyerName);
     $body =
         "Dear {$buyerName},\n\n"
       . "Thank you for confirming your details. The invoice for order {$ref} is attached, "
