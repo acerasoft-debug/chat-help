@@ -514,7 +514,16 @@ jobs:
               $subject = '[TASLAK] '.$subject;
               $body = "*** TASLAK -- fatura HENUZ KESILMEDI, bu belge gecerli bir fatura DEGILDIR. ***\n\n".$body;
             }
-            $mOpts['attachments'] = [['name' => basename($path), 'path' => $path]];
+            /* Ek adi: diskteki ad "O39419__vestra.pdf" -- bu ic isleyisin adi, musterinin
+               indirme klasorunde gorecegi ad degil. Alicinin panelinde indirdiginde ne
+               yaziyorsa e-postada da o yazmali (vestra_invoice_download_name), yoksa ayni
+               belge iki farkli isimle dolasir ve bir ihtilafta hangisinin hangisi oldugu
+               sorulur. */
+            $attName = $commit
+              ? vestra_invoice_download_name($ref, (string)($inv['seller_key'] ?? 'vestra'))
+              : basename($path);
+            $mOpts['attachments'] = [['name' => $attName, 'path' => $path]];
+            echo "ek adi: {$attName}\n";
 
             echo "\n== KONU ==\n{$subject}\n\n== GOVDE ==\n{$body}\n\n";
             $ok = vestra_send_mail($to, $subject, $body,
