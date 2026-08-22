@@ -533,7 +533,7 @@ function vestra_tpl_order_details_needed(
     $opts = [
         'badge'  => 'Offer accepted',
         'rows'   => $rows,
-        'button' => ['label'=>'Open my account', 'url'=>'https://vestrasales.com/buyer'],
+        'button' => ['label'=>'Confirm my details', 'url'=>'https://vestrasales.com/buyer'],
     ];
 
     $ask = [];
@@ -555,7 +555,10 @@ function vestra_tpl_order_details_needed(
     $body =
         "Dear {$buyerName},\n\n"
       . "We are pleased to confirm that your offer {$ref} has been accepted.\n\n"
-      . "To issue your invoice and prepare the shipment, please reply with the following:\n\n"
+      /* "Reply with the following" cevap yazma isi gibi okunuyor ve bir is
+         e-postasinda erteleniyor. "Confirm your details" ise zaten sahip olduklari
+         bilgiyi onaylamaya davet ediyor: daha kucuk bir istek, daha yuksek cevap. */
+      . "To issue your invoice and prepare the shipment, please confirm your details below:\n\n"
       . $askTxt . "\n\n"
       . "Payment terms are 100% in advance. Once the above is confirmed we will issue the invoice with our banking details, and the goods are dispatched as soon as payment is received.\n\n"
       /* Sevkiyat aciklamasi. Iki sey acikca yaziliyor:

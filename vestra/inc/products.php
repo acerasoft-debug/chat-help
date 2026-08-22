@@ -644,6 +644,22 @@ function vestra_seller_monthly_quota_limit(string $tier): ?int {
 function vestra_seller_commission_rate(string $tier): float {
     return VESTRA_COMMISSION_RATE;
 }
+/* ─── Urun adi: markayi iki kez yazma ──────────────────────────────────────────
+   Bazi katalog kayitlarinda marka adi urun ADININ icinde de duruyor
+   (brand "Balenciaga" + name "Balenciaga Print T-Shirt"). Duz birlestirme
+   "Balenciaga Balenciaga Print T-Shirt" uretiyor -- musteriye ve gumruge giden
+   belgelerde ucuz duruyor.
+
+   Kural TEK yerde: fatura ve e-posta ayni fonksiyonu cagiriyor. Iki kopya
+   birakilsaydi biri duzeltilip digeri unutulurdu; bu projede bugun birkac kez
+   goruldu (urun ekleme kapisi, teklif yaniti, KYB onayi). */
+function vestra_product_label(string $brand, string $name): string {
+    $brand = trim($brand); $name = trim($name);
+    if ($brand === '') return $name;
+    if ($name === '')  return $brand;
+    return stripos($name, $brand) === 0 ? $name : $brand.' '.$name;
+}
+
 /* ─── Vergi numarasi alani: soruyu ULKEYE gore sor ─────────────────────────────
    Alan hep "VAT / Tax ID" etiketi ve "DE123456789" ipucu ile cikiyordu. ABD'de
    KDV YOK; oradaki karsiligi IRS'in verdigi EIN. Amerikali bir kullaniciya Alman

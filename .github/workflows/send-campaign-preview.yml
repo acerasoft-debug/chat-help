@@ -155,8 +155,18 @@ jobs:
               }
             }
 
+            /* Urun adi offers.csv'de brand+name birlesik yaziliyor ve bazi katalog
+               kayitlarinda marka ADIN icinde de var: ham alan "Balenciaga Balenciaga
+               Print T-Shirt" veriyor. Listing'den okuyup ayni tekillestirme kuralini
+               uyguluyoruz (faturayla ayni fonksiyon). Listing bulunamazsa ham alan
+               kullaniliyor -- eksik ada sahip bir mektup, hic mektup yollamamaktan iyi. */
+            $lst = vestra_listing_by_sku((string)($row['sku'] ?? ''));
+            $prodLabel = $lst
+              ? vestra_product_label((string)($lst['brand'] ?? ''), (string)($lst['name'] ?? ''))
+              : (string)($row['product'] ?? '');
+
             [$subject, $body, $opts] = vestra_tpl_order_details_needed(
-              $buyerName, (string)($row['product'] ?? ''), $ref,
+              $buyerName, $prodLabel, $ref,
               (int)($row['qty'] ?? 0), (float)($row['offer_unit'] ?? 0), (float)($row['offer_total'] ?? 0),
               trim((string)getenv('O_COLOURS')), $missing, $usdRate, $rateNote,
               (float)getenv('O_SHIP'), trim((string)getenv('O_LEAD'))

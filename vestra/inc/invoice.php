@@ -374,14 +374,9 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $goodsTotal = 0.0;
     $totalQty   = 0;
     foreach ($items as $it) {
-        /* Bazi katalog kayitlarinda marka adi urun ADININ icinde de duruyor
-           (brand "Balenciaga" + name "Balenciaga Print T-Shirt"). Duz birlestirme
-           faturaya "Balenciaga Balenciaga Print T-Shirt" yaziyordu -- musteriye ve
-           gumruge giden bir belgede ucuz duruyor. Ad zaten markayla basliyorsa
-           marka bir kez yaziliyor. */
-        $brand = trim((string)($it['brand'] ?? ''));
-        $name  = trim((string)($it['name'] ?? ''));
-        $desc  = ($brand !== '' && stripos($name, $brand) === 0) ? $name : trim($brand.' '.$name);
+        /* Marka iki kez yazilmasin -- kural products.php'de, tek yerde:
+           fatura ve siparis e-postasi ayni fonksiyonu cagiriyor. */
+        $desc = vestra_product_label((string)($it['brand'] ?? ''), (string)($it['name'] ?? ''));
         $descLines = vestra_invoice_wrap($desc, $colCol - $colDesc - 6, 9);
         $skuLines  = vestra_invoice_wrap((string)($it['sku'] ?? ''), $colDesc - $colSku - 8, 8);
         $rowH = max(13, max(count($descLines), count($skuLines)) * 11) + 8;
