@@ -10,6 +10,14 @@ on:
         description: "Silinecek sınıflar (virgülle): zincir,textil_degil,kendi_markasi,tek_marka"
         required: false
         default: "zincir,textil_degil,kendi_markasi,tek_marka"
+      dns_check:
+        description: "true = ÖLÜ ALAN ADI taraması çalıştır (var olmayan domain'li leadler). Yukarıdaki sınıf temizliği ÇALIŞMAZ."
+        required: false
+        default: "false"
+      dns_limit:
+        description: "Bu çalıştırmada en fazla kaç YENİ alan adı çözümlensin (sonuçlar önbelleğe yazılır, tekrar çalıştırınca kaldığı yerden devam eder)"
+        required: false
+        default: "600"
 
 permissions:
   contents: read
@@ -29,6 +37,7 @@ permissions:
 # GUVENLIK 3: silmeden once zaman damgali yedek alinir.
 jobs:
   purge:
+    if: github.event.inputs.dns_check != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Ayıkla ve çıkar
@@ -117,3 +126,136 @@ jobs:
             cp /tmp/vestra_purge_leads.php ./vestra_purge_tmp.php
             php ./vestra_purge_tmp.php
             rm -f ./vestra_purge_tmp.php /tmp/vestra_purge_leads.php
+
+  # ── Ölü alan adı taraması ────────────────────────────────────────────────────
+  # Var OLMAYAN alan adına sahip leadleri bulur ve çıkarır.
+  #
+  # Neden ayrı bir is: purge-bounced.yml ancak GONDERDIKTEN sonra ogreniyor --
+  # Brevo'dan hard-bounce listesi cekiyor. O noktada itibar zarari zaten olmus
+  # oluyor. Bu is gondermeden ONCE soruyor: bu alan adi hic var mi?
+  #
+  # DNS sorgusu SUNUCUDA yapiliyor, runner'da degil. Sebep: aksi halde 4000
+  # leadin e-posta adresini herkese acik Actions log'una dokmek gerekirdi.
+  # Log'a yalnizca sayilar ve en fazla 10 ornek ALAN ADI yaziliyor, adres degil.
+  #
+  # Sonuclar data/dns_cache.json'a yaziliyor: is yarida kesilirse tekrar
+  # calistirmak kaldigi yerden devam eder, ayni alan adi iki kez sorulmaz.
+  dns_purge:
+    if: github.event.inputs.dns_check == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ölü alan adlarını tara ve çıkar
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DRY:   ${{ github.event.inputs.dry_run }}
+          LIMIT: ${{ github.event.inputs.dns_limit }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 10m
+          envs: DRY,LIMIT
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_dns_purge.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require       $home."/public_html/inc/products.php";
+            require_once  $home."/public_html/inc/leads.php";
+
+            $DRY   = strtolower(trim((string)getenv('DRY'))) !== 'false';
+            $LIMIT = max(1, min(3000, (int)getenv('LIMIT') ?: 600));
+
+            $leads = vestra_leads();
+            $cf    = $home."/public_html/data/dns_cache.json";
+            $cache = is_readable($cf) ? (json_decode((string)file_get_contents($cf), true) ?: []) : [];
+
+            /* Alan adlarini topla. Ucretsiz saglayicilar hic sorulmuyor: gmail.com
+               zaten yasiyor, sorgulamak bosuna DNS trafigi. */
+            $FREE = ['gmail.com','googlemail.com','hotmail.com','outlook.com','yahoo.com',
+                     'ymail.com','libero.it','gmx.de','gmx.net','web.de','icloud.com',
+                     'aol.com','live.com','msn.com','free.fr','orange.fr','wanadoo.fr'];
+            $FREE = array_flip($FREE);
+
+            $domains = [];
+            foreach ($leads as $l) {
+              $e = strtolower(trim((string)($l['email'] ?? '')));
+              if ($e === '' || !str_contains($e, '@')) continue;
+              $d = substr($e, strrpos($e, '@') + 1);
+              if ($d === '' || isset($FREE[$d])) continue;
+              $domains[$d] = true;
+            }
+            $domains = array_keys($domains);
+
+            /* Canli mi: once MX, yoksa A. RFC 5321 bir alan adinin MX'i yokken de
+               A kaydiyla posta kabul etmesine izin veriyor, o yuzden yalnizca MX'e
+               bakmak yasayan alan adlarini olu gosterirdi. */
+            $alive = function(string $d): bool {
+              return @checkdnsrr($d, 'MX') || @checkdnsrr($d, 'A');
+            };
+
+            $checked = 0; $left = 0;
+            foreach ($domains as $d) {
+              if (isset($cache[$d])) continue;
+              if ($checked >= $LIMIT) { $left++; continue; }
+              $ok = $alive($d);
+              /* Olu gorunen her alan adi IKINCI kez soruluyor. Tek bir gecici DNS
+                 hatasi, yasayan bir musteriyi listeden silmek icin yeterli bir
+                 kanit degil -- ve silmek geri alinmasi zor. */
+              if (!$ok) { usleep(150000); $ok = $alive($d); }
+              $cache[$d] = ['ok' => $ok, 'at' => date('c')];
+              $checked++;
+            }
+            @file_put_contents($cf, json_encode($cache, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+            $deadDom = [];
+            foreach ($cache as $d => $v) if (empty($v['ok'])) $deadDom[$d] = true;
+
+            /* Gonderilmis bir leadi SILMIYORUZ, olu olarak isaretliyoruz. Silseydik
+               adres "hic gonderilmemis" durumuna doner ve ileride ayni liste tekrar
+               yuklendiginde bir kez daha denenirdi -- yani tam da onlemek istedigimiz
+               bounce'i geri getirirdik. */
+            $keep = []; $del = 0; $mark = 0; $sample = [];
+            foreach ($leads as $l) {
+              $e = strtolower(trim((string)($l['email'] ?? '')));
+              $d = str_contains($e,'@') ? substr($e, strrpos($e,'@')+1) : '';
+              if ($d === '' || !isset($deadDom[$d])) { $keep[] = $l; continue; }
+              if (count($sample) < 10 && !in_array($d, $sample, true)) $sample[] = $d;
+              if (trim((string)($l['last_contacted_at'] ?? '')) !== '') {
+                $l['status'] = 'dead_domain';               // arsivde kalsin
+                $keep[] = $l; $mark++;
+              } else {
+                $del++;                                      // hic denenmemis -> cikar
+              }
+            }
+
+            echo "== OLU ALAN ADI TARAMASI ==\n";
+            echo "toplam lead            : ".count($leads)."\n";
+            echo "farkli alan adi        : ".count($domains)."  (ucretsiz saglayicilar haric)\n";
+            echo "bu calistirmada bakilan: {$checked}\n";
+            echo "onbellekte toplam      : ".count($cache)."\n";
+            echo "HENUZ BAKILMAMIS       : {$left}".($left ? "  <-- tekrar calistir" : "")."\n";
+            echo "OLU alan adi           : ".count($deadDom)."\n\n";
+            echo "cikarilacak lead (hic gonderilmemis): {$del}\n";
+            echo "olu isaretlenecek  (gonderilmis)    : {$mark}\n";
+            echo "kalacak                             : ".count($keep)."\n\n";
+            echo "ornek olu alan adlari (en fazla 10, ADRES YAZILMIYOR):\n";
+            foreach ($sample as $s) echo "   {$s}\n";
+            echo "\n";
+
+            if ($DRY) { echo "DRY-RUN: leads.json'a DOKUNULMADI. Uygulamak icin dry_run=false.\n"; exit(0); }
+            if (!$del && !$mark) { echo "Yapacak bir sey yok.\n"; exit(0); }
+
+            $lf  = $home."/public_html/data/leads.json";
+            $bak = $lf.".bak-dns-".date("Ymd_His");
+            if (is_readable($lf)) { copy($lf, $bak); echo "yedek: ".basename($bak)."\n"; }
+            vestra_save_leads($keep);
+            echo "BITTI. cikarilan: {$del}, olu isaretlenen: {$mark}, yeni toplam: ".count($keep)."\n";
+            PHPEOF
+            cp /tmp/vestra_dns_purge.php ./vestra_dns_purge_tmp.php
+            php ./vestra_dns_purge_tmp.php
+            rc=$?
+            rm -f ./vestra_dns_purge_tmp.php /tmp/vestra_dns_purge.php
+            exit $rc
