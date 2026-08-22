@@ -327,11 +327,20 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            constant across the part-shipments this order will be delivered in — one string
            tying the bank statement back to the sale from either side. */
         $payRef = trim((string)($order['ref'] ?? ''));
+        /* IBAN/BIC ile routing/account BIRLIKTE degil, hangisi doluysa O yaziliyor.
+           ABD hesabinda IBAN yok; bos bir "IBAN:" satiri basmak, odemeyi yapacak
+           kisiye var olmayan bir alani aratmak demek. Ikisi de doluysa (ornegin bir
+           AB ve bir ABD hesabi) ikisi de basiliyor -- odeyen kendi tarafina uygun
+           olani secer, ki uluslararasi transferde ucuz olan da odur. */
         $bankLines = $sellerAcc ? array_values(array_filter([
             !empty($sellerAcc['bank_name'])   ? 'Bank: '.$sellerAcc['bank_name'] : '',
             !empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : '',
             !empty($sellerAcc['bank_iban'])   ? 'IBAN: '.$sellerAcc['bank_iban'] : '',
             !empty($sellerAcc['bank_bic'])    ? 'BIC / SWIFT: '.$sellerAcc['bank_bic'] : '',
+            !empty($sellerAcc['bank_routing']) ? 'Routing number (ABA): '.$sellerAcc['bank_routing'] : '',
+            !empty($sellerAcc['bank_account']) ? 'Account number: '.$sellerAcc['bank_account']
+                .(!empty($sellerAcc['bank_acct_type']) ? '  ('.$sellerAcc['bank_acct_type'].')' : '') : '',
+            !empty($sellerAcc['bank_address']) ? 'Bank address: '.$sellerAcc['bank_address'] : '',
             $payRef !== '' ? 'Payment reference: '.$payRef : '',
         ], fn($v) => $v !== '')) : [];
         if ($bankLines) {

@@ -12,6 +12,15 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
         'bank_name'=>trim($_POST['bank_name']??''),'bank_holder'=>trim($_POST['bank_holder']??''),
         'bank_iban'=>strtoupper(trim(preg_replace('/\s+/',' ',$_POST['bank_iban']??''))),
         'bank_bic'=>strtoupper(trim($_POST['bank_bic']??'')),
+        /* ABD hesabinda IBAN/BIC YOK: routing (ABA) + account number var. Form yalnizca
+           Avrupa formatini soruyordu, dolayisiyla ABD'li bir satici banka bilgisini hic
+           giremiyor, faturada odeme kutusu bos kaliyordu. Rakamlar burada degil, yalnizca
+           sunucudaki accounts.json'da durur -- o dosya .gitignore'da; bu depo herkese acik
+           ve routing+hesap ikilisi ABD'de ACH borclandirma icin yeterli. */
+        'bank_routing'=>preg_replace('/\D/','',$_POST['bank_routing']??''),
+        'bank_account'=>preg_replace('/[^0-9A-Za-z]/','',$_POST['bank_account']??''),
+        'bank_acct_type'=>in_array($_POST['bank_acct_type']??'',['Checking','Savings'],true)?$_POST['bank_acct_type']:'',
+        'bank_address'=>trim($_POST['bank_address']??''),
     ]);
     header('Location: /seller?tab=profile&saved=1'); exit;
 }
@@ -1325,6 +1334,20 @@ function sellerSend(btn){
       <div class="frow">
         <div><label><?= t('IBAN') ?></label><input name="bank_iban" value="<?= htmlspecialchars($u['bank_iban']??'') ?>" placeholder="DE89 3704 0044 0532 0130 00" style="text-transform:uppercase"></div>
         <div><label><?= t('BIC / SWIFT') ?></label><input name="bank_bic" value="<?= htmlspecialchars($u['bank_bic']??'') ?>" placeholder="COBADEFFXXX" style="text-transform:uppercase"></div>
+      </div>
+      <p class="hint" style="margin:14px 0 10px"><?= t('US account? IBAN does not exist there — fill in routing and account number instead. Fill in only the set your bank actually uses; the invoice prints just those.') ?></p>
+      <div class="frow">
+        <div><label><?= t('Routing number (ABA)') ?></label><input name="bank_routing" value="<?= htmlspecialchars($u['bank_routing']??'') ?>" placeholder="091311229" inputmode="numeric"></div>
+        <div><label><?= t('Account number') ?></label><input name="bank_account" value="<?= htmlspecialchars($u['bank_account']??'') ?>" placeholder="202515871492" inputmode="numeric"></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('Account type') ?></label>
+          <select name="bank_acct_type">
+            <option value=""><?= t('— not specified —') ?></option>
+            <option value="Checking" <?= ($u['bank_acct_type']??'')==='Checking'?'selected':'' ?>>Checking</option>
+            <option value="Savings"  <?= ($u['bank_acct_type']??'')==='Savings' ?'selected':'' ?>>Savings</option>
+          </select></div>
+        <div><label><?= t('Bank address') ?></label><input name="bank_address" value="<?= htmlspecialchars($u['bank_address']??'') ?>" placeholder="4501 23rd Avenue S, Fargo, ND 58104, USA"></div>
       </div>
       <button class="btn btn-p" type="submit"><?= t('Save changes') ?></button>
     </form>
