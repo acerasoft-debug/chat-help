@@ -1890,7 +1890,16 @@ if(!$docReqs): ?>
     </div>
     <?= docBadge($st) ?>
   </div>
-  <?php if($st==='uploaded' && !empty($req['file'])):
+  <?php /* Belge kutusu ESKIDEN yalnizca $st==='uploaded' iken ciziliyordu: operator
+           belgeyi ONAYLADIGI anda durum 'approved' oluyor ve onizleme, indirme linki,
+           dosya adi -- hepsi kayboluyordu. Yani onaylanmis bir belgeye bir daha
+           ulasilamiyordu. Oysa belgeye asil ihtiyac onaydan SONRA duyuluyor: faturaya
+           yazilacak sirket adresi, vergi numarasi, bir ihtilafta veya denetimde kanit.
+           Dosya artik her durumda gorunuyor; degisen tek sey, ONAY/RET dugmelerinin
+           yalnizca 'uploaded' durumunda cikmasi -- onaylanmis bir belgeyi yanlislikla
+           yeniden "onaylamak" ya da reddetmek icin bir dugme durmamali. */
+     $canReview = ($st === 'uploaded');
+     if(!empty($req['file'])):
     $docUrl  = '/admin?dl_doc='.urlencode($req['file']).'&uid='.urlencode($selUser['id']??'');
     $ext     = strtolower(pathinfo($req['file'],PATHINFO_EXTENSION));
     $isImg   = in_array($ext,['jpg','jpeg','png','webp'],true);
@@ -1904,7 +1913,7 @@ if(!$docReqs): ?>
   <div class="acard-body">
     <!-- Exactly what is being approved -->
     <div style="background:rgba(201,168,106,.07);border:1px solid rgba(201,168,106,.28);border-radius:8px;padding:11px 13px;margin-bottom:12px">
-      <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)">You are approving</div>
+      <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--mut)"><?= $canReview ? 'You are approving' : 'Document on file' ?></div>
       <div style="font-weight:600;font-size:14.5px;margin-top:3px">📄 <?= htmlspecialchars($docLabel) ?></div>
       <div class="ahint" style="margin-top:3px">For account: <b><?= htmlspecialchars($who) ?></b> · <?= htmlspecialchars($selUser['id']??'') ?></div>
       <div class="ahint" style="margin-top:3px">File: <b><?= htmlspecialchars($req['file']) ?></b> · <?= strtoupper($ext)?:'FILE' ?><?= $fsize?' · '.$fsize:'' ?></div>
@@ -1920,6 +1929,7 @@ if(!$docReqs): ?>
     <?php endif; ?>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
       <a class="abtn" href="<?= $docUrl ?>" target="_blank">📂 Open full file</a>
+      <?php if($canReview): ?>
       <form method="post" style="display:inline-flex;gap:8px;align-items:center">
         <?= csrfField() ?>
         <input type="hidden" name="_action" value="review_doc">
@@ -1929,6 +1939,9 @@ if(!$docReqs): ?>
         <button class="abtn" name="status" value="approved" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)" onclick="return confirm('Approve the <?= $cfJs ?>?')">✓ Approve this document</button>
         <button class="abtn" name="status" value="rejected" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="return confirm('Reject the <?= $cfJs ?>? They will be asked to re-upload.')">✗ Reject</button>
       </form>
+      <?php else: ?>
+        <span class="ahint"><?= $st==='approved' ? 'Already approved — shown here for reference.' : 'Rejected — the account has been asked to re-upload.' ?></span>
+      <?php endif; ?>
     </div>
   </div>
   <?php endif; ?>
