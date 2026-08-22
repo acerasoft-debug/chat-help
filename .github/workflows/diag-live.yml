@@ -503,7 +503,13 @@ jobs:
             if ($needle === '') { fwrite(STDERR, "arama terimi yok\n"); exit(1); }
 
             $csvFiles = ['orders.csv','offers.csv','requests.csv','request_offers.csv','signups.csv','groups.csv'];
-            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json'];
+            /* leads.json BURADA OLMALI. Yoklugunda bu is bir prospect adresi icin
+               "hicbir kayit dosyasinda YOK -- kayit gercekten olusmamis" diye kesin
+               bir cevap basiyordu; oysa kayit leads.json'da duruyordu ve add-lead
+               ayni adres icin "zaten var" diyordu. Yanlis cevabi dogruymus gibi
+               basan bir teshis, hic teshis olmamasindan daha kotu: arayan kisi
+               aramayi birakip yanlis sonuca gore hareket ediyor. */
+            $jsonFiles = ['order_statuses.json','offer_responses.json','listings.json','leads.json'];
             $hits = 0;
 
             foreach ($csvFiles as $f) {
