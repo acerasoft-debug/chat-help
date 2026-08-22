@@ -497,6 +497,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     if (!empty($order['origin']))         $shipRows[] = ['Country of origin', (string)$order['origin']];
     if (!empty($order['export_reason']))  $shipRows[] = ['Reason for export', (string)$order['export_reason']];
     if (!empty($order['vat_note']))       $shipRows[] = ['VAT', (string)$order['vat_note']];
+    /* Fatura, teklifin verildigi para biriminden BASKA bir birimde kesildiginde
+       cevrimin dayanagi belgede yazili olmali. Yazili olmazsa alici hakli olarak
+       "neden dolar, hangi kurla?" diye sorar ve bu, odemeyi geciktiren bir soru
+       olur. Kur ve kaynagi yazilinca rakam tartisilir olmaktan cikar. */
+    if (!empty($order['fx_note']))        $shipRows[] = ['Exchange rate', (string)$order['fx_note']];
 
     $need(24 + count($shipRows) * 12);
     $pdf->line($left, $y + 10, $right, $y + 10, 0.5, 0.75);
