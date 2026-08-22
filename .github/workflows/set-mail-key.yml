@@ -13,12 +13,18 @@ name: Sunucuda email API key'ini güncelle
 # sabitlenmişti, o geçici çözümdü.
 on:
   workflow_dispatch:
+    inputs:
+      task:
+        description: "Ne yapılsın — mail_key (e-posta API anahtarı) | platform_bank (VESTRA'nın kendi fatura/banka bilgileri)"
+        required: false
+        default: "mail_key"
 
 permissions:
   contents: read
 
 jobs:
   update-mail-key:
+    if: github.event.inputs.task != 'platform_bank'
     runs-on: ubuntu-latest
     steps:
       - name: MAIL_API_KEY secret'ı var mı kontrol et
@@ -85,3 +91,91 @@ jobs:
           echo "== acerasoft@gmail.com icin son event'ler (delivered mi, error mi?) =="
           curl -sS "https://api.brevo.com/v3/smtp/statistics/events?limit=5&email=acerasoft%40gmail.com" \
             -H "api-key: ${MAIL_API_KEY}" -H "Accept: application/json" -w "\nHTTP_CODE:%{http_code}\n"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # VESTRA'nin KENDI fatura/banka bilgilerini sunucuya yaz.
+  #
+  # Neden secret uzerinden: bu depo herkese ACIK. Degeri koda gomsem depoda,
+  # workflow girdisi yapsam Actions arayuzunde, script icine yazsam log'da
+  # gorunurdu (ssh-action calistirdigi betigi log'a basiyor). ABD'de routing +
+  # hesap numarasi ikilisi ACH borclandirma icin yeterli; kalici ve indekslenen
+  # bir yere yazmak, hesabi acik birakmakla ayni sey.
+  #
+  # Secret degerleri GitHub tarafindan log'da maskelenir. Ayni yol bu depoda
+  # MAIL_API_KEY icin zaten kullaniliyor (yukaridaki is).
+  #
+  # Secret adi : PLATFORM_BANK_JSON
+  # Secret degeri: tek satir JSON, ornegin
+  #   {"bank_holder":"acerasoft LLC","bank_name":"...","bank_routing":"...",
+  #    "bank_account":"...","bank_acct_type":"Checking","bank_address":"..."}
+  #
+  # Sunucudaki dosya: data/platform_seller.json (web'e kapali, .gitignore'da, 0600)
+  # Bos gelen alan mevcut degeri SILMEZ -- kismi guncelleme guvenli.
+  update-platform-bank:
+    if: github.event.inputs.task == 'platform_bank'
+    runs-on: ubuntu-latest
+    steps:
+      - name: PLATFORM_BANK_JSON secret'ı var mı kontrol et
+        run: |
+          if [ -z "${{ secrets.PLATFORM_BANK_JSON }}" ]; then
+            echo "::error::PLATFORM_BANK_JSON secret'ı tanımlı değil. Settings -> Secrets and variables -> Actions -> New repository secret ile ekleyin (tek satır JSON), sonra bu workflow'u task=platform_bank ile tekrar çalıştırın."
+            exit 1
+          fi
+          echo "PLATFORM_BANK_JSON tanımlı, devam ediliyor."
+
+      - name: Sunucuya yaz (data/platform_seller.json)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PLATFORM_BANK_JSON: ${{ secrets.PLATFORM_BANK_JSON }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: PLATFORM_BANK_JSON
+          script: |
+            cat > /tmp/vestra_platwrite.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+
+            $raw = (string)getenv('PLATFORM_BANK_JSON');
+            $in  = json_decode($raw, true);
+            if (!is_array($in)) { fwrite(STDERR, "PLATFORM_BANK_JSON gecerli JSON degil\n"); exit(1); }
+
+            $allow = ['company','address','country','email','website',
+                      'bank_name','bank_holder','bank_iban','bank_bic',
+                      'bank_routing','bank_account','bank_acct_type','bank_address',
+                      'vat_id','reg_number'];
+            $f = vestra_data_dir().'/platform_seller.json';
+            $cur = is_readable($f) ? json_decode((string)file_get_contents($f), true) : [];
+            if (!is_array($cur)) $cur = [];
+
+            $set = [];
+            foreach ($allow as $k) {
+              $v = trim((string)($in[$k] ?? ''));
+              if ($v !== '') { $cur[$k] = $v; $set[] = $k; }
+            }
+            /* Bilinmeyen anahtar sessizce yutulmasin: yanlis yazilmis bir alan adi
+               ("routing" vs "bank_routing") kaydedilmis sanilir, oysa dusmustur. */
+            foreach (array_keys($in) as $k) {
+              if (!in_array($k, $allow, true)) echo "  UYARI: bilinmeyen alan atlandi -> {$k}\n";
+            }
+            if (!$set) { fwrite(STDERR, "yazilacak alan yok\n"); exit(1); }
+
+            file_put_contents($f, json_encode($cur, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+            @chmod($f, 0600);
+
+            /* DEGERLER YAZDIRILMIYOR -- yalnizca hangi alanlarin set edildigi. */
+            echo "  yazildi: ".count($set)." alan -> ".implode(', ', $set)."\n";
+            $payable = trim((string)($cur['bank_iban'] ?? '')) !== '' || trim((string)($cur['bank_account'] ?? '')) !== '';
+            echo $payable ? "  SONUC: odeme kutusu artik basilabilir\n"
+                          : "  SONUC: hesap numarasi hala YOK -- odeme kutusu bos cikar\n";
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_platwrite.php ./vestra_platwrite_tmp.php
+            php ./vestra_platwrite_tmp.php
+            rc=$?
+            rm -f ./vestra_platwrite_tmp.php /tmp/vestra_platwrite.php
+            exit $rc
