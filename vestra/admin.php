@@ -2291,15 +2291,31 @@ elseif($tab==='orders'):
     <div class="ahint" style="margin-bottom:10px;font-size:11.5px">
       Used when VESTRA invoices in its own name (catalogue items with no seller account).
       Stored on the server only — web-blocked, never in the code repository. Blank fields are left unchanged.
+      <?php if (!$platHasBank && array_intersect(array_keys($_GET), ['bank_account','bank_routing','bank_iban'])): ?>
+        <br><b style="color:var(--ok)">Pre-filled from the link — check the values, then press Save. Nothing is stored until you do.</b>
+      <?php endif; ?>
     </div>
     <form method="post" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
       <?= csrfField() ?>
       <input type="hidden" name="_action" value="save_platform_billing">
       <?php
+      /* Alan BOSSA adres cubugundan on-doldurulabilir (?bank_routing=... gibi).
+         Sebep: bu rakamlari operatore elle yazdirmak yerine hazir bir baglantiyla
+         getirmek. Ayni rakamlar bir is akisi girdisiyle gonderilemiyor -- depo
+         herkese acik, Actions log'u ve calistirma kaydi da oyle. Adres cubugu
+         farkli: baglanti operatorle aramizda kaliyor ve degerler yalnizca KENDI
+         sunucusunun erisim kutugune ve kendi tarayici gecmisine dusuyor.
+
+         DOLU bir alan GET ile EZILMEZ. Boylece hazir baglantiyi ikinci kez acmak
+         kayitli bir hesabi sessizce degistiremez; degistirmek isteyen alani elle
+         siler. On-doldurma yalnizca oneri, kayit degil -- Save'e basilana kadar
+         sunucuda hicbir sey degismiyor. */
       $pf = function(string $name, string $label, string $ph='') use ($PLAT) {
+        $val = (string)($PLAT[$name] ?? '');
+        if ($val === '') $val = trim((string)($_GET[$name] ?? ''));
         printf('<label style="font-size:11px;color:var(--mut)">%s<input name="%s" value="%s" placeholder="%s" style="width:100%%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>',
           htmlspecialchars($label), htmlspecialchars($name),
-          htmlspecialchars((string)($PLAT[$name] ?? '')), htmlspecialchars($ph));
+          htmlspecialchars($val), htmlspecialchars($ph));
       };
       $pf('company','Legal company name');
       $pf('address','Company address');
