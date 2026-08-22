@@ -619,7 +619,7 @@ function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, b
         ? "Bienvenidos a VESTRA. La cuenta de vendedor de {$name} ya está activa y pueden empezar hoy mismo."
         : "Bienvenido a VESTRA. Su cuenta de vendedor ya está activa y puede empezar hoy mismo.";
     $opts = [
-        'badge'  => $lang === 'es' ? 'Cuenta de vendedor activa' : 'Seller account active',
+        'badge'  => $lang === 'es' ? 'Cuenta activa · plataforma gratuita' : 'Account active · platform free',
         'button' => [
             'label' => $lang === 'es' ? 'Abrir mi panel' : 'Open my dashboard',
             'url'   => 'https://vestrasales.com/seller',
@@ -627,40 +627,64 @@ function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, b
     ];
 
     if ($lang === 'es') {
-        $subject = 'VESTRA — su cuenta de vendedor está activa: publique sin coste';
+        /* Ispanyolcada nezaket kalibi FIILI de degistirir. "Estimados senores:"
+           deyip govdede "puede/envienos" (tekil) devam etmek, bir Ispanyol okura
+           yarim cevrilmis metin gibi gorunur. Iyelik sifatlari (su/sus) iki kalipta
+           da ayni oldugu icin yalnizca fiiller degisiyor -- asagidaki cift. */
+        $vPueden   = $isCompany ? 'pueden'    : 'puede';
+        $vEnvien   = $isCompany ? 'envíennos' : 'envíenos';
+        $vRespondan= $isCompany ? 'respondan' : 'responda';
+        $vQuieren  = $isCompany ? 'quieren'   : 'quiere';
+        $vConecten = $isCompany ? 'conecten'  : 'conecte';
+        $vCompleten= $isCompany ? 'completen' : 'complete';
+        $vVendan   = $isCompany ? 'vendan'    : 'venda';
+        $vTienen   = $isCompany ? 'tienen'    : 'tiene';
+        $vDisponen = $isCompany ? 'disponen'  : 'dispone';
+        $vNecesitan= $isCompany ? 'necesitan' : 'necesita';
+        $vPrefieren= $isCompany ? 'prefieren' : 'prefiere';
+        $vConsideren=$isCompany ? 'consideren': 'considere';
+
+        $subject = 'VESTRA — su cuenta de vendedor está activa: la plataforma es gratuita';
         $body =
             $greetEs."\n\n"
           . $openEs."\n\n"
 
-          . "1) Publicación gratuita\n"
-          . "Hasta la próxima revisión de las condiciones de la plataforma, publicar sus productos "
-          . "no tiene ningún coste: sin cuota de alta, sin mensualidad y sin límite de referencias. "
-          . "Puede subir su surtido completo de hombre, mujer y niño.\n\n"
+          . "1) La plataforma es gratuita por el momento\n"
+          . "Hoy por hoy publicar en VESTRA no cuesta nada: sin cuota de alta, sin mensualidad "
+          . "y sin límite de referencias. ".ucfirst($vPueden)." subir su surtido completo de hombre, mujer "
+          . "y niño.\n\n"
 
-          . "2) Envíenos su catálogo y lo cargamos nosotros\n"
-          . "Si dispone de catálogo o tarifa (Excel, PDF o un enlace), respóndanos a este correo y "
-          . "nos encargamos de dar de alta los artículos por usted. Para cada referencia nos ayuda "
-          . "tener: código, descripción, materiales, tallas, precio mayorista, pedido mínimo y "
-          . "fotografías.\n\n"
+          . "2) Su catálogo: lo damos de alta nosotros\n"
+          . "Si {$vDisponen} de catálogo o tarifa (Excel, PDF o un enlace), {$vEnvien} el archivo "
+          . "respondiendo a este correo y nos encargamos de dar de alta los artículos. Para cada "
+          . "referencia nos ayuda tener: código, descripción, materiales, tallas, precio mayorista, "
+          . "pedido mínimo y fotografías.\n"
+          /* Sinir "olabilir" diye geciyor, "vardir" diye degil: henuz konmus bir sinir
+             yok ve olmayan bir kurali varmis gibi yazmak, sonradan geri almasi zor bir
+             beklenti yaratir. Oncelik sorusu ayni cumlede: karsi taraf 400 referansi
+             birden gondermek zorunda hissetmesin. */
+          . "Más adelante es posible que establezcamos algún límite de referencias, pero para "
+          . "esta primera fase {$vPueden} enviarnos el catálogo completo o, si lo {$vPrefieren}, "
+          . "empezar por las líneas que {$vConsideren} prioritarias.\n\n"
 
           . "3) Tarjeta para las comisiones\n"
-          . "Para poder liquidar la comisión de la plataforma necesitamos una tarjeta registrada en "
-          . "su cuenta. Se cobra únicamente el {$pct} sobre los pedidos que usted venda, y solo "
+          . "Para poder liquidar la comisión de la plataforma {$vNecesitan} registrar una tarjeta "
+          . "en su cuenta. Se cobra únicamente el {$pct} sobre los pedidos que {$vVendan}, y solo "
           . "cuando el pago del comprador está confirmado — no hay cargos fijos.\n"
           . "Panel → Perfil → «Commission card» → «Add commission card».\n\n"
 
           . "4) Venta con pago protegido (opcional)\n"
-          . "Si quiere ofrecer a sus clientes una compra con garantía, conecte su cuenta con Stripe "
-          . "desde el panel y complete los pasos de verificación. Con el depósito en garantía el "
-          . "importe queda retenido hasta que el comprador confirma la recepción, y su liquidación "
-          . "(menos la comisión) se abona automáticamente. Stripe verifica su identidad y sus datos "
-          . "bancarios; VESTRA no los ve en ningún momento.\n"
+          . "Si {$vQuieren} ofrecer a sus clientes una compra con garantía, {$vConecten} su cuenta "
+          . "con Stripe desde el panel y {$vCompleten} los pasos de verificación. Con el depósito "
+          . "en garantía el importe queda retenido hasta que el comprador confirma la recepción, y "
+          . "su liquidación (menos la comisión) se abona automáticamente. Stripe verifica su "
+          . "identidad y sus datos bancarios; VESTRA no los ve en ningún momento.\n"
           . "Panel → Perfil → «Payouts & Escrow (Stripe)» → «Set up Stripe payouts».\n"
           . "Es opcional: la transferencia bancaria contra factura sigue funcionando sin esto, pero "
           . "un primer pedido se cierra con mucha más facilidad cuando el comprador ve el pago "
           . "protegido.\n\n"
 
-          . "Si tiene cualquier duda, responda a este mensaje y le ayudamos.\n\n"
+          . "Si {$vTienen} cualquier duda, {$vRespondan} a este mensaje y le ayudamos.\n\n"
           . "—\n"
           . "VESTRA · Acerasoft LLC\n"
           . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
@@ -668,18 +692,20 @@ function vestra_tpl_seller_onboarding(string $lang, string $name, float $rate, b
         return [$subject, $body, $opts];
     }
 
-    $subject = 'VESTRA — your seller account is active: list free of charge';
+    $subject = 'VESTRA — your seller account is active: the platform is free';
     $body =
         "Dear {$name},\n\n"
       . "Welcome to VESTRA. Your seller account is active and you can start today.\n\n"
-      . "1) Free listing\n"
-      . "Until the next review of the platform terms, listing your products costs you nothing: "
-      . "no joining fee, no monthly charge and no limit on the number of references. You can "
-      . "upload your full range for men, women and children.\n\n"
-      . "2) Send us your catalogue and we will load it\n"
+      . "1) The platform is free for now\n"
+      . "As things stand, listing on VESTRA costs you nothing: no joining fee, no monthly charge "
+      . "and no limit on the number of references. You can upload your full range for men, women "
+      . "and children.\n\n"
+      . "2) Your catalogue: we create the listings\n"
       . "If you have a catalogue or price list (Excel, PDF or a link), reply to this email and we "
       . "will create the listings for you. For each reference it helps to have: code, description, "
-      . "materials, sizes, wholesale price, minimum order and photographs.\n\n"
+      . "materials, sizes, wholesale price, minimum order and photographs.\n"
+      . "We may introduce a limit on the number of references later on, but for this first stage "
+      . "you can send the full catalogue — or start with the lines you consider a priority.\n\n"
       . "3) Card for commission\n"
       . "To settle the platform commission we need a card on file. Only {$pct} is charged on the "
       . "orders you sell, and only once the buyer's payment is confirmed — there are no fixed fees.\n"
