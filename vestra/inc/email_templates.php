@@ -468,3 +468,65 @@ function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, str
   $body = sprintf($bodyT, $name, $docLabel, $noteLine) . "\n\n—\nVESTRA · vestrasales.com";
   return [$subject, $body, $opts];
 }
+
+/**
+ * Kabul edilen bir teklif icin "eksik bilgileri tamamla" e-postasi.
+ *
+ * Kabul bildirimi (vestra_tpl_offer_response) tek basina yetmiyor: alici "kabul
+ * edildi" diyen bir e-posta aliyor ama fatura ve sevkiyat icin gereken bilgiler
+ * hesabinda EKSIK olabiliyor ve bunu kimse istemiyor. Canli ornek O39419: teslimat
+ * adresinde sehir/eyalet/ZIP yok, vergi numarasi ve sicil numarasi "n/a" yazili.
+ * O halde siparis, kimsenin takip etmedigi bir bosluga giriyor.
+ *
+ * Sadece EKSIK olan maddeler yaziliyor. Zaten verilmis bir bilgiyi tekrar sormak
+ * hem alicinin gozunde ozensiz duruyor hem de cevap oranini dusuruyor.
+ *
+ * Ingilizce tek dil: bu akis su an ABD/uluslararasi alicilar icin kullaniliyor ve
+ * yanlis dilde gonderilen bir ticari talep, hic gondermemekten kotudur.
+ */
+function vestra_tpl_order_details_needed(
+    string $buyerName, string $product, string $ref, int $qty, float $unit, float $total,
+    string $colourNote = '', array $missing = []
+): array {
+    $rows = [
+        ['label'=>'Product',    'value'=>$product],
+        ['label'=>'Reference',  'value'=>$ref],
+        ['label'=>'Quantity',   'value'=>$qty.' pcs'.($colourNote !== '' ? ' — '.$colourNote : '')],
+        ['label'=>'Unit price', 'value'=>'€'.number_format($unit, 2)],
+        ['label'=>'Total',      'value'=>'€'.number_format($total, 2), 'strong'=>true],
+    ];
+    $opts = [
+        'badge'  => 'Offer accepted',
+        'rows'   => $rows,
+        'button' => ['label'=>'Open my account', 'url'=>'https://vestrasales.com/buyer'],
+    ];
+
+    $ask = [];
+    if (in_array('address', $missing, true)) {
+        $ask[] = "1. Complete delivery address — including city, state and ZIP code, and the company name that should appear on the shipping documents.";
+    }
+    if (in_array('tax_id', $missing, true)) {
+        $ask[] = ($ask ? count($ask)+1 : 1).". Billing details for the invoice — the company name and address exactly as they should appear, and your EIN (Federal Tax ID). Customs clearance requires a valid EIN for the importer of record.";
+    }
+    if (in_array('incoterm', $missing, true)) {
+        $ask[] = (count($ask)+1).". Delivery terms — DAP (you act as importer of record and pay duties and clearance) or DDP (we arrange clearance and quote duties separately). Import duty on knitwear is significant, so we would rather agree this now than after dispatch.";
+    }
+    if (in_array('phone', $missing, true)) {
+        $ask[] = (count($ask)+1).". A contact name and phone number for the carrier at the delivery address.";
+    }
+    $askTxt = $ask ? implode("\n\n", $ask) : "Please confirm the delivery address so we can prepare the shipment.";
+
+    $subject = "VESTRA — offer {$ref} accepted · details required to complete your order";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "We are pleased to confirm that your offer {$ref} has been accepted.\n\n"
+      . "To issue your invoice and prepare the shipment, please reply with the following:\n\n"
+      . $askTxt . "\n\n"
+      . "Payment terms are 100% in advance. Once the above is confirmed we will issue the invoice with our banking details, and the goods are dispatched as soon as payment is received.\n\n"
+      . "If any of these details change the delivery country, please tell us — it affects the export paperwork, and we would rather correct it before the invoice is issued than after.\n\n"
+      . "—\n"
+      . "VESTRA · acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
