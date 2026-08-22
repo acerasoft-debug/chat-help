@@ -487,7 +487,7 @@ function vestra_tpl_doc_reviewed(string $lang, string $name, string $status, str
 function vestra_tpl_order_details_needed(
     string $buyerName, string $product, string $ref, int $qty, float $unit, float $total,
     string $colourNote = '', array $missing = [], float $usdRate = 0.0, string $rateNote = '',
-    float $shipUsd = 0.0
+    float $shipUsd = 0.0, string $leadTime = ''
 ): array {
     $rows = [
         ['label'=>'Product',    'value'=>$product],
@@ -558,6 +558,15 @@ function vestra_tpl_order_details_needed(
       . "To issue your invoice and prepare the shipment, please reply with the following:\n\n"
       . $askTxt . "\n\n"
       . "Payment terms are 100% in advance. Once the above is confirmed we will issue the invoice with our banking details, and the goods are dispatched as soon as payment is received.\n\n"
+      /* Sevkiyat aciklamasi. Iki sey acikca yaziliyor:
+         - Mal AVRUPA'dan cikiyor. Alici ABD'de ve satici Delaware kayitli bir sirket;
+           soylenmezse mal ABD ici bir depodan gelecek sanilir, oysa sevkiyat sinir
+           asiyor. Bunu sonradan ogrenmek, teslim suresi ve gumruk beklentisini bozar.
+         - Sure PARA ALINDIKTAN sonra basliyor. "Iki hafta"yi siparis tarihinden sayan
+           bir alici, odemeyi uc gun sonra yaparsa gecikmis gibi hisseder. */
+      . ($leadTime !== ''
+          ? "Dispatch and delivery: the goods are checked at our warehouse before dispatch and ship from Europe. Total delivery time is {$leadTime} on average, counted from receipt of payment.\n\n"
+          : '')
       /* Kur satiri bilgi kutusunda "approx." diye geciyor; govdede de bir kez daha
          soyluyoruz ki alici dolar rakamini sabit fiyat sanmasin. Faturayi EUR kesip
          e-postada dolar yazip sonra "aslinda kur degisti" demek, satisi degil guveni
