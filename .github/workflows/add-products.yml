@@ -145,6 +145,17 @@ jobs:
                 if (!isset($sellerIds[$su])) { $errors[]="{$ctx} ({$id}): seller_uid '{$su}' gecerli bir seller hesabina ait degil"; continue; }
                 $row['seller_uid'] = $su;
               }
+              /* Vitrin bolmesi. Bu gecis olmadan bolme alani sessizce dusuyordu ve
+                 urun varsayilan bolmede (Premium Brands) beliriyordu -- bir ayakkabi
+                 katalogunu Ayakkabi sekmesine koydugunu sanip Premium'a dokmek, fark
+                 edilmesi en zor turden bir hata: is basarili raporlar, urunler
+                 gorunur, sadece YANLIS yerdedirler. Bilinmeyen bolme sessizce
+                 yoksayilmiyor, hata veriyor. */
+              if (!empty($r['section'])) {
+                $sec = strtolower(trim((string)$r['section']));
+                if (!isset(vestra_sections()[$sec])) { $errors[]="{$ctx} ({$id}): bilinmeyen bolme '{$sec}' (gecerli: ".implode(', ', array_keys(vestra_sections())).")"; continue; }
+                $row['section'] = $sec;
+              }
               $clean[] = $row;
             }
 
