@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 WORK="${TMPDIR:-/tmp}/vestra-hero-film"
 DEST="$ROOT/vestra/assets/hero"
 FPS=24
-FRAMES=480            # 480 / 24 = a 20s loop
+FRAMES=720            # 720 / 24 = a 30s loop -> ~3s in the spotlight per piece
 
 export NODE_PATH="${NODE_PATH:-/opt/node22/lib/node_modules}"
 
