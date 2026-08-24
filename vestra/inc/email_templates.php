@@ -917,3 +917,93 @@ function vestra_tpl_order_stage(string $lang, string $stage, string $name, strin
 
     return [$subject, $body, ['button' => ['label' => $d['btn'], 'url' => $url]]];
 }
+
+/**
+ * Short follow-up to a prospect who was written to weeks ago and has not replied.
+ *
+ * Deliberately NOT the campaign again. A second copy of the same letter reads as a
+ * mailing list; a short human note asking whether the first one arrived reads as a
+ * person, and it is also the honest thing — we do not know whether it was seen.
+ *
+ * Every version ends with the same offer to stop. A follow-up without one is what
+ * turns a cold approach into a complaint, and a complaint costs the sending domain
+ * far more than the one reply it might have won.
+ *
+ * Languages match the ones the campaign itself sends in (inc/notify.php's country
+ * map); anything else falls back to English rather than being machine-translated
+ * into a language nobody here can check.
+ */
+function vestra_tpl_lead_followup(string $lang, string $company): array {
+    $co = trim($company);
+    $L = [
+      'en' => ["VESTRA — following up on our note",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "We wrote to you a few weeks ago about VESTRA, a B2B wholesale marketplace for branded fashion where every seller is KYC-verified and every order runs on invoice terms.",
+        "I am writing once more only to ask whether that message reached you, and whether it is of any interest. If it is, I would be glad to send the current catalogue or answer anything specific.",
+        "If it is not relevant to your business, just say so and we will not write again."],
+      'el' => ["VESTRA — υπενθύμιση για το προηγούμενο μήνυμά μας",
+        "Γεια σας".($co !== '' ? " ".$co : '').",",
+        "Σας γράψαμε πριν από μερικές εβδομάδες σχετικά με τη VESTRA, μια αγορά χονδρικής B2B για επώνυμη μόδα, όπου κάθε πωλητής είναι πιστοποιημένος (KYC) και κάθε παραγγελία γίνεται με τιμολόγιο.",
+        "Σας γράφω ξανά μόνο για να ρωτήσω αν έφτασε εκείνο το μήνυμα και αν σας ενδιαφέρει. Αν ναι, ευχαρίστως να σας στείλω τον τρέχοντα κατάλογο ή να απαντήσω σε ό,τι χρειάζεστε.",
+        "Αν δεν αφορά την επιχείρησή σας, πείτε μας το απλώς και δεν θα ξαναγράψουμε."],
+      'ja' => ["VESTRA — 先日のご案内について",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "数週間前に、ブランドファッションのB2B卸売マーケットプレイス「VESTRA」についてご案内を差し上げました。出品者はすべてKYC認証済みで、ご注文はインボイス（請求書）条件で進みます。",
+        "本日は、その案内が届いていたかどうか、またご関心をお持ちいただけるかどうかだけ、あらためてお伺いしたくご連絡いたしました。ご希望でしたら最新のカタログをお送りしますし、ご質問にもお答えいたします。",
+        "貴社に関係のない内容でしたら、その旨お知らせください。以後ご連絡はいたしません。"],
+      'ko' => ["VESTRA — 지난 안내에 대한 후속 연락",
+        ($co !== '' ? $co." " : '')."담당자님께",
+        "몇 주 전에 브랜드 패션 B2B 도매 마켓플레이스 VESTRA를 소개해 드린 바 있습니다. 모든 판매자는 KYC 인증을 거치며, 모든 주문은 인보이스 조건으로 진행됩니다.",
+        "그 메일이 잘 도착했는지, 그리고 관심이 있으신지만 여쭙고자 다시 연락드립니다. 원하시면 현재 카탈로그를 보내드리거나 궁금하신 점에 답변드리겠습니다.",
+        "귀사와 관련이 없다면 말씀만 주시면 다시 연락드리지 않겠습니다."],
+      'de' => ["VESTRA — Nachfrage zu unserer Nachricht",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Wir haben Ihnen vor einigen Wochen zu VESTRA geschrieben, einem B2B-Großhandelsmarktplatz für Markenmode, auf dem jeder Verkäufer KYC-geprüft ist und jede Bestellung auf Rechnung läuft.",
+        "Ich melde mich nur noch einmal, um zu fragen, ob diese Nachricht bei Ihnen angekommen ist und ob sie für Sie interessant ist. Gerne sende ich Ihnen den aktuellen Katalog oder beantworte konkrete Fragen.",
+        "Falls es für Ihr Geschäft nicht passt, sagen Sie einfach Bescheid — dann schreiben wir nicht wieder."],
+      'fr' => ["VESTRA — suite à notre message",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Nous vous avons écrit il y a quelques semaines au sujet de VESTRA, une place de marché B2B de gros pour la mode de marque, où chaque vendeur est vérifié (KYC) et chaque commande se règle sur facture.",
+        "Je reviens vers vous uniquement pour savoir si ce message vous est bien parvenu et s'il vous intéresse. Si oui, je vous envoie volontiers le catalogue actuel ou je réponds à vos questions.",
+        "Si cela ne concerne pas votre activité, dites-le nous simplement et nous ne réécrirons pas."],
+      'it' => ["VESTRA — seguito al nostro messaggio",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Le avevamo scritto qualche settimana fa a proposito di VESTRA, un marketplace B2B all'ingrosso per la moda di marca, dove ogni venditore è verificato (KYC) e ogni ordine viaggia con fattura.",
+        "Le scrivo solo per sapere se quel messaggio Le è arrivato e se può interessarLe. In tal caso Le invio volentieri il catalogo attuale o rispondo a domande specifiche.",
+        "Se non riguarda la Sua attività, basta dircelo e non scriveremo più."],
+      'es' => ["VESTRA — seguimiento de nuestro mensaje",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Le escribimos hace unas semanas sobre VESTRA, un marketplace mayorista B2B de moda de marca, donde cada vendedor está verificado (KYC) y cada pedido se tramita con factura.",
+        "Le escribo únicamente para saber si aquel mensaje le llegó y si le resulta de interés. Si es así, le envío con gusto el catálogo actual o resuelvo cualquier duda.",
+        "Si no tiene que ver con su negocio, díganoslo y no volveremos a escribir."],
+      'nl' => ["VESTRA — vervolg op ons bericht",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Wij schreven u enkele weken geleden over VESTRA, een B2B-groothandelsmarktplaats voor merkmode, waar elke verkoper KYC-geverifieerd is en elke bestelling op factuur loopt.",
+        "Ik schrijf alleen nog even om te vragen of dat bericht u bereikt heeft en of het interessant voor u is. Zo ja, dan stuur ik u graag de actuele catalogus of beantwoord ik uw vragen.",
+        "Past het niet bij uw zaak, laat het dan weten — dan schrijven wij niet opnieuw."],
+      'pt' => ["VESTRA — seguimento da nossa mensagem",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Escrevemos-lhe há algumas semanas sobre a VESTRA, um marketplace grossista B2B de moda de marca, onde cada vendedor é verificado (KYC) e cada encomenda segue com fatura.",
+        "Escrevo apenas para saber se essa mensagem lhe chegou e se lhe interessa. Se sim, envio com gosto o catálogo atual ou respondo a questões concretas.",
+        "Se não tiver a ver com o seu negócio, diga-nos e não voltaremos a escrever."],
+      'pl' => ["VESTRA — nawiązanie do naszej wiadomości",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Kilka tygodni temu pisaliśmy do Państwa o VESTRA — hurtowej platformie B2B z modą markową, gdzie każdy sprzedawca przechodzi weryfikację KYC, a każde zamówienie realizowane jest na fakturę.",
+        "Piszę wyłącznie z pytaniem, czy tamta wiadomość do Państwa dotarła i czy temat jest interesujący. Jeśli tak, chętnie prześlę aktualny katalog lub odpowiem na konkretne pytania.",
+        "Jeśli to nie dotyczy Państwa działalności, wystarczy dać znać — nie napiszemy ponownie."],
+      'cs' => ["VESTRA — navázání na naši zprávu",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Před několika týdny jsme Vám psali o VESTRA — velkoobchodním B2B tržišti se značkovou módou, kde je každý prodejce ověřen (KYC) a každá objednávka probíhá na fakturu.",
+        "Píšu jen s dotazem, zda ta zpráva dorazila a zda je to pro Vás zajímavé. Pokud ano, rád Vám pošlu aktuální katalog nebo odpovím na konkrétní dotazy.",
+        "Pokud se to Vašeho podnikání netýká, stačí napsat a už se ozývat nebudeme."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3] = $d;
+
+    $url  = 'https://vestrasales.com/register?type=buyer';
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, []];
+}

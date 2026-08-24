@@ -83,6 +83,10 @@ on:
         description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
         required: false
         default: ""
+      followup_emails:
+        description: "TAKIP KIPI: bu adres(ler)e kampanyayi DEGIL, kisa bir 'ulasti mi' takip mektubunu gonderir (virgul/bosluk ile ayrilir). Sadece daha once yazilmis, cevap vermemis leadler icin. Doluysa normal secim hic calismaz."
+        required: false
+        default: ""
       dns_check:
         description: "true (varsayılan) = seçim sırasında alan adının MX/A kaydına bak, posta alamayan adresi HİÇ seçme. Böylece istenen N adet gerçekten ulaşabilecek N adres olur. false = kontrolsüz."
         required: false
@@ -118,13 +122,14 @@ jobs:
           SEND_SKIP_NAME: ${{ github.event.inputs.skip_names }}
           SEND_RESET: ${{ github.event.inputs.reset_contacted }}
           SEND_DNS: ${{ github.event.inputs.dns_check }}
+          SEND_FOLLOWUP: ${{ github.event.inputs.followup_emails }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -245,7 +250,46 @@ jobs:
             $picked = []; $seen = [];
             $DNS_CHECK = strtolower(trim((string)getenv('SEND_DNS'))) !== 'false';
             $dnsSeen = []; $dnsDead = 0;
-            foreach ($leads as $l) {
+
+            /* TAKIP KIPI. Kampanyanin ikinci kopyasi degil, kisa bir "ulasti mi" notu:
+               ayni mektubu tekrar yollamak posta listesi gibi okunuyor, kisa bir soru
+               ise insan gibi okunuyor -- ve durustcesi de bu, cunku ilkinin gorulup
+               gorulmedigini bilmiyoruz.
+               Normal secimi tamamen devre disi birakiyor: takip, "hic yazilmamislar"
+               havuzunun tam TERSI bir kume uzerinde calisiyor. */
+            $FOLLOWUP = [];
+            foreach (preg_split('/[\s,;]+/', (string)getenv("SEND_FOLLOWUP"), -1, PREG_SPLIT_NO_EMPTY) as $s2) {
+              $s2 = strtolower(trim($s2)); if ($s2 !== '') $FOLLOWUP[$s2] = true;
+            }
+            $IS_FOLLOWUP = (bool)$FOLLOWUP;
+            if ($IS_FOLLOWUP) {
+              require_once $home."/public_html/inc/email_templates.php";
+              $missing = $FOLLOWUP;
+              foreach ($leads as $l) {
+                $email = strtolower(trim((string)($l['email'] ?? '')));
+                if ($email === '' || !isset($FOLLOWUP[$email])) continue;
+                unset($missing[$email]);
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "  - ATLANDI (gecersiz adres): {$email}\n"; continue; }
+                if (($l['status'] ?? '') === 'unsubscribed' || !empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$email}\n"; continue; }
+                /* Hic yazilmamis birine "gecen mektubumuz ulasti mi" demek, olmayan bir
+                   mektuba atifta bulunmak olur. */
+                if (trim((string)($l['last_contacted_at'] ?? '')) === '') { echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n"; continue; }
+                /* Ayni takibi iki kez gondermemek icin: bu alan takip gonderildiginde
+                   damgalaniyor, last_contacted_at ise DOKUNULMUYOR -- ilk temasin
+                   tarihi kaydin kendi tarihi ve degistirilmemeli. */
+                if (trim((string)($l['last_followup_at'] ?? '')) !== '') { echo "  - ATLANDI (takip zaten gonderilmis): {$email}\n"; continue; }
+                if (isset($seen[$email])) continue;
+                if ($DNS_CHECK) {
+                  $dom = substr(strrchr($email, '@'), 1);
+                  if (!isset($dnsSeen[$dom])) $dnsSeen[$dom] = (checkdnsrr($dom, 'MX') || checkdnsrr($dom, 'A'));
+                  if (!$dnsSeen[$dom]) { echo "  - ATLANDI (alan adi posta alamiyor): {$email}\n"; $dnsDead++; continue; }
+                }
+                $seen[$email] = true;
+                $picked[] = $l;
+              }
+              foreach (array_keys($missing) as $m) echo "  ! LEAD LISTESINDE YOK: {$m}\n";
+            }
+            foreach ($IS_FOLLOWUP ? [] : $leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
               if (vestra_email_is_junk($email)) continue;                        // scraped artefact / placeholder / noreply — would hard-bounce
@@ -307,8 +351,8 @@ jobs:
             }
             if ($DNS_CHECK) echo "DNS: posta alamayan alan adi yuzunden elenen aday: {$dnsDead}\n";
 
-            echo $DRY ? "== DRY-RUN — gonderim YOK, sadece secim listesi ==\n"
-                      : "== GERCEK GONDERIM — Les Garage de Paris ==\n";
+            echo $DRY ? ($IS_FOLLOWUP ? "== DRY-RUN (TAKIP) — gonderim YOK ==\n" : "== DRY-RUN — gonderim YOK, sadece secim listesi ==\n")
+                      : ($IS_FOLLOWUP ? "== GERCEK GONDERIM — TAKIP MEKTUBU ==\n" : "== GERCEK GONDERIM — Les Garage de Paris ==\n");
             echo "uygun secilen: " . count($picked) . " / hedef: {$COUNT}\n\n";
 
             // id -> index, so a successful send stamps the master array (not the picked copy).
@@ -347,7 +391,11 @@ jobs:
                 continue;
               }
 
-              list($subject, $body, $opts) = vestra_campaign_preview($company, $lang, '', $POOLS);
+              if ($IS_FOLLOWUP) {
+                list($subject, $body, $opts) = vestra_tpl_lead_followup($lang, $company);
+              } else {
+                list($subject, $body, $opts) = vestra_campaign_preview($company, $lang, '', $POOLS);
+              }
               // Compliance: swap the builder's generic opt-out link for THIS lead's tokenised
               // one-click unsubscribe, so the recipient can actually opt out of their own record.
               $token = (string)($l['unsub_token'] ?? '');
@@ -364,11 +412,17 @@ jobs:
                 $sent++;
                 $i = $idx[(string)($l['id'] ?? '')] ?? null;
                 if ($i !== null) {
-                  if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
-                  $leads[$i]['last_contacted_at'] = date('c');
-                  $leads[$i]['last_campaign'] = 'les-garage/' . $lang;
-                  $note = trim((string)($leads[$i]['notes'] ?? ''));
-                  $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'campaign(' . $lang . ') ' . date('Y-m-d'));
+                  if ($IS_FOLLOWUP) {
+                    $leads[$i]['last_followup_at'] = date('c');
+                    $note = trim((string)($leads[$i]['notes'] ?? ''));
+                    $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'followup(' . $lang . ') ' . date('Y-m-d'));
+                  } else {
+                    if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
+                    $leads[$i]['last_contacted_at'] = date('c');
+                    $leads[$i]['last_campaign'] = 'les-garage/' . $lang;
+                    $note = trim((string)($leads[$i]['notes'] ?? ''));
+                    $leads[$i]['notes'] = trim($note . ($note !== '' ? ' · ' : '') . 'campaign(' . $lang . ') ' . date('Y-m-d'));
+                  }
                 }
                 echo "  + GONDERILDI: {$company} <{$email}> | dil={$flag}\n";
               } else {
