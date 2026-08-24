@@ -46,6 +46,10 @@ on:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
         default: ""
+      login_probe:
+        description: "true = test hesabıyla CANLI siteye giriş yap, çerezle anasayfayı iste ve hangi düğmelerin göründüğünü yaz (Open my panel mi Register mı). www/non-www çerez kaybını da sınar."
+        required: false
+        default: "false"
       reset_probe:
         description: "Bir e-posta adresi verin: 'şifremi unuttum' akışının HER adımını sırayla dener ve nerede durduğunu yazar. GERÇEK bir sıfırlama e-postası gönderir — kendi adresinizi verin."
         required: false
@@ -753,6 +757,51 @@ jobs:
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
             rm -f /tmp/vestra_sheet.php
+
+      # "Giristen sonra yine kayit/giris goruyorum" -- oturum duzeltmesi yerelde
+      # dogrulandi ama sikayet canlida surdu. Bu adim ayni akisi CANLI sitede,
+      # runner'dan kosuyor: test hesabiyla giris, ayni cerez kavanozuyla anasayfa,
+      # ve dugmelerin hangisi ciktigi. Tarayici/onbellek/etki alani degiskenlerini
+      # tek tek gorunur kiliyor; SSH gerektirmiyor.
+      - name: Canlı giriş sınaması (oturum kalıcı mı?)
+        if: github.event.inputs.login_probe == 'true'
+        run: |
+          set -e
+          BASE="https://vestrasales.com"
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"
+          JAR=$(mktemp)
+          echo "===== 1. GIRIS (POST /login) ====="
+          # Test hesabi send-verify-test.yml'nin kurdugu kayit; parolasi zaten o
+          # dosyada acikta duruyor, yeni bir sey sizdirmiyoruz.
+          curl -sS -A "$UA" -c "$JAR" -b "$JAR" -D /tmp/h1.txt -o /tmp/b1.html \
+            -d 'email=acerasoft%2Bverifytest%40gmail.com&password=Test12345!' \
+            --max-time 30 "$BASE/login"
+          grep -i '^HTTP\|^location' /tmp/h1.txt | head -4
+          echo "-- Set-Cookie parametreleri (deger maskeli) --"
+          grep -i '^set-cookie' /tmp/h1.txt | sed -E 's/=(.[^;]{6})[^;]*/=\1…/' || echo "  (giris cerez VERMEDI — parola tutmadi ya da akis degisti)"
+          echo
+          echo "===== 2. ANASAYFA (ayni cerezle) ====="
+          curl -sS -A "$UA" -c "$JAR" -b "$JAR" -D /tmp/h2.txt -o /tmp/b2.html --max-time 30 "$BASE/"
+          grep -i '^HTTP\|^cache-control\|^x-litespeed-cache\|^age:' /tmp/h2.txt | head -6
+          if grep -q 'Open my' /tmp/b2.html; then echo "SONUC: GIRISLI goruyor — 'Open my panel' cikti. Oturum canlida da calisiyor."
+          elif grep -q 'Register as Seller' /tmp/b2.html; then echo "SONUC: GIRISSIZ goruyor — hala kayit dugmeleri. Oturum anasayfada TANINMIYOR."
+          else echo "SONUC: beklenmedik govde — dugme metinleri bulunamadi"; fi
+          echo
+          echo "===== 3. AYNI CEREZLE www ALT ALAN ====="
+          # Cerez vestrasales.com'a yazildiysa ve ziyaretci bir sonraki gelisinde
+          # www.vestrasales.com'a duserse oturum 'kaybolmus' gorunur — klasik tuzak.
+          curl -sS -A "$UA" -c "$JAR" -b "$JAR" -D /tmp/h3.txt -o /tmp/b3.html --max-time 30 "https://www.vestrasales.com/" || true
+          grep -i '^HTTP\|^location' /tmp/h3.txt | head -3
+          if grep -qi '^location: https://vestrasales.com' /tmp/h3.txt; then echo "www -> ana alan adina YONLENIYOR (dogru: tek cerez alani)"
+          elif grep -q 'Open my' /tmp/b3.html; then echo "www uzerinde de girisli gorunuyor"
+          elif grep -q 'Register as Seller' /tmp/b3.html; then echo "UYARI: www uzerinde GIRISSIZ — cerez alan adi tuzagi BU. www ana alana yonlendirilmeli."
+          fi
+          echo
+          echo "===== 4. /buyer (panel gercekten aciliyor mu) ====="
+          code=$(curl -sS -A "$UA" -c "$JAR" -b "$JAR" -o /tmp/b4.html -w '%{http_code}' --max-time 30 "$BASE/buyer")
+          echo "HTTP $code"
+          grep -qi 'login\|sign in' /tmp/b4.html && grep -q 'authcard' /tmp/b4.html && echo "UYARI: panel yerine giris sayfasi geldi" || echo "panel govdesi geldi"
+          rm -f "$JAR"
 
       # "Sifremi unuttum calismiyor" -- forgot.php TASARIM GEREGI hep ayni cevabi
       # veriyor ("link yolda"), cunku aksi halde hangi adresin kayitli oldugunu
