@@ -17,9 +17,14 @@ const OUT    = process.argv[2];
 const FRAMES = parseInt(process.argv[3] || '480', 10);
 
 /* Ten pieces, hand-picked rather than taken off the top of the catalogue:
+ *   - the running order is DSQUARED2-led. The previous cut was eight Lacoste pieces
+ *     out of ten, which made the homepage read as a Lacoste shop rather than a
+ *     multi-brand marketplace; the operator asked for the premium houses forward and
+ *     Lacoste sparing, so Lacoste now holds two slots and neither of them opens.
+ *     BALMAIN belongs in this list and is missing for one reason only: its packshots
+ *     live on the server and are not in this repository, and the build machine cannot
+ *     reach the site. Add them under vestra/uploads/balmain/ and they can lead.
  *   - hue rotates between neighbours, so two pieces in a row never read as one block;
- *   - silhouette alternates (polo / hoodie / sweat / tee), so the lookbook is not the
- *     same outline ten times in different colours;
  *   - nothing from index.php's $HERO_SKIP. The operator took `rl/csf-polo` and
  *     `burberry-8039175` out of the homepage by name, and a clip that put them back
  *     would quietly undo that.
@@ -32,16 +37,16 @@ const FRAMES = parseInt(process.argv[3] || '480', 10);
  * gives no glow, and on a dark stage they read as a smudge rather than a garment.
  */
 const PICKS = [
-  ['lacoste/l1212-blue.jpg',            '#21419d'],  // royal blue polo
-  ['lac-sweat/lacoste-sweat-beige.png', '#c8a886'],  // camel sweat
-  ['lacoste/l1212-bordeaux.jpg',        '#81041c'],  // bordeaux polo
-  ['lac-hoodie/lacoste-hoodie-blue.png','#529dda'],  // sky hoodie
-  ['lacoste/l1212-green.jpg',           '#255335'],  // forest polo
-  ['lac-tee/lacoste-trim-tshirt-1.png', '#821a25'],  // red trim tee
-  ['lac-sweat/lacoste-sweat-blue.png',  '#66a8da'],  // light blue sweat
-  ['dsquared/dsq-101220.png',           '#7a5f52'],  // DSQ ICON hoodie (print carries it)
-  ['lac-hoodie/lacoste-hoodie-green.png','#265331'], // green hoodie
-  ['dg/101206.png',                     '#4a4550'],  // D&G graphic tee
+  ['dsquared/dsq-101230.png', '#fd8cc5'],           // DSQUARED2
+  ['dg/101260.png',           '#02985d'],           // D&G
+  ['dsquared/dsq-101233.png', '#bf9687'],           // DSQUARED2
+  ['dg/101201.png',           '#b3c1d4'],           // D&G
+  ['dsquared/dsq-101231.png', '#cfaeb7'],           // DSQUARED2
+  ['dg/101248.png',           '#fe7f00'],           // D&G
+  ['lacoste/l1212-blue.jpg',  '#21419d'],           // Lacoste
+  ['dg/101261.png',           '#f9ce43'],           // D&G
+  ['dsquared/dsq-101212.png', '#9a999d'],           // DSQUARED2
+  ['lac-sweat/lacoste-sweat-beige.png', '#c8a886'], // Lacoste
 ];
 
 (async () => {

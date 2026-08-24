@@ -43,6 +43,15 @@ if (@include_once __DIR__.'/inc/products.php') {
        takes a whole colourway line out in one entry. */
     $HERO_SKIP = ['burberry-8039175', 'rl/csf-polo'];
 
+    /* Which houses lead the homepage and which one steps back. Matched as a
+       lowercase substring of the product's brand, so "DSQUARED2" and "Dsquared2"
+       both land, and a brand the catalogue spells slightly differently still does.
+       Kept as two lists next to $HERO_SKIP because "put this label forward" is the
+       same kind of recurring operator note as "not that one" -- a name added here
+       should not need anything else changed. */
+    $HERO_BRAND_FIRST = ['balmain', 'dsquared'];
+    $HERO_BRAND_LAST  = ['lacoste'];
+
     /* The film crops full-bleed across a wide, short band (background-size:cover),
        so a tall product packshot (a plain flat-lay/carton photo, common on freshly
        imported catalogue lines) gets zoomed into a near-abstract sliver of fabric
@@ -69,11 +78,27 @@ if (@include_once __DIR__.'/inc/products.php') {
         $pos = array_search($cat, $WANT, true);
         if ($pos === false) continue;
         $nm = (string)($hp['name'] ?? '');
-        /* Sort key: category order first, then colourful names ahead of plain ones.
-           The BALMAIN black tee that used to be pinned here has been dropped -- the
-           operator asked for a second women's piece in that slot instead, and
-           Women's T-Shirts now sits second in the running order. */
-        $pool[] = [$pos, 0, preg_match($COLOUR, $nm) ? 0 : 1, $cat, $im];
+        /* Brand rank, second in the sort key -- so within each category the featured
+           houses are picked first and Lacoste last. It has to sit BELOW category
+           rather than above it: the strip deals one frame per category in rotation,
+           so a brand-first sort would fill the whole homepage with one label and lose
+           the range the catalogue is supposed to show. Ranked this way, every
+           category still gets a turn, but the piece it sends forward is the Balmain
+           or DSQUARED2 one where such a piece exists.
+           An unlisted brand ranks 1: featured houses lead, Lacoste follows, and
+           everything else keeps its place in between rather than being pushed to the
+           back by a rule that never named it. */
+        $brandL = strtolower(trim((string)($hp['brand'] ?? '')));
+        $brandRank = 1;
+        foreach ($HERO_BRAND_FIRST as $b) { if ($brandL !== '' && str_contains($brandL, $b)) { $brandRank = 0; break; } }
+        if ($brandRank === 1) {
+            foreach ($HERO_BRAND_LAST as $b) { if ($brandL !== '' && str_contains($brandL, $b)) { $brandRank = 2; break; } }
+        }
+        /* Sort key: category order, then brand rank, then colourful names ahead of
+           plain ones. The BALMAIN black tee that used to be pinned here has been
+           dropped -- the operator asked for a second women's piece in that slot
+           instead, and Women's T-Shirts now sits second in the running order. */
+        $pool[] = [$pos, $brandRank, preg_match($COLOUR, $nm) ? 0 : 1, $cat, $im];
     }
     usort($pool, fn($a, $b) => [$a[0], $a[1], $a[2]] <=> [$b[0], $b[1], $b[2]]);
 
@@ -474,6 +499,21 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      landed inside that. The extra height is what buys the two a lane each. */
   .hero.hasvideo{padding:48px 0 44px;align-items:flex-start;min-height:min(88vh,820px)}
   @media(max-height:840px){ .hero.hasvideo{padding-top:32px} }
+  /* The film claims only the LOWER part of the band, not all of it.
+     Full-bleed, the clip's own lit stage ran up behind the two registration buttons
+     and the eye went to the moving garments instead of to the thing the page is
+     asking for. Handing the top third back to the plain graded stage puts the
+     headline and both calls to action on quiet ground, and drops the garments
+     visibly further down the page.
+     The top edge is MASKED rather than cut: a hard horizontal line across a dark
+     hero reads as a grey box with a straight edge -- the exact defect this hero was
+     rebuilt to get rid of. The fade makes the film emerge out of the stage instead. */
+  .hero.hasvideo .herofilm{top:auto;bottom:0;height:70%;
+    -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 20%,#000 100%);
+            mask-image:linear-gradient(to bottom,transparent 0,#000 20%,#000 100%)}
+  /* Short viewports have no room to give a third away -- there the film keeps more
+     of the band, or the garments fall off the bottom of the screen entirely. */
+  @media(max-height:760px){ .hero.hasvideo .herofilm{height:82%} }
   /* Wide screens get the clip, so the still strip stands down. Below the breakpoint
      the two swap -- see the phone rule further down. 700px matches the width the
      loader script tests before it will fetch anything, so the picture and the
@@ -587,6 +627,18 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   .btn-p:hover{filter:brightness(1.08);transform:translateY(-2px);box-shadow:0 10px 30px -10px rgba(201,168,106,.5)}
   .btn-o{background:transparent;color:var(--ink)}
   .btn-o:hover{background:rgba(201,168,106,.1);transform:translateY(-2px)}
+  /* The two registration buttons are what the homepage is FOR, so on the hero they
+     are given a size of their own rather than the sitewide one. The outline button
+     also stops being fully transparent: over the film it was reading as a hairline
+     ring and the "buy" half of the marketplace looked like an afterthought next to
+     the filled "sell" half. A dark, slightly blurred fill keeps it clearly secondary
+     while making it a button rather than an outline. */
+  .hero .btns{gap:16px}
+  .hero .btns .btn{padding:17px 34px;font-size:16px}
+  .hero .btn-p{box-shadow:0 14px 34px -14px rgba(201,168,106,.55)}
+  .hero .btn-o{background:rgba(13,13,16,.55);backdrop-filter:blur(3px);
+    border-color:rgba(201,168,106,.75)}
+  .hero .btn-o:hover{background:rgba(201,168,106,.16)}
   .btn:active{transform:scale(.96)}
   .trustline{margin-top:34px;font-size:13px;color:var(--mut);display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
   .trustline span{display:inline-flex;align-items:center;gap:7px}
