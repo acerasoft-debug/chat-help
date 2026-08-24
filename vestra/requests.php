@@ -67,10 +67,23 @@ $brandCount   = count(array_unique(array_filter(array_map(
     static fn($p) => trim((string)($p['brand'] ?? '')), $liveProducts))));
 /* Panoda gercek hareket: en yeni ilanlar. Talep tarafi hic yazi almamis olsa bile
    sayfada gercekten olan bir sey durur, ve okuyucuyu katalogda ise yarar bir yere atar. */
-$freshest = $liveProducts;
+$freshest = array_filter($liveProducts, static fn($p) => !empty($p['added_at']));
 usort($freshest, static fn($a, $b) =>
     strtotime((string)($b['added_at'] ?? '1970-01-01')) <=> strtotime((string)($a['added_at'] ?? '1970-01-01')));
-$freshest = array_slice(array_filter($freshest, static fn($p) => !empty($p['added_at'])), 0, 6);
+/* De-duplicate on brand+name before taking six. A batch import lands a whole product
+   line at the same second, and "newest six" then meant the SAME shirt six times --
+   for a guest (whose photos are gated) that rendered as six identical dark tiles,
+   which reads as a broken page, not a locked one. One tile per distinct product
+   keeps the rail honest about recency while actually showing range. */
+$seenLine = []; $rail = [];
+foreach ($freshest as $p) {
+    $k = mb_strtolower(trim((string)($p['brand'] ?? '')).'|'.trim((string)($p['name'] ?? '')));
+    if (isset($seenLine[$k])) continue;
+    $seenLine[$k] = true;
+    $rail[] = $p;
+    if (count($rail) >= 6) break;
+}
+$freshest = $rail;
 $isSeller=$AUTH_USER && ($AUTH_USER['type']??'')==='seller';
 $myEmail=strtolower($AUTH_USER['email']??'');
 
@@ -118,7 +131,12 @@ function vestra_req_age(string $ts): string {
         <a class="reqfresh-card" href="/product?id=<?= urlencode((string)($fp['id'] ?? '')) ?>">
           <span class="reqfresh-thumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($fp)) ?>,#0e0e11)">
             <?php if($fimg): ?><img src="<?= htmlspecialchars($fimg) ?>" alt="" loading="lazy">
-            <?php else: echo vestra_brand_card((string)($fp['brand'] ?? '')); endif; ?>
+            <?php else: echo vestra_brand_card((string)($fp['brand'] ?? '')); ?>
+              <?php /* Tell the guest the photo is WITHHELD, not missing. Without this
+                       line the gated tile is indistinguishable from a broken image,
+                       and "broken" is what a first-time visitor assumes. */ ?>
+              <span class="reqfresh-lock">🔒 <?= t('Photos for members') ?></span>
+            <?php endif; ?>
           </span>
           <span class="reqfresh-brand"><?= htmlspecialchars((string)($fp['brand'] ?? '')) ?></span>
           <span class="reqfresh-name"><?= htmlspecialchars((string)($fp['name'] ?? '')) ?></span>

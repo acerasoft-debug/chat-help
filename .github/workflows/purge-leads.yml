@@ -18,6 +18,10 @@ on:
         description: "Bu çalıştırmada en fazla kaç YENİ alan adı çözümlensin (sonuçlar önbelleğe yazılır, tekrar çalıştırınca kaldığı yerden devam eder)"
         required: false
         default: "600"
+      fix_encoded:
+        description: "true = URL-kodlama artığı taşıyan adresleri ONAR (%20info@x.com -> info@x.com). Bu adresler her kampanyada seçilip Brevo'da reddediliyor ve hiçbir zaman damgalanmadığı için sonsuza dek yeniden deneniyor. Diğer modlar çalışmaz."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -36,8 +40,75 @@ permissions:
 # "kriteri karsilamiyor" demek degil, "daha bakilmadi" demek.
 # GUVENLIK 3: silmeden once zaman damgali yedek alinir.
 jobs:
+  # URL-kodlama artigi tasiyan adresleri onar. Bu iki adres (%20 onekli) her
+  # kampanya turunda secildi, Brevo "email is not valid in to" ile reddetti
+  # (gunlukte x32 goruldu) ve hicbir zaman damgalanmadigi icin bir sonraki turda
+  # yeniden secildi -- sonsuz dongu. filter_var bu bicimi GECERLI sayiyor, o
+  # yuzden secim filtresi yakalamiyor; kaynakta duzeltmek tek kalici cozum.
+  fix_encoded:
+    if: github.event.inputs.fix_encoded == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodlama artığı adresleri onar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_fixenc.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            require      $home."/public_html/inc/products.php";
+            require_once $home."/public_html/inc/leads.php";
+
+            $leads = vestra_leads();
+            $byMail = [];
+            foreach ($leads as $l) { $m = strtolower(trim((string)($l['email'] ?? ''))); if ($m !== '') $byMail[$m] = true; }
+
+            $fixed = 0; $dropped = 0;
+            foreach ($leads as $i => $l) {
+              $raw = (string)($l['email'] ?? '');
+              if ($raw === '' || strpos($raw, '%') === false) continue;
+              /* Kodlamayi coz, gorunmez artiklari kirp. urldecode %20'yi bosluga
+                 cevirir; bastaki/sondaki bosluk zaten artigin kendisi. */
+              $dec = trim(urldecode($raw));
+              $dec = strtolower($dec);
+              if (!filter_var($dec, FILTER_VALIDATE_EMAIL)) {
+                echo "  ! COZULEMEDI, birakildi: {$raw}\n"; continue;
+              }
+              if (isset($byMail[$dec])) {
+                /* Duzeltilmis hali zaten baska bir kayitta varsa bu kayit bir kopya:
+                   duzeltmek ayni adrese iki kayit birakir, ikisi de secilebilir olur.
+                   Kopyayi isaretle -- silme kararini operator versin diye durum
+                   'duplicate_encoded' yapiliyor, kampanya seçimi bunu atlar. */
+                $leads[$i]['status'] = 'duplicate_encoded';
+                echo "  - KOPYA (duzeltilmisi zaten kayitli): {$raw} -> {$dec}\n";
+                $dropped++; continue;
+              }
+              $leads[$i]['email'] = $dec;
+              $byMail[$dec] = true;
+              $note = trim((string)($leads[$i]['notes'] ?? ''));
+              $leads[$i]['notes'] = trim($note.($note !== '' ? ' · ' : '').'[email onarildi: kodlama artigi '.date('Y-m-d').']');
+              echo "  + ONARILDI: {$raw} -> {$dec}\n";
+              $fixed++;
+            }
+            if ($fixed || $dropped) {
+              @copy(vestra_data_dir().'/leads.json', vestra_data_dir().'/leads.json.bak-fixenc-'.date('Ymd_His'));
+              vestra_save_leads($leads);
+            }
+            echo "\nBITTI. onarilan: {$fixed}, kopya isaretlenen: {$dropped}\n";
+            PHPEOF
+            php -l /tmp/vestra_fixenc.php 2>&1
+            php /tmp/vestra_fixenc.php 2>&1
+            rm -f /tmp/vestra_fixenc.php
+
   purge:
-    if: github.event.inputs.dns_check != 'true'
+    if: github.event.inputs.dns_check != 'true' && github.event.inputs.fix_encoded != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Ayıkla ve çıkar
@@ -141,7 +212,7 @@ jobs:
   # Sonuclar data/dns_cache.json'a yaziliyor: is yarida kesilirse tekrar
   # calistirmak kaldigi yerden devam eder, ayni alan adi iki kez sorulmaz.
   dns_purge:
-    if: github.event.inputs.dns_check == 'true'
+    if: github.event.inputs.dns_check == 'true' && github.event.inputs.fix_encoded != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Ölü alan adlarını tara ve çıkar
