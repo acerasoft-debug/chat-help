@@ -201,7 +201,14 @@ function vestra_discover_google(string $country, string $city = '', int $limit =
         for ($page = 0; $page < 3; $page++) {
             if (count($out) >= $limit) break;
             $d = vestra_google_places_call($phrase.' '.$where, $region, $lang, $token);
-            if (!$d) break;                       // note already written by the caller
+            if (!$d) {
+                /* A transport-level failure is per-call and the next phrase may well
+                   work; a rejected key or an unbilled project will not, and retrying it
+                   four more times only spends four more round trips to reach the same
+                   sentence. Stop the whole run in that case. */
+                if (!vestra_google_ok()) break 2;
+                break;                            // note already written by the caller
+            }
             foreach (($d['places'] ?? []) as $p) {
                 $name = trim((string)($p['displayName']['text'] ?? ''));
                 if ($name === '') continue;
