@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi)"
+        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type)"
         required: false
         default: "mail_key"
       src_email:
@@ -32,6 +32,10 @@ on:
         default: ""
       cust_country:
         description: "customer_billing: ülke (ör. US). Boşsa değişmez."
+        required: false
+        default: ""
+      acct_type:
+        description: "account_type görevi için: hesabın YENİ tipi (buyer | seller)"
         required: false
         default: ""
       cust_phone:
@@ -445,3 +449,56 @@ jobs:
             rc=$?
             rm -f ./vestra_custbill_tmp.php /tmp/vestra_custbill.php
             exit $rc
+
+  account_type:
+    if: github.event.inputs.task == 'account_type'
+    runs-on: ubuntu-latest
+    steps:
+      # "Buyer olarak kayit oldum, seller hesabi kurdu" -- tipi panelden degistirmenin
+      # bir yolu yok ve yeniden kayit e-postayi "email_taken" ile kilitliyor. Bu gorev
+      # tek alani degistirir: type. Baska hicbir alana dokunulmaz; KYB durumu ve
+      # belgeler oldugu gibi kalir. E-posta log'a MASKELI yazilir.
+      - name: Hesap tipini düzelt (buyer/seller)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          A_EMAIL: ${{ github.event.inputs.src_email }}
+          A_TYPE: ${{ github.event.inputs.acct_type }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: A_EMAIL,A_TYPE
+          script: |
+            cat > /tmp/vestra_acctype.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $email = strtolower(trim((string)getenv('A_EMAIL')));
+            $type  = strtolower(trim((string)getenv('A_TYPE')));
+            if (!in_array($type, ['buyer','seller'], true)) { fwrite(STDERR, "acct_type buyer ya da seller olmali\n"); exit(1); }
+            if ($email === '') { fwrite(STDERR, "src_email yok\n"); exit(1); }
+
+            $at = strrpos($email, '@');
+            $mask = substr($email, 0, 2).str_repeat('*', max(0, ($at !== false ? $at : strlen($email)) - 2)).($at !== false ? substr($email, $at) : '');
+
+            $accs = auth_accounts(); $hit = false;
+            foreach ($accs as $i => $a) {
+              if (strtolower((string)($a['email'] ?? '')) !== $email) continue;
+              $hit = true;
+              $old = (string)($a['type'] ?? '?');
+              if ($old === $type) { echo "degisiklik yok: {$mask} zaten {$type}\n"; exit(0); }
+              $accs[$i]['type'] = $type;
+              auth_save_accounts($accs);
+              echo "TAMAM: {$mask}  {$old} -> {$type}\n";
+              echo "Not: kullanici bir sonraki giriste dogru panele yonlenir; acik oturumu varsa cikip girmesi yeterli.\n";
+              break;
+            }
+            if (!$hit) { fwrite(STDERR, "hesap bulunamadi: {$mask}\n"); exit(1); }
+            PHPEOF
+            php -l /tmp/vestra_acctype.php 2>&1
+            php /tmp/vestra_acctype.php 2>&1
+            rm -f /tmp/vestra_acctype.php
