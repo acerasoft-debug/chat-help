@@ -66,6 +66,14 @@ on:
         description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
         required: false
         default: "false"
+      finder_keyscan:
+        description: "true = 'finder anahtarını bul ve ekle': sunucudaki tüm yedeklerde duran anahtarları toplar, HER İKİ sağlayıcıya (Hunter + Anymailfinder) sorar, çalışan varsa ayarlara yazar. Anahtar log'a YAZILMAZ — sadece parmak izi."
+        required: false
+        default: "false"
+      finder_clear:
+        description: "finder_keyscan ile: hiçbiri çalışmıyorsa geçersiz anahtarı ayarlardan sil (önce yedek alınır). Boş bırakılırsa hiçbir şey silinmez."
+        required: false
+        default: "false"
       visits_probe:
         description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz."
         required: false
@@ -1291,6 +1299,170 @@ jobs:
             php -l /tmp/vestra_visits.php 2>&1
             php /tmp/vestra_visits.php 2>&1
             rm -f /tmp/vestra_visits.php
+
+      # "Anahtari bul ve ekle": uretemeyiz, ama sunucuda duran her kopyayi deneyebiliriz.
+      # Yanlis saglayiciya sorulan gecerli bir anahtar da 401 doner -- o yuzden her
+      # aday iki uca da soruluyor. Anahtarin kendisi hicbir yere yazilmiyor.
+      - name: Finder anahtarını bul ve ekle
+        if: github.event.inputs.finder_keyscan == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: VESTRA_FINDER_CLEAR
+          script: |
+            cat > /tmp/vestra_finderscan.php <<'PHPEOF'
+            <?php
+            /**
+             * "Finder anahtarini bul ve ekle."
+             *
+             * Anahtari sifirdan URETEMEYIZ -- o, operatorun kendi Hunter/Anymailfinder
+             * hesabindan cikar. Ama iki ihtimal var ve ikisi de sunucuda cevaplanabilir:
+             *   1) Eskiden CALISAN bir anahtar yedeklerde duruyor olabilir.
+             *   2) Eldeki anahtar gecerli ama YANLIS saglayiciya sorulmus olabilir --
+             *      Anymailfinder anahtarini Hunter'a sorunca cevap tam olarak
+             *      "No user found for the API key supplied" (401) oluyor.
+             *
+             * Anahtarin kendisi hicbir zaman yazilmiyor: bu depo da Actions gunlugu de
+             * herkese acik. Sadece uzunluk + sha256'nin ilk 8 hanesi (parmak izi) yaziliyor;
+             * parmak izi ayni anahtari iki dosyada taniyabilmek icin yeterli, anahtari geri
+             * vermek icin degil.
+             */
+            $doc  = getenv("HOME")."/public_html";
+            $home = getenv("HOME");
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+
+            $fp = fn(string $k): string => substr(hash('sha256', $k), 0, 8);
+
+            echo "===== 1. ADAY ANAHTARLAR NEREDE =====\n";
+
+            /* Aranacak yerler: guncel ayar dosyasi, onun yedekleri, config.php ve data/
+               altindaki her turlu .bak kopyasi. */
+            $files = [];
+            $files[] = $doc.'/data/email_settings.json';
+            $files[] = $doc.'/inc/config.php';
+            foreach (glob($doc.'/data/email_settings.json*') ?: [] as $f) $files[] = $f;
+            foreach (glob($doc.'/data/*.bak*') ?: [] as $f) $files[] = $f;
+            foreach (glob($home.'/*email_settings*') ?: [] as $f) $files[] = $f;
+            foreach (glob($home.'/backups/*') ?: [] as $f) $files[] = $f;
+            $files = array_values(array_unique(array_filter($files, 'is_file')));
+
+            $cands = [];   // key => ['sources'=>[], 'provider'=>hint]
+            foreach ($files as $f) {
+                $raw = @file_get_contents($f);
+                if ($raw === false || $raw === '') continue;
+                if (!str_contains($raw, 'finder_key')) continue;
+                $hits = [];
+                /* JSON ya da PHP dizisi olabilir; ikisini de yakalayan tek desen. */
+                if (preg_match_all('/[\'"]finder_key[\'"]\s*(?::|=>)\s*[\'"]([^\'"]{8,})[\'"]/', $raw, $m)) {
+                    foreach ($m[1] as $k) $hits[] = $k;
+                }
+                $provHint = '';
+                if (preg_match('/[\'"]finder_provider[\'"]\s*(?::|=>)\s*[\'"]([^\'"]+)[\'"]/', $raw, $pm)) $provHint = $pm[1];
+                foreach ($hits as $k) {
+                    $k = trim($k);
+                    if ($k === '') continue;
+                    if (!isset($cands[$k])) $cands[$k] = ['sources' => [], 'provider' => $provHint];
+                    $cands[$k]['sources'][] = str_replace([$doc, $home], ['<doc>', '<home>'], $f).' ('.date('Y-m-d H:i', (int)@filemtime($f)).')';
+                }
+            }
+
+            if (!$cands) {
+                echo "  Hicbir dosyada finder_key bulunamadi.\n";
+            } else {
+                foreach ($cands as $k => $info) {
+                    printf("  anahtar %s  (%d karakter, kayitli saglayici: %s)\n", $fp($k), strlen($k), $info['provider'] ?: '-');
+                    foreach (array_unique($info['sources']) as $s) echo "      <- ".$s."\n";
+                }
+            }
+            printf("  taranan dosya: %d, farkli anahtar: %d\n", count($files), count($cands));
+
+            echo "\n===== 2. HER ANAHTAR HER IKI SAGLAYICIYA SORULUYOR =====\n";
+            echo "  (yanlis saglayiciya sorulan gecerli bir anahtar da 401 doner -- ikisini de deniyoruz)\n";
+
+            $test = function (string $key, string $prov): array {
+                $url = $prov === 'hunter'
+                    ? 'https://api.hunter.io/v2/account?api_key='.rawurlencode($key)
+                    : 'https://api.anymailfinder.com/v5.0/account.json';
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_CONNECTTIMEOUT => 8,
+                    CURLOPT_HTTPHEADER => $prov === 'hunter' ? [] : ['Authorization: Bearer '.$key]]);
+                $body = (string)curl_exec($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                return [$code, substr(preg_replace('/\s+/', ' ', $body), 0, 160)];
+            };
+
+            $winner = null;
+            foreach ($cands as $k => $info) {
+                foreach (['hunter', 'anymailfinder'] as $prov) {
+                    [$code, $body] = $test($k, $prov);
+                    $ok = $code >= 200 && $code < 300;
+                    printf("  %s + %-14s HTTP %-3d %s\n", $fp($k), $prov, $code, $ok ? 'CALISIYOR' : 'olmadi');
+                    if (!$ok) { echo "        yanit: ".$body."\n"; }
+                    elseif ($winner === null) { $winner = ['key' => $k, 'provider' => $prov]; }
+                }
+            }
+
+            echo "\n===== 3. SONUC =====\n";
+            $cur  = $doc.'/data/email_settings.json';
+            $curD = is_readable($cur) ? (json_decode((string)file_get_contents($cur), true) ?: []) : [];
+            $curK = (string)($curD['finder_key'] ?? '');
+
+            if ($winner === null) {
+                echo "  Calisan anahtar YOK.\n";
+                echo "  Sunucuda duran anahtarlarin hicbiri iki saglayicida da kabul edilmiyor;\n";
+                echo "  yani anahtar iptal edilmis ya da hesap kapanmis. Yeni anahtar ancak\n";
+                echo "  hunter.io / anymailfinder.com hesabindan alinabilir -- sunucudan uretilemez.\n";
+                /* Gecersiz anahtari KENDILIGINDEN silmiyoruz: istenen "bul ve ekle" idi,
+                   silmek ayri ve geri alinamaz bir karar. Ayri bir girdiyle, once yedek
+                   alarak yapiliyor. */
+                if ($curK !== '' && getenv('VESTRA_FINDER_CLEAR') === '1') {
+                    $bak = $cur.'.bak-'.date('Ymd_His');
+                    @copy($cur, $bak);
+                    unset($curD['finder_key']);
+                    file_put_contents($cur, json_encode($curD, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX);
+                    echo "\n  Gecersiz anahtar silindi (yedek: ".basename($bak).").\n";
+                    echo "  Sistem ucretsiz yedege dusuyor -- sitenin iletisim sayfasindan e-posta\n";
+                    echo "  okuma. Yani musteri bulma durmuyor, sadece isabet orani dusuyor.\n";
+                } elseif ($curK !== '') {
+                    echo "\n  Gecersiz anahtar dosyada DURUYOR (dokunmadim). Her istekte 401 aliniyor;\n";
+                    echo "  gunlukteki 251 satirin sebebi bu. Silmemi isterseniz bu is'i\n";
+                    echo "  finder_clear=true ile calistirin -- once yedek alinir.\n";
+                }
+            } else {
+                printf("  CALISAN anahtar bulundu: %s + %s\n", $fp($winner['key']), $winner['provider']);
+                $same = ($winner['key'] === $curK) && ((string)($curD['finder_provider'] ?? 'hunter') === $winner['provider']);
+                if ($same) {
+                    echo "  Zaten ayarli olan bu -- degisiklige gerek yok.\n";
+                } else {
+                    $curD['finder_key']      = $winner['key'];
+                    $curD['finder_provider'] = $winner['provider'];
+                    file_put_contents($cur, json_encode($curD, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE), LOCK_EX);
+                    printf("  data/email_settings.json guncellendi (saglayici: %s). Otomatik e-posta bulma acildi.\n", $winner['provider']);
+                }
+            }
+
+            echo "\n===== 4. DOGRULAMA (ayar dosyasi yeniden okunuyor) =====\n";
+            $chk = is_readable($cur) ? (json_decode((string)file_get_contents($cur), true) ?: []) : [];
+            $ck  = (string)($chk['finder_key'] ?? '');
+            printf("  finder_key      : %s\n", $ck !== '' ? $fp($ck).' ('.strlen($ck).' karakter)' : 'YOK (ucretsiz yedek kullanilacak)');
+            printf("  finder_provider : %s\n", (string)($chk['finder_provider'] ?? '-'));
+            if ($ck !== '') {
+                [$code] = $test($ck, (string)($chk['finder_provider'] ?? 'hunter'));
+                printf("  canli sinama    : HTTP %d %s\n", $code, ($code >= 200 && $code < 300) ? 'TAMAM' : '<-- HALA CALISMIYOR');
+            }
+            exit(0);
+            PHPEOF
+            php -l /tmp/vestra_finderscan.php 2>&1
+            php /tmp/vestra_finderscan.php 2>&1
+            rm -f /tmp/vestra_finderscan.php
+        env:
+          VESTRA_FINDER_CLEAR: ${{ github.event.inputs.finder_clear == 'true' && '1' || '0' }}
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
