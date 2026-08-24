@@ -823,17 +823,25 @@ jobs:
             printf("SMTP parola            : %s\n", ((string)vestra_cfg('smtp_pass','') !== '') ? "var" : "yok");
 
             echo "\n===== 5. GERCEK GONDERIM =====\n";
-            if (!$acc) { echo "hesap olmadigi icin gonderilmedi.\n"; exit(1); }
-            $a2 = auth_reset_begin($email);
-            printf("token uretildi         : %s\n", ($a2 && !empty($a2['reset_token'])) ? "EVET" : "HAYIR");
-            if (!$a2) exit(1);
-            $link = 'https://vestrasales.com/reset?token='.$a2['reset_token'];
-            $name = ($a2['name'] ?: ($a2['company'] ?: 'there'));
-            [$subj, $body, $o] = vestra_reset_text('en', $name, $link);
-            printf("konu                   : %s\n", $subj);
-            $ok = vestra_send_mail($a2['email'], $subj, $body, '', '', null, '', $o);
-            printf("vestra_send_mail()     : %s\n", $ok ? "TRUE — posta saglayicisi kabul etti" : "FALSE <-- ISTE SORUN BURADA");
-            echo "  (link log'a YAZILMADI: bu depo ve bu kutuk herkese acik, token tek basina hesabi acar)\n";
+            /* Hesap yoksa gonderim atlanir ama betik DEVAM EDER: 6. bolumdeki gunluk
+               izleri tam da bu durumda en degerli kanit -- erken exit onlari yutuyordu. */
+            $fail = false;
+            if (!$acc) { echo "hesap olmadigi icin gonderilmedi.\n"; $fail = true; }
+            else {
+              $a2 = auth_reset_begin($email);
+              printf("token uretildi         : %s\n", ($a2 && !empty($a2['reset_token'])) ? "EVET" : "HAYIR");
+              if (!$a2) { $fail = true; }
+              else {
+                $link = 'https://vestrasales.com/reset?token='.$a2['reset_token'];
+                $name = ($a2['name'] ?: ($a2['company'] ?: 'there'));
+                [$subj, $body, $o] = vestra_reset_text('en', $name, $link);
+                printf("konu                   : %s\n", $subj);
+                $ok = vestra_send_mail($a2['email'], $subj, $body, '', '', null, '', $o);
+                printf("vestra_send_mail()     : %s\n", $ok ? "TRUE — posta saglayicisi kabul etti" : "FALSE <-- ISTE SORUN BURADA");
+                echo "  (link log'a YAZILMADI: bu depo ve bu kutuk herkese acik, token tek basina hesabi acar)\n";
+                if (!$ok) $fail = true;
+              }
+            }
 
             echo "\n===== 6. HATA GUNLUGU (son posta izleri) =====\n";
             foreach ([$doc.'/error_log', getenv("HOME").'/logs/error_log'] as $lg) {
@@ -847,6 +855,7 @@ jobs:
               printf("%s: %d ilgili satir\n", $lg, count($hits));
               foreach (array_slice($hits, -20) as $h) echo "  ".substr($h, 0, 200)."\n";
             }
+            exit($fail ? 1 : 0);
             PHPEOF
             php -l /tmp/vestra_reset_probe.php 2>&1
             php /tmp/vestra_reset_probe.php 2>&1
