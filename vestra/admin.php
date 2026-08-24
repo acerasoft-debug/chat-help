@@ -1617,6 +1617,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'quote_nosender'=>'That seller has no sending email yet — set it up in "Configure sending for" above, then retry.',
     'finder_saved'=>'✓ Email-finder key saved.','finder_ok'=>'✓ Verified email found and added.','finder_none'=>'No email found for that domain — add it manually.',
     'ai_saved'=>'✓ AI personalisation key saved.',
+    'google_saved'=>'✓ Google anahtarı kaydedildi — "Search with" listesinden Google Maps\'i seçebilirsiniz.',
+    'google_cleared'=>'Google anahtarı silindi. Arama yeniden yalnızca OpenStreetMap ile çalışıyor.',
     'replied'=>'✓ Reply sent.','msg_err'=>'⚠ Could not start that conversation — try again.',
     'email_set'=>'✓ Email updated.','email_invalid'=>'⚠ Enter a valid email address (or leave it blank).','email_dupe'=>'⚠ Another account already uses that email.',
     'del_ok'=>'✓ Account deleted. A JSON backup was written to data/deleted-accounts/.',
@@ -3310,6 +3312,11 @@ elseif($tab==='prospects'):
   $cronStatus = vestra_cron_status();
   $cronTodayCountry = vestra_cron_today_country();
   $aiOn = vestra_ai_key()!=='';
+  /* Google is opt-in and costs money per call, so the source picker offers it only once
+     a key is actually stored — a disabled option that explains itself beats an enabled
+     one that returns "0 found" and leaves the operator guessing which end is broken. */
+  require_once __DIR__.'/inc/discover_google.php';
+  $googleOn = vestra_google_key()!=='';
 ?>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
   <?php
@@ -3368,6 +3375,15 @@ elseif($tab==='prospects'):
       </select>
     </div>
     <div class="afield" style="margin:0;flex:1;min-width:200px"><label>City <span style="font-weight:400;color:var(--mut)">— optional, narrows the search</span></label><input id="discCity" placeholder="leave blank to search the whole country"></div>
+    <?php /* The source belongs next to the country because it changes what a run costs,
+             not just what it returns. OSM is free; Google is a billed API call. */ ?>
+    <div class="afield" style="margin:0"><label>Search with</label>
+      <select id="discSource">
+        <option value="osm">OpenStreetMap — free</option>
+        <option value="google"<?= $googleOn?'':' disabled' ?>>Google Maps<?= $googleOn?' — richer, billed':' (add a key first)' ?></option>
+        <option value="both"<?= $googleOn?'':' disabled' ?>>Both — OSM first, Google fills the gaps</option>
+      </select>
+    </div>
     <button class="abtn primary" type="button" onclick="findCustomersLive(this)">🎯 Find customers</button>
   </div>
   <p class="ahint" style="margin-top:8px;font-size:11px">Whole-country searches take longer (up to ~60s) and may return nothing for very large countries — narrow to a city (local spelling, e.g. Milano not Milan) if that happens. Already have customers without an email (e.g. from a CSV import)? <a href="#" onclick="findMissingEmailsLive(this);return false" style="color:var(--acc)">🔍 Find their emails too</a>.</p>
@@ -3375,6 +3391,28 @@ elseif($tab==='prospects'):
     <div id="fcBar" style="font-weight:600;font-size:13px;margin-bottom:6px"></div>
     <div id="fcLog" style="max-height:260px;overflow:auto"></div>
   </div>
+  <details style="margin-top:12px"<?= $googleOn?'':' open' ?>>
+    <summary style="cursor:pointer;font-size:12px;color:<?= $googleOn?'var(--mut)':'#a9781a' ?>">🔎 Google ile ara — <?= $googleOn?'anahtar kayıtlı ✓':'daha iyi adres ve e-posta bulur, anahtar gerekiyor' ?></summary>
+    <div style="margin-top:10px;font-size:12px;color:var(--mut);line-height:1.6">
+      <p style="margin:0 0 8px">Google Maps'te bağımsız butiklerin neredeyse hepsi adresi, telefonu ve sitesiyle kayıtlı — OpenStreetMap'te çoğu yok. İki API kullanılıyor:</p>
+      <ol style="margin:0 0 10px 18px;padding:0">
+        <li><b>Places API (New)</b> — dükkânı, adresini, telefonunu ve sitesini bulur. <i>Zorunlu.</i></li>
+        <li><b>Custom Search JSON API</b> — sitenin kendi iletişim sayfası e-postayı vermediğinde Google'ın dizinine sorar. <i>İsteğe bağlı.</i></li>
+      </ol>
+      <p style="margin:0 0 8px"><b>Nasıl alınır:</b> Google Cloud Console → yeni proje → <i>APIs &amp; Services → Enable APIs</i>'ten <b>Places API (New)</b>'i etkinleştirin → <i>Credentials → Create API key</i>. Faturalandırma açık olmalı; Google'ın aylık ücretsiz kotası var, üstü ücretli — güncel rakam Cloud Console'daki fiyatlandırma sayfasında. Anahtarı <i>Application restrictions</i> ile <b>IP</b>'ye kısıtlamanız önerilir (sunucunun IP'si).</p>
+      <p style="margin:0 0 10px">E-posta yedeği için ayrıca <a href="https://programmablesearchengine.google.com/" target="_blank" rel="noopener" style="color:var(--acc)">Programmable Search Engine</a>'den bir arama motoru oluşturup <b>"Search the entire web"</b> seçeneğini <b>açın</b> (kapalıyken <code>site:</code> sorguları hiçbir şey döndürmez) ve <b>Search engine ID</b>'yi aşağıya yapıştırın.</p>
+      <p style="margin:0 0 10px;color:#8a6d1f">Anahtar sunucuda <code>data/email_settings.json</code> içinde tutuluyor: web'e kapalı, git'e girmiyor. Bu depo herkese açık olduğu için anahtar hiçbir zaman koda ya da Actions girdisine yazılmaz.</p>
+    </div>
+    <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="save_google">
+      <div class="afield" style="margin:0;flex:1;min-width:240px"><label>Google API key <?= $googleOn?'<span class="ahint">· kayıtlı, boş bırakırsanız korunur</span>':'' ?></label><input type="password" name="google_key" placeholder="AIza…" autocomplete="new-password"></div>
+      <div class="afield" style="margin:0;flex:1;min-width:180px"><label>Search engine ID (cx) <span style="font-weight:400;color:var(--mut)">— e-posta yedeği için</span></label><input name="google_cx" value="<?= htmlspecialchars((string)vestra_cfg('google_cx','')) ?>" placeholder="a1b2c3d4e5f6…"></div>
+      <button class="abtn primary" type="submit">Kaydet</button>
+      <?php if($googleOn): ?>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:#c0392b;margin:0 0 4px"><input type="checkbox" name="google_clear" value="1"> anahtarı sil</label>
+      <?php endif; ?>
+    </form>
+  </details>
   <details style="margin-top:12px">
     <summary style="cursor:pointer;font-size:12px;color:var(--mut)">Optional: use your own Hunter.io / Anymailfinder key (raises the hit-rate; not required)</summary>
     <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
@@ -3676,15 +3714,19 @@ function findCustomersLive(btn){
   var wrap=document.getElementById('fcWrap'), bar=document.getElementById('fcBar'), log=document.getElementById('fcLog');
   wrap.style.display='block'; log.innerHTML=''; btn.disabled=true;
   bar.textContent='Searching '+(city?city+', '+country:'all of '+country)+'… (whole-country searches can take up to a minute)';
-  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city',city);
+  var srcEl=document.getElementById('discSource'), src=srcEl?srcEl.value:'osm';
+  var fd=new FormData(); fd.append('_action','discover_leads'); fd.append('_csrf',VADMIN_CSRF); fd.append('disc_country',country); fd.append('disc_city',city); fd.append('disc_source',src);
   fetch('/admin',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
-    if(d.osm_ok===false){
+    /* Only warn about OSM when OSM was actually asked to run — a Google-only search
+       that works fine would otherwise print "OpenStreetMap unreachable". */
+    if(d.osm_ok===false && src!=='google'){
       var warn=document.createElement('div'); warn.style.fontSize='12px'; warn.style.fontWeight='600'; warn.style.color='#c0392b'; warn.style.padding='2px 0';
       warn.textContent='⚠ OpenStreetMap unreachable (all mirrors failed) — today\'s results may be incomplete. Try again in a minute.';
       log.appendChild(warn);
     }
     var line=document.createElement('div'); line.style.fontSize='12px'; line.style.fontWeight='600'; line.style.padding='2px 0';
-    line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.';
+    line.textContent=(d.total||0)+' shop(s) found, '+(d.added||0)+' new added to your customers.'
+      +(src!=='osm'&&d.google_found?' ('+d.google_found+' from Google)':'');
     log.appendChild(line);
     /* Sunucunun yazdigi sebep. Ciplak "0 bulundu" kullaniciyi "burada butik yok"
        sanmaya itiyordu; asil sebep neredeyse her zaman sorgunun agir gelmesi. */
@@ -3696,8 +3738,9 @@ function findCustomersLive(btn){
     }
     var ids=d.newIds||[];
     if(!ids.length){
-      bar.textContent = d.timed_out ? '✗ Overpass timed out — add a city and retry.'
-                      : d.osm_ok===false ? '✗ OSM search failed — try again.'
+      bar.textContent = (src==='google'&&d.google_ok===false) ? '✗ Google search failed — see the note above.'
+                      : d.timed_out ? '✗ Overpass timed out — add a city and retry.'
+                      : (d.osm_ok===false && src!=='google') ? '✗ OSM search failed — try again.'
                       : (d.total||0)===0 ? '✗ No shops found — see the note above.'
                       : '✓ Done — no new customers needed an email lookup.';
       btn.disabled=false; return;
