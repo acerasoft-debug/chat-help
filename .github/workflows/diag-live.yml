@@ -66,6 +66,10 @@ on:
         description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
         required: false
         default: "false"
+      visits_probe:
+        description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -1156,6 +1160,137 @@ jobs:
             php -l /tmp/vestra_orddel.php 2>&1
             php /tmp/vestra_orddel.php 2>&1
             rm -f /tmp/vestra_orddel.php
+
+      # "Siteye kac kisi girmis" sorusunun cevabi ancak sayac GERCEKTEN yaziyorsa
+      # dogru. Bu adim canli sunucuda gercek sayfa istekleri atip sayacin artip
+      # artmadigina bakiyor -- ve olcum bittiginde dosyayi eski haline koyuyor.
+      - name: Ziyaretçi sayacı sınaması (canlı)
+        if: github.event.inputs.visits_probe == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_visits.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/security.php";
+
+            $base = 'https://vestrasales.com';
+            $UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+
+            echo "===== 1. CANLI DOSYALARDA KOD VAR MI =====\n";
+            $need = [
+              'inc/security.php' => ['function vestra_track_visit', 'function vestra_visits_range', 'visits_live.json'],
+              'inc/auth.php'     => ['vestra_track_visit()'],
+              'admin.php'        => ["tab==='traffic'", 'vestra_visits_live()'],
+            ];
+            $missing = 0;
+            foreach ($need as $rel => $needles) {
+              $src = @file_get_contents($doc.'/'.$rel);
+              if ($src === false) { printf("  %-18s OKUNAMADI <-- dosya yok\n", $rel); $missing++; continue; }
+              foreach ($needles as $n) {
+                $ok = str_contains($src, $n);
+                if (!$ok) $missing++;
+                printf("  %-18s %-28s %s\n", $rel, mb_substr($n, 0, 28), $ok ? 'var' : 'YOK <-- eski surum');
+              }
+            }
+
+            echo "\n===== 2. DIZIN VE YAZILABILIRLIK =====\n";
+            $vd = vestra_visits_dir();
+            printf("  %-34s %s\n", $vd, is_dir($vd) ? 'var' : 'YOK');
+            printf("  %-34s %s\n", 'yazilabilir mi', is_writable($vd) ? 'EVET' : 'HAYIR <-- sayac yazamaz');
+            printf("  %-34s %s\n", 'web erisimine kapali mi (.htaccess)',
+                   is_file(vestra_data_dir().'/.htaccess') ? 'EVET' : 'HAYIR <-- data/.htaccess eksik');
+
+            /* Sinama gercek rakamlari kirletmesin: once yedek, sonunda geri. Bu adim bir
+               ziyaretci uyduruyor; operatorun "bugun kac kisi geldi" sayisi bundan etkilenirse
+               olcum aracinin kendisi olcumu bozmus olur. */
+            $today    = date('Y-m-d');
+            $dayFile  = $vd.'/'.$today.'.json';
+            $liveFile = vestra_data_dir().'/visits_live.json';
+            $snapDay  = is_file($dayFile)  ? file_get_contents($dayFile)  : null;
+            $snapLive = is_file($liveFile) ? file_get_contents($liveFile) : null;
+
+            $before = vestra_visits_day($today);
+            printf("\n  yedek alindi: %s (%s), %s (%s)\n",
+                   basename($dayFile),  $snapDay  === null ? 'dosya yoktu' : strlen($snapDay).' bayt',
+                   basename($liveFile), $snapLive === null ? 'dosya yoktu' : strlen($snapLive).' bayt');
+
+            echo "\n===== 3. GERCEK SAYFA ISTEKLERI =====\n";
+            $jar = tempnam(sys_get_temp_dir(), 'vjar');
+            $get = function (string $path) use ($base, $UA, $jar): array {
+              $t0 = microtime(true);
+              $ch = curl_init($base.$path);
+              curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_TIMEOUT => 20, CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_USERAGENT => $UA, CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar,
+              ]);
+              $body = curl_exec($ch);
+              $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              $err  = curl_error($ch);
+              curl_close($ch);
+              return [$code, (int)((microtime(true) - $t0) * 1000), is_string($body) ? strlen($body) : 0, $err];
+            };
+
+            $plan = [['/', 'sayilmali'], ['/shop', 'sayilmali'], ['/', 'sayilmali (ayni oturum -> uniq artmamali)'], ['/admin', 'SAYILMAMALI']];
+            $reached = 0;
+            foreach ($plan as [$p, $note]) {
+              [$code, $ms, $len, $err] = $get($p);
+              if ($code >= 200 && $code < 400) $reached++;
+              printf("  GET %-8s HTTP %-3d %5d ms %7d bayt   %s%s\n", $p, $code, $ms, $len, $note, $err ? '  hata: '.$err : '');
+            }
+            @unlink($jar);
+
+            if ($reached === 0) {
+              echo "\n  !! Sunucu kendi adresine hic ulasamadi (guvenlik duvari ya da DNS).\n";
+              echo "     Sayac calisiyor mu sorusu bu adimla cevaplanamaz; asagidaki fark bos cikacak.\n";
+            }
+
+            echo "\n===== 4. SAYAC NE OLDU =====\n";
+            clearstatcache();
+            $after = vestra_visits_day($today);
+            printf("  %-24s once %-6d sonra %-6d fark %+d\n", 'gorunum (hits)', (int)$before['hits'], (int)$after['hits'], (int)$after['hits'] - (int)$before['hits']);
+            printf("  %-24s once %-6d sonra %-6d fark %+d\n", 'ziyaretci (uniq)', (int)$before['uniq'], (int)$after['uniq'], (int)$after['uniq'] - (int)$before['uniq']);
+            $dh = (int)$after['hits'] - (int)$before['hits'];
+            $du = (int)$after['uniq'] - (int)$before['uniq'];
+            printf("\n  beklenen: hits +3 (/, /shop, / — /admin sayilmaz), uniq +1\n");
+            printf("  sonuc   : %s\n", ($dh === 3 && $du === 1) ? 'TAMAM' : ($reached === 0 ? 'SINANAMADI (yukariya bakin)' : 'BEKLENENDEN FARKLI <-- incelenmeli'));
+
+            $live = vestra_visits_live();
+            printf("\n  canli listede %d kayit", count($live));
+            if ($live) {
+              $f = reset($live);
+              printf(" (ornek: %s %s, sayfa %s, %d sn once)",
+                     (string)($f['cc'] ?? '??'), (string)($f['city'] ?? ''), (string)($f['path'] ?? ''), time() - (int)($f['ts'] ?? 0));
+            }
+            echo "\n";
+
+            echo "\n===== 5. SON 7 GUN (yedek geri konmadan ONCE) =====\n";
+            $r7 = vestra_visits_range(7);
+            foreach ($r7['series'] as $ymd => $s) printf("  %s  ziyaretci %-5d gorunum %-5d\n", $ymd, (int)$s['uniq'], (int)$s['hits']);
+            printf("  toplam: %d ziyaretci / %d gorunum\n", (int)$r7['uniq'], (int)$r7['hits']);
+            if ($r7['cc']) { echo "  ulkeler: "; $o = []; foreach (array_slice($r7['cc'], 0, 8, true) as $k => $v) $o[] = "$k=$v"; echo implode('  ', $o)."\n"; }
+
+            echo "\n===== 6. YEDEK GERI KONUYOR =====\n";
+            if ($snapDay === null) { @unlink($dayFile);  echo "  gunluk dosya sinamadan once yoktu -> silindi\n"; }
+            else { file_put_contents($dayFile, $snapDay);  echo "  gunluk sayac eski haline dondu\n"; }
+            if ($snapLive === null) { @unlink($liveFile); echo "  canli liste sinamadan once yoktu -> silindi\n"; }
+            else { file_put_contents($liveFile, $snapLive); echo "  canli liste eski haline dondu\n"; }
+            $chk = vestra_visits_day($today);
+            printf("  dogrulama: hits %d, uniq %d (sinama oncesiyle ayni olmali: %d / %d)\n",
+                   (int)$chk['hits'], (int)$chk['uniq'], (int)$before['hits'], (int)$before['uniq']);
+
+            exit(($missing === 0 && $dh === 3 && $du === 1) ? 0 : 1);
+            PHPEOF
+            php -l /tmp/vestra_visits.php 2>&1
+            php /tmp/vestra_visits.php 2>&1
+            rm -f /tmp/vestra_visits.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
