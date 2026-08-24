@@ -19,8 +19,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // email into this form) — vlang() is the right signal here, unlike offer/message/
             // membership mail which fires from someone else's request.
             [$subj, $body, $rOpts] = vestra_reset_text(vlang(), $name, $link);
-            vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $rOpts);
+            /* The visitor is told the same thing either way, on purpose -- telling them
+               "no such account" would let anyone test which addresses are registered.
+               But the OPERATOR needs the difference, and the return value was being
+               thrown away: a mail transport that refused the message left no trace
+               anywhere, and "the reset email never arrives" had nothing to look at.
+               The address is not written to the log; whether it left the building is. */
+            if (!vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $rOpts)) {
+                error_log('[VESTRA reset] sifirlama e-postasi GONDERILEMEDI (hesap id: '
+                          .substr((string)($acc['id'] ?? '?'), 0, 8).') — posta ayarlarini kontrol edin');
+            }
+        } else {
+            /* Also worth a line: "nobody by that address" and "we sent it" look
+               identical from the outside, and the operator is usually being asked
+               about one specific person. */
+            error_log('[VESTRA reset] o adrese kayitli hesap yok — istek sessizce dusuruldu');
         }
+    } elseif ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        /* Throttled. Eight requests per IP per quarter hour is a spam cap, but someone
+           testing their own flow trips it too -- and then sees the same green "on its
+           way" banner while nothing is sent. That silence is the whole bug report. */
+        error_log('[VESTRA reset] IP kotasi dolu, e-posta gonderilmedi: '
+                  .preg_replace('/\.\d+$/', '.x', (string)($_SERVER['REMOTE_ADDR'] ?? '?')));
     }
     $sent = true; // same response whether or not the account exists
 }

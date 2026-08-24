@@ -46,6 +46,10 @@ on:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
         default: ""
+      reset_probe:
+        description: "Bir e-posta adresi verin: 'şifremi unuttum' akışının HER adımını sırayla dener ve nerede durduğunu yazar. GERÇEK bir sıfırlama e-postası gönderir — kendi adresinizi verin."
+        required: false
+        default: ""
       order_delete_check:
         description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
         required: false
@@ -749,6 +753,100 @@ jobs:
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
             rm -f /tmp/vestra_sheet.php
+
+      # "Sifremi unuttum calismiyor" -- forgot.php TASARIM GEREGI hep ayni cevabi
+      # veriyor ("link yolda"), cunku aksi halde hangi adresin kayitli oldugunu
+      # sizdirirdi. Dogru bir karar, ama teshis icin sifir bilgi: hesap yok da olsa,
+      # IP kotasi dolmus da olsa, posta ayari kapali da olsa ekranda ayni yesil
+      # kutu cikiyor. Bu adim ayni yolu adim adim yurutup HANGISI oldugunu soyluyor.
+      - name: Şifre sıfırlama teşhisi
+        if: ${{ github.event.inputs.reset_probe != '' }}
+        env:
+          RESET_EMAIL: ${{ github.event.inputs.reset_probe }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: RESET_EMAIL
+          script: |
+            cd ~/public_html
+            cat > /tmp/vestra_reset_probe.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/i18n.php";
+
+            $email = strtolower(trim((string)getenv('RESET_EMAIL')));
+            echo "===== 1. ADRES =====\n";
+            printf("gecerli bicim          : %s\n", filter_var($email, FILTER_VALIDATE_EMAIL) ? "EVET" : "HAYIR <-- form burada durur");
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) exit(1);
+
+            echo "\n===== 2. HESAP =====\n";
+            $acc = auth_find($email);
+            printf("hesap var mi           : %s\n", $acc ? "EVET" : "YOK  <-- forgot.php sessizce hicbir sey yapmaz, ekran yine 'link yolda' der");
+            if ($acc) {
+              printf("  durum                : %s\n", (string)($acc['status'] ?? '(bos)'));
+              printf("  kayitli e-posta      : %s\n", (string)($acc['email'] ?? '') === $email ? "girilen ile ayni" : "FARKLI: ".(string)($acc['email'] ?? ''));
+            }
+
+            echo "\n===== 3. IP KOTASI =====\n";
+            /* forgot.php IP basina 15 dakikada 8 istek sayiyor ve dolunca hicbir sey
+               gondermeden ayni yesil kutuyu gosteriyor. Tekrar tekrar deneyen biri
+               kendi kendini susturur -- ve bunu ekranda goremez. */
+            /* Dosya adini tahmin etmiyoruz: auth.php'nin kendi sabiti okunuyor,
+               boylece yol degisirse teshis sessizce "kayit yok" demiyor. */
+            $tf = defined('VESTRA_THROTTLE') ? VESTRA_THROTTLE : (vestra_data_dir().'/login_throttle.json');
+            $t  = is_readable($tf) ? (json_decode((string)file_get_contents($tf), true) ?: []) : [];
+            printf("kota dosyasi           : %s\n", is_readable($tf) ? $tf : $tf." (okunamadi)");
+            $n = 0;
+            foreach ($t as $k => $e) {
+              if (strpos((string)$k, 'reset|') !== 0) continue;
+              $n++;
+              $age = time() - (int)($e['first'] ?? 0);
+              $ip  = substr((string)$k, 6);
+              $ipm = preg_replace('/\.\d+$/', '.x', $ip);   // son sekizli maskeli: log herkese acik
+              printf("  %-18s deneme=%d  yas=%ds  %s\n", $ipm, (int)($e['n'] ?? 0), $age,
+                     ((int)($e['n'] ?? 0) >= 8 && $age < 900) ? "<-- SUSTURULMUS" : "");
+            }
+            if (!$n) echo "  reset kaydi yok (kimse kota sinirinda degil)\n";
+
+            echo "\n===== 4. POSTA AYARI =====\n";
+            printf("mail_enabled           : %s\n", vestra_cfg('mail_enabled', false) ? "acik" : "KAPALI <-- vestra_send_mail hicbir sey gondermeden false doner");
+            printf("mail_from              : %s\n", (string)vestra_cfg('mail_from', '(bos)'));
+            printf("API anahtari           : %s\n", ((string)vestra_cfg('mail_api_key','') !== '') ? "var" : "yok");
+            printf("SMTP host              : %s\n", ((string)vestra_cfg('smtp_host','') !== '') ? "var" : "yok");
+            printf("SMTP parola            : %s\n", ((string)vestra_cfg('smtp_pass','') !== '') ? "var" : "yok");
+
+            echo "\n===== 5. GERCEK GONDERIM =====\n";
+            if (!$acc) { echo "hesap olmadigi icin gonderilmedi.\n"; exit(1); }
+            $a2 = auth_reset_begin($email);
+            printf("token uretildi         : %s\n", ($a2 && !empty($a2['reset_token'])) ? "EVET" : "HAYIR");
+            if (!$a2) exit(1);
+            $link = 'https://vestrasales.com/reset?token='.$a2['reset_token'];
+            $name = ($a2['name'] ?: ($a2['company'] ?: 'there'));
+            [$subj, $body, $o] = vestra_reset_text('en', $name, $link);
+            printf("konu                   : %s\n", $subj);
+            $ok = vestra_send_mail($a2['email'], $subj, $body, '', '', null, '', $o);
+            printf("vestra_send_mail()     : %s\n", $ok ? "TRUE — posta saglayicisi kabul etti" : "FALSE <-- ISTE SORUN BURADA");
+            echo "  (link log'a YAZILMADI: bu depo ve bu kutuk herkese acik, token tek basina hesabi acar)\n";
+
+            echo "\n===== 6. HATA GUNLUGU (son posta izleri) =====\n";
+            foreach ([$doc.'/error_log', getenv("HOME").'/logs/error_log'] as $lg) {
+              if (!is_readable($lg)) continue;
+              $tail = array_slice(file($lg, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES), -300);
+              $hits = array_values(array_filter($tail, fn($l) => stripos($l,'mail') !== false || stripos($l,'smtp') !== false || stripos($l,'brevo') !== false));
+              printf("%s: %d ilgili satir\n", $lg, count($hits));
+              foreach (array_slice($hits, -8) as $h) echo "  ".substr($h, 0, 200)."\n";
+            }
+            PHPEOF
+            php -l /tmp/vestra_reset_probe.php 2>&1
+            php /tmp/vestra_reset_probe.php 2>&1
+            rm -f /tmp/vestra_reset_probe.php
 
       # "Siparis silinmiyor" tek basina uc ayri seyi kastedebilir: kod canliya cikmamis,
       # dosya yazilamiyor, ya da silme kodu ISTEYEREK reddediyor (faturasi olan ref).
