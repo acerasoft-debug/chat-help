@@ -1413,13 +1413,16 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 /* display:flex/column overrides the global site nav{display:flex} (row), which
    otherwise lays the whole sidebar out horizontally and clips it off-screen. */
 .asidebar{display:flex;flex-direction:column;gap:2px;background:#fbfaf7;border-right:1px solid var(--line);padding:10px 10px;position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto}
-.asidebar a{display:flex;align-items:center;gap:11px;padding:8px 11px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-radius:9px;transition:.13s}
+/* Satir yuksekligi bilerek dar: 20 baglik + 6 baslik, 900 px'lik bir ekranda bile
+   sonuncusu (Security) kaydirmadan gorunsun diye. Daha bol bosluk birakinca System
+   grubu ekranin altina dusuyor ve operator onu hic gormuyordu. */
+.asidebar a{display:flex;align-items:center;gap:11px;padding:6px 11px;color:var(--mut);text-decoration:none;font-size:13px;font-weight:500;border-radius:9px;transition:.13s}
 .asidebar a:hover{color:var(--ink);background:rgba(0,0,0,.045)}
 .asidebar a.on{color:var(--acc);background:rgba(169,127,44,.12);font-weight:600;box-shadow:inset 0 0 0 1px rgba(169,127,44,.18)}
 .asidebar a svg{flex:none;opacity:.75}
 .asidebar a:hover svg,.asidebar a.on svg{opacity:1}
 .asidebar .alabel{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.asidebar .sgrp{padding:15px 11px 5px;font-size:9.5px;font-weight:700;letter-spacing:.11em;color:#b3aa97;text-transform:uppercase}
+.asidebar .sgrp{padding:11px 11px 4px;font-size:9.5px;font-weight:700;letter-spacing:.11em;color:#b3aa97;text-transform:uppercase}
 .asidebar .sgrp:first-child{padding-top:4px}
 .aside-badge{margin-left:auto;background:var(--acc);color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:700;line-height:1.6}
 .aside-badge.red{background:var(--bad);color:#fff}
@@ -1711,6 +1714,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <nav class="asidebar">
   <div class="sgrp">Main</div>
   <?= navLink($tab,'overview','📊','Dashboard') ?>
+  <?= navLink($tab,'traffic','📈','Trafik',count(vestra_visits_live()),false) ?>
   <?= navLink($tab,'approvals','⚠️','Approvals',count($pendingList),true) ?>
   <?= navLink($tab,'documents','📄','Documents',$pendingDocs,$pendingDocs>0) ?>
 
@@ -4262,6 +4266,182 @@ elseif($tab==='security'):
   <?php endif; ?>
   </div>
 </div>
+
+<?php // ══════════════════════════════════════════════════════ TRAFFIC
+elseif($tab==='traffic'):
+  /* Sayaclar ziyaret aninda yazildi. Bu sekme yalnizca OKUR: acmak hicbir dis
+     servise istek atmaz, hicbir sayaci degistirmez -- yani panele bakmak
+     istatistigi bozmaz. Admin sayfalari zaten hic sayilmiyor. */
+  $vLive  = vestra_visits_live();
+  $vToday = vestra_visits_day(date('Y-m-d'));
+  $vYest  = vestra_visits_day(date('Y-m-d', strtotime('-1 day')));
+  $v7     = vestra_visits_range(7);
+  $v30    = vestra_visits_range(30);
+
+  /* Giris yapmis ziyaretcinin adini gosterebilmek icin uid -> isim. */
+  $vNames = [];
+  foreach($accounts as $a) $vNames[(string)($a['id']??'')] = (string)(($a['name']??'') ?: ($a['email']??''));
+
+  $vFlag = function(string $cc): string {
+    if (strlen($cc) !== 2) return '';
+    $cc = strtoupper($cc);
+    return mb_chr(0x1F1E6 + ord($cc[0]) - 65).mb_chr(0x1F1E6 + ord($cc[1]) - 65);
+  };
+  $vAgo = function(int $ts): string {
+    $s = max(0, time() - $ts);
+    return $s < 60 ? $s.' sn önce' : intdiv($s, 60).' dk önce';
+  };
+  $vLoc = function(array $e) use ($vFlag): string {
+    $cc = (string)($e['cc'] ?? ''); $city = (string)($e['city'] ?? '');
+    if ($cc === '' && $city === '') return '<span style="color:var(--mut)">bilinmiyor</span>';
+    return $vFlag($cc).' <b>'.htmlspecialchars($cc ?: '?').'</b>'.($city !== '' ? ' · '.htmlspecialchars($city) : '');
+  };
+  $vMax = 1;
+  foreach($v30['series'] as $s) $vMax = max($vMax, (int)$s['hits']);
+?>
+<style>
+.vkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.vkpi-c{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg)}
+.vkpi-l{font-size:11.5px;color:var(--mut);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.vkpi-n{font-size:30px;font-weight:800;line-height:1.15;margin-top:4px}
+.vkpi-s{font-size:12px;color:var(--mut);margin-top:2px}
+.vchart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:6px}
+/* Bos gunun arkasinda dolgu YOK, yalnizca taban cizgisi: gri bir kutu cizersek
+   ziyaretci gelmemis gun, dolu bir cubuk gibi okunuyor. */
+.vchart .b{flex:1;position:relative;height:100%;display:flex;align-items:flex-end;box-shadow:inset 0 -1px 0 var(--line)}
+.vchart .b i{display:block;width:100%;background:rgba(201,168,106,.45);border-radius:3px 3px 0 0}
+.vchart .b u{position:absolute;left:0;bottom:0;width:100%;background:var(--acc);border-radius:3px 3px 0 0}
+.vxax{display:flex;gap:3px;margin-top:5px}
+.vxax span{flex:1;text-align:center;font-size:9.5px;color:var(--mut);white-space:nowrap;overflow:hidden}
+.vlive-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#1f9d63;margin-right:7px;animation:vpulse 1.8s infinite}
+@keyframes vpulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media(max-width:820px){.vkpi{grid-template-columns:1fr 1fr}}
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+  <div>
+    <h2 style="font-size:18px;font-weight:700">📈 Trafik — kim, nereden, kaç kişi</h2>
+    <p class="ahint" style="margin-top:4px">Botlar ve admin sayfaları sayılmaz. <b>Ziyaretçi</b> = günde bir kez sayılan kişi; <b>görüntüleme</b> = açılan toplam sayfa. Sayfa her 60 saniyede kendini tazeler.</p>
+  </div>
+  <a class="abtn" href="/admin?tab=traffic">↻ Yenile</a>
+</div>
+
+<div class="vkpi">
+  <div class="vkpi-c" style="border-color:rgba(122,214,160,.45)">
+    <div class="vkpi-l"><span class="vlive-dot"></span>Şu an sitede</div>
+    <div class="vkpi-n" style="color:#1f9d63"><?= count($vLive) ?></div>
+    <div class="vkpi-s">son 5 dakika</div>
+  </div>
+  <div class="vkpi-c">
+    <div class="vkpi-l">Bugün</div>
+    <div class="vkpi-n"><?= (int)$vToday['uniq'] ?></div>
+    <div class="vkpi-s"><?= (int)$vToday['hits'] ?> görüntüleme · dün <?= (int)$vYest['uniq'] ?></div>
+  </div>
+  <div class="vkpi-c">
+    <div class="vkpi-l">Son 7 gün</div>
+    <div class="vkpi-n"><?= (int)$v7['uniq'] ?></div>
+    <div class="vkpi-s"><?= (int)$v7['hits'] ?> görüntüleme</div>
+  </div>
+  <div class="vkpi-c">
+    <div class="vkpi-l">Son 30 gün</div>
+    <div class="vkpi-n"><?= (int)$v30['uniq'] ?></div>
+    <div class="vkpi-s"><?= (int)$v30['hits'] ?> görüntüleme</div>
+  </div>
+</div>
+
+<div class="acard" style="margin-bottom:16px;border-color:<?= $vLive?'rgba(122,214,160,.45)':'var(--line)' ?>">
+  <div class="acard-hd"><h3><span class="vlive-dot"></span>Şu an sitede (<?= count($vLive) ?>)</h3><span class="ahint">son 5 dakikada hareket eden herkes</span></div>
+  <div class="acard-body">
+  <?php if(!$vLive): ?>
+    <div class="aempty">Şu anda sitede kimse yok. Biri girdiğinde 5 dakika boyunca burada görünür.</div>
+  <?php else: ?>
+    <?php /* min-width: telefonda dort sutun sikismasin, .atscroll yana kaysin --
+             yoksa "Test Buyer GmbH" harf harf alt alta diziliyordu. */ ?>
+    <div class="atscroll"><table class="atable" style="min-width:520px">
+      <?= arow(['Konum','Baktığı sayfa','Kim','Son hareket'],true) ?>
+      <?php foreach(array_slice($vLive,0,60) as $e): $uid=(string)($e['uid']??''); ?>
+      <tr>
+        <td class="ac" style="white-space:nowrap"><?= $vLoc($e) ?></td>
+        <td class="ac"><code style="font-size:11.5px"><?= htmlspecialchars((string)($e['path']??'')) ?: '/' ?></code></td>
+        <td class="ac" style="font-size:12px">
+          <?= $uid !== '' ? '<b>'.htmlspecialchars($vNames[$uid] ?? 'üye').'</b>' : '<span style="color:var(--mut)">ziyaretçi (girişsiz)</span>' ?>
+        </td>
+        <td class="ac" style="font-size:11.5px;color:var(--mut);white-space:nowrap"><?= htmlspecialchars($vAgo((int)($e['ts']??0))) ?></td>
+      </tr>
+      <?php endforeach; ?>
+    </table></div>
+    <p class="ahint" style="margin:10px 0 0">Kimlik saklanmıyor: her satır IP + tarayıcının <b>tuzlanmış özetiyle</b> ayrılıyor, IP'nin kendisi bu listeye hiç yazılmıyor. Kim olduğu ancak giriş yapmışsa görünür. Kayıt ve giriş IP'leri <a href="/admin?tab=security" style="color:var(--acc)">🔐 Security</a> sekmesinde.</p>
+  <?php endif; ?>
+  </div>
+</div>
+
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>📅 Son 30 gün</h3><span class="ahint">koyu = ziyaretçi · açık = görüntüleme</span></div>
+  <div class="acard-body">
+    <?php if(!$v30['hits']): ?>
+      <div class="aempty">Henüz veri yok — sayaç bu sürümle başlıyor, ilk ziyaretçiden itibaren dolar.</div>
+    <?php else: ?>
+    <div class="vchart">
+      <?php foreach($v30['series'] as $ymd => $s): $h=(int)$s['hits']; $u=(int)$s['uniq']; ?>
+      <div class="b" title="<?= htmlspecialchars($ymd) ?> — <?= $u ?> ziyaretçi, <?= $h ?> görüntüleme">
+        <i style="height:<?= $h ? max(2, round(100*$h/$vMax)) : 0 ?>%"></i>
+        <u style="height:<?= $u ? max(2, round(100*$u/$vMax)) : 0 ?>%"></u>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="vxax">
+      <?php $i=0; foreach($v30['series'] as $ymd => $s): $i++; ?>
+      <span><?= ($i % 5 === 0 || $i === count($v30['series'])) ? htmlspecialchars(substr($ymd,8,2).'.'.substr($ymd,5,2)) : '&nbsp;' ?></span>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<div class="acols3" style="align-items:start">
+  <div class="acard">
+    <div class="acard-hd"><h3>🌍 Ülkeler <span class="ahint">(30 gün)</span></h3></div>
+    <div class="acard-body">
+      <?php if(!$v30['cc']): ?><div class="aempty">Veri yok.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['Ülke','Ziyaretçi'],true) ?>
+        <?php foreach(array_slice($v30['cc'],0,15,true) as $cc => $n): ?>
+        <?= arow([$vFlag((string)$cc).' <b>'.htmlspecialchars((string)$cc).'</b>', (string)(int)$n]) ?>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+  <div class="acard">
+    <div class="acard-hd"><h3>🏙️ Şehirler <span class="ahint">(30 gün)</span></h3></div>
+    <div class="acard-body">
+      <?php if(!$v30['city']): ?><div class="aempty">Veri yok.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['Şehir','Ziyaretçi'],true) ?>
+        <?php foreach(array_slice($v30['city'],0,15,true) as $c => $n): ?>
+        <?= arow([htmlspecialchars((string)$c), (string)(int)$n]) ?>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+  <div class="acard">
+    <div class="acard-hd"><h3>📄 En çok bakılan sayfalar <span class="ahint">(30 gün)</span></h3></div>
+    <div class="acard-body">
+      <?php if(!$v30['pages']): ?><div class="aempty">Veri yok.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['Sayfa','Görüntüleme'],true) ?>
+        <?php foreach(array_slice($v30['pages'],0,15,true) as $p => $n): ?>
+        <?= arow(['<code style="font-size:11.5px">'.htmlspecialchars((string)$p).'</code>', (string)(int)$n]) ?>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Canli sayilar ancak taze olursa ise yarar; sekme acik kalirsa kendini tazeler.
+   Sadece bu sekmede -- panelin geri kalani yenilenmez. */
+setTimeout(function(){ location.reload(); }, 60000);
+</script>
 
 <?php // ══════════════════════════════════════════════════════ JOURNAL
 elseif($tab==='journal'):

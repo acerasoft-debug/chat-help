@@ -78,6 +78,12 @@ elseif (session_status() === PHP_SESSION_ACTIVE && $_vsess_ok && !headers_sent()
               .($_SERVER['SCRIPT_NAME'] ?? '?').' — o sayfa inc/auth.php\'yi session_start()\'tan ONCE yuklemeli');
 }
 
+/* Ziyaret sayaci. Oturum bootstrap'inin ARDINDAN cagriliyor: benzersiz ziyaretci
+   tespiti $_SESSION'a bakiyor, once cagrilsaydi her istek "yeni ziyaretci"
+   sayilirdi. auth.php'de duruyor cunku ip guard ile ayni gerekce -- her sayfa bu
+   dosyayi ilk is yukluyor, yani hicbir sayfanin ayrica katilmasi gerekmiyor. */
+if (session_status() === PHP_SESSION_ACTIVE) vestra_track_visit();
+
 function auth_accounts(): array {
     if (!is_file(VESTRA_ACCOUNTS)) return [];
     return json_decode(file_get_contents(VESTRA_ACCOUNTS), true) ?: [];
