@@ -817,7 +817,7 @@ jobs:
             $blocked = []; $free = [];
             foreach ($rows as $r) {
               $ref = (string)($r['ref'] ?? ''); if ($ref === '') continue;
-              (vestra_invoices_for_ref($ref) ? $blocked : $free)[] = $ref;
+              if (vestra_invoices_for_ref($ref)) $blocked[] = $ref; else $free[] = $ref;
             }
             printf("faturasi VAR (silinemez)  : %d\n", count($blocked));
             printf("faturasi YOK (silinebilir): %d\n", count($free));
@@ -837,8 +837,11 @@ jobs:
             }
             if (!$seen) echo "  okunabilir hata gunlugu bulunamadi\n";
             PHPEOF
-            php -l /tmp/vestra_orddel.php
-            php /tmp/vestra_orddel.php
+            # 2>&1: bir ayristirma hatasi stderr'e gidiyor ve log'da "Errors parsing"
+            # disinda hicbir sey gorunmuyordu -- yani hatanin kendisi degil, sadece
+            # oldugu bilgisi. Satir numarasi olmadan bu bir tur bilmece.
+            php -l /tmp/vestra_orddel.php 2>&1
+            php /tmp/vestra_orddel.php 2>&1
             rm -f /tmp/vestra_orddel.php
 
       - name: Site geneli eksik taraması

@@ -1695,7 +1695,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   An invoice is a numbered document already sent to a customer, so deleting its subject leaves the number pointing at nothing —
   setting the status to <b>Cancelled</b> keeps the record and voids the sale, which is what the books want.
   If this is a test row, delete it anyway: the invoice files are <i>moved</i> to data/invoices/deleted/, not erased.</span>
-  <?php $__hr=(string)($_GET['ref']??''); if($__hr!==''): ?>
+  <?php /* The ref comes back through the URL, so strip it to the same charset the
+           invoice files use rather than trusting htmlspecialchars() to be enough
+           inside a JS string literal — that depends on the ENT_QUOTES default. */
+        $__hr=preg_replace('/[^A-Za-z0-9_-]/','',(string)($_GET['ref']??'')); if($__hr!==''): ?>
   <form method="post" style="margin:0" onsubmit="return confirm('Delete <?= htmlspecialchars($__hr) ?> and move its invoice file(s) aside? This cannot be undone from the panel.')">
     <?= csrfField() ?>
     <input type="hidden" name="_action" value="order_delete">
