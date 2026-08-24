@@ -46,6 +46,10 @@ on:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
         default: ""
+      accounts_report:
+        description: "true = kayıtlı hesapları MASKELİ listele (ilk 2 harf + alan adı, tip, durum, KYB, belge durumu) + hata günlüğünün son satırları. 'Doğru e-postayla giremiyorum' şikâyetinin cevabı: hesap hangi hâliyle kayıtlı?"
+        required: false
+        default: "false"
       login_probe:
         description: "true = test hesabıyla CANLI siteye giriş yap, çerezle anasayfayı iste ve hangi düğmelerin göründüğünü yaz (Open my panel mi Register mı). www/non-www çerez kaybını da sınar."
         required: false
@@ -757,6 +761,65 @@ jobs:
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
             rm -f /tmp/vestra_sheet.php
+
+      # "Dogru e-postayla giremiyorum" -- giris auth_find ile TAM eslesme ister.
+      # Hesap bir yazim farkiyla kayitliysa (bosluk, %20 artigi, farkli alan adi,
+      # + eki) kullanici "dogru" adresi yazar, sistem "hesap yok" gorur ve ikisi de
+      # hakli olur. Bu adim hesaplari MASKELI dokerek farki gorunur kilar: adresin
+      # tamami degil, ilk 2 harf + alan adi yazilir -- log herkese acik.
+      - name: Hesap raporu (maskeli) + hata günlüğü
+        if: github.event.inputs.accounts_report == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          script: |
+            cat > /tmp/vestra_accrep.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            echo "===== HESAPLAR (maskeli) =====\n";
+            $accs = auth_accounts();
+            printf("toplam hesap: %d\n\n", count($accs));
+            printf("%-26s %-7s %-14s %-10s %-12s %s\n", "E-POSTA (maskeli)", "TIP", "DURUM", "KYB", "BELGE", "KAYIT");
+            foreach ($accs as $a) {
+              $e = (string)($a['email'] ?? '');
+              $at = strrpos($e, '@');
+              /* Maske: yerel kismin ilk 2 karakteri + uzunlugu + alan adi. Bosluk ve
+                 gorunmez karakterler koseli parantezle GOSTERILIR -- aranan kusur tam bu. */
+              $local = $at !== false ? substr($e, 0, $at) : $e;
+              $dom   = $at !== false ? substr($e, $at) : '';
+              $vis   = mb_substr($local, 0, 2);
+              $vis   = preg_replace('/[^\x21-\x7E]/', '[?]', $vis);   // gorunmez karakteri isaretle
+              $mask  = $vis.str_repeat('*', max(0, mb_strlen($local) - 2)).$dom;
+              if ($e !== trim($e)) $mask = '[BOSLUKLU!] '.$mask;
+              if (str_starts_with($e, '%')) $mask = '[KODLAMA-ARTIGI!] '.$mask;
+              /* Belge durumu: trade_licence istegi var mi, durumu ne? */
+              $docSt = '-';
+              foreach ((array)($a['doc_requests'] ?? []) as $dr) {
+                if (($dr['type'] ?? '') === 'trade_licence') { $docSt = (string)($dr['status'] ?? '?'); break; }
+              }
+              printf("%-26s %-7s %-14s %-10s %-12s %s\n",
+                $mask, (string)($a['type'] ?? '?'), (string)($a['status'] ?? '?'),
+                (string)($a['kyb_status'] ?? '-'), $docSt, substr((string)($a['created_at'] ?? ''), 0, 10));
+            }
+
+            echo "\n===== HATA GUNLUGU: SON 25 SATIR (posta harici her sey) =====\n";
+            foreach ([$doc.'/error_log', getenv("HOME").'/logs/error_log'] as $lg) {
+              if (!is_readable($lg)) continue;
+              $tail = array_slice(file($lg, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES), -25);
+              echo "-- ".$lg." --\n";
+              foreach ($tail as $h) echo "  ".substr($h, 0, 220)."\n";
+            }
+            PHPEOF
+            php -l /tmp/vestra_accrep.php 2>&1
+            php /tmp/vestra_accrep.php 2>&1
+            rm -f /tmp/vestra_accrep.php
 
       # "Giristen sonra yine kayit/giris goruyorum" -- oturum duzeltmesi yerelde
       # dogrulandi ama sikayet canlida surdu. Bu adim ayni akisi CANLI sitede,
