@@ -275,19 +275,27 @@ function auth_register(array $d): array|string {
         'trade_doc_required' => true,
         'doc_requests'  => [],
     ];
+    /* Belge adlari kayit formunda SECILEN ulkeye gore: Gewerbeschein Almanya'nin
+       belgesidir, Irlandali bir butik icin o kelime hicbir sey anlatmaz. Ulke
+       bilinmiyorsa notr ifade tek basina kalir -- her yerde dogru olan odur. */
+    $docCc    = vestra_cc_of_country((string)($acc['country'] ?? ''));
+    $tradeLoc = auth_trade_doc_local_name($docCc);
+    $tradeTxt = 'Please upload your trade licence / business registration'
+              . ($tradeLoc !== '' ? ' ('.$tradeLoc.')' : '')
+              . '. An account cannot be activated without it.';
     // Auto document requests on registration
     $ts = date('c');
     if($type === 'seller'){
         $acc['doc_requests'] = [
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>'Please upload your trade licence / business registration (Gewerbeschein or your country\'s equivalent). An account cannot be activated without it.','status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate (Handelsregister / KvK / equivalent).','status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate (Umsatzsteuer-ID confirmation or equivalent).','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate.','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'auth_letter', 'note'=>'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.','status'=>'requested','requested_at'=>$ts],
         ];
     } elseif($type === 'buyer'){
         $acc['doc_requests'] = [
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>'Please upload your trade licence / business registration (Gewerbeschein or your country\'s equivalent). An account cannot be activated without it.','status'=>'requested','requested_at'=>$ts],
+            ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate to complete buyer verification.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
         ];
@@ -453,9 +461,68 @@ function auth_docs_dir(string $uid): string {
     return $dir;
 }
 
-function auth_doc_types(): array {
+/**
+ * What the trade licence is actually CALLED in a given country.
+ *
+ * "Gewerbeschein" was printed to everyone, everywhere. It is a German word for a
+ * German document: an Irish boutique reading it learns nothing, and a marketplace
+ * that asks for paperwork by the wrong name looks like it does not know which
+ * country it is talking to. So the local name appears only where it IS the local
+ * name, and everywhere else the neutral wording stands alone.
+ *
+ * Returns '' for countries with no entry — the caller then says just "trade
+ * licence / business registration", which is true everywhere.
+ */
+function auth_trade_doc_local_name(string $cc): string {
+    static $map = [
+        'DE' => 'Gewerbeschein',
+        'AT' => 'Gewerbeschein',
+        'CH' => 'Handelsregisterauszug',
+        'NL' => 'KvK-uittreksel',
+        'BE' => 'KBO-uittreksel',
+        'FR' => 'extrait Kbis',
+        'IT' => 'visura camerale',
+        'ES' => 'alta censal',
+        'PT' => 'certidão permanente',
+        'GB' => 'Certificate of Incorporation',
+        'IE' => 'CRO registration',
+        'PL' => 'wypis z CEIDG / KRS',
+        'CZ' => 'živnostenský list',
+        'GR' => 'βεβαίωση έναρξης εργασιών',
+        'SE' => 'registreringsbevis',
+        'DK' => 'CVR-registreringsbevis',
+        'NO' => 'firmaattest',
+        'FI' => 'kaupparekisteriote',
+        'TR' => 'faaliyet belgesi',
+        'AE' => 'trade licence',
+        'AU' => 'ABN registration',
+        'KR' => '사업자등록증',
+        'JP' => '履歴事項全部証明書',
+    ];
+    return $map[strtoupper(trim($cc))] ?? '';
+}
+
+/**
+ * "trade licence / business registration", plus the local name in brackets when
+ * this visitor's country has one. $cc comes from vestra_visitor_cc().
+ */
+function auth_trade_doc_phrase(string $cc): string {
+    $local = auth_trade_doc_local_name($cc);
+    if ($local === '') return t('trade licence / business registration');
+    /* Arayuz zaten o ulkenin dilindeyse yerel ad TEK BASINA yeter: Almanca okuyan
+       bir Alman icin "Gewerbeanmeldung / Handelsregistereintrag (Gewerbeschein)"
+       ayni seyi iki kez soylemek olur. Baska bir dilde okuyana ise parantez
+       gerekiyor -- aradigi belgeyi kendi ulkesindeki adiyla taniyabilsin diye. */
+    static $lang = ['DE'=>'de','AT'=>'de','CH'=>'de','FR'=>'fr','BE'=>'fr','IT'=>'it','ES'=>'es'];
+    $cc = strtoupper(trim($cc));
+    if (isset($lang[$cc]) && function_exists('vlang') && vlang() === $lang[$cc]) return $local;
+    return t('trade licence / business registration').' ('.$local.')';
+}
+
+function auth_doc_types(string $cc = ''): array {
+    $local = auth_trade_doc_local_name($cc);
     return [
-        'trade_licence'=> 'Trade Licence / Gewerbeschein',
+        'trade_licence'=> 'Trade Licence'.($local !== '' ? ' / '.$local : ''),
         'company_reg'  => 'Company Registration',
         'vat_cert'     => 'VAT / Tax Certificate',
         'id_document'  => 'Government ID (Passport / National ID)',

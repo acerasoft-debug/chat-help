@@ -1041,4 +1041,6 @@ return array (
   'Photos for members' => 'Fotos für Mitglieder',
   'Create buyer account' => 'Käuferkonto erstellen',
   'Create seller account' => 'Verkäuferkonto erstellen',
+  'trade licence / business registration' => 'Gewerbeanmeldung / Handelsregistereintrag',
+  'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Großhandelspreise, Produktfotos und Verkäuferdaten bleiben verborgen, bis wir Ihr Konto freischalten. Laden Sie Ihre %s hoch — wir prüfen sie meist noch am selben Tag.',
 );

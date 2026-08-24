@@ -46,6 +46,10 @@ on:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
         default: ""
+      ip_probe:
+        description: "true = IP tespitini CANLI sunucuda sına: bilinen adreslerle ülke/VPN sorgusu, hangi sağlayıcının cevap verdiği, süre. 'IP tespiti kesinlikle çalışmalı' bunun kanıtı."
+        required: false
+        default: "false"
       accounts_report:
         description: "true = kayıtlı hesapları MASKELİ listele (ilk 2 harf + alan adı, tip, durum, KYB, belge durumu) + hata günlüğünün son satırları. 'Doğru e-postayla giremiyorum' şikâyetinin cevabı: hesap hangi hâliyle kayıtlı?"
         required: false
@@ -761,6 +765,82 @@ jobs:
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
             rm -f /tmp/vestra_sheet.php
+
+      # "IP tespiti kesinlikle calissin" -- sart ancak olculebilirse tutulur.
+      # Bu adim SUNUCUDAN, gercek kodu cagirarak bilinen adresleri sorar ve
+      # beklenen ulkeyle karsilastirir. Onbellek atlanir: amac hattin su anda
+      # calisip calismadigini gormek, daha once kaydedilmis cevabi degil.
+      - name: IP tespiti sınaması (canlı)
+        if: github.event.inputs.ip_probe == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_ipprobe.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/security.php";
+
+            echo "===== 1. HAM BAGLANTI (saglayicilara ulasiliyor mu) =====\n";
+            $tests = [
+              'ip-api (HTTP)'  => 'http://ip-api.com/json/8.8.8.8?fields=status,countryCode,proxy,hosting',
+              'ipwho.is (TLS)' => 'https://ipwho.is/8.8.8.8',
+            ];
+            foreach ($tests as $name => $u) {
+              $t0 = microtime(true);
+              $ch = curl_init($u);
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>5, CURLOPT_CONNECTTIMEOUT=>5]);
+              $r = curl_exec($ch); $c = curl_getinfo($ch, CURLINFO_HTTP_CODE); $e = curl_error($ch); curl_close($ch);
+              printf("  %-16s HTTP %-3s %5d ms  %s\n", $name, $c ?: '---',
+                     (int)((microtime(true)-$t0)*1000),
+                     $c >= 200 && $c < 300 ? 'CEVAP VAR' : ('BASARISIZ '.$e));
+            }
+
+            echo "\n===== 2. GERCEK KOD: vestra_ip_intel() =====\n";
+            /* Onbellegi atla: bu sinama "hat su anda calisiyor mu" diye soruyor. */
+            @unlink(vestra_data_dir().'/ip_intel.json');
+            $cases = [
+              '8.8.8.8'        => ['US', 'Google DNS — hosting bayragi beklenir'],
+              '1.1.1.1'        => ['',   'Cloudflare — ulke degisebilir, dolu gelmesi yeter'],
+              '78.46.0.1'      => ['DE', 'Hetzner Almanya — hosting/VPN beklenir'],
+              '212.58.244.20'  => ['GB', 'BBC Londra'],
+            ];
+            $pass = 0; $total = 0;
+            foreach ($cases as $ip => [$want, $note]) {
+              $total++;
+              $t0 = microtime(true);
+              $i = vestra_ip_intel($ip);
+              $ms = (int)((microtime(true)-$t0)*1000);
+              $got = (string)($i['cc'] ?? '');
+              $good = $got !== '' && ($want === '' || $got === $want);
+              if ($good) $pass++;
+              printf("  %-15s -> %-3s %-22s vpn=%s  %4d ms  %s\n",
+                     $ip, $got ?: '??', mb_substr((string)($i['country'] ?? ''), 0, 22),
+                     (!empty($i['proxy']) || !empty($i['hosting'])) ? 'EVET' : 'hayir',
+                     $ms, $good ? 'TAMAM' : '<-- BASARISIZ ('.$note.')');
+            }
+            printf("\n  sonuc: %d/%d\n", $pass, $total);
+
+            echo "\n===== 3. ONBELLEK YAZILDI MI =====\n";
+            $cf = vestra_data_dir().'/ip_intel.json';
+            printf("  %s : %s\n", basename($cf), is_file($cf) ? count(_vsec_read('ip_intel.json')).' kayit' : 'YOK <-- yazilamiyor');
+            printf("  data dizini yazilabilir : %s\n", is_writable(vestra_data_dir()) ? 'EVET' : 'HAYIR');
+
+            echo "\n===== 4. ULKEYE GORE BELGE ADI =====\n";
+            require_once $doc."/inc/auth.php";
+            foreach (['DE','AT','FR','IT','ES','NL','GB','IE','TR','US',''] as $cc)
+              printf("  %-3s -> %s\n", $cc ?: '(yok)', auth_trade_doc_phrase($cc));
+
+            exit($pass === $total ? 0 : 1);
+            PHPEOF
+            php -l /tmp/vestra_ipprobe.php 2>&1
+            php /tmp/vestra_ipprobe.php 2>&1
+            rm -f /tmp/vestra_ipprobe.php
 
       # "Dogru e-postayla giremiyorum" -- giris auth_find ile TAM eslesme ister.
       # Hesap bir yazim farkiyla kayitliysa (bosluk, %20 artigi, farkli alan adi,

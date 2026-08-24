@@ -110,30 +110,49 @@ function vestra_ip_intel(string $ip): array {
     $hit = $cache[$ip] ?? null;
     if (is_array($hit) && (time() - (int)($hit['ts'] ?? 0)) < 30 * 86400) return $hit + $none;
 
-    $url = (string)(function_exists('vestra_cfg') ? vestra_cfg('ipintel_url', '') : '');
-    if ($url === '') $url = 'http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp,proxy,hosting';
-    $url = str_replace('{ip}', urlencode($ip), $url);
+    /* Iki saglayici, sirayla. Tek kaynaga bagli kalmak "IP tespiti kesinlikle
+       calissin" sartiyla bagdasmiyor: ip-api ucretsiz uctan yalnizca HTTP
+       konusuyor ve dakikada 45 istekte kotaya giriyor; o kapi kapandigi anda
+       ulke bilgisi sessizce bosalirdi. ipwho.is HTTPS ve kotasiz, ama VPN
+       bayragini vermiyor -- bu yuzden ikinci sirada: ulkeyi kurtarir, VPN
+       tespitini ilk saglayici yapar. */
+    $providers = [];
+    $custom = (string)(function_exists('vestra_cfg') ? vestra_cfg('ipintel_url', '') : '');
+    if ($custom !== '') $providers[] = ['url' => $custom, 'kind' => 'ipapi'];
+    $providers[] = ['url' => 'http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp,proxy,hosting', 'kind' => 'ipapi'];
+    $providers[] = ['url' => 'https://ipwho.is/{ip}', 'kind' => 'ipwho'];
 
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 2, CURLOPT_CONNECTTIMEOUT => 2]);
-    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-
-    $out = $none;
-    if ($code >= 200 && $code < 300 && is_string($raw)) {
+    $out = $none; $ok = false;
+    foreach ($providers as $p) {
+        $ch = curl_init(str_replace('{ip}', urlencode($ip), $p['url']));
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3,
+                                CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_FOLLOWLOCATION => true]);
+        $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        if ($code < 200 || $code >= 300 || !is_string($raw) || $raw === '') continue;
         $d = json_decode($raw, true);
-        if (is_array($d) && ($d['status'] ?? '') === 'success') {
-            $out = [
-                'cc'      => (string)($d['countryCode'] ?? ''),
-                'country' => (string)($d['country'] ?? ''),
-                'isp'     => mb_substr((string)($d['isp'] ?? ''), 0, 60),
-                'proxy'   => !empty($d['proxy']),
-                'hosting' => !empty($d['hosting']),
-            ];
+        if (!is_array($d)) continue;
+        if ($p['kind'] === 'ipapi') {
+            if (($d['status'] ?? '') !== 'success') continue;
+            $out = ['cc' => (string)($d['countryCode'] ?? ''), 'country' => (string)($d['country'] ?? ''),
+                    'isp' => mb_substr((string)($d['isp'] ?? ''), 0, 60),
+                    'proxy' => !empty($d['proxy']), 'hosting' => !empty($d['hosting'])];
+        } else {
+            if (empty($d['success'])) continue;
+            $out = ['cc' => (string)($d['country_code'] ?? ''), 'country' => (string)($d['country'] ?? ''),
+                    'isp' => mb_substr((string)($d['connection']['isp'] ?? ''), 0, 60),
+                    /* ipwho.is proxy/hosting bayragi vermiyor: "false" yazmak yerine
+                       false biraktik -- bilmemekle "VPN degil" demek ayni sey degil. */
+                    'proxy' => false, 'hosting' => false];
         }
+        if (($out['cc'] ?? '') !== '') { $ok = true; break; }
     }
+    if (!$ok) error_log('[VESTRA ipintel] hicbir saglayici cevap vermedi: '.$ip);
     /* Failures are cached too (as empty, with a timestamp) — otherwise an
-       unreachable API would be re-asked on every request from the same IP. */
-    $out['ts'] = time();
+       unreachable API would be re-asked on every request from the same IP.
+       Basarisizlik daha KISA sure tutuluyor: gecici bir kesintinin sonucunu
+       30 gun boyunca "ulke bilinmiyor" diye tasimak, tespiti kalici olarak
+       kapatmak olurdu. */
+    $out['ts'] = $ok ? time() : time() - (30 * 86400 - 1800);
     $cache[$ip] = $out;
     if (count($cache) > 3000) $cache = array_slice($cache, -2000, null, true);
     _vsec_write('ip_intel.json', $cache);
@@ -190,4 +209,27 @@ function vestra_cc_of_country(string $name): string {
         'azerbaijan'=>'AZ',
     ];
     return $map[strtolower(trim($name))] ?? '';
+}
+
+/**
+ * Which country's rules apply to THIS visitor?
+ *
+ * Order matters and is not arbitrary. The country the account holder typed on
+ * the registration form wins, because a trade licence is a legal instrument of
+ * the country the business is registered in — not of the country the person
+ * happens to be sitting in today. Only when nothing is declared do we fall back
+ * to where the connection comes from, and the registration IP is preferred over
+ * the live one: a German shop signing in from a holiday in Spain is still German.
+ *
+ * Returns an ISO-3166 alpha-2 code, or '' when nothing is known — callers must
+ * treat '' as "use the neutral wording", never as a guess.
+ */
+function vestra_visitor_cc(?array $acc = null): string {
+    if (is_array($acc)) {
+        $cc = vestra_cc_of_country((string)($acc['country'] ?? ''));
+        if ($cc !== '') return $cc;
+        $cc = strtoupper(trim((string)($acc['reg_cc'] ?? '')));
+        if ($cc !== '') return $cc;
+    }
+    return strtoupper(vestra_ip_intel(vestra_client_ip())['cc'] ?? '');
 }

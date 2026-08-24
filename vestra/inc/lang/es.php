@@ -1021,4 +1021,6 @@ return array (
   'Photos for members' => 'Fotos solo para miembros',
   'Create buyer account' => 'Crear cuenta de comprador',
   'Create seller account' => 'Crear cuenta de vendedor',
+  'trade licence / business registration' => 'licencia de actividad / alta en el registro',
+  'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Los precios mayoristas, las fotos de producto y los datos del vendedor permanecen ocultos hasta activar su cuenta. Suba su %s y la revisaremos, normalmente el mismo día.',
 );

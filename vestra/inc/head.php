@@ -231,7 +231,13 @@ if ($AUTH_USER && !$APPROVED):
 ?>
 <div class="vpending">
   <strong><?= t('Your account is not activated yet.') ?></strong>
-  <?= t('Trade prices, product photographs and seller details stay hidden until we activate it. Upload your trade licence (Gewerbeschein or your country\'s equivalent) and we will review it — usually the same day.') ?>
+  <?php /* Belge adi ziyaretcinin ULKESINE gore: beyan ettigi ulke, yoksa kayit
+           IP'sinin ulkesi. Almanyali icin "(Gewerbeschein)", Fransizli icin
+           "(extrait Kbis)", bilinmeyen ulkede sadece notr ifade. Herkese Almanca
+           bir belge adi yazmak, hangi ulkeyle konustugunu bilmeyen bir pazar yeri
+           izlenimi veriyordu. */
+        $docPhrase = auth_trade_doc_phrase(vestra_visitor_cc($AUTH_USER)); ?>
+  <?= sprintf(t('Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.'), $docPhrase) ?>
   <a href="<?= $kycUrl ?>"><?= t('Upload documents') ?> →</a>
 </div>
 <style>
