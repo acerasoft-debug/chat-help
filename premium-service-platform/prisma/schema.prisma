@@ -1,0 +1,265 @@
+// Core domain model for the premium at-home services marketplace.
+// Trust primitives (verification, escrow payments, two-way reviews, SOS)
+// are first-class citizens of the schema, not afterthoughts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Identity & profiles ----------
+
+enum UserRole {
+  CUSTOMER
+  PROFESSIONAL
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  phone     String?  @unique
+  role      UserRole
+  locale    String   @default("en") // BCP-47, e.g. "en", "tr", "de"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customerProfile     CustomerProfile?
+  professionalProfile ProfessionalProfile?
+  verifications       Verification[]
+  addresses           Address[]
+  reviewsWritten      Review[]         @relation("ReviewAuthor")
+  reviewsReceived     Review[]         @relation("ReviewSubject")
+  sosEvents           SosEvent[]
+}
+
+model CustomerProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  firstName String
+  lastName  String
+  user      User    @relation(fields: [userId], references: [id])
+
+  bookings Booking[]
+}
+
+model ProfessionalProfile {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  displayName     String
+  bio             String?
+  yearsExperience Int     @default(0)
+  baseCity        String
+  countryCode     String // ISO 3166-1 alpha-2
+  serviceRadiusKm Int     @default(15)
+  // Denormalized rating for fast search; source of truth is Review.
+  ratingAvg       Float   @default(0)
+  ratingCount     Int     @default(0)
+  // Only fully verified professionals are visible in search.
+  isListed        Boolean @default(false)
+  user            User    @relation(fields: [userId], references: [id])
+
+  services     Service[]
+  availability AvailabilitySlot[]
+  bookings     Booking[]
+
+  @@index([baseCity, isListed])
+}
+
+// ---------- Verification (KYC / certification / background) ----------
+
+enum VerificationType {
+  IDENTITY // government ID + liveness via provider (Stripe Identity / Onfido / Sumsub)
+  CERTIFICATION // professional license / diploma for the category
+  BACKGROUND_CHECK // criminal-record check where legally available
+}
+
+enum VerificationStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Verification {
+  id          String             @id @default(cuid())
+  userId      String
+  type        VerificationType
+  status      VerificationStatus @default(PENDING)
+  provider    String? // e.g. "stripe_identity"
+  providerRef String? // provider-side session/report id — no raw documents stored here
+  reviewedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime           @default(now())
+  user        User               @relation(fields: [userId], references: [id])
+
+  @@index([userId, type, status])
+}
+
+// ---------- Catalog ----------
+
+model ServiceCategory {
+  id        String  @id @default(cuid())
+  slug      String  @unique // "massage-wellness", "beauty", "personal-training"
+  nameEn    String
+  nameTr    String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  services Service[]
+}
+
+model Service {
+  id             String  @id @default(cuid())
+  professionalId String
+  categoryId     String
+  title          String
+  description    String?
+  durationMin    Int
+  price          Decimal @db.Decimal(10, 2)
+  currency       String // ISO 4217, e.g. "EUR", "TRY", "USD"
+  isActive       Boolean @default(true)
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id])
+  category     ServiceCategory     @relation(fields: [categoryId], references: [id])
+  bookings     Booking[]
+
+  @@index([categoryId, isActive])
+}
+
+// Weekly recurring availability; exceptions/off-days come later.
+model AvailabilitySlot {
+  id             String @id @default(cuid())
+  professionalId String
+  weekday        Int // 0 = Monday … 6 = Sunday
+  startMinute    Int // minutes from midnight, professional's local time
+  endMinute      Int
+
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id])
+
+  @@index([professionalId, weekday])
+}
+
+// ---------- Booking & payments ----------
+
+model Address {
+  id         String  @id @default(cuid())
+  userId     String
+  label      String? // "Home", "Office"
+  line1      String
+  line2      String?
+  city       String
+  postalCode String?
+  country    String // ISO 3166-1 alpha-2
+  lat        Float?
+  lng        Float?
+  user       User    @relation(fields: [userId], references: [id])
+
+  bookings Booking[]
+}
+
+enum BookingStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  IN_PROGRESS // professional checked in at the address
+  COMPLETED
+  CANCELLED_BY_CUSTOMER
+  CANCELLED_BY_PROFESSIONAL
+  DISPUTED
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  customerId     String
+  professionalId String
+  serviceId      String
+  addressId      String
+  scheduledAt    DateTime
+  durationMin    Int
+  status         BookingStatus @default(PENDING_CONFIRMATION)
+  priceAmount    Decimal       @db.Decimal(10, 2) // price snapshot at booking time
+  currency       String
+  customerNote   String?
+  checkInAt      DateTime? // service start confirmation at the door
+  checkOutAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  customer     CustomerProfile     @relation(fields: [customerId], references: [id])
+  professional ProfessionalProfile @relation(fields: [professionalId], references: [id])
+  service      Service             @relation(fields: [serviceId], references: [id])
+  address      Address             @relation(fields: [addressId], references: [id])
+  payment      Payment?
+  reviews      Review[]
+  sosEvents    SosEvent[]
+
+  @@index([professionalId, scheduledAt])
+  @@index([customerId, scheduledAt])
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  AUTHORIZED // card authorized at booking
+  ESCROW_HELD // captured, held until service completion
+  RELEASED // paid out to professional
+  REFUNDED
+  FAILED
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  bookingId   String        @unique
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String
+  status      PaymentStatus @default(REQUIRES_PAYMENT)
+  provider    String        @default("stripe")
+  providerRef String? // PaymentIntent id etc.
+  capturedAt  DateTime?
+  releasedAt  DateTime?
+  refundedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+// ---------- Trust: reviews & safety ----------
+
+// Two-way, booking-verified reviews: only participants of a COMPLETED
+// booking can review, and each side reviews the other exactly once.
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String
+  authorId  String
+  subjectId String
+  rating    Int // 1..5, enforced in application layer
+  comment   String?
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  author  User    @relation("ReviewAuthor", fields: [authorId], references: [id])
+  subject User    @relation("ReviewSubject", fields: [subjectId], references: [id])
+
+  @@unique([bookingId, authorId])
+  @@index([subjectId, createdAt])
+}
+
+model SosEvent {
+  id         String    @id @default(cuid())
+  bookingId  String
+  raisedById String
+  lat        Float?
+  lng        Float?
+  note       String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  raisedBy User    @relation(fields: [raisedById], references: [id])
+
+  @@index([bookingId])
+}
