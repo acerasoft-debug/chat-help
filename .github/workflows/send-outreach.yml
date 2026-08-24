@@ -353,6 +353,16 @@ jobs:
 
             echo $DRY ? ($IS_FOLLOWUP ? "== DRY-RUN (TAKIP) — gonderim YOK ==\n" : "== DRY-RUN — gonderim YOK, sadece secim listesi ==\n")
                       : ($IS_FOLLOWUP ? "== GERCEK GONDERIM — TAKIP MEKTUBU ==\n" : "== GERCEK GONDERIM — Les Garage de Paris ==\n");
+            /* Kota kapisi. Kampanya ile sifre sifirlama AYNI gunluk havuzdan iciyor ve
+               kampanya once geldigi icin hep o kazaniyor. Havuz bitince sirada bekleyen
+               kisi -- linkini bekleyen musteri -- cevapsiz kaliyor. Bir gun ertelenen
+               kampanyanin bedeli yok; ulasmayan bir sifirlama linkinin bedeli hesabin
+               kendisi. */
+            if (!$DRY && $picked) {
+              [$mayGo, $why] = vestra_mail_bulk_allowed(count($picked));
+              echo "kota  : {$why}\n";
+              if (!$mayGo) { echo "\nDURDURULDU. Hicbir e-posta gonderilmedi.\n"; exit(0); }
+            }
             echo "uygun secilen: " . count($picked) . " / hedef: {$COUNT}\n\n";
 
             // id -> index, so a successful send stamps the master array (not the picked copy).

@@ -2082,3 +2082,63 @@ function vestra_reset_text($lang, $name, $link) {
   $t = $T[$lang] ?? $T['en'];
   return [$t[0], sprintf($t[1], $name, $link), ['badge'=>$badge, 'button'=>['label'=>$btnLabel,'url'=>$link]]];
 }
+
+/* ── Sending allowance ────────────────────────────────────────────────────────
+ * How many messages the mail provider will still accept today.
+ *
+ * This exists because a campaign and a password reset draw on the SAME pool, and
+ * the campaign always wins by arriving first. When the day's allowance runs out,
+ * every later send is refused -- and the ones that matter most are the ones a
+ * person is sitting there waiting for: a reset link, a verification mail, an order
+ * confirmation. "It works, then after a while it stops" is exactly what an
+ * exhausted daily allowance looks like from the outside.
+ *
+ * Note for anyone reading this later: configuring an SMTP fallback does NOT help
+ * when the SMTP relay belongs to the same provider account (smtp-relay.brevo.com
+ * is the same allowance as the Brevo API). A second transport only helps if it is
+ * a second PROVIDER.
+ *
+ * Returns null when the provider cannot be asked -- callers must treat null as
+ * "unknown", never as "plenty left".
+ */
+function vestra_mail_credits_left(): ?int {
+    static $cached = false, $val = null;
+    if ($cached) return $val;
+    $cached = true;
+    $key = (string)vestra_cfg('mail_api_key', '');
+    if ($key === '') return $val = null;
+    $ch = curl_init('https://api.brevo.com/v3/account');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
+        CURLOPT_HTTPHEADER => ['api-key: '.$key, 'Accept: application/json']]);
+    $raw = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code < 200 || $code >= 300 || !is_string($raw)) return $val = null;
+    $d = json_decode($raw, true);
+    foreach ((array)($d['plan'] ?? []) as $p) {
+        if (($p['creditsType'] ?? '') === 'sendLimit') return $val = (int)($p['credits'] ?? 0);
+    }
+    return $val = null;
+}
+
+/**
+ * May a BULK run of $need messages start right now?
+ *
+ * Keeps $reserve messages back for the transactional mail that a person is waiting
+ * on. A campaign postponed by a day costs nothing; a password reset that never
+ * arrives costs the customer their account. Returns [allowed, human sentence].
+ *
+ * When the allowance cannot be read the run is allowed: refusing to send on a
+ * failed status call would turn a provider hiccup into a silent outreach freeze,
+ * which is the opposite of the problem being solved here.
+ */
+function vestra_mail_bulk_allowed(int $need, int $reserve = 60): array {
+    $left = vestra_mail_credits_left();
+    if ($left === null) return [true, 'kalan kota okunamadi -- gonderim yine de deneniyor'];
+    $usable = $left - $reserve;
+    if ($usable <= 0) {
+        return [false, "gunluk kota bitti: {$left} kaldi, {$reserve} tanesi sifre sifirlama / dogrulama / siparis bildirimi icin ayrilmis. Toplu gonderim yapilmadi."];
+    }
+    if ($need > $usable) {
+        return [false, "istenen {$need}, ayrilan pay dusuldukten sonra kullanilabilir {$usable} (toplam kalan {$left}). Daha kucuk bir parti ile deneyin."];
+    }
+    return [true, "kota tamam: {$left} kalan, {$reserve} ayrilmis, bu parti {$need}"];
+}

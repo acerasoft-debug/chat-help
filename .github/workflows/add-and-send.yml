@@ -397,6 +397,13 @@ jobs:
                          'ru'=>'ru','jp'=>'ja','kr'=>'ko','az'=>'az'];
 
             echo "-- gonderim --\n";
+            /* Kota kapisi -- send-outreach ile ayni gerekce: kampanya ve sifre
+               sifirlama ayni gunluk havuzu paylasiyor, ve bekleyen insan olan taraf
+               sifirlama tarafi. */
+            $wantN = count($wanted);
+            [$mayGo, $why] = vestra_mail_bulk_allowed($wantN);
+            echo "kota  : {$why}\n";
+            if (!$mayGo) { echo "\nDURDURULDU. Adresler eklendi ve tarandi, hicbir e-posta gonderilmedi.\n"; exit(0); }
             $sent = 0; $fail = 0; $skip = 0;
             $DNS_CHECK = strtolower(trim((string)getenv('DNS_CHECK'))) !== 'false';
             $dnsSeen = []; $dnsDead = 0; $dnsTouched = false;
