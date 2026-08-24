@@ -11,6 +11,21 @@ define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 /* Session-cookie hardening — must run before any session_start() (auth.php is
  * required before sessions start everywhere). HttpOnly blocks JS access,
  * SameSite=Lax blocks cross-site POSTs riding the session, Secure on HTTPS. */
+/* Every page that knows who you are must also refuse to be cached — the two are
+   one decision, which is why it lives here in the auth bootstrap and not in each
+   page. head.php already sent these, but index.php and eight checkout/export
+   endpoints never include head.php, and the homepage proved what that costs: a
+   browser or edge cache holding the signed-OUT rendering kept showing "Register
+   as Seller" to a customer who had just signed in — again on every visit.
+   Duplicated later by head.php harmlessly: header() replaces by default. */
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+    header('CDN-Cache-Control: no-store');
+    header('Cloudflare-CDN-Cache-Control: no-store');
+    header('Vary: Cookie, Accept-Language');
+}
+
 $_vlife = 90 * 86400; // keep users signed in ~90 days, even after the browser is closed
 // Private session store: on shared hosting the global /tmp GC would otherwise
 // expire our sessions within minutes. Keeping them under data/ (web-blocked)
