@@ -1441,6 +1441,27 @@ jobs:
             $sk = (string)$cfg('stripe_secret','');
             echo "  stripe_secret     : ".($sk !== '' ? "tanimli" : "YOK")."\n";
 
+            /* Google ile musteri bulma: anahtarin VARLIGI yetmez. Bu ucta iki ayri
+               kapi var -- proje faturalandirmasi ve "Places API (New)"in acik olmasi --
+               ve ikisi de kapaliyken anahtar gayet gecerli gorunur. Tek gercek istek
+               atip Google'in kendi cumlesini yaziyoruz; anahtar log'a YAZILMIYOR. */
+            $gk = (string)$cfg('google_key','');
+            $gx = (string)$cfg('google_cx','');
+            echo "  google_key        : ".($gk !== '' ? "tanimli (".strlen($gk)." karakter)" : "YOK -- Google ile musteri arama KAPALI")."\n";
+            echo "  google_cx         : ".($gx !== '' ? "tanimli (e-posta yedegi acik)" : "YOK -- e-posta yedegi kapali, sadece site/telefon gelir")."\n";
+            if ($gk !== '') {
+              require_once $doc."/inc/discover_google.php";
+              $t0 = microtime(true);
+              $d  = vestra_google_places_call('boutique Berlin', 'DE', 'de');
+              $ms = (int)((microtime(true)-$t0)*1000);
+              if (vestra_google_ok() && $d) {
+                printf("  google Places     : OK (%d sonuc, %d ms) -- Google ile musteri arama CALISIYOR\n", count($d['places'] ?? []), $ms);
+              } else {
+                echo "  !! google Places CALISMIYOR: ".vestra_google_note()."\n";
+                $issues++;
+              }
+            }
+
             /* Hunter/Anymailfinder anahtari gercekten calisiyor mu? error_log'da
                yuzlerce '401' satiri vardi -- anahtarin VARLIGI calistigi anlamina
                gelmiyor, o yuzden tek bir gercek istek atip dogruluyoruz. */
