@@ -1039,4 +1039,6 @@ return array (
   'Classic town shoe for an older customer. Real leather upper matters, the sole less so. Would confirm a first test order the same week if photographs and the size run check out.' => 'Klassischer Stadtschuh für ältere Kundschaft. Auf das echte Lederobermaterial kommt es an, auf die Sohle weniger. Bei passenden Fotos und Größenlauf bestätigen wir eine erste Testorder noch in derselben Woche.',
   'Two stores, distressed and clean washes both sell for us. A mixed series of 10 per model is fine. Stock on hand matters more than price — the season is already running.' => 'Zwei Filialen, sowohl Used- als auch Clean-Waschungen laufen bei uns. Eine gemischte Serie von 10 je Modell ist in Ordnung. Verfügbare Ware zählt mehr als der Preis — die Saison läuft bereits.',
   'Photos for members' => 'Fotos für Mitglieder',
+  'Create buyer account' => 'Käuferkonto erstellen',
+  'Create seller account' => 'Verkäuferkonto erstellen',
 );

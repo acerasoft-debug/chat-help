@@ -184,7 +184,16 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
         <?= t('Only verified businesses can access wholesale pricing.') ?>
       </div>
 
-      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center"><?= t('Create account') ?></button>
+      <?php /* The button names the TYPE being created, not just "Create account".
+               The homepage's primary call to action is "Register as Seller", so a
+               buyer who taps the big gold button lands here with SELLER already
+               selected — and the old neutral button let them submit without ever
+               seeing that. One wrong word on this button cost a support round
+               ("I registered as buyer, it made me a seller"); naming the choice
+               at the moment of commitment is the cheapest possible fix. */ ?>
+      <button class="btn btn-p" type="submit" id="regsubmit" style="width:100%;justify-content:center"><?=
+        ($d['type']??'buyer')==='seller' ? t('Create seller account') : t('Create buyer account')
+      ?></button>
     </form>
 
     <p class="authcard-foot"><?= t('Already have an account?') ?> <a class="acc" href="/login"><?= t('Sign in') ?></a></p>
@@ -196,6 +205,8 @@ function setType(t){
   document.querySelectorAll('.typecard').forEach(function(c){c.classList.remove('on')});
   document.getElementById('tc-'+t).classList.add('on');
   document.querySelector('input[name=type][value='+t+']').checked=true;
+  var b=document.getElementById('regsubmit');
+  if(b) b.textContent = (t==='seller') ? <?= json_encode(t('Create seller account')) ?> : <?= json_encode(t('Create buyer account')) ?>;
 }
 </script>
 <?php require __DIR__.'/inc/foot.php';
