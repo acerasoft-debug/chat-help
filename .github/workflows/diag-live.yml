@@ -838,10 +838,14 @@ jobs:
             echo "\n===== 6. HATA GUNLUGU (son posta izleri) =====\n";
             foreach ([$doc.'/error_log', getenv("HOME").'/logs/error_log'] as $lg) {
               if (!is_readable($lg)) continue;
-              $tail = array_slice(file($lg, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES), -300);
-              $hits = array_values(array_filter($tail, fn($l) => stripos($l,'mail') !== false || stripos($l,'smtp') !== false || stripos($l,'brevo') !== false));
+              $tail = array_slice(file($lg, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES), -800);
+              /* 'VESTRA reset' satirlari forgot.php'nin yeni iziyle dusuyor: her deneme
+                 "hesap yok" / "GONDERILEMEDI" / "kota dolu" olarak kayda geciyor. Adres
+                 kaydedilmiyor ama HANGI durumun yasandigi kayitli -- "gelmiyor" sikayetinin
+                 cevabi tam bu satirlarda. */
+              $hits = array_values(array_filter($tail, fn($l) => stripos($l,'VESTRA reset') !== false || stripos($l,'mail') !== false || stripos($l,'smtp') !== false || stripos($l,'brevo') !== false));
               printf("%s: %d ilgili satir\n", $lg, count($hits));
-              foreach (array_slice($hits, -8) as $h) echo "  ".substr($h, 0, 200)."\n";
+              foreach (array_slice($hits, -20) as $h) echo "  ".substr($h, 0, 200)."\n";
             }
             PHPEOF
             php -l /tmp/vestra_reset_probe.php 2>&1
