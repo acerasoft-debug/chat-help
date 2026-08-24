@@ -45,9 +45,12 @@ export default function Home() {
         <span className="font-serif text-2xl tracking-[0.2em] text-ink">
           MAISON
         </span>
-        <span className="rounded-full border border-gold/40 px-4 py-1.5 text-xs uppercase tracking-widest text-gold-deep">
-          Coming soon
-        </span>
+        <a
+          href="/signup"
+          className="rounded-full border border-gold/40 px-4 py-1.5 text-xs uppercase tracking-widest text-gold-deep hover:border-gold"
+        >
+          Join early
+        </a>
       </header>
 
       {/* Hero */}

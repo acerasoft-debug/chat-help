@@ -32,12 +32,19 @@ ertelendi — ayrı regülasyon/uyumluluk katmanı gerektiriyor. Ayrıntı:
 
 ```bash
 npm install
-cp .env.example .env   # değerleri doldur
+cp .env.example .env   # değerleri doldur (SESSION_SECRET zorunlu)
 npm run db:generate    # Prisma client üret
+npm run db:push        # şemayı lokal PostgreSQL'e uygula
 npm run dev            # http://localhost:3000
 ```
 
-Veritabanı şemasını lokal PostgreSQL'e uygulamak için: `npm run db:push`
+### Giriş akışı (dev)
+
+Kayıt `/signup` üzerinden magic-link ile çalışır. E-posta gönderimi henüz
+bağlı değil; development modunda link API yanıtında `devLink` olarak döner ve
+ekranda gösterilir. KYC, `KYC_PROVIDER="mock"` iken otomatik onaylanır —
+gerçek sağlayıcı (Stripe Identity / Sumsub) `src/lib/kyc/provider.ts`
+arayüzüne eklenecek.
 
 ## Dokümantasyon
 

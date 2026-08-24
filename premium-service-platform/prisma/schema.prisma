@@ -70,6 +70,19 @@ model ProfessionalProfile {
   @@index([baseCity, isListed])
 }
 
+// Magic-link sign-in: only the SHA-256 hash of the token is stored.
+model AuthToken {
+  id        String    @id @default(cuid())
+  email     String
+  role      UserRole? // requested role for first sign-in; ignored for existing users
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+}
+
 // ---------- Verification (KYC / certification / background) ----------
 
 enum VerificationType {

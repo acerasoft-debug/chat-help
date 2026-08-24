@@ -10,7 +10,9 @@
 
 ## Faz 1 — MVP (tek şehir, 3 kategori)
 
-- [ ] Kayıt + KYC entegrasyonu (Stripe Identity veya Sumsub)
+- [x] Kayıt akışı: magic-link giriş, rol bazlı onboarding, oturum (JWT cookie)
+- [x] KYC altyapısı: sağlayıcı arayüzü + mock sağlayıcı; Verification kayıtları
+- [ ] Gerçek KYC entegrasyonu (Stripe Identity veya Sumsub) + webhook
 - [ ] Profesyonel onboarding + sertifika inceleme paneli
 - [ ] Arama, profil, rezervasyon akışı
 - [ ] Stripe ödeme (manual capture escrow) + Connect payout
