@@ -829,3 +829,91 @@ function vestra_tpl_invoice_issued(
       . "support@vestrasales.com · vestrasales.com";
     return [$subject, $body, $opts];
 }
+
+/**
+ * The note a buyer gets when their order moves to a new stage.
+ *
+ * Written per language rather than through t(): t() resolves against the ACTIVE
+ * request's language, and the active request here is the admin's, not the buyer's.
+ * Sending a French boutique an English email while their own panel reads
+ * "En cours de préparation" is the inconsistency this exists to avoid. Same shape as
+ * vestra_verify_text() and the seller onboarding letter, which solved it the same way.
+ *
+ * @param string $stage 'preparing' | 'to_vestra' | 'cancelled'
+ */
+function vestra_tpl_order_stage(string $lang, string $stage, string $name, string $ref): array {
+    $lang = in_array($lang, ['en','fr','es','it','de'], true) ? $lang : 'en';
+
+    $L = [
+      'en' => [
+        'hi'    => "Hello {$name},",
+        'ref'   => "Order ref: {$ref}",
+        'track' => 'Track your order:',
+        'btn'   => 'View my order',
+        'preparing' => ["VESTRA — order {$ref} is being prepared",
+          'Your order is now being prepared for despatch. We will write again as soon as it moves.'],
+        'to_vestra' => ["VESTRA — order {$ref} is on its way to VESTRA",
+          'The goods have left the supplier and are in transit to VESTRA, where they are checked before they go out to you.'],
+        'cancelled' => ["VESTRA — order {$ref} has been cancelled",
+          'Your order has been cancelled. If that is unexpected, reply to this message and we will look into it.'],
+      ],
+      'fr' => [
+        'hi'    => "Bonjour {$name},",
+        'ref'   => "Référence de commande : {$ref}",
+        'track' => 'Suivre ma commande :',
+        'btn'   => 'Voir ma commande',
+        'preparing' => ["VESTRA — la commande {$ref} est en cours de préparation",
+          'Votre commande est en cours de préparation pour l’expédition. Nous vous réécrivons dès qu’elle avance.'],
+        'to_vestra' => ["VESTRA — la commande {$ref} est en route vers VESTRA",
+          'La marchandise a quitté le fournisseur et est en route vers VESTRA, où elle est contrôlée avant de vous être expédiée.'],
+        'cancelled' => ["VESTRA — la commande {$ref} a été annulée",
+          'Votre commande a été annulée. Si cela vous surprend, répondez à ce message et nous vérifierons.'],
+      ],
+      'es' => [
+        'hi'    => "Hola {$name}:",
+        'ref'   => "Referencia del pedido: {$ref}",
+        'track' => 'Seguir mi pedido:',
+        'btn'   => 'Ver mi pedido',
+        'preparing' => ["VESTRA — el pedido {$ref} se está preparando",
+          'Su pedido se está preparando para el envío. Le escribiremos de nuevo en cuanto avance.'],
+        'to_vestra' => ["VESTRA — el pedido {$ref} va camino de VESTRA",
+          'La mercancía ha salido del proveedor y está en camino a VESTRA, donde se revisa antes de enviársela a usted.'],
+        'cancelled' => ["VESTRA — el pedido {$ref} ha sido cancelado",
+          'Su pedido ha sido cancelado. Si no lo esperaba, responda a este mensaje y lo revisamos.'],
+      ],
+      'it' => [
+        'hi'    => "Buongiorno {$name},",
+        'ref'   => "Riferimento ordine: {$ref}",
+        'track' => 'Segui il mio ordine:',
+        'btn'   => 'Vedi il mio ordine',
+        'preparing' => ["VESTRA — l’ordine {$ref} è in preparazione",
+          'Il suo ordine è in preparazione per la spedizione. Le scriveremo di nuovo appena si muove.'],
+        'to_vestra' => ["VESTRA — l’ordine {$ref} è in viaggio verso VESTRA",
+          'La merce è partita dal fornitore ed è in viaggio verso VESTRA, dove viene controllata prima di essere spedita a lei.'],
+        'cancelled' => ["VESTRA — l’ordine {$ref} è stato annullato",
+          'Il suo ordine è stato annullato. Se non se lo aspettava, risponda a questo messaggio e verifichiamo.'],
+      ],
+      'de' => [
+        'hi'    => "Guten Tag {$name},",
+        'ref'   => "Bestellnummer: {$ref}",
+        'track' => 'Bestellung verfolgen:',
+        'btn'   => 'Meine Bestellung ansehen',
+        'preparing' => ["VESTRA — Bestellung {$ref} wird vorbereitet",
+          'Ihre Bestellung wird jetzt für den Versand vorbereitet. Wir melden uns wieder, sobald sie weitergeht.'],
+        'to_vestra' => ["VESTRA — Bestellung {$ref} ist unterwegs zu VESTRA",
+          'Die Ware hat den Lieferanten verlassen und ist unterwegs zu VESTRA, wo sie geprüft wird, bevor sie an Sie hinausgeht.'],
+        'cancelled' => ["VESTRA — Bestellung {$ref} wurde storniert",
+          'Ihre Bestellung wurde storniert. Falls das unerwartet kommt, antworten Sie einfach auf diese Nachricht und wir sehen nach.'],
+      ],
+    ];
+
+    $d = $L[$lang];
+    $stage = isset($d[$stage]) && is_array($d[$stage]) ? $stage : 'preparing';
+    [$subject, $line] = $d[$stage];
+
+    $url  = 'https://vestrasales.com/buyer?tab=orders';
+    $body = $d['hi']."\n\n".$line."\n\n".$d['ref']."\n\n".$d['track']." ".$url
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => $d['btn'], 'url' => $url]]];
+}

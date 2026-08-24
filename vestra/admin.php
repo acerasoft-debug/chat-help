@@ -657,16 +657,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $oRow=$row; break; } }
         if($oRow && !empty($oRow['email'])){
           $who=$oRow['name']?:($oRow['company']?:'there');
-          [$subj,$line]=match($st){
-            'preparing' => ["VESTRA — order {$ref} is being prepared",
-              "Your order is now being prepared for despatch."],
-            'to_vestra' => ["VESTRA — order {$ref} is on its way to VESTRA",
-              "The goods have left the supplier and are in transit to VESTRA, where they are checked before they go out to you."],
-            default     => ["VESTRA — order {$ref} has been cancelled",
-              "Your order has been cancelled. If that is unexpected, reply to this email and we will look into it."],
-          };
-          vestra_send_mail($oRow['email'], $subj,
-            "Hello {$who},\n\n{$line}\n\nOrder ref: {$ref}\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+          /* The BUYER's language, not the admin's. t() would resolve against whoever is
+             clicking in the panel, so a French boutique would get an English note while
+             their own order page reads "En cours de préparation". */
+          $bLang='en';
+          foreach(auth_accounts() as $bAcc){
+            if(strcasecmp((string)($bAcc['email']??''), (string)$oRow['email'])===0){
+              $bLang=substr((string)($bAcc['lang']??'en'),0,2); break;
+            }
+          }
+          require_once __DIR__.'/inc/email_templates.php';
+          [$subj,$body,$opts]=vestra_tpl_order_stage($bLang,$st,$who,$ref);
+          vestra_send_mail($oRow['email'],$subj,$body,'','',null,'',$opts);
         }
       }
     }
