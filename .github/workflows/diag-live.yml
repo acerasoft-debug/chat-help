@@ -771,17 +771,27 @@ jobs:
             require $doc."/inc/products.php";
             require_once $doc."/inc/orders.php";
             require_once $doc."/inc/invoice.php";
+            /* auth.php olmadan vestra_invoices_for_ref() icindeki auth_accounts()
+               tanimsiz kaliyor ve betik, display_errors kapali oldugu icin hicbir
+               sey yazmadan tam ortasinda susuyordu. */
+            require_once $doc."/inc/auth.php";
 
             echo "===== 1. KOD CANLIDA MI =====\n";
             $adm = (string)@file_get_contents($doc."/admin.php");
+            $ord = (string)@file_get_contents($doc."/inc/orders.php");
             printf("admin.php                 : %d bayt, %s\n", strlen($adm), date('Y-m-d H:i', (int)@filemtime($doc."/admin.php")));
+            printf("inc/orders.php            : %d bayt, %s\n", strlen($ord), date('Y-m-d H:i', (int)@filemtime($doc."/inc/orders.php")));
+            /* Her ihtiyaci KENDI dosyasinda ara. Iptal sabiti admin.php'de gecmiyor
+               (panel onu vestra_order_settable_statuses() uzerinden goruyor), bu yuzden
+               orada aramak "eski surum canlida" diyen yanlis bir alarm uretiyordu. */
             foreach ([
-              "order_delete islemi"   => "\$act==='order_delete'",
-              "silme dugmesi (form)"  => 'value="order_delete"',
-              "ord_deleted mesaji"    => "'ord_deleted'",
-              "iptal durumu"          => 'VESTRA_ORDER_CANCELLED',
-            ] as $label => $needle) {
-              printf("  %-24s : %s\n", $label, str_contains($adm, $needle) ? "VAR" : "YOK  <-- eski surum canlida");
+              "order_delete islemi"   => [$adm, "\$act==='order_delete'"],
+              "silme dugmesi (form)"  => [$adm, 'value="order_delete"'],
+              "yine de sil (force)"   => [$adm, "name=\"force\""],
+              "vestra_order_delete()" => [$ord, 'function vestra_order_delete'],
+              "iptal durumu"          => [$ord, 'VESTRA_ORDER_CANCELLED'],
+            ] as $label => [$hay, $needle]) {
+              printf("  %-24s : %s\n", $label, str_contains($hay, $needle) ? "VAR" : "YOK  <-- eski surum canlida");
             }
 
             echo "\n===== 2. DOSYA YAZILABILIR MI =====\n";
