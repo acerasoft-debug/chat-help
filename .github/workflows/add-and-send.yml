@@ -17,6 +17,10 @@ on:
         description: "Bu partideki adreslerin ülkesi (ör: Italy, Spain, France, Germany). Verilirse tespit yerine bu kullanılır ve KAYITLI leadlerin ülkesi de düzeltilir. Çok ülkeli kurumsal sitelerde tespit güvenilmez."
         required: false
         default: ""
+      dns_check:
+        description: "true (varsayılan) = göndermeden önce alan adının MX/A kaydına bak, posta alamayan adresi atla. Sert bounce oranı gönderen alan adının itibarını düşürüyor. false = kontrolsüz gönder."
+        required: false
+        default: "true"
 
 permissions:
   contents: read
@@ -48,13 +52,14 @@ jobs:
           DO_SEND: ${{ github.event.inputs.send }}
           FEATURE_CAT: ${{ github.event.inputs.feature_category }}
           IN_COUNTRY: ${{ github.event.inputs.country }}
+          DNS_CHECK: ${{ github.event.inputs.dns_check }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 20m
-          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY
+          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY,DNS_CHECK
           script: |
             cd ~/public_html
             cat > /tmp/vestra_add_send.php <<'PHPEOF'
@@ -393,6 +398,8 @@ jobs:
 
             echo "-- gonderim --\n";
             $sent = 0; $fail = 0; $skip = 0;
+            $DNS_CHECK = strtolower(trim((string)getenv('DNS_CHECK'))) !== 'false';
+            $dnsSeen = []; $dnsDead = 0; $dnsTouched = false;
             foreach (array_keys($wanted) as $mail) {
               $i = $byMail[$mail] ?? null; if ($i === null) continue;
               $l = $leads[$i];
@@ -400,6 +407,22 @@ jobs:
                 echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
               }
               if (!empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$mail}\n"; $skip++; continue; }
+              /* Alan adi posta alabiliyor mu? MX yoksa A kaydi da yoksa o adrese
+                 gonderilen her sey sert bir bounce olarak geri doner ve bounce orani
+                 gonderen alan adinin itibarini dusurur -- yani olu bir adrese
+                 gondermek bedava degil, CALISAN adreslere ulasma sansini azaltiyor.
+                 Elle verilen listelerde bu ciddi bir pay tutuyor: onceki partide 173
+                 adresin 109'unun alan adi hic yoktu. Sonuc kaydediliyor ki ayni adres
+                 her turda yeniden sorulmasin. */
+              if ($DNS_CHECK) {
+                $dom = strtolower(substr(strrchr($mail, '@'), 1));
+                if (!isset($dnsSeen[$dom])) $dnsSeen[$dom] = (checkdnsrr($dom, 'MX') || checkdnsrr($dom, 'A'));
+                if (!$dnsSeen[$dom]) {
+                  echo "  - ATLANDI (alan adi posta alamiyor): {$mail}\n";
+                  $leads[$i]['notes'] = trim((string)($leads[$i]['notes'] ?? '').' [dns: MX/A yok '.date('Y-m-d').']');
+                  $dnsDead++; $skip++; $dnsTouched = true; continue;
+                }
+              }
 
               $company = (string)($l['company'] ?? '');
               $ckey    = strtolower(trim((string)($l['country'] ?? '')));
@@ -438,8 +461,11 @@ jobs:
               }
               flush();
             }
-            if ($sent > 0) vestra_save_leads($leads);
-            echo "\nBITTI. gonderildi: {$sent}, atlandi: {$skip}, hata: {$fail}\n";
+            /* $dnsTouched de kaydettiriyor: olu alan adi notu diske yazilmazsa ayni
+               adres her turda yeniden DNS'e sorulur ve hicbir zaman ogrenilmis olmaz. */
+            if ($sent > 0 || $dnsTouched) vestra_save_leads($leads);
+            echo "\nBITTI. gonderildi: {$sent}, atlandi: {$skip}, hata: {$fail}"
+               . ($DNS_CHECK ? ", olu alan adi: {$dnsDead}" : ", DNS kontrolu kapali") . "\n";
             PHPEOF
             cp /tmp/vestra_add_send.php ./vestra_add_send_tmp.php
             php ./vestra_add_send_tmp.php

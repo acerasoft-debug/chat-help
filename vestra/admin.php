@@ -867,6 +867,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_leads($leads);
     header('Location: /admin?tab=prospects&msg=lead_email_ok'); exit;
   }
+  /* Save the Google Cloud key (Places = addresses, Custom Search = the email fallback).
+     Same storage as every other credential here: data/email_settings.json, chmod 600,
+     web-denied, gitignored. This repository is public — a key must never reach it, and
+     must never travel through a workflow input either, because those are printed in
+     the Actions log. Blank means "keep what is stored", so re-saving the search-engine
+     id does not wipe the key. */
+  if($act==='save_google'){
+    $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
+    $cur=is_readable($dir.'/email_settings.json')?json_decode((string)file_get_contents($dir.'/email_settings.json'),true):[]; if(!is_array($cur))$cur=[];
+    $k=trim($_POST['google_key']??''); if($k!=='') $cur['google_key']=$k;
+    $x=trim($_POST['google_cx']??'');  if($x!=='') $cur['google_cx']=$x;
+    /* An explicit tick clears them — the only way to retire a leaked key from the panel. */
+    if(!empty($_POST['google_clear'])){ unset($cur['google_key'],$cur['google_cx']); }
+    file_put_contents($dir.'/email_settings.json',json_encode($cur,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)); @chmod($dir.'/email_settings.json',0600);
+    header('Location: /admin?tab=prospects&msg='.(!empty($_POST['google_clear'])?'google_cleared':'google_saved')); exit;
+  }
   /* Save the operator's email-finder API key (global, in email_settings.json). */
   if($act==='save_finder'){
     $dir=vestra_data_dir(); if(!is_dir($dir)) @mkdir($dir,0775,true);
@@ -918,17 +934,45 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     unset($l); vestra_save_leads($leads);
     echo json_encode($res); exit;
   }
-  /* Auto-discover real small/medium clothing & textile retailers (OpenStreetMap, free, no
-     key) and add them straight to the customer list — fast, no per-candidate network calls.
-     Emails are a separate step (find_lead_email_one above) so a slow/failing site-lookup
-     never blocks discovery itself. */
+  /* Auto-discover real small/medium clothing & textile retailers and add them straight to
+     the customer list — fast, no per-candidate network calls. Emails are a separate step
+     (find_lead_email_one above) so a slow/failing site-lookup never blocks discovery.
+
+     Two sources, and they are complementary rather than rivals: OpenStreetMap is free and
+     needs no key but its coverage of independent shops is patchy, while Google Maps has
+     almost all of them with address, phone and website — at the cost of a billed API call.
+     "both" runs OSM first and tops up with whatever Google finds that OSM missed, so the
+     free source carries as much of the load as it can. */
   if($act==='discover_leads'){
     header('Content-Type: application/json');
     @set_time_limit(0); require_once __DIR__.'/inc/notify.php';
+    require_once __DIR__.'/inc/discover_google.php';
     $country=trim($_POST['disc_country']??''); $city=trim($_POST['disc_city']??'');
-    $rows=$country!==''?vestra_discover_osm($country,$city,80):[];
-    $osmOk=$country!==''?vestra_osm_ok():true;
-    $timedOut=function_exists('vestra_osm_timeout')?vestra_osm_timeout():false;
+    $src=strtolower(trim($_POST['disc_source']??'osm')); if(!in_array($src,['osm','google','both'],true)) $src='osm';
+    if($src!=='osm' && vestra_google_key()===''){
+      /* Asking Google without a key would come back "0 found" and read as "no shops
+         here". Say the real reason instead of running a search that cannot work. */
+      echo json_encode(['ok'=>true,'total'=>0,'added'=>0,'newIds'=>[],'osm_ok'=>true,'timed_out'=>false,
+        'source'=>$src,'note'=>'Google anahtarı girilmemiş. Aşağıdaki "Google ile ara" kartından anahtarı ekleyin, ya da kaynağı OpenStreetMap olarak bırakın.']); exit;
+    }
+
+    $rows=[]; $osmOk=true; $timedOut=false; $gRows=[]; $gOk=true; $gNote='';
+    if($country!==''){
+      if($src==='osm'||$src==='both'){
+        $rows=vestra_discover_osm($country,$city,80);
+        $osmOk=vestra_osm_ok();
+        $timedOut=function_exists('vestra_osm_timeout')?vestra_osm_timeout():false;
+      }
+      if($src==='google'||$src==='both'){
+        $gRows=vestra_discover_google($country,$city,80);
+        $gOk=vestra_google_ok(); $gNote=vestra_google_note();
+        /* Merge on the company name so "both" does not offer the operator the same
+           boutique twice under two source labels. vestra_leads_add() de-duplicates on
+           its own key as well, but a doubled count in the live log is its own confusion. */
+        $have=[]; foreach($rows as $r) $have[mb_strtolower((string)($r['company']??''))]=true;
+        foreach($gRows as $g){ if(!isset($have[mb_strtolower((string)($g['company']??''))])) $rows[]=$g; }
+      }
+    }
     [$addedRows,$skipped]=$rows?vestra_leads_add($rows):[[],0];
     $newIds=array_values(array_map(fn($r)=>$r['id'],array_filter($addedRows,fn($r)=>$r['email']===''&&$r['website']!=='')));
     /* Bos sonucun SEBEBINI soyle. Ciplak "0 bulundu" en yaniltici cikti: kullanici
@@ -936,7 +980,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        icin Overpass yetismiyor. Sehir verilince ayni sorgu calisiyor. */
     $note='';
     if(!$rows){
-      if($timedOut){
+      if($src==='google'){
+        $note=$gNote!==''?$gNote:'Google bu aramada sonuç döndürmedi.';
+      } elseif($timedOut){
         $note=$city===''
           ? 'Overpass ülke geneli sorguda zaman aşımına uğradı — ülke çok geniş. Şehir yazıp tekrar deneyin (ör. Amsterdam, Milan, Zurich); şehir bazlı arama çalışıyor.'
           : 'Overpass zaman aşımına uğradı — sunucu şu an yoğun. Birkaç dakika sonra tekrar deneyin.';
@@ -947,9 +993,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       } else {
         $note='Bu şehir için OSM\'de aradığımız kategorilerde kayıtlı dükkan bulunamadı. Şehir adını yerel dilde de deneyebilirsiniz.';
       }
+      if($src==='both' && $gNote!=='') $note.=' · Google: '.$gNote;
+    } elseif($src!=='osm' && $gNote!==''){
+      /* Google failed but OSM carried the run. The rows on screen are real, so this is
+         a note rather than an error — but staying silent would let a dead key look like
+         a working setup for weeks. */
+      $note='Google tarafı çalışmadı: '.$gNote;
     }
     echo json_encode(['ok'=>true,'total'=>count($rows),'added'=>count($addedRows),'newIds'=>$newIds,
-                      'osm_ok'=>$osmOk,'timed_out'=>$timedOut,'note'=>$note]); exit;
+                      'osm_ok'=>$osmOk,'timed_out'=>$timedOut,'note'=>$note,
+                      'source'=>$src,'google_found'=>count($gRows),'google_ok'=>$gOk]); exit;
   }
   /* Written by the "Run now" button once its live discovery + email-lookup finishes, so a
      manual run leaves the exact same status trail as the 09:00 cron (inc/leads.php). */

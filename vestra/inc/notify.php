@@ -281,7 +281,15 @@ function vestra_find_email(string $website, string $keyOverride='', string $prov
     if($api!=='') return $api;
   }
   // 2) Free fallback — read the company's own site. Works with NO key.
-  return vestra_scrape_email($domain);
+  $own=vestra_scrape_email($domain);
+  if($own!=='') return $own;
+  /* 3) Google's index, if a Custom Search key is configured. Last on purpose: it is
+     the only step that costs a query, and it only earns it on the sites the free
+     reader cannot crack -- address in an image, behind a contact form, or three
+     clicks deep. Required inside the function rather than at the top of the file so
+     the two never form a load-order loop (discover_google.php requires this file). */
+  require_once __DIR__.'/discover_google.php';
+  return vestra_google_cse_email($domain);
 }
 
 /* Discover real small/medium clothing & textile retailers from OpenStreetMap (free, no key).
