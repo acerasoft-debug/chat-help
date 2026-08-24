@@ -839,6 +839,32 @@ function vestra_invoices_for_ref(string $ref): array {
 }
 
 /**
+ * Move every invoice file for a ref out of the live folder, into data/invoices/deleted/.
+ *
+ * Used when an order is force-deleted. NOTHING is erased: the numbered PDF and its
+ * metadata keep existing, timestamped, in a folder the panel does not read. That is
+ * the whole point — an issued invoice is a document the company has already handed a
+ * customer, and a gap in a number sequence is the first thing an auditor asks about.
+ * What we are removing is the dangling link, not the record.
+ *
+ * Returns how many files were moved.
+ */
+function vestra_invoices_archive_for_ref(string $ref): int {
+    $dir     = vestra_invoice_dir();
+    $safeRef = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($safeRef === '') return 0;
+    $bin = $dir.'/deleted';
+    if (!is_dir($bin) && !@mkdir($bin, 0755, true)) return 0;
+    $stamp = date('Ymd_His');
+    $moved = 0;
+    foreach (glob($dir.'/'.$safeRef.'__*') ?: [] as $f) {
+        if (!is_file($f)) continue;
+        if (@rename($f, $bin.'/'.$stamp.'-'.basename($f))) $moved++;
+    }
+    return $moved;
+}
+
+/**
  * Number + amount for an invoice link: "INV-2026-1009 · US$2,153.40".
  *
  * The word "Invoice" is deliberately NOT here — the panels translate it (t('Invoice')),

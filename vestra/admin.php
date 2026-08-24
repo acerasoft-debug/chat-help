@@ -684,26 +684,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $ref=trim((string)($_POST['ref']??''));
     if($ref===''){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
     require_once __DIR__.'/inc/invoice.php';
-    if(vestra_invoices_for_ref($ref)){ header('Location: /admin?tab=orders&msg=ord_has_invoice'); exit; }
-
-    $file=vestra_data_dir().'/orders.csv';
-    if(!is_readable($file)){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
-    $rows=vestra_read_csv('orders.csv');
-    $keep=array_values(array_filter($rows, fn($r)=>(string)($r['ref']??'')!==$ref));
-    if(count($keep)===count($rows)){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
-
-    @copy($file,$file.'.bak-del-'.date('Ymd_His'));
-    $head=array_keys($rows[0]);
-    $tmp=$file.'.tmp'; $out=@fopen($tmp,'w');
-    if(!$out){ header('Location: /admin?tab=orders&msg=ord_delfail'); exit; }
-    fputcsv($out,$head,',','"','\\');
-    foreach($keep as $r){ fputcsv($out,array_map(fn($k)=>(string)($r[$k]??''),$head),',','"','\\'); }
-    fclose($out);
-    rename($tmp,$file);   // atomic swap — a reader never sees a half-written file
-
-    $all=vestra_read_json('order_statuses.json');
-    if(isset($all[$ref])){ unset($all[$ref]); vestra_write_json('order_statuses.json',$all); }
-    header('Location: /admin?tab=orders&msg=ord_deleted'); exit;
+    /* An issued invoice blocks the first click and the panel says why. force=1 is the
+       same click made again after reading that — at which point the invoice files are
+       moved into data/invoices/deleted/ rather than left pointing at a row that no
+       longer exists. Nothing is erased: the numbered document stays on disk. */
+    $inv=vestra_invoices_for_ref($ref);
+    if($inv && empty($_POST['force'])){
+      header('Location: /admin?tab=orders&msg=ord_has_invoice&n='.count($inv).'&ref='.urlencode($ref)); exit;
+    }
+    if($inv) vestra_invoices_archive_for_ref($ref);
+    /* The rewrite itself lives in inc/orders.php next to the other function that has
+       to know orders.csv is stored oldest-first while vestra_read_csv() hands it back
+       newest-first. Two copies of that knowledge is one copy too many. */
+    $n=vestra_order_delete($ref);
+    if($n<0){ header('Location: /admin?tab=orders&msg=ord_delfail'); exit; }
+    if($n===0){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+    header('Location: /admin?tab=orders&msg=ord_deleted&n='.$n); exit;
   }
   /* One-time repair: give duplicate order refs (pre-uniqueness bug) fresh refs so
      each order gets its own independent status entry. */
@@ -1539,9 +1535,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
-    'ord_deleted'=>'Order deleted. A timestamped copy of orders.csv was saved first.',
-    'ord_has_invoice'=>'That order has an invoice issued against it, so it cannot be deleted — a numbered invoice would be left pointing at nothing. Set the status to Cancelled instead.',
-    'ord_notfound'=>'No order with that reference.','ord_delfail'=>'Could not rewrite orders.csv — nothing was deleted.',
+    /* ord_deleted / ord_has_invoice / ord_notfound / ord_delfail are NOT here on
+       purpose: this map renders every entry as a green "✓" banner, and three of the
+       four are refusals. A refusal painted like a success is why "it does not delete"
+       and "it says it deleted" can both be true on the same click. They have their
+       own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -1689,6 +1687,28 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ Imported <?= (int)($_GET['added']??0) ?> prospect(s)<?= ($_GET['skipped']??0) ? ', skipped '.(int)$_GET['skipped'].' (duplicate or invalid)' : '' ?>.</div>
 <?php elseif($msg==='lead_sent'): ?>
 <div class="amsg ok">✓ Sent to <?= (int)($_GET['n']??0) ?> prospect(s).</div>
+<?php elseif($msg==='ord_deleted'): ?>
+<div class="amsg ok">✓ <?= (int)($_GET['n']??1) ?> order row(s) deleted<?= ((int)($_GET['n']??1))>1 ? ' — that reference was carried by more than one row' : '' ?>. A timestamped copy of orders.csv was saved first (data/orders.csv.bak-del-…).</div>
+<?php elseif($msg==='ord_has_invoice'): ?>
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.35);color:#a9781a;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <span>⚠ Not deleted. <b><?= (int)($_GET['n']??1) ?></b> invoice(s) have been issued against this order.
+  An invoice is a numbered document already sent to a customer, so deleting its subject leaves the number pointing at nothing —
+  setting the status to <b>Cancelled</b> keeps the record and voids the sale, which is what the books want.
+  If this is a test row, delete it anyway: the invoice files are <i>moved</i> to data/invoices/deleted/, not erased.</span>
+  <?php $__hr=(string)($_GET['ref']??''); if($__hr!==''): ?>
+  <form method="post" style="margin:0" onsubmit="return confirm('Delete <?= htmlspecialchars($__hr) ?> and move its invoice file(s) aside? This cannot be undone from the panel.')">
+    <?= csrfField() ?>
+    <input type="hidden" name="_action" value="order_delete">
+    <input type="hidden" name="ref" value="<?= htmlspecialchars($__hr) ?>">
+    <input type="hidden" name="force" value="1">
+    <button class="abtn" type="submit" style="color:#c0392b">Delete anyway</button>
+  </form>
+  <?php endif; ?>
+</div>
+<?php elseif($msg==='ord_notfound'): ?>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Not deleted — no row in orders.csv carries that reference.</div>
+<?php elseif($msg==='ord_delfail'): ?>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Not deleted — orders.csv could not be rewritten (the data folder is not writable). Nothing was changed.</div>
 <?php elseif($msg==='dupfix'): ?>
 <div class="amsg ok">✓ Repaired <?= (int)($_GET['n']??0) ?> duplicate order ref(s) — every order now has its own independent status.</div>
 <?php elseif($msg==='push_sent'): ?>

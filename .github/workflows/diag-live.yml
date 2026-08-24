@@ -46,6 +46,10 @@ on:
         description: "Bir referans/e-posta/SKU'yu TÜM kayıt dosyalarında ara (ör: O39419). 'E-posta geldi ama panelde yok' sorusunu tahminle değil kayıtla cevaplar."
         required: false
         default: ""
+      order_delete_check:
+        description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -745,6 +749,97 @@ jobs:
             php -l /tmp/vestra_sheet.php
             php /tmp/vestra_sheet.php
             rm -f /tmp/vestra_sheet.php
+
+      # "Siparis silinmiyor" tek basina uc ayri seyi kastedebilir: kod canliya cikmamis,
+      # dosya yazilamiyor, ya da silme kodu ISTEYEREK reddediyor (faturasi olan ref).
+      # Ucu de ayni ekrani veriyor -- sayfa yenileniyor ve satir yerinde duruyor.
+      # Bu adim hangisi oldugunu tahminle degil sunucudan okuyarak soyluyor.
+      # Log herkese acik: alici adi/e-postasi/tutari YAZILMAZ, sadece ref ve sayilar.
+      - name: Sipariş silme teşhisi
+        if: github.event.inputs.order_delete_check == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          script: |
+            cat > /tmp/vestra_orddel.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/invoice.php";
+
+            echo "===== 1. KOD CANLIDA MI =====\n";
+            $adm = (string)@file_get_contents($doc."/admin.php");
+            printf("admin.php                 : %d bayt, %s\n", strlen($adm), date('Y-m-d H:i', (int)@filemtime($doc."/admin.php")));
+            foreach ([
+              "order_delete islemi"   => "\$act==='order_delete'",
+              "silme dugmesi (form)"  => 'value="order_delete"',
+              "ord_deleted mesaji"    => "'ord_deleted'",
+              "iptal durumu"          => 'VESTRA_ORDER_CANCELLED',
+            ] as $label => $needle) {
+              printf("  %-24s : %s\n", $label, str_contains($adm, $needle) ? "VAR" : "YOK  <-- eski surum canlida");
+            }
+
+            echo "\n===== 2. DOSYA YAZILABILIR MI =====\n";
+            $dir  = vestra_data_dir();
+            $file = $dir.'/orders.csv';
+            printf("data dizini               : %s\n", is_dir($dir) ? "var (".substr(sprintf('%o', @fileperms($dir)), -4).")" : "YOK");
+            printf("  dizin yazilabilir       : %s   <- rename() bunu ister, dosyanin kendisini degil\n", is_writable($dir) ? "EVET" : "HAYIR  <-- silme buradan patlar");
+            printf("orders.csv                : %s\n", is_file($file) ? number_format(filesize($file))." bayt (".substr(sprintf('%o', @fileperms($file)), -4).")" : "YOK");
+            $probe = $dir.'/.deltest.'.getmypid();
+            $wrote = @file_put_contents($probe, "x") !== false;
+            $moved = $wrote && @rename($probe, $probe.'.2');
+            @unlink($probe); @unlink($probe.'.2');
+            printf("  deneme yazma            : %s\n", $wrote ? "TAMAM" : "BASARISIZ");
+            printf("  deneme rename           : %s\n", $moved ? "TAMAM" : "BASARISIZ");
+
+            echo "\n===== 3. DAHA ONCE SILME DENENMIS MI =====\n";
+            $baks = glob($dir.'/orders.csv.bak-del-*') ?: [];
+            if (!$baks) {
+              echo "  yedek yok -> silme kodu HIC calismadi, ya da fatura/ref kontrolunden geri dondu\n";
+            } else {
+              /* Yedek varsa kod calismis demektir: o zaman soru "neden silmiyor" degil,
+                 "neden geri geliyor". Yedek ile canli dosyanin satir sayisini kiyasla. */
+              sort($baks);
+              foreach (array_slice($baks, -5) as $b) {
+                printf("  %s  %s satir\n", basename($b), max(0, count(file($b, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES)) - 1));
+              }
+              printf("  canli orders.csv        : %d satir\n", max(0, count(file($file, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES)) - 1));
+            }
+
+            echo "\n===== 4. HANGI SIPARISLER FATURASI YUZUNDEN SILINEMIYOR =====\n";
+            $rows = vestra_read_csv('orders.csv');
+            printf("siparis sayisi            : %d\n", count($rows));
+            $blocked = []; $free = [];
+            foreach ($rows as $r) {
+              $ref = (string)($r['ref'] ?? ''); if ($ref === '') continue;
+              (vestra_invoices_for_ref($ref) ? $blocked : $free)[] = $ref;
+            }
+            printf("faturasi VAR (silinemez)  : %d\n", count($blocked));
+            printf("faturasi YOK (silinebilir): %d\n", count($free));
+            if ($blocked) echo "  kilitli ref'ler: ".implode(', ', array_slice($blocked, 0, 25)).(count($blocked) > 25 ? ' …' : '')."\n";
+            if ($free)    echo "  serbest ref'ler: ".implode(', ', array_slice($free, 0, 25)).(count($free) > 25 ? ' …' : '')."\n";
+
+            echo "\n===== 5. PHP HATA GUNLUGU (admin) =====\n";
+            $logs = [$doc.'/error_log', getenv("HOME").'/logs/error_log', $doc.'/php_errorlog'];
+            $seen = false;
+            foreach ($logs as $lg) {
+              if (!is_readable($lg)) continue;
+              $seen = true;
+              $tail = array_slice(file($lg, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES), -400);
+              $hits = array_values(array_filter($tail, fn($l) => stripos($l, 'admin.php') !== false || stripos($l, 'fputcsv') !== false || stripos($l, 'orders.csv') !== false));
+              printf("%s: son 400 satirda %d ilgili kayit\n", $lg, count($hits));
+              foreach (array_slice($hits, -8) as $h) echo "  ".substr($h, 0, 200)."\n";
+            }
+            if (!$seen) echo "  okunabilir hata gunlugu bulunamadi\n";
+            PHPEOF
+            php -l /tmp/vestra_orddel.php
+            php /tmp/vestra_orddel.php
+            rm -f /tmp/vestra_orddel.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'

@@ -277,6 +277,55 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     return $h;
 }
 
+/**
+ * Delete an order outright — meant for test rows and duplicates that should never
+ * have existed. Cancelling is the everyday action and leaves the record standing;
+ * this removes it.
+ *
+ * Reads the RAW file instead of going through vestra_read_csv(), which hands rows
+ * back newest-first. Writing that array straight back would silently invert the
+ * whole ledger — every "recent orders" panel would start showing the oldest eight.
+ * vestra_orders_fix_dup_refs() above sidesteps the same trap the same way.
+ *
+ * Returns rows removed, or -1 when the file could not be rewritten. The caller needs
+ * that distinction: "no such order" and "the disk refused" are different faults and
+ * a shared 0 would hide a permissions problem behind a reassuring message.
+ */
+function vestra_order_delete(string $ref): int {
+    $ref = trim($ref);
+    if ($ref === '') return 0;
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return 0;
+    $in = fopen($file, 'r'); if (!$in) return -1;
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return 0; }
+    $refIdx = array_search('ref', $head, true);
+    if ($refIdx === false) { fclose($in); return 0; }
+
+    $keep = []; $removed = 0;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        if ((string)($r[$refIdx] ?? '') === $ref) { $removed++; continue; }
+        $keep[] = $r;
+    }
+    fclose($in);
+    if (!$removed) return 0;
+
+    /* Copy first. This is the one admin action with no undo, and a timestamped file
+       costs nothing next to a row that cannot be typed back in. */
+    @copy($file, $file.'.bak-del-'.date('Ymd_His'));
+
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return -1;
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($keep as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return -1; }   // atomic swap
+
+    $all = vestra_read_json('order_statuses.json');
+    if (isset($all[$ref])) { unset($all[$ref]); vestra_write_json('order_statuses.json', $all); }
+    return $removed;
+}
+
 /* ── Duplicate-ref repair ────────────────────────────────────────────────────
  * Before the ref-collision fix, a ref was derived from buyer+items only, so the
  * same buyer reordering the same goods got the SAME ref. Status/tracking/escrow
