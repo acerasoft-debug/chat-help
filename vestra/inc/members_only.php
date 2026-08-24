@@ -10,7 +10,10 @@
  *  these endpoints never include head.php and so $MEMBER is not set for them.
  */
 function vestra_require_member(string $backPath): void {
-    if (session_status() === PHP_SESSION_NONE) @session_start();
+    /* auth.php owns the session bootstrap (store + 90-day cookie + remember-me).
+       A bare session_start() here read the shared /tmp store instead, so a member
+       who was signed in looked signed out and got told to register. */
+    require_once __DIR__.'/auth.php';
 
     /* The same three signals head.php uses to build $MEMBER, read straight from the session
        so this file needs nothing from the page-rendering code:

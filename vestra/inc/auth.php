@@ -11,15 +11,17 @@ define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 /* Session-cookie hardening — must run before any session_start() (auth.php is
  * required before sessions start everywhere). HttpOnly blocks JS access,
  * SameSite=Lax blocks cross-site POSTs riding the session, Secure on HTTPS. */
+$_vlife = 90 * 86400; // keep users signed in ~90 days, even after the browser is closed
+// Private session store: on shared hosting the global /tmp GC would otherwise
+// expire our sessions within minutes. Keeping them under data/ (web-blocked)
+// means our own gc_maxlifetime governs their lifetime.
+$_vsess = __DIR__.'/../data/sessions';
+if (!is_dir($_vsess)) @mkdir($_vsess, 0700, true);
+$_vsess_ok = is_dir($_vsess) && is_writable($_vsess);
+
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
-    $_vlife = 90 * 86400; // keep users signed in ~90 days, even after the browser is closed
     @ini_set('session.gc_maxlifetime', (string)$_vlife);
-    // Private session store: on shared hosting the global /tmp GC would otherwise
-    // expire our sessions within minutes. Keeping them under data/ (web-blocked)
-    // means our own gc_maxlifetime governs their lifetime.
-    $_vsess = __DIR__.'/../data/sessions';
-    if (!is_dir($_vsess)) @mkdir($_vsess, 0700, true);
-    if (is_dir($_vsess) && is_writable($_vsess)) @ini_set('session.save_path', $_vsess);
+    if ($_vsess_ok) @ini_set('session.save_path', $_vsess);
     session_set_cookie_params([
         'lifetime' => $_vlife, 'path' => '/',
         'secure'   => !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
@@ -27,6 +29,33 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     ]);
     session_start();
     auth_remember_restore(); // re-establish a persistent login if the session itself has lapsed
+}
+/* Self-heal: a page that called session_start() before requiring this file gets
+   PHP's defaults -- the shared /tmp store and a cookie that dies with the browser.
+   That is not a cosmetic difference. Login writes to data/sessions; a page reading
+   /tmp carries the same session id but looks in a different drawer, finds nothing,
+   and shows a signed-in customer the registration buttons. The homepage did exactly
+   that, on every visit, for as long as the two calls have been in that order.
+   Fixing the callers is the real fix and has been done -- this is the guard that
+   stops it coming back silently. Whatever the page already put in the session is
+   carried across, so healing never costs data. */
+elseif (session_status() === PHP_SESSION_ACTIVE && $_vsess_ok && !headers_sent()
+        && rtrim((string)ini_get('session.save_path'), '/') !== rtrim($_vsess, '/')) {
+    $_vcarry = $_SESSION ?? [];
+    session_write_close();
+    @ini_set('session.gc_maxlifetime', (string)$_vlife);
+    @ini_set('session.save_path', $_vsess);
+    session_set_cookie_params([
+        'lifetime' => $_vlife, 'path' => '/',
+        'secure'   => !empty($_SERVER['HTTPS']) || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https'),
+        'httponly' => true, 'samesite' => 'Lax',
+    ]);
+    session_start();
+    foreach ($_vcarry as $_k => $_v) { if (!isset($_SESSION[$_k])) $_SESSION[$_k] = $_v; }
+    unset($_vcarry, $_k, $_v);
+    auth_remember_restore();
+    error_log('[VESTRA auth] oturum yanlis depoda baslatilmisti, duzeltildi: '
+              .($_SERVER['SCRIPT_NAME'] ?? '?').' — o sayfa inc/auth.php\'yi session_start()\'tan ONCE yuklemeli');
 }
 
 function auth_accounts(): array {

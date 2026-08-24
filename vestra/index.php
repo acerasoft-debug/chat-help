@@ -7,8 +7,17 @@ $CONTACT = 'support@vestrasales.com';
 $COMPANY = 'Acerasoft LLC';
 $ACCENT  = '#c9a86a';
 /* Signed-in visitors get "open my dashboard" instead of register CTAs —
-   register.php would only redirect them anyway (reads as a dead button). */
-if (session_status() === PHP_SESSION_NONE) session_start();
+   register.php would only redirect them anyway (reads as a dead button).
+
+   The session MUST be started by inc/auth.php, never by a bare session_start()
+   here. auth.php sets the 90-day cookie, points the store at data/sessions, and
+   restores a "remember me" login. Starting the session first meant this page ran
+   with PHP's defaults instead: a cookie that dies when the browser closes, and the
+   shared /tmp store, which the host's own garbage collector empties within minutes.
+   Login writes to data/sessions and the homepage looked in /tmp -- same session id,
+   two different drawers -- so a signed-in visitor was shown "Register" here for
+   every visit, no matter how many times they signed in. */
+require_once __DIR__.'/inc/auth.php';
 $LOGGED    = !empty($_SESSION['uid']);
 $panelHref = ($_SESSION['utype'] ?? '') === 'seller' ? '/seller' : '/buyer';
 require_once __DIR__.'/inc/i18n.php';

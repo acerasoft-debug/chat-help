@@ -10,7 +10,12 @@
 require_once __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/products.php';
 require_once __DIR__ . '/inc/dropship.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
+/* Through auth.php even though this checkout needs no login: it is auth.php that
+   points the session at data/sessions. A bare session_start() here would put this
+   page's session in the host's shared /tmp, where it is collected within minutes --
+   and a checkout that forgets its own basket mid-flow is worse than one that asks
+   for a login it does not need. */
+require_once __DIR__ . '/inc/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /'); exit; }
 
