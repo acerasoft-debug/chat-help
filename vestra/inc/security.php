@@ -101,7 +101,7 @@ function vestra_ip_guard(): void {
 /* ── per-IP intel (country / VPN) ───────────────────────────────────────────── */
 
 function vestra_ip_intel(string $ip): array {
-    $none = ['cc' => '', 'country' => '', 'isp' => '', 'proxy' => false, 'hosting' => false];
+    $none = ['cc' => '', 'country' => '', 'city' => '', 'region' => '', 'isp' => '', 'proxy' => false, 'hosting' => false];
     if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP)) return $none;
     // Private/loopback ranges have no geo and the API rejects them.
     if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) return $none;
@@ -119,7 +119,7 @@ function vestra_ip_intel(string $ip): array {
     $providers = [];
     $custom = (string)(function_exists('vestra_cfg') ? vestra_cfg('ipintel_url', '') : '');
     if ($custom !== '') $providers[] = ['url' => $custom, 'kind' => 'ipapi'];
-    $providers[] = ['url' => 'http://ip-api.com/json/{ip}?fields=status,country,countryCode,isp,proxy,hosting', 'kind' => 'ipapi'];
+    $providers[] = ['url' => 'http://ip-api.com/json/{ip}?fields=status,country,countryCode,city,regionName,isp,proxy,hosting', 'kind' => 'ipapi'];
     $providers[] = ['url' => 'https://ipwho.is/{ip}', 'kind' => 'ipwho'];
 
     $out = $none; $ok = false;
@@ -134,11 +134,15 @@ function vestra_ip_intel(string $ip): array {
         if ($p['kind'] === 'ipapi') {
             if (($d['status'] ?? '') !== 'success') continue;
             $out = ['cc' => (string)($d['countryCode'] ?? ''), 'country' => (string)($d['country'] ?? ''),
+                    'city' => mb_substr((string)($d['city'] ?? ''), 0, 40),
+                    'region' => mb_substr((string)($d['regionName'] ?? ''), 0, 40),
                     'isp' => mb_substr((string)($d['isp'] ?? ''), 0, 60),
                     'proxy' => !empty($d['proxy']), 'hosting' => !empty($d['hosting'])];
         } else {
             if (empty($d['success'])) continue;
             $out = ['cc' => (string)($d['country_code'] ?? ''), 'country' => (string)($d['country'] ?? ''),
+                    'city' => mb_substr((string)($d['city'] ?? ''), 0, 40),
+                    'region' => mb_substr((string)($d['region'] ?? ''), 0, 40),
                     'isp' => mb_substr((string)($d['connection']['isp'] ?? ''), 0, 60),
                     /* ipwho.is proxy/hosting bayragi vermiyor: "false" yazmak yerine
                        false biraktik -- bilmemekle "VPN degil" demek ayni sey degil. */
@@ -178,6 +182,7 @@ function vestra_sec_log(string $event, string $email = '', string $uid = ''): vo
         'ip'      => $ip,
         'cc'      => $intel['cc'],
         'country' => $intel['country'],
+        'city'    => $intel['city'],
         'isp'     => $intel['isp'],
         'vpn'     => !empty($intel['proxy']) || !empty($intel['hosting']),
         'ua'      => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 120),

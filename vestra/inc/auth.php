@@ -199,8 +199,27 @@ function auth_resend_verify(string $email): bool {
 }
 
 /* Record the timestamp of a successful login (shown in the admin Users tab). */
+/**
+ * Stamp the account with when — and from WHERE — it was last used.
+ *
+ * The rolling security log answers "what happened recently"; this answers "where
+ * does this customer normally sign in from", which is the question in front of
+ * the operator while approving KYB. Accounts that registered before any of this
+ * existed have no reg_* fields at all and would stay blank forever; because this
+ * runs on every login, the table fills itself in as people come back.
+ */
 function auth_touch_login(string $id): void {
-    auth_update($id, ['last_login' => date('c')]);
+    $ip = vestra_client_ip();
+    $i  = vestra_ip_intel($ip);
+    auth_update($id, [
+        'last_login'   => date('c'),
+        'last_ip'      => $ip,
+        'last_cc'      => $i['cc'],
+        'last_country' => $i['country'],
+        'last_city'    => $i['city'],
+        'last_isp'     => $i['isp'],
+        'last_vpn'     => !empty($i['proxy']) || !empty($i['hosting']),
+    ]);
 }
 
 function auth_register(array $d): array|string {
@@ -309,6 +328,8 @@ function auth_register(array $d): array|string {
     $acc['reg_ip']      = $regIp;
     $acc['reg_cc']      = $regIntel['cc'];
     $acc['reg_country'] = $regIntel['country'];
+    $acc['reg_city']    = $regIntel['city'];
+    $acc['reg_isp']     = $regIntel['isp'];
     $acc['reg_vpn']     = !empty($regIntel['proxy']) || !empty($regIntel['hosting']);
 
     $list[] = $acc;

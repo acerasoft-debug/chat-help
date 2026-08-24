@@ -2330,7 +2330,7 @@ function sendUserMessage(uid,name){
                bakilacak ilk sey budur. Eski hesaplarda bu alanlar yok — bos kalir. */
         if(!empty($a['reg_cc']) || !empty($a['reg_vpn'])): ?>
       <div class="ahint" style="white-space:nowrap" title="Kayıt anındaki IP: <?= htmlspecialchars($a['reg_ip']??'?') ?>">
-        IP: <?= htmlspecialchars($a['reg_cc']?:'?') ?><?= !empty($a['reg_vpn'])?' · <b style="color:#a9781a">VPN</b>':'' ?>
+        IP: <?= htmlspecialchars($a['reg_cc']?:'?') ?><?= !empty($a['reg_city'])?' · '.htmlspecialchars($a['reg_city']):'' ?><?= !empty($a['reg_vpn'])?' · <b style="color:#a9781a">VPN</b>':'' ?>
         <?php $__declCc = vestra_cc_of_country((string)($a['country']??''));
               /* ≠ yalnizca IKI taraf da bilinirken: beyan edilen ulke haritada yoksa
                  sessiz kal — belirsizligi uyusmazlik gibi gostermek yanlis alarm. */
@@ -4179,6 +4179,56 @@ elseif($tab==='security'):
   </div>
 </div>
 
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🌍 Kullanıcı konumları (<?= count($accounts) ?>)</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin:0 0 10px">Her hesabın <b>kayıt anındaki</b> ve <b>son girişteki</b> IP'si, ülkesi ve şehri. Bu oturumdan önce açılmış hesaplarda kayıt bilgisi yoktur — o satırlar kullanıcı bir dahaki girişinde kendiliğinden dolar. <b>≠</b> işareti, formda beyan edilen ülkenin IP ülkesiyle uyuşmadığını söyler.</p>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Hesap','Beyan','Kayıt IP','Kayıt konumu','Son giriş IP','Son konum','Son görülme',''],true) ?>
+    <?php
+    /* En son gireni en uste al: operatorun bakmak istedigi taraf hareketli olan. */
+    $secAccs = $accounts;
+    usort($secAccs, fn($x,$y)=>strcmp((string)($y['last_login']??$y['created']??''), (string)($x['last_login']??$x['created']??'')));
+    foreach($secAccs as $a):
+      $rIp=(string)($a['reg_ip']??''); $lIp=(string)($a['last_ip']??'');
+      $declCc = vestra_cc_of_country((string)($a['country']??''));
+      $mk = function(string $cc,string $city,bool $vpn) use($ccFlag): string {
+        if($cc==='' && $city==='') return '<span style="color:var(--mut)">—</span>';
+        $s = $ccFlag($cc).' '.htmlspecialchars($cc?:'?');
+        if($city!=='') $s .= ' · '.htmlspecialchars($city);
+        if($vpn) $s .= ' '.abadge('VPN','#a9781a');
+        return $s;
+      };
+    ?>
+    <tr>
+      <td class="ac"><b><?= htmlspecialchars($a['name']??'—') ?></b><div class="ahint"><?= htmlspecialchars($a['email']??'') ?></div></td>
+      <td class="ac" style="font-size:12px"><?= htmlspecialchars($a['country']??'') ?: '<span style="color:var(--mut)">—</span>' ?></td>
+      <td class="ac"><code style="font-size:11px"><?= htmlspecialchars($rIp)?:'<span style="color:var(--mut)">—</span>' ?></code></td>
+      <td class="ac" style="font-size:12px;white-space:nowrap">
+        <?= $mk((string)($a['reg_cc']??''),(string)($a['reg_city']??''),!empty($a['reg_vpn'])) ?>
+        <?php if(!empty($a['reg_cc']) && $declCc!=='' && strcasecmp($declCc,(string)$a['reg_cc'])!==0): ?>
+          <b style="color:#c0392b" title="Beyan edilen ülke ile kayıt IP'sinin ülkesi farklı">≠</b>
+        <?php endif; ?>
+      </td>
+      <td class="ac"><code style="font-size:11px"><?= htmlspecialchars($lIp)?:'<span style="color:var(--mut)">—</span>' ?></code></td>
+      <td class="ac" style="font-size:12px;white-space:nowrap"><?= $mk((string)($a['last_cc']??''),(string)($a['last_city']??''),!empty($a['last_vpn'])) ?></td>
+      <td class="ac" style="font-size:11px;color:var(--mut);white-space:nowrap"><?= htmlspecialchars(str_replace('T',' ',substr((string)($a['last_login']??''),0,16))) ?: '—' ?></td>
+      <td class="ac">
+        <?php $bIp = $lIp !== '' ? $lIp : $rIp;
+              if($bIp!=='' && $bIp!==$myIp && !vestra_ip_blocked($bIp)): ?>
+        <form method="post" style="margin:0" onsubmit="return confirm('<?= htmlspecialchars($bIp) ?> engellensin mi? Bu IP sitenin tamamından 403 alır.')">
+          <?= csrfField() ?><input type="hidden" name="_action" value="sec_block_ip"><input type="hidden" name="ip" value="<?= htmlspecialchars($bIp) ?>"><input type="hidden" name="note" value="<?= htmlspecialchars(mb_substr((string)($a['email']??''),0,60)) ?>">
+          <button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b">Engelle</button>
+        </form>
+        <?php elseif($bIp!=='' && vestra_ip_blocked($bIp)): ?><span style="font-size:10px;color:#c0392b">engelli</span>
+        <?php endif; ?>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+  </div>
+</div>
+
 <div class="acard">
   <div class="acard-hd"><h3>🕵️ Son olaylar (<?= count($secLog) ?>)</h3></div>
   <div class="acard-body">
@@ -4186,7 +4236,7 @@ elseif($tab==='security'):
   <?php if(!$secLog): ?><div class="aempty">Henüz olay yok — bundan sonraki her kayıt ve giriş burada görünecek.</div>
   <?php else: ?>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Zaman','Olay','E-posta','IP','Ülke','VPN','Tarayıcı',''],true) ?>
+    <?= arow(['Zaman','Olay','E-posta','IP','Ülke','Şehir','VPN','Tarayıcı',''],true) ?>
     <?php foreach(array_slice($secLog,0,150) as $e): $eIp=(string)($e['ip']??''); ?>
     <tr>
       <td class="ac" style="font-size:11px;color:var(--mut);white-space:nowrap"><?= htmlspecialchars(str_replace('T',' ',substr((string)($e['ts']??''),0,16))) ?></td>
@@ -4194,6 +4244,7 @@ elseif($tab==='security'):
       <td class="ac" style="font-size:12px"><?= htmlspecialchars((string)($e['email']??'')) ?: '<span style="color:var(--mut)">—</span>' ?></td>
       <td class="ac"><code style="font-size:11px"><?= htmlspecialchars($eIp) ?></code></td>
       <td class="ac" style="white-space:nowrap"><?= $ccFlag((string)($e['cc']??'')) ?> <?= htmlspecialchars((string)($e['cc']??'')) ?: '<span style="color:var(--mut)">?</span>' ?></td>
+      <td class="ac" style="font-size:11.5px;white-space:nowrap"><?= htmlspecialchars((string)($e['city']??'')) ?: '<span style="color:var(--mut)">—</span>' ?></td>
       <td class="ac"><?= !empty($e['vpn']) ? abadge('VPN','#a9781a') : '<span style="color:var(--mut)">—</span>' ?></td>
       <td class="ac" style="font-size:10px;color:var(--mut);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?= htmlspecialchars((string)($e['ua']??'')) ?>"><?= htmlspecialchars(mb_substr((string)($e['ua']??''),0,40)) ?></td>
       <td class="ac">
