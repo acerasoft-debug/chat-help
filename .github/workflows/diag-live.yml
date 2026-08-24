@@ -66,6 +66,10 @@ on:
         description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
         required: false
         default: "false"
+      leads_status:
+        description: "Adres listesi verin (virgül/boşluk/satır sonu): her birinin lead listesindeki hâlini yazar — daha önce gönderildi mi, döndü mü, alan adı ölü mü, hangi markaları taşıyor + MX kontrolü. Hiçbir e-posta göndermez."
+        required: false
+        default: ""
       finder_keyscan:
         description: "true = 'finder anahtarını bul ve ekle': sunucudaki tüm yedeklerde duran anahtarları toplar, HER İKİ sağlayıcıya (Hunter + Anymailfinder) sorar, çalışan varsa ayarlara yazar. Anahtar log'a YAZILMAZ — sadece parmak izi."
         required: false
@@ -1463,6 +1467,119 @@ jobs:
             rm -f /tmp/vestra_finderscan.php
         env:
           VESTRA_FINDER_CLEAR: ${{ github.event.inputs.finder_clear == 'true' && '1' || '0' }}
+
+      # "Bu adreslere gonder" dendiginde asil soru gonderebilir miyiz degil,
+      # GONDERMELI miyiz: zaten gitmis mi, donmus mu, alan adi olu mu. Hepsi
+      # listede yazili -- bu adim sadece bakiyor, hicbir sey gondermiyor.
+      - name: Adreslerin lead durumu (gönderim YOK)
+        if: github.event.inputs.leads_status != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          VESTRA_LEAD_EMAILS: ${{ github.event.inputs.leads_status }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: VESTRA_LEAD_EMAILS
+          script: |
+            cat > /tmp/vestra_leadstatus.php <<'PHPEOF'
+            <?php
+            /**
+             * Verilen adreslerin lead listesindeki HALI: daha once gonderildi mi, dondu mu,
+             * alan adi olu mu, hangi markalari tasiyor.
+             *
+             * Neden: "bu adreslere gonder" dendiginde asil soru "gonderebilir miyiz" degil,
+             * "GONDERMELI miyiz". Zaten gonderilmis bir adrese ikinci kez gitmek rahatsiz
+             * edici, dondugu bilinen bir adrese gitmek ise gonderen alan adinin itibarini
+             * dusuruyor. Ikisi de listede yazili -- sadece bakmak gerekiyordu.
+             */
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/leads.php";
+
+            $in = (string)getenv('VESTRA_LEAD_EMAILS');
+            preg_match_all('/[^\s,;]+@[^\s,;]+/', $in, $m);
+            $want = array_values(array_unique(array_map(fn($e) => strtolower(trim($e, " \t\n\r\0\x0B.,;")), $m[0] ?? [])));
+            if (!$want) { echo "Adres verilmedi (leads_status girdisi bos).\n"; exit(0); }
+
+            $leads = vestra_leads();
+            $byMail = [];
+            foreach ($leads as $l) {
+                $e = strtolower(trim((string)($l['email'] ?? '')));
+                if ($e !== '') $byMail[$e] = $l;
+            }
+
+            printf("===== %d ADRES / listede %d kayit =====\n\n", count($want), count($leads));
+
+            $n = ['yok' => 0, 'yeni' => 0, 'gonderildi' => 0, 'dondu' => 0, 'olu' => 0, 'cikti' => 0];
+            $sendable = []; $risky = [];
+
+            foreach ($want as $e) {
+                $l = $byMail[$e] ?? null;
+                if (!$l) { $n['yok']++; printf("  %-36s LISTEDE YOK\n", $e); $sendable[] = $e; continue; }
+
+                $st   = (string)($l['status'] ?? 'new');
+                $when = substr((string)($l['last_contacted_at'] ?? ''), 0, 10);
+                $co   = (string)($l['company'] ?? '');
+                $ctry = (string)($l['country'] ?? '');
+                $br   = (array)($l['premium_brands'] ?? []);
+
+                $verdict = match ($st) {
+                    'bounced'      => 'DONDU -- tekrar gonderme',
+                    'dead_domain'  => 'OLU ALAN ADI -- posta kabul etmiyor',
+                    'unsubscribed' => 'CIKTI -- gondermek yasak',
+                    'contacted'    => 'ZATEN GONDERILDI'.($when ? ' ('.$when.')' : ''),
+                    default        => 'yeni -- gonderilebilir',
+                };
+                match ($st) {
+                    'bounced'      => $n['dondu']++,
+                    'dead_domain'  => $n['olu']++,
+                    'unsubscribed' => $n['cikti']++,
+                    'contacted'    => $n['gonderildi']++,
+                    default        => $n['yeni']++,
+                };
+                if ($st === 'new') $sendable[] = $e; else $risky[] = $e.' ('.$st.')';
+
+                printf("  %-36s %s\n", $e, $verdict);
+                printf("  %-36s   %s%s%s\n", '', $co ?: '(isim yok)',
+                       $ctry !== '' ? ' · '.$ctry : '',
+                       $br ? ' · marka: '.implode(', ', array_slice($br, 0, 6)) : ' · marka bulunamadi');
+            }
+
+            echo "\n===== OZET =====\n";
+            printf("  listede yok      : %d  (gonderilebilir)\n", $n['yok']);
+            printf("  yeni (hic gitmedi): %d  (gonderilebilir)\n", $n['yeni']);
+            printf("  zaten gonderildi : %d  (ikinci kez gitmez -- sistem zaten engelliyor)\n", $n['gonderildi']);
+            printf("  dondu (bounce)   : %d\n", $n['dondu']);
+            printf("  olu alan adi     : %d\n", $n['olu']);
+            printf("  listeden cikti   : %d\n", $n['cikti']);
+            printf("\n  GERCEKTEN gonderilecek adres sayisi: %d\n", count($sendable));
+            if ($sendable) foreach ($sendable as $e) echo "    -> ".$e."\n";
+
+            echo "\n===== ALAN ADI POSTA KABUL EDIYOR MU (MX/A) =====\n";
+            $seenDom = [];
+            foreach ($want as $e) {
+                $d = strtolower(substr(strrchr($e, '@'), 1));
+                if ($d === '' || isset($seenDom[$d])) continue;
+                $seenDom[$d] = true;
+                $mx = @dns_get_record($d, DNS_MX);
+                $a  = $mx ? [] : @dns_get_record($d, DNS_A);
+                if ($mx) {
+                    usort($mx, fn($x, $y) => ($x['pri'] ?? 0) <=> ($y['pri'] ?? 0));
+                    printf("  %-30s MX  %s\n", $d, (string)($mx[0]['target'] ?? '?'));
+                } elseif ($a) {
+                    printf("  %-30s MX yok, A var -- posta alabilir ama kurulumu belirsiz\n", $d);
+                } else {
+                    printf("  %-30s KAYIT YOK <-- bu alan adina posta GITMEZ\n", $d);
+                }
+            }
+            exit(0);
+            PHPEOF
+            php -l /tmp/vestra_leadstatus.php 2>&1
+            php /tmp/vestra_leadstatus.php 2>&1
+            rm -f /tmp/vestra_leadstatus.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
