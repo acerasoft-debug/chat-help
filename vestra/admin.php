@@ -613,7 +613,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   if($act==='order_status'){
     $ref=$_POST['ref']??''; $st=$_POST['status']??'';
-    if($ref && in_array($st,['pending','paid','shipped','completed'],true)){
+    /* Read from the model rather than a second hand-written list. The two copies had
+       already drifted once elsewhere in this project; a status the timeline knows about
+       but the form silently refuses is the hardest kind of bug to see, because the page
+       reloads looking perfectly normal and simply does nothing. */
+    if($ref && in_array($st,vestra_order_settable_statuses(),true)){
       $all=vestra_read_json('order_statuses.json');
       $prev=$all[$ref]['status']??'pending';
       $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>trim($_POST['tracking']??''),'updated_at'=>date('c')]);
@@ -645,8 +649,59 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
           }
         }
       }
+      /* The two middle stages exist to be SEEN. Setting them and saying nothing would
+         leave the panel better informed than the customer, which is the opposite of why
+         they were added. Cancellation is told for the same reason, only more so. */
+      if($st!==$prev && in_array($st,['preparing','to_vestra','cancelled'],true)){
+        $oRow=null;
+        foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $oRow=$row; break; } }
+        if($oRow && !empty($oRow['email'])){
+          $who=$oRow['name']?:($oRow['company']?:'there');
+          [$subj,$line]=match($st){
+            'preparing' => ["VESTRA — order {$ref} is being prepared",
+              "Your order is now being prepared for despatch."],
+            'to_vestra' => ["VESTRA — order {$ref} is on its way to VESTRA",
+              "The goods have left the supplier and are in transit to VESTRA, where they are checked before they go out to you."],
+            default     => ["VESTRA — order {$ref} has been cancelled",
+              "Your order has been cancelled. If that is unexpected, reply to this email and we will look into it."],
+          };
+          vestra_send_mail($oRow['email'], $subj,
+            "Hello {$who},\n\n{$line}\n\nOrder ref: {$ref}\n\nTrack your order: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+        }
+      }
     }
     header('Location: /admin?tab=orders&msg=status_ok'); exit;
+  }
+  /* Delete an order outright. Cancelling is the everyday action and leaves the record
+     standing; this is for test rows and duplicates that should never have existed.
+     Refused while an invoice exists for the ref: an invoice carries a sequential number
+     and is a document the company has already issued to a customer. Deleting its subject
+     leaves a numbered invoice pointing at nothing, and a gap in a sequence is exactly
+     what an auditor asks about. Cancel covers that case instead. */
+  if($act==='order_delete'){
+    $ref=trim((string)($_POST['ref']??''));
+    if($ref===''){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+    require_once __DIR__.'/inc/invoice.php';
+    if(vestra_invoices_for_ref($ref)){ header('Location: /admin?tab=orders&msg=ord_has_invoice'); exit; }
+
+    $file=vestra_data_dir().'/orders.csv';
+    if(!is_readable($file)){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+    $rows=vestra_read_csv('orders.csv');
+    $keep=array_values(array_filter($rows, fn($r)=>(string)($r['ref']??'')!==$ref));
+    if(count($keep)===count($rows)){ header('Location: /admin?tab=orders&msg=ord_notfound'); exit; }
+
+    @copy($file,$file.'.bak-del-'.date('Ymd_His'));
+    $head=array_keys($rows[0]);
+    $tmp=$file.'.tmp'; $out=@fopen($tmp,'w');
+    if(!$out){ header('Location: /admin?tab=orders&msg=ord_delfail'); exit; }
+    fputcsv($out,$head,',','"','\\');
+    foreach($keep as $r){ fputcsv($out,array_map(fn($k)=>(string)($r[$k]??''),$head),',','"','\\'); }
+    fclose($out);
+    rename($tmp,$file);   // atomic swap — a reader never sees a half-written file
+
+    $all=vestra_read_json('order_statuses.json');
+    if(isset($all[$ref])){ unset($all[$ref]); vestra_write_json('order_statuses.json',$all); }
+    header('Location: /admin?tab=orders&msg=ord_deleted'); exit;
   }
   /* One-time repair: give duplicate order refs (pre-uniqueness bug) fresh refs so
      each order gets its own independent status entry. */
@@ -1482,6 +1537,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
+    'ord_deleted'=>'Order deleted. A timestamped copy of orders.csv was saved first.',
+    'ord_has_invoice'=>'That order has an invoice issued against it, so it cannot be deleted — a numbered invoice would be left pointing at nothing. Set the status to Cancelled instead.',
+    'ord_notfound'=>'No order with that reference.','ord_delfail'=>'Could not rewrite orders.csv — nothing was deleted.',
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
@@ -2439,10 +2497,7 @@ elseif($tab==='orders'):
       <input type="hidden" name="_action" value="order_status">
       <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
       <select name="status" style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
-        <option value="pending" <?= $vstatus==='pending'?'selected':'' ?>>⏳ Awaiting payment</option>
-        <option value="paid" <?= $vstatus==='paid'?'selected':'' ?>>💶 Paid — to ship</option>
-        <option value="shipped" <?= $vstatus==='shipped'?'selected':'' ?>>🚚 Shipped</option>
-        <option value="completed" <?= $vstatus==='completed'?'selected':'' ?>>✓ Completed</option>
+        <?= vestra_order_status_options((string)$vstatus) ?>
       </select>
       <input name="tracking" value="<?= htmlspecialchars($vst['tracking']??'') ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
       <button class="abtn primary" type="submit">Save</button>
@@ -2540,21 +2595,32 @@ if($__dupRefs): ?>
         <?php endif; ?>
       <?php endif; ?>
     </td>
-    <td class="ac"><?php if($st!=='completed'): ?>
+    <td class="ac">
+      <?php $_sel='padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px'; ?>
+      <?php if($st!=='completed'): ?>
       <form method="post" style="display:flex;flex-direction:column;gap:5px">
         <?= csrfField() ?>
         <input type="hidden" name="_action" value="order_status">
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
-        <select name="status" style="padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
-          <option value="pending" <?= $st==='pending'?'selected':'' ?>>⏳ Awaiting payment</option>
-          <option value="paid" <?= $st==='paid'?'selected':'' ?>>💶 Paid — to ship</option>
-          <option value="shipped" <?= $st==='shipped'?'selected':'' ?>>🚚 Shipped</option>
-          <option value="completed" <?= $st==='completed'?'selected':'' ?>>✓ Completed</option>
+        <select name="status" style="<?= $_sel ?>">
+          <?= vestra_order_status_options((string)$st) ?>
         </select>
-        <input name="tracking" value="<?= htmlspecialchars($trk) ?>" placeholder="Tracking no." style="padding:3px 6px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink);font-size:11px">
+        <input name="tracking" value="<?= htmlspecialchars($trk) ?>" placeholder="Tracking no." style="<?= $_sel ?>">
         <button class="abtn primary" type="submit" style="font-size:11px;padding:3px 8px">Save</button>
       </form>
-    <?php endif; ?></td>
+      <?php endif; ?>
+      <?php /* Delete sits OUTSIDE the not-completed guard on purpose: a finished test row
+               is exactly the kind of record that needs removing, and hiding the button
+               there would leave no way to do it. The handler still refuses any ref that
+               carries an invoice. */ ?>
+      <form method="post" style="margin:6px 0 0"
+            onsubmit="return confirm('Delete order <?= htmlspecialchars($ref) ?> for good? This cannot be undone. To keep the record but void the sale, set the status to Cancelled instead.')">
+        <?= csrfField() ?>
+        <input type="hidden" name="_action" value="order_delete">
+        <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
+        <button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b">Delete</button>
+      </form>
+    </td>
   </tr>
   <?php endforeach; ?>
 </table></div></div>

@@ -65,14 +65,51 @@ function vestra_order_sellers(array $lines): array {
     return $out;
 }
 
-const VESTRA_ORDER_STEPS = ['pending', 'paid', 'shipped', 'completed'];
+/* The chain a healthy order walks. 'preparing' and 'to_vestra' sit between payment and
+   despatch because that is where the real waiting happens: the buyer has paid, nothing
+   visible moves for days, and "Paid" on its own reads as "nobody is doing anything".
+   Naming the two stages turns silence into progress the buyer can see. */
+const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shipped', 'completed'];
+
+/* Cancelled is deliberately NOT a step. It is not a later stage of the same journey, it
+   is the journey stopping, and putting it on the end of the chain would render every
+   cancelled order as though it had passed through despatch first. */
+const VESTRA_ORDER_CANCELLED = 'cancelled';
 
 function vestra_order_status_label(string $status): string {
     return match ($status) {
         'review' => t('In review'),
-        'paid' => t('Paid'), 'shipped' => t('Shipped'), 'completed' => t('Completed'),
+        'paid' => t('Paid'),
+        'preparing' => t('Being prepared'),
+        'to_vestra' => t('On its way to VESTRA'),
+        'shipped' => t('Shipped'), 'completed' => t('Completed'),
+        'cancelled' => t('Cancelled'),
         default => t('Awaiting payment'),
     };
+}
+
+/** Everything the admin may set by hand, cancellation included. */
+function vestra_order_settable_statuses(): array {
+    return array_merge(VESTRA_ORDER_STEPS, [VESTRA_ORDER_CANCELLED]);
+}
+
+/**
+ * The <option> list for every admin status picker.
+ *
+ * There are two pickers — the orders table and the order dossier — and they were two
+ * hand-written copies of the same list. Adding a stage to one and forgetting the other
+ * produces a page that looks entirely normal and quietly cannot reach half the chain.
+ * One builder, driven by the same constant the timeline and the save handler use.
+ */
+function vestra_order_status_options(string $current): string {
+    $icons = ['pending'=>'⏳','paid'=>'💶','preparing'=>'📦','to_vestra'=>'🚛',
+              'shipped'=>'🚚','completed'=>'✓','cancelled'=>'✕'];
+    $out = '';
+    foreach (vestra_order_settable_statuses() as $s) {
+        $out .= '<option value="'.htmlspecialchars($s).'"'.($current === $s ? ' selected' : '').'>'
+              . ($icons[$s] ?? '').' '.htmlspecialchars(vestra_order_status_label($s)).'</option>';
+    }
+    return $out;
 }
 
 /**
@@ -107,6 +144,15 @@ function vestra_order_review_note(string $orderDate = ''): string {
  * stage they are actually in rather than being parked on "Awaiting payment".
  */
 function vestra_order_timeline_html(string $currentStatus, bool $inReview = false): string {
+    /* A cancelled order gets its own marker rather than a position in the chain. Falling
+       through to the chain would have parked it on "Awaiting payment" (array_search
+       fails, idx defaults to 0), telling the buyer their cancelled order is waiting on
+       their money. */
+    if ($currentStatus === VESTRA_ORDER_CANCELLED) {
+        return '<div class="otimeline"><div class="otstep now otcancelled">'
+             . '<span class="otdot"></span><span class="otlabel">'
+             . vestra_order_status_label(VESTRA_ORDER_CANCELLED).'</span></div></div>';
+    }
     $steps = $inReview ? array_merge(['review'], VESTRA_ORDER_STEPS) : VESTRA_ORDER_STEPS;
     $idx = $inReview ? 0 : array_search($currentStatus, VESTRA_ORDER_STEPS, true);
     if ($idx === false) $idx = 0;
