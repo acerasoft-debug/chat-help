@@ -30,11 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['resend'] ?? '') === '1') {
             auth_throttle_clear($tkey);
             auth_set($acc);
             auth_touch_login($acc['id']);
+            vestra_sec_log('login_ok', $email_val, (string)($acc['id'] ?? ''));
             $back = $_GET['back'] ?? ($acc['type']==='seller' ? '/seller' : '/buyer');
             if (!str_starts_with($back, '/')) $back = '/buyer';
             header('Location: '.$back); exit;
         }
-        if ($acc === 'invalid') { auth_throttle_hit($tkey); usleep(300000); }
+        if ($acc === 'invalid') { auth_throttle_hit($tkey); vestra_sec_log('login_fail', $email_val); usleep(300000); }
         $unverified = ($acc === 'unverified');
         $err = match($acc) {
             'unverified' => t('Please verify your email address. Check your inbox for the confirmation link.'),

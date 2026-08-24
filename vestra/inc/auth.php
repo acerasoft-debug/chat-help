@@ -8,6 +8,11 @@
    (called during that bootstrap) reads the accounts file. */
 define('VESTRA_ACCOUNTS', __DIR__.'/../data/accounts.json');
 
+/* IP block list — enforced here because auth.php is the one include EVERY page
+   loads first, so a ban covers the whole site without each page opting in. */
+require_once __DIR__.'/security.php';
+vestra_ip_guard();
+
 /* Session-cookie hardening — must run before any session_start() (auth.php is
  * required before sessions start everywhere). HttpOnly blocks JS access,
  * SameSite=Lax blocks cross-site POSTs riding the session, Secure on HTTPS. */
@@ -287,9 +292,21 @@ function auth_register(array $d): array|string {
             ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
         ];
     }
+    /* Where did this registration come from? Stamped ON the account, not only in
+       the rolling security log: the log ages out, but "which country signed this
+       account up, and was it behind a VPN" stays a fair question for as long as
+       the account exists — it is what the operator checks before approving KYB. */
+    $regIp    = vestra_client_ip();
+    $regIntel = vestra_ip_intel($regIp);
+    $acc['reg_ip']      = $regIp;
+    $acc['reg_cc']      = $regIntel['cc'];
+    $acc['reg_country'] = $regIntel['country'];
+    $acc['reg_vpn']     = !empty($regIntel['proxy']) || !empty($regIntel['hosting']);
+
     $list[] = $acc;
     auth_save_accounts($list);
     if ($promo_data) { promo_use($promo_code); }
+    vestra_sec_log('register', $acc['email'], $acc['id']);
 
     // Notify admin of new registration
     require_once __DIR__.'/notify.php';

@@ -25,6 +25,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
   if(auth_throttled($tkey)){ $err=true; }
   elseif(!$locked && hash_equals($PASS,(string)$_POST['pass'])){
     auth_throttle_clear($tkey); $_SESSION['vadmin']=true;
+    vestra_sec_log('admin_ok');
     /* Giristen sonra GELINEN adrese don, duz /admin'e degil. Giris formu eylemsiz
        ("<form method=post>") oldugu icin sorgu dizesiyle birlikte kendi URL'ine
        gonderiyor; burada onu atmak, bir baglantiyla gelen her seyi sessizce
@@ -37,7 +38,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_POST['pass'])){
     if ($back === '' || !preg_match('#^/admin(\?|$)#', $back) || str_contains($back, '\\')) $back = '/admin';
     header('Location: '.$back); exit;
   }
-  else { auth_throttle_hit($tkey); sleep(1); $err=true; }
+  else { auth_throttle_hit($tkey); vestra_sec_log('admin_fail'); sleep(1); $err=true; }
 }
 $authed=!empty($_SESSION['vadmin']);
 if($authed && empty($_SESSION['vadmin_csrf'])) $_SESSION['vadmin_csrf']=bin2hex(random_bytes(16));
@@ -1268,6 +1269,29 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
+  if($act==='sec_block_ip'){
+    $ip=trim((string)($_POST['ip']??'')); $note=trim((string)($_POST['note']??''));
+    /* Serbest metin degil: tam IP, "1.2.3." oneki ya da IPv4 CIDR. Yanlis yazilmis
+       bir kural sessizce hic kimseyi engellemez ve operator korundugunu sanir. */
+    $validIp   = filter_var($ip, FILTER_VALIDATE_IP) !== false;
+    $validPre  = (bool)preg_match('/^(\d{1,3}\.){1,3}$/', $ip);
+    $validCidr = (bool)preg_match('#^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$#', $ip);
+    if(!$validIp && !$validPre && !$validCidr){ header('Location: /admin?tab=security&msg=sec_badip'); exit; }
+    /* Kendi IP'ni engellemek panele erisimi de kapatir — kilidin anahtari kapinin
+       ic tarafinda kalir. Actions uzerinden acilabilir ama o yolu bilmek gerekir;
+       burada acikca reddedip soyluyoruz. */
+    if(vestra_ip_matches(vestra_client_ip(), $ip)){ header('Location: /admin?tab=security&msg=sec_self'); exit; }
+    $blocks=vestra_ip_blocks();
+    foreach($blocks as $b){ if(($b['ip']??'')===$ip){ header('Location: /admin?tab=security&msg=sec_dup'); exit; } }
+    $blocks[]=['ip'=>$ip,'note'=>mb_substr($note,0,120),'added_at'=>date('c')];
+    vestra_save_ip_blocks($blocks);
+    header('Location: /admin?tab=security&msg=sec_blocked'); exit;
+  }
+  if($act==='sec_unblock_ip'){
+    $ip=trim((string)($_POST['ip']??''));
+    vestra_save_ip_blocks(array_values(array_filter(vestra_ip_blocks(), fn($b)=>($b['ip']??'')!==$ip)));
+    header('Location: /admin?tab=security&msg=sec_unblocked'); exit;
+  }
   if($act==='send_push'){
     require_once __DIR__.'/inc/push.php';
     $target = $_POST['target'] ?? 'all';
@@ -1596,6 +1620,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
+    'sec_blocked'=>'✓ IP engellendi — o ağdan gelen her istek artık 403 alıyor.',
+    'sec_unblocked'=>'IP engeli kaldırıldı.',
+    'sec_dup'=>'Bu kural zaten listede.',
+    'sec_badip'=>'⚠ Geçersiz kural — tam IP (1.2.3.4), önek (1.2.3.) ya da IPv4 CIDR (1.2.3.0/24) girin. Hiçbir şey eklenmedi.',
+    'sec_self'=>'⚠ Bu kural SİZİN şu anki IP adresinizi kapsıyor — kendinizi engellemek admin paneline erişiminizi de kapatırdı. Hiçbir şey eklenmedi.',
     'voucher_ok'=>'✓ Voucher created.','voucher_del'=>'Voucher deleted.','voucher_toggled'=>'Voucher status changed.',
     'welcome_dry'=>'Preview only — nothing was created or sent. See the list below.',
     'welcome_sent'=>'✓ Welcome vouchers issued and emailed. See the result below.',
@@ -1707,6 +1736,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'marketing','🎟️','Vouchers &amp; codes ('.(count($vouchers)+count($promos)).')') ?>
   <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
   <?= navLink($tab,'notify','🔔','Notifications') ?>
+
+  <div class="sgrp">System</div>
+  <?= navLink($tab,'security','🔐','Security',count(vestra_ip_blocks()),false) ?>
 </nav>
 
 <!-- MAIN -->
@@ -2292,7 +2324,22 @@ function sendUserMessage(uid,name){
     </td>
     <td class="ac"><?= typePill($a['type']??'') ?></td>
     <td class="ac"><?= htmlspecialchars($a['company']??'—') ?></td>
-    <td class="ac"><?= htmlspecialchars($a['country']??'—') ?></td>
+    <td class="ac"><?= htmlspecialchars($a['country']??'—') ?>
+      <?php /* Beyan edilen ulkenin ALTINDA kayit IP'sinin ulkesi: ikisi ayni soru
+               degil. Form "Germany" derken IP Lagos'taysa, KYB onayindan once
+               bakilacak ilk sey budur. Eski hesaplarda bu alanlar yok — bos kalir. */
+        if(!empty($a['reg_cc']) || !empty($a['reg_vpn'])): ?>
+      <div class="ahint" style="white-space:nowrap" title="Kayıt anındaki IP: <?= htmlspecialchars($a['reg_ip']??'?') ?>">
+        IP: <?= htmlspecialchars($a['reg_cc']?:'?') ?><?= !empty($a['reg_vpn'])?' · <b style="color:#a9781a">VPN</b>':'' ?>
+        <?php $__declCc = vestra_cc_of_country((string)($a['country']??''));
+              /* ≠ yalnizca IKI taraf da bilinirken: beyan edilen ulke haritada yoksa
+                 sessiz kal — belirsizligi uyusmazlik gibi gostermek yanlis alarm. */
+              if(!empty($a['reg_cc']) && $__declCc!=='' && strcasecmp($__declCc,(string)$a['reg_cc'])!==0): ?>
+          <b style="color:#c0392b" title="Kayıt IP'sinin ülkesi formda beyan edilenle uyuşmuyor">≠</b>
+        <?php endif; ?>
+      </div>
+      <?php endif; ?>
+    </td>
     <td class="ac" style="font-family:monospace;font-size:11px"><?= htmlspecialchars($a['vat_id']??'—') ?></td>
     <td class="ac">
       <?php if($isPendEmail): ?>
@@ -4074,6 +4121,94 @@ elseif($tab==='notify'):
   <div class="acard-body" style="font-size:13px;line-height:1.9;color:var(--mut)">
     <b style="color:var(--fg)">Buyers get pushed when:</b> an offer is accepted / countered / declined · a seller answers their sourcing request · payment is confirmed · the order ships (with tracking) · escrow secures their payment · a refund is issued · a new message arrives.<br>
     <b style="color:var(--fg)">Sellers get pushed when:</b> a new order comes in · a new offer arrives · an escrow order is paid (ship now) · the buyer confirms delivery · escrow funds are released to their bank · their listing is approved or needs changes · their account is verified · a new message arrives.
+  </div>
+</div>
+
+<?php // ══════════════════════════════════════════════════════ SECURITY
+elseif($tab==='security'):
+  /* Rolling log, newest first. Everything shown here was recorded at the moment
+     of the event; opening this tab never fires geo lookups of its own. */
+  $secLog    = array_reverse(_vsec_read('security_log.json'));
+  $secBlocks = vestra_ip_blocks();
+  $myIp      = vestra_client_ip();
+  $secBadge  = function(string $ev): string {
+    return match($ev) {
+      'register'   => abadge('kayıt', '#1f9d63'),
+      'login_ok'   => abadge('giriş', '#2e86c1'),
+      'admin_ok'   => abadge('admin giriş', '#8e6fc1'),
+      'login_fail' => abadge('giriş HATALI', '#c0392b'),
+      'admin_fail' => abadge('admin HATALI', '#c0392b'),
+      default      => abadge($ev, '#777'),
+    };
+  };
+  $ccFlag = function(string $cc): string {
+    if (strlen($cc) !== 2) return '';
+    $cc = strtoupper($cc);
+    return mb_chr(0x1F1E6 + ord($cc[0]) - 65).mb_chr(0x1F1E6 + ord($cc[1]) - 65);
+  };
+?>
+<div class="acols2" style="align-items:start;margin-bottom:16px">
+  <div class="acard">
+    <div class="acard-hd"><h3>🚫 IP engelle</h3></div>
+    <div class="acard-body">
+      <p class="ahint" style="margin:0 0 10px">Tam IP (<code>1.2.3.4</code>), önek (<code>1.2.3.</code>) ya da IPv4 CIDR (<code>1.2.3.0/24</code>). Engellenen IP sitenin <b>tamamından</b> 403 alır. Sizin IP'niz: <code><?= htmlspecialchars($myIp) ?></code> — kendinizi engellemenize izin verilmez.</p>
+      <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <?= csrfField() ?><input type="hidden" name="_action" value="sec_block_ip">
+        <div class="afield" style="margin:0"><label>IP / önek / CIDR</label><input name="ip" required placeholder="203.0.113.7" style="width:170px"></div>
+        <div class="afield" style="margin:0;flex:1;min-width:160px"><label>Not (neden)</label><input name="note" placeholder="sahte kayıtlar"></div>
+        <button class="abtn primary" type="submit">Engelle</button>
+      </form>
+    </div>
+  </div>
+  <div class="acard">
+    <div class="acard-hd"><h3>⛔ Engelli listesi (<?= count($secBlocks) ?>)</h3></div>
+    <div class="acard-body">
+      <?php if(!$secBlocks): ?><div class="aempty">Engelli IP yok.</div>
+      <?php else: ?><div class="atscroll"><table class="atable">
+        <?= arow(['Kural','Not','Eklendi',''],true) ?>
+        <?php foreach($secBlocks as $b): ?>
+        <tr>
+          <td class="ac"><code><?= htmlspecialchars((string)($b['ip']??'')) ?></code></td>
+          <td class="ac" style="color:var(--mut)"><?= htmlspecialchars((string)($b['note']??'')) ?: '—' ?></td>
+          <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr((string)($b['added_at']??''),0,10)) ?></td>
+          <td class="ac"><form method="post" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="sec_unblock_ip"><input type="hidden" name="ip" value="<?= htmlspecialchars((string)($b['ip']??'')) ?>"><button class="abtn" type="submit" style="font-size:11px;padding:2px 8px">Kaldır</button></form></td>
+        </tr>
+        <?php endforeach; ?>
+      </table></div><?php endif; ?>
+    </div>
+  </div>
+</div>
+
+<div class="acard">
+  <div class="acard-hd"><h3>🕵️ Son olaylar (<?= count($secLog) ?>)</h3></div>
+  <div class="acard-body">
+  <p class="ahint" style="margin:0 0 10px">Kayıt, giriş ve admin girişleri — IP, ülke ve VPN/veri merkezi işaretiyle. <b>VPN</b> rozeti "proxy ya da hosting ağından geliyor" demek: kesin hüküm değil, KYB onayından önce bakılacak bir işaret. Ülkesi boş satırlar, bilgi sağlayıcının o an cevap vermediği anlardır.</p>
+  <?php if(!$secLog): ?><div class="aempty">Henüz olay yok — bundan sonraki her kayıt ve giriş burada görünecek.</div>
+  <?php else: ?>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Zaman','Olay','E-posta','IP','Ülke','VPN','Tarayıcı',''],true) ?>
+    <?php foreach(array_slice($secLog,0,150) as $e): $eIp=(string)($e['ip']??''); ?>
+    <tr>
+      <td class="ac" style="font-size:11px;color:var(--mut);white-space:nowrap"><?= htmlspecialchars(str_replace('T',' ',substr((string)($e['ts']??''),0,16))) ?></td>
+      <td class="ac"><?= $secBadge((string)($e['event']??'')) ?></td>
+      <td class="ac" style="font-size:12px"><?= htmlspecialchars((string)($e['email']??'')) ?: '<span style="color:var(--mut)">—</span>' ?></td>
+      <td class="ac"><code style="font-size:11px"><?= htmlspecialchars($eIp) ?></code></td>
+      <td class="ac" style="white-space:nowrap"><?= $ccFlag((string)($e['cc']??'')) ?> <?= htmlspecialchars((string)($e['cc']??'')) ?: '<span style="color:var(--mut)">?</span>' ?></td>
+      <td class="ac"><?= !empty($e['vpn']) ? abadge('VPN','#a9781a') : '<span style="color:var(--mut)">—</span>' ?></td>
+      <td class="ac" style="font-size:10px;color:var(--mut);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?= htmlspecialchars((string)($e['ua']??'')) ?>"><?= htmlspecialchars(mb_substr((string)($e['ua']??''),0,40)) ?></td>
+      <td class="ac">
+        <?php if($eIp!=='' && !vestra_ip_blocked($eIp) && $eIp!==$myIp): ?>
+        <form method="post" style="margin:0" onsubmit="return confirm('<?= htmlspecialchars($eIp) ?> engellensin mi? Bu IP sitenin tamamından 403 alır.')">
+          <?= csrfField() ?><input type="hidden" name="_action" value="sec_block_ip"><input type="hidden" name="ip" value="<?= htmlspecialchars($eIp) ?>"><input type="hidden" name="note" value="olay listesinden">
+          <button class="abtn" type="submit" style="font-size:10px;padding:2px 7px;color:#c0392b">Engelle</button>
+        </form>
+        <?php elseif($eIp!=='' && vestra_ip_blocked($eIp)): ?><span style="font-size:10px;color:#c0392b">engelli</span>
+        <?php endif; ?>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+  <?php endif; ?>
   </div>
 </div>
 

@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tkey  = 'reset|'.($_SERVER['REMOTE_ADDR'] ?? '');
     if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) && !auth_throttled($tkey, 8, 900)) {
         auth_throttle_hit($tkey); // counts requests, not failures — caps reset-mail spam per IP
+        vestra_sec_log('reset_request', $email);
         if ($acc = auth_reset_begin($email)) {
             $host = (!empty($_SERVER['HTTPS']) ? 'https' : 'http').'://'.($_SERVER['HTTP_HOST'] ?? 'vestrasales.com');
             $link = $host.'/reset?token='.$acc['reset_token'];
