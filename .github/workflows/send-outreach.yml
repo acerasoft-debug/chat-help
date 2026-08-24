@@ -83,6 +83,10 @@ on:
         description: "Bu kategori parçalarını içeren leadlere GÖNDERME (virgülle ayrılır, ör. 'jewelry, watches, tailor'). Kategori OSM dükkân tipinden gelir: 'Retailer (jewelry)'."
         required: false
         default: ""
+      dns_check:
+        description: "true (varsayılan) = seçim sırasında alan adının MX/A kaydına bak, posta alamayan adresi HİÇ seçme. Böylece istenen N adet gerçekten ulaşabilecek N adres olur. false = kontrolsüz."
+        required: false
+        default: "true"
       reset_contacted:
         description: "BAKIM: gönderim YAPMAZ. Sadece bu e-posta(lar)ın last_contacted_at damgasını temizler (virgül/boşlukla ayrılır) — ör. yanlış dilde gitmiş bir adrese kasıtlı düzeltme göndermeden önce. Doluysa bu çalıştırma SADECE bunu yapar ve çıkar."
         required: false
@@ -113,13 +117,14 @@ jobs:
           SEND_NAME_ANY: ${{ github.event.inputs.name_any }}
           SEND_SKIP_NAME: ${{ github.event.inputs.skip_names }}
           SEND_RESET: ${{ github.event.inputs.reset_contacted }}
+          SEND_DNS: ${{ github.event.inputs.dns_check }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -238,6 +243,8 @@ jobs:
 
             // Select eligible leads (first COUNT), de-duped by e-mail within the batch too.
             $picked = []; $seen = [];
+            $DNS_CHECK = strtolower(trim((string)getenv('SEND_DNS'))) !== 'false';
+            $dnsSeen = []; $dnsDead = 0;
             foreach ($leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
@@ -284,10 +291,21 @@ jobs:
                 foreach ($SKIP_NAME as $n) { if ($n !== '' && str_contains($nameL, $n)) { $bad = true; break; } }
                 if ($bad) continue;
               }
+              /* Alan adi posta alabiliyor mu? Bu kontrol SECIM icinde duruyor, gonderim
+                 dongusunde degil: operator "100 adrese gonder" dedigi zaman istedigi sey
+                 100 aday degil, ulasabilecek 100 adres. Gonderim aninda elenseydi 100
+                 secilir, 85'i giderdi. MX yoksa A kaydina bakiliyor -- bazi kucuk isletme
+                 alan adlari postayi A kaydi uzerinden aliyor. Alan adi basina tek sorgu. */
+              if ($DNS_CHECK) {
+                $dom = substr(strrchr($email, '@'), 1);
+                if (!isset($dnsSeen[$dom])) $dnsSeen[$dom] = (checkdnsrr($dom, 'MX') || checkdnsrr($dom, 'A'));
+                if (!$dnsSeen[$dom]) { $dnsDead++; continue; }
+              }
               $seen[$email] = true;
               $picked[] = $l;
               if (count($picked) >= $COUNT) break;
             }
+            if ($DNS_CHECK) echo "DNS: posta alamayan alan adi yuzunden elenen aday: {$dnsDead}\n";
 
             echo $DRY ? "== DRY-RUN — gonderim YOK, sadece secim listesi ==\n"
                       : "== GERCEK GONDERIM — Les Garage de Paris ==\n";
