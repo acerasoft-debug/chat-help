@@ -497,7 +497,16 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      The band is also taller than the still version: with the clip anchored to its
      bottom edge the rail always claims the last ~190px, and at 80vh the trust line
      landed inside that. The extra height is what buys the two a lane each. */
-  .hero.hasvideo{padding:48px 0 44px;align-items:flex-start;min-height:min(88vh,820px)}
+  /* The bottom padding is the RAIL'S LANE, and it has to be reserved explicitly.
+     The clip is bottom-anchored and covers by width, so the plates always occupy a
+     fixed band above the section seam -- roughly an eighth of the viewport width --
+     no matter how tall the band is. Leaving that to min-height worked at 1600x900
+     and failed at 1440x780: the hero became content-driven, its bottom edge rose,
+     and the plates cut straight through "Invoice-based payment · Transaction
+     records". Reserving the band in vw, the same unit the rail scales in, keeps the
+     two apart at every width instead of at the one that happened to be tested. */
+  .hero.hasvideo{padding:48px 0 clamp(180px,17vw,275px);align-items:flex-start;
+    min-height:min(88vh,820px)}
   @media(max-height:840px){ .hero.hasvideo{padding-top:32px} }
   /* The film claims only the LOWER part of the band, not all of it.
      Full-bleed, the clip's own lit stage ran up behind the two registration buttons
