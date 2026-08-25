@@ -89,22 +89,24 @@ export default async function ProfessionalPage({
                   {s.price.toString()} {s.currency}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-ink-soft">
-                {s.category.nameEn} · {s.durationMin} min at your address
-              </p>
+              <div className="mt-1 flex items-center justify-between">
+                <p className="text-sm text-ink-soft">
+                  {s.category.nameEn} · {s.durationMin} min at your address
+                </p>
+                <a
+                  href={`/book/${s.id}`}
+                  className="text-xs uppercase tracking-widest text-gold-deep underline"
+                >
+                  Book
+                </a>
+              </div>
             </li>
           ))}
         </ul>
       </section>
 
       <section className="mt-10">
-        {session ? (
-          <p className="border-l-2 border-gold pl-6 text-ink-soft">
-            Booking opens with our first city launch — you&apos;ll be able to
-            invite {pro.displayName} to your address with escrow-protected
-            payment.
-          </p>
-        ) : (
+        {!session && (
           <a
             href="/signup"
             className="inline-block bg-ink px-8 py-4 text-sm uppercase tracking-widest text-cream"

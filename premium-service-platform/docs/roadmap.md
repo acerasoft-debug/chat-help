@@ -18,7 +18,13 @@
 - [ ] Gerçek KYC entegrasyonu (Stripe Identity veya Sumsub) + webhook
 - [ ] Profesyonel onboarding + sertifika inceleme paneli
 - [ ] Arama, profil, rezervasyon akışı
+- [x] Rezervasyon akışı: KYC kapılı rezervasyon, profesyonel onay/ret,
+      müşteri iptal/tamamlama, escrow ödeme yaşam döngüsü (mock sağlayıcı:
+      AUTHORIZED → ESCROW_HELD → RELEASED/REFUNDED), adres gizliliği
+      (onaya kadar yalnızca şehir görünür)
+- [x] Çift taraflı randevu-doğrulamalı yorum + denormalize puan güncelleme
 - [ ] Stripe ödeme (manual capture escrow) + Connect payout
+- [ ] İptal penceresi ücret kuralları, check-in/check-out, anlaşmazlık akışı
 - [ ] Çift taraflı doğrulanmış yorum
 - [ ] Canlı konum + check-in/out + SOS
 - [ ] Operasyon paneli (doğrulama kuyruğu, anlaşmazlık, SOS izleme)

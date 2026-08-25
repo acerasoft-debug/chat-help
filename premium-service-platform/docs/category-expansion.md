@@ -35,6 +35,24 @@ kurulmadan girilmez.
 - Yaşlı bakımı ve refakat, lohusa/ebe desteği
 - Psikolog (çoğunlukla online-hibrit model)
 
+### Estetik tıp (botoks, dolgu): yalnızca klinik ortaklığıyla
+
+Estetik enjeksiyonlar **hiçbir fazda evde hizmet olarak sunulmaz**:
+
+- Çoğu ülkede (TR, DE/AB) tıbbi işlemdir; yalnızca hekim tarafından ve
+  ruhsatlı sağlık kuruluşunda yapılabilir — evde uygulama mevzuata aykırı.
+- Klinik risk gerçek: dolguda damar tıkanması dakikalar içinde müdahale
+  gerektirir; evde acil müdahale koşulları sağlanamaz. Tek bir komplikasyon
+  haberi platformun güven vaadini yok eder.
+- Talep yasal kanala yönlendirilir: **O2O klinik ortaklığı** — anlaşmalı
+  estetik klinikleri aynı güven katmanıyla (hekim lisans doğrulaması,
+  randevu-doğrulamalı yorum, şeffaf fiyat) listelenir; randevu ve ödeme
+  platformdan geçer, işlem klinikte yapılır.
+- Evde yalnızca tamamlayıcılar satılır: işlem öncesi/sonrası medikal
+  olmayan premium cilt bakımı (mevcut güzellik kategorisi içinde).
+- Sağlık hizmeti reklam/aracılık mevzuatı ülke bazlıdır; bu kategori sağlık
+  hukukçusu görüşü olmadan hiçbir pazarda açılmaz.
+
 ## 3. Aile & eğitim (değerlendirilebilir)
 
 Güven vurgusu güçlü satar, regülasyon hafif; bakıcılıkta sorumluluk ağır —

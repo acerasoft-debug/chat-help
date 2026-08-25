@@ -35,11 +35,19 @@ export default async function DashboardPage() {
         <a href="/" className="font-serif text-xl tracking-[0.2em] text-ink">
           MAISON
         </a>
-        <form action="/api/auth/logout" method="post">
-          <button className="text-xs uppercase tracking-widest text-ink-soft underline">
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-5">
+          <a
+            href="/bookings"
+            className="text-xs uppercase tracking-widest text-gold-deep underline"
+          >
+            Bookings
+          </a>
+          <form action="/api/auth/logout" method="post">
+            <button className="text-xs uppercase tracking-widest text-ink-soft underline">
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       <h1 className="mt-10 font-serif text-3xl text-ink">Welcome, {name}</h1>
