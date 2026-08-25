@@ -52,3 +52,4 @@ arayüzüne eklenecek.
 - [`docs/mvp-scope.md`](docs/mvp-scope.md) — MVP kapsamı: ekranlar ve akışlar
 - [`docs/data-model.md`](docs/data-model.md) — veri modelinin açıklaması
 - [`docs/roadmap.md`](docs/roadmap.md) — fazlar ve yol haritası
+- [`docs/category-expansion.md`](docs/category-expansion.md) — kategori genişleme haritası (hangi sektör, hangi fazda, neden)
