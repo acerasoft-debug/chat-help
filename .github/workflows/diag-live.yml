@@ -66,6 +66,10 @@ on:
         description: "true = 'sipariş silinmiyor' teşhisi: canlı admin.php'de silme kodu var mı, data dizini yazılabilir mi, hangi ref'ler faturası olduğu için silinemiyor (salt-okunur)"
         required: false
         default: "false"
+      register_probe:
+        description: "true = KAYIT akışını uçtan uca sına: kaydol → doğrulama linki → giriş → anasayfa oturumu tanıyor mu → fiyat kapısı → panel. Kendi test hesabını kurar ve SONUNDA SİLER."
+        required: false
+        default: "false"
       leads_status:
         description: "Adres listesi verin (virgül/boşluk/satır sonu): her birinin lead listesindeki hâlini yazar — daha önce gönderildi mi, döndü mü, alan adı ölü mü, hangi markaları taşıyor + MX kontrolü. Hiçbir e-posta göndermez."
         required: false
@@ -1604,6 +1608,153 @@ jobs:
             php -l /tmp/vestra_leadstatus.php 2>&1
             php /tmp/vestra_leadstatus.php 2>&1
             rm -f /tmp/vestra_leadstatus.php
+
+      # Var olan bir test hesabina guvenmek sinamayi sessizce yalanci yapiyor:
+      # parolasi degisince giris 200 doner (302 degil) ve sonraki adimlar oturumsuz
+      # kosar -- "anasayfa oturumu tanimiyor" diye rapor eder, oysa oturum hic yoktu.
+      # Bu adim kendi hesabini kurar, sinar ve siler.
+      - name: Kayıt akışı uçtan uca (hesap kurar + siler)
+        if: github.event.inputs.register_probe == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 6m
+          script: |
+            cat > /tmp/vestra_regprobe.php <<'PHPEOF'
+            <?php
+            /**
+             * KAYIT AKISI — uctan uca, canli sunucuda, kendi hesabini kurup SILEREK.
+             *
+             * Neden kendi hesabini kuruyor: var olan bir test hesabina guvenmek, o hesabin
+             * parolasi degistiginde ya da silindiginde sinamayi sessizce yalanci yapiyor --
+             * bugun tam olarak bu oldu: giris 200 dondu (302 degil), yani giris HIC olmadi,
+             * ama sonraki adimlar "anasayfa oturumu tanimiyor" diye rapor etti. Oturum zaten
+             * yoktu. Kendi hesabini kuran bir sinama bu tuzaga dusemez.
+             *
+             * Sonunda hesap SILINIYOR. Bir teshis araci, olctugu sisteme kalici kayit
+             * birakmamali.
+             */
+            $doc  = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $BASE = 'https://vestrasales.com';
+            $UA   = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+            $JAR  = tempnam(sys_get_temp_dir(), 'vjar');
+
+            /* Adres benzersiz olmali: ayni adresle ikinci kayit 'email_taken' doner ve
+               sinama kendi birakti bir artiga takilir. */
+            $stamp = date('YmdHis');
+            $MAIL  = "vestra.probe.$stamp@example-probe.invalid";
+            $PASS  = 'ProbePass123!';
+
+            $fails = 0;
+            $step  = function (string $name, bool $ok, string $detail = '') use (&$fails) {
+                if (!$ok) $fails++;
+                printf("  %-46s %s%s\n", $name, $ok ? 'TAMAM' : '<-- BASARISIZ', $detail !== '' ? '  ('.$detail.')' : '');
+            };
+
+            $req = function (string $path, ?array $post = null, bool $follow = false) use ($BASE, $UA, $JAR): array {
+                $ch = curl_init($BASE.$path);
+                $o = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_HEADER=>true, CURLOPT_TIMEOUT=>30,
+                      CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_USERAGENT=>$UA,
+                      CURLOPT_COOKIEJAR=>$JAR, CURLOPT_COOKIEFILE=>$JAR,
+                      CURLOPT_FOLLOWLOCATION=>$follow];
+                if ($post !== null) { $o[CURLOPT_POST] = true; $o[CURLOPT_POSTFIELDS] = http_build_query($post); }
+                curl_setopt_array($ch, $o);
+                $raw  = (string)curl_exec($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                $hlen = (int)curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+                curl_close($ch);
+                return ['code'=>$code, 'head'=>substr($raw,0,$hlen), 'body'=>substr($raw,$hlen)];
+            };
+
+            echo "===== 1. KAYIT SAYFASI ACILIYOR MU =====\n";
+            $r = $req('/register');
+            $step('GET /register', $r['code'] === 200 && str_contains($r['body'], 'name="email"'), 'HTTP '.$r['code'].', '.strlen($r['body']).' bayt');
+            /* Kayit dugmesi kurulacak hesabin TIPINI soylemeli -- daha once sadece "Create
+               account" yaziyordu ve alici olmak isteyen kullanici satici hesabi aciyordu. */
+            $step('dugme hesabin tipini soyluyor', str_contains($r['body'], 'buyer account') || str_contains($r['body'], 'seller account'));
+
+            echo "\n===== 2. KAYIT (POST /register) =====\n";
+            $r = $req('/register', [
+                'type'=>'buyer', 'name'=>'Probe Tester', 'email'=>$MAIL, 'password'=>$PASS,
+                'company'=>'Probe GmbH', 'country'=>'Germany', 'phone'=>'+49 30 000000',
+            ]);
+            $loc = '';
+            if (preg_match('/^location:\s*(.+)$/mi', $r['head'], $m)) $loc = trim($m[1]);
+            $step('POST /register yonlendirdi', $r['code'] >= 300 && $r['code'] < 400, 'HTTP '.$r['code'].($loc !== '' ? ' -> '.$loc : ''));
+
+            $acc = auth_find($MAIL);
+            $step('hesap kaydedildi', $acc !== null);
+            if (!$acc) { @unlink($JAR); echo "\nHesap hic olusmadi; devami anlamsiz.\n"; exit(1); }
+
+            echo "\n===== 3. YENI HESAP DOGRU KURULDU MU =====\n";
+            $step('durum = pending_email (dogrulama bekliyor)', ($acc['status'] ?? '') === 'pending_email', 'durum: '.($acc['status'] ?? '?'));
+            $step('trade_doc_required isaretli', !empty($acc['trade_doc_required']));
+            $hasTrade = false; $docTypes = [];
+            foreach ((array)($acc['doc_requests'] ?? []) as $d) { $docTypes[] = (string)($d['type'] ?? ''); if (($d['type'] ?? '') === 'trade_licence') $hasTrade = true; }
+            $step('trade_licence talebi otomatik acildi', $hasTrade, 'belgeler: '.(implode(', ', $docTypes) ?: 'YOK'));
+            $step('kayit IP/ulke damgalandi', ($acc['reg_ip'] ?? '') !== '', 'ip '.(($acc['reg_ip'] ?? '') !== '' ? 'var' : 'YOK').', cc '.(($acc['reg_cc'] ?? '') ?: '-'));
+            $step('FIYAT bu haliyle KAPALI', !auth_prices_unlocked($acc));
+
+            echo "\n===== 4. E-POSTA DOGRULAMA LINKI =====\n";
+            $tok = (string)($acc['email_token'] ?? '');
+            $step('dogrulama jetonu uretildi', $tok !== '');
+            if ($tok !== '') {
+                $r = $req('/verify?token='.urlencode($tok));
+                $step('GET /verify?token=…', $r['code'] === 200, 'HTTP '.$r['code']);
+                $acc = auth_find($MAIL);
+                $step('hesap dogrulandi (status=pending)', ($acc['status'] ?? '') === 'pending' && !empty($acc['email_verified']), 'durum: '.($acc['status'] ?? '?'));
+            }
+
+            echo "\n===== 5. GIRIS =====\n";
+            $r = $req('/login', ['email'=>$MAIL, 'password'=>$PASS]);
+            $loc = ''; if (preg_match('/^location:\s*(.+)$/mi', $r['head'], $m)) $loc = trim($m[1]);
+            $step('POST /login yonlendirdi (302)', $r['code'] >= 300 && $r['code'] < 400, 'HTTP '.$r['code'].($loc !== '' ? ' -> '.$loc : ''));
+            $step('oturum cerezi verildi', (bool)preg_match('/^set-cookie:\s*PHPSESSID=/mi', $r['head']) || (bool)preg_match('/PHPSESSID/', (string)@file_get_contents($JAR)));
+
+            echo "\n===== 6. ANASAYFA OTURUMU TANIYOR MU (asil sikayet) =====\n";
+            $r = $req('/', null, true);
+            $hasPanel = str_contains($r['body'], 'Open my') || str_contains($r['body'], 'My panel') || str_contains($r['body'], '/buyer');
+            $hasReg   = str_contains($r['body'], 'Register as Seller') || str_contains($r['body'], 'Register free');
+            $step('anasayfa GIRISLI gosteriyor', $hasPanel && !$hasReg,
+                  ($hasPanel ? 'panel baglantisi VAR' : 'panel baglantisi YOK').' / '.($hasReg ? 'kayit dugmesi HALA VAR' : 'kayit dugmesi yok'));
+
+            echo "\n===== 7. FIYAT KAPISI (belge yuklenmemis yeni hesap) =====\n";
+            foreach (['/shop', '/price-list'] as $p) {
+                $r = $req($p, null, true);
+                $noErr  = !preg_match('/Fatal error|Parse error|Undefined variable/', $r['body']);
+                $locked = str_contains($r['body'], 'Trade licence required') || str_contains($r['body'], 'Upload document')
+                       || str_contains($r['body'], 'Trade only');
+                $step("GET {$p} — kilit gorunuyor", $r['code'] === 200 && $noErr && $locked,
+                      'HTTP '.$r['code'].', '.strlen($r['body']).' bayt'.($noErr ? '' : ', PHP HATASI'));
+            }
+
+            echo "\n===== 8. PANEL =====\n";
+            $r = $req('/buyer?tab=kyc', null, true);
+            $step('/buyer?tab=kyc aciliyor', $r['code'] === 200 && strlen($r['body']) > 5000, 'HTTP '.$r['code'].', '.strlen($r['body']).' bayt');
+            $step('belge yukleme satiri gorunuyor', str_contains($r['body'], 'Upload') || str_contains($r['body'], 'trade'));
+
+            echo "\n===== 9. SINAMA HESABI SILINIYOR =====\n";
+            @unlink($JAR);
+            $list = auth_accounts();
+            $before = count($list);
+            $list = array_values(array_filter($list, fn($a) => strtolower((string)($a['email'] ?? '')) !== strtolower($MAIL)));
+            auth_save_accounts($list);
+            $gone = auth_find($MAIL) === null;
+            printf("  hesap sayisi %d -> %d, sinama hesabi: %s\n", $before, count($list), $gone ? 'SILINDI' : 'HALA DURUYOR <-- elle silin');
+            if (!$gone) $fails++;
+
+            printf("\n===== SONUC: %s =====\n", $fails ? "$fails ADIM BASARISIZ" : 'TUM ADIMLAR GECTI');
+            exit($fails ? 1 : 0);
+            PHPEOF
+            php -l /tmp/vestra_regprobe.php 2>&1
+            php /tmp/vestra_regprobe.php 2>&1
+            rm -f /tmp/vestra_regprobe.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
