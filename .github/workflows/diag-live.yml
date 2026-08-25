@@ -1648,7 +1648,12 @@ jobs:
             /* Adres benzersiz olmali: ayni adresle ikinci kayit 'email_taken' doner ve
                sinama kendi birakti bir artiga takilir. */
             $stamp = date('YmdHis');
-            $MAIL  = "vestra.probe.$stamp@example-probe.invalid";
+            /* Adres neden gercek bir kutu: .invalid gibi teslim edilemez bir alan adi
+               kullanmak, her kosuda bir SERT DONUS uretir ve gonderen itibarini dusurur --
+               listede zaten %26 bounce sorunu var, olcum araci onu buyutmemeli. Gmail +etiketi
+               operatorun kendi kutusuna dusuyor: bounce yok, ve dogrulama e-postasinin
+               GERCEKTEN teslim edildigi de bu sayede gorunuyor. */
+            $MAIL  = "acerasoft+probe$stamp@gmail.com";
             $PASS  = 'ProbePass123!';
 
             $fails = 0;
@@ -1681,7 +1686,11 @@ jobs:
 
             echo "\n===== 2. KAYIT (POST /register) =====\n";
             $r = $req('/register', [
-                'type'=>'buyer', 'name'=>'Probe Tester', 'email'=>$MAIL, 'password'=>$PASS,
+                'type'=>'buyer', 'name'=>'Probe Tester', 'email'=>$MAIL,
+                /* password2: form parola ONAYI istiyor ve auth_register eslesmezse
+                   'password_mismatch' donuyor. Ilk surumde bu alan yoktu ve sinama "kayit
+                   bozuk" diye rapor etti -- bozuk olan sinamaydi. */
+                'password'=>$PASS, 'password2'=>$PASS,
                 'company'=>'Probe GmbH', 'country'=>'Germany', 'phone'=>'+49 30 000000',
             ]);
             $loc = '';
@@ -1690,7 +1699,17 @@ jobs:
 
             $acc = auth_find($MAIL);
             $step('hesap kaydedildi', $acc !== null);
-            if (!$acc) { @unlink($JAR); echo "\nHesap hic olusmadi; devami anlamsiz.\n"; exit(1); }
+            if (!$acc) {
+                /* Sessiz basarisizlik ise yaramaz: form hangi gerekceyle reddettiyse onu
+                   yaz. Ilk kosuda "HTTP 200" disinda hicbir sey gorunmuyordu ve sebebi
+                   bulmak icin kodu ayrica okumak gerekti. */
+                if (preg_match('/<div class="[^"]*(?:err|banner)[^"]*"[^>]*>(.*?)<\/div>/si', $r['body'], $em)) {
+                    echo "  sayfanin verdigi hata: ".trim(preg_replace('/\s+/', ' ', strip_tags($em[1])))."\n";
+                } else {
+                    echo "  sayfada bir hata kutusu bulunamadi (govde ".strlen($r['body'])." bayt)\n";
+                }
+                @unlink($JAR); echo "\nHesap hic olusmadi; devami anlamsiz.\n"; exit(1);
+            }
 
             echo "\n===== 3. YENI HESAP DOGRU KURULDU MU =====\n";
             $step('durum = pending_email (dogrulama bekliyor)', ($acc['status'] ?? '') === 'pending_email', 'durum: '.($acc['status'] ?? '?'));
