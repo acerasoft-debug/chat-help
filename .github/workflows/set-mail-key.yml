@@ -561,6 +561,11 @@ jobs:
                 $mail = trim((string)($a['email'] ?? ''));
                 if ($mail === '' || !filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
                 if (($a['status'] ?? '') === 'suspended') continue;
+            /* ZATEN ONAYLI hesabi atla. Prova bunu yakaladi: 30 hesabin 11'i onaylanmis
+               durumdaydi ve filtre onlari da hedefe koyuyordu. Dogrulamasi bitmis bir
+               musteriye "belgenizi yukleyin" demek geri adim gibi gorunur ve hakli olarak
+               "ben zaten onaylanmistim" sorusunu dogurur. Talep, sirasi gelmemis olana. */
+            if (($a['kyb_status'] ?? '') === 'approved' || ($a['status'] ?? '') === 'active') continue;
                 $has = false;
                 foreach ((array)($a['doc_requests'] ?? []) as $r) {
                     if (($r['type'] ?? '') === 'trade_licence') { $has = true; break; }
