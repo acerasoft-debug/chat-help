@@ -1,0 +1,372 @@
+<style>
+.faq-page { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+.faq-hero { text-align: center; margin-bottom: 48px; }
+.faq-hero h1 { font-family: 'Playfair Display', serif; font-size: 38px; font-weight: 700; color: var(--td); margin-bottom: 12px; }
+.faq-hero p { font-size: 16px; color: var(--tl); max-width: 520px; margin: 0 auto; line-height: 1.7; }
+.faq-search { display: flex; gap: 10px; max-width: 480px; margin: 24px auto 0; }
+.faq-search input { flex: 1; height: 48px; padding: 0 18px; border: 1.5px solid var(--bo); border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color .2s; }
+.faq-search input:focus { border-color: var(--gl); }
+.faq-search button { height: 48px; padding: 0 22px; background: var(--gl); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s; }
+.faq-search button:hover { background: var(--gm); }
+
+.faq-cats { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
+.faq-cat { padding: 8px 18px; border: 1.5px solid var(--bo); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--tm); cursor: pointer; transition: all .2s; background: #fff; }
+.faq-cat:hover, .faq-cat.active { background: var(--gd); border-color: var(--gd); color: #fff; }
+
+.faq-section { margin-bottom: 40px; }
+.faq-section-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--td); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+.faq-section-title span { font-size: 22px; }
+
+.faq-item { border: 1px solid var(--bo); border-radius: 12px; margin-bottom: 8px; overflow: hidden; transition: box-shadow .2s; }
+.faq-item:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.faq-q { width: 100%; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; background: #fff; border: none; cursor: pointer; text-align: left; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 600; color: var(--td); gap: 12px; }
+.faq-q:hover { background: var(--cr); }
+.faq-chevron { width: 20px; height: 20px; flex-shrink: 0; fill: var(--tl); transition: transform .25s; }
+.faq-item.open .faq-chevron { transform: rotate(180deg); fill: var(--gl); }
+.faq-item.open .faq-q { background: #F0F7EE; color: var(--gd); }
+.faq-a { display: none; padding: 0 20px 18px; font-size: 14px; color: var(--tm); line-height: 1.75; }
+.faq-a a { color: var(--gl); font-weight: 600; }
+.faq-item.open .faq-a { display: block; }
+
+.faq-contact { background: linear-gradient(135deg, var(--gd), #2D5A2D); border-radius: 20px; padding: 40px 32px; text-align: center; margin-top: 56px; color: #fff; }
+.faq-contact h3 { font-family: 'Playfair Display', serif; font-size: 26px; margin-bottom: 10px; }
+.faq-contact p { font-size: 15px; color: rgba(255,255,255,.75); margin-bottom: 28px; }
+.faq-contact-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.faq-contact-btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 10px; font-size: 14px; font-weight: 700; text-decoration: none; transition: all .2s; }
+.faq-contact-btn-primary { background: #fff; color: var(--gd); }
+.faq-contact-btn-primary:hover { background: #A8D8A0; }
+.faq-contact-btn-secondary { background: rgba(255,255,255,.15); color: #fff; border: 1.5px solid rgba(255,255,255,.3); }
+.faq-contact-btn-secondary:hover { background: rgba(255,255,255,.25); }
+
+@media(max-width: 600px) {
+  .faq-hero h1 { font-size: 28px; }
+  .faq-page { padding: 32px 16px 60px; }
+  .faq-contact { padding: 28px 20px; }
+  .faq-contact h3 { font-size: 20px; }
+}
+</style>
+
+<div class="faq-page">
+
+  <div class="faq-hero">
+    <h1>Questions Fréquentes</h1>
+    <p>Tout ce que vous devez savoir sur vos commandes, livraisons et produits Mondimart.</p>
+    <div class="faq-search">
+      <input type="text" id="faq-search-input" placeholder="Rechercher une question..." oninput="faqSearch(this.value)">
+      <button onclick="faqSearch(document.getElementById('faq-search-input').value)">Chercher</button>
+    </div>
+  </div>
+
+  <div class="faq-cats">
+    <button class="faq-cat active" onclick="faqFilter(this,'all')">Toutes</button>
+    <button class="faq-cat" onclick="faqFilter(this,'livraison')">🚚 Livraison</button>
+    <button class="faq-cat" onclick="faqFilter(this,'produits')">🥗 Produits</button>
+    <button class="faq-cat" onclick="faqFilter(this,'paiement')">💳 Paiement</button>
+    <button class="faq-cat" onclick="faqFilter(this,'retours')">↩️ Retours</button>
+    <button class="faq-cat" onclick="faqFilter(this,'compte')">👤 Mon compte</button>
+    <button class="faq-cat" onclick="faqFilter(this,'halal')">✅ Halal</button>
+  </div>
+
+  <!-- LIVRAISON -->
+  <div class="faq-section" data-cat="livraison">
+    <div class="faq-section-title"><span>🚚</span> Livraison</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Quels sont les délais de livraison ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        En <strong>France métropolitaine</strong>, nous livrons en <strong>24h</strong> (commandes passées avant 14h). Pour la <strong>Belgique, le Luxembourg et l'Espagne</strong>, comptez <strong>24 à 48h</strong> pour les produits de la chaîne du froid, et <strong>2 à 4 jours</strong> pour les autres produits.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        À partir de quel montant la livraison est-elle gratuite ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        La livraison est <strong>offerte dès 149€ d'achat</strong> partout (France, Belgique, Luxembourg, Espagne). En dessous de ce montant, les frais de port sont de <strong>8€</strong> pour la France et <strong>18€</strong> pour la Belgique, le Luxembourg et l'Espagne.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Livrez-vous en dehors de la France ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui ! Mondimart livre en <strong>Belgique, Luxembourg et Espagne</strong> — avec service chaîne du froid disponible (24-48h). Sélectionnez votre pays lors du paiement pour voir les tarifs et délais exacts.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Comment suivre ma commande ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Dès l'expédition de votre colis, vous recevrez un email avec un <strong>numéro de suivi</strong>. Vous pouvez également suivre votre commande depuis votre espace client, section "Mes commandes".
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Que faire si mon colis est endommagé ou n'arrive pas ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Contactez-nous dans les 48h via <a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a> avec une photo du colis. Nous prendrons en charge le renvoi ou le remboursement dans les meilleurs délais.
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUITS -->
+  <div class="faq-section" data-cat="produits">
+    <div class="faq-section-title"><span>🥗</span> Produits</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        D'où viennent vos produits ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Nos produits proviennent de plus de <strong>30 pays</strong> à travers le monde : Turquie, Maroc, Italie, Espagne, Liban, Inde, Japon, et bien d'autres. Nous sélectionnons rigoureusement nos fournisseurs pour garantir authenticité et qualité.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Les produits sont-ils frais et à date valide ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Absolument. Chaque produit est vérifié avant expédition. La <strong>date limite de consommation</strong> est systématiquement contrôlée — nous ne vendons aucun produit avec moins de 2 mois de DLC restants.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Proposez-vous des produits biologiques ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui, notre gamme <strong>Bio</strong> est clairement identifiée sur le site. Tous nos produits bio sont certifiés par des organismes agréés (AB, Ecocert, USDA Organic). Filtrez par "Bio" dans nos collections pour les trouver facilement.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Un produit que je cherche n'est pas disponible, que faire ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Utilisez la fonction "M'avertir quand disponible" sur la page produit, ou envoyez-nous votre demande par email. Nous ferons notre possible pour l'approvisionner. Vous pouvez aussi visiter notre boutique physique à Paris pour trouver encore plus de références.
+      </div>
+    </div>
+  </div>
+
+  <!-- HALAL -->
+  <div class="faq-section" data-cat="halal">
+    <div class="faq-section-title"><span>✅</span> Certification Halal</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Comment sont certifiés vos produits Halal ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Tous nos produits labelisés "Halal" sont certifiés par des <strong>organismes officiels reconnus</strong> (AVS, IFANCA, HMC...). Chaque certificat est vérifié avant référencement. Le logo Halal est affiché sur les fiches produits concernées.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Les produits non-Halal sont-ils séparés en entrepôt ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui. Notre entrepôt dispose d'une <strong>zone dédiée aux produits Halal</strong>, séparée physiquement des autres produits, afin d'éviter toute contamination croisée. Nos équipes sont formées à ces protocoles.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Puis-je voir les certificats Halal des produits ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui, sur demande par email à <a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a> en précisant la référence du produit. Nous vous transmettrons le certificat correspondant dans les 24h.
+      </div>
+    </div>
+  </div>
+
+  <!-- PAIEMENT -->
+  <div class="faq-section" data-cat="paiement">
+    <div class="faq-section-title"><span>💳</span> Paiement</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Quels moyens de paiement acceptez-vous ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Nous acceptons : <strong>Carte bancaire</strong> (Visa, Mastercard, CB), <strong>PayPal</strong>, <strong>Apple Pay</strong>, <strong>Google Pay</strong> et le virement bancaire pour les commandes professionnelles. Tous les paiements sont sécurisés par SSL.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Mes données bancaires sont-elles sécurisées ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        100% oui. Mondimart utilise <strong>Shopify Payments</strong>, certifié PCI DSS niveau 1 (le plus haut niveau de sécurité). Nous ne stockons jamais vos données bancaires sur nos serveurs.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Puis-je obtenir une facture pour ma commande ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui, une facture est automatiquement jointe à votre email de confirmation. Vous pouvez également la télécharger depuis votre espace client. Pour les factures professionnelles avec numéro de TVA, contactez-nous.
+      </div>
+    </div>
+  </div>
+
+  <!-- RETOURS -->
+  <div class="faq-section" data-cat="retours">
+    <div class="faq-section-title"><span>↩️</span> Retours & Remboursements</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Puis-je retourner des produits alimentaires ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        <strong>Non.</strong> Conformément à l'article L221-28 du Code de la consommation, les produits alimentaires, périssables ou susceptibles de se détériorer rapidement sont <strong>exclus du droit de rétractation</strong>. Il en va de même pour les produits d'hygiène et de beauté une fois descellés, pour des raisons sanitaires. Ces exclusions s'appliquent à la grande majorité de nos références (épicerie, boucherie, frais, boissons, hygiène).
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Quels produits peuvent être retournés ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Seuls les <strong>articles physiques non alimentaires</strong> — tels que la vaisselle, les ustensiles de cuisine et les articles de la gamme Karaca — peuvent faire l'objet d'un retour, sous réserve qu'ils soient <strong>non utilisés, intacts et dans leur emballage d'origine</strong>. Le délai est de <strong>14 jours</strong> à compter de la réception. Les frais de retour sont à la charge du client, sauf erreur de notre part.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        J'ai reçu un produit défectueux ou une erreur de commande — que faire ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        En cas de produit endommagé, défectueux ou non conforme à votre commande, contactez-nous dans les <strong>48h</strong> via <a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a> avec une photo du produit et votre numéro de commande. Nous vous proposerons un <strong>renvoi en express offert</strong> ou un <strong>remboursement intégral</strong>. Cette garantie s'applique à tous nos produits sans exception.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Comment demander un remboursement pour un article Karaca ou ustensile ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Envoyez un email à <a href="mailto:contact@mondimart.fr">contact@mondimart.fr</a> avec votre numéro de commande et la raison du retour dans les 14 jours. Après validation, nous vous transmettrons la procédure. Le remboursement est effectué sur votre moyen de paiement initial dans les <strong>5 à 10 jours ouvrés</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPTE -->
+  <div class="faq-section" data-cat="compte">
+    <div class="faq-section-title"><span>👤</span> Mon compte</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Comment créer un compte ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Cliquez sur l'icône "Compte" en haut à droite, puis "Créer un compte". Renseignez votre prénom, nom, email et mot de passe. Vous pourrez ensuite suivre vos commandes, gérer vos adresses et consulter votre historique.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        J'ai oublié mon mot de passe, comment le réinitialiser ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Sur la page de connexion, cliquez sur "<strong>Mot de passe oublié ?</strong>" et entrez votre email. Vous recevrez un lien de réinitialisation dans votre boîte mail sous quelques minutes (pensez à vérifier les spams).
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="faqToggle(this)">
+        Puis-je commander sans créer un compte ?
+        <svg class="faq-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="faq-a">
+        Oui, la commande en tant qu'invité est possible. Cependant, créer un compte vous permet de suivre vos commandes, sauvegarder vos adresses et accéder à des <strong>offres exclusives membres</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACT BLOCK -->
+  <div class="faq-contact">
+    <h3>Vous n'avez pas trouvé votre réponse ?</h3>
+    <p>Notre équipe est disponible du lundi au samedi de 9h à 18h pour vous aider.</p>
+    <div class="faq-contact-btns">
+      <a href="mailto:contact@mondimart.fr" class="faq-contact-btn faq-contact-btn-primary">
+        ✉️ Envoyer un email
+      </a>
+      <a href="/pages/contact" class="faq-contact-btn faq-contact-btn-secondary">
+        💬 Formulaire de contact
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function faqToggle(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
+
+function faqFilter(btn, cat) {
+  document.querySelectorAll('.faq-cat').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.faq-section').forEach(function(sec) {
+    if (cat === 'all' || sec.dataset.cat === cat) {
+      sec.style.display = '';
+    } else {
+      sec.style.display = 'none';
+    }
+  });
+}
+
+function faqSearch(q) {
+  q = q.toLowerCase().trim();
+  if (!q) { faqFilter(document.querySelector('.faq-cat'), 'all'); return; }
+  document.querySelectorAll('.faq-cat').forEach(function(b) { b.classList.remove('active'); });
+  var found = 0;
+  document.querySelectorAll('.faq-section').forEach(function(sec) {
+    var visible = false;
+    sec.querySelectorAll('.faq-item').forEach(function(item) {
+      var text = item.textContent.toLowerCase();
+      if (text.includes(q)) { item.style.display = ''; visible = true; found++; }
+      else item.style.display = 'none';
+    });
+    sec.style.display = visible ? '' : 'none';
+  });
+}
+</script>

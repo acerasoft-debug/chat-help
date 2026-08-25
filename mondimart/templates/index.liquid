@@ -1,0 +1,834 @@
+{% comment %} Mondimart Homepage {% endcomment %}
+
+<!-- ══ HERO ══ -->
+<section class="hero">
+  <div class="hero-bg hero-bg-slideshow">
+    <img src="https://images.unsplash.com/photo-1506368249639-73a05d6f6488?w=1600&q=85" alt="Épices du monde" fetchpriority="high">
+    <img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=1600&q=85" alt="Boucherie Halal fraîche" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1600&q=85" alt="Épicerie fine du monde" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1600&q=85" alt="Produits frais colorés" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=1600&q=85" alt="Huile d'olive et olives méditerranéennes" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=1600&q=85" alt="Saveurs colorées du monde" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=1600&q=85" alt="Baklava et pâtisseries orientales" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=1600&q=85" alt="Thés et boissons du monde" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=85" alt="Art de la table Karaca" loading="lazy">
+    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=85" alt="Marché épicerie mondiale" loading="lazy">
+  </div>
+  <div class="hero-overlay"></div>
+
+  <!-- Right-side slide link: updates via JS to match current visible slide -->
+  <a class="hero-slide-link" id="hero-slide-link" href="/collections/epices" aria-label="Voir la collection">
+    <span class="hsl-label" id="hero-slide-label">Épices du monde</span>
+    <span class="hsl-arrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </span>
+  </a>
+
+  <div class="hero-content-wrap">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hb-dot"></span>
+        <span class="hb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Supermarché Mondial
+        </span>
+        <span class="hb-sep">|</span>
+        <span class="hb-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Paris
+        </span>
+        <span class="hb-sep">|</span>
+        <span class="hb-item hb-live">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Livraison 24h
+        </span>
+      </div>
+      <h1 class="hero-title">Le monde<br><em>dans votre</em><br>assiette</h1>
+      <p class="hero-desc">+1000 produits authentiques de 8 cuisines du monde. Épicerie, boucherie halal, hygiène. Livraison Express 24h partout en France.</p>
+      <div class="hero-buttons">
+        <a class="btn-primary" href="/collections/all">Nos produits →</a>
+        <a class="btn-outline" href="/collections/promotions">Promotions 🔥</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="n">+1000</div><div class="l">Produits</div></div>
+        <div class="hero-stat"><div class="n">8</div><div class="l">Cuisines</div></div>
+        <div class="hero-stat"><div class="n">24h</div><div class="l">Livraison</div></div>
+        <div class="hero-stat"><div class="n">Halal</div><div class="l">Certifié</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  var slides = [
+    { label: "Épices du monde",         href: "/collections/epices" },
+    { label: "Boucherie Halal ✅",       href: "/collections/viandes-halal" },
+    { label: "Épicerie fine",           href: "/collections/epicerie-fine" },
+    { label: "Produits frais",          href: "/collections/produits-frais" },
+    { label: "Huile d'olive",           href: "/search?q=olive" },
+    { label: "Saveurs du monde",        href: "/collections/all" },
+    { label: "Baklava & pâtisseries",   href: "/search?q=baklava" },
+    { label: "Thés & Boissons",         href: "/collections/thes" },
+    { label: "Karaca — Art de la table",href: "/collections/karaca" },
+    { label: "Épicerie mondiale",       href: "/collections/all" }
+  ];
+  var CYCLE = 30000, PER = 3000;
+  var startTime = Date.now(); /* anchor to page load so JS matches CSS animation */
+  var link  = document.getElementById('hero-slide-link');
+  var label = document.getElementById('hero-slide-label');
+  if (!link || !label) return;
+  function update() {
+    var elapsed = (Date.now() - startTime) % CYCLE;
+    var idx = Math.floor(elapsed / PER) % slides.length;
+    link.href  = slides[idx].href;
+    label.textContent = slides[idx].label;
+  }
+  update();
+  setInterval(update, PER);
+})();
+</script>
+
+<!-- ══ TRUST BAR ══ -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-item"><div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div><div><strong>Express 24h</strong><span>Paris & toute la France</span></div></div>
+    <div class="trust-item"><div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div><strong>Offerte dès 149€</strong><span>Livraison gratuite</span></div></div>
+    <div class="trust-item"><div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></div><div><strong>Halal certifié</strong><span>Boucherie & épicerie</span></div></div>
+    <div class="trust-item"><div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></div><div><strong>Paiement sécurisé</strong><span>CB · PayPal · Apple Pay</span></div></div>
+    <div class="trust-item"><div class="trust-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg></div><div><strong>Support 7j/7</strong><span>FR · AR · TR</span></div></div>
+  </div>
+</div>
+
+<!-- ══ COLLECTIONS GRID ══ -->
+<section class="section collections-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div><h2 class="section-title">Nos <span>Rayons</span></h2><p class="section-sub">Parcourez toutes nos grandes familles de produits</p></div>
+      <a class="see-all" href="/collections/all">Tout voir <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+    </div>
+    <div class="col-row1">
+      <a class="colcard" href="/collections/epicerie-fine">{%- assign col_epicerie_fine = collections['epicerie-fine'] -%}{%- if col_epicerie_fine.image -%}<img src="{{ col_epicerie_fine.image | image_url: width: 600 }}" alt="{{ col_epicerie_fine.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=700&q=80" alt="epicerie-fine" loading="lazy">{%- endif -%}<div class="col-ov dark"><span class="col-name">🏺 Épicerie Fine</span><span class="col-cnt">Épices, conserves, pâtes, sucreries</span></div><span class="col-tag tag-g">TOP VENTE</span></a>
+      <a class="colcard" href="/collections/boucherie">{%- assign col_boucherie = collections['boucherie'] -%}{%- if col_boucherie.image -%}<img src="{{ col_boucherie.image | image_url: width: 600 }}" alt="{{ col_boucherie.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=700&q=80" alt="boucherie" loading="lazy">{%- endif -%}<div class="col-ov dark"><span class="col-name">🥩 Boucherie</span><span class="col-cnt">Halal certifié · Conventionnel · Poissons</span></div><span class="col-tag tag-r">HALAL ✓</span></a>
+      <a class="colcard" href="/collections/produits-frais">{%- assign col_produits_frais = collections['produits-frais'] -%}{%- if col_produits_frais.image -%}<img src="{{ col_produits_frais.image | image_url: width: 600 }}" alt="{{ col_produits_frais.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=700&q=80" alt="produits-frais" loading="lazy">{%- endif -%}<div class="col-ov dark"><span class="col-name">🥬 Produits Frais</span><span class="col-cnt">Fruits, légumes, fromages, traiteur</span></div></a>
+    </div>
+    <div class="col-row2">
+      <a class="colcard" href="/collections/boissons">{%- assign col_boissons = collections['boissons'] -%}{%- if col_boissons.image -%}<img src="{{ col_boissons.image | image_url: width: 600 }}" alt="{{ col_boissons.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&q=80" alt="boissons" loading="lazy">{%- endif -%}<div class="col-ov mid"><span class="col-name">🫖 Boissons</span><span class="col-cnt">Thés, cafés, jus, sodas, vins</span></div></a>
+      <a class="colcard" href="/collections/hygiene-beaute">{%- assign col_hygiene_beaute = collections['hygiene-beaute'] -%}{%- if col_hygiene_beaute.image -%}<img src="{{ col_hygiene_beaute.image | image_url: width: 600 }}" alt="{{ col_hygiene_beaute.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=500&q=80" alt="hygiene-beaute" loading="lazy">{%- endif -%}<div class="col-ov mid"><span class="col-name">🧴 Hygiène & Beauté</span><span class="col-cnt">Soins, cosmétiques, rasage</span></div></a>
+      <a class="colcard" href="/collections/entretien">{%- assign col_entretien = collections['entretien'] -%}{%- if col_entretien.image -%}<img src="{{ col_entretien.image | image_url: width: 600 }}" alt="{{ col_entretien.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1563453392212-326f5e854473?w=500&q=80" alt="entretien" loading="lazy">{%- endif -%}<div class="col-ov mid"><span class="col-name">🧹 Entretien</span><span class="col-cnt">Lessive, nettoyants, accessoires</span></div></a>
+      <a class="colcard" href="/collections/vegan">{%- assign col_vegan = collections['vegan'] -%}{%- if col_vegan.image -%}<img src="{{ col_vegan.image | image_url: width: 600 }}" alt="{{ col_vegan.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=500&q=80" alt="vegan" loading="lazy">{%- endif -%}<div class="col-ov mid"><span class="col-name">🌿 Vegan & Bio</span><span class="col-cnt">100% naturel · Sans gluten · Bio</span></div></a>
+    </div>
+    <div class="col-row3">
+      <a class="colcard" href="/collections/karaca">{%- assign col_karaca = collections['karaca'] -%}{%- if col_karaca.image -%}<img src="{{ col_karaca.image | image_url: width: 600 }}" alt="{{ col_karaca.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80" alt="karaca" loading="lazy">{%- endif -%}<div class="col-ov light"><span class="col-name sm">🍽️ Art de la Table</span><span class="col-cnt">Karaca — Vaisselle, cuisine & déco</span></div><span class="col-tag tag-o">KARACA</span></a>
+      <a class="colcard" href="/collections/alimentation-bebe">{%- assign col_alimentation_bebe = collections['alimentation-bebe'] -%}{%- if col_alimentation_bebe.image -%}<img src="{{ col_alimentation_bebe.image | image_url: width: 600 }}" alt="{{ col_alimentation_bebe.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1519689680058-324335c77eba?w=400&q=80" alt="alimentation-bebe" loading="lazy">{%- endif -%}<div class="col-ov light"><span class="col-name sm">👶 Bébé & Enfant</span><span class="col-cnt">Alimentation, couches, hygiène</span></div></a>
+      <a class="colcard" href="/collections/chien">{%- assign col_chien = collections['chien'] -%}{%- if col_chien.image -%}<img src="{{ col_chien.image | image_url: width: 600 }}" alt="{{ col_chien.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&q=80" alt="chien" loading="lazy">{%- endif -%}<div class="col-ov light"><span class="col-name sm">🐾 Animaux</span><span class="col-cnt">Chien, chat, autres</span></div></a>
+      <a class="colcard" href="/collections/promotions">{%- assign col_promotions = collections['promotions'] -%}{%- if col_promotions.image -%}<img src="{{ col_promotions.image | image_url: width: 600 }}" alt="{{ col_promotions.title }}" loading="lazy">{%- else -%}<img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=400&q=80" alt="promotions" loading="lazy">{%- endif -%}<div class="col-ov light"><span class="col-name sm">🔥 Promotions</span><span class="col-cnt">Offres du moment</span></div><span class="col-tag tag-r">PROMOS</span></a>
+      <a class="colcard" href="/blogs/recettes"><img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&q=80" alt="Recettes" loading="lazy"><div class="col-ov light"><span class="col-name sm">📖 Blog Recettes</span><span class="col-cnt">+50 recettes authentiques</span></div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ BOUCHERIE PRODUCT CAROUSEL ══ -->
+<section class="section" style="background:#fff8f5;padding:40px 0 48px">
+  <div class="section-inner">
+    <div class="section-header" style="margin-bottom:18px">
+      <div>
+        <h2 class="section-title">🥩 Boucherie <span>Halal</span></h2>
+        <p class="section-sub">Viandes fraîches certifiées · Livraison sous glace 24h</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="bcar-prev" class="pcarousel-arrow" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="bcar-next" class="pcarousel-arrow" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <a class="see-all" href="/collections/boucherie">Voir tout →</a>
+      </div>
+    </div>
+    <div class="pcarousel-wrap" id="bcarousel">
+      {% for product in collections['boucherie'].products limit: 40 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=500&q=80" alt="{{ product.title }}" loading="lazy">{% endif %}
+            <span class="product-badge" style="background:#2D6A2D">Halal ✓</span>
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale" style="top:36px">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥩 Boucherie Halal</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var t=document.getElementById('bcarousel'),p=document.getElementById('bcar-prev'),n=document.getElementById('bcar-next');
+  if(!t)return;
+  var cw=function(){var c=t.querySelector('.pcar-item');return c?c.offsetWidth+16:220;};
+  if(p)p.addEventListener('click',function(){t.scrollBy({left:-cw()*2,behavior:'smooth'});});
+  if(n)n.addEventListener('click',function(){t.scrollBy({left:cw()*2,behavior:'smooth'});});
+  var ti=setInterval(function(){if(t.scrollLeft>=t.scrollWidth-t.clientWidth-10){t.scrollTo({left:0,behavior:'smooth'});}else{t.scrollBy({left:cw(),behavior:'smooth'});}},3500);
+  t.addEventListener('mouseenter',function(){clearInterval(ti);});
+  t.addEventListener('touchstart',function(){clearInterval(ti);},{passive:true});
+})();
+</script>
+
+<!-- ══ FLASH DEALS ══ -->
+<section class="flash-section">
+  <div class="section-inner">
+    <div class="flash-header">
+      <div class="flash-title-wrap">
+        <div class="flash-icon"><svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
+        <h2>Flash Deals du Jour</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div class="countdown" id="flash-countdown">
+          <div class="countdown-unit"><span class="n" id="cd-h">06</span><span class="l">h</span></div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-unit"><span class="n" id="cd-m">42</span><span class="l">min</span></div>
+          <span class="countdown-sep">:</span>
+          <div class="countdown-unit"><span class="n" id="cd-s">17</span><span class="l">sec</span></div>
+        </div>
+        <a href="/collections/promotions" style="color:#A8D8A0;font-size:13px;font-weight:600;text-decoration:none">Voir toutes les promos →</a>
+      </div>
+    </div>
+    <div class="flash-grid" style="display:flex;overflow-x:auto;gap:14px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:8px;scrollbar-width:none">
+      <a class="flash-card" href="/collections/epices">
+        <div class="flash-card-img">{%- assign fl_epices = collections['epices'] -%}{%- if fl_epices.image -%}<img src="{{ fl_epices.image | image_url: width: 400 }}" alt="epices" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=400&q=80" alt="epices" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-30%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🏺 Épicerie · Épices</div><div class="flash-name">Épices & Condiments</div><div class="flash-price"><span class="new-price">dès 1,90€</span></div><div class="stock-bar"><div class="stock-label">67% vendu</div><div class="stock-track"><div class="stock-fill" style="width:67%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/epices">Acheter →</a>
+        </div>
+      </a>
+      <a class="flash-card" href="/collections/boucherie">
+        <div class="flash-card-img">{%- assign fl_boucherie = collections['boucherie'] -%}{%- if fl_boucherie.image -%}<img src="{{ fl_boucherie.image | image_url: width: 400 }}" alt="boucherie" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=400&q=80" alt="boucherie" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-20%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🥩 Boucherie · Halal</div><div class="flash-name">Viandes Halal Fraîches</div><div class="flash-price"><span class="new-price">dès 8,90€/kg</span></div><div class="stock-bar"><div class="stock-label">45% vendu</div><div class="stock-track"><div class="stock-fill" style="width:45%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/boucherie">Acheter →</a>
+        </div>
+      </a>
+      <a class="flash-card" href="/collections/baklava">
+        <div class="flash-card-img">{%- assign fl_baklava = collections['baklava'] -%}{%- if fl_baklava.image -%}<img src="{{ fl_baklava.image | image_url: width: 400 }}" alt="baklava" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?w=400&q=80" alt="baklava" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-25%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🇹🇷 Turque · Sucreries</div><div class="flash-name">Baklava & Pâtisseries</div><div class="flash-price"><span class="new-price">dès 4,90€</span></div><div class="stock-bar"><div class="stock-label">60% vendu</div><div class="stock-track"><div class="stock-fill" style="width:60%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/baklava">Acheter →</a>
+        </div>
+      </a>
+      <a class="flash-card" href="/collections/thes">
+        <div class="flash-card-img">{%- assign fl_thes = collections['thes'] -%}{%- if fl_thes.image -%}<img src="{{ fl_thes.image | image_url: width: 400 }}" alt="thes" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1564890369478-c89ca3d9cde0?w=400&q=80" alt="thes" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-40%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🫖 Boissons · Thés</div><div class="flash-name">Thés & Cafés du Monde</div><div class="flash-price"><span class="new-price">dès 3,50€</span></div><div class="stock-bar"><div class="stock-label">38% vendu</div><div class="stock-track"><div class="stock-fill" style="width:38%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/thes">Acheter →</a>
+        </div>
+      </a>
+      <a class="flash-card" href="/collections/fromages-frais">
+        <div class="flash-card-img">{%- assign fl_fromages = collections['fromages-frais'] -%}{%- if fl_fromages.image -%}<img src="{{ fl_fromages.image | image_url: width: 400 }}" alt="fromages" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80" alt="fromages" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}<div class="flash-discount">-15%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🥬 Frais · Fromages</div><div class="flash-name">Fromages & Laitages</div><div class="flash-price"><span class="new-price">dès 5,90€</span></div><div class="stock-bar"><div class="stock-label">55% vendu</div><div class="stock-track"><div class="stock-fill" style="width:55%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/fromages-frais">Acheter →</a>
+        </div>
+      </a>
+      <a class="flash-card" href="/collections/huile-olive">
+        <div class="flash-card-img"><img src="https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80" alt="Huile olive" loading="lazy" style="object-position:center;width:100%;height:100%;object-fit:cover;transition:transform .4s"><div class="flash-discount">-18%</div></div>
+        <div class="flash-card-body"><div class="flash-origin">🫒 Épicerie · Huiles</div><div class="flash-name">Huile d'Olive Premium</div><div class="flash-price"><span class="new-price">dès 6,90€</span></div><div class="stock-bar"><div class="stock-label">42% vendu</div><div class="stock-track"><div class="stock-fill" style="width:42%"></div></div></div>
+          <a class="flash-buy-btn" href="/collections/huile-olive">Acheter →</a>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ PRODUITS — SÉLECTION DU MOMENT (auto-scroll carousel) ══ -->
+<section class="section products-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div><h2 class="section-title">Sélection <span>du Moment</span></h2><p class="section-sub">Nos produits phares · Mis à jour chaque semaine</p></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="pcarousel-arrow" id="pcar-prev" aria-label="Précédent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="pcarousel-arrow" id="pcar-next" aria-label="Suivant">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <a class="see-all" href="/collections/all">Voir tout <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+      </div>
+    </div>
+
+    <!-- Carousel track -->
+    <div class="pcarousel-wrap" id="pcarousel">
+      {% assign shown_count = 0 %}
+
+      {% for product in collections['epicerie-fine'].products limit: 8 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🏺 Épicerie</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['boucherie'].products limit: 6 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥩 Boucherie Halal</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['boissons'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🫖 Boissons</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['karaca'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            <span class="product-badge" style="background:#C4792A">Karaca</span>
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🍽️ Art de la Table</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['produits-frais'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥬 Produits Frais</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['produits-frais'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🥬 Produits Frais</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['epices'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🌶️ Épices</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['turque'].products limit: 5 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🇹🇷 Cuisine Turque</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      {% for product in collections['maghrébine'].products limit: 4 %}
+        {% assign shown_count = shown_count | plus: 1 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🇲🇦 Cuisine Maghrébine</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+
+      <!-- Fallback: tüm koleksiyonlardan toplamak -->
+      {% if shown_count < 6 %}
+        {% for product in collections.all.products limit: 30 %}
+          <a class="product-card pcar-item" href="{{ product.url }}">
+            <div class="product-img">
+              {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">{% endif %}
+              {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+            </div>
+            <div class="product-info">
+              <div class="product-title">{{ product.title }}</div>
+              <div class="product-bottom">
+                <div class="product-price"><span class="current-price">{{ product.price | money }}</span></div>
+                <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+              </div>
+            </div>
+          </a>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  var track = document.getElementById('pcarousel');
+  var btnPrev = document.getElementById('pcar-prev');
+  var btnNext = document.getElementById('pcar-next');
+  if (!track) return;
+  var cardW = function() {
+    var c = track.querySelector('.pcar-item');
+    return c ? c.offsetWidth + parseInt(getComputedStyle(track).gap || 16) : 220;
+  };
+  if (btnPrev) btnPrev.addEventListener('click', function() {
+    track.scrollBy({ left: -cardW() * 2, behavior: 'smooth' });
+  });
+  if (btnNext) btnNext.addEventListener('click', function() {
+    track.scrollBy({ left: cardW() * 2, behavior: 'smooth' });
+  });
+  /* Auto-scroll every 3.5s */
+  var autoTimer = setInterval(function() {
+    var maxScroll = track.scrollWidth - track.clientWidth;
+    if (track.scrollLeft >= maxScroll - 10) {
+      track.scrollTo({ left: 0, behavior: 'smooth' });
+    } else {
+      track.scrollBy({ left: cardW(), behavior: 'smooth' });
+    }
+  }, 3500);
+  /* Pause on hover/touch */
+  track.addEventListener('mouseenter', function() { clearInterval(autoTimer); });
+  track.addEventListener('touchstart', function() { clearInterval(autoTimer); }, { passive: true });
+})();
+</script>
+
+
+<!-- ══ ART DE LA TABLE — KARACA ══ -->
+<section style="background:var(--cr);padding:52px 20px">
+  <div style="max-width:var(--lw,1440px);margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h2 style="font-family:'Playfair Display',serif;font-size:30px;font-weight:700;color:var(--td)">Art de la Table <span style="color:var(--gl)">Karaca</span></h2>
+        <p style="font-size:13px;color:var(--tl);margin-top:5px">Vaisselle, cuisine & décoration — marque turque premium</p>
+      </div>
+      <a href="/collections/karaca" style="display:flex;align-items:center;gap:4px;color:var(--gl);font-size:13px;font-weight:600;text-decoration:none">
+        Tout Karaca <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+
+    <!-- Hero -->
+    <a href="/collections/karaca" style="border-radius:18px;overflow:hidden;position:relative;height:240px;display:block;margin-bottom:18px;text-decoration:none">
+        {%- assign bois_karaca = collections['karaca'] -%}{%- if bois_karaca.image -%}<img src="{{ bois_karaca.image | image_url: width: 600 }}" alt="{{ bois_karaca.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1400&q=85" alt="karaca" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(26,60,26,.88) 42%,rgba(26,60,26,.18) 100%);display:flex;align-items:center;padding:36px">
+        <div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(168,216,160,.2);border:1px solid rgba(168,216,160,.35);color:#A8D8A0;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:12px">🏆 Marque n°1 en Turquie</div>
+          <h3 style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#fff;margin-bottom:6px">La qualité turque<br><em style="color:#A8D8A0;font-style:normal">dans votre cuisine</em></h3>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600">Découvrir →</span>
+        </div>
+      </div>
+    </a>
+
+    <!-- 4 catégories -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" class="karaca-cats">
+      <a href="/collections/karaca-services-vaisselle" style="border-radius:12px;overflow:hidden;position:relative;height:155px;display:block;text-decoration:none">
+        {%- assign bois_karaca_services_vaisselle = collections['karaca-services-vaisselle'] -%}{%- if bois_karaca_services_vaisselle.image -%}<img src="{{ bois_karaca_services_vaisselle.image | image_url: width: 600 }}" alt="{{ bois_karaca_services_vaisselle.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=500&q=80" alt="karaca-services-vaisselle" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 32%,rgba(10,25,10,.84) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:12px">
+          <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff">🍽️ Services</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.7);margin-top:1px">4, 6 & 12 personnes</span>
+        </div>
+      </a>
+      <a href="/collections/karaca-batterie-cuisine" style="border-radius:12px;overflow:hidden;position:relative;height:155px;display:block;text-decoration:none">
+        {%- assign bois_karaca_batterie_cuisine = collections['karaca-batterie-cuisine'] -%}{%- if bois_karaca_batterie_cuisine.image -%}<img src="{{ bois_karaca_batterie_cuisine.image | image_url: width: 600 }}" alt="{{ bois_karaca_batterie_cuisine.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=500&q=80" alt="karaca-batterie-cuisine" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 32%,rgba(10,25,10,.84) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:12px">
+          <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff">🍳 Cuisine</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.7);margin-top:1px">Poêles & batterie</span>
+        </div>
+      </a>
+      <a href="/collections/karaca-cafe-the" style="border-radius:12px;overflow:hidden;position:relative;height:155px;display:block;text-decoration:none">
+        {%- assign bois_karaca_cafe_the = collections['karaca-cafe-the'] -%}{%- if bois_karaca_cafe_the.image -%}<img src="{{ bois_karaca_cafe_the.image | image_url: width: 600 }}" alt="{{ bois_karaca_cafe_the.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=500&q=80" alt="karaca-cafe-the" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 32%,rgba(10,25,10,.84) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:12px">
+          <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff">☕ Café & Thé</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.7);margin-top:1px">Machines & accessoires</span>
+        </div>
+      </a>
+      <a href="/collections/karaca-decoration" style="border-radius:12px;overflow:hidden;position:relative;height:155px;display:block;text-decoration:none">
+        {%- assign bois_karaca_decoration = collections['karaca-decoration'] -%}{%- if bois_karaca_decoration.image -%}<img src="{{ bois_karaca_decoration.image | image_url: width: 600 }}" alt="{{ bois_karaca_decoration.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=500&q=80" alt="karaca-decoration" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 32%,rgba(10,25,10,.84) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:12px">
+          <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff">🏠 Maison</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.7);margin-top:1px">Déco & textile</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Toutes les sous-catégories chips -->
+    <div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;flex-wrap:nowrap">
+      {% assign karaca_links = "karaca-services-vaisselle:Services Vaisselle,karaca-vaisselle-12:12 personnes,karaca-vaisselle-6:6 personnes,karaca-vaisselle-4:4 personnes,karaca-assiettes:Assiettes,karaca-bols:Bols & Saladiers,karaca-verres:Verres,karaca-couverts:Couverts,karaca-cafe-the:Café & Thé,karaca-petit-dejeuner:Petit-Déjeuner,karaca-accessoires-table:Accessoires Table,karaca-poeles:Poêles,karaca-batterie-cuisine:Batterie Cuisine,karaca-ustensiles:Ustensiles,karaca-electromenager:Électroménager,karaca-machines-cafe:Machines à Café,karaca-textile:Textile Maison,karaca-decoration:Décoration,karaca-tapis:Tapis" | split: "," %}
+      {% for item in karaca_links %}
+        {% assign parts = item | split: ":" %}
+        <a href="/collections/{{ parts[0] }}" style="flex-shrink:0;background:#fff;border:1.5px solid var(--bo);border-radius:30px;padding:7px 15px;font-size:12px;font-weight:600;color:var(--tm);text-decoration:none;white-space:nowrap;transition:all .2s">{{ parts[1] }}</a>
+      {% endfor %}
+      <a href="/collections/karaca" style="flex-shrink:0;background:var(--gl);border:1.5px solid var(--gl);border-radius:30px;padding:7px 15px;font-size:12px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap">→ Tout Karaca</a>
+    </div>
+  </div>
+
+  <!-- ══ KARACA PRODUCT CAROUSEL ══ -->
+  <div style="margin-top:32px;padding:0 20px 8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <p style="font-size:13px;font-weight:600;color:#C4792A;letter-spacing:0.04em;text-transform:uppercase;margin:0">🍽️ Toute la collection Karaca</p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="kcar-prev" class="pcarousel-arrow" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="kcar-next" class="pcarousel-arrow" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+      </div>
+    </div>
+    <div class="pcarousel-wrap" id="kcarousel">
+      {% for product in collections['karaca'].products limit: 40 %}
+        <a class="product-card pcar-item" href="{{ product.url }}">
+          <div class="product-img">
+            {% if product.featured_image %}
+              <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}
+              <img src="https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500&q=80" alt="{{ product.title }}" loading="lazy">
+            {% endif %}
+            {% if product.compare_at_price > product.price %}<span class="product-badge badge-sale">Promo</span>{% endif %}
+            <span class="product-badge" style="background:#C4792A;top:auto;bottom:8px;right:8px;left:auto">Karaca</span>
+          </div>
+          <div class="product-info">
+            <div class="product-origin">🍽️ Art de la Table</div>
+            <div class="product-title">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price">
+                <span class="current-price">{{ product.price | money }}</span>
+                {% if product.compare_at_price > product.price %}<span class="compare-price">{{ product.compare_at_price | money }}</span>{% endif %}
+              </div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+</section>
+
+<script>
+(function() {
+  var track = document.getElementById('kcarousel');
+  var btnP  = document.getElementById('kcar-prev');
+  var btnN  = document.getElementById('kcar-next');
+  if (!track) return;
+  var cw = function() {
+    var c = track.querySelector('.pcar-item');
+    return c ? c.offsetWidth + 16 : 220;
+  };
+  if (btnP) btnP.addEventListener('click', function() { track.scrollBy({ left: -cw()*2, behavior:'smooth' }); });
+  if (btnN) btnN.addEventListener('click', function() { track.scrollBy({ left:  cw()*2, behavior:'smooth' }); });
+  var t = setInterval(function() {
+    var max = track.scrollWidth - track.clientWidth;
+    if (track.scrollLeft >= max - 10) { track.scrollTo({ left:0, behavior:'smooth' }); }
+    else { track.scrollBy({ left: cw(), behavior:'smooth' }); }
+  }, 3000);
+  track.addEventListener('mouseenter', function() { clearInterval(t); });
+  track.addEventListener('touchstart', function() { clearInterval(t); }, { passive:true });
+})();
+</script>
+<style>
+.karaca-cats a:hover img { transform: scale(1.06); }
+.karaca-cats a:hover { transform: translateY(-3px); }
+@media(max-width:768px) { .karaca-cats { grid-template-columns: 1fr 1fr !important; } .karaca-cats a { height: 130px !important; } }
+</style>
+
+
+
+
+
+<!-- ══════════════════════════════════
+     BOISSONS DU MONDE
+══════════════════════════════════ -->
+<section class="section" style="background:var(--gd);padding:52px 20px">
+  <div class="section-inner">
+    <div class="section-header" style="margin-bottom:28px">
+      <div>
+        <h2 class="section-title" style="color:#fff">Boissons <span style="color:#A8D8A0">du Monde</span></h2>
+        <p class="section-sub" style="color:rgba(255,255,255,.6)">Alcoolisées & non-alcoolisées · Thés, cafés, jus, eaux, vins</p>
+      </div>
+      <a class="see-all" href="/collections/boissons" style="color:#A8D8A0">Tout voir <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+    </div>
+
+    <!-- 4 grandes cartes -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px" class="bois-grid">
+      <a href="/collections/thes" style="border-radius:14px;overflow:hidden;position:relative;height:190px;display:block;transition:transform .25s">
+        {%- assign bois_thes = collections['thes'] -%}{%- if bois_thes.image -%}<img src="{{ bois_thes.image | image_url: width: 600 }}" alt="{{ bois_thes.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1521302080334-4bebac2763a6?w=600&q=80" alt="thes" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.78) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:14px">
+          <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;display:block">🫖 Thés & Cafés</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">Turcs, orientaux, du monde</span>
+        </div>
+        <span style="position:absolute;top:10px;right:10px;background:#4A8C3F;color:#fff;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px">SANS ALCOOL</span>
+      </a>
+      <a href="/collections/jus" style="border-radius:14px;overflow:hidden;position:relative;height:190px;display:block;transition:transform .25s">
+        {%- assign bois_jus = collections['jus'] -%}{%- if bois_jus.image -%}<img src="{{ bois_jus.image | image_url: width: 600 }}" alt="{{ bois_jus.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=80" alt="jus" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.78) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:14px">
+          <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;display:block">🧃 Jus & Sodas</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">Jus naturels, sodas exotiques</span>
+        </div>
+        <span style="position:absolute;top:10px;right:10px;background:#4A8C3F;color:#fff;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px">SANS ALCOOL</span>
+      </a>
+      <a href="/collections/boissons-vegetales" style="border-radius:14px;overflow:hidden;position:relative;height:190px;display:block;transition:transform .25s">
+        {%- assign bois_boissons_vegetales = collections['boissons-vegetales'] -%}{%- if bois_boissons_vegetales.image -%}<img src="{{ bois_boissons_vegetales.image | image_url: width: 600 }}" alt="{{ bois_boissons_vegetales.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1616485828779-e19c0b77f01e?w=600&q=80" alt="boissons-vegetales" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.78) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:14px">
+          <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;display:block">🥛 Boissons Végétales</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">Lait d'amande, soja, avoine...</span>
+        </div>
+        <span style="position:absolute;top:10px;right:10px;background:#4A8C3F;color:#fff;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px">VEGAN</span>
+      </a>
+      <a href="/collections/vins" style="border-radius:14px;overflow:hidden;position:relative;height:190px;display:block;transition:transform .25s">
+        {%- assign bois_vins = collections['vins'] -%}{%- if bois_vins.image -%}<img src="{{ bois_vins.image | image_url: width: 600 }}" alt="{{ bois_vins.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- else -%}<img src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80" alt="vins" loading="lazy" style="width:100%;height:100%;object-fit:cover;transition:transform .4s">{%- endif -%}
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.78) 100%);display:flex;flex-direction:column;justify-content:flex-end;padding:14px">
+          <span style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;display:block">🍷 Vins (+18)</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">Français, espagnols, italiens</span>
+        </div>
+        <span style="position:absolute;top:10px;right:10px;background:#C0392B;color:#fff;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px">+18</span>
+      </a>
+    </div>
+
+    <!-- Petites catégories scroll -->
+    <div style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none">
+      <a href="/collections/thes" style="flex-shrink:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;transition:background .2s;scroll-snap-align:start">
+        <span style="font-size:22px">☕</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Café turc</div><div style="font-size:11px;color:rgba(255,255,255,.6)">Traditionnel</div></div>
+      </a>
+      <a href="/collections/thes" style="flex-shrink:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;scroll-snap-align:start">
+        <span style="font-size:22px">🍵</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Thé à la menthe</div><div style="font-size:11px;color:rgba(255,255,255,.6)">Maghrébin</div></div>
+      </a>
+      <a href="/collections/jus" style="flex-shrink:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;scroll-snap-align:start">
+        <span style="font-size:22px">🍋</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Limonata & Gazoz</div><div style="font-size:11px;color:rgba(255,255,255,.6)">Sodas orientaux</div></div>
+      </a>
+      <a href="/collections/boissons-vegetales" style="flex-shrink:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;scroll-snap-align:start">
+        <span style="font-size:22px">🌰</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Lait d'amande</div><div style="font-size:11px;color:rgba(255,255,255,.6)">& soja</div></div>
+      </a>
+      <a href="/collections/vins" style="flex-shrink:0;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;scroll-snap-align:start">
+        <span style="font-size:22px">🍾</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Champagnes & Vins</div><div style="font-size:11px;color:rgba(255,255,255,.6)">+18 seulement</div></div>
+      </a>
+      <a href="/collections/boissons" style="flex-shrink:0;background:rgba(168,216,160,.2);border:1px solid rgba(168,216,160,.35);border-radius:12px;padding:12px 18px;display:flex;align-items:center;gap:10px;white-space:nowrap;text-decoration:none;scroll-snap-align:start">
+        <span style="font-size:22px">→</span>
+        <div><div style="font-size:13px;font-weight:700;color:#A8D8A0">Toutes les boissons</div><div style="font-size:11px;color:rgba(255,255,255,.5)">Voir tout</div></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+.bois-grid a:hover img { transform: scale(1.06); }
+.bois-grid a:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+@media(max-width:768px) {
+  .bois-grid { grid-template-columns: 1fr 1fr !important; }
+  .bois-grid a { height: 150px !important; }
+}
+</style>
+
+<!-- ══ BOISSONS PRODUCT CAROUSEL ══ -->
+<div style="padding:32px 0 48px;background:var(--gd)">
+  <div class="section-inner">
+    <div class="section-header" style="margin-bottom:18px">
+      <div>
+        <p style="font-size:13px;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:.06em;text-transform:uppercase;margin:0 0 4px">🫖 Boissons & Café</p>
+        <h2 class="section-title" style="color:#fff;margin:0">Toute notre <span style="color:#A8D8A0">sélection</span></h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button id="drcar-prev" class="pcarousel-arrow" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)" aria-label="Précédent"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button id="drcar-next" class="pcarousel-arrow" style="background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)" aria-label="Suivant"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <a class="see-all" href="/collections/boissons" style="color:#A8D8A0">Voir tout →</a>
+      </div>
+    </div>
+    <div class="pcarousel-wrap" id="drcarousel">
+      {% for product in collections['boissons'].products limit: 20 %}
+        <a class="product-card pcar-item" href="{{ product.url }}" style="background:#1e4620">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}<img src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=500&q=80" alt="{{ product.title }}" loading="lazy">{% endif %}
+          </div>
+          <div class="product-info" style="background:#1e4620">
+            <div class="product-origin" style="color:#A8D8A0">🫖 Boissons</div>
+            <div class="product-title" style="color:#fff">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price" style="color:#A8D8A0">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+      {% for product in collections['thes'].products limit: 15 %}
+        <a class="product-card pcar-item" href="{{ product.url }}" style="background:#1e4620">
+          <div class="product-img">
+            {% if product.featured_image %}<img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+            {% else %}<img src="https://images.unsplash.com/photo-1564890369478-c89ca3d9cde0?w=500&q=80" alt="{{ product.title }}" loading="lazy">{% endif %}
+            <span class="product-badge" style="background:#2d6a30">Thé & Café</span>
+          </div>
+          <div class="product-info" style="background:#1e4620">
+            <div class="product-origin" style="color:#A8D8A0">☕ Thés & Cafés</div>
+            <div class="product-title" style="color:#fff">{{ product.title }}</div>
+            <div class="product-bottom">
+              <div class="product-price"><span class="current-price" style="color:#A8D8A0">{{ product.price | money }}</span></div>
+              <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var t=document.getElementById('drcarousel'),p=document.getElementById('drcar-prev'),n=document.getElementById('drcar-next');
+  if(!t)return;
+  var cw=function(){var c=t.querySelector('.pcar-item');return c?c.offsetWidth+16:220;};
+  if(p)p.addEventListener('click',function(){t.scrollBy({left:-cw()*2,behavior:'smooth'});});
+  if(n)n.addEventListener('click',function(){t.scrollBy({left:cw()*2,behavior:'smooth'});});
+  var ti=setInterval(function(){if(t.scrollLeft>=t.scrollWidth-t.clientWidth-10){t.scrollTo({left:0,behavior:'smooth'});}else{t.scrollBy({left:cw(),behavior:'smooth'});}},3500);
+  t.addEventListener('mouseenter',function(){clearInterval(ti);});
+  t.addEventListener('touchstart',function(){clearInterval(ti);},{passive:true});
+})();
+</script>
+
+<!-- ══ RECETTES ══ -->
+<section class="section recipes-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div><h2 class="section-title">Recettes du <span>Monde Entier</span></h2><p class="section-sub">Cuisinez avec nos produits — recettes authentiques</p></div>
+      <a class="see-all" href="/blogs/recettes">Toutes les recettes <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></a>
+    </div>
+    {% assign rec_blog = blogs['recettes'] %}
+    {% if rec_blog.articles.size > 0 %}
+      <div class="recipes-grid">
+        {% for article in rec_blog.articles limit: 3 %}
+          <a class="recipe-card" href="{{ article.url }}">
+            <div class="recipe-img">{% if article.image %}<img src="{{ article.image | image_url: width: 800 }}" alt="{{ article.title }}" loading="lazy">{% else %}<img src="https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=800&q=80" alt="{{ article.title }}" loading="lazy">{% endif %}<span class="recipe-tag">{% if forloop.first %}Recette phare{% else %}Populaire{% endif %}</span></div>
+            <div class="recipe-info"><div class="recipe-cuisine">{{ article.tags | first }}</div><div class="recipe-title">{{ article.title }}</div><div class="recipe-meta"><span>{{ article.published_at | date: '%d %b %Y' }}</span></div></div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="recipes-grid">
+        <a class="recipe-card" href="/blogs/recettes"><div class="recipe-img"><img src="https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?w=800&q=80" alt="Baklava" loading="lazy"><span class="recipe-tag">Recette phare</span></div><div class="recipe-info"><div class="recipe-cuisine">🇹🇷 Cuisine Turque</div><div class="recipe-title">Baklava Maison aux Pistaches</div><div class="recipe-meta"><span>90 min</span><span>8 pers.</span></div></div></a>
+        <a class="recipe-card" href="/blogs/recettes"><div class="recipe-img"><img src="https://images.unsplash.com/photo-1574484284002-952d92456975?w=500&q=80" alt="Bœuf Bourguignon" loading="lazy"><span class="recipe-tag">Populaire</span></div><div class="recipe-info"><div class="recipe-cuisine">🇫🇷 Cuisine Française</div><div class="recipe-title">Bœuf Bourguignon Traditionnel</div><div class="recipe-meta"><span>3h</span><span>6 pers.</span></div></div></a>
+        <a class="recipe-card" href="/blogs/recettes"><div class="recipe-img"><img src="https://images.unsplash.com/photo-1598514982901-5c1d2d10562b?w=500&q=80" alt="Carbonara" loading="lazy"><span class="recipe-tag">Facile</span></div><div class="recipe-info"><div class="recipe-cuisine">🇮🇹 Cuisine Italienne</div><div class="recipe-title">Spaghetti Carbonara Authentique</div><div class="recipe-meta"><span>25 min</span><span>2 pers.</span></div></div></a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ══ NEWSLETTER ══ -->
+<div class="newsletter-section">
+  <img src="https://images.unsplash.com/photo-1506368249639-73a05d6f6488?w=1600&q=80" alt="Newsletter" loading="lazy">
+  <div class="newsletter-overlay">
+    <h2>Restez informé</h2>
+    <p>Recettes, promotions et nouveautés — dans votre boîte mail</p>
+    {% form 'customer', id: 'newsletter-form' %}
+      <input type="hidden" name="contact[tags]" value="newsletter">
+      <div class="newsletter-form">
+        <input type="email" name="contact[email]" placeholder="votre@email.com" required>
+        <button type="submit">S'abonner →</button>
+      </div>
+    {% endform %}
+  </div>
+</div>
+
+<script>
+// Countdown
+(function(){
+  var s=17,m=42,h=6;
+  setInterval(function(){
+    s--;if(s<0){s=59;m--;}if(m<0){m=59;h--;}if(h<0){h=0;m=0;s=0;}
+    var ch=document.getElementById('cd-h'),cm=document.getElementById('cd-m'),cs=document.getElementById('cd-s');
+    if(ch)ch.textContent=String(h).padStart(2,'0');
+    if(cm)cm.textContent=String(m).padStart(2,'0');
+    if(cs)cs.textContent=String(s).padStart(2,'0');
+  },1000);
+})();
+// Filter tabs
+function filterTab(el){document.querySelectorAll('.filter-tab').forEach(function(t){t.classList.remove('active');});el.classList.add('active');}
+</script>

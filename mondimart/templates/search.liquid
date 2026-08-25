@@ -1,0 +1,302 @@
+<div class="search-results-page">
+
+  <div class="srp-header">
+    <h1 class="srp-title">
+      {% if search.performed %}
+        {% if search.results_count > 0 %}
+          {{ search.results_count }} résultat{% if search.results_count != 1 %}s{% endif %}
+          <span class="srp-term">« {{ search.terms }} »</span>
+        {% else %}
+          Aucun résultat
+        {% endif %}
+      {% else %}
+        Recherche
+      {% endif %}
+    </h1>
+
+    <form action="/search" method="get" class="srp-form">
+      <div class="srp-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" name="q" value="{{ search.terms | escape }}" placeholder="Rechercher des produits..." autocomplete="off" autofocus>
+      </div>
+      <button type="submit" class="srp-submit">Chercher</button>
+    </form>
+  </div>
+
+  {% if search.performed %}
+    {% if search.results_count > 0 %}
+      <div class="srp-grid">
+        {% for item in search.results %}
+          {% if item.object_type == 'product' %}
+            <a href="{{ item.url }}" class="product-card pcar-item srp-card">
+              <div class="product-img srp-img">
+                {% if item.featured_image %}
+                  <img src="{{ item.featured_image | image_url: width: 400 }}" alt="{{ item.title | escape }}" loading="lazy">
+                {% else %}
+                  <div class="srp-no-img">🛍️</div>
+                {% endif %}
+                {% if item.compare_at_price > item.price %}
+                  <span class="srp-badge">Promo</span>
+                {% endif %}
+              </div>
+              <div class="srp-info">
+                <div class="srp-brand">{{ item.vendor }}</div>
+                <div class="srp-name">{{ item.title }}</div>
+                <div class="srp-price-row">
+                  <span class="srp-price">{{ item.price | money }}</span>
+                  {% if item.compare_at_price > item.price %}
+                    <span class="srp-was">{{ item.compare_at_price | money }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="srp-empty">
+        <div class="srp-empty-icon">🔍</div>
+        <div class="srp-empty-title">Aucun résultat pour « {{ search.terms }} »</div>
+        <p class="srp-empty-sub">Essayez un autre mot-clé ou explorez nos rayons</p>
+        <a href="/collections/all" class="srp-all-btn">Voir tous les produits</a>
+      </div>
+    {% endif %}
+  {% endif %}
+
+</div>
+
+<style>
+.search-results-page {
+  max-width: var(--lw, 1440px);
+  margin: 0 auto;
+  padding: 28px 16px 80px;
+}
+
+/* Header */
+.srp-header {
+  margin-bottom: 28px;
+}
+.srp-title {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--td, #1C1C1C);
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+.srp-term {
+  color: var(--gl, #1A3C1A);
+  font-style: italic;
+}
+
+/* Search form */
+.srp-form {
+  display: flex;
+  gap: 10px;
+  max-width: 560px;
+}
+.srp-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.srp-input-wrap svg {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  stroke: var(--tl, #888);
+  pointer-events: none;
+}
+.srp-input-wrap input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px 0 44px;
+  border: 1.5px solid var(--bo, #DDD8CC);
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--td, #1C1C1C);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.srp-input-wrap input:focus {
+  border-color: var(--gl, #1A3C1A);
+  box-shadow: 0 0 0 3px rgba(26,60,26,.08);
+}
+.srp-submit {
+  height: 48px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #1A3C1A, #2a6a1e);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(26,60,26,.25);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.srp-submit:active {
+  background: linear-gradient(135deg, #142d14, #1A3C1A);
+  box-shadow: 0 2px 8px rgba(26,60,26,.2);
+}
+
+/* Grid */
+.srp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+@media (min-width: 600px) {
+  .srp-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+}
+@media (min-width: 900px) {
+  .srp-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; }
+}
+@media (min-width: 1200px) {
+  .srp-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* Card */
+.srp-card {
+  border-radius: 14px !important;
+  overflow: hidden;
+  text-decoration: none;
+  display: block;
+  background: #fff;
+  border: 1px solid var(--bo, #DDD8CC);
+  transition: transform 0.22s ease, box-shadow 0.22s ease !important;
+  position: relative;
+}
+.srp-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 10px 32px rgba(26,60,26,.12) !important;
+  border-color: var(--gl, #1A3C1A) !important;
+}
+.srp-card:active {
+  transform: scale(0.97) !important;
+  box-shadow: 0 4px 16px rgba(26,60,26,.1) !important;
+}
+.srp-img {
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  background: var(--cr, #F8F4EC) !important;
+  position: relative;
+  overflow: hidden;
+}
+.srp-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.srp-card:hover .srp-img img { transform: scale(1.06); }
+.srp-no-img {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+}
+.srp-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #E84545;
+  color: #fff;
+  font-family: 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.srp-info {
+  padding: 12px 12px 14px;
+}
+.srp-brand {
+  font-family: 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gl, #1A3C1A);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+.srp-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--td, #1C1C1C);
+  line-height: 1.35;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.srp-price-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.srp-price {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--td, #1C1C1C);
+}
+.srp-was {
+  font-size: 12px;
+  color: var(--tl, #888);
+  text-decoration: line-through;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Empty state */
+.srp-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+.srp-empty-icon { font-size: 52px; margin-bottom: 16px; }
+.srp-empty-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--td, #1C1C1C);
+  margin-bottom: 8px;
+}
+.srp-empty-sub {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  color: var(--tl, #888);
+  margin-bottom: 24px;
+}
+.srp-all-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 28px;
+  background: linear-gradient(135deg, #1A3C1A, #2a6a1e);
+  color: #fff;
+  border-radius: 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(26,60,26,.25);
+  transition: background 0.2s ease;
+}
+.srp-all-btn:hover {
+  background: linear-gradient(135deg, #142d14, #1A3C1A);
+}
+</style>

@@ -1,0 +1,811 @@
+<!-- Shopify locale switcher form (hidden) -->
+<form action="/localization" method="POST" id="lang-form-localization" style="display:none">
+  <input type="hidden" name="_method" value="PUT">
+  <input type="hidden" name="locale_code" value="{{ request.locale.iso_code }}">
+  <input type="hidden" name="return_to" value="{{ request.path }}">
+</form>
+
+<!-- ══ ANNOUNCEMENT BAR ══ -->
+<div class="ann">
+  <div class="ann-track" id="ann-track">
+    <span class="ann-item">⚡ Livraison <strong>Express 24h</strong> — Toute la France</span>
+    <span class="ann-item">🎁 Livraison <strong>offerte dès 149€</strong></span>
+    <span class="ann-item">🥩 Boucherie <strong>Halal certifiée</strong></span>
+    <span class="ann-item">🌿 <strong>+1000 produits</strong> authentiques</span>
+    <span class="ann-item">🔒 Paiement <strong>100% sécurisé</strong></span>
+    <span class="ann-item">🌍 <strong>8 cuisines</strong> du monde</span>
+    <span class="ann-item">⚡ Livraison <strong>Express 24h</strong> — Toute la France</span>
+    <span class="ann-item">🎁 Livraison <strong>offerte dès 149€</strong></span>
+    <span class="ann-item">🥩 Boucherie <strong>Halal certifiée</strong></span>
+    <span class="ann-item">🌿 <strong>+1000 produits</strong> authentiques</span>
+    <span class="ann-item">🔒 Paiement <strong>100% sécurisé</strong></span>
+    <span class="ann-item">🌍 <strong>8 cuisines</strong> du monde</span>
+  </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header class="site-header">
+  <div class="hdr">
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;">
+        <line x1="4" y1="7" x2="20" y2="7"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="17" x2="14" y2="17"/>
+      </svg>
+    </button>
+
+    <a class="logo" href="{{ routes.root_url }}" aria-label="Mondimart — Supermarché du Monde">
+      <svg class="logo-svg" viewBox="0 0 218 54" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Premium Olive Branch -->
+        <!-- Main branch — gentle diagonal curve -->
+        <path d="M16 47 C18 41 21 34 24 26 C27 19 30 13 34 7"
+          stroke="#C8A84B" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <!-- Leaf pair 1 — bottom -->
+        <path d="M18.5 43 C12 39 10 31 15 28.5 C20 26 23 33 18.5 43 Z" fill="#C8A84B" opacity="0.90"/>
+        <path d="M20 40 C26 36 28 28 23 25.5 C18 23 15 30 20 40 Z" fill="#C8A84B" opacity="0.70"/>
+        <line x1="18.5" y1="43" x2="13.5" y2="30" stroke="#9A7830" stroke-width="0.7" stroke-linecap="round" opacity="0.55"/>
+        <line x1="20" y1="40" x2="25" y2="27" stroke="#9A7830" stroke-width="0.7" stroke-linecap="round" opacity="0.45"/>
+        <!-- Olive berry 1 -->
+        <circle cx="21" cy="33" r="2.4" fill="#2C5F1A" opacity="0.88"/>
+        <circle cx="21" cy="32.4" r="1" fill="rgba(255,255,255,0.18)"/>
+        <!-- Leaf pair 2 — middle -->
+        <path d="M23 29 C16.5 25 14.5 17 19.5 14.5 C24.5 12 27.5 19 23 29 Z" fill="#C8A84B" opacity="0.92"/>
+        <path d="M24.5 27 C31 23 33 15 28 12.5 C23 10 20 17 24.5 27 Z" fill="#C8A84B" opacity="0.72"/>
+        <line x1="23" y1="29" x2="18" y2="16" stroke="#9A7830" stroke-width="0.7" stroke-linecap="round" opacity="0.55"/>
+        <line x1="24.5" y1="27" x2="29.5" y2="14" stroke="#9A7830" stroke-width="0.7" stroke-linecap="round" opacity="0.45"/>
+        <!-- Olive berry 2 -->
+        <circle cx="25.5" cy="19" r="2.1" fill="#2C5F1A" opacity="0.85"/>
+        <circle cx="25.5" cy="18.5" r="0.9" fill="rgba(255,255,255,0.18)"/>
+        <!-- Leaf pair 3 — top -->
+        <path d="M28 16 C22 12 20 5 25 3 C30 1 33 7.5 28 16 Z" fill="#C8A84B" opacity="0.90"/>
+        <path d="M29.5 14.5 C35.5 10.5 37.5 3.5 32.5 1.5 C27.5 -0.5 24.5 6 29.5 14.5 Z" fill="#C8A84B" opacity="0.72"/>
+        <line x1="28" y1="16" x2="23.5" y2="4" stroke="#9A7830" stroke-width="0.65" stroke-linecap="round" opacity="0.55"/>
+        <line x1="29.5" y1="14.5" x2="34" y2="3" stroke="#9A7830" stroke-width="0.65" stroke-linecap="round" opacity="0.45"/>
+        <!-- Olive berry 3 — small tip -->
+        <circle cx="31" cy="7" r="1.7" fill="#2C5F1A" opacity="0.80"/>
+        <circle cx="31" cy="6.6" r="0.7" fill="rgba(255,255,255,0.18)"/>
+        <!-- Wordmark — tspan seamless two-color -->
+        <text x="57" y="37" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="24" letter-spacing="-0.5">
+          <tspan font-weight="500" fill="#F5EFE3">Mondi</tspan><tspan font-weight="400" font-style="italic" fill="#C8A84B">mart</tspan>
+        </text>
+        <!-- Gold rule -->
+        <line x1="57" y1="42" x2="210" y2="42" stroke="#C8A84B" stroke-width="0.6" opacity="0.4"/>
+        <!-- Tagline -->
+        <text x="57" y="51" font-family="'Manrope',Arial,sans-serif" font-size="6" font-weight="700" fill="rgba(245,239,227,0.45)" letter-spacing="2">SUPERMARCHÉ DU MONDE</text>
+      </svg>
+    </a>
+
+    <div class="search-wrap">
+      <form action="{{ routes.search_url }}" method="get">
+        <input type="search" name="q" placeholder="Rechercher..." value="{{ search.terms | escape }}" autocomplete="off">
+        <button class="search-btn" type="submit" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="header-actions">
+      <!-- Mobile Search Trigger -->
+      <button class="hbtn mobile-search-trigger" id="mobile-search-trigger" aria-label="Rechercher" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <!-- Language Switcher Desktop -->
+      <div class="lang-switcher" id="lang-switcher-desktop" style="margin-right:6px">
+        <button class="lang-btn" onclick="toggleLangDropdown()">
+          <span class="lang-flag" id="current-flag">🇫🇷</span>
+          <span id="current-lang">FR</span>
+          <svg viewBox="0 0 24 24" style="width:10px;height:10px;fill:rgba(255,255,255,.7)"><path d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <div class="lang-dropdown" id="lang-dropdown">
+          <div class="lang-option active" onclick="switchLang('fr','🇫🇷','FR')"><span class="lf">🇫🇷</span> Français</div>
+          <div class="lang-option" onclick="switchLang('en','🇬🇧','EN')"><span class="lf">🇬🇧</span> English</div>
+          <div class="lang-option" onclick="switchLang('de','🇩🇪','DE')"><span class="lf">🇩🇪</span> Deutsch</div>
+          <div class="lang-option" onclick="switchLang('es','🇪🇸','ES')"><span class="lf">🇪🇸</span> Español</div>
+          <div class="lang-option" onclick="switchLang('it','🇮🇹','IT')"><span class="lf">🇮🇹</span> Italiano</div>
+        </div>
+      </div>
+
+      <a class="hbtn" href="{{ routes.account_url }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21a8 8 0 0 1 16 0"/>
+        </svg>
+        <span>Compte</span>
+      </a>
+      <button class="hbtn cart-btn" data-open-cart>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 7h14l-1.5 12.5a2 2 0 0 1-2 1.5h-7a2 2 0 0 1-2-1.5L5 7z"/>
+          <path d="M9 7V5a3 3 0 0 1 6 0v2"/>
+        </svg>
+        <span>Panier</span>
+        <span class="cart-count">{{ cart.item_count }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- DESKTOP NAV -->
+  <nav class="site-nav">
+    <div class="nav-inner">
+      <div class="nav-item">
+        <a class="nav-link active" href="/collections/epicerie-fine">🛒 Alimentation <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></a>
+        <div class="mega-menu">
+          <div class="mega-col">
+            <h4>🏺 Épicerie & Frais</h4>
+            <a href="/collections/epices">Épices & condiments</a>
+            <a href="/collections/huile-olive">Huiles & vinaigres</a>
+            <a href="/collections/tomates">Conserves & bocaux</a>
+            <a href="/collections/pates">Pâtes, riz & céréales</a>
+            <a href="/collections/baklava">Sucreries & biscuits</a>
+            <a href="/collections/fruits-secs">Fruits secs & noix</a>
+            <a href="/collections/produits-frais">Produits frais</a>
+            <a href="/collections/fromages-frais">Fromages & laitages</a>
+            <a href="/collections/epicerie-fine" class="see-all-link">→ Toute l'épicerie</a>
+          </div>
+          <div class="mega-col">
+            <h4>☕ Petit-déj & Snacks</h4>
+            <a href="/collections/petit-dejeuner">Petit-déjeuner</a>
+            <a href="/collections/snacks-apero">Snacks & apéro</a>
+            <a href="/collections/pate-tartiner">Pâtes à tartiner</a>
+            <a href="/collections/sauces-condiments">Sauces & condiments</a>
+            <a href="/collections/pain-viennoiserie">Pain & viennoiserie</a>
+            <a href="/collections/plats-prepares">Plats préparés</a>
+            <a href="/collections/surgeles">Surgelés</a>
+            <h4 style="margin-top:12px">🫖 Boissons</h4>
+            <a href="/collections/jus">Jus & sodas</a>
+            <a href="/collections/thes">Thés & cafés</a>
+            <a href="/collections/vins">Vins (+18)</a>
+            <a href="/collections/boissons" class="see-all-link">→ Toutes les boissons</a>
+          </div>
+          <div class="mega-col">
+            <h4>🥩 Boucherie & Poissons</h4>
+            <a href="/collections/viandes-halal">Viandes Halal ✅</a>
+            <a href="/collections/viandes-conv">Viandes conventionnelles</a>
+            <a href="/collections/charcuterie">Charcuterie</a>
+            <a href="/collections/charcuterie-halal">Charcuterie Halal ✅</a>
+            <a href="/collections/poissons">Poissons & fruits de mer</a>
+            <a href="/collections/boucherie" class="see-all-link">→ Toute la boucherie</a>
+            <h4 style="margin-top:12px">💚 Santé & Bio</h4>
+            <a href="/collections/bio-certifie">Bio certifié 🌿</a>
+            <a href="/collections/sans-gluten">Sans gluten</a>
+            <a href="/collections/vegan">Vegan & Bio 🌱</a>
+            <a href="/collections/halal-certifie">Halal certifié ✅</a>
+            <a href="/collections/produits-sans-sucre">Sans sucre</a>
+            <a href="/collections/complements-alimentaires">Compléments</a>
+          </div>
+          <div class="mega-col">
+            <h4>💚 Santé & Régimes</h4>
+            <a href="/collections/bio-certifie">Bio certifié 🌿</a>
+            <a href="/collections/sans-gluten">Sans gluten</a>
+            <a href="/collections/vegan">Vegan & végétalien 🌱</a>
+            <a href="/collections/halal-certifie">Halal certifié ✅</a>
+            <a href="/collections/produits-sans-sucre">Sans sucre</a>
+            <a href="/collections/complements-alimentaires">Compléments alimentaires</a>
+            <a href="/collections/produits-sport">Sport & nutrition 💪</a>
+            <h4 style="margin-top:12px">👶 Alimentation Bébé</h4>
+            <a href="/collections/alimentation-bebe">Petits pots & purées</a>
+            <a href="/collections/promotions" class="see-all-link" style="color:#C4792A">🔥 Promotions</a>
+          </div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="/collections/karaca">🍽️ Karaca <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></a>
+        <div class="mega-menu">
+          <div class="mega-col"><h4>🍽️ Vaisselle</h4><a href="/collections/karaca-services-vaisselle">Services de Vaisselle</a><a href="/collections/karaca-vaisselle-6">Pour 6 personnes</a><a href="/collections/karaca-vaisselle-12">Pour 12 personnes</a><a href="/collections/karaca-assiettes">Assiettes & Bols</a><a href="/collections/karaca-verres">Verres à Boire</a><a href="/collections/karaca-couverts">Couverts</a></div>
+          <div class="mega-col"><h4>🍳 Cuisine</h4><a href="/collections/karaca-batterie-cuisine">Batterie de Cuisine</a><a href="/collections/karaca-poeles">Poêles</a><a href="/collections/karaca-ustensiles">Ustensiles</a><a href="/collections/karaca-electromenager">Électroménager</a><a href="/collections/karaca-machines-cafe">Café & Thé</a></div>
+          <div class="mega-col"><h4>🏠 Maison</h4><a href="/collections/karaca-textile">Textile Maison</a><a href="/collections/karaca-decoration">Décoration</a><a href="/collections/karaca-tapis">Tapis</a><a href="/collections/karaca-petit-dejeuner">Petit-Déjeuner</a><a href="/collections/karaca" class="see-all-link">→ Tout Karaca</a></div>
+        </div>
+      </div>
+      <div class="nav-item">
+        <a class="nav-link" href="/collections/hygiene-beaute">🏠 Maison & Hygiène <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></a>
+        <div class="mega-menu right">
+          <div class="mega-col">
+            <h4>🧴 Hygiène & Beauté</h4>
+            <a href="/collections/hygiene-beaute?filter.p.tag=savon">Savons & gels douche</a>
+            <a href="/collections/hygiene-beaute?filter.p.tag=shampoing">Shampoings</a>
+            <a href="/collections/hygiene-beaute?filter.p.tag=creme">Crèmes & lotions</a>
+            <a href="/collections/hygiene-beaute?filter.p.tag=dentifrice">Dentifrices</a>
+            <a href="/collections/hygiene-beaute?filter.p.tag=maquillage">Maquillage</a>
+            <a href="/collections/hygiene-beaute?filter.p.tag=parfum">Parfums</a>
+            <a href="/collections/hygiene-beaute" class="see-all-link">→ Tout Hygiène</a>
+          </div>
+          <div class="mega-col">
+            <h4>🧹 Entretien</h4>
+            <a href="/collections/entretien?filter.p.tag=lessive">Lessives & adoucissants</a>
+            <a href="/collections/entretien?filter.p.tag=nettoyant-cuisine">Nettoyants cuisine</a>
+            <a href="/collections/entretien?filter.p.tag=sol-surface">Sols & surfaces</a>
+            <a href="/collections/entretien?filter.p.tag=sac-poubelle">Sacs poubelle</a>
+            <a href="/collections/entretien?filter.p.tag=papier-hygienique">Papier hygiénique</a>
+            <a href="/collections/entretien" class="see-all-link">→ Tout Entretien</a>
+          </div>
+          <div class="mega-col">
+            <h4>👶 Bébé & Enfant</h4>
+            <a href="/collections/alimentation-bebe">Alimentation bébé</a>
+            <a href="/collections/hygiene-bebe">Hygiène bébé</a>
+            <a href="/collections/couches">Couches & lingettes</a>
+            <h4 style="margin-top:12px">🐾 Animaux</h4>
+            <a href="/collections/chien">🐶 Chien</a>
+            <a href="/collections/chat">🐱 Chat</a>
+            <a href="/collections/autres-animaux">Autres animaux</a>
+          </div>
+          <div class="mega-col">
+            <h4>👶 Bébé & Enfant</h4>
+            <a href="/collections/hygiene-bebe">Hygiène bébé</a>
+            <a href="/collections/couches">Couches & lingettes</a>
+            <a href="/collections/alimentation-bebe">Alimentation bébé</a>
+            <h4 style="margin-top:12px">🐾 Animaux</h4>
+            <a href="/collections/chien">🐶 Chien</a>
+            <a href="/collections/chat">🐱 Chat</a>
+            <a href="/collections/autres-animaux">Autres animaux</a>
+            <h4 style="margin-top:12px">🎁 Maison & Cadeaux</h4>
+            <a href="/collections/ustensiles">Ustensiles cuisine</a>
+            <a href="/collections/vaisselle">Vaisselle du monde</a>
+            <a href="/collections/coffrets">Coffrets cadeaux</a>
+          </div>
+        </div>
+      </div>
+      <a class="nav-link" href="/blogs/recettes">📖 Recettes</a>
+      <a class="nav-link nav-link-promo" href="/collections/promotions">🔥 Promos</a>
+    </div>
+  </nav>
+</header>
+
+<!-- MOBILE MENU OVERLAY -->
+<div class="mobile-overlay" id="mobile-overlay" style="display:none"></div>
+
+<!-- MOBILE MENU DRAWER -->
+<div class="mobile-menu" id="mobile-menu">
+
+  <div class="mm-header mm-header-premium">
+    <div class="mm-header-top">
+      <div class="mm-brand">
+        <svg class="mm-logo-svg" viewBox="0 0 178 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Mondimart">
+          <!-- Premium Olive Branch (mobile menu) -->
+          <path d="M12 36 C13.5 31.5 16 26.5 18.5 20.5 C21 15 23.5 10.5 26.5 6"
+            stroke="#C8A84B" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+          <!-- Leaf pair 1 -->
+          <path d="M14 33 C9 30 7.5 24 11.5 22 C15.5 20 18 26 14 33 Z" fill="#C8A84B" opacity="0.90"/>
+          <path d="M15.5 31 C20.5 28 22 22 18 20 C14 18 11.5 24 15.5 31 Z" fill="#C8A84B" opacity="0.68"/>
+          <circle cx="16" cy="25.5" r="1.9" fill="#2C5F1A" opacity="0.86"/>
+          <circle cx="16" cy="25.1" r="0.8" fill="rgba(255,255,255,0.18)"/>
+          <!-- Leaf pair 2 -->
+          <path d="M18 22 C12.5 18.5 11 12.5 15.5 10.5 C20 8.5 22.5 14.5 18 22 Z" fill="#C8A84B" opacity="0.92"/>
+          <path d="M19.5 20.5 C25 17 26.5 11 22 9 C17.5 7 15 13 19.5 20.5 Z" fill="#C8A84B" opacity="0.70"/>
+          <circle cx="20" cy="14.5" r="1.7" fill="#2C5F1A" opacity="0.83"/>
+          <circle cx="20" cy="14.1" r="0.7" fill="rgba(255,255,255,0.18)"/>
+          <!-- Leaf pair 3 — top -->
+          <path d="M22 13 C17.5 9.5 16 4 20 2.5 C24 1 26.5 6.5 22 13 Z" fill="#C8A84B" opacity="0.88"/>
+          <path d="M23.5 11.5 C28 8 29.5 2.5 25.5 1 C21.5 -0.5 19 5 23.5 11.5 Z" fill="#C8A84B" opacity="0.68"/>
+          <circle cx="24.5" cy="5.5" r="1.4" fill="#2C5F1A" opacity="0.78"/>
+          <text x="40" y="26" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="20" letter-spacing="-0.4">
+            <tspan font-weight="500" fill="#F5EFE3">Mondi</tspan><tspan font-weight="400" font-style="italic" fill="#C8A84B">mart</tspan>
+          </text>
+          <line x1="40" y1="30" x2="170" y2="30" stroke="#C8A84B" stroke-width="0.5" opacity="0.38"/>
+        </svg>
+        <span class="mm-brand-sub">Le monde dans votre assiette</span>
+      </div>
+      <button class="mm-close mm-close-premium" id="mm-close" aria-label="Fermer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="mm-cuisine-strip">
+      <a href="/collections/francaise">🇫🇷<span>FR</span></a>
+      <a href="/collections/turque">🇹🇷<span>TR</span></a>
+      <a href="/collections/italienne">🇮🇹<span>IT</span></a>
+      <a href="/collections/portugaise">🇵🇹<span>PT</span></a>
+      <a href="/collections/espagnole">🇪🇸<span>ES</span></a>
+      <a href="/collections/maghrebine">🇲🇦<span>MA</span></a>
+      <a href="/collections/asiatique">🌏<span>AS</span></a>
+      <a href="/collections/vegan">🌿<span>VG</span></a>
+      <a href="/collections/promotions" class="cs-promo">🔥<span>PROMO</span></a>
+      <a href="/collections/karaca">🍽️<span>KRC</span></a>
+    </div>
+  </div>
+
+  <div class="mm-search">
+    <form action="{{ routes.search_url }}" method="get">
+      <input type="search" name="q" placeholder="🔍 Rechercher..." autocomplete="off">
+    </form>
+  </div>
+
+  <div style="display:flex;gap:6px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--bo);flex-shrink:0;">
+    <a href="/collections/promotions" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#FFF3E8;border:1px solid #FFD4A3;border-radius:20px;font-size:11px;font-weight:700;color:#C4792A;white-space:nowrap;text-decoration:none;flex-shrink:0;">🔥 Promos</a>
+    <a href="/collections/vegan" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#F0FAF4;border:1px solid #C8E6C9;border-radius:20px;font-size:11px;font-weight:700;color:#1A6B2A;white-space:nowrap;text-decoration:none;flex-shrink:0;">🌿 Vegan</a>
+    <a href="/collections/viandes-halal" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#F0FAF4;border:1px solid #C8E6C9;border-radius:20px;font-size:11px;font-weight:700;color:#1A6B2A;white-space:nowrap;text-decoration:none;flex-shrink:0;">✅ Halal</a>
+    <a href="/collections/karaca" style="display:inline-flex;align-items:center;gap:4px;padding:5px 11px;background:#F8F5EF;border:1px solid #E0DDD6;border-radius:20px;font-size:11px;font-weight:700;color:#555;white-space:nowrap;text-decoration:none;flex-shrink:0;">🍽️ Karaca</a>
+  </div>
+
+  <div class="mm-body">
+    <div class="mm-section-label">Nos rayons</div>
+
+    <div class="mm-item" data-sub="mm-alimentation">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18l-1.6 11.2a2 2 0 0 1-2 1.8H6.6a2 2 0 0 1-2-1.8L3 8z"/><path d="M8 8V5a4 4 0 0 1 8 0v3"/><line x1="9" y1="13" x2="9" y2="17"/><line x1="15" y1="13" x2="15" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/></svg></span>
+        <div><span class="mm-item-title">Alimentation</span><span style="font-size:11px;color:var(--tl);display:block;">Épicerie, frais, boissons</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-alimentation">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-ali-epicerie">
+        <span>🏺 Épicerie sèche</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-frais">
+        <span>🥬 Frais & Surgelés</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-petitdej">
+        <span>☕ Petit-déj & Snacks</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-boucherie">
+        <span>🥩 Boucherie & Poissons</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-boissons">
+        <span>🫖 Boissons</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-sante">
+        <span>💚 Santé & Bio</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ali-bebe">
+        <span>👶 Alimentation Bébé</span><span class="mm-chevron">›</span>
+      </div>
+      <a href="/collections/epicerie-fine" style="color:var(--gl);font-weight:600;display:flex;align-items:center;padding:13px 16px 13px 20px;font-size:13px;border-top:1px solid rgba(212,166,74,0.15);">→ Toute l'alimentation</a>
+    </div>
+
+    <div class="mm-item" data-sub="mm-karaca">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v8c0 1 .5 2 1.5 2H10v9"/><path d="M7 2v8c0 1-.5 2-1.5 2H4"/><path d="M7 12v9"/><path d="M17 2c-2 0-3 2-3 5s1 5 3 5v9"/></svg></span>
+        <div><span class="mm-item-title">Art de la Table — Karaca</span><span style="font-size:11px;color:var(--tl);display:block;">Vaisselle, cuisine & déco</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-karaca">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-krc-vaisselle">
+        <span>🍽️ Vaisselle</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-krc-cuisine">
+        <span>🍳 Cuisine</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-krc-maison">
+        <span>🏠 Maison & Déco</span><span class="mm-chevron">›</span>
+      </div>
+      <a href="/collections/karaca" style="color:var(--gl);font-weight:600;display:flex;align-items:center;padding:13px 16px 13px 20px;font-size:13px;border-top:1px solid rgba(212,166,74,0.15);">→ Tout Karaca</a>
+    </div>
+
+    <div class="mm-item" data-sub="mm-hygiene">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v3h-4z"/><path d="M9 5h6l1 3H8z"/><rect x="6" y="8" width="12" height="14" rx="2"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span>
+        <div><span class="mm-item-title">Hygiène & Beauté</span><span style="font-size:11px;color:var(--tl);display:block;">Soin, beauté, rasage</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-hygiene">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-hyg-corps">
+        <span>🚿 Soin du Corps</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-hyg-bucco">
+        <span>😁 Bucco-dentaire</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-hyg-beaute">
+        <span>✨ Beauté</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-hyg-bebe">
+        <span>👶 Bébé & Enfant</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-hyg-animaux">
+        <span>🐾 Animaux</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-hyg-maison">
+        <span>🎁 Maison & Cadeaux</span><span class="mm-chevron">›</span>
+      </div>
+      <a href="/collections/hygiene-beaute" style="color:var(--gl);font-weight:600;display:flex;align-items:center;padding:13px 16px 13px 20px;font-size:13px;border-top:1px solid rgba(212,166,74,0.15);">→ Tout voir</a>
+    </div>
+
+    <div class="mm-item" data-sub="mm-entretien">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h-2v2h2z"/><path d="M14 4l3-1v2l-3 1"/><path d="M12 6h4l1 3H8l1-3h1"/><rect x="7" y="9" width="10" height="13" rx="2"/><line x1="10" y1="14" x2="14" y2="14"/><line x1="10" y1="17" x2="14" y2="17"/></svg></span>
+        <div><span class="mm-item-title">Entretien</span><span style="font-size:11px;color:var(--tl);display:block;">Lessive, nettoyage</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-entretien">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-ent-lessive">
+        <span>🧺 Lessive</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-ent-nettoyage">
+        <span>🏠 Nettoyage</span><span class="mm-chevron">›</span>
+      </div>
+      <a href="/collections/entretien" style="color:var(--gl);font-weight:600;display:flex;align-items:center;padding:13px 16px 13px 20px;font-size:13px;border-top:1px solid rgba(212,166,74,0.15);">→ Tout l'entretien</a>
+    </div>
+
+    <div class="mm-item" data-sub="mm-vegan">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M12 12c-3-1-5-4-5-7 4 0 6 3 6 6"/><path d="M12 12c2-2 3-5 3-8-3 0-5 2-5 5"/><path d="M5 18h14"/><path d="M7 18l1 3h8l1-3"/></svg></span>
+        <div><span class="mm-item-title">Vegan & Bio</span><span style="font-size:11px;color:var(--tl);display:block;">500+ produits certifiés</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-vegan">
+      <button class="mm-sub-back">← Retour</button>
+      <a href="/collections/cereales-legumineuses">Céréales & légumineuses</a>
+      <a href="/collections/epices-sauces-vegan">Épices & sauces vegan</a>
+      <a href="/collections/conserves-legumes-vegan">Conserves légumes</a>
+      <a href="/collections/alternatives-vegetales">Alternatives végétales</a>
+      <a href="/collections/boissons-vegetales">Boissons végétales</a>
+      <a href="/collections/bio-certifie">Bio certifié 🌱</a>
+      <a href="/collections/sans-gluten">Sans gluten</a>
+      <a href="/collections/produits-sans-sucre">Sans sucre</a>
+      <a href="/collections/vegan" style="color:var(--gl);font-weight:600;">→ Tous les produits Vegan</a>
+    </div>
+
+    <div class="mm-item" data-sub="mm-bebe">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4v1.5h-4z"/><path d="M9 3.5h6v2.5H9z"/><path d="M9 6c-1 0-2 1-2 2v12c0 1 1 2 2 2h6c1 0 2-1 2-2V8c0-1-1-2-2-2H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="14" x2="15" y2="14"/><line x1="9" y1="17" x2="15" y2="17"/></svg></span>
+        <div><span class="mm-item-title">Bébé & Enfant</span><span style="font-size:11px;color:var(--tl);display:block;">Alimentation, couches, animaux</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-bebe">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-beb-bebe">
+        <span>👶 Bébé</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-beb-animaux">
+        <span>🐾 Animaux</span><span class="mm-chevron">›</span>
+      </div>
+    </div>
+
+    <div class="mm-item" data-sub="mm-maison">
+      <div class="mm-item-left">
+        <span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V21h14V9.5"/><path d="M16 3v3"/><path d="M16 6h2"/><rect x="10" y="14" width="4" height="7"/><line x1="8" y1="12" x2="9.5" y2="12"/><line x1="14.5" y1="12" x2="16" y2="12"/></svg></span>
+        <div><span class="mm-item-title">Maison & Cadeaux</span><span style="font-size:11px;color:var(--tl);display:block;">Cuisine, coffrets, déco</span></div>
+      </div><span class="mm-chevron">›</span>
+    </div>
+    <div class="mm-sub" id="mm-maison">
+      <button class="mm-sub-back">← Retour</button>
+      <div class="mm-sub-item" data-sub2="mm-mai-cuisine">
+        <span>🍳 Cuisine</span><span class="mm-chevron">›</span>
+      </div>
+      <div class="mm-sub-item" data-sub2="mm-mai-coffrets">
+        <span>🎁 Coffrets & Cadeaux</span><span class="mm-chevron">›</span>
+      </div>
+    </div>
+
+    <div class="mm-divider"></div>
+
+    <!-- PREMIUM GOLD PROMO CARD -->
+    <div class="mm-promo-card">
+      <div class="mm-promo-label">Offre spéciale</div>
+      <div class="mm-promo-title">Livraison offerte dès 149€</div>
+      <div class="mm-promo-sub">Express 24h partout en France</div>
+      <a href="/collections/promotions" class="mm-promo-cta">
+        Découvrir
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="12" height="12">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="13 6 19 12 13 18"/>
+        </svg>
+      </a>
+    </div>
+
+    <a href="/blogs/recettes" class="mm-item-link">
+      <div class="mm-item-left"><span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h14v18H6a2 2 0 0 0-2 2V4z"/><path d="M4 20a2 2 0 0 1 2-2h14"/><circle cx="12" cy="9" r="2.5"/><path d="M9 9c0-1.5 1.3-2.5 3-2.5s3 1 3 2.5"/><line x1="9.5" y1="13" x2="14.5" y2="13"/></svg></span><div><span class="mm-item-title">Blog Recettes</span><span style="font-size:11px;color:var(--tl);display:block;">+50 recettes authentiques</span></div></div>
+    </a>
+    <a href="/collections/promotions" class="mm-item-link mm-promo" style="background:#FFF8F0;">
+      <div class="mm-item-left"><span class="mm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/><line x1="9" y1="15" x2="15" y2="9"/><circle cx="9.5" cy="14.5" r="0.7"/><circle cx="14.5" cy="9.5" r="0.7"/></svg></span><div><span class="mm-item-title mm-promo-txt">Promotions</span><span style="font-size:11px;color:#C4792A;display:block;">Jusqu'à -30%</span></div></div>
+    </a>
+  </div>
+
+  <div class="mm-footer mm-footer-premium">
+    <div class="mm-footer-langs">
+      <button type="button" class="mm-lang active" onclick="switchLang('fr','🇫🇷','FR')">FR</button>
+      <button type="button" class="mm-lang" onclick="switchLang('en','🇬🇧','EN')">EN</button>
+      <button type="button" class="mm-lang" onclick="switchLang('de','🇩🇪','DE')">DE</button>
+      <button type="button" class="mm-lang" onclick="switchLang('es','🇪🇸','ES')">ES</button>
+      <button type="button" class="mm-lang" onclick="switchLang('it','🇮🇹','IT')">IT</button>
+    </div>
+    <div class="mm-footer-account">
+      <a href="{{ routes.account_url }}" class="mm-footer-btn mm-footer-btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21a8 8 0 0 1 16 0"/>
+        </svg>
+        Mon compte
+      </a>
+      <button type="button" class="mm-footer-btn mm-footer-btn-ghost" onclick="document.getElementById('mobile-menu').classList.remove('open');document.getElementById('mobile-overlay').style.display='none';document.body.style.overflow='';">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:14px;height:14px;flex-shrink:0">
+          <line x1="6" y1="6" x2="18" y2="18"/>
+          <line x1="18" y1="6" x2="6" y2="18"/>
+        </svg>
+        Fermer
+      </button>
+    </div>
+    <div class="mm-footer-social">
+      <a href="https://instagram.com/mondimart" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/>
+        </svg>
+      </a>
+      <a href="https://facebook.com/mondimart" target="_blank" rel="noopener" aria-label="Facebook">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+        </svg>
+      </a>
+      <a href="https://tiktok.com/@mondimart" target="_blank" rel="noopener" aria-label="TikTok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/>
+        </svg>
+      </a>
+      <a href="https://wa.me/33000000000" target="_blank" rel="noopener" aria-label="WhatsApp">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Karaca level-2 panels -->
+  <div class="mm-sub-l2" id="mm-krc-vaisselle">
+    <button class="mm-sub-back mm-sub-l2-back">← Vaisselle</button>
+    <a href="/collections/karaca-services-vaisselle">Services de vaisselle</a>
+    <a href="/collections/karaca-vaisselle-12">Pour 12 personnes</a>
+    <a href="/collections/karaca-vaisselle-6">Pour 6 personnes</a>
+    <a href="/collections/karaca-vaisselle-4">Pour 4 personnes</a>
+    <a href="/collections/karaca-assiettes">Assiettes</a>
+    <a href="/collections/karaca-bols">Bols & Saladiers</a>
+    <a href="/collections/karaca-verres">Verres à Boire</a>
+    <a href="/collections/karaca-couverts">Couverts</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-krc-cuisine">
+    <button class="mm-sub-back mm-sub-l2-back">← Cuisine</button>
+    <a href="/collections/karaca-batterie-cuisine">Batterie de Cuisine</a>
+    <a href="/collections/karaca-poeles">Poêles</a>
+    <a href="/collections/karaca-ustensiles">Ustensiles</a>
+    <a href="/collections/karaca-electromenager">Appareils Électriques</a>
+    <a href="/collections/karaca-machines-cafe">Machines à Café & Thé</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-krc-maison">
+    <button class="mm-sub-back mm-sub-l2-back">← Maison & Déco</button>
+    <a href="/collections/karaca-cafe-the">Café, Thé & Gâteaux</a>
+    <a href="/collections/karaca-petit-dejeuner">Petit-Déjeuner</a>
+    <a href="/collections/karaca-accessoires-table">Accessoires de Table</a>
+    <a href="/collections/karaca-textile">Textile Maison</a>
+    <a href="/collections/karaca-decoration">Décoration</a>
+    <a href="/collections/karaca-tapis">Tapis</a>
+    <a href="/collections/karaca" style="color:var(--gl);font-weight:600;">→ Tout Karaca</a>
+  </div>
+
+  <!-- Hygiène level-2 panels -->
+  <div class="mm-sub-l2" id="mm-hyg-corps">
+    <button class="mm-sub-back mm-sub-l2-back">← Soin du Corps</button>
+    <a href="/collections/hygiene-beaute?filter.p.tag=savon">Savons & gels douche</a>
+    <a href="/collections/hygiene-beaute?filter.p.tag=shampoing">Shampoings</a>
+    <a href="/collections/hygiene-beaute?filter.p.tag=creme">Crèmes & lotions</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-hyg-bucco">
+    <button class="mm-sub-back mm-sub-l2-back">← Bucco-dentaire</button>
+    <a href="/collections/hygiene-beaute?filter.p.tag=dentifrice">Dentifrices</a>
+    <a href="/collections/hygiene-beaute?filter.p.tag=brosse-dents">Brosses à dents</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-hyg-beaute">
+    <button class="mm-sub-back mm-sub-l2-back">← Beauté</button>
+    <a href="/collections/hygiene-beaute?filter.p.tag=maquillage">Maquillage</a>
+    <a href="/collections/hygiene-beaute?filter.p.tag=parfum">Parfums</a>
+    <a href="/collections/hygiene-beaute" style="color:var(--gl);font-weight:600;">→ Tout voir</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-hyg-bebe">
+    <button class="mm-sub-back mm-sub-l2-back">← Bébé & Enfant</button>
+    <a href="/collections/hygiene-bebe">Hygiène bébé</a>
+    <a href="/collections/couches">Couches & lingettes</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-hyg-animaux">
+    <button class="mm-sub-back mm-sub-l2-back">← Animaux</button>
+    <a href="/collections/chien">🐶 Chien</a>
+    <a href="/collections/chat">🐱 Chat</a>
+    <a href="/collections/autres-animaux">Autres animaux</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-hyg-maison">
+    <button class="mm-sub-back mm-sub-l2-back">← Maison & Cadeaux</button>
+    <a href="/collections/ustensiles">Ustensiles cuisine</a>
+    <a href="/collections/vaisselle">Vaisselle du monde</a>
+    <a href="/collections/coffrets">Coffrets cadeaux</a>
+  </div>
+
+  <!-- Entretien level-2 panels -->
+  <div class="mm-sub-l2" id="mm-ent-lessive">
+    <button class="mm-sub-back mm-sub-l2-back">← Lessive</button>
+    <a href="/collections/entretien?filter.p.tag=lessive">Lessives</a>
+    <a href="/collections/entretien?filter.p.tag=adoucissant">Adoucissants</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ent-nettoyage">
+    <button class="mm-sub-back mm-sub-l2-back">← Nettoyage</button>
+    <a href="/collections/entretien?filter.p.tag=nettoyant-cuisine">Cuisine</a>
+    <a href="/collections/entretien?filter.p.tag=sol-surface">Sols & surfaces</a>
+    <a href="/collections/entretien?filter.p.tag=sac-poubelle">Sacs poubelle</a>
+    <a href="/collections/entretien?filter.p.tag=papier-hygienique">Papier hygiénique</a>
+    <a href="/collections/entretien" style="color:var(--gl);font-weight:600;">→ Tout l'entretien</a>
+  </div>
+
+  <!-- Bébé level-2 panels -->
+  <div class="mm-sub-l2" id="mm-beb-bebe">
+    <button class="mm-sub-back mm-sub-l2-back">← Bébé</button>
+    <a href="/collections/bebe-lait">Laits & farines bébé</a>
+    <a href="/collections/alimentation-bebe">Alimentation bébé</a>
+    <a href="/collections/bebe-jus-compotes">Jus & compotes bébé</a>
+    <a href="/collections/bebe-snacks">Snacks bébé</a>
+    <a href="/collections/hygiene-bebe">Hygiène bébé</a>
+    <a href="/collections/couches">Couches</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-beb-animaux">
+    <button class="mm-sub-back mm-sub-l2-back">← Animaux</button>
+    <a href="/collections/chien">🐶 Chien</a>
+    <a href="/collections/chat">🐱 Chat</a>
+    <a href="/collections/autres-animaux">🐾 Autres animaux</a>
+  </div>
+
+  <!-- Maison level-2 panels -->
+  <div class="mm-sub-l2" id="mm-mai-cuisine">
+    <button class="mm-sub-back mm-sub-l2-back">← Cuisine</button>
+    <a href="/collections/ustensiles">Ustensiles cuisine</a>
+    <a href="/collections/vaisselle">Vaisselle</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-mai-coffrets">
+    <button class="mm-sub-back mm-sub-l2-back">← Coffrets & Cadeaux</button>
+    <a href="/collections/coffrets">🎁 Coffrets cadeaux</a>
+    <a href="/collections/coffrets-epices">🌶️ Coffrets épices</a>
+    <a href="/collections/coffrets-vins">🍷 Coffrets vins</a>
+  </div>
+
+  <!-- Alimentation level-2 panels -->
+  <div class="mm-sub-l2" id="mm-ali-epicerie">
+    <button class="mm-sub-back mm-sub-l2-back">← Épicerie sèche</button>
+    <a href="/collections/epices">Épices & condiments</a>
+    <a href="/collections/huile-olive">Huiles & vinaigres</a>
+    <a href="/collections/tomates">Conserves & bocaux</a>
+    <a href="/collections/pates">Pâtes, riz & céréales</a>
+    <a href="/collections/baklava">Sucreries & biscuits</a>
+    <a href="/collections/fruits-secs">Fruits secs & noix</a>
+    <a href="/collections/epicerie-fine" style="color:var(--gl);font-weight:600;">→ Toute l'épicerie</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-frais">
+    <button class="mm-sub-back mm-sub-l2-back">← Frais & Surgelés</button>
+    <a href="/collections/legumes-frais">Légumes frais</a>
+    <a href="/collections/fruits-frais">Fruits frais</a>
+    <a href="/collections/herbes-fraiches">Herbes fraîches</a>
+    <a href="/collections/oeufs-laitages">Œufs & laitages</a>
+    <a href="/collections/fromages-frais">Fromages & laitages</a>
+    <a href="/collections/legumes-exotiques">Légumes exotiques</a>
+    <a href="/collections/surgeles">Surgelés</a>
+    <a href="/collections/plats-prepares">Plats préparés</a>
+    <a href="/collections/pain-viennoiserie">Pain & viennoiserie</a>
+    <a href="/collections/produits-frais" style="color:var(--gl);font-weight:600;">→ Tous les frais</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-petitdej">
+    <button class="mm-sub-back mm-sub-l2-back">← Petit-déj & Snacks</button>
+    <a href="/collections/petit-dejeuner">Petit-déjeuner</a>
+    <a href="/collections/snacks-apero">Snacks & apéro</a>
+    <a href="/collections/pate-tartiner">Pâtes à tartiner</a>
+    <a href="/collections/sauces-condiments">Sauces & condiments</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-boucherie">
+    <button class="mm-sub-back mm-sub-l2-back">← Boucherie & Poissons</button>
+    <a href="/collections/viandes-halal">Viandes Halal ✅</a>
+    <a href="/collections/viandes-conv">Viandes conventionnelles</a>
+    <a href="/collections/charcuterie">Charcuterie</a>
+    <a href="/collections/charcuterie-halal">Charcuterie Halal ✅</a>
+    <a href="/collections/poissons">Poissons & fruits de mer</a>
+    <a href="/collections/conserves-poissons">Conserves de poissons</a>
+    <a href="/collections/boucherie" style="color:var(--gl);font-weight:600;">→ Toute la boucherie</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-boissons">
+    <button class="mm-sub-back mm-sub-l2-back">← Boissons</button>
+    <a href="/collections/jus">Jus & nectars</a>
+    <a href="/collections/thes">Thés & tisanes</a>
+    <a href="/collections/boissons-vegetales">Boissons végétales</a>
+    <a href="/collections/vins">Vins & spiritueux (+18)</a>
+    <a href="/collections/boissons" style="color:var(--gl);font-weight:600;">→ Toutes les boissons</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-sante">
+    <button class="mm-sub-back mm-sub-l2-back">← Santé & Bio</button>
+    <a href="/collections/bio-certifie">Bio certifié 🌿</a>
+    <a href="/collections/sans-gluten">Sans gluten</a>
+    <a href="/collections/produits-sans-sucre">Sans sucre</a>
+    <a href="/collections/halal-certifie">Halal certifié ✅</a>
+    <a href="/collections/vegan">Vegan & Bio 🌱</a>
+    <a href="/collections/complements-alimentaires">Compléments alimentaires</a>
+    <a href="/collections/produits-sport">Sport & nutrition 💪</a>
+  </div>
+  <div class="mm-sub-l2" id="mm-ali-bebe">
+    <button class="mm-sub-back mm-sub-l2-back">← Alimentation Bébé</button>
+    <a href="/collections/alimentation-bebe">Petits pots & purées</a>
+    <a href="/collections/bebe-lait">Laits & farines bébé</a>
+    <a href="/collections/bebe-jus-compotes">Jus & compotes bébé</a>
+    <a href="/collections/bebe-snacks">Snacks bébé</a>
+  </div>
+
+</div>
+
+<script>
+function toggleLangDropdown() {
+  document.getElementById('lang-dropdown')?.classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#lang-switcher-desktop')) {
+    document.getElementById('lang-dropdown')?.classList.remove('open');
+  }
+});
+
+// Auto-fix mega menu overflow on hover
+document.querySelectorAll('.nav-item').forEach(function(item) {
+  item.addEventListener('mouseenter', function() {
+    const mm = this.querySelector('.mega-menu');
+    if (!mm) return;
+    // Reset first
+    mm.style.left = '';
+    mm.style.right = '';
+    
+    const rect = mm.getBoundingClientRect();
+    const vpW = window.innerWidth;
+    
+    if (rect.right > vpW - 10) {
+      // Overflows right: align to right of nav item
+      mm.style.left = 'auto';
+      mm.style.right = '0';
+    }
+    if (rect.left < 10) {
+      mm.style.left = '0';
+      mm.style.right = 'auto';
+    }
+  });
+});
+
+// App-like product card entrance animation — mobile only
+if ('IntersectionObserver' in window) {
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.innerWidth > 900) return;
+    document.body.classList.add('js-anim');
+
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-visible');
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.01 });
+
+    document.querySelectorAll('.product-card').forEach(function(c, i) {
+      var rect = c.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        // Already in viewport: show immediately with light stagger
+        var delay = (i % 4) * 70;
+        c.style.transitionDelay = delay + 'ms';
+        setTimeout(function() { c.classList.add('is-visible'); }, delay);
+      } else {
+        c.style.transitionDelay = (i % 4) * 55 + 'ms';
+        obs.observe(c);
+      }
+    });
+
+    document.querySelectorAll('.section-title, .collections-section h2').forEach(function(el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        el.classList.add('is-visible');
+      } else {
+        obs.observe(el);
+      }
+    });
+  });
+}
+</script>
+
+{% schema %}
+{
+  "name": "En-tête",
+  "settings": [
+    { "type": "image_picker", "id": "logo", "label": "Logo" }
+  ]
+}
+{% endschema %}

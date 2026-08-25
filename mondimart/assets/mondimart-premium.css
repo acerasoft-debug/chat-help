@@ -1,0 +1,3569 @@
+/* ============================================================
+   MONDIMART PREMIUM OVERLAY — v2 (demo-aligned)
+   Layered on top of theme.css. Never replaces it.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --mm-gold: #d4a64a;
+  --mm-gold-soft: #e8c97a;
+  --mm-cream: #f5efe3;
+  --mm-green-deep: #142d1d;
+}
+
+/* ============================================================
+   1. HEADER ICONS — consistent hover/transition
+   ============================================================ */
+.site-header svg,
+.menu-toggle svg,
+.hbtn svg,
+.search-btn svg {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.menu-toggle:hover svg,
+.hbtn:hover svg { opacity: 0.75; transform: scale(1.05); }
+.search-btn:hover svg { opacity: 0.8; }
+
+.cart-count {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 9px !important;
+  border: 2px solid var(--gd, #1A3C1A) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 5px !important;
+  letter-spacing: 0 !important;
+}
+
+.site-header .logo-nm {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+.site-header .logo-nm em { color: var(--mm-gold-soft) !important; }
+
+/* ============================================================
+   2. MOBILE MENU — PREMIUM REBUILD
+   ============================================================ */
+
+.mobile-menu {
+  background: linear-gradient(180deg, #1a3a2a 0%, #142d1d 100%) !important;
+  box-shadow: 8px 0 40px rgba(0,0,0,0.5), 0 0 1px rgba(0,0,0,0.05) !important;
+  transition: left 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  width: min(380px, 92vw) !important;
+  font-family: 'Manrope', sans-serif !important;
+  color: var(--mm-cream) !important;
+  overflow: hidden !important;
+  position: fixed !important;
+}
+
+/* Atmospheric glows inside drawer */
+.mobile-menu::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(212, 166, 74, 0.18), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.mobile-menu::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -100px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(74, 144, 112, 0.15), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mobile-overlay {
+  background: rgba(15, 36, 25, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* --- HEADER (premium) --- */
+.mm-header-premium {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  display: block !important;
+  flex-direction: column !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15) !important;
+  flex-shrink: 0 !important;
+}
+
+.mm-header-top {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  padding: 18px 20px 16px !important;
+}
+
+.mm-brand { display: flex; flex-direction: column; }
+.mm-brand .mm-logo {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 24px !important;
+  color: var(--mm-cream) !important;
+  letter-spacing: -0.01em !important;
+  line-height: 1 !important;
+  margin-bottom: 4px !important;
+}
+.mm-brand .mm-logo em {
+  color: var(--mm-gold) !important;
+  font-style: normal !important;
+}
+.mm-brand-sub {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 11px !important;
+  color: var(--mm-gold-soft) !important;
+  letter-spacing: 0.02em !important;
+  text-transform: none !important;
+  opacity: 1 !important;
+}
+
+.mm-close-premium {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  color: var(--mm-cream) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  font-size: 0 !important;
+}
+.mm-close-premium svg { width: 16px; height: 16px; }
+.mm-close-premium:hover {
+  background: rgba(212, 166, 74, 0.15) !important;
+  border-color: var(--mm-gold) !important;
+  transform: rotate(90deg) !important;
+}
+
+/* --- CUISINE STRIP --- */
+.mm-cuisine-strip {
+  display: flex !important;
+  gap: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  background: rgba(0,0,0,0.2) !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.12) !important;
+}
+.mm-cuisine-strip::-webkit-scrollbar { display: none; }
+.mm-cuisine-strip a {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  color: rgba(245, 239, 227, 0.75) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  gap: 4px !important;
+  font-family: 'Manrope', sans-serif !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s ease;
+}
+.mm-cuisine-strip a:hover {
+  color: var(--mm-gold-soft) !important;
+  background: rgba(212, 166, 74, 0.08) !important;
+}
+.mm-cuisine-strip a.cs-promo {
+  color: var(--mm-gold) !important;
+  font-weight: 700 !important;
+}
+.mm-cuisine-strip a > :first-child { font-size: 18px !important; }
+
+/* --- SEARCH (in menu) --- */
+.mobile-menu .mm-search {
+  background: transparent !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.12) !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.mobile-menu .mm-search input {
+  width: 100% !important;
+  height: 44px !important;
+  padding: 0 18px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  border-radius: 999px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 13px !important;
+  color: var(--mm-cream) !important;
+  outline: none !important;
+  transition: all 0.2s ease;
+}
+.mobile-menu .mm-search input::placeholder { color: rgba(245, 239, 227, 0.45) !important; }
+.mobile-menu .mm-search input:focus {
+  background: rgba(255,255,255,0.1) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* --- QUICK CHIP ROW (between search and body) --- */
+.mobile-menu .mm-search + div {
+  background: transparent !important;
+  padding: 10px 16px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.12) !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.mobile-menu .mm-search + div::-webkit-scrollbar { display: none; }
+.mobile-menu .mm-search + div a {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.3) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  padding: 6px 12px !important;
+  transition: all 0.2s ease;
+}
+.mobile-menu .mm-search + div a:hover {
+  background: rgba(212, 166, 74, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* --- BODY --- */
+.mobile-menu .mm-body {
+  position: relative !important;
+  z-index: 2 !important;
+  background: transparent !important;
+  padding: 8px 0 20px !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+.mobile-menu .mm-body::-webkit-scrollbar { width: 0; }
+
+.mobile-menu .mm-section-label {
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 9px !important;
+  letter-spacing: 0.18em !important;
+  padding: 18px 20px 8px !important;
+  opacity: 0.7 !important;
+  text-transform: uppercase !important;
+}
+
+/* --- ITEMS --- */
+.mobile-menu .mm-item,
+.mobile-menu .mm-item-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 13px 20px !important;
+  color: var(--mm-cream) !important;
+  text-decoration: none !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  min-height: 0 !important;
+  position: relative;
+}
+.mobile-menu .mm-item:hover,
+.mobile-menu .mm-item-link:hover {
+  background: rgba(212, 166, 74, 0.08) !important;
+}
+.mobile-menu .mm-item:hover .mm-chevron,
+.mobile-menu .mm-item-link:hover .mm-chevron {
+  color: var(--mm-gold) !important;
+  transform: translateX(3px) !important;
+}
+
+.mobile-menu .mm-item-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+
+/* ICON BOXES — gold-tinted, demo style (overrides inline styles) */
+.mobile-menu .mm-item-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  background: rgba(212, 166, 74, 0.12) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 20px !important;
+  flex-shrink: 0 !important;
+  transition: all 0.25s ease !important;
+  filter: saturate(1.05);
+}
+.mobile-menu .mm-item:hover .mm-item-icon,
+.mobile-menu .mm-item-link:hover .mm-item-icon {
+  background: rgba(212, 166, 74, 0.2) !important;
+  border-color: var(--mm-gold) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(212, 166, 74, 0.2) !important;
+}
+
+.mobile-menu .mm-item-title {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  color: var(--mm-cream) !important;
+  letter-spacing: -0.005em !important;
+  display: block !important;
+  line-height: 1.3 !important;
+}
+
+/* Meta text below item title (e.g. "82 produits", "Soins quotidiens") */
+.mobile-menu .mm-item-left > div > span:not(.mm-item-title) {
+  font-size: 11px !important;
+  color: rgba(245, 239, 227, 0.5) !important;
+  font-weight: 400 !important;
+  display: block !important;
+  margin-top: 1px !important;
+  font-family: 'Manrope', sans-serif !important;
+}
+
+.mobile-menu .mm-chevron {
+  color: rgba(245, 239, 227, 0.4) !important;
+  font-size: 18px !important;
+  font-weight: 300 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Divider — subtle gold gradient line */
+.mobile-menu .mm-divider {
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(212, 166, 74, 0.25), transparent) !important;
+  border: none !important;
+  margin: 12px 20px !important;
+}
+
+/* Promo highlight (Promotions item, existing) */
+.mobile-menu .mm-promo {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border-left: none !important;
+  position: relative;
+}
+.mobile-menu .mm-promo::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--mm-gold);
+  border-radius: 0 3px 3px 0;
+}
+.mobile-menu .mm-promo-txt {
+  color: var(--mm-gold) !important;
+  font-weight: 700 !important;
+}
+
+/* --- PREMIUM GOLD PROMO CARD --- */
+.mm-promo-card {
+  position: relative;
+  z-index: 2;
+  margin: 8px 16px 12px !important;
+  padding: 18px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(135deg, #d4a64a 0%, #b88a2e 100%) !important;
+  color: var(--mm-green-deep) !important;
+  overflow: hidden !important;
+}
+.mm-promo-card::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(255,255,255,0.3), transparent 70%);
+  pointer-events: none;
+}
+.mm-promo-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  opacity: 0.75 !important;
+  margin-bottom: 6px !important;
+  position: relative;
+}
+.mm-promo-title {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  margin-bottom: 4px !important;
+  letter-spacing: -0.01em !important;
+  position: relative;
+}
+.mm-promo-sub {
+  font-size: 12px !important;
+  opacity: 0.85 !important;
+  margin-bottom: 14px !important;
+  position: relative;
+}
+.mm-promo-cta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--mm-green-deep) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 9px 14px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.mm-promo-cta:hover {
+  background: #000 !important;
+  transform: translateY(-1px);
+}
+.mm-promo-cta svg { width: 12px; height: 12px; fill: none; stroke: currentColor; }
+
+/* --- SUB-MENUS (slide-in panels, keep functional) --- */
+.mobile-menu .mm-sub {
+  background: linear-gradient(180deg, #142d1d 0%, #0e2014 100%) !important;
+  border: none !important;
+  color: var(--mm-cream) !important;
+  position: relative;
+  z-index: 3;
+}
+.mobile-menu .mm-sub a {
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 500 !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.08) !important;
+  transition: all 0.2s ease !important;
+}
+.mobile-menu .mm-sub a:hover {
+  color: var(--mm-gold-soft) !important;
+  background: rgba(212, 166, 74, 0.08) !important;
+  padding-left: 24px !important;
+}
+.mobile-menu .mm-sub-header {
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.16em !important;
+  background: rgba(0,0,0,0.2) !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15) !important;
+}
+.mobile-menu .mm-sub-back {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  color: var(--mm-gold-soft) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+  margin: 12px 16px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+}
+.mobile-menu .mm-sub-back:hover {
+  background: rgba(212, 166, 74, 0.2) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* --- FOOTER --- */
+.mm-footer-premium {
+  position: relative !important;
+  z-index: 2 !important;
+  padding: 14px 16px 18px !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.18) !important;
+  background: rgba(0,0,0,0.3) !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
+/* Language buttons row */
+.mm-footer-langs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.mm-lang {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(212, 166, 74, 0.22);
+  color: var(--mm-cream);
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+}
+.mm-lang:hover,
+.mm-lang.active {
+  background: var(--mm-gold);
+  color: var(--mm-green-deep);
+  border-color: var(--mm-gold);
+}
+
+/* Account / Close button row */
+.mm-footer-account {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.mm-footer-account .mm-footer-btn {
+  flex: 1;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+.mm-footer-btn-primary {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  box-shadow: 0 2px 8px rgba(212, 166, 74, 0.25);
+}
+.mm-footer-btn-primary:hover {
+  background: var(--mm-gold-soft) !important;
+  transform: translateY(-1px);
+}
+.mm-footer-btn-ghost {
+  background: rgba(255,255,255,0.06) !important;
+  color: var(--mm-cream) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+}
+.mm-footer-btn-ghost:hover {
+  background: rgba(212, 166, 74, 0.12) !important;
+  border-color: var(--mm-gold) !important;
+}
+
+/* Social icons */
+.mm-footer-social {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.mm-footer-social a {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 166, 74, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mm-cream);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.mm-footer-social a:hover {
+  background: var(--mm-gold);
+  color: var(--mm-green-deep);
+  border-color: var(--mm-gold);
+  transform: translateY(-2px);
+}
+.mm-footer-social svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   3. LANGUAGE SWITCHER DESKTOP — light polish only
+   ============================================================ */
+.lang-switcher .lang-btn { transition: all 0.2s ease; font-family: 'Manrope', sans-serif !important; }
+.lang-switcher .lang-btn:hover { background: rgba(212, 166, 74, 0.15) !important; }
+.lang-dropdown { font-family: 'Manrope', sans-serif !important; }
+.lang-option { transition: all 0.2s ease; font-weight: 500; }
+.lang-option:hover { background: var(--cr, #F8F4EC) !important; color: var(--gd, #1A3C1A) !important; padding-left: 16px !important; }
+.lang-option.active { color: var(--mm-gold) !important; font-weight: 700 !important; }
+
+/* ============================================================
+   5. MENU ITEM ICONS — SVG inside (replaces emoji)
+   ============================================================ */
+.mobile-menu .mm-item-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--mm-gold);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: all 0.25s ease;
+}
+
+.mobile-menu .mm-item:hover .mm-item-icon svg,
+.mobile-menu .mm-item-link:hover .mm-item-icon svg {
+  stroke: var(--mm-gold-soft);
+  transform: scale(1.08);
+}
+
+/* Promo item — flame icon in warm tone */
+.mobile-menu .mm-promo .mm-item-icon {
+  background: rgba(232, 109, 47, 0.15) !important;
+  border-color: rgba(232, 109, 47, 0.4) !important;
+}
+.mobile-menu .mm-promo .mm-item-icon svg {
+  stroke: #ff8c42 !important;
+}
+.mobile-menu .mm-promo-txt {
+  color: #ff8c42 !important;
+}
+
+/* ============================================================
+   6. FOOTER — READABILITY + REFINED LAYOUT
+   ============================================================ */
+
+/* Brand block */
+.site-footer .footer-brand p {
+  color: rgba(245, 239, 227, 0.75) !important;
+  font-family: 'Manrope', sans-serif !important;
+  line-height: 1.6 !important;
+  font-size: 14px !important;
+}
+
+/* Social icons in footer */
+.site-footer .footer-social {
+  background: rgba(212, 166, 74, 0.08) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+.site-footer .footer-social:hover {
+  background: var(--mm-gold) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateY(-2px);
+}
+.site-footer .footer-social svg {
+  fill: var(--mm-cream) !important;
+  width: 18px !important;
+  height: 18px !important;
+  transition: fill 0.2s ease;
+}
+.site-footer .footer-social:hover svg {
+  fill: var(--mm-green-deep) !important;
+}
+
+/* Column headings with SVG icon */
+.site-footer .footer-col h4 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: var(--mm-gold) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 18px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.2) !important;
+  width: 100%;
+}
+
+.site-footer .footer-h4-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(212, 166, 74, 0.12);
+  border: 1px solid rgba(212, 166, 74, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.site-footer .footer-h4-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--mm-gold);
+}
+
+/* Column links — much more readable */
+.site-footer .footer-col a {
+  color: rgba(245, 239, 227, 0.85) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  padding: 8px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  transition: all 0.2s ease !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.site-footer .footer-col a:last-child {
+  border-bottom: none;
+}
+.site-footer .footer-col a:hover {
+  color: var(--mm-gold-soft) !important;
+  padding-left: 6px !important;
+}
+
+/* Flag emojis in cuisine links */
+.site-footer .ft-flag {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* SVG icon next to info links */
+.site-footer .footer-link-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+.site-footer .footer-link-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--mm-gold-soft);
+}
+.site-footer .footer-col a:hover .footer-link-icon {
+  opacity: 1;
+}
+
+/* Footer brand logo */
+.site-footer .footer-brand .logo-nm {
+  color: var(--mm-cream) !important;
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 600 !important;
+  font-size: 24px !important;
+  letter-spacing: -0.01em !important;
+  display: block;
+  margin-bottom: 10px;
+}
+.site-footer .footer-brand .logo-nm em {
+  color: var(--mm-gold) !important;
+  font-style: normal !important;
+}
+
+/* Footer bottom (copyright + payment icons) */
+.site-footer .footer-bottom {
+  border-top: 1px solid rgba(212, 166, 74, 0.18) !important;
+  padding-top: 20px !important;
+  margin-top: 30px !important;
+}
+.site-footer .footer-bottom span {
+  color: rgba(245, 239, 227, 0.55) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 12px !important;
+}
+.site-footer .footer-bottom span a {
+  color: var(--mm-gold-soft) !important;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.site-footer .footer-bottom span a:hover {
+  color: var(--mm-gold) !important;
+}
+
+/* Payment icons */
+.site-footer .pay-icon {
+  background: rgba(212, 166, 74, 0.08) !important;
+  border: 1px solid rgba(212, 166, 74, 0.2) !important;
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+}
+
+/* ============================================================
+   7. NEWSLETTER — "RESTEZ INFORMÉ"
+   ============================================================ */
+.newsletter-overlay h2 {
+  font-family: 'Fraunces', Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: clamp(28px, 4vw, 40px) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--mm-cream) !important;
+  margin-bottom: 12px !important;
+}
+
+.newsletter-overlay p {
+  color: rgba(245, 239, 227, 0.85) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+  margin-bottom: 22px !important;
+}
+
+.newsletter-form input[type="email"] {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: 1.5px solid rgba(212, 166, 74, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+.newsletter-form input[type="email"]:focus {
+  border-color: var(--mm-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 166, 74, 0.15) !important;
+  outline: none !important;
+}
+
+.newsletter-form button {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  cursor: pointer;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(212, 166, 74, 0.3) !important;
+}
+.newsletter-form button:hover {
+  background: var(--mm-gold-soft) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(212, 166, 74, 0.42) !important;
+}
+
+/* ============================================================
+   8. TRUST BAR — PREMIUM HORIZONTAL CARDS
+   ============================================================ */
+.trust-bar {
+  background: linear-gradient(180deg, var(--mm-cream) 0%, #ede4d0 100%) !important;
+  padding: 24px 0 !important;
+  border-top: 1px solid rgba(212, 166, 74, 0.15);
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15);
+}
+
+.trust-bar .trust-inner {
+  display: flex !important;
+  gap: 14px !important;
+  padding: 0 18px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x mandatory !important;
+}
+.trust-bar .trust-inner::-webkit-scrollbar { display: none !important; }
+
+.trust-bar .trust-item {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  background: #fff !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(0,0,0,0.04) !important;
+  min-width: 230px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+  transition: all 0.25s ease !important;
+  scroll-snap-align: start !important;
+  font-family: 'Manrope', sans-serif !important;
+}
+.trust-bar .trust-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+  border-color: rgba(212, 166, 74, 0.3) !important;
+}
+
+.trust-bar .trust-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 11px !important;
+  background: linear-gradient(135deg, #1a3a2a 0%, #142d1d 100%) !important;
+  color: var(--mm-gold-soft) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  box-shadow: inset 0 0 0 1px rgba(212, 166, 74, 0.08) !important;
+}
+
+.trust-bar .trust-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.trust-bar .trust-item strong {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #0f2419 !important;
+  letter-spacing: -0.005em !important;
+  display: block !important;
+  line-height: 1.3 !important;
+}
+
+.trust-bar .trust-item span {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 11px !important;
+  color: #6b7c72 !important;
+  margin-top: 2px !important;
+  display: block !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+}
+
+/* ============================================================
+   9. COLLECTIONS GRID (NOS RAYONS) — TITLE + CARD POLISH
+   ============================================================ */
+.collections-section .section-header {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  margin-bottom: 22px !important;
+  gap: 16px !important;
+}
+
+.collections-section .section-title {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  font-weight: 500 !important;
+  font-size: clamp(26px, 4vw, 36px) !important;
+  color: #0f2419 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 !important;
+  line-height: 1.1 !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Italic gold accent on second word ("Rayons" in "Nos Rayons") */
+.collections-section .section-title {
+  position: relative;
+}
+.collections-section .section-title::after {
+  display: none !important;
+}
+
+.collections-section .section-sub {
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 13px !important;
+  color: #6b7c72 !important;
+  margin-top: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* "Tout voir →" link */
+.collections-section .see-all {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  color: var(--mm-gold) !important;
+  text-decoration: none !important;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  background: rgba(212, 166, 74, 0.1) !important;
+  border: 1px solid rgba(212, 166, 74, 0.25) !important;
+  white-space: nowrap !important;
+  transition: all 0.2s ease !important;
+}
+.collections-section .see-all:hover {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateX(2px);
+}
+.collections-section .see-all svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Collection cards — premium hover */
+.collections-section .colcard {
+  position: relative;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+  text-decoration: none !important;
+}
+.collections-section .colcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12) !important;
+}
+
+.collections-section .colcard img {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.collections-section .colcard:hover img {
+  transform: scale(1.06);
+}
+
+/* Card overlay/labels — refined typography */
+.collections-section .col-ov {
+  font-family: 'Manrope', sans-serif !important;
+}
+.collections-section .col-name {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
+}
+.collections-section .col-cnt {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 500 !important;
+  opacity: 0.85;
+}
+
+/* Tag badges — premium pill */
+.collections-section .col-tag {
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.collections-section .col-tag.tag-g {
+  background: rgba(74, 140, 63, 0.95) !important;
+  color: #fff !important;
+}
+.collections-section .col-tag.tag-r {
+  background: rgba(220, 53, 69, 0.95) !important;
+  color: #fff !important;
+}
+.collections-section .col-tag.tag-o {
+  background: var(--mm-gold) !important;
+  color: var(--mm-green-deep) !important;
+  box-shadow: 0 2px 8px rgba(212, 166, 74, 0.4);
+}
+
+/* ============================================================
+   10. ICON QUALITY UPGRADE — MORE PREMIUM PRESENTATION
+   ============================================================ */
+
+/* Icon containers — refined gold gradient + inner glow */
+.mobile-menu .mm-item-icon,
+.mobile-menu .mm-item-link .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(232, 201, 122, 0.18) 0%,
+    rgba(212, 166, 74, 0.08) 100%) !important;
+  border: 1px solid rgba(212, 166, 74, 0.3) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.mobile-menu .mm-item-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 1.5 !important;
+  stroke: var(--mm-gold-soft) !important;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mobile-menu .mm-item:hover .mm-item-icon,
+.mobile-menu .mm-item-link:hover .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(232, 201, 122, 0.35) 0%,
+    rgba(212, 166, 74, 0.18) 100%) !important;
+  border-color: var(--mm-gold) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 14px rgba(212, 166, 74, 0.25) !important;
+  transform: scale(1.06) !important;
+}
+.mobile-menu .mm-item:hover .mm-item-icon svg,
+.mobile-menu .mm-item-link:hover .mm-item-icon svg {
+  stroke: #fff !important;
+  transform: scale(1.05);
+}
+
+/* Promo item — warmer hue */
+.mobile-menu .mm-promo .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(255, 140, 66, 0.25) 0%,
+    rgba(232, 109, 47, 0.12) 100%) !important;
+  border-color: rgba(255, 140, 66, 0.4) !important;
+}
+.mobile-menu .mm-promo .mm-item-icon svg {
+  stroke: #ffae72 !important;
+}
+.mobile-menu .mm-promo:hover .mm-item-icon {
+  background: linear-gradient(135deg,
+    rgba(255, 140, 66, 0.4) 0%,
+    rgba(232, 109, 47, 0.2) 100%) !important;
+  border-color: #ff8c42 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 14px rgba(232, 109, 47, 0.3) !important;
+}
+
+/* ============================================================
+   11. CUISINE STRIP — PREMIUM FLAG TILES
+   ============================================================ */
+.mm-cuisine-strip {
+  padding: 12px 14px !important;
+  gap: 6px !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+.mm-cuisine-strip a {
+  padding: 6px 8px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(212, 166, 74, 0.18) !important;
+  min-width: 52px !important;
+  gap: 4px !important;
+  transition: all 0.25s ease !important;
+}
+
+.mm-cuisine-strip a:hover {
+  background: rgba(212, 166, 74, 0.15) !important;
+  border-color: var(--mm-gold) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(212, 166, 74, 0.2);
+}
+
+.mm-cuisine-strip a > :first-child {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+}
+
+.mm-cuisine-strip a > span:not(:first-child),
+.mm-cuisine-strip a > span:last-child {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(245, 239, 227, 0.7) !important;
+}
+
+.mm-cuisine-strip a:hover span:last-child {
+  color: var(--mm-gold-soft) !important;
+}
+
+.mm-cuisine-strip a.cs-promo {
+  background: rgba(212, 166, 74, 0.18) !important;
+  border-color: rgba(212, 166, 74, 0.5) !important;
+}
+.mm-cuisine-strip a.cs-promo span:last-child {
+  color: var(--mm-gold) !important;
+}
+
+/* ============================================================
+   12. SECTION HEADERS — PREMIUM TITLES
+   ============================================================ */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 16px;
+}
+
+.section-title {
+  font-family: 'Fraunces', 'Playfair Display', serif !important;
+  font-size: clamp(22px, 4vw, 32px) !important;
+  font-weight: 700 !important;
+  color: var(--mm-green-deep) !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.02em !important;
+  margin: 0 0 4px !important;
+}
+
+.section-sub {
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  font-size: 14px !important;
+  color: #7a7060 !important;
+  margin: 0 !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+}
+
+.see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mm-green-deep);
+  text-decoration: none;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  border-bottom: 1.5px solid transparent;
+  padding-bottom: 1px;
+  transition: all 0.2s ease;
+}
+.see-all svg {
+  width: 16px; height: 16px;
+  fill: currentColor;
+  transition: transform 0.2s ease;
+}
+.see-all:hover {
+  color: var(--mm-gold);
+  border-bottom-color: var(--mm-gold);
+}
+.see-all:hover svg { transform: translateX(3px); }
+
+/* ============================================================
+   13. FILTER TABS — PRODUCT SECTION
+   ============================================================ */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.filter-tab {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1.5px solid #ddd8cc;
+  background: #fff;
+  color: #4a4a4a;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+.filter-tab:hover {
+  border-color: #4A8C3F;
+  color: #4A8C3F;
+  background: #f0f7ef;
+}
+.filter-tab.active {
+  background: linear-gradient(135deg, var(--mm-green-deep) 0%, #2d5c2a 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(20, 45, 29, 0.28);
+}
+
+/* ============================================================
+   14. PRODUCT CARDS — PREMIUM REDESIGN
+   ============================================================ */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 18px;
+  border: 1.5px solid #ede9df;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s ease;
+  position: relative;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(20, 45, 29, 0.12), 0 4px 12px rgba(0,0,0,0.06);
+  border-color: #c8ddc4;
+}
+
+.product-img {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #f8f4ec;
+  overflow: hidden;
+}
+.product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 12px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.product-card:hover .product-img img {
+  transform: scale(1.06);
+}
+
+.product-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  line-height: 1;
+  z-index: 2;
+}
+.product-badge.badge-new,
+.product-badge.tag-g {
+  background: linear-gradient(135deg, #4A8C3F, #76C442);
+  color: #fff;
+}
+.product-badge.badge-hot,
+.product-badge.tag-r {
+  background: linear-gradient(135deg, #e63946, #ff6b6b);
+  color: #fff;
+}
+.product-badge.badge-bio {
+  background: linear-gradient(135deg, var(--mm-gold), #c8960a);
+  color: #fff;
+}
+
+.product-info {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.product-origin {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9e8c6a;
+}
+
+.product-title {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mm-green-deep);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.product-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.product-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.current-price {
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mm-green-deep);
+}
+.compare-price {
+  font-size: 12px;
+  color: #aaa;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.quick-add {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mm-green-deep) 0%, #2d5c2a 100%);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(20, 45, 29, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.quick-add svg {
+  width: 18px; height: 18px;
+  fill: #fff;
+  pointer-events: none;
+}
+.quick-add:hover {
+  transform: scale(1.12);
+  box-shadow: 0 6px 18px rgba(20, 45, 29, 0.4);
+  background: linear-gradient(135deg, var(--mm-gold) 0%, #b8860b 100%);
+}
+.quick-add:active { transform: scale(0.95); }
+
+@media (max-width: 600px) {
+  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .product-card { border-radius: 14px; }
+  .current-price { font-size: 15px; }
+  .product-info { padding: 10px 12px 12px; }
+}
+
+/* ============================================================
+   15. CUISINE CARDS — PREMIUM IMAGE TILES
+   ============================================================ */
+.cuisines-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.cuisine-card {
+  position: relative;
+  display: block;
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--mm-green-deep);
+}
+.cuisine-card:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 20px 48px rgba(20, 45, 29, 0.22);
+}
+
+.cuisine-card img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+  opacity: 0.85;
+}
+.cuisine-card:hover img {
+  transform: scale(1.08);
+  opacity: 1;
+}
+
+.cuisine-ov {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 30%,
+    rgba(10, 26, 14, 0.75) 80%,
+    rgba(10, 26, 14, 0.92) 100%
+  );
+  transition: opacity 0.3s;
+}
+
+.cuisine-info {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 14px 12px 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cuisine-nm {
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  display: block;
+}
+
+.cuisine-cnt {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.72);
+  display: block;
+  letter-spacing: 0.02em;
+}
+
+.cuisine-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  z-index: 3;
+}
+.cuisine-tag.tag-g {
+  background: rgba(74, 140, 63, 0.9);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.cuisine-tag.tag-r {
+  background: rgba(230, 57, 70, 0.9);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+@media (max-width: 600px) {
+  .cuisines-row { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .cuisine-card { border-radius: 14px; }
+  .cuisine-nm { font-size: 13px; }
+  .cuisine-cnt { font-size: 10px; }
+}
+
+/* ============================================================
+   16. FLASH DEALS SECTION
+   ============================================================ */
+.flash-section {
+  background: linear-gradient(160deg, #0d2318 0%, #142d1d 50%, #1a3a24 100%);
+  padding: 48px 0;
+  position: relative;
+  overflow: hidden;
+}
+.flash-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 70% 50%, rgba(212,166,74,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.flash-section .section-inner { position: relative; z-index: 1; }
+
+.flash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.flash-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.flash-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--mm-gold) 0%, #c8960a 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(212, 166, 74, 0.4);
+  flex-shrink: 0;
+}
+.flash-icon svg {
+  width: 22px; height: 22px;
+  fill: #fff;
+}
+
+.flash-title-wrap h2 {
+  font-family: 'Fraunces', 'Playfair Display', serif !important;
+  font-size: clamp(22px, 4vw, 28px) !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin: 0 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Countdown */
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(212,166,74,0.25);
+  border-radius: 12px;
+  padding: 8px 14px;
+  backdrop-filter: blur(8px);
+}
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+}
+.countdown-unit .n {
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--mm-gold-soft);
+  line-height: 1;
+}
+.countdown-unit .l {
+  font-size: 9px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.countdown-sep {
+  font-size: 20px;
+  color: rgba(212,166,74,0.5);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+/* Flash grid */
+.flash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.flash-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1),
+              box-shadow 0.25s,
+              border-color 0.2s;
+  backdrop-filter: blur(6px);
+}
+.flash-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+  border-color: rgba(212,166,74,0.4);
+}
+
+.flash-card-img {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.flash-card-img img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  padding: 12px;
+  transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.flash-card:hover .flash-card-img img { transform: scale(1.06); }
+
+.flash-discount {
+  position: absolute;
+  top: 10px; left: 10px;
+  background: linear-gradient(135deg, #e63946, #ff6b6b);
+  color: #fff;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  z-index: 2;
+}
+
+.flash-card-body {
+  padding: 14px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.flash-origin {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(212,166,74,0.75);
+}
+
+.flash-name {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.flash-price {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 2px;
+}
+.new-price {
+  font-family: 'Fraunces', 'Playfair Display', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mm-gold-soft);
+}
+.old-price {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  text-decoration: line-through;
+}
+
+/* Stock bar */
+.stock-bar { margin-top: 4px; }
+.stock-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.stock-track {
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.stock-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--mm-gold) 0%, #e8c97a 100%);
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+
+.flash-add-btn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--mm-gold) 0%, #b8860b 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 4px 14px rgba(212,166,74,0.35);
+  letter-spacing: 0.03em;
+}
+.flash-add-btn:hover {
+  box-shadow: 0 6px 20px rgba(212,166,74,0.5);
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+.flash-add-btn:active { transform: translateY(0); }
+
+@media (max-width: 600px) {
+  .flash-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .flash-section { padding: 32px 0; }
+  .flash-header { gap: 12px; }
+  .countdown { padding: 6px 10px; }
+  .countdown-unit .n { font-size: 18px; }
+}
+
+/* ============================================================
+   18. PRODUCTS SECTION WRAPPER
+   ============================================================ */
+.products-section {
+  padding: 56px 0;
+  background: #fafaf7;
+}
+
+.cuisines-section {
+  padding: 56px 0;
+  background: #fff;
+}
+
+@media (max-width: 768px) {
+  .products-section, .cuisines-section { padding: 36px 0; }
+  .section-title { font-size: 22px !important; }
+}
+
+/* ============================================================
+   19. SCROLL-AWARE HEADER
+   ============================================================ */
+.site-header {
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.32s ease,
+              background 0.25s ease;
+}
+.header-scrolled {
+  box-shadow: 0 2px 20px rgba(0,0,0,0.12) !important;
+}
+.header-hidden {
+  transform: translateY(-100%);
+}
+
+/* ============================================================
+   20. MOBILE SEARCH OVERLAY — FULL SCREEN
+   ============================================================ */
+.mm-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-12px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.mm-search-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+.mm-search-overlay-form {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 12px 12px 12px 8px;
+  border-bottom: 1.5px solid #ede9df;
+  flex-shrink: 0;
+}
+
+.mm-search-back {
+  width: 44px; height: 44px;
+  border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--mm-green-deep);
+  flex-shrink: 0;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.mm-search-back:hover { background: #f0f0ea; }
+.mm-search-back svg { width: 22px; height: 22px; }
+
+.mm-search-overlay-input {
+  flex: 1;
+  height: 48px;
+  border: none;
+  outline: none;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: #1c1c1c;
+  background: transparent;
+  padding: 0 8px;
+  caret-color: var(--mm-green-deep);
+}
+.mm-search-overlay-input::placeholder {
+  color: #bbb;
+  font-weight: 400;
+}
+
+.mm-search-submit {
+  width: 44px; height: 44px;
+  border: none;
+  background: linear-gradient(135deg, var(--mm-green-deep), #2d5c2a);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.mm-search-submit svg { width: 18px; height: 18px; stroke: #fff; }
+.mm-search-submit:hover { filter: brightness(1.1); transform: scale(1.04); }
+
+.mm-search-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mm-search-hint {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a9284;
+  margin: 0 0 12px;
+}
+
+.mm-search-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.mm-search-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f5f0e6;
+  border: 1px solid #e5e0d5;
+  border-radius: 999px;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3a3028;
+  text-decoration: none;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mm-search-chip:hover, .mm-search-chip:active {
+  background: var(--mm-green-deep);
+  border-color: var(--mm-green-deep);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.mm-search-cats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mm-search-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: #fafaf5;
+  border: 1.5px solid #ede9df;
+  border-radius: 14px;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.mm-search-cat:hover, .mm-search-cat:active {
+  border-color: var(--mm-green-deep);
+  background: #f0f7ef;
+  transform: translateY(-2px);
+}
+.mm-search-cat .msc-icon { font-size: 26px; }
+.mm-search-cat span:last-child {
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mm-green-deep);
+}
+
+/* §21 removed — bottom nav handled by §38 only */
+
+/* ============================================================
+   22. MOBILE HEADER SEARCH TRIGGER (shows on mobile)
+   ============================================================ */
+@media (max-width: 900px) {
+  .mobile-search-trigger { display: flex !important; }
+  .search-wrap { display: none !important; }
+}
+
+/* ============================================================
+   23. MOBILE PRODUCT CARDS — PREMIUM TOUCH OPTIMIZED
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Better tap states */
+  .product-card:active {
+    transform: scale(0.97) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  }
+  .quick-add:active {
+    transform: scale(0.88) !important;
+  }
+  .cuisine-card:active {
+    transform: scale(0.97) !important;
+  }
+  .flash-card:active {
+    transform: scale(0.97) !important;
+  }
+  .filter-tab:active {
+    transform: scale(0.94) !important;
+  }
+
+  /* Slightly larger touch targets */
+  .quick-add {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* Product grid with better spacing on mobile */
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Cuisine grid on mobile */
+  .cuisines-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .cuisine-card {
+    aspect-ratio: 4 / 3 !important;
+  }
+
+  /* Flash grid on mobile */
+  .flash-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Section inner padding */
+  .section-inner { padding: 0 14px !important; }
+
+  /* Section titles */
+  .section-title { font-size: 20px !important; }
+  .section-sub { font-size: 13px !important; }
+
+  /* Filter tabs scroll */
+  .filter-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 4px;
+    margin-bottom: 16px !important;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none !important; }
+  .filter-tab { flex-shrink: 0; }
+}
+
+/* ============================================================
+   24. MOBILE COLLECTION PAGE — PREMIUM
+   ============================================================ */
+@media (max-width: 768px) {
+  .col-hero { height: 160px; }
+  .col-hero h1 { font-size: 22px; }
+  .col-grid { gap: 8px; padding: 10px 12px; }
+  .prod-card { border-radius: 12px; }
+  .prod-body { padding: 8px 8px 10px; }
+  .prod-title { font-size: 11.5px; }
+  .prod-price { font-size: 14px; }
+  .prod-add { width: 34px; height: 34px; border-radius: 8px; bottom: 6px; right: 6px; }
+
+  /* Better toolbar */
+  .col-toolbar {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .toolbar-btn {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 9px;
+  }
+}
+
+/* ============================================================
+   25. MOBILE CART DRAWER — PREMIUM
+   ============================================================ */
+@media (max-width: 768px) {
+  .cart-drawer {
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    max-height: 92vh !important;
+    transform: translateY(100%) !important;
+  }
+  .cart-drawer.open {
+    transform: translateY(0) !important;
+  }
+  .cart-header {
+    border-radius: 20px 20px 0 0;
+  }
+  /* Drag handle */
+  .cart-header::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+    margin: 0 auto 10px;
+  }
+}
+
+/* ============================================================
+   26. MOBILE HERO — BETTER MOBILE LAYOUT
+   ============================================================ */
+@media (max-width: 768px) {
+  .hero-section {
+    min-height: 65vh !important;
+    border-radius: 0 0 28px 28px !important;
+  }
+  .hero-badge {
+    font-size: 10px !important;
+    padding: 5px 12px !important;
+  }
+  .hero-title {
+    font-size: clamp(26px, 8vw, 38px) !important;
+    line-height: 1.15 !important;
+  }
+  .hero-sub {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  .hero-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  .hero-btn, .hero-btn-ghost {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 16px 20px !important;
+    font-size: 15px !important;
+  }
+  .hero-trust {
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+}
+
+/* ============================================================
+   27. GLOBAL MOBILE POLISH
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Smooth scrolling momentum */
+  body { -webkit-overflow-scrolling: touch; }
+
+  /* Prevent text selection on interactive elements */
+  .filter-tab, .app-nav-btn, .quick-add, .flash-add-btn,
+  .cart-qty-btn, .mm-search-chip, .mm-search-cat {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Better focus styles for accessibility */
+  *:focus-visible {
+    outline: 2px solid var(--mm-green-deep);
+    outline-offset: 2px;
+  }
+
+  /* Announcement bar on mobile */
+  .ann { height: 34px !important; }
+  .ann-item { font-size: 11px !important; }
+
+  /* Section spacing on mobile */
+  .products-section, .cuisines-section {
+    padding: 28px 0 !important;
+  }
+  .flash-section { padding: 28px 0 !important; }
+
+  /* Better mobile footer */
+  .footer { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* fadeInUp animation for filter */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   FOOTER TRUST BAR
+   ============================================================ */
+.footer-trust-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px 36px;
+  padding: 22px 0 20px;
+  border-top: 1px solid rgba(212, 166, 74, 0.15);
+  border-bottom: 1px solid rgba(212, 166, 74, 0.15);
+  margin: 30px 0 0;
+}
+.ftb-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(245, 239, 227, 0.7);
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.ftb-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: var(--mm-gold-soft, #c9a84c);
+}
+
+/* ============================================================
+   FOOTER PAYMENT SECTION
+   ============================================================ */
+.footer-payment-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 0 24px;
+}
+.footer-payment-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(245, 239, 227, 0.4);
+}
+.footer-payment-section .payment-icons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.footer-payment-section .pay-icon {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(212, 166, 74, 0.18) !important;
+  border-radius: 8px !important;
+  width: 52px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, background 0.2s;
+}
+.footer-payment-section .pay-icon:hover {
+  background: rgba(212, 166, 74, 0.1) !important;
+  border-color: rgba(212, 166, 74, 0.4) !important;
+}
+.footer-payment-section .pay-icon svg {
+  width: 38px;
+  height: 24px;
+  display: block;
+}
+.footer-payment-section .pay-icon-cb {
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mm-cream, #f5efe3);
+  letter-spacing: 0.05em;
+}
+
+
+/* §28 removed — bottom nav handled by §38 only */
+
+/* ============================================================
+   29. CART PAGE — PREMIUM REBUILD + OVERFLOW/STICKY FIX
+   ============================================================ */
+/* Sidebar must clear the sticky header (header is sticky top:0, z-index 900) */
+.cart-sidebar {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  position: sticky !important;
+  top: 96px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fafaf6 100%) !important;
+  border: 1.5px solid #ece7db !important;
+  border-radius: 18px !important;
+  box-shadow: 0 6px 28px rgba(20, 45, 29, 0.06) !important;
+}
+.cart-layout { overflow: visible !important; }
+.cart-items { min-width: 0 !important; }
+.cart-payment-icons { max-width: 100% !important; overflow: hidden !important; }
+
+/* Item card polish */
+.cart-item {
+  padding: 18px 0 !important;
+  border-bottom: 1px solid #f0ece2 !important;
+}
+.cart-item-img {
+  border-radius: 14px !important;
+  border: 1px solid #ece7db !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+}
+
+/* On mobile: sidebar not sticky, and leave room for the bottom nav */
+@media (max-width: 768px) {
+  .cart-sidebar { position: static !important; top: auto !important; }
+  .cart-page { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* ============================================================
+   30. PREMIUM BUTTON REDESIGN
+   ============================================================ */
+
+/* Hero "Nos produits" button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #1e5c2a 0%, #142d1d 60%, #0e2015 100%);
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow 0.22s ease, transform 0.18s ease, border-color 0.22s ease;
+  box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35);
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover {
+  border-color: rgba(212, 166, 74, 0.6);
+  box-shadow: 0 8px 32px rgba(20, 45, 29, 0.45), 0 0 0 3px rgba(212, 166, 74, 0.15);
+  transform: translateY(-2px);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Hero "Promotions" ghost button */
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  border: 2px solid var(--mm-gold, #d4a64a);
+  background: transparent;
+  color: var(--mm-gold, #d4a64a);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease;
+  letter-spacing: 0.02em;
+}
+.btn-outline:hover {
+  background: var(--mm-gold, #d4a64a);
+  color: var(--mm-green-deep, #142d1d);
+  box-shadow: 0 6px 24px rgba(212, 166, 74, 0.35);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+/* Collection quick-add button */
+.prod-add {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #2a6e35 0%, #142d1d 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 4;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, background 0.18s ease;
+  box-shadow: 0 3px 10px rgba(20, 45, 29, 0.3);
+}
+.prod-add:hover {
+  transform: scale(1.14);
+  box-shadow: 0 6px 20px rgba(20, 45, 29, 0.45);
+  background: linear-gradient(135deg, #3a8c45 0%, #1e5c2a 100%);
+}
+.prod-add.added {
+  background: linear-gradient(135deg, #4CAF50, #2e7d32);
+}
+
+/* Cart checkout button */
+.cart-checkout-btn {
+  display: block !important;
+  width: 100% !important;
+  padding: 17px 20px !important;
+  background: linear-gradient(135deg, #2a6e35 0%, #142d1d 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 14px !important;
+  font-family: 'Manrope', 'DM Sans', sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35) !important;
+  transition: transform 0.18s ease, box-shadow 0.22s ease !important;
+  animation: cart-btn-pulse 2.8s ease-in-out infinite;
+  letter-spacing: 0.02em !important;
+}
+.cart-checkout-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 32px rgba(20, 45, 29, 0.5) !important;
+  animation: none;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+@keyframes cart-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(20, 45, 29, 0.35); }
+  50% { box-shadow: 0 4px 28px rgba(20, 45, 29, 0.55), 0 0 0 4px rgba(42, 110, 53, 0.12); }
+}
+
+/* Quantity buttons */
+.cart-qty-btn {
+  width: 36px !important;
+  height: 36px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  font-size: 18px !important;
+  color: var(--mm-green-deep, #142d1d) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.15s ease !important;
+  font-weight: 400 !important;
+}
+.cart-qty-btn:hover {
+  background: rgba(20, 45, 29, 0.07) !important;
+}
+
+/* ============================================================
+   31. PREMIUM CARD UPGRADES
+   ============================================================ */
+.prod-card {
+  background: #faf8f3;
+  border-radius: 16px;
+  border: 1.5px solid #ede9df;
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.prod-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(20, 45, 29, 0.12);
+  border-color: rgba(212, 166, 74, 0.4);
+}
+
+.prod-price {
+  color: #1e6632 !important;
+  font-weight: 800 !important;
+}
+
+/* ============================================================
+   32. GLOBAL AESTHETIC POLISH
+   ============================================================ */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(42, 110, 53, 0.2);
+  color: var(--mm-green-deep, #142d1d);
+}
+
+.section-title span {
+  background: linear-gradient(135deg, var(--mm-gold, #d4a64a) 0%, #b8861e 50%, var(--mm-gold-soft, #e8c97a) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 20px 10px 14px !important;
+  background: rgba(15, 35, 15, 0.55) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  border: 1px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 40px !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.03em !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.1), 0 0 0 1px rgba(212,175,55,0.15) !important;
+}
+
+/* Live pulse dot */
+.hb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+  animation: hbPulse 2s ease-out infinite;
+}
+@keyframes hbPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74,222,128,0.7); }
+  70%  { box-shadow: 0 0 0 7px rgba(74,222,128,0); }
+  100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+}
+
+/* Items */
+.hb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: rgba(255,255,255,0.88);
+}
+.hb-item svg {
+  width: 13px;
+  height: 13px;
+  stroke: rgba(212,175,55,0.9);
+  flex-shrink: 0;
+}
+
+/* "Livraison 24h" item highlighted in gold */
+.hb-live {
+  color: #FFD700 !important;
+  font-weight: 700 !important;
+}
+.hb-live svg {
+  stroke: #FFD700 !important;
+}
+
+/* Separator */
+.hb-sep {
+  color: rgba(212,175,55,0.4);
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ============================================================
+   33. HOMEPAGE CARD POLISH — products, flash, cuisines, promos
+   ============================================================ */
+/* Featured product cards */
+.product-card {
+  border-radius: 16px !important;
+  border: 1.5px solid #ece7db !important;
+  background: #fffdf8 !important;
+  overflow: hidden !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+}
+.product-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 32px rgba(20, 45, 29, 0.13) !important;
+  border-color: rgba(212, 166, 74, 0.4) !important;
+}
+
+/* Flash deal cards */
+.flash-card {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  transition: transform 0.22s ease, box-shadow 0.22s ease !important;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+}
+.flash-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 14px 34px rgba(20, 45, 29, 0.14) !important;
+}
+.flash-discount {
+  background: linear-gradient(135deg, #e63946, #ff5e3a) !important;
+  box-shadow: 0 3px 10px rgba(230,57,70,0.35) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Cuisine cards — soft lift + gold ring on hover */
+.cuisine-card {
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06) !important;
+  transition: transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 0.22s ease !important;
+}
+.cuisine-card:hover {
+  box-shadow: 0 12px 30px rgba(20, 45, 29, 0.16), 0 0 0 2px rgba(212,166,74,0.35) !important;
+}
+
+/* Trust bar items — refined */
+.trust-bar .trust-icon svg { transition: transform 0.2s ease; }
+.trust-bar .trust-item:hover .trust-icon svg { transform: scale(1.1); }
+
+/* Section CTAs / "see all" links — gold hover */
+.see-all { transition: color 0.18s ease, gap 0.18s ease !important; }
+.see-all:hover { color: var(--mm-gold, #d4a64a) !important; }
+
+/* Pagination + add buttons — consistent premium */
+.pag-btn { transition: all 0.18s ease !important; }
+.pag-btn.active {
+  background: linear-gradient(135deg, #1e5c2a, #142d1d) !important;
+  border-color: #142d1d !important;
+}
+
+/* Quantity stepper container — rounded premium */
+.cart-qty {
+  border: 1.5px solid #e3ddd0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03) !important;
+}
+
+/* Coupon apply button — gold accent on hover */
+.cart-coupon button:hover {
+  background: var(--mm-green-deep, #142d1d) !important;
+  border-color: var(--mm-green-deep, #142d1d) !important;
+  color: #fff !important;
+}
+
+/* Free-shipping progress bar — richer gradient */
+.cart-progress-fill {
+  background: linear-gradient(90deg, #1e5c2a, #4CAF50, #76C442) !important;
+}
+
+/* ============================================================
+   34. HERO BACKGROUND SLIDESHOW — premium crossfade
+   ============================================================ */
+/* Only the background image changes; content/overlay stay static.
+   10 images, each visible ~3s, soft crossfade. Total cycle 30s. */
+.hero-bg-slideshow {
+  background: #0f230f; /* deep base so it's never blank during load */
+}
+.hero-bg-slideshow img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center 35% !important;
+  opacity: 0;
+  will-change: opacity;
+  animation: heroCrossfade 30s infinite cubic-bezier(0.45, 0, 0.55, 1);
+}
+.hero-bg-slideshow img:nth-child(1)  { animation-delay: 0s; }
+.hero-bg-slideshow img:nth-child(2)  { animation-delay: 3s; }
+.hero-bg-slideshow img:nth-child(3)  { animation-delay: 6s; }
+.hero-bg-slideshow img:nth-child(4)  { animation-delay: 9s; }
+.hero-bg-slideshow img:nth-child(5)  { animation-delay: 12s; }
+.hero-bg-slideshow img:nth-child(6)  { animation-delay: 15s; }
+.hero-bg-slideshow img:nth-child(7)  { animation-delay: 18s; }
+.hero-bg-slideshow img:nth-child(8)  { animation-delay: 21s; }
+.hero-bg-slideshow img:nth-child(9)  { animation-delay: 24s; }
+.hero-bg-slideshow img:nth-child(10) { animation-delay: 27s; }
+
+@keyframes heroCrossfade {
+  0%    { opacity: 0; }
+  2.5%  { opacity: 1; }   /* fade in (~0.75s) */
+  10%   { opacity: 1; }   /* hold through its 3s slot */
+  12.5% { opacity: 0; }   /* fade out, overlapping next image's fade-in */
+  100%  { opacity: 0; }
+}
+
+/* Respect reduced-motion: show only the first image, no animation */
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg-slideshow img { animation: none; opacity: 0; }
+  .hero-bg-slideshow img:nth-child(1) { opacity: 1; }
+}
+
+/* ============================================================
+   35. HERO SLIDE LINK — right-side collection shortcut
+   ============================================================ */
+.hero-slide-link {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 14px 18px;
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-right: none;
+  border-radius: 40px 0 0 40px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 200px;
+  transition: background 0.25s, transform 0.25s, max-width 0.3s;
+  overflow: hidden;
+}
+.hero-slide-link:hover {
+  background: rgba(212,175,55,0.28);
+  border-color: rgba(212,175,55,0.55);
+  transform: translateY(-50%) translateX(-4px);
+}
+.hsl-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: opacity 0.4s;
+}
+.hsl-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(212,175,55,0.3);
+  border-radius: 50%;
+  transition: background 0.25s;
+}
+.hsl-arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke: #FFD700;
+}
+.hero-slide-link:hover .hsl-arrow {
+  background: rgba(212,175,55,0.6);
+}
+@media (max-width: 768px) {
+  .hero-slide-link {
+    top: 18%;
+    bottom: auto;
+    right: 0;
+    transform: none;
+    font-size: 12px;
+    padding: 10px 14px 10px 12px;
+    max-width: 170px;
+  }
+  .hero-slide-link:hover {
+    transform: translateX(-4px);
+  }
+}
+
+/* ============================================================
+   36. DELIVERY PROMISE BANNER — Express 24h + Chaîne du froid
+   ============================================================ */
+.delivery-banner-section {
+  padding: 0 0 48px;
+  background: #f8faf8;
+}
+.delivery-banner-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dbcard {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.dbcard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.18);
+}
+.dbc-img-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.dbc-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+/* Express card — dark green gradient overlay */
+.dbcard--express .dbc-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(15,35,15,0.82) 0%, rgba(26,60,26,0.65) 60%, rgba(0,0,0,0.4) 100%);
+}
+/* Cold card — deep blue-teal gradient overlay */
+.dbcard--cold .dbc-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,30,60,0.88) 0%, rgba(0,60,90,0.70) 60%, rgba(0,20,40,0.45) 100%);
+}
+.dbc-content {
+  position: relative;
+  z-index: 2;
+  padding: 36px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+}
+.dbc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212,175,55,0.25);
+  border: 1px solid rgba(212,175,55,0.55);
+  color: #FFD700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 30px;
+  width: fit-content;
+  backdrop-filter: blur(6px);
+}
+.dbc-tag--ice {
+  background: rgba(100,200,255,0.18);
+  border-color: rgba(100,200,255,0.45);
+  color: #90E4FF;
+}
+.dbc-title {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.dbc-title em {
+  font-style: normal;
+  color: #FFD700;
+}
+.dbcard--cold .dbc-title em {
+  color: #90E4FF;
+}
+.dbc-desc {
+  color: rgba(255,255,255,0.82);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 340px;
+}
+.dbc-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dbc-pill {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+.dbc-pill--ice {
+  background: rgba(100,200,255,0.12);
+  border-color: rgba(100,200,255,0.30);
+  color: #b8eeff;
+}
+.dbc-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: auto;
+  width: fit-content;
+  padding: 12px 24px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #C8A84B, #FFD700);
+  color: #1A3C1A;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 16px rgba(212,175,55,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.dbc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(212,175,55,0.55);
+}
+.dbc-btn--ice {
+  background: linear-gradient(135deg, #0080c0, #00c0f0);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,160,220,0.4);
+}
+.dbc-btn--ice:hover {
+  box-shadow: 0 8px 24px rgba(0,160,220,0.55);
+}
+
+@media (max-width: 900px) {
+  .delivery-banner-inner {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px;
+  }
+  .dbcard { min-height: 300px; }
+  .dbc-content { padding: 28px 24px 24px; }
+}
+@media (max-width: 480px) {
+  .dbcard { min-height: 260px; }
+  .dbc-title { font-size: 20px; }
+  .dbc-desc { font-size: 13px; }
+}
+
+/* ============================================================
+   37. PRODUCT CAROUSEL — Premium auto-scroll
+   ============================================================ */
+.pcarousel-wrap {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 2px 12px;
+  cursor: grab;
+}
+.pcarousel-wrap::-webkit-scrollbar { display: none; }
+.pcarousel-wrap:active { cursor: grabbing; }
+.pcar-item {
+  flex: 0 0 210px;
+  scroll-snap-align: start;
+}
+@media (max-width: 600px) {
+  .pcar-item { flex: 0 0 158px; }
+}
+.pcarousel-arrow {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(26,60,26,.15);
+  background: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.pcarousel-arrow:hover { background: #1A3C1A; border-color: #1A3C1A; box-shadow: 0 4px 16px rgba(26,60,26,.25); }
+.pcarousel-arrow:hover svg { stroke: #fff; }
+.pcarousel-arrow svg { width: 18px; height: 18px; stroke: #555; }
+
+/* ── Premium product card ── */
+.product-card {
+  display: flex; flex-direction: column;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,.07);
+  text-decoration: none; overflow: hidden;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, border-color .2s ease;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 44px rgba(20,45,29,.13), 0 4px 12px rgba(0,0,0,.06);
+  border-color: rgba(74,140,63,.22);
+}
+.product-img {
+  position: relative; aspect-ratio: 1;
+  background: linear-gradient(145deg,#f9f6f0,#f0ece3);
+  overflow: hidden;
+}
+.product-img img {
+  width: 100%; height: 100%; object-fit: contain;
+  padding: 10px;
+  transition: transform .42s cubic-bezier(.4,0,.2,1);
+}
+.product-card:hover .product-img img { transform: scale(1.08); }
+.product-img::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(26,60,26,.05) 100%);
+  pointer-events: none;
+}
+.product-badge {
+  position: absolute; top: 9px; left: 9px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 999px; line-height: 1; z-index: 2;
+}
+.badge-sale { top: 32px !important; background: linear-gradient(135deg,#e63946,#ff6b6b) !important; color:#fff !important; }
+.product-info {
+  padding: 12px 14px 14px;
+  display: flex; flex-direction: column; gap: 4px; flex: 1;
+}
+.product-origin {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: #B8860B;
+}
+.product-title {
+  font-size: 13.5px; font-weight: 600; color: #1A2E1A; line-height: 1.38;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.product-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.product-price { display: flex; align-items: baseline; gap: 5px; }
+.current-price { font-family: 'Playfair Display',serif; font-size: 17px; font-weight: 700; color: #1A3C1A; }
+.compare-price { font-size: 11px; color: #bbb; text-decoration: line-through; }
+.quick-add {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg,#1A3C1A,#2D6A2D);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 3px 10px rgba(26,60,26,.32);
+  transition: all .22s cubic-bezier(.34,1.56,.64,1);
+}
+.quick-add svg { width: 17px; height: 17px; fill: #fff; }
+.quick-add:hover { transform: scale(1.15); background: linear-gradient(135deg,#C8A84B,#a8841a); box-shadow: 0 5px 16px rgba(200,168,75,.4); }
+.quick-add:active { transform: scale(.93); }
+@media (max-width: 600px) {
+  .product-card { border-radius: 12px; }
+  .current-price { font-size: 15px; }
+  .product-info { padding: 10px 11px 12px; }
+  .product-title { font-size: 12.5px; }
+  .quick-add { width: 30px; height: 30px; }
+  .quick-add svg { width: 15px; height: 15px; }
+}
+
+/* ============================================================
+   38. NUCLEAR FIX — MOBILE BOTTOM NAV + HAMBURGER ICON COLOR
+   Overrides all previous conflicting sections with max specificity
+   ============================================================ */
+
+/* --- Hamburger menu icon → GOLD --- */
+.menu-toggle svg { stroke: #FFD700 !important; }
+.menu-toggle span { background: #FFD700 !important; }
+
+/* --- Bottom nav: solid foundation (ID-based → works on any HTML version) --- */
+#app-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important; left: 0 !important; right: 0 !important;
+  z-index: 99999 !important;
+  display: none !important; /* hidden on desktop */
+  height: 60px !important;
+  background: rgba(255,255,255,0.98) !important;
+  border-top: 1px solid rgba(0,0,0,0.09) !important;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.10) !important;
+  padding: 0 0 env(safe-area-inset-bottom, 0px) 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+@media (max-width: 900px) {
+  #app-bottom-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: 60px !important;
+  }
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* Each button — equal columns, vertical icon+label stack */
+#app-bottom-nav > * {
+  flex: 1 1 0% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  height: 60px !important;
+  padding: 8px 2px 6px !important;
+  margin: 0 !important;
+  background: none !important;
+  border: none !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  color: #888 !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  position: relative !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* SVG icons — stroke only, never fill */
+#app-bottom-nav > * svg {
+  display: block !important;
+  width: 24px !important;
+  height: 24px !important;
+  fill: none !important;
+  stroke: #888 !important;
+  stroke-width: 1.8px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  flex-shrink: 0 !important;
+}
+
+/* Icon wrapper (old HTML structure) */
+#app-bottom-nav > * .anb-icon-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+
+/* Active tab → gold */
+#app-bottom-nav > *.active { color: #C8A84B !important; }
+#app-bottom-nav > *.active svg { stroke: #C8A84B !important; }
+#app-bottom-nav > *:active svg { stroke: #C8A84B !important; }
+
+/* Cart badge */
+#app-bottom-nav .app-nav-cart-count,
+#app-bottom-nav .cart-count {
+  position: absolute !important;
+  top: -4px !important; right: -6px !important;
+  min-width: 16px !important; height: 16px !important;
+  background: #e53e3e !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  border-radius: 999px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding: 0 3px !important;
+  border: 1.5px solid #fff !important;
+  box-sizing: border-box !important;
+}
+
+/* ============================================================
+   39. FLASH DEALS — buy button on each card
+   ============================================================ */
+.flash-buy-btn {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #1A3C1A, #2D5A2D);
+  color: #fff !important;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none !important;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 2px 8px rgba(26,60,26,0.25);
+}
+.flash-buy-btn:hover {
+  background: linear-gradient(135deg, #C8A84B, #FFD700);
+  color: #1A3C1A !important;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   40. TARGETED FIXES ONLY — minimal, safe
+   ============================================================ */
+
+/* Fix 1: Bottom nav — height:60px + box-sizing:border-box + safe-area padding
+   means safe-area eats into the 60px → icons squeezed on iPhone X+.
+   Solution: nav grows taller, buttons stay 60px, safe area below is empty. */
+@media (max-width: 900px) {
+  #app-bottom-nav {
+    height: auto !important;
+    min-height: 60px !important;
+    align-items: flex-start !important;
+  }
+  #app-bottom-nav > * {
+    height: 60px !important;
+  }
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Fix 2: Cart page — leave room for bottom nav (was only at 768px, nav shows at 900px) */
+  .cart-page {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Fix 3: Logo image — strict containment so uploaded images don't bleed */
+.logo-img {
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.logo-img img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  max-width: none !important;
+}
+
+/* ============================================================
+   §41 — LOGO SVG + CHECKOUT BUTTON ENHANCEMENTS
+   ============================================================ */
+
+/* Header inline SVG logo */
+.logo-svg {
+  height: 44px !important;
+  width: auto !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+}
+@media (max-width: 768px) {
+  .logo-svg { height: 36px !important; }
+}
+@media (max-width: 480px) {
+  .logo-svg { height: 32px !important; }
+}
+
+/* Mobile menu SVG logo */
+.mm-logo-svg {
+  height: 34px !important;
+  width: auto !important;
+  display: block !important;
+}
+
+/* Cart checkout CTA hover */
+.mm-checkout-cta:hover {
+  background: linear-gradient(135deg, #D4B85A, #E0C86A) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 22px rgba(200,168,75,0.45) !important;
+}
+
+/* ── SUB-ITEMS: clickable category rows (level-1 → level-2) ── */
+.mobile-menu .mm-sub-item {
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  min-height: 56px !important;
+  padding: 0 20px 0 20px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.1) !important;
+  background: transparent !important;
+  transition: background 0.18s ease !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.15);
+}
+.mobile-menu .mm-sub-item:active {
+  background: rgba(212, 166, 74, 0.15) !important;
+}
+.mobile-menu .mm-sub-item .mm-chevron {
+  color: var(--mm-gold) !important;
+  font-size: 22px !important;
+  font-weight: 300 !important;
+  flex-shrink: 0;
+}
+
+/* ── LEVEL-2 PANELS ── */
+.mm-sub-l2 {
+  background: linear-gradient(180deg, #142d1d 0%, #0e2014 100%) !important;
+}
+.mm-sub-l2 a {
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 20px !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.08) !important;
+  transition: background 0.15s ease !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.12);
+}
+.mm-sub-l2 a:active {
+  background: rgba(212, 166, 74, 0.1) !important;
+}
+.mm-sub-l2 .mm-sub-back {
+  background: rgba(0,0,0,0.35) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.18) !important;
+  color: var(--mm-cream) !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  min-height: 54px !important;
+  padding: 0 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  letter-spacing: 0.01em !important;
+  -webkit-tap-highlight-color: rgba(212,166,74,0.12);
+}
+.mm-sub-l2 .mm-sub-back:active {
+  background: rgba(212, 166, 74, 0.12) !important;
+}
+
+/* ── HIDE BOTTOM NAV WHEN LIGHTBOX OPEN ── */
+body:has(.lightbox.open) #app-bottom-nav,
+body:has(.pg-lb.open) #app-bottom-nav {
+  display: none !important;
+}
+
+/* ── MOBILE LOGO — 2 size steps larger ── */
+@media (max-width: 768px) {
+  .logo-svg { height: 54px !important; width: auto !important; }
+}
+@media (max-width: 480px) {
+  .logo-svg { height: 48px !important; width: auto !important; }
+}
+
+/* ── APP-LIKE PRODUCT CARD ENTRANCE ANIMATION (mobile) ── */
+/* Cards only animate when JS adds body.js-anim — safe fallback: always visible */
+@media (max-width: 900px) {
+  body.js-anim .product-card {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+    transition:
+      opacity 0.38s ease,
+      transform 0.42s cubic-bezier(0.34, 1.15, 0.64, 1) !important;
+    will-change: opacity, transform;
+  }
+  body.js-anim .product-card.is-visible {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+  }
+}
+
+/* Section headers — subtle fade-in slide */
+@media (max-width: 900px) {
+  body.js-anim .section-title,
+  body.js-anim .collections-section h2,
+  body.js-anim .hero-section h1 {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease 0.05s, transform 0.4s ease 0.05s !important;
+  }
+  body.js-anim .section-title.is-visible,
+  body.js-anim .collections-section h2.is-visible,
+  body.js-anim .hero-section h1.is-visible {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+/* ============================================================
+   PREMIUM FIXES — mobile UX, visual polish, bug fixes
+   ============================================================ */
+
+/* ── FIX: mm-sub-l2 slide animation (display:none blocks CSS transition) ── */
+.mm-sub-l2 {
+  display: block !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1),
+              visibility 0s linear 0.32s !important;
+}
+.mm-sub-l2.open {
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+  transition: transform 0.32s cubic-bezier(.4,0,.2,1),
+              visibility 0s linear 0s !important;
+}
+
+/* ── FIX: mm-sub-back inside l2 — reset pill shape, make full-width sticky ── */
+.mm-sub-l2 .mm-sub-back {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+  box-sizing: border-box !important;
+  padding: 0 20px !important;
+}
+
+/* ── FIX: mm-sub-item text overflow on narrow phones ── */
+.mobile-menu .mm-sub-item span:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 36px);
+}
+
+/* ── SEARCH BAR — premium look ── */
+.search-wrap input {
+  background: rgba(255,255,255,.16) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 10px 0 0 10px !important;
+  color: #fff !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 16px !important; /* 16px = iOS zoom yok */
+  height: 44px !important;
+  padding: 0 50px 0 16px !important;
+  transition: background 0.2s ease, border-color 0.2s ease !important;
+  -webkit-appearance: none !important;
+}
+.search-wrap input::placeholder {
+  color: rgba(255,255,255,.7) !important;
+}
+.search-wrap input:focus {
+  background: rgba(255,255,255,.24) !important;
+  border-color: var(--mm-gold) !important;
+  outline: none !important;
+}
+.search-btn {
+  height: 44px !important;
+  width: 48px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #2a6a1e, #3a8a2a) !important;
+  border-radius: 0 10px 10px 0 !important;
+  box-shadow: 0 4px 14px rgba(42,106,30,.35) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: none !important;
+}
+.search-btn:active {
+  background: linear-gradient(135deg, #1e5015, #2a6a1e) !important;
+  box-shadow: 0 2px 8px rgba(42,106,30,.3) !important;
+  transform: none !important;
+}
+.search-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke: #fff !important;
+  fill: none !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+.search-btn:active svg {
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+/* ── CART CLOSE BUTTON — premium, no shift on tap ── */
+.cart-close {
+  width: 38px !important;
+  height: 38px !important;
+  background: rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  font-size: 0 !important; /* hide × text */
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: background 0.2s ease !important;
+  -webkit-tap-highlight-color: transparent !important;
+  transform: none !important;
+  position: relative !important;
+}
+.cart-close::before,
+.cart-close::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 14px !important;
+  height: 1.8px !important;
+  background: #fff !important;
+  border-radius: 2px !important;
+  pointer-events: none !important;
+}
+.cart-close::before { transform: rotate(45deg) !important; }
+.cart-close::after  { transform: rotate(-45deg) !important; }
+.cart-close:active {
+  background: rgba(255,255,255,.3) !important;
+  transform: none !important;
+}
+
+/* ── PRODUCT CARD — mobile tap state + wishlist visible ── */
+@media (max-width: 900px) {
+  .product-card:active {
+    border-color: var(--gl, #1A3C1A) !important;
+    box-shadow: 0 4px 16px rgba(42,106,42,.15) !important;
+    transform: scale(0.985) !important;
+  }
+  .product-card .wishlist-btn {
+    opacity: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    background: rgba(255,255,255,.95) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12) !important;
+  }
+  .product-img {
+    aspect-ratio: 1 !important;
+    height: auto !important;
+  }
+}
+
+/* ── PRODUCT CARD — cart item image polish ── */
+.cart-item-img {
+  border: 1px solid var(--bo, #E8E4DC) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07) !important;
+  border-radius: 10px !important;
+}
+
+/* ── COLLECTION CARDS — min-height on mobile ── */
+@media (max-width: 768px) {
+  .col-row1 .colcard { height: 180px !important; }
+  .col-row2 .colcard { min-height: 140px !important; height: 155px !important; }
+  .col-row3 .colcard { min-height: 120px !important; height: 130px !important; }
+  .colcard:active { transform: scale(0.97) !important; }
+}
+
+/* ── FILTER TABS — smooth scroll on mobile ── */
+.filter-tabs {
+  -webkit-overflow-scrolling: touch !important;
+  scroll-snap-type: x proximity !important;
+  flex-wrap: nowrap !important;
+}
+.filter-tab {
+  scroll-snap-align: start !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 600 !important;
+  min-height: 38px !important;
+}
+.filter-tab.active {
+  box-shadow: 0 3px 10px rgba(26,60,26,.2) !important;
+}
+
+/* ── BOTTOM NAV — safe area fix (iPhone notch) ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #app-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    height: auto !important;
+    min-height: 60px !important;
+  }
+}
+
+/* ── BUTTON CONSISTENCY — 12px radius everywhere ── */
+.btn, .btn-primary, .btn-outline, .quick-add-btn, .atc-btn {
+  border-radius: 12px !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-weight: 700 !important;
+}
+
+/* ── MOBILE MENU ITEMS — tap highlight ── */
+.mm-item:active,
+.mm-item-link:active {
+  background: rgba(212,166,74,.12) !important;
+  transition: none !important;
+}

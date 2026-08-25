@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="{{ request.locale.iso_code }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1A3C1A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ shop.name }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="Mondimart">
+  <title>{{ page_title }}{% if current_page != 1 %} — Page {{ current_page }}{% endif %}{% unless page_title contains shop.name %} — {{ shop.name }}{% endunless %}</title>
+  {% if page_description %}
+    <meta name="description" content="{{ page_description | escape }}">
+  {% endif %}
+  {{ content_for_header }}
+  {{ 'theme.css' | asset_url | stylesheet_tag }}
+  {{ 'mondimart-premium.css' | asset_url | stylesheet_tag }}
+</head>
+<body>
+
+  {%- section 'header' -%}
+
+  <main id="MainContent" role="main" tabindex="-1">
+    {{ content_for_layout }}
+  </main>
+
+  {%- section 'footer' -%}
+
+  {% render 'cart-drawer' %}
+
+  <!-- Sticky cart desktop only -->
+  <button class="sticky-cart" data-open-cart aria-label="Ouvrir le panier">
+    Panier (<span class="cart-sticky-count">{{ cart.item_count }}</span>)
+  </button>
+
+  <!-- MOBILE SEARCH OVERLAY -->
+  <div class="mm-search-overlay" id="mm-search-overlay" aria-hidden="true">
+    <div class="mm-search-overlay-inner">
+      <form action="{{ routes.search_url }}" method="get" class="mm-search-overlay-form" role="search">
+        <button type="button" class="mm-search-back" id="mm-search-close" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <input type="search" name="q" id="mm-search-input" placeholder="Chercher un produit…" autocomplete="off" autocapitalize="off" class="mm-search-overlay-input" enterkeyhint="search">
+        <button type="submit" class="mm-search-submit" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </form>
+      <div class="mm-search-body">
+        <p class="mm-search-hint">Recherches populaires</p>
+        <div class="mm-search-chips">
+          <a href="/search?q=halal" class="mm-search-chip">✅ Halal</a>
+          <a href="/search?q=epices" class="mm-search-chip">🌶️ Épices</a>
+          <a href="/search?q=baklava" class="mm-search-chip">🍯 Baklava</a>
+          <a href="/search?q=thé" class="mm-search-chip">🫖 Thé</a>
+          <a href="/search?q=olive" class="mm-search-chip">🫒 Huile d'olive</a>
+          <a href="/search?q=karaca" class="mm-search-chip">🍽️ Karaca</a>
+          <a href="/search?q=bio" class="mm-search-chip">🌿 Bio</a>
+          <a href="/search?q=vegan" class="mm-search-chip">🌱 Vegan</a>
+          <a href="/search?q=confiture" class="mm-search-chip">🍓 Confiture</a>
+          <a href="/search?q=pates" class="mm-search-chip">🍝 Pâtes</a>
+        </div>
+        <p class="mm-search-hint" style="margin-top:24px">Catégories</p>
+        <div class="mm-search-cats">
+          <a href="/collections/epicerie-fine" class="mm-search-cat"><span class="msc-icon">🏺</span><span>Épicerie</span></a>
+          <a href="/collections/viandes-halal" class="mm-search-cat"><span class="msc-icon">🥩</span><span>Boucherie</span></a>
+          <a href="/collections/boissons" class="mm-search-cat"><span class="msc-icon">🫖</span><span>Boissons</span></a>
+          <a href="/collections/karaca" class="mm-search-cat"><span class="msc-icon">🍽️</span><span>Karaca</span></a>
+          <a href="/collections/epices" class="mm-search-cat"><span class="msc-icon">🌶️</span><span>Épices</span></a>
+          <a href="/collections/promotions" class="mm-search-cat" style="border-color:#FFD4A3;background:#FFF8F0"><span class="msc-icon">🔥</span><span style="color:#C4792A">Promos</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP BOTTOM NAVIGATION — inline !important styles beat ALL external CSS -->
+  <nav id="app-bottom-nav" style="display:none !important;position:fixed !important;bottom:0 !important;left:0 !important;right:0 !important;width:100% !important;height:60px !important;flex-direction:row !important;flex-wrap:nowrap !important;align-items:stretch !important;justify-content:space-between !important;background:rgba(255,255,255,0.98) !important;border-top:1px solid rgba(0,0,0,0.09) !important;box-shadow:0 -4px 20px rgba(0,0,0,0.10) !important;z-index:99999 !important;padding:0 0 env(safe-area-inset-bottom,0px) 0 !important;margin:0 !important;box-sizing:border-box !important;">
+
+    <a href="/" style="flex:1 1 0% !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:3px !important;height:60px !important;padding:8px 2px 6px !important;margin:0 !important;font-size:10px !important;font-weight:600 !important;text-decoration:none !important;color:{% if template.name == 'index' %}#C8A84B{% else %}#888{% endif %} !important;box-sizing:border-box !important;min-width:0 !important;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="{% if template.name == 'index' %}#C8A84B{% else %}#888{% endif %}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/><path d="M5 10v11h14V10"/></svg>
+      <span>Accueil</span>
+    </a>
+
+    <a href="/collections/all" style="flex:1 1 0% !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:3px !important;height:60px !important;padding:8px 2px 6px !important;margin:0 !important;font-size:10px !important;font-weight:600 !important;text-decoration:none !important;color:{% if template.name == 'collection' or template.name == 'list-collections' %}#C8A84B{% else %}#888{% endif %} !important;box-sizing:border-box !important;min-width:0 !important;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="{% if template.name == 'collection' or template.name == 'list-collections' %}#C8A84B{% else %}#888{% endif %}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      <span>Rayons</span>
+    </a>
+
+    <button id="anb-search" class="anb-search-trigger" style="flex:1 1 0% !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:3px !important;height:60px !important;padding:8px 2px 6px !important;margin:0 !important;font-size:10px !important;font-weight:600 !important;color:#888 !important;background:none !important;border:none !important;cursor:pointer !important;box-sizing:border-box !important;min-width:0 !important;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Chercher</span>
+    </button>
+
+    <button class="app-cart-btn" data-open-cart style="flex:1 1 0% !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:3px !important;height:60px !important;padding:8px 2px 6px !important;margin:0 !important;font-size:10px !important;font-weight:600 !important;color:#888 !important;background:none !important;border:none !important;cursor:pointer !important;position:relative !important;box-sizing:border-box !important;min-width:0 !important;">
+      <span style="position:relative !important;display:flex !important;align-items:center !important;justify-content:center !important;width:28px !important;height:28px !important;flex-shrink:0 !important;">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#888" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M5 7h14l-1.5 12.5a2 2 0 0 1-2 1.5H8.5a2 2 0 0 1-2-1.5L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+        <span class="cart-count" style="position:absolute !important;top:-4px !important;right:-6px !important;min-width:16px !important;height:16px !important;background:#e63946 !important;color:#fff !important;font-size:9px !important;font-weight:800 !important;border-radius:999px !important;display:{% if cart.item_count > 0 %}flex{% else %}none{% endif %} !important;align-items:center !important;justify-content:center !important;padding:0 3px !important;border:1.5px solid #fff !important;box-sizing:border-box !important;">{{ cart.item_count }}</span>
+      </span>
+      <span>Panier</span>
+    </button>
+
+    <a href="{{ routes.account_url }}" style="flex:1 1 0% !important;display:flex !important;flex-direction:column !important;align-items:center !important;justify-content:center !important;gap:3px !important;height:60px !important;padding:8px 2px 6px !important;margin:0 !important;font-size:10px !important;font-weight:600 !important;text-decoration:none !important;color:{% if template.name contains 'customers' %}#C8A84B{% else %}#888{% endif %} !important;box-sizing:border-box !important;min-width:0 !important;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="{% if template.name contains 'customers' %}#C8A84B{% else %}#888{% endif %}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+      <span>Compte</span>
+    </a>
+
+  </nav>
+  <script>
+  (function(){
+    var nav = document.getElementById('app-bottom-nav');
+    if (!nav) return;
+    function applyNav() {
+      if (window.innerWidth <= 900) {
+        nav.style.setProperty('display', 'flex', 'important');
+        document.body.style.paddingBottom = 'calc(60px + env(safe-area-inset-bottom,0px))';
+      } else {
+        nav.style.setProperty('display', 'none', 'important');
+        document.body.style.paddingBottom = '';
+      }
+    }
+    applyNav();
+    window.addEventListener('resize', applyNav);
+  })();
+  </script>
+
+  {{ 'theme.js' | asset_url | script_tag }}
+</body>
+</html>

@@ -1,0 +1,38 @@
+<div class="newsletter-section">
+  {% if section.settings.image %}
+    <img src="{{ section.settings.image | image_url: width: 1600 }}" alt="Newsletter" loading="lazy">
+  {% else %}
+    <img src="https://images.unsplash.com/photo-1506368249639-73a05d6f6488?w=1600&q=80" alt="Newsletter">
+  {% endif %}
+  <div class="newsletter-overlay">
+    <h2>{{ section.settings.title }}</h2>
+    <p>{{ section.settings.subtitle }}</p>
+    {% form 'customer', id: 'newsletter-form' %}
+      <input type="hidden" name="contact[tags]" value="newsletter">
+      <div class="newsletter-form">
+        <input type="email" name="contact[email]" placeholder="{{ section.settings.placeholder }}" required>
+        <button type="submit">{{ section.settings.button_label }}</button>
+      </div>
+      {% if form.errors %}
+        <p style="color:#ff6b6b;margin-top:8px;font-size:13px">{{ form.errors | default_errors }}</p>
+      {% endif %}
+      {% if form.posted_successfully? %}
+        <p style="color:#A8D8A0;margin-top:8px;font-size:13px">✓ Merci pour votre inscription !</p>
+      {% endif %}
+    {% endform %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image de fond" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "Restez informé" },
+    { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Recettes, promotions et nouveautés — dans votre boîte mail" },
+    { "type": "text", "id": "placeholder", "label": "Placeholder email", "default": "votre@email.com" },
+    { "type": "text", "id": "button_label", "label": "Texte bouton", "default": "S'abonner →" }
+  ],
+  "presets": [{ "name": "Newsletter" }]
+}
+{% endschema %}

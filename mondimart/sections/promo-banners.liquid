@@ -1,0 +1,50 @@
+<div class="promo-section">
+  <div class="promo-grid">
+    {% for block in section.blocks %}
+      <a class="promo-card" href="{{ block.settings.url }}" {{ block.shopify_attributes }}>
+        {% if block.settings.image %}
+          <img src="{{ block.settings.image | image_url: width: 800 }}" alt="{{ block.settings.title }}" loading="lazy">
+        {% else %}
+          <img src="{{ block.settings.fallback_image }}" alt="{{ block.settings.title }}" loading="lazy">
+        {% endif %}
+        <div class="promo-overlay p{{ forloop.index }}">
+          <div class="promo-text">
+            <h3>{{ block.settings.title }}</h3>
+            <p>{{ block.settings.subtitle }}</p>
+            <span class="promo-cta">{{ block.settings.cta }} →</span>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Banners promo",
+  "blocks": [
+    {
+      "type": "banner",
+      "name": "Banner",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "fallback_image", "label": "URL image fallback" },
+        { "type": "url", "id": "url", "label": "Lien" },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Boucherie Halal Fraîche" },
+        { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Certifiée · Livraison sous glace · Express 24h" },
+        { "type": "text", "id": "cta", "label": "CTA texte", "default": "Commander" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Banners promo",
+      "blocks": [
+        { "type": "banner", "settings": { "url": "/collections/boucherie", "title": "Boucherie Halal Fraîche", "subtitle": "Certifiée · Livraison sous glace · 24h", "cta": "Commander", "fallback_image": "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&q=80" } },
+        { "type": "banner", "settings": { "url": "/collections/turque", "title": "Épicerie Turque", "subtitle": "Épices · Baklava · Olives · Fromages", "cta": "Découvrir", "fallback_image": "https://images.unsplash.com/photo-1579631542720-3a87824fff86?w=600&q=80" } },
+        { "type": "banner", "settings": { "url": "/collections/maghrebine", "title": "Cuisine Maghrébine", "subtitle": "Couscous · Harissa · Tajines", "cta": "Explorer", "fallback_image": "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?w=600&q=80" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

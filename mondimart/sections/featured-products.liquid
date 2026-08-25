@@ -1,0 +1,132 @@
+<section class="section products-section">
+  <div class="section-inner">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">{{ section.settings.title }}</h2>
+        <p class="section-sub">{{ section.settings.subtitle }}</p>
+      </div>
+      <a class="see-all" href="{{ section.settings.see_all_url }}">
+        {{ section.settings.see_all_label }}
+        <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+
+    {% if section.settings.show_tabs %}
+      <div class="filter-tabs" id="fp-tabs">
+        <button class="filter-tab active" data-cat="all">Tout</button>
+        <button class="filter-tab" data-cat="epicerie">🏺 Épicerie</button>
+        <button class="filter-tab" data-cat="boucherie">🥩 Halal</button>
+        <button class="filter-tab" data-cat="frais">🥬 Frais</button>
+        <button class="filter-tab" data-cat="boissons">🫖 Boissons</button>
+        <button class="filter-tab" data-cat="turque">🇹🇷 Turque</button>
+        <button class="filter-tab" data-cat="maghrebine">🇲🇦 Maghreb</button>
+        <button class="filter-tab" data-cat="bio">🌿 Bio</button>
+      </div>
+    {% endif %}
+
+    <div class="products-grid">
+      {% for block in section.blocks %}
+        {% if block.settings.product != blank %}
+          {%- assign product = block.settings.product -%}
+          {%- assign auto_cat = block.settings.category -%}
+          {%- assign tags_str = product.tags | join: ',' | downcase -%}
+          {%- if auto_cat == blank or auto_cat == 'epicerie' -%}
+            {%- if tags_str contains 'halal' or product.type contains 'viande' or product.type contains 'boucherie' -%}{%- assign auto_cat = 'boucherie' -%}
+            {%- elsif tags_str contains 'boisson' or tags_str contains 'thé' or tags_str contains 'cafe' or product.type contains 'boisson' -%}{%- assign auto_cat = 'boissons' -%}
+            {%- elsif tags_str contains 'frais' or tags_str contains 'laitage' or tags_str contains 'fromage' or product.type contains 'frais' -%}{%- assign auto_cat = 'frais' -%}
+            {%- elsif tags_str contains 'turque' or tags_str contains 'turc' or product.vendor contains 'Turc' -%}{%- assign auto_cat = 'turque' -%}
+            {%- elsif tags_str contains 'maghreb' or tags_str contains 'maghrebine' or tags_str contains 'arabe' -%}{%- assign auto_cat = 'maghrebine' -%}
+            {%- elsif tags_str contains 'bio' or tags_str contains 'vegan' or tags_str contains 'biologique' -%}{%- assign auto_cat = 'bio' -%}
+            {%- else -%}{%- assign auto_cat = 'epicerie' -%}
+            {%- endif -%}
+          {%- endif -%}
+          <a class="product-card" href="{{ product.url }}" data-cat="{{ auto_cat }}" {{ block.shopify_attributes }}>
+            <div class="product-img">
+              {% if product.featured_image %}
+                <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title }}" loading="lazy">
+              {% endif %}
+              {% if block.settings.badge != blank %}
+                <span class="product-badge {{ block.settings.badge_style }}">{{ block.settings.badge }}</span>
+              {% endif %}
+            </div>
+            <div class="product-info">
+              <div class="product-origin">{{ block.settings.origin }}</div>
+              <div class="product-title">{{ product.title }}</div>
+              <div class="product-bottom">
+                <div class="product-price">
+                  <span class="current-price">{{ product.price | money }}</span>
+                  {% if product.compare_at_price > product.price %}
+                    <span class="compare-price">{{ product.compare_at_price | money }}</span>
+                  {% endif %}
+                </div>
+                <button class="quick-add" data-quick-add data-variant-id="{{ product.variants.first.id }}" aria-label="Ajouter">
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+              </div>
+            </div>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<script>
+(function() {
+  var tabs = document.querySelectorAll('#fp-tabs .filter-tab');
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.forEach(function(t) { t.classList.remove('active'); });
+      this.classList.add('active');
+      var cat = this.dataset.cat;
+      var cards = document.querySelectorAll('.products-grid .product-card');
+      cards.forEach(function(card) {
+        if (cat === 'all' || !card.dataset.cat || card.dataset.cat === cat) {
+          card.style.display = '';
+          card.style.animation = 'fadeInUp .3s ease forwards';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    });
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Sélection produits",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "Sélection du Moment" },
+    { "type": "text", "id": "subtitle", "label": "Sous-titre", "default": "Nos produits phares" },
+    { "type": "text", "id": "see_all_label", "label": "Voir tout texte", "default": "Voir tout" },
+    { "type": "url", "id": "see_all_url", "label": "Voir tout lien" },
+    { "type": "checkbox", "id": "show_tabs", "label": "Afficher les onglets", "default": true }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Produit",
+      "settings": [
+        { "type": "product", "id": "product", "label": "Produit" },
+        { "type": "text", "id": "badge", "label": "Badge" },
+        { "type": "select", "id": "badge_style", "label": "Style badge", "options": [
+          { "value": "badge-new", "label": "Nouveau (vert)" },
+          { "value": "badge-sale", "label": "Promo (rouge)" },
+          { "value": "badge-halal", "label": "Halal (jaune)" }
+        ], "default": "badge-new" },
+        { "type": "text", "id": "origin", "label": "Origine / étiquette", "default": "🇹🇷 Turque" },
+        { "type": "select", "id": "category", "label": "Catégorie (filtre)", "options": [
+          { "value": "epicerie", "label": "Épicerie" },
+          { "value": "boucherie", "label": "Boucherie / Halal" },
+          { "value": "frais", "label": "Produits frais" },
+          { "value": "boissons", "label": "Boissons" },
+          { "value": "turque", "label": "Cuisine turque" },
+          { "value": "maghrebine", "label": "Cuisine maghrébine" },
+          { "value": "bio", "label": "Bio / Vegan" }
+        ], "default": "epicerie" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Sélection produits" }]
+}
+{% endschema %}
