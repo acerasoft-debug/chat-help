@@ -1023,4 +1023,14 @@ return array (
   'Create seller account' => 'Crear cuenta de vendedor',
   'trade licence / business registration' => 'licencia de actividad / alta en el registro',
   'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Los precios mayoristas, las fotos de producto y los datos del vendedor permanecen ocultos hasta activar su cuenta. Suba su %s y la revisaremos, normalmente el mismo día.',
+
+  'Wholesale prices open as soon as you upload your trade licence / business registration.' => 'Los precios mayoristas se desbloquean en cuanto subas tu licencia de actividad / alta censal.',
+  'Upload document' => 'Subir documento',
+  'Trade licence required' => 'Se requiere licencia de actividad',
+  'One step left' => 'Solo falta un paso',
+  'Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.' => 'Sube tu licencia de actividad / alta censal y los precios mayoristas se abren al instante: no tienes que esperar a la aprobación.',
+  'Trade only' => 'Solo profesionales',
+  'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'Los precios mayoristas se muestran a empresas registradas. El registro es gratuito: se te pedirá tu licencia de actividad / alta censal.',
+  'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'Los precios mayoristas permanecen ocultos hasta que subas tu %s. Se abren nada más subirlo: no hace falta esperar a la revisión.',
+  'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Ya tenemos tus documentos. Los datos del vendedor y las descargas de line sheet se abren al activar la cuenta, normalmente el mismo día. Los precios mayoristas ya son visibles.',
 );

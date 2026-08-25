@@ -155,11 +155,19 @@ $GMINCOL = vestra_group_min_colors($p);
             <?= $p['_status']==='funded' ? t('This pool reached its target — the wholesale price is locked in for everyone who joined.') : t('This pool has closed. Browse other open group buys.') ?>
           </div>
           <a class="btn btn-o" href="/groups" style="width:100%;justify-content:center;margin-top:12px"><?= t('See open group buys') ?></a>
-        <?php elseif(!$MEMBER): ?>
+        <?php elseif(!$PRICES): ?>
+          <?php /* Havuz fiyati da bir toptan fiyat: katalogla ayni kapiya bagli
+                   kalmali, yoksa /shop'ta gizlenen rakam buradan sizar. */ ?>
           <div class="gate">
+          <?php if($PRICE_GATE==='doc'): ?>
+            <h3 style="margin:0 0 6px"><?= t('One step left') ?></h3>
+            <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.') ?></p>
+            <a class="btn btn-p" href="<?= htmlspecialchars($KYC_URL) ?>" style="width:100%;justify-content:center"><?= t('Upload document') ?></a>
+          <?php else: ?>
             <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
             <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to join this pool.') ?></p>
             <a class="btn btn-p" href="/login?back=<?=urlencode('/group?id='.$p['id'])?>" style="width:100%;justify-content:center"><?= t('Sign in') ?></a>
+          <?php endif; ?>
           </div>
         <?php else: ?>
           <h3 style="margin:0 0 4px"><?= t('Join this pool') ?></h3>

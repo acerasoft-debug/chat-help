@@ -221,15 +221,25 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 
-      <?php if(!$MEMBER): ?>
+      <?php if(!$PRICES): ?>
         <div class="gate" style="margin-top:22px">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <?php /* Iki ayri sebep, iki ayri cumle: "uye olun" derken zaten uye olana
+                   bunu soylemek, kullaniciya yapacak bir sey birakmiyordu. */ ?>
+          <?php if($PRICE_GATE==='doc'): ?>
+          <h3 style="margin:0 0 6px"><?= t('One step left') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.') ?></p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <a class="btn btn-p" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
+          </div>
+          <?php else: ?>
           <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
           <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to see pricing') ?><?= $mode==='offer'?' '.t('and make an offer'):' '.t('and order') ?>.</p>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
             <a class="btn btn-p" href="/login?back=/product?id=<?= urlencode($p['id']) ?>"><?= t('Sign in') ?></a>
             <a class="btn btn-o" href="/register"><?= t('Register free') ?></a>
           </div>
+          <?php endif; ?>
         </div>
 
       <?php elseif($offered): ?>
@@ -595,8 +605,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <span class="stitle"><?= htmlspecialchars($rp['name'] ?? '') ?></span>
             <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
             <div class="sprice">
-              <?php if (!$MEMBER): ?>
-                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
+              <?php if (!$PRICES): ?>
+                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='doc' ? t('Trade licence required') : t('Members only') ?></span>
               <?php elseif (($rp['mode'] ?? '') === 'offer'): ?>
                 <span class="soffer">💬 <?= t('Open to offers') ?></span>
               <?php else: ?>

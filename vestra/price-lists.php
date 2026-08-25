@@ -109,7 +109,9 @@ require __DIR__.'/inc/head.php';
           <?php if ($cats): ?><div class="pl-cats"><?= htmlspecialchars(implode(' · ', array_slice($cats, 0, 6))) ?><?= count($cats) > 6 ? ' · …' : '' ?></div><?php endif; ?>
         </td>
         <td class="pl-n"><?= (int)$info['n'] ?></td>
-        <td class="pl-from">€<?= number_format($info['min'], 2) ?></td>
+        <?php /* Marka basina "en dusuk fiyat" da bir toptan fiyat: /price-list
+                 kilitliyken burada acik kalmasi kapiyi anlamsiz kilardi. */ ?>
+        <td class="pl-from"><?php if ($PRICES): ?>€<?= number_format($info['min'], 2) ?><?php else: ?><span style="font-size:11px;color:var(--acc)">🔒</span><?php endif; ?></td>
         <td>
           <div class="pl-dl">
             <a href="/price-list?brand=<?= $q ?>"><?= t('VIEW') ?> →</a>

@@ -1043,4 +1043,14 @@ return array (
   'Create seller account' => 'Verkäuferkonto erstellen',
   'trade licence / business registration' => 'Gewerbeanmeldung / Handelsregistereintrag',
   'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Großhandelspreise, Produktfotos und Verkäuferdaten bleiben verborgen, bis wir Ihr Konto freischalten. Laden Sie Ihre %s hoch — wir prüfen sie meist noch am selben Tag.',
+
+  'Wholesale prices open as soon as you upload your trade licence / business registration.' => 'Großhandelspreise werden freigeschaltet, sobald Sie Ihren Gewerbeschein / Handelsregisterauszug hochladen.',
+  'Upload document' => 'Dokument hochladen',
+  'Trade licence required' => 'Gewerbenachweis erforderlich',
+  'One step left' => 'Nur noch ein Schritt',
+  'Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.' => 'Laden Sie Ihren Gewerbeschein / Handelsregisterauszug hoch — die Großhandelspreise werden sofort sichtbar, Sie müssen die Prüfung nicht abwarten.',
+  'Trade only' => 'Nur für Gewerbe',
+  'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'Großhandelspreise sehen registrierte Gewerbetreibende. Die Registrierung ist kostenlos — Sie werden nach Ihrem Gewerbeschein / Handelsregisterauszug gefragt.',
+  'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'Großhandelspreise bleiben verborgen, bis Sie Ihren %s hochladen. Sie werden sofort nach dem Hochladen sichtbar — die Prüfung müssen Sie nicht abwarten.',
+  'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Ihre Unterlagen liegen uns vor. Verkäuferangaben und Line-Sheet-Downloads werden mit der Freischaltung sichtbar — meist noch am selben Tag. Die Großhandelspreise sehen Sie bereits.',
 );

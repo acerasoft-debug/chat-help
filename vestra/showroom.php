@@ -100,8 +100,8 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
           <span class="smeta"><?= htmlspecialchars($p['cat'] ?? '') ?> &middot; SKU <?= htmlspecialchars($p['sku'] ?? '') ?></span>
           <span class="smeta">MOQ <b><?= $p['moq'] ?? '?' ?></b> <?= htmlspecialchars($p['unit'] ?? 'pc') ?></span>
           <div class="sprice">
-            <?php if (!$MEMBER): ?>
-              <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
+            <?php if (!$PRICES): ?>
+              <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='doc' ? t('Trade licence required') : t('Members only') ?></span>
             <?php elseif ($dmode === 'offer'): ?>
               <span class="soffer">💬 <?= t('Open to offers') ?></span>
             <?php elseif ($dmode === 'sale'): ?>

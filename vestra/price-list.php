@@ -94,6 +94,9 @@ require __DIR__.'/inc/head.php';
   .pc-stock em{font-style:normal;color:var(--mut);white-space:nowrap}
   .pc-moq{font-size:14px;font-weight:600;text-align:right}
   .pc-price{text-align:right}
+  .pc-lock{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;white-space:nowrap;
+    padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--acc);text-decoration:none}
+  .pc-lock:hover{border-color:var(--acc);background:rgba(169,127,44,.08)}
   .pc-price b{font-size:17px;font-weight:700;letter-spacing:-.01em}
   .pc-price .from{display:block;font-size:10px;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
   .pc-rrp{text-align:right}
@@ -118,6 +121,18 @@ require __DIR__.'/inc/head.php';
   <div class="pc-head">
     <h1><?= htmlspecialchars($brandFilter !== '' ? $brandFilter : t('Wholesale price list')) ?></h1>
     <p class="pc-sub"><?= t('Trade prices per piece in EUR, excluding VAT and freight. MOQ is the minimum for that article — there is no seasonal or collection minimum on top.') ?></p>
+    <?php if (!$PRICES): ?>
+    <div class="banner info" style="margin:14px 0 0;text-align:left">🔒
+      <?php if ($PRICE_GATE === 'doc'): ?>
+        <?= t('Wholesale prices open as soon as you upload your trade licence / business registration.') ?>
+        &nbsp;<a class="btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
+      <?php else: ?>
+        <?= t('Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.') ?>
+        &nbsp;<a class="btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-sm btn-o" style="display:inline-flex;margin-left:6px" href="/login?back=/price-list"><?= t('Sign in') ?></a>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
     <p class="pc-sub"><?= t('ART. NO is the manufacturer\'s own article number; the grey code beside it is the VESTRA reference. Every row links to the product page.') ?></p>
     <div class="pc-tools">
       <input id="pcq" type="search" placeholder="<?= htmlspecialchars(t('Filter by name, article number or category…')) ?>" autocomplete="off">
@@ -190,7 +205,16 @@ require __DIR__.'/inc/head.php';
       </div>
       <div class="pc-moq pc-num"><?= htmlspecialchars((string)($p['moq'] ?? '—')) ?> <?= htmlspecialchars((string)($p['unit'] ?? 'pc')) ?></div>
       <div class="pc-price pc-num">
-        <b>€<?= number_format($price, 2) ?></b>
+        <?php /* Toptan fiyat, /shop ile AYNI kapiya bagli. Ayri tutulsaydi kural
+                 sozde kalirdi: katalogda gizlenen rakam bu sayfadan okunurdu.
+                 Satirin geri kalani (urun, MOQ, beden, art. no, perakende fiyat)
+                 herkese acik kaliyor -- sayfanin arama motorlarindaki degeri ve
+                 kampanya baglantisinin gittigi yer bozulmasin diye. */ ?>
+        <?php if ($PRICES): ?>
+          <b>€<?= number_format($price, 2) ?></b>
+        <?php else: ?>
+          <a class="pc-lock" href="<?= htmlspecialchars($PRICE_GATE === 'doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE === 'doc' ? t('Upload document') : t('Trade only') ?></a>
+        <?php endif; ?>
       </div>
       <div class="pc-rrp pc-num">
         <?php if ($realRrp): ?>

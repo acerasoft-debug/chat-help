@@ -89,7 +89,13 @@ $isBuyer=$AUTH_USER && ($AUTH_USER['type']??'')==='buyer';
           <?php if(count($cardModels) > 1): ?>
             <div class="hint" style="font-size:12px;margin-top:-4px"><?= sprintf(t('%d models · mixed assortment'), count($cardModels)) ?></div>
           <?php endif; ?>
+          <?php /* Havuz fiyati da toptan fiyat. Bu satir hicbir kapiya bagli degildi:
+                   giris yapmamis bir ziyaretci bile rakami goruyordu. */ ?>
+          <?php if($PRICES): ?>
           <div class="gprice"><span class="now"><?=eur($tierTop)?></span><span class="hint">/ <?=htmlspecialchars($p['unit'])?></span><span class="was"><?=eur($from)?></span></div>
+          <?php else: ?>
+          <div class="gprice"><a class="hint" style="color:var(--acc);text-decoration:none" href="<?= htmlspecialchars($PRICE_GATE==='doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE==='doc' ? t('Upload document') : t('Trade only') ?></a></div>
+          <?php endif; ?>
           <div class="gbar"><i style="width:<?=$p['_pct']?>%"></i></div>
           <div class="gmeta">
             <span><b style="color:var(--ink,#eee)"><?=number_format($p['_committed'])?></b> / <?=number_format($p['_target'])?> <?=htmlspecialchars($p['unit'])?> · <?=$p['_pct']?>%</span>

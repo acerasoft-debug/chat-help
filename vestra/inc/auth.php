@@ -572,6 +572,39 @@ function auth_trade_unlocked(?array $acc): bool {
     return false;
 }
 
+/* FIYAT kapisi. auth_trade_unlocked()'tan bilerek AYRI ve ondan gevsek:
+   satici kimligi ve line-sheet indirmesi ONAY bekler, fiyat ise belgenin
+   YUKLENMIS olmasiyla acilir.
+   Neden ayri: onay elle yapiliyor ve gunler alabiliyor. Fiyati onaya baglamak,
+   belgesini gonderip sirasini bekleyen gercek bir alicinin katalogda hicbir sey
+   goremeden beklemesi demek -- kaydolmasinin sebebi de zaten fiyati gormekti.
+   Yukleme ise onun kendi eylemi ve aninda karsilik buluyor.
+   "Herhangi bir PDF yukleyen kapiyi acar" itirazi burada da gecerli, ama bedeli
+   farkli: acilan sey yalnizca fiyat listesi, satici kimligi ya da toplu Excel
+   degil -- ve belge zaten sizin masaniza dusuyor, sahtesi onayda eleniyor.
+
+   Bayragi olmayan hesap (zorunluluk oncesi kayit) etkilenmez: kural geriye donuk
+   isletilirse bir gecede 41 hesap fiyati kaybederdi. */
+function auth_prices_unlocked(?array $acc): bool {
+    if (!$acc) return false;                       // giris yapmamis: zaten kapali
+    if (auth_user_approved($acc)) return true;     // tam onayli hesap her seyi gorur
+    if (empty($acc['trade_doc_required'])) return true;
+    foreach ((array)($acc['doc_requests'] ?? []) as $r) {
+        if (($r['type'] ?? '') !== 'trade_licence') continue;
+        if (in_array((string)($r['status'] ?? ''), ['uploaded', 'approved'], true)) return true;
+    }
+    return false;
+}
+
+/* Fiyat neden kapali? Kapiyi cizen sayfalar dogru cumleyi secebilsin diye:
+   'guest' = giris yok, 'doc' = giris var ama ticari belge yuklenmemis.
+   Iki durum ayni kilidi gosterse de cozumleri farkli; ayni metni yazmak
+   kullaniciya "ne yapmaliyim" sorusunu cevapsiz birakirdi. */
+function auth_price_gate_reason(?array $acc): string {
+    if (!$acc) return 'guest';
+    return auth_prices_unlocked($acc) ? '' : 'doc';
+}
+
 function auth_request_doc(string $uid, string $type, string $note=''): void {
     $list = auth_accounts();
     foreach($list as &$a) {

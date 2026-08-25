@@ -1023,4 +1023,14 @@ return array (
   'Create seller account' => 'Crea account venditore',
   'trade licence / business registration' => 'licenza commerciale / iscrizione al registro imprese',
   'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Prezzi all\'ingrosso, foto dei prodotti e dati dei venditori restano nascosti fino all\'attivazione. Carichi la Sua %s: la esaminiamo di solito in giornata.',
+
+  'Wholesale prices open as soon as you upload your trade licence / business registration.' => 'I prezzi all\'ingrosso si sbloccano appena carichi la tua visura camerale / licenza commerciale.',
+  'Upload document' => 'Carica il documento',
+  'Trade licence required' => 'Serve la visura camerale',
+  'One step left' => 'Manca un passaggio',
+  'Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.' => 'Carica la visura camerale / licenza commerciale: i prezzi all\'ingrosso si sbloccano subito, senza attendere l\'approvazione.',
+  'Trade only' => 'Solo operatori',
+  'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'I prezzi all\'ingrosso sono riservati alle aziende registrate. La registrazione è gratuita — ti verrà chiesta la visura camerale / licenza commerciale.',
+  'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'I prezzi all\'ingrosso restano nascosti finché non carichi la tua %s. Si sbloccano subito dopo il caricamento — non devi attendere la verifica.',
+  'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Abbiamo ricevuto i tuoi documenti. I dati del venditore e i line sheet si apriranno con l\'attivazione dell\'account — di solito in giornata. I prezzi all\'ingrosso sono già visibili.',
 );

@@ -33,6 +33,16 @@ $MEMBER = $IS_ADMIN || $AUTH_USER !== null || !empty($_SESSION['member']);
    and said so for a while after the rule changed. A stale comment about an access rule
    is worse than none: the next person reads it and believes uploading opens the account. */
 $APPROVED = $IS_ADMIN || auth_user_approved($AUTH_USER);
+/* Fiyat kapisi ayri bir esik: giris + ticari belgenin YUKLENMIS olmasi.
+   $MEMBER (sadece giris) fiyati acmaya artik yetmiyor -- toptan fiyat, isini
+   belgeleyen kisiye gosterilen bir sey. Onay ($APPROVED) beklemiyor ama:
+   belgeyi yukleyen aninda fiyati gorur, satici kimligi ve line-sheet yine
+   onaydan sonra acilir. Zorunluluk oncesi acilmis hesaplar etkilenmez. */
+$PRICES     = $IS_ADMIN || auth_prices_unlocked($AUTH_USER);
+$PRICE_GATE = $IS_ADMIN ? '' : auth_price_gate_reason($AUTH_USER);   // '' | 'guest' | 'doc'
+/* Kilidi gosteren her sayfa "peki nereye yukleyecegim" sorusunu da cevaplamali;
+   belge sekmesi alici ve satici panelinde ayri adreste. */
+$KYC_URL = ($AUTH_USER && ($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc';
 $MSG_UNREAD = 0;
 if ($AUTH_USER) { require_once __DIR__.'/messages.php'; $MSG_UNREAD = vestra_msg_unread_count($AUTH_USER['id']); }
 $BRAND  = 'VESTRA';
@@ -237,7 +247,16 @@ if ($AUTH_USER && !$APPROVED):
            bir belge adi yazmak, hangi ulkeyle konustugunu bilmeyen bir pazar yeri
            izlenimi veriyordu. */
         $docPhrase = auth_trade_doc_phrase(vestra_visitor_cc($AUTH_USER)); ?>
-  <?= sprintf(t('Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.'), $docPhrase) ?>
+  <?php /* Iki ayri cumle, cunku artik iki ayri esik var: belge YUKLENINCE fiyat
+           aciliyor, ONAYLANINCA satici kimligi ve line-sheet aciliyor. Tek metin
+           birakilsaydi, belgesini yukleyip fiyatlari gorebilen birine "fiyatlar
+           gizli" yazmaya devam ederdik -- eskiden dogru olan bir cumlenin yanlis
+           kalmasi, hic cumle olmamasindan kotu. */ ?>
+  <?php if (!$PRICES): ?>
+    <?= sprintf(t('Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.'), $docPhrase) ?>
+  <?php else: ?>
+    <?= t('Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.') ?>
+  <?php endif; ?>
   <a href="<?= $kycUrl ?>"><?= t('Upload documents') ?> →</a>
 </div>
 <style>

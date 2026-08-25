@@ -221,10 +221,15 @@ footer a{color:#d8bd86}
       <?php endforeach; ?>
     </nav>
   <?php endif; ?>
-  <?php if(!$MEMBER): ?>
+  <?php if($PRICE_GATE==='guest'): ?>
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
       <a href="/register" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Register free') ?></a></div>
+  <?php elseif($PRICE_GATE==='doc'): ?>
+    <?php /* Giris yapmis ama belgesi yok: "uye olun" demek yanlis olurdu, zaten uye.
+             Eksik olan tek sey soylenmeli ve yukleme yeri gosterilmeli. */ ?>
+    <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices open as soon as you upload your trade licence / business registration.') ?>
+      &nbsp;<a href="<?= htmlspecialchars($KYC_URL) ?>" class="acc btn btn-sm btn-p" style="display:inline-flex;margin-left:6px"><?= t('Upload document') ?></a></div>
   <?php endif; ?>
   <div class="shoplayout">
 
@@ -325,7 +330,7 @@ footer a{color:#d8bd86}
         <?php if(true): ?>
         <select class="sortsel" id="sortsel" onchange="applyFilters()">
           <option value="def"><?= t('Default order') ?></option>
-          <?php if($MEMBER): ?>
+          <?php if($PRICES): ?>
           <option value="price_asc"><?= t('Price: low → high') ?></option>
           <option value="price_desc"><?= t('Price: high → low') ?></option>
           <?php endif; ?>
@@ -366,7 +371,7 @@ footer a{color:#d8bd86}
              data-cat="<?= htmlspecialchars($p['cat']??'') ?>"
              data-brand="<?= htmlspecialchars($p['brand']??'') ?>"
              data-mode="<?= htmlspecialchars($dmode) ?>"
-             data-price="<?= !$MEMBER ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
+             data-price="<?= !$PRICES ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
             <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
@@ -394,8 +399,8 @@ footer a{color:#d8bd86}
               <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?></span>
               <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
               <div class="sprice">
-                <?php if(!$MEMBER): ?>
-                  <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= t('Members only') ?></span>
+                <?php if(!$PRICES): ?>
+                  <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='doc' ? t('Trade licence required') : t('Members only') ?></span>
                 <?php elseif($dmode==='offer'): ?>
                   <span class="soffer">💬 <?= t('Open to offers') ?></span>
                 <?php elseif($dmode==='sale'): ?>

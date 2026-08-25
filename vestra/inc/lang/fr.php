@@ -1023,4 +1023,14 @@ return array (
   'Create seller account' => 'Créer un compte vendeur',
   'trade licence / business registration' => 'licence commerciale / immatriculation',
   'Trade prices, product photographs and seller details stay hidden until we activate it. Upload your %s and we will review it — usually the same day.' => 'Les prix de gros, les photos produits et les coordonnées vendeurs restent masqués jusqu\'à l\'activation. Envoyez votre %s : nous l\'examinons généralement le jour même.',
+
+  'Wholesale prices open as soon as you upload your trade licence / business registration.' => 'Les prix de gros s\'affichent dès que vous déposez votre extrait Kbis / justificatif d\'activité.',
+  'Upload document' => 'Déposer le document',
+  'Trade licence required' => 'Justificatif professionnel requis',
+  'One step left' => 'Plus qu\'une étape',
+  'Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.' => 'Déposez votre extrait Kbis / justificatif d\'activité : les prix de gros s\'affichent immédiatement, sans attendre la validation.',
+  'Trade only' => 'Réservé aux pros',
+  'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'Les prix de gros sont réservés aux entreprises enregistrées. L\'inscription est gratuite — un extrait Kbis / justificatif d\'activité vous sera demandé.',
+  'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'Les prix de gros restent masqués jusqu\'au dépôt de votre %s. Ils s\'affichent dès le dépôt — sans attendre la vérification.',
+  'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Nous avons vos documents. Les coordonnées du vendeur et les line sheets s\'ouvriront à l\'activation du compte — en général le jour même. Les prix de gros sont déjà visibles.',
 );
