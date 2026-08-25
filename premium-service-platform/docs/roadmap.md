@@ -12,6 +12,9 @@
 
 - [x] Kayıt akışı: magic-link giriş, rol bazlı onboarding, oturum (JWT cookie)
 - [x] KYC altyapısı: sağlayıcı arayüzü + mock sağlayıcı; Verification kayıtları
+- [x] Konum bazlı keşif: posta kodu (PLZ) + şehir ile çevredeki doğrulanmış
+      uzman araması (/explore), herkese açık profil sayfaları, rozet ve
+      şeffaf fiyat gösterimi (posta kodu öneki ile yakınlık; geocoder sonra)
 - [ ] Gerçek KYC entegrasyonu (Stripe Identity veya Sumsub) + webhook
 - [ ] Profesyonel onboarding + sertifika inceleme paneli
 - [ ] Arama, profil, rezervasyon akışı

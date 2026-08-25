@@ -55,6 +55,11 @@ model ProfessionalProfile {
   yearsExperience Int     @default(0)
   baseCity        String
   countryCode     String // ISO 3166-1 alpha-2
+  basePostalCode  String? // postal code / PLZ of the professional's base
+  // Geocoded base location; filled by a geocoder provider later. Until
+  // then, proximity falls back to postal-code prefix matching.
+  baseLat         Float?
+  baseLng         Float?
   serviceRadiusKm Int     @default(15)
   // Denormalized rating for fast search; source of truth is Review.
   ratingAvg       Float   @default(0)

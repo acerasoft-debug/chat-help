@@ -66,6 +66,12 @@ export default function Home() {
           identity-checked, certified and insured — delivered to your door with
           escrow-protected payments and transparent, two-way reviews.
         </p>
+        <a
+          href="/explore"
+          className="mt-10 inline-block bg-ink px-8 py-4 text-sm uppercase tracking-widest text-cream"
+        >
+          Find professionals near you
+        </a>
       </section>
 
       {/* Categories */}

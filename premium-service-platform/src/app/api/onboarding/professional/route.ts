@@ -10,6 +10,7 @@ const bodySchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{2}$/, "ISO 3166-1 alpha-2 expected"),
+  basePostalCode: z.string().trim().min(2).max(12).optional(),
   bio: z.string().trim().max(1000).optional(),
   yearsExperience: z.number().int().min(0).max(60).optional(),
 });

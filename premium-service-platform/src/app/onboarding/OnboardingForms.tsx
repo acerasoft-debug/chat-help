@@ -85,6 +85,7 @@ export function ProfessionalForm() {
   const [displayName, setDisplayName] = useState("");
   const [baseCity, setBaseCity] = useState("");
   const [countryCode, setCountryCode] = useState("");
+  const [basePostalCode, setBasePostalCode] = useState("");
   const [bio, setBio] = useState("");
   const { post, busy, error } = useSubmit("/api/onboarding/professional");
 
@@ -92,7 +93,13 @@ export function ProfessionalForm() {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        post({ displayName, baseCity, countryCode, bio: bio || undefined });
+        post({
+          displayName,
+          baseCity,
+          countryCode,
+          basePostalCode: basePostalCode || undefined,
+          bio: bio || undefined,
+        });
       }}
       className="space-y-6"
     >
@@ -135,6 +142,19 @@ export function ProfessionalForm() {
             className={inputCls}
           />
         </div>
+      </div>
+      <div>
+        <label htmlFor="basePostalCode" className={labelCls}>
+          Postal code (your base area)
+        </label>
+        <input
+          id="basePostalCode"
+          maxLength={12}
+          placeholder="34365"
+          value={basePostalCode}
+          onChange={(e) => setBasePostalCode(e.target.value)}
+          className={inputCls}
+        />
       </div>
       <div>
         <label htmlFor="bio" className={labelCls}>
