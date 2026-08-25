@@ -578,8 +578,21 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=users&msg=badge_revoked'); exit;
   }
   if($act==='request_doc'){
-    auth_request_doc($_POST['uid']??'', $_POST['doc_type']??'', trim($_POST['note']??''));
-    header('Location: /admin?tab=documents&uid='.urlencode($_POST['uid']??'').'&msg=doc_requested'); exit;
+    $rduid=$_POST['uid']??''; $rdtype=$_POST['doc_type']??'';
+    auth_request_doc($rduid, $rdtype, trim($_POST['note']??''));
+    /* Talebi ACMAK yetmiyordu: musteriye hicbir bildirim gitmiyor, o da panele
+       girmek icin bir sebep bilmiyordu. Talep, ulasmadigi surece talep degil. */
+    $rdacc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$rduid){ $rdacc=$a; break; } }
+    if($rdacc && !empty($rdacc['email'])){
+      $rdlang=vestra_user_lang($rdacc);
+      $rdphrase=($rdtype==='trade_licence')
+        ? auth_trade_doc_phrase(vestra_visitor_cc($rdacc))
+        : vestra_doc_type_label($rdlang,$rdtype);
+      $rdurl='https://vestrasales.com/'.((($rdacc['type']??'')==='seller')?'seller':'buyer').'?tab=kyc';
+      [$rdS,$rdB,$rdO]=vestra_tpl_doc_requested($rdlang,$rdacc['name']?:($rdacc['company']?:'there'),$rdphrase,$rdurl);
+      vestra_send_mail($rdacc['email'],$rdS,$rdB,'','',null,'',$rdO);
+    }
+    header('Location: /admin?tab=documents&uid='.urlencode($rduid).'&msg=doc_requested'); exit;
   }
   /* Teklife yanit — OPERATOR olarak. Bu daha once hicbir yerde yoktu: satici ucu
      sahiplik sarti ariyor (seller_uid === uid), kurasyonlu katalog urunlerinde ise

@@ -260,6 +260,34 @@ function vestra_tpl_kyb_approved(string $lang, string $name, string $type, strin
   return [$subject, $body, $opts];
 }
 
+/* Belge talebi. Bu e-posta yoktu: auth_request_doc() talebi acikca kaydediyor ama
+   kimseye haber vermiyordu -- musteri ancak kendiliginden panele girerse gorurdu,
+   ki girmesi icin bir sebebi yok. Talep, ulasmadigi surece talep degil.
+   Belge adi ziyaretcinin ULKESINE gore geliyor ($docPhrase): Almanyali icin
+   "Gewerbeschein", Fransizli icin "extrait Kbis". Fiyat kapisini da burada
+   soyluyoruz -- "neden yukleyeyim" sorusunun cevabi bu. */
+function vestra_tpl_doc_requested(string $lang, string $name, string $docPhrase, string $panelUrl): array {
+  $Lb   = vestra_email_labels($lang);
+  $BTN  = ['en'=>'Upload document','de'=>'Dokument hochladen','fr'=>'Déposer le document',
+           'it'=>'Carica il documento','es'=>'Subir documento'];
+  $opts = ['button'=>['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$panelUrl]];
+  $T = [
+    'en'=>["VESTRA — one document to unlock wholesale prices",
+           "Hello %1\$s,\n\nTo show you our wholesale prices we need one document: your %2\$s.\n\nUpload it in your panel and the trade prices open immediately — you do not have to wait for our review. Once we have checked it (usually the same day) the seller details and the line-sheet downloads open as well.\n\nThis is standard for B2B wholesale: trade prices are shown to businesses only."],
+    'de'=>["VESTRA — ein Dokument für die Großhandelspreise",
+           "Hallo %1\$s,\n\nUm Ihnen unsere Großhandelspreise zu zeigen, brauchen wir ein Dokument: Ihren %2\$s.\n\nLaden Sie ihn in Ihrem Konto hoch — die Preise werden sofort sichtbar, Sie müssen unsere Prüfung nicht abwarten. Sobald wir das Dokument geprüft haben (meist am selben Tag), werden auch die Verkäuferangaben und die Line-Sheet-Downloads freigeschaltet.\n\nDas ist im B2B-Großhandel üblich: Großhandelspreise sehen nur Gewerbetreibende."],
+    'fr'=>["VESTRA — un document pour accéder aux prix de gros",
+           "Bonjour %1\$s,\n\nPour vous montrer nos prix de gros, il nous faut un document : votre %2\$s.\n\nDéposez-le dans votre espace : les prix s'affichent immédiatement, sans attendre notre vérification. Une fois le document vérifié (en général le jour même), les coordonnées du vendeur et les line sheets s'ouvrent également.\n\nC'est la norme en gros B2B : les prix de gros sont réservés aux professionnels."],
+    'it'=>["VESTRA — un documento per i prezzi all'ingrosso",
+           "Ciao %1\$s,\n\nPer mostrarti i nostri prezzi all'ingrosso ci serve un documento: la tua %2\$s.\n\nCaricala nel tuo pannello: i prezzi si sbloccano subito, senza attendere la nostra verifica. Una volta controllato il documento (di solito in giornata) si aprono anche i dati del venditore e i download dei line sheet.\n\nÈ la prassi nell'ingrosso B2B: i prezzi all'ingrosso sono riservati alle aziende."],
+    'es'=>["VESTRA — un documento para ver los precios mayoristas",
+           "Hola %1\$s,\n\nPara mostrarte nuestros precios mayoristas necesitamos un documento: tu %2\$s.\n\nSúbelo en tu panel y los precios se abren al instante: no tienes que esperar a nuestra revisión. Cuando lo hayamos comprobado (normalmente el mismo día) se abren también los datos del vendedor y las descargas de line sheet.\n\nEs lo habitual en el mayorista B2B: los precios mayoristas se muestran solo a empresas."],
+  ];
+  [$subj,$bodyT] = $T[$lang] ?? $T['en'];
+  $body = sprintf($bodyT, $name, $docPhrase) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subj, $body, $opts];
+}
+
 /* Welcome voucher — a personal first-order discount code for a registered customer.
    The code is printed in the body as well as sitting on the button, because a buyer who
    forwards the mail to whoever places their orders needs the code itself to survive the

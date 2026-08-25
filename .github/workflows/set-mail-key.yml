@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type)"
+        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type) | request_trade_docs (ticari belgesi HİÇ istenmemiş hesaplara talep aç + e-posta gönder; önce dry=true ile prova edin)"
         required: false
         default: "mail_key"
       src_email:
@@ -34,6 +34,10 @@ on:
         description: "customer_billing: ülke (ör. US). Boşsa değişmez."
         required: false
         default: ""
+      dry:
+        description: "request_trade_docs için: true (varsayılan) = sadece kimlere gideceğini yazar, hiçbir şey göndermez. false = talebi açar ve e-postayı gönderir."
+        required: false
+        default: "true"
       acct_type:
         description: "account_type görevi için: hesabın YENİ tipi (buyer | seller)"
         required: false
@@ -502,3 +506,116 @@ jobs:
             php -l /tmp/vestra_acctype.php 2>&1
             php /tmp/vestra_acctype.php 2>&1
             rm -f /tmp/vestra_acctype.php
+
+  request_trade_docs:
+    if: github.event.inputs.task == 'request_trade_docs'
+    runs-on: ubuntu-latest
+    steps:
+      # Otomatik talep eklenmeden ONCE acilmis hesaplarda hicbir belge kaydi yok:
+      # "onay bekliyor" yaziyor ama onlardan istenen bir sey yok. Bu is o eksigi
+      # kapatir -- talebi acar ve musteriye kendi dilinde haber verir.
+      - name: Ticari belge talebi (geriye dönük)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOC_DRY: ${{ github.event.inputs.dry == 'false' && '0' || '1' }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 10m
+          envs: DOC_DRY
+          script: |
+            cat > /tmp/vestra_docbackfill.php <<'PHPEOF'
+            <?php
+            /**
+             * Ticari belge talebi — GERIYE DONUK doldurma.
+             *
+             * Kayit akisi artik her yeni hesaptan trade_licence istiyor, ama otomatik talep
+             * eklenmeden once acilmis hesaplarda hicbir kayit yok: bu insanlar "onay bekliyor"
+             * bandini goruyor, oysa onlardan istenen bir sey yok ve sirada da degiller.
+             * Bekleten sey onlar degil, surecin kendisi.
+             *
+             * Bu gorev SADECE eksigi tamamlar:
+             *   - trade_licence talebi HIC olmayan hesaplara talep acar,
+             *   - musteriye kendi dilinde, kendi ulkesinin belge adiyla e-posta gonderir.
+             * trade_doc_required bayragina DOKUNMAZ: bu hesaplar fiyati gormeye devam eder.
+             * Kural yeni kayitlar icin; eskisini bir gecede kilitlemek, kaydolmus bir
+             * musteriyi cezalandirmak olurdu.
+             */
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/notify.php";
+
+            $DRY = getenv('DOC_DRY') !== '0';
+
+            $mask = function (string $e): string {
+                $at = strrpos($e, '@');
+                return substr($e, 0, 2).str_repeat('*', max(0, ($at !== false ? $at : strlen($e)) - 2)).($at !== false ? substr($e, $at) : '');
+            };
+
+            $accs = auth_accounts();
+            $targets = [];
+            foreach ($accs as $a) {
+                $mail = trim((string)($a['email'] ?? ''));
+                if ($mail === '' || !filter_var($mail, FILTER_VALIDATE_EMAIL)) continue;
+                if (($a['status'] ?? '') === 'suspended') continue;
+                $has = false;
+                foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                    if (($r['type'] ?? '') === 'trade_licence') { $has = true; break; }
+                }
+                if ($has) continue;                       // zaten istenmis -- ikinci kez isteme
+                $targets[] = $a;
+            }
+
+            printf("===== TICARI BELGE TALEBI %s =====\n", $DRY ? '(PROVA — hicbir sey gonderilmez)' : '(GERCEK)');
+            printf("toplam hesap: %d, trade_licence talebi HIC olmayan: %d\n\n", count($accs), count($targets));
+
+            if (!$targets) { echo "Yapacak bir sey yok.\n"; exit(0); }
+
+            foreach ($targets as $a) {
+                $cc = vestra_visitor_cc($a);
+                printf("  %-30s %-7s %-9s %-3s %s\n",
+                       $mask((string)$a['email']), (string)($a['type'] ?? '?'),
+                       (string)($a['kyb_status'] ?? '?'), $cc ?: '--',
+                       auth_trade_doc_phrase($cc));
+            }
+
+            if ($DRY) { echo "\nPROVA. Gercekten acmak/gondermek icin dry=false ile calistirin.\n"; exit(0); }
+
+            /* Sifre sifirlama ve siparis bildirimleri icin pay ayrilmis olmali: bu is toplu. */
+            [$ok, $note] = vestra_mail_bulk_allowed(count($targets));
+            echo "\nkota  : {$note}\n";
+            if (!$ok) { echo "Gonderim yapilmadi.\n"; exit(1); }
+
+            $opened = 0; $sent = 0; $fail = 0;
+            foreach ($targets as $a) {
+                $uid  = (string)($a['id'] ?? '');
+                $lang = vestra_user_lang($a);
+                $cc   = vestra_visitor_cc($a);
+                $phr  = auth_trade_doc_phrase($cc);
+                $note = 'Please upload your trade licence / business registration'
+                      . ($phr !== '' ? ' ('.$phr.')' : '')
+                      . '. Wholesale prices open as soon as you upload it.';
+
+                auth_request_doc($uid, 'trade_licence', $note);
+                $opened++;
+
+                $url = 'https://vestrasales.com/'.((($a['type'] ?? '') === 'seller') ? 'seller' : 'buyer').'?tab=kyc';
+                [$s, $b, $o] = vestra_tpl_doc_requested($lang, (string)(($a['name'] ?? '') ?: (($a['company'] ?? '') ?: 'there')), $phr, $url);
+                if (vestra_send_mail((string)$a['email'], $s, $b, '', '', null, '', $o)) {
+                    $sent++;
+                    printf("  + %-30s dil=%s\n", $mask((string)$a['email']), strtoupper($lang));
+                } else {
+                    $fail++;
+                    printf("  x %-30s GONDERILEMEDI (talep yine de acildi)\n", $mask((string)$a['email']));
+                }
+            }
+
+            printf("\nBITTI. talep acildi: %d, e-posta gitti: %d, gonderilemedi: %d\n", $opened, $sent, $fail);
+            exit($fail > 0 ? 1 : 0);
+            PHPEOF
+            php -l /tmp/vestra_docbackfill.php 2>&1
+            php /tmp/vestra_docbackfill.php 2>&1
+            rm -f /tmp/vestra_docbackfill.php
