@@ -960,7 +960,31 @@ jobs:
           code=$(curl -sS -A "$UA" -c "$JAR" -b "$JAR" -o /tmp/b4.html -w '%{http_code}' --max-time 30 "$BASE/buyer")
           echo "HTTP $code"
           grep -qi 'login\|sign in' /tmp/b4.html && grep -q 'authcard' /tmp/b4.html && echo "UYARI: panel yerine giris sayfasi geldi" || echo "panel govdesi geldi"
+          echo
+          echo "===== 5. GIRISLI KULLANICI BUTUN SAYFALARI ACABILIYOR MU ====="
+          # Fiyat kapisi head.php ve auth.php'ye dokundu -- yani giris yolunun tam
+          # ustunden. Bir sayfa $PRICES tanimsizken cizilirse PHP uyarisi basar ya da
+          # bos doner. Misafir kontrolu bunu YAKALAMAZ: yeni degiskenler ancak girisli
+          # kullanicida farkli dala giriyor. O yuzden ayni cerezle hepsi aciliyor.
+          FAILS=0
+          for P in / /shop /price-list /price-lists /groups /journal /requests /buyer /seller /product?id=dsq-s74gl0064-900; do
+            OUT=/tmp/p_$(echo "$P" | tr -c 'a-zA-Z0-9' '_').html
+            code=$(curl -sS -A "$UA" -c "$JAR" -b "$JAR" -o "$OUT" -w '%{http_code}' --max-time 30 "$BASE$P" || echo 000)
+            size=$(wc -c < "$OUT" | tr -d ' ')
+            # PHP hatasi govdeye basilmiyor olabilir (display_errors kapali) ama
+            # basiliyorsa yakalayalim; ayrica sasirtici derecede kucuk govde de
+            # bir isaret: sayfa yarida kesilmis olabilir.
+            ERR=""
+            grep -qiE 'Fatal error|Parse error|Warning:|Notice:|Undefined variable' "$OUT" && ERR="PHP-HATA"
+            [ "$code" != "200" ] && ERR="$ERR HTTP-$code"
+            [ "$size" -lt 2000 ] && ERR="$ERR GOVDE-KUCUK($size)"
+            if [ -n "$ERR" ]; then FAILS=$((FAILS+1)); printf '  %-34s %s %8s bayt  <-- %s\n' "$P" "$code" "$size" "$ERR";
+            else printf '  %-34s %s %8s bayt  tamam\n' "$P" "$code" "$size"; fi
+          done
+          echo
+          if [ "$FAILS" -gt 0 ]; then echo "SONUC: $FAILS sayfada sorun var -- yukariya bakin"; else echo "SONUC: girisli kullanici butun sayfalari sorunsuz aciyor"; fi
           rm -f "$JAR"
+          [ "$FAILS" -eq 0 ]
 
       # "Sifremi unuttum calismiyor" -- forgot.php TASARIM GEREGI hep ayni cevabi
       # veriyor ("link yolda"), cunku aksi halde hangi adresin kayitli oldugunu
