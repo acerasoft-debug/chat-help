@@ -1738,10 +1738,15 @@ jobs:
 
             echo "\n===== 6. ANASAYFA OTURUMU TANIYOR MU (asil sikayet) =====\n";
             $r = $req('/', null, true);
-            $hasPanel = str_contains($r['body'], 'Open my') || str_contains($r['body'], 'My panel') || str_contains($r['body'], '/buyer');
-            $hasReg   = str_contains($r['body'], 'Register as Seller') || str_contains($r['body'], 'Register free');
-            $step('anasayfa GIRISLI gosteriyor', $hasPanel && !$hasReg,
-                  ($hasPanel ? 'panel baglantisi VAR' : 'panel baglantisi YOK').' / '.($hasReg ? 'kayit dugmesi HALA VAR' : 'kayit dugmesi yok'));
+            /* METIN degil BAGLANTI say. Ilk surum "Register free" ifadesini ariyordu ve o
+               ifade anasayfanin META ACIKLAMASINDA geciyor -- <head> icinde, her sayfada,
+               giris durumundan bagimsiz. Sinama bu yuzden duzeltmeden sonra da "kayit
+               dugmesi hala var" dedi; oysa tek bir dugme kalmamisti. Bir sinamanin
+               olctugu sey, gozle gorunen davranisin ta kendisi olmali. */
+            $nReg   = substr_count($r['body'], 'href="/register');
+            $nPanel = substr_count($r['body'], 'Open my dashboard');
+            $step('anasayfa GIRISLI gosteriyor', $nPanel > 0 && $nReg === 0,
+                  $nPanel.' panel baglantisi / '.$nReg.' kayit baglantisi (girisli kullanicida 0 olmali)');
 
             echo "\n===== 7. FIYAT KAPISI (belge yuklenmemis yeni hesap) =====\n";
             foreach (['/shop', '/price-list'] as $p) {
