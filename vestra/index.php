@@ -968,6 +968,12 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     </div>
   </section>
 
+  <?php /* Giris yapmis kullaniciya KENDI kayit formunu gosterme. Bolumun en alt
+           satiri ("zaten hesabiniz var mi? Giris yapin") zaten !$LOGGED ile
+           gizleniyordu; iki kayit karti ise gizlenmiyordu -- yani bolum yarim
+           gizlenmisti ve uye asagi kaydirinca "Register as Seller" goruyordu.
+           Ust menu ve hero dogru davraniyordu, sikayetin kaynagi burasiydi. */ ?>
+  <?php if(!$LOGGED): ?>
   <section class="join reveal" id="join">
     <h2 class="sec-title"><?= $t['jt'] ?></h2>
     <p class="sec-sub" style="margin-bottom:0"><?= $t['js'] ?></p>
@@ -1014,8 +1020,9 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       </div>
     </div>
 
-    <?php if(!$LOGGED): ?><p class="join-note"><?= $t['already'] ?> <a href="/login"><?= $t['signin'] ?></a></p><?php endif; ?>
+    <p class="join-note"><?= $t['already'] ?> <a href="/login"><?= $t['signin'] ?></a></p>
   </section>
+  <?php endif; ?>
 
   <!-- ── VESTRA as an app: store-independent install (PWA) + push opt-in ── -->
   <?php $apkExists = is_file(__DIR__.'/app/vestra.apk'); ?>
