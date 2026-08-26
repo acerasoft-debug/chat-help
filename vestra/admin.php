@@ -865,6 +865,44 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=prospects&msg=lead_status_ok'); exit;
   }
+  /* Bir musteriye ELDEN mektup. Panelde bu yoktu: kampanya sablonu disinda bir sey
+     yazmak isteyen operatorun tek yolu kendi posta istemcisiydi -- o zaman da gonderim
+     lead kaydina islenmiyor, "bu adama en son ne yazdik" sorusu cevapsiz kaliyordu.
+     Mektup platformun kendi kimliginden (support@) Brevo uzerinden gidiyor, tipki
+     kampanya gibi; fark, metni operatorun yazmasi.
+     Gonderim SONRASI lead damgalaniyor: status=contacted, last_contacted_at ve
+     nota bir satir. Boylece kampanya secimi bu adrese bir daha kendiliginden
+     gondermiyor -- ayni kisiye iki koldan mektup gitmesin. */
+  if($act==='lead_letter'){
+    $lid  = $_POST['lid'] ?? '';
+    $subj = trim($_POST['subject'] ?? '');
+    $body = trim($_POST['body'] ?? '');
+    if($subj===''||$body===''){ header('Location: /admin?tab=prospects&msg=letter_empty'); exit; }
+    $leads=vestra_leads(); $hit=null;
+    foreach($leads as $l){ if(($l['id']??'')===$lid){ $hit=$l; break; } }
+    if(!$hit || !filter_var($hit['email']??'',FILTER_VALIDATE_EMAIL)){
+      header('Location: /admin?tab=prospects&msg=letter_nolead'); exit;
+    }
+    /* Gunluk kotadan gec: sifre sifirlama ve siparis bildirimleri icin ayrilan
+       pay tek bir mektup ugruna harcanmasin. */
+    [$qok,$qnote] = vestra_mail_bulk_allowed(1);
+    if(!$qok){ header('Location: /admin?tab=prospects&msg=letter_quota'); exit; }
+    $ok = vestra_send_mail($hit['email'], $subj, $body, '', '', null, '', []);
+    if($ok){
+      $stamp = date('c');
+      foreach($leads as &$l){
+        if(($l['id']??'')!==$lid) continue;
+        $l['status'] = 'contacted';
+        $l['last_contacted_at'] = $stamp;
+        $note = trim((string)($l['notes'] ?? ''));
+        $l['notes'] = ($note!==''?$note."\n":'').substr($stamp,0,10).' — elden mektup: '.mb_substr($subj,0,80);
+        break;
+      }
+      unset($l);
+      vestra_save_leads($leads);
+    }
+    header('Location: /admin?tab=prospects&msg='.($ok?'letter_sent':'letter_failed')); exit;
+  }
   if($act==='delete_lead'){
     $lid=$_POST['lid']??'';
     vestra_save_leads(array_values(array_filter(vestra_leads(),fn($l)=>($l['id']??'')!==$lid)));
@@ -1654,6 +1692,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'platform_billing_saved'=>'✓ Platform billing saved — verified on the server. Invoices will now carry the payment box.',
     'platform_billing_failed'=>'⚠ Platform billing could NOT be written to the server — nothing was saved. Retry; if it repeats, the data directory is not writable.',
     'lead_added'=>'✓ Prospect added.','lead_dupe'=>'That email is already on the list.',
+    'letter_sent'=>'✓ Mektup gönderildi ve müşteri kaydına işlendi (status=contacted).',
+    'letter_failed'=>'✗ Mektup GÖNDERİLEMEDİ. Brevo reddetti ya da ulaşılamadı — hata günlüğüne bakın. Müşteri kaydına dokunulmadı.',
+    'letter_empty'=>'Konu ve metin boş olamaz.',
+    'letter_nolead'=>'Müşteri bulunamadı ya da geçerli e-posta adresi yok.',
+    'letter_quota'=>'Günlük gönderim kotası dolu. Şifre sıfırlama ve sipariş bildirimleri için ayrılan pay korunuyor — yarın deneyin.',
     'lead_invalid'=>'Company and a valid email are required.','lead_status_ok'=>'Prospect status updated.',
     'lead_deleted'=>'Prospect deleted.','lead_tpl_ok'=>'✓ Outreach template saved.','lead_email_ok'=>'✓ Email added — prospect can now be emailed.',
     'quote_sent'=>'✓ Offer emailed to the customer.','quote_invalid'=>'Enter a valid customer email and pick at least one product.',
@@ -3886,6 +3929,15 @@ function runAutomationNow(btn){
     </div>
     <script>
     var VADMIN_CSRF=<?= json_encode($_SESSION['vadmin_csrf']??'') ?>;
+    /* Satirdaki zarf: mektup kutusunu ac, musteriyi sec, oraya kaydir. Kutu tablonun
+       DISINDA oldugu icin (ic ice form olmasin diye) bu kucuk kopru gerekiyor. */
+    function leadLetter(id){
+      var box=document.getElementById('letterBox'), sel=document.getElementById('letterLid');
+      if(!box||!sel) return;
+      box.open=true; sel.value=id;
+      if(sel.value!==id){ alert('Bu müşteri listede yok — abonelikten çıkmış ya da geçerli adresi olmayabilir.'); return; }
+      box.scrollIntoView({behavior:'smooth',block:'start'});
+    }
     function sendOneByOne(btn){
       var boxes=[].slice.call(document.querySelectorAll('.leadchk')).filter(function(c){return c.checked && !c.disabled;});
       if(!boxes.length){ alert('Select at least one customer (checkbox) first.'); return; }
@@ -3938,11 +3990,45 @@ function runAutomationNow(btn){
         </td>
         <?php /* Leads imported before this field existed have no key at all. */ ?>
         <td class="ac" style="font-size:11px"><?= !empty($l['last_contacted_at']) ? htmlspecialchars(substr((string)$l['last_contacted_at'],0,10)) : '—' ?></td>
-        <td class="ac"><button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadDelete('<?= htmlspecialchars($l['id']??'') ?>')">Delete</button></td>
+        <td class="ac" style="white-space:nowrap">
+          <?php if(!$noEmail && !$unsub): ?><button type="button" class="abtn" style="font-size:10.5px;padding:2px 7px" title="Bu müşteriye elden mektup yaz" onclick="leadLetter('<?= htmlspecialchars($l['id']??'') ?>')">✉️</button> <?php endif; ?>
+          <button type="button" class="abtn" style="color:var(--bad);border-color:rgba(239,154,154,.3)" onclick="leadDelete('<?= htmlspecialchars($l['id']??'') ?>')">Delete</button>
+        </td>
       </tr>
       <?php endforeach; ?>
     </table></div>
   </form>
+    <?php /* ELDEN MEKTUP. Kampanya sablonu her ise yaramiyor: bir musteri belirli bir
+             soru sormussa ona sablon gondermek cevap degil. Bu kutu, operatorun kendi
+             metnini platformun kimliginden (support@) gondermesini sagliyor -- ve
+             gonderimi musteri kaydina isliyor, ki "bu adama en son ne yazdik" sorusu
+             cevapsiz kalmasin ve kampanya secimi ayni kisiye ikinci kez gitmesin.
+
+             Tablo kendi formunun icinde oldugu icin bu form onun DISINDA duruyor:
+             ic ice form HTML'de gecersiz ve tarayici sessizce ic formu dusuruyor. */ ?>
+    <details id="letterBox" style="border-bottom:1px solid var(--line);background:var(--bg2)">
+      <summary style="cursor:pointer;padding:12px 18px;font-size:13px;font-weight:600">✉️ Bir müşteriye elden mektup yaz</summary>
+      <form method="post" action="/admin" class="aform" style="padding:0 18px 16px"
+            onsubmit="return confirm('Mektup gönderilsin mi? Bu geri alınamaz.')">
+        <?= csrfField() ?><input type="hidden" name="_action" value="lead_letter">
+        <div class="afield"><label>Müşteri</label>
+          <select name="lid" id="letterLid" required style="max-width:520px">
+            <option value="">— seçin —</option>
+            <?php foreach($leadsView as $ll):
+              if(($ll['status']??'')==='unsubscribed') continue;
+              if(!filter_var($ll['email']??'',FILTER_VALIDATE_EMAIL)) continue; ?>
+            <option value="<?= htmlspecialchars($ll['id']??'') ?>"><?= htmlspecialchars(($ll['company']??'') ?: ($ll['email']??'')) ?> — <?= htmlspecialchars($ll['email']) ?><?= !empty($ll['last_contacted_at'])?' · son: '.htmlspecialchars(substr((string)$ll['last_contacted_at'],0,10)):'' ?></option>
+            <?php endforeach; ?>
+          </select>
+          <p class="ahint" style="margin:4px 0 0">Abonelikten çıkmış ve geçerli adresi olmayan kayıtlar listede yok.</p>
+        </div>
+        <div class="afield"><label>Konu</label><input name="subject" required maxlength="200" style="max-width:520px" placeholder="VESTRA — following up on your enquiry"></div>
+        <div class="afield"><label>Mektup</label><textarea name="body" required rows="16" style="width:100%;font-family:inherit;line-height:1.6" placeholder="Dear …"></textarea>
+          <p class="ahint" style="margin:4px 0 0">Düz metin yazın; satır sonları korunur. <b>support@vestrasales.com</b> adresinden, kampanyalarla aynı yoldan (Brevo) gider.</p>
+        </div>
+        <button class="abtn primary" type="submit">Gönder</button>
+      </form>
+    </details>
   <?php endif; ?>
 </div>
 
