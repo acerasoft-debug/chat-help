@@ -1935,24 +1935,36 @@ jobs:
             $key = (string)vestra_cfg('mail_api_key', '');
             if ($key === '') { echo "Brevo anahtari tanimli degil — arama yapilamaz.\n"; exit(1); }
 
-            /* Brevo'nun gonderilmis e-posta kaydi. Konu suzgeci uctan uygulaniyor;
-               biz yine de kendi kontrolumuzu yapiyoruz, ucun davranisi degisirse
-               sessizce yanlis kayit secmeyelim. */
+            /* OLAY kaydi (/smtp/statistics/events), gonderilmis-e-posta listesi degil:
+               ikincisi tarih araligiyla listelemeye izin vermiyor, "en az bir suzgec
+               (email/messageId/templateId) verin" diyerek 400 donuyor -- ve elimizde tam
+               da o suzgec yok, aradigimiz sey zaten adresin kendisi. Olay kaydi tarih
+               araligi kabul ediyor ve her satirda alici ile konuyu tasiyor.
+
+               Sayfalama var: tek istekte 1000, en fazla 5 sayfa. Sinir olmasa bir yazim
+               hatasi butun kaydi cekmeye kalkar. */
             $since = date('Y-m-d', strtotime("-{$DAYS} days"));
-            $url   = 'https://api.brevo.com/v3/smtp/emails?limit=500&startDate='.$since.'&endDate='.date('Y-m-d');
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
-                CURLOPT_HTTPHEADER=>['api-key: '.$key, 'Accept: application/json']]);
-            $raw  = (string)curl_exec($ch);
-            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($code < 200 || $code >= 300) {
-                printf("Brevo kaydi okunamadi (HTTP %d): %s\n", $code, mb_substr(preg_replace('/\s+/',' ',$raw), 0, 200));
-                exit(1);
+            $rows  = [];
+            for ($page = 0; $page < 5; $page++) {
+                $url = 'https://api.brevo.com/v3/smtp/statistics/events'
+                     . '?limit=1000&offset='.($page * 1000)
+                     . '&startDate='.$since.'&endDate='.date('Y-m-d');
+                $ch = curl_init($url);
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                    CURLOPT_HTTPHEADER=>['api-key: '.$key, 'Accept: application/json']]);
+                $raw  = (string)curl_exec($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                if ($code < 200 || $code >= 300) {
+                    printf("Brevo olay kaydi okunamadi (HTTP %d): %s\n", $code, mb_substr(preg_replace('/\s+/',' ',$raw), 0, 200));
+                    exit(1);
+                }
+                $d = json_decode($raw, true);
+                $batch = (array)($d['events'] ?? []);
+                $rows = array_merge($rows, $batch);
+                if (count($batch) < 1000) break;
             }
-            $d = json_decode($raw, true);
-            $rows = (array)($d['transactionalEmails'] ?? []);
-            printf("===== Brevo kaydi: son %d gunde %d gonderim =====\n", $DAYS, count($rows));
+            printf("===== Brevo olay kaydi: son %d gunde %d olay =====\n", $DAYS, count($rows));
 
             $needle = mb_strtolower($SUBJ);
             $hits = [];
