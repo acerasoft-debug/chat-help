@@ -1807,10 +1807,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Catalog</div>
   <?= navLink($tab,'listings','🏷️','Listings ('.count($listings).')') ?>
-  <?= navLink($tab,'prices','💶','Prices &amp; MOQ') ?>
+  <?= navLink($tab,'prices','💶','Prices & MOQ') ?>
 
   <div class="sgrp">Growth</div>
-  <?= navLink($tab,'marketing','🎟️','Vouchers &amp; codes ('.(count($vouchers)+count($promos)).')') ?>
+  <?= navLink($tab,'marketing','🎟️','Vouchers & codes ('.(count($vouchers)+count($promos)).')') ?>
   <?= navLink($tab,'journal','📰','Journal ('.count($journalAll).')') ?>
   <?= navLink($tab,'notify','🔔','Notifications') ?>
 
