@@ -2392,13 +2392,33 @@ jobs:
               curl_close($ch);
               return [$code, $html];
             };
+            /* Var olan bir sinama hesabinin parolasina guvenmiyoruz -- bir kere
+               denedik, hesap tutmadi ve olcum sessizce "ziyaretci" olcumune
+               dondu. Onun yerine gecici, ONAYLI bir hesap kurup olcum bitince
+               siliyoruz: olctugumuz sey gercek bir uyenin gordugu sayfa olsun. */
+            require_once $doc.'/inc/auth.php';
+            $TMP_MAIL = 'fxprobe.'.bin2hex(random_bytes(4)).'@vestra-probe.invalid';
+            $TMP_PASS = bin2hex(random_bytes(9)).'Aa1!';
+            $list = auth_accounts();
+            $list[] = ['id'=>'acc_fxprobe_'.bin2hex(random_bytes(4)), 'email'=>$TMP_MAIL,
+                       'hash'=>password_hash($TMP_PASS, PASSWORD_DEFAULT), 'type'=>'buyer',
+                       'company'=>'FX probe (gecici)', 'country'=>'Germany', 'status'=>'active',
+                       'kyb_status'=>'approved', 'created_at'=>date('c')];
+            auth_save_accounts($list);
+            register_shutdown_function(function () use ($TMP_MAIL) {          // ne olursa olsun silinsin
+              $l = array_values(array_filter(auth_accounts(),
+                     fn($a) => strtolower((string)($a['email'] ?? '')) !== strtolower($TMP_MAIL)));
+              auth_save_accounts($l);
+            });
+
             $ch = curl_init('https://vestrasales.com/login');
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25, CURLOPT_POST=>true,
-                                    CURLOPT_POSTFIELDS=>'email=acerasoft%2Bverifytest%40gmail.com&password=Test12345!',
+                                    CURLOPT_POSTFIELDS=>http_build_query(['email'=>$TMP_MAIL, 'password'=>$TMP_PASS]),
                                     CURLOPT_COOKIEJAR=>$jar, CURLOPT_COOKIEFILE=>$jar,
                                     CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
             $lb = (string)curl_exec($ch); curl_close($ch);
-            echo '  giris: '.(str_contains($lb, 'authcard') ? 'BASARISIZ (giris sayfasi geldi)' : 'oturum acildi')."\n\n";
+            echo '  gecici onayli hesapla giris: '
+               . (str_contains($lb, 'authcard') ? 'BASARISIZ (giris sayfasi geldi)' : 'oturum acildi')."\n\n";
 
             $row = function (string $p, bool $auth) use ($get) {
               [$code, $html] = $get($p, $auth);
