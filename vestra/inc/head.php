@@ -2,6 +2,7 @@
 /** VESTRA shared header — start session, member gate, nav. Set $PAGE before include. */
 require_once __DIR__.'/i18n.php';
 require_once __DIR__.'/auth.php';
+require_once __DIR__.'/money.php';   // gosterim para birimi (EUR tabani, USD/AUD/CAD cevrimi)
 
 /* Never let a cache hold on to a rendered page. These are dynamic: /shop reflects
    listings.json, and prices, MOQs and size runs change without any file being
@@ -209,6 +210,7 @@ foreach ($_ld as $_schema) {
         <a href="/login"><?= t('Sign in') ?></a>
       <?php endif; ?>
       <?= vlang_switcher() ?>
+      <?= vestra_cur_switcher() ?>
     </div>
     <div class="nav-actions">
       <?php if ($AUTH_USER): ?>

@@ -121,6 +121,9 @@ require __DIR__.'/inc/head.php';
   <div class="pc-head">
     <h1><?= htmlspecialchars($brandFilter !== '' ? $brandFilter : t('Wholesale price list')) ?></h1>
     <p class="pc-sub"><?= t('Trade prices per piece in EUR, excluding VAT and freight. MOQ is the minimum for that article — there is no seasonal or collection minimum on top.') ?></p>
+    <?php if(($__cn = vestra_money_note()) !== ''): ?>
+      <p class="curnote" style="margin-top:10px">💱 <?= htmlspecialchars($__cn) ?></p>
+    <?php endif; ?>
     <?php if (!$PRICES): ?>
     <div class="banner info" style="margin:14px 0 0;text-align:left">🔒
       <?php if ($PRICE_GATE === 'doc'): ?>
@@ -211,14 +214,14 @@ require __DIR__.'/inc/head.php';
                  herkese acik kaliyor -- sayfanin arama motorlarindaki degeri ve
                  kampanya baglantisinin gittigi yer bozulmasin diye. */ ?>
         <?php if ($PRICES): ?>
-          <b>€<?= number_format($price, 2) ?></b>
+          <b><?= vestra_money((float)$price) ?></b>
         <?php else: ?>
           <a class="pc-lock" href="<?= htmlspecialchars($PRICE_GATE === 'doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE === 'doc' ? t('Upload document') : t('Trade only') ?></a>
         <?php endif; ?>
       </div>
       <div class="pc-rrp pc-num">
         <?php if ($realRrp): ?>
-          <b>€<?= number_format($rrp, 2) ?></b>
+          <b><?= vestra_money((float)$rrp) ?></b>
           <span class="src real"><?= t('RRP') ?></span>
         <?php else: ?><span class="src none">—</span><?php endif; ?>
       </div>

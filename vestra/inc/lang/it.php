@@ -1033,4 +1033,6 @@ return array (
   'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'I prezzi all\'ingrosso sono riservati alle aziende registrate. La registrazione è gratuita — ti verrà chiesta la visura camerale / licenza commerciale.',
   'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'I prezzi all\'ingrosso restano nascosti finché non carichi la tua %s. Si sbloccano subito dopo il caricamento — non devi attendere la verifica.',
   'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Abbiamo ricevuto i tuoi documenti. I dati del venditore e i line sheet si apriranno con l\'attivazione dell\'account — di solito in giornata. I prezzi all\'ingrosso sono già visibili.',
+
+  'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'I prezzi mostrati in %s sono convertiti dall\'EUR al tasso di riferimento della Banca centrale europea%s. Gli ordini sono fatturati in EUR.',
 );

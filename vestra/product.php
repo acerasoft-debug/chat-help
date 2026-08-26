@@ -208,7 +208,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
 
       <?php if(!empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>
         <a href="/group?id=<?= urlencode($p['id']) ?>" class="banner info" style="display:block;margin:14px 0;text-decoration:none">
-          🤝 <?= sprintf(t('Group buy: pool with others to unlock %s/%s — %d%% committed. Join →'), eur($gp['_gprice']), htmlspecialchars($p['unit']), $gp['_pct']) ?>
+          🤝 <?= sprintf(t('Group buy: pool with others to unlock %s/%s — %d%% committed. Join →'), vestra_money($gp['_gprice']), htmlspecialchars($p['unit']), $gp['_pct']) ?>
         </a>
       <?php endif; endif; ?>
 
@@ -221,6 +221,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 
+      <?php if(($__cn = vestra_money_note()) !== ''): ?>
+        <p class="curnote" style="margin-top:16px">💱 <?= htmlspecialchars($__cn) ?></p>
+      <?php endif; ?>
       <?php if(!$PRICES): ?>
         <div class="gate" style="margin-top:22px">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
@@ -252,7 +255,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <thead><tr><th><?= t('Volume') ?></th><th><?= t('Indicative unit') ?></th></tr></thead>
           <tbody>
           <?php foreach($p['tiers'] as $i=>$tier): ?>
-            <tr><td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?> <?= htmlspecialchars($p['unit']) ?></td><td class="amt"><?= eur($tier['price']) ?></td></tr>
+            <tr><td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?> <?= htmlspecialchars($p['unit']) ?></td><td class="amt"><?= vestra_money($tier['price']) ?></td></tr>
           <?php endforeach; ?>
           </tbody>
         </table>
@@ -311,8 +314,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <?php else: ?>
         <?php if($mode==='sale'): ?>
           <div class="saleline">
-            <span class="was"><?= eur($p['list']) ?></span>
-            <span class="now"><?= t('from') ?> <?= eur($from) ?></span>
+            <span class="was"><?= vestra_money($p['list']) ?></span>
+            <span class="now"><?= t('from') ?> <?= vestra_money($from) ?></span>
             <span class="badge-sale">−<?= $disc ?>%</span>
             <span class="hint">/ <?= htmlspecialchars($p['unit']) ?> · <?= t('clearance') ?></span>
           </div>
@@ -325,7 +328,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             $save=(int)round(100*($base-$tier['price'])/$base); ?>
             <tr data-min="<?= $tier['min'] ?>" data-price="<?= $tier['price'] ?>">
               <td><?= $tier['min'] ?><?= isset($p['tiers'][$i+1])?'–'.($p['tiers'][$i+1]['min']-1):'+' ?></td>
-              <td class="amt"><?= eur($tier['price']) ?></td>
+              <td class="amt"><?= vestra_money($tier['price']) ?></td>
               <td><?= $save>0?'−'.$save.'%':'—' ?></td>
             </tr>
           <?php endforeach; ?>
@@ -373,8 +376,8 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </div>
           <?php endif; ?>
           <div class="calc">
-            <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= eur($from) ?></span> · <span id="tier"></span></div>
-            <div class="total" id="total"><?= eur($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
+            <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= vestra_money($from) ?></span> · <span id="tier"></span></div>
+            <div class="total" id="total"><?= vestra_money($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
           <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
@@ -435,7 +438,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
           <details class="offerdetails">
-            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= eur((float)$p['sample_price']) ?></summary>
+            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= vestra_money((float)$p['sample_price']) ?></summary>
             <?php if($AUTH_USER): ?>
             <form method="post" action="/sample-checkout" style="margin-top:12px">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
@@ -443,7 +446,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               <label class="hint"><?= t('Size or note (optional)') ?></label>
               <input type="text" name="note" maxlength="200" placeholder="<?= htmlspecialchars(t('e.g. size M, or a note for us')) ?>" style="width:100%">
               <div class="hint" style="margin-top:8px"><?= t('EU-wide, shipping included.') ?> <?= t('The exact size you request may not always be available — we ship the closest match from current sample stock.') ?></div>
-              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= eur((float)$p['sample_price']) ?></button>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= vestra_money((float)$p['sample_price']) ?></button>
             </form>
             <?php else: ?>
             <a class="btn btn-p" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center;margin-top:12px"><?= t('Sign in to order a sample') ?></a>
@@ -474,7 +477,14 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         function step(){ return P.step||(P.moq>=100?100:(P.moq>=50?50:10)); }
         function unitPrice(q){ var pr=P.tiers[0].price; P.tiers.forEach(function(t){ if(q>=t.min) pr=t.price; }); return pr; }
         function tierLabel(q){ var lab='—'; P.tiers.forEach(function(t,i){ if(q>=t.min){ var n=P.tiers[i+1]; lab=t.min+(n?'–'+(n.min-1):'+'); } }); return lab; }
-        function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+        /* Canli hesaplayici da ziyaretcinin para biriminde yazsin. Sunucu tarafi
+           cevrilmis fiyat gosterirken bu satirin EUR basmasi, ayni sayfada iki
+           para birimi demek olurdu -- ve kullanici hangisine inanacagini bilemez.
+           Sembol ve kur PHP'den geliyor; kur yoksa 1.0 ve € ile EUR'da kaliyor,
+           yani uydurma bir kurla asla carpmiyor. */
+        var CUR={sym:<?= json_encode(vestra_money_converted() ? vestra_currencies()[vestra_currency()]['sym'] : '€') ?>,
+                 rate:<?= json_encode(vestra_money_converted() ? vestra_fx(vestra_currency()) : 1.0) ?>};
+        function fmtMoney(n){ return CUR.sym+Number(n*CUR.rate).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
         function bump(d){ var el=document.getElementById('qty'); el.value=Math.max(P.moq,(parseInt(el.value)||P.moq)+d); recalc(); }
         /* Per-colour qty selects (carton listings) vs plain checkboxes */
         function cqSelects(){ var el=document.getElementById('ordColors'); if(!el) return null;
@@ -495,9 +505,9 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; btn.disabled=true; }
           else { warn.style.display='none'; btn.disabled=false; }
           var u=unitPrice(q);
-          document.getElementById('uprice').textContent=eur(u);
+          document.getElementById('uprice').textContent=fmtMoney(u);
           document.getElementById('tier').textContent=<?= json_encode(t('tier')) ?>+' '+tierLabel(q)+' '+P.unitLabel;
-          document.getElementById('total').innerHTML=eur(u*q)+' <small>'+<?= json_encode(t('excl. taxes & shipping')) ?>+'</small>';
+          document.getElementById('total').innerHTML=fmtMoney(u*q)+' <small>'+<?= json_encode(t('excl. taxes & shipping')) ?>+'</small>';
           document.querySelectorAll('#tiers tbody tr').forEach(function(tr){ tr.classList.toggle('active', q>=parseInt(tr.dataset.min)&&(!tr.nextElementSibling||q<parseInt(tr.nextElementSibling.dataset.min))); });
         }
         function addToOrder(){ var q=parseInt(document.getElementById('qty').value)||0; if(q<P.moq) return; var u=unitPrice(q);
@@ -610,7 +620,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               <?php elseif (($rp['mode'] ?? '') === 'offer'): ?>
                 <span class="soffer">💬 <?= t('Open to offers') ?></span>
               <?php else: ?>
-                <span class="sfrom"><?= t('from') ?></span><span class="samt"><?= eur($rfrom) ?></span><span class="sfrom">/<?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
+                <span class="sfrom"><?= t('from') ?></span><span class="samt"><?= vestra_money($rfrom) ?></span><span class="sfrom">/<?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
               <?php endif; ?>
             </div>
           </div>

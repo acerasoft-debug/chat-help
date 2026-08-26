@@ -111,7 +111,7 @@ require __DIR__.'/inc/head.php';
         <td class="pl-n"><?= (int)$info['n'] ?></td>
         <?php /* Marka basina "en dusuk fiyat" da bir toptan fiyat: /price-list
                  kilitliyken burada acik kalmasi kapiyi anlamsiz kilardi. */ ?>
-        <td class="pl-from"><?php if ($PRICES): ?>€<?= number_format($info['min'], 2) ?><?php else: ?><span style="font-size:11px;color:var(--acc)">🔒</span><?php endif; ?></td>
+        <td class="pl-from"><?php if ($PRICES): ?><?= vestra_money((float)$info['min']) ?><?php else: ?><span style="font-size:11px;color:var(--acc)">🔒</span><?php endif; ?></td>
         <td>
           <div class="pl-dl">
             <a href="/price-list?brand=<?= $q ?>"><?= t('VIEW') ?> →</a>

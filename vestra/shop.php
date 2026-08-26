@@ -221,6 +221,11 @@ footer a{color:#d8bd86}
       <?php endforeach; ?>
     </nav>
   <?php endif; ?>
+  <?php /* Cevrilmis fiyat gosteriyorsak bunu SOYLE. Sessizce ceviren bir vitrin,
+             alicinin kasada baska bir rakam gormesi demek. */ ?>
+  <?php if(($__cn = vestra_money_note()) !== ''): ?>
+    <p class="curnote">💱 <?= htmlspecialchars($__cn) ?></p>
+  <?php endif; ?>
   <?php if($PRICE_GATE==='guest'): ?>
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
@@ -404,12 +409,12 @@ footer a{color:#d8bd86}
                 <?php elseif($dmode==='offer'): ?>
                   <span class="soffer">💬 <?= t('Open to offers') ?></span>
                 <?php elseif($dmode==='sale'): ?>
-                  <span class="swas"><?= eur($p['list']??0) ?></span>
-                  <span class="samt"><?= eur($from) ?></span>
+                  <span class="swas"><?= vestra_money($p['list']??0) ?></span>
+                  <span class="samt"><?= vestra_money($from) ?></span>
                   <span class="sfrom">/<?= htmlspecialchars($p['unit']??'pc') ?></span>
                 <?php else: ?>
                   <span class="sfrom"><?= t('from') ?></span>
-                  <span class="samt"><?= eur($from) ?></span>
+                  <span class="samt"><?= vestra_money($from) ?></span>
                   <span class="sfrom">/<?= htmlspecialchars($p['unit']??'pc') ?></span>
                 <?php endif; ?>
               </div>

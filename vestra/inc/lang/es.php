@@ -1033,4 +1033,6 @@ return array (
   'Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.' => 'Los precios mayoristas se muestran a empresas registradas. El registro es gratuito: se te pedirá tu licencia de actividad / alta censal.',
   'Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.' => 'Los precios mayoristas permanecen ocultos hasta que subas tu %s. Se abren nada más subirlo: no hace falta esperar a la revisión.',
   'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Ya tenemos tus documentos. Los datos del vendedor y las descargas de line sheet se abren al activar la cuenta, normalmente el mismo día. Los precios mayoristas ya son visibles.',
+
+  'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'Los precios mostrados en %s se convierten desde EUR al tipo de referencia del Banco Central Europeo%s. Los pedidos se facturan en EUR.',
 );

@@ -118,8 +118,8 @@ $GMINCOL = vestra_group_min_colors($p);
       </div>
 
       <div class="gstat">
-        <div class="c"><div class="v acc"><?=eur($p['_gprice'])?></div><div class="l"><?= t('unlocked unit price') ?></div></div>
-        <div class="c"><div class="v" style="text-decoration:line-through;color:var(--mut)"><?=eur($from)?></div><div class="l"><?= t('your solo price') ?></div></div>
+        <div class="c"><div class="v acc"><?=vestra_money($p['_gprice'])?></div><div class="l"><?= t('unlocked unit price') ?></div></div>
+        <div class="c"><div class="v" style="text-decoration:line-through;color:var(--mut)"><?=vestra_money($from)?></div><div class="l"><?= t('your solo price') ?></div></div>
         <div class="c"><div class="v acc">−<?=$saving?>%</div><div class="l"><?= t('you save') ?></div></div>
       </div>
 
@@ -172,9 +172,9 @@ $GMINCOL = vestra_group_min_colors($p);
         <?php else: ?>
           <h3 style="margin:0 0 4px"><?= t('Join this pool') ?></h3>
           <?php if($DEPOSIT): ?>
-            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. A %s%% deposit is charged now to secure your place; the balance follows once the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), $PCTLBL, number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
+            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. A %s%% deposit is charged now to secure your place; the balance follows once the pool reaches %s %s.'), vestra_money($p['_gprice']), htmlspecialchars($p['unit']), $PCTLBL, number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
           <?php else: ?>
-            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. You’re only charged if the pool reaches %s %s.'), eur($p['_gprice']), htmlspecialchars($p['unit']), number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
+            <p class="hint" style="margin:0 0 14px"><?= sprintf(t('Commit your quantity at the unlocked price of %s / %s. You’re only charged if the pool reaches %s %s.'), vestra_money($p['_gprice']), htmlspecialchars($p['unit']), number_format($p['_target']), htmlspecialchars($p['unit'])) ?></p>
           <?php endif; ?>
           <?php /* onsubmit dogrulamasi product.php'deki vcolOk() ile ayni mantik, ama
                    bu sayfa product.php'yi yuklemedigi icin kendi kopyasi asagida.
@@ -186,7 +186,7 @@ $GMINCOL = vestra_group_min_colors($p);
             <label class="hint"><?= t('Quantity you need') ?> (<?=htmlspecialchars($p['unit'])?>) — <?= t('min') ?> <?=number_format($GMIN)?></label>
             <input type="number" name="qty" min="<?=$GMIN?>" value="<?=$GMIN?>" required style="width:100%" id="gq" oninput="gcalc()">
             <div class="calc" style="margin:10px 0">
-              <div class="total"><span id="gtot"><?=eur($TOT0)?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
+              <div class="total"><span id="gtot"><?=vestra_money($TOT0)?></span> <small><?= t('at unlocked price · excl. taxes & shipping') ?></small></div>
             </div>
             <?php if($GMINCOL > 0 && !empty($p['colors'])): ?>
               <?php /* Urun sayfasindaki ile AYNI bilesen (.colorpick/.colorchip/data-min):
@@ -205,11 +205,11 @@ $GMINCOL = vestra_group_min_colors($p);
               <div class="calc" style="margin:10px 0;display:grid;gap:6px">
                 <div style="display:flex;justify-content:space-between;font-size:13.5px">
                   <span><?= sprintf(t('Deposit now (%s%%)'), $PCTLBL) ?></span>
-                  <b id="gdep" style="color:var(--acc)"><?=eur($DEP0)?></b>
+                  <b id="gdep" style="color:var(--acc)"><?=vestra_money($DEP0)?></b>
                 </div>
                 <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--mut)">
                   <span><?= sprintf(t('Balance, due %d days after the pool closes'), $BALDAYS) ?></span>
-                  <b id="gbal"><?=eur($BAL0)?></b>
+                  <b id="gbal"><?=vestra_money($BAL0)?></b>
                 </div>
               </div>
             <?php endif; ?>
@@ -226,7 +226,7 @@ $GMINCOL = vestra_group_min_colors($p);
                 '<a href="/legal?doc=privacy" target="_blank" class="acc">'.t('Privacy Policy').'</a>',
                 '<a href="/legal?doc=payments" target="_blank" class="acc">'.t('Payments &amp; Escrow').'</a>') ?></span>
             </label>
-            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= $DEPOSIT ? sprintf(t('Pay %s deposit & join'), eur($DEP0)) : t('Commit to the pool') ?></button>
+            <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= $DEPOSIT ? sprintf(t('Pay %s deposit & join'), vestra_money($DEP0)) : t('Commit to the pool') ?></button>
             <?php if($DEPOSIT): ?>
               <div class="hint" style="margin-top:10px"><?= t('Secure payment via Stripe. If the pool does not reach its target we extend it once — and if it still falls short, your deposit is refunded in full.') ?></div>
             <?php else: ?>

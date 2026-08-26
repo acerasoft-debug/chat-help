@@ -35,7 +35,7 @@ require __DIR__ . '/inc/head.php';
       <div>
         <div class="hint"><?= htmlspecialchars((string)($p['brand'] ?? '')) ?></div>
         <div style="font-weight:600;font-size:16px"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></div>
-        <div class="hint" style="margin-top:4px"><?= eur((float)$p['dropship']['price']) ?> / <?= t('piece') ?> · <?= t('shipping') ?>: <?= t('France') ?> <?= eur((float)$p['dropship']['ship_fr']) ?> · <?= t('rest of EU') ?> <?= eur((float)$p['dropship']['ship_eu']) ?></div>
+        <div class="hint" style="margin-top:4px"><?= vestra_money((float)$p['dropship']['price']) ?> / <?= t('piece') ?> · <?= t('shipping') ?>: <?= t('France') ?> <?= vestra_money((float)$p['dropship']['ship_fr']) ?> · <?= t('rest of EU') ?> <?= vestra_money((float)$p['dropship']['ship_eu']) ?></div>
       </div>
     </div>
 
@@ -56,7 +56,7 @@ require __DIR__ . '/inc/head.php';
       </select>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
-      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= eur((float)$p['dropship']['price']) ?></button>
+      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$p['dropship']['price']) ?></button>
     </form>
     <div class="hint" style="margin-top:8px"><a href="/product?id=<?= urlencode($p['id']) ?>"><?= t('Full product details') ?> →</a></div>
   </div>

@@ -105,12 +105,12 @@ $PAGE = $dispName.' — '.t('Showroom'); $NAV = 'shop'; require __DIR__.'/inc/he
             <?php elseif ($dmode === 'offer'): ?>
               <span class="soffer">💬 <?= t('Open to offers') ?></span>
             <?php elseif ($dmode === 'sale'): ?>
-              <span class="swas"><?= eur($p['list'] ?? 0) ?></span>
-              <span class="samt"><?= eur($from) ?></span>
+              <span class="swas"><?= vestra_money($p['list'] ?? 0) ?></span>
+              <span class="samt"><?= vestra_money($from) ?></span>
               <span class="sfrom">/<?= htmlspecialchars($p['unit'] ?? 'pc') ?></span>
             <?php else: ?>
               <span class="sfrom"><?= t('from') ?></span>
-              <span class="samt"><?= eur($from) ?></span>
+              <span class="samt"><?= vestra_money($from) ?></span>
               <span class="sfrom">/<?= htmlspecialchars($p['unit'] ?? 'pc') ?></span>
             <?php endif; ?>
           </div>
