@@ -281,4 +281,17 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){var m=document.getElementById('navmenu'),t=document.querySelector('.navtoggle');
     if(m){m.classList.remove('open');t.classList.remove('on');t.setAttribute('aria-expanded','false');}}
 });
+/* Para birimi menusu: disariya tiklayinca ve Escape'te kapansin. <details>
+   kendi basina kapanmaz; secenege tiklandiginda sayfa zaten yenileniyor ama
+   fikrini degistiren kullaniciyi acik bir menuyle birakmayalim. */
+document.addEventListener('click',function(e){
+  document.querySelectorAll('details.cursw[open]').forEach(function(d){
+    if(!d.contains(e.target)) d.removeAttribute('open');
+  });
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') document.querySelectorAll('details.cursw[open]').forEach(function(d){
+    d.removeAttribute('open');
+  });
+});
 </script>

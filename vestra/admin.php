@@ -13,6 +13,7 @@ require_once __DIR__.'/inc/commission.php';
 require_once __DIR__.'/inc/escrow.php';
 require_once __DIR__.'/inc/samples.php';
 require_once __DIR__.'/inc/journal.php';
+require_once __DIR__.'/inc/money.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -262,6 +263,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     unset($p);
     vestra_save_listings($all);
     header('Location: /admin?tab=prices&msg=pricing_rules&n='.$n); exit;
+  }
+  /* Kur: ya simdi canli kaynaktan cek, ya da elle gir. Elle girilen kur SON
+     CARE -- sunucudan disari HTTP cikisi kapaliysa katalog yine de cevirsin
+     diye. Sayfadaki cumle o zaman "ECB kuru" demiyor, "yaklasik kur" diyor. */
+  if($act==='fx_refresh'){
+    @unlink(vestra_data_dir().'/fx_rates.json');   // onbellegi ve backoff'u sil, yeniden dene
+    $ok = vestra_fx('USD') > 0 ? 1 : 0;
+    header('Location: /admin?tab=prices&msg=fx_refresh&n='.$ok.'&src='.rawurlencode(vestra_fx_source())); exit;
+  }
+  if($act==='fx_manual'){
+    vestra_fx_set_manual([
+      'USD' => (float)str_replace(',', '.', (string)($_POST['fx_usd'] ?? '')),
+      'AUD' => (float)str_replace(',', '.', (string)($_POST['fx_aud'] ?? '')),
+      'CAD' => (float)str_replace(',', '.', (string)($_POST['fx_cad'] ?? '')),
+    ]);
+    header('Location: /admin?tab=prices&msg=fx_manual'); exit;
   }
   /* Create (or reuse) the verified Elite "Tyrex International BV" seller account and
      migrate every SB E-Commerce Services LLC listing (and any already-rebranded
@@ -1819,6 +1836,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg ok">✓ <?= (int)($_GET['n']??0) ?> prospect(s) deleted.</div>
 <?php elseif($msg==='rebrand'): ?>
 <div class="amsg ok">✓ Rebranded <?= (int)($_GET['n']??0) ?> listing(s) to “Tyrex International BV” — the seller name is hidden on the public catalogue.</div>
+<?php elseif($msg==='fx_refresh'): $__src=(string)($_GET['src']??''); ?>
+<?php if((int)($_GET['n']??0)===1): ?>
+<div class="amsg ok">✓ Exchange rates fetched — source: <b><?= $__src==='ecb'?'European Central Bank':($__src==='manual'?'your manual rates':'market feed') ?></b>. Converted prices are live.</div>
+<?php else: ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ No rate source could be reached from the server (outbound HTTP is probably blocked by the host). Enter the rates by hand below — the catalogue will convert with those instead.</div>
+<?php endif; ?>
+<?php elseif($msg==='fx_manual'): ?>
+<div class="amsg ok">✓ Manual rates saved. They are used only when no live source answers, and the catalogue then says “indicative rate” rather than naming the ECB.</div>
 <?php elseif($msg==='pricing_rules'): ?>
 <div class="amsg ok">✓ Pricing rules applied to <?= (int)($_GET['n']??0) ?> listing(s): offers → fixed prices · Amiri polos €40/MOQ 50 · other polos €70 · T-shirts €49.90 (sale, −29%) · MOQ 20 on the rest. Lacoste &amp; Ralph Lauren left untouched.</div>
 <?php elseif($msg==='tyrex_ok'): $tf=$_SESSION['tyrex_flash']??null; if($tf) unset($_SESSION['tyrex_flash']); ?>
@@ -2994,6 +3019,54 @@ elseif($tab==='prices'):
     <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Apply the pricing rules to all seller listings?\n\n• Offers become fixed prices\n• Amiri polos → €40, MOQ 50\n• Other polos → €70\n• T-shirts (not Lacoste/Ralph/Amiri) → €49.90 sale -29% (flat, even at 20)\n• MOQ 20 on everything else\n• Lacoste &amp; Ralph Lauren untouched\n\nThis overwrites the affected prices.')">
       <?= csrfField() ?><input type="hidden" name="_action" value="apply_pricing_rules">
       <button class="abtn primary" type="submit" style="padding:9px 18px;white-space:nowrap">⚙ Apply pricing rules</button>
+    </form>
+  </div>
+</div>
+
+<?php
+/* Gosterim para birimi. Fiyatlar EUR olarak saklaniyor; burasi yalnizca
+   ALICININ NE GORDUGUNU yonetiyor. Kur alinamiyorsa katalog EUR'a dusuyor --
+   sessizce yanlis bir kurla cevirmektense. Bu kart, hangi durumda oldugumuzu
+   tahmin ettirmiyor, YAZIYOR. */
+$fxState = vestra_fx_state();
+$fxSrc   = $fxState['source'];
+$fxMan   = _vsec_read('fx_manual.json');
+$fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'market feed',
+            'manual'=>'your manual rates','' =>'— none, prices stay in EUR'][$fxSrc] ?? $fxSrc;
+?>
+<div class="acard" style="margin-bottom:16px<?= $fxSrc===''?';border-color:rgba(192,57,43,.4)':'' ?>">
+  <div class="acard-hd"><h3>💱 Display currency — EUR · USD · AUD · CAD</h3>
+    <form method="post" action="/admin" style="margin:0"><?= csrfField() ?>
+      <input type="hidden" name="_action" value="fx_refresh">
+      <button class="abtn" type="submit">↻ Fetch rates now</button></form></div>
+  <div class="acard-body">
+    <p style="color:var(--mut);font-size:13px;margin:0 0 12px;max-width:760px">
+      Buyers outside the EU see prices in their own currency (US → USD, Canada → CAD, Australia → AUD,
+      elsewhere → USD), and can switch it themselves from the header. <b>Orders are always invoiced in EUR</b> —
+      only the catalogue display is converted, and every converted page says so.
+    </p>
+    <div style="display:flex;gap:26px;flex-wrap:wrap;font-size:13px;margin-bottom:14px">
+      <div><div class="ahint">Rate source in use</div><b style="<?= $fxSrc===''?'color:#c0392b':'' ?>"><?= htmlspecialchars($fxLabel) ?></b></div>
+      <div><div class="ahint">Rate date</div><b><?= htmlspecialchars($fxState['date'] !== '' ? $fxState['date'] : '—') ?></b></div>
+      <?php foreach(['USD','AUD','CAD'] as $c): ?>
+        <div><div class="ahint">1 EUR → <?= $c ?></div><b><?= ($r=(float)($fxState['rates'][$c]??0))>0 ? number_format($r,4) : '—' ?></b></div>
+      <?php endforeach; ?>
+    </div>
+    <?php if($fxSrc===''): ?>
+      <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b;margin:0 0 14px">
+        ⚠ No rate available, so <b>every buyer sees EUR</b> no matter which currency they pick. Press
+        <b>Fetch rates now</b>; if that fails, the host blocks outbound HTTP — type the rates in below.
+      </div>
+    <?php endif; ?>
+    <form method="post" action="/admin" style="margin:0;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="fx_manual">
+      <?php foreach([['USD','fx_usd','1.09'],['AUD','fx_aud','1.66'],['CAD','fx_cad','1.49']] as [$c,$nm,$ph]): ?>
+        <label style="font-size:12px;color:var(--mut)">Manual 1 EUR → <?= $c ?><br>
+          <input type="text" inputmode="decimal" name="<?= $nm ?>" placeholder="<?= $ph ?>" style="width:110px;padding:6px 10px;font-size:13px;font-family:inherit"
+                 value="<?= htmlspecialchars((string)(($v=(float)($fxMan['rates'][$c]??0))>0 ? $v : '')) ?>"></label>
+      <?php endforeach; ?>
+      <button class="abtn" type="submit">Save manual rates</button>
+      <span class="ahint" style="max-width:340px">Used only as a last resort, when no live source answers. Leave empty to remove.</span>
     </form>
   </div>
 </div>

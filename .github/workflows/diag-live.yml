@@ -98,6 +98,10 @@ on:
         description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz."
         required: false
         default: "false"
+      fx_probe:
+        description: "true = para birimi çevirimini CANLI sunucuda sına: kur ucu sunucudan açılıyor mu, vestra_fx() ne dönüyor, ve /shop?cur=USD sayfası GERÇEKTEN US$ yazıyor mu. Hiçbir şeyi değiştirmez."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -2288,3 +2292,107 @@ jobs:
             php -l /tmp/vestra_audit.php
             php /tmp/vestra_audit.php
             rm -f /tmp/vestra_audit.php
+
+      # "Fiyatlar degismiyor" tek basina uc sebepten biri olabilir: kod sunucuda
+      # yok, kur alinamiyor, ya da kur var ama sayfa yine EUR basiyor. Bu adim
+      # ucunu de AYIRIYOR -- ve en sonunda gercek bir tarayici istegi atip
+      # sayfanin GOZLE GORULEN ciktisinda US$ var mi diye sayiyor. Bir sinamanin
+      # olctugu sey, gozle gorunen davranisin ta kendisi olmali.
+      - name: Para birimi çevirimi sınaması (canlı)
+        if: github.event.inputs.fx_probe == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/vestra_fx.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            function head($s){ echo "\n===== $s =====\n"; }
+
+            head("1. KOD CANLI SUNUCUDA MI");
+            $need = [
+              'inc/money.php' => ['function vestra_fx', 'function vestra_money', 'function vestra_cur_switcher'],
+              'inc/head.php'  => ['vestra_cur_switcher()', "require_once __DIR__.'/money.php'"],
+              'shop.php'      => ['vestra_money('],
+              'product.php'   => ['fmtMoney'],
+            ];
+            $missing = 0;
+            foreach ($need as $rel => $needles) {
+              $src = @file_get_contents($doc.'/'.$rel);
+              if ($src === false) { printf("  %-16s OKUNAMADI <-- dosya yok\n", $rel); $missing++; continue; }
+              foreach ($needles as $n) {
+                $ok = str_contains($src, $n);
+                if (!$ok) $missing++;
+                printf("  %-16s %-3s %s\n", $rel, $ok ? 'OK' : 'YOK', $n);
+              }
+            }
+            echo $missing ? "  --> {$missing} EKSIK: once deploy gerekiyor.\n" : "  --> kod tam.\n";
+
+            head("2. KUR UCU SUNUCUDAN ACILIYOR MU");
+            // Tek uc degil, birkac aday: hangisi calisiyorsa onu kullanabilelim.
+            $cands = [
+              'frankfurter'  => 'https://api.frankfurter.app/latest?from=EUR&to=USD,AUD,CAD',
+              'er-api'       => 'https://open.er-api.com/v6/latest/EUR',
+              'ecb-xml'      => 'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml',
+            ];
+            foreach ($cands as $name => $url) {
+              $t0 = microtime(true);
+              $ch = curl_init($url);
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>8, CURLOPT_CONNECTTIMEOUT=>5]);
+              $raw = curl_exec($ch);
+              $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              $err  = curl_error($ch);
+              curl_close($ch);
+              $ms = round((microtime(true)-$t0)*1000);
+              printf("  %-12s kod=%-4d %5dms %s\n", $name, $code, $ms,
+                     $err !== '' ? "HATA: $err" : 'govde: '.substr(preg_replace('/\s+/',' ',(string)$raw), 0, 110));
+            }
+
+            head("3. DISK ONBELLEGI (data/fx_rates.json)");
+            $f = $doc.'/data/fx_rates.json';
+            if (!is_file($f)) {
+              echo "  DOSYA YOK  <-- hic basarili kur cekilmemis demek.\n";
+            } else {
+              $c = json_decode((string)@file_get_contents($f), true) ?: [];
+              $age = time() - (int)($c['ts'] ?? 0);
+              printf("  yas=%s  tarih=%s\n", $age > 86400 ? round($age/86400,1).' gun (BAYAT)' : round($age/3600,1).' saat', (string)($c['date'] ?? '?'));
+              foreach ((array)($c['rates'] ?? []) as $k => $v) printf("    %-4s %s\n", $k, $v);
+            }
+
+            head("4. PHP NE DONUYOR");
+            $_SERVER['REQUEST_URI'] = '/shop';
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+            require_once $doc.'/inc/money.php';
+            printf("  vestra_currency()        = %s\n", vestra_currency());
+            foreach (['USD','AUD','CAD'] as $c) printf("  vestra_fx('%s')          = %s\n", $c, var_export(vestra_fx($c), true));
+            foreach (['EUR','USD','AUD','CAD'] as $c) printf("  vestra_money(100,'%s')   = %s\n", $c, vestra_money(100.0, $c));
+            printf("  ulke esleme: US=%s CA=%s AU=%s DE=%s JP=%s GB=%s\n",
+              vestra_currency_for_cc('US'), vestra_currency_for_cc('CA'), vestra_currency_for_cc('AU'),
+              vestra_currency_for_cc('DE'), vestra_currency_for_cc('JP'), vestra_currency_for_cc('GB'));
+
+            head("5. GERCEK SAYFA NE BASIYOR  <-- asil olcum");
+            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+            foreach (['/shop', '/shop?cur=USD', '/price-list?cur=USD', '/shop?cur=CAD'] as $p) {
+              $ch = curl_init('https://vestrasales.com'.$p);
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                                      CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
+              $html = (string)curl_exec($ch);
+              $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              curl_close($ch);
+              // Sayilar: fiyat isaretleri govdede kac kez geciyor.
+              $eu  = substr_count($html, '&euro;') + substr_count($html, "\u{20AC}");
+              $us  = substr_count($html, 'US$');
+              $ca  = substr_count($html, 'C$');
+              $sw  = str_contains($html, 'cswmenu') ? 'var' : 'YOK';
+              printf("  %-22s kod=%-4d  EUR=%-4d US\$=%-4d C\$=%-4d  secici=%s\n", $p, $code, $eu, $us, $ca, $sw);
+            }
+            echo "\n  Okuma: '/shop?cur=USD' satirinda US\$ sayisi 0 ve EUR sayisi buyukse,\n";
+            echo "  cevrim CALISMIYOR demektir. Sebebi 2. ve 4. basliklarda gorunur.\n";
+            PHPEOF
+            php -l /tmp/vestra_fx.php
+            php /tmp/vestra_fx.php
+            rm -f /tmp/vestra_fx.php

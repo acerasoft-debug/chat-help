@@ -1055,4 +1055,5 @@ return array (
   'Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.' => 'Ihre Unterlagen liegen uns vor. Verkäuferangaben und Line-Sheet-Downloads werden mit der Freischaltung sichtbar — meist noch am selben Tag. Die Großhandelspreise sehen Sie bereits.',
 
   'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'Die in %s angezeigten Preise sind aus EUR zum Referenzkurs der Europäischen Zentralbank umgerechnet%s. Bestellungen werden in EUR fakturiert.',
+  'Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.' => 'Die in %s angezeigten Preise sind aus EUR zu einem Richtkurs umgerechnet%s. Bestellungen werden in EUR fakturiert.',
 );

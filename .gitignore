@@ -18,3 +18,6 @@ vestra/data/email_settings.json
 
 # composer dependencies
 vestra/vendor/
+
+# yerel sinama sunucusu yonlendiricisi -- sunucuya gitmiyor
+/vestra/_router_local.php
