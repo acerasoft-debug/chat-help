@@ -70,6 +70,14 @@ on:
         description: "true = KAYIT akışını uçtan uca sına: kaydol → doğrulama linki → giriş → anasayfa oturumu tanıyor mu → fiyat kapısı → panel. Kendi test hesabını kurar ve SONUNDA SİLER."
         required: false
         default: "false"
+      sent_subject:
+        description: "Kayda geçmemiş müşteriyi Brevo'nun GÖNDERİM kaydından bul: konunun bir parçasını yazın (ör. 'shipping to Japan'). Alıcı MASKELİ yazılır."
+        required: false
+        default: ""
+      sent_as:
+        description: "sent_subject ile: boş = sadece göster (prova). \"Firma|Ülke\" yazarsanız (ör. SelfOn|Japan) bulunan alıcıyı lead listesine EKLER — sonra panelde firma adıyla seçebilirsiniz."
+        required: false
+        default: ""
       lead_find:
         description: "Müşteriyi ADA göre bul (firma, kişi, site, ülke, not içinde arar). E-posta MASKELİ yazılır — bu depo ve günlük herkese açık. Panelde satırı firma adıyla seçin."
         required: false
@@ -1863,6 +1871,148 @@ jobs:
             php -l /tmp/vestra_leadfind.php 2>&1
             php /tmp/vestra_leadfind.php 2>&1
             rm -f /tmp/vestra_leadfind.php
+
+      # Bir musteriye cevap yazilmis ama kaydedilmemisse adres tek bir yerde kalir:
+      # e-postayi teslim eden servisin kaydinda. Bu adim orada konuya gore arar,
+      # aliciyi MASKELI yazar ve istenirse lead listesine ekler -- eklenince panel
+      # onu firma adiyla listeler ve adres hicbir acik gunluge dusmez.
+      - name: Kayda geçmemiş müşteriyi gönderim kaydından bul
+        if: github.event.inputs.sent_subject != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          VESTRA_SENT_SUBJECT: ${{ github.event.inputs.sent_subject }}
+          VESTRA_SENT_AS: ${{ github.event.inputs.sent_as }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: VESTRA_SENT_SUBJECT,VESTRA_SENT_AS
+          script: |
+            cat > /tmp/vestra_findsent.php <<'PHPEOF'
+            <?php
+            /**
+             * KAYDA GECMEMIS MUSTERIYI BUL — Brevo'nun gonderim kaydindan.
+             *
+             * Vaka: SelfOn'a 12 Agustos'ta uzun bir cevap yazilmis ama musteri hicbir yere
+             * kaydedilmemis. leads.json'da 0 eslesme, Gmail'deki kopya kendimize BCC.
+             * Adres tek bir yerde duruyor: e-postayi gercekten teslim eden servisin kaydinda.
+             *
+             * Bu betik Brevo'nun transactional kaydinda KONUYA gore arar, bulduklarini
+             * MASKELI yazar, ve istenirse musteriyi lead listesine ekler. Ekleyince panelin
+             * "elden mektup" kutusu onu FIRMA ADIYLA listeler -- yani operator adresi hic
+             * gormeden ona yazabilir ve adres hicbir acik gunluge dusmez.
+             *
+             * Anahtar sunucudan cikmiyor: istegi sunucu atiyor, biz yalnizca sonucu goruyoruz.
+             */
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/leads.php";
+
+            $SUBJ = trim((string)getenv('VESTRA_SENT_SUBJECT'));   // konuda aranacak parca
+            $DAYS = (int)(getenv('VESTRA_SENT_DAYS') ?: 45);
+            /* Tek alan, iki is: bos ise PROVA, doluysa EKLE. Eklemek zaten kimlik vermeyi
+               gerektiriyor ("kimi, hangi ulkeden"), o yuzden ayri bir "ekle" dugmesi gereksiz
+               bir dugme olurdu -- ve is akisi girdi siniri 25, savurganliga yer yok. */
+            $AS   = trim((string)getenv('VESTRA_SENT_AS'));         // "SelfOn|Japan"
+            $ADD  = $AS !== '';
+            [$CO, $CTRY] = array_pad(array_map('trim', explode('|', $AS, 2)), 2, '');
+
+            if ($SUBJ === '') { echo "Konu parcasi verilmedi (sent_subject).\n"; exit(0); }
+
+            $mask = function (string $e): string {
+                $at = strrpos($e, '@');
+                if ($at === false) return '(gecersiz)';
+                $u = substr($e, 0, $at); $d = substr($e, $at + 1);
+                $mu = mb_substr($u, 0, 2).str_repeat('*', max(1, mb_strlen($u) - 2));
+                $dp = explode('.', $d);
+                $dp[0] = mb_substr($dp[0], 0, 1).str_repeat('*', max(1, mb_strlen($dp[0]) - 1));
+                return $mu.'@'.implode('.', $dp);
+            };
+
+            $key = (string)vestra_cfg('mail_api_key', '');
+            if ($key === '') { echo "Brevo anahtari tanimli degil — arama yapilamaz.\n"; exit(1); }
+
+            /* Brevo'nun gonderilmis e-posta kaydi. Konu suzgeci uctan uygulaniyor;
+               biz yine de kendi kontrolumuzu yapiyoruz, ucun davranisi degisirse
+               sessizce yanlis kayit secmeyelim. */
+            $since = date('Y-m-d', strtotime("-{$DAYS} days"));
+            $url   = 'https://api.brevo.com/v3/smtp/emails?limit=500&startDate='.$since.'&endDate='.date('Y-m-d');
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                CURLOPT_HTTPHEADER=>['api-key: '.$key, 'Accept: application/json']]);
+            $raw  = (string)curl_exec($ch);
+            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($code < 200 || $code >= 300) {
+                printf("Brevo kaydi okunamadi (HTTP %d): %s\n", $code, mb_substr(preg_replace('/\s+/',' ',$raw), 0, 200));
+                exit(1);
+            }
+            $d = json_decode($raw, true);
+            $rows = (array)($d['transactionalEmails'] ?? []);
+            printf("===== Brevo kaydi: son %d gunde %d gonderim =====\n", $DAYS, count($rows));
+
+            $needle = mb_strtolower($SUBJ);
+            $hits = [];
+            foreach ($rows as $r) {
+                $subj = (string)($r['subject'] ?? '');
+                if (!str_contains(mb_strtolower($subj), $needle)) continue;
+                $to = '';
+                foreach ((array)($r['to'] ?? []) as $t) { $to = (string)($t['email'] ?? ''); if ($to !== '') break; }
+                if ($to === '') continue;
+                $hits[$to][] = substr((string)($r['date'] ?? ''), 0, 16);
+            }
+
+            printf("\n\"%s\" ile eslesen: %d farkli alici\n\n", $SUBJ, count($hits));
+            if (!$hits) { echo "Eslesme yok. Konu parcasini kisaltip ya da sent_days'i buyutup deneyin.\n"; exit(0); }
+
+            $leads = vestra_leads();
+            $known = [];
+            foreach ($leads as $l) { $e = mb_strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $known[$e] = true; }
+
+            foreach ($hits as $to => $dates) {
+                $inList = isset($known[mb_strtolower($to)]);
+                printf("  alici       : %s\n", $mask($to));
+                printf("  gonderim    : %d kez  (%s)\n", count($dates), implode(', ', array_slice($dates, 0, 5)));
+                printf("  lead listede: %s\n", $inList ? 'VAR' : 'YOK  <- kayda hic gecmemis');
+                echo "\n";
+            }
+
+            if (!$ADD) {
+                echo "PROVA. Musteriyi lead listesine eklemek icin sent_as=\"Firma|Ulke\" verin\n";
+                echo "(ornek: sent_as=SelfOn|Japan). Eklendikten sonra panelin\n";
+                echo "\"elden mektup\" kutusu onu FIRMA ADIYLA listeler; adresi gormeniz gerekmez.\n";
+                exit(0);
+            }
+
+            /* Ekleme: yalnizca listede OLMAYANLAR. Var olan bir kaydin uzerine yazmak,
+               operatorun elle duzelttigi bir seyi sessizce bozmak olurdu. */
+            $added = 0;
+            foreach (array_keys($hits) as $to) {
+                if (isset($known[mb_strtolower($to)])) { printf("  %s zaten listede — atlandi\n", $mask($to)); continue; }
+                $leads[] = [
+                    'id'      => bin2hex(random_bytes(6)),
+                    'company' => $CO !== '' ? $CO : 'Enquiry — '.substr($to, strrpos($to, '@') + 1),
+                    'email'   => $to,
+                    'country' => $CTRY,
+                    'source'  => 'enquiry (Brevo kaydindan geri alindi)',
+                    'status'  => 'contacted',
+                    'last_contacted_at' => (string)(array_values($hits[$to])[0] ?? date('c')),
+                    'notes'   => date('Y-m-d').' — kayda gecmemis musteri, gonderim kaydindan geri alindi',
+                    'unsub_token' => bin2hex(random_bytes(16)),
+                ];
+                $added++;
+                printf("  %s EKLENDI (%s / %s)\n", $mask($to), $CO ?: '(isim yok)', $CTRY ?: '(ulke yok)');
+            }
+            if ($added) vestra_save_leads($leads);
+            printf("\nBITTI. eklenen: %d, toplam lead: %d\n", $added, count($leads));
+            exit(0);
+            PHPEOF
+            php -l /tmp/vestra_findsent.php 2>&1
+            php /tmp/vestra_findsent.php 2>&1
+            rm -f /tmp/vestra_findsent.php
 
       - name: Site geneli eksik taraması
         if: github.event.inputs.full_audit == 'true'
