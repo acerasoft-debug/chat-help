@@ -1935,47 +1935,56 @@ jobs:
             $key = (string)vestra_cfg('mail_api_key', '');
             if ($key === '') { echo "Brevo anahtari tanimli degil — arama yapilamaz.\n"; exit(1); }
 
-            /* OLAY kaydi (/smtp/statistics/events), gonderilmis-e-posta listesi degil:
-               ikincisi tarih araligiyla listelemeye izin vermiyor, "en az bir suzgec
-               (email/messageId/templateId) verin" diyerek 400 donuyor -- ve elimizde tam
-               da o suzgec yok, aradigimiz sey zaten adresin kendisi. Olay kaydi tarih
-               araligi kabul ediyor ve her satirda alici ile konuyu tasiyor.
+            /* GUN GUN geriye yuru. Tek bir genis aralik sormak ise yaramadi: kampanyalar
+               gunde binlerce olay uretiyor, 5000'lik tavan son birkac gunu ancak kapsiyor ve
+               aradigimiz 12 Agustos'a hic ulasmiyordu -- sonuc "0 eslesme" olarak gorunuyordu,
+               yani ARAMA basarisizligi BULUNAMADI gibi okunuyordu. Gunluk pencerede hacim
+               kucuk, tavan sorun olmuyor ve ilk eslesmede duruyoruz.
 
-               Sayfalama var: tek istekte 1000, en fazla 5 sayfa. Sinir olmasa bir yazim
-               hatasi butun kaydi cekmeye kalkar. */
-            $since = date('Y-m-d', strtotime("-{$DAYS} days"));
-            $rows  = [];
-            for ($page = 0; $page < 5; $page++) {
-                $url = 'https://api.brevo.com/v3/smtp/statistics/events'
-                     . '?limit=1000&offset='.($page * 1000)
-                     . '&startDate='.$since.'&endDate='.date('Y-m-d');
-                $ch = curl_init($url);
-                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
-                    CURLOPT_HTTPHEADER=>['api-key: '.$key, 'Accept: application/json']]);
-                $raw  = (string)curl_exec($ch);
-                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-                if ($code < 200 || $code >= 300) {
-                    printf("Brevo olay kaydi okunamadi (HTTP %d): %s\n", $code, mb_substr(preg_replace('/\s+/',' ',$raw), 0, 200));
-                    exit(1);
-                }
-                $d = json_decode($raw, true);
-                $batch = (array)($d['events'] ?? []);
-                $rows = array_merge($rows, $batch);
-                if (count($batch) < 1000) break;
-            }
-            printf("===== Brevo olay kaydi: son %d gunde %d olay =====\n", $DAYS, count($rows));
-
+               Ayrica ilk gunde satirin TASIDIGI ALANLAR yaziliyor: "subject" alani hic yoksa
+               suzgec sessizce hicbir seye uymaz ve yine "0 eslesme" gorunurdu. Sessizlik
+               basari degil; neye baktigimizi gormeliyiz. */
             $needle = mb_strtolower($SUBJ);
-            $hits = [];
-            foreach ($rows as $r) {
-                $subj = (string)($r['subject'] ?? '');
-                if (!str_contains(mb_strtolower($subj), $needle)) continue;
-                $to = '';
-                foreach ((array)($r['to'] ?? []) as $t) { $to = (string)($t['email'] ?? ''); if ($to !== '') break; }
-                if ($to === '') continue;
-                $hits[$to][] = substr((string)($r['date'] ?? ''), 0, 16);
+            $hits = []; $scanned = 0; $shownFields = false;
+
+            for ($back = 0; $back <= $DAYS; $back++) {
+                if ($hits) break;                                  // ilk eslesen gunde dur
+                $day = date('Y-m-d', strtotime("-{$back} days"));
+                for ($page = 0; $page < 5; $page++) {
+                    $url = 'https://api.brevo.com/v3/smtp/statistics/events'
+                         . '?limit=1000&offset='.($page * 1000)
+                         . '&startDate='.$day.'&endDate='.$day;
+                    $ch = curl_init($url);
+                    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                        CURLOPT_HTTPHEADER=>['api-key: '.$key, 'Accept: application/json']]);
+                    $raw  = (string)curl_exec($ch);
+                    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+                    if ($code < 200 || $code >= 300) {
+                        printf("  %s: okunamadi (HTTP %d) %s\n", $day, $code, mb_substr(preg_replace('/\s+/',' ',$raw), 0, 120));
+                        break;
+                    }
+                    $d = json_decode($raw, true);
+                    $batch = (array)($d['events'] ?? []);
+                    $scanned += count($batch);
+
+                    if (!$shownFields && $batch) {
+                        $shownFields = true;
+                        printf("  kayit satiri su alanlari tasiyor: %s\n\n", implode(', ', array_keys((array)$batch[0])));
+                    }
+                    foreach ($batch as $r) {
+                        $subj = (string)($r['subject'] ?? '');
+                        if ($subj === '' || !str_contains(mb_strtolower($subj), $needle)) continue;
+                        $to = (string)($r['email'] ?? '');
+                        if ($to === '') continue;
+                        $hits[$to][] = substr((string)($r['date'] ?? ''), 0, 16);
+                    }
+                    if (count($batch) < 1000) break;
+                }
+                if ($back % 7 === 0) printf("  ... %s tarihine kadar %d olay tarandi\n", $day, $scanned);
             }
+            printf("\n===== %d gun geriye tarandi, %d olay =====\n", $DAYS, $scanned);
+
 
             printf("\n\"%s\" ile eslesen: %d farkli alici\n\n", $SUBJ, count($hits));
             if (!$hits) { echo "Eslesme yok. Konu parcasini kisaltip ya da sent_days'i buyutup deneyin.\n"; exit(0); }
