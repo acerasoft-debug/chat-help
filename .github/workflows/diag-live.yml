@@ -2379,14 +2379,27 @@ jobs:
                gorunmuyor (fiyat kapisi), o yuzden cikis yapmis bir istekte "US$
                yok" demek cevirimin bozuk oldugunu DEGIL, fiyatin gizli oldugunu
                gosterir -- olculen sey, sorulan soru olmali. */
-            $UA  = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
-            $jar = tempnam(sys_get_temp_dir(), 'fxck');
-            $get = function (string $p, bool $auth) use ($UA, $jar): array {
+            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+            /* Oturum icin TEK curl tutamagi kullaniyoruz. Cerez DOSYASI ise
+               calismiyordu: PHP'nin oturum cerezinin son kullanma tarihi yok,
+               yani "oturum cerezi", ve curl bunlari COOKIEJAR dosyasina
+               YAZMIYOR. Bir onceki kosuda giris "acildi" dedigi halde sonraki
+               istekler ziyaretci olarak gidiyordu -- sinama, olctugunu sandigi
+               seyi olcmuyordu. Ayni tutamakta cerez bellekte kaliyor. */
+            $sess = curl_init();
+            curl_setopt_array($sess, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                                      CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA,
+                                      CURLOPT_COOKIEFILE=>'']);   // bos: cerezler bellekte tutulsun
+            $get = function (string $p, bool $auth) use ($UA, $sess): array {
+              if ($auth) {
+                curl_setopt($sess, CURLOPT_URL, 'https://vestrasales.com'.$p);
+                curl_setopt($sess, CURLOPT_HTTPGET, true);
+                $html = (string)curl_exec($sess);
+                return [(int)curl_getinfo($sess, CURLINFO_HTTP_CODE), $html];
+              }
               $ch = curl_init('https://vestrasales.com'.$p);
-              $o = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
-                    CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA];
-              if ($auth) { $o[CURLOPT_COOKIEJAR] = $jar; $o[CURLOPT_COOKIEFILE] = $jar; }
-              curl_setopt_array($ch, $o);
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                                      CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
               $html = (string)curl_exec($ch);
               $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
               curl_close($ch);
@@ -2411,14 +2424,16 @@ jobs:
               auth_save_accounts($l);
             });
 
-            $ch = curl_init('https://vestrasales.com/login');
-            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25, CURLOPT_POST=>true,
-                                    CURLOPT_POSTFIELDS=>http_build_query(['email'=>$TMP_MAIL, 'password'=>$TMP_PASS]),
-                                    CURLOPT_COOKIEJAR=>$jar, CURLOPT_COOKIEFILE=>$jar,
-                                    CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
-            $lb = (string)curl_exec($ch); curl_close($ch);
+            curl_setopt_array($sess, [CURLOPT_URL=>'https://vestrasales.com/login', CURLOPT_POST=>true,
+                                      CURLOPT_POSTFIELDS=>http_build_query(['email'=>$TMP_MAIL, 'password'=>$TMP_PASS])]);
+            $lb = (string)curl_exec($sess);
             echo '  gecici onayli hesapla giris: '
-               . (str_contains($lb, 'authcard') ? 'BASARISIZ (giris sayfasi geldi)' : 'oturum acildi')."\n\n";
+               . (str_contains($lb, 'authcard') ? 'BASARISIZ (giris sayfasi geldi)' : 'oturum acildi')."\n";
+            /* Ve oturum GERCEKTEN tasindi mi: sonraki bir istekte uye isareti
+               var mi diye bakiyoruz. "Giris acildi" demek yetmiyordu. */
+            [, $probe] = $get('/shop', true);
+            echo '  sonraki istekte oturum: '
+               . (str_contains($probe, 'memberpill') ? 'TASINDI (uye isareti var)' : 'TASINMADI <-- olcum ziyaretci olcumu')."\n\n";
 
             $row = function (string $p, bool $auth) use ($get) {
               [$code, $html] = $get($p, $auth);
@@ -2439,7 +2454,7 @@ jobs:
             foreach ([false, true] as $auth) {
               foreach (['/shop', '/shop?cur=USD', '/shop?cur=CAD', '/price-list?cur=USD'] as $p) $row($p, $auth);
             }
-            @unlink($jar);
+            curl_close($sess);
             echo "\n  Okuma: 'uye' satirlarinda ?cur=USD icin US\$ sayisi 0 ve EUR sayisi buyukse,\n";
             echo "  cevrim CALISMIYOR demektir. Sebebi 2. ve 4. basliklarda gorunur.\n";
             echo "  'ziyaretci' satirlarinda fiyat gorunmemesi NORMAL -- fiyat kapisi.\n";
