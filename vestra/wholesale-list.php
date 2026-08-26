@@ -33,6 +33,18 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/pdf.php';
 require_once __DIR__.'/inc/stock.php';
+require_once __DIR__.'/inc/auth.php';
+
+/* FIYAT KAPISI -- Excel surumuyle ayni gerekce (bkz. wholesale-xlsx.php).
+   Bu PDF de tam toptan fiyat listesini tasiyor; HTML ve Excel kilitliyken
+   burasi acik kalirsa kural yalnizca en gorunur kapiyi kapatmis olurdu.
+   403 yerine /price-list'e yonlendiriyoruz: gonderilmis e-postalardaki
+   baglantiya tiklayan kisi hata degil, ne yapacagini soyleyen sayfa gorsun. */
+if (!auth_prices_unlocked(auth_user())) {
+    $_qb = trim((string)($_GET['brand'] ?? ''));
+    header('Location: /price-list'.($_qb !== '' ? '?brand='.rawurlencode($_qb) : ''), true, 302);
+    exit;
+}
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
 

@@ -23,6 +23,23 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
 require_once __DIR__.'/inc/stock.php';
+require_once __DIR__.'/inc/auth.php';
+
+/* FIYAT KAPISI. Bu dosya /price-list ile AYNI rakamlari tasiyor, sadece Excel
+   olarak. HTML sayfasi kilitliyken bu ucun acik kalmasi kurali anlamsiz kilardi:
+   tek bir adres, tum toptan fiyat listesini kayitsiz indirtiyordu.
+
+   403 yerine /price-list'e YONLENDIRIYORUZ. Bu baglanti zaten gonderilmis
+   kampanya e-postalarinin icinde duruyor; tiklayan kisi hata sayfasi degil,
+   ne yapmasi gerektigini soyleyen bir sayfa gormeli -- orada "belgenizi
+   yukleyin, fiyatlar acilir" bandi ve kayit dugmesi var. Marka suzgeci de
+   korunuyor ki adam aradigi markanin sayfasina dussun. */
+if (!auth_prices_unlocked(auth_user())) {
+    $_q = ($brandFilterRaw = trim((string)($_GET['brand'] ?? ''))) !== ''
+        ? '?brand='.rawurlencode($brandFilterRaw) : '';
+    header('Location: /price-list'.$_q, true, 302);
+    exit;
+}
 
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
