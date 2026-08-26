@@ -2375,23 +2375,48 @@ jobs:
               vestra_currency_for_cc('DE'), vestra_currency_for_cc('JP'), vestra_currency_for_cc('GB'));
 
             head("5. GERCEK SAYFA NE BASIYOR  <-- asil olcum");
-            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
-            foreach (['/shop', '/shop?cur=USD', '/price-list?cur=USD', '/shop?cur=CAD'] as $p) {
+            /* GIRIS YAPARAK olcuyoruz. Ziyaretci olarak katalogda fiyat ZATEN
+               gorunmuyor (fiyat kapisi), o yuzden cikis yapmis bir istekte "US$
+               yok" demek cevirimin bozuk oldugunu DEGIL, fiyatin gizli oldugunu
+               gosterir -- olculen sey, sorulan soru olmali. */
+            $UA  = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+            $jar = tempnam(sys_get_temp_dir(), 'fxck');
+            $get = function (string $p, bool $auth) use ($UA, $jar): array {
               $ch = curl_init('https://vestrasales.com'.$p);
-              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
-                                      CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
+              $o = [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25,
+                    CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA];
+              if ($auth) { $o[CURLOPT_COOKIEJAR] = $jar; $o[CURLOPT_COOKIEFILE] = $jar; }
+              curl_setopt_array($ch, $o);
               $html = (string)curl_exec($ch);
               $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
               curl_close($ch);
+              return [$code, $html];
+            };
+            $ch = curl_init('https://vestrasales.com/login');
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>25, CURLOPT_POST=>true,
+                                    CURLOPT_POSTFIELDS=>'email=acerasoft%2Bverifytest%40gmail.com&password=Test12345!',
+                                    CURLOPT_COOKIEJAR=>$jar, CURLOPT_COOKIEFILE=>$jar,
+                                    CURLOPT_FOLLOWLOCATION=>true, CURLOPT_USERAGENT=>$UA]);
+            $lb = (string)curl_exec($ch); curl_close($ch);
+            echo '  giris: '.(str_contains($lb, 'authcard') ? 'BASARISIZ (giris sayfasi geldi)' : 'oturum acildi')."\n\n";
+
+            $row = function (string $p, bool $auth) use ($get) {
+              [$code, $html] = $get($p, $auth);
               // Sayilar: fiyat isaretleri govdede kac kez geciyor.
               $eu  = substr_count($html, '&euro;') + substr_count($html, "\u{20AC}");
               $us  = substr_count($html, 'US$');
               $ca  = substr_count($html, 'C$');
               $sw  = str_contains($html, 'cswmenu') ? 'var' : 'YOK';
-              printf("  %-22s kod=%-4d  EUR=%-4d US\$=%-4d C\$=%-4d  secici=%s\n", $p, $code, $eu, $us, $ca, $sw);
+              printf("  %-9s %-22s kod=%-4d  EUR=%-4d US\$=%-4d C\$=%-4d  secici=%s\n",
+                     $auth ? 'uye' : 'ziyaretci', $p, $code, $eu, $us, $ca, $sw);
+            };
+            foreach ([false, true] as $auth) {
+              foreach (['/shop', '/shop?cur=USD', '/shop?cur=CAD', '/price-list?cur=USD'] as $p) $row($p, $auth);
             }
-            echo "\n  Okuma: '/shop?cur=USD' satirinda US\$ sayisi 0 ve EUR sayisi buyukse,\n";
+            @unlink($jar);
+            echo "\n  Okuma: 'uye' satirlarinda ?cur=USD icin US\$ sayisi 0 ve EUR sayisi buyukse,\n";
             echo "  cevrim CALISMIYOR demektir. Sebebi 2. ve 4. basliklarda gorunur.\n";
+            echo "  'ziyaretci' satirlarinda fiyat gorunmemesi NORMAL -- fiyat kapisi.\n";
             PHPEOF
             php -l /tmp/vestra_fx.php
             php /tmp/vestra_fx.php
