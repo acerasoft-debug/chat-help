@@ -2427,8 +2427,14 @@ jobs:
               $us  = substr_count($html, 'US$');
               $ca  = substr_count($html, 'C$');
               $sw  = str_contains($html, 'cswmenu') ? 'var' : 'YOK';
-              printf("  %-9s %-22s kod=%-4d  EUR=%-4d US\$=%-4d C\$=%-4d  secici=%s\n",
-                     $auth ? 'uye' : 'ziyaretci', $p, $code, $eu, $us, $ca, $sw);
+              /* Sifir US$ iki AYRI sey olabilir: cevrim bozuk, ya da sayfada
+                 zaten fiyat yok (kapi kapali / hepsi "teklife acik"). Ikisini
+                 ayirt edemeyen bir sayim, cevabi degil kafa karisikligini
+                 buyutur -- o yuzden kilidi ve teklifi de sayiyoruz. */
+              $lock = substr_count($html, 'class="slock"');
+              $off  = substr_count($html, 'class="soffer"');
+              printf("  %-9s %-22s kod=%-4d  EUR=%-4d US\$=%-4d C\$=%-4d  kilit=%-3d teklif=%-3d secici=%s\n",
+                     $auth ? 'uye' : 'ziyaretci', $p, $code, $eu, $us, $ca, $lock, $off, $sw);
             };
             foreach ([false, true] as $auth) {
               foreach (['/shop', '/shop?cur=USD', '/shop?cur=CAD', '/price-list?cur=USD'] as $p) $row($p, $auth);
