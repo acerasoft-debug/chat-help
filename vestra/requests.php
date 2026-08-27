@@ -74,16 +74,24 @@ usort($freshest, static fn($a, $b) =>
    line at the same second, and "newest six" then meant the SAME shirt six times --
    for a guest (whose photos are gated) that rendered as six identical dark tiles,
    which reads as a broken page, not a locked one. One tile per distinct product
-   keeps the rail honest about recency while actually showing range. */
-$seenLine = []; $rail = [];
+   keeps the rail honest about recency while actually showing range.
+
+   Ayni kusurun bir ust basamagi: toplu aktarim tek URUNU degil tek MARKAYI alti
+   kez getiriyordu. Canli sayfada rayin alti karosundan besi Ralph Lauren'di --
+   344 ilanlik bir katalog, tek markali bir vitrin gibi gorunuyordu. Ray "burada
+   ne var" sorusuna cevap veriyor; ayni markayi bes kez yazmak o soruya cevap
+   degil. Once HER MARKADAN en yeni bir urun, yer kalirsa geri kalanlar.
+   Sira yine tazelige gore: baslik "yeni eklendi" diyor ve oyle kalmali. */
+$seenLine = []; $byBrand = []; $rest = [];
 foreach ($freshest as $p) {
-    $k = mb_strtolower(trim((string)($p['brand'] ?? '')).'|'.trim((string)($p['name'] ?? '')));
+    $brand = mb_strtolower(trim((string)($p['brand'] ?? '')));
+    $k     = $brand.'|'.mb_strtolower(trim((string)($p['name'] ?? '')));
     if (isset($seenLine[$k])) continue;
     $seenLine[$k] = true;
-    $rail[] = $p;
-    if (count($rail) >= 6) break;
+    if ($brand !== '' && !isset($byBrand[$brand])) { $byBrand[$brand] = $p; continue; }
+    $rest[] = $p;   // ayni markanin ikinci urunu: ancak marka sayisi 6'yi doldurmazsa girer
 }
-$freshest = $rail;
+$freshest = array_slice(array_merge(array_values($byBrand), $rest), 0, 6);
 $isSeller=$AUTH_USER && ($AUTH_USER['type']??'')==='seller';
 $myEmail=strtolower($AUTH_USER['email']??'');
 
