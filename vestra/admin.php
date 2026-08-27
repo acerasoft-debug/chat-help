@@ -14,6 +14,7 @@ require_once __DIR__.'/inc/escrow.php';
 require_once __DIR__.'/inc/samples.php';
 require_once __DIR__.'/inc/journal.php';
 require_once __DIR__.'/inc/money.php';
+require_once __DIR__.'/inc/api_keys.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -271,6 +272,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     @unlink(vestra_data_dir().'/fx_rates.json');   // onbellegi ve backoff'u sil, yeniden dene
     $ok = vestra_fx('USD') > 0 ? 1 : 0;
     header('Location: /admin?tab=prices&msg=fx_refresh&n='.$ok.'&src='.rawurlencode(vestra_fx_source())); exit;
+  }
+  /* Ortak API anahtari. Duz metin SADECE bir kez, hemen ardindan gelen sayfada
+     gosteriliyor ve oturumda tutuluyor -- diske yalnizca ozeti yaziliyor. Yonlendirme
+     adresine koymak en kolayi olurdu ama anahtar o zaman tarayici gecmisine,
+     sunucu erisim kaydina ve varsa araya giren her vekile dusrdu. */
+  if($act==='api_key_new'){
+    $r = vestra_api_key_issue((string)($_POST['label'] ?? ''), (string)($_POST['account'] ?? ''));
+    $_SESSION['api_key_once'] = ['secret' => $r['secret'], 'label' => $r['record']['label']];
+    header('Location: /admin?tab=api&msg=api_new'); exit;
+  }
+  if($act==='api_key_revoke'){
+    $ok = vestra_api_key_revoke((string)($_POST['kid'] ?? ''));
+    header('Location: /admin?tab=api&msg='.($ok ? 'api_revoked' : 'api_notfound')); exit;
   }
   if($act==='fx_manual'){
     vestra_fx_set_manual([
@@ -1748,6 +1762,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
       'messages'   => '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>',
       'notify'     => '<path d="M6 9a6 6 0 0 1 12 0c0 4.5 2 5.5 2 5.5H4S6 13.5 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
       'prices'     => '<path d="M20.5 12.5 12 21l-9-9V4h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+      'api'        => '<path d="M8 7 3 12l5 5"/><path d="m16 7 5 5-5 5"/><path d="M13.5 5.5 10.5 18.5"/>',
       'listings'   => '<circle cx="4" cy="6" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="4" cy="18" r="1.3"/><path d="M8.5 6H21M8.5 12H21M8.5 18H21"/>',
       'journal'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h6M7 13h6M7 16h4"/><path d="M16 9h2v7h-2z"/>',
       'marketing'  => '<path d="M4 10v4h3l8 4V6l-8 4z"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/>',
@@ -1815,6 +1830,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   <?= navLink($tab,'notify','🔔','Notifications') ?>
 
   <div class="sgrp">System</div>
+  <?= navLink($tab,'api','🔌','Partner API') ?>
   <?= navLink($tab,'security','🔐','Security',count(vestra_ip_blocks()),false) ?>
 </nav>
 
@@ -1842,6 +1858,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php else: ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ No rate source could be reached from the server (outbound HTTP is probably blocked by the host). Enter the rates by hand below — the catalogue will convert with those instead.</div>
 <?php endif; ?>
+<?php elseif($msg==='api_new'): ?>
+<div class="amsg ok">✓ Key issued — copy it from the box below. It is shown only once.</div>
+<?php elseif($msg==='api_revoked'): ?>
+<div class="amsg ok">✓ Key revoked. Any request using it now gets a 401.</div>
+<?php elseif($msg==='api_notfound'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ That key was already revoked or does not exist.</div>
 <?php elseif($msg==='fx_manual'): ?>
 <div class="amsg ok">✓ Manual rates saved. They are used only when no live source answers, and the catalogue then says “indicative rate” rather than naming the ECB.</div>
 <?php elseif($msg==='pricing_rules'): ?>
@@ -4301,6 +4323,102 @@ elseif($tab==='notify'):
 </div>
 
 <?php // ══════════════════════════════════════════════════════ SECURITY
+elseif($tab==='api'):
+  $apiKeys = vestra_api_keys_public();
+  $once    = $_SESSION['api_key_once'] ?? null;
+  if ($once) unset($_SESSION['api_key_once']);          // bir kez gosterilir, sonra gider
+  $live    = array_values(array_filter($apiKeys, fn($k) => empty($k['revoked_at'])));
+?>
+<div class="acard-hd" style="margin-bottom:6px"><h3>🔌 Partner API — catalogue feed</h3></div>
+<p style="color:var(--mut);font-size:13px;margin:0 0 16px;max-width:760px">
+  Give a wholesale partner read access to the catalogue over JSON: brands, articles, sizes,
+  colours, MOQ, tiered prices in EUR, photo URLs and the product link. Each partner gets
+  their own key, so one can be cut off without touching the others.
+  <b>The key carries trade prices</b> — the same thing the trade-licence gate protects — so
+  issue one only to a verified trade account.
+</p>
+
+<?php if ($once): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.55)">
+  <div class="acard-body">
+    <b>New key for “<?= htmlspecialchars($once['label']) ?>” — copy it now.</b>
+    <p style="color:var(--mut);font-size:13px;margin:6px 0 10px">
+      This is the only time it is shown. Only a one-way hash of it is stored, so it cannot be
+      looked up later — if it is lost, revoke it and issue another.
+    </p>
+    <code style="display:block;font-size:15px;background:#faf7f1;padding:10px 14px;border-radius:8px;
+                 color:#8a6420;border:1px solid var(--line);user-select:all;word-break:break-all">
+      <?= htmlspecialchars($once['secret']) ?></code>
+  </div>
+</div>
+<?php endif; ?>
+
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>Issue a key</h3></div>
+  <div class="acard-body">
+    <form method="post" action="/admin" style="margin:0;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="api_key_new">
+      <label style="font-size:12px;color:var(--mut)">Partner<br>
+        <input type="text" name="label" required placeholder="SYMAX — Tokyo" style="width:230px;padding:6px 10px;font-size:13px;font-family:inherit"></label>
+      <label style="font-size:12px;color:var(--mut)">Their account e-mail (optional)<br>
+        <input type="email" name="account" placeholder="buyer@example.com" style="width:230px;padding:6px 10px;font-size:13px;font-family:inherit"></label>
+      <button class="abtn primary" type="submit">Issue key</button>
+    </form>
+  </div>
+</div>
+
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>Keys (<?= count($live) ?> active)</h3></div>
+  <div class="acard-body atscroll">
+    <?php if (!$apiKeys): ?>
+      <p style="color:var(--mut);font-size:13px;margin:0">No keys issued yet.</p>
+    <?php else: ?>
+    <table class="atable" style="min-width:640px">
+      <thead><tr><th>Partner</th><th>Key</th><th>Account</th><th>Issued</th><th>Last used</th><th class="ac">Calls</th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($apiKeys as $k): $dead = !empty($k['revoked_at']); ?>
+        <tr<?= $dead ? ' style="opacity:.5"' : '' ?>>
+          <td><b><?= htmlspecialchars((string)$k['label']) ?></b><?= $dead ? ' <span class="ahint">revoked</span>' : '' ?></td>
+          <td><code style="font-size:11.5px"><?= htmlspecialchars((string)$k['hint']) ?></code></td>
+          <td style="font-size:12px;color:var(--mut)"><?= htmlspecialchars((string)($k['account'] ?: '—')) ?></td>
+          <td style="font-size:12px;color:var(--mut)"><?= htmlspecialchars(substr((string)$k['created_at'], 0, 10)) ?></td>
+          <td style="font-size:12px;color:var(--mut)"><?= htmlspecialchars(substr((string)$k['last_used'], 0, 16) ?: 'never') ?></td>
+          <td class="ac" style="font-size:12px"><?= (int)($k['calls'] ?? 0) ?></td>
+          <td class="ac">
+            <?php if (!$dead): ?>
+            <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Revoke this key? The partner\'s integration stops working immediately.')">
+              <?= csrfField() ?><input type="hidden" name="_action" value="api_key_revoke">
+              <input type="hidden" name="kid" value="<?= htmlspecialchars((string)$k['id']) ?>">
+              <button class="abtn" type="submit" style="font-size:11px;padding:3px 9px;color:#c0392b">Revoke</button>
+            </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+    <?php endif; ?>
+  </div>
+</div>
+
+<div class="acard">
+  <div class="acard-hd"><h3>What to send the partner</h3></div>
+  <div class="acard-body">
+    <p style="color:var(--mut);font-size:13px;margin:0 0 10px">
+      Full documentation: <a class="acc" href="/api-docs" target="_blank">vestrasales.com/api-docs</a>
+    </p>
+<pre style="background:#faf7f1;border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+            font-size:12px;line-height:1.65;overflow-x:auto;margin:0">curl -H "Authorization: Bearer &lt;KEY&gt;" \
+  "https://vestrasales.com/api/catalog?a=products&amp;page=1&amp;per=100"</pre>
+    <p style="color:var(--mut);font-size:12.5px;margin:12px 0 0;line-height:1.6">
+      ⚠ <b>The feed carries no live stock and no EAN.</b> Per-unit stock is not tracked, so every
+      product reports <code>stock.tracked = false</code> rather than a number a partner could
+      resell against. Tell them plainly — a partner who discovers this after building an
+      importer will not be a partner for long.
+    </p>
+  </div>
+</div>
+<?php
 elseif($tab==='security'):
   /* Rolling log, newest first. Everything shown here was recorded at the moment
      of the event; opening this tab never fires geo lookups of its own. */
