@@ -183,7 +183,9 @@ function vestra_journal_cover_svg(array $p): string {
     $motif = 'seal';
     foreach ([
         'ledger'   => ['price', 'cost', 'tier', 'line sheet', 'landed', 'margin'],
-        'swatch'   => ['sample', 'fabric', 'piqué', 'pique', 'staple'],
+        /* cloth/wool/silk/mill: kumas cografyasi yazilari da kumas cizimi almali,
+           yoksa hepsi varsayilan muhure dusuyor ve dergi tek desenli gorunuyor. */
+        'swatch'   => ['sample', 'fabric', 'piqué', 'pique', 'staple', 'cloth', 'wool', 'silk', 'mill'],
         'rail'     => ['depth', 'presentation', 'rail', 'sell-through'],
         'colour'   => ['colour', 'color', 'palette', 'shade'],
         'sizerun'  => ['size', 'assortment', 'pack', 'curve'],
