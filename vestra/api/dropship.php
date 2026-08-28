@@ -63,6 +63,12 @@ if ($action === 'stock' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         'currency' => 'eur',
         'price'    => (float)$ds['price'],
         'shipping' => $ship,
+        /* Siparis govdesindeki colour/size serbest metin. Ortagin ne yazacagini
+           tahmin etmesi gerekmesin diye ilanin bildigi degerler burada: bos dizi
+           "bilmiyoruz" demek, "yok" demek degil -- o durumda ortak kendi
+           musterisinin verdigi degeri yazar. */
+        'colours'  => vestra_colour_options($p),
+        'sizes'    => vestra_size_options($p),
         /* Katalog geneline acilan urunlerde adet bazli stok TUTULMUYOR ve
            uydurulmuyor. Bos bir harita "hepsi tukendi" diye okunabilecegi
            icin durumu ayrica soyluyoruz. */

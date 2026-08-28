@@ -157,7 +157,9 @@ require __DIR__.'/inc/head.php';
   <h3>GET /api/dropship?a=stock&amp;id=<i>id</i></h3>
   <p>Price, the three shipping zones, and <code>stock_tracked</code> — which is
      <code>false</code> for catalogue articles, for the same reason the catalogue feed
-     reports no stock.</p>
+     reports no stock. Also returns <code>colours</code> and <code>sizes</code>: the values
+     the listing knows, for you to offer your customer. Either may be empty, which means
+     the listing does not state them — not that none exist.</p>
 
   <h3>POST /api/dropship?a=order</h3>
   <pre><code>{ "id": "dsq-101211", "colour": "Black", "size": "M", "qty": 1,
@@ -170,7 +172,7 @@ require __DIR__.'/inc/head.php';
   <div class="apiscroll"><table>
     <tr><th>Field</th><th>Notes</th></tr>
     <tr><td>zone / country</td><td><code>zone</code> is <code>EU</code>, <code>US</code> or <code>JP</code>; or pass <code>country</code> as an ISO-2 code and we map it. Anything else falls back to Europe.</td></tr>
-    <tr><td>colour, size</td><td>Free text — what your customer ordered. Size runs in this catalogue are pack rules rather than lists, so there is nothing to pick from.</td></tr>
+    <tr><td>colour, size</td><td>What your customer ordered. Send one of the values <code>a=stock</code> lists for the article; where it lists none, send free text.</td></tr>
   </table></div>
 
   <h3>Price and shipping</h3>
