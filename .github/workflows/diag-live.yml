@@ -2504,10 +2504,15 @@ jobs:
             head("6. OTURUMU STRIPE'A GERI SOR  <-- asil olcum");
             $rec = dropship_get($ref);
             $sid = (string)($rec['session_id'] ?? '');
+            /* Oturum satici hesabinda acildiysa platform hesabina sormak
+               "No such checkout.session" verir; ayni hesaba sormak sart. */
+            $acct = (string)($rec['acct_id'] ?? '');
+            printf("  oturumun acildigi hesap: %s\n",
+                   $acct === '' ? 'platform (Acerasoft)' : 'satici ' . substr($acct, 0, 8) . '...');
             if ($sid === '') { echo "  oturum kimligi kaydedilmemis\n"; }
             else {
               try {
-                $sess = stripe_api('GET', '/v1/checkout/sessions/' . $sid);
+                $sess = stripe_api('GET', '/v1/checkout/sessions/' . $sid, [], $acct);
                 $tot  = isset($sess->amount_total) ? $sess->amount_total / 100 : null;
                 printf("  amount_total      : %s EUR   (urun %.2f + kargo %.2f = %.2f bekleniyor)\n",
                        $tot === null ? '?' : number_format($tot, 2), $ds['price'], 30.00, $ds['price'] + 30.00);
@@ -2519,9 +2524,18 @@ jobs:
                   $amt = $o->shipping_rate_data->fixed_amount->amount ?? ($o->shipping_amount ?? null);
                   printf("     -> %s\n", $amt === null ? '(tutar okunamadi)' : number_format($amt / 100, 2) . ' EUR');
                 }
-                $li = stripe_api('GET', '/v1/checkout/sessions/' . $sid . '/line_items');
-                foreach (($li->data ?? []) as $item)
-                  printf("  odeme satiri      : %s\n", (string)($item->description ?? '?'));
+                $li = stripe_api('GET', '/v1/checkout/sessions/' . $sid . '/line_items', [], $acct);
+                foreach (($li->data ?? []) as $item) {
+                  $d = (string)($item->description ?? '?');
+                  printf("  odeme satiri      : %s\n", $d);
+                  /* Musteri ekstresinde marka gorunmemeli. */
+                  $leak = [];
+                  foreach (['ralph','lauren','lacoste','amiri','gucci','burberry','versace','fendi',
+                            'balenciaga','givenchy','valentino','jacquemus','dsquared','casablanca',
+                            'gcds','marcelo','burlon'] as $w)
+                    if (stripos($d, $w) !== false) $leak[] = $w;
+                  printf("  marka sizintisi   : %s\n", $leak ? 'VAR -> ' . implode(',', $leak) : 'yok');
+                }
               } catch (\Throwable $e) {
                 echo "  Stripe'a sorulamadi: " . $e->getMessage() . "\n";
               }
