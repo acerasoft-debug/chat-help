@@ -126,7 +126,13 @@ require __DIR__ . '/inc/head.php';
                musterisi icin girdigi alanlar. */ ?>
       <p class="hint" style="margin:8px 0 0;font-size:12px">
         <?= t('Enter the colour and size your customer ordered. You enter their delivery address on the next step.') ?><br>
-        <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?>
+        <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?><br>
+        <?php /* Gumruk satiri odeme ONCESINDE ve gorunur yerde duruyor. Sartlara
+                 yazmak yeterli degil: paketi kapida reddettiren sey, alicinin
+                 beklemedigi bir fatura -- ve kimse siparis verirken sartlari
+                 okumuyor. */ ?>
+        <b><?= t('Duties and import taxes in the destination country are not included and are payable on delivery.') ?></b>
+        <?= t('You can settle them yourself or leave them to your customer.') ?>
       </p>
       <?php endif; ?>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Delivery region') ?></label>
