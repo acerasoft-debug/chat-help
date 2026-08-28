@@ -1,7 +1,7 @@
 # Mühür — Noter Onaylı Yeminli Tercüme Web Sitesi
 
 Türkiye'de ve yurt dışında — Almanya, Belçika, Fransa, İspanya, İtalya,
-Birleşik Krallık, ABD, Kanada, Japonya ve Avustralya'da — yaşayanlara
+Birleşik Krallık, ABD, Kanada, Japonya, Çin ve Avustralya'da — yaşayanlara
 noter onaylı yeminli tercüme hizmeti sunan premium tanıtım sitesi.
 
 ## Özellikler
