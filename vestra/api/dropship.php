@@ -2,20 +2,36 @@
 /**
  * VESTRA — Dropship partner API.
  *
- *   GET  /api/dropship.php?a=stock[&id=lac-polo-paris]
- *        → current price, EU/France shipping, per-colour/size stock.
+ *   GET  /api/dropship?a=list
+ *        → every dropship-enabled article with its single-piece price.
  *
- *   POST /api/dropship.php?a=order
- *        JSON body: { "id"?, "colour", "size", "qty"?, "reference"?,
- *                      "customer_email"?, "customer_name"? }
- *        → creates a pending order + a Stripe Checkout Session, returns
- *          { ok, ref, checkout_url }. Whoever completes checkout_url pays;
- *          the site then collects their shipping address itself (France vs
- *          rest-of-EU delivery are offered as named shipping options).
+ *   GET  /api/dropship?a=stock&id=<id>
+ *        → price, the three shipping zones, and whether stock is tracked.
+ *
+ *   POST /api/dropship?a=order
+ *        JSON body: { "id", "colour", "size", "qty"?, "zone"? | "country"?,
+ *                      "reference"?, "customer_email"?, "customer_name"? }
+ *        → creates a pending order + a Stripe Checkout Session and returns
+ *          { ok, ref, checkout_url }.
+ *
+ * WHO BUYS: a verified trade partner, for their own customer. The partner
+ * completes checkout and enters THEIR CUSTOMER'S delivery address; no contract
+ * of sale arises between VESTRA and that end customer (Terms, clause 2a).
+ *
+ * PRICE: the wholesale price of the smallest quantity tier plus 20%.
+ *
+ * SHIPPING: one zone per order, chosen BEFORE the session is created —
+ * Europe 16 EUR / United States 30 EUR / Japan 30 EUR. Pass "zone" (EU|US|JP)
+ * or "country" (ISO-2, mapped for you). The session then accepts only that
+ * zone's countries, so the rate charged and the address entered cannot
+ * diverge. Duties and import taxes at destination are not included.
+ *
+ * STOCK: per-unit stock is not tracked for catalogue articles; a=stock reports
+ * stock_tracked=false. Availability is confirmed with the seller after the
+ * order and refunded in full if it cannot be met.
  *
  * Auth: every request needs  Authorization: Bearer <DROPSHIP_API_KEY>.
- * id defaults to lac-polo-paris — the only dropship-enabled product today —
- * but any product with a `dropship.enabled` listing field works the same way.
+ * Ralph Lauren and Lacoste are excluded from dropshipping.
  */
 require_once __DIR__ . '/../inc/api_auth.php';
 require_once __DIR__ . '/../inc/auth.php';

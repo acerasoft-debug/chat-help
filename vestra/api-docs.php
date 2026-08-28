@@ -143,12 +143,63 @@ require __DIR__.'/inc/head.php';
      second, and a nightly full pull plus <code>since=</code> during the day is both
      gentler and more accurate than polling.</p>
 
+  <h2>Ordering: the dropship API</h2>
+  <p>The catalogue API above is read-only. Placing orders one piece at a time is a separate
+     endpoint, <code>/api/dropship</code>, with its own key. It is open to verified trade
+     partners buying <b>for their own customers</b>: you complete checkout and enter your
+     customer's delivery address, and no contract of sale arises between VESTRA and that
+     end customer.</p>
+
+  <h3>GET /api/dropship?a=list</h3>
+  <p>Every article available for single-piece purchase, with its price. Ralph Lauren and
+     Lacoste are excluded from dropshipping.</p>
+
+  <h3>GET /api/dropship?a=stock&amp;id=<i>id</i></h3>
+  <p>Price, the three shipping zones, and <code>stock_tracked</code> — which is
+     <code>false</code> for catalogue articles, for the same reason the catalogue feed
+     reports no stock.</p>
+
+  <h3>POST /api/dropship?a=order</h3>
+  <pre><code>{ "id": "dsq-101211", "colour": "Black", "size": "M", "qty": 1,
+  "country": "JP",
+  "reference": "your-order-id",
+  "customer_email": "…", "customer_name": "…" }</code></pre>
+  <p>Returns <code>{ ok, ref, checkout_url }</code>. Open <code>checkout_url</code> to pay.
+     Your own <code>reference</code> is echoed back and shown on the order.</p>
+
+  <div class="apiscroll"><table>
+    <tr><th>Field</th><th>Notes</th></tr>
+    <tr><td>zone / country</td><td><code>zone</code> is <code>EU</code>, <code>US</code> or <code>JP</code>; or pass <code>country</code> as an ISO-2 code and we map it. Anything else falls back to Europe.</td></tr>
+    <tr><td>colour, size</td><td>Free text — what your customer ordered. Size runs in this catalogue are pack rules rather than lists, so there is nothing to pick from.</td></tr>
+  </table></div>
+
+  <h3>Price and shipping</h3>
+  <p>The dropship price is the wholesale price of the smallest quantity tier <b>plus 20%</b>.
+     Shipping is charged once per order by zone:</p>
+  <div class="apiscroll"><table>
+    <tr><th>Zone</th><th>Rate</th><th>Delivers to</th></tr>
+    <tr><td>EU</td><td>€16.00</td><td>the 27 EU member states</td></tr>
+    <tr><td>US</td><td>€30.00</td><td>United States</td></tr>
+    <tr><td>JP</td><td>€30.00</td><td>Japan</td></tr>
+  </table></div>
+  <p>The zone is fixed before the payment session opens, and the session then accepts only
+     that zone's countries — so the rate charged and the address entered cannot diverge.</p>
+
+  <div class="apinote">
+    <p><b>Duties and import taxes are not included</b> in the price or the shipping rate.
+       They are payable on delivery and are yours to settle or to pass to your customer.
+       Goods of EU preferential origin may attract zero customs duty entering Japan under
+       the EU–Japan Economic Partnership Agreement when a statement on origin accompanies
+       the consignment — that is the tariff only, and does not cover consumption tax or the
+       carrier's clearance fee.</p>
+    <p><b>Availability is confirmed after the order</b>, because per-unit stock is not
+       tracked. If an article cannot be supplied, the order is refunded in full.</p>
+  </div>
+
   <h2>If you need something else</h2>
   <p>CSV and XLSX exports of the same catalogue are available to signed-in trade accounts
      from the price list — the XLSX carries the photographs embedded next to each row.
-     There is no XML feed and no FTP drop. Ordering through the API exists today only for
-     the dropship programme, which is a separate, EU-delivery integration; ask us if that
-     is what you need.</p>
+     There is no XML feed and no FTP drop.</p>
 </div>
 
 <?php require __DIR__.'/inc/foot.php'; ?>
