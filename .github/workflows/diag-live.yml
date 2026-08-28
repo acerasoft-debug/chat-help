@@ -2540,6 +2540,31 @@ jobs:
               printf("      beden       : %s\n", $so ? implode(", ", $so) : '(serbest metin)');
             }
 
+            head("3c. 100 EUR USTU URUNLER (moq / seri)");
+            /* Fiyat esigine bagli bir MOQ karari icin once esigin USTUNDE kimin
+               oldugunu bilmek gerekiyor; katalogda fiyata gore suzen bir arac
+               yoktu. Paket adedi 'sizes' cumlesinin sonundaki "10/pack" ya da
+               "10 pcs/pack" parcasindan okunuyor, size_step yedek. */
+            $over = [];
+            foreach ($all as $p) {
+              $pr = 0.0;
+              foreach ((array)($p['tiers'] ?? []) as $t) { $pr = max($pr, (float)($t['price'] ?? 0)); }
+              if ($pr <= 0) $pr = (float)($p['list'] ?? 0);
+              if ($pr <= 100.0) continue;
+              $sz = (string)($p['sizes'] ?? '');
+              $pack = preg_match('~(\d+)\s*(?:pcs\s*)?/\s*pack~i', $sz, $mp) ? (int)$mp[1]
+                    : (int)($p['size_step'] ?? 0);
+              $over[] = [$p, $pr, (int)($p['moq'] ?? 0), $pack];
+            }
+            usort($over, fn($a, $b) => [$a[0]['brand'] ?? '', $a[0]['id'] ?? ''] <=> [$b[0]['brand'] ?? '', $b[0]['id'] ?? '']);
+            printf("  esik ustu: %d urun\n", count($over));
+            foreach ($over as [$p, $pr, $moq, $pack]) {
+              $seri = $pack > 0 ? round($moq / $pack, 2) : 0;
+              printf("  %-26s %-12s %7.2f  moq %3d  paket %2d  = %s seri\n",
+                     (string)($p['id'] ?? ''), mb_substr((string)($p['brand'] ?? ''), 0, 12),
+                     $pr, $moq, $pack, $seri ?: '?');
+            }
+
             head("4. STRIPE YAPILANDIRILMIS MI");
             $ok = function_exists('stripe_available') ? stripe_available() : false;
             echo "  stripe_available(): " . ($ok ? "EVET" : "HAYIR -- odeme oturumu acilamaz") . "\n";
