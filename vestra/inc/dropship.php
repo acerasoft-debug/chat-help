@@ -74,7 +74,7 @@ function dropship_stock_left(array $p, string $colour, string $size): int {
  * yapilabilir ne de bakimi mumkun bir sey.
  *
  * Kural:
- *   - Ralph Lauren ve Lacoste HARIC butun katalog dropship'e acik
+ *   - Ralph Lauren, Lacoste ve boxershort HARIC butun katalog dropship'e acik
  *   - fiyat = toptan fiyat + %20   (saticilarin tek adet isleme payi)
  *   - kargo: Avrupa 16 EUR · ABD 30 EUR · Japonya 30 EUR
  */
@@ -84,6 +84,21 @@ const VESTRA_DROPSHIP_MARKUP = 0.20;
 /** Dropship'e KAPALI markalar (kucuk harf karsilastirilir). */
 function vestra_dropship_excluded_brands(): array {
     return ['ralph lauren', 'lacoste'];
+}
+
+/**
+ * Dropship'e KAPALI urun turleri: kategoride YA DA urun adinda gecmesi yeter.
+ *
+ * Neden ad da taraniyor: kategori satici tarafindan seciliyor ve bosluk birakma
+ * ya da "Basics" gibi genel bir kutuya atma cok yaygin -- boxer bir ilan
+ * "Underwear" degil "Basics" altinda durabiliyor. Kurali yalnizca kategoriye
+ * baglamak, kuralin en cok isleyecegi ilanlari disarida birakirdi.
+ *
+ * Govde eslesmesi ("boxer"), cunku ayni sey Boxershorts / Boxer Shorts /
+ * Boxershort / Boxerbriefs diye yaziliyor ve hepsi ayni urun.
+ */
+function vestra_dropship_excluded_terms(): array {
+    return ['boxer'];
 }
 
 /** Kargo bolgeleri: kod => [Stripe'ta gorunecek ad, EUR ucret]. */
@@ -148,13 +163,18 @@ function vestra_dropship_base_price(array $p): float {
 
 /**
  * Bu urunun dropship ayari, ya da null (kapali).
- * Elle yazilmis bir dropship blogu varsa O gecerli; ama marka yasagi her
- * seyin ustunde -- "Lacoste haric" dendiginde elle acilmis bir Lacoste
- * ilani da kapanir, yoksa kural kurals olurdu.
+ * Elle yazilmis bir dropship blogu varsa O gecerli; ama marka ve urun turu
+ * yasaklari her seyin ustunde -- "Lacoste haric" dendiginde elle acilmis bir
+ * Lacoste ilani da kapanir, yoksa kural kural olmazdi.
  */
 function vestra_dropship_of(array $p): ?array {
     $brand = mb_strtolower(trim((string)($p['brand'] ?? '')));
     if ($brand !== '' && in_array($brand, vestra_dropship_excluded_brands(), true)) return null;
+
+    $hay = mb_strtolower(trim((string)($p['cat'] ?? '') . ' ' . (string)($p['name'] ?? '')));
+    foreach (vestra_dropship_excluded_terms() as $term) {
+        if ($term !== '' && mb_strpos($hay, $term) !== false) return null;
+    }
 
     if (!empty($p['dropship']['enabled'])) {
         $d = (array)$p['dropship'];

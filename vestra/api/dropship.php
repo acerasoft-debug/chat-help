@@ -31,7 +31,7 @@
  * order and refunded in full if it cannot be met.
  *
  * Auth: every request needs  Authorization: Bearer <DROPSHIP_API_KEY>.
- * Ralph Lauren and Lacoste are excluded from dropshipping.
+ * Ralph Lauren, Lacoste and boxershorts are excluded from dropshipping.
  */
 require_once __DIR__ . '/../inc/api_auth.php';
 require_once __DIR__ . '/../inc/auth.php';

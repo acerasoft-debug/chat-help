@@ -151,8 +151,9 @@ require __DIR__.'/inc/head.php';
      end customer.</p>
 
   <h3>GET /api/dropship?a=list</h3>
-  <p>Every article available for single-piece purchase, with its price. Ralph Lauren and
-     Lacoste are excluded from dropshipping.</p>
+  <p>Every article available for single-piece purchase, with its price. Ralph Lauren,
+     Lacoste and boxershorts are excluded from dropshipping — treat this feed as the
+     authority rather than filtering the catalogue yourself.</p>
 
   <h3>GET /api/dropship?a=stock&amp;id=<i>id</i></h3>
   <p>Price, the three shipping zones, and <code>stock_tracked</code> — which is
