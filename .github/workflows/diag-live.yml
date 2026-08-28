@@ -2583,6 +2583,25 @@ jobs:
               }
             }
 
+            head("6b. VITRIN SIRASI (canli /shop)");
+            /* Sira shop.php'nin ICINDE kuruluyor, ayri bir fonksiyonda degil --
+               burada mantigi tekrar yazmak hicbir sey dogrulamazdi. O yuzden
+               sayfanin KENDISI cekilip kartlarin sirasi okunuyor. */
+            $html = @file_get_contents('https://vestrasales.com/shop');
+            if (!is_string($html) || $html === '') { echo "  /shop okunamadi\n"; }
+            else {
+              preg_match_all('~<a class="scard[^"]*" href="/product\?id=([^"]+)"~', $html, $mm);
+              $ids = array_slice($mm[1] ?? [], 0, 10);
+              if (!$ids) { echo "  kart bulunamadi (sayfa yapisi degismis olabilir)\n"; }
+              foreach ($ids as $n => $pid) {
+                $pid = urldecode($pid);
+                $pp  = vestra_find($pid);
+                printf("  %2d. %-26s %-12s satici: %s%s\n", $n + 1, $pid,
+                       (string)($pp['brand'] ?? '?'), (string)($pp['seller'] ?? '-'),
+                       !empty($pp['pinned']) ? '  [pinned]' : '');
+              }
+            }
+
             head("7. TEMIZLIK");
             /* Sinama siparisi ODENMEDI, yani para hareketi yok; ama panelde
                durursa gercek bir siparis gibi gorunur. Siliniyor. */
