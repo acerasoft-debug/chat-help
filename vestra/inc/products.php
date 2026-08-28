@@ -14,10 +14,13 @@ if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
    collected together with the seller's tiered commission as the Stripe application
    fee on the direct charge. Bank-transfer orders are unaffected (buyer pays 0). */
 if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038);
-/* Karttan tahsil edilebilecek EN YUKSEK escrow tutari (EUR, alicinin odedigi
-   toplam -- mal bedeli eksi kupon, arti koruma ucreti). Ustundeki siparisler
-   havale ile odeniyor. Sinir hem sepette hem order.php'de sinaniyor: sepetteki
-   kontrol bir gorunum kolayligi, gecerli olan sunucudaki. */
+/* Escrow ile odenebilecek EN YUKSEK SIPARIS tutari (EUR). Olculen sey SIPARIS,
+   yani kupon sonrasi mal bedeli -- karttan cekilen toplam degil. Fark onemli:
+   koruma ucreti dahil olculseydi tam 3500 EUR'luk bir siparis sinirin ustune
+   cikip reddedilirdi, oysa kural "en fazla 3500 EUR siparis". Ucret bunun
+   uzerine biniyor ve karttan 3500 + %3,8 cekilebiliyor.
+   Sinir hem sepette hem order.php'de sinaniyor: sepetteki kontrol bir gorunum
+   kolayligi, gecerli olan sunucudaki. */
 if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3500.00);
 /* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
    goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)

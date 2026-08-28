@@ -46,7 +46,7 @@ if (stripe_available()) {
   <?php endif; ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='escrow_max'): ?>
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
-      <?= htmlspecialchars(sprintf(t('Card escrow covers orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
+      <?= htmlspecialchars(sprintf(t('Card escrow accepts orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
   <?php endif; ?>
 
   <div id="empty" class="empty" style="display:none">
@@ -160,7 +160,7 @@ var PAY_LBL = {
   /* Sepetteki butun tutarlar EUR basiliyor (eur() her zaman € yaziyor), sinir da
      EUR uzerinden sinaniyor -- burada goruntuleme para birimine cevirmek, sinirla
      ekrandaki rakami farkli birimlere dusururdu. */
-  escrowMax: <?= json_encode(sprintf(t('Card escrow covers orders up to %s. Larger orders are paid by bank transfer.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?>
+  escrowMax: <?= json_encode(sprintf(t('Card escrow accepts orders up to %s. Larger orders are paid by bank transfer.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?>
 };
 function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
@@ -177,7 +177,10 @@ function escrowBlockedBy(c, net){
     if(!s) return 'seller';         // item has no escrow-ready seller
     if(sid===null) sid=s; else if(sid!==s) return 'seller'; // mixed sellers
   }
-  if(net*(1+ESCROW_FEE_RATE) > ESCROW_MAX + 0.005) return 'max';
+  /* Olcu SIPARIS tutari (kupon sonrasi mal bedeli), koruma ucreti dahil degil --
+     bkz. VESTRA_ESCROW_MAX. Tam sinirdaki siparis kayan nokta yuzunden
+     dusmesin diye kucuk bir tolerans var. */
+  if(net > ESCROW_MAX + 0.005) return 'max';
   return '';
 }
 function syncPay(c, net){
