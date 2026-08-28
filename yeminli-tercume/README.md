@@ -37,6 +37,25 @@ assets/js/main.js     Dil değiştirme, menü, form, animasyonlar
 Metinleri değiştirmek için `assets/js/i18n.js` içindeki ilgili dilin
 anahtarını düzenlemeniz yeterli — HTML'e dokunmanız gerekmez.
 
+## Formdaki belge yükleme nasıl "gerçek" olur?
+
+Teklif formunda sürükle-bırak belge yükleme alanı var (tüm formatlar).
+Site statik olduğu için dosyaların size ulaşması iki şekilde çalışır:
+
+1. **Şu anki durum (servis bağlı değil):** Form ziyaretçinin e-posta
+   uygulamasını açar; seçtiği dosyaların adları mesaja yazılır ve
+   ziyaretçiye dosyaları e-postaya eklemesi hatırlatılır.
+2. **Önerilen kurulum (5 dakika):** [formspree.io](https://formspree.io)
+   (veya Web3Forms/Getform) üzerinden ücretsiz bir form oluşturun ve size
+   verilen adresi `index.html` içindeki forma ekleyin:
+
+   ```html
+   <form class="quote-form" id="quoteForm" data-endpoint="https://formspree.io/f/XXXXXXXX">
+   ```
+
+   Bu tek satırla form, dosyalarla birlikte doğrudan e-posta kutunuza
+   düşer; sayfa içinde "Talebiniz alındı" onayı gösterilir (6 dilde hazır).
+
 ## Yerelde çalıştırma
 
 Herhangi bir statik sunucu yeterli:

@@ -91,20 +91,129 @@
     });
   }
 
-  /* quote form → opens the visitor's e-mail app with a prefilled message */
+  /* quote form — document uploads + submit.
+     With data-endpoint set on the form (e.g. a Formspree/Web3Forms URL) files are
+     POSTed for real; without it the form falls back to the visitor's e-mail app. */
   var form = document.getElementById("quoteForm");
   if (form) {
+    var MAX_TOTAL_BYTES = 15 * 1024 * 1024;
+    var endpoint = form.getAttribute("data-endpoint");
+    var fileInput = document.getElementById("fileInput");
+    var dropZone = document.getElementById("dropZone");
+    var fileListEl = document.getElementById("fileList");
+    var statusEl = document.getElementById("formStatus");
+    var noteEl = document.getElementById("formNote");
+    var selectedFiles = [];
+
+    if (endpoint && noteEl) noteEl.hidden = true;
+
+    function dict() { return DICT[current] || DICT.tr; }
+
+    function fmtSize(b) {
+      return b < 1048576 ? Math.max(1, Math.round(b / 1024)) + " KB" : (b / 1048576).toFixed(1) + " MB";
+    }
+
+    function totalBytes() {
+      return selectedFiles.reduce(function (sum, f) { return sum + f.size; }, 0);
+    }
+
+    function showStatus(key, cls) {
+      if (!statusEl) return;
+      statusEl.textContent = dict()[key] || "";
+      statusEl.className = "form-status " + cls;
+      statusEl.hidden = false;
+    }
+
+    function renderFiles() {
+      fileListEl.textContent = "";
+      selectedFiles.forEach(function (f, i) {
+        var li = document.createElement("li");
+        var name = document.createElement("span");
+        name.className = "file-name";
+        name.textContent = f.name;
+        var size = document.createElement("span");
+        size.className = "file-size";
+        size.textContent = fmtSize(f.size);
+        var rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "file-remove";
+        rm.textContent = "×";
+        rm.setAttribute("aria-label", dict()["form.fileRemove"] || "Remove");
+        rm.addEventListener("click", function () {
+          selectedFiles.splice(i, 1);
+          renderFiles();
+        });
+        li.append(name, size, rm);
+        fileListEl.appendChild(li);
+      });
+      if (statusEl && totalBytes() > MAX_TOTAL_BYTES) showStatus("form.tooBig", "err");
+      else if (statusEl) statusEl.hidden = true;
+    }
+
+    function addFiles(list) {
+      for (var i = 0; i < list.length; i++) selectedFiles.push(list[i]);
+      renderFiles();
+    }
+
+    if (fileInput && dropZone) {
+      fileInput.addEventListener("change", function () {
+        addFiles(fileInput.files);
+        fileInput.value = "";
+      });
+      ["dragover", "dragenter"].forEach(function (ev) {
+        dropZone.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dropZone.classList.add("is-drag");
+        });
+      });
+      ["dragleave", "drop"].forEach(function (ev) {
+        dropZone.addEventListener(ev, function (e) {
+          e.preventDefault();
+          dropZone.classList.remove("is-drag");
+        });
+      });
+      dropZone.addEventListener("drop", function (e) {
+        if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+      });
+    }
+
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var dict = DICT[current] || DICT.tr;
+      var d = dict();
       var data = new FormData(form);
+
+      if (endpoint) {
+        if (totalBytes() > MAX_TOTAL_BYTES) {
+          showStatus("form.tooBig", "err");
+          return;
+        }
+        data.delete("files");
+        selectedFiles.forEach(function (f) { data.append("files", f, f.name); });
+        showStatus("form.sending", "ok");
+        fetch(endpoint, { method: "POST", body: data, headers: { Accept: "application/json" } })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.status);
+            form.reset();
+            selectedFiles = [];
+            renderFiles();
+            showStatus("form.sent", "ok");
+          })
+          .catch(function () { showStatus("form.sendError", "err"); });
+        return;
+      }
+
       var body =
-        dict["form.name"] + ": " + (data.get("name") || "") + "\n" +
-        dict["form.email"] + ": " + (data.get("email") || "") + "\n" +
-        dict["form.country"] + ": " + (data.get("country") || "") + "\n" +
-        dict["form.doc"] + ": " + (data.get("doctype") || "") + "\n\n" +
+        d["form.name"] + ": " + (data.get("name") || "") + "\n" +
+        d["form.email"] + ": " + (data.get("email") || "") + "\n" +
+        d["form.country"] + ": " + (data.get("country") || "") + "\n" +
+        d["form.doc"] + ": " + (data.get("doctype") || "") + "\n\n" +
         (data.get("message") || "");
-      var subject = dict["form.subject"] + " — " + (data.get("name") || "");
+      if (selectedFiles.length) {
+        body += "\n\n" + d["form.files"] + ": " + selectedFiles.map(function (f) {
+          return f.name + " (" + fmtSize(f.size) + ")";
+        }).join(", ");
+      }
+      var subject = d["form.subject"] + " — " + (data.get("name") || "");
       window.location.href = "mailto:info@muhurtercume.com" +
         "?subject=" + encodeURIComponent(subject) +
         "&body=" + encodeURIComponent(body);
