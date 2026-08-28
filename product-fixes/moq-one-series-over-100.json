@@ -1,0 +1,487 @@
+[
+ {
+  "match": "blm-wh1jq040b139mai",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-600583tmvf5",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966tlvb3",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966tlvf1",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966tmvg7",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966tnvn4",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-612966tnvn4w",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-620973tkv72",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-641675tlvf9",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-662853tjw90",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-672410tllj4",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-674986tlvl8",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-676589",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-676589tlvg70901",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-681314tlvh4",
+  "expect": 1,
+  "moq": "8"
+ },
+ {
+  "match": "blc-681734tjw60",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-tmvf5",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-tnvg9",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "blc-twj90",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-8042699",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-80427521",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-80450048045013",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-8045006",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-80450158045005",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "bur-8049455",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s71lb0872",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s71lb0937",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74l0851",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0658",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0663",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0673",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0764",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0770",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0786",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0791",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0798",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0869",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0907",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0930",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0953",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0956",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0969",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0975",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0978",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb0988",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb1026",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb1063",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb1079",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb1095",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74lb707",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74mu0682",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74mu0683",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s74mu0686",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s79la0005",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dsq-s79la0021",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07cd-g8do0",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07cd-g8do4",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07cd-g8et4",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07cd-g8eu0",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07ld-g8dm8",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "dgj-gy07ld-g8do8",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-p01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-p02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-s01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-s02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-ts01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-ts02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-ts03",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "fnd-ts04",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-bmj05k30af",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-bmj07f30af",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-bmj0cq3y6v",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-bmj0hc3y7m",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs03",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs04",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs05",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vs06",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vst01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "gvy-vst02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-p01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-p02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-p03",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t01",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t02",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t03",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t04",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t05",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t06",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t07",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t08",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t09",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t10",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t11",
+  "expect": 1,
+  "moq": "10"
+ },
+ {
+  "match": "guc-t12",
+  "expect": 1,
+  "moq": "10"
+ }
+]
