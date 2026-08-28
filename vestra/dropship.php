@@ -113,22 +113,35 @@ require __DIR__ . '/inc/head.php';
       </select>
       <?php else: /* katalog geneli: elle kurulmus stok haritasi yok */ ?>
       <?php /* Renk ve beden, tipki teslimat adresi gibi, ORTAGIN kendi musterisi
-               icin doldurdugu alanlar. Ama ilanda zaten yazili olani ona SORMAK
+               icin doldurdugu alanlar. Ama ilanda zaten belli olani ona SORMAK
                gereksiz bir karar: tek renkli bir urunde "renk seciniz" demek,
-               secenegi olmayan bir secim; beden alaninda karton dagilimini
-               ("S×1 · M×3 · ...") gostermek ise secemeyecegi bir sey.
-               Kural: bilinen tek deger sorulmaz, gosterilir ve gizli alanla
-               gonderilir; birden fazlasi acilir liste olur; hicbiri
-               cozulemezse serbest metne dusulur. */ ?>
-      <?php $dsCols = vestra_colour_options($p); $dsSizes = vestra_size_options($p); ?>
+               secenegi olmayan bir secim.
+               Kural: TEK deger varsa alan HIC CIZILMIYOR -- ne etiket ne kutu,
+               yalnizca gizli alan; deger zaten baslikta yaziyor. Birden fazlasi
+               acilir liste olur. Hicbiri cozulemezse serbest metne dusulur. */ ?>
+      <?php
+        $dsCols  = vestra_colour_options($p);
+        $dsSizes = vestra_size_options($p);
+        $colOne  = count($dsCols)  === 1;
+        $sizeOne = count($dsSizes) === 1;
+      ?>
+      <?php if ($colOne): ?>
+      <input type="hidden" name="colour" value="<?= htmlspecialchars((string)$dsCols[0]) ?>">
+      <?php endif; ?>
+      <?php if ($sizeOne): ?>
+      <input type="hidden" name="size" value="<?= htmlspecialchars((string)$dsSizes[0]) ?>">
+      <?php endif; ?>
+      <?php if ($colOne || $sizeOne): ?>
+      <p class="hint" style="margin:0 0 10px"><?= t('This article ships as') ?>
+        <b><?= htmlspecialchars(implode(' · ', array_map(fn($v) => t((string)$v),
+              array_merge($colOne ? [$dsCols[0]] : [], $sizeOne ? [$dsSizes[0]] : [])))) ?></b>.</p>
+      <?php endif; ?>
+      <?php if (!$colOne || !$sizeOne): ?>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <?php if (!$colOne): ?>
         <div style="flex:1;min-width:140px">
           <label class="hint"><?= t('Colour') ?></label>
-          <?php if (count($dsCols) === 1): ?>
-          <input type="hidden" name="colour" value="<?= htmlspecialchars((string)$dsCols[0]) ?>">
-          <div style="padding:9px 0;font-weight:600"><?= htmlspecialchars(t((string)$dsCols[0])) ?>
-            <span class="hint" style="font-weight:400">· <?= t('only colour') ?></span></div>
-          <?php elseif ($dsCols): ?>
+          <?php if ($dsCols): ?>
           <select name="colour" required style="width:100%">
             <?php foreach ($dsCols as $c): ?><option value="<?= htmlspecialchars((string)$c) ?>"><?= htmlspecialchars(t((string)$c)) ?></option><?php endforeach; ?>
           </select>
@@ -136,12 +149,11 @@ require __DIR__ . '/inc/head.php';
           <input type="text" name="colour" required style="width:100%" placeholder="<?= htmlspecialchars(t('e.g. black')) ?>">
           <?php endif; ?>
         </div>
+        <?php endif; ?>
+        <?php if (!$sizeOne): ?>
         <div style="flex:1;min-width:140px">
           <label class="hint"><?= t('Size') ?></label>
-          <?php if (count($dsSizes) === 1): ?>
-          <input type="hidden" name="size" value="<?= htmlspecialchars((string)$dsSizes[0]) ?>">
-          <div style="padding:9px 0;font-weight:600"><?= htmlspecialchars(t((string)$dsSizes[0])) ?></div>
-          <?php elseif ($dsSizes): ?>
+          <?php if ($dsSizes): ?>
           <select name="size" required style="width:100%">
             <?php foreach ($dsSizes as $sz): ?><option value="<?= htmlspecialchars((string)$sz) ?>"><?= htmlspecialchars((string)$sz) ?></option><?php endforeach; ?>
           </select>
@@ -149,7 +161,9 @@ require __DIR__ . '/inc/head.php';
           <input type="text" name="size" required style="width:100%" placeholder="<?= htmlspecialchars(t('e.g. M')) ?>">
           <?php endif; ?>
         </div>
+        <?php endif; ?>
       </div>
+      <?php endif; ?>
       <p class="hint" style="margin:8px 0 0;font-size:12px">
         <?= t('Pick the colour and size your customer ordered. You enter their delivery address on the next step.') ?><br>
         <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?><br>

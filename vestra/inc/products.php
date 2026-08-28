@@ -991,19 +991,69 @@ function vestra_size_options(array $p): array {
     return count($out) > 1 ? $out : [];
 }
 
-/* Ilanin renkleri. 'colors' bos birakilmis ama renk bazli varyantlar girilmisse
-   renk oradan da okunabiliyor -- ayni bilgi iki alanda duruyor ve alicinin
-   hangisinin doldurulduguyla isi yok. */
+/* ── Ilanin renkleri ───────────────────────────────────────────────────────
+ *
+ * Dort kaynak, sirayla. Ilki dolu olan kazanir; hepsi birlestirilmez, cunku
+ * 'colors' alanini elle dolduran satici o listeyi BILEREK yazmistir ve ondan
+ * cikardigimiz tahminlerle karistirmak, olmayan bir rengi varmis gibi
+ * gostermek olur.
+ *
+ *   1. colors            — saticinin girdigi liste
+ *   2. variants[].color  — ayni bilgi, renk bazli varyantlarda
+ *   3. urun adi          — "Graphic T-Shirt White" gibi ilanlarda renk adin
+ *                          icinde duruyor; 344 ilanin cogunda colors bos ve
+ *                          "renk seciniz" diye bos bir kutu gostermek, zaten
+ *                          adinda yazan seyi alicidan istemek demekti
+ *   4. gorsel dosya adi  — "l1212-black.jpg". Ad renk vermediginde dosya adi
+ *                          veriyor ve tek renkli ilanlarda genelde tek dosya
+ *                          adi geciyor, yani tek renk cikiyor.
+ *
+ * Tahmin edilen renkler yalnizca PALETTEN secilir (vestra_colors()). Serbest
+ * bir kelime yakalamak "Vintage" ya da "Logo" gibi seyleri renk sanmak olurdu.
+ */
 function vestra_colour_options(array $p): array {
     $c = [];
     foreach ((array)($p['colors'] ?? []) as $x) {
         $x = trim((string)$x);
         if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
     }
-    if (!$c && !empty($p['variants']) && is_array($p['variants'])) {
+    if ($c) return $c;
+
+    if (!empty($p['variants']) && is_array($p['variants'])) {
         foreach ($p['variants'] as $v) {
             $x = trim((string)($v['color'] ?? ''));
             if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+        }
+        if ($c) return $c;
+    }
+
+    /* Palet, UZUN adlar once: "Light Blue" once denenmezse "Blue" onu yer ve
+       urun yanlis renkle listelenir. */
+    $pal = array_keys(vestra_colors());
+    usort($pal, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+
+    $scan = function (string $hay) use ($pal): array {
+        $hay = ' ' . mb_strtolower(str_replace(['-', '_', '.', '/'], ' ', $hay)) . ' ';
+        $found = [];
+        foreach ($pal as $name) {
+            $needle = ' ' . mb_strtolower($name) . ' ';
+            if (mb_strpos($hay, $needle) === false) continue;
+            $found[] = $name;
+            /* Bulunan adi metinden sil: "Light Blue" eslesince geriye kalan
+               metinde "Blue" ikinci kez sayilmasin. */
+            $hay = str_replace($needle, ' ', $hay);
+        }
+        return $found;
+    };
+
+    $c = $scan((string)($p['name'] ?? ''));
+    if ($c) return $c;
+
+    $imgs = (array)($p['images'] ?? []);
+    if (!$imgs && !empty($p['image'])) $imgs = [(string)$p['image']];
+    foreach ($imgs as $im) {
+        foreach ($scan(basename((string)$im)) as $x) {
+            if (!in_array($x, $c, true)) $c[] = $x;
         }
     }
     return $c;

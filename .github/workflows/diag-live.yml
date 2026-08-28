@@ -2520,6 +2520,17 @@ jobs:
             }
             printf("  renk : sorulmaz(1) %d | acilir liste %d | serbest metin %d\n", $cc['1'], $cc['n'], $cc['0']);
             printf("  beden: sorulmaz(1) %d | acilir liste %d | serbest metin %d\n", $sc['1'], $sc['n'], $sc['0']);
+            /* Rengi hala cozulemeyen ilanlar: adinda da dosya adinda da renk yok.
+               Uydurmuyoruz, ama kacini kacirdigimizi gormek gerekiyor. */
+            $noCol = [];
+            foreach ($all as $p) {
+              if (!vestra_dropship_of($p)) continue;
+              if (vestra_colour_options($p)) continue;
+              $noCol[] = $p;
+            }
+            foreach (array_slice($noCol, 0, 8) as $p)
+              printf("     renksiz: %-12s %s\n", (string)($p['brand'] ?? ''), mb_substr((string)($p['name'] ?? ''), 0, 46));
+            if (count($noCol) > 8) printf("     ... %d tane daha\n", count($noCol) - 8);
             foreach ([['tek renkli ornek', $sample1], ['bedeni cozulemeyen ornek', $sampleNo]] as [$lbl, $ex]) {
               if (!$ex) { printf("  %-26s: yok\n", $lbl); continue; }
               [$p, $co, $so] = $ex;
