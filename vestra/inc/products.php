@@ -22,6 +22,20 @@ if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038)
    Sinir hem sepette hem order.php'de sinaniyor: sepetteki kontrol bir gorunum
    kolayligi, gecerli olan sunucudaki. */
 if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3500.00);
+/* Nereden sevk edildigi. Alicinin sormadan once bilmek istedigi sey bu: gumruk
+   cikar mi, kac gunde gelir, iade nereye gider. Su an TEK bir cevap var (butun
+   sevkiyat AB icinden cikiyor) ama listing basina bir "ship_from" alani YOK --
+   yani bunu her sablona ayri ayri yazmak, ilerde bir satici AB disindan sevk
+   etmeye basladiginda dort ayri yerde yanlis ibare birakmak demekti. Tek
+   fonksiyon: o gun kosul buraya girer, sayfalar oldugu gibi kalir. */
+function vestra_ships_from(array $p = []): string { return 'EU'; }
+/* t() ile korumali cagriliyor: products.php'yi i18n olmadan yukleyen betikler var
+   (inspect/set-product gibi bakim isleri) ve orada t() tanimli degil. */
+function vestra_ships_from_label(array $p = []): string {
+    $z  = vestra_ships_from($p);
+    $tr = function(string $s){ return function_exists('t') ? t($s) : $s; };
+    return $z === 'EU' ? $tr('Ships from EU') : sprintf($tr('Ships from %s'), $z);
+}
 /* Seller commission — a SEPARATE mechanism from the fees above: a % of each paid order's
    goods value, charged directly to the seller's card on file via Stripe (inc/commission.php)
    once the order is marked paid. Never touches the buyer-facing cart/invoice total. This

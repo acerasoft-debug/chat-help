@@ -403,6 +403,8 @@ return array (
   'Message to seller' => 'Nachricht an Verkäufer',
   'Messages' => 'Nachrichten',
   'Min order' => 'Mindestbestellung',
+  'Ships from EU' => 'Versand aus der EU',
+  'Ships from %s' => 'Versand aus %s',
   'Min order (MOQ)' => 'Mindestbestellmenge (MOQ)',
   'Min. order (MOQ)' => 'Mindestbestellmenge (MOQ)',
   'Minimum colours per order' => 'Mindestanzahl Farben pro Bestellung',

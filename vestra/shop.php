@@ -413,7 +413,7 @@ footer a{color:#d8bd86}
               <span class="sbrand"><?= htmlspecialchars($p['brand']??'') ?></span>
               <span class="stitle"><?= htmlspecialchars($p['name']??'') ?></span>
               <span class="smeta"><?= htmlspecialchars($p['cat']??'') ?> &middot; SKU <?= htmlspecialchars($p['sku']??'') ?></span>
-              <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?></span>
+              <span class="smeta">MOQ <b><?= $p['moq']??'?' ?></b> <?= htmlspecialchars($p['unit']??'pc') ?> &middot; 🇪🇺 <?= htmlspecialchars(vestra_ships_from_label($p)) ?></span>
               <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
               <div class="sprice">
                 <?php if(!$PRICES): ?>
