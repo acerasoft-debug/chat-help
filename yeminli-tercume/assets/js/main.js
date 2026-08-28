@@ -20,7 +20,8 @@
     current = lang;
 
     document.documentElement.lang = lang;
-    if (dict["meta.title"]) document.title = dict["meta.title"];
+    var titleKey = document.documentElement.getAttribute("data-title-key") || "meta.title";
+    if (dict[titleKey]) document.title = dict[titleKey];
 
     document.querySelectorAll("[data-i18n]").forEach(function (el) {
       var key = el.getAttribute("data-i18n");
@@ -82,6 +83,9 @@
       });
     }, { rootMargin: "0px 0px -8% 0px" });
     sections.forEach(function (el) {
+      /* elements already on screen stay visible — only below-fold content animates in */
+      var rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight && rect.bottom > 0) return;
       el.classList.add("reveal");
       io.observe(el);
     });
