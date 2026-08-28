@@ -19,11 +19,21 @@ noter onaylı yeminli tercüme hizmeti sunan premium tanıtım sitesi.
 ## Dosya yapısı
 
 ```
-index.html            Tek sayfalık site
-assets/css/style.css  Tasarım (renk/tipografi token'ları en üstte)
-assets/js/i18n.js     6 dilin tüm metinleri (çeviri sözlükleri)
-assets/js/main.js     Dil değiştirme, menü, form, animasyonlar
+index.html                  Ana sayfa (yeminli tercüme)
+sirket-kurulumu/index.html  Şirket kurulumu sayfası (DE, UK, FR, ABD)
+404.html                    Bulunamadı sayfası (GitHub Pages otomatik kullanır)
+robots.txt                  Arama motoru izinleri
+assets/css/style.css        Tasarım (renk/tipografi token'ları en üstte)
+assets/js/i18n.js           6 dilin tüm metinleri (çeviri sözlükleri)
+assets/js/main.js           Dil değiştirme, menü, form, animasyonlar
+assets/favicon.svg          Sekme simgesi (mühür)
+assets/og.png               Sosyal medya paylaşım görseli (1200×630)
 ```
+
+> **Alan adı aldığınızda:** `index.html` ve `sirket-kurulumu/index.html`
+> içindeki `og:image` adreslerini tam URL yapın
+> (`https://alanadiniz.com/assets/og.png`) — WhatsApp/Facebook paylaşım
+> önizlemeleri ancak tam adresle çalışır.
 
 ## Yayına almadan önce doldurulacak yer tutucular
 
