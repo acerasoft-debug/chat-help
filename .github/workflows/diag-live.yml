@@ -2487,6 +2487,30 @@ jobs:
                      implode(",", array_slice(vestra_dropship_zone_countries($z), 0, 4))
                      . (count(vestra_dropship_zone_countries($z)) > 4 ? "..." : ""));
 
+            head("3b. RENK / BEDEN SECENEKLERI (canli veriden)");
+            /* Amac: dropship formu gercek katalogda ne gosteriyor? Sifir secenek
+               = serbest metin, yani duzeltme o urune degmemis demektir. */
+            $cc = ['0' => 0, '1' => 0, 'n' => 0]; $sc = ['0' => 0, '1' => 0, 'n' => 0];
+            $sample1 = null; $sampleNo = null;
+            foreach ($all as $p) {
+              if (!vestra_dropship_of($p)) continue;
+              $co = vestra_colour_options($p); $so = vestra_size_options($p);
+              $cc[count($co) === 0 ? '0' : (count($co) === 1 ? '1' : 'n')]++;
+              $sc[count($so) === 0 ? '0' : (count($so) === 1 ? '1' : 'n')]++;
+              if ($sample1 === null && count($co) === 1) $sample1 = [$p, $co, $so];
+              if ($sampleNo === null && count($so) === 0) $sampleNo = [$p, $co, $so];
+            }
+            printf("  renk : sorulmaz(1) %d | acilir liste %d | serbest metin %d\n", $cc['1'], $cc['n'], $cc['0']);
+            printf("  beden: sorulmaz(1) %d | acilir liste %d | serbest metin %d\n", $sc['1'], $sc['n'], $sc['0']);
+            foreach ([['tek renkli ornek', $sample1], ['bedeni cozulemeyen ornek', $sampleNo]] as [$lbl, $ex]) {
+              if (!$ex) { printf("  %-26s: yok\n", $lbl); continue; }
+              [$p, $co, $so] = $ex;
+              printf("  %-26s: %s / %s\n", $lbl, (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
+              printf("      sizes alani : %s\n", (string)($p['sizes'] ?? '(bos)'));
+              printf("      renk        : %s\n", $co ? implode(", ", $co) : '(serbest metin)');
+              printf("      beden       : %s\n", $so ? implode(", ", $so) : '(serbest metin)');
+            }
+
             head("4. STRIPE YAPILANDIRILMIS MI");
             $ok = function_exists('stripe_available') ? stripe_available() : false;
             echo "  stripe_available(): " . ($ok ? "EVET" : "HAYIR -- odeme oturumu acilamaz") . "\n";

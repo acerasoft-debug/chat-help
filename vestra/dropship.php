@@ -100,14 +100,26 @@ require __DIR__ . '/inc/head.php';
         <option value="<?= htmlspecialchars($dcolour . '|' . $dsize) ?>"<?= $dleft < 1 ? ' disabled' : '' ?>><?= htmlspecialchars($dcolour . ' — ' . $dsize) ?> — <?= $dleft > 0 ? sprintf(t('%d left'), $dleft) : t('out of stock') ?></option>
         <?php endforeach; endforeach; ?>
       </select>
-      <?php else: /* katalog geneli: secilecek harita yok, alici yaziyor */ ?>
+      <?php else: /* katalog geneli: elle kurulmus stok haritasi yok */ ?>
+      <?php /* Renk ve beden, tipki teslimat adresi gibi, ORTAGIN kendi musterisi
+               icin doldurdugu alanlar. Ama ilanda zaten yazili olani ona SORMAK
+               gereksiz bir karar: tek renkli bir urunde "renk seciniz" demek,
+               secenegi olmayan bir secim; beden alaninda karton dagilimini
+               ("S×1 · M×3 · ...") gostermek ise secemeyecegi bir sey.
+               Kural: bilinen tek deger sorulmaz, gosterilir ve gizli alanla
+               gonderilir; birden fazlasi acilir liste olur; hicbiri
+               cozulemezse serbest metne dusulur. */ ?>
+      <?php $dsCols = vestra_colour_options($p); $dsSizes = vestra_size_options($p); ?>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div style="flex:1;min-width:140px">
           <label class="hint"><?= t('Colour') ?></label>
-          <?php $cols = array_values(array_filter((array)($p['colors'] ?? []))); ?>
-          <?php if ($cols): ?>
+          <?php if (count($dsCols) === 1): ?>
+          <input type="hidden" name="colour" value="<?= htmlspecialchars((string)$dsCols[0]) ?>">
+          <div style="padding:9px 0;font-weight:600"><?= htmlspecialchars(t((string)$dsCols[0])) ?>
+            <span class="hint" style="font-weight:400">· <?= t('only colour') ?></span></div>
+          <?php elseif ($dsCols): ?>
           <select name="colour" required style="width:100%">
-            <?php foreach ($cols as $c): ?><option value="<?= htmlspecialchars((string)$c) ?>"><?= htmlspecialchars((string)$c) ?></option><?php endforeach; ?>
+            <?php foreach ($dsCols as $c): ?><option value="<?= htmlspecialchars((string)$c) ?>"><?= htmlspecialchars(t((string)$c)) ?></option><?php endforeach; ?>
           </select>
           <?php else: ?>
           <input type="text" name="colour" required style="width:100%" placeholder="<?= htmlspecialchars(t('e.g. black')) ?>">
@@ -115,17 +127,20 @@ require __DIR__ . '/inc/head.php';
         </div>
         <div style="flex:1;min-width:140px">
           <label class="hint"><?= t('Size') ?></label>
-          <input type="text" name="size" required style="width:100%"
-                 placeholder="<?= htmlspecialchars(vestra_sizes_label((string)($p['sizes'] ?? '')) ?: t('e.g. M')) ?>">
+          <?php if (count($dsSizes) === 1): ?>
+          <input type="hidden" name="size" value="<?= htmlspecialchars((string)$dsSizes[0]) ?>">
+          <div style="padding:9px 0;font-weight:600"><?= htmlspecialchars(t((string)$dsSizes[0])) ?></div>
+          <?php elseif ($dsSizes): ?>
+          <select name="size" required style="width:100%">
+            <?php foreach ($dsSizes as $sz): ?><option value="<?= htmlspecialchars((string)$sz) ?>"><?= htmlspecialchars((string)$sz) ?></option><?php endforeach; ?>
+          </select>
+          <?php else: ?>
+          <input type="text" name="size" required style="width:100%" placeholder="<?= htmlspecialchars(t('e.g. M')) ?>">
+          <?php endif; ?>
         </div>
       </div>
-      <?php /* Beden serbest metin, cunku katalogda beden bir LISTE degil, paket
-               kuralini anlatan bir cumle ("Cartons of 10 · sizes S-XXL"). Ondan
-               makineyle secenek uretmek, olmayan bedeni varmis gibi gostermek
-               olurdu. Renk ve beden, tipki teslimat adresi gibi, ORTAGIN kendi
-               musterisi icin girdigi alanlar. */ ?>
       <p class="hint" style="margin:8px 0 0;font-size:12px">
-        <?= t('Enter the colour and size your customer ordered. You enter their delivery address on the next step.') ?><br>
+        <?= t('Pick the colour and size your customer ordered. You enter their delivery address on the next step.') ?><br>
         <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?><br>
         <?php /* Gumruk satiri odeme ONCESINDE ve gorunur yerde duruyor. Sartlara
                  yazmak yeterli degil: paketi kapida reddettiren sey, alicinin

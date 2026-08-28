@@ -906,3 +906,97 @@ function vestra_sizes_label(string $sizes): string {
         $sizes
     ) ?? $sizes;
 }
+
+/* ── Tek parca satisi icin secilebilir beden / renk ────────────────────────
+   'sizes' alani bir liste DEGIL, paket kuralini anlatan bir cumle:
+   "S×1 · M×3 · L×3 · XL×2 · XXL×1 · 10", "Cartons of 10 · sizes S–XXL",
+   "Lots of 8 · sizes 3–8 · min 80 pc". Toptan sayfasinda dogru olan bu cumle,
+   dropship'te yanlis: orada ortak kendi musterisi icin TEK parca aliyor, karton
+   dagilimini degil bedeni seciyor -- "S×1 · M×3 · ..." yazan bir alan ona
+   secemeyecegi bir sey gosteriyor.
+   Asagidaki ayristirici o cumleden yalnizca beden ADLARINI cikariyor. Cikaramazsa
+   BOS donuyor ve cagiran taraf serbest metne dusuyor: uydurulmus bir liste,
+   olmayan bedeni varmis gibi gostermek olurdu. */
+
+const VESTRA_SIZE_LADDER = ['XXS','XS','S','M','L','XL','XXL','XXXL','XXXXL'];
+
+/* "2xl" → "XXL", "3XL" → "XXXL", "s" → "S"; sayisal bedenler oldugu gibi kalir. */
+function vestra_size_norm(string $tok): string {
+    $t = strtoupper(trim($tok));
+    if ($t === '') return '';
+    if (preg_match('~^([2-5])X{1,2}L$~', $t, $m)) $t = str_repeat('X', (int)$m[1]).'L';
+    if (in_array($t, VESTRA_SIZE_LADDER, true)) return $t;
+    if (preg_match('~^\d{1,3}([.,]5)?$~', $t)) return str_replace(',', '.', $t);
+    return '';
+}
+
+function vestra_size_options(array $p): array {
+    $s = trim((string)($p['sizes'] ?? ''));
+    if ($s === '') return [];
+    /* "os" disindakiler govde eslesmesi: /u kipinde \b harfli ekleri de kelime
+       sayiyor, "Einheitsgröße" sonuna sinir koymak eslesmeyi kacirtiyordu. */
+    if (preg_match('~(one\s?size|einheitsgr|tek\s?beden|taille\s?unique|\bos\b)~iu', $s)) return ['One size'];
+
+    $push = function (array &$out, string $tok): void {
+        $n = vestra_size_norm($tok);
+        if ($n !== '' && !in_array($n, $out, true)) $out[] = $n;
+    };
+
+    /* 1) Acik dagilim -- "S×1 · M×3 · XL×2". Carpimdan ONCEKI ad bedendir; sonraki
+          sayi karton adedi ve tek parca alan ortagi ilgilendirmiyor. */
+    $out = [];
+    if (preg_match_all('~([A-Za-z0-9]{1,5})\s*[×xX*]\s*\d+~u', $s, $m)) {
+        foreach ($m[1] as $tok) $push($out, $tok);
+        if (count($out) > 1) return $out;
+    }
+
+    /* 2) Aralik -- "sizes S–XXL", "sizes 3–8". Merdiveni iki ucu arasinda ac.
+          Tireli her ikili aday: "T-shirt sizes S-XXL" gibi bir metinde ilk tire
+          bedene ait degil, o yuzden ilk COZULEN ikiliye kadar bakiliyor. */
+    if (preg_match_all('~([A-Za-z]{1,5}|\d{1,3})\s*[-–—]\s*([A-Za-z]{1,5}|\d{1,3})~u', $s, $mm, PREG_SET_ORDER)) {
+        foreach ($mm as $m) {
+            $a = vestra_size_norm($m[1]);
+            $b = vestra_size_norm($m[2]);
+            if ($a === '' || $b === '') continue;
+            $ia = array_search($a, VESTRA_SIZE_LADDER, true);
+            $ib = array_search($b, VESTRA_SIZE_LADDER, true);
+            if ($ia !== false && $ib !== false && $ia <= $ib) {
+                return array_slice(VESTRA_SIZE_LADDER, $ia, $ib - $ia + 1);
+            }
+            /* Sayisal aralik (ayakkabi/cocuk). Ust sinir, "1–100" gibi bir yazim
+               hatasinin acilir listeyi doldurmasini engelliyor. */
+            if (is_numeric($a) && is_numeric($b) && $a <= $b && ($b - $a) <= 23) {
+                $r = [];
+                for ($v = (float)$a; $v <= (float)$b; $v++) $r[] = (string)(int)$v;
+                if (count($r) > 1) return $r;
+            }
+        }
+    }
+
+    /* 3) Duz liste -- "S · M · L · XL" ya da "S, M, L". Paketleme kelimeleri
+          ("Cartons of 10") beden gibi gorunmedigi icin kendiliginden eleniyor. */
+    $out = [];
+    foreach (preg_split('~[·,;/|]+~u', $s) ?: [] as $part) {
+        foreach (preg_split('~\s+~u', trim($part)) ?: [] as $tok) $push($out, $tok);
+    }
+    /* Tek bir sayi ("Cartons of 10") beden degil, adet. Iki ve uzeri gercek bir liste. */
+    return count($out) > 1 ? $out : [];
+}
+
+/* Ilanin renkleri. 'colors' bos birakilmis ama renk bazli varyantlar girilmisse
+   renk oradan da okunabiliyor -- ayni bilgi iki alanda duruyor ve alicinin
+   hangisinin doldurulduguyla isi yok. */
+function vestra_colour_options(array $p): array {
+    $c = [];
+    foreach ((array)($p['colors'] ?? []) as $x) {
+        $x = trim((string)$x);
+        if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+    }
+    if (!$c && !empty($p['variants']) && is_array($p['variants'])) {
+        foreach ($p['variants'] as $v) {
+            $x = trim((string)($v['color'] ?? ''));
+            if ($x !== '' && !in_array($x, $c, true)) $c[] = $x;
+        }
+    }
+    return $c;
+}
