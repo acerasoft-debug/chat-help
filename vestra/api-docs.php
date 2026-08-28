@@ -148,7 +148,9 @@ require __DIR__.'/inc/head.php';
      endpoint, <code>/api/dropship</code>, with its own key. It is open to verified trade
      partners buying <b>for their own customers</b>: you complete checkout and enter your
      customer's delivery address, and no contract of sale arises between VESTRA and that
-     end customer.</p>
+     end customer. The commercial side of it — pricing rule, exclusions, availability,
+     duties and photograph rights — is set out on the
+     <a class="acc" href="/dropshipping">dropshipping page</a>.</p>
 
   <h3>GET /api/dropship?a=list</h3>
   <p>Every article available for single-piece purchase, with its price. Ralph Lauren,

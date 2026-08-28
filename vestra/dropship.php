@@ -43,7 +43,11 @@ require __DIR__ . '/inc/head.php';
 ?>
 <div class="wrap" style="max-width:720px;margin:40px auto">
   <h1 style="margin-bottom:6px">📮 <?= t('Dropshipping') ?></h1>
-  <p class="hint" style="margin-bottom:24px"><?= t('Buy a single piece, no minimum order — pay by card, we ship it out.') ?></p>
+  <?php /* Kosullar (fiyat kurali, bolgeler, sureler, gumruk, stok, fotograf)
+           anlatim sayfasinda ve orasi HERKESE ACIK. Buraya kopyalamak, iki
+           yerde bakim gerektiren tek bir metin demek olurdu. */ ?>
+  <p class="hint" style="margin-bottom:24px"><?= t('Buy a single piece, no minimum order — pay by card, we ship it out.') ?>
+    <a class="acc" href="/dropshipping"><?= t('How it works, prices and delivery times') ?> →</a></p>
 
   <?php if (!$dsAllowed): ?>
   <div class="order-box">

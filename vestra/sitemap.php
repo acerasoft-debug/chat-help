@@ -13,6 +13,12 @@ $urls = [
   ['/journal', 'daily', '0.7'],
   ['/help', 'monthly', '0.5'],
   ['/faq', 'monthly', '0.5'],
+  /* Dropshipping'i ARAYAN kisi genelde henuz musterimiz degil ve "dropshipping
+     supplier Europe" diye ariyor; anlatim sayfasi o aramanin inebilecegi tek
+     sayfa. Satin alma sayfasi (/dropship) girissiz bos gorunecegi icin burada
+     olmasi gereken bu. */
+  ['/dropshipping', 'monthly', '0.7'],
+  ['/api-docs', 'monthly', '0.5'],
   /* /register is deliberately absent: robots.txt disallows it along with the rest of
      the account pages, and listing a blocked URL here only invites the "indexed,
      though blocked" result with no snippet. /seller-invite takes its place — it is
