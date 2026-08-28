@@ -115,20 +115,29 @@ function vestra_dropship_excluded_terms(): array {
  * 'JP' kodlari da aynen gecerli kaliyor.
  */
 function vestra_dropship_zones(): array {
+    /* Ucuncu deger IS GUNU olarak gonderi suresi. Ucretle AYNI yerde duruyor,
+       cunku ikisi de "bu varise ne kadara ve ne kadar surede" sorusunun parcasi;
+       ayri bir tabloya koymak, yeni bir bolge eklendiginde birinin guncellenip
+       digerinin unutulmasi demekti. */
     return [
-        'EU' => ['EU delivery',                  16.00],
-        'GB' => ['United Kingdom delivery',      30.00],
-        'US' => ['United States delivery',       30.00],
-        'JP' => ['Japan delivery',               30.00],
-        'SG' => ['Singapore delivery',           30.00],
+        'EU' => ['EU delivery',                   16.00, '5–7'],
+        'GB' => ['United Kingdom delivery',       30.00, '5–10'],
+        'US' => ['United States delivery',        30.00, '5–10'],
+        'JP' => ['Japan delivery',                30.00, '7–14'],
+        'SG' => ['Singapore delivery',            30.00, '7–14'],
         /* "Dubai" bir sehir; Stripe ulke istiyor, o yuzden BAE. */
-        'AE' => ['United Arab Emirates delivery', 30.00],
-        'SA' => ['Saudi Arabia delivery',        30.00],
-        'QA' => ['Qatar delivery',               30.00],
-        'AU' => ['Australia delivery',           35.00],
-        'CA' => ['Canada delivery',              35.00],
-        'KR' => ['South Korea delivery',         35.00],
+        'AE' => ['United Arab Emirates delivery', 30.00, '5–8'],
+        'SA' => ['Saudi Arabia delivery',         30.00, '5–8'],
+        'QA' => ['Qatar delivery',                30.00, '5–8'],
+        'AU' => ['Australia delivery',            35.00, '7–14'],
+        'CA' => ['Canada delivery',               35.00, '5–10'],
+        'KR' => ['South Korea delivery',          35.00, '7–14'],
     ];
+}
+
+/** Bolgenin gonderi suresi, is gunu araligi olarak ("5–7"). */
+function vestra_dropship_transit(string $zone): string {
+    return (string)(vestra_dropship_zones()[vestra_dropship_zone($zone)][2] ?? '');
 }
 
 /** Stripe'in adres kabul edecegi butun ulkeler: AB 27 + tekil bolgeler. */
@@ -477,6 +486,14 @@ function dropship_fulfill(array $rec): void {
 
     $itemLine = "{$rec['brand']} {$rec['name']} — {$rec['colour']} / {$rec['size']} × {$rec['qty']}";
 
+    /* "Yakinda gonderiyoruz" bir taahhut degil, bir bosluk: siparisi veren ortak
+       kendi musterisine bir tarih soylemek zorunda ve o tarihi bir yerden almasi
+       gerekiyor. Bolgenin suresi zaten tabloda; onaya da yaziliyor. */
+    $zoneDays = vestra_dropship_transit((string)($rec['ship_zone'] ?? 'EU'));
+    $etaLine  = $zoneDays !== ''
+        ? "Delivery: {$zoneDays} working days from dispatch, excluding time in customs.\n\n"
+        : "We'll ship it out shortly.\n\n";
+
     if (!empty($rec['customer_email'])) {
         vestra_send_mail($rec['customer_email'], "VESTRA — order confirmed ({$ref})",
             "Hello " . ($rec['customer_name'] ?: 'there') . ",\n\n" .
@@ -484,7 +501,7 @@ function dropship_fulfill(array $rec): void {
             "Order ref: {$ref}\n" .
             "Item: {$itemLine}\n" .
             "Amount paid: €{$amount}\n\n" .
-            "We'll ship it out shortly.\n\n" .
+            $etaLine .
             "— VESTRA · vestrasales.com");
     }
 

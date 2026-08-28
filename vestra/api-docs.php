@@ -160,7 +160,9 @@ require __DIR__.'/inc/head.php';
      <code>false</code> for catalogue articles, for the same reason the catalogue feed
      reports no stock. Also returns <code>colours</code> and <code>sizes</code>: the values
      the listing knows, for you to offer your customer. Either may be empty, which means
-     the listing does not state them — not that none exist.</p>
+     the listing does not state them — not that none exist. <code>shipping</code> is keyed by
+     zone and carries <code>label</code>, <code>fee</code> and
+     <code>transit_working_days</code> for each.</p>
 
   <h3>POST /api/dropship?a=order</h3>
   <pre><code>{ "id": "dsq-101211", "colour": "Black", "size": "M", "qty": 1,
@@ -180,19 +182,21 @@ require __DIR__.'/inc/head.php';
   <p>The dropship price is the wholesale price of the smallest quantity tier <b>plus 20%</b>.
      Shipping is charged once per order by zone:</p>
   <div class="apiscroll"><table>
-    <tr><th>Zone</th><th>Rate</th><th>Delivers to</th></tr>
-    <tr><td>EU</td><td>€16.00</td><td>the 27 EU member states</td></tr>
-    <tr><td>GB</td><td>€30.00</td><td>United Kingdom</td></tr>
-    <tr><td>US</td><td>€30.00</td><td>United States</td></tr>
-    <tr><td>JP</td><td>€30.00</td><td>Japan</td></tr>
-    <tr><td>SG</td><td>€30.00</td><td>Singapore</td></tr>
-    <tr><td>AE</td><td>€30.00</td><td>United Arab Emirates</td></tr>
-    <tr><td>SA</td><td>€30.00</td><td>Saudi Arabia</td></tr>
-    <tr><td>QA</td><td>€30.00</td><td>Qatar</td></tr>
-    <tr><td>AU</td><td>€35.00</td><td>Australia</td></tr>
-    <tr><td>CA</td><td>€35.00</td><td>Canada</td></tr>
-    <tr><td>KR</td><td>€35.00</td><td>South Korea</td></tr>
+    <tr><th>Zone</th><th>Rate</th><th>Delivers to</th><th>Transit</th></tr>
+    <tr><td>EU</td><td>€16.00</td><td>the 27 EU member states</td><td>5–7 working days</td></tr>
+    <tr><td>GB</td><td>€30.00</td><td>United Kingdom</td><td>5–10 working days</td></tr>
+    <tr><td>US</td><td>€30.00</td><td>United States</td><td>5–10 working days</td></tr>
+    <tr><td>JP</td><td>€30.00</td><td>Japan</td><td>7–14 working days</td></tr>
+    <tr><td>SG</td><td>€30.00</td><td>Singapore</td><td>7–14 working days</td></tr>
+    <tr><td>AE</td><td>€30.00</td><td>United Arab Emirates</td><td>5–8 working days</td></tr>
+    <tr><td>SA</td><td>€30.00</td><td>Saudi Arabia</td><td>5–8 working days</td></tr>
+    <tr><td>QA</td><td>€30.00</td><td>Qatar</td><td>5–8 working days</td></tr>
+    <tr><td>AU</td><td>€35.00</td><td>Australia</td><td>7–14 working days</td></tr>
+    <tr><td>CA</td><td>€35.00</td><td>Canada</td><td>5–10 working days</td></tr>
+    <tr><td>KR</td><td>€35.00</td><td>South Korea</td><td>7–14 working days</td></tr>
   </table></div>
+  <p>Transit is working days from dispatch, not calendar days, and does not include
+     the time customs holds a consignment at destination.</p>
   <p>Outside the EU the zone code <i>is</i> the destination's ISO-2 country code, so
      passing <code>country</code> is enough and <code>zone</code> is the same string.
      A country not in this table falls back to EU, whose session will then refuse

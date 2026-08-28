@@ -2500,8 +2500,8 @@ jobs:
                    $ds['base'] ?? 0, $ds['price'], (($ds['base'] ?? 0) > 0 ? ($ds['price'] / $ds['base'] - 1) * 100 : 0));
 
             head("3. KARGO BOLGELERI");
-            foreach (vestra_dropship_zones() as $z => [$l, $f])
-              printf("  %-3s %-24s %6.2f EUR   ulke: %s\n", $z, $l, $f,
+            foreach (vestra_dropship_zones() as $z => [$l, $f, $d])
+              printf("  %-3s %-30s %6.2f EUR  %-5s is gunu   ulke: %s\n", $z, $l, $f, $d,
                      implode(",", array_slice(vestra_dropship_zone_countries($z), 0, 4))
                      . (count(vestra_dropship_zone_countries($z)) > 4 ? "..." : ""));
 

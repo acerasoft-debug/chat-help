@@ -24,9 +24,9 @@
  * EU 16 EUR; GB, US, JP, SG, AE, SA, QA 30 EUR; AU, CA, KR 35 EUR. Pass "zone"
  * (the destination's ISO-2 code, or EU) or "country" (ISO-2, mapped for you).
  * The session then accepts only that zone's countries, so the rate charged and
- * the address entered cannot diverge. a=stock returns the live table rather
- * than these figures, so read it from there. Duties and import taxes at
- * destination are not included.
+ * the address entered cannot diverge. a=stock returns the live table — rate and
+ * transit time per zone — so read it from there rather than from this comment.
+ * Duties and import taxes at destination are not included.
  *
  * STOCK: per-unit stock is not tracked for catalogue articles; a=stock reports
  * stock_tracked=false. Availability is confirmed with the seller after the
@@ -55,8 +55,13 @@ if ($action === 'stock' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     if (!$p || $ds === null) {
         api_json(['ok' => false, 'error' => 'not_dropship_enabled'], 404);
     }
+    /* Bolge basina ucret + sure birlikte. Once yalnizca ucret donuyordu; sure
+       ayri bir alana konsaydi ortagin musterisine soyleyecegi tarih ile bizim
+       tablomuz iki ayri yerden okunurdu. */
     $ship = [];
-    foreach (vestra_dropship_zones() as $code => [$label, $fee]) $ship[$code] = $fee;
+    foreach (vestra_dropship_zones() as $code => [$label, $fee, $days]) {
+        $ship[$code] = ['label' => $label, 'fee' => $fee, 'transit_working_days' => $days];
+    }
     api_json([
         'ok'       => true,
         'id'       => $p['id'],

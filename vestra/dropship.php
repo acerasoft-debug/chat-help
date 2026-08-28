@@ -86,7 +86,8 @@ require __DIR__ . '/inc/head.php';
                 foreach (vestra_dropship_zones() as $zc => [$zlabel, $zfee]) $byFee[(string)$zfee][] = $zc;
                 $zz = [];
                 foreach ($byFee as $zfee => $codes) $zz[] = implode('/', $codes).' '.vestra_money((float)$zfee);
-                echo htmlspecialchars(implode(' · ', $zz)); ?></div>
+                echo htmlspecialchars(implode(' · ', $zz)); ?>
+          <br><?= htmlspecialchars(t('Delivery times are shown next to each region below.')) ?></div>
       </div>
     </div>
 
@@ -160,9 +161,13 @@ require __DIR__ . '/inc/head.php';
       <?php /* Bolge burada seciliyor, odeme sayfasinda degil: Stripe kargo
                secenegini adrese gore kisitlamiyor, ucunu birden koyarsak
                Tokyo'ya giden siparis Avrupa ucretiyle odenebiliyor. */ ?>
+      <?php /* Sure secenegin ICINDE: alici bolgeyi secerken "ne kadar surer"
+               sorusunu da soruyor, cevabi baska bir satirda aramak zorunda
+               kalmasin. Is gunu oldugu acikca yaziliyor -- "7-14 gun" okuyan
+               biri musterisine takvim gunu sozu verir. */ ?>
       <select name="zone" required style="width:100%">
-        <?php foreach (vestra_dropship_zones() as $zc => [$zl, $zf]): ?>
-        <option value="<?= htmlspecialchars($zc) ?>"><?= htmlspecialchars(t($zl)) ?> — <?= vestra_money((float)$zf) ?></option>
+        <?php foreach (vestra_dropship_zones() as $zc => [$zl, $zf, $zd]): ?>
+        <option value="<?= htmlspecialchars($zc) ?>"><?= htmlspecialchars(t($zl)) ?> — <?= vestra_money((float)$zf) ?> · <?= htmlspecialchars(sprintf(t('%s working days'), $zd)) ?></option>
         <?php endforeach; ?>
       </select>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
