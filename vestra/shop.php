@@ -49,14 +49,19 @@ foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
    alindi ("biraz asagiya"), cunku dropship akisi (Stripe, stok, siparis) hala o
    urune bagli ve gorunurlugunu tamamen kaybetmesi satisi dusurur. */
 $leadBrands = ['GUCCI', 'GIVENCHY', 'LACOSTE', 'BALMAIN', 'DSQUARED2'];
-/* Satici adiyla eslesiyor, seller_uid ile degil: ayni firmanin ikinci bir hesap
-   acmasi kimlikleri degistirir, adi degistirmez -- ve bu dosya lead markalari da
-   zaten adla tutuyor. Iki yazim da kabul, cunku ilanlarda ikisi de gecebiliyor. */
-$leadSellers = ['GARAGE LE PARIS', 'LE GARAGE PARIS'];
+/* Hem satici ADI hem HESAP KIMLIGI ile esleniyor, ve ikisi de gerekli: adla
+   eslemek tek basina yetmedi, cunku ilanlarin cogunda 'seller' alani bos ve
+   urun sayfasi orada "via VESTRA" yaziyor -- yalnizca ada bakan bir kural o
+   hesabin iki ilanini kaldirip geri kalanini yerinde birakiyordu. Kimlik tek
+   basina da yetmez: firma ikinci bir hesap acarsa kimlik degisir, ad kalir.
+   Iki yazim birden kabul, cunku ilanlarda ikisi de gecebiliyor. */
+$leadSellers    = ['GARAGE LE PARIS', 'LE GARAGE PARIS'];
+$leadSellerUids = ['7ab30f26afedd840'];
 $pinned = []; $seller = []; $lead = []; $rest = [];
 foreach ($products as $p) {
     if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
-    if (in_array(strtoupper(trim((string)($p['seller'] ?? ''))), $leadSellers, true)) { $seller[] = $p; continue; }
+    if (in_array(strtoupper(trim((string)($p['seller'] ?? ''))), $leadSellers, true)
+        || in_array((string)($p['seller_uid'] ?? ''), $leadSellerUids, true)) { $seller[] = $p; continue; }
     $i = array_search(strtoupper(trim((string)($p['brand'] ?? ''))), $leadBrands, true);
     if ($i !== false) { $lead[$i][] = $p; continue; }
     $rest[] = $p;

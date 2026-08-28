@@ -2596,11 +2596,22 @@ jobs:
               foreach ($ids as $n => $pid) {
                 $pid = urldecode($pid);
                 $pp  = vestra_find($pid);
-                printf("  %2d. %-26s %-12s satici: %s%s\n", $n + 1, $pid,
-                       (string)($pp['brand'] ?? '?'), (string)($pp['seller'] ?? '-'),
+                printf("  %2d. %-26s %-12s satici: %-16s uid: %s%s\n", $n + 1, $pid,
+                       (string)($pp['brand'] ?? '?'), (string)($pp['seller'] ?? '-') ?: '-',
+                       (string)($pp['seller_uid'] ?? '-') ?: '-',
                        !empty($pp['pinned']) ? '  [pinned]' : '');
               }
             }
+            /* Kac ilan o hesaba ait? Ad alani cogu ilanda bos, o yuzden kaldirma
+               kuralinin kac urune degdigini adla degil kimlikle sayiyoruz. */
+            $bySeller = [];
+            foreach ($all as $p) {
+              $k = (string)($p['seller_uid'] ?? '') ?: '(kimliksiz)';
+              $bySeller[$k] = ($bySeller[$k] ?? 0) + 1;
+            }
+            arsort($bySeller);
+            echo "  ilan sahipligi (seller_uid -> adet):\n";
+            foreach (array_slice($bySeller, 0, 6, true) as $k => $n) printf("     %-20s %d\n", $k, $n);
 
             head("7. TEMIZLIK");
             /* Sinama siparisi ODENMEDI, yani para hareketi yok; ama panelde
