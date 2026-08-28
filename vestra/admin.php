@@ -15,6 +15,7 @@ require_once __DIR__.'/inc/samples.php';
 require_once __DIR__.'/inc/journal.php';
 require_once __DIR__.'/inc/money.php';
 require_once __DIR__.'/inc/api_keys.php';
+require_once __DIR__.'/inc/dropship.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');
@@ -1630,6 +1631,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $accounts  = auth_accounts();
   $listings  = vestra_listings();
   $orders    = vestra_read_csv('orders.csv');
+  /* Dropship siparisleri AYRI bir dosyada duruyor (data/dropship_orders.json)
+     ve toptan siparis akisina hic ugramiyor. Panelde hicbir yerde
+     gorunmuyordu: ortak siparis veriyor, para tahsil ediliyor, operatorun
+     ekraninda bir sey yok -- yalnizca e-posta. Odenmis ama gonderilmemis bir
+     siparisin gorunmedigi yerde, gonderilmedigi de fark edilmiyor. */
+  $dropOrders = array_values(dropship_all());
+  usort($dropOrders, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+  $dropUnshipped = count(array_filter($dropOrders, fn($d) => ($d['status'] ?? '') === 'paid' && empty($d['shipped_at'])));
   $offers    = vestra_read_csv('offers.csv');
   $requests  = vestra_read_csv('requests.csv');
   $signups   = vestra_read_csv('signups.csv');
@@ -1755,6 +1764,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
       'documents'  => '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
       'users'      => '<circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.3a3 3 0 0 1 0 5.4"/><path d="M17.6 20a5.5 5.5 0 0 0-2.3-4.4"/>',
       'orders'     => '<path d="M3 7.5 12 3l9 4.5-9 4.5z"/><path d="M3 7.5v9l9 4.5 9-4.5v-9"/><path d="M12 12v9"/>',
+      'dropship'   => '<path d="M4 7h16v11H4z"/><path d="M4 7 12 3l8 4"/><path d="M9 18v-5h6v5"/>',
       'offers'     => '<path d="M4 5h16v11H9l-4 3.5V5z"/>',
       'requests'   => '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M8.5 11h7M8.5 15h4.5"/>',
       'req_offers' => '<path d="M3 12.5h5l1.5 3h5l1.5-3h5"/><path d="M3 12.5V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6.5"/>',
@@ -1814,6 +1824,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   <div class="sgrp">Sales</div>
   <?= navLink($tab,'orders','📦','Orders ('.count($orders).')') ?>
+  <?= navLink($tab,'dropship','📮','Dropship ('.count($dropOrders).')',$dropUnshipped,$dropUnshipped>0) ?>
   <?= navLink($tab,'invoices','🧾','Invoice approvals',$pendingInvoiceCount,$pendingInvoiceCount>0) ?>
   <?= navLink($tab,'offers','💬','Offers ('.count($offers).')') ?>
   <?= navLink($tab,'requests','📋','Requests ('.count($requests).')') ?>
@@ -4323,6 +4334,57 @@ elseif($tab==='notify'):
 </div>
 
 <?php // ══════════════════════════════════════════════════════ SECURITY
+elseif($tab==='dropship'):
+?>
+<div class="acard-hd" style="margin-bottom:6px"><h3>📮 Dropship orders</h3></div>
+<p style="color:var(--mut);font-size:13px;margin:0 0 16px;max-width:780px">
+  Single-piece orders placed by trade partners for their own customers. Price is the wholesale
+  price plus 20%; shipping is charged per zone (Europe €16 · United States €30 · Japan €30) and
+  duties at destination are not included. Per-unit stock is not tracked, so
+  <b>confirm availability with the seller before shipping</b>.
+</p>
+<div class="acard">
+  <div class="acard-hd"><h3><?= count($dropOrders) ?> order(s)<?= $dropUnshipped ? ' · '.$dropUnshipped.' paid, not yet shipped' : '' ?></h3></div>
+  <div class="acard-body atscroll">
+    <?php if(!$dropOrders): ?>
+      <p style="color:var(--mut);font-size:13px;margin:0">No dropship orders yet.</p>
+    <?php else: ?>
+    <table class="atable" style="min-width:900px">
+      <thead><tr><th>Ref</th><th>Placed</th><th>Article</th><th>Variant</th><th class="ac">Qty</th>
+        <th class="ac">Amount</th><th>Ship to</th><th>Zone</th><th>Status</th></tr></thead>
+      <tbody>
+      <?php foreach($dropOrders as $d):
+        $addr = $d['shipping_address'] ?? null;
+        $st   = (string)($d['status'] ?? 'pending');
+        $stCol = $st==='paid' ? '#1f9d63' : ($st==='released' ? 'var(--mut)' : '#c0392b'); ?>
+        <tr>
+          <td><code style="font-size:11.5px"><?= htmlspecialchars((string)($d['ref'] ?? '')) ?></code>
+              <?php if(!empty($d['partner_reference'])): ?><div class="ahint">partner: <?= htmlspecialchars((string)$d['partner_reference']) ?></div><?php endif; ?></td>
+          <td style="font-size:12px;color:var(--mut)"><?= htmlspecialchars(substr((string)($d['created'] ?? ''),0,16)) ?></td>
+          <td><b><?= htmlspecialchars((string)($d['brand'] ?? '')) ?></b><br>
+              <span style="font-size:12px"><?= htmlspecialchars((string)($d['name'] ?? '')) ?></span>
+              <?php if(!empty($d['sku'])): ?><div class="ahint">SKU <?= htmlspecialchars((string)$d['sku']) ?></div><?php endif; ?></td>
+          <td style="font-size:12px"><?= htmlspecialchars(trim((string)($d['colour'] ?? '').' / '.(string)($d['size'] ?? ''), ' /')) ?></td>
+          <td class="ac"><?= (int)($d['qty'] ?? 1) ?></td>
+          <td class="ac"><?= eur((float)($d['amount'] ?? 0)) ?><?php if(!empty($d['ship_fee'])): ?><div class="ahint">+ <?= eur((float)$d['ship_fee']) ?> ship</div><?php endif; ?></td>
+          <td style="font-size:12px;color:var(--mut);max-width:200px">
+            <?php if($addr): ?>
+              <?= htmlspecialchars(trim((string)($addr['name'] ?? ''))) ?><br>
+              <?= htmlspecialchars(trim((string)($addr['line1'] ?? '').' '.(string)($addr['line2'] ?? ''))) ?><br>
+              <?= htmlspecialchars(trim((string)($addr['postal_code'] ?? '').' '.(string)($addr['city'] ?? '').', '.(string)($addr['country'] ?? ''))) ?>
+            <?php else: ?><span class="ahint">— not paid yet</span><?php endif; ?>
+          </td>
+          <td style="font-size:12px"><?= htmlspecialchars((string)($d['ship_zone'] ?? '—')) ?></td>
+          <td style="font-size:12px;color:<?= $stCol ?>"><b><?= htmlspecialchars($st) ?></b>
+              <?php if(!empty($d['fulfilled'])): ?><div class="ahint">notified</div><?php endif; ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+    <?php endif; ?>
+  </div>
+</div>
+<?php
 elseif($tab==='api'):
   $apiKeys = vestra_api_keys_public();
   $once    = $_SESSION['api_key_once'] ?? null;

@@ -373,6 +373,12 @@ function dropship_decrement_stock(string $productId, string $colour, string $siz
     $all = vestra_listings();
     foreach ($all as $i => $l) {
         if (($l['id'] ?? '') !== $productId) continue;
+        /* Stok haritasi OLMAYAN ilanda hicbir sey yapma. Bu satir olmadan
+           fonksiyon her odemede ilana uydurma bir dropship.stock blogu
+           yaziyordu (had 0, sold 1) ve her seferinde "oversold" diye yanlis
+           alarm logluyordu. Katalog geneline acilan urunlerde dusurulecek bir
+           sayi yok -- olmayan bir sayiyi bir eksiltmek, sifiri veri sanmak. */
+        if (empty($l['dropship']['stock'])) return;
         $have = (int)($all[$i]['dropship']['stock'][$colour][$size] ?? 0);
         $left = max(0, $have - $qty);
         $all[$i]['dropship']['stock'][$colour][$size] = $left;
@@ -435,6 +441,13 @@ function dropship_fulfill(array $rec): void {
         "Ref: {$ref}" . (!empty($rec['partner_reference']) ? " (partner ref: {$rec['partner_reference']})" : "") . "\n" .
         "Item: {$itemLine}\n" .
         "Amount: €{$amount}" . (!empty($rec['customer_email']) ? " · Customer: {$rec['customer_email']}" : "") . "\n" .
+        "Shipping: " . (string)($rec['ship_zone'] ?? '?') . " · €" . number_format((float)($rec['ship_fee'] ?? 0), 2)
+            . " (paid separately at checkout; duties at destination are NOT included)\n" .
+        /* Adet bazli stok tutulmadigi icin bu satir uyari degil TALIMAT: mali
+           gondermeden once saticiyla teyit et. Bunu yazmazsak "odenmis siparis
+           = gonderilebilir mal" varsayilir ve teyit adimi atlanir. */
+        "Stock: not tracked for this article — CONFIRM AVAILABILITY WITH THE SELLER BEFORE SHIPPING.\n" .
+        "If it cannot be met, refund in full.\n" .
         "Ship to:\n{$addrLine}\n\n" .
         $payoutLine . "\n" .
         ($directCharge
