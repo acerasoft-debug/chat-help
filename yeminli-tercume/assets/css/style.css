@@ -5,45 +5,49 @@
    ════════════════════════════════════════════════════════════ */
 
 :root {
-  --paper:      #FBF8F3;
-  --paper-alt:  #F3EEE4;
-  --ink:        #1C2740;
-  --ink-soft:   #46506A;
-  --muted:      #6B7183;
-  --seal:       #A31621;
-  --seal-hot:   #C41E2B;
-  --seal-soft:  #F6E4E2;
-  --brass:      #A8823C;
-  --line:       #DCD5C8;
+  --paper:      #FAF7F1;
+  --paper-alt:  #F1EBDF;
+  --ink:        #141D33;
+  --ink-soft:   #3E4763;
+  --muted:      #6A7183;
+  --seal:       #7C1023;   /* oxblood — the color of real sealing wax */
+  --seal-hot:   #97152C;
+  --seal-soft:  #F5E3E1;
+  --brass:      #A88434;
+  --gold-hi:    #D6B36A;   /* champagne highlight for metallic details */
+  --gold-lo:    #8A6A2B;
+  --line:       #E0D9C9;
   --card:       #FFFFFF;
-  --ink-panel:  #182136;
+  --ink-panel:  #111A30;
   --ink-panel-text: #EFEAE0;
   --ink-panel-muted: #A8AEBF;
-  --focus:      #1C2740;
-  --ring:       rgba(28, 39, 64, .055);
+  --focus:      #141D33;
+  --ring:       rgba(20, 29, 51, .055);
   --panel-vein: rgba(255, 255, 255, .022);
-  --shadow:     0 18px 40px -24px rgba(28, 39, 64, .35);
-  --shadow-lift:0 28px 50px -26px rgba(28, 39, 64, .45);
+  --shadow:     0 18px 40px -24px rgba(20, 29, 51, .35);
+  --shadow-lift:0 28px 50px -26px rgba(20, 29, 51, .45);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper:      #101828;
-    --paper-alt:  #0B1220;
-    --ink:        #EFEAE0;
-    --ink-soft:   #C9CDD9;
-    --muted:      #98A0B3;
-    --seal:       #E05263;
-    --seal-hot:   #EA6C7B;
+    --paper:      #0C1322;
+    --paper-alt:  #080E1A;
+    --ink:        #EDE8DC;
+    --ink-soft:   #C7CBD8;
+    --muted:      #939BB0;
+    --seal:       #D14F62;
+    --seal-hot:   #DD6577;
     --seal-soft:  #2A1B22;
-    --brass:      #C9A45C;
-    --line:       #2A3450;
-    --card:       #16203A;
-    --ink-panel:  #0B1220;
-    --ink-panel-text: #EFEAE0;
-    --ink-panel-muted: #98A0B3;
-    --focus:      #EFEAE0;
-    --ring:       rgba(239, 234, 224, .05);
+    --brass:      #D0A95E;
+    --gold-hi:    #E3C27E;
+    --gold-lo:    #9A7A3C;
+    --line:       #263049;
+    --card:       #131C31;
+    --ink-panel:  #080E1A;
+    --ink-panel-text: #EDE8DC;
+    --ink-panel-muted: #939BB0;
+    --focus:      #EDE8DC;
+    --ring:       rgba(237, 232, 220, .05);
     --panel-vein: rgba(255, 255, 255, .018);
     --shadow:     0 18px 40px -24px rgba(0, 0, 0, .6);
     --shadow-lift:0 28px 50px -26px rgba(0, 0, 0, .75);
@@ -51,22 +55,24 @@
 }
 
 :root[data-theme="dark"] {
-  --paper:      #101828;
-  --paper-alt:  #0B1220;
-  --ink:        #EFEAE0;
-  --ink-soft:   #C9CDD9;
-  --muted:      #98A0B3;
-  --seal:       #E05263;
-  --seal-hot:   #EA6C7B;
+  --paper:      #0C1322;
+  --paper-alt:  #080E1A;
+  --ink:        #EDE8DC;
+  --ink-soft:   #C7CBD8;
+  --muted:      #939BB0;
+  --seal:       #D14F62;
+  --seal-hot:   #DD6577;
   --seal-soft:  #2A1B22;
-  --brass:      #C9A45C;
-  --line:       #2A3450;
-  --card:       #16203A;
-  --ink-panel:  #0B1220;
-  --ink-panel-text: #EFEAE0;
-  --ink-panel-muted: #98A0B3;
-  --focus:      #EFEAE0;
-  --ring:       rgba(239, 234, 224, .05);
+  --brass:      #D0A95E;
+  --gold-hi:    #E3C27E;
+  --gold-lo:    #9A7A3C;
+  --line:       #263049;
+  --card:       #131C31;
+  --ink-panel:  #080E1A;
+  --ink-panel-text: #EDE8DC;
+  --ink-panel-muted: #939BB0;
+  --focus:      #EDE8DC;
+  --ring:       rgba(237, 232, 220, .05);
   --panel-vein: rgba(255, 255, 255, .018);
   --shadow:     0 18px 40px -24px rgba(0, 0, 0, .6);
   --shadow-lift:0 28px 50px -26px rgba(0, 0, 0, .75);
@@ -109,7 +115,7 @@ h3 { font-size: 1.17rem; }
   width: 58px;
   height: 2px;
   margin-top: 16px;
-  background: linear-gradient(90deg, var(--brass), transparent);
+  background: linear-gradient(90deg, var(--gold-hi), var(--gold-lo) 70%, transparent);
 }
 
 p { margin: 0 0 1em; }
@@ -150,6 +156,7 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   padding: 3px 9px;
   border-radius: 2px;
   color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 8%, transparent);
   font-size: .72rem;
   letter-spacing: .12em;
 }
@@ -169,6 +176,8 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   background: var(--paper);
   border-bottom: 1px solid var(--line);
   box-shadow: 0 1px 0 var(--paper), 0 4px 0 -3px var(--line); /* letterhead double rule */
+  border-top: 3px solid var(--brass); /* gold-foil edge, like a leather folder's gilt trim */
+  border-image: linear-gradient(90deg, var(--gold-lo), var(--gold-hi) 30%, var(--gold-lo) 55%, var(--gold-hi) 80%, var(--gold-lo)) 1;
 }
 
 /* frosted only where the blur actually renders — otherwise stay opaque */
@@ -342,15 +351,17 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   width: min(330px, 68vw);
   color: var(--seal);
   rotate: -6deg;
-  filter: drop-shadow(0 22px 34px rgba(163, 22, 33, .28));
+  filter: drop-shadow(0 22px 34px rgba(124, 16, 35, .28));
   animation: stamp .7s cubic-bezier(.2, 1.4, .4, 1) both;
   transition: rotate .5s ease;
 }
 
 .hero-seal-wrap:hover .hero-seal { rotate: 0deg; }
 
-.seal-outer { fill: none; stroke: currentColor; stroke-width: 3; }
+/* two-tone seal: gilded rings, wax-red lettering */
+.seal-outer { fill: none; stroke: var(--brass); stroke-width: 3; }
 .seal-outer.thin { stroke-width: 1; stroke-dasharray: 2 6; stroke-linecap: round; }
+.brand-seal circle { stroke: var(--brass); }
 
 .seal-ringtext {
   font-family: "IBM Plex Mono", monospace;
@@ -523,7 +534,7 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   place-items: center;
   border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, var(--seal-hot), var(--seal) 72%);
-  box-shadow: 0 6px 14px -6px rgba(163, 22, 33, .6), inset 0 0 0 2px rgba(251, 248, 243, .35);
+  box-shadow: 0 6px 14px -6px rgba(124, 16, 35, .6), inset 0 0 0 2px rgba(251, 248, 243, .35);
   color: #FBF8F3;
   font-family: "Marcellus", serif;
   font-size: 1.1rem;
@@ -614,7 +625,8 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
 /* why — ink panel with watermark M and pinstripes */
 .section-ink {
   background: var(--ink-panel);
-  background-image: repeating-linear-gradient(115deg, var(--panel-vein) 0 1px, transparent 1px 10px);
+  background-image: radial-gradient(120% 90% at 50% 0%, rgba(214, 179, 106, .06), transparent 55%),
+                    repeating-linear-gradient(115deg, var(--panel-vein) 0 1px, transparent 1px 10px);
   color: var(--ink-panel-text);
   position: relative;
   overflow: hidden;
@@ -845,12 +857,16 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   background: linear-gradient(180deg, var(--seal-hot), var(--seal));
   color: #FBF8F3;
   border: 0;
-  box-shadow: 0 12px 26px -12px rgba(163, 22, 33, .55), inset 0 1px 0 rgba(255, 255, 255, .18);
+  box-shadow: 0 12px 26px -12px rgba(124, 16, 35, .55),
+              inset 0 1px 0 rgba(255, 255, 255, .18),
+              inset 0 0 0 1px color-mix(in srgb, var(--gold-hi) 35%, transparent); /* gilt keyline */
 }
 
 .btn-seal:hover {
   translate: 0 -2px;
-  box-shadow: 0 16px 30px -12px rgba(163, 22, 33, .6), inset 0 1px 0 rgba(255, 255, 255, .18);
+  box-shadow: 0 16px 30px -12px rgba(124, 16, 35, .6),
+              inset 0 1px 0 rgba(255, 255, 255, .18),
+              inset 0 0 0 1px color-mix(in srgb, var(--gold-hi) 50%, transparent);
 }
 
 .btn-ghost {
