@@ -32,23 +32,41 @@ $action = (string)($_GET['a'] ?? '');
 
 if ($action === 'stock' && $_SERVER['REQUEST_METHOD'] === 'GET') {
     $id = trim((string)($_GET['id'] ?? DROPSHIP_DEFAULT_ID));
-    $p = vestra_find($id);
-    if (!$p || empty($p['dropship']['enabled'])) {
+    $p  = vestra_find($id);
+    $ds = $p ? vestra_dropship_of($p) : null;
+    if (!$p || $ds === null) {
         api_json(['ok' => false, 'error' => 'not_dropship_enabled'], 404);
     }
+    $ship = [];
+    foreach (vestra_dropship_zones() as $code => [$label, $fee]) $ship[$code] = $fee;
     api_json([
         'ok'       => true,
         'id'       => $p['id'],
         'brand'    => (string)($p['brand'] ?? ''),
         'name'     => (string)($p['name'] ?? ''),
         'currency' => 'eur',
-        'price'    => (float)$p['dropship']['price'],
-        'shipping' => [
-            'FR' => (float)$p['dropship']['ship_fr'],
-            'EU' => (float)$p['dropship']['ship_eu'],
-        ],
-        'stock'    => $p['dropship']['stock'] ?? [],
+        'price'    => (float)$ds['price'],
+        'shipping' => $ship,
+        /* Katalog geneline acilan urunlerde adet bazli stok TUTULMUYOR ve
+           uydurulmuyor. Bos bir harita "hepsi tukendi" diye okunabilecegi
+           icin durumu ayrica soyluyoruz. */
+        'stock'    => $ds['stock'] ?? [],
+        'stock_tracked' => !empty($ds['stock']),
+        'note'     => !empty($ds['stock']) ? null
+                    : 'Per-unit stock is not tracked for this article; availability is confirmed with the seller after the order.',
     ]);
+}
+
+if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+    $out = [];
+    foreach (vestra_products() as $p) {
+        $ds = vestra_dropship_of($p);
+        if ($ds === null) continue;
+        $out[] = ['id' => (string)($p['id'] ?? ''), 'sku' => (string)($p['sku'] ?? ''),
+                  'brand' => (string)($p['brand'] ?? ''), 'name' => (string)($p['name'] ?? ''),
+                  'currency' => 'eur', 'price' => (float)$ds['price']];
+    }
+    api_json(['ok' => true, 'total' => count($out), 'items' => $out]);
 }
 
 if ($action === 'order' && $_SERVER['REQUEST_METHOD'] === 'POST') {

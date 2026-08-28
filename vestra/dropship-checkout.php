@@ -24,14 +24,22 @@ $backUrl = '/dropship?id=' . rawurlencode($id);
 
 if (!empty($_POST['website'])) { header('Location: ' . $backUrl); exit; } // honeypot
 
+/* Iki bicim de kabul ediliyor: stok haritasi olan ilanlarda tek bir
+   "renk|beden" secimi geliyor, katalog geneline acilan ilanlarda ise renk ve
+   beden AYRI alanlar -- cunku oralarda secilecek bir harita yok. */
 $variant = (string)($_POST['variant'] ?? '');
-$parts = explode('|', $variant, 2);
-$colour = trim($parts[0] ?? '');
-$size   = trim($parts[1] ?? '');
-$qty    = max(1, (int)($_POST['qty'] ?? 1));
+if ($variant !== '') {
+    $parts  = explode('|', $variant, 2);
+    $colour = trim($parts[0] ?? '');
+    $size   = trim($parts[1] ?? '');
+} else {
+    $colour = trim((string)($_POST['colour'] ?? ''));
+    $size   = trim((string)($_POST['size'] ?? ''));
+}
+$qty = max(1, (int)($_POST['qty'] ?? 1));
 
 $p = $id !== '' ? vestra_find($id) : null;
-if (!$p || empty($p['dropship']['enabled'])) { header('Location: ' . $backUrl); exit; }
+if (!$p || !vestra_dropship_enabled($p)) { header('Location: ' . $backUrl); exit; }
 
 $r = dropship_create_order($p, $colour, $size, $qty);
 

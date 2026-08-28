@@ -65,6 +65,125 @@ function dropship_stock_left(array $p, string $colour, string $size): int {
     return (int)($p['dropship']['stock'][$colour][$size] ?? 0);
 }
 
+/* ── KATALOG GENELI DROPSHIP ──────────────────────────────────────────────────
+ *
+ * Once dropship tek tek ilana elle aciliyordu: her urunun kendi dropship
+ * blogu vardi (fiyat, iki kargo ucreti, renk/beden stok haritasi) ve
+ * katalogda bunu tasiyan TEK urun vardi. Artik kural katalogun tamamina
+ * isliyor ve rakamlar TURETILIYOR -- 344 ilana elle blok yazmak ne
+ * yapilabilir ne de bakimi mumkun bir sey.
+ *
+ * Kural:
+ *   - Ralph Lauren ve Lacoste HARIC butun katalog dropship'e acik
+ *   - fiyat = toptan fiyat + %20   (saticilarin tek adet isleme payi)
+ *   - kargo: Avrupa 16 EUR · ABD 30 EUR · Japonya 30 EUR
+ */
+
+const VESTRA_DROPSHIP_MARKUP = 0.20;
+
+/** Dropship'e KAPALI markalar (kucuk harf karsilastirilir). */
+function vestra_dropship_excluded_brands(): array {
+    return ['ralph lauren', 'lacoste'];
+}
+
+/** Kargo bolgeleri: kod => [Stripe'ta gorunecek ad, EUR ucret]. */
+function vestra_dropship_zones(): array {
+    return [
+        'EU' => ['Europe delivery',        16.00],
+        'US' => ['United States delivery', 30.00],
+        'JP' => ['Japan delivery',         30.00],
+    ];
+}
+
+/** Stripe'in adres kabul edecegi ulkeler: AB 27 + ABD + Japonya. */
+function vestra_dropship_countries(): array {
+    require_once __DIR__ . '/money.php';                 // vestra_eu_countries()
+    return array_values(array_unique(array_merge(vestra_eu_countries(), ['US', 'JP'])));
+}
+
+/**
+ * Zam uygulanacak taban fiyat: EN DUSUK ADETLI kademenin fiyati.
+ *
+ * Kademeler adet arttikca UCUZLUYOR, yani en dusuk adetli kademe en PAHALI
+ * olani. Tek adet alan biri hacim indirimini hak etmiyor; taban olarak
+ * ucuz kademeyi almak, bir adedi 300 adet fiyatindan satmak olurdu.
+ */
+function vestra_dropship_base_price(array $p): float {
+    $tiers = (array)($p['tiers'] ?? []);
+    $best = null;
+    foreach ($tiers as $t) {
+        $min = (int)($t['min'] ?? 0); $pr = (float)($t['price'] ?? 0);
+        if ($min <= 0 || $pr <= 0) continue;
+        if ($best === null || $min < $best[0]) $best = [$min, $pr];
+    }
+    if ($best !== null) return $best[1];
+    $fallback = (float)($p['list'] ?? $p['price'] ?? 0);
+    return $fallback > 0 ? $fallback : 0.0;
+}
+
+/**
+ * Bu urunun dropship ayari, ya da null (kapali).
+ * Elle yazilmis bir dropship blogu varsa O gecerli; ama marka yasagi her
+ * seyin ustunde -- "Lacoste haric" dendiginde elle acilmis bir Lacoste
+ * ilani da kapanir, yoksa kural kurals olurdu.
+ */
+function vestra_dropship_of(array $p): ?array {
+    $brand = mb_strtolower(trim((string)($p['brand'] ?? '')));
+    if ($brand !== '' && in_array($brand, vestra_dropship_excluded_brands(), true)) return null;
+
+    if (!empty($p['dropship']['enabled'])) {
+        $d = (array)$p['dropship'];
+        $d['derived'] = false;
+        return $d;
+    }
+    /* "Teklife acik" ilanda sabit fiyat yok; zam uygulanacak bir taban da yok. */
+    if ((string)($p['mode'] ?? 'fixed') === 'offer') return null;
+
+    /* Durum alanina BAKMIYORUZ ve bu bilerek. Ilk yazdigimda status'un 'active'
+       olmasini sart kosmustum; canli ilanlarda deger 'approved' ve o tek satir
+       18 DSQUARED2 urununu sessizce dropship disinda birakti. Zaten
+       vestra_products() yalnizca YAYINDAKI ilanlari donduruyor -- yayinda
+       olmanin testi bir kez yapilmis durumda, ikinci kez ve yanlis sozlukle
+       yapmak eleme disinda bir ise yaramiyor. */
+
+    $base = vestra_dropship_base_price($p);
+    if ($base <= 0) return null;
+
+    return [
+        'enabled' => true,
+        'derived' => true,
+        'base'    => round($base, 2),
+        'markup'  => VESTRA_DROPSHIP_MARKUP,
+        'price'   => round($base * (1 + VESTRA_DROPSHIP_MARKUP), 2),
+    ];
+}
+
+function vestra_dropship_enabled(array $p): bool { return vestra_dropship_of($p) !== null; }
+
+/**
+ * Stripe odeme sayfasinda gorunecek satir adi.
+ *
+ * MARKA ADI BILEREK YOK. Odeme sayfasina "Balenciaga …" basmak, yetkili
+ * bayisi olmadigimiz bir markanin adini bir odeme ekranina koymak demek --
+ * marka sahibinin sikayeti ve Stripe'in hesap incelemesi buradan geliyor.
+ * Alicinin ne aldigini SKU ve VESTRA referansi zaten tanimliyor; siparis
+ * kaydinda marka ve urun adi tam haliyle duruyor, yani bilgi kaybolmuyor,
+ * sadece odeme ekranina cikmiyor.
+ */
+function vestra_dropship_line_name(array $p, string $colour = '', string $size = '', string $orderRef = ''): string {
+    $sku = trim((string)($p['sku'] ?? ''));
+    $bits = ['Dropshipping'];
+    if ($sku !== '') $bits[] = 'SKU ' . $sku;
+    /* Ident olarak SIPARIS referansi kullaniliyor, urun kimligi degil. Kimlikler
+       markayi tasiyabiliyor ("amiri-core-polo") ve o zaman marka adini odeme
+       ekranindan uzak tutma cabasi kendi kendini bozardi. Siparis referansi hem
+       notr hem de destek yazismasinda zaten sorulan numara. */
+    if ($orderRef !== '') $bits[] = 'Ident. ' . strtoupper($orderRef);
+    $line = implode(' · ', $bits);
+    $var  = trim(trim($colour) . ($size !== '' ? ' / ' . trim($size) : ''), ' /');
+    return $var !== '' ? $line . ' — ' . $var : $line;
+}
+
 /**
  * Create a pending dropship order + a Stripe Checkout Session for it, and
  * return either {ok:true, ref, checkout_url} or {ok:false, error, message,
@@ -83,20 +202,28 @@ function dropship_create_order(
     if ($custEmail !== '' && !filter_var($custEmail, FILTER_VALIDATE_EMAIL)) {
         return ['ok' => false, 'error' => 'invalid_email', 'message' => 'invalid customer_email', 'status' => 400];
     }
-    if (empty($p['dropship']['enabled'])) {
+    $ds = vestra_dropship_of($p);
+    if ($ds === null) {
         return ['ok' => false, 'error' => 'not_dropship_enabled', 'message' => 'this product is not dropship-enabled', 'status' => 404];
     }
 
     $qty = max(1, $qty);
-    $left = dropship_stock_left($p, $colour, $size);
-    if ($left <= 0 || $qty > $left) {
-        return ['ok' => false, 'error' => 'out_of_stock', 'message' => "Only {$left} left in {$colour} / {$size}.", 'status' => 409];
+    /* Stok kontrolu YALNIZCA gercek bir stok haritasi olan ilanlarda. Katalog
+       geneline turetilen dropship'te boyle bir harita yok ve uydurulmuyor:
+       katalog urunleri "buyuk olasilikla gonderime acik", kesinlik siparisten
+       sonra saticiyla teyit ediliyor. Olmayan bir sayiyi kapi olarak kullanmak,
+       ya her siparisi reddeder ya da hicbirini -- ikisi de bilgi degil. */
+    if (!empty($ds['stock'])) {
+        $left = dropship_stock_left($p, $colour, $size);
+        if ($left <= 0 || $qty > $left) {
+            return ['ok' => false, 'error' => 'out_of_stock', 'message' => "Only {$left} left in {$colour} / {$size}.", 'status' => 409];
+        }
     }
     if (!stripe_available()) {
         return ['ok' => false, 'error' => 'payments_unavailable', 'message' => 'payments are not configured', 'status' => 503];
     }
 
-    $unit   = (float)$p['dropship']['price'];
+    $unit   = (float)$ds['price'];
     $amount = round($unit * $qty, 2);
     $cents  = (int) round($amount * 100);
 
@@ -137,25 +264,25 @@ function dropship_create_order(
     if ($directCharge) { $rec['acct_id'] = $seller['stripe_account_id']; $rec['fee'] = $feeCents / 100; $rec['payout'] = $payout; }
     dropship_save($rec);
 
-    // France vs rest-of-EU are offered as two named shipping options — Checkout
-    // collects the address either way, so the buyer picks the one that matches
-    // where they actually are.
-    $EU_COUNTRIES = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE',
-                      'IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
-    $lineName = trim(($p['brand'] ?? '') . ' ' . ($p['name'] ?? '')) . " — {$colour} / {$size}";
+    /* Uc kargo bolgesi ayri ayri secenek olarak sunuluyor ve Checkout adresi
+       her halukarda topluyor, yani alici bulundugu yere uyani seciyor. Stripe
+       secenegi adrese gore KENDILIGINDEN kisitlamiyor; bolge adlari bu yuzden
+       acik yaziliyor ("Japan delivery"), yanlis secim gozle gorulsun diye. */
+    $lineName   = vestra_dropship_line_name($p, $colour, $size, $ref);
     $successUrl = $successUrl ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref) . '&paid=1');
     $cancelUrl  = $cancelUrl  ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref));
 
+    $shipOpts = [];
+    foreach (vestra_dropship_zones() as $code => [$label, $fee]) {
+        $shipOpts[] = ['shipping_rate_data' => [
+            'type'         => 'fixed_amount',
+            'fixed_amount' => ['amount' => (int)round($fee * 100), 'currency' => 'eur'],
+            'display_name' => $label,
+        ]];
+    }
     $extra = [
-        'shipping_address_collection' => ['allowed_countries' => $EU_COUNTRIES],
-        'shipping_options' => [
-            ['shipping_rate_data' => ['type' => 'fixed_amount',
-                'fixed_amount' => ['amount' => (int)round((float)$p['dropship']['ship_fr'] * 100), 'currency' => 'eur'],
-                'display_name' => 'France delivery']],
-            ['shipping_rate_data' => ['type' => 'fixed_amount',
-                'fixed_amount' => ['amount' => (int)round((float)$p['dropship']['ship_eu'] * 100), 'currency' => 'eur'],
-                'display_name' => 'Rest-of-EU delivery']],
-        ],
+        'shipping_address_collection' => ['allowed_countries' => vestra_dropship_countries()],
+        'shipping_options'            => $shipOpts,
     ];
 
     try {

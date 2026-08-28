@@ -1,5 +1,6 @@
 <?php
 require __DIR__.'/inc/products.php';
+require_once __DIR__.'/inc/dropship.php';   // vestra_dropship_enabled()
 $p = vestra_find($_GET['id'] ?? '');
 if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('Product not found.').' <a class="acc" href="/shop">'.t('Back to catalog').'</a></div></div>';
@@ -217,7 +218,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
          API offers, so it can't live behind the "verified buyers only" gate
          below. */ ?>
       <?php $isOwnListingTop = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
-      <?php if(!$isOwnListingTop && !empty($p['dropship']['enabled'])): ?>
+      <?php if(!$isOwnListingTop && vestra_dropship_enabled($p)): ?>
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 
