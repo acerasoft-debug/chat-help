@@ -26,10 +26,10 @@ on:
         description: "true = canlı .htaccess ile depodakini karşılaştır, deploy.sh'ın neyi kopyaladığını yaz (salt-okunur)"
         required: false
         default: "false"
-      dropship_api_key:
-        description: "Verilirse api/dropship.php'yi bu Bearer key ile uçtan uca test eder (log'a yazılmaz)"
+      dropship_probe:
+        description: "true = dropship'i CANLI sunucuda uçtan uca sına: anahtar sunucudaki .env'den okunur (dışarı çıkmaz), gerçek bir Stripe ödeme oturumu açılır, tutar/kargo/ülke geri okunup doğrulanır, sınama siparişi silinir."
         required: false
-        default: ""
+        default: "false"
       order_sheet_ref:
         description: "Verilirse bu sipariş için tarafsız 'order sheet' PDF'i üretir (ör: VES-CF0B4185)"
         required: false
@@ -182,32 +182,113 @@ jobs:
               | sed 's/.*data-brand="//; s/"$//' | head -24 | nl -w3 -s'. '
           fi
 
-      - name: Dropship API uçtan uca test
-        if: ${{ github.event.inputs.dropship_api_key != '' }}
-        env:
-          DKEY: ${{ github.event.inputs.dropship_api_key }}
-        run: |
-          BASE="https://vestrasales.com/api/dropship.php"
+      # Dropship'in gercekten calisip calismadigini soyleyebilecek TEK sinama bu:
+      # gercek bir Stripe odeme oturumu acar ve acilan oturumu Stripe'a geri
+      # sorup tutari, kargo ucretini ve kabul edilen ulkeyi okur. "200 dondu"
+      # yeterli degil -- yanlis tutarla acilmis bir oturum da 200 doner.
+      #
+      # ANAHTAR SUNUCUDAN OKUNUYOR. Onceki hali anahtari workflow GIRDISI olarak
+      # aliyordu; girdiler herkese acik Actions kaydinda gorunur. Simdi anahtar
+      # sunucunun .env'inden okunuyor ve hicbir yere yazilmiyor.
+      - name: Dropship uçtan uca sınama (canlı)
+        if: github.event.inputs.dropship_probe == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/vestra_dsprobe.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/dropship.php";
+            require_once $doc."/inc/stripe.php";
+            function head($s){ echo "\n===== $s =====\n"; }
 
-          echo "== key'siz istek (401 bekleniyor) =="
-          curl -sS -L -o /tmp/d1.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
-          cat /tmp/d1.json; echo
+            head("1. KURAL CANLI KATALOGDA");
+            $all = vestra_products(); $on = 0; $offBrand = [];
+            foreach ($all as $p) {
+              if (vestra_dropship_of($p)) { $on++; }
+              else { $b = (string)($p['brand'] ?? '?'); $offBrand[$b] = ($offBrand[$b] ?? 0) + 1; }
+            }
+            printf("  katalog %d urun -> dropship ACIK %d, KAPALI %d\n", count($all), $on, count($all) - $on);
+            arsort($offBrand);
+            foreach (array_slice($offBrand, 0, 6, true) as $b => $n) printf("    kapali: %-16s %d\n", $b, $n);
 
-          echo; echo "== stok sorgusu (200 bekleniyor) =="
-          curl -sS -L -H "Authorization: Bearer ${DKEY}" -o /tmp/d2.json -w 'KOD=%{http_code}\n' "${BASE}?a=stock"
-          cat /tmp/d2.json; echo
+            head("2. FIYAT: TOPTAN + %20");
+            $sample = null;
+            foreach ($all as $p) { if (vestra_dropship_of($p)) { $sample = $p; break; } }
+            if (!$sample) { echo "  dropship'e acik urun yok -- sinama burada duruyor\n"; exit(1); }
+            $ds = vestra_dropship_of($sample);
+            printf("  %s / %s\n", (string)($sample['brand'] ?? ''), (string)($sample['name'] ?? ''));
+            printf("  taban %.2f -> dropship %.2f  (fark %%%.1f)\n",
+                   $ds['base'] ?? 0, $ds['price'], (($ds['base'] ?? 0) > 0 ? ($ds['price'] / $ds['base'] - 1) * 100 : 0));
 
-          echo; echo "== stokta olmayan beden (400/404/409 bekleniyor) =="
-          curl -sS -H "Authorization: Bearer ${DKEY}" -H "Content-Type: application/json" \
-            -o /tmp/d3.json -w 'KOD=%{http_code}\n' \
-            -d '{"colour":"Black","size":"XXXL","qty":1}' "${BASE}?a=order"
-          cat /tmp/d3.json; echo
+            head("3. KARGO BOLGELERI");
+            foreach (vestra_dropship_zones() as $z => [$l, $f])
+              printf("  %-3s %-24s %6.2f EUR   ulke: %s\n", $z, $l, $f,
+                     implode(",", array_slice(vestra_dropship_zone_countries($z), 0, 4))
+                     . (count(vestra_dropship_zone_countries($z)) > 4 ? "..." : ""));
 
-          echo; echo "== gecerli siparis (200 + checkout_url bekleniyor) =="
-          curl -sS -H "Authorization: Bearer ${DKEY}" -H "Content-Type: application/json" \
-            -o /tmp/d4.json -w 'KOD=%{http_code}\n' \
-            -d '{"colour":"Black","size":"S","qty":1,"reference":"smoketest-1","customer_email":"smoketest@example.com"}' "${BASE}?a=order"
-          cat /tmp/d4.json; echo
+            head("4. STRIPE YAPILANDIRILMIS MI");
+            $ok = function_exists('stripe_available') ? stripe_available() : false;
+            echo "  stripe_available(): " . ($ok ? "EVET" : "HAYIR -- odeme oturumu acilamaz") . "\n";
+            if (!$ok) { echo "\n  Stripe anahtari yok; 5. adim atlaniyor.\n"; exit(0); }
+
+            head("5. GERCEK ODEME OTURUMU (Japonya)");
+            $r = dropship_create_order($sample, 'Black', 'M', 1, '', '', 'probe-jp', null, null, 'JP');
+            if (empty($r['ok'])) {
+              printf("  BASARISIZ: %s / %s\n", (string)($r['error'] ?? '?'), (string)($r['message'] ?? ''));
+              exit(1);
+            }
+            $ref = (string)$r['ref'];
+            printf("  siparis: %s\n  checkout_url: %s\n", $ref, substr((string)$r['checkout_url'], 0, 58) . "...");
+
+            head("6. OTURUMU STRIPE'A GERI SOR  <-- asil olcum");
+            $rec = dropship_get($ref);
+            $sid = (string)($rec['session_id'] ?? '');
+            if ($sid === '') { echo "  oturum kimligi kaydedilmemis\n"; }
+            else {
+              try {
+                $sess = stripe_api('GET', '/v1/checkout/sessions/' . $sid);
+                $tot  = isset($sess->amount_total) ? $sess->amount_total / 100 : null;
+                printf("  amount_total      : %s EUR   (urun %.2f + kargo %.2f = %.2f bekleniyor)\n",
+                       $tot === null ? '?' : number_format($tot, 2), $ds['price'], 30.00, $ds['price'] + 30.00);
+                $cc = $sess->shipping_address_collection->allowed_countries ?? [];
+                printf("  kabul edilen ulke : %s   (yalnizca JP bekleniyor)\n", implode(",", (array)$cc));
+                $so = $sess->shipping_options ?? [];
+                printf("  kargo secenegi    : %d adet (1 bekleniyor)\n", count((array)$so));
+                foreach ((array)$so as $o) {
+                  $amt = $o->shipping_rate_data->fixed_amount->amount ?? ($o->shipping_amount ?? null);
+                  printf("     -> %s\n", $amt === null ? '(tutar okunamadi)' : number_format($amt / 100, 2) . ' EUR');
+                }
+                $li = stripe_api('GET', '/v1/checkout/sessions/' . $sid . '/line_items');
+                foreach (($li->data ?? []) as $item)
+                  printf("  odeme satiri      : %s\n", (string)($item->description ?? '?'));
+              } catch (\Throwable $e) {
+                echo "  Stripe'a sorulamadi: " . $e->getMessage() . "\n";
+              }
+            }
+
+            head("7. TEMIZLIK");
+            /* Sinama siparisi ODENMEDI, yani para hareketi yok; ama panelde
+               durursa gercek bir siparis gibi gorunur. Siliniyor. */
+            $f = $doc . '/data/dropship_orders.json';
+            $j = json_decode((string)@file_get_contents($f), true);
+            if (is_array($j) && isset($j[$ref])) {
+              unset($j[$ref]);
+              @file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+              echo "  sinama siparisi silindi: {$ref}\n";
+            } else { echo "  silinecek kayit bulunamadi\n"; }
+            echo "\nTAMAM\n";
+            PHPEOF
+            php -l /tmp/vestra_dsprobe.php
+            php /tmp/vestra_dsprobe.php; RC=$?
+            rm -f /tmp/vestra_dsprobe.php
+            exit $RC
 
       - name: Sunucu sağlığı (disk / PHP hata günlüğü)
         uses: appleboy/ssh-action@v1.0.3
