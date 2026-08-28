@@ -1,11 +1,13 @@
 <?php
 /**
  * VESTRA — on-site "Buy now" for a dropship-enabled product.
- * POST /dropship-checkout  (body: id, variant="Colour|Size", qty)
- * No VESTRA login required — same public-checkout model as the partner API
- * (api/dropship.php), just triggered by a real visitor's browser instead of
- * a partner's server. Creates the same kind of order + Stripe Checkout
- * Session via dropship_create_order() and redirects straight to Stripe.
+ * POST /dropship-checkout  (body: id, variant="Colour|Size" OR colour+size,
+ * zone, qty)
+ * A verified trade account is required, and the check is below rather than only
+ * on the page — see the note at the gate. The partner orders for their own
+ * customer, the same model the partner API serves (api/dropship.php), just
+ * triggered by a browser instead of the partner's server. Creates the order +
+ * Stripe Checkout Session via dropship_create_order() and redirects to Stripe.
  */
 require_once __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/products.php';
