@@ -1,0 +1,21 @@
+[
+  { "match": "blm-ah1eg010",          "expect": 1, "price": "74.90" },
+  { "match": "blm-ah1eg010bc",        "expect": 1, "price": "74.90" },
+
+  { "match": "blm-ah0eg000bc27",      "expect": 1, "price": "69.90" },
+  { "match": "blm-xh1eg000bb19",      "expect": 1, "price": "69.90" },
+  { "match": "blm-wh1ef000b138gdv",   "expect": 1, "price": "69.90" },
+  { "match": "blm-wh1ef000b138mai",   "expect": 1, "price": "69.90" },
+  { "match": "blm-wh1ef000b138sdq",   "expect": 1, "price": "69.90" },
+  { "match": "blm-th01601i232",       "expect": 1, "price": "69.90" },
+
+  { "match": "dgn-i8aeczg7cy5",       "expect": 1, "price": "64.90" },
+  { "match": "dgn-g8nv2z",            "expect": 1, "price": "64.90" },
+  { "match": "dgn-g8ob1tg7b2m",       "expect": 1, "price": "64.90" },
+
+  { "match": "dgn-g8ob2tfu7eq",       "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8oa3tfu7eq",       "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8nc5zg7b9x",       "expect": 1, "price": "59.90" },
+  { "match": "dgn-g8nb3zfu7eq",       "expect": 1, "price": "59.90" },
+  { "match": "dgn-g7jv91",            "expect": 1, "price": "59.90" }
+]
