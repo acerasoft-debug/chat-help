@@ -21,10 +21,12 @@
  * PRICE: the wholesale price of the smallest quantity tier plus 20%.
  *
  * SHIPPING: one zone per order, chosen BEFORE the session is created —
- * Europe 16 EUR / United States 30 EUR / Japan 30 EUR. Pass "zone" (EU|US|JP)
- * or "country" (ISO-2, mapped for you). The session then accepts only that
- * zone's countries, so the rate charged and the address entered cannot
- * diverge. Duties and import taxes at destination are not included.
+ * EU 16 EUR; GB, US, JP, SG, AE, SA, QA 30 EUR; AU, CA, KR 35 EUR. Pass "zone"
+ * (the destination's ISO-2 code, or EU) or "country" (ISO-2, mapped for you).
+ * The session then accepts only that zone's countries, so the rate charged and
+ * the address entered cannot diverge. a=stock returns the live table rather
+ * than these figures, so read it from there. Duties and import taxes at
+ * destination are not included.
  *
  * STOCK: per-unit stock is not tracked for catalogue articles; a=stock reports
  * stock_tracked=false. Availability is confirmed with the seller after the
@@ -106,8 +108,8 @@ if ($action === 'order' && $_SERVER['REQUEST_METHOD'] === 'POST') {
        yok; ulkeyi bolgeye biz cevirirsek entegrasyona bir eslestirme tablosu
        yazdirmamis oluruz. Verilmezse Avrupa. */
     $zone = trim((string)($body['zone'] ?? ''));
-    if ($zone === '' && ($cc = strtoupper(trim((string)($body['country'] ?? '')))) !== '') {
-        $zone = ($cc === 'US' || $cc === 'JP') ? $cc : 'EU';
+    if ($zone === '' && ($cc = trim((string)($body['country'] ?? ''))) !== '') {
+        $zone = vestra_dropship_zone_for_country($cc);
     }
     $zone = vestra_dropship_zone($zone);
 

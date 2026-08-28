@@ -79,8 +79,14 @@ require __DIR__ . '/inc/head.php';
         <div class="hint"><?= htmlspecialchars((string)($p['brand'] ?? '')) ?></div>
         <div style="font-weight:600;font-size:16px"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></div>
         <div class="hint" style="margin-top:4px"><?= vestra_money((float)$ds['price']) ?> / <?= t('piece') ?> · <?= t('shipping') ?>:
-          <?php $zz = []; foreach (vestra_dropship_zones() as [$zlabel, $zfee]) $zz[] = htmlspecialchars(t($zlabel)).' '.vestra_money((float)$zfee);
-                echo implode(' · ', $zz); ?></div>
+          <?php /* Onbir bolgeyi tek tek yazmak bu satiri okunmaz yapiyordu.
+                   Ayni ucreti tasiyanlar birlestirilip kod olarak listeleniyor;
+                   tam adlar zaten asagidaki acilir listede duruyor. */
+                $byFee = [];
+                foreach (vestra_dropship_zones() as $zc => [$zlabel, $zfee]) $byFee[(string)$zfee][] = $zc;
+                $zz = [];
+                foreach ($byFee as $zfee => $codes) $zz[] = implode('/', $codes).' '.vestra_money((float)$zfee);
+                echo htmlspecialchars(implode(' · ', $zz)); ?></div>
       </div>
     </div>
 

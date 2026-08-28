@@ -172,7 +172,7 @@ require __DIR__.'/inc/head.php';
 
   <div class="apiscroll"><table>
     <tr><th>Field</th><th>Notes</th></tr>
-    <tr><td>zone / country</td><td><code>zone</code> is <code>EU</code>, <code>US</code> or <code>JP</code>; or pass <code>country</code> as an ISO-2 code and we map it. Anything else falls back to Europe.</td></tr>
+    <tr><td>zone / country</td><td><code>zone</code> is <code>EU</code> or a destination ISO-2 code from the shipping table; or pass <code>country</code> as an ISO-2 code and we map it. Anything else falls back to EU.</td></tr>
     <tr><td>colour, size</td><td>What your customer ordered. Send one of the values <code>a=stock</code> lists for the article; where it lists none, send free text.</td></tr>
   </table></div>
 
@@ -182,9 +182,21 @@ require __DIR__.'/inc/head.php';
   <div class="apiscroll"><table>
     <tr><th>Zone</th><th>Rate</th><th>Delivers to</th></tr>
     <tr><td>EU</td><td>€16.00</td><td>the 27 EU member states</td></tr>
+    <tr><td>GB</td><td>€30.00</td><td>United Kingdom</td></tr>
     <tr><td>US</td><td>€30.00</td><td>United States</td></tr>
     <tr><td>JP</td><td>€30.00</td><td>Japan</td></tr>
+    <tr><td>SG</td><td>€30.00</td><td>Singapore</td></tr>
+    <tr><td>AE</td><td>€30.00</td><td>United Arab Emirates</td></tr>
+    <tr><td>SA</td><td>€30.00</td><td>Saudi Arabia</td></tr>
+    <tr><td>QA</td><td>€30.00</td><td>Qatar</td></tr>
+    <tr><td>AU</td><td>€35.00</td><td>Australia</td></tr>
+    <tr><td>CA</td><td>€35.00</td><td>Canada</td></tr>
+    <tr><td>KR</td><td>€35.00</td><td>South Korea</td></tr>
   </table></div>
+  <p>Outside the EU the zone code <i>is</i> the destination's ISO-2 country code, so
+     passing <code>country</code> is enough and <code>zone</code> is the same string.
+     A country not in this table falls back to EU, whose session will then refuse
+     that address rather than ship it at the wrong rate.</p>
   <p>The zone is fixed before the payment session opens, and the session then accepts only
      that zone's countries — so the rate charged and the address entered cannot diverge.</p>
 

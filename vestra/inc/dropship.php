@@ -76,7 +76,7 @@ function dropship_stock_left(array $p, string $colour, string $size): int {
  * Kural:
  *   - Ralph Lauren, Lacoste ve boxershort HARIC butun katalog dropship'e acik
  *   - fiyat = toptan fiyat + %20   (saticilarin tek adet isleme payi)
- *   - kargo: Avrupa 16 EUR · ABD 30 EUR · Japonya 30 EUR
+ *   - kargo bolgeye gore: bkz. vestra_dropship_zones()
  */
 
 const VESTRA_DROPSHIP_MARKUP = 0.20;
@@ -101,44 +101,81 @@ function vestra_dropship_excluded_terms(): array {
     return ['boxer'];
 }
 
-/** Kargo bolgeleri: kod => [Stripe'ta gorunecek ad, EUR ucret]. */
+/**
+ * Kargo bolgeleri: kod => [Stripe'ta gorunecek ad, EUR ucret].
+ *
+ * AB disindaki her varis TEK ULKELIK kendi bolgesi, ayni ucreti tasiyanlar bile.
+ * Tek bir "30 EUR bolgesi" kurmak daha kisa olurdu ama Stripe oturumu o zaman
+ * yedi ulkenin adresini birden kabul ederdi: Japonya'ya diye acilan bir siparis
+ * Katar'a gidebilirdi ve satici bunu ancak paket hazirlarken gorurdu. Bolge
+ * varisin kendisi olunca, secilen ucret ile girilebilecek adres ayni sey.
+ *
+ * Bolge kodu = varis ulkesinin ISO-2 kodu (AB icin 'EU'). Boylece ulkeden
+ * bolgeye cevirim bir arama tablosu istemiyor ve eski siparislerdeki 'US' /
+ * 'JP' kodlari da aynen gecerli kaliyor.
+ */
 function vestra_dropship_zones(): array {
     return [
-        'EU' => ['Europe delivery',        16.00],
-        'US' => ['United States delivery', 30.00],
-        'JP' => ['Japan delivery',         30.00],
+        'EU' => ['EU delivery',                  16.00],
+        'GB' => ['United Kingdom delivery',      30.00],
+        'US' => ['United States delivery',       30.00],
+        'JP' => ['Japan delivery',               30.00],
+        'SG' => ['Singapore delivery',           30.00],
+        /* "Dubai" bir sehir; Stripe ulke istiyor, o yuzden BAE. */
+        'AE' => ['United Arab Emirates delivery', 30.00],
+        'SA' => ['Saudi Arabia delivery',        30.00],
+        'QA' => ['Qatar delivery',               30.00],
+        'AU' => ['Australia delivery',           35.00],
+        'CA' => ['Canada delivery',              35.00],
+        'KR' => ['South Korea delivery',         35.00],
     ];
 }
 
-/** Stripe'in adres kabul edecegi ulkeler: AB 27 + ABD + Japonya. */
+/** Stripe'in adres kabul edecegi butun ulkeler: AB 27 + tekil bolgeler. */
 function vestra_dropship_countries(): array {
-    require_once __DIR__ . '/money.php';                 // vestra_eu_countries()
-    return array_values(array_unique(array_merge(vestra_eu_countries(), ['US', 'JP'])));
+    $out = [];
+    foreach (array_keys(vestra_dropship_zones()) as $z) {
+        foreach (vestra_dropship_zone_countries($z) as $cc) $out[$cc] = true;
+    }
+    return array_keys($out);
 }
 
 /**
  * Bir bolgenin kapsadigi ulkeler.
  *
  * NEDEN GEREKLI: Stripe Checkout kargo seceneklerini adrese gore KISITLAMIYOR
- * -- ucunu de herkese gosteriyor. Ilk halinde Tokyo'ya gonderilen bir siparis
+ * -- hepsini herkese gosteriyor. Ilk halinde Tokyo'ya gonderilen bir siparis
  * "Europe delivery 16 EUR" secilerek odenebiliyordu ve aradaki 14 euro kimse
  * fark etmeden kayboluyordu. Cozum, secimi ODEME OTURUMU ACILMADAN once
  * yapmak: oturuma yalnizca o bolgenin ucreti ve yalnizca o bolgenin ulkeleri
  * konuyor, boylece secilen kargo ile girilen adres AYRISAMIYOR.
  */
 function vestra_dropship_zone_countries(string $zone): array {
-    require_once __DIR__ . '/money.php';
-    switch (strtoupper($zone)) {
-        case 'US': return ['US'];
-        case 'JP': return ['JP'];
-        default:   return vestra_eu_countries();
+    $z = strtoupper(trim($zone));
+    if ($z === 'EU') {
+        require_once __DIR__ . '/money.php';             // vestra_eu_countries()
+        return vestra_eu_countries();
     }
+    return isset(vestra_dropship_zones()[$z]) ? [$z] : vestra_dropship_zone_countries('EU');
 }
 
 /** Gecerli bolge kodu, taninmayan deger icin varsayilan 'EU'. */
 function vestra_dropship_zone(string $zone): string {
     $z = strtoupper(trim($zone));
     return isset(vestra_dropship_zones()[$z]) ? $z : 'EU';
+}
+
+/**
+ * Varis ulkesinden bolge. Ortagin kendi sisteminde genelde ulke var, bolge yok;
+ * cevirimi burada yaparsak entegrasyona eslestirme tablosu yazdirmamis oluruz.
+ * Taninmayan ulke AB'ye dusuyor -- ve AB'ye dusen bir siparis o ulkenin adresini
+ * kabul etmiyor, yani sessizce yanlis ucretle gitmiyor, en fazla reddediliyor.
+ */
+function vestra_dropship_zone_for_country(string $cc): string {
+    $c = strtoupper(trim($cc));
+    if ($c === '') return 'EU';
+    if (isset(vestra_dropship_zones()[$c]) && $c !== 'EU') return $c;
+    return 'EU';
 }
 
 /**
