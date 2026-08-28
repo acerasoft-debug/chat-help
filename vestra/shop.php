@@ -35,10 +35,12 @@ foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
 
 /* Default grid order, front to back:
      1. pinned products (operator-curated flagship listings), in the order pinned;
-     2. the lead houses below, in the order listed -- the labels the catalogue opens
+     2. the lead sellers below -- a house is a label, a seller is who actually
+        ships, and the operator wants this one's stock forward of the rest;
+     3. the lead houses below, in the order listed -- the labels the catalogue opens
         with, so a first-time visitor lands on the strongest stock rather than on
         whatever happens to sit at the top of the file;
-     3. everything else.
+     4. everything else.
    Partitions rather than a sort key, so inside each group products keep exactly the
    order vestra_products() returned -- promoting a brand must not reshuffle the
    other 300. */
@@ -47,14 +49,19 @@ foreach ($products as $i => $_) $products[$i]['_ord'] = $i;
    alindi ("biraz asagiya"), cunku dropship akisi (Stripe, stok, siparis) hala o
    urune bagli ve gorunurlugunu tamamen kaybetmesi satisi dusurur. */
 $leadBrands = ['GUCCI', 'GIVENCHY', 'LACOSTE', 'BALMAIN', 'DSQUARED2'];
-$pinned = []; $lead = []; $rest = [];
+/* Satici adiyla eslesiyor, seller_uid ile degil: ayni firmanin ikinci bir hesap
+   acmasi kimlikleri degistirir, adi degistirmez -- ve bu dosya lead markalari da
+   zaten adla tutuyor. Iki yazim da kabul, cunku ilanlarda ikisi de gecebiliyor. */
+$leadSellers = ['GARAGE LE PARIS', 'LE GARAGE PARIS'];
+$pinned = []; $seller = []; $lead = []; $rest = [];
 foreach ($products as $p) {
     if (!empty($p['pinned'])) { $pinned[] = $p; continue; }
+    if (in_array(strtoupper(trim((string)($p['seller'] ?? ''))), $leadSellers, true)) { $seller[] = $p; continue; }
     $i = array_search(strtoupper(trim((string)($p['brand'] ?? ''))), $leadBrands, true);
     if ($i !== false) { $lead[$i][] = $p; continue; }
     $rest[] = $p;
 }
-$products = $pinned;
+$products = array_merge($pinned, $seller);
 foreach (array_keys($leadBrands) as $i) {
     if (!empty($lead[$i])) $products = array_merge($products, $lead[$i]);
 }

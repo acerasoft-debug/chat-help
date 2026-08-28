@@ -44,6 +44,10 @@ if (stripe_available()) {
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= t('Secure escrow couldn’t be started for this cart — it’s available only when all items are from a single verified seller. Please choose bank transfer instead.') ?></div>
   <?php endif; ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='escrow_max'): ?>
+    <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
+      <?= htmlspecialchars(sprintf(t('Card escrow covers orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
+  <?php endif; ?>
 
   <div id="empty" class="empty" style="display:none">
     <?= t('Your order is empty.') ?> <a class="acc" href="/shop"><?= t('Browse the catalog →') ?></a>
@@ -146,34 +150,48 @@ if (stripe_available()) {
 <script>
 var ESCROW_MAP = <?= json_encode($escrowMap, JSON_UNESCAPED_UNICODE) ?: '{}' ?>;
 var ESCROW_FEE_RATE = <?= json_encode((float)VESTRA_ESCROW_FEE_BUYER) ?>;
+var ESCROW_MAX = <?= json_encode((float)VESTRA_ESCROW_MAX) ?>;
 var PAY_LBL = {
   escrowBtn: <?= json_encode(t('Pay securely →')) ?>,
   escrowHint: <?= json_encode(t('You pay now by card; funds are held in escrow until you confirm delivery.')) ?>,
   bankBtn: <?= json_encode(t('Place order request')) ?>,
-  bankHint: <?= json_encode(t('No payment now — we confirm availability, then send your invoice.')) ?>
+  bankHint: <?= json_encode(t('No payment now — we confirm availability, then send your invoice.')) ?>,
+  escrowSeller: <?= json_encode(t('Available when your whole cart is from one verified seller.')) ?>,
+  /* Sepetteki butun tutarlar EUR basiliyor (eur() her zaman € yaziyor), sinir da
+     EUR uzerinden sinaniyor -- burada goruntuleme para birimine cevirmek, sinirla
+     ekrandaki rakami farkli birimlere dusururdu. */
+  escrowMax: <?= json_encode(sprintf(t('Card escrow covers orders up to %s. Larger orders are paid by bank transfer.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?>
 };
 function eur(n){ return '€'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML; }
 /* Escrow is offered only when EVERY cart item maps to ONE verified (Connect-ready)
    seller — a direct charge is per connected account. Otherwise force bank transfer. */
-function escrowEligible(c){
-  if(!c.length) return false;
+/* Uygunsuzluk sebebini DONDURUYOR, sadece true/false degil: "tek saticidan
+   olmali" ile "tutar sinirin ustunde" ayni kilidi gosterse de alicinin yapacagi
+   sey farkli, ve tek bir cumle onu "ne yapmaliyim" sorusuyla birakiyordu. */
+function escrowBlockedBy(c, net){
+  if(!c.length) return 'empty';
   var sid=null;
   for(var i=0;i<c.length;i++){
     var s=ESCROW_MAP[c[i].id];
-    if(!s) return false;            // item has no escrow-ready seller
-    if(sid===null) sid=s; else if(sid!==s) return false; // mixed sellers
+    if(!s) return 'seller';         // item has no escrow-ready seller
+    if(sid===null) sid=s; else if(sid!==s) return 'seller'; // mixed sellers
   }
-  return true;
+  if(net*(1+ESCROW_FEE_RATE) > ESCROW_MAX + 0.005) return 'max';
+  return '';
 }
-function syncPay(c){
+function syncPay(c, net){
   var opt=document.getElementById('payEscrowOpt'), rEsc=document.getElementById('payEscrow'),
       rBank=document.getElementById('payBank'), lock=document.getElementById('escrowLock');
   if(!opt) return;
-  var ok=escrowEligible(c);
+  var why=escrowBlockedBy(c, net||0), ok=(why==='');
   rEsc.disabled=!ok;
   opt.classList.toggle('disabled',!ok);
-  if(lock) lock.style.display=ok?'none':'block';
+  if(lock){
+    lock.style.display=ok?'none':'block';
+    if(why==='max') lock.textContent=PAY_LBL.escrowMax;
+    else if(why==='seller') lock.textContent=PAY_LBL.escrowSeller;
+  }
   if(!ok && rEsc.checked){ rBank.checked=true; }
   var esc=rEsc.checked;
   var btn=document.getElementById('placeBtn'), hint=document.getElementById('placeHint');
@@ -193,13 +211,14 @@ function render(){
       '<td class="x" data-remove-id="'+esc(x.id)+'" title="<?= htmlspecialchars(t('Remove')) ?>">✕</td></tr>';
   });
   document.getElementById('rows').innerHTML=rows;
-  syncPay(c); // enable/disable escrow (may force bank) before pricing the fee
-  var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
   /* The voucher comes off the goods value FIRST, so the escrow fee is charged on what the
      buyer actually pays rather than on the pre-discount figure. order.php applies the same
-     order server-side; this is only the preview. */
+     order server-side; this is only the preview. Net is computed BEFORE syncPay because
+     the escrow ceiling is a test on what the card is charged. */
   var disc = VOUCHER.discount>0 ? Math.min(VOUCHER.discount, sub) : 0;
   var net  = sub - disc;
+  syncPay(c, net); // enable/disable escrow (may force bank) before pricing the fee
+  var escR=document.getElementById('payEscrow'); var isEsc=escR&&escR.checked;
   var efee=isEsc?net*ESCROW_FEE_RATE:0;
   var feeLine=document.getElementById('escrowFeeLine'); if(feeLine) feeLine.style.display=isEsc?'':'none';
   var efeeEl=document.getElementById('escrowFee'); if(efeeEl) efeeEl.textContent=eur(efee);

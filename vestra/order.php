@@ -105,6 +105,14 @@ $subtotal      = round($subtotal - $discount, 2);
 $sellerUids = array_values(array_unique(array_filter(array_map(fn($l)=>$l['seller_uid']??'', $lines))));
 $escrowSeller = null;
 if(count($sellerUids)===1){ foreach(auth_accounts() as $a){ if(($a['id']??'')===$sellerUids[0]){ $escrowSeller=$a; break; } } }
+/* Kart tavani. Sepetteki kontrol yalnizca gorunum: bu uca dogrudan POST
+   atilabilir, o yuzden tavan burada da sinaniyor -- yoksa sinir sadece formu
+   kullanan alici icin gecerli olurdu, yani hic gecerli olmazdi.
+   Olcu, KARTTAN CEKILECEK tutar: indirim sonrasi mal bedeli + koruma ucreti. */
+if($payMethod==='escrow'
+   && round($subtotal*(1+VESTRA_ESCROW_FEE_BUYER), 2) > VESTRA_ESCROW_MAX){
+  header('Location: /cart?err=escrow_max'); exit;
+}
 if($payMethod==='escrow' && $escrowSeller){
   $FEE_BUYER  = VESTRA_ESCROW_FEE_BUYER;                                              // fixed 3.8% buyer
   $FEE_SELLER = vestra_seller_commission_rate($escrowSeller['membership_tier'] ?? ''); // 3.5/3.2/2.8%
