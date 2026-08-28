@@ -520,6 +520,18 @@ function vestra_journal_photo_queries(): array {
         'houndstooth fabric',
         'gingham fabric',
         'flax fibre',
+        /* Italyan tekstil cografyasi uzerine bes yazi eklendi ve havuzda o
+           bolgelerden tek kare yoktu. Bes sorgunun BESI de require() listesinde
+           zaten karsiligi olan kelimeler uzerine kurulu (silk, wool, knitwear,
+           tailor, boutique) -- yeni bir izin kelimesi eklemeden calisiyorlar.
+           Karsiligi olmayan bir sorgu eklemek, gelen her sonucun kendi
+           suzgecimizce elenmesi ve bunun "Commons'ta yok" gibi okunmasi
+           demek olurdu. */
+        'silk weaving Como',
+        'wool mill Biella',
+        'knitwear factory Italy',
+        'Italian tailoring',
+        'boutique Milan',
     ];
 }
 
