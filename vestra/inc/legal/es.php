@@ -23,6 +23,7 @@
     <h3>2. Solo usuarios empresariales (sin consumidores)</h3><p>VESTRA es estrictamente para empresas (B2B); no está dirigido a
     consumidores y los derechos de desistimiento del consumidor no son de aplicación. Debe completar la verificación (KYB/KYC) antes de operar y
     garantiza que toda la información que proporciona es exacta y se mantiene actualizada.</p>
+    <h3>2a. Pedidos de dropshipping</h3><p>Los pedidos de <b>dropshipping</b> por unidad los realiza un socio comercial verificado <b>para su reventa al cliente propio de dicho socio</b>. El socio es el comprador y el vendedor frente a su cliente; facilita la dirección de entrega, el color y la talla en el pago. <b>No se celebra contrato de compraventa entre VESTRA y el cliente final del socio</b>, y esta sección no abre la plataforma a consumidores. El precio de dropshipping es el precio mayorista más un margen de gestión, más la tarifa de envío de la zona de destino indicada en el pago. No se lleva control de existencias por unidad: la disponibilidad se confirma con el vendedor tras el pedido y, de no poder atenderse, se reembolsa íntegramente.</p>
     <h3>3. Publicaciones, pedidos y entrega</h3><p>Los vendedores son <b>los únicos responsables</b> de sus publicaciones y de la
     legalidad, seguridad, conformidad, etiquetado, descripción, fijación de precios, autenticidad, entrega, garantías e impuestos de sus
     mercancías. Un pedido constituye un contrato vinculante entre el comprador y el vendedor; VESTRA no es responsable del cumplimiento de ninguna de las partes.</p>

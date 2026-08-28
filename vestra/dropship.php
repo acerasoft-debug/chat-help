@@ -1,15 +1,27 @@
 <?php
 /**
  * VESTRA — Dropshipping: single-piece purchase, no minimum order.
- * Lists every dropship-enabled product (today: just lac-polo-paris).
  * ?id=<product id> narrows the list to one item — the deep link a product
- * page's "Buy a single piece" button uses. No VESTRA login required, same
- * public-checkout model as the partner API (api/dropship.php).
+ * page's "Buy a single piece" button uses.
+ *
+ * TICARI HESABA KAPALI BIR SAYFA, VE BU BILEREK BOYLE.
+ * Once girissizdi: odeme baglantisini kim acarsa o oduyordu, yani son tuketici
+ * de odeyebiliyordu. Ama sitenin kendi kullanim sartlari "business users only
+ * (no consumers) ... consumer-withdrawal rights do not apply" diyor. Girissiz
+ * bir tuketici odemesi, yayindaki metnin YAPMADIGIMIZI soyledigi seyi yapmak
+ * demekti -- hukuken de, Stripe incelemesi acisindan da en kotu hal.
+ *
+ * Model artik net: siparisi DOGRULANMIS TICARI ORTAK veriyor, kendi musterisi
+ * icin. Teslimat adresi ve beden alanlarina musterinin bilgilerini o giriyor;
+ * son alici ile VESTRA arasinda tuketici sozlesmesi kurulmuyor.
  */
 require __DIR__ . '/inc/i18n.php';
 require_once __DIR__ . '/inc/products.php';
-
+require_once __DIR__ . '/inc/auth.php';
 require_once __DIR__ . '/inc/dropship.php';
+
+$dsUser    = auth_user();
+$dsAllowed = $dsUser && auth_prices_unlocked($dsUser);
 
 $onlyId = trim((string)($_GET['id'] ?? ''));
 $items = array_values(array_filter(vestra_products(), function ($p) use ($onlyId) {
@@ -32,6 +44,21 @@ require __DIR__ . '/inc/head.php';
 <div class="wrap" style="max-width:720px;margin:40px auto">
   <h1 style="margin-bottom:6px">📮 <?= t('Dropshipping') ?></h1>
   <p class="hint" style="margin-bottom:24px"><?= t('Buy a single piece, no minimum order — pay by card, we ship it out.') ?></p>
+
+  <?php if (!$dsAllowed): ?>
+  <div class="order-box">
+    <p style="margin:0 0 10px"><b><?= t('Dropshipping is for verified trade accounts.') ?></b></p>
+    <p class="hint" style="margin:0 0 14px">
+      <?= t('Orders are placed by a trade partner on behalf of their own customer — you enter your customer\'s delivery address and size at checkout. VESTRA does not sell to consumers.') ?>
+    </p>
+    <?php if (!$dsUser): ?>
+      <a class="btn btn-p" href="/login?back=<?= urlencode('/dropship'.($onlyId!==''?'?id='.$onlyId:'')) ?>"><?= t('Sign in') ?></a>
+      <a class="btn btn-o" href="/register" style="margin-left:8px"><?= t('Create a trade account') ?></a>
+    <?php else: ?>
+      <a class="btn btn-p" href="/buyer?tab=kyc"><?= t('Upload your trade licence') ?></a>
+    <?php endif; ?>
+  </div>
+  <?php else: ?>
 
   <?php if (!$items): ?>
   <p class="hint"><?= t('Nothing available right now.') ?></p>
@@ -95,8 +122,10 @@ require __DIR__ . '/inc/head.php';
       <?php /* Beden serbest metin, cunku katalogda beden bir LISTE degil, paket
                kuralini anlatan bir cumle ("Cartons of 10 · sizes S-XXL"). Ondan
                makineyle secenek uretmek, olmayan bedeni varmis gibi gostermek
-               olurdu. Alicinin yazdigi beden siparise gecer, teyit satiicidan. */ ?>
+               olurdu. Renk ve beden, tipki teslimat adresi gibi, ORTAGIN kendi
+               musterisi icin girdigi alanlar. */ ?>
       <p class="hint" style="margin:8px 0 0;font-size:12px">
+        <?= t('Enter the colour and size your customer ordered. You enter their delivery address on the next step.') ?><br>
         <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?>
       </p>
       <?php endif; ?>
@@ -107,5 +136,6 @@ require __DIR__ . '/inc/head.php';
     <div class="hint" style="margin-top:8px"><a href="/product?id=<?= urlencode($p['id']) ?>"><?= t('Full product details') ?> →</a></div>
   </div>
   <?php endforeach; ?>
+  <?php endif; /* $dsAllowed */ ?>
 </div>
 <?php require __DIR__ . '/inc/foot.php'; ?>

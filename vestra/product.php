@@ -213,12 +213,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </a>
       <?php endif; endif; ?>
 
-      <?php /* Public regardless of membership/login — dropshipping isn't a B2B
-         wholesale account benefit, it's the same guest checkout the partner
-         API offers, so it can't live behind the "verified buyers only" gate
-         below. */ ?>
       <?php $isOwnListingTop = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
-      <?php if(!$isOwnListingTop && vestra_dropship_enabled($p)): ?>
+      <?php /* Bu blok once "uyelikten bagimsiz, herkese acik" idi ve gerekcesi
+               soyleydi: dropship bir B2B ayricaligi degil, ortak API'sinin
+               sundugu misafir odemesinin aynisi. O gerekce artik gecersiz --
+               dropship siparisini ortak KENDI MUSTERISI icin veriyor, tuketici
+               degil, cunku sitenin kullanim sartlari tuketiciye satis yapmadigimizi
+               yaziyor. Dugme de o yuzden fiyat kapisinin arkasinda.
+               Bkz. dropship.php basligi. */ ?>
+      <?php if(!$isOwnListingTop && $PRICES && vestra_dropship_enabled($p)): ?>
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 

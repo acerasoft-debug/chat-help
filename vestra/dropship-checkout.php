@@ -19,6 +19,16 @@ require_once __DIR__ . '/inc/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: /'); exit; }
 
+/* Kapi SUNUCUDA. Sayfadaki formu gizlemek bir gorunum tercihi; bu uc ise
+   dogrudan POST atilabilir, dolayisiyla "ticari hesap" sarti burada da
+   sinaniyor. Aksi halde sart yalnizca dogru davranan ziyaretci icin gecerli
+   olurdu -- yani hic gecerli olmazdi. */
+$dsUser = auth_user();
+if (!$dsUser || !auth_prices_unlocked($dsUser)) {
+    header('Location: /login?back=' . urlencode('/dropship?id=' . (string)($_POST['id'] ?? '')));
+    exit;
+}
+
 $id = trim((string)($_POST['id'] ?? ''));
 $backUrl = '/dropship?id=' . rawurlencode($id);
 
