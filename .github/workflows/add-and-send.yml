@@ -414,6 +414,18 @@ jobs:
                 echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
               }
               if (!empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$mail}\n"; $skip++; continue; }
+              /* ZINCIR / DISTRIBUTOR / KENDI MARKASINI SATAN -> gonderme.
+                 Operatorun ayakta duran kurali. Bu kontrol send-outreach.yml ve
+                 admin.php'de vardi ama BURADA YOKTU, ve elle verilen listeler tam da
+                 buradan geciyor -- 28 Agustos'ta bir Korfez partisinde Alshaya, Al Tayer,
+                 Apparel Group, BFL, Alyasra, Etoile ve Concept Brands bu bosluktan gecti.
+                 "Adresleri operator sectiyse uygunlugunu degerlendirmistir" varsayimi
+                 marka filtresi icin dogru, bu kural icin degil: kural mutlak ve listeyi
+                 hazirlayan arastirma cogu zaman grubun kendi tanitim metnini kopyaliyor,
+                 yani "distributor" kelimesi adresin YANINDA yaziyor ama kimse bakmiyor. */
+              if (vestra_lead_is_blocked($l)) {
+                echo "  - ATLANDI (zincir/distributor/kendi markasi -- KURAL): {$mail}\n"; $skip++; continue;
+              }
               /* Alan adi posta alabiliyor mu? MX yoksa A kaydi da yoksa o adrese
                  gonderilen her sey sert bir bounce olarak geri doner ve bounce orani
                  gonderen alan adinin itibarini dusurur -- yani olu bir adrese

@@ -449,7 +449,90 @@ function vestra_discover_blocklist(): array {
     'heschung','laurence bras','primo emporio',
     // online-only (defensive; shouldn't appear as physical OSM shop nodes anyway)
     'zalando','farfetch','ssense','asos','amazon',
+    /* Regional retail GROUPS, franchise operators and brand DISTRIBUTORS. Standing
+       operator rule: never contact chains, own-brand sellers, or large distributors.
+       These are the ones that reach us as hand-picked addresses rather than through
+       discovery -- a Gulf group's "info@" looks like any other boutique address, and
+       the name is the only thing that gives it away. A distributor already holds the
+       regional rights to the labels we wholesale; they are a competitor in the channel,
+       not a customer. */
+    'alshaya','al tayer','altayer','chalhoub','apparel group','landmark group',
+    'majid al futtaim','bfl group','brands for less','alyasra','etoile group',
+    'concept brands','trafalgar luxury','gilbert luxury','al futtaim','rivoli group',
+    'liwa trading','azadea','retail arabia','fawaz alhokair','al hokair',
+    // Distribution / trading houses: the business model is the disqualifier, not the size.
+    'distribution','distributor','distributör','distribütör','distribuidor','distributeur',
+    'trading','tradings','import export','wholesale supplier',
+    // Own-brand houses seen in hand-curated lists (same rule as the flagships above)
+    'hummel','valento','elisabetta franchi',
   ];
+}
+/* Domain-level twin of vestra_name_is_blocked(). The company name is scraped from the
+ * lead's own site and that scrape FAILS in exactly the cases that matter: a bot wall
+ * returns "Access to this page has been denied" and a distributor sails through the name
+ * check with a company name that is really an error page. The domain is supplied by the
+ * operator and cannot fail, so it gets checked too -- alshaya.com is blocked whether or
+ * not its homepage answered. Only the registrable label is compared, so a boutique on a
+ * shared host (mystore.wixsite.com) is not judged by its host's name. */
+function vestra_domain_is_blocked(string $email, string $website=''): bool {
+  $labels=[];
+  if(($at=strrpos($email,'@'))!==false) $labels[]=substr($email,$at+1);
+  if($website!=='') $labels[]=vestra_domain_of($website);
+  foreach($labels as $host){
+    $host=strtolower(trim((string)$host)); if($host==='') continue;
+    $host=preg_replace('/^www\./','',$host);
+    // Strip the public suffix so "alshaya.com" and "alshaya.ae" both reduce to "alshaya".
+    $core=preg_replace('/\.(com|net|org|co|ae|sa|qa|kw|kr|jp|cn|uk|de|fr|it|es|nl|be|ch|at|cz|pl|ua|dk|se|no|fi|au|us|eu|info|biz|shop|store|fashion)(\.[a-z]{2})?$/','',$host);
+    /* Compare with separators removed on BOTH sides. A domain has no spaces, so the
+       multi-word entries ("trafalgar luxury", "apparel group") could never match one --
+       trafalgarluxurygroup.com sailed past a list that literally names it. */
+    $flat=preg_replace('/[^a-z0-9]/','',$core);
+    if($flat==='') continue;
+    foreach(vestra_discover_blocklist() as $b){
+      if($b==='') continue;
+      $bf=preg_replace('/[^a-z0-9]/','',strtolower($b));
+      if($bf!=='' && strlen($bf)>=4 && str_contains($flat,$bf)) return true;
+    }
+  }
+  return false;
+}
+/* Monobrand rule: a company whose OWN name or domain is a premium label is that label's
+ * own operation (flagship, national subsidiary, official distributor) -- it buys from its
+ * own factory, never from us. This reads vestra_premium_brandlist() in the direction the
+ * list's own comment describes: brand-in-CONTENT means multi-brand boutique (a target),
+ * brand-in-NAME means monobrand (skip). Word-boundary matched, because short labels are
+ * common substrings -- without it "etro" fires inside "metropolitan" and "autry" inside
+ * a surname. */
+function vestra_is_monobrand(string $company, string $email='', string $website=''): bool {
+  $hay=strtolower(trim($company));
+  foreach([$email,$website] as $src){
+    if($src==='') continue;
+    $host=$src;
+    if(($at=strrpos($host,'@'))!==false) $host=substr($host,$at+1);
+    $host=strtolower(preg_replace('/^www\./','',(string)vestra_domain_of($host)));
+    $host=preg_replace('/\.[a-z.]{2,12}$/','',$host);
+    $hay.=' '.str_replace(['-','.','_'],' ',$host);
+  }
+  if(trim($hay)==='') return false;
+  foreach(vestra_premium_brandlist() as $b){
+    if($b==='') continue;
+    // Also try the space-stripped brand, so "patriziapepe.com" matches "patrizia pepe".
+    $alts=[$b]; $flat=str_replace(' ','',$b); if($flat!==$b) $alts[]=$flat;
+    foreach($alts as $a){
+      if(preg_match('/(?<!\p{L})'.preg_quote($a,'/').'(?!\p{L})/iu',$hay)) return true;
+    }
+  }
+  return false;
+}
+/* One gate for the SEND path, whatever added the lead. Checks the scraped company name,
+ * the recorded brand, AND the address's own domain -- any one of them matching is enough.
+ * Callers should use this rather than vestra_name_is_blocked() directly: the name alone
+ * was the hole that let a batch of Gulf retail groups through a hand-curated send. */
+function vestra_lead_is_blocked(array $lead): bool {
+  $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');
+  if(vestra_name_is_blocked($co, (string)($lead['brand'] ?? ''))) return true;
+  if(vestra_domain_is_blocked($em, $ws)) return true;
+  return vestra_is_monobrand($co, $em, $ws);
 }
 /* True when a company/brand name matches a big-chain / monobrand entry on the discovery
  * blocklist. Discovery already skips these when ADDING a lead, but this lets the SEND path

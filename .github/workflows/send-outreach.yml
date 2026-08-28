@@ -303,7 +303,10 @@ jobs:
               // operator named these exact addresses, so the name heuristic must not silently drop
               // them. It fires on substrings, and a hand-curated segment can legitimately contain a
               // blocked word (an Amazon SELLER named "Stilato amazon" is a target, not Amazon itself).
-              if (!$ONLY && vestra_name_is_blocked((string)($l['company'] ?? ''), (string)($l['brand'] ?? ''))) continue;
+              /* Artik lead seviyesinde: ad + marka + ADRESIN ALAN ADI. Ad taramasi tek
+                 basina yetmiyordu, cunku bot duvarina takilan sitede sirket adi diye
+                 hata sayfasinin basligi kaydediliyor ve isim kontrolu bosa dusuyor. */
+              if (!$ONLY && vestra_lead_is_blocked($l)) continue;
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
                  name, which a single-brand reseller or a label's own store also does. A
