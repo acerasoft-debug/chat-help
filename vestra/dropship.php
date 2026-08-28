@@ -129,6 +129,15 @@ require __DIR__ . '/inc/head.php';
         <?= t('Availability is confirmed with the seller after the order; if the size is unavailable you are refunded in full.') ?>
       </p>
       <?php endif; ?>
+      <label class="hint" style="margin-top:8px;display:block"><?= t('Delivery region') ?></label>
+      <?php /* Bolge burada seciliyor, odeme sayfasinda degil: Stripe kargo
+               secenegini adrese gore kisitlamiyor, ucunu birden koyarsak
+               Tokyo'ya giden siparis Avrupa ucretiyle odenebiliyor. */ ?>
+      <select name="zone" required style="width:100%">
+        <?php foreach (vestra_dropship_zones() as $zc => [$zl, $zf]): ?>
+        <option value="<?= htmlspecialchars($zc) ?>"><?= htmlspecialchars(t($zl)) ?> — <?= vestra_money((float)$zf) ?></option>
+        <?php endforeach; ?>
+      </select>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
       <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$ds['price']) ?></button>

@@ -102,6 +102,31 @@ function vestra_dropship_countries(): array {
 }
 
 /**
+ * Bir bolgenin kapsadigi ulkeler.
+ *
+ * NEDEN GEREKLI: Stripe Checkout kargo seceneklerini adrese gore KISITLAMIYOR
+ * -- ucunu de herkese gosteriyor. Ilk halinde Tokyo'ya gonderilen bir siparis
+ * "Europe delivery 16 EUR" secilerek odenebiliyordu ve aradaki 14 euro kimse
+ * fark etmeden kayboluyordu. Cozum, secimi ODEME OTURUMU ACILMADAN once
+ * yapmak: oturuma yalnizca o bolgenin ucreti ve yalnizca o bolgenin ulkeleri
+ * konuyor, boylece secilen kargo ile girilen adres AYRISAMIYOR.
+ */
+function vestra_dropship_zone_countries(string $zone): array {
+    require_once __DIR__ . '/money.php';
+    switch (strtoupper($zone)) {
+        case 'US': return ['US'];
+        case 'JP': return ['JP'];
+        default:   return vestra_eu_countries();
+    }
+}
+
+/** Gecerli bolge kodu, taninmayan deger icin varsayilan 'EU'. */
+function vestra_dropship_zone(string $zone): string {
+    $z = strtoupper(trim($zone));
+    return isset(vestra_dropship_zones()[$z]) ? $z : 'EU';
+}
+
+/**
  * Zam uygulanacak taban fiyat: EN DUSUK ADETLI kademenin fiyati.
  *
  * Kademeler adet arttikca UCUZLUYOR, yani en dusuk adetli kademe en PAHALI
@@ -194,8 +219,9 @@ function vestra_dropship_line_name(array $p, string $colour = '', string $size =
 function dropship_create_order(
     array $p, string $colour, string $size, int $qty,
     string $custEmail = '', string $custName = '', string $partnerRef = '',
-    ?string $successUrl = null, ?string $cancelUrl = null
+    ?string $successUrl = null, ?string $cancelUrl = null, string $zone = 'EU'
 ): array {
+    $zone = vestra_dropship_zone($zone);
     if ($colour === '' || $size === '') {
         return ['ok' => false, 'error' => 'missing_fields', 'message' => 'colour and size are required', 'status' => 400];
     }
@@ -257,6 +283,8 @@ function dropship_create_order(
         'customer_name'     => $custName,
         'amount'            => $amount,
         'currency'          => 'eur',
+        'ship_zone'         => $zone,
+        'ship_fee'          => vestra_dropship_zones()[$zone][1],
         'status'            => 'pending',
         'created'           => date('c'),
     ];
@@ -264,25 +292,24 @@ function dropship_create_order(
     if ($directCharge) { $rec['acct_id'] = $seller['stripe_account_id']; $rec['fee'] = $feeCents / 100; $rec['payout'] = $payout; }
     dropship_save($rec);
 
-    /* Uc kargo bolgesi ayri ayri secenek olarak sunuluyor ve Checkout adresi
-       her halukarda topluyor, yani alici bulundugu yere uyani seciyor. Stripe
-       secenegi adrese gore KENDILIGINDEN kisitlamiyor; bolge adlari bu yuzden
-       acik yaziliyor ("Japan delivery"), yanlis secim gozle gorulsun diye. */
+    /* Kargo bolgesi ODEME OTURUMUNDAN ONCE belli. Oturuma yalnizca o bolgenin
+       ucreti ve yalnizca o bolgenin ulkeleri giriyor -- yani secilen kargo ile
+       girilen adres ayrisamiyor. Uc secenegi birden koydugumuz ilk halinde
+       Tokyo'ya giden bir siparis "Europe 16 EUR" ile odenebiliyordu. */
+    [$zLabel, $zFee] = vestra_dropship_zones()[$zone];
     $lineName   = vestra_dropship_line_name($p, $colour, $size, $ref);
     $successUrl = $successUrl ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref) . '&paid=1');
     $cancelUrl  = $cancelUrl  ?? ('https://vestrasales.com/dropship-confirm?ref=' . rawurlencode($ref));
 
-    $shipOpts = [];
-    foreach (vestra_dropship_zones() as $code => [$label, $fee]) {
-        $shipOpts[] = ['shipping_rate_data' => [
-            'type'         => 'fixed_amount',
-            'fixed_amount' => ['amount' => (int)round($fee * 100), 'currency' => 'eur'],
-            'display_name' => $label,
-        ]];
-    }
     $extra = [
-        'shipping_address_collection' => ['allowed_countries' => vestra_dropship_countries()],
-        'shipping_options'            => $shipOpts,
+        'shipping_address_collection' => ['allowed_countries' => vestra_dropship_zone_countries($zone)],
+        'shipping_options'            => [
+            ['shipping_rate_data' => [
+                'type'         => 'fixed_amount',
+                'fixed_amount' => ['amount' => (int)round($zFee * 100), 'currency' => 'eur'],
+                'display_name' => $zLabel,
+            ]],
+        ],
     ];
 
     try {

@@ -79,11 +79,20 @@ if ($action === 'order' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $partnerRef = trim((string)($body['reference'] ?? ''));
     $custEmail  = trim((string)($body['customer_email'] ?? ''));
     $custName   = trim((string)($body['customer_name'] ?? ''));
+    /* Bolge ya dogrudan ('zone': EU|US|JP) ya da varis ulkesinden ('country':
+       ISO-2) verilebiliyor. Ortagin kendi sisteminde genelde ulke var, bolge
+       yok; ulkeyi bolgeye biz cevirirsek entegrasyona bir eslestirme tablosu
+       yazdirmamis oluruz. Verilmezse Avrupa. */
+    $zone = trim((string)($body['zone'] ?? ''));
+    if ($zone === '' && ($cc = strtoupper(trim((string)($body['country'] ?? '')))) !== '') {
+        $zone = ($cc === 'US' || $cc === 'JP') ? $cc : 'EU';
+    }
+    $zone = vestra_dropship_zone($zone);
 
     $p = vestra_find($id);
     if (!$p) api_json(['ok' => false, 'error' => 'not_dropship_enabled'], 404);
 
-    $r = dropship_create_order($p, $colour, $size, $qty, $custEmail, $custName, $partnerRef);
+    $r = dropship_create_order($p, $colour, $size, $qty, $custEmail, $custName, $partnerRef, null, null, $zone);
     $status = $r['ok'] ? 200 : ($r['status'] ?? 400);
     unset($r['status']);
     api_json($r, $status);
