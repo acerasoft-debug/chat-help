@@ -2558,12 +2558,21 @@ jobs:
             }
             usort($over, fn($a, $b) => [$a[0]['brand'] ?? '', $a[0]['id'] ?? ''] <=> [$b[0]['brand'] ?? '', $b[0]['id'] ?? '']);
             printf("  esik ustu: %d urun\n", count($over));
+            /* Tek tek dokum kutuk kuyrugunu tasiriyordu. Karar icin gereken uc
+               sey: kac urun, hangi paket/moq bilesimleri var, ve kimlik listesi.
+               Kimlikler tek satirda; ozel durumlar ayrica adiyla yaziliyor. */
+            $combo = []; $ids = []; $odd = [];
             foreach ($over as [$p, $pr, $moq, $pack]) {
-              $seri = $pack > 0 ? round($moq / $pack, 2) : 0;
-              printf("  %-26s %-12s %7.2f  moq %3d  paket %2d  = %s seri\n",
-                     (string)($p['id'] ?? ''), mb_substr((string)($p['brand'] ?? ''), 0, 12),
-                     $pr, $moq, $pack, $seri ?: '?');
+              $k = "paket {$pack} / moq {$moq}";
+              $combo[$k] = ($combo[$k] ?? 0) + 1;
+              $ids[] = (string)($p['id'] ?? '');
+              if ($pack !== 10 || $moq !== 20) $odd[] = sprintf('%s (%s, %.2f, paket %d, moq %d)',
+                (string)($p['id'] ?? ''), (string)($p['brand'] ?? ''), $pr, $pack, $moq);
             }
+            foreach ($combo as $k => $n) printf("    %-24s %d urun\n", $k, $n);
+            if ($odd) { echo "  paket 10 / moq 20 DISINDAKILER:\n"; foreach ($odd as $o) echo "     ".$o."\n"; }
+            echo "  kimlikler:\n";
+            foreach (array_chunk($ids, 6) as $row) echo "     ".implode(' ', $row)."\n";
 
             head("4. STRIPE YAPILANDIRILMIS MI");
             $ok = function_exists('stripe_available') ? stripe_available() : false;
