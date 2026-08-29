@@ -386,6 +386,18 @@ function vestra_discover_blocklist(): array {
     // department stores
     'galeries lafayette','el corte inglés','el corte ingles','karstadt','kaufhof','john lewis','debenhams',
     "macy's",'nordstrom','harrods','selfridges','myer','david jones',
+    /* ABD magaza zincirleri ve indirim (off-price) kollari. Saks OFF 5TH bu
+       kontrolden GECMISTI: listede sadece "nordstrom" vardi, "saks" yoktu --
+       ayni partide Nordstrom Rack yakalanip Saks OFF 5TH gecince acik ortaya
+       cikti. Zincirin indirim kolu da zincirdir; ~100 magazali bir off-price
+       agi bir pazar yerinden kucuk parti almaz. */
+    /* DIKKAT: kisa parcalar kullanma. Alan adi eslesmesi ayiraclari atip ALT DIZI
+       ariyor, yani 4 harflik 'saks' Isvecli "Isaksson Mode"un icinde eslesip
+       gercek bir butigi sessizce eliyordu. Zincirin tam adini yaz. */
+    'saks off 5th','saksoff5th','saks fifth avenue','saksfifthavenue',
+    'bergdorf','neiman marcus','bloomingdale',"dillard's",'dillards',
+    'tj maxx','tjmaxx','tk maxx','marshalls','ross stores','ross dress',
+    'burlington coat','century 21 stores','jcpenney','j.c. penney',"kohl's",'kohls',
     // sportswear giants
     'nike','adidas','puma','under armour','the north face','columbia sportswear','reebok','fila','kappa',
     'umbro','asics','new balance',
@@ -490,13 +502,38 @@ function vestra_domain_is_blocked(string $email, string $website=''): bool {
        trafalgarluxurygroup.com sailed past a list that literally names it. */
     $flat=preg_replace('/[^a-z0-9]/','',$core);
     if($flat==='') continue;
+    $exact=vestra_blocklist_exact_only();
     foreach(vestra_discover_blocklist() as $b){
       if($b==='') continue;
       $bf=preg_replace('/[^a-z0-9]/','',strtolower($b));
-      if($bf!=='' && strlen($bf)>=4 && str_contains($flat,$bf)) return true;
+      if($bf==='' || strlen($bf)<4) continue;
+      /* KISA girisler SADECE tam eslesir. Alan adinda kelime siniri yok, yani
+         alt dizi aramasi kisa marka adlarini baska adlarin icinde buluyor:
+         zara -> zaragozamoda.es, puma -> pumaverde.it, fila -> filaticcio.it,
+         marshalls -> marshallstreet.co.uk. Hepsi gercek cok markali butik ve
+         hepsi sessizce eleniyordu. 6 harf siniri + adi gunluk bir kelime olan
+         uzun girisler icin ayri liste; "alshaya", "nordstrom", "trafalgar
+         luxury" gibi ozgun adlar alt dizi aramasinda kaliyor, cunku
+         "trafalgarluxurygroup.com" tam da oyle yakalaniyor. */
+      if(strlen($bf)<=6 || isset($exact[$bf])){ if($flat===$bf) return true; continue; }
+      if(str_contains($flat,$bf)) return true;
     }
   }
   return false;
+}
+/* Zincir adi ayni zamanda sik bir kelime/soyad oldugunda alt dizi eslesmesi
+   yanlis pozitif uretiyor; bunlar alan adinin TAMAMINA esit olmali. Sirket
+   ADI tarafinda kelime siniri zaten var, orada bir kayip yok. */
+function vestra_blocklist_exact_only(): array {
+  static $m=null;
+  if($m===null){
+    $m=[];
+    foreach(['marshalls','mango','next retail','sears','kohls',"kohl's",'ross stores',
+             'ross dress','courir','snipes','fila','kappa','umbro','next'] as $t){
+      $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
+    }
+  }
+  return $m;
 }
 /* Monobrand rule: a company whose OWN name or domain is a premium label is that label's
  * own operation (flagship, national subsidiary, official distributor) -- it buys from its
@@ -545,7 +582,17 @@ function vestra_name_is_blocked(string $company, string $brand=''): bool {
   $k=strtolower(trim($company)); $b2=strtolower(trim($brand));
   if($k==='' && $b2==='') return false;
   foreach(vestra_discover_blocklist() as $b){
-    if(($k!=='' && str_contains($k,$b)) || ($b2!=='' && str_contains($b2,$b))) return true;
+    if($b==='') continue;
+    /* KELIME SINIRI SART. Duz str_contains, listedeki kisa adlari baska
+       kelimelerin ICINDE buluyordu: "mango" -> Mangobay Boutique, "fila" ->
+       Filaticcio Milano, "zara" -> Zaragoza Moda, "next" -> Next Door Concept.
+       Hepsi gercek cok markali butik ve hepsi sessizce eleniyordu -- kimsenin
+       fark etmedigi tek hata turu bu. (vestra_is_monobrand ayni sebeple zaten
+       sinir kullaniyordu; bu fonksiyon geride kalmisti.)
+       \b yerine alfanumerik ileri/geri bakis: listede '&' ve kesme isareti
+       tasiyan girisler var ve \b onlarin ucunda beklenmedik davraniyor. */
+    $re='/(?<![a-z0-9])'.preg_quote($b,'/').'(?![a-z0-9])/i';
+    if(($k!=='' && preg_match($re,$k)) || ($b2!=='' && preg_match($re,$b2))) return true;
   }
   return false;
 }
