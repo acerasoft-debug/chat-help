@@ -93,3 +93,38 @@ function vestra_user_lang(?array $acc): string {
   $l = strtolower(substr((string)($acc['lang'] ?? ''), 0, 2));
   return isset(vlang_list()[$l]) ? $l : 'en';
 }
+
+/* GIRIS YAPMIS KULLANICIYA "KAYIT OL" GOSTERME.
+   Kural basit ama sayfa sayfa uygulanamiyor: her yeni pazarlama sayfasi kendi
+   "Register free" dugmesini ekliyor, ve yazan kisi o an misafiri dusunuyor. Iki
+   kez duzeltildi, iki kez geri geldi -- cunku duzeltme her seferinde O SAYFAYA
+   yazildi, kurala degil. Artik tek fonksiyon: uye ise kendi paneline, degilse
+   kayda goturur. Yeni bir sayfa bunu cagirdigi surece kural kendiliginden gecerli.
+
+   NEDEN BURADA (head.php'de degil): once head.php'ye yazilmisti, ama index.php
+   kendi <head>'ini basiyor ve head.php'yi hic dahil etmiyor -- ana sayfa bu
+   fonksiyonu cagirinca "undefined function" ile OLDU, sayfa marka duvarindan
+   itibaren kesildi (71.634 bayt yerine 49.012). i18n.php'yi HER sayfa yukluyor
+   (head.php dahil), yani kural artik erisilemedigi icin kirilamaz.
+
+   $type: 'buyer' | 'seller' | '' -> /register?type=... (misafir icin).
+   Dondurulen sey tam bir <a> etiketi; cagiran yer sadece etiketi ve sinifi verir. */
+function vestra_join_cta(string $guestLabel, string $class = 'btn btn-p', string $type = '', string $style = ''): string {
+    /* Kullaniciyi UC kaynaktan cozuyoruz, cunku her sayfa ayni kurulmuyor:
+       head.php $AUTH_USER'i global yapar; index.php'nin elinde sadece oturum var.
+       Tek kaynaga guvenmek, bu kuralin daha once kacirdigi durumun ta kendisiydi. */
+    $u = $GLOBALS['AUTH_USER'] ?? null;
+    if ($u === null && function_exists('auth_user')) $u = auth_user();
+    $signedIn = is_array($u) || !empty($_SESSION['uid']);
+    $st = $style !== '' ? ' style="'.$style.'"' : '';
+    if ($signedIn) {
+        $utype = is_array($u) ? (string)($u['type'] ?? '') : (string)($_SESSION['utype'] ?? '');
+        $href  = $utype === 'seller' ? '/seller' : '/buyer';
+        $label = function_exists('t') ? t('Open my dashboard') : 'Open my dashboard';
+    } else {
+        $href  = '/register'.($type !== '' ? '?type='.rawurlencode($type) : '');
+        $label = $guestLabel;
+    }
+    return '<a class="'.htmlspecialchars($class, ENT_QUOTES).'" href="'.htmlspecialchars($href, ENT_QUOTES).'"'.$st.'>'
+         . htmlspecialchars($label) . '</a>';
+}

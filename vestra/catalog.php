@@ -78,10 +78,10 @@ if (!$rows) {
     $rows[] = ['cells' => ['', '', 'This selection is available on request — register free at vestrasales.com', '', '', '', '', ''], 'image' => ''];
 }
 // Footer note (no photo): drives registration; keeps trade pricing gated.
-$rows[] = ['cells' => ['', '', 'Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', ''], 'image' => ''];
+$rows[] = ['cells' => ['Trade pricing & full line-sheets: register free at vestrasales.com — every seller KYC-verified, goods authenticity-verified on delivery, escrow-protected invoicing.', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
 /* This file carries no prices by design, so it has to say where they are. A recipient
    who was sent the catalogue and wants a number should not have to ask for it. */
-$rows[] = ['cells' => ['', '', 'Prices, minimum order quantities and sizes for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', ''], 'image' => ''];
+$rows[] = ['cells' => ['Prices, minimum order quantities and sizes for every article: https://vestrasales.com/price-list  ·  by brand: https://vestrasales.com/price-lists', '', '', '', '', '', '', ''], 'image' => '', 'style' => 'note'];
 
 $title = count($wanted) === 1 ? $wanted[0] : 'VESTRA Selection';
 
@@ -111,7 +111,13 @@ $fromCache = is_file($cacheFile) && filesize($cacheFile) > 0;
 if ($fromCache) {
     $xlsx = $cacheFile;
 } else {
-    $xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title);
+    $xlsx = vestra_xlsx_with_photos_file($headers, $rows, $title, [
+        'band'   => 'VESTRA — '.($wanted ? implode(', ', $wanted) : 'Brand Selection').' · '.date('F Y'),
+        'freeze' => true,
+        'filter' => true,
+        'zebra'  => true,
+        'widths' => [0 => 5, 1 => 15, 2 => 34, 3 => 16, 4 => 20, 5 => 18, 6 => 10, 7 => 16],
+    ]);
     if ($xlsx === '') { http_response_code(500); header('Content-Type: text/plain'); exit('catalog temporarily unavailable'); }
     if (!is_dir($cacheDir)) @mkdir($cacheDir, 0775, true);
     /* Once gecici ada yaz, sonra rename: rename atomik, dolayisiyla ayni anda

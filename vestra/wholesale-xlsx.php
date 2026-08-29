@@ -117,8 +117,11 @@ foreach ($byBrand as $brand => $list) {
    (urun adi sutunu), cunku orasi sayfada en genis olan. */
 $note = function (string $text) use ($headers): array {
     $cells = array_fill(0, count($headers), '');
-    $cells[4] = $text;
-    return ['cells' => $cells, 'image' => ''];
+    /* Metin artik ILK hucrede: uretici not satirini tam genislige birlestirip
+       italik/soluk basiyor (style=note) -- 5. sutunda baslayan metin, birlesik
+       hucrede gorunmez kalirdi. */
+    $cells[0] = $text;
+    return ['cells' => $cells, 'image' => '', 'style' => 'note'];
 };
 
 $rows[] = ['cells' => array_fill(0, count($headers), ''), 'image' => ''];
@@ -144,7 +147,21 @@ $rows[] = $note('Always-current version of this list: https://vestrasales.com/pr
     .($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '').'  ·  every brand: https://vestrasales.com/price-lists');
 
 $title = $brandFilter !== '' ? $brandFilter.' wholesale' : 'VESTRA wholesale';
-$file  = vestra_xlsx_with_photos_file($headers, $rows, $title);
+/* Gorunum: marka bandi + donmus baslik + filtre oklari + zebra + gercek sayi
+   hucreleri. Fiyatlar sayi OLDUGU icin musteri artik temizlemeden toplayip
+   siralayabiliyor; urun linki gercek kopru. Sutun genislikleri iceriğe gore. */
+$file  = vestra_xlsx_with_photos_file($headers, $rows, $title, [
+    'band'    => 'VESTRA — Wholesale Price List'
+               . ($brandFilter !== '' ? ' · '.$brandFilter : '')
+               . ' · '.date('F Y'),
+    'freeze'  => true,
+    'filter'  => true,
+    'zebra'   => true,
+    'numcols' => [7 => 'int', 9 => 'num', 10 => 'num', 12 => 'int'],
+    'linkcols'=> [14],
+    'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15, 6 => 30,
+                  7 => 7, 8 => 6, 9 => 14, 10 => 12, 11 => 12, 12 => 10, 13 => 24, 14 => 44],
+]);
 if ($file === '' || !is_file($file)) {
     http_response_code(500);
     header('Content-Type: text/plain');

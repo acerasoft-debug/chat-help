@@ -62,9 +62,30 @@ function vestra_xlsx_thumb(string $path, string $ext, int $maxPx, string $tmpDir
   return $out;
 }
 
-function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title = 'VESTRA'): string {
+/* $opts — hepsi istege bagli, verilmedikce eski davranis korunur:
+     'band'    => 'Wholesale Price List — Balmain · September 2026'
+                  1. satira tam genislik birlestirilmis marka bandi (koyu zemin,
+                  altin serif baslik). Musteri dosyayi acinca ilk gordugu sey
+                  tablo cizgileri degil, kimin listesi oldugu olsun.
+     'freeze'  => true   baslik satiri kayarken sabit kalir
+     'filter'  => true   basliga Excel filtre oklari
+     'zebra'   => true   veri satirlarinda dönüsümlü krem bant
+     'numcols' => [9=>'num', 7=>'int']  bu sutunlar GERCEK sayi hucresi olur
+                  (num: #,##0.00 · int: #,##0). Metin '79.90' toplanamaz,
+                  siralamada '100' '99'un onune duser; sayi hucresi ikisini de
+                  duzeltir. Bos deger bos kalir.
+     'linkcols'=> [14]   http(s) ile baslayan degerler GERCEK kopru olur
+     'widths'  => [4=>38.0]  sutun genisligi (varsayilani ezmek icin)
+   Not satirlari: $rows[i]['style']='note' -> italik, soluk, tum sutunlara
+   birlestirilmis tek hucre (metin cells[0]'da beklenir). */
+function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title = 'VESTRA', array $opts = []): string {
   if (!class_exists('ZipArchive')) return '';
   $ncol     = max(1, count($headers));
+  $band     = trim((string)($opts['band'] ?? ''));
+  $topRows  = $band !== '' ? 2 : 1;      // bant + baslik, yoksa yalniz baslik
+  $zebra    = !empty($opts['zebra']);
+  $numcols  = (array)($opts['numcols'] ?? []);
+  $linkcols = array_flip(array_map('intval', (array)($opts['linkcols'] ?? [])));
   $photoCol = $ncol - 1;                 // last column reserved for the photo
   $EMU      = 9525;                       // EMU per pixel @96dpi
   $imgBox   = 96;                         // max photo box (px) inside the cell
@@ -93,7 +114,7 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
     if ($w < 1 || $h < 1) continue;
     $scale = min($imgBox / $w, $imgBox / $h, 1.0);
     $dw = max(1, (int)round($w * $scale)); $dh = max(1, (int)round($h * $scale));
-    $sheetRow = $ri + 2;                  // +1 header row, +1 for 1-based
+    $sheetRow = $ri + $topRows + 1;       // bant(varsa) + baslik + 1-based
     /* Embed a copy sized for the cell, not the original camera file. */
     $thumb = vestra_xlsx_thumb($path, $ext, $embedPx, $tmpDir);
     if ($thumb !== '') { $shrunk[] = $thumb; $path = $thumb; }
@@ -106,42 +127,109 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
   if (!$imgs) $photoCol = -1;
 
   // ---- sheet1.xml ------------------------------------------------------------
+  $optW = (array)($opts['widths'] ?? []);
   $colsXml = '<cols>';
   for ($c = 0; $c < $ncol; $c++) {
-    $w = ($c === $photoCol) ? 16 : ($c === 0 ? 5 : 22);
+    $w = $optW[$c] ?? (($c === $photoCol) ? 16 : ($c === 0 ? 5 : 22));
     $colsXml .= '<col min="' . ($c + 1) . '" max="' . ($c + 1) . '" width="' . $w . '" customWidth="1"/>';
   }
   $colsXml .= '</cols>';
 
+  $lastCol   = vestra_xlsx_col($ncol - 1);
+  $merges    = [];    // birlestirilecek araliklar
+  $hyperXml  = '';    // <hyperlink> girisleri
+  $hyperRels = '';    // sheet1.xml.rels'e dis baglanti iliskileri
+  $hl        = 0;
+  /* Tek satir veri yoksa (ya da hepsi not ise) suzgec basligin kendisinde
+     biter; asagida max() ile zaten korunuyor ama degisken tanimli olmali. */
+  $lastDataRow = $topRows;
+
   $sheetData = '<sheetData>';
-  // header row (styled bold, dark fill via s="1")
-  $sheetData .= '<row r="1" ht="20" customHeight="1">';
+  if ($band !== '') {
+    // 1. satir: tam genislik marka bandi
+    $sheetData .= '<row r="1" ht="34" customHeight="1">'
+      . '<c r="A1" s="11" t="inlineStr"><is><t>' . vestra_xlsx_esc($band) . '</t></is></c>';
+    for ($c = 1; $c < $ncol; $c++) $sheetData .= '<c r="' . vestra_xlsx_col($c) . '1" s="11"/>';
+    $sheetData .= '</row>';
+    $merges[] = 'A1:' . $lastCol . '1';
+  }
+  // baslik satiri
+  $hr = $topRows;
+  $sheetData .= '<row r="' . $hr . '" ht="22" customHeight="1">';
   for ($c = 0; $c < $ncol; $c++) {
-    $ref = vestra_xlsx_col($c) . '1';
+    $ref = vestra_xlsx_col($c) . $hr;
     $sheetData .= '<c r="' . $ref . '" s="1" t="inlineStr"><is><t>' . vestra_xlsx_esc((string)($headers[$c] ?? '')) . '</t></is></c>';
   }
   $sheetData .= '</row>';
+
   foreach ($rows as $ri => $row) {
-    $rn = $ri + 2;
+    $rn = $ri + $topRows + 1;
     $hasImg = isset($imgs[$rn]);
+    $isNote = (($row['style'] ?? '') === 'note');
+    $bandOn = $zebra && !$isNote && ($ri % 2 === 1);
     $sheetData .= '<row r="' . $rn . '"' . ($hasImg ? ' ht="' . $rowH . '" customHeight="1"' : '') . '>';
     $cells = $row['cells'] ?? [];
+    if ($isNote) {
+      // Italik, soluk, tum genislige birlestirilmis tek hucre.
+      $txt = trim(implode(' ', array_map('strval', $cells)));
+      $sheetData .= '<c r="A' . $rn . '" s="10" t="inlineStr"><is><t>' . vestra_xlsx_esc($txt) . '</t></is></c>';
+      for ($c = 1; $c < $ncol; $c++) $sheetData .= '<c r="' . vestra_xlsx_col($c) . $rn . '" s="10"/>';
+      if ($txt !== '') $merges[] = 'A' . $rn . ':' . $lastCol . $rn;
+      $sheetData .= '</row>';
+      continue;
+    }
+    $lastDataRow = $rn;   // suzgec araligi burada bitmeli -- alt notlar disarida
     for ($c = 0; $c < $ncol; $c++) {
       $ref = vestra_xlsx_col($c) . $rn;
-      if ($c === $photoCol) { $sheetData .= '<c r="' . $ref . '" s="2"/>'; continue; } // photo overlays here
+      if ($c === $photoCol) { $sheetData .= '<c r="' . $ref . '" s="' . ($bandOn ? 3 : 2) . '"/>'; continue; }
       $val = (string)($cells[$c] ?? '');
-      $sheetData .= '<c r="' . $ref . '" s="2" t="inlineStr"><is><t>' . vestra_xlsx_esc($val) . '</t></is></c>';
+      $kind = $numcols[$c] ?? '';
+      if (($kind === 'num' || $kind === 'int') && $val !== '' && is_numeric($val)) {
+        $s = $kind === 'num' ? ($bandOn ? 5 : 4) : ($bandOn ? 7 : 6);
+        $sheetData .= '<c r="' . $ref . '" s="' . $s . '"><v>' . $val . '</v></c>';
+        continue;
+      }
+      if (isset($linkcols[$c]) && preg_match('~^https?://~i', $val)) {
+        $hl++;
+        $rid = 'hlnk' . $hl;
+        $hyperXml  .= '<hyperlink ref="' . $ref . '" r:id="' . $rid . '"/>';
+        $hyperRels .= '<Relationship Id="' . $rid . '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"'
+                    . ' Target="' . vestra_xlsx_esc($val) . '" TargetMode="External"/>';
+        $sheetData .= '<c r="' . $ref . '" s="' . ($bandOn ? 9 : 8) . '" t="inlineStr"><is><t>' . vestra_xlsx_esc($val) . '</t></is></c>';
+        continue;
+      }
+      $sheetData .= '<c r="' . $ref . '" s="' . ($bandOn ? 3 : 2) . '" t="inlineStr"><is><t>' . vestra_xlsx_esc($val) . '</t></is></c>';
     }
     $sheetData .= '</row>';
   }
   $sheetData .= '</sheetData>';
+
+  /* Eleman SIRASI semaya gore: sheetViews > cols > sheetData > autoFilter >
+     mergeCells > hyperlinks > drawing. Yanlis sira Excel'de "onarilan dosya"
+     uyarisi uretir. Izgara cizgileri kapali: tablo kendi cizgilerini tasiyor. */
+  $views = '<sheetViews><sheetView workbookViewId="0" showGridLines="0"';
+  if (!empty($opts['freeze'])) {
+    $views .= '><pane ySplit="' . $topRows . '" topLeftCell="A' . ($topRows + 1) . '" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>';
+  } else {
+    $views .= '/></sheetViews>';
+  }
+  /* Suzgec araligi SON VERI SATIRINDA biter, dosyanin sonunda degil. Alt notlar
+     araligin icinde kalinca birlestirilmis not hucresi suzgec listelerinde bir
+     "deger" olarak cikiyor ve bir siralama notlari verinin arasina karistiriyor. */
+  $filterXml = '';
+  if (!empty($opts['filter'])) {
+    $filterXml = '<autoFilter ref="A' . $hr . ':' . $lastCol . max($hr, $lastDataRow) . '"/>';
+  }
+  $mergeXml = $merges ? '<mergeCells count="' . count($merges) . '">'
+    . implode('', array_map(fn($m) => '<mergeCell ref="' . $m . '"/>', $merges)) . '</mergeCells>' : '';
+  $hyperBlock = $hyperXml !== '' ? '<hyperlinks>' . $hyperXml . '</hyperlinks>' : '';
 
   $drawingRef = $imgs ? '<drawing r:id="rId1"/>' : '';
   $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
     . ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
     . '<sheetPr><tabColor rgb="FF14110C"/></sheetPr>'
-    . $colsXml . $sheetData . $drawingRef . '</worksheet>';
+    . $views . $colsXml . $sheetData . $filterXml . $mergeXml . $hyperBlock . $drawingRef . '</worksheet>';
 
   // ---- drawing1.xml (one anchor per image) -----------------------------------
   $drawing = ''; $drawingRels = ''; $mediaFiles = []; $i = 0;
@@ -206,23 +294,52 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
     . '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
     . '</Relationships>';
 
-  // styles: s=0 default, s=1 header (bold white on dark), s=2 body (top-aligned, wrapped)
+  /* Stil paleti — hucreler s= ile bunlara isaret ediyor:
+       0 varsayilan · 1 baslik (koyu zemin, altin kalin, altin alt cizgi)
+       2 govde · 3 govde+zebra · 4 sayi 2hane · 5 sayi+zebra · 6 tamsayi
+       7 tamsayi+zebra · 8 kopru (mavi altcizgili) · 9 kopru+zebra
+       10 not (italik soluk) · 11 marka bandi (Georgia 16, altin, koyu zemin)
+     Renkler sitenin kendi paleti: murekkep FF14110C, altin FFC9A86A/FFD8BD86,
+     krem zebra FFF8F5EF, kirik cizgi FFE7E1D6. Excel'de de ayni marka dursun. */
   $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
     . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-    . '<fonts count="3">'
-    . '<font><sz val="11"/><name val="Calibri"/></font>'
-    . '<font><b/><sz val="11"/><color rgb="FFD8BD86"/><name val="Calibri"/></font>'
-    . '<font><sz val="11"/><color rgb="FF3A3428"/><name val="Calibri"/></font>'
+    . '<numFmts count="2">'
+    . '<numFmt numFmtId="164" formatCode="#,##0.00"/>'
+    . '<numFmt numFmtId="165" formatCode="#,##0"/>'
+    . '</numFmts>'
+    . '<fonts count="6">'
+    . '<font><sz val="11"/><name val="Calibri"/></font>'                                        // 0
+    . '<font><b/><sz val="11"/><color rgb="FFD8BD86"/><name val="Calibri"/></font>'             // 1 baslik
+    . '<font><sz val="11"/><color rgb="FF3A3428"/><name val="Calibri"/></font>'                 // 2 govde
+    . '<font><u/><sz val="11"/><color rgb="FF2E5AAC"/><name val="Calibri"/></font>'             // 3 kopru
+    . '<font><i/><sz val="10"/><color rgb="FF6F6A61"/><name val="Calibri"/></font>'             // 4 not
+    . '<font><b/><sz val="16"/><color rgb="FFD8BD86"/><name val="Georgia"/></font>'             // 5 bant
     . '</fonts>'
-    . '<fills count="3"><fill><patternFill patternType="none"/></fill>'
+    . '<fills count="4">'
+    . '<fill><patternFill patternType="none"/></fill>'
     . '<fill><patternFill patternType="gray125"/></fill>'
-    . '<fill><patternFill patternType="solid"><fgColor rgb="FF14110C"/></patternFill></fill></fills>'
-    . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
+    . '<fill><patternFill patternType="solid"><fgColor rgb="FF14110C"/></patternFill></fill>'   // 2 murekkep
+    . '<fill><patternFill patternType="solid"><fgColor rgb="FFF8F5EF"/></patternFill></fill>'   // 3 krem
+    . '</fills>'
+    . '<borders count="3">'
+    . '<border><left/><right/><top/><bottom/><diagonal/></border>'
+    . '<border><left/><right/><top/><bottom style="thin"><color rgb="FFE7E1D6"/></bottom><diagonal/></border>'   // 1 kirik alt cizgi
+    . '<border><left/><right/><top/><bottom style="medium"><color rgb="FFC9A86A"/></bottom><diagonal/></border>' // 2 altin alt cizgi
+    . '</borders>'
     . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-    . '<cellXfs count="3">'
+    . '<cellXfs count="12">'
     . '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
-    . '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment vertical="center"/></xf>'
-    . '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+    . '<xf numFmtId="0" fontId="1" fillId="2" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
+    . '<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+    . '<xf numFmtId="0" fontId="2" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+    . '<xf numFmtId="164" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" horizontal="right"/></xf>'
+    . '<xf numFmtId="164" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" horizontal="right"/></xf>'
+    . '<xf numFmtId="165" fontId="2" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" horizontal="right"/></xf>'
+    . '<xf numFmtId="165" fontId="2" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" horizontal="right"/></xf>'
+    . '<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>'
+    . '<xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>'
+    . '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>'
+    . '<xf numFmtId="0" fontId="5" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" indent="1"/></xf>'
     . '</cellXfs>'
     . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
     . '</styleSheet>';
@@ -238,12 +355,18 @@ function vestra_xlsx_with_photos_file(array $headers, array $rows, string $title
   $zip->addFromString('xl/_rels/workbook.xml.rels', $workbookRels);
   $zip->addFromString('xl/styles.xml', $styles);
   $zip->addFromString('xl/worksheets/sheet1.xml', $sheet);
-  if ($imgs) {
+  /* Sayfanin iliski dosyasi: cizim VE kopruler ayni dosyada yasiyor. Eskiden
+     yalniz $imgs varken yaziliyordu; kopru iliskileri gorselsiz listede de
+     gerekli, yoksa Excel r:id'yi cozemeyip dosyayi "onarir". */
+  $sheetRels = ($imgs ? '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>' : '')
+             . $hyperRels;
+  if ($sheetRels !== '') {
     $zip->addFromString('xl/worksheets/_rels/sheet1.xml.rels',
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
       . '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
-      . '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>'
-      . '</Relationships>');
+      . $sheetRels . '</Relationships>');
+  }
+  if ($imgs) {
     $zip->addFromString('xl/drawings/drawing1.xml', $drawing);
     $zip->addFromString('xl/drawings/_rels/drawing1.xml.rels',
       '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'

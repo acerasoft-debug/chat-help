@@ -933,23 +933,67 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 
 <?php
 /* ── Yakinda geliyor / Coming soon ─────────────────────────────────────────
-   Iceriyi DOSYALAR belirler: uploads/coming-soon/ altina atilan her gorsel bir
-   kart olur, dosya adi (gdt01.jpg -> GDT01) model rozetine yazilir. Yeni parti
-   geldiginde kod degil klasor guncellenir; klasor bosalinca bolum kendini
-   cizmez. Kartlar bilerek TIKLANMAZ: urunler henuz katalogda yok, olmayan bir
-   sayfaya baglanti 404'ten farksiz. Tek eylem, kapinin zaten actigi sey --
-   misafir kayda, uye paneline (vestra_join_cta karar veriyor).
+   Iceriyi DOSYALAR belirler, kod degil. uploads/coming-soon/ altindaki HER
+   ALT KLASOR bir marka sekmesi, icindeki her gorsel bir karttir. Yeni parti
+   geldiginde klasor acilir; klasor bosalinca sekme kendini cizmez, hepsi
+   bosalinca bolum hic basilmaz.
+
+   Dosya adi rozeti verir: "M7535__03.jpg" -> M7535 (cift alt tireden oncesi).
+   Ayni modelin renk varyantlari boylece tek koda toplanir, dosya adi da
+   benzersiz kalir. Alt tire yoksa tum ad kullanilir (gdt01.jpg -> GDT01).
+
+   Her klasorde istege bagli _meta.txt: 1. satir marka adi, 2. satir alt
+   baslik, 3. satir siralama agirligi (kucuk once, varsayilan 50). Yoksa ad
+   klasor adindan uretilir -- yani yeni marka eklemek icin PHP'ye dokunmak
+   gerekmiyor.
+
+   UC MARKA TEK BOLUMDE: sekmeler saf CSS (gizli radio + :checked ~ ...), JS
+   yok. Alt alta uc serit koymak bolumu uc katina cikariyordu; sekme yuksekligi
+   sabit tutuyor -- "beyaz bolumler cok uzun olmasin".
+
+   Kartlar bilerek TIKLANMAZ: urunler henuz katalogda yok, olmayan bir sayfaya
+   baglanti 404'ten farksiz. Tek eylem, kapinin zaten actigi sey -- misafir
+   kayda, uye paneline (vestra_join_cta karar veriyor).
    Konum: hero'nun hemen ardi. Urun gecisleri (hero film + serit) oldugu yerde,
    bu bolumun ustunde donmeye devam ediyor. */
-$soonImgs = glob(__DIR__.'/uploads/coming-soon/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
-sort($soonImgs);
-if ($soonImgs):
+$soonDir    = __DIR__.'/uploads/coming-soon';
+$soonBrands = [];
+foreach (glob($soonDir.'/*', GLOB_ONLYDIR) ?: [] as $bdir) {
+    $imgs = glob($bdir.'/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
+    if (!$imgs) continue;
+    natcasesort($imgs); $imgs = array_values($imgs);
+    $slug = basename($bdir);
+    $name = ucwords(str_replace('-', ' ', $slug));
+    $sub  = ''; $ord = 50;
+    if (is_file($bdir.'/_meta.txt')) {
+        $ln = array_map('trim', explode("\n", (string)@file_get_contents($bdir.'/_meta.txt')));
+        if (($ln[0] ?? '') !== '') $name = $ln[0];
+        if (($ln[1] ?? '') !== '') $sub  = $ln[1];
+        if (isset($ln[2]) && is_numeric($ln[2])) $ord = (int)$ln[2];
+    }
+    /* CSS secicisine ve id'ye giriyor: harf/rakam/tire disini eleyip basa harf
+       zorluyoruz, boylece klasor adi ne olursa olsun gecerli bir seci uretilir. */
+    $css = preg_replace('/[^a-z0-9-]+/', '-', strtolower($slug));
+    $css = trim($css, '-'); if ($css === '' || !ctype_alpha($css[0])) $css = 'b'.$css;
+    $soonBrands[] = ['css' => $css, 'name' => $name, 'sub' => $sub, 'ord' => $ord,
+                     'dir' => $slug, 'imgs' => $imgs];
+}
+/* Eski duzen: dogrudan coming-soon/ altina birakilmis gevsek dosyalar. Bir
+   klasore tasindilar, ama biri elle buraya birakirsa gorsel kaybolmasin. */
+$loose = glob($soonDir.'/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
+if ($loose) {
+    natcasesort($loose);
+    $soonBrands[] = ['css' => 'more', 'name' => t('New arrivals'), 'sub' => '', 'ord' => 90,
+                     'dir' => '', 'imgs' => array_values($loose)];
+}
+usort($soonBrands, fn($a, $b) => [$a['ord'], $a['name']] <=> [$b['ord'], $b['name']]);
+if ($soonBrands):
 ?>
 <style>
-.soon{padding:74px 0 66px;background:
+.soon{padding:56px 0 48px;background:
   radial-gradient(900px 340px at 50% -80px, rgba(201,168,106,.07), transparent 70%)}
 .soon .wrap{max-width:1180px}
-.soon-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:14px}
+.soon-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:12px}
 .soon-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55));}
 .soon-kick .ln:last-child{transform:scaleX(-1)}
 .soon-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
@@ -959,44 +1003,94 @@ if ($soonImgs):
   animation:soonPulse 2.2s ease-in-out infinite}
 @keyframes soonPulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.soon-pill .dot{animation:none}}
-.soon-strip{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 18px;margin-top:34px;
+.soon h2.sec-title{margin-bottom:6px}
+/* Sekmeler. Radio'lar ekranda yok ama KLAVYEDE var: gizlemek icin display:none
+   kullanilsaydi sekmeler sekme tusuyla gezilemezdi. */
+.soon-radio{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.soon-tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 4px}
+.soon-tabs label{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--mut);padding:8px 16px;border-radius:999px;
+  border:1px solid rgba(201,168,106,.22);transition:color .25s,border-color .25s,background .25s}
+.soon-tabs label:hover{color:var(--ink,#f3ede1);border-color:rgba(201,168,106,.5)}
+.soon-panel{display:none}
+.soon-strip{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 14px;margin-top:20px;
   scroll-snap-type:x mandatory;scrollbar-width:none;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
           mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
 .soon-strip::-webkit-scrollbar{display:none}
-.soon-card{flex:0 0 clamp(180px,22vw,240px);scroll-snap-align:start;border-radius:16px;
-  background:#f5f2ec;position:relative;overflow:hidden;
+/* Kart zemini BEYAZ, cunku urun fotograflarinin zemini beyaz: kremrengi bir
+   kartta her fotograf gorunur bir beyaz dikdortgen olarak duruyordu. */
+.soon-card{flex:0 0 clamp(168px,20vw,224px);scroll-snap-align:start;border-radius:16px;
+  background:#fff;position:relative;overflow:hidden;
   box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65)}
 .soon-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
   box-shadow:inset 0 0 0 1px rgba(26,20,8,.06)}
-.soon-card img{display:block;width:100%;aspect-ratio:4/5;object-fit:contain;padding:10px 8px 30px;
-  transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+/* height:auto SART. <img> etiketindeki height="900" bir "presentational hint"
+   olarak height:900px veriyor; genislik de %100 oldugu icin IKI olcu de kesin
+   hale geliyor ve aspect-ratio yok sayiliyor -- kartlar 280px yerine 900px
+   yukseklikte ciziliyordu. Bu iki oznitelik yine de duruyor: yuklenmeden once
+   yer ayirip sayfanin zipla masini onluyorlar. */
+.soon-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;
+  padding:10px 8px 30px;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
 .soon-card:hover img{transform:scale(1.045)}
 .soon-tag{position:absolute;left:12px;bottom:10px;font-size:10.5px;font-weight:700;
   letter-spacing:.18em;color:#6f6a61}
-.soon-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.soon-sub{text-align:center;max-width:600px;margin:0 auto;font-size:13.5px;color:var(--mut);min-height:1.4em}
+.soon-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:14px}
 .soon-foot .hint{font-size:12.5px;color:var(--mut);letter-spacing:.02em}
+@media (max-width:640px){.soon{padding:44px 0 38px}.soon-tabs label{padding:7px 12px;font-size:11px}}
+<?php foreach ($soonBrands as $b): $c = $b['css']; ?>
+#st-<?= $c ?>:checked ~ .soon-tabs label[for="st-<?= $c ?>"]{color:#14110c;background:var(--acc);
+  border-color:var(--acc)}
+#st-<?= $c ?>:focus-visible ~ .soon-tabs label[for="st-<?= $c ?>"]{outline:2px solid var(--acc);outline-offset:3px}
+#st-<?= $c ?>:checked ~ .soon-panels .sp-<?= $c ?>{display:block}
+<?php endforeach; ?>
 </style>
 <section class="soon reveal" id="coming-soon">
   <div class="wrap">
     <div class="soon-kick"><span class="ln"></span>
       <span class="soon-pill"><span class="dot"></span><?= t('Coming soon') ?></span>
     <span class="ln"></span></div>
-    <h2 class="sec-title" style="text-align:center"><?= t('Winter 26/27') ?> · Gallery Dept.</h2>
-    <p class="sec-sub" style="text-align:center;max-width:560px;margin-left:auto;margin-right:auto">
-      <?= t('A new capsule is on its way to VESTRA — cult logo tees from Los Angeles, in full size series. Preview the drop below; ordering opens shortly.') ?>
+    <h2 class="sec-title" style="text-align:center"><?= t('Winter 26/27') ?></h2>
+    <p class="soon-sub" style="margin-bottom:2px">
+      <?= t('New houses landing at VESTRA. Preview the drop below; ordering opens shortly.') ?>
     </p>
-    <div class="soon-strip">
-      <?php foreach ($soonImgs as $si): $tag = strtoupper(pathinfo($si, PATHINFO_FILENAME)); ?>
-      <figure class="soon-card" style="margin:0">
-        <img src="/uploads/coming-soon/<?= htmlspecialchars(basename($si)) ?>" alt="Gallery Dept. <?= htmlspecialchars($tag) ?>" loading="lazy" width="720" height="900">
-        <figcaption class="soon-tag"><?= htmlspecialchars($tag) ?></figcaption>
-      </figure>
+    <?php /* Radio'lar sekmelerden ve panellerden ONCE gelmeli: CSS'in "~" secicisi
+             sadece SONRAKI kardeslere ulasir. */
+    foreach ($soonBrands as $i => $b): ?>
+    <input class="soon-radio" type="radio" name="soontab" id="st-<?= $b['css'] ?>"<?= $i === 0 ? ' checked' : '' ?>>
+    <?php endforeach; ?>
+    <div class="soon-tabs" role="tablist">
+      <?php foreach ($soonBrands as $b): ?>
+      <label for="st-<?= $b['css'] ?>"><?= htmlspecialchars($b['name']) ?></label>
+      <?php endforeach; ?>
+    </div>
+    <div class="soon-panels">
+      <?php foreach ($soonBrands as $b): $base = '/uploads/coming-soon'.($b['dir'] !== '' ? '/'.rawurlencode($b['dir']) : ''); ?>
+      <div class="soon-panel sp-<?= $b['css'] ?>">
+        <?php if ($b['sub'] !== ''): ?>
+        <p class="soon-sub"><?= htmlspecialchars($b['sub']) ?></p>
+        <?php endif; ?>
+        <div class="soon-strip">
+          <?php foreach ($b['imgs'] as $si):
+            /* Rozet = cift alt tireden onceki kisim; ayni modelin renkleri tek koda
+               toplansin. Bastaki "01-" sadece siralama icin, rozete girmiyor. Kod
+               bilinmiyorsa dosya "05-__01.jpg" gibi adlandirilir: rozet bos kalir ve
+               basilmaz -- olmayan bir model numarasi uydurmaktansa hic yazmamak. */
+            $tag = strtoupper(explode('__', pathinfo($si, PATHINFO_FILENAME))[0]);
+            $tag = preg_replace('/^\d+[-_]/', '', $tag); ?>
+          <figure class="soon-card" style="margin:0">
+            <img src="<?= $base ?>/<?= rawurlencode(basename($si)) ?>" alt="<?= htmlspecialchars(trim($b['name'].' '.$tag)) ?>" loading="lazy" width="720" height="900">
+            <?php if ($tag !== ''): ?><figcaption class="soon-tag"><?= htmlspecialchars($tag) ?></figcaption><?php endif; ?>
+          </figure>
+          <?php endforeach; ?>
+        </div>
+      </div>
       <?php endforeach; ?>
     </div>
     <div class="soon-foot">
       <?= vestra_join_cta(t('Register for first access'), 'btn btn-o') ?>
-      <span class="hint">🇪🇺 <?= t('Full S–XL series · ships from the EU') ?></span>
+      <span class="hint">🇪🇺 <?= t('Full size series · ships from the EU') ?></span>
     </div>
   </div>
 </section>
