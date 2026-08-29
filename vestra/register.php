@@ -185,12 +185,15 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
       </div>
 
       <?php /* The button names the TYPE being created, not just "Create account".
-               The homepage's primary call to action is "Register as Seller", so a
-               buyer who taps the big gold button lands here with SELLER already
-               selected — and the old neutral button let them submit without ever
-               seeing that. One wrong word on this button cost a support round
-               ("I registered as buyer, it made me a seller"); naming the choice
-               at the moment of commitment is the cheapest possible fix. */ ?>
+               Whichever homepage button is the filled gold one, visitors read it
+               as "the" way in and arrive here with that type preselected — the old
+               neutral button then let them submit without ever seeing which. One
+               wrong word here cost a support round ("I registered as buyer, it made
+               me a seller"); naming the choice at the moment of commitment is the
+               cheapest possible fix. Deliberately NOT written in terms of which
+               button is gold today: that swapped once already (gold is the BUYER
+               button as of Aug 2026) and the reason this button names the type does
+               not depend on it. */ ?>
       <button class="btn btn-p" type="submit" id="regsubmit" style="width:100%;justify-content:center"><?=
         ($d['type']??'buyer')==='seller' ? t('Create seller account') : t('Create buyer account')
       ?></button>

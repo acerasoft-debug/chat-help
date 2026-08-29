@@ -884,11 +884,14 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
         <?= $t['b_panel'] ?>
       </a>
       <?php else: ?>
-      <a class="btn btn-p" href="/register?type=seller">
+      <?php /* Dolu (sari) dugme ALICIDA, cerceveli olan saticida. Ikisi de ayni
+               yere goturuyor, fark hangisinin once denendigi: dolu dugme sayfanin
+               birincil eylemi olarak okunuyor. */ ?>
+      <a class="btn btn-o" href="/register?type=seller">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l5 5v5h-2"/><path d="M3 7v10h2"/><circle cx="7.5" cy="17.5" r="2"/><circle cx="17.5" cy="17.5" r="2"/></svg>
         <?= $t['b_sell'] ?>
       </a>
-      <a class="btn btn-o" href="/register?type=buyer">
+      <a class="btn btn-p" href="/register?type=buyer">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14l-1 12H6L5 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
         <?= $t['b_buy'] ?>
       </a>
