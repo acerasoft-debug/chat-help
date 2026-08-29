@@ -76,6 +76,18 @@
   RewriteCond %{REQUEST_FILENAME}\.php -f
   RewriteRule ^(.+?)/?$ $1.php [L]
 
+  # Hiçbir dosyaya çıkmayan adres → markalı 404. ErrorDocument aşağıda ZATEN
+  # tanımlı ama canlıda tetiklenmiyor: bilinmeyen adres 13 baytlık düz
+  # "404 Not Found" alıyordu (ölçüm 29 Ağustos; /404.php'nin kendisi 19,5KB
+  # markalı sayfayı sorunsuz basıyor). Sunucunun ErrorDocument davranışını
+  # tartışmak yerine 404'ü rewrite katmanı sahiplensin: deterministik, ve
+  # ErrorDocument çalışan kurulumda da aynı sonucu verir. 404.php kendi
+  # http_response_code(404) satırını taşıdığı için kod da doğru döner.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}\.php !-f
+  RewriteRule . 404.php [L]
+
   # ── HTTPS + www → apex (SSL aktif; sertifika sorunu olursa bu 5 satırı tekrar yorumla) ──
   RewriteCond %{HTTPS} !=on
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
