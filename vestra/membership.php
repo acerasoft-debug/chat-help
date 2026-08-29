@@ -17,12 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'becom
            beklenmezdi. Yukseltme, onayi yeniden kazanilmasi gereken bir sey yapiyor. */
         auth_update($me['id'], ['type' => 'seller', 'kyb_status' => 'pending']);
         $have = array_column($me['doc_requests'] ?? [], 'type');
-        /* company_reg ve vat_cert de BURADA isteniyor. Eskiden istenmiyordu cunku
-           her alici zaten kayitta bu ikisini almis oluyordu; artik almiyor (alicidan
-           tek belge isteniyor, bkz. inc/auth.php). O varsayim kaldirilinca satici
-           olan bir hesap KYB'nin yarisi eksik kalirdi -- satici tarafinda para
-           tasiniyor ve bu belgeler gercekten gerekli. in_array kontrolu zaten
-           tekrari onluyor: belgesi olan hesaba ikinci kez sorulmaz. */
         /* company_reg ve vat_cert yok -- ilki ticari kayit belgesini tekrarliyor ve
            sahis sirketlerinde mevcut degil, ikincisinin bilgisi numara olarak
            aliniyor (vat_id). Gerekcelerin tamami inc/auth.php'de. */
@@ -167,7 +161,7 @@ body{ background:#15171C }
       <?php elseif ($isLoggedInBuyer): ?>
         <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
-        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
       <?php endif; ?>
     </div>
 
@@ -202,7 +196,7 @@ body{ background:#15171C }
       <?php elseif ($isLoggedInBuyer): ?>
         <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#A6402B;color:#fff;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
-        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#A6402B;color:#fff;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
       <?php endif; ?>
     </div>
 
@@ -235,7 +229,7 @@ body{ background:#15171C }
       <?php elseif ($isLoggedInBuyer): ?>
         <form method="post" action="/membership"><input type="hidden" name="action" value="become_seller"><button class="mcta" type="submit" style="width:100%;background:#1A1C21;color:#EFEAE1;border:none;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer"><?= t('Become a seller') ?></button></form>
       <?php else: ?>
-        <a href="/register?type=seller" class="mcta" style="display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700"><?= t('Get started') ?></a>
+        <?= vestra_join_cta(t('Get started'), 'mcta', 'seller', 'display:block;text-align:center;text-decoration:none;background:#1A1C21;color:#EFEAE1;padding:12px 0;border-radius:10px;font-size:15px;font-weight:700') ?>
       <?php endif; ?>
     </div>
 
@@ -246,7 +240,7 @@ body{ background:#15171C }
 
   <?php if (!$isLoggedInSeller): ?>
   <p style="text-align:center;margin-top:14px;font-size:13px;color:var(--mut)">
-    <a href="/register?type=seller" style="color:var(--acc)"><?= t('Create a seller account') ?></a>
+    <?= vestra_join_cta(t('Create a seller account'), '', 'seller', 'color:var(--acc)') ?>
     <?= ' ' . t('to get started.') ?>
     <?= t('Already registered?') ?> <a href="/login" style="color:var(--acc)"><?= t('Sign in') ?></a>
   </p>

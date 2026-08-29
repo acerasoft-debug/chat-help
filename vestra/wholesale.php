@@ -127,7 +127,7 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
       <div class="wsfact"><b>B2B</b><span><?= t('invoice-based ordering') ?></span></div>
     </div>
 
-    <a class="wscta" href="/register"><?= htmlspecialchars(sprintf(t('See %s trade prices'), $brand)) ?></a>
+    <?= vestra_join_cta(sprintf(t('See %s trade prices'), $brand), 'wscta') ?>
     <a class="wscta2" href="/catalog?brand=<?= urlencode($brand) ?>"><?= t('Download line sheet (.xlsx)') ?></a>
   </div>
 

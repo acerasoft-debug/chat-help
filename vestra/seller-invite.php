@@ -6,6 +6,13 @@ $PAGE = t('Sell on VESTRA'); $NAV = 'sell';
 $META = t('Sell wholesale on VESTRA — reach KYC-verified boutique buyers across Europe. List branded stock, get paid against invoices, and keep your pricing and buyer list to yourself.');
 $code = htmlspecialchars(strtoupper($_GET['code'] ?? 'VESTRA2026'));
 require __DIR__.'/inc/head.php';
+/* Davet sayfasi da girisli kullaniciya "kayit ol" gostermemeli. Davet linki
+   paylasilarak dolasiyor, dolayisiyla zaten uye olan biri de aciyor. Promo kodu
+   URL'de tasindigi icin vestra_join_cta() kullanilmiyor; kural ayni, kurulum elle. */
+$invHref  = $AUTH_USER ? ((($AUTH_USER['type'] ?? '') === 'seller') ? '/seller' : '/buyer')
+                       : '/register?type=seller&promo_code='.$code;
+$invStart = $AUTH_USER ? t('Open my dashboard') : t('Start selling now');
+$invClaim = $AUTH_USER ? t('Open my dashboard') : t('Claim your invite');
 ?>
 <style>
 .inv-hero{padding:70px 0 48px;text-align:center}
@@ -44,8 +51,8 @@ require __DIR__.'/inc/head.php';
     </div>
     <h1><?= t('Sell to verified B2B buyers across Europe') ?></h1>
     <p><?= t('VESTRA connects wholesale fashion sellers with verified business buyers. List your products in minutes — built-in buyer protection, group buy engine, and zero upfront cost.') ?></p>
-    <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:16px;padding:15px 30px">
-      <?= t('Start selling now') ?></a>
+    <a class="btn btn-p" href="<?= htmlspecialchars($invHref) ?>" style="font-size:16px;padding:15px 30px">
+      <?= htmlspecialchars($invStart) ?></a>
     <div style="margin-top:12px;font-size:13px;color:var(--mut)"><?= t('No listing fees · No subscription · Pay only when you sell') ?></div>
   </div>
 
@@ -103,8 +110,8 @@ require __DIR__.'/inc/head.php';
         <?= t('No registration fee') ?>
       </div>
     </div>
-    <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:15px;padding:13px 28px">
-      <?= t('Claim your invite') ?>
+    <a class="btn btn-p" href="<?= htmlspecialchars($invHref) ?>" style="font-size:15px;padding:13px 28px">
+      <?= htmlspecialchars($invClaim) ?>
     </a>
     <p style="margin:14px 0 0;font-size:13px;color:var(--mut)"><?= t('Limited offer · Code pre-filled at registration') ?></p>
   </div>
@@ -129,7 +136,7 @@ require __DIR__.'/inc/head.php';
   <div style="text-align:center;padding:48px 0 60px">
     <h2 style="margin:0 0 10px"><?= t('Ready to reach European buyers?') ?></h2>
     <p style="color:var(--mut);margin:0 0 22px"><?= t('Create your free seller account in 2 minutes.') ?></p>
-    <a class="btn btn-p" href="/register?type=seller&promo_code=<?= $code ?>" style="font-size:16px;padding:15px 30px"><?= t('Start selling now') ?></a>
+    <a class="btn btn-p" href="<?= htmlspecialchars($invHref) ?>" style="font-size:16px;padding:15px 30px"><?= htmlspecialchars($invStart) ?></a>
   </div>
 </div>
 <?php require __DIR__.'/inc/foot.php';

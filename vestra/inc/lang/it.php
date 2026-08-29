@@ -391,6 +391,7 @@ return array (
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Gli ordini si sbloccano dopo la verifica della visura camerale. Il carrello resta salvato.',
   'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'UE: la tua partita IVA. USA: il tuo EIN (es. 12-3456789) — negli Stati Uniti non esiste l’IVA. Altri paesi: il tuo codice fiscale d’impresa locale, oppure lascia vuoto se il tuo paese non ne rilascia.',
   'VAT / Tax ID (if your country issues one)' => 'Partita IVA / codice fiscale (se il tuo paese lo rilascia)',
+  'Open my dashboard' => 'Vai alla mia dashboard',
   'Min order' => 'Ordine minimo',
   'Ships from EU' => 'Spedizione dall\'UE',
   'Ships from %s' => 'Spedizione da %s',

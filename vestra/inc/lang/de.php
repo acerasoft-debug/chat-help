@@ -411,6 +411,7 @@ return array (
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Bestellungen werden freigeschaltet, sobald wir Ihre Gewerbeanmeldung geprüft haben. Ihr Warenkorb bleibt erhalten.',
   'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'EU: Ihre USt-IdNr. USA: Ihre EIN (z. B. 12-3456789) — in den USA gibt es keine USt. Andere Länder: Ihre lokale Steuernummer, oder lassen Sie das Feld leer, wenn es in Ihrem Land keine gibt.',
   'VAT / Tax ID (if your country issues one)' => 'USt-IdNr. / Steuernummer (falls Ihr Land eine vergibt)',
+  'Open my dashboard' => 'Zum Dashboard',
   'Min order' => 'Mindestbestellung',
   'Ships from EU' => 'Versand aus der EU',
   'Ships from %s' => 'Versand aus %s',

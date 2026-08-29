@@ -130,7 +130,7 @@ POST /api/dropship?a=order
   <p><?= t('Trade pricing and API keys go to verified trade accounts only. Register, then upload your trade licence or business registration in your account. <b>Wholesale prices open the moment that document is uploaded</b> — you do not wait for our review. The remaining documents complete the verification that unlocks seller names and line-sheet downloads.') ?></p>
   <p><?= t('For an API key, write to') ?> <a class="acc" href="mailto:support@vestrasales.com">support@vestrasales.com</a> <?= t('from the address on your account, telling us which brands or categories you intend to sell.') ?></p>
   <div class="dscta">
-    <a class="btn btn-p" href="/register"><?= t('Register free') ?></a>
+    <?= vestra_join_cta(t('Register free'), 'btn btn-p') ?>
     <a class="btn btn-o" href="/dropship"><?= t('Browse single-piece articles') ?></a>
     <a class="btn btn-o" href="/catalog"><?= t('Download the selection (Excel)') ?></a>
   </div>

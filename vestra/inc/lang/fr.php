@@ -391,6 +391,7 @@ return array (
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Les commandes s’ouvrent une fois votre extrait d’immatriculation vérifié. Votre panier est conservé.',
   'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'UE : votre numéro de TVA. États-Unis : votre EIN (ex. 12-3456789) — il n’y a pas de TVA aux États-Unis. Autres pays : votre numéro fiscal local, ou laissez vide si votre pays n’en délivre pas.',
   'VAT / Tax ID (if your country issues one)' => 'N° de TVA / fiscal (si votre pays en délivre un)',
+  'Open my dashboard' => 'Ouvrir mon tableau de bord',
   'Min order' => 'Commande min.',
   'Ships from EU' => 'Expédié depuis l\'UE',
   'Ships from %s' => 'Expédié depuis %s',

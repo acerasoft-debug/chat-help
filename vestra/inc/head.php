@@ -27,6 +27,29 @@ $AUTH_USER = auth_user();
    product via the admin "View ↗" link never shows the locked brand card. */
 $IS_ADMIN = !empty($_SESSION['vadmin']);
 $MEMBER = $IS_ADMIN || $AUTH_USER !== null || !empty($_SESSION['member']);
+
+/* GIRIS YAPMIS KULLANICIYA "KAYIT OL" GOSTERME.
+   Kural basit ama sayfa sayfa uygulanamiyor: her yeni pazarlama sayfasi kendi
+   "Register free" dugmesini ekliyor, ve yazan kisi o an misafiri dusunuyor. Iki
+   kez duzeltildi, iki kez geri geldi -- cunku duzeltme her seferinde O SAYFAYA
+   yazildi, kurala degil. Artik tek fonksiyon: uye ise kendi paneline, degilse
+   kayda goturur. Yeni bir sayfa bunu cagirdigi surece kural kendiliginden gecerli.
+
+   $type: 'buyer' | 'seller' | '' -> /register?type=... (misafir icin).
+   Dondurulen sey tam bir <a> etiketi; cagiran yer sadece etiketi ve sinifi verir. */
+function vestra_join_cta(string $guestLabel, string $class = 'btn btn-p', string $type = '', string $style = ''): string {
+    $u   = $GLOBALS['AUTH_USER'] ?? null;
+    $st  = $style !== '' ? ' style="'.$style.'"' : '';
+    if ($u !== null) {
+        $href  = (($u['type'] ?? '') === 'seller') ? '/seller' : '/buyer';
+        $label = function_exists('t') ? t('Open my dashboard') : 'Open my dashboard';
+    } else {
+        $href  = '/register'.($type !== '' ? '?type='.rawurlencode($type) : '');
+        $label = $guestLabel;
+    }
+    return '<a class="'.htmlspecialchars($class, ENT_QUOTES).'" href="'.htmlspecialchars($href, ENT_QUOTES).'"'.$st.'>'
+         . htmlspecialchars($label) . '</a>';
+}
 /* Freischaltung gate: product photos, prices and seller identities are visible only to
    APPROVED accounts — signed in AND activated by the owner (status 'active' /
    kyb_status 'approved').
