@@ -313,8 +313,22 @@ function auth_register(array $d): array|string {
     if($type === 'seller'){
         $acc['doc_requests'] = [
             ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate.','status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
+            /* company_reg BILEREK YOK. Ticari kayit belgesiyle buyuk olcude AYNI SEYI
+               kanitliyor, ve kucuk isletmelerin cogunda ayrica MEVCUT DEGIL: Almanya'da
+               sahis sirketinin Gewerbeschein'i vardir ama Handelsregister kaydi yoktur.
+               Var olmayan bir belgeyi sart kosmak, hedefledigimiz butik profilini tam
+               olarak kapida tutuyordu. Odeme alabilmek icin satici zaten Stripe
+               Connect'in kendi KYB'sinden geciyor -- yasal dogrulama orada yapiliyor,
+               buradaki dosya bir on eleme.
+               vat_cert de BILEREK YOK. Vergi kimligi kayit formunda ZATEN NUMARA olarak
+               aliniyor (vat_id) ve alan kendini ulkeye gore adlandiriyor: AB'de KDV
+               numarasi, ABD'de EIN, Isvicre'de UID, Turkiye'de VKN -- bkz.
+               vestra_tax_id_hint(). Numara dogrulanabilir bir veri; sertifika ise
+               ayni bilginin taranmis hali ve bir cok ulkede boyle bir belge zaten
+               ayrica basilmiyor. Ustelik ABD'de "VAT sertifikasi" diye bir sey YOK,
+               yani ABD'li her saticiya bulamayacagi bir belge soruluyordu.
+               Belge tipi auth_doc_types()'ta duruyor: supheli bir dosyada operator
+               panelden tek tek yine isteyebilir -- kaldirilan sey ZORUNLULUK. */
             ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
             ['id'=>bin2hex(random_bytes(4)),'type'=>'auth_letter', 'note'=>'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.','status'=>'requested','requested_at'=>$ts],
         ];

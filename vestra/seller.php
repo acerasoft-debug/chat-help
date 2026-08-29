@@ -1189,6 +1189,15 @@ function sellerSend(btn){
 } elseif($tab==='kyc'){
   $kybSt    = $AUTH_USER['kyb_status'] ?? 'pending';
   $docReqs  = $AUTH_USER['doc_requests'] ?? [];
+  /* Kayittan gelen vat_cert satirini GIZLE: artik istenmiyor (vergi kimligi numara
+     olarak aliniyor, bkz. inc/auth.php) ama mevcut hesaplarin kaydinda duruyor ve
+     panelde "Upload required" olarak asili kaliyordu. Yalnizca HIC dokunulmamis
+     olan gizleniyor -- yukleyen birinin dosyasi gorunur kalmali. Kayit silinmiyor;
+     operator panelde gecmisi gormeye devam ediyor ve gerekirse yine isteyebilir. */
+  $docReqs = array_values(array_filter($docReqs, function($r){
+      return !(in_array($r['type'] ?? '', ['vat_cert','company_reg'], true)
+               && ($r['status'] ?? 'requested') === 'requested');
+  }));
   $docTypes = auth_doc_types();
   $kybLabel = $kybSt==='approved'
     ? '<span class="status offers">✓ '.t('Verified').'</span>'
@@ -1198,7 +1207,7 @@ function sellerSend(btn){
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
   if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification (KYB)').'</h3>'.$kybLabel.'</div>';
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Upload the required documents below. New sellers must provide: company registration, VAT/tax certificate, government-issued ID, and an authorization letter if you are not the company director.').' '.t('See the').' <a class="acc" href="/legal?doc=seller">'.t('Seller Agreement').'</a>.</p>';
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Upload the required documents below. New sellers must provide: your trade licence / business registration, a government-issued ID, and an authorization letter if you are not the company director. Your VAT number (EIN in the US) is taken from your profile — no certificate needed.').' '.t('See the').' <a class="acc" href="/legal?doc=seller">'.t('Seller Agreement').'</a>.</p>';
 
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
