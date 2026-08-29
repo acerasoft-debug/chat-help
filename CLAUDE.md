@@ -31,6 +31,17 @@ Nerede uygulanıyor (üçü de `vestra_lead_is_blocked()` çağırır):
 - `vestra/admin.php` — panelden gönderim
 
 Yeni bir grup/distribütör görürsen adını `vestra_discover_blocklist()`'e ekle.
+**Her yeni listeyi göndermeden önce `vestra_lead_is_blocked()`'tan geçir ve sonucu
+oku** — liste eksik olabilir. 29 Ağustos 2026'da ABD listesinde Nordstrom Rack
+yakalandı ama **Saks OFF 5TH geçti**: listede `nordstrom` vardı, Saks yoktu.
+Zincirin indirim (off-price) kolu da zincirdir.
+
+**Ters yön de hata:** eşleştirme kısa adları başka adların *içinde* bulup gerçek
+müşteri adaylarını sessizce eliyordu (`mango` → Mangobay Boutique, `zara` →
+Zaragoza Moda, `fila` → Filaticcio, `marshalls` → marshallstreet.co.uk). İsim
+tarafı artık kelime sınırı, alan adı tarafında 6 harf ve altı yalnızca **tam**
+eşleşiyor. Sessiz eleme, yanlış gönderimden pahalı: kimse fark etmiyor. Listeye
+kısa/genel bir kelime eklerken bunu düşün.
 
 **Neden koda gömüldü:** 28 Ağustos 2026'da `add-and-send.yml` bu kontrolü çağırmıyordu
 (diğer üç yol çağırıyordu). Elle verilen bir Körfez listesi o boşluktan geçti ve
