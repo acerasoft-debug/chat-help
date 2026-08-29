@@ -822,6 +822,13 @@ function vestra_invoices_for_ref(string $ref): array {
         $sellerKey = $meta['seller_key'] ?? '';
         $label = 'VESTRA';
         if ($sellerKey !== '' && $sellerKey !== 'vestra') {
+            /* auth.php BURADA yukleniyor, dosyanin basinda degil: web sayfalari onu
+               zaten tasidigi icin eksik hic gorunmedi, ama bakim betikleri (siparis
+               silme teshisi, 24 Agustos'ta) invoice.php'yi tek basina yukleyip tam
+               bu satirda "undefined function auth_accounts" fatal'i aldi. Sart olan
+               tek dal bu dal -- kosulsuz require etmek, satici etiketi gerektirmeyen
+               cagrilara da auth yuku bindirirdi. */
+            require_once __DIR__.'/auth.php';
             foreach (auth_accounts() as $a) {
                 if (($a['id'] ?? '') === $sellerKey) { $label = $a['company'] ?: ($a['name'] ?: 'Seller'); break; }
             }
