@@ -465,6 +465,8 @@ function vestra_discover_blocklist(): array {
     'trading','tradings','import export','wholesale supplier',
     // Own-brand houses seen in hand-curated lists (same rule as the flagships above)
     'hummel','valento','elisabetta franchi',
+    // Own-label menswear chains (their stores are supplied by their own factory)
+    "d's damat",'dsdamat','ds damat','orka holding','damat tween',
   ];
 }
 /* Domain-level twin of vestra_name_is_blocked(). The company name is scraped from the
