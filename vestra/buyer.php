@@ -544,6 +544,16 @@ if($tab==='overview'){
 } else { // kyc
   $kybSt   = $AUTH_USER['kyb_status'] ?? 'pending';
   $docReqs = $AUTH_USER['doc_requests'] ?? [];
+  /* Kayittan gelen company_reg / vat_cert satirlarini alicidan GIZLE. Bu ikisi
+     artik istenmiyor (bkz. inc/auth.php) ama mevcut hesaplarin kaydinda duruyor,
+     ve alici panelinde "Upload erforderlich" olarak asili kaliyordu.
+     Sadece HIC dokunulmamis olanlar (status=requested) gizleniyor: birisi gercekten
+     yuklediyse satir yerinde kaliyor, yoksa yukledigi dosyayi goremez hale gelirdi.
+     Kayit silinmiyor, sadece cizilmiyor -- admin tarafinda gecmis olarak duruyor. */
+  $docReqs = array_values(array_filter($docReqs, function($r){
+      return !(in_array($r['type'] ?? '', ['company_reg','vat_cert'], true)
+               && ($r['status'] ?? 'requested') === 'requested');
+  }));
   $docTypes= auth_doc_types();
   $kybLabel = $kybSt==='approved'
     ? '<span class="status offers">✓ '.t('Verified').'</span>'
@@ -553,7 +563,7 @@ if($tab==='overview'){
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
   if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3>'.$kybLabel.'</div>';
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. Upload your company registration and VAT/tax certificate when requested.').'</p>';
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Prices open as soon as you upload it, and full access follows once we have checked it.').'</p>';
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
   } else {

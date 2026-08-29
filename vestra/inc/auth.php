@@ -319,10 +319,15 @@ function auth_register(array $d): array|string {
             ['id'=>bin2hex(random_bytes(4)),'type'=>'auth_letter', 'note'=>'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.','status'=>'requested','requested_at'=>$ts],
         ];
     } elseif($type === 'buyer'){
+        /* ALICIDAN TEK BELGE: ticari kayit. Onceden company_reg ve vat_cert de
+           acilirdi, ama ikisi de HICBIR kapiyi acmiyordu -- auth_trade_unlocked()
+           ve auth_prices_unlocked()'in ikisi de yalnizca trade_licence'a bakiyor.
+           Yani alici, hicbir seyi degistirmeyen iki "Upload erforderlich" satiri
+           goruyordu; katalogu gormek icin gerekli sanip ucunu birden toplamaya
+           calisiyor, toplayamayinca birakiyordu. Saticida ucu de duruyor: orada
+           para tasiniyor ve KYB gercekten gerekiyor. */
         $acc['doc_requests'] = [
             ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence','note'=>$tradeTxt,'status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'company_reg', 'note'=>'Please upload your company registration certificate to complete buyer verification.','status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'vat_cert',    'note'=>'Please upload your VAT or tax registration certificate.','status'=>'requested','requested_at'=>$ts],
         ];
     }
     /* Where did this registration come from? Stamped ON the account, not only in

@@ -12,7 +12,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'becom
     if ($me && ($me['type'] ?? '') === 'buyer') {
         auth_update($me['id'], ['type' => 'seller']);
         $have = array_column($me['doc_requests'] ?? [], 'type');
+        /* company_reg ve vat_cert de BURADA isteniyor. Eskiden istenmiyordu cunku
+           her alici zaten kayitta bu ikisini almis oluyordu; artik almiyor (alicidan
+           tek belge isteniyor, bkz. inc/auth.php). O varsayim kaldirilinca satici
+           olan bir hesap KYB'nin yarisi eksik kalirdi -- satici tarafinda para
+           tasiniyor ve bu belgeler gercekten gerekli. in_array kontrolu zaten
+           tekrari onluyor: belgesi olan hesaba ikinci kez sorulmaz. */
         $sellerDocs = [
+            'company_reg' => 'Please upload your company registration certificate.',
+            'vat_cert'    => 'Please upload your VAT or tax registration certificate.',
             'id_document' => 'Please upload a government-issued ID: passport, national ID card, or driving licence.',
             'auth_letter' => 'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.',
         ];

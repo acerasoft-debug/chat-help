@@ -784,7 +784,7 @@ return array (
   'Verified business' => 'Entreprise vérifiée',
   'Verified buyer' => 'Acheteur vérifié',
   'Verified buyers' => 'Acheteurs vérifiés',
-  'Verified buyers can access wholesale pricing and place orders with buyer protection. Upload your company registration and VAT/tax certificate when requested.' => 'Les acheteurs vérifiés accèdent aux prix de gros et passent commande avec protection acheteur. Téléversez votre extrait d\'immatriculation et votre certificat de TVA sur demande.',
+  'Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Prices open as soon as you upload it, and full access follows once we have checked it.' => 'Les acheteurs vérifiés accèdent aux prix de gros et commandent avec la protection acheteur. Un seul document suffit : votre extrait d\'immatriculation. Les prix s\'ouvrent dès le téléversement, et l\'accès complet suit après notre vérification.',
   'Verified buyers only' => 'Acheteurs vérifiés uniquement',
   'Verified buyers see wholesale pricing and can order with escrow protection.' => 'Les acheteurs vérifiés voient les tarifs de gros et peuvent commander avec la protection du séquestre (escrow).',
   'Verified seller' => 'Vendeur vérifié',
