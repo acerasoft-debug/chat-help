@@ -577,28 +577,42 @@ function auth_trade_unlocked(?array $acc): bool {
     return false;
 }
 
-/* FIYAT kapisi. auth_trade_unlocked()'tan bilerek AYRI ve ondan gevsek:
-   satici kimligi ve line-sheet indirmesi ONAY bekler, fiyat ise belgenin
-   YUKLENMIS olmasiyla acilir.
-   Neden ayri: onay elle yapiliyor ve gunler alabiliyor. Fiyati onaya baglamak,
-   belgesini gonderip sirasini bekleyen gercek bir alicinin katalogda hicbir sey
-   goremeden beklemesi demek -- kaydolmasinin sebebi de zaten fiyati gormekti.
-   Yukleme ise onun kendi eylemi ve aninda karsilik buluyor.
-   "Herhangi bir PDF yukleyen kapiyi acar" itirazi burada da gecerli, ama bedeli
-   farkli: acilan sey yalnizca fiyat listesi, satici kimligi ya da toplu Excel
-   degil -- ve belge zaten sizin masaniza dusuyor, sahtesi onayda eleniyor.
+/* FIYAT kapisi. ONAY bekler -- yukleme yetmez.
+   Eskiden belgenin YUKLENMIS olmasi fiyati aciyordu; gerekcesi, onayin elle
+   yapilmasi ve gun alabilmesiydi. Operator bunu tersine cevirdi: fiyat da
+   Prufung'un arkasinda. Yani "herhangi bir PDF yukleyen fiyat listesini gorur"
+   yolu kapandi; toptan fiyat, belgesi gercekten okunmus hesaplara gosteriliyor.
 
-   Bayragi olmayan hesap (zorunluluk oncesi kayit) etkilenmez: kural geriye donuk
-   isletilirse bir gecede 41 hesap fiyati kaybederdi. */
+   Bedeli bilerek kabul ediliyor: belgesini gonderen alici onaya kadar katalogda
+   fiyat goremiyor. Bunu tolere edilebilir kilan sey bekleme suresi -- talepler
+   panele dusuyor ve elle onaylaniyor. Bekleyen alici "yukleyin" degil "inceleniyor"
+   gormeli; sayfalar bunu auth_trade_doc_status() ile ayirt ediyor.
+
+   Bayragi olmayan hesap (zorunluluk oncesi kayit) etkilenmez. */
 function auth_prices_unlocked(?array $acc): bool {
     if (!$acc) return false;                       // giris yapmamis: zaten kapali
     if (auth_user_approved($acc)) return true;     // tam onayli hesap her seyi gorur
     if (empty($acc['trade_doc_required'])) return true;
+    return auth_trade_unlocked($acc);              // artik ONAY sarti -- yukleme yetmez
+}
+
+/* Ticari belgenin nerede oldugu: '' (hic talep yok) | 'requested' (yuklenmedi)
+   | 'uploaded' (yuklendi, onay bekliyor) | 'approved' | 'rejected'.
+   Kapinin ACIK/KAPALI cevabi auth_prices_unlocked()'ta; bu fonksiyon KAPALI'nin
+   sebebini soyluyor ki sayfa dogru cumleyi yazsin. Fiyat onaya baglandiktan sonra
+   bu ayrim sart oldu: belgesini dun yuklemis bir aliciya "belgenizi yukleyin"
+   demek, onu yaptigi isi tekrar yapmaya gonderir. */
+function auth_trade_doc_status(?array $acc): string {
+    if (!$acc) return '';
+    $best = '';
     foreach ((array)($acc['doc_requests'] ?? []) as $r) {
         if (($r['type'] ?? '') !== 'trade_licence') continue;
-        if (in_array((string)($r['status'] ?? ''), ['uploaded', 'approved'], true)) return true;
+        $st = (string)($r['status'] ?? 'requested');
+        if ($st === 'approved') return 'approved';        // en guclu durum, aramayi bitir
+        if ($st === 'uploaded') { $best = 'uploaded'; continue; }
+        if ($best === '') $best = $st;                    // requested / rejected
     }
-    return false;
+    return $best;
 }
 
 /* Fiyat neden kapali? Kapiyi cizen sayfalar dogru cumleyi secebilsin diye:

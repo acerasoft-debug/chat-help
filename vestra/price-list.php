@@ -126,8 +126,10 @@ require __DIR__.'/inc/head.php';
     <?php endif; ?>
     <?php if (!$PRICES): ?>
     <div class="banner info" style="margin:14px 0 0;text-align:left">🔒
-      <?php if ($PRICE_GATE === 'doc'): ?>
-        <?= t('Wholesale prices open as soon as you upload your trade licence / business registration.') ?>
+      <?php if ($PRICE_GATE === 'doc' && auth_trade_doc_status($AUTH_USER) === 'uploaded'): ?>
+        <?= t('Your trade licence is being checked. Wholesale prices open as soon as it is approved.') ?>
+      <?php elseif ($PRICE_GATE === 'doc'): ?>
+        <?= t('Wholesale prices open once we have checked your trade licence / business registration.') ?>
         &nbsp;<a class="btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
       <?php else: ?>
         <?= t('Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.') ?>

@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type) | request_trade_docs (ticari belgesi HİÇ istenmemiş hesaplara talep aç + e-posta gönder; önce dry=true ile prova edin)"
+        description: "Ne yapılsın — mail_key | platform_bank (secret'tan) | platform_bank_from_account (bilgi zaten bir hesaptaysa oradan kopyala) | platform_bank_selftest (panele yazsam tutar mı?) | customer_billing (bir müşterinin fatura adresi) | account_type (hesabın buyer/seller tipini düzelt — src_email + acct_type) | request_trade_docs (ticari belgesi HİÇ istenmemiş hesaplara talep aç + e-posta gönder; önce dry=true ile prova edin) | approve_buyers (MEVCUT tüm alıcıları tam yetkili yap — ticari belgesini onaylı say; önce dry=true)"
         required: false
         default: "mail_key"
       src_email:
@@ -506,6 +506,90 @@ jobs:
             php -l /tmp/vestra_acctype.php 2>&1
             php /tmp/vestra_acctype.php 2>&1
             rm -f /tmp/vestra_acctype.php
+
+  approve_buyers:
+    if: github.event.inputs.task == 'approve_buyers'
+    runs-on: ubuntu-latest
+    steps:
+      # Fiyat kapisi artik ONAY bekliyor (inc/auth.php, auth_prices_unlocked).
+      # Kural geriye donuk isletilirse mevcut alicilar bir gecede fiyati kaybederdi:
+      # belgesini yukleyip fiyat gormeye alismis hesaplar, hicbir sey yapmadiklari
+      # halde katalogu kapali bulurdu. Operator karari: gecmisteki tum alicilar tam
+      # yetkili sayilsin. Bu gorev onu yapar -- ILERIDE kaydolanlar etkilenmez,
+      # onlar normal Prufung'dan gecer.
+      #
+      # Dokunulan alanlar, hepsi onayin bilesenleri:
+      #   trade_licence talebi -> approved   (auth_trade_unlocked bunu ariyor)
+      #   kyb_status           -> approved
+      #   status               -> active
+      # SATICILARA DOKUNULMAZ: orada para tasiniyor, KYB elle yapilir.
+      - name: Mevcut alıcıları tam yetkili yap
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          A_DRY: ${{ github.event.inputs.dry }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          envs: A_DRY
+          script: |
+            cat > /tmp/vestra_apprbuy.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+
+            $DRY = strtolower(trim((string)getenv('A_DRY'))) !== 'false';
+            echo $DRY ? "== PROVA (dry=true) -- hicbir sey kaydedilmiyor ==\n"
+                      : "== GERCEK -- hesaplar guncelleniyor ==\n";
+
+            $accs = auth_accounts(); $n = 0; $skip = 0; $ts = date('c');
+            foreach ($accs as $i => $a) {
+              if ((string)($a['type'] ?? '') !== 'buyer') { $skip++; continue; }
+
+              /* E-posta LOG'A MASKELI yazilir: bu depo ve Actions kutugu herkese acik. */
+              $em = strtolower((string)($a['email'] ?? ''));
+              $at = strrpos($em, '@');
+              $mask = $em === '' ? '(adressiz)'
+                    : substr($em,0,2).str_repeat('*', max(0,($at!==false?$at:strlen($em))-2)).($at!==false?substr($em,$at):'');
+
+              $was = (string)($a['kyb_status'] ?? 'pending');
+              $reqs = (array)($a['doc_requests'] ?? []);
+              $hasTrade = false;
+              foreach ($reqs as $k => $r) {
+                if (($r['type'] ?? '') !== 'trade_licence') continue;
+                $hasTrade = true;
+                if (($r['status'] ?? '') !== 'approved') {
+                  $reqs[$k]['status'] = 'approved';
+                  $reqs[$k]['reviewed_at'] = $ts;
+                  $reqs[$k]['admin_note'] = 'Approved in bulk: account predates the approval-gated pricing rule.';
+                }
+              }
+              /* Talebi hic olmayan eski hesap: onaylanmis bir kayit ACILIYOR, cunku
+                 auth_trade_unlocked() bos listede false doner -- kyb_status'u
+                 approved yapmak tek basina kapiyi acmazdi. */
+              if (!$hasTrade) {
+                $reqs[] = ['id'=>bin2hex(random_bytes(4)),'type'=>'trade_licence',
+                           'note'=>'Existing buyer — granted before the approval-gated pricing rule.',
+                           'status'=>'approved','requested_at'=>$ts,'reviewed_at'=>$ts];
+              }
+              $accs[$i]['doc_requests'] = $reqs;
+              $accs[$i]['kyb_status']   = 'approved';
+              $accs[$i]['status']       = 'active';
+              $n++;
+              echo sprintf("  %-28s kyb: %-10s -> approved%s\n", $mask, $was, $hasTrade ? '' : '  (+trade_licence kaydi acildi)');
+            }
+
+            if (!$DRY && $n > 0) auth_save_accounts($accs);
+            echo "\nBITTI. alici: {$n}"
+               . ($DRY ? " (PROVA -- kaydedilmedi)" : " guncellendi")
+               . ", dokunulmayan (satici/admin): {$skip}\n";
+            PHPEOF
+            php -l /tmp/vestra_apprbuy.php 2>&1
+            php /tmp/vestra_apprbuy.php 2>&1
+            rm -f /tmp/vestra_apprbuy.php
 
   request_trade_docs:
     if: github.event.inputs.task == 'request_trade_docs'

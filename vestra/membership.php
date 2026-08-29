@@ -10,7 +10,12 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'become_seller') {
     $me = auth_user();
     if ($me && ($me['type'] ?? '') === 'buyer') {
-        auth_update($me['id'], ['type' => 'seller']);
+        /* KYB durumu PENDING'e geri aliniyor. Alicinin onayi TEK belgeye dayaniyor
+           (ticari kayit); satici onayi dordune. Ustelik mevcut alicilar toplu olarak
+           kyb_status=approved yapildi, yani yukselen hesap "onayli" damgasiyla gelir
+           ve asagida acilan satici belgeleri hicbir seyi kilitlemezdi -- istenir ama
+           beklenmezdi. Yukseltme, onayi yeniden kazanilmasi gereken bir sey yapiyor. */
+        auth_update($me['id'], ['type' => 'seller', 'kyb_status' => 'pending']);
         $have = array_column($me['doc_requests'] ?? [], 'type');
         /* company_reg ve vat_cert de BURADA isteniyor. Eskiden istenmiyordu cunku
            her alici zaten kayitta bu ikisini almis oluyordu; artik almiyor (alicidan

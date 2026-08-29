@@ -13,6 +13,16 @@ $payMethod = (($_POST['pay'] ?? 'bank') === 'escrow') ? 'escrow' : 'bank';
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /cart'); exit; }
 if(!empty($_POST['website'])){ header('Location: /cart?placed=1&ref=NA'); exit; } // honeypot
 
+/* SIPARIS YETKISI -- sunucuda. Bu kontrol yoktu: siparis verme hakki yalnizca
+   "Add to order" dugmesinin $PRICES ile gizlenmesine dayaniyordu, yani kapi
+   arayuzdeydi. Sepet istemci tarafinda tutuluyor ve /cart girise kapali degil,
+   dolayisiyla dogrudan POST eden biri onaysiz -- hatta oturumsuz -- siparis
+   birakabiliyordu. Fiyat artik Prufung'un arkasinda oldugu icin siparisin de
+   arkasinda olmasi gerekiyor; yoksa fiyati goremeyen bir hesap yine de alabilirdi.
+   Fiyatlar zaten asagida katalogdan yeniden hesaplaniyor -- burada dogrulanan
+   tutar degil, KIM oldugu. */
+if(!auth_prices_unlocked(auth_user())){ header('Location: /cart?err=not_approved'); exit; }
+
 /* One-shot order token (idempotency). A double-tap posts the same token twice; the
    PHP session lock serialises the two requests: the first consumes the token and
    records its ref, the second replays the SAME confirmation — never a second order,

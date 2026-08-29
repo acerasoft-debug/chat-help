@@ -233,9 +233,12 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
           <?php /* Iki ayri sebep, iki ayri cumle: "uye olun" derken zaten uye olana
                    bunu soylemek, kullaniciya yapacak bir sey birakmiyordu. */ ?>
-          <?php if($PRICE_GATE==='doc'): ?>
+          <?php if($PRICE_GATE==='doc' && auth_trade_doc_status($AUTH_USER)==='uploaded'): ?>
+          <h3 style="margin:0 0 6px"><?= t('Your document is being checked') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('We have your trade licence. Wholesale prices and ordering open as soon as it is approved.') ?></p>
+          <?php elseif($PRICE_GATE==='doc'): ?>
           <h3 style="margin:0 0 6px"><?= t('One step left') ?></h3>
-          <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.') ?></p>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration. Wholesale prices and ordering open once we have checked it.') ?></p>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
             <a class="btn btn-p" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
           </div>

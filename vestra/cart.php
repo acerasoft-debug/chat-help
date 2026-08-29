@@ -48,6 +48,15 @@ if (stripe_available()) {
     <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:18px">
       <?= htmlspecialchars(sprintf(t('Card escrow accepts orders up to %s. This order is above that, so please choose bank transfer — the invoice carries the same buyer protection on delivery.'), '€'.number_format((float)VESTRA_ESCROW_MAX, 2))) ?></div>
   <?php endif; ?>
+  <?php /* Sunucu yetki kontrolunun karsiligi (order.php). Sepet dolu kaliyor:
+           onay gelince ayni sepetle devam edebilsin. */ ?>
+  <?php if(isset($_GET['err']) && $_GET['err']==='not_approved'): ?>
+    <div class="banner info" style="margin-bottom:18px">🔒
+      <?= auth_trade_doc_status($u)==='uploaded'
+            ? t('Your trade licence is being checked. You can place this order as soon as it is approved — your basket is kept.')
+            : t('Orders open once we have checked your trade licence / business registration. Your basket is kept.') ?>
+      &nbsp;<a class="acc btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="/buyer?tab=kyc"><?= t('Business verification') ?></a></div>
+  <?php endif; ?>
 
   <div id="empty" class="empty" style="display:none">
     <?= t('Your order is empty.') ?> <a class="acc" href="/shop"><?= t('Browse the catalog →') ?></a>

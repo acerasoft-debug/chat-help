@@ -243,10 +243,15 @@ footer a{color:#d8bd86}
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
       <a href="/register" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Register free') ?></a></div>
   <?php elseif($PRICE_GATE==='doc'): ?>
-    <?php /* Giris yapmis ama belgesi yok: "uye olun" demek yanlis olurdu, zaten uye.
-             Eksik olan tek sey soylenmeli ve yukleme yeri gosterilmeli. */ ?>
-    <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices open as soon as you upload your trade licence / business registration.') ?>
+    <?php /* Giris yapmis ama fiyat kapali: "uye olun" demek yanlis olurdu, zaten uye.
+             Iki ayri hal var ve ayni cumle ikisine birden uymuyor -- belgesini dun
+             yuklemis birine "yukleyin" demek onu bos yere geri gonderir. */ ?>
+    <?php if(auth_trade_doc_status($AUTH_USER)==='uploaded'): ?>
+    <div class="banner info" style="margin-bottom:22px">⏳ <?= t('Your trade licence is being checked. Wholesale prices open as soon as it is approved.') ?></div>
+    <?php else: ?>
+    <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices open once we have checked your trade licence / business registration.') ?>
       &nbsp;<a href="<?= htmlspecialchars($KYC_URL) ?>" class="acc btn btn-sm btn-p" style="display:inline-flex;margin-left:6px"><?= t('Upload document') ?></a></div>
+    <?php endif; ?>
   <?php endif; ?>
   <div class="shoplayout">
 
