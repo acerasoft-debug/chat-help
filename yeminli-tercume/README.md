@@ -66,6 +66,44 @@ Site statik olduğu için dosyaların size ulaşması iki şekilde çalışır:
    Bu tek satırla form, dosyalarla birlikte doğrudan e-posta kutunuza
    düşer; sayfa içinde "Talebiniz alındı" onayı gösterilir (6 dilde hazır).
 
+## cPanel'e yükleme (hosting)
+
+Site tamamen statiktir; PHP, veritabanı veya özel ayar gerektirmez.
+Üç yöntemden biriyle yayınlayabilirsiniz:
+
+### Yöntem 1 — ZIP ile (en kolay, 5 dakika)
+
+1. Bu klasörün içeriğini ZIP'leyin (veya hazır `muhur-site.zip` paketini kullanın).
+2. cPanel → **File Manager** → `public_html` klasörüne girin.
+3. **Upload** ile ZIP'i yükleyin, sonra dosyaya sağ tıklayıp **Extract** deyin.
+4. ZIP'i silin. Site `https://alanadiniz.com` adresinde yayında.
+
+### Yöntem 2 — FTP ile
+
+1. cPanel → **FTP Accounts** → hesap oluşturun (dizin: `public_html`).
+2. FileZilla'ya sunucu adresi (genelde `ftp.alanadiniz.com`), kullanıcı adı
+   ve şifreyle bağlanın.
+3. Bu klasörün içeriğini `public_html` içine sürükleyin.
+
+### Yöntem 3 — GitHub'dan otomatik (Git Version Control)
+
+Her `git push` sonrası sitenin kendini güncellemesi için:
+
+1. cPanel → **Git™ Version Control** → **Create**.
+2. "Clone a Repository" açık olsun; depo adresini girin. Özel (private)
+   depo için önce cPanel → **SSH Access** ile anahtar üretip GitHub'da
+   deponun **Settings → Deploy keys** bölümüne ekleyin ve SSH adresini
+   kullanın: `git@github.com:KULLANICI/DEPO.git`
+3. Depo kökündeki `.cpanel.yml` dosyasında `KULLANICIADI` yazan yeri kendi
+   cPanel kullanıcı adınızla değiştirin.
+4. Git Version Control ekranında **Manage → Pull or Deploy →
+   Update from Remote**, ardından **Deploy HEAD Commit** deyin.
+
+Yayın sonrası kontrol listesi:
+- cPanel → **SSL/TLS Status** ile ücretsiz SSL'i (AutoSSL) çalıştırın.
+- `index.html` ve `sirket-kurulumu/index.html` içindeki `og:image`
+  adreslerini tam URL yapın (`https://alanadiniz.com/assets/og.png`).
+
 ## Yerelde çalıştırma
 
 Herhangi bir statik sunucu yeterli:
