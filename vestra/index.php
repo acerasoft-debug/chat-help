@@ -931,6 +931,77 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   </div>
 </section>
 
+<?php
+/* ── Yakinda geliyor / Coming soon ─────────────────────────────────────────
+   Iceriyi DOSYALAR belirler: uploads/coming-soon/ altina atilan her gorsel bir
+   kart olur, dosya adi (gdt01.jpg -> GDT01) model rozetine yazilir. Yeni parti
+   geldiginde kod degil klasor guncellenir; klasor bosalinca bolum kendini
+   cizmez. Kartlar bilerek TIKLANMAZ: urunler henuz katalogda yok, olmayan bir
+   sayfaya baglanti 404'ten farksiz. Tek eylem, kapinin zaten actigi sey --
+   misafir kayda, uye paneline (vestra_join_cta karar veriyor).
+   Konum: hero'nun hemen ardi. Urun gecisleri (hero film + serit) oldugu yerde,
+   bu bolumun ustunde donmeye devam ediyor. */
+$soonImgs = glob(__DIR__.'/uploads/coming-soon/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
+sort($soonImgs);
+if ($soonImgs):
+?>
+<style>
+.soon{padding:74px 0 66px;background:
+  radial-gradient(900px 340px at 50% -80px, rgba(201,168,106,.07), transparent 70%)}
+.soon .wrap{max-width:1180px}
+.soon-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:14px}
+.soon-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55));}
+.soon-kick .ln:last-child{transform:scaleX(-1)}
+.soon-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
+  color:var(--acc);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  padding:7px 16px;border-radius:999px;white-space:nowrap}
+.soon-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--acc);
+  animation:soonPulse 2.2s ease-in-out infinite}
+@keyframes soonPulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.soon-pill .dot{animation:none}}
+.soon-strip{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 18px;margin-top:34px;
+  scroll-snap-type:x mandatory;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.soon-strip::-webkit-scrollbar{display:none}
+.soon-card{flex:0 0 clamp(180px,22vw,240px);scroll-snap-align:start;border-radius:16px;
+  background:#f5f2ec;position:relative;overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65)}
+.soon-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(26,20,8,.06)}
+.soon-card img{display:block;width:100%;aspect-ratio:4/5;object-fit:contain;padding:10px 8px 30px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.soon-card:hover img{transform:scale(1.045)}
+.soon-tag{position:absolute;left:12px;bottom:10px;font-size:10.5px;font-weight:700;
+  letter-spacing:.18em;color:#6f6a61}
+.soon-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.soon-foot .hint{font-size:12.5px;color:var(--mut);letter-spacing:.02em}
+</style>
+<section class="soon reveal" id="coming-soon">
+  <div class="wrap">
+    <div class="soon-kick"><span class="ln"></span>
+      <span class="soon-pill"><span class="dot"></span><?= t('Coming soon') ?></span>
+    <span class="ln"></span></div>
+    <h2 class="sec-title" style="text-align:center"><?= t('Winter 26/27') ?> · Gallery Dept.</h2>
+    <p class="sec-sub" style="text-align:center;max-width:560px;margin-left:auto;margin-right:auto">
+      <?= t('A new capsule is on its way to VESTRA — cult logo tees from Los Angeles, in full size series. Preview the drop below; ordering opens shortly.') ?>
+    </p>
+    <div class="soon-strip">
+      <?php foreach ($soonImgs as $si): $tag = strtoupper(pathinfo($si, PATHINFO_FILENAME)); ?>
+      <figure class="soon-card" style="margin:0">
+        <img src="/uploads/coming-soon/<?= htmlspecialchars(basename($si)) ?>" alt="Gallery Dept. <?= htmlspecialchars($tag) ?>" loading="lazy" width="720" height="900">
+        <figcaption class="soon-tag"><?= htmlspecialchars($tag) ?></figcaption>
+      </figure>
+      <?php endforeach; ?>
+    </div>
+    <div class="soon-foot">
+      <?= vestra_join_cta(t('Register for first access'), 'btn btn-o') ?>
+      <span class="hint">🇪🇺 <?= t('Full S–XL series · ships from the EU') ?></span>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if ($_brands): ?>
 <section class="brandwall reveal" id="brands">
   <div class="wrap">
