@@ -735,7 +735,36 @@ function vestra_tax_id_hint(string $country): array {
     if ($c === 'TR' || $c === 'TURKEY' || $c === 'TÜRKIYE' || $c === 'TURKIYE') {
         return ['label' => 'Vergi kimlik numarası', 'placeholder' => '1234567890', 'short' => 'VKN'];
     }
-    return ['label' => 'VAT / Tax ID', 'placeholder' => 'DE123456789', 'short' => 'VAT ID'];
+    /* Sevkiyat yaptigimiz AB DISI pazarlar. Bunlar sablon degil, gercek ihtiyac:
+       vestra_dropship_zones() tam olarak bu ulkelere gonderiyor ve outreach de
+       oralara gidiyor, yani bir Japon ya da Koreli satici kayit formuna geliyor.
+       Her ulke KDV'yi ayri adlandiriyor -- Japonya'da 登録番号, Kore'de
+       사업자등록번호, Korfez'de TRN. Ortak "VAT" etiketi bunlarin hicbirine
+       karsilik gelmiyordu ve kullanici aradigi numarayi taniyamiyordu. */
+    static $MAP = [
+        'JP' => ['Invoice registration number (登録番号)', 'T1234567890123', 'Reg. no.'],
+        'KR' => ['사업자등록번호 (Business Registration Number)', '123-45-67890', 'BRN'],
+        'AE' => ['TRN (Tax Registration Number)', '100123456700003', 'TRN'],
+        'SA' => ['VAT registration number', '300123456700003', 'VAT no.'],
+        'QA' => ['Tax Identification Number (TIN)', '1234567890', 'TIN'],
+        'AU' => ['ABN (Australian Business Number)', '12 345 678 901', 'ABN'],
+        'CA' => ['GST/HST number', '123456789RT0001', 'GST/HST'],
+        'SG' => ['UEN / GST registration number', '201812345K', 'UEN'],
+    ];
+    static $NAMES = [
+        'JAPAN'=>'JP', '日本'=>'JP', 'SOUTH KOREA'=>'KR', 'KOREA'=>'KR', 'REPUBLIC OF KOREA'=>'KR',
+        'UNITED ARAB EMIRATES'=>'AE', 'UAE'=>'AE', 'SAUDI ARABIA'=>'SA', 'QATAR'=>'QA',
+        'AUSTRALIA'=>'AU', 'CANADA'=>'CA', 'SINGAPORE'=>'SG',
+    ];
+    $key = $MAP[$c] ?? ($MAP[$NAMES[$c] ?? ''] ?? null);
+    if ($key) return ['label' => $key[0], 'placeholder' => $key[1], 'short' => $key[2]];
+
+    /* Tanimadigimiz ulke: ORNEK VERME. Burada eskiden 'DE123456789' yaziyordu ve
+       bu, Alman olmayan herkese yanlis bicimi gosteriyordu -- ornegi kopyalayip
+       kendi numarasini o kaliba uydurmaya calisan olur. Etiket de artik alanin
+       zorunlu olmadigini soyluyor: bazi ulkelerde boyle bir numara hic verilmiyor,
+       ve olmayan bir numara icin form doldurulamaz. */
+    return ['label' => 'VAT / Tax ID (if your country issues one)', 'placeholder' => '', 'short' => 'VAT ID'];
 }
 /* Nullable on purpose: seller.php reads this straight off $AUTH_USER, which is null when a
    session has expired between page loads. With an `array` type that was a fatal TypeError —

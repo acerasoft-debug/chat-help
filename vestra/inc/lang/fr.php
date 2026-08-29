@@ -389,6 +389,8 @@ return array (
   'Upload your trade licence / business registration. Wholesale prices and ordering open once we have checked it.' => 'Téléversez votre extrait d’immatriculation. Les prix et la commande s’ouvrent après notre vérification.',
   'Your trade licence is being checked. You can place this order as soon as it is approved — your basket is kept.' => 'Votre immatriculation est en cours de vérification. Vous pourrez passer cette commande dès sa validation — votre panier est conservé.',
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Les commandes s’ouvrent une fois votre extrait d’immatriculation vérifié. Votre panier est conservé.',
+  'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'UE : votre numéro de TVA. États-Unis : votre EIN (ex. 12-3456789) — il n’y a pas de TVA aux États-Unis. Autres pays : votre numéro fiscal local, ou laissez vide si votre pays n’en délivre pas.',
+  'VAT / Tax ID (if your country issues one)' => 'N° de TVA / fiscal (si votre pays en délivre un)',
   'Min order' => 'Commande min.',
   'Ships from EU' => 'Expédié depuis l\'UE',
   'Ships from %s' => 'Expédié depuis %s',

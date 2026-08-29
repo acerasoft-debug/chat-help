@@ -389,6 +389,8 @@ return array (
   'Upload your trade licence / business registration. Wholesale prices and ordering open once we have checked it.' => 'Suba su registro mercantil. Precios y pedidos se abren tras nuestra revisión.',
   'Your trade licence is being checked. You can place this order as soon as it is approved — your basket is kept.' => 'Estamos revisando su registro mercantil. Podrá realizar este pedido en cuanto se apruebe — su cesta se conserva.',
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Los pedidos se abren tras revisar su registro mercantil. Su cesta se conserva.',
+  'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'UE: su número de IVA. EE. UU.: su EIN (p. ej. 12-3456789) — en Estados Unidos no hay IVA. Otros países: su número fiscal local, o deje el campo vacío si su país no emite ninguno.',
+  'VAT / Tax ID (if your country issues one)' => 'N.º de IVA / fiscal (si su país lo emite)',
   'Min order' => 'Pedido mínimo',
   'Ships from EU' => 'Envío desde la UE',
   'Ships from %s' => 'Envío desde %s',

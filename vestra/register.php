@@ -135,7 +135,12 @@ $PAGE = t('Create account'); $NAV = ''; require __DIR__.'/inc/head.php';
         <div class="authfield">
           <label><?= t($_tax['label']) ?></label>
           <input name="vat_id" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>" value="<?= htmlspecialchars($d['vat_id']??'') ?>">
-          <div class="ahint" style="font-size:11px;margin-top:3px"><?= t('US company: enter your EIN (e.g. 12-3456789). There is no VAT in the United States.') ?></div>
+          <?php /* Ipucu ucunu de soyluyor. Eskiden yalniz ABD vardi ve geri kalan
+                   herkes "VAT" kelimesiyle bas basa kaliyordu -- Japon ya da Koreli
+                   bir satici icin o kelime aradigi numaraya karsilik gelmiyor. Ucuncu
+                   cumle en onemlisi: numara vermeyen ulkeler var ve alan bos
+                   birakilabilir, yoksa kayit orada duruyor. */ ?>
+          <div class="ahint" style="font-size:11px;margin-top:3px"><?= t('EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.') ?></div>
         </div>
         <div class="authfield">
           <label><?= t('Registration number') ?></label>

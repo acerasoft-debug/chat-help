@@ -409,6 +409,8 @@ return array (
   'Upload your trade licence / business registration. Wholesale prices and ordering open once we have checked it.' => 'Laden Sie Ihre Gewerbeanmeldung hoch. Preise und Bestellung werden nach unserer Prüfung freigeschaltet.',
   'Your trade licence is being checked. You can place this order as soon as it is approved — your basket is kept.' => 'Ihre Gewerbeanmeldung wird geprüft. Sie können diese Bestellung aufgeben, sobald sie bestätigt ist — Ihr Warenkorb bleibt erhalten.',
   'Orders open once we have checked your trade licence / business registration. Your basket is kept.' => 'Bestellungen werden freigeschaltet, sobald wir Ihre Gewerbeanmeldung geprüft haben. Ihr Warenkorb bleibt erhalten.',
+  'EU: your VAT number. US: your EIN (e.g. 12-3456789) — there is no VAT in the United States. Other countries: your local business tax number, or leave this blank if your country does not issue one.' => 'EU: Ihre USt-IdNr. USA: Ihre EIN (z. B. 12-3456789) — in den USA gibt es keine USt. Andere Länder: Ihre lokale Steuernummer, oder lassen Sie das Feld leer, wenn es in Ihrem Land keine gibt.',
+  'VAT / Tax ID (if your country issues one)' => 'USt-IdNr. / Steuernummer (falls Ihr Land eine vergibt)',
   'Min order' => 'Mindestbestellung',
   'Ships from EU' => 'Versand aus der EU',
   'Ships from %s' => 'Versand aus %s',
