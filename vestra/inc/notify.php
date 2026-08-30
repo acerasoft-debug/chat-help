@@ -438,6 +438,10 @@ function vestra_discover_blocklist(): array {
        Luisa Cerano kendi-marka etiket. min_brands=2 bunlari elemez -- sitelerinde
        gercekten cok marka var; eksik olan addi. */
     'eschuhe','eobuwie','ccc shoes','miinto','luisa cerano','luisacerano',
+    /* PKZ: ~40 magazali Isvicre erkek giyim zinciri; 30 Agustos aksam partisinde
+       iki subesi mektup aldi. Ad tarafinda kelime siniri "PKZ Men"i yakalar;
+       alan adi tarafi 4 harf altini zaten es gectigi icin pkz.ch'yi ad yakalar. */
+    'pkz',
     /* Ayni partide cikan kendi-marka Italyan etiketleri. */
     '120% lino','120percento','carlo pignatelli','malloni','nanan','marlu gioielli',
     'marlugioielli',
