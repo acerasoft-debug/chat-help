@@ -416,6 +416,17 @@ function vestra_discover_blocklist(): array {
     'aldo shoes','aldogroup','dynamite clothing','groupe dynamite',
     'garage clothing','garageclothing','le chateau','lechateau','rw&co','reitmans',
     'aritzia','roots',
+    /* AVM / outlet MERKEZI isletmecileri. Bunlar bir magaza degil, EV SAHIBI:
+       mal almiyorlar, kiraya veriyorlar. 30 Agustos 2026'da McArthurGlen Malaga
+       ve La Noria Outlet duyuruyu aldi -- ikisi de alisveris merkezi.
+       "outlet" KELIMESI TEK BASINA EKLENMEDI: bagimsiz bir off-price magazasi
+       da adinda outlet tasiyor ve o gercek musteri (Il Salvagente gibi). Sadece
+       merkez isletmecilerinin kendi adlari ve "designer outlet" kalibi. */
+    'mcarthurglen','value retail','neinver','sonae sierra','unibail','westfield',
+    'simon property','designer outlet','la noria outlet','the mall luxury outlet',
+    /* Ayni partide cikan kendi-marka Italyan etiketleri. */
+    '120% lino','120percento','carlo pignatelli','malloni','nanan','marlu gioielli',
+    'marlugioielli',
     // sportswear giants
     'nike','adidas','puma','under armour','the north face','columbia sportswear','reebok','fila','kappa',
     'umbro','asics','new balance',
