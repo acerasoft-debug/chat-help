@@ -1,41 +1,460 @@
 <!DOCTYPE html>
 <!--
-  chat-help.com  →  chat-help.com/chat/  yönlendirmesi
-  Web köküne (html/index.html) yüklenir. Dosyalar /chat/ altında olduğu için.
+  chat-help.com  —  Startseite (echte Inhaltsseite, indexierbar).
+  Ersetzt die alte Sofort-Weiterleitung auf /chat/ (größter SEO-Blocker).
+  Bots UND Menschen sehen dieselbe Seite (kein Cloaking); der Button
+  "Jetzt starten" führt mit einem Klick in die App (/chat/).
+  hreflang: vorerst nur de + x-default (die /en/, /fr/ … existieren noch
+  nicht — erst eintragen, wenn die Sprach-URLs live sind).
 -->
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<!-- Anında yönlendir -->
-<meta http-equiv="refresh" content="0; url=/chat/">
-<title>ChatHelp — Weiterleitung…</title>
-<link rel="canonical" href="https://chat-help.com/chat/">
-<script>
-  // JS ile de yönlendir (en hızlısı, geçmişe kayıt bırakmaz)
-  location.replace('/chat/');
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="/brand/icon-app.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/brand/icon-app.svg">
+<!-- ===== SEO (aus marketing/seo/head-de.html) ===== -->
+<title>Widerspruch, Antrag &amp; Brief mit KI erstellen &amp; versenden | ChatHelp</title>
+<meta name="description" content="Amtspost mit Frist? ChatHelp schreibt Ihren geprüften Widerspruch, Antrag oder Brief – von zwei KIs auf Basis echter Rechtsquellen – und versendet ihn per Fax, Brief oder Einschreiben. Recht, einfach, digital.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="theme-color" content="#16161a">
+<link rel="canonical" href="https://chat-help.com/">
+<link rel="alternate" hreflang="de" href="https://chat-help.com/">
+<link rel="alternate" hreflang="x-default" href="https://chat-help.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChatHelp">
+<meta property="og:locale" content="de_DE">
+<meta property="og:title" content="Widerspruch, Antrag &amp; Brief mit KI – erstellt &amp; versendet | ChatHelp">
+<meta property="og:description" content="Geprüfter Widerspruch, Antrag oder Brief in Sekunden – Versand per Fax, Brief oder Einschreiben. Von zwei KIs geprüft, auf Basis echter Rechtsquellen.">
+<meta property="og:url" content="https://chat-help.com/">
+<meta property="og:image" content="https://chat-help.com/og-de.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ChatHelp – Widerspruch, Antrag und Brief von KI erstellt und versendet">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Widerspruch, Antrag &amp; Brief mit KI – erstellt &amp; versendet | ChatHelp">
+<meta name="twitter:description" content="Geprüfter Brief in Sekunden – Versand per Fax, Brief oder Einschreiben.">
+<meta name="twitter:image" content="https://chat-help.com/og-de.png">
+<link rel="preconnect" href="https://chat-help.com">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "ChatHelp",
+  "url": "https://chat-help.com/",
+  "logo": "https://chat-help.com/brand/icon-app.png",
+  "image": "https://chat-help.com/og-de.png",
+  "description": "KI-Rechtsassistent: erstellt geprüfte Widersprüche, Anträge und Briefe auf Basis echter Rechtsquellen und versendet sie per Fax, Brief oder Einschreiben.",
+  "slogan": "Recht. Einfach. Digital.",
+  "sameAs": [
+    "https://www.instagram.com/chathelp/",
+    "https://play.google.com/store/apps/details?id=com.acerasoft.chathelp"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "ChatHelp",
+  "url": "https://chat-help.com/",
+  "inLanguage": "de-DE"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ChatHelp",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web, Android",
+  "url": "https://chat-help.com/",
+  "inLanguage": "de-DE",
+  "installUrl": "https://play.google.com/store/apps/details?id=com.acerasoft.chathelp",
+  "downloadUrl": "https://play.google.com/store/apps/details?id=com.acerasoft.chathelp",
+  "description": "ChatHelp erstellt in Sekunden geprüfte, rechtssicher formulierte Schreiben – Widerspruch, Antrag, Mahnung, Kündigung – und versendet sie per Fax, Brief oder Einschreiben."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Service",
+  "name": "Rechtsdokumente per KI erstellen und versenden",
+  "provider": { "@type": "Organization", "name": "ChatHelp", "url": "https://chat-help.com/" },
+  "areaServed": { "@type": "Country", "name": "Deutschland" },
+  "availableChannel": { "@type": "ServiceChannel", "serviceUrl": "https://chat-help.com/chat/" },
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "ChatHelp",
+    "itemListElement": [
+      { "@type": "Offer", "name": "Basic" },
+      { "@type": "Offer", "name": "Pro" },
+      { "@type": "Offer", "name": "Elite" }
+    ]
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "Was ist ChatHelp?", "acceptedAnswer": { "@type": "Answer", "text": "ChatHelp ist ein digitaler KI-Rechtsassistent. Sie schildern Ihre Situation in eigenen Worten und laden Ihr Dokument hoch – ChatHelp erstellt daraus ein fertiges, geprüftes Schreiben und kann es für Sie versenden." } },
+    { "@type": "Question", "name": "Welche Dokumente kann ich mit ChatHelp erstellen?", "acceptedAnswer": { "@type": "Answer", "text": "Unter anderem Widerspruch, Einspruch, Antrag, Mahnung, Klage und Kündigung – etwa gegen Bescheide, bei Mieterhöhungen, Verträgen oder Behördenpost." } },
+    { "@type": "Question", "name": "Wie stellt ChatHelp korrekte Informationen sicher?", "acceptedAnswer": { "@type": "Answer", "text": "Eine mehrstufige KI-Analyse arbeitet auf Basis echter Rechtsquellen – Gesetze, Fristen und Urteile. Eine zweite KI prüft jede Angabe. Das Prinzip: geprüft statt geraten." } },
+    { "@type": "Question", "name": "Kann ChatHelp meinen Brief auch versenden?", "acceptedAnswer": { "@type": "Answer", "text": "Ja. Auf Wunsch per Fax, Brief oder Einschreiben mit Zustellnachweis (fristwahrend) – oder als PDF und E-Mail. Kein Drucker, kein Gang zur Post." } },
+    { "@type": "Question", "name": "Ersetzt ChatHelp eine Rechtsberatung?", "acceptedAnswer": { "@type": "Answer", "text": "ChatHelp erstellt sorgfältig recherchierte Dokumente auf Basis aktueller Rechtsquellen, ersetzt jedoch keine individuelle Rechtsberatung durch einen Anwalt." } },
+    { "@type": "Question", "name": "Was kostet ChatHelp?", "acceptedAnswer": { "@type": "Answer", "text": "Es gibt die Pläne Basic, Pro und Elite mit monatlichem Fall-Kontingent (5, 20 bzw. 100 Fälle pro Monat). Aktuelle Preise auf chat-help.com." } },
+    { "@type": "Question", "name": "Sind meine Daten sicher?", "acceptedAnswer": { "@type": "Answer", "text": "Ihre persönlichen Daten werden nur serverseitig zusammengeführt und nicht an Dritte weitergegeben." } }
+  ]
+}
 </script>
 <style>
-  html,body{height:100%;margin:0;background:#07070e;color:#d4a84a;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  .wrap{height:100%;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:14px}
-  .logo{font-size:26px;font-weight:800;letter-spacing:-.5px}
-  .logo span{color:#fff}
-  .sp{width:30px;height:30px;border:3px solid rgba(212,168,74,.25);
-    border-top-color:#d4a84a;border-radius:50%;animation:spin .8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  a{color:#d4a84a}
+  :root{
+    --gold0:#F6E2A6;--gold1:#F3D88A;--gold2:#D4A84A;--gold3:#B0801F;
+    --ink:#F4F4F8;--mute:#9a9ab0;--line:rgba(212,168,74,.22);
+    --card:rgba(255,255,255,.035);--card2:rgba(255,255,255,.05);
+    --serif:Georgia,'Liberation Serif','DejaVu Serif',serif;
+    --sans:'DejaVu Sans','Liberation Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:#0e0e10;color:var(--ink);font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(120% 80% at 15% -10%, #26262b 0%, #16161a 48%, #0e0e10 100%);
+    background-attachment:fixed;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  .g{color:transparent;background:linear-gradient(180deg,var(--gold0),var(--gold2) 62%,var(--gold3));
+    -webkit-background-clip:text;background-clip:text}
+  h1,h2,h3{font-family:var(--serif);font-weight:700;letter-spacing:-.01em;line-height:1.15}
+  .eyebrow{font:700 13px/1 var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--gold2)}
+  .lead{color:#d9d9e6;font-size:clamp(16px,2.2vw,19px)}
+  .mute{color:var(--mute)}
+
+  /* ---- buttons ---- */
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:15px 26px;border-radius:14px;
+    font:700 16px/1 var(--sans);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{color:#160f00;background:linear-gradient(180deg,var(--gold0),var(--gold2) 70%,var(--gold3));
+    box-shadow:0 12px 30px rgba(212,168,74,.28)}
+  .btn-primary:hover{box-shadow:0 16px 40px rgba(212,168,74,.42)}
+  .btn-ghost{color:var(--ink);border:1px solid var(--line);background:rgba(255,255,255,.03)}
+  .btn-ghost:hover{border-color:rgba(212,168,74,.55)}
+  /* Google Play */
+  .gp{display:inline-flex;align-items:center;gap:13px;padding:12px 22px;border-radius:14px;
+    background:linear-gradient(180deg,#1b1b22,#101017);border:1.5px solid rgba(212,168,74,.5);
+    color:var(--ink);box-shadow:0 10px 26px rgba(0,0,0,.35);transition:transform .15s}
+  .gp:hover{transform:translateY(-1px)}
+  .gp small{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+  .gp b{font-size:19px;color:var(--gold0)}
+
+  /* ---- header ---- */
+  header{position:sticky;top:0;z-index:40;backdrop-filter:blur(10px);
+    background:rgba(14,14,16,.72);border-bottom:1px solid rgba(255,255,255,.06)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .brand{display:flex;align-items:center;gap:12px;font:800 22px/1 var(--serif)}
+  .brand .w{color:#fff}
+  .nav-cta{padding:11px 20px;font-size:15px}
+
+  /* ---- hero ---- */
+  .hero{padding:clamp(46px,8vw,92px) 0 34px;text-align:center}
+  .hero h1{font-size:clamp(31px,6.4vw,60px);margin:20px auto 0;max-width:16ch}
+  .hero .lead{margin:22px auto 0;max-width:56ch}
+  .cta-row{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:34px}
+  .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+  .chip{font:700 14px/1 var(--sans);color:var(--gold1);background:rgba(212,168,74,.10);
+    border:1px solid var(--line);padding:11px 17px;border-radius:999px}
+
+  /* ---- sections ---- */
+  section{padding:clamp(44px,7vw,78px) 0}
+  .sec-head{text-align:center;max-width:60ch;margin:0 auto clamp(30px,5vw,52px)}
+  .sec-head h2{font-size:clamp(25px,4.4vw,40px);margin-top:12px}
+  .sec-head p{margin-top:14px}
+
+  .grid{display:grid;gap:18px}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:18px;
+    padding:26px 24px}
+  .card h3{font-size:20px;margin:14px 0 8px}
+  .card p{color:#cfcfdd;font-size:15.5px}
+  .ic{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+    background:rgba(212,168,74,.12);border:1px solid var(--line);font-size:24px}
+  .step-n{font:800 15px/1 var(--sans);color:#160f00;background:linear-gradient(180deg,var(--gold0),var(--gold2));
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .step-top{display:flex;align-items:center;gap:12px}
+
+  /* ---- compare ---- */
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .cmp .col{border-radius:18px;padding:26px 24px;border:1px solid rgba(255,255,255,.08)}
+  .cmp .std{background:rgba(255,255,255,.03)}
+  .cmp .ch{background:linear-gradient(180deg,rgba(212,168,74,.13),rgba(212,168,74,.04));
+    border-color:rgba(212,168,74,.4)}
+  .cmp h3{font-size:19px;display:flex;align-items:center;gap:10px}
+  .cmp ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:12px}
+  .cmp li{display:flex;gap:11px;font-size:15.5px;color:#d3d3e0}
+  .cmp li .m{flex:0 0 auto;font-weight:700}
+  .std li .m{color:#e0788a}
+  .ch li .m{color:#37d39a}
+  .tagpill{font:700 12px/1 var(--sans);letter-spacing:.06em;text-transform:uppercase;
+    padding:5px 10px;border-radius:999px}
+  .tagpill.a{color:#e0788a;background:rgba(224,120,138,.12);border:1px solid rgba(224,120,138,.35)}
+  .tagpill.b{color:#37d39a;background:rgba(55,211,154,.12);border:1px solid rgba(55,211,154,.35)}
+
+  /* ---- versand ---- */
+  .vs-note{text-align:center;margin-top:22px;color:var(--mute);font-size:14.5px}
+
+  /* ---- faq ---- */
+  .faq{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+  details{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;
+    padding:4px 20px;transition:border-color .2s}
+  details[open]{border-color:var(--line)}
+  summary{cursor:pointer;list-style:none;padding:17px 0;font:700 17px/1.4 var(--sans);
+    display:flex;justify-content:space-between;align-items:center;gap:16px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--gold2);font-size:24px;font-weight:400;transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details p{color:#cfcfdd;padding:0 0 18px;font-size:15.5px}
+
+  /* ---- final cta ---- */
+  .band{margin:clamp(40px,6vw,70px) 0;padding:clamp(38px,6vw,60px) 30px;border-radius:26px;text-align:center;
+    background:radial-gradient(120% 130% at 50% 0%, rgba(212,168,74,.16), rgba(212,168,74,.02) 60%, transparent);
+    border:1px solid var(--line)}
+  .band h2{font-size:clamp(24px,4vw,38px)}
+  .band .cta-row{margin-top:26px}
+
+  /* ---- footer ---- */
+  footer{border-top:1px solid rgba(255,255,255,.07);padding:38px 0 46px;color:var(--mute);font-size:14px}
+  .foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+  .foot a:hover{color:var(--gold1)}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap}
+  .disc{margin-top:20px;font-size:12.5px;color:#6f6f85;max-width:70ch}
+
+  @media(max-width:820px){
+    .cols-4{grid-template-columns:repeat(2,1fr)}
+    .cols-3{grid-template-columns:1fr}
+  }
+  @media(max-width:620px){
+    .cols-2,.cols-4,.cmp{grid-template-columns:1fr}
+    .nav .brand{font-size:20px}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="logo"><span>Chat</span>Help</div>
-  <div class="sp"></div>
-  <noscript><p><a href="/chat/">Weiter zu ChatHelp →</a></p></noscript>
-</div>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/" aria-label="ChatHelp Startseite">
+      <svg width="34" height="34" viewBox="0 0 120 120" aria-hidden="true">
+        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6E2A6"/><stop offset=".5" stop-color="#D4A84A"/><stop offset="1" stop-color="#B0801F"/></linearGradient></defs>
+        <rect x="8" y="8" width="104" height="104" rx="28" fill="#222226" stroke="url(#lg)" stroke-width="2.4"/>
+        <path d="M28 34 h54 a11 11 0 0 1 11 11 v26 a11 11 0 0 1 -11 11 h-30 l-17 14 v-14 h-7 a11 11 0 0 1 -11 -11 v-26 a11 11 0 0 1 11 -11 z" fill="none" stroke="url(#lg)" stroke-width="3"/>
+        <text x="55" y="73" font-family="Georgia,'Times New Roman',serif" font-size="46" font-weight="700" fill="url(#lg)" text-anchor="middle">&#167;</text>
+      </svg>
+      <span>Chat<span class="w">Help</span></span>
+    </a>
+    <a class="btn btn-primary nav-cta" href="/chat/">Zur App →</a>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Recht · Einfach · Digital</div>
+      <h1>Widerspruch, Antrag &amp; Brief – <span class="g">von KI erstellt und versendet.</span></h1>
+      <p class="lead">Amtspost mit Frist? Sie schildern Ihre Situation in eigenen Worten. Zwei KIs erstellen auf Basis <b>echter Rechtsquellen</b> ein geprüftes Schreiben – und versenden es auf Wunsch per <b>Fax, Brief oder Einschreiben</b>.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/chat/">Jetzt starten →</a>
+        <a class="gp" href="https://play.google.com/store/apps/details?id=com.acerasoft.chathelp" target="_blank" rel="noopener" aria-label="ChatHelp bei Google Play herunterladen">
+          <svg width="26" height="29" viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="gpA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00D3FF"/><stop offset=".38" stop-color="#00E0A0"/><stop offset=".7" stop-color="#FFD400"/><stop offset="1" stop-color="#FF3B3B"/></linearGradient></defs><path d="M3.5 2.2 L3.5 21.8 L20.2 12 Z" fill="url(#gpA)"/></svg>
+          <span><small>Jetzt bei</small><b>Google Play</b></span>
+        </a>
+      </div>
+      <div class="chips">
+        <span class="chip">2 KIs · geprüft</span>
+        <span class="chip">§ echte Rechtsquellen</span>
+        <span class="chip">Fax · Brief · Einschreiben</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SO FUNKTIONIERT -->
+  <section id="so-gehts">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">So funktioniert ChatHelp</div>
+        <h2>In vier Schritten zum <span class="g">fertigen Schreiben</span></h2>
+        <p class="lead mute">Kein leeres Formular. Echtes Wissen, doppelt kontrolliert – und der Versand gehört dazu.</p>
+      </div>
+      <div class="grid cols-4">
+        <div class="card">
+          <div class="step-top"><span class="step-n">1</span><div class="ic">✍️</div></div>
+          <h3>Schildern &amp; hochladen</h3>
+          <p>Sie beschreiben Ihr Anliegen in eigenen Worten und laden Bescheid oder Brief als Foto oder PDF hoch.</p>
+        </div>
+        <div class="card">
+          <div class="step-top"><span class="step-n">2</span><div class="ic">📚</div></div>
+          <h3>Wissensdatenbank &amp; Recherche</h3>
+          <p>ChatHelp zieht echtes Wissen aus der Rechts-Datenbank. Eine Recherche-KI analysiert Gesetze, Fristen und Urteile zu Ihrem Fall.</p>
+        </div>
+        <div class="card">
+          <div class="step-top"><span class="step-n">3</span><div class="ic">🛡️</div></div>
+          <h3>Kontrolle durch zweite KI</h3>
+          <p>Eine zweite KI prüft jede Angabe gegen die Quellen und formuliert mit. Das Prinzip: <b>geprüft statt geraten</b>.</p>
+        </div>
+        <div class="card">
+          <div class="step-top"><span class="step-n">4</span><div class="ic">📨</div></div>
+          <h3>Fertiges Schreiben &amp; Versand</h3>
+          <p>Sie erhalten ein rechtssicher formuliertes Dokument – als PDF oder direkt per Fax, Brief oder Einschreiben versendet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GEPRÜFT STATT GERATEN -->
+  <section id="unterschied">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Der Unterschied</div>
+        <h2>Geprüft statt <span class="g">geraten</span></h2>
+        <p class="lead mute">Eine Standard-KI gibt schnelle, oberflächliche Antworten. ChatHelp holt echtes Wissen aus der Datenbank und lässt es von einer zweiten KI kontrollieren.</p>
+      </div>
+      <div class="cmp">
+        <div class="col std">
+          <h3><span class="tagpill a">Standard-KI</span></h3>
+          <ul>
+            <li><span class="m">✕</span> Oberflächliche, allgemeine Antworten</li>
+            <li><span class="m">✕</span> Kann Fakten „erfinden" (halluzinieren)</li>
+            <li><span class="m">✕</span> Keine echten Rechtsquellen</li>
+            <li><span class="m">✕</span> Sie müssen selbst tippen, drucken, zur Post</li>
+          </ul>
+        </div>
+        <div class="col ch">
+          <h3><span class="tagpill b">ChatHelp</span></h3>
+          <ul>
+            <li><span class="m">✓</span> Echtes Wissen aus der Rechts-Datenbank</li>
+            <li><span class="m">✓</span> Zwei KIs kontrollieren sich gegenseitig</li>
+            <li><span class="m">✓</span> Echte Gesetze, Fristen &amp; Urteile (§)</li>
+            <li><span class="m">✓</span> Erstellt <b>und</b> versendet für Sie</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DREI SÄULEN -->
+  <section id="leistungen">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Was ChatHelp für Sie tut</div>
+        <h2>Schreiben. Prüfen. <span class="g">Versenden.</span></h2>
+      </div>
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="ic">📝</div>
+          <h3>Schreiben erstellen</h3>
+          <p>Widerspruch, Einspruch, Antrag, Mahnung, Klage, Kündigung – gegen Bescheide, bei Mieterhöhung, Verträgen oder Behördenpost. In Minuten statt Stunden.</p>
+        </div>
+        <div class="card">
+          <div class="ic">✅</div>
+          <h3>Geprüfte, korrekte Informationen</h3>
+          <p>Auf Basis echter Rechtsquellen – Gesetze, Fristen, Urteile. Jede Angabe wird von einer zweiten KI kontrolliert. Keine erfundenen Fakten.</p>
+        </div>
+        <div class="card">
+          <div class="ic">📮</div>
+          <h3>Versand inklusive</h3>
+          <p>Fax, Brief oder Einschreiben mit Zustellnachweis – fristwahrend. Kein Drucker, kein Gang zur Post. Auf Wunsch auch als PDF und per E-Mail.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERSAND -->
+  <section id="versand">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Die letzte Stufe</div>
+        <h2>Und ab die Post – <span class="g">Fax, Brief, Einschreiben</span></h2>
+        <p class="lead mute">Ein fertiges Schreiben nützt nur, wenn es ankommt. ChatHelp übernimmt auch den Versand – rechtzeitig und nachweisbar.</p>
+      </div>
+      <div class="grid cols-3">
+        <div class="card">
+          <div class="ic">📠</div>
+          <h3>Fax</h3>
+          <p>Sofort zugestellt mit Sendebericht als Nachweis – ideal, wenn eine Frist heute noch läuft.</p>
+        </div>
+        <div class="card">
+          <div class="ic">✉️</div>
+          <h3>Brief</h3>
+          <p>Gedruckt und als klassische Post verschickt. Sie müssen nichts ausdrucken oder kuvertieren.</p>
+        </div>
+        <div class="card">
+          <div class="ic">📑</div>
+          <h3>Einschreiben</h3>
+          <p>Mit Zustellnachweis (fristwahrend) – der sichere Weg für wichtige Fristen und Behördenpost.</p>
+        </div>
+      </div>
+      <p class="vs-note">Lieber selbst versenden? Sie erhalten das Dokument jederzeit als PDF und per E-Mail.</p>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="eyebrow">Häufige Fragen</div>
+        <h2>Kurz erklärt</h2>
+      </div>
+      <div class="faq">
+        <details open><summary>Was ist ChatHelp?</summary><p>ChatHelp ist ein digitaler KI-Rechtsassistent. Sie schildern Ihre Situation in eigenen Worten und laden Ihr Dokument hoch – ChatHelp erstellt daraus ein fertiges, geprüftes Schreiben und kann es für Sie versenden.</p></details>
+        <details><summary>Welche Dokumente kann ich mit ChatHelp erstellen?</summary><p>Unter anderem Widerspruch, Einspruch, Antrag, Mahnung, Klage und Kündigung – etwa gegen Bescheide, bei Mieterhöhungen, Verträgen oder Behördenpost.</p></details>
+        <details><summary>Wie stellt ChatHelp korrekte Informationen sicher?</summary><p>Eine mehrstufige KI-Analyse arbeitet auf Basis echter Rechtsquellen – Gesetze, Fristen und Urteile. Eine zweite KI prüft jede Angabe. Das Prinzip: geprüft statt geraten.</p></details>
+        <details><summary>Kann ChatHelp meinen Brief auch versenden?</summary><p>Ja. Auf Wunsch per Fax, Brief oder Einschreiben mit Zustellnachweis (fristwahrend) – oder als PDF und E-Mail. Kein Drucker, kein Gang zur Post.</p></details>
+        <details><summary>Ersetzt ChatHelp eine Rechtsberatung?</summary><p>ChatHelp erstellt sorgfältig recherchierte Dokumente auf Basis aktueller Rechtsquellen, ersetzt jedoch keine individuelle Rechtsberatung durch einen Anwalt.</p></details>
+        <details><summary>Was kostet ChatHelp?</summary><p>Es gibt die Pläne Basic, Pro und Elite mit monatlichem Fall-Kontingent (5, 20 bzw. 100 Fälle pro Monat). Aktuelle Preise auf chat-help.com.</p></details>
+        <details><summary>Sind meine Daten sicher?</summary><p>Ihre persönlichen Daten werden nur serverseitig zusammengeführt und nicht an Dritte weitergegeben.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <div class="wrap">
+    <div class="band">
+      <div class="eyebrow">Bereit?</div>
+      <h2>Ihr Schreiben ist in <span class="g">wenigen Minuten</span> fertig.</h2>
+      <p class="lead mute" style="margin-top:14px">Schildern, prüfen lassen, versenden – ohne Formularchaos.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/chat/">Jetzt starten →</a>
+        <a class="gp" href="https://play.google.com/store/apps/details?id=com.acerasoft.chathelp" target="_blank" rel="noopener" aria-label="ChatHelp bei Google Play herunterladen">
+          <svg width="26" height="29" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 2.2 L3.5 21.8 L20.2 12 Z" fill="url(#gpA)"/></svg>
+          <span><small>Jetzt bei</small><b>Google Play</b></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div class="brand" style="font-size:19px">Chat<span class="w">Help</span></div>
+      <nav class="foot-links">
+        <a href="/chat/">Zur App</a>
+        <a href="#so-gehts">So funktioniert's</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://play.google.com/store/apps/details?id=com.acerasoft.chathelp" target="_blank" rel="noopener">Google Play</a>
+        <a href="https://www.instagram.com/chathelp/" target="_blank" rel="noopener">Instagram</a>
+      </nav>
+    </div>
+    <p class="disc">ChatHelp erstellt sorgfältig recherchierte Dokumente auf Basis aktueller Rechtsquellen und ersetzt keine individuelle Rechtsberatung durch einen Anwalt. Recht. Einfach. Digital.</p>
+    <p class="disc">© ChatHelp · chat-help.com</p>
+  </div>
+</footer>
+
 </body>
 </html>

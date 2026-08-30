@@ -1,0 +1,5 @@
+# Sırlar ve çalışma dosyaları — ASLA commit'lenmez
+token.txt
+app_secret.txt
+state.json
+post.log

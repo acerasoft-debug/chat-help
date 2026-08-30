@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ChatHelp sitemap — spiegelt die LIVE-Version. NUR real existierende URLs.
+     Neue Seiten (z. B. /widerspruch/, /versand/, /en/) erst hier ergaenzen,
+     wenn sie wirklich live sind. <lastmod> beim Aendern aktualisieren. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://chat-help.com/</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://chat-help.com/chat/</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+</urlset>

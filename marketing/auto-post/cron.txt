@@ -1,0 +1,19 @@
+# ChatHelp — Instagram oto-paylaşım cron örneği
+# cPanel -> Cron Jobs. Yolu ve PHP ikilisini kendi sunucuna göre düzelt.
+# ÖNEMLİ: Saatler SUNUCU saatine göredir (çoğu sunucuda UTC). Aşağıdakiler
+# her dilin bölgesine yakın "prime-time" için UTC tahminidir; kendi sunucunun
+# saatine göre ayarla. Her dil günde 1 kez -> tek hesapta günde 6 gönderi.
+
+# --- günlük paylaşımlar (UTC) ---
+0 7  * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php de   # DE ~08-09 CET
+0 12 * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php en   # UK ~12-13
+0 11 * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php fr   # FR ~12-13 CET
+0 15 * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php tr   # TR ~18 (UTC+3)
+0 18 * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php es   # ES ~19-20 CET
+0 16 * * *  /usr/bin/php /home/KULLANICI/auto-post/schedule.php ru   # RU ~19 MSK
+
+# --- token yenileme (ayda bir) ---
+0 4 1 * *   /usr/bin/php /home/KULLANICI/auto-post/refresh-token.php
+
+# Test için (elle):
+#   php /home/KULLANICI/auto-post/schedule.php de
