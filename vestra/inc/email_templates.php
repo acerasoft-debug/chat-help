@@ -1135,3 +1135,94 @@ function vestra_tpl_new_collection(string $lang, string $company): array {
 
     return [$subject, $body, ['button' => ['label' => 'Winter 26/27', 'url' => $url]]];
 }
+
+/**
+ * The same Winter 26/27 news, addressed to a REGISTERED member — not a prospect.
+ *
+ * The lead letter opens with "we wrote to you earlier about VESTRA"; sent to a
+ * member that line is false and reads as a mail-merge slip. A member letter opens
+ * from the standing relationship instead, and its call to action is their own
+ * account (the catalogue they already have access to), not a registration link.
+ *
+ * Same honesty rules as the lead version: the three houses are ARRIVING, not in
+ * stock; quantities and size runs come from the suppliers' line sheets; no prices,
+ * because wholesale figures for these three are not set yet.
+ *
+ * No unsubscribe token (that machinery belongs to leads.json); instead a plain
+ * sentence that a reply stops these announcements. A member being told news they
+ * cannot opt out of is how a good relationship sours.
+ */
+function vestra_tpl_new_collection_member(string $lang, string $company): array {
+    $co = trim($company);
+    $L = [
+      'en' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris arriving",
+        "Hello".($co !== '' ? " ".$co : '').",",
+        "Three houses have been confirmed for Winter 26/27 at VESTRA: Gallery Dept. (Los Angeles logo tees), Fred Perry (M7535 crew sweatshirts and M3600 twin-tipped polos, full colour range) and AMI Paris (Ami de Cœur t-shirts, hoodie and crew sweatshirts).",
+        "These are arriving, not yet in stock — full size runs, 200-250 pieces per model. As a registered buyer you get first refusal: reply to this email and we will hold your place when orders open. Everything shippable today is in your price list as usual.",
+        "If you would rather not receive stock announcements, just reply and say so — we will stop."],
+      'de' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris kommen",
+        "Guten Tag".($co !== '' ? " ".$co : '').",",
+        "Für Winter 26/27 sind bei VESTRA drei Häuser bestätigt: Gallery Dept. (Logo-Shirts aus Los Angeles), Fred Perry (M7535 Sweatshirts und M3600 Polos mit Doppelstreifen, volle Farbpalette) und AMI Paris (Ami-de-Cœur T-Shirts, Hoodie und Sweatshirts).",
+        "Die Ware ist unterwegs, noch nicht auf Lager — volle Größenläufe, 200-250 Stück je Modell. Als registrierter Einkäufer haben Sie das Vorkaufsrecht: Antworten Sie kurz auf diese E-Mail und wir merken Sie für den Verkaufsstart vor. Alles heute Lieferbare steht wie gewohnt in Ihrer Preisliste.",
+        "Wenn Sie keine Sortimentsankündigungen wünschen, genügt eine kurze Antwort — dann hören sie auf."],
+      'fr' => ["VESTRA — Hiver 26/27 : Gallery Dept., Fred Perry, AMI Paris arrivent",
+        "Bonjour".($co !== '' ? " ".$co : '').",",
+        "Trois maisons sont confirmées pour l'hiver 26/27 chez VESTRA : Gallery Dept. (t-shirts logo de Los Angeles), Fred Perry (sweatshirts M7535 et polos M3600 à double liseré, gamme complète) et AMI Paris (t-shirts Ami de Cœur, hoodie et sweatshirts).",
+        "Ces pièces arrivent, elles ne sont pas encore en stock — séries de tailles complètes, 200 à 250 pièces par modèle. En tant qu'acheteur enregistré, vous avez la priorité : répondez à cet e-mail et nous vous réservons une place à l'ouverture des commandes. Tout ce qui est expédiable aujourd'hui figure comme toujours dans votre liste de prix.",
+        "Si vous préférez ne pas recevoir d'annonces de collection, dites-le simplement en réponse — nous arrêterons."],
+      'it' => ["VESTRA — Inverno 26/27: arrivano Gallery Dept., Fred Perry, AMI Paris",
+        "Buongiorno".($co !== '' ? " ".$co : '').",",
+        "Per l'inverno 26/27 su VESTRA sono confermate tre maison: Gallery Dept. (t-shirt logo da Los Angeles), Fred Perry (felpe girocollo M7535 e polo M3600 a doppio bordino, gamma colori completa) e AMI Paris (t-shirt Ami de Cœur, felpa con cappuccio e girocollo).",
+        "Sono in arrivo, non ancora a magazzino — serie taglie complete, 200-250 pezzi per modello. Come acquirente registrato ha la precedenza: risponda a questa e-mail e Le riserviamo il posto all'apertura degli ordini. Tutto ciò che è spedibile oggi è come sempre nel Suo listino.",
+        "Se preferisce non ricevere annunci di collezione, basta rispondere e dircelo — smetteremo."],
+      'es' => ["VESTRA — Invierno 26/27: llegan Gallery Dept., Fred Perry, AMI Paris",
+        "Buenos días".($co !== '' ? " ".$co : '').",",
+        "Para el invierno 26/27 hay tres casas confirmadas en VESTRA: Gallery Dept. (camisetas con logo de Los Ángeles), Fred Perry (sudaderas M7535 y polos M3600 de doble ribete, gama completa de colores) y AMI Paris (camisetas Ami de Cœur, sudadera con capucha y de cuello redondo).",
+        "Están en camino, todavía no en stock — series de tallas completas, 200-250 piezas por modelo. Como comprador registrado tiene preferencia: responda a este correo y le reservamos sitio cuando se abran los pedidos. Todo lo que podemos enviar hoy está, como siempre, en su lista de precios.",
+        "Si prefiere no recibir anuncios de colección, respóndanos y díganoslo — dejaremos de enviarlos."],
+      'nl' => ["VESTRA — Winter 26/27: Gallery Dept., Fred Perry, AMI Paris komen eraan",
+        "Goedendag".($co !== '' ? " ".$co : '').",",
+        "Voor winter 26/27 zijn bij VESTRA drie huizen bevestigd: Gallery Dept. (logo-shirts uit Los Angeles), Fred Perry (M7535 sweatshirts en M3600 polo's met dubbele bies, volledig kleurenpalet) en AMI Paris (Ami de Cœur t-shirts, hoodie en sweatshirts).",
+        "Deze zijn onderweg, nog niet op voorraad — volledige maatreeksen, 200-250 stuks per model. Als geregistreerde inkoper heeft u voorrang: beantwoord deze e-mail en wij houden uw plek vast zodra de verkoop opent. Alles wat vandaag leverbaar is staat zoals altijd in uw prijslijst.",
+        "Liever geen collectie-aankondigingen? Laat het per antwoord weten — dan stoppen ze."],
+      'pt' => ["VESTRA — Inverno 26/27: chegam Gallery Dept., Fred Perry, AMI Paris",
+        "Bom dia".($co !== '' ? " ".$co : '').",",
+        "Para o inverno 26/27 estão confirmadas três casas na VESTRA: Gallery Dept. (t-shirts com logótipo de Los Angeles), Fred Perry (sweatshirts M7535 e polos M3600 de duplo debrum, gama completa de cores) e AMI Paris (t-shirts Ami de Cœur, hoodie e sweatshirts).",
+        "Estão a caminho, ainda não em stock — séries de tamanhos completas, 200-250 peças por modelo. Como comprador registado tem prioridade: responda a este e-mail e guardamos o seu lugar na abertura das encomendas. Tudo o que podemos expedir hoje está, como sempre, na sua lista de preços.",
+        "Se preferir não receber anúncios de coleção, basta responder a dizê-lo — deixamos de enviar."],
+      'pl' => ["VESTRA — Zima 26/27: Gallery Dept., Fred Perry, AMI Paris w drodze",
+        "Dzień dobry".($co !== '' ? " ".$co : '').",",
+        "Na zimę 26/27 w VESTRA potwierdzone są trzy domy mody: Gallery Dept. (koszulki z logo z Los Angeles), Fred Perry (bluzy M7535 i koszulki polo M3600 z podwójną lamówką, pełna paleta kolorów) oraz AMI Paris (koszulki Ami de Cœur, bluza z kapturem i bluzy klasyczne).",
+        "Towar jest w drodze, jeszcze nie na magazynie — pełne rozpiętości rozmiarów, 200-250 sztuk na model. Jako zarejestrowany kupiec mają Państwo pierwszeństwo: wystarczy odpowiedzieć na tę wiadomość, a zarezerwujemy miejsce przy otwarciu zamówień. Wszystko, co możemy wysłać dziś, znajduje się jak zwykle w Państwa cenniku.",
+        "Jeśli wolą Państwo nie otrzymywać zapowiedzi kolekcji, wystarczy odpowiedzieć — przestaniemy."],
+      'cs' => ["VESTRA — Zima 26/27: přicházejí Gallery Dept., Fred Perry, AMI Paris",
+        "Dobrý den".($co !== '' ? " ".$co : '').",",
+        "Pro zimu 26/27 jsou na VESTRA potvrzeny tři značky: Gallery Dept. (trička s logem z Los Angeles), Fred Perry (mikiny M7535 a polokošile M3600 s dvojitým lemem, plná barevná řada) a AMI Paris (trička Ami de Cœur, mikina s kapucí a klasické mikiny).",
+        "Zboží je na cestě, zatím není skladem — plné velikostní řady, 200-250 kusů na model. Jako registrovaný nákupčí máte přednost: odpovězte na tento e-mail a podržíme Vám místo při otevření objednávek. Vše, co můžeme odeslat dnes, najdete jako obvykle ve svém ceníku.",
+        "Pokud si oznámení o kolekcích nepřejete, stačí odpovědět — přestaneme je posílat."],
+      'el' => ["VESTRA — Χειμώνας 26/27: έρχονται Gallery Dept., Fred Perry, AMI Paris",
+        "Γεια σας".($co !== '' ? " ".$co : '').",",
+        "Για τον χειμώνα 26/27 στη VESTRA επιβεβαιώθηκαν τρεις οίκοι: Gallery Dept. (μπλουζάκια με λογότυπο από το Λος Άντζελες), Fred Perry (φούτερ M7535 και πόλο M3600 με διπλή ρίγα, πλήρης χρωματική γκάμα) και AMI Paris (μπλουζάκια Ami de Cœur, hoodie και φούτερ).",
+        "Έρχονται, δεν είναι ακόμη σε απόθεμα — πλήρεις σειρές μεγεθών, 200-250 τεμάχια ανά μοντέλο. Ως εγγεγραμμένος αγοραστής έχετε προτεραιότητα: απαντήστε σε αυτό το μήνυμα και κρατάμε τη θέση σας όταν ανοίξουν οι παραγγελίες. Ό,τι μπορούμε να στείλουμε σήμερα βρίσκεται όπως πάντα στον τιμοκατάλογό σας.",
+        "Αν προτιμάτε να μη λαμβάνετε ανακοινώσεις συλλογών, απλώς απαντήστε — θα σταματήσουμε."],
+      'ja' => ["VESTRA — 26/27年秋冬：Gallery Dept.、Fred Perry、AMI Paris 入荷予定",
+        ($co !== '' ? $co." " : '')."ご担当者様",
+        "VESTRAでは26/27年秋冬向けに三つのブランドが決定しました。Gallery Dept.（ロサンゼルスのロゴTシャツ）、Fred Perry（M7535 クルーネックスウェットと M3600 ツインティップドポロ、全色展開）、AMI Paris（Ami de Cœur のTシャツ、フーディー、クルーネックスウェット）です。",
+        "いずれも入荷予定であり、現時点では在庫はございません。サイズは全展開、1型あたり200〜250枚です。ご登録バイヤーの皆様には優先案内をいたします。本メールにご返信いただければ、受注開始時にお席を確保いたします。本日出荷可能な商品は、通常どおり価格表に掲載しております。",
+        "コレクションのご案内が不要でしたら、その旨ご返信ください。以後お送りいたしません。"],
+      'ko' => ["VESTRA — 26/27 겨울: Gallery Dept., Fred Perry, AMI Paris 입고 예정",
+        ($co !== '' ? $co." " : '')."담당자님께",
+        "VESTRA의 26/27 겨울 시즌으로 세 개 브랜드가 확정되었습니다. Gallery Dept.(로스앤젤레스 로고 티셔츠), Fred Perry(M7535 크루넥 스웨트셔츠와 M3600 트윈 티프드 폴로, 전 컬러), AMI Paris(Ami de Cœur 티셔츠, 후디, 크루넥 스웨트셔츠)입니다.",
+        "모두 입고 예정이며 현재 재고는 없습니다. 사이즈는 풀 구성이고 모델당 200~250장입니다. 등록 바이어께는 우선권이 있습니다. 이 메일에 회신해 주시면 주문 개시 시 자리를 확보해 드리겠습니다. 오늘 출고 가능한 상품은 평소와 같이 가격표에서 확인하실 수 있습니다.",
+        "컬렉션 안내를 원치 않으시면 회신으로 말씀해 주세요. 더 이상 보내지 않겠습니다."],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3] = $d;
+
+    $url  = 'https://vestrasales.com/#coming-soon';
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3
+          . "\n\n—\nVESTRA · Acerasoft LLC\nsupport@vestrasales.com · vestrasales.com";
+
+    return [$subject, $body, ['button' => ['label' => 'Winter 26/27', 'url' => $url]]];
+}

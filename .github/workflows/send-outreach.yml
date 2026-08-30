@@ -103,6 +103,10 @@ on:
         description: "SADECE bu regex'e UYAN adreslere gonder (skip_email_regex'in tersi, PCRE). Or. '/amazon/i' = adresinde amazon gecen leadler (bir magazanin Amazon kanali adresi). Bos = adres suzgeci yok."
         required: false
         default: ""
+      to_members:
+        description: "KAYITLI MUSTERI KIPI (true): Winter 26/27 duyurusunu LEAD'lere degil, KAYITLI ALICI hesaplarina gonderir (uyeye uygun mektup: 'daha once yazmistik' yok, kayit linki yok). Hesap basina bir kez (newcoll_2627_at). Doluysa lead secimi hic calismaz. dry_run ayni sekilde gecerli."
+        required: false
+        default: "false"
       new_collection:
         description: "YENİ KOLEKSİYON KİPİ (true): kampanyayı DAHA ÖNCE ALMIŞ leadlere Winter 26/27 duyurusunu gönderir (Gallery Dept. / Fred Perry / AMI Paris). Normal kip hiç yazılmamışlara gider; bu kip tam tersini seçer. Aynı lead bu duyuruyu iki kez almaz (last_newcollection_at). Abonelikten çıkmışlar ve blocklist yine hariç."
         required: false
@@ -136,6 +140,7 @@ jobs:
           SEND_DNS: ${{ github.event.inputs.dns_check }}
           SEND_FOLLOWUP: ${{ github.event.inputs.followup_emails }}
           SEND_NEWCOLL: ${{ github.event.inputs.new_collection }}
+          SEND_MEMBERS: ${{ github.event.inputs.to_members }}
           SEND_ONLY_RE: ${{ github.event.inputs.email_regex }}
           SEND_CAT_ANY: ${{ github.event.inputs.category_any }}
         with:
@@ -144,7 +149,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_ONLY_RE,SEND_CAT_ANY
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -302,6 +307,93 @@ jobs:
                damgasini tasirsa ayni kisiye ayni duyuru iki kez gitmiyor. */
             $IS_NEWCOLL = strtolower(trim((string)getenv('SEND_NEWCOLL'))) === 'true';
             if ($IS_NEWCOLL) require_once $home."/public_html/inc/email_templates.php";
+
+            /* ── KAYITLI MUSTERI KIPI ────────────────────────────────────────
+               Duyuru once KAYITLI alicilara, sonra lead'lere gidiyor (operatorun
+               sirasi). Lead mektubu uyelere YANLIS: "size daha once yazmistik"
+               diye aciliyor ve kayit linkine cagiriyor. Bu dal kendi mektubunu
+               (vestra_tpl_new_collection_member) kullanir ve isini bitirip cikar
+               -- lead makinesiyle hicbir durumu paylasmaz.
+               Damga hesabin uzerinde (newcoll_2627_at): ayni hesaba ikinci kez
+               gitmez. Ayni adres leads.json'da da varsa ORADAKI kayit da
+               damgalanir; yoksa lead kipi ayni kisiye bir de soguk-uslupta
+               yazardi -- iki farkli agizdan ayni haber, mail-merge kazasi gibi
+               okunur. */
+            $IS_MEMBERS = strtolower(trim((string)getenv('SEND_MEMBERS'))) === 'true';
+            if ($IS_MEMBERS) {
+              require_once $home."/public_html/inc/email_templates.php";
+              require_once $home."/public_html/inc/auth.php";        // auth_accounts / auth_save_accounts
+              /* i18n.php BILEREK yuklenmiyor: include aninda vlang() kosuyor
+                 (cerez okur/yazar) -- CLI'da gereksiz yan etki. Hesabin lang
+                 alani zaten 2 harf; bilinmeyen kodu sablonun kendi 'en'
+                 yedegi karsiliyor. */
+              $accLang = function(array $a): string {
+                $l = strtolower(substr((string)($a['lang'] ?? ''), 0, 2));
+                return preg_match('/^[a-z]{2}$/', $l) ? $l : 'en';
+              };
+              $accts = auth_accounts();
+              $cand = []; $skipped = 0;
+              foreach ($accts as $i => $a) {
+                if (($a['type'] ?? '') !== 'buyer') continue;                    // musteri = alici; saticilara stok duyurusu anlamsiz
+                $st = (string)($a['status'] ?? '');
+                if (in_array($st, ['suspended','deleted','pending_email'], true)) continue; // dogrulanmamis adrese posta atilmaz
+                $em = strtolower(trim((string)($a['email'] ?? '')));
+                if (!filter_var($em, FILTER_VALIDATE_EMAIL)) continue;
+                if (!empty($a['newcoll_2627_at'])) continue;                     // bu duyuruyu zaten aldi
+                /* KURAL 1 kayitli musteride de kontrol ediliyor ama SESSIZCE
+                   elemiyor: eslesme varsa atlanir VE yazilir. Onayli bir musteri
+                   yanlis yakalanirsa operator logda gorur. */
+                if (vestra_lead_is_blocked(['company'=>(string)($a['company'] ?? ''), 'email'=>$em, 'website'=>(string)($a['website'] ?? '')])) {
+                  echo "  - ATLANDI (KURAL: zincir/kendi markasi eslesmesi): {$em}\n"; $skipped++; continue;
+                }
+                $cand[] = $i;
+                if (count($cand) >= $COUNT) break;
+              }
+              $MODE_LABEL = 'YENI KOLEKSIYON — KAYITLI MUSTERILER';
+              echo $DRY ? "== DRY-RUN ({$MODE_LABEL}) — gonderim YOK ==\n" : "== GERCEK GONDERIM — {$MODE_LABEL} ==\n";
+              echo "uygun secilen: ".count($cand)." / hedef: {$COUNT}".($skipped?" (kural geregi atlanan: {$skipped})":"")."\n";
+              if ($DRY) {
+                foreach ($cand as $i) { $a = $accts[$i];
+                  echo "  • ".(($a['company'] ?? '') ?: ($a['name'] ?? '?'))." <".$a['email']."> | dil=".$accLang($a)." | durum=".($a['status'] ?? '-')."\n";
+                }
+                echo "DRY-RUN bitti. Gercekten gondermek icin dry_run=false ile tekrar calistir.\n";
+                exit(0);
+              }
+              if ($cand) {
+                [$mayGo, $why] = vestra_mail_bulk_allowed(count($cand));
+                echo "kota  : {$why}\n";
+                if (!$mayGo) exit(0);
+              }
+              $leads2 = vestra_load_leads(); $idx2 = [];
+              foreach ($leads2 as $j => $l2) { $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 !== '') $idx2[$e2] = $j; }
+              $sent = 0; $fail = 0; $leadsTouched = false;
+              foreach ($cand as $i) {
+                $a = $accts[$i];
+                $lang = $accLang($a);
+                $who  = (string)(($a['company'] ?? '') ?: ($a['name'] ?? ''));
+                [$subject, $body, $opts] = vestra_tpl_new_collection_member($lang, $who);
+                /* Gonderen VESTRA: uye platformu bu adla taniyor; kampanya takma
+                   adi (Les Garage de Paris) soguk listeye ait. */
+                $ok = vestra_send_mail((string)$a['email'], $subject, $body, '', 'VESTRA', null, '', $opts);
+                if ($ok) {
+                  $sent++;
+                  $accts[$i]['newcoll_2627_at'] = date('c');
+                  $em = strtolower(trim((string)$a['email']));
+                  if (isset($idx2[$em]) && trim((string)($leads2[$idx2[$em]]['last_newcollection_at'] ?? '')) === '') {
+                    $leads2[$idx2[$em]]['last_newcollection_at'] = date('c');
+                    $n2 = trim((string)($leads2[$idx2[$em]]['notes'] ?? ''));
+                    $leads2[$idx2[$em]]['notes'] = trim($n2.($n2!==''?' · ':'').'winter2627-member('.$lang.') '.date('Y-m-d'));
+                    $leadsTouched = true;
+                  }
+                  echo "  + GONDERILDI: {$who} <{$a['email']}> | dil={$lang}\n";
+                } else { $fail++; echo "  x HATA      : {$a['email']}\n"; }
+                flush();
+              }
+              if ($sent > 0) auth_save_accounts($accts);
+              if ($leadsTouched) vestra_save_leads($leads2);
+              echo "BITTI. gonderildi: {$sent}, hata: {$fail}. kayitli hesap: ".count($accts)."\n";
+              exit(0);
+            }
             if ($IS_FOLLOWUP) {
               require_once $home."/public_html/inc/email_templates.php";
               $missing = $FOLLOWUP;
