@@ -103,6 +103,10 @@ on:
         description: "SADECE bu regex'e UYAN adreslere gonder (skip_email_regex'in tersi, PCRE). Or. '/amazon/i' = adresinde amazon gecen leadler (bir magazanin Amazon kanali adresi). Bos = adres suzgeci yok."
         required: false
         default: ""
+      quota_reserve:
+        description: "Gunluk kotadan islemsel posta (sifre sifirlama/siparis) icin AYRILAN pay. Varsayilan 60. Dusurmek o gece islemsel postayi riske atar -- sadece operator acikca isteyince degistir."
+        required: false
+        default: "60"
       to_members:
         description: "KAYITLI MUSTERI KIPI (true): Winter 26/27 duyurusunu LEAD'lere degil, KAYITLI ALICI hesaplarina gonderir (uyeye uygun mektup: 'daha once yazmistik' yok, kayit linki yok). Hesap basina bir kez (newcoll_2627_at). Doluysa lead secimi hic calismaz. dry_run ayni sekilde gecerli."
         required: false
@@ -141,6 +145,7 @@ jobs:
           SEND_FOLLOWUP: ${{ github.event.inputs.followup_emails }}
           SEND_NEWCOLL: ${{ github.event.inputs.new_collection }}
           SEND_MEMBERS: ${{ github.event.inputs.to_members }}
+          SEND_RESERVE: ${{ github.event.inputs.quota_reserve }}
           SEND_ONLY_RE: ${{ github.event.inputs.email_regex }}
           SEND_CAT_ANY: ${{ github.event.inputs.category_any }}
         with:
@@ -149,7 +154,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS,SEND_RESERVE
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -166,6 +171,12 @@ jobs:
             // never blast the whole list. A dry-run sends nothing, and truncating it at 50 hid
             // the rest of the queue: screening decisions need the whole list, not its head.
             if (!$DRY && $COUNT > 50) $COUNT = 50;
+            /* Islemsel posta payi. 60 tasarim geregi: kampanya ile sifre
+               sifirlama ayni havuzdan iciyor ve kampanya hep once geliyor.
+               Operator "bugun doldur" dediginde bilerek dusurulebilir --
+               varsayilani degistirme. */
+            $RESERVE = trim((string)getenv("SEND_RESERVE"));
+            $RESERVE = ($RESERVE === '' ? 60 : max(0, (int)$RESERVE));
             $FROM = 'Les Garage de Paris';
             // Country -> campaign language. Falls back to English for anything not listed.
             $LANG_MAP = [
@@ -360,7 +371,7 @@ jobs:
                 exit(0);
               }
               if ($cand) {
-                [$mayGo, $why] = vestra_mail_bulk_allowed(count($cand));
+                [$mayGo, $why] = vestra_mail_bulk_allowed(count($cand), $RESERVE);
                 echo "kota  : {$why}\n";
                 if (!$mayGo) exit(0);
               }
@@ -514,7 +525,7 @@ jobs:
                kampanyanin bedeli yok; ulasmayan bir sifirlama linkinin bedeli hesabin
                kendisi. */
             if (!$DRY && $picked) {
-              [$mayGo, $why] = vestra_mail_bulk_allowed(count($picked));
+              [$mayGo, $why] = vestra_mail_bulk_allowed(count($picked), $RESERVE);
               echo "kota  : {$why}\n";
               if (!$mayGo) { echo "\nDURDURULDU. Hicbir e-posta gonderilmedi.\n"; exit(0); }
             }
