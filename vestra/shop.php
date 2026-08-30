@@ -277,7 +277,9 @@ footer a{color:#d8bd86}
         <div class="filter-title"><?= t('Search') ?></div>
         <div class="filter-searchbox">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
-          <input id="fsearch" placeholder="<?= htmlspecialchars(t('Brand, product, SKU…')) ?>" oninput="applyFilters()">
+          <?php /* type="search": tarayicinin yerlesik temizleme (x) dugmesi —
+                   uzun bir aramayi geri silmekten daha konforlu. */ ?>
+          <input id="fsearch" type="search" autocomplete="off" placeholder="<?= htmlspecialchars(t('Brand, product, SKU…')) ?>" oninput="applyFilters()">
         </div>
       </div>
 
@@ -507,6 +509,14 @@ function applyFilters(){
   document.getElementById('noresult').style.display=cnt?'none':'block';
 }
 applyFilters();
+/* "/" arama kutusuna odaklanir (price-list ile ayni aliskanlik). Misafirde
+   kutu yok; bir form alaninda yazarken de tetiklenmez. */
+document.addEventListener('keydown', function(e){
+  var el=document.getElementById('fsearch');
+  if(el && e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||'')){
+    e.preventDefault(); el.focus(); el.select();
+  }
+});
 /* Touch devices have no hover: reveal the product photo while the card is
    centered in the viewport instead (same crossfade as the desktop hover). */
 if (window.matchMedia && window.matchMedia('(hover: none)').matches && 'IntersectionObserver' in window) {
