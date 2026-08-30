@@ -429,6 +429,10 @@ function vestra_discover_blocklist(): array {
     'reeds jewelers','reeds',
     'mcarthurglen','value retail','neinver','sonae sierra','unibail','westfield',
     'simon property','designer outlet','la noria outlet','the mall luxury outlet',
+    /* 30 Agustos aksami yeni koleksiyon kuru sayiminda cikan iki outlet KOYU:
+       Batavia Stad (Lelystad, NL) ve Freeport (Znojmo, CZ). "freeport" tek
+       basina degil -- sehir adi ve serbest bolge terimi; tam adiyla. */
+    'batavia stad','bataviastad','freeport fashion outlet','fashion arena prague',
     /* Ayni partide cikan kendi-marka Italyan etiketleri. */
     '120% lino','120percento','carlo pignatelli','malloni','nanan','marlu gioielli',
     'marlugioielli',
