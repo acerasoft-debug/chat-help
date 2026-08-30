@@ -364,7 +364,10 @@ jobs:
                 echo "kota  : {$why}\n";
                 if (!$mayGo) exit(0);
               }
-              $leads2 = vestra_load_leads(); $idx2 = [];
+              /* Dogru ad vestra_leads(): ilk surum yanlis adla (load_leads)
+                 cagirdi, PHP fatal verdi ve is YESIL kaldi (asagidaki rm cikis
+                 kodunu eziyordu) -- 39 uyelik "basarili" kosuda 0 mail gitti. */
+              $leads2 = vestra_leads(); $idx2 = [];
               foreach ($leads2 as $j => $l2) { $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 !== '') $idx2[$e2] = $j; }
               $sent = 0; $fail = 0; $leadsTouched = false;
               foreach ($cand as $i) {
@@ -619,5 +622,9 @@ jobs:
               echo "BITTI. gonderildi: {$sent}, hata: {$fail}. toplam lead: " . count($leads) . "\n";
             }
             PHPEOF
-            php /tmp/vestra_send_outreach.php
+            # Cikis kodu ONCE yakalanir: `php; rm` sirali halinde rm'nin sifiri
+            # PHP fatal'ini ortuyordu -- uye kipinin ilk kosusu tam boyle "yesil"
+            # bitti. inspect-products ayni tuzagi zaten boyle cozmustu.
+            php /tmp/vestra_send_outreach.php; RC=$?
             rm -f /tmp/vestra_send_outreach.php
+            exit $RC
