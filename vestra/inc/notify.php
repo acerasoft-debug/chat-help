@@ -422,6 +422,11 @@ function vestra_discover_blocklist(): array {
        "outlet" KELIMESI TEK BASINA EKLENMEDI: bagimsiz bir off-price magazasi
        da adinda outlet tasiyor ve o gercek musteri (Il Salvagente gibi). Sadece
        merkez isletmecilerinin kendi adlari ve "designer outlet" kalibi. */
+    /* ABD kuyumcu zinciri (~50 magaza). Winter 26/27 partisinde duyuruyu aldi --
+       ustelik ITALYANCA, cunku lead kaydinda ulkesi Italy yaziyor. Ad tarafinda
+       kelime siniri, alan adi tarafinda 5 harf oldugu icin tam eslesme
+       (reeds.com), yani "reedsboutique.fr" gibi bir ad elenmiyor. */
+    'reeds jewelers','reeds',
     'mcarthurglen','value retail','neinver','sonae sierra','unibail','westfield',
     'simon property','designer outlet','la noria outlet','the mall luxury outlet',
     /* Ayni partide cikan kendi-marka Italyan etiketleri. */
