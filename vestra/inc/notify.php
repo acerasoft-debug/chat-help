@@ -398,6 +398,24 @@ function vestra_discover_blocklist(): array {
     'bergdorf','neiman marcus','bloomingdale',"dillard's",'dillards',
     'tj maxx','tjmaxx','tk maxx','marshalls','ross stores','ross dress',
     'burlington coat','century 21 stores','jcpenney','j.c. penney',"kohl's",'kohls',
+    /* Kanada: kendi markasini satan ureticiler ve zincirler. 30 Agustos 2026'da
+       gelen 25 kisilik Kanada listesinin neredeyse tamami bu iki gruptu -- biri
+       cok markali butik degildi. Kendi etiketini uretip satan bir firma bizden
+       almaz, rakiptir; zincir de pazar yerinden kucuk parti almaz.
+       DIKKAT, tek kelimelik ad eklemedim: 'aldo' Italyan bir isim (Aldo Coppola),
+       'garage' hem yaygin hem de bizim kendi kampanyamizin adinda geciyor
+       (Les Garage de Paris). Ikisi de tam ad olarak yaziliyor. */
+    "october's very own",'octobersveryown','canada goose','canadagoose',
+    'moose knuckles','mooseknuckles','mackage','herschel','roots canada','lululemon',
+    'mejuri','club monaco','clubmonaco','sentaler','jenny bird','jennybird',
+    /* 'sorel' TEK BASINA YOK: Sorel-Tracy 35 bin nufuslu bir Quebec sehri ve
+       oradaki bir butigin adinda gecerdi -- tam da elemek istemedigimiz musteri.
+       Lead'in firma adi "Sorel Canada" oldugu icin marka yine yakalaniyor. */
+    'oak + fort','oak and fort','oakandfort','sorel canada','sorelcanada','joe fresh','joefresh',
+    'frank and oak','frankandoak','tentree','la senza','lasenza',
+    'aldo shoes','aldogroup','dynamite clothing','groupe dynamite',
+    'garage clothing','garageclothing','le chateau','lechateau','rw&co','reitmans',
+    'aritzia','roots',
     // sportswear giants
     'nike','adidas','puma','under armour','the north face','columbia sportswear','reebok','fila','kappa',
     'umbro','asics','new balance',
@@ -529,7 +547,10 @@ function vestra_blocklist_exact_only(): array {
   if($m===null){
     $m=[];
     foreach(['marshalls','mango','next retail','sears','kohls',"kohl's",'ross stores',
-             'ross dress','courir','snipes','fila','kappa','umbro','next'] as $t){
+             'ross dress','courir','snipes','fila','kappa','umbro','next',
+             /* 6 harften uzun ama gunluk kelime: alan adinda alt dizi aranirsa
+                "dynamiteboutique.it" gibi gercek bir dukkani elerdi. */
+             'dynamite','herschel'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
