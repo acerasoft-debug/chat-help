@@ -42,6 +42,10 @@ on:
         description: "true = ürün adı/kategori/beden/renk alanlarında TÜRKÇE metin ara (toptan liste İngilizce olmalı)"
         required: false
         default: "false"
+      price_audit:
+        description: "true = FIYAT TUTARSIZLIK DENETIMI: her urunde ilan edilen fiyat (list) ile sepetin MOQ'da gercekten hesapladigi fiyati (vestra_unit_price) karsilastirir, farkli olanlari yazar. Gonderim/gorsel yok, salt okunur."
+        required: false
+        default: "false"
       price_list:
         description: "true = toptan fiyat listesini sekmeyle ayrılmış olarak dök (marka, art.no, ad, kategori, beden, MOQ, toptan, perakende, kaynak)"
         required: false
@@ -76,13 +80,14 @@ jobs:
           INSPECT_DIMS: ${{ github.event.inputs.dims }}
           INSPECT_LANG: ${{ github.event.inputs.lang_scan }}
           INSPECT_PLIST: ${{ github.event.inputs.price_list }}
+          INSPECT_PAUDIT: ${{ github.event.inputs.price_audit }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 3m
-          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST
+          envs: INSPECT_BRAND,INSPECT_CAT,INSPECT_NAME,INSPECT_IMGCHK,INSPECT_MISSONLY,INSPECT_IMGIN,INSPECT_COMPACT,INSPECT_ORPHANS,INSPECT_DIMS,INSPECT_LANG,INSPECT_PLIST,INSPECT_PAUDIT
           script: |
             cat > /tmp/vestra_inspect.php <<'PHPEOF'
             <?php
@@ -105,6 +110,7 @@ jobs:
             $dims     = strtolower(trim((string)getenv("INSPECT_DIMS")))    === 'true';
             $langscan = strtolower(trim((string)getenv("INSPECT_LANG")))    === 'true';
             $plist    = strtolower(trim((string)getenv("INSPECT_PLIST")))   === 'true';
+            $paudit   = strtolower(trim((string)getenv("INSPECT_PAUDIT")))  === 'true';
 
             /* Bir urunun gosterdigi TUM gorseller: kapak listesi, tekil 'image' ve her
                renk varyantinin kendi fotosu. Varyant fotolari da sayilmali -- katalogda
@@ -373,6 +379,76 @@ jobs:
                toptan x VESTRA_RETAIL_MULTIPLE ve satir "guide" diye isaretli. Carpani
                burada tekrar yazmiyoruz -- products.php'deki sabiti okuyor, yani liste
                ile sayfanin ayrilmasi mumkun degil. */
+
+            /* ── FIYAT TUTARSIZLIK DENETIMI ──────────────────────────────────
+               Ayni urun icin iki ayri sayi dolasiyor:
+                 'list'               -> fiyat listesi/Excel/PDF'in BASTIGI rakam
+                 vestra_unit_price()  -> sepetin TAHSIL ETTIGI rakam (yalnizca tiers okur)
+               vestra_unit_price() 'list' alanina hic bakmiyor; ikisi elle ayri
+               girildiginde sessizce ayrisiyorlar.
+
+               AMA HER FARK HATA DEGIL. mode='sale' oldugunda 'list' bilerek USTU
+               CIZILI eski fiyattir -- vestra_discount() yuzdeyi tam bundan
+               hesapliyor. Bu ayrimi yapmadan denetim, kasitli her indirimi hata
+               diye bildirir ve raporu kullanilamaz hale getirir.
+               Uc kova:
+                 A) sepet > liste  -> ALICI ALEYHINE. Listede ucuz gorunup kasada
+                    pahali cikiyor; en zararlisi bu.
+                 B) mode!=sale ve sepet < liste -> indirim rozeti YOK ama sepet daha
+                    ucuz: fiyat listesi fazla yuksek yaziyor, para masada kaliyor.
+                 C) mode=sale ve sepet < liste -> kasitli indirim. Sayiliyor ama hata
+                    degil; yalnizca Excel/PDF listesinin ustu cizili rakami tek basina
+                    bastigini hatirlatmak icin toplaniyor. */
+            if ($paudit) {
+              $worse = []; $mismatch = []; $sale = []; $noTier = []; $ok = 0;
+              foreach ($products as $p) {
+                $list = (float)($p['list'] ?? $p['price'] ?? 0);
+                $moq  = max(1, (int)($p['moq'] ?? 1));
+                $mode = (string)($p['mode'] ?? '');
+                if (empty($p['tiers'])) { if ($list > 0) $noTier[] = $p; continue; }
+                $charged = vestra_unit_price($p, $moq);
+                if ($list <= 0 || $charged <= 0) continue;
+                if (abs($charged - $list) < 0.005) { $ok++; continue; }
+                $row = ['id'=>(string)($p['id'] ?? '?'), 'sku'=>(string)($p['sku'] ?? '-'),
+                        'mode'=>$mode, 'list'=>$list, 'charged'=>$charged, 'moq'=>$moq,
+                        'pct'=>($charged/$list-1)*100,
+                        'demo'=>vestra_is_demo_product((string)($p['id'] ?? ''))];
+                if ($charged > $list)      $worse[]    = $row;
+                elseif ($mode !== 'sale')  $mismatch[] = $row;
+                else                       $sale[]     = $row;
+              }
+              $f = fn($r) => sprintf("  %-24s %-13s %-6s liste %8.2f  sepet %8.2f  %+6.1f%%  MOQ %-4d%s",
+                     substr($r['id'],0,24), substr($r['sku'],0,13), $r['mode'],
+                     $r['list'], $r['charged'], $r['pct'], $r['moq'], $r['demo'] ? '  DEMO' : '');
+              printf("FIYAT DENETIMI -- urun: %d | tutarli: %d | ALICI ALEYHINE: %d | listesi yuksek: %d | kasitli indirim: %d | kademesiz: %d\n",
+                     count($products), $ok, count($worse), count($mismatch), count($sale), count($noTier));
+
+              usort($worse, fn($a,$b) => $b['pct'] <=> $a['pct']);
+              printf("\n[A] ALICI ALEYHINE -- listede ucuz, sepette pahali (%d)\n", count($worse));
+              foreach ($worse as $r) {
+                echo $f($r)."\n";
+                printf("      -> MOQ %d adetlik en kucuk siparistee +%.2f EUR fazla\n",
+                       $r['moq'], ($r['charged']-$r['list'])*$r['moq']);
+              }
+              if (!$worse) echo "  (yok)\n";
+
+              usort($mismatch, fn($a,$b) => $a['pct'] <=> $b['pct']);
+              printf("\n[B] INDIRIM ROZETI YOK ama sepet daha ucuz -- liste fazla yuksek (%d)\n", count($mismatch));
+              foreach (array_slice($mismatch,0,40) as $r) echo $f($r)."\n";
+              if (!$mismatch) echo "  (yok)\n";
+              elseif (count($mismatch) > 40) printf("  ... +%d satir daha\n", count($mismatch)-40);
+
+              printf("\n[C] mode=sale, kasitli indirim (%d) -- hata degil, ama Excel/PDF listesi ustu cizili rakami basiyor\n", count($sale));
+              foreach (array_slice($sale,0,10) as $r) echo $f($r)."\n";
+              if (count($sale) > 10) printf("  ... +%d satir daha\n", count($sale)-10);
+
+              if ($noTier) {
+                printf("\n[D] Kademesiz ama liste fiyati var (%d) -- vestra_unit_price 0.00 dondurur\n", count($noTier));
+                foreach (array_slice($noTier,0,15) as $p)
+                  printf("  %-24s %-13s liste %.2f\n", substr((string)($p['id']??'?'),0,24),
+                         substr((string)($p['sku']??'-'),0,13), (float)($p['list'] ?? 0));
+              }
+            }
             if ($plist) {
               $mult = defined('VESTRA_RETAIL_MULTIPLE') ? (float)VESTRA_RETAIL_MULTIPLE : 3.0;
               echo "\n===== TOPTAN FIYAT LISTESI =====\n";
