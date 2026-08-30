@@ -433,6 +433,11 @@ function vestra_discover_blocklist(): array {
        Batavia Stad (Lelystad, NL) ve Freeport (Znojmo, CZ). "freeport" tek
        basina degil -- sehir adi ve serbest bolge terimi; tam adiyla. */
     'batavia stad','bataviastad','freeport fashion outlet','fashion arena prague',
+    /* 30 Agustos DE/NL partisinden sizanlar: eschuhe.de CCC/eobuwie grubunun
+       Almanya vitrini (zincir); Miinto butik PAZARYERI (alici degil kanal);
+       Luisa Cerano kendi-marka etiket. min_brands=2 bunlari elemez -- sitelerinde
+       gercekten cok marka var; eksik olan addi. */
+    'eschuhe','eobuwie','ccc shoes','miinto','luisa cerano','luisacerano',
     /* Ayni partide cikan kendi-marka Italyan etiketleri. */
     '120% lino','120percento','carlo pignatelli','malloni','nanan','marlu gioielli',
     'marlugioielli',
