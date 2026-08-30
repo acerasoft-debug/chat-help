@@ -401,7 +401,11 @@ jobs:
                     bastigini hatirlatmak icin toplaniyor. */
             if ($paudit) {
               $worse = []; $mismatch = []; $sale = []; $noTier = []; $ok = 0;
-              foreach ($products as $p) {
+              /* Bu betikte ortak bir $products degiskeni YOK -- her blok
+                 vestra_products()'i kendisi cagiriyor. Ilk surum $products
+                 kullandi ve is PHP fatal'i ile dustu. */
+              $prods = vestra_products();
+              foreach ($prods as $p) {
                 $list = (float)($p['list'] ?? $p['price'] ?? 0);
                 $moq  = max(1, (int)($p['moq'] ?? 1));
                 $mode = (string)($p['mode'] ?? '');
@@ -421,7 +425,7 @@ jobs:
                      substr($r['id'],0,24), substr($r['sku'],0,13), $r['mode'],
                      $r['list'], $r['charged'], $r['pct'], $r['moq'], $r['demo'] ? '  DEMO' : '');
               printf("FIYAT DENETIMI -- urun: %d | tutarli: %d | ALICI ALEYHINE: %d | listesi yuksek: %d | kasitli indirim: %d | kademesiz: %d\n",
-                     count($products), $ok, count($worse), count($mismatch), count($sale), count($noTier));
+                     count($prods), $ok, count($worse), count($mismatch), count($sale), count($noTier));
 
               usort($worse, fn($a,$b) => $b['pct'] <=> $a['pct']);
               printf("\n[A] ALICI ALEYHINE -- listede ucuz, sepette pahali (%d)\n", count($worse));
