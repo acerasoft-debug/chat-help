@@ -29,7 +29,9 @@ $brandFilter = trim((string)($_GET['brand'] ?? ''));
 $byBrand = [];
 foreach (vestra_products() as $p) {
     $b = trim((string)($p['brand'] ?? ''));
-    $price = (float)($p['list'] ?? $p['price'] ?? 0);
+    /* Sepetle ayni sayi: vestra_export_price() (MOQ kademesi). 'list' burada
+       da basiliyordu ve mode=sale urunler oldugundan pahali gorunuyordu. */
+    $price = vestra_export_price($p);
     if ($b === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($b, $brandFilter) !== 0) continue;
     $byBrand[$b][] = $p;
@@ -62,6 +64,9 @@ require __DIR__.'/inc/head.php';
   .pc-tools input{background:var(--bg2);border:1px solid var(--line);color:var(--ink);
     font:inherit;font-size:14px;padding:10px 14px;border-radius:8px;min-width:250px;outline:none}
   .pc-tools input:focus{border-color:rgba(201,168,106,.45)}
+  .pc-count{font-size:12.5px;color:var(--mut);white-space:nowrap}
+  .pc-empty{padding:38px 0;color:var(--mut);text-align:center;display:none}
+  .pc-empty b{color:var(--ink)}
   .pc-xls{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:8px;
     background:var(--acc);color:#1a1408;font-weight:700;font-size:13px;letter-spacing:.02em}
   .pc-xls:hover{filter:brightness(1.08)}
@@ -99,6 +104,8 @@ require __DIR__.'/inc/head.php';
   .pc-lock:hover{border-color:var(--acc);background:rgba(169,127,44,.08)}
   .pc-price b{font-size:17px;font-weight:700;letter-spacing:-.01em}
   .pc-price .from{display:block;font-size:10px;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+  .pc-was{display:block;font-size:11.5px;color:var(--mut);text-decoration-color:rgba(169,120,26,.7)}
+  .pc-tiers{display:block;font-size:10.5px;color:var(--mut);margin-top:2px;white-space:nowrap}
   .pc-rrp{text-align:right}
   .pc-rrp b{font-size:14px;font-weight:600;color:var(--mut)}
   .pc-rrp .src{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
@@ -141,6 +148,7 @@ require __DIR__.'/inc/head.php';
     <p class="pc-sub"><?= t('ART. NO is the manufacturer\'s own article number; the grey code beside it is the VESTRA reference. Every row links to the product page.') ?></p>
     <div class="pc-tools">
       <input id="pcq" type="search" placeholder="<?= htmlspecialchars(t('Filter by name, article number or category…')) ?>" autocomplete="off">
+      <span class="pc-count" id="pcCount" aria-live="polite"></span>
       <a class="pc-xls" href="/wholesale-list.xlsx<?= $brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : '' ?>"><?= t('Excel') ?> ↓</a>
       <?php if ($brandFilter !== ''): ?>
         <a class="pc-back" href="/price-list">← <?= t('all brands') ?></a>
@@ -173,7 +181,9 @@ require __DIR__.'/inc/head.php';
          yaziliyordu; o rakam 320 adetlik bir basamaga aitti, yani listenin en gorunur
          sayisi listedeki en zor ulasilan sarttı. Alici tek bir sayi ariyor, ve o sayi
          MOQ'da gecerli olan fiyat olmali. */
-      $price = (float)($p['list'] ?? $p['price'] ?? 0);
+      $price = vestra_export_price($p);
+      $was   = vestra_export_was($p);
+      $vols  = vestra_export_tiers_label($p);
       /* Perakende SADECE markanin kendi yayinladigi fiyat. Tahmin (toptan x3) satiri
          tamamen kalkti: bir tahmini perakende fiyatinin yaninda "guide" yazsa bile,
          listeden fiyat okuyan biri onu marka fiyati saniyor. Bilmiyorsak bos. */
@@ -216,7 +226,12 @@ require __DIR__.'/inc/head.php';
                  herkese acik kaliyor -- sayfanin arama motorlarindaki degeri ve
                  kampanya baglantisinin gittigi yer bozulmasin diye. */ ?>
         <?php if ($PRICES): ?>
+          <?php if ($was > 0): ?><s class="pc-was"><?= vestra_money($was) ?></s><?php endif; ?>
           <b><?= vestra_money((float)$price) ?></b>
+          <?php /* Hacim kademeleri kucuk, basligin altinda: "one number" karari
+                   bozulmuyor (baslik hala MOQ fiyati), ama toptancinin ilk
+                   sorusu — cok alirsam kaca iner — artik sayfada cevapli. */ ?>
+          <?php if ($vols !== ''): ?><span class="pc-tiers"><?= htmlspecialchars($vols) ?></span><?php endif; ?>
         <?php else: ?>
           <a class="pc-lock" href="<?= htmlspecialchars($PRICE_GATE === 'doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE === 'doc' ? t('Upload document') : t('Trade only') ?></a>
         <?php endif; ?>
@@ -230,6 +245,11 @@ require __DIR__.'/inc/head.php';
     </div>
     <?php endforeach; ?>
   <?php endforeach; ?>
+
+  <?php /* Suzgec hicbir satirla eslesmeyince bos bir sayfa degil, bir aciklama
+           gorunmeli: yanlis yazilmis bir art. no ile "katalog bos" ayni sey
+           degil. Metin araninan kelimeyi geri soyluyor ki yazim hatasi gozuksun. */ ?>
+  <div class="pc-empty" id="pcEmpty"><?= t('No article matches') ?> “<b id="pcEmptyQ"></b>”. <?= t('Check the article number, or clear the filter.') ?></div>
 
   <p class="pc-foot">
     <b><?= t('Payment') ?>.</b> <?= t('Escrow-protected up to €3,000 per order: the platform holds the payment and releases it to the seller only after the goods reach you and you confirm they are as described. Above that, or on request, we invoice and the goods are released for dispatch once payment is received.') ?><br>
@@ -248,10 +268,14 @@ require __DIR__.'/inc/head.php';
   var q = document.getElementById('pcq');
   if (!q) return;
   var rows = Array.prototype.slice.call(document.querySelectorAll('.pc-row'));
-  q.addEventListener('input', function () {
-    var v = q.value.trim().toLowerCase();
+  var cnt = document.getElementById('pcCount');
+  var empty = document.getElementById('pcEmpty'), emptyQ = document.getElementById('pcEmptyQ');
+  function apply() {
+    var v = q.value.trim().toLowerCase(), shown = 0;
     rows.forEach(function (r) {
-      r.style.display = (v === '' || r.dataset.q.indexOf(v) !== -1) ? '' : 'none';
+      var on = (v === '' || r.dataset.q.indexOf(v) !== -1);
+      r.style.display = on ? '' : 'none';
+      if (on) shown++;
     });
     document.querySelectorAll('.pc-brand').forEach(function (h) {
       var n = h.nextElementSibling, any = false;
@@ -263,7 +287,23 @@ require __DIR__.'/inc/head.php';
       var th = h.nextElementSibling;
       if (th && th.classList.contains('pc-th')) th.style.display = any ? '' : 'none';
     });
+    /* Canli sayac: suzerken kac satir kaldigi, bos aramada toplam. Bos sonucta
+       sayfa sessizce bosalmak yerine ne aradigini geri soyluyor. */
+    if (cnt) cnt.textContent = v === '' ? rows.length + ' ' + <?= json_encode(t('articles')) ?> : shown + ' / ' + rows.length;
+    if (empty) {
+      empty.style.display = (v !== '' && shown === 0) ? 'block' : 'none';
+      if (emptyQ) emptyQ.textContent = q.value.trim();
+    }
+  }
+  q.addEventListener('input', apply);
+  /* "/" klavye kisayolu: uzun listede arama kutusuna donup durmak yerine tek
+     tus. Bir form alaninda yazarken tetiklenmiyor. */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) {
+      e.preventDefault(); q.focus(); q.select();
+    }
   });
+  apply();
 })();
 </script>
 

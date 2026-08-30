@@ -487,6 +487,46 @@ function vestra_on_sale($p){ return ($p['mode'] ?? '') === 'sale' && vestra_disc
 /* Vitrinde gecerli mod: gercek indirimi olmayan bir "sale" urunu sadece sabit
    fiyatli bir urundur — rozeti de, ustu cizili fiyati da, filtresi de oyle davranir. */
 function vestra_display_mode($p){ $m = $p['mode'] ?? 'fixed'; return ($m === 'sale' && !vestra_on_sale($p)) ? 'fixed' : $m; }
+
+/* ── Disa giden listelerin (Excel/PDF/price-list) bastigi fiyat ─────────────
+   'list' alani fiyat listesinin fiyati DEGIL, iki sebeple:
+     - mode=sale'de 'list' bilerek USTU CIZILI eski fiyattir (vestra_discount
+       yuzdeyi ondan hesaplar); listeye basilinca 33 urun sepetin aldigindan
+       %28-42 pahali gorunuyordu.
+     - kademe merdiveniyle elle ayri girildiginde sessizce ayrisabiliyor
+       (L1212: list 29,90, sepet MOQ'da 34,00 aliyordu — alici aleyhine tek vaka).
+   Dogru sayi, SEPETIN MOQ'DA TAHSIL ETTIGI: alicinin verebilecegi en kucuk
+   siparisin birim fiyati. Uc liste de (xlsx, pdf, price-list sayfasi) artik bu
+   fonksiyonu okuyor — tek kaynak, bir daha ayrisamazlar. */
+function vestra_export_price(array $p): float {
+  if (!empty($p['tiers'])) {
+    $t = (float)vestra_unit_price($p, max(1, (int)($p['moq'] ?? 1)));
+    if ($t > 0) return $t;
+  }
+  return (float)($p['list'] ?? $p['price'] ?? 0);
+}
+/* Gercek bir indirimde ustu cizilecek eski fiyat; indirim yoksa 0. Listede
+   indirimi gorunur kilmak icin: "69,00 yerine 49,90" satis argumaninin ta
+   kendisi ve eski hali onu tersine cevirip pahali gosteriyordu. */
+function vestra_export_was(array $p): float {
+  if (!vestra_on_sale($p)) return 0.0;
+  $list = (float)($p['list'] ?? 0);
+  $now  = vestra_export_price($p);
+  return $list > $now + 0.005 ? $list : 0.0;
+}
+/* MOQ ustundeki kademeler, kisa etiket halinde: "160+ 29.50 · 320+ 25.00".
+   Basliktaki fiyat MOQ kademesi oldugu icin o tekrar edilmiyor. Toptancinin
+   listede ilk aradigi sey hacim fiyatidir ve simdiye dek hic basilmiyordu. */
+function vestra_export_tiers_label(array $p): string {
+  if (empty($p['tiers']) || count($p['tiers']) < 2) return '';
+  $moq = max(1, (int)($p['moq'] ?? 1));
+  $out = [];
+  foreach ($p['tiers'] as $t) {
+    $min = (int)($t['min'] ?? 0);
+    if ($min > $moq) $out[] = $min.'+ '.number_format((float)$t['price'], 2, '.', '');
+  }
+  return implode(' · ', $out);
+}
 function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
 
 /* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────

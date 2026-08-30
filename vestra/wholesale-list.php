@@ -51,7 +51,10 @@ $brandFilter = trim((string)($_GET['brand'] ?? ''));
 $byBrand = [];
 foreach (vestra_products() as $p) {
     $brand = trim((string)($p['brand'] ?? ''));
-    $price = (float)($p['list'] ?? $p['price'] ?? 0);
+    /* Sepetin MOQ'da tahsil ettigi fiyat — 'list' degil (sale'de o ustu cizili
+       eski fiyat; L1212'de de merdivenden kopmustu). xlsx ve price-list ile
+       ayni kaynaktan okunuyor: vestra_export_price(). */
+    $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
     $byBrand[$brand][] = $p;
@@ -154,8 +157,9 @@ foreach ($byBrand as $brand => $rows) {
     foreach ($rows as $p) {
         if ($y - $ROW_H < $BOTTOM) $page();
 
-        $price = (float)($p['list'] ?? $p['price'] ?? 0);
-
+        $price = vestra_export_price($p);
+        $was   = vestra_export_was($p);
+        $vols  = vestra_export_tiers_label($p);
 
         $rrp     = (float)($p['rrp'] ?? 0);
         $isRealRrp = $rrp > 0;
@@ -242,9 +246,18 @@ foreach ($byBrand as $brand => $rows) {
 
         $pdf->textR($X_MOQ, $rowMid, 9, (string)($p['moq'] ?? '—').' '.(string)($p['unit'] ?? 'pc'), true);
 
-        /* TEK fiyat: MOQ'da gecerli olan. Kademe tabanini "from ..." diye basmak,
-           listenin en gorunur sayisini en zor ulasilan sart yapiyordu. */
+        /* BASLIK fiyati: MOQ'da gecerli olan — sepetin tahsil ettigi. Kademe
+           tabanini "from ..." diye basmak listenin en gorunur sayisini en zor
+           ulasilan sart yapiyordu; simdi tersine, taban asagida kucuk duruyor.
+           Altindaki TEK kucuk satir: indirimde "was ..." (satis argumani),
+           degilse hacim kademeleri (toptancinin ilk aradigi sey). Ikisi ayni
+           anda basilmiyor — satir yuksekligi sabit, ust uste binerlerdi. */
         $pdf->textR($X_WHOLE, $rowMid, 10, 'EUR '.number_format($price, 2), true);
+        if ($was > 0) {
+            $pdf->textR($X_WHOLE, $rowMid - 9, 6.5, 'was EUR '.number_format($was, 2));
+        } elseif ($vols !== '') {
+            $pdf->textR($X_WHOLE, $rowMid - 9, 6.2, $vols);
+        }
 
         if ($isRealRrp) {
             $pdf->textR($X_RETAIL, $rowMid, 9, 'EUR '.number_format($rrp, 2));

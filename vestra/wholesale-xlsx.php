@@ -47,7 +47,10 @@ $brandFilter = trim((string)($_GET['brand'] ?? ''));
 $byBrand = [];
 foreach (vestra_products() as $p) {
     $brand = trim((string)($p['brand'] ?? ''));
-    $price = (float)($p['list'] ?? $p['price'] ?? 0);
+    /* Sepetin MOQ'da tahsil ettigi fiyat — 'list' degil. mode=sale'de 'list'
+       ustu cizili eski fiyattir ve liste 33 urunu %28-42 pahali gosteriyordu;
+       L1212'de ise tersi, listede 29,90 gorunen urun sepette 34,00 cikiyordu. */
+    $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
     $byBrand[$brand][] = $p;
@@ -66,8 +69,12 @@ unset($rs);
    promised pictures. Every row still carries its product link, and the photographs are on
    the page it opens -- always current, and 5.6 MB lighter as an attachment.
    The PDF (wholesale-list.pdf) keeps its photographs: its own encoder handles CMYK. */
+/* "Was EUR" ve "Volume prices" yeni: indirimli urunde eski fiyat kendi
+   sutununda (bir siralamadan sonra bile indirim oldugu kaybolmasin), hacim
+   kademeleri de ilk kez listede — toptancinin ilk aradigi sey o. */
 $headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Sizes',
-            'MOQ', 'Unit', 'Wholesale EUR', 'Retail EUR', 'Retail source',
+            'MOQ', 'Unit', 'Wholesale EUR', 'Was EUR', 'Volume prices',
+            'Retail EUR', 'Retail source',
             'Stock total', 'Stock by size', 'Product link'];
 
 $rows = [];
@@ -75,7 +82,9 @@ $n = 0;
 foreach ($byBrand as $brand => $list) {
     foreach ($list as $p) {
         $n++;
-        $price = (float)($p['list'] ?? $p['price'] ?? 0);
+        $price = vestra_export_price($p);
+        $was   = vestra_export_was($p);
+        $volsL = vestra_export_tiers_label($p);
         $rrp   = (float)($p['rrp'] ?? 0);
         $real  = $rrp > 0;
 
@@ -99,6 +108,8 @@ foreach ($byBrand as $brand => $list) {
             /* Plain numbers, no currency symbol: the header carries the unit and a bare
                number is what a buyer can sum, sort and multiply without cleaning first. */
             number_format($price, 2, '.', ''),
+            $was > 0 ? number_format($was, 2, '.', '') : '',
+            $volsL,
             $real ? number_format($rrp, 2, '.', '') : '',
             $real ? 'brand RRP' : '',
             /* Plain integer, so a buyer can sum and sort it. The by-size string sits in
@@ -157,10 +168,11 @@ $file  = vestra_xlsx_with_photos_file($headers, $rows, $title, [
     'freeze'  => true,
     'filter'  => true,
     'zebra'   => true,
-    'numcols' => [7 => 'int', 9 => 'num', 10 => 'num', 12 => 'int'],
-    'linkcols'=> [14],
+    'numcols' => [7 => 'int', 9 => 'num', 10 => 'num', 12 => 'num', 14 => 'int'],
+    'linkcols'=> [16],
     'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15, 6 => 30,
-                  7 => 7, 8 => 6, 9 => 14, 10 => 12, 11 => 12, 12 => 10, 13 => 24, 14 => 44],
+                  7 => 7, 8 => 6, 9 => 14, 10 => 10, 11 => 22, 12 => 12, 13 => 12,
+                  14 => 10, 15 => 24, 16 => 44],
 ]);
 if ($file === '' || !is_file($file)) {
     http_response_code(500);
