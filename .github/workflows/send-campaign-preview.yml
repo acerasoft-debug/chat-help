@@ -707,7 +707,17 @@ jobs:
               $targets = []; $upWait = 0; $pendMail = 0; $noFlag = 0; $recent = 0; $blocked = []; $kybWait = 0; $otherSt = 0;
               foreach (auth_accounts() as $a) {
                 $st = (string)($a['status'] ?? '');
-                if ($st === 'pending_email') { $pendMail++; continue; }
+                /* 'pending_email' HER ZAMAN engel degil: bu ayara bagli. Dogrulama
+                   KAPALIYKEN auth_login boyle bir hesabi giriste 'pending'e cevirip
+                   iceri aliyor (auth.php ~406) — yani mektubun tarif ettigi yol
+                   (giris yap → Verification → yukle) onun icin de calisiyor.
+                   Kosulsuz elemek, eski akista takilmis hesabi sonsuza dek sessiz
+                   birakmak olurdu. Ayar ACIKSA gercekten giremez, o zaman elenir. */
+                if ($st === 'pending_email') {
+                  if (vestra_cfg('require_email_verify', false)) { $pendMail++; continue; }
+                  echo "  ESKI AKISTA TAKILMIS (dogrulama artik kapali, giriste acilir): ".$mask((string)($a['email'] ?? ''))."\n";
+                  $st = 'pending';
+                }
                 if ($st !== 'pending' || (string)($a['kyb_status'] ?? 'pending') !== 'pending') continue;
                 if (empty($a['trade_doc_required'])) { $noFlag++; continue; }
                 $docSt = '';

@@ -30,6 +30,11 @@ Nerede uygulanıyor (üçü de `vestra_lead_is_blocked()` çağırır):
 - `.github/workflows/send-outreach.yml` — otomatik parti
 - `vestra/admin.php` — panelden gönderim
 
+**Kayıtlı istisna — vipshop.com (operatör kararı, 31 Ağu 2026):** engelleme listesine
+**eklenmez**. Kayıt olan hesap **VipShop Singapore Pte. Ltd.**; operatör "farklı ürünler
+satıyor" diyerek KURAL 1 kapsamında görmedi. (Çin'deki 唯品会 off-price platformuyla
+karıştırma; alan adı ortak ama karar bu Singapur tüzel kişisi için verildi.)
+
 Yeni bir grup/distribütör görürsen adını `vestra_discover_blocklist()`'e ekle.
 **Her yeni listeyi göndermeden önce `vestra_lead_is_blocked()`'tan geçir ve sonucu
 oku** — liste eksik olabilir. 29 Ağustos 2026'da ABD listesinde Nordstrom Rack
