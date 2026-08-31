@@ -90,3 +90,11 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   adrese ikinci kez e-posta gider.
 - E-posta gövdeleri `nl2br(htmlspecialchars(...))` ile basılır — **markdown çalışmaz**
   (journal gövdeleri de aynı).
+- **Satış persona adları** (operatör kaydı, 31 Ağu 2026): **Marco Bellini** ve
+  **Elena Romano** — VESTRA'nın müşteri yazışmalarında kullanılan ekip adları.
+  Kerim Kuku / L1212 dosyası: ilk cevap Marco Bellini imzasıyla gitti, devam
+  mektubu (Gewerbeanmeldung talebi) Elena Romano imzasıyla. Gönderen adres hep
+  support@vestrasales.com; `buyer_reply` işinde imzacıyı `signer` spec alanı
+  seçer (varsayılan Marco Bellini), gövde imzası ile From adı aynı kişiden
+  türetilir. Aynı alıcıya aynı konuda hangi persona yazdıysa onunla devam et —
+  operatör açıkça değiştirmedikçe.
