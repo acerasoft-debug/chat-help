@@ -376,6 +376,25 @@ jobs:
               echo "  ulke/site    : ".($a['country'] ?? '—')." / ".($a['website'] ?? '—')."\n";
               echo "  sirket/isim  : ".(trim((string)($a['company'] ?? '')) !== '' ? 'var' : 'BOS')." / ".(trim((string)($a['name'] ?? '')) !== '' ? 'var' : 'BOS')."\n";
               echo "  kayit IP     : ".($a['reg_cc'] ?? '?')." ".($a['reg_city'] ?? '')." — VPN/hosting: ".(!empty($a['reg_vpn']) ? 'EVET (dikkat)' : 'hayir')."\n";
+              echo "  kayit ISP    : ".($a['reg_isp'] ?? '—')."\n";
+              echo "  site (form)  : ".(trim((string)($a['website'] ?? '')) !== '' ? $a['website'] : '— BOS')."\n";
+              echo "  arayuz dili  : ".($a['lang'] ?? '?')."  (?lang= linkinden ya da tarayici dilinden — IP'den DEGIL)\n";
+              echo "  promo kodu   : ".(trim((string)($a['promo_code'] ?? '')) !== '' ? $a['promo_code'] : '— yok')."\n";
+              /* "Bizi nasil buldular?" — ayni alan adi lead listemizde var mi,
+                 kampanya gonderdik mi? Kayit, kendi mektubumuzun cevabi olabilir. */
+              $dom = strtolower(substr(strrchr((string)($a['email'] ?? ''), '@') ?: '', 1));
+              $lf  = $home.'/public_html/data/leads.json';
+              $lds = is_readable($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
+              $hitL = [];
+              foreach ((array)$lds as $l) {
+                $hay = strtolower(((string)($l['email'] ?? '')).' '.((string)($l['website'] ?? '')));
+                if ($dom !== '' && str_contains($hay, $dom)) $hitL[] = $l;
+              }
+              echo "  lead kaydi   : ".(count($hitL) ? count($hitL)." adet" : "YOK — bu adrese/alan adina biz kampanya GONDERMEDIK")."\n";
+              foreach (array_slice($hitL, 0, 3) as $l) {
+                echo "     · ".($l['company'] ?? '?')." | ulke=".($l['country'] ?? '-')." | kaynak=".($l['source'] ?? '?')
+                   ." | gonderim=".(($l['last_contacted_at'] ?? '') !== '' ? substr((string)$l['last_contacted_at'],0,10) : 'hic')."\n";
+              }
               $reqs = (array)($a['doc_requests'] ?? []);
               echo "  belgeler (".count($reqs)."):\n";
               foreach ($reqs as $r) {
