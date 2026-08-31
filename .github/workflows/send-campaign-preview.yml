@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price)."
         required: false
         default: ""
       reply_spec:
@@ -1031,6 +1031,43 @@ jobs:
                 ? vestra_tpl_prospect_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer)
                 : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
+            } elseif ($letter === 'offer_preview') {
+              /* Karsi teklif mektubunun ONIZLEMESI. HICBIR SEY YAZMAZ:
+                 teklife yanit verilmez, token uretilmez, kayit degismez --
+                 yalnizca gercek sablon + gercek sarmalayici + gercek posta
+                 yolundan bir kopya operatore gider. Sebep: mektuptaki
+                 ikincil "reddet" baglantisi (button_alt) YENI ve hicbir
+                 posta istemcisinde gorulmedi. Operator canli bir musteriye
+                 basmadan once nasil gorundugunu gormeli.
+                 spec: offer_ref (gercek teklif; bos = ornek veri), price. */
+              require_once $doc."/inc/offers.php";
+              $oref = trim($E('offer_ref'));
+              $row  = $oref !== '' ? vestra_offer_row($oref) : null;
+              if ($oref !== '' && !$row) { fwrite(STDERR, "teklif bulunamadi: {$oref}\n"); exit(1); }
+              $price = (float)($E('price') !== '' ? $E('price') : 12.00);
+              if ($price <= 0) { fwrite(STDERR, "price > 0 olmali\n"); exit(1); }
+
+              $lst = $row ? vestra_listing_by_sku($row['sku'] ?? '') : null;
+              $pName = $lst ? trim(($lst['brand'] ?? '').' '.($lst['name'] ?? ''))
+                            : trim((string)($row['product'] ?? 'Sample Product'));
+              $pUrl  = vestra_offer_product_url($lst);
+              $rref  = $row ? (string)$row['ref'] : 'OF-PREVIEW';
+              /* Token SAHTE ve kasitli gecersiz: onizleme mektubundaki
+                 dugmeye basmak gercek bir teklifi kabul ETMEMELI. */
+              $fakeUrl = vestra_offer_accept_url($rref, 'preview-not-a-real-token');
+
+              echo "onizleme  : karsi teklif mektubu (HICBIR KAYIT DEGISMEDI)\n";
+              echo "teklif    : ".($row ? $rref : '(ornek veri)')."\n";
+              echo "urun      : {$pName}\n";
+              echo "urun linki: ".($pUrl !== '' ? 'VAR' : 'YOK (SKU katalogda cozulmedi)')."\n";
+              echo "fiyat     : EUR ".number_format($price, 2)."/adet\n";
+              [$subject, $body, $opts] = vestra_tpl_offer_response(
+                  vestra_user_lang($acc), 'counter',
+                  $row ? (($row['company'] ?? '') ?: 'there') : 'there',
+                  $pName, $rref, $price, $fakeUrl, $pUrl
+              );
+              echo "dugme     : ".($opts['button']['label'] ?? '-')."\n";
+              echo "alt link  : ".($opts['button_alt']['label'] ?? 'YOK — button_alt uretilmedi!')."\n";
             } elseif ($letter === 'seller_setup') {
               /* Saticiya: gonderim yeri + belgeler + Stripe odeme hesabi.
                  Uc bolumun tamami CANLI VERIDEN cikariliyor, elle yazilmiyor --
