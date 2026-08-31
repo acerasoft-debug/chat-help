@@ -725,6 +725,14 @@ jobs:
                 }
                 $ts = strtotime((string)($a['verify_nudge_at'] ?? ''));
                 if ($ts && (time() - $ts) < $redoDays * 86400) { $recent++; continue; }
+                /* skip=parca,parca — e-posta/isim/sirkette gecen hesabi disarida
+                   birak (ör. ayni gun kisisel mektup almis biri). Atlanan MASKELI
+                   raporlanir; sessiz eleme yok. */
+                $skipHit = false;
+                foreach (array_filter(array_map('trim', explode(',', strtolower($E('skip'))))) as $sk) {
+                  if (str_contains(strtolower(($a['email'] ?? '').' '.($a['name'] ?? '').' '.($a['company'] ?? '')), $sk)) { $skipHit = true; break; }
+                }
+                if ($skipHit) { echo "  ATLANDI (skip): ".$mask((string)($a['email'] ?? ''))."\n"; continue; }
                 $targets[] = $a;
               }
 
