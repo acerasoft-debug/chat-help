@@ -284,6 +284,27 @@ jobs:
               return $d['product'] ?? null;
             }
 
+            /* JSON-LD'de 'image' tek bir string olabilir, string dizisi olabilir, ya da
+             * ImageObject nesnesi/dizisi: [{"@type":"ImageObject","url":"..."}].
+             * Eski kod dogrudan (string)reset($img) yaziyordu; ilk eleman NESNE oldugunda
+             * PHP "Array to string conversion" uyarisi basar ve geriye "Array" dizesi
+             * doner. Canli hata gunlugunde bu uyaridan 236 tane vardi -- ve her biri
+             * gurultu degil, INDIRILEMEYEN bir gorsel: URL yerine "Array" ile istek
+             * yapiliyordu. Ic ice dizilerde de calissin diye ozyinelemeli. */
+            function ld_image_url($img, int $depth = 0): ?string {
+              if ($depth > 4) return null;
+              if (is_string($img)) { $img = trim($img); return $img !== '' ? $img : null; }
+              if (!is_array($img)) return null;
+              foreach (['url','contentUrl','@id'] as $k) {
+                if (isset($img[$k]) && is_string($img[$k]) && trim($img[$k]) !== '') return trim($img[$k]);
+              }
+              foreach ($img as $v) {
+                $u = ld_image_url($v, $depth + 1);
+                if ($u !== null) return $u;
+              }
+              return null;
+            }
+
             function first_image_url_html(string $html): ?string {
               if (preg_match_all('#<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $m)) {
                 foreach ($m[1] as $block) {
@@ -292,9 +313,8 @@ jobs:
                   $cands = isset($d['@type']) ? [$d] : $d;
                   foreach ((array)$cands as $node) {
                     if (!is_array($node)) continue;
-                    $img = $node['image'] ?? null;
-                    if (is_array($img) && $img) return (string)reset($img);
-                    if (is_string($img) && $img !== '') return $img;
+                    $img = ld_image_url($node['image'] ?? null);
+                    if ($img !== null) return $img;
                   }
                 }
               }
