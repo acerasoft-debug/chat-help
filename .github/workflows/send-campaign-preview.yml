@@ -881,9 +881,15 @@ jobs:
 
               $panel = (($acc['type'] ?? '') === 'seller') ? '/seller' : '/buyer';
               $after = auth_find($to) ?: $acc;
-              [$kS, $kB, $kO] = vestra_tpl_kyb_approved(vestra_user_lang($after),
-                  ($after['name'] ?? '') ?: (($after['company'] ?? '') ?: 'there'),
-                  (string)($after['type'] ?? 'buyer'), 'https://vestrasales.com'.$panel);
+              /* mail=open_doc: kisa "hesabiniz acildi + belgeyi yukleyin" metni.
+                 Varsayilan, sistemin kendi cok dilli onay mektubu. */
+              [$kS, $kB, $kO] = strtolower($E('mail')) === 'open_doc'
+                ? vestra_tpl_account_open_doc(
+                    trim($E('salutation')) !== '' ? $salutation : 'Hello',
+                    $signer)
+                : vestra_tpl_kyb_approved(vestra_user_lang($after),
+                    ($after['name'] ?? '') ?: (($after['company'] ?? '') ?: 'there'),
+                    (string)($after['type'] ?? 'buyer'), 'https://vestrasales.com'.$panel);
               $okMail = vestra_send_mail($to, $kS, $kB, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $kO);
               echo $okMail ? "MEKTUP GONDERILDI ('hesabiniz acildi') -> ".$mask($to)."\n" : "MEKTUP GONDERILEMEDI\n";
               @require_once $doc."/inc/push.php";

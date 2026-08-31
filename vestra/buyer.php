@@ -570,7 +570,7 @@ if($tab==='overview'){
      fiyat kapisi ONAYLA aciliyor (auth_prices_unlocked yalnizca approved'a
      bakar). Eski cumle, belgesini yukleyip fiyat goremeyen aliciya panelin
      kendisinin yanlis soz vermesi demekti. */
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Upload it here — reviews are usually completed the same working day, and prices open the moment your document is approved.').'</p>';
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. Please upload your trade licence / business registration here — we keep it on file for compliance. Your account is opened by our review, and you can add the document at any time.').'</p>';
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
   } else {

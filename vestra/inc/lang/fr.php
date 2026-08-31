@@ -799,7 +799,7 @@ return array (
   'Verified business' => 'Entreprise vérifiée',
   'Verified buyer' => 'Acheteur vérifié',
   'Verified buyers' => 'Acheteurs vérifiés',
-  'Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Upload it here — reviews are usually completed the same working day, and prices open the moment your document is approved.' => 'Les acheteurs vérifiés accèdent aux prix de gros et commandent avec la protection acheteur. Un seul document suffit : votre licence commerciale / immatriculation d\'entreprise. Téléversez-le ici — l\'examen est généralement terminé le jour ouvré même, et les prix s\'ouvrent dès que votre document est approuvé.',
+  'Verified buyers can access wholesale pricing and place orders with buyer protection. Please upload your trade licence / business registration here — we keep it on file for compliance. Your account is opened by our review, and you can add the document at any time.' => 'Les acheteurs vérifiés accèdent aux prix de gros et commandent avec la protection acheteur. Merci de téléverser ici votre licence commerciale / immatriculation d\'entreprise — nous la conservons dans votre dossier. Votre compte est ouvert après notre examen ; vous pouvez ajouter le document à tout moment.',
   'Verified buyers only' => 'Acheteurs vérifiés uniquement',
   'Verified buyers see wholesale pricing and can order with escrow protection.' => 'Les acheteurs vérifiés voient les tarifs de gros et peuvent commander avec la protection du séquestre (escrow).',
   'Verified seller' => 'Vendeur vérifié',

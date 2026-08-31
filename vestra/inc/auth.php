@@ -117,6 +117,13 @@ function auth_user(): ?array {
    Two ways in, and BOTH are the owner's decision: status 'active' or kyb_status
    'approved', which the admin KYB action sets together.
 
+   TICARI BELGE ARTIK KAPI DEGIL (operator karari, 31 Agu 2026): "Gewerbe
+   anmeldung istenmesi uyari olarak dursun ve direkt yukleyebilsinler." Belge
+   hala kayitta isteniyor ve panelde UYARI olarak duruyor, ama erisimi
+   engellemiyor -- kapi tek basina operatorun onayi. Onceki surumde
+   auth_trade_unlocked() sarti buradaydi; belgesini gonderemeyen gercek
+   musteriler onay verilmis olmasina ragmen fiyat goremiyordu.
+
    Uploading a document used to be enough on its own. It should not be: uploading is
    the applicant's action, not ours, and anyone who attached a file — any file, to any
    of the four requests — unlocked trade prices, seller identities and the full export
@@ -125,13 +132,7 @@ function auth_user(): ?array {
 function auth_user_approved(?array $u): bool {
     if ($u === null) return false;
     $base = (($u['status'] ?? '') === 'active') || (($u['kyb_status'] ?? '') === 'approved');
-    if (!$base) return false;
-    /* Gewerbe/trade-licence sarti. Kayit akisi bu belgeyi zaten istiyordu ve notunda
-       "An account cannot be activated without it" yaziyordu -- ama hicbir kod bunu
-       kontrol etmiyordu. Sart artik onayin parcasi: operator hesabi elle 'active'
-       yapsa bile, trade_licence ONAYLANMADAN katalog acilmaz.
-       Bayragi olmayan (zorunluluk oncesi) hesaplar etkilenmez. */
-    return auth_trade_unlocked($u);
+    return $base;
 }
 
 function auth_set(array $acc): void {
@@ -605,9 +606,7 @@ function auth_trade_unlocked(?array $acc): bool {
    Bayragi olmayan hesap (zorunluluk oncesi kayit) etkilenmez. */
 function auth_prices_unlocked(?array $acc): bool {
     if (!$acc) return false;                       // giris yapmamis: zaten kapali
-    if (auth_user_approved($acc)) return true;     // tam onayli hesap her seyi gorur
-    if (empty($acc['trade_doc_required'])) return true;
-    return auth_trade_unlocked($acc);              // artik ONAY sarti -- yukleme yetmez
+    return auth_user_approved($acc);   // belge UYARI; kapiyi operator onayi acar
 }
 
 /* Ticari belgenin nerede oldugu: '' (hic talep yok) | 'requested' (yuklenmedi)

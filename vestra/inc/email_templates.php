@@ -1508,3 +1508,20 @@ function vestra_tpl_prospect_women(string $salutation, string $missingBrand, arr
 
     return [$subject, $body, []];
 }
+
+/* "Hesabiniz acildi" + belge ricasi (kisa). Standart vestra_tpl_kyb_approved'dan
+ * farki: belge artik erisimi ENGELLEMIYOR ama platform kurali olarak isteniyor,
+ * ve mektup bunu boyle soyluyor — "yukleyene kadar goremezsin" demiyor, cunku
+ * artik oyle degil. Gewerbeanmeldung ingilizce karsiligiyla birlikte veriliyor. */
+function vestra_tpl_account_open_doc(string $salutation, string $signer = 'Marco Bellini'): array {
+    $subject = 'Your VESTRA account is open';
+
+    $body = $salutation . ",\n\n"
+. "Your account has been verified and is now open. The wholesale price tiers, article numbers, size grids and the full line sheet (PDF and Excel) are available in your account.\n\n"
+. "One formality remains, and it applies to every trade account as a platform rule: please upload your Gewerbeanmeldung (trade licence / business registration). It takes a minute — https://vestrasales.com/buyer?tab=kyc — sign in, open the \"Verification\" section and attach the file (PDF, JPG, PNG or WebP, up to 10 MB).\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
