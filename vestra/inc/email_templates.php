@@ -1454,7 +1454,7 @@ function vestra_tpl_docs_women(string $salutation, string $missingBrand, array $
         $body .= "The full women's line sheet is attached to this email as a PDF (article numbers, sizes, stock, minimum quantities and wholesale prices). It is sent as a courtesy so that you can review the range while your verification is being completed; once your document is approved, the same list — plus the Excel version — is available directly in your account at any time.\n\n";
     }
 
-    $body .= "On terms: we work B2B, and on larger or repeat quantities a discount on the listed wholesale prices is possible. That is agreed per order rather than published — tell me the articles, the quantities and the colourways you have in mind and I will put a firm offer in writing.\n\n"
+    $body .= "Volume terms — this is where a B2B account pays off. The listed wholesale prices are our standard ones; on larger orders, and on repeat business, we apply a special discount on top of them. The size of it depends on the articles and the quantities, so it is agreed per order rather than published. Tell me the articles, the quantities and the colourways you have in mind and I will put a firm offer in writing, with your price on it.\n\n"
 . "Best regards,\n\n"
 . $signer . "\n"
 . "VESTRA – vestrasales.com";
@@ -1500,7 +1500,7 @@ function vestra_tpl_prospect_women(string $salutation, string $missingBrand, arr
         $body .= "On the {$missingBrand} womenswear itself: tell me exactly what you are looking for — the categories from your list, the quantities per style and your target season — and I will take it up directly with our suppliers and come back to you with what can actually be sourced, at what price and in what lead time. A concrete request travels much further with a supplier than a general one.\n\n";
     }
 
-    $body .= "On terms: we work B2B, and for larger volumes a discount on the listed wholesale prices is available. It is agreed per order rather than published, so send me the articles and quantities and you will get a firm written offer.\n\n"
+    $body .= "Volume terms — this is where a B2B account pays off. The prices in the attached list are our standard wholesale prices; on larger orders, and on repeat business, we apply a special discount on top of them. How large that discount is depends on the articles and the quantities, which is why it is agreed per order rather than published. Tell me what you would take and in what volume, and you will have a firm written offer with your price on it.\n\n"
 . "When you are ready to order, registration takes a few minutes at https://vestrasales.com/register — you will be asked for your trade documentation and your VAT number (for Szykszok that is your NIP in its EU form). Once the account is verified, the live price tiers and the full line sheet in PDF and Excel are available in your account at any time.\n\n"
 . "Best regards,\n\n"
 . $signer . "\n"
