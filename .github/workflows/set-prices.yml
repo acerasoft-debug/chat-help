@@ -6,6 +6,10 @@ on:
         description: "Marka (örn: Dolce). * = TÜM ürünler"
         required: true
         default: "*"
+      name_contains:
+        description: "Sadece ADI bu parcayi iceren urunler (buyuk/kucuk harf duyarsiz). Unisex bir kategorinin icindeki kadin alt kumesi gibi durumlar icin: cat='Hoodies & Sweatshirts' + name_contains=Women's. Bos = ad suzgeci yok."
+        required: false
+        default: ""
       cat:
         # Default is empty ON PURPOSE. Actions substitutes the default whenever the
         # input arrives empty, so a non-empty default silently narrows every "all
@@ -78,6 +82,7 @@ jobs:
         env:
           RAW_BRAND: ${{ github.event.inputs.brand }}
           RAW_CAT: ${{ github.event.inputs.cat }}
+          RAW_NAMEQ: ${{ github.event.inputs.name_contains }}
           RAW_PRICE: ${{ github.event.inputs.price }}
           RAW_LIST_PRICE: ${{ github.event.inputs.list_price }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
@@ -89,7 +94,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_ENV"
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
-                  for k in ['brand','cat','price','list_price','moq','step','sizes','offers','dry']}
+                  for k in ['brand','cat','nameq','price','list_price','moq','step','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
@@ -144,6 +149,7 @@ jobs:
 
             $brand = trim((string)($in['brand'] ?? ''));
             $cat   = trim((string)($in['cat']   ?? ''));
+            $nameq = trim((string)($in['nameq'] ?? ''));
             $price = trim((string)($in['price'] ?? ''));
             $listP = trim((string)($in['list_price'] ?? ''));
             $moq   = trim((string)($in['moq']   ?? ''));
@@ -220,6 +226,7 @@ jobs:
               // only 73 of 94 that way and looked complete.
               if ($brand !== '*' && stripos($b, $brand) === false) continue;
               if ($cat !== '' && $cat !== '*' && strcasecmp(trim($c), $cat) !== 0) continue;
+              if ($nameq !== '' && stripos((string)($p['name'] ?? ''), $nameq) === false) continue;
               $hits++;
               $id = (string)($p['id'] ?? '?');
               $line = [];
