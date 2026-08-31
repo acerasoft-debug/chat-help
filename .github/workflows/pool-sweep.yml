@@ -48,3 +48,12 @@ jobs:
             else
               php cron_pool_sweep.php
             fi
+            # Escrow otomatik serbest birakma da ayni gunluk vuruşta kosar.
+            # AYRI dosya degil BURADA: varsayilan dalda olmayan yeni bir workflow
+            # ne zamanlanabiliyor ne tetiklenebiliyor — mevcut zamanlanmis ise
+            # adim eklemek bu depoda kanitlanmis tek yol. Ayni dry_run gecerli.
+            if [ "$DRY" = "true" ]; then
+              php cron_escrow_release.php --dry-run
+            else
+              php cron_escrow_release.php
+            fi

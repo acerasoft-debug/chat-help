@@ -238,6 +238,54 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     header('Location: /seller?tab=orders&msg=paid'); exit;
 }
 
+// ── ESCROW: satici teslimati isaretler → 2 IS GUNU sayaci baslar ─────────────────
+// Operator kurali (31 Agustos 2026): teslimattan sonra 2 is gunu icinde alici ses
+// cikarmazsa odeme otomatik serbest kalir (escrow_auto_release_sweep, gunluk cron).
+// Sayaci SHIPPED degil DELIVERED baslatir: kendi sartlarimiz AB'de 7-14 is gunu
+// teslim diyor, kargolamadan 2 gun sonra birakmak parayi mal yoldayken verirdi.
+// Aliciya sure baslangici ACIKCA e-postalanir -- bilmedigi bir sayacin dolmasiyla
+// parasi el degistirmemeli.
+if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='deliver_order') {
+    $ref = $_POST['ref'] ?? '';
+    $uid = $_SESSION['uid'] ?? '';
+    $mySkus = array_column(vestra_seller_listings($uid), 'sku');
+    $ownsOrder = false; $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (($row['ref']??'') === $ref && vestra_order_has_seller_sku($row, $mySkus)) { $ownsOrder = true; $orderRow = $row; break; }
+    }
+    require_once __DIR__.'/inc/escrow.php';
+    if ($ref && $ownsOrder && escrow_get($ref)) {
+        $st = vestra_read_json('order_statuses.json');
+        if (($st[$ref]['status'] ?? '') === 'shipped') {
+            $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'delivered','delivered_at'=>date('c')]);
+            $st[$ref]['history'][] = vestra_order_history_entry('delivered', 'seller');
+            vestra_write_json('order_statuses.json', $st);
+            $deadline = date('D, d M Y', vestra_business_days_after(time(), 2));
+            require_once __DIR__.'/inc/notify.php';
+            if (!empty($orderRow['email'])) {
+                vestra_send_mail($orderRow['email'], "VESTRA — order {$ref} delivered: please confirm",
+                  "Hello ".($orderRow['name']?:($orderRow['company']?:'there')).",\n\n"
+                 ."The seller has recorded your order {$ref} as delivered.\n\n"
+                 ."Please check the goods and confirm receipt in your dashboard. If everything is as described, "
+                 ."confirming releases the payment to the seller.\n\n"
+                 ."If you do NOT confirm and report no problem, the payment is released automatically after "
+                 ."2 business days (by {$deadline}). If anything is wrong, reply to this email or write to "
+                 ."support@vestrasales.com BEFORE then — reported orders stay held until resolved.\n\n"
+                 ."Confirm here: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+            }
+            $buyerAcc = auth_find($orderRow['email'] ?? '');
+            if ($buyerAcc) {
+                require_once __DIR__.'/inc/messages.php';
+                vestra_msg_post_system($buyerAcc['id'], $uid, '', ['kind'=>'order','status'=>'delivered','ref'=>$ref]);
+                require_once __DIR__.'/inc/push.php';
+                vestra_push_send($buyerAcc['id'], 'VESTRA — order delivered 📦',
+                    'Order '.$ref.' — please confirm receipt. Auto-release on '.$deadline.'.', '/buyer?tab=orders');
+            }
+        }
+    }
+    header('Location: /seller?tab=orders&msg=delivered'); exit;
+}
+
 // ── Seller marks a shipped order completed/delivered (bank orders; escrow completion
 // is the buyer's confirm-receipt, which releases the held funds) ──────────────────
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='complete_order') {
@@ -893,6 +941,19 @@ if($tab==='overview'){
             <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
             <button class="btn btn-o btn-sm" type="submit">✓ '.t('Mark completed').'</button>
           </form>';
+      }
+      if ($st==='shipped' && $er) {
+        /* Escrow: teslimati isaretlemek 2 is gunluk otomatik-serbest sayacini
+           baslatir; dugmenin uzerinde bu acikca yazar ki satici ne baslattigini
+           bilsin. */
+        echo '<form method="post" action="/seller?tab=orders" style="margin-top:5px" onsubmit="return confirm('.htmlspecialchars(json_encode(t('Mark as delivered? If the buyer reports no problem, the payment is released automatically after 2 business days.')),ENT_QUOTES).')">
+            <input type="hidden" name="_action" value="deliver_order">
+            <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
+            <button class="btn btn-o btn-sm" type="submit">📦 '.t('Mark delivered').'</button>
+          </form>';
+      }
+      if ($st==='delivered' && $er) {
+        echo '<div class="hint" style="margin-top:5px">📦 '.t('Delivered — payment releases automatically 2 business days after delivery unless the buyer reports a problem.').'</div>';
       }
       foreach(vestra_invoices_for_ref($ref) as $iv){
         if($iv['seller_key']!==$uid) continue;

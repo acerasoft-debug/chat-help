@@ -38,7 +38,9 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=kyc'); exit;
 }
 
-// Confirm receipt (escrow release) — only the buyer who placed it, only once it's actually shipped
+// Confirm receipt (escrow release) — only the buyer who placed it, once shipped OR delivered.
+// 'delivered' da kabul: satici teslimati isaretledikten SONRA alicinin onay dugmesi
+// olmezse, 2-is-gunu sayaci baslamisken alici erken onaylayamaz hale gelirdi.
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='confirm_receipt') {
     $ref = $_POST['ref'] ?? '';
     $me  = auth_user();
@@ -50,7 +52,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $ownsOrder = $orderRow && $myEmail !== '' && strtolower($orderRow['email']??'') === $myEmail;
     $st = vestra_read_json('order_statuses.json');
     $currentStatus = $st[$ref]['status'] ?? 'pending';
-    if ($ref && $ownsOrder && $currentStatus === 'shipped') {
+    if ($ref && $ownsOrder && in_array($currentStatus, ['shipped','delivered'], true)) {
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         $st[$ref]['history'][] = vestra_order_history_entry('completed', 'buyer');
         vestra_write_json('order_statuses.json', $st);
@@ -286,13 +288,14 @@ if($tab==='overview'){
       if ($inReview)          { $stClass='open'; $stLabel=t('In review'); }
       elseif($st==='completed'){ $stClass='offers'; $stLabel=t('Completed'); }
       elseif($st==='shipped') { $stClass='open'; $stLabel=t('Shipped — confirm receipt'); }
+      elseif($st==='delivered') { $stClass='open'; $stLabel=t('Delivered — confirm receipt'); }
       elseif($st==='paid')    { $stClass='offers'; $stLabel=t('Paid — preparing shipment'); }
       else { $stClass='open'; $stLabel=t('Awaiting payment'); }
       $reviewNote = $inReview
         ? '<div class="ordreview">🔎 '.htmlspecialchars(vestra_order_review_note((string)($o['timestamp']??''))).'</div>'
         : '';
       $confirmBtn='';
-      if($st==='shipped'){
+      if($st==='shipped' || $st==='delivered'){
         $confirmBtn='<form method="post" action="/buyer?tab=orders" '.
           ($isHeld?'onsubmit="return confirm(\''.htmlspecialchars(t('Confirm you received the goods? This releases the held funds to the seller and cannot be undone.'),ENT_QUOTES).'\')"':'').'>
           <input type="hidden" name="_action" value="confirm_receipt">

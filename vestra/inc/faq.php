@@ -111,7 +111,7 @@ function vestra_faq_en(){
     ['q'=>'Who holds the escrow funds?',
      'a'=>'A licensed, regulated third-party payment and escrow provider holds all funds. VESTRA never holds or transmits user money.'],
     ['q'=>'When are funds released to the seller?',
-     'a'=>'Funds release when: (a) you confirm receipt of goods, or (b) the agreed auto-release window (typically 5–14 days after confirmed delivery) expires with no dispute raised. If a dispute is opened, funds remain frozen until resolution.'],
+     'a'=>'Funds release when: (a) you confirm receipt of goods, or (b) automatically 2 business days after the seller records delivery, if no problem has been reported. To pause release, report the problem to support@vestrasales.com before the window ends — reported orders stay held until resolved.'],
     ['q'=>'What payment methods are accepted?',
      'a'=>'Bank transfer against the seller\'s invoice — SEPA within the EU, SWIFT internationally. Card and other online payment methods are temporarily suspended. Cryptocurrency and cheques are not accepted.'],
     ['q'=>'In which currency do I pay?',

@@ -242,6 +242,98 @@ function escrow_do_release(string $ref): array {
     }
 }
 
+/* ── Otomatik serbest birakma (operator kurali, 31 Agustos 2026) ─────────────
+ * "Urun musteriye ulastiktan sonra 2 IS GUNU icinde musteri onay vermezse
+ *  odeme otomatik onaylansin."
+ *
+ * Saat SHIPPED'de degil DELIVERED'da baslar. Kendi teslimat sartlarimiz AB
+ * icinde 7-14 is gunu diyor; kargolamadan 2 gun sonra birakmak, parayi mal
+ * yoldayken satıciya vermek olurdu — escrow'un tam tersi. Teslimati satici
+ * isaretler (kargo takibi elinde olan o); isaretledigi anda aliciya sure
+ * baslangici e-postayla bildirilir, yani surenin isledigini iki taraf da bilir.
+ *
+ * Alici pencere icinde onaylarsa para zaten aninda iner (buyer.php). Sorun
+ * bildirirse operator paneldeki Release/Refund ile karar verir — süpurucu
+ * yalnizca 'held' kayitlara dokundugu icin, operatorun o arada verdigi karar
+ * otomatigi kendiliginden devre disi birakir. */
+
+/** $ts'ten itibaren $days IS GUNU sonrasi (Cmt/Paz atlanir), epoch saniyesi. */
+function vestra_business_days_after(int $ts, int $days): int {
+    while ($days > 0) {
+        $ts += 86400;
+        $dow = (int)date('N', $ts);          // 1=Pzt … 7=Paz
+        if ($dow <= 5) $days--;
+    }
+    return $ts;
+}
+
+/**
+ * Suresi dolmus 'held' escrow'lari serbest birak. $dry=true hicbir sey yazmaz,
+ * sadece ne yapacagini soyler. Donen dizi cron ciktisi icindir.
+ */
+function escrow_auto_release_sweep(bool $dry = false): array {
+    /* Cron baglaminda hicbir sayfa yigini yuklu degil; süpurucu kendi
+       bagimliliklarini kendisi getirir (json yardimcilari products.php'de,
+       history orders.php'de, hesaplar auth.php'de, vestra_user_lang i18n'de). */
+    require_once __DIR__ . '/products.php';
+    require_once __DIR__ . '/orders.php';
+    require_once __DIR__ . '/auth.php';
+    require_once __DIR__ . '/i18n.php';
+    $out = ['checked'=>0, 'due'=>0, 'released'=>0, 'failed'=>0, 'lines'=>[]];
+    $statuses = vestra_read_json('order_statuses.json');
+    foreach (escrow_all() as $ref => $rec) {
+        if (($rec['status'] ?? '') !== 'held') continue;
+        $out['checked']++;
+        $st = $statuses[$ref] ?? [];
+        if (($st['status'] ?? '') !== 'delivered') continue;   // saat teslimatla baslar
+        $dts = strtotime((string)($st['delivered_at'] ?? ''));
+        if (!$dts) continue;
+        $deadline = vestra_business_days_after($dts, 2);
+        if (time() < $deadline) {
+            $out['lines'][] = sprintf('  %s teslim %s — sure %s dolacak', $ref,
+                date('Y-m-d H:i', $dts), date('Y-m-d H:i', $deadline));
+            continue;
+        }
+        $out['due']++;
+        if ($dry) { $out['lines'][] = "  {$ref} SURESI DOLMUS — kuru kosuda birakilmadi"; continue; }
+        $r = escrow_do_release($ref);
+        if (!$r['ok']) {
+            /* Bakiye hala takas bekliyor olabilir ('Nothing available yet') —
+               kayit 'held' kaldigi icin yarinki süpurucu yeniden dener. */
+            $out['failed']++;
+            $out['lines'][] = "  {$ref} BIRAKILAMADI: {$r['msg']}";
+            continue;
+        }
+        $out['released']++;
+        $out['lines'][] = "  {$ref} SERBEST: {$r['msg']}";
+        escrow_update($ref, ['auto_released_at' => date('c')]);
+        $statuses[$ref] = array_merge($statuses[$ref] ?? [], ['status'=>'completed','completed_at'=>date('c')]);
+        $statuses[$ref]['history'][] = vestra_order_history_entry('completed', 'auto',
+            'Released automatically — no issue reported within 2 business days of delivery');
+        vestra_write_json('order_statuses.json', $statuses);
+        $statuses = vestra_read_json('order_statuses.json'); // yaz-oku: sonraki dongu taze gorsun
+        /* Iki tarafa da e-posta — bu sonucu ikisi de tetiklemedi, push yetmez
+           (admin'in zorla release'indeki gerekce burada da aynen gecerli). */
+        try {
+            require_once __DIR__.'/notify.php';
+            require_once __DIR__.'/email_templates.php';
+            $b = $rec['buyer'] ?? []; $seller = null;
+            foreach (auth_accounts() as $a) { if (($a['id']??'') === ($rec['seller_uid']??'')) { $seller = $a; break; } }
+            $payout = (float)($rec['payout'] ?? 0);
+            if ($seller && !empty($seller['email'])) {
+                [$s1,$b1,$o1] = vestra_tpl_escrow_release(vestra_user_lang($seller), $seller['name']?:($seller['company']?:'there'), 'seller', $ref, $payout);
+                vestra_send_mail($seller['email'], $s1, $b1, '', '', null, '', $o1);
+            }
+            if (!empty($b['email'])) {
+                $buyerAcc = auth_find($b['email']);
+                [$s2,$b2,$o2] = vestra_tpl_escrow_release(vestra_user_lang($buyerAcc), $b['name']?:'there', 'buyer', $ref, $payout);
+                vestra_send_mail($b['email'], $s2, $b2, '', '', null, '', $o2);
+            }
+        } catch (\Throwable $e) { error_log('[VESTRA Escrow] auto-release mail '.$ref.': '.$e->getMessage()); }
+    }
+    return $out;
+}
+
 /**
  * REFUND the buyer in full before release (dispute / non-delivery). Flips
  * held→refunded and claws the commission back. Returns [ok,msg].

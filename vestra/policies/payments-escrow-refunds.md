@@ -10,8 +10,8 @@
 ## 2. Escrow release
 Funds are released to the Seller when the agreed condition is met:
 - **Buyer confirmation** of receipt, **or**
-- **verified delivery** (e.g., carrier tracking), **or**
-- expiry of an agreed auto-release window if no dispute is raised.
+- **automatic release 2 business days after the seller records delivery**, if no
+  problem has been reported to support before the window ends.
 VESTRA's platform triggers release via the provider's API; the provider disburses
 **Seller payout + VESTRA commission**.
 
