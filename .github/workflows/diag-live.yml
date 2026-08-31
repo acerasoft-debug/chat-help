@@ -55,7 +55,7 @@ on:
         required: false
         default: "false"
       login_probe:
-        description: "true = test hesabıyla CANLI siteye giriş yap, çerezle anasayfayı iste ve hangi düğmelerin göründüğünü yaz (Open my panel mi Register mı). www/non-www çerez kaybını da sınar."
+        description: "true = test hesabıyla CANLI siteye giriş yap, çerezle anasayfayı iste, düğmeleri yaz + www çerez tuzağı. YOL verirseniz (ör. /buyer?tab=offers) o sayfayı da OTURUMLA çeker ve PHP uyarı/fatal arar — girdi tavanı 25 olduğu için ayrı girdi yerine bu alan genişletildi."
         required: false
         default: "false"
       reset_probe:
@@ -916,7 +916,9 @@ jobs:
       # ve dugmelerin hangisi ciktigi. Tarayici/onbellek/etki alani degiskenlerini
       # tek tek gorunur kiliyor; SSH gerektirmiyor.
       - name: Canlı giriş sınaması (oturum kalıcı mı?)
-        if: github.event.inputs.login_probe == 'true'
+        if: github.event.inputs.login_probe != '' && github.event.inputs.login_probe != 'false'
+        env:
+          LOGIN_PATH: ${{ github.event.inputs.login_probe }}
         run: |
           set -e
           BASE="https://vestrasales.com"
@@ -947,6 +949,27 @@ jobs:
           if grep -qi '^location: https://vestrasales.com' /tmp/h3.txt; then echo "www -> ana alan adina YONLENIYOR (dogru: tek cerez alani)"
           elif grep -q 'Open my' /tmp/b3.html; then echo "www uzerinde de girisli gorunuyor"
           elif grep -q 'Register as Seller' /tmp/b3.html; then echo "UYARI: www uzerinde GIRISSIZ — cerez alan adi tuzagi BU. www ana alana yonlendirilmeli."
+          fi
+          # 4. OTURUMLU SAYFA. Panel sayfalarinin cogu girissiz istendiginde
+          # giris ekranina duser, yani 200 donmesi "sayfa calisiyor" demek
+          # DEGIL -- calistigini gordugumuz sey giris ekraniydi. Burada ayni
+          # cerezle GERCEK sayfa cekiliyor ve icinde PHP uyarisi/fatal'i
+          # araniyor: display_errors kapali olsa bile bos/yarim govde
+          # bayt sayisindan gorunur.
+          if [ -n "$LOGIN_PATH" ] && [ "$LOGIN_PATH" != "true" ]; then
+            echo
+            echo "===== 4. OTURUMLU SAYFA: $LOGIN_PATH ====="
+            code=$(curl -sS -A "$UA" -c "$JAR" -b "$JAR" -o /tmp/b4.html -w '%{http_code}' --max-time 30 "$BASE$LOGIN_PATH")
+            echo "  HTTP $code   $(wc -c < /tmp/b4.html) bayt"
+            if grep -qiE 'Fatal error|Parse error|Uncaught|Warning:|Notice:|Undefined (variable|index|array key)' /tmp/b4.html; then
+              echo "  PHP HATASI GOVDEDE:"
+              grep -oiE '(Fatal error|Parse error|Uncaught|Warning:|Notice:|Undefined [a-z ]+)[^<]{0,160}' /tmp/b4.html | head -5 | sed 's/^/    /'
+            else
+              echo "  govdede PHP uyarisi/fatal yok"
+            fi
+            if grep -qiE 'name="password"|Sign in|Log in to' /tmp/b4.html; then
+              echo "  UYARI: sayfa GIRIS EKRANI gibi gorunuyor — oturum bu yolda taninmamis olabilir"
+            fi
           fi
           echo
           echo "===== 4. /buyer (panel gercekten aciliyor mu) ====="
