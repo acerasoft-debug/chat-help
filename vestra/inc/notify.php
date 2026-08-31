@@ -2026,8 +2026,45 @@ function vestra_mime_multipart(string $bodyPlain, string $boundary, string $hero
  *   3) Local mail() — only lands in inboxes if the domain's SPF/DKIM authorize
  *      this server's IP.
  */
+/* filter_var, saglayicinin kabul ettiginden DAHA GENIS. Canli hata gunlugunde
+ * 32 kez "email is not valid in to" var: adres yerel dogrulamadan geciyor,
+ * Brevo reddediyor, ve kayit "gonderilmedi" olarak isaretlenmedigi icin ayni
+ * adres her kosuda yeniden deneniyor. Ucretsiz planda her deneme bir kredi.
+ *
+ * Burada YALNIZCA saglayicinin kesin reddettigi kaliplar eleniyor. Daha
+ * siki olmak cazip ama tehlikeli: gecerli bir adresi sessizce elemek,
+ * gecersiz bir adrese bosuna gondermekten pahalidir -- kimse fark etmez.
+ * Bu yuzden 'suphe varsa gecir' tarafinda kaliniyor. */
+function vestra_email_deliverable(string $e): bool {
+    $e = trim($e);
+    if ($e === '' || !filter_var($e, FILTER_VALIDATE_EMAIL)) return false;
+    if (strlen($e) > 254) return false;
+    /* ASCII disi: Brevo SMTPUTF8 kabul etmiyor, adres reddediliyor. */
+    if (preg_match('/[^\x21-\x7E]/', $e)) return false;
+    $at = strrpos($e, '@');
+    $local = substr($e, 0, $at); $dom = substr($e, $at + 1);
+    if ($local === '' || strlen($local) > 64) return false;
+    if ($local[0] === '.' || substr($local, -1) === '.') return false;
+    if (str_contains($local, '..')) return false;
+    if (str_contains($dom, '..') || $dom[0] === '.' || $dom[0] === '-') return false;
+    /* Alan adinda en az bir nokta ve en az iki harflik bir uzanti. */
+    if (!preg_match('/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i', $dom)) return false;
+    return true;
+}
+
 function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$heroImage='',array $opts=[]){
-  if(!filter_var($to,FILTER_VALIDATE_EMAIL)) return false;
+  /* TRIM once, and carry the trimmed value onward. Validating the trimmed
+     string but sending the raw one would pass a trailing space straight to
+     the provider -- which is exactly the "email is not valid in to" it keeps
+     rejecting. Kaydedilmis adreslerde bosluk sik: CSV/yapistirma artigi. */
+  $to = trim((string)$to);
+  if(!vestra_email_deliverable($to)){
+    /* Sessizce false donmek, "neden gitmedi" sorusunu cevapsiz birakiyordu.
+       Adres maskeli yaziliyor: gunluk halka acik degil ama musteri adresi
+       gereksiz yere tam yazilmamali. */
+    error_log('[VESTRA Mail] gecersiz alici, gonderilmedi: '.preg_replace('/^(.).*(@.*)$/','$1***$2',(string)$to));
+    return false;
+  }
   // Explicit sender config (e.g. a seller's OWN SMTP/API) — send truly "from" them.
   if($cfg!==null){
     if(($cfg['mail_api_key']??'')!=='') return vestra_api_send($to,$subject,$body,$replyTo,$fromName,$cfg,$heroImage,$opts);

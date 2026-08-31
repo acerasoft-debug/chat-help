@@ -533,17 +533,41 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $victim=$a; break; } }
     if(!$victim){ header('Location: /admin?tab=users&msg=acct_notfound'); exit; }
 
-    $openOrders=0;
+    /* Silme kapisi. Onay kutusu "Accounts with orders or invoices cannot be
+       deleted" diyordu ama kod yalnizca SATICI tarafindaki acik siparislere
+       bakiyordu: alicinin siparisi ve KESILMIS FATURA hic kontrol edilmiyordu.
+       Fatura numarali bir belgedir ve musteriye gitmistir -- konusu silinirse
+       numara hicbir seye isaret etmez ve muhasebe izi kopar. Kural yaziliydi,
+       kapi calismiyordu; bu desen bu projede birkac kez cikti. */
+    $openOrders=0; $invoiced=0;
+    $vEmail=strtolower(trim((string)($victim['email']??'')));
     foreach(vestra_read_csv('orders.csv') as $o){
-      if(in_array(strtolower((string)($o['status']??'')),['completed','cancelled','refunded'],true)) continue;
+      $ref=(string)($o['ref']??'');
+      /* Alici tarafi: siparis satirindaki e-posta. Kapali siparis de sayilir
+         cunku fatura kontrolu ondan turuyor. */
+      $isBuyer  = $vEmail!=='' && strtolower(trim((string)($o['email']??'')))===$vEmail;
+      $isSeller = false;
       foreach(vestra_order_lines($o)['lines'] as $l){
-        if((string)($l['seller_uid']??'')===$uid){ $openOrders++; break; }
+        if((string)($l['seller_uid']??'')===$uid){ $isSeller=true; break; }
       }
+      if(!$isBuyer && !$isSeller) continue;
+      if($ref!=='' && count(vestra_invoices_for_ref($ref))>0){ $invoiced++; continue; }
+      if(in_array(strtolower((string)($o['status']??'')),['completed','cancelled','refunded'],true)) continue;
+      $openOrders++;
     }
+    if($invoiced>0){   header('Location: /admin?tab=users&msg=acct_has_invoice&n='.$invoiced); exit; }
     if($openOrders>0){ header('Location: /admin?tab=users&msg=acct_has_orders'); exit; }
 
     $af=vestra_data_dir().'/accounts.json';
     if(is_readable($af)) @copy($af,$af.'.bak.'.date('Ymd_His'));
+    /* Silinen hesabin KENDI JSON yedegi. accounts.json'in tam kopyasi zaten
+       alindi ama onun icinden tek hesabi bulmak, dosya buyudukce is haline
+       geliyor. GDPR silme talebi de gelse, "yanlis hesabi sildim" kazasi da
+       olsa, aranan sey tek bir kayit. */
+    $ddir=vestra_data_dir().'/deleted-accounts';
+    if(!is_dir($ddir)) @mkdir($ddir,0775,true);
+    @file_put_contents($ddir.'/'.preg_replace('/[^a-z0-9_-]/i','',$uid).'-'.gmdate('Ymd-His').'.json',
+      json_encode($victim+['deleted_at'=>gmdate('c')], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
 
     $kept=array_values(array_filter(auth_accounts(), fn($a)=>($a['id']??'')!==$uid));
     auth_save_accounts($kept);
@@ -1364,46 +1388,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=users&msg='.$msg); exit;
   }
 
-  /* ── Hesap silme ───────────────────────────────────────────────────────────
-     Kalici ve geri alinamaz, o yuzden dar tutuldu:
-      - Silmeden once hesabin JSON yedegi data/deleted-accounts/ altina yazilir.
-        GDPR silme talebi de gelse, "yanlis hesabi sildim" kazasi da olsa, ticari
-        kayit (kimin siparis verdigi) tamamen ucup gitmemeli.
-      - Siparisi/faturasi olan hesap SILINMEZ. Fatura kaydi hesaba baglidir;
-        silinirse gecmis siparisler sahipsiz kalir ve muhasebe izi kopar.
-        Boyle bir hesabi kapatmak isteyen once siparisleri arsivlemeli.
-      - Kendi admin oturumunu degil, sadece musteri hesaplarini hedefler. */
-  if($act==='delete_account'){
-    $uid=trim($_POST['uid']??'');
-    $msg='del_none';
-    if($uid!==''){
-      $accs=auth_accounts();
-      $target=null;
-      foreach($accs as $a){ if(($a['id']??'')===$uid){ $target=$a; break; } }
-      if(!$target){ $msg='del_notfound'; }
-      else {
-        /* Siparis/fatura bagi var mi? Varsa silme -- ticari iz kopar. */
-        $hasOrders=false;
-        if(function_exists('vestra_orders')){
-          foreach(vestra_orders() as $o){
-            if((string)($o['buyer_uid']??'')===$uid || (string)($o['seller_uid']??'')===$uid){ $hasOrders=true; break; }
-          }
-        }
-        if($hasOrders){ $msg='del_hasorders'; }
-        else {
-          $dir=vestra_data_dir().'/deleted-accounts';
-          if(!is_dir($dir)) @mkdir($dir,0775,true);
-          @file_put_contents($dir.'/'.preg_replace('/[^a-z0-9_-]/i','',$uid).'-'.gmdate('Ymd-His').'.json',
-            json_encode($target+['deleted_at'=>gmdate('c')], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
-          $left=[];
-          foreach($accs as $a){ if(($a['id']??'')!==$uid) $left[]=$a; }
-          if(count($left)===count($accs)){ $msg='del_notfound'; }
-          else { auth_save_accounts($left); $msg='del_ok'; }
-        }
-      }
-    }
-    header('Location: /admin?tab=users&msg='.$msg); exit;
-  }
+  /* ── Hesap silme ────────────────────────────────────────────────────────
+     BU BLOK KALDIRILDI (31 Agu 2026). Ayni '_action' icin YUKARIDA, satir
+     ~530'da calisan bir isleyici var ve o exit ediyor -- yani buradaki kod
+     hicbir zaman calismadi. Olu olmasi tek basina zararsizdi, ama iki sey
+     yanlisti:
+       - Icindeki "siparisi olan hesap silinmez" kontrolu
+         function_exists('vestra_orders') ile korunuyordu ve o fonksiyon
+         projede HIC tanimli degil; yani kosul her zaman false, kontrol her
+         zaman atlaniyordu. Calissaydi bile korumuyordu.
+       - Kendi 'del_ok / del_hasorders / del_notfound' mesajlarini
+         uretiyordu; bu mesajlarin panelde karsiligi yok, yani gorunse
+         bos bir banner cikardi.
+     Tek yararli parcasi -- silinen hesabin data/deleted-accounts/ altina
+     JSON yedegi -- calisan isleyiciye tasindi. */
 
   /* ── Notification Center: broadcast a push to all / buyers / sellers / one user ── */
   if($act==='sec_block_ip'){
@@ -2017,6 +2015,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <?php elseif($msg==='offer_err'): ?>
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">
   ⚠ Teklife yanıt verilemedi — hiçbir şey kaydedilmedi. (Karşı teklifte birim fiyat girmeyi unutmuş olabilirsiniz.)
+</div>
+<?php elseif($msg==='acct_has_invoice'): ?>
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.35);color:#a9781a">
+  ⚠ Silinmedi — bu hesaba bağlı <b><?= (int)($_GET['n']??1) ?></b> kesilmiş fatura var. Fatura numaralı bir belgedir ve
+  müşteriye gitmiştir; konusu silinirse numara hiçbir şeye işaret etmez ve muhasebe izi kopar.
+  Hesabı kapatmak için <b>Suspend</b> kullanın — kayıt durur, giriş kapanır.
 </div>
 <?php elseif($msg==='ord_notfound'): ?>
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Not deleted — no row in orders.csv carries that reference.</div>
