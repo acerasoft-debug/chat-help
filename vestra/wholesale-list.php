@@ -66,7 +66,7 @@ foreach (vestra_products() as $p) {
     $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
-    if ($catFilter !== '' && stripos((string)($p['category'] ?? ''), $catFilter) === false) continue;
+    if ($catFilter !== '' && stripos((string)($p['cat'] ?? ''), $catFilter) === false) continue;
     $byBrand[$brand][] = $p;
 }
 ksort($byBrand, SORT_NATURAL | SORT_FLAG_CASE);
@@ -86,7 +86,10 @@ $TOP = 782.0; $BOTTOM = 66.0; $ROW_H = 66.0;
 
 $y = 0.0;
 
-$header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $total) {
+/* $catFilter de use listesinde OLMALI: kapanis icinde tanimsiz kalirsa PHP
+   uyari basar ve o uyari PDF bayt akisinin ORTASINA dusup dosyayi bozar
+   (ek "gonderildi" gorunur, alici acamaz). */
+$header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $catFilter, $total) {
     $pdf->text($L, $TOP, 20, 'VESTRA', true);
     /* Placed off the measured width of the wordmark rather than a fixed offset: the old
        +68 sat inside the last letter, so the tagline printed over the A. */

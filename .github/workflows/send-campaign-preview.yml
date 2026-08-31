@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women (belge + kadın ürünleri + hacim indirimi; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc)."
         required: false
         default: ""
       reply_spec:
@@ -836,6 +836,63 @@ jobs:
             $vat = trim($E('vat'));
             if ($vat === '' && $acc) $vat = trim((string)($acc['vat_id'] ?? ''));
 
+            /* HESABI AC: KYB onayi + "hesabiniz acildi" mektubu (+ push).
+               Panelin '✓ Approve KYB' dugmesiyle AYNI isi yapar; burada olmasi
+               operatorun tek komutla, kaydi kanitlanmis sekilde yapabilmesi icin.
+               ONEMLI: yalnizca KYB'yi onaylamak fiyat kapisini ACMAYABILIR —
+               auth_prices_unlocked ayrica trade_licence onayina bakiyor. Belge
+               onayli degilse is DURUR; operator waive_doc=true ile zorunlulugu
+               kaldirabilir ve bu karar hesaba damgalanir (belgeyi "inceledik"
+               gibi isaretlemeyiz — olmayan bir incelemeyi kayda gecirmek yalan
+               olurdu). Sonunda kapinin GERCEKTEN acildigi geri okunur. */
+            if ($letter === 'approve_account') {
+              if (!$acc) { fwrite(STDERR, "hesap bulunamadi: ".$mask($to)."\n"); exit(1); }
+              if (!function_exists('vestra_user_lang')) require_once $doc."/inc/i18n.php";
+              $uid = (string)($acc['id'] ?? '');
+              $docSt = '';
+              foreach ((array)($acc['doc_requests'] ?? []) as $r) {
+                if (($r['type'] ?? '') !== 'trade_licence') continue;
+                $s2 = (string)($r['status'] ?? 'requested');
+                if ($s2 === 'approved') { $docSt = 'approved'; break; }
+                if ($s2 === 'uploaded') { $docSt = 'uploaded'; continue; }
+                if ($docSt === '') $docSt = $s2;
+              }
+              $waive = strtolower($E('waive_doc')) === 'true';
+              echo "hesap  : ".$mask($to)."  (".($acc['type'] ?? '?').", ".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
+              echo "belge  : ".($docSt !== '' ? strtoupper($docSt) : '(talep yok)')."\n";
+              echo "belge zorunlulugu: ".(!empty($acc['trade_doc_required']) ? 'VAR' : 'yok')."\n";
+              $needWaive = !empty($acc['trade_doc_required']) && $docSt !== 'approved';
+              if ($needWaive && !$waive) {
+                fwrite(STDERR, "DURDU: ticari belge onayli degil — yalnizca KYB onayi fiyatlari ACMAZ.\n"
+                             . "Belgeyi bekleyin, ya da waive_doc=true ile belge zorunlulugunu KALDIRIN.\n");
+                exit(1);
+              }
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — HICBIR SEY degismedi\n"; exit(0); }
+              $fields = ['kyb_status' => 'approved', 'status' => 'active'];
+              if ($needWaive) { $fields['trade_doc_required'] = false; $fields['trade_doc_waived_at'] = date('c'); }
+              auth_update($uid, $fields);
+              echo "KYB onaylandi, hesap ACTIVE".($needWaive ? " (belge zorunlulugu operator karariyla KALDIRILDI, damgalandi)" : "")."\n";
+
+              $panel = (($acc['type'] ?? '') === 'seller') ? '/seller' : '/buyer';
+              $after = auth_find($to) ?: $acc;
+              [$kS, $kB, $kO] = vestra_tpl_kyb_approved(vestra_user_lang($after),
+                  ($after['name'] ?? '') ?: (($after['company'] ?? '') ?: 'there'),
+                  (string)($after['type'] ?? 'buyer'), 'https://vestrasales.com'.$panel);
+              $okMail = vestra_send_mail($to, $kS, $kB, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $kO);
+              echo $okMail ? "MEKTUP GONDERILDI ('hesabiniz acildi') -> ".$mask($to)."\n" : "MEKTUP GONDERILEMEDI\n";
+              @require_once $doc."/inc/push.php";
+              if (function_exists('vestra_push_send')) {
+                vestra_push_send($uid, 'VESTRA — account verified ✓', 'Your business is verified. Full wholesale access is unlocked.', $panel);
+              }
+              /* Kapi GERCEKTEN acildi mi? "Onayladim" demek yetmez; musteri
+                 girdiginde hala kilitliyse bunu ondan once biz bilmeliyiz. */
+              $chk = auth_find($to);
+              $open = auth_prices_unlocked($chk);
+              echo "dogrulama: auth_prices_unlocked = ".($open ? 'ACIK' : 'HALA KAPALI')
+                 . " | auth_user_approved = ".(auth_user_approved($chk) ? 'evet' : 'hayir')."\n";
+              exit($open && $okMail ? 0 : 1);
+            }
+
             /* Kayit dogrulama mektubunu YENIDEN gonder. Ayri mektup, cunku bu
                hesabin sorunu belge degil: dogrulama ACIKKEN (sunucuda oyle)
                auth_login 'unverified' donuyor, yani kullanici panele hic
@@ -875,7 +932,7 @@ jobs:
               require_once $doc."/inc/products.php";
               $wItems = [];
               foreach (vestra_products() as $p) {
-                if (stripos((string)($p['category'] ?? ''), 'Women') === false) continue;
+                if (stripos((string)($p['cat'] ?? ''), 'Women') === false) continue;
                 if (vestra_export_price($p) <= 0) continue;
                 $wItems[] = [
                   'id'    => (string)($p['id'] ?? ''),
