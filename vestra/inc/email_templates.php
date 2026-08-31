@@ -1226,3 +1226,45 @@ function vestra_tpl_new_collection_member(string $lang, string $company): array 
 
     return [$subject, $body, ['button' => ['label' => 'Winter 26/27', 'url' => $url]]];
 }
+
+/* Lacoste L1212 sorularina birebir cevap (Kerim Kuku benzeri alici sorgulari).
+ * METIN OPERATORUN NIHAI SURUMUDUR (31 Agu 2026) — degistirmeden once ona sor.
+ * Kisisel veriler (hitap, VAT) SABLONDA YOK: depo halka acik oldugu icin
+ * cagiran doldurur (hesaptan ya da dispatch spec'inden). VAT bos gelirse
+ * parantezli kisim tamamen dusuyor — "()" gibi bir kalinti birakmiyoruz. */
+function vestra_tpl_l1212_reply(string $salutation, string $vat = ''): array {
+    $subject = 'Re: Lacoste L1212 – your questions answered';
+    $vatBit  = $vat !== '' ? " ({$vat})" : '';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry – these are exactly the right questions to ask before a first order, and I will answer them one by one.\n\n"
+. "First, a note on how we work: VESTRA is a B2B marketplace and does not carry every brand, nor does it sell all goods. We work with a selected range of verified suppliers, and Lacoste L1212 is currently part of that range. Please also note that VESTRA operates the platform – the sale itself is concluded with the supplier, who issues the invoice.\n\n"
+. "Supplier\n"
+. "The supplier for this article is a French company, operating from France with warehousing in Germany. It is a verified seller on VESTRA: company registration, VAT ID and bank account are validated through our KYB process before a seller is allowed to trade. You are therefore dealing with an identified, legally registered EU business.\n\n"
+. "Stock, shipping origin and customs\n"
+. "The goods are dispatched from EEA stock. As the shipment moves inside the EU customs union, there are no customs duties and no import formalities for a delivery to Germany. Customs tariff code: 6105.10.00.\n\n"
+. "Please note: delivery takes approximately 15 days from order.\n\n"
+. "Invoicing and VAT\n"
+. "The invoice is issued by the French supplier under its French VAT number. Where your VAT ID{$vatBit} is valid in VIES, the supply is treated as an intra-community supply and you account for the VAT under the reverse charge procedure. The applicable VAT treatment is confirmed on the invoice for each order.\n\n"
+. "Authenticity\n"
+. "The authenticity of all products listed on our platform is attested by the sellers themselves as a condition of listing.\n\n"
+. "Please note that the upstream purchase chain is the supplier's own commercial documentation, which we as the platform do not hold and cannot pass on. If your compliance process requires documentation beyond the EU invoice, please raise this at the ordering stage so it can be addressed directly with the supplier before you commit.\n\n"
+. "Quantities and assortment\n"
+. "– Minimum order: 80 pieces (10 lots)\n"
+. "– Packed in cartons of 8 per colourway (8+8)\n"
+. "– Minimum 4 colourways per order\n"
+. "– Sizes 3–8\n"
+. "– 10 colourways available: Black, White, Beige, Navy, Yellow, Pink, Bordeaux, Green, Blue, Light Blue – each with its own Lacoste article number\n"
+. "– Composition: 100% cotton piqué, approx. 200 gsm, regular fit\n\n"
+. "Pricing and volume\n"
+. "Quantities and price tiers are set by the supplier and are shown directly on the product page, including the volume breaks. Larger quantities are available, and the applicable price at each quantity level is visible there.\n\n"
+. "Buyer verification and access to pricing\n"
+. "Trade pricing and the full line sheet (PDF and Excel, with all article numbers and the size grid) are visible to verified business buyers. During registration you will be asked to upload your trade documentation (Gewerbeanmeldung or commercial register extract) together with your VAT ID. Once your account is verified you will see the live price tiers for this article and can order at the corresponding price.\n\n"
+. "Register here: https://vestrasales.com/register\n\n"
+. "If you tell me your target quantity and preferred colourways, I will confirm availability and send you a binding offer stating the delivery time and the applicable invoicing scenario.\n\n"
+. "Best regards,\n\n"
+. "Marco Bellini\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}

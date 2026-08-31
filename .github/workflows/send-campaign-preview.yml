@@ -90,6 +90,19 @@ on:
         required: false
         default: "lang=es|send=false"
 
+      # Kayitli bir alicinin dogrudan sorusuna birebir cevap mektubu. Metin
+      # sablonda (vestra_tpl_*_reply) yasar; kisisel veriler (hitap/VAT) spec ile
+      # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
+      # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
+      reply_letter:
+        description: "ALICI CEVABI: hangi mektup — l1212 (Lacoste L1212 soruları). Doluysa YALNIZCA bu iş çalışır."
+        required: false
+        default: ""
+      reply_spec:
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat. to boş = operatör test kutusu"
+        required: false
+        default: "send=false"
+
 permissions:
   contents: read
 
@@ -637,11 +650,111 @@ jobs:
             rm -f ./vestra_seller_letter_tmp.php /tmp/vestra_seller_letter.php
             exit $rc
 
+  # Kayitli/bilinen bir alicinin sorusuna birebir cevap. Kampanyadan farki:
+  # tek alici, kisiye ozel metin. Govde LOGA BASILMAZ ve kimlik alanlari
+  # maskelenir — mektubun kendisi zaten once operatorun test kutusuna gidiyor,
+  # inceleme orada yapilir. Alici "account:<isim-parcasi>" ile verilirse adres
+  # SUNUCUDAKI hesaptan cozulur; musteri e-postasi GitHub'a hic girmez.
+  buyer_reply:
+    if: github.event.inputs.reply_letter != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alıcı cevap mektubu
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          R_LETTER: ${{ github.event.inputs.reply_letter }}
+          R_SPEC: ${{ github.event.inputs.reply_spec }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: R_LETTER,R_SPEC
+          script: |
+            cat > /tmp/vestra_buyer_reply.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/notify.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/email_templates.php";
+
+            $letter = strtolower(trim((string)getenv('R_LETTER')));
+            $spec = [];
+            foreach (explode('|', (string)getenv('R_SPEC')) as $pair) {
+              if (!str_contains($pair, '=')) continue;
+              [$k, $v] = explode('=', $pair, 2);
+              $spec[strtolower(trim($k))] = trim($v);
+            }
+            $E = fn(string $k) => (string)($spec[$k] ?? '');
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+
+            /* Alici. "account:<parca>" = adres SUNUCUDAN, hesap adi/sirketiyle
+               bulunur — musteri adresi GitHub girdisine yazilmasin diye. Birden
+               fazla eslesme guvenli degil: MASKELI adaylar listelenir ve is durur. */
+            $to = trim($E('to'));
+            $acc = null;
+            if (str_starts_with(strtolower($to), 'account:')) {
+              $needle = strtolower(trim(substr($to, 8)));
+              if ($needle === '') { fwrite(STDERR, "account: bos\n"); exit(1); }
+              $hits = [];
+              foreach (auth_accounts() as $a) {
+                $hay = strtolower(($a['name'] ?? '').' '.($a['company'] ?? ''));
+                if (str_contains($hay, $needle)) $hits[] = $a;
+              }
+              if (count($hits) !== 1) {
+                fwrite(STDERR, "account:{$needle} -> ".count($hits)." eslesme:\n");
+                foreach ($hits as $h) fwrite(STDERR, "  ".$mask((string)($h['email'] ?? ''))." (".($h['type'] ?? '?').", ".($h['status'] ?? '?').")\n");
+                exit(1);
+              }
+              $acc = $hits[0];
+              $to  = (string)($acc['email'] ?? '');
+            }
+            if ($to === '') $to = 'acerasoft@gmail.com';
+            if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici\n"); exit(1); }
+            if (!$acc) $acc = auth_find($to);
+
+            /* Hitap ve VAT: spec > hesap > bos. Unvanli hitap ("Mr.") veriden
+               turetilemez, o yuzden spec'ten gelmesi normaldir. */
+            $salutation = trim($E('salutation'));
+            if ($salutation === '' && $acc && trim((string)($acc['name'] ?? '')) !== '') $salutation = 'Dear '.trim((string)$acc['name']);
+            if ($salutation === '') $salutation = 'Dear Sir or Madam';
+            $vat = trim($E('vat'));
+            if ($vat === '' && $acc) $vat = trim((string)($acc['vat_id'] ?? ''));
+
+            if ($letter === 'l1212') {
+              [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat);
+            } else {
+              fwrite(STDERR, "bilinmeyen mektup: {$letter}\n"); exit(1);
+            }
+
+            /* Halka acik log: govde YOK, kimlik MASKELI. Inceleme test kutusunda. */
+            echo "mektup : {$letter}\n";
+            echo "alici  : ".$mask($to).($acc ? "  (hesap: ".($acc['type'] ?? '?').", ".($acc['status'] ?? '?').")" : "  (hesap yok)")."\n";
+            echo "hitap  : ".mb_substr($salutation, 0, 9)."***\n";
+            echo "vat    : ".($vat !== '' ? substr($vat, 0, 4).'***'.substr($vat, -2) : '— yok, cumle parantezsiz')."\n";
+            echo "konu   : {$subject}\n";
+            echo "govde  : ".mb_strlen($body)." karakter\n";
+
+            if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
+            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'Marco Bellini — VESTRA', null, '', $opts);
+            echo $ok ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
+            exit($ok ? 0 : 1);
+            PHPEOF
+            cd ~/public_html
+            cp /tmp/vestra_buyer_reply.php ./vestra_buyer_reply_tmp.php
+            php ./vestra_buyer_reply_tmp.php
+            rc=$?
+            rm -f ./vestra_buyer_reply_tmp.php /tmp/vestra_buyer_reply.php
+            exit $rc
+
   send:
     # Kampanya isi VARSAYILAN dal: hicbir sey verilmezse o calisir. Yeni bir is
     # eklerken buraya da yazilmali, yoksa "sadece fatura kesecektim" derken
     # kampanya e-postasi da gider. set-mail-key'de tam bu hata yasandi.
-    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == '' && github.event.inputs.inv_ref == '' && github.event.inputs.sel_to == ''
+    if: github.event.inputs.wholesale_to == '' && github.event.inputs.order_ref == '' && github.event.inputs.inv_ref == '' && github.event.inputs.sel_to == '' && github.event.inputs.reply_letter == ''
     runs-on: ubuntu-latest
     steps:
       - name: Kampanya önizlemesini gönder / render et
