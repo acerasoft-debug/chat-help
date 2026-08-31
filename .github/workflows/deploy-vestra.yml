@@ -133,3 +133,63 @@ jobs:
             PHPEOF
             php /tmp/vestra_dropkey.php
             rm -f /tmp/vestra_dropkey.php
+
+      # ZAMANLAMA GERCEGI (31 Agu 2026'da ogrenildi): GitHub schedule YALNIZCA
+      # varsayilan daldaki (claude/charming-franklin-1ynmuj) workflow dosyalarini
+      # calistirir ve bu dalda olusturulan pool-sweep.yml kayitli workflow
+      # listesine hic girmedi — dispatch 404, schedule hic atesLENMEDI. Yani
+      # "her gun 06:00'da havuz iadesi + escrow serbest birakma" kagit ustunde
+      # kaldi. Gunluk isler bu yuzden GitHub'a degil SUNUCU crontab'ina kurulur.
+      # Bu adim idempotenttir: yalnizca kendi VESTRA-SWEEP satirlarini silip
+      # yeniden yazar, operatorun/cPanel'in diger satirlarina dokunmaz.
+      - name: Günlük süpürücüleri sunucu crontab'ına kur (havuz + escrow)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 2m
+          script: |
+            set -e
+            PHPBIN="$(command -v php)"
+            if [ -z "$PHPBIN" ] || ! command -v crontab >/dev/null 2>&1; then
+              echo "HATA: php veya crontab bulunamadi — supuruculer ZAMANLANAMADI"; exit 1
+            fi
+            # crontab satirlarinda $HOME acilmadan (tek tirnak) birakilir: cron
+            # komutu sh ile calistirir ve HOME'u kendisi kurar. Boylece cPanel
+            # kullanici adi ne crontab'a ne bu (halka acik) loglara girer.
+            ( crontab -l 2>/dev/null | grep -v 'VESTRA-SWEEP' || true
+              echo '10 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_pool_sweep.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP havuz'
+              echo '25 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_escrow_release.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP escrow'
+            ) | crontab -
+            echo "-- kurulu VESTRA-SWEEP satirlari:"
+            crontab -l | grep 'VESTRA-SWEEP'
+            # Kutuk public_html DISINDA (web'den erisilemez); sismesin diye
+            # 512KB'i asarsa son 128KB kalir.
+            L="$HOME/vestra_sweep.log"
+            if [ -f "$L" ] && [ "$(wc -c < "$L")" -gt 524288 ]; then
+              tail -c 131072 "$L" > "$L.t" && mv "$L.t" "$L"
+            fi
+
+      # KANARYA: iki supurucu de gercek sunucu ortaminda AYAGA KALKIYOR MU?
+      # (kuru kosu — hicbir sey yazmaz, para/posta dokunmaz.) Cikti yalnizca
+      # ref/etiket/tutar icerir, e-posta adresi basmaz — halka acik log guvenli.
+      # PHP fatal olursa bu adim KIRMIZI biter; "yesil gorunen bozuk para isi"
+      # tuzagi bu depoda iki kez yasandi, ucuncusu olmasin.
+      - name: Süpürücü kuru koşu kanaryası (havuz + escrow)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          command_timeout: 2m
+          script: |
+            set -e
+            cd "$HOME/public_html"
+            echo "=== havuz supurucusu (kuru) ==="
+            php cron_pool_sweep.php --dry-run
+            echo ""
+            echo "=== escrow serbest birakma (kuru) ==="
+            php cron_escrow_release.php --dry-run

@@ -17,6 +17,11 @@
  * birakilamayan kayit (ör. kart takasi bitmemis bakiye) 'held' kalir ve
  * yarinki kosuda yeniden denenir — sessizce dusmez.
  *
+ * Zamanlama: SUNUCU crontab'i, her gun 06:25 UTC (deploy-vestra.yml her push'ta
+ * idempotent kurar; satirlar VESTRA-SWEEP etiketli). GitHub Actions DEGIL:
+ * schedule yalnizca varsayilan daldaki workflow'lar icin calisir, bu daldaki
+ * pool-sweep.yml hic kayda gecmemisti.
+ *
  * Usage:  php cron_escrow_release.php [--dry-run]
  */
 

@@ -17,6 +17,11 @@
  * an individual Stripe error leaves that one commitment marked `refund_failed`
  * for a human instead of aborting the sweep for everyone else.
  *
+ * Scheduling: runs from the SERVER crontab (06:10 UTC daily), installed
+ * idempotently by deploy-vestra.yml on every push (lines tagged VESTRA-SWEEP).
+ * NOT GitHub Actions: schedules only fire for workflows on the default branch,
+ * and this branch's pool-sweep.yml was never registered — it silently never ran.
+ *
  * Usage:  php cron_pool_sweep.php [--dry-run]
  */
 

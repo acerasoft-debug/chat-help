@@ -76,8 +76,15 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
 - `workflow_dispatch` en fazla **25 girdi** alır; `diag-live.yml` sınırda.
 - `get_job_logs` kuyruğu ~55-78 satır gösterir — uzun çıktıyı sıkıştır, yoksa
   başlangıçtaki satırlar kuyruktan düşer.
-- Varsayılan dalda olmayan **yeni** bir workflow dosyası dispatch edilemez; mevcut bir
-  workflow'u bu dalda düzenlemek ise dispatch'te etkilidir.
+- Varsayılan dal `claude/charming-franklin-1ynmuj`, çalışma dalı değil. Varsayılan
+  dalda olmayan **yeni** bir workflow dosyası **ne dispatch edilebilir ne
+  zamanlanır** (31 Ağu 2026: pool-sweep.yml kayıt listesine hiç girmedi, schedule
+  hiç ateşlenmedi, dispatch 404 verdi). Mevcut bir workflow'u bu dalda düzenlemek
+  yalnızca **dispatch'te** etkilidir; **schedule her zaman varsayılan daldaki
+  sürümü çalıştırır.** Günlük işler bu yüzden **sunucu crontab'ında**:
+  deploy-vestra.yml her push'ta `VESTRA-SWEEP` etiketli satırları idempotent kurar
+  (06:10 havuz, 06:25 escrow, UTC; kütük `~/vestra_sweep.log`) ve ardından iki
+  süpürücüyü kuru koşuyla ayağa kaldırıp fatal varsa deploy'u kırmızıya boyar.
 - `add-and-send.yml` ve `send-outreach.yml` ikisi de `leads.json`'ı oku-değiştir-yaz
   yapar: **paralel çalıştırma**, biri diğerini ezer ve gönderim kaydı kaybolunca aynı
   adrese ikinci kez e-posta gider.
