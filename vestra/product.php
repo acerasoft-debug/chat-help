@@ -385,7 +385,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <div class="calc">
             <div class="unit"><?= t('Unit:') ?> <span id="uprice"><?= vestra_money($from) ?></span> · <span id="tier"></span></div>
             <div class="total" id="total"><?= vestra_money($from*$p['moq']) ?> <small><?= t('excl. taxes & shipping') ?></small></div>
-            <div class="hint" style="margin-top:6px">🇪🇺 <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
+            <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
           <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>

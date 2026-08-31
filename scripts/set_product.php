@@ -40,7 +40,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','sale_list',
+$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty','group_models','group_title','group_min_colors'];
 $errors = []; $plan = [];
 
@@ -114,6 +114,11 @@ foreach ($fixes as $n => $fx) {
     foreach ($set['specs_remove'] as $sk) {
       if (!is_string($sk) || $sk === '') { $errors[] = "{$ctx} ({$m}): specs_remove icinde gecersiz anahtar"; continue 2; }
     }
+  }
+  if (isset($set['dropship_off'])) {
+    /* Dropship'i TEK ilandan cikarmak icin. Marka/urun-turu listeleri kategori
+       genisliginde calisiyor; bu alan yalnizca bu ilani etkiler. */
+    if (!is_bool($set['dropship_off'])) { $errors[] = "{$ctx} ({$m}): dropship_off true/false olmali"; continue; }
   }
   if (isset($set['dropship'])) {
     $d = $set['dropship'];
@@ -338,6 +343,13 @@ foreach ($plan as [$i, $set, $m]) {
       $disc = $new > 0 ? (int)round(100*($new-$base)/$new) : 0;
       $line[] = "sale_list(SADECE was) {$old} -> {$new}  (tiers[0] {$base} degismedi, gorunen indirim ~%{$disc})";
       $all[$i]['list'] = $new;
+      $changes++;
+    } elseif ($k === 'dropship_off') {
+      $old = !empty($p['dropship_off']);
+      if ($old === (bool)$v) continue;
+      $line[] = 'dropship_off '.($old?'true':'false').' -> '.($v?'true':'false')
+              . ($v ? '  (bu ilan dropship listesinden CIKAR)' : '  (bu ilan dropship listesine DONER)');
+      $all[$i]['dropship_off'] = (bool)$v;
       $changes++;
     } elseif ($k === 'dropship') {
       $old = $p['dropship'] ?? null;

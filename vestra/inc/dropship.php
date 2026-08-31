@@ -222,6 +222,18 @@ function vestra_dropship_of(array $p): ?array {
         if ($term !== '' && mb_strpos($hay, $term) !== false) return null;
     }
 
+    /* TEK ILANA OZEL KAPATMA. Bu olmadan dropship'i bir ilandan cikarmanin
+       yolu yoktu: marka ve urun-turu listeleri kategori genisliginde calisiyor,
+       asagidaki turetme ise yayindaki her sabit fiyatli ilani otomatik aciyor.
+       Iki bicim de kabul ediliyor cunku ikisi de dogal:
+         - dropship_off: true
+         - dropship: {"enabled": false}
+       Ikincisi ONEMLI: eskiden 'enabled' false olsa bile kod bu blogu atlayip
+       TURETME yoluna dusuyordu, yani kapatmak isteyen kisi ilani kapatmis
+       saniyordu ama urun dropship'te kalmaya devam ediyordu. */
+    if (!empty($p['dropship_off'])) return null;
+    if (isset($p['dropship']['enabled']) && !$p['dropship']['enabled']) return null;
+
     if (!empty($p['dropship']['enabled'])) {
         $d = (array)$p['dropship'];
         $d['derived'] = false;

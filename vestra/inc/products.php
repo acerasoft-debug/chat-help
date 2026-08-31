@@ -28,7 +28,45 @@ if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3500.00);
    yani bunu her sablona ayri ayri yazmak, ilerde bir satici AB disindan sevk
    etmeye basladiginda dort ayri yerde yanlis ibare birakmak demekti. Tek
    fonksiyon: o gun kosul buraya girer, sayfalar oldugu gibi kalir. */
-function vestra_ships_from(array $p = []): string { return 'EU'; }
+/* Mal NEREDEN cikiyor: ilanin SATICISININ ulkesi.
+   Onceden sabit 'EU' donuyordu ve $p'ye hic bakmiyordu -- Japonya'daki bir
+   saticinin ilani da "Ships from EU" diyordu, yani alici teslim suresini ve
+   gumruk durumunu yanlis hesapliyordu. Hesap listesi vestra_read_json ile
+   OKUNUYOR, auth.php cekilmiyor: products.php'yi i18n/auth olmadan yukleyen
+   bakim betikleri var ve orada require zinciri kirilirdi.
+   Ulke bilinmiyorsa (demo urun, seller_uid yok, hesapta ulke bos) 'EU'
+   kalir -- platformun stogu Avrupa'da, yani varsayilan uydurma degil. */
+function vestra_ships_from(array $p = []): string {
+    static $byUid = null;
+    $uid = trim((string)($p['seller_uid'] ?? ''));
+    if ($uid === '') return 'EU';
+    if ($byUid === null) {
+        $byUid = [];
+        foreach ((array)vestra_read_json('accounts.json') as $a) {
+            $id = trim((string)($a['id'] ?? ''));
+            $c  = trim((string)($a['country'] ?? ''));
+            if ($id !== '' && $c !== '') $byUid[$id] = $c;
+        }
+    }
+    $c = $byUid[$uid] ?? '';
+    if ($c === '') return 'EU';
+    return mb_strlen($c) === 2 ? mb_strtoupper($c) : $c;
+}
+
+/* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici
+   ulkesine baglanınca o sabit bayrak "🇪🇺 Ships from Japan" gibi kendi
+   metnini yalanlayacakti. Bayrak artik degerden turetiliyor, cozulemezse
+   hic basilmiyor -- yanlis bayrak, bayraksizdan kotu. */
+function vestra_ships_from_flag(array $p = []): string {
+    $z = vestra_ships_from($p);
+    if ($z === 'EU') return "\u{1F1EA}\u{1F1FA}";
+    $cc = mb_strlen($z) === 2 ? mb_strtoupper($z)
+        : (function_exists('vestra_cc_of_country') ? vestra_cc_of_country($z) : '');
+    if (!preg_match('/^[A-Z]{2}$/', (string)$cc)) return '';
+    $f = '';
+    foreach (str_split($cc) as $ch) $f .= mb_chr(0x1F1E6 + (ord($ch) - 65), 'UTF-8');
+    return $f;
+}
 /* t() ile korumali cagriliyor: products.php'yi i18n olmadan yukleyen betikler var
    (inspect/set-product gibi bakim isleri) ve orada t() tanimli degil. */
 function vestra_ships_from_label(array $p = []): string {
