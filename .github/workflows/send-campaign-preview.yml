@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short (kısa: tek eksik ticari belge) | verify_nudge (TOPLU dürtme) | resend_verify. Doluysa YALNIZCA bu iş çalışır."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | vat_doc_fr (FR: Kbis + geçerli TVA iste) | verify_nudge (TOPLU) | resend_verify. Doluysa YALNIZCA bu iş çalışır."
         required: false
         default: ""
       reply_spec:
@@ -867,6 +867,11 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation, $signer);
             } elseif ($letter === 'docs_short') {
               [$subject, $body, $opts] = vestra_tpl_docs_short($salutation, $signer);
+            } elseif ($letter === 'vat_doc_fr') {
+              /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
+                 ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan
+                 kotudur. Operator isterse salutation ile ezer. */
+              [$subject, $body, $opts] = vestra_tpl_vat_doc_fr(trim($E('salutation')) !== '' ? $salutation : 'Bonjour', $signer);
             } else {
               fwrite(STDERR, "bilinmeyen mektup: {$letter}\n"); exit(1);
             }

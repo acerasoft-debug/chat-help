@@ -1391,3 +1391,29 @@ function vestra_tpl_docs_short(string $salutation, string $signer = 'Marco Belli
 
     return [$subject, $body, []];
 }
+
+/* TVA numarasi + ticari belge talebi (Fransizca alici).
+ * Iki ayri eksik icin TEK mektup: belge yuklenmemis VE vergi alanina numara
+ * yerine baska bir sey yazilmis. Numaranin ICERIGI mektupta TEKRAR EDILMEZ —
+ * elimizdeki teshis "bicim gecersiz"; alintilamak, yanlis okumus olma
+ * ihtimalinde musteriyi saskina cevirir. Panel etiketleri UI cevirileriyle
+ * birebir ('Vérification', 'Mon profil'); yol tarifi koddan dogrulandi
+ * (/buyer?tab=kyc yukleme, /buyer?tab=profile'da vat_id duzenlenebiliyor). */
+function vestra_tpl_vat_doc_fr(string $salutation = 'Bonjour', string $signer = 'Elena Romano'): array {
+    $subject = 'Votre compte VESTRA – justificatif d\'activité et numéro de TVA';
+
+    $body = $salutation . ",\n\n"
+. "Merci pour votre inscription sur VESTRA. J'ai examiné votre dossier : il manque deux éléments pour finaliser la vérification de votre compte.\n\n"
+. "1) Votre justificatif d'activité — extrait Kbis ou avis de situation SIRENE.\n"
+. "À téléverser directement dans votre espace : https://vestrasales.com/buyer?tab=kyc\n"
+. "Connectez-vous, ouvrez la rubrique « Vérification », puis joignez le fichier (PDF, JPG, PNG ou WebP, jusqu'à 10 Mo).\n\n"
+. "2) Votre numéro de TVA intracommunautaire.\n"
+. "Celui enregistré sur votre compte n'est pas au format attendu (FR suivi de 11 caractères). Vous pouvez le corriger vous-même dans « Mon profil » (https://vestrasales.com/buyer?tab=profile), ou simplement nous l'indiquer en réponse à cet e-mail, avec votre numéro SIREN.\n\n"
+. "Ce numéro est indispensable pour la facturation : nos fournisseurs européens facturent en autoliquidation, ce qui suppose un numéro valide dans VIES.\n\n"
+. "Les dossiers sont examinés le jour ouvré même. Dès validation, les tarifs de gros, les références et la liste complète (PDF et Excel) s'affichent dans votre compte.\n\n"
+. "Bien cordialement,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
