@@ -336,8 +336,14 @@ $pdf->stampEachPage(function (VestraPdf $d, int $n, int $of) use ($L, $R, $BOTTO
 
 $slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';
 $pdfData = $pdf->output();
-header('Content-Type: application/pdf');
-header('Content-Disposition: inline; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.pdf"');
-header('Content-Length: '.strlen($pdfData));
-header('X-Content-Type-Options: nosniff');
+/* Basliklar YALNIZCA web tarafinda. CLI'da (mektuba ek uretirken) cagiran
+   betik zaten cikti basladigi icin PHP "Cannot modify header information"
+   uyarisi basiyor ve o uyari PDF baytlarinin ONUNE dusup dosyayi bozuyordu
+   (864 bayt cop, 31 Agu 2026). Basliklarin CLI'da zaten hicbir islevi yok. */
+if (PHP_SAPI !== 'cli') {
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.pdf"');
+    header('Content-Length: '.strlen($pdfData));
+    header('X-Content-Type-Options: nosniff');
+}
 echo $pdfData;
