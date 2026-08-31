@@ -86,6 +86,37 @@ yetmiyor; kontrol gönderim yolunda olmalı.
 - Bayrak değerden türetilir; çözülemeyen bir ad varsa metin basılır, **yanlış bayrak
   basılmaz**.
 
+## Teklif / pazarlık kuralları
+
+**KURAL 4 — Pazarlığın sınırları** (operatör kararı, 31 Ağu 2026). Hepsi tek
+doğrulayıcıda: `vestra_offer_price_error()` + `vestra_offer_turn()`.
+
+- **En fazla 3 karşı teklif**, iki tarafın **toplamı** (`VESTRA_OFFER_MAX_COUNTERS`).
+  Dolunca yalnızca kabul/ret kalır ve karşı teklif alanı **hiç görünmez** —
+  gösterilip reddedilen bir alan, olmayan bir alandan kötü.
+- **Alıcı** teklifi ürünün **yarısından az** olamaz; **satıcı** karşı teklifi
+  ürünün **normal fiyatından fazla** olamaz.
+- **Alıcı her turda yükselmeli, satıcı her turda düşmeli.** Pazarlık daralmak
+  zorunda; yoksa taraflar aynı iki rakamı tekrarlayıp tur hakkını harcıyor.
+- Referans fiyat `vestra_offer_ref_price()` = **en düşük kademe** (`vestra_from_price`).
+  Bilerek `list` değil: o alan `mode='sale'`de üstü çizili **eski** fiyat, tavan
+  yapılsa satıcıya hiç satmadığı bir fiyattan hak verirdi. Fiyatı çözülemeyen
+  üründe taban/tavan **uygulanmaz** (yön kuralı yine geçerli).
+- **Sıra kimdeyse o yanıt verir.** Kendi karşı teklifini kabul eden taraf olamaz —
+  eskiden satıcı kendi 12 EUR'luk teklifini "accept" edip alıcının hiç kabul
+  etmediği fiyattan fatura kesebiliyordu.
+- **Reddedilen her durumda gerekçe kullanıcıya yazılır** (ürün sayfası, alıcının
+  kabul ekranı, admin ve satıcı paneli). Geçersiz yanıt **kayıttan önce** durur.
+
+**KURAL 5 — Fatura operatör onayıyla kesilir.** Teklif kabul edilince yalnızca
+`pending` döner; PDF ve numara `Admin ▸ Invoice approvals`'tan çıkar. Fatura
+**uzlaşılan** fiyattan kesilir (`vestra_offer_agreed_unit`) — karşı teklif
+verilmişse o, ilk teklif değil.
+
+**Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
+sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
+kullanılmalı.
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
@@ -110,6 +141,17 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
+- **Testler:** `sh tests/run_all.sh` — teklif akışı, tur sınırı, fiyat kuralları,
+  para girişi, e-posta doğrulayıcı, JSON-LD görsel çözücü. Teklif akışı bir
+  oturumda dört kez değişti; her seferinde önceki davranışı koruyan şey bunlar
+  oldu. Davranış bilerek değiştiyse **testi de düzelt** — bir kez eski ve
+  HATALI davranışı koruyan bir iddia çıktı (satıcı kendi karşı teklifini kabul
+  edip alıcının onaylamadığı fiyattan fatura kesiyordu).
+- **Teşhis çıktısına körü körüne güvenme.** Bu depoda üç kez, kontrolün kendisi
+  yanlış yere bakıyordu: `stripe_secret` uygulamanın okumadığı anahtardan,
+  giriş probu hiç giriş olmadan "girişli kullanıcı her sayfayı açıyor" diyordu,
+  ve `vestra_join_cta` fatal'leri eski kayıttı. Bir uyarıyı rapor etmeden önce
+  kontrolün **gerçekten** kodun okuduğu yere baktığını doğrula.
 - `workflow_dispatch` en fazla **25 girdi** alır; `diag-live.yml` sınırda.
 - `get_job_logs` kuyruğu ~55-78 satır gösterir — uzun çıktıyı sıkıştır, yoksa
   başlangıçtaki satırlar kuyruktan düşer.
