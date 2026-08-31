@@ -554,6 +554,46 @@ function vestra_export_tiers_label(array $p): string {
   }
   return implode(' · ', $out);
 }
+/* Kullanicidan gelen PARA metnini sayiya cevirir. (float) TEK BASINA
+ * YETMIYOR ve sessizce para kaybettiriyor:
+ *     (float)"35,50"   -> 35.00   (kurus ucar)
+ *     (float)"1.234,56"-> 1.23    (felaket)
+ * Turkce klavyede ondalik ayirici VIRGUL; operator "35,50" yazdiginda
+ * teklif 35,00'a dusuyordu ve panelde de mektupta da 35,00 gorunuyordu --
+ * yani yanlis oldugunu gosteren hicbir sey yoktu.
+ *
+ * Kural: iki ayirici da varsa SONUNCUSU ondalik ayiricidir (1.234,56 ve
+ * 1,234.56 ikisi de dogru cozulur). Yalnizca virgul varsa ve sondan 1-2
+ * hane ayiriyorsa ondalik, degilse binlik ayiricidir (1,234 = 1234).
+ * Rakam disindaki her sey (bosluk, EUR, €) atilir. */
+function vestra_price_input($v): float {
+    $s = trim((string)$v);
+    if ($s === '') return 0.0;
+    $neg = str_starts_with($s, '-');
+    $s = preg_replace('/[^0-9.,]/', '', $s);
+    if ($s === '') return 0.0;
+    $lastDot = strrpos($s, '.');
+    $lastCom = strrpos($s, ',');
+    if ($lastDot !== false && $lastCom !== false) {
+        $dec = max($lastDot, $lastCom);
+        $s = str_replace([',', '.'], '', substr($s, 0, $dec)) . '.' . preg_replace('/\D/', '', substr($s, $dec + 1));
+    } elseif ($lastCom !== false) {
+        $tail = strlen($s) - $lastCom - 1;
+        $s = ($tail === 1 || $tail === 2)
+            ? str_replace(',', '.', $s)          // 35,5 / 35,50 -> ondalik
+            : str_replace(',', '', $s);          // 1,234        -> binlik
+    } elseif ($lastDot !== false) {
+        $tail = strlen($s) - $lastDot - 1;
+        if ($tail === 3 && substr_count($s, '.') >= 1 && strlen($s) - 4 >= 1 && !str_contains(substr($s, 0, $lastDot), '.')) {
+            /* "1.234" belirsiz; Turkce baglamda binlik okunur. "12.34" ise
+               ondalik -- ayirim sondaki hane sayisi. */
+            $s = str_replace('.', '', $s);
+        }
+    }
+    $f = (float)$s;
+    return $neg ? -$f : $f;
+}
+
 function eur($n){ return '€'.number_format((float)$n,2,'.',','); }
 
 /* ───────────────────────── GROUP ORDERS (collective wholesale) ─────────────────────────

@@ -332,7 +332,8 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $ref    = trim($_POST['ref'] ?? '');
     $uid    = $_SESSION['uid'] ?? '';
     $action = $_POST['response'] ?? '';
-    $ctr    = round((float)($_POST['counter_price']??0), 2);
+    /* Virgullu ondalik: bkz. vestra_price_input(). (float) "35,50"yi 35.00 yapardi. */
+    $ctr    = round(vestra_price_input($_POST['counter_price']??''), 2);
     $ownsOffer = false; $offerRow = null; $offerListing = null;
     foreach (vestra_read_csv('offers.csv') as $row) {
         if (($row['ref']??'') !== $ref) continue;

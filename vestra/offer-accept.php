@@ -37,7 +37,9 @@ $declined  = false;
 $countered = false;
 $left      = vestra_offer_counters_left($resp);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'counter') {
-    $r = vestra_offer_counter_by_buyer($ref, $token, (float)str_replace(',', '.', (string)($_POST['price'] ?? '')));
+    /* Tek yerden: elle str_replace, binlik ayirici iceren "1.234,56" gibi
+       girdilerde hala yanlis sonuc veriyordu. */
+    $r = vestra_offer_counter_by_buyer($ref, $token, vestra_price_input($_POST['price'] ?? ''));
     if ($r['ok']) { $countered = true; $agreed = (float)$r['unit']; $left = (int)$r['left']; }
     else          { $err = (string)$r['error']; }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {

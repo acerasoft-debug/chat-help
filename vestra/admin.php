@@ -706,7 +706,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     require_once __DIR__.'/inc/offers.php';
     $oRef = trim($_POST['ref'] ?? '');
     $oAct = $_POST['response'] ?? '';
-    $oCtr = round((float)($_POST['counter_price'] ?? 0), 2);
+    /* (float) TEK BASINA para kaybettiriyor: "35,50" -> 35.00, "1.234,56" -> 1.23.
+       Turkce klavyede ondalik ayirici virgul ve operator dogal olarak oyle yaziyor. */
+    $oCtr = round(vestra_price_input($_POST['counter_price'] ?? ''), 2);
     $res  = vestra_offer_respond($oRef, $oAct, $oCtr, null, 'VESTRA');
     /* Kaydin tutmasi ile MEKTUBUN GITMESI ayri ayri raporlanir. Ikisini tek
        "basarili" mesajina sikistirmak, alicinin haberi olmadigi bir yaniti
