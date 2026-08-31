@@ -7,6 +7,11 @@ name: Kayıt durumunu kontrol et (salt okunur)
 # ve ayrıca operatörün kendi (acerasoft@gmail.com) test hesabının detayı.
 on:
   workflow_dispatch:
+    inputs:
+      account_probe:
+        description: "TEK HESAP SONDASI: isim/şirket/e-posta parçası (ör. kuku). Boş = normal rapor. Çıktı MASKELİ — tam e-posta/isim asla loga yazılmaz."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -329,4 +334,62 @@ jobs:
             cp /tmp/vestra_voucher_selftest.php ./vestra_voucher_selftest_tmp.php
             php ./vestra_voucher_selftest_tmp.php; RC=$?
             rm -f ./vestra_voucher_selftest_tmp.php /tmp/vestra_voucher_selftest.php
+            exit $RC
+
+      # TEK HESABIN onay durumu: "musteri neden fiyat goremiyor?" sorusunun cevabi.
+      # EN SONDA duruyor: get_job_logs kuyrugu ~55-78 satir, sonda ciktisi kuyrukta
+      # kalmali. Salt-okunur ve MASKELI: tam e-posta/isim/dosya adi yazilmaz (public
+      # log). reg_ip yazilmaz, yalnizca ulke/VPN bayragi -- KYB karari icin o yetiyor.
+      - name: Hesap sondası (salt-okunur, maskeli)
+        if: github.event.inputs.account_probe != ''
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          PROBE: ${{ github.event.inputs.account_probe }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          envs: PROBE
+          script: |
+            cat > /tmp/vestra_acc_probe.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $home = getenv("HOME");
+            $needle = strtolower(trim((string)getenv('PROBE')));
+            if ($needle === '') exit(0);
+            $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $accs = json_decode((string)@file_get_contents($home.'/public_html/data/accounts.json'), true) ?: [];
+            $hits = array_values(array_filter($accs, fn($a) =>
+              str_contains(strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? '')), $needle)));
+            echo "== HESAP SONDASI ('".$needle."') — ".count($hits)." eslesme ==\n";
+            foreach (array_slice($hits, 0, 3) as $a) {
+              echo "\n- hesap        : ".$mask((string)($a['email'] ?? ''))."  (id ".substr((string)($a['id'] ?? ''), 0, 6)."…)\n";
+              echo "  tip / durum  : ".($a['type'] ?? '?')." / ".($a['status'] ?? '?')."\n";
+              echo "  kyb_status   : ".($a['kyb_status'] ?? '(yok)')."\n";
+              echo "  email dogru  : ".(!empty($a['email_verified']) ? 'evet' : 'HAYIR')."\n";
+              echo "  olusturulma  : ".($a['created'] ?? '?')."\n";
+              echo "  trade_doc_required: ".(!empty($a['trade_doc_required']) ? 'EVET (belge onayi sart)' : 'yok (eski kayit — fiyat acik)')."\n";
+              $vat = (string)($a['vat_id'] ?? '');
+              echo "  vat_id       : ".($vat !== '' ? substr($vat,0,4).'***'.substr($vat,-2) : '— BOS')."\n";
+              echo "  ulke/site    : ".($a['country'] ?? '—')." / ".($a['website'] ?? '—')."\n";
+              echo "  sirket/isim  : ".(trim((string)($a['company'] ?? '')) !== '' ? 'var' : 'BOS')." / ".(trim((string)($a['name'] ?? '')) !== '' ? 'var' : 'BOS')."\n";
+              echo "  kayit IP     : ".($a['reg_cc'] ?? '?')." ".($a['reg_city'] ?? '')." — VPN/hosting: ".(!empty($a['reg_vpn']) ? 'EVET (dikkat)' : 'hayir')."\n";
+              $reqs = (array)($a['doc_requests'] ?? []);
+              echo "  belgeler (".count($reqs)."):\n";
+              foreach ($reqs as $r) {
+                echo "    * ".($r['type'] ?? '?')." → ".strtoupper((string)($r['status'] ?? '?'))
+                   .(!empty($r['uploaded_at']) ? "  (yuklendi ".substr((string)$r['uploaded_at'],0,10).", dosya ".(!empty($r['file']) ? 'VAR' : 'yok').")" : "  (istendi ".substr((string)($r['requested_at'] ?? ''),0,10).", henuz yuklenmedi)")."\n";
+              }
+              /* Fiyat kapisinin CANLI cevabi — tahmin degil, gercek fonksiyon: */
+              require_once $home.'/public_html/inc/products.php';
+              require_once $home.'/public_html/inc/auth.php';
+              echo "  >> auth_prices_unlocked : ".(auth_prices_unlocked($a) ? 'ACIK' : 'KAPALI')."\n";
+              echo "  >> auth_user_approved   : ".(auth_user_approved($a) ? 'evet' : 'hayir')."\n";
+            }
+            if (count($hits) > 3) echo "\n(+".(count($hits)-3)." eslesme daha — sondayi daralt)\n";
+            PHPEOF
+            php /tmp/vestra_acc_probe.php; RC=$?
+            rm -f /tmp/vestra_acc_probe.php
             exit $RC
