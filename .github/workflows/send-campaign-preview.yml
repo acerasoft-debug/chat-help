@@ -218,6 +218,12 @@ jobs:
               (float)$E('ship_usd'), trim($E('lead_time'))
             );
 
+            /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir.
+               TUM mektup dallarindan ONCE tanimlanir — approve_account blogu bunu
+               kullaniyordu ama tanim asagidaydi: bir hesap acilis mektubu From
+               adi BOS ('— VESTRA') gitti ve log "Undefined variable" yazdi. */
+            $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+
             $to = trim($E('to'));
             if ($to === '') $to = 'acerasoft@gmail.com';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici: {$to}\n"); exit(1); }
@@ -914,10 +920,6 @@ jobs:
               exit($reallySent ? 0 : 1);
             }
 
-            /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir —
-               ikisi ayri kaynaktan gelirse basliktaki isim ile mektup imzasi
-               birbirini yalanlar. */
-            $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
             if ($letter === 'l1212') {
               [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat, $signer);
             } elseif ($letter === 'l1212_docs') {
