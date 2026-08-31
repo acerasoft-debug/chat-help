@@ -40,13 +40,22 @@ require_once __DIR__.'/inc/auth.php';
    burasi acik kalirsa kural yalnizca en gorunur kapiyi kapatmis olurdu.
    403 yerine /price-list'e yonlendiriyoruz: gonderilmis e-postalardaki
    baglantiya tiklayan kisi hata degil, ne yapacagini soyleyen sayfa gorsun. */
-if (!auth_prices_unlocked(auth_user())) {
+/* CLI MUAF: sunucuda kabuk erisimi olan zaten dosyayi da okuyabilir, yani
+   burada kapiyi uygulamak kimseyi korumaz — ama operatorun tek bir aliciya
+   EK olarak gonderecegi listeyi uretmeyi imkansiz kilar (CLI'da oturum yok,
+   auth_user() hep null). Web tarafinda kural aynen duruyor. */
+if (PHP_SAPI !== 'cli' && !auth_prices_unlocked(auth_user())) {
     $_qb = trim((string)($_GET['brand'] ?? ''));
     header('Location: /price-list'.($_qb !== '' ? '?brand='.rawurlencode($_qb) : ''), true, 302);
     exit;
 }
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
+/* Kategori suzgeci (alt dize): ?cat=Women uc kadin kategorisini birden alir
+   ("Women's T-Shirts", "Women's Jeans", "Women's Swimwear"). Tek bir urun
+   grubunu soran aliciya butun katalogu yollamamak icin — hem daha kisa bir
+   belge, hem gereksiz fiyat pasajini disarida birakiyor. */
+$catFilter = trim((string)($_GET['cat'] ?? ''));
 
 $byBrand = [];
 foreach (vestra_products() as $p) {
@@ -57,6 +66,7 @@ foreach (vestra_products() as $p) {
     $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
+    if ($catFilter !== '' && stripos((string)($p['category'] ?? ''), $catFilter) === false) continue;
     $byBrand[$brand][] = $p;
 }
 ksort($byBrand, SORT_NATURAL | SORT_FLAG_CASE);
@@ -85,7 +95,11 @@ $header = function (bool $first) use ($pdf, &$y, $L, $R, $TOP, $brandFilter, $to
     $pdf->line($L, $TOP - 9, $R, $TOP - 9, 1.1, 0.72);
     $y = $TOP - 30;
     if ($first) {
-        $pdf->text($L, $y, 15, $brandFilter !== '' ? $brandFilter.' — wholesale price list' : 'Wholesale price list', true);
+        /* Baslik NE ICERDIGINI soylemeli: suzulmus bir listeye "Wholesale price
+           list" demek, aliciya katalogun tamamini gonderdigimizi dusundurur ve
+           "geri kalani nerede" diye sorar. Iki suzgec birlikte de yazilir. */
+        $_head = trim($brandFilter.($brandFilter !== '' && $catFilter !== '' ? ' ' : '').$catFilter);
+        $pdf->text($L, $y, 15, $_head !== '' ? $_head.' — wholesale price list' : 'Wholesale price list', true);
         $y -= 15;
         $pdf->text($L, $y, 9, $total.' articles  ·  EUR per piece, excluding VAT and freight  ·  issued '.date('d M Y'));
         $y -= 14;

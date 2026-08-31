@@ -1417,3 +1417,47 @@ function vestra_tpl_vat_doc_fr(string $salutation = 'Bonjour', string $signer = 
 
     return [$subject, $body, []];
 }
+
+/* Belge talebi + SORULAN ama katalogda OLMAYAN gruba durust cevap + mevcut
+ * alternatiflerin linkleri + hacim indirimi notu.
+ *
+ * $items CAGIRAN TARAFINDAN, canli katalogdan doldurulur (id/brand/name/moq);
+ * sablon urun adi UYDURMAZ. Bos gelirse ilgili blok hic yazilmaz — "asagidaki
+ * urunler" deyip altina bos liste koymak, yanlis bilgi vermekle ayni sey.
+ *
+ * Indirim cumlesi KASITLI OLARAK BAGLAYICI DEGIL: oran vermez, "anlasmaya
+ * bagli" der. Mektupta rakam verilseydi teklif yerine gecerdi. */
+function vestra_tpl_docs_women(string $salutation, string $missingBrand, array $items,
+                               bool $attached = false, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Your VESTRA account – verification, women\'s range and volume terms';
+
+    $body = $salutation . ",\n\n"
+. "Thank you — I have checked your account personally.\n\n"
+. "Your company details and VAT ID are on file. One document is still missing, and it is the only thing holding up the activation: your Gewerbeanmeldung (trade licence / business registration). Please upload it at https://vestrasales.com/buyer?tab=kyc — sign in, open the \"Verification\" section (\"Verifizierung\") and attach the file (PDF, JPG, PNG or WebP, up to 10 MB). Documents are reviewed the same working day.\n\n";
+
+    if ($missingBrand !== '') {
+        $body .= "On your question about {$missingBrand} womenswear: we do not carry that range at the moment, and I would rather tell you that plainly than keep you waiting on it. What we do have in womenswear today is listed below.\n\n";
+    }
+
+    if ($items) {
+        $body .= "Women's range currently available:\n";
+        foreach ($items as $it) {
+            $label = trim((string)($it['label'] ?? ''));
+            $moq   = (int)($it['moq'] ?? 0);
+            $body .= "· ".$label.($moq > 0 ? "  — from ".$moq." pcs" : "")."\n"
+                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        }
+        $body .= "\n";
+    }
+
+    if ($attached) {
+        $body .= "The full women's line sheet is attached to this email as a PDF (article numbers, sizes, stock, minimum quantities and wholesale prices). It is sent as a courtesy so that you can review the range while your verification is being completed; once your document is approved, the same list — plus the Excel version — is available directly in your account at any time.\n\n";
+    }
+
+    $body .= "On terms: we work B2B, and on larger or repeat quantities a discount on the listed wholesale prices is possible. That is agreed per order rather than published — tell me the articles, the quantities and the colourways you have in mind and I will put a firm offer in writing.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
