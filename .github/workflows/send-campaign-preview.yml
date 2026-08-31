@@ -218,12 +218,6 @@ jobs:
               (float)$E('ship_usd'), trim($E('lead_time'))
             );
 
-            /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir.
-               TUM mektup dallarindan ONCE tanimlanir — approve_account blogu bunu
-               kullaniyordu ama tanim asagidaydi: bir hesap acilis mektubu From
-               adi BOS ('— VESTRA') gitti ve log "Undefined variable" yazdi. */
-            $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
-
             $to = trim($E('to'));
             if ($to === '') $to = 'acerasoft@gmail.com';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici: {$to}\n"); exit(1); }
@@ -812,6 +806,12 @@ jobs:
             /* Alici. "account:<parca>" = adres SUNUCUDAN, hesap adi/sirketiyle
                bulunur — musteri adresi GitHub girdisine yazilmasin diye. Birden
                fazla eslesme guvenli degil: MASKELI adaylar listelenir ve is durur. */
+            /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir.
+               TUM mektup dallarindan ONCE tanimlanir — approve_account blogu bunu
+               kullaniyordu ama tanim asagidaydi: bir hesap acilis mektubu From
+               adi BOS ('— VESTRA') gitti ve log "Undefined variable" yazdi. */
+            $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+
             $to = trim($E('to'));
             $acc = null;
             if (str_starts_with(strtolower($to), 'account:')) {
