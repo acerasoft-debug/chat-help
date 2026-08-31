@@ -103,7 +103,8 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
         [$mSubject, $mBody, $mOpts] = vestra_tpl_offer_response(
             vestra_user_lang($buyerAcc), $action, $buyerName, $prodName, $ref,
             $action === 'counter' ? $ctr : null,
-            $action === 'counter' ? vestra_offer_accept_url($ref, (string)$rs[$ref]['accept_token']) : null
+            $action === 'counter' ? vestra_offer_accept_url($ref, (string)$rs[$ref]['accept_token']) : null,
+            vestra_offer_product_url($listing)
         );
         vestra_send_mail($offerRow['email'], $mSubject, $mBody, $actor['email'] ?? '', $label, null, '', $mOpts);
     }
@@ -131,6 +132,13 @@ function vestra_offer_row(string $ref): ?array {
 
 function vestra_offer_accept_url(string $ref, string $token): string {
     return 'https://vestrasales.com/offer-accept?ref=' . rawurlencode($ref) . '&token=' . rawurlencode($token);
+}
+
+/* Ilanin canli urun sayfasi. Cozulemeyen SKU'da bos string doner ve mektuba
+ * hicbir sey yazilmaz -- kirik bir baglanti, baglanti olmamasindan kotu. */
+function vestra_offer_product_url(?array $listing): string {
+    $id = trim((string)($listing['id'] ?? ''));
+    return $id === '' ? '' : 'https://vestrasales.com/product?id=' . rawurlencode($id);
 }
 
 /* Kabul edilmis bir teklifin UZLASILAN fiyati. Karsi teklif verilip kabul

@@ -123,13 +123,32 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
           <tr><td><?= t('Total') ?></td><td class="r"><b><?= eur($agreed * $qty) ?></b></td></tr>
         </tbody></table>
       </div></div>
+      <?php /* Mektuptaki "reddet" baglantisi ?intent=decline ile geliyor:
+               ayni sayfa, ama vurgu ters. Reddetmeye niyetlenmis birine
+               "Kabul et" dugmesini one koymak, yanlis dugmeye basma
+               riskini bosuna yaratir. Islem yine POST. */
+        $wantDecline = ($_GET['intent'] ?? '') === 'decline'; ?>
       <form method="post" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
         <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
-        <button class="btn btn-p" type="submit" name="do" value="accept"><?= sprintf(t('Accept %s per unit'), eur($agreed)) ?></button>
-        <button class="btn btn-o" type="submit" name="do" value="decline"
-          onclick="return confirm('<?= htmlspecialchars(t('Decline this counter offer? The negotiation closes and nothing is reserved.'), ENT_QUOTES) ?>')"><?= t('Decline') ?></button>
+        <?php if ($wantDecline): ?>
+          <button class="btn btn-p" type="submit" name="do" value="decline"
+            onclick="return confirm('<?= htmlspecialchars(t('Decline this counter offer? The negotiation closes and nothing is reserved.'), ENT_QUOTES) ?>')"><?= t('Decline') ?></button>
+          <button class="btn btn-o" type="submit" name="do" value="accept"><?= sprintf(t('Accept %s per unit'), eur($agreed)) ?></button>
+        <?php else: ?>
+          <button class="btn btn-p" type="submit" name="do" value="accept"><?= sprintf(t('Accept %s per unit'), eur($agreed)) ?></button>
+          <button class="btn btn-o" type="submit" name="do" value="decline"
+            onclick="return confirm('<?= htmlspecialchars(t('Decline this counter offer? The negotiation closes and nothing is reserved.'), ENT_QUOTES) ?>')"><?= t('Decline') ?></button>
+        <?php endif; ?>
       </form>
+      <?php /* Urun sayfasi buradan da erisilebilir olmali: alici "neydi bu"
+               diye bakmadan karar vermek zorunda kalmasin. */
+        $__l = vestra_listing_by_sku($offerRow['sku'] ?? '');
+        if ($__l && !empty($__l['id'])): ?>
+      <p style="text-align:center;margin-top:14px">
+        <a href="/product?id=<?= urlencode((string)$__l['id']) ?>" target="_blank" rel="noopener" style="color:var(--acc);font-size:13.5px"><?= t('View product') ?> ↗</a>
+      </p>
+      <?php endif; ?>
       <p style="text-align:center;color:var(--mut);font-size:13px;margin-top:16px">
         <?= t('Want to negotiate further instead?') ?> <a href="/buyer?tab=messages" style="color:var(--acc)"><?= t('Message us') ?></a>
       </p>

@@ -180,7 +180,7 @@ function vestra_tpl_offer_new(string $lang, string $sellerName, string $buyerCom
 
 /* Buyer notification when the seller accepts / declines / counters. $counterPrice only
  * used when $action==='counter'. */
-function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null): array {
+function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null, ?string $productUrl = null): array {
   $Lb = vestra_email_labels($lang);
   $rows = [['label'=>$Lb['product'],'value'=>$product],['label'=>$Lb['ref'],'value'=>$ref]];
   $badge = $Lb['badge_accepted'];
@@ -193,43 +193,64 @@ function vestra_tpl_offer_response(string $lang, string $action, string $buyerNa
      seyi bulamiyordu. Tek islevi olan bir mektubun dugmesi o islev olmali. */
   $accLbl = ['en'=>'Accept €%s/unit','de'=>'€%s/Stück annehmen','fr'=>'Accepter %s €/unité',
              'it'=>'Accetta €%s/unità','es'=>'Aceptar €%s/unidad'];
+  /* REDDETME de mektupta olmali. Tek dugme yalnizca "kabul et" diyordu:
+     hayir demek isteyen alicinin mektupta hicbir yolu yoktu, panele
+     gitmesi gerekiyordu. Ana dugmenin altinda sessiz bir baglanti --
+     karar alicinin, vurgu degil. */
+  $decLbl = ['en'=>'Decline this counter offer','de'=>'Gegenangebot ablehnen','fr'=>'Refuser cette contre-offre',
+             'it'=>'Rifiuta questa controfferta','es'=>'Rechazar esta contraoferta'];
   if ($action === 'counter' && $acceptUrl !== null && $acceptUrl !== '') {
     $opts['button'] = [
       'label' => sprintf($accLbl[$lang] ?? $accLbl['en'], number_format((float)$counterPrice, 2)),
       'url'   => $acceptUrl,
     ];
+    $opts['button_alt'] = [
+      'label' => $decLbl[$lang] ?? $decLbl['en'],
+      'url'   => $acceptUrl.'&intent=decline',
+    ];
   }
+  /* URUN BAGLANTISI. Mektupta urunun yalnizca ADI vardi; alici "hangi
+     modeldi, fiyati neydi" diye bakmak istediginde katalogda elle aramak
+     zorundaydi -- pazarlik suren bir mektupta en cok tiklanacak sey bu.
+     Govdeye konuyor, satira degil: satir degerleri htmlspecialchars'tan
+     geciyor ve link olmuyor, govde ise linkify ediliyor. */
+  $prodLine = ['en'=>"See the product: %s", 'de'=>"Zum Produkt: %s", 'fr'=>"Voir le produit : %s",
+               'it'=>"Vedi il prodotto: %s", 'es'=>"Ver el producto: %s"];
   $T = [
     'en'=>[
       'accept'  => ["VESTRA — your offer on %2\$s was accepted ✓", "Hello %1\$s,\n\nGreat news — the seller accepted your offer. Your invoice will be available in your buyer dashboard shortly."],
       'decline' => ["VESTRA — your offer on %2\$s was declined", "Hello %1\$s,\n\nThe seller declined your offer. You can browse similar listings or message the seller directly from your dashboard."],
-      'counter' => ["VESTRA — counter offer on %2\$s", "Hello %1\$s,\n\nThe seller has countered your offer. Accept it with the button below — no sign-in needed — and we will issue the invoice at that price.\n\nTo decline or reply instead, open your dashboard: https://vestrasales.com/buyer?tab=offers"],
+      'counter' => ["VESTRA — counter offer on %2\$s", "Hello %1\$s,\n\nThe seller has countered your offer. You can accept or decline it straight from this e-mail — no sign-in needed. If you accept, we issue the invoice at that price; nothing is charged until you pay it."],
     ],
     'de'=>[
       'accept'  => ["VESTRA — Ihr Angebot für %2\$s wurde angenommen ✓", "Hallo %1\$s,\n\ngute Nachricht — der Verkäufer hat Ihr Angebot angenommen. Ihre Rechnung finden Sie in Kürze in Ihrem Käufer-Dashboard."],
       'decline' => ["VESTRA — Ihr Angebot für %2\$s wurde abgelehnt", "Hallo %1\$s,\n\nder Verkäufer hat Ihr Angebot abgelehnt. Sie können ähnliche Angebote durchsuchen oder den Verkäufer direkt aus Ihrem Dashboard kontaktieren."],
-      'counter' => ["VESTRA — Gegenangebot für %2\$s", "Hallo %1\$s,\n\nder Verkäufer hat Ihnen ein Gegenangebot gemacht. Sie können es mit der Schaltfläche unten annehmen — ohne Anmeldung — und wir stellen die Rechnung zu diesem Preis aus.\n\nZum Ablehnen oder Antworten öffnen Sie Ihr Dashboard: https://vestrasales.com/buyer?tab=offers"],
+      'counter' => ["VESTRA — Gegenangebot für %2\$s", "Hallo %1\$s,\n\nder Verkäufer hat Ihnen ein Gegenangebot gemacht. Sie können es direkt aus dieser E-Mail annehmen oder ablehnen — ohne Anmeldung. Bei Annahme stellen wir die Rechnung zu diesem Preis aus; abgebucht wird nichts, bis Sie sie bezahlen."],
     ],
     'fr'=>[
       'accept'  => ["VESTRA — votre offre sur %2\$s a été acceptée ✓", "Bonjour %1\$s,\n\nbonne nouvelle — le vendeur a accepté votre offre. Votre facture sera bientôt disponible dans votre espace acheteur."],
       'decline' => ["VESTRA — votre offre sur %2\$s a été refusée", "Bonjour %1\$s,\n\nle vendeur a refusé votre offre. Vous pouvez parcourir des articles similaires ou contacter directement le vendeur depuis votre espace."],
-      'counter' => ["VESTRA — contre-offre sur %2\$s", "Bonjour %1\$s,\n\nle vendeur vous a fait une contre-offre. Vous pouvez l'accepter avec le bouton ci-dessous — sans connexion — et nous établirons la facture à ce prix.\n\nPour refuser ou répondre, ouvrez votre espace : https://vestrasales.com/buyer?tab=offers"],
+      'counter' => ["VESTRA — contre-offre sur %2\$s", "Bonjour %1\$s,\n\nle vendeur vous a fait une contre-offre. Vous pouvez l'accepter ou la refuser directement depuis cet e-mail — sans connexion. Si vous acceptez, nous établissons la facture à ce prix ; rien n'est prélevé tant que vous ne l'avez pas payée."],
     ],
     'it'=>[
       'accept'  => ["VESTRA — la tua offerta su %2\$s è stata accettata ✓", "Ciao %1\$s,\n\nottima notizia — il venditore ha accettato la tua offerta. La fattura sarà presto disponibile nella tua area acquirente."],
       'decline' => ["VESTRA — la tua offerta su %2\$s è stata rifiutata", "Ciao %1\$s,\n\nil venditore ha rifiutato la tua offerta. Puoi sfogliare articoli simili o scrivere direttamente al venditore dalla tua area."],
-      'counter' => ["VESTRA — controfferta su %2\$s", "Ciao %1\$s,\n\nil venditore ti ha fatto una controfferta. Puoi accettarla con il pulsante qui sotto — senza accedere — e emetteremo la fattura a quel prezzo.\n\nPer rifiutare o rispondere, apri la tua area: https://vestrasales.com/buyer?tab=offers"],
+      'counter' => ["VESTRA — controfferta su %2\$s", "Ciao %1\$s,\n\nil venditore ti ha fatto una controfferta. Puoi accettarla o rifiutarla direttamente da questa e-mail — senza accedere. Se accetti, emettiamo la fattura a quel prezzo; non viene addebitato nulla finché non la paghi."],
     ],
     'es'=>[
       'accept'  => ["VESTRA — tu oferta sobre %2\$s fue aceptada ✓", "Hola %1\$s,\n\nbuenas noticias — el vendedor aceptó tu oferta. Tu factura estará disponible en breve en tu panel de comprador."],
       'decline' => ["VESTRA — tu oferta sobre %2\$s fue rechazada", "Hola %1\$s,\n\nel vendedor rechazó tu oferta. Puedes explorar artículos similares o escribir directamente al vendedor desde tu panel."],
-      'counter' => ["VESTRA — contraoferta sobre %2\$s", "Hola %1\$s,\n\nel vendedor te ha hecho una contraoferta. Puedes aceptarla con el botón de abajo — sin iniciar sesión — y emitiremos la factura a ese precio.\n\nPara rechazar o responder, abre tu panel: https://vestrasales.com/buyer?tab=offers"],
+      'counter' => ["VESTRA — contraoferta sobre %2\$s", "Hola %1\$s,\n\nel vendedor te ha hecho una contraoferta. Puedes aceptarla o rechazarla directamente desde este correo — sin iniciar sesión. Si aceptas, emitimos la factura a ese precio; no se cobra nada hasta que la pagues."],
     ],
   ];
   $set = $T[$lang] ?? $T['en'];
   [$subjT,$bodyT] = $set[$action] ?? $set['decline'];
   $subject = sprintf($subjT, $buyerName, $product);
-  $body = sprintf($bodyT, $buyerName, $product) . "\n\n—\nVESTRA · vestrasales.com";
+  $body = sprintf($bodyT, $buyerName, $product);
+  if ($productUrl !== null && $productUrl !== '') {
+    $body .= "\n\n" . sprintf($prodLine[$lang] ?? $prodLine['en'], $productUrl);
+  }
+  $body .= "\n\n—\nVESTRA · vestrasales.com";
   return [$subject, $body, $opts];
 }
 

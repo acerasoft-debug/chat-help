@@ -830,6 +830,11 @@ function vestra_html_linkify(string $escapedHtml): string {
  *   'badge'  => short status pill under the header, e.g. "✅ Verified", "💶 New offer"
  *   'rows'   => [['label'=>'Qty','value'=>'104','strong'=>false], ...] detail card
  *   'button' => ['label'=>'View in dashboard','url'=>'https://...'] CTA button
+ *   'button_alt' => ['label'=>'Decline','url'=>'https://...'] ikincil baglanti, ana
+ *                dugmenin ALTINDA ve sessiz. Karsi teklif mektubu icin eklendi:
+ *                tek dugme yalnizca "kabul et" diyordu, reddetmek isteyen aliciya
+ *                mektupta hicbir yol yoktu. Iki esit agirlikta dugme koymak da
+ *                yanlis olurdu -- karar alicinin, vurgu degil.
  */
 /* Email-safe stylised brand wordmark for the campaign "house wall". External images and inline
  * SVG get stripped by Gmail/Outlook, so these are pure inline-CSS typographic wordmarks (like the
@@ -907,11 +912,19 @@ function vestra_html_email(string $bodyPlain, string $heroImage='', array $opts=
   $buttonHtml='';
   if(!empty($opts['button']['url'])){
     $btnLabel=(string)($opts['button']['label'] ?? 'View in VESTRA');
+    $altHtml='';
+    if(!empty($opts['button_alt']['url'])){
+      $altHtml='<div style="margin-top:12px">'
+        .'<a href="'.htmlspecialchars((string)$opts['button_alt']['url'],ENT_QUOTES,'UTF-8').'" '
+        .'style="color:#8a7a5e;text-decoration:underline;font-size:13px">'
+        .htmlspecialchars((string)($opts['button_alt']['label'] ?? 'Other option'),ENT_QUOTES,'UTF-8').'</a></div>';
+    }
     $buttonHtml='<div style="padding:4px 28px 28px;text-align:center">'
       .'<a href="'.htmlspecialchars((string)$opts['button']['url'],ENT_QUOTES,'UTF-8').'" '
       .'style="display:inline-block;background:#14110c;color:#d8bd86;padding:13px 34px;border-radius:8px;'
       .'text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.02em">'
-      .htmlspecialchars($btnLabel,ENT_QUOTES,'UTF-8').'</a></div>';
+      .htmlspecialchars($btnLabel,ENT_QUOTES,'UTF-8').'</a>'
+      .$altHtml.'</div>';
   }
 
   /* Optional voucher coupon ('voucher' => ['kicker','amount','caption','code_label','code',
