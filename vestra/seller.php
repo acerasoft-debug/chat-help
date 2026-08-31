@@ -350,6 +350,9 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $meSeller = auth_user();
         $sellerLabel = $meSeller ? (($meSeller['company'] ?: $meSeller['name']) ?: 'VESTRA') : 'VESTRA';
         $res = vestra_offer_respond($ref, $action, $ctr, $meSeller, $sellerLabel);
+        /* Reddedilen bir yanit sessizce "gonderildi" gorunmemeli. */
+        if (!$res['ok']) { $_SESSION['offer_err'] = (string)$res['error'];
+            header('Location: /seller?tab=offers&responded=err'); exit; }
         /* Mektup gitmediyse satici da bilmeli: karsi teklifte kabul/ret
            baglantisi o mektupta, gitmediyse pazarlik sessizce durur.
            'responded=1' tek basina her durumda ayni seyi soyluyordu. */
@@ -997,7 +1000,10 @@ if($tab==='overview'){
      Gitmeyen bir mektup icin "gonderildi" demek, saticiyi alicinin haberi
      oldugu sanisinda birakir; karsi teklifte kabul/ret baglantisi da o
      mektupta oldugu icin pazarlik sessizce durur. */
-  if(($_GET['responded']??'')==='nomail') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('Your response was saved but the e-mail to the buyer could not be sent. They have not been told — message them from the Messages tab.').'</div>';
+  if(($_GET['responded']??'')==='err'){ $__se=$_SESSION['offer_err']??''; unset($_SESSION['offer_err']);
+    echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '
+       .t('Your response was not saved and no e-mail was sent.').($__se!==''?'<br><span style="font-size:13px">'.htmlspecialchars($__se).'</span>':'').'</div>'; }
+  elseif(($_GET['responded']??'')==='nomail') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('Your response was saved but the e-mail to the buyer could not be sent. They have not been told — message them from the Messages tab.').'</div>';
   elseif(($_GET['responded']??'')==='noaddr') echo '<div class="banner" style="background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.35);color:#a9781a">⚠ '.t('Your response was saved, but this offer has no valid e-mail address, so no letter was sent.').'</div>';
   elseif(isset($_GET['responded'])) echo '<div class="banner ok">✓ '.t('Response sent to buyer.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Offers received').'</h3></div>';

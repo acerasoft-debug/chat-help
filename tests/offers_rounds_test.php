@@ -1,5 +1,6 @@
 <?php
 define('VESTRA_OFFER_MAX_COUNTERS', 3);
+define('VESTRA_OFFER_MIN_BUYER_PCT', 0.50);
 $src=file_get_contents(__DIR__.'/../vestra/inc/offers.php');
 $strip=fn($s)=>preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#",'',$s);
 $JSON=[]; $NOTIF=[]; $MAIL=[]; $INV=[];
@@ -7,7 +8,12 @@ $CSV=[['ref'=>'OF-1','sku'=>'S1','product'=>'P','qty'=>100,'offer_unit'=>9.0,'of
 function vestra_read_csv($f){ global $CSV; return $CSV; }
 function vestra_read_json($f){ global $JSON; return $JSON; }
 function vestra_write_json($f,$d){ global $JSON; $JSON=$d; return true; }
-function vestra_listing_by_sku($s){ return ['id'=>'p1','sku'=>$s,'brand'=>'B','name'=>'N','seller_uid'=>'s1']; }
+/* Fiyat kurallari icin: referans = en dusuk kademe. 20.00 secildi ki
+   alici tabani 10.00 olsun ve asagidaki senaryolar (9.00 ilk teklif,
+   10.00/11.50 karsi teklifler) kurallara UYSUN -- test kurallari
+   atlatmasin, icinden gecsin. */
+function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+function vestra_listing_by_sku($s){ return ['id'=>'p1','sku'=>$s,'brand'=>'B','name'=>'N','seller_uid'=>'s1','tiers'=>[['min'=>1,'price'=>20.00]]]; }
 function auth_find($e){ return ['id'=>'b1','name'=>'N']; }
 function auth_accounts(){ return [['id'=>'s1','company'=>'S']]; }
 function vestra_platform_seller(){ return ['id'=>'plat']; }

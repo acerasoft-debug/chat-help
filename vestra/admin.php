@@ -714,7 +714,11 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        "basarili" mesajina sikistirmak, alicinin haberi olmadigi bir yaniti
        yanitlanmis gostermek olurdu -- ve karsi teklifte mektup, isin ta
        kendisi: alici kabul/red baglantisini oradan aliyor. */
-    if (!$res['ok'])                       $m = 'offer_err';
+    /* Gerekce OTURUMDA tasiniyor, URL'de degil: metin € ve bosluk iceriyor,
+       ve operatorun gormesi gereken sey "bir hata oldu" degil HANGI kural.
+       Fiyat kurallari (yarisindan az / normal fiyattan fazla / bir oncekine
+       yaklasmiyor) reddi burada dogar ve buradan gorunur. */
+    if (!$res['ok']) { $_SESSION['offer_err'] = (string)$res['error']; $m = 'offer_err'; }
     elseif (($res['mailed'] ?? null) === false) $m = 'offer_nomail';
     elseif (($res['mailed'] ?? null) === null)  $m = 'offer_noaddr';
     else                                   $m = 'offer_'.$oAct;
@@ -2015,8 +2019,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   Alıcı hesabı varsa panelinde mesaj olarak görecek; yoksa ona ulaşmanın bir yolu yok.
 </div>
 <?php elseif($msg==='offer_err'): ?>
+<?php $__oe = $_SESSION['offer_err'] ?? ''; unset($_SESSION['offer_err']); ?>
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">
-  ⚠ Teklife yanıt verilemedi — hiçbir şey kaydedilmedi. (Karşı teklifte birim fiyat girmeyi unutmuş olabilirsiniz.)
+  ⚠ Teklife yanıt verilemedi — <b>hiçbir şey kaydedilmedi, alıcıya e-posta gitmedi.</b>
+  <?php if ($__oe !== ''): ?><br><span style="font-size:13px"><?= htmlspecialchars($__oe) ?></span><?php endif; ?>
 </div>
 <?php elseif($msg==='acct_has_invoice'): ?>
 <div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.35);color:#a9781a">

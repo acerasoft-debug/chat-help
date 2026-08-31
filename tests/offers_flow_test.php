@@ -1,5 +1,6 @@
 <?php
 define('VESTRA_OFFER_MAX_COUNTERS', 3);
+define('VESTRA_OFFER_MIN_BUYER_PCT', 0.50);
 $src   = file_get_contents(__DIR__.'/../vestra/inc/offers.php');
 $strip = fn($s) => preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#", '', $s);
 
@@ -11,7 +12,12 @@ $CSV = [['ref'=>'OF-1','sku'=>'LEV-8820F','product'=>"Vintage Levi's 501",'qty'=
 function vestra_read_csv($f){ global $CSV; return $CSV; }
 function vestra_read_json($f){ global $JSON; return $JSON; }
 function vestra_write_json($f,$d){ global $JSON; $JSON=$d; return true; }
-function vestra_listing_by_sku($s){ return ['id'=>'lev-501','sku'=>$s,'brand'=>"Levi's",'name'=>'Vintage 501','seller_uid'=>'613abb']; }
+/* Fiyat kurallari icin: referans = en dusuk kademe. 20.00 secildi ki
+   alici tabani 10.00 olsun ve asagidaki senaryolar (9.00 ilk teklif,
+   10.00/11.50 karsi teklifler) kurallara UYSUN -- test kurallari
+   atlatmasin, icinden gecsin. */
+function vestra_from_price($p){ if(empty($p['tiers'])) return 0.0; $m=null; foreach($p['tiers'] as $t){ $m=($m===null)?$t['price']:min($m,$t['price']); } return $m; }
+function vestra_listing_by_sku($s){ return ['id'=>'lev-501','sku'=>$s,'brand'=>"Levi's",'name'=>'Vintage 501','seller_uid'=>'613abb','tiers'=>[['min'=>1,'price'=>20.00]]]; }
 function auth_find($e){ return ['id'=>'buy1','name'=>'Iwona','company'=>'Buyer Co','vat_id'=>'PL1','country'=>'PL','address'=>'x']; }
 function auth_accounts(){ return [['id'=>'613abb','email'=>'s@x.com','company'=>'Erensthrift']]; }
 function vestra_platform_seller(){ return ['id'=>'plat','company'=>'Acerasoft LLC']; }

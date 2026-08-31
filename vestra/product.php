@@ -271,6 +271,23 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
             <?= vestra_colours_warn((int)($p['min_colors']??1)) ?></div>
           <?php endif; ?>
+          <?php /* Fiyat kurali reddi: SEBEBIYLE birlikte. Eskiden gecersiz bir
+                   teklif sessizce kaydediliyordu; simdi kaydedilmiyor, ve
+                   neden kaydedilmedigi burada yaziyor. */
+            if(isset($_GET['pricerr'])):
+              if(session_status()===PHP_SESSION_NONE) session_start();
+              $__pe = $_SESSION['offer_price_err'] ?? ''; unset($_SESSION['offer_price_err']); ?>
+          <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
+            ⚠ <?= htmlspecialchars($__pe !== '' ? $__pe : t('That offer is too low.')) ?></div>
+          <?php endif; ?>
+          <?php /* Taban DENEMEDEN once gorunsun. */
+            require_once __DIR__.'/inc/offers.php';
+            $__rp = vestra_offer_ref_price($p);
+            if($__rp > 0): $__min = round($__rp * VESTRA_OFFER_MIN_BUYER_PCT, 2); ?>
+          <p class="hint" style="margin:0 0 10px">
+            <?= sprintf(t('Offers start at %s per unit.'), '<b>'.vestra_money($__min).'</b>') ?>
+          </p>
+          <?php endif; ?>
           <form method="post" action="/offer" onsubmit="return <?= $cqMode?'cqOk(this,\'main\')':'vcolOk(this)' ?>">
             <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
             <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">

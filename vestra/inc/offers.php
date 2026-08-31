@@ -55,6 +55,80 @@ function vestra_offer_can_counter(?array $resp, string $side): bool {
     return vestra_offer_turn($resp) === $side && vestra_offer_counters_left($resp) > 0;
 }
 
+/* ── Pazarlik sinirlari (operator karari, 31 Agu 2026) ──────────────────
+ * ALICI teklifi urunun YARISINDAN AZ olamaz.
+ * SATICI karsi teklifi urunun NORMAL FIYATINDAN FAZLA olamaz.
+ *
+ * Referans fiyat vestra_from_price(): kademe merdiveninin EN DUSUK basamagi,
+ * yani alicinin en iyi kosulda odeyecegi rakam. Bilerek boyle -- 'list'
+ * alani mode='sale' urunlerde USTU CIZILI eski fiyat, onu tavan yapmak
+ * saticiya gercekte hic satmadigi bir fiyattan karsi teklif hakki verirdi.
+ *
+ * Fiyati COZULEMEYEN urunde (teklif modunda kademe yoksa) sinir UYGULANMAZ:
+ * ortada karsilastirilacak bir rakam yokken teklifi reddetmek, mustereyi
+ * hicbir sey yapamaz halde birakir. Sinir varsa uygulanir, yoksa serbest. */
+if (!defined('VESTRA_OFFER_MIN_BUYER_PCT')) define('VESTRA_OFFER_MIN_BUYER_PCT', 0.50);
+
+function vestra_offer_ref_price(?array $listing): float {
+    if (!$listing) return 0.0;
+    $ref = (float)vestra_from_price($listing);
+    if ($ref <= 0) $ref = (float)($listing['list'] ?? 0);
+    return $ref > 0 ? round($ref, 2) : 0.0;
+}
+
+/* Bir tarafin EN SON verdigi rakam. Alicida ilk teklif de sayilir (o da
+ * onun rakami); saticinin oncesi yoksa null doner ve ilk karsi teklifine
+ * yaklasma sarti uygulanmaz. */
+function vestra_offer_last_price(?array $resp, string $side, ?array $offerRow = null): ?float {
+    $last = null;
+    foreach ((array)($resp['counters'] ?? []) as $c) {
+        if ((string)($c['by'] ?? '') === $side) $last = (float)($c['price'] ?? 0);
+    }
+    if ($last === null && $side === 'seller' && (string)($resp['counter_by'] ?? 'seller') === 'seller'
+        && (float)($resp['counter_price'] ?? 0) > 0) {
+        $last = (float)$resp['counter_price'];       // 'counters' dizisi olmayan eski kayit
+    }
+    if ($last === null && $side === 'buyer' && $offerRow) {
+        $o = (float)($offerRow['offer_unit'] ?? 0);
+        if ($o > 0) $last = $o;                      // alicinin ILK teklifi
+    }
+    return $last;
+}
+
+/* $side: 'buyer' | 'seller'. Gecerliyse null, degilse KULLANICIYA
+ * gosterilecek gerekce doner -- cagiran taraf metni yeniden yazmasin,
+ * yoksa uc ekranda uc farkli cumle olur.
+ *
+ * $prevSame: ayni tarafin bir onceki rakami. Pazarlik DARALMAK zorunda:
+ * alici her turda YUKSELIR, satici her turda DUSER. Bu olmadan taraflar
+ * ayni iki rakami tekrarlayip tur hakkini bosa harcayabiliyordu -- ve
+ * uc tur, yaklasilmadiginda hicbir sey ifade etmiyor. */
+function vestra_offer_price_error(?array $listing, string $side, float $price, ?float $prevSame = null): ?string {
+    if ($price <= 0) return 'Enter a unit price.';
+    $ref = vestra_offer_ref_price($listing);
+
+    if ($side === 'buyer') {
+        if ($ref > 0) {
+            $min = round($ref * VESTRA_OFFER_MIN_BUYER_PCT, 2);
+            if ($price + 0.004 < $min) {
+                return sprintf('An offer cannot be below half the product price. The lowest we can accept is €%s per unit.', number_format($min, 2));
+            }
+        }
+        if ($prevSame !== null && $price <= $prevSame + 0.004) {
+            return sprintf('Your new offer has to be higher than your last one (€%s per unit).', number_format($prevSame, 2));
+        }
+        return null;
+    }
+
+    if ($ref > 0 && $price > $ref + 0.004) {
+        return sprintf('A counter offer cannot be above the product price (€%s per unit).', number_format($ref, 2));
+    }
+    if ($prevSame !== null && $price + 0.004 >= $prevSame) {
+        return sprintf('Your new counter has to be lower than your last one (€%s per unit).', number_format($prevSame, 2));
+    }
+    return null;
+}
+
 /**
  * @param string     $ref     Teklif referansi (offers.csv -> ref)
  * @param string     $action  accept | decline | counter
@@ -98,6 +172,13 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
     }
     if ($action === 'counter' && vestra_offer_counters_left($prev) < 1) {
         return ['ok' => false, 'error' => 'karsi teklif hakki bitti ('.VESTRA_OFFER_MAX_COUNTERS.'/'.VESTRA_OFFER_MAX_COUNTERS.') — yalnizca kabul ya da ret'];
+    }
+    /* Fiyat tavani. Kayittan ONCE: gecersiz bir karsi teklif diske yazilip
+       aliciya mektup gonderilmemeli. */
+    if ($action === 'counter') {
+        $pErr = vestra_offer_price_error($listing, 'seller', $ctr,
+                    vestra_offer_last_price($prev, 'seller'));
+        if ($pErr !== null) return ['ok' => false, 'error' => $pErr];
     }
 
     /* UZLASILAN birim fiyat. Karsi teklif verilmis ve SONRA kabul edilmisse
@@ -479,6 +560,11 @@ function vestra_offer_counter_by_buyer(string $ref, string $token, float $price)
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return $fail('teklif bulunamadi');
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
+    /* Taban: urunun yarisi. Kayittan ONCE -- gecersiz bir teklif ne diske
+       yazilmali ne de operatore bildirilmeli. */
+    $pErr = vestra_offer_price_error($listing, 'buyer', $price,
+                vestra_offer_last_price($resp, 'buyer', $offerRow));
+    if ($pErr !== null) return $fail($pErr, $left);
     $prodName = $listing ? trim(($listing['brand'] ?? '').' '.($listing['name'] ?? ''))
                          : trim((string)($offerRow['product'] ?? ''));
     $qty      = (int)($offerRow['qty'] ?? 0);

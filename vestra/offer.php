@@ -9,7 +9,8 @@ if(!$p){ header('Location: /shop'); exit; }
 if(!empty($_POST['website'])){ header('Location: /product?id='.urlencode($id).'&offered=1&ref=NA'); exit; }
 
 $company=trim($_POST['company']??''); $email=trim($_POST['email']??'');
-$price=(float)($_POST['price']??0);
+/* Virgullu ondalik: (float)"35,50" 35.00 verirdi. bkz. vestra_price_input(). */
+$price=vestra_price_input($_POST['price']??'');
 
 /* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
    colour breakdown itself — the plain "qty" field is never trusted for these listings. */
@@ -32,6 +33,17 @@ if ($cq !== null) {
   }
 }
 if($company===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||$price<=0){ header('Location: /product?id='.urlencode($id).'#post'); exit; }
+/* FIYAT TABANI: teklif urunun yarisindan az olamaz. Sebep kullaniciya
+   YAZILIR -- eskiden gecersiz bir teklif de sessizce kaydediliyordu ve
+   operator elle reddetmek zorunda kaliyordu. Metin tek kaynaktan
+   (vestra_offer_price_error) geliyor ki uc ekranda uc cumle olmasin. */
+require_once __DIR__.'/inc/offers.php';
+$__pErr = vestra_offer_price_error($p, 'buyer', $price);
+if($__pErr !== null){
+  if(session_status()===PHP_SESSION_NONE) session_start();
+  $_SESSION['offer_price_err'] = $__pErr;
+  header('Location: /product?id='.urlencode($id).'&pricerr=1#post'); exit;
+}
 $colorsTxt = $colors ? 'Colours: '.implode(', ', $colors) : '';
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };

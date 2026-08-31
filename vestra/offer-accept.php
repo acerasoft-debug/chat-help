@@ -36,12 +36,24 @@ if ($ref !== '' && $token !== '') {
 $declined  = false;
 $countered = false;
 $left      = vestra_offer_counters_left($resp);
+/* Fiyat kurali reddi ile "link gecersiz" AYNI SEY DEGIL. Ikisini tek $err
+   degiskenine koymak, kuralina takilan aliciya "bu link artik gecerli degil"
+   yazdiriyordu -- linki gayet gecerliydi, rakami kabul edilmedi. Boyle bir
+   mesaj musteriyi hicbir sey yapamaz halde birakir: ne yanlis oldugunu
+   bilmiyor, ve dogru sandigi linkin bozuk oldugunu saniyor. */
+$priceErr = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'counter') {
     /* Tek yerden: elle str_replace, binlik ayirici iceren "1.234,56" gibi
        girdilerde hala yanlis sonuc veriyordu. */
     $r = vestra_offer_counter_by_buyer($ref, $token, vestra_price_input($_POST['price'] ?? ''));
     if ($r['ok']) { $countered = true; $agreed = (float)$r['unit']; $left = (int)$r['left']; }
-    else          { $err = (string)$r['error']; }
+    else {
+        /* Token/sira hala saglamsa sorun RAKAMDA: formu tekrar goster ve
+           sebebi ustune yaz. Degilse gercekten link sorunu. */
+        $stillOpen = $resp && vestra_offer_turn($resp) === 'buyer'
+                  && hash_equals((string)($resp['accept_token'] ?? '_'), $token);
+        if ($stillOpen) $priceErr = (string)$r['error']; else $err = (string)$r['error'];
+    }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* Kabul VE RED ayni ekrandan. Yalnizca kabul dugmesi koymak, "hayir"
        demek isteyen aliciyi cevapsiz birakirdi -- ve cevapsiz bir pazarlik
@@ -169,10 +181,28 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
                reddedilen bir alan, olmayan bir alandan kotudur. */
         if ($left > 0): ?>
       <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--line)">
+        <?php if ($priceErr !== ''): ?>
+        <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.4);color:var(--bad);margin-bottom:12px">
+          ⚠ <?= htmlspecialchars($priceErr) ?>
+        </div>
+        <?php endif; ?>
         <p style="text-align:center;color:var(--mut);font-size:13.5px;margin:0 0 10px">
           <?= t('Neither price works? Send your own counter offer.') ?>
           <span class="hint">(<?= sprintf(t('%d left in this negotiation'), $left) ?>)</span>
         </p>
+        <?php /* Kurallar DENEMEDEN once yazili olsun: hatayi gostermek iyi,
+                 hataya hic dusurmemek daha iyi. */
+          $__l2  = vestra_listing_by_sku($offerRow['sku'] ?? '');
+          $__ref = vestra_offer_ref_price($__l2);
+          $__prev = vestra_offer_last_price($resp, 'buyer', $offerRow);
+          $__lo  = $__ref > 0 ? round($__ref * VESTRA_OFFER_MIN_BUYER_PCT, 2) : 0;
+          $__floor = max($__lo, $__prev !== null ? $__prev + 0.01 : 0);
+          if ($__floor > 0): ?>
+        <p style="text-align:center;color:var(--mut);font-size:12.5px;margin:0 0 10px">
+          <?= sprintf(t('It has to be at least %s per unit'), '<b>'.eur($__floor).'</b>') ?>
+          <?php if ($__prev !== null): ?> — <?= sprintf(t('above your last offer of %s'), eur($__prev)) ?><?php endif; ?>
+        </p>
+        <?php endif; ?>
         <form method="post" style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
           <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
