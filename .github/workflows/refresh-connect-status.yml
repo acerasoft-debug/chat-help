@@ -3,9 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       query:
-        description: "Hesap arama metni (company/name içinde, büyük/küçük harf önemsiz)"
+        description: "Hesap arama metni (company/name içinde, büyük/küçük harf önemsiz). '*' = stripe_account_id'si olan TÜM hesaplar"
         required: true
         default: "les garage"
+      fix_schedule:
+        description: "true = odeme semasi 'manual' OLMAYAN hesabi Stripe'ta manual'e cevir (escrow'un on kosulu). Varsayilan false: sadece raporla."
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -32,6 +36,7 @@ jobs:
           script: |
             echo "ADIM 1: baglanti tamam"
             export Q='${{ github.event.inputs.query }}'
+            export FIXSCHED='${{ github.event.inputs.fix_schedule }}'
             cat > /tmp/refresh_connect.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -52,7 +57,8 @@ jobs:
             $found = false;
             foreach (auth_accounts() as $a) {
               $hay = strtolower(($a['company']??'').' '.($a['name']??''));
-              if (strpos($hay, $q) === false) continue;
+              if ($q === '*') { if (empty($a['stripe_account_id'])) continue; }
+              elseif (strpos($hay, $q) === false) continue;
               $found = true;
               echo "===== ".($a['company'] ?: $a['name'])." (id=".($a['id']??'?').") =====\n";
               echo "  email          = ".(($a['email']??'')!==''?$a['email']:'*** YOK ***')."\n";
@@ -70,6 +76,27 @@ jobs:
               echo "  payouts_enabled   = ".(!empty($st['payouts_enabled'])?'true':'false')."\n";
               echo "  details_submitted = ".(!empty($st['details_submitted'])?'true':'false')."\n";
               if (isset($st['error'])) echo "  HATA: ".$st['error']."\n";
+
+              /* ODEME SEMASI — escrow'un gercek on kosulu. Stripe'in varsayilani
+                 OTOMATIKtir: sema manual degilse Stripe her tahsilattan ~2 is gunu
+                 sonra parayi saticiya KENDILIGINDEN oder ve alici onayi devre disi
+                 kalir. escrow_ready bayragi bunu HIC kontrol etmiyor (yalnizca
+                 charges_enabled) -- o yuzden burada canli okunup aciakca yaziliyor. */
+              try {
+                $acct = stripe_api('GET', '/v1/accounts/' . $a['stripe_account_id']);
+                $ival = (string)($acct->settings->payouts->schedule->interval ?? '(okunamadi)');
+                $ok   = ($ival === 'manual');
+                echo "  payout schedule   = {$ival}".($ok?" (escrow icin DOGRU)":"  *** OTOMATIK: Stripe ~2 gun sonra kendisi oder — ESCROW DEVRE DISI ***")."\n";
+                if (!$ok && strtolower(trim((string)getenv('FIXSCHED'))) === 'true') {
+                  stripe_api('POST', '/v1/accounts/' . $a['stripe_account_id'],
+                             ['settings' => ['payouts' => ['schedule' => ['interval' => 'manual']]]]);
+                  $acct2 = stripe_api('GET', '/v1/accounts/' . $a['stripe_account_id']);
+                  $ival2 = (string)($acct2->settings->payouts->schedule->interval ?? '?');
+                  echo "  -> DUZELTILDI: schedule {$ival} -> {$ival2}\n";
+                }
+              } catch (\Throwable $e) {
+                echo "  payout schedule   = OKUNAMADI: ".$e->getMessage()."\n";
+              }
 
               // Ayni kural: webhook'un account.updated'da ve escrow_seller_ready($s,true)'nun
               // kullandigi TEK KISTAS -- charges_enabled. payouts_enabled/details_submitted
