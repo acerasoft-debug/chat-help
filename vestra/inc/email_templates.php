@@ -1268,3 +1268,28 @@ function vestra_tpl_l1212_reply(string $salutation, string $vat = ''): array {
 
     return [$subject, $body, []];
 }
+
+/* L1212 sorgusunun devami: hesap incelemede, tek eksik Gewerbeanmeldung.
+ * Yol tarifi KODDAN dogrulandi (31 Agu 2026): /buyer?tab=kyc sekmesi, nav
+ * etiketi "Verification"/"Verifizierung", kabul edilen turler PDF/JPG/PNG/WebP
+ * max 10 MB (auth_upload_doc). "Ayni is gunu inceleme" sozu operatorun onayli
+ * vaadi — tutulamayacaksa metni degistirmeden once ona sor. */
+function vestra_tpl_l1212_docs_needed(string $salutation): array {
+    $subject = 'Re: Your VESTRA account – one document completes the verification';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your message – I have checked your account personally.\n\n"
+. "Your registration is complete and your company details, including your VAT ID, are already on file. Your account is in the verification queue, and exactly one item is holding it back: your trade licence (Gewerbeanmeldung) has not been uploaded yet.\n\n"
+. "To submit it:\n"
+. "1. Sign in at https://vestrasales.com/login\n"
+. "2. In your buyer dashboard, open the \"Verification\" section (\"Verifizierung\") – direct link: https://vestrasales.com/buyer?tab=kyc\n"
+. "3. Next to the open request for the trade licence / business registration you will find the upload button – PDF, JPG, PNG or WebP, up to 10 MB.\n\n"
+. "As soon as the document is in, it is reviewed the same working day. You will receive an automatic confirmation when the verification is complete, and from that moment the live price tiers, article numbers, size grid and the full line sheet (PDF and Excel) for the Lacoste L1212 – and for the rest of the catalogue – are visible in your account.\n\n"
+. "There is no need to resend your VAT ID or company details; they are already recorded.\n\n"
+. "If anything about the upload gives you trouble, simply reply to this email and I will sort it out with you.\n\n"
+. "Best regards,\n\n"
+. "Marco Bellini\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}

@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: hangi mektup — l1212 (Lacoste L1212 soruları). Doluysa YALNIZCA bu iş çalışır."
+        description: "ALICI CEVABI: hangi mektup — l1212 (Lacoste L1212 soruları) | l1212_docs (hesap incelemede, Gewerbeanmeldung eksik). Doluysa YALNIZCA bu iş çalışır."
         required: false
         default: ""
       reply_spec:
@@ -726,6 +726,8 @@ jobs:
 
             if ($letter === 'l1212') {
               [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat);
+            } elseif ($letter === 'l1212_docs') {
+              [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation);
             } else {
               fwrite(STDERR, "bilinmeyen mektup: {$letter}\n"); exit(1);
             }

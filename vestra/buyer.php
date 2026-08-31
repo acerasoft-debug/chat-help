@@ -566,7 +566,11 @@ if($tab==='overview'){
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
   if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3>'.$kybLabel.'</div>';
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Prices open as soon as you upload it, and full access follows once we have checked it.').'</p>';
+  /* "Prices open as soon as you upload it" YALANDI: 11 Agustos'tan beri
+     fiyat kapisi ONAYLA aciliyor (auth_prices_unlocked yalnizca approved'a
+     bakar). Eski cumle, belgesini yukleyip fiyat goremeyen aliciya panelin
+     kendisinin yanlis soz vermesi demekti. */
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Verified buyers can access wholesale pricing and place orders with buyer protection. One document is enough: your trade licence / business registration. Upload it here — reviews are usually completed the same working day, and prices open the moment your document is approved.').'</p>';
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
   } else {
