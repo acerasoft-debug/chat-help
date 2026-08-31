@@ -1232,7 +1232,7 @@ function vestra_tpl_new_collection_member(string $lang, string $company): array 
  * Kisisel veriler (hitap, VAT) SABLONDA YOK: depo halka acik oldugu icin
  * cagiran doldurur (hesaptan ya da dispatch spec'inden). VAT bos gelirse
  * parantezli kisim tamamen dusuyor — "()" gibi bir kalinti birakmiyoruz. */
-function vestra_tpl_l1212_reply(string $salutation, string $vat = ''): array {
+function vestra_tpl_l1212_reply(string $salutation, string $vat = '', string $signer = 'Marco Bellini'): array {
     $subject = 'Re: Lacoste L1212 – your questions answered';
     $vatBit  = $vat !== '' ? " ({$vat})" : '';
 
@@ -1263,7 +1263,7 @@ function vestra_tpl_l1212_reply(string $salutation, string $vat = ''): array {
 . "Register here: https://vestrasales.com/register\n\n"
 . "If you tell me your target quantity and preferred colourways, I will confirm availability and send you a binding offer stating the delivery time and the applicable invoicing scenario.\n\n"
 . "Best regards,\n\n"
-. "Marco Bellini\n"
+. $signer . "\n"
 . "VESTRA – vestrasales.com";
 
     return [$subject, $body, []];
@@ -1274,7 +1274,7 @@ function vestra_tpl_l1212_reply(string $salutation, string $vat = ''): array {
  * etiketi "Verification"/"Verifizierung", kabul edilen turler PDF/JPG/PNG/WebP
  * max 10 MB (auth_upload_doc). "Ayni is gunu inceleme" sozu operatorun onayli
  * vaadi — tutulamayacaksa metni degistirmeden once ona sor. */
-function vestra_tpl_l1212_docs_needed(string $salutation): array {
+function vestra_tpl_l1212_docs_needed(string $salutation, string $signer = 'Marco Bellini'): array {
     $subject = 'Re: Your VESTRA account – one document completes the verification';
 
     $body = $salutation . ",\n\n"
@@ -1288,7 +1288,7 @@ function vestra_tpl_l1212_docs_needed(string $salutation): array {
 . "There is no need to resend your VAT ID or company details; they are already recorded.\n\n"
 . "If anything about the upload gives you trouble, simply reply to this email and I will sort it out with you.\n\n"
 . "Best regards,\n\n"
-. "Marco Bellini\n"
+. $signer . "\n"
 . "VESTRA – vestrasales.com";
 
     return [$subject, $body, []];

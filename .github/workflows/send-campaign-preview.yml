@@ -99,7 +99,7 @@ on:
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat. to boş = operatör test kutusu"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini). to boş = operatör test kutusu"
         required: false
         default: "send=false"
 
@@ -724,10 +724,14 @@ jobs:
             $vat = trim($E('vat'));
             if ($vat === '' && $acc) $vat = trim((string)($acc['vat_id'] ?? ''));
 
+            /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir —
+               ikisi ayri kaynaktan gelirse basliktaki isim ile mektup imzasi
+               birbirini yalanlar. */
+            $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
             if ($letter === 'l1212') {
-              [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat);
+              [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat, $signer);
             } elseif ($letter === 'l1212_docs') {
-              [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation);
+              [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation, $signer);
             } else {
               fwrite(STDERR, "bilinmeyen mektup: {$letter}\n"); exit(1);
             }
@@ -740,8 +744,9 @@ jobs:
             echo "konu   : {$subject}\n";
             echo "govde  : ".mb_strlen($body)." karakter\n";
 
+            echo "imza   : {$signer}\n";
             if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
-            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', 'Marco Bellini — VESTRA', null, '', $opts);
+            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $opts);
             echo $ok ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
             exit($ok ? 0 : 1);
             PHPEOF
