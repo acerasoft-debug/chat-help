@@ -3005,6 +3005,22 @@ elseif($tab==='offers'):
   <?= arow(['Ref','Date','Product','SKU','Qty','€/u','Total','Buyer','Status','Counter','Respond'],true) ?>
   <?php foreach(array_reverse($offers) as $o):
     $ref=$o['ref']??''; $resp=$offerResp[$ref]??null; $rSt=$resp['status']??'pending';
+    /* Teklife bakan operatorun ilk sordugu sey "hangi urun, ne fiyata
+       duruyor" -- tabloda yalnizca AD ve SKU vardi, urune ulasmak icin
+       Listings sekmesinde elle aramak gerekiyordu. SKU'dan cozulen ilan
+       icin canli urun sayfasi ve duzenleme baglantisi. Cozulemeyen SKU
+       duz metin kalir: olu link, linksiz metinden kotu -- ustelik
+       "bu SKU artik katalogda yok" bilgisinin kendisi de degerli. */
+    $oL = vestra_listing_by_sku($o['sku'] ?? '');
+    $oName = htmlspecialchars($o['product'] ?? '—');
+    if ($oL && !empty($oL['id'])) {
+      $oid = urlencode((string)$oL['id']);
+      $oName = '<a href="/product?id='.$oid.'" target="_blank" rel="noopener" style="color:var(--acc)">'.$oName.' ↗</a>'
+             . '<div class="ahint"><a href="/admin?tab=listings&edit='.$oid.'#top" style="color:var(--mut)">Edit listing</a>'
+             . ' · from '.eur(vestra_from_price($oL)).'</div>';
+    } else {
+      $oName .= '<div class="ahint" style="color:#a9781a">SKU not in catalogue</div>';
+    }
     /* Bu sutun daha once YOKTU: tablo salt-okunurdu ve bir teklifi kabul etmenin
        hicbir yolu yoktu. Satici ucu de katalog urunlerinde calismiyor (seller_uid
        bos). Operator icin yanit formu burada; ayni kodu calistiriyor. */
@@ -3037,14 +3053,22 @@ elseif($tab==='offers'):
   <?= arow([
     '<span class="atag">'.htmlspecialchars(substr($ref,0,10)).'</span>',
     htmlspecialchars(substr($o['timestamp']??'',0,10)),
-    htmlspecialchars($o['product']??'—'),
+    $oName,
     htmlspecialchars($o['sku']??''),
     htmlspecialchars($o['qty']??''),
     eur($o['offer_unit']??0),
     '<b>'.eur($o['offer_total']??0).'</b>',
     '<a href="mailto:'.htmlspecialchars($o['email']??'').'" style="color:var(--acc);font-size:11px">'.htmlspecialchars($o['email']??'').'</a>',
-    match($rSt){'accept'=>abadge('✓ Accepted','#1f9d63'),'decline'=>abadge('✗ Declined','#c0392b'),'counter'=>abadge('↩ Counter','#9a7320'),default=>abadge('⏳ Pending','#888')},
-    ($resp&&$rSt==='counter')?eur($resp['counter_price']??0):'—',
+    /* "Kim kabul etti" ayri bir bilgi: karsi teklifi ALICI e-postadan kabul
+       ettiyse pazarlik onun tarafinda kapandi ve sirada fatura var. Rozetin
+       tek basina "Accepted" demesi, operatorun kendi kabul ettigi bir teklifle
+       ayni gorunuyordu. */
+    match($rSt){'accept'=>abadge('✓ Accepted','#1f9d63').((($resp['accepted_by']??'')==='buyer')?'<div class="ahint" style="color:#1f9d63">by buyer ↩ accepted</div>':''),'decline'=>abadge('✗ Declined','#c0392b'),'counter'=>abadge('↩ Counter','#9a7320'),default=>abadge('⏳ Pending','#888')},
+    /* Anlasilan fiyat kabulden SONRA da gorunsun: eskiden sutun yalnizca
+       'counter' durumunda doluydu, kabul edilir edilmez bosaliyordu -- yani
+       hangi fiyata anlasildigi tam ihtiyac duyulan anda kayboluyordu. */
+    ($resp&&$rSt==='counter')?eur($resp['counter_price']??0)
+      :(($resp&&$rSt==='accept'&&!empty($resp['agreed_unit']))?eur($resp['agreed_unit']).'<div class="ahint">agreed</div>':'—'),
     $respondCell,
   ]) ?>
   <?php endforeach; ?>

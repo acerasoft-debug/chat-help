@@ -412,7 +412,20 @@ if($tab==='overview'){
         }
       }
       elseif($resp['status']==='decline') { $rCell='<span class="status">✗ '.t('Declined').'</span>'; }
-      else { $rCell='<span class="status open">↩ '.t('Counter').': '.eur($resp['counter_price']??0).'/u</span>'; }
+      else {
+        $rCell='<span class="status open">↩ '.t('Counter').': '.eur($resp['counter_price']??0).'/u</span>';
+        /* Panelde KABUL DUGMESI yoktu: karsi teklif mektubu "panelinizden
+           kabul edebilirsiniz" diyordu, alici geliyor ve boyle bir dugme
+           bulamiyordu -- karsi teklifi kabul etmenin hicbir yolu yoktu.
+           Ayni onay ekranina gidiyor (offer-accept.php): tek kod yolu,
+           tek "emin misiniz" adimi. */
+        $accTok = (string)($resp['accept_token'] ?? '');
+        if ($accTok !== '' && (float)($resp['counter_price'] ?? 0) > 0) {
+          $rCell .= '<br><a class="btn btn-p btn-sm" style="margin-top:6px" href="/offer-accept?ref='
+                 . rawurlencode($ref).'&amp;token='.rawurlencode($accTok).'">'
+                 . sprintf(t('Accept %s per unit'), eur($resp['counter_price'])).'</a>';
+        }
+      }
       echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
         '<td>'.htmlspecialchars($o['product']??'').'<div class="hint">'.htmlspecialchars($o['qty']??'').'× SKU '.htmlspecialchars($o['sku']??'').'</div></td>'.
         '<td class="r"><b>'.eur($o['offer_unit']??0).'</b>/u<div class="hint">'.eur($o['offer_total']??0).' total</div></td>'.

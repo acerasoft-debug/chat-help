@@ -180,38 +180,50 @@ function vestra_tpl_offer_new(string $lang, string $sellerName, string $buyerCom
 
 /* Buyer notification when the seller accepts / declines / counters. $counterPrice only
  * used when $action==='counter'. */
-function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice): array {
+function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null): array {
   $Lb = vestra_email_labels($lang);
   $rows = [['label'=>$Lb['product'],'value'=>$product],['label'=>$Lb['ref'],'value'=>$ref]];
   $badge = $Lb['badge_accepted'];
   if ($action === 'decline') $badge = $Lb['badge_declined'];
   if ($action === 'counter') { $badge = $Lb['badge_countered']; $rows[] = ['label'=>$Lb['counter_price'],'value'=>'€'.number_format((float)$counterPrice,2),'strong'=>true]; }
   $opts = ['badge'=>$badge,'rows'=>$rows,'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  /* Karsi teklifte dugme PANELE degil, dogrudan KABUL ekranina gider.
+     Onceden mektup "panelinizden kabul edebilirsiniz" diyordu ama panelde
+     kabul dugmesi YOKTU: alici tarif edilen yere gidiyor ve orada anlatilan
+     seyi bulamiyordu. Tek islevi olan bir mektubun dugmesi o islev olmali. */
+  $accLbl = ['en'=>'Accept €%s/unit','de'=>'€%s/Stück annehmen','fr'=>'Accepter %s €/unité',
+             'it'=>'Accetta €%s/unità','es'=>'Aceptar €%s/unidad'];
+  if ($action === 'counter' && $acceptUrl !== null && $acceptUrl !== '') {
+    $opts['button'] = [
+      'label' => sprintf($accLbl[$lang] ?? $accLbl['en'], number_format((float)$counterPrice, 2)),
+      'url'   => $acceptUrl,
+    ];
+  }
   $T = [
     'en'=>[
       'accept'  => ["VESTRA — your offer on %2\$s was accepted ✓", "Hello %1\$s,\n\nGreat news — the seller accepted your offer. Your invoice will be available in your buyer dashboard shortly."],
       'decline' => ["VESTRA — your offer on %2\$s was declined", "Hello %1\$s,\n\nThe seller declined your offer. You can browse similar listings or message the seller directly from your dashboard."],
-      'counter' => ["VESTRA — counter offer on %2\$s", "Hello %1\$s,\n\nThe seller has countered your offer. You can accept, decline, or reply from your dashboard."],
+      'counter' => ["VESTRA — counter offer on %2\$s", "Hello %1\$s,\n\nThe seller has countered your offer. Accept it with the button below — no sign-in needed — and we will issue the invoice at that price.\n\nTo decline or reply instead, open your dashboard: https://vestrasales.com/buyer?tab=offers"],
     ],
     'de'=>[
       'accept'  => ["VESTRA — Ihr Angebot für %2\$s wurde angenommen ✓", "Hallo %1\$s,\n\ngute Nachricht — der Verkäufer hat Ihr Angebot angenommen. Ihre Rechnung finden Sie in Kürze in Ihrem Käufer-Dashboard."],
       'decline' => ["VESTRA — Ihr Angebot für %2\$s wurde abgelehnt", "Hallo %1\$s,\n\nder Verkäufer hat Ihr Angebot abgelehnt. Sie können ähnliche Angebote durchsuchen oder den Verkäufer direkt aus Ihrem Dashboard kontaktieren."],
-      'counter' => ["VESTRA — Gegenangebot für %2\$s", "Hallo %1\$s,\n\nder Verkäufer hat Ihnen ein Gegenangebot gemacht. Sie können es in Ihrem Dashboard annehmen, ablehnen oder beantworten."],
+      'counter' => ["VESTRA — Gegenangebot für %2\$s", "Hallo %1\$s,\n\nder Verkäufer hat Ihnen ein Gegenangebot gemacht. Sie können es mit der Schaltfläche unten annehmen — ohne Anmeldung — und wir stellen die Rechnung zu diesem Preis aus.\n\nZum Ablehnen oder Antworten öffnen Sie Ihr Dashboard: https://vestrasales.com/buyer?tab=offers"],
     ],
     'fr'=>[
       'accept'  => ["VESTRA — votre offre sur %2\$s a été acceptée ✓", "Bonjour %1\$s,\n\nbonne nouvelle — le vendeur a accepté votre offre. Votre facture sera bientôt disponible dans votre espace acheteur."],
       'decline' => ["VESTRA — votre offre sur %2\$s a été refusée", "Bonjour %1\$s,\n\nle vendeur a refusé votre offre. Vous pouvez parcourir des articles similaires ou contacter directement le vendeur depuis votre espace."],
-      'counter' => ["VESTRA — contre-offre sur %2\$s", "Bonjour %1\$s,\n\nle vendeur vous a fait une contre-offre. Vous pouvez l'accepter, la refuser ou y répondre depuis votre espace."],
+      'counter' => ["VESTRA — contre-offre sur %2\$s", "Bonjour %1\$s,\n\nle vendeur vous a fait une contre-offre. Vous pouvez l'accepter avec le bouton ci-dessous — sans connexion — et nous établirons la facture à ce prix.\n\nPour refuser ou répondre, ouvrez votre espace : https://vestrasales.com/buyer?tab=offers"],
     ],
     'it'=>[
       'accept'  => ["VESTRA — la tua offerta su %2\$s è stata accettata ✓", "Ciao %1\$s,\n\nottima notizia — il venditore ha accettato la tua offerta. La fattura sarà presto disponibile nella tua area acquirente."],
       'decline' => ["VESTRA — la tua offerta su %2\$s è stata rifiutata", "Ciao %1\$s,\n\nil venditore ha rifiutato la tua offerta. Puoi sfogliare articoli simili o scrivere direttamente al venditore dalla tua area."],
-      'counter' => ["VESTRA — controfferta su %2\$s", "Ciao %1\$s,\n\nil venditore ti ha fatto una controfferta. Puoi accettarla, rifiutarla o rispondere dalla tua area."],
+      'counter' => ["VESTRA — controfferta su %2\$s", "Ciao %1\$s,\n\nil venditore ti ha fatto una controfferta. Puoi accettarla con il pulsante qui sotto — senza accedere — e emetteremo la fattura a quel prezzo.\n\nPer rifiutare o rispondere, apri la tua area: https://vestrasales.com/buyer?tab=offers"],
     ],
     'es'=>[
       'accept'  => ["VESTRA — tu oferta sobre %2\$s fue aceptada ✓", "Hola %1\$s,\n\nbuenas noticias — el vendedor aceptó tu oferta. Tu factura estará disponible en breve en tu panel de comprador."],
       'decline' => ["VESTRA — tu oferta sobre %2\$s fue rechazada", "Hola %1\$s,\n\nel vendedor rechazó tu oferta. Puedes explorar artículos similares o escribir directamente al vendedor desde tu panel."],
-      'counter' => ["VESTRA — contraoferta sobre %2\$s", "Hola %1\$s,\n\nel vendedor te ha hecho una contraoferta. Puedes aceptarla, rechazarla o responder desde tu panel."],
+      'counter' => ["VESTRA — contraoferta sobre %2\$s", "Hola %1\$s,\n\nel vendedor te ha hecho una contraoferta. Puedes aceptarla con el botón de abajo — sin iniciar sesión — y emitiremos la factura a ese precio.\n\nPara rechazar o responder, abre tu panel: https://vestrasales.com/buyer?tab=offers"],
     ],
   ];
   $set = $T[$lang] ?? $T['en'];
@@ -1593,4 +1605,32 @@ function vestra_tpl_seller_setup(string $salutation, array $missingShips, array 
 . "VESTRA – vestrasales.com";
 
     return [$subject, $body, []];
+}
+
+/* Alici karsi teklifi KABUL ettiginde ona giden onay. vestra_tpl_offer_response'un
+ * 'accept' metni burada KULLANILAMAZ: o "satici teklifinizi kabul etti" diyor,
+ * burada olan tam tersi -- alici saticinin karsi teklifini kabul etti. Yanlis
+ * yonu anlatan bir onay, alicinin neyi kabul ettiginden emin olmasini engeller;
+ * o yuzden anlasilan fiyat ve toplam mektubun icinde acikca yaziyor. */
+function vestra_tpl_offer_counter_accepted(string $lang, string $buyerName, string $product, string $ref, float $unit, int $qty): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_accepted'],'rows'=>[
+      ['label'=>$Lb['product'],'value'=>$product],
+      ['label'=>$Lb['ref'],'value'=>$ref],
+      ['label'=>$Lb['qty'],'value'=>(string)$qty],
+      ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($unit,2)],
+      ['label'=>$Lb['total'],'value'=>'€'.number_format($unit*$qty,2),'strong'=>true],
+    ],
+    'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  $T = [
+    'en'=>["VESTRA — agreed: %2\$s", "Hello %1\$s,\n\nThank you — you accepted the counter offer, so the price is agreed and this negotiation is closed. We are preparing your invoice at the agreed price and will send it shortly; the goods are reserved for you in the meantime.\n\nIf anything above is not what you expected, reply to this e-mail before you pay."],
+    'de'=>["VESTRA — vereinbart: %2\$s", "Hallo %1\$s,\n\nvielen Dank — Sie haben das Gegenangebot angenommen, der Preis ist damit vereinbart und die Verhandlung abgeschlossen. Wir bereiten Ihre Rechnung zum vereinbarten Preis vor und senden sie in Kürze; die Ware ist währenddessen für Sie reserviert.\n\nSollte oben etwas nicht Ihren Erwartungen entsprechen, antworten Sie bitte auf diese E-Mail, bevor Sie zahlen."],
+    'fr'=>["VESTRA — accord : %2\$s", "Bonjour %1\$s,\n\nmerci — vous avez accepté la contre-offre, le prix est donc convenu et la négociation est close. Nous préparons votre facture au prix convenu et vous l'enverrons sous peu ; la marchandise vous est réservée entre-temps.\n\nSi quelque chose ci-dessus ne correspond pas à vos attentes, répondez à cet e-mail avant de payer."],
+    'it'=>["VESTRA — accordo: %2\$s", "Ciao %1\$s,\n\ngrazie — hai accettato la controfferta, quindi il prezzo è concordato e la trattativa è chiusa. Stiamo preparando la fattura al prezzo concordato e te la invieremo a breve; nel frattempo la merce è riservata per te.\n\nSe qualcosa qui sopra non corrisponde a quanto ti aspettavi, rispondi a questa e-mail prima di pagare."],
+    'es'=>["VESTRA — acuerdo: %2\$s", "Hola %1\$s,\n\ngracias — has aceptado la contraoferta, así que el precio queda acordado y la negociación se cierra. Estamos preparando tu factura al precio acordado y te la enviaremos en breve; mientras tanto la mercancía queda reservada para ti.\n\nSi algo de lo anterior no es lo que esperabas, responde a este correo antes de pagar."],
+  ];
+  [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
+  $subject = sprintf($subjT, $buyerName, $product);
+  $body = sprintf($bodyT, $buyerName, $product) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
 }
