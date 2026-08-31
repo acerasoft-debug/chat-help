@@ -415,9 +415,18 @@ if($tab==='overview'){
           'note'=>eur($o['offer_unit']??0).'/'.t('unit').' × '.$q.' = '.eur($o['offer_total']??0)]];
     if(!$r){ $s[]=['ok'=>false,'at'=>'','title'=>t('Waiting for the seller'),'note'=>t('We normally reply within one business day.')]; return $s; }
     $st=(string)($r['status']??'');
-    if($st==='counter' || (float)($r['counter_price']??0)>0){
-      $s[]=['ok'=>true,'at'=>(string)($r['responded_at']??''),'title'=>t('Seller countered'),
-            'note'=>eur($r['counter_price']??0).'/'.t('unit').' × '.$q.' = '.eur((float)($r['counter_price']??0)*$q)];
+    /* Butun turlar, sirasiyla ve KIMIN verdigiyle. Eskiden yalnizca son
+       karsi teklif gorunuyordu; uc turluk bir pazarligin ilk ikisi
+       kayboluyordu ve alici hangi rakamda nerede oldugunu izleyemiyordu. */
+    $rounds=(array)($r['counters']??[]);
+    if(!$rounds && (float)($r['counter_price']??0)>0){
+      $rounds=[['by'=>(string)($r['counter_by']??'seller'),'price'=>(float)$r['counter_price'],'at'=>(string)($r['responded_at']??'')]];
+    }
+    foreach($rounds as $i=>$c){
+      $mine=(($c['by']??'seller')==='buyer');
+      $s[]=['ok'=>true,'at'=>(string)($c['at']??''),
+            'title'=>($mine?t('You countered'):t('Seller countered')).' · '.t('round').' '.($i+1).'/'.VESTRA_OFFER_MAX_COUNTERS,
+            'note'=>eur($c['price']??0).'/'.t('unit').' × '.$q.' = '.eur((float)($c['price']??0)*$q)];
     }
     if($st==='accept'){
       $by=(($r['accepted_by']??'')==='buyer')?t('You accepted the counter offer'):t('Your offer was accepted');
@@ -431,20 +440,35 @@ if($tab==='overview'){
       $by=(($r['declined_by']??'')==='buyer')?t('You declined the counter offer'):t('The seller declined');
       $s[]=['ok'=>true,'at'=>(string)($r['declined_at']??$r['responded_at']??''),'title'=>$by,'note'=>t('This negotiation is closed.')];
     } elseif($st==='counter'){
-      $s[]=['ok'=>false,'at'=>'','title'=>t('Waiting for your answer'),'note'=>t('Accept or decline the counter offer below.')];
+      /* Sira kimde: alicinin kendi karsi teklifinden sonra beklemesi
+         gerektigini soylemeyen bir cizelge, ona hala bir dugme aramasi
+         gerektigini dusundururdu. */
+      $left=vestra_offer_counters_left($r);
+      $s[]=vestra_offer_turn($r)==='buyer'
+        ? ['ok'=>false,'at'=>'','title'=>t('Waiting for your answer'),
+           'note'=>$left>0 ? t('Accept, decline, or send your own counter offer below.').' <span class="hint">('.sprintf(t('%d counter offer(s) left'),$left).')</span>'
+                           : t('The counter limit is reached — you can accept or decline.')]
+        : ['ok'=>false,'at'=>'','title'=>t('Waiting for the seller'),'note'=>t('You countered — we will come back with their answer.')];
     }
     return $s;
   };
 
   /* Karsi teklif dugmeleri — kart ve detayda AYNI kod. */
   $ctaFor = function(string $ref, ?array $r) {
-    if(!$r || ($r['status']??'')!=='counter') return '';
+    /* Dugmeler yalnizca SIRA ALICIDAYKEN. Kendi karsi teklifini
+       bekleyen aliciya "kabul et" gostermek, kendi rakamini kendine
+       onaylatmak olurdu. */
+    if(!$r || vestra_offer_turn($r)!=='buyer') return '';
     $tok=(string)($r['accept_token']??''); $cp=(float)($r['counter_price']??0);
     if($tok==='' || $cp<=0) return '';
     $u='/offer-accept?ref='.rawurlencode($ref).'&amp;token='.rawurlencode($tok);
-    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+    $h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
       .'<a class="btn btn-p btn-sm" href="'.$u.'">'.sprintf(t('Accept %s per unit'), eur($cp)).'</a>'
-      .'<a class="btn btn-o btn-sm" href="'.$u.'">'.t('Decline').'</a></div>';
+      .'<a class="btn btn-o btn-sm" href="'.$u.'&amp;intent=decline">'.t('Decline').'</a>';
+    if(vestra_offer_counters_left($r)>0){
+      $h.='<a class="btn btn-o btn-sm" href="'.$u.'#counter">'.t('Counter offer').'</a>';
+    }
+    return $h.'</div>';
   };
 
   $badge = function(?array $r) {
@@ -452,7 +476,10 @@ if($tab==='overview'){
     return match((string)($r['status']??'')){
       'accept'  => '<span class="status offers">✓ '.t('Accepted').'</span>',
       'decline' => '<span class="status">✗ '.t('Declined').'</span>',
-      'counter' => '<span class="status open">↩ '.t('Counter').': '.eur($r['counter_price']??0).'/u</span>',
+      'counter' => '<span class="status open">↩ '
+                   .((($r['counter_by']??'seller')==='buyer') ? t('Your counter') : t('Counter'))
+                   .': '.eur($r['counter_price']??0).'/u</span>'
+                   .'<div class="hint">'.vestra_offer_counter_count($r).'/'.VESTRA_OFFER_MAX_COUNTERS.' '.t('rounds').'</div>',
       default   => '<span class="status open">'.t('Pending seller').'</span>',
     };
   };

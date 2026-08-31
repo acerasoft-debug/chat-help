@@ -3137,7 +3137,14 @@ elseif($tab==='offers'):
     /* Bu sutun daha once YOKTU: tablo salt-okunurdu ve bir teklifi kabul etmenin
        hicbir yolu yoktu. Satici ucu de katalog urunlerinde calismiyor (seller_uid
        bos). Operator icin yanit formu burada; ayni kodu calistiriyor. */
-    $canRespond = ($rSt === 'pending');
+    /* Eskiden yalnizca 'pending' yanitlanabiliyordu: bir kez karsi teklif
+       verilince satir salt-okunur oluyordu ve pazarlik tek turda bitiyordu.
+       Artik sira SENDEYSE (henuz yanit yok ya da son karsi teklifi ALICI
+       verdi) yine yanit verilebilir; karsi teklif dugmesi ise tur hakki
+       kalmissa cikar. */
+    $oTurn      = vestra_offer_turn($resp);
+    $oLeft      = vestra_offer_counters_left($resp);
+    $canRespond = ($oTurn === 'seller');
     $respondCell = $canRespond ? (
       '<form method="post" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">'
       .csrfField()
@@ -3147,10 +3154,16 @@ elseif($tab==='offers'):
       .'onclick="return confirm(\'Accept offer '.htmlspecialchars($ref, ENT_QUOTES).'? The buyer is emailed immediately.\')">✓ Accept</button>'
       .'<button class="abtn" name="response" value="decline" type="submit" style="color:var(--bad);border-color:rgba(239,154,154,.3)" '
       .'onclick="return confirm(\'Decline offer '.htmlspecialchars($ref, ENT_QUOTES).'?\')">✗</button>'
-      .'<input name="counter_price" placeholder="€/u" inputmode="decimal" style="width:62px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px">'
-      .'<button class="abtn" name="response" value="counter" type="submit" style="color:#9a7320;border-color:rgba(154,115,32,.4)">↩</button>'
+      /* Tur hakki bittiginde karsi teklif alani HIC cikmaz: gosterilip
+         reddedilen bir alan, olmayan bir alandan kotudur -- operator
+         fiyati yazar, basar, ve neden olmadigini aramak zorunda kalir. */
+      .($oLeft > 0
+        ? '<input name="counter_price" placeholder="€/u" inputmode="decimal" style="width:62px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12px">'
+          .'<button class="abtn" name="response" value="counter" type="submit" style="color:#9a7320;border-color:rgba(154,115,32,.4)" title="Counter offer — '.$oLeft.' of '.VESTRA_OFFER_MAX_COUNTERS.' left">↩ '.$oLeft.'</button>'
+        : '<span class="ahint" title="Counter limit reached">↩ '.VESTRA_OFFER_MAX_COUNTERS.'/'.VESTRA_OFFER_MAX_COUNTERS.'</span>')
       .'</form>'
-    ) : '<span class="ahint">'.htmlspecialchars(substr((string)($resp['responded_at']??''),0,10)).'</span>';
+    ) : '<span class="ahint">'.htmlspecialchars(substr((string)($resp['responded_at']??''),0,10))
+        .($oTurn === 'buyer' ? '<div class="ahint" style="color:#9a7320">waiting on buyer</div>' : '').'</span>';
     /* Kabul edilmis teklifin faturasi BURADAN da acilabilsin. Onceden fatura
        yalnizca Orders sekmesindeydi; teklif uzerinden gelen bir satista operator
        "kabul ettim, belge nerede" sorusuna sekme degistirerek cevap ariyordu.
@@ -3176,7 +3189,14 @@ elseif($tab==='offers'):
        ettiyse pazarlik onun tarafinda kapandi ve sirada fatura var. Rozetin
        tek basina "Accepted" demesi, operatorun kendi kabul ettigi bir teklifle
        ayni gorunuyordu. */
-    match($rSt){'accept'=>abadge('✓ Accepted','#1f9d63').((($resp['accepted_by']??'')==='buyer')?'<div class="ahint" style="color:#1f9d63">by buyer ↩ accepted</div>':''),'decline'=>abadge('✗ Declined','#c0392b'),'counter'=>abadge('↩ Counter','#9a7320'),default=>abadge('⏳ Pending','#888')},
+    match($rSt){
+      'accept'=>abadge('✓ Accepted','#1f9d63').((($resp['accepted_by']??'')==='buyer')?'<div class="ahint" style="color:#1f9d63">by buyer ↩ accepted</div>':''),
+      'decline'=>abadge('✗ Declined','#c0392b').((($resp['declined_by']??'')==='buyer')?'<div class="ahint">by buyer</div>':''),
+      /* Karsi teklifi KIMIN verdigi, sirada kimin oldugunu belirliyor --
+         rozetin tek basina "Counter" demesi iki durumu ayirt etmiyordu. */
+      'counter'=>abadge((($resp['counter_by']??'seller')==='buyer'?'↩ Buyer countered':'↩ Countered'),'#9a7320')
+                 .'<div class="ahint">'.vestra_offer_counter_count($resp).'/'.VESTRA_OFFER_MAX_COUNTERS.' rounds</div>',
+      default=>abadge('⏳ Pending','#888')},
     /* Anlasilan fiyat kabulden SONRA da gorunsun: eskiden sutun yalnizca
        'counter' durumunda doluydu, kabul edilir edilmez bosaliyordu -- yani
        hangi fiyata anlasildigi tam ihtiyac duyulan anda kayboluyordu. */

@@ -33,8 +33,14 @@ if ($ref !== '' && $token !== '') {
     $agreed = (float)($resp['counter_price'] ?? 0);
 }
 
-$declined = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$declined  = false;
+$countered = false;
+$left      = vestra_offer_counters_left($resp);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'counter') {
+    $r = vestra_offer_counter_by_buyer($ref, $token, (float)str_replace(',', '.', (string)($_POST['price'] ?? '')));
+    if ($r['ok']) { $countered = true; $agreed = (float)$r['unit']; $left = (int)$r['left']; }
+    else          { $err = (string)$r['error']; }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* Kabul VE RED ayni ekrandan. Yalnizca kabul dugmesi koymak, "hayir"
        demek isteyen aliciyi cevapsiz birakirdi -- ve cevapsiz bir pazarlik
        operatorun de bekleyip beklemeyecegini bilmedigi bir pazarliktir. */
@@ -63,7 +69,20 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
 ?>
 <div class="wrap" style="max-width:560px">
   <div style="padding:60px 20px">
-    <?php if ($declined): ?>
+    <?php if ($countered): ?>
+      <div style="text-align:center">
+        <div style="font-size:44px;margin-bottom:16px">↩</div>
+        <h2 style="margin:0 0 10px"><?= t('Counter offer sent') ?></h2>
+        <p style="color:var(--mut)">
+          <?= sprintf(t('We have passed %s per unit to the seller and will come back to you with their answer.'), '<b>'.eur($agreed).'</b>') ?>
+          <br><?= $left > 0
+                ? sprintf(t('You have %d more counter offer(s) in this negotiation.'), $left)
+                : t('That was the last counter offer available — from here it can only be accepted or declined.') ?>
+        </p>
+        <div style="margin-top:22px"><a class="btn btn-o" href="/buyer?tab=offers"><?= t('Open my dashboard') ?></a></div>
+      </div>
+
+    <?php elseif ($declined): ?>
       <div style="text-align:center">
         <div style="font-size:44px;margin-bottom:16px">✗</div>
         <h2 style="margin:0 0 10px"><?= t('Counter offer declined') ?></h2>
@@ -141,6 +160,27 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
             onclick="return confirm('<?= htmlspecialchars(t('Decline this counter offer? The negotiation closes and nothing is reserved.'), ENT_QUOTES) ?>')"><?= t('Decline') ?></button>
         <?php endif; ?>
       </form>
+      <?php /* UCUNCU secenek: alici da karsi teklif verebilir. Yalnizca
+               kabul/ret sunmak, pazarligi tek hamlede bitmeye zorluyordu --
+               oysa taraflar arasi mesafe cogu zaman bir tur daha ile
+               kapaniyor. Hak dolmussa form HIC cikmaz: gosterilip
+               reddedilen bir alan, olmayan bir alandan kotudur. */
+        if ($left > 0): ?>
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--line)">
+        <p style="text-align:center;color:var(--mut);font-size:13.5px;margin:0 0 10px">
+          <?= t('Neither price works? Send your own counter offer.') ?>
+          <span class="hint">(<?= sprintf(t('%d left in this negotiation'), $left) ?>)</span>
+        </p>
+        <form method="post" style="display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
+          <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+          <input type="hidden" name="do" value="counter">
+          <input name="price" required inputmode="decimal" placeholder="<?= htmlspecialchars(t('€ per unit')) ?>"
+            style="width:130px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:14px">
+          <button class="btn btn-o" type="submit"><?= t('Send counter offer') ?></button>
+        </form>
+      </div>
+      <?php endif; ?>
       <?php /* Urun sayfasi buradan da erisilebilir olmali: alici "neydi bu"
                diye bakmadan karar vermek zorunda kalmasin. */
         $__l = vestra_listing_by_sku($offerRow['sku'] ?? '');

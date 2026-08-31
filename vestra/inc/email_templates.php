@@ -180,7 +180,7 @@ function vestra_tpl_offer_new(string $lang, string $sellerName, string $buyerCom
 
 /* Buyer notification when the seller accepts / declines / counters. $counterPrice only
  * used when $action==='counter'. */
-function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null, ?string $productUrl = null): array {
+function vestra_tpl_offer_response(string $lang, string $action, string $buyerName, string $product, string $ref, ?float $counterPrice, ?string $acceptUrl = null, ?string $productUrl = null, int $countersLeft = 0): array {
   $Lb = vestra_email_labels($lang);
   $rows = [['label'=>$Lb['product'],'value'=>$product],['label'=>$Lb['ref'],'value'=>$ref]];
   $badge = $Lb['badge_accepted'];
@@ -247,6 +247,23 @@ function vestra_tpl_offer_response(string $lang, string $action, string $buyerNa
   [$subjT,$bodyT] = $set[$action] ?? $set['decline'];
   $subject = sprintf($subjT, $buyerName, $product);
   $body = sprintf($bodyT, $buyerName, $product);
+  /* Karsi teklif verme hakki: mektupta yaziyor. Alici sayfaya gidip
+     "cevap ver" dugmesini aradiginda hakkinin bittigini ogrenirse, bu
+     verilmemis bir sozun geri alinmasi gibi okunur. */
+  if ($action === 'counter') {
+    $cl = ['en'=>["You can also send a counter offer of your own — %d left in this negotiation.",
+                  "This is the last round: it can now only be accepted or declined."],
+           'de'=>["Sie können auch ein eigenes Gegenangebot senden — noch %d in dieser Verhandlung.",
+                  "Dies ist die letzte Runde: es kann jetzt nur noch angenommen oder abgelehnt werden."],
+           'fr'=>["Vous pouvez aussi envoyer votre propre contre-offre — il en reste %d dans cette négociation.",
+                  "C'est le dernier tour : il ne reste plus qu'à accepter ou refuser."],
+           'it'=>["Puoi anche inviare una tua controfferta — ne restano %d in questa trattativa.",
+                  "Questo è l'ultimo round: ora si può solo accettare o rifiutare."],
+           'es'=>["También puedes enviar tu propia contraoferta — quedan %d en esta negociación.",
+                  "Esta es la última ronda: ahora solo se puede aceptar o rechazar."]];
+    $set2 = $cl[$lang] ?? $cl['en'];
+    $body .= "\n\n" . ($countersLeft > 0 ? sprintf($set2[0], $countersLeft) : $set2[1]);
+  }
   if ($productUrl !== null && $productUrl !== '') {
     $body .= "\n\n" . sprintf($prodLine[$lang] ?? $prodLine['en'], $productUrl);
   }
@@ -1653,5 +1670,43 @@ function vestra_tpl_offer_counter_accepted(string $lang, string $buyerName, stri
   [$subjT,$bodyT] = $T[$lang] ?? $T['en'];
   $subject = sprintf($subjT, $buyerName, $product);
   $body = sprintf($bodyT, $buyerName, $product) . "\n\n—\nVESTRA · vestrasales.com";
+  return [$subject, $body, $opts];
+}
+
+/* Alici karsi teklif VERDIGINDE ona giden onay. Ne yaptigini ve simdi ne
+ * bekledigini yaziyor; ayrica KALAN TUR sayisini, cunku pazarligin sonsuz
+ * olmadigini sonradan ogrenmek -- hakki bittiginde -- kotu bir surpriz olur.
+ * Fiyat ve toplam mektubun icinde: alici neyi teklif ettiginden emin olmali. */
+function vestra_tpl_offer_buyer_countered(string $lang, string $buyerName, string $product, string $ref, float $unit, int $qty, int $left, string $productUrl = ''): array {
+  $Lb = vestra_email_labels($lang);
+  $opts = ['badge'=>$Lb['badge_countered'],'rows'=>[
+      ['label'=>$Lb['product'],'value'=>$product],
+      ['label'=>$Lb['ref'],'value'=>$ref],
+      ['label'=>$Lb['qty'],'value'=>(string)$qty],
+      ['label'=>$Lb['unit_price'],'value'=>'€'.number_format($unit,2),'strong'=>true],
+      ['label'=>$Lb['total'],'value'=>'€'.number_format($unit*$qty,2)],
+    ],
+    'button'=>['label'=>$Lb['btn_buyer_offers'],'url'=>'https://vestrasales.com/buyer?tab=offers']];
+  $T = [
+    'en'=>["VESTRA — your counter offer on %2\$s", "Hello %1\$s,\n\nThank you — your counter offer has been sent to the seller and we will come back to you with their answer.",
+           "You have %d more counter offer(s) in this negotiation.", "This was the last counter offer available in this negotiation — from here it can only be accepted or declined."],
+    'de'=>["VESTRA — Ihr Gegenangebot für %2\$s", "Hallo %1\$s,\n\nvielen Dank — Ihr Gegenangebot wurde an den Verkäufer gesendet und wir melden uns mit seiner Antwort.",
+           "Sie haben noch %d Gegenangebot(e) in dieser Verhandlung.", "Das war das letzte mögliche Gegenangebot — ab jetzt kann nur noch angenommen oder abgelehnt werden."],
+    'fr'=>["VESTRA — votre contre-offre sur %2\$s", "Bonjour %1\$s,\n\nmerci — votre contre-offre a été transmise au vendeur et nous reviendrons vers vous avec sa réponse.",
+           "Il vous reste %d contre-offre(s) dans cette négociation.", "C'était la dernière contre-offre possible — désormais, il ne reste qu'à accepter ou refuser."],
+    'it'=>["VESTRA — la tua controfferta su %2\$s", "Ciao %1\$s,\n\ngrazie — la tua controfferta è stata inviata al venditore e ti faremo sapere la sua risposta.",
+           "Ti restano %d controfferta/e in questa trattativa.", "Questa era l'ultima controfferta disponibile — da qui si può solo accettare o rifiutare."],
+    'es'=>["VESTRA — tu contraoferta sobre %2\$s", "Hola %1\$s,\n\ngracias — tu contraoferta se ha enviado al vendedor y te informaremos de su respuesta.",
+           "Te quedan %d contraoferta(s) en esta negociación.", "Esta era la última contraoferta disponible — a partir de ahora solo se puede aceptar o rechazar."],
+  ];
+  $set = $T[$lang] ?? $T['en'];
+  $subject = sprintf($set[0], $buyerName, $product);
+  $body = sprintf($set[1], $buyerName, $product)
+        . "\n\n" . ($left > 0 ? sprintf($set[2], $left) : $set[3]);
+  if ($productUrl !== '') {
+    $pl = ['en'=>"See the product: %s",'de'=>"Zum Produkt: %s",'fr'=>"Voir le produit : %s",'it'=>"Vedi il prodotto: %s",'es'=>"Ver el producto: %s"];
+    $body .= "\n\n" . sprintf($pl[$lang] ?? $pl['en'], $productUrl);
+  }
+  $body .= "\n\n—\nVESTRA · vestrasales.com";
   return [$subject, $body, $opts];
 }
