@@ -1525,3 +1525,63 @@ function vestra_tpl_account_open_doc(string $salutation, string $signer = 'Marco
 
     return [$subject, $body, []];
 }
+
+/* Satici kurulum mektubu: gonderim yeri + belgeler + Stripe odeme hesabi.
+ * Uc konu TEK mektupta, cunku uc ayri mektup ayni kisiye ayni gun ucuncusunde
+ * spam olarak isaretlenir; ama yalnizca GERCEKTEN eksik olanlar yaziliyor --
+ * yuklenmis bir belgeyi tekrar istemek, platformun kendi kaydini okumadigini
+ * gosterir. Bolum numaralari da eksik sayisina gore uretiliyor; "3)" ile
+ * baslayan bir mektup, iki bolumun neden atlandigini sordurur.
+ * $missingShips: gonderim yeri girilmemis ilan basliklari.
+ * $missingDocs : hala yuklenmemis belge etiketleri.
+ * $needStripe  : Connect kurulumu bitmemis mi. */
+function vestra_tpl_seller_setup(string $salutation, array $missingShips, array $missingDocs, bool $needStripe, string $signer = 'Marco Bellini'): array {
+    $blocks = [];
+
+    if ($missingShips) {
+        $lines = '';
+        foreach ($missingShips as $t) $lines .= "  \xc2\xb7 " . $t . "\n";
+        $blocks[] = "Where the goods ship from\n\n"
+. "Every listing has to state the country the goods actually leave from. Buyers read that line to work out import duty and delivery time, so it needs to be the dispatch location — not the address the company is registered at, if the two are different.\n\n"
+. "This is missing on:\n\n"
+. $lines . "\n"
+. "You can enter it yourself under https://vestrasales.com/seller?tab=listings — open the listing and fill in \"Ships from\" — or simply reply to this e-mail with the country and we will set it for you. It is a required field on new listings from now on.";
+    }
+
+    if ($missingDocs) {
+        $lines = '';
+        foreach ($missingDocs as $d) $lines .= "  \xc2\xb7 " . $d . "\n";
+        $blocks[] = "Identity and business documents\n\n"
+. "These are still outstanding on your account:\n\n"
+. $lines . "\n"
+. "Please upload them at https://vestrasales.com/seller?tab=kyc — sign in, open the Verification section and attach the files (PDF, JPG, PNG or WebP, up to 10 MB each). The authorization letter is only needed if you are not the sole director of the company.\n\n"
+. "Buyers on VESTRA order from a seller they have not met, on the platform's word that the business behind the listing is real. That is what these documents are for.";
+    }
+
+    if ($needStripe) {
+        $blocks[] = "Payout account (Stripe)\n\n"
+. "Orders can be paid through escrow: the buyer's money is held by Stripe and released to you once delivery is confirmed — automatically after two business days if no issue is reported. For that you need a connected payout account, and until you have one the escrow option does not appear at checkout on your products at all.\n\n"
+. "Set it up at https://vestrasales.com/seller?tab=profile — \"Set up Stripe payouts\". Stripe verifies your identity and bank details directly; VESTRA never sees them. Bank transfer against an invoice keeps working without it, but escrow does not.";
+    }
+
+    /* Hicbir eksik yoksa mektubun konusu kalmiyor. Cagiran taraf bunu kontrol
+       etmeli; yine de burada bos govde uretmek yerine acikca belli olsun. */
+    if (!$blocks) return ['', '', []];
+
+    $n = 0; $mid = '';
+    foreach ($blocks as $b) { $n++; $mid .= $n . ") " . $b . "\n\n"; }
+
+    $subject = count($blocks) === 1
+        ? 'VESTRA seller account — one thing outstanding'
+        : 'VESTRA seller account — ' . ($n === 2 ? 'two' : 'three') . ' things outstanding';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for listing on VESTRA. Your seller account is open and your products are live. A few things are still outstanding before the account is complete.\n\n"
+. $mid
+. "If anything here is unclear, just reply to this e-mail.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}

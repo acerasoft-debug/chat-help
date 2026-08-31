@@ -95,11 +95,11 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>)."
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini). to boş = operatör test kutusu"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu"
         required: false
         default: "send=false"
 
@@ -1031,6 +1031,84 @@ jobs:
                 ? vestra_tpl_prospect_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer)
                 : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
+            } elseif ($letter === 'seller_setup') {
+              /* Saticiya: gonderim yeri + belgeler + Stripe odeme hesabi.
+                 Uc bolumun tamami CANLI VERIDEN cikariliyor, elle yazilmiyor --
+                 yuklenmis bir belgeyi ya da doldurulmus bir ilani tekrar
+                 istemek, platformun kendi kaydini okumadigini gosterir ve
+                 mektubun geri kalanina duyulan guveni de goturur. */
+              /* 'for' = mektubun VERISININ geldigi satici; 'to' = mektubun
+                 GIDECEGI adres. Ikisi ayri olmali, yoksa operatore test
+                 gonderirken mektup operatorun kendi hesabindan uretilir ve
+                 test edilen sey gercek mektup olmaz. Bos birakilirsa alicinin
+                 kendi hesabi kullanilir (normal durum). */
+              $forNeedle = strtolower(trim($E('for')));
+              if (str_starts_with($forNeedle, 'account:')) $forNeedle = trim(substr($forNeedle, 8));
+              if ($forNeedle !== '') {
+                $fh = [];
+                foreach (auth_accounts() as $a) {
+                  $hay = strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? ''));
+                  if (str_contains($hay, $forNeedle)) $fh[] = $a;
+                }
+                if (count($fh) !== 1) {
+                  fwrite(STDERR, "for={$forNeedle} -> ".count($fh)." eslesme\n");
+                  foreach ($fh as $h) fwrite(STDERR, "  ".$mask((string)($h['email'] ?? ''))." (".($h['type'] ?? '?').")\n");
+                  exit(1);
+                }
+                $acc = $fh[0];
+                echo "NOT: mektup ".$mask((string)($acc['email'] ?? ''))." hesabinin verisinden uretiliyor, "
+                   . "alici ".$mask($to)."\n";
+              }
+              if (!$acc) { fwrite(STDERR, "hesap bulunamadi: ".$mask($to)."\n"); exit(1); }
+              if (($acc['type'] ?? '') !== 'seller') {
+                fwrite(STDERR, "bu hesap satici degil (".($acc['type'] ?? '?').") — seller_setup yalnizca saticilara\n"); exit(1);
+              }
+              $uid = (string)($acc['id'] ?? '');
+              /* Hitap da SATICIDAN gelmeli: 'to' operatorun test kutusu
+                 oldugunda yukarida operatorun adiyla kurulmus olurdu. */
+              if (trim($E('salutation')) === '' && trim((string)($acc['name'] ?? '')) !== '') {
+                $salutation = 'Dear '.trim((string)$acc['name']);
+              }
+
+              /* 1) Gonderim yeri girilmemis ILANLAR. Yalnizca bu saticinin
+                    ilanlari; silinmis/reddedilmis olanlar disarida. */
+              $missShip = [];
+              foreach (vestra_listings() as $p) {
+                if ((string)($p['seller_uid'] ?? '') !== $uid) continue;
+                if (in_array((string)($p['status'] ?? 'approved'), ['rejected','deleted'], true)) continue;
+                if (trim((string)($p['ships_from'] ?? '')) !== '') continue;
+                /* Marka adi urun adinin ICINDE geciyorsa tekrar yazma:
+                   vestra_product_label yalnizca BASTA arar, o yuzden
+                   "Levi's Vintage Levi's 501 Jeans" gibi bir baslik cikiyordu. */
+                $pb = trim((string)($p['brand'] ?? '')); $pn = trim((string)($p['name'] ?? ''));
+                $missShip[] = ($pb !== '' && stripos($pn, $pb) !== false) ? $pn : vestra_product_label($pb, $pn);
+              }
+
+              /* 2) Hala YUKLENMEMIS belgeler. 'uploaded' olan istenmez: o
+                    operatorun incelemesini bekliyor, sahibinin yapacagi bir
+                    sey kalmadi. */
+              if (!function_exists('vestra_doc_type_label')) require_once $doc."/inc/email_templates.php";
+              $missDocs = [];
+              foreach ((array)($acc['doc_requests'] ?? []) as $r) {
+                $st2 = strtolower((string)($r['status'] ?? 'requested'));
+                if (in_array($st2, ['uploaded','approved','waived'], true)) continue;
+                $missDocs[] = vestra_doc_type_label('en', (string)($r['type'] ?? ''));
+              }
+
+              /* 3) Stripe: hem hesap baglanmis hem tahsilat acik olmali.
+                    Yalnizca stripe_account_id'ye bakmak yetmez — yarim kalmis
+                    bir onboarding'de o alan dolu ama odeme yine gelmiyor. */
+              $needStripe = empty($acc['stripe_account_id']) || empty($acc['escrow_ready']);
+
+              echo "satici : ".$mask($to)."  (".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
+              echo "gonderim yeri eksik ilan : ".count($missShip)."\n";
+              foreach ($missShip as $t) echo "   - ".$t."\n";
+              echo "yuklenmemis belge        : ".count($missDocs)." (".implode(', ', $missDocs).")\n";
+              echo "stripe odeme hesabi      : ".($needStripe ? 'EKSIK' : 'hazir')."\n";
+              if (!$missShip && !$missDocs && !$needStripe) {
+                echo "\nEksik yok — yazilacak bir sey olmadigi icin mektup GONDERILMEDI.\n"; exit(0);
+              }
+              [$subject, $body, $opts] = vestra_tpl_seller_setup($salutation, $missShip, $missDocs, $needStripe, $signer);
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
                  ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan
