@@ -704,7 +704,7 @@ jobs:
               $testTo   = trim($E('test'));
               $doSend   = strtolower($E('send')) === 'true';
 
-              $targets = []; $upWait = 0; $pendMail = 0; $noFlag = 0; $recent = 0; $blocked = [];
+              $targets = []; $upWait = 0; $pendMail = 0; $noFlag = 0; $recent = 0; $blocked = []; $kybWait = 0; $otherSt = 0;
               foreach (auth_accounts() as $a) {
                 $st = (string)($a['status'] ?? '');
                 if ($st === 'pending_email') { $pendMail++; continue; }
@@ -719,7 +719,13 @@ jobs:
                   if ($docSt === '') $docSt = $s2;
                 }
                 if ($docSt === 'uploaded') { $upWait++; echo "  BELGE YUKLU — ONAY SENDE: ".$mask((string)($a['email'] ?? ''))."  (".($a['type'] ?? '?').")\n"; continue; }
-                if ($docSt !== 'requested') continue;
+                /* Belge ONAYLI ama hesap hala pending: eksik olan tek sey senin
+                   '✓ Approve KYB' tiklaman. Bu satir olmadan boyle bir hesap
+                   RAPORDAN SESSIZCE dusuyordu (31 Agu 2026: 1/1 approved bir
+                   alici, ilk kuru kosuda hicbir sayida gorunmedi). Musteriye
+                   yazacak bir sey yok — is operatorde, o yuzden isimle yaziliyor. */
+                if ($docSt === 'approved') { $kybWait++; echo "  BELGE ONAYLI, KYB BEKLIYOR — panelden '✓ Approve KYB': ".$mask((string)($a['email'] ?? ''))."  (".($a['type'] ?? '?').")\n"; continue; }
+                if ($docSt !== 'requested') { $otherSt++; echo "  DURUM '{$docSt}' — bu mektup uymaz: ".$mask((string)($a['email'] ?? ''))."\n"; continue; }
                 if (vestra_lead_is_blocked(['company'=>(string)($a['company'] ?? ''), 'email'=>(string)($a['email'] ?? ''), 'website'=>(string)($a['website'] ?? '')])) {
                   $blocked[] = $mask((string)($a['email'] ?? '')); continue;
                 }
@@ -746,6 +752,8 @@ jobs:
 
               echo "\nhedef (belge yuklememis — mektup gidecek): ".count($targets)."\n";
               echo "belge yuklu, SENIN onayini bekleyen (haric): {$upWait}\n";
+              echo "belge ONAYLI, KYB tiklamasi bekleyen (haric): {$kybWait}\n";
+              echo "belgesi reddedilmis/baska durum (haric)    : {$otherSt}\n";
               echo "e-posta dogrulamasi bekleyen (haric)       : {$pendMail}\n";
               echo "eski kayit, bayraksiz — fiyat zaten acik   : {$noFlag}\n";
               echo "son {$redoDays} gunde zaten durtulmus (haric)   : {$recent}\n";
