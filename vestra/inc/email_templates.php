@@ -1461,3 +1461,50 @@ function vestra_tpl_docs_women(string $salutation, string $missingBrand, array $
 
     return [$subject, $body, []];
 }
+
+/* KAYITSIZ adaya cevap: sordugu grup katalogda YOKSA once bunu soyler, sonra
+ * gercekten olani listeler. docs_women'in kardesi ama BELGE TALEBI YOK —
+ * henuz hesabi olmayan birine "belgeni yukle" demek, olmayan bir panele
+ * yonlendirmek olurdu; onun yerine kayit daveti var.
+ *
+ * PDF eki burada kural ihlali DEGIL: bu liste zaten hesabi olmayan adaya
+ * cevap verebilmek icin uretildi ve satici/tedarikci adi tasimiyor
+ * (bkz. wholesale-list.php basligi). Fiyat kapisi PANELDEKI listeler icin. */
+function vestra_tpl_prospect_women(string $salutation, string $missingBrand, array $items,
+                                   bool $attached = false, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Women\'s range, availability and B2B terms — VESTRA';
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry, and for setting out your requirements so clearly.\n\n";
+
+    if ($missingBrand !== '') {
+        $body .= "First, the direct answer to your main question: we do not have women's {$missingBrand} available at the moment. The {$missingBrand} stock you saw on the platform is menswear. I would rather tell you that plainly than let you register on the expectation of something we cannot currently supply.\n\n";
+    }
+
+    if ($items) {
+        $body .= "What we do have in womenswear today:\n";
+        foreach ($items as $it) {
+            $label = trim((string)($it['label'] ?? ''));
+            $moq   = (int)($it['moq'] ?? 0);
+            $body .= "· ".$label.($moq > 0 ? "  — from ".$moq." pcs" : "")."\n"
+                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        }
+        $body .= "\n";
+    }
+
+    if ($attached) {
+        $body .= "Attached you will find our complete women's line sheet as a PDF: photographs, article numbers, sizes with stock, minimum quantities and wholesale prices — the document you asked for.\n\n";
+    }
+
+    if ($missingBrand !== '') {
+        $body .= "On the {$missingBrand} womenswear itself: tell me exactly what you are looking for — the categories from your list, the quantities per style and your target season — and I will take it up directly with our suppliers and come back to you with what can actually be sourced, at what price and in what lead time. A concrete request travels much further with a supplier than a general one.\n\n";
+    }
+
+    $body .= "On terms: we work B2B, and for larger volumes a discount on the listed wholesale prices is available. It is agreed per order rather than published, so send me the articles and quantities and you will get a firm written offer.\n\n"
+. "When you are ready to order, registration takes a few minutes at https://vestrasales.com/register — you will be asked for your trade documentation and your VAT number (for Szykszok that is your NIP in its EU form). Once the account is verified, the live price tiers and the full line sheet in PDF and Excel are available in your account at any time.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}

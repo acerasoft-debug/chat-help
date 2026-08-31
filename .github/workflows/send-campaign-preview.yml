@@ -867,7 +867,7 @@ jobs:
               [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation, $signer);
             } elseif ($letter === 'docs_short') {
               [$subject, $body, $opts] = vestra_tpl_docs_short($salutation, $signer);
-            } elseif ($letter === 'docs_women') {
+            } elseif ($letter === 'docs_women' || $letter === 'prospect_women') {
               /* Urun listesi CANLI KATALOGDAN; mektup sablonu ad uydurmuyor.
                  Kategori suzgeci alt dize: "Women" uc kadin kategorisini birden
                  alir. Hicbir sey bulunmazsa is DURUR — "asagidaki urunler" deyip
@@ -904,7 +904,12 @@ jobs:
                 echo "ek (PDF)    : ".strlen($pdfBytes)." bayt -> ".basename($pdfPath)."\n";
               }
 
-              [$subject, $body, $opts] = vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
+              /* Ayni veri, iki farkli muhatap: kayitli aliciya BELGE talebi,
+                 kayitsiz adaya KAYIT daveti gider. Olmayan bir panele
+                 "belgeni yukle" demek adayi bosuna dolastirirdi. */
+              [$subject, $body, $opts] = $letter === 'prospect_women'
+                ? vestra_tpl_prospect_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer)
+                : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
