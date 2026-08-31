@@ -851,6 +851,48 @@ jobs:
                kaldirabilir ve bu karar hesaba damgalanir (belgeyi "inceledik"
                gibi isaretlemeyiz — olmayan bir incelemeyi kayda gecirmek yalan
                olurdu). Sonunda kapinin GERCEKTEN acildigi geri okunur. */
+            /* TOPLU AC: bekleyen butun hesaplar. TEK kosuda yapilir — her hesap
+               icin ayri is tetiklemek accounts.json'a paralel yazma demek ve
+               biri digerini ezer (leads.json'da yasandi). 'pending_email' HARIC:
+               adresini dogrulamamis birinin hesabini acmak, mektup kutusunun
+               gercekten onun oldugunu kanitlamadan kapiyi acmak olurdu. */
+            if ($letter === 'approve_all') {
+              if (!function_exists('vestra_user_lang')) require_once $doc."/inc/i18n.php";
+              $targets = []; $skipMail = 0;
+              foreach (auth_accounts() as $a) {
+                $st = (string)($a['status'] ?? '');
+                if ($st === 'suspended' || $st === 'deleted') continue;
+                if ($st === 'active' && (string)($a['kyb_status'] ?? '') === 'approved') continue;
+                if ($st === 'pending_email') { $skipMail++; echo "  ATLANDI (e-posta dogrulanmamis): ".$mask((string)($a['email'] ?? ''))."\n"; continue; }
+                if (trim((string)($a['email'] ?? '')) === '') continue;
+                $targets[] = $a;
+              }
+              echo "acilacak hesap: ".count($targets)."  |  dogrulanmamis (haric): {$skipMail}\n";
+              foreach ($targets as $a) {
+                printf("  -> %-26s %-6s %s / kyb=%s\n", $mask((string)$a['email']), (string)($a['type'] ?? '?'),
+                       (string)($a['status'] ?? '?'), (string)($a['kyb_status'] ?? '?'));
+              }
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — HICBIR SEY degismedi\n"; exit(0); }
+              $okN = 0; $failN = 0;
+              foreach ($targets as $a) {
+                $uid = (string)($a['id'] ?? '');
+                $f = ['kyb_status' => 'approved', 'status' => 'active'];
+                if (!empty($a['trade_doc_required'])) { $f['trade_doc_required'] = false; $f['trade_doc_waived_at'] = date('c'); }
+                auth_update($uid, $f);
+                $pnl = (($a['type'] ?? '') === 'seller') ? '/seller' : '/buyer';
+                $af  = auth_find((string)$a['email']) ?: $a;
+                [$s2, $b2, $o2] = vestra_tpl_kyb_approved(vestra_user_lang($af),
+                    ($af['name'] ?? '') ?: (($af['company'] ?? '') ?: 'there'),
+                    (string)($af['type'] ?? 'buyer'), 'https://vestrasales.com'.$pnl);
+                $m = vestra_send_mail((string)$a['email'], $s2, $b2, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $o2);
+                $open = auth_prices_unlocked(auth_find((string)$a['email']));
+                if ($m && $open) $okN++; else $failN++;
+                echo ($m ? 'MEKTUP OK' : 'MEKTUP HATA')." | kapi: ".($open ? 'ACIK' : 'KAPALI')." -> ".$mask((string)$a['email'])."\n";
+              }
+              printf("\nbitti: %d acildi, %d sorunlu\n", $okN, $failN);
+              exit($failN > 0 ? 1 : 0);
+            }
+
             if ($letter === 'approve_account') {
               if (!$acc) { fwrite(STDERR, "hesap bulunamadi: ".$mask($to)."\n"); exit(1); }
               if (!function_exists('vestra_user_lang')) require_once $doc."/inc/i18n.php";
