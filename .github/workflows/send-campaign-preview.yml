@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: hangi mektup — l1212 (Lacoste L1212 soruları) | l1212_docs (hesap incelemede, Gewerbeanmeldung eksik). Doluysa YALNIZCA bu iş çalışır."
+        description: "ALICI CEVABI: l1212 (L1212 soruları) | l1212_docs (belge eksik, tek alıcı) | verify_nudge (TOPLU: belge yüklememiş TÜM bekleyen hesaplara dürtme; spec=send/test/signer/redo_days). Doluysa YALNIZCA bu iş çalışır."
         required: false
         default: ""
       reply_spec:
@@ -690,6 +690,92 @@ jobs:
             }
             $E = fn(string $k) => (string)($spec[$k] ?? '');
             $mask = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+
+            /* ---- TOPLU DAL: letter=verify_nudge ----
+               Belge HIC YUKLEMEMIS bekleyen hesaplara "tek eksik: belgen" mektubu.
+               'uploaded' olan MEKTUP ALMAZ — o operatorun onayini bekliyor, ona
+               "yukle" demek yanlis olur; listede ayrica raporlanir. KURAL 1
+               eslesmeleri raporlanir ve gonderilmez (sessiz eleme degil).
+               spec: send/test(ornek adresi)/signer(vars. Elena Romano)/redo_days(7). */
+            if ($letter === 'verify_nudge') {
+              require_once $doc."/inc/security.php"; /* vestra_cc_of_country */
+              $signer   = trim($E('signer')) !== '' ? trim($E('signer')) : 'Elena Romano';
+              $redoDays = max(1, (int)($E('redo_days') ?: 7));
+              $testTo   = trim($E('test'));
+              $doSend   = strtolower($E('send')) === 'true';
+
+              $targets = []; $upWait = 0; $pendMail = 0; $noFlag = 0; $recent = 0; $blocked = [];
+              foreach (auth_accounts() as $a) {
+                $st = (string)($a['status'] ?? '');
+                if ($st === 'pending_email') { $pendMail++; continue; }
+                if ($st !== 'pending' || (string)($a['kyb_status'] ?? 'pending') !== 'pending') continue;
+                if (empty($a['trade_doc_required'])) { $noFlag++; continue; }
+                $docSt = '';
+                foreach ((array)($a['doc_requests'] ?? []) as $r) {
+                  if (($r['type'] ?? '') !== 'trade_licence') continue;
+                  $s2 = (string)($r['status'] ?? 'requested');
+                  if ($s2 === 'approved') { $docSt = 'approved'; break; }
+                  if ($s2 === 'uploaded') { $docSt = 'uploaded'; continue; }
+                  if ($docSt === '') $docSt = $s2;
+                }
+                if ($docSt === 'uploaded') { $upWait++; echo "  BELGE YUKLU — ONAY SENDE: ".$mask((string)($a['email'] ?? ''))."  (".($a['type'] ?? '?').")\n"; continue; }
+                if ($docSt !== 'requested') continue;
+                if (vestra_lead_is_blocked(['company'=>(string)($a['company'] ?? ''), 'email'=>(string)($a['email'] ?? ''), 'website'=>(string)($a['website'] ?? '')])) {
+                  $blocked[] = $mask((string)($a['email'] ?? '')); continue;
+                }
+                $ts = strtotime((string)($a['verify_nudge_at'] ?? ''));
+                if ($ts && (time() - $ts) < $redoDays * 86400) { $recent++; continue; }
+                $targets[] = $a;
+              }
+
+              $mkLetter = function(array $a) use ($signer) {
+                $lang = strtolower(substr((string)($a['lang'] ?? ''), 0, 2));
+                if (!in_array($lang, ['en','de','fr','it','es'], true)) $lang = 'en';
+                $name = trim((string)($a['company'] ?? '')) ?: trim((string)($a['name'] ?? '')) ?: 'there';
+                $localDoc = auth_trade_doc_local_name(vestra_cc_of_country((string)($a['country'] ?? '')));
+                return [$lang, vestra_tpl_verify_nudge($lang, $name, ($a['type'] ?? '') === 'buyer' ? false : true, $localDoc, $signer)];
+              };
+
+              echo "\nhedef (belge yuklememis — mektup gidecek): ".count($targets)."\n";
+              echo "belge yuklu, SENIN onayini bekleyen (haric): {$upWait}\n";
+              echo "e-posta dogrulamasi bekleyen (haric)       : {$pendMail}\n";
+              echo "eski kayit, bayraksiz — fiyat zaten acik   : {$noFlag}\n";
+              echo "son {$redoDays} gunde zaten durtulmus (haric)   : {$recent}\n";
+              if ($blocked) { echo "KURAL 1 eslesmesi — GONDERILMEDI, karar operatorde:\n"; foreach ($blocked as $b) echo "  ! {$b}\n"; }
+              foreach ($targets as $a) {
+                [$lang, ] = $mkLetter($a);
+                printf("  -> %-26s %-6s dil=%s ulke=%s\n", $mask((string)($a['email'] ?? '')), (string)($a['type'] ?? '?'), $lang, (string)($a['country'] ?? '—'));
+              }
+
+              /* Ornekler: hedeflerdeki HER FARKLI DIL icin o dilin ilk hedefinin
+                 mektubu operatorun kutusuna — alicilarin gorecegi metnin aynisi. */
+              if ($testTo !== '' && filter_var($testTo, FILTER_VALIDATE_EMAIL)) {
+                $seen = [];
+                foreach ($targets as $a) {
+                  [$lang, $t] = $mkLetter($a);
+                  if (isset($seen[$lang])) continue; $seen[$lang] = 1;
+                  [$sj, $bd, $op] = $t;
+                  $ok = vestra_send_mail($testTo, $sj, $bd, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $op);
+                  echo ($ok ? "ORNEK GONDERILDI" : "ORNEK GONDERILEMEDI")." ({$lang}) -> ".$mask($testTo)."\n";
+                }
+              }
+
+              if (!$doSend) { echo "\nsend=false — hedeflere GONDERILMEDI".($testTo !== '' ? ' (yalnizca ornekler)' : '')."\n"; exit(0); }
+              [$qOk, $qMsg] = vestra_mail_bulk_allowed(count($targets), 60);
+              echo "kota: {$qMsg}\n";
+              if (!$qOk) { fwrite(STDERR, "kota engeli — gonderim iptal\n"); exit(1); }
+              $sent = 0; $failN = 0;
+              foreach ($targets as $a) {
+                [, $t] = $mkLetter($a);
+                [$sj, $bd, $op] = $t;
+                $ok = vestra_send_mail((string)$a['email'], $sj, $bd, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $op);
+                if ($ok) { $sent++; auth_update((string)$a['id'], ['verify_nudge_at' => date('c')]); }
+                else { $failN++; }
+                echo ($ok ? 'GONDERILDI' : 'HATA')." -> ".$mask((string)$a['email'])."\n";
+              }
+              printf("\nbitti: %d gonderildi, %d hata\n", $sent, $failN);
+              exit($failN > 0 ? 1 : 0);
+            }
 
             /* Alici. "account:<parca>" = adres SUNUCUDAN, hesap adi/sirketiyle
                bulunur — musteri adresi GitHub girdisine yazilmasin diye. Birden

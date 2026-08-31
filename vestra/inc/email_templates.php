@@ -1293,3 +1293,80 @@ function vestra_tpl_l1212_docs_needed(string $salutation, string $signer = 'Marc
 
     return [$subject, $body, []];
 }
+
+/* Dogrulama dürtme mektubu: kayit tamam, tek eksik ticari belge — yukle.
+ * HEDEF KITLE DEGIL, TEK MEKTUP: toplu secim/koşullar workflow'ta
+ * (send-campaign-preview.yml buyer_reply, letter=verify_nudge). Yalnizca
+ * belge HIC YUKLENMEMIS hesaplara gider — 'uploaded' olan operatorun
+ * onayini bekliyordur, ona "yukle" demek yanlis olurdu.
+ * Panel etiketleri UI cevirileriyle birebir: Verifizierung / Vérification /
+ * Verifica / Verificación (inc/lang). Yol tarifi koddan: /{buyer|seller}?tab=kyc,
+ * PDF/JPG/PNG/WebP 10MB. "Ayni is gunu inceleme" operatorun onayli vaadi. */
+function vestra_tpl_verify_nudge(string $lang, string $name, bool $isSeller, string $localDoc, string $signer = 'Elena Romano'): array {
+    $tab  = $isSeller ? 'seller' : 'buyer';
+    $link = "https://vestrasales.com/{$tab}?tab=kyc";
+    $doc  = fn(string $base) => $base . ($localDoc !== '' ? " ({$localDoc})" : '');
+
+    $L = [
+      'en' => [
+        $isSeller ? 'Your VESTRA seller account – one document left to complete verification'
+                  : 'Your VESTRA account – one document left to unlock wholesale prices',
+        "Dear {$name},",
+        "Your VESTRA registration is complete and your account is in the verification queue. One item is still missing, and it is the only thing holding the review back: your ".$doc('trade licence / business registration')." has not been uploaded yet.",
+        "To submit it:\n1. Sign in at https://vestrasales.com/login\n2. Open the \"Verification\" section of your dashboard – direct link: {$link}\n3. Upload the document there – PDF, JPG, PNG or WebP, up to 10 MB.",
+        $isSeller ? "Documents are usually reviewed the same working day. As soon as yours is approved you will receive a confirmation and your seller account is fully activated."
+                  : "Documents are usually reviewed the same working day. As soon as yours is approved you will receive a confirmation, and the live wholesale price tiers and the full line sheet (PDF and Excel) open in your account.",
+        "If anything about the upload is unclear, simply reply to this email — we will sort it out with you.",
+        "Best regards,",
+      ],
+      'de' => [
+        $isSeller ? 'Ihr VESTRA-Verkäuferkonto – nur noch ein Dokument bis zur Verifizierung'
+                  : 'Ihr VESTRA-Konto – nur noch ein Dokument bis zu den Großhandelspreisen',
+        "Guten Tag {$name},",
+        "Ihre Registrierung bei VESTRA ist vollständig und Ihr Konto steht in der Prüfungswarteschlange. Es fehlt nur noch eines: Ihr ".$doc('Gewerbenachweis')." wurde noch nicht hochgeladen.",
+        "So reichen Sie ihn ein:\n1. Anmelden unter https://vestrasales.com/login\n2. Öffnen Sie in Ihrem Konto den Bereich „Verifizierung“ – Direktlink: {$link}\n3. Laden Sie das Dokument dort hoch – PDF, JPG, PNG oder WebP, bis 10 MB.",
+        $isSeller ? "Eingereichte Dokumente prüfen wir in der Regel noch am selben Werktag. Sobald Ihres genehmigt ist, erhalten Sie eine Bestätigung und Ihr Verkäuferkonto ist vollständig aktiviert."
+                  : "Eingereichte Dokumente prüfen wir in der Regel noch am selben Werktag. Sobald Ihres genehmigt ist, erhalten Sie eine Bestätigung, und die Großhandels-Preisstaffeln sowie das vollständige Line Sheet (PDF und Excel) werden in Ihrem Konto freigeschaltet.",
+        "Bei Fragen zum Upload antworten Sie einfach auf diese E-Mail – wir kümmern uns darum.",
+        "Mit freundlichen Grüßen",
+      ],
+      'fr' => [
+        $isSeller ? 'Votre compte vendeur VESTRA – plus qu\'un document pour finaliser la vérification'
+                  : 'Votre compte VESTRA – plus qu\'un document pour accéder aux prix de gros',
+        "Bonjour {$name},",
+        "Votre inscription sur VESTRA est complète et votre compte est dans la file de vérification. Il ne manque qu'une seule pièce : votre ".$doc('licence commerciale / immatriculation d\'entreprise')." n'a pas encore été téléversée.",
+        "Pour la transmettre :\n1. Connectez-vous : https://vestrasales.com/login\n2. Ouvrez la section « Vérification » de votre tableau de bord – lien direct : {$link}\n3. Téléversez-y le document – PDF, JPG, PNG ou WebP, jusqu'à 10 Mo.",
+        $isSeller ? "Les documents sont généralement examinés le jour ouvré même. Dès l'approbation, vous recevez une confirmation et votre compte vendeur est entièrement activé."
+                  : "Les documents sont généralement examinés le jour ouvré même. Dès l'approbation, vous recevez une confirmation, et les paliers de prix de gros ainsi que le line sheet complet (PDF et Excel) s'ouvrent dans votre compte.",
+        "Une question sur le téléversement ? Répondez simplement à cet e-mail — nous nous en occupons avec vous.",
+        "Cordialement,",
+      ],
+      'it' => [
+        $isSeller ? 'Il Suo account venditore VESTRA – manca un solo documento per la verifica'
+                  : 'Il Suo account VESTRA – manca un solo documento per i prezzi all\'ingrosso',
+        "Buongiorno {$name},",
+        "La Sua registrazione su VESTRA è completa e il Suo account è in coda di verifica. Manca una sola cosa: la Sua ".$doc('licenza commerciale / registrazione dell\'attività')." non è ancora stata caricata.",
+        "Per inviarla:\n1. Acceda su https://vestrasales.com/login\n2. Apra la sezione \"Verifica\" del Suo pannello – link diretto: {$link}\n3. Carichi lì il documento – PDF, JPG, PNG o WebP, fino a 10 MB.",
+        $isSeller ? "I documenti vengono di norma esaminati lo stesso giorno lavorativo. Appena il Suo è approvato riceverà una conferma e il Suo account venditore sarà completamente attivato."
+                  : "I documenti vengono di norma esaminati lo stesso giorno lavorativo. Appena il Suo è approvato riceverà una conferma e nel Suo account si apriranno gli scaglioni di prezzo all'ingrosso e il line sheet completo (PDF ed Excel).",
+        "Per qualsiasi dubbio sul caricamento risponda pure a questa e-mail — lo risolviamo insieme.",
+        "Cordiali saluti,",
+      ],
+      'es' => [
+        $isSeller ? 'Su cuenta de vendedor VESTRA: falta un solo documento para completar la verificación'
+                  : 'Su cuenta VESTRA: falta un solo documento para acceder a los precios mayoristas',
+        "Estimado/a {$name}:",
+        "Su registro en VESTRA está completo y su cuenta está en la cola de verificación. Solo falta una cosa: su ".$doc('licencia comercial / alta de actividad')." aún no se ha subido.",
+        "Para enviarla:\n1. Inicie sesión en https://vestrasales.com/login\n2. Abra la sección «Verificación» de su panel – enlace directo: {$link}\n3. Suba allí el documento – PDF, JPG, PNG o WebP, hasta 10 MB.",
+        $isSeller ? "Los documentos se revisan normalmente el mismo día laborable. En cuanto el suyo esté aprobado recibirá una confirmación y su cuenta de vendedor quedará totalmente activada."
+                  : "Los documentos se revisan normalmente el mismo día laborable. En cuanto el suyo esté aprobado recibirá una confirmación y en su cuenta se abrirán los tramos de precios mayoristas y el line sheet completo (PDF y Excel).",
+        "Si tiene cualquier duda con la subida, responda a este correo — lo resolvemos juntos.",
+        "Un cordial saludo,",
+      ],
+    ];
+
+    $d = $L[$lang] ?? $L['en'];
+    [$subject, $hi, $p1, $p2, $p3, $p4, $bye] = $d;
+    $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3."\n\n".$p4."\n\n".$bye."\n\n".$signer."\nVESTRA – vestrasales.com";
+    return [$subject, $body, []];
+}
