@@ -26,6 +26,10 @@ on:
         description: "Üstü çizili ESKİ fiyat EUR (örn: 129.00) — VEYA 'keep' yazarsan ürünün ŞU ANKİ fiyatı eski fiyat olur. Doldurulursa ürün İNDİRİMLİ gösterilir. Boş = indirim yok"
         required: false
         default: ""
+      size_step:
+        description: "Koli/parti adimi (size_step): sepet adedi bu kata yuvarlar. MOQ ile birlikte dusun -- moq=20, step=8 birakirsaniz sepet 20'yi 24'e yuvarlar. Bos = dokunma."
+        required: false
+        default: ""
       moq:
         description: "En az alım adedi (örn: 20). Boş = dokunma"
         required: false
@@ -77,6 +81,7 @@ jobs:
           RAW_PRICE: ${{ github.event.inputs.price }}
           RAW_LIST_PRICE: ${{ github.event.inputs.list_price }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
+          RAW_STEP: ${{ github.event.inputs.size_step }}
           RAW_SIZES: ${{ github.event.inputs.sizes }}
           RAW_OFFERS: ${{ github.event.inputs.allow_offers }}
           RAW_DRY: ${{ github.event.inputs.dry_run }}
@@ -84,7 +89,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_ENV"
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
-                  for k in ['brand','cat','price','list_price','moq','sizes','offers','dry']}
+                  for k in ['brand','cat','price','list_price','moq','step','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
@@ -142,6 +147,7 @@ jobs:
             $price = trim((string)($in['price'] ?? ''));
             $listP = trim((string)($in['list_price'] ?? ''));
             $moq   = trim((string)($in['moq']   ?? ''));
+            $step  = trim((string)($in['step']  ?? ''));
             $sizes = trim((string)($in['sizes'] ?? ''));
             $offIn = strtolower(trim((string)($in['offers'] ?? '')));
             $dry   = strtolower(trim((string)($in['dry'] ?? 'true'))) !== 'false';
@@ -156,13 +162,13 @@ jobs:
               else { fwrite(STDERR, "HATA: allow_offers gecersiz '{$offIn}' -- yes / no / bos olmali\n"); exit(1); }
             }
 
-            echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' moq='{$moq}'\n";
+            echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' moq='{$moq}' step='{$step}'\n";
             echo "          beden='{$sizes}'\n";
             echo "          teklif_al=".($offers === null ? '(dokunma)' : ($offers ? 'AC' : 'KAPAT'))."\n";
             echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
             if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
-            if ($price === '' && $listP === '' && $moq === '' && $sizes === '' && $offers === null) {
+            if ($price === '' && $listP === '' && $moq === '' && $step === '' && $sizes === '' && $offers === null) {
               fwrite(STDERR, "HATA: price/list_price/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
             }
             /* 'keep' = her urunun mevcut fiyatini eski fiyat yap. "86'ya indir" derken
@@ -189,6 +195,17 @@ jobs:
             }
             if ($moq !== '' && (!ctype_digit($moq) || (int)$moq < 1)) {
               fwrite(STDERR, "HATA: gecersiz MOQ '{$moq}'\n"); exit(1);
+            }
+            if ($step !== '' && (!ctype_digit($step) || (int)$step < 1)) {
+              fwrite(STDERR, "HATA: gecersiz size_step '{$step}'\n"); exit(1);
+            }
+            /* Sepet once MOQ tabanina ceker, sonra adima YUKARI yuvarlar: adima
+               bolunmeyen bir MOQ hicbir zaman satin alinabilir bir adet degildir
+               (moq=20, step=8 -> 24). Iki girdi birlikte verildiyse tutarliligi
+               burada zorla; tek tek verildiyse mevcut degerle carpisma dry-run
+               ciktisinda gorunur. */
+            if ($moq !== '' && $step !== '' && ((int)$moq % (int)$step) !== 0) {
+              fwrite(STDERR, "HATA: MOQ ({$moq}) size_step'e ({$step}) bolunmuyor\n"); exit(1);
             }
 
             $all = vestra_listings();
@@ -279,6 +296,14 @@ jobs:
                     $k = array_key_first($all[$i]['tiers']);
                     if (is_array($all[$i]['tiers'][$k] ?? null)) $all[$i]['tiers'][$k]['min'] = $new;
                   }
+                  $changes++;
+                }
+              }
+              if ($step !== '') {
+                $newS = (int)$step; $oldS = $p['size_step'] ?? null;
+                if ((int)$oldS !== $newS) {
+                  $line[] = "size_step ".($oldS === null ? '(yok)' : $oldS)." -> {$newS}";
+                  $all[$i]['size_step'] = $newS;
                   $changes++;
                 }
               }
