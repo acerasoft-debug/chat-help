@@ -348,7 +348,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         require_once __DIR__.'/inc/offers.php';
         $meSeller = auth_user();
         $sellerLabel = $meSeller ? (($meSeller['company'] ?: $meSeller['name']) ?: 'VESTRA') : 'VESTRA';
-        vestra_offer_respond($ref, $action, $ctr, $meSeller, $sellerLabel);
+        $res = vestra_offer_respond($ref, $action, $ctr, $meSeller, $sellerLabel);
+        /* Mektup gitmediyse satici da bilmeli: karsi teklifte kabul/ret
+           baglantisi o mektupta, gitmediyse pazarlik sessizce durur.
+           'responded=1' tek basina her durumda ayni seyi soyluyordu. */
+        if (($res['mailed'] ?? null) === false) { header('Location: /seller?tab=offers&responded=nomail'); exit; }
+        if (($res['mailed'] ?? null) === null)  { header('Location: /seller?tab=offers&responded=noaddr'); exit; }
     }
     header('Location: /seller?tab=offers&responded=1'); exit;
 }
@@ -987,7 +992,13 @@ if($tab==='overview'){
 
 // ── OFFERS RECEIVED ───────────────────────────────────────────────────────────
 } elseif($tab==='offers'){
-  if(isset($_GET['responded'])) echo '<div class="banner ok">✓ '.t('Response sent to buyer.').'</div>';
+  /* "Response sent to buyer" her durumda basiliyordu -- mektup gitmese de.
+     Gitmeyen bir mektup icin "gonderildi" demek, saticiyi alicinin haberi
+     oldugu sanisinda birakir; karsi teklifte kabul/ret baglantisi da o
+     mektupta oldugu icin pazarlik sessizce durur. */
+  if(($_GET['responded']??'')==='nomail') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.t('Your response was saved but the e-mail to the buyer could not be sent. They have not been told — message them from the Messages tab.').'</div>';
+  elseif(($_GET['responded']??'')==='noaddr') echo '<div class="banner" style="background:rgba(240,192,96,.1);border:1px solid rgba(240,192,96,.35);color:#a9781a">⚠ '.t('Your response was saved, but this offer has no valid e-mail address, so no letter was sent.').'</div>';
+  elseif(isset($_GET['responded'])) echo '<div class="banner ok">✓ '.t('Response sent to buyer.').'</div>';
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Offers received').'</h3></div>';
   if(!$offers) dash_empty(t('No offers yet. Buyer offers on your make-an-offer items appear here.'));
   else {

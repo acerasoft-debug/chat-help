@@ -684,7 +684,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $oAct = $_POST['response'] ?? '';
     $oCtr = round((float)($_POST['counter_price'] ?? 0), 2);
     $res  = vestra_offer_respond($oRef, $oAct, $oCtr, null, 'VESTRA');
-    header('Location: /admin?tab=offers&msg='.($res['ok'] ? 'offer_'.$oAct : 'offer_err')); exit;
+    /* Kaydin tutmasi ile MEKTUBUN GITMESI ayri ayri raporlanir. Ikisini tek
+       "basarili" mesajina sikistirmak, alicinin haberi olmadigi bir yaniti
+       yanitlanmis gostermek olurdu -- ve karsi teklifte mektup, isin ta
+       kendisi: alici kabul/red baglantisini oradan aliyor. */
+    if (!$res['ok'])                       $m = 'offer_err';
+    elseif (($res['mailed'] ?? null) === false) $m = 'offer_nomail';
+    elseif (($res['mailed'] ?? null) === null)  $m = 'offer_noaddr';
+    else                                   $m = 'offer_'.$oAct;
+    header('Location: /admin?tab=offers&msg='.$m); exit;
   }
   if($act==='review_doc'){
     $duid=$_POST['uid']??''; $dreq=$_POST['req_id']??''; $dstatus=$_POST['status']??''; $dnote=trim($_POST['admin_note']??'');
@@ -1784,6 +1792,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        and "it says it deleted" can both be true on the same click. They have their
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
+    /* Bu ucu YALNIZCA mektup gercekten gittiginde basiliyor -- gitmediginde
+       yukaridaki kirmizi/sari bloklar devreye giriyor. */
+    'offer_counter'=>'✓ Karşı teklif kaydedildi ve alıcıya e-postayla gönderildi — mektupta kabul ve ret bağlantısı var.',
+    'offer_accept' =>'✓ Teklif kabul edildi ve alıcıya bildirildi. Fatura kesilmedi: Invoice approvals sekmesinden onaylayın.',
+    'offer_decline'=>'Teklif reddedildi ve alıcıya bildirildi.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'sec_blocked'=>'✓ IP engellendi — o ağdan gelen her istek artık 403 alıyor.',
@@ -1984,6 +1997,26 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     <button class="abtn" type="submit" style="color:#c0392b">Delete anyway</button>
   </form>
   <?php endif; ?>
+</div>
+<?php /* Teklif yaniti: KAYIT ile MEKTUP ayri ayri. Basarili dallar asagidaki
+         yesil haritada; bu ucu orada DEGIL cunku hepsi bir eksigi anlatiyor ve
+         o harita her girdiyi yesil "✓" olarak basiyor. Karsi teklifte mektup
+         isin ta kendisi: alici kabul/red baglantisini oradan aliyor, gitmediyse
+         pazarlik sessizce durur. */ ?>
+<?php elseif($msg==='offer_nomail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">
+  ⚠ Yanıt <b>kaydedildi</b> ama <b>e-posta GİTMEDİ</b> — sağlayıcı reddetti. Alıcının haberi yok ve karşı teklifte
+  kabul/ret bağlantısı da o mektupta olduğu için pazarlık burada durur. Alıcıya başka bir yoldan ulaşın
+  (Messages sekmesi) ya da adresi kontrol edip yeniden deneyin.
+</div>
+<?php elseif($msg==='offer_noaddr'): ?>
+<div class="amsg" style="background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.35);color:#a9781a">
+  ⚠ Yanıt kaydedildi ama bu teklifte <b>geçerli bir e-posta adresi yok</b>, o yüzden mektup gönderilmedi.
+  Alıcı hesabı varsa panelinde mesaj olarak görecek; yoksa ona ulaşmanın bir yolu yok.
+</div>
+<?php elseif($msg==='offer_err'): ?>
+<div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">
+  ⚠ Teklife yanıt verilemedi — hiçbir şey kaydedilmedi. (Karşı teklifte birim fiyat girmeyi unutmuş olabilirsiniz.)
 </div>
 <?php elseif($msg==='ord_notfound'): ?>
 <div class="amsg" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:#c0392b">⚠ Not deleted — no row in orders.csv carries that reference.</div>

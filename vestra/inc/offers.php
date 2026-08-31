@@ -98,6 +98,12 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
     }
 
     require_once __DIR__.'/notify.php';
+    /* null = gonderilecek bir sey yoktu (adres yok ya da notify kapali),
+       true/false = saglayici ne dedi. Onceden vestra_send_mail'in donusu
+       HIC OKUNMUYORDU: operator karsi teklifi kaydediyor, mektup
+       gitmiyor, ve panelde bunu soyleyen hicbir sey olmuyordu. Teklif
+       "yanitlandi" gorunurken alicinin haberi olmuyordu. */
+    $mailed = null;
     if ($notify && !empty($offerRow['email']) && filter_var($offerRow['email'], FILTER_VALIDATE_EMAIL)) {
         $buyerName = $offerRow['company'] ?? ($buyerAcc['name'] ?? 'there');
         [$mSubject, $mBody, $mOpts] = vestra_tpl_offer_response(
@@ -106,7 +112,7 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
             $action === 'counter' ? vestra_offer_accept_url($ref, (string)$rs[$ref]['accept_token']) : null,
             vestra_offer_product_url($listing)
         );
-        vestra_send_mail($offerRow['email'], $mSubject, $mBody, $actor['email'] ?? '', $label, null, '', $mOpts);
+        $mailed = (bool)vestra_send_mail($offerRow['email'], $mSubject, $mBody, $actor['email'] ?? '', $label, null, '', $mOpts);
     }
 
     $invoice = null;
@@ -117,7 +123,7 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
         $invoice = vestra_offer_issue_invoice($ref, false);
     }
 
-    return ['ok' => true, 'error' => '', 'invoice' => $invoice];
+    return ['ok' => true, 'error' => '', 'invoice' => $invoice, 'mailed' => $mailed];
 }
 
 /* offers.csv'de tek satir. Birden fazla yerde ayni dongu yaziliyordu. */
