@@ -1551,10 +1551,19 @@ function vestra_tpl_seller_setup(string $salutation, array $missingShips, array 
     if ($missingDocs) {
         $lines = '';
         foreach ($missingDocs as $d) $lines .= "  \xc2\xb7 " . $d . "\n";
+        /* Tekil/cogul ve "hepsi bu" cumlesi listeye gore: bir tek belge
+           kalmissa "these two" yazmak, mektubun geri kalanina duyulan
+           guveni de goturur. */
+        $one  = count($missingDocs) === 1;
+        $them = $one ? 'it' : 'them';
+        $all  = $one
+              ? "That is the only document still open on your account."
+              : "Those two are all we ask a seller for.";
         $blocks[] = "Identity and business documents\n\n"
-. "These are still outstanding on your account:\n\n"
+. ($one ? "One document is still outstanding on your account:\n\n" : "These are still outstanding on your account:\n\n")
 . $lines . "\n"
-. "Please upload them at https://vestrasales.com/seller?tab=kyc — sign in, open the Verification section and attach the files (PDF, JPG, PNG or WebP, up to 10 MB each). The authorization letter is only needed if you are not the sole director of the company.\n\n"
+. "Please upload " . $them . " at https://vestrasales.com/seller?tab=kyc — sign in, open the Verification section and attach the file"
+. ($one ? '' : 's') . " (PDF, JPG, PNG or WebP, up to 10 MB each). " . $all . "\n\n"
 . "Buyers on VESTRA order from a seller they have not met, on the platform's word that the business behind the listing is real. That is what these documents are for.";
     }
 
