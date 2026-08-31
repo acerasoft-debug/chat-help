@@ -937,7 +937,13 @@ jobs:
           echo "===== 2. ANASAYFA (ayni cerezle) ====="
           curl -sS -A "$UA" -c "$JAR" -b "$JAR" -D /tmp/h2.txt -o /tmp/b2.html --max-time 30 "$BASE/"
           grep -i '^HTTP\|^cache-control\|^x-litespeed-cache\|^age:' /tmp/h2.txt | head -6
-          if grep -q 'Open my' /tmp/b2.html; then echo "SONUC: GIRISLI goruyor — 'Open my panel' cikti. Oturum canlida da calisiyor."
+          # Girisin GERCEKTEN tutup tutmadigi buradan sonraki her adimin
+          # anlamini belirliyor. Bayrak olmadan asagidaki "girisli kullanici
+          # butun sayfalari aciyor" satiri, giris HIC OLMASA da yesil
+          # yaziyordu -- arkasini dolduramadigi bir guvence. Test hesabi
+          # dogrulanmamis/silinmis oldugunda tam olarak bu yasandi.
+          LOGGED_IN=0
+          if grep -q 'Open my' /tmp/b2.html; then LOGGED_IN=1; echo "SONUC: GIRISLI goruyor — 'Open my panel' cikti. Oturum canlida da calisiyor."
           elif grep -q 'Register as Seller' /tmp/b2.html; then echo "SONUC: GIRISSIZ goruyor — hala kayit dugmeleri. Oturum anasayfada TANINMIYOR."
           else echo "SONUC: beklenmedik govde — dugme metinleri bulunamadi"; fi
           echo
@@ -967,8 +973,10 @@ jobs:
             else
               echo "  govdede PHP uyarisi/fatal yok"
             fi
-            if grep -qiE 'name="password"|Sign in|Log in to' /tmp/b4.html; then
-              echo "  UYARI: sayfa GIRIS EKRANI gibi gorunuyor — oturum bu yolda taninmamis olabilir"
+            if [ "$LOGGED_IN" != "1" ]; then
+              echo "  NOT: oturum ZATEN kurulamamisti (bkz. adim 2) — bu govde giris ekrani, sayfanin kendisi DEGIL"
+            elif grep -qiE 'name="password"|Sign in|Log in to' /tmp/b4.html; then
+              echo "  UYARI: giris tutmustu ama bu yol giris ekrani donuyor — yetki/yonlendirme sorunu olabilir"
             fi
           fi
           echo
@@ -998,7 +1006,9 @@ jobs:
             else printf '  %-34s %s %8s bayt  tamam\n' "$P" "$code" "$size"; fi
           done
           echo
-          if [ "$FAILS" -gt 0 ]; then echo "SONUC: $FAILS sayfada sorun var -- yukariya bakin"; else echo "SONUC: girisli kullanici butun sayfalari sorunsuz aciyor"; fi
+          if [ "$FAILS" -gt 0 ]; then echo "SONUC: $FAILS sayfada sorun var -- yukariya bakin"
+          elif [ "$LOGGED_IN" = "1" ]; then echo "SONUC: girisli kullanici butun sayfalari sorunsuz aciyor"
+          else echo "SONUC: sayfalar aciliyor ama OTURUM YOK -- bu liste ANONIM ziyaretcinin gordugu; panel sayfalari icin giris ekrani sayilir, panel govdesi DEGIL"; fi
           rm -f "$JAR"
           [ "$FAILS" -eq 0 ]
 
