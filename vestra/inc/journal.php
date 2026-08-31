@@ -101,7 +101,7 @@ function vestra_journal_body_html(string $body, array $art = []): string {
             $mixed = []; $k = 0;
             foreach ($blocks as $i => $b) {
                 if ($k < count($cuts) && $i === $cuts[$k]) {
-                    $cap = vestra_journal_credit($shots[$k]);
+                    $cap = vestra_journal_figure_caption($shots[$k]);
                     $mixed[] = '[img:'.$shots[$k].($cap !== '' ? '|'.$cap : '').']';
                     $k++;
                 }
@@ -139,6 +139,22 @@ function vestra_journal_body_html(string $body, array $art = []): string {
    never repeating the one already used as the cover. The two picks sit half the pool
    apart so a short pool still yields two different pictures. */
 function vestra_journal_body_photos(array $art, int $n = 2): array {
+    /* MAKALENIN KENDI FIGURLERI havuzdan once gelir. Havuz genel moda
+       fotografciligi (askilik, kumas, magaza ici); bir yazi kendi konusunu
+       anlatan cizimlerle geldiginde o fotograflar konuyla ilgisiz duruyor --
+       Instagram/Facebook reklamciligi anlatan bir yazinin yanindaki kumas
+       yigini gibi. Dosya adi kurali: uploads/journal/art-<slug>-1.svg, -2, …
+       Ad slug'a bagli oldugu icin baska bir yaziya SIZAMAZ, ve credits.json'da
+       artist bos oldugu icin genel havuza da girmez (vestra_journal_photo_pool
+       artist arar). Sayi yine cagiranin yogunluk kuralina uyar. */
+    $slug = trim((string)($art['slug'] ?? ''));
+    if ($slug !== '' && preg_match('/^[a-z0-9-]+$/', $slug)) {
+        $own = glob(__DIR__.'/../uploads/journal/art-'.$slug.'-*.{svg,jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
+        sort($own, SORT_NATURAL);
+        if ($own) {
+            return array_map(fn($f) => '/uploads/journal/'.basename($f), array_slice($own, 0, max(1, $n)));
+        }
+    }
     $cover = vestra_journal_cover_path($art);
     $pool  = array_values(array_filter(vestra_journal_photo_pool(), fn($p) => $p !== $cover));
     $c     = count($pool);
@@ -716,9 +732,41 @@ function vestra_journal_fetch_photos(array $queries = [], int $per = 6, int $min
 /* What the photograph shows, for alt text — Commons' own description, cleaned of the
    markup and language wrappers it arrives wrapped in. Empty when the uploader wrote
    none, in which case the caller falls back rather than inventing a description. */
+/* Kendi cizdigimiz figurlerin metni DOSYANIN ICINDE durur: SVG'nin <title>
+ * (ne gosteriyor -> alt) ve <desc> (kisa aciklama -> figcaption) etiketleri.
+ * Bilerek credits.json KULLANILMIYOR: o dosya sunucuda indirilmis ~45
+ * fotografin kunyesini tutuyor ve deploy'un uploads rsync'i (--delete yok
+ * ama ayni adli dosyanin UZERINE YAZAR) repodan gonderilecek bir kopyayla
+ * onu silerdi -- 31 makalenin foto havuzu bir anda bosalirdi. Aciklamayi
+ * gorselin kendisine koymak bu riski tamamen ortadan kaldiriyor. */
+function vestra_journal_svg_meta(string $path): array {
+    static $cache = [];
+    if (isset($cache[$path])) return $cache[$path];
+    $out = ['title' => '', 'desc' => ''];
+    $abs = __DIR__.'/../uploads/journal/'.basename($path);
+    if (substr($path, -4) === '.svg' && is_readable($abs)) {
+        $raw = (string)file_get_contents($abs, false, null, 0, 4096);
+        if (preg_match('#<title[^>]*>(.*?)</title>#is', $raw, $m)) $out['title'] = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8'));
+        if (preg_match('#<desc[^>]*>(.*?)</desc>#is', $raw, $m))   $out['desc']  = trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8'));
+    }
+    return $cache[$path] = $out;
+}
+
+/* Figurun altina yazilacak satir: fotograflarda ATIF, kendi cizimimizde
+ * aciklama. Ikisi ayni yere basiliyor ama ayni sey degil, o yuzden ayri
+ * fonksiyon -- vestra_journal_credit()'in sozlesmesi "atif" olarak kalir. */
+function vestra_journal_figure_caption(string $path): string {
+    $c = vestra_journal_credit($path);
+    return $c !== '' ? $c : vestra_journal_svg_meta($path)['desc'];
+}
+
 function vestra_journal_photo_desc(string $path): string {
     $c = vestra_journal_credits()[basename($path)] ?? null;
     $d = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)($c['desc'] ?? '')), ENT_QUOTES, 'UTF-8')));
+    /* Kunyesi olmayan kendi cizimimiz: alt metni SVG'nin <title>'indan.
+       Bos alt, gormeyen okuyucuya "bu gorsel suslemedir" demektir -- bir
+       aciklama semasi icin dogru degil. */
+    if ($d === '') $d = vestra_journal_svg_meta($path)['title'];
     return mb_strlen($d) > 140 ? mb_substr($d, 0, 137).'…' : $d;
 }
 
