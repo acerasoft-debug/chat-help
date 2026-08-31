@@ -1002,9 +1002,22 @@ jobs:
                 $_GET['cat'] = 'Women'; $_GET['brand'] = '';
                 ob_start(); require $doc.'/wholesale-list.php'; $pdfBytes = (string)ob_get_clean();
                 /* Uretilen sey GERCEKTEN PDF mi? Yonlendirme/bos cikti sessizce
-                   0 baytlik bir ek olarak giderdi. */
-                if (strncmp($pdfBytes, '%PDF', 4) !== 0 || strlen($pdfBytes) < 2000) {
-                  fwrite(STDERR, "PDF uretilemedi (".strlen($pdfBytes)." bayt) — mektup gonderilmedi\n"); exit(1);
+                   0 baytlik bir ek olarak giderdi.
+                   %PDF imzasi BASTA olmayabilir: dahil edilen betikten once bir
+                   uyari/bosluk cikarsa dosya bozulur. Onu sessizce kabul etmek de
+                   kirpmadan reddetmek de yanlis — ONCE ne oldugunu YAZIYORUZ,
+                   sonra kirpiyoruz; boylece ek saglam gider ama sebep gorunur. */
+                $pos = strpos($pdfBytes, '%PDF');
+                if ($pos === false || strlen($pdfBytes) - (int)$pos < 2000) {
+                  fwrite(STDERR, "PDF uretilemedi (".strlen($pdfBytes)." bayt, imza "
+                       . ($pos === false ? 'YOK' : 'konum '.$pos) . ") — mektup gonderilmedi\n");
+                  fwrite(STDERR, "ilk 200 bayt: ".addcslashes(substr($pdfBytes, 0, 200), "\0..\37")."\n");
+                  exit(1);
+                }
+                if ($pos > 0) {
+                  echo "UYARI: PDF oncesinde {$pos} bayt fazladan cikti vardi, kirpildi -> "
+                     . addcslashes(substr($pdfBytes, 0, min($pos, 200)), "\0..\37") . "\n";
+                  $pdfBytes = substr($pdfBytes, $pos);
                 }
                 $pdfPath = '/tmp/VESTRA-womenswear-'.date('Ymd').'.pdf';
                 file_put_contents($pdfPath, $pdfBytes);
