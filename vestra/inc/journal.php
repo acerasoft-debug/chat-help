@@ -150,6 +150,11 @@ function vestra_journal_body_photos(array $art, int $n = 2): array {
     $slug = trim((string)($art['slug'] ?? ''));
     if ($slug !== '' && preg_match('/^[a-z0-9-]+$/', $slug)) {
         $own = glob(__DIR__.'/../uploads/journal/art-'.$slug.'-*.{svg,jpg,jpeg,png,webp}', GLOB_BRACE) ?: [];
+        /* '-cover' AYNI kalibla eslesiyor ama govde figuru DEGIL. Siralamada
+           rakamlar harflerden once geldigi icin dort figurlu bu yazida
+           kendiliginden disarida kaliyordu -- ama iki figurlu bir yazida
+           n=4 istendiginde govdeye girerdi. Tesadufe birakilmaz. */
+        $own = array_values(array_filter($own, fn($f) => !preg_match('/-cover\.[a-z]+$/i', $f)));
         sort($own, SORT_NATURAL);
         if ($own) {
             return array_map(fn($f) => '/uploads/journal/'.basename($f), array_slice($own, 0, max(1, $n)));
@@ -791,6 +796,19 @@ function vestra_journal_cover_bg(array $p): string {
 /** The photo an article's cover resolves to ('' when it falls back to the generated art). */
 function vestra_journal_cover_path(array $p): string {
     if (!empty($p['cover'])) return (string)$p['cover'];
+    /* Makalenin KENDI kapagi (art-<slug>-cover.svg) varsa havuz fotografindan
+       once gelir -- govde figurleriyle ayni kural. Kapak motifi baslikteki
+       kelimeye gore secildigi icin bazen konuyu isaba etmiyor: "…What Actually
+       Moves Stock" basligindaki 'stock' kelimesi Instagram reklamciligi
+       anlatan bir yaziya KOLI cizimi veriyordu. Anahtar kelime listesini her
+       yeni konu icin uzatmak yerine, yazi kendi kapagini tasiyabiliyor. */
+    $slug = trim((string)($p['slug'] ?? ''));
+    if ($slug !== '' && preg_match('/^[a-z0-9-]+$/', $slug)) {
+        foreach (['svg','jpg','jpeg','png','webp'] as $ext) {
+            $f = __DIR__.'/../uploads/journal/art-'.$slug.'-cover.'.$ext;
+            if (is_readable($f)) return '/uploads/journal/'.basename($f);
+        }
+    }
     return vestra_journal_model_photo($p);
 }
 /* Return the article with title/excerpt/body swapped to the reader's language
