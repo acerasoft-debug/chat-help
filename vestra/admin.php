@@ -617,6 +617,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     auth_update($_POST['uid']??'',['verified_badge'=>false,'verification_status'=>'none']);
     header('Location: /admin?tab=users&msg=badge_revoked'); exit;
   }
+  /* Kayit otomatiginin eski listesinden kalan, artik istenmeyen belge
+     isteklerini temizle. Mantik auth.php'de tek bir yerde: yuklenmis,
+     dosyali, operatorun elle actigi ve halen zorunlu olan istekler
+     korunuyor. Sayi mesajla geri yazilir -- "temizledim" deyip sifir
+     satir silmek, isin yapildigi izlenimi birakirdi. */
+  if($act==='prune_docs'){
+    $pr = auth_prune_stale_doc_requests(null, true);
+    header('Location: /admin?tab=documents&msg=docs_pruned&n='.(int)$pr['removed'].'&a='.(int)$pr['accounts']); exit;
+  }
   if($act==='request_doc'){
     $rduid=$_POST['uid']??''; $rdtype=$_POST['doc_type']??'';
     auth_request_doc($rduid, $rdtype, trim($_POST['note']??''));
@@ -2223,6 +2232,34 @@ elseif($tab==='documents'):
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
   <div><h2 style="font-size:18px;font-weight:700">Document Management</h2><p class="ahint" style="margin-top:4px">Request, review, and approve KYB/KYC documents.</p></div>
 </div>
+
+<?php
+  /* Eski kayit listesinden kalan artik istenmeyen istekler. Once SAYILIR,
+     dugme ancak gercekten temizlenecek bir sey varsa cikar -- her zaman
+     duran bir "temizle" dugmesi, basildiginda hicbir sey olmadigi icin
+     bozuk gorunur. */
+  $__stale = auth_prune_stale_doc_requests(null, false);
+  if(($_GET['msg']??'')==='docs_pruned'):
+?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(31,157,99,.4)"><div class="acard-body">
+  ✓ <?= (int)($_GET['n']??0) ?> stale request(s) removed from <?= (int)($_GET['a']??0) ?> account(s).
+</div></div>
+<?php endif; if($__stale['removed']>0): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.35)"><div class="acard-body"
+     style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:space-between">
+  <div style="font-size:13px;color:var(--mut);max-width:700px">
+    <b style="color:var(--ink)">🧹 <?= (int)$__stale['removed'] ?> outdated document request(s) on <?= (int)$__stale['accounts'] ?> account(s)</b><br>
+    These were opened automatically at registration under an older list (company registration, VAT certificate,
+    authorization letter). VESTRA now asks a seller for a <b>trade licence and a government ID</b> only, so these rows
+    just tell the customer to chase paperwork nobody is waiting for. Nothing uploaded, approved, or requested by you
+    is touched.
+  </div>
+  <form method="post" action="/admin" style="margin:0" onsubmit="return confirm('Remove <?= (int)$__stale['removed'] ?> outdated request(s) from <?= (int)$__stale['accounts'] ?> account(s)?\n\nUploaded, approved and manually requested documents are kept.')">
+    <?= csrfField() ?><input type="hidden" name="_action" value="prune_docs">
+    <button class="abtn primary" type="submit" style="white-space:nowrap">🧹 Clean up</button>
+  </form>
+</div></div>
+<?php endif; ?>
 
 <?php if($selUser): ?>
 <!-- Single user document view -->

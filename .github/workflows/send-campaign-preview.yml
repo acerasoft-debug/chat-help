@@ -1084,15 +1084,24 @@ jobs:
                 $missShip[] = ($pb !== '' && stripos($pn, $pb) !== false) ? $pn : vestra_product_label($pb, $pn);
               }
 
-              /* 2) Hala YUKLENMEMIS belgeler. 'uploaded' olan istenmez: o
-                    operatorun incelemesini bekliyor, sahibinin yapacagi bir
-                    sey kalmadi. */
+              /* 2) Hala YUKLENMEMIS belgeler. Iki suzgec:
+                    - 'uploaded' olan istenmez: o operatorun incelemesini
+                      bekliyor, sahibinin yapacagi bir sey kalmadi.
+                    - Yalnizca auth_required_doc_types() -- yani ticari kayit
+                      ve kimlik. Eski hesaplarda o gunku listeden kalma
+                      company_reg/vat_cert/auth_letter satirlari duruyor;
+                      artik istenmeyen bir belgeyi mektupla istemek, musteriyi
+                      bulamayacagi (ve bizim beklemedigimiz) bir kagidin
+                      pesine dusurmek olurdu. */
               if (!function_exists('vestra_doc_type_label')) require_once $doc."/inc/email_templates.php";
-              $missDocs = [];
+              $needTypes = auth_required_doc_types('seller');
+              $missDocs = []; $staleDocs = [];
               foreach ((array)($acc['doc_requests'] ?? []) as $r) {
+                $ty  = (string)($r['type'] ?? '');
                 $st2 = strtolower((string)($r['status'] ?? 'requested'));
                 if (in_array($st2, ['uploaded','approved','waived'], true)) continue;
-                $missDocs[] = vestra_doc_type_label('en', (string)($r['type'] ?? ''));
+                if (!in_array($ty, $needTypes, true)) { $staleDocs[] = $ty; continue; }
+                $missDocs[] = vestra_doc_type_label('en', $ty);
               }
 
               /* 3) Stripe: hem hesap baglanmis hem tahsilat acik olmali.
@@ -1105,7 +1114,11 @@ jobs:
               echo "satici : ".$mask((string)($acc['email'] ?? ''))."  (".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
               echo "gonderim yeri eksik ilan : ".count($missShip)."\n";
               foreach ($missShip as $t) echo "   - ".$t."\n";
-              echo "yuklenmemis belge        : ".count($missDocs)." (".implode(', ', $missDocs).")\n";
+              echo "istenecek belge          : ".count($missDocs)." (".implode(', ', $missDocs).")\n";
+              if ($staleDocs) {
+                echo "hesapta duran ESKI istek : ".implode(', ', $staleDocs)
+                   . "  — artik istenmiyor, mektuba GIRMEDI (panelden temizle)\n";
+              }
               echo "stripe odeme hesabi      : ".($needStripe ? 'EKSIK' : 'hazir')."\n";
               if (!$missShip && !$missDocs && !$needStripe) {
                 echo "\nEksik yok — yazilacak bir sey olmadigi icin mektup GONDERILMEDI.\n"; exit(0);

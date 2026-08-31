@@ -306,9 +306,13 @@ function auth_register(array $d): array|string {
        bilinmiyorsa notr ifade tek basina kalir -- her yerde dogru olan odur. */
     $docCc    = vestra_cc_of_country((string)($acc['country'] ?? ''));
     $tradeLoc = auth_trade_doc_local_name($docCc);
+    /* "An account cannot be activated without it" ARTIK DOGRU DEGIL: kapiyi
+       operator onayi aciyor (auth_prices_unlocked -> auth_user_approved),
+       belge uyari olarak duruyor. Cumleyi oldugu gibi birakmak, her yeni
+       kayda soylediginin tersini yapan bir platform gostermek olurdu. */
     $tradeTxt = 'Please upload your trade licence / business registration'
               . ($tradeLoc !== '' ? ' ('.$tradeLoc.')' : '')
-              . '. An account cannot be activated without it.';
+              . '. We keep it on file for compliance; you can add it at any time.';
     // Auto document requests on registration
     $ts = date('c');
     if($type === 'seller'){
@@ -328,10 +332,16 @@ function auth_register(array $d): array|string {
                ayni bilginin taranmis hali ve bir cok ulkede boyle bir belge zaten
                ayrica basilmiyor. Ustelik ABD'de "VAT sertifikasi" diye bir sey YOK,
                yani ABD'li her saticiya bulamayacagi bir belge soruluyordu.
-               Belge tipi auth_doc_types()'ta duruyor: supheli bir dosyada operator
-               panelden tek tek yine isteyebilir -- kaldirilan sey ZORUNLULUK. */
+               auth_letter de ARTIK YOK (operator karari, 31 Agu 2026). Sahis
+               isletmesinde ve tek ortakli sirkette boyle bir belge zaten yok;
+               notu "sole director iseniz atlayabilirsiniz" diyordu, yani listede
+               atlanmasi soylenen bir satir duruyordu. Atlanabilen bir istek,
+               istek degil: sadece listeyi uzatiyor ve gercekten gereken iki
+               belgenin yanindaki aciliyeti seyreltiyordu.
+               SATICIDAN ISTENEN: ticari kayit + kimlik. Digerleri
+               auth_doc_types()'ta duruyor, operator supheli bir dosyada
+               panelden tek tek yine isteyebilir. */
             ['id'=>bin2hex(random_bytes(4)),'type'=>'id_document', 'note'=>'Please upload a government-issued ID: passport, national ID card, or driving licence.','status'=>'requested','requested_at'=>$ts],
-            ['id'=>bin2hex(random_bytes(4)),'type'=>'auth_letter', 'note'=>'If you are not the sole director/owner of the company, upload a signed authorization letter. You may skip this if you are the sole director.','status'=>'requested','requested_at'=>$ts],
         ];
     } elseif($type === 'buyer'){
         /* ALICIDAN TEK BELGE: ticari kayit. Onceden company_reg ve vat_cert de
@@ -566,6 +576,21 @@ function auth_trade_doc_phrase(string $cc): string {
     return t('trade licence / business registration').' ('.$local.')';
 }
 
+/* Platformun bir hesaptan GERCEKTEN istedigi belgeler. Tek kaynak: kayitta
+ * acilan istekler, panelde gosterilen liste ve saticiya giden mektup ayni
+ * yerden okusun. Ayri ayri yazildiklarinda kaciniz -- 20 Agustos'ta kaydolan
+ * bir satici hesabinda BES istek duruyor (company_reg, vat_cert, auth_letter
+ * dahil) cunku o gunku liste farkliydi; mektup "iki belge" derken panel bes
+ * satir gosterirse musteri hangisine inanacagini bilmez.
+ * auth_doc_types() bundan GENIS kalir: orada duran tipleri operator supheli
+ * bir dosyada panelden tek tek yine isteyebilir. Buradaki liste ZORUNLU
+ * olanlar; oradaki liste ISTENEBILIR olanlar. */
+function auth_required_doc_types(string $accType): array {
+    return $accType === 'seller'
+        ? ['trade_licence', 'id_document']   // ticari kayit + kimlik
+        : ['trade_licence'];
+}
+
 function auth_doc_types(string $cc = ''): array {
     $local = auth_trade_doc_local_name($cc);
     return [
@@ -648,10 +673,57 @@ function auth_request_doc(string $uid, string $type, string $note=''): void {
                 auth_save_accounts($list); return;
             }
         }
-        $a['doc_requests'][]=['id'=>bin2hex(random_bytes(4)),'type'=>$type,'note'=>$note,'status'=>'requested','requested_at'=>date('c')];
+        /* by='operator': bunu KAYIT otomatigi degil, bir insan istedi.
+           auth_prune_stale_doc_requests() bu damgaya bakip elle acilmis bir
+           istegi asla silmiyor -- supheli bir dosyada operatorun ayrica
+           istedigi belge, "artik zorunlu degil" diye temizlenirse sessizce
+           kaybolurdu. */
+        $a['doc_requests'][]=['id'=>bin2hex(random_bytes(4)),'type'=>$type,'note'=>$note,'status'=>'requested','requested_at'=>date('c'),'by'=>'operator'];
         break;
     }
     auth_save_accounts($list);
+}
+
+/* Kayit otomatiginin ESKI listesinden kalan, artik istenmeyen belge
+ * isteklerini temizler. 20 Agustos'ta kaydolan bir saticida bes istek
+ * duruyor (company_reg, vat_cert, auth_letter dahil); liste o gunden beri
+ * ticari kayit + kimlige indi. Mektup iki belge isterken panelin bes satir
+ * gostermesi musteriyi bizim beklemedigimiz kagitlarin pesine dusuruyor.
+ *
+ * ASLA silinmeyenler:
+ *  - yuklenmis / onaylanmis / reddedilmis olanlar (kanit ve gecmis),
+ *  - dosyasi olan her kayit (durumu ne olursa olsun),
+ *  - by='operator' damgalilar (bir insan bilerek istedi),
+ *  - halen zorunlu tipler.
+ * $apply=false iken hicbir sey yazilmaz; ne olacagini dondurur. */
+function auth_prune_stale_doc_requests(?string $uid = null, bool $apply = false): array {
+    $list = auth_accounts();
+    $report = ['accounts' => 0, 'removed' => 0, 'detail' => []];
+    $changed = false;
+    foreach ($list as &$a) {
+        if ($uid !== null && ($a['id'] ?? '') !== $uid) continue;
+        $reqs = (array)($a['doc_requests'] ?? []);
+        if (!$reqs) continue;
+        $need = auth_required_doc_types((string)($a['type'] ?? 'buyer'));
+        $keep = []; $gone = [];
+        foreach ($reqs as $r) {
+            $ty = (string)($r['type'] ?? '');
+            $st = strtolower((string)($r['status'] ?? 'requested'));
+            $stale = $st === 'requested'
+                  && empty($r['file'])
+                  && ($r['by'] ?? '') !== 'operator'
+                  && !in_array($ty, $need, true);
+            if ($stale) { $gone[] = $ty; } else { $keep[] = $r; }
+        }
+        if (!$gone) continue;
+        $report['accounts']++;
+        $report['removed'] += count($gone);
+        $report['detail'][] = ['id' => (string)($a['id'] ?? ''), 'type' => (string)($a['type'] ?? ''), 'removed' => $gone];
+        if ($apply) { $a['doc_requests'] = array_values($keep); $changed = true; }
+    }
+    unset($a);
+    if ($apply && $changed) auth_save_accounts($list);
+    return $report;
 }
 
 function auth_upload_doc(string $uid, string $req_id, array $file): bool {
