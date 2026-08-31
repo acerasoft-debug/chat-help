@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 (L1212 soruları) | l1212_docs (belge eksik, tek alıcı) | verify_nudge (TOPLU: belge yüklememiş TÜM bekleyen hesaplara dürtme; spec=send/test/signer/redo_days). Doluysa YALNIZCA bu iş çalışır."
+        description: "ALICI CEVABI: l1212 | l1212_docs (belge eksik, tek alıcı) | verify_nudge (TOPLU dürtme) | resend_verify (kayıt doğrulama mektubunu yeniden gönder). Doluysa YALNIZCA bu iş çalışır."
         required: false
         default: ""
       reply_spec:
@@ -835,6 +835,27 @@ jobs:
             if ($salutation === '') $salutation = 'Dear Sir or Madam';
             $vat = trim($E('vat'));
             if ($vat === '' && $acc) $vat = trim((string)($acc['vat_id'] ?? ''));
+
+            /* Kayit dogrulama mektubunu YENIDEN gonder. Ayri mektup, cunku bu
+               hesabin sorunu belge degil: dogrulama ACIKKEN (sunucuda oyle)
+               auth_login 'unverified' donuyor, yani kullanici panele hic
+               giremiyor — ona "belgeni yukle" yazmak giremedigi bir sayfayi
+               tarif etmek olurdu. Metin/dil sistemin kendi dogrulama sablonundan
+               gelir (auth_resend_verify), burada yeniden yazilmaz. */
+            if ($letter === 'resend_verify') {
+              echo "alici  : ".$mask($to)."  (durum: ".($acc['status'] ?? 'HESAP YOK').")\n";
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
+              $elig = auth_resend_verify($to);
+              /* auth_resend_verify UYGUNLUK icin true doner; postanin gercekten
+                 gidip gitmedigi hesaba damgalanir. Ikisini ayirmadan "gonderildi"
+                 demek, bu depoda iki kez yasanmis "yesil ama bos" tuzagi. */
+              $after = auth_find($to);
+              $reallySent = !empty($after['verify_sent_ok']);
+              if (!$elig) { echo "GONDERILMEDI: hesap yok, zaten dogrulanmis ya da token yok\n"; exit(1); }
+              echo $reallySent ? "DOGRULAMA MEKTUBU YENIDEN GONDERILDI -> ".$mask($to)."\n"
+                               : "SAGLAYICI REDDETTI — posta gitmedi (verify_sent_ok=false)\n";
+              exit($reallySent ? 0 : 1);
+            }
 
             /* Imzaci: govdedeki imza ile From gorunen adi AYNI kisiden turetilir —
                ikisi ayri kaynaktan gelirse basliktaki isim ile mektup imzasi
