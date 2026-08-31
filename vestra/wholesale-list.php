@@ -30,7 +30,11 @@
  * always agree with each other -- a buyer who downloads all three and finds three
  * different numbers stops trusting all three.
  */
-require __DIR__.'/inc/products.php';
+/* require_once, duz require DEGIL: bu dosya artik baska bir betikten de
+   dahil edilebiliyor (mektuba ek PDF uretmek icin) ve products.php o zaman
+   ZATEN yuklu oluyordu — "Cannot redeclare vestra_ships_from()" ile olumcul
+   hata veriyordu. Web tarafinda davranis ayni. */
+require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/pdf.php';
 require_once __DIR__.'/inc/stock.php';
 require_once __DIR__.'/inc/auth.php';
