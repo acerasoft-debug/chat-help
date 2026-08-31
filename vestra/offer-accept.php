@@ -33,10 +33,20 @@ if ($ref !== '' && $token !== '') {
     $agreed = (float)($resp['counter_price'] ?? 0);
 }
 
+$declined = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $r = vestra_offer_accept_counter($ref, $token);
-    if ($r['ok']) { $done = true; $agreed = (float)$r['unit']; }
-    else          { $err = (string)$r['error']; }
+    /* Kabul VE RED ayni ekrandan. Yalnizca kabul dugmesi koymak, "hayir"
+       demek isteyen aliciyi cevapsiz birakirdi -- ve cevapsiz bir pazarlik
+       operatorun de bekleyip beklemeyecegini bilmedigi bir pazarliktir. */
+    if (($_POST['do'] ?? '') === 'decline') {
+        $r = vestra_offer_decline_counter($ref, $token);
+        if ($r['ok']) { $declined = true; $agreed = (float)$r['unit']; }
+        else          { $err = (string)$r['error']; }
+    } else {
+        $r = vestra_offer_accept_counter($ref, $token);
+        if ($r['ok']) { $done = true; $agreed = (float)$r['unit']; }
+        else          { $err = (string)$r['error']; }
+    }
 } elseif (!$resp || !$offerRow) {
     $err = 'link gecersiz';
 } elseif (($resp['status'] ?? '') === 'accept') {
@@ -53,7 +63,17 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
 ?>
 <div class="wrap" style="max-width:560px">
   <div style="padding:60px 20px">
-    <?php if ($done): ?>
+    <?php if ($declined): ?>
+      <div style="text-align:center">
+        <div style="font-size:44px;margin-bottom:16px">✗</div>
+        <h2 style="margin:0 0 10px"><?= t('Counter offer declined') ?></h2>
+        <p style="color:var(--mut)">
+          <?= t('Thanks for letting us know — nothing is owed and nothing is reserved. We have told the seller; if they can move on price, you will hear from us.') ?>
+        </p>
+        <div style="margin-top:22px"><a class="btn btn-o" href="/buyer?tab=offers"><?= t('Open my dashboard') ?></a></div>
+      </div>
+
+    <?php elseif ($done): ?>
       <div style="text-align:center">
         <div style="font-size:44px;margin-bottom:16px">✓</div>
         <h2 style="margin:0 0 10px"><?= t('Offer accepted') ?></h2>
@@ -103,13 +123,15 @@ $PAGE = t('Accept counter offer'); $NAV = ''; require __DIR__.'/inc/head.php';
           <tr><td><?= t('Total') ?></td><td class="r"><b><?= eur($agreed * $qty) ?></b></td></tr>
         </tbody></table>
       </div></div>
-      <form method="post" style="text-align:center;margin-top:22px">
+      <form method="post" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
         <input type="hidden" name="ref" value="<?= htmlspecialchars($ref) ?>">
         <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
-        <button class="btn btn-p" type="submit"><?= sprintf(t('Accept %s per unit'), eur($agreed)) ?></button>
+        <button class="btn btn-p" type="submit" name="do" value="accept"><?= sprintf(t('Accept %s per unit'), eur($agreed)) ?></button>
+        <button class="btn btn-o" type="submit" name="do" value="decline"
+          onclick="return confirm('<?= htmlspecialchars(t('Decline this counter offer? The negotiation closes and nothing is reserved.'), ENT_QUOTES) ?>')"><?= t('Decline') ?></button>
       </form>
       <p style="text-align:center;color:var(--mut);font-size:13px;margin-top:16px">
-        <?= t('Not what you wanted?') ?> <a href="/buyer?tab=offers" style="color:var(--acc)"><?= t('Decline or reply from your dashboard') ?></a>
+        <?= t('Want to negotiate further instead?') ?> <a href="/buyer?tab=messages" style="color:var(--acc)"><?= t('Message us') ?></a>
       </p>
     <?php endif; ?>
   </div>

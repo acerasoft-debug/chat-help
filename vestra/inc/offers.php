@@ -110,41 +110,10 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
 
     $invoice = null;
     if ($action === 'accept') {
-        require_once __DIR__.'/invoice.php';
-        $buyerFull = $buyerAcc ?: null;
-        $orderMeta = [
-            'ref' => $ref, 'date' => date('c'),
-            'buyer' => [
-                'company' => $offerRow['company'] ?? ($buyerFull['company'] ?? ''),
-                'vat'     => $buyerFull['vat_id'] ?? '',
-                'name'    => $buyerFull['name'] ?? '',
-                'email'   => $offerRow['email'] ?? '',
-                'country' => $buyerFull['country'] ?? '',
-                'address' => $buyerFull['address'] ?? '',
-            ],
-        ];
-        $qty = (int)($offerRow['qty'] ?? 0);
-        $items = [[
-            'sku'   => $listing['sku'] ?? ($offerRow['sku'] ?? ''),
-            'brand' => $listing['brand'] ?? '',
-            'name'  => $listing['name'] ?? ($offerRow['product'] ?? ''),
-            'colors' => [],
-            'qty'   => $qty,
-            /* UZLASILAN fiyat -- karsi teklif verilmisse o. Satir toplami da
-               yeniden hesaplaniyor: CSV'deki offer_total ilk teklifin toplami,
-               pazarlik sonrasi artik dogru degil. */
-            'unit'  => round($agreedUnit, 2),
-            'line'  => round($agreedUnit * $qty, 2),
-        ]];
-        /* $force VERILMIYOR: otomatik fatura kesme kapali (vestra_auto_invoice_enabled),
-           yani burada PDF URETILMIYOR, sadece 'pending' donuyor. Kasitli -- stok teyit
-           edilmeden ve eksik alici bilgileri tamamlanmadan numara yakilmasin. Faturayi
-           operator elle kesiyor. */
-        /* Satici hesabi yoksa (kurasyonlu katalog urunu) faturayi PLATFORM kesiyor:
-           Acerasoft LLC kimligi + admin panelinden girilen banka hesabi. Onceden
-           null geciliyordu ve fatura banka bilgisi olmadan cikiyordu. */
-        $sellerAcc = $actor ?: vestra_platform_seller();
-        $invoice = vestra_ensure_invoice($orderMeta, $items, $sellerAcc);
+        /* $force VERILMIYOR: fatura OPERATOR ONAYIYLA kesiliyor (Admin ▸ Invoice
+           approvals). Burada donen sey yalnizca 'pending' -- stok teyit edilmeden
+           ve eksik alici bilgileri tamamlanmadan numara yakilmasin. */
+        $invoice = vestra_offer_issue_invoice($ref, false);
     }
 
     return ['ok' => true, 'error' => '', 'invoice' => $invoice];
@@ -162,6 +131,136 @@ function vestra_offer_row(string $ref): ?array {
 
 function vestra_offer_accept_url(string $ref, string $token): string {
     return 'https://vestrasales.com/offer-accept?ref=' . rawurlencode($ref) . '&token=' . rawurlencode($token);
+}
+
+/* Kabul edilmis bir teklifin UZLASILAN fiyati. Karsi teklif verilip kabul
+ * edilmisse o fiyat, yoksa alicinin ilk teklifi. Tek yerde: panel, fatura ve
+ * mektup ayni rakami soylemeli. */
+function vestra_offer_agreed_unit(string $ref, ?array $resp = null, ?array $offerRow = null): float {
+    if ($resp === null)     { $all = vestra_read_json('offer_responses.json'); $resp = $all[$ref] ?? null; }
+    if ($offerRow === null) { $offerRow = vestra_offer_row($ref); }
+    if (!empty($resp['agreed_unit'])) return (float)$resp['agreed_unit'];
+    if (($resp['status'] ?? '') === 'accept' && (float)($resp['counter_price'] ?? 0) > 0) return (float)$resp['counter_price'];
+    return (float)($offerRow['offer_unit'] ?? 0);
+}
+
+/* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
+ * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
+ * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
+ * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
+function vestra_offer_invoice_payload(string $ref): ?array {
+    $offerRow = vestra_offer_row($ref);
+    if (!$offerRow) return null;
+    $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
+    $buyerAcc = auth_find($offerRow['email'] ?? '') ?: [];
+    $unit = vestra_offer_agreed_unit($ref, null, $offerRow);
+    $qty  = (int)($offerRow['qty'] ?? 0);
+
+    /* Satici hesabi yoksa (kurasyonlu katalog urunu) faturayi PLATFORM keser:
+       Acerasoft LLC kimligi + panelden girilen banka hesabi. Onceden null
+       geciliyordu ve fatura banka bilgisi olmadan cikiyordu. */
+    require_once __DIR__.'/invoice.php';
+    $sellerUid = (string)($listing['seller_uid'] ?? '');
+    $sellerAcc = null;
+    if ($sellerUid !== '') foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $sellerUid) { $sellerAcc = $sa; break; } }
+    if (!$sellerAcc) $sellerAcc = vestra_platform_seller();
+
+    return [
+        'meta' => [
+            'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
+            'buyer' => [
+                'company' => ($offerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
+                'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
+                'name'    => (string)($buyerAcc['name'] ?? ''),
+                'email'   => (string)($offerRow['email'] ?? ''),
+                'country' => (string)($buyerAcc['country'] ?? ''),
+                'address' => (string)($buyerAcc['address'] ?? ''),
+            ],
+        ],
+        'items' => [[
+            'sku'    => $listing['sku'] ?? ($offerRow['sku'] ?? ''),
+            'brand'  => $listing['brand'] ?? '',
+            'name'   => $listing['name'] ?? ($offerRow['product'] ?? ''),
+            'colors' => [],
+            'qty'    => $qty,
+            /* Satir toplami YENIDEN hesaplaniyor: CSV'deki offer_total ilk
+               teklifin toplami, pazarlik sonrasi artik dogru degil. */
+            'unit'   => round($unit, 2),
+            'line'   => round($unit * $qty, 2),
+        ]],
+        'seller' => $sellerAcc,
+        'unit'   => round($unit, 2),
+        'qty'    => $qty,
+    ];
+}
+
+/* $force=false -> yalnizca 'pending' doner, DOSYA URETMEZ (kabul aninda).
+ * $force=true  -> numarayi yakar ve PDF'i yazar (operator onayindan sonra). */
+function vestra_offer_issue_invoice(string $ref, bool $force): ?array {
+    $p = vestra_offer_invoice_payload($ref);
+    if (!$p) return null;
+    require_once __DIR__.'/invoice.php';
+    return vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], $force);
+}
+
+/* Alici KARSI TEKLIFI REDDEDIYOR. Kabulun aynasi: ayni token, ayni tek
+ * kullanimlik mantik. Reddin de bir yolu olmali -- yalnizca kabul dugmesi
+ * koymak, "hayir" demek isteyen aliciyi cevapsiz birakip pazarligi belirsiz
+ * biraktiriyor; operator de bekleyip bekemeyecegini bilemiyor.
+ * Kaydinda declined_by='buyer' duruyor: saticinin reddi ile alicinin reddi
+ * ayni sey degil ve panelde ayri gorunmeli. */
+function vestra_offer_decline_counter(string $ref, string $token): array {
+    $ref = trim($ref); $token = trim($token);
+    if ($ref === '' || $token === '') return ['ok' => false, 'error' => 'link eksik'];
+
+    $rs   = vestra_read_json('offer_responses.json');
+    $resp = $rs[$ref] ?? null;
+    if (!$resp || ($resp['status'] ?? '') !== 'counter') {
+        return ['ok' => false, 'error' => 'bu karsi teklif artik gecerli degil'];
+    }
+    $want = (string)($resp['accept_token'] ?? '');
+    if ($want === '' || !hash_equals($want, $token)) return ['ok' => false, 'error' => 'link gecersiz ya da kullanilmis'];
+
+    $offerRow = vestra_offer_row($ref);
+    if (!$offerRow) return ['ok' => false, 'error' => 'teklif bulunamadi'];
+    $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
+    $prodName = $listing ? trim(($listing['brand'] ?? '').' '.($listing['name'] ?? ''))
+                         : trim((string)($offerRow['product'] ?? ''));
+    $unit = (float)($resp['counter_price'] ?? 0);
+
+    $rs[$ref] = [
+        'status'        => 'decline',
+        'counter_price' => $unit,
+        'responded_at'  => $resp['responded_at'] ?? date('c'),
+        'responded_by'  => $resp['responded_by'] ?? 'operator',
+        'declined_at'   => date('c'),
+        'declined_by'   => 'buyer',
+    ];
+    vestra_write_json('offer_responses.json', $rs);
+
+    require_once __DIR__.'/notify.php';
+    vestra_notify(
+        "Counter offer DECLINED by buyer — {$ref}",
+        "The buyer declined the counter offer.\n\n"
+      . "Reference : {$ref}\n"
+      . "Product   : {$prodName}\n"
+      . "SKU       : ".($offerRow['sku'] ?? '')."\n"
+      . "Quantity  : ".(int)($offerRow['qty'] ?? 0)."\n"
+      . "Their offer  : EUR ".number_format((float)($offerRow['offer_unit'] ?? 0), 2)."/unit\n"
+      . "Our counter  : EUR ".number_format($unit, 2)."/unit\n"
+      . "Buyer     : ".($offerRow['email'] ?? '')."\n\n"
+      . "If you want to keep this one alive, send a new counter: https://vestrasales.com/admin?tab=offers"
+    );
+
+    $buyerAcc = auth_find($offerRow['email'] ?? '');
+    if ($buyerAcc) {
+        require_once __DIR__.'/messages.php';
+        vestra_msg_post_system($buyerAcc['id'], (string)($listing['seller_uid'] ?? ''), $listing['id'] ?? '', [
+            'kind' => 'offer_response', 'ref' => $ref, 'status' => 'decline',
+            'counter_price' => $unit, 'product' => $prodName,
+        ]);
+    }
+    return ['ok' => true, 'error' => '', 'offer' => $offerRow, 'unit' => $unit];
 }
 
 /* Karsi teklifi ALICI kabul ediyor (e-postadaki dugme ya da panel).
@@ -217,33 +316,12 @@ function vestra_offer_accept_counter(string $ref, string $token): array {
     ];
     vestra_write_json('offer_responses.json', $rs);
 
-    $buyerAcc = auth_find($offerRow['email'] ?? '');
-
-    require_once __DIR__.'/invoice.php';
-    $orderMeta = [
-        'ref' => $ref, 'date' => date('c'),
-        'buyer' => [
-            'company' => $offerRow['company'] ?? ($buyerAcc['company'] ?? ''),
-            'vat'     => $buyerAcc['vat_id'] ?? '',
-            'name'    => $buyerAcc['name'] ?? '',
-            'email'   => $offerRow['email'] ?? '',
-            'country' => $buyerAcc['country'] ?? '',
-            'address' => $buyerAcc['address'] ?? '',
-        ],
-    ];
+    $buyerAcc  = auth_find($offerRow['email'] ?? '');
     $sellerUid = (string)($listing['seller_uid'] ?? '');
-    $sellerAcc = null;
-    if ($sellerUid !== '') foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $sellerUid) { $sellerAcc = $sa; break; } }
-    if (!$sellerAcc) $sellerAcc = vestra_platform_seller();
-    $invoice = vestra_ensure_invoice($orderMeta, [[
-        'sku'   => $listing['sku'] ?? ($offerRow['sku'] ?? ''),
-        'brand' => $listing['brand'] ?? '',
-        'name'  => $listing['name'] ?? ($offerRow['product'] ?? ''),
-        'colors' => [],
-        'qty'   => $qty,
-        'unit'  => round($unit, 2),
-        'line'  => round($unit * $qty, 2),
-    ]], $sellerAcc);
+    /* PDF URETILMIYOR: fatura operator onayiyla kesiliyor (Admin ▸ Invoice
+       approvals). Burada donen 'pending', alicinin panelinde "invoice being
+       prepared" olarak gorunur. */
+    $invoice = vestra_offer_issue_invoice($ref, false);
 
     require_once __DIR__.'/notify.php';
     /* OPERATOR haberdar edilmeli: pazarlik kapandi, mal ayrilacak ve fatura

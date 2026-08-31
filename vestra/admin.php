@@ -112,6 +112,35 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
     header('Location: /admin?tab='.$back.'&msg='.($issued?'invoice_issued':'invoice_none')); exit;
   }
+  /* Kabul edilmis TEKLIFIN faturasini kes. Ayri islem, cunku kaynak ayri
+     dosya: siparisler orders.csv'de, teklifler offers.csv + offer_responses
+     .json'da. Tutar vestra_offer_agreed_unit()'ten -- karsi teklif verilmisse
+     anlasilan fiyat, ilk teklif degil. */
+  if($act==='issue_offer_invoice'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/offers.php';
+    $rs=vestra_read_json('offer_responses.json');
+    /* Kabul edilmemis bir teklife fatura kesilemez: onay kuyrugunda
+       gorunmese bile dogrudan POST edilebilir. */
+    if((($rs[$ref]['status'] ?? '')) !== 'accept'){
+      header('Location: /admin?tab=invoices&msg=invoice_none'); exit;
+    }
+    $iv=vestra_offer_issue_invoice($ref, true);
+    $issued = $iv && ($iv['no'] ?? '') !== '';
+    if($issued){
+      $orow=vestra_offer_row($ref);
+      if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
+        require_once __DIR__.'/inc/notify.php';
+        $u=vestra_offer_agreed_unit($ref); $q=(int)($orow['qty']??0);
+        vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
+          "Hello ".(($orow['company']??'')?:'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
+         ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\nQuantity  : {$q}\nAgreed    : EUR ".number_format($u,2)."/unit  (total EUR ".number_format($u*$q,2).")\n\n"
+         ."Download it under My offers and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\n"
+         ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com");
+      }
+    }
+    header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
+  }
   /* Admin full listing editor — edit any field, set status, and reassign the
      listing to a different seller. */
   if($act==='admin_save_listing'){
@@ -1703,7 +1732,18 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
       if (str_contains((string)($o['notes'] ?? ''), 'Secure escrow')) return false; // card/escrow invoices itself on payment
       return count(vestra_invoices_for_ref($ref)) === 0;
   }));
-  $pendingInvoiceCount = count($pendingInvoiceOrders);
+  /* KABUL EDILMIS TEKLIFLER de faturasini bekliyor. Kuyruk yalnizca
+     orders.csv'yi okuyordu: teklif kabul edilince fatura 'pending' donuyor
+     ama HICBIR YERDE listelenmiyordu -- operator onaylayacagi belgeyi
+     goremiyor, alici da faturayi bekliyordu. Reddedilmis/karsi teklifte
+     olan teklif buraya girmez: ortada anlasma yok. */
+  require_once __DIR__.'/inc/offers.php';
+  $pendingInvoiceOffers = array_values(array_filter($offers, function($o) use ($offerResp){
+      $ref = (string)($o['ref'] ?? ''); if($ref==='') return false;
+      if ((($offerResp[$ref]['status'] ?? '')) !== 'accept') return false;
+      return count(vestra_invoices_for_ref($ref)) === 0;
+  }));
+  $pendingInvoiceCount = count($pendingInvoiceOrders) + count($pendingInvoiceOffers);
 
   // Escrow (Treuhand) at-a-glance — held funds + lifecycle counts for the dashboard.
   require_once __DIR__.'/inc/escrow.php';
@@ -2957,11 +2997,51 @@ elseif($tab==='invoices'): ?>
   <p class="ahint" style="margin:0">Automatic invoicing is <b>suspended</b>. After you confirm stock for an order, approve it here — the PDF invoice is then issued, emailed to the buyer and added to their account (My orders / confirmation page). Card &amp; escrow orders invoice themselves on payment and are not listed.</p>
 </div>
 
+<?php if($pendingInvoiceOffers): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.4)">
+  <div class="acard-hd"><h3>↩ <?= count($pendingInvoiceOffers) ?> accepted offer(s) awaiting an invoice</h3></div>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Offer','Product','Buyer','Qty','Agreed €/u','Total','Approve'],true) ?>
+    <?php foreach($pendingInvoiceOffers as $o):
+      $fref=(string)($o['ref']??''); $fq=(int)($o['qty']??0);
+      /* Anlasilan fiyat TEK yerden (vestra_offer_agreed_unit): karsi teklif
+         verilmisse o, yoksa alicinin ilk teklifi. Burada ayri hesaplamak,
+         onay ekraninda bir rakam gosterip faturaya baskasini yazma riski. */
+      $fu=vestra_offer_agreed_unit($fref); $fl=vestra_listing_by_sku($o['sku']??'');
+      $fWho=(($offerResp[$fref]['accepted_by']??'')==='buyer')?'accepted by buyer':'accepted by you';
+    ?>
+    <tr>
+      <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($fref) ?></a>
+        <div class="ahint"><?= htmlspecialchars($fWho) ?></div></td>
+      <td><?php if($fl && !empty($fl['id'])): ?>
+            <a href="/product?id=<?= urlencode((string)$fl['id']) ?>" target="_blank" rel="noopener" style="color:var(--acc)"><?= htmlspecialchars($o['product']??'') ?> ↗</a>
+          <?php else: ?><?= htmlspecialchars($o['product']??'') ?><?php endif; ?>
+        <div class="ahint"><?= htmlspecialchars($o['sku']??'') ?></div></td>
+      <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['email']??'') ?></div></td>
+      <td><?= $fq ?></td>
+      <td><b><?= eur($fu) ?></b><?php if(abs($fu-(float)($o['offer_unit']??0))>0.001): ?><div class="ahint" style="text-decoration:line-through"><?= eur($o['offer_unit']??0) ?></div><?php endif; ?></td>
+      <td><b><?= eur($fu*$fq) ?></b></td>
+      <td>
+        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>) and email the buyer?\n\nDo this once stock is confirmed.')">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="issue_offer_invoice">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($fref) ?>">
+          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+        </form>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
+</div>
+<?php endif; ?>
+
 <?php if(!$pendingInvoiceOrders): ?>
-  <div class="acard"><div style="padding:26px;text-align:center;color:var(--mut)">✓ No orders are awaiting an invoice.</div></div>
+  <?php if(!$pendingInvoiceOffers): ?>
+  <div class="acard"><div style="padding:26px;text-align:center;color:var(--mut)">✓ Nothing is awaiting an invoice.</div></div>
+  <?php endif; ?>
 <?php else: ?>
 <div class="acard">
-  <div class="acard-hd"><h3><?= $pendingInvoiceCount ?> awaiting your approval</h3></div>
+  <div class="acard-hd"><h3><?= count($pendingInvoiceOrders) ?> order(s) awaiting your approval</h3></div>
   <div class="atscroll"><table class="atable">
     <?= arow(['Order','Buyer','Placed','Buyer pays','Approve'],true) ?>
     <?php foreach($pendingInvoiceOrders as $o): $oref=(string)($o['ref']??''); ?>

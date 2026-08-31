@@ -397,43 +397,130 @@ if($tab==='overview'){
   echo '</div>';
 
 } elseif($tab==='offers'){
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Offers made').'</h3></div>';
-  if(!$offers) dash_empty(t('No offers yet. Make an offer on a make-an-offer product.'));
-  else {
-    echo '<table class="ctable"><thead><tr><th>'.t('Ref').'</th><th>'.t('Product').'</th><th class="r">'.t('Your offer').'</th><th>'.t('Seller response').'</th></tr></thead><tbody>';
-    foreach($offers as $o){
-      $ref = $o['ref']??'';
-      $resp = $offerResp[$ref] ?? null;
-      if (!$resp) { $rCell='<span class="status open">'.t('Pending seller').'</span>'; }
-      elseif($resp['status']==='accept') {
-        $rCell='<span class="status offers">✓ '.t('Accepted').'</span>';
-        foreach(vestra_invoices_for_ref($ref) as $iv){
-          $rCell.='<br><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener" style="margin-top:4px">📄 '.t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a>';
-        }
-      }
-      elseif($resp['status']==='decline') { $rCell='<span class="status">✗ '.t('Declined').'</span>'; }
-      else {
-        $rCell='<span class="status open">↩ '.t('Counter').': '.eur($resp['counter_price']??0).'/u</span>';
-        /* Panelde KABUL DUGMESI yoktu: karsi teklif mektubu "panelinizden
-           kabul edebilirsiniz" diyordu, alici geliyor ve boyle bir dugme
-           bulamiyordu -- karsi teklifi kabul etmenin hicbir yolu yoktu.
-           Ayni onay ekranina gidiyor (offer-accept.php): tek kod yolu,
-           tek "emin misiniz" adimi. */
-        $accTok = (string)($resp['accept_token'] ?? '');
-        if ($accTok !== '' && (float)($resp['counter_price'] ?? 0) > 0) {
-          $rCell .= '<br><a class="btn btn-p btn-sm" style="margin-top:6px" href="/offer-accept?ref='
-                 . rawurlencode($ref).'&amp;token='.rawurlencode($accTok).'">'
-                 . sprintf(t('Accept %s per unit'), eur($resp['counter_price'])).'</a>';
-        }
-      }
-      echo '<tr><td><b>'.htmlspecialchars($ref).'</b><div class="hint">'.htmlspecialchars(substr($o['timestamp']??'',0,10)).'</div></td>'.
-        '<td>'.htmlspecialchars($o['product']??'').'<div class="hint">'.htmlspecialchars($o['qty']??'').'× SKU '.htmlspecialchars($o['sku']??'').'</div></td>'.
-        '<td class="r"><b>'.eur($o['offer_unit']??0).'</b>/u<div class="hint">'.eur($o['offer_total']??0).' total</div></td>'.
-        '<td>'.$rCell.'</td></tr>';
+  /* Teklifler artik SIPARISLER GIBI: her teklif kendi baglantisi olan bir
+     kart, ve ?view=REF ile pazarligin tam gecmisi. Onceden dort sutunluk
+     duz bir tablo vardi -- urune gidilemiyor, ne zaman ne oldugu
+     gorunmuyor, ve fatura yalnizca kabul satirinda bir link olarak
+     duruyordu. Alici "teklifim ne oldu" sorusunu tablodan cevaplayamiyordu. */
+  require_once __DIR__.'/inc/offers.php';
+  $viewRef = $_GET['view'] ?? '';
+  $vo = $viewRef ? current(array_filter($offers, fn($o)=>($o['ref']??'')===$viewRef)) : null;
+
+  /* Pazarligin adimlari, olan bitenden turetiliyor -- uydurulmuyor:
+     yalnizca kaydi olan adim yaziliyor. */
+  $steps = function(array $o, ?array $r) {
+    $ref=(string)($o['ref']??''); $q=(int)($o['qty']??0);
+    $s=[[ 'ok'=>true,'at'=>(string)($o['timestamp']??''),
+          'title'=>t('You made an offer'),
+          'note'=>eur($o['offer_unit']??0).'/'.t('unit').' × '.$q.' = '.eur($o['offer_total']??0)]];
+    if(!$r){ $s[]=['ok'=>false,'at'=>'','title'=>t('Waiting for the seller'),'note'=>t('We normally reply within one business day.')]; return $s; }
+    $st=(string)($r['status']??'');
+    if($st==='counter' || (float)($r['counter_price']??0)>0){
+      $s[]=['ok'=>true,'at'=>(string)($r['responded_at']??''),'title'=>t('Seller countered'),
+            'note'=>eur($r['counter_price']??0).'/'.t('unit').' × '.$q.' = '.eur((float)($r['counter_price']??0)*$q)];
     }
-    echo '</tbody></table>';
+    if($st==='accept'){
+      $by=(($r['accepted_by']??'')==='buyer')?t('You accepted the counter offer'):t('Your offer was accepted');
+      $s[]=['ok'=>true,'at'=>(string)($r['accepted_at']??$r['responded_at']??''),'title'=>$by,
+            'note'=>t('Agreed').': '.eur(vestra_offer_agreed_unit($ref,$r,$o)).'/'.t('unit')];
+      $ivs=vestra_invoices_for_ref($ref);
+      $s[]=$ivs
+        ? ['ok'=>true,'at'=>'','title'=>t('Invoice issued'),'note'=>t('Pay by bank transfer to the account on the invoice. Goods ship once payment arrives.')]
+        : ['ok'=>false,'at'=>'','title'=>t('Invoice being prepared'),'note'=>t('We confirm stock first, then issue the invoice — you will get it by e-mail.')];
+    } elseif($st==='decline'){
+      $by=(($r['declined_by']??'')==='buyer')?t('You declined the counter offer'):t('The seller declined');
+      $s[]=['ok'=>true,'at'=>(string)($r['declined_at']??$r['responded_at']??''),'title'=>$by,'note'=>t('This negotiation is closed.')];
+    } elseif($st==='counter'){
+      $s[]=['ok'=>false,'at'=>'','title'=>t('Waiting for your answer'),'note'=>t('Accept or decline the counter offer below.')];
+    }
+    return $s;
+  };
+
+  /* Karsi teklif dugmeleri — kart ve detayda AYNI kod. */
+  $ctaFor = function(string $ref, ?array $r) {
+    if(!$r || ($r['status']??'')!=='counter') return '';
+    $tok=(string)($r['accept_token']??''); $cp=(float)($r['counter_price']??0);
+    if($tok==='' || $cp<=0) return '';
+    $u='/offer-accept?ref='.rawurlencode($ref).'&amp;token='.rawurlencode($tok);
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+      .'<a class="btn btn-p btn-sm" href="'.$u.'">'.sprintf(t('Accept %s per unit'), eur($cp)).'</a>'
+      .'<a class="btn btn-o btn-sm" href="'.$u.'">'.t('Decline').'</a></div>';
+  };
+
+  $badge = function(?array $r) {
+    if(!$r) return '<span class="status open">'.t('Pending seller').'</span>';
+    return match((string)($r['status']??'')){
+      'accept'  => '<span class="status offers">✓ '.t('Accepted').'</span>',
+      'decline' => '<span class="status">✗ '.t('Declined').'</span>',
+      'counter' => '<span class="status open">↩ '.t('Counter').': '.eur($r['counter_price']??0).'/u</span>',
+      default   => '<span class="status open">'.t('Pending seller').'</span>',
+    };
+  };
+
+  echo '<style>
+    .offtl{list-style:none;margin:14px 0 0;padding:0}
+    .offtl li{position:relative;padding:0 0 16px 26px;border-left:2px solid var(--line);margin-left:6px}
+    .offtl li:last-child{border-left-color:transparent;padding-bottom:0}
+    .offtl li::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;
+      background:var(--bg2);border:2px solid var(--line)}
+    .offtl li.on::before{background:var(--acc);border-color:var(--acc)}
+    .offtl b{display:block;font-size:14px}
+    .offtl .hint{margin-top:2px}
+  </style>';
+
+  if($vo){
+    $ref=(string)($vo['ref']??''); $r=$offerResp[$ref]??null;
+    $l=vestra_listing_by_sku($vo['sku']??''); $img=$l?vestra_primary_image($l):'';
+    echo '<div style="margin-bottom:14px"><a class="btn btn-o btn-sm" href="/buyer?tab=offers">← '.t('All offers').'</a></div>';
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.htmlspecialchars($ref).'</h3>'.$badge($r).'</div>';
+    echo '<div class="panelcard-body" style="padding:4px">';
+    echo '<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:6px">';
+    if($img) echo '<img src="'.htmlspecialchars($img).'" alt="" style="width:74px;height:74px;object-fit:cover;border-radius:10px;border:1px solid var(--line)">';
+    echo '<div style="flex:1;min-width:180px"><b style="font-size:15px">'.htmlspecialchars($vo['product']??'').'</b>'
+        .'<div class="hint">'.(int)($vo['qty']??0).'× · SKU '.htmlspecialchars($vo['sku']??'').'</div>';
+    if($l && !empty($l['id'])) echo '<a href="/product?id='.urlencode((string)$l['id']).'" style="color:var(--acc);font-size:13px">'.t('View product').' ↗</a>';
+    echo '</div></div>';
+    echo '<ul class="offtl">';
+    foreach($steps($vo,$r) as $s){
+      echo '<li class="'.($s['ok']?'on':'').'"><b>'.htmlspecialchars($s['title']).'</b>'
+          .($s['at']!==''?'<div class="hint">'.htmlspecialchars(substr($s['at'],0,16)).'</div>':'')
+          .'<div class="hint">'.$s['note'].'</div></li>';
+    }
+    echo '</ul>';
+    echo $ctaFor($ref,$r);
+    foreach(vestra_invoices_for_ref($ref) as $iv){
+      echo '<div style="margin-top:12px"><a class="btn btn-o btn-sm" href="'.htmlspecialchars($iv['url']).'" target="_blank" rel="noopener">📄 '
+          .t('Invoice').' '.htmlspecialchars(vestra_invoice_link_label($iv)).'</a></div>';
+    }
+    echo '</div></div>';
+
+  } else {
+    echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Offers made').'</h3></div>';
+    if(!$offers) dash_empty(t('No offers yet. Make an offer on a make-an-offer product.'));
+    else {
+      echo '<div class="ordlist" style="display:flex;flex-direction:column;gap:12px;padding:4px 0">';
+      foreach(array_reverse($offers) as $o){
+        $ref=(string)($o['ref']??''); $r=$offerResp[$ref]??null;
+        $l=vestra_listing_by_sku($o['sku']??''); $img=$l?vestra_primary_image($l):'';
+        $agreed = ($r && ($r['status']??'')==='accept') ? vestra_offer_agreed_unit($ref,$r,$o) : 0.0;
+        echo '<div style="background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:15px 17px">'
+            .'<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">'
+            .'<a href="/buyer?tab=offers&view='.urlencode($ref).'" style="font-weight:700;font-size:15px;color:var(--ink)">'.htmlspecialchars($ref).'</a>'
+            .$badge($r).'</div>'
+            .'<div style="display:flex;gap:12px;align-items:center;margin-top:11px">';
+        if($img) echo '<img src="'.htmlspecialchars($img).'" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1px solid var(--line)">';
+        echo '<div style="flex:1;min-width:0"><div style="font-size:13.5px">'.htmlspecialchars($o['product']??'').'</div>'
+            .'<div class="hint">'.(int)($o['qty']??0).'× · '.t('Your offer').' '.eur($o['offer_unit']??0).'/u'
+            .($agreed>0 ? ' · <b>'.t('Agreed').' '.eur($agreed).'/u</b>' : '').'</div></div>'
+            .'<a class="btn btn-o btn-sm" href="/buyer?tab=offers&view='.urlencode($ref).'">'.t('Track').' →</a>'
+            .'</div>'
+            .$ctaFor($ref,$r)
+            .'</div>';
+      }
+      echo '</div>';
+    }
+    echo '</div>';
   }
-  echo '</div>';
 
 } elseif($tab==='messages'){
   $tid = $_GET['thread'] ?? '';
