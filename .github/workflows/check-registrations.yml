@@ -371,8 +371,16 @@ jobs:
               echo "  email dogru  : ".(!empty($a['email_verified']) ? 'evet' : 'HAYIR')."\n";
               echo "  olusturulma  : ".($a['created'] ?? '?')."\n";
               echo "  trade_doc_required: ".(!empty($a['trade_doc_required']) ? 'EVET (belge onayi sart)' : 'yok (eski kayit — fiyat acik)')."\n";
-              $vat = (string)($a['vat_id'] ?? '');
-              echo "  vat_id       : ".($vat !== '' ? substr($vat,0,4).'***'.substr($vat,-2) : '— BOS')."\n";
+              $vat = trim((string)($a['vat_id'] ?? ''));
+              /* Numaranin KENDISI maskeli kalir ama BICIMI soylenir: KYB'de asil
+                 soru "gecerli bir vergi numarasi mi", ve alana ulke adi / bos
+                 bosluk yazilmis hesaplar bu satir olmadan normal gorunuyordu. */
+              $vatClean = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $vat));
+              $vatShape = $vat === '' ? '— BOS'
+                : (preg_match('/^[A-Z]{2}[A-Z0-9]{6,13}$/', $vatClean) ? 'AB bicimine UYGUN'
+                  : (preg_match('/^[0-9]{8,15}$/', $vatClean) ? 'yalnizca rakam (ulke onegi yok)'
+                    : 'BICIM GECERSIZ — vergi numarasi gibi durmuyor'));
+              echo "  vat_id       : ".($vat !== '' ? substr($vat,0,4).'***'.substr($vat,-2) : '—')."  →  {$vatShape}\n";
               echo "  ulke/site    : ".($a['country'] ?? '—')." / ".($a['website'] ?? '—')."\n";
               echo "  sirket/isim  : ".(trim((string)($a['company'] ?? '')) !== '' ? 'var' : 'BOS')." / ".(trim((string)($a['name'] ?? '')) !== '' ? 'var' : 'BOS')."\n";
               echo "  kayit IP     : ".($a['reg_cc'] ?? '?')." ".($a['reg_city'] ?? '')." — VPN/hosting: ".(!empty($a['reg_vpn']) ? 'EVET (dikkat)' : 'hayir')."\n";
@@ -382,15 +390,31 @@ jobs:
               echo "  promo kodu   : ".(trim((string)($a['promo_code'] ?? '')) !== '' ? $a['promo_code'] : '— yok')."\n";
               /* "Bizi nasil buldular?" — ayni alan adi lead listemizde var mi,
                  kampanya gonderdik mi? Kayit, kendi mektubumuzun cevabi olabilir. */
-              $dom = strtolower(substr(strrchr((string)($a['email'] ?? ''), '@') ?: '', 1));
+              $em  = strtolower(trim((string)($a['email'] ?? '')));
+              $dom = strtolower(substr(strrchr($em, '@') ?: '', 1));
+              /* SERBEST POSTA alan adinda alan-adi eslestirmesi ANLAMSIZ: 'gmail.com'
+                 aramak listedeki her gmail leadini getiriyor (ilk surumde 347 "eslesme"
+                 cikti ve "bizi tanidiklar" gibi okunacakti). Boyle adreslerde yalnizca
+                 TAM e-posta eslesmesi bir sey soyler. */
+              $free = ['gmail.com','googlemail.com','yahoo.com','yahoo.fr','yahoo.co.uk','hotmail.com',
+                       'hotmail.fr','hotmail.co.uk','outlook.com','outlook.fr','live.com','msn.com',
+                       'icloud.com','me.com','aol.com','gmx.de','gmx.net','web.de','t-online.de',
+                       'free.fr','orange.fr','wanadoo.fr','laposte.net','sfr.fr','protonmail.com',
+                       'proton.me','yandex.ru','mail.ru','qq.com','163.com','126.com','libero.it',
+                       'virgilio.it','tiscali.it','alice.it','yahoo.it','yahoo.es','yahoo.de'];
+              $isFree = in_array($dom, $free, true);
               $lf  = $home.'/public_html/data/leads.json';
               $lds = is_readable($lf) ? (json_decode((string)file_get_contents($lf), true) ?: []) : [];
               $hitL = [];
               foreach ((array)$lds as $l) {
-                $hay = strtolower(((string)($l['email'] ?? '')).' '.((string)($l['website'] ?? '')));
-                if ($dom !== '' && str_contains($hay, $dom)) $hitL[] = $l;
+                $le = strtolower(trim((string)($l['email'] ?? '')));
+                if ($em !== '' && $le === $em) { $hitL[] = $l; continue; }   // tam adres
+                if ($isFree || $dom === '') continue;                        // serbest posta: alan adi bakilmaz
+                $hay = strtolower($le.' '.((string)($l['website'] ?? '')));
+                if (str_contains($hay, $dom)) $hitL[] = $l;
               }
-              echo "  lead kaydi   : ".(count($hitL) ? count($hitL)." adet" : "YOK — bu adrese/alan adina biz kampanya GONDERMEDIK")."\n";
+              echo "  lead kaydi   : ".(count($hitL) ? count($hitL)." adet" : "YOK — bu adrese".($isFree ? "" : "/alan adina")." biz kampanya GONDERMEDIK")
+                 . ($isFree ? "   (serbest posta alan adi — yalnizca TAM adres arandi)" : "")."\n";
               foreach (array_slice($hitL, 0, 3) as $l) {
                 echo "     · ".($l['company'] ?? '?')." | ulke=".($l['country'] ?? '-')." | kaynak=".($l['source'] ?? '?')
                    ." | gonderim=".(($l['last_contacted_at'] ?? '') !== '' ? substr((string)$l['last_contacted_at'],0,10) : 'hic')."\n";
