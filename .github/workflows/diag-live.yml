@@ -2191,8 +2191,25 @@ jobs:
             echo "  require_email_verify: ".var_export($cfg('require_email_verify', false), true)."\n";
             $fk = (string)$cfg('finder_key','');
             echo "  finder_key        : ".($fk !== '' ? "tanimli (".$cfg('finder_provider','hunter').")" : "YOK")."\n";
-            $sk = (string)$cfg('stripe_secret','');
-            echo "  stripe_secret     : ".($sk !== '' ? "tanimli" : "YOK")."\n";
+            /* Stripe'i UYGULAMANIN okudugu yerden sor. Burasi eskiden
+               vestra_cfg('stripe_secret')'e bakiyordu; kod ise
+               getenv('STRIPE_SECRET_KEY') okuyor (inc/stripe.php) ve anahtar
+               belge kokunun BIR USTUNDEKI .env'de duruyor. Iki ayri yer, yani
+               bu satir Stripe calisirken bile "YOK" yaziyordu -- cevaplamadigi
+               bir soruya alarm veren bir kontrol, kontrol degildir.
+               Anahtarin KENDISI yazilmiyor, yalnizca var/yok ve turu. */
+            @require_once $home.'/public_html/inc/env.php';
+            if (function_exists('vestra_load_env')) {
+                foreach ([$home.'/.env', $home.'/public_html/../.env'] as $ep) {
+                    if (is_readable($ep)) { vestra_load_env($ep); break; }
+                }
+            }
+            $sk = (string)(getenv('STRIPE_SECRET_KEY') ?: '');
+            $skMode = $sk === '' ? '' : (str_starts_with($sk,'sk_live_') ? ' (LIVE)' : (str_starts_with($sk,'sk_test_') ? ' (test)' : ''));
+            echo "  STRIPE_SECRET_KEY : ".($sk !== '' ? "tanimli".$skMode : "YOK — escrow/Connect kapali")."\n";
+            if ($sk === '') $issues++;
+            $wh = (string)(getenv('STRIPE_WEBHOOK_SECRET') ?: '');
+            echo "  STRIPE_WEBHOOK    : ".($wh !== '' ? "tanimli" : "YOK — odeme sonrasi olaylar islenmez")."\n";
 
             /* Google ile musteri bulma: anahtarin VARLIGI yetmez. Bu ucta iki ayri
                kapi var -- proje faturalandirmasi ve "Places API (New)"in acik olmasi --
