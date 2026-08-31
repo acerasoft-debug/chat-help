@@ -1100,7 +1100,9 @@ jobs:
                     bir onboarding'de o alan dolu ama odeme yine gelmiyor. */
               $needStripe = empty($acc['stripe_account_id']) || empty($acc['escrow_ready']);
 
-              echo "satici : ".$mask($to)."  (".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
+              /* $to DEGIL $acc yazilir: 'for' ile test gonderirken bu satir
+                 alicinin adresini "satici" diye etiketliyordu. */
+              echo "satici : ".$mask((string)($acc['email'] ?? ''))."  (".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
               echo "gonderim yeri eksik ilan : ".count($missShip)."\n";
               foreach ($missShip as $t) echo "   - ".$t."\n";
               echo "yuklenmemis belge        : ".count($missDocs)." (".implode(', ', $missDocs).")\n";
