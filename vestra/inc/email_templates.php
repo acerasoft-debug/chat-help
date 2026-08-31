@@ -1370,3 +1370,24 @@ function vestra_tpl_verify_nudge(string $lang, string $name, bool $isSeller, str
     $body = $hi."\n\n".$p1."\n\n".$p2."\n\n".$p3."\n\n".$p4."\n\n".$bye."\n\n".$signer."\nVESTRA – vestrasales.com";
     return [$subject, $body, []];
 }
+
+/* Kisa "tek eksik: ticari belge" cevabi — alici hesabinin durumunu sordugunda.
+ * l1212_docs'un kisa kardesi: ayni bilgi, tek paragraf + tek link. Yol tarifi
+ * koddan dogrulandi (/buyer?tab=kyc, PDF/JPG/PNG/WebP 10MB, auth_upload_doc).
+ * Gewerbeanmeldung PARANTEZLI ingilizcesiyle birlikte veriliyor: Almanyali
+ * alici kendi belgesinin adini gorsun, diger ulkeler karsiligini anlasin. */
+function vestra_tpl_docs_short(string $salutation, string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Your VESTRA account – Gewerbeanmeldung still needed';
+
+    $body = $salutation . ",\n\n"
+. "Thank you — I have checked your account personally.\n\n"
+. "Your company details and VAT ID are on file; nothing further is needed there. Only one document is still missing, and it is the single thing holding up the activation: your Gewerbeanmeldung (trade licence / business registration).\n\n"
+. "Please upload it here: https://vestrasales.com/buyer?tab=kyc\n"
+. "Sign in, open the \"Verification\" section (\"Verifizierung\") and attach the file – PDF, JPG, PNG or WebP, up to 10 MB.\n\n"
+. "Documents are reviewed the same working day. As soon as yours is approved, the L1212 price tiers, article numbers, size grid and colourways – and the full line sheet – are visible in your account.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
