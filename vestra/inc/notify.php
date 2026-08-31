@@ -377,6 +377,25 @@ function vestra_overpass(string $ql): string {
  * match on the shop's name/brand tag; admin can still remove any that slip through. */
 function vestra_discover_blocklist(): array {
   return [
+    /* 31 Agu 2026 — elle verilen 199 satirlik "luxury brand stores" listesi.
+       Engelleme listesi bunlarin YALNIZCA ucunu yakaladi (Aspesi, SSENSE,
+       Jacquemus); geri kalani listeyi okuyarak ayiklandi. Uc kategori:
+       (a) kendi markasini satan magazalar, (b) zincir/magazalar grubu ve
+       kanalda rakip olan dev e-tailerlar, (c) distributor. */
+    // (a) kendi markasi / monobrand
+    'our legacy','lemaire','noah ny','noahny','todd snyder','toddsnyder','billy reid','billyreid',
+    'imogene + willie','imogene and willie','imogenewillie','somedays lovin','nepenthes',
+    'wood wood','woodwood',
+    // (b) zincir / magazalar grubu / dev e-tailer (kanalda musteri degil rakip)
+    'kith','flannels','matchesfashion','matches fashion','browns fashion','brownsfashion',
+    'end clothing','endclothing','luisaviaroma','luisa via roma','excelsior milano',
+    'dover street market','doverstreetmarket','boon the shop','boontheshop','siwilai',
+    /* 'atmos' ve 'mashburn' TEK BASINA fazla genis: "Atmos Green Concept" ve
+       "Mashburn Family Store" testte elendi. Gercek kayitlarin tam adiyla. */
+    'atmos usa','atmosusa','sid mashburn','sidmashburn','ann mashburn','annmashburn',
+    'folli follie','follifollie',
+    // (c) distributor — bolgesel marka haklarini tutuyor
+    'slam jam','slamjam',
     // mass-market / fast-fashion chains
     'zara','h&m','h & m','c&a','c & a','primark','mango','uniqlo','bershka','pull&bear','pull & bear',
     'stradivarius','new yorker','takko','kik','nkd',"ernsting's family",'peek & cloppenburg','peek&cloppenburg',
@@ -579,7 +598,11 @@ function vestra_blocklist_exact_only(): array {
              'ross dress','courir','snipes','fila','kappa','umbro','next',
              /* 6 harften uzun ama gunluk kelime: alan adinda alt dizi aranirsa
                 "dynamiteboutique.it" gibi gercek bir dukkani elerdi. */
-             'dynamite','herschel'] as $t){
+             'dynamite','herschel',
+             /* 31 Agu 2026 listesinden: kisa ya da baska sozcuklerin icinde
+                gecebilen adlar. 'atmos' -> atmosphere/atmosfera, 'kith' -> kithara,
+                'lemaire' -> kisi soyadi olabilir, 'nepenthes' bitki adi. */
+             'kith','lemaire','nepenthes','siwilai'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
