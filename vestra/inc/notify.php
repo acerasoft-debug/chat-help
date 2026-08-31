@@ -377,6 +377,24 @@ function vestra_overpass(string $ql): string {
  * match on the shop's name/brand tag; admin can still remove any that slip through. */
 function vestra_discover_blocklist(): array {
   return [
+    /* 31 Agu 2026 — APAC "luxury stores" listesi. Engelleme listesi 73'te
+       yalnizca ikisini yakaladi (DSM Ginza, Nepenthes). Elle okununca yine
+       ayni uc kategori cikti; ayrica kanalda alici OLMAYAN iki tur:
+       alisveris merkezi isletmecisi ve ikinci el (resale). */
+    // kendi markasini satan / monobrand (SG, JP, AU, ID)
+    'sabrinagoh','sabrina goh','beyond the vines','beyondthevines','kwanpen',
+    'colony clothing','colonyclothing','in good company','ingoodcompany',
+    'white story','whitestory','lulu yasmine','luluyasmine','magali pascal','magalipascal',
+    'paul ropp','paulropp','biasa bali','biasagroup','lily jean','lilyjean',
+    'jungle gold','junglegold','studious tokyo','tokyobase',
+    // distributor / marka haklarini tutan grup
+    'melium',
+    // alisveris merkezi isletmecisi (butik degil, kiraci topluyor)
+    'pavilion-kl','pavilionkl','klcc pavilion','klccpavilion',
+    // ikinci el / konsinye: yeni toptan mal almiyor
+    'luxe it fwd','luxeitfwd',
+    // hic moda perakendecisi degil (ortak calisma alani)
+    'colony work',
     /* 31 Agu 2026 — elle verilen 199 satirlik "luxury brand stores" listesi.
        Engelleme listesi bunlarin YALNIZCA ucunu yakaladi (Aspesi, SSENSE,
        Jacquemus); geri kalani listeyi okuyarak ayiklandi. Uc kategori:
