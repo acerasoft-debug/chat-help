@@ -54,6 +54,38 @@ Alshaya, Al Tayer, Apparel Group, BFL Group, Alyasra, Etoile Group, Concept Bran
 Trafalgar ve Gilbert Luxury Brands kampanya aldı. Kuralın hatırlanmaya bırakılması
 yetmiyor; kontrol gönderim yolunda olmalı.
 
+## Hesap açma / belge kuralları
+
+**KURAL 2 — Satıcıdan istenen belge: ticari kayıt + kimlik. Başka bir şey yok.**
+(operatör kararı, 31 Ağu 2026)
+
+- `auth_required_doc_types()` **tek doğruluk kaynağıdır** — satıcı:
+  `trade_licence` + `id_document`, alıcı: `trade_licence`. Kayıtta açılan istekler,
+  panel ve satıcıya giden mektup buradan okur. Ayrı ayrı yazıldıklarında kaçırdılar:
+  20 Ağustos'ta kaydolan hesapta **beş** istek duruyordu, mektup iki diyordu.
+- `company_reg`, `vat_cert`, `auth_letter` **istenmez.** Gerekçeleri `auth.php`'de
+  yazılı; özeti: küçük işletmede çoğu zaman **mevcut değil**, vergi numarası kayıt
+  formunda zaten alınıyor, ve "sole director iseniz atlayın" denen bir istek istek
+  değildir. Tipleri `auth_doc_types()`'ta duruyor — şüpheli bir dosyada operatör
+  panelden tek tek yine isteyebilir; kaldırılan şey **zorunluluk**.
+- Eski hesaplarda kalan istekler: `Admin ▸ Documents ▸ 🧹 Clean up`
+  (`auth_prune_stale_doc_requests`). Yüklenmiş/onaylanmış/reddedilmiş kayıtlara,
+  dosyası olan her satıra ve `by=operator` damgalılara **dokunmaz**.
+- **Belge kapıyı açmaz, operatör onayı açar** (`auth_prices_unlocked` →
+  `auth_user_approved`). Belge **uyarı**dır. Bu yüzden hiçbir metinde "belgesiz hesap
+  aktif edilemez" **yazmamalı** — 31 Ağu 2026'da kayıt notundaki o cümle düzeltildi.
+
+**KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
+
+- `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa
+  platform varsayılanı `EU`. Bir gün satıcının hesap ülkesinden türetildi ve canlıda
+  "Ships from India" yazdı: **kayıt adresi ile malın çıktığı depo aynı şey değil**,
+  alıcı bu satırı gümrük ve teslim süresi için okuyor.
+- Ürün eklerken **zorunlu alan** (`seller-add.php`, düzenleme formu dahil).
+  Admin ilan tablosunda girilmemiş olan **⚠ not set** ile işaretli.
+- Bayrak değerden türetilir; çözülemeyen bir ad varsa metin basılır, **yanlış bayrak
+  basılmaz**.
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
