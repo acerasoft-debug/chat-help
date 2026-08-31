@@ -26,9 +26,16 @@ if (vestra_seller_quota_exhausted($_user)) {
 
 $one=function($s){ return trim(preg_replace('/\s+/',' ',str_replace(["\r","\n"],' ',(string)$s))); };
 $brand=$one($_POST['brand']??''); $name=$one($_POST['name']??''); $origin=$one($_POST['origin']??'');
+/* Malin CIKTIGI ulke. 'origin' bununla ayni sey DEGIL: o mensei/orijinallik
+   notu ("EEA stock · invoice on request"), bu ise sevkiyatin fiilen basladigi
+   yer. Ayri tutuluyorlar cunku alici bu satiri gumruk ve teslim suresi icin
+   okuyor. Onceden hic sorulmuyordu ve urun sayfasi sabit "Ships from EU"
+   yaziyordu -- yani hicbir satici yanlislayamadigi bir vaadin altina
+   imza atmis oluyordu. Artik ZORUNLU. */
+$shipsFrom=$one($_POST['ships_from']??''); if(mb_strlen($shipsFrom)>40) $shipsFrom=mb_substr($shipsFrom,0,40);
 $moq=max(1,(int)($_POST['moq']??1));
 $mode=in_array($_POST['mode']??'',['fixed','sale','offer'],true)?$_POST['mode']:'fixed';
-if($brand===''||$name===''||$origin===''||empty($_POST['origin_confirm'])){ header('Location: /seller?tab=add'); exit; }
+if($brand===''||$name===''||$origin===''||$shipsFrom===''||empty($_POST['origin_confirm'])){ header('Location: /seller?tab=add&err=ships'); exit; }
 
 /* tiers */
 $tiers=[];
@@ -49,7 +56,7 @@ $accent=$palette[ hexdec(substr(md5($id),0,2)) % count($palette) ];
 $item=[
   'id'=>$id,'brand'=>$brand,'name'=>$name,'mode'=>$mode,'status'=>'pending','added_at'=>date('c'),
   'cat'=>$one($_POST['cat']??'Other'),'sku'=>$sku,'moq'=>$moq,'unit'=>$one($_POST['unit']??'pc'),
-  'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,
+  'desc'=>$one($_POST['desc']??''),'seller'=>$one($_POST['seller']??'Seller'),'origin'=>$origin,'ships_from'=>$shipsFrom,
   'verified'=>$_kyb==='approved','accent'=>$accent,'tiers'=>$tiers,
   'seller_uid'=>$_SESSION['uid']??'',
 ];
@@ -92,7 +99,7 @@ if(!empty($_SESSION['uid'])) vestra_seller_monthly_quota_bump($_SESSION['uid']);
 $sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');
 vestra_notify(
   "New listing pending approval: {$brand} {$name} [{$sku}]",
-  "A seller submitted a new listing for review.\n\nBrand: {$brand}\nProduct: {$name}\nSKU: {$sku}\nCategory: {$item['cat']}\nMode: {$mode}\nOrigin: {$origin}\nSeller: {$sellerName}\n\nReview and approve: https://vestrasales.com/admin?tab=approvals"
+  "A seller submitted a new listing for review.\n\nBrand: {$brand}\nProduct: {$name}\nSKU: {$sku}\nCategory: {$item['cat']}\nMode: {$mode}\nOrigin: {$origin}\nShips from: {$shipsFrom}\nSeller: {$sellerName}\n\nReview and approve: https://vestrasales.com/admin?tab=approvals"
 );
 
 header('Location: /seller?tab=listings&pending=1'); exit;

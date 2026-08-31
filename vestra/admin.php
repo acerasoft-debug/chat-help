@@ -145,6 +145,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $minC=max(0,(int)($_POST['min_colors']??0)); if($minC>0&&$colors&&$minC<=count($colors)) $p['min_colors']=$minC; else unset($p['min_colors']);
       if(in_array($_POST['status']??'',['approved','pending','rejected','suspended'],true)) $p['status']=$_POST['status'];
       if(isset($_POST['desc'])) $p['desc']=$one($_POST['desc']);
+      /* Malin CIKTIGI yer. Bos BIRAKMAK gecerli bir secim: o zaman urun
+         sayfasi platform varsayilanina ("Ships from EU") duser ve liste
+         tablosunda "⚠ not set" olarak isaretli kalir. Alan formda gelmediyse
+         (eski bir sekme) mevcut degere DOKUNMUYORUZ. */
+      if(isset($_POST['ships_from'])){
+        $sf=$one($_POST['ships_from']); if(mb_strlen($sf)>40) $sf=mb_substr($sf,0,40);
+        if($sf!=='') $p['ships_from']=(mb_strlen($sf)===2?mb_strtoupper($sf):$sf); else unset($p['ships_from']);
+      }
       $ns=$_POST['seller_uid']??'';
       if($ns!==''){ $p['seller_uid']=$ns; foreach(auth_accounts() as $a){ if(($a['id']??'')===$ns){ $p['seller']=($a['company']?:($a['name']?:($p['seller']??''))); break; } } }
       break;
@@ -1649,6 +1657,21 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 
   $sellers      = array_filter($accounts,fn($a)=>($a['type']??'')==='seller');
   $buyers       = array_filter($accounts,fn($a)=>($a['type']??'')==='buyer');
+  /* Satici basina ILAN sayisi. Panelde hicbir yerde yoktu: "onaylanmis 40
+     satici" ile "urun koymus 6 satici" cok farkli iki sey ve ikincisi
+     gorunmuyordu. Yayindaki ve onay bekleyen ayri sayiliyor -- toplam tek
+     basina, kuyrukta bekleyen bir yiginin uzerini orter.
+     Sayim ILANIN seller_uid'sinden; demo/platform urunlerinde bu alan bos,
+     onlar hicbir saticiya yazilmaz. */
+  $listingsBySeller = [];
+  foreach($listings as $__p){
+    $__u = trim((string)($__p['seller_uid'] ?? ''));
+    if($__u === '') continue;
+    if(!isset($listingsBySeller[$__u])) $listingsBySeller[$__u] = ['live'=>0,'pending'=>0];
+    if(($__p['status'] ?? 'approved') === 'pending') $listingsBySeller[$__u]['pending']++;
+    else $listingsBySeller[$__u]['live']++;
+  }
+  unset($__p,$__u);
   $pendingEmail = array_filter($accounts,fn($a)=>($a['status']??'')==='pending_email');
   $pendingKyb   = array_filter($accounts,fn($a)=>($a['status']??'')==='pending'&&($a['kyb_status']??'pending')==='pending');
   $reqOffers    = vestra_read_csv('request_offers.csv');
@@ -2408,7 +2431,7 @@ function sendUserMessage(uid,name){
 <?php else: ?>
 <div class="acard">
 <div class="atscroll"><table class="atable">
-  <?= arow(['#','Name','Email','Type','Company','Country','VAT ID','Verification','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
+  <?= arow(['#','Name','Email','Type','Products','Company','Country','VAT ID','Verification','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
   <?php $i=count($shown); foreach($shown as $a):
     $isSusp=($a['status']??'active')==='suspended';
     $isPendEmail=($a['status']??'')==='pending_email';
@@ -2441,6 +2464,23 @@ function sendUserMessage(uid,name){
       </form>
     </td>
     <td class="ac"><?= typePill($a['type']??'') ?></td>
+    <td class="ac" style="white-space:nowrap">
+      <?php /* Sadece saticida anlamli: alicida "0 urun" bir eksiklik degil,
+               tabloyu okurken gozu yanlis yere cekiyordu. */
+      if(($a['type']??'')!=='seller'): ?>
+        <span class="ahint">—</span>
+      <?php else:
+        $__c = $listingsBySeller[$a['id']??''] ?? ['live'=>0,'pending'=>0];
+        if($__c['live']===0 && $__c['pending']===0): ?>
+          <span class="ahint" title="This seller has not listed anything yet">0</span>
+        <?php else: ?>
+          <a href="/admin?tab=listings&amp;seller=<?= urlencode($a['id']??'') ?>" style="color:var(--acc);font-weight:600" title="Live listings"><?= (int)$__c['live'] ?></a>
+          <?php if($__c['pending']>0): ?>
+            <div class="ahint" style="color:#a9781a" title="Waiting for approval">+<?= (int)$__c['pending'] ?> pending</div>
+          <?php endif; ?>
+        <?php endif;
+      endif; ?>
+    </td>
     <td class="ac"><?= htmlspecialchars($a['company']??'—') ?></td>
     <td class="ac"><?= htmlspecialchars($a['country']??'—') ?>
       <?php /* Beyan edilen ulkenin ALTINDA kayit IP'sinin ulkesi: ikisi ayni soru
@@ -3148,6 +3188,15 @@ elseif($tab==='listings'):
   $liveList   = array_filter($listings,fn($p)=>($p['status']??'approved')==='approved');
   $rejList    = array_filter($listings,fn($p)=>($p['status']??'')==='rejected');
   $ledit      = ($leid=($_GET['edit']??'')) ? vestra_listing_by_id($leid) : null;
+  /* Users sekmesindeki urun sayisi buraya link veriyor: sayiya tiklayinca
+     O saticinin ilanlari. Filtre yalnizca TABLOYU daraltiyor, ustteki
+     toplu islem kartlari (senkron/rebrand) oldugu gibi kaliyor -- onlar
+     zaten kendi hedeflerini kendileri seciyor. */
+  $lsel       = trim((string)($_GET['seller'] ?? ''));
+  $lrows      = $lsel === '' ? $listings
+              : array_values(array_filter($listings, fn($p)=>(string)($p['seller_uid']??'')===$lsel));
+  $lselName   = '';
+  if($lsel !== ''){ foreach($accounts as $__a){ if(($__a['id']??'')===$lsel){ $lselName = (string)($__a['company'] ?: ($__a['name'] ?? '')); break; } } unset($__a); }
 ?>
 <?php if($ledit): $lc=(array)($ledit['colors']??[]); $lt=$ledit['tiers']??[]; ?>
 <div class="acard" style="margin-bottom:18px;border-color:var(--acc)">
@@ -3179,6 +3228,11 @@ elseif($tab==='listings'):
         <div class="afield"><label>Mode</label><select name="mode"><?php foreach(['fixed','sale','offer'] as $m): ?><option <?= ($ledit['mode']??'fixed')===$m?'selected':'' ?>><?= $m ?></option><?php endforeach; ?></select></div>
         <div class="afield"><label>Pack size (0 = none)</label><input type="number" name="size_step" min="0" value="<?= (int)($ledit['size_step']??0) ?>"></div>
         <div class="afield"><label>Min colours (0 = none)</label><input type="number" name="min_colors" min="0" value="<?= (int)($ledit['min_colors']??0) ?>"></div>
+      </div>
+      <div class="acols3">
+        <div class="afield"><label>Ships from <span style="color:var(--mut);font-weight:400">— country the goods leave from</span></label>
+          <input name="ships_from" maxlength="40" value="<?= htmlspecialchars($ledit['ships_from']??'') ?>" placeholder="Italy · Germany · IT — empty falls back to “EU”"></div>
+        <div class="afield"></div><div class="afield"></div>
       </div>
       <label style="font-size:12px;color:var(--mut);display:block;margin:2px 0 4px">Price tiers — min qty → €/unit</label>
       <div class="acols3">
@@ -3271,11 +3325,19 @@ elseif($tab==='listings'):
   </div>
 </div>
 <?php endif; ?>
-<?php if(!$listings): ?><div class="acard"><div class="aempty">No custom listings yet.</div></div>
+<?php if($lsel!==''): ?>
+<div class="acard" style="margin-bottom:14px;border-color:var(--acc)"><div class="acard-body" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+  <div style="font-size:13px"><b>Filtered to one seller:</b>
+    <?= htmlspecialchars($lselName !== '' ? $lselName : 'uid '.substr($lsel,0,10).'…') ?>
+    — <?= count($lrows) ?> listing<?= count($lrows)===1?'':'s' ?></div>
+  <a class="abtn" href="/admin?tab=listings">✕ Show all listings</a>
+</div></div>
+<?php endif; ?>
+<?php if(!$lrows): ?><div class="acard"><div class="aempty"><?= $lsel!=='' ? 'This seller has no listings.' : 'No custom listings yet.' ?></div></div>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
-  <?= arow(['','Brand','Product','SKU','Mode','MOQ','From','Seller','Status',''],true) ?>
-  <?php foreach(array_reverse($listings) as $p): $st=$p['status']??'approved'; $thumb=vestra_primary_image($p); ?>
+  <?= arow(['','Brand','Product','SKU','Mode','MOQ','From','Ships from','Seller','Status',''],true) ?>
+  <?php foreach(array_reverse($lrows) as $p): $st=$p['status']??'approved'; $thumb=vestra_primary_image($p); ?>
   <tr>
     <td class="ac"><?php if($thumb): ?><img src="<?= htmlspecialchars($thumb) ?>" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:7px;border:1px solid var(--line)"><?php else: ?><div style="width:42px;height:42px;border-radius:7px;background:linear-gradient(135deg,<?= htmlspecialchars($p['accent']??'#cfc8ba') ?>,#e8e2d7)"></div><?php endif; ?></td>
     <td class="ac"><b><?= htmlspecialchars($p['brand']??'') ?></b></td>
@@ -3284,6 +3346,18 @@ elseif($tab==='listings'):
     <td class="ac"><span class="modechip <?= htmlspecialchars($p['mode']??'fixed') ?>"><?= htmlspecialchars($p['mode']??'fixed') ?></span></td>
     <td class="ac"><?= htmlspecialchars((string)($p['moq']??'')) ?> <?= htmlspecialchars($p['unit']??'pc') ?></td>
     <td class="ac"><?= $st==='offer'?'—':eur(vestra_from_price($p)) ?></td>
+    <td class="ac" style="white-space:nowrap">
+      <?php /* Alici bu satiri gumruk/teslim suresi icin okuyor. Girilmemis
+               ilan sessizce varsayilan "Ships from EU" gosteriyor -- yani
+               yanlis olabilecek bir vaat. Eksigi kirmizi isaretle ki
+               doldurulacaklar listede gorunsun. */
+        $__sf = trim((string)($p['ships_from'] ?? ''));
+        if($__sf === ''): ?>
+        <span style="color:#c0392b" title="Not set — the product page falls back to “Ships from EU”">⚠ not set</span>
+      <?php else: ?>
+        <?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars($__sf) ?>
+      <?php endif; ?>
+    </td>
     <td class="ac"><?= htmlspecialchars($p['seller']??'—') ?></td>
     <td class="ac"><?= match($st){'approved'=>abadge('✓ Live','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),default=>abadge('⏳ Pending','#a9781a')} ?></td>
     <td class="ac"><div style="display:flex;gap:4px">

@@ -57,7 +57,11 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $one = fn($s) => trim(preg_replace('/\s+/',' ', str_replace(["\r","\n"],' ',(string)$s)));
     if ($lid && $uid !== '' && vestra_listing_owner($lid) === $uid) {
         $brand = $one($_POST['brand']??''); $name = $one($_POST['name']??''); $origin = $one($_POST['origin']??'');
-        if ($brand === '' || $name === '' || $origin === '' || empty($_POST['origin_confirm'])) {
+        /* Ekleme formunda zorunlu (seller-add.php); duzenlemede de zorunlu,
+           yoksa satici alani bosaltip ilani gorunmez sekilde varsayilan
+           "Ships from EU" ibaresine geri dusurebilirdi. */
+        $shipsFrom = $one($_POST['ships_from']??''); if (mb_strlen($shipsFrom) > 40) $shipsFrom = mb_substr($shipsFrom,0,40);
+        if ($brand === '' || $name === '' || $origin === '' || $shipsFrom === '' || empty($_POST['origin_confirm'])) {
             header('Location: /seller?tab=edit&lid='.urlencode($lid).'&err=1'); exit;
         }
         $list = vestra_listings();
@@ -82,6 +86,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $p['mode']   = $mode;
             $p['desc']   = $one($_POST['desc']??'');
             $p['origin'] = $origin;
+            $p['ships_from'] = $shipsFrom;
             $p['tiers']  = $tiers;
             if($mode==='sale') $p['list']=round((float)($_POST['list']??0),2);
             $p['offers'] = !empty($_POST['allow_offers']) && $mode!=='offer';
@@ -596,6 +601,10 @@ if($tab==='overview'){
   $added=isset($_GET['added']);
   if($added) echo '<div class="banner ok">✓ '.t('Product added — it is now live in the').' <a class="acc" href="/shop">'.t('catalog').'</a>.</div>';
   if(($_GET['err']??'')==='quota') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.sprintf(t("You've used all %d listings included in your plan this month. It renews on the 1st, or you can upgrade for more."), (int)$quotaLimit).' <a class="acc" href="/membership">'.t('View membership plans').'</a></div>';
+  /* 'ships' ayri bir mesaj: genel uyari "eksik alan var" diyor ama hangisi
+     oldugunu soylemiyor -- yeni zorunlu hale gelen bir alanda satici formu
+     dolu sanip ayni hatayi tekrarlar. */
+  elseif(($_GET['err']??'')==='ships') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please state where the goods ship from — buyers need it for customs and delivery times.').'</div>';
   elseif(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
   if($quotaLimit !== null): ?>
   <div class="banner info" style="margin-bottom:14px"><?= sprintf(t('This month: <b>%d of %d</b> listings used. Resets on the 1st.'), $quotaUsed, $quotaLimit) ?></div>
@@ -694,6 +703,11 @@ if($tab==='overview'){
         <div><label><?= t('Origin / authenticity note') ?> *</label><input name="origin" required placeholder="<?= htmlspecialchars(t('e.g. EEA stock · invoice on request')) ?>"></div>
         <div><label><?= t('Seller name') ?></label><input name="seller" value="<?= htmlspecialchars($AUTH_USER['company']??'My Wholesale Co.') ?>"></div>
       </div>
+      <div class="frow">
+        <div><label><?= t('Ships from') ?> * <span class="hint"><?= t('(country the goods actually leave from)') ?></span></label>
+          <input name="ships_from" required maxlength="40" placeholder="<?= htmlspecialchars(t('e.g. Italy · Germany · IT')) ?>"></div>
+        <div></div>
+      </div>
       <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:14px 0 0;background:rgba(201,168,106,.07);border:1px solid rgba(201,168,106,.25);border-radius:8px;padding:12px 14px">
         <input type="checkbox" name="origin_confirm" required style="margin-top:2px;flex-shrink:0">
         <span style="font-size:13px;line-height:1.5"><?= t('I confirm this product is genuine, lawfully acquired, and was first placed on the EEA market by or with the brand owner\'s consent. I accept full liability for any third-party claims against VESTRA arising from a breach of this declaration.') ?> <a href="/legal#seller" target="_blank" style="color:var(--acc)"><?= t('Seller Agreement §3–5') ?></a></span>
@@ -788,6 +802,11 @@ if($tab==='overview'){
       <div class="frow">
         <div><label><?= t('Description') ?></label><textarea name="desc" rows="2"><?= htmlspecialchars($ep['desc']??'') ?></textarea></div>
         <div><label><?= t('Origin / authenticity note') ?> *</label><input name="origin" required value="<?= htmlspecialchars($ep['origin']??'') ?>"></div>
+      </div>
+      <div class="frow">
+        <div><label><?= t('Ships from') ?> * <span class="hint"><?= t('(country the goods actually leave from)') ?></span></label>
+          <input name="ships_from" required maxlength="40" value="<?= htmlspecialchars($ep['ships_from']??'') ?>" placeholder="<?= htmlspecialchars(t('e.g. Italy · Germany · IT')) ?>"></div>
+        <div></div>
       </div>
       <div>
         <label><?= t('Product photos') ?> <span class="hint"><?= t('Leave empty to keep the current photos.') ?></span></label>

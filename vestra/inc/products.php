@@ -28,29 +28,18 @@ if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3500.00);
    yani bunu her sablona ayri ayri yazmak, ilerde bir satici AB disindan sevk
    etmeye basladiginda dort ayri yerde yanlis ibare birakmak demekti. Tek
    fonksiyon: o gun kosul buraya girer, sayfalar oldugu gibi kalir. */
-/* Mal NEREDEN cikiyor: ilanin SATICISININ ulkesi.
-   Onceden sabit 'EU' donuyordu ve $p'ye hic bakmiyordu -- Japonya'daki bir
-   saticinin ilani da "Ships from EU" diyordu, yani alici teslim suresini ve
-   gumruk durumunu yanlis hesapliyordu. Hesap listesi vestra_read_json ile
-   OKUNUYOR, auth.php cekilmiyor: products.php'yi i18n/auth olmadan yukleyen
-   bakim betikleri var ve orada require zinciri kirilirdi.
-   Ulke bilinmiyorsa (demo urun, seller_uid yok, hesapta ulke bos) 'EU'
-   kalir -- platformun stogu Avrupa'da, yani varsayilan uydurma degil. */
+/* Mal NEREDEN cikiyor.
+   ONCE saticinin hesap ulkesinden turetiyordum; canlida bir ilan "Ships from
+   India" yazdi ve yanlisligi orada gorundu: kayit adresi ile malin CIKTIGI
+   depo ayni sey degil. Alici bu satiri gumruk ve teslim suresi icin okuyor,
+   yani tahmin edilmis bir ulke dogrudan yanlis bilgi demek.
+   Artik yalnizca ilanda ACIKCA yazan 'ships_from' kullaniliyor; yoksa
+   platformun varsayilani 'EU' kaliyor. Deger operator/satici tarafindan
+   girilir (set-product: ships_from), tahmin edilmez. */
 function vestra_ships_from(array $p = []): string {
-    static $byUid = null;
-    $uid = trim((string)($p['seller_uid'] ?? ''));
-    if ($uid === '') return 'EU';
-    if ($byUid === null) {
-        $byUid = [];
-        foreach ((array)vestra_read_json('accounts.json') as $a) {
-            $id = trim((string)($a['id'] ?? ''));
-            $c  = trim((string)($a['country'] ?? ''));
-            if ($id !== '' && $c !== '') $byUid[$id] = $c;
-        }
-    }
-    $c = $byUid[$uid] ?? '';
-    if ($c === '') return 'EU';
-    return mb_strlen($c) === 2 ? mb_strtoupper($c) : $c;
+    $z = trim((string)($p['ships_from'] ?? ''));
+    if ($z === '') return 'EU';
+    return mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
 }
 
 /* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici

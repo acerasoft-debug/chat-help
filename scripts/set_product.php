@@ -40,7 +40,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list',
+$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty','group_models','group_title','group_min_colors'];
 $errors = []; $plan = [];
 
@@ -114,6 +114,19 @@ foreach ($fixes as $n => $fx) {
     foreach ($set['specs_remove'] as $sk) {
       if (!is_string($sk) || $sk === '') { $errors[] = "{$ctx} ({$m}): specs_remove icinde gecersiz anahtar"; continue 2; }
     }
+  }
+  /* ships_from = malin CIKTIGI yer (urun sayfasindaki "Ships from ..." satiri).
+     Alici bunu gumruk ve teslim suresi icin okuyor, yani yanlis deger yanlis
+     bilgi. Tahmin edilmiyor: ya 2 harfli ulke kodu ya da ulke adi yazilir.
+     Cozulemeyen bir ad HATA degil UYARI -- metin yine basilir, sadece
+     bayrak dusme riski var ve operator bunu gormeli. */
+  if (isset($set['ships_from'])) {
+    $z = trim((string)$set['ships_from']);
+    if ($z === '' || mb_strlen($z) > 40) { $errors[] = "{$ctx} ({$m}): ships_from bos olamaz, en fazla 40 karakter"; continue; }
+    if (mb_strlen($z) === 2 && !preg_match('/^[A-Za-z]{2}$/', $z)) {
+      $errors[] = "{$ctx} ({$m}): 2 karakterli ships_from bir ulke kodu olmali (ör: IT, DE)"; continue;
+    }
+    $set['ships_from'] = mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
   }
   if (isset($set['dropship_off'])) {
     /* Dropship'i TEK ilandan cikarmak icin. Marka/urun-turu listeleri kategori
