@@ -1629,19 +1629,12 @@ jobs:
                        $br ? ' · marka: '.implode(', ', array_slice($br, 0, 6)) : ' · marka bulunamadi');
             }
 
-            echo "\n===== OZET =====\n";
-            printf("  listede yok      : %d  (gonderilebilir)\n", $n['yok']);
-            printf("  yeni (hic gitmedi): %d  (gonderilebilir)\n", $n['yeni']);
-            printf("  zaten gonderildi : %d  (ikinci kez gitmez -- sistem zaten engelliyor)\n", $n['gonderildi']);
-            printf("  dondu (bounce)   : %d\n", $n['dondu']);
-            printf("  olu alan adi     : %d\n", $n['olu']);
-            printf("  listeden cikti   : %d\n", $n['cikti']);
-            printf("\n  GERCEKTEN gonderilecek adres sayisi: %d\n", count($sendable));
-            /* Maskeli: panelde satiri FIRMA ADIYLA secin, adresi buradan kopyalamayin. */
-            if ($sendable) foreach ($sendable as $e) echo "    -> ".$mask($e)."\n";
-
+            /* MX bolumu OZET'ten ONCE basiliyor. get_job_logs yalnizca kuyrugun
+               son ~55-78 satirini gosteriyor; 59 alan adi sorulunca MX listesi
+               ozeti kuyruktan dusuruyordu ve rapor "sayilari goremedim" ile
+               bitiyordu. Okunmasi gereken sey EN SONA yazilir. */
             echo "\n===== ALAN ADI POSTA KABUL EDIYOR MU (MX/A) =====\n";
-            $seenDom = [];
+            $seenDom = []; $mxDead = [];
             foreach ($want as $e) {
                 $d = strtolower(substr(strrchr($e, '@'), 1));
                 if ($d === '' || isset($seenDom[$d])) continue;
@@ -1655,8 +1648,22 @@ jobs:
                     printf("  %-30s MX yok, A var -- posta alabilir ama kurulumu belirsiz\n", $d);
                 } else {
                     printf("  %-30s KAYIT YOK <-- bu alan adina posta GITMEZ\n", $d);
+                    $mxDead[] = $d;
                 }
             }
+
+            echo "\n===== OZET =====\n";
+            printf("  listede yok      : %d  (gonderilebilir)\n", $n['yok']);
+            printf("  yeni (hic gitmedi): %d  (gonderilebilir)\n", $n['yeni']);
+            printf("  zaten gonderildi : %d  (ikinci kez gitmez -- sistem zaten engelliyor)\n", $n['gonderildi']);
+            printf("  dondu (bounce)   : %d\n", $n['dondu']);
+            printf("  olu alan adi     : %d\n", $n['olu']);
+            printf("  listeden cikti   : %d\n", $n['cikti']);
+            printf("  MX/A hic yok     : %d%s\n", count($mxDead),
+                   $mxDead ? '  ('.implode(', ', array_slice($mxDead, 0, 6)).(count($mxDead) > 6 ? ' …' : '').')' : '');
+            printf("\n  GERCEKTEN gonderilecek adres sayisi: %d\n", count($sendable));
+            /* Maskeli: panelde satiri FIRMA ADIYLA secin, adresi buradan kopyalamayin. */
+            if ($sendable) foreach ($sendable as $e) echo "    -> ".$mask($e)."\n";
             exit(0);
             PHPEOF
             php -l /tmp/vestra_leadstatus.php 2>&1
