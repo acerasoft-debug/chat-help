@@ -420,6 +420,20 @@ function vestra_discover_blocklist(): array {
     'fashion clinic','fashionclinic','smets','sivasdescalzo','caliroots','furest',
     // kendi markasini uretip satan (kendi fabrikasindan alir, bizden asla)
     'slowear','lardini','norse store','norsestore','le fix',
+    /* 1 Eyl 2026 — 100 satirlik kuresel liste. Blokliste 100'de 18'ini yakaladi;
+       asagidakiler elle okununca cikti. Cogu SNEAKER zinciri: VESTRA'nin
+       Lacoste/Ralph Lauren hattindan ayri bir kanal, ustelik hepsi cok subeli. */
+    // department store / magazalar grubu
+    'harvey nichols','harveynichols','brown thomas','brownthomas',
+    '10 corso como','10corsocomo','leam',
+    // Korfez: bolge haklarini tutan gruplarin perakende kollari
+    'ounass','etoile la boutique','etoilelaboutique',
+    // cok subeli sneaker zinciri / kanalda rakip e-tailer
+    'footpatrol','solebox','sneakersnstuff','foot district','footdistrict','titolo',
+    // ikinci el / konsinye: yeni toptan mal almiyor (Luxe It Fwd ile ayni gerekce)
+    'the luxury closet','theluxurycloset',
+    // kendi markasini uretip satan
+    'patta','juice store','juicestore',
     // alisveris merkezi isletmecisi (butik degil, kiraci topluyor)
     'pavilion-kl','pavilionkl','klcc pavilion','klccpavilion',
     // ikinci el / konsinye: yeni toptan mal almiyor

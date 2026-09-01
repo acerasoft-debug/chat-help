@@ -77,7 +77,25 @@ foreach ([
     ['Sivasdescalzo Barcelona', 'sivasdescalzo.com'],
     ['Caliroots',               'caliroots.com'],
     ['Furest',                  'furest.com'],
+    /* 1 Eyl 2026, 100 satirlik kuresel liste. Cogu SNEAKER zinciri -- VESTRA'nin
+       hattindan ayri bir kanal ve hepsi cok subeli. */
+    ['Harvey Nichols Dubai',    'harveynichols.ae'],
+    ['Ounass',                  'ounass.ae'],
+    ['Etoile La Boutique',      'etoilelaboutique.com'],
+    ['Brown Thomas',            'brownthomas.com'],
+    ['Footpatrol',              'footpatrol.com'],
+    ['Solebox',                 'solebox.com'],
+    ['Sneakersnstuff',          'sneakersnstuff.com'],
+    ['Foot District',           'footdistrict.com'],
+    ['Titolo',                  'titolo.ch'],
+    ['10 Corso Como',           '10corsocomo.com'],
+    ['Leam',                    'leam.com'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
+
+echo "\n== 3b. Ikinci el / kendi markasi (ayni listeden) ==\n";
+$t('The Luxury Closet (resale)', $blocked('The Luxury Closet', '', 'theluxurycloset.com'));
+$t('Juice Store (CLOT kendi markasi)', $blocked('Juice Store', '', 'juicestore.com'));
+$t('Patta (kendi etiketi + zincir)',   $blocked('Patta', '', 'patta.nl'));
 
 echo "\n== 2. Zincirin INDIRIM kolu da zincirdir (29 Agu regresyonu) ==\n";
 $t('Saks OFF 5TH',   $blocked('Saks OFF 5TH',   '', 'saksoff5th.com'));
@@ -166,7 +184,20 @@ foreach ([
     ['Le Fixe Concept',      'lefixeconcept.fr',       'le fix'],
     ['Cricket Club Store',   'cricketclub.co.uk',      'cricket fashion'],
     ['Il Giglio Bianco',     'giglioboutique.it',      'giglio (bilerek EKLENMEDI)'],
+    ['Leamington Boutique',  'leamingtonboutique.co.uk','leam'],
+    ['Pattaya Style Store',  'pattayastyle.co.th',     'patta'],
+    ['Juiceberry Concept',   'juiceberry.com',         'juice store'],
+    ['Havana Boutique',      'havanaboutique.ie',      'haven (EKLENMEDI: fazla genel)'],
 ] as [$co, $ws, $near]) $t("gecer: $co (liste: '$near')", !$blocked($co, '', $ws));
+
+echo "\n== 7b. BILINEN DARALMA — kabul edilmis, kayda geciyor ==\n";
+/* 'titolo' Italyancada "baslik" demek ve AD tarafi kelime siniriyla esliyor,
+   yani adinda bu kelime gecen gercek bir Italyan butigi elenir. Alan adi
+   tarafi zaten TAM eslesme istiyor (6 harf). Isvicre zinciri disinda bu adi
+   tasiyan dukkan pratikte yok; bilerek birakildi. Gun gelir de bir aday
+   bu yuzden elenirse, cozum 'titolo'yu ad listesinden cikarip yalnizca
+   alan adina birakmaktir -- test o gun bu satiri gostersin diye burada. */
+$t('Titolo Moda Roma ENGELLI (bilinen daralma)', $blocked('Titolo Moda Roma', '', 'titolomoda.it'));
 
 echo "\n== 8. GECMELI — bu listeden gelen gercek adaylar ==\n";
 /* 1 Eyl 2026 APAC listesinden, elle okunarak "gercek cok markali butik" diye
