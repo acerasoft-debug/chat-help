@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR)."
         required: false
         default: ""
       reply_spec:
@@ -1502,6 +1502,111 @@ jobs:
                 echo "\nEksik yok — yazilacak bir sey olmadigi icin mektup GONDERILMEDI.\n"; exit(0);
               }
               [$subject, $body, $opts] = vestra_tpl_seller_setup($salutation, $missShip, $missDocs, $needStripe, $signer);
+            } elseif ($letter === 'account_open_l1212') {
+              /* "Hesabim aktive edilmedi" diyen ama sunucuda ZATEN acik olan
+                 aliciya cevap. Once durumu DOGRULA: kapi gercekten acik degilse
+                 bu mektup yalan olur ve is DURUR -- musteriye "her sey acik"
+                 yazip kilitli bir sayfaya yollamak, hic yazmamaktan kotu.
+                 spec: pid(vars. lac-pique-polo)/vat/save_vat/pct(5)/months(6)/send */
+              require_once $doc."/inc/vouchers.php";
+
+              if (!$acc) { fwrite(STDERR, "HESAP YOK: {$to} -- bu mektup kayitli hesap gerektirir\n"); exit(1); }
+              $uid  = (string)($acc['id'] ?? '');
+              $open = auth_prices_unlocked($acc);
+              echo "kapi   : auth_prices_unlocked = ".($open ? 'ACIK' : 'KAPALI')
+                 . " | auth_user_approved = ".(auth_user_approved($acc) ? 'evet' : 'hayir')."\n";
+              if (!$open) {
+                fwrite(STDERR, "DURDU: fiyat kapisi KAPALI. Bu mektup 'hesabiniz zaten acik' diyor.\n"
+                             . "Once approve_account ile onaylayin, ya da baska mektup secin.\n");
+                exit(1);
+              }
+
+              $pid = trim($E('pid')) !== '' ? trim($E('pid')) : 'lac-pique-polo';
+              $prod = null;
+              foreach (vestra_products() as $pp) { if ((string)($pp['id'] ?? '') === $pid) { $prod = $pp; break; } }
+              if (!$prod) { fwrite(STDERR, "ILAN BULUNAMADI: {$pid}\n"); exit(1); }
+              echo "urun   : {$pid} | kademe=".count((array)($prod['tiers'] ?? []))
+                 . " | renk/artikel=".count((array)($prod['variants'] ?? []))."\n";
+
+              /* VAT'i kaydet. auth_update void donuyor, o yuzden GERI OKUNUR --
+                 KURAL 5c'deki ayni ders: kaydetti sanip yazmayan bir form,
+                 musteriye "kaydettim" demeyi yalan yapar. */
+              $vatNote = '';
+              $vatWant = trim($E('vat'));
+              if ($vatWant !== '' && strtolower($E('save_vat')) === 'true') {
+                if (trim((string)($acc['vat_id'] ?? '')) === $vatWant) {
+                  $vatNote = ''; echo "vat    : zaten kayitli, bolum basilmayacak\n";
+                } elseif (strtolower($E('send')) !== 'true') {
+                  $vatNote = $vatWant; echo "vat    : send=false -- YAZILMADI, mektupta onizleme olarak gorunuyor\n";
+                } else {
+                  auth_update($uid, ['vat_id' => $vatWant]);
+                  $back = auth_find($to);
+                  if (trim((string)($back['vat_id'] ?? '')) === $vatWant) {
+                    $vatNote = $vatWant; echo "vat    : KAYDEDILDI ve geri okundu\n";
+                  } else {
+                    fwrite(STDERR, "VAT YAZILAMADI (geri okuma tutmadi) -- mektup gonderilmedi\n"); exit(1);
+                  }
+                }
+              }
+
+              /* Yalnizca 'requested' (hic yuklenmemis) icin belge bolumu yazilir.
+                 'uploaded' olan onay bekliyor -- ona "yukleyin" demek, yaptigi isi
+                 tekrar yaptirmak olurdu (auth_trade_doc_status'un varlik sebebi). */
+              $docSt   = function_exists('auth_trade_doc_status') ? auth_trade_doc_status($acc) : '';
+              $docOpen = ($docSt === 'requested');
+              echo "belge  : ".($docSt !== '' ? $docSt : '(istek yok)')
+                 . " -> bolum ".($docOpen ? 'BASILACAK' : 'basilmayacak')."\n";
+
+              /* Kupon. voucher_welcome_run ile AYNI campaign adi kullaniliyor ki
+                 sonraki toplu hos geldin kosusu bu hesaba IKINCI bir kod
+                 gondermesin (o kosu campaign+email tutanlari atliyor). */
+              $pct      = (float)($E('pct') !== '' ? $E('pct') : 5);
+              $months   = max(1, (int)($E('months') !== '' ? $E('months') : 6));
+              $campaign = 'welcome'.rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.');
+              $expiry   = date('Y-m-d', strtotime("+{$months} months"));
+              $valueLbl = rtrim(rtrim(number_format($pct, 2, '.', ''), '0'), '.').'%';
+
+              $code = ''; $reused = false;
+              foreach (voucher_all() as $vc => $vv) {
+                if ((string)($vv['campaign'] ?? '') !== $campaign) continue;
+                if (strtolower(trim((string)($vv['email'] ?? ''))) !== strtolower($to)) continue;
+                $code = (string)$vc; $reused = true;
+                $expiry = (string)($vv['expiry'] ?? $expiry);
+                break;
+              }
+              if ($code === '') {
+                if (strtolower($E('send')) !== 'true') {
+                  $code = '(kod gonderimde uretilecek)';
+                } else {
+                  /* Onizleme HICBIR SEY yazmaz (KURAL 5d'nin ayni mantigi): kod
+                     yalnizca gercekten gonderirken yakilir. */
+                  $code = (string)voucher_create([
+                    'type' => 'percent', 'value' => $pct, 'email' => $to,
+                    'first_order_only' => true, 'max_uses' => 1,
+                    'expiry' => $expiry, 'campaign' => $campaign,
+                  ])['code'];
+                }
+              }
+              echo "kupon  : ".$valueLbl." | ".($reused ? 'MEVCUT kod yeniden kullanildi' : 'yeni')
+                 . " | son gecerlilik ".$expiry."\n";
+
+              [$subject, $body, $opts] = vestra_tpl_account_open_l1212(
+                $salutation, $prod, $vatNote, $docOpen,
+                ['code' => $code, 'label' => $valueLbl, 'expiry' => date('d.m.Y', strtotime($expiry))],
+                $signer);
+
+              /* Kod uretildiyse gonderim BASARILI olunca damgala -- damgasiz kod
+                 sonraki kosuda yeniden kullanilir, musteri iki kod almaz. */
+              $stampCode = (!$reused && strtolower($E('send')) === 'true') ? $code : '';
+              if ($stampCode !== '') {
+                register_shutdown_function(function () use ($stampCode) {
+                  $all = voucher_all();
+                  if (isset($all[$stampCode]) && empty($all[$stampCode]['mailed_at'])) {
+                    /* Yalnizca gonderim basariliysa: $GLOBALS bayragi asagida set edilir. */
+                    if (!empty($GLOBALS['VESTRA_MAIL_OK'])) { $all[$stampCode]['mailed_at'] = date('c'); voucher_save($all); }
+                  }
+                });
+              }
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
                  ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan
@@ -1522,6 +1627,10 @@ jobs:
             echo "imza   : {$signer}\n";
             if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
             $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $opts);
+            /* Kupon damgasi (account_open_l1212) bu bayragi okur: gonderim
+               basarisizsa kod damgalanmaz ve sonraki kosu AYNI kodu yeniden
+               kullanir -- musteri iki farkli kod almaz, kimse kodsuz kalmaz. */
+            $GLOBALS['VESTRA_MAIL_OK'] = $ok;
             echo $ok ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
             exit($ok ? 0 : 1);
             PHPEOF

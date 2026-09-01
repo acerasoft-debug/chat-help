@@ -1576,6 +1576,123 @@ function vestra_tpl_account_open_doc(string $salutation, string $signer = 'Marco
     return [$subject, $body, []];
 }
 
+/**
+ * "Hesabiniz ZATEN acik" + istenen urunun canli verisi + ilk siparis kuponu.
+ *
+ * NEDEN AYRI BIR MEKTUP. Alici "hesabim aktive edilmedi, fiyatlari goremiyorum"
+ * yaziyordu; sunucuda ise operator_onayi=EVET ve auth_prices_unlocked=ACIK.
+ * Ona l1212_docs mektubunu tekrar gondermek ("tek eksik belgeniz") yanlis olurdu:
+ * KURAL 2 -- belge kapiyi acmaz, operator onayi acar; kapi zaten acikken belgeyi
+ * sebep gostermek, musteriyi yapmasi gerekmeyen bir ise gonderir ve platformun
+ * kendi kaydini okumadigini gosterir.
+ *
+ * RAKAMLAR ELLE YAZILMAZ. Kademeler, renkler, artikel numaralari, beden araligi
+ * ve MOQ $p ile gelen CANLI ilan kaydindan basilir. Onceki L1212 mektubunda
+ * sayilar metne gomulmustu; ilan degistiginde mektup sessizce yalan soyler.
+ * Cozulemeyen alan HIC BASILMAZ (bkz. KURAL 3'un mantigi: tahmin etme, yaz).
+ *
+ * $p        : vestra_products() kaydi (tiers/variants/sizes/moq/min_colors)
+ * $vatNote  : hesaba YENI yazilan VAT ID ('' = degisiklik yok, bolum basilmaz)
+ * $docOpen  : ticari belge istegi hala acik mi (auth_trade_doc_status)
+ * $voucher  : ['code'=>..,'label'=>'5%','expiry'=>'31.03.2027'] ('' code = kupon yok)
+ */
+function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vatNote,
+                                       bool $docOpen, array $voucher,
+                                       string $signer = 'Marco Bellini'): array {
+    $name    = trim((string)($p['name'] ?? 'the article'));
+    $subject = 'Re: Your VESTRA account is open – '.$name.' prices';
+
+    $money = fn(float $v) => 'EUR '.number_format($v, 2, '.', ',');
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your message. I have checked your account personally, and I want to lead with the most important point: your account is verified and approved, and full trade access is already switched on. Nothing is pending on our side.\n\n"
+. "If the trade prices still look hidden, it is because the page is being viewed signed out — tiers are only rendered for a signed-in verified account.\n\n"
+. "1. Sign in at https://vestrasales.com/login\n"
+. "2. Open the article page; the price tiers appear in place of the \"trade price\" notice.\n\n";
+
+    if (trim((string)($p['id'] ?? '')) !== '') {
+        $body .= "Direct link to the article: https://vestrasales.com/product?id=".$p['id']."\n\n";
+    }
+    $body .= "If you are signed in and the tiers are still not showing, reply to this email and I will look into it the same working day.\n\n";
+
+    /* Kayit duzeltmesi. Onceki mektup "VAT numaraniz dosyada, tekrar gondermenize
+       gerek yok" demisti; hesapta vat_id BOSTU. Yanlisi sessizce duzeltmek yerine
+       yazmak gerekiyor -- musteri o cumleye guvenip bir daha gondermeyecekti. */
+    if (trim($vatNote) !== '') {
+        $body .= "Your VAT ID\n\n"
+. "I have recorded ".trim($vatNote)." on your account. It was not on file before: an earlier message from us said your VAT ID was already recorded, and that was our error. My apologies.\n\n";
+    }
+
+    if ($docOpen) {
+        $body .= "Your trade licence\n\n"
+. "There is still an open upload request for your trade licence (Gewerbeanmeldung) in your dashboard: https://vestrasales.com/buyer?tab=kyc — PDF, JPG, PNG or WebP, up to 10 MB. To be clear, it is not holding your prices back; your access is already open. We ask for it to complete your file.\n\n";
+    }
+
+    /* --- Urunun kendi kaydindan --- */
+    $body .= $name."\n\n";
+
+    $tiers = (array)($p['tiers'] ?? []);
+    if ($tiers) {
+        usort($tiers, fn($a, $b) => ((int)($a['min'] ?? 0)) <=> ((int)($b['min'] ?? 0)));
+        $body .= "Price tiers (per piece, excl. VAT):\n";
+        $wide = 0;
+        foreach ($tiers as $t) $wide = max($wide, strlen('from '.(int)($t['min'] ?? 0).' pc'));
+        foreach ($tiers as $t) {
+            $body .= "  ".str_pad('from '.(int)($t['min'] ?? 0).' pc', $wide + 3).$money((float)($t['price'] ?? 0))."\n";
+        }
+        $body .= "\n";
+    }
+
+    $facts = [];
+    if ((int)($p['moq'] ?? 0) > 0)                  $facts[] = "Minimum order: ".(int)$p['moq']." pc";
+    if ((int)($p['min_colors'] ?? 0) > 0)           $facts[] = "Minimum colourways per order: ".(int)$p['min_colors'];
+    if (trim((string)($p['sizes'] ?? '')) !== '')   $facts[] = "Size grid: ".trim((string)$p['sizes']);
+    /* 'Lead time' BILEREK yok. O alan serbest metin ve bayatlayabiliyor: L1212'de
+       1 Eylul 2026'da hala "Pre-order — in stock from 5 May" yaziyordu. Gecmis bir
+       tarihi teslim sozu diye basmak, tahmin etmekten farksiz bir hata. Mektup
+       zaten teslim suresini baglayici teklifte vermeyi soz veriyor. */
+    foreach (['Composition', 'Fabric weight', 'Fit', 'Packaging', 'Customs code (HS)'] as $k) {
+        $v = trim((string)(($p['specs'][$k] ?? '')));
+        if ($v !== '') $facts[] = $k.': '.$v;
+    }
+    if ($facts) { foreach ($facts as $f) $body .= "  \xe2\x80\x93 ".$f."\n"; $body .= "\n"; }
+
+    /* Artikel numaralari renk renk: tam da sordugu sey. Kaydinda yoksa bolum
+       hic basilmaz -- uydurulmus bir artikel numarasi siparisi yanlis mala baglar. */
+    $vars = (array)($p['variants'] ?? []);
+    if ($vars) {
+        $body .= "Colourways and Lacoste article numbers:\n";
+        foreach ($vars as $v) {
+            $c = trim((string)($v['color'] ?? '')); $a = trim((string)($v['art'] ?? ''));
+            $m = trim((string)($v['model'] ?? ''));
+            if ($c === '') continue;
+            $body .= "  ".str_pad($c, 12).($a !== '' ? $a : '')."".($m !== '' ? "   (".$m.")" : '')."\n";
+        }
+        $body .= "\n";
+    } elseif (!empty($p['colors'])) {
+        $body .= "Colourways: ".implode(', ', (array)$p['colors'])."\n\n";
+    }
+
+    $code = trim((string)($voucher['code'] ?? ''));
+    if ($code !== '') {
+        $body .= trim((string)($voucher['label'] ?? '5%'))." on your first order\n\n"
+. "For the delay in getting you started, here is a discount code for your first order:\n\n"
+. "  Code:        ".$code."\n"
+. "  Value:       ".trim((string)($voucher['label'] ?? '5%'))." off the goods value\n"
+. (trim((string)($voucher['expiry'] ?? '')) !== '' ? "  Valid until: ".trim((string)$voucher['expiry'])."\n" : '')
+. "  Single use, issued to your account\n\n"
+. "Enter it in the basket before you confirm the order and the discount is applied to the order total.\n\n";
+    }
+
+    $body .= "Where does your order stand?\n\n"
+. "If you tell me your target quantity and which colourways you want, I will confirm availability with the supplier and send you a binding offer stating the delivery time and the applicable invoicing scenario.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
 /* Satici kurulum mektubu: gonderim yeri + belgeler + Stripe odeme hesabi.
  * Uc konu TEK mektupta, cunku uc ayri mektup ayni kisiye ayni gun ucuncusunde
  * spam olarak isaretlenir; ama yalnizca GERCEKTEN eksik olanlar yaziliyor --
