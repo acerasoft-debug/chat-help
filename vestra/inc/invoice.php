@@ -786,9 +786,16 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        Etiket bicimi kasitli: "Seller of record: Acerasoft LLC" ticari faturanin
        standart ALANI, cumleye gomulmus hali degil. Uclu satista ise gercekten bir
        feragat cumlesi gerekiyor, o cumle olarak kaliyor. */
+    /* "Seller of record" belgenin USTUNDEKI satici ile AYNI ad olmali:
+       $opName zaten vestra_invoice_issuer_name'den geliyor (invoice_name >
+       company). Burada duz 'company' okunuyordu ve fatura ustte "Agaya Paris"
+       derken alttaki beyan "GARAGE LE PARIS" diyordu -- ayni belgede iki ayri
+       tuzel kisi adi, gumrukte ve bir ihtilafta belgeyi zayiflatan tam olarak
+       budur. Operator karari (1 Eyl 2026): "Seller of record GARAGE LE PARIS,
+       AGAYA PARIS OLARAK DEGISECEK". */
     $declRows = [[
         'Seller of record',
-        $platformIsSeller ? $opName : (trim((string)($sellerAcc['company'] ?? '')) ?: 'the seller named above'),
+        $opName !== '' ? $opName : 'the seller named above',
     ]];
     if (!$platformIsSeller) {
         $declRows[] = ['Marketplace', 'VESTRA (Acerasoft LLC) operates the marketplace connecting buyer and '

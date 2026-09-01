@@ -54,6 +54,10 @@ foreach ([
      bitisik 27 hane insan gozuyle dogrulanamiyor. */
   'IBAN (4lu gruplar)' => 'FR14 2004 1010 0505 0001 3M02 606',
   'IBAN sahibi'    => 'Agaya',
+  /* "Seller of record" beyani belgenin USTUNDEKI adla ayni olmali; duz
+     'company' okunuyordu ve ayni belge ustte "Agaya Paris", altta
+     "GARAGE LE PARIS" diyordu (operator karari, 1 Eyl 2026). */
+  'Seller of record beyani' => 'Seller of record',
   /* Alicinin sicil numarasi (operator istegi, 1 Eyl 2026) -- VAT'siz alicida
      sirketi belgeye baglayan tek resmi numara. */
   'alici Reg. no'  => 'Reg. no: 26088643',
@@ -61,6 +65,11 @@ foreach ([
   'satir toplami'  => '900.00',
 ] as $n => $needle) $t("$n ikisinde de var", str_contains($draft,$needle) && str_contains($real,$needle));
 $t('boyutlar yakin (ayni yerlesim)', abs(strlen($draft)-strlen($real)) < 600);
+/* Vitrin adi (company) belgeye HIC girmemeli: satici 'invoice_name' verdiyse
+   fatura bastan sona o adi tasir. Ayni belgede iki tuzel kisi adi gumrukte
+   ve ihtilafta belgeyi zayiflatir. */
+$t('vitrin adi (GARAGE LE PARIS) belgede YOK', !str_contains($real,'GARAGE LE PARIS'));
+$t('fatura unvani belgede',                    str_contains($real,'Agaya Paris'));
 
 echo "\n== 4. KDV satiri belgeye basiliyor ==\n";
 /* Franchise en base saticinin faturasinda "TVA non applicable" ibaresi
