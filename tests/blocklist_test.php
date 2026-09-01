@@ -58,6 +58,25 @@ foreach ([
     ['Beam Japan Custom',       'beams.co.jp'],
     ['Atmos Tokyo',             'atmos-tokyo.com'],
     ['Limited Edt Chamber',     'limitededt.com'],
+    /* 1 Eyl 2026, 100 satirlik Avrupa listesi. Blokliste 100'de 9'unu yakaladi;
+       bunlar elle okununca cikti: Frasers Group'un uc zinciri, iki cok magazali
+       Italyan grubu, iki AVM/department store, buyuk e-tailerlar. */
+    ['Cruise Fashion',          'cruisefashion.com'],
+    ['SEVENSTORE',              'sevenstore.com'],
+    ['Cricket Liverpool',       'cricketfashion.com'],
+    ['LN-CC',                   'ln-cc.com'],
+    ['Antonioli Milano',        'antonioli.eu'],
+    ['Tessabit',                'tessabit.com'],
+    ['Bongénie Grieder',        'bongenie-grieder.ch'],
+    ['Steffl Department Store', 'steffl-vienna.at'],
+    ['Bernardelli Mantova',     'bernardellistores.it'],
+    ['Tiziana Fausti',          'tizianafausti.com'],
+    ["Al Duca d'Aosta",         'alducadaosta.com'],
+    ['Fashion Clinic',          'fashionclinic.com'],
+    ['Smets Luxembourg',        'smets.lu'],
+    ['Sivasdescalzo Barcelona', 'sivasdescalzo.com'],
+    ['Caliroots',               'caliroots.com'],
+    ['Furest',                  'furest.com'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
 
 echo "\n== 2. Zincirin INDIRIM kolu da zincirdir (29 Agu regresyonu) ==\n";
@@ -94,6 +113,11 @@ foreach ([
     ['Kim Soo Bali',      'kimsoo.com'],
     /* Alan adi (pmc.my) blokliste ile eslesmiyor; AD tarafi yakaliyor. */
     ['Pestle & Mortar',   'pmc.my'],
+    /* Avrupa listesi: kendi fabrikasindan alan uretici markalar. */
+    ['Slowear Milano',    'slowear.com'],
+    ['Luigi Lardini Shop','lardini.com'],
+    ['Norse Store',       'norsestore.com'],
+    ['Le Fix',            'le-fix.com'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
 
 echo "\n== 5. Kanalda alici OLMAYAN turler ENGELLENMELI ==\n";
@@ -130,6 +154,18 @@ foreach ([
     ['Sunbeam Store',        'sunbeamstore.com',       'beams'],
     ['Hourglass Boutique Paris','hourglassparis.fr',   'the hour glass'],
     ['Real Style Store',     'realstylestore.com',     'real mccoys'],
+    /* 1 Eyl 2026 Avrupa eklemeleri. 'slowear' ve 'lardini' 6 harften uzun,
+       yani alan adinda ALT DIZE araniyordu ve gercek adlarin icinde
+       buluyorlardi; sonda yakaladi, ikisi de exact-only listesine alindi. */
+    ['Slowearth Vintage',    'slowearthvintage.com',   'slowear'],
+    ['Lardinia Moda',        'lardinia.it',            'lardini'],
+    ['Furesta Boutique',     'furesta.it',             'furest'],
+    ['Smetsana Boutique',    'smetsana.com',           'smets'],
+    ['Steffler Mode',        'stefflermode.de',        'steffl'],
+    ['Antonioletti Moda',    'antonioletti.it',        'antonioli'],
+    ['Le Fixe Concept',      'lefixeconcept.fr',       'le fix'],
+    ['Cricket Club Store',   'cricketclub.co.uk',      'cricket fashion'],
+    ['Il Giglio Bianco',     'giglioboutique.it',      'giglio (bilerek EKLENMEDI)'],
 ] as [$co, $ws, $near]) $t("gecer: $co (liste: '$near')", !$blocked($co, '', $ws));
 
 echo "\n== 8. GECMELI — bu listeden gelen gercek adaylar ==\n";

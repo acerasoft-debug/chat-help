@@ -410,6 +410,16 @@ function vestra_discover_blocklist(): array {
     'paspaley','lucy folk','lucyfolk','pestle & mortar','pestle and mortar',
     'uma and leopold','umaandleopold','bamboo blonde','bambooblonde',
     'real mccoys','real mccoy','realmccoys','kim soo','kimsoo',
+    /* 1 Eyl 2026 — 100 satirlik Avrupa listesi. Blokliste 100'de yalnizca 9'unu
+       yakaladi (Slam Jam, Excelsior, LuisaViaRoma, END, DSM, Browns, Flannels,
+       Wood Wood, Our Legacy); asagidakiler elle okununca cikti. */
+    // zincir / magazalar grubu / kanalda rakip dev e-tailer
+    'cruise fashion','cruisefashion','sevenstore','cricket fashion','cricketfashion',
+    'ln-cc','antonioli','tessabit','bongenie','bongénie','steffl',
+    'bernardelli','tiziana fausti','al duca d\'aosta','alducadaosta',
+    'fashion clinic','fashionclinic','smets','sivasdescalzo','caliroots','furest',
+    // kendi markasini uretip satan (kendi fabrikasindan alir, bizden asla)
+    'slowear','lardini','norse store','norsestore','le fix',
     // alisveris merkezi isletmecisi (butik degil, kiraci topluyor)
     'pavilion-kl','pavilionkl','klcc pavilion','klccpavilion',
     // ikinci el / konsinye: yeni toptan mal almiyor
@@ -671,7 +681,12 @@ function vestra_blocklist_exact_only(): array {
              /* 31 Agu 2026 listesinden: kisa ya da baska sozcuklerin icinde
                 gecebilen adlar. 'atmos' -> atmosphere/atmosfera, 'kith' -> kithara,
                 'lemaire' -> kisi soyadi olabilir, 'nepenthes' bitki adi. */
-             'kith','lemaire','nepenthes','siwilai'] as $t){
+             'kith','lemaire','nepenthes','siwilai',
+             /* 1 Eyl 2026 Avrupa listesi: 6 harften uzun ama baska adlarin
+                ICINDE geciyorlar. Sondam ikisini de yakaladi:
+                'slowear' -> slowearthvintage.com, 'lardini' -> lardinia.it.
+                Ikisi de gercek butik olabilir ve sessizce elenirlerdi. */
+             'slowear','lardini'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
