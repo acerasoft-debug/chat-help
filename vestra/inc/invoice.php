@@ -874,10 +874,23 @@ function vestra_ensure_invoice(array $order, array $items, ?array $sellerAcc, bo
         if (!$redraft || $no === '') {
             return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey];
         }
+        /* TUTAR DA YENIDEN YAZILIYOR. Onceden yalnizca 'redrafted_at'
+           ekleniyordu ve meta'daki 'total' ILK kesimin rakaminda kaliyordu --
+           paneller ve alicinin fatura satiri bu alandan okudugu icin belge
+           3.950 EUR derken ekranda "INV-2026-1001 · 6.300,00 EUR" yaziyordu.
+           Meta belgenin OZETI; belge degistiyse ozet de degismek zorunda,
+           yoksa ayni faturanin iki rakami olur. Alici da 'buyer' alanindan
+           degisebilir (kalem cikarilinca degil ama duzeltme sirasinda
+           duzeltilmis olabilir), o yuzden o da tazeleniyor. */
+        $goodsR = 0.0; foreach ($items as $it) $goodsR += (float)($it['line'] ?? 0);
         $meta['redrafted_at'] = date('c');
+        $meta['currency'] = strtoupper(trim((string)($order['currency'] ?? ($meta['currency'] ?? 'EUR'))));
+        $meta['total']    = round($goodsR - (float)($order['discount'] ?? 0) + (float)($order['shipping'] ?? 0), 2);
+        $meta['buyer']    = trim((string)(($order['buyer']['company'] ?? '') ?: ($order['buyer']['name'] ?? ''))) ?: (string)($meta['buyer'] ?? '');
         file_put_contents($pdfPath, vestra_render_invoice_pdf($order, $items, $sellerAcc, $no), LOCK_EX);
         file_put_contents($metaPath, json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX);
-        return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey, 'redrafted' => true];
+        return ['no' => $no, 'path' => $pdfPath, 'seller_key' => $sellerKey, 'redrafted' => true,
+                'total' => $meta['total']];
     }
     /* Suspended: no invoice is created until stock is confirmed and it is issued by hand. */
     if (!$force && !vestra_auto_invoice_enabled()) {

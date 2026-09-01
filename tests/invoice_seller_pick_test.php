@@ -209,6 +209,17 @@ $ps = $rf->getParameters();
 $t('vestra_offer_order_ensure($p, $update) imzasi', count($ps) === 2 && $ps[1]->getName() === 'update');
 $t('varsayilan HALA idempotent (ikinci satir uretmez)', $ps[1]->isDefaultValueAvailable() && $ps[1]->getDefaultValue() === false);
 
+echo "\n== 10d. REDRAFT meta TUTARINI da tazeler ==\n";
+/* Paneller ve alicinin fatura satiri meta'daki 'total'i okuyor. Redraft
+   yalnizca PDF'i yeniden yaziyordu; belge 3.950 EUR derken ekran
+   "INV-2026-1001 · 6.300,00 EUR" gosteriyordu -- ayni faturanin iki rakami. */
+$src2 = file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+preg_match('/^function vestra_ensure_invoice\(.*?^}/ms', $src2, $mE);
+$t('redraft dalinda total yeniden hesaplaniyor',
+   isset($mE[0]) && str_contains($mE[0], "\$meta['total']    = round(\$goodsR"));
+$t('redraft dalinda currency tazeleniyor',
+   isset($mE[0]) && str_contains($mE[0], "\$meta['currency'] ="));
+
 echo "\n== 11. FATURALANAN TEKLIF -> ORDERS SATIRI ==\n";
 /* "order bolumune de gitmeli". Satir checkout'un KENDI semasina yazilir ve
    items dizgisi vestra_parse_order_items'in regex'iyle geri okunabilmeli --
