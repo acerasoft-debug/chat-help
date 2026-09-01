@@ -191,7 +191,9 @@ echo "\n== 10. PARK EDILMIS / SATILIK alan adi yakalanmali ==\n";
 /* 1 Eyl 2026: klcollective.com'a mektup gitti, tarama adi "HugeDomains" getirmisti.
    NS/MX kontrolu bunu yakalayamaz -- park saglayicisi alan adini gercekten kaydeder. */
 foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
-          'Parked domain', 'Account Suspended', 'Website coming soon'] as $n) {
+          'Parked domain', 'Account Suspended', 'Website coming soon',
+          /* 1 Eyl 2026: luisaboutique.it mektup ALDI, taranan ad buydu. */
+          'Domain information luisaboutique.it'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";

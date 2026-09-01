@@ -614,6 +614,11 @@ function vestra_name_is_parked_domain(string $company): bool {
   foreach ([
     'hugedomains','sedo','afternic','dan.com','undeveloped','namecheap marketplace',
     'godaddy auctions','buy this domain','domain for sale','this domain is for sale',
+    /* 1 Eyl 2026: luisaboutique.it'in taranan adi "Domain information
+       luisaboutique.it" geldi -- kayit sirketi/park sayfasi basligi. Mektup
+       gitmisti. Iki kelimelik TAM kalip: "Domain Boutique" gibi gercek bir ad
+       bundan etkilenmiyor (test tutuyor). */
+    'domain information','domain info','domain default page','web hosting default',
     'domain name for sale','parked domain','domain parking','future home of',
     'website coming soon','coming soon!','account suspended','bandwidth limit exceeded',
   ] as $needle) {
