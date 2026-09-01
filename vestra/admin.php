@@ -167,14 +167,46 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      Kesimden farki: numara yakilmaz, uyelik baglari degismez.
      E-posta REDRAFT'ta otomatik: alici eski toplami bilerek yanlis tutar
      gondermesin -- duzeltilmis PDF ekte, yeni toplam govdede. */
-  if($act==='preview_redraft_offer_invoice' || $act==='redraft_offer_invoice'){
+  if($act==='preview_redraft_offer_invoice' || $act==='redraft_offer_invoice' || $act==='test_redraft_offer_invoice'){
     require_once __DIR__.'/inc/offers.php';
     require_once __DIR__.'/inc/invoice.php';
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
-    $p = vestra_offer_invoice_redraft_payload($ref, $sh);
+    /* UYE LISTESI formdan: alici bir kalemi iptal ettirdiginde o satir
+       belgeden cikar, kalanlar eklenebilir. Kutu HIC gonderilmediyse null =
+       kayitli uyeler (davranis degismez). */
+    $mem = array_key_exists('refs',$_POST) ? array_map('strval',(array)$_POST['refs']) : null;
+    $p = vestra_offer_invoice_redraft_payload($ref, $sh, $mem);
     if(!empty($p['error'])){
       header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
+    }
+    /* OPERATORE TEST: kesilecek belgenin TASLAGI e-postayla operatore gider.
+       Hicbir sey kaydedilmez, numara yanmaz, MUSTERIYE GITMEZ -- 'once bana
+       test gonder' adiminin karsiligi. Taslak damgasi uzerinde durur ki
+       yanlislikla iletilse bile fatura sanilmasin. */
+    if($act==='test_redraft_offer_invoice'){
+      require_once __DIR__.'/inc/notify.php';
+      $tto = trim((string)($_POST['test_to'] ?? ''));
+      if(!filter_var($tto,FILTER_VALIDATE_EMAIL)){
+        header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode('Test adresi geçersiz.')); exit;
+      }
+      $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
+      $tmp = sys_get_temp_dir().'/VESTRA-DRAFT-'.$ref.'.pdf';
+      @file_put_contents($tmp, $bytes);
+      $goods=(float)array_sum(array_column($p['items'],'line'));
+      $shp=(float)($p['meta']['shipping'] ?? 0);
+      $lines='';
+      foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
+      $ok = vestra_send_mail($tto, "VESTRA — TASLAK fatura {$ref} (test, müşteriye gitmedi)",
+        "Kesilecek belgenin taslağı ekte.\n\n".$lines
+       ."\n  Mal toplamı : EUR ".number_format($goods,2)."\n"
+       .($shp>0 ? "  Kargo       : EUR ".number_format($shp,2)."\n" : '')
+       ."  GENEL TOPLAM: EUR ".number_format($goods+$shp,2)."\n\n"
+       ."Bu bir TASLAKTIR: numara yakılmadı, diske yazılmadı, müşteriye gitmedi.\n"
+       ."Onaylıyorsanız panelden '🔁 Redraft & email' ile kesin.\n\n— VESTRA",
+        '','',null,'',['attachments'=>[['name'=>'TASLAK-'.$ref.'.pdf','path'=>$tmp]]]);
+      @unlink($tmp);
+      header('Location: /admin?tab=invoices&msg='.($ok?'invoice_test_sent':'letter_failed')); exit;
     }
     if($act==='preview_redraft_offer_invoice'){
       $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
@@ -186,9 +218,23 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     /* Kayit belgeden ONCE (ayni gerekce: kesim yarida kalirsa kayit dogru
        kalir ve tekrar denenebilir). */
-    if($sh!==null){
+    if($sh!==null || $mem!==null){
       $rs=vestra_read_json('offer_responses.json');
-      $rs[$ref]['invoice_shipping']=$sh;
+      if($sh!==null) $rs[$ref]['invoice_shipping']=$sh;
+      if($mem!==null){
+        /* CIKARILAN uyelerin bagi SILINIYOR: kalmasi halinde
+           vestra_invoices_for_ref onlari hala bu belgeye baglar ve alici
+           faturadan cikardigimiz kalemin faturasini gormeye devam ederdi.
+           Bagi kopan teklif yeniden 'faturasiz' olur ve onay kuyruguna doner
+           -- dogru davranis: karar operatorun, kalem ya yeniden faturalanir
+           ya reddedilir. */
+        foreach((array)($rs[$ref]['invoice_members'] ?? []) as $o){
+          $o=(string)$o;
+          if($o!==$ref && !in_array($o,$p['refs'],true)) unset($rs[$o]['invoice_group_ref']);
+        }
+        foreach($p['refs'] as $r){ if($r!==$ref) $rs[$r]['invoice_group_ref']=$ref; }
+        $rs[$ref]['invoice_members']=$p['refs'];
+      }
       vestra_write_json('offer_responses.json',$rs);
     }
     $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, true);
@@ -2100,6 +2146,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'invoice_seller_bad'=>'⚠ Seçilen satıcı hesabı bulunamadı — FATURA KESİLMEDİ. Boş bir hesaba düşüp belgeyi Acerasoft LLC adına çıkarmaktansa hiç kesmemek doğru: listeyi yenileyip tekrar seçin.',
+    'invoice_test_sent'=>'✓ TASLAK fatura test adresine e-postayla gönderildi — numara yakılmadı, müşteriye hiçbir şey gitmedi.',
     'invoice_redrafted'=>'✓ Fatura AYNI numarayla yeniden yazıldı, düzeltilmiş PDF alıcıya e-postayla (ekte) gönderildi. Alıcı panelindeki bağlantı artık düzeltilmiş belgeyi veriyor.',
     'invoice_paid_toggled'=>'✓ Ödeme işareti değiştirildi — alıcı panelindeki "ödenmesi gereken fatura" uyarısı buna göre güncellenir.',
     /* Bu ucu YALNIZCA mektup gercekten gittiginde basiliyor -- gitmediginde
@@ -3610,13 +3657,46 @@ foreach($offers as $__o){
       <td><b><?= eur($riv['total']??0) ?></b></td>
       <td><input name="shipping" form="<?= htmlspecialchars($rFid) ?>" value="<?= $rShip>0?htmlspecialchars(number_format($rShip,2,'.','')):'' ?>" placeholder="0.00" inputmode="decimal" style="width:80px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"></td>
       <td>
-        <form id="<?= htmlspecialchars($rFid) ?>" method="post" style="margin:0;display:flex;gap:6px">
+        <?php /* KALEM SECIMI: mevcut uyeler + AYNI ALICININ faturasiz kabul
+                 edilmis teklifleri. Alici bir kalemi iptal ettirdiginde
+                 isareti kaldirilir; kalan bir teklif eklenmek istenirse
+                 isaretlenir. Birincil ref KILITLI (numara ona bagli) --
+                 gizli alanla her zaman gonderiliyor, kutusu disabled.
+                 Kutu HIC gonderilmezse (hicbiri isaretli degilse bile
+                 birincil gider) davranis kayitli uyelere donmez, cunku
+                 birincil daima listede. */
+              $rEmail = strtolower(trim((string)($__e['row']['email'] ?? '')));
+              $rCand = [];
+              foreach($offers as $__c){
+                $__cr=(string)($__c['ref']??''); if($__cr==='' || $__cr===$rref) continue;
+                if(strtolower(trim((string)($__c['email']??'')))!==$rEmail) continue;
+                if((($offerResp[$__cr]['status']??''))!=='accept') continue;
+                $inGrp = trim((string)($offerResp[$__cr]['invoice_group_ref'] ?? ''))===$rref;
+                /* Baska bir belgeye bagli ya da ayri faturalanmis teklif
+                   aday DEGIL: iki belgede birden gorunmesi cift faturalama. */
+                if(!$inGrp && count(vestra_invoices_for_ref($__cr))>0) continue;
+                $rCand[]=['ref'=>$__cr,'row'=>$__c,'in'=>$inGrp];
+              }
+        ?>
+        <input type="hidden" name="refs[]" form="<?= htmlspecialchars($rFid) ?>" value="<?= htmlspecialchars($rref) ?>">
+        <div style="font-size:11px;margin-bottom:6px">
+          <label style="display:block;color:var(--mut)"><input type="checkbox" checked disabled style="width:auto"> <b><?= htmlspecialchars($rref) ?></b> — <?= htmlspecialchars(mb_substr((string)($__e['row']['product']??''),0,28)) ?> <span class="ahint">(belge bu ref'e ait, çıkarılamaz)</span></label>
+          <?php foreach($rCand as $__c): ?>
+          <label style="display:block"><input type="checkbox" name="refs[]" form="<?= htmlspecialchars($rFid) ?>" value="<?= htmlspecialchars($__c['ref']) ?>"<?= $__c['in']?' checked':'' ?> style="width:auto">
+            <?= htmlspecialchars($__c['ref']) ?> — <?= htmlspecialchars(mb_substr((string)($__c['row']['product']??''),0,28)) ?>
+            · <?= eur(vestra_offer_agreed_unit($__c['ref'])*(int)($__c['row']['qty']??0)) ?><?= $__c['in']?'':' <span class="ahint">(faturada değil)</span>' ?></label>
+          <?php endforeach; ?>
+        </div>
+        <form id="<?= htmlspecialchars($rFid) ?>" method="post" style="margin:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?= csrfField() ?>
           <input type="hidden" name="ref" value="<?= htmlspecialchars($rref) ?>">
           <button class="abtn" type="submit" name="_action" value="preview_redraft_offer_invoice" formtarget="_blank" style="font-size:12px"
                   title="Düzeltilmiş belgenin taslağı — hiçbir şey yazmaz, göndermez">👁 Draft</button>
+          <input name="test_to" value="acerasoft@gmail.com" style="font-size:11px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:150px">
+          <button class="abtn" type="submit" name="_action" value="test_redraft_offer_invoice" style="font-size:12px"
+                  title="Taslağı bu adrese e-postayla gönderir — numara yakmaz, müşteriye GİTMEZ">📧 Test</button>
           <button class="abtn primary" type="submit" name="_action" value="redraft_offer_invoice" style="font-size:12px"
-                  onclick="return confirm('Rewrite invoice <?= htmlspecialchars((string)($riv['no']??'')) ?> IN PLACE (same number) with the shipping shown, and EMAIL THE BUYER the corrected PDF as attachment?\n\nThe earlier copy of this number is replaced. Check the draft (👁) first.')">🔁 Redraft &amp; email</button>
+                  onclick="return confirm('Rewrite invoice <?= htmlspecialchars((string)($riv['no']??'')) ?> IN PLACE (same number) with the ticked items and the shipping shown, and EMAIL THE BUYER the corrected PDF?\n\nUnticked items are unlinked from this invoice and return to the approval queue. The earlier copy of this number is replaced. Check the draft (👁) first.')">🔁 Redraft &amp; email</button>
         </form>
       </td>
       <td>

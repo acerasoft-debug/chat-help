@@ -177,6 +177,27 @@ $t('satici kayitli secimden (garage)', $who($p['seller'])==='GARAGE LE PARIS');
 $t('birincil ref korunuyor', ($p['meta']['ref']??'')==='OF-1');
 $INVOICED = [];
 
+echo "\n== 10b. REDRAFT'ta UYE LISTESI DEGISTIRILEBILIR ==\n";
+/* Alici bir kalemi iptal ettirdiginde (Daymond, 1 Eyl 2026) o satir
+   belgeden cikmali; kalan kalemler eklenebilmeli. Birincil ref KALMAK
+   ZORUNDA -- numara ve dosya adi ona bagli. */
+$LISTING_MAP['SKU-3']['seller_uid']='garage';
+$CSV[2]['email']='buyer@example.com';           // OF-3 ayni aliciya alinsin
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage','invoice_members'=>['OF-1','OF-2'],
+                  'counter_price'=>10.00,'agreed_unit'=>10.00],
+         'OF-2'=>['status'=>'accept','invoice_group_ref'=>'OF-1'],
+         'OF-3'=>['status'=>'accept']];
+$INVOICED = ['OF-1'];
+$p = vestra_offer_invoice_redraft_payload('OF-1', 50.0, ['OF-1','OF-3']);
+$t('uye degistirildi: iki satir', empty($p['error']) && count($p['items'])===2);
+$t('CIKARILAN OF-2 belgede yok', empty($p['error']) && !str_contains(json_encode($p['items']),'OF-2'));
+$t('EKLENEN OF-3 belgede var',   empty($p['error']) && str_contains(json_encode($p['items']),'OF-3'));
+$p = vestra_offer_invoice_redraft_payload('OF-1', 50.0, ['OF-2','OF-3']);
+$t('birincil ref cikarilamaz', !empty($p['error']) && str_contains($p['error'],'listede kalmalı'));
+$p = vestra_offer_invoice_redraft_payload('OF-1', 50.0, []);
+$t('bos liste reddedilir', !empty($p['error']));
+$INVOICED = [];
+
 echo "\n== 11. FATURALANAN TEKLIF -> ORDERS SATIRI ==\n";
 /* "order bolumune de gitmeli". Satir checkout'un KENDI semasina yazilir ve
    items dizgisi vestra_parse_order_items'in regex'iyle geri okunabilmeli --

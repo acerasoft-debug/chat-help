@@ -566,7 +566,7 @@ function vestra_offer_order_ensure(array $p): bool {
  * Belge zaten var oldugu icin faturali-olma kontrolu BILEREK atlanir;
  * numara yakilmaz, dosya yerinde yeniden yazilir (vestra_ensure_invoice
  * redraft=true). Ya tam yuk ya ['error'=>gerekce]. */
-function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverride = null): array {
+function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverride = null, ?array $membersOverride = null): array {
     require_once __DIR__.'/invoice.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     if ($ref === '') return ['error' => 'Ref boş.'];
@@ -574,7 +574,21 @@ function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverr
         return ['error' => "Bu ref'in kesilmiş bir faturası yok: {$ref} — düzeltme değil, normal kesim gerekiyor."];
     }
     $rs = vestra_read_json('offer_responses.json');
-    $members = array_values(array_filter(array_map('strval', (array)($rs[$ref]['invoice_members'] ?? []))));
+    /* UYE LISTESI DEGISTIRILEBILIR: alici bir kalemi iptal ettirdiginde
+       (Daymond, 1 Eyl 2026) belgeden o satiri cikarmak gerekiyor; kalan
+       kalemler eklenebilmeli de. Verilmezse kayitli uyeler kullanilir.
+       BIRINCIL ref listede KALMAK ZORUNDA: numara ve dosya adi ona bagli
+       (vestra_invoice_file), listeden dusurmek belgeyi sahipsiz birakirdi. */
+    if ($membersOverride !== null) {
+        $members = array_values(array_unique(array_filter(array_map(
+            fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $membersOverride))));
+        if (!$members) return ['error' => 'En az bir kalem seçilmeli.'];
+        if (!in_array($ref, $members, true)) {
+            return ['error' => "Belge {$ref} adına kesildi; numara ona bağlı olduğu için {$ref} listede kalmalı. Bu kalemi tamamen çıkarmak gerekiyorsa fatura iptal edilip yeniden kesilmeli."];
+        }
+    } else {
+        $members = array_values(array_filter(array_map('strval', (array)($rs[$ref]['invoice_members'] ?? []))));
+    }
     if (count($members) > 1) {
         $p = vestra_offers_combined_invoice_payload($members, '', null, $shippingOverride, true);
     } else {
