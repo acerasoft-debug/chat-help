@@ -1,0 +1,93 @@
+[
+  {
+    "match": "rl-csf-tee-navy",
+    "expect": 1,
+    "name": "Custom Slim Fit Crew Neck T-Shirt",
+    "min_colors": 4,
+    "colors": ["Navy", "Black", "White", "Grey", "Khaki", "Red", "L.Blue", "Cream"],
+    "images": [
+      "/uploads/rl/csf-tee-navy.jpg",
+      "/uploads/rl/csf-tee-black.jpg",
+      "/uploads/rl/csf-tee-white.jpg",
+      "/uploads/rl/csf-tee-grey.jpg",
+      "/uploads/rl/csf-tee-khaki.png",
+      "/uploads/rl/csf-tee-red.jpg",
+      "/uploads/rl/csf-tee-lightblue.jpg",
+      "/uploads/rl/csf-tee-cream.jpg"
+    ],
+    "specs": {
+      "Model no": "710680785 · 710671438",
+      "Type": "Crew neck T-shirt",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "Cambodia",
+      "Navy / Red Pony": "Art. 710680785004 · S 92 · M 184 · L 184 · XL 184 · XXL 92",
+      "Black / Red Pony": "Art. 710680785001 · S 104 · M 208 · L 208 · XL 208 · XXL 104",
+      "White / Navy Pony": "Art. 710680785003 · S 125 · M 250 · L 250 · XL 250 · XXL 125",
+      "Grey / Navy Pony": "Art. 710680785002 · S 34 · M 67 · L 68 · XL 68 · XXL 34",
+      "Khaki / Orange Pony": "Art. 710671438341 · S 62 · M 125 · L 125 · XL 125 · XXL 63",
+      "Red / L.Blue Pony": "Art. 710671438302 · S 75 · M 150 · L 150 · XL 150 · XXL 75",
+      "L.Blue / White Pony": "Art. 710671438337 · S 60 · M 120 · L 120 · XL 120 · XXL 60",
+      "Cream / Brown Pony": "Art. 710671438350 · S 37 · M 74 · L 74 · XL 74 · XXL 37"
+    },
+    "_why": "TEK TISORT ANGEBOTU: 710680785 ve 710671438 modellerinin SEKIZ rengi tek ilanda. Operator karari (1 Eyl 2026): 'tum tshirtler alt alta ... ayni angebot'. Iki ayri model numarasini tek ilanda toplamak ancak her rengin ARTIKEL numarasi ilanda yaziliyken guvenli -- specs tablosu tam bunu yapiyor, alici siparisi renk degil numara ile veriyor.",
+    "_why_name": "Model numarasi ADDAN cikti: artik tek tisort ilani var, ayirt edilecek ikinci bir ad yok. Iki numara da specs'te. 'Crew neck' operatorun 'bisiklet yaka' tarifi -- Excel'de yaka tipi hic yazmiyordu, gorseller bisiklet yaka.",
+    "_why_min_colors": "'en az da 4 renk secimi olmali'. Fiyat (17,50) ve en az alim (104) DEGISMIYOR: ikisi de zaten katalog degeri."
+  },
+
+  {
+    "match": "rl-csf-polo-white",
+    "expect": 1,
+    "name": "Custom Slim Fit Polo Shirt",
+    "min_colors": 4,
+    "colors": ["White", "Dark Green", "Fuchsia", "Yellow", "Orange", "Pink"],
+    "images": [
+      "/uploads/rl/csf-polo-white.png",
+      "/uploads/rl/csf-polo-darkgreen.jpg",
+      "/uploads/rl/csf-polo-fuchsia.png",
+      "/uploads/rl/csf-polo-yellow.jpg",
+      "/uploads/rl/csf-polo-orange.jpg",
+      "/uploads/rl/csf-polo-pink.jpg"
+    ],
+    "specs_remove": ["Made in"],
+    "specs": {
+      "Model no": "710548797 · 710536856 · 710782592",
+      "Type": "Polo Shirt",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "White / Navy Pony": "Art. 710548797001 · India · S 15 · M 30 · L 30 · XL 30 · XXL 15",
+      "Dark Green / Yellow Pony": "Art. 710536856394 · Vietnam · S 11 · M 22 · L 21 · XL 21 · XXL 11",
+      "Fuchsia / Blue Pony": "Art. 710782592031 · India · S 4 · M 8 · L 8 · XL 8 · XXL 4",
+      "Yellow / Blue Pony": "Art. 710536856407 · Vietnam · S 6 · M 12 · L 13 · XL 13 · XXL 6",
+      "Orange / Green Pony": "Art. 710536856408 · Vietnam · S 3 · M 6 · L 6 · XL 6 · XXL 3",
+      "Pink / Navy": "Art. 710536856396 · Vietnam · S 10 · M 20 · L 20 · XL 20 · XXL 10"
+    },
+    "_why": "TEK POLO ANGEBOTU: 710548797 + 710536856 + 710782592 modellerinin ALTI rengi tek ilanda. Fiyat (26,90) ve en az alim (80) DEGISMIYOR -- operator 'polo yu da catalog fiyati ve en az alimindan yapacaksin' dedi, ikisi de zaten katalog degeri.",
+    "_why_made_in": "'Made in' SPEC'TEN KALDIRILIYOR: bu ilandaki alti renk iki ayri ulkeden geliyor (White ve Fuchsia India, digerleri Vietnam). Tek bir ulke yazmak dort urunde YANLIS olurdu; menses her rengin kendi satirinda duruyor. KURAL 3'un ayni mantigi -- tahmin edilen degil, yazili olan."
+  },
+
+  {
+    "match": "rl-csf-tee-khaki",
+    "expect": 1,
+    "status": "pending",
+    "_why": "710671438'in dort rengi tek tisort angebotuna tasindi. SILINMIYOR: status=pending vitrinden dusuruyor (vestra_live_listings yalnizca 'approved' gosteriyor) ama kayit duruyor -- karar geri alinmak istenirse tek satirla geri gelir."
+  },
+  {
+    "match": "rl-csf-polo-darkgreen",
+    "expect": 1,
+    "status": "pending",
+    "_why": "710536856'nin dort rengi tek polo angebotuna tasindi."
+  },
+  {
+    "match": "rl-csf-polo-fuchsia",
+    "expect": 1,
+    "status": "pending",
+    "_why": "710782592 tek polo angebotuna tasindi."
+  }
+]
