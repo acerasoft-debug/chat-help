@@ -74,5 +74,18 @@ $t('payload garage', $who($p['seller'])==='GARAGE LE PARIS');
 $t('miktar korunuyor', (int)$p['qty']===10);
 $t('birim anlasilan fiyat', abs($p['unit']-9.00)<0.001);
 
+echo "\n== 7. ONIZLEME gecersiz kilmasi KALICI DEGIL ==\n";
+/* Taslak, formda SECILI duran saticiyla cizilir ama secim ancak Approve'da
+   kayda gecer. Onizlemenin kendisi kayit yazsaydi, operator taslaga bakip
+   vazgectiginde secim sessizce kalmis olurdu. */
+$JSON = ['OF-1'=>['status'=>'accept']];
+$p = vestra_offer_invoice_payload('OF-1','garage');
+$t('taslak secilen saticiyla', $who($p['seller'])==='GARAGE LE PARIS');
+$t('kayda HICBIR SEY yazilmadi', !isset($JSON['OF-1']['invoice_seller_uid']));
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'tyrex']];
+$p = vestra_offer_invoice_payload('OF-1','garage');
+$t('gecersiz kilma kayitli secimi de EZER (o anki liste ne diyorsa o)', $who($p['seller'])==='GARAGE LE PARIS');
+$t('kayitli secim yerinde durdu', ($JSON['OF-1']['invoice_seller_uid']??'')==='tyrex');
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

@@ -317,11 +317,14 @@ function vestra_offer_agreed_unit(string $ref, ?array $resp = null, ?array $offe
  * ilanda bir satici olsa bile ona donmez.
  *
  * Secilen hesap artik yoksa platforma dusulur -- ama bu yola normalde
- * girilmez: secim admin.php'de KAYIT ANINDA dogrulanir. */
-function vestra_offer_invoice_seller(string $ref, ?array $listing = null): array {
+ * girilmez: secim admin.php'de KAYIT ANINDA dogrulanir.
+ *
+ * $pickOverride: KAYDETMEDEN "bu satici secilseydi" cozumu -- onizleme
+ * taslagi icin. Kalici secimle ayni oncelige oturur; bos ise kayit okunur. */
+function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string $pickOverride = ''): array {
     require_once __DIR__.'/invoice.php';
     $rs   = vestra_read_json('offer_responses.json');
-    $pick = trim((string)($rs[$ref]['invoice_seller_uid'] ?? ''));
+    $pick = $pickOverride !== '' ? $pickOverride : trim((string)($rs[$ref]['invoice_seller_uid'] ?? ''));
     $uid  = $pick !== '' ? $pick : (string)($listing['seller_uid'] ?? '');
     if ($uid !== '' && $uid !== 'vestra') {
         foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $uid) return $sa; }
@@ -333,7 +336,7 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null): array
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = ''): ?array {
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return null;
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
@@ -341,7 +344,7 @@ function vestra_offer_invoice_payload(string $ref): ?array {
     $unit = vestra_offer_agreed_unit($ref, null, $offerRow);
     $qty  = (int)($offerRow['qty'] ?? 0);
 
-    $sellerAcc = vestra_offer_invoice_seller($ref, $listing);
+    $sellerAcc = vestra_offer_invoice_seller($ref, $listing, $sellerPickOverride);
 
     return [
         'meta' => [

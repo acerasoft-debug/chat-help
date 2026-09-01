@@ -112,6 +112,44 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
     header('Location: /admin?tab='.$back.'&msg='.($issued?'invoice_issued':'invoice_none')); exit;
   }
+  /* TASLAK ONIZLEME -- operator kararı (1 Eyl 2026): "faturayi musteri
+     hesabina inmeden ve email ile gondermeden kendim kontrol etmem gerekiyor".
+     Kesilecek belgenin AYNISINI cizer (ayni payload, ayni cizim yolu, formda
+     SECILI duran satici dahil) ama:
+       - numara YANMAZ (vestra_next_invoice_no hic cagrilmaz),
+       - diske YAZILMAZ (vestra_ensure_invoice hic cagrilmaz),
+       - aliciya e-posta GITMEZ, hesabinda gorunmez,
+       - secim KALICI OLMAZ ($pickOverride -- kayit ancak Approve'da yazilir),
+       - ustunde 'DRAFT INVOICE / not assigned yet' yazar ki yanlislikla
+         iletilse bile fatura sanilmasin.
+     Onay dugmesine basilana kadar alici tarafinda HICBIR SEY olusmaz; kontrol
+     adimi tam olarak bu bosluk. POST olmasi sart: onizlenen satici, formdaki
+     acilir listenin O ANKI degeri, kaydedilmis bir deger degil. */
+  if($act==='preview_offer_invoice'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/offers.php';
+    require_once __DIR__.'/inc/invoice.php';
+    $rs=vestra_read_json('offer_responses.json');
+    if((($rs[$ref]['status'] ?? '')) !== 'accept'){
+      header('Location: /admin?tab=invoices&msg=invoice_none'); exit;
+    }
+    /* Ayni dogrulama, ayni sebeple: onizlemede gecen bir secim onayda da
+       gececek sanilir. Gecersiz hesap burada da durdurulur. */
+    $pick = preg_replace('/[^A-Za-z0-9_-]/','',(string)($_POST['seller_uid'] ?? ''));
+    if($pick!==''){
+      $ok = ($pick==='vestra');
+      if(!$ok) foreach(auth_accounts() as $sa){ if(($sa['id']??'')===$pick && ($sa['type']??'')==='seller'){ $ok=true; break; } }
+      if(!$ok){ header('Location: /admin?tab=invoices&msg=invoice_seller_bad'); exit; }
+    }
+    $p = vestra_offer_invoice_payload($ref, $pick);
+    if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
+    $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="DRAFT-'.$ref.'.pdf"');
+    header('Cache-Control: no-store');          // alici verisi tasiyan taslak ara belleklere dusmesin
+    header('Content-Length: '.strlen($bytes));
+    echo $bytes; exit;
+  }
   /* Kabul edilmis TEKLIFIN faturasini kes. Ayri islem, cunku kaynak ayri
      dosya: siparisler orders.csv'de, teklifler offers.csv + offer_responses
      .json'da. Tutar vestra_offer_agreed_unit()'ten -- karsi teklif verilmisse
@@ -1561,6 +1599,26 @@ if($authed && isset($_GET['dl'])){
   $f=$map[$_GET['dl']]??null; $path=$f?vestra_data_dir().'/'.$f:'';
   if($f && is_readable($path)){ header('Content-Type: text/csv; charset=UTF-8'); header('Content-Disposition: attachment; filename="vestra-'.$f.'"'); readfile($path); exit; }
   http_response_code(404); echo 'No data'; exit;
+}
+/* SIPARIS faturasi TASLAGI -- teklif tarafindaki preview_offer_invoice'in
+   siparis esi (gerekce orada). Satici dilimi basina bir belge; secilecek bir
+   satici olmadigi icin (dilimler siparisin satirlarindan geliyor) salt-okunur
+   bir GET yeterli. Hicbir sey yazilmaz, numaralanmaz, gonderilmez -- ayni
+   yuk + ayni cizim yolu, yalnizca draft=true. */
+if($authed && ($_GET['pv_order']??'')!==''){
+  require_once __DIR__.'/inc/invoice.php';
+  $ref =preg_replace('/[^A-Za-z0-9_-]/','',(string)$_GET['pv_order']);
+  $want=preg_replace('/[^A-Za-z0-9_-]/','',(string)($_GET['pv_seller']??''));
+  foreach(vestra_order_invoice_payloads($ref) as $p){
+    if($want!=='' && $p['seller_key']!==$want) continue;
+    $bytes=vestra_render_invoice_pdf($p['meta'],$p['items'],$p['seller'],'',true);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="DRAFT-'.$ref.'-'.$p['seller_key'].'.pdf"');
+    header('Cache-Control: no-store');          // alici verisi tasiyan taslak ara belleklere dusmesin
+    header('Content-Length: '.strlen($bytes));
+    echo $bytes; exit;
+  }
+  http_response_code(404); echo 'Bu siparis/satici dilimi bulunamadi.'; exit;
 }
 
 // ── Helper functions ───────────────────────────────────────────────────────────
@@ -3184,7 +3242,8 @@ elseif($tab==='invoices'): ?>
 
 <div class="acard" style="margin-bottom:16px">
   <div class="acard-hd"><h3>🧾 Invoice approvals</h3></div>
-  <p class="ahint" style="margin:0">Automatic invoicing is <b>suspended</b>. After you confirm stock for an order, approve it here — the PDF invoice is then issued, emailed to the buyer and added to their account (My orders / confirmation page). Card &amp; escrow orders invoice themselves on payment and are not listed.</p>
+  <p class="ahint" style="margin:0">Automatic invoicing is <b>suspended</b>. After you confirm stock for an order, approve it here — the PDF invoice is then issued, emailed to the buyer and added to their account (My orders / confirmation page). Card &amp; escrow orders invoice themselves on payment and are not listed.<br>
+  <b>👁 Draft</b> = kesilecek belgenin birebir ön izlemesi, <b>yalnızca size</b> açılır: numara yakmaz, hiçbir şey kaydetmez, müşteriye e-posta gitmez ve hesabında görünmez. Onaylamadan önce buradan kontrol edin — Approve'a basana kadar müşteri tarafında hiçbir şey oluşmaz.</p>
 </div>
 
 <?php if($pendingInvoiceOffers):
@@ -3254,12 +3313,21 @@ elseif($tab==='invoices'): ?>
         <div class="ahint" style="font-size:10.5px"><?= $fPicked ? 'sizin seçiminiz' : (($fl && ($fl['seller_uid']??'')!=='') ? 'ilandan geldi' : 'ilanda satıcı yok → platform') ?></div>
       </td>
       <td>
-        <form id="<?= htmlspecialchars($fFid) ?>" method="post" style="margin:0"
-              onsubmit="var s=this.elements.seller_uid;return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\n\nThe number and the PDF are written to that seller and cannot be moved afterwards. Do this once stock is confirmed.')">
+        <?php /* _action GIZLI ALANDA DEGIL, dugmelerin uzerinde: iki dugme ayni
+                 formu iki ayri isleme gonderiyor (taslak / kesim) ve etkin olan
+                 deger her zaman basilan dugmeninki. JS ile _action degistirmek
+                 ise JS kapaliyken iki dugmeyi de KESIME gonderirdi.
+                 Onay sorusu yalnizca kesim dugmesinde -- taslak zararsiz, soru
+                 sorulsaydi operator iki soruyu ayirt etmeden Evet'e aliskanlik
+                 kazanirdi. Enter da ilk dugmeye, yani TASLAGA gider.
+                 formtarget=_blank: PDF yeni sekmede, kuyruk sayfasi durur. */ ?>
+        <form id="<?= htmlspecialchars($fFid) ?>" method="post" style="margin:0;display:flex;gap:6px;flex-wrap:wrap">
           <?= csrfField() ?>
-          <input type="hidden" name="_action" value="issue_offer_invoice">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($fref) ?>">
-          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+          <button class="abtn" type="submit" name="_action" value="preview_offer_invoice" formtarget="_blank" style="font-size:12px"
+                  title="Kesilecek belgenin birebir taslağı — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez">👁 Draft</button>
+          <button class="abtn primary" type="submit" name="_action" value="issue_offer_invoice" style="font-size:12px"
+                  onclick="var s=this.form.elements.seller_uid;return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\n\nThis burns the number, stores the PDF and EMAILS THE BUYER. Check the draft (👁) first.\nThe seller cannot be changed afterwards.')">✓ Approve &amp; issue</button>
         </form>
       </td>
     </tr>
@@ -3284,12 +3352,22 @@ elseif($tab==='invoices'): ?>
       <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
       <td><b><?= eur($o['total']??0) ?></b><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
       <td>
-        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?> and email the buyer? Do this once stock is confirmed.')">
-          <?= csrfField() ?>
-          <input type="hidden" name="_action" value="issue_invoice">
-          <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
-          <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
-        </form>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <?php /* Dilim basina bir taslak: siparis birden cok saticiya
+                   bolunebiliyor ve her dilim AYRI bir belge olarak kesiliyor --
+                   operator hangisini kontrol ettigini bilmeli. */
+                foreach(vestra_order_invoice_payloads($oref) as $__p): ?>
+            <a class="abtn" style="font-size:12px" target="_blank" rel="noopener"
+               title="Taslak — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez"
+               href="/admin?pv_order=<?= urlencode($oref) ?>&pv_seller=<?= urlencode($__p['seller_key']) ?>">👁 <?= htmlspecialchars(vestra_invoice_issuer_name($__p['seller'],'VESTRA')) ?></a>
+          <?php endforeach; ?>
+          <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?>? This burns the number(s), stores the PDF(s) and EMAILS THE BUYER. Check the draft (👁) first. Do this once stock is confirmed.')">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="issue_invoice">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <button class="abtn primary" type="submit" style="font-size:12px">✓ Approve &amp; issue</button>
+          </form>
+        </div>
       </td>
     </tr>
     <?php endforeach; ?>

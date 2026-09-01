@@ -387,7 +387,11 @@ function vestra_invoice_issuer_name(?array $acc, string $fallback = 'Seller'): s
     return $nm !== '' ? $nm : $fallback;
 }
 
-function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc, string $invoiceNo): string {
+/* $draft=true YALNIZCA operatorun on izlemesi icin: baslik 'DRAFT INVOICE'
+ * yazar, numara satiri 'not assigned yet' der. Belge diske YAZILMAZ, numara
+ * YANMAZ, aliciya gitmez -- ciktinin kendisi de bunu soylemeli ki yanlislikla
+ * iletilse bile fatura sanilmasin. */
+function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc, string $invoiceNo, bool $draft = false): string {
     /* Para birimi. Belge bugune kadar EUR'a SABITTI: tutarlar eur() ile basiliyor ve
        "Currency" satiri duz "EUR" yaziyordu. ABD'li bir alicidan ABD'li bir hesaba
        yapilan satista bu yanlis: alici dolar gonderir, fatura euro der, ve hesaba
@@ -436,8 +440,8 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        'invoice_name' yalnizca BELGEDE gecerli; bos ise davranis eskisi gibi. */
     $opName = vestra_invoice_issuer_name($sellerAcc, 'Acerasoft LLC');
     $pdf->text($markX, $y - 16, 8, $opName.'  ·  vestrasales.com', false);
-    $pdf->textR($right, $y, 22, 'INVOICE', true);
-    $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.$invoiceNo);
+    $pdf->textR($right, $y, 22, $draft ? 'DRAFT INVOICE' : 'INVOICE', true);
+    $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.($draft ? 'not assigned yet' : $invoiceNo));
     $pdf->textR($right, $y - 30, 9, 'Date:  '.substr($order['date'] ?? date('c'), 0, 10));
     $pdf->textR($right, $y - 42, 9, 'Order ref:  '.($order['ref'] ?? ''));
     $y -= 66;
@@ -796,14 +800,18 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        "page 1 of 2" is what tells a reader a second page existed at all.
        Stamped after layout because the page count is not known until the last row is drawn. */
     $ref = trim((string)($order['ref'] ?? ''));
-    $pdf->stampEachPage(function (VestraPdf $p, int $n, int $total) use ($left, $right, $invoiceNo, $ref) {
+    $pdf->stampEachPage(function (VestraPdf $p, int $n, int $total) use ($left, $right, $invoiceNo, $ref, $draft) {
         $fy = 44.0;
         $p->line($left, $fy + 16, $right, $fy + 16, 0.5, 0.8);
         $tx = $left;
         $mk = vestra_pdf_thumb('/icon-512.png', 256, 95);   // already embedded once by the header
         if ($mk !== '' && $p->imageJpeg($mk, $left, $fy - 3, 15, 15, 15 * 7 / 32)) $tx = $left + 21;
         $p->text($tx, $fy + 2, 8, 'VESTRA', true);
-        $p->text($tx + 44, $fy + 2, 7.5, trim('Invoice '.$invoiceNo.($ref !== '' ? '   ·   Order '.$ref : '')));
+        /* Taslakta HER sayfanin dibinde de yazar: tek sayfa iletilse bile
+           uzerinde "fatura degil" ibaresi tasinsin. */
+        $p->text($tx + 44, $fy + 2, 7.5, $draft
+            ? trim('DRAFT - not an issued invoice'.($ref !== '' ? '   ·   Order '.$ref : ''))
+            : trim('Invoice '.$invoiceNo.($ref !== '' ? '   ·   Order '.$ref : '')));
         $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
     });
 
@@ -997,13 +1005,12 @@ function vestra_invoice_link_label(array $iv): string {
     return $s;
 }
 
-/**
- * Manually issue (force) every per-seller invoice for an order ref — used by the
- * operator's "Issue invoice" action once stock is confirmed. Rebuilds the buyer
- * and per-seller line data from orders.csv (address recovered from the notes).
- * Idempotent: already-issued invoices are returned untouched. Returns the list.
- */
-function vestra_issue_order_invoices(string $ref, bool $redraft = false): array {
+/* Bir siparisin fatura YUKLERI (satici basina meta+satirlar+hesap), belge
+ * uretmeden. vestra_issue_order_invoices'in govdesinden AYRILDI ki operator
+ * onaylamadan once ayni yukten TASLAK cizdirilebilsin: onizleme ile kesilen
+ * belge ayni koddan cikmali, yoksa operator bir sey gorur, alici baskasini
+ * alir. Iskonto payi, tek seferlik navlun, satici gruplamasi -- hepsi burada. */
+function vestra_order_invoice_payloads(string $ref): array {
     require_once __DIR__.'/orders.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $orderRow = null;
@@ -1052,14 +1059,29 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
         }
     }
 
-    $issued = [];
+    $out = [];
     foreach ($bySeller as $sid => $sellerItems) {
         $sellerAcc = null;
         if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
         $meta = $orderMeta;
         if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
         if ($sid !== array_key_first($bySeller)) { $meta['shipping'] = 0.0; }   // carriage billed once
-        $iv = vestra_ensure_invoice($meta, $sellerItems, $sellerAcc, true, $redraft);
+        $out[] = ['meta' => $meta, 'items' => $sellerItems, 'seller' => $sellerAcc,
+                  'seller_key' => vestra_invoice_seller_key($sellerAcc)];
+    }
+    return $out;
+}
+
+/**
+ * Manually issue (force) every per-seller invoice for an order ref — used by the
+ * operator's "Issue invoice" action once stock is confirmed. Rebuilds the buyer
+ * and per-seller line data from orders.csv (address recovered from the notes).
+ * Idempotent: already-issued invoices are returned untouched. Returns the list.
+ */
+function vestra_issue_order_invoices(string $ref, bool $redraft = false): array {
+    $issued = [];
+    foreach (vestra_order_invoice_payloads($ref) as $p) {
+        $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, $redraft);
         if (!empty($iv['no'])) $issued[] = $iv;
     }
     return $issued;

@@ -167,6 +167,22 @@ olduğunu gösterir; boşsa "ödeme kutusu çıkmaz" uyarısı yazar.
 - **Giriş e-postası buradan değişmez** — `auth_update` onu kilitli tutuyor
   (`id`, `hash`, `email`, `created`).
 
+**KURAL 5d — Kesimden önce taslak önizleme** (operatör kararı, 1 Eyl 2026:
+*"faturayı müşteri hesabına inmeden ve email ile göndermeden kendim kontrol
+etmem gerekiyor"*). `Admin ▸ Invoice approvals`'ta **👁 Draft**: kesilecek
+belgenin birebiri — tekliflerde formda **seçili duran** satıcıyla (POST; kayıtlı
+değil, o anki liste değeri), siparişlerde **satıcı dilimi başına** bir bağlantı
+(GET `pv_order`/`pv_seller`). Taslak **numara yakmaz, diske yazmaz, seçimi
+kaydetmez, e-posta göndermez, müşteri hesabında görünmez**; üstünde
+`DRAFT INVOICE / not assigned yet`, her sayfa dibinde `DRAFT - not an issued
+invoice` yazar. Approve'a basılana kadar müşteri tarafında **hiçbir şey oluşmaz**
+— kontrol adımı tam olarak bu boşluk. Önizleme ile kesim **aynı yükten aynı
+çizim yolundan** çıkar (`vestra_order_invoice_payloads`,
+`vestra_offer_invoice_payload($ref, $pickOverride)`, `vestra_render_invoice_pdf`
+`draft=true`); ayrışırlarsa operatör bir şey görür, alıcı başkasını alır.
+Onay penceresi artık açıkça "This burns the number, stores the PDF and EMAILS
+THE BUYER" diyor. Test: `tests/invoice_draft_test.php`.
+
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.
