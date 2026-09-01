@@ -198,6 +198,43 @@ Satır fiyatı = o teklifin **anlaşılan** birimi; satır adına teklif ref'i
 eklenir; tarih = kesim günü (farklı günlerde kabul edilmiş tekliflere
 içlerinden birinin tarihi verilmez). Test: `invoice_seller_pick_test.php §9`.
 
+**KURAL 5f — Kesilmiş faturadan kalem çıkarılabilir; belge AYNI numarayla
+yeniden yazılır** (operatör akışı, 1 Eyl 2026 — Daymond iki kalemi iptal etti).
+Tek uygulayıcı: `vestra_offer_invoice_redraft_apply()`; panel (`🔁 Redraft &
+email`) ve `send-campaign-preview.yml` (`invoice_draft` + `apply=true`) **aynı**
+fonksiyonu çağırır — iki ayrı kesim yolu ayrışır ve ayrışma belgede görünür.
+- Üye listesi formdan gelir (`refs[]`). **Birincil ref listede kalmak zorunda:**
+  numara ve dosya adı ona bağlı (`vestra_invoice_file`). Çıkarılmak istenirse
+  fatura iptal edilip yeniden kesilmeli — açık gerekçeyle reddediliyor.
+- Çıkarılan üyenin `invoice_group_ref`'i **silinir**; kalsaydı alıcı faturadan
+  çıkardığımız kalemin faturasını görmeye devam ederdi. Teklif faturasız olur ve
+  onay kuyruğuna döner.
+- **Üç katman birlikte güncellenir** — bu üçü ayrı ayrı yazıldığında üçü de
+  kaçırdı: (1) PDF, (2) fatura **meta**'sındaki `total`/`currency` (panel ve
+  alıcının fatura satırı buradan okur — belge €3.950 derken ekran €6.300
+  diyordu), (3) **sipariş satırı** (`vestra_offer_order_ensure($p, true)`;
+  fonksiyon idempotent olduğu için redraft'ta hiç dokunmuyordu, sipariş 6 kalem
+  €6.350'de kalmıştı).
+- `notify=false`: kayıt düzeltmesi alıcıya mektup göndermeden yapılır. Alıcı
+  doğru PDF'i almışken ikinci bir "faturanız hazır", değişmemiş bir belgeyi
+  değişmiş gibi gösterir. Mektup **istendiği halde** gitmediyse iş **kırmızı**
+  biter.
+- `📧 Test` (panel) ve `invoice_draft` (iş akışı): taslağı operatöre e-postalar
+  — numara yakmaz, diske yazmaz, müşteriye gitmez.
+- **Operatöre giden kopya alıcınınkiyle BİREBİR AYNI** (operatör kararı):
+  "[KOPYA]" öneki ve açıklama satırı yok. Müşterinin gördüğü şey görülmeli.
+- **Mektuplar İngilizce** (operatör kararı, 1 Eyl 2026: *"sadece ingilizce yap
+  ve yazismalarda türkce kullanma"*) — taslak mektupları dahil.
+- Test: `invoice_seller_pick_test.php §10b–10d`.
+
+**KURAL 5g — Teklif silinebilir, ama FATURALI teklif silinemez.**
+`Admin ▸ Offers ▸ 🗑 Sil`: `offers.csv`'den satırı ve `offer_responses.json`'dan
+kaydı çıkarır; dosya **önce zaman damgalı yedeklenir**. Alıcıya bildirim gitmez
+(iptali zaten o istedi). Faturası kesilmiş teklifte düğme **hiç görünmez** ve
+sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değildir.
+Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
+bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
+
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.
@@ -232,11 +269,20 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   oldu. Davranış bilerek değiştiyse **testi de düzelt** — bir kez eski ve
   HATALI davranışı koruyan bir iddia çıktı (satıcı kendi karşı teklifini kabul
   edip alıcının onaylamadığı fiyattan fatura kesiyordu).
-- **Teşhis çıktısına körü körüne güvenme.** Bu depoda üç kez, kontrolün kendisi
-  yanlış yere bakıyordu: `stripe_secret` uygulamanın okumadığı anahtardan,
-  giriş probu hiç giriş olmadan "girişli kullanıcı her sayfayı açıyor" diyordu,
-  ve `vestra_join_cta` fatal'leri eski kayıttı. Bir uyarıyı rapor etmeden önce
-  kontrolün **gerçekten** kodun okuduğu yere baktığını doğrula.
+- **Teşhis çıktısına körü körüne güvenme.** Bu depoda **beş** kez, kontrolün
+  kendisi yanlış yere bakıyordu: `stripe_secret` uygulamanın okumadığı
+  anahtardan, giriş probu hiç giriş olmadan "girişli kullanıcı her sayfayı
+  açıyor" diyordu, `vestra_join_cta` fatal'leri eski kayıttı, **1 Eyl 2026'da
+  `diag-messages` KESİLMİŞ bir faturaya ısrarla "KESİLMEDİ" dedi**
+  (`function_exists('vestra_invoices_for_ref')` her zaman `false` dönüyordu:
+  `offers.php` `invoice.php`'yi yalnızca fonksiyon gövdesinde `require` ediyor,
+  yani dosya hiç yüklenmiyordu — buna güvenip devam etmek faturalı bir kalemi
+  **ikinci kez faturalamak** olurdu), ve **aynı gün `mail_for` tek başına
+  verildiğinde Brevo olay bölümü hiç çalışmıyordu** (`mailcfg=true` bloğunun
+  içindeydi) — çıktı boş dönüyor ve "bu adrese olay yok" diye okunuyordu.
+  Bir uyarıyı **ya da bir "sorun yok"u** rapor etmeden önce kontrolün
+  **gerçekten** kodun okuduğu yere baktığını doğrula. İki kayıt birbirini
+  tutmuyorsa (sipariş var ama fatura "yok") **önce çelişkiyi çöz**, karar verme.
 - `workflow_dispatch` en fazla **25 girdi** alır; `diag-live.yml` sınırda.
 - `get_job_logs` kuyruğu ~55-78 satır gösterir — uzun çıktıyı sıkıştır, yoksa
   başlangıçtaki satırlar kuyruktan düşer.
