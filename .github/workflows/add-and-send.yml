@@ -21,6 +21,10 @@ on:
         description: "true (varsayılan) = göndermeden önce alan adının MX/A kaydına bak, posta alamayan adresi atla. Sert bounce oranı gönderen alan adının itibarını düşürüyor. false = kontrolsüz gönder."
         required: false
         default: "true"
+      same_firm:
+        description: "AYNI FİRMAYA ikinci soğuk mektup: skip (varsayılan) = aynı alan adına daha önce gönderilmişse atla | send = yine de gönder. Serbest posta sağlayıcıları (gmail vb.) muaf tutulur."
+        required: false
+        default: "skip"
 
 permissions:
   contents: read
@@ -53,13 +57,14 @@ jobs:
           FEATURE_CAT: ${{ github.event.inputs.feature_category }}
           IN_COUNTRY: ${{ github.event.inputs.country }}
           DNS_CHECK: ${{ github.event.inputs.dns_check }}
+          SAME_FIRM: ${{ github.event.inputs.same_firm }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 20m
-          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY,DNS_CHECK
+          envs: IN_EMAILS,DO_SEND,FEATURE_CAT,IN_COUNTRY,DNS_CHECK,SAME_FIRM
           script: |
             cd ~/public_html
             cat > /tmp/vestra_add_send.php <<'PHPEOF'
@@ -407,11 +412,46 @@ jobs:
             $sent = 0; $fail = 0; $skip = 0;
             $DNS_CHECK = strtolower(trim((string)getenv('DNS_CHECK'))) !== 'false';
             $dnsSeen = []; $dnsDead = 0; $dnsTouched = false;
+
+            /* AYNI FIRMAYA IKINCI SOGUK MEKTUP. Tekillestirme ADRESE gore yapiliyor,
+               FIRMAYA gore degil. 1 Eyl 2026'da ikinci APAC listesinde
+               sartorial@marais.com.au vardi; oysa ayni dukkanin online@ adresi
+               31 Agustos'ta mektup almisti. Ayni gonderenden gelen ikinci soguk
+               mektup spam sikayeti uretiyor ve vestrasales.com'da DKIM yok --
+               itibari daha da dusuruyor.
+               Serbest/paylasimli posta saglayicilari MUAF: gmail.com'daki iki adres
+               iki ayri firma demektir, orada alan adi firma kimligi tasimaz. */
+            $SAME_FIRM = strtolower(trim((string)getenv('SAME_FIRM'))) ?: 'skip';
+            $SHARED_MX = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com',
+              'hotmail.co.uk','live.com','msn.com','yahoo.com','yahoo.co.jp','yahoo.co.uk',
+              'ymail.com','icloud.com','me.com','aol.com','protonmail.com','proton.me',
+              'gmx.de','gmx.net','web.de','t-online.de','orange.fr','free.fr','libero.it',
+              'qq.com','163.com','126.com','naver.com','daum.net','hanmail.net']);
+            $domOf = fn(string $e) => (string)substr((string)strrchr($e, '@'), 1);
+            $firmDone = [];
+            foreach ($leads as $l2) {
+              if (trim((string)($l2['last_contacted_at'] ?? '')) === '') continue;
+              $e2 = strtolower(trim((string)($l2['email'] ?? ''))); if ($e2 === '') continue;
+              $d2 = $domOf($e2);
+              if ($d2 === '' || isset($SHARED_MX[$d2]) || isset($firmDone[$d2])) continue;
+              $firmDone[$d2] = $e2;
+            }
+            echo "firma : ".count($firmDone)." alan adina daha once gonderilmis"
+               . ($SAME_FIRM === 'send' ? " (same_firm=send -- kontrol KAPALI)\n" : "\n");
+
             foreach (array_keys($wanted) as $mail) {
               $i = $byMail[$mail] ?? null; if ($i === null) continue;
               $l = $leads[$i];
               if (trim((string)($l['last_contacted_at'] ?? '')) !== '') {
                 echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
+              }
+              if ($SAME_FIRM !== 'send') {
+                $dom = $domOf($mail);
+                if ($dom !== '' && !isset($SHARED_MX[$dom]) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {
+                  printf("  - ATLANDI (ayni firmaya zaten gitti: %s): %s\n",
+                         preg_replace('/^(.).*@/', '$1***@', $firmDone[$dom]), $mail);
+                  $skip++; continue;
+                }
               }
               if (!empty($l['unsubscribed'])) { echo "  - ATLANDI (abonelikten cikmis): {$mail}\n"; $skip++; continue; }
               /* ZINCIR / DISTRIBUTOR / KENDI MARKASINI SATAN -> gonderme.
