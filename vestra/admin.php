@@ -3227,6 +3227,12 @@ elseif($tab==='orders'):
     <div class="acard-hd"><h3>Money</h3></div>
     <table class="atable">
       <?= arow(['Subtotal',eur($viewRow['subtotal']??0)]) ?>
+      <?php /* Kargo ayri satir: toplamin icinde gomulu kalsa operator mal
+               bedeli ile genel toplam arasindaki farki aciklayamaz. Yalnizca
+               kargolu siparislerde basilir. */ ?>
+      <?php if(((float)($viewRow['shipping']??0))>0): ?>
+      <?= arow([htmlspecialchars(trim((string)($viewRow['shipping_label']??''))?:'Shipping'),eur($viewRow['shipping'])]) ?>
+      <?php endif; ?>
       <?= arow(['Platform commission','<b style="color:#1f9d63">'.eur($viewRow['commission']??0).'</b>']) ?>
       <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
       <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'')]) ?>
@@ -3351,7 +3357,7 @@ if($__dupRefs): ?>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
     <td class="ac" style="font-size:11px"><?= vestra_order_items_cell($o['items']??'', 2, 160) ?></td>
-    <td class="ac"><b><?= eur($o['total']??0) ?></b><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
+    <td class="ac"><b><?= eur($o['total']??0) ?></b><?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>
@@ -3641,7 +3647,7 @@ foreach($offers as $__o){
       <td><a class="acc" href="/admin?tab=orders&view=<?= urlencode($oref) ?>"><?= htmlspecialchars($oref) ?></a></td>
       <td><?= htmlspecialchars($o['company']??'') ?><div class="ahint"><?= htmlspecialchars($o['name']??'') ?> · <?= htmlspecialchars($o['email']??'') ?></div></td>
       <td style="font-size:12px;white-space:nowrap"><?= htmlspecialchars(substr($o['timestamp']??'',0,16)) ?></td>
-      <td><b><?= eur($o['total']??0) ?></b><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
+      <td><b><?= eur($o['total']??0) ?></b><?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <?php /* Dilim basina bir taslak: siparis birden cok saticiya

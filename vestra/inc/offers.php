@@ -536,8 +536,15 @@ function vestra_offer_order_ensure(array $p): bool {
 
     $dir = dirname(__DIR__).'/data'; if (!is_dir($dir)) @mkdir($dir, 0775, true);
     $file = $dir.'/orders.csv'; $new = !file_exists($file);
+    /* shipping/shipping_label KUYRUK kolonlari: okuyucu kisa satirlari ''
+       ile tamamladigi icin eski kayitlar bozulmaz (voucher_code/discount ile
+       ayni desen). Kargo AYRI kolonda durur ki paneller "mal + kargo = toplam"
+       dokumunu gosterebilsin ve vestra_render_order_detail ile
+       vestra_order_invoice_payloads onu dogrudan okusun -- toplamin icine
+       gomulu bir kargo, hicbir ekranda ayristirlamazdi. */
     $head = ['timestamp','ref','company','vat','name','email','country','phone','items','subtotal',
-             'commission','payout','total','notes','consent','terms_version','voucher_code','discount'];
+             'commission','payout','total','notes','consent','terms_version','voucher_code','discount',
+             'shipping','shipping_label'];
     if (!$new && function_exists('vestra_csv_ensure_header')) vestra_csv_ensure_header('orders.csv', $head);
     $fh = @fopen($file, 'a');
     if (!$fh) return false;
@@ -546,7 +553,9 @@ function vestra_offer_order_ensure(array $p): bool {
         (string)($b['name'] ?? ''), (string)($b['email'] ?? ''), (string)($b['country'] ?? ''), '',
         implode(' | ', $items), number_format($goods, 2, '.', ''), '0.00',
         number_format($goods, 2, '.', ''), number_format($goods + $shipping, 2, '.', ''),
-        $notes, 'offer', defined('VESTRA_TERMS_VERSION') ? VESTRA_TERMS_VERSION : '', '', ''], ',', '"', '\\');
+        $notes, 'offer', defined('VESTRA_TERMS_VERSION') ? VESTRA_TERMS_VERSION : '', '', '',
+        $shipping > 0 ? number_format($shipping, 2, '.', '') : '',
+        $shipping > 0 ? 'Shipping' : ''], ',', '"', '\\');
     fclose($fh);
     return true;
 }

@@ -338,6 +338,11 @@ if($tab==='overview'){
         $trk.
         '<div class="ordcard-foot">'.
           '<div class="ordtotal">'.eur($o['total']??0).
+            /* Kargo toplamin ICINDE; dokum gorunmezse alici mal bedelini
+               toplam sanip eksik havale yapabilir. Satir yalnizca kargolu
+               siparislerde cikar. */
+            (((float)($o['shipping']??0))>0
+              ? '<div class="hint" style="font-weight:400;font-size:11px">'.t('incl. shipping').' '.eur($o['shipping']).'</div>' : '').
             ((($__iv=vestra_order_invoiced_note($ref))!=='')
               ? '<div class="hint" style="font-weight:400;font-size:11px">'.htmlspecialchars($__iv).'</div>' : '').
           '</div>'.
