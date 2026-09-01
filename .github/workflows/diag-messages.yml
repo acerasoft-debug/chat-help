@@ -14,6 +14,10 @@ on:
         description: "Bu markanın ilanlarını ve HANGİ SATICIYA ait olduğunu yaz (ör: Ralph Lauren). Boş = atla"
         required: false
         default: ""
+      ships:
+        description: "true = KURAL 3 denetimi: 'ships from' girilmemiş ilanlar, satıcıya göre sayım"
+        required: false
+        default: "false"
       threads:
         description: "true = mesaj thread dökümü (uzun). false = yalnız hesap/marka özeti"
         required: false
@@ -52,11 +56,12 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_THREADS,IN_MAILCFG
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG
           script: |
             export IN_WHO='${{ github.event.inputs.who }}'
             export IN_WHO2='${{ github.event.inputs.who2 }}'
             export IN_BRAND='${{ github.event.inputs.brand }}'
+            export IN_SHIPS='${{ github.event.inputs.ships }}'
             export IN_THREADS='${{ github.event.inputs.threads }}'
             export IN_MAILCFG='${{ github.event.inputs.mailcfg }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
@@ -171,6 +176,31 @@ jobs:
               }
               echo "  TOPLAM: {$n} urun\n";
               foreach ($owners as $o => $c) $summary[] = "{$brand}: {$c} urun -> {$o}";
+              echo "\n";
+            }
+
+            /* KURAL 3 denetimi. 'ships from' artik zorunlu alan, ama ZORUNLULUK
+               yalnizca YENI/duzenlenen ilanlara isliyor -- daha once girilmis
+               ilanlar bos kaldi ve bunu ancak sayarak gorursun. Alici bu satiri
+               gumruk ve teslim suresi icin okuyor; ozellikle AB disindan sorana
+               fiyat listesi gonderirken eksikligi dogrudan bir sonraki soruya
+               donusuyor. */
+            if (getenv('IN_SHIPS') === 'true') {
+              echo "===== KURAL 3: 'ships from' girilmemis ilanlar =====\n";
+              $tot = 0; $missing = 0; $perSeller = [];
+              foreach (vestra_listings() as $l) {
+                $tot++;
+                if (trim((string)($l['ships_from'] ?? '')) !== '') continue;
+                $missing++;
+                $su = (string)($l['seller_uid'] ?? '');
+                $own = $su === '' ? '(platform/demo)'
+                                  : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap yok)').' ['.substr($su,0,8).']');
+                $perSeller[$own] = ($perSeller[$own] ?? 0) + 1;
+              }
+              arsort($perSeller);
+              foreach ($perSeller as $o => $c) echo "  {$c} ilan  <-  {$o}\n";
+              echo "  TOPLAM: {$missing} / {$tot} ilanda gonderim yeri YOK\n";
+              $summary[] = "KURAL 3: {$missing}/{$tot} ilanda ships_from bos";
               echo "\n";
             }
 
