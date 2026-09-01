@@ -20,7 +20,12 @@
  *     RETAIL SOURCE column marks the ones that are real, so after a sort or a paste into
  *     another sheet a figure cannot lose the fact that the brand set it.
  */
-require __DIR__.'/inc/products.php';
+/* require_once, duz require DEGIL -- wholesale-list.php'de ayni satir bir kez
+   duzeltildi, burada duzeltilmemisti. Bu dosya artik baska bir betikten de
+   dahil ediliyor (mektuba ek Excel uretmek icin) ve products.php o zaman ZATEN
+   yuklu oluyor: duz require "Cannot redeclare vestra_ships_from()" ile olumcul
+   hata verirdi. Web tarafinda davranis ayni. */
+require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
 require_once __DIR__.'/inc/stock.php';
 require_once __DIR__.'/inc/auth.php';
@@ -33,8 +38,17 @@ require_once __DIR__.'/inc/auth.php';
    kampanya e-postalarinin icinde duruyor; tiklayan kisi hata sayfasi degil,
    ne yapmasi gerektigini soyleyen bir sayfa gormeli -- orada "belgenizi
    yukleyin, fiyatlar acilir" bandi ve kayit dugmesi var. Marka suzgeci de
-   korunuyor ki adam aradigi markanin sayfasina dussun. */
-if (!auth_prices_unlocked(auth_user())) {
+   korunuyor ki adam aradigi markanin sayfasina dussun.
+
+   CLI MUAF -- wholesale-list.php ile ayni gerekce, orada zaten var, burada
+   YOKTU. Sonucu sessiz bir hataydi: operator bir aliciya EK olarak Excel
+   listesi uretmek istedigi anda CLI'da oturum olmadigi icin auth_user() null
+   donuyor, betik header()+exit ile 0 BAYT birakip cikiyordu. Mektup yine
+   gidiyor, eki bos gidiyordu -- musteri listeyi bekler, biz gonderdik
+   sanardik (bkz. notify.php'deki ek kutugu ayni endiseyi yaziyor).
+   Kapi bir sey korumuyor da degil: sunucuda kabuk erisimi olan zaten
+   listings.json'i okuyabilir. Web tarafinda kural aynen duruyor. */
+if (PHP_SAPI !== 'cli' && !auth_prices_unlocked(auth_user())) {
     $_q = ($brandFilterRaw = trim((string)($_GET['brand'] ?? ''))) !== ''
         ? '?brand='.rawurlencode($brandFilterRaw) : '';
     header('Location: /price-list'.$_q, true, 302);

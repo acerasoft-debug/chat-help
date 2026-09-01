@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF ve Excel ekte; spec: brand=<marka TAM adı>, attach=false ile eksiz)."
         required: false
         default: ""
       reply_spec:
@@ -1031,6 +1031,99 @@ jobs:
                 ? vestra_tpl_prospect_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer)
                 : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
+            } elseif ($letter === 'brand_catalog') {
+              /* "Su markanin tam listesini alabilir miyim" sorusuna cevap.
+                 spec: brand=<marka, TAM ad> | attach=true|false
+
+                 Marka suzgeci wholesale-list/xlsx ile AYNI kural: strcasecmp,
+                 yani TAM eslesme. 'Ralph' yazmak 'Ralph Lauren'i getirmez ve
+                 sessizce BOS bir liste uretirdi -- bu yuzden hic urun cikmazsa
+                 is DURUYOR, bos mektup gitmiyor. */
+              $brand = trim($E('brand'));
+              if ($brand === '') { fwrite(STDERR, "brand_catalog: spec'te brand= yok\n"); exit(1); }
+
+              $rows = [];
+              foreach (vestra_products() as $p) {
+                if (strcasecmp(trim((string)($p['brand'] ?? '')), $brand) !== 0) continue;
+                if (vestra_export_price($p) <= 0) continue;
+                $rows[] = $p;
+              }
+              if (!$rows) {
+                fwrite(STDERR, "brand_catalog: \"{$brand}\" ile TAM eslesen urun yok. Marka adini tam yaz.\n");
+                exit(1);
+              }
+
+              /* Kategori + fiyat + MOQ ayni olanlar tek blokta. Musteri 14 satirlik
+                 duz bir liste degil, "tisort su fiyat, polo bu fiyat" gormeli. */
+              $groups = [];
+              foreach ($rows as $p) {
+                $price = vestra_export_price($p);
+                $moq   = (int)($p['moq'] ?? 0);
+                $cat   = (string)($p['cat'] ?? '');
+                $k = $cat.'|'.number_format($price,2).'|'.$moq;
+                if (!isset($groups[$k])) $groups[$k] = [
+                  'cat'=>$cat, 'price'=>$price, 'moq'=>$moq,
+                  'tiers'=>vestra_export_tiers_label($p),
+                  'sizes'=>vestra_sizes_label(trim((string)($p['sizes'] ?? ''))),
+                  'items'=>[],
+                ];
+                $groups[$k]['items'][] = ['name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? '')];
+              }
+              $groups = array_values($groups);
+
+              /* KURAL 3: gonderim yeri TAHMIN EDILMEZ. Butun ilanlarda ayni ve
+                 dolu ise yaziyoruz; biri bile bos ya da farkliysa mektupta HIC
+                 gecmiyor ve operatore burada raporlaniyor. */
+              $shipSet = [];
+              foreach ($rows as $p) $shipSet[trim((string)($p['ships_from'] ?? ''))] = true;
+              $shipsFrom = (count($shipSet) === 1 && !isset($shipSet[''])) ? array_key_first($shipSet) : '';
+              if ($shipsFrom === '') {
+                echo "UYARI (KURAL 3): gonderim yeri tekdüze degil/bos -> mektupta YAZILMIYOR. Degerler: "
+                   . implode(' , ', array_map(fn($s) => $s === '' ? '(bos)' : $s, array_keys($shipSet))) . "\n";
+              }
+
+              /* Ekler: sunucunun KENDI ureteclerinden, mektup icin ayri bir kopya
+                 yazmiyoruz (yoksa iki liste zamanla ayrisir). PDF imzasi ve XLSX
+                 (PK) imzasi kontrol ediliyor -- bos/yonlendirilmis bir cikti
+                 sessizce 0 baytlik ek olarak giderdi. */
+              $atts = []; $attach = strtolower($E('attach')) !== 'false';
+              if ($attach) {
+                $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brand));
+                foreach ([
+                  ['wholesale-list.php', '%PDF', 'pdf', 2000],
+                  ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
+                ] as [$script, $sig, $ext, $min]) {
+                  $_GET = ['brand' => $brand];
+                  ob_start(); require $doc.'/'.$script; $bytes = (string)ob_get_clean();
+                  $pos = strpos($bytes, $sig);
+                  if ($pos === false || strlen($bytes) - (int)$pos < $min) {
+                    fwrite(STDERR, "{$ext} uretilemedi (".strlen($bytes)." bayt, imza "
+                         . ($pos === false ? 'YOK' : 'konum '.$pos) . ") -- mektup gonderilmedi\n");
+                    fwrite(STDERR, "ilk 200 bayt: ".addcslashes(substr($bytes, 0, 200), "\0..\37")."\n");
+                    exit(1);
+                  }
+                  if ($pos > 0) {
+                    echo "UYARI: {$ext} oncesinde {$pos} bayt fazladan cikti vardi, kirpildi\n";
+                    $bytes = substr($bytes, $pos);
+                  }
+                  $name = 'VESTRA-'.$slug.'-wholesale-'.date('Y-m').'.'.$ext;
+                  $path = '/tmp/'.$name;
+                  file_put_contents($path, $bytes);
+                  $atts[] = ['name'=>$name, 'path'=>$path];
+                  echo "ek ({$ext})   : ".strlen($bytes)." bayt -> {$name}\n";
+                }
+              }
+
+              echo "marka       : {$brand}\n";
+              echo "urun        : ".count($rows)." adet, ".count($groups)." fiyat grubu\n";
+              foreach ($groups as $g) {
+                echo "  ".$g['cat']." | EUR ".number_format($g['price'],2)." | MOQ ".$g['moq']
+                   . ($g['tiers'] !== '' ? " | kademe: ".$g['tiers'] : "")
+                   . " | ".count($g['items'])." renk\n";
+              }
+
+              [$subject, $body, $opts] = vestra_tpl_brand_catalog($salutation, $brand, $groups, $shipsFrom, (bool)$atts, $signer);
+              if ($atts) $opts['attachments'] = $atts;
             } elseif ($letter === 'offer_preview') {
               /* Karsi teklif mektubunun ONIZLEMESI. HICBIR SEY YAZMAZ:
                  teklife yanit verilmez, token uretilmez, kayit degismez --

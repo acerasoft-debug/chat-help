@@ -1710,3 +1710,78 @@ function vestra_tpl_offer_buyer_countered(string $lang, string $buyerName, strin
   $body .= "\n\n—\nVESTRA · vestrasales.com";
   return [$subject, $body, $opts];
 }
+
+/* MARKA KATALOGU CEVABI. Bir alici "su markanin tam listesini alabilir miyim"
+ * diye yazdiginda giden mektup.
+ *
+ * FIYATLAR GOVDENIN ICINDE, yalnizca ekte degil. Iki sebep: (1) alici cogu
+ * zaman telefonda okuyor ve ek acilmiyor; (2) bir teklif alip alamayacagina
+ * karar vermek icin gereken tek sey iki rakam -- adet ve birim fiyat. Ek,
+ * govdenin yerine degil, YANINA gidiyor.
+ *
+ * SATICI ADI GECMIYOR. wholesale-list.php basligindaki gerekcenin aynisi:
+ * paylasilan sey toptan fiyat, malin kimde durdugu degil.
+ *
+ * $groups: [ ['cat'=>'Polos', 'moq'=>80, 'price'=>26.9, 'tiers'=>'160+ 25.00',
+ *             'items'=>[['name'=>..., 'id'=>...], ...]], ... ]
+ * $shipsFrom: '' ise mektup gonderim yerini HIC yazmaz. Uydurmuyoruz --
+ *   KURAL 3: kayit adresi ile malin ciktigi depo ayni sey degil, ve bu satiri
+ *   alici gumruk/teslim suresi icin okuyor. Bilmiyorsak susup soracagiz. */
+function vestra_tpl_brand_catalog(string $salutation, string $brand, array $groups,
+                                  string $shipsFrom = '', bool $attached = false,
+                                  string $signer = 'Marco Bellini'): array {
+    $subject = $brand.' — wholesale catalogue and prices';
+
+    $total = 0;
+    foreach ($groups as $g) $total += count($g['items'] ?? []);
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your enquiry. Below is our complete ".$brand." range as it stands today — "
+. $total . " articles, with the wholesale price and minimum order quantity against each group.\n\n";
+
+    foreach ($groups as $g) {
+        $cat   = (string)($g['cat'] ?? '');
+        $moq   = (int)($g['moq'] ?? 0);
+        $price = (float)($g['price'] ?? 0);
+        $tiers = trim((string)($g['tiers'] ?? ''));
+        $sizes = trim((string)($g['sizes'] ?? ''));
+        $items = (array)($g['items'] ?? []);
+
+        $body .= strtoupper($cat)." — EUR ".number_format($price, 2)." per piece"
+               . ($moq > 0 ? ", minimum ".$moq." pcs" : "")."\n";
+        if ($tiers !== '') $body .= "Volume price: ".$tiers." per piece\n";
+        if ($sizes !== '') $body .= "Size run: ".$sizes."\n";
+        $body .= "\n";
+        foreach ($items as $it) {
+            $body .= "· ".trim((string)($it['name'] ?? ''))."\n"
+                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        }
+        $body .= "\n";
+    }
+
+    if ($shipsFrom !== '') {
+        $body .= "All of the above ships from ".$shipsFrom.".\n\n";
+    }
+
+    if ($attached) {
+        $body .= "Attached you will find the same list in two formats: a PDF with the photographs, "
+               . "article numbers, size grids and stock per size, and an Excel file with the same "
+               . "figures in columns, so you can work straight from it.\n\n";
+    }
+
+    $q = rawurlencode($brand);
+    $body .= "The live versions are always in your account:\n"
+. "PDF:   https://vestrasales.com/wholesale-list.pdf?brand=".$q."\n"
+. "Excel: https://vestrasales.com/wholesale-list.xlsx?brand=".$q."\n\n"
+. "Prices are ex-works and exclude shipping. On larger quantities and on repeat business we apply "
+. "a further discount on top of these figures; how much depends on the articles and the volume, "
+. "which is why it is agreed per order rather than published. Tell me which articles and what "
+. "quantities interest you and you will have a firm written offer with your price on it.\n\n"
+. "You can also make an offer directly on any product page — the seller answers it in the same "
+. "thread, and both sides can counter until a price is agreed.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
