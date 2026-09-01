@@ -437,12 +437,16 @@ jobs:
                 $agreed = function_exists('vestra_offer_agreed_unit')
                         ? vestra_offer_agreed_unit($ref, $resp, $of) : 0.0;
                 $qn     = (int)($of['qty'] ?? 0);
-                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? '?'),0,40)
-                   . " | ".$qn." x ".number_format($agreed,2)
-                   . " = ".number_format($qn*$agreed,2)
-                   . " (ilk teklif ".number_format($ask,2).")"
-                   . " | DURUM=".$st." | sira=".$turn
-                   . " | ".substr((string)($of['timestamp'] ?? $of['date'] ?? ''),0,10)."\n";
+                /* FATURA KESILDI MI. 'accept' bir teklifi faturaya HAZIR yapar,
+                   kesmez -- KURAL 5: belge Admin > Invoice approvals'tan cikar.
+                   Operator "fatura nerede" diye sorunca bakilacak yer burasi:
+                   kesilmisse numarasi, kesilmemisse kuyrukta bekliyor. */
+                $invs = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];
+                $inv  = $invs ? ('KESILDI: '.implode(', ', array_map(fn($i) => (string)($i['no'] ?? '?'), $invs)))
+                      : (($st === 'accept') ? '*** KESILMEDI - onay kuyrugunda ***' : 'kesilemez (uzlasma yok)');
+                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? '?'),0,34)
+                   . " | ".$qn." x ".number_format($agreed,2)." = ".number_format($qn*$agreed,2)
+                   . " | ".$st." | FATURA: ".$inv."\n";
               }
               if (!$oc) echo "  (teklif yok)\n";
               $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif";
