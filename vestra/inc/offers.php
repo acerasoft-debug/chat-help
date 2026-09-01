@@ -516,10 +516,38 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
  * IDEMPOTENT: ref zaten orders.csv'de varsa dokunmaz (redraft ikinci satir
  * uretmesin). Yazim basarisi geri OKUNARAK dogrulanmaz cunku append yalnizca
  * tek satir; basarisizlikta false doner ve cagiran operatore soyler. */
-function vestra_offer_order_ensure(array $p): bool {
+function vestra_offer_order_ensure(array $p, bool $update = false): bool {
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($p['meta']['ref'] ?? ''));
     if ($ref === '' || empty($p['items'])) return false;
-    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) return true; }
+    /* $update=false: satir varsa DOKUNMA (ayni kesim iki kez calisirsa ikinci
+       satir uretmesin). $update=true: REDRAFT -- belge degisti, siparis de
+       degismeli. Daymond dosyasinda bu eksikti: fatura 4 kalem / 3.950 EUR
+       derken siparis satiri eski 2 kalem / 1.600 EUR'da kalmisti, yani ayni
+       satis alicinin "My orders" sayfasinda ve admin Orders'ta faturadan
+       BASKA bir rakam gosteriyordu. */
+    $exists = false;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $exists = true; break; } }
+    if ($exists && !$update) return true;
+    if ($exists) {
+        /* Eski satiri cikar; asagisi yenisini ekliyor. Once YEDEK: bu dosya
+           elle geri yazilamaz. */
+        $f0 = dirname(__DIR__).'/data/orders.csv';
+        if (is_file($f0)) {
+            @copy($f0, $f0.'.bak-redraft-'.date('Ymd_His'));
+            $rows = vestra_read_csv('orders.csv');
+            $head = $rows ? array_keys($rows[0]) : [];
+            $keep = array_values(array_filter($rows, fn($r) => ($r['ref'] ?? '') !== $ref));
+            if ($head) {
+                $tmp = $f0.'.tmp';
+                if ($out = @fopen($tmp, 'w')) {
+                    fputcsv($out, $head, ',', '"', '\\');
+                    foreach ($keep as $r) fputcsv($out, array_values($r), ',', '"', '\\');
+                    fclose($out);
+                    if (!@rename($tmp, $f0)) { @unlink($tmp); return false; }
+                } else { return false; }
+            }
+        }
+    }
 
     $goods = 0.0;
     $items = [];
@@ -640,7 +668,9 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
     if (!$iv || ($iv['no'] ?? '') === '' || empty($iv['redrafted'])) {
         return ['error' => 'Belge yeniden yazılamadı — numara ya da dosya bulunamadı.'];
     }
-    vestra_offer_order_ensure($p);
+    /* REDRAFT: siparis satiri da GUNCELLENIR -- belge degistiyse siparis de
+       degismeli, yoksa ayni satis iki farkli rakam gosterir. */
+    vestra_offer_order_ensure($p, true);
 
     $goods = 0.0; $lines = '';
     foreach ($p['items'] as $it) {

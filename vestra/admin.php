@@ -229,6 +229,45 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $ok = !empty($r['ok']);
     header('Location: /admin?tab=invoices&msg='.($ok?'invoice_redrafted':'invoice_none')); exit;
   }
+  /* TEKLIFI SIL (operator istegi, 1 Eyl 2026). Alici bir kalemi iptal
+     ettirdiginde teklif "kabul edilmis ama faturasiz" halde kuyrukta kaliyor
+     ve yanlislikla yeniden faturalanabiliyor. Silme, teklifi offers.csv'den
+     ve yanit kaydindan cikarir.
+     FATURALI TEKLIF SILINMEZ: belge kesilmis ve alicinin elinde -- kaydini
+     silmek, var olan bir faturayi dayanaksiz birakirdi. Once fatura
+     duzeltilir (uyeden cikarilir), sonra teklif silinebilir.
+     YEDEK once alinir: bu dosya elle geri yazilamaz. */
+  if($act==='delete_offer'){
+    require_once __DIR__.'/inc/offers.php';
+    require_once __DIR__.'/inc/invoice.php';
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    if($ref===''){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    if(count(vestra_invoices_for_ref($ref))>0){
+      header('Location: /admin?tab=offers&msg=offer_del_invoiced'); exit;
+    }
+    $f=vestra_data_dir().'/offers.csv';
+    $rows=vestra_read_csv('offers.csv');
+    $keep=array_values(array_filter($rows,fn($r)=>($r['ref']??'')!==$ref));
+    if(count($keep)===count($rows)){ header('Location: /admin?tab=offers&msg=offer_del_none'); exit; }
+    $okDel=false;
+    if(is_file($f)){
+      @copy($f,$f.'.bak-del-'.date('Ymd_His'));
+      $head=$rows?array_keys($rows[0]):[];
+      $tmp=$f.'.tmp';
+      if($head && ($out=@fopen($tmp,'w'))){
+        fputcsv($out,$head,',','"','\\');
+        foreach($keep as $r) fputcsv($out,array_values($r),',','"','\\');
+        fclose($out);
+        $okDel=@rename($tmp,$f);
+        if(!$okDel) @unlink($tmp);
+      }
+    }
+    if($okDel){
+      $rs=vestra_read_json('offer_responses.json');
+      if(isset($rs[$ref])){ unset($rs[$ref]); vestra_write_json('offer_responses.json',$rs); }
+    }
+    header('Location: /admin?tab=offers&msg='.($okDel?'offer_deleted':'offer_del_fail')); exit;
+  }
   /* Fatura ODENDI isareti: alici panelindeki "odenmesi gereken fatura"
      uyarisini kapatan tek sey. Birincil ref'in kaydinda durur. */
   if($act==='offer_invoice_paid_toggle'){
@@ -2121,6 +2160,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'offer_counter'=>'✓ Karşı teklif kaydedildi ve alıcıya e-postayla gönderildi — mektupta kabul ve ret bağlantısı var.',
     'offer_accept' =>'✓ Teklif kabul edildi ve alıcıya bildirildi. Fatura kesilmedi: Invoice approvals sekmesinden onaylayın.',
     'offer_decline'=>'Teklif reddedildi ve alıcıya bildirildi.',
+    'offer_deleted'=>'✓ Teklif silindi (offers.csv yedeklendi). Onay kuyruğundan da düştü.',
     'esc_released'=>'✓ Escrow released — funds paid out to the seller.','esc_refunded'=>'✓ Buyer refunded in full — sale cancelled.','esc_err'=>'⚠ Escrow action failed — see server log for details.',
     'promo_toggled'=>'Promo code status changed.',
     'sec_blocked'=>'✓ IP engellendi — o ağdan gelen her istek artık 403 alıyor.',
@@ -2275,6 +2315,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Kayıt sunucuya YAZILAMADI — geri okuma tutmadı, hiçbir şeye güvenmeyin. Tekrar deneyin; yine olursa <code>data/accounts.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='billing_none'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
+<?php elseif($msg==='offer_del_invoiced'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Bu teklifin FATURASI kesilmiş — silinmedi. Belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız bırakırdı. Önce faturayı düzeltip bu kalemi çıkarın (Invoice approvals ▸ 🔁 Redraft), sonra silin.</div>
+<?php elseif($msg==='offer_del_none'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu referansı taşıyan teklif bulunamadı — hiçbir şey silinmedi.</div>
+<?php elseif($msg==='offer_del_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ offers.csv yeniden yazılamadı — hiçbir şey silinmedi. Veri klasörü yazılabilir değil.</div>
 <?php elseif($msg==='combine_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Birleşik fatura kesilmedi: <?= htmlspecialchars((string)($_GET['why'] ?? 'geçersiz seçim')) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
@@ -3786,6 +3832,21 @@ elseif($tab==='offers'):
       .'</form>'
     ) : '<span class="ahint">'.htmlspecialchars(substr((string)($resp['responded_at']??''),0,10))
         .($oTurn === 'buyer' ? '<div class="ahint" style="color:#9a7320">waiting on buyer</div>' : '').'</span>';
+    /* SIL: alici bir kalemi iptal ettirdiginde teklif "kabul edilmis ama
+       faturasiz" halde kuyrukta kaliyor ve yanlislikla yeniden
+       faturalanabiliyor. Faturasi kesilmis teklifte dugme HIC cikmiyor --
+       gosterilip reddedilen bir dugme, olmayan bir dugmeden kotu (bu dosyada
+       karsi teklif alani icin yazili olan ayni gerekce). Sunucu tarafinda da
+       ayrica kontrol ediliyor: dugmenin gorunmemesi yetki degildir. */
+    $oHasInv = count(vestra_invoices_for_ref($ref)) > 0;
+    $respondCell .= $oHasInv
+      ? '<div class="ahint" style="font-size:10.5px;margin-top:4px">faturalı — silinemez</div>'
+      : '<form method="post" style="margin-top:4px">'.csrfField()
+        .'<input type="hidden" name="_action" value="delete_offer">'
+        .'<input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">'
+        .'<button class="abtn" type="submit" style="font-size:11px;color:var(--bad);border-color:rgba(239,154,154,.35)" '
+        .'onclick="return confirm(\'Delete offer '.htmlspecialchars($ref, ENT_QUOTES).' permanently?\\n\\nIt disappears from the offers list and the invoice-approval queue. A timestamped backup of offers.csv is saved first. The buyer is NOT notified.\')">🗑 Sil</button>'
+        .'</form>';
     /* Kabul edilmis teklifin faturasi BURADAN da acilabilsin. Onceden fatura
        yalnizca Orders sekmesindeydi; teklif uzerinden gelen bir satista operator
        "kabul ettim, belge nerede" sorusuna sekme degistirerek cevap ariyordu.

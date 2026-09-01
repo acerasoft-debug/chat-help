@@ -198,6 +198,17 @@ $p = vestra_offer_invoice_redraft_payload('OF-1', 50.0, []);
 $t('bos liste reddedilir', !empty($p['error']));
 $INVOICED = [];
 
+echo "\n== 10c. REDRAFT siparis satirini da GUNCELLER ==\n";
+/* Belge degistiyse siparis de degismeli. Daymond dosyasinda bu eksikti:
+   fatura 4 kalem / 3.950 EUR derken siparis 2 kalem / 1.600 EUR'da kalmis,
+   ayni satis alicinin My orders sayfasinda faturadan BASKA rakam
+   gosteriyordu. Fonksiyonun $update bayragini tasidigini dogruluyoruz --
+   dosya yazimi sunucuda, burada sozlesme sinaniyor. */
+$rf = new ReflectionFunction('vestra_offer_order_ensure');
+$ps = $rf->getParameters();
+$t('vestra_offer_order_ensure($p, $update) imzasi', count($ps) === 2 && $ps[1]->getName() === 'update');
+$t('varsayilan HALA idempotent (ikinci satir uretmez)', $ps[1]->isDefaultValueAvailable() && $ps[1]->getDefaultValue() === false);
+
 echo "\n== 11. FATURALANAN TEKLIF -> ORDERS SATIRI ==\n";
 /* "order bolumune de gitmeli". Satir checkout'un KENDI semasina yazilir ve
    items dizgisi vestra_parse_order_items'in regex'iyle geri okunabilmeli --
