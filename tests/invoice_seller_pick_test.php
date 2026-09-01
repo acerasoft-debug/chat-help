@@ -1,0 +1,78 @@
+<?php
+/* FATURAYI KIM KESER.
+ *
+ * Operator ayni alicinin kabul ettigi teklifleri tek elden faturalandirmak
+ * istiyor; sistem ise saticiyi ilanin seller_uid'inden turetiyordu ve bir
+ * alis iki ayri saticiya bolunuyordu. Karar artik operatorun ve
+ * offer_responses.json'da duruyor. Bu test o onceligi sabitliyor.
+ *
+ * Onemli: dosya adi satici anahtarindan turuyor (vestra_invoice_file), yani
+ * "hangi satici" sorusu belgenin kimliginin parcasi. Sessizce degisirse ayni
+ * teklife ikinci bir fatura numarasi yanar.
+ */
+$src   = file_get_contents(__DIR__.'/../vestra/inc/offers.php');
+$strip = fn($s) => preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#", '', $s);
+
+$JSON = []; $LISTING = null;
+$CSV  = [['ref'=>'OF-1','sku'=>'SKU-1','product'=>'Tee','qty'=>10,'offer_unit'=>9.00,
+          'offer_total'=>90.00,'email'=>'buyer@example.com','company'=>'Buyer Co',
+          'timestamp'=>'2026-09-01T10:00:00+00:00']];
+
+function vestra_read_csv($f){ global $CSV; return $CSV; }
+function vestra_read_json($f){ global $JSON; return $JSON; }
+function vestra_write_json($f,$d){ global $JSON; $JSON=$d; return true; }
+function vestra_listing_by_sku($s){ global $LISTING; return $LISTING; }
+function auth_find($e){ return ['id'=>'buy1','name'=>'Adrian','company'=>'Daymond','vat_id'=>'','country'=>'RO','address'=>'x']; }
+function auth_accounts(){ return [
+  ['id'=>'garage','type'=>'seller','company'=>'GARAGE LE PARIS','invoice_name'=>'Agaya Paris','bank_holder'=>'Agaya'],
+  ['id'=>'tyrex', 'type'=>'seller','company'=>'TYREX INTERNATIONAL BV.'],
+]; }
+function vestra_platform_seller(){ return ['company'=>'Acerasoft LLC']; }
+function vestra_from_price($p){ return 0.0; }
+
+preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
+foreach ($fns[0] as $f) eval($strip($f));
+
+$ok=0; $fail=0;
+$t = function(string $n, bool $c) use (&$ok,&$fail) { $c ? ($ok++ . print("  ok   $n\n")) : ($fail++ . print("  HATA $n\n")); };
+$who = fn($a) => (string)($a['company'] ?? '');
+
+echo "\n== 1. Secim yokken ILANIN saticisi ==\n";
+$LISTING = ['id'=>'l1','sku'=>'SKU-1','name'=>'Tee','seller_uid'=>'tyrex'];
+$JSON = [];
+$t('ilandan tyrex geldi', $who(vestra_offer_invoice_seller('OF-1',$LISTING))==='TYREX INTERNATIONAL BV.');
+
+echo "\n== 2. OPERATOR SECIMI ilani EZER ==\n";
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage']];
+$s = vestra_offer_invoice_seller('OF-1',$LISTING);
+$t('garage secildi', $who($s)==='GARAGE LE PARIS');
+$t('fatura adi Agaya Paris tasiniyor', ($s['invoice_name']??'')==='Agaya Paris');
+$t('IBAN yanindaki isim Agaya', ($s['bank_holder']??'')==='Agaya');
+
+echo "\n== 3. Ilanda satici YOKKEN de secim gecerli ==\n";
+/* O6404A bu durumdaydi: seller_uid hic yoktu, fatura zorunlu olarak
+   platformdan cikiyordu. Operator artik onu da yonlendirebilmeli. */
+$LISTING = ['id'=>'l2','sku'=>'SKU-1','name'=>'Tee'];
+$t('secim uygulandi', $who(vestra_offer_invoice_seller('OF-1',$LISTING))==='GARAGE LE PARIS');
+$JSON = [];
+$t('secim yoksa platform', $who(vestra_offer_invoice_seller('OF-1',$LISTING))==='Acerasoft LLC');
+
+echo "\n== 4. 'vestra' ACIK bir secim -- ilana GERI DONMEZ ==\n";
+$LISTING = ['id'=>'l1','sku'=>'SKU-1','name'=>'Tee','seller_uid'=>'tyrex'];
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'vestra']];
+$t('platformdan kesiliyor', $who(vestra_offer_invoice_seller('OF-1',$LISTING))==='Acerasoft LLC');
+
+echo "\n== 5. Var olmayan hesap platforma duser (panelde ONCE dogrulanir) ==\n";
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'silinmis-hesap']];
+$t('platforma dustu', $who(vestra_offer_invoice_seller('OF-1',$LISTING))==='Acerasoft LLC');
+
+echo "\n== 6. Fatura yuku ayni saticiyi tasiyor ==\n";
+/* Ekranda gosterilen ile belgeye basilan AYNI cozucuden cikmali. */
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage']];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('payload garage', $who($p['seller'])==='GARAGE LE PARIS');
+$t('miktar korunuyor', (int)$p['qty']===10);
+$t('birim anlasilan fiyat', abs($p['unit']-9.00)<0.001);
+
+echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
+exit($fail?1:0);

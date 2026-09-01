@@ -122,6 +122,28 @@ doğrulayıcıda: `vestra_offer_price_error()` + `vestra_offer_turn()`.
 **uzlaşılan** fiyattan kesilir (`vestra_offer_agreed_unit`) — karşı teklif
 verilmişse o, ilk teklif değil.
 
+**KURAL 5b — Faturayı hangi satıcının keseceğine operatör karar verir**
+(operatör kararı, 1 Eyl 2026: *"satıştan sonra hangi fatura hangi satıcıya ait
+benim karar vermem gerekiyor"*). Tek doğrulayıcı: `vestra_offer_invoice_seller()`
+— sıra **operatör seçimi > ilanın `seller_uid`'i > platform**. Seçim
+`Admin ▸ Invoice approvals`'taki açılır listeden gelir, `offer_responses.json`'da
+`invoice_seller_uid` olarak saklanır ve panelde **kayıttan önce** doğrulanır
+(bulunamayan hesapta fatura **kesilmez**; sessizce Acerasoft LLC'ye düşmek,
+operatörün seçmediği tüzel kişiden belge çıkarmak olurdu). `vestra` **açık** bir
+seçimdir, ilana geri dönmez.
+- **Neden gerekti:** aynı alıcının kabul ettiği teklifler farklı ilanlara
+  dağılabiliyor. Daymond dosyasında 6 satır **iki satıcıya** bölünüyordu
+  (GARAGE LE PARIS €1.600, TYREX €4.700) ve bir ilanın (`O6404A`) `seller_uid`'i
+  **hiç yoktu**.
+- **Kesimden sonra değiştirilemez:** dosya adı satıcı anahtarından türüyor
+  (`vestra_invoice_file`), yani satıcıyı değiştirmek **ikinci bir numara** yakar.
+  Onay kuyruğu zaten yalnızca faturasız teklifleri listeliyor
+  (`vestra_invoices_for_ref`).
+- **IBAN faturaya sunucudan girer** (`vestra_payment_rails` → seçilen hesabın
+  `bank_iban`/`bank_holder`). Numara buraya, workflow girdisine ya da teşhis
+  çıktısına **yazılmaz** — teşhiste yalnızca `VAR (n hane)` görünür.
+- Test: `tests/invoice_seller_pick_test.php`.
+
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.

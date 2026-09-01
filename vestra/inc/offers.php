@@ -301,6 +301,34 @@ function vestra_offer_agreed_unit(string $ref, ?array $resp = null, ?array $offe
     return (float)($offerRow['offer_unit'] ?? 0);
 }
 
+/* FATURAYI KIM KESER. Sirasiyla: operatorun panelde verdigi karar > ilanin
+ * satici hesabi > platform (Acerasoft LLC).
+ *
+ * Operator karari neden en ustte: ayni alicinin kabul ettigi teklifler birden
+ * fazla ilana dagilabiliyor ve her ilanin seller_uid'i ayri -- sistem o zaman
+ * tek bir alis icin iki ayri saticidan iki fatura kesiyordu, uzerinde bazen
+ * hic satici olmayan (seller_uid bos) satirlarla birlikte. Belgeyi hangi tuzel
+ * kisinin kesecegi ticari bir karar, ilan kaydinin yan etkisi degil; operator
+ * "satistan sonra hangi fatura hangi saticiya ait benim karar vermem gerekiyor"
+ * dedi (1 Eyl 2026). Karar offer_responses.json'da ref basina saklanir, yani
+ * belge ile birlikte kayda gecer.
+ *
+ * 'vestra' ACIK bir secim: platformun kendi kimliginden kesilsin demek, ve
+ * ilanda bir satici olsa bile ona donmez.
+ *
+ * Secilen hesap artik yoksa platforma dusulur -- ama bu yola normalde
+ * girilmez: secim admin.php'de KAYIT ANINDA dogrulanir. */
+function vestra_offer_invoice_seller(string $ref, ?array $listing = null): array {
+    require_once __DIR__.'/invoice.php';
+    $rs   = vestra_read_json('offer_responses.json');
+    $pick = trim((string)($rs[$ref]['invoice_seller_uid'] ?? ''));
+    $uid  = $pick !== '' ? $pick : (string)($listing['seller_uid'] ?? '');
+    if ($uid !== '' && $uid !== 'vestra') {
+        foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $uid) return $sa; }
+    }
+    return vestra_platform_seller();
+}
+
 /* Teklifin FATURA yuku: alici blogu + tek satir + fatura kesecek satici.
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
@@ -313,14 +341,7 @@ function vestra_offer_invoice_payload(string $ref): ?array {
     $unit = vestra_offer_agreed_unit($ref, null, $offerRow);
     $qty  = (int)($offerRow['qty'] ?? 0);
 
-    /* Satici hesabi yoksa (kurasyonlu katalog urunu) faturayi PLATFORM keser:
-       Acerasoft LLC kimligi + panelden girilen banka hesabi. Onceden null
-       geciliyordu ve fatura banka bilgisi olmadan cikiyordu. */
-    require_once __DIR__.'/invoice.php';
-    $sellerUid = (string)($listing['seller_uid'] ?? '');
-    $sellerAcc = null;
-    if ($sellerUid !== '') foreach (auth_accounts() as $sa) { if (($sa['id'] ?? '') === $sellerUid) { $sellerAcc = $sa; break; } }
-    if (!$sellerAcc) $sellerAcc = vestra_platform_seller();
+    $sellerAcc = vestra_offer_invoice_seller($ref, $listing);
 
     return [
         'meta' => [

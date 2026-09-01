@@ -125,6 +125,22 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if((($rs[$ref]['status'] ?? '')) !== 'accept'){
       header('Location: /admin?tab=invoices&msg=invoice_none'); exit;
     }
+    /* FATURAYI KESEN SATICI operatorun secimi. Formdan geliyorsa once
+       DOGRULANIR, sonra kaydedilir -- kaydedilen sey belgenin uzerindeki
+       tuzel kisi, ve dosya adi da bu anahtardan turuyor (vestra_invoice_file).
+       Var olmayan bir uid sessizce platforma dusseydi fatura Acerasoft LLC
+       adina cikardi: operatorun sectigi degil, secemedigi kisi.
+       Secim faturadan ONCE yaziliyor ki belge ile kayit ayni sey olsun. */
+    $pick = preg_replace('/[^A-Za-z0-9_-]/','',(string)($_POST['seller_uid'] ?? ''));
+    if($pick!=='' && $pick!==(string)($rs[$ref]['invoice_seller_uid'] ?? '')){
+      $ok = ($pick==='vestra');
+      if(!$ok) foreach(auth_accounts() as $sa){ if(($sa['id']??'')===$pick && ($sa['type']??'')==='seller'){ $ok=true; break; } }
+      if(!$ok){ header('Location: /admin?tab=invoices&msg=invoice_seller_bad'); exit; }
+      $rs[$ref]['invoice_seller_uid']=$pick;
+      $rs[$ref]['invoice_seller_by']='operator';
+      $rs[$ref]['invoice_seller_at']=date('c');
+      vestra_write_json('offer_responses.json',$rs);
+    }
     $iv=vestra_offer_issue_invoice($ref, true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
@@ -1802,6 +1818,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        and "it says it deleted" can both be true on the same click. They have their
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
+    'invoice_seller_bad'=>'⚠ Seçilen satıcı hesabı bulunamadı — FATURA KESİLMEDİ. Boş bir hesaba düşüp belgeyi Acerasoft LLC adına çıkarmaktansa hiç kesmemek doğru: listeyi yenileyip tekrar seçin.',
     /* Bu ucu YALNIZCA mektup gercekten gittiginde basiliyor -- gitmediginde
        yukaridaki kirmizi/sari bloklar devreye giriyor. */
     'offer_counter'=>'✓ Karşı teklif kaydedildi ve alıcıya e-postayla gönderildi — mektupta kabul ve ret bağlantısı var.',
@@ -3052,11 +3069,24 @@ elseif($tab==='invoices'): ?>
   <p class="ahint" style="margin:0">Automatic invoicing is <b>suspended</b>. After you confirm stock for an order, approve it here — the PDF invoice is then issued, emailed to the buyer and added to their account (My orders / confirmation page). Card &amp; escrow orders invoice themselves on payment and are not listed.</p>
 </div>
 
-<?php if($pendingInvoiceOffers): ?>
+<?php if($pendingInvoiceOffers):
+  require_once __DIR__.'/inc/invoice.php';
+  /* FATURAYI KESECEK SATICI operatorun secimi. Liste her satirda ayni, bir kez
+     kuruluyor. Ad icin vestra_invoice_issuer_name(): belgenin ustunde ne
+     yazacaksa secenekte de o yazmali -- 'invoice_name' verilmis bir hesabi
+     kayit adiyla listelemek, operatore secmedigi bir ad gosterirdi. */
+  $invSellers = ['vestra' => 'VESTRA / '.vestra_invoice_issuer_name(vestra_platform_seller(),'Acerasoft LLC').' (platform)'];
+  foreach($accounts as $__a){
+    if(($__a['type']??'')!=='seller' || ($__a['id']??'')==='') continue;
+    $invSellers[(string)$__a['id']] = vestra_invoice_issuer_name($__a);
+  }
+  asort($invSellers, SORT_NATURAL|SORT_FLAG_CASE);
+?>
 <div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.4)">
   <div class="acard-hd"><h3>↩ <?= count($pendingInvoiceOffers) ?> accepted offer(s) awaiting an invoice</h3></div>
+  <p class="ahint" style="margin:0 0 10px">Faturayı <b>hangi satıcının keseceğini</b> siz seçersiniz. Varsayılan, ilanın bağlı olduğu satıcı — satıcısı olmayan ilanlarda platform. Seçim belgeyle birlikte kayda geçer ve <b>kesimden sonra değiştirilemez</b>: numara ve dosya o satıcıya yazılır.</p>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Offer','Product','Buyer','Qty','Agreed €/u','Total','Approve'],true) ?>
+    <?= arow(['Offer','Product','Buyer','Qty','Agreed €/u','Total','Invoice issued by','Approve'],true) ?>
     <?php foreach($pendingInvoiceOffers as $o):
       $fref=(string)($o['ref']??''); $fq=(int)($o['qty']??0);
       /* Anlasilan fiyat TEK yerden (vestra_offer_agreed_unit): karsi teklif
@@ -3064,6 +3094,14 @@ elseif($tab==='invoices'): ?>
          onay ekraninda bir rakam gosterip faturaya baskasini yazma riski. */
       $fu=vestra_offer_agreed_unit($fref); $fl=vestra_listing_by_sku($o['sku']??'');
       $fWho=(($offerResp[$fref]['accepted_by']??'')==='buyer')?'accepted by buyer':'accepted by you';
+      /* Secili satici: kayitli karar varsa o, yoksa ilanin saticisi, yoksa
+         platform. Ayni cozucu faturayi kesen kod yolunda da calisiyor
+         (vestra_offer_invoice_seller) -- ekranda gorunen ile belgeye basilan
+         ayni fonksiyondan cikmali, yoksa operator bir sey secip baskasini alir. */
+      $fSelAcc = vestra_offer_invoice_seller($fref, $fl);
+      $fSel    = (string)($fSelAcc['id'] ?? '') !== '' ? (string)$fSelAcc['id'] : 'vestra';
+      $fPicked = trim((string)($offerResp[$fref]['invoice_seller_uid'] ?? '')) !== '';
+      $fSelNm  = $invSellers[$fSel] ?? vestra_invoice_issuer_name($fSelAcc,'Acerasoft LLC');
     ?>
     <tr>
       <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($fref) ?></a>
@@ -3076,8 +3114,30 @@ elseif($tab==='invoices'): ?>
       <td><?= $fq ?></td>
       <td><b><?= eur($fu) ?></b><?php if(abs($fu-(float)($o['offer_unit']??0))>0.001): ?><div class="ahint" style="text-decoration:line-through"><?= eur($o['offer_unit']??0) ?></div><?php endif; ?></td>
       <td><b><?= eur($fu*$fq) ?></b></td>
+      <?php /* Secim ve dugme AYNI forma bagli olmak ZORUNDA: ayri formlarda
+               operator listeden bir satici secer, Approve'a basar, secim hic
+               gonderilmez ve fatura eski saticidan cikar. Ama <form> dogrudan
+               <tr> altina konamaz -- HTML cozumleyici tablo icindeki form'u
+               aninda kapatir, icine yazilan gizli alanlar tablonun DISINA
+               dusurulur ve POST bos gider. Cozum, alanlari kendi hucrelerinde
+               birakip form="..." niteligiyle baglamak; form.elements bu yolla
+               baglanan alanlari da tasir, onay metnindeki this.seller_uid
+               dahil. */
+         $fFid='finv-'.preg_replace('/[^A-Za-z0-9_-]/','',$fref); ?>
       <td>
-        <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>) and email the buyer?\n\nDo this once stock is confirmed.')">
+        <select name="seller_uid" form="<?= htmlspecialchars($fFid) ?>" style="font-size:12px;max-width:200px">
+          <?php foreach($invSellers as $__uid=>$__nm): ?>
+            <option value="<?= htmlspecialchars((string)$__uid) ?>"<?= (string)$__uid===$fSel?' selected':'' ?>><?= htmlspecialchars($__nm) ?></option>
+          <?php endforeach; ?>
+          <?php if(!isset($invSellers[$fSel])): ?>
+            <option value="<?= htmlspecialchars($fSel) ?>" selected><?= htmlspecialchars($fSelNm) ?></option>
+          <?php endif; ?>
+        </select>
+        <div class="ahint" style="font-size:10.5px"><?= $fPicked ? 'sizin seçiminiz' : (($fl && ($fl['seller_uid']??'')!=='') ? 'ilandan geldi' : 'ilanda satıcı yok → platform') ?></div>
+      </td>
+      <td>
+        <form id="<?= htmlspecialchars($fFid) ?>" method="post" style="margin:0"
+              onsubmit="var s=this.elements.seller_uid;return confirm('Issue the invoice for offer <?= htmlspecialchars($fref) ?> at <?= htmlspecialchars(eur($fu)) ?>/unit (total <?= htmlspecialchars(eur($fu*$fq)) ?>)?\n\nIssuer: '+s.options[s.selectedIndex].text+'\n\nThe number and the PDF are written to that seller and cannot be moved afterwards. Do this once stock is confirmed.')">
           <?= csrfField() ?>
           <input type="hidden" name="_action" value="issue_offer_invoice">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($fref) ?>">
