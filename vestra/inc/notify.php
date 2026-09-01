@@ -397,6 +397,19 @@ function vestra_discover_blocklist(): array {
        "Incu Collection". Geri alinamaz, ama liste ucuncu kez gelirse tekrarlamaz.
        'incu' 4 harf -> alan adinda YALNIZCA tam eslesir (incubator... elenmez). */
     'harrolds','incu',
+    /* 1 Eyl 2026 — ikinci APAC listesi ("unique", 76 satir). Blokliste 76'da
+       yalnizca 12'sini yakaladi; asagidakiler elle okununca cikti. Kategoriler
+       yine ayni ucu. */
+    // zincir / magazalar grubu (Japonya'nin iki devi: yuzlerce sube + kendi etiketleri)
+    'united arrows','unitedarrows','beams','atmos tokyo','atmostokyo',
+    'limited edt','limitededt',
+    // distributor / bolgesel marka haklarini tutan grup
+    'club 21','club21global',          // Club 21: Asya'da onlarca markanin bolge temsilcisi
+    'the hour glass','thehourglass',   // cok ulkeli saat zinciri + resmi distributor
+    // kendi markasini satan / uretici
+    'paspaley','lucy folk','lucyfolk','pestle & mortar','pestle and mortar',
+    'uma and leopold','umaandleopold','bamboo blonde','bambooblonde',
+    'real mccoys','real mccoy','realmccoys','kim soo','kimsoo',
     // alisveris merkezi isletmecisi (butik degil, kiraci topluyor)
     'pavilion-kl','pavilionkl','klcc pavilion','klccpavilion',
     // ikinci el / konsinye: yeni toptan mal almiyor

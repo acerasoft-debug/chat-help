@@ -52,6 +52,12 @@ foreach ([
     ['Incu',                    'incu.com'],
     ['Studious Tokyo',          'studious.co.jp'],
     ['Zara',                    'zara.com'],
+    /* 1 Eyl 2026, ikinci APAC listesi: Japonya'nin iki devi (yuzlerce sube +
+       kendi etiketleri) ve iki cok subeli sneaker zinciri. */
+    ['United Arrows Premium',   'united-arrows.co.jp'],
+    ['Beam Japan Custom',       'beams.co.jp'],
+    ['Atmos Tokyo',             'atmos-tokyo.com'],
+    ['Limited Edt Chamber',     'limitededt.com'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
 
 echo "\n== 2. Zincirin INDIRIM kolu da zincirdir (29 Agu regresyonu) ==\n";
@@ -64,6 +70,10 @@ foreach ([
     ['Nepenthes Tokyo',        'nepenthes.co.jp'],
     ['Slam Jam',               'slamjam.com'],
     ['Bella Moda Distribution','bellamodadist.it'],
+    /* Club 21: Asya'da onlarca markanin bolge temsilcisi. The Hour Glass: cok
+       ulkeli saat zinciri + resmi distributor. Ikisi de kanalda rakip. */
+    ['Club 21 Singapore',      'club21global.com'],
+    ['The Hour Glass Luxury',  'thehourglass.com'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
 
 echo "\n== 4. Kendi markasini satan / monobrand ENGELLENMELI ==\n";
@@ -75,6 +85,15 @@ foreach ([
     /* Adin KENDISI premium bir marka ise o markanin kendi operasyonu (flagship,
        ulke subesi, resmi distributor) -- kendi fabrikasindan aliyor, bizden asla. */
     ['Gucci Store Milano','guccistore.it'],
+    /* 1 Eyl 2026, ikinci APAC listesi: kendi etiketini uretip satanlar. */
+    ['Paspaley Luxury',   'paspaley.com'],
+    ['Lucy Folk',         'lucyfolk.com'],
+    ['Uma and Leopold',   'umaandleopold.com'],
+    ['Bamboo Blonde Bali','bambooblonde.com'],
+    ['Real McCoys Tokyo', 'realmccoys.co.jp'],
+    ['Kim Soo Bali',      'kimsoo.com'],
+    /* Alan adi (pmc.my) blokliste ile eslesmiyor; AD tarafi yakaliyor. */
+    ['Pestle & Mortar',   'pmc.my'],
 ] as [$co, $ws]) $t("engelli: $co", $blocked($co, '', $ws));
 
 echo "\n== 5. Kanalda alici OLMAYAN turler ENGELLENMELI ==\n";
@@ -104,6 +123,13 @@ foreach ([
     ['Mashburn Family Store','mashburnfamily.com',     'sid mashburn'],
     ['Dynamite Boutique',    'dynamiteboutique.it',    'dynamite'],
     ['Incubator Store',      'incubatorstore.com',     'incu'],
+    /* 1 Eyl 2026 eklemelerinin komsulari. 'beams' 5 harf -> alan adinda YALNIZCA
+       tam eslesir, yoksa sunbeam/beambutik elenirdi; 'the hour glass' bitisik
+       yazildiginda gercek bir butigin adinin icinde gecebilir. */
+    ['Beam Boutique Milano', 'beamboutique.it',        'beams'],
+    ['Sunbeam Store',        'sunbeamstore.com',       'beams'],
+    ['Hourglass Boutique Paris','hourglassparis.fr',   'the hour glass'],
+    ['Real Style Store',     'realstylestore.com',     'real mccoys'],
 ] as [$co, $ws, $near]) $t("gecer: $co (liste: '$near')", !$blocked($co, '', $ws));
 
 echo "\n== 8. GECMELI — bu listeden gelen gercek adaylar ==\n";

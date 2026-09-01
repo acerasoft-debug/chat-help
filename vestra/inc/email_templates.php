@@ -1592,12 +1592,13 @@ function vestra_tpl_account_open_doc(string $salutation, string $signer = 'Marco
  * Cozulemeyen alan HIC BASILMAZ (bkz. KURAL 3'un mantigi: tahmin etme, yaz).
  *
  * $p        : vestra_products() kaydi (tiers/variants/sizes/moq/min_colors)
- * $vatNote  : hesaba YENI yazilan VAT ID ('' = degisiklik yok, bolum basilmaz)
+ * $vatId    : mektupta teyit edilecek VAT ID ('' = bolum hic basilmaz)
+ * $vatNew   : true = biz YENI yazdik (ozur cumlesi), false = zaten dosyadaydi (teyit)
  * $docOpen  : ticari belge istegi hala acik mi (auth_trade_doc_status)
  * $voucher  : ['code'=>..,'label'=>'5%','expiry'=>'31.03.2027'] ('' code = kupon yok)
  */
-function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vatNote,
-                                       bool $docOpen, array $voucher,
+function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vatId,
+                                       bool $vatNew, bool $docOpen, array $voucher,
                                        string $signer = 'Marco Bellini'): array {
     $name    = trim((string)($p['name'] ?? 'the article'));
     $subject = 'Re: Your VESTRA account is open – '.$name.' prices';
@@ -1615,12 +1616,17 @@ function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vat
     }
     $body .= "If you are signed in and the tiers are still not showing, reply to this email and I will look into it the same working day.\n\n";
 
-    /* Kayit duzeltmesi. Onceki mektup "VAT numaraniz dosyada, tekrar gondermenize
-       gerek yok" demisti; hesapta vat_id BOSTU. Yanlisi sessizce duzeltmek yerine
-       yazmak gerekiyor -- musteri o cumleye guvenip bir daha gondermeyecekti. */
-    if (trim($vatNote) !== '') {
+    /* VAT: TEYIT mi OZUR mu, kayda gore. Ikisini karistirmak pahali -- teshis bir
+       kez yanlis alani ('vat', oysa hesapta 'vat_id') okuyup "kayitli degil" dedi
+       ve bu, dosyada DURAN bir numara icin musteriye "onceki mektubumuz hataliydi"
+       diye ozur yazdiracakti: dogru bir cumleyi geri almak, hic yazmamaktan kotu.
+       Bu yuzden ozur yalnizca GERCEKTEN yeni yazildiginda ($vatNew) cikar. */
+    if (trim($vatId) !== '') {
         $body .= "Your VAT ID\n\n"
-. "I have recorded ".trim($vatNote)." on your account. It was not on file before: an earlier message from us said your VAT ID was already recorded, and that was our error. My apologies.\n\n";
+. ($vatNew
+    ? "I have recorded ".trim($vatId)." on your account; it was not on file before."
+    : "Your VAT ID ".trim($vatId)." is already recorded on your account, so there is nothing further you need to send us."
+  )."\n\n";
     }
 
     if ($docOpen) {

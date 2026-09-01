@@ -135,7 +135,12 @@ jobs:
               echo "  id=".substr($id,0,8)." | tip=".($a['type']??'?')
                  ." | sirket=\"".($a['company']??'')."\" | kisi=\"".($a['name']??'')."\"\n";
               echo "    email=".m($a['email']??'')." | ulke=".($a['country']??'-')
-                 ." | vat=".(($a['vat']??'')!==''?($a['vat']):'(yok)')."\n";
+                 /* Hesabin alani 'vat_id' (auth.php:278, register.php). Burasi
+                    'vat' okuyordu ve HER hesap icin "(yok)" basiyordu: 1 Eyl 2026'da
+                    bu, VAT'i dosyada olan bir musteriye "numaraniz kayitli degildi,
+                    onceki mektubumuz hataliydi" diye ozur yazdirmaya rametmisti.
+                    Kontrolun yanlis yere baktigi 6. vaka. 'vat' geriye donuk yedek. */
+                 ." | vat=".((($a['vat_id'] ?? '') ?: ($a['vat'] ?? '')) !== '' ? (($a['vat_id'] ?? '') ?: $a['vat']) : '(yok)')."\n";
               echo "    email_dogrulandi=".yn(!empty($a['email_verified']))
                  ." | operator_onayi=".yn(function_exists('auth_user_approved') ? auth_user_approved($a) : !empty($a['approved']))
                  ." | FIYAT KAPISI ACIK=".yn(auth_prices_unlocked($a))."\n";

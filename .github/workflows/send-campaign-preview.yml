@@ -1528,25 +1528,35 @@ jobs:
               echo "urun   : {$pid} | kademe=".count((array)($prod['tiers'] ?? []))
                  . " | renk/artikel=".count((array)($prod['variants'] ?? []))."\n";
 
-              /* VAT'i kaydet. auth_update void donuyor, o yuzden GERI OKUNUR --
-                 KURAL 5c'deki ayni ders: kaydetti sanip yazmayan bir form,
+              /* VAT. Mektup ya TEYIT ya OZUR yazar; hangisi oldugunu KAYIT belirler.
+                 auth_update void donuyor, o yuzden yazdiktan sonra GERI OKUNUR --
+                 KURAL 5c'nin ayni dersi: kaydetti sanip yazmayan bir islem,
                  musteriye "kaydettim" demeyi yalan yapar. */
-              $vatNote = '';
+              $vatId = ''; $vatNew = false;
               $vatWant = trim($E('vat'));
-              if ($vatWant !== '' && strtolower($E('save_vat')) === 'true') {
-                if (trim((string)($acc['vat_id'] ?? '')) === $vatWant) {
-                  $vatNote = ''; echo "vat    : zaten kayitli, bolum basilmayacak\n";
-                } elseif (strtolower($E('send')) !== 'true') {
-                  $vatNote = $vatWant; echo "vat    : send=false -- YAZILMADI, mektupta onizleme olarak gorunuyor\n";
+              $vatHave = trim((string)($acc['vat_id'] ?? ''));
+              if ($vatWant !== '' && $vatHave === $vatWant) {
+                $vatId = $vatHave; $vatNew = false;
+                echo "vat    : ZATEN KAYITLI -> mektupta teyit cumlesi (ozur DEGIL)\n";
+              } elseif ($vatWant !== '' && strtolower($E('save_vat')) === 'true') {
+                if (strtolower($E('send')) !== 'true') {
+                  $vatId = $vatWant; $vatNew = true;
+                  echo "vat    : send=false -- YAZILMADI, mektupta onizleme olarak gorunuyor\n";
                 } else {
                   auth_update($uid, ['vat_id' => $vatWant]);
                   $back = auth_find($to);
                   if (trim((string)($back['vat_id'] ?? '')) === $vatWant) {
-                    $vatNote = $vatWant; echo "vat    : KAYDEDILDI ve geri okundu\n";
+                    $vatId = $vatWant; $vatNew = true;
+                    echo "vat    : KAYDEDILDI ve geri okundu\n";
                   } else {
                     fwrite(STDERR, "VAT YAZILAMADI (geri okuma tutmadi) -- mektup gonderilmedi\n"); exit(1);
                   }
                 }
+              } elseif ($vatHave !== '') {
+                $vatId = $vatHave; $vatNew = false;
+                echo "vat    : hesapta kayitli -> teyit cumlesi\n";
+              } else {
+                echo "vat    : ne spec'te ne hesapta -> bolum basilmayacak\n";
               }
 
               /* Yalnizca 'requested' (hic yuklenmemis) icin belge bolumu yazilir.
@@ -1591,7 +1601,7 @@ jobs:
                  . " | son gecerlilik ".$expiry."\n";
 
               [$subject, $body, $opts] = vestra_tpl_account_open_l1212(
-                $salutation, $prod, $vatNote, $docOpen,
+                $salutation, $prod, $vatId, $vatNew, $docOpen,
                 ['code' => $code, 'label' => $valueLbl, 'expiry' => date('d.m.Y', strtotime($expiry))],
                 $signer);
 
