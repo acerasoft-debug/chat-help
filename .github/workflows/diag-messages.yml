@@ -458,7 +458,23 @@ jobs:
                    . " | ".$st." | SATICI: ".$snm." | FATURA: ".$inv."\n";
               }
               if (!$oc) echo "  (teklif yok)\n";
-              $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif";
+
+              /* FATURA DOSYALARININ KENDISI. vestra_invoices_for_ref yalnizca
+                 .json meta dosyasina bakiyor; PDF yazilip meta yazilamamis bir
+                 kesim panelde ve yukaridaki satirda "fatura yok" gorunur ama
+                 NUMARA YANMIS, hatta alici mektubu almis olabilir. O durum
+                 ancak dizinin kendisine bakilarak gorulur -- bu depoda "kontrol
+                 yanlis yere bakiyordu" hatasi uc kez yasandi (CLAUDE.md). */
+              echo "  --- data/invoices dizini ---\n";
+              $invDir = $doc."/data/invoices";
+              $fs = is_dir($invDir) ? (glob($invDir."/*.{pdf,json}", GLOB_BRACE) ?: []) : [];
+              if (!$fs) echo "    (dosya yok)\n";
+              $shown = 0;
+              foreach ($fs as $f) {
+                if (++$shown > 40) { echo "    ... (".(count($fs)-40)." dosya daha)\n"; break; }
+                echo "    ".basename($f)."  ".number_format((int)@filesize($f))." bayt\n";
+              }
+              $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif, ".count($fs)." fatura dosyasi";
               echo "\n";
             }
 
