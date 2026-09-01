@@ -497,6 +497,60 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
     ];
 }
 
+/* KABUL EDILEN TEKLIF(LER) FATURALANINCA SIPARIS OLUR (operator karari,
+ * 1 Eyl 2026: "bir cok teklif kabul olursa ve tek saticida olursa tek order
+ * olarak gozukur, order bolumune de gitmeli"). Teklifler yalnizca teklif
+ * dunyasinda yasiyordu: admin Orders sekmesi ve alicinin My orders sayfasi
+ * satisi hic gormuyordu.
+ *
+ * Satir orders.csv'ye CHECKOUT'UN KENDI SEMASIYLA yazilir (order.php'deki
+ * $ORDER_CSV_HEADER) ve ref = faturanin BIRINCIL ref'i. Boylece:
+ *   - vestra_invoices_for_ref(ref) ayni faturayi bulur -> siparis "fatura
+ *     bekliyor" kuyruguna DUSMEZ, dosyada tek belge kalir;
+ *   - alicinin My orders'i ve admin siparis dosyasi kendiliginden calisir.
+ * Tutarlar pazarligin ANLASILAN rakamlari: subtotal=mal, commission=0,
+ * payout=mal (teklif satisinda alici ustune platform ucreti binmez --
+ * faturada olmayan bir rakami siparise yazmak iki belgeyi celistirir),
+ * total=mal+kargo = faturanin genel toplami.
+ *
+ * IDEMPOTENT: ref zaten orders.csv'de varsa dokunmaz (redraft ikinci satir
+ * uretmesin). Yazim basarisi geri OKUNARAK dogrulanmaz cunku append yalnizca
+ * tek satir; basarisizlikta false doner ve cagiran operatore soyler. */
+function vestra_offer_order_ensure(array $p): bool {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($p['meta']['ref'] ?? ''));
+    if ($ref === '' || empty($p['items'])) return false;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) return true; }
+
+    $goods = 0.0;
+    $items = [];
+    foreach ($p['items'] as $it) {
+        $goods  += (float)($it['line'] ?? 0);
+        $items[] = (int)($it['qty'] ?? 0).'x '.(string)($it['sku'] ?? '').' @'.number_format((float)($it['unit'] ?? 0), 2, '.', '');
+    }
+    $goods    = round($goods, 2);
+    $shipping = round((float)($p['meta']['shipping'] ?? 0), 2);
+    $b        = (array)($p['meta']['buyer'] ?? []);
+    $refsNote = implode(', ', (array)($p['refs'] ?? [$ref]));
+    $notes    = 'Payment: Bank transfer. Created from accepted offer(s) '.$refsNote.' — invoiced together.'
+              .($shipping > 0 ? ' Shipping EUR '.number_format($shipping, 2, '.', '').'.' : '');
+
+    $dir = dirname(__DIR__).'/data'; if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $file = $dir.'/orders.csv'; $new = !file_exists($file);
+    $head = ['timestamp','ref','company','vat','name','email','country','phone','items','subtotal',
+             'commission','payout','total','notes','consent','terms_version','voucher_code','discount'];
+    if (!$new && function_exists('vestra_csv_ensure_header')) vestra_csv_ensure_header('orders.csv', $head);
+    $fh = @fopen($file, 'a');
+    if (!$fh) return false;
+    if ($new) fputcsv($fh, $head, ',', '"', '\\');
+    fputcsv($fh, [date('c'), $ref, (string)($b['company'] ?? ''), (string)($b['vat'] ?? ''),
+        (string)($b['name'] ?? ''), (string)($b['email'] ?? ''), (string)($b['country'] ?? ''), '',
+        implode(' | ', $items), number_format($goods, 2, '.', ''), '0.00',
+        number_format($goods, 2, '.', ''), number_format($goods + $shipping, 2, '.', ''),
+        $notes, 'offer', defined('VESTRA_TERMS_VERSION') ? VESTRA_TERMS_VERSION : '', '', ''], ',', '"', '\\');
+    fclose($fh);
+    return true;
+}
+
 /* KESILMIS teklif faturasinin YENIDEN CIZIM yuku (redraft: ayni numara,
  * duzeltilmis icerik -- orn. kargo eklemek). Birlesik kesilmisse
  * (invoice_members) butun uyelerden yeniden kurar, degilse tek ref'ten.

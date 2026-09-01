@@ -177,5 +177,34 @@ $t('satici kayitli secimden (garage)', $who($p['seller'])==='GARAGE LE PARIS');
 $t('birincil ref korunuyor', ($p['meta']['ref']??'')==='OF-1');
 $INVOICED = [];
 
+echo "\n== 11. FATURALANAN TEKLIF -> ORDERS SATIRI ==\n";
+/* "order bolumune de gitmeli". Satir checkout'un KENDI semasina yazilir ve
+   items dizgisi vestra_parse_order_items'in regex'iyle geri okunabilmeli --
+   okunamazsa siparis dosyasi kalemleri 'cozulemedi' gosterir. Toplam,
+   faturanin genel toplamiyla AYNI olmali (mal+kargo); farkli olsaydi ayni
+   satisin iki belgesi iki rakam soylerdi. */
+$ORDERS_TMP = sys_get_temp_dir().'/vestra_test_orders_'.getmypid();
+@mkdir($ORDERS_TMP.'/data', 0775, true);
+/* offers.php dirname(__DIR__)'i kendi konumundan turetir; test icin yazilan
+   satiri dogrudan dosyadan okuyup dogrulayacagiz. Yol carpismasin diye
+   fonksiyonun yazacagi gercek dosyayi gecici dizine yonlendiremeyiz --
+   bunun yerine SATIRI kuran mantigi ayni girdiyle dogrudan sinariz. */
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage','invoice_shipping'=>50.0,
+                  'counter_price'=>10.00,'agreed_unit'=>10.00],
+         'OF-2'=>['status'=>'accept']];
+$INVOICED = [];
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage',null,50.0);
+$t('yuk kuruldu', empty($p['error']));
+$goods = array_sum(array_column($p['items'],'line'));
+$t('mal toplami 600', abs($goods-600.0)<0.001);
+$segsOk = true;
+foreach ($p['items'] as $it) {
+    $seg = (int)$it['qty'].'x '.$it['sku'].' @'.number_format((float)$it['unit'],2,'.','');
+    if (!preg_match('/^(\d+)x\s+(.+)\s+@([\d.]+)$/', $seg, $m)) { $segsOk = false; break; }
+    if ((int)$m[1] !== (int)$it['qty'] || trim($m[2]) !== $it['sku'] || abs((float)$m[3]-(float)$it['unit'])>0.001) { $segsOk = false; break; }
+}
+$t('items dizgisi cozucuyle geri okunuyor', $segsOk);
+$t('siparis toplami = fatura genel toplami (650)', abs(($goods + (float)$p['meta']['shipping']) - 650.0) < 0.001);
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

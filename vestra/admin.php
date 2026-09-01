@@ -194,6 +194,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, true);
     $ok = $iv && ($iv['no'] ?? '')!=='' && !empty($iv['redrafted']);
     if($ok){
+      /* Bu ozellikten ONCE kesilmis faturanin siparisi hic olusmamisti;
+         redraft eksigi tamamlar (varsa dokunmaz). */
+      vestra_offer_order_ensure($p);
       $em=(string)($p['meta']['buyer']['email'] ?? '');
       if(filter_var($em,FILTER_VALIDATE_EMAIL)){
         require_once __DIR__.'/inc/notify.php';
@@ -274,6 +277,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
+      vestra_offer_order_ensure($p);   // faturalanan grup ORDERS'ta TEK siparis
       $em=(string)($p['meta']['buyer']['email'] ?? '');
       if(filter_var($em,FILTER_VALIDATE_EMAIL)){
         require_once __DIR__.'/inc/notify.php';
@@ -344,6 +348,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $iv=vestra_offer_issue_invoice($ref, true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
+      /* Faturalanan teklif ORDERS'a da duser (tek satir; idempotent).
+         Yuk yeniden kuruluyor: kesim kayittan okudu, ayni kayit ayni yuku verir. */
+      $__op = vestra_offer_invoice_payload($ref);
+      if($__op){ $__op['refs']=[$ref]; vestra_offer_order_ensure($__op); }
       $orow=vestra_offer_row($ref);
       if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
         require_once __DIR__.'/inc/notify.php';
