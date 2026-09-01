@@ -1,0 +1,87 @@
+[
+  {
+    "match": "rl-csf-tee-navy",
+    "expect": 1,
+    "_why": "710680785 modelinin DORT rengi zaten TEK ilanda (site bu haliyle Excel'e uyuyor). Eksik olan sey renk basina ARTIKEL NUMARASI: ilan tek sku tasiyor (710680785004 = Navy) ama dort renk gosteriyor, yani 'Black' siparis eden alicinin hangi numarayi yazacagi belgede hicbir yerde yazmiyordu. Karisikligin gercek kaynagi buydu. Beden dagilimi Excel'den OLDUGU GIBI aliniyor -- toplam yeniden hesaplanmiyor (asagiya bakin).",
+    "specs": {
+      "Model no": "710680785",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "Cambodia",
+      "Navy / Red Pony": "Art. 710680785004 · S 92 · M 184 · L 184 · XL 184 · XXL 92",
+      "Black / Red Pony": "Art. 710680785001 · S 104 · M 208 · L 208 · XL 208 · XXL 104",
+      "White / Navy Pony": "Art. 710680785003 · S 125 · M 250 · L 250 · XL 250 · XXL 125",
+      "Grey / Navy Pony": "Art. 710680785002 · S 34 · M 67 · L 68 · XL 68 · XXL 34"
+    }
+  },
+  {
+    "match": "rl-csf-tee-khaki",
+    "expect": 1,
+    "_why": "710671438 modelinin dort rengi. DIKKAT: Excel'de SKU 40105 satirinin ACIKLAMA blogunda 'Model No: 710671438341' yaziyor ama bu bir onceki satirin (Khaki) numarasi -- kopyala-yapistir artigi. MODEL NO SUTUNU 710671438302 diyor ve renk Red; sutun esas alindi. Yanlis olani almak, alicinin kirmizi siparis edip haki almasi demekti.",
+    "specs": {
+      "Model no": "710671438",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "Cambodia",
+      "Khaki / Orange Pony": "Art. 710671438341 · S 62 · M 125 · L 125 · XL 125 · XXL 63",
+      "Red / L.Blue Pony": "Art. 710671438302 · S 75 · M 150 · L 150 · XL 150 · XXL 75",
+      "L.Blue / White Pony": "Art. 710671438337 · S 60 · M 120 · L 120 · XL 120 · XXL 60",
+      "Cream / Brown Pony": "Art. 710671438350 · S 37 · M 74 · L 74 · XL 74 · XXL 37"
+    }
+  },
+
+  {
+    "match": "rl-csf-polo-white",
+    "expect": 1,
+    "_why": "710548797 TEK renk (White). Excel bunu dogruluyor: bu parca numarasina ait baska renk yok. Bu ilan bir donem alti renk gosteriyordu; Excel o duzeltmeyi teyit ediyor.",
+    "specs": {
+      "Model no": "710548797",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "India",
+      "White / Navy Pony": "Art. 710548797001 · S 15 · M 30 · L 30 · XL 30 · XXL 15"
+    }
+  },
+  {
+    "match": "rl-csf-polo-darkgreen",
+    "expect": 1,
+    "_why": "710536856 modelinin dort rengi: 394 Dark Green, 407 Yellow, 408 Orange, 396 Pink. Sitedeki renk listesiyle birebir ayni -- Excel gruplamayi dogruluyor, degistirilecek bir sey yok; eklenen tek sey renk basina artikel numarasi ve beden dagilimi.",
+    "specs": {
+      "Model no": "710536856",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "Vietnam",
+      "Dark Green / Yellow Pony": "Art. 710536856394 · S 11 · M 22 · L 21 · XL 21 · XXL 11",
+      "Yellow / Blue Pony": "Art. 710536856407 · S 6 · M 12 · L 13 · XL 13 · XXL 6",
+      "Orange / Green Pony": "Art. 710536856408 · S 3 · M 6 · L 6 · XL 6 · XXL 3",
+      "Pink / Navy Pony": "Art. 710536856396 · S 10 · M 20 · L 20 · XL 20 · XXL 10"
+    }
+  },
+  {
+    "match": "rl-csf-polo-fuchsia",
+    "expect": 1,
+    "_why": "710782592 tek renk (Fuchsia; Excel 'Fusia' yaziyor). Ayri parca numarasi oldugu icin 710536856 ile birlestirilmiyor -- ayni cati altina almak, alicinin var olmayan bir kombinasyonu siparis etmesine yol acardi.",
+    "specs": {
+      "Model no": "710782592",
+      "Fit": "Custom Slim Fit",
+      "Gender": "Men",
+      "Season": "Summer",
+      "Sleeves": "Short",
+      "Fabric": "100% Cotton",
+      "Made in": "India",
+      "Fuchsia / Blue Pony": "Art. 710782592031 · S 4 · M 8 · L 8 · XL 8 · XXL 4"
+    }
+  }
+]
