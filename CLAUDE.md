@@ -97,6 +97,23 @@ sınırı şart.
 (üstelik saat, konfeksiyon değil). Bloklisteye eklenmedi, operatör kararı
 bekliyor. Tarama adı gönderimden **önce** okunursa bu da yakalanır.
 
+**KURAL 1e — listeyi ÜLKE BAŞINA parti hâlinde gönder.** Mektubun dili lead'in
+kayıtlı **ülkesinden** seçiliyor (`add-and-send.yml`, `REGION_LANG`/`LANG_MAP`,
+yoksa TLD). Otomatik ülke tespiti yeterince sık yanılıyor: 1 Eylül 2026'da
+100 satırlık Avrupa listesi tek partide, `country` **boş** gönderildi ve
+sunucudaki kayıtlar yüzünden **Goods Copenhagen İtalyanca**, **Meadow Stockholm
+Japonca** mektup aldı (kayıtlı ülkeleri `Italy` ve `Japan` yazıyordu); ayrıca
+ülkesi boş olan 8 İtalyan butiği İngilizce aldı. **CSV'de ülke sütunu vardı ve
+kullanılmadı** — hata listede değil, gönderimdeydi.
+- `country` girdisi verildiğinde **kayıtlı leadlerin ülkesini de düzeltir**, o
+  yüzden `send=false` ile çalıştırmak yanlış ülkeleri mektup göndermeden onarır
+  (12 kayıt böyle düzeltildi).
+- `add-and-send.yml` **paralel çalıştırılmaz** — `leads.json` oku-değiştir-yaz.
+  Ülke partilerini sırayla koş.
+- **Koşunun "success" demesi yetmez.** Aynı gün bir parti
+  `dial tcp: i/o timeout` ile düştü; SSH hiç bağlanmadı, yani düzeltme
+  uygulanmadı. Günlükte `ulke duzeltildi` satırını **gör**, sonra "tamam" de.
+
 **KURAL 1c — aynı FİRMAYA ikinci soğuk mektup gitmez.** Tekilleştirme uzun süre
 yalnızca **adrese** bakıyordu. 1 Eylül 2026'da ikinci APAC listesinde
 `sartorial@marais.com.au` vardı; aynı dükkânın `online@` adresi 31 Ağustos'ta
