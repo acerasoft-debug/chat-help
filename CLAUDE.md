@@ -183,6 +183,21 @@ invoice` yazar. Approve'a basılana kadar müşteri tarafında **hiçbir şey ol
 Onay penceresi artık açıkça "This burns the number, stores the PDF and EMAILS
 THE BUYER" diyor. Test: `tests/invoice_draft_test.php`.
 
+**KURAL 5e — Seçilen teklifler tek satıcıdan TEK faturada birleştirilebilir**
+(operatör kararı, 1 Eyl 2026: *"ürünler seçilip tek satıcıya tek fatura
+kesilebilmeli"*). `Admin ▸ Invoice approvals`: satırlardaki ☑ kutuları +
+alttaki birleştirme çubuğu (satıcı + VAT satırı + 👁 Draft + Approve). Kurucu:
+`vestra_offers_combined_invoice_payload()` — ya tam yük ya `['error'=>gerekçe]`,
+yarım liste sessizce kesilmez. Kurallar: **aynı alıcı** (değilse red), hepsi
+`accept` ve **faturasız**, satıcı **tek** (operatör seçimi > bütün ilanlar aynı
+satıcıysa o; karışıksa seçim zorunlu). Belge **birincil ref** (ilk seçilen)
+adına kesilir; üyeler `offer_responses.json`'da `invoice_group_ref` ile ona
+bağlanır ve `vestra_invoices_for_ref()` bu bağı izler — alıcı sayfası, onay
+kuyruğu ve teşhis kendiliğinden doğru çalışır (tek atlama; döngü koruması var).
+Satır fiyatı = o teklifin **anlaşılan** birimi; satır adına teklif ref'i
+eklenir; tarih = kesim günü (farklı günlerde kabul edilmiş tekliflere
+içlerinden birinin tarihi verilmez). Test: `invoice_seller_pick_test.php §9`.
+
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.

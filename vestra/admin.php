@@ -155,6 +155,66 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Content-Length: '.strlen($bytes));
     echo $bytes; exit;
   }
+  /* SECILEN TEKLIFLERDEN TEK FATURA -- taslak ve kesim. Kurallar ve
+     gerekceler kurucuda (vestra_offers_combined_invoice_payload): ayni alici,
+     tek satici, satir basina anlasilan fiyat, birincil ref'in adina tek belge,
+     uyeler invoice_group_ref ile bagli. */
+  if($act==='combine_preview_offer_invoice' || $act==='combine_issue_offer_invoice'){
+    require_once __DIR__.'/inc/offers.php';
+    require_once __DIR__.'/inc/invoice.php';
+    $refs = array_map('strval', (array)($_POST['refs'] ?? []));
+    $pick = preg_replace('/[^A-Za-z0-9_-]/','',(string)($_POST['seller_uid'] ?? ''));
+    if($pick!==''){
+      $ok = ($pick==='vestra');
+      if(!$ok) foreach(auth_accounts() as $sa){ if(($sa['id']??'')===$pick && ($sa['type']??'')==='seller'){ $ok=true; break; } }
+      if(!$ok){ header('Location: /admin?tab=invoices&msg=invoice_seller_bad'); exit; }
+    }
+    $vn = array_key_exists('vat_note',$_POST)
+        ? mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200)
+        : null;
+    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn);
+    if(!empty($p['error'])){
+      header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
+    }
+    if($act==='combine_preview_offer_invoice'){
+      $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
+      header('Content-Type: application/pdf');
+      header('Content-Disposition: inline; filename="DRAFT-birlesik-'.$p['meta']['ref'].'.pdf"');
+      header('Cache-Control: no-store');
+      header('Content-Length: '.strlen($bytes));
+      echo $bytes; exit;
+    }
+    /* KESIM. Once kayit: secim + KDV satiri birincile, uyelik baglari
+       digerlerine -- belge kayittan once degil SONRA yazilsaydi ve kesim
+       yarida kalsaydi baglar kopuk kalirdi; bu sirayla en kotu durumda
+       baglanmis ama belgesiz bir grup kalir, kuyruk onu yeniden gosterir
+       (vestra_invoices_for_ref bos doner). */
+    $rs=vestra_read_json('offer_responses.json');
+    $primary=$p['meta']['ref'];
+    $rs[$primary]['invoice_seller_uid']=$p['seller_pick'];
+    $rs[$primary]['invoice_seller_by']='operator';
+    $rs[$primary]['invoice_seller_at']=date('c');
+    if($vn!==null) $rs[$primary]['invoice_vat_note']=$vn;
+    $rs[$primary]['invoice_members']=$p['refs'];
+    foreach($p['refs'] as $r){ if($r!==$primary) $rs[$r]['invoice_group_ref']=$primary; }
+    vestra_write_json('offer_responses.json',$rs);
+    $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true);
+    $issued = $iv && ($iv['no'] ?? '') !== '';
+    if($issued){
+      $em=(string)($p['meta']['buyer']['email'] ?? '');
+      if(filter_var($em,FILTER_VALIDATE_EMAIL)){
+        require_once __DIR__.'/inc/notify.php';
+        $lines='';
+        foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
+        vestra_send_mail($em, "VESTRA — invoice {$iv['no']} for your accepted offers",
+          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nStock is confirmed and one combined invoice ({$iv['no']}) has been issued for your accepted offers:\n\n"
+         .$lines."\n  TOTAL: EUR ".number_format($p['total'],2)."  ({$p['qty']} pcs)\n\n"
+         ."Download it under My offers (shown on each of the offers above) and pay by bank transfer to the account on the invoice, quoting reference {$primary}. Your goods ship as soon as the payment arrives.\n\n"
+         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com");
+      }
+    }
+    header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
+  }
   /* Kabul edilmis TEKLIFIN faturasini kes. Ayri islem, cunku kaynak ayri
      dosya: siparisler orders.csv'de, teklifler offers.csv + offer_responses
      .json'da. Tutar vestra_offer_agreed_unit()'ten -- karsi teklif verilmisse
@@ -2102,6 +2162,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Kayıt sunucuya YAZILAMADI — geri okuma tutmadı, hiçbir şeye güvenmeyin. Tekrar deneyin; yine olursa <code>data/accounts.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='billing_none'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
+<?php elseif($msg==='combine_bad'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Birleşik fatura kesilmedi: <?= htmlspecialchars((string)($_GET['why'] ?? 'geçersiz seçim')) ?></div>
 <?php elseif($msg==='bulk_moq'): ?>
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
 <?php elseif($msg==='lead_bulk_deleted'): ?>
@@ -3278,7 +3340,7 @@ elseif($tab==='invoices'): ?>
   <div class="acard-hd"><h3>↩ <?= count($pendingInvoiceOffers) ?> accepted offer(s) awaiting an invoice</h3></div>
   <p class="ahint" style="margin:0 0 10px">Faturayı <b>hangi satıcının keseceğini</b> siz seçersiniz. Varsayılan, ilanın bağlı olduğu satıcı — satıcısı olmayan ilanlarda platform. Seçim belgeyle birlikte kayda geçer ve <b>kesimden sonra değiştirilemez</b>: numara ve dosya o satıcıya yazılır.</p>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Offer','Product','Buyer','Qty','Agreed €/u','Total','Invoice issued by','Approve'],true) ?>
+    <?= arow(['☑','Offer','Product','Buyer','Qty','Agreed €/u','Total','Invoice issued by','Approve'],true) ?>
     <?php foreach($pendingInvoiceOffers as $o):
       $fref=(string)($o['ref']??''); $fq=(int)($o['qty']??0);
       /* Anlasilan fiyat TEK yerden (vestra_offer_agreed_unit): karsi teklif
@@ -3296,6 +3358,9 @@ elseif($tab==='invoices'): ?>
       $fSelNm  = $invSellers[$fSel] ?? vestra_invoice_issuer_name($fSelAcc,'Acerasoft LLC');
     ?>
     <tr>
+      <?php /* Birlestirme secimi: kutu ALT taraftaki fcomb formuna bagli
+               (form= niteligi -- satirdaki kesim formundan ayri form). */ ?>
+      <td class="ac"><input type="checkbox" name="refs[]" value="<?= htmlspecialchars($fref) ?>" form="fcomb" style="width:auto"></td>
       <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($fref) ?></a>
         <div class="ahint"><?= htmlspecialchars($fWho) ?></div></td>
       <td><?php if($fl && !empty($fl['id'])): ?>
@@ -3357,6 +3422,25 @@ elseif($tab==='invoices'): ?>
     </tr>
     <?php endforeach; ?>
   </table></div>
+  <?php /* BIRLESTIRME CUBUGU: isaretlenen teklifler TEK saticidan TEK
+           faturada. Ayni alici sarti sunucuda dogrulanir; taslak dugmesi
+           kesimle ayni yuku cizer. Satici listesi satirlardakiyle ayni. */ ?>
+  <form id="fcomb" method="post" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-top:1px solid var(--line)">
+    <?= csrfField() ?>
+    <span style="font-size:12px;color:var(--mut)">Seçili teklifleri <b>tek faturada</b> birleştir →</span>
+    <select name="seller_uid" style="font-size:12px;max-width:220px">
+      <option value="">— satıcı seç (zorunlu, ilanlar farklıysa) —</option>
+      <?php foreach($invSellers as $__uid=>$__nm): ?>
+        <option value="<?= htmlspecialchars((string)$__uid) ?>"><?= htmlspecialchars($__nm) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <input name="vat_note" maxlength="200" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
+           style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:260px">
+    <button class="abtn" type="submit" name="_action" value="combine_preview_offer_invoice" formtarget="_blank" style="font-size:12px"
+            title="Birleşik belgenin birebir taslağı — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez">👁 Draft</button>
+    <button class="abtn primary" type="submit" name="_action" value="combine_issue_offer_invoice" style="font-size:12px"
+            onclick="var n=0;for(var i=0;i<this.form.elements.length;i++){var e=this.form.elements[i];if(e.name==='refs[]'&&e.checked)n++;}if(!n){alert('Önce yukarıdan teklif işaretleyin.');return false;}var s=this.form.elements.seller_uid;return confirm('Issue ONE combined invoice for '+n+' selected offer(s)?\n\nIssuer: '+(s.value?s.options[s.selectedIndex].text:'(otomatik: ilanların ortak satıcısı)')+'\n\nThis burns ONE number, stores ONE PDF and EMAILS THE BUYER once. Check the draft (👁) first. The offers are then bound to that single invoice.')">✓ Approve &amp; issue ONE invoice</button>
+  </form>
 </div>
 <?php endif; ?>
 

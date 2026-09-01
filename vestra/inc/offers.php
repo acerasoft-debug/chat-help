@@ -389,6 +389,101 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
     ];
 }
 
+/* SECILEN TEKLIFLERDEN TEK FATURA (operator karari, 1 Eyl 2026: "urunler
+ * secilip tek saticiya tek fatura kesilebilmeli"). Ayni alicinin kabul ettigi
+ * teklifler ayri ayri faturalaniyordu -- Daymond dosyasinda 6 kalem 6 ayri
+ * numara demekti. Bu kurucu, secilen ref'lerden TEK belge yuku uretir.
+ *
+ * Kurallar:
+ * - Butun ref'ler AYNI alicinin kabul edilmis teklifi olmali. Farkli alicilari
+ *   tek faturada toplamak anlamsiz; kabul edilmemis teklif faturalanamaz
+ *   (KURAL 5). Ihlalde yuk degil ['error' => gerekce] doner ve HICBIR SEY
+ *   uretilmez -- yarim liste sessizce kesilmez.
+ * - Satici TEK: oncelik operator secimi ($sellerPickOverride ya da birincil
+ *   ref'in kayitli secimi) > butun ilanlar AYNI saticiyi gosteriyorsa o.
+ *   Ilanlar farkli saticilara dagiliyorsa ve secim yoksa REDDEDILIR --
+ *   "tek saticiya tek fatura"nin tek saticisini sistem tahmin edemez.
+ * - Birincil ref = secimdeki ilk ref. Belge numarasi/dosyasi onun adina
+ *   yazilir; digerleri kesim sirasinda invoice_group_ref ile ona baglanir
+ *   (vestra_invoices_for_ref o bagi izler, alici hangi teklifinden bakarsa
+ *   baksin ayni belgeyi bulur).
+ * - Her satirin fiyati o teklifin ANLASILAN birimi (vestra_offer_agreed_unit,
+ *   KURAL 5); satir adina teklif ref'i eklenir ki alici hangi satirin hangi
+ *   kabul oldugunu belgeden okuyabilsin.
+ * - Tarih = kesim gunu: teklifler farkli gunlerde kabul edilmis olabilir,
+ *   tek belgeye iclerinden birinin tarihini vermek digerlerini yanlislar. */
+function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null): array {
+    require_once __DIR__.'/invoice.php';
+    $refs = array_values(array_unique(array_filter(array_map(
+        fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $refs))));
+    if (!$refs) return ['error' => 'Hiç teklif seçilmedi.'];
+
+    $rs = vestra_read_json('offer_responses.json');
+    $items = []; $buyerEmail = null; $buyerRow = null; $listingSellers = [];
+    foreach ($refs as $r) {
+        $row = vestra_offer_row($r);
+        if (!$row) return ['error' => "Teklif bulunamadı: {$r}"];
+        if ((($rs[$r]['status'] ?? '')) !== 'accept') return ['error' => "Teklif kabul edilmiş değil: {$r} — kabul edilmemiş teklife fatura kesilmez."];
+        if (count(vestra_invoices_for_ref($r)) > 0) return ['error' => "Bu teklifin faturası zaten kesilmiş: {$r} — aynı satıra ikinci numara yakılmaz."];
+        $em = strtolower(trim((string)($row['email'] ?? '')));
+        if ($buyerEmail === null) { $buyerEmail = $em; $buyerRow = $row; }
+        elseif ($em !== $buyerEmail) return ['error' => "Seçilen teklifler aynı alıcıya ait değil ({$r} farklı) — tek fatura tek alıcıya kesilir."];
+
+        $listing = vestra_listing_by_sku($row['sku'] ?? '');
+        $listingSellers[(string)($listing['seller_uid'] ?? '')] = true;
+        $unit = vestra_offer_agreed_unit($r, null, $row);
+        $qty  = (int)($row['qty'] ?? 0);
+        $items[] = [
+            'sku'    => $listing['sku'] ?? ($row['sku'] ?? ''),
+            'brand'  => $listing['brand'] ?? '',
+            /* Ref satirda: alti kabul tek belgeye dusunce satirlarin hangi
+               pazarliktan geldigi baska turlu gorunmez. */
+            'name'   => trim((string)($listing['name'] ?? ($row['product'] ?? ''))).'  ·  '.$r,
+            'colors' => [],
+            'qty'    => $qty,
+            'unit'   => round($unit, 2),
+            'line'   => round($unit * $qty, 2),
+        ];
+    }
+
+    $primary = $refs[0];
+    $pick = trim($sellerPickOverride) !== '' ? trim($sellerPickOverride)
+          : trim((string)($rs[$primary]['invoice_seller_uid'] ?? ''));
+    if ($pick === '') {
+        /* Secim yok: ancak ILANLARIN HEPSI ayni saticiyi gosteriyorsa oraya
+           duselim; 'vestra' (bos seller_uid) da dahil tek deger olmali. */
+        if (count($listingSellers) !== 1) return ['error' => 'Seçilen ürünler farklı satıcılara ait — faturayı hangi satıcının keseceğini listeden seçin.'];
+        $pick = (string)array_key_first($listingSellers);
+        if ($pick === '') $pick = 'vestra';
+    }
+    $sellerAcc = vestra_offer_invoice_seller($primary, null, $pick);
+
+    $vatNote = $vatNoteOverride;
+    if ($vatNote === null) $vatNote = trim((string)($rs[$primary]['invoice_vat_note'] ?? ''));
+
+    $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
+    return [
+        'refs' => $refs,
+        'meta' => [
+            'ref' => $primary, 'date' => date('c'),
+            'vat_note' => trim((string)$vatNote),
+            'buyer' => [
+                'company' => ($buyerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
+                'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
+                'name'    => (string)($buyerAcc['name'] ?? ''),
+                'email'   => (string)($buyerRow['email'] ?? ''),
+                'country' => (string)($buyerAcc['country'] ?? ''),
+                'address' => (string)($buyerAcc['address'] ?? ''),
+            ],
+        ],
+        'items'  => $items,
+        'seller' => $sellerAcc,
+        'seller_pick' => $pick,
+        'total'  => round(array_sum(array_column($items, 'line')), 2),
+        'qty'    => (int)array_sum(array_column($items, 'qty')),
+    ];
+}
+
 /* $force=false -> yalnizca 'pending' doner, DOSYA URETMEZ (kabul aninda).
  * $force=true  -> numarayi yakar ve PDF'i yazar (operator onayindan sonra). */
 function vestra_offer_issue_invoice(string $ref, bool $force): ?array {

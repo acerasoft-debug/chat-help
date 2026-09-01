@@ -10,6 +10,14 @@ on:
         description: "true = odeme semasi 'manual' OLMAYAN hesabi Stripe'ta manual'e cevir (escrow'un on kosulu). Varsayilan false: sadece raporla."
         required: false
         default: "false"
+      set_invoice_name:
+        description: "Eslesen TEK hesabin fatura unvanini (invoice_name) bu degere yaz. Bos = dokunma. YALNIZCA AD ALANLARI: banka/hesap numarasi buradan GECMEZ (depo ve loglar herkese acik)."
+        required: false
+        default: ""
+      set_bank_holder:
+        description: "Eslesen TEK hesabin IBAN yanindaki ismini (bank_holder) bu degere yaz. Bos = dokunma."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -37,6 +45,8 @@ jobs:
             echo "ADIM 1: baglanti tamam"
             export Q='${{ github.event.inputs.query }}'
             export FIXSCHED='${{ github.event.inputs.fix_schedule }}'
+            export SET_INVNAME='${{ github.event.inputs.set_invoice_name }}'
+            export SET_HOLDER='${{ github.event.inputs.set_bank_holder }}'
             cat > /tmp/refresh_connect.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -53,6 +63,38 @@ jobs:
 
             $q = strtolower(trim((string)getenv("Q")));
             if ($q === '') { fwrite(STDERR, "HATA: arama metni bos\n"); exit(1); }
+
+            /* FATURA/BANKA ADI DUZELTMESI (yalniz AD alanlari; numaralar bu
+               yoldan asla gecmez -- depo ve Actions kutugu herkese acik).
+               Yazma yalnizca sorgu TAM BIR hesapla eslesirse yapilir: gevsek
+               bir sorguyla iki hesabin unvanini birden degistirmek olmaz.
+               Yazilan deger GERI OKUNARAK dogrulanir (auth_update void doner;
+               'kaydettim ama kaydolmamis' bu depoda daha once yasandi). */
+            $setInv = trim((string)getenv('SET_INVNAME'));
+            $setHold = trim((string)getenv('SET_HOLDER'));
+            if ($setInv !== '' || $setHold !== '') {
+              $hits = [];
+              foreach (auth_accounts() as $a) {
+                $hay = strtolower(($a['company']??'').' '.($a['name']??''));
+                if ($q !== '*' && strpos($hay, $q) !== false) $hits[] = $a;
+              }
+              if (count($hits) !== 1) {
+                fwrite(STDERR, "HATA: ad duzeltmesi icin sorgu TEK hesapla eslesmeli; '{$q}' ".count($hits)." hesapla eslesti. Hicbir sey yazilmadi.\n");
+                exit(1);
+              }
+              $upd = [];
+              if ($setInv  !== '') $upd['invoice_name'] = $setInv;
+              if ($setHold !== '') $upd['bank_holder']  = $setHold;
+              auth_update($hits[0]['id'], $upd);
+              $back = null;
+              foreach (auth_accounts() as $a) { if (($a['id']??'')===$hits[0]['id']) { $back = $a; break; } }
+              foreach ($upd as $k => $v) {
+                $gotV = trim((string)($back[$k] ?? ''));
+                echo "AD DUZELTME: {$k} = \"{$gotV}\" ".($gotV === $v ? '(dogrulandi)' : '*** YAZILAMADI ***')."\n";
+                if ($gotV !== $v) exit(1);
+              }
+              echo "\n";
+            }
 
             $found = false;
             foreach (auth_accounts() as $a) {

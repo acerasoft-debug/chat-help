@@ -901,7 +901,7 @@ function vestra_invoice_download_name(string $ref, string $sellerKey): string {
     return 'Invoice-'.($no !== '' ? $no.'-' : '').$safe.'.pdf';
 }
 
-function vestra_invoices_for_ref(string $ref): array {
+function vestra_invoices_for_ref(string $ref, bool $followGroup = true): array {
     $dir = vestra_invoice_dir();
     $safeRef = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $out = [];
@@ -929,6 +929,24 @@ function vestra_invoices_for_ref(string $ref): array {
             'total'     => (float)($meta['total'] ?? 0),
             'issued_at' => (string)($meta['issued_at'] ?? ''),
         ];
+    }
+    /* BIRLESIK FATURA bagi: birden fazla teklif tek belgede kesildiyse dosya
+       BIRINCIL ref'in adina yazilir ve uyeler offer_responses.json'da
+       invoice_group_ref ile ona baglanir. Alici ya da panel hangi uyeden
+       bakarsa baksin ayni belgeyi bulmali -- bu yuzden bag TEK yerde, burada
+       izleniyor; onay kuyrugu, alici sayfasi ve teshis kendiliginden dogru
+       calisiyor. Tek atlama ($followGroup=false ile ozyineleme): iki kaydin
+       birbirine isaret ettigi bozuk bir veri dongu kurmasin.
+       Dosya dogrudan okunuyor (vestra_read_json DEGIL): bu fonksiyon bakim
+       betiklerinde products.php olmadan da cagriliyor (yukaridaki auth notu
+       ayni dersin kaydi). */
+    if (!$out && $followGroup && $safeRef !== '') {
+        $f = dirname(__DIR__).'/data/offer_responses.json';
+        if (is_readable($f)) {
+            $rs  = json_decode((string)file_get_contents($f), true) ?: [];
+            $grp = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($rs[$safeRef]['invoice_group_ref'] ?? ''));
+            if ($grp !== '' && $grp !== $safeRef) return vestra_invoices_for_ref($grp, false);
+        }
     }
     usort($out, fn($a, $b) => strcmp($a['no'], $b['no']));
     return $out;

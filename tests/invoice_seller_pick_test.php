@@ -13,7 +13,7 @@
 $src   = file_get_contents(__DIR__.'/../vestra/inc/offers.php');
 $strip = fn($s) => preg_replace("#require_once __DIR__\.'/[a-z_]+\.php';#", '', $s);
 
-$JSON = []; $LISTING = null;
+$JSON = []; $LISTING = null; $LISTING_MAP = [];
 $CSV  = [['ref'=>'OF-1','sku'=>'SKU-1','product'=>'Tee','qty'=>10,'offer_unit'=>9.00,
           'offer_total'=>90.00,'email'=>'buyer@example.com','company'=>'Buyer Co',
           'timestamp'=>'2026-09-01T10:00:00+00:00']];
@@ -21,7 +21,8 @@ $CSV  = [['ref'=>'OF-1','sku'=>'SKU-1','product'=>'Tee','qty'=>10,'offer_unit'=>
 function vestra_read_csv($f){ global $CSV; return $CSV; }
 function vestra_read_json($f){ global $JSON; return $JSON; }
 function vestra_write_json($f,$d){ global $JSON; $JSON=$d; return true; }
-function vestra_listing_by_sku($s){ global $LISTING; return $LISTING; }
+function vestra_listing_by_sku($s){ global $LISTING,$LISTING_MAP; return $LISTING_MAP[$s] ?? $LISTING; }
+function vestra_invoices_for_ref($r,$f=true){ global $INVOICED; return in_array($r,$INVOICED??[],true)?[['no'=>'INV-X']]:[]; }
 function auth_find($e){ return ['id'=>'buy1','name'=>'Adrian','company'=>'Daymond','vat_id'=>'','country'=>'RO','address'=>'x']; }
 function auth_accounts(){ return [
   ['id'=>'garage','type'=>'seller','company'=>'GARAGE LE PARIS','invoice_name'=>'Agaya Paris','bank_holder'=>'Agaya'],
@@ -102,6 +103,53 @@ $t("'' acik silme: satir bos", ($p['meta']['vat_note']??'x')==='');
 $JSON = ['OF-1'=>['status'=>'accept']];
 $p = vestra_offer_invoice_payload('OF-1');
 $t('not yoksa bos (satir basilmaz)', ($p['meta']['vat_note']??'x')==='');
+
+echo "\n== 9. BIRLESIK FATURA (secilen teklifler -> tek belge) ==\n";
+/* "urunler secilip tek saticiya tek fatura kesilebilmeli". Kurucu ya tam
+   yuk ya ['error'=>...] doner; yarim liste sessizce kesilmez. */
+$CSV = [
+  ['ref'=>'OF-1','sku'=>'SKU-1','product'=>'Tee','qty'=>10,'offer_unit'=>9.00,'email'=>'buyer@example.com','company'=>'Buyer Co','timestamp'=>'2026-08-30T10:00:00+00:00'],
+  ['ref'=>'OF-2','sku'=>'SKU-2','product'=>'Polo','qty'=>20,'offer_unit'=>25.00,'email'=>'buyer@example.com','company'=>'Buyer Co','timestamp'=>'2026-08-31T10:00:00+00:00'],
+  ['ref'=>'OF-3','sku'=>'SKU-3','product'=>'Cap','qty'=>5,'offer_unit'=>7.00,'email'=>'other@example.com','company'=>'Other Co','timestamp'=>'2026-09-01T10:00:00+00:00'],
+];
+$LISTING_MAP = [
+  'SKU-1'=>['id'=>'l1','sku'=>'SKU-1','brand'=>'B','name'=>'Tee','seller_uid'=>'garage'],
+  'SKU-2'=>['id'=>'l2','sku'=>'SKU-2','brand'=>'B','name'=>'Polo','seller_uid'=>'tyrex'],
+  'SKU-3'=>['id'=>'l3','sku'=>'SKU-3','brand'=>'B','name'=>'Cap','seller_uid'=>'garage'],
+];
+$INVOICED = [];
+$JSON = ['OF-1'=>['status'=>'accept','counter_price'=>10.00,'agreed_unit'=>10.00],
+         'OF-2'=>['status'=>'accept'],
+         'OF-3'=>['status'=>'accept']];
+
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage');
+$t('iki satir', empty($p['error']) && count($p['items'])===2);
+$t('satir 1 ANLASILAN fiyat (10, ilk teklif 9 degil)', abs($p['items'][0]['unit']-10.00)<0.001);
+$t('toplam 10*10+25*20=600', abs($p['total']-600.00)<0.001);
+$t('satir adinda ref var', str_contains($p['items'][1]['name'],'OF-2'));
+$t('birincil ref ilk secilen', ($p['meta']['ref']??'')==='OF-1');
+$t('satici operatorun sectigi', $who($p['seller'])==='GARAGE LE PARIS');
+
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-3']);
+$t('farkli ALICI reddedildi', !empty($p['error']) && str_contains($p['error'],'aynı alıcıya ait değil'));
+
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2']);
+$t('ilanlar farkli saticida + secim yok -> red', !empty($p['error']) && str_contains($p['error'],'farklı satıcılara'));
+
+$JSON['OF-2']['status']='counter';
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage');
+$t('kabul edilmemis teklif reddedildi', !empty($p['error']) && str_contains($p['error'],'kabul edilmiş değil'));
+$JSON['OF-2']['status']='accept';
+
+$INVOICED = ['OF-2'];
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage');
+$t('faturasi kesilmis teklif reddedildi', !empty($p['error']) && str_contains($p['error'],'zaten kesilmiş'));
+$INVOICED = [];
+
+/* Ayni satici tum ilanlarda -> secimsiz de kesilebilir */
+$LISTING_MAP['SKU-2']['seller_uid']='garage';
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2']);
+$t('ortak ilan saticisina otomatik dusme', empty($p['error']) && $who($p['seller'])==='GARAGE LE PARIS');
 
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);
