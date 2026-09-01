@@ -23,9 +23,13 @@ on:
         required: false
         default: "false"
       mailcfg:
-        description: "true = mail ayarları + Brevo olay geçmişi + error_log kuyruğu"
+        description: "true = mail ayarları + Brevo'nun KENDİ olay geçmişi (gönderildi ≠ ulaştı)"
         required: false
         default: "false"
+      mail_for:
+        description: "mailcfg ile: olay geçmişi sorulacak adres (boş = operatör test kutusu)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -56,7 +60,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR
           script: |
             export IN_WHO='${{ github.event.inputs.who }}'
             export IN_WHO2='${{ github.event.inputs.who2 }}'
@@ -64,6 +68,7 @@ jobs:
             export IN_SHIPS='${{ github.event.inputs.ships }}'
             export IN_THREADS='${{ github.event.inputs.threads }}'
             export IN_MAILCFG='${{ github.event.inputs.mailcfg }}'
+            export IN_MAIL_FOR='${{ github.event.inputs.mail_for }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -227,10 +232,48 @@ jobs:
 
             if (getenv('IN_MAILCFG') === 'true') {
               echo "===== MAIL AYARLARI =====\n";
+              $apiKey = (string)vestra_cfg('mail_api_key','');
               echo "mail_enabled=".(vestra_cfg('mail_enabled',false)?'true':'false')
                  ." | provider=".vestra_cfg('mail_api_provider','brevo')
-                 ." | anahtar=".(((string)vestra_cfg('mail_api_key','')) !== '' ? 'SET' : '(bos)')
+                 ." | anahtar=".($apiKey !== '' ? 'SET' : '(bos)')
                  ." | from=".vestra_cfg('mail_from','support@vestrasales.com')."\n\n";
+
+              /* SAGLAYICININ KENDI KAYDI. error_log yalnizca BASARISIZ gonderimi
+                 yaziyor -- 2xx hicbir sey birakmiyor, yani oradaki sessizlik
+                 "ulasti" demek DEGIL. Betigin "GONDERILDI" satiri da yalnizca
+                 "Brevo isteği kabul etti" demek; teslim, bounce, spam ve
+                 "hic ulasmadi" ancak burada ayrisiyor.
+                 Adres: IN_MAIL_FOR, verilmezse operatorun test kutusu. */
+              $who = trim((string)getenv('IN_MAIL_FOR'));
+              if ($who === '') $who = 'acerasoft@gmail.com';
+              if ($apiKey === '') { echo "  (anahtar yok -- olay gecmisi sorulamiyor)\n"; }
+              else {
+                echo "===== BREVO OLAY GECMISI: ".m($who)." (son 2 gun) =====\n";
+                $ch = curl_init('https://api.brevo.com/v3/smtp/statistics/events?'.http_build_query([
+                  'email' => $who,
+                  'startDate' => gmdate('Y-m-d', strtotime('-2 days')),
+                  'endDate' => gmdate('Y-m-d'),
+                  'limit' => 30,
+                ]));
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
+                  CURLOPT_HTTPHEADER=>['api-key: '.$apiKey, 'Accept: application/json']]);
+                $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+                if ($code >= 200 && $code < 300) {
+                  $events = (array)((json_decode((string)$resp, true) ?: [])['events'] ?? []);
+                  if (!$events) { echo "  (HIC OLAY YOK -- Brevo'ya hic ulasmamis olabilir)\n"; $summary[] = "Brevo: olay yok"; }
+                  $tally = [];
+                  foreach ($events as $ev) {
+                    $e = (string)($ev['event'] ?? '?');
+                    $tally[$e] = ($tally[$e] ?? 0) + 1;
+                    echo "  ".($ev['date'] ?? '?')." | ".$e." | ".mb_substr((string)($ev['subject'] ?? ''),0,58)."\n";
+                  }
+                  foreach ($tally as $e => $c) $summary[] = "Brevo {$e}: {$c}";
+                } else {
+                  echo "  HATA: Brevo events HTTP {$code}: ".mb_substr((string)$resp,0,160)."\n";
+                  $summary[] = "Brevo events HTTP {$code}";
+                }
+              }
+              echo "\n";
             }
 
             echo "===== OZET =====\n";
