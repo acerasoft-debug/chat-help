@@ -169,13 +169,19 @@ $thumbsFor = function (array $p) use (&$thumbCache): array {
     foreach ($srcs as $src) {
         if ($src === '') continue;
         $rel  = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', $src), '/');
-        $file = __DIR__.$rel;
-        if (!is_file($file)) continue;
-        if (!isset($thumbCache[$file])) {
-            $thumbCache[$file] = function_exists('vestra_pdf_thumb')
-                ? (string)vestra_pdf_thumb($file, 150, 72) : '';
+        if (!is_file(__DIR__.$rel)) continue;
+        if (!isset($thumbCache[$rel])) {
+            /* vestra_pdf_thumb() WEB yolu bekliyor ve dosya yolunu KENDI kuruyor
+               (dirname(__DIR__).$src). Buraya mutlak yol veriliyordu: iceride yol
+               ikiye katlanip is_file() dusuyor ve fonksiyon SESSIZCE bos donuyordu
+               -- $src[0]!=='/' korumasi da mutlak yolu gecirdigi icin hata hic
+               gorunmuyordu. Sonuc: PDF'te yillardir HIC fotograf yoktu; dosya
+               uretiliyor, imza dogru, boyut makul, sadece resimler eksik.
+               Olculdu: gomulu fotograf 0. */
+            $thumbCache[$rel] = function_exists('vestra_pdf_thumb')
+                ? (string)vestra_pdf_thumb($rel, 150, 72) : '';
         }
-        if ($thumbCache[$file] !== '') $out[] = $thumbCache[$file];
+        if ($thumbCache[$rel] !== '') $out[] = $thumbCache[$rel];
     }
     return $out;
 };
@@ -205,23 +211,14 @@ foreach ($byBrand as $brand => $rows) {
         $rowTop = $y + 8;
         $imgY   = $rowTop - $H_THUMB;
 
-        /* Fotograf IZGARASI. Tek fotograf varsa kutuyu komple kaplar; birden
-           fazlaysa ayni kutunun icinde satir/sutuna bolunur, boylece sayfa
-           duzeni ve satir yuksekligi renk sayisindan bagimsiz kalir.
-           Sutun sayisi kareye yakin tutuluyor: 4 renk 2x2, 6 renk 3x2. */
+        /* TEK fotograf, TAM BOY. Bir ara ayni kutuyu renk sayisina bolup 2x2
+           izgara denendi; operator reddetti -- kucultulmus fotograf katalogda
+           ise yaramiyor, alici urunu goremiyor. Renkler zaten ADLARIYLA
+           yaziliyor (asagida 'Colours:' satiri) ve her rengin fotografi urun
+           sayfasinda duruyor; satirdaki fotografin isi modeli tanitmak. */
         $jpgs = $thumbsFor($p);
         if ($jpgs) {
-            $n    = count($jpgs);
-            $cols = $n === 1 ? 1 : (int)ceil(sqrt($n));
-            $rows = (int)ceil($n / $cols);
-            $gap  = $n === 1 ? 0.0 : 2.0;
-            $cw   = ($W_THUMB - $gap * ($cols - 1)) / $cols;
-            $ch   = ($H_THUMB - $gap * ($rows - 1)) / $rows;
-            foreach ($jpgs as $k => $jp) {
-                $cx = $X_THUMB + ($k % $cols) * ($cw + $gap);
-                $cy = $imgY + $H_THUMB - $ch - (intdiv($k, $cols)) * ($ch + $gap);
-                $pdf->imageJpeg($jp, $cx, $cy, $cw, $ch, $n === 1 ? 3.0 : 1.5);
-            }
+            $pdf->imageJpeg($jpgs[0], $X_THUMB, $imgY, $W_THUMB, $H_THUMB, 3.0);
         } else {
             $pdf->rectFill($X_THUMB, $imgY, $W_THUMB, $H_THUMB, 0.93);
             $pdf->text($X_THUMB + 8, $imgY + $H_THUMB / 2 - 3, 6.5, 'no photo');
