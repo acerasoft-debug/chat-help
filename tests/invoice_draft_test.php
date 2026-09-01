@@ -57,5 +57,13 @@ foreach ([
 ] as $n => $needle) $t("$n ikisinde de var", str_contains($draft,$needle) && str_contains($real,$needle));
 $t('boyutlar yakin (ayni yerlesim)', abs(strlen($draft)-strlen($real)) < 600);
 
+echo "\n== 4. KDV satiri belgeye basiliyor ==\n";
+/* Franchise en base saticinin faturasinda "TVA non applicable" ibaresi
+   ZORUNLU; bossa satir hic cikmamali (uydurma bir KDV cumlesi basilamaz). */
+$meta2 = $meta; $meta2['vat_note'] = 'TVA non applicable - article 293 B du CGI';
+$withNote = vestra_render_invoice_pdf($meta2, $items, $seller, 'INV-2026-000124', false);
+$t('ibare belgede',            str_contains($withNote,'293 B du CGI'));
+$t('nota bos belgede satir yok', !str_contains($real,'VAT:') || !str_contains($real,'293 B'));
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

@@ -141,7 +141,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if(!$ok) foreach(auth_accounts() as $sa){ if(($sa['id']??'')===$pick && ($sa['type']??'')==='seller'){ $ok=true; break; } }
       if(!$ok){ header('Location: /admin?tab=invoices&msg=invoice_seller_bad'); exit; }
     }
-    $p = vestra_offer_invoice_payload($ref, $pick);
+    /* KDV satiri: formda O AN ne yaziyorsa taslak onu tasir -- satici
+       secimiyle ayni desen, kayda gecmez. */
+    $vn = array_key_exists('vat_note',$_POST)
+        ? mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200)
+        : null;
+    $p = vestra_offer_invoice_payload($ref, $pick, $vn);
     if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
     $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
     header('Content-Type: application/pdf');
@@ -169,6 +174,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
        Var olmayan bir uid sessizce platforma dusseydi fatura Acerasoft LLC
        adina cikardi: operatorun sectigi degil, secemedigi kisi.
        Secim faturadan ONCE yaziliyor ki belge ile kayit ayni sey olsun. */
+    $dirty=false;
     $pick = preg_replace('/[^A-Za-z0-9_-]/','',(string)($_POST['seller_uid'] ?? ''));
     if($pick!=='' && $pick!==(string)($rs[$ref]['invoice_seller_uid'] ?? '')){
       $ok = ($pick==='vestra');
@@ -177,8 +183,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $rs[$ref]['invoice_seller_uid']=$pick;
       $rs[$ref]['invoice_seller_by']='operator';
       $rs[$ref]['invoice_seller_at']=date('c');
-      vestra_write_json('offer_responses.json',$rs);
+      $dirty=true;
     }
+    /* KDV satiri da secimle ayni anda kayda gecer -- belge onu kayittan okur
+       (vestra_offer_invoice_payload). Alan formda HEP var, o yuzden bos
+       gonderim "sil" demek; tek satira indirilip kirpiliyor cunku PDF'te tek
+       bir 'VAT:' satirina basiliyor. */
+    if(array_key_exists('vat_note',$_POST)){
+      $vn = mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200);
+      if($vn !== (string)($rs[$ref]['invoice_vat_note'] ?? '')){ $rs[$ref]['invoice_vat_note']=$vn; $dirty=true; }
+    }
+    if($dirty) vestra_write_json('offer_responses.json',$rs);
     $iv=vestra_offer_issue_invoice($ref, true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
     if($issued){
@@ -3311,6 +3326,15 @@ elseif($tab==='invoices'): ?>
           <?php endif; ?>
         </select>
         <div class="ahint" style="font-size:10.5px"><?= $fPicked ? 'sizin seçiminiz' : (($fl && ($fl['seller_uid']??'')!=='') ? 'ilandan geldi' : 'ilanda satıcı yok → platform') ?></div>
+        <?php /* KDV satiri: KDV'siz kesilen faturada NEDEN'i belgenin uzeri
+                 soylemeli. Kucuk satici (franchise en base) icin "TVA non
+                 applicable" ibaresi, VIES'li aliciya reverse charge ibaresi
+                 buradan girilir. Bos = satir hic basilmaz. */ ?>
+        <input name="vat_note" form="<?= htmlspecialchars($fFid) ?>" maxlength="200"
+               value="<?= htmlspecialchars((string)($offerResp[$fref]['invoice_vat_note'] ?? '')) ?>"
+               placeholder='VAT satırı — örn. "TVA non applicable — article 293 B du CGI"'
+               title="Faturadaki VAT satırı. KDV'siz kesiyorsanız gerekçesi burada yazmalı; boş bırakılırsa satır hiç basılmaz."
+               style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
       </td>
       <td>
         <?php /* _action GIZLI ALANDA DEGIL, dugmelerin uzerinde: iki dugme ayni

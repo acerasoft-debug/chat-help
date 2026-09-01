@@ -336,7 +336,7 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = ''): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null): ?array {
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return null;
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
@@ -346,9 +346,23 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
 
     $sellerAcc = vestra_offer_invoice_seller($ref, $listing, $sellerPickOverride);
 
+    /* KDV satiri (serbest metin, orn. "TVA non applicable -- article 293 B du
+       CGI" ya da "Intra-Community supply -- reverse charge"). Siparis faturasi
+       bunu orders.csv'den okuyordu, teklif faturasinin ise koyacak yeri YOKTU --
+       oysa bes haneli bir satista KDV'nin neden sifir oldugunu belgenin uzerinde
+       soylemek zorunlu (gerekce render'daki shipRows blogunda). Operator onay
+       ekranindan girer; null = kayitli degeri oku, '' dahil verilmis deger =
+       onizleme gecersiz kilmasi (satici secimiyle ayni desen). */
+    $vatNote = $vatNoteOverride;
+    if ($vatNote === null) {
+        $rs = vestra_read_json('offer_responses.json');
+        $vatNote = trim((string)($rs[$ref]['invoice_vat_note'] ?? ''));
+    }
+
     return [
         'meta' => [
             'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
+            'vat_note' => trim($vatNote),
             'buyer' => [
                 'company' => ($offerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),

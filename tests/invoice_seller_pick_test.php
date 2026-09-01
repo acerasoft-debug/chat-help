@@ -87,5 +87,21 @@ $p = vestra_offer_invoice_payload('OF-1','garage');
 $t('gecersiz kilma kayitli secimi de EZER (o anki liste ne diyorsa o)', $who($p['seller'])==='GARAGE LE PARIS');
 $t('kayitli secim yerinde durdu', ($JSON['OF-1']['invoice_seller_uid']??'')==='tyrex');
 
+echo "\n== 8. KDV satiri (vat_note) ==\n";
+/* KDV'siz kesilen faturada gerekcesi belgenin ustunde yazmali; teklif
+   yolunun bunu tasiyacak yeri yoktu. Kayittan okunur, onizlemede formdaki
+   deger gecersiz kilar, '' acikca "satir yok" demektir. */
+$JSON = ['OF-1'=>['status'=>'accept','invoice_vat_note'=>'TVA non applicable - article 293 B du CGI']];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('kayitli not metaya girdi', ($p['meta']['vat_note']??'')==='TVA non applicable - article 293 B du CGI');
+$p = vestra_offer_invoice_payload('OF-1','','Intra-Community supply - reverse charge');
+$t('onizleme gecersiz kilmasi', ($p['meta']['vat_note']??'')==='Intra-Community supply - reverse charge');
+$t('kayit yerinde durdu', ($JSON['OF-1']['invoice_vat_note']??'')==='TVA non applicable - article 293 B du CGI');
+$p = vestra_offer_invoice_payload('OF-1','','');
+$t("'' acik silme: satir bos", ($p['meta']['vat_note']??'x')==='');
+$JSON = ['OF-1'=>['status'=>'accept']];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('not yoksa bos (satir basilmaz)', ($p['meta']['vat_note']??'x')==='');
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);
