@@ -9,7 +9,8 @@
 $src = file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
 preg_match('/^function vestra_iban_normalize\(.*?^}/ms', $src, $m1);
 preg_match('/^function vestra_iban_valid\(.*?^}/ms',     $src, $m2);
-eval($m1[0]); eval($m2[0]);
+preg_match('/^function vestra_iban_pretty\(.*?^}/ms',    $src, $m3);
+eval($m1[0]); eval($m2[0]); eval($m3[0]);
 
 $ok=0; $fail=0;
 $t = function(string $n, bool $c) use (&$ok,&$fail) { $c ? ($ok++ . print("  ok   $n\n")) : ($fail++ . print("  HATA $n\n")); };
@@ -40,6 +41,14 @@ $t('bos',                !vestra_iban_valid(''));
 $t('sadece ulke kodu',   !vestra_iban_valid('FR'));
 $t('hesap numarasi IBAN degil', !vestra_iban_valid('202515871492'));
 $t('ulke kodu rakam',    !vestra_iban_valid('1289 3704 0044 0532 0130 00'));
+
+echo "\n== 3b. Baski bicimi: 4'lu gruplar ==\n";
+/* Belge uzerinde bitisik 27 hane okunamiyor; saklama normalize kalir,
+   cikti gruplu. Bosluklu ESKI kayit da once normalize edilir -- yoksa
+   chunk_split cift bosluk uretirdi. */
+$t('gruplu basiliyor', vestra_iban_pretty('FR4720041010125740964U03334')==='FR47 2004 1010 1257 4096 4U03 334');
+$t('bosluklu girdi de ayni ciktiyi verir', vestra_iban_pretty('FR47 2004 1010 1257 4096 4U03 334')==='FR47 2004 1010 1257 4096 4U03 334');
+$t('kucuk harf + tire de ayni', vestra_iban_pretty('fr47-2004-1010-1257-4096-4u03-334')==='FR47 2004 1010 1257 4096 4U03 334');
 
 echo "\n== 4. Tabloda olmayan ulke: yalnizca mod-97 ==\n";
 /* Bilinmeyen bir ulke kodunu topluca reddetmek, gecerli bir hesabi

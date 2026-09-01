@@ -50,7 +50,9 @@ echo "\n== 3. Ikisi AYNI belge (kimlik disinda) ==\n";
 foreach ([
   'alici unvani'   => 'SC Daymond Proconect SRL',
   'fatura unvani'  => 'Agaya Paris',
-  'IBAN'           => 'FR1420041010050500013M02606',
+  /* IBAN belgeye 4'lu gruplarla basilir (operator istegi, 1 Eyl 2026) --
+     bitisik 27 hane insan gozuyle dogrulanamiyor. */
+  'IBAN (4lu gruplar)' => 'FR14 2004 1010 0505 0001 3M02 606',
   'IBAN sahibi'    => 'Agaya',
   'urun'           => 'Graphic T-Shirt',
   'satir toplami'  => '900.00',

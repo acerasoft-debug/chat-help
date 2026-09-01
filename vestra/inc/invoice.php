@@ -114,7 +114,7 @@ function vestra_payment_rails(array $acc, string $currency): array {
     $hasUs = $g('bank_account') !== '' || $g('bank_routing') !== '';
     $bic   = $g('bank_eur_bic') !== '' ? $g('bank_eur_bic') : ($hasUs ? '' : $g('bank_bic'));
     return array_values(array_filter([
-        'IBAN: '.$g('bank_iban'),
+        'IBAN: '.vestra_iban_pretty($g('bank_iban')),
         $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
     ], fn($v) => $v !== ''));
 }
@@ -165,6 +165,19 @@ function vestra_iban_valid(string $v): bool {
         for ($j = 0, $m = strlen($d); $j < $m; $j++) $rem = ($rem * 10 + (int)$d[$j]) % 97;
     }
     return $rem === 1;
+}
+
+/**
+ * IBAN'in BASKI bicimi: 4'lu gruplar (ISO 13616'nin kagit gosterimi) —
+ * "FR47 2004 1010 1257 4096 4U03 334". Operator istegi (1 Eyl 2026):
+ * faturada bu bicimde dursun; 27 bitisik hane insan gozuyle dogrulanamiyor,
+ * alici havale formuna gecirirken bu gruplarla karsilastiriyor.
+ * SAKLAMA bicimi degismez (normalize, bosluksuz) — bu yalnizca cikti.
+ * Once normalize: eski kayitlarda bosluklu deger kalmis olabilir, dogrudan
+ * chunk_split cift bosluk uretirdi.
+ */
+function vestra_iban_pretty(string $v): string {
+    return trim(chunk_split(vestra_iban_normalize($v), 4, ' '));
 }
 
 function vestra_invoice_dir(): string {

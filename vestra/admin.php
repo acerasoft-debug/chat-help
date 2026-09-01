@@ -2945,7 +2945,7 @@ function sendUserMessage(uid,name){
               <span style="color:var(--bad)">— hesap yok — bu satıcıdan kesilen faturada ödeme kutusu <b>çıkmaz</b></span>
             <?php else: ?>
               <?= htmlspecialchars(($a['bank_holder']??'')?:'⚠ hesap sahibi adı boş') ?>
-              <?php if($__iban!==''): ?><br><span style="font-family:ui-monospace,monospace;font-size:12px;user-select:all"><?= htmlspecialchars(trim(chunk_split($__iban,4,' '))) ?></span><?php endif; ?>
+              <?php if($__iban!==''): ?><br><span style="font-family:ui-monospace,monospace;font-size:12px;user-select:all"><?= htmlspecialchars(vestra_iban_pretty($__iban)) ?></span><?php endif; ?>
               <?php if(!empty($a['bank_bic'])): ?><br>BIC: <?= htmlspecialchars($a['bank_bic']) ?><?php endif; ?>
               <?php if($__acct!==''): ?><br>Acct: <?= htmlspecialchars($__acct) ?><?php if(!empty($a['bank_routing'])): ?> · ABA <?= htmlspecialchars($a['bank_routing']) ?><?php endif; ?><?php endif; ?>
               <?php if(!empty($a['bank_name'])): ?><br><span class="ahint"><?= htmlspecialchars($a['bank_name']) ?></span><?php endif; ?>
