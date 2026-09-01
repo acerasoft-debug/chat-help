@@ -1749,7 +1749,22 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
 
         $body .= strtoupper($cat)." — EUR ".number_format($price, 2)." per piece"
                . ($moq > 0 ? ", minimum ".$moq." pcs" : "")."\n";
-        if ($tiers !== '') $body .= "Volume price: ".$tiers." per piece\n";
+        /* vestra_export_tiers_label() "160+ 25.00 · 320+ 23.50" verir -- tabloda
+           dogru, duz metinde okunmuyor ("160+ 25.00 per piece" iki rakami
+           yan yana birakiyor). Mektubun EN COK OKUNAN satiri bu; para birimi
+           ve adet ayri ayri yaziliyor. Cozulemeyen bir bicim gelirse ham etiket
+           basiliyor -- uydurmak yerine. */
+        if ($tiers !== '') {
+            $parts = [];
+            foreach (explode('·', $tiers) as $t) {
+                $t = trim($t);
+                if ($t === '') continue;
+                $parts[] = preg_match('/^(\d+)\+\s+([\d.,]+)$/', $t, $mm)
+                    ? "from ".$mm[1]." pcs: EUR ".$mm[2]
+                    : $t;
+            }
+            $body .= "Volume price — ".implode(' · ', $parts)." per piece\n";
+        }
         if ($sizes !== '') $body .= "Size run: ".$sizes."\n";
         $body .= "\n";
         foreach ($items as $it) {
