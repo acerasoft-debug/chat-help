@@ -188,6 +188,25 @@ görüntülenmesidir — kademeler yalnızca girişli ve onaylı hesaba basılı
   sonraki toplu hoş geldin koşusu aynı hesaba **ikinci bir kod** göndermez.
   Önizlemede kod **yakılmaz**; damga yalnızca gönderim başarılı olunca düşer.
 
+**KURAL 2c — Onay bekleyen hesap SESSİZ kalmaz.** Fiyat kapısını operatör onayı
+açıyor, ama kayıt geldiğinde operatöre **hiçbir şey haber vermiyordu**
+(`check-registrations.yml` yalnızca elle tetikleniyor). 1 Eylül 2026'da ölçüldü:
+**7 hesap** onay bekliyordu ve biri belgesini yükleyip **onayını da almışken**
+hâlâ kilitliydi — o alıcı sitede fiyat göremiyor, sepeti onaylayamıyordu.
+- Kapalı hesabın göremediği: fiyatlar (`head.php:47`), sipariş (`order.php:24`),
+  line sheet PDF/Excel, dropship. Yani hesap "duruyor" ama **hiçbir işe yaramıyor**.
+- Çözüm sunucu crontab'ında: `cron_pending_accounts.php` (06:40 UTC,
+  `deploy-vestra.yml` idempotent kurar). GitHub'a `schedule` eklemek **çözmez** —
+  zamanlanmış işler her zaman varsayılan daldaki sürümü çalıştırır.
+- **Bekleyen yoksa mektup gitmez.** Her sabah "0 bekleyen" yazan bir uyarı,
+  okunmamayı öğretir.
+- Belgesini vermiş olanlar listede **en üste** çıkar: onlar istenen her şeyi
+  yapmış ve hâlâ kilitli olanlar.
+- Kapı **yeniden tanımlanmaz**, `auth_prices_unlocked()` çağrılır. Bu depoda altı
+  kez kontrolün kendisi yanlış yere baktı; kapının ikinci bir kopyası yedincisi olurdu.
+- Toplu açma: `send-campaign-preview.yml` → `reply_letter=approve_all`
+  (`send=false` kuru listeyi verir). Her hesapta kapıyı **geri okuyup doğrular**.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa

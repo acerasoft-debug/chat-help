@@ -162,6 +162,11 @@ jobs:
             ( crontab -l 2>/dev/null | grep -v 'VESTRA-SWEEP' || true
               echo '10 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_pool_sweep.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP havuz'
               echo '25 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_escrow_release.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP escrow'
+              # Onay bekleyen hesaplar. Kayit oldugunda operatore HICBIR sey haber
+              # vermiyordu (check-registrations.yml elle tetikleniyor), ve 1 Eylul
+              # 2026'da 7 hesap birikmisti -- biri belgesini verip onay almisken
+              # hala kilitliydi. Bekleyen yoksa mektup GITMEZ.
+              echo '40 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_pending_accounts.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP bekleyen-hesap'
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
@@ -193,3 +198,10 @@ jobs:
             echo ""
             echo "=== escrow serbest birakma (kuru) ==="
             php cron_escrow_release.php --dry-run
+            echo ""
+            # Bu betik canli kosuda MEKTUP gonderiyor, kuru kosuda gondermiyor.
+            # Kanaryanin isi metni degil, AYAGA KALKIYOR MU sorusunu yanitlamak:
+            # fatal olursa deploy kirmizi biter ve bekleyen hesap uyarisi sessizce
+            # hic calismamis olmaz.
+            echo "=== bekleyen hesap uyarisi (kuru) ==="
+            php cron_pending_accounts.php --dry-run
