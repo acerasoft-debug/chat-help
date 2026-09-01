@@ -512,6 +512,12 @@ jobs:
                 $leads[$i]['last_contacted_at'] = date('c');
                 if (($leads[$i]['status'] ?? 'new') === 'new') $leads[$i]['status'] = 'contacted';
                 $leads[$i]['last_campaign'] = 'les-garage/'.$lang;
+                /* Firma haritasini ANINDA guncelle. $firmDone dongu oncesi
+                   kuruldugu icin AYNI PARTIDEKI ikinci adres (info@x.com ve
+                   sales@x.com birlikte yapistirilmis) ikisi de "yeni" sayilip
+                   ikisi de mektup alirdi -- kapinin disardan gorunmeyen yarisi. */
+                $dsent = $domOf($mail);
+                if ($dsent !== '' && !isset($SHARED_MX[$dsent]) && !isset($firmDone[$dsent])) $firmDone[$dsent] = $mail;
                 $sent++;
                 echo "  + GONDERILDI: {$company} <{$mail}> | dil=".($FLAG[$lang] ?? 'EN')."\n";
               } else {
