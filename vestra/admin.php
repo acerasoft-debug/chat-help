@@ -1764,6 +1764,27 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     vestra_save_ip_blocks(array_values(array_filter(vestra_ip_blocks(), fn($b)=>($b['ip']??'')!==$ip)));
     header('Location: /admin?tab=security&msg=sec_unblocked'); exit;
   }
+  /* ULKE ENGELI. Tek tek IP'den ayri tutuluyor: IP kurallari belirli bir
+     saldirgani hedefler, bu ticari bir karardir (o pazarda satmiyoruz).
+     Kendini disarida birakma riskine karsi uc kacis yolu security.php'de:
+     /admin muaf, izin listesi, ve ulke cozulemezse engelleme yok. Yine de
+     operatorun KENDI ulkesini eklerken bunu GORMESI icin geri okuyup
+     kendi IP'sinin durumunu raporluyoruz. */
+  if($act==='sec_country_save'){
+    $raw = strtoupper(trim((string)($_POST['countries']??'')));
+    $cc  = array_values(array_filter(array_map('trim', preg_split('/[\s,;]+/', $raw) ?: []),
+                                     fn($s)=>preg_match('/^[A-Z]{2}$/',$s)));
+    $allow = array_values(array_filter(array_map('trim',
+             preg_split('/[\s,;]+/', (string)($_POST['allow_ips']??'')) ?: []), fn($s)=>$s!==''));
+    /* Bos birakilan izin listesi + kendi ulkeni engelleme = panel disinda her
+       sey kapali. Panel muaf oldugu icin kilitlenme olmaz, ama operator kendi
+       IP'sini eklemek isteyebilir; kararini bilerek versin diye durumu geri
+       okuyup mesajda soyluyoruz. */
+    vestra_save_country_blocks($cc, $allow);
+    $myIp2 = vestra_client_ip();
+    $mine  = vestra_country_blocked($myIp2, '/');   // '/' = panel disi bir yol gibi degerlendir
+    header('Location: /admin?tab=security&msg='.($mine?'sec_cc_self':'sec_cc_ok').'&n='.count($cc)); exit;
+  }
   if($act==='send_push'){
     require_once __DIR__.'/inc/push.php';
     $target = $_POST['target'] ?? 'all';
@@ -2168,6 +2189,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'sec_dup'=>'Bu kural zaten listede.',
     'sec_badip'=>'⚠ Geçersiz kural — tam IP (1.2.3.4), önek (1.2.3.) ya da IPv4 CIDR (1.2.3.0/24) girin. Hiçbir şey eklenmedi.',
     'sec_self'=>'⚠ Bu kural SİZİN şu anki IP adresinizi kapsıyor — kendinizi engellemek admin paneline erişiminizi de kapatırdı. Hiçbir şey eklenmedi.',
+    'sec_cc_ok'=>'✓ Ülke engeli kaydedildi. Sizin bağlantınız etkilenmiyor.',
+    'sec_cc_self'=>'✓ Ülke engeli kaydedildi — ve KENDİ ülkeniz listede. Panel (/admin) muaf olduğu için kilitlenmezsiniz, ama sitenin geri kalanını kendi bağlantınızdan göremezsiniz. Görmek isterseniz IP\'nizi izin listesine ekleyin.',
     'voucher_ok'=>'✓ Voucher created.','voucher_del'=>'Voucher deleted.','voucher_toggled'=>'Voucher status changed.',
     'welcome_dry'=>'Preview only — nothing was created or sent. See the list below.',
     'welcome_sent'=>'✓ Welcome vouchers issued and emailed. See the result below.',
@@ -5454,6 +5477,39 @@ elseif($tab==='security'):
     return mb_chr(0x1F1E6 + ord($cc[0]) - 65).mb_chr(0x1F1E6 + ord($cc[1]) - 65);
   };
 ?>
+<?php
+  /* Ulke engeli. Tek tek IP'den ayri bir karar: IP kurallari belirli bir
+     saldirgani hedefler, bu ise "o pazarda satmiyoruz" demektir. */
+  $ccCfg  = vestra_country_blocks();
+  $ccList = implode(' ', array_keys($ccCfg['countries']));
+  $ccMine = vestra_country_blocked($myIp, '/');   // '/' -> panel disi bir yol gibi bak
+?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🌍 Ülke engeli</h3></div>
+  <div class="acard-body">
+    <p class="ahint" style="margin:0 0 10px">
+      İki harfli ISO kodu, boşlukla ayırın (<code>TR RU CN</code>). Bu ülkelerden gelen ziyaretçi sitenin
+      <b>tamamından</b> 403 alır. Boş bırakmak engeli kaldırır.
+      <br><b>Panel her zaman açık kalır:</b> <code>/admin</code> bu kuraldan muaftır, çünkü kapı oturum
+      başlamadan önce çalışıyor ve orada "bu admin mi" sorusunun cevabı yok — yol tek ölçüt.
+      Ayrıca <b>ülke çözülemezse engelleme uygulanmaz</b>: coğrafi servis düşerse herkesi kesmek yerine
+      kural sessizce devre dışı kalır.
+      <br>Sizin IP'niz: <code><?= htmlspecialchars($myIp) ?></code> —
+      <?php if($ccMine): ?><b style="color:var(--bad)">şu anki kural sizin ülkenizi kapsıyor.</b>
+        Panel yine açık, ama sitenin geri kalanını kendi bağlantınızdan göremezsiniz; görmek isterseniz
+        IP'nizi izin listesine ekleyin.
+      <?php else: ?><span style="color:var(--ok)">mevcut kural sizi etkilemiyor.</span><?php endif; ?>
+    </p>
+    <form method="post" class="aform" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?><input type="hidden" name="_action" value="sec_country_save">
+      <div class="afield" style="margin:0;min-width:170px"><label>Engelli ülkeler (ISO)</label>
+        <input name="countries" value="<?= htmlspecialchars($ccList) ?>" placeholder="TR" style="width:180px"></div>
+      <div class="afield" style="margin:0;flex:1;min-width:200px"><label>İzin listesi — IP / önek / CIDR (ülkeden bağımsız geçer)</label>
+        <input name="allow_ips" value="<?= htmlspecialchars(implode(' ', $ccCfg['allow_ips'])) ?>" placeholder="<?= htmlspecialchars($myIp) ?>"></div>
+      <button class="abtn primary" type="submit">Kaydet</button>
+    </form>
+  </div>
+</div>
 <div class="acols2" style="align-items:start;margin-bottom:16px">
   <div class="acard">
     <div class="acard-hd"><h3>🚫 IP engelle</h3></div>

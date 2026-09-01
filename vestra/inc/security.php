@@ -82,6 +82,67 @@ function vestra_ip_blocked(string $ip): ?array {
     return null;
 }
 
+/* ── country block ───────────────────────────────────────────────────────────
+ * Bir ULKENIN tamamini siteden kes. Tek tek IP yasaklamaktan ayri bir liste:
+ * IP kurallari belirli bir saldirganı hedefler, bu ise ticari bir karardir
+ * (o pazarda satmiyoruz / kanal orada zaten kapali).
+ *
+ * KENDINI DISARIDA BIRAKMA riski bu ozelligin asil tehlikesi -- operator
+ * Turkiye'den baglaniyor ve "TR'yi engelle" dedigi anda kendi panelini de
+ * kapatabilirdi. Uc ayri kacis yolu var ve UCU DE ayni anda calisir:
+ *
+ *   1. /admin YOLU MUAF. Kapi oturum baslamadan once kosuyor (auth.php:14),
+ *      yani "bu admin mi" diye session'a bakamiyor. Yol muafiyeti sessiondan
+ *      once bilinebilen tek olcut. Panelin kendi parolasi + hiz siniri zaten
+ *      duruyor; ulke engeli bir guvenlik siniri degil, ticari bir kapi.
+ *   2. IZIN LISTESI. Operatorun kendi IP'si (ya da 88.230. gibi bir onek)
+ *      country_allow_ips'e yazilir ve ulke ne olursa olsun gecer.
+ *   3. ULKE COZULEMEZSE ENGELLEME YOK. vestra_ip_intel() cografi API'ye
+ *      soruyor; API duserse cc BOS doner. Bos cc'yi "engelle" saymak, saglayici
+ *      bir dakikaligina bayildiginda TUM DUNYAYA 403 basmak olurdu.
+ */
+function vestra_country_blocks(): array {
+    $d = _vsec_read('country_blocks.json');
+    $cc = [];
+    foreach ((array)($d['countries'] ?? []) as $c) {
+        $c = strtoupper(trim((string)$c));
+        if (preg_match('/^[A-Z]{2}$/', $c)) $cc[$c] = true;
+    }
+    return ['countries' => $cc, 'allow_ips' => array_values(array_filter(
+        array_map('trim', (array)($d['allow_ips'] ?? [])), fn($s) => $s !== ''))];
+}
+
+function vestra_save_country_blocks(array $countries, array $allowIps): void {
+    $cc = [];
+    foreach ($countries as $c) {
+        $c = strtoupper(trim((string)$c));
+        if (preg_match('/^[A-Z]{2}$/', $c)) $cc[] = $c;
+    }
+    _vsec_write('country_blocks.json', [
+        'countries' => array_values(array_unique($cc)),
+        'allow_ips' => array_values(array_unique(array_filter(array_map('trim', $allowIps), fn($s) => $s !== ''))),
+    ]);
+}
+
+/** Bu istek ulke kuralina takiliyor mu? Kacis yollari burada, tek yerde. */
+function vestra_country_blocked(string $ip, string $path = ''): bool {
+    $cfg = vestra_country_blocks();
+    if (!$cfg['countries']) return false;                       // liste bos -> kapali degil
+
+    // (1) Panel her zaman acik: kapi session'dan once kosuyor, yol tek olcut.
+    if ($path === '') $path = (string)($_SERVER['SCRIPT_NAME'] ?? '');
+    if (str_starts_with($path, '/admin')) return false;
+
+    // (2) Izin listesindeki IP ulkeden bagimsiz gecer.
+    foreach ($cfg['allow_ips'] as $rule) if (vestra_ip_matches($ip, (string)$rule)) return false;
+
+    // (3) Ulke COZULEMEZSE engelleme yok -- API dustugunde herkesi kesmemek icin.
+    $cc = strtoupper((string)(vestra_ip_intel($ip, 1)['cc'] ?? ''));
+    if ($cc === '') return false;
+
+    return isset($cfg['countries'][$cc]);
+}
+
 /**
  * Refuse blocked IPs site-wide. Runs from auth.php's bootstrap, so it covers
  * every page without each page opting in. CLI is exempt — the maintenance
@@ -90,7 +151,8 @@ function vestra_ip_blocked(string $ip): ?array {
 function vestra_ip_guard(): void {
     if (PHP_SAPI === 'cli') return;
     $ip = vestra_client_ip();
-    if ($ip === '' || !vestra_ip_blocked($ip)) return;
+    if ($ip === '') return;
+    if (!vestra_ip_blocked($ip) && !vestra_country_blocked($ip)) return;
     http_response_code(403);
     header('Content-Type: text/html; charset=utf-8');
     /* Terse on purpose: a blocked visitor gets no detail to tune evasion by. */
