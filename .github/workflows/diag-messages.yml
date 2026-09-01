@@ -397,8 +397,34 @@ jobs:
                 }
                 if (!$lines) echo "    (kalem cozulemedi, ham: ".mb_substr((string)($o['items'] ?? ''),0,160).")\n";
               }
-              if (!$hit) { echo "  *** eslesen siparis YOK ***\n"; }
-              $summary[] = "siparis({$oq}): {$hit}";
+              if (!$hit) { echo "  (bu alicida orders.csv kaydi yok)\n"; }
+
+              /* TEKLIFLER. Operatorun sordugu sey burada: hangi teklif CEVAPSIZ
+                 kalmis. offer_responses.json cevap verilmis olanlari tutuyor;
+                 kaydi olmayan ya da hala 'counter' durumunda olan teklif aciktir.
+                 SIRA KIMDE bilgisi kritik -- top alicidaysa nudge dogru, satici
+                 tarafindaysa musteriyi bosuna sikistirmis oluruz. */
+              require_once $doc."/inc/offers.php";
+              $rs = function_exists('vestra_read_json') ? (array)vestra_read_json('offer_responses.json') : [];
+              echo "  --- teklifler ---\n";
+              $oc = 0;
+              foreach (vestra_read_csv('offers.csv') as $of) {
+                $hay = mb_strtolower(implode(' ', [$of['company'] ?? '', $of['name'] ?? '', $of['email'] ?? '']));
+                if (mb_strpos($hay, mb_strtolower($oq)) === false) continue;
+                $oc++;
+                $ref  = (string)($of['ref'] ?? '');
+                $resp = $rs[$ref] ?? null;
+                $st   = $resp['status'] ?? '(cevapsiz)';
+                $turn = function_exists('vestra_offer_turn') ? vestra_offer_turn($resp) : '?';
+                $left = function_exists('vestra_offer_counters_left') ? vestra_offer_counters_left($resp) : '?';
+                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? $of['product_id'] ?? '?'),0,42)
+                   . " | id=".($of['product_id'] ?? $of['listing_id'] ?? '-')
+                   . " | ".($of['qty'] ?? '?')." x ".($of['unit_price'] ?? $of['price'] ?? '?')
+                   . " | DURUM=".$st." | sira=".$turn." | kalan tur=".$left
+                   . " | ".($of['timestamp'] ?? $of['date'] ?? '')."\n";
+              }
+              if (!$oc) echo "  (teklif yok)\n";
+              $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif";
               echo "\n";
             }
 
