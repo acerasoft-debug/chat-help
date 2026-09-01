@@ -197,14 +197,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $shp=(float)($p['meta']['shipping'] ?? 0);
       $lines='';
       foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
-      $ok = vestra_send_mail($tto, "VESTRA — TASLAK fatura {$ref} (test, müşteriye gitmedi)",
-        "Kesilecek belgenin taslağı ekte.\n\n".$lines
-       ."\n  Mal toplamı : EUR ".number_format($goods,2)."\n"
-       .($shp>0 ? "  Kargo       : EUR ".number_format($shp,2)."\n" : '')
-       ."  GENEL TOPLAM: EUR ".number_format($goods+$shp,2)."\n\n"
-       ."Bu bir TASLAKTIR: numara yakılmadı, diske yazılmadı, müşteriye gitmedi.\n"
-       ."Onaylıyorsanız panelden '🔁 Redraft & email' ile kesin.\n\n— VESTRA",
-        '','',null,'',['attachments'=>[['name'=>'TASLAK-'.$ref.'.pdf','path'=>$tmp]]]);
+      /* Mektup INGILIZCE (operator karari, 1 Eyl 2026: "sadece ingilizce yap
+         ve yazismalarda turkce kullanma") -- belgenin dili neyse mektubun da
+         o olsun, taslak ile kesim arasinda dil farki kalmasin. */
+      $ok = vestra_send_mail($tto, "VESTRA — DRAFT invoice {$ref} (test, not sent to the buyer)",
+        "Draft of the document to be issued is attached.\n\n".$lines
+       ."\n  Goods total : EUR ".number_format($goods,2)."\n"
+       .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
+       ."  TOTAL DUE   : EUR ".number_format($goods+$shp,2)."\n\n"
+       ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n"
+       ."If it is correct, issue it from the panel with '\xf0\x9f\x94\x81 Redraft & email'.\n\n— VESTRA",
+        '','',null,'',['attachments'=>[['name'=>'DRAFT-'.$ref.'.pdf','path'=>$tmp]]]);
       @unlink($tmp);
       header('Location: /admin?tab=invoices&msg='.($ok?'invoice_test_sent':'letter_failed')); exit;
     }

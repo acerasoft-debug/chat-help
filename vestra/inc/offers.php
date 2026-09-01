@@ -666,11 +666,13 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
     if (filter_var($em, FILTER_VALIDATE_EMAIL)) $sent = (bool)vestra_send_mail($em, $subj, $body, '', '', null, '', $att);
     $copied = false;
     if ($copyTo !== '' && filter_var($copyTo, FILTER_VALIDATE_EMAIL)) {
-        /* Kopyanin konusu ACIKCA kopya diyor: operatorun kutusunda alici
-           mektubuyla ayni konuyu tasiyan ikinci bir mail, hangisinin
-           musteriye gittigini belirsiz birakirdi. */
-        $copied = (bool)vestra_send_mail($copyTo, "[KOPYA] ".$subj,
-            "Bu, alıcıya gönderilen mektubun kopyasıdır. Asıl mektup: ".$em."\n\n".$body, '', '', null, '', $att);
+        /* BIREBIR AYNI mektup (operator karari, 1 Eyl 2026: "musteriye
+           gonderecegin emailin aynisini bana gonder"). Onceden konuya
+           "[KOPYA]" onegi ve Turkce bir aciklama satiri ekleniyordu; operator
+           musterinin GORDUGU seyi gormek istiyor, o yuzden hicbiri eklenmiyor.
+           Kopya oldugu zaten belli: govde "Hello <alici sirketi>" diye
+           basliyor ve ek ayni PDF. */
+        $copied = (bool)vestra_send_mail($copyTo, $subj, $body, '', '', null, '', $att);
     }
     return ['ok' => true, 'no' => $iv['no'], 'refs' => $p['refs'], 'total' => round($goods + $shp, 2),
             'sent' => $sent, 'copied' => $copied, 'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC')];

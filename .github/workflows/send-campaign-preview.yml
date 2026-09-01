@@ -1162,14 +1162,15 @@ jobs:
                  ." = ".number_format($goods+$sh2,2)." EUR\n";
               echo "  satici: ".vestra_invoice_issuer_name($p['seller'],'Acerasoft LLC')."\n";
               echo "  pdf: ".strlen($bytes)." bayt\n";
-              $subject = "VESTRA — TASLAK fatura {$iref} (test, müşteriye gitmedi)";
-              $body = "Kesilecek belgenin taslağı ekte.\n\n".$lines
-                    ."\n  Mal toplamı : EUR ".number_format($goods,2)."\n"
-                    .($sh2 > 0 ? "  Kargo       : EUR ".number_format($sh2,2)."\n" : '')
-                    ."  GENEL TOPLAM: EUR ".number_format($goods+$sh2,2)."\n\n"
-                    ."Bu bir TASLAKTIR: numara yakılmadı, diske yazılmadı, müşteriye gitmedi.\n"
-                    ."Onaylıyorsanız panelden '🔁 Redraft & email' ile kesin.\n\n— VESTRA";
-              $opts = ['attachments' => [['name'=>'TASLAK-'.$iref.'.pdf','path'=>$tmp]]];
+              /* INGILIZCE (operator karari, 1 Eyl 2026): taslak ile kesilen
+                 belge arasinda dil farki kalmasin. */
+              $subject = "VESTRA — DRAFT invoice {$iref} (test, not sent to the buyer)";
+              $body = "Draft of the document to be issued is attached.\n\n".$lines
+                    ."\n  Goods total : EUR ".number_format($goods,2)."\n"
+                    .($sh2 > 0 ? "  Shipping    : EUR ".number_format($sh2,2)."\n" : '')
+                    ."  TOTAL DUE   : EUR ".number_format($goods+$sh2,2)."\n\n"
+                    ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
+              $opts = ['attachments' => [['name'=>'DRAFT-'.$iref.'.pdf','path'=>$tmp]]];
             } elseif ($letter === 'brand_catalog') {
               /* "Su markanin tam listesini alabilir miyim" sorusuna cevap.
                  spec: brand=<marka, TAM ad> | attach=true|false
