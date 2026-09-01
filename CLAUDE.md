@@ -48,6 +48,45 @@ tarafı artık kelime sınırı, alan adı tarafında 6 harf ve altı yalnızca 
 eşleşiyor. Sessiz eleme, yanlış gönderimden pahalı: kimse fark etmiyor. Listeye
 kısa/genel bir kelime eklerken bunu düşün.
 
+**Testi var artık:** `tests/blocklist_test.php` (43 iddia). Her iki yönü de tutar —
+engellenmesi gerekenler ve *geçmesi* gereken gerçek butikler. Bloklisteye yeni ad
+eklerken testi koş: komşularını yakıp yakmadığını tek gösteren şey o.
+
+**KURAL 1 — elle okuma hâlâ şart.** 1 Eylül 2026'da aynı APAC listesi ikinci kez
+yüklendi ve 31 Ağustos'ta elle okunurken **iki zincirin kaçtığı** görüldü:
+**Harrolds** (Melbourne/Sydney/Chadstone, ayrıca bazı markaların Avustralya
+haklarını tutuyor) ve **Incu** (~9 şube + kendi etiketi). İkisi de 31 Ağustos
+16:48'de kampanya aldı (run `33415951830`) — geri alınamadı, bloklisteye eklendi.
+Sınırda bırakılanlar, operatör kararı bekliyor: **Restir** (Tokyo; tek mağaza ama
+grup ve Japonya'da marka temsilciliği var) ve **Sorry Thanks I Love You**.
+
+## Liste kalitesi — göndermeden önce alan adını DOĞRULA
+
+**KURAL 1b — elle verilen listede adresin var olduğunu varsayma.** 1 Eylül 2026,
+73 satırlık APAC listesi: **31 alan adının NS kaydı hiç yok** — yani alan adları
+kayıtlı bile değil, o adresler mevcut değil. Hepsi aynı kalıptaydı:
+`info@` + mağaza adının bitişik yazılmışı (`info@orchardluxeroom.sg`,
+`info@kyotomodestudio.co.jp`, `info@borneoluxury.com.my`). Bu, listeyi hazırlayan
+aracın **adres uydurduğunun** imzası — CLAUDE.md'de zaten kayıtlı olan reddin
+(kurumsal formattan e-posta türetme) elle gelen hâli.
+
+- Denetim: `checkdnsrr($host,'NS')`. **NS yoksa alan adı kayıtlı değil** — MX
+  eksikliğinden daha kesin kanıt; MX yokluğu geçici yapılandırma da olabilir.
+  Yanında bir **kontrol grubu** koş (kesin var olan 3-4 alan adı): çözümleyici
+  bozuksa her şey "ölü" görünür ve gerçek adayları silersin.
+- Neden önemli: sert bounce oranı gönderen alan adının itibarını düşürür ve
+  `vestrasales.com`'da **DKIM/DMARC hâlâ yok**. 31 uydurma adrese gönderim,
+  gerçek 22 adresin de spam'e düşmesine katkı yapardı.
+- Gerçek dükkânın alan adı da ölmüş olabilir: aynı listede Manifesto SG,
+  Surrender, Fake Tokyo ve Assin gerçek mağazalar ama alan adları artık kayıtlı
+  değil. "Tanıdık isim" adresin çalıştığı anlamına gelmiyor.
+
+**Aynı listeyi ikinci kez göndermeden önce gönderim geçmişine bak.** Bu 73'lük
+liste 31 Ağustos'ta tümüyle işlendi: 20 engelli, 31 ölü, **22'sinin hepsine
+gönderildi** (run `33415700880` 5 + `33415951830` 16 + Restir daha önce).
+Yeniden çalıştırmak sıfır yeni mektup üretirdi. Geçmişi okumanın en ucuz yolu
+Actions koşu günlüğü; sunucu tarafında `diag-live.yml` → `leads_status`.
+
 **Neden koda gömüldü:** 28 Ağustos 2026'da `add-and-send.yml` bu kontrolü çağırmıyordu
 (diğer üç yol çağırıyordu). Elle verilen bir Körfez listesi o boşluktan geçti ve
 Alshaya, Al Tayer, Apparel Group, BFL Group, Alyasra, Etoile Group, Concept Brands,
@@ -246,6 +285,12 @@ kullanılmalı.
   girdisine veya ssh-action betiğine girmez.**
 - Hesap ve müşteri e-postaları teşhis çıktılarında **maskelenir**. Şifre sıfırlama
   token'ı asla yazdırılmaz.
+- **Kural workflow GİRDİSİ için de geçerli** — girdi, çalıştırma başlığında kalıcı
+  ve herkese açık. 1 Eylül 2026'da `diag-live.yml` → `leads_status` bu kuralı
+  çiğniyordu: adres listesini açık girdi olarak alıp log'a **maskesiz** yazıyordu.
+  Düzeltildi — artık **alan adı** kabul ediyor (dükkânın zaten açık web sitesi;
+  kime yazdığımızı ele vermez), listedeki o alan adına ait tüm kayıtlara açıyor ve
+  çıktıda adresleri maskeliyor. Yeni bir sonda yazarken: girdi de çıktı kadar açık.
 - **API anahtarları sunucudan çıkmaz.** (Bu yüzden `dropship_api_key` yerine sunucu
   tarafında `dropship_probe` bayrağı var.)
 - Operatör bir anahtar/parola yapıştırırsa **kullanma** — iptal edip yenisini almasını

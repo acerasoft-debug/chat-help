@@ -389,6 +389,14 @@ function vestra_discover_blocklist(): array {
     'jungle gold','junglegold','studious tokyo','tokyobase',
     // distributor / marka haklarini tutan grup
     'melium',
+    /* 1 Eyl 2026 — ayni APAC listesi ikinci kez yuklendi. 31 Agustos'ta elle
+       okunurken bu ikisi ZINCIR oldugu halde gozden kacti ve kampanya aldilar
+       (run 33415951830, 16:48). Harrolds: Melbourne/Sydney/Chadstone magazalari
+       olan cok subeli luks perakendeci, ustelik bazi markalarin Avustralya
+       haklarini tutuyor. Incu: ~9 subeli cok markali zincir + kendi etiketi
+       "Incu Collection". Geri alinamaz, ama liste ucuncu kez gelirse tekrarlamaz.
+       'incu' 4 harf -> alan adinda YALNIZCA tam eslesir (incubator... elenmez). */
+    'harrolds','incu',
     // alisveris merkezi isletmecisi (butik degil, kiraci topluyor)
     'pavilion-kl','pavilionkl','klcc pavilion','klccpavilion',
     // ikinci el / konsinye: yeni toptan mal almiyor

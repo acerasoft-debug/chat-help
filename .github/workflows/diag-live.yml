@@ -83,7 +83,7 @@ on:
         required: false
         default: ""
       leads_status:
-        description: "Adres listesi verin (virgül/boşluk/satır sonu): her birinin lead listesindeki hâlini yazar — daha önce gönderildi mi, döndü mü, alan adı ölü mü, hangi markaları taşıyor + MX kontrolü. Hiçbir e-posta göndermez."
+        description: "ALAN ADI listesi verin (virgül/boşluk/satır sonu — ör. gr8.jp, incu.com): her birinin lead listesindeki hâlini yazar — daha önce gönderildi mi, döndü mü, alan adı ölü mü, hangi markaları taşıyor + MX kontrolü. Hiçbir e-posta göndermez. Adres de yazılabilir ama GEREKMEZ: bu girdi çalıştırma başlığında herkese açık kalır, çıktıda adresler MASKELİ."
         required: false
         default: ""
       finder_keyscan:
@@ -1549,26 +1549,57 @@ jobs:
             require $doc."/inc/products.php";
             require_once $doc."/inc/leads.php";
 
-            $in = (string)getenv('VESTRA_LEAD_EMAILS');
-            preg_match_all('/[^\s,;]+@[^\s,;]+/', $in, $m);
-            $want = array_values(array_unique(array_map(fn($e) => strtolower(trim($e, " \t\n\r\0\x0B.,;")), $m[0] ?? [])));
-            if (!$want) { echo "Adres verilmedi (leads_status girdisi bos).\n"; exit(0); }
+            /* Adres MASKELI yazilir: bu depo da Actions gunlugu de herkese acik ve
+               musteri listesi ikisine de girmez. Girdi olarak ALAN ADI yeter --
+               alan adi zaten dukkanin acik web sitesi, kime yazdigimizi ele
+               vermeyen tek anahtar. Adres yazilirsa da kabul edilir (eski
+               cagrilar bozulmasin) ama cikti yine maskelenir. */
+            $mask = function (string $e): string {
+                $at = strrpos($e, '@'); if ($at === false) return $e;
+                $lo = substr($e, 0, $at); $do = substr($e, $at);
+                return mb_substr($lo, 0, 2).str_repeat('*', max(0, mb_strlen($lo) - 2)).$do;
+            };
 
             $leads = vestra_leads();
-            $byMail = [];
+            $byMail = []; $byDomain = [];
             foreach ($leads as $l) {
                 $e = strtolower(trim((string)($l['email'] ?? '')));
-                if ($e !== '') $byMail[$e] = $l;
+                if ($e === '') continue;
+                $byMail[$e] = $l;
+                $d = (string)substr(strrchr($e, '@') ?: '', 1);
+                if ($d !== '') $byDomain[$d][] = $e;
             }
 
-            printf("===== %d ADRES / listede %d kayit =====\n\n", count($want), count($leads));
+            $in = (string)getenv('VESTRA_LEAD_EMAILS');
+            $want = []; $unknownDom = [];
+            foreach (preg_split('/[\s,;]+/', $in, -1, PREG_SPLIT_NO_EMPTY) as $tok) {
+                $tok = strtolower(trim($tok, " \t\n\r\0\x0B.,;<>"));
+                if ($tok === '') continue;
+                if (str_contains($tok, '@')) { $want[] = $tok; continue; }
+                /* Alan adi: listedeki O alan adina ait TUM kayitlara acilir. Bir
+                   dukkanin adresi info@ mi sales@ mi oldugunu bilmek gerekmiyor. */
+                $tok = preg_replace('#^https?://#', '', $tok); $tok = preg_replace('#^www\.#', '', $tok);
+                $tok = explode('/', $tok)[0];
+                if (!str_contains($tok, '.')) continue;
+                if (isset($byDomain[$tok])) { foreach ($byDomain[$tok] as $e) $want[] = $e; }
+                else $unknownDom[] = $tok;
+            }
+            $want = array_values(array_unique($want));
+            if (!$want && !$unknownDom) { echo "Girdi bos ya da hicbir alan adi/adres okunamadi.\n"; exit(0); }
+
+            printf("===== %d adres / listede %d kayit =====\n\n", count($want), count($leads));
+            if ($unknownDom) {
+                echo "-- LISTEDE HIC KAYDI OLMAYAN ALAN ADLARI (gonderilebilir) --\n";
+                foreach ($unknownDom as $d) printf("  %-34s listede yok\n", $d);
+                echo "\n";
+            }
 
             $n = ['yok' => 0, 'yeni' => 0, 'gonderildi' => 0, 'dondu' => 0, 'olu' => 0, 'cikti' => 0];
             $sendable = []; $risky = [];
 
             foreach ($want as $e) {
                 $l = $byMail[$e] ?? null;
-                if (!$l) { $n['yok']++; printf("  %-36s LISTEDE YOK\n", $e); $sendable[] = $e; continue; }
+                if (!$l) { $n['yok']++; printf("  %-36s LISTEDE YOK\n", $mask($e)); $sendable[] = $e; continue; }
 
                 $st   = (string)($l['status'] ?? 'new');
                 $when = substr((string)($l['last_contacted_at'] ?? ''), 0, 10);
@@ -1592,7 +1623,7 @@ jobs:
                 };
                 if ($st === 'new') $sendable[] = $e; else $risky[] = $e.' ('.$st.')';
 
-                printf("  %-36s %s\n", $e, $verdict);
+                printf("  %-36s %s\n", $mask($e), $verdict);
                 printf("  %-36s   %s%s%s\n", '', $co ?: '(isim yok)',
                        $ctry !== '' ? ' · '.$ctry : '',
                        $br ? ' · marka: '.implode(', ', array_slice($br, 0, 6)) : ' · marka bulunamadi');
@@ -1606,7 +1637,8 @@ jobs:
             printf("  olu alan adi     : %d\n", $n['olu']);
             printf("  listeden cikti   : %d\n", $n['cikti']);
             printf("\n  GERCEKTEN gonderilecek adres sayisi: %d\n", count($sendable));
-            if ($sendable) foreach ($sendable as $e) echo "    -> ".$e."\n";
+            /* Maskeli: panelde satiri FIRMA ADIYLA secin, adresi buradan kopyalamayin. */
+            if ($sendable) foreach ($sendable as $e) echo "    -> ".$mask($e)."\n";
 
             echo "\n===== ALAN ADI POSTA KABUL EDIYOR MU (MX/A) =====\n";
             $seenDom = [];
