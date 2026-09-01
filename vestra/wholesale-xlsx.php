@@ -94,7 +94,12 @@ unset($rs);
 /* "Was EUR" ve "Volume prices" yeni: indirimli urunde eski fiyat kendi
    sutununda (bir siralamadan sonra bile indirim oldugu kaybolmasin), hacim
    kademeleri de ilk kez listede — toptancinin ilk aradigi sey o. */
-$headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Sizes',
+/* 'Colours' sutunu Category ile Sizes arasina eklendi. Listede hic yoktu:
+   ilanlar model bazinda birlestikten sonra bir satir modelin BUTUN renklerini
+   temsil ediyor ve alici siparisi rengin ADIYLA veriyor -- renk adlari hicbir
+   sutunda yazmiyordu. Eklenince sonraki tum sutun indeksleri BIR KAYDI;
+   numcols/linkcols/widths haritalari da buna gore guncellendi (asagida). */
+$headers = ['#', 'Brand', 'Art. No', 'VESTRA Ref', 'Product', 'Category', 'Colours', 'Sizes',
             'MOQ', 'Unit', 'Wholesale EUR', 'Was EUR', 'Volume prices',
             'Retail EUR', 'Retail source',
             'Stock total', 'Stock by size', 'Product link'];
@@ -124,6 +129,9 @@ foreach ($byBrand as $brand => $list) {
             $id,
             (string)($p['name'] ?? ''),
             (string)($p['cat'] ?? ''),
+            implode(' · ', array_values(array_filter(
+                array_map('trim', array_map('strval', (array)($p['colors'] ?? []))),
+                fn($c) => $c !== ''))),
             (string)($p['sizes'] ?? ''),
             (string)($p['moq'] ?? ''),
             (string)($p['unit'] ?? 'pc'),
@@ -190,11 +198,11 @@ $file  = vestra_xlsx_with_photos_file($headers, $rows, $title, [
     'freeze'  => true,
     'filter'  => true,
     'zebra'   => true,
-    'numcols' => [7 => 'int', 9 => 'num', 10 => 'num', 12 => 'num', 14 => 'int'],
-    'linkcols'=> [16],
-    'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15, 6 => 30,
-                  7 => 7, 8 => 6, 9 => 14, 10 => 10, 11 => 22, 12 => 12, 13 => 12,
-                  14 => 10, 15 => 24, 16 => 44],
+    'numcols' => [8 => 'int', 10 => 'num', 11 => 'num', 13 => 'num', 15 => 'int'],
+    'linkcols'=> [17],
+    'widths'  => [0 => 5, 1 => 15, 2 => 18, 3 => 15, 4 => 38, 5 => 15,
+                  6 => 26, 7 => 30, 8 => 7, 9 => 6, 10 => 14, 11 => 10, 12 => 22,
+                  13 => 12, 14 => 12, 15 => 10, 16 => 24, 17 => 44],
 ]);
 if ($file === '' || !is_file($file)) {
     http_response_code(500);

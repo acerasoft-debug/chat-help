@@ -83,10 +83,15 @@ $total = array_sum(array_map('count', $byBrand));
 $pdf = new VestraPdf();
 
 $L = 40.0; $R = 555.0;
-$X_THUMB = 40.0; $W_THUMB = 46.0; $H_THUMB = 58.0;
+/* Satir ve gorsel kutusu buyutuldu. Ilanlar model bazinda birlestikten sonra
+   bir satir artik TEK bir rengi degil, modelin BUTUN renklerini temsil ediyor:
+   her rengin fotografi ve renk adlari da satira giriyor. Eski 66pt'ye bunlar
+   sigmiyordu -- satir sayisi da dustugu icin (14 -> 5) daha yuksek satir
+   sayfaya pahaliya mal olmuyor. */
+$X_THUMB = 40.0; $W_THUMB = 46.0; $H_THUMB = 74.0;
 $X_TEXT = 96.0;  $NAME_W = 210.0;
 $X_SIZES = 316.0; $X_MOQ = 404.0; $X_WHOLE = 484.0; $X_RETAIL = 555.0;
-$TOP = 782.0; $BOTTOM = 66.0; $ROW_H = 66.0;
+$TOP = 782.0; $BOTTOM = 66.0; $ROW_H = 84.0;
 
 $y = 0.0;
 
@@ -153,17 +158,26 @@ $page = function () use ($pdf, &$y, $header, $colHead) {
    thumbnail is the expensive half — a cache here is what keeps a 346-article run from
    re-encoding the same picture forty times. */
 $thumbCache = [];
-$thumbFor = function (array $p) use (&$thumbCache): string {
-    $src = '';
-    foreach ((array)($p['images'] ?? []) as $im) { $src = (string)$im; break; }
-    if ($src === '') $src = (string)($p['image'] ?? '');
-    if ($src === '') return '';
-    $rel  = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', $src), '/');
-    $file = __DIR__.$rel;
-    if (!is_file($file)) return '';
-    if (isset($thumbCache[$file])) return $thumbCache[$file];
-    $jpg = function_exists('vestra_pdf_thumb') ? vestra_pdf_thumb($file, 150, 72) : '';
-    return $thumbCache[$file] = (string)$jpg;
+/* TEK gorsel degil, HEPSI. Birlestirilmis ilanda her renk icin bir fotograf
+   var; yalnizca ilkini basmak "dort renk var" deyip birini gostermek olurdu.
+   Cozulemeyen/eksik dosyalar sessizce atlaniyor -- listede bos kutu birakmak
+   yerine var olan fotograflar sikisiyor. */
+$thumbsFor = function (array $p) use (&$thumbCache): array {
+    $srcs = array_values(array_filter(array_map('strval', (array)($p['images'] ?? []))));
+    if (!$srcs && ($p['image'] ?? '') !== '') $srcs = [(string)$p['image']];
+    $out = [];
+    foreach ($srcs as $src) {
+        if ($src === '') continue;
+        $rel  = '/'.ltrim(preg_replace('#^https?://[^/]+#', '', $src), '/');
+        $file = __DIR__.$rel;
+        if (!is_file($file)) continue;
+        if (!isset($thumbCache[$file])) {
+            $thumbCache[$file] = function_exists('vestra_pdf_thumb')
+                ? (string)vestra_pdf_thumb($file, 150, 72) : '';
+        }
+        if ($thumbCache[$file] !== '') $out[] = $thumbCache[$file];
+    }
+    return $out;
 };
 
 foreach ($byBrand as $brand => $rows) {
@@ -191,9 +205,23 @@ foreach ($byBrand as $brand => $rows) {
         $rowTop = $y + 8;
         $imgY   = $rowTop - $H_THUMB;
 
-        $jpg = $thumbFor($p);
-        if ($jpg !== '') {
-            $pdf->imageJpeg($jpg, $X_THUMB, $imgY, $W_THUMB, $H_THUMB, 3.0);
+        /* Fotograf IZGARASI. Tek fotograf varsa kutuyu komple kaplar; birden
+           fazlaysa ayni kutunun icinde satir/sutuna bolunur, boylece sayfa
+           duzeni ve satir yuksekligi renk sayisindan bagimsiz kalir.
+           Sutun sayisi kareye yakin tutuluyor: 4 renk 2x2, 6 renk 3x2. */
+        $jpgs = $thumbsFor($p);
+        if ($jpgs) {
+            $n    = count($jpgs);
+            $cols = $n === 1 ? 1 : (int)ceil(sqrt($n));
+            $rows = (int)ceil($n / $cols);
+            $gap  = $n === 1 ? 0.0 : 2.0;
+            $cw   = ($W_THUMB - $gap * ($cols - 1)) / $cols;
+            $ch   = ($H_THUMB - $gap * ($rows - 1)) / $rows;
+            foreach ($jpgs as $k => $jp) {
+                $cx = $X_THUMB + ($k % $cols) * ($cw + $gap);
+                $cy = $imgY + $H_THUMB - $ch - (intdiv($k, $cols)) * ($ch + $gap);
+                $pdf->imageJpeg($jp, $cx, $cy, $cw, $ch, $n === 1 ? 3.0 : 1.5);
+            }
         } else {
             $pdf->rectFill($X_THUMB, $imgY, $W_THUMB, $H_THUMB, 0.93);
             $pdf->text($X_THUMB + 8, $imgY + $H_THUMB / 2 - 3, 6.5, 'no photo');
@@ -224,6 +252,22 @@ foreach ($byBrand as $brand => $rows) {
         }
         $cat = trim((string)($p['cat'] ?? ''));
         if ($cat !== '') { $pdf->text($X_TEXT, $ty, 7.5, $cat); $ty -= 10; }
+
+        /* RENKLER. Listede hic yoktu: alici hangi renkleri alabilecegini
+           yalnizca fotograflardan tahmin ediyordu, adlari hicbir yerde
+           yazmiyordu -- siparis rengin ADIYLA veriliyor. Sigmazsa punto
+           dusuruluyor, kirpilmiyor: eksik bir renk listesi, listenin
+           tamamindan kotu. */
+        $cols = array_values(array_filter(array_map('trim', array_map('strval', (array)($p['colors'] ?? []))),
+                                          fn($c) => $c !== ''));
+        if ($cols) {
+            $ctxt = 'Colours: '.implode(' · ', $cols);
+            $cfs  = 7.5;
+            while ($cfs > 5.5 && $pdf->strWidth($ctxt, $cfs) > $NAME_W) $cfs -= 0.25;
+            foreach (array_slice($pdf->wrap($ctxt, $NAME_W, $cfs), 0, 2) as $ln) {
+                $pdf->text($X_TEXT, $ty, $cfs, $ln); $ty -= $cfs + 2.5;
+            }
+        }
         /* The address stays visible as text as well as being tappable: it survives printing,
            forwarding as plain text, and a reader who wants to type it. */
         $short = 'vestrasales.com/product?id='.$id;
@@ -239,8 +283,16 @@ foreach ($byBrand as $brand => $rows) {
            whose terms need reading. */
         $sizeW = $X_MOQ - $X_SIZES - 8;
         $sy    = $rowMid;
-        foreach (array_slice($pdf->wrap((string)($p['sizes'] ?? '—'), $sizeW, 7.5), 0, 3) as $ln) {
-            $pdf->text($X_SIZES, $sy, 7.5, $ln); $sy -= 9;
+        /* Beden dizisi KIRPILMIYOR. Uc satirla sinirliydi ve "S×1 · M×2 · L×2 ·
+           XL×2 · XXL×1 · 8/pack" bu sutunda ucten fazla satir tutuyordu: son
+           bedenler sessizce dusuyordu. Alici tam dagilimi gormeden karton
+           icerigini bilemez. Once punto dusuruluyor, gerekirse dort satira
+           kadar cikiliyor. */
+        $sizeTxt = (string)($p['sizes'] ?? '—');
+        $sfs = 7.5;
+        while ($sfs > 5.5 && count($pdf->wrap($sizeTxt, $sizeW, $sfs)) > 3) $sfs -= 0.25;
+        foreach (array_slice($pdf->wrap($sizeTxt, $sizeW, $sfs), 0, 4) as $ln) {
+            $pdf->text($X_SIZES, $sy, $sfs, $ln); $sy -= $sfs + 1.5;
         }
 
         /* Stock sits under the size run, in the same column, because the two are read
