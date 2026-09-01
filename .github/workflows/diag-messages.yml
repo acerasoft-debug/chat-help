@@ -70,6 +70,23 @@ jobs:
     steps:
       - name: Kontrol et
         uses: appleboy/ssh-action@v1.0.3
+        # Girdiler ADIM env'inde, betigin ICINDE degil. Betikte bir tek ${{ }}
+        # bile olsa GitHub butun script bloguni TEK BIR IFADE sayiyor ve 21000
+        # karakter sinirina takiliyor -- teshis buyudukce workflow calismaz
+        # hale geldi ("Exceeded max expression length"). Bu kalip depodaki
+        # diger workflow'larda zaten kullaniliyor (bkz. set-product.yml).
+        env:
+          IN_WHO:       ${{ github.event.inputs.who }}
+          IN_WHO2:      ${{ github.event.inputs.who2 }}
+          IN_BRAND:     ${{ github.event.inputs.brand }}
+          IN_SHIPS:     ${{ github.event.inputs.ships }}
+          IN_THREADS:   ${{ github.event.inputs.threads }}
+          IN_MAILCFG:   ${{ github.event.inputs.mailcfg }}
+          IN_MAIL_FOR:  ${{ github.event.inputs.mail_for }}
+          IN_MAIL_SUBJ: ${{ github.event.inputs.mail_subject }}
+          IN_SENDER:    ${{ github.event.inputs.sender }}
+          IN_ORDERS:    ${{ github.event.inputs.orders_for }}
+          IN_BILLING:   ${{ github.event.inputs.billing_for }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -78,17 +95,6 @@ jobs:
           command_timeout: 5m
           envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING
           script: |
-            export IN_WHO='${{ github.event.inputs.who }}'
-            export IN_WHO2='${{ github.event.inputs.who2 }}'
-            export IN_BRAND='${{ github.event.inputs.brand }}'
-            export IN_SHIPS='${{ github.event.inputs.ships }}'
-            export IN_THREADS='${{ github.event.inputs.threads }}'
-            export IN_MAILCFG='${{ github.event.inputs.mailcfg }}'
-            export IN_MAIL_FOR='${{ github.event.inputs.mail_for }}'
-            export IN_MAIL_SUBJ='${{ github.event.inputs.mail_subject }}'
-            export IN_SENDER='${{ github.event.inputs.sender }}'
-            export IN_ORDERS='${{ github.event.inputs.orders_for }}'
-            export IN_BILLING='${{ github.event.inputs.billing_for }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
