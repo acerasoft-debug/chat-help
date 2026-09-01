@@ -1210,7 +1210,16 @@ jobs:
                   $path = '/tmp/'.$name;
                   file_put_contents($path, $bytes);
                   $atts[] = ['name'=>$name, 'path'=>$path];
-                  echo "ek ({$ext})   : ".strlen($bytes)." bayt -> {$name}\n";
+                  /* PDF'e KAC FOTOGRAF gomuldugunu SAY. Dosya boyutuna bakip
+                     "fotograflar var" demek tahmin olurdu: imageJpeg ayni
+                     goruntuyu md5 ile tekillestiriyor ve kutu boyutuna gore
+                     yeniden kodlamiyor, yani boyut fotograf sayisiyla dogru
+                     orantili degil. XObject tanimlarini saymak dogrudan olcum. */
+                  $extra = '';
+                  if ($ext === 'pdf') {
+                    $extra = '  |  gomulu fotograf: '.preg_match_all('#/Subtype\s*/Image#', $bytes);
+                  }
+                  echo "ek ({$ext})   : ".strlen($bytes)." bayt -> {$name}{$extra}\n";
                 }
               }
 
