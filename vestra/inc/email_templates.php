@@ -1739,19 +1739,37 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
     $total = 0;
     foreach ($groups as $g) $total += count($g['items'] ?? []);
 
+    /* Kac MODEL, kac renk -- alici icin iki ayri sayi. "14 article" demek,
+       biri 6 renkli tek bir model olabilecekken kac ayri urun oldugunu
+       gizliyor; toptanci once modeli, sonra rengi secer. */
+    $models = count($groups);
+    $what   = trim((string)($groups[0]['scope'] ?? ''));
     $body = $salutation . ",\n\n"
-. "Thank you for your enquiry. Below is our complete ".$brand." range as it stands today — "
-. $total . " articles, with the wholesale price and minimum order quantity against each group.\n\n";
+. "Thank you for your enquiry. Below is our complete ".$brand
+. ($what !== '' ? " ".$what : "")." range as it stands today — "
+. ($models > 1 ? $models." models, " : "")
+. $total . " article".($total === 1 ? "" : "s")
+. ", with the wholesale price and minimum order quantity against each.\n\n";
 
     foreach ($groups as $g) {
         $cat   = (string)($g['cat'] ?? '');
+        $model = trim((string)($g['model'] ?? ''));
+        $art   = trim((string)($g['art'] ?? ''));
         $moq   = (int)($g['moq'] ?? 0);
         $price = (float)($g['price'] ?? 0);
         $tiers = trim((string)($g['tiers'] ?? ''));
         $sizes = trim((string)($g['sizes'] ?? ''));
         $items = (array)($g['items'] ?? []);
 
-        $body .= strtoupper($cat)." — EUR ".number_format($price, 2)." per piece"
+        /* Baslik MODEL adi; kategori yalnizca model adi yoksa. Once kategori
+           yaziliyordu ("POLOS") ve alti alta ayni basligi tasiyan uc blok
+           cikiyordu -- alici hangisinin hangi model oldugunu ayirt edemezdi.
+           Uretici parca numarasi da basliga giriyor: alici kendi line
+           sheet'iyle ancak o numaradan eslestiriyor. */
+        $head = $model !== '' ? $model : $cat;
+        $body .= strtoupper($head)
+               . ($art !== '' ? "  ·  art. ".$art : "")."\n"
+               . "EUR ".number_format($price, 2)." per piece"
                . ($moq > 0 ? ", minimum ".$moq." pcs" : "")."\n";
         /* vestra_export_tiers_label() "160+ 25.00 · 320+ 23.50" verir -- tabloda
            dogru, duz metinde okunmuyor ("160+ 25.00 per piece" iki rakami
@@ -1772,7 +1790,11 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
         if ($sizes !== '') $body .= "Size run: ".$sizes."\n";
         $body .= "\n";
         foreach ($items as $it) {
-            $body .= "· ".trim((string)($it['name'] ?? ''))."\n"
+            /* Satir basi: TAM parca numarasi + renk. Alici siparisi renk
+               koduyla veriyor, urun adiyla degil. Numara yoksa ada dusuyor. */
+            $sku   = trim((string)($it['sku'] ?? ''));
+            $label = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
+            $body .= "· ".($sku !== '' ? $sku."  —  " : "").$label."\n"
                    . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
         }
         $body .= "\n";

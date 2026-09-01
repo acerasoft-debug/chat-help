@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, attach=both|pdf|xlsx|false)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false)."
         required: false
         default: ""
       reply_spec:
@@ -1052,35 +1052,77 @@ jobs:
                  is DURUYOR, bos mektup gitmiyor. */
               $brand = trim($E('brand'));
               if ($brand === '') { fwrite(STDERR, "brand_catalog: spec'te brand= yok\n"); exit(1); }
+              /* Kategori suzgeci ALT DIZE (wholesale-list/xlsx ile ayni kural):
+                 cat=Polo hem 'Polos' hem 'Polo Shirts' yakalar. Ayni deger
+                 eklere de geciyor, yoksa mektup 'sadece polo' derken ek butun
+                 markayi tasir. */
+              $catF = trim($E('cat'));
 
               $rows = [];
               foreach (vestra_products() as $p) {
                 if (strcasecmp(trim((string)($p['brand'] ?? '')), $brand) !== 0) continue;
                 if (vestra_export_price($p) <= 0) continue;
+                if ($catF !== '' && stripos((string)($p['cat'] ?? ''), $catF) === false) continue;
                 $rows[] = $p;
               }
               if (!$rows) {
-                fwrite(STDERR, "brand_catalog: \"{$brand}\" ile TAM eslesen urun yok. Marka adini tam yaz.\n");
+                fwrite(STDERR, "brand_catalog: \"{$brand}\"".($catF !== '' ? " + cat=\"{$catF}\"" : "")
+                     . " ile eslesen urun yok. Marka adini TAM yaz (strcasecmp).\n");
                 exit(1);
               }
 
-              /* Kategori + fiyat + MOQ ayni olanlar tek blokta. Musteri 14 satirlik
-                 duz bir liste degil, "tisort su fiyat, polo bu fiyat" gormeli. */
+              /* MODEL bazli gruplama. Ayni kategoride ayni fiyattan uc AYRI model
+                 olabiliyor: RL polosunda 710548797, 710536856 ve 710782592 var,
+                 ucu de 26.90. Yalnizca kategori+fiyata gore gruplayinca ucu tek
+                 blokta eriyor ve alici kac model oldugunu goremiyor.
+
+                 Model anahtari = parca numarasinin RENK KODU atilmis hali.
+                 Bu bicim markaya gore degisir, o yuzden TAHMIN EDILMIYOR: kural
+                 yalnizca kumedeki TUM sku'lar ayni uzunlukta ve tamamen rakamsa
+                 uygulaniyor (RL: 12 hane = 9 model + 3 renk). Aksi halde urun
+                 adinin renkten onceki parcasina dusuyor ve parca numarasi
+                 basilmiyor -- yanlis bir model numarasi basmaktansa hic
+                 basmamak dogru (KURAL 3 ile ayni mantik). */
+              $skus = array_map(fn($p) => trim((string)($p['sku'] ?? '')), $rows);
+              $uniformSku = $skus && count(array_unique(array_map('strlen', $skus))) === 1
+                          && strlen($skus[0]) > 3
+                          && count(array_filter($skus, fn($s) => ctype_digit($s))) === count($skus);
+              $colourLen = 3;
+              $styleOf = function (array $p) use ($uniformSku, $colourLen): string {
+                $sku = trim((string)($p['sku'] ?? ''));
+                return ($uniformSku && $sku !== '') ? substr($sku, 0, -$colourLen) : '';
+              };
+              /* Ad -> model adi + renk. Ayirici uzun tire; yoksa renk bos kalir
+                 ve satirda tam ad yazilir. */
+              $splitName = function (string $n): array {
+                $parts = preg_split('/\s+\x{2014}\s+/u', $n, 2);
+                return [trim($parts[0] ?? $n), trim($parts[1] ?? '')];
+              };
+
               $groups = [];
               foreach ($rows as $p) {
                 $price = vestra_export_price($p);
                 $moq   = (int)($p['moq'] ?? 0);
                 $cat   = (string)($p['cat'] ?? '');
-                $k = $cat.'|'.number_format($price,2).'|'.$moq;
+                [$mName, $colour] = $splitName((string)($p['name'] ?? ''));
+                $style = $styleOf($p);
+                $k = ($style !== '' ? $style : $mName).'|'.number_format($price,2).'|'.$moq;
                 if (!isset($groups[$k])) $groups[$k] = [
-                  'cat'=>$cat, 'price'=>$price, 'moq'=>$moq,
+                  'cat'=>$cat, 'model'=>$mName, 'art'=>$style, 'scope'=>$catF,
+                  'price'=>$price, 'moq'=>$moq,
                   'tiers'=>vestra_export_tiers_label($p),
                   'sizes'=>vestra_sizes_label(trim((string)($p['sizes'] ?? ''))),
                   'items'=>[],
                 ];
-                $groups[$k]['items'][] = ['name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? '')];
+                $groups[$k]['items'][] = [
+                  'name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? ''),
+                  'sku'=>trim((string)($p['sku'] ?? '')), 'colour'=>$colour,
+                ];
               }
               $groups = array_values($groups);
+              if (!$uniformSku) {
+                echo "NOT: parca numaralari tek bicimde degil -> model numarasi BASILMIYOR, ad'a gore gruplandi\n";
+              }
 
               /* KURAL 3: gonderim yeri TAHMIN EDILMEZ. Butun ilanlarda ayni ve
                  dolu ise yaziyoruz; biri bile bos ya da farkliysa mektupta HIC
@@ -1110,13 +1152,13 @@ jobs:
                 default              => ['pdf', 'xlsx'],
               };
               if ($want) {
-                $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $brand), '-'));
+                $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $brand.($catF !== '' ? '-'.$catF : '')), '-'));
                 foreach ([
                   ['wholesale-list.php', '%PDF', 'pdf', 2000],
                   ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
                 ] as [$script, $sig, $ext, $min]) {
                   if (!in_array($ext, $want, true)) continue;
-                  $bytes = $genList($script, ['brand' => $brand]);
+                  $bytes = $genList($script, ['brand' => $brand] + ($catF !== '' ? ['cat' => $catF] : []));
                   $pos = strpos($bytes, $sig);
                   if ($pos === false || strlen($bytes) - (int)$pos < $min) {
                     fwrite(STDERR, "{$ext} uretilemedi (".strlen($bytes)." bayt, imza "
@@ -1140,10 +1182,11 @@ jobs:
                 }
               }
 
-              echo "marka       : {$brand}\n";
-              echo "urun        : ".count($rows)." adet, ".count($groups)." fiyat grubu\n";
+              echo "marka       : {$brand}".($catF !== '' ? "  (cat={$catF})" : "")."\n";
+              echo "urun        : ".count($rows)." adet, ".count($groups)." MODEL\n";
               foreach ($groups as $g) {
-                echo "  ".$g['cat']." | EUR ".number_format($g['price'],2)." | MOQ ".$g['moq']
+                echo "  ".($g['art'] !== '' ? $g['art'] : '(no art)')." | ".$g['model']
+                   . " | EUR ".number_format($g['price'],2)." | MOQ ".$g['moq']
                    . ($g['tiers'] !== '' ? " | kademe: ".$g['tiers'] : "")
                    . " | ".count($g['items'])." renk\n";
               }

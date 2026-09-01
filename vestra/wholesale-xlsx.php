@@ -57,6 +57,13 @@ if (PHP_SAPI !== 'cli' && !auth_prices_unlocked(auth_user())) {
 
 
 $brandFilter = trim((string)($_GET['brand'] ?? ''));
+/* Kategori suzgeci (alt dize) -- wholesale-list.php'de VARDI, burada YOKTU.
+   Ikisi ayni mektuba ek olarak gidiyor: PDF 'yalnizca Polos' derken Excel
+   butun markayi tasiyor, yani ayni zarftaki iki belge birbirini yalanliyordu.
+   Bir aliciya "sadece polo gonderiyorum" deyip ekte tisortleri de yollamak,
+   listenin tamamini gondermekten daha kotu -- alici hangisinin gecerli
+   oldugunu bilemiyor. */
+$catFilter = trim((string)($_GET['cat'] ?? ''));
 
 $byBrand = [];
 foreach (vestra_products() as $p) {
@@ -67,6 +74,7 @@ foreach (vestra_products() as $p) {
     $price = vestra_export_price($p);
     if ($brand === '' || $price <= 0) continue;
     if ($brandFilter !== '' && strcasecmp($brand, $brandFilter) !== 0) continue;
+    if ($catFilter !== '' && stripos((string)($p['cat'] ?? ''), $catFilter) === false) continue;
     $byBrand[$brand][] = $p;
 }
 ksort($byBrand, SORT_NATURAL | SORT_FLAG_CASE);
@@ -194,7 +202,11 @@ if ($file === '' || !is_file($file)) {
     exit('price list temporarily unavailable');
 }
 
+/* Kategori de dosya adina giriyor: yalnizca polo iceren dosya ile butun
+   markayi iceren dosya ayni adi tasirsa, alicinin indirilenler klasorunde
+   ikincisi birincisinin uzerine yaziyor ve hangisinin ne oldugu kayboluyor. */
 $slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';
+if ($catFilter !== '') $slug .= strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $catFilter)).'-';
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.xlsx"');
 header('Content-Length: '.filesize($file));
