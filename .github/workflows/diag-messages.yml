@@ -30,6 +30,10 @@ on:
         description: "mailcfg ile: olay geçmişi sorulacak adres (boş = operatör test kutusu)"
         required: false
         default: ""
+      mail_subject:
+        description: "mailcfg ile: yalnızca konusunda bu metin geçen olaylar (ör: Ralph Lauren). Boş = hepsi"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -60,7 +64,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ
           script: |
             export IN_WHO='${{ github.event.inputs.who }}'
             export IN_WHO2='${{ github.event.inputs.who2 }}'
@@ -69,6 +73,7 @@ jobs:
             export IN_THREADS='${{ github.event.inputs.threads }}'
             export IN_MAILCFG='${{ github.event.inputs.mailcfg }}'
             export IN_MAIL_FOR='${{ github.event.inputs.mail_for }}'
+            export IN_MAIL_SUBJ='${{ github.event.inputs.mail_subject }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -253,21 +258,42 @@ jobs:
                   'email' => $who,
                   'startDate' => gmdate('Y-m-d', strtotime('-2 days')),
                   'endDate' => gmdate('Y-m-d'),
-                  'limit' => 30,
+                  'limit' => 100,
                 ]));
                 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_TIMEOUT=>20,
                   CURLOPT_HTTPHEADER=>['api-key: '.$apiKey, 'Accept: application/json']]);
                 $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
                 if ($code >= 200 && $code < 300) {
                   $events = (array)((json_decode((string)$resp, true) ?: [])['events'] ?? []);
-                  if (!$events) { echo "  (HIC OLAY YOK -- Brevo'ya hic ulasmamis olabilir)\n"; $summary[] = "Brevo: olay yok"; }
+                  /* Konu suzgeci: 100 olayin hepsini basmak kutuk kuyruguna
+                     sigmiyor ve ilgilendigin mektup en usttekiler arasinda
+                     kaybolyordu -- ilk denemede tam bu oldu. */
+                  $subjQ = trim((string)getenv('IN_MAIL_SUBJ'));
+                  if ($subjQ !== '') {
+                    $events = array_values(array_filter($events,
+                      fn($ev) => stripos((string)($ev['subject'] ?? ''), $subjQ) !== false));
+                    echo "  (konu suzgeci: \"{$subjQ}\")\n";
+                  }
+                  if (!$events) {
+                    echo "  (HIC OLAY YOK".($subjQ !== '' ? " -- bu konuda" : " -- Brevo'ya hic ulasmamis olabilir").")\n";
+                    $summary[] = "Brevo: olay yok".($subjQ !== '' ? " ({$subjQ})" : "");
+                  }
+                  /* ESKIDEN YENIYE bas: Brevo yeniden eskiye donduruyor ve kutuk
+                     KUYRUKTAN okundugu icin en yeni satirlar tam da kirpilan
+                     yerdeydi. Simdi en yeni olay en SONDA, yani her zaman gorunur. */
+                  $events = array_reverse($events);
                   $tally = [];
                   foreach ($events as $ev) {
                     $e = (string)($ev['event'] ?? '?');
                     $tally[$e] = ($tally[$e] ?? 0) + 1;
-                    echo "  ".($ev['date'] ?? '?')." | ".$e." | ".mb_substr((string)($ev['subject'] ?? ''),0,58)."\n";
+                    echo "  ".($ev['date'] ?? '?')." | ".$e." | ".mb_substr((string)($ev['subject'] ?? ''),0,52)."\n";
                   }
                   foreach ($tally as $e => $c) $summary[] = "Brevo {$e}: {$c}";
+                  /* 'requests' var ama 'delivered' yoksa: Brevo istegi kabul etti,
+                     posta kutusuna girmedi. Sessizce gecilecek en pahali durum. */
+                  if (($tally['requests'] ?? 0) > 0 && ($tally['delivered'] ?? 0) === 0) {
+                    $summary[] = "!! requests var, delivered YOK -- kabul edildi ama teslim edilmedi";
+                  }
                 } else {
                   echo "  HATA: Brevo events HTTP {$code}: ".mb_substr((string)$resp,0,160)."\n";
                   $summary[] = "Brevo events HTTP {$code}";
