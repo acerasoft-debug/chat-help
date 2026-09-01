@@ -937,8 +937,13 @@ function vestra_invoices_for_ref(string $ref, bool $followGroup = true): array {
                tek dal bu dal -- kosulsuz require etmek, satici etiketi gerektirmeyen
                cagrilara da auth yuku bindirirdi. */
             require_once __DIR__.'/auth.php';
+            /* Etiket BELGEDEKI adla ayni olmali: vestra_invoice_issuer_name
+               once 'invoice_name'e bakiyor. Burada duz 'company' okunuyordu ve
+               fatura "Agaya Paris" derken panel/alici sayfasi ayni belgeyi
+               "GARAGE LE PARIS" diye etiketliyordu -- operator faturayi
+               degistirdigini sanip tekrar tekrar duzeltmeye calisti. */
             foreach (auth_accounts() as $a) {
-                if (($a['id'] ?? '') === $sellerKey) { $label = $a['company'] ?: ($a['name'] ?: 'Seller'); break; }
+                if (($a['id'] ?? '') === $sellerKey) { $label = vestra_invoice_issuer_name($a, 'Seller'); break; }
             }
         }
         $out[] = [
