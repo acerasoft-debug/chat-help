@@ -183,10 +183,18 @@ jobs:
                 $own = $su === '' ? '(platform/demo — satici yok)'
                                   : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap bulunamadi)').' ['.substr($su,0,8).']');
                 $owners[$own] = ($owners[$own] ?? 0) + 1;
-                echo "  ".($p['id']??'?')." | ".mb_substr((string)($p['name']??''),0,44)
-                   ." | ".($p['cat']??'?')." | ".number_format(vestra_export_price($p),2)." EUR"
-                   ." | MOQ ".(int)($p['moq']??0)
-                   ." | ships_from=".(trim((string)($p['ships_from']??'')) !== '' ? $p['ships_from'] : '*** GIRILMEMIS ***')
+                /* Renk ve gorsel de yaziliyor: birlestirilmis bir ilani
+                   birlestirilmemisten ancak bunlar ayirir. Depodaki ice
+                   aktarma dosyasi CANLI durumu gostermez -- uzerine duzeltme
+                   uygulanmis olabilir. */
+                $cols = (array)($p['colors'] ?? []);
+                echo "  ".($p['id']??'?')." | ".mb_substr((string)($p['name']??''),0,40)
+                   ." | ".($p['cat']??'?')." | sku=".($p['sku'] ?? '-')
+                   ." | ".number_format(vestra_export_price($p),2)." EUR | MOQ ".(int)($p['moq']??0)
+                   ." | durum=".($p['status'] ?? 'approved')
+                   ." | renk(".count($cols)."): ".(implode(',', array_map('strval',$cols)) ?: '-')
+                   ." | gorsel=".count((array)($p['images'] ?? []))
+                   ." | ships=".(trim((string)($p['ships_from']??'')) !== '' ? $p['ships_from'] : 'YOK')
                    ." | ".$own."\n";
               }
               echo "  TOPLAM: {$n} urun\n";
