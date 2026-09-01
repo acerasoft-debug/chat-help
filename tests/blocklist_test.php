@@ -151,7 +151,23 @@ echo "\n== 9. Kayitli istisna: vipshop.com (operator karari, 31 Agu 2026) ==\n";
    Biri blokliste 'vipshop' eklerse bu satir dusecek ve karar hatirlanacak. */
 $t('vipshop.com engellenmiyor', !$blocked('VipShop Singapore Pte. Ltd.','','vipshop.com'));
 
-echo "\n== 10. Bos/bozuk girdi cokmemeli ==\n";
+echo "\n== 10. PARK EDILMIS / SATILIK alan adi yakalanmali ==\n";
+/* 1 Eyl 2026: klcollective.com'a mektup gitti, tarama adi "HugeDomains" getirmisti.
+   NS/MX kontrolu bunu yakalayamaz -- park saglayicisi alan adini gercekten kaydeder. */
+foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
+          'Parked domain', 'Account Suspended', 'Website coming soon'] as $n) {
+    $t("park: \"$n\"", vestra_name_is_parked_domain($n));
+}
+echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";
+/* Liste bilerek dar: genel bir 'domain'/'shop' kelimesi buraya girerse
+   gercek butikler sessizce elenir -- en pahali hata turu. */
+foreach (['Domain Boutique Milano', 'The Sedona Store', 'Coming Soon Concept Store',
+          'Suspended Animation Vintage', 'Maison Ines Ligron', 'NUBIAN'] as $n) {
+    $t("gecer: \"$n\"", !vestra_name_is_parked_domain($n));
+}
+$t('bos ad park sayilmaz', !vestra_name_is_parked_domain(''));
+
+echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
 $t('paylasimli host adiyla yargilanmaz', !$blocked('Mystore','hi@mystore.wixsite.com','mystore.wixsite.com'));

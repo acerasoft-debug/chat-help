@@ -445,6 +445,17 @@ jobs:
               if (trim((string)($l['last_contacted_at'] ?? '')) !== '') {
                 echo "  - ATLANDI (zaten gonderilmis): {$mail}\n"; $skip++; continue;
               }
+              /* PARK EDILMIS / SATILIK alan adi -> dukkan degil, satis sayfasi.
+                 1 Eyl 2026'da klcollective.com'a mektup gitti; tarama sirket adini
+                 "HugeDomains" diye getirmisti. Isaret elimizdeydi, kimse bakmiyordu.
+                 NS/MX kontrolu bunu yakalayamaz: park saglayicisi alan adini gercekten
+                 kaydeder ve cogu MX de yayinlar, yani alan adi "yasiyor" gorunur. */
+              if (function_exists('vestra_name_is_parked_domain')
+                  && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) {
+                printf("  - ATLANDI (park edilmis/satilik alan adi: \"%s\"): %s\n",
+                       mb_substr((string)($l['company'] ?? ''), 0, 40), $mail);
+                $skip++; continue;
+              }
               if ($SAME_FIRM !== 'send') {
                 $dom = $domOf($mail);
                 if ($dom !== '' && !isset($SHARED_MX[$dom]) && isset($firmDone[$dom]) && $firmDone[$dom] !== $mail) {

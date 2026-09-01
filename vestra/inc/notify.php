@@ -586,6 +586,36 @@ function vestra_discover_blocklist(): array {
     "d's damat",'dsdamat','ds damat','orka holding','damat tween',
   ];
 }
+/* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
+ *
+ * 1 Eyl 2026: klcollective.com'a mektup gitti ve site taramasi sirket adini
+ * "HugeDomains" diye getirdi -- yani alan adi satiliktir, arkasinda dukkan yok.
+ * Isaret ZATEN elimizdeydi (tarama adi cekiyor), sadece kimse bakmiyordu.
+ * NS/MX kontrolu bunu yakalayamaz: park saglayicilari alan adini gercekten
+ * kaydeder ve cogu MX de yayinlar, yani "alan adi yasiyor" gorunur.
+ *
+ * Yalnizca TANINMIS park saglayicilarinin adlari ve acik "satilik" kaliplari
+ * aranir; genel kelime konmaz. "Domain" gecen her adi elemek, gercek bir
+ * "Domain Boutique"i sessizce silerdi -- ve sessiz eleme, yanlis gonderimden
+ * pahali oldugu icin bu liste bilerek dar. */
+function vestra_name_is_parked_domain(string $company): bool {
+  $k = strtolower(trim($company));
+  if ($k === '') return false;
+  foreach ([
+    'hugedomains','sedo','afternic','dan.com','undeveloped','namecheap marketplace',
+    'godaddy auctions','buy this domain','domain for sale','this domain is for sale',
+    'domain name for sale','parked domain','domain parking','future home of',
+    'website coming soon','coming soon!','account suspended','bandwidth limit exceeded',
+  ] as $needle) {
+    /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
+       buluyor: 'sedo' -> "The Sedona Store". Ayni hata vestra_name_is_blocked'da
+       bir kez yasandi (mango -> Mangobay); testi burada da tuttugu icin
+       kodlanmadan once yakalandi. */
+    if (preg_match('/(?<![a-z0-9])'.preg_quote($needle, '/').'(?![a-z0-9])/i', $k)) return true;
+  }
+  return false;
+}
+
 /* Domain-level twin of vestra_name_is_blocked(). The company name is scraped from the
  * lead's own site and that scrape FAILS in exactly the cases that matter: a bot wall
  * returns "Access to this page has been denied" and a distributor sails through the name
