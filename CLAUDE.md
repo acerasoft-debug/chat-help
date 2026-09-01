@@ -81,6 +81,23 @@ aracın **adres uydurduğunun** imzası — CLAUDE.md'de zaten kayıtlı olan re
   Surrender, Fake Tokyo ve Assin gerçek mağazalar ama alan adları artık kayıtlı
   değil. "Tanıdık isim" adresin çalıştığı anlamına gelmiyor.
 
+**KURAL 1c — aynı FİRMAYA ikinci soğuk mektup gitmez.** Tekilleştirme uzun süre
+yalnızca **adrese** bakıyordu. 1 Eylül 2026'da ikinci APAC listesinde
+`sartorial@marais.com.au` vardı; aynı dükkânın `online@` adresi 31 Ağustos'ta
+mektup almıştı. `add-and-send.yml` artık **alan adı** düzeyinde de atlıyor
+(`same_firm=skip`, varsayılan; `send` ile kapatılır). **Serbest posta
+sağlayıcıları muaf** (gmail, outlook, gmx, qq, naver …) — orada alan adı firma
+kimliği taşımaz, muaf tutulmasaydı gmail'deki her yeni butik sessizce elenirdi.
+
+**İkinci APAC listesi (1 Eyl 2026, 76 satır, "unique" adına rağmen):** engelleme
+listesi 76'da yalnızca 12'sini yakaladı; elle okununca **13 ad daha** çıktı ve
+eklendi — zincir: **United Arrows, Beams, atmos Tokyo, Limited Edt**;
+distribütör: **Club 21** (Asya bölge temsilcisi), **The Hour Glass**; kendi
+markası: **Paspaley, Lucy Folk, Uma and Leopold, Bamboo Blonde, Real McCoy's,
+Kim Soo, Pestle & Mortar**. Ayrıca 16 alan adı kayıtlı değildi ve 3'ü zaten
+gönderilmişti: 76 satırdan geriye **32** kaldı. *Liste ne kadar "temizlenmiş"
+diye sunulursa sunulsun, elle okuma adımı atlanamıyor.*
+
 **Aynı listeyi ikinci kez göndermeden önce gönderim geçmişine bak.** Bu 73'lük
 liste 31 Ağustos'ta tümüyle işlendi: 20 engelli, 31 ölü, **22'sinin hepsine
 gönderildi** (run `33415700880` 5 + `33415951830` 16 + Restir daha önce).
@@ -113,6 +130,30 @@ yetmiyor; kontrol gönderim yolunda olmalı.
 - **Belge kapıyı açmaz, operatör onayı açar** (`auth_prices_unlocked` →
   `auth_user_approved`). Belge **uyarı**dır. Bu yüzden hiçbir metinde "belgesiz hesap
   aktif edilemez" **yazmamalı** — 31 Ağu 2026'da kayıt notundaki o cümle düzeltildi.
+
+**KURAL 2b — "Hesabım aktive edilmedi" diyene, ÖNCE kapıya bak.** 1 Eylül
+2026'da Kerim Kuku "hesabım aktive edilmedi, toptan fiyatları göremiyorum" yazdı;
+sunucuda `operator_onayi=EVET`, `auth_prices_unlocked=ACIK` idi. Ona yeniden
+"tek eksik belgeniz" mektubu göndermek yanlış olurdu: **kapı zaten açıkken belgeyi
+sebep göstermek**, müşteriyi yapması gerekmeyen bir işe yollar ve platformun kendi
+kaydını okumadığını gösterir. Genellikle sebep, sayfanın **oturum kapalı**
+görüntülenmesidir — kademeler yalnızca girişli ve onaylı hesaba basılır.
+- Mektup: `send-campaign-preview.yml` → `reply_letter=account_open_l1212`.
+  **Kapıyı önce doğrular**; `auth_prices_unlocked` KAPALI ise iş **durur** ve
+  hiçbir şey göndermez. "Her şey açık" deyip kilitli sayfaya yollamak, hiç
+  yazmamaktan kötü.
+- **Rakamlar elle yazılmaz.** Kademe, MOQ, minimum renk, beden aralığı ve renk
+  başına artikel numarası **canlı ilan kaydından** basılır. Önceki L1212
+  mektubunda sayılar metne gömülüydü; ilan değişince mektup sessizce yalan olur.
+- **`Lead time` bilerek basılmıyor** — serbest metin ve bayatlıyor: L1212'de
+  1 Eylül 2026'da hâlâ *"Pre-order — in stock from 5 May"* yazıyordu. Geçmiş bir
+  tarihi teslim sözü diye basmak, KURAL 3'ün yasakladığı tahminle aynı hata.
+  Teslim süresi bağlayıcı teklifte verilir.
+- Belge bölümü yalnızca durum **`requested`** ise yazılır; `uploaded` olana
+  "yükleyin" demek yaptığı işi tekrar yaptırmaktır (`auth_trade_doc_status`).
+- Kupon `voucher_welcome_run` ile **aynı `campaign` adını** kullanır, böylece
+  sonraki toplu hoş geldin koşusu aynı hesaba **ikinci bir kod** göndermez.
+  Önizlemede kod **yakılmaz**; damga yalnızca gönderim başarılı olunca düşer.
 
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
@@ -314,7 +355,7 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   oldu. Davranış bilerek değiştiyse **testi de düzelt** — bir kez eski ve
   HATALI davranışı koruyan bir iddia çıktı (satıcı kendi karşı teklifini kabul
   edip alıcının onaylamadığı fiyattan fatura kesiyordu).
-- **Teşhis çıktısına körü körüne güvenme.** Bu depoda **beş** kez, kontrolün
+- **Teşhis çıktısına körü körüne güvenme.** Bu depoda **altı** kez, kontrolün
   kendisi yanlış yere bakıyordu: `stripe_secret` uygulamanın okumadığı
   anahtardan, giriş probu hiç giriş olmadan "girişli kullanıcı her sayfayı
   açıyor" diyordu, `vestra_join_cta` fatal'leri eski kayıttı, **1 Eyl 2026'da
@@ -325,9 +366,18 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   **ikinci kez faturalamak** olurdu), ve **aynı gün `mail_for` tek başına
   verildiğinde Brevo olay bölümü hiç çalışmıyordu** (`mailcfg=true` bloğunun
   içindeydi) — çıktı boş dönüyor ve "bu adrese olay yok" diye okunuyordu.
+  **6. vaka, 1 Eyl 2026:** `diag-messages` hesap dökümü `$a['vat']` okuyordu,
+  oysa hesabın alanı **`vat_id`** (`auth.php:278`, `register.php`) — yani **her**
+  hesap için `vat=(yok)` basıyordu. Buna güvenmek, VAT numarası dosyada **duran**
+  bir müşteriye "numaranız kayıtlı değildi, önceki mektubumuz hatalıydı" diye
+  **özür** yazdıracaktı. *Doğru bir cümleyi geri almak, hiç yazmamaktan kötü.*
+  Yakalanma sebebi: mektup işi metni kurmadan önce kaydı **karşılaştırıyordu**.
   Bir uyarıyı **ya da bir "sorun yok"u** rapor etmeden önce kontrolün
   **gerçekten** kodun okuduğu yere baktığını doğrula. İki kayıt birbirini
-  tutmuyorsa (sipariş var ama fatura "yok") **önce çelişkiyi çöz**, karar verme.
+  tutmuyorsa (sipariş var ama fatura "yok"; teşhis "VAT yok" ama mektup işi
+  "kayıtlı") **önce çelişkiyi çöz**, karar verme.
+  **Alan adı yazan bir teşhis satırı, alanı kodda ara.** Yanlış anahtar sessizdir:
+  `?? ''` her zaman boş döner, hata vermez.
 - `workflow_dispatch` en fazla **25 girdi** alır; `diag-live.yml` sınırda.
 - `get_job_logs` kuyruğu ~55-78 satır gösterir — uzun çıktıyı sıkıştır, yoksa
   başlangıçtaki satırlar kuyruktan düşer.
