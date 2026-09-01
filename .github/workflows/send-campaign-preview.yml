@@ -1114,10 +1114,27 @@ jobs:
                   'sizes'=>vestra_sizes_label(trim((string)($p['sizes'] ?? ''))),
                   'items'=>[],
                 ];
-                $groups[$k]['items'][] = [
-                  'name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? ''),
-                  'sku'=>trim((string)($p['sku'] ?? '')), 'colour'=>$colour,
-                ];
+                /* RENKLER ILANIN KENDI 'colors' ALANINDAN. Ilanlar model bazinda
+                   birlestirildikten sonra bir model = BIR ilan; renk artik ayri
+                   satir degil, o ilanin icinde bir liste. Eskisi gibi ilan basina
+                   tek satir saymak "1 renk" yazdiriyordu -- oysa ilan dort renk
+                   tasiyor. Birlestirilmemis ilanda colors (govde,pony) ciftidir,
+                   o yuzden coklu renk yalnizca 2'den FAZLA deger varsa liste
+                   sayiliyor; degilse addan cozulen renge dusuyor. */
+                $cl = array_values(array_filter(array_map('strval', (array)($p['colors'] ?? [])), fn($c) => trim($c) !== ''));
+                if (count($cl) > 2) {
+                  foreach ($cl as $c) {
+                    $groups[$k]['items'][] = [
+                      'name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? ''),
+                      'sku'=>'', 'colour'=>$c,
+                    ];
+                  }
+                } else {
+                  $groups[$k]['items'][] = [
+                    'name'=>(string)($p['name'] ?? ''), 'id'=>(string)($p['id'] ?? ''),
+                    'sku'=>trim((string)($p['sku'] ?? '')), 'colour'=>$colour !== '' ? $colour : ($cl[0] ?? ''),
+                  ];
+                }
               }
               $groups = array_values($groups);
               if (!$uniformSku) {

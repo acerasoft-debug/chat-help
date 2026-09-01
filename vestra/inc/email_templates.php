@@ -1767,8 +1767,12 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
            Uretici parca numarasi da basliga giriyor: alici kendi line
            sheet'iyle ancak o numaradan eslestiriyor. */
         $head = $model !== '' ? $model : $cat;
+        /* Parca numarasi ADIN ICINDE zaten geciyorsa tekrar yazma: ilanlar
+           model bazinda birlestirildikten sonra ad "... (710680785)" oldu ve
+           baslik "710680785 · art. 710680785" diye cikiyordu. */
+        $showArt = $art !== '' && strpos($head, $art) === false;
         $body .= strtoupper($head)
-               . ($art !== '' ? "  ·  art. ".$art : "")."\n"
+               . ($showArt ? "  ·  art. ".$art : "")."\n"
                . "EUR ".number_format($price, 2)." per piece"
                . ($moq > 0 ? ", minimum ".$moq." pcs" : "")."\n";
         /* vestra_export_tiers_label() "160+ 25.00 · 320+ 23.50" verir -- tabloda
