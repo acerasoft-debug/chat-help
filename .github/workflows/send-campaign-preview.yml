@@ -679,6 +679,7 @@ jobs:
             require $doc."/inc/products.php";
             require_once $doc."/inc/notify.php";
             require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/stock.php";   /* brand_catalog stok satiri */
             require_once $doc."/inc/email_templates.php";
 
             $letter = strtolower(trim((string)getenv('R_LETTER')));
@@ -1107,13 +1108,27 @@ jobs:
                 [$mName, $colour] = $splitName((string)($p['name'] ?? ''));
                 $style = $styleOf($p);
                 $k = ($style !== '' ? $style : $mName).'|'.number_format($price,2).'|'.$moq;
-                if (!isset($groups[$k])) $groups[$k] = [
-                  'cat'=>$cat, 'model'=>$mName, 'art'=>$style, 'scope'=>$catF,
-                  'price'=>$price, 'moq'=>$moq,
-                  'tiers'=>vestra_export_tiers_label($p),
-                  'sizes'=>vestra_sizes_label(trim((string)($p['sizes'] ?? ''))),
-                  'items'=>[],
-                ];
+                if (!isset($groups[$k])) {
+                  /* Kademeler SECENEK listesi olarak: MOQ kademesi de dahil.
+                     vestra_export_tiers_label() yalnizca MOQ'un USTUNDEKILERI
+                     veriyor -- mektupta iki fiyati yan yana gostermek icin ilki
+                     de lazim. Kademe yoksa tek secenek: MOQ fiyati. */
+                  $tl = [];
+                  foreach ((array)($p['tiers'] ?? []) as $t) {
+                    $mn = (int)($t['min'] ?? 0); $pr = (float)($t['price'] ?? 0);
+                    if ($mn > 0 && $pr > 0) $tl[] = ['min'=>$mn, 'price'=>$pr];
+                  }
+                  if (!$tl) $tl = [['min'=>$moq, 'price'=>$price]];
+                  usort($tl, fn($a,$b) => $a['min'] <=> $b['min']);
+                  $groups[$k] = [
+                    'cat'=>$cat, 'model'=>$mName, 'art'=>$style, 'scope'=>$catF,
+                    'price'=>$price, 'moq'=>$moq,
+                    'tiers_list'=>$tl,
+                    'stock'=>(int)(vestra_stock_for($p)['total'] ?? 0),
+                    'sizes'=>vestra_sizes_label(trim((string)($p['sizes'] ?? ''))),
+                    'items'=>[],
+                  ];
+                }
                 /* RENKLER ILANIN KENDI 'colors' ALANINDAN. Ilanlar model bazinda
                    birlestirildikten sonra bir model = BIR ilan; renk artik ayri
                    satir degil, o ilanin icinde bir liste. Eskisi gibi ilan basina
@@ -1202,9 +1217,9 @@ jobs:
               echo "marka       : {$brand}".($catF !== '' ? "  (cat={$catF})" : "")."\n";
               echo "urun        : ".count($rows)." adet, ".count($groups)." MODEL\n";
               foreach ($groups as $g) {
+                $tstr = implode(' / ', array_map(fn($t) => $t['min'].'+ '.number_format($t['price'],2), $g['tiers_list']));
                 echo "  ".($g['art'] !== '' ? $g['art'] : '(no art)')." | ".$g['model']
-                   . " | EUR ".number_format($g['price'],2)." | MOQ ".$g['moq']
-                   . ($g['tiers'] !== '' ? " | kademe: ".$g['tiers'] : "")
+                   . " | ".$tstr." | MOQ ".$g['moq']." | stok ".$g['stock']
                    . " | ".count($g['items'])." renk\n";
               }
 

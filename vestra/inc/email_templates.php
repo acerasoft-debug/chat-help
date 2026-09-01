@@ -1744,11 +1744,13 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
        gizliyor; toptanci once modeli, sonra rengi secer. */
     $models = count($groups);
     $what   = trim((string)($groups[0]['scope'] ?? ''));
+    /* "8 articles" YANLISTI: ilanlar model bazinda birlestikten sonra o sayi
+       renk secenegini sayiyor, ayri urunu degil. Model ve renk ayri ayri. */
     $body = $salutation . ",\n\n"
 . "Thank you for your enquiry. Below is our complete ".$brand
 . ($what !== '' ? " ".$what : "")." range as it stands today — "
-. ($models > 1 ? $models." models, " : "")
-. $total . " article".($total === 1 ? "" : "s")
+. $models." model".($models === 1 ? "" : "s")
+. " in ".$total." colour".($total === 1 ? "" : "s")
 . ", with the wholesale price and minimum order quantity against each.\n\n";
 
     foreach ($groups as $g) {
@@ -1771,35 +1773,52 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
            model bazinda birlestirildikten sonra ad "... (710680785)" oldu ve
            baslik "710680785 · art. 710680785" diye cikiyordu. */
         $showArt = $art !== '' && strpos($head, $art) === false;
-        $body .= strtoupper($head)
-               . ($showArt ? "  ·  art. ".$art : "")."\n"
-               . "EUR ".number_format($price, 2)." per piece"
-               . ($moq > 0 ? ", minimum ".$moq." pcs" : "")."\n";
+        $body .= strtoupper($head) . ($showArt ? "  ·  art. ".$art : "")."\n";
+
+        /* FIYAT KADEMELERI SECENEK OLARAK. Once tek fiyat + altinda "volume
+           price ..." dipnotu vardi; ikinci rakam okunmadan geciliyordu. Toptanci
+           adedi fiyata gore secer, o yuzden iki kademe YAN YANA, ayni bicimde.
+           Stok da burada: 160+ kademesini teklif edip stogun 100 oldugunu
+           soylememek, alicinin ulasamayacagi bir fiyati gostermek olurdu. */
+        $opts = (array)($g['tiers_list'] ?? []);
+        if (!$opts) $opts = [['min' => $moq, 'price' => $price]];
+        if (count($opts) > 1) $body .= "Price options:\n";
+        foreach ($opts as $o) {
+            $mn = (int)($o['min'] ?? 0);
+            $body .= (count($opts) > 1 ? "  " : "")
+                   . "from ".$mn." pcs — EUR ".number_format((float)($o['price'] ?? 0), 2)." per piece\n";
+        }
         /* vestra_export_tiers_label() "160+ 25.00 · 320+ 23.50" verir -- tabloda
            dogru, duz metinde okunmuyor ("160+ 25.00 per piece" iki rakami
            yan yana birakiyor). Mektubun EN COK OKUNAN satiri bu; para birimi
            ve adet ayri ayri yaziliyor. Cozulemeyen bir bicim gelirse ham etiket
            basiliyor -- uydurmak yerine. */
-        if ($tiers !== '') {
-            $parts = [];
-            foreach (explode('·', $tiers) as $t) {
-                $t = trim($t);
-                if ($t === '') continue;
-                $parts[] = preg_match('/^(\d+)\+\s+([\d.,]+)$/', $t, $mm)
-                    ? "from ".$mm[1]." pcs: EUR ".$mm[2]
-                    : $t;
-            }
-            $body .= "Volume price — ".implode(' · ', $parts)." per piece\n";
-        }
         if ($sizes !== '') $body .= "Size run: ".$sizes."\n";
+        $stock = (int)($g['stock'] ?? 0);
+        if ($stock > 0) $body .= "In stock: ".number_format($stock, 0, '.', ',')." pcs\n";
         $body .= "\n";
-        foreach ($items as $it) {
-            /* Satir basi: TAM parca numarasi + renk. Alici siparisi renk
-               koduyla veriyor, urun adiyla degil. Numara yoksa ada dusuyor. */
-            $sku   = trim((string)($it['sku'] ?? ''));
-            $label = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
-            $body .= "· ".($sku !== '' ? $sku."  —  " : "").$label."\n"
-                   . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+        /* Renkler AYNI ilanin icindeyse tek satirda toplanip baglanti BIR KEZ
+           yaziliyor. Birlestirmeden sonra dort renk de ayni ilana isaret ediyor
+           ve her satira ayni adresi koymak mektubu dort kat uzatip hicbir sey
+           eklemiyordu. Ayri ilanlar ise eskisi gibi tek tek listeleniyor. */
+        $ids = array_unique(array_map(fn($it) => (string)($it['id'] ?? ''), $items));
+        if (count($ids) === 1 && count($items) > 1) {
+            $cols = [];
+            foreach ($items as $it) {
+                $c = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
+                if ($c !== '') $cols[] = $c;
+            }
+            if ($cols) $body .= "Colours: ".implode(' · ', $cols)."\n";
+            $body .= "https://vestrasales.com/product?id=".rawurlencode((string)reset($ids))."\n";
+        } else {
+            foreach ($items as $it) {
+                /* Satir basi: TAM parca numarasi + renk. Alici siparisi renk
+                   koduyla veriyor, urun adiyla degil. Numara yoksa ada dusuyor. */
+                $sku   = trim((string)($it['sku'] ?? ''));
+                $label = trim((string)($it['colour'] ?? '')) ?: trim((string)($it['name'] ?? ''));
+                $body .= "· ".($sku !== '' ? $sku."  —  " : "").$label."\n"
+                       . "  https://vestrasales.com/product?id=".rawurlencode((string)($it['id'] ?? ''))."\n";
+            }
         }
         $body .= "\n";
     }
