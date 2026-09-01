@@ -264,7 +264,11 @@ jobs:
               echo "\n";
             }
 
-            if (getenv('IN_MAILCFG') === 'true') {
+            /* mail_for TEK BASINA da bu blogu acmali: Brevo olay gecmisi bu
+               blogun ICINDE ve girdiyi yalnizca mail_for ile veren operatore
+               HICBIR SEY basilmiyordu -- "olay yok" gibi okunan bir sessizlik,
+               oysa sorgu hic yapilmamisti. Adres soruldugunda cevap verilir. */
+            if (getenv('IN_MAILCFG') === 'true' || trim((string)getenv('IN_MAIL_FOR')) !== '') {
               echo "===== MAIL AYARLARI =====\n";
               $apiKey = (string)vestra_cfg('mail_api_key','');
               echo "mail_enabled=".(vestra_cfg('mail_enabled',false)?'true':'false')
