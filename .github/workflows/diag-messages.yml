@@ -416,6 +416,13 @@ jobs:
                  SIRA KIMDE bilgisi kritik -- top alicidaysa nudge dogru, satici
                  tarafindaysa musteriyi bosuna sikistirmis oluruz. */
               require_once $doc."/inc/offers.php";
+              /* invoice.php AYRICA yuklenmeli. offers.php onu yalnizca fonksiyon
+                 GOVDESINDE require ediyor, yani cagrilmadikca yuklenmiyor ve
+                 asagidaki function_exists('vestra_invoices_for_ref') FALSE
+                 donuyordu -- teshis, KESILMIS bir faturaya "KESILMEDI" diyordu.
+                 Daymond dosyasinda tam bu yasandi: dizinde OCF7F5 PDF+meta
+                 duruyorken satir "onay kuyrugunda" yaziyordu. */
+              require_once $doc."/inc/invoice.php";
               $rs = function_exists('vestra_read_json') ? (array)vestra_read_json('offer_responses.json') : [];
               echo "  --- teklifler ---\n";
               $oc = 0;
