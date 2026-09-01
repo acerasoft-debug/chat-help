@@ -131,6 +131,14 @@ Kim Soo, Pestle & Mortar**. Ayrıca 16 alan adı kayıtlı değildi ve 3'ü zate
 gönderilmişti: 76 satırdan geriye **32** kaldı. *Liste ne kadar "temizlenmiş"
 diye sunulursa sunulsun, elle okuma adımı atlanamıyor.*
 
+**Liste artık DOYMUŞ durumda — yeni liste ≠ yeni müşteri.** 1 Eylül 2026, 100
+satırlık küresel liste: 32 KURAL 1 engelli, 9 ölü alan adı, geriye 59 aday.
+O 59'dan gerçekten mektup alan **15**. Kalan 44'ü gönderim yolu eledi: ya aynı
+adrese daha önce gitmişti ya da aynı firmanın başka kutusuydu. `leads.json`'da
+3600+ alan adı var; piyasanın tanınmış çok markalı butikleri büyük ölçüde
+işlenmiş. Bir sonraki listeyi değerlendirirken beklenti bu olmalı — "100 satır"
+100 yeni aday demek değil, tipik olarak %15 civarı.
+
 **Aynı listeyi ikinci kez göndermeden önce gönderim geçmişine bak.** Bu 73'lük
 liste 31 Ağustos'ta tümüyle işlendi: 20 engelli, 31 ölü, **22'sinin hepsine
 gönderildi** (run `33415700880` 5 + `33415951830` 16 + Restir daha önce).
