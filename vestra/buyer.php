@@ -403,6 +403,36 @@ if($tab==='overview'){
      gorunmuyor, ve fatura yalnizca kabul satirinda bir link olarak
      duruyordu. Alici "teklifim ne oldu" sorusunu tablodan cevaplayamiyordu. */
   require_once __DIR__.'/inc/offers.php';
+
+  /* ── ODENMESI GEREKEN FATURALAR (operator istegi, 1 Eyl 2026) ──
+     Kesilmis ama odenmemis teklif faturalari sayfanin EN USTUNDE, acik bir
+     uyariyla: banka havalesi bekleyen belge, kartlarin arasinda bir linkten
+     ibaret kalmasin. "Odenmemis" = birincil ref'te invoice_paid_at yok;
+     isareti operator odeme gelince koyuyor. Uyeler (invoice_group_ref)
+     atlanir: birlesik belge tek satir olarak bir kez gorunur. */
+  $dueInvs=[];
+  foreach($offers as $__o){
+    $__r=(string)($__o['ref']??''); if($__r==='') continue;
+    if(trim((string)($offerResp[$__r]['invoice_group_ref'] ?? ''))!=='') continue;
+    if(!empty($offerResp[$__r]['invoice_paid_at'])) continue;
+    foreach(vestra_invoices_for_ref($__r,false) as $__iv){
+      if(($__iv['no']??'')!=='') $dueInvs[$__iv['no']]=$__iv;
+    }
+  }
+  if($dueInvs){
+    echo '<div class="panelcard" style="border-color:rgba(169,127,44,.5)"><div class="pcfhead"><h3>⚠ '.t('Payment due').'</h3></div><div class="panelcard-body" style="padding:0 4px">';
+    echo '<p class="hint" style="margin:0 0 10px">'.t('The invoice(s) below have been issued and await your bank transfer. Please pay to the account shown on the invoice, quoting the payment reference printed on it — your goods ship as soon as the payment arrives.').'</p>';
+    foreach($dueInvs as $__iv){
+      $__cur = strtoupper((string)($__iv['currency']??''))==='USD' ? 'US$' : '€';
+      echo '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd)">'
+          .'<b>'.htmlspecialchars((string)($__iv['no']??'')).'</b>'
+          .(((float)($__iv['total']??0))>0 ? '<span>'.$__cur.number_format((float)$__iv['total'],2,'.',',').'</span>' : '')
+          .'<span class="status open">'.t('awaiting payment').'</span>'
+          .'<a class="btn btn-o btn-sm" href="'.htmlspecialchars((string)($__iv['url']??'')).'" target="_blank" rel="noopener">📄 '.t('Download invoice').'</a>'
+          .'</div>';
+    }
+    echo '</div></div>';
+  }
   $viewRef = $_GET['view'] ?? '';
   $vo = $viewRef ? current(array_filter($offers, fn($o)=>($o['ref']??'')===$viewRef)) : null;
 

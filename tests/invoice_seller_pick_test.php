@@ -151,5 +151,31 @@ $LISTING_MAP['SKU-2']['seller_uid']='garage';
 $p = vestra_offers_combined_invoice_payload(['OF-1','OF-2']);
 $t('ortak ilan saticisina otomatik dusme', empty($p['error']) && $who($p['seller'])==='GARAGE LE PARIS');
 
+echo "\n== 10. KARGO + REDRAFT ==\n";
+/* "faturayi kestik fakat 50 eur shipping ... tekrar yap". Kargo kayittan
+   okunur, override onizleme/redraft icindir; redraft yukleyicisi birlesik
+   kesilmis belgeyi uyelerinden yeniden kurar ve faturali-olma kontrolunu
+   BILEREK atlar (belge zaten var, numara korunacak). */
+$LISTING_MAP['SKU-2']['seller_uid']='garage';
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage','invoice_shipping'=>50.0,
+                  'invoice_members'=>['OF-1','OF-2']],
+         'OF-2'=>['status'=>'accept','invoice_group_ref'=>'OF-1']];
+$INVOICED = [];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('kargo kayittan metaya girdi (50)', abs(($p['meta']['shipping']??0)-50.0)<0.001);
+$p = vestra_offer_invoice_payload('OF-1','',null,0.0);
+$t('override 0 = kargosuz onizleme', abs(($p['meta']['shipping']??-1)-0.0)<0.001);
+
+$p = vestra_offer_invoice_redraft_payload('OF-1', 50.0);
+$t('faturasiz ref redraft REDDEDILIR', !empty($p['error']));
+$INVOICED = ['OF-1'];
+$p = vestra_offer_invoice_redraft_payload('OF-1', 50.0);
+$t('redraft yuku kuruldu', empty($p['error']));
+$t('birlesik: iki uye satiri', count($p['items']??[])===2);
+$t('kargo 50 belgeye gidiyor', abs(($p['meta']['shipping']??0)-50.0)<0.001);
+$t('satici kayitli secimden (garage)', $who($p['seller'])==='GARAGE LE PARIS');
+$t('birincil ref korunuyor', ($p['meta']['ref']??'')==='OF-1');
+$INVOICED = [];
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

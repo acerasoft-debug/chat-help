@@ -336,7 +336,7 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null): ?array {
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return null;
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
@@ -353,16 +353,21 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
        soylemek zorunlu (gerekce render'daki shipRows blogunda). Operator onay
        ekranindan girer; null = kayitli degeri oku, '' dahil verilmis deger =
        onizleme gecersiz kilmasi (satici secimiyle ayni desen). */
+    $rs = vestra_read_json('offer_responses.json');
     $vatNote = $vatNoteOverride;
-    if ($vatNote === null) {
-        $rs = vestra_read_json('offer_responses.json');
-        $vatNote = trim((string)($rs[$ref]['invoice_vat_note'] ?? ''));
-    }
+    if ($vatNote === null) $vatNote = trim((string)($rs[$ref]['invoice_vat_note'] ?? ''));
+    /* KARGO: operator onay ekranindan girer, ref'in kaydinda durur
+       (invoice_shipping). Render zaten meta['shipping'] destekliyor --
+       Goods total + Shipping + Grand total olarak ayri satirlarda basar;
+       0 ise hicbir sey degismez. Override onizleme/redraft icin. */
+    $shipping = $shippingOverride !== null ? $shippingOverride
+              : (float)($rs[$ref]['invoice_shipping'] ?? 0);
 
     return [
         'meta' => [
             'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
             'vat_note' => trim($vatNote),
+            'shipping' => round(max(0.0, $shipping), 2),
             'buyer' => [
                 'company' => ($offerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
@@ -413,7 +418,10 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
  *   kabul oldugunu belgeden okuyabilsin.
  * - Tarih = kesim gunu: teklifler farkli gunlerde kabul edilmis olabilir,
  *   tek belgeye iclerinden birinin tarihini vermek digerlerini yanlislar. */
-function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null): array {
+/* $allowInvoiced YALNIZCA redraft icin: kesilmis belgeyi AYNI numarayla
+ * yeniden cizerken uyeler elbette faturali gorunur -- normal kesimde ise bu
+ * kontrol ikinci numara yakilmasini onluyor, acik kalmali. */
+function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, bool $allowInvoiced = false): array {
     require_once __DIR__.'/invoice.php';
     $refs = array_values(array_unique(array_filter(array_map(
         fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $refs))));
@@ -425,7 +433,7 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
         $row = vestra_offer_row($r);
         if (!$row) return ['error' => "Teklif bulunamadı: {$r}"];
         if ((($rs[$r]['status'] ?? '')) !== 'accept') return ['error' => "Teklif kabul edilmiş değil: {$r} — kabul edilmemiş teklife fatura kesilmez."];
-        if (count(vestra_invoices_for_ref($r)) > 0) return ['error' => "Bu teklifin faturası zaten kesilmiş: {$r} — aynı satıra ikinci numara yakılmaz."];
+        if (!$allowInvoiced && count(vestra_invoices_for_ref($r)) > 0) return ['error' => "Bu teklifin faturası zaten kesilmiş: {$r} — aynı satıra ikinci numara yakılmaz."];
         $em = strtolower(trim((string)($row['email'] ?? '')));
         if ($buyerEmail === null) { $buyerEmail = $em; $buyerRow = $row; }
         elseif ($em !== $buyerEmail) return ['error' => "Seçilen teklifler aynı alıcıya ait değil ({$r} farklı) — tek fatura tek alıcıya kesilir."];
@@ -461,6 +469,8 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
 
     $vatNote = $vatNoteOverride;
     if ($vatNote === null) $vatNote = trim((string)($rs[$primary]['invoice_vat_note'] ?? ''));
+    $shipping = $shippingOverride !== null ? $shippingOverride
+              : (float)($rs[$primary]['invoice_shipping'] ?? 0);
 
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
     return [
@@ -468,6 +478,7 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
         'meta' => [
             'ref' => $primary, 'date' => date('c'),
             'vat_note' => trim((string)$vatNote),
+            'shipping' => round(max(0.0, $shipping), 2),
             'buyer' => [
                 'company' => ($buyerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
@@ -484,6 +495,36 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
         'total'  => round(array_sum(array_column($items, 'line')), 2),
         'qty'    => (int)array_sum(array_column($items, 'qty')),
     ];
+}
+
+/* KESILMIS teklif faturasinin YENIDEN CIZIM yuku (redraft: ayni numara,
+ * duzeltilmis icerik -- orn. kargo eklemek). Birlesik kesilmisse
+ * (invoice_members) butun uyelerden yeniden kurar, degilse tek ref'ten.
+ * Belge zaten var oldugu icin faturali-olma kontrolu BILEREK atlanir;
+ * numara yakilmaz, dosya yerinde yeniden yazilir (vestra_ensure_invoice
+ * redraft=true). Ya tam yuk ya ['error'=>gerekce]. */
+function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverride = null): array {
+    require_once __DIR__.'/invoice.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return ['error' => 'Ref boş.'];
+    if (count(vestra_invoices_for_ref($ref, false)) === 0) {
+        return ['error' => "Bu ref'in kesilmiş bir faturası yok: {$ref} — düzeltme değil, normal kesim gerekiyor."];
+    }
+    $rs = vestra_read_json('offer_responses.json');
+    $members = array_values(array_filter(array_map('strval', (array)($rs[$ref]['invoice_members'] ?? []))));
+    if (count($members) > 1) {
+        $p = vestra_offers_combined_invoice_payload($members, '', null, $shippingOverride, true);
+    } else {
+        $p = vestra_offer_invoice_payload($ref, '', null, $shippingOverride);
+        if (!$p) return ['error' => "Teklif bulunamadı: {$ref}"];
+        $p['refs'] = [$ref];
+    }
+    if (!empty($p['error'])) return $p;
+    /* Tarih ve birincil ref BELGEDEKI gibi kalmali: redraft ayni belgeyi
+       duzeltir, yeni bir belge kurmaz. Birlesik kurucu tarihi bugune atar --
+       burada onemi yok cunku vestra_ensure_invoice redraft'ta mevcut meta
+       dosyasindaki numarayi koruyor; ref zaten birincil. */
+    return $p;
 }
 
 /* $force=false -> yalnizca 'pending' doner, DOSYA URETMEZ (kabul aninda).

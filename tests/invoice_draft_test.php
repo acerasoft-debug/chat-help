@@ -77,5 +77,14 @@ $b3 = vestra_render_invoice_pdf($meta3, $items, $seller, 'INV-2026-000125', fals
 $t('hazir sablonun ASCII kismi belgede', str_contains($b3,'article 262 ter I du CGI'));
 $t('aksanli kelime CP1252 olarak belgede', str_contains($b3, iconv('UTF-8','CP1252//TRANSLIT//IGNORE','Exonération de TVA —')));
 
+echo "\n== 5. KARGO belgeye ayri satir olarak giriyor ==\n";
+/* meta['shipping'] > 0 iken: Goods total + Shipping + genel toplam. */
+$meta4 = $meta; $meta4['shipping'] = 50.0;
+$b4 = vestra_render_invoice_pdf($meta4, $items, $seller, 'INV-2026-000126', false);
+$t('Shipping satiri var',      str_contains($b4,'Shipping'));
+$t('Goods total ayristi',      str_contains($b4,'Goods total'));
+$t('genel toplam 950.00',      str_contains($b4,'950.00'));
+$t('kargosuz belgede Shipping satiri yok', !str_contains($real,'Shipping'));
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);

@@ -146,7 +146,9 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $vn = array_key_exists('vat_note',$_POST)
         ? mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200)
         : null;
-    $p = vestra_offer_invoice_payload($ref, $pick, $vn);
+    /* '' de bilincli bir deger: alani silen operator kargosuz onizleme bekler. */
+    $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
+    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh);
     if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
     $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
     header('Content-Type: application/pdf');
@@ -154,6 +156,75 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Cache-Control: no-store');          // alici verisi tasiyan taslak ara belleklere dusmesin
     header('Content-Length: '.strlen($bytes));
     echo $bytes; exit;
+  }
+  /* KESILMIS TEKLIF FATURASINI DUZELT (redraft) -- operator istegi
+     (1 Eyl 2026): "faturayi kestik fakat 50 eur shipping ucreti koyarak
+     tekrar yap sistemdeki faturayi degistir ... hemen ardindan faturaniz
+     hazirdir diye faturayi email olarak gonder".
+     AYNI numara korunur (vestra_ensure_invoice redraft=true), dosya yerinde
+     yeniden yazilir; alici panelindeki baglanti kendiliginden duzeltilmis
+     belgeyi verir (ayni yol). Kargo kayda gecer, belge kayittan okur.
+     Kesimden farki: numara yakilmaz, uyelik baglari degismez.
+     E-posta REDRAFT'ta otomatik: alici eski toplami bilerek yanlis tutar
+     gondermesin -- duzeltilmis PDF ekte, yeni toplam govdede. */
+  if($act==='preview_redraft_offer_invoice' || $act==='redraft_offer_invoice'){
+    require_once __DIR__.'/inc/offers.php';
+    require_once __DIR__.'/inc/invoice.php';
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
+    $p = vestra_offer_invoice_redraft_payload($ref, $sh);
+    if(!empty($p['error'])){
+      header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
+    }
+    if($act==='preview_redraft_offer_invoice'){
+      $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
+      header('Content-Type: application/pdf');
+      header('Content-Disposition: inline; filename="DRAFT-duzeltme-'.$ref.'.pdf"');
+      header('Cache-Control: no-store');
+      header('Content-Length: '.strlen($bytes));
+      echo $bytes; exit;
+    }
+    /* Kayit belgeden ONCE (ayni gerekce: kesim yarida kalirsa kayit dogru
+       kalir ve tekrar denenebilir). */
+    if($sh!==null){
+      $rs=vestra_read_json('offer_responses.json');
+      $rs[$ref]['invoice_shipping']=$sh;
+      vestra_write_json('offer_responses.json',$rs);
+    }
+    $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, true);
+    $ok = $iv && ($iv['no'] ?? '')!=='' && !empty($iv['redrafted']);
+    if($ok){
+      $em=(string)($p['meta']['buyer']['email'] ?? '');
+      if(filter_var($em,FILTER_VALIDATE_EMAIL)){
+        require_once __DIR__.'/inc/notify.php';
+        $lines='';
+        foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
+        $goods=(float)array_sum(array_column($p['items'],'line'));
+        $shp=(float)($p['meta']['shipping'] ?? 0);
+        vestra_send_mail($em, "VESTRA — your invoice {$iv['no']} is ready",
+          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nYour invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
+         .$lines."\n  Goods total : EUR ".number_format($goods,2)."\n"
+         .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
+         ."  TOTAL DUE   : EUR ".number_format($goods+$shp,2)."\n\n"
+         ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].". You can also download it any time under My offers.\n\n"
+         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com",
+          '','',null,'',['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]]);
+      }
+    }
+    header('Location: /admin?tab=invoices&msg='.($ok?'invoice_redrafted':'invoice_none')); exit;
+  }
+  /* Fatura ODENDI isareti: alici panelindeki "odenmesi gereken fatura"
+     uyarisini kapatan tek sey. Birincil ref'in kaydinda durur. */
+  if($act==='offer_invoice_paid_toggle'){
+    require_once __DIR__.'/inc/offers.php';
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    $rs=vestra_read_json('offer_responses.json');
+    if($ref!=='' && isset($rs[$ref])){
+      if(!empty($rs[$ref]['invoice_paid_at'])) unset($rs[$ref]['invoice_paid_at']);
+      else $rs[$ref]['invoice_paid_at']=date('c');
+      vestra_write_json('offer_responses.json',$rs);
+    }
+    header('Location: /admin?tab=invoices&msg=invoice_paid_toggled'); exit;
   }
   /* SECILEN TEKLIFLERDEN TEK FATURA -- taslak ve kesim. Kurallar ve
      gerekceler kurucuda (vestra_offers_combined_invoice_payload): ayni alici,
@@ -172,7 +243,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $vn = array_key_exists('vat_note',$_POST)
         ? mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200)
         : null;
-    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn);
+    $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
+    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh);
     if(!empty($p['error'])){
       header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
     }
@@ -195,6 +267,7 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $rs[$primary]['invoice_seller_by']='operator';
     $rs[$primary]['invoice_seller_at']=date('c');
     if($vn!==null) $rs[$primary]['invoice_vat_note']=$vn;
+    if($sh!==null) $rs[$primary]['invoice_shipping']=$sh;
     $rs[$primary]['invoice_members']=$p['refs'];
     foreach($p['refs'] as $r){ if($r!==$primary) $rs[$r]['invoice_group_ref']=$primary; }
     vestra_write_json('offer_responses.json',$rs);
@@ -206,11 +279,19 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         require_once __DIR__.'/inc/notify.php';
         $lines='';
         foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
-        vestra_send_mail($em, "VESTRA — invoice {$iv['no']} for your accepted offers",
-          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nStock is confirmed and one combined invoice ({$iv['no']}) has been issued for your accepted offers:\n\n"
-         .$lines."\n  TOTAL: EUR ".number_format($p['total'],2)."  ({$p['qty']} pcs)\n\n"
-         ."Download it under My offers (shown on each of the offers above) and pay by bank transfer to the account on the invoice, quoting reference {$primary}. Your goods ship as soon as the payment arrives.\n\n"
-         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com");
+        $shp=(float)($p['meta']['shipping'] ?? 0);
+        $tot="  Goods total : EUR ".number_format($p['total'],2)."  ({$p['qty']} pcs)\n"
+            .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
+            ."  TOTAL DUE   : EUR ".number_format($p['total']+$shp,2)."\n";
+        /* PDF EKTE: "faturayi email olarak gonder" (operator istegi, 1 Eyl 2026).
+           Baglanti da duruyor -- ek suzulse bile belgeye ulasilir. */
+        vestra_send_mail($em, "VESTRA — your invoice {$iv['no']} is ready",
+          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nYour invoice ({$iv['no']}) for the accepted offers is ready — the PDF is attached.\n\n"
+         .$lines."\n".$tot."\n"
+         ."Please pay by bank transfer to the account shown on the invoice, quoting reference {$primary}. Your goods ship as soon as the payment arrives.\n"
+         ."You can also download it any time under My offers.\n\n"
+         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com",
+          '','',null,'',['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]]);
       }
     }
     header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
@@ -253,6 +334,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $vn = mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200);
       if($vn !== (string)($rs[$ref]['invoice_vat_note'] ?? '')){ $rs[$ref]['invoice_vat_note']=$vn; $dirty=true; }
     }
+    /* KARGO da secim gibi belgeden ONCE kayda gecer; belge kayittan okur.
+       vestra_price_input: ham (float) virgullu ondalikta para kaybettirir. */
+    if(array_key_exists('shipping',$_POST)){
+      $sh = round(max(0.0, vestra_price_input($_POST['shipping'])), 2);
+      if(abs($sh - (float)($rs[$ref]['invoice_shipping'] ?? 0)) > 0.004){ $rs[$ref]['invoice_shipping']=$sh; $dirty=true; }
+    }
     if($dirty) vestra_write_json('offer_responses.json',$rs);
     $iv=vestra_offer_issue_invoice($ref, true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
@@ -261,11 +348,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
         require_once __DIR__.'/inc/notify.php';
         $u=vestra_offer_agreed_unit($ref); $q=(int)($orow['qty']??0);
+        $iv_att = is_file((string)($iv['path']??'')) ? ['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]] : [];
         vestra_send_mail($orow['email'], "VESTRA — invoice for {$ref}",
           "Hello ".(($orow['company']??'')?:'there').",\n\nStock is confirmed and your invoice ({$iv['no']}) for the agreed offer is ready.\n\n"
          ."Reference : {$ref}\nProduct   : ".($orow['product']??'')."\nQuantity  : {$q}\nAgreed    : EUR ".number_format($u,2)."/unit  (total EUR ".number_format($u*$q,2).")\n\n"
          ."Download it under My offers and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\n"
-         ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com");
+         ."View: https://vestrasales.com/buyer?tab=offers&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com",
+          '','',null,'',$iv_att);
       }
     }
     header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
@@ -2003,6 +2092,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'invoice_seller_bad'=>'⚠ Seçilen satıcı hesabı bulunamadı — FATURA KESİLMEDİ. Boş bir hesaba düşüp belgeyi Acerasoft LLC adına çıkarmaktansa hiç kesmemek doğru: listeyi yenileyip tekrar seçin.',
+    'invoice_redrafted'=>'✓ Fatura AYNI numarayla yeniden yazıldı, düzeltilmiş PDF alıcıya e-postayla (ekte) gönderildi. Alıcı panelindeki bağlantı artık düzeltilmiş belgeyi veriyor.',
+    'invoice_paid_toggled'=>'✓ Ödeme işareti değiştirildi — alıcı panelindeki "ödenmesi gereken fatura" uyarısı buna göre güncellenir.',
     /* Bu ucu YALNIZCA mektup gercekten gittiginde basiliyor -- gitmediginde
        yukaridaki kirmizi/sari bloklar devreye giriyor. */
     'offer_counter'=>'✓ Karşı teklif kaydedildi ve alıcıya e-postayla gönderildi — mektupta kabul ve ret bağlantısı var.',
@@ -3416,6 +3507,11 @@ elseif($tab==='invoices'): ?>
                placeholder='VAT satırı — örn. "TVA non applicable — article 293 B du CGI"'
                title="Faturadaki VAT satırı. KDV'siz kesiyorsanız gerekçesi burada yazmalı; boş bırakılırsa satır hiç basılmaz."
                style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
+        <input name="shipping" form="<?= htmlspecialchars($fFid) ?>" inputmode="decimal"
+               value="<?= ($__fs=(float)($offerResp[$fref]['invoice_shipping'] ?? 0))>0?htmlspecialchars(number_format($__fs,2,'.','')):'' ?>"
+               placeholder="Kargo € (boş = yok)"
+               title="Faturaya eklenecek kargo tutarı (EUR). Belgede Goods total + Shipping + Grand total olarak ayrışır; boşsa satır hiç basılmaz."
+               style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
       </td>
       <td>
         <?php /* _action GIZLI ALANDA DEGIL, dugmelerin uzerinde: iki dugme ayni
@@ -3450,6 +3546,9 @@ elseif($tab==='invoices'): ?>
         <option value="<?= htmlspecialchars((string)$__uid) ?>"><?= htmlspecialchars($__nm) ?></option>
       <?php endforeach; ?>
     </select>
+    <input name="shipping" inputmode="decimal" placeholder="Kargo €"
+           title="Birleşik faturaya eklenecek kargo tutarı (EUR); boş = yok"
+           style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:80px">
     <input name="vat_note" maxlength="200" list="vatnotes" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:260px">
     <button class="abtn" type="submit" name="_action" value="combine_preview_offer_invoice" formtarget="_blank" style="font-size:12px"
@@ -3457,6 +3556,66 @@ elseif($tab==='invoices'): ?>
     <button class="abtn primary" type="submit" name="_action" value="combine_issue_offer_invoice" style="font-size:12px"
             onclick="var n=0;for(var i=0;i<this.form.elements.length;i++){var e=this.form.elements[i];if(e.name==='refs[]'&&e.checked)n++;}if(!n){alert('Önce yukarıdan teklif işaretleyin.');return false;}var s=this.form.elements.seller_uid;return confirm('Issue ONE combined invoice for '+n+' selected offer(s)?\n\nIssuer: '+(s.value?s.options[s.selectedIndex].text:'(otomatik: ilanların ortak satıcısı)')+'\n\nThis burns ONE number, stores ONE PDF and EMAILS THE BUYER once. Check the draft (👁) first. The offers are then bound to that single invoice.')">✓ Approve &amp; issue ONE invoice</button>
   </form>
+</div>
+<?php endif; ?>
+
+<?php
+/* ── KESILMIS TEKLIF FATURALARI: duzelt (redraft) + odendi isareti ──
+   Onay kuyrugu kesilenleri dusurur; oysa operator kesilmis belgeyi de
+   yonetmek istiyor: kargo ekleyip AYNI numarayla yeniden yazmak, alicinin
+   "odenmesi gereken fatura" uyarisini odeme gelince kapatmak. Liste yalnizca
+   BIRINCIL ref'ler: uyeler (invoice_group_ref) ayni belgeyi gosterir, iki
+   satir ayni faturayi iki kez yonetmek olurdu. */
+$issuedOfferInvs=[];
+foreach($offers as $__o){
+  $__r=(string)($__o['ref']??''); if($__r==='') continue;
+  if(trim((string)($offerResp[$__r]['invoice_group_ref'] ?? ''))!=='') continue;   // uye satiri degil
+  $__ivs=vestra_invoices_for_ref($__r,false);
+  if($__ivs) $issuedOfferInvs[]=['ref'=>$__r,'row'=>$__o,'iv'=>$__ivs[0]];
+}
+?>
+<?php if($issuedOfferInvs): ?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><h3>🧾 <?= count($issuedOfferInvs) ?> issued offer invoice(s)</h3></div>
+  <p class="ahint" style="margin:0 0 10px">Kesilmiş belgeyi düzeltmek için: kargo tutarını yazın → <b>👁 Draft</b> ile kontrol edin → <b>🔁 Redraft &amp; email</b>. Belge <b>aynı numarayla</b> yerinde yeniden yazılır, düzeltilmiş PDF alıcıya "your invoice is ready" e-postasıyla <b>ekte</b> gider ve panelindeki bağlantı yeni hâli verir. Ödeme gelince <b>✓ Paid</b> ile işaretleyin — alıcıdaki "payment due" uyarısını o kapatır.</p>
+  <div class="atscroll"><table class="atable">
+    <?= arow(['Offer','Invoice','Buyer','Total','Shipping €','Fix','Paid'],true) ?>
+    <?php foreach($issuedOfferInvs as $__e):
+      $rref=$__e['ref']; $riv=$__e['iv'];
+      $rPaid=!empty($offerResp[$rref]['invoice_paid_at']);
+      $rShip=(float)($offerResp[$rref]['invoice_shipping'] ?? 0);
+      $rMembers=(array)($offerResp[$rref]['invoice_members'] ?? []);
+      $rFid='frdr-'.preg_replace('/[^A-Za-z0-9_-]/','',$rref);
+    ?>
+    <tr>
+      <td><a class="acc" href="/admin?tab=offers"><?= htmlspecialchars($rref) ?></a>
+        <?php if(count($rMembers)>1): ?><div class="ahint"><?= count($rMembers) ?> teklif tek belgede</div><?php endif; ?></td>
+      <td><b><?= htmlspecialchars((string)($riv['no']??'')) ?></b>
+        <div class="ahint"><?= htmlspecialchars((string)($riv['seller_label']??'')) ?></div></td>
+      <td><?= htmlspecialchars((string)($__e['row']['company']??'')) ?></td>
+      <td><b><?= eur($riv['total']??0) ?></b></td>
+      <td><input name="shipping" form="<?= htmlspecialchars($rFid) ?>" value="<?= $rShip>0?htmlspecialchars(number_format($rShip,2,'.','')):'' ?>" placeholder="0.00" inputmode="decimal" style="width:80px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"></td>
+      <td>
+        <form id="<?= htmlspecialchars($rFid) ?>" method="post" style="margin:0;display:flex;gap:6px">
+          <?= csrfField() ?>
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($rref) ?>">
+          <button class="abtn" type="submit" name="_action" value="preview_redraft_offer_invoice" formtarget="_blank" style="font-size:12px"
+                  title="Düzeltilmiş belgenin taslağı — hiçbir şey yazmaz, göndermez">👁 Draft</button>
+          <button class="abtn primary" type="submit" name="_action" value="redraft_offer_invoice" style="font-size:12px"
+                  onclick="return confirm('Rewrite invoice <?= htmlspecialchars((string)($riv['no']??'')) ?> IN PLACE (same number) with the shipping shown, and EMAIL THE BUYER the corrected PDF as attachment?\n\nThe earlier copy of this number is replaced. Check the draft (👁) first.')">🔁 Redraft &amp; email</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" style="margin:0">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="offer_invoice_paid_toggle">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($rref) ?>">
+          <button class="abtn" type="submit" style="font-size:12px;<?= $rPaid?'color:var(--ok);border-color:rgba(122,214,160,.4)':'' ?>"><?= $rPaid?'✓ Paid':'⌛ Unpaid' ?></button>
+        </form>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </table></div>
 </div>
 <?php endif; ?>
 
