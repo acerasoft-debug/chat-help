@@ -812,6 +812,18 @@ jobs:
                adi BOS ('— VESTRA') gitti ve log "Undefined variable" yazdi. */
             $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
 
+            /* Sunucunun KENDI liste ureteclerini KENDI kapsaminda cagirir.
+               Duz `require` cagiranin degisken kapsamina yazar ve iki uretec de
+               $rows, $brand, $slug kullaniyor -- brand_catalog'un ilk kosusunda
+               gorunur sekilde bozdu: urun sayisi 14 yerine 21 (xlsx'in satir
+               sayisi) yazildi, dosya adina cift tire dustu. O sefer yalnizca
+               sayaci bozdu; bir dahakine $brand ya da $atts olabilirdi.
+               Fonksiyon kapsami includeu yalitiyor. */
+            $genList = function (string $script, array $get) use ($doc): string {
+              $_GET = $get;
+              ob_start(); require $doc.'/'.$script; return (string)ob_get_clean();
+            };
+
             $to = trim($E('to'));
             $acc = null;
             if (str_starts_with(strtolower($to), 'account:')) {
@@ -999,8 +1011,7 @@ jobs:
                  yazmiyoruz, yoksa iki liste zamanla birbirinden ayrisir. */
               $pdfPath = ''; $attach = strtolower($E('attach_pdf')) === 'true';
               if ($attach) {
-                $_GET['cat'] = 'Women'; $_GET['brand'] = '';
-                ob_start(); require $doc.'/wholesale-list.php'; $pdfBytes = (string)ob_get_clean();
+                $pdfBytes = $genList('wholesale-list.php', ['cat' => 'Women', 'brand' => '']);
                 /* Uretilen sey GERCEKTEN PDF mi? Yonlendirme/bos cikti sessizce
                    0 baytlik bir ek olarak giderdi.
                    %PDF imzasi BASTA olmayabilir: dahil edilen betikten once bir
@@ -1088,22 +1099,25 @@ jobs:
                  sessizce 0 baytlik ek olarak giderdi. */
               $atts = []; $attach = strtolower($E('attach')) !== 'false';
               if ($attach) {
-                $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brand));
+                $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9]+/', '-', $brand), '-'));
                 foreach ([
                   ['wholesale-list.php', '%PDF', 'pdf', 2000],
                   ['wholesale-xlsx.php', "PK\x03\x04", 'xlsx', 800],
                 ] as [$script, $sig, $ext, $min]) {
-                  $_GET = ['brand' => $brand];
-                  ob_start(); require $doc.'/'.$script; $bytes = (string)ob_get_clean();
+                  $bytes = $genList($script, ['brand' => $brand]);
                   $pos = strpos($bytes, $sig);
                   if ($pos === false || strlen($bytes) - (int)$pos < $min) {
                     fwrite(STDERR, "{$ext} uretilemedi (".strlen($bytes)." bayt, imza "
                          . ($pos === false ? 'YOK' : 'konum '.$pos) . ") -- mektup gonderilmedi\n");
-                    fwrite(STDERR, "ilk 200 bayt: ".addcslashes(substr($bytes, 0, 200), "\0..\37")."\n");
+                    fwrite(STDERR, "ilk 400 bayt: ".addcslashes(substr($bytes, 0, 400), "\0..\37")."\n");
                     exit(1);
                   }
+                  /* Kirpilan sey NE idi, yaziliyor. Yalnizca bayt sayisini basmak
+                     "864 bayt fazlalik vardi" der ama nedenini gizler -- ilk
+                     kosuda tam olarak bu oldu. */
                   if ($pos > 0) {
-                    echo "UYARI: {$ext} oncesinde {$pos} bayt fazladan cikti vardi, kirpildi\n";
+                    echo "UYARI: {$ext} oncesinde {$pos} bayt fazladan cikti vardi, kirpildi:\n"
+                       . "  >>> ".addcslashes(substr($bytes, 0, min($pos, 400)), "\0..\37")."\n";
                     $bytes = substr($bytes, $pos);
                   }
                   $name = 'VESTRA-'.$slug.'-wholesale-'.date('Y-m').'.'.$ext;

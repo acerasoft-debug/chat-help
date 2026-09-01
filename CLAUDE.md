@@ -85,6 +85,15 @@ yetmiyor; kontrol gönderim yolunda olmalı.
   Admin ilan tablosunda girilmemiş olan **⚠ not set** ile işaretli.
 - Bayrak değerden türetilir; çözülemeyen bir ad varsa metin basılır, **yanlış bayrak
   basılmaz**.
+- **Zorunluluk yalnızca yeni/düzenlenen ilana işliyor.** 1 Eylül 2026'da sayıldı:
+  **345 ilanın 345'inde `ships_from` boş** — yani şu an sitedeki her ürün varsayılan
+  `EU` gösteriyor, girilmiş olduğu için değil, hiç girilmediği için. Denetim:
+  `diag-messages.yml` → `ships=true` (satıcıya göre sayım). Eksik olanlar:
+  platform/demo 265, GARAGE LE PARIS 56, TYREX 23, Erensthrift 1.
+- **Fiyat listesi/mektup üretirken tahmin etme.** `brand_catalog` mektubu gönderim
+  yerini yalnızca o markanın **tüm** ilanlarında aynı ve dolu ise yazar; değilse
+  satırı hiç basmaz ve operatöre uyarı düşer. Boş bir alanı satıcının kayıt
+  ülkesiyle doldurmak KURAL 3'ün yasakladığı şeyin ta kendisi.
 
 ## Teklif / pazarlık kuralları
 
