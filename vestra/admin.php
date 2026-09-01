@@ -520,20 +520,67 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: /admin?tab=orders&msg=platform_billing_saved'); exit;
   }
   if($act==='save_billing'){
+    require_once __DIR__.'/inc/invoice.php';
     $uid = $_POST['uid'] ?? '';
+    /* Closure, sprintf DEGIL: urlencode'un urettigi %XX diziler sprintf'te
+       bicim belirteci sayilir ve yonlendirmeyi bozardi. */
+    $to  = fn(string $m) => '/admin?tab=users&msg='.$m.'#ud-'.urlencode((string)$uid);
     $upd = [];
     /* invoice_name: faturadaki ticari unvan, 'company'den AYRI -- company halka
        acik (showroom vitrin adi), fatura unvani degistirilirken magaza adinin
        da degismesi istenmiyor.
        bank_holder: IBAN'in yanindaki isim. Sahis hesabinda genelde sirket
        unvanindan farklidir ve havale formunda YANLIS isim transferi geri
-       cevirtir -- bu yuzden ayri alan, ayri girilir. */
-    foreach (['company','invoice_name','name','address','city','postcode','country','vat_id','reg_number','phone','bank_holder'] as $f) {
+       cevirtir -- bu yuzden ayri alan, ayri girilir.
+       BANKA ALANLARI da buradan: satici kendi panelinden giriyordu ama operator
+       duzeltemiyordu, ve fatura satici hesabinin IBAN'ini basiyor. Girilmemis
+       ya da yanlis bir IBAN'da odeme kutusu ya hic cikmiyor ya yanlis hesabi
+       gosteriyor; ikisi de belgeyi kesen operatorun sorunu, dolayisiyla
+       duzeltmesi de onun elinde olmali.
+       'email' KASITLI olarak yok: auth_update onu zaten kilitli tutuyor
+       (giris kimligi + benzersizlik), formda gosterip kaydetmemek ise
+       kaydedildi sanilan bir degisiklik olurdu. */
+    $textF = ['company','invoice_name','name','address','city','postcode','country',
+              'vat_id','reg_number','phone','website'];
+    $bankF = ['bank_name','bank_holder','bank_iban','bank_bic','bank_eur_bic',
+              'bank_routing','bank_account','bank_acct_type','bank_address'];
+    /* "Banka bilgilerini DEGISTIR": once hepsi silinir, sonra yazilanlar
+       uygulanir. Bos alan mevcudu korudugu icin (veri kaybini onleyen dogru
+       varsayilan) aksi halde ESKI bir IBAN'i kaldirmanin hicbir yolu yoktu --
+       hesabini kapatmis bir saticinin numarasi faturada durmaya devam ederdi.
+       Ayni gonderimde silip yeniden yazmak da bu sayede tek adim. */
+    if (!empty($_POST['bank_replace'])) foreach ($bankF as $f) $upd[$f] = '';
+    foreach (array_merge($textF, $bankF) as $f) {
       $v = trim((string)($_POST[$f] ?? ''));
-      if ($v !== '') $upd[$f] = $v;
+      if ($v === '') continue;
+      if ($f === 'bank_iban') {
+        $v = vestra_iban_normalize($v);
+        /* GECERSIZ IBAN'da HICBIR SEY kaydedilmiyor -- yalnizca o alani atlamak
+           digerlerini yesil bir mesajla kaydedip operatore IBAN'in da girdigini
+           dusundururdu. */
+        if (!vestra_iban_valid($v)) { header('Location: '.$to('billing_iban_bad')); exit; }
+      }
+      if ($f === 'bank_bic' || $f === 'bank_eur_bic') $v = strtoupper(preg_replace('/\s+/','',$v));
+      /* ABD alanlari satici panelindekiyle AYNI bicime getiriliyor: ayni hesap,
+         hangi ekrandan girildigine gore iki farkli metin olarak saklanmasin.
+         Hesap turu sunucu tarafinda da kisitli -- acilir liste yalnizca
+         tarayicida baglayici, POST elle kurulabilir ve faturaya serbest metin
+         basmanin bir sebebi yok. */
+      if ($f === 'bank_routing') $v = preg_replace('/\D/','',$v);
+      if ($f === 'bank_account') $v = preg_replace('/[^0-9A-Za-z]/','',$v);
+      if ($f === 'bank_acct_type' && !in_array($v,['Checking','Savings'],true)) continue;
+      if ($v === '') continue;
+      $upd[$f] = $v;
     }
-    if ($uid !== '' && $upd) auth_update($uid, $upd);
-    header('Location: /admin?tab=users&msg=billing_saved#ud-'.urlencode($uid)); exit;
+    if ($uid === '' || !$upd) { header('Location: '.$to('billing_none')); exit; }
+    auth_update($uid, $upd);
+    /* GERI OKU. auth_update void doner: yazamazsa (izin/disk) sessizce
+       basarisiz olur ve panel "kaydedildi" der. Bu depoda tam olarak bu desen
+       platform banka bilgilerinde bir kez yasandi. */
+    $back = null; foreach (auth_accounts() as $__a) { if (($__a['id'] ?? '') === $uid) { $back = $__a; break; } }
+    $stuck = is_array($back);
+    if ($stuck) foreach ($upd as $k => $v) { if (trim((string)($back[$k] ?? '')) !== trim((string)$v)) { $stuck = false; break; } }
+    header('Location: '.$to($stuck ? 'billing_saved' : 'billing_failed')); exit;
   }
   if($act==='suspend_account'){
     auth_update($_POST['uid']??'',['status'=>'suspended']);
@@ -1811,6 +1858,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'member_set'=>'✓ Membership plan updated.',
     'journal_saved'=>'✓ Article saved.','journal_deleted'=>'Article deleted.','journal_toggled'=>'Article visibility changed.',
     'listing_saved'=>'✓ Listing updated.','prices_saved'=>'✓ Prices & MOQ saved — live on the catalogue now.',
+    /* Bu satir EKSIKTI: save_billing zaten msg=billing_saved'e yonlendiriyordu
+       ama haritada karsiligi yoktu, yani form kaydediyor ve ekranda HICBIR SEY
+       yazmiyordu. Onaylanmayan bir kayit, kaydedilmemis kayittan ayirt edilemez. */
+    'billing_saved'=>'✓ Fatura & banka bilgileri kaydedildi — sunucudan geri okunarak doğrulandı. Bu hesaptan kesilecek faturalar artık bunları taşıyor.',
     'status_ok'=>'Order status updated.','promo_ok'=>'Promo code created.','promo_del'=>'Promo code deleted.',
     /* ord_deleted / ord_has_invoice / ord_notfound / ord_delfail are NOT here on
        purpose: this map renders every entry as a green "✓" banner, and three of the
@@ -1969,6 +2020,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 </div>
 <?php elseif($msg && isset($msgs[$msg])): ?>
 <div class="amsg ok"><?= htmlspecialchars($msgs[$msg]) ?></div>
+<?php /* Fatura/banka kaydinin UC REDDI. $msgs'e konamazlar: orasi her satiri
+         yesil "✓" olarak basiyor ve yesile boyanmis bir ret, bu depoda daha
+         once "kaydettim ama kaydolmamis" olarak geri dondu. */ ?>
+<?php elseif($msg==='billing_iban_bad'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ IBAN geçersiz — <b>hiçbir alan kaydedilmedi</b>. Sağlama (mod-97) ya da ülke uzunluğu tutmuyor: bir hane eksik veya yanlış. IBAN faturaya basılıp alıcı parayı oraya gönderdiği için yarısı doğru bir numara kabul edilmiyor. Kontrol edip formu yeniden gönderin — diğer alanlarda yazdıklarınız duruyor.</div>
+<?php elseif($msg==='billing_failed'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Kayıt sunucuya YAZILAMADI — geri okuma tutmadı, hiçbir şeye güvenmeyin. Tekrar deneyin; yine olursa <code>data/accounts.json</code> yazılabilir değil.</div>
+<?php elseif($msg==='billing_none'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
 <?php elseif($msg==='bulk_moq'): ?>
 <div class="amsg ok">✓ MOQ set to 20 on <?= (int)($_GET['n']??0) ?> listing(s). Lacoste / Ralph Lauren / Amiri were left unchanged.</div>
 <?php elseif($msg==='lead_bulk_deleted'): ?>
@@ -2735,6 +2795,28 @@ function sendUserMessage(uid,name){
           <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">☎ Contact</div>
           <div style="font-size:13px;line-height:1.6"><?= htmlspecialchars(($a['name']??'')?:'—') ?><br><a href="mailto:<?= htmlspecialchars($a['email']??'') ?>" style="color:var(--acc)"><?= htmlspecialchars($a['email']??'') ?></a><?php if(!empty($a['phone'])): ?><br>📞 <?= htmlspecialchars($a['phone']) ?><?php endif; ?><?php if(!empty($a['website'])): ?><br>🔗 <a href="<?= htmlspecialchars($a['website']) ?>" target="_blank" rel="noopener" style="color:var(--acc)"><?= htmlspecialchars($a['website']) ?></a><?php endif; ?></div>
         </div>
+        <?php /* Faturanin odeme kutusu bu alanlardan doluyor. Panelde HIC
+                 gorunmuyorlardi: operator bir saticiya fatura kesmeden once
+                 IBAN'in girili olup olmadigini ancak faturayi kesip PDF'e
+                 bakarak anlayabiliyordu -- ve numara yoksa fatura odeme kutusu
+                 OLMADAN cikiyor. Eksikse burada acikca yaziyor.
+                 Bu ekran admin girisinin arkasinda ve sunucuda; depoya,
+                 workflow girdisine ya da teshis ciktisina rakam girmiyor. */
+              $__iban=trim((string)($a['bank_iban']??'')); $__acct=trim((string)($a['bank_account']??'')); ?>
+        <div>
+          <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">🏦 Bank (faturaya basılır)</div>
+          <div style="font-size:13px;line-height:1.6">
+            <?php if($__iban==='' && $__acct===''): ?>
+              <span style="color:var(--bad)">— hesap yok — bu satıcıdan kesilen faturada ödeme kutusu <b>çıkmaz</b></span>
+            <?php else: ?>
+              <?= htmlspecialchars(($a['bank_holder']??'')?:'⚠ hesap sahibi adı boş') ?>
+              <?php if($__iban!==''): ?><br><span style="font-family:ui-monospace,monospace;font-size:12px;user-select:all"><?= htmlspecialchars(trim(chunk_split($__iban,4,' '))) ?></span><?php endif; ?>
+              <?php if(!empty($a['bank_bic'])): ?><br>BIC: <?= htmlspecialchars($a['bank_bic']) ?><?php endif; ?>
+              <?php if($__acct!==''): ?><br>Acct: <?= htmlspecialchars($__acct) ?><?php if(!empty($a['bank_routing'])): ?> · ABA <?= htmlspecialchars($a['bank_routing']) ?><?php endif; ?><?php endif; ?>
+              <?php if(!empty($a['bank_name'])): ?><br><span class="ahint"><?= htmlspecialchars($a['bank_name']) ?></span><?php endif; ?>
+            <?php endif; ?>
+          </div>
+        </div>
       </div>
       <?php
       /* Musteri fatura bilgilerini yazmak icin. Yukarisi bunlari GOSTERIYOR ama
@@ -2758,12 +2840,48 @@ function sendUserMessage(uid,name){
           <label style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($_tax['label']) ?><input name="vat_id" value="<?= htmlspecialchars($a['vat_id']??'') ?>" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Registration number<input name="reg_number" value="<?= htmlspecialchars($a['reg_number']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Phone<input name="phone" value="<?= htmlspecialchars($a['phone']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">City<input name="city" value="<?= htmlspecialchars($a['city']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Postcode<input name="postcode" value="<?= htmlspecialchars($a['postcode']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Website<input name="website" value="<?= htmlspecialchars($a['website']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+
+          <?php /* BANKA. Ayni formda, cunku operator bir saticinin fatura
+                   kimligini duzeltirken hesabini da duzeltiyor -- ikisini iki
+                   ayri kayde bolmek, birini kaydedip digerini unutturur.
+                   grid-column:1/-1 ile tam genislik: baslik alanlarin arasina
+                   sikismasin, hangi alanlarin banka oldugu belli olsun. */ ?>
+          <div style="grid-column:1/-1;margin-top:6px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px">🏦 Bank details — printed on this seller's invoices</div>
           <label style="font-size:11px;color:var(--mut)">Account holder (name beside the IBAN)<input name="bank_holder" value="<?= htmlspecialchars($a['bank_holder']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
-          <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save billing details</button></div>
+          <label style="font-size:11px;color:var(--mut)">IBAN<input name="bank_iban" value="<?= htmlspecialchars($a['bank_iban']??'') ?>" placeholder="FR76 3000 4008 2800 0123 4567 890" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px;text-transform:uppercase"></label>
+          <label style="font-size:11px;color:var(--mut)">BIC / SWIFT<input name="bank_bic" value="<?= htmlspecialchars($a['bank_bic']??'') ?>" placeholder="PSSTFRPPSCE" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px;text-transform:uppercase"></label>
+          <label style="font-size:11px;color:var(--mut)">Bank name<input name="bank_name" value="<?= htmlspecialchars($a['bank_name']??'') ?>" placeholder="LA BANQUE POSTALE" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Bank address<input name="bank_address" value="<?= htmlspecialchars($a['bank_address']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <?php /* ABD hesabinda IBAN YOKTUR: routing (ABA) + hesap numarasi
+                   vardir. vestra_payment_rails para birimine gore hangi ikiliyi
+                   basacagina karar veriyor, o yuzden ikisi de girilebilmeli.
+                   bank_eur_bic ayri duruyor: ABD hesabi da tanimliysa duz
+                   'bank_bic' o bankanin olabilir ve IBAN'in yanina basilmasi
+                   aliciya birbirini tutmayan bir cift verirdi. */ ?>
+          <label style="font-size:11px;color:var(--mut)">Routing (ABA) — US only<input name="bank_routing" value="<?= htmlspecialchars($a['bank_routing']??'') ?>" inputmode="numeric" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Account number — US only<input name="bank_account" value="<?= htmlspecialchars($a['bank_account']??'') ?>" inputmode="numeric" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Account type — US only
+            <select name="bank_acct_type" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px">
+              <option value="">— not specified —</option>
+              <option value="Checking"<?= ($a['bank_acct_type']??'')==='Checking'?' selected':'' ?>>Checking</option>
+              <option value="Savings"<?= ($a['bank_acct_type']??'')==='Savings' ?' selected':'' ?>>Savings</option>
+            </select></label>
+          <label style="font-size:11px;color:var(--mut)">EUR BIC (only if a US account is also on file)<input name="bank_eur_bic" value="<?= htmlspecialchars($a['bank_eur_bic']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px;text-transform:uppercase"></label>
+
+          <label style="grid-column:1/-1;font-size:11.5px;color:var(--bad);display:flex;align-items:center;gap:7px">
+            <input type="checkbox" name="bank_replace" value="1" style="width:auto;margin:0">
+            <span>Banka bilgilerini <b>DEĞİŞTİR</b> — önce bütün banka alanlarını sil, sonra yukarıda yazdıklarımı uygula. (Eski bir IBAN'ı kaldırmanın tek yolu bu; işaretlemezseniz boş bıraktığınız alanlar olduğu gibi kalır.)</span>
+          </label>
+          <div style="grid-column:1/-1"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save billing &amp; bank details</button></div>
         </form>
-        <div class="ahint" style="margin-top:6px;font-size:11px">Blank fields are left unchanged — this never clears data you don't retype.<br>
+        <div class="ahint" style="margin-top:6px;font-size:11px">Blank fields are left unchanged — this never clears data you don't retype (use the checkbox above to clear the bank block).<br>
           <b>Company</b> is the seller's public name (storefront). <b>Invoice name</b> replaces it on the invoice only.
-          <b>Account holder</b> is the name printed beside the IBAN — it can differ from both, and it must match what the bank has on the account.</div>
+          <b>Account holder</b> is the name printed beside the IBAN — it can differ from both, and it must match what the bank has on the account.<br>
+          IBAN is checked (mod-97 + country length) before anything is saved; a bad one saves <b>nothing</b>. Fill in only the set the bank actually uses — the invoice prints just those.<br>
+          The login <b>e-mail cannot be changed here</b>: it is the account's identity. Stored server-side in <code>data/accounts.json</code> — web-blocked and never in the code repository.</div>
       </details>
     </td>
   </tr>

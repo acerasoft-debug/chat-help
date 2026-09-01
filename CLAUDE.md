@@ -144,6 +144,29 @@ seçimdir, ilana geri dönmez.
   çıktısına **yazılmaz** — teşhiste yalnızca `VAR (n hane)` görünür.
 - Test: `tests/invoice_seller_pick_test.php`.
 
+**KURAL 5c — Satıcının fatura ve banka bilgileri panelden düzeltilebilir**
+(operatör isteği, 1 Eyl 2026). `Admin ▸ Users ▸ hesap ▸ ✎ Edit billing details`:
+kimlik alanları + **bütün banka alanları** (`bank_iban`, `bank_bic`,
+`bank_eur_bic`, `bank_name`, `bank_address`, `bank_routing`, `bank_account`,
+`bank_acct_type`, `bank_holder`). Hesap satırında **🏦 Bank** bloğu neyin kayıtlı
+olduğunu gösterir; boşsa "ödeme kutusu çıkmaz" uyarısı yazar.
+- **IBAN kaydedilmeden önce doğrulanır** (`vestra_iban_valid`, mod-97 + ülke
+  uzunluğu). Geçersizse **hiçbir alan** kaydedilmez — yarısı kabul edilen bir
+  gönderim, operatöre IBAN'ı da girdiğini düşündürürdü. Aynı kontrol satıcı
+  panelinde de var (`seller.php`, `?ibanerr=1`). Test: `tests/iban_valid_test.php`.
+- **Biçim tek:** `vestra_iban_normalize()` boşluk/tire atar, büyük harfe çeker.
+  Eskiden satıcı tarafı boşluğu koruyor, admin tarafı atıyordu — aynı hesap iki
+  farklı metin olarak saklanıyordu.
+- **Boş alan mevcudu silmez.** Eski bir IBAN'ı kaldırmanın tek yolu
+  **"Banka bilgilerini DEĞİŞTİR"** kutusu: önce banka alanlarını siler, sonra
+  yazılanları uygular.
+- **Kayıt geri okunarak doğrulanır** (`auth_update` void döner). `billing_saved`
+  yalnızca sunucudan okunan değer yazılanla aynıysa basılır; tutmazsa
+  `billing_failed` **kırmızı** çıkar. Bu satır haritada **eksikti**: form
+  kaydediyor, ekranda hiçbir şey yazmıyordu.
+- **Giriş e-postası buradan değişmez** — `auth_update` onu kilitli tutuyor
+  (`id`, `hash`, `email`, `created`).
+
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.

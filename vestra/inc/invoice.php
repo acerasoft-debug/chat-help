@@ -119,6 +119,54 @@ function vestra_payment_rails(array $acc, string $currency): array {
     ], fn($v) => $v !== ''));
 }
 
+/**
+ * IBAN'i saklanacak bicime getirir: bosluk/tire atilir, buyuk harfe cekilir.
+ *
+ * Banka ekstresi "FR76 3000 4008 2800 0123 4567 890" diye yazar, havale formu
+ * bosluksuz ister. Ikisini de kabul edip TEK bicimde saklamak, ayni hesabin
+ * iki farkli metin olarak kaydedilmesini onluyor.
+ */
+function vestra_iban_normalize(string $v): string {
+    return strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $v));
+}
+
+/**
+ * IBAN mod-97 (ISO 13616) dogrulamasi + ulke uzunlugu.
+ *
+ * Neden: IBAN faturaya basiliyor ve alici parayi ORAYA gonderiyor. Yanlis
+ * yazilmis bir hane ya havaleyi geri cevirtir (iyi ihtimal) ya da baska bir
+ * hesaba dusurur. Kontrol ucuz, hatasi pahali.
+ *
+ * Uzunluk tablosu kopyala-yapistir sirasinda KIRPILMIS bir numarayi yakalar;
+ * mod-97 ise hane degisimi/yer degistirmesini yakalar. Tabloda olmayan ulke
+ * kodunda yalnizca mod-97 uygulanir -- bilinmeyen bir ulkeyi reddetmek,
+ * gecerli bir hesabi girilemez yapardi.
+ */
+function vestra_iban_valid(string $v): bool {
+    $s = vestra_iban_normalize($v);
+    if (!preg_match('/^[A-Z]{2}[0-9]{2}[A-Z0-9]{8,30}$/', $s)) return false;
+    static $len = [
+        'AD'=>24,'AT'=>20,'BE'=>16,'BG'=>22,'CH'=>21,'CY'=>28,'CZ'=>24,'DE'=>22,
+        'DK'=>18,'EE'=>20,'ES'=>24,'FI'=>18,'FR'=>27,'GB'=>22,'GI'=>23,'GR'=>27,
+        'HR'=>21,'HU'=>28,'IE'=>22,'IS'=>26,'IT'=>27,'LI'=>21,'LT'=>20,'LU'=>20,
+        'LV'=>21,'MC'=>27,'MT'=>31,'NL'=>18,'NO'=>15,'PL'=>28,'PT'=>25,'RO'=>24,
+        'RS'=>22,'SE'=>24,'SI'=>19,'SK'=>24,'SM'=>27,'TR'=>26,'UA'=>29,'AE'=>23,
+    ];
+    $cc = substr($s, 0, 2);
+    if (isset($len[$cc]) && strlen($s) !== $len[$cc]) return false;
+    /* Ilk dort hane sona tasinir, harfler A=10..Z=35 ile rakama cevrilir,
+       kalan 97'ye bolumunden 1 cikmali. Sayi 64 bit'e sigmadigi icin hane
+       hane yurutuluyor. */
+    $r = substr($s, 4).substr($s, 0, 4);
+    $rem = 0;
+    for ($i = 0, $n = strlen($r); $i < $n; $i++) {
+        $c   = $r[$i];
+        $d   = ctype_digit($c) ? $c : (string)(ord($c) - 55);
+        for ($j = 0, $m = strlen($d); $j < $m; $j++) $rem = ($rem * 10 + (int)$d[$j]) % 97;
+    }
+    return $rem === 1;
+}
+
 function vestra_invoice_dir(): string {
     $dir = dirname(__DIR__).'/data/invoices';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
