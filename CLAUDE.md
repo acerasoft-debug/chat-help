@@ -178,6 +178,24 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   adrese ikinci kez e-posta gider.
 - E-posta gövdeleri `nl2br(htmlspecialchars(...))` ile basılır — **markdown çalışmaz**
   (journal gövdeleri de aynı).
+- **`delivered` ≠ posta kutusunda.** Brevo'nun `delivered`'ı "alıcı sunucu kabul etti"
+  demek; Gmail'in **spam klasörüne** koyması da `delivered` sayılır. `opened` de kanıt
+  değil — Gmail görselleri kendi vekilinden çeker, sahte açılma üretir. Betiğin
+  "GONDERILDI" satırı ise yalnızca "Brevo isteği kabul etti" demek. Üçü de
+  "gördü" anlamına gelmez.
+- **AÇIK SORUN — `vestrasales.com`'da DKIM yok** (1 Eylül 2026 ölçümü):
+  `dogrulanmis=EVET` ama `dkim=YOK`, `brevo_code=YOK`, `dmarc=YOK`. Kimlik
+  doğrulaması olmayan alan adından gelen mektup Gmail'de büyük olasılıkla spam'e
+  düşer. Operatör 9 test mektubunu görmedi; Brevo dokuzuna da `delivered` yazmıştı.
+  Denetim: `diag-messages.yml` → `sender=true`. **Düzeltme DNS tarafında** (Brevo'nun
+  verdiği DKIM + doğrulama kayıtları alan adına eklenecek) — koddan çözülmez.
+  Müşteriye toplu gönderim yapmadan önce halledilmeli: spam'e düşen her mektup
+  gönderen alan adının itibarını daha da düşürüyor.
+- Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
+  hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
+- Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
+  kod ise `mail_from` = `support@vestrasales.com` ile gönderiyor. İkisinin ayrı
+  olması DKIM eksikliğiyle birleşince teslimatı zayıflatıyor.
 - **Satış persona adları** (operatör kaydı, 31 Ağu 2026): **Marco Bellini** ve
   **Elena Romano** — VESTRA'nın müşteri yazışmalarında kullanılan ekip adları.
   Kerim Kuku / L1212 dosyası: ilk cevap Marco Bellini imzasıyla gitti, devam
