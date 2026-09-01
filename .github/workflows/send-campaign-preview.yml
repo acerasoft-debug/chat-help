@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false)."
         required: false
         default: ""
       reply_spec:
@@ -1043,6 +1043,72 @@ jobs:
                 ? vestra_tpl_prospect_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer)
                 : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
+            } elseif ($letter === 'offer_nudge') {
+              /* ACIK TEKLIF HATIRLATMASI. spec: offer_ref=O6404A
+                 Fiyat, adet, urun ve KABUL BAGLANTISI teklifin GERCEK kaydindan
+                 okunuyor -- hicbiri elle verilmiyor. Elle verilen bir fiyat,
+                 musterinin hic gormedigi bir rakami ona "sizin teklifiniz" diye
+                 geri okumak olurdu. */
+              require_once $doc."/inc/offers.php";
+              $oref = trim($E('offer_ref'));
+              if ($oref === '') { fwrite(STDERR, "offer_nudge: spec'te offer_ref= yok\n"); exit(1); }
+
+              $orow = vestra_offer_row($oref);
+              if (!$orow) { fwrite(STDERR, "offer_nudge: {$oref} teklifi bulunamadi\n"); exit(1); }
+              $allResp = (array)vestra_read_json('offer_responses.json');
+              $resp    = $allResp[$oref] ?? null;
+
+              /* SIRA ALICIDA OLMALI. Degilse hatirlatma yanlis adrese gider:
+                 top bizdeyken musteriyi sikistirmis oluruz. */
+              $turn = vestra_offer_turn($resp);
+              $stat = (string)($resp['status'] ?? '');
+              if ($stat !== 'counter' || $turn !== 'buyer') {
+                fwrite(STDERR, "offer_nudge: {$oref} durum='{$stat}' sira='{$turn}' -- "
+                     . "hatirlatma yalnizca durum=counter ve sira=buyer iken gonderilir.\n");
+                exit(1);
+              }
+
+              $prodName = trim((string)($orow['product'] ?? ''));
+              $qty      = (int)($orow['qty'] ?? 0);
+              $cur      = strtoupper(trim((string)($orow['currency'] ?? 'EUR'))) ?: 'EUR';
+              $ourP     = vestra_offer_last_price($resp, 'seller', $orow);
+              $theirP   = vestra_offer_last_price($resp, 'buyer',  $orow);
+
+              $listing  = null;
+              foreach (vestra_products() as $cand) {
+                if ((string)($cand['id'] ?? '') === (string)($orow['product_id'] ?? '')) { $listing = $cand; break; }
+              }
+              $prodUrl  = $listing ? vestra_offer_product_url($listing) : '';
+
+              /* Kabul baglantisi yalnizca GERCEK token varsa yaziliyor. Token
+                 her karsi teklifte yenileniyor; yoksa mektup panele yonlendiriyor
+                 -- calismayan bir dugmeyi tarif etmektense hic tarif etmemek. */
+              $tok = trim((string)($resp['accept_token'] ?? ''));
+              $acceptUrl = $tok !== '' ? vestra_offer_accept_url($oref, $tok) : '';
+
+              /* AYNI ALICININ uzlasilmis kalemleri: mektup "digerleri hazir"
+                 derken hangileri oldugunu da yazsin. */
+              $mail = strtolower(trim((string)($orow['email'] ?? '')));
+              $agreed = [];
+              foreach (vestra_read_csv('offers.csv') as $o2) {
+                if (strtolower(trim((string)($o2['email'] ?? ''))) !== $mail) continue;
+                $r2 = (string)($o2['ref'] ?? '');
+                if ($r2 === $oref) continue;
+                if ((string)(($allResp[$r2]['status'] ?? '')) !== 'accept') continue;
+                $agreed[] = ($o2['qty'] ?? '?').' pcs — '.trim((string)($o2['product'] ?? $r2)).'  ('.$r2.')';
+              }
+
+              echo "teklif      : {$oref} | ".mb_substr($prodName,0,44)."\n";
+              echo "durum/sira  : {$stat} / {$turn}\n";
+              echo "adet        : {$qty} | bizim: ".($ourP !== null ? number_format($ourP,2) : '-')
+                 . " | onun: ".($theirP !== null ? number_format($theirP,2) : '-')." {$cur}\n";
+              echo "kabul linki : ".($acceptUrl !== '' ? 'VAR (token gecerli)' : '*** YOK -> panele yonlendiriliyor ***')."\n";
+              echo "urun linki  : ".($prodUrl !== '' ? 'VAR' : '*** ILAN COZULEMEDI ***')."\n";
+              echo "uzlasilan   : ".count($agreed)." kalem\n";
+              foreach ($agreed as $a) echo "   · ".$a."\n";
+
+              [$subject, $body, $opts] = vestra_tpl_offer_nudge($salutation, $prodName, $qty,
+                  $ourP, $theirP, $cur, $agreed, $acceptUrl, $prodUrl, $oref, $signer);
             } elseif ($letter === 'brand_catalog') {
               /* "Su markanin tam listesini alabilir miyim" sorusuna cevap.
                  spec: brand=<marka, TAM ad> | attach=true|false

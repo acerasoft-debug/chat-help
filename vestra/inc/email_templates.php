@@ -1860,3 +1860,63 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
 
     return [$subject, $body, []];
 }
+
+/* ACIK TEKLIF HATIRLATMASI. Alici birden fazla urune teklif vermis, hepsini
+ * cevaplamis ama BIRINI acikta birakmis: satici karsi teklif verdi, sira
+ * alicida ve orada duruyor. Bu mektup o tek kalemi soruyor.
+ *
+ * NEDEN AYRI BIR MEKTUP: kalan kalemler faturaya hazir. Alici cevap vermedigi
+ * surece ya butun siparis bekliyor ya da biz onun adina karar veriyoruz --
+ * ikisi de yanlis. Soru acikca iki secenekli soruluyor: al, ya da reddet ve
+ * digerleri faturalansin.
+ *
+ * FIYAT VE BAGLANTI CAGIRANDAN GELIYOR, burada hesaplanmiyor: teklifin gercek
+ * kaydindan okunmali. Uydurulmus bir fiyat, musterinin hic gormedigi bir
+ * rakami "sizin teklifiniz" diye ona geri okumak olurdu.
+ *
+ * $agreed: zaten uzlasilmis kalemlerin basliklari (bilgi icin).
+ * $acceptUrl: '' ise mektup baglanti YAZMAZ ve panele yonlendirir -- olmayan
+ *   bir dugmeyi tarif etmektense hic tarif etmemek. */
+function vestra_tpl_offer_nudge(string $salutation, string $product, int $qty,
+                                ?float $ourPrice, ?float $theirPrice, string $cur,
+                                array $agreed, string $acceptUrl, string $productUrl,
+                                string $ref, string $signer = 'Marco Bellini'): array {
+    $subject = 'One open item on your order — '.$product;
+    $money = fn(?float $v) => $v === null || $v <= 0 ? '' : $cur.' '.number_format($v, 2);
+
+    $body = $salutation . ",\n\n"
+. "Thank you for your offers — everything else is agreed and ready to be invoiced. "
+. "One item is still open and it is waiting on you.\n\n";
+
+    $body .= "OPEN — ".$product."\n"
+           . "Reference ".$ref."  ·  ".$qty." pcs\n";
+    if ($theirPrice !== null && $theirPrice > 0) $body .= "Your offer:  ".$money($theirPrice)." per piece\n";
+    if ($ourPrice   !== null && $ourPrice   > 0) $body .= "Our price:   ".$money($ourPrice)." per piece\n";
+    if ($productUrl !== '') $body .= $productUrl."\n";
+    $body .= "\n";
+
+    if ($agreed) {
+        $body .= "Already agreed and ready to invoice:\n";
+        foreach ($agreed as $a) $body .= "· ".trim((string)$a)."\n";
+        $body .= "\n";
+    }
+
+    $body .= "Please let us know either way:\n\n"
+. "· If you want it, accept and it goes on the same invoice as the rest.\n"
+. "· If you do not, decline it and we will invoice the agreed items straight away, "
+. "without this one. Declining costs you nothing and does not affect the other items.\n\n";
+
+    if ($acceptUrl !== '') {
+        $body .= "You can do both from here:\n".$acceptUrl."\n\n";
+    } else {
+        $body .= "You can do both from your account: https://vestrasales.com/buyer?tab=offers\n\n";
+    }
+
+    $body .= "If we do not hear from you, we will hold the order rather than decide for you — "
+. "so a one-line reply is enough.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
