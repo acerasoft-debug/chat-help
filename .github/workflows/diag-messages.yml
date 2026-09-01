@@ -444,9 +444,18 @@ jobs:
                 $invs = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];
                 $inv  = $invs ? ('KESILDI: '.implode(', ', array_map(fn($i) => (string)($i['no'] ?? '?'), $invs)))
                       : (($st === 'accept') ? '*** KESILMEDI - onay kuyrugunda ***' : 'kesilemez (uzlasma yok)');
-                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? '?'),0,34)
+                /* SATICI: faturayi kimin kestigini bu belirliyor. Teklif kaydinda
+                   satici yok -- urunun ilanindan cozuluyor (offers.php:
+                   vestra_listing_by_sku -> seller_uid). Bir siparisteki kalemler
+                   FARKLI saticilara ait olabilir ve o zaman sistem tek fatura
+                   kesemez; karari gorunur kilmak icin satici satirda yaziyor. */
+                $lst = function_exists('vestra_listing_by_sku') ? vestra_listing_by_sku((string)($of['sku'] ?? '')) : null;
+                $sid = (string)($lst['seller_uid'] ?? '');
+                $snm = $sid === '' ? '(platform/demo -> VESTRA keser)'
+                     : (($byId[$sid]['company'] ?? $byId[$sid]['name'] ?? '(hesap yok)'));
+                echo "  ".$ref." | ".mb_substr((string)($of['product'] ?? $of['title'] ?? '?'),0,30)
                    . " | ".$qn." x ".number_format($agreed,2)." = ".number_format($qn*$agreed,2)
-                   . " | ".$st." | FATURA: ".$inv."\n";
+                   . " | ".$st." | SATICI: ".$snm." | FATURA: ".$inv."\n";
               }
               if (!$oc) echo "  (teklif yok)\n";
               $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif";
