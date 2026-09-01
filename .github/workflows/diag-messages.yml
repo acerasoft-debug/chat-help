@@ -38,6 +38,10 @@ on:
         description: "true = gönderen alan adı doğrulaması (SPF/DKIM/DMARC) + gönderen adresler + kredi. 'Mektubu görmüyorum' denince buraya bakılır"
         required: false
         default: "false"
+      orders_for:
+        description: "Siparişleri göster: alıcı adı/şirket/e-posta içinde geçen metin (ör: daymond). Boş = atla"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -68,7 +72,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS
           script: |
             export IN_WHO='${{ github.event.inputs.who }}'
             export IN_WHO2='${{ github.event.inputs.who2 }}'
@@ -79,6 +83,7 @@ jobs:
             export IN_MAIL_FOR='${{ github.event.inputs.mail_for }}'
             export IN_MAIL_SUBJ='${{ github.event.inputs.mail_subject }}'
             export IN_SENDER='${{ github.event.inputs.sender }}'
+            export IN_ORDERS='${{ github.event.inputs.orders_for }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -361,6 +366,40 @@ jobs:
                 }
                 echo "\n";
               }
+            }
+
+            /* SIPARIS DOKUMU. Bir siparisin hangi kalemlerden olustugunu ve her
+               kalemin hangi saticiya ait oldugunu gormeden "su urunu cikaralim mi"
+               diye musteriye yazilamaz. Salt okunur. */
+            $oq = trim((string)getenv('IN_ORDERS'));
+            if ($oq !== '') {
+              echo "===== SIPARISLER: \"{$oq}\" =====\n";
+              require_once $doc."/inc/orders.php";
+              $hit = 0;
+              foreach (vestra_read_csv('orders.csv') as $o) {
+                $hay = mb_strtolower(implode(' ', [$o['company'] ?? '', $o['name'] ?? '', $o['email'] ?? '']));
+                if (mb_strpos($hay, mb_strtolower($oq)) === false) continue;
+                $hit++;
+                echo "--- ref=".($o['ref'] ?? '?')." | ".($o['date'] ?? $o['timestamp'] ?? '')
+                   ." | ".($o['company'] ?? $o['name'] ?? '?')." ".m((string)($o['email'] ?? ''))
+                   ." | durum=".($o['status'] ?? '-')."\n";
+                $lines = function_exists('vestra_order_lines') ? vestra_order_lines($o) : [];
+                foreach ($lines as $ln) {
+                  $pid = (string)($ln['id'] ?? $ln['product_id'] ?? '');
+                  $pr  = $pid !== '' ? vestra_listing_by_id($pid) : null;
+                  if (!$pr) foreach (vestra_products() as $cand) if ((string)($cand['id'] ?? '') === $pid) { $pr = $cand; break; }
+                  $su  = (string)($pr['seller_uid'] ?? '');
+                  $own = $su === '' ? '(platform/demo)'
+                       : (($byId[$su]['company'] ?? $byId[$su]['name'] ?? '(hesap yok)'));
+                  echo "    · ".($ln['qty'] ?? '?')." x ".mb_substr((string)($ln['title'] ?? $ln['name'] ?? $pid),0,46)
+                     . " | id=".$pid." | ".($pr ? 'ILAN VAR ('.($pr['status'] ?? 'approved').')' : '*** ILAN YOK ***')
+                     . " | satici: ".$own."\n";
+                }
+                if (!$lines) echo "    (kalem cozulemedi, ham: ".mb_substr((string)($o['items'] ?? ''),0,160).")\n";
+              }
+              if (!$hit) { echo "  *** eslesen siparis YOK ***\n"; }
+              $summary[] = "siparis({$oq}): {$hit}";
+              echo "\n";
             }
 
             echo "===== OZET =====\n";
