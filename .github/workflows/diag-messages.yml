@@ -42,6 +42,10 @@ on:
         description: "Siparişleri göster: alıcı adı/şirket/e-posta içinde geçen metin (ör: daymond). Boş = atla"
         required: false
         default: ""
+      billing_for:
+        description: "Faturada görünecek satıcı künyesi + banka ADLARI (ör: garage). IBAN/hesap NUMARASI yazdırılmaz, yalnızca var/yok"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -72,7 +76,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING
           script: |
             export IN_WHO='${{ github.event.inputs.who }}'
             export IN_WHO2='${{ github.event.inputs.who2 }}'
@@ -84,6 +88,7 @@ jobs:
             export IN_MAIL_SUBJ='${{ github.event.inputs.mail_subject }}'
             export IN_SENDER='${{ github.event.inputs.sender }}'
             export IN_ORDERS='${{ github.event.inputs.orders_for }}'
+            export IN_BILLING='${{ github.event.inputs.billing_for }}'
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
@@ -425,6 +430,40 @@ jobs:
               }
               if (!$oc) echo "  (teklif yok)\n";
               $summary[] = "{$oq}: {$hit} siparis, {$oc} teklif";
+              echo "\n";
+            }
+
+            /* FATURA KUNYESI. Faturanin ustundeki isim $sellerAcc['company'],
+               IBAN'in yanindaki isim ise 'bank_holder' -- IKISI AYRI ALAN ve
+               operator ikisinin FARKLI olmasini istiyor.
+
+               NUMARALAR BASILMIYOR. IBAN / hesap / routing yalnizca "var/yok"
+               ve uzunluk olarak yaziliyor. Bu depo ve Actions kutugu HERKESE
+               ACIK (CLAUDE.md): bir IBAN buraya bir kez dustugunde geri
+               alinamaz, ve ABD'de routing+hesap ikilisi ACH borclandirma icin
+               tek basina yeterli. Degerin kendisi panelde okunur. */
+            $bq = trim((string)getenv('IN_BILLING'));
+            if ($bq !== '') {
+              echo "===== FATURA KUNYESI: \"{$bq}\" =====\n";
+              foreach (find_accounts($accounts, $bq) as $a) {
+                $has = function ($v) { $v = trim((string)$v); return $v === '' ? '*** BOS ***' : 'VAR ('.strlen($v).' hane)'; };
+                echo "  id=".substr((string)($a['id'] ?? ''),0,8)." | tip=".($a['type'] ?? '?')."\n";
+                echo "  --- faturanin USTUNDE gorunecek (invoice.php: sellerAcc) ---\n";
+                echo "    company    : \"".($a['company'] ?? '')."\"".(trim((string)($a['company'] ?? '')) === '' ? '  <- BOS ise name kullanilir' : '')."\n";
+                echo "    name       : \"".($a['name'] ?? '')."\"\n";
+                echo "    address    : \"".($a['address'] ?? '')."\"\n";
+                echo "    country    : ".($a['country'] ?? '-')."\n";
+                echo "    vat_id     : ".((trim((string)($a['vat_id'] ?? '')) !== '') ? $a['vat_id'] : '(yok)')."\n";
+                echo "    reg_number : ".((trim((string)($a['reg_number'] ?? '')) !== '') ? $a['reg_number'] : '(yok)')."\n";
+                echo "  --- IBAN'in YANINDA gorunecek (invoice.php: payment_rails) ---\n";
+                echo "    bank_holder: \"".($a['bank_holder'] ?? '')."\"".(trim((string)($a['bank_holder'] ?? '')) === '' ? '  <- BOS' : '')."\n";
+                echo "    bank_name  : \"".($a['bank_name'] ?? '')."\"\n";
+                echo "    bank_bic   : ".((trim((string)($a['bank_bic'] ?? '')) !== '') ? $a['bank_bic'] : '(yok)')."\n";
+                echo "    bank_iban  : ".$has($a['bank_iban'] ?? '')."   [NUMARA YAZDIRILMIYOR - panelden oku]\n";
+                echo "    bank_account/routing: ".$has($a['bank_account'] ?? '')." / ".$has($a['bank_routing'] ?? '')."\n";
+                echo "    stripe     : ".(!empty($a['stripe_account_id']) ? 'bagli' : 'YOK')."\n";
+                $summary[] = ($a['company'] ?: $a['name'] ?: '?').": company=\"".($a['company'] ?? '')."\", bank_holder=\"".($a['bank_holder'] ?? '')."\", iban=".(trim((string)($a['bank_iban'] ?? '')) !== '' ? 'VAR' : 'YOK');
+              }
               echo "\n";
             }
 
