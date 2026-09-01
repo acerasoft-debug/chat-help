@@ -216,50 +216,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       header('Content-Length: '.strlen($bytes));
       echo $bytes; exit;
     }
-    /* Kayit belgeden ONCE (ayni gerekce: kesim yarida kalirsa kayit dogru
-       kalir ve tekrar denenebilir). */
-    if($sh!==null || $mem!==null){
-      $rs=vestra_read_json('offer_responses.json');
-      if($sh!==null) $rs[$ref]['invoice_shipping']=$sh;
-      if($mem!==null){
-        /* CIKARILAN uyelerin bagi SILINIYOR: kalmasi halinde
-           vestra_invoices_for_ref onlari hala bu belgeye baglar ve alici
-           faturadan cikardigimiz kalemin faturasini gormeye devam ederdi.
-           Bagi kopan teklif yeniden 'faturasiz' olur ve onay kuyruguna doner
-           -- dogru davranis: karar operatorun, kalem ya yeniden faturalanir
-           ya reddedilir. */
-        foreach((array)($rs[$ref]['invoice_members'] ?? []) as $o){
-          $o=(string)$o;
-          if($o!==$ref && !in_array($o,$p['refs'],true)) unset($rs[$o]['invoice_group_ref']);
-        }
-        foreach($p['refs'] as $r){ if($r!==$ref) $rs[$r]['invoice_group_ref']=$ref; }
-        $rs[$ref]['invoice_members']=$p['refs'];
-      }
-      vestra_write_json('offer_responses.json',$rs);
+    /* Kesim + kayit + mektup TEK fonksiyonda (vestra_offer_invoice_redraft_apply):
+       panel ve is akisi ayni yolu kullansin, ikisi ayrisirsa fark BELGEDE
+       gorunur. */
+    $r = vestra_offer_invoice_redraft_apply($ref, $sh, $mem);
+    if(!empty($r['error'])){
+      header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($r['error'])); exit;
     }
-    $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, true);
-    $ok = $iv && ($iv['no'] ?? '')!=='' && !empty($iv['redrafted']);
-    if($ok){
-      /* Bu ozellikten ONCE kesilmis faturanin siparisi hic olusmamisti;
-         redraft eksigi tamamlar (varsa dokunmaz). */
-      vestra_offer_order_ensure($p);
-      $em=(string)($p['meta']['buyer']['email'] ?? '');
-      if(filter_var($em,FILTER_VALIDATE_EMAIL)){
-        require_once __DIR__.'/inc/notify.php';
-        $lines='';
-        foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
-        $goods=(float)array_sum(array_column($p['items'],'line'));
-        $shp=(float)($p['meta']['shipping'] ?? 0);
-        vestra_send_mail($em, "VESTRA — your invoice {$iv['no']} is ready",
-          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nYour invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
-         .$lines."\n  Goods total : EUR ".number_format($goods,2)."\n"
-         .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
-         ."  TOTAL DUE   : EUR ".number_format($goods+$shp,2)."\n\n"
-         ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].". You can also download it any time under My offers.\n\n"
-         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com",
-          '','',null,'',['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]]);
-      }
-    }
+    $ok = !empty($r['ok']);
     header('Location: /admin?tab=invoices&msg='.($ok?'invoice_redrafted':'invoice_none')); exit;
   }
   /* Fatura ODENDI isareti: alici panelindeki "odenmesi gereken fatura"

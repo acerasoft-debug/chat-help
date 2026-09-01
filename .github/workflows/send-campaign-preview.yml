@@ -1126,6 +1126,24 @@ jobs:
                 $mem = array_values(array_filter(array_map('trim', explode(',', $E('refs')))));
               }
               $shp = trim($E('ship')) !== '' ? round(max(0.0,(float)str_replace(',','.',$E('ship'))),2) : null;
+
+              /* apply=true -> GERCEK KESIM: ayni numarayla yeniden yazar,
+                 kayitlari gunceller, ALICIYA gonderir ve bu adrese kopya
+                 birakir. Panelin '🔁 Redraft & email' dugmesiyle AYNI
+                 fonksiyon. Varsayilan false: taslak. */
+              if (strtolower(trim($E('apply'))) === 'true') {
+                $r = vestra_offer_invoice_redraft_apply($iref, $shp, $mem, $to);
+                if (!empty($r['error'])) { fwrite(STDERR, "invoice_draft(apply): ".$r['error']."\n"); exit(1); }
+                echo "KESILDI: fatura ".$r['no']." (ayni numara, yeniden yazildi)\n";
+                echo "  uyeler : ".implode(', ', $r['refs'])."\n";
+                echo "  satici : ".$r['seller']."\n";
+                echo "  toplam : EUR ".number_format((float)$r['total'],2)."\n";
+                echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : '*** HAYIR ***')."\n";
+                echo "  operatore kopya    : ".(!empty($r['copied']) ? 'EVET' : 'hayir')."\n";
+                if (empty($r['sent'])) { fwrite(STDERR, "UYARI: belge kesildi ama alici mektubu GITMEDI\n"); exit(1); }
+                exit(0);
+              }
+
               $p = vestra_offer_invoice_redraft_payload($iref, $shp, $mem);
               if (!empty($p['error'])) { fwrite(STDERR, "invoice_draft: ".$p['error']."\n"); exit(1); }
 

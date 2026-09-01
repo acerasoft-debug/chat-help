@@ -604,6 +604,78 @@ function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverr
     return $p;
 }
 
+/* KESILMIS teklif faturasini AYNI numarayla yeniden yazar, kayitlari
+ * gunceller ve aliciya gonderir. Panel ve is akisi AYNI fonksiyonu cagirir --
+ * iki ayri kesim yolu zamanla ayrisir ve ayrisma BELGEDE gorunur (bu dosyada
+ * defalarca yazili ders).
+ *
+ * $copyTo verilirse ayni mektubun bir kopyasi oraya da gider (operatorun
+ * "bana da gonder" istegi); alici mektubu her halukarda gider.
+ * Ya ['ok'=>true, 'no'=>...] ya ['error'=>gerekce] doner. */
+function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?array $members = null, string $copyTo = ''): array {
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/notify.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $p = vestra_offer_invoice_redraft_payload($ref, $ship, $members);
+    if (!empty($p['error'])) return $p;
+
+    /* Kayit belgeden ONCE: kesim yarida kalirsa kayit dogru kalir ve islem
+       tekrarlanabilir. Tersi sirada belge kayitsiz kalirdi. */
+    $rs = vestra_read_json('offer_responses.json');
+    if ($ship !== null) $rs[$ref]['invoice_shipping'] = $ship;
+    if ($members !== null) {
+        /* Cikarilan uyelerin bagi SILINIYOR: kalsaydi alici faturadan
+           cikardigimiz kalemin faturasini gormeye devam ederdi. Bagi kopan
+           teklif faturasiz olur ve onay kuyruguna doner -- karar operatorun. */
+        foreach ((array)($rs[$ref]['invoice_members'] ?? []) as $o) {
+            $o = (string)$o;
+            if ($o !== $ref && !in_array($o, $p['refs'], true)) unset($rs[$o]['invoice_group_ref']);
+        }
+        foreach ($p['refs'] as $r) { if ($r !== $ref) $rs[$r]['invoice_group_ref'] = $ref; }
+        $rs[$ref]['invoice_members'] = $p['refs'];
+    }
+    vestra_write_json('offer_responses.json', $rs);
+
+    $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, true);
+    if (!$iv || ($iv['no'] ?? '') === '' || empty($iv['redrafted'])) {
+        return ['error' => 'Belge yeniden yazılamadı — numara ya da dosya bulunamadı.'];
+    }
+    vestra_offer_order_ensure($p);
+
+    $goods = 0.0; $lines = '';
+    foreach ($p['items'] as $it) {
+        $goods += (float)$it['line'];
+        $lines .= sprintf("  %-16s %4d x EUR %s = EUR %s\n", $it['sku'], (int)$it['qty'],
+                  number_format((float)$it['unit'], 2), number_format((float)$it['line'], 2));
+    }
+    $shp  = (float)($p['meta']['shipping'] ?? 0);
+    $subj = "VESTRA — your invoice {$iv['no']} is ready";
+    $body = "Hello ".(($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
+          ."Your invoice ({$iv['no']}) is ready — the corrected PDF is attached and replaces any earlier copy of the same invoice number.\n\n"
+          .$lines."\n  Goods total : EUR ".number_format($goods, 2)."\n"
+          .($shp > 0 ? "  Shipping    : EUR ".number_format($shp, 2)."\n" : '')
+          ."  TOTAL DUE   : EUR ".number_format($goods + $shp, 2)."\n\n"
+          ."Please pay by bank transfer to the account shown on the invoice, quoting reference ".$p['meta']['ref'].".\n"
+          ."You can also download it any time under My offers.\n\n"
+          ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com";
+    $att  = is_file((string)($iv['path'] ?? ''))
+          ? ['attachments' => [['name' => 'Invoice-'.$iv['no'].'.pdf', 'path' => $iv['path']]]] : [];
+
+    $em   = (string)($p['meta']['buyer']['email'] ?? '');
+    $sent = false;
+    if (filter_var($em, FILTER_VALIDATE_EMAIL)) $sent = (bool)vestra_send_mail($em, $subj, $body, '', '', null, '', $att);
+    $copied = false;
+    if ($copyTo !== '' && filter_var($copyTo, FILTER_VALIDATE_EMAIL)) {
+        /* Kopyanin konusu ACIKCA kopya diyor: operatorun kutusunda alici
+           mektubuyla ayni konuyu tasiyan ikinci bir mail, hangisinin
+           musteriye gittigini belirsiz birakirdi. */
+        $copied = (bool)vestra_send_mail($copyTo, "[KOPYA] ".$subj,
+            "Bu, alıcıya gönderilen mektubun kopyasıdır. Asıl mektup: ".$em."\n\n".$body, '', '', null, '', $att);
+    }
+    return ['ok' => true, 'no' => $iv['no'], 'refs' => $p['refs'], 'total' => round($goods + $shp, 2),
+            'sent' => $sent, 'copied' => $copied, 'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC')];
+}
+
 /* $force=false -> yalnizca 'pending' doner, DOSYA URETMEZ (kabul aninda).
  * $force=true  -> numarayi yakar ve PDF'i yazar (operator onayindan sonra). */
 function vestra_offer_issue_invoice(string $ref, bool $force): ?array {
