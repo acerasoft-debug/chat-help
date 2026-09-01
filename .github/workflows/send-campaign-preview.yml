@@ -1132,15 +1132,22 @@ jobs:
                  birakir. Panelin '🔁 Redraft & email' dugmesiyle AYNI
                  fonksiyon. Varsayilan false: taslak. */
               if (strtolower(trim($E('apply'))) === 'true') {
-                $r = vestra_offer_invoice_redraft_apply($iref, $shp, $mem, $to);
+                /* notify=false -> belge ve kayitlar duzeltilir, ALICIYA
+                   mektup gitmez. Alici dogru PDF'i zaten almisken ikinci bir
+                   "faturaniz hazir" mektubu gereksiz soru dogurur. */
+                $notify = strtolower(trim($E('notify'))) !== 'false';
+                $r = vestra_offer_invoice_redraft_apply($iref, $shp, $mem, $to, $notify);
                 if (!empty($r['error'])) { fwrite(STDERR, "invoice_draft(apply): ".$r['error']."\n"); exit(1); }
                 echo "KESILDI: fatura ".$r['no']." (ayni numara, yeniden yazildi)\n";
                 echo "  uyeler : ".implode(', ', $r['refs'])."\n";
                 echo "  satici : ".$r['seller']."\n";
                 echo "  toplam : EUR ".number_format((float)$r['total'],2)."\n";
-                echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : '*** HAYIR ***')."\n";
+                echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : (empty($r['notified']) ? 'hayir (notify=false, bilerek)' : '*** HAYIR ***'))."\n";
                 echo "  operatore kopya    : ".(!empty($r['copied']) ? 'EVET' : 'hayir')."\n";
-                if (empty($r['sent'])) { fwrite(STDERR, "UYARI: belge kesildi ama alici mektubu GITMEDI\n"); exit(1); }
+                /* Mektup ISTENDIGI halde gitmediyse is KIRMIZI biter: belge
+                   degisti ama musteri bilmiyor -- sessizce gecilecek en pahali
+                   durum. notify=false ise bu bir hata degil, karar. */
+                if (!empty($r['notified']) && empty($r['sent'])) { fwrite(STDERR, "UYARI: belge kesildi ama alici mektubu GITMEDI\n"); exit(1); }
                 exit(0);
               }
 

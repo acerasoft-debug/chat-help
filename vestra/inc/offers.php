@@ -640,7 +640,11 @@ function vestra_offer_invoice_redraft_payload(string $ref, ?float $shippingOverr
  * $copyTo verilirse ayni mektubun bir kopyasi oraya da gider (operatorun
  * "bana da gonder" istegi); alici mektubu her halukarda gider.
  * Ya ['ok'=>true, 'no'=>...] ya ['error'=>gerekce] doner. */
-function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?array $members = null, string $copyTo = ''): array {
+/* $notifyBuyer=false: belge ve kayitlar duzeltilir ama ALICIYA MEKTUP
+ * GITMEZ. Yalnizca panel/kayit tarafi bozuksa gereklidir -- alici dogru
+ * PDF'i zaten almisken ikinci bir "faturaniz hazir" mektubu, degismemis bir
+ * belgeyi degismis gibi gosterir ve gereksiz soru dogurur. */
+function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?array $members = null, string $copyTo = '', bool $notifyBuyer = true): array {
     require_once __DIR__.'/invoice.php';
     require_once __DIR__.'/notify.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
@@ -693,7 +697,9 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
 
     $em   = (string)($p['meta']['buyer']['email'] ?? '');
     $sent = false;
-    if (filter_var($em, FILTER_VALIDATE_EMAIL)) $sent = (bool)vestra_send_mail($em, $subj, $body, '', '', null, '', $att);
+    if ($notifyBuyer && filter_var($em, FILTER_VALIDATE_EMAIL)) {
+        $sent = (bool)vestra_send_mail($em, $subj, $body, '', '', null, '', $att);
+    }
     $copied = false;
     if ($copyTo !== '' && filter_var($copyTo, FILTER_VALIDATE_EMAIL)) {
         /* BIREBIR AYNI mektup (operator karari, 1 Eyl 2026: "musteriye
@@ -705,7 +711,8 @@ function vestra_offer_invoice_redraft_apply(string $ref, ?float $ship = null, ?a
         $copied = (bool)vestra_send_mail($copyTo, $subj, $body, '', '', null, '', $att);
     }
     return ['ok' => true, 'no' => $iv['no'], 'refs' => $p['refs'], 'total' => round($goods + $shp, 2),
-            'sent' => $sent, 'copied' => $copied, 'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC')];
+            'sent' => $sent, 'copied' => $copied, 'notified' => $notifyBuyer,
+            'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC')];
 }
 
 /* $force=false -> yalnizca 'pending' doner, DOSYA URETMEZ (kabul aninda).
