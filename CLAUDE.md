@@ -81,6 +81,22 @@ aracın **adres uydurduğunun** imzası — CLAUDE.md'de zaten kayıtlı olan re
   Surrender, Fake Tokyo ve Assin gerçek mağazalar ama alan adları artık kayıtlı
   değil. "Tanıdık isim" adresin çalıştığı anlamına gelmiyor.
 
+**KURAL 1d — park edilmiş / satılık alan adı dükkân değildir.** 1 Eylül 2026'da
+`klcollective.com`'a mektup gitti; site taraması firma adını **"HugeDomains"**
+diye getirmişti — alan adı satılık, arkasında dükkân yok. İşaret **zaten
+elimizdeydi**, kimse bakmıyordu. NS/MX kontrolü bunu yakalayamaz: park
+sağlayıcısı alan adını gerçekten kaydeder ve çoğu MX de yayınlar, yani alan adı
+"yaşıyor" görünür. Kontrol: `vestra_name_is_parked_domain()`, `add-and-send.yml`
+gönderim yolunda. Liste **bilerek dar** — genel bir `domain`/`shop` kelimesi
+konsaydı gerçek butikler sessizce elenirdi. İlk yazımda düz `str_contains`
+kullandım ve **testin kendisi yakaladı**: `sedo` → "The Sedona Store". Kelime
+sınırı şart.
+
+**Aynı gün kaçan bir tane daha:** `keehinghung.com` mektup aldı; taranan ad
+*"Official Rolex and Tudor Retailer in Singapore"* — **yetkili marka bayisi**
+(üstelik saat, konfeksiyon değil). Bloklisteye eklenmedi, operatör kararı
+bekliyor. Tarama adı gönderimden **önce** okunursa bu da yakalanır.
+
 **KURAL 1c — aynı FİRMAYA ikinci soğuk mektup gitmez.** Tekilleştirme uzun süre
 yalnızca **adrese** bakıyordu. 1 Eylül 2026'da ikinci APAC listesinde
 `sartorial@marais.com.au` vardı; aynı dükkânın `online@` adresi 31 Ağustos'ta
