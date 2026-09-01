@@ -506,7 +506,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='save_billing'){
     $uid = $_POST['uid'] ?? '';
     $upd = [];
-    foreach (['company','name','address','city','postcode','country','vat_id','reg_number','phone'] as $f) {
+    /* invoice_name: faturadaki ticari unvan, 'company'den AYRI -- company halka
+       acik (showroom vitrin adi), fatura unvani degistirilirken magaza adinin
+       da degismesi istenmiyor.
+       bank_holder: IBAN'in yanindaki isim. Sahis hesabinda genelde sirket
+       unvanindan farklidir ve havale formunda YANLIS isim transferi geri
+       cevirtir -- bu yuzden ayri alan, ayri girilir. */
+    foreach (['company','invoice_name','name','address','city','postcode','country','vat_id','reg_number','phone','bank_holder'] as $f) {
       $v = trim((string)($_POST[$f] ?? ''));
       if ($v !== '') $upd[$f] = $v;
     }
@@ -2728,15 +2734,19 @@ function sendUserMessage(uid,name){
           <input type="hidden" name="_action" value="save_billing">
           <input type="hidden" name="uid" value="<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>">
           <label style="font-size:11px;color:var(--mut)">Company<input name="company" value="<?= htmlspecialchars($a['company']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Invoice name (blank = Company)<input name="invoice_name" value="<?= htmlspecialchars($a['invoice_name']??'') ?>" placeholder="<?= htmlspecialchars($a['company']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Contact name<input name="name" value="<?= htmlspecialchars($a['name']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Address (street, city, state, ZIP)<input name="address" value="<?= htmlspecialchars($a['address']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Country<input name="country" value="<?= htmlspecialchars($a['country']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)"><?= htmlspecialchars($_tax['label']) ?><input name="vat_id" value="<?= htmlspecialchars($a['vat_id']??'') ?>" placeholder="<?= htmlspecialchars($_tax['placeholder']) ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Registration number<input name="reg_number" value="<?= htmlspecialchars($a['reg_number']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <label style="font-size:11px;color:var(--mut)">Phone<input name="phone" value="<?= htmlspecialchars($a['phone']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
+          <label style="font-size:11px;color:var(--mut)">Account holder (name beside the IBAN)<input name="bank_holder" value="<?= htmlspecialchars($a['bank_holder']??'') ?>" style="width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:12.5px"></label>
           <div style="align-self:end"><button class="abtn" type="submit" style="color:var(--ok);border-color:rgba(122,214,160,.4)">Save billing details</button></div>
         </form>
-        <div class="ahint" style="margin-top:6px;font-size:11px">Blank fields are left unchanged — this never clears data you don't retype.</div>
+        <div class="ahint" style="margin-top:6px;font-size:11px">Blank fields are left unchanged — this never clears data you don't retype.<br>
+          <b>Company</b> is the seller's public name (storefront). <b>Invoice name</b> replaces it on the invoice only.
+          <b>Account holder</b> is the name printed beside the IBAN — it can differ from both, and it must match what the bank has on the account.</div>
       </details>
     </td>
   </tr>

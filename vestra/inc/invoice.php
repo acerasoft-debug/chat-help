@@ -311,6 +311,34 @@ function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = f
  * $order: ['ref'=>string,'date'=>ISO8601,'buyer'=>['company','vat','name','email','country','address']]
  * $items: list of ['sku','brand','name','colors'=>string[],'qty'=>int,'unit'=>float,'line'=>float]
  */
+/**
+ * Faturanin ustunde ve satici kutusunda gorunecek unvan.
+ *
+ * NEDEN AYRI BIR ALAN: 'company' halka acik -- showroom.php saticinin vitrin
+ * adi olarak onu basiyor, Stripe etiketi de ondan turuyor. Faturayi baska bir
+ * ticari unvanla kesmek isteyen bir satici icin 'company'yi degistirmek,
+ * magazanin adini da degistirmek demek; kimsenin istemedigi bir yan etki.
+ * 'invoice_name' YALNIZCA belgede gecerli.
+ *
+ * Banka tarafi buraya KARISMIYOR: IBAN'in yanindaki isim 'bank_holder' ve o
+ * zaten ayri bir alan -- havale formundaki alici adi ile faturanin ustundeki
+ * unvan farkli olabilir (ve sahis hesabinda genelde farklidir).
+ *
+ * Bos ise davranis degismiyor: company -> name -> 'Seller'.
+ */
+function vestra_invoice_issuer_name(?array $acc, string $fallback = 'Seller'): string {
+    $inv = trim((string)($acc['invoice_name'] ?? ''));
+    if ($inv !== '') return $inv;
+    $co  = trim((string)($acc['company'] ?? ''));
+    if ($co !== '') return $co;
+    $nm  = trim((string)($acc['name'] ?? ''));
+    /* $fallback CAGIRANDAN: belgenin USTUNDEKI satir sellerAcc null iken
+       'Acerasoft LLC'ye dusuyordu (platform faturasi), satici kutusu ise
+       'Seller'a. Ikisini tek bir sabite baglamak platform faturasinin
+       basligini sessizce degistirirdi. */
+    return $nm !== '' ? $nm : $fallback;
+}
+
 function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc, string $invoiceNo): string {
     /* Para birimi. Belge bugune kadar EUR'a SABITTI: tutarlar eur() ile basiliyor ve
        "Currency" satiri duz "EUR" yaziyordu. ABD'li bir alicidan ABD'li bir hesaba
@@ -353,7 +381,12 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     /* Isletmeci adi tek yerden: banka kaydi "Acerasoft LLC" yaziyor, kodda ise
        kucuk harfli 'Acerasoft LLC' sabitti. Fatura ustte bir, altta baska turlu
        yazarsa alicinin muhasebesi iki farkli sirket gorur. */
-    $opName = trim((string)(($sellerAcc['company'] ?? '') ?: 'Acerasoft LLC'));
+    /* Faturadaki TICARI UNVAN. 'company' alani HALKA ACIK -- showroom.php
+       saticinin vitrin adi olarak onu basiyor. Bir satici faturayi baska bir
+       unvanla kesmek isteyebilir (Garage Le Paris -> "Agaya Paris") ve bunun
+       icin vitrin adini degistirmek, istenmeyen bir yeniden adlandirma olurdu.
+       'invoice_name' yalnizca BELGEDE gecerli; bos ise davranis eskisi gibi. */
+    $opName = vestra_invoice_issuer_name($sellerAcc, 'Acerasoft LLC');
     $pdf->text($markX, $y - 16, 8, $opName.'  ·  vestrasales.com', false);
     $pdf->textR($right, $y, 22, 'INVOICE', true);
     $pdf->textR($right, $y - 18, 9, 'Invoice No:  '.$invoiceNo);
@@ -371,7 +404,7 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
 
     if ($sellerAcc) {
         $sellerLines = array_values(array_filter([
-            $sellerAcc['company'] ?: ($sellerAcc['name'] ?? '') ?: 'Seller',
+            vestra_invoice_issuer_name($sellerAcc),
             $sellerAcc['address'] ?? '',
             $sellerAcc['country'] ?? '',
             /* Ayni bicimleyici aliciyla ORTAK: satici EIN'i duz, alici EIN'i tireli
