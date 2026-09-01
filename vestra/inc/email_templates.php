@@ -1727,8 +1727,12 @@ function vestra_tpl_offer_buyer_countered(string $lang, string $buyerName, strin
  * $shipsFrom: '' ise mektup gonderim yerini HIC yazmaz. Uydurmuyoruz --
  *   KURAL 3: kayit adresi ile malin ciktigi depo ayni sey degil, ve bu satiri
  *   alici gumruk/teslim suresi icin okuyor. Bilmiyorsak susup soracagiz. */
+/* $attached: GERCEKTEN eklenen bicimler, ['pdf','xlsx'] gibi. Bool DEGIL --
+   mektup neyin ekli oldugunu tek tek sayiyor ve olmayan bir eki anlatan cumle,
+   hic gonderilmemis ekten daha kotu: musteri dosyayi arar, biz gonderdik
+   saniriz (ayni endise notify.php'nin ek kutuginde de yazili). */
 function vestra_tpl_brand_catalog(string $salutation, string $brand, array $groups,
-                                  string $shipsFrom = '', bool $attached = false,
+                                  string $shipsFrom = '', array $attached = [],
                                   string $signer = 'Marco Bellini'): array {
     $subject = $brand.' — wholesale catalogue and prices';
 
@@ -1778,12 +1782,23 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
         $body .= "All of the above ships from ".$shipsFrom.".\n\n";
     }
 
-    if ($attached) {
+    $hasPdf  = in_array('pdf',  $attached, true);
+    $hasXlsx = in_array('xlsx', $attached, true);
+    if ($hasPdf && $hasXlsx) {
         $body .= "Attached you will find the same list in two formats: a PDF with the photographs, "
                . "article numbers, size grids and stock per size, and an Excel file with the same "
                . "figures in columns, so you can work straight from it.\n\n";
+    } elseif ($hasXlsx) {
+        $body .= "Attached you will find the same list as an Excel file — article numbers, sizes with "
+               . "stock, minimum quantities and wholesale prices in columns, so you can work straight "
+               . "from it.\n\n";
+    } elseif ($hasPdf) {
+        $body .= "Attached you will find the same list as a PDF, with the photographs, article numbers, "
+               . "size grids and stock per size.\n\n";
     }
 
+    /* Canli surumler: yalnizca EKLENMEYEN bicimin baglantisi one cikmali degil --
+       ikisi de duruyor, cunku ek bir kopya, bunlar her zaman guncel olan. */
     $q = rawurlencode($brand);
     $body .= "The live versions are always in your account:\n"
 . "PDF:   https://vestrasales.com/wholesale-list.pdf?brand=".$q."\n"
