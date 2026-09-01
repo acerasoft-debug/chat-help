@@ -366,6 +366,7 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
             'buyer' => [
                 'company' => ($offerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
+                'reg'     => (string)($buyerAcc['reg_number'] ?? ''),
                 'name'    => (string)($buyerAcc['name'] ?? ''),
                 'email'   => (string)($offerRow['email'] ?? ''),
                 'country' => (string)($buyerAcc['country'] ?? ''),
@@ -470,6 +471,7 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
             'buyer' => [
                 'company' => ($buyerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
+                'reg'     => (string)($buyerAcc['reg_number'] ?? ''),
                 'name'    => (string)($buyerAcc['name'] ?? ''),
                 'email'   => (string)($buyerRow['email'] ?? ''),
                 'country' => (string)($buyerAcc['country'] ?? ''),

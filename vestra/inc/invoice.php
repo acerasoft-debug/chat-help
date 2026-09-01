@@ -278,6 +278,7 @@ function vestra_invoice_buyer(array $orderRow): array {
     return [
         'company' => $pick('company', 'company'),
         'vat'     => $pick('vat', 'vat_id'),
+        'reg'     => $pick('reg_number', 'reg_number'),
         'name'    => $pick('name', 'name'),
         'email'   => $orderRow['email'] ?? '',
         'country' => $country,
@@ -510,6 +511,11 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
           ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '
             .vestra_format_tax_id((string)$b['vat'], (string)($b['country'] ?? ''))
           : '',
+        /* Alicinin sicil numarasi, saticininkiyle AYNI kalipta (operator istegi,
+           1 Eyl 2026). VAT'i olmayan alicida sirketi belgeye baglayan tek resmi
+           numara bu -- Daymond ornegi: vat_id bos, reg (CUI) dolu. Bos ise satir
+           hic basilmaz. */
+        !empty($b['reg']) ? 'Reg. no: '.$b['reg'] : '',
         $buyerName,
         /* No buyer e-mail, for the same reason the seller's is absent. An invoice is not a
            contact sheet: it is forwarded to carriers, brokers and banks, and it sits in an

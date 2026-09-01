@@ -24,7 +24,7 @@ $t = function(string $n, bool $c) use (&$ok,&$fail) { $c ? ($ok++ . print("  ok 
 
 $meta = ['ref'=>'OTEST1','date'=>'2026-09-01T10:00:00+00:00','buyer'=>[
     'company'=>'SC Daymond Proconect SRL','name'=>'Adrian','email'=>'x@y.ro',
-    'country'=>'RO','address'=>'Balotesti 111B','vat'=>'']];
+    'country'=>'RO','address'=>'Balotesti 111B','vat'=>'','reg'=>'26088643']];
 $items = [['sku'=>'SKU1','brand'=>'DSQUARED2','name'=>'Graphic T-Shirt','colors'=>[],
            'qty'=>20,'unit'=>45.00,'line'=>900.00]];
 $seller = ['id'=>'garage','company'=>'GARAGE LE PARIS','invoice_name'=>'Agaya Paris',
@@ -54,6 +54,9 @@ foreach ([
      bitisik 27 hane insan gozuyle dogrulanamiyor. */
   'IBAN (4lu gruplar)' => 'FR14 2004 1010 0505 0001 3M02 606',
   'IBAN sahibi'    => 'Agaya',
+  /* Alicinin sicil numarasi (operator istegi, 1 Eyl 2026) -- VAT'siz alicida
+     sirketi belgeye baglayan tek resmi numara. */
+  'alici Reg. no'  => 'Reg. no: 26088643',
   'urun'           => 'Graphic T-Shirt',
   'satir toplami'  => '900.00',
 ] as $n => $needle) $t("$n ikisinde de var", str_contains($draft,$needle) && str_contains($real,$needle));
