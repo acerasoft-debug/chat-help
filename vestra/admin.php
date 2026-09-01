@@ -3338,7 +3338,23 @@ elseif($tab==='invoices'): ?>
 ?>
 <div class="acard" style="margin-bottom:16px;border-color:rgba(169,127,44,.4)">
   <div class="acard-hd"><h3>↩ <?= count($pendingInvoiceOffers) ?> accepted offer(s) awaiting an invoice</h3></div>
-  <p class="ahint" style="margin:0 0 10px">Faturayı <b>hangi satıcının keseceğini</b> siz seçersiniz. Varsayılan, ilanın bağlı olduğu satıcı — satıcısı olmayan ilanlarda platform. Seçim belgeyle birlikte kayda geçer ve <b>kesimden sonra değiştirilemez</b>: numara ve dosya o satıcıya yazılır.</p>
+  <p class="ahint" style="margin:0 0 10px">Faturayı <b>hangi satıcının keseceğini</b> siz seçersiniz. Varsayılan, ilanın bağlı olduğu satıcı — satıcısı olmayan ilanlarda platform. Seçim belgeyle birlikte kayda geçer ve <b>kesimden sonra değiştirilemez</b>: numara ve dosya o satıcıya yazılır.<br>
+  <b>VAT satırı</b> kutusuna tıklayınca hazır gerekçeler açılır (KDV'siz kesilen faturada neden yazmak zorunlu) — seçebilir ya da kendiniz yazabilirsiniz; boş bırakılırsa satır hiç basılmaz.</p>
+  <?php /* KDV'SIZ KESIMIN HAZIR GEREKCELERI (operator istegi, 1 Eyl 2026).
+           datalist: secim de serbest metin de mumkun, JS yok. Metinler
+           faturaya oldugu gibi basilir; PDF CP1252'ye cevirdigi icin
+           aksan ve uzun tire sorunsuz. Kapsam bu pazaryerinin GERCEK
+           durumlari: FR kucuk isletme (Agaya/franchise en base), FR ve
+           genel AB ici B2B teslim, AB disi ihracat, ikinci el marj rejimi
+           (vintage/thrift saticilar). Hicbiri otomatik SECILMEZ: hangi
+           rejimin uygulanacagi operatorun/muhasebecinin karari. */ ?>
+  <datalist id="vatnotes">
+    <option value="TVA non applicable — article 293 B du CGI" label="FR küçük işletme (franchise en base) — alıcı VAT'i gerekmez"></option>
+    <option value="Exonération de TVA — article 262 ter I du CGI (livraison intracommunautaire)" label="FR satıcı → AB içi B2B; alıcının VIES'te geçerli VAT'i ŞART"></option>
+    <option value="VAT 0% — intra-Community supply of goods, Art. 138 of Directive 2006/112/EC. VAT to be accounted for by the customer (reverse charge)" label="Genel AB (örn. NL satıcı) → AB içi B2B; geçerli VAT ŞART"></option>
+    <option value="VAT 0% — export of goods outside the EU, Art. 146 of Directive 2006/112/EC" label="AB dışına ihracat (gümrük çıkış belgesi saklanır)"></option>
+    <option value="Margin scheme — second-hand goods, Art. 313 of Directive 2006/112/EC. VAT not separately shown or deductible" label="İkinci el / vintage marj rejimi"></option>
+  </datalist>
   <div class="atscroll"><table class="atable">
     <?= arow(['☑','Offer','Product','Buyer','Qty','Agreed €/u','Total','Invoice issued by','Approve'],true) ?>
     <?php foreach($pendingInvoiceOffers as $o):
@@ -3395,7 +3411,7 @@ elseif($tab==='invoices'): ?>
                  soylemeli. Kucuk satici (franchise en base) icin "TVA non
                  applicable" ibaresi, VIES'li aliciya reverse charge ibaresi
                  buradan girilir. Bos = satir hic basilmaz. */ ?>
-        <input name="vat_note" form="<?= htmlspecialchars($fFid) ?>" maxlength="200"
+        <input name="vat_note" form="<?= htmlspecialchars($fFid) ?>" maxlength="200" list="vatnotes"
                value="<?= htmlspecialchars((string)($offerResp[$fref]['invoice_vat_note'] ?? '')) ?>"
                placeholder='VAT satırı — örn. "TVA non applicable — article 293 B du CGI"'
                title="Faturadaki VAT satırı. KDV'siz kesiyorsanız gerekçesi burada yazmalı; boş bırakılırsa satır hiç basılmaz."
@@ -3434,7 +3450,7 @@ elseif($tab==='invoices'): ?>
         <option value="<?= htmlspecialchars((string)$__uid) ?>"><?= htmlspecialchars($__nm) ?></option>
       <?php endforeach; ?>
     </select>
-    <input name="vat_note" maxlength="200" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
+    <input name="vat_note" maxlength="200" list="vatnotes" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:260px">
     <button class="abtn" type="submit" name="_action" value="combine_preview_offer_invoice" formtarget="_blank" style="font-size:12px"
             title="Birleşik belgenin birebir taslağı — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez">👁 Draft</button>

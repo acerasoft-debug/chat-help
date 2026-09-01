@@ -69,6 +69,13 @@ $meta2 = $meta; $meta2['vat_note'] = 'TVA non applicable - article 293 B du CGI'
 $withNote = vestra_render_invoice_pdf($meta2, $items, $seller, 'INV-2026-000124', false);
 $t('ibare belgede',            str_contains($withNote,'293 B du CGI'));
 $t('nota bos belgede satir yok', !str_contains($real,'VAT:') || !str_contains($real,'293 B'));
+/* Hazir sablonlar (datalist) AKSAN ve UZUN TIRE tasiyor; PDF metni CP1252'ye
+   cevirerek basiyor. Sablonun oldugu gibi kullanilabilir oldugunun kaniti:
+   ASCII kismi duz aranir, aksanli kelime CP1252 karsiligiyla aranir. */
+$meta3 = $meta; $meta3['vat_note'] = 'Exonération de TVA — article 262 ter I du CGI (livraison intracommunautaire)';
+$b3 = vestra_render_invoice_pdf($meta3, $items, $seller, 'INV-2026-000125', false);
+$t('hazir sablonun ASCII kismi belgede', str_contains($b3,'article 262 ter I du CGI'));
+$t('aksanli kelime CP1252 olarak belgede', str_contains($b3, iconv('UTF-8','CP1252//TRANSLIT//IGNORE','Exonération de TVA —')));
 
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);
