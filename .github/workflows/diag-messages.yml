@@ -154,6 +154,11 @@ jobs:
               echo "    email_dogrulandi=".yn(!empty($a['email_verified']))
                  ." | operator_onayi=".yn(function_exists('auth_user_approved') ? auth_user_approved($a) : !empty($a['approved']))
                  ." | FIYAT KAPISI ACIK=".yn(auth_prices_unlocked($a))."\n";
+              /* Ham alanlar da yazilir: kapi "status=active VEYA kyb_status=approved"
+                 ile aciliyor; ikisi ayristiginda (active + pending) panel eskiden
+                 "Pending" gosterip dugme cikarmiyordu (2 Eyl 2026, LESSVAT). */
+              echo "    status=".($a['status'] ?? '(yok)')." | kyb_status=".($a['kyb_status'] ?? '(yok)')
+                 ." | suspend_reason=".($a['suspend_reason'] ?? '-')." | kayit=".substr((string)($a['created'] ?? ''), 0, 16)."\n";
               /* auth_required_doc_types() DUZ LISTE dondurur (['trade_licence','id_document']),
                  anahtarli harita degil -- array_keys() burada 0,1 basardi. */
               $need = function_exists('auth_required_doc_types') ? auth_required_doc_types((string)($a['type']??'buyer')) : [];

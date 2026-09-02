@@ -1916,6 +1916,17 @@ function abadge(string $t, string $c='#888'): string {
 function kybBadge(string $s): string {
   return match($s){ 'approved'=>abadge('✓ Verified','#1f9d63'),'suspended'=>abadge('⊘ Suspended','#c0392b'),default=>abadge('⏳ Pending','#a9781a') };
 }
+/* HESAP DURUMU rozeti: KAPIYA gore (auth_prices_unlocked), kyb_status'e gore
+   DEGIL. Kapi "status=active VEYA kyb_status=approved" ile aciliyor; yalnizca
+   status'u active olan bir alici (LESSVAT, 2 Eyl 2026) panelde "⏳ Pending"
+   gorunuyor, kapisi ACIK oldugu icin de "Open account" dugmesi cikmiyordu --
+   operator "pending duruyor, dugme yok" dedi. Rozet ile dugme AYNI soruyu
+   sormali: kapi acik mi? Belge durumu ayri sutunda (Docs). */
+function acctBadge(array $a): string {
+  if(($a['status']??'active')==='suspended') return abadge('⊘ Suspended','#c0392b');
+  if(($a['status']??'')==='pending_email') return abadge('✉ E-mail not verified','#8a8a8a');
+  return auth_prices_unlocked($a) ? abadge('✓ Open','#1f9d63') : abadge('⏳ Awaiting your approval','#a9781a');
+}
 function docBadge(string $s): string {
   return match($s){ 'approved'=>abadge('✓ Approved','#1f9d63'),'rejected'=>abadge('✗ Rejected','#c0392b'),'uploaded'=>abadge('📤 Review','#9a7320'),'requested'=>abadge('📋 Requested','#3366cc'),default=>abadge('—','#555') };
 }
@@ -2685,9 +2696,9 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
   <div class="acard-hd"><h3>Recent registrations</h3><a class="abtn" href="/admin?tab=users">All →</a></div>
   <?php $rec=array_slice(array_reverse($accounts),0,8); if(!$rec){ echo '<div class="aempty">No accounts yet.</div>'; } else { ?>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Name','Type','KYB','Joined'],true) ?>
+    <?= arow(['Name','Type','Access','Joined'],true) ?>
     <?php foreach($rec as $a): ?>
-    <?= arow(['<b>'.htmlspecialchars($a['name']??'—').'</b><div class="ahint">'.htmlspecialchars($a['email']??'').'</div>',typePill($a['type']??''),kybBadge($a['kyb_status']??'pending'),htmlspecialchars(substr($a['created']??'',0,10))]) ?>
+    <?= arow(['<b>'.htmlspecialchars($a['name']??'—').'</b><div class="ahint">'.htmlspecialchars($a['email']??'').'</div>',typePill($a['type']??''),acctBadge($a),htmlspecialchars(substr($a['created']??'',0,10))]) ?>
     <?php endforeach; ?>
   </table></div>
   <?php } ?>
@@ -2806,7 +2817,7 @@ elseif($tab==='documents'):
       <div class="ahint" style="margin-top:3px"><?= htmlspecialchars($selUser['company']??'') ?> · <?= htmlspecialchars($selUser['country']??'') ?> · <?= htmlspecialchars($selUser['vat_id']??'') ?></div>
     </div>
     <?= typePill($selUser['type']??'buyer') ?>
-    <?= kybBadge($selUser['kyb_status']??'pending') ?>
+    <?= acctBadge($selUser) ?>
   </div>
   <div class="acard-body">
   <div class="acols2">
@@ -2958,7 +2969,7 @@ if(!$docReqs): ?>
     <div class="aempty">No accounts yet.</div>
   <?php else: ?>
   <div class="atscroll"><table class="atable">
-    <?= arow(['Name','Email','Type','KYB','Docs','Pending docs',''],true) ?>
+    <?= arow(['Name','Email','Type','Access','Docs','Pending docs',''],true) ?>
     <?php foreach(array_reverse($accounts) as $a):
       $dreqs=$a['doc_requests']??[];
       $uploaded=count(array_filter($dreqs,fn($r)=>$r['status']==='uploaded'));
@@ -2969,7 +2980,7 @@ if(!$docReqs): ?>
       '<b>'.htmlspecialchars($a['name']??'—').'</b><div class="ahint">'.htmlspecialchars($a['id']??'').'</div>',
       '<a href="mailto:'.htmlspecialchars($a['email']??'').'" style="color:var(--acc);font-size:12px">'.htmlspecialchars($a['email']??'').'</a>',
       typePill($a['type']??''),
-      kybBadge(($a['status']??'active')==='suspended'?'suspended':($a['kyb_status']??'pending')),
+      acctBadge($a),
       $total>0?"$approved/$total approved":'<span class="ahint">None</span>',
       $uploaded>0?abadge("$uploaded waiting review",'#9a7320'):'<span class="ahint">—</span>',
       '<a class="abtn" href="/admin?tab=documents&uid='.urlencode($a['id']??'').'">Manage docs →</a>',
@@ -3035,7 +3046,7 @@ function sendUserMessage(uid,name){
 <?php else: ?>
 <div class="acard">
 <div class="atscroll"><table class="atable">
-  <?= arow(['#','Name','Email','Type','Products','Company','Country','VAT ID','Verification','KYB','Membership','Badge','Docs','Joined','Actions'],true) ?>
+  <?= arow(['#','Name','Email','Type','Products','Company','Country','VAT ID','Verification','Access','Membership','Badge','Docs','Joined','Actions'],true) ?>
   <?php $i=count($shown); foreach($shown as $a):
     $isSusp=($a['status']??'active')==='suspended';
     $isPendEmail=($a['status']??'')==='pending_email';
@@ -3132,7 +3143,7 @@ function sendUserMessage(uid,name){
         <span class="ahint">—</span>
       <?php endif; ?>
     </td>
-    <td class="ac"><?= kybBadge($isSusp?'suspended':($a['kyb_status']??'pending')) ?></td>
+    <td class="ac"><?= acctBadge($a) ?></td>
     <td class="ac">
       <?= memberBadge($a['membership_tier']??'',$a['membership_status']??'') ?>
       <form method="post" action="/admin" style="margin-top:5px;display:flex;gap:3px;align-items:center">
