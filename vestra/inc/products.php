@@ -115,6 +115,45 @@ function vestra_demo_products(){
         ['art'=>'LCMP103210','model'=>'L.12.12 00 HBP','color'=>'Light Blue','image'=>'/uploads/lacoste/l1212-lightblue.png'],
       ],
       'tiers'=>[['min'=>80,'price'=>34.00],['min'=>160,'price'=>29.50],['min'=>320,'price'=>25.00]],
+    ],
+    /* MUSTERSTUECK — tek adetlik numune, AYRI bir kalem olarak.
+     *
+     * NEDEN AYRI URUN. L1212'nin uzerinde zaten bir 'sample_price' alani var
+     * (50 EUR) ama iki sorunu vardi: (1) o rakam yalnizca KODDA degisiyor,
+     * panelden duzenlenemiyor -- operator 60 EUR dedigi anda mektupla sitenin
+     * rakami ayrisirdi; (2) o akis /sample-checkout uzerinden STRIPE'a gidiyor
+     * ve Stripe kapaliysa dugme hic calismiyor.
+     *
+     * Ayri urun olunca numune normal sepetten gecer: /cart formu sirket, VAT,
+     * ADRES, ulke ve telefonu zaten topluyor (operatorun istedigi adres alani),
+     * odeme banka havalesi, ve arkasinda normal siparis + fatura kaydi olusuyor.
+     *
+     * FIYAT KARGO DAHIL (operator karari): 60 EUR'ya AB ici gonderim dahil,
+     * o yuzden tier tek satir ve MOQ 1.
+     *
+     * 'sample_price' BILEREK YOK: bu urunun kendisi numune; ustune bir de
+     * "numune siparis et" dugmesi koymak numunenin numunesi olurdu.
+     *
+     * KURAL 3 — 'ships_from' GIRILMEDI cunku malin nereden ciktigi bana
+     * yazili olarak verilmedi; tahmin etmek yerine platform varsayilani (EU)
+     * kaliyor. Operator gercek cikis yerini bildirdiginde buraya yazilmali. */
+    [
+      'id'=>'lac-l1212-musterstueck','brand'=>'Lacoste','name'=>'L1212 Classic Piqué Polo — Musterstück','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'MUSTERSTUECK-L1212','moq'=>1,'unit'=>'pc','list'=>60.00,
+      'desc'=>'Single sample piece of the L.12.12 cotton piqué polo, sent so you can check the goods in your own hands before committing to a wholesale order. One piece, one colour, one size. EU-wide delivery is included in the price. Choose your colour and size in the order note; if the exact size is unavailable we ship the closest match from current sample stock.',
+      'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','verified'=>true,'accent'=>'#1b5e3a',
+      'sizes'=>'1 piece · sizes 3–8 · one colour','size_step'=>1,'min_colors'=>1,
+      'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
+      'images'=>['/uploads/lacoste/l1212-black.jpg','/uploads/lacoste/l1212-white.jpg','/uploads/lacoste/l1212-navy.jpg'],
+      'linesheet'=>false,
+      'specs'=>[
+        'Composition'=>'100% cotton piqué',
+        'Fabric weight'=>'≈ 200 gsm',
+        'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
+        'Packaging'=>'1 piece, delivery included in the price',
+        'Customs code (HS)'=>'6105.10.00',
+      ],
+      'tiers'=>[['min'=>1,'price'=>60.00]],
       /* Havuz operator istegiyle kapatildi. group_seed=96 / group_seed_n=5 de birlikte
          kaldirildi: o iki sayi "5 dogrulanmis butik, 96 adet taahhut etti" diye
          gorunuyordu ama karsiliginda TEK bir gercek taahhut yoktu -- groups.csv bos.
