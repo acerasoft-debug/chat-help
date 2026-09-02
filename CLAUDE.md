@@ -235,8 +235,10 @@ istensin, alıcılarda bu standart uygulama olsun"*).
   `[VESTRA doc]` etiketiyle error_log'a. `post_max_size` aşımı ayrıca yakalanır
   (`vestra_doc_post_overflow`): PHP `$_POST`'u **boş** bırakır, eskiden sayfa
   sessizce yenileniyordu — kullanıcı "hiçbir şey olmuyor" görüyordu. Sınır
-  sunucunun ini değerinden okunur (`auth_doc_max_bytes`); `vestra/.user.ini`
-  16M/20M ister. Tarayıcı büyük fotoğrafı yüklemeden **önce küçültür**
+  sunucunun ini değerinden okunur (`auth_doc_max_bytes`). Sunucunun php.ini'si
+  **32M/32M** (2 Eyl 2026 sondası); `vestra/.user.ini` 32M/48M yazar — ürün
+  formu 6 fotoğraf + sheet ile 38 MB'a çıkabiliyor, **bunun altına inme** (ilk
+  sürüm 16M/20M yazıp sunucuyu aşağı çekmişti). Tarayıcı büyük fotoğrafı yüklemeden **önce küçültür**
   (`inc/docs.php`). HEIC/HEIF kabul edilir (iPhone). Test:
   `tests/doc_upload_check_test.php`. Teşhis: `diag-messages.yml` →
   `upload_probe=true` (ini, `.user.ini`, `data/docs` yazılabilir mi, error_log).
@@ -265,7 +267,14 @@ için süre verilsin... 3 gün gibi, eğer yüklemez ise suspend olsun"*).
 - `cron_seller_docs.php` (sunucu crontab **06:50 UTC**, deploy kurar):
   damgala + "3 gün içinde" mektubu → son 24 saatte hatırlatma → süre dolunca
   `status=suspended, suspend_reason=docs` + mektup. **İlk uyarı gitmeden askı
-  yok.** Operatöre yalnızca askı ya da "askıda + belge geldi" varsa yazar.
+  yok.** Operatöre yalnızca bir şey olduğu gün yazar: saat başlayan (kim, kaç
+  ilan, son tarih), askıya alınan, "askıda + belge geldi". Saat günü yazılıyor
+  ki belgesi e-postada zaten duran bir ortak satıcı (GARAGE LE PARIS gibi)
+  askıdan önce elle tamamlanabilsin.
+- Sondada (2 Eyl 2026) yükleme sunucu tarafında sağlıklıydı: php.ini 32M,
+  `data/docs` yazılabilir, dün başka bir hesap yüklemişti. Negulescu'nun
+  hatası büyük olasılıkla dosya türü (HEIC) ya da 10 MB üstü fotoğraf — eski
+  kod ikisine de aynı genel cümleyi basıyor ve **hiçbir şey loglamıyordu**.
 - Askıdaki satıcının ilanları katalogdan çekilir (`vestra_live_listings`; ilan
   durumu değişmez, askı kalkınca kendiliğinden döner). Belge askısındaki satıcı
   **giriş yapabilir** ama yalnızca Verification/Profile'a (`seller.php`);

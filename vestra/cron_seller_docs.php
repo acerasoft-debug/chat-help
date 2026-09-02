@@ -120,14 +120,29 @@ printf("satici: belgesi tam=%d | ilani yok=%d | sure isliyor=%d | baslatildi=%d 
        count($acts['suspended']), count($acts['awaiting']), $DRY ? '   (KURU KOSU: hicbir sey yazilmadi, gonderilmedi)' : '');
 foreach ($acts['awaiting'] as $a) printf("  BEKLIYOR %-30s askida, belgesini yukledi -> Admin > Users > Activate\n", $mask((string)$a['email']));
 
-if (!$acts['suspended'] && !$acts['awaiting']) { echo "operatore mektup yok (aski ve bekleyen yok).\n"; exit(0); }
+/* Operatore mektup: aski, onay bekleyen VE saatin basladigi gun. Saat gunu de
+   yaziliyor cunku aski uc gun sonra kendiliginden geliyor -- operator kimin
+   saatinin isledigini gormeli ki (ornegin belgesi e-postada zaten duran bir
+   ortak saticiyi) askidan once kendi eliyle tamamlayabilsin. */
+if (!$acts['suspended'] && !$acts['awaiting'] && !$acts['stamped']) { echo "operatore mektup yok (aski, bekleyen ve yeni saat yok).\n"; exit(0); }
 
 $subj = [];
 if ($acts['suspended']) $subj[] = count($acts['suspended']).' seller(s) paused — documents missing';
 if ($acts['awaiting'])  $subj[] = count($acts['awaiting']).' paused seller(s) sent documents — activate?';
+if ($acts['stamped'])   $subj[] = count($acts['stamped']).' seller(s) given '.VESTRA_SELLER_DOC_GRACE_DAYS.' days for documents';
 $subject = 'VESTRA — '.implode(' · ', $subj);
 
 $body = '';
+if ($acts['stamped']) {
+    $body .= "These sellers have listings but no documents on file. Their ".VESTRA_SELLER_DOC_GRACE_DAYS."-day window started today and each has been e-mailed.\n"
+           . "If nothing arrives by ".gmdate('j F Y', $now + VESTRA_SELLER_DOC_GRACE_DAYS*86400).", their accounts are paused and their listings hidden — automatically.\n"
+           . "If you already hold a seller's documents (e.g. by e-mail), attach them under Admin ▸ Documents and the clock stops.\n\n";
+    foreach ($acts['stamped'] as $a) {
+        $body .= sprintf("  %s — %s (%s) · missing: %s · listings: %d\n", (string)$a['email'], $label($a), (string)($a['country'] ?? 'country not set'),
+                         implode(' + ', auth_missing_doc_types($a)), count(vestra_seller_listings((string)$a['id'])));
+    }
+    $body .= "\n";
+}
 if ($acts['suspended']) {
     $body .= "These sellers did not supply their documents within ".VESTRA_SELLER_DOC_GRACE_DAYS." days of their first listing.\n"
            . "Their accounts are now PAUSED and their listings are hidden from the catalogue. Each has been e-mailed.\n\n";
