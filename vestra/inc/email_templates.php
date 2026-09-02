@@ -1044,6 +1044,52 @@ function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $
 }
 
 /**
+ * To a buyer whose account is ALREADY open: how ordering and payment work, with
+ * the card-escrow ceiling (operator instruction, 2 Sep 2026: "LESSVAT'a yaz",
+ * "escrow 3000'de kalsin").
+ *
+ * Every figure is a parameter fed from the constants the checkout enforces
+ * (VESTRA_ESCROW_MAX, VESTRA_ESCROW_FEE_BUYER) — never typed into the text. The
+ * ceiling had already drifted once: the pages said EUR 3,000 while the cart
+ * accepted 3,500. A letter that carries its own number is the next drift.
+ *
+ * The workflow branch that sends this checks auth_prices_unlocked() first: a
+ * "your account is open" letter to a closed account sends the buyer to a locked
+ * page (KURAL 2b).
+ */
+function vestra_tpl_escrow_info(string $salutation, float $cap, float $feeRate, string $signer = 'Marco Bellini'): array {
+    $capTxt = '€'.number_format($cap, 0, '.', ',');
+    $feeTxt = rtrim(rtrim(number_format($feeRate * 100, 1, '.', ''), '0'), '.').'%';
+    $subject = "VESTRA — your account is open: ordering and payment (card escrow up to {$capTxt})";
+    $body = $salutation . ",\n\n"
+      . "Your VESTRA account is open, and trade prices are visible as soon as you log in:\n"
+      . "https://vestrasales.com/login\n\n"
+      . "How ordering and payment work:\n\n"
+      . "Card escrow — orders up to {$capTxt}. You pay by card at checkout; VESTRA holds the payment and "
+      . "releases it to the seller only after the goods reach you and you confirm they are as described. "
+      . "Buyer protection fee: {$feeTxt} of the order value.\n\n"
+      . "Above {$capTxt}, or whenever you prefer it: we issue an invoice, and the goods are dispatched "
+      . "once the bank transfer arrives.\n\n"
+      . "Escrow is offered at checkout when the seller of the items is set up for card payments; "
+      . "otherwise the invoice route applies.\n\n"
+      . "If you tell me which brands and quantities you are looking at, I will confirm availability "
+      . "and put a first order together with you.\n\n"
+      . "Best regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    $opts = [
+        'badge'  => 'Account open',
+        'rows'   => [
+            ['label'=>'Card escrow',   'value'=>'up to '.$capTxt.' per order', 'strong'=>true],
+            ['label'=>'Protection fee','value'=>$feeTxt.' of the order'],
+            ['label'=>'Above that',    'value'=>'invoice, dispatch on receipt of transfer'],
+        ],
+        'button' => ['label'=>'Log in to see trade prices', 'url'=>'https://vestrasales.com/login'],
+    ];
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Your order has shipped" — ONE wording for both places that can mark an order
  * shipped: the seller panel (seller.php) and the admin panel (admin.php). Until
  * 2 Sep 2026 only the seller panel mailed the buyer; the admin path saved the

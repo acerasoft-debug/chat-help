@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR)."
         required: false
         default: ""
       reply_spec:
@@ -1011,7 +1011,22 @@ jobs:
                  GIRILMISSE durur: "birkac gune" o gun yalan olur. Iptalde de durur.
                Imza: bu alicinin siparis yazismasi sirket blogu ile gitti;
                signer verilirse persona imzalar. */
-            if ($letter === 'tracking_soon') {
+            /* HESABI ACIK aliciya: siparis ve odeme nasil isler, kart escrow tavani
+               (operator, 2 Eyl 2026: "LESSVAT'a yaz", "escrow 3000'de kalsin").
+               Rakamlar sepetin uyguladigi sabitlerden (VESTRA_ESCROW_MAX,
+               VESTRA_ESCROW_FEE_BUYER) -- metne yazilmaz. Kapi KAPALIYSA durur:
+               "hesabiniz acik" deyip kilitli sayfaya yollamak, hic yazmamaktan kotu
+               (KURAL 2b). to=account:<isim> sart -- hesabi olmayan birine
+               "hesabiniz acik" denmez. */
+            if ($letter === 'escrow_info') {
+              if (!$acc) { fwrite(STDERR, "escrow_info: hesap yok (to=account:<isim> verin)\n"); exit(1); }
+              $open = auth_prices_unlocked($acc);
+              echo "kapi   : auth_prices_unlocked = ".($open ? 'ACIK' : 'KAPALI')."  (".($acc['type'] ?? '?').", ".($acc['status'] ?? '?').", kyb=".($acc['kyb_status'] ?? '?').")\n";
+              if (!$open) { fwrite(STDERR, "kapi KAPALI -- 'hesabiniz acik' mektubu gonderilmez. Once approve_account.\n"); exit(1); }
+              if (!defined('VESTRA_ESCROW_MAX') || !defined('VESTRA_ESCROW_FEE_BUYER')) { fwrite(STDERR, "escrow sabitleri yuklu degil\n"); exit(1); }
+              echo "escrow : tavan EUR ".number_format((float)VESTRA_ESCROW_MAX, 0, '.', ',')."  ucret %".rtrim(rtrim(number_format(VESTRA_ESCROW_FEE_BUYER * 100, 1), '0'), '.')."\n";
+              [$subject, $body, $opts] = vestra_tpl_escrow_info($salutation, (float)VESTRA_ESCROW_MAX, (float)VESTRA_ESCROW_FEE_BUYER, $signer);
+            } elseif ($letter === 'tracking_soon') {
               if (!$orderRow) { fwrite(STDERR, "tracking_soon: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
               require_once $doc."/inc/invoice.php";
               $oref  = trim((string)$orderRow['ref']);

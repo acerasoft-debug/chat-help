@@ -16,12 +16,17 @@ if(!defined('VESTRA_FEE_BUYER'))  define('VESTRA_FEE_BUYER',  0.0);
 if(!defined('VESTRA_ESCROW_FEE_BUYER')) define('VESTRA_ESCROW_FEE_BUYER', 0.038);
 /* Escrow ile odenebilecek EN YUKSEK SIPARIS tutari (EUR). Olculen sey SIPARIS,
    yani kupon sonrasi mal bedeli -- karttan cekilen toplam degil. Fark onemli:
-   koruma ucreti dahil olculseydi tam 3500 EUR'luk bir siparis sinirin ustune
-   cikip reddedilirdi, oysa kural "en fazla 3500 EUR siparis". Ucret bunun
-   uzerine biniyor ve karttan 3500 + %3,8 cekilebiliyor.
+   koruma ucreti dahil olculseydi tam sinirdaki bir siparis sinirin ustune
+   cikip reddedilirdi, oysa kural "en fazla X EUR siparis". Ucret bunun
+   uzerine biniyor ve karttan X + %3,8 cekilebiliyor.
    Sinir hem sepette hem order.php'de sinaniyor: sepetteki kontrol bir gorunum
-   kolayligi, gecerli olan sunucudaki. */
-if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3500.00);
+   kolayligi, gecerli olan sunucudaki.
+   3000: operator karari, 2 Eyl 2026 ("escrow 3000'de kalsin"). 28 Agustos'ta
+   3500 yazilmisti; fiyat listesi sayfalari, Excel ve kampanya mektuplari ise
+   hep "EUR 3,000" diyordu -- musteriye soylenen ile sepetin kabul ettigi
+   ayrismisti. Rakami metne gomme: tests/escrow_cap_test.php butun acik
+   metinleri bu sabite karsi tarar. */
+if(!defined('VESTRA_ESCROW_MAX')) define('VESTRA_ESCROW_MAX', 3000.00);
 /* Nereden sevk edildigi. Alicinin sormadan once bilmek istedigi sey bu: gumruk
    cikar mi, kac gunde gelir, iade nereye gider. Su an TEK bir cevap var (butun
    sevkiyat AB icinden cikiyor) ama listing basina bir "ship_from" alani YOK --
