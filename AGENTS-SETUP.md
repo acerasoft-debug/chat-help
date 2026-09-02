@@ -11,7 +11,6 @@ sunucularında çalışır, gizli anahtarlar **GitHub Secrets**'ta şifreli duru
 | `daily-shopify.yml` | Mondimart stok senkronu (`shopify-stock-all.mjs`) | her gün 05:00 |
 | `daily-content.yml` | Claude ile günlük "Rechtstipp" üretir, `content/generated/`'a commit'ler | her gün 04:00 |
 | `weekly-maintenance.yml` | `npm audit` + kodda secret sızıntısı taraması, bulgu varsa issue | Pazartesi 03:00 |
-| `auto-reply-messages.yml` | VESTRA'da Les Garage'a gelen yanıtsız alıcı sorularını (orijinallik/fatura/kargo/ödeme) hazır şablonla yanıtlar; emin olamadıklarını rapora bırakır | saat başı :23 |
 
 Hepsini **Actions** sekmesinden elle de tetikleyebilirsin (**Run workflow**).
 
