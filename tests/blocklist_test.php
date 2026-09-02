@@ -228,7 +228,7 @@ foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
           /* 2 Eyl 2026: velvetmonaco.com'un taranan adi (Alman kayit sirketi
              park sayfasi). Elle okundugu icin yakalandi. */
           'Domain im Kundenauftrag registriert', 'Domaine en vente', 'Dominio in vendita',
-          'Sfera.net Park Page'] as $n) {
+          'Sfera.net Park Page', 'TopDomainer Search Engine', 'Coming Soon', 'Under construction'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";

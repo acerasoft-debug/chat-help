@@ -625,6 +625,11 @@ function vestra_discover_blocklist(): array {
 function vestra_name_is_parked_domain(string $company): bool {
   $k = strtolower(trim($company));
   if ($k === '') return false;
+  /* Sayfa basligi YALNIZCA yer tutucu ise: "Coming Soon" (wer-haus.com, 2 Eyl
+     2026), "Under construction". TAM eslesme -- "Coming Soon Concept Store"
+     gercek bir ad ve gecmeli (test tutuyor). */
+  if (in_array($k, ['coming soon','coming soon...','under construction','site under construction',
+                    'index of /','welcome to nginx!','apache2 default page','it works!'], true)) return true;
   foreach ([
     'hugedomains','sedo','afternic','dan.com','undeveloped','namecheap marketplace',
     'godaddy auctions','buy this domain','domain for sale','this domain is for sale',
@@ -639,8 +644,9 @@ function vestra_name_is_parked_domain(string $company): bool {
        registriert" (Alman kayit sirketinin park sayfasi). Elle okundugu icin
        yakalandi; kalip listeye giriyor ki bir dahakine okunmasa da yakalansin. */
     'domain im kundenauftrag','domain reserviert','diese domain steht zum verkauf',
-    /* Ayni gun: vergelioshoes.it -> "Sfera.net Park Page" (Italyan hosting'in park sayfasi). */
-    'park page',
+    /* Ayni gun: vergelioshoes.it -> "Sfera.net Park Page" (Italyan hosting'in park
+       sayfasi), yusty.com -> "TopDomainer Search Engine" (alan adi pazari). */
+    'park page','topdomainer',
     'domaine en vente','ce domaine est à vendre','dominio in vendita','dominio en venta',
   ] as $needle) {
     /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
