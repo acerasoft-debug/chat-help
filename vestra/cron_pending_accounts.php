@@ -38,13 +38,53 @@ $mask = function (string $e): string {
     return mb_substr($lo, 0, 2) . str_repeat('*', max(0, mb_strlen($lo) - 2)) . substr($e, $at);
 };
 
+/* Bir hesabin HALA borclu oldugu zorunlu belgeler. Tek dogruluk kaynagi
+   auth_required_doc_types() (KURAL 2): satici trade_licence + id_document,
+   alici trade_licence. Burada ikinci bir liste yazmak, iki listenin
+   ayrisacagi gun demektir -- KURAL 2 tam da bu yuzden tek kaynaga baglandi. */
+$missingDocs = function (array $a): array {
+    $need = function_exists('auth_required_doc_types')
+          ? auth_required_doc_types((string)($a['type'] ?? 'buyer')) : ['trade_licence'];
+    $have = [];
+    foreach ((array)($a['doc_requests'] ?? []) as $r) {
+        $t = (string)($r['type'] ?? ''); $s = (string)($r['status'] ?? 'requested');
+        /* 'uploaded' de VERILMIS sayilir: operator onayini bekliyor, saticiya
+           "yukle" demek yaptigi isi tekrar yaptirmak olurdu. */
+        if ($t !== '' && in_array($s, ['uploaded', 'approved'], true)) $have[$t] = true;
+    }
+    return array_values(array_filter($need, fn($t) => !isset($have[$t])));
+};
+
 $waiting = [];      // onay bekleyen: e-posta dogrulanmis ama kapi kapali
+$docless = [];      // kapisi ACIK ama hala zorunlu belge borclu (cogunlukla SATICI)
 $unverified = 0;    // e-postasini hic dogrulamamis: operatorun yapacagi bir sey yok
 
 foreach (auth_accounts() as $a) {
     $st = (string)($a['status'] ?? '');
     if ($st === 'suspended' || $st === 'deleted') continue;
-    if (auth_prices_unlocked($a)) continue;                 // kapi ACIK -> beklemiyor
+
+    /* KAPISI ACIK AMA BELGESIZ. Bu kume uc yerde birden gorunmuyordu:
+       bu betik yalnizca kapali hesaba bakiyordu, verify_nudge yalnizca
+       'pending' hesaba, ve ikisi de id_document'i hic sormuyordu. Sonuc:
+       onaylanmis bir SATICI hicbir belge vermeden satisa devam ediyor ve
+       kimse haberdar olmuyor. Satici icin bu bildirim olmazsa olmaz --
+       platform onun adina fatura kesiyor. */
+    if (auth_prices_unlocked($a)) {
+        $email = trim((string)($a['email'] ?? ''));
+        if ($email === '' || empty($a['email_verified'])) continue;
+        $miss = $missingDocs($a);
+        if ($miss) {
+            $docless[] = [
+                'email'   => $email,
+                'company' => trim((string)($a['company'] ?? '')) ?: trim((string)($a['name'] ?? '')),
+                'type'    => (string)($a['type'] ?? 'buyer'),
+                'country' => (string)($a['country'] ?? ''),
+                'missing' => $miss,
+                'days'    => max(0, (int)floor((time() - (strtotime((string)($a['created'] ?? '')) ?: time())) / 86400)),
+            ];
+        }
+        continue;
+    }
 
     $email = trim((string)($a['email'] ?? ''));
     if ($email === '') continue;
@@ -75,22 +115,42 @@ usort($waiting, function ($x, $y) {
     return $y['days'] <=> $x['days'];
 });
 
-printf("bekleyen: %d | e-postasi dogrulanmamis (islem yok): %d\n", count($waiting), $unverified);
+/* Saticilar once: platform onlarin adina fatura kesiyor, belgesiz satici
+   alici tarafindaki belgesiz hesaptan daha pahali bir bosluk. */
+usort($docless, function ($x, $y) {
+    $sx = $x['type'] === 'seller'; $sy = $y['type'] === 'seller';
+    if ($sx !== $sy) return $sx ? -1 : 1;
+    return $y['days'] <=> $x['days'];
+});
+
+printf("bekleyen: %d | belgesiz (kapi acik): %d | e-postasi dogrulanmamis (islem yok): %d\n",
+       count($waiting), count($docless), $unverified);
 foreach ($waiting as $w) {
-    printf("  %-28s %-6s %-12s belge=%-9s %d gun%s\n",
+    printf("  ONAY  %-28s %-6s %-12s belge=%-9s %d gun%s\n",
         $mask($w['email']), $w['type'], mb_substr($w['country'], 0, 12),
         $w['doc'] !== '' ? $w['doc'] : '(istek yok)', $w['days'],
         $w['urgent'] ? '  <-- BELGESINI VERDI, HALA KAPALI' : '');
 }
+foreach ($docless as $w) {
+    printf("  BELGE %-28s %-6s %-12s eksik=%-26s %d gun\n",
+        $mask($w['email']), $w['type'], mb_substr($w['country'], 0, 12),
+        implode('+', $w['missing']), $w['days']);
+}
 
-if (!$waiting) { echo "bekleyen yok — mektup gonderilmedi.\n"; exit(0); }
+if (!$waiting && !$docless) { echo "bekleyen ve belgesiz yok — mektup gonderilmedi.\n"; exit(0); }
 
-$urgent = array_filter($waiting, fn($w) => $w['urgent']);
-$subject = 'VESTRA — ' . count($waiting) . ' hesap onay bekliyor'
-         . ($urgent ? ' (' . count($urgent) . ' tanesi belgesini vermis)' : '');
+$urgent   = array_filter($waiting, fn($w) => $w['urgent']);
+$sellers  = array_filter($docless, fn($w) => $w['type'] === 'seller');
+$subj = [];
+if ($waiting) $subj[] = count($waiting).' waiting for approval'.($urgent ? ' ('.count($urgent).' already sent documents)' : '');
+if ($docless) $subj[] = count($docless).' missing documents'.($sellers ? ' — '.count($sellers).' of them sellers' : '');
+$subject = 'VESTRA — '.implode(' · ', $subj);
 
-$body = count($waiting) . " account(s) are waiting for your approval. Until you approve them they\n"
+$body = '';
+if ($waiting) {
+$body .= count($waiting) . " account(s) are waiting for your approval. Until you approve them they\n"
       . "cannot see trade prices, download the line sheet or place an order.\n\n";
+}
 if ($urgent) {
     $body .= "These have already supplied their trade document and are still locked:\n\n";
     foreach ($urgent as $w) {
@@ -112,9 +172,45 @@ if ($rest) {
     }
     $body .= "\n";
 }
-$body .= "Approve them here: https://vestrasales.com/admin?tab=users\n\n"
-       . "A document is not required to open an account — your approval is what opens it.\n"
-       . "This message is only sent on days when somebody is actually waiting.\n";
+if ($waiting) {
+    $body .= "Approve them here: https://vestrasales.com/admin?tab=users\n"
+           . "A document is not required to open an account — your approval is what opens it.\n\n";
+}
+
+/* BELGESIZ AMA ACIK. Bunlar onay beklemiyor -- zaten satis/alim yapiyorlar,
+   sadece dosyalari eksik. Saticiyi ayri yaziyoruz: platform onun adina fatura
+   kesiyor, yani eksik olan yalnizca bir evrak degil, faturanin dayanagi. */
+if ($docless) {
+    $body .= str_repeat('-', 64)."\n\n";
+    if ($sellers) {
+        $body .= "SELLERS trading without the documents VESTRA requires (".count($sellers)."):\n\n";
+        foreach ($sellers as $w) {
+            $body .= sprintf("  %s — %s (%s) · missing: %s · account %d day(s) old\n",
+                $w['email'], $w['company'] !== '' ? $w['company'] : '(no company name)',
+                $w['country'] !== '' ? $w['country'] : 'country not set',
+                implode(' + ', $w['missing']), $w['days']);
+        }
+        $body .= "\nVESTRA issues invoices in a seller's name, so this is the paperwork behind\n"
+               . "every document that goes out under it. Sellers owe two: trade licence and ID.\n"
+               . "Chase them with: send-campaign-preview.yml -> reply_letter=seller_setup,\n"
+               . "reply_spec: to=account:<name>|send=true  (it writes only the parts that are\n"
+               . "actually missing, so nobody is asked twice for something already on file).\n\n";
+    }
+    $buyersNoDoc = array_filter($docless, fn($w) => $w['type'] !== 'seller');
+    if ($buyersNoDoc) {
+        $body .= "Buyers with an open account but no trade document on file (".count($buyersNoDoc)."):\n\n";
+        foreach ($buyersNoDoc as $w) {
+            $body .= sprintf("  %s — %s (%s) · missing: %s · account %d day(s) old\n",
+                $w['email'], $w['company'] !== '' ? $w['company'] : '(no company name)',
+                $w['country'] !== '' ? $w['country'] : 'country not set',
+                implode(' + ', $w['missing']), $w['days']);
+        }
+        $body .= "\nTheir prices are already open — this is for the file, not a blocker.\n\n";
+    }
+    $body .= "Request or review documents: https://vestrasales.com/admin?tab=documents\n\n";
+}
+
+$body .= "This message is only sent on days when somebody is actually waiting.\n";
 
 $to = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
 if ($DRY) { echo "\n— DRY RUN — gonderilecek adres: " . $mask($to) . "\n--- konu ---\n$subject\n"; exit(0); }
