@@ -1,6 +1,25 @@
 <?php
 require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/docs.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
+
+/* ASKIDAKI HESAP (operator ya da belge): panel yalnizca Verification ve
+   Profile'a acik; baska her GET oraya yonlenir, upload_doc disindaki her POST
+   reddedilir. Belge askisindaki satici tam da belgeyi yuklemek icin giriyor
+   (auth_login buna izin verir) ve baska hicbir sey yapamamali. */
+$__me = auth_user();
+if ($__me && ($__me['status'] ?? '') === 'suspended') {
+    $__ok = ($_SERVER['REQUEST_METHOD'] === 'POST')
+          ? (($_POST['_action'] ?? '') === 'upload_doc')
+          : in_array((string)($_GET['tab'] ?? 'overview'), ['kyc','profile'], true);
+    if (!$__ok) { header('Location: /seller?tab=kyc'); exit; }
+}
+unset($__me, $__ok);
+
+/* post_max_size asimi: PHP govdeyi tumden atar, $_POST bos kalir ve asagidaki
+   hicbir dal calismaz -- kullanici "hicbir sey olmuyor" gorur. Bu sayfaya
+   dosya yalnizca belge formundan gelir; sebebiyle oraya don. */
+if (!empty($_SESSION['uid']) && vestra_doc_post_overflow()) { header('Location: /seller?tab=kyc&upload_err=post'); exit; }
 
 // ── Profile save ─────────────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='profile') {
@@ -332,12 +351,10 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 // ── Upload KYB document ───────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
     $req_id = preg_replace('/[^a-f0-9]/','', $_POST['req_id']??'');
-    $file   = $_FILES['doc_file'] ?? null;
-    if ($req_id && $file) {
-        $ok = auth_upload_doc($_SESSION['uid'], $req_id, $file);
-        header('Location: /seller?tab=kyc&'.($ok?'uploaded=1':'upload_err=1')); exit;
-    }
-    header('Location: /seller?tab=kyc'); exit;
+    /* Sebep kodu URL'de: banner hangi kuralin dustugunu ve cikis yolunu yazar
+       (auth_doc_error_text). Eski "upload_err=1" her hatada ayni cumleydi. */
+    $res = auth_upload_doc_ex($_SESSION['uid'], $req_id, $_FILES['doc_file'] ?? null);
+    header('Location: /seller?tab=kyc&'.($res['ok'] ? 'uploaded=1' : 'upload_err='.rawurlencode($res['error']))); exit;
 }
 
 // ── Respond to offer (owner of the offered SKU only) ───────────────────────────
@@ -530,7 +547,13 @@ $_kyb = $AUTH_USER['kyb_status'] ?? '';
    odemeye degil sadece DOGRULAMAYA bagli. seller-add.php ayni kosulu uyguluyor;
    ikisi ayri kalirsa panel "yayinla" der, kaydeden uc reddeder -- bu ikilik daha
    once bir kez yasandi ve KYB'si onayli her satici /membership'e atildi. */
-$canPublish = ($_kyb === 'approved');
+/* ILAN EKLEME KAPISI ARTIK ASKI (operator karari, 2 Eyl 2026: ilk urun belgeden
+   ONCE eklenir, belge icin ilk ilandan itibaren 3 gun; gelmezse aski).
+   seller-add.php AYNI kosulu uygular. Belge saati auth_seller_doc_grace(). */
+$isSuspended = (($AUTH_USER['status'] ?? '') === 'suspended') || ($_kyb === 'suspended');
+$canPublish  = !$isSuspended && (($AUTH_USER['status'] ?? '') !== 'pending_email');
+$docGrace    = auth_seller_doc_grace($AUTH_USER ?? [], $listings);
+if ($isSuspended && !in_array($tab, ['kyc','profile'], true)) $tab = 'kyc';
 $quotaLimit = vestra_seller_monthly_quota_limit($AUTH_USER['membership_tier'] ?? '');
 $quotaUsed  = vestra_seller_monthly_quota_used($AUTH_USER);
 $quotaLeft  = $quotaLimit !== null ? max(0, $quotaLimit - $quotaUsed) : null;
@@ -549,6 +572,33 @@ $tabTitle = match($tab) {
     default    => t('Overview'),
 };
 dash_open('seller',$tab, $tabTitle, $tab==='overview'?t('Welcome back — here is your activity'):'');
+
+/* BELGE SURESI BANDI -- her sekmede. Sure isliyorsa bilgi, son gun / gecmis /
+   aski kirmizi. Gun sayisi ve eksik liste CANLI kayittan (auth_seller_doc_grace);
+   metne gomulu rakam yok. */
+if (in_array($docGrace['phase'], ['running','due_soon','expired','suspended'], true)) {
+  $__names  = auth_doc_types();
+  $__list   = htmlspecialchars(implode(' + ', array_map(fn($t) => $__names[$t] ?? $t, $docGrace['missing'])));
+  $__red    = ' style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)"';
+  if ($docGrace['phase'] === 'suspended') {
+    echo '<div class="banner"'.$__red.'>⊘ <b>'.t('Your listings are paused.').'</b> '
+       . ($docGrace['reason'] === 'docs'
+           ? t('The documents below did not arrive in time. Upload them here and we switch the account back on after review:').' '.$__list
+           : t('Your account has been suspended. Contact support for details.'))
+       . ' <a class="acc" href="/seller?tab=kyc">'.t('Verification').' →</a></div>';
+  } else {
+    $__urgent = $docGrace['phase'] !== 'running';
+    $__due    = !empty($docGrace['deadline']) ? date('j M', (int)$docGrace['deadline']) : '';
+    echo '<div class="banner'.($__urgent ? '"'.$__red : ' info"').'>📄 <b>'
+       . ($docGrace['phase'] === 'expired'
+           ? t('Your documents are overdue.')
+           : sprintf(t('%d day(s) left to upload your documents.'), max(0, (int)$docGrace['days_left']))).'</b> '
+       . sprintf(t('Still missing: %s.'), $__list)
+       . ($__due !== '' ? ' '.sprintf(t('Due by %s — after that your listings are paused until they arrive.'), $__due) : '')
+       . ' <a class="acc" href="/seller?tab=kyc">'.t('Upload now').' →</a></div>';
+  }
+  unset($__names, $__list, $__red, $__urgent, $__due);
+}
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 if($tab==='overview'){
@@ -608,18 +658,25 @@ if($tab==='overview'){
 // ── ADD PRODUCT ───────────────────────────────────────────────────────────────
 } elseif($tab==='add'){
   if (!$canPublish) {
-    /* Odeme kapisi kalkti; kalan tek kapi dogrulama. Askiya alinmis hesap ile
-       hensuz onaylanmamis hesap ayni sey degil: birine "belgeni yukle" demek
-       yanlis yonlendirme olurdu, cunku belgesini zaten yuklemis olabilir. */
-    $suspended = ($_kyb === 'suspended');
+    /* Odeme kapisi ve dogrulama kapisi kalkti (operator karari, 2 Eyl 2026);
+       kalan tek kapi ASKI (ve dogrulanmamis e-posta). Belge askisi ile operator
+       askisi ayni sey degil: birine "belgeni yukle" demek dogru yonlendirme,
+       digerine yanlis. */
+    $docSusp = $isSuspended && ($docGrace['reason'] ?? '') === 'docs';
     echo '<div class="panelcard" style="text-align:center;padding:44px 24px">
-      <h3 style="margin:0 0 10px">'.($suspended ? t('Account suspended') : t('Verification required')).'</h3>
-      <p style="color:var(--mut);margin:0 0 20px">'.($suspended
-          ? t('Your account has been suspended, so new listings are on hold. Contact support for details.')
-          : t('Selling is free — we only need to verify your business first. Upload your trade licence and we will review it.')).'</p>'
-     .($suspended ? '' : '<a class="btn btn-p" href="/seller?tab=kyc">'.t('Verification').'</a>').'
+      <h3 style="margin:0 0 10px">'.($isSuspended ? t('Account suspended') : t('E-mail not verified')).'</h3>
+      <p style="color:var(--mut);margin:0 0 20px">'.($isSuspended
+          ? ($docSusp
+              ? t('Your listings are paused until your documents are on file. Upload them under Verification and we switch the account back on after review.')
+              : t('Your account has been suspended, so new listings are on hold. Contact support for details.'))
+          : t('Please confirm your e-mail address first — check your inbox for the confirmation link.')).'</p>'
+     .($docSusp ? '<a class="btn btn-p" href="/seller?tab=kyc">'.t('Verification').'</a>' : '').'
     </div>';
   } else {
+  /* Ilk ilan belgeden once: kurali bastan soyle, sonradan surpriz olmasin. */
+  if ($docGrace['missing'] && in_array($docGrace['phase'], ['none','unstamped'], true)) {
+    echo '<div class="banner info">📄 '.sprintf(t('You can list your first product right away. After that we ask every seller for two documents within %d days — trade licence and government ID — which you can upload under Verification at any time.'), VESTRA_SELLER_DOC_GRACE_DAYS).'</div>';
+  }
   $added=isset($_GET['added']);
   if($added) echo '<div class="banner ok">✓ '.t('Product added — it is now live in the').' <a class="acc" href="/shop">'.t('catalog').'</a>.</div>';
   if(($_GET['err']??'')==='quota') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.sprintf(t("You've used all %d listings included in your plan this month. It renews on the 1st, or you can upgrade for more."), (int)$quotaLimit).' <a class="acc" href="/membership">'.t('View membership plans').'</a></div>';
@@ -627,6 +684,9 @@ if($tab==='overview'){
      oldugunu soylemiyor -- yeni zorunlu hale gelen bir alanda satici formu
      dolu sanip ayni hatayi tekrarlar. */
   elseif(($_GET['err']??'')==='ships') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please state where the goods ship from — buyers need it for customs and delivery times.').'</div>';
+  /* post_max_size asimi (fotograflar): PHP formu tumden atar; eskiden sayfa
+     sessizce bos forma donuyordu. */
+  elseif(($_GET['err']??'')==='toolarge') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.sprintf(t('The photos were too large for the server to accept (%d MB in total) — nothing was saved. Please use smaller images and try again.'), max(1,(int)floor(auth_ini_bytes((string)ini_get('post_max_size'))/1048576))).'</div>';
   elseif(isset($_GET['err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.t('Please fill in all required fields, including at least one price tier.').'</div>';
   if($quotaLimit !== null): ?>
   <div class="banner info" style="margin-bottom:14px"><?= sprintf(t('This month: <b>%d of %d</b> listings used. Resets on the 1st.'), $quotaUsed, $quotaLimit) ?></div>
@@ -1316,9 +1376,11 @@ function sellerSend(btn){
         ? '<span class="status" style="color:var(--bad)">⊘ '.t('Suspended').'</span>'
         : '<span class="status open">'.t('Pending review').'</span>');
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
-  if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
+  if(isset($_GET['upload_err'])) echo vestra_doc_upload_err_banner((string)$_GET['upload_err']);
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification (KYB)').'</h3>'.$kybLabel.'</div>';
-  echo '<p class="hint" style="margin:0 0 16px">'.t('Upload the required documents below. New sellers must provide: your trade licence / business registration, a government-issued ID, and an authorization letter if you are not the company director. Your VAT number (EIN in the US) is taken from your profile — no certificate needed.').' '.t('See the').' <a class="acc" href="/legal?doc=seller">'.t('Seller Agreement').'</a>.</p>';
+  /* KURAL 2: saticidan ticari kayit + kimlik, baska bir sey yok. Eski metin
+     "authorization letter" da sayiyordu -- panel, mektuptan fazlasini istiyordu. */
+  echo '<p class="hint" style="margin:0 0 16px">'.t('Every seller gives us two documents: your trade licence / business registration and a government-issued ID. Your VAT number (EIN in the US) is taken from your profile — no certificate needed.').' '.t('See the').' <a class="acc" href="/legal?doc=seller">'.t('Seller Agreement').'</a>.</p>';
 
   if(!$docReqs){
     echo '<div class="empty">'.t('No document requests yet. The admin will request the required documents — you will see upload buttons here.').'</div>';
@@ -1336,12 +1398,7 @@ function sellerSend(btn){
       $note = htmlspecialchars($r['admin_note'] ?? $r['note'] ?? '');
       $actionCell = '';
       if($st==='requested'||$st==='rejected'){
-        $actionCell = '<form method="post" action="/seller?tab=kyc" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="hidden" name="_action" value="upload_doc">
-          <input type="hidden" name="req_id" value="'.htmlspecialchars($r['id']).'">
-          <input type="file" name="doc_file" accept=".pdf,.jpg,.jpeg,.png,.webp" required style="font-size:12px;max-width:200px">
-          <button class="btn btn-p btn-sm" type="submit">'.t('Upload').'</button>
-        </form>';
+        $actionCell = vestra_doc_upload_form('/seller?tab=kyc', (string)$r['id'], t('Upload'));
       } elseif($st==='uploaded'){
         $actionCell = '<span class="hint">'.substr($r['uploaded_at']??'',0,10).'</span>';
       } elseif($st==='approved'){
@@ -1354,8 +1411,10 @@ function sellerSend(btn){
     }
     echo '</tbody></table>';
   }
+  echo vestra_doc_email_hint();
   echo '<div class="hint" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--brd)">'.t('Payout account').' · <a href="/seller?tab=profile" style="color:var(--acc)">'.t('Set up Stripe payouts &amp; escrow').' ↗</a></div>';
   echo '</div>';
+  echo vestra_doc_upload_js();
 
 // ── PROFILE ───────────────────────────────────────────────────────────────────
 } else { // profile

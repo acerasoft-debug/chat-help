@@ -175,7 +175,8 @@ function auth_remember_restore(): void {
         $r = $a['remember'] ?? null;
         if (!is_array($r) || empty($r['hash']) || empty($r['exp']) || time() > (int)$r['exp']) return;
         if (!hash_equals((string)$r['hash'], hash('sha256', $token))) return;
-        if (($a['status'] ?? '') === 'suspended') return; // never auto-restore a suspended account
+        // never auto-restore a suspended account -- except a docs-suspended seller, who may sign in to upload
+        if (($a['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($a)) return;
         $_SESSION['uid']    = $a['id'];
         $_SESSION['member'] = true;
         $_SESSION['utype']  = $a['type'] ?? '';
@@ -423,8 +424,17 @@ function auth_login(string $email, string $password): array|string {
         auth_update($acc['id'], ['status' => 'pending', 'email_verified' => true, 'email_token' => '']);
         $acc['status'] = 'pending'; $acc['email_verified'] = true;
     }
-    if (($acc['status'] ?? '') === 'suspended')     return 'suspended';
+    /* BELGE askisi giris engeli DEGIL: belge yuzunden askiya alinan satici
+       panele girip tam da o belgeyi yukleyebilmeli (seller.php onu KYC
+       sekmesine kilitler). Operatorun elle askiya aldigi hesap ise girmez. */
+    if (($acc['status'] ?? '') === 'suspended' && !auth_suspended_for_docs($acc)) return 'suspended';
     return $acc;
+}
+
+/* Askinin sebebi belge mi? cron_seller_docs.php suspend_reason='docs' yazar;
+   operatorun Suspend dugmesi 'operator'. Sebebi olmayan eski aski = operator. */
+function auth_suspended_for_docs(?array $acc): bool {
+    return $acc !== null && (($acc['status'] ?? '') === 'suspended') && (($acc['suspend_reason'] ?? '') === 'docs');
 }
 
 /* Set a new password (the only sanctioned way to touch 'hash' — auth_update locks it). */
@@ -726,23 +736,169 @@ function auth_prune_stale_doc_requests(?string $uid = null, bool $apply = false)
     return $report;
 }
 
-function auth_upload_doc(string $uid, string $req_id, array $file): bool {
-    if($file['error']!==UPLOAD_ERR_OK||$file['size']>10*1024*1024) return false;
-    $ext=strtolower(pathinfo($file['name'],PATHINFO_EXTENSION));
-    if(!in_array($ext,['pdf','jpg','jpeg','png','webp'],true)) return false;
-    $dir=auth_docs_dir($uid);
-    $fname=$req_id.'_'.bin2hex(random_bytes(4)).'.'.$ext;
-    if(!@move_uploaded_file($file['tmp_name'],$dir.'/'.$fname)) return false;
-    $list=auth_accounts();
-    foreach($list as &$a){
-        if($a['id']!==$uid) continue;
-        foreach($a['doc_requests'] as &$r){
-            if($r['id']===$req_id){ $r['status']='uploaded'; $r['file']=$fname; $r['uploaded_at']=date('c'); break; }
+/* ── Belge dosyasi: KONTROL + SAKLAMA ─────────────────────────────────────────
+   2 Eylul 2026: yeni kaydolan bir alici belgesini iki gundur yukleyemedigini
+   yazdi ve dosyayi e-postayla gonderdi. Yukleme yolu HER hatada ayni cumleyi
+   basiyordu ("Upload failed... max 10 MB") -- sebep hicbir yerde kayitli
+   degildi -- ve post_max_size asildiginda PHP $_POST'u bos birakir: handler
+   hic calismaz, sayfa sessizce yeniden yuklenir, kullanici "hicbir sey
+   olmuyor" gorur. Artik:
+     (a) her ret bir SEBEP KODU tasir ve error_log'a yazilir (diag-messages
+         upload_probe okur),
+     (b) sinir sunucunun kendi ini degerinden okunur -- sunucu 2 MB'de
+         kesiyorsa forma "10 MB'a kadar" yazmak yalan,
+     (c) ayni kontrol operatorun e-postayla gelen dosyayi eklerken de calisir
+         (auth_attach_doc_for), iki yol ayrisamaz.
+   HEIC/HEIF kabul ediliyor: iPhone'un varsayilan fotograf bicimi. Tarayici
+   onizleyemez ama dosya durur ve operator acar -- "hic yukleyememek"ten iyi. */
+function auth_doc_allowed_ext(): array {
+    return ['pdf','jpg','jpeg','png','webp','heic','heif'];
+}
+
+function auth_ini_bytes(string $v): int {
+    $v = trim($v); if ($v === '' || $v === '-1') return 0;
+    $n = (float)$v; $u = strtolower(substr($v, -1));
+    if ($u === 'g') $n *= 1024*1024*1024; elseif ($u === 'm') $n *= 1024*1024; elseif ($u === 'k') $n *= 1024;
+    return (int)$n;
+}
+
+/* Kabul edilecek en buyuk dosya: uygulama tavani (10 MB) ile sunucunun kendi
+   sinirlarinin KUCUGU. Form (MAX_FILE_SIZE) ve hata metni bu sayiyi soyler. */
+function auth_doc_max_bytes(): int {
+    $m    = 10*1024*1024;
+    $up   = auth_ini_bytes((string)ini_get('upload_max_filesize'));
+    $post = auth_ini_bytes((string)ini_get('post_max_size'));
+    if ($up > 0)   $m = min($m, $up);
+    if ($post > 0) $m = min($m, max(0, $post - 64*1024));   // multipart basliklari icin pay
+    return max($m, 256*1024);
+}
+
+/* '' = gecerli; aksi halde sebep kodu: size | type | partial | nofile | empty | server */
+function auth_doc_file_check(?array $file, ?int $cap = null): string {
+    if (!$file || !array_key_exists('error', $file)) return 'nofile';
+    $err = (int)$file['error'];
+    if ($err !== UPLOAD_ERR_OK) {
+        return match($err) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'size',
+            UPLOAD_ERR_PARTIAL                        => 'partial',
+            UPLOAD_ERR_NO_FILE                        => 'nofile',
+            default                                   => 'server',   // NO_TMP_DIR, CANT_WRITE, EXTENSION
+        };
+    }
+    $size = (int)($file['size'] ?? 0);
+    if ($size <= 0) return 'empty';
+    if ($size > ($cap ?? auth_doc_max_bytes())) return 'size';
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (!in_array($ext, auth_doc_allowed_ext(), true)) return 'type';
+    return '';
+}
+
+/* Sebep kodunun insan icin karsiligi (Ingilizce; paneller t() ile cevirir).
+   Her metin bir CIKIS YOLU soyluyor -- "basarisiz" tek basina kullaniciyi
+   ayni dosyayi ayni sekilde bir daha denemeye gonderir. */
+function auth_doc_error_text(string $code): string {
+    $mb = max(1, (int)floor(auth_doc_max_bytes() / (1024*1024)));
+    return match($code) {
+        'size'    => sprintf('The file is too large — the limit is %d MB. Photos are shrunk automatically when you pick them; if it is still too big, export the document as a PDF or a smaller JPG, or e-mail it to us.', $mb),
+        'type'    => 'This file type is not accepted. Please upload a PDF, JPG, PNG, WebP or HEIC file — or e-mail it to us.',
+        'partial' => 'The upload was interrupted before the whole file arrived. Please try again.',
+        'empty', 'nofile' => 'No file was received. Please choose a file and try again.',
+        'post'    => sprintf('The upload was larger than the server accepts (%d MB), so nothing was saved. Please choose a smaller file, or e-mail it to us.', $mb),
+        default   => 'The file could not be stored on our side. Please try again in a moment, or e-mail it to us and we will attach it for you.',
+    };
+}
+
+/* Dosyayi hesabin belge dizinine tasir. [ok, error, file]. Basarisizlik
+   error_log'a NEDENIYLE yazilir -- bir sonraki "yukleyemiyorum" mektubunda
+   kutuk okunur, tahmin edilmez. Adres/isim yazilmaz, yalnizca uid'in basi. */
+function auth_store_doc_file(string $uid, string $reqId, array $file): array {
+    $code = auth_doc_file_check($file);
+    if ($code !== '') {
+        error_log('[VESTRA doc] rejected uid='.substr($uid,0,8).' req='.$reqId.' code='.$code
+                 .' err='.(int)($file['error'] ?? -1).' size='.(int)($file['size'] ?? 0)
+                 .' ext='.strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION)));
+        return ['ok'=>false,'error'=>$code,'file'=>''];
+    }
+    $ext   = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+    $dir   = auth_docs_dir($uid);
+    $fname = $reqId.'_'.bin2hex(random_bytes(4)).'.'.$ext;
+    if (!is_dir($dir) || !is_writable($dir) || !@move_uploaded_file((string)$file['tmp_name'], $dir.'/'.$fname)) {
+        error_log('[VESTRA doc] store FAILED uid='.substr($uid,0,8).' dir='.$dir
+                 .' dir_ok='.(is_dir($dir) ? 'yes' : 'NO').' writable='.(is_writable($dir) ? 'yes' : 'NO')
+                 .' tmp='.(is_uploaded_file((string)($file['tmp_name'] ?? '')) ? 'ok' : 'NOT-UPLOADED'));
+        return ['ok'=>false,'error'=>'server','file'=>''];
+    }
+    return ['ok'=>true,'error'=>'','file'=>$fname];
+}
+
+/* Kullanicinin kendi yuklemesi: istek kaydini bulur, dosyayi saklar, durumu
+   'uploaded' yapar. [ok, error, file]; 'noreq' = istek yok (eski/yanlis id). */
+function auth_upload_doc_ex(string $uid, string $req_id, ?array $file, string $by = 'user'): array {
+    if (!$file) return ['ok'=>false,'error'=>'nofile','file'=>''];
+    $list = auth_accounts(); $found = false;
+    foreach ($list as $a) {
+        if (($a['id'] ?? '') !== $uid) continue;
+        foreach ((array)($a['doc_requests'] ?? []) as $r) { if (($r['id'] ?? '') === $req_id) { $found = true; break; } }
+        break;
+    }
+    if (!$found) { error_log('[VESTRA doc] no such request uid='.substr($uid,0,8).' req='.$req_id); return ['ok'=>false,'error'=>'noreq','file'=>'']; }
+    $st = auth_store_doc_file($uid, $req_id, $file);
+    if (!$st['ok']) return $st;
+    foreach ($list as &$a) {
+        if (($a['id'] ?? '') !== $uid) continue;
+        foreach ($a['doc_requests'] as &$r) {
+            if (($r['id'] ?? '') === $req_id) { $r['status']='uploaded'; $r['file']=$st['file']; $r['uploaded_at']=date('c'); $r['uploaded_by']=$by; break; }
+        }
+        unset($r);
+        break;
+    }
+    unset($a);
+    auth_save_accounts($list);
+    return $st;
+}
+function auth_upload_doc(string $uid, string $req_id, array $file): bool { return auth_upload_doc_ex($uid, $req_id, $file)['ok']; }
+
+/* OPERATOR, e-postayla gelen belgeyi hesaba ekler (operator karari, 2 Eyl 2026:
+   "evrak email ile girilsin"). Ayni tipte ACIK bir istek (requested/rejected)
+   varsa ona baglanir; yoksa by=operator ile yeni istek acilir -- prune bunu
+   asla silmez. Durum 'uploaded': EKLEMEK ONAYLAMAK DEGIL, operator dosyayi
+   panelde gorup ayrica onaylar. Ayni dosya kontrolu kullanicinin yuklemesiyle
+   BIREBIR (auth_store_doc_file); iki yol farkli kural uygulayamaz. */
+function auth_attach_doc_for(string $uid, string $type, ?array $file, string $note = ''): array {
+    $type = preg_replace('/[^a-z_]/', '', strtolower($type));
+    if ($type === '' || !isset(auth_doc_types()[$type])) return ['ok'=>false,'error'=>'doctype','file'=>'','req_id'=>''];
+    if (!$file) return ['ok'=>false,'error'=>'nofile','file'=>'','req_id'=>''];
+    $list = auth_accounts(); $idx = null; $reqId = '';
+    foreach ($list as $i => $a) {
+        if (($a['id'] ?? '') !== $uid) continue;
+        $idx = $i;
+        foreach ((array)($a['doc_requests'] ?? []) as $r) {
+            if (($r['type'] ?? '') === $type && in_array((string)($r['status'] ?? 'requested'), ['requested','rejected'], true)) { $reqId = (string)($r['id'] ?? ''); break; }
         }
         break;
     }
+    if ($idx === null) return ['ok'=>false,'error'=>'noacc','file'=>'','req_id'=>''];
+    if ($reqId === '') $reqId = bin2hex(random_bytes(4));
+    $st = auth_store_doc_file($uid, $reqId, $file);
+    if (!$st['ok']) return $st + ['req_id'=>$reqId];
+    $a = &$list[$idx];
+    if (!isset($a['doc_requests']) || !is_array($a['doc_requests'])) $a['doc_requests'] = [];
+    $done = false;
+    foreach ($a['doc_requests'] as &$r) {
+        if (($r['id'] ?? '') !== $reqId) continue;
+        $r['status']='uploaded'; $r['file']=$st['file']; $r['uploaded_at']=date('c'); $r['uploaded_by']='operator';
+        if ($note !== '') $r['admin_note'] = $note;
+        $done = true; break;
+    }
+    unset($r);
+    if (!$done) {
+        $a['doc_requests'][] = ['id'=>$reqId,'type'=>$type,'note'=>'Received by e-mail and attached by VESTRA.',
+            'status'=>'uploaded','requested_at'=>date('c'),'uploaded_at'=>date('c'),'by'=>'operator','uploaded_by'=>'operator',
+            'file'=>$st['file']] + ($note !== '' ? ['admin_note'=>$note] : []);
+    }
+    unset($a);
     auth_save_accounts($list);
-    return true;
+    return $st + ['req_id'=>$reqId];
 }
 
 function auth_review_doc(string $uid, string $req_id, string $status, string $note=''): void {
@@ -759,4 +915,64 @@ function auth_review_doc(string $uid, string $req_id, string $status, string $no
 
 function auth_doc_file_path(string $uid, string $filename): string {
     return VESTRA_DOCS_DIR.'/'.$uid.'/'.$filename;
+}
+
+/* Hesabin HALA borclu oldugu zorunlu belgeler. Tek dogruluk kaynagi
+   auth_required_doc_types() (KURAL 2): satici trade_licence + id_document,
+   alici trade_licence. 'uploaded' VERILMIS sayilir -- operator onayini
+   bekliyor; kullaniciya "yukle" demek yaptigi isi tekrar yaptirmak olurdu.
+   Bu liste iki cron'da ve satici panelinde okunuyor; ayri ayri yazildiklarinda
+   ayrisirlar (KURAL 2 tam da bu yuzden tek kaynaga baglandi). */
+function auth_missing_doc_types(array $a): array {
+    $need = auth_required_doc_types((string)($a['type'] ?? 'buyer'));
+    $have = [];
+    foreach ((array)($a['doc_requests'] ?? []) as $r) {
+        $t = (string)($r['type'] ?? ''); $s = (string)($r['status'] ?? 'requested');
+        if ($t !== '' && in_array($s, ['uploaded','approved'], true)) $have[$t] = true;
+    }
+    return array_values(array_filter($need, fn($t) => !isset($have[$t])));
+}
+
+// ── Satici belge suresi (operator karari, 2 Eyl 2026) ───────────────────────
+/* "Satici bolumunde ilk urun eklensin, sonrasinda belgeleri eklemesi icin
+   sure verilsin -- 3 gun gibi; yuklemezse suspend olsun."
+   Saat, hesaptaki doc_grace_start damgasiyla baslar: ILK ILAN kaydedildiginde
+   (seller-add.php) ya da bu kural yururluge girdiginde zaten ilani olan
+   saticiyi cron ilk gordugunde. Ilan tarihinden GERIYE DONUK hesaplanmaz:
+   46 gun once ilan vermis bir saticiyi ilk cron kosusunda uyarmadan askiya
+   almak kural degil tuzak olurdu. Ilani olmayan saticiya saat islemez --
+   platformda koruyacak bir sey yok.
+   Karar SAF fonksiyonda (auth_seller_doc_grace): cron, satici paneli ve admin
+   ayni cevabi okur; test de onu kosar. */
+if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DAYS', 3);
+
+function auth_seller_doc_grace(array $acc, array $listings, ?int $now = null): array {
+    $now = $now ?? time();
+    $out = ['phase'=>'clear', 'missing'=>[], 'start'=>null, 'deadline'=>null, 'days_left'=>null,
+            'has_listing'=>count($listings) > 0, 'reason'=>(string)($acc['suspend_reason'] ?? '')];
+    if (($acc['type'] ?? '') !== 'seller') return $out;
+    $out['missing'] = auth_missing_doc_types($acc);
+    if (!$out['missing']) return $out;                                    // belgeler tamam
+    if (($acc['status'] ?? '') === 'suspended') { $out['phase'] = 'suspended'; return $out; }
+    if (!$listings) { $out['phase'] = 'none'; return $out; }              // ilan yok: saat yok
+    $start = strtotime((string)($acc['doc_grace_start'] ?? '')) ?: null;
+    if (!$start) { $out['phase'] = 'unstamped'; return $out; }            // ilani var, saat henuz baslamadi
+    $deadline = $start + VESTRA_SELLER_DOC_GRACE_DAYS * 86400;
+    $left = $deadline - $now;
+    $out['start'] = $start; $out['deadline'] = $deadline;
+    $out['days_left'] = (int)ceil($left / 86400);
+    $out['phase'] = $left <= 0 ? 'expired' : ($left <= 86400 ? 'due_soon' : 'running');
+    return $out;
+}
+
+/* Saati baslat (damga yoksa) ya da $force ile yeniden baslat. Yeniden
+   baslatma bildirim damgalarini da siler: askidan cikarilan saticiya taze 3
+   gun ve taze bir uyari mektubu -- eski damga dursaydi ertesi sabah cron
+   ayni hesabi yeniden askiya alirdi. */
+function auth_seller_doc_grace_start(string $uid, bool $force = false): void {
+    $acc = null;
+    foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $acc = $a; break; } }
+    if (!$acc || ($acc['type'] ?? '') !== 'seller') return;
+    if (!$force && !empty($acc['doc_grace_start'])) return;
+    auth_update($uid, ['doc_grace_start'=>date('c'), 'doc_grace_notice_at'=>'', 'doc_grace_reminder_at'=>'', 'doc_grace_suspended_at'=>'']);
 }

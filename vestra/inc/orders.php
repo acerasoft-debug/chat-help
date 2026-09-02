@@ -12,6 +12,10 @@
 function vestra_product_by_sku(string $sku): ?array {
     if ($sku === '') return null;
     foreach (vestra_products(true) as $p) if (($p['sku'] ?? '') === $sku) return $p;
+    /* Katalogdan cekilmis ilan (askidaki satici, bekleyen/reddedilen ilan):
+       eski siparisin satiri yine de marka/ad/fotografla okunmali. Ham liste
+       son care -- satis yolu degil, gecmis. */
+    foreach (vestra_listings() as $p) if (($p['sku'] ?? '') === $sku) return $p;
     return null;
 }
 

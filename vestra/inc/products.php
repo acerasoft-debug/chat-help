@@ -399,7 +399,28 @@ function vestra_csv_ensure_header(string $name, array $header): void {
     rewind($tmp); $newHeaderLine = stream_get_contents($tmp); fclose($tmp);
     file_put_contents($f, $newHeaderLine.$rest, LOCK_EX);
 }
-function vestra_live_listings(){ return array_values(array_filter(vestra_listings(), fn($p)=>($p['status']??'approved')==='approved')); }
+/* Askiya alinmis SATICILARIN ilanlari katalogdan cekilir (operator karari,
+   2 Eyl 2026: belgesi gelmeyen satici askiya alinir ve "ilanlari durur").
+   Ilanin kendi durumu 'approved' kalir -- aski kalkinca hicbir sey yeniden
+   onaylanmaz, ilanlar kendiliginden geri gelir. auth.php yuklu degilse
+   (CLI test, ayrik betik) suzgec bos: hicbir sey gizlenmez, hata da yok. */
+function vestra_suspended_seller_uids(): array {
+    static $c = null;
+    if ($c === null) {
+        $c = [];
+        if (function_exists('auth_accounts')) {
+            foreach (auth_accounts() as $a) {
+                if (($a['type'] ?? '') === 'seller' && ($a['status'] ?? '') === 'suspended' && !empty($a['id'])) $c[(string)$a['id']] = true;
+            }
+        }
+    }
+    return $c;
+}
+function vestra_live_listings(){
+    $sus = vestra_suspended_seller_uids();
+    return array_values(array_filter(vestra_listings(),
+        fn($p) => ($p['status']??'approved')==='approved' && empty($sus[(string)($p['seller_uid'] ?? '')])));
+}
 /* Bundled catalogue drops shipped in code (e.g. the DSQUARED2 model list). They show
    in the catalogue straight after a deploy — no import click needed — but are hidden
    for any item already present as a real listing (same id or brand+SKU), so importing

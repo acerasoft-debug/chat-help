@@ -4,6 +4,10 @@ require_once __DIR__.'/inc/auth.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 require __DIR__.'/inc/products.php';
 if($_SERVER['REQUEST_METHOD']!=='POST'){ header('Location: /seller?tab=add'); exit; }
+/* post_max_size asimi (buyuk fotograflar): PHP $_POST'u tumden atar; asagidaki
+   kontroller "bos form" gorur ve sayfa sessizce geri doner. Sebebiyle don. */
+require_once __DIR__.'/inc/docs.php';
+if(vestra_doc_post_overflow()){ header('Location: /seller?tab=add&err=toolarge'); exit; }
 if(!empty($_POST['website'])){ header('Location: /seller?tab=add&added=1'); exit; }
 
 $_user = auth_user();
@@ -12,12 +16,15 @@ if (!$_user || ($_user['type'] ?? '') !== 'seller') {
 }
 $_kyb = $_user['kyb_status'] ?? '';
 /* Satici tarafi UCRETSIZ: platform yalnizca satistan komisyon aliyor, o yuzden
-   urun eklemenin onunde ODEME kapisi yok. Geriye tek kapi kaliyor -- DOGRULAMA.
-   Bu kasitli: alici kataloga bakarken karsisindakinin gercek bir isletme oldugunu
-   varsayiyor, ve Gewerbe belgesi zorunlulugu da ayni yere dayaniyor.
-   'suspended' ayrica ele alinmali: match/in_array yerine acikca 'approved'
-   ariyoruz, yoksa askiya alinmis bir hesap "engellenmemis" sayilip gecerdi. */
-if ($_kyb !== 'approved') {
+   urun eklemenin onunde ODEME kapisi yok.
+   DOGRULAMA KAPISI DA KALKTI (operator karari, 2 Eyl 2026): "ilk urun eklensin,
+   sonrasinda belgeler icin sure verilsin -- 3 gun; yuklemezse suspend."
+   Ilan zaten 'pending' dogar ve operator onaylamadan yayina cikmaz; yani
+   dogrulanmamis saticinin urunu kataloga kendiliginden dusmuyor. Belge saati
+   ilk ilanla baslar (asagida, vestra_seller_docs_kickoff). Kalan tek kapi
+   ASKI: askidaki hesap (belge ya da operator) ilan ekleyemez; e-postasi
+   dogrulanmamis hesap da ekleyemez. */
+if (($_user['status'] ?? '') === 'suspended' || $_kyb === 'suspended' || ($_user['status'] ?? '') === 'pending_email') {
     header('Location: /seller?tab=kyc&gate=1'); exit;
 }
 if (vestra_seller_quota_exhausted($_user)) {
@@ -94,6 +101,12 @@ if($sheet=$saveSheet('sheet')) $item['sheet']=$sheet;
 $list=vestra_listings(); $list[]=$item;
 vestra_save_listings($list);
 if(!empty($_SESSION['uid'])) vestra_seller_monthly_quota_bump($_SESSION['uid']);
+
+/* ILK ILAN -> belge saati baslar ve "3 gun icinde" mektubu gider (operator
+   karari, 2 Eyl 2026). Belgeleri tam olan ya da saati zaten isleyen saticida
+   hicbir sey yapmaz; ikinci ilan saati yeniden baslatmaz. */
+require_once __DIR__.'/inc/seller_docs.php';
+if(!empty($_SESSION['uid'])) vestra_seller_docs_kickoff((string)$_SESSION['uid']);
 
 /* Notify admin about new pending listing */
 $sellerName = $item['seller'] ?: ($item['seller_uid'] ? 'uid:'.$item['seller_uid'] : 'unknown');

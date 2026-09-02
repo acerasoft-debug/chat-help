@@ -321,17 +321,21 @@ function vestra_tpl_doc_requested(string $lang, string $name, string $docPhrase,
   $BTN  = ['en'=>'Upload document','de'=>'Dokument hochladen','fr'=>'Déposer le document',
            'it'=>'Carica il documento','es'=>'Subir documento'];
   $opts = ['button'=>['label'=>$BTN[$lang] ?? $BTN['en'], 'url'=>$panelUrl]];
+  /* "Yukleyince fiyatlar hemen acilir" YALANDI: kapiyi operator onayi acar
+     (KURAL 2, auth_prices_unlocked). Mektup artik belgeyi ne icin istedigimizi
+     ve IKI yolu soyluyor -- panelden yukle YA DA bu mektuba ekleyip yanitla
+     (KURAL 2d). Kapi hakkinda soz vermiyor. */
   $T = [
-    'en'=>["VESTRA — one document to unlock wholesale prices",
-           "Hello %1\$s,\n\nTo show you our wholesale prices we need one document: your %2\$s.\n\nUpload it in your panel and the trade prices open immediately — you do not have to wait for our review. Once we have checked it (usually the same day) the seller details and the line-sheet downloads open as well.\n\nThis is standard for B2B wholesale: trade prices are shown to businesses only."],
-    'de'=>["VESTRA — ein Dokument für die Großhandelspreise",
-           "Hallo %1\$s,\n\nUm Ihnen unsere Großhandelspreise zu zeigen, brauchen wir ein Dokument: Ihren %2\$s.\n\nLaden Sie ihn in Ihrem Konto hoch — die Preise werden sofort sichtbar, Sie müssen unsere Prüfung nicht abwarten. Sobald wir das Dokument geprüft haben (meist am selben Tag), werden auch die Verkäuferangaben und die Line-Sheet-Downloads freigeschaltet.\n\nDas ist im B2B-Großhandel üblich: Großhandelspreise sehen nur Gewerbetreibende."],
-    'fr'=>["VESTRA — un document pour accéder aux prix de gros",
-           "Bonjour %1\$s,\n\nPour vous montrer nos prix de gros, il nous faut un document : votre %2\$s.\n\nDéposez-le dans votre espace : les prix s'affichent immédiatement, sans attendre notre vérification. Une fois le document vérifié (en général le jour même), les coordonnées du vendeur et les line sheets s'ouvrent également.\n\nC'est la norme en gros B2B : les prix de gros sont réservés aux professionnels."],
-    'it'=>["VESTRA — un documento per i prezzi all'ingrosso",
-           "Ciao %1\$s,\n\nPer mostrarti i nostri prezzi all'ingrosso ci serve un documento: la tua %2\$s.\n\nCaricala nel tuo pannello: i prezzi si sbloccano subito, senza attendere la nostra verifica. Una volta controllato il documento (di solito in giornata) si aprono anche i dati del venditore e i download dei line sheet.\n\nÈ la prassi nell'ingrosso B2B: i prezzi all'ingrosso sono riservati alle aziende."],
-    'es'=>["VESTRA — un documento para ver los precios mayoristas",
-           "Hola %1\$s,\n\nPara mostrarte nuestros precios mayoristas necesitamos un documento: tu %2\$s.\n\nSúbelo en tu panel y los precios se abren al instante: no tienes que esperar a nuestra revisión. Cuando lo hayamos comprobado (normalmente el mismo día) se abren también los datos del vendedor y las descargas de line sheet.\n\nEs lo habitual en el mayorista B2B: los precios mayoristas se muestran solo a empresas."],
+    'en'=>["VESTRA — one document for your account: %2\$s",
+           "Hello %1\$s,\n\nFor your VESTRA account we need one document on file: your %2\$s.\n\nUpload it in your panel — or simply reply to this e-mail with the file attached (PDF or a photo) and we add it to your account for you. We check it usually the same day.\n\nThis is standard for B2B wholesale: trade prices are shown to businesses only, and the document is how we know there is a business behind the account."],
+    'de'=>["VESTRA — ein Dokument für Ihr Konto: %2\$s",
+           "Hallo %1\$s,\n\nFür Ihr VESTRA-Konto benötigen wir ein Dokument: Ihren %2\$s.\n\nLaden Sie es in Ihrem Konto hoch — oder antworten Sie einfach auf diese E-Mail mit der Datei im Anhang (PDF oder Foto), dann fügen wir es für Sie hinzu. Die Prüfung erfolgt meist am selben Tag.\n\nDas ist im B2B-Großhandel üblich: Großhandelspreise sehen nur Gewerbetreibende, und das Dokument belegt, dass hinter dem Konto ein Unternehmen steht."],
+    'fr'=>["VESTRA — un document pour votre compte : %2\$s",
+           "Bonjour %1\$s,\n\nPour votre compte VESTRA, il nous faut un document : votre %2\$s.\n\nDéposez-le dans votre espace — ou répondez simplement à cet e-mail avec le fichier en pièce jointe (PDF ou photo) et nous l'ajouterons à votre compte. La vérification se fait en général le jour même.\n\nC'est la norme en gros B2B : les prix de gros sont réservés aux professionnels, et ce document atteste qu'une entreprise se trouve derrière le compte."],
+    'it'=>["VESTRA — un documento per il tuo account: %2\$s",
+           "Ciao %1\$s,\n\nPer il tuo account VESTRA ci serve un documento: la tua %2\$s.\n\nCaricala nel tuo pannello — oppure rispondi semplicemente a questa e-mail allegando il file (PDF o foto) e la aggiungeremo noi al tuo account. Il controllo avviene di solito in giornata.\n\nÈ la prassi nell'ingrosso B2B: i prezzi all'ingrosso sono riservati alle aziende, e il documento è ciò che ci dice che dietro l'account c'è un'azienda."],
+    'es'=>["VESTRA — un documento para tu cuenta: %2\$s",
+           "Hola %1\$s,\n\nPara tu cuenta de VESTRA necesitamos un documento: tu %2\$s.\n\nSúbelo en tu panel — o simplemente responde a este correo adjuntando el archivo (PDF o foto) y lo añadiremos a tu cuenta. Lo revisamos normalmente el mismo día.\n\nEs lo habitual en el mayorista B2B: los precios mayoristas se muestran solo a empresas, y el documento es lo que nos dice que hay una empresa detrás de la cuenta."],
   ];
   [$subj,$bodyT] = $T[$lang] ?? $T['en'];
   $body = sprintf($bodyT, $name, $docPhrase) . "\n\n—\nVESTRA · vestrasales.com";
@@ -1864,6 +1868,49 @@ function vestra_tpl_seller_setup(string $salutation, array $missingShips, array 
 . "VESTRA – vestrasales.com";
 
     return [$subject, $body, []];
+}
+
+/* ── Satici belge suresi (operator karari, 2 Eyl 2026) ────────────────────────
+   "Ilk urun eklensin, sonra belgeler icin 3 gun; yuklemezse askiya alinsin."
+   Ingilizce (operator karari: yazismalar yalnizca Ingilizce). E-POSTA YOLU da
+   yaziliyor -- "bu mektuba dosyayi ekleyip yanitlayin": yukleyemeyen kullanici
+   icin ikinci kapi (KURAL 2d). Askida bile giris calisiyor; mektup bunu
+   soyluyor, yoksa satici "hesabim kapandi, nasil yukleyeyim" diye durur. */
+function vestra_tpl_seller_docs_due(string $name, array $docLabels, string $deadline, int $daysLeft, bool $reminder = false): array {
+    $days  = defined('VESTRA_SELLER_DOC_GRACE_DAYS') ? (int)VESTRA_SELLER_DOC_GRACE_DAYS : 3;
+    $lines = '';
+    foreach ($docLabels as $d) $lines .= "  · ".$d."\n";
+    $when = $deadline !== '' ? "by ".$deadline : "within ".$days." days";
+    $subject = $reminder
+        ? "VESTRA — reminder: your seller documents are due ".$when
+        : "VESTRA — your first listing is in; two documents due ".$when;
+    $body = "Hello ".$name.",\n\n"
+      . ($reminder
+          ? "A short reminder: the documents below are still missing on your seller account and are due ".$when.".\n\n"
+          : "Thank you for listing on VESTRA. Every seller gives us two documents; we ask for them ".$when.":\n\n")
+      . $lines . "\n"
+      . "Upload them here: https://vestrasales.com/seller?tab=kyc\n"
+      . "Or simply reply to this e-mail with the files attached (PDF or a photo) and we add them to your account for you.\n\n"
+      . "If they are not on file ".$when.", your listings are paused until they arrive. Nothing is deleted, and the account is switched back on as soon as we have them.\n\n"
+      . "Why we ask: buyers on VESTRA order from sellers they have never met, on the platform's word that the business behind a listing is real. These two documents are that word.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, ['button'=>['label'=>'Upload documents','url'=>'https://vestrasales.com/seller?tab=kyc']]];
+}
+
+function vestra_tpl_seller_docs_suspended(string $name, array $docLabels): array {
+    $days  = defined('VESTRA_SELLER_DOC_GRACE_DAYS') ? (int)VESTRA_SELLER_DOC_GRACE_DAYS : 3;
+    $lines = '';
+    foreach ($docLabels as $d) $lines .= "  · ".$d."\n";
+    $subject = "VESTRA — your listings are paused: documents missing";
+    $body = "Hello ".$name.",\n\n"
+      . "The documents below did not reach us within ".$days." days of your first listing, so your seller account is paused and your products are hidden from the catalogue for now:\n\n"
+      . $lines . "\n"
+      . "Nothing has been deleted. To switch the account back on:\n\n"
+      . "  1. sign in and upload the files at https://vestrasales.com/seller?tab=kyc — your login still works for this,\n"
+      . "  2. or reply to this e-mail with the files attached (PDF or a photo).\n\n"
+      . "We review them and put the listings back on, usually the same working day.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, ['button'=>['label'=>'Upload documents','url'=>'https://vestrasales.com/seller?tab=kyc']]];
 }
 
 /* Alici karsi teklifi KABUL ettiginde ona giden onay. vestra_tpl_offer_response'un

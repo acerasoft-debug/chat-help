@@ -38,22 +38,11 @@ $mask = function (string $e): string {
     return mb_substr($lo, 0, 2) . str_repeat('*', max(0, mb_strlen($lo) - 2)) . substr($e, $at);
 };
 
-/* Bir hesabin HALA borclu oldugu zorunlu belgeler. Tek dogruluk kaynagi
-   auth_required_doc_types() (KURAL 2): satici trade_licence + id_document,
-   alici trade_licence. Burada ikinci bir liste yazmak, iki listenin
-   ayrisacagi gun demektir -- KURAL 2 tam da bu yuzden tek kaynaga baglandi. */
-$missingDocs = function (array $a): array {
-    $need = function_exists('auth_required_doc_types')
-          ? auth_required_doc_types((string)($a['type'] ?? 'buyer')) : ['trade_licence'];
-    $have = [];
-    foreach ((array)($a['doc_requests'] ?? []) as $r) {
-        $t = (string)($r['type'] ?? ''); $s = (string)($r['status'] ?? 'requested');
-        /* 'uploaded' de VERILMIS sayilir: operator onayini bekliyor, saticiya
-           "yukle" demek yaptigi isi tekrar yaptirmak olurdu. */
-        if ($t !== '' && in_array($s, ['uploaded', 'approved'], true)) $have[$t] = true;
-    }
-    return array_values(array_filter($need, fn($t) => !isset($have[$t])));
-};
+/* Bir hesabin HALA borclu oldugu zorunlu belgeler: auth_missing_doc_types()
+   (inc/auth.php) -- tek dogruluk kaynagi auth_required_doc_types() (KURAL 2).
+   Ayni fonksiyonu cron_seller_docs.php ve satici paneli de okur; burada
+   ikinci bir liste yazmak, iki listenin ayrisacagi gun demektir. */
+$missingDocs = fn(array $a): array => auth_missing_doc_types($a);
 
 $waiting = [];      // onay bekleyen: e-posta dogrulanmis ama kapi kapali
 $docless = [];      // kapisi ACIK ama hala zorunlu belge borclu (cogunlukla SATICI)

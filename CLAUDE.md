@@ -215,6 +215,67 @@ hâlâ kilitliydi — o alıcı sitede fiyat göremiyor, sepeti onaylayamıyordu
 - Toplu açma: `send-campaign-preview.yml` → `reply_letter=approve_all`
   (`send=false` kuru listeyi verir). Her hesapta kapıyı **geri okuyup doğrular**.
 
+**KURAL 2d — Belge e-postayla da gelir; operatör panelden hesaba ekler**
+(operatör kararı, 2 Eyl 2026: *"evrak girişi email ile girilsin ve trade lisansı
+istensin, alıcılarda bu standart uygulama olsun"*).
+- Alıcıdan istenen tek belge `trade_licence` (KURAL 2; kayıtta otomatik açılır).
+  Kayıt/next-step mektubu (`vestra_ack_text`) ve belge isteği mektubu
+  (`vestra_tpl_doc_requested`) artık ikinci yolu söyler: *"bu mektuba dosyayı
+  ekleyip yanıtlayın"*. `doc_requested` eskiden "yükleyince fiyatlar hemen açılır"
+  diyordu — KURAL 2'ye aykırı yalan, düzeltildi.
+- Gelen dosya `Admin ▸ Documents ▸ hesap ▸ 📎 Attach a document received by
+  e-mail` ile eklenir → durum `uploaded`, `by/uploaded_by=operator`
+  (`auth_attach_doc_for`). **Eklemek onaylamak değil**; onay aynı sayfada ayrı
+  düğme. Dosya kuralları kullanıcının yüklemesiyle **birebir** (`auth_store_doc_file`).
+- **Müşterinin belgesi GitHub'dan geçmez**: workflow girdisi ve log herkese açık;
+  kimlik/ticari belge yalnızca panelden yüklenir. Gmail'den alıp workflow'a
+  gömme fikri bu yüzden reddedildi.
+- **Yükleme hatası artık sebepli**: `auth_doc_file_check` → `size | type |
+  partial | post | server`, panel metni `auth_doc_error_text`, her ret
+  `[VESTRA doc]` etiketiyle error_log'a. `post_max_size` aşımı ayrıca yakalanır
+  (`vestra_doc_post_overflow`): PHP `$_POST`'u **boş** bırakır, eskiden sayfa
+  sessizce yenileniyordu — kullanıcı "hiçbir şey olmuyor" görüyordu. Sınır
+  sunucunun ini değerinden okunur (`auth_doc_max_bytes`); `vestra/.user.ini`
+  16M/20M ister. Tarayıcı büyük fotoğrafı yüklemeden **önce küçültür**
+  (`inc/docs.php`). HEIC/HEIF kabul edilir (iPhone). Test:
+  `tests/doc_upload_check_test.php`. Teşhis: `diag-messages.yml` →
+  `upload_probe=true` (ini, `.user.ini`, `data/docs` yazılabilir mi, error_log).
+- 2 Eyl 2026 vakası: Negulescu (alıcı, RO): kapı **açıktı**,
+  `trade_licence:requested`, dosya hiç gelmemişti — iki gün "yüklenemedi",
+  sonunda e-postayla gönderdi.
+
+**KURAL 2e — "Hesabı aç" düğmesi belgesiz de görünür.** `Admin ▸ Users`
+satırında ve `Documents` sayfasında `🔓 Open account`: kapı
+(`auth_prices_unlocked`) **kapalı** ve hesap askıda değilse **her zaman** çıkar
+(e-postası doğrulanmamışsa onay metni bunu söyler). Eskiden yalnızca
+`kyb_status=pending` + doğrulanmış e-postada çıkıyor ve "✓ KYB" yazıyordu;
+operatör iki kez "açacak düğmem yok" dedi (1–2 Eyl 2026).
+
+**KURAL 2f — Satıcı: önce ürün, sonra 3 gün belge, gelmezse askı** (operatör
+kararı, 2 Eyl 2026: *"ilk ürün eklensin sonrasında satıcıya belgeleri eklemesi
+için süre verilsin... 3 gün gibi, eğer yüklemez ise suspend olsun"*).
+- İlan ekleme kapısı artık **askı** (`seller-add.php`); KYB onayı şart değil.
+  İlan `pending` doğar, operatör onaylamadan yayına çıkmaz.
+- Saat `doc_grace_start` damgasıyla başlar: ilk ilanda
+  (`vestra_seller_docs_kickoff`) ya da kural yürürlüğe girdiğinde **zaten ilanı
+  olan** satıcıyı cron ilk gördüğünde. **İlan tarihinden geriye dönük
+  hesaplanmaz** (46 gün önce ilan vermiş 9 satıcıyı ilk sabah uyarmadan askıya
+  almak kural değil tuzak olurdu); ilanı olmayan satıcıya saat işlemez. Karar
+  tek yerde: `auth_seller_doc_grace()` (saf; `tests/seller_doc_grace_test.php`).
+- `cron_seller_docs.php` (sunucu crontab **06:50 UTC**, deploy kurar):
+  damgala + "3 gün içinde" mektubu → son 24 saatte hatırlatma → süre dolunca
+  `status=suspended, suspend_reason=docs` + mektup. **İlk uyarı gitmeden askı
+  yok.** Operatöre yalnızca askı ya da "askıda + belge geldi" varsa yazar.
+- Askıdaki satıcının ilanları katalogdan çekilir (`vestra_live_listings`; ilan
+  durumu değişmez, askı kalkınca kendiliğinden döner). Belge askısındaki satıcı
+  **giriş yapabilir** ama yalnızca Verification/Profile'a (`seller.php`);
+  operatör askısı (`suspend_reason=operator`) girişi kapatır.
+- Kapıyı **operatör açar**: `Activate` / `Open account` → `suspend_reason`
+  silinir, belge hâlâ eksikse **taze 3 gün** (`auth_seller_doc_grace_start($uid,
+  true)`); eski damga dursaydı ertesi sabah cron yeniden askıya alırdı.
+- Mektuplar İngilizce (`vestra_tpl_seller_docs_due` / `_suspended`); e-posta
+  yolunu ve girişin çalıştığını söyler.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa

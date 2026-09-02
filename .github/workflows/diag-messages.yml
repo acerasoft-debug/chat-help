@@ -46,6 +46,10 @@ on:
         description: "Faturada görünecek satıcı künyesi + banka ADLARI (ör: garage). IBAN/hesap NUMARASI yazdırılmaz, yalnızca var/yok"
         required: false
         default: ""
+      upload_probe:
+        description: "true = belge yükleme sondası: PHP yükleme sınırları (.user.ini/php.ini), data/docs yazılabilir mi, error_log'daki ret sebepleri. 'Yükleyemiyorum' denince buraya bakılır"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -87,13 +91,14 @@ jobs:
           IN_SENDER:    ${{ github.event.inputs.sender }}
           IN_ORDERS:    ${{ github.event.inputs.orders_for }}
           IN_BILLING:   ${{ github.event.inputs.billing_for }}
+          IN_UPLOAD:    ${{ github.event.inputs.upload_probe }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -525,6 +530,68 @@ jobs:
                 echo "    stripe     : ".(!empty($a['stripe_account_id']) ? 'bagli' : 'YOK')."\n";
                 $summary[] = ($a['company'] ?: $a['name'] ?: '?').": company=\"".($a['company'] ?? '')."\", bank_holder=\"".($a['bank_holder'] ?? '')."\", iban=".(trim((string)($a['bank_iban'] ?? '')) !== '' ? 'VAR' : 'YOK');
               }
+              echo "\n";
+            }
+
+            /* YUKLEME SONDASI (2 Eyl 2026: bir alici belgesini iki gun yukleyemedi
+               ve e-postayla gonderdi). CLI'nin ini degerleri web SAPI'ninkinden
+               FARKLI olabilir -- o yuzden public_html'deki .user.ini / php.ini de
+               okunuyor; web'in gercek siniri ancak oradan kestirilir.
+               error_log'da iki iz aranir: PHP'nin kendi "POST Content-Length ...
+               exceeds the limit" uyarisi (post_max_size asimi -- form sessizce
+               bos doner) ve "[VESTRA doc]" satirlari (auth_store_doc_file'in
+               yazdigi ret SEBEBI). Adres yok, uid'in ilk 8 hanesi var. */
+            if (getenv('IN_UPLOAD') === 'true') {
+              echo "===== YUKLEME SONDASI =====\n";
+              echo "  php=".PHP_VERSION." sapi=".PHP_SAPI." ini=".(php_ini_loaded_file() ?: '(yok)')."\n";
+              foreach (['upload_max_filesize','post_max_size','max_file_uploads','memory_limit','file_uploads','upload_tmp_dir'] as $k) {
+                $v = (string)ini_get($k); echo "  CLI ".$k."=".($v === '' ? '(bos)' : $v)."\n";
+              }
+              foreach (['.user.ini','php.ini'] as $ini) {
+                $p = $doc.'/'.$ini;
+                if (!is_file($p)) { echo "  ".$ini.": yok\n"; continue; }
+                echo "  ".$ini.": VAR (".filesize($p)." bayt)\n";
+                foreach (file($p, FILE_IGNORE_NEW_LINES) ?: [] as $ln) {
+                  if (preg_match('/^\s*(upload_max_filesize|post_max_size|max_file_uploads|memory_limit)\s*=/', $ln)) echo "     ".trim($ln)."\n";
+                }
+              }
+              $tmp = (string)ini_get('upload_tmp_dir') ?: sys_get_temp_dir();
+              echo "  tmp=".$tmp." yazilabilir=".yn(is_writable($tmp))."\n";
+              $dd = $doc.'/data/docs';
+              echo "  data/docs: var=".yn(is_dir($dd))." yazilabilir=".yn(is_dir($dd) && is_writable($dd))
+                 ." perm=".(is_dir($dd) ? substr(sprintf('%o', fileperms($dd)), -4) : '-')."\n";
+              $nDirs = 0; $nFiles = 0; $newest = 0;
+              foreach ((is_dir($dd) ? (glob($dd.'/*', GLOB_ONLYDIR) ?: []) : []) as $ud) {
+                $nDirs++;
+                foreach (glob($ud.'/*') ?: [] as $f) { $nFiles++; $newest = max($newest, (int)@filemtime($f)); }
+              }
+              echo "  hesap dizini=".$nDirs." dosya=".$nFiles." en yeni=".($newest ? gmdate('Y-m-d H:i', $newest).'Z' : '-')."\n";
+              echo "  bos disk=".round((float)@disk_free_space($doc)/1048576)." MB\n";
+              $logs = array_values(array_unique(array_filter(
+                [(string)ini_get('error_log'), $doc.'/error_log', $home.'/error_log', $doc.'/php_errorlog', $home.'/logs/error_log'],
+                fn($p) => $p !== '' && is_file($p))));
+              if (!$logs) echo "  error_log: bulunamadi (ini error_log='".ini_get('error_log')."')\n";
+              foreach ($logs as $lf) {
+                echo "  error_log ".$lf." (".round(filesize($lf)/1024)." KB) -- son 400 KB icinde:\n";
+                $hits = ['exceeds' => [], 'doc' => []];
+                $fh = fopen($lf, 'r');
+                if ($fh) {
+                  fseek($fh, max(0, filesize($lf) - 400000));
+                  while (($ln = fgets($fh)) !== false) {
+                    if (strpos($ln, 'exceeds the limit') !== false) $hits['exceeds'][] = trim($ln);
+                    if (strpos($ln, '[VESTRA doc]') !== false)      $hits['doc'][] = trim($ln);
+                  }
+                  fclose($fh);
+                }
+                echo "    post_max_size asimi (PHP uyarisi): ".count($hits['exceeds'])." satir\n";
+                foreach (array_slice($hits['exceeds'], -6) as $h) echo "       ".mb_substr($h, 0, 150)."\n";
+                echo "    [VESTRA doc] ret kayitlari: ".count($hits['doc'])." satir\n";
+                foreach (array_slice($hits['doc'], -10) as $h) echo "       ".mb_substr($h, 0, 150)."\n";
+                $summary[] = "error_log: post_max asimi=".count($hits['exceeds']).", belge reddi=".count($hits['doc']);
+              }
+              $summary[] = "yukleme: CLI upload_max=".ini_get('upload_max_filesize').", post_max=".ini_get('post_max_size')
+                         .", .user.ini=".(is_file($doc.'/.user.ini') ? 'VAR' : 'yok')
+                         .", data/docs yazilabilir=".yn(is_dir($dd) && is_writable($dd)).", dosya=".$nFiles;
               echo "\n";
             }
 

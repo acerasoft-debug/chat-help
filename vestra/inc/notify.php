@@ -2393,23 +2393,27 @@ function vestra_ack_text($lang,$name,$type){
   $T=[
    'en'=>[
      'Welcome to VESTRA — account created',
-     "Hello %s,\n\nYour VESTRA account has been created as a verified %s.\n\nNext step: please upload your verification documents at:\n%s\n\nOur team will review them and activate your account. Thank you for joining!\n\n— VESTRA · vestrasales.com",
+     /* E-POSTA YOLU (KURAL 2d, 2 Eyl 2026): yukleyemeyen kullanici dosyayi bu
+        mektuba ekleyip yanitlar; operator panelden hesaba ekler. Bir alici iki
+        gun yukleyemeyip sonunda e-postayla gonderdi -- mektup bunu bastan
+        soylemeliydi. */
+     "Hello %s,\n\nYour VESTRA account has been created as a verified %s.\n\nNext step: please upload your verification documents at:\n%s\n\nYou can also simply reply to this e-mail with the document attached (PDF or a photo) and we add it to your account for you.\n\nOur team will review them and activate your account. Thank you for joining!\n\n— VESTRA · vestrasales.com",
    ],
    'de'=>[
      'Willkommen bei VESTRA — Konto erstellt',
-     "Hallo %s,\n\nIhr VESTRA-Konto als %s wurde erfolgreich erstellt.\n\nNächster Schritt: Bitte laden Sie Ihre Verifizierungsdokumente hoch:\n%s\n\nUnser Team prüft diese und aktiviert Ihr Konto. Vielen Dank!\n\n— VESTRA · vestrasales.com",
+     "Hallo %s,\n\nIhr VESTRA-Konto als %s wurde erfolgreich erstellt.\n\nNächster Schritt: Bitte laden Sie Ihre Verifizierungsdokumente hoch:\n%s\n\nSie können das Dokument auch einfach als Antwort auf diese E-Mail anhängen (PDF oder Foto) — wir fügen es Ihrem Konto hinzu.\n\nUnser Team prüft diese und aktiviert Ihr Konto. Vielen Dank!\n\n— VESTRA · vestrasales.com",
    ],
    'fr'=>[
      'Bienvenue sur VESTRA — compte créé',
-     "Bonjour %s,\n\nVotre compte VESTRA en tant que %s a été créé avec succès.\n\nProchaine étape : veuillez télécharger vos documents de vérification :\n%s\n\nNotre équipe les examinera et activera votre compte. Merci de nous rejoindre !\n\n— VESTRA · vestrasales.com",
+     "Bonjour %s,\n\nVotre compte VESTRA en tant que %s a été créé avec succès.\n\nProchaine étape : veuillez télécharger vos documents de vérification :\n%s\n\nVous pouvez aussi simplement répondre à cet e-mail avec le document en pièce jointe (PDF ou photo) : nous l'ajouterons à votre compte.\n\nNotre équipe les examinera et activera votre compte. Merci de nous rejoindre !\n\n— VESTRA · vestrasales.com",
    ],
    'it'=>[
      'Benvenuto su VESTRA — account creato',
-     "Ciao %s,\n\nIl tuo account VESTRA come %s è stato creato con successo.\n\nProssimo passo: carica i tuoi documenti di verifica:\n%s\n\nIl nostro team li esaminerà e attiverà il tuo account. Grazie!\n\n— VESTRA · vestrasales.com",
+     "Ciao %s,\n\nIl tuo account VESTRA come %s è stato creato con successo.\n\nProssimo passo: carica i tuoi documenti di verifica:\n%s\n\nPuoi anche semplicemente rispondere a questa e-mail allegando il documento (PDF o foto): lo aggiungeremo noi al tuo account.\n\nIl nostro team li esaminerà e attiverà il tuo account. Grazie!\n\n— VESTRA · vestrasales.com",
    ],
    'es'=>[
      'Bienvenido a VESTRA — cuenta creada',
-     "Hola %s,\n\nTu cuenta VESTRA como %s ha sido creada con éxito.\n\nSiguiente paso: sube tus documentos de verificación:\n%s\n\nNuestro equipo los revisará y activará tu cuenta. ¡Gracias!\n\n— VESTRA · vestrasales.com",
+     "Hola %s,\n\nTu cuenta VESTRA como %s ha sido creada con éxito.\n\nSiguiente paso: sube tus documentos de verificación:\n%s\n\nTambién puedes simplemente responder a este correo adjuntando el documento (PDF o foto) y lo añadiremos a tu cuenta.\n\nNuestro equipo los revisará y activará tu cuenta. ¡Gracias!\n\n— VESTRA · vestrasales.com",
    ],
   ];
   $t = $T[$lang] ?? $T['en'];

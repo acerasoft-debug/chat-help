@@ -53,6 +53,14 @@ function csrfField(): string {
 
 // ── POST actions ───────────────────────────────────────────────────────────────
 if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
+  /* post_max_size asimi (buyuk belge eki): PHP $_POST'u tumden atar, CSRF
+     alani da gelmez ve istek "csrf_fail" diye reddedilirdi -- yanlis teshis.
+     Sebebiyle Documents'a don. */
+  $__pm = auth_ini_bytes((string)ini_get('post_max_size'));
+  if(empty($_POST) && empty($_FILES) && $__pm > 0 && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > $__pm){
+    $_SESSION['doc_attach_err'] = auth_doc_error_text('post');
+    header('Location: /admin?tab=documents&msg=doc_attach_err'); exit;
+  }
   // Every mutating action must carry the session CSRF token — blocks cross-site form posts.
   if(!hash_equals($_SESSION['vadmin_csrf']??'', (string)($_POST['_csrf']??''))){
     header('Location: /admin?msg=csrf_fail'); exit;
@@ -728,7 +736,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   }
   if($act==='approve_kyb'){
     $uid=$_POST['uid']??'';
-    auth_update($uid,['kyb_status'=>'approved','status'=>'active']);
+    /* HESABI AC. Belge sart degil (KURAL 2). Belge askisindaki saticiyi acmak,
+       ona TAZE 3 gun demek: eski damga dursaydi ertesi sabah cron ayni hesabi
+       yeniden askiya alirdi. */
+    $wasDocs=false; foreach(auth_accounts() as $a0){ if(($a0['id']??'')===$uid){ $wasDocs=auth_suspended_for_docs($a0); break; } }
+    auth_update($uid,['kyb_status'=>'approved','status'=>'active','suspend_reason'=>'']);
+    if($wasDocs) auth_seller_doc_grace_start($uid, true);
     $acc=null; foreach(auth_accounts() as $a){ if(($a['id']??'')===$uid){ $acc=$a; break; } }
     if($acc){
       $panel=(($acc['type']??'')==='seller')?'/seller':'/buyer';
@@ -845,11 +858,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     header('Location: '.$to($stuck ? 'billing_saved' : 'billing_failed')); exit;
   }
   if($act==='suspend_account'){
-    auth_update($_POST['uid']??'',['status'=>'suspended']);
+    /* 'operator': belge askisindan ayirt edilir -- belge askisi girise izin
+       verir (yuklemek icin), operator askisi vermez (auth_login). */
+    auth_update($_POST['uid']??'',['status'=>'suspended','suspend_reason'=>'operator']);
     header('Location: /admin?tab=users&msg=suspended'); exit;
   }
   if($act==='activate_account'){
-    auth_update($_POST['uid']??'',['status'=>'active']);
+    $uid=(string)($_POST['uid']??'');
+    $wasDocs=false; foreach(auth_accounts() as $a0){ if(($a0['id']??'')===$uid){ $wasDocs=auth_suspended_for_docs($a0); break; } }
+    auth_update($uid,['status'=>'active','suspend_reason'=>'']);
+    /* Belge askisindan cikarilan saticiya TAZE 3 gun (belgesi hala eksikse);
+       eski damga dursaydi ertesi sabah cron yeniden askiya alirdi. */
+    if($wasDocs) auth_seller_doc_grace_start($uid, true);
     header('Location: /admin?tab=users&msg=activated'); exit;
   }
   /* Permanently delete an account. Suspending only hides it, so there was no way to get rid
@@ -1026,6 +1046,20 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       vestra_send_mail($rdacc['email'],$rdS,$rdB,'','',null,'',$rdO);
     }
     header('Location: /admin?tab=documents&uid='.urlencode($rduid).'&msg=doc_requested'); exit;
+  }
+  /* E-POSTAYLA GELEN BELGEYI HESABA EKLE (operator karari, 2 Eyl 2026: "evrak
+     email ile girilsin"). Musteri dosyayi support@'a yollar, operator burada
+     hesaba iliştirir. Durum 'uploaded' -- eklemek ONAYLAMAK DEGIL, onay asagida
+     ayri dugme. Dosya kurallari kullanicinin yuklemesiyle BIREBIR AYNI
+     (auth_store_doc_file). Ret sebebi oturumda tasinir, URL'de degil. */
+  if($act==='attach_doc'){
+    $auid=preg_replace('/[^a-f0-9]/','',(string)($_POST['uid']??'')); $atype=(string)($_POST['doc_type']??''); $anote=trim((string)($_POST['note']??''));
+    $ares=auth_attach_doc_for($auid,$atype,$_FILES['doc_file']??null,$anote);
+    if(!$ares['ok']){
+      $_SESSION['doc_attach_err']=match($ares['error']){ 'noacc'=>'Account not found.', 'doctype'=>'Unknown document type.', default=>auth_doc_error_text((string)$ares['error']) };
+      header('Location: /admin?tab=documents&uid='.urlencode($auid).'&msg=doc_attach_err'); exit;
+    }
+    header('Location: /admin?tab=documents&uid='.urlencode($auid).'&msg=doc_attached'); exit;
   }
   /* Teklife yanit — OPERATOR olarak. Bu daha once hicbir yerde yoktu: satici ucu
      sahiplik sarti ariyor (seller_uid === uid), kurasyonlu katalog urunlerinde ise
@@ -1819,7 +1853,7 @@ if($authed && isset($_GET['dl_doc'])){
     $path = auth_doc_file_path($uid, $file);
     if(is_readable($path)){
       $ext  = strtolower(pathinfo($file,PATHINFO_EXTENSION));
-      $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp',default=>'application/octet-stream' };
+      $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
       header('Content-Type: '.$mime);
       header('Content-Disposition: inline; filename="'.addslashes($file).'"');
       readfile($path); exit;
@@ -2153,8 +2187,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
   $pendingDocs  = count(array_filter($accounts, fn($a)=>count(array_filter($a['doc_requests']??[],fn($r)=>$r['status']==='uploaded'))>0));
 
   $msgs=[
-    'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.','kyb_ok'=>'KYB approved.',
-    'suspended'=>'Account suspended.','activated'=>'Account activated.','deleted'=>'Listing deleted.',
+    'approved'=>'✓ Listing approved and live.','rejected'=>'Listing rejected.',
+    'kyb_ok'=>'✓ Account opened — trade prices, ordering and line sheets are unlocked for them. No document was needed for this.',
+    'suspended'=>'Account suspended.','activated'=>'Account activated (a docs-paused seller gets a fresh 3-day window if anything is still missing).','deleted'=>'Listing deleted.',
+    'doc_attached'=>'✓ Document attached to the account as "uploaded" — it is listed below; approve it there once you have looked at it.',
+    'doc_attach_err'=>'⚠ The file was NOT attached.',
     'acct_deleted'=>'✓ Account permanently deleted (backup saved; their listings were removed too).',
     'acct_has_orders'=>'⚠ Not deleted — this seller still has open orders. Complete or cancel them first, or suspend the account instead.',
     'acct_notfound'=>'⚠ Account not found — nothing was deleted.',
@@ -2779,8 +2816,10 @@ elseif($tab==='documents'):
   <!-- KYB approve -->
   <div>
     <div style="font-weight:600;margin-bottom:10px;font-size:13px">Quick actions</div>
-    <?php if(($selUser['kyb_status']??'pending')==='pending'): ?>
-      <?= fBtn('✓ Approve KYB','approve_kyb',['uid'=>$selUser['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)') ?>
+    <?php if(($selUser['status']??'active')!=='suspended' && !auth_prices_unlocked($selUser)): ?>
+      <?= fBtn('🔓 Open account','approve_kyb',['uid'=>$selUser['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)','Open this account now? Trade prices and ordering unlock immediately — a document is NOT required for this.') ?>
+    <?php elseif(auth_prices_unlocked($selUser)): ?>
+      <div class="ahint" style="margin-bottom:8px">✓ Account open — prices and ordering unlocked</div>
     <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
       <?= fBtn('Activate account','activate_account',['uid'=>$selUser['id']??'']) ?>
@@ -2789,6 +2828,31 @@ elseif($tab==='documents'):
     <?php endif; ?>
   </div>
   </div>
+  </div>
+</div>
+
+<!-- Attach a document that arrived by e-mail (operator karari, 2 Eyl 2026) -->
+<?php if(!empty($_SESSION['doc_attach_err'])): ?>
+<div class="acard" style="margin-bottom:16px;border-color:rgba(239,154,154,.5)"><div class="acard-body" style="color:var(--bad)">⚠ <?= htmlspecialchars((string)$_SESSION['doc_attach_err']) ?></div></div>
+<?php unset($_SESSION['doc_attach_err']); endif; ?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-hd"><div style="font-weight:600">📎 Attach a document received by e-mail</div></div>
+  <div class="acard-body">
+    <p class="ahint" style="margin:0 0 10px;max-width:720px">Customers may send their documents to <b><?= htmlspecialchars((string)vestra_cfg('mail_from','support@vestrasales.com')) ?></b> instead of uploading. Save the attachment and add it here: it lands on the account as <b>uploaded</b> — the same as if they had uploaded it — and you approve it below like any other file. Same rules as the customer form: PDF, JPG, PNG, WebP or HEIC, up to <?= max(1,(int)floor(auth_doc_max_bytes()/1048576)) ?> MB.</p>
+    <form method="post" action="/admin" enctype="multipart/form-data" class="aform" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="attach_doc">
+      <input type="hidden" name="uid" value="<?= htmlspecialchars($selUser['id']??'') ?>">
+      <input type="hidden" name="MAX_FILE_SIZE" value="<?= (int)auth_doc_max_bytes() ?>">
+      <div class="afield" style="margin:0"><label>Document type</label>
+        <select name="doc_type">
+          <?php foreach($docTypes as $k=>$v): ?><option value="<?= htmlspecialchars($k) ?>" <?= in_array($k, auth_required_doc_types((string)($selUser['type']??'buyer')), true) ? 'style="font-weight:700"' : '' ?>><?= htmlspecialchars($v) ?><?= in_array($k, auth_required_doc_types((string)($selUser['type']??'buyer')), true) ? ' (required)' : '' ?></option><?php endforeach; ?>
+        </select>
+      </div>
+      <div class="afield" style="margin:0"><label>File</label><input type="file" name="doc_file" accept="<?= htmlspecialchars('.'.implode(',.', auth_doc_allowed_ext()).',image/*,application/pdf') ?>" required></div>
+      <div class="afield" style="margin:0;flex:1;min-width:180px"><label>Note (optional, shown to you only)</label><input name="note" placeholder="e.g. received by e-mail 2 Sep"></div>
+      <button class="abtn primary" type="submit">📎 Attach to account</button>
+    </form>
   </div>
 </div>
 
@@ -3087,7 +3151,13 @@ function sendUserMessage(uid,name){
     </td>
     <td class="ac"><div style="display:flex;gap:4px;flex-wrap:wrap">
       <a class="abtn" href="/admin?tab=documents&uid=<?= urlencode($a['id']??'') ?>">Docs</a>
-      <?php if(($a['kyb_status']??'pending')==='pending'&&!$isSusp&&!$isPendEmail): echo fBtn('✓ KYB','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)'); endif; ?>
+      <?php /* HESABI AC: kapi (auth_prices_unlocked) kapaliysa ve hesap askida
+               degilse HER ZAMAN gorunur -- belge olsun olmasin (KURAL 2: belge
+               uyari, kapiyi operator acar). Eskiden yalnizca kyb_status=pending
+               ve dogrulanmis e-postada cikiyordu ve "✓ KYB" yaziyordu; operator
+               "acacak dugmem yok" dedi (2 Eyl 2026). */
+            if(!$isSusp && !auth_prices_unlocked($a)): echo fBtn('🔓 Open account','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)',
+              'Open this account now? Trade prices, ordering and line sheets unlock for them immediately. A document is NOT required for this.'.($isPendEmail ? "\n\nNote: their e-mail address is not verified yet." : '')); endif; ?>
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <button type="button" class="abtn" onclick="sendUserMessage('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>','<?= htmlspecialchars($a['company']??($a['name']??'this account'),ENT_QUOTES) ?>')" title="Start an on-platform message thread — reaches them even with no email on file">💬 Message</button>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>

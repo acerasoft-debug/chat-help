@@ -1,6 +1,13 @@
 <?php
 require_once __DIR__.'/inc/auth.php';
+require_once __DIR__.'/inc/docs.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
+
+/* post_max_size asimi: PHP govdeyi tumden atar, $_POST bos kalir ve asagidaki
+   hicbir dal calismaz -- kullanici "hicbir sey olmuyor" gorur (2 Eyl 2026'da
+   bir alici belgesini iki gun boyle yukleyemedi). Bu sayfaya dosya yalnizca
+   belge formundan gelir; sebebiyle oraya don. */
+if (!empty($_SESSION['uid']) && vestra_doc_post_overflow()) { header('Location: /buyer?tab=kyc&upload_err=post'); exit; }
 
 // Profile save
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='profile') {
@@ -30,12 +37,10 @@ require_once __DIR__.'/inc/orders.php';
 // ── Upload KYC document ───────────────────────────────────────────────────────
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_doc') {
     $req_id = preg_replace('/[^a-f0-9]/','', $_POST['req_id']??'');
-    $file   = $_FILES['doc_file'] ?? null;
-    if ($req_id && $file) {
-        $ok = auth_upload_doc($_SESSION['uid'], $req_id, $file);
-        header('Location: /buyer?tab=kyc&'.($ok?'uploaded=1':'upload_err=1')); exit;
-    }
-    header('Location: /buyer?tab=kyc'); exit;
+    /* Sebep kodu URL'de: banner hangi kuralin dustugunu ve cikis yolunu yazar
+       (auth_doc_error_text). Eski "upload_err=1" her hatada ayni cumleydi. */
+    $res = auth_upload_doc_ex($_SESSION['uid'], $req_id, $_FILES['doc_file'] ?? null);
+    header('Location: /buyer?tab=kyc&'.($res['ok'] ? 'uploaded=1' : 'upload_err='.rawurlencode($res['error']))); exit;
 }
 
 // Confirm receipt (escrow release) — only the buyer who placed it, once shipped OR delivered.
@@ -726,7 +731,7 @@ if($tab==='overview'){
         ? '<span class="status" style="color:var(--bad)">⊘ '.t('Suspended').'</span>'
         : '<span class="status open">'.t('Pending review').'</span>');
   if(isset($_GET['uploaded'])) echo '<div class="banner ok">✓ '.t('Document uploaded — the admin will review it shortly.').'</div>';
-  if(isset($_GET['upload_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.3);color:var(--bad)">'.t('Upload failed. Please check the file type (PDF/JPG/PNG/WebP, max 10 MB) and try again.').'</div>';
+  if(isset($_GET['upload_err'])) echo vestra_doc_upload_err_banner((string)$_GET['upload_err']);
   echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Business verification').'</h3>'.$kybLabel.'</div>';
   /* "Prices open as soon as you upload it" YALANDI: 11 Agustos'tan beri
      fiyat kapisi ONAYLA aciliyor (auth_prices_unlocked yalnizca approved'a
@@ -749,12 +754,7 @@ if($tab==='overview'){
       $note = htmlspecialchars($r['admin_note'] ?? $r['note'] ?? '');
       $actionCell = '';
       if($st==='requested'||$st==='rejected'){
-        $actionCell = '<form method="post" action="/buyer?tab=kyc" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="hidden" name="_action" value="upload_doc">
-          <input type="hidden" name="req_id" value="'.htmlspecialchars($r['id']).'">
-          <input type="file" name="doc_file" accept=".pdf,.jpg,.jpeg,.png,.webp" required style="font-size:12px;max-width:200px">
-          <button class="btn btn-p btn-sm" type="submit">'.t('Upload').'</button>
-        </form>';
+        $actionCell = vestra_doc_upload_form('/buyer?tab=kyc', (string)$r['id'], t('Upload'));
       } elseif($st==='uploaded'){
         $actionCell = '<span class="hint">'.substr($r['uploaded_at']??'',0,10).'</span>';
       } elseif($st==='approved'){
@@ -767,7 +767,9 @@ if($tab==='overview'){
     }
     echo '</tbody></table>';
   }
+  echo vestra_doc_email_hint();
   echo '</div>';
+  echo vestra_doc_upload_js();
 }
 dash_close();
 require __DIR__.'/inc/foot.php';
