@@ -470,6 +470,17 @@ kullanılmalı.
   Düzeltildi — artık **alan adı** kabul ediyor (dükkânın zaten açık web sitesi;
   kime yazdığımızı ele vermez), listedeki o alan adına ait tüm kayıtlara açıyor ve
   çıktıda adresleri maskeliyor. Yeni bir sonda yazarken: girdi de çıktı kadar açık.
+- **Teşhis adımı "satırı olduğu gibi bas" yapamaz.** 2 Eyl 2026'da
+  `diag-live.yml` → `find_ref` bir sipariş satırını herkese açık günlüğe
+  **maskesiz** yazdı: alıcının adı, e-postası, telefonu ve teslimat adresi
+  (koşu `33675552648`; günlüğü silindi, adım maskelendi — `$show()`). Adımın
+  kendi yorumu bile "e-posta dahil basıyor" diyordu ve kimse okumamıştı. Bir
+  teşhis adımını çalıştırmadan önce **ne bastığını oku**; yeni adım yazarken
+  alanları tek tek düşün: ref/firma/tutar/durum açık, kişiye ait olan maskeli.
+- **Müşteri adresini iş akışı girdisine yazma; kayıttan çözdür.** `buyer_reply`
+  → `to=account:<isim>` (hesap) ve `to=order:<sipariş ref>` (orders.csv satırı).
+  Sipariş/fatura numarasıyla yazan müşteriye cevap `reply_letter=tracking_soon`
+  + `to=order:<ref>|inv=<yazdığı fatura no>`; `inv` kayıtla uyuşmazsa iş durur.
 - **API anahtarları sunucudan çıkmaz.** (Bu yüzden `dropship_api_key` yerine sunucu
   tarafında `dropship_probe` bayrağı var.)
 - Operatör bir anahtar/parola yapıştırırsa **kullanma** — iptal edip yenisini almasını
@@ -501,6 +512,13 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   panel/kapı hâllerini de çeker. 2 Eyl 2026'da bununla bulunanlar: onay bandı
   açık temada okunmuyordu, panel sekmeleri mobilde 4 satırdı, çerez bandı sekme
   çubuğunu örtüyordu, dropshipping sayfası kenar boşluksuzdu.
+- **"Gönderildi" mektubu iki yoldan da gider (2 Eyl 2026):** admin panelinden
+  girilen takip numarası alıcıya **hiç gitmiyordu** — yalnızca satıcı paneli
+  (`seller.php`) mektup yolluyordu; `admin.php` `order_status` → `shipped`
+  (ya da gönderilmiş siparişe takip numarası eklenince/değişince) artık aynı
+  şablonla yazar: `vestra_tpl_order_shipped` (tek metin, iki yol). Müşteriye
+  "numara girilince size gelir" sözü verildiyse (O39419) bunu tutan yer burası.
+  Test: `tests/order_letters_test.php`.
 - **Canlı PHP hataları:** `diag-messages.yml` → `errlog=true` (mesaj+dosya:satır
   bazında gruplar, son 10 gün ayrı listede, `/tmp/` workflow betikleri hariç).
   2 Eyl 2026'da son 10 günün tüm kayıtları workflow geçici betiklerindendi

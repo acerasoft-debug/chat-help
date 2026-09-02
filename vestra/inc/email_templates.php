@@ -1001,6 +1001,80 @@ function vestra_tpl_order_stage(string $lang, string $stage, string $name, strin
 }
 
 /**
+ * Reply to a buyer who asks "when are you shipping?": the tracking number will be
+ * entered within a few days, thank you for your patience (operator instruction,
+ * 2 Sep 2026, order O39419 / invoice INV-2026-1009).
+ *
+ * No date and no carrier on purpose: we do not hold either, and a guessed one is
+ * the kind of promise KURAL 3 forbids. The one promise the letter DOES make — "we
+ * send the number the moment it is entered" — is kept by admin.php's 'shipped'
+ * notification, added the same day; before that a tracking number typed into the
+ * admin panel reached nobody (only the seller panel mailed the buyer).
+ *
+ * Signature: this buyer's order correspondence (offer accepted, invoice issued)
+ * went out under the company block, not a persona, so the reply stays on that
+ * channel. Pass $signer to sign with a persona instead.
+ */
+function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $invoiceNo = '', bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $invBit  = $invoiceNo !== '' ? " (invoice {$invoiceNo})" : '';
+    $subject = "Re: order {$ref}".($invoiceNo !== '' ? " / invoice {$invoiceNo}" : '')." — dispatch update";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    $opts = ['badge'=>'Order update', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your message, and thank you for your patience.\n\n"
+      . "Your order {$ref}{$invBit} is being prepared for dispatch. The tracking number will be "
+      . "entered on your order within the next few days, and we will send it to you by e-mail "
+      . "the moment it is added"
+      . ($hasAccount ? "; it will also appear under Orders in your VESTRA account." : ".")
+      . "\n\n"
+      . "If the delivery address or the contact for the carrier has changed since you ordered, "
+      . "please tell us now so the shipping documents are correct.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
+ * "Your order has shipped" — ONE wording for both places that can mark an order
+ * shipped: the seller panel (seller.php) and the admin panel (admin.php). Until
+ * 2 Sep 2026 only the seller panel mailed the buyer; the admin path saved the
+ * tracking number and told nobody.
+ *
+ * The old seller-panel text asked the buyer to confirm receipt "to release payment
+ * to the seller". That is escrow language; on a bank-transfer order the buyer has
+ * already paid in full and the sentence is simply false. Receipt confirmation is
+ * still asked for, without the reason attached.
+ */
+function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracking = '', bool $hasAccount = false): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($tracking !== '') $rows[] = ['label'=>'Tracking number', 'value'=>$tracking, 'strong'=>true];
+    $opts = ['badge'=>'🚚 Shipped', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $subject = "VESTRA — your order {$ref} has shipped";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "Good news — your order {$ref} has been shipped.\n\n"
+      . ($tracking !== '' ? "Tracking number: {$tracking}\n\n" : '')
+      . ($hasAccount
+          ? "Once the goods arrive and you have inspected them, please confirm receipt in your buyer dashboard:\nhttps://vestrasales.com/buyer?tab=orders\n\n"
+          : "If anything about the delivery needs our attention, simply reply to this e-mail.\n\n")
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * Short follow-up to a prospect who was written to weeks ago and has not replied.
  *
  * Deliberately NOT the campaign again. A second copy of the same letter reads as a

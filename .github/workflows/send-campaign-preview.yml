@@ -95,11 +95,11 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR)."
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası>)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu"
         required: false
         default: "send=false"
 
@@ -812,6 +812,9 @@ jobs:
                kullaniyordu ama tanim asagidaydi: bir hesap acilis mektubu From
                adi BOS ('— VESTRA') gitti ve log "Undefined variable" yazdi. */
             $signer = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+            /* From gorunen adi. Persona mektuplarinda "Ad — VESTRA"; sirket
+               imzasiyla giden siparis mektubu (tracking_soon) bunu 'VESTRA' yapar. */
+            $fromName = $signer.' — VESTRA';
 
             /* Sunucunun KENDI liste ureteclerini KENDI kapsaminda cagirir.
                Duz `require` cagiranin degisken kapsamina yazar ve iki uretec de
@@ -842,6 +845,21 @@ jobs:
               }
               $acc = $hits[0];
               $to  = (string)($acc['email'] ?? '');
+            }
+            /* "order:<ref>" = adres SIPARIS satirindan (orders.csv). Musteri siparis
+               ya da fatura numarasiyla yaziyor; adresini GitHub girdisine yazmak,
+               onu herkese acik kosu basligina yazmak demek. Satir mektuba veri de
+               verir (ref, fatura no, durum) -- tracking_soon bunu sart kosar. */
+            $orderRow = null;
+            if (str_starts_with(strtolower($to), 'order:')) {
+              $oref = strtoupper(trim(substr($to, 6)));
+              if ($oref === '') { fwrite(STDERR, "order: bos\n"); exit(1); }
+              foreach (vestra_read_csv('orders.csv') as $r) {
+                if (strtoupper(trim((string)($r['ref'] ?? ''))) === $oref) { $orderRow = $r; break; }
+              }
+              if (!$orderRow) { fwrite(STDERR, "siparis bulunamadi: {$oref}\n"); exit(1); }
+              $to = trim((string)($orderRow['email'] ?? ''));
+              echo "siparis: {$oref}  (".trim((string)($orderRow['company'] ?? ''))."; alici ".$mask($to).")\n";
             }
             if ($to === '') $to = 'acerasoft@gmail.com';
             if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "gecersiz alici\n"); exit(1); }
@@ -981,7 +999,43 @@ jobs:
               exit($reallySent ? 0 : 1);
             }
 
-            if ($letter === 'l1212') {
+            /* SIPARIS: "ne zaman gonderiyorsunuz?" diyen aliciya "takip numarasi
+               birkac gune girilecek, sabriniz icin tesekkurler" (operator
+               talimati, 2 Eyl 2026, O39419 / INV-2026-1009). Uc kapi:
+               - to=order:<ref> SART: mektup siparis kaydindan beslenir, elle
+                 yazilmis bir ref/fatura numarasi degil.
+               - inv=<musterinin yazdigi fatura no> verilirse kayitla
+                 karsilastirilir; tutmuyorsa DURUR -- yanlis siparise "hazirlaniyor"
+                 demek hic yazmamaktan kotu.
+               - Siparis zaten gonderilmis/tamamlanmis ya da takip numarasi
+                 GIRILMISSE durur: "birkac gune" o gun yalan olur. Iptalde de durur.
+               Imza: bu alicinin siparis yazismasi sirket blogu ile gitti;
+               signer verilirse persona imzalar. */
+            if ($letter === 'tracking_soon') {
+              if (!$orderRow) { fwrite(STDERR, "tracking_soon: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
+              require_once $doc."/inc/invoice.php";
+              $oref  = trim((string)$orderRow['ref']);
+              $stAll = vestra_read_json('order_statuses.json');
+              $ost   = (string)($stAll[$oref]['status'] ?? 'pending');
+              $otrk  = trim((string)($stAll[$oref]['tracking'] ?? ''));
+              $invs  = vestra_invoices_for_ref($oref);
+              $invNos = array_values(array_filter(array_map(fn($i) => strtoupper(trim((string)($i['no'] ?? ''))), $invs)));
+              echo "durum  : {$ost}  takip: ".($otrk !== '' ? 'VAR' : 'yok')."\n";
+              echo "fatura : ".($invNos ? implode(', ', $invNos) : 'YOK')."\n";
+              $claim = strtoupper(trim($E('inv')));
+              if ($claim !== '' && !in_array($claim, $invNos, true)) {
+                fwrite(STDERR, "fatura uyusmuyor: musteri {$claim} yazdi, kayitta ".($invNos ? implode(', ', $invNos) : 'fatura yok')."\n"); exit(1);
+              }
+              if ($otrk !== '' || in_array($ost, ['shipped','completed'], true)) {
+                fwrite(STDERR, "siparis zaten yolda (durum {$ost}".($otrk !== '' ? ', takip girilmis' : '').") -- 'birkac gune' mektubu yanlis olur\n"); exit(1);
+              }
+              if ($ost === 'cancelled') { fwrite(STDERR, "siparis iptal; mektup gonderilmiyor\n"); exit(1); }
+              $buyerName = trim((string)($orderRow['name'] ?? '')) ?: trim((string)($orderRow['company'] ?? ''));
+              if (trim($E('salutation')) !== '') $buyerName = preg_replace('/^dear\s+/i', '', trim($E('salutation')));
+              $persona = trim($E('signer'));
+              [$subject, $body, $opts] = vestra_tpl_order_tracking_soon($buyerName, $oref, $claim !== '' ? $claim : (string)($invNos[0] ?? ''), (bool)$acc, $persona);
+              $fromName = $persona !== '' ? $persona.' — VESTRA' : 'VESTRA';
+            } elseif ($letter === 'l1212') {
               [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat, $signer);
             } elseif ($letter === 'l1212_docs') {
               [$subject, $body, $opts] = vestra_tpl_l1212_docs_needed($salutation, $signer);
@@ -1685,9 +1739,9 @@ jobs:
             echo "konu   : {$subject}\n";
             echo "govde  : ".mb_strlen($body)." karakter\n";
 
-            echo "imza   : {$signer}\n";
+            echo "imza   : {$fromName}\n";
             if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
-            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', $signer.' — VESTRA', null, '', $opts);
+            $ok = vestra_send_mail($to, $subject, $body, 'support@vestrasales.com', $fromName, null, '', $opts);
             /* Kupon damgasi (account_open_l1212) bu bayragi okur: gonderim
                basarisizsa kod damgalanmaz ve sonraki kosu AYNI kodu yeniden
                kullanir -- musteri iki farkli kod almaz, kimse kodsuz kalmaz. */

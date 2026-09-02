@@ -205,12 +205,14 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
                 'Order '.$ref.($tracking !== '' ? ' · Tracking: '.$tracking : '').' is on its way.', '/buyer?tab=orders');
         }
-        /* Email buyer */
+        /* Email buyer — same template the admin panel uses (vestra_tpl_order_shipped),
+           so the two ways of marking an order shipped read the same. */
         require_once __DIR__.'/inc/notify.php';
         if (!empty($orderRow['email'])) {
-            $trackLine = $tracking ? "\nTracking: {$tracking}" : '';
-            vestra_send_mail($orderRow['email'], "VESTRA — your order {$ref} has shipped",
-              "Hello ".($orderRow['name']?:$orderRow['company']).",\n\nGreat news — your VESTRA order has been shipped!\n\nOrder ref: {$ref}{$trackLine}\n\nOnce you receive and inspect the goods, please confirm receipt in your buyer dashboard to release payment to the seller:\nhttps://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+            require_once __DIR__.'/inc/email_templates.php';
+            [$sSubj, $sBody, $sOpts] = vestra_tpl_order_shipped(
+                $orderRow['name'] ?: ($orderRow['company'] ?: 'there'), $ref, $tracking, (bool)$buyerAcc);
+            vestra_send_mail($orderRow['email'], $sSubj, $sBody, '', '', null, '', $sOpts);
         }
     }
     header('Location: /seller?tab=orders&shipped=1'); exit;

@@ -1124,7 +1124,8 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if($ref && in_array($st,vestra_order_settable_statuses(),true)){
       $all=vestra_read_json('order_statuses.json');
       $prev=$all[$ref]['status']??'pending';
-      $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>trim($_POST['tracking']??''),'updated_at'=>date('c')]);
+      $prevTrk=trim((string)($all[$ref]['tracking']??'')); $newTrk=trim((string)($_POST['tracking']??''));
+      $all[$ref]=array_merge($all[$ref]??[],['status'=>$st,'tracking'=>$newTrk,'updated_at'=>date('c')]);
       $all[$ref]['history'][] = vestra_order_history_entry($st, 'admin');
       vestra_write_json('order_statuses.json',$all);
       /* Invoice flow: on "paid", tell the buyer + the sellers whose SKUs are in the order,
@@ -1173,6 +1174,27 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
           require_once __DIR__.'/inc/email_templates.php';
           [$subj,$body,$opts]=vestra_tpl_order_stage($bLang,$st,$who,$ref);
           vestra_send_mail($oRow['email'],$subj,$body,'','',null,'',$opts);
+        }
+      }
+      /* 'shipped' was the one stage this handler kept to itself: the seller panel
+         mails the buyer with the tracking number, this path saved the number and
+         told nobody. The operator enters tracking HERE — and on 2 Sep 2026 a buyer
+         (O39419) was promised "the number reaches you the moment it is entered".
+         Fires when the order becomes shipped, or when a tracking number is added or
+         changed on an order that already is. */
+      if($st==='shipped' && ($prev!=='shipped' || ($newTrk!=='' && $newTrk!==$prevTrk))){
+        $sRow=null;
+        foreach(vestra_read_csv('orders.csv') as $row){ if(($row['ref']??'')===$ref){ $sRow=$row; break; } }
+        if($sRow && !empty($sRow['email'])){
+          $buyerAcc=auth_find((string)$sRow['email']);
+          require_once __DIR__.'/inc/email_templates.php';
+          [$subj,$body,$opts]=vestra_tpl_order_shipped($sRow['name']?:($sRow['company']?:'there'), $ref, $newTrk, (bool)$buyerAcc);
+          vestra_send_mail($sRow['email'],$subj,$body,'','',null,'',$opts);
+          if($buyerAcc){
+            require_once __DIR__.'/inc/push.php';
+            vestra_push_send($buyerAcc['id'], 'VESTRA — order shipped 🚚',
+              'Order '.$ref.($newTrk!=='' ? ' · Tracking: '.$newTrk : '').' is on its way.', '/buyer?tab=orders');
+          }
         }
       }
     }

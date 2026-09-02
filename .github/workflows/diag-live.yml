@@ -531,6 +531,34 @@ jobs:
             $needle = strtolower(trim((string)getenv('FIND_REF')));
             if ($needle === '') { fwrite(STDERR, "arama terimi yok\n"); exit(1); }
 
+            /* KISISEL ALANLAR MASKELI. Bu adim 2 Eyl 2026'ya kadar satiri OLDUGU
+               GIBI basiyordu ve o gun bir siparis satirini herkese acik gunluge
+               yazdi: alicinin adi, e-postasi, telefonu ve teslimat adresi. Kosunun
+               gunlugu silindi (run 33675552648), adim maskelendi. Is bilgisi (ref,
+               firma, tutar, durum, urun) acik kalir -- aramanin amaci o. Kisiye
+               ait olan (ad, adres, telefon, e-posta, vergi no) ancak uzunluk ve
+               ilk harfle gecer; notlardaki "Deliver to: ..." parcasi kirpilir. */
+            $maskMail = fn(string $e) => preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $show = function (string $k, string $v) use ($maskMail): string {
+              $k = strtolower($k);
+              if ($v === '') return '';
+              if ($k === 'email' || str_ends_with($k, '_email')) return $maskMail($v);
+              if (in_array($k, ['name','contact','phone','address','street','postcode','zip'], true))
+                return mb_substr($v, 0, 1).'*** ('.mb_strlen($v).' karakter)';
+              if (in_array($k, ['vat','vat_id','ein','tax_id','reg_number'], true))
+                return mb_strlen($v) > 4 ? mb_substr($v, 0, 2).'***'.mb_substr($v, -2) : '***';
+              if (in_array($k, ['notes','note','message','delivery','shipping_address'], true)) {
+                /* Serbest metin: yalnizca TANINAN is parcalari gecer ("Payment: ...",
+                   "Colours — ..."), gerisi kirpilir. "Deliver to: ..." parcasini
+                   noktaya kadar maskelemek yetmiyordu -- "434 Cielo Azul Dr." icindeki
+                   nokta maskeyi orada bitirir, sehir/eyalet/posta kodu acikta kalirdi. */
+                $keep = [];
+                if (preg_match('/Payment:\s*[^.]*\./u', $v, $m)) $keep[] = $m[0];
+                if (preg_match('/Colours\s*[—-][^.]*\./u', $v, $m)) $keep[] = $m[0];
+                return trim(implode(' ', $keep).' [kalan metin maskeli, '.mb_strlen($v).' karakter]');
+              }
+              return $v;
+            };
             $csvFiles = ['orders.csv','offers.csv','requests.csv','request_offers.csv','signups.csv','groups.csv'];
             /* leads.json BURADA OLMALI. Yoklugunda bu is bir prospect adresi icin
                "hicbir kayit dosyasinda YOK -- kayit gercekten olusmamis" diye kesin
@@ -549,7 +577,7 @@ jobs:
                 $hits++;
                 echo "== {$f} (satir ".($i+1)."/".count($rows).") ==\n";
                 foreach ($r as $k => $v) {
-                  $v = trim((string)$v);
+                  $v = $show((string)$k, trim((string)$v));
                   if ($v !== '') printf("   %-16s %s\n", $k, mb_substr($v, 0, 120));
                 }
                 echo "\n";
@@ -583,7 +611,7 @@ jobs:
               $hits++;
               echo "== accounts.json ==\n";
               foreach ($safe as $k) {
-                $v = trim((string)($a[$k] ?? ''));
+                $v = $show($k, trim((string)($a[$k] ?? '')));
                 if ($v !== '') printf("   %-18s %s\n", $k, mb_substr($v, 0, 120));
               }
               /* Belgenin ADI ve boyutu yaziliyor, ICERIGI degil. "approved" isareti
@@ -1841,9 +1869,10 @@ jobs:
             php /tmp/vestra_regprobe.php 2>&1
             rm -f /tmp/vestra_regprobe.php
 
-      # find_ref alanlari oldugu gibi basiyor, e-posta dahil. Bu adim ADA gore
-      # arar ve adresi MASKELER: depo da gunluk de herkese acik, bir musterinin
-      # adresini oraya yazmak onu kalici olarak yayinlamak demek.
+      # find_ref 2 Eyl 2026'ya kadar alanlari oldugu gibi basiyordu, e-posta dahil
+      # (artik o da maskeli). Bu adim ADA gore arar ve adresi MASKELER: depo da
+      # gunluk de herkese acik, bir musterinin adresini oraya yazmak onu kalici
+      # olarak yayinlamak demek.
       - name: Müşteriyi adına göre bul (adres maskeli)
         if: github.event.inputs.lead_find != ''
         uses: appleboy/ssh-action@v1.0.3
@@ -1862,9 +1891,10 @@ jobs:
             /**
              * Musteriyi ADA gore bul — adres MASKELI.
              *
-             * Neden ayri bir arac: find_ref alanlari oldugu gibi basiyor, e-posta dahil.
-             * Bu depo ve Actions gunlugu herkese acik; bir musterinin adresini oraya
-             * yazmak onu kalici olarak yayinlamak ve tarayicilara ikram etmek demek.
+             * Neden ayri bir arac: find_ref alanlari oldugu gibi basiyordu, e-posta
+             * dahil (2 Eyl 2026'dan beri o da maskeli). Bu depo ve Actions gunlugu
+             * herkese acik; bir musterinin adresini oraya yazmak onu kalici olarak
+             * yayinlamak ve tarayicilara ikram etmek demek.
              *
              * Operatorun adresi OKUMASI da gerekmiyor: panelin "elden mektup" kutusu
              * musteriyi FIRMA ADIYLA listeliyor, adres orada kendiliginden secilir.
