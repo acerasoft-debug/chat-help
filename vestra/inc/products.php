@@ -530,6 +530,12 @@ function vestra_colors(){
     'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
     'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
     'Cream'=>'#f1e8d2','Khaki'=>'#6a704c','Fuchsia'=>'#d1256e',
+    /* "Other" (operator istegi, 2 Eyl 2026): palette sigmayan renk/desen -- cok
+       renkli baski, metalik, kamuflaj. Listenin SONUNDA durur. Degeri bir CSS
+       arka plani: her tuketici bunu background: olarak basiyor (kart noktasi,
+       urun sayfasi, form cipi), o yuzden cok renkli bir gradyan tek hex'in
+       yerine sorunsuz gecer. Renk TAHMINCISI bu adi kullanmaz (asagida). */
+    'Other'=>'linear-gradient(135deg,#b3242c 0 25%,#e3c14f 25% 50%,#2b46c4 50% 75%,#14532d 75% 100%)',
   ];
 }
 /* Small colour-dot row (shop cards, product page, admin). $withNames adds the label after each dot. */
@@ -1266,7 +1272,9 @@ function vestra_colour_options(array $p): array {
 
     /* Palet, UZUN adlar once: "Light Blue" once denenmezse "Blue" onu yer ve
        urun yanlis renkle listelenir. */
-    $pal = array_keys(vestra_colors());
+    /* "Other" tahmin edilmez: "& Other Stories" gibi bir ad ya da aciklamadaki
+       "other colours on request" cumlesi urunu "Other" renkli diye listelerdi. */
+    $pal = array_values(array_diff(array_keys(vestra_colors()), ['Other']));
     usort($pal, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
 
     $scan = function (string $hay) use ($pal): array {
