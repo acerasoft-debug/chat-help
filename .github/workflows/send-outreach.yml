@@ -480,6 +480,11 @@ jobs:
                  basina yetmiyordu, cunku bot duvarina takilan sitede sirket adi diye
                  hata sayfasinin basligi kaydediliyor ve isim kontrolu bosa dusuyor. */
               if (!$ONLY && vestra_lead_is_blocked($l)) continue;
+              /* Park edilmis / satilik / ELE GECIRILMIS alan adi: dukkan degil. add-and-send
+                 bu kontrolu yapiyordu, burasi yapmiyordu -- 2 Eyl 2026 kuru kosusunda
+                 kapanmis Jeffrey New York'un alan adi "POKER369" adiyla secildi. */
+              if (!$ONLY && function_exists('vestra_name_is_parked_domain')
+                  && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) continue;
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
                  name, which a single-brand reseller or a label's own store also does. A

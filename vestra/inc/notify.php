@@ -394,7 +394,11 @@ function vestra_discover_blocklist(): array {
     'bluestar alliance','bluestarall','bellerose',
     // AVM / outlet koyu / duty-free isletmecisi (butik degil, kiraci ya da imtiyaz)
     'kildare village','kildarevillage','value retail','dublin duty free','dublindutyfree',
-    'aer rianta',
+    'aer rianta','bicester village','bicestervillage','ros retail outlet','ros-management',
+    // ikinci el / resale devleri ve kanalda rakip off-price e-tailer (ikinci kuru kosu)
+    'the realreal','therealreal','stadium goods','stadiumgoods','the outnet','theoutnet',
+    // cok subeli sneaker zinciri (CZ/SK, 20+ sube)
+    'buzz sneakers','buzzsneakers',
     /* 31 Agu 2026 — APAC "luxury stores" listesi. Engelleme listesi 73'te
        yalnizca ikisini yakaladi (DSM Ginza, Nepenthes). Elle okununca yine
        ayni uc kategori cikti; ayrica kanalda alici OLMAYAN iki tur:

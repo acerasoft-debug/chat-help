@@ -227,6 +227,10 @@ foreach ([
   ['Smallable', 'x@smallable.com', ''],
   ['Nanette Lepore', 'x@bluestarall.com', ''], ['bellerose', 'x@bellerose.be', ''],
   ['Kildare Village', 'x@kildarevillage.com', ''], ['Dublin Duty Free', 'x@dublindutyfree.ie', ''],
+  /* ikinci kuru kosu */
+  ['The RealReal', 'x@therealreal.com', ''], ['Stadium Goods', 'x@shopmail.stadiumgoods.com', ''],
+  ['Home', 'x@theoutnet.com', ''], ['Designer Shopping in Oxfordshire near London', 'x@bicestervillage.com', ''],
+  ['ROS Retail Outlet Shopping', 'x@ros-management.com', ''], ['BUZZ', 'x@buzzsneakers.cz', ''],
 ] as [$co, $em, $ws]) {
     $t("engellenmeli: $co", $blocked($co, $em, $ws));
 }
@@ -236,6 +240,8 @@ foreach ([
   ['Bella Rose Boutique', 'x@bellaroseboutique.com', ''], ['Small Wonders Kids', 'x@smallwonders.ie', ''],
   ['Kastner Optik', 'x@kastner-optik.at', ''], ['Village Boutique Kildare', 'x@villageboutique.ie', ''],
   ['Blue Fly Fishing', 'x@blueflyfishing.com', ''],
+  ['Real Deal Vintage', 'x@realdealvintage.com', ''], ['Stadium Sportswear', 'x@stadiumsportswear.ie', ''],
+  ['Outnet Boutique', 'x@outnetboutique.com', ''], ['Buzz Boutique', 'x@buzzboutique.com', ''],
 ] as [$co, $em, $ws]) {
     $t("gecmeli: $co", !$blocked($co, $em, $ws));
 }
