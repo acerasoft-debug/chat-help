@@ -5,12 +5,8 @@ on:
 permissions:
   contents: read
 
-# Salt-okunur. "Okundu ama bildirim sönmüyor" hatasının kaynağını görmek için
-# bu dalda geçici olarak KAYNAK DÖKÜMÜ yapar:
-#  1) inc/messages.php tam kaynak (satır numaralı),
-#  2) okundu işaretinin YAZILDIĞI yerler,
-#  3) okunmamış sayacının OKUNDUĞU/rozetin çizildiği yerler.
-# Hiçbir şey DEĞİŞTİRMEZ.
+# Salt-okunur. "Okundu ama bildirim sönmüyor" hatasının kaynağı: panellerin
+# hangi thread'i gösterdiği ile mark_read'in hangi thread için çağrıldığı.
 jobs:
   diag:
     runs-on: ubuntu-latest
@@ -25,12 +21,28 @@ jobs:
           command_timeout: 5m
           script: |
             DOC="$HOME/public_html"
-            echo "===== 1) inc/messages.php (tam kaynak) ====="
-            wc -l "$DOC/inc/messages.php"
-            cat -n "$DOC/inc/messages.php"
+            echo "===== A) messages.php 1-94 ====="
+            sed -n '1,94p' "$DOC/inc/messages.php" | cat -n
             echo
-            echo "===== 2) Okundu isaretini YAZAN yerler ====="
-            grep -rn --include='*.php' -E "\['read'\]|\"read\"\]|mark_read|msg_read" "$DOC" 2>/dev/null | grep -v "error_log" | head -50
+            echo "===== B) seller.php 380-430 ====="
+            sed -n '380,430p' "$DOC/seller.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+379]/'
             echo
-            echo "===== 3) Okunmamis sayacinin kullanildigi yerler ====="
-            grep -rn --include='*.php' "vestra_msg_unread\|unread" "$DOC" 2>/dev/null | grep -v "error_log" | head -60
+            echo "===== C) seller.php 1120-1185 ====="
+            sed -n '1120,1185p' "$DOC/seller.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+1119]/'
+            echo
+            echo "===== D) buyer.php 140-190 ====="
+            sed -n '140,190p' "$DOC/buyer.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+139]/'
+            echo
+            echo "===== E) buyer.php 575-620 ====="
+            sed -n '575,620p' "$DOC/buyer.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+574]/'
+            echo
+            echo "===== F) tid degiskeni nerede belirleniyor ====="
+            grep -n 'tid' "$DOC/seller.php" | head -25
+            echo "--- buyer ---"
+            grep -n 'tid' "$DOC/buyer.php" | head -25
+            echo
+            echo "===== G) inc/head.php 40-70 ====="
+            sed -n '40,70p' "$DOC/inc/head.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+39]/'
+            echo
+            echo "===== H) MSG_UNREAD rozetinin cizildigi yerler ====="
+            grep -rn 'MSG_UNREAD' "$DOC" --include='*.php' | head -20
