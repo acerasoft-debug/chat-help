@@ -5,8 +5,8 @@ on:
 permissions:
   contents: read
 
-# Salt-okunur. "Okundu ama bildirim sönmüyor" hatasının kaynağı: panellerin
-# hangi thread'i gösterdiği ile mark_read'in hangi thread için çağrıldığı.
+# Salt-okunur: rozet ($AUTH_USER['id']) ile okundu işareti ($_SESSION['uid'])
+# aynı değeri mi kullanıyor?
 jobs:
   diag:
     runs-on: ubuntu-latest
@@ -21,28 +21,18 @@ jobs:
           command_timeout: 5m
           script: |
             DOC="$HOME/public_html"
-            echo "===== A) messages.php 1-94 ====="
-            sed -n '1,94p' "$DOC/inc/messages.php" | cat -n
+            echo "===== A) AUTH_USER nerede kuruluyor ====="
+            grep -rn 'AUTH_USER *=' "$DOC" --include='*.php' | head -20
             echo
-            echo "===== B) seller.php 380-430 ====="
-            sed -n '380,430p' "$DOC/seller.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+379]/'
+            echo "===== B) SESSION uid nerede yaziliyor ====="
+            grep -rn "_SESSION\['uid'\] *=" "$DOC" --include='*.php' | head -20
             echo
-            echo "===== C) seller.php 1120-1185 ====="
-            sed -n '1120,1185p' "$DOC/seller.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+1119]/'
+            echo "===== C) auth_user() tanimi ====="
+            grep -n 'function auth_user' -A 25 "$DOC/inc/auth.php" | head -45
             echo
-            echo "===== D) buyer.php 140-190 ====="
-            sed -n '140,190p' "$DOC/buyer.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+139]/'
+            echo "===== D) messages.php 1-48 ====="
+            sed -n '1,48p' "$DOC/inc/messages.php" | cat -n
             echo
-            echo "===== E) buyer.php 575-620 ====="
-            sed -n '575,620p' "$DOC/buyer.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+574]/'
-            echo
-            echo "===== F) tid degiskeni nerede belirleniyor ====="
-            grep -n 'tid' "$DOC/seller.php" | head -25
-            echo "--- buyer ---"
-            grep -n 'tid' "$DOC/buyer.php" | head -25
-            echo
-            echo "===== G) inc/head.php 40-70 ====="
-            sed -n '40,70p' "$DOC/inc/head.php" | cat -n | sed 's/^ *\([0-9]*\)/[\1+39]/'
-            echo
-            echo "===== H) MSG_UNREAD rozetinin cizildigi yerler ====="
-            grep -rn 'MSG_UNREAD' "$DOC" --include='*.php' | head -20
+            echo "===== E) my_threads + find_thread tanimlari ====="
+            grep -n 'function vestra_msg_my_threads' -A 12 "$DOC/inc/messages.php"
+            grep -n 'function vestra_msg_save_threads' -A 10 "$DOC/inc/messages.php"
