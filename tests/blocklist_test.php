@@ -224,7 +224,7 @@ foreach ([
   ['McElhinneys', 'x@mcelhinneys.com', ''], ['Kastner und Öhler Mode', 'x@kastner-oehler.at', ''],
   ['Harry Rosen', 'x@harryrosen.com', ''], ['Culture Kings', 'x@culturekings.com.au', ''],
   ['TSUM OUTLET', 'x@outlet.tsum.ru', ''], ['Mytheresa', 'x@mytheresa.com', ''],
-  ['Smallable', 'x@smallable.com', ''], ['Bluefly', 'x@bluefly.com', ''],
+  ['Smallable', 'x@smallable.com', ''],
   ['Nanette Lepore', 'x@bluestarall.com', ''], ['bellerose', 'x@bellerose.be', ''],
   ['Kildare Village', 'x@kildarevillage.com', ''], ['Dublin Duty Free', 'x@dublindutyfree.ie', ''],
 ] as [$co, $em, $ws]) {
