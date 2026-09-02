@@ -1,0 +1,54 @@
+name: (Salt-okunur) Okunmamış sayacı kaynak dökümü
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Salt-okunur. "Okundu ama bildirim sönmüyor" hatasını kaynağında görmek için:
+#  1) inc/messages.php'nin tamamını satır numaralarıyla döker,
+#  2) public_html içinde okundu işaretinin YAZILDIĞI yerleri arar,
+#  3) okunmamış sayacının OKUNDUĞU/gösterildiği yerleri arar.
+# Hiçbir şey DEĞİŞTİRMEZ.
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynağı dök
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            DOC="$HOME/public_html"
+            echo "===== 1) inc/messages.php (tam kaynak, satır numaralı) ====="
+            if [ -f "$DOC/inc/messages.php" ]; then
+              wc -l "$DOC/inc/messages.php"
+              cat -n "$DOC/inc/messages.php"
+            else
+              echo "BULUNAMADI: $DOC/inc/messages.php"; ls "$DOC/inc/"
+            fi
+            echo
+            echo "===== 2) Okundu işaretini YAZAN yerler (read atamaları) ====="
+            grep -rn --include='*.php' -E "\['read'\]|\"read\"\]|msg_mark|mark_read|vestra_msg_read" "$DOC" | grep -v error_log | head -60
+            echo
+            echo "===== 3) Okunmamış sayacını GÖSTEREN yerler ====="
+            grep -rn --include='*.php' -E "vestra_msg_unread|unread" "$DOC" | grep -v error_log | head -60
+            echo
+            echo "===== 4) messages.json örnek yapı (ilk 60 satır, kişisel veri en aza indirilmiş) ====="
+            if [ -f "$DOC/data/messages.json" ]; then
+              php -r '
+                $j = json_decode(file_get_contents(getenv("HOME")."/public_html/data/messages.json"), true);
+                $threads = is_array($j) ? (isset($j[0]) ? $j : array_values($j)) : [];
+                foreach (array_slice($threads, 0, 3) as $t) {
+                  if (isset($t["messages"]) && is_array($t["messages"]))
+                    foreach ($t["messages"] as &$m) { if (isset($m["text"])) $m["text"] = mb_substr((string)$m["text"],0,25)."…"; }
+                  echo json_encode($t, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE), "\n";
+                }
+              '
+            else
+              echo "BULUNAMADI: $DOC/data/messages.json"; ls "$DOC/data/" | head
+            fi
