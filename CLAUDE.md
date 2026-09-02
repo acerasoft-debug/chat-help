@@ -110,6 +110,23 @@ sonra `send=true`. Ülke `Monaco` → Fransızca (`LANG_MAP` + `.mc`). Sonuç:
 zaten yazılmıştı, 2'si aynı firmanın ikinci kutusuydu. "Liste doymuş" ölçüsü
 (~%15) bir kez daha tuttu.
 
+**Link verilen listede çözülen adresi de OKU (2 Eyl 2026, "Lüks Butik
+Leadleri" xlsx, 32 site, e-posta yok).** `add-and-send` siteden adres çözer;
+14 sitede yayınlanmış adres **yoktu** (Nugnes, Julian, Sugar, Just One Eye,
+Notre, AIDA, Broken Arm, L'Exception, Centre Commercial, Voo, Santa Eulalia,
+Holly Golightly, Naked, Vitruta, GR8, Haven) — adres uydurulmaz, o dükkânlara
+mektup gitmez. İki sitede çözülen adres **dükkânın değildi:** nubiantokyo.com →
+`info@stagheaddesigns.com` (sitenin web ajansı), ka-pok.com →
+`back-in-stock@notifyboost.net` (Shopify eklentisi). İkisi de leads.json'da
+duruyor; gönderim listesine alınmadı. Ülke tespiti de yanıldı (Des Kohan →
+Japan, Mohawk → France; ikisi de Los Angeles) — `send=true` koşusuna
+`country` ver. Havuz (yeni koleksiyon) seçiminde de aynı gün dört kuru koşu
+gerekti: ilk 100'de B&M, Arnotts, Shaws, Kastner & Öhler, Harry Rosen,
+Culture Kings, TSUM, Mytheresa, The RealReal, Stadium Goods, THE OUTNET,
+Bicester Village, Estnation, Ron Herman, Shopbop, Moda Operandi... vardı;
+hepsi bloklisteye eklendi, `send-outreach` artık park/ele geçirilmiş alan adı
+kontrolünü de yapıyor ve yeni koleksiyon kipinde firma başına tek adres seçiyor.
+
 **Aynı gün kaçan bir tane daha:** `keehinghung.com` mektup aldı; taranan ad
 *"Official Rolex and Tudor Retailer in Singapore"* — **yetkili marka bayisi**
 (üstelik saat, konfeksiyon değil). Bloklisteye eklenmedi, operatör kararı
