@@ -318,8 +318,20 @@ jobs:
                damgasini tasirsa ayni kisiye ayni duyuru iki kez gitmiyor. */
             $IS_NEWCOLL = strtolower(trim((string)getenv('SEND_NEWCOLL'))) === 'true';
             if ($IS_NEWCOLL) require_once $home."/public_html/inc/email_templates.php";
-            /* Yeni koleksiyon kipinde firma (alan adi) basina TEK duyuru; bkz. secim dongusu. */
+            /* Yeni koleksiyon kipinde firma (alan adi) basina TEK duyuru; bkz. secim dongusu.
+               Harita KOSULAR ARASI da dolu olmali: gercek gonderim 50'ye kirpiliyor ve
+               ikinci 50'lik koşu ilkinin gonderdigi firmalari bilmiyordu -- 2 Eyl 2026'da
+               yedi firma (dmag.eu, sculpstore.com, luisaworld.com, abovethecloudsstore.com,
+               hanley.ie, kirnazabete.com, rsvpgallery.com) iki dakika arayla iki kutudan
+               ayni duyuruyu aldi. Damgali leadlerin alan adlari bastan isaretlenir. */
             $ncSeenDom = [];
+            if ($IS_NEWCOLL) {
+              foreach ($leads as $l0) {
+                if (trim((string)($l0['last_newcollection_at'] ?? '')) === '') continue;
+                $d0 = strtolower((string)substr((string)strrchr((string)($l0['email'] ?? ''), '@'), 1));
+                if ($d0 !== '') $ncSeenDom[$d0] = true;
+              }
+            }
             $NC_SHARED = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com','hotmail.co.uk',
               'live.com','msn.com','yahoo.com','yahoo.co.jp','yahoo.co.uk','ymail.com','icloud.com','me.com',
               'aol.com','protonmail.com','proton.me','gmx.de','gmx.net','web.de','t-online.de','orange.fr',

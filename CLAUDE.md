@@ -126,6 +126,11 @@ Culture Kings, TSUM, Mytheresa, The RealReal, Stadium Goods, THE OUTNET,
 Bicester Village, Estnation, Ron Herman, Shopbop, Moda Operandi... vardı;
 hepsi bloklisteye eklendi, `send-outreach` artık park/ele geçirilmiş alan adı
 kontrolünü de yapıyor ve yeni koleksiyon kipinde firma başına tek adres seçiyor.
+**Gerçek gönderim koşu başına 50'ye kırpılıyor** (`$COUNT > 50 → 50`); 100
+için iki koşu gerekir ve ikinci koşu ilkinin gönderdiği firmaları bilmiyordu:
+7 firma iki kutudan aynı duyuruyu aldı (dmag.eu, sculpstore.com, luisaworld.com,
+abovethecloudsstore.com, hanley.ie, kirnazabete.com, rsvpgallery.com). Geri
+alınamadı; harita artık damgalı leadlerin alan adlarıyla **baştan** dolu.
 
 **Aynı gün kaçan bir tane daha:** `keehinghung.com` mektup aldı; taranan ad
 *"Official Rolex and Tudor Retailer in Singapore"* — **yetkili marka bayisi**
