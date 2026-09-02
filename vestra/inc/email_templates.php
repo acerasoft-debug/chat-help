@@ -1717,8 +1717,19 @@ function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vat
  *
  * $sellerCountry: hesaptaki kayitli ulke; BOS ise o cumle HIC yazilmaz.
  * $p            : numune ilaninin canli kaydi (fiyat ve link oradan basilir).
+ * $sellerVat    : saticinin kayitli VAT numarasi; BOS ise cumle yazilmaz.
+ * $escrow       : escrow GERCEKTEN kullanilabilir mi (escrow_seller_ready).
+ *                 false ise escrow paragrafi HIC yazilmaz -- olmayan bir
+ *                 korumayi vaat etmek, hic guvence vermemekten kotu.
+ *
+ * ESCROW METNI KODA UYGUN OLMALI. Operatorun ilk ifadesi "para ancak musteri
+ * teyit edince serbest birakilir" idi; cron_escrow_release.php ise teslimattan
+ * 2 IS GUNU sonra alici susuyorsa parayi otomatik birakiyor. Tatilde olup uc gun
+ * cevap vermeyen alici parasinin gittigini gorurdu -- ve bu mektup zaten bir kez
+ * yanmis birine gidiyor. Metin sureyi acikca yaziyor.
  */
 function vestra_tpl_authenticity_sample(string $salutation, array $p, string $sellerCountry,
+                                        string $sellerVat = '', bool $escrow = false,
                                         string $signer = 'Marco Bellini'): array {
     $subject = 'Re: Ordering with confidence — a sample first';
 
@@ -1740,6 +1751,7 @@ function vestra_tpl_authenticity_sample(string $salutation, array $p, string $se
 . "I can only tell you what we actually hold on file.\n\n"
 . ($sellerCountry !== ''
     ? "The supplier for the Lacoste articles is a company registered in ".$sellerCountry.".\n"
+      .($sellerVat !== '' ? "They trade under VAT number ".$sellerVat.", which you can check yourself in VIES.\n" : '')
     : '')
 . "Before any seller is allowed to trade on VESTRA they go through our KYB check: company\n"
 . "registration, VAT ID and bank account are validated. So you are dealing with an identified,\n"
@@ -1760,6 +1772,19 @@ function vestra_tpl_authenticity_sample(string $salutation, array $p, string $se
 . "You order it the normal way: add it to your basket and enter your delivery address at\n"
 . "checkout. Payment is by bank transfer against an invoice, so there is a document behind it\n"
 . "from the first euro you spend.\n\n"
+. ($escrow
+? "And for the order after that\n\n"
+. "If the sample satisfies you, the wholesale order itself can be placed under escrow. Your\n"
+. "payment is held — it does not reach the supplier when you pay. It is released to them only\n"
+. "after the goods have been delivered to you and you have confirmed them.\n\n"
+. "Two things I want to be exact about, because a vague promise here is worth nothing:\n\n"
+. "  – The clock starts on delivery, not on dispatch. Your money is not released while the\n"
+. "    goods are still in transit.\n"
+. "  – If you raise a problem within two working days of delivery, the release stops and we\n"
+. "    decide the case, refund included. If we hear nothing from you in those two working\n"
+. "    days, the payment is released to the supplier automatically. So do open the parcel\n"
+. "    and tell us either way — that window is your protection and it is short.\n\n"
+    : '')
 . "On your other question\n\n"
 . "You asked about a video call with the supplier, or buying in person for cash. I am not\n"
 . "going to promise either on their behalf before I have asked them. If the sample convinces\n"

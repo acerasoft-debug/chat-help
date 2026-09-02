@@ -1633,15 +1633,26 @@ jobs:
                  cumleyi hic yazmaz -- "Fransa" diye elle yazmak, dogrulamadigim
                  bir seyi supheli bir aliciya beyan etmek olurdu. */
               require_once $doc."/inc/security.php";   /* vestra_country_of_cc */
-              $sellerCc = '';
+              $sellerCc = ''; $sellerVat = ''; $sellerAcc = null;
               $suid = (string)($prod['seller_uid'] ?? '');
               if ($suid !== '') {
                 foreach (auth_accounts() as $sa) {
                   if ((string)($sa['id'] ?? '') !== $suid) continue;
-                  $sellerCc = trim((string)($sa['country'] ?? ''));
+                  $sellerAcc = $sa;
+                  $sellerCc  = trim((string)($sa['country'] ?? ''));
+                  $sellerVat = trim((string)($sa['vat_id'] ?? ''));
                   break;
                 }
               }
+              /* ESCROW GERCEKTEN ACIK MI. 'stripe_account_id var' ile
+                 escrow_seller_ready() AYNI SEY DEGIL: ilki hesabin baglandigini,
+                 ikincisi onboarding'in bitip tahsilatin acildigini soyluyor.
+                 Bu depoda alti kez kontrol yanlis alana bakti; escrow'u
+                 dogrulamadan vaat etmek, olmayan bir korumayi satmak olurdu.
+                 Kapali cikarsa sablon o paragrafi HIC yazmiyor. */
+              require_once $doc."/inc/escrow.php";
+              $escrowOk = ($sellerAcc && function_exists('escrow_seller_ready'))
+                        ? escrow_seller_ready($sellerAcc) : false;
               /* Hesapta ulke bazen ISO kodu olarak duruyor ('FR'). Mektupta
                  "registered in FR" yazmak kotu duruyor -- kodu tam ada cevir.
                  Cozulemezse kod oldugu gibi kalir; uydurmuyoruz. */
@@ -1650,9 +1661,13 @@ jobs:
               foreach ((array)($prod['tiers'] ?? []) as $t) { $unit = (float)($t['price'] ?? 0); break; }
               echo "urun   : {$pid} | fiyat=".number_format($unit, 2)." EUR | MOQ=".(int)($prod['moq'] ?? 0)."\n";
               echo "satici : ".((string)($prod['seller'] ?? '?'))." | kayitli ulke="
-                 . ($sellerCc !== '' ? $sellerCc : '(BOS -> o cumle yazilmayacak)')."\n";
+                 . ($sellerCc !== '' ? $sellerCc : '(BOS -> o cumle yazilmayacak)')
+                 . " | vat=".($sellerVat !== '' ? substr($sellerVat, 0, 4).'***' : '(BOS)')."\n";
+              echo "escrow : ".($escrowOk ? 'HAZIR -> paragraf YAZILACAK'
+                                          : 'HAZIR DEGIL -> paragraf YAZILMAYACAK')."\n";
 
-              [$subject, $body, $opts] = vestra_tpl_authenticity_sample($salutation, $prod, $sellerCc, $signer);
+              [$subject, $body, $opts] = vestra_tpl_authenticity_sample(
+                $salutation, $prod, $sellerCc, $sellerVat, $escrowOk, $signer);
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
                  ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan
