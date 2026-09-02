@@ -231,6 +231,7 @@ foreach ([
   ['The RealReal', 'x@therealreal.com', ''], ['Stadium Goods', 'x@shopmail.stadiumgoods.com', ''],
   ['Home', 'x@theoutnet.com', ''], ['Designer Shopping in Oxfordshire near London', 'x@bicestervillage.com', ''],
   ['ROS Retail Outlet Shopping', 'x@ros-management.com', ''], ['BUZZ', 'x@buzzsneakers.cz', ''],
+  ['Aïshti', '', 'https://aishti.com'],
 ] as [$co, $em, $ws]) {
     $t("engellenmeli: $co", $blocked($co, $em, $ws));
 }

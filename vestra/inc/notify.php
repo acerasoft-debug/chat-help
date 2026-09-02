@@ -399,6 +399,10 @@ function vestra_discover_blocklist(): array {
     'the realreal','therealreal','stadium goods','stadiumgoods','the outnet','theoutnet',
     // cok subeli sneaker zinciri (CZ/SK, 20+ sube)
     'buzz sneakers','buzzsneakers',
+    /* 2 Eyl 2026 — "Luks Butik Leadleri" xlsx (32 satir). Aïshti: Beyrut merkezli
+       luks perakende GRUBU (department store + onlarca markanin Orta Dogu
+       franchise/dagitim haklari) -- listede "bagimsiz butik" diye geciyordu. */
+    'aishti','aïshti',
     /* 31 Agu 2026 — APAC "luxury stores" listesi. Engelleme listesi 73'te
        yalnizca ikisini yakaladi (DSM Ginza, Nepenthes). Elle okununca yine
        ayni uc kategori cikti; ayrica kanalda alici OLMAYAN iki tur:
