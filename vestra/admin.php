@@ -3143,7 +3143,15 @@ function sendUserMessage(uid,name){
         <span class="ahint">—</span>
       <?php endif; ?>
     </td>
-    <td class="ac"><?= acctBadge($a) ?></td>
+    <td class="ac"><?= acctBadge($a) ?>
+      <?php /* Ac dugmesi ROZETIN ALTINDA da: tablo 15 sutun, Actions hucresi
+               telefonda ekranin disinda kaliyor -- operator "Pending" gordu,
+               dugmeyi goremedi (LESSVAT, 2 Eyl 2026). */
+            if(!$isSusp && !auth_prices_unlocked($a)): ?>
+        <div style="margin-top:5px"><?= fBtn('🔓 Open account','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4);font-size:11px',
+              'Open this account now? Trade prices, ordering and line sheets unlock for them immediately. A document is NOT required for this.'.($isPendEmail ? "\n\nNote: their e-mail address is not verified yet." : '')) ?></div>
+      <?php endif; ?>
+    </td>
     <td class="ac">
       <?= memberBadge($a['membership_tier']??'',$a['membership_status']??'') ?>
       <form method="post" action="/admin" style="margin-top:5px;display:flex;gap:3px;align-items:center">
@@ -3206,6 +3214,19 @@ function sendUserMessage(uid,name){
   <tr class="udetail" id="ud-<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>" style="display:none;background:rgba(201,168,106,.06)">
     <td></td>
     <td colspan="13" style="padding:14px 18px">
+      <?php /* Acilan satirin EN USTUNDE hesabin kapi durumu ve ac dugmesi: operator
+               satiri acip adres bilgisine bakarken "bu hesap acik mi" sorusunun
+               cevabi ve cozumu ayni yerde dursun. */ ?>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <?= acctBadge($a) ?>
+        <?php if(!$isSusp && !auth_prices_unlocked($a)): ?>
+          <?= fBtn('🔓 Open account','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)',
+              'Open this account now? Trade prices, ordering and line sheets unlock for them immediately. A document is NOT required for this.') ?>
+          <span class="ahint">Trade prices, ordering and line sheets stay closed for them until you press this.</span>
+        <?php elseif(!$isSusp): ?>
+          <span class="ahint">Prices, ordering and line sheets are open for this account.</span>
+        <?php endif; ?>
+      </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;max-width:1040px">
         <div>
           <div class="ahint" style="text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;margin-bottom:5px">📍 Full address</div>
