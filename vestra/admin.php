@@ -3969,7 +3969,7 @@ elseif($tab==='req_offers'): ?>
 
 <?php // ══════════════════════════════════════════════════════ PRICES & MOQ
 elseif($tab==='prices'):
-  $allProd = vestra_products();
+  $allProd = vestra_products(true);   // admin sees unlisted items too (the sample piece has a price to edit)
   usort($allProd, function($a,$b){
     $ad=vestra_is_demo_product($a['id']??'')?0:1; $bd=vestra_is_demo_product($b['id']??'')?0:1;
     return $ad<=>$bd ?: strcmp(($a['brand']??'').($a['name']??''),($b['brand']??'').($b['name']??''));
@@ -4801,7 +4801,7 @@ function smtpPreset(v){
     <div class="afield"><label>Products *</label>
       <input type="text" onkeyup="quoteFilter(this.value)" placeholder="Filter products…" style="margin-bottom:6px">
       <div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px">
-        <?php foreach(vestra_products() as $qp): if(empty($qp['brand'])) continue; $qfp=vestra_from_price($qp); ?>
+        <?php foreach(vestra_products(true) as $qp): if(empty($qp['brand'])) continue; $qfp=vestra_from_price($qp); ?>
         <label class="qprow" style="display:flex;gap:8px;align-items:center;padding:4px 6px;font-size:12.5px;cursor:pointer">
           <input type="checkbox" name="q_products[]" value="<?= htmlspecialchars($qp['id']??'') ?>">
           <span><b><?= htmlspecialchars($qp['brand']) ?></b> <?= htmlspecialchars($qp['name']??'') ?><?php if($qfp>0): ?> · <span class="ahint">from €<?= rtrim(rtrim(number_format($qfp,2),'0'),'.') ?><?= ($qp['mode']??'')==='sale'?' (sale)':'' ?></span><?php endif; ?></span>

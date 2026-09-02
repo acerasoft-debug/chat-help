@@ -6,10 +6,12 @@
  * order and review it" detail view used by both buyer.php and seller.php.
  */
 
-/** Find a product (demo or live) by SKU — reconstructs brand/name/image for an order line. */
+/** Find a product (demo or live) by SKU — reconstructs brand/name/image for an order line.
+ *  Includes unlisted items: an order line for the Musterstueck sample must still show its
+ *  brand, name and photo in the buyer, seller and admin panels. */
 function vestra_product_by_sku(string $sku): ?array {
     if ($sku === '') return null;
-    foreach (vestra_products() as $p) if (($p['sku'] ?? '') === $sku) return $p;
+    foreach (vestra_products(true) as $p) if (($p['sku'] ?? '') === $sku) return $p;
     return null;
 }
 

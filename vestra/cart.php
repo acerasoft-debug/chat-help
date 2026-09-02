@@ -18,7 +18,9 @@ if (stripe_available()) {
     if (($a['type']??'')==='seller' && !empty($a['escrow_ready']) && !empty($a['stripe_account_id'])) $readySellers[$a['id']] = true;
   }
   if ($readySellers) {
-    foreach (vestra_products() as $p) {
+    /* true: unlisted items (the Musterstueck sample) can sit in the cart via a direct
+       link and must still get their seller's escrow option. */
+    foreach (vestra_products(true) as $p) {
       $sid = $p['seller_uid'] ?? '';
       if ($sid !== '' && isset($readySellers[$sid])) $escrowMap[$p['id']] = $sid;
     }

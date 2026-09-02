@@ -5,6 +5,9 @@ $p = vestra_find($_GET['id'] ?? '');
 if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('Product not found.').' <a class="acc" href="/shop">'.t('Back to catalog').'</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
+/* Unlisted item (e.g. the Musterstueck sample): the page works by direct link but is not
+   part of the catalogue, so search engines are told not to index it either. */
+if (!empty($p['unlisted'])) $NOINDEX = true;
 
 $PAGE = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')) ?: ($p['name'] ?? 'Product');
 /* Photo alt text. Now that robots.txt lets image crawlers into /uploads, alt text is the

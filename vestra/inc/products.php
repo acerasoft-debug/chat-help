@@ -161,6 +161,13 @@ function vestra_demo_products(){
          Kapatirken sayilari birakmak, havuz yeniden acildiginda ayni yanilticiligin
          sessizce geri gelmesi demekti. */
       'group'=>false,
+      /* KATALOGDA GORUNMEZ (operator karari, 2 Eyl 2026: "musterstuck katalogta
+         gorunmesin"). Bu bir urun degil, tek bir aliciya mektupla verilen numune
+         yolu: vitrinde 60 EUR'luk "tek parca polo" olarak dursa, toptan katalogun
+         yaninda hem tuhaf durur hem de gercek MOQ'yu gizler. Dogrudan baglanti
+         (/product?id=...), sepet ve siparis yolu calismaya devam eder --
+         vestra_find() ve sepet vestra_products(true) ile okur. */
+      'unlisted'=>true,
     ],
     [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
@@ -231,7 +238,10 @@ function vestra_save_product_overrides(array $ov): void {
 }
 /* Which products are demo (override-backed) vs live listings (listings.json-backed). */
 function vestra_is_demo_product(string $id): bool {
-  foreach(['lac-pique-polo','amiri-core-polo'] as $d){ if($d===$id) return true; }
+  /* lac-l1212-musterstueck is here so the admin Prices editor writes its edits to
+     product_overrides.json -- without it the save path would look for the id in
+     listings.json, find nothing and silently drop the change. */
+  foreach(['lac-pique-polo','amiri-core-polo','lac-l1212-musterstueck'] as $d){ if($d===$id) return true; }
   return false;
 }
 /* ── Brand logo SVGs (inline) ─────────────────────────────────────────── */
@@ -399,7 +409,19 @@ function vestra_seed_catalog(){
     if(is_readable($f)){ $d=json_decode((string)file_get_contents($f),true); if(is_array($d)) return $d; }
     return [];
 }
-function vestra_products(){
+/**
+ * The catalogue: demo products + approved live listings + bundled seed drops.
+ *
+ * `unlisted` products are LEFT OUT by default. That flag exists for items that are
+ * reachable by direct link only -- the Musterstueck sample piece sent to one buyer in a
+ * letter -- and every public list (shop grid, price lists, catalogue exports, sitemap,
+ * campaigns, API catalogue, related items) goes through this default. Pass
+ * $includeUnlisted=true ONLY where an item the buyer already holds an id/SKU for has to
+ * resolve: vestra_find(), the cart's escrow map, order-line lookup by SKU, and the admin
+ * price editor / quote picker. A public page passing true would put the sample back in
+ * the catalogue, so tests/unlisted_product_test.php scans the public pages for it.
+ */
+function vestra_products(bool $includeUnlisted = false){
     $live = vestra_live_listings();
     $seen = [];
     foreach($live as $l){
@@ -413,7 +435,9 @@ function vestra_products(){
         if(isset($seen[$id]) || isset($seen[$bs])) continue;
         $seed[] = $p;
     }
-    return array_merge(vestra_demo_products(), $live, $seed);
+    $all = array_merge(vestra_demo_products(), $live, $seed);
+    if ($includeUnlisted) return $all;
+    return array_values(array_filter($all, fn($p) => empty($p['unlisted'])));
 }
 /**
  * Which storefront section a product belongs to.
@@ -442,7 +466,10 @@ function vestra_section_label(string $s): string {
     return vestra_sections()[strtolower(trim($s))] ?? vestra_sections()['premium'];
 }
 
-function vestra_find($id){ foreach(vestra_products() as $p){ if($p['id']===$id) return $p; } return null; }
+/* By id, INCLUDING unlisted items: the product page, cart, order and offer paths all come
+   here with an id the buyer was given directly, and a link sent in a letter must keep
+   working even though the item is not in the catalogue. */
+function vestra_find($id){ foreach(vestra_products(true) as $p){ if($p['id']===$id) return $p; } return null; }
 function vestra_cats(){ $c=[]; foreach(vestra_products() as $p){ $c[$p['cat']]=1; } return array_keys($c); }
 function vestra_primary_image(array $p): string { if(!empty($p['images'])&&is_array($p['images'])) return $p['images'][0]; return $p['image']??''; }
 /* Mask a seller/company name for viewers who are not yet approved (freigeschaltet):

@@ -409,6 +409,14 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
+- **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
+  `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
+  **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
+  kampanya, API) bu varsayılandan geçer. `vestra_products(true)` **yalnızca**
+  `vestra_find()`, sepet escrow haritası, sipariş satırı (SKU) ve admin fiyat
+  editörü/teklif seçici için — alıcının elinde id/SKU olan yollar. Açık bir sayfaya
+  `true` yazılırsa numune sessizce kataloga döner; `tests/unlisted_product_test.php`
+  açık sayfaları kaynak düzeyinde tarar. Ürün sayfası gizli kayda `noindex` basar.
 - **Testler:** `sh tests/run_all.sh` — teklif akışı, tur sınırı, fiyat kuralları,
   para girişi, e-posta doğrulayıcı, JSON-LD görsel çözücü. Teklif akışı bir
   oturumda dört kez değişti; her seferinde önceki davranışı koruyan şey bunlar
