@@ -946,13 +946,32 @@ function auth_missing_doc_types(array $a): array {
    ayni cevabi okur; test de onu kosar. */
 if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DAYS', 3);
 
+/* MUAFIYET. Operator karari, 2 Eyl 2026: "GARAGE LE PARIS'i muaf tut" -- ana
+   ortak satici (56 ilan, faturalar onun adina kesiliyor); kural yururluge
+   girdiginde ilk sabah saati baslayacak iki saticidan biriydi. Kodda VARSAYILAN
+   liste (hemen ve kesin etkili olsun diye), uzerine hesap bayragi
+   doc_grace_exempt: panelden acilir/kapatilir ve kodun varsayilanini EZER --
+   yani GARAGE'in suresi bir gun panelden yeniden acilabilir. Muaf satici:
+   saat yok, mektup yok, aski yok; belgeleri yine istenir ve panelde acik durur. */
+function auth_doc_grace_exempt_uids(): array {
+    return ['7ab30f26afedd840'];   // GARAGE LE PARIS
+}
+function auth_doc_grace_exempt(array $acc): bool {
+    if (array_key_exists('doc_grace_exempt', $acc) && $acc['doc_grace_exempt'] !== null && $acc['doc_grace_exempt'] !== '') {
+        return (bool)$acc['doc_grace_exempt'];
+    }
+    return in_array((string)($acc['id'] ?? ''), auth_doc_grace_exempt_uids(), true);
+}
+
 function auth_seller_doc_grace(array $acc, array $listings, ?int $now = null): array {
     $now = $now ?? time();
     $out = ['phase'=>'clear', 'missing'=>[], 'start'=>null, 'deadline'=>null, 'days_left'=>null,
-            'has_listing'=>count($listings) > 0, 'reason'=>(string)($acc['suspend_reason'] ?? '')];
+            'has_listing'=>count($listings) > 0, 'reason'=>(string)($acc['suspend_reason'] ?? ''),
+            'exempt'=>false];
     if (($acc['type'] ?? '') !== 'seller') return $out;
     $out['missing'] = auth_missing_doc_types($acc);
     if (!$out['missing']) return $out;                                    // belgeler tamam
+    if (auth_doc_grace_exempt($acc)) { $out['phase'] = 'exempt'; $out['exempt'] = true; return $out; }
     if (($acc['status'] ?? '') === 'suspended') { $out['phase'] = 'suspended'; return $out; }
     if (!$listings) { $out['phase'] = 'none'; return $out; }              // ilan yok: saat yok
     $start = strtotime((string)($acc['doc_grace_start'] ?? '')) ?: null;

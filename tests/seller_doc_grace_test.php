@@ -12,7 +12,7 @@
  */
 $src = file_get_contents(__DIR__.'/../vestra/inc/auth.php');
 if (!defined('VESTRA_SELLER_DOC_GRACE_DAYS')) define('VESTRA_SELLER_DOC_GRACE_DAYS', 3);
-foreach (['auth_required_doc_types','auth_missing_doc_types','auth_seller_doc_grace'] as $fn) {
+foreach (['auth_required_doc_types','auth_missing_doc_types','auth_doc_grace_exempt_uids','auth_doc_grace_exempt','auth_seller_doc_grace'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn auth.php'de bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -68,6 +68,21 @@ $g = auth_seller_doc_grace($seller(['status'=>'suspended','suspend_reason'=>'ope
 $t('operator askisi -> suspended, reason=operator', $g['phase'] === 'suspended' && $g['reason'] === 'operator');
 $g = auth_seller_doc_grace($seller(['status'=>'suspended','suspend_reason'=>'docs','doc_requests'=>[$req('trade_licence','uploaded'), $req('id_document','uploaded')]]), $L, $NOW);
 $t('askida ama belgeler geldi -> clear (operator acacak)', $g['phase'] === 'clear' && $g['missing'] === []);
+
+echo "-- muafiyet (operator karari: GARAGE LE PARIS) --\n";
+$g = auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840','doc_grace_start'=>$stamp(10*$D)]), $L, $NOW);
+$t('GARAGE (kod varsayilani) -> exempt, sure gecmis olsa bile aski yok', $g['phase'] === 'exempt' && $g['exempt'] === true);
+$t('   ...eksik belgeler yine listelenir',                              $g['missing'] === ['trade_licence','id_document']);
+$g = auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840','doc_grace_exempt'=>false,'doc_grace_start'=>$stamp(10*$D)]), $L, $NOW);
+$t('hesap bayragi false kodun varsayilanini EZER -> expired',            $g['phase'] === 'expired');
+$g = auth_seller_doc_grace($seller(['doc_grace_exempt'=>true,'doc_grace_start'=>$stamp(10*$D)]), $L, $NOW);
+$t('baska saticida bayrak true -> exempt',                              $g['phase'] === 'exempt');
+$g = auth_seller_doc_grace($seller(['doc_grace_exempt'=>'', 'doc_grace_start'=>$stamp(1*$D)]), $L, $NOW);
+$t("bos bayrak ('') = karar yok -> kural isler (running)",              $g['phase'] === 'running');
+$g = auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840','doc_requests'=>[$req('trade_licence','uploaded'), $req('id_document','uploaded')]]), $L, $NOW);
+$t('muaf ama belgeler tam -> clear (muafiyet gereksiz)',                $g['phase'] === 'clear' && $g['exempt'] === false);
+$t('muaf listesi yalnizca GARAGE',                                       auth_doc_grace_exempt_uids() === ['7ab30f26afedd840']);
+$t('muaf satici askida degil, bayrak yok, ilan yok -> exempt oncelikli', auth_seller_doc_grace($seller(['id'=>'7ab30f26afedd840']), [], $NOW)['phase'] === 'exempt');
 
 echo "-- ikinci ilan saati yeniden baslatmaz --\n";
 $L2 = array_merge($L, [['id'=>'p2','seller_uid'=>'s1','status'=>'approved','added_at'=>date('c', $NOW)]]);

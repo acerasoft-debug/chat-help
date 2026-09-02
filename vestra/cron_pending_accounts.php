@@ -70,6 +70,10 @@ foreach (auth_accounts() as $a) {
                 'country' => (string)($a['country'] ?? ''),
                 'missing' => $miss,
                 'days'    => max(0, (int)floor((time() - (strtotime((string)($a['created'] ?? '')) ?: time())) / 86400)),
+                /* Operatorun 3 gun kuralindan muaf tuttugu satici (GARAGE LE PARIS):
+                   listede KALIR ama isaretli -- muafiyet bilincli bir tercih olarak
+                   gorunur durmali, gorunmez olmamali. */
+                'exempt'  => ($a['type'] ?? '') === 'seller' && function_exists('auth_doc_grace_exempt') && auth_doc_grace_exempt($a),
             ];
         }
         continue;
@@ -121,9 +125,9 @@ foreach ($waiting as $w) {
         $w['urgent'] ? '  <-- BELGESINI VERDI, HALA KAPALI' : '');
 }
 foreach ($docless as $w) {
-    printf("  BELGE %-28s %-6s %-12s eksik=%-26s %d gun\n",
+    printf("  BELGE %-28s %-6s %-12s eksik=%-26s %d gun%s\n",
         $mask($w['email']), $w['type'], mb_substr($w['country'], 0, 12),
-        implode('+', $w['missing']), $w['days']);
+        implode('+', $w['missing']), $w['days'], !empty($w['exempt']) ? '  (3 gun kuralindan MUAF)' : '');
 }
 
 if (!$waiting && !$docless) { echo "bekleyen ve belgesiz yok — mektup gonderilmedi.\n"; exit(0); }
@@ -174,10 +178,11 @@ if ($docless) {
     if ($sellers) {
         $body .= "SELLERS trading without the documents VESTRA requires (".count($sellers)."):\n\n";
         foreach ($sellers as $w) {
-            $body .= sprintf("  %s — %s (%s) · missing: %s · account %d day(s) old\n",
+            $body .= sprintf("  %s — %s (%s) · missing: %s · account %d day(s) old%s\n",
                 $w['email'], $w['company'] !== '' ? $w['company'] : '(no company name)',
                 $w['country'] !== '' ? $w['country'] : 'country not set',
-                implode(' + ', $w['missing']), $w['days']);
+                implode(' + ', $w['missing']), $w['days'],
+                !empty($w['exempt']) ? ' · EXEMPT from the 3-day rule (your decision)' : '');
         }
         $body .= "\nVESTRA issues invoices in a seller's name, so this is the paperwork behind\n"
                . "every document that goes out under it. Sellers owe two: trade licence and ID.\n"

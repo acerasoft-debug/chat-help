@@ -857,6 +857,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     if ($stuck) foreach ($upd as $k => $v) { if (trim((string)($back[$k] ?? '')) !== trim((string)$v)) { $stuck = false; break; } }
     header('Location: '.$to($stuck ? 'billing_saved' : 'billing_failed')); exit;
   }
+  /* 3 GUN KURALINDAN MUAFIYET (operator karari, 2 Eyl 2026: "GARAGE LE PARIS'i
+     muaf tut"). Hesap bayragi kodun varsayilan listesini EZER (auth_doc_grace_exempt):
+     kapatilirsa kural o saticiya yeniden isler -- saat ertesi sabah cron'da
+     ya da bir sonraki ilanda baslar. Askiyi bu dugme KALDIRMAZ; onun icin Activate. */
+  if($act==='doc_grace_exempt'){
+    $guid=(string)($_POST['uid']??''); $gon=(($_POST['on']??'')==='1');
+    auth_update($guid,['doc_grace_exempt'=>$gon]);
+    header('Location: /admin?tab='.(($_POST['back']??'')==='documents'?'documents&uid='.urlencode($guid):'users').'&msg='.($gon?'grace_exempt_on':'grace_exempt_off')); exit;
+  }
   if($act==='suspend_account'){
     /* 'operator': belge askisindan ayirt edilir -- belge askisi girise izin
        verir (yuklemek icin), operator askisi vermez (auth_login). */
@@ -2192,6 +2201,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
     'suspended'=>'Account suspended.','activated'=>'Account activated (a docs-paused seller gets a fresh 3-day window if anything is still missing).','deleted'=>'Listing deleted.',
     'doc_attached'=>'✓ Document attached to the account as "uploaded" — it is listed below; approve it there once you have looked at it.',
     'doc_attach_err'=>'⚠ The file was NOT attached.',
+    'grace_exempt_on'=>'⏸ Document deadline switched OFF for this seller — the 3-day rule and the automatic pause no longer apply to them. Their documents are still requested in their panel.',
+    'grace_exempt_off'=>'▶ Document deadline switched ON for this seller — the 3-day rule applies again; the clock starts at the next morning run (or their next listing).',
     'acct_deleted'=>'✓ Account permanently deleted (backup saved; their listings were removed too).',
     'acct_has_orders'=>'⚠ Not deleted — this seller still has open orders. Complete or cancel them first, or suspend the account instead.',
     'acct_notfound'=>'⚠ Account not found — nothing was deleted.',
@@ -2821,6 +2832,13 @@ elseif($tab==='documents'):
     <?php elseif(auth_prices_unlocked($selUser)): ?>
       <div class="ahint" style="margin-bottom:8px">✓ Account open — prices and ordering unlocked</div>
     <?php endif; ?>
+    <?php if(($selUser['type']??'')==='seller'): $gEx=auth_doc_grace_exempt($selUser); ?>
+      <div style="margin:6px 0 10px">
+        <?= $gEx ? abadge('⏸ doc deadline off','#7a6a2a').' <span class="ahint">3-day rule and automatic pause do not apply (your decision)</span>' : '<span class="ahint">3-day document rule applies</span>' ?>
+        <div style="margin-top:5px"><?= fBtn($gEx?'▶ Apply doc deadline':'⏸ Exempt from doc deadline','doc_grace_exempt',['uid'=>$selUser['id']??'','on'=>$gEx?'0':'1','back'=>'documents'],'font-size:11px',
+          $gEx ? 'Apply the 3-day document rule to this seller again?' : 'Exempt this seller from the 3-day document rule? No deadline letters and no automatic pause.') ?></div>
+      </div>
+    <?php endif; ?>
     <?php if(($selUser['status']??'active')==='suspended'): ?>
       <?= fBtn('Activate account','activate_account',['uid'=>$selUser['id']??'']) ?>
     <?php else: ?>
@@ -3158,6 +3176,14 @@ function sendUserMessage(uid,name){
                "acacak dugmem yok" dedi (2 Eyl 2026). */
             if(!$isSusp && !auth_prices_unlocked($a)): echo fBtn('🔓 Open account','approve_kyb',['uid'=>$a['id']??''],'color:var(--ok);border-color:rgba(122,214,160,.4)',
               'Open this account now? Trade prices, ordering and line sheets unlock for them immediately. A document is NOT required for this.'.($isPendEmail ? "\n\nNote: their e-mail address is not verified yet." : '')); endif; ?>
+      <?php /* SATICI: 3 gun belge kuralindan muafiyet (operator karari, 2 Eyl 2026).
+               Muaf saticida etiket + "kurali uygula"; digerlerinde "muaf tut". */
+            if(($a['type']??'')==='seller'): $gEx=auth_doc_grace_exempt($a);
+              if($gEx) echo abadge('⏸ doc deadline off','#7a6a2a');
+              echo fBtn($gEx?'▶ Apply doc deadline':'⏸ Exempt from doc deadline','doc_grace_exempt',['uid'=>$a['id']??'','on'=>$gEx?'0':'1'],'font-size:11px',
+                $gEx ? 'Apply the 3-day document rule to this seller again? The clock starts at the next morning run (or their next listing); after 3 days without documents their listings are paused automatically.'
+                     : 'Exempt this seller from the 3-day document rule? No deadline letters and no automatic pause for them. Their documents stay requested in their panel.');
+            endif; ?>
       <?= fBtn('🔑 Reset pw','reset_password',['uid'=>$a['id']??''],'','Generate a new temporary password for '.($a['email']??'this account').'? You will see it once, to send to them.') ?>
       <button type="button" class="abtn" onclick="sendUserMessage('<?= htmlspecialchars($a['id']??'',ENT_QUOTES) ?>','<?= htmlspecialchars($a['company']??($a['name']??'this account'),ENT_QUOTES) ?>')" title="Start an on-platform message thread — reaches them even with no email on file">💬 Message</button>
       <?php if($isSusp): echo fBtn('Activate','activate_account',['uid'=>$a['id']??'']); else: echo fBtn('Suspend','suspend_account',['uid'=>$a['id']??''],'color:var(--bad);border-color:rgba(239,154,154,.3)'); endif; ?>

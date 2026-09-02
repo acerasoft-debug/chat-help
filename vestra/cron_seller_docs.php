@@ -44,7 +44,7 @@ $mask = function (string $e): string {
 $label = fn(array $a) => (trim((string)($a['company'] ?? '')) ?: trim((string)($a['name'] ?? '')) ?: '(no name)');
 $reload = fn(string $uid) => vestra_seller_docs_account($uid);
 
-$acts = ['stamped'=>[], 'reminded'=>[], 'suspended'=>[], 'awaiting'=>[], 'running'=>0, 'clear'=>0, 'nolisting'=>0];
+$acts = ['stamped'=>[], 'reminded'=>[], 'suspended'=>[], 'awaiting'=>[], 'running'=>0, 'clear'=>0, 'nolisting'=>0, 'exempt'=>0];
 
 foreach (auth_accounts() as $a) {
     if (($a['type'] ?? '') !== 'seller') continue;
@@ -66,6 +66,10 @@ foreach (auth_accounts() as $a) {
     switch ($g['phase']) {
         case 'clear':     $acts['clear']++;     break;
         case 'none':      $acts['nolisting']++; break;
+        case 'exempt':                                   // operator muaf tuttu: saat yok, mektup yok
+            $acts['exempt']++;
+            printf("  MUAF     %-30s %-12s ilan=%d eksik=%s (operator karari)\n", $mask((string)$a['email']), mb_substr((string)($a['country'] ?? ''), 0, 12), count($listings), implode('+', $g['missing']));
+            break;
 
         case 'unstamped':
             printf("  BASLAT   %-30s %-12s ilan=%d eksik=%s\n", $mask((string)$a['email']), mb_substr((string)($a['country'] ?? ''), 0, 12), count($listings), implode('+', $g['missing']));
@@ -115,8 +119,8 @@ foreach (auth_accounts() as $a) {
     }
 }
 
-printf("satici: belgesi tam=%d | ilani yok=%d | sure isliyor=%d | baslatildi=%d | hatirlatildi=%d | ASKIYA ALINDI=%d | askida+belge geldi=%d%s\n",
-       $acts['clear'], $acts['nolisting'], $acts['running'], count($acts['stamped']), count($acts['reminded']),
+printf("satici: belgesi tam=%d | ilani yok=%d | MUAF=%d | sure isliyor=%d | baslatildi=%d | hatirlatildi=%d | ASKIYA ALINDI=%d | askida+belge geldi=%d%s\n",
+       $acts['clear'], $acts['nolisting'], $acts['exempt'], $acts['running'], count($acts['stamped']), count($acts['reminded']),
        count($acts['suspended']), count($acts['awaiting']), $DRY ? '   (KURU KOSU: hicbir sey yazilmadi, gonderilmedi)' : '');
 foreach ($acts['awaiting'] as $a) printf("  BEKLIYOR %-30s askida, belgesini yukledi -> Admin > Users > Activate\n", $mask((string)$a['email']));
 

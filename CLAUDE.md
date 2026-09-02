@@ -284,6 +284,14 @@ için süre verilsin... 3 gün gibi, eğer yüklemez ise suspend olsun"*).
   true)`); eski damga dursaydı ertesi sabah cron yeniden askıya alırdı.
 - Mektuplar İngilizce (`vestra_tpl_seller_docs_due` / `_suspended`); e-posta
   yolunu ve girişin çalıştığını söyler.
+- **Muaf: GARAGE LE PARIS** (operatör kararı, 2 Eyl 2026: *"Garaj le Paris'i
+  muaf tut"*). Kodda varsayılan liste `auth_doc_grace_exempt_uids()`
+  (`7ab30f26afedd840`); hesap bayrağı `doc_grace_exempt` (panel:
+  `⏸ Exempt from doc deadline` / `▶ Apply doc deadline`, Users satırı ve
+  Documents sayfası) kodun varsayılanını **ezer**. Muaf satıcı: saat yok, mektup
+  yok, askı yok; belgeleri panelde istenmeye devam eder ve günlük "belgesiz"
+  listesinde **MUAF** etiketiyle durur — görünmez olmaz. İlk sabah (3 Eyl 2026)
+  saat yalnızca Hindistan'daki 1 ilanlı satıcı için başlar.
 
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
