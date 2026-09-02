@@ -635,6 +635,13 @@ function vestra_name_is_parked_domain(string $company): bool {
     'domain information','domain info','domain default page','web hosting default',
     'domain name for sale','parked domain','domain parking','future home of',
     'website coming soon','coming soon!','account suspended','bandwidth limit exceeded',
+    /* 2 Eyl 2026: velvetmonaco.com'un taranan adi "Domain im Kundenauftrag
+       registriert" (Alman kayit sirketinin park sayfasi). Elle okundugu icin
+       yakalandi; kalip listeye giriyor ki bir dahakine okunmasa da yakalansin. */
+    'domain im kundenauftrag','domain reserviert','diese domain steht zum verkauf',
+    /* Ayni gun: vergelioshoes.it -> "Sfera.net Park Page" (Italyan hosting'in park sayfasi). */
+    'park page',
+    'domaine en vente','ce domaine est à vendre','dominio in vendita','dominio en venta',
   ] as $needle) {
     /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
        buluyor: 'sedo' -> "The Sedona Store". Ayni hata vestra_name_is_blocked'da

@@ -224,7 +224,11 @@ echo "\n== 10. PARK EDILMIS / SATILIK alan adi yakalanmali ==\n";
 foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
           'Parked domain', 'Account Suspended', 'Website coming soon',
           /* 1 Eyl 2026: luisaboutique.it mektup ALDI, taranan ad buydu. */
-          'Domain information luisaboutique.it'] as $n) {
+          'Domain information luisaboutique.it',
+          /* 2 Eyl 2026: velvetmonaco.com'un taranan adi (Alman kayit sirketi
+             park sayfasi). Elle okundugu icin yakalandi. */
+          'Domain im Kundenauftrag registriert', 'Domaine en vente', 'Dominio in vendita',
+          'Sfera.net Park Page'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";

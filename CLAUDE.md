@@ -92,6 +92,21 @@ konsaydı gerçek butikler sessizce elenirdi. İlk yazımda düz `str_contains`
 kullandım ve **testin kendisi yakaladı**: `sedo` → "The Sedona Store". Kelime
 sınırı şart.
 
+**2 Eyl 2026, 100 satırlık Riviera/Milano/Roma/Barcelona/Madrid listesi** —
+listenin kendi notu "e-postaların tümü kurumsal ve aktiftir" diyordu:
+**48 alan adının NS kaydı yok** (Cannes 12'de 10, Monako 8'de 6 uydurma),
+7 bloklist, 8 elle eleme (kendi markası: Capas Seseña, Lander Urquijo, Eduardo
+Rivera, Schostal, Maledetti Toscani, Davide Cenci, Gratacós, Artisanal
+Cornucopia). Kalan 37 "canlı" adresin taramasında da tuzak vardı ve
+**yalnızca `send=false` ön koşusunda okunduğu için yakalandı:**
+`ladressecannes.com` → *emlakçı*, `monaco.mc` → *Monaco Telecom* (ISS),
+`velvetmonaco.com` → *"Domain im Kundenauftrag registriert"* (park),
+`vergelioshoes.it` → *"Sfera.net Park Page"* (park; gerçek site vergelio.it),
+`marguttahome.com` → çözülemedi, ad "home" (tatil evi görünümlü). Park
+kalıpları `vestra_name_is_parked_domain()`'e eklendi. **Protokol artık iki
+koşu:** önce `send=false` (ekle + tara, ülkeyi düzelt), taranan adları oku,
+sonra `send=true`. Ülke `Monaco` → Fransızca (`LANG_MAP` + `.mc`).
+
 **Aynı gün kaçan bir tane daha:** `keehinghung.com` mektup aldı; taranan ad
 *"Official Rolex and Tudor Retailer in Singapore"* — **yetkili marka bayisi**
 (üstelik saat, konfeksiyon değil). Bloklisteye eklenmedi, operatör kararı
@@ -452,6 +467,18 @@ kaydı çıkarır; dosya **önce zaman damgalı yedeklenir**. Alıcıya bildirim
 sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değildir.
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
+
+**KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
+(operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
+3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları
+hep "EUR 3,000" diyordu — müşteriye söylenen ile sepetin kabul ettiği beş gün
+ayrı kaldı. `tests/escrow_cap_test.php` escrow geçen her açık metindeki rakamı
+sabite karşı tarar. Rakamı metne gömme; mektup şablonu `vestra_tpl_escrow_info`
+tavanı ve ücreti parametre alır. Alıcıya gönderim:
+`send-campaign-preview.yml` → `reply_letter=escrow_info` + `to=account:<isim>`;
+kapı (`auth_prices_unlocked`) kapalıysa iş durur (KURAL 2b). LESSVAT'a 2 Eyl
+2026'da gitti. Ölçüm (aynı gün): Stripe anahtarı **LIVE**, webhook tanımlı;
+sepette escrow yalnızca ürünün satıcısı Stripe'a bağlıysa (`escrow_ready`) çıkar.
 
 **Para girişi:** `vestra_price_input()`. Ham `(float)` virgüllü ondalıkta
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
