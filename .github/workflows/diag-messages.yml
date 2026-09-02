@@ -50,6 +50,10 @@ on:
         description: "true = belge yükleme sondası: PHP yükleme sınırları (.user.ini/php.ini), data/docs yazılabilir mi, error_log'daki ret sebepleri. 'Yükleyemiyorum' denince buraya bakılır"
         required: false
         default: "false"
+      errlog:
+        description: "true = canlı PHP hataları: error_log'daki Fatal/Warning/Notice/Deprecated satırları mesaj+dosya:satır bazında gruplanır (sayı, son görülme). Sitedeki gerçek kırıkları bulmanın en ucuz yolu"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -92,13 +96,14 @@ jobs:
           IN_ORDERS:    ${{ github.event.inputs.orders_for }}
           IN_BILLING:   ${{ github.event.inputs.billing_for }}
           IN_UPLOAD:    ${{ github.event.inputs.upload_probe }}
+          IN_ERRLOG:    ${{ github.event.inputs.errlog }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -592,6 +597,45 @@ jobs:
               $summary[] = "yukleme: CLI upload_max=".ini_get('upload_max_filesize').", post_max=".ini_get('post_max_size')
                          .", .user.ini=".(is_file($doc.'/.user.ini') ? 'VAR' : 'yok')
                          .", data/docs yazilabilir=".yn(is_dir($dd) && is_writable($dd)).", dosya=".$nFiles;
+              echo "\n";
+            }
+
+            /* CANLI PHP HATALARI. error_log'daki "PHP Fatal/Warning/Notice/Deprecated"
+               satirlari mesaj + dosya:satir bazinda gruplanir. Ayni satirin 400 kez
+               tekrari tek bir kirigin belirtisi; 400 satiri okumak yerine 1 kaydi
+               okumak yeter. Yollar ve adresler kisaltilir; e-posta basilmaz.
+               Zaman damgasi Apache bicimi: [02-Sep-2026 13:10:00 UTC]. */
+            if (getenv('IN_ERRLOG') === 'true') {
+              echo "===== CANLI PHP HATALARI (error_log) =====\n";
+              $logs = array_values(array_unique(array_filter(
+                [(string)ini_get('error_log'), $doc.'/error_log', $home.'/error_log', $doc.'/php_errorlog'],
+                fn($p) => $p !== '' && is_file($p))));
+              $groups = []; $total = 0;
+              foreach ($logs as $lf) {
+                $fh = fopen($lf, 'r'); if (!$fh) continue;
+                fseek($fh, max(0, filesize($lf) - 900000));
+                while (($ln = fgets($fh)) !== false) {
+                  if (!preg_match('/^\[([^\]]+)\]\s+PHP\s+(Fatal error|Warning|Notice|Deprecated|Parse error)(?:[^:]*):\s+(.*?)(?:\s+in\s+(\S+?)(?:\s+on line\s+(\d+))?)?\s*$/', trim($ln), $m)) continue;
+                  $total++;
+                  $file = isset($m[4]) ? preg_replace('#^.*/public_html/#', '', $m[4]) : '';
+                  $msg  = preg_replace('/[a-f0-9]{16,}/', '<id>', $m[3]);              // hesap/ilan id'leri
+                  $msg  = preg_replace('/\S+@\S+/', '<email>', $msg);                    // adres yazma
+                  $key  = $m[2].' | '.mb_substr($msg, 0, 110).' | '.$file.($m[5] ?? '' !== '' ? ':'.($m[5] ?? '') : '');
+                  if (!isset($groups[$key])) $groups[$key] = ['n'=>0, 'first'=>$m[1], 'last'=>$m[1]];
+                  $groups[$key]['n']++; $groups[$key]['last'] = $m[1];
+                }
+                fclose($fh);
+              }
+              uasort($groups, fn($a, $b) => $b['n'] <=> $a['n']);
+              echo "  kaynak: ".implode(', ', array_map(fn($p) => basename(dirname($p)).'/'.basename($p), $logs))." | eslesen satir: {$total} | farkli hata: ".count($groups)."\n";
+              $i = 0;
+              foreach ($groups as $k => $g) {
+                if (++$i > 30) { echo "  ... ".(count($groups) - 30)." hata daha\n"; break; }
+                echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".$k."\n";
+                echo "         ilk ".$g['first']." | son ".$g['last']."\n";
+              }
+              $fatal = 0; foreach ($groups as $k => $g) if (str_starts_with($k, 'Fatal') || str_starts_with($k, 'Parse')) $fatal += $g['n'];
+              $summary[] = "error_log: {$total} hata satiri, ".count($groups)." farkli, FATAL={$fatal}";
               echo "\n";
             }
 
