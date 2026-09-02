@@ -82,6 +82,8 @@
 
 * { box-sizing: border-box; }
 
+::selection { background: var(--seal); color: #FBF8F3; }
+
 html { scroll-behavior: smooth; scroll-padding-top: 96px; }
 
 body {
@@ -205,7 +207,8 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   margin-right: auto;
 }
 
-.brand-seal { width: 40px; height: 40px; color: var(--seal); flex: none; }
+.brand-seal { width: 40px; height: 40px; color: var(--seal); flex: none; transition: rotate .4s ease; }
+.brand:hover .brand-seal { rotate: -12deg; }
 .brand-seal-m { font-family: "Marcellus", serif; font-size: 21px; fill: currentColor; }
 
 .brand-word {
@@ -509,6 +512,17 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
 .card:hover { translate: 0 -4px; box-shadow: var(--shadow-lift); }
 .card:hover::before, .card:hover::after { border-color: var(--seal); }
 
+.card-icon {
+  width: 30px;
+  height: 30px;
+  color: var(--brass);
+  display: block;
+  margin-bottom: 14px;
+  transition: color .25s ease;
+}
+
+.card:hover .card-icon { color: var(--seal); }
+
 .card h3 { color: var(--seal); margin-bottom: .4em; }
 .card p { color: var(--ink-soft); font-size: .95rem; }
 
@@ -577,6 +591,136 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
 }
 
 .doc-name { font-weight: 500; font-size: .98rem; }
+
+/* sample translations — miniature document pairs */
+.samples-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px 26px;
+  margin-top: 2.8em;
+}
+
+.sample { margin: 0; }
+
+.sample-pair {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.mini-doc {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+  padding: 16px 13px 48px;
+  min-height: 196px;
+}
+
+.mini-doc.is-translated { border-color: var(--brass); }
+
+.mini-doc-title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .56rem;
+  letter-spacing: .12em;
+  text-align: center;
+  color: var(--ink-soft);
+  margin: 0 0 4px;
+}
+
+.mini-doc-sub {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .5rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--brass);
+  margin: 0 0 10px;
+}
+
+.mini-doc > .doc-lines:first-of-type { margin-top: 10px; }
+
+.doc-lines {
+  height: 58px;
+  margin-bottom: 10px;
+  background: repeating-linear-gradient(180deg, var(--line) 0 5px, transparent 5px 14px);
+  border-radius: 1px;
+}
+
+.doc-lines-short { height: 28px; width: 64%; }
+
+.doc-stamp {
+  position: absolute;
+  bottom: 36px;
+  right: 8px;
+  rotate: -8deg;
+  border: 1.5px dashed var(--seal);
+  border-radius: 3px;
+  color: var(--seal);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .46rem;
+  letter-spacing: .12em;
+  padding: 3px 6px;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+}
+
+.doc-sign {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  width: 52px;
+  color: var(--ink-soft);
+}
+
+.doc-wax {
+  position: absolute;
+  bottom: 9px;
+  right: 13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--seal-hot), var(--seal) 72%);
+  box-shadow: inset 0 0 0 2px rgba(251, 248, 243, .3), 0 4px 8px -3px rgba(124, 16, 35, .5);
+}
+
+.sample-arrow {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  translate: -50% -50%;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--brass);
+  color: var(--brass);
+  font-size: .95rem;
+}
+
+.sample figcaption {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .85rem;
+  color: var(--ink-soft);
+}
+
+.dir-chip {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: .62rem;
+  letter-spacing: .1em;
+  color: var(--brass);
+  border: 1px solid var(--brass);
+  border-radius: 2px;
+  padding: 2px 7px;
+  flex: none;
+}
 
 /* languages — drifting ribbon */
 .lang-ribbon {
@@ -1110,6 +1254,7 @@ a { color: var(--seal); text-decoration-thickness: 1px; text-underline-offset: 3
   .hero-seal { width: min(230px, 52vw); }
   .hero::before { background-position: 50% 0; }
   .card-grid { grid-template-columns: repeat(2, 1fr); }
+  .samples-grid { grid-template-columns: 1fr; max-width: 460px; }
   .steps { grid-template-columns: repeat(2, 1fr); gap: 44px 26px; }
   .contact-grid { grid-template-columns: 1fr; }
 
