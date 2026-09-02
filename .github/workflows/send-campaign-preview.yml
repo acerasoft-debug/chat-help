@@ -1617,6 +1617,37 @@ jobs:
                   }
                 });
               }
+            } elseif ($letter === 'authenticity_sample') {
+              /* "Yeni sirketsiniz, AB'de kayitli degilsiniz, sahte mal riski"
+                 sorusuna cevap. Rakam ve link CANLI ilandan; satici ulkesi
+                 ilanin seller_uid'inden HESAP kaydindan okunuyor. Ikisi de elle
+                 yazilmiyor: bu mektup orijinallikten supheli birine gidiyor ve
+                 icindeki her sayi kontrol edilecek.
+                 spec: pid(vars. lac-l1212-musterstueck) */
+              $pid = trim($E('pid')) !== '' ? trim($E('pid')) : 'lac-l1212-musterstueck';
+              $prod = null;
+              foreach (vestra_products() as $pp) { if ((string)($pp['id'] ?? '') === $pid) { $prod = $pp; break; } }
+              if (!$prod) { fwrite(STDERR, "ILAN BULUNAMADI: {$pid}\n"); exit(1); }
+
+              /* Satici ulkesi KAYITTAN. Bulunamazsa BOS gecilir ve sablon o
+                 cumleyi hic yazmaz -- "Fransa" diye elle yazmak, dogrulamadigim
+                 bir seyi supheli bir aliciya beyan etmek olurdu. */
+              $sellerCc = '';
+              $suid = (string)($prod['seller_uid'] ?? '');
+              if ($suid !== '') {
+                foreach (auth_accounts() as $sa) {
+                  if ((string)($sa['id'] ?? '') !== $suid) continue;
+                  $sellerCc = trim((string)($sa['country'] ?? ''));
+                  break;
+                }
+              }
+              $unit = 0.0;
+              foreach ((array)($prod['tiers'] ?? []) as $t) { $unit = (float)($t['price'] ?? 0); break; }
+              echo "urun   : {$pid} | fiyat=".number_format($unit, 2)." EUR | MOQ=".(int)($prod['moq'] ?? 0)."\n";
+              echo "satici : ".((string)($prod['seller'] ?? '?'))." | kayitli ulke="
+                 . ($sellerCc !== '' ? $sellerCc : '(BOS -> o cumle yazilmayacak)')."\n";
+
+              [$subject, $body, $opts] = vestra_tpl_authenticity_sample($salutation, $prod, $sellerCc, $signer);
             } elseif ($letter === 'vat_doc_fr') {
               /* Varsayilan hitap 'Bonjour': hesaptaki ad ile e-postadaki ad
                  ayrisiyor ve yanlis soyadla hitap etmek, hitapsiz yazmaktan

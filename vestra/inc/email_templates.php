@@ -1699,6 +1699,79 @@ function vestra_tpl_account_open_l1212(string $salutation, array $p, string $vat
     return [$subject, $body, []];
 }
 
+/**
+ * "Yeni ve AB'de kayitli degilsiniz, sahte mal riskine karsi nasil ilerleyeyim?"
+ * sorusuna cevap: DOGRULANABILIR olani yaz, gerisini numuneye birak.
+ *
+ * NE YAZILMAZ. "Bu saticinin memnun musterileri var, baska platformlarda
+ * sorunsuz satiyorlar" gibi ucuncu kisiler hakkinda ISPATLANAMAYAN guvence.
+ * Tam da orijinallikten suphelenen bir aliciya verilen boyle bir soz, sonradan
+ * bir sorun ciktiginda en pahaliya patlayan cumledir; ustelik platformun kendi
+ * kayitli pozisyonuyla (orijinallik SATICI beyanidir, tedarik zinciri evraki
+ * bizde yoktur) celisir ve ayni aliciya Agustos'ta yazdigimiz L1212 mektubunu
+ * yalanlar.
+ *
+ * NE YAZILIR: satici hakkinda KAYITTAN okunabilen seyler (kayitli ulke, KYB'den
+ * gecmis olmasi, faturayi kendi VAT numarasiyla kendisinin kesmesi) ve asil
+ * cevap olarak NUMUNE -- "bize guven" yerine "kendin dogrula".
+ *
+ * $sellerCountry: hesaptaki kayitli ulke; BOS ise o cumle HIC yazilmaz.
+ * $p            : numune ilaninin canli kaydi (fiyat ve link oradan basilir).
+ */
+function vestra_tpl_authenticity_sample(string $salutation, array $p, string $sellerCountry,
+                                        string $signer = 'Marco Bellini'): array {
+    $subject = 'Re: Ordering with confidence — a sample first';
+
+    $price = 0.0;
+    foreach ((array)($p['tiers'] ?? []) as $t) { $price = (float)($t['price'] ?? 0); break; }
+    if ($price <= 0) $price = (float)($p['list'] ?? 0);
+    $money = 'EUR '.number_format($price, 2, '.', ',');
+    $link  = 'https://vestrasales.com/product?id='.(string)($p['id'] ?? '');
+
+    $body = $salutation . ",\n\n"
+. "Thank you for saying this so plainly — it is a fair question and I would rather answer it\n"
+. "properly than reassure you quickly.\n\n"
+. "How VESTRA works\n\n"
+. "We are a B2B marketplace, not the seller. You buy from the supplier and the supplier\n"
+. "invoices you directly under their own VAT number. That is deliberate: it means the\n"
+. "transaction is between two identified businesses and leaves a paper trail you can check,\n"
+. "rather than running through an intermediary.\n\n"
+. "About this supplier\n\n"
+. "I can only tell you what we actually hold on file.\n\n"
+. ($sellerCountry !== ''
+    ? "The supplier for the Lacoste articles is a company registered in ".$sellerCountry.".\n"
+    : '')
+. "Before any seller is allowed to trade on VESTRA they go through our KYB check: company\n"
+. "registration, VAT ID and bank account are validated. So you are dealing with an identified,\n"
+. "legally registered business, and the invoice reaches you from them.\n\n"
+. "What I will not claim: I cannot vouch for the goods on the strength of other buyers'\n"
+. "experience, and I will not pretend otherwise. Authenticity is attested by the seller as a\n"
+. "condition of listing, and the upstream purchase documentation is the supplier's own\n"
+. "commercial paperwork, which we as the platform do not hold and cannot pass on. I told you\n"
+. "the same in my earlier message and I am not going to tell you something better now just\n"
+. "because you asked a harder question.\n\n"
+. "So here is what I would actually suggest\n\n"
+. "Order a single sample piece before you commit to anything. One polo, in the colour and\n"
+. "size you choose, delivered to your address. Put it in your hands, and — this is the part\n"
+. "that matters — take it into any Lacoste store and have them look at it. That answers your\n"
+. "question in a way that no assurance from me can.\n\n"
+. "  Sample: ".$money." including delivery within the EU\n"
+. "  Order it here: ".$link."\n\n"
+. "You order it the normal way: add it to your basket and enter your delivery address at\n"
+. "checkout. Payment is by bank transfer against an invoice, so there is a document behind it\n"
+. "from the first euro you spend.\n\n"
+. "On your other question\n\n"
+. "You asked about a video call with the supplier, or buying in person for cash. I am not\n"
+. "going to promise either on their behalf before I have asked them. If the sample convinces\n"
+. "you and you want to speak to them directly before a larger order, tell me and I will put\n"
+. "the request to them.\n\n"
+. "Best regards,\n\n"
+. $signer . "\n"
+. "VESTRA – vestrasales.com";
+
+    return [$subject, $body, []];
+}
+
 /* Satici kurulum mektubu: gonderim yeri + belgeler + Stripe odeme hesabi.
  * Uc konu TEK mektupta, cunku uc ayri mektup ayni kisiye ayni gun ucuncusunde
  * spam olarak isaretlenir; ama yalnizca GERCEKTEN eksik olanlar yaziliyor --
