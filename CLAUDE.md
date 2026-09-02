@@ -105,7 +105,10 @@ Cornucopia). Kalan 37 "canlı" adresin taramasında da tuzak vardı ve
 `marguttahome.com` → çözülemedi, ad "home" (tatil evi görünümlü). Park
 kalıpları `vestra_name_is_parked_domain()`'e eklendi. **Protokol artık iki
 koşu:** önce `send=false` (ekle + tara, ülkeyi düzelt), taranan adları oku,
-sonra `send=true`. Ülke `Monaco` → Fransızca (`LANG_MAP` + `.mc`).
+sonra `send=true`. Ülke `Monaco` → Fransızca (`LANG_MAP` + `.mc`). Sonuç:
+100 satırdan **16 mektup** (İtalya 10, İspanya 6; Fransa/Monako 0); 8'i
+zaten yazılmıştı, 2'si aynı firmanın ikinci kutusuydu. "Liste doymuş" ölçüsü
+(~%15) bir kez daha tuttu.
 
 **Aynı gün kaçan bir tane daha:** `keehinghung.com` mektup aldı; taranan ad
 *"Official Rolex and Tudor Retailer in Singapore"* — **yetkili marka bayisi**

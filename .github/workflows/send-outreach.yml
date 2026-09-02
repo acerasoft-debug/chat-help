@@ -318,6 +318,12 @@ jobs:
                damgasini tasirsa ayni kisiye ayni duyuru iki kez gitmiyor. */
             $IS_NEWCOLL = strtolower(trim((string)getenv('SEND_NEWCOLL'))) === 'true';
             if ($IS_NEWCOLL) require_once $home."/public_html/inc/email_templates.php";
+            /* Yeni koleksiyon kipinde firma (alan adi) basina TEK duyuru; bkz. secim dongusu. */
+            $ncSeenDom = [];
+            $NC_SHARED = array_flip(['gmail.com','googlemail.com','outlook.com','hotmail.com','hotmail.co.uk',
+              'live.com','msn.com','yahoo.com','yahoo.co.jp','yahoo.co.uk','ymail.com','icloud.com','me.com',
+              'aol.com','protonmail.com','proton.me','gmx.de','gmx.net','web.de','t-online.de','orange.fr',
+              'free.fr','libero.it','comcast.net','qq.com','163.com','126.com','naver.com','daum.net','hanmail.net']);
 
             /* ── KAYITLI MUSTERI KIPI ────────────────────────────────────────
                Duyuru once KAYITLI alicilara, sonra lead'lere gidiyor (operatorun
@@ -451,6 +457,17 @@ jobs:
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;
                 if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') continue;   // bu duyuruyu zaten aldi
                 if (isset($seen[$email])) continue;                              // ayni adres iki kez secilmesin
+                /* AYNI FIRMAYA tek duyuru (KURAL 1c'nin bu kipteki hali). 2 Eyl 2026
+                   kuru kosusunda ayni alan adi uc kez secildi (customerservice@,
+                   info@, customercare@dmag.eu) -- ilk kampanya zamaninda firma
+                   basina bir adres kurali yoktu ve leads.json'da uc kutu da
+                   "yazildi" damgali. Serbest posta saglayicilari muaf: gmail'deki
+                   iki adres iki ayri firma. */
+                $ncDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
+                if ($ncDom !== '' && !isset($NC_SHARED[$ncDom])) {
+                  if (isset($ncSeenDom[$ncDom])) continue;
+                  $ncSeenDom[$ncDom] = true;
+                }
               } else {
                 if (($l['last_contacted_at'] ?? '') !== '') continue;            // already emailed once
                 if (isset($contacted[$email]) || isset($seen[$email])) continue; // never the same address twice

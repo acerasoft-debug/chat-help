@@ -218,6 +218,28 @@ echo "\n== 9. Kayitli istisna: vipshop.com (operator karari, 31 Agu 2026) ==\n";
    Biri blokliste 'vipshop' eklerse bu satir dusecek ve karar hatirlanacak. */
 $t('vipshop.com engellenmiyor', !$blocked('VipShop Singapore Pte. Ltd.','','vipshop.com'));
 
+echo "\n== 9c. 2 Eyl 2026 — yeni koleksiyon havuzunda cikan zincirler ENGELLENMELI ==\n";
+foreach ([
+  ['B&M Bargains', 'x@bmstores.co.uk', ''], ['Arnotts', 'x@arnotts.ie', ''], ['Shaws', 'x@shaws.ie', ''],
+  ['McElhinneys', 'x@mcelhinneys.com', ''], ['Kastner und Öhler Mode', 'x@kastner-oehler.at', ''],
+  ['Harry Rosen', 'x@harryrosen.com', ''], ['Culture Kings', 'x@culturekings.com.au', ''],
+  ['TSUM OUTLET', 'x@outlet.tsum.ru', ''], ['Mytheresa', 'x@mytheresa.com', ''],
+  ['Smallable', 'x@smallable.com', ''], ['Bluefly', 'x@bluefly.com', ''],
+  ['Nanette Lepore', 'x@bluestarall.com', ''], ['bellerose', 'x@bellerose.be', ''],
+  ['Kildare Village', 'x@kildarevillage.com', ''], ['Dublin Duty Free', 'x@dublindutyfree.ie', ''],
+] as [$co, $em, $ws]) {
+    $t("engellenmeli: $co", $blocked($co, $em, $ws));
+}
+echo "\n== 9d. GECMELI — komsu adlar (kisa parcalar gercek butigi yakmasin) ==\n";
+foreach ([
+  ["Shaw's Boutique", 'x@shawsboutique.com', ''], ['Tsumugi Kimono Store', 'x@tsumugi-store.jp', ''],
+  ['Bella Rose Boutique', 'x@bellaroseboutique.com', ''], ['Small Wonders Kids', 'x@smallwonders.ie', ''],
+  ['Kastner Optik', 'x@kastner-optik.at', ''], ['Village Boutique Kildare', 'x@villageboutique.ie', ''],
+  ['Blue Fly Fishing', 'x@blueflyfishing.com', ''],
+] as [$co, $em, $ws]) {
+    $t("gecmeli: $co", !$blocked($co, $em, $ws));
+}
+
 echo "\n== 10. PARK EDILMIS / SATILIK alan adi yakalanmali ==\n";
 /* 1 Eyl 2026: klcollective.com'a mektup gitti, tarama adi "HugeDomains" getirmisti.
    NS/MX kontrolu bunu yakalayamaz -- park saglayicisi alan adini gercekten kaydeder. */
@@ -228,7 +250,9 @@ foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
           /* 2 Eyl 2026: velvetmonaco.com'un taranan adi (Alman kayit sirketi
              park sayfasi). Elle okundugu icin yakalandi. */
           'Domain im Kundenauftrag registriert', 'Domaine en vente', 'Dominio in vendita',
-          'Sfera.net Park Page', 'TopDomainer Search Engine', 'Coming Soon', 'Under construction'] as $n) {
+          'Sfera.net Park Page', 'TopDomainer Search Engine', 'Coming Soon', 'Under construction',
+          /* Ele gecirilmis alan adlari (2 Eyl 2026): dukkan kapanmis, kumar sitesi almis. */
+          'POKER369', 'PECAH138 ✈️ Situs Game Banyak Promo'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";

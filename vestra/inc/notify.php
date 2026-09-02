@@ -377,6 +377,24 @@ function vestra_overpass(string $ql): string {
  * match on the shop's name/brand tag; admin can still remove any that slip through. */
 function vestra_discover_blocklist(): array {
   return [
+    /* 2 Eyl 2026 — yeni koleksiyon (Winter 26/27) duyurusu icin havuzdan
+       secilen ilk 100 lead okundu: hepsi ilk kampanyayi bloklist olgunlasmadan
+       once almisti. Asagidakiler kuru kosuda cikti ve ELLE elendi; bir sonraki
+       secimde kendiliginden dussunler. Kategoriler yine ayni: magaza zinciri /
+       department store, kanalda rakip dev e-tailer, marka sahibi, AVM/duty-free
+       isletmecisi. */
+    // department store / magaza zinciri
+    'b&m bargains','b&m stores','bmstores','arnotts','mcelhinneys','shaws',
+    'kastner & öhler','kastner & oehler','kastner und öhler','kastner-oehler','kastneroehler',
+    'harry rosen','harryrosen','culture kings','culturekings','tsum',
+    // dev e-tailer (kanalda musteri degil rakip). 'bluefly' BILEREK YOK: 7 harf,
+    // alan adinda alt dizi olarak eslesir ve "blueflyboutique.com"u yakardi (test).
+    'mytheresa','smallable','vogacloset','style for less','styleforlessuae',
+    // marka sahibi / lisans yoneticisi / kendi magazalari
+    'bluestar alliance','bluestarall','bellerose',
+    // AVM / outlet koyu / duty-free isletmecisi (butik degil, kiraci ya da imtiyaz)
+    'kildare village','kildarevillage','value retail','dublin duty free','dublindutyfree',
+    'aer rianta',
     /* 31 Agu 2026 — APAC "luxury stores" listesi. Engelleme listesi 73'te
        yalnizca ikisini yakaladi (DSM Ginza, Nepenthes). Elle okununca yine
        ayni uc kategori cikti; ayrica kanalda alici OLMAYAN iki tur:
@@ -647,6 +665,11 @@ function vestra_name_is_parked_domain(string $company): bool {
     /* Ayni gun: vergelioshoes.it -> "Sfera.net Park Page" (Italyan hosting'in park
        sayfasi), yusty.com -> "TopDomainer Search Engine" (alan adi pazari). */
     'park page','topdomainer',
+    /* Suresi dolup ELE GECIRILMIS alan adlari: jeffreynewyork.com -> "POKER369",
+       nuovum.com -> "PECAH138 Situs Game..." (2 Eyl 2026). Dukkan kapanmis, alan
+       adini kumar sitesi almis. Kaliplar OZEL tutuldu ('casino' tek basina bir
+       butik adinda gecebilir). */
+    'poker369','pecah138','situs game','situs judi','slot gacor','judi online','slot online',
     'domaine en vente','ce domaine est à vendre','dominio in vendita','dominio en venta',
   ] as $needle) {
     /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
