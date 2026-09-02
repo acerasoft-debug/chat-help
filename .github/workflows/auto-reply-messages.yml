@@ -32,7 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APPLY: ${{ github.event_name == 'schedule' && 'true' || inputs.apply }}
-      SELLER_NAME: Les Garage
+      SELLER_NAME: GARAGE LE PARIS   # hesap adı (auth_accounts'taki company)
+      SIGN_NAME: Les Garage          # yanıtların altındaki imza
     steps:
       - name: Yanıtla
         uses: appleboy/ssh-action@v1.0.3
@@ -42,13 +43,14 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: APPLY,SELLER_NAME
+          envs: APPLY,SELLER_NAME,SIGN_NAME
           script: |
             cat > /tmp/auto_reply.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
             $APPLY  = ($argv[1] ?? 'false') === 'true';
-            $SELLER = $argv[2] ?? 'Les Garage';
+            $SELLER = $argv[2] ?? 'GARAGE LE PARIS';
+            $SIGN_NAME = $argv[3] ?? 'Les Garage';
             $LOOKBACK_DAYS = 7;
             $MAX_REPLIES   = 10;
 
@@ -73,10 +75,14 @@ jobs:
                 fwrite(STDERR, "  - ".(($a['company'] ?? '') ?: ($a['name'] ?? '(isimsiz)'))." (id=".($a['id'] ?? '?').")\n");
               exit(1);
             }
-            echo "Satıcı: {$SELLER} (uid={$sellerUid})\n\n";
+            /* Platformun kendi ilanlarında (ör. guc-t07) satıcı tarafı sentetik
+               vestra-support uid'idir; o thread'lere de aynı imzayla yanıt verilir. */
+            $sellerUids = [$sellerUid];
+            if (defined('VESTRA_SUPPORT_UID')) $sellerUids[] = (string)VESTRA_SUPPORT_UID;
+            echo "Satıcı: {$SELLER} (uid={$sellerUid})".(count($sellerUids) > 1 ? " + vestra-support" : "")." | imza: {$SIGN_NAME}\n\n";
 
             // ── SSS kategorileri: kural → hazır yanıt ──
-            $SIGN = "\n\n— ".$SELLER;
+            $SIGN = "\n\n— ".$SIGN_NAME;
             $RULES = [
               'authenticity' => '/\b(authentic|original|genuine|fake|counterfeit|legit|echt|orijinal|f[äa]lschung|sahte)/iu',
               'invoice'      => '/\b(invoice|receipt|rechnung|fatura|documentation|belge)/iu',
@@ -132,7 +138,7 @@ jobs:
             $sent = 0; $needsHuman = []; $backedUp = false;
 
             foreach ($threads as $t) {
-              if ((string)($t['seller_uid'] ?? '') !== $sellerUid) continue;
+              if (!in_array((string)($t['seller_uid'] ?? ''), $sellerUids, true)) continue;
               if (defined('VESTRA_SUPPORT_UID') && (string)($t['buyer_uid'] ?? '') === VESTRA_SUPPORT_UID) continue;
               $msgs = $t['messages'] ?? [];
               $last = end($msgs);
@@ -162,7 +168,9 @@ jobs:
                   $backedUp = true;
                 }
                 try {
-                  send_reply($t, $sellerUid, $reply, $mapped);
+                  /* yanıt, thread'in kendi satıcı tarafından gider (Les Garage
+                     hesabı veya platform ilanlarında vestra-support) */
+                  send_reply($t, (string)$t['seller_uid'], $reply, $mapped);
                   echo "  ✓ gönderildi\n";
                   $sent++;
                 } catch (Throwable $e) {
