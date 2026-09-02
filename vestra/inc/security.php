@@ -283,6 +283,36 @@ function vestra_cc_of_country(string $name): string {
     return $map[strtolower(trim($name))] ?? '';
 }
 
+/* vestra_cc_of_country()'nin TERSI: 'FR' -> 'France'.
+ *
+ * Hesaplarda ulke bazen tam ad ('France'), bazen ISO kodu ('FR') olarak
+ * duruyor. Musteriye giden bir mektupta "a company registered in FR" cumlesi
+ * kotu duruyor -- 2 Eylul 2026'da orijinallik cevabinin testinde tam boyle
+ * ciktı. Ayni tabloyu tersine okuyoruz ki iki liste ayrisamasin; bir kodun
+ * birden fazla adi varsa ILKI kanonik sayilir ('germany' -> Germany).
+ * Cozulemeyen kod OLDUGU GIBI dondurulur: uydurmaktansa kodu yazmak yeg. */
+function vestra_country_of_cc(string $cc): string {
+    /* strtoupper()'i ONCE uygulamak "France"i "FRANCE" yapiyordu: iki harflik
+       olmayan deger zaten tam addir ve OLDUGU GIBI donmeli. Sondam yakaladi. */
+    $cc = trim($cc);
+    if ($cc === '' || !preg_match('/^[A-Za-z]{2}$/', $cc)) return $cc;
+    $cc = strtoupper($cc);
+    static $rev = null;
+    if ($rev === null) {
+        $rev = [];
+        foreach (['germany','austria','switzerland','netherlands','belgium','france','italy',
+                  'spain','portugal','ireland','united kingdom','poland','czechia','greece',
+                  'sweden','denmark','norway','finland','united states','canada','mexico',
+                  'turkey','japan','south korea','china','australia','united arab emirates',
+                  'russia','ukraine','bulgaria','romania','hungary','croatia','slovenia',
+                  'slovakia','azerbaijan'] as $name) {
+            $code = vestra_cc_of_country($name);
+            if ($code !== '' && !isset($rev[$code])) $rev[$code] = ucwords($name);
+        }
+    }
+    return $rev[$cc] ?? $cc;
+}
+
 /**
  * Which country's rules apply to THIS visitor?
  *

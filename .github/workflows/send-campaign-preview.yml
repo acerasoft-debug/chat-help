@@ -1632,6 +1632,7 @@ jobs:
               /* Satici ulkesi KAYITTAN. Bulunamazsa BOS gecilir ve sablon o
                  cumleyi hic yazmaz -- "Fransa" diye elle yazmak, dogrulamadigim
                  bir seyi supheli bir aliciya beyan etmek olurdu. */
+              require_once $doc."/inc/security.php";   /* vestra_country_of_cc */
               $sellerCc = '';
               $suid = (string)($prod['seller_uid'] ?? '');
               if ($suid !== '') {
@@ -1641,6 +1642,10 @@ jobs:
                   break;
                 }
               }
+              /* Hesapta ulke bazen ISO kodu olarak duruyor ('FR'). Mektupta
+                 "registered in FR" yazmak kotu duruyor -- kodu tam ada cevir.
+                 Cozulemezse kod oldugu gibi kalir; uydurmuyoruz. */
+              if (function_exists('vestra_country_of_cc')) $sellerCc = vestra_country_of_cc($sellerCc);
               $unit = 0.0;
               foreach ((array)($prod['tiers'] ?? []) as $t) { $unit = (float)($t['price'] ?? 0); break; }
               echo "urun   : {$pid} | fiyat=".number_format($unit, 2)." EUR | MOQ=".(int)($prod['moq'] ?? 0)."\n";
