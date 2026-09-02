@@ -620,7 +620,11 @@ jobs:
                   $file = isset($m[4]) ? preg_replace('#^.*/public_html/#', '', $m[4]) : '';
                   $msg  = preg_replace('/[a-f0-9]{16,}/', '<id>', $m[3]);              // hesap/ilan id'leri
                   $msg  = preg_replace('/\S+@\S+/', '<email>', $msg);                    // adres yazma
-                  $key  = $m[2].' | '.mb_substr($msg, 0, 110).' | '.$file.($m[5] ?? '' !== '' ? ':'.($m[5] ?? '') : '');
+                  /* "headers already sent by (output started at /.../X.php:N)" gibi
+                     mesajlarda asil bilgi 110. karakterden SONRA geliyor; kisa kesme
+                     sebebi gizliyordu. Yol kisaltiliyor, mesaj 230 karaktere kadar. */
+                  $msg  = preg_replace('#/home/[^/]+/public_html/#', '', $msg);
+                  $key  = $m[2].' | '.mb_substr($msg, 0, 230).' | '.$file.(($m[5] ?? '') !== '' ? ':'.$m[5] : '');
                   if (!isset($groups[$key])) $groups[$key] = ['n'=>0, 'first'=>$m[1], 'last'=>$m[1]];
                   $groups[$key]['n']++; $groups[$key]['last'] = $m[1];
                 }
@@ -628,11 +632,28 @@ jobs:
               }
               uasort($groups, fn($a, $b) => $b['n'] <=> $a['n']);
               echo "  kaynak: ".implode(', ', array_map(fn($p) => basename(dirname($p)).'/'.basename($p), $logs))." | eslesen satir: {$total} | farkli hata: ".count($groups)."\n";
+              /* Gecici /tmp betikleri (workflow'lar) canli site degil: ayri sayilir, listelenmez. */
+              $tmpN = 0; foreach ($groups as $k => $g) if (str_contains($k, '/tmp/')) $tmpN += $g['n'];
+              echo "  (bunlarin {$tmpN} satiri /tmp/ altindaki gecici workflow betiklerinden -- listelenmiyor)\n";
+              echo "  -- en sik (ilk 20) --\n";
               $i = 0;
               foreach ($groups as $k => $g) {
-                if (++$i > 30) { echo "  ... ".(count($groups) - 30)." hata daha\n"; break; }
+                if (str_contains($k, '/tmp/')) continue;
+                if (++$i > 20) break;
                 echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".$k."\n";
                 echo "         ilk ".$g['first']." | son ".$g['last']."\n";
+              }
+              /* Asil is bu liste: SON 10 GUNDE gorulenler, en yeniden eskiye. Temmuz'da
+                 duzeltilmis bir uyarinin 3000 tekrari, dun baslayan tek bir fatal'den
+                 daha az onemli. */
+              $recent = array_filter($groups, fn($g) => (strtotime(str_replace(' UTC', '', $g['last'])) ?: 0) >= time() - 10*86400);
+              uasort($recent, fn($a, $b) => strcmp($b['last'], $a['last']));
+              echo "  -- son 10 gunde gorulen (".count($recent).") --\n";
+              $i = 0;
+              foreach ($recent as $k => $g) {
+                if (str_contains($k, '/tmp/')) continue;
+                if (++$i > 45) { echo "  ... ".(count($recent) - 45)." daha\n"; break; }
+                echo "  ".str_pad((string)$g['n'], 5, ' ', STR_PAD_LEFT)."x  ".mb_substr($k, 0, 150)."  [son ".$g['last']."]\n";
               }
               $fatal = 0; foreach ($groups as $k => $g) if (str_starts_with($k, 'Fatal') || str_starts_with($k, 'Parse')) $fatal += $g['n'];
               $summary[] = "error_log: {$total} hata satiri, ".count($groups)." farkli, FATAL={$fatal}";
