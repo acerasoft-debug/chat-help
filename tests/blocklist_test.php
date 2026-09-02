@@ -232,6 +232,11 @@ foreach ([
   ['Home', 'x@theoutnet.com', ''], ['Designer Shopping in Oxfordshire near London', 'x@bicestervillage.com', ''],
   ['ROS Retail Outlet Shopping', 'x@ros-management.com', ''], ['BUZZ', 'x@buzzsneakers.cz', ''],
   ['Aïshti', '', 'https://aishti.com'],
+  /* ucuncu kuru kosu */
+  ['Shoptiques', 'x@shoptiques.com', ''], ["Women's Designer Clothing Collections & Runway Fashion", 'x@modaoperandi.com', ''],
+  ['Garmentory', 'x@garmentory.com', ''], ['Shopbop', 'x@shopbop.com', ''],
+  ['エストネーション公式サイト', 'x@estnation.co.jp', ''], ['ロンハーマン オンラインストア', 'x@ronherman.jp', ''],
+  ['Landquart Fashion Outlet', 'x@landquartfashionoutlet.ch', ''], ['Citadel Outlets', 'x@citadeloutlets.com', ''],
 ] as [$co, $em, $ws]) {
     $t("engellenmeli: $co", $blocked($co, $em, $ws));
 }
@@ -243,6 +248,8 @@ foreach ([
   ['Blue Fly Fishing', 'x@blueflyfishing.com', ''],
   ['Real Deal Vintage', 'x@realdealvintage.com', ''], ['Stadium Sportswear', 'x@stadiumsportswear.ie', ''],
   ['Outnet Boutique', 'x@outnetboutique.com', ''], ['Buzz Boutique', 'x@buzzboutique.com', ''],
+  ["Ron's Menswear", 'x@ronsmenswear.com', ''], ['Herman Boutique', 'x@hermanboutique.de', ''],
+  ['Citadel Vintage', 'x@citadelvintage.com', ''], ['Shop Boutique Paris', 'x@shopboutiqueparis.fr', ''],
 ] as [$co, $em, $ws]) {
     $t("gecmeli: $co", !$blocked($co, $em, $ws));
 }

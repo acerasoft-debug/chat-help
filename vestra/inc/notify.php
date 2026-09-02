@@ -399,6 +399,12 @@ function vestra_discover_blocklist(): array {
     'the realreal','therealreal','stadium goods','stadiumgoods','the outnet','theoutnet',
     // cok subeli sneaker zinciri (CZ/SK, 20+ sube)
     'buzz sneakers','buzzsneakers',
+    /* ucuncu kuru kosu: pazar yeri / dev e-tailer (butik toplayan platformlar:
+       bizden almazlar, bizimle ayni isi yaparlar), Japon select-shop zincirleri
+       (Sazaby League: Estnation ~5, Ron Herman ~15 sube), outlet AVM isletmecileri */
+    'shoptiques','moda operandi','modaoperandi','garmentory','shopbop',
+    'estnation','エストネーション','ron herman','ronherman','ロンハーマン',
+    'landquart fashion outlet','landquartfashionoutlet','citadel outlets','citadeloutlets',
     /* 2 Eyl 2026 — "Luks Butik Leadleri" xlsx (32 satir). Aïshti: Beyrut merkezli
        luks perakende GRUBU (department store + onlarca markanin Orta Dogu
        franchise/dagitim haklari) -- listede "bagimsiz butik" diye geciyordu. */
