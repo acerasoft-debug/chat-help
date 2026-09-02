@@ -94,7 +94,7 @@ $isBuyer=$AUTH_USER && ($AUTH_USER['type']??'')==='buyer';
           <?php if($PRICES): ?>
           <div class="gprice"><span class="now"><?=vestra_money($tierTop)?></span><span class="hint">/ <?=htmlspecialchars($p['unit'])?></span><span class="was"><?=vestra_money($from)?></span></div>
           <?php else: ?>
-          <div class="gprice"><a class="hint" style="color:var(--acc);text-decoration:none" href="<?= htmlspecialchars($PRICE_GATE==='doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE==='doc' ? t('Upload document') : t('Trade only') ?></a></div>
+          <div class="gprice"><a class="hint" style="color:var(--acc);text-decoration:none" href="<?= htmlspecialchars($PRICE_GATE==='approval' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE==='approval' ? t('Awaiting approval') : t('Trade only') ?></a></div>
           <?php endif; ?>
           <div class="gbar"><i style="width:<?=$p['_pct']?>%"></i></div>
           <div class="gmeta">

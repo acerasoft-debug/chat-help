@@ -1053,4 +1053,16 @@ return array (
 
   'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'I prezzi mostrati in %s sono convertiti dall\'EUR al tasso di riferimento della Banca centrale europea%s. Gli ordini sono fatturati in EUR.',
   'Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.' => 'I prezzi mostrati in %s sono convertiti dall\'EUR a un tasso indicativo%s. Gli ordini sono fatturati in EUR.',
+
+  /* Onay kapisi cumleleri (KURAL 2, 2 Eyl 2026): kapiyi belge degil operator onayi acar. */
+  'Awaiting approval' => 'In attesa di approvazione',
+  'Your account is being reviewed' => 'Il tuo account è in verifica',
+  'Your account is being reviewed.' => 'Il tuo account è in verifica.',
+  'Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.' => 'Il tuo account è in verifica. I prezzi all\'ingrosso si aprono non appena lo attiviamo — di solito in giornata.',
+  'Wholesale prices and ordering open as soon as we activate your account — usually the same day.' => 'Prezzi all\'ingrosso e ordini si aprono non appena attiviamo il tuo account — di solito in giornata.',
+  'Wholesale prices and pool access open as soon as we activate your account — usually the same day.' => 'Prezzi all\'ingrosso e accesso ai gruppi d\'acquisto si aprono non appena attiviamo il tuo account — di solito in giornata.',
+  'Add document' => 'Aggiungi documento',
+  'Your account is being reviewed. You can place this order as soon as we activate it — your basket is kept.' => 'Il tuo account è in verifica. Potrai effettuare questo ordine non appena lo attiviamo — il carrello viene conservato.',
+  'Trade prices, ordering and line sheets open as soon as we activate it — usually the same day. You can add your %s in the meantime.' => 'Prezzi all\'ingrosso, ordini e line sheet si aprono non appena lo attiviamo — di solito in giornata. Nel frattempo puoi aggiungere la tua %s.',
+  'Your documents are with us. Trade prices, ordering and line sheets open as soon as we activate the account — usually the same day.' => 'I tuoi documenti sono con noi. Prezzi all\'ingrosso, ordini e line sheet si aprono non appena attiviamo l\'account — di solito in giornata.',
 );

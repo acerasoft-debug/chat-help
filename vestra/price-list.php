@@ -57,6 +57,13 @@ require __DIR__.'/inc/head.php';
 ?>
 <style>
   .pc-wrap{max-width:1180px;margin:0 auto;padding:0 24px 90px}
+  /* Kapi bandi: metin + dugme SATIRI. Dugmeler cumlenin icinde akiyordu ve
+     telefonda "registration. [Register free]" / "[Sign in]" diye cumle ortasinda
+     kiriliyordu (2 Eyl 2026 ekran goruntusu). */
+  .pc-gate{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+  .pc-gate-txt{flex:1 1 320px;line-height:1.5}
+  .pc-gate-btns{display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pc-gate-btns:empty{display:none}
   .pc-head{padding:48px 0 22px;border-bottom:1px solid var(--line)}
   .pc-head h1{font-size:clamp(28px,4.4vw,42px);margin:0 0 12px}
   .pc-sub{color:var(--mut);max-width:66ch;line-height:1.6;margin:0 0 4px}
@@ -132,17 +139,24 @@ require __DIR__.'/inc/head.php';
       <p class="curnote" style="margin-top:10px">💱 <?= htmlspecialchars($__cn) ?></p>
     <?php endif; ?>
     <?php if (!$PRICES): ?>
-    <div class="banner info" style="margin:14px 0 0;text-align:left">🔒
-      <?php if ($PRICE_GATE === 'doc' && auth_trade_doc_status($AUTH_USER) === 'uploaded'): ?>
-        <?= t('Your trade licence is being checked. Wholesale prices open as soon as it is approved.') ?>
-      <?php elseif ($PRICE_GATE === 'doc'): ?>
-        <?= t('Wholesale prices open once we have checked your trade licence / business registration.') ?>
-        &nbsp;<a class="btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
+    <div class="banner info pc-gate" style="margin:14px 0 0;text-align:left">
+      <span class="pc-gate-txt"><?= $PRICE_GATE === 'approval' ? '⏳' : '🔒' ?>
+      <?php if ($PRICE_GATE === 'approval'): ?>
+        <?= t('Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.') ?>
       <?php else: ?>
         <?= t('Trade prices are shown to registered businesses. Registration is free — you will be asked for your trade licence / business registration.') ?>
-        &nbsp;<a class="btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="/register"><?= t('Register free') ?></a>
-        <a class="btn btn-sm btn-o" style="display:inline-flex;margin-left:6px" href="/login?back=/price-list"><?= t('Sign in') ?></a>
       <?php endif; ?>
+      </span>
+      <span class="pc-gate-btns">
+      <?php if ($PRICE_GATE === 'approval'): ?>
+        <?php if (!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
+        <a class="btn btn-sm btn-o" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Add document') ?></a>
+        <?php endif; ?>
+      <?php else: ?>
+        <a class="btn btn-sm btn-p" href="/register"><?= t('Register free') ?></a>
+        <a class="btn btn-sm btn-o" href="/login?back=/price-list"><?= t('Sign in') ?></a>
+      <?php endif; ?>
+      </span>
     </div>
     <?php endif; ?>
     <p class="pc-sub"><?= t('ART. NO is the manufacturer\'s own article number; the grey code beside it is the VESTRA reference. Every row links to the product page.') ?></p>
@@ -233,7 +247,7 @@ require __DIR__.'/inc/head.php';
                    sorusu — cok alirsam kaca iner — artik sayfada cevapli. */ ?>
           <?php if ($vols !== ''): ?><span class="pc-tiers"><?= htmlspecialchars($vols) ?></span><?php endif; ?>
         <?php else: ?>
-          <a class="pc-lock" href="<?= htmlspecialchars($PRICE_GATE === 'doc' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE === 'doc' ? t('Upload document') : t('Trade only') ?></a>
+          <a class="pc-lock" href="<?= htmlspecialchars($PRICE_GATE === 'approval' ? $KYC_URL : '/register') ?>">🔒 <?= $PRICE_GATE === 'approval' ? t('Awaiting approval') : t('Trade only') ?></a>
         <?php endif; ?>
       </div>
       <div class="pc-rrp pc-num">

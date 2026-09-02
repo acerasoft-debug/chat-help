@@ -98,6 +98,10 @@ body{background:#f4f2ee}
 .bseo a{font-size:12px;color:#6f695e;text-decoration:none;border:1px solid #e6e0d5;
   background:#fff;border-radius:999px;padding:5px 12px}
 .bseo a:hover{border-color:#a97f2c;color:#a97f2c}
+/* Telefonda gizli: marka rayi zaten ayni markalari listeliyor, pillerin
+   tek isi arama motoru icin /wholesale/<marka> baglantisi -- dar ekranda
+   urunlerin onune ikinci bir marka menusu koyuyordu. */
+@media(max-width:640px){.bseo{display:none}}
 .shopwrap .fcount{background:rgba(0,0,0,.05)}
 .shopwrap .scard:hover{box-shadow:0 12px 30px rgba(60,50,30,.16);border-color:rgba(169,127,44,.4)}
 footer{background:#14110c;border-top:0;color:#b8b2a4;margin-top:0}
@@ -105,7 +109,7 @@ footer a{color:#d8bd86}
 
 /* ── Editorial masthead ──────────────────────────────────────────────────── */
 .sphead{padding:36px 0 20px;border-bottom:1px solid var(--line);margin-bottom:26px}
-.sphead-eyebrow{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;
+.sphead-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;
   color:var(--acc);font-weight:700;margin-bottom:10px}
 .sphead h1{font-size:clamp(30px,5vw,54px);margin:0 0 8px;letter-spacing:-.022em}
 .sphead p{max-width:52ch;text-wrap:pretty}
@@ -242,16 +246,14 @@ footer a{color:#d8bd86}
     <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices are visible to <b>verified buyers</b>.') ?>
       &nbsp;<a href="/login?back=/shop" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Sign in') ?></a>
       <a href="/register" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Register free') ?></a></div>
-  <?php elseif($PRICE_GATE==='doc'): ?>
-    <?php /* Giris yapmis ama fiyat kapali: "uye olun" demek yanlis olurdu, zaten uye.
-             Iki ayri hal var ve ayni cumle ikisine birden uymuyor -- belgesini dun
-             yuklemis birine "yukleyin" demek onu bos yere geri gonderir. */ ?>
-    <?php if(auth_trade_doc_status($AUTH_USER)==='uploaded'): ?>
-    <div class="banner info" style="margin-bottom:22px">⏳ <?= t('Your trade licence is being checked. Wholesale prices open as soon as it is approved.') ?></div>
-    <?php else: ?>
-    <div class="banner info" style="margin-bottom:22px">🔒 <?= t('Wholesale prices open once we have checked your trade licence / business registration.') ?>
-      &nbsp;<a href="<?= htmlspecialchars($KYC_URL) ?>" class="acc btn btn-sm btn-p" style="display:inline-flex;margin-left:6px"><?= t('Upload document') ?></a></div>
-    <?php endif; ?>
+  <?php elseif($PRICE_GATE==='approval'): ?>
+    <?php /* Giris yapmis ama fiyat kapali: kapiyi ONAY acar (KURAL 2). "Belgenizi
+             yukleyin, yukleyince acilir" demek yanlis: belge uyari, kapi degil.
+             Belgesi bizde olana yukleme baglantisi da gosterilmez. */ ?>
+    <div class="banner info" style="margin-bottom:22px">⏳ <?= t('Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.') ?>
+      <?php if(!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
+      &nbsp;<a href="<?= htmlspecialchars($KYC_URL) ?>" class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px"><?= t('Add document') ?></a>
+      <?php endif; ?></div>
   <?php endif; ?>
   <div class="shoplayout">
 
@@ -424,7 +426,7 @@ footer a{color:#d8bd86}
               <?php if(!empty($p['colors'])): ?><span class="smeta" style="margin-top:2px"><?= vestra_color_dots((array)$p['colors'], 7) ?></span><?php endif; ?>
               <div class="sprice">
                 <?php if(!$PRICES): ?>
-                  <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='doc' ? t('Trade licence required') : t('Members only') ?></span>
+                  <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='approval' ? t('Awaiting approval') : t('Members only') ?></span>
                 <?php elseif($dmode==='offer'): ?>
                   <span class="soffer">💬 <?= t('Open to offers') ?></span>
                 <?php elseif($dmode==='sale'): ?>

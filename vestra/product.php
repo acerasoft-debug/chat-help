@@ -236,15 +236,15 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" style="margin:0 auto 8px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
           <?php /* Iki ayri sebep, iki ayri cumle: "uye olun" derken zaten uye olana
                    bunu soylemek, kullaniciya yapacak bir sey birakmiyordu. */ ?>
-          <?php if($PRICE_GATE==='doc' && auth_trade_doc_status($AUTH_USER)==='uploaded'): ?>
-          <h3 style="margin:0 0 6px"><?= t('Your document is being checked') ?></h3>
-          <p style="color:var(--mut);margin:0 0 16px"><?= t('We have your trade licence. Wholesale prices and ordering open as soon as it is approved.') ?></p>
-          <?php elseif($PRICE_GATE==='doc'): ?>
-          <h3 style="margin:0 0 6px"><?= t('One step left') ?></h3>
-          <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration. Wholesale prices and ordering open once we have checked it.') ?></p>
+          <?php if($PRICE_GATE==='approval'): ?>
+          <?php /* Kapiyi ONAY acar (KURAL 2); belge yalnizca "bu arada" istenir. */ ?>
+          <h3 style="margin:0 0 6px"><?= t('Your account is being reviewed') ?></h3>
+          <p style="color:var(--mut);margin:0 0 16px"><?= t('Wholesale prices and ordering open as soon as we activate your account — usually the same day.') ?></p>
+          <?php if(!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <a class="btn btn-p" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Upload document') ?></a>
+            <a class="btn btn-o" href="<?= htmlspecialchars($KYC_URL) ?>"><?= t('Add document') ?></a>
           </div>
+          <?php endif; ?>
           <?php else: ?>
           <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
           <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to see pricing') ?><?= $mode==='offer'?' '.t('and make an offer'):' '.t('and order') ?>.</p>
@@ -644,7 +644,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <span class="smeta"><?= htmlspecialchars($rp['cat'] ?? '') ?> · MOQ <b><?= $rp['moq'] ?? '?' ?></b> <?= htmlspecialchars($rp['unit'] ?? 'pc') ?></span>
             <div class="sprice">
               <?php if (!$PRICES): ?>
-                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='doc' ? t('Trade licence required') : t('Members only') ?></span>
+                <span class="slock"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><?= $PRICE_GATE==='approval' ? t('Awaiting approval') : t('Members only') ?></span>
               <?php elseif (($rp['mode'] ?? '') === 'offer'): ?>
                 <span class="soffer">💬 <?= t('Open to offers') ?></span>
               <?php else: ?>

@@ -39,13 +39,12 @@ $MEMBER = $IS_ADMIN || $AUTH_USER !== null || !empty($_SESSION['member']);
    and said so for a while after the rule changed. A stale comment about an access rule
    is worse than none: the next person reads it and believes uploading opens the account. */
 $APPROVED = $IS_ADMIN || auth_user_approved($AUTH_USER);
-/* Fiyat kapisi ayri bir esik: giris + ticari belgenin YUKLENMIS olmasi.
-   $MEMBER (sadece giris) fiyati acmaya artik yetmiyor -- toptan fiyat, isini
-   belgeleyen kisiye gosterilen bir sey. Onay ($APPROVED) beklemiyor ama:
-   belgeyi yukleyen aninda fiyati gorur, satici kimligi ve line-sheet yine
-   onaydan sonra acilir. Zorunluluk oncesi acilmis hesaplar etkilenmez. */
+/* Fiyat kapisi = onay kapisi (KURAL 2, 31 Agu 2026): toptan fiyat, siparis ve
+   line-sheet operatorun hesabi acmasiyla birlikte acilir. Belge yuklemek
+   kapiyi ACMAZ; belge uyari olarak istenir. $PRICES ile $APPROVED bu yuzden
+   ayni cevabi verir; ikisi de tutuluyor cunku sayfalar ikisini de okuyor. */
 $PRICES     = $IS_ADMIN || auth_prices_unlocked($AUTH_USER);
-$PRICE_GATE = $IS_ADMIN ? '' : auth_price_gate_reason($AUTH_USER);   // '' | 'guest' | 'doc'
+$PRICE_GATE = $IS_ADMIN ? '' : auth_price_gate_reason($AUTH_USER);   // '' | 'guest' | 'approval'
 /* Kilidi gosteren her sayfa "peki nereye yukleyecegim" sorusunu da cevaplamali;
    belge sekmesi alici ve satici panelinde ayri adreste. */
 $KYC_URL = ($AUTH_USER && ($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc';
@@ -247,31 +246,33 @@ if ($AUTH_USER && !$APPROVED):
   $kycUrl = (($AUTH_USER['type'] ?? '') === 'seller') ? '/seller?tab=kyc' : '/buyer?tab=kyc';
 ?>
 <div class="vpending">
-  <strong><?= t('Your account is not activated yet.') ?></strong>
+  <strong><?= t('Your account is being reviewed.') ?></strong>
   <?php /* Belge adi ziyaretcinin ULKESINE gore: beyan ettigi ulke, yoksa kayit
            IP'sinin ulkesi. Almanyali icin "(Gewerbeschein)", Fransizli icin
-           "(extrait Kbis)", bilinmeyen ulkede sadece notr ifade. Herkese Almanca
-           bir belge adi yazmak, hangi ulkeyle konustugunu bilmeyen bir pazar yeri
-           izlenimi veriyordu. */
-        $docPhrase = auth_trade_doc_phrase(vestra_visitor_cc($AUTH_USER)); ?>
-  <?php /* Iki ayri cumle, cunku artik iki ayri esik var: belge YUKLENINCE fiyat
-           aciliyor, ONAYLANINCA satici kimligi ve line-sheet aciliyor. Tek metin
-           birakilsaydi, belgesini yukleyip fiyatlari gorebilen birine "fiyatlar
-           gizli" yazmaya devam ederdik -- eskiden dogru olan bir cumlenin yanlis
-           kalmasi, hic cumle olmamasindan kotu. */ ?>
-  <?php if (!$PRICES): ?>
-    <?= sprintf(t('Trade prices stay hidden until you upload your %s. They open as soon as you upload it — you do not have to wait for the review.'), $docPhrase) ?>
+           "(extrait Kbis)", bilinmeyen ulkede sadece notr ifade. */
+        $docPhrase = auth_trade_doc_phrase(vestra_visitor_cc($AUTH_USER));
+        /* Kapiyi ONAY acar (KURAL 2). Eski metin "belgeyi yukleyince fiyatlar
+           aninda acilir" diyordu -- 31 Agustos'tan beri yanlis. Belgesi bizde
+           olana "yukleyin" de denmez; ona yalnizca bekledigi soylenir. */
+        $docDone = in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true); ?>
+  <?php if ($docDone): ?>
+    <?= t('Your documents are with us. Trade prices, ordering and line sheets open as soon as we activate the account — usually the same day.') ?>
   <?php else: ?>
-    <?= t('Your documents are with us. Seller details and line-sheet downloads open once we activate the account — usually the same day. Trade prices are already visible.') ?>
+    <?= sprintf(t('Trade prices, ordering and line sheets open as soon as we activate it — usually the same day. You can add your %s in the meantime.'), $docPhrase) ?>
+    <a href="<?= $kycUrl ?>"><?= t('Add document') ?> →</a>
   <?php endif; ?>
-  <a href="<?= $kycUrl ?>"><?= t('Upload documents') ?> →</a>
 </div>
 <style>
-  .vpending{background:rgba(201,168,106,.12);border-bottom:1px solid var(--acc);
-    padding:13px 24px;font-size:14px;line-height:1.55;color:var(--ink);
-    display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;justify-content:center;text-align:center}
-  .vpending strong{color:var(--acc)}
-  .vpending a{font-weight:700;color:var(--acc);white-space:nowrap;text-decoration:underline}
+  /* Renkler SABIT, tema degiskeni degil: bu bant baslik ile sayfa govdesi
+     arasinda duruyor ve acik temali sayfalarda (katalog, paneller) --ink hala
+     koyu temanin krem degeriydi -- yazi bej zeminde GORUNMUYORDU (2 Eyl 2026
+     ekran goruntusu). Sicak bej zemin + koyu yazi her iki temada okunur. */
+  .vpending{background:#efe4cf;border-bottom:1px solid #c9a86a;
+    padding:12px 20px;font-size:14px;line-height:1.5;color:#2a2418;
+    display:flex;gap:6px 10px;align-items:baseline;flex-wrap:wrap;justify-content:center;text-align:center}
+  .vpending strong{color:#7d5f22}
+  .vpending a{font-weight:700;color:#7d5f22;white-space:nowrap;text-decoration:underline}
+  @media(max-width:640px){.vpending{font-size:13px;padding:10px 16px}}
 </style>
 <?php endif; ?>
 <script>

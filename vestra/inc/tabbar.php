@@ -78,6 +78,12 @@ body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
 }
 @media(min-width:821px){.vtabbar{display:none}}
 @media(prefers-reduced-motion:reduce){.vtab,.vtab svg{transition:none}}
+/* Cerez bildirimi (#cnotice, foot.php ve index.php) satir ici bottom:14px tasiyor
+   ve cubugun USTUNE biniyordu: kullanici bandi kapatana kadar Katalog/Sepet/Hesap
+   dokunulamiyordu (2 Eyl 2026 olcumu: bildirim 699-830px, cubuk 780-844px).
+   !important sart -- satir ici stil baska turlu ezilmiyor. Burada duruyor cunku
+   cubugu her sayfa bu dosyadan aliyor, index.php'nin kendi altbilgisi dahil. */
+@media(max-width:820px){#cnotice{bottom:calc(74px + env(safe-area-inset-bottom,0px)) !important}}
 </style>
 <nav class="vtabbar" aria-label="<?= htmlspecialchars(t('Main')) ?>">
   <?php foreach ($__tbItems as [$href, $label, $match, $icon]):

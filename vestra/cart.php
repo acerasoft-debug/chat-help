@@ -53,11 +53,10 @@ if (stripe_available()) {
   <?php /* Sunucu yetki kontrolunun karsiligi (order.php). Sepet dolu kaliyor:
            onay gelince ayni sepetle devam edebilsin. */ ?>
   <?php if(isset($_GET['err']) && $_GET['err']==='not_approved'): ?>
-    <div class="banner info" style="margin-bottom:18px">🔒
-      <?= auth_trade_doc_status($u)==='uploaded'
-            ? t('Your trade licence is being checked. You can place this order as soon as it is approved — your basket is kept.')
-            : t('Orders open once we have checked your trade licence / business registration. Your basket is kept.') ?>
-      &nbsp;<a class="acc btn btn-sm btn-p" style="display:inline-flex;margin-left:6px" href="/buyer?tab=kyc"><?= t('Business verification') ?></a></div>
+    <div class="banner info" style="margin-bottom:18px">⏳
+      <?php /* Kapiyi ONAY acar (KURAL 2) -- belge durumu cumleyi degistirmez. */ ?>
+      <?= t('Your account is being reviewed. You can place this order as soon as we activate it — your basket is kept.') ?>
+      &nbsp;<a class="acc btn btn-sm btn-o" style="display:inline-flex;margin-left:6px" href="/buyer?tab=kyc"><?= t('Business verification') ?></a></div>
   <?php endif; ?>
 
   <div id="empty" class="empty" style="display:none">

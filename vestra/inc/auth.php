@@ -613,19 +613,9 @@ function auth_doc_types(string $cc = ''): array {
     ];
 }
 
-/* Ticari katalog (fiyat, fotograf, line-sheet) acik mi?
-   - Bayragi olmayan hesap = zorunluluk oncesi kayit -> her zaman acik.
-   - Bayragi olan hesap = trade_licence belgesi ONAYLANANA kadar kapali.
-   Sadece 'approved' aciyor: 'uploaded' yeterli degil, yoksa herhangi bir PDF
-   yukleyen kapiyi kendi kendine acardi. */
-function auth_trade_unlocked(?array $acc): bool {
-    if (!$acc) return false;
-    if (empty($acc['trade_doc_required'])) return true;
-    foreach ((array)($acc['doc_requests'] ?? []) as $r) {
-        if (($r['type'] ?? '') === 'trade_licence' && ($r['status'] ?? '') === 'approved') return true;
-    }
-    return false;
-}
+/* auth_trade_unlocked() BURADAYDI ve 31 Agustos 2026'dan beri hicbir kapiyi
+   acmiyordu (KURAL 2: kapiyi operator onayi acar). Olu kod, okuyani "belge
+   onaylaninca acilir" diye yaniltiyordu; kaldirildi. Tek kapi: auth_prices_unlocked(). */
 
 /* FIYAT kapisi. ONAY bekler -- yukleme yetmez.
    Eskiden belgenin YUKLENMIS olmasi fiyati aciyordu; gerekcesi, onayin elle
@@ -664,12 +654,14 @@ function auth_trade_doc_status(?array $acc): string {
 }
 
 /* Fiyat neden kapali? Kapiyi cizen sayfalar dogru cumleyi secebilsin diye:
-   'guest' = giris yok, 'doc' = giris var ama ticari belge yuklenmemis.
-   Iki durum ayni kilidi gosterse de cozumleri farkli; ayni metni yazmak
-   kullaniciya "ne yapmaliyim" sorusunu cevapsiz birakirdi. */
+   'guest' = giris yok, 'approval' = giris var ama operator hesabi henuz acmadi.
+   Eski deger 'doc' idi ve alti sayfa "belgenizi yukleyin, yukleyince fiyatlar
+   acilir" yaziyordu -- KURAL 2'den (31 Agu 2026) beri YANLIS bir cumle: belge
+   kapiyi acmaz, onay acar. Belgesini yuklemis ve onay bekleyen alici, panelin
+   kendisinden yanlis bir talimat okuyordu. */
 function auth_price_gate_reason(?array $acc): string {
     if (!$acc) return 'guest';
-    return auth_prices_unlocked($acc) ? '' : 'doc';
+    return auth_prices_unlocked($acc) ? '' : 'approval';
 }
 
 function auth_request_doc(string $uid, string $type, string $note=''): void {

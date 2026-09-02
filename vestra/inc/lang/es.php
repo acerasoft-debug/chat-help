@@ -1053,4 +1053,16 @@ return array (
 
   'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'Los precios mostrados en %s se convierten desde EUR al tipo de referencia del Banco Central Europeo%s. Los pedidos se facturan en EUR.',
   'Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.' => 'Los precios mostrados en %s se convierten desde EUR a un tipo orientativo%s. Los pedidos se facturan en EUR.',
+
+  /* Onay kapisi cumleleri (KURAL 2, 2 Eyl 2026): kapiyi belge degil operator onayi acar. */
+  'Awaiting approval' => 'Pendiente de aprobación',
+  'Your account is being reviewed' => 'Tu cuenta está en revisión',
+  'Your account is being reviewed.' => 'Tu cuenta está en revisión.',
+  'Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.' => 'Tu cuenta está en revisión. Los precios mayoristas se abren en cuanto la activemos — normalmente el mismo día.',
+  'Wholesale prices and ordering open as soon as we activate your account — usually the same day.' => 'Los precios mayoristas y los pedidos se abren en cuanto activemos tu cuenta — normalmente el mismo día.',
+  'Wholesale prices and pool access open as soon as we activate your account — usually the same day.' => 'Los precios mayoristas y el acceso a las compras colectivas se abren en cuanto activemos tu cuenta — normalmente el mismo día.',
+  'Add document' => 'Añadir documento',
+  'Your account is being reviewed. You can place this order as soon as we activate it — your basket is kept.' => 'Tu cuenta está en revisión. Podrás hacer este pedido en cuanto la activemos — tu cesta se conserva.',
+  'Trade prices, ordering and line sheets open as soon as we activate it — usually the same day. You can add your %s in the meantime.' => 'Los precios mayoristas, los pedidos y las line sheets se abren en cuanto la activemos — normalmente el mismo día. Mientras tanto puedes añadir tu %s.',
+  'Your documents are with us. Trade prices, ordering and line sheets open as soon as we activate the account — usually the same day.' => 'Tus documentos ya están con nosotros. Los precios mayoristas, los pedidos y las line sheets se abren en cuanto activemos la cuenta — normalmente el mismo día.',
 );

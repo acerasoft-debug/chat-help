@@ -25,6 +25,12 @@
    dahil ediliyor (mektuba ek Excel uretmek icin) ve products.php o zaman ZATEN
    yuklu oluyor: duz require "Cannot redeclare vestra_ships_from()" ile olumcul
    hata verirdi. Web tarafinda davranis ayni. */
+/* Canli error_log (1-2 Agu 2026, 7 kez): "Allowed memory size of 134217728
+   bytes exhausted" inc/xlsx.php icinde -- 345 urunun fotografli sayfasi tek bir
+   dizede kuruluyor ve 128M'yi asabiliyor. Sinir yalnizca BU istek icin
+   yukseltiliyor; paylasimli sunucuda 256M kabul ediliyor (php.ini memory_limit
+   128M, .user.ini dokunmuyor). */
+@ini_set('memory_limit', '256M');
 require_once __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/xlsx.php';
 require_once __DIR__.'/inc/stock.php';
@@ -215,9 +221,15 @@ if ($file === '' || !is_file($file)) {
    ikincisi birincisinin uzerine yaziyor ve hangisinin ne oldugu kayboluyor. */
 $slug = $brandFilter !== '' ? strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $brandFilter)).'-' : '';
 if ($catFilter !== '') $slug .= strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $catFilter)).'-';
-header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.xlsx"');
-header('Content-Length: '.filesize($file));
-header('X-Content-Type-Options: nosniff');
+/* headers_sent(): bu dosya send-campaign-preview.yml tarafindan ob_start()
+   icinde de calistiriliyor (mektuba ek Excel). Orada cikti zaten basladigi icin
+   her header() satiri error_log'a "headers already sent" yaziyordu -- 1 Eylul
+   2026'da tek gunde 40+ satir, hepsi bu. Baslik ancak gonderilebiliyorsa. */
+if (!headers_sent()) {
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="vestra-'.$slug.'wholesale-'.date('Y-m').'.xlsx"');
+    header('Content-Length: '.filesize($file));
+    header('X-Content-Type-Options: nosniff');
+}
 readfile($file);
 @unlink($file);

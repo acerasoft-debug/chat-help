@@ -159,10 +159,14 @@ $GMINCOL = vestra_group_min_colors($p);
           <?php /* Havuz fiyati da bir toptan fiyat: katalogla ayni kapiya bagli
                    kalmali, yoksa /shop'ta gizlenen rakam buradan sizar. */ ?>
           <div class="gate">
-          <?php if($PRICE_GATE==='doc'): ?>
-            <h3 style="margin:0 0 6px"><?= t('One step left') ?></h3>
-            <p style="color:var(--mut);margin:0 0 16px"><?= t('Upload your trade licence / business registration and wholesale prices open immediately — you do not have to wait for approval.') ?></p>
-            <a class="btn btn-p" href="<?= htmlspecialchars($KYC_URL) ?>" style="width:100%;justify-content:center"><?= t('Upload document') ?></a>
+          <?php if($PRICE_GATE==='approval'): ?>
+            <?php /* Eski metin "yukleyince hemen acilir, onay beklemezsiniz" diyordu:
+                     KURAL 2'nin tam tersi. Kapiyi onay acar. */ ?>
+            <h3 style="margin:0 0 6px"><?= t('Your account is being reviewed') ?></h3>
+            <p style="color:var(--mut);margin:0 0 16px"><?= t('Wholesale prices and pool access open as soon as we activate your account — usually the same day.') ?></p>
+            <?php if(!in_array(auth_trade_doc_status($AUTH_USER), ['uploaded','approved'], true)): ?>
+            <a class="btn btn-o" href="<?= htmlspecialchars($KYC_URL) ?>" style="width:100%;justify-content:center"><?= t('Add document') ?></a>
+            <?php endif; ?>
           <?php else: ?>
             <h3 style="margin:0 0 6px"><?= t('Verified buyers only') ?></h3>
             <p style="color:var(--mut);margin:0 0 16px"><?= t('Sign in as a verified business buyer to join this pool.') ?></p>

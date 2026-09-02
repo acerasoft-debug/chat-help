@@ -1073,4 +1073,16 @@ return array (
 
   'Prices shown in %s are converted from EUR at the European Central Bank reference rate%s. Orders are invoiced in EUR.' => 'Die in %s angezeigten Preise sind aus EUR zum Referenzkurs der Europäischen Zentralbank umgerechnet%s. Bestellungen werden in EUR fakturiert.',
   'Prices shown in %s are converted from EUR at an indicative rate%s. Orders are invoiced in EUR.' => 'Die in %s angezeigten Preise sind aus EUR zu einem Richtkurs umgerechnet%s. Bestellungen werden in EUR fakturiert.',
+
+  /* Onay kapisi cumleleri (KURAL 2, 2 Eyl 2026): kapiyi belge degil operator onayi acar. */
+  'Awaiting approval' => 'Freischaltung ausstehend',
+  'Your account is being reviewed' => 'Ihr Konto wird geprüft',
+  'Your account is being reviewed.' => 'Ihr Konto wird geprüft.',
+  'Your account is being reviewed. Wholesale prices open as soon as we activate it — usually the same day.' => 'Ihr Konto wird geprüft. Die Großhandelspreise werden sichtbar, sobald wir es freischalten — meist noch am selben Tag.',
+  'Wholesale prices and ordering open as soon as we activate your account — usually the same day.' => 'Großhandelspreise und Bestellungen werden freigeschaltet, sobald wir Ihr Konto aktivieren — meist noch am selben Tag.',
+  'Wholesale prices and pool access open as soon as we activate your account — usually the same day.' => 'Großhandelspreise und der Zugang zu Sammelbestellungen öffnen sich, sobald wir Ihr Konto aktivieren — meist noch am selben Tag.',
+  'Add document' => 'Dokument hinzufügen',
+  'Your account is being reviewed. You can place this order as soon as we activate it — your basket is kept.' => 'Ihr Konto wird geprüft. Sie können diese Bestellung aufgeben, sobald wir es freischalten — Ihr Warenkorb bleibt erhalten.',
+  'Trade prices, ordering and line sheets open as soon as we activate it — usually the same day. You can add your %s in the meantime.' => 'Großhandelspreise, Bestellungen und Line Sheets werden freigeschaltet, sobald wir es aktivieren — meist noch am selben Tag. In der Zwischenzeit können Sie Ihren %s hochladen.',
+  'Your documents are with us. Trade prices, ordering and line sheets open as soon as we activate the account — usually the same day.' => 'Ihre Unterlagen liegen uns vor. Großhandelspreise, Bestellungen und Line Sheets werden freigeschaltet, sobald wir das Konto aktivieren — meist noch am selben Tag.',
 );

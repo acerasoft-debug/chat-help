@@ -495,6 +495,17 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   editörü/teklif seçici için — alıcının elinde id/SKU olan yollar. Açık bir sayfaya
   `true` yazılırsa numune sessizce kataloga döner; `tests/unlisted_product_test.php`
   açık sayfaları kaynak düzeyinde tarar. Ürün sayfası gizli kayda `noindex` basar.
+- **Görsel inceleme (mobil + masaüstü):** `tests/render/README.md` — yerel `php -S`
+  (`vestra/_router_local.php`, `.htaccess`'in aynası) + Playwright ile her sayfanın
+  ekran görüntüsü, yatay taşma ve konsol hatası raporu; `auth.js` yerel hesap açıp
+  panel/kapı hâllerini de çeker. 2 Eyl 2026'da bununla bulunanlar: onay bandı
+  açık temada okunmuyordu, panel sekmeleri mobilde 4 satırdı, çerez bandı sekme
+  çubuğunu örtüyordu, dropshipping sayfası kenar boşluksuzdu.
+- **Canlı PHP hataları:** `diag-messages.yml` → `errlog=true` (mesaj+dosya:satır
+  bazında gruplar, son 10 gün ayrı listede, `/tmp/` workflow betikleri hariç).
+  2 Eyl 2026'da son 10 günün tüm kayıtları workflow geçici betiklerindendi
+  (`vestra_buyer_reply_tmp.php` → `wholesale-xlsx.php` "headers already sent");
+  canlı trafikte gerçek hata yoktu.
 - **Testler:** `sh tests/run_all.sh` — teklif akışı, tur sınırı, fiyat kuralları,
   para girişi, e-posta doğrulayıcı, JSON-LD görsel çözücü. Teklif akışı bir
   oturumda dört kez değişti; her seferinde önceki davranışı koruyan şey bunlar

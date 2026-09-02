@@ -26,7 +26,9 @@ $dsBrands  = vestra_dropship_excluded_brands();
 $dsTerms   = vestra_dropship_excluded_terms();
 ?>
 <style>
-.dsdoc{max-width:860px;margin:0 auto;padding:0 0 60px}
+/* padding-bottom, "padding:0 0 60px" DEGIL: kisa yazim .wrap'in yan bosluklarini
+   siliyordu ve telefonda metin ekranin kenarina yapisiyordu (2 Eyl 2026). */
+.dsdoc{max-width:860px;margin:0 auto;padding-bottom:60px}
 .dsdoc h1{font-size:36px;line-height:1.15;margin:0 0 12px}
 .dsdoc h2{font-size:21px;margin:38px 0 12px;padding-top:20px;border-top:1px solid var(--line)}
 .dsdoc h3{font-size:15px;margin:24px 0 8px;color:var(--acc)}
