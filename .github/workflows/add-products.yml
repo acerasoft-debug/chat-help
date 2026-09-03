@@ -262,6 +262,16 @@ jobs:
                 if (!isset(vestra_sections()[$sec])) { $errors[]="{$ctx} ({$id}): bilinmeyen bolme '{$sec}' (gecerli: ".implode(', ', array_keys(vestra_sections())).")"; continue; }
                 $row['section'] = $sec;
               }
+              /* AYAKKABIDA TEK CIFT MINIMUM YOK (operator karari, 3 Eyl 2026: "en az
+                 alimlarinda ayakkabi icin bir seri yap bir adet degil"). Serinin kac cift
+                 oldugu beden dizisine gore degisiyor, o yuzden burada yalnizca "1 olamaz"
+                 kurali duruyor. Kontrol BU YOLDA, cunku satici formu bolme secemiyor
+                 (seller-add.php'de section alani yok) -- yani ayakkabi ilani yalnizca
+                 buradan doguyor ve kural hatirlanmaya birakilmiyor. */
+              if (($row['section'] ?? '') === 'footwear' && (int)$row['moq'] < 2) {
+                $errors[] = "{$ctx} ({$id}): ayakkabida minimum tek cift olamaz -- seri ver (moq >= 2)";
+                continue;
+              }
               $clean[] = $row;
             }
 
