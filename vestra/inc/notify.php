@@ -497,6 +497,10 @@ function vestra_discover_blocklist(): array {
     'esprit','s.oliver','tom tailor','jack & jones','vero moda','celio','kiabi','forever 21','gap',
     'old navy','banana republic','topshop','topman','river island','marks & spencer','m&s','jd sports',
     'foot locker','footlocker','deichmann','görtz','goertz','snipes','courir','next retail',
+    /* ABD ayakkabi/streetwear zinciri (~250+ sube, cogu eyalette var). 3 Eyl 2026
+       new_collection kuru kosusunda "onceden yazilmis" havuzundan cikti -- yani
+       ilk kampanyada da kacmisti, iki mektup birden bu bosluktan geciyordu. */
+    'dtlr',
     // department stores
     'galeries lafayette','el corte inglés','el corte ingles','karstadt','kaufhof','john lewis','debenhams',
     "macy's",'nordstrom','harrods','selfridges','myer','david jones',
@@ -530,6 +534,11 @@ function vestra_discover_blocklist(): array {
     'aldo shoes','aldogroup','dynamite clothing','groupe dynamite',
     'garage clothing','garageclothing','le chateau','lechateau','rw&co','reitmans',
     'aritzia','roots',
+    /* Alan adinin kendisi "global brands" diyor -- bir butigin degil, birden
+       fazla markayi/magazayi ayni catida isleten bir dagitim/gruba ait imza.
+       Lead adi ("Scandal") tek basina zararsiz gorunuyordu, alan adi
+       gorulmeden yakalanmazdi (3 Eyl 2026, new_collection kuru kosusu). */
+    'globalbrands',
     /* AVM / outlet MERKEZI isletmecileri. Bunlar bir magaza degil, EV SAHIBI:
        mal almiyorlar, kiraya veriyorlar. 30 Agustos 2026'da McArthurGlen Malaga
        ve La Noria Outlet duyuruyu aldi -- ikisi de alisveris merkezi.
