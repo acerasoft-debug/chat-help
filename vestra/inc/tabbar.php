@@ -48,7 +48,11 @@ body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
 @media(max-width:820px){
   /* Keep the last section clear of the bar, including the home-indicator strip. */
   body{padding-bottom:calc(66px + env(safe-area-inset-bottom,0px))}
-  .vtabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;
+  /* height ACIKCA burada: cubuk uzun sure paylasilan `nav{height:64px}`
+     kuralindan yuksekligini aliyordu ve o kural ust menuye daraltilinca
+     sessizce buyuyecekti (body'nin ayirdigi 66px'lik alt bosluk da yetmez,
+     son satir cubugun altinda kalirdi). Olcu degismedi, yalnizca sahibi belli. */
+  .vtabbar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;height:64px;
     grid-template-columns:repeat(5,1fr);align-items:stretch;
     padding-bottom:env(safe-area-inset-bottom,0px);
     background:rgba(14,14,17,.86);

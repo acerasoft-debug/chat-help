@@ -82,13 +82,50 @@ arsort($brandCounts);
    header stays as top chrome; body + footer are repainted here because this page
    only ever renders the catalog. Product-image tiles keep their dark gradient. */
 body{background:#f4f2ee}
-.secttabs{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
-.secttab{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:1px solid #e6e0d5;
-  border-radius:999px;background:#fff;color:#6f695e;text-decoration:none;font-size:13.5px;
-  font-weight:600;letter-spacing:.01em;transition:border-color .15s,color .15s}
-.secttab:hover{border-color:#cbbf9f;color:#211d17}
-.secttab.on{background:#211d17;border-color:#211d17;color:#f4f2ee}
-.secttab .sectn{font-size:11px;font-weight:600;opacity:.65}
+/* Bolme secici: iki pil degil, iki KART. Bolme katalogun en ust ayrimi (bir
+   bolmeden digerine gecmek marka filtresi degistirmek degil, baska bir vitrine
+   girmek) -- kucuk bir pil bunu tasimiyordu ve gozden kaciyordu. */
+.secttabs{display:flex;gap:12px;margin:0 0 26px;flex-wrap:wrap}
+/* box-sizing SART: bu sayfada genel bir border-box kurali yok, dolayisiyla
+   flex-basis'e eklenen ic bosluk ve cerceve kartlari kabin DISINA tasiriyordu --
+   telefonda kart ekrani 13px asip alttaki marka rayinin uzerine biniyordu. */
+/* min-width:0 de SART: bir flex ogesinin varsayilan min-width'i 'auto', yani
+   icerigin min-content genisligi. Alt satir tek satira zorlandigi icin
+   (white-space:nowrap) o olcu 342px'lik kabi asiyordu ve ellipsis hic devreye
+   girmiyordu -- kart kabin disina tasiyordu, kucultulmuyordu. */
+.secttab{box-sizing:border-box;min-width:0;flex:1 1 250px;display:flex;align-items:center;gap:13px;padding:13px 16px;
+  border:1px solid #e6e0d5;border-radius:16px;background:#fff;text-decoration:none;
+  transition:border-color .18s,box-shadow .18s,transform .18s}
+.secttab:hover{border-color:#cbbf9f;transform:translateY(-1px);
+  box-shadow:0 12px 26px -18px rgba(60,50,30,.6)}
+.secttab .sectico{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(169,127,44,.09);color:#a97f2c}
+.secttab .sectico svg{width:23px;height:23px}
+.secttab .secttxt{min-width:0}
+.secttab .sectname{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;
+  color:#211d17;letter-spacing:-.01em}
+.secttab .sectn{font-size:11px;font-weight:700;color:#6f695e;background:#f3efe8;
+  border-radius:999px;padding:2px 8px;letter-spacing:.02em}
+.secttab .sectsub{display:block;font-size:12.5px;color:#6f695e;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.secttab .sectgo{margin-left:auto;padding-left:8px;color:#cbbf9f;font-size:17px;
+  transition:transform .2s,color .2s}
+.secttab:hover .sectgo{transform:translateX(3px);color:#a97f2c}
+.secttab.on{background:#211d17;border-color:#211d17}
+.secttab.on .sectname{color:#f6f3ec}
+.secttab.on .sectsub{color:#b3aa99}
+.secttab.on .sectn{background:rgba(255,255,255,.13);color:#e9e3d7}
+.secttab.on .sectico{background:rgba(201,168,106,.16);color:#c9a86a}
+.secttab.on .sectgo{color:#c9a86a}
+@media(max-width:640px){
+  .secttabs{gap:9px;margin-bottom:20px}
+  /* Telefonda kartlar alt alta ve tam genislikte: alt satir kesilmek yerine
+     sarabilir, cunku artik yer var (masaustunde tek satirda kaliyor). */
+  .secttab .sectsub{white-space:normal}
+  .secttab{flex:1 1 100%;padding:11px 13px;gap:11px}
+  .secttab .sectico{width:36px;height:36px;border-radius:10px}
+  .secttab .sectico svg{width:20px;height:20px}
+}
 .shopwrap{--bg:#f4f2ee;--bg2:#ffffff;--bg3:#f3efe8;--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;--ok:#1f9d63;--bad:#c0392b;color:var(--ink)}
 .shopwrap h1,.shopwrap h2,.shopwrap h3{color:var(--ink)}
 .shopwrap .filterblock,.shopwrap .scard{box-shadow:0 1px 3px rgba(60,50,30,.05)}
@@ -202,6 +239,40 @@ footer a{color:#d8bd86}
     </div>
   </div>
 
+  <?php /* Bolme secici. BASLIGIN HEMEN ALTINDA, marka rayindan ONCE: ray zaten
+           SECILI bolmenin markalarini listeliyor, yani mantik sirasi once bolme
+           sonra marka. Eskiden rayin ve SEO pillerinin ALTINDA duran iki kucuk
+           pil vardi ve ayakkabi bolmesi pratikte gorunmuyordu (operator: "ayakkabilara
+           gecis kolay olsun"). Bos bir bolmenin sekmesi hala BASILMIYOR: tiklayana
+           bos izgara gostermek, katalogda bir sey yokmus izlenimi birakir. */ ?>
+  <?php if (count(array_filter($sectionCounts)) > 1): ?>
+    <nav class="secttabs" aria-label="<?= htmlspecialchars(t('Collection')) ?>">
+      <?php foreach($SECTIONS as $sk => $sl): if(!$sectionCounts[$sk]) continue;
+            $snote = vestra_section_note($sk); ?>
+        <a class="secttab<?= $sk===$SECTION ? ' on' : '' ?>" href="/shop?section=<?= urlencode($sk) ?>"<?= $sk===$SECTION ? ' aria-current="page"' : '' ?>>
+          <span class="sectico" aria-hidden="true">
+            <?php if ($sk === 'footwear'): ?>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.6 12.4h3.1l1.7-2 2.6 2.4c1.9 1.7 4.3 2.7 6.9 2.9l3.1.3c.9.1 1.6.9 1.6 1.8v1.1H2.6z"/>
+              <path d="M6.4 12.8l1.8 1.6M9.9 13.3l1.7 1.5"/>
+            </svg>
+            <?php else: ?>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5.6" r="1.9"/><path d="M12 7.5V9.4"/>
+              <path d="M12 9.4l8.3 5.5c.9.6.5 2.1-.6 2.1H4.3c-1.1 0-1.5-1.5-.6-2.1L12 9.4z"/>
+            </svg>
+            <?php endif; ?>
+          </span>
+          <span class="secttxt">
+            <span class="sectname"><?= htmlspecialchars(t($sl)) ?><span class="sectn"><?= (int)$sectionCounts[$sk] ?></span></span>
+            <?php if ($snote !== ''): ?><span class="sectsub"><?= htmlspecialchars(t($snote)) ?></span><?php endif; ?>
+          </span>
+          <span class="sectgo" aria-hidden="true">→</span>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
+
   <?php if($brandCounts): /* Brand rail — the houses in stock, set in their own wordmarks.
        Doubles as navigation: a tap filters the grid to that house. Rendered for guests too
        (the grid is public), so it stays a showpiece rather than a members-only tool. */ ?>
@@ -224,18 +295,6 @@ footer a{color:#d8bd86}
         <?= htmlspecialchars(vestra_seo_wholesale_word(vlang())) ?></a>
     <?php endforeach; ?>
   </nav>
-  <?php endif; ?>
-  <?php /* Bolme sekmeleri. Bos bir bolmenin sekmesi BASILMIYOR: henuz ayakkabi
-           yuklenmemisken "Footwear" sekmesi acmak, tiklayana bos bir izgara
-           gostermek demek -- katalogda bir sey yokmus izlenimi birakir. */ ?>
-  <?php if (count(array_filter($sectionCounts)) > 1): ?>
-    <nav class="secttabs" aria-label="<?= htmlspecialchars(t('Collection')) ?>">
-      <?php foreach($SECTIONS as $sk => $sl): if(!$sectionCounts[$sk]) continue; ?>
-        <a class="secttab<?= $sk===$SECTION ? ' on' : '' ?>" href="/shop?section=<?= urlencode($sk) ?>">
-          <?= htmlspecialchars($sl) ?><span class="sectn"><?= (int)$sectionCounts[$sk] ?></span>
-        </a>
-      <?php endforeach; ?>
-    </nav>
   <?php endif; ?>
   <?php /* Cevrilmis fiyat gosteriyorsak bunu SOYLE. Sessizce ceviren bir vitrin,
              alicinin kasada baska bir rakam gormesi demek. */ ?>

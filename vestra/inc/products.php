@@ -481,8 +481,14 @@ function vestra_products(bool $includeUnlisted = false){
  * Anything without the field is premium: that is what the existing catalogue is, and a
  * default that silently empties the main section on deploy would be the worst outcome.
  */
+/* Anahtar 'premium' KALIYOR, yalnizca etiket degisti (operator karari, 3 Eyl 2026:
+   "premium brands yerine bekleidung desek daha iyi olur"). Iki bolme artik iki URUN
+   TURU: giyim ve ayakkabi -- "Premium Brands" bir kalite iddiasiydi ve karsisinda
+   "Footwear" durunca ikisi ayni sorunun cevabi gibi okunmuyordu. Anahtari degistirmek
+   /shop?section=premium adreslerini (kampanya mektuplari, arama motoru) kirardi.
+   Etiket t()'den geciyor: Almanca sayfada "Bekleidung" basiliyor (inc/lang/de.php). */
 function vestra_sections(): array {
-    return ['premium' => 'Premium Brands', 'footwear' => 'Footwear'];
+    return ['premium' => 'Apparel', 'footwear' => 'Footwear'];
 }
 function vestra_product_section(array $p): string {
     $s = strtolower(trim((string)($p['section'] ?? '')));
@@ -490,6 +496,20 @@ function vestra_product_section(array $p): string {
 }
 function vestra_section_label(string $s): string {
     return vestra_sections()[strtolower(trim($s))] ?? vestra_sections()['premium'];
+}
+/**
+ * Bolmenin bir satirlik tanimi — vitrin sekmesinde ve ana sayfada basilir.
+ *
+ * Etiketin yaninda duruyor cunku ikisi ayni soruyu cevapliyor ("bu bolmede ne
+ * var"); ayri dosyalara dagilsalardi biri degisip digeri eskimis kalirdi. Metin
+ * INGILIZCE ve t()'den geciriliyor: musteriye gorunen her sey oyle.
+ * Bilinmeyen bolme icin bos doner -- uydurma bir aciklama basmaktansa hic basma.
+ */
+function vestra_section_note(string $s): string {
+    return [
+        'premium'  => 'Designer houses, ordered by the carton',
+        'footwear' => 'Spanish-made shoes, ordered by the series',
+    ][strtolower(trim($s))] ?? '';
 }
 
 /* By id, INCLUDING unlisted items: the product page, cart, order and offer paths all come

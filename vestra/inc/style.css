@@ -34,7 +34,15 @@ img{max-width:100%}
 /* nav */
 header{position:sticky;top:0;z-index:30;background:rgba(14,14,17,.78);
   backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
-nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:18px}
+/* SADECE ust menu. Cıplak `nav{...}` olarak yazildiginda sayfadaki HER <nav>
+   64px yuksekliginde, space-between bir satira zorlaniyordu -- yani ust menu
+   icin dogru olan olcu, iceriginin yuksekligini kendisi belirlemesi gereken
+   her gezinme blogunu da kesiyordu. Vitrindeki bolme kartlari (.secttabs)
+   70px'ti ve kabina sigmayip alttaki marka rayinin uzerine biniyordu; marka
+   SEO pilleri (.bseo) iki satira sardiginda ayni sekilde kirpilacakti.
+   Alttaki mobil sekme cubugu (.vtabbar) de sessizce bu kurala dayaniyordu:
+   artik kendi yuksekligini kendi yaziyor (inc/tabbar.php). */
+header nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:18px}
 .logo{display:flex;align-items:center;gap:9px;font-family:'Playfair Display',serif;font-size:21px;font-weight:700;letter-spacing:1.5px;margin-right:clamp(1.5rem,4vw,3.75rem)}
 .logo .mark{width:28px;height:28px}
 /* Subtle "sales" appended to the wordmark — dim gold, light sans, understated */

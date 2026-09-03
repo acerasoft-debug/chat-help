@@ -1096,6 +1096,128 @@ if ($soonBrands):
 </section>
 <?php endif; ?>
 
+<?php
+/* ── Ayakkabi bolmesi ──────────────────────────────────────────────────────
+   Operator karari, 3 Eyl 2026: "ayakkabilari ana sayfaya al yeni gelen
+   urunlerin altina ... ana sayfadan da direkt girilebilsin, tiklandiginda".
+   Konum bilerek "Coming soon"un HEMEN ALTI.
+
+   Ustteki bolumden farki: bu urunler katalogda GERCEKTEN var, o yuzden kartlar
+   TIKLANIR ve dogrudan urun sayfasina gider (Coming soon kartlari bilerek
+   tiklanmiyor, cunku hedef sayfa yok). Icerik canli ilanlardan okunuyor --
+   elle bir liste tutulsaydi satilan/duzenlenen ilan ana sayfada olu baglanti
+   olarak kalirdi.
+
+   FIYAT BASILMIYOR: toptan fiyat dogrulanmis alici kapisinin arkasinda
+   (auth_prices_unlocked) ve ana sayfa herkese acik.
+
+   Kendi CSS'i var, ustteki .soon-* siniflarini KULLANMIYOR: o stil blogu
+   yalnizca uploads/coming-soon dolu oldugunda basiliyor, klasor bosalsa bu
+   bolum stilsiz kalirdi. */
+$shoePicks = []; $shoeTotal = 0;
+if (function_exists('vestra_products') && function_exists('vestra_product_section')) {
+    $shoeByCat = [];
+    foreach (vestra_products() as $sp) {
+        if (vestra_product_section($sp) !== 'footwear') continue;
+        $shoeTotal++;
+        /* Taban fotografi ("SUELA") vitrin karti olmaz -- ayni olcut fotograflari
+           siniflandirirken de kullanildi. Bulunamazsa ilk gorsele duser. */
+        $simg = '';
+        foreach ((array)($sp['images'] ?? []) as $si) {
+            if (!is_string($si) || $si === '') continue;
+            if ($simg === '') $simg = $si;
+            if (stripos(basename($si), 'suela') === false) { $simg = $si; break; }
+        }
+        if ($simg === '' || ($sp['id'] ?? '') === '') continue;
+        $shoeByCat[(string)($sp['cat'] ?? 'Other')][] = [
+            'id'  => (string)$sp['id'],
+            'name'=> (string)($sp['name'] ?? ''),
+            'cat' => (string)($sp['cat'] ?? ''),
+            'img' => $simg,
+        ];
+    }
+    /* Kategoriler arasinda SIRAYLA: dosya sirasindan 12 tane almak 12 spor
+       ayakkabi demekti; serit bolmenin genisligini gostermeli. */
+    ksort($shoeByCat);
+    for ($rnd = 0; count($shoePicks) < 12; $rnd++) {
+        $addedRound = false;
+        foreach ($shoeByCat as $catItems) {
+            if (!isset($catItems[$rnd])) continue;
+            $shoePicks[] = $catItems[$rnd];
+            $addedRound = true;
+            if (count($shoePicks) >= 12) break;
+        }
+        if (!$addedRound) break;
+    }
+}
+if ($shoePicks):
+?>
+<style>
+.shoeband{padding:52px 0 46px;background:
+  radial-gradient(880px 320px at 50% -70px, rgba(201,168,106,.06), transparent 70%);
+  border-top:1px solid rgba(201,168,106,.12)}
+.shoeband .wrap{max-width:1180px}
+.shoe-kick{display:flex;align-items:center;gap:14px;justify-content:center;margin-bottom:12px}
+.shoe-kick .ln{height:1px;width:min(120px,18vw);background:linear-gradient(90deg,transparent,rgba(201,168,106,.55))}
+.shoe-kick .ln:last-child{transform:scaleX(-1)}
+.shoe-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(201,168,106,.45);
+  color:var(--acc);font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  padding:7px 16px;border-radius:999px;white-space:nowrap}
+.shoeband h2.sec-title{margin-bottom:6px}
+.shoe-sub{text-align:center;max-width:620px;margin:0 auto;font-size:13.5px;color:var(--mut)}
+.shoe-strip{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 14px;margin-top:22px;
+  scroll-snap-type:x mandatory;scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.shoe-strip::-webkit-scrollbar{display:none}
+/* Kart zemini BEYAZ: urun fotograflarinin zemini de beyaz, kremrengi bir kartta
+   her fotograf gorunur bir dikdortgen olarak duruyordu (ayni ders yukarida). */
+.shoe-card{flex:0 0 clamp(168px,20vw,224px);scroll-snap-align:start;border-radius:16px;
+  background:#fff;position:relative;overflow:hidden;text-decoration:none;display:block;
+  box-shadow:0 1px 0 rgba(255,255,255,.05), 0 14px 34px -22px rgba(0,0,0,.65);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
+.shoe-card:hover{transform:translateY(-3px);box-shadow:0 1px 0 rgba(255,255,255,.06), 0 22px 40px -22px rgba(0,0,0,.75)}
+.shoe-card::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(26,20,8,.06);pointer-events:none}
+.shoe-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;
+  padding:10px 8px 34px;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.shoe-card:hover img{transform:scale(1.045)}
+.shoe-meta{position:absolute;left:12px;right:12px;bottom:9px;display:flex;align-items:baseline;gap:6px}
+.shoe-name{font-size:11px;font-weight:700;letter-spacing:.02em;color:#2a2620;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shoe-cat{font-size:10px;color:#8c857a;white-space:nowrap;margin-left:auto}
+.shoe-foot{display:flex;gap:10px 18px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.shoe-foot .hint{font-size:12.5px;color:var(--mut)}
+@media (max-width:640px){.shoeband{padding:40px 0 36px}}
+</style>
+<section class="shoeband reveal" id="footwear">
+  <div class="wrap">
+    <div class="shoe-kick"><span class="ln"></span>
+      <span class="shoe-pill"><?= t('In stock now') ?></span>
+    <span class="ln"></span></div>
+    <h2 class="sec-title" style="text-align:center"><?= t('Footwear') ?></h2>
+    <p class="shoe-sub">
+      <?= sprintf(t('Spanish-made shoes for children, women and men — %d references, ordered by the size series.'), $shoeTotal) ?>
+    </p>
+    <div class="shoe-strip">
+      <?php foreach ($shoePicks as $sc): ?>
+      <a class="shoe-card" href="/product?id=<?= urlencode($sc['id']) ?>">
+        <img src="<?= htmlspecialchars($sc['img']) ?>" alt="<?= htmlspecialchars($sc['name']) ?>" loading="lazy" width="720" height="900">
+        <span class="shoe-meta">
+          <span class="shoe-name"><?= htmlspecialchars($sc['name']) ?></span>
+          <?php if ($sc['cat'] !== ''): ?><span class="shoe-cat"><?= htmlspecialchars(t($sc['cat'])) ?></span><?php endif; ?>
+        </span>
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <div class="shoe-foot">
+      <a class="btn btn-p" href="/shop?section=footwear"><?= sprintf(t('Browse all %d shoes'), $shoeTotal) ?> →</a>
+      <span class="hint">🇪🇸 <?= t('Made in Spain · full size series') ?></span>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <?php if ($_brands): ?>
 <section class="brandwall reveal" id="brands">
   <div class="wrap">
