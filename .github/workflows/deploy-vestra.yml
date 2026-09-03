@@ -171,6 +171,10 @@ jobs:
               # itibaren 3 gun; gelmezse aski + mektup. Operatore yalnizca aski
               # ya da onay bekleyen varsa yazar.
               echo '50 6 * * * cd $HOME/public_html && '"$PHPBIN"' cron_seller_docs.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP satici-belge'
+              # Odeme hatirlatma / otomatik iptal (operator karari, 2 Eyl 2026):
+              # faturasi kesilmis, havale bekleyen bir siparise ilk uyari + 5 is
+              # gunu; sure dolarsa otomatik iptal. Dekont yuklenmisse saat durur.
+              echo '0 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_order_payment.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP odeme-hatirlatma'
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
@@ -214,3 +218,8 @@ jobs:
             # kosuda yalnizca ne yapacagini yazar. Fatal olursa deploy kirmizi.
             echo "=== satici belge suresi (kuru) ==="
             php cron_seller_docs.php --dry-run
+            echo ""
+            # Bu betik canli kosuda SIPARIS IPTAL EDER ve mektup gonderir; kuru
+            # kosuda yalnizca ne yapacagini yazar. Fatal olursa deploy kirmizi.
+            echo "=== odeme hatirlatma / otomatik iptal (kuru) ==="
+            php cron_order_payment.php --dry-run

@@ -1121,6 +1121,51 @@ function vestra_tpl_order_shipped(string $buyerName, string $ref, string $tracki
 }
 
 /**
+ * Payment-due reminder for a pending, invoiced (bank-transfer) order: the money has
+ * not arrived, and if it does not within 5 business days the order is cancelled
+ * automatically. Sent by vestra_order_payment_reminder_send() (inc/orders.php), which
+ * is also what actually starts and enforces that clock — this template never runs
+ * without the promise it makes being backed by code (operator decision, 2 Sep 2026,
+ * order INV-2026-1001 / Daymond Proconect).
+ *
+ * $deadlineDate is a concrete date ("3 September 2026"), not just "5 business days" —
+ * a vague deadline is the kind of promise a buyer has to do arithmetic to trust.
+ */
+function vestra_tpl_order_payment_due(string $buyerName, string $ref, string $invoiceNo, float $total, string $currency, string $deadlineDate, bool $hasAccount, string $uploadUrl): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $sym.number_format($total, 2);
+    $subject = "VESTRA — payment reminder for order {$ref} / invoice {$invoiceNo}";
+
+    $opts = [
+        'badge' => 'Payment reminder',
+        'rows'  => [
+            ['label'=>'Order ref',      'value'=>$ref],
+            ['label'=>'Invoice',        'value'=>$invoiceNo],
+            ['label'=>'Amount due',     'value'=>$amt, 'strong'=>true],
+            ['label'=>'Payment due by', 'value'=>$deadlineDate],
+        ],
+    ];
+    if ($hasAccount) $opts['button'] = ['label'=>'Send my payment receipt', 'url'=>$uploadUrl];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "This is a reminder that payment for order {$ref} (invoice {$invoiceNo}, {$amt}) has not yet reached us.\n\n"
+      . "If payment is not received within 5 business days — by {$deadlineDate} — the order will be automatically cancelled.\n\n"
+      . "If you have already paid by bank transfer, please attach your payment receipt to the order"
+      . ($hasAccount
+          ? " here:\n{$uploadUrl}\n\nWe check it as soon as it arrives and confirm your order — no need to reply separately."
+          : ", by replying to this e-mail with it attached. We check it as soon as it arrives and confirm your order.")
+      . "\n\n"
+      . "Kind regards,\n\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * Short follow-up to a prospect who was written to weeks ago and has not replied.
  *
  * Deliberately NOT the campaign again. A second copy of the same letter reads as a

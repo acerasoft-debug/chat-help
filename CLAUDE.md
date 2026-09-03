@@ -509,6 +509,51 @@ sepette escrow yalnızca ürünün satıcısı Stripe'a bağlıysa (`escrow_read
 sessizce para kaybettiriyor (`"35,50"` → 35.00). Fiyat okunan **her** yerde bu
 kullanılmalı.
 
+**KURAL 7 — Faturası kesilmiş, havale bekleyen siparişe 5 iş günü** (operatör
+kararı, 2 Eyl 2026, order OCF7F5 / INV-2026-1001 / Daymond Proconect: *"siparişlerin
+ödemesi 5 iş günü içerisinde gelmez ise otomatik kapanacağını söyle, eğer ödeme
+yaptıysa havale dekontunu... bir segmente [koysun] ve bize göndersin"*,
+sonra: *"İngilizce hazırla şablonu ve havale dekontu için bir segment yap
+siparişin oraya"*).
+
+- Tek kaynak: `vestra_order_payment_grace()` + `vestra_order_payment_reminder_send()`
+  (`inc/orders.php`). **Hem** `cron_order_payment.php` **hem** operatörün tek
+  seferlik mektubu (`buyer_reply` → `payment_due`) **aynı fonksiyonu** çağırır —
+  mektubun verdiği son tarih ile otomatik iptalin gerçekten baktığı son tarih
+  ayrışmasın diye (bu depoda üç-katman ayrışması KURAL 5f'te, tek kopyalı
+  fonksiyon ayrışması bugünkü `order_shipped` düzeltmesinde zaten yaşandı).
+  `payment_due` bilerek `buyer_reply`'nin paylaşılan gövde/gönderim kuyruğuna
+  **girmiyor**: o kuyruktaki mektuplar durumsuz, bu mektup ise saat **başlatıyor**
+  — başlatma ile gönderim aynı işlemde atomik olmalı.
+- Kapsam: `status=pending` + fatura **kesilmiş** (`vestra_order_in_review()`
+  FALSE — faturasız "inceleme" aşamasındaki taze siparişe dokunulmaz) + **escrow
+  DEĞİL** (kart/escrow zaten Stripe üzerinden anında ödeniyor).
+- Saat `payment_grace_start` ile başlar (ilk görüldüğünde/mektup gönderilirken),
+  5 **iş günü** sonra dolar (`vestra_business_days_after()` — hafta sonu atlar,
+  resmi tatil takvimi yok). **İlk mektup gitmeden iptal yok**
+  (`payment_reminder_sent_at` boşsa cron mektubu yeniden dener, iptal etmez —
+  `cron_seller_docs.php` ile aynı ilke).
+- **Dekont yüklenmişse saat DURUR.** `vestra_order_payment_grace()`'in
+  `has_receipt` aşaması — bakılmadan otomatik iptal olmaz (KURAL 2f'nin aynı
+  dersi: evrak beklerken suspend/iptal yok). Operatör dekontu görüp
+  `Admin ▸ Orders` üzerinden durumu **Paid**'e çeker; ayrı bir "onaylandı" alanı
+  yok, kapıyı zaten var olan durum seçici açıyor.
+- **Segment siparişin sayfasında** (`vestra_render_order_detail()`, alıcı
+  görünümü): fatura kesilmiş + ödenmemiş + escrow değilse "💳 Payment" kartı —
+  dekont yoksa yükleme formu (`inc/receipts.php`, KYC yüklemesiyle **aynı**
+  boyut/uzantı kuralları ve tarayıcı-içi fotoğraf küçültme scripti), varsa
+  "alındı, onay bekliyor". Dosya `data/receipts/<ref>/` altında (`.htaccess:
+  Deny from all`), kaydı `order_statuses.json[ref].payment_receipt`. Yüklenince
+  operatöre haber e-postası gider — "bize gönderin" tam olarak bunu yapıyor.
+- **E-posta yolu da açık** (operatör kararı, KURAL 2d'nin aynısı): dekont
+  e-postayla gelirse `Admin ▸ Orders` içindeki "📎 Attach (received by e-mail)"
+  aynı saklama fonksiyonunu (`vestra_receipt_store`) kullanır.
+- Mektup **İngilizce** (operatör: *"İngilizce hazırla şablonu"*), rakamlar
+  parametreden basılır — tavan/ücret gibi gömülü metin ayrışması burada da
+  aynı hata olurdu. Test: `tests/order_payment_test.php`.
+- Zamanlama: sunucu crontab'ı 07:00 UTC (`cron_order_payment.php`,
+  `deploy-vestra.yml` idempotent kurar + kuru-koşu kanaryası).
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API

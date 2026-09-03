@@ -1070,6 +1070,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     }
     header('Location: /admin?tab=documents&uid='.urlencode($auid).'&msg=doc_attached'); exit;
   }
+  /* Havale dekontu E-POSTAYLA gelirse operator siparise ekler — attach_doc'un
+     siparis kaydiyla ayni is, ayni dosya kurallari (auth_doc_file_check
+     uzerinden). Musteri panelden yuklediginde zaten buyer.php'nin kendi yolu
+     (upload_receipt) calisiyor; bu yalnizca e-posta yolunun karsiligi. */
+  if($act==='attach_receipt'){
+    require_once __DIR__.'/inc/receipts.php';
+    $rref = trim((string)($_POST['ref'] ?? ''));
+    $rres = vestra_receipt_store($rref, $_FILES['receipt_file'] ?? null, 'operator');
+    header('Location: /admin?tab=orders&view='.urlencode($rref).($rres['ok'] ? '&msg=receipt_attached' : '&msg=receipt_attach_err')); exit;
+  }
   /* Teklife yanit — OPERATOR olarak. Bu daha once hicbir yerde yoktu: satici ucu
      sahiplik sarti ariyor (seller_uid === uid), kurasyonlu katalog urunlerinde ise
      seller_uid YOK, dolayisiyla katalog urunune gelen bir teklifi hic kimse kabul
@@ -1887,6 +1897,24 @@ if($authed && isset($_GET['dl_doc'])){
       $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
       header('Content-Type: '.$mime);
       header('Content-Disposition: inline; filename="'.addslashes($file).'"');
+      readfile($path); exit;
+    }
+  }
+  http_response_code(404); echo 'File not found'; exit;
+}
+
+// ── Payment receipt download (admin only) ───────────────────────────────────────
+if($authed && isset($_GET['dl_receipt'])){
+  require_once __DIR__.'/inc/receipts.php';
+  $rRef  = preg_replace('/[^A-Za-z0-9_-]/','', $_GET['ref']??'');
+  $rFile = basename($_GET['dl_receipt']??'');
+  if($rRef && $rFile){
+    $path = vestra_receipt_file_path($rRef, $rFile);
+    if(is_readable($path)){
+      $ext  = strtolower(pathinfo($rFile,PATHINFO_EXTENSION));
+      $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
+      header('Content-Type: '.$mime);
+      header('Content-Disposition: inline; filename="'.addslashes($rFile).'"');
       readfile($path); exit;
     }
   }
@@ -3527,6 +3555,31 @@ elseif($tab==='orders'):
       <input name="tracking" value="<?= htmlspecialchars($vst['tracking']??'') ?>" placeholder="Tracking no." style="padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink)">
       <button class="abtn primary" type="submit">Save</button>
     </form>
+    <?php
+      /* Havale dekontu (2 Eyl 2026): musteri panelden yukledi ya da operator
+         e-postadan iliştirdi -- ikisi de vestra_receipt_store()'dan gecer, tek
+         kayit. Gorunmesi TEK sart: dosya kayitta VE diskte -- diag-live'in
+         KYB belgeleri icin zaten yaptigi ayni cift kontrol. */
+      require_once __DIR__.'/inc/receipts.php';
+      $vRcpt = vestra_order_receipt($viewRef);
+    ?>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <div class="ahint" style="margin-bottom:6px;font-weight:600">Payment receipt</div>
+      <?php if($vRcpt && $vRcpt['exists']): ?>
+        <a href="/admin?dl_receipt=<?= urlencode($vRcpt['file']) ?>&ref=<?= urlencode($viewRef) ?>" target="_blank" style="color:var(--acc);font-size:12.5px">📎 <?= htmlspecialchars($vRcpt['file']) ?></a>
+        <span class="ahint">· uploaded <?= htmlspecialchars(substr((string)($vRcpt['uploaded_at']??''),0,16)) ?> by <?= htmlspecialchars((string)($vRcpt['uploaded_by']??'?')) ?></span>
+        <div class="ahint" style="margin-top:4px">Confirmed? Set status to <b>Paid</b> above.</div>
+      <?php else: ?>
+        <span style="color:var(--mut);font-size:12.5px">— none received yet</span>
+        <form method="post" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="attach_receipt">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input type="file" name="receipt_file" accept="<?= htmlspecialchars('.'.implode(',.', auth_doc_allowed_ext()).',image/*,application/pdf') ?>" required style="font-size:12px;max-width:200px">
+          <button class="abtn" type="submit" style="font-size:12px">📎 Attach (received by e-mail)</button>
+        </form>
+      <?php endif; ?>
+    </div>
   </div>
 
   <div class="acard">

@@ -7,7 +7,18 @@ if (session_status() === PHP_SESSION_NONE) session_start();
    hicbir dal calismaz -- kullanici "hicbir sey olmuyor" gorur (2 Eyl 2026'da
    bir alici belgesini iki gun boyle yukleyemedi). Bu sayfaya dosya yalnizca
    belge formundan gelir; sebebiyle oraya don. */
-if (!empty($_SESSION['uid']) && vestra_doc_post_overflow()) { header('Location: /buyer?tab=kyc&upload_err=post'); exit; }
+if (!empty($_SESSION['uid']) && vestra_doc_post_overflow()) {
+    /* $_POST is EMPTY on overflow (PHP drops the whole body), so there is no _action
+       to branch on -- only the referring page says which upload form this was, and
+       the order ref (so the banner lands back on the order, not the bare list). */
+    $ovRef = (string)($_SERVER['HTTP_REFERER'] ?? '');
+    if (str_contains($ovRef, 'tab=orders')) {
+        parse_str((string)parse_url($ovRef, PHP_URL_QUERY), $ovQ);
+        $ovView = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($ovQ['view'] ?? ''));
+        header('Location: /buyer?tab=orders'.($ovView !== '' ? '&view='.urlencode($ovView) : '').'&receipt_err=post'); exit;
+    }
+    header('Location: /buyer?tab=kyc&upload_err=post'); exit;
+}
 
 // Profile save
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='profile') {
@@ -41,6 +52,30 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
        (auth_doc_error_text). Eski "upload_err=1" her hatada ayni cumleydi. */
     $res = auth_upload_doc_ex($_SESSION['uid'], $req_id, $_FILES['doc_file'] ?? null);
     header('Location: /buyer?tab=kyc&'.($res['ok'] ? 'uploaded=1' : 'upload_err='.rawurlencode($res['error']))); exit;
+}
+
+// ── Upload a bank-transfer receipt for one of MY OWN pending orders ────────────
+// The segment the payment-due reminder points to (inc/orders.php, 2 Sep 2026): a
+// buyer who has already paid needs somewhere to prove it besides hoping an e-mail
+// reply gets read before the auto-cancel deadline.
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='upload_receipt') {
+    require_once __DIR__.'/inc/receipts.php';
+    $rRef = trim((string)($_POST['ref'] ?? ''));
+    $me = auth_user(); $myEmail = strtolower($me['email'] ?? '');
+    $rOrder = null;
+    foreach (vestra_read_csv('orders.csv') as $row) { if (($row['ref'] ?? '') === $rRef) { $rOrder = $row; break; } }
+    $ownsOrder = $rOrder && $myEmail !== '' && strtolower($rOrder['email'] ?? '') === $myEmail;
+    if (!$rRef || !$ownsOrder) { header('Location: /buyer?tab=orders'); exit; }
+    $rRes = vestra_receipt_store($rRef, $_FILES['receipt_file'] ?? null, 'buyer');
+    if ($rRes['ok']) {
+        require_once __DIR__.'/inc/notify.php';
+        $opsTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+        vestra_send_mail($opsTo, 'VESTRA — payment receipt uploaded for order '.$rRef,
+            "A buyer uploaded a bank-transfer receipt for order {$rRef}.\n\n"
+          . "Company: ".($rOrder['company'] ?? '?')."\n\n"
+          . "Review: https://vestrasales.com/admin?tab=orders&view=".rawurlencode($rRef)."\n\n— VESTRA");
+    }
+    header('Location: /buyer?tab=orders&view='.urlencode($rRef).($rRes['ok'] ? '&receipt=1' : '&receipt_err='.rawurlencode($rRes['error']))); exit;
 }
 
 // Confirm receipt (escrow release) — only the buyer who placed it, once shipped OR delivered.
@@ -237,6 +272,8 @@ if($tab==='overview'){
   $viewRef = $_GET['view'] ?? '';
   $viewOrder = $viewRef ? current(array_filter($orders, fn($o)=>($o['ref']??'')===$viewRef)) : null;
   if ($viewOrder) {
+    if (isset($_GET['receipt'])) echo '<div class="banner ok">✓ '.t('Receipt received — we will confirm it shortly.').'</div>';
+    if (isset($_GET['receipt_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⚠ '.htmlspecialchars(t(auth_doc_error_text((string)$_GET['receipt_err']))).'</div>';
     echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'buyer', $uid, '/buyer?tab=orders', '/buyer?tab=orders');
   } else {
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';

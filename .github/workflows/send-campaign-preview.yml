@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR)."
         required: false
         default: ""
       reply_spec:
@@ -681,6 +681,7 @@ jobs:
             require_once $doc."/inc/auth.php";
             require_once $doc."/inc/stock.php";   /* brand_catalog stok satiri */
             require_once $doc."/inc/email_templates.php";
+            require_once $doc."/inc/orders.php";  /* payment_due: grace/business-day helpers */
 
             $letter = strtolower(trim((string)getenv('R_LETTER')));
             $spec = [];
@@ -1011,6 +1012,52 @@ jobs:
                  GIRILMISSE durur: "birkac gune" o gun yalan olur. Iptalde de durur.
                Imza: bu alicinin siparis yazismasi sirket blogu ile gitti;
                signer verilirse persona imzalar. */
+            /* ODEME HATIRLATMA: faturasi kesilmis, havale bekleyen bir siparise
+               (operator, 2 Eyl 2026, order INV-2026-1001 / Daymond vesilesiyle:
+               "5 is gunu icinde odeme gelmezse otomatik kapanacagini soyle").
+               STANDALONE, elseif zincirine SOKULMADI: zincirdeki mektuplar
+               durumsuz -- metin uretip paylasilan kuyruga birakiyorlar, gonderimi
+               PAYLASILAN kuyruk yapiyor. Bu mektup ise SAAT BASLATIYOR
+               (payment_grace_start) ve saati baslatmakla göndermek AYNI ISLEMDE
+               atomik olmali; ikiye bolunseydi (once metin uret, kuyruk gondersin,
+               sonra ayri bir yerde damgala) cron_order_payment.php'nin kullandigi
+               vestra_order_payment_reminder_send() ile IKI AYRI "saati baslat"
+               kopyasi olurdu -- bu depoda ucu bes kez ayni sekilde ayrisan hata.
+               Tek gonderici: inc/orders.php. to=order:<ref> SART. */
+            if ($letter === 'payment_due') {
+              if (!$orderRow) { fwrite(STDERR, "payment_due: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
+              require_once $doc."/inc/invoice.php";
+              $pdRef = trim((string)$orderRow['ref']);
+              $pdStAll = vestra_read_json('order_statuses.json');
+              $pdStatus = (string)($pdStAll[$pdRef]['status'] ?? 'pending');
+              echo "durum  : {$pdStatus}\n";
+              if ($pdStatus !== 'pending') { fwrite(STDERR, "siparis zaten '{$pdStatus}' -- odeme hatirlatma mektubu yazilmaz\n"); exit(1); }
+              if (vestra_order_in_review($pdRef, $pdStatus)) { fwrite(STDERR, "fatura henuz kesilmemis (inceleme asamasinda) -- odeme hatirlatilamaz\n"); exit(1); }
+              if (str_contains((string)($orderRow['notes'] ?? ''), 'Secure escrow')) { fwrite(STDERR, "bu bir escrow (kart) siparisi -- havale hatirlatmasi yazilmaz\n"); exit(1); }
+              $pdInvs = vestra_invoices_for_ref($pdRef);
+              if (!$pdInvs) { fwrite(STDERR, "fatura bulunamadi: {$pdRef}\n"); exit(1); }
+              $pdClaim = strtoupper(trim($E('inv')));
+              $pdInvNos = array_map(fn($i) => strtoupper(trim((string)($i['no'] ?? ''))), $pdInvs);
+              if ($pdClaim !== '' && !in_array($pdClaim, $pdInvNos, true)) {
+                fwrite(STDERR, "fatura uyusmuyor: musteri {$pdClaim} yazdi, kayitta ".implode(', ', $pdInvNos)."\n"); exit(1);
+              }
+              $pdIv = $pdInvs[0];
+              echo "fatura : ".$pdIv['no']."  tutar: ".$pdIv['currency']." ".number_format((float)$pdIv['total'], 2)."\n";
+              $pdEntry = $pdStAll[$pdRef] ?? ['status'=>'pending'];
+              $pdG = vestra_order_payment_grace($pdEntry, time());
+              echo "asama  : {$pdG['phase']}".($pdG['phase']==='has_receipt' ? " (dekont zaten yuklu -- otomatik iptal saati zaten durmus durumda)" : "")."\n";
+              if (strtolower($E('send')) !== 'true') {
+                $pdPreview = $pdG['deadline'] ?? vestra_business_days_after(date('c'), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
+                echo "onizlenen son tarih: ".gmdate('Y-m-d', (int)$pdPreview)." (send=false, saat HENUZ baslatilmadi)\n";
+                echo "\nsend=false — GONDERILMEDI\n"; exit(0);
+              }
+              $pdR = vestra_order_payment_reminder_send($pdRef, $orderRow, (string)$pdIv['no'], (float)$pdIv['total'], (string)$pdIv['currency']);
+              if (!$pdR['ok']) { fwrite(STDERR, "gonderilmedi: ".$pdR['error']."\n"); exit(1); }
+              echo "son tarih: ".gmdate('Y-m-d', (int)$pdR['deadline'])."\n";
+              echo $pdR['mail_ok'] ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
+              exit($pdR['mail_ok'] ? 0 : 1);
+            }
+
             /* HESABI ACIK aliciya: siparis ve odeme nasil isler, kart escrow tavani
                (operator, 2 Eyl 2026: "LESSVAT'a yaz", "escrow 3000'de kalsin").
                Rakamlar sepetin uyguladigi sabitlerden (VESTRA_ESCROW_MAX,

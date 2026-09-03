@@ -239,6 +239,25 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     if ($viewerRole === 'buyer') {
         $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">'.t('Seller').'</h3></div>'.
               '<p style="margin:0">'.htmlspecialchars(implode(', ', $sellers)).'</p></div>';
+        /* Bank-transfer receipt segment (operator, 2 Sep 2026): only where it makes
+           sense — order still pending (not paid/shipped/cancelled), an invoice already
+           exists (not "in review"), and it is a bank-transfer order, not escrow (card
+           payment there is instant, a receipt has no meaning). */
+        if ($status === 'pending' && !$inReview && !$isEscrowOrder) {
+            if (!function_exists('vestra_order_receipt')) require_once __DIR__.'/receipts.php';
+            $rcpt = vestra_order_receipt($ref);
+            $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">💳 '.t('Payment').'</h3></div>';
+            if ($rcpt && $rcpt['exists']) {
+                $h .= '<p class="hint" style="margin:0">📎 '.t('Receipt received').' '
+                    . htmlspecialchars(substr((string)($rcpt['uploaded_at'] ?? ''), 0, 10)).' — '.t('awaiting confirmation.').'</p>';
+            } else {
+                $h .= '<p class="hint" style="margin:0 0 10px">'
+                    . t('Already paid by bank transfer? Attach the receipt here and we will confirm your order.').'</p>'
+                    . vestra_receipt_upload_form($formHref, $ref);
+                if (function_exists('vestra_doc_upload_js')) $h .= vestra_doc_upload_js();
+            }
+            $h .= '</div>';
+        }
     } else {
         $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">'.t('Buyer').'</h3></div>'.
               '<p style="margin:0">'.htmlspecialchars($orderRow['company'] ?? '').'<br>'.
@@ -375,6 +394,104 @@ function vestra_orders_fix_dup_refs(): int {
     rename($tmp, $file);   // atomic swap — readers never see a half-written file
     vestra_write_json('order_statuses.json', $statuses);
     return $fixed;
+}
+
+/* ── Payment reminder / auto-cancel (operator decision, 2 Sep 2026) ─────────
+ * "Siparişlerin ödemesi 5 iş günü içerisinde gelmez ise otomatik kapanacağını
+ * söyle" — a pending order with an ISSUED invoice (bank transfer, not escrow)
+ * gets one reminder, and is cancelled automatically if nothing arrives within
+ * 5 business days of that reminder. Both cron_order_payment.php and a one-off
+ * operator letter (buyer_reply → payment_due) call the SAME sender below, so
+ * the deadline a letter promises is the deadline that actually fires — the
+ * lesson this repo has paid for more than once (KURAL 3, the tracking-soon
+ * letter, the escrow ceiling: a written promise the code doesn't keep is worse
+ * than not writing it). */
+const VESTRA_ORDER_PAYMENT_GRACE_DAYS = 5;
+
+/** N business days after an ISO timestamp, skipping Saturday/Sunday. No holiday
+ *  calendar — "iş günü" here is the everyday weekday sense, not a legal one. */
+function vestra_business_days_after(string $isoDate, int $days): int {
+    $ts = strtotime($isoDate) ?: time();
+    for ($left = max(0, $days); $left > 0; ) {
+        $ts += 86400;
+        if ((int)gmdate('N', $ts) < 6) $left--;   // 1..5 = Mon..Fri
+    }
+    return $ts;
+}
+
+/**
+ * Pure phase machine for ONE order's payment clock. The caller decides
+ * ELIGIBILITY (status is 'pending', an invoice exists, it is not an escrow
+ * order) before calling this — mirrors auth_seller_doc_grace()'s split between
+ * eligibility and clock math, for the same reason: clock math has to be
+ * testable without a live order, and every caller re-deriving eligibility its
+ * own way is how the checks drift apart.
+ *
+ * 'has_receipt': a bank-transfer receipt is already on file for this order.
+ * The clock STOPS — cron must never auto-cancel an order the buyer has already
+ * paid just because nobody has looked at the receipt yet (the same lesson
+ * KURAL 2f encodes for seller documents: no automatic punishment while
+ * evidence sits unread). The operator still confirms and marks it paid by
+ * hand; this only prevents the wrong kind of automatic action.
+ *
+ * @param array $statusEntry order_statuses.json[$ref] (or a fresh ['status'=>'pending'])
+ */
+function vestra_order_payment_grace(array $statusEntry, ?int $now = null): array {
+    $now = $now ?? time();
+    $receipt = $statusEntry['payment_receipt'] ?? null;
+    if (is_array($receipt) && !empty($receipt['file'])) {
+        return ['phase'=>'has_receipt', 'start'=>null, 'notice_sent'=>false, 'deadline'=>null, 'days_left'=>null];
+    }
+    $start = trim((string)($statusEntry['payment_grace_start'] ?? ''));
+    if ($start === '') {
+        return ['phase'=>'unstamped', 'start'=>null, 'notice_sent'=>false, 'deadline'=>null, 'days_left'=>null];
+    }
+    $noticeSent = !empty($statusEntry['payment_reminder_sent_at']);
+    $deadline = vestra_business_days_after($start, VESTRA_ORDER_PAYMENT_GRACE_DAYS);
+    if ($now < $deadline) {
+        return ['phase'=>'running', 'start'=>$start, 'notice_sent'=>$noticeSent, 'deadline'=>$deadline,
+                'days_left'=>(int)ceil(($deadline - $now) / 86400)];
+    }
+    return ['phase'=>'overdue', 'start'=>$start, 'notice_sent'=>$noticeSent, 'deadline'=>$deadline, 'days_left'=>0];
+}
+
+/**
+ * Sends (or resends) the payment-due reminder for one pending, invoiced order, and
+ * starts the auto-cancel clock the FIRST time this runs for that order. Single sender
+ * for both the daily cron and the operator's one-off letter — see the note above the
+ * constant for why that matters.
+ *
+ * Returns ['ok'=>bool, 'error'=>string, 'phase_before'=>string, 'deadline'=>?int, 'mail_ok'=>bool].
+ * 'ok'=false only for 'has_receipt' (caller should not be sending a cancellation threat
+ * over a payment we may already have).
+ */
+function vestra_order_payment_reminder_send(string $ref, array $orderRow, string $invoiceNo, float $total, string $currency): array {
+    if (!function_exists('vestra_tpl_order_payment_due')) require_once __DIR__.'/email_templates.php';
+    $now = time();
+    $all = vestra_read_json('order_statuses.json');
+    $entry = $all[$ref] ?? ['status'=>'pending'];
+    $g = vestra_order_payment_grace($entry, $now);
+    if ($g['phase'] === 'has_receipt') {
+        return ['ok'=>false, 'error'=>'has_receipt', 'phase_before'=>$g['phase'], 'deadline'=>null, 'mail_ok'=>false];
+    }
+    if ($g['phase'] === 'unstamped') {
+        $entry['payment_grace_start'] = date('c', $now);
+        $all[$ref] = $entry;
+        vestra_write_json('order_statuses.json', $all);
+        $g = vestra_order_payment_grace($entry, $now);
+    }
+    $buyerName = trim((string)($orderRow['name'] ?? '')) ?: trim((string)($orderRow['company'] ?? ''));
+    $acc = function_exists('auth_find') ? auth_find((string)($orderRow['email'] ?? '')) : null;
+    $uploadUrl = 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref);
+    [$subject, $body, $opts] = vestra_tpl_order_payment_due(
+        $buyerName, $ref, $invoiceNo, $total, $currency, gmdate('j F Y', (int)$g['deadline']), (bool)$acc, $uploadUrl);
+    $ok = !empty($orderRow['email']) && vestra_send_mail((string)$orderRow['email'], $subject, $body, '', '', null, '', $opts);
+    if ($ok) {
+        $all2 = vestra_read_json('order_statuses.json');
+        $all2[$ref] = array_merge($all2[$ref] ?? $entry, ['payment_reminder_sent_at'=>date('c', $now)]);
+        vestra_write_json('order_statuses.json', $all2);
+    }
+    return ['ok'=>true, 'error'=>'', 'phase_before'=>$g['phase'], 'deadline'=>(int)$g['deadline'], 'mail_ok'=>$ok];
 }
 
 /**
