@@ -95,11 +95,11 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR)."
+        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
-        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu"
+        description: "ALICI CEVABI: alan=değer, | ile ayrık. to(adres YA DA account:<isim-parçası> YA DA order:<sipariş ref> — adres sunucudan, girdiye yazılmaz)/send(true|false)/salutation/vat/signer(varsayılan Marco Bellini)/for(seller_setup: mektubun VERİSİNİ veren satıcı — to farklıysa test demektir). to boş = operatör test kutusu. msg_reply KENDİ alanlarını kullanır (to= YOK): listing=<ilan id>/buyer=<alıcı adında geçen metin, thread'i bulmak için>/body=<mesaj metni>/send(true|false)"
         required: false
         default: "send=false"
 
@@ -1078,6 +1078,67 @@ jobs:
               echo "son tarih: ".gmdate('Y-m-d', (int)$pdR['deadline'])."\n";
               echo $pdR['mail_ok'] ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
               exit($pdR['mail_ok'] ? 0 : 1);
+            }
+
+            /* URUN SORUSUNA site-ICI mesajdan cevap (operator, 3 Eyl 2026 -- LuxuryWellNess'in
+               jcq-grosgrain-white icin "orijinal mi?" sorusu vesilesiyle): "urun bazinda urun
+               yuzde yuz orjinaldir de" + "saticinin hesabindan cikmis gibi yap". BU MEKTUP
+               E-POSTA DEGIL: vestra_send_mail'i hic cagirmiyor, admin.php'deki 'Message
+               Moderation' sekmesinin 'Reply' dugmesiyle AYNI vestra_msg_send() cagrisini yapiyor
+               -- iki yoldan gonderilen mesaj THREAD'de birbirinden ayrisamaz.
+               STANDALONE, paylasilan elseif zincirine SOKULMADI: o zincir [$subject,$body,$opts]
+               uretip PAYLASILAN kuyrukta vestra_send_mail ile bitiyor (e-posta), bu is farkli bir
+               alici (vestra_msg_send, farkli imza) ve farkli bir "basarili" olcutu kullaniyor.
+
+               Hedef elle thread_id ile verilmiyor (admin panelinde bile thread_id gizli, sadece
+               formdaki gizli alanda duruyor) -- ilan id'si + alici adinda gecen metinle GERCEK
+               thread'ler arasindan bulunuyor. Sifir ya da BIRDEN FAZLA eslesme varsa DURUR:
+               yanlis alicinin thread'ine "urun orijinal" yazmak, hic yazmamaktan kotu.
+
+               Imza kimin adina cikiyor: admin.php'deki admin_reply ile AYNI kural (satirlarca
+               ayni mantigin ikinci kopyasi olmasin diye burada yeniden yazilmadi, sadece
+               tekrarlandi) -- thread'in alici yuvasi VESTRA Support ise VESTRA Support adina,
+               aksi halde HER ZAMAN ilanin SATICISI adina (buyer_reply'daki diger mektuplarin
+               aksine burada persona/signer YOK -- bu ilanin kendi saticisi konusuyor). */
+            if ($letter === 'msg_reply') {
+              require_once $doc."/inc/messages.php";
+              $mrListing = trim($E('listing'));
+              $mrBuyerQ  = trim($E('buyer'));
+              $mrBody    = trim($E('body'));
+              if ($mrListing === '' || $mrBuyerQ === '' || $mrBody === '') {
+                fwrite(STDERR, "msg_reply: listing= ve buyer= ve body= hepsi gerekli\n"); exit(1);
+              }
+              $mrAccById = [];
+              foreach (auth_accounts() as $mrA) $mrAccById[(string)($mrA['id'] ?? '')] = $mrA;
+              $mrLabel = function(string $uid) use ($mrAccById): string {
+                if ($uid === VESTRA_SUPPORT_UID) return 'VESTRA Support';
+                $a2 = $mrAccById[$uid] ?? null;
+                return $a2 ? (($a2['company'] ?: ($a2['name'] ?: $uid))) : $uid;
+              };
+              $mrMatches = [];
+              foreach (vestra_msg_threads() as $mrTh) {
+                if ((string)($mrTh['listing_id'] ?? '') !== $mrListing) continue;
+                if (stripos($mrLabel((string)($mrTh['buyer_uid'] ?? '')), $mrBuyerQ) === false) continue;
+                $mrMatches[] = $mrTh;
+              }
+              if (!$mrMatches) { fwrite(STDERR, "eslesen thread yok: listing={$mrListing} buyer~{$mrBuyerQ}\n"); exit(1); }
+              if (count($mrMatches) > 1) {
+                fwrite(STDERR, "BIRDEN FAZLA thread eslesti (".count($mrMatches)."), buyer= metnini daraltin:\n");
+                foreach ($mrMatches as $m2) fwrite(STDERR, "  - ".$mrLabel((string)($m2['buyer_uid']??'')).' <-> '.$mrLabel((string)($m2['seller_uid']??''))."\n");
+                exit(1);
+              }
+              $mrTh = $mrMatches[0];
+              $mrBuyerUid  = (string)($mrTh['buyer_uid'] ?? '');
+              $mrSellerUid = (string)($mrTh['seller_uid'] ?? '');
+              $mrFrom = ($mrBuyerUid === VESTRA_SUPPORT_UID) ? VESTRA_SUPPORT_UID : $mrSellerUid;
+              echo "thread : ".$mrLabel($mrBuyerUid)." <-> ".$mrLabel($mrSellerUid)."  (".count($mrTh['messages']??[])." mesaj, ilan: {$mrListing})\n";
+              echo "cevap  : ".$mrLabel($mrFrom)." adina\n";
+              echo "metin  : {$mrBody}\n";
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
+              $mrRes = vestra_msg_send($mrBuyerUid, $mrSellerUid, $mrFrom, $mrBody, $mrListing);
+              if (empty($mrRes['ok'])) { fwrite(STDERR, "GONDERILEMEDI: ".($mrRes['error'] ?? '?')."\n"); exit(1); }
+              echo "\nGONDERILDI -- thread'e eklendi.\n";
+              exit(0);
             }
 
             /* HESABI ACIK aliciya: siparis ve odeme nasil isler, kart escrow tavani
