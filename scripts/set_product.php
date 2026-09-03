@@ -41,7 +41,13 @@ $haystack = function(array $p) use ($norm) {
 };
 
 $ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from',
-            'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_min_qty','group_models','group_title','group_min_colors'];
+            'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
+/* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
+   uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
+   ONUNE alir). Bir havuzu yeniden acmak icin yalnizca group_deadline yazmak yetmez --
+   sweeper daha once zaten uzatmis ve bu alani doldurmus olabilir; o zaman eski
+   (gecmis) uzatma tarihi hala kazanir ve havuz "kapali" gorunmeye devam eder. Bu
+   yuzden ikisi BIRLIKTE, ayni tarihe yazilir. */
 $errors = []; $plan = [];
 
 foreach ($fixes as $n => $fx) {

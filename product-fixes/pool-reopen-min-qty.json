@@ -1,0 +1,18 @@
+[
+  {
+    "match": "dsq-101211",
+    "expect": 1,
+    "group_min_qty": "15",
+    "group_deadline": "2026-10-03T23:59:59+00:00",
+    "group_extended_to": "2026-10-03T23:59:59+00:00",
+    "_why": "Havuz 29 Agustos'ta kapandi, hic dolmadi (0 gercek taahhut). Kisi basi asgari (group_min_qty) hedefle (100) AYNIYDI, yani ilk giren tek basina hedefi doldurup havuzu 'funded' yapiyordu -- birden fazla gercek firmanin payini biriktirdigi bir havuz degildi. Operator (3 Eyl 2026) havuzu yeniden acip asgariyi dusurmeyi onayladi: 15 adet/kisi, 100 adetlik hedefe 7 farkli firma sigar. Son tarih hem group_deadline hem group_extended_to'ya yaziliyor: sweeper daha once bu havuzu bir kez uzatmis olabilir ve o alan doluysa group_deadline'i eziyor (inc/products.php vestra_group_deadline())."
+  },
+  {
+    "match": "lgp-lacoste-trim-tshirt",
+    "expect": 1,
+    "group_min_qty": "15",
+    "group_deadline": "2026-10-03T23:59:59+00:00",
+    "group_extended_to": "2026-10-03T23:59:59+00:00",
+    "_why": "Ayni durum, ayni karar: hedef 104, eski asgari 104 (havuz degil tek-alici MOQ'u). Asgari 15'e cekildi (104'e 6 farkli firma sigar)."
+  }
+]
