@@ -102,6 +102,10 @@ on:
         description: "true = para birimi çevirimini CANLI sunucuda sına: kur ucu sunucudan açılıyor mu, vestra_fx() ne dönüyor, ve /shop?cur=USD sayfası GERÇEKTEN US$ yazıyor mu. Hiçbir şeyi değiştirmez."
         required: false
         default: "false"
+      wetransfer_probe:
+        description: "Bir WeTransfer önizleme linki verin (ör. bir tedarikçinin gönderdiği FOTOS linki). Bu ortamdan wetransfer.com'a çıkış YASAK (egress proxy engelliyor); sunucunun kendi ağından ham HTML'i çeker, gömülü dosya listesi JSON'u varsa onu yazar. Salt okunur, hiçbir şey indirmez/kaydetmez — sadece 'bu link ne içeriyor' sorusuna cevap"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -2792,4 +2796,70 @@ jobs:
             php -l /tmp/vestra_dsprobe.php
             php /tmp/vestra_dsprobe.php; RC=$?
             rm -f /tmp/vestra_dsprobe.php
+            exit $RC
+
+      # Bir tedarikci (ornek: Calzados Piliperez, 2 Eyl 2026, "FOTOS VESTRA" WeTransfer
+      # klasoru) urun fotograflarini WeTransfer uzerinden gonderdiginde, bu depoyu
+      # calistiran ortamin kendi ciktisi wetransfer.com'a KAPALI (egress proxy
+      # engelliyor -- "EGRESS_BLOCKED"). Sunucunun kendi agi ayri: ip_probe adimi
+      # zaten ip-api.com/ipwho.is'e dogrudan cikiyor, yani bu SUNUCUDAN calisir mi
+      # diye once burada bakiliyor. Salt okunur: hicbir dosya indirilmiyor/kaydedilmiyor,
+      # yalnizca sayfanin GERCEKTE ne dondurdugu (HTML mi, gomulu JSON dosya listesi mi,
+      # JS'siz hic acilmiyor mu) raporlaniyor -- bir sonraki adimin (gercek indirme)
+      # nasil yazilacagina bu cevaba gore karar verilecek.
+      - name: WeTransfer önizlemesi (sunucudan)
+        if: ${{ github.event.inputs.wetransfer_probe != '' }}
+        env:
+          WT_URL: ${{ github.event.inputs.wetransfer_probe }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: WT_URL
+          script: |
+            cat > /tmp/vestra_wtprobe.php <<'PHPEOF'
+            <?php
+            $url = trim((string)getenv('WT_URL'));
+            if ($url === '' || !preg_match('#^https://wetransfer\.com/#', $url)) {
+              fwrite(STDERR, "gecersiz/bos url (yalnizca wetransfer.com kabul edilir)\n"); exit(1);
+            }
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+              CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5,
+              CURLOPT_TIMEOUT => 20, CURLOPT_CONNECTTIMEOUT => 10,
+              CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+              CURLOPT_HTTPHEADER => ['Accept: text/html,application/xhtml+xml'],
+            ]);
+            $body = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err  = curl_error($ch);
+            $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+            curl_close($ch);
+            printf("HTTP: %s   bayt: %d   sunucudan erisim: %s\n", $code ?: '(yok)', strlen((string)$body), $err !== '' ? "BASARISIZ -- {$err}" : 'TAMAM');
+            if ($finalUrl !== $url) echo "yonlendirildi -> {$finalUrl}\n";
+            if (!$body) { echo "govde bos, devam edilemiyor.\n"; exit(1); }
+
+            /* WeTransfer (Next.js) sayfa verisini genelde tek bir <script id="__NEXT_DATA__">
+               JSON blogunda tasir -- dosya adlari/boyutlari/indirme kimlikleri JS calismadan
+               da orada durabilir. Yoksa sayfa muhtemelen istemci tarafinda (JS ile) kuruluyor
+               demektir ve bu basit curl ile ilerlenemez -- bir sonraki adim farkli olmali. */
+            if (preg_match('#<script id="__NEXT_DATA__"[^>]*>(.*?)</script>#s', $body, $m)) {
+              echo "\n__NEXT_DATA__ BULUNDU (".strlen($m[1])." bayt JSON) -- ilk 6000 bayt:\n";
+              echo substr($m[1], 0, 6000)."\n";
+            } else {
+              echo "\n__NEXT_DATA__ YOK. Baska gomulu JSON aday(lar)i:\n";
+              if (preg_match_all('#<script[^>]*type="application/json"[^>]*>(.*?)</script>#s', $body, $mm)) {
+                foreach ($mm[1] as $i => $blob) printf("  aday %d: %d bayt\n", $i, strlen($blob));
+              } else {
+                echo "  (application/json script etiketi de yok)\n";
+              }
+              echo "\nHam govdenin ilk 3000 bayti:\n".substr($body, 0, 3000)."\n";
+            }
+            PHPEOF
+            php -l /tmp/vestra_wtprobe.php
+            php /tmp/vestra_wtprobe.php; RC=$?
+            rm -f /tmp/vestra_wtprobe.php
             exit $RC
