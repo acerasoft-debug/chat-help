@@ -725,3 +725,36 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
   seçer (varsayılan Marco Bellini), gövde imzası ile From adı aynı kişiden
   türetilir. Aynı alıcıya aynı konuda hangi persona yazdıysa onunla devam et —
   operatör açıkça değiştirmedikçe.
+- **Ayakkabı bölmesi canlı (3 Eyl 2026): Calzados Pili Pérez, 335 ürün,
+  `section=footwear`, `/shop?section=footwear`.** Yöntem ve kararlar
+  `product-batches/pili-perez-NOTLAR.md`; satıcıya sorulan 4 satır (8029
+  yetişkin, H90, K874/K874-1) ve veri hataları orada. Kurallar:
+  - **Üçüncü taraf tarifesi depoya AÇIK girmez** — parti `product-batches/*.enc`
+    (AES-256-CBC + sunucunun RSA-OAEP açık anahtarı; özel anahtar
+    `~/.vestra_import/import_key.pem`, `diag-live` → `wetransfer_probe=<url>|fetch`
+    üretir ve `IMPORT_PUBKEY_B64=` basar). `add-products.yml` `.enc` görünce
+    sunucuda çözer.
+  - **90 KB'den büyük parti SSH komutunun içinde GİTMEZ.** ssh-action betiği
+    tek `sh -c` argümanı olarak yollar; Linux tek argümanı 128 KB'de keser ve
+    oturum hata vermeden 10 dk zaman aşımına kadar asılı kalır (3 Eyl 2026'da
+    iki koşu). Büyük dosyayı sunucu `raw.githubusercontent.com/<repo>/<sha>/`
+    adresinden indirir ve runner'ın sha256'sıyla doğrular (`add-products.yml`).
+  - **Fotoğraflar sunucudan çekilir** (bu ortam wetransfer.com'a kapalı):
+    `~/wt_incoming/<id>/files` (public_html DIŞI), `stage_from=` ile yalnızca
+    üründe geçen adlar `uploads/` altına kopyalanır (küçük harf, aksansız,
+    `_`→`-`, `✓` gibi işaretler atılır — `$fold`, iki tarafta aynı).
+  - **Kategori fotoğraftan:** açıklaması tip söylemeyen ürünü varsayılana
+    doldurma; `wetransfer_probe=sheet:<klasör>|from=N|count=M|spaced` klasör
+    başına bir küçük resim basar, sayfalar indirilip bakılır. 3 Eylül'de
+    açıklama "colegial" derken fotoğraf mokasen/spor gösterdi — fotoğraf kazandı.
+- **Actions günlüğü gizli değerleri HER YERDE maskeler:** `DEPLOY_PORT`="22"
+  yüzünden `1225` → `1***5`, `222` → `***`, fiyat `22.95` → `***.95`, base64'ün
+  içi dahil. Loga base64 basarken karakter arası boşluk koy (`|spaced`); günlükten
+  sayı okurken `***`'ın "22" olabileceğini bil. Ters çevirme `222`'de kayıplı.
+- **Runner IP'si barındırıcının güvenlik duvarına takılabilir:** 3 Eyl 2026
+  16:55'te bir koşuda 9 HTTP isteği de 30 sn'de `000`, ardından SSH `dial tcp:
+  i/o timeout`; aynı dakikada başka runner'dan deploy başarılı, 6 dk sonra taze
+  runner `/` 200 / 80 ms. "Site çöktü" demeden önce **ikinci runner'la** bak.
+- **`get_job_logs` çıktısı büyükse dosyaya düşer** (`tool-results/...txt`, tek
+  satır JSON: `logs_content`); python ile `json.loads` → `split('\n')`. 1,4 MB'lık
+  kontakt sayfası günlüğü bu yolla okundu.
