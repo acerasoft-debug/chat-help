@@ -137,8 +137,12 @@ jobs:
               $seenId[strtolower((string)($p['id']??''))] = true;
               $seenBS[strtolower(trim(($p['brand']??'').'|'.($p['sku']??'')))] = true;
             }
-            $sellerIds = [];
-            foreach (auth_accounts() as $acc) if (($acc['type'] ?? '') === 'seller') $sellerIds[(string)($acc['id'] ?? '')] = true;
+            $sellerIds = []; $sellerByEmail = [];
+            foreach (auth_accounts() as $acc) {
+              if (($acc['type'] ?? '') !== 'seller') continue;
+              $sellerIds[(string)($acc['id'] ?? '')] = true;
+              $sellerByEmail[strtolower(trim((string)($acc['email'] ?? '')))] = (string)($acc['id'] ?? '');
+            }
 
             $errors = []; $clean = [];
             foreach ($rows as $i => $r) {
@@ -203,7 +207,9 @@ jobs:
                  depoya acik girmiyor; cozumleme sunucuda. */
               if (empty($r['seller_uid']) && !empty($r['seller_email'])) {
                 $se = strtolower(trim((string)$r['seller_email']));
-                foreach (auth_accounts() as $acc) if (($acc['type'] ?? '') === 'seller' && strtolower((string)($acc['email'] ?? '')) === $se) { $r['seller_uid'] = (string)$acc['id']; break; }
+                /* Harita dongu DISINDA kuruldu: 335 satirlik pakette her satir icin auth_accounts()
+                   yeniden okumak, dogrulamayi dakikalara cikariyordu. */
+                if (isset($sellerByEmail[$se]) && $sellerByEmail[$se] !== '') $r['seller_uid'] = $sellerByEmail[$se];
                 if (empty($r['seller_uid'])) { $errors[]="{$ctx} ({$id}): seller_email ile eslesen satici hesabi yok"; continue; }
               }
               if (!empty($r['seller_uid'])) {
