@@ -1047,7 +1047,8 @@ jobs:
               $pdG = vestra_order_payment_grace($pdEntry, time());
               echo "asama  : {$pdG['phase']}".($pdG['phase']==='has_receipt' ? " (dekont zaten yuklu -- otomatik iptal saati zaten durmus durumda)" : "")."\n";
               if (strtolower($E('send')) !== 'true') {
-                $pdPreview = $pdG['deadline'] ?? vestra_business_days_after(date('c'), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
+                if (!function_exists('vestra_business_days_after')) require_once $doc."/inc/escrow.php";
+                $pdPreview = $pdG['deadline'] ?? vestra_business_days_after(time(), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
                 echo "onizlenen son tarih: ".gmdate('Y-m-d', (int)$pdPreview)." (send=false, saat HENUZ baslatilmadi)\n";
                 echo "\nsend=false — GONDERILMEDI\n"; exit(0);
               }

@@ -12,11 +12,21 @@
  * Ikisi/ucu de zaman/veri parametresini disaridan alir (saf); testin sonucu
  * gercek "bugun" hangi gune denk gelirse gelsin degismez.
  */
+/* vestra_business_days_after() lives in inc/escrow.php, NOT here -- the escrow
+ * auto-release sweep (31 Aug 2026) already needed the identical "N business
+ * days, Sat/Sun skipped" clock. It is eval'd FIRST, before
+ * vestra_order_payment_grace(): that function's own lazy require
+ * (`if (!function_exists(...)) require_once __DIR__.'/escrow.php'`) would
+ * resolve __DIR__ against THIS file's directory under eval and fail to find
+ * it -- harmless here only because function_exists() is already true by then
+ * and the require is skipped, exactly as it is on every real page that loads
+ * both files before either function is called. */
+$esrc = file_get_contents(__DIR__.'/../vestra/inc/escrow.php');
+if (!preg_match('/^function vestra_business_days_after\(.*?^}/ms', $esrc, $m)) { echo "HATA: vestra_business_days_after bulunamadi\n"; exit(1); }
+eval($m[0]);
 $src = file_get_contents(__DIR__.'/../vestra/inc/orders.php');
-foreach (['vestra_business_days_after', 'vestra_order_payment_grace'] as $fn) {
-    if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
-    eval($m[0]);
-}
+if (!preg_match('/^function vestra_order_payment_grace\(.*?^}/ms', $src, $m)) { echo "HATA: vestra_order_payment_grace bulunamadi\n"; exit(1); }
+eval($m[0]);
 if (!preg_match('/const VESTRA_ORDER_PAYMENT_GRACE_DAYS = (\d+);/', $src, $m)) { echo "HATA: VESTRA_ORDER_PAYMENT_GRACE_DAYS bulunamadi\n"; exit(1); }
 define('VESTRA_ORDER_PAYMENT_GRACE_DAYS', (int)$m[1]);
 
@@ -28,16 +38,16 @@ $t = function (string $n, bool $c) use (&$ok,&$fail) {
 echo "-- vestra_business_days_after: hafta ici baslangic -> +5 is gunu = +7 takvim gunu --\n";
 foreach (['monday','tuesday','wednesday','thursday','friday'] as $day) {
     $start = strtotime("$day this week 09:00:00");
-    $end = vestra_business_days_after(gmdate('c', $start), 5);
+    $end = vestra_business_days_after($start, 5);
     $t("$day: +5 is gunu = tam +7 takvim gunu sonra, ayni saatte", $end === $start + 7*86400);
     $t("$day: sonuc ayni gun adina denk gelir", gmdate('N', $end) === gmdate('N', $start));
 }
 echo "-- hafta sonu baslangic (nadir ama ihtimal disi degil) --\n";
 $sat = strtotime('saturday this week 09:00:00');
-$t('cumartesi baslarsa +5 is gunu = +6 takvim gunu (pazar hic sayilmaz)', vestra_business_days_after(gmdate('c',$sat),5) === $sat + 6*86400);
+$t('cumartesi baslarsa +5 is gunu = +6 takvim gunu (pazar hic sayilmaz)', vestra_business_days_after($sat,5) === $sat + 6*86400);
 $sun = strtotime('sunday this week 09:00:00');
-$t('pazar baslarsa +5 is gunu = +5 takvim gunu (bastan hafta sonu yok)', vestra_business_days_after(gmdate('c',$sun),5) === $sun + 5*86400);
-$t('0 gun istenirse degismez', vestra_business_days_after(gmdate('c',$sat), 0) === $sat);
+$t('pazar baslarsa +5 is gunu = +5 takvim gunu (bastan hafta sonu yok)', vestra_business_days_after($sun,5) === $sun + 5*86400);
+$t('0 gun istenirse degismez', vestra_business_days_after($sat, 0) === $sat);
 
 echo "-- vestra_order_payment_grace: asama makinesi --\n";
 $mon = strtotime('monday this week 09:00:00');

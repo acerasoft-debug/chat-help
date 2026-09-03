@@ -408,17 +408,6 @@ function vestra_orders_fix_dup_refs(): int {
  * than not writing it). */
 const VESTRA_ORDER_PAYMENT_GRACE_DAYS = 5;
 
-/** N business days after an ISO timestamp, skipping Saturday/Sunday. No holiday
- *  calendar — "iş günü" here is the everyday weekday sense, not a legal one. */
-function vestra_business_days_after(string $isoDate, int $days): int {
-    $ts = strtotime($isoDate) ?: time();
-    for ($left = max(0, $days); $left > 0; ) {
-        $ts += 86400;
-        if ((int)gmdate('N', $ts) < 6) $left--;   // 1..5 = Mon..Fri
-    }
-    return $ts;
-}
-
 /**
  * Pure phase machine for ONE order's payment clock. The caller decides
  * ELIGIBILITY (status is 'pending', an invoice exists, it is not an escrow
@@ -434,9 +423,17 @@ function vestra_business_days_after(string $isoDate, int $days): int {
  * evidence sits unread). The operator still confirms and marks it paid by
  * hand; this only prevents the wrong kind of automatic action.
  *
+ * Business-day math is escrow.php's vestra_business_days_after($ts, $days) — the
+ * escrow auto-release sweep (31 Aug 2026 decision) already needed the identical
+ * "N business days, Sat/Sun skipped" clock, and a second copy of the same loop
+ * here is exactly how this repo has drifted before: two functions of the same
+ * shape, in two files, is one INSTANT fatal ("Cannot redeclare") the moment both
+ * files load on the same request — which is every admin/buyer/seller page.
+ *
  * @param array $statusEntry order_statuses.json[$ref] (or a fresh ['status'=>'pending'])
  */
 function vestra_order_payment_grace(array $statusEntry, ?int $now = null): array {
+    if (!function_exists('vestra_business_days_after')) require_once __DIR__.'/escrow.php';
     $now = $now ?? time();
     $receipt = $statusEntry['payment_receipt'] ?? null;
     if (is_array($receipt) && !empty($receipt['file'])) {
@@ -447,7 +444,7 @@ function vestra_order_payment_grace(array $statusEntry, ?int $now = null): array
         return ['phase'=>'unstamped', 'start'=>null, 'notice_sent'=>false, 'deadline'=>null, 'days_left'=>null];
     }
     $noticeSent = !empty($statusEntry['payment_reminder_sent_at']);
-    $deadline = vestra_business_days_after($start, VESTRA_ORDER_PAYMENT_GRACE_DAYS);
+    $deadline = vestra_business_days_after((int)(strtotime($start) ?: $now), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
     if ($now < $deadline) {
         return ['phase'=>'running', 'start'=>$start, 'notice_sent'=>$noticeSent, 'deadline'=>$deadline,
                 'days_left'=>(int)ceil(($deadline - $now) / 86400)];
