@@ -5404,7 +5404,17 @@ elseif($tab==='messages'):
     <div style="flex:1">
       <div style="font-weight:600"><?= htmlspecialchars($accLabel($th['buyer_uid']??'')) ?> ↔ <?= htmlspecialchars($accLabel($th['seller_uid']??'')) ?></div>
       <div class="ahint"><?= count($th['messages']??[]) ?> messages · last <?= htmlspecialchars(substr($th['last_at']??'',0,16)) ?>
-        <?php if(!empty($th['listing_id'])): ?> · <a href="/product?id=<?= urlencode($th['listing_id']) ?>" target="_blank" style="color:var(--acc)">listing ↗</a><?php endif; ?></div>
+        <?php if(!empty($th['listing_id'])):
+          /* Operator, 3 Sep 2026: two threads about two different Jacquemus tees looked
+             identical in this list ("listing ↗" told you nothing until you clicked) —
+             replying to the wrong one is a real risk when several are open at once. The
+             product's own name is the thing that disambiguates at a glance; the id is
+             kept as a fallback for a listing that no longer resolves (deleted/renamed),
+             so the row never goes silent instead of just less pretty. */
+          $thProd = vestra_find((string)$th['listing_id']);
+          $thProdLabel = $thProd ? trim(($thProd['brand']??'').' '.($thProd['name']??'')) : '';
+          if ($thProdLabel === '') $thProdLabel = (string)$th['listing_id'];
+        ?> · <a href="/product?id=<?= urlencode($th['listing_id']) ?>" target="_blank" style="color:var(--acc)"><?= htmlspecialchars($thProdLabel) ?> ↗</a><?php endif; ?></div>
     </div>
   </div>
   <div class="acard-body">
