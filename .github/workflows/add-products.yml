@@ -45,7 +45,24 @@ jobs:
             *.enc) python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert set(d)>={'key','iv','data'}, 'sifreli paket key/iv/data tasimali'; print('SIFRELI paket — sunucuda cozulecek')" "$RAW_FILE" ;;
             *)     python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d,list) and d, 'JSON dizi degil/bos'; print(f'urun sayisi: {len(d)}')" "$RAW_FILE" ;;
           esac
-          echo "P_JSON=$(base64 -w0 < "$RAW_FILE")" >> "$GITHUB_ENV"
+          # Kucuk dosya SSH komutunun icinde gider (eski yol). Buyuk dosya GITMEZ: ssh-action
+          # betigi tek bir `sh -c` argumani olarak yollar ve Linux tek argumani 128 KB'de
+          # keser (MAX_ARG_STRLEN) -- 335 satirlik sifreli parti (255 KB, base64 340 KB) ile
+          # oturum ne calisti ne hata verdi, 10 dk zaman asimina kadar asili kaldi (3 Eyl
+          # 2026, iki koşu). Buyuk dosyayi sunucu depodan kendisi indirir (depo herkese
+          # acik, dosya zaten orada; sifreli paket icin de fark yok) ve runner'in hesapladigi
+          # sha256 ile dogrular: yanlis/eski dosya sessizce islenmez.
+          SIZE=$(wc -c < "$RAW_FILE")
+          if [ "$SIZE" -le 90000 ]; then
+            echo "P_JSON=$(base64 -w0 < "$RAW_FILE")" >> "$GITHUB_ENV"
+            echo "P_URL=" >> "$GITHUB_ENV"; echo "P_SHA256=" >> "$GITHUB_ENV"
+            echo "aktarim: SSH icinde ($SIZE bayt)"
+          else
+            echo "P_JSON=" >> "$GITHUB_ENV"
+            echo "P_URL=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/${RAW_FILE}" >> "$GITHUB_ENV"
+            echo "P_SHA256=$(sha256sum "$RAW_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+            echo "aktarim: sunucu depodan indirir ($SIZE bayt, sha256 dogrulamali)"
+          fi
 
       - name: Ürünleri ekle
         uses: appleboy/ssh-action@v1.0.3
@@ -58,9 +75,11 @@ jobs:
           script: |
             echo "ADIM 1: baglanti tamam"
             export P_JSON='${{ env.P_JSON }}'
+            export P_URL='${{ env.P_URL }}'
+            export P_SHA256='${{ env.P_SHA256 }}'
             export P_DRY='${{ github.event.inputs.dry_run }}'
             export P_STAGE='${{ github.event.inputs.stage_from }}'
-            echo "ADIM 2: P_JSON uzunluk=${#P_JSON}"
+            echo "ADIM 2: P_JSON uzunluk=${#P_JSON}  P_URL=${P_URL:-(yok)}"
             cat > /tmp/vestra_addproducts.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); ini_set('display_startup_errors','1'); error_reporting(E_ALL);
@@ -76,8 +95,21 @@ jobs:
               if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
 
             $dry = strtolower(trim((string)getenv("P_DRY"))) !== 'false';
-            $dec = base64_decode((string)getenv("P_JSON"), true);
-            if ($dec === false) { fwrite(STDERR,"HATA: base64 cozulemedi\n"); exit(1); }
+            $url = trim((string)getenv("P_URL"));
+            if ($url !== '') {
+              /* Buyuk dosya: sunucu depodan indirir, runner'in sha256'siyla dogrular. */
+              if (!preg_match('#^https://raw\.githubusercontent\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/[0-9a-f]{40}/product-batches/[A-Za-z0-9._-]+$#', $url)) { fwrite(STDERR,"HATA: beklenmeyen indirme adresi\n"); exit(1); }
+              $ch = curl_init($url);
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true, CURLOPT_MAXREDIRS=>3, CURLOPT_TIMEOUT=>120, CURLOPT_CONNECTTIMEOUT=>20]);
+              $dec = curl_exec($ch); $hc = curl_getinfo($ch, CURLINFO_HTTP_CODE); $ce = curl_error($ch); curl_close($ch);
+              if (!is_string($dec) || $hc !== 200 || $dec === '') { fwrite(STDERR,"HATA: paket indirilemedi (HTTP {$hc} {$ce})\n"); exit(1); }
+              $want = strtolower(trim((string)getenv("P_SHA256")));
+              if ($want === '' || hash('sha256', $dec) !== $want) { fwrite(STDERR,"HATA: indirilen paketin sha256'si runner'inkiyle tutmuyor\n"); exit(1); }
+              echo "paket depodan indirildi: ".strlen($dec)." bayt, sha256 dogrulandi\n";
+            } else {
+              $dec = base64_decode((string)getenv("P_JSON"), true);
+              if ($dec === false) { fwrite(STDERR,"HATA: base64 cozulemedi\n"); exit(1); }
+            }
             $rows = json_decode($dec, true);
             /* SIFRELI paket (product-batches/*.enc): ucuncu tarafin tarifesi bu depoya ACIK
                giremez (bkz. product-batches/pili-perez-NOTLAR.md). Paket disarida, sunucunun
