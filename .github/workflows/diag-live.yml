@@ -87,13 +87,12 @@ on:
         required: false
         default: ""
       finder_keyscan:
-        description: "true = 'finder anahtarını bul ve ekle': sunucudaki tüm yedeklerde duran anahtarları toplar, HER İKİ sağlayıcıya (Hunter + Anymailfinder) sorar, çalışan varsa ayarlara yazar. Anahtar log'a YAZILMAZ — sadece parmak izi."
+        # 25 girdi sinirina takilmamak icin eskiden ayri olan finder_clear buraya
+        # katildi (3 Eyl 2026) -- ikisi zaten hep BIRLIKTE kullaniliyordu, clear
+        # tek basina anlamsizdi (once bir keyscan gerekiyordu).
+        description: "true = 'finder anahtarını bul ve ekle': sunucudaki tüm yedeklerde duran anahtarları toplar, HER İKİ sağlayıcıya (Hunter + Anymailfinder) sorar, çalışan varsa ayarlara yazar. clear = aynısı + hiçbiri çalışmıyorsa geçersiz anahtarı ayarlardan SİL (önce yedek alınır). Anahtar log'a YAZILMAZ — sadece parmak izi. Boş = atla"
         required: false
-        default: "false"
-      finder_clear:
-        description: "finder_keyscan ile: hiçbiri çalışmıyorsa geçersiz anahtarı ayarlardan sil (önce yedek alınır). Boş bırakılırsa hiçbir şey silinmez."
-        required: false
-        default: "false"
+        default: ""
       visits_probe:
         description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz."
         required: false
@@ -1390,7 +1389,7 @@ jobs:
       # Yanlis saglayiciya sorulan gecerli bir anahtar da 401 doner -- o yuzden her
       # aday iki uca da soruluyor. Anahtarin kendisi hicbir yere yazilmiyor.
       - name: Finder anahtarını bul ve ekle
-        if: github.event.inputs.finder_keyscan == 'true'
+        if: ${{ github.event.inputs.finder_keyscan != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -1548,7 +1547,7 @@ jobs:
             php /tmp/vestra_finderscan.php 2>&1
             rm -f /tmp/vestra_finderscan.php
         env:
-          VESTRA_FINDER_CLEAR: ${{ github.event.inputs.finder_clear == 'true' && '1' || '0' }}
+          VESTRA_FINDER_CLEAR: ${{ github.event.inputs.finder_keyscan == 'clear' && '1' || '0' }}
 
       # "Bu adreslere gonder" dendiginde asil soru gonderebilir miyiz degil,
       # GONDERMELI miyiz: zaten gitmis mi, donmus mu, alan adi olu mu. Hepsi
