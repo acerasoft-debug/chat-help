@@ -30,6 +30,14 @@ on:
         description: "Üstü çizili ESKİ fiyat EUR (örn: 129.00) — VEYA 'keep' yazarsan ürünün ŞU ANKİ fiyatı eski fiyat olur. Doldurulursa ürün İNDİRİMLİ gösterilir. Boş = indirim yok"
         required: false
         default: ""
+      discount_pct:
+        # Ayri girdi, 'price' ile karistirilmaz: 'price' TUM eslesen urunlere AYNI
+        # mutlak rakami yazar (farkli baslangic fiyatlarinda "15% indirim" anlamina
+        # gelmez -- 120 EUR'luk urunle 60 EUR'luk urun ayni "price" ile ikisi de ayni
+        # sayiya duser). Bu girdi her urunun KENDI mevcut fiyatindan yuzde hesaplar.
+        description: "Her urune KENDI mevcut fiyatindan yuzde indirim uygula (ör: 15). Mevcut fiyat 'was' (üstü çizili) olarak kalır, mode=sale olur -- indirim GÖRÜNÜR. price/list_price ile birlikte kullanılamaz. Boş = dokunma"
+        required: false
+        default: ""
       size_step:
         description: "Koli/parti adimi (size_step): sepet adedi bu kata yuvarlar. MOQ ile birlikte dusun -- moq=20, step=8 birakirsaniz sepet 20'yi 24'e yuvarlar. Bos = dokunma."
         required: false
@@ -85,6 +93,7 @@ jobs:
           RAW_NAMEQ: ${{ github.event.inputs.name_contains }}
           RAW_PRICE: ${{ github.event.inputs.price }}
           RAW_LIST_PRICE: ${{ github.event.inputs.list_price }}
+          RAW_DISCOUNT_PCT: ${{ github.event.inputs.discount_pct }}
           RAW_MOQ: ${{ github.event.inputs.moq }}
           RAW_STEP: ${{ github.event.inputs.size_step }}
           RAW_SIZES: ${{ github.event.inputs.sizes }}
@@ -94,7 +103,7 @@ jobs:
           python3 - <<'PY' >> "$GITHUB_ENV"
           import base64, json, os
           blob = {k: os.environ.get('RAW_'+k.upper(), '')
-                  for k in ['brand','cat','nameq','price','list_price','moq','step','sizes','offers','dry']}
+                  for k in ['brand','cat','nameq','price','list_price','discount_pct','moq','step','sizes','offers','dry']}
           print('P_JSON=' + base64.b64encode(
               json.dumps(blob, ensure_ascii=False).encode('utf-8')).decode('ascii'))
           PY
@@ -152,6 +161,7 @@ jobs:
             $nameq = trim((string)($in['nameq'] ?? ''));
             $price = trim((string)($in['price'] ?? ''));
             $listP = trim((string)($in['list_price'] ?? ''));
+            $discPct = trim((string)($in['discount_pct'] ?? ''));
             $moq   = trim((string)($in['moq']   ?? ''));
             $step  = trim((string)($in['step']  ?? ''));
             $sizes = trim((string)($in['sizes'] ?? ''));
@@ -168,14 +178,22 @@ jobs:
               else { fwrite(STDERR, "HATA: allow_offers gecersiz '{$offIn}' -- yes / no / bos olmali\n"); exit(1); }
             }
 
-            echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' moq='{$moq}' step='{$step}'\n";
+            echo "girdiler: marka='{$brand}' kategori='{$cat}' fiyat='{$price}' indirim_yuzde='{$discPct}' moq='{$moq}' step='{$step}'\n";
             echo "          beden='{$sizes}'\n";
             echo "          teklif_al=".($offers === null ? '(dokunma)' : ($offers ? 'AC' : 'KAPAT'))."\n";
             echo "          dry_run=".($dry ? 'EVET (yazmaz)' : 'HAYIR (YAZAR)')."\n\n";
 
             if ($brand === '') { fwrite(STDERR, "HATA: marka bos\n"); exit(1); }
-            if ($price === '' && $listP === '' && $moq === '' && $step === '' && $sizes === '' && $offers === null) {
-              fwrite(STDERR, "HATA: price/list_price/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
+            if ($price === '' && $listP === '' && $discPct === '' && $moq === '' && $step === '' && $sizes === '' && $offers === null) {
+              fwrite(STDERR, "HATA: price/list_price/discount_pct/moq/sizes/allow_offers hepsi bos -- yapacak is yok\n"); exit(1);
+            }
+            // Yuzde indirim her urunun KENDI mevcut fiyatindan hesaplanir -- 'price' (tum
+            // urunlere ayni mutlak rakam) ile ayni anda anlamsiz, hangisinin kazanacagi belirsiz.
+            if ($discPct !== '' && ($price !== '' || $listP !== '')) {
+              fwrite(STDERR, "HATA: discount_pct, price/list_price ile birlikte kullanilamaz\n"); exit(1);
+            }
+            if ($discPct !== '' && (!is_numeric($discPct) || (float)$discPct <= 0 || (float)$discPct >= 100)) {
+              fwrite(STDERR, "HATA: gecersiz discount_pct '{$discPct}' -- 0 ile 100 arasinda olmali\n"); exit(1);
             }
             /* 'keep' = her urunun mevcut fiyatini eski fiyat yap. "86'ya indir" derken
                dogru davranis bu: ustu cizili rakam uydurulmaz, urunun bugunku fiyati olur.
@@ -290,6 +308,47 @@ jobs:
                   $pct = ($listP !== '' && $wantList > 0) ? (int)round(100*($wantList-$new)/$wantList) : 0;
                   if ($pct > 0) $line[] = "indirim -%{$pct}";
                   $changes++;
+                }
+              }
+              if ($discPct !== '') {
+                // 'list' KENDI mevcut fiyati okunur ve DEGISTIRILMEZ -- bu hem "was" (ustu
+                // cizili) rakamdir hem de yuzdenin tabani. Boylece is IKI KEZ calistirilirsa
+                // (yanlislikla ikinci bir dispatch) sonuc AYNI kalir, ust uste binmez: ikinci
+                // kosuda da taban yine ayni 'list', yeniden %15 daha inmez.
+                $was = (float)($p['list'] ?? 0);
+                if ($was <= 0) {
+                  $line[] = "ATLANDI: gecerli fiyat yok, yuzde hesaplanamaz";
+                  $skipped++;
+                } else {
+                  $new = round($was * (1 - (float)$discPct / 100), 2);
+                  // Bugun gercekten tahsil edilen EN DUSUK kademe -- 'list' zaten eski bir
+                  // indirimden kalma yuksek bir "was" ise (mode=sale, list > tier), hesap
+                  // ORADAN degil BURADAN yapilirsa alici bugun odedigi tutardan FAZLASINI
+                  // "indirim" diye gorur. Boyle bir urunu atla, sessizce pahalilastirma.
+                  $curLowest = $was;
+                  if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                    foreach ($p['tiers'] as $t) {
+                      if (is_array($t) && (float)($t['price'] ?? 0) > 0) $curLowest = min($curLowest, (float)$t['price']);
+                    }
+                  }
+                  if ($new >= $curLowest - 0.001) {
+                    $line[] = "ATLANDI: hesaplanan indirim (€{$new}) bugun tahsil edilenden (€{$curLowest}) ucuz degil";
+                    $skipped++;
+                  } else {
+                    $n = 0;
+                    if (!empty($p['tiers']) && is_array($p['tiers'])) {
+                      foreach ($p['tiers'] as $ti => $t) {
+                        if (!is_array($t)) { $line[] = "UYARI: tier[{$ti}] dizi degil, atlandi"; continue; }
+                        if ((float)($t['price'] ?? 0) === $new) continue;
+                        $all[$i]['tiers'][$ti]['price'] = $new; $n++;
+                      }
+                    }
+                    $curMode = (string)($p['mode'] ?? 'fixed');
+                    // Indirim GORUNUR olmali (operator: "indirimi belirt") -- offer modundaki
+                    // urun zaten pazarlikla satiliyor, sale rozeti orada anlamsiz.
+                    if ($curMode !== 'offer' && $curMode !== 'sale') { $all[$i]['mode'] = 'sale'; $line[] = "mode {$curMode} -> sale"; }
+                    if ($n) { $line[] = "tiers({$n}) {$was} -> {$new}  (-%{$discPct}, was €{$was})"; $changes++; }
+                  }
                 }
               }
               if ($moq !== '') {
