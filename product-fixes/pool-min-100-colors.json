@@ -1,0 +1,12 @@
+[
+  {
+    "match": "lac-pima-tshirt",
+    "expect": 1,
+    "group_min_qty": "104",
+    "group_min_colors": "4",
+    "_why": "Operator karari (3 Eyl 2026): 'lacoste 104 ad. en az 4 renk secilmeli'. Kisi basi asgari 104 adet, havuz sayfasinda en az 4 renk secimi zorunlu.",
+    "_why_min": "Ayni gun product-fixes/pool-reopen-min-qty.json asgariyi 104'ten 15'e INDIRMISTI (gerekce: hedef de 104 iken ilk giren havuzu tek basina dolduruyor, yani birden fazla firmanin biriktigi bir havuz olmuyor). Operator 104'e donmeyi acikca istedi -- karar operatorun, ama sonuc kayitli olsun: hedef 104 / asgari 104 ile havuz pratikte tek alicilik, %8 kaporali 104'luk asgari siparistir. Birden fazla alicinin birikmesi istenirse degistirilecek alan group_target (or. 312 = 3 alici).",
+    "_why_colors": "group_min_colors=4: urunun 8 rengi var, alici en az 4'unu isaretlemek zorunda. Renk LISTESINE dokunulmuyor -- kuru kosuda bir 'colors (8) -> (n)' satiri cikarsa DUR, bu dosya renk eklemiyor/silmiyor (pima-crew-colors.json'da tam bu tuzak yasandi).",
+    "_why_form": "Renk secici havuz sayfasinda yalnizca group_min_colors > 0 VE urunde colors doluyken beliriyor (group.php:254). Alan yazilmadan 'renkler secilmeli' istegi sayfada karsiligi olmayan bir istek olarak kalirdi."
+  }
+]
