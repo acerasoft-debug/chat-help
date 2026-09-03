@@ -751,6 +751,13 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
     doldurma; `wetransfer_probe=sheet:<klasör>|from=N|count=M|spaced` klasör
     başına bir küçük resim basar, sayfalar indirilip bakılır. 3 Eylül'de
     açıklama "colegial" derken fotoğraf mokasen/spor gösterdi — fotoğraf kazandı.
+  - **Ayakkabıda dropship YOK** (operatör kararı, 3 Eyl 2026: *"Buy a single
+    piece — dropshipping, tüm ayakkabılardan kaldır"*). Kural bölmeye bağlı:
+    `vestra_dropship_excluded_sections()` = `['footwear']`, `vestra_dropship_of()`
+    en başta bakar ve elle açılmış bloğu da ezer — yarın eklenen ayakkabı da
+    kapalı doğar. Ürün sayfası düğmesi, `/dropship`, ödeme ve API aynı
+    fonksiyondan geçer. Test: `tests/dropship_section_test.php`; canlı sayım:
+    `diag-live` → `dropship_probe=true` ("bolme yasagi footwear: N").
 - **Actions günlüğü gizli değerleri HER YERDE maskeler:** `DEPLOY_PORT`="22"
   yüzünden `1225` → `1***5`, `222` → `***`, fiyat `22.95` → `***.95`, base64'ün
   içi dahil. Loga base64 basarken karakter arası boşluk koy (`|spaced`); günlükten

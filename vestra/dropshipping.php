@@ -24,6 +24,7 @@ $dsZones   = vestra_dropship_zones();
 $dsMarkup  = (int)round(VESTRA_DROPSHIP_MARKUP * 100);
 $dsBrands  = vestra_dropship_excluded_brands();
 $dsTerms   = vestra_dropship_excluded_terms();
+$dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli kapali
 ?>
 <style>
 /* padding-bottom, "padding:0 0 60px" DEGIL: kisa yazim .wrap'in yan bosluklarini
@@ -83,8 +84,11 @@ $dsTerms   = vestra_dropship_excluded_terms();
   <p><?= t('Delivery is working days from dispatch and does not include time a consignment spends in customs. The destination is chosen before the payment page opens, and the page then accepts addresses only in that country — so the rate charged and the address entered can never diverge.') ?></p>
 
   <h2><?= t('What is not available') ?></h2>
-  <p><?= t('Most of the catalogue is open to single-piece purchase. Two houses and one product type are not:') ?></p>
+  <p><?= t('Most of the catalogue is open to single-piece purchase. These are not:') ?></p>
   <ul>
+    <?php foreach ($dsSections as $sc): ?>
+    <li><b><?= htmlspecialchars(t(vestra_section_label($sc))) ?></b> — <?= t('the whole section is sold by the box only; single pairs are not picked from assorted cartons.') ?></li>
+    <?php endforeach; ?>
     <?php foreach ($dsBrands as $b): ?>
     <li><b><?= htmlspecialchars(mb_convert_case($b, MB_CASE_TITLE, 'UTF-8')) ?></b> — <?= t('excluded at the supplier\'s request.') ?></li>
     <?php endforeach; ?>

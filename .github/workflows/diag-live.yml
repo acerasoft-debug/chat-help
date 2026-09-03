@@ -2595,14 +2595,18 @@ jobs:
             foreach (array_slice($offBrand, 0, 6, true) as $b => $n) printf("    kapali: %-16s %d\n", $b, $n);
             /* Urun turu yasagi ad/kategori uzerinden isliyor; yanlis yakaladigi
                bir sey varsa listede goruruz. Marka yasagi zaten ustte sayildi. */
-            $byTerm = [];
+            $byTerm = []; $bySection = [];
             foreach ($all as $p) {
+              /* Bolme yasagi (ayakkabi) marka ve tur yasagindan once isler; ayri sayilir. */
+              $sec = function_exists('vestra_product_section') ? vestra_product_section($p) : 'premium';
+              if (function_exists('vestra_dropship_excluded_sections') && in_array($sec, vestra_dropship_excluded_sections(), true)) { $bySection[$sec] = ($bySection[$sec] ?? 0) + 1; continue; }
               $b = mb_strtolower(trim((string)($p['brand'] ?? '')));
               if (in_array($b, vestra_dropship_excluded_brands(), true)) continue;
               $h = mb_strtolower(trim((string)($p['cat'] ?? '') . ' ' . (string)($p['name'] ?? '')));
               foreach (vestra_dropship_excluded_terms() as $t)
                 if ($t !== '' && mb_strpos($h, $t) !== false) { $byTerm[$t][] = $p; break; }
             }
+            foreach ($bySection as $sec => $n) printf("    bolme yasagi \"%s\": %d urun kapandi\n", $sec, $n);
             foreach (vestra_dropship_excluded_terms() as $t) {
               $hit = $byTerm[$t] ?? [];
               printf("    tur yasagi \"%s\": %d urun kapandi\n", $t, count($hit));

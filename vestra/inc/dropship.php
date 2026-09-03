@@ -87,6 +87,19 @@ function vestra_dropship_excluded_brands(): array {
 }
 
 /**
+ * Dropship'e KAPALI vitrin bolmeleri (vestra_sections() anahtarlari).
+ *
+ * Ayakkabi (operator karari, 3 Eyl 2026: "Buy a single piece — dropshipping,
+ * tum ayakkabilardan kaldir"): Pili Perez katalogu kutu bazli toptan
+ * (12-36 ciftlik surtido kutulari), tek cift cekip gondermek satici tarafinda
+ * yok. Kural BOLMEYE bagli, tek tek ilana degil: yarin eklenecek her ayakkabi
+ * ilani da kapali dogar, 335 ilana ayri ayri bayrak koyup 336.'yi unutmak yok.
+ */
+function vestra_dropship_excluded_sections(): array {
+    return ['footwear'];
+}
+
+/**
  * Dropship'e KAPALI urun turleri: kategoride YA DA urun adinda gecmesi yeter.
  *
  * Neden ad da taraniyor: kategori satici tarafindan seciliyor ve bosluk birakma
@@ -214,6 +227,10 @@ function vestra_dropship_base_price(array $p): float {
  * Lacoste ilani da kapanir, yoksa kural kural olmazdi.
  */
 function vestra_dropship_of(array $p): ?array {
+    /* Bolme yasagi her seyin ustunde, marka yasagi gibi: elle acilmis bir
+       dropship blogu da bolme kapaliysa gecmez. */
+    if (in_array(vestra_product_section($p), vestra_dropship_excluded_sections(), true)) return null;
+
     $brand = mb_strtolower(trim((string)($p['brand'] ?? '')));
     if ($brand !== '' && in_array($brand, vestra_dropship_excluded_brands(), true)) return null;
 
