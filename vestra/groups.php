@@ -101,8 +101,16 @@ $isBuyer=$AUTH_USER && ($AUTH_USER['type']??'')==='buyer';
             <span><b style="color:var(--ink,#eee)"><?=number_format($p['_committed'])?></b> / <?=number_format($p['_target'])?> <?=htmlspecialchars($p['unit'])?> · <?=$p['_pct']?>%</span>
             <span class="gpill <?=$p['_status']?>"><?=$statusLabel?></span>
           </div>
+          <?php /* Katilimci sayisi SIFIRSA hic yazilmiyor. "0 alici" bir bilgi
+                   degil, bir bosluk ilani: yeni acilan bir havuzda tek yaptigi
+                   sey ziyaretciye "buraya kimse girmedi" demek. Sayiyi uydurmak
+                   ise ayri bir sey ve yapilmiyor -- 1 kisi katildigi anda gercek
+                   sayi kendiliginden burada beliriyor. Kalan adet satiri her
+                   halukarda duruyor: havuzun ne zaman aciacagini o soyluyor. */ ?>
           <div class="gmeta">
-            <span>👥 <?=$p['_participants']?> <?= t('buyers in') ?></span>
+            <?php if((int)$p['_participants'] > 0): ?>
+              <span>👥 <?=$p['_participants']?> <?= t('buyers in') ?></span>
+            <?php endif; ?>
             <?php if($p['_status']==='open' && $remaining>0): ?><span><?= sprintf(t('%s pc to unlock'), number_format($remaining)) ?></span><?php endif; ?>
           </div>
           <div class="gact">

@@ -139,7 +139,13 @@ $GMINCOL = vestra_group_min_colors($p);
         <span class="gpill <?=$p['_status']?>">
           <?= ['open'=>'⏳ '.t('Open'),'funded'=>'✓ '.t('Target reached'),'expired'=>'• '.t('Closed')][$p['_status']] ?>
         </span>
-        <span class="hint"><?=$p['_participants']?> <?= t('buyers committed') ?></span>
+        <?php /* Sifir katilimci YAZILMIYOR. "0 buyers committed" bilgi degil,
+                 bosluk ilani -- yeni acilmis bir havuzda tek isi ziyaretciye
+                 "kimse girmedi" demek. Sayi uydurulmuyor; ilk gercek taahhut
+                 geldiginde bu satir kendiliginden dogru sayiyla geri geliyor. */ ?>
+        <?php if((int)$p['_participants'] > 0): ?>
+          <span class="hint"><?=$p['_participants']?> <?= t('buyers committed') ?></span>
+        <?php endif; ?>
       </div>
 
       <div class="gbar"><i style="width:<?=$p['_pct']?>%"></i></div>
@@ -164,7 +170,12 @@ $GMINCOL = vestra_group_min_colors($p);
         </div>
       <?php endif; ?>
 
-      <h3 style="margin:26px 0 6px"><?= t('Who’s in this pool') ?></h3>
+      <?php /* Baslik havuzun DURUMUNA gore: kimse yokken "Who's in this pool"
+               yazip altina "ilk siz olun" demek, sayfanin en gorunur yerinde
+               havuzun bos oldugunu duyurmak oluyordu. Bos havuzda basligi da
+               metni de mekanizmaya cevirdik -- ayni sayfada, yalan olmayan bir
+               cumleyle. Ilk taahhut girdigi anda eski baslik geri geliyor. */ ?>
+      <h3 style="margin:26px 0 6px"><?= $p['_commits'] || ($p['group_seed_n'] ?? 0) ? t('Who’s in this pool') : t('How this pool fills') ?></h3>
       <table class="glist">
         <?php if($p['group_seed_n']??0): ?>
           <tr><td>🏷️ <?= sprintf(t('%d verified boutiques already committed'), (int)$p['group_seed_n']) ?></td><td class="r hint"><?=number_format((int)($p['group_seed']??0))?> <?=htmlspecialchars($p['unit'])?></td></tr>
@@ -179,7 +190,18 @@ $GMINCOL = vestra_group_min_colors($p);
           <tr><td>👤 <span class="hint"><?= t('PREVIEW — not a real commitment') ?></span></td><td class="r hint">—</td></tr>
         <?php endfor; ?>
         <?php if(!($p['group_seed_n']??0) && !$p['_commits'] && !$PREVIEW_N): ?>
-          <tr><td class="hint"><?= t('Be the first to join this pool.') ?></td><td></td></tr>
+          <tr><td class="hint"><?= t('Each commitment is listed here with its country and quantity as it comes in.') ?></td><td></td></tr>
+          <tr><td class="hint"><?= sprintf(t('The price unlocks for everyone at %s %s — you pay the pool price, not the price of your own quantity.'), number_format((int)$p['_target']), htmlspecialchars($p['unit'])) ?></td><td></td></tr>
+          <?php /* Para cumlesi havuz TURUNE gore: depozitolu havuzda katilim
+                   aninda tahsilat var ve basarisizlikta iade ediliyor; serbest
+                   havuzda hic tahsilat yok. Bu dosyanin bastaki notu zaten
+                   bunu soyluyor -- "bir havuz tipi digerinin metnini asla
+                   basmasin", cunku yanlisi bir yanlis anlatim olur. */ ?>
+          <?php if($p['_status']==='open'): ?>
+          <tr><td class="hint"><?= $DEPOSIT
+                ? sprintf(t('If the pool does not reach its target by %s, your deposit is refunded in full.'), htmlspecialchars(date('j M Y', strtotime($p['_deadline']))))
+                : sprintf(t('If the pool does not reach its target by %s, nothing is charged.'), htmlspecialchars(date('j M Y', strtotime($p['_deadline'])))) ?></td><td></td></tr>
+          <?php endif; ?>
         <?php endif; ?>
       </table>
     </div>
