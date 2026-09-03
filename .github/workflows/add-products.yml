@@ -5,6 +5,10 @@ on:
       file:
         description: "Ürün tanım dosyası (repo kökünden yol, örn: product-batches/batch1.json)"
         required: true
+      stage_from:
+        description: "Opsiyonel: fotoğrafları sunucudaki bir kaynak klasörden uploads/ altına TAŞI (ör. wt_incoming/abc37eb240b7 → $HOME altı, alt klasörler taranır). Yalnızca üründe geçen dosya adları kopyalanır; ad küçük harfe/aksansıza çevrilir. dry_run=true iken kopyalamaz, sadece kaynakta var mı diye bakar."
+        required: false
+        default: ""
       dry_run:
         description: "true = SADECE ne ekleneceğini yaz, KAYDETME"
         required: true
@@ -37,7 +41,10 @@ jobs:
             */../*|/*|*..*) echo "HATA: gecersiz yol"; exit 1 ;;
           esac
           [ -f "$RAW_FILE" ] || { echo "HATA: dosya yok: $RAW_FILE"; exit 1; }
-          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d,list) and d, 'JSON dizi degil/bos'; print(f'urun sayisi: {len(d)}')" "$RAW_FILE"
+          case "$RAW_FILE" in
+            *.enc) python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert set(d)>={'key','iv','data'}, 'sifreli paket key/iv/data tasimali'; print('SIFRELI paket — sunucuda cozulecek')" "$RAW_FILE" ;;
+            *)     python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d,list) and d, 'JSON dizi degil/bos'; print(f'urun sayisi: {len(d)}')" "$RAW_FILE" ;;
+          esac
           echo "P_JSON=$(base64 -w0 < "$RAW_FILE")" >> "$GITHUB_ENV"
 
       - name: Ürünleri ekle
@@ -52,6 +59,7 @@ jobs:
             echo "ADIM 1: baglanti tamam"
             export P_JSON='${{ env.P_JSON }}'
             export P_DRY='${{ github.event.inputs.dry_run }}'
+            export P_STAGE='${{ github.event.inputs.stage_from }}'
             echo "ADIM 2: P_JSON uzunluk=${#P_JSON}"
             cat > /tmp/vestra_addproducts.php <<'PHPEOF'
             <?php
@@ -71,7 +79,56 @@ jobs:
             $dec = base64_decode((string)getenv("P_JSON"), true);
             if ($dec === false) { fwrite(STDERR,"HATA: base64 cozulemedi\n"); exit(1); }
             $rows = json_decode($dec, true);
+            /* SIFRELI paket (product-batches/*.enc): ucuncu tarafin tarifesi bu depoya ACIK
+               giremez (bkz. product-batches/pili-perez-NOTLAR.md). Paket disarida, sunucunun
+               diag-live 'wetransfer_probe |fetch' adiminin loga bastigi ACIK anahtarla
+               sifrelendi: rastgele AES-256 anahtari RSA-OAEP ile, urun listesi AES-CBC ile.
+               Ozel anahtar ~/.vestra_import/import_key.pem -- sunucudan hic cikmadi. */
+            if (is_array($rows) && isset($rows['key'], $rows['iv'], $rows['data']) && !isset($rows[0])) {
+              $kf = $home.'/.vestra_import/import_key.pem';
+              if (!is_file($kf)) { fwrite(STDERR,"HATA: ice aktarma anahtari yok ({$kf}) -- once diag-live wetransfer_probe |fetch calistirin\n"); exit(1); }
+              $pk = openssl_pkey_get_private((string)file_get_contents($kf));
+              $aes = '';
+              if (!$pk || !openssl_private_decrypt(base64_decode($rows['key']), $aes, $pk, OPENSSL_PKCS1_OAEP_PADDING)) { fwrite(STDERR,"HATA: AES anahtari cozulemedi (yanlis acik anahtarla mi sifrelendi?)\n"); exit(1); }
+              $plain = openssl_decrypt(base64_decode($rows['data']), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, base64_decode($rows['iv']));
+              if ($plain === false) { fwrite(STDERR,"HATA: paket cozulemedi\n"); exit(1); }
+              $rows = json_decode($plain, true);
+              echo "sifreli paket COZULDU: ".(is_array($rows) ? count($rows) : 0)." satir\n";
+            }
             if (!is_array($rows) || !$rows) { fwrite(STDERR,"HATA: JSON dizi degil/bos\n"); exit(1); }
+
+            /* Fotograf sahneleme: kaynak klasor (public_html DISI, ornegin WeTransfer'den
+               inen ~/wt_incoming/<id>) taranir, urunlerde gecen dosya adlari kucuk harf +
+               aksansiz adla uploads/ altina KOPYALANIR (kaynak silinmez). Yalnizca gecen
+               adlar: 595 dosyanin tumunu dokup 40'ini bos birakmak yerine, eslesen kopyalanir,
+               eslesmeyen raporlanir. dry_run'da kopya yok -- varlik kontrolu kaynaga bakar. */
+            $stage = trim((string)getenv("P_STAGE"));
+            $stageMap = [];
+            $fold = function (string $s): string {
+              $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s); if ($t === false || $t === '') $t = $s;
+              return strtolower(preg_replace('/[^A-Za-z0-9._-]+/', '-', $t));
+            };
+            if ($stage !== '') {
+              if (str_contains($stage, '..') || $stage[0] === '/') { fwrite(STDERR,"HATA: gecersiz stage_from\n"); exit(1); }
+              $src = $home.'/'.$stage;
+              if (!is_dir($src)) { fwrite(STDERR,"HATA: kaynak klasor yok: {$src}\n"); exit(1); }
+              $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
+              foreach ($it as $f) { if ($f->isFile()) $stageMap[$fold($f->getFilename())] = $f->getPathname(); }
+              echo "sahneleme kaynagi: {$src} (".count($stageMap)." dosya)\n";
+            }
+            $staged = 0; $stageMiss = [];
+            $stageImage = function (string $img) use (&$stageMap, &$staged, &$stageMiss, $doc, $dry, $fold): bool {
+              if (is_file($doc.$img)) return true;
+              if (!$stageMap) return false;
+              $key = $fold(basename($img));
+              if (!isset($stageMap[$key])) { $stageMiss[] = $img; return false; }
+              if ($dry) return true;                       // kaynakta var: gercek kosuda kopyalanacak
+              $dir = dirname($doc.$img);
+              if (!is_dir($dir) && !@mkdir($dir, 0755, true)) return false;
+              if (!@copy($stageMap[$key], $doc.$img)) return false;
+              $staged++;
+              return true;
+            };
 
             $existing = vestra_listings();
             $seenId = []; $seenBS = [];
@@ -117,7 +174,7 @@ jobs:
               if (!is_array($imgs) || !count($imgs)) { $errors[]="{$ctx} ({$id}): gorsel yok — fotografsiz urun eklenemez"; continue; }
               foreach ($imgs as $img) {
                 if (!is_string($img) || !preg_match('#^/uploads/[a-z0-9._/-]+$#', $img)) { $errors[]="{$ctx} ({$id}): gecersiz gorsel yolu '".(is_string($img)?$img:'?')."'"; continue 2; }
-                if (!is_file($doc.$img)) { $errors[]="{$ctx} ({$id}): gorsel SUNUCUDA YOK: {$img}"; continue 2; }
+                if (!$stageImage($img)) { $errors[]="{$ctx} ({$id}): gorsel SUNUCUDA YOK: {$img}"; continue 2; }
               }
               $bs = strtolower(trim($brand.'|'.$sku));
               if (isset($seenId[$id])) { $errors[]="{$ctx} ({$id}): bu id zaten var"; continue; }
@@ -165,7 +222,9 @@ jobs:
               exit(1);
             }
 
-            echo "dogrulama gecti: ".count($clean)." urun\n\n";
+            echo "dogrulama gecti: ".count($clean)." urun\n";
+            if ($stage !== '') echo "sahnelenen foto: ".($dry ? '(dry_run: kopyalanmadi, kaynakta bulundu)' : $staged)."  kaynakta bulunamayan: ".count($stageMiss)."\n";
+            echo "\n";
             foreach ($clean as $r) {
               printf("  + %-24s | %-16s | %-38s | %s | %.2f EUR | MOQ %d | foto %d\n",
                 $r['id'], $r['brand'], mb_substr($r['name'],0,38), $r['cat'], $r['list'], $r['moq'], count($r['images']));
