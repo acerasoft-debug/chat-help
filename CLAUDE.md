@@ -733,7 +733,11 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
     (AES-256-CBC + sunucunun RSA-OAEP açık anahtarı; özel anahtar
     `~/.vestra_import/import_key.pem`, `diag-live` → `wetransfer_probe=<url>|fetch`
     üretir ve `IMPORT_PUBKEY_B64=` basar). `add-products.yml` `.enc` görünce
-    sunucuda çözer.
+    sunucuda çözer. **Şifreli paketin fiyatı loga da basılmaz** — ilk iki koşu
+    335 satırın fiyatını herkese açık günlüğe yazdı (3 Eyl 2026, günlükler
+    silindi: `delete_workflow_run_logs`). Şifrelemek yetmez; adımın ne bastığını
+    oku. Fiyat doğrulaması Excel'e karşı yerelde yapılır (335/335 birebir,
+    252 kutulu satırda çift × fiyat = satıcının kutu toplamı).
   - **90 KB'den büyük parti SSH komutunun içinde GİTMEZ.** ssh-action betiği
     tek `sh -c` argümanı olarak yollar; Linux tek argümanı 128 KB'de keser ve
     oturum hata vermeden 10 dk zaman aşımına kadar asılı kalır (3 Eyl 2026'da

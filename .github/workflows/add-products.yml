@@ -111,6 +111,7 @@ jobs:
               if ($dec === false) { fwrite(STDERR,"HATA: base64 cozulemedi\n"); exit(1); }
             }
             $rows = json_decode($dec, true);
+            $encrypted = false;
             /* SIFRELI paket (product-batches/*.enc): ucuncu tarafin tarifesi bu depoya ACIK
                giremez (bkz. product-batches/pili-perez-NOTLAR.md). Paket disarida, sunucunun
                diag-live 'wetransfer_probe |fetch' adiminin loga bastigi ACIK anahtarla
@@ -125,6 +126,7 @@ jobs:
               $plain = openssl_decrypt(base64_decode($rows['data']), 'aes-256-cbc', $aes, OPENSSL_RAW_DATA, base64_decode($rows['iv']));
               if ($plain === false) { fwrite(STDERR,"HATA: paket cozulemedi\n"); exit(1); }
               $rows = json_decode($plain, true);
+              $encrypted = true;
               echo "sifreli paket COZULDU: ".(is_array($rows) ? count($rows) : 0)." satir\n";
             }
             if (!is_array($rows) || !$rows) { fwrite(STDERR,"HATA: JSON dizi degil/bos\n"); exit(1); }
@@ -272,9 +274,14 @@ jobs:
             echo "dogrulama gecti: ".count($clean)." urun\n";
             if ($stage !== '') echo "sahnelenen foto: ".($dry ? '(dry_run: kopyalanmadi, kaynakta bulundu)' : $staged)."  kaynakta bulunamayan: ".count($stageMiss)."\n";
             echo "\n";
+            /* Sifreli paketin fiyati LOGA BASILMAZ: Actions gunlugu herkese acik, paket tam da
+               ucuncu tarafin tarifesi disari cikmasin diye sifrelendi. 3 Eyl 2026'da ilk iki
+               koşu 335 satirin fiyatini acik yazdi; gunlukler silindi. Dogrulama yine yapiliyor
+               (fiyat>0, MOQ>=1), yalnizca rakam yazilmiyor. */
             foreach ($clean as $r) {
-              printf("  + %-24s | %-16s | %-38s | %s | %.2f EUR | MOQ %d | foto %d\n",
-                $r['id'], $r['brand'], mb_substr($r['name'],0,38), $r['cat'], $r['list'], $r['moq'], count($r['images']));
+              printf("  + %-24s | %-16s | %-38s | %s | %s | MOQ %d | foto %d\n",
+                $r['id'], $r['brand'], mb_substr($r['name'],0,38), $r['cat'],
+                $encrypted ? 'fiyat: var (gizli)' : sprintf('%.2f EUR', $r['list']), $r['moq'], count($r['images']));
             }
             if ($dry) { echo "\nDRY RUN — hicbir sey kaydedilmedi. Eklemek icin dry_run=false.\n"; exit(0); }
 
