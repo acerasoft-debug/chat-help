@@ -2852,6 +2852,11 @@ jobs:
               $from  = preg_match('/\|\s*from=(\d+)/', $opts, $m1) ? max(1, (int)$m1[1]) : 1;
               $count = preg_match('/\|\s*count=(\d+)/', $opts, $m2) ? max(1, (int)$m2[1]) : 100000;
               $listOnly = (bool)preg_match('/\|\s*list\b/', $opts);
+              /* |spaced: base64 karakterleri arasina bosluk. Actions gizli degerleri (port "22",
+                 kullanici adi) logun HER yerinde '***' yapar, base64'un icinde de -- 337
+                 klasorluk ilk koşuda 7 sayfanin 3'u bu yuzden bozuk cikti. Araya bosluk
+                 girince hicbir gizli deger bitisik olarak gecemez. */
+              $spaced = (bool)preg_match('/\|\s*spaced\b/', $opts);
               $top = array_values(array_filter(scandir($root), fn($d) => $d !== '.' && $d !== '..'));
               if (count($top) === 1 && is_dir($root.'/'.$top[0])) $root .= '/'.$top[0];   // tek sarmalayici klasor
               $imgExt = ['jpg','jpeg','png','webp','gif','bmp'];
@@ -2906,7 +2911,7 @@ jobs:
                 echo "-- SAYFA {$sheetNo}: ".count($chunk)." klasor, ".number_format(strlen($jpg) / 1024)." KB --\n";
                 foreach ($legend as $l) echo "  {$l}\n";
                 echo "SHEET{$sheetNo}_B64_BEGIN\n";
-                foreach (str_split(base64_encode($jpg), 4000) as $ln) echo $ln."\n";
+                foreach (str_split(base64_encode($jpg), 4000) as $ln) echo ($spaced ? implode(' ', str_split($ln)) : $ln)."\n";
                 echo "SHEET{$sheetNo}_B64_END\n";
               }
               echo "sayfa: {$sheetNo}\n";
