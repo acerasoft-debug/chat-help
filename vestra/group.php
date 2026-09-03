@@ -7,6 +7,26 @@ if(!$p){ http_response_code(404); $PAGE=t('Not found'); require __DIR__.'/inc/he
   require __DIR__.'/inc/foot.php'; exit; }
 $GTITLE=vestra_group_title($p); $GMODELS=vestra_group_models($p); $GASSORT=count($GMODELS)>1;
 $PAGE=$GTITLE.' — '.t('Group buy'); $NAV='groups'; require __DIR__.'/inc/head.php';
+/* ── OPERATOR ONIZLEMESI: ?preview_n=<sayi> ────────────────────────────────
+   Operator "bu havuzda 4 katilimci goster" dedi (3 Eyl 2026) ve sorumlulugu
+   ustlendi. Sayi yine de CANLI sayfaya yazilmiyor, cunku sayfadaki cumle
+   "%d dogrulanmis butik taahhut etti" -- ve bu havuzda taahhut YOK: groups.csv
+   ile havuz kayitlarinda dsq-101211 hic gecmiyor. O cumleyi ziyaretciye
+   gostermek, havuza para baglayacak butige karsiligi olmayan bir talep kaniti
+   sunmak olurdu. Ayni sey L1212 havuzunda bir kez yapildi ve tam bu sebeple
+   geri alindi (bkz. inc/products.php'deki not: "ziyaretci, kimsenin katilmadigi
+   bir havuzu dolmakta sanip katiliyordu").
+
+   Bu yuzden sayi YALNIZCA /admin oturumu acikken beliriyor: ayni adresi acan
+   cikisli bir ziyaretci gercek sayiyi gorur. Sayfanin ustunde de onizleme
+   oldugu yaziyor, yani operator bile kalici bir degisiklik sanmaz. Gercek
+   taahhutler girildiginde (firma, ulke, adet) sayi kendiliginden dogru olur ve
+   bu parametreye gerek kalmaz. */
+$PREVIEW_N = (!empty($_SESSION['vadmin']) && isset($_GET['preview_n']))
+    ? max(0, min(99, (int)$_GET['preview_n'])) : 0;
+$PARTICIPANTS_REAL = (int)$p['_participants'];   // uyarida gercek sayiyi yazmak icin
+if ($PREVIEW_N > 0) $p['_participants'] = $PREVIEW_N;
+
 $from=$p['tiers'][0]['price']??vestra_from_price($p); $joined=isset($_GET['joined']);
 $saving = $from>0 ? (int)round(100*($from-$p['_gprice'])/$from) : 0;
 /* Deposit pools charge on join; the legacy free-commitment pools do not. Every
@@ -54,6 +74,17 @@ $GMINCOL = vestra_group_min_colors($p);
 
   <?php if($joined): ?>
     <div class="banner ok" style="margin-top:16px">✓ <?= t('You’ve joined the pool. We’ll email you when the target is reached and your invoice is ready.') ?> <?= t('Reference:') ?> <b><?=htmlspecialchars(substr($_GET['ref']??'',0,16))?></b></div>
+  <?php endif; ?>
+
+  <?php /* Onizleme uyarisi TURKCE degil, sitenin dilinde: bu satir yalnizca
+           operatorun ekranina cikiyor ama sayfanin geri kalaniyla ayni dilde
+           durmali. Rakamlarin sahte oldugunu ACIKCA yaziyor. */ ?>
+  <?php if($PREVIEW_N > 0): ?>
+    <div class="banner info" style="margin-top:16px">
+      👁 <b><?= t('Operator preview') ?></b> —
+      <?= sprintf(t('this page is being shown with %d made-up participants. Only you see it: a signed-out visitor opening the same address sees the real figure (%d). Nothing is stored.'), $PREVIEW_N, $PARTICIPANTS_REAL) ?>
+      <a class="acc" href="/group?id=<?= urlencode((string)$p['id']) ?>"><?= t('Exit preview') ?></a>
+    </div>
   <?php endif; ?>
 
   <div class="gwrap">
@@ -141,7 +172,13 @@ $GMINCOL = vestra_group_min_colors($p);
         <?php foreach(array_slice($p['_commits'],0,8) as $c): ?>
           <tr><td>👤 <?=htmlspecialchars($c['country']?:t('Verified buyer'))?> · <span class="hint"><?=htmlspecialchars(substr($c['timestamp']??'',0,10))?></span></td><td class="r"><?=htmlspecialchars($c['qty']??'')?> <?=htmlspecialchars($p['unit'])?></td></tr>
         <?php endforeach; ?>
-        <?php if(!($p['group_seed_n']??0) && !$p['_commits']): ?>
+        <?php /* Onizleme satirlari (yalnizca operator). Her satir "PREVIEW" diye
+                 etiketli: onizlemenin kendisi bile gercek bir taahhut gibi
+                 gorunmemeli, yoksa ekran goruntusu alinip disari cikabilir. */ ?>
+        <?php for($i = count($p['_commits']); $i < $PREVIEW_N && $i < 8; $i++): ?>
+          <tr><td>👤 <span class="hint"><?= t('PREVIEW — not a real commitment') ?></span></td><td class="r hint">—</td></tr>
+        <?php endfor; ?>
+        <?php if(!($p['group_seed_n']??0) && !$p['_commits'] && !$PREVIEW_N): ?>
           <tr><td class="hint"><?= t('Be the first to join this pool.') ?></td><td></td></tr>
         <?php endif; ?>
       </table>
