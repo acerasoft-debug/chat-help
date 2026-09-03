@@ -283,6 +283,35 @@ function vestra_cc_of_country(string $name): string {
     return $map[strtolower(trim($name))] ?? '';
 }
 
+/**
+ * True if a raw country-field value — as typed on the registration or profile
+ * form, full name, local name, or bare ISO code — resolves to Turkey.
+ *
+ * Its own function rather than a tweak to vestra_cc_of_country(): that map is
+ * used all over the account/label rendering path, and loosening it to accept
+ * bare 2-letter codes or ASCII-folded spellings would change matching
+ * everywhere it is called, not just at this one gate.
+ *
+ * Operator decision, 3 Sep 2026 ("türkiye ip sini engelle" + "VPN ile girse
+ * bile kabul etme türkiyeyi"): don't take on Turkish sellers/buyers. The
+ * country BLOCK (vestra_country_blocked(), admin-configured) stops a browser
+ * connecting directly from Turkey, but that is blind to a VPN — a Turkish
+ * company can make its network look Danish. It cannot as easily make its own
+ * registration form say anything but Turkey, since that is the country a real
+ * trade licence would have to match. So this half of the rule is VPN-proof by
+ * construction: it gates on what the business declares, not on where its
+ * packets currently exit, and is checked at auth_register() and at every
+ * profile save (buyer.php / seller.php), not inside the IP-guard bootstrap.
+ */
+function vestra_country_declares_turkey(string $raw): bool {
+    $raw = trim($raw);
+    if ($raw === '') return false;
+    if (preg_match('/^tr$/i', $raw)) return true;   // bare ISO code
+    $folded = strtr(mb_strtolower($raw), ['ü'=>'u','ı'=>'i','i̇'=>'i','ö'=>'o','ç'=>'c','ş'=>'s','ğ'=>'g']);
+    if (in_array($folded, ['turkey','turkiye','republic of turkiye','republic of turkey','turkish republic'], true)) return true;
+    return vestra_cc_of_country($raw) === 'TR';
+}
+
 /* vestra_cc_of_country()'nin TERSI: 'FR' -> 'France'.
  *
  * Hesaplarda ulke bazen tam ad ('France'), bazen ISO kodu ('FR') olarak

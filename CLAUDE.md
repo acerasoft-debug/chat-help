@@ -333,6 +333,38 @@ için süre verilsin... 3 gün gibi, eğer yüklemez ise suspend olsun"*).
   listesinde **MUAF** etiketiyle durur — görünmez olmaz. İlk sabah (3 Eyl 2026)
   saat yalnızca Hindistan'daki 1 ilanlı satıcı için başlar.
 
+**KURAL 2g — Türkiye'den hesap açılmaz (VPN dahil).** Operatör kararı, 3 Eylül
+2026: "türkiye ip sini engelle acil" + "VPN ile girse bile kabul etme
+türkiyeyi". İki ayrı katman, ayrı ayrı çalışıyor:
+
+- **IP/ülke engeli** (`vestra_country_blocked()`, `inc/security.php`) —
+  önceden var olan, operatörün `Admin ▸ Security ▸ 🌍 Ülke engeli` kutusuna
+  `TR` yazıp kaydetmesiyle açılan bir özellik (Claude'un admin girişi yok,
+  bu düğmeye yalnızca operatör basabilir). Doğrudan Türkiye'den bağlanan bir
+  tarayıcıyı siteden keser (`/admin` muaf, izin listesi var, ülke
+  çözülemezse engellemez — bkz. `tests/country_block_test.php`). **VPN'i
+  yakalamaz** — VPN çıkışı başka ülke gösterirse bu katman görmez.
+- **Beyan edilen ülke engeli** (`vestra_country_declares_turkey()`, aynı
+  dosya) — VPN'den bağımsız yarı, koddan geliyor. Kayıt formunda
+  (`auth_register()`) ve profil güncellemede (`buyer.php`/`seller.php`,
+  `_action=profile`) yazılan ülke Türkiye'ye çözülüyorsa hesap açılmaz /
+  kaydedilmez — bağlanılan IP ne olursa olsun, çünkü gerçek bir ticari
+  kayıt/vergi numarası zaten kendi ülkesini yazmak zorunda. ISO kodu (`TR`),
+  İngilizce/Türkçe ad, aksansız yazım (`Turkiye`) hepsi yakalanıyor;
+  **Turkmenistan gibi komşu ülke adları kasıtlı olarak tam eşleşme ile
+  ayrılıyor** (alt-dize eşleşmesi KURAL 1'in mango/zara dersinin aynısı —
+  bkz. `tests/turkey_declare_test.php`).
+
+**Dürüst sınır:** hiç kayıt olmadan, kimliğini hiç beyan etmeden, iyi
+gizlenmiş bir VPN ile dolaşan bir ziyaretçiyi IP'den kesin olarak Türk diye
+işaretlemek mümkün değil — iki katman birlikte gerçekçi senaryoların büyük
+kısmını kapatıyor, "asla giremez" garantisi vermiyor.
+
+3 Eylül 2026 kontrolü (`diag-live.yml` → `find_ref=Turkey`): sunucudaki
+hiçbir kayıt dosyasında (accounts.json dahil) "turkey" geçmiyor — yani mevcut
+bir Türk müşteri ilişkisini kesme kararı hiç gerekmedi, kural yalnızca YENİ
+kayıtlara ve mevcut hesapların ülke değişikliklerine işliyor.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa

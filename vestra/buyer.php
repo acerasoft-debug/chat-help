@@ -22,6 +22,11 @@ if (!empty($_SESSION['uid']) && vestra_doc_post_overflow()) {
 
 // Profile save
 if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='profile') {
+    // Same gate as registration (KURAL 2g) — an account that got in before this
+    // rule must not be able to relabel itself Turkish either, VPN or not.
+    if (vestra_country_declares_turkey((string)($_POST['country'] ?? ''))) {
+        header('Location: /buyer?tab=profile&err=country'); exit;
+    }
     auth_update($_SESSION['uid'], [
         'name'=>trim($_POST['name']??''),'company'=>trim($_POST['company']??''),
         'vat_id'=>trim($_POST['vat_id']??''),'reg_number'=>trim($_POST['reg_number']??''),
@@ -699,6 +704,8 @@ if($tab==='overview'){
   if(isset($_GET['pw'])) echo '<div class="banner ok">✓ '.t('Password updated.').'</div>';
   if(isset($_GET['pwerr'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">'.
     match($_GET['pwerr']){ 'cur'=>t('Current password is incorrect.'), 'len'=>t('Password must be at least 8 characters.'), default=>t('Passwords do not match.') }.'</div>';
+  if(isset($_GET['err']) && $_GET['err']==='country') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.
+    t('We are not able to serve this market. Nothing was saved.').'</div>';
 
   ?>
   <div class="panelcard">

@@ -42,6 +42,7 @@ $errmsg = [
     'promo_expired'      => t('This invite code has expired.'),
     'promo_exhausted'    => t('This invite code has reached its usage limit.'),
     'promo_inactive'     => t('This invite code is no longer active.'),
+    'country_not_served' => t('We are not able to open new accounts for this market at this time.'),
 ];
 
 // Pre-fill promo code + type from URL (from seller-invite page links)

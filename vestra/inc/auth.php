@@ -246,6 +246,10 @@ function auth_register(array $d): array|string {
     }
     if (strlen($d['password'] ?? '') < 8) return 'password_short';
     if (($d['password'] ?? '') !== ($d['password2'] ?? '')) return 'password_mismatch';
+    // Operator decision, 3 Sep 2026: no Turkish sellers/buyers, VPN or not —
+    // see vestra_country_declares_turkey() in security.php for why this
+    // checks the DECLARED country rather than the connecting IP.
+    if (vestra_country_declares_turkey((string)($d['country'] ?? ''))) return 'country_not_served';
 
     $promo_code = strtoupper(trim($d['promo_code'] ?? ''));
     $promo_data = null;

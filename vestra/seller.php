@@ -36,6 +36,11 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     if ($ibanIn !== '' && !vestra_iban_valid($ibanIn)) {
         header('Location: /seller?tab=profile&ibanerr=1'); exit;
     }
+    // Same gate as registration (KURAL 2g) — an account that got in before this
+    // rule must not be able to relabel itself Turkish either, VPN or not.
+    if (vestra_country_declares_turkey((string)($_POST['country'] ?? ''))) {
+        header('Location: /seller?tab=profile&err=country'); exit;
+    }
     auth_update($_SESSION['uid'], [
         'name'=>trim($_POST['name']??''),'company'=>trim($_POST['company']??''),
         'vat_id'=>trim($_POST['vat_id']??''),'reg_number'=>trim($_POST['reg_number']??''),
@@ -1430,6 +1435,8 @@ function sellerSend(btn){
      bozardi -- ya hepsi ya hicbiri, ve kullanici hangisi oldugunu bilmeli. */
   if(isset($_GET['ibanerr'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.
     t('That IBAN is not valid — its checksum does not match, so a digit is wrong or missing. Nothing was saved. Please check it against your bank statement and submit again.').'</div>';
+  if(isset($_GET['err']) && $_GET['err']==='country') echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad)">⚠ '.
+    t('We are not able to serve this market. Nothing was saved.').'</div>';
   if(isset($_GET['cardok'])) echo '<div class="banner ok">✓ '.t('Commission card saved.').'</div>';
   if(isset($_GET['cardcancel'])) echo '<div class="banner info">'.t('Card setup was cancelled — no card was saved.').'</div>';
   if(($_GET['error']??'')==='notready') echo '<div class="banner info">'.t('Online payment is being set up — try again shortly, or contact support@vestrasales.com.').'</div>';
