@@ -106,7 +106,7 @@ jobs:
             $stageMap = [];
             $fold = function (string $s): string {
               $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s); if ($t === false || $t === '') $t = $s;
-              return strtolower(preg_replace('/[^A-Za-z0-9._-]+/', '-', $t));
+              return strtolower(preg_replace('/[^A-Za-z0-9.-]+/', '-', $t));   // '_' de '-' olur: gorsel yolu deseni alt cizgiye izin vermiyor
             };
             if ($stage !== '') {
               if (str_contains($stage, '..') || $stage[0] === '/') { fwrite(STDERR,"HATA: gecersiz stage_from\n"); exit(1); }
@@ -197,6 +197,14 @@ jobs:
               if (!empty($r['pinned'])) $row['pinned'] = true;
               if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
               if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
+              /* seller_email: satici hesabini e-postadan coz (teshis ciktisi id'yi 8 karaktere
+                 maskeliyor, tam uid disaridan bilinmiyor). Paket sifreli oldugu icin adres
+                 depoya acik girmiyor; cozumleme sunucuda. */
+              if (empty($r['seller_uid']) && !empty($r['seller_email'])) {
+                $se = strtolower(trim((string)$r['seller_email']));
+                foreach (auth_accounts() as $acc) if (($acc['type'] ?? '') === 'seller' && strtolower((string)($acc['email'] ?? '')) === $se) { $r['seller_uid'] = (string)$acc['id']; break; }
+                if (empty($r['seller_uid'])) { $errors[]="{$ctx} ({$id}): seller_email ile eslesen satici hesabi yok"; continue; }
+              }
               if (!empty($r['seller_uid'])) {
                 $su = (string)$r['seller_uid'];
                 if (!isset($sellerIds[$su])) { $errors[]="{$ctx} ({$id}): seller_uid '{$su}' gecerli bir seller hesabina ait degil"; continue; }
