@@ -2857,6 +2857,31 @@ jobs:
               }
               echo "\nHam govdenin ilk 3000 bayti:\n".substr($body, 0, 3000)."\n";
             }
+
+            /* Sayfanin kendisi dosya LISTESINI tasimiyor (JS ile ayrica cekiliyor), ama
+               transferId/recipientId/securityHash yukaridaki JSON'dan / adresten cikariliyor.
+               WeTransfer'in genel indirme ucu (kod tabanindaki bircok acik kaynak
+               "wetransfer downloader" aracinin kullandigi, RESMI OLARAK BELGELENMEMIS bir
+               kalip) tum transferi TEK zip olarak imzali bir baglantiya cevirir. Burada
+               SADECE bu ucun BU LINK BICIMINDE (previews + folder=) calisip calismadigi
+               deneniyor -- calisirsa donen link RAPORLANIR, hicbir sey indirilmez/kaydedilmez;
+               bir sonraki adim (gercek indirme) o linke gore yazilacak. */
+            if (preg_match('#/previews/([^/]+)/([^/]+)/([^/?]+)#', $url, $mu)) {
+              [, $transferId, $recipientId, $secHash] = $mu;
+              echo "\n===== INDIRME UCU DENEMESI (tum transfer, tek zip) =====\n";
+              echo "transferId={$transferId}\nrecipientId={$recipientId}\nsecurityHash={$secHash}\n";
+              $api = "https://wetransfer.com/api/v4/transfers/{$transferId}/download";
+              $ch2 = curl_init($api);
+              curl_setopt_array($ch2, [
+                CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_POST => true, CURLOPT_POSTFIELDS => json_encode(['security_hash' => $secHash, 'intent' => 'entire_transfer']),
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json',
+                                        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+              ]);
+              $r2 = curl_exec($ch2); $c2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE); $e2 = curl_error($ch2); curl_close($ch2);
+              printf("HTTP %s  %s\n", $c2 ?: '(yok)', $e2 !== '' ? "BAGLANTI HATASI: {$e2}" : '');
+              echo "cevap (ilk 800 bayt): ".substr((string)$r2, 0, 800)."\n";
+            }
             PHPEOF
             php -l /tmp/vestra_wtprobe.php
             php /tmp/vestra_wtprobe.php; RC=$?
