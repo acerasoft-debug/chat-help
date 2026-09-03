@@ -106,6 +106,7 @@ jobs:
             $stageMap = [];
             $fold = function (string $s): string {
               $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s); if ($t === false || $t === '') $t = $s;
+              $t = str_replace('?', '', $t);   // cevrilemeyen isaret ('✓' gibi) glibc'de '?' olur; iki tarafta da at, '-' artigi kalmasin
               return strtolower(preg_replace('/[^A-Za-z0-9.-]+/', '-', $t));   // '_' de '-' olur: gorsel yolu deseni alt cizgiye izin vermiyor
             };
             if ($stage !== '') {

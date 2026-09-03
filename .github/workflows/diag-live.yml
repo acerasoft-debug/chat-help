@@ -2834,6 +2834,85 @@ jobs:
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
             $raw = trim((string)getenv('WT_URL'));
+
+            /* KONTAKT SAYFASI:  sheet:<$HOME alti klasor>[|from=N][|count=M][|list]
+               Indirilmis fotograflari SINIFLANDIRMAK icin (ayakkabi kataloginda 160 modelin
+               aciklamasi yalnizca "Modelo 1012 (26-42)" -- tipini ancak fotograf soyluyor;
+               varsayilan kategoriye dokmek yasak, bkz. product-batches/pili-perez-NOTLAR.md).
+               Klasor basina BIR kucuk resim (SUELA = taban fotografi atlanir), 10x5'lik JPEG
+               sayfalar halinde base64 olarak loga basilir; basinda tam dosya listesi
+               (klasor/ad) -- Excel'deki fotograf adlariyla mutabakat icin. Urun fotografi
+               zaten yayina cikacak sey: acik logda durmasi sorun degil. Fiyat listesi
+               BURADAN GECMEZ (yalnizca dosya adlari ve kucuk resimler). */
+            if (preg_match('/^sheet:\s*([^|]+)(.*)$/', $raw, $ms)) {
+              $dir = trim($ms[1]); $opts = $ms[2];
+              if ($dir === '' || str_contains($dir, '..') || $dir[0] === '/') { fwrite(STDERR, "gecersiz klasor\n"); exit(1); }
+              $home = getenv('HOME'); $root = $home.'/'.$dir;
+              if (!is_dir($root)) { fwrite(STDERR, "klasor yok: {$root}\n"); exit(1); }
+              $from  = preg_match('/\|\s*from=(\d+)/', $opts, $m1) ? max(1, (int)$m1[1]) : 1;
+              $count = preg_match('/\|\s*count=(\d+)/', $opts, $m2) ? max(1, (int)$m2[1]) : 100000;
+              $listOnly = (bool)preg_match('/\|\s*list\b/', $opts);
+              $top = array_values(array_filter(scandir($root), fn($d) => $d !== '.' && $d !== '..'));
+              if (count($top) === 1 && is_dir($root.'/'.$top[0])) $root .= '/'.$top[0];   // tek sarmalayici klasor
+              $imgExt = ['jpg','jpeg','png','webp','gif','bmp'];
+              $byDir = [];
+              $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
+              foreach ($it as $f) {
+                if (!$f->isFile()) continue;
+                $rel = substr($f->getPathname(), strlen($root) + 1);
+                $d = dirname($rel) === '.' ? '(kok)' : dirname($rel);
+                $byDir[$d][] = $rel;
+              }
+              uksort($byDir, 'strnatcasecmp');
+              echo "kok: ".substr($root, strlen($home))."   klasor: ".count($byDir)."\n";
+              echo "-- TAM LISTE (klasor/dosya) --\n";
+              foreach ($byDir as $d => $fs) { natcasesort($fs); foreach ($fs as $r) echo "  {$r}\n"; }
+              echo "-- TAM LISTE SONU --\n";
+              if ($listOnly) exit(0);
+              if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) { fwrite(STDERR, "GD yok -- kontakt sayfasi uretilemez\n"); exit(1); }
+              ini_set('memory_limit', '768M');
+              $dirs = array_slice(array_keys($byDir), $from - 1, $count, true);
+              $cell = 112; $lab = 16; $cols = 10; $per = $cols * 5;
+              $sheetNo = 0;
+              foreach (array_chunk($dirs, $per, true) as $chunk) {
+                $sheetNo++;
+                $h = (int)ceil(count($chunk) / $cols);
+                $im = imagecreatetruecolor($cols * $cell, $h * ($cell + $lab));
+                $white = imagecolorallocate($im, 255, 255, 255); imagefill($im, 0, 0, $white);
+                $black = imagecolorallocate($im, 0, 0, 0); $grey = imagecolorallocate($im, 232, 232, 232);
+                $i = 0; $legend = [];
+                foreach ($chunk as $idx => $d) {
+                  $fs = $byDir[$d]; natcasesort($fs); $fs = array_values($fs);
+                  $pick = null;
+                  foreach ($fs as $r) { $e = strtolower(pathinfo($r, PATHINFO_EXTENSION)); if (!in_array($e, $imgExt, true) || stripos(basename($r), 'SUELA') !== false) continue; $pick = $r; break; }
+                  if ($pick === null) foreach ($fs as $r) { if (in_array(strtolower(pathinfo($r, PATHINFO_EXTENSION)), $imgExt, true)) { $pick = $r; break; } }
+                  $x = ($i % $cols) * $cell; $y = intdiv($i, $cols) * ($cell + $lab);
+                  imagefilledrectangle($im, $x, $y + $cell, $x + $cell - 1, $y + $cell + $lab - 1, $grey);
+                  $num = $idx + 1;
+                  imagestring($im, 2, $x + 2, $y + $cell + 2, substr($num.' '.$d, 0, 18), $black);
+                  $legend[] = $num.' = '.$d.'  ('.($pick !== null ? basename($pick) : '-').')';
+                  if ($pick !== null) {
+                    $src = @imagecreatefromstring((string)file_get_contents($root.'/'.$pick));
+                    if ($src) {
+                      $sw = imagesx($src); $sh = imagesy($src); $sc = min(($cell - 4) / $sw, ($cell - 4) / $sh);
+                      $tw = max(1, (int)($sw * $sc)); $th = max(1, (int)($sh * $sc));
+                      imagecopyresampled($im, $src, $x + 2 + (int)(($cell - 4 - $tw) / 2), $y + 2 + (int)(($cell - 4 - $th) / 2), 0, 0, $tw, $th, $sw, $sh);
+                      imagedestroy($src);
+                    } else { imagestring($im, 2, $x + 4, $y + 40, 'ACILAMADI', $black); }
+                  }
+                  $i++;
+                }
+                ob_start(); imagejpeg($im, null, 68); $jpg = (string)ob_get_clean(); imagedestroy($im);
+                echo "-- SAYFA {$sheetNo}: ".count($chunk)." klasor, ".number_format(strlen($jpg) / 1024)." KB --\n";
+                foreach ($legend as $l) echo "  {$l}\n";
+                echo "SHEET{$sheetNo}_B64_BEGIN\n";
+                foreach (str_split(base64_encode($jpg), 4000) as $ln) echo $ln."\n";
+                echo "SHEET{$sheetNo}_B64_END\n";
+              }
+              echo "sayfa: {$sheetNo}\n";
+              exit(0);
+            }
+
             $mode = 'probe';
             if (preg_match('/^(.*?)\|\s*fetch\s*$/', $raw, $mm)) { $raw = trim($mm[1]); $mode = 'fetch'; }
             $url = $raw;
