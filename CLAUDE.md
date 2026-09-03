@@ -586,6 +586,28 @@ siparişin oraya"*).
 - Zamanlama: sunucu crontab'ı 07:00 UTC (`cron_order_payment.php`,
   `deploy-vestra.yml` idempotent kurar + kuru-koşu kanaryası).
 
+**KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
+(operatör kararı, 3 Eyl 2026: *"platformdaki mesajlaşmada her ürün için seller
+ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
+
+- Tek kaynak: `vestra_msg_seller_ident($listingId, $sellerUid)` (`inc/messages.php`).
+  Sıra: ilanın **SKU**'su → ilan id'si → ilansız konuşmada satıcı başına sabit
+  `S-XXXXXX` kodu (uid'den türer, uid'i sızdırmaz). Konuşma zaten
+  (alıcı, satıcı, ilan) üçlüsü başına açıldığı için ürünün SKU'su alıcının ürün
+  sayfasından **zaten bildiği** tutamak.
+- **Yalnızca satıcı tarafı gizlenir.** Satıcı alıcıyı firma adıyla görmeye devam
+  eder — tedarikçi kime sattığını bilmek zorunda; fatura zaten alıcı adına kesiliyor.
+  `VESTRA Support` kendi adıyla kalır (sentetik hesap, gizlenecek dükkân yok).
+- **Mektup da aynı şeyi yazar.** Panelde gizlenip bildirim e-postasında yazılan bir
+  ad, gizlemenin kendisini bir satırda boşa çıkarır: alıcıya giden "yeni mesaj"
+  mektubunun gönderen adı `Seller <ident>` ve **Reply-To boş** — eskiden satıcının
+  gerçek adresi Reply-To olarak gidiyordu, yani sohbette engellenen (e-posta/IBAN/
+  telefon) kanal mektubun başlığından açılıyordu.
+- **Operatör bildirimleri gerçek adla kalır** (`💬 VESTRA message — …`,
+  `📋 VESTRA — …`): panel operatörün, kimin kiminle konuştuğunu görmesi gerekiyor.
+- Test: `tests/msg_seller_ident_test.php` (21 iddia). Her iki yönü de tutar —
+  gizlenmesi gereken ad ve *görünmeye devam etmesi* gereken alıcı/Support.
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API

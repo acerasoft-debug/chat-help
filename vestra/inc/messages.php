@@ -13,6 +13,23 @@ function vestra_msg_file(): string { return dirname(__DIR__).'/data/messages.jso
 const VESTRA_SUPPORT_UID = 'vestra-support';
 function vestra_msg_label(string $uid): string { return $uid === VESTRA_SUPPORT_UID ? 'VESTRA Support' : ''; }
 
+/**
+ * Handle the BUYER sees in place of the seller's shop name.
+ * A thread is one (buyer, seller, listing) triple, so the listing's own SKU is the
+ * handle the buyer already knows from the product page. Naming the shop instead hands
+ * the supplier over in a single line and makes the off-platform filter below pointless:
+ * the buyer just searches the name and leaves. Threads with no listing fall back to a
+ * stable per-seller code so the label never changes under the same conversation.
+ */
+function vestra_msg_seller_ident(string $listingId, string $sellerUid): string {
+    if ($listingId !== '' && function_exists('vestra_listing_by_id')) {
+        $sku = trim((string)((vestra_listing_by_id($listingId) ?? [])['sku'] ?? ''));
+        if ($sku !== '') return $sku;
+    }
+    if ($listingId !== '') return $listingId;
+    return $sellerUid === '' ? '—' : 'S-'.strtoupper(substr(sha1('vestra-seller|'.$sellerUid), 0, 6));
+}
+
 function vestra_msg_threads(): array {
     $f = vestra_msg_file();
     if (!is_readable($f)) return [];
@@ -148,13 +165,21 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
         foreach (auth_accounts() as $a) { if (($a['id']??'') === $recipient) { $recAcc = $a; break; } }
         if ($recAcc && !empty($recAcc['email'])) {
             $panel = ($recAcc['type']??'') === 'seller' ? 'seller' : 'buyer';
+            /* The buyer's doorbell carries the same ident the panel shows. The shop name
+               in a subject line — or its address as Reply-To — would give away in one mail
+               exactly what the thread withholds. English on purpose: this label is built
+               outside the recipient's language context, and a half-translated one is worse
+               than a consistent one. */
+            $toBuyer   = ($fromUid === $sellerUid && $recipient === $buyerUid);
+            $mailLabel = $toBuyer ? 'Seller '.vestra_msg_seller_ident($listingId, $sellerUid) : $fromLabel;
+            if ($toBuyer) $fromEmail = '';
             [$mSubj,$mBody,$mOpts] = vestra_tpl_message(vestra_user_lang($recAcc), $recAcc['name']?:($recAcc['company']?:'there'),
-              $fromLabel, "https://vestrasales.com/{$panel}?tab=messages");
+              $mailLabel, "https://vestrasales.com/{$panel}?tab=messages");
             /* A note from VESTRA Support was written by a person, so it signs off like one.
                Messages between two members stay unsigned — the sender is the other company,
                and putting our signature under their message would misattribute it. */
             if ($fromUid === VESTRA_SUPPORT_UID) $mOpts['signature'] = vestra_support_signature(vestra_user_lang($recAcc));
-            vestra_send_mail($recAcc['email'], $mSubj, $mBody, $fromEmail, $fromLabel, null, '', $mOpts);
+            vestra_send_mail($recAcc['email'], $mSubj, $mBody, $fromEmail, $mailLabel, null, '', $mOpts);
         } else {
             // No usable email on file — logging in is the ONLY way this recipient would ever
             // find out. Tell the operator so it's a visible follow-up, not a silent miss.
@@ -337,10 +362,15 @@ function vestra_msg_unread(array $thread, string $uid): bool {
     return false;
 }
 
-/* Display label for the OTHER party in a thread, from the point of view of $uid. */
+/* Display label for the OTHER party in a thread, from the point of view of $uid.
+   The seller side is named by product ident, never by shop; the buyer side keeps its
+   company name — a supplier is entitled to know which house it is selling to. */
 function vestra_msg_counterpart_label(array $thread, string $uid): string {
     $otherUid = ($thread['buyer_uid']??'') === $uid ? ($thread['seller_uid']??'') : ($thread['buyer_uid']??'');
     if ($otherUid === VESTRA_SUPPORT_UID) return vestra_msg_label($otherUid);
+    if ($otherUid !== '' && $otherUid === ($thread['seller_uid'] ?? '')) {
+        return t('Seller').' '.vestra_msg_seller_ident((string)($thread['listing_id'] ?? ''), $otherUid);
+    }
     foreach (auth_accounts() as $a) {
         if (($a['id']??'') === $otherUid) return $a['company'] ?: ($a['name'] ?: t('Account'));
     }
