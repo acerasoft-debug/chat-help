@@ -216,10 +216,21 @@ foreach ($fixes as $n => $fx) {
   }
 
   $mn = $norm($m);
-  /* Once TAM eslesme (id ya da sku). Alt dize aramasi kisa kodlarda fazla
-     urune uyabiliyor; tam eslesme varsa o kazanir. */
+  /* 1. BIREBIR id/sku (yalnizca bosluk ve buyuk/kucuk harf hosgorusu).
+     $norm harf-rakam disindaki her seyi atiyor, yani YALNIZCA tireyle ayrilan
+     iki ayri ilan ayni metne iniyor: 'pp-tobby-pirata' ile 'pp-tobbypirata'
+     ikisi de 'pptobbypirata'. Ikisi de gercek ve ayri ilan oldugundan hicbiri
+     hedeflenemiyordu -- is "2 urune uydu" deyip duruyordu (3 Eyl 2026, 85
+     satirlik ayakkabi seri duzeltmesi). Birebir yazilan bir id, hosgorulu
+     eslesmeden once gelmeli: daralttigi icin guvenli, tarif ettigi urun tek. */
   $idx = [];
   foreach ($all as $i => $p) {
+    if (strcasecmp(trim((string)($p['id'] ?? '')), trim($m)) === 0
+     || strcasecmp(trim((string)($p['sku'] ?? '')), trim($m)) === 0) $idx[] = $i;
+  }
+  /* 2. Sonra hosgorulu TAM eslesme (id ya da sku). Alt dize aramasi kisa
+     kodlarda fazla urune uyabiliyor; tam eslesme varsa o kazanir. */
+  if (!$idx) foreach ($all as $i => $p) {
     if ($norm($p['id'] ?? '') === $mn || $norm($p['sku'] ?? '') === $mn) $idx[] = $i;
   }
   if (!$idx) {
