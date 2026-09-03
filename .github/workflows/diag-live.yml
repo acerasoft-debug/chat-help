@@ -2906,6 +2906,26 @@ jobs:
             @unlink($zip);
             echo "acildi: {$n} kayit -> {$ex}\n";
 
+            /* 5b. Ice aktarma anahtari. Fiyat listesi ucuncu tarafin ticari sirri ve bu depo
+               HERKESE ACIK (bkz. product-batches/pili-perez-NOTLAR.md): tarife ne depoya ne
+               workflow girdisine (calistirma basliginda kalici, acik) yazilabilir. Cozum, mevcut
+               order_sheet_pubkey kalibinin tersi: SUNUCU bir RSA cifti uretir, ozel anahtar
+               ~/.vestra_import/ altinda kalir, yalnizca ACIK anahtar loga basilir. Urun dosyasi
+               disarida bu acik anahtarla sifrelenip depoya SIFRELI konur; add-products.yml
+               sunucuda cozer. Acik anahtar loga cikar -- adi ustunde, acik. */
+            $kdir = $home.'/.vestra_import'; if (!is_dir($kdir)) mkdir($kdir, 0700, true);
+            $kfile = $kdir.'/import_key.pem';
+            if (!is_file($kfile)) {
+              $res = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+              if ($res && openssl_pkey_export($res, $pemOut)) { file_put_contents($kfile, $pemOut); chmod($kfile, 0600); echo "ice aktarma anahtari URETILDI: {$kfile}\n"; }
+              else { echo "UYARI: anahtar uretilemedi (openssl): ".openssl_error_string()."\n"; }
+            }
+            if (is_file($kfile)) {
+              $pk = openssl_pkey_get_private(file_get_contents($kfile));
+              $pub = $pk ? (openssl_pkey_get_details($pk)['key'] ?? '') : '';
+              echo "IMPORT_PUBKEY_B64=".base64_encode($pub)."\n";
+            }
+
             /* 6. Envanter: klasor basina foto sayisi + foto olmayan dosyalar. */
             $imgExt = ['jpg','jpeg','png','webp','heic','heif','tif','tiff','gif','bmp'];
             $root = $ex;
