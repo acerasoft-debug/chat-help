@@ -257,6 +257,12 @@ function escrow_do_release(string $ref): array {
  * yalnizca 'held' kayitlara dokundugu icin, operatorun o arada verdigi karar
  * otomatigi kendiliginden devre disi birakir. */
 
+/* Alicinin teslimattan sonra YANLIS / EKSIK / HATALI mal bildirmek icin sahip
+   oldugu sure, TAKVIM gunu (operator karari, 4 Eyl 2026). Politika metni
+   inc/faq.php'deki 'returns' bolumunde; tests/returns_policy_test.php ikisinin
+   ayni sayiyi soylemesini zorunlu tutar. */
+if (!defined('VESTRA_CLAIM_DAYS')) define('VESTRA_CLAIM_DAYS', 3);
+
 /** $ts'ten itibaren $days IS GUNU sonrasi (Cmt/Paz atlanir), epoch saniyesi. */
 function vestra_business_days_after(int $ts, int $days): int {
     while ($days > 0) {
@@ -288,7 +294,14 @@ function escrow_auto_release_sweep(bool $dry = false): array {
         if (($st['status'] ?? '') !== 'delivered') continue;   // saat teslimatla baslar
         $dts = strtotime((string)($st['delivered_at'] ?? ''));
         if (!$dts) continue;
-        $deadline = vestra_business_days_after($dts, 2);
+        /* Para, alicinin sikayet hakki BITMEDEN saticiya gecmemeli. Iki is gunu
+           takvimde 3 gunden kisa olabiliyor (Pzt teslimat -> Crs serbest, oysa
+           alicinin hakki Prs aksamina kadar suruyor), yani eski tek kural
+           pencerenin ortasinda odeme yapiyordu. Ikisinin GEC olani alinir:
+           mevcut 2 is gunu taban olarak korunur (hafta sonu davranisi degismez),
+           uzerine 3 takvim gunluk hak garanti edilir. */
+        $deadline = max(vestra_business_days_after($dts, 2),
+                        $dts + VESTRA_CLAIM_DAYS * 86400);
         if (time() < $deadline) {
             $out['lines'][] = sprintf('  %s teslim %s — sure %s dolacak', $ref,
                 date('Y-m-d H:i', $dts), date('Y-m-d H:i', $deadline));
@@ -309,7 +322,7 @@ function escrow_auto_release_sweep(bool $dry = false): array {
         escrow_update($ref, ['auto_released_at' => date('c')]);
         $statuses[$ref] = array_merge($statuses[$ref] ?? [], ['status'=>'completed','completed_at'=>date('c')]);
         $statuses[$ref]['history'][] = vestra_order_history_entry('completed', 'auto',
-            'Released automatically — no issue reported within 2 business days of delivery');
+            'Released automatically — no claim reported within the buyer\'s window after delivery');
         vestra_write_json('order_statuses.json', $statuses);
         $statuses = vestra_read_json('order_statuses.json'); // yaz-oku: sonraki dongu taze gorsun
         /* Iki tarafa da e-posta — bu sonucu ikisi de tetiklemedi, push yetmez

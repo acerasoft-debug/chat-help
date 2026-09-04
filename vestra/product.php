@@ -186,6 +186,11 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         ?></b></div>
         <?php elseif(!empty($p['verified'])): ?><div class="spec-row"><span><?= t('Seller') ?></span><b><?= t('Verified business') ?> · <?= t('via VESTRA') ?></b></div><?php endif; ?>
         <?php if(!empty($p['origin'])): ?><div class="spec-row"><span><?= t('Origin / auth.') ?></span><b><?= htmlspecialchars($p['origin']) ?></b></div><?php endif; ?>
+        <?php /* Iade kurali alicinin SATIN ALMA karari verdigi yerde gorunmeli:
+                 "iade yok" bilgisini siparisten SONRA ogrenmek uyusmazlik uretir.
+                 Kural burada TEKRAR YAZILMIYOR, tek cumle ozet + kanonik metne
+                 baglanti (bkz. inc/faq.php 'returns'). */ ?>
+        <div class="spec-row"><span><?= t('Returns') ?></span><b><?= t('Wrong, missing or faulty goods only') ?> · <a class="acc" href="/faq?cat=returns"><?= t('Returns &amp; claims') ?></a></b></div>
       </div>
 
       <?php if(!empty($p['linesheet'])): ?>

@@ -1105,5 +1105,9 @@ return array (
   'brands' => 'брендов',
   '%d listings' => '%d позиций',
   'Every category below is live stock — counts update as listings change.' => 'Каждая категория ниже — актуальный сток; количества обновляются вместе с объявлениями.',
-  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Обувь испанского производства оптом — кроссовки, ботинки, сандалии, лоферы и домашняя обувь в полных размерных сериях для обувных магазинов и бутиков. Оптовые цены после регистрации, заказ сериями, B2B-заказ по счёту по всей Европе.',
+  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Обувь испанского производства оптом — кроссовки, ботинки, сандалии, лоферы и домашняя обувь в полных размерных сериях для обувных магазинов и бутиков. Оптовые цены после регистрации, заказ сериями, B2B-заказ по счёту по всей Европе.',  'Returns' => 'Возврат',
+  'Returns &amp; claims' => 'Возврат и претензии',
+  'Wrong, missing or faulty goods only' => 'Только неверный, недостающий или бракованный товар',
+  'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Оптовые заказы возврату не подлежат — только неверный, недостающий или бракованный товар.',
+
 );

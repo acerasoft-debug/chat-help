@@ -28,6 +28,7 @@
       <a href="/legal?doc=privacy"><?= t('Privacy') ?></a>
       <a href="/legal?doc=imprint"><?= t('Imprint') ?></a>
       <a href="/faq"><?= t('FAQ') ?></a>
+      <a href="/faq?cat=returns"><?= t('Returns') ?></a>
       <a href="/register" class="acc"><?= t('Get started') ?></a>
     </div>
   </div>

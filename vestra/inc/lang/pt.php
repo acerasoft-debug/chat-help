@@ -1105,5 +1105,9 @@ return array (
   'brands' => 'marcas',
   '%d listings' => '%d referências',
   'Every category below is live stock — counts update as listings change.' => 'Cada categoria abaixo é stock em direto — as contagens atualizam-se com os anúncios.',
-  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Calçado fabricado em Espanha por grosso — ténis, botas, sandálias, mocassins e pantufas em séries de tamanhos completas para sapatarias e boutiques. Preços de revenda após registo, encomenda por série, encomendas B2B por fatura em toda a Europa.',
+  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Calçado fabricado em Espanha por grosso — ténis, botas, sandálias, mocassins e pantufas em séries de tamanhos completas para sapatarias e boutiques. Preços de revenda após registo, encomenda por série, encomendas B2B por fatura em toda a Europa.',  'Returns' => 'Devoluções',
+  'Returns &amp; claims' => 'Devoluções e reclamações',
+  'Wrong, missing or faulty goods only' => 'Apenas mercadoria errada, em falta ou defeituosa',
+  'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'As encomendas por grosso não admitem devolução — apenas mercadoria errada, em falta ou defeituosa.',
+
 );

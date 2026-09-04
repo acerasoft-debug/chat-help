@@ -1105,5 +1105,9 @@ return array (
   'brands' => 'علامات',
   '%d listings' => '%d صنفًا',
   'Every category below is live stock — counts update as listings change.' => 'كل فئة أدناه مخزون حي — تتحدث الأعداد مع تغيّر الإعلانات.',
-  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'أحذية صنع إسبانيا بالجملة — أحذية رياضية وبوت وصنادل ولوفرز وأحذية منزلية بسلاسل مقاسات كاملة لمتاجر الأحذية والبوتيكات. أسعار تجارية بعد التسجيل، طلب بسلسلة المقاسات، وطلب B2B بالفاتورة في أنحاء أوروبا.',
+  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'أحذية صنع إسبانيا بالجملة — أحذية رياضية وبوت وصنادل ولوفرز وأحذية منزلية بسلاسل مقاسات كاملة لمتاجر الأحذية والبوتيكات. أسعار تجارية بعد التسجيل، طلب بسلسلة المقاسات، وطلب B2B بالفاتورة في أنحاء أوروبا.',  'Returns' => 'الإرجاع',
+  'Returns &amp; claims' => 'الإرجاع والمطالبات',
+  'Wrong, missing or faulty goods only' => 'فقط البضاعة الخاطئة أو الناقصة أو المعيبة',
+  'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'طلبات الجملة غير قابلة للإرجاع — فقط البضاعة الخاطئة أو الناقصة أو المعيبة.',
+
 );

@@ -1110,5 +1110,9 @@ return array (
   'brands' => 'Marken',
   '%d listings' => '%d Artikel',
   'Every category below is live stock — counts update as listings change.' => 'Jede Warengruppe unten ist Live-Bestand — die Zahlen ändern sich mit den Angeboten.',
-  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Schuhe aus spanischer Fertigung im Großhandel — Sneaker, Stiefel, Sandalen, Loafer und Hausschuhe in vollen Größenserien für Schuhgeschäfte und Boutiquen. Händlerpreise nach Registrierung, Bestellung nach Serie, B2B auf Rechnung europaweit.',
+  'Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.' => 'Schuhe aus spanischer Fertigung im Großhandel — Sneaker, Stiefel, Sandalen, Loafer und Hausschuhe in vollen Größenserien für Schuhgeschäfte und Boutiquen. Händlerpreise nach Registrierung, Bestellung nach Serie, B2B auf Rechnung europaweit.',  'Returns' => 'Rückgabe',
+  'Returns &amp; claims' => 'Rückgabe &amp; Reklamationen',
+  'Wrong, missing or faulty goods only' => 'Nur falsche, fehlende oder mangelhafte Ware',
+  'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Großhandelsbestellungen sind vom Rückgaberecht ausgeschlossen — nur falsche, fehlende oder mangelhafte Ware.',
+
 );

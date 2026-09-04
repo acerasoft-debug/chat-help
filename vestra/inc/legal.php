@@ -69,6 +69,17 @@ function vestra_legal_en(){
     <h3>3. Listings, orders &amp; fulfilment</h3><p>Sellers are <b>solely responsible</b> for their listings and for the
     legality, safety, conformity, labelling, description, pricing, authenticity, delivery, warranties and taxes of their
     goods. An order forms a binding contract between buyer and seller; VESTRA is not responsible for either party's performance.</p>
+    <h3>3a. Returns &amp; claims</h3><p>Orders placed on VESTRA are wholesale purchases between businesses and are
+    <b>closed to returns</b>: there is no right of return for change of mind, and the consumer right of withdrawal does
+    not apply to a trade purchase for resale. Goods that are <b>wrong, missing or faulty</b> may be claimed within the
+    notification period, on the conditions set out in the
+    <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a>, which forms part of these terms. Goods must not be
+    sent back without written authorisation.</p>
+    <h3>3b. Inspection &amp; notice of defects</h3><p>The buyer is a merchant and must inspect the goods promptly on
+    delivery. <b>Apparent defects, shortages and wrong deliveries must be notified in writing within the notification
+    period</b> stated in the Returns &amp; Claims policy; hidden defects must be notified immediately upon discovery.
+    Where notice is not given in time the goods are deemed accepted and warranty claims lapse. This mirrors the
+    inspection duty of a commercial buyer under, among others, German commercial law (HGB \u00a7377).</p>
     <h3>4. Payments, escrow &amp; fees</h3><p>Payments are processed and held in escrow by a licensed third-party provider and
     released per agreed conditions (e.g. buyer confirmation / verified delivery). VESTRA charges a platform commission (a
     seller commission plus a buyer-protection fee) and/or membership fees; provider fees apply as charged. Fees are shown
@@ -186,11 +197,16 @@ function vestra_legal_en(){
   'payments'=>['title'=>'Payments, Escrow &amp; Refunds','html'=>"
     <h3>How payment works</h3><p>Buyers pay via the licensed escrow provider (SEPA bank transfer for EU B2B; cards available).
     Funds are <b>held in escrow</b> — VESTRA never holds the money.</p>
-    <h3>Escrow release</h3><p>Funds release on buyer confirmation, or automatically 2 business days after the
-    seller records delivery if no problem has been reported to support before then.</p>
+    <h3>Escrow release</h3><p>Funds release on buyer confirmation, or automatically once the buyer's claim
+    window has run and no problem has been reported to support. The automatic release is never earlier than
+    the end of that window, so payment cannot leave escrow while the buyer may still complain.</p>
     <h3>Fees</h3><p>VESTRA charges a platform commission per order — a seller commission plus a small buyer-protection fee — and/or a membership fee; provider fees as charged. Exact amounts are shown before checkout.</p>
     <h3>Refunds &amp; disputes</h3><p>During a dispute funds remain in escrow. If resolved for the buyer (non-delivery,
     materially not-as-described, proven counterfeit), escrowed funds are refunded before release.</p>
+    <h3>Returns</h3><p>Wholesale orders are closed to returns; goods that are wrong, missing or faulty are
+    claimable within the notification period. The binding rules — what qualifies, the deadline, the evidence
+    required and who bears the return freight — are the <a href=\"/faq?cat=returns\">Returns &amp; Claims policy</a>,
+    which forms part of these terms.</p>
     <h3>Chargebacks</h3><p>SEPA payments are not subject to card chargebacks; card payments follow the provider's process.</p>"],
 
   'prohibited'=>['title'=>'Prohibited &amp; Restricted Items','html'=>"

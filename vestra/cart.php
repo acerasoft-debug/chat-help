@@ -141,7 +141,15 @@ if (stripe_available()) {
       <p class="hint" style="margin:8px 0 0"><?= t('Billing details appear on your automatic PDF invoice.') ?></p>
       <div style="margin-top:10px;max-width:680px"><label class="hint"><?= t('Notes') ?></label><textarea name="notes" rows="2" style="width:100%"></textarea></div>
       <input type="text" name="website" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
-      <label style="display:flex;gap:9px;align-items:flex-start;margin:14px 0 4px;max-width:680px;font-size:13px;color:var(--mut);cursor:pointer">
+      <?php /* Iade kurali siparis ANINDA da gorunuyor. Onay kutusunun metnine
+               EKLENMEDI: o cumle sprintf ile 3 yer tutucu tasiyor ve degistirmek
+               7 dilin cevirisini birden Ingilizceye dusururdu. Kural yerine
+               Sozlesme'ye 3a maddesi eklendi, onay zaten Sozlesme'yi kapsiyor. */ ?>
+      <div class="hint" style="max-width:680px;margin:14px 0 0">
+        <?= t('Wholesale orders are closed to returns — wrong, missing or faulty goods only.') ?>
+        <a href="/faq?cat=returns" target="_blank" class="acc"><?= t('Returns &amp; claims') ?></a>
+      </div>
+      <label style="display:flex;gap:9px;align-items:flex-start;margin:8px 0 4px;max-width:680px;font-size:13px;color:var(--mut);cursor:pointer">
         <input type="checkbox" name="consent" value="1" required style="margin-top:3px;flex:none">
         <span><?= sprintf(t('I have read and accept the %s, %s and %s, and I confirm I act as a business.'),
           '<a href="/legal?doc=terms" target="_blank" class="acc">'.t('Terms of Service').'</a>',

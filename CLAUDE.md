@@ -739,6 +739,40 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
 - Marka sayfası CSS'i `wholesale.php`'den `style.css`'e taşındı (`.wsw…`);
   `b2b.php` aynı sınıfları kullanır — iki kopya ikinci düzenlemede ayrışırdı.
 
+**KURAL 11 — İade: B2B iadeye KAPALI; yalnız yanlış/eksik/hatalı; bildirim 3 GÜN**
+(operatör kararı, 4 Eyl 2026: *"b2b ürünleri geri iadeye kapalidir. Sadece
+yanlis, eksik, hatali ürünlerde iade yapilir ve alici ilk 3 gün icerisinde geri
+dönmek zorundadir"*).
+- **Kanonik metin tek yerde:** `inc/faq.php` → `'returns'` kategorisi (18 madde).
+  Site genelindeki bağlantılar `/faq?cat=returns` adresine gider; kural altbilgide,
+  ürün sayfasında veya sepette **TEKRAR YAZILMAZ** — iki kopya er geç ayrışır.
+  `returns_policy_test.php` bu sayfalarda gün sayısının geçmediğini de doğrular.
+- **Gün sayısı tek kaynaktan:** `VESTRA_CLAIM_DAYS` (`inc/escrow.php`), takvim günü.
+  Metin ile sabitin aynı kalmasını test zorunlu tutar.
+- **Bu iş üç canlı çelişki ortaya çıkardı, üçü de düzeltildi:**
+  1. SSS aynı soruya **üç** farklı cevap veriyordu — uyuşmazlık için "5 iş günü",
+     nakliye hasarı için "48 saat", escrow için "2 iş günü". Hepsi 3 güne indi.
+  2. **Escrow parayı pencerenin ortasında ödüyordu.** Otomatik serbest bırakma
+     `vestra_business_days_after($dts, 2)` idi; Pazartesi teslimatta Çarşamba
+     ödüyor, oysa alıcının hakkı Perşembe'ye kadar sürüyordu. Artık
+     `max(2 iş günü, VESTRA_CLAIM_DAYS takvim günü)` — hafta sonu davranışı korunuyor,
+     hak garanti altında.
+  3. **`inc/legal/en.php` ölü dosyaydı** ve içinde `[US registered address]`,
+     `[IRS EIN]` gibi doldurulmamış yer tutucular vardı. `vestra_legal()` İngilizce
+     için erken döndüğü için hiç yüklenmiyordu; dispatcher bir gün "düzeltilse"
+     site bu yer tutucuları basacaktı. İçindeki tek işe yarar madde (HGB §377
+     muayene/kusur ihbarı) canlı Sözleşme'ye **3b** olarak taşındı, dosya silindi.
+- **Sözleşme politikayı kapsıyor:** madde **3a** (iadeye kapalı + politikaya atıf)
+  ve **3b** (muayene ve kusur ihbarı). Sepetteki onay kutusu zaten Sözleşme'yi
+  kabul ettiriyor; o cümleye dokunulmadı çünkü `sprintf` üç yer tutucu taşıyor ve
+  değiştirmek 7 dilin çevirisini birden İngilizceye düşürürdü.
+- **SSS cevapları DÜZ METİN.** `faq.php` cevapları `nl2br(htmlspecialchars(...))`
+  ile basıyor; bir cevaba HTML koyulursa kullanıcı **ham etiket** görür. Canlıda
+  tam bu vardı (ödeme cevabındaki `<b>`), temizlendi ve test bekçilik ediyor.
+- **Çeviri durumu:** UI dizeleri 8 dilde (`Returns` vb. 4 anahtar eklendi, hepsi
+  1108). Politika METNİ şimdilik yalnız İngilizce; `vestra_faq()` madde bazında
+  İngilizceye düşer, yani de/fr/it/es/pt/ru/ar'da sayfa çalışır ama metin İngilizce.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

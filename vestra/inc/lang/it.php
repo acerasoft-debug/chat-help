@@ -1109,5 +1109,9 @@ return array (
   'Payment is still being confirmed. Refresh this page in a moment.' => 'Il pagamento è ancora in conferma. Aggiorna questa pagina tra un istante.',
   'Stock is being confirmed.' => 'Lo stock è in conferma.',
   'Invoice within the day' => 'Fattura in giornata',
-  'Once confirmed, your invoice — with the seller\'s bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.' => 'Una volta confermato, la fattura — con le coordinate bancarie del venditore — ti sarà inviata via e-mail e aggiunta al tuo account, di solito in giornata. Il pagamento avviene con bonifico bancario su quella fattura; la merce parte dopo l\'arrivo del pagamento. Segui tutto in I miei ordini.',
+  'Once confirmed, your invoice — with the seller\'s bank details — will be emailed to you and added to your account, usually within the day. Payment is by bank transfer against that invoice; goods ship after payment arrives. Track everything under My orders.' => 'Una volta confermato, la fattura — con le coordinate bancarie del venditore — ti sarà inviata via e-mail e aggiunta al tuo account, di solito in giornata. Il pagamento avviene con bonifico bancario su quella fattura; la merce parte dopo l\'arrivo del pagamento. Segui tutto in I miei ordini.',  'Returns' => 'Resi',
+  'Returns &amp; claims' => 'Resi &amp; reclami',
+  'Wrong, missing or faulty goods only' => 'Solo merce errata, mancante o difettosa',
+  'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Gli ordini all\'ingrosso non sono soggetti a reso — solo merce errata, mancante o difettosa.',
+
 );
