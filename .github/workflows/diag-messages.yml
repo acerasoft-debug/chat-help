@@ -429,6 +429,42 @@ jobs:
                   }
                 }
                 if (!$printed) echo "  (kayit yok — alan adi Brevo'ya hic eklenmemis olabilir)\n";
+                /* CELISKIYI DNS COZER. 4 Eyl 2026: liste ucu "dkim=YOK" derken
+                   alan-basina uctaki her kayit "status=DOGRULANDI" dondu. Iki kayit
+                   birbirini tutmuyorsa karar vermeden once celiski cozulur (CLAUDE.md);
+                   burada hakem, kaydin GERCEKTEN yayinda olup olmadigidir. Brevo'nun
+                   bayragi bayat olabilir, DNS olamaz. */
+                echo "\n===== DNS'TE GERCEKTEN VAR MI (canli cozumleme) =====\n";
+                $dnsChk = function (string $host, string $type, string $expect = '') {
+                  $recs = @dns_get_record($host, $type === 'CNAME' ? DNS_CNAME : DNS_TXT);
+                  if (!$recs) { echo "  {$host} ({$type}): *** YAYINDA DEGIL ***\n"; return false; }
+                  $hit = false;
+                  foreach ($recs as $r) {
+                    $val = (string)($r['target'] ?? $r['txt'] ?? '');
+                    $ok  = $expect === '' || stripos($val, $expect) !== false;
+                    if ($ok) $hit = true;
+                    echo "  {$host} ({$type}): ".($ok ? 'VAR' : 'baska deger')." -> ".mb_substr($val, 0, 90)."\n";
+                  }
+                  return $hit;
+                };
+                $dnsOk = 0; $dnsTot = 0;
+                foreach ((array)($d['domains'] ?? []) as $dom) {
+                  $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '');
+                  if ($n === '') continue;
+                  foreach ((array)($dom['dns_records'] ?? []) as $r) {
+                    if (!is_array($r)) continue;
+                    $h = trim((string)($r['host_name'] ?? ''), '.');
+                    if ($h === '' ) continue;
+                    /* Brevo host adini bazen kisa ("brevo1._domainkey"), bazen tam yazar. */
+                    $fq = ($h === '@') ? $n : (str_ends_with($h, $n) ? $h : $h.'.'.$n);
+                    $dnsTot++;
+                    if ($dnsChk($fq, strtoupper((string)($r['type'] ?? 'TXT')), (string)($r['value'] ?? ''))) $dnsOk++;
+                  }
+                }
+                echo "  --> DNS'te bulunan: {$dnsOk}/{$dnsTot}\n";
+                $summary[] = "DNS kaydi yayinda: {$dnsOk}/{$dnsTot}"
+                           . ($dnsTot && $dnsOk === $dnsTot ? " (DKIM/DMARC KURULU)" : " (EKSIK VAR)");
+
                 echo "\n  DMARC ayrica elle eklenir (Brevo dondurmezse):\n";
                 echo "     Type : TXT\n";
                 echo "     Name : _dmarc\n";
