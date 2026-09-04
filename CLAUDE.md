@@ -790,36 +790,47 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
   değil — Gmail görselleri kendi vekilinden çeker, sahte açılma üretir. Betiğin
   "GONDERILDI" satırı ise yalnızca "Brevo isteği kabul etti" demek. Üçü de
   "gördü" anlamına gelmez.
-- **AÇIK SORUN — teslimat: DKIM DNS'te VAR, ama SPF Brevo'yu içermiyor ve DMARC
-  `p=reject`** (4 Eylül 2026 ölçümü; 1 Eylül'ün "DKIM yok" notu **YANLIŞTI**).
-  `diag-messages.yml` → `sender=true` artık üç kaynağı birden basıyor: Brevo'nun
-  bayrağı, Brevo'nun verdiği kayıtlar ve **kaydın DNS'te gerçekten çözülüp
-  çözülmediği**. Ölçülen:
+- **KAPANDI — teslimat çalışıyor; "reddediliyor" teşhisi YANLIŞTI** (4 Eylül 2026,
+  teslim edilmiş bir mektubun başlığından ölçüldü). Kanıt, Gmail'e **ulaşmış**
+  bir VESTRA bildiriminin `Authentication-Results` başlığı (3 Eyl 2026 19:18 UTC,
+  `support@vestrasales.com` → operatör kutusu):
 
-  | Kayıt | DNS'te | Not |
-  |---|---|---|
-  | `brevo1._domainkey` CNAME → `b1.vestrasales-com.dkim.brevo.com` | **VAR** | |
-  | `brevo2._domainkey` CNAME → `b2.vestrasales-com.dkim.brevo.com` | **VAR** | |
-  | `@` TXT `brevo-code:753435ab…` | **VAR** | |
-  | SPF `v=spf1 include:secureserver.net -all` | VAR | **Brevo YOK**, üstelik `-all` (sert ret) |
-  | DMARC `v=DMARC1; p=reject; rua=…onsecureserver.net` | VAR | **`p=reject`** — Brevo'nunki (`p=none`) değil |
+  ```
+  dkim=pass  header.i=@vestrasales.com header.s=brevo2
+  spf=pass   smtp.mailfrom=bounces-…@gx.d.sender-sib.com
+  dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=vestrasales.com
+  ```
 
-  **Çelişki ve çözümü:** Brevo'nun liste ucu hâlâ `dkim=YOK` diyor ama kayıtlar
-  yayında. En tutarlı açıklama: kayıtlar DNS'e girilmiş fakat **Brevo panelinde
-  "authenticate/doğrula" adımı hiç tamamlanmamış**, dolayısıyla Brevo mektubu
-  `vestrasales.com` ile İMZALAMIYOR. O zaman DKIM hizalanmaz, SPF de Brevo'yu
-  içermediği için başarısız olur ve **`p=reject` yüzünden mektup spam'e düşmez,
-  doğrudan REDDEDİLİR**. Operatörün 9 test mektubunu hiç görmemesi bununla
-  birebir örtüşüyor; Brevo yine `delivered` yazar.
-  **Yapılacaklar (kod değil):** (1) Brevo panelinde alan adını doğrula — kayıtlar
-  zaten yerinde, tek tık; (2) GoDaddy'de SPF'e Brevo'yu ekle:
-  `v=spf1 include:secureserver.net include:spf.brevo.com -all`; (3) Brevo'da
-  gönderen olarak `support@vestrasales.com` kayıtlı değil, **yalnızca operatörün
-  Gmail'i** var — kod bu adresle gönderiyor, eklenmeli. Üçü tamamlanmadan toplu
-  gönderim yapma.
-  **Ders (yedinci vaka):** bu tespit üç yanlış ölçümden sonra çıktı — liste ucu
-  kayıtları hiç döndürmüyordu, sonra DNS döngüsü boş listeyi gezip `0/0` basıp
-  bunu "EKSİK VAR" diye özetledi. *Sıfır kontrol edilen, sıfır bulunan değildir.*
+  Yani Brevo mektubu **`d=vestrasales.com` ile, `brevo2` seçicisiyle İMZALIYOR**.
+  DKIM alan adı `header.from` ile hizalandığı için **DMARC yalnız DKIM üzerinden
+  geçiyor** — `p=reject` mektubu öldürmüyor, SPF'in `sender-sib.com`'u
+  göstermesi de önemsiz kalıyor (DMARC iki yoldan birinin hizalanmasını ister).
+
+  **Eski teşhis neden yanlıştı:** Brevo'nun **liste** ucu (`/senders/domains`)
+  `dkim=YOK, dmarc=YOK` diyor, ama aynı koşuda **alan adı** ucu
+  (`/senders/domains/vestrasales.com`) dört kaydın dördü için de
+  `durum=DOGRULANDI` döndürüyor. Liste ucunun bayrağı bir ölçüm değil; ona
+  bakıp "imzalamıyor, demek ki reddediliyor" sonucuna gidildi. *Sağlayıcının
+  kendi bayrağı kanıt değildir; kanıt, teslim edilmiş mektubun başlığıdır.*
+  Operatörün "9 test mektubunu görmedim" demesi de bu zincire uyduruldu — oysa
+  gelen kutusunda aynı günlere ait onlarca VESTRA mektubu duruyor.
+
+  Bugünkü DNS (4 Eyl 2026, `sender=true` canlı çözümleme):
+
+  | Kayıt | Durum |
+  |---|---|
+  | `brevo1._domainkey`, `brevo2._domainkey` CNAME | VAR, Brevo'da DOGRULANDI |
+  | `@` TXT `brevo-code:753435ab…` | VAR, DOGRULANDI |
+  | SPF `v=spf1 include:secureserver.net include:spf.brevo.com -all` | VAR — operatör Brevo'yu **ekledi** |
+  | DMARC `v=DMARC1; p=reject; rua=…onsecureserver.net; adkim=r; aspf=r` | VAR — Brevo'nun istediği `p=none` değil, ama DKIM hizalandığı için **sorun değil** |
+
+  Özetin `DNS kaydi yayinda: 3/4 (EKSIK VAR)` demesi bu tek farktan geliyor
+  (Brevo `p=none` önerir, DNS'te `p=reject` var). **Eksik değil, daha sıkı.**
+  `p=reject`'i gevşetme: DKIM geçerken sıkı politika koruma sağlar.
+
+  Gönderen adresler artık **ikisi de kayıtlı ve aktif**: operatörün Gmail'i ve
+  `support@vestrasales.com` ("VESTRA") — kod bu ikincisiyle gönderiyor.
+  **Toplu gönderimin önünde teslimat engeli kalmadı.**
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
