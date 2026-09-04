@@ -99,6 +99,32 @@ echo "\n== 6. Olu dosya geri gelmedi ==\n";
    bir escrow suresi vardi -- dispatcher bir gun "duzeltilse" site onlari basardi. */
 $t('inc/legal/en.php yok', !file_exists($root . '/inc/legal/en.php'));
 
+echo "\n== 7. Politika 8 dilde ==\n";
+/* Ceviri dosyalari inc/faq/{lang}.php. vestra_faq() eksik bir maddeyi SESSIZCE
+   Ingilizceye dusurur -- yani bir ceviri yarim kalirsa sayfa yine calisir ve
+   kimse fark etmez. Alicinin okudugu tek belge bu oldugu icin, her dilde her
+   maddenin gercekten cevrilmis olmasi burada zorunlu tutuluyor.
+   Dil basina AYRI SUREC gerekiyor: vlang() ilk cagrida sabitleniyor, tek
+   surecte donguye alinirsa sekiz dilin sekizi de "Ingilizce" olarak olculur --
+   ilk olcumde tam bu oldu ve ceviriler bozukmus gibi gorundu. */
+$enItems = $faq['returns']['items'];
+$php = PHP_BINARY ?: 'php';
+foreach (['de','fr','it','es','pt','ru','ar'] as $lang) {
+    $code = '$_GET=["lang"=>' . var_export($lang, true) . '];'
+          . 'require ' . var_export($root . '/inc/faq.php', true) . ';'
+          . '$r=vestra_faq()["returns"] ?? null;'
+          . 'echo json_encode([$r["title"] ?? "", array_column($r["items"] ?? [], "q")]);';
+    $out = shell_exec(escapeshellarg($php) . ' -r ' . escapeshellarg($code) . ' 2>/dev/null');
+    $got = json_decode((string)$out, true);
+    if (!is_array($got)) { $t("{$lang}: bolum okunabildi", false); continue; }
+    [$title, $qs] = $got;
+    $t("{$lang}: baslik cevrilmis", $title !== '' && $title !== $faq['returns']['title']);
+    $t("{$lang}: 18 madde", count($qs) === count($enItems));
+    $same = 0;
+    foreach ($qs as $i => $q) if (isset($enItems[$i]) && $q === $enItems[$i]['q']) $same++;
+    $t("{$lang}: Ingilizce kalan madde yok", $same === 0);
+}
+
 $n = $ok + $fail;
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);

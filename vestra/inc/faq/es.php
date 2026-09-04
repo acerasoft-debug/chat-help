@@ -421,4 +421,101 @@
       ),
     ),
   ),
+  'returns' => 
+  array (
+    'title' => 'Devoluciones y reclamaciones',
+    'items' => 
+    array (
+      0 => 
+      array (
+        'q' => '¿Puedo devolver la mercancía porque he cambiado de opinión?',
+        'a' => 'No. Los pedidos al por mayor (B2B) en VESTRA no admiten devolución. Un pedido confirmado es un compromiso comercial firme entre dos empresas, y ni VESTRA ni el vendedor aceptan la mercancía de vuelta porque haya pedido de más, la temporada haya pasado, el género no se haya vendido o su propio cliente se lo haya devuelto. Es la regla habitual en el comercio mayorista y es lo que hace posibles los precios profesionales.',
+      ),
+      1 => 
+      array (
+        'q' => '¿Cuándo se acepta entonces una devolución o reclamación?',
+        'a' => 'En tres casos, y solo en esos: la mercancía es ERRÓNEA (artículo, modelo, color o talla distintos del pedido), la entrega está INCOMPLETA (menos piezas de las facturadas, o falta un bulto), o la mercancía es DEFECTUOSA (defecto de fabricación, daño, o diferencia material con el anuncio no declarada). La falsificación se trata aparte y con mucha mayor severidad — véase la sección Autenticidad.',
+      ),
+      2 => 
+      array (
+        'q' => '¿Cuánto tiempo tengo para comunicarlo?',
+        'a' => 'Tres días. Debe avisarnos dentro de los 3 días siguientes a la entrega. Es el único plazo que cuenta: pasado ese término la entrega se considera aceptada y el vendedor cobra. No hay prórroga por festivos, ausencia de personal o cajas sin abrir — si no puede revisar una entrega en tres días, encargue a alguien que sí pueda.',
+      ),
+      3 => 
+      array (
+        'q' => '¿Cómo se cuentan exactamente los 3 días?',
+        'a' => 'Días naturales, no hábiles, desde la fecha de entrega registrada por el transportista o confirmada en su pedido. Una entrega el viernes debe comunicarse como muy tarde el lunes. El plazo se detiene en el momento en que su reclamación entra en la plataforma — no cuando el vendedor responde.',
+      ),
+      4 => 
+      array (
+        'q' => '¿Cómo presento una reclamación?',
+        'a' => 'Abra el pedido en su cuenta y pulse "Abrir disputa", o escriba a support@vestrasales.com citando la referencia del pedido. Hágalo preferiblemente dentro de la plataforma: una reclamación planteada solo por teléfono o en un correo privado con el vendedor no deja constancia, y sin constancia no hay nada que hacer cumplir.',
+      ),
+      5 => 
+      array (
+        'q' => '¿Qué debo adjuntar a la reclamación?',
+        'a' => 'La referencia del pedido; cuántas piezas están afectadas y qué artículos; fotografías de la mercancía que muestren el problema; una foto de la etiqueta de transporte y de la caja exterior; y, si falta género, una foto del albarán. Envíelo todo en un solo mensaje. Una reclamación incompleta se considera presentada el día en que la envió, pero no puede resolverse hasta que las pruebas estén completas — mande todo de una vez.',
+      ),
+      6 => 
+      array (
+        'q' => '¿Debo devolver la mercancía de inmediato?',
+        'a' => 'No — nunca devuelva nada sin autorización por escrito. Una reclamación no es una devolución. Si se acuerda la devolución recibirá una autorización escrita con la dirección y las piezas a enviar. La mercancía remitida sin ella puede ser rechazada, puede perderse y debilita su propia reclamación, porque nadie puede verificar qué había en el paquete.',
+      ),
+      7 => 
+      array (
+        'q' => '¿En qué estado debe estar la mercancía devuelta?',
+        'a' => 'Exactamente como se entregó: sin usar, sin lavar, sin llevar puesta, con todas las etiquetas, marbetes y embalajes originales, y completa. No retire los dispositivos antihurto, no etiquete las prendas con el precio de su tienda y no rompa los surtidos. Las piezas defectuosas se devuelven, claro está, en el estado en que llegaron — lo esencial es que no se añada ningún daño después de la entrega.',
+      ),
+      8 => 
+      array (
+        'q' => '¿Quién paga el transporte de la devolución?',
+        'a' => 'El vendedor, cuando la reclamación se estima — la mercancía errónea, faltante o defectuosa corre de su cuenta, incluida la recogida si se organiza. Si la reclamación no se estima, la mercancía se queda con usted y el transporte ya pagado no se reembolsa. No envíe nada a portes debidos sin acuerdo escrito; los cargos no autorizados se rechazan.',
+      ),
+      9 => 
+      array (
+        'q' => '¿Qué ocurre después de presentarla?',
+        'a' => 'VESTRA revisa la reclamación en 2 días hábiles y pide su versión al vendedor. La mayoría de los casos se deciden solo con las fotografías. Si ambas partes describen la mercancía de forma distinta podemos pedir más imágenes, el envío de una muestra o un peritaje independiente. El resultado se le comunica en el hilo del pedido, de modo que todo el expediente queda en un mismo sitio.',
+      ),
+      10 => 
+      array (
+        'q' => '¿Cuáles son los resultados posibles?',
+        'a' => 'Una entrega de reposición, un abono parcial conservando la mercancía (habitual ante un porcentaje bajo de defectos en un lote grande), o el reembolso de las piezas afectadas contra su devolución. VESTRA lo decide con el vendedor y le indica cuál se aplica. El reembolso cubre las piezas afectadas y su parte del transporte — no sus costes posteriores, el lucro cesante ni la reclamación de su propio cliente contra usted.',
+      ),
+      11 => 
+      array (
+        'q' => '¿Y si la entrega viene incompleta?',
+        'a' => 'Cuente los bultos contra el albarán antes de firmar, y anote cualquier falta en el recibo del transportista en ese momento. Una falta detectada tras una firma sin reservas es mucho más difícil de probar, aunque sigue siendo reclamable dentro de los 3 días si el peso de las cajas o los precintos lo respaldan. Fotografíe las cajas precintadas antes de abrirlas.',
+      ),
+      12 => 
+      array (
+        'q' => '¿Y si la mercancía llega dañada en el transporte?',
+        'a' => 'Haga constar el daño en el recibo del transportista antes de firmar, fotografíe el embalaje antes de abrirlo y presente la reclamación dentro de esos mismos 3 días. El daño de transporte es asunto del transportista y sus plazos pueden ser más cortos que los nuestros: la reserva anotada en la entrega es lo que protege el derecho. No tire el embalaje hasta que el caso esté cerrado.',
+      ),
+      13 => 
+      array (
+        'q' => '¿Qué mercancía no se puede devolver nunca?',
+        'a' => 'La producción bajo pedido y personalizada, las prendas modificadas o etiquetadas por usted tras la entrega, y todo lo vendido como liquidación final cuando el anuncio así lo indica. Los pedidos de muestra también son firmes: existen precisamente para que juzgue la mercancía antes de comprometerse con una cantidad mayorista — es decir, exactamente la decisión que cubriría una devolución.',
+      ),
+      14 => 
+      array (
+        'q' => '¿Presentar una reclamación detiene el pago al vendedor?',
+        'a' => 'Sí. Mientras una reclamación está abierta no se libera ningún importe, y la liberación automática está ajustada para no producirse antes de que venzan sus 3 días. Esa es la razón práctica de que el plazo sea corto: su dinero se retiene exactamente el tiempo que dura su derecho a reclamar.',
+      ),
+      15 => 
+      array (
+        'q' => '¿Y si el vendedor rechaza una reclamación fundada?',
+        'a' => 'Decide VESTRA, no el vendedor. Cuando la reclamación se estima, el reembolso o la reposición se ejecutan sobre los fondos en depósito; el vendedor que no cumple pierde su condición de verificado, queda suspendido y es retirado de la plataforma. Usted no tiene que negociarlo.',
+      ),
+      16 => 
+      array (
+        'q' => '¿Tengo derecho legal de desistimiento, como un consumidor?',
+        'a' => 'No. VESTRA es estrictamente entre empresas y solo pueden operar aquí sociedades verificadas (KYB). El derecho de desistimiento de 14 días en la venta a distancia ampara al consumidor que compra para uso privado y no a una compra profesional destinada a la reventa. Su pedido se rige por las reglas de esta página y por los Términos del servicio.',
+      ),
+      17 => 
+      array (
+        'q' => '¿Cuál es el resumen más breve posible?',
+        'a' => 'Sin devolución por cambio de opinión. Solo mercancía errónea, faltante o defectuosa. Comuníquelo dentro de los 3 días siguientes a la entrega, con fotografías, a través de la plataforma. No devuelva nada hasta que lo autoricemos por escrito.',
+      ),
+    ),
+  ),
 );

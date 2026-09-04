@@ -421,4 +421,101 @@
       ),
     ),
   ),
+  'returns' => 
+  array (
+    'title' => 'Rückgabe & Reklamationen',
+    'items' => 
+    array (
+      0 => 
+      array (
+        'q' => 'Kann ich Ware zurückgeben, weil ich es mir anders überlegt habe?',
+        'a' => 'Nein. Großhandelsbestellungen (B2B) auf VESTRA sind von der Rückgabe ausgeschlossen. Eine bestätigte Bestellung ist eine feste kaufmännische Verpflichtung zwischen zwei Unternehmen, und weder VESTRA noch der Verkäufer nimmt Ware zurück, weil Sie zu viel bestellt haben, die Saison weitergezogen ist, sich die Ware nicht verkauft hat oder Ihr eigener Kunde sie Ihnen zurückgegeben hat. Das ist im Großhandel die übliche Regel und erst sie macht Handelspreise überhaupt möglich.',
+      ),
+      1 => 
+      array (
+        'q' => 'Wann wird eine Rückgabe oder Reklamation denn akzeptiert?',
+        'a' => 'In drei Fällen und nur in diesen: Die Ware ist FALSCH (ein anderer Artikel, ein anderes Modell, eine andere Farbe oder Größe als bestellt), die Lieferung ist UNVOLLSTÄNDIG (weniger Stück als berechnet oder ein fehlender Karton), oder die Ware ist MANGELHAFT (Fabrikationsfehler, Beschädigung oder eine nicht offengelegte wesentliche Abweichung vom Angebot). Gefälschte Ware wird gesondert und deutlich strenger behandelt — siehe den Abschnitt Echtheit.',
+      ),
+      2 => 
+      array (
+        'q' => 'Wie lange habe ich Zeit, das zu melden?',
+        'a' => 'Drei Tage. Sie müssen uns innerhalb von 3 Tagen nach Zustellung benachrichtigen. Das ist die einzige Frist, auf die es ankommt: Danach gilt die Lieferung als angenommen und der Verkäufer wird bezahlt. Es gibt keine Verlängerung wegen Feiertagen, Personalabwesenheit oder ungeöffneter Kartons — wenn Sie eine Lieferung nicht innerhalb von drei Tagen prüfen können, beauftragen Sie jemanden, der es kann.',
+      ),
+      3 => 
+      array (
+        'q' => 'Wie genau werden die 3 Tage gezählt?',
+        'a' => 'Kalendertage, nicht Werktage, beginnend mit dem vom Frachtführer erfassten oder in Ihrer Bestellung bestätigten Zustelldatum. Eine Zustellung am Freitag muss bis Montag gemeldet werden. Die Frist ist in dem Moment gewahrt, in dem Ihre Reklamation auf der Plattform eingeht — nicht erst, wenn der Verkäufer darauf antwortet.',
+      ),
+      4 => 
+      array (
+        'q' => 'Wie reiche ich eine Reklamation ein?',
+        'a' => 'Öffnen Sie die Bestellung in Ihrem Konto und klicken Sie auf "Reklamation eröffnen", oder schreiben Sie unter Angabe der Bestellnummer an support@vestrasales.com. Tun Sie es möglichst innerhalb der Plattform: Eine nur telefonisch oder in einem privaten E-Mail-Verlauf mit dem Verkäufer erhobene Reklamation hinterlässt keinen Nachweis, und ohne Nachweis lässt sich nichts durchsetzen.',
+      ),
+      5 => 
+      array (
+        'q' => 'Was muss ich mit der Reklamation einreichen?',
+        'a' => 'Die Bestellnummer; wie viele Stück betroffen sind und welche Artikel; Fotos der Ware, die den Mangel zeigen; ein Foto des Versandetiketts und des Umkartons; bei einer Fehlmenge zusätzlich ein Foto des Packzettels. Senden Sie das in einer Nachricht. Eine unvollständige Reklamation gilt zwar als am Absendetag eingereicht, kann aber erst entschieden werden, wenn die Nachweise vollständig sind — schicken Sie deshalb alles auf einmal.',
+      ),
+      6 => 
+      array (
+        'q' => 'Soll ich die Ware sofort zurückschicken?',
+        'a' => 'Nein — senden Sie niemals etwas ohne schriftliche Autorisierung zurück. Eine Reklamation ist keine Rücksendung. Wird eine Rücksendung vereinbart, erhalten Sie eine schriftliche Autorisierung mit Adresse und den zurückzusendenden Stücken. Ohne sie zurückgeschickte Ware kann verweigert werden, kann verloren gehen und schwächt Ihre eigene Reklamation, weil niemand überprüfen kann, was im Paket war.',
+      ),
+      7 => 
+      array (
+        'q' => 'In welchem Zustand muss zurückgesandte Ware sein?',
+        'a' => 'Genau wie geliefert: ungetragen, ungewaschen, unbenutzt, mit allen Original-Etiketten, -Anhängern und -Verpackungen, und vollständig. Entfernen Sie keine Sicherungsetiketten, zeichnen Sie die Ware nicht für Ihren eigenen Laden aus und teilen Sie keine Sortimentspackungen auf. Mangelhafte Stücke werden selbstverständlich in dem Zustand zurückgesandt, in dem sie angekommen sind — entscheidend ist, dass nach der Zustellung kein weiterer Schaden hinzukommt.',
+      ),
+      8 => 
+      array (
+        'q' => 'Wer trägt die Rücksendekosten?',
+        'a' => 'Der Verkäufer, wenn die Reklamation anerkannt wird — falsche, fehlende oder mangelhafte Ware geht zu seinen Lasten, einschließlich der Abholung, wenn eine solche organisiert wird. Wird die Reklamation nicht anerkannt, bleibt die Ware bei Ihnen und bereits gezahlte Fracht wird nicht erstattet. Senden Sie nichts unfrei ohne schriftliche Zustimmung; nicht autorisierte Kosten werden abgelehnt.',
+      ),
+      9 => 
+      array (
+        'q' => 'Was passiert, nachdem ich eingereicht habe?',
+        'a' => 'VESTRA prüft die Reklamation innerhalb von 2 Werktagen und fordert die Stellungnahme des Verkäufers an. Die meisten Fälle werden allein anhand der Fotos entschieden. Beschreiben beide Seiten die Ware unterschiedlich, können wir weitere Bilder, die Zusendung eines Musters oder eine unabhängige Begutachtung verlangen. Das Ergebnis erhalten Sie im Bestellverlauf, sodass der gesamte Vorgang an einer Stelle bleibt.',
+      ),
+      10 => 
+      array (
+        'q' => 'Welche Ergebnisse sind möglich?',
+        'a' => 'Eine Ersatzlieferung, eine Teilgutschrift bei Behalt der Ware (üblich bei einer geringen Fehlerquote in einer großen Partie), oder eine Erstattung der betroffenen Stücke gegen deren Rücksendung. VESTRA entscheidet gemeinsam mit dem Verkäufer und teilt Ihnen mit, was gilt. Eine Erstattung umfasst die betroffenen Stücke und deren Frachtanteil — nicht Ihre Folgekosten, entgangenen Umsatz oder die Ansprüche Ihres eigenen Kunden gegen Sie.',
+      ),
+      11 => 
+      array (
+        'q' => 'Was, wenn die Lieferung unvollständig ist?',
+        'a' => 'Zählen Sie die Kartons gegen den Lieferschein, bevor Sie quittieren, und vermerken Sie jede Fehlmenge in diesem Moment auf dem Beleg des Frachtführers. Eine erst nach sauberer Unterschrift entdeckte Fehlmenge ist deutlich schwerer nachzuweisen, bleibt innerhalb der 3 Tage aber reklamierbar, wenn Kartongewichte oder Siegel dafür sprechen. Fotografieren Sie versiegelte Kartons, bevor Sie sie öffnen.',
+      ),
+      12 => 
+      array (
+        'q' => 'Was, wenn die Ware auf dem Transportweg beschädigt wurde?',
+        'a' => 'Vermerken Sie den Schaden vor der Unterschrift auf dem Beleg des Frachtführers, fotografieren Sie die Verpackung, bevor Sie sie öffnen, und reichen Sie die Reklamation innerhalb derselben 3 Tage ein. Transportschäden sind Sache des Frachtführers und dessen eigene Fristen können kürzer sein als unsere — der Vermerk an der Tür ist deshalb das, was den Anspruch sichert. Entsorgen Sie die Verpackung nicht, bevor der Fall abgeschlossen ist.',
+      ),
+      13 => 
+      array (
+        'q' => 'Welche Ware kann nie zurückgegeben werden?',
+        'a' => 'Auftragsfertigung und individualisierte Produktion, von Ihnen nach der Zustellung veränderte oder etikettierte Ware, sowie alles, was ausdrücklich als Abverkauf ohne Rückgabe angeboten wurde. Auch Musterbestellungen sind endgültig: Sie existieren gerade dafür, dass Sie die Ware vor der Festlegung auf eine Großhandelsmenge beurteilen können — also genau für die Entscheidung, die eine Rückgabe sonst abdecken würde.',
+      ),
+      14 => 
+      array (
+        'q' => 'Stoppt eine Reklamation die Zahlung an den Verkäufer?',
+        'a' => 'Ja. Solange eine Reklamation offen ist, wird kein Geld freigegeben, und die automatische Freigabe ist so eingestellt, dass sie nicht vor Ablauf Ihrer 3 Tage erfolgen kann. Das ist der praktische Grund für die kurze Frist: Ihr Geld wird genau so lange gehalten, wie Ihr Recht zur Beanstandung dauert.',
+      ),
+      15 => 
+      array (
+        'q' => 'Was, wenn der Verkäufer eine berechtigte Reklamation ablehnt?',
+        'a' => 'Über den Fall entscheidet VESTRA, nicht der Verkäufer. Wird die Reklamation anerkannt, werden Erstattung oder Ersatz aus dem treuhänderisch gehaltenen Betrag durchgesetzt; ein Verkäufer, der sich verweigert, verliert seinen verifizierten Status, wird gesperrt und von der Plattform entfernt. Sie müssen das nicht selbst verhandeln.',
+      ),
+      16 => 
+      array (
+        'q' => 'Habe ich ein gesetzliches Widerrufsrecht wie ein Verbraucher?',
+        'a' => 'Nein. VESTRA ist ausschließlich Business-to-Business, und nur KYB-verifizierte Unternehmen können hier handeln. Das 14-tägige Widerrufsrecht im Fernabsatz gilt für Verbraucher, die für private Zwecke kaufen, und nicht für einen Handelseinkauf zum Weiterverkauf. Für Ihre Bestellung gelten die Regeln auf dieser Seite zusammen mit den AGB.',
+      ),
+      17 => 
+      array (
+        'q' => 'Was ist die kürzestmögliche Zusammenfassung?',
+        'a' => 'Keine Rückgabe bei Sinneswandel. Nur falsche, fehlende oder mangelhafte Ware. Melden Sie es innerhalb von 3 Tagen nach Zustellung, mit Fotos, über die Plattform. Senden Sie nichts zurück, bevor wir es schriftlich autorisiert haben.',
+      ),
+    ),
+  ),
 );

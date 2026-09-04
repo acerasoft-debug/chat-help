@@ -769,9 +769,17 @@ dönmek zorundadir"*).
 - **SSS cevapları DÜZ METİN.** `faq.php` cevapları `nl2br(htmlspecialchars(...))`
   ile basıyor; bir cevaba HTML koyulursa kullanıcı **ham etiket** görür. Canlıda
   tam bu vardı (ödeme cevabındaki `<b>`), temizlendi ve test bekçilik ediyor.
-- **Çeviri durumu:** UI dizeleri 8 dilde (`Returns` vb. 4 anahtar eklendi, hepsi
-  1108). Politika METNİ şimdilik yalnız İngilizce; `vestra_faq()` madde bazında
-  İngilizceye düşer, yani de/fr/it/es/pt/ru/ar'da sayfa çalışır ama metin İngilizce.
+- **Politika 8 DİLDE tam** (operatör, 4 Eyl 2026: *"evet tüm dillere çevir"*).
+  18 maddenin tamamı de/fr/it/es/pt/ru/ar için `inc/faq/{lang}.php` içinde;
+  pt/ru/ar dosyaları bu işle **ilk kez oluştu** (yalnız `returns` taşıyorlar,
+  diğer kategoriler madde bazında İngilizceye düşüyor — `vestra_faq()` bunu
+  zaten yapıyor). UI dizeleri de 8 dilde (1108 anahtar).
+- **Ölçerken tuzak:** `vlang()` ilk çağrıda sabitleniyor. Sekiz dili TEK süreçte
+  döngüye alırsanız sekizinin de "İngilizce" olduğunu ölçersiniz — ilk kontrolde
+  tam bu oldu ve çeviriler bozukmuş gibi göründü. Test dil başına ayrı PHP
+  süreci açar; `returns_policy_test.php` bölüm 7 her dilde her maddenin
+  gerçekten çevrildiğini (İngilizce kalan madde = 0) zorunlu tutar. Eksik bir
+  çeviri sessizce İngilizceye düşerdi ve kimse fark etmezdi.
 
 ## Operasyonel notlar
 

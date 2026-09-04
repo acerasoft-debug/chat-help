@@ -421,4 +421,101 @@
       ),
     ),
   ),
+  'returns' => 
+  array (
+    'title' => 'Retours & réclamations',
+    'items' => 
+    array (
+      0 => 
+      array (
+        'q' => 'Puis-je retourner la marchandise parce que j\'ai changé d\'avis ?',
+        'a' => 'Non. Les commandes de gros (B2B) sur VESTRA ne sont pas reprises. Une commande confirmée est un engagement commercial ferme entre deux entreprises, et ni VESTRA ni le vendeur ne reprend la marchandise parce que vous avez trop commandé, que la saison est passée, que les articles ne se sont pas vendus ou que votre propre client vous les a rendus. C\'est la règle habituelle dans le commerce de gros et c\'est elle qui permet de pratiquer des prix professionnels.',
+      ),
+      1 => 
+      array (
+        'q' => 'Dans quels cas un retour ou une réclamation est-il accepté ?',
+        'a' => 'Dans trois cas, et uniquement ceux-là : la marchandise est ERRONÉE (article, modèle, coloris ou taille différents de la commande), la livraison est INCOMPLÈTE (moins de pièces que facturé, ou un colis manquant), ou la marchandise est DÉFECTUEUSE (défaut de fabrication, dommage, ou écart matériel non signalé par rapport à l\'annonce). La contrefaçon est traitée séparément et bien plus sévèrement — voir la section Authenticité.',
+      ),
+      2 => 
+      array (
+        'q' => 'De combien de temps disposé-je pour le signaler ?',
+        'a' => 'Trois jours. Vous devez nous prévenir dans les 3 jours suivant la livraison. C\'est le seul délai qui compte : passé ce terme la livraison est réputée acceptée et le vendeur est payé. Aucune prolongation n\'est accordée pour jours fériés, absence de personnel ou cartons non ouverts — si vous ne pouvez pas contrôler une livraison en trois jours, faites-la contrôler par quelqu\'un d\'autre.',
+      ),
+      3 => 
+      array (
+        'q' => 'Comment les 3 jours sont-ils exactement comptés ?',
+        'a' => 'En jours calendaires, non ouvrés, à compter de la date de livraison enregistrée par le transporteur ou confirmée sur votre commande. Une livraison le vendredi doit être signalée au plus tard le lundi. Le délai est interrompu dès que votre réclamation est déposée sur la plateforme — et non lorsque le vendeur y répond.',
+      ),
+      4 => 
+      array (
+        'q' => 'Comment déposer une réclamation ?',
+        'a' => 'Ouvrez la commande dans votre espace client et cliquez sur "Ouvrir un litige", ou écrivez à support@vestrasales.com en rappelant la référence de commande. Faites-le de préférence dans la plateforme : une réclamation formulée seulement par téléphone ou dans un échange privé avec le vendeur ne laisse aucune trace, et sans trace il n\'y a rien à faire appliquer.',
+      ),
+      5 => 
+      array (
+        'q' => 'Que dois-je joindre à la réclamation ?',
+        'a' => 'La référence de commande ; le nombre de pièces concernées et les articles visés ; des photos montrant le problème ; une photo de l\'étiquette de transport et du carton extérieur ; et, en cas de manquant, une photo du bon de colisage. Envoyez le tout en un seul message. Une réclamation incomplète est bien réputée déposée le jour de son envoi, mais elle ne peut être tranchée qu\'une fois les preuves complètes — envoyez donc tout d\'un coup.',
+      ),
+      6 => 
+      array (
+        'q' => 'Dois-je renvoyer la marchandise immédiatement ?',
+        'a' => 'Non — ne renvoyez jamais rien sans autorisation écrite. Une réclamation n\'est pas un retour. Si un retour est convenu, vous recevez une autorisation écrite indiquant l\'adresse et les pièces à renvoyer. Une marchandise expédiée sans elle peut être refusée, peut se perdre, et affaiblit votre propre réclamation puisque personne ne peut vérifier ce que contenait le colis.',
+      ),
+      7 => 
+      array (
+        'q' => 'Dans quel état la marchandise retournée doit-elle être ?',
+        'a' => 'Exactement telle que livrée : non portée, non lavée, non utilisée, avec toutes les étiquettes, marques et emballages d\'origine, et complète. Ne retirez pas les antivols, n\'étiquetez pas les articles au prix de votre boutique et ne dépareillez pas les assortiments. Les pièces défectueuses sont évidemment renvoyées dans l\'état où elles sont arrivées — l\'important est qu\'aucun dommage ne s\'ajoute après la livraison.',
+      ),
+      8 => 
+      array (
+        'q' => 'Qui paie les frais de retour ?',
+        'a' => 'Le vendeur, lorsque la réclamation est retenue — la marchandise erronée, manquante ou défectueuse est à sa charge, enlèvement compris si un ramassage est organisé. Si la réclamation n\'est pas retenue, la marchandise reste chez vous et les frais de transport déjà payés ne sont pas remboursés. N\'expédiez rien en port dû sans accord écrit ; les frais non autorisés sont refusés.',
+      ),
+      9 => 
+      array (
+        'q' => 'Que se passe-t-il après le dépôt ?',
+        'a' => 'VESTRA examine la réclamation sous 2 jours ouvrés et demande sa version au vendeur. La plupart des dossiers se tranchent sur les seules photos. Si les deux parties décrivent la marchandise différemment, nous pouvons demander d\'autres images, l\'envoi d\'un échantillon ou une expertise indépendante. Le résultat vous est communiqué dans le fil de la commande, de sorte que tout le dossier reste au même endroit.',
+      ),
+      10 => 
+      array (
+        'q' => 'Quelles sont les issues possibles ?',
+        'a' => 'Une livraison de remplacement, un avoir partiel avec conservation de la marchandise (fréquent pour un faible taux de défauts sur un lot important), ou un remboursement des pièces concernées contre leur retour. VESTRA tranche avec le vendeur et vous indique la solution retenue. Un remboursement couvre les pièces concernées et leur quote-part de transport — non vos coûts en aval, votre perte de chiffre d\'affaires ou la réclamation de votre propre client contre vous.',
+      ),
+      11 => 
+      array (
+        'q' => 'Que faire si la livraison est incomplète ?',
+        'a' => 'Comptez les colis face au bon de livraison avant de signer, et inscrivez tout manquant sur le récépissé du transporteur à cet instant. Un manquant découvert après une signature sans réserve est bien plus difficile à prouver, mais reste réclamable dans les 3 jours si le poids des cartons ou les scellés le corroborent. Photographiez les cartons scellés avant de les ouvrir.',
+      ),
+      12 => 
+      array (
+        'q' => 'Que faire si la marchandise est endommagée pendant le transport ?',
+        'a' => 'Portez la réserve sur le récépissé du transporteur avant de signer, photographiez l\'emballage avant de l\'ouvrir, et déposez la réclamation dans les mêmes 3 jours. Le dommage de transport relève du transporteur, dont les propres délais peuvent être plus courts que les nôtres : c\'est la réserve faite à la livraison qui protège le recours. Ne jetez pas l\'emballage avant la clôture du dossier.',
+      ),
+      13 => 
+      array (
+        'q' => 'Quelle marchandise ne peut jamais être retournée ?',
+        'a' => 'La production sur commande et personnalisée, les articles modifiés ou étiquetés par vos soins après livraison, et tout ce qui est vendu en fin de série sans reprise lorsque l\'annonce l\'indique. Les commandes d\'échantillon sont également fermes : elles existent précisément pour vous permettre de juger la marchandise avant de vous engager sur une quantité de gros — c\'est-à-dire exactement la décision qu\'un retour viendrait couvrir.',
+      ),
+      14 => 
+      array (
+        'q' => 'Une réclamation suspend-elle le paiement au vendeur ?',
+        'a' => 'Oui. Aucun fonds n\'est libéré tant qu\'une réclamation est ouverte, et la libération automatique est réglée pour ne jamais intervenir avant l\'expiration de vos 3 jours. C\'est la raison pratique de la brièveté du délai : votre argent est retenu exactement aussi longtemps que dure votre droit de réclamer.',
+      ),
+      15 => 
+      array (
+        'q' => 'Que faire si le vendeur refuse une réclamation fondée ?',
+        'a' => 'C\'est VESTRA qui tranche, pas le vendeur. Lorsque la réclamation est retenue, le remboursement ou le remplacement est exécuté sur les fonds sous séquestre ; un vendeur qui refuse de s\'exécuter perd son statut vérifié, est suspendu et retiré de la plateforme. Vous n\'avez pas à négocier cela vous-même.',
+      ),
+      16 => 
+      array (
+        'q' => 'Ai-je un droit légal de rétractation, comme un consommateur ?',
+        'a' => 'Non. VESTRA est strictement interentreprises et seules des sociétés vérifiées (KYB) peuvent y traiter. Le droit de rétractation de 14 jours en vente à distance s\'applique au consommateur achetant pour un usage privé et non à un achat professionnel destiné à la revente. Votre commande est régie par les règles de cette page et par les Conditions générales.',
+      ),
+      17 => 
+      array (
+        'q' => 'Quel est le résumé le plus court possible ?',
+        'a' => 'Pas de retour pour changement d\'avis. Uniquement marchandise erronée, manquante ou défectueuse. Signalez-le dans les 3 jours suivant la livraison, avec photos, via la plateforme. Ne renvoyez rien avant notre autorisation écrite.',
+      ),
+    ),
+  ),
 );

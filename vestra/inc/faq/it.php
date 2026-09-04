@@ -421,4 +421,101 @@
       ),
     ),
   ),
+  'returns' => 
+  array (
+    'title' => 'Resi & reclami',
+    'items' => 
+    array (
+      0 => 
+      array (
+        'q' => 'Posso restituire la merce perché ho cambiato idea?',
+        'a' => 'No. Gli ordini all\'ingrosso (B2B) su VESTRA non sono soggetti a reso. Un ordine confermato è un impegno commerciale vincolante tra due imprese, e né VESTRA né il venditore riprende la merce perché avete ordinato troppo, la stagione è cambiata, i capi non si sono venduti o il vostro cliente ve li ha restituiti. È la regola normale nel commercio all\'ingrosso ed è ciò che rende possibili i prezzi commerciali.',
+      ),
+      1 => 
+      array (
+        'q' => 'Quando viene allora accettato un reso o un reclamo?',
+        'a' => 'In tre casi, e solo in questi: la merce è ERRATA (articolo, modello, colore o taglia diversi dall\'ordine), la consegna è INCOMPLETA (meno pezzi di quelli fatturati, o un collo mancante), oppure la merce è DIFETTOSA (difetto di fabbricazione, danno, o difformità sostanziale dall\'annuncio non dichiarata). La contraffazione è trattata separatamente e con ben altra severità — si veda la sezione Autenticità.',
+      ),
+      2 => 
+      array (
+        'q' => 'Quanto tempo ho per segnalarlo?',
+        'a' => 'Tre giorni. Dovete avvisarci entro 3 giorni dalla consegna. È l\'unico termine che conta: trascorso questo, la consegna si considera accettata e il venditore viene pagato. Non sono previste proroghe per festività, assenze del personale o colli non aperti — se non potete controllare una consegna entro tre giorni, incaricate qualcuno che possa farlo.',
+      ),
+      3 => 
+      array (
+        'q' => 'Come si contano esattamente i 3 giorni?',
+        'a' => 'Giorni di calendario, non lavorativi, a partire dalla data di consegna registrata dal vettore o confermata nel vostro ordine. Una consegna del venerdì va segnalata entro lunedì. Il termine si interrompe nel momento in cui il reclamo viene inviato sulla piattaforma — non quando il venditore risponde.',
+      ),
+      4 => 
+      array (
+        'q' => 'Come presento un reclamo?',
+        'a' => 'Aprite l\'ordine nella vostra area riservata e cliccate su "Apri contestazione", oppure scrivete a support@vestrasales.com citando il riferimento dell\'ordine. Fatelo preferibilmente dentro la piattaforma: un reclamo sollevato solo per telefono o in uno scambio privato con il venditore non lascia traccia, e senza traccia non c\'è nulla da far valere.',
+      ),
+      5 => 
+      array (
+        'q' => 'Cosa devo allegare al reclamo?',
+        'a' => 'Il riferimento dell\'ordine; quanti pezzi sono interessati e quali articoli; fotografie della merce che mostrino il problema; una foto dell\'etichetta di spedizione e del cartone esterno; e, in caso di ammanco, una foto della distinta di imballaggio. Inviate tutto in un unico messaggio. Un reclamo incompleto risulta comunque presentato il giorno dell\'invio, ma non può essere deciso finché le prove non sono complete — quindi mandate tutto insieme.',
+      ),
+      6 => 
+      array (
+        'q' => 'Devo rispedire subito la merce?',
+        'a' => 'No — non restituite mai nulla senza autorizzazione scritta. Un reclamo non è un reso. Se il reso viene concordato ricevete un\'autorizzazione scritta con l\'indirizzo e i pezzi da rispedire. La merce inviata senza di essa può essere rifiutata, può andare perduta e indebolisce il vostro stesso reclamo, perché nessuno può verificare cosa contenesse il collo.',
+      ),
+      7 => 
+      array (
+        'q' => 'In quali condizioni deve essere la merce resa?',
+        'a' => 'Esattamente come consegnata: non indossata, non lavata, non utilizzata, con tutti i cartellini, le etichette e gli imballi originali, e completa. Non rimuovete i dispositivi antitaccheggio, non prezzate i capi per il vostro negozio e non scomponete gli assortimenti. I pezzi difettosi si restituiscono ovviamente nello stato in cui sono arrivati — il punto è che dopo la consegna non si aggiunga altro danno.',
+      ),
+      8 => 
+      array (
+        'q' => 'Chi paga la spedizione di reso?',
+        'a' => 'Il venditore, quando il reclamo è accolto — merce errata, mancante o difettosa sono a suo carico, ritiro compreso se viene organizzato. Se il reclamo non è accolto, la merce resta a voi e le spese di trasporto già sostenute non vengono rimborsate. Non spedite nulla in porto assegnato senza accordo scritto; gli addebiti non autorizzati vengono respinti.',
+      ),
+      9 => 
+      array (
+        'q' => 'Cosa succede dopo la presentazione?',
+        'a' => 'VESTRA esamina il reclamo entro 2 giorni lavorativi e chiede al venditore la sua versione. La maggior parte dei casi si decide sulle sole fotografie. Se le due parti descrivono la merce in modo diverso possiamo chiedere altre immagini, l\'invio di un campione o una perizia indipendente. L\'esito vi viene comunicato nel thread dell\'ordine, così l\'intero fascicolo resta in un unico posto.',
+      ),
+      10 => 
+      array (
+        'q' => 'Quali sono gli esiti possibili?',
+        'a' => 'Una consegna sostitutiva, una nota di credito parziale con merce trattenuta (frequente per una bassa percentuale di difetti su una partita grande), oppure il rimborso dei pezzi interessati contro la loro restituzione. VESTRA decide insieme al venditore e vi comunica quale soluzione si applica. Il rimborso copre i pezzi interessati e la loro quota di trasporto — non i vostri costi a valle, il mancato guadagno o la richiesta del vostro cliente nei vostri confronti.',
+      ),
+      11 => 
+      array (
+        'q' => 'E se la consegna è incompleta?',
+        'a' => 'Contate i colli rispetto al documento di trasporto prima di firmare, e annotate ogni ammanco sulla ricevuta del vettore in quel momento. Un ammanco scoperto dopo una firma senza riserve è molto più difficile da provare, ma resta reclamabile entro i 3 giorni se i pesi dei cartoni o i sigilli lo confermano. Fotografate i colli sigillati prima di aprirli.',
+      ),
+      12 => 
+      array (
+        'q' => 'E se la merce è danneggiata durante il trasporto?',
+        'a' => 'Annotate il danno sulla ricevuta del vettore prima di firmare, fotografate l\'imballo prima di aprirlo e presentate il reclamo entro gli stessi 3 giorni. Il danno da trasporto è materia del vettore e i suoi termini possono essere più brevi dei nostri: è la riserva apposta alla consegna a tutelare il diritto. Non gettate l\'imballo finché il caso non è chiuso.',
+      ),
+      13 => 
+      array (
+        'q' => 'Quale merce non è mai restituibile?',
+        'a' => 'La produzione su commessa e personalizzata, i capi modificati o etichettati da voi dopo la consegna, e tutto ciò che è venduto come fine serie senza reso quando l\'annuncio lo dichiara. Anche gli ordini campione sono definitivi: esistono proprio perché possiate valutare la merce prima di impegnarvi su una quantità all\'ingrosso — cioè esattamente la decisione che un reso coprirebbe.',
+      ),
+      14 => 
+      array (
+        'q' => 'Un reclamo blocca il pagamento al venditore?',
+        'a' => 'Sì. Finché un reclamo è aperto non viene rilasciato alcun importo, e il rilascio automatico è impostato in modo da non poter avvenire prima della scadenza dei vostri 3 giorni. È la ragione pratica della brevità del termine: il vostro denaro resta trattenuto esattamente per il tempo in cui dura il vostro diritto di contestare.',
+      ),
+      15 => 
+      array (
+        'q' => 'E se il venditore rifiuta un reclamo fondato?',
+        'a' => 'Decide VESTRA, non il venditore. Quando il reclamo è accolto, rimborso o sostituzione vengono eseguiti sui fondi in deposito; un venditore che non ottempera perde lo stato di verificato, viene sospeso e rimosso dalla piattaforma. Non dovete negoziarlo voi.',
+      ),
+      16 => 
+      array (
+        'q' => 'Ho un diritto legale di recesso, come un consumatore?',
+        'a' => 'No. VESTRA è strettamente business-to-business e solo società verificate (KYB) possono operare qui. Il diritto di recesso di 14 giorni nelle vendite a distanza riguarda il consumatore che acquista per uso privato e non un acquisto commerciale destinato alla rivendita. Il vostro ordine è regolato dalle regole di questa pagina e dalle Condizioni di servizio.',
+      ),
+      17 => 
+      array (
+        'q' => 'Qual è il riassunto più breve possibile?',
+        'a' => 'Nessun reso per ripensamento. Solo merce errata, mancante o difettosa. Segnalatelo entro 3 giorni dalla consegna, con fotografie, tramite la piattaforma. Non rispedite nulla prima della nostra autorizzazione scritta.',
+      ),
+    ),
+  ),
 );
