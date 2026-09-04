@@ -39,7 +39,9 @@ if (!$isAdmin && !$isBuyer && !$isSeller) {
 
 $statuses = vestra_read_json('order_statuses.json');
 $status   = $statuses[$ref]['status'] ?? 'pending';
-$label    = vestra_order_in_review($ref, $status) ? t('In review') : vestra_order_status_label($status);
+/* Admin's own vlang cookie must never leak into a PDF they pull for someone else's
+   order — same "English only in the admin panel" rule as the status picker. */
+$label    = vestra_order_in_review($ref, $status) ? ($isAdmin ? 'In review' : t('In review')) : vestra_order_status_label($status, $isAdmin);
 
 $pdf = vestra_render_order_pdf($order, $lines, $label);
 

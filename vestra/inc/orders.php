@@ -82,15 +82,26 @@ const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shippe
    cancelled order as though it had passed through despatch first. */
 const VESTRA_ORDER_CANCELLED = 'cancelled';
 
-function vestra_order_status_label(string $status): string {
+/**
+ * $forceEnglish is for admin-only surfaces (the status picker, an admin's own PDF
+ * download): vlang() is a per-REQUEST cookie/browser guess, not per-viewer-role, so
+ * an operator whose own browser had ever picked up a non-English vlang cookie (their
+ * device language, or an earlier click on a translated storefront link) would see
+ * order statuses translate right along with it — an internal tool silently following
+ * whatever language the person happens to be browsing in is exactly the "arapça
+ * ifadeler" bug, not a one-off. Buyer/seller-facing callers (the order timeline, the
+ * order detail panel) leave this false on purpose — that translation is correct.
+ */
+function vestra_order_status_label(string $status, bool $forceEnglish = false): string {
+    $tt = $forceEnglish ? (fn(string $s): string => $s) : 't';
     return match ($status) {
-        'review' => t('In review'),
-        'paid' => t('Paid'),
-        'preparing' => t('Being prepared'),
-        'to_vestra' => t('On its way to VESTRA'),
-        'shipped' => t('Shipped'), 'completed' => t('Completed'),
-        'cancelled' => t('Cancelled'),
-        default => t('Awaiting payment'),
+        'review' => $tt('In review'),
+        'paid' => $tt('Paid'),
+        'preparing' => $tt('Being prepared'),
+        'to_vestra' => $tt('On its way to VESTRA'),
+        'shipped' => $tt('Shipped'), 'completed' => $tt('Completed'),
+        'cancelled' => $tt('Cancelled'),
+        default => $tt('Awaiting payment'),
     };
 }
 
@@ -106,6 +117,10 @@ function vestra_order_settable_statuses(): array {
  * hand-written copies of the same list. Adding a stage to one and forgetting the other
  * produces a page that looks entirely normal and quietly cannot reach half the chain.
  * One builder, driven by the same constant the timeline and the save handler use.
+ *
+ * Both callers are admin.php — labels are forced English (operator instruction, 4 Sep
+ * 2026: order statuses must never follow the viewer's own vlang cookie/browser
+ * language, English only in the admin panel).
  */
 function vestra_order_status_options(string $current): string {
     $icons = ['pending'=>'⏳','paid'=>'💶','preparing'=>'📦','to_vestra'=>'🚛',
@@ -113,7 +128,7 @@ function vestra_order_status_options(string $current): string {
     $out = '';
     foreach (vestra_order_settable_statuses() as $s) {
         $out .= '<option value="'.htmlspecialchars($s).'"'.($current === $s ? ' selected' : '').'>'
-              . ($icons[$s] ?? '').' '.htmlspecialchars(vestra_order_status_label($s)).'</option>';
+              . ($icons[$s] ?? '').' '.htmlspecialchars(vestra_order_status_label($s, true)).'</option>';
     }
     return $out;
 }
