@@ -781,6 +781,31 @@ dönmek zorundadir"*).
   gerçekten çevrildiğini (İngilizce kalan madde = 0) zorunlu tutar. Eksik bir
   çeviri sessizce İngilizceye düşerdi ve kimse fark etmezdi.
 
+**KURAL 12 — Dil seçimi: `?lang=` > çerez > tarayıcı dili > IP ülkesi > EN**
+(operatör sorusu, 4 Eyl 2026: *"IP nerenin ise dilde oranın"*).
+- **Sorunun cevabı: o gün İTİBARİYLE ÇALIŞMIYORDU.** `vlang()` yalnızca `?lang=`,
+  `vlang` çerezi ve **`Accept-Language`** (tarayıcı/telefon dili) bakıyordu; IP hiç
+  okunmuyordu. IP'den ülke tespiti kodda vardı (`vestra_ip_intel()`) ama yalnız
+  ülke engelleme için, ve ülke listesi boşken hiç çağrılmıyordu.
+- **Eklendi:** `vlang_from_ip()` → `vlang_country_lang($cc)`. Ülke→dil tablosu
+  **elle** yazılı; hreflang bölge listesinden türetmek iki ülkeyi yanlış bağlardı
+  (BE hem `en` hem `fr` altında, CH `de`/`fr`/`it` altında). Kararlar: **CH→de**
+  (en büyük dil grubu), **BE→en** (Flaman çoğunluk, Felemenkçe sitede yok).
+  Sitenin dili olmayan ülke (TR, JP, US…) → İngilizce.
+- **IP neden EN SONDA:** `Accept-Language` kişinin **okuduğu** dili söyler, IP
+  yalnızca **nerede olduğunu**. Dubai'deki bir Alman'a Arapça göstermek, açıkça
+  bildirdiği tercihi coğrafyayla ezmek olurdu. IP yalnızca tarayıcı hiçbir şey
+  söylemediğinde devreye girer. *Operatör tersini isterse tek satır: `vlang()`
+  içinde sıra değişir — ama bu kayıt, kararın bilinçli olduğunu söylesin.*
+- **Maliyet korumaları** (üçü de testli): CLI atlanır (cron ağa çıkmaz), **bot
+  atlanır** (Accept-Language göndermeyenlerin çoğu bot ve her biri boşuna bir
+  coğrafi sorgu demekti), zaman aşımı **1 sn**, sonuç IP başına **30 gün**
+  önbellekli. Yani sorgu yalnızca ilk ziyarette ve yalnızca çerez/`?lang` yokken.
+- **Canlıda ölçmek:** `seo-check.yml` → `test_ip=<IP>`. Sunucudan coğrafi API'yi
+  çağırır, ülkeyi ve düşeceği dili yazar; tablo tarafı ağsız listelenir.
+  Testi: `tests/lang_from_ip_test.php` (45 iddia — tablo, sıra, maliyet
+  korumaları ve CLI'da ağ çağrısı olmadığı).
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

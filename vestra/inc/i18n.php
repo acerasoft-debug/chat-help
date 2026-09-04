@@ -66,6 +66,55 @@ function vlang_detect(){
   return $best;
 }
 
+/* Ulke kodu -> sitenin dili. Tablo bilerek ELLE yaziliyor: hreflang bolge
+   listesinden turetmek iki ulkeyi yanlis dile baglardi -- Belcika hem 'en' hem
+   'fr' altinda, Isvicre 'de'/'fr'/'it' altinda geciyor ve turetme sirayla ilk
+   geleni secerdi. Kararlar:
+     CH -> de  (en buyuk dil grubu, ~%62)
+     BE -> en  (Flaman cogunluk; Felemenkce sitede yok, Fransizca dayatmak
+                nufusun buyuk yarisina yabanci bir dil olurdu)
+   Rusca konusulan eski SSCB pazarlari ve Arapca konusulan ulkeler, sitenin o
+   dilleri servis ettigi icin listeye alindi; sitenin dili olmayan bir ulke
+   (or. TR, JP) null doner ve ziyaretci Ingilizce goruyor. */
+function vlang_country_lang(string $cc): ?string {
+  static $map = [
+    'DE'=>'de','AT'=>'de','CH'=>'de','LI'=>'de',
+    'FR'=>'fr','LU'=>'fr','MC'=>'fr','BE'=>'en',
+    'ES'=>'es','MX'=>'es','AR'=>'es','CL'=>'es','CO'=>'es','PE'=>'es','UY'=>'es',
+    'IT'=>'it','SM'=>'it',
+    'PT'=>'pt','BR'=>'pt','AO'=>'pt','MZ'=>'pt',
+    'RU'=>'ru','BY'=>'ru','KZ'=>'ru','KG'=>'ru','UZ'=>'ru','AM'=>'ru','AZ'=>'ru','GE'=>'ru','MD'=>'ru',
+    'AE'=>'ar','SA'=>'ar','QA'=>'ar','KW'=>'ar','BH'=>'ar','OM'=>'ar','EG'=>'ar','JO'=>'ar',
+    'MA'=>'ar','TN'=>'ar','DZ'=>'ar','LB'=>'ar','IQ'=>'ar','LY'=>'ar','YE'=>'ar','PS'=>'ar','SD'=>'ar',
+  ];
+  $cc = strtoupper(trim($cc));
+  if ($cc === '' || !isset($map[$cc])) return null;
+  return isset(vlang_list()[$map[$cc]]) ? $map[$cc] : null;   // dil listeden cikarsa kendiliginden duser
+}
+
+/* Ziyaretcinin ULKESINDEN dil tahmini -- yalnizca tarayici hicbir dil
+   soylemediginde. Sira bilerek boyle: Accept-Language kisinin OKUDUGU dili
+   bildirir, IP yalnizca nerede oldugunu. Dubai'deki bir Alman'a Arapca
+   gostermek, acikca bildirdigi tercihi cografyayla ezmek olurdu. Tarayici
+   susuyorsa elde baska ipucu yoktur ve ulke en iyi tahmindir.
+   Maliyet: yalnizca ilk ziyarette, cerez ve ?lang yokken. Sonuc
+   vestra_ip_intel() icinde IP basina 30 gun onbelleklenir, zaman asimi 1 sn.
+   BOTLAR ATLANIR: Accept-Language gondermeyenlerin cogu tarayici degil, ve her
+   biri bosuna bir cografi API sorgusu demek olurdu. CLI de atlanir -- cron
+   betikleri asla aga cikmasin. */
+function vlang_from_ip(){
+  if (PHP_SAPI === 'cli') return null;
+  $sec = __DIR__.'/security.php';
+  if (!function_exists('vestra_ip_intel') && is_readable($sec)) require_once $sec;
+  if (!function_exists('vestra_ip_intel') || !function_exists('vestra_is_bot')) return null;
+  if (vestra_is_bot((string)($_SERVER['HTTP_USER_AGENT'] ?? ''))) return null;
+  $ip = function_exists('vestra_client_ip')
+      ? vestra_client_ip()
+      : (string)($_SERVER['REMOTE_ADDR'] ?? '');
+  if ($ip === '') return null;
+  return vlang_country_lang((string)(vestra_ip_intel($ip, 1)['cc'] ?? ''));
+}
+
 function vlang(){
   static $l=null; if($l!==null) return $l;
   $langs=vlang_list(); $l='en';
@@ -78,8 +127,9 @@ function vlang(){
     /* returning visitor — honour their saved choice */
     $l=$_COOKIE['vlang'];
   } else {
-    /* first visit — auto-pick from the device/browser language, then remember */
+    /* first visit — device/browser language first, then the visitor's country */
     $d=vlang_detect();
+    if($d===null) $d=vlang_from_ip();
     if($d!==null){
       $l=$d;
       if(!headers_sent()) @setcookie('vlang',$l,time()+31536000,'/');

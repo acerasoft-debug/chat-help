@@ -6,6 +6,10 @@ on:
         description: "Kontrol edilecek yol"
         required: false
         default: "/"
+      test_ip:
+        description: "IP->DIL kontrolu: bu IP'nin ulkesi cozulup hangi dile dustugu yazilir (bos = atla). Ornek: 8.8.8.8"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -230,3 +234,45 @@ jobs:
             echo "  cikti: $(printf '%s' "$SM" | wc -c) bayt, $(printf '%s' "$SM" | grep -c '<loc>') URL"
             printf '%s' "$SM" | grep -iE 'fatal|error|warning' | head -3 | sed 's/^/  HATA: /'
             printf '%s' "$SM" | head -4 | sed 's/^/  /'
+
+      - name: IP → dil seçimi (ziyaretçinin ülkesinden)
+        if: ${{ github.event.inputs.test_ip != '' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEO_TEST_IP: ${{ github.event.inputs.test_ip }}
+        with:
+          envs: SEO_TEST_IP
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          script: |
+            # Salt-okunur. Dil secimi sirasi: ?lang= > cerez > Accept-Language > IP
+            # ulkesi > EN. Bu adim SON halkayi olcer, cunku tek canlida
+            # dogrulanabilen kisim o: cografi API sunucudan erisilebiliyor mu ve
+            # donen ulke kodu hangi dile dusuyor. Tablo tarafi zaten
+            # tests/lang_from_ip_test.php ile korunuyor.
+            cd ~/public_html
+            php -r '
+              require "inc/i18n.php";
+              require "inc/security.php";
+              $ip = getenv("SEO_TEST_IP");
+              echo "== cografi API (sunucudan) ==\n";
+              $t0 = microtime(true);
+              $i  = vestra_ip_intel($ip, 3);
+              $ms = round((microtime(true) - $t0) * 1000);
+              $cc = (string)($i["cc"] ?? "");
+              printf("  %s -> ulke=%s (%s) sehir=%s  [%d ms%s]\n", $ip,
+                     $cc !== "" ? $cc : "COZULEMEDI", (string)($i["country"] ?? "-"),
+                     (string)($i["city"] ?? "-"), $ms, $ms < 5 ? ", onbellekten" : "");
+              if ($cc === "") { echo "  !! ulke cozulemedi: ziyaretci Ingilizce gorur (guvenli varsayilan)\n"; }
+              else {
+                $l = vlang_country_lang($cc);
+                printf("  bu ulkeden gelen ziyaretci -> %s\n",
+                       $l ?? "en (tabloda yok, Ingilizce)");
+              }
+              echo "\n== tablo ornekleri (ag YOK) ==\n";
+              foreach (["DE","CH","BE","FR","ES","IT","PT","BR","RU","KZ","AE","SA","TR","US"] as $c)
+                printf("  %-2s -> %s\n", $c, vlang_country_lang($c) ?? "en");
+            '
