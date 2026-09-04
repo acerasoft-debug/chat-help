@@ -390,6 +390,11 @@ function vestra_discover_blocklist(): array {
     // dev e-tailer (kanalda musteri degil rakip). 'bluefly' BILEREK YOK: 7 harf,
     // alan adinda alt dizi olarak eslesir ve "blueflyboutique.com"u yakardi (test).
     'mytheresa','smallable','vogacloset','style for less','styleforlessuae',
+    /* Floransa merkezli, kuresel olcekte buyuk cok markali luks e-ticaret
+       platformu (Net-a-Porter/Mytheresa ile ayni ligde) -- kucuk butik degil,
+       ayni satirdaki komsulariyla ayni sebepten disarida. 4 Eyl 2026, elle
+       verilen bir Milano/Roma listesinde customerservice@ adresiyle geldi. */
+    'luisaviaroma',
     // marka sahibi / lisans yoneticisi / kendi magazalari
     'bluestar alliance','bluestarall','bellerose',
     // AVM / outlet koyu / duty-free isletmecisi (butik degil, kiraci ya da imtiyaz)
