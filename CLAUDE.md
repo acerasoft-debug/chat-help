@@ -781,14 +781,36 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
   değil — Gmail görselleri kendi vekilinden çeker, sahte açılma üretir. Betiğin
   "GONDERILDI" satırı ise yalnızca "Brevo isteği kabul etti" demek. Üçü de
   "gördü" anlamına gelmez.
-- **AÇIK SORUN — `vestrasales.com`'da DKIM yok** (1 Eylül 2026 ölçümü):
-  `dogrulanmis=EVET` ama `dkim=YOK`, `brevo_code=YOK`, `dmarc=YOK`. Kimlik
-  doğrulaması olmayan alan adından gelen mektup Gmail'de büyük olasılıkla spam'e
-  düşer. Operatör 9 test mektubunu görmedi; Brevo dokuzuna da `delivered` yazmıştı.
-  Denetim: `diag-messages.yml` → `sender=true`. **Düzeltme DNS tarafında** (Brevo'nun
-  verdiği DKIM + doğrulama kayıtları alan adına eklenecek) — koddan çözülmez.
-  Müşteriye toplu gönderim yapmadan önce halledilmeli: spam'e düşen her mektup
-  gönderen alan adının itibarını daha da düşürüyor.
+- **AÇIK SORUN — teslimat: DKIM DNS'te VAR, ama SPF Brevo'yu içermiyor ve DMARC
+  `p=reject`** (4 Eylül 2026 ölçümü; 1 Eylül'ün "DKIM yok" notu **YANLIŞTI**).
+  `diag-messages.yml` → `sender=true` artık üç kaynağı birden basıyor: Brevo'nun
+  bayrağı, Brevo'nun verdiği kayıtlar ve **kaydın DNS'te gerçekten çözülüp
+  çözülmediği**. Ölçülen:
+
+  | Kayıt | DNS'te | Not |
+  |---|---|---|
+  | `brevo1._domainkey` CNAME → `b1.vestrasales-com.dkim.brevo.com` | **VAR** | |
+  | `brevo2._domainkey` CNAME → `b2.vestrasales-com.dkim.brevo.com` | **VAR** | |
+  | `@` TXT `brevo-code:753435ab…` | **VAR** | |
+  | SPF `v=spf1 include:secureserver.net -all` | VAR | **Brevo YOK**, üstelik `-all` (sert ret) |
+  | DMARC `v=DMARC1; p=reject; rua=…onsecureserver.net` | VAR | **`p=reject`** — Brevo'nunki (`p=none`) değil |
+
+  **Çelişki ve çözümü:** Brevo'nun liste ucu hâlâ `dkim=YOK` diyor ama kayıtlar
+  yayında. En tutarlı açıklama: kayıtlar DNS'e girilmiş fakat **Brevo panelinde
+  "authenticate/doğrula" adımı hiç tamamlanmamış**, dolayısıyla Brevo mektubu
+  `vestrasales.com` ile İMZALAMIYOR. O zaman DKIM hizalanmaz, SPF de Brevo'yu
+  içermediği için başarısız olur ve **`p=reject` yüzünden mektup spam'e düşmez,
+  doğrudan REDDEDİLİR**. Operatörün 9 test mektubunu hiç görmemesi bununla
+  birebir örtüşüyor; Brevo yine `delivered` yazar.
+  **Yapılacaklar (kod değil):** (1) Brevo panelinde alan adını doğrula — kayıtlar
+  zaten yerinde, tek tık; (2) GoDaddy'de SPF'e Brevo'yu ekle:
+  `v=spf1 include:secureserver.net include:spf.brevo.com -all`; (3) Brevo'da
+  gönderen olarak `support@vestrasales.com` kayıtlı değil, **yalnızca operatörün
+  Gmail'i** var — kod bu adresle gönderiyor, eklenmeli. Üçü tamamlanmadan toplu
+  gönderim yapma.
+  **Ders (yedinci vaka):** bu tespit üç yanlış ölçümden sonra çıktı — liste ucu
+  kayıtları hiç döndürmüyordu, sonra DNS döngüsü boş listeyi gezip `0/0` basıp
+  bunu "EKSİK VAR" diye özetledi. *Sıfır kontrol edilen, sıfır bulunan değildir.*
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
