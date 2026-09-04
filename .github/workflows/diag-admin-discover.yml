@@ -15,7 +15,7 @@ on:
         required: false
         default: ""
       kuloglu:
-        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
+        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
       kuloglu_image:
@@ -871,6 +871,43 @@ jobs:
               exit(0);
             }
 
+            // Ceviri, 638 urunun her birini ayri ayri elle yazmak yerine TEKRAR EDEN,
+            // SONLU kelime dagarcigina uygulanacak: marka+model disinda kalan baslik
+            // kelimeleri (SÜTYEN, TOPARLAYICI, DESTEKSIZ...), kategori adlari, renkler,
+            // bedenler. Bu mod hicbir sey yazmaz -- yalnizca o dagarcigi essiz/sayimli
+            // dokup log'a basar, ceviri sozlugu ELLE (bu depodaki her ceviri gibi)
+            // kurulsun diye.
+            if ($mode === 'vocab') {
+              $existing = load_json($OUT_FILE, []);
+              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              $brands = []; $cats = []; $colors = []; $sizes = []; $words = [];
+              foreach ($existing as $rec) {
+                if (!empty($rec['brand'])) $brands[$rec['brand']] = ($brands[$rec['brand']] ?? 0) + 1;
+                if (!empty($rec['category'])) $cats[$rec['category']] = ($cats[$rec['category']] ?? 0) + 1;
+                foreach ($rec['colors'] ?? [] as $c) $colors[$c] = ($colors[$c] ?? 0) + 1;
+                foreach ($rec['sizes'] ?? [] as $s) $sizes[$s] = ($sizes[$s] ?? 0) + 1;
+                $title = $rec['title'] ?? ''; $brand = $rec['brand'] ?? '';
+                $rest = $brand !== '' ? trim(str_ireplace($brand, '', $title)) : $title;
+                foreach (preg_split('/\s+/u', $rest) as $w) {
+                  $w = trim($w);
+                  if ($w === '' || preg_match('/^[0-9]+[A-Z0-9.\-]*$/u', $w)) continue; // model no, e.g. 0063, 6438-B
+                  $words[$w] = ($words[$w] ?? 0) + 1;
+                }
+              }
+              arsort($brands); arsort($cats); arsort($colors); arsort($sizes); arsort($words);
+              printf("-- marka (essiz=%d) --\n", count($brands));
+              foreach ($brands as $k=>$n) printf("  %-30s %d\n", $k, $n);
+              printf("\n-- kategori (essiz=%d) --\n", count($cats));
+              foreach ($cats as $k=>$n) printf("  %-40s %d\n", $k, $n);
+              printf("\n-- renk (essiz=%d) --\n", count($colors));
+              foreach ($colors as $k=>$n) printf("  %-20s %d\n", $k, $n);
+              printf("\n-- beden (essiz=%d) --\n", count($sizes));
+              foreach ($sizes as $k=>$n) printf("  %-20s %d\n", $k, $n);
+              printf("\n-- baslikta marka/model disi kelimeler (essiz=%d, >=2 kez gecenler) --\n", count($words));
+              foreach ($words as $k=>$n) { if ($n >= 2) printf("  %-25s %d\n", $k, $n); }
+              exit(0);
+            }
+
             // crawl'un "zaten basarili" atlama mantigi URL'in dosyada olup olmadigina
             // bakiyor, dogruluguna degil -- parser mantigi degistiginde (bu depoda tam
             // olarak oldu: tek-eksenli asorti tablosu duzeltmesi) eski, hatali kayitlarla
@@ -935,7 +972,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|reset|status\n");
             exit(1);
 
 
