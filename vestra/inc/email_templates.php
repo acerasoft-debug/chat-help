@@ -1178,11 +1178,18 @@ function vestra_tpl_order_payment_due(string $buyerName, string $ref, string $in
  * ilk hatirlatmayla baslamis durumda ve bu mektup onu ne uzatir ne kisaltir.
  * Uydurma bir tarih yazmak, sistemin gercekten yapacagi seyle celisirdi.
  *
- * $suspend: hesabin askiya alinacagi cumlesi. Sistem bunu KENDILIGINDEN YAPMAZ
- * (cron_order_payment.php yalnizca siparisi iptal eder; askiya alma yalnizca
- * satici belgeleri icin var) -- operatorun panelden elle yapmasi gereken bir
- * karardir. Bu yuzden varsayilan false: yapilmayacak bir tehdit, musteriyi
- * bizim mektuplarimizi ciddiye almamaya egitir.
+ * $suspend: askiya alma cumlesi. Operator karari (4 Eyl 2026): "TEKRARLANANLARDA
+ * hesabi askiya alma hakkimizi sakli tutuyoruz" -- yani bu mektup askiya almayi
+ * DUYURMAZ, hakki sakli tutar. Bu ayrim onemli:
+ *   - Tek bir odenmemis siparis icin askiya alma orantisiz. Karsi taraf KYB
+ *     onayli, belgesi kabul edilmis bir sirket; gec odeme kotu niyet degildir
+ *     ve siparisin otomatik iptali zaten saticiyi koruyor.
+ *   - Sistem askiya almayi kendiliginden YAPMIYOR (cron_order_payment.php yalnizca
+ *     iptal eder; askiya alma satici belgeleri icin var). "Hesabiniz askiya
+ *     alinacak" yazmak, yerine getirilmeyecek bir tehdit olurdu ve musteriyi
+ *     bir sonraki mektubu ciddiye almamaya egitirdi.
+ *   - Sakli tutulan bir hak ise dogru: TEKRAR eden bir davranista operator
+ *     panelden askiya alabilir ve mektup bunu onceden soylemis olur.
  */
 function vestra_tpl_order_payment_final(string $buyerName, string $ref, string $invoiceNo,
         float $total, string $currency, string $deadlineDate, bool $hasAccount,
@@ -1204,9 +1211,10 @@ function vestra_tpl_order_payment_final(string $buyerName, string $ref, string $
     ];
     if ($hasAccount) $opts['button'] = ['label'=>'Send my payment receipt', 'url'=>$uploadUrl];
 
-    $consequence = $suspend
-        ? "the order will be cancelled, the goods will be released for sale to other buyers, and your account will be suspended."
-        : "the order will be cancelled and the goods will be released for sale to other buyers.";
+    $consequence = "the order will be cancelled and the goods will be released for sale to other buyers."
+        . ($suspend
+            ? " Where orders are left unpaid repeatedly, we reserve the right to suspend the account."
+            : "");
 
     $body =
         "Dear {$buyerName},\n\n"
