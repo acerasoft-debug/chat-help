@@ -468,29 +468,39 @@ jobs:
               // without a fallback the scan kept walking past the whole page looking
               // for a hyphen and eventually matched a "Tüm hakları saklıdır. -"
               // fragment in the footer as if it were variant #1, reporting a wildly
-              // wrong parsed count. Bare-label rows are matched by exact membership in
-              // whichever single axis is non-empty; when BOTH are non-empty we require
-              // the hyphenated pair (matches every 2-axis product seen so far) so a
-              // color name that happens to equal a size string can't false-positive.
-              // Either way the scan window is also hard-bounded past declaredCount
-              // rows' worth of lines so a pattern miss can never again wander into
-              // unrelated page content — declaredCount comes from the table's own
-              // "Asorti Tablo (N)" heading, not a guess.
+              // wrong parsed count. The SAME bare-label shape also showed up on two
+              // more real products (BELENG 1020/1021, found via a declared!=parsed
+              // audit of the full 638-product crawl) that have exactly ONE colour
+              // (e.g. just "TEN") and several sizes: with only one colour to choose,
+              // the site drops the now-redundant "TEN - " prefix from every row too —
+              // so a single-valued axis gets the same bare-label treatment as a
+              // genuinely empty one, except the known single value is filled in on
+              // every row (we DO know the colour, the row label just doesn't repeat
+              // it) rather than left null. Bare-label rows are matched by exact
+              // membership in whichever axis is empty-or-singleton; when BOTH axes
+              // have 2+ values we require the hyphenated pair (matches every such
+              // product seen so far) so a colour name that happens to equal a size
+              // string can't false-positive. Either way the scan window is also
+              // hard-bounded past declaredCount rows' worth of lines so a pattern miss
+              // can never again wander into unrelated page content — declaredCount
+              // comes from the table's own "Asorti Tablo (N)" heading, not a guess.
               $variants = [];
               if ($iAsorti >= 0) {
                 $scanFrom = $iAsorti + 1;
                 if (isset($lines[$scanFrom]) && stripos($lines[$scanFrom], 'Varyant') !== false) $scanFrom++;
                 $scanCap = min(count($lines), $scanFrom + $declaredCount * 6 + 30);
-                $singleAxis = null;
-                if (empty($colors) && !empty($sizes)) $singleAxis = ['sizes', $sizes];
-                elseif (empty($sizes) && !empty($colors)) $singleAxis = ['colors', $colors];
+                $singleAxis = null; $impliedColor = null; $impliedSize = null;
+                if (empty($colors) && !empty($sizes)) { $singleAxis = ['sizes', $sizes]; }
+                elseif (empty($sizes) && !empty($colors)) { $singleAxis = ['colors', $colors]; }
+                elseif (count($colors) === 1 && count($sizes) > 1) { $singleAxis = ['sizes', $sizes]; $impliedColor = $colors[0]; }
+                elseif (count($sizes) === 1 && count($colors) > 1) { $singleAxis = ['colors', $colors]; $impliedSize = $sizes[0]; }
                 $rowStarts = []; // each: [lineIdx, color|null, size|null]
                 for ($i = $scanFrom; $i < $scanCap; $i++) {
                   $ln = $lines[$i];
                   if (preg_match('/^(.+?)\s-\s(.+)$/u', $ln, $vm)) {
                     $rowStarts[] = [$i, trim($vm[1]), trim($vm[2])];
                   } elseif ($singleAxis !== null && in_array($ln, $singleAxis[1], true)) {
-                    $rowStarts[] = $singleAxis[0] === 'sizes' ? [$i, null, $ln] : [$i, $ln, null];
+                    $rowStarts[] = $singleAxis[0] === 'sizes' ? [$i, $impliedColor, $ln] : [$i, $ln, $impliedSize];
                   } else {
                     continue;
                   }
