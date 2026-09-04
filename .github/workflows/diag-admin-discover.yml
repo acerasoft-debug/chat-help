@@ -187,7 +187,7 @@ jobs:
             }
             printf("-- LINKLER (%d benzersiz) --\n", count($links));
             foreach (array_slice($links, 0, 150) as [$abs, $text]) {
-              printf("  %-70s %s\n", mb_substr($abs, 0, 70), mb_substr($text, 0, 40));
+              printf("  %-100s %s\n", mb_substr($abs, 0, 200), mb_substr($text, 0, 40));
             }
             if (count($links) > 150) echo "  ... (" . (count($links) - 150) . " tane daha, kirpildi)\n";
 
