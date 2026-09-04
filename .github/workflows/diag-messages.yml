@@ -392,6 +392,10 @@ jobs:
                    zaten herkese acik DNS'te yayinlanacak. API ANAHTARI basilmaz. */
                 echo "\n===== DNS'E EKLENECEK KAYITLAR (GoDaddy) =====\n";
                 $printed = 0;
+                /* Dogrulama icin toplaniyor: asagidaki DNS adimi BU listeyi gezer.
+                   Ilk yazimda liste ucunun (bos) dizisini geziyordu ve "0/0" basti --
+                   yani "kayit yok" degil "kontrol edecek sey bulamadim" demekti. */
+                $toVerify = [];
                 foreach ((array)($d['domains'] ?? []) as $dom) {
                   $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '?');
                   $recs = (array)($dom['dns_records'] ?? []);
@@ -426,6 +430,8 @@ jobs:
                     echo "     Name : {$host}\n";
                     echo "     Value: ".(strlen($val) > 100 ? "(asagidaki parcalari BOSLUKSUZ birlestir)\n            ".implode("\n            ", str_split($val, 100)) : $val)."\n";
                     $printed++;
+                    $h2 = trim($host, '.');
+                    $toVerify[] = [($h2 === '@' ? $n : (str_ends_with($h2, $n) ? $h2 : $h2.'.'.$n)), $type, $val];
                   }
                 }
                 if (!$printed) echo "  (kayit yok — alan adi Brevo'ya hic eklenmemis olabilir)\n";
@@ -447,20 +453,9 @@ jobs:
                   }
                   return $hit;
                 };
-                $dnsOk = 0; $dnsTot = 0;
-                foreach ((array)($d['domains'] ?? []) as $dom) {
-                  $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '');
-                  if ($n === '') continue;
-                  foreach ((array)($dom['dns_records'] ?? []) as $r) {
-                    if (!is_array($r)) continue;
-                    $h = trim((string)($r['host_name'] ?? ''), '.');
-                    if ($h === '' ) continue;
-                    /* Brevo host adini bazen kisa ("brevo1._domainkey"), bazen tam yazar. */
-                    $fq = ($h === '@') ? $n : (str_ends_with($h, $n) ? $h : $h.'.'.$n);
-                    $dnsTot++;
-                    if ($dnsChk($fq, strtoupper((string)($r['type'] ?? 'TXT')), (string)($r['value'] ?? ''))) $dnsOk++;
-                  }
-                }
+                $dnsOk = 0; $dnsTot = count($toVerify);
+                foreach ($toVerify as [$fq, $ty, $vl]) if ($dnsChk($fq, $ty, $vl)) $dnsOk++;
+                if (!$dnsTot) echo "  (Brevo hic kayit dondurmedi — kontrol edilecek sey yok)\n";
                 echo "  --> DNS'te bulunan: {$dnsOk}/{$dnsTot}\n";
                 $summary[] = "DNS kaydi yayinda: {$dnsOk}/{$dnsTot}"
                            . ($dnsTot && $dnsOk === $dnsTot ? " (DKIM/DMARC KURULU)" : " (EKSIK VAR)");
