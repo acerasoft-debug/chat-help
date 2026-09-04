@@ -18,6 +18,10 @@ on:
         description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
+      kuloglu_image:
+        description: "Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, base64 olarak günlüğe basar (WeTransfer fotoğraf inceleme adımıyla aynı ilke: gizli-değer maskeleme tabana bitişik karakterleri bozmasın diye |spaced eklenir). Salt okunur, sunucuya hiçbir şey kaydetmez."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -811,4 +815,49 @@ jobs:
             php -l /tmp/vestra_kuloglu.php
             php /tmp/vestra_kuloglu.php; RC=$?
             rm -f /tmp/vestra_kuloglu.php
+            exit $RC
+
+      # Tek bir urun fotografini gostermek icin: bu ortamdan kuloglutekstil.com.tr'a
+      # dogrudan cikis yasak, o yuzden ayni "sunucudan cek, base64 olarak logla" kalibi
+      # (wetransfer_probe'un fotograf sayfalari ile ayni ilke). |spaced: Actions gizli
+      # deger maskelemesi (ör. DEPLOY_PORT="22") base64'un icinde bitisik gecen rakamlari
+      # da bozuyor -- araya bosluk girince hicbir gizli deger bitisik gecmiyor.
+      - name: "Kuloglu tek fotograf (base64, sunucudan)"
+        if: ${{ github.event.inputs.kuloglu_image != '' }}
+        env:
+          IMG_URL: ${{ github.event.inputs.kuloglu_image }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: IMG_URL
+          script: |
+            cat > /tmp/vestra_kuloglu_img.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $url = trim((string)getenv('IMG_URL'));
+            if ($url === '' || !preg_match('#^https://www\.kuloglutekstil\.com\.tr/#', $url)) {
+              fwrite(STDERR, "gecersiz url (yalnizca kuloglutekstil.com.tr)\n"); exit(1);
+            }
+            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true, CURLOPT_MAXREDIRS=>5,
+              CURLOPT_TIMEOUT=>25, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_USERAGENT=>$UA]);
+            $bin = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $ctype = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+            $err = curl_error($ch);
+            curl_close($ch);
+            printf("HTTP %s   content-type=%s   bayt=%d   %s\n", $code ?: '000', $ctype ?: '?', strlen((string)$bin), $err);
+            if (!$bin || $code < 200 || $code >= 300) { fwrite(STDERR, "indirilemedi\n"); exit(1); }
+            echo "IMG_B64_BEGIN\n";
+            foreach (str_split(base64_encode($bin), 4000) as $ln) echo implode(' ', str_split($ln))."\n";
+            echo "IMG_B64_END\n";
+            PHPEOF
+            php -l /tmp/vestra_kuloglu_img.php
+            php /tmp/vestra_kuloglu_img.php; RC=$?
+            rm -f /tmp/vestra_kuloglu_img.php
             exit $RC
