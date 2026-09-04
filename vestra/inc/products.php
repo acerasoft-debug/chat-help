@@ -1082,15 +1082,35 @@ function vestra_order_has_seller_sku(array $orderRow, array $sellerSkus): bool {
  * Nominative use only: naming a brand we hold genuine EEA stock of. Nothing here claims
  * to be an official or authorised dealer, which is why no such word appears.
  */
+/**
+ * Houses in stock, DEEPEST FIRST — most listings, then alphabetically.
+ *
+ * The order used to be plain alphabetical, and every caller that takes only the first
+ * N inherited that: the homepage keyword tag and Organization.knowsAbout name 12, so
+ * with ~20 houses live the alphabet silently decided which ones the search engine was
+ * told about. Everything from J onwards fell off — including Lacoste (the deepest
+ * apparel house) and Pili Pérez (the entire 335-piece footwear collection). Measured
+ * on the live site 4 Sep 2026: "Valentino wholesale" was absent from all five language
+ * pages, which is what surfaced it (.github/workflows/seo-check.yml).
+ *
+ * Sorting by stock depth makes the cap keep the houses we can actually supply, and the
+ * brand wall on the homepage leads with them too. Callers that take the WHOLE list
+ * (slug lookup, sitemap, footer) are unaffected by order.
+ */
 function vestra_seo_brands(int $max = 14): array {
     static $all = null;
     if ($all === null) {
-        $all = [];
+        $counts = [];
         foreach (vestra_products() as $p) {
             $b = trim((string)($p['brand'] ?? ''));
-            if ($b !== '' && !in_array($b, $all, true)) $all[] = $b;
+            if ($b !== '') $counts[$b] = ($counts[$b] ?? 0) + 1;
         }
-        sort($all);
+        /* Count descending, name ascending on a tie — a deterministic order, so the
+           tags do not reshuffle between two requests with identical stock. */
+        uksort($counts, function ($a, $b) use ($counts) {
+            return [$counts[$b], $a] <=> [$counts[$a], $b];
+        });
+        $all = array_keys($counts);
     }
     return $max > 0 ? array_slice($all, 0, $max) : $all;
 }

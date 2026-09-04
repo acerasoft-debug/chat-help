@@ -61,6 +61,20 @@ $t('marka x kategori cifti listede',                          $p0 !== null && in
 $t('marka x kategori: marka + kategori suzgeci dolu doner',   $p0 !== null && count(array_filter(vestra_seo_resolve(vestra_seo_cat_slug($first))['items'], fn($x) => strcasecmp($x['brand'], $p0['brand']) === 0)) > 0);
 $t('marka sayfasi kategori cipleri: vestra_seo_brand_cats',   $p0 !== null && isset(vestra_seo_brand_cats($p0['brand'])[$first]));
 
+echo "-- marka sirasi: stok derinligi (alfabe DEGIL) --\n";
+/* 4 Eyl 2026 canli olcumu: anahtar kelime etiketi 12 marka basiyor ve liste alfabetikti,
+   yani ~20 markali canli katalogda J'den sonrasi (Lacoste, Pili Perez, Ralph Lauren,
+   Valentino, Versace...) arama motoruna HIC soylenmiyordu. Sira artik ilan sayisina gore. */
+$brandCounts = vestra_seo_count_brands(vestra_products());
+$ordered = vestra_seo_brands(0);
+$t('marka listesi ilan sayisina gore azalan',        array_map(fn($b) => $brandCounts[$b], $ordered)
+                                                     === (function($v){ rsort($v); return $v; })(array_map(fn($b) => $brandCounts[$b], $ordered)));
+$t('en derin marka listenin basinda',                 $ordered && $ordered[0] === array_key_first($brandCounts));
+$t('tum markalar listede (kesme yok, max=0)',         count($ordered) === count($brandCounts));
+$t('kapak: max=1 en derin markayi verir',             vestra_seo_brands(1) === [$ordered[0]]);
+$t('siralama deterministik (iki cagri ayni)',         vestra_seo_brands(0) === $ordered);
+$t('anahtar kelimeler en derin markayi icerir',       str_contains(vestra_seo_brand_keywords('en', 12), $ordered[0]));
+$t('slug cozumu siradan bagimsiz calisir',            vestra_brand_from_slug(vestra_brand_slug($ordered[0])) === $ordered[0]);
 echo "-- hreflang --\n";
 $map = vlang_hreflang_map();
 $langs = array_keys(vlang_list());
