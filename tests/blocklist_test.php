@@ -356,6 +356,22 @@ $t('Porter Store gecer',       !$blocked('Porter Store Lisboa','info@porterstore
 $t('Magee Fashion Cork gecer', !$blocked('Magee Fashion Cork','info@mageefashion.ie','mageefashion.ie'));
 $t('Foot Corner Praha gecer',  !$blocked('Foot Corner Praha','info@footcorner.cz','footcorner.cz'));
 
+echo "\n== 13c. Almanya partisi — kendi etiketini ureten markalar ==\n";
+/* Ikisi de listede "bagimsiz magaza" diye geldi ama operatorun kendi tarifi
+   marka oldugunu soyluyor: Pegador "premium sokak modasi ... bagimsiz dev
+   MARKA", Stay Cold Apparel "giyim/hoodie TASARIMI ve satisi yapan". Kendi
+   etiketini ureten bir firma bizden parti almaz -- KURAL 1'in "kendi markasini
+   satan" dali. */
+$t('Pegador',           $blocked('Pegador Streetwear','info@pegador.com','pegador.com'));
+$t('Stay Cold Apparel', $blocked('Stay Cold Apparel','info@staycoldapparel.com','staycoldapparel.com'));
+/* 'pegador' Ispanyolca/Portekizce bir kelime; alt dize arandiginda gercek bir
+   dukkani elerdi, o yuzden exact_only'de. */
+$t('Pegadores Moda gecer', !$blocked('Pegadores Moda','info@pegadoresmoda.es','pegadoresmoda.es'));
+/* Ayni partideki digerleri gecmeli: hepsi cok markali bagimsiz butik. */
+$t('Asphalt Gold gecer',   !$blocked('Asphalt Gold','info@asphaltgold.de','asphaltgold.de'));
+$t('AFEW Store gecer',     !$blocked('AFEW Store','info@afew-store.com','afew-store.com'));
+$t('Label Kitchen gecer',  !$blocked('Label Kitchen','info@labelkitchen.de','labelkitchen.de'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));

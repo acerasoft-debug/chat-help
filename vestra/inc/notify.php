@@ -755,6 +755,13 @@ function vestra_discover_blocklist(): array {
        partide elle cikarildi; adi listeye girmedi. */
     'trussardi','krizia','stefanel','fracomina','carla g','sartoria rossi',
     'omorovicza','magee 1866','magee1866',
+    /* Ayni gun, Almanya (Dusseldorf/Berlin) partisi. Ikisi de listede "bagimsiz
+       magaza" diye geldi ama operatorun kendi tarifi marka oldugunu soyluyor:
+       Pegador "premium sokak modasi ... bagimsiz dev MARKA", Stay Cold Apparel
+       "giyim/hoodie TASARIMI ve satisi yapan". Kendi etiketini ureten bir firma
+       bizden parti almaz. 'pegador' Ispanyolca/Portekizce bir kelime oldugu icin
+       exact_only'de -- alt dize aranirsa gercek bir dukkani elerdi. */
+    'pegador','stay cold apparel','staycoldapparel',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -882,7 +889,11 @@ function vestra_blocklist_exact_only(): array {
                 bir Italyan soyadi, yani gercek bir cok markali butik sessizce
                 elenirdi. Test bunu ekledigim anda yakaladi. Ad tarafinda kelime
                 siniri Stefanel'i zaten Stefanelli'den ayiriyor. */
-             'stefanel'] as $t){
+             'stefanel',
+             /* Ayni gun, Almanya partisi: 'pegador' Ispanyolca/Portekizce bir
+                kelime (kapan/tutucu) ve baska adlarin icinde gecebilir; alt dize
+                arandiginda gercek bir dukkani sessizce elerdi. */
+             'pegador'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
