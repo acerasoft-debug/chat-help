@@ -365,6 +365,18 @@ jobs:
               return -1;
             }
 
+            // A saved record is "stale" (needs re-crawling, not treated as done) when
+            // it declared a variant count but didn't actually parse that many rows —
+            // exactly the shape the pre-fix single-axis assortment-table bug produced
+            // (declared 16, parsed 1, that one row being page-footer text). A record
+            // with no table at all (declared === null, a genuine single-SKU product)
+            // is never stale. Shared by 'crawl' (decides what to skip vs re-fetch) and
+            // 'status' (reports the count) so the two can't drift out of sync.
+            function kuloglu_record_is_stale(array $rec): bool {
+              $declared = $rec['variant_count_declared'] ?? null;
+              return $declared !== null && $declared !== ($rec['variant_count_parsed'] ?? null);
+            }
+
             // Labels this page is known to render as their own line. Blank-line
             // stripping in visible_lines() means a genuinely EMPTY value (an empty
             // <dd></dd>, e.g. an unbranded accessory's "Marka") leaves no line behind
@@ -690,15 +702,27 @@ jobs:
               $urls = load_json($URLS_FILE, null);
               if (!is_array($urls)) { fwrite(STDERR, "product_urls.json yok/okunamadi -- once list_urls calistir\n"); exit(1); }
 
+              // A record saved by a pre-fix crawler (declaredCount != parsed variant
+              // count — the exact shape of the single-axis assortment-table bug fixed
+              // 4 Sep 2026) is NOT treated as "already done": it's left out of $byUrl
+              // so the loop below re-fetches and overwrites it. Anything that parsed
+              // cleanly (or genuinely has no variant table at all — declared === null)
+              // is left alone, so a repeat run only re-touches the products that were
+              // actually wrong instead of re-fetching all 638 out of politeness.
               $existing = load_json($OUT_FILE, []);
-              $byUrl = [];
-              foreach ($existing as $rec) if (isset($rec['url'])) $byUrl[$rec['url']] = $rec;
+              $byUrl = []; $staleN = 0;
+              foreach ($existing as $rec) {
+                if (!isset($rec['url'])) continue;
+                if (kuloglu_record_is_stale($rec)) { $staleN++; continue; }
+                $byUrl[$rec['url']] = $rec;
+              }
               $failures = load_json($FAIL_FILE, []);
               $failByUrl = [];
               foreach ($failures as $rec) if (isset($rec['url'])) $failByUrl[$rec['url']] = $rec;
 
               $slice = array_slice($urls, $start, $count);
               printf("kuyruk toplam=%d, bu parti [%d..%d) = %d url\n", count($urls), $start, $start+count($slice), count($slice));
+              if ($staleN > 0) printf("eski (declared!=parsed) kayittan yeniden cekilecek: %d -- bunlar 'zaten vardi' sayilmiyor\n", $staleN);
 
               $okN=0; $failN=0; $skipN=0; $thisBatchFails = [];
               $t0 = microtime(true);
@@ -758,14 +782,16 @@ jobs:
               printf("kalan (henuz denenmemis)     : %d\n", count(array_filter($remaining, fn($u)=>!in_array($u, array_column($failures,'url'), true))));
               if ($existing) {
                 printf("dosya boyutu (bayan_sutyen.json): %d bayt\n", filesize($OUT_FILE));
-                $priceUniform = 0; $priceVaries = 0;
+                $priceUniform = 0; $priceVaries = 0; $staleN = 0;
                 foreach ($existing as $rec) {
                   $ps = array_unique(array_map(fn($v)=>$v['price_try']??null, $rec['variants']??[]));
                   $qs = array_unique(array_map(fn($v)=>$v['pack_qty']??null, $rec['variants']??[]));
                   if (count($ps)<=1 && count($qs)<=1) $priceUniform++; else $priceVaries++;
+                  if (kuloglu_record_is_stale($rec)) $staleN++;
                 }
                 printf("tek fiyat/adetli urun         : %d\n", $priceUniform);
                 printf("varyant bazli farkli fiyatli  : %d\n", $priceVaries);
+                if ($staleN > 0) printf("*** eski/hatali kayit (declared!=parsed, 'crawl' bunlari kendiliginden yeniden cekecek): %d ***\n", $staleN);
               }
               if ($failures) {
                 echo "\nhata nedenleri (gruplu):\n";
@@ -778,6 +804,7 @@ jobs:
             }
             fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|status\n");
             exit(1);
+
 
 
             PHPEOF
