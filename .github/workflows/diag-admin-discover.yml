@@ -191,6 +191,27 @@ jobs:
             }
             if (count($links) > 150) echo "  ... (" . (count($links) - 150) . " tane daha, kirpildi)\n";
 
+            // Gorseller: src (data-src/data-original lazy-load kaliplariyla birlikte)
+            // mutlak adrese cevrilir, alt metniyle. Urun fotograflarinin nereden
+            // geldigini gormek icin -- <a href> listesi bunu yakalamiyor.
+            $imgSeen = []; $imgs = [];
+            foreach ($doc->getElementsByTagName('img') as $im) {
+              foreach (['src', 'data-src', 'data-original', 'data-lazy'] as $attr) {
+                $src = trim((string)$im->getAttribute($attr));
+                if ($src === '' || str_starts_with($src, 'data:')) continue;
+                $abs = $resolve($src);
+                if ($abs === '' || isset($imgSeen[$abs])) continue;
+                $imgSeen[$abs] = true;
+                $imgs[] = [$abs, trim((string)$im->getAttribute('alt'))];
+                break;
+              }
+            }
+            printf("-- GORSELLER (%d benzersiz) --\n", count($imgs));
+            foreach (array_slice($imgs, 0, 60) as [$abs, $alt]) {
+              printf("  %-100s %s\n", mb_substr($abs, 0, 200), mb_substr($alt, 0, 40));
+            }
+            if (count($imgs) > 60) echo "  ... (" . (count($imgs) - 60) . " tane daha, kirpildi)\n";
+
             // Govde metni: script/style temizlenmis agactan. Bos/whitespace-only
             // satirlar atiliyor -- her sayfada tekrar eden nev menusu tek basina
             // binlerce bos satir uretiyor ve asil icerigi (urun basligi/fiyati)
