@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
       kuloglu_image:
-        description: "Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, base64 olarak günlüğe basar (WeTransfer fotoğraf inceleme adımıyla aynı ilke: gizli-değer maskeleme tabana bitişik karakterleri bozmasın diye |spaced eklenir). Salt okunur, sunucuya hiçbir şey kaydetmez."
+        description: "Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, İNCELEME için 520px'e küçültür (gerçek indirme/kaydetme adımı [images] buna dokunmuz, tam kalite orada) ve IMG_CHUNKS_BEGIN/END arasında 100 karakterlik kendi kontrol toplamı (CHK=) taşıyan küçük parçalar halinde günlüğe basar — export_enc'teki AYNI gerekçe: tam boyutlu bir görseli tek bir uzun blok halinde elle geri yazmak güvenilmez. Salt okunur, sunucuya hiçbir şey kaydetmez."
         required: false
         default: ""
 
@@ -1422,9 +1422,40 @@ jobs:
             curl_close($ch);
             printf("HTTP %s   content-type=%s   bayt=%d   %s\n", $code ?: '000', $ctype ?: '?', strlen((string)$bin), $err);
             if (!$bin || $code < 200 || $code >= 300) { fwrite(STDERR, "indirilemedi\n"); exit(1); }
-            echo "IMG_B64_BEGIN\n";
-            foreach (str_split(base64_encode($bin), 4000) as $ln) echo implode(' ', str_split($ln))."\n";
-            echo "IMG_B64_END\n";
+
+            /* Ekrana AKTARILACAK kopya kucultulur -- gercek indirme/kaydetme adimi
+               (images modu) buna dokunmuyor, tam kalite orada. Amac: goruntuyu
+               INCELEMEK (uzerinde Turkce metin/etiket var mi diye), tam boyutlu
+               bir fotografi (100-400KB) tek tek karakter kontrol toplamiyla parca
+               parca elle geri yazmak pratik degil -- export_enc'in AYNI dersi,
+               burada da gecerli. 520px uzun kenar + q=82: metin okunur kalirken
+               aktarim boyutu kucuk kaliyor. */
+            if (!function_exists('imagecreatefromstring')) { fwrite(STDERR, "GD yok -- kucultulemez\n"); exit(1); }
+            $img = @imagecreatefromstring($bin);
+            if (!$img) { fwrite(STDERR, "goruntu cozulemedi\n"); exit(1); }
+            $w = imagesx($img); $h = imagesy($img);
+            $maxSide = 520;
+            $scale = min(1.0, $maxSide / max($w, $h));
+            $nw = max(1, (int)round($w * $scale)); $nh = max(1, (int)round($h * $scale));
+            $out = $img;
+            if ($scale < 1.0) {
+              $out = imagecreatetruecolor($nw, $nh);
+              imagecopyresampled($out, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
+            }
+            ob_start(); imagejpeg($out, null, 82); $small = ob_get_clean();
+            if ($out !== $img) imagedestroy($out);
+            imagedestroy($img);
+            printf("kucultuldu: %dx%d -> %dx%d, %d bayt -> %d bayt\n", $w, $h, $nw, $nh, strlen($bin), strlen($small));
+
+            $b64 = base64_encode($small);
+            $chunks = str_split($b64, 100);
+            printf("parca sayisi=%d (parca basi <=100 karakter)\n", count($chunks));
+            printf("sha256(kucuk jpeg)=%s\n", hash('sha256', $small));
+            echo "IMG_CHUNKS_BEGIN\n";
+            foreach ($chunks as $i => $chunk) {
+              printf("C%03d %s CHK=%s\n", $i, implode(' ', str_split($chunk)), substr(hash('sha256', $chunk), 0, 12));
+            }
+            echo "IMG_CHUNKS_END\n";
             PHPEOF
             php -l /tmp/vestra_kuloglu_img.php
             php /tmp/vestra_kuloglu_img.php; RC=$?
