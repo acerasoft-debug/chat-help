@@ -687,8 +687,13 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
   nav sözlükleri de dil başına satır ister; hepsi `?? en` ile düşer artık.
 - **Arapça RTL**: `vlang_dir()` → `<html dir="rtl">` (`head.php`, `index.php`);
   flex/grid kendiliğinden aynalanır, `style.css` sonunda küçük bir `[dir="rtl"]`
-  bloğu var. **Görsel geçiş yapılmadı** (`tests/render` ile bakılmalı) — mutlak
-  konumlu birkaç öğe ters durabilir. Arapça metinlerde "ileri" okları `←`.
+  bloğu var. Arapça metinlerde "ileri" okları `←`.
+  **Görsel geçiş YAPILDI (4 Eyl 2026): 12 sayfa × 2 genişlik, RTL kaynaklı
+  gerileme 0** — `tests/render/rtl-check.js`. Betik her sayfayı önce İngilizce
+  sonra Arapça açıp yalnızca FARKI rapor eder; iki dilde de taşan öğe RTL sorunu
+  değildir. İlk sürümü bu ayrımı yapmıyordu ve kasıtlı yatay kaydırıcıların
+  (marka rayı, beden tablosu) çocuklarını "taşma" sanıp 24/24 sayfayı sorunlu
+  gösterdi. Ölçüm aracının kendi gürültüsünü elemeden rapor okuma.
 - Portekizce **pt-PT** (Portekiz); Brezilya `pt-BR` hreflang'ıyla aynı sayfaya gelir.
 - Legal metinleri (`inc/legal/`) ve SSS içerikleri (`inc/faq/`) pt/ru/ar için **yok**,
   İngilizceye düşerler — bilerek: hukuk metni sohbet çevirisiyle yazılmaz.

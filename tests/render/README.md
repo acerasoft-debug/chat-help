@@ -22,6 +22,25 @@ CHROME=... node auth.js                                                         
 Çıktı `tests/render/out/` (gitignore'da): `<sayfa>-<mobile|desktop>.png` tam sayfa,
 `-top.png` yalnızca ilk ekran (okunabilir olan bu), `report.json` / `auth-report.json`.
 
+## Arapça (RTL) kontrolü — `rtl-check.js`
+
+Site 8 dilde ve **Arapça sağdan sola** basılıyor (`vlang_dir()` → `<html dir="rtl">`).
+Bu betik her sayfayı **önce İngilizce, sonra Arapça** açar ve yalnızca **farkı**
+raporlar: iki dilde de taşan bir öğe RTL sorunu değildir.
+
+```sh
+CHROME=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell node rtl-check.js
+```
+
+İki tuzak bilerek ele alınıyor:
+- **Kasıtlı yatay kaydırıcılar** (marka rayı, beden tablosu) çocuklarını viewport
+  dışına taşırır; `overflow-x: auto/scroll` bir üst öğede varsa taşma sayılmaz.
+  İlk yazımda bu ayrım yoktu ve 24 görünümün 24'ü "sorunlu" çıktı.
+- **Engellenen dış istekler** (Google Fonts) her sayfada konsol hatası üretir;
+  bunlar hata değil, ölçüm kurulumunun kendisidir.
+
+4 Eylül 2026 ölçümü: 12 sayfa × 2 genişlik, **RTL kaynaklı gerileme 0**.
+
 Notlar:
 - Dış istekler (Google Fonts, CDN) bilerek engellenir; yoksa proxy'de asılı kalır.
   Rapordaki `fonts.googleapis.com ... ERR_FAILED` bu yüzden, hata değil.
