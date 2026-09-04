@@ -786,16 +786,20 @@ jobs:
               printf("kalan (henuz denenmemis)     : %d\n", count(array_filter($remaining, fn($u)=>!in_array($u, array_column($failures,'url'), true))));
               if ($existing) {
                 printf("dosya boyutu (bayan_sutyen.json): %d bayt\n", filesize($OUT_FILE));
-                $priceUniform = 0; $priceVaries = 0; $staleN = 0;
+                $priceUniform = 0; $priceVaries = 0; $staleN = 0; $staleUrls = []; $varyUrls = [];
                 foreach ($existing as $rec) {
                   $ps = array_unique(array_map(fn($v)=>$v['price_try']??null, $rec['variants']??[]));
                   $qs = array_unique(array_map(fn($v)=>$v['pack_qty']??null, $rec['variants']??[]));
-                  if (count($ps)<=1 && count($qs)<=1) $priceUniform++; else $priceVaries++;
-                  if (kuloglu_record_is_stale($rec)) $staleN++;
+                  if (count($ps)<=1 && count($qs)<=1) $priceUniform++; else { $priceVaries++; $varyUrls[] = $rec['url']??'?'; }
+                  if (kuloglu_record_is_stale($rec)) { $staleN++; $staleUrls[] = ($rec['url']??'?').' (decl='.($rec['variant_count_declared']??'?').' parsed='.($rec['variant_count_parsed']??'?').')'; }
                 }
                 printf("tek fiyat/adetli urun         : %d\n", $priceUniform);
                 printf("varyant bazli farkli fiyatli  : %d\n", $priceVaries);
-                if ($staleN > 0) printf("*** eski/hatali kayit (declared!=parsed, 'crawl' bunlari kendiliginden yeniden cekecek): %d ***\n", $staleN);
+                if ($varyUrls) { echo "  (farkli fiyatli urunler:)\n"; foreach ($varyUrls as $u) echo "   - $u\n"; }
+                if ($staleN > 0) {
+                  printf("*** eski/hatali kayit (declared!=parsed, 'crawl' bunlari kendiliginden yeniden cekecek): %d ***\n", $staleN);
+                  foreach ($staleUrls as $u) echo "   - $u\n";
+                }
               }
               if ($failures) {
                 echo "\nhata nedenleri (gruplu):\n";
