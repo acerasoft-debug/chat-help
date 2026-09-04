@@ -53,7 +53,7 @@ function dash_open($role,$section,$title,$subtitle=''){
     if($n[0]==='messages' && $unreadN>0) $label .= ' <span class="navdot">'.$unreadN.'</span>';
     echo '<a href="'.$n[2].'"'.($n[0]===$section?' class="on"':'').'>'.$label.'</a>';
   }
-  echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw').'</div>';
+  echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw','flat').'</div>';
   echo '<a class="signout" href="/login?signout=1">'.t('Sign out').'</a>';
   echo '</aside><main class="dashmain">';
 }

@@ -70,6 +70,46 @@ echo "\n== 7. CLI'da ag cagrisi yok ==\n";
    istek yapmamali. */
 $t('CLI vlang_from_ip() null', vlang_from_ip() === null);
 
+echo "\n== 8. Dil secici: kapaliyken tek kod ==\n";
+/* Sekiz kodu yan yana basmak ust cubukta ~150px yiyordu ve dil eklendikce
+   buyuyordu. Kapali hal artik tek kod + ok; sekizi de menude. Olculdu
+   (Playwright, 4 Eyl 2026): kapali 50x21 px, menu 110x124 px, tasma yok. */
+/* Baglanti kurulurken mevcut sorgu parametreleri KORUNMALI: dil degistiren
+   ziyaretci ayni sayfada kalmali, ?cat=returns'u kaybedip SSS'nin basina
+   dusmemeli. Parametreler $_GET'ten okunuyor, REQUEST_URI'den degil. */
+$_GET = ['cat' => 'returns'];
+$_SERVER['REQUEST_URI'] = '/faq?cat=returns';
+$menu = vlang_switcher();
+$t('menu kipi <details>',        str_starts_with($menu, '<details class="langsw">'));
+$t('kapali hal tek kod tasiyor', (bool)preg_match('/<span class="lswcur">[A-Z]{2}<\/span>/', $menu));
+$t('sekiz dilin sekizi de menude', substr_count($menu, '<a class="lsw') === count(vlang_list()));
+$t('panel kendi kabinda',        str_contains($menu, '<div class="lswmenu">'));
+$t('acilir ok var',              str_contains($menu, '<svg'));
+$t('ekran okuyucu icin ad var',  str_contains($menu, 'aria-label='));
+$t('hreflang korundu',           substr_count($menu, 'hreflang=') === count(vlang_list()));
+$t('sorgu parametresi korunuyor', str_contains($menu, 'cat=returns'));
+
+$flat = vlang_switcher('dashsw', 'flat');
+$t('duz kip <details> DEGIL',    !str_contains($flat, '<details'));
+$t('duz kipte de sekiz dil',     substr_count($flat, '<a class="lsw') === count(vlang_list()));
+
+/* Ayni menu ust cubukta para birimi seciciyle yan yana duruyor; ikisinin ayni
+   CSS ve ayni "disariya tiklayinca kapan" JS'ini paylasmasi bilincli. */
+$css  = file_get_contents($root . '/inc/style.css');
+$head = file_get_contents($root . '/inc/head.php');
+$t('CSS para birimi menusuyle paylasiliyor', str_contains($css, '.cursw,.langsw{'));
+$t('eski duz .langsw kurali kalmadi',        !str_contains($css, '.langsw{display:inline-flex'));
+$t('disariya tiklayinca kapanma JS kapsiyor', str_contains($head, 'details.langsw[open]'));
+$t('RTL panel sola hizalaniyor',             str_contains($css, '[dir="rtl"] .cswmenu,[dir="rtl"] .lswmenu'));
+
+/* Ana sayfa inc/style.css YUKLEMIYOR, kendi kopyasini tasiyor: isaretleme
+   ortak bilesenden gelse de stilin orada da bulunmasi sart. */
+$home = file_get_contents($root . '/index.php');
+$t('ana sayfa ortak bileseni kullaniyor',  str_contains($home, 'vlang_switcher()'));
+$t('ana sayfada elle yazilmis liste yok',  !str_contains($home, '<span class="sep">'));
+$t('ana sayfada menu stili var',           str_contains($home, '.lswmenu{position:absolute'));
+$t('ana sayfada kapanma JS var',           str_contains($home, "details.langsw[open]"));
+
 $n = $ok + $fail;
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);

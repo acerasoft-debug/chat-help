@@ -229,16 +229,14 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
   }
   .nav-links a:hover,.nav-links a.on{color:var(--acc);background:rgba(255,255,255,.03)}
   .nav-links .memberpill{align-self:flex-start;margin:12px 24px}
-  .nav-links .langsw{padding:14px 24px;gap:4px}
-  .nav-links .langsw .lsw{font-size:13px;padding:6px 10px}
   /* Cekmecede menuyu USTE bindirmiyoruz: .nav-links'te overlay-y:auto var, yani
      absolute bir panel kirpilirdi. Cekmece zaten sayfanin ustunde bir katman
      oldugu icin burada acilinca yer acmasi dogal duruyor. */
-  .nav-links .cursw{display:block;padding:0 24px 10px;margin-left:0;border-left:0}
-  .nav-links .cursw>summary{font-size:13px;padding:8px 10px;
+  .nav-links .cursw,.nav-links .langsw{display:block;padding:0 24px 10px;margin-left:0;border-left:0}
+  .nav-links .cursw>summary,.nav-links .langsw>summary{font-size:13px;padding:8px 10px;
     display:inline-flex;border:1px solid var(--line);border-radius:8px}
-  .nav-links .cswmenu{position:static;min-width:0;margin-top:6px;
-    flex-direction:row;flex-wrap:wrap;gap:6px;background:none;border:0;
+  .nav-links .cswmenu,.nav-links .lswmenu{position:static;min-width:0;margin-top:6px;
+    display:flex;flex-direction:row;flex-wrap:wrap;gap:6px;background:none;border:0;
     box-shadow:none;padding:0;backdrop-filter:none}
   .nav-links .cswmenu .csw{font-size:13px;padding:8px 12px;gap:8px;
     border:1px solid var(--line);border-radius:8px}
@@ -414,27 +412,23 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .thumb .vbadge,.thumb .modetag,.hero-thumb .modetag{z-index:3}
 
 /* language switcher (nav) */
-.langsw{display:inline-flex;gap:1px;align-items:center;margin-left:6px}
-.langsw .lsw{font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--mut);padding:3px 5px;border-radius:5px;line-height:1;text-decoration:none}
-.langsw .lsw.on{color:var(--ink);background:rgba(255,255,255,.10)}
-.langsw .lsw:hover{color:var(--ink)}
 /* Para birimi secici: ACILIR menu.
    Once dort kod yan yana duruyordu; baslikta yer kapliyordu. Simdi tek dugme,
    liste ASAGI ve sayfanin USTUNE aciliyor (position:absolute) -- acilirken
    hicbir seyi itmiyor. Bir menunun acilirken cevresini yerinden oynatmasi,
    kullanicinin tam tiklayacagi anda hedefi kaydirir. */
-.cursw{position:relative;display:inline-block;margin-left:10px;
+.cursw,.langsw{position:relative;display:inline-block;margin-left:10px;
   padding-left:10px;border-left:1px solid rgba(255,255,255,.12)}
-.cursw>summary{display:flex;align-items:center;gap:4px;cursor:pointer;
+.cursw>summary,.langsw>summary{display:flex;align-items:center;gap:4px;cursor:pointer;
   font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--mut);
   padding:3px 6px;border-radius:5px;line-height:1;list-style:none;
   user-select:none;transition:color .2s,background .2s}
-.cursw>summary::-webkit-details-marker{display:none}   /* Safari'nin ucgeni */
-.cursw>summary::marker{content:''}
-.cursw>summary:hover,.cursw[open]>summary{color:var(--ink);background:rgba(255,255,255,.10)}
-.cursw>summary svg{opacity:.65;transition:transform .18s ease}
-.cursw[open]>summary svg{transform:rotate(180deg)}
-.cswmenu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;
+.cursw>summary::-webkit-details-marker,.langsw>summary::-webkit-details-marker{display:none}   /* Safari'nin ucgeni */
+.cursw>summary::marker,.langsw>summary::marker{content:''}
+.cursw>summary:hover,.cursw[open]>summary,.langsw>summary:hover,.langsw[open]>summary{color:var(--ink);background:rgba(255,255,255,.10)}
+.cursw>summary svg,.langsw>summary svg{opacity:.65;transition:transform .18s ease}
+.cursw[open]>summary svg,.langsw[open]>summary svg{transform:rotate(180deg)}
+.cswmenu,.lswmenu{position:absolute;top:calc(100% + 8px);right:0;z-index:60;
   min-width:118px;padding:5px;display:flex;flex-direction:column;gap:1px;
   background:rgba(22,22,28,.98);backdrop-filter:saturate(140%) blur(14px);
   border:1px solid var(--line);border-radius:10px;
@@ -446,6 +440,15 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 .cswmenu .csw span{opacity:.6}
 .cswmenu .csw:hover{color:var(--ink);background:rgba(255,255,255,.07)}
 .cswmenu .csw.on{color:var(--ink);background:rgba(255,255,255,.10)}
+/* Dil menusu: sekiz kisa kod alt alta gereksiz uzun bir sutun olurdu (ekranin
+   yarisi kadar). Iki sutunluk grid hem daha az yer kapliyor hem de sekizini
+   tek bakista gosteriyor. */
+.lswmenu{min-width:0;padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.lswmenu .lsw{font-size:12px;font-weight:600;letter-spacing:.3px;color:var(--mut);
+  padding:7px 12px;border-radius:6px;line-height:1;text-decoration:none;
+  text-align:center;white-space:nowrap}
+.lswmenu .lsw:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+.lswmenu .lsw.on{color:var(--ink);background:rgba(255,255,255,.10)}
 /* Cevrim uyarisi: fiyatin yaninda degil, sayfanin ustunde tek satir -- her
    fiyatin altina yazmak gurultu olurdu, hic yazmamak ise yaniltici. */
 .curnote{font-size:11.5px;color:var(--mut);line-height:1.5;margin:0 0 14px;
@@ -945,3 +948,8 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 [dir="rtl"] input[type="email"],[dir="rtl"] input[type="url"],[dir="rtl"] input[type="number"]{direction:ltr;text-align:left}
 [dir="rtl"] .footseo a{margin:0 0 0 12px}
 [dir="rtl"] .wsbc,[dir="rtl"] .wsother{direction:rtl}
+/* Acilir menuler sag kenara sabitlenmis (right:0); RTL'de dugme solda kaldigi
+   icin panel ekranin disina tasardi. */
+[dir="rtl"] .cswmenu,[dir="rtl"] .lswmenu{right:auto;left:0}
+[dir="rtl"] .cursw,[dir="rtl"] .langsw{margin-left:0;margin-right:10px;
+  padding-left:0;padding-right:10px;border-left:0;border-right:1px solid rgba(255,255,255,.12)}

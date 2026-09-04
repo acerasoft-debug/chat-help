@@ -149,19 +149,44 @@ function vtrans(){
 /* translate (with English fallback) */
 function t($s){ $d=vtrans(); return isset($d[$s]) ? $d[$s] : $s; }
 
-/* language switcher markup; each link keeps the visitor on the SAME page and
- * preserves existing query params (e.g. ?doc=imprint), only overriding ?lang= */
-function vlang_switcher($class='langsw'){
+/* Dil secici. Her baglanti ziyaretciyi AYNI sayfada tutar ve mevcut sorgu
+ * parametrelerini korur (or. ?doc=imprint), yalnizca ?lang= degisir.
+ *
+ * Iki bicim var:
+ *   'menu' (varsayilan) — kapali dururken tek bir kod ("EN") + ok; tiklaninca
+ *      acilan panel. Sekiz dilin sekizini de yan yana basmak ust cubukta ciddi
+ *      yer kapliyordu ve dil sayisi arttikca daha da buyuyecekti.
+ *   'flat' — hepsi yan yana. Hesap panelindeki dil secici bunu kullaniyor:
+ *      orasi bir AYAR bolumu, yer sikintisi yok ve secenekleri gormek iyi.
+ *
+ * Isaretleme para birimi secicisiyle (vestra_cur_switcher) bilerek AYNI:
+ * <details>/<summary>, ayni sinif duzeni, ayni CSS kurallari, ayni "disariya
+ * tiklayinca kapan" JS'i. Ikisi ust cubukta yan yana duruyor; farkli davranan
+ * iki menu olmasi kullaniciya da, bakim yapana da bedel olurdu. */
+function vlang_switcher($class='langsw', $mode='menu'){
   $cur=vlang();
+  $langs=vlang_list();
   $path=parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
   $base=array_filter($_GET, function($k){ return $k!=='lang'; }, ARRAY_FILTER_USE_KEY);
-  $out='<div class="'.$class.'">';
-  foreach(vlang_list() as $code=>$label){
+
+  $links='';
+  foreach($langs as $code=>$label){
     $qs=http_build_query($base+['lang'=>$code]);
     $href=htmlspecialchars($path.'?'.$qs, ENT_QUOTES);
-    $out.='<a class="lsw'.($code===$cur?' on':'').'" href="'.$href.'" hreflang="'.$code.'">'.$label.'</a>';
+    $links.='<a class="lsw'.($code===$cur?' on':'').'" href="'.$href.'" hreflang="'.$code.'">'.$label.'</a>';
   }
-  return $out.'</div>';
+  if($mode!=='menu') return '<div class="'.$class.'">'.$links.'</div>';
+
+  $curLabel=$langs[$cur] ?? strtoupper($cur);
+  /* Baslikta hangi dilde oldugumuz yaziyor; ekran okuyucu icin de ad veriliyor
+     cunku "EN" tek basina bir dugmenin ne ise yaradigini soylemiyor. */
+  return '<details class="'.$class.'">'
+       . '<summary aria-label="'.htmlspecialchars(t('Language'), ENT_QUOTES).'"'
+       . ' title="'.htmlspecialchars(t('Language'), ENT_QUOTES).'">'
+       . '<span class="lswcur">'.htmlspecialchars($curLabel).'</span>'
+       . '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+       . ' stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></summary>'
+       . '<div class="lswmenu">'.$links.'</div></details>';
 }
 
 vlang(); // resolve language + set cookie before any output

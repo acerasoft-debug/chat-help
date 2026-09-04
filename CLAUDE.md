@@ -806,6 +806,29 @@ dönmek zorundadir"*).
   Testi: `tests/lang_from_ip_test.php` (45 iddia — tablo, sıra, maliyet
   korumaları ve CLI'da ağ çağrısı olmadığı).
 
+**Dil seçici: kapalıyken tek kod, tıklanınca açılır** (operatör, 4 Eyl 2026:
+*"dil bölümünü sakla, estetik bir şekilde üstüne tıklandığında aç, yer kaplamasın"*).
+- Sekiz kodu yan yana basmak üst çubukta ~150px yiyordu ve dil eklendikçe
+  büyüyordu. Ölçüldü (Playwright): **kapalı 50×21 px**, menü 110×124 px, yatay
+  taşma yok. Menü **iki sütunlu grid** — sekiz kısa kod alt alta gereksiz uzun
+  bir sütun olurdu.
+- İşaretleme **para birimi seçicisiyle aynı**: `<details>/<summary>`, aynı CSS
+  kuralları (`.cursw,.langsw{…}`), aynı "dışarıya tıklayınca/Escape kapan" JS'i.
+  İkisi üst çubukta yan yana duruyor; farklı davranan iki menü hem kullanıcıya
+  hem bakıma bedel olurdu.
+- **`vlang_switcher($class, $mode)`** — `menu` (varsayılan) ve `flat`. Düz kip
+  hesap panelinde ve mobil çekmecede: oralarda yer sıkıntısı yok, açılır menü
+  bir şey kazandırmaz.
+- **Ana sayfa `inc/style.css` YÜKLEMİYOR**, kendi kopyasını taşıyor. İşaretleme
+  artık ortak bileşenden geliyor ama stil orada da yazılı olmak zorunda. Bu iş
+  sırasında ana sayfanın **kendi elle yazılmış** dil listesi olduğu görüldü ve
+  o kopya çoktan ayrışmıştı: bağlantıları sorgu parametrelerini korumuyordu,
+  yani `/faq?cat=returns` sayfasında dil değiştiren SSS'nin başına düşüyordu.
+- Testi: `lang_from_ip_test.php` bölüm 8 (63 iddia toplam) — kapalı halin tek
+  kod olduğu, sekizinin de menüde durduğu, `hreflang` ve sorgu parametrelerinin
+  korunduğu, CSS/JS'in paylaşıldığı ve ana sayfada elle yazılmış liste
+  kalmadığı. RTL: `tests/render/rtl-check.js` 0 gerileme.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

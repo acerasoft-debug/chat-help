@@ -569,16 +569,34 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .nav-links>a:hover{color:var(--ink)}
   .nav-cta{border:1px solid var(--line);padding:9px 18px;border-radius:999px;color:var(--ink)!important;transition:.2s}
   .nav-cta:hover{border-color:var(--acc);color:var(--acc)!important}
-  .langs{display:flex;gap:9px;align-items:center}
-  .langs a{font-size:12.5px;color:var(--mut);transition:color .2s}
-  .langs a:hover{color:var(--ink)}
-  .langs a.on{color:var(--acc);font-weight:600}
-  .langs .sep{opacity:.3}
+  /* Dil secici (acilir). inc/style.css'teki para birimi menusuyle ayni davranis;
+     bu sayfa o dosyayi yuklemedigi icin kurallar burada tekrar yazili -- sayfanin
+     geri kalani da ayni sebeple kendi kopyasini tasiyor. */
+  .langsw{position:relative;display:inline-block}
+  .langsw>summary{display:flex;align-items:center;gap:5px;cursor:pointer;
+    font-size:12.5px;color:var(--mut);padding:4px 8px;border-radius:6px;
+    line-height:1;list-style:none;user-select:none;transition:color .2s,background .2s}
+  .langsw>summary::-webkit-details-marker{display:none}
+  .langsw>summary::marker{content:''}
+  .langsw>summary:hover,.langsw[open]>summary{color:var(--ink);background:rgba(255,255,255,.06)}
+  .langsw>summary svg{opacity:.6;transition:transform .18s ease}
+  .langsw[open]>summary svg{transform:rotate(180deg)}
+  .lswcur{font-weight:600;letter-spacing:.3px}
+  .lswmenu{position:absolute;top:calc(100% + 9px);right:0;z-index:60;
+    padding:5px;display:grid;grid-template-columns:1fr 1fr;gap:2px;
+    background:rgba(20,20,25,.98);backdrop-filter:saturate(140%) blur(14px);
+    border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 18px 40px -12px rgba(0,0,0,.65)}
+  .lswmenu a{font-size:12.5px;font-weight:600;letter-spacing:.3px;color:var(--mut);
+    padding:7px 14px;border-radius:6px;line-height:1;text-align:center;white-space:nowrap;
+    transition:color .2s,background .2s}
+  .lswmenu a:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+  .lswmenu a.on{color:var(--acc);background:rgba(201,168,106,.12)}
   .burger{display:none;background:none;border:0;cursor:pointer;padding:8px;color:var(--ink)}
   .mnav{display:none;border-top:1px solid var(--line);background:rgba(14,14,17,.97);backdrop-filter:blur(12px)}
   .mnav a{display:block;padding:16px 24px;border-bottom:1px solid var(--line);color:var(--ink);font-weight:500}
   .mnav .mlangs{display:flex;gap:16px;padding:16px 24px}
-  .mnav .mlangs a{border:0;padding:0;font-size:14px}
+  .mnav .mlangs a{border:0;padding:0;font-size:14px;color:var(--ink)}
   .mnav .mlangs a.on{color:var(--acc);font-weight:600}
   .mnav.open{display:block;animation:drop .25s ease}
   @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
@@ -945,9 +963,13 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
                redundant three centimetres from the wordmark, and it cost ~65px of header
                width in every language. */ ?>
       <a href="#why"><?= $t['why'] ?></a>
-      <span class="langs">
-        <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
-      </span>
+      <?php /* Sekiz dil kodunu nokta ayracla yan yana basmak ust cubukta ~150px
+               yiyordu ve dil eklendikce buyuyordu. Artik kapaliyken tek kod +
+               ok, tiklaninca aciliyor. Isaretleme inc/i18n.php'deki ORTAK
+               bileseneden geliyor (vlang_switcher): bu sayfa kendi kopyasini
+               tasiyordu ve iki kopya er gec ayrisirdi -- nitekim ayrismisti,
+               buradaki baglantilar sorgu parametrelerini korumuyordu. */ ?>
+      <?= vlang_switcher() ?>
       <?php if(!$LOGGED): ?><a href="/login" class="nav-signin"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
       <a href="<?= $LOGGED ? $panelHref : '/register' ?>" class="nav-cta"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     </div>
@@ -964,9 +986,9 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
     <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
     <a href="<?= $LOGGED ? $panelHref : '/register' ?>"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
-    <div class="mlangs">
-      <?php foreach($LANGS as $c=>$l){ ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
-    </div>
+    <?php /* Cekmecede DUZ: acilir menu burada bir sey kazandirmaz, cekmece
+             zaten tam ekran bir katman. */ ?>
+    <?= vlang_switcher('mlangs','flat') ?>
   </div>
 </header>
 
@@ -1520,6 +1542,19 @@ if ($shoePicks):
   try{
     var burger=document.getElementById('burger'), mnav=document.getElementById('mnav');
     if(burger&&mnav){
+      /* Dil menusu: disariya tiklayinca ve Escape'te kapansin. <details> kendi
+         basina kapanmaz; secilince sayfa zaten yenileniyor ama fikrini
+         degistiren kullaniciyi acik menuyle birakmayalim. */
+      document.addEventListener('click',function(e){
+        document.querySelectorAll('details.langsw[open]').forEach(function(d){
+          if(!d.contains(e.target)) d.removeAttribute('open');
+        });
+      });
+      document.addEventListener('keydown',function(e){
+        if(e.key==='Escape') document.querySelectorAll('details.langsw[open]').forEach(function(d){
+          d.removeAttribute('open');
+        });
+      });
       burger.addEventListener('click',function(){var o=mnav.classList.toggle('open');burger.setAttribute('aria-expanded',o);});
       mnav.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mnav.classList.remove('open');});});
     }
