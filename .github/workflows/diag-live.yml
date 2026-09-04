@@ -105,6 +105,10 @@ on:
         description: "Bir WeTransfer önizleme linki verin (ör. bir tedarikçinin gönderdiği FOTOS linki). Bu ortamdan wetransfer.com'a çıkış YASAK (egress proxy engelliyor); sunucunun kendi ağından ham HTML'i çeker, gömülü dosya listesi JSON'u varsa onu yazar. Salt okunur, hiçbir şey indirmez/kaydetmez — sadece 'bu link ne içeriyor' sorusuna cevap"
         required: false
         default: ""
+      site_probe:
+        description: "GENEL amaçlı: herhangi bir URL verin (bu ortamdan çoğu dış alan adına çıkış engelli — proxy allowlist'te değil; sunucunun kendi ağından çeker). Başlığı, meta açıklamasını, sayfadaki TÜM linkleri (mutlak adrese çevrilmiş, metniyle birlikte) ve script/style ayıklanmış görünür metni (ilk ~4000 karakter) yazar. Salt okunur, hiçbir şey indirmez/kaydetmez."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -3046,4 +3050,102 @@ jobs:
             php -l /tmp/vestra_wtfetch.php
             php /tmp/vestra_wtfetch.php; RC=$?
             rm -f /tmp/vestra_wtfetch.php
+            exit $RC
+
+      # GENEL amacli tek sayfa on-izleme. wetransfer_probe'un aksine tek bir alan adina
+      # baglanmiyor -- bu ortamdan cogu dis siteye cikis proxy allowlist'i yuzunden
+      # engelli (WebFetch "EGRESS_BLOCKED" donuyor), sunucunun kendi agindan cekiyor.
+      # Salt okunur: hicbir sey diske yazilmaz. Baslik/meta/linkler/govde metni ayri ayri
+      # yazilir ki bir katalog sayfasinin YAPISI (kategori linkleri nerede, urun sayfasi
+      # kaliba mi bagli) tahmin etmeden gorulsun.
+      - name: Genel site önizleme (sunucudan)
+        if: ${{ github.event.inputs.site_probe != '' }}
+        env:
+          SITE_URL: ${{ github.event.inputs.site_probe }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: SITE_URL
+          script: |
+            cat > /tmp/vestra_siteprobe.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $url = trim((string)getenv('SITE_URL'));
+            if ($url === '' || !preg_match('#^https?://#i', $url)) { fwrite(STDERR, "gecersiz url\n"); exit(1); }
+
+            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true, CURLOPT_MAXREDIRS=>6,
+              CURLOPT_TIMEOUT=>30, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_USERAGENT=>$UA,
+              CURLOPT_HTTPHEADER=>['Accept: text/html,application/xhtml+xml', 'Accept-Language: tr,en;q=0.8']]);
+            $html = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+            $err = curl_error($ch);
+            curl_close($ch);
+            printf("URL     : %s\n", $url);
+            if ($finalUrl && $finalUrl !== $url) printf("YONLENDI: %s\n", $finalUrl);
+            printf("HTTP    : %s   bayt: %d   %s\n\n", $code ?: '000', strlen((string)$html), $err);
+            if (!$html) { fwrite(STDERR, "govde bos -- durduruluyor\n"); exit(1); }
+
+            libxml_use_internal_errors(true);
+            $doc = new DOMDocument();
+            $doc->loadHTML('<?xml encoding="utf-8"?>' . $html);
+            libxml_clear_errors();
+
+            $xp = new DOMXPath($doc);
+            $title = $xp->query('//title')->item(0);
+            echo "BASLIK  : " . ($title ? trim($title->textContent) : '(yok)') . "\n";
+            foreach ($xp->query('//meta[@name="description"]/@content') as $m) {
+              echo "META    : " . trim($m->nodeValue) . "\n";
+            }
+            echo "\n";
+
+            // Script/style govdeden cikar ki gorunur metin JS/CSS gurultusuyle dolmasin.
+            foreach (['script', 'style', 'noscript'] as $tag) {
+              $nodes = $doc->getElementsByTagName($tag);
+              for ($i = $nodes->length - 1; $i >= 0; $i--) { $n = $nodes->item($i); $n->parentNode->removeChild($n); }
+            }
+
+            // Linkler: mutlak adrese cevrilir, metniyle birlikte, ayni URL tekrar yazilmaz.
+            // Bir katalog/kategori sayfasinin YAPISI bundan cikar -- hangi yollar urun/kategori
+            // gibi gorunuyor tahmin etmeden burada.
+            $base = parse_url($finalUrl ?: $url);
+            $resolve = function(string $href) use ($base): string {
+              if ($href === '' || str_starts_with($href, '#') || str_starts_with($href, 'javascript:') || str_starts_with($href, 'mailto:') || str_starts_with($href, 'tel:')) return '';
+              if (preg_match('#^https?://#i', $href)) return $href;
+              $scheme = $base['scheme'] ?? 'https'; $host = $base['host'] ?? '';
+              if (str_starts_with($href, '//')) return $scheme . ':' . $href;
+              if (str_starts_with($href, '/')) return $scheme . '://' . $host . $href;
+              $path = $base['path'] ?? '/'; $dir = substr($path, 0, strrpos($path, '/') ?: 0);
+              return $scheme . '://' . $host . $dir . '/' . $href;
+            };
+            $seen = []; $links = [];
+            foreach ($doc->getElementsByTagName('a') as $a) {
+              $href = trim((string)$a->getAttribute('href'));
+              $abs = $resolve($href);
+              if ($abs === '' || isset($seen[$abs])) continue;
+              $seen[$abs] = true;
+              $text = trim(preg_replace('/\s+/', ' ', $a->textContent));
+              $links[] = [$abs, $text];
+            }
+            printf("-- LINKLER (%d benzersiz) --\n", count($links));
+            foreach (array_slice($links, 0, 150) as [$abs, $text]) {
+              printf("  %-70s %s\n", mb_substr($abs, 0, 70), mb_substr($text, 0, 40));
+            }
+            if (count($links) > 150) echo "  ... (" . (count($links) - 150) . " tane daha, kirpildi)\n";
+
+            // Govde metni: script/style temizlenmis agactan.
+            $body = $doc->getElementsByTagName('body')->item(0);
+            $text = $body ? trim(preg_replace('/[ \t]+/', ' ', preg_replace('/\n{3,}/', "\n\n", $body->textContent))) : '';
+            echo "\n-- GORUNUR METIN (ilk 4000 karakter) --\n";
+            echo mb_substr($text, 0, 4000) . (mb_strlen($text) > 4000 ? "\n...(kirpildi)" : "") . "\n";
+            PHPEOF
+            php -l /tmp/vestra_siteprobe.php
+            php /tmp/vestra_siteprobe.php; RC=$?
+            rm -f /tmp/vestra_siteprobe.php
             exit $RC
