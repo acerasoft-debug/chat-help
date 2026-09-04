@@ -19,7 +19,7 @@ on:
         required: false
         default: ""
       kuloglu_image:
-        description: "Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, İNCELEME için 520px'e küçültür (gerçek indirme/kaydetme adımı [images] buna dokunmuz, tam kalite orada) ve IMG_CHUNKS_BEGIN/END arasında 100 karakterlik kendi kontrol toplamı (CHK=) taşıyan küçük parçalar halinde günlüğe basar — export_enc'teki AYNI gerekçe: tam boyutlu bir görseli tek bir uzun blok halinde elle geri yazmak güvenilmez. Salt okunur, sunucuya hiçbir şey kaydetmez."
+        description: "Format: '<url>' ya da '<url>|maxSide'. Bir Kuloğlu ürün fotoğrafı URL'i verin — sunucudan çeker, İNCELEME için küçültür (varsayılan 220px/q60 — 'bu bir ürün fotoğrafı mı yoksa metin yoğun bir sayfa mı' ayrımı için; gerçekten metni OKUMAK gerekirse |maxSide ile büyütülür, örn. |450 — gerçek indirme/kaydetme adımı [images] buna dokunmuyor, tam kalite orada) ve IMG_CHUNKS_BEGIN/END arasında 100 karakterlik kendi kontrol toplamı (CHK=) taşıyan küçük parçalar halinde günlüğe basar. İlk denemede 520px q=82 bir taranmış katalog sayfasında 485 parça üretti — elle taşınamayacak kadar çok; export_enc'teki AYNI ders. Salt okunur, sunucuya hiçbir şey kaydetmez."
         required: false
         default: ""
 
@@ -1436,7 +1436,14 @@ jobs:
             cat > /tmp/vestra_kuloglu_img.php <<'PHPEOF'
             <?php
             ini_set('display_errors','1'); error_reporting(E_ALL);
-            $url = trim((string)getenv('IMG_URL'));
+            $raw = trim((string)getenv('IMG_URL'));
+            $parts = explode('|', $raw);
+            $url = trim($parts[0] ?? '');
+            // Ilk gercek denemede (BELENG, taranmis katalog sayfasi cikti) 520px q=82
+            // 485 parca uretti -- elle guvenilir sekilde tasinamayacak kadar cok. Varsayilan
+            // artik KUCUK (yalnizca "bu bir urun fotografi mi yoksa metin yogun bir tarama mi"
+            // ayrimini gormeye yeter); gercekten metin OKUMAK gerekirse |maxSide ile buyutulur.
+            $maxSide = isset($parts[1]) && $parts[1] !== '' ? max(80, (int)$parts[1]) : 220;
             if ($url === '' || !preg_match('#^https://www\.kuloglutekstil\.com\.tr/#', $url)) {
               fwrite(STDERR, "gecersiz url (yalnizca kuloglutekstil.com.tr)\n"); exit(1);
             }
@@ -1457,13 +1464,16 @@ jobs:
                INCELEMEK (uzerinde Turkce metin/etiket var mi diye), tam boyutlu
                bir fotografi (100-400KB) tek tek karakter kontrol toplamiyla parca
                parca elle geri yazmak pratik degil -- export_enc'in AYNI dersi,
-               burada da gecerli. 520px uzun kenar + q=82: metin okunur kalirken
-               aktarim boyutu kucuk kaliyor. */
+               burada da gecerli. Ilk denemede (BELENG, tarahmis bir katalog
+               sayfasi cikti) 520px q=82 485 parca uretti, elle tasinamayacak
+               kadar coktu -- varsayilan simdi KUCUK (220px q=60): once "bu bir
+               urun fotografi mi yoksa metin yogun bir sayfa mi" ayrimi icin,
+               gercek metni OKUMAK gerekirse |maxSide (ör. kuloglu_image:
+               <url>|450) ile buyutulur. */
             if (!function_exists('imagecreatefromstring')) { fwrite(STDERR, "GD yok -- kucultulemez\n"); exit(1); }
             $img = @imagecreatefromstring($bin);
             if (!$img) { fwrite(STDERR, "goruntu cozulemedi\n"); exit(1); }
             $w = imagesx($img); $h = imagesy($img);
-            $maxSide = 520;
             $scale = min(1.0, $maxSide / max($w, $h));
             $nw = max(1, (int)round($w * $scale)); $nh = max(1, (int)round($h * $scale));
             $out = $img;
@@ -1471,10 +1481,11 @@ jobs:
               $out = imagecreatetruecolor($nw, $nh);
               imagecopyresampled($out, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
             }
-            ob_start(); imagejpeg($out, null, 82); $small = ob_get_clean();
+            $q = $maxSide <= 260 ? 60 : 82; // kucuk hedefte kalite dususu goze daha az batar, aktarimi daha da kucultur
+            ob_start(); imagejpeg($out, null, $q); $small = ob_get_clean();
             if ($out !== $img) imagedestroy($out);
             imagedestroy($img);
-            printf("kucultuldu: %dx%d -> %dx%d, %d bayt -> %d bayt\n", $w, $h, $nw, $nh, strlen($bin), strlen($small));
+            printf("kucultuldu: %dx%d -> %dx%d (maxSide=%d q=%d), %d bayt -> %d bayt\n", $w, $h, $nw, $nh, $maxSide, $q, strlen($bin), strlen($small));
 
             $b64 = base64_encode($small);
             $chunks = str_split($b64, 100);
