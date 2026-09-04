@@ -52,6 +52,35 @@ kısa/genel bir kelime eklerken bunu düşün.
 engellenmesi gerekenler ve *geçmesi* gereken gerçek butikler. Bloklisteye yeni ad
 eklerken testi koş: komşularını yakıp yakmadığını tek gösteren şey o.
 
+**KURAL 1 — 4 Eyl 2026, operatörün elle verdiği 45 satırlık Asya/Körfez listesi
+(Singapur, Japonya, Kore, Avustralya, BAE, S.Arabistan, Katar, Kazakistan,
+Azerbaycan).** Operatör "bunlara kampanya gönder" dedi; liste kontrolden geçirildi
+ve **operatör kararı: gönderim YOK**. Yerler doğru, karşı taraf yanlış:
+
+| Ne olduğu | Adet |
+|---|---|
+| AVM / plaza işletmecisi (ev sahibi, mal almıyor) | 17 |
+| Departman mağaza zinciri | 8 |
+| Distribütör / franchise sahibi | 6 |
+| Markanın kendi bayrak mağazası | 1 |
+| Belirsiz (bağımsız olabilir) | 1 |
+
+Kod 45'in **12**'sini zaten tutuyordu; kalanlar eklendikten sonra **43/45**.
+Doğrulanan iki örnek: **Rubaiyat** 50'den fazla franchise butik + 2 departman
+mağazası işletiyor; **Emporium Baku** Sinteks Group'a ait ve Gucci/Dior/Hermès
+franchise'larını tutuyor. İkisi de "kanalda müşteri değil rakip".
+Bu iş üç ayrı boşluk açığa çıkardı, üçü de düzeltildi:
+1. **`.az` / `.kz` public-suffix listesinde yoktu** → `viled.kz` düzleşince
+   `viledkz` oluyor, listedeki `viled` hiçbir zaman eşleşmiyordu. Rusça/Arapça
+   sayfalarla hedefe giren ülkelerin ccTLD'leri eklendi.
+2. **`vestra_is_monobrand()` yalnızca SATTIĞIMIZ 78 markaya bakıyor** → satmadığımız
+   bir evin kendi butiği (Maison Hermès Ginza) hiçbir süzgece takılmıyordu. 13 lüks
+   ev eklendi. **`omega` bilerek eklenmedi** (günlük kelime; "Alpha Omega" gibi
+   gerçek bir dükkânı elerdi) ve `tiffany` yerine `tiffany & co` yazıldı.
+3. `Sinonim Baku` **bilerek engellenmedi** — bağımsız bir konsept mağaza olabilir;
+   şüpheliyi elemek yerine listede bırakıp göndermemek tercih edildi.
+Testi: `blocklist_test.php` bölüm 12/12b/12c (206 iddia).
+
 **KURAL 1 — elle okuma hâlâ şart.** 1 Eylül 2026'da aynı APAC listesi ikinci kez
 yüklendi ve 31 Ağustos'ta elle okunurken **iki zincirin kaçtığı** görüldü:
 **Harrolds** (Melbourne/Sydney/Chadstone, ayrıca bazı markaların Avustralya

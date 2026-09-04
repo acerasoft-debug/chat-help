@@ -605,6 +605,41 @@ function vestra_discover_blocklist(): array {
        Batavia Stad (Lelystad, NL) ve Freeport (Znojmo, CZ). "freeport" tek
        basina degil -- sehir adi ve serbest bolge terimi; tam adiyla. */
     'batavia stad','bataviastad','freeport fashion outlet','fashion arena prague',
+    /* 4 Eyl 2026, operatorun elle verdigi 45 satirlik Asya/Korfez "luks merkezleri"
+       listesi. Yerler dogru, KARSI TARAF yanlis: bunlarin cogu magaza degil AVM
+       ISLETMECISI (kiraya veriyor, mal almiyor), gerisi departman magaza ZINCIRI
+       ya da bolgedeki marka haklarini tutan DISTRIBUTOR -- yani KURAL 1'in uc
+       basligi da tek listede. Kod 45'in 12'sini zaten tutuyordu; kalanlar burada.
+       Operator karari: gonderim YOK, isimler listeye eklendi.
+       AVM / plaza isletmecileri: */
+    'marina bay sands','marinabaysands','ion orchard','ionorchard','ginza six','ginza6',
+    'chadstone','queen victoria building','dubai mall','thedubaimall',
+    'mall of the emirates','malloftheemirates','al maryah','thegalleria',
+    'centria mall','kingdom centre','kingdomcentre','boulevard riyadh','riyadhseason',
+    'place vendome qatar','place vendôme qatar','placevendomeqatar','al hazm',
+    'esentai mall','esentaimall','talan towers','talantowers','port baku','villa boutiques',
+    /* Departman magaza zincirleri (Japonya/Kore/Korfez). 'lotte' ve 'isetan' kisa:
+       ad tarafinda kelime siniri koruyor ("Charlotte" eslesmiyor), alan adi
+       tarafinda tam eslesme gerekiyor, o yuzden calisan alan adi bicimleri de var. */
+    'takashimaya','isetan','mitsukoshi','hankyu','hankyu-dept','shinsegae',
+    'lotte','lotteshopping','galleria department','hyundai','printemps',
+    /* Bolgesel distributor / franchise isletmecileri. Rubaiyat 50'den fazla franchise
+       butik ve 2 departman magazasi isletiyor; Emporium Baku Sinteks Group'a ait ve
+       Gucci/Dior/Hermes franchise'larini tutuyor -- ikisi de kanalda musteri degil.
+       'emporium' TEK BASINA EKLENMEDI: bircok gercek butik adinda bu kelime geciyor. */
+    'ali bin ali','alibinali','khereiji','viled','italdizain','rubaiyat',
+    'sinteks','emporium baku',
+    /* Kendi markasinin BAYRAK MAGAZALARI. vestra_is_monobrand() bunlari goremiyordu:
+       o kontrol vestra_premium_brandlist()'e bakiyor, o liste de VESTRA'nin SATTIGI
+       78 markayi tutuyor -- satmadigimiz bir evin kendi butigi hicbir suzgece
+       takilmiyordu. "Maison Hermès Ginza" 45'lik listede tam bu bosluktan gecti.
+       Kendi fabrikasindan mal alan bir bayrak magazasi bizden parti almaz.
+       'omega' BILEREK YOK: gunluk bir kelime ve kelime siniriyle bile "Alpha Omega"
+       gibi gercek bir cok markali dukkani elerdi -- sessiz eleme, kacan mektuptan
+       pahali. Ayni sebeple 'tiffany' degil 'tiffany & co' yazildi (Tiffany bir ad). */
+    'hermès','hermes','cartier','rolex','tiffany & co','tiffanyco',
+    'van cleef','vancleefarpels','bvlgari','bulgari','loewe','goyard','hublot',
+    'patek philippe','patekphilippe',
     /* 30 Agustos DE/NL partisinden sizanlar: eschuhe.de CCC/eobuwie grubunun
        Almanya vitrini (zincir); Miinto butik PAZARYERI (alici degil kanal);
        Luisa Cerano kendi-marka etiket. min_brands=2 bunlari elemez -- sitelerinde
@@ -767,8 +802,14 @@ function vestra_domain_is_blocked(string $email, string $website=''): bool {
   foreach($labels as $host){
     $host=strtolower(trim((string)$host)); if($host==='') continue;
     $host=preg_replace('/^www\./','',$host);
-    // Strip the public suffix so "alshaya.com" and "alshaya.ae" both reduce to "alshaya".
-    $core=preg_replace('/\.(com|net|org|co|ae|sa|qa|kw|kr|jp|cn|uk|de|fr|it|es|nl|be|ch|at|cz|pl|ua|dk|se|no|fi|au|us|eu|info|biz|shop|store|fashion)(\.[a-z]{2})?$/','',$host);
+    /* Strip the public suffix so "alshaya.com" and "alshaya.ae" both reduce to "alshaya".
+       Bir uzanti burada YOKSA sessizce ise yaramaz hale geliyor: "viled.kz" cekirdegi
+       "viled.kz" olarak kaliyor, duzlesince "viledkz" oluyor ve listedeki "viled" hicbir
+       zaman esitlenmiyor. 4 Eyl 2026'da Kazakistan/Azerbaycan listesinde tam bu oldu.
+       Rusca ve Arapca sayfalarla birlikte hedefe giren ulkelerin ccTLD'leri eklendi. */
+    $core=preg_replace('/\.(com|net|org|co|ae|sa|qa|kw|kr|jp|cn|uk|de|fr|it|es|nl|be|ch|at|cz|pl|ua|dk|se|no|fi|au|us|eu'
+                      .'|az|kz|by|ru|ge|gr|pt|ie|sg|my|hk|nz|mc|tr|il|ma|eg|jo|bh|om|ro|hu|bg|si|sk|hr|ee|lv|lt|lu|is'
+                      .'|info|biz|shop|store|fashion|tokyo)(\.[a-z]{2})?$/','',$host);
     /* Compare with separators removed on BOTH sides. A domain has no spaces, so the
        multi-word entries ("trafalgar luxury", "apparel group") could never match one --
        trafalgarluxurygroup.com sailed past a list that literally names it. */

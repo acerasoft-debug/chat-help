@@ -278,6 +278,53 @@ foreach (['Domain Boutique Milano', 'The Sedona Store', 'Coming Soon Concept Sto
 }
 $t('bos ad park sayilmaz', !vestra_name_is_parked_domain(''));
 
+echo "\n== 12. Operatorun 4 Eyl 2026 Asya/Korfez listesi (45 satir) ==\n";
+/* Operator "luks merkezleri" diye elle verdi ve gonderim istedi. Yerler dogru,
+   karsi taraf yanlis: AVM ISLETMECISI (ev sahibi, mal almiyor), departman magaza
+   ZINCIRI, ya da bolgedeki marka haklarini tutan DISTRIBUTOR. Kod 45'in 12'sini
+   zaten tutuyordu; kalanlar eklendi ve karar "gonderim yok" oldu. Bu blok o
+   kararin kalicilastigi yer -- liste bir daha otomatik taramadan da gecmesin. */
+$t('AVM: Marina Bay Sands',   $blocked('The Shoppes at Marina Bay Sands','','marinabaysands.com'));
+$t('AVM: ION Orchard',        $blocked('ION Orchard','','ionorchard.com'));
+$t('AVM: Ginza Six',          $blocked('Ginza Six','','ginza6.tokyo'));
+$t('AVM: Chadstone',          $blocked('Chadstone - The Fashion Capital','','chadstone.com.au'));
+$t('AVM: The Dubai Mall',     $blocked('The Dubai Mall','','thedubaimall.com'));
+$t('AVM: Esentai (KZ)',       $blocked('Esentai Mall','','esentaimall.com'));
+$t('AVM: Port Baku (AZ)',     $blocked('Port Baku Mall','','portbakumall.az'));
+$t('zincir: Takashimaya',     $blocked('Takashimaya Singapore','','takashimaya.com.sg'));
+$t('zincir: Isetan Shinjuku', $blocked('Isetan Shinjuku','','mistore.jp'));
+$t('zincir: Lotte Avenuel',   $blocked('Lotte Avenuel','','lotteshopping.com'));
+$t('zincir: Hyundai',         $blocked('Hyundai Department Store','','ehyundai.com'));
+$t('distributor: Rubaiyat',   $blocked('Rubaiyat','','rubaiyat.com'));
+$t('distributor: Ali Bin Ali',$blocked('Ali Bin Ali Holding','','alibinali.com'));
+$t('distributor: Viled (KZ)', $blocked('Viled Group','','viled.kz'));
+$t('distributor: Italdizain', $blocked('Italdizain Group','','italdizain.az'));
+$t('distributor: Emporium/Sinteks', $blocked('Emporium Baku','','emporium.az'));
+/* .kz/.az uzantilari public-suffix listesinde YOKTU: "viled.kz" duzlesince
+   "viledkz" oluyor ve listedeki "viled" hicbir zaman esitlenmiyordu. */
+$t('.kz uzantisi soyuluyor', $blocked('','info@viled.kz','viled.kz'));
+$t('.az uzantisi soyuluyor', $blocked('','info@italdizain.az','italdizain.az'));
+
+echo "\n== 12b. Kendi markasinin bayrak magazalari ==\n";
+/* vestra_is_monobrand() yalnizca SATTIGIMIZ 78 markaya bakiyor; satmadigimiz bir
+   evin kendi butigi hicbir suzgece takilmiyordu. "Maison Hermès Ginza" listede
+   tam bu bosluktan gecmisti. */
+$t('Maison Hermès Ginza', $blocked('Maison Hermès Ginza','','hermes.com'));
+$t('Cartier',             $blocked('Cartier Boutique','','cartier.com'));
+$t('Rolex',               $blocked('Rolex Ginza','','rolex.com'));
+$t('Tiffany & Co',        $blocked('Tiffany & Co Dubai','','tiffany.com'));
+$t('Goyard',              $blocked('Goyard Paris','','goyard.com'));
+$t('Patek Philippe',      $blocked('Patek Philippe Salon','','patek.com'));
+
+echo "\n== 12c. GECMELI — adi bir eve BENZEYEN gercek dukkanlar ==\n";
+/* En pahali hata turu sessiz elemedir. 'omega' bu yuzden listeye HIC alinmadi
+   (gunluk kelime), 'tiffany' yerine 'tiffany & co' yazildi (Tiffany bir ad). */
+$t('Alpha Omega Watches gecer', !$blocked('Alpha Omega Watches','','alphaomega.com'));
+$t('Omega Sport gecer',         !$blocked('Omega Sport','','omegasport.gr'));
+$t('Tiffany Mode gecer',        !$blocked('Tiffany Mode','','tiffanymode.it'));
+$t('Sinonim Baku gecer',        !$blocked('Sinonim Baku','','sinonim.az'));
+$t('Villa Rosa Boutique gecer', !$blocked('Villa Rosa Boutique','','villarosa.it'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
