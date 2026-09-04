@@ -831,6 +831,19 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
   Gönderen adresler artık **ikisi de kayıtlı ve aktif**: operatörün Gmail'i ve
   `support@vestrasales.com` ("VESTRA") — kod bu ikincisiyle gönderiyor.
   **Toplu gönderimin önünde teslimat engeli kalmadı.**
+- **Lead havuzu tükendi (4 Eyl 2026).** Aynı gün ölçüldü: hiç yazılmamış + çok
+  markalı (`min_brands=2`) aday **0**, eşik 1'e indirilince **1**; Winter 26/27
+  ikinci dokunuşunda **8** aday çıktı, üçü kaçak adres olduğu için filtre eklendi
+  ve **5**'e düştü; kayıtlı alıcıların **hepsi** duyuruyu almış (0 kaldı).
+  Gönderilen: 4 Winter + 1 soğuk = **5 mektup, 0 hata**. Yani günlük 300'lük kota
+  değil, **gönderilecek adres** darboğaz. Hacim isteniyorsa sıradaki iş yeni lead
+  keşfidir (`discover-city.yml` / `add-and-send.yml`), yeni kampanya metni değil.
+- **Elde tutulan tek lead:** `factoryoutlet.gr` (Yunanistan, Attika'da 3 mağaza,
+  200+ marka — zincir değil, bağımsız off-price; Il Salvagente emsali). Firma adı
+  kayıtta **"Αρχική"** (Yunanca "Anasayfa") olarak duruyor, yani mektup
+  "Hello Αρχική," diye açılacaktı. Bu koşuda `skip_names` ile atlandı. Adı elle
+  düzeltilince gönderilebilir; `add-lead.yml` mevcut kaydı GÜNCELLEMEZ
+  (`= zaten var` deyip geçer), bu yüzden düzeltme panelden yapılmalı.
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");

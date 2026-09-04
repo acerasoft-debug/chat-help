@@ -143,6 +143,35 @@ function vestra_email_is_junk(string $email): bool {
   return (bool)preg_match($junk,$e);
 }
 
+/* Bir sayfa basligindan firma adi cikar.
+   Basliklar cogunlukla "SAYFA ADI | Magaza" duzenindedir ve ILK parca magazanin
+   degil sayfanin adidir. Ilk parcayi oldugu gibi almak 4 Eylul 2026'da Yunan bir
+   perakendeciyi "Αρχική" (Yunanca "Anasayfa") adiyla kaydetti; Winter 26/27
+   mektubu o leade "Hello Αρχική," diye acilacakti -- alicinin gozunde bu, hatali
+   bir toplu gonderimin ta kendisi ve spam sikayeti sebebi.
+   Bu yuzden parcalar sirayla gezilir, GENEL bir sayfa adi olmayan ilki secilir;
+   hepsi genelse alan adina dusulur. Eslesme parcanin TAMAMI icindir: "Boutique"
+   elenir ama "Boutique Marie" korunur. */
+function vestra_company_from_title(string $title, string $domain = ''): string {
+  static $generic = [
+    'home','homepage','home page','welcome','shop','store','online shop','online store',
+    'accueil','bienvenue','boutique','startseite','willkommen','inicio','início','bienvenido',
+    'benvenuti','benvenuto','negozio','startpagina','welkom','winkel',
+    'αρχική','αρχικη','αρχική σελίδα','главная','главная страница','strona główna',
+    'hem','forside','hjem','etusivu','anasayfa','ana sayfa',
+  ];
+  $t = trim(preg_replace('/\s+/u', ' ', $title));
+  if ($t === '') return $domain;
+  $segs = preg_split('/\s+(?:\||–|—|-|:|·)\s+/u', $t) ?: [$t];
+  foreach ($segs as $seg) {
+    $seg = trim($seg);
+    if ($seg === '' || mb_strlen($seg) < 2) continue;
+    if (in_array(mb_strtolower($seg, 'UTF-8'), $generic, true)) continue;
+    return mb_strlen($seg) > 60 ? mb_substr($seg, 0, 60) : $seg;
+  }
+  return $domain;
+}
+
 /* Rank harvested candidates: own-domain + generic mailbox wins; role/junk addresses lose. */
 function vestra_best_email(array $scores, string $domain): string {
   if(!$scores) return '';
