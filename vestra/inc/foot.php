@@ -1,4 +1,24 @@
 <footer>
+  <?php /* Every landing page the site can stand behind, linked from every page: brands,
+           live categories, the two collections. Guarded because not every page loads the
+           catalogue (legal pages, login); where it is not loaded the block simply is not
+           printed. Names go through t() so the anchor text is in the page language. */
+        if (function_exists('vestra_seo_brands') && function_exists('vestra_seo_cats')):
+          $_fb = vestra_seo_brands(0); $_fc = vestra_seo_cats(); $_fw = vestra_seo_wholesale_word(vlang());
+          $_fcoll = []; foreach (vestra_seo_collections() as $_cs => $_sec) if (vestra_seo_resolve($_cs)) $_fcoll[$_cs] = vestra_section_label($_sec);
+          if ($_fb || $_fc): ?>
+  <div class="wrap footseo">
+    <?php if ($_fb): ?><div><b><?= t('Wholesale by brand') ?></b>
+      <?php foreach ($_fb as $_b): ?><a href="/wholesale/<?= urlencode(vestra_brand_slug($_b)) ?>"><?= htmlspecialchars($_b.' '.$_fw) ?></a><?php endforeach; ?>
+    </div><?php endif; ?>
+    <?php if ($_fc): ?><div><b><?= t('Wholesale by category') ?></b>
+      <?php foreach ($_fc as $_c => $_n): ?><a href="/b2b/<?= urlencode(vestra_seo_cat_slug($_c)) ?>"><?= htmlspecialchars(t($_c).' '.$_fw) ?></a><?php endforeach; ?>
+    </div><?php endif; ?>
+    <?php if (count($_fcoll) > 1): ?><div><b><?= t('Collections') ?></b>
+      <?php foreach ($_fcoll as $_cs => $_lbl): ?><a href="/b2b/<?= $_cs ?>"><?= htmlspecialchars(t($_lbl).' '.$_fw) ?></a><?php endforeach; ?>
+    </div><?php endif; ?>
+  </div>
+  <?php endif; endif; ?>
   <div class="wrap foot">
     <div><b style="color:var(--ink)">VESTRA</b> — <?= t('verified B2B fashion wholesale') ?>
       <div style="margin-top:5px;opacity:.8">Acerasoft LLC · US</div></div>

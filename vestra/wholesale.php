@@ -66,43 +66,6 @@ foreach ($items as $p) { $c = trim((string)($p['cat'] ?? '')); if ($c !== '') $c
 arsort($cats);
 $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
 ?>
-<style>
-.wsw{--ink:#211d17;--mut:#6f695e;--acc:#a97f2c;--line:#e6e0d5;background:#f4f2ee;color:var(--ink);padding:0 0 56px}
-.wsw .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
-.wshero{padding:44px 0 26px;border-bottom:1px solid var(--line)}
-.wsbc{font-size:12px;color:var(--mut);margin-bottom:14px}
-.wsbc a{color:var(--mut);text-decoration:none}.wsbc a:hover{color:var(--acc)}
-.wshero h1{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,44px);line-height:1.1;margin:0 0 12px;color:var(--ink)}
-.wslede{font-size:15px;line-height:1.65;color:var(--mut);max-width:760px;margin:0 0 18px}
-.wsfacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
-.wsfact{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:13px}
-.wsfact b{display:block;font-size:18px;color:var(--ink);font-family:'Playfair Display',serif}
-.wsfact span{color:var(--mut)}
-.wscta{display:inline-block;margin-top:22px;background:var(--acc);color:#fff;text-decoration:none;
-  padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px}
-.wscta:hover{filter:brightness(1.06)}
-.wscta2{display:inline-block;margin:22px 0 0 10px;border:1px solid var(--line);background:#fff;color:var(--ink);
-  text-decoration:none;padding:12px 20px;border-radius:10px;font-size:14px}
-.wssec{padding:34px 0 0}
-.wssec h2{font-family:'Playfair Display',serif;font-size:22px;margin:0 0 14px}
-.wsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
-.wscard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}
-.wscard:hover{box-shadow:0 6px 20px rgba(60,50,30,.10)}
-.wsthumb{aspect-ratio:3/4;background:linear-gradient(135deg,#2a2a30,#0e0e11);position:relative;overflow:hidden}
-.wsthumb img{width:100%;height:100%;object-fit:cover;display:block}
-.wsbody{padding:11px 12px 13px;display:flex;flex-direction:column;gap:3px}
-.wsbrand{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--acc);font-weight:700}
-.wsname{font-size:13px;line-height:1.35;color:var(--ink)}
-.wsmeta{font-size:11px;color:var(--mut)}
-.wscopy{max-width:820px;font-size:14.5px;line-height:1.75;color:#3d382f}
-.wscopy h2{margin-top:26px}
-.wscopy ul{padding-left:18px;margin:10px 0}
-.wscopy li{margin:5px 0}
-.wsother{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.wsother a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;
-  font-size:13px;text-decoration:none;color:var(--ink)}
-.wsother a:hover{border-color:var(--acc);color:var(--acc)}
-</style>
 
 <div class="wsw">
 <div class="wrap">
@@ -168,6 +131,16 @@ $moqs = array_filter(array_map(fn($p) => (int)($p['moq'] ?? 0), $items));
       <li><?= t('Every seller passes KYC before listing, and payment is held until the goods are confirmed.') ?></li>
       <li><?= t('Invoiced B2B, with VAT handled per your country. Shipping worldwide.') ?></li>
     </ul>
+    <?php /* Every category this house is in stock for, each with its own address:
+             /wholesale/lacoste/polos is where "Lacoste polos wholesale" lands. */
+          $bcats = vestra_seo_brand_cats($brand); if ($bcats): ?>
+      <h2><?= t('Wholesale by category') ?></h2>
+      <div class="wsother">
+        <?php foreach ($bcats as $c => $n): ?>
+          <a href="/wholesale/<?= urlencode($_slug) ?>/<?= urlencode(vestra_seo_cat_slug($c)) ?>"><?= htmlspecialchars($brand.' '.t($c).' '.$_wholesale) ?> <span class="wsn"><?= (int)$n ?></span></a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
     <?php
       $others = array_values(array_filter(vestra_seo_brands(0), fn($b) => strcasecmp($b, $brand) !== 0));
       if ($others): ?>

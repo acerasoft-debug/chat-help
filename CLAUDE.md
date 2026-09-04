@@ -646,6 +646,56 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
 - Kurumsal format rehberinden çalışan e-postası türetme — var olmayan kişilere posta
   gider, sert bounce oranı gönderen alan adının itibarını düşürür.
 
+## SEO ve diller
+
+**KURAL 9 — SEO iniş sayfaları canlı stoktan türer; boş sayfa yok** (operatör
+isteği, 3 Eyl 2026: *"seo yu çok güçlü yap, ayakkabıları da koy, Avrupa müşterileri
+de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, B2B"*).
+- Adresler: `/wholesale/<marka>` (vardı), **`/b2b/<kategori>`** (Sneakers, T-Shirts…),
+  **`/b2b/<grup>`** (Footwear, Tops, Accessories… — `vestra_all_cats()` grupları),
+  **`/b2b/apparel`, `/b2b/footwear`** (iki vitrin bölmesi) ve
+  **`/wholesale/<marka>/<kategori>`** ("Lacoste polos wholesale"). Hepsi `b2b.php`;
+  sözlük ve çözücü `inc/seo.php` (`vestra_seo_resolve`, `vestra_seo_landing_paths`).
+- **Stokta olmayan hiçbir şeye sayfa açılmaz**: çözücü boş sonuçta `null` döner,
+  sayfa 404 basar, sitemap/footer o adresi listelemez. "Accessories" bugün 404'tür
+  çünkü stokta aksesuar yok — ilk aksesuar ilanıyla kendiliğinden açılır.
+  Bir kategori sayfası için sahte/ince içerik üretme; boş sayfa alan adına zarar verir.
+- İç bağlantılar: ana sayfa marka duvarı artık `/wholesale/<marka>`'ya gider (eskiden
+  hepsi `/shop`), ana sayfa kategori şeridi + ayakkabı bandı çipleri `/b2b/…`'ye, footer
+  her sayfada marka + kategori + koleksiyon bağlantılarını basar (`inc/foot.php`).
+  Ürün sayfası breadcrumb'ı kategori seviyesini `/b2b/<slug>` ile verir ve **sayfa
+  dilinde** basılır (eskiden her dilde İngilizce "Home/Catalog").
+- `/shop?section=footwear` kendi başlık/meta/anahtar kelimesini taşır — ayakkabı
+  koleksiyonu daha önce giyim başlığıyla dizine giriyordu.
+- Bölgesel hreflang: `vlang_hreflang_map()` (`inc/i18n.php`) — de-AT, fr-BE, en-NL,
+  pt-BR, ru-RU, ar-AE… hepsi aynı dil sayfasına işaret eder; liste `vlang_list()`'ten
+  türer. `head.php` ve `index.php` (kendi `<head>`'i var) ikisi de bunu kullanır.
+- Kontrol: `tests/seo_landing_test.php` (slug gidiş-dönüş, çözücü, sitemap listesi,
+  hreflang, sözlük eksiksizliği, kaynak kablolaması) ve canlıda `seo-check.yml`
+  (`path=/b2b/sneakers` gibi).
+
+**KURAL 10 — Site 8 dilde ve her sözlük `de.php`'ye karşı EKSİKSİZ** (operatör,
+3 Eyl 2026: *"5 dilde eksiksiz"* → *"6-7 dil yap, rusça ve portekizce ekle"* →
+*"arapçada yap"*). `vlang_list()` = en, fr, es, it, de, **pt, ru, ar**.
+- Referans set `inc/lang/de.php` anahtarları (1.104). `tests/seo_landing_test.php`
+  her dil için **her** anahtarı ve `%1$s`/`<b>` sayılarını doğrular; eksik anahtar
+  `t()` yüzünden sessizce İngilizceye düşer, test bunu kırmızıya boyar. Yeni bir
+  `t('…')` metni eklediğinde **7 sözlüğe birden** ekle (fr/it/es'de 19 anahtar
+  eksikti — numune siparişi bloğu — aynı gün tamamlandı).
+- `index.php` kendi `$T[$lang]` bloğunu taşır (ana sayfa metinleri, ~45 anahtar):
+  yeni dil = `$T`'ye yeni blok, yoksa `$t['tagline']` boş kalır. `$_kw`, `$_ogloc` ve
+  nav sözlükleri de dil başına satır ister; hepsi `?? en` ile düşer artık.
+- **Arapça RTL**: `vlang_dir()` → `<html dir="rtl">` (`head.php`, `index.php`);
+  flex/grid kendiliğinden aynalanır, `style.css` sonunda küçük bir `[dir="rtl"]`
+  bloğu var. **Görsel geçiş yapılmadı** (`tests/render` ile bakılmalı) — mutlak
+  konumlu birkaç öğe ters durabilir. Arapça metinlerde "ileri" okları `←`.
+- Portekizce **pt-PT** (Portekiz); Brezilya `pt-BR` hreflang'ıyla aynı sayfaya gelir.
+- Legal metinleri (`inc/legal/`) ve SSS içerikleri (`inc/faq/`) pt/ru/ar için **yok**,
+  İngilizceye düşerler — bilerek: hukuk metni sohbet çevirisiyle yazılmaz.
+  E-posta şablonları (`inc/email_templates.php`) pt/ru/ar için İngilizceye düşer.
+- Marka sayfası CSS'i `wholesale.php`'den `style.css`'e taşındı (`.wsw…`);
+  `b2b.php` aynı sınıfları kullanır — iki kopya ikinci düzenlemede ayrışırdı.
+
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.

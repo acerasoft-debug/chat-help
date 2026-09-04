@@ -35,11 +35,19 @@ $_prod = [
 if ($_pimgs) $_prod['image'] = $_pimgs;
 $JSONLD = [
   $_prod,
-  ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[
-    ['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>'https://vestrasales.com/'],
-    ['@type'=>'ListItem','position'=>2,'name'=>'Catalog','item'=>'https://vestrasales.com/shop'],
-    ['@type'=>'ListItem','position'=>3,'name'=>$PAGE,'item'=>$_purl],
-  ]],
+  /* Breadcrumb in the page language, with the category level linking its landing page
+     (/b2b/<slug>) when the category has one -- which it does whenever the product is in
+     the public catalogue. Crumb names used to be hard-coded English on every language. */
+  ['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>(function() use ($p, $PAGE, $_purl) {
+    $c = [['@type'=>'ListItem','position'=>1,'name'=>t('Home'),'item'=>'https://vestrasales.com/'],
+          ['@type'=>'ListItem','position'=>2,'name'=>t('Catalog'),'item'=>'https://vestrasales.com/shop']];
+    $cat = trim((string)($p['cat'] ?? ''));
+    if ($cat !== '' && empty($p['unlisted']) && vestra_seo_resolve($cat) !== null) {
+      $c[] = ['@type'=>'ListItem','position'=>3,'name'=>t($cat),'item'=>'https://vestrasales.com/b2b/'.vestra_seo_cat_slug($cat)];
+    }
+    $c[] = ['@type'=>'ListItem','position'=>count($c)+1,'name'=>$PAGE,'item'=>$_purl];
+    return $c;
+  })()],
 ];
 $NAV='shop'; require __DIR__.'/inc/head.php';
 /* $mode = VITRIN modu, ham veri degil: liste fiyati kademe fiyatina esitse urun

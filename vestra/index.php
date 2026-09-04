@@ -152,7 +152,7 @@ if (is_file(__DIR__.'/assets/hero/hero.mp4')) {
         $HERO_VIDEO['poster'] = '/assets/hero/hero-poster.jpg'.$_hvq;
 }
 
-$LANGS = ['en'=>'EN','fr'=>'FR','it'=>'IT','es'=>'ES','de'=>'DE'];
+$LANGS = vlang_list();   // derived: the language switcher and hreflang follow inc/i18n.php
 $lang  = vlang();
 
 $T = [
@@ -321,12 +321,116 @@ $T = [
  'app_t'=>'VESTRA als App','app_s'=>'Direkt aus dem Browser installieren — ohne App Store und Play Store. Live-Preise, Bestellungen & Nachrichten, mit Push-Benachrichtigungen.','app_and'=>'Auf Android installieren','app_and_hint'=>'In Chrome: Menü ⋮ → „App installieren“.','app_apk'=>'APK herunterladen','app_ios'=>'Auf dem iPhone installieren','app_ios_hint'=>'In Safari: Teilen → „Zum Home-Bildschirm“.','app_noti'=>'Benachrichtigungen aktivieren','app_noti_ok'=>'Benachrichtigungen aktiv ✓','app_noti_no'=>'Benachrichtigungen blockiert — bitte in den Browser-Einstellungen erlauben.','app_signin'=>'Bitte zuerst anmelden, um Benachrichtigungen zu erhalten.',
  'already'=>'Bereits ein Konto?','signin'=>'Anmelden →',
 ],
+/* PT and RU added 3 Sep 2026 (operator: "6-7 dil yap — rusca ve portekizce ekle").
+   Portuguese is European Portuguese (pt-PT) -- the market is Portugal first, Brazil is
+   reached through the pt-BR hreflang variant. */
+'pt'=>[
+ 'tagline'=>"O grossista B2B de moda verificado da Europa",
+ 'meta'=>"Um marketplace grossista B2B com verificação KYC para moda de marca e têxtil. Todos os vendedores são verificados. Registe-se gratuitamente como vendedor ou comprador.",
+ 'why'=>'Porquê','how'=>'Como funciona','join_nav'=>'Começar',
+ 'pill'=>'Ativo · Registo aberto',
+ 'h1'=>'A forma <span class="acc">verificada</span> de comprar<br>moda de marca por grosso.',
+ 'sub'=>'Um marketplace B2B onde todos os vendedores têm verificação KYC, todas as encomendas seguem condições claras de pagamento por fatura e todas as transações ficam documentadas. Assente na verificação dos vendedores — não em promessas vazias.',
+ 'b_sell'=>'Registar como vendedor','b_buy'=>'Registar como comprador','b_panel'=>'Abrir o meu painel',
+ 'tr1'=>'Vendedores com verificação KYC','tr2'=>'Pagamento por fatura','tr3'=>'Registo de transações',
+ 'p1t'=>'Só vendedores verificados','p1d'=>'KYC empresarial em todos os vendedores — NIF/IVA, registo, identidade. Sem anúncios anónimos, sem adivinhações.',
+ 'p2t'=>'Proteção do comprador','p2d'=>'Pague por fatura com rasto documental completo. Se a mercadoria não corresponder ao anúncio, entra em ação um processo estruturado de litígio.',
+ 'p3t'=>'Integridade da transação','p3d'=>'Cada encomenda é registada, datada e associada à conta verificada do vendedor — um rasto documental claro para ambas as partes.',
+ 'hsub'=>'Confiança por conceção — para ambos os lados do negócio.',
+ 'brands_t'=>'As casas em stock','brands_s'=>'Um retrato em direto do inventário verificado — cada nome abaixo é atualmente fornecido por um vendedor com verificação KYC.',
+ 's1t'=>'Verifique-se','s1d'=>'Vendedores e compradores concluem uma verificação empresarial rápida. Os membros aprovados veem os preços de grosso em direto.',
+ 's2t'=>'Encontre e encomende','s2d'=>'Explore anúncios de empresas vendedoras verificadas — marcas e básicos têxteis. Encomende com condições claras de pagamento por fatura.',
+ 's3t'=>'Negoceie com confiança','s3d'=>'Credenciais verificadas do vendedor, faturação documentada e um processo estruturado de litígio cobrem cada negócio.',
+ 'jt'=>'Comece a negociar na VESTRA','js'=>'Registo gratuito. Sem compromisso. Junte-se a centenas de empresas vendedoras e compradoras verificadas.',
+ 'sell_title'=>"Sou vendedor",
+ 'sell_desc'=>'Anuncie os seus produtos de marca e têxteis. Chegue a empresas compradoras grossistas verificadas em toda a Europa.',
+ 'sell_f1'=>'Condições de fatura documentadas em cada encomenda',
+ 'sell_f2'=>'Comissão a partir de 2,8 %, mais baixa nos planos superiores',
+ 'sell_f3'=>'Controlo total sobre preço, MOQ e escalões',
+ 'sell_cta'=>'Registar como vendedor',
+ 'buy_title'=>"Sou comprador",
+ 'buy_desc'=>'Compre moda a empresas vendedoras com verificação KYC. Cada transação é documentada e protegida.',
+ 'buy_f1'=>'Só vendedores com verificação KYC e antecedentes confirmados',
+ 'buy_f2'=>'Processo estruturado de litígio em cada encomenda',
+ 'buy_f3'=>'Grátis para explorar e pedir cotações',
+ 'buy_cta'=>'Registar como comprador',
+ 'app_t'=>'VESTRA como aplicação','app_s'=>'Instale diretamente a partir do navegador — sem App Store nem Play Store. Preços em direto, encomendas e mensagens, com notificações push.','app_and'=>'Instalar no Android','app_and_hint'=>'No Chrome: menu ⋮ → «Instalar aplicação».','app_apk'=>'Transferir APK','app_ios'=>'Instalar no iPhone','app_ios_hint'=>'Abra no Safari → Partilhar → «Adicionar ao ecrã principal».','app_noti'=>'Ativar notificações','app_noti_ok'=>'Notificações ativas ✓','app_noti_no'=>'Notificações bloqueadas — permita-as nas definições do navegador.','app_signin'=>'Inicie sessão primeiro para receber notificações.',
+ 'already'=>'Já tem conta?','signin'=>'Iniciar sessão →',
+],
+'ru'=>[
+ 'tagline'=>"Проверенная B2B-оптовая торговля модой в Европе",
+ 'meta'=>"B2B-маркетплейс оптовой торговли брендовой одеждой и текстилем с KYC-проверкой продавцов. Каждый продавец проходит проверку. Зарегистрируйтесь бесплатно как продавец или покупатель.",
+ 'why'=>'Почему','how'=>'Как это работает','join_nav'=>'Начать',
+ 'pill'=>'Онлайн · Регистрация открыта',
+ 'h1'=>'<span class="acc">Проверенный</span> способ торговать<br>брендовой одеждой оптом.',
+ 'sub'=>'B2B-маркетплейс, где каждый продавец прошёл KYC-проверку, каждый заказ оформляется по понятным условиям оплаты по счёту, а каждая сделка документируется. Основано на проверке продавцов — а не на пустых обещаниях.',
+ 'b_sell'=>'Регистрация продавца','b_buy'=>'Регистрация покупателя','b_panel'=>'Открыть мой кабинет',
+ 'tr1'=>'Продавцы с KYC-проверкой','tr2'=>'Оплата по счёту','tr3'=>'Учёт сделок',
+ 'p1t'=>'Только проверенные продавцы','p1d'=>'Бизнес-KYC для каждого продавца — номер НДС, регистрация, личность. Никаких анонимных объявлений и догадок.',
+ 'p2t'=>'Защита покупателя','p2d'=>'Оплата по счёту с полным документальным следом. Если товар не соответствует объявлению, запускается структурированная процедура спора.',
+ 'p3t'=>'Целостность сделки','p3d'=>'Каждый заказ регистрируется, фиксируется по времени и привязывается к проверенному аккаунту продавца — понятный документальный след для обеих сторон.',
+ 'hsub'=>'Доверие по замыслу — для обеих сторон сделки.',
+ 'brands_t'=>'Бренды в наличии','brands_s'=>'Актуальный срез проверенного склада — каждое имя ниже сейчас поставляется через продавца, прошедшего KYC-проверку.',
+ 's1t'=>'Пройдите проверку','s1d'=>'Продавцы и покупатели проходят быструю проверку бизнеса. Одобренные участники видят актуальные оптовые цены.',
+ 's2t'=>'Выбирайте и заказывайте','s2d'=>'Просматривайте предложения проверенных компаний-продавцов — брендовые вещи и текстильный базовый ассортимент. Заказывайте по понятным условиям оплаты по счёту.',
+ 's3t'=>'Торгуйте уверенно','s3d'=>'Проверенные данные продавца, документированное выставление счетов и структурированная процедура спора защищают каждую сделку.',
+ 'jt'=>'Начните торговать на VESTRA','js'=>'Бесплатная регистрация. Без обязательств. Присоединяйтесь к сотням проверенных компаний-продавцов и покупателей.',
+ 'sell_title'=>"Я продавец",
+ 'sell_desc'=>'Размещайте брендовую одежду и текстиль. Выходите на проверенных оптовых покупателей по всей Европе.',
+ 'sell_f1'=>'Документированные условия оплаты по счёту в каждом заказе',
+ 'sell_f2'=>'Комиссия от 2,8 %, ниже на старших тарифах',
+ 'sell_f3'=>'Полный контроль над ценой, MOQ и ценовыми уровнями',
+ 'sell_cta'=>'Регистрация продавца',
+ 'buy_title'=>"Я покупатель",
+ 'buy_desc'=>'Закупайте одежду у компаний-продавцов с KYC-проверкой. Каждая сделка документируется и защищена.',
+ 'buy_f1'=>'Только продавцы, прошедшие KYC и проверку',
+ 'buy_f2'=>'Структурированная процедура спора по каждому заказу',
+ 'buy_f3'=>'Бесплатный просмотр и запрос цен',
+ 'buy_cta'=>'Регистрация покупателя',
+ 'app_t'=>'VESTRA как приложение','app_s'=>'Установите прямо из браузера — без App Store и Play Store. Актуальные цены, заказы и сообщения, с push-уведомлениями.','app_and'=>'Установить на Android','app_and_hint'=>'В Chrome: меню ⋮ → «Установить приложение».','app_apk'=>'Скачать APK','app_ios'=>'Установить на iPhone','app_ios_hint'=>'Откройте в Safari → Поделиться → «На экран „Домой“».','app_noti'=>'Включить уведомления','app_noti_ok'=>'Уведомления включены ✓','app_noti_no'=>'Уведомления заблокированы — разрешите их в настройках браузера.','app_signin'=>'Сначала войдите, чтобы получать уведомления.',
+ 'already'=>'Уже есть аккаунт?','signin'=>'Войти →',
+],
+/* Arabic (operator, 3 Sep 2026: "arapcada yap"). Modern Standard Arabic; the page is
+   rendered right-to-left (vlang_dir), so the "forward" arrows point left. */
+'ar'=>[
+ 'tagline'=>"سوق الجملة B2B الموثوق للأزياء في أوروبا",
+ 'meta'=>"سوق جملة B2B مع تحقق KYC من البائعين، للأزياء ذات العلامات التجارية والمنسوجات. كل بائع يخضع للتحقق. سجّل مجانًا كبائع أو مشترٍ.",
+ 'why'=>'لماذا','how'=>'كيف يعمل','join_nav'=>'ابدأ الآن',
+ 'pill'=>'مباشر · التسجيل مفتوح',
+ 'h1'=>'الطريقة <span class="acc">الموثوقة</span> لتجارة<br>الأزياء ذات العلامات التجارية بالجملة.',
+ 'sub'=>'سوق B2B حيث يخضع كل بائع لتحقق KYC، وتُنفَّذ كل طلبية بشروط فوترة واضحة، وتُوثَّق كل معاملة. مبني على التحقق من البائعين — لا على وعود فارغة.',
+ 'b_sell'=>'التسجيل كبائع','b_buy'=>'التسجيل كمشترٍ','b_panel'=>'فتح لوحتي',
+ 'tr1'=>'بائعون موثوقون بتحقق KYC','tr2'=>'الدفع بالفاتورة','tr3'=>'سجلات المعاملات',
+ 'p1t'=>'بائعون موثوقون فقط','p1d'=>'تحقق تجاري (KYC) من كل بائع — رقم الضريبة، السجل التجاري، الهوية. لا إعلانات مجهولة ولا تخمين.',
+ 'p2t'=>'حماية المشتري','p2d'=>'ادفع بالفاتورة مع مسار مستندي كامل. إذا لم تطابق البضاعة الإعلان، تتدخل عملية نزاع منظمة.',
+ 'p3t'=>'سلامة المعاملة','p3d'=>'كل طلبية تُسجَّل وتُختَم بالوقت وتُربَط بحساب البائع الموثوق — مسار مستندي واضح لطرفي الصفقة.',
+ 'hsub'=>'الثقة بالتصميم — لطرفي الصفقة.',
+ 'brands_t'=>'العلامات المتوفرة في المخزون','brands_s'=>'لقطة حية للمخزون الموثوق — كل اسم أدناه يُورَّد حاليًا عبر بائع خضع لتحقق KYC.',
+ 's1t'=>'احصل على التحقق','s1d'=>'يكمل البائعون والمشترون تحققًا تجاريًا سريعًا. يرى الأعضاء المعتمدون أسعار الجملة الحية.',
+ 's2t'=>'اختر واطلب','s2d'=>'تصفح إعلانات شركات بائعة موثوقة — علامات تجارية وأساسيات نسيجية. اطلب بشروط فوترة واضحة.',
+ 's3t'=>'تاجر بثقة','s3d'=>'بيانات بائع موثقة، وفوترة مسجلة، وعملية نزاع منظمة تغطي كل صفقة.',
+ 'jt'=>'ابدأ التجارة على VESTRA','js'=>'تسجيل مجاني. بلا التزام. انضم إلى مئات الشركات البائعة والمشترية الموثوقة.',
+ 'sell_title'=>"أنا بائع",
+ 'sell_desc'=>'اعرض منتجاتك ذات العلامات التجارية والمنسوجات. صِل إلى شركات مشترية بالجملة موثوقة في أنحاء أوروبا.',
+ 'sell_f1'=>'شروط فوترة موثقة في كل طلبية',
+ 'sell_f2'=>'عمولة تبدأ من 2.8٪، وأقل في الخطط الأعلى',
+ 'sell_f3'=>'تحكم كامل في السعر والحد الأدنى للطلب والشرائح',
+ 'sell_cta'=>'التسجيل كبائع',
+ 'buy_title'=>"أنا مشترٍ",
+ 'buy_desc'=>'اشترِ الأزياء من شركات بائعة خضعت لتحقق KYC. كل معاملة موثقة ومحمية.',
+ 'buy_f1'=>'بائعون خضعوا لتحقق KYC وفحص الخلفية فقط',
+ 'buy_f2'=>'عملية نزاع منظمة في كل طلبية',
+ 'buy_f3'=>'التصفح وطلب عروض الأسعار مجانًا',
+ 'buy_cta'=>'التسجيل كمشترٍ',
+ 'app_t'=>'VESTRA كتطبيق','app_s'=>'ثبّته مباشرة من المتصفح — بلا App Store ولا Play Store. أسعار حية وطلبيات ورسائل، مع إشعارات فورية.','app_and'=>'التثبيت على Android','app_and_hint'=>'في Chrome: القائمة ⋮ ← «تثبيت التطبيق».','app_apk'=>'تنزيل APK','app_ios'=>'التثبيت على iPhone','app_ios_hint'=>'افتح في Safari ← مشاركة ← «إضافة إلى الشاشة الرئيسية».','app_noti'=>'تفعيل الإشعارات','app_noti_ok'=>'الإشعارات مفعّلة ✓','app_noti_no'=>'الإشعارات محظورة — اسمح بها من إعدادات المتصفح.','app_signin'=>'سجّل الدخول أولًا لتلقي الإشعارات.',
+ 'already'=>'لديك حساب بالفعل؟','signin'=>'تسجيل الدخول ←',
+],
 ];
-$t = $T[$lang];
+$t = $T[$lang] ?? $T['en'];
 
 ?>
 <!DOCTYPE html>
-<html lang="<?= $lang ?>">
+<html lang="<?= $lang ?>" dir="<?= vlang_dir() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -336,7 +440,7 @@ $t = $T[$lang];
 // ── SEO: canonical + multilingual hreflang + social + structured data ──
 $SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
 $_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
-$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES'][$lang] ?? 'en_US';
+$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR'][$lang] ?? 'en_US';
 /* Brand names, taken from the LIVE catalogue rather than typed in. Two reasons.
    Truthfulness: the page can only ever name a house that is actually in stock, so
    the copy cannot drift into claiming a brand that was never carried. And reach:
@@ -359,12 +463,19 @@ $_kw = [
  'it'=>'moda ingrosso B2B, ingrosso abbigliamento firmato, capi di design autentici ingrosso, marketplace ingrosso moda, fornitori verificati KYC, ingrosso multimarca, moda firmata ingrosso Europa, comprare abbigliamento ingrosso',
  'es'=>'moda al por mayor B2B, mayorista de marca, ropa de diseñador auténtica al por mayor, marketplace mayorista de moda, proveedores verificados KYC, mayorista multimarca, moda de diseñador al por mayor Europa, comprar ropa al por mayor',
  'de'=>'B2B Mode Großhandel, Marken Großhandel, authentische Designer Großhandel, Großhandel Bekleidung, KYC-verifizierte Lieferanten, Multibrand Großhandel, Designermode Großhandel Europa, Bekleidung im Großhandel kaufen',
+ 'pt'=>'moda B2B por grosso, grossista de moda de marca, roupa de designer autêntica por grosso, marketplace grossista de moda, fornecedores verificados KYC, grossista multimarca, moda de designer por grosso Europa, comprar roupa por grosso',
+ 'ru'=>'оптовая мода B2B, брендовая одежда оптом, оригинальная дизайнерская одежда оптом, оптовый маркетплейс одежды, поставщики с KYC-проверкой, мультибрендовый опт, дизайнерская одежда оптом Европа, купить одежду оптом',
+ 'ar'=>'أزياء بالجملة B2B, ملابس ماركات بالجملة, ملابس مصممين أصلية بالجملة, سوق جملة للأزياء, موردون موثوقون KYC, جملة متعددة العلامات, أزياء مصممين بالجملة أوروبا, شراء ملابس بالجملة',
 ][$lang] ?? '';
 if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
+/* Live categories too ("Sneaker Großhandel", "Polos en gros") -- localised, from stock. */
+$_catKw = function_exists('vestra_seo_cat_keywords') ? vestra_seo_cat_keywords($lang, 12) : '';
+if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
 ?>
 <link rel="canonical" href="<?= htmlspecialchars($_hh($lang)) ?>">
-<?php foreach (array_keys($LANGS) as $_l): ?>
-<link rel="alternate" hreflang="<?= $_l ?>" href="<?= htmlspecialchars($_hh($_l)) ?>">
+<?php /* Base languages + regional variants, same map as inc/head.php. */
+      foreach (vlang_hreflang_map() as $_hl => $_l): ?>
+<link rel="alternate" hreflang="<?= $_hl ?>" href="<?= htmlspecialchars($_hh($_l)) ?>">
 <?php endforeach; ?>
 <link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_hh('en')) ?>">
 <meta name="robots" content="index, follow, max-image-preview:large">
@@ -391,7 +502,9 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
   'knowsAbout'=>array_merge(
      ['B2B fashion wholesale','authentic branded apparel','designer clothing wholesale',
       'multi-brand boutique sourcing','textile wholesale','KYC-verified suppliers'],
-     array_slice($_brands, 0, 14)),
+     array_slice($_brands, 0, 14),
+     /* … and the live categories, localised ("Sneaker", "Schuhe" on the German page). */
+     function_exists('vestra_seo_knows_about') ? vestra_seo_knows_about(12) : []),
   'keywords'=>'B2B fashion wholesale, branded fashion wholesale, authentic designer wholesale, KYC-verified suppliers, multi-brand boutique wholesale, wholesale clothing marketplace Europe',
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) ?></script>
 <script type="application/ld+json"><?= json_encode([
@@ -676,6 +789,16 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
      a handful of enormous boxes around a 150px logo (~55% dead space). auto-fill with
      a max column width keeps the cell close to the wordmark it holds, and the grid
      centres so a partial last row doesn't read as a broken table. */
+  .catstrip{padding:56px 0 8px}
+  .cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-top:26px}
+  .cs-cell{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--bg2);transition:border-color .2s var(--ease)}
+  .cs-cell:hover{border-color:var(--acc)}
+  .cs-coll{border-color:rgba(201,168,106,.45)}
+  .cs-name{font-weight:600;font-size:14px}
+  .cs-n{font-size:12px;color:var(--mut)}
+  .shoe-cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+  .shoe-cats a{border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;color:var(--mut);transition:border-color .2s var(--ease),color .2s var(--ease)}
+  .shoe-cats a:hover{color:var(--ink);border-color:var(--acc)}
   .brandwall{background:linear-gradient(180deg,var(--bg2),var(--bg));
     border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:76px 0 80px}
   .bw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
@@ -810,13 +933,13 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       <span><?= htmlspecialchars($BRAND) ?><span class="logo-sub">sales</span></span>
     </a>
     <div class="nav-links">
-      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
-      <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
+      <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات'][$lang] ?? 'Requests' ?></a>
       <a href="/faq">FAQ</a>
       <?php /* short label here, not $t['brands_t'] — that is a full section heading
                ("Die Marken im Bestand", "Las maisons disponibles") and as a nav item it
                alone pushed the menu ~120px wider than the header could hold. */ ?>
-      <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken'][$lang] ?></a><?php endif; ?>
+      <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية'][$lang] ?? 'Brands' ?></a><?php endif; ?>
       <a href="#how"><?= $t['how'] ?></a>
       <?php /* brand name dropped from this label only (the drawer and footer keep it) —
                redundant three centimetres from the wordmark, and it cost ~65px of header
@@ -825,7 +948,7 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
       <span class="langs">
         <?php $i=0; foreach($LANGS as $c=>$l){ echo $i++? '<span class="sep">·</span>':''; ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
       </span>
-      <?php if(!$LOGGED): ?><a href="/login" class="nav-signin"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden'][$lang] ?></a><?php endif; ?>
+      <?php if(!$LOGGED): ?><a href="/login" class="nav-signin"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
       <a href="<?= $LOGGED ? $panelHref : '/register' ?>" class="nav-cta"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     </div>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mnav">
@@ -833,13 +956,13 @@ if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
     </button>
   </nav></div>
   <div class="mnav" id="mnav">
-    <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
-    <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen'][$lang] ?></a>
+    <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
+    <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات'][$lang] ?? 'Requests' ?></a>
     <a href="/faq">FAQ</a>
-    <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken'][$lang] ?></a><?php endif; ?>
+    <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية'][$lang] ?? 'Brands' ?></a><?php endif; ?>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-    <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden'][$lang] ?></a><?php endif; ?>
+    <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
     <a href="<?= $LOGGED ? $panelHref : '/register' ?>"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     <div class="mlangs">
       <?php foreach($LANGS as $c=>$l){ ?><a href="?lang=<?= $c ?>" class="<?= $c===$lang?'on':'' ?>"><?= $l ?></a><?php } ?>
@@ -1214,6 +1337,16 @@ if ($shoePicks):
       <a class="btn btn-p" href="/shop?section=footwear"><?= sprintf(t('Browse all %d shoes'), $shoeTotal) ?> →</a>
       <span class="hint">🇪🇸 <?= t('Made in Spain · full size series') ?></span>
     </div>
+    <?php /* One link per shoe category, each to its own landing page -- "boots wholesale"
+             has an address now, and the band is where a crawler finds it. */
+          $_fw = function_exists('vestra_seo_resolve') ? vestra_seo_resolve('footwear') : null;
+          if ($_fw && count($_fw['cats']) > 1): $_cw = vestra_seo_wholesale_word($lang); ?>
+    <div class="shoe-cats">
+      <?php foreach ($_fw['cats'] as $_c => $_n): ?>
+      <a href="/b2b/<?= urlencode(vestra_seo_cat_slug($_c)) ?>"><?= htmlspecialchars(t($_c).' '.$_cw) ?> · <?= (int)$_n ?></a>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
   </div>
 </section>
 <?php endif; ?>
@@ -1225,7 +1358,31 @@ if ($shoePicks):
     <p class="sec-sub" style="margin-bottom:34px"><?= $t['brands_s'] ?></p>
     <div class="bw-grid">
       <?php foreach ($_brands as $_b): ?>
-      <a class="bw-cell" href="/shop" title="<?= htmlspecialchars($_b) ?>"><?= vestra_brand_card($_b) ?></a>
+      <?php /* Each house links to its own landing page, not the generic catalogue: the
+               brand wall is the strongest internal link on the site and it used to
+               point every crawler at one URL. */ ?>
+      <a class="bw-cell" href="<?= function_exists('vestra_brand_slug') ? '/wholesale/'.urlencode(vestra_brand_slug($_b)) : '/shop' ?>" title="<?= htmlspecialchars($_b) ?>"><?= vestra_brand_card($_b) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
+<?php /* Category strip: every live category with its count, linking to /b2b/<slug>. The
+         brand wall says which houses; this says what we actually sell -- and for a search
+         engine these are the internal links that make "sneakers wholesale" resolve to a
+         page. Counts are live, so an emptied category drops out on its own. */
+      if (function_exists('vestra_seo_cats') && ($_cats = vestra_seo_cats())):
+        $_cw = vestra_seo_wholesale_word($lang); ?>
+<section class="catstrip reveal" id="categories">
+  <div class="wrap">
+    <h2 class="sec-title"><?= t('Wholesale by category') ?></h2>
+    <p class="sec-sub"><?= t('Every category below is live stock — counts update as listings change.') ?></p>
+    <div class="cs-grid">
+      <?php foreach (vestra_seo_collections() as $_cs => $_sec): $_r = vestra_seo_resolve($_cs); if (!$_r) continue; ?>
+      <a class="cs-cell cs-coll" href="/b2b/<?= $_cs ?>"><span class="cs-name"><?= htmlspecialchars(t(vestra_section_label($_sec)).' '.$_cw) ?></span><span class="cs-n"><?= htmlspecialchars(sprintf(t('%d listings'), count($_r['items']))) ?></span></a>
+      <?php endforeach; foreach (array_slice($_cats, 0, 18, true) as $_c => $_n): ?>
+      <a class="cs-cell" href="/b2b/<?= urlencode(vestra_seo_cat_slug($_c)) ?>"><span class="cs-name"><?= htmlspecialchars(t($_c).' '.$_cw) ?></span><span class="cs-n"><?= htmlspecialchars(sprintf(t('%d listings'), $_n)) ?></span></a>
       <?php endforeach; ?>
     </div>
   </div>
@@ -1343,7 +1500,7 @@ if ($shoePicks):
     <div><b style="color:var(--ink)"><?= htmlspecialchars($BRAND) ?></b> — <?= $t['tagline'] ?>
       <div style="margin-top:6px;opacity:.8"><?= htmlspecialchars($COMPANY) ?></div></div>
     <div class="foot-links">
-      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog'][$lang] ?></a>
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
       <a href="/faq">FAQ</a>
       <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <a href="mailto:<?= htmlspecialchars($CONTACT) ?>" class="acc"><?= htmlspecialchars($CONTACT) ?></a>

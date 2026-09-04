@@ -54,7 +54,7 @@ $BRAND  = 'VESTRA';
 $PAGE   = $PAGE ?? $BRAND;
 $ACC    = '#c9a86a';
 ?><!DOCTYPE html>
-<html lang="<?= vlang() ?>">
+<html lang="<?= vlang() ?>" dir="<?= vlang_dir() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -77,7 +77,8 @@ $_seoSep   = ($qs !== '' ? '&' : '?');
 $_seoHref  = fn($l) => $SEO_HOST.$_seoBase.($l === 'en' ? '' : $_seoSep.'lang='.$l);
 $CANONICAL = $_seoHref(vlang());
 $OG_IMAGE  = $OG_IMAGE ?? $SEO_HOST.'/inc/og-image.png';   // pages may set a specific image (e.g. product photo)
-$OG_LOCALE = ['en'=>'en_US','fr'=>'fr_FR','es'=>'es_ES','it'=>'it_IT','de'=>'de_DE'][vlang()] ?? 'en_US';
+$OG_LOCALES = ['en'=>'en_US','fr'=>'fr_FR','es'=>'es_ES','it'=>'it_IT','de'=>'de_DE','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR'];
+$OG_LOCALE  = $OG_LOCALES[vlang()] ?? 'en_US';
 $NOINDEX   = $NOINDEX ?? false;
 ?>
 <meta name="description" content="<?= htmlspecialchars($META) ?>">
@@ -95,11 +96,19 @@ if (function_exists('vestra_seo_brand_keywords')) {
     $_bkw = vestra_seo_brand_keywords(vlang());
     if ($_bkw !== '') $KEYWORDS = ($KEYWORDS !== '' ? $KEYWORDS.', ' : '').$_bkw;
 }
+/* And the categories actually in stock, the other half of what a buyer types
+   ("sneakers wholesale", "T-Shirts Großhandel"); localised, from live inventory. */
+if (function_exists('vestra_seo_cat_keywords')) {
+    $_ckw = vestra_seo_cat_keywords(vlang());
+    if ($_ckw !== '') $KEYWORDS = ($KEYWORDS !== '' ? $KEYWORDS.', ' : '').$_ckw;
+}
 ?>
 <meta name="keywords" content="<?= htmlspecialchars($KEYWORDS) ?>">
 <link rel="canonical" href="<?= htmlspecialchars($CANONICAL) ?>">
-<?php foreach (array_keys(vlang_list()) as $_l): ?>
-<link rel="alternate" hreflang="<?= $_l ?>" href="<?= htmlspecialchars($_seoHref($_l)) ?>">
+<?php /* Base languages plus their regional variants (de-AT, fr-BE, en-NL, pt-BR …), all
+         pointing at the same language page -- see vlang_hreflang_map() in i18n.php. */
+      foreach (vlang_hreflang_map() as $_hl => $_l): ?>
+<link rel="alternate" hreflang="<?= $_hl ?>" href="<?= htmlspecialchars($_seoHref($_l)) ?>">
 <?php endforeach; ?>
 <link rel="alternate" hreflang="x-default" href="<?= htmlspecialchars($_seoHref('en')) ?>">
 <meta name="robots" content="<?= $NOINDEX ? 'noindex, follow' : 'index, follow, max-image-preview:large' ?>">
@@ -126,6 +135,9 @@ foreach ($_verify as $_vName => $_vTok):
 <meta property="og:url" content="<?= htmlspecialchars($CANONICAL) ?>">
 <meta property="og:image" content="<?= htmlspecialchars($OG_IMAGE) ?>">
 <meta property="og:locale" content="<?= $OG_LOCALE ?>">
+<?php foreach ($OG_LOCALES as $_l => $_loc): if ($_l === vlang() || !isset(vlang_list()[$_l])) continue; ?>
+<meta property="og:locale:alternate" content="<?= $_loc ?>">
+<?php endforeach; ?>
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="<?= htmlspecialchars($PAGE) ?> — <?= $BRAND ?>">
 <meta name="twitter:description" content="<?= htmlspecialchars($META) ?>">
@@ -170,6 +182,12 @@ $_ld = array_merge([
     'areaServed' => ['Europe', 'Asia', 'Oceania', 'South America', 'Middle East', 'Africa'],
     'email' => 'support@vestrasales.com',
     'inLanguage' => vlang(),
+    /* What the business deals in, as an entity: the houses in stock and the live
+       categories (localised), so a crawler reading the German page sees "Sneaker",
+       "Schuhe" next to the brand names. Same live lists as the keyword tag. */
+    'knowsAbout' => array_values(array_unique(array_merge(
+        function_exists('vestra_seo_brands') ? vestra_seo_brands(14) : [],
+        function_exists('vestra_seo_knows_about') ? vestra_seo_knows_about(14) : []))),
   ],
   [
     '@context' => 'https://schema.org', '@type' => 'WebSite',

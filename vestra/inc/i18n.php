@@ -8,12 +8,44 @@
  */
 if(!function_exists('vlang')){
 
-/* Languages the SITE serves, in menu order. NL/PT/CS/PL/EL were removed at the
-   operator's decision: visitors from those countries now get English. Order is
-   deliberate — EN first, DE last. Dropping a code here is enough; t() falls back
-   to the English key, so a stale dictionary file can never surface a half
-   translated page. */
-function vlang_list(){ return ['en'=>'EN','fr'=>'FR','es'=>'ES','it'=>'IT','de'=>'DE']; }
+/* Languages the SITE serves, in menu order. NL/CS/PL/EL were removed at the
+   operator's decision: visitors from those countries now get English. PT came back
+   and RU were added on 3 Sep 2026 (operator: "6-7 dil yap — rusca ve portekizce
+   ekle"), then AR the same day ("arapcada yap"), so the site serves eight. Order is
+   deliberate — EN first, the newest last. Arabic is the one right-to-left language:
+   vlang_dir() gives the <html dir> value and the layout mirrors through flex/grid. Dropping a code here is enough; t() falls back to the English key, so a
+   stale dictionary file can never surface a half translated page. Completeness of
+   every dictionary against inc/lang/de.php is enforced by tests/seo_landing_test.php. */
+function vlang_list(){ return ['en'=>'EN','fr'=>'FR','es'=>'ES','it'=>'IT','de'=>'DE','pt'=>'PT','ru'=>'RU','ar'=>'AR']; }
+
+/* Writing direction of the active language, for <html dir="…">. Only Arabic is RTL. */
+function vlang_dir(){ return vlang() === 'ar' ? 'rtl' : 'ltr'; }
+
+/* hreflang codes the pages announce => site language that serves them. Regional
+   variants (de-AT, fr-BE, en-NL …) all point at the SAME language page: hreflang is a
+   targeting hint, not a promise of separate content, and it is how a Belgian boutique
+   searching in French or a Dutch one searching in English gets told this page is for
+   them. The English variants cover the European markets whose own languages were
+   dropped (NL, CS, PL, EL — those visitors already get English). Derived from
+   vlang_list(): a language removed there disappears from here on its own. */
+function vlang_hreflang_map(){
+  $regions = [
+    'en' => ['GB','IE','NL','BE','DK','SE','FI','NO','PL','CZ','GR','HU','RO'],
+    'de' => ['DE','AT','CH'],
+    'fr' => ['FR','BE','CH','LU'],
+    'it' => ['IT','CH'],
+    'es' => ['ES'],
+    'pt' => ['PT','BR'],
+    'ru' => ['RU','BY','KZ'],
+    'ar' => ['AE','SA','QA','KW','BH','OM','EG','JO','MA'],
+  ];
+  $map = [];
+  foreach (array_keys(vlang_list()) as $l) {
+    $map[$l] = $l;
+    foreach ($regions[$l] ?? [] as $r) $map[$l.'-'.$r] = $l;
+  }
+  return $map;
+}
 
 /* Best match for the visitor's device/browser language (phone language travels
  * in the Accept-Language header). Maps regional tags (de-AT, fr-CA…) to our base

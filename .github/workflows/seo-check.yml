@@ -37,7 +37,7 @@ jobs:
           UA_BOT="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           UA_WEB="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
           PATH_="${P:-/}"
-          for L in en de fr it es; do
+          for L in en de fr it es pt ru ar; do
             if [ "$L" = "en" ]; then URL="${BASE}${PATH_}"
             else
               case "$PATH_" in *\?*) URL="${BASE}${PATH_}&lang=$L";; *) URL="${BASE}${PATH_}?lang=$L";; esac
@@ -73,7 +73,7 @@ jobs:
             echo
             # Marka anahtar kelimesi gercekten var mi? Dile gore "toptan" sozcugu degisiyor.
             case "$L" in
-              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; *) W="wholesale";;
+              de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; pt) W="por grosso";; ru) W="оптом";; ar) W="بالجملة";; *) W="wholesale";;
             esac
             echo "  --- kontrol ---"
             for B in Balenciaga Burberry Gucci DSQUARED2 Valentino Fendi; do
@@ -180,7 +180,7 @@ jobs:
             # query string'i ayristirmaz. Ilk denemede tam bu yuzden en/de/it ayni
             # Ingilizce ciktiyi verdi ve sanki ceviri bozukmus gibi gorundu. $_GET'i
             # dogrudan kuruyoruz.
-            for L in en de it es fr; do
+            for L in en de it es fr pt ru ar; do
               echo "=================== $L ==================="
               OUT=$(php -r '
                 $l = $argv[1];

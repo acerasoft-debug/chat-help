@@ -33,6 +33,13 @@
   # stoktan çözülür, sabit listeden değil (bkz. wholesale.php).
   # /wholesale-list.pdf ile çakışmaz: bu kalıp "wholesale" ardından EĞİK ÇİZGİ ister,
   # fiyat listesi ise "wholesale-list" -- tire ile devam ettiği için hiç eşleşmez.
+
+  # /wholesale/<marka>/<kategori> → marka × kategori ("Lacoste polos wholesale") ve
+  # /b2b/<kategori> → kategori / koleksiyon iniş sayfası ("sneakers wholesale",
+  # "T-Shirts Großhandel"). İkisi de b2b.php; sözlük inc/seo.php. Marka kuralının
+  # ÜSTÜNDE duruyor ama çakışmaz: o kural ikinci bir eğik çizgiye izin vermiyor.
+  RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?brand=$1&cat=$2 [L,QSA]
+  RewriteRule ^b2b/([A-Za-z0-9][A-Za-z0-9-]*)/?$ b2b.php?cat=$1 [L,QSA]
   RewriteRule ^wholesale/([A-Za-z0-9][A-Za-z0-9-]*)/?$ wholesale.php?brand=$1 [L,QSA]
 
   # /sitemap.xml → dinamik sitemap.php

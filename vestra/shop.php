@@ -12,6 +12,15 @@ $META = t('Browse VESTRA\'s wholesale catalogue — authentic branded & designer
 if ($_shopBrands) {
     $META = sprintf(t('%s and more, at trade prices for boutiques.'), implode(', ', $_shopBrands)).' '.$META;
 }
+/* The footwear collection gets its own title and description. ?section= stays in the
+   query string (.htaccess leaves it there and head.php keeps it in the canonical), so
+   /shop?section=footwear is a separate address for a search engine -- and until now it
+   carried the apparel title, so "footwear wholesale" had nothing to land on. */
+if (strtolower(trim((string)($_GET['section'] ?? ''))) === 'footwear') {
+    $PAGE     = sprintf(t('%s wholesale — Catalog'), t('Footwear'));
+    $META     = t('Spanish-made footwear wholesale — sneakers, boots, sandals, loafers and slippers in full size series for shoe shops and boutiques. Trade prices on registration, ordered by the series, invoice-based B2B ordering across Europe.');
+    $KEYWORDS = vestra_seo_cat_b2b_keywords('Footwear', vlang());
+}
 require __DIR__.'/inc/head.php';
 $products = vestra_products();
 

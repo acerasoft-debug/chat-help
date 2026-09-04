@@ -31,6 +31,9 @@ $urls = [
 foreach (vestra_seo_brands(0) as $b) {
   $urls[] = ['/wholesale/'.vestra_brand_slug($b), 'weekly', '0.8'];
 }
+/* Category, collection and brand × category landing pages (inc/seo.php). Same rule as
+   the brand pages: derived from live stock, so nothing is listed that would render 404. */
+foreach (vestra_seo_landing_paths() as $row) $urls[] = $row;
 foreach (vestra_products() as $p) {
   $urls[] = ['/product?id='.rawurlencode($p['id']), 'weekly', '0.6'];
 }

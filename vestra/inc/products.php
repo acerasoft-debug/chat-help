@@ -1097,7 +1097,8 @@ function vestra_seo_brands(int $max = 14): array {
 
 /** "wholesale" in the visitor's language — the word that actually appears in the query. */
 function vestra_seo_wholesale_word(string $lang): string {
-    return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel'][$lang] ?? 'wholesale';
+    return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel',
+            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة'][$lang] ?? 'wholesale';
 }
 
 /* Brand <-> URL slug. The landing pages live at /wholesale/<slug>, so the slug has to
@@ -1125,6 +1126,9 @@ function vestra_seo_b2b_terms(string $lang): array {
         'fr' => ['en gros', 'fournisseur B2B', 'grossiste', 'destockage', 'prix professionnels', 'pour boutiques'],
         'es' => ['al por mayor', 'proveedor B2B', 'mayorista', 'lote de stock', 'precios de mayorista', 'para boutiques'],
         'it' => ['ingrosso', 'fornitore B2B', 'grossista', 'stock lotto', 'prezzi allingrosso', 'per boutique'],
+        'pt' => ['por grosso', 'fornecedor B2B', 'grossista', 'lote de stock', 'preços de revenda', 'para boutiques'],
+        'ru' => ['оптом', 'B2B поставщик', 'опт', 'сток', 'оптовые цены', 'для бутиков'],
+        'ar' => ['بالجملة', 'مورد B2B', 'جملة', 'ستوك', 'أسعار الجملة', 'للبوتيكات'],
     ][$lang] ?? [];
 }
 
@@ -1328,3 +1332,8 @@ function vestra_colour_options(array $p): array {
     }
     return $c;
 }
+
+/* SEO iniş sayfaları (kategori, koleksiyon, marka × kategori) — inc/seo.php. Burada
+   yükleniyor ki kataloğu yükleyen her sayfa bu yardımcıları da bulsun; head.php ve
+   foot.php function_exists ile soruyor. */
+require_once __DIR__."/seo.php";
