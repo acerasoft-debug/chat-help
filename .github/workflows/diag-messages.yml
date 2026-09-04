@@ -395,6 +395,21 @@ jobs:
                 foreach ((array)($d['domains'] ?? []) as $dom) {
                   $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '?');
                   $recs = (array)($dom['dns_records'] ?? []);
+                  /* Liste ucu (senders/domains) kayitlari TASIMIYOR -- 4 Eyl 2026'da
+                     olculdu: alan "dogrulanmis=EVET" dondu ama dns_records bostu.
+                     Kayitlar alan-basina ucta duruyor; iki adlandirmayi da deniyoruz
+                     (Brevo API'si /senders/domains/<ad> ile /domains/<ad> arasinda
+                     surum surum degisti) ve ILK dolu cevabi kullaniyoruz. */
+                  if (!$recs) {
+                    foreach (['senders/domains/'.rawurlencode($n), 'domains/'.rawurlencode($n)] as $ep) {
+                      [$dc, $dd] = $get($ep);
+                      echo "  ({$ep} -> HTTP {$dc})\n";
+                      if ($dc >= 200 && $dc < 300) {
+                        $cand = (array)($dd['dns_records'] ?? $dd['domain']['dns_records'] ?? []);
+                        if ($cand) { $recs = $cand; break; }
+                      }
+                    }
+                  }
                   if (!$recs) { echo "  {$n}: Brevo bu alan icin kayit dondurmedi\n"; continue; }
                   echo "  --- {$n} ---\n";
                   foreach ($recs as $key => $r) {
