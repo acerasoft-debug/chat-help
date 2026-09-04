@@ -385,6 +385,42 @@ jobs:
                              .", dkim=".(!empty($au['dkim'])?'OK':'YOK').", dmarc=".(!empty($au['dmarc'])?'OK':'YOK');
                 }
 
+                /* DNS KAYITLARININ KENDISI. Denetimin "dkim=YOK" demesi sorunu
+                   gosteriyor ama cozmuyor: operatorun GoDaddy'ye yapistiracagi
+                   satirlar Brevo'nun kendi cevabinda duruyor (dns_records). Bunlari
+                   basmak guvenli -- DKIM ACIK anahtardir, DMARC ve dogrulama kaydi
+                   zaten herkese acik DNS'te yayinlanacak. API ANAHTARI basilmaz. */
+                echo "\n===== DNS'E EKLENECEK KAYITLAR (GoDaddy) =====\n";
+                $printed = 0;
+                foreach ((array)($d['domains'] ?? []) as $dom) {
+                  $n = (string)($dom['domain_name'] ?? $dom['domain'] ?? '?');
+                  $recs = (array)($dom['dns_records'] ?? []);
+                  if (!$recs) { echo "  {$n}: Brevo bu alan icin kayit dondurmedi\n"; continue; }
+                  echo "  --- {$n} ---\n";
+                  foreach ($recs as $key => $r) {
+                    if (!is_array($r)) continue;
+                    $host = (string)($r['host_name'] ?? $r['hostname'] ?? '?');
+                    $type = strtoupper((string)($r['type'] ?? 'TXT'));
+                    $val  = (string)($r['value'] ?? '');
+                    $st   = !empty($r['status']) ? 'DOGRULANDI' : 'BEKLIYOR';
+                    /* Uzun DKIM degeri tek satirda okunmaz; 100 karakterde katliyoruz
+                       ama BIRLESTIRILECEGI acikca yaziyoruz -- yanlis kopyalanan bir
+                       DKIM sessizce calismaz, sadece mektup spam'e duser. */
+                    echo "  [{$key}] durum={$st}\n";
+                    echo "     Type : {$type}\n";
+                    echo "     Name : {$host}\n";
+                    echo "     Value: ".(strlen($val) > 100 ? "(asagidaki parcalari BOSLUKSUZ birlestir)\n            ".implode("\n            ", str_split($val, 100)) : $val)."\n";
+                    $printed++;
+                  }
+                }
+                if (!$printed) echo "  (kayit yok — alan adi Brevo'ya hic eklenmemis olabilir)\n";
+                echo "\n  DMARC ayrica elle eklenir (Brevo dondurmezse):\n";
+                echo "     Type : TXT\n";
+                echo "     Name : _dmarc\n";
+                echo "     Value: v=DMARC1; p=none; rua=mailto:support@vestrasales.com\n";
+                echo "  (p=none = once izle, hicbir mektubu reddetme. DKIM oturduktan\n";
+                echo "   sonra p=quarantine'e cekilir.)\n";
+
                 echo "\n===== GONDEREN ADRESLER =====\n";
                 [$c2, $d2] = $get('senders');
                 foreach ((array)($d2['senders'] ?? []) as $sd) {
