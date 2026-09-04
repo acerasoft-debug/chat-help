@@ -800,6 +800,21 @@ jobs:
                   printf("*** eski/hatali kayit (declared!=parsed, 'crawl' bunlari kendiliginden yeniden cekecek): %d ***\n", $staleN);
                   foreach ($staleUrls as $u) echo "   - $u\n";
                 }
+                // Every sample seen in log tails so far happened to be single-axis
+                // (size-only). Pull real two-axis (renk+beden birlikte) records here
+                // so extraction on the *other* branch of the parser is actually
+                // checked, not assumed from the single-axis cases alone.
+                $twoAxis = array_values(array_filter($existing, function($rec) {
+                  foreach ($rec['variants'] ?? [] as $v) {
+                    if (($v['color'] ?? null) !== null && ($v['size'] ?? null) !== null) return true;
+                  }
+                  return false;
+                }));
+                printf("iki eksenli (renk+beden) urun sayisi: %d\n", count($twoAxis));
+                if ($twoAxis) {
+                  echo "-- 2 ornek iki eksenli kayit --\n";
+                  foreach (array_slice($twoAxis, 0, 2) as $rec) echo json_encode($rec, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+                }
               }
               if ($failures) {
                 echo "\nhata nedenleri (gruplu):\n";
