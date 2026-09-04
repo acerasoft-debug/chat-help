@@ -1518,7 +1518,30 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
   return [$subject,$body,$opts];
 }
 
+/* Taranan ad CIPLAK BIR ALAN ADI ise ("chiarulli.it") hitapta kullanilamaz:
+ * mektup "Hello chiarulli.it," diye acilir ve makine urunu oldugu bellidir.
+ * Sifirlanirsa her dilin ZATEN VAR OLAN bos-ad dali devreye girer ("Hello,"),
+ * yani sekiz sablonun hicbirine dokunmadan duzeliyor.
+ *
+ * 4 Eyl 2026'da Italya B partisinde uc mektup boyle gitti (chiarulli.it,
+ * fiacchini.it, mazzolari.it) -- geri alinamadi. CLAUDE.md'deki
+ * factoryoutlet.gr / "Αρχική" notu ayni sinif: orada cozum bir mektubu tekrar
+ * gondermeyi gerektirdigi icin vazgecilmisti. Hitabi notrlestirmek o bedeli
+ * odemiyor: lead kaydina dokunmuyor, damgalari silmiyor, kimseye ikinci
+ * mektup gondermiyor.
+ *
+ * Dar tutuldu: bosluk iceren hicbir ad etkilenmez, yani "Dr. Martens Store"
+ * ya da "Base Blu - Online Luxury Fashion Boutique" oldugu gibi kalir. */
+function vestra_name_is_bare_domain(string $company): bool {
+  $k = trim($company);
+  if ($k === '' || preg_match('/\s/', $k)) return false;
+  return (bool)preg_match('/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,24}$/i', $k);
+}
+
 function vestra_campaign_preview_base(string $company='', string $lang='en', string $featureCat=''): array {
+  /* Tek bogaz: add-and-send, send-outreach ve panel onizlemesi hepsi buradan
+     geciyor, yani duzeltme uc yola birden isliyor. */
+  if (vestra_name_is_bare_domain($company)) $company = '';
   $counts=[]; $brands=[]; $shots=[];
   if(function_exists('vestra_products')){
     $all=vestra_products();
