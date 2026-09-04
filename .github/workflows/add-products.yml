@@ -236,6 +236,11 @@ jobs:
               if (!empty($r['pinned'])) $row['pinned'] = true;
               if (isset($r['size_step']) && is_numeric($r['size_step']) && (int)$r['size_step'] > 1) $row['size_step'] = (int)$r['size_step'];
               if (isset($r['min_colors']) && is_numeric($r['min_colors']) && (int)$r['min_colors'] >= 1) $row['min_colors'] = (int)$r['min_colors'];
+              /* KURAL 3: nereden gonderildigi tahmin edilmez, yazilir. Batch bunu
+                 vermezse platform varsayilani (EU) kalir -- bu satir sessizce
+                 dusuyordu, yani daha once eklenen her batch (footwear dahil)
+                 gercekte hic ships_from GIRMEMIS gibi davraniyordu. */
+              if (!empty($r['ships_from']) && is_string($r['ships_from'])) $row['ships_from'] = trim($r['ships_from']);
               /* seller_email: satici hesabini e-postadan coz (teshis ciktisi id'yi 8 karaktere
                  maskeliyor, tam uid disaridan bilinmiyor). Paket sifreli oldugu icin adres
                  depoya acik girmiyor; cozumleme sunucuda. */

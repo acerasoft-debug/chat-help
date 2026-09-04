@@ -1153,7 +1153,22 @@ jobs:
                 foreach (($rec['colors'] ?? []) as $c) { $m = $mapColor($c); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; }
                 foreach (($rec['variants'] ?? []) as $v) { if (!empty($v['color'])) { $m = $mapColor($v['color']); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; } }
 
-                $sizesList = array_values(array_unique(array_filter(array_map(fn($v) => $v['size'] ?? null, $rec['variants'] ?? []))));
+                // Kuloğlu quirk: color-only products sometimes carry the color word in the
+                // "beden" (size) field instead of "renk" (color). Only redirect a size value
+                // into colorsEn when the variant's own color field is empty AND the value
+                // actually resolves in the palette map — real two-axis (color + size)
+                // products keep their sizes untouched.
+                $sizesRaw = [];
+                foreach (($rec['variants'] ?? []) as $v) {
+                  $sz = trim((string)($v['size'] ?? ''));
+                  if ($sz === '') continue;
+                  if (empty($v['color'])) {
+                    $m = $mapColor($sz);
+                    if ($m) { if (!in_array($m, $colorsEn, true)) $colorsEn[] = $m; continue; }
+                  }
+                  $sizesRaw[] = $sz;
+                }
+                $sizesList = array_values(array_unique($sizesRaw));
 
                 $moq = (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1);
                 $list = (float)($rec['unit_price_eur'] ?? 0);
@@ -1173,6 +1188,7 @@ jobs:
                   'colors' => $colorsEn, 'sizes' => implode(', ', $sizesList),
                   'desc' => implode(' · ', $descBits),
                   'images' => $images, 'seller_uid' => $sid, 'section' => 'underwear',
+                  'ships_from' => 'Turkey',
                 ];
               }
 
@@ -1181,7 +1197,7 @@ jobs:
               printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
               printf("yazildi: %s\n", $BATCH_FILE);
               echo "\n-- id listesi --\n";
-              foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes']);
+              foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
               exit(0);
             }
 
