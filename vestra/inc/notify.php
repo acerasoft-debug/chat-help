@@ -791,6 +791,17 @@ function vestra_name_is_parked_domain(string $company): bool {
      gercek bir ad ve gecmeli (test tutuyor). */
   if (in_array($k, ['coming soon','coming soon...','under construction','site under construction',
                     'index of /','welcome to nginx!','apache2 default page','it works!'], true)) return true;
+  /* Taranan ad HAM HTML tasiyorsa tarama basarisiz olmustur -- gercek bir firma
+     adinda "<p style=" gecmez. 4 Eyl 2026: block60.it'in adi
+     'Coming soon - <p style="text-ali' geldi; tam eslesme listesi bunu
+     goremedi cunku basligin sonuna HTML kirintisi yapismisti. Kirik bir
+     taramayi selamlamaya cevirmek ("Hello Coming soon - <p style=...")
+     gondermemekten kotu. */
+  if (preg_match('/<\s*(p|div|span|br|img|a|h[1-6])\b|style\s*=|&(nbsp|amp|lt|gt);/i', $k)) return true;
+  /* Bir baslik "coming soon" ile BASLAYIP ardindan harf degil ayirac geliyorsa
+     yer tutucudur. "Coming Soon Concept Store" (gercek ad) ayiracla degil
+     bosluk+harfle devam ettigi icin gecmeye devam eder -- test tutuyor. */
+  if (preg_match('/^(coming soon|under construction|website coming soon)\s*[-–—:|.!<]/i', $k)) return true;
   foreach ([
     'hugedomains','sedo','afternic','dan.com','undeveloped','namecheap marketplace',
     'godaddy auctions','buy this domain','domain for sale','this domain is for sale',
@@ -814,6 +825,12 @@ function vestra_name_is_parked_domain(string $company): bool {
        butik adinda gecebilir). */
     'poker369','pecah138','situs game','situs judi','slot gacor','judi online','slot online',
     'domaine en vente','ce domaine est à vendre','dominio in vendita','dominio en venta',
+    /* 4 Eyl 2026: capriboutique.com'un taranan adi "capriboutique.com registrato
+       con" -- Italyan kayit sirketinin park sayfasi ("... ile kayitli"). Ayni
+       kalibin komsulari da eklendi. Kelime siniri altta zaten var; "Registro"
+       ya da "Con Boutique" gibi gercek adlar etkilenmiyor. */
+    'registrato con','dominio registrato','registrado con','este dominio',
+    'questo dominio','dominio parcheggiato',
   ] as $needle) {
     /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
        buluyor: 'sedo' -> "The Sedona Store". Ayni hata vestra_name_is_blocked'da

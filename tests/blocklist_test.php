@@ -266,14 +266,25 @@ foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
           'Domain im Kundenauftrag registriert', 'Domaine en vente', 'Dominio in vendita',
           'Sfera.net Park Page', 'TopDomainer Search Engine', 'Coming Soon', 'Under construction',
           /* Ele gecirilmis alan adlari (2 Eyl 2026): dukkan kapanmis, kumar sitesi almis. */
-          'POKER369', 'PECAH138 ✈️ Situs Game Banyak Promo'] as $n) {
+          'POKER369', 'PECAH138 ✈️ Situs Game Banyak Promo',
+          /* 4 Eyl 2026, Italya B partisi. Ikisi de send=false on kosusunda elle
+             okundugu icin yakalandi -- tam olarak iki-kosu protokolunun sebebi. */
+          'Coming soon - <p style="text-ali',      /* block60.it */
+          'capriboutique.com registrato con',      /* capriboutique.com */
+          /* Kirik tarama: ham HTML tasiyan bir ad firma adi degildir. */
+          'Benvenuti <div class="hdr">', 'Home &nbsp; | Shop'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";
 /* Liste bilerek dar: genel bir 'domain'/'shop' kelimesi buraya girerse
    gercek butikler sessizce elenir -- en pahali hata turu. */
 foreach (['Domain Boutique Milano', 'The Sedona Store', 'Coming Soon Concept Store',
-          'Suspended Animation Vintage', 'Maison Ines Ligron', 'NUBIAN'] as $n) {
+          'Suspended Animation Vintage', 'Maison Ines Ligron', 'NUBIAN',
+          /* 4 Eyl 2026 eklemelerinin komsulari: "coming soon" ile BASLAYAN ama
+             ayiracla degil harfle devam eden gercek adlar gecmeli; kayit
+             sirketi kaliplarinin icindeki gunluk kelimeler de oyle. */
+          'Coming Soon Store Berlin', 'Registro Boutique Roma', 'Con Amore Milano',
+          'Este Lauder Concept', 'Style Council Vintage'] as $n) {
     $t("gecer: \"$n\"", !vestra_name_is_parked_domain($n));
 }
 $t('bos ad park sayilmaz', !vestra_name_is_parked_domain(''));
