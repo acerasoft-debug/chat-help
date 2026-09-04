@@ -733,6 +733,28 @@ function vestra_discover_blocklist(): array {
     'hummel','valento','elisabetta franchi',
     // Own-label menswear chains (their stores are supplied by their own factory)
     "d's damat",'dsdamat','ds damat','orka holding','damat tween',
+    /* 4 Eyl 2026 — operatorun elle verdigi cok partili Avrupa listesi (IT/UK/FR/DE/
+       AT/CH/ES/PT/NL/BE/LU/IE/RO/HU/SE/DK/NO, ~200 satir, agir tekrarli). Blokliste
+       cogunu zaten tutuyordu (Antonioli, Tessabit, END, Smets, Sivasdescalzo, Foot
+       District, Footpatrol, Solebox, Patta, Norse Store, Brown Thomas, Arnotts, Leam,
+       Cruise Fashion, Slam Jam, Zalando, Farfetch, Wood Wood, Bellerose, Steffl,
+       Tiziana Fausti, Folli Follie, Maison Standards, LuisaViaRoma, Mytheresa,
+       Flannels, MatchesFashion); asagidakiler ELLE okununca cikan bosluklardi. */
+    // Kanalda rakip dev e-tailer GRUBU. 'the outnet' zaten listedeydi ama SAHIBI
+    // ve kardes markalari degildi -- ayni grubun ikinci kutusu ayni kapiya cikar.
+    'yoox','ynap','net-a-porter','netaporter','mr porter','mrporter',
+    // Departman magaza (NL/CH). Selfridges zaten listede; De Bijenkorf ayni grup,
+    // ustelik kendi basina da cok subeli bir departman magazasi zinciri.
+    'bijenkorf','jelmoli',
+    // Cok ulkeli sneaker zinciri (CZ merkezli, CEE genelinde subeler)
+    'footshop',
+    /* Kendi markasini uretip satan evler: bunlar kendi fabrikasindan alir, bizden
+       asla. Hepsi listede "butik" diye geldi. 'guidi' ve 'sartoria' BILEREK YOK:
+       "Guidi" yaygin bir Italyan soyadi ve "sartoria" terzihane demek -- ikisi de
+       gercek bir cok markali dukkani sessizce elerdi (mango/zara dersi). Guidi bu
+       partide elle cikarildi; adi listeye girmedi. */
+    'trussardi','krizia','stefanel','fracomina','carla g','sartoria rossi',
+    'omorovicza','magee 1866','magee1866',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -854,7 +876,13 @@ function vestra_blocklist_exact_only(): array {
                 ICINDE geciyorlar. Sondam ikisini de yakaladi:
                 'slowear' -> slowearthvintage.com, 'lardini' -> lardinia.it.
                 Ikisi de gercek butik olabilir ve sessizce elenirlerdi. */
-             'slowear','lardini'] as $t){
+             'slowear','lardini',
+             /* 4 Eyl 2026 cok partili Avrupa listesi: 'stefanel' (8 harf) alt dize
+                arandiginda "stefanellimoda.it" icinde eslesiyor -- Stefanelli yaygin
+                bir Italyan soyadi, yani gercek bir cok markali butik sessizce
+                elenirdi. Test bunu ekledigim anda yakaladi. Ad tarafinda kelime
+                siniri Stefanel'i zaten Stefanelli'den ayiriyor. */
+             'stefanel'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }

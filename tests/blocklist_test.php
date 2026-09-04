@@ -325,6 +325,37 @@ $t('Tiffany Mode gecer',        !$blocked('Tiffany Mode','','tiffanymode.it'));
 $t('Sinonim Baku gecer',        !$blocked('Sinonim Baku','','sinonim.az'));
 $t('Villa Rosa Boutique gecer', !$blocked('Villa Rosa Boutique','','villarosa.it'));
 
+echo "\n== 13. 4 Eyl 2026 cok partili Avrupa listesinden eklenenler ==\n";
+/* Kanalda rakip dev e-tailer GRUBU: 'the outnet' listedeydi ama sahibi YNAP ve
+   kardes markalari degildi -- ayni grubun ikinci kutusu ayni kapiya cikiyor. */
+$t('YNAP',          $blocked('YOOX Net-A-Porter Group','info@ynap.com','ynap.com'));
+$t('Mr Porter',     $blocked('Mr Porter','info@mrporter.com','mrporter.com'));
+$t('Net-a-Porter',  $blocked('Net-a-Porter','cs@net-a-porter.com','net-a-porter.com'));
+$t('De Bijenkorf',  $blocked('De Bijenkorf','service@debijenkorf.nl','debijenkorf.nl'));
+$t('Jelmoli',       $blocked('Jelmoli','info@jelmoli.ch','jelmoli.ch'));
+$t('Footshop',      $blocked('Footshop Budapest','info@footshop.hu','footshop.hu'));
+$t('Omorovicza',    $blocked('Omorovicza Boutique','info@omorovicza.com','omorovicza.com'));
+$t('Magee 1866',    $blocked('Magee 1866','info@magee1866.com','magee1866.com'));
+$t('Krizia',        $blocked('Krizia','info@krizia.it','krizia.it'));
+$t('Trussardi',     $blocked('Trussardi','info@trussardi.com','trussardi.com'));
+$t('Stefanel',      $blocked('Stefanel','customercare@stefanel.com','stefanel.com'));
+$t('Fracomina',     $blocked('Fracomina','info@fracomina.it','fracomina.it'));
+$t('Carla G',       $blocked('Carla G','customercare@carlag.it','carlag.it'));
+$t('Sartoria Rossi',$blocked('Sartoria Rossi','info@sartoriarossi.com','sartoriarossi.com'));
+
+echo "\n== 13b. GECMELI — ayni partide elenmemesi gerekenler ==\n";
+/* 'stefanel' 8 harf oldugu icin alan adinda ALT DIZE araniyordu ve
+   "stefanellimoda.it" icinde eslesti: Stefanelli yaygin bir Italyan soyadi,
+   yani gercek bir butik sessizce elenirdi. exact_only'ye alindi.
+   'guidi' (soyad) ve 'sartoria' (terzihane) ayni sebeple listeye HIC girmedi. */
+$t('Stefanelli Moda gecer',    !$blocked('Stefanelli Moda','info@stefanellimoda.it','stefanellimoda.it'));
+$t('Guidi Boutique gecer',     !$blocked('Guidi Boutique','info@guidiboutique.it','guidiboutique.it'));
+$t('Sartoria Concept gecer',   !$blocked('Sartoria Milano Concept','info@sartoriaconcept.it','sartoriaconcept.it'));
+$t('Carla Gozzi Store gecer',  !$blocked('Carla Gozzi Store','info@carlagozzi.it','carlagozzi.it'));
+$t('Porter Store gecer',       !$blocked('Porter Store Lisboa','info@porterstore.pt','porterstore.pt'));
+$t('Magee Fashion Cork gecer', !$blocked('Magee Fashion Cork','info@mageefashion.ie','mageefashion.ie'));
+$t('Foot Corner Praha gecer',  !$blocked('Foot Corner Praha','info@footcorner.cz','footcorner.cz'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
