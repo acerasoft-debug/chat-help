@@ -673,6 +673,15 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
 - Kontrol: `tests/seo_landing_test.php` (slug gidiş-dönüş, çözücü, sitemap listesi,
   hreflang, sözlük eksiksizliği, kaynak kablolaması) ve canlıda `seo-check.yml`
   (`path=/b2b/sneakers` gibi).
+- **Canlı ölçüm, 4 Eyl 2026 (deploy `fd14054`, run 912):** ana sayfa 8 dilde yerel
+  başlıkla çıkıyor (pt/ru/ar artık İngilizceye düşmüyor), hreflang 6 → 46, sitemap
+  733 → 828 URL; `/b2b/sneakers`, `/b2b/footwear`, `/wholesale/valentino` 8 dilde de
+  200 ve Googlebot kimliğine WAF challenge yok. `seo-check.yml`'in sunucu içi
+  localhost adımı bu barındırmada artık bu sitenin vhost'una düşmüyor (kontrol
+  `/shop` bile 404, "/" için "Coming Soon"): o adımın 404'ü kanalı ölçer, sayfayı
+  değil — geçerli ölçüm dış (internet) adımdır; workflow bunu artık kendisi yazar.
+  Ana sayfada "Valentino wholesale" YOK çıkması hata değil: anahtar kelime listesi
+  stok derinliğine göre ilk 12 marka, Valentino 13. sıra ve sonrası.
 
 **KURAL 10 — Site 8 dilde ve her sözlük `de.php`'ye karşı EKSİKSİZ** (operatör,
 3 Eyl 2026: *"5 dilde eksiksiz"* → *"6-7 dil yap, rusça ve portekizce ekle"* →

@@ -76,6 +76,11 @@ jobs:
               de) W="Großhandel";; fr) W="en gros";; it) W="ingrosso";; es) W="al por mayor";; pt) W="por grosso";; ru) W="оптом";; ar) W="بالجملة";; *) W="wholesale";;
             esac
             echo "  --- kontrol ---"
+            # Ana sayfadaki marka anahtar kelimeleri stok derinligine gore ILK 12 marka
+            # ile sinirli (index.php: vestra_seo_brand_keywords($lang, 12)); 13. sira ve
+            # sonrasi ana sayfada YOK cikar ve bu bir hata DEGIL -- o markanin kendi
+            # /wholesale/<marka> sayfasi ve /b2b/<kategori> sayfalari tam listeyi tasir.
+            # 4 Eyl 2026 canli: Valentino ana sayfada YOK, /b2b/sneakers'ta OK; ikisi de dogru.
             for B in Balenciaga Burberry Gucci DSQUARED2 Valentino Fendi; do
               if grep -qiE "$B[^,\"]*$W" /tmp/p.html; then
                 echo "  OK   \"$B $W\" sayfada var"
@@ -138,7 +143,17 @@ jobs:
             # sayfa hakkinda bir sey soylemez, sadece kanal hakkinda soyler.
             CTRL=$(curl -sk --max-time 20 --resolve "vestrasales.com:443:127.0.0.1" \
                   "https://vestrasales.com/shop" -o /dev/null -w '%{http_code}')
-            echo "  [kontrol /shop = $CTRL]" 
+            echo "  [kontrol /shop = $CTRL]"
+            # 4 Eyl 2026: --resolve ile 127.0.0.1:443'e giden istek bu barindirmada
+            # ARTIK bu sitenin vhost'una dusmuyor: "/" icin "Coming Soon" varsayilan
+            # sayfasi, her baska yol icin "File Not Found" donuyor -- /shop dahil.
+            # Ayni dakikada disaridan (WAF uzerinden) cekilen /b2b/sneakers 8 dilde de
+            # 200 ve dogru basliktaydi. Yani kontrol 200 degilse asagidaki kod/baslik
+            # KANAL hakkindadir, sayfa hakkinda degil; olcum olarak ustteki dis adim gecerli.
+            if [ "$CTRL" != "200" ]; then
+              echo "  !! KANAL BOZUK: localhost bu sitenin vhost'una dusmuyor (kontrol /shop = $CTRL)."
+              echo "  !! Asagidaki HTTP kodu ve baslik SAYFAYI degil KANALI olcer. Gecerli olcum: yukaridaki dis (internet) adim."
+            fi
             echo "  HTTP $(printf '%s' "$H" | sed -n 's/.*__CODE__//p')  |  $(printf '%s' "$H" | wc -c) bayt"
             for TAG in '<title>[^<]*' 'rel="canonical" href="[^"]*"' '<h1[^>]*>[^<]*'; do
               printf '%s' "$H" | grep -oiE "$TAG" | head -1 | sed 's/^/  /'
