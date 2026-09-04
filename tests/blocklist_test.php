@@ -397,7 +397,10 @@ $t('H24 Store gecer',   !$blocked('H24 Store','info@h24store.com','h24store.com'
 echo "\n== 13e. Ciplak alan adi hitapta kullanilmaz ==\n";
 /* 4 Eyl 2026: uc mektup "Hello chiarulli.it," diye gitti. Ad sifirlanirsa her
    dilin var olan bos-ad dali notr hitabi basiyor. */
-foreach (['chiarulli.it','fiacchini.it','mazzolari.it','www.nuvolari.biz','baseblu.com'] as $n)
+foreach (['chiarulli.it','fiacchini.it','mazzolari.it','www.nuvolari.biz','baseblu.com',
+          /* Tarama semayi da getirebiliyor (velvetboutique.it, 4 Eyl 2026). */
+          'https://www.velvetboutique.it','http://vietti.shop','https://sugar.it/',
+          'vietti.shop'] as $n)
   $t("ciplak: \"$n\"", vestra_name_is_bare_domain($n));
 /* GECMELI -- bosluk iceren gercek adlar ve alan adi olmayanlar dokunulmaz. */
 foreach (['Base Blu - Online Luxury Fashion Boutique','IL DUOMO','Di Vincenzo Boutique',

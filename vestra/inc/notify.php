@@ -1535,6 +1535,15 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
 function vestra_name_is_bare_domain(string $company): bool {
   $k = trim($company);
   if ($k === '' || preg_match('/\s/', $k)) return false;
+  /* Tarama bazen adresi SEMASIYLA birlikte veriyor: velvetboutique.it'in adi
+     "https://www.velvetboutique.it" geldi (4 Eyl 2026, Italya C). Ilk yazimda
+     regex sadece ciplak host'u taniyordu, yani bu gecip "Hello -- a note for
+     https://www.velvetboutique.it." olarak basilacakti. Sema ve bas taki
+     soyulup ayni olcute vuruluyor. */
+  $k = preg_replace('#^[a-z][a-z0-9+.-]*://#i', '', $k);
+  $k = preg_replace('#^www\.#i', '', $k);
+  $k = rtrim($k, '/');
+  if ($k === '') return false;
   return (bool)preg_match('/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,24}$/i', $k);
 }
 
