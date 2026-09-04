@@ -791,6 +791,19 @@ function vestra_discover_blocklist(): array {
        vakasinin aynisi. 'libero' 6 harf oldugu icin alan adinda zaten TAM
        eslesme istiyor, yani "Liberoshop" gibi gercek bir ad etkilenmiyor. */
     'prestashop','libero',
+    /* 4 Eyl 2026, "global 200 unique independent luxury stores" CSV'si. Liste
+       kendini "bagimsiz butik" diye tanitiyor ama icinde sunlar vardi:
+       kendi markasi -- Supreme (VF Corp) ve Retrosuperfuture (SUPER gozluk);
+       yeniden satis pazar yeri -- Flight Club ve Wethenew (Stadium Goods ile
+       ayni sinif, stok almiyorlar, komisyonla baskasinin malini satiyorlar);
+       zincir -- Footkorner (FR ~30 sube), BAIT (ABD, ustelik kendi etiketi);
+       departman magazasi -- Vitkac (Varsova), Steffl/Jelmoli ile ayni dal.
+       'supreme' TEK BASINA EKLENMEDI: gunluk bir kelime, "Supreme Boutique"
+       gibi gercek bir dukkani elerdi -- yalniz tam alan adi/ifade. Ayni sebeple
+       'bait' degil 'baitme'. */
+    'supremenewyork','supreme new york','retrosuperfuture',
+    'flight club','flightclub','wethenew','footkorner','baitme','bait me',
+    'vitkac',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.

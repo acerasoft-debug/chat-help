@@ -451,6 +451,26 @@ foreach ([
   ['Change Boutique Riga','info@changeboutique.lv'],
 ] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
 
+echo "\n== 13h. \"global 200 unique independent\" CSV'sinden ==\n";
+foreach ([
+  ['Supreme NY','info@supremenewyork.com'], ['Retrosuperfuture','info@retrosuperfuture.com'],
+  ['Flight Club','info@flightclub.com'],    ['Wethenew Paris','contact@wethenew.com'],
+  ['Footkorner','contact@footkorner.com'],  ['Bait Me','info@baitme.com'],
+  ['Vitkac Warsaw','info@vitkac.com'],
+] as [$n,$e]) $t("engellenmeli: $n", $blocked($n,$e,''));
+
+echo "\n== 13i. GECMELI — 'supreme'/'bait' gunluk kelimeler ==\n";
+/* Bu ikisi TEK BASINA listeye girmedi. Girseydi asagidakiler sessizce elenirdi
+   -- mango/zara dersinin aynisi. */
+foreach ([
+  ['Supreme Boutique Milano','info@supremeboutique.it'],
+  ['Supreme Style Store','hello@supremestyle.co.uk'],
+  ['Baitul Fashion House','info@baitul.ae'],
+  ['Bait Al Zain','info@baitalzain.ae'],
+  ['Flightpath Vintage','info@flightpath.co.uk'],
+  ['New Bait Concept','hi@newbaitconcept.com'],
+] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
