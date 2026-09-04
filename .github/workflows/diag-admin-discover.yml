@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Admin akışını birebir çalıştır
-        if: ${{ github.event.inputs.site_probe == '' && github.event.inputs.kuloglu == '' }}
+        if: ${{ github.event.inputs.site_probe == '' && github.event.inputs.kuloglu == '' && github.event.inputs.kuloglu_image == '' }}
         uses: appleboy/ssh-action@v1.0.3
         env:
           C: ${{ github.event.inputs.country }}
