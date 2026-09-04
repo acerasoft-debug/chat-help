@@ -556,6 +556,17 @@ function vestra_colors(){
     'Grey'=>'#8e9094','Dark Grey'=>'#4a4c52','Red'=>'#b3242c','Bordeaux'=>'#5c1a24','Green'=>'#14532d',
     'Beige'=>'#d9c9a3','Pink'=>'#e0a3b6','Yellow'=>'#e3c14f','Orange'=>'#d97b29','Brown'=>'#6b4a2f',
     'Cream'=>'#f1e8d2','Khaki'=>'#6a704c','Fuchsia'=>'#d1256e',
+    /* Kuloğlu underwear import (4 Eyl 2026): 5 renk eklendi, hicbiri var olani
+       degistirmiyor/silmiyor -- yalnizca EKLENIYOR. "Nude" tek basina en
+       yaygin ihtiyac: 638 urunun renk/beden alanlarinda 300'den fazla kez
+       geciyor ve önceki palette hicbir karsiligi yoktu (Beige'e zorlamak
+       yanlis ton olurdu -- ten rengi kumdan farkli). Digerleri de gercek
+       sayimla kararlastirildi (Mink ~40, Plum ~56, Purple ~25, Salmon ~37),
+       daha nadir olanlar (Dusty Rose, Powder Pink, Mustard, Terracotta...)
+       en yakin var olan renge esleniyor -- palette her nadir ton icin
+       simsiz sismesin diye (product-batches/kuloglu-vocab.php'deki eslesme
+       tablosuna bakin). */
+    'Nude'=>'#dfb08c','Mink'=>'#a89485','Purple'=>'#6a3d99','Plum'=>'#5c3a54','Salmon'=>'#e8917a',
     /* "Other" (operator istegi, 2 Eyl 2026): palette sigmayan renk/desen -- cok
        renkli baski, metalik, kamuflaj. Listenin SONUNDA durur. Degeri bir CSS
        arka plani: her tuketici bunu background: olarak basiyor (kart noktasi,
@@ -570,7 +581,7 @@ function vestra_color_dots(array $colors, int $max=7, bool $withNames=false): st
   foreach($colors as $c){
     if(!isset($pal[$c])) continue;
     if($shown>=$max){ $out.='<span class="cmore">+'.(count($colors)-$shown).'</span>'; break; }
-    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
+    $ring = in_array($c,['Black','Navy','Bordeaux','Brown','Green','Purple','Plum'],true) ? 'rgba(255,255,255,.28)' : 'rgba(0,0,0,.25)';
     $out.='<span class="cdot" title="'.htmlspecialchars(t($c)).'" style="background:'.$pal[$c].';box-shadow:inset 0 0 0 1px '.$ring.'"></span>';
     if($withNames) $out.='<span class="cname">'.htmlspecialchars(t($c)).'</span>';
     $shown++;

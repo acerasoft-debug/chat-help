@@ -6,21 +6,35 @@
  * field and titles are formulaic (BRAND + model number + a handful of recurring
  * descriptive words), so the actual translation surface is this finite, recurring
  * vocabulary — built from `kuloglu: "vocab"` output (4 Sep 2026) against all 638
- * crawled Bayan Sütyen records. The import step looks words up here to build
- * translated titles/categories/colours programmatically; nothing downstream should
- * need to touch raw Turkish strings directly.
+ * crawled Bayan Sütyen records.
  *
- * Three tables:
- *   KULOGLU_CATEGORIES — Kuloğlu's own 7 sub-category labels (its "Kategori" field)
- *   KULOGLU_COLORS     — every distinct colour word, merged from BOTH the real
- *                         "colors" list AND the "sizes" list (Kuloğlu's own site
- *                         data puts colour names in the size/BEDEN field for some
- *                         products — a source data quirk, not a crawler bug; same
- *                         colour needs the same translation regardless of which
- *                         field it came from)
- *   KULOGLU_WORDS       — recurring descriptive title words, brand/model numbers
- *                         and the brand name itself already stripped by the vocab
- *                         scan
+ * IMPORTANT — checked against product.php after this file's first draft: a
+ * VESTRA listing's `name`/`desc` are NEVER run through t() anywhere they're
+ * printed, so there is nowhere in this codebase for a "translated title" to
+ * actually display — titles get written ONCE, in English (same as the
+ * footwear/Pili Pérez import before this one), built from KULOGLU_WORDS for
+ * the translated title text. Category and colour ARE genuinely multi-language
+ * (both pass through t()), so KULOGLU_CATEGORIES/KULOGLU_COLORS below still do
+ * real work — colour additionally needs KULOGLU_COLOR_PALETTE_MAP (bottom of
+ * this file) to land on a name product.php's swatch renderer will actually
+ * recognise; see that table's own docblock for why a full 8-language colour
+ * name isn't sufficient by itself.
+ *
+ * Four tables:
+ *   KULOGLU_CATEGORIES    — Kuloğlu's own 7 sub-category labels ("Kategori"),
+ *                            each mapped to a VESTRA taxonomy leaf too
+ *   KULOGLU_COLORS        — every distinct colour word in 8 languages, merged
+ *                            from BOTH the real "colors" list AND the "sizes"
+ *                            list (Kuloğlu's own site data puts colour names
+ *                            in the size/BEDEN field for some products — a
+ *                            source data quirk, not a crawler bug; same
+ *                            colour needs the same translation either way)
+ *   KULOGLU_WORDS          — recurring descriptive title words (for building
+ *                            the one English title), brand/model numbers and
+ *                            the brand name itself already stripped by scan
+ *   KULOGLU_COLOR_PALETTE_MAP — Turkish colour -> the one vestra_colors() name
+ *                            an import row's `colors` field should actually
+ *                            hold (see its own docblock, bottom of file)
  *
  * Deliberately NOT translated (left out of KULOGLU_WORDS on purpose, not missed):
  *   - Cup-size letters A/B/C/D — universal across every language here, "C KALIP"
@@ -118,6 +132,7 @@ const KULOGLU_COLORS = [
   'ZÜMRÜT'         => ['en'=>'Emerald Green','fr'=>'Vert émeraude','es'=>'Verde esmeralda','it'=>'Verde smeraldo','de'=>'Smaragdgrün','pt'=>'Verde esmeralda','ru'=>'Изумрудно-зелёный','ar'=>'أخضر زمردي'],
   'SAKS'           => ['en'=>'Saxe Blue','fr'=>'Bleu saxe','es'=>'Azul sajonia','it'=>'Blu sassonia','de'=>'Sachsischblau','pt'=>'Azul saxe','ru'=>'Саксонский синий','ar'=>'أزرق ساكس'],
   'TURUNCU'        => ['en'=>'Orange','fr'=>'Orange','es'=>'Naranja','it'=>'Arancione','de'=>'Orange','pt'=>'Laranja','ru'=>'Оранжевый','ar'=>'برتقالي'],
+  'MİNT'           => ['en'=>'Mint','fr'=>'Menthe','es'=>'Menta','it'=>'Menta','de'=>'Mint','pt'=>'Menta','ru'=>'Мятный','ar'=>'نعناعي'],
 ];
 
 const KULOGLU_WORDS = [
@@ -211,4 +226,71 @@ const KULOGLU_WORDS = [
   'YANDAN'      => ['en'=>'Side','fr'=>'Latéral','es'=>'Lateral','it'=>'Laterale','de'=>'Seitlich','pt'=>'Lateral','ru'=>'Сбоку','ar'=>'جانبي'],
 ];
 
-return ['categories' => KULOGLU_CATEGORIES, 'colors' => KULOGLU_COLORS, 'words' => KULOGLU_WORDS];
+/**
+ * Turkish colour word -> VESTRA's shared swatch palette (inc/products.php
+ * vestra_colors()), for the `colors` field the import actually WRITES onto
+ * each listing.
+ *
+ * KULOGLU_COLORS above translates a colour into all 8 SITE LANGUAGES, but
+ * that is not how a listing's colour actually reaches a visitor: product.php
+ * only ever calls t() on colour names that are keys of vestra_colors() (a
+ * fixed swatch palette — product.php:327, inc/products.php vestra_color_dots()
+ * lines 568-579), and any colour NOT in that palette is silently dropped from
+ * the swatch-dot row entirely (`if(!isset($pal[$c])) continue;`). A product's
+ * `name`/`desc` fields are never translated at all (no t() wrapper anywhere
+ * they're printed) — this whole file's earlier docblock claim of "translated
+ * titles" was corrected once that was found; see the commit history.
+ *
+ * So the real deliverable for colours is this MANY-TO-ONE map onto the 23
+ * vestra_colors() English names (18 pre-existing + Nude/Mink/Purple/Plum/
+ * Salmon, added alongside this file specifically because Nude alone covers
+ * 300+ of the 638 products and had no prior match). Low-frequency shades
+ * (Dusty Rose, Powder Pink, Mustard, Terracotta, Anthracite...) map to their
+ * closest existing swatch rather than each getting a new palette entry —
+ * extending the shared palette for a colour that appears once or twice
+ * across the whole catalogue isn't worth the swatch-picker clutter for
+ * every OTHER seller's listing that also uses this same palette.
+ *
+ * Two things are NOT solid colours and are mapped to 'Other' (the palette's
+ * existing multi-colour-gradient catch-all, product.php's own answer to
+ * "doesn't fit a single swatch" — see colour_other_test.php):
+ *   - Animal/neon PRINTS (ZEBRA, LEOPAR, the five NEON_* entries)
+ *   - ASORTİ itself isn't a colour at all — it's Kuloğlu's own marker that
+ *     the PACK ships in a mix of colours the buyer doesn't choose, so there
+ *     is no single swatch to show; 'Other' communicates "not one colour"
+ *     honestly instead of forcing a specific wrong one.
+ *
+ * Lookup keys are canonical UPPERCASE Turkish (matching KULOGLU_COLORS).
+ * The raw crawl data is NOT case-consistent — Kuloğlu's own "beden"/size
+ * field carries some colour names in mixed case ("Vizon", "Mor", "Lila",
+ * "Taş", "Mint") where the "renk"/colour field has them upper ("VİZON",
+ * "MOR"...) — so a consumer MUST mb_strtoupper() (Turkish-aware: İ/I, i/ı)
+ * its input before indexing this table, not assume the source casing.
+ */
+const KULOGLU_COLOR_PALETTE_MAP = [
+  // Exact / direct match onto an existing (pre-Kuloğlu) palette entry.
+  'SİYAH' => 'Black', 'BEYAZ' => 'White', 'GRİ' => 'Grey', 'BORDO' => 'Bordeaux',
+  'PEMBE' => 'Pink', 'YEŞİL' => 'Green', 'MAVİ' => 'Blue', 'KAHVE' => 'Brown',
+  'LACİVERT' => 'Navy', 'KIRMIZI' => 'Red', 'HAKİ' => 'Khaki', 'FUŞYA' => 'Fuchsia',
+  'AÇIK MAVİ' => 'Light Blue', 'TURUNCU' => 'Orange', 'NAVY' => 'Navy', 'BEJ' => 'Beige',
+  // Exact / direct match onto a NEW (Kuloğlu-motivated) palette entry.
+  'TEN' => 'Nude', 'BRONZ TEN' => 'Nude', 'AÇIK TEN' => 'Nude',
+  'VİZON' => 'Mink', 'VİZON GRİ' => 'Mink', 'VİZON PEMBE' => 'Mink',
+  'MÜRDÜM' => 'Plum', 'MOR' => 'Purple', 'LAVANTA' => 'Purple', 'LİLA' => 'Purple',
+  'SOMON' => 'Salmon',
+  // Nearest existing match — each is low-frequency enough on its own (see
+  // the file docblock's counts) that a dedicated new swatch isn't justified.
+  'EKRU' => 'Cream', 'GÜL KURUSU' => 'Pink', 'PUDRA' => 'Pink', 'MELANJ PEMBE' => 'Pink',
+  'Y.AĞZI' => 'Green', 'HARDAL' => 'Yellow', 'PETROL' => 'Navy', 'KOYU YEŞİL' => 'Green',
+  'CAPPUCCİNO' => 'Brown', 'VİŞNE' => 'Bordeaux', 'KİREMİT' => 'Orange',
+  'ÇAĞLA YEŞİLİ' => 'Green', 'TAŞ' => 'Beige', 'FÜME' => 'Dark Grey', 'TOPRAK' => 'Brown',
+  'ANTRASİT' => 'Dark Grey', 'MOCHA' => 'Brown', 'AÇIK KAHVE' => 'Brown',
+  'BEBE MAVİSİ' => 'Light Blue', 'ZÜMRÜT' => 'Green', 'SAKS' => 'Blue', 'MİNT' => 'Green',
+  // Prints and the "mixed colours in the pack" marker -> the palette's own
+  // multi-colour catch-all, never guessed onto a specific wrong solid colour.
+  'ZEBRA' => 'Other', 'LEOPAR' => 'Other', 'ASORTİ' => 'Other',
+  'NEON A.PEMBE' => 'Other', 'NEON A.TURUNCU' => 'Other', 'NEON PEMBE' => 'Other',
+  'NEON TURUNCU' => 'Other', 'NEON YEŞİLİ' => 'Other',
+];
+
+return ['categories' => KULOGLU_CATEGORIES, 'colors' => KULOGLU_COLORS, 'words' => KULOGLU_WORDS, 'palette_map' => KULOGLU_COLOR_PALETTE_MAP];

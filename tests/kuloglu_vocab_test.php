@@ -24,6 +24,13 @@ $t = function (string $n, bool $c) use (&$ok,&$fail) {
 $data = require __DIR__.'/../product-batches/kuloglu-vocab.php';
 $LANGS = ['en','fr','es','it','de','pt','ru','ar'];
 
+// vestra_colors() itself, so the palette_map cross-check below is against the
+// REAL live palette, not a hand-copied list that could drift out of sync with it.
+$psrc = file_get_contents(__DIR__.'/../vestra/inc/products.php');
+if (!preg_match('/^function vestra_colors\(\).*?^}/ms', $psrc, $pm)) { echo "HATA: vestra_colors bulunamadi\n"; exit(1); }
+eval($pm[0]);
+$PALETTE_KEYS = array_keys(vestra_colors());
+
 echo "-- her tablo her satirda 8 dilin hepsi dolu --\n";
 foreach (['categories','colors','words'] as $table) {
     $missing = 0;
@@ -42,16 +49,42 @@ $t('vestra_cat her satirda Bras/Shapewear', $missingCat === 0);
 
 echo "\n-- kaynak dosyada yinelenen anahtar yok (PHP sessizce SONUNCUYU tutar) --\n";
 $src = file_get_contents(__DIR__.'/../product-batches/kuloglu-vocab.php');
-foreach (['KULOGLU_CATEGORIES'=>7, 'KULOGLU_COLORS'=>56, 'KULOGLU_WORDS'=>88] as $const => $expectN) {
+// KULOGLU_CATEGORIES/COLORS/WORDS: one entry per LINE, each value itself a
+// ['en'=>..,'fr'=>..] array -- the line-start anchor is what keeps those
+// nested language keys from being counted as if they were top-level entries.
+// KULOGLU_COLOR_PALETTE_MAP: several flat 'key' => 'value' pairs PER line
+// (no nested array inside a value to accidentally match), so it needs no
+// anchor instead -- an anchored regex would silently undercount it by only
+// checking the first pair on each line.
+foreach ([
+    'KULOGLU_CATEGORIES' => ['n'=>7, 'anchored'=>true],
+    'KULOGLU_COLORS' => ['n'=>57, 'anchored'=>true],
+    'KULOGLU_WORDS' => ['n'=>88, 'anchored'=>true],
+    'KULOGLU_COLOR_PALETTE_MAP' => ['n'=>57, 'anchored'=>false],
+] as $const => $spec) {
     preg_match('/const '.$const.' = \[(.*?)\n\];/s', $src, $m);
-    preg_match_all("/^\s*'([^']+)'\s*=>/m", $m[1], $mm);
+    $pattern = $spec['anchored'] ? "/^\s*'([^']+)'\s*=>/m" : "/'([^']+)'\s*=>/";
+    preg_match_all($pattern, $m[1], $mm);
     $keys = $mm[1];
-    $t("$const: $expectN satir, hepsi essiz (yinelenen yok)", count($keys) === $expectN && count($keys) === count(array_unique($keys)));
+    $t("$const: {$spec['n']} satir, hepsi essiz (yinelenen yok)", count($keys) === $spec['n'] && count($keys) === count(array_unique($keys)));
 }
+
+echo "\n-- KULOGLU_COLOR_PALETTE_MAP: her deger GERCEK vestra_colors() anahtari --\n";
+$badTarget = [];
+foreach ($data['palette_map'] as $tr => $en) { if (!in_array($en, $PALETTE_KEYS, true)) $badTarget[$tr] = $en; }
+$t('her hedef gercek palette anahtari', count($badTarget) === 0);
+
+echo "\n-- her KULOGLU_COLORS anahtari icin palette_map'te bir karsilik var --\n";
+$noMap = array_filter(array_keys($data['colors']), fn($k) => !isset($data['palette_map'][$k]));
+$t('KULOGLU_COLORS \ palette_map = bos kume', count($noMap) === 0);
+
+echo "\n-- yeni eklenen 5 renk gercekten palette'te (var olanlari BOZMADAN eklendi) --\n";
+$t('Nude/Mink/Purple/Plum/Salmon palette\'te', count(array_intersect(['Nude','Mink','Purple','Plum','Salmon'], $PALETTE_KEYS)) === 5);
+$t('eski 18 renk hala orada (Black..Fuchsia)', count(array_intersect(['Black','Navy','Blue','Light Blue','White','Grey','Dark Grey','Red','Bordeaux','Green','Beige','Pink','Yellow','Orange','Brown','Cream','Khaki','Fuchsia'], $PALETTE_KEYS)) === 18);
 
 echo "\n-- gercek vocab taramasindaki (4 Eyl 2026) her kategori/renk/kelime sozlukte var --\n";
 $expectCategories = ['DESTEKSİZ SÜTYEN','BAYAN SÜTYEN','DESTEKLİ SÜTYEN','TOPARLAYICI SÜTYEN','LAZER SÜTYEN','EMZİRME SÜTYENİ','SİLİKON SÜTYEN'];
-$expectColorsSample = ['SİYAH','BEYAZ','TEN','GÜL KURUSU','NEON YEŞİLİ','FÜME','BEBE MAVİSİ','LEOPAR']; // spot sample, not the full 56
+$expectColorsSample = ['SİYAH','BEYAZ','TEN','GÜL KURUSU','NEON YEŞİLİ','FÜME','BEBE MAVİSİ','LEOPAR','MİNT']; // spot sample, not the full 57
 $expectWordsSample = ['SÜTYEN','DESTEKSİZ','TOPARLAYICI','BÜSTİYER','KAŞKORSE','BALENSİZ','HAYALET','YIKAMA']; // spot sample, not the full 88
 
 $missing = array_filter($expectCategories, fn($k) => !isset($data['categories'][$k]));
