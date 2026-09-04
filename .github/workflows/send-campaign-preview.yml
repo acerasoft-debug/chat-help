@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile askiya alma cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -1078,6 +1078,57 @@ jobs:
               echo "son tarih: ".gmdate('Y-m-d', (int)$pdR['deadline'])."\n";
               echo $pdR['mail_ok'] ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI (vestra_send_mail false dondu)\n";
               exit($pdR['mail_ok'] ? 0 : 1);
+            }
+
+            /* SON CAGRI: satici siparisi sordu, alicinin cevap vermesi gerekiyor
+               (operator, 4 Eyl 2026 -- OCF7F5 / SC Daymond Proconect vesilesiyle:
+               "satici bize yazmis cevap vermesi gerekiyor", "eger cevap gelmez ise
+               siparis iptal olucak", "ve hesabi suspend olucak").
+
+               payment_due'dan farki: o mektup OTOMATIK hatirlatma ve gonderildiginde
+               iptal SAATINI BASLATIR. Bu mektup saate DOKUNMAZ -- mevcut son tarihi
+               okur ve onu yazar. Ayni siparis icin ikinci kez ayni metni yollamak
+               posta listesi gibi okunurdu; burada istenen sey farkli: alici odemeyecekse
+               bunu SOYLESIN ki mal serbest kalsin.
+
+               suspend=true: "hesabiniz askiya alinacak" cumlesi eklenir. Sistem bunu
+               KENDILIGINDEN YAPMIYOR -- cron_order_payment.php yalnizca siparisi iptal
+               eder, askiya alma yalnizca satici belgeleri icin var. Yani bu cumle
+               operatorun panelden ELLE yapacagi bir karari duyurur. Varsayilan false:
+               yerine getirilmeyen bir tehdit, musteriyi bizim mektuplarimizi ciddiye
+               almamaya egitir. */
+            if ($letter === 'payment_final') {
+              if (!$orderRow) { fwrite(STDERR, "payment_final: to=order:<ref> gerekli\n"); exit(1); }
+              require_once $doc."/inc/invoice.php";
+              if (!function_exists('vestra_business_days_after')) require_once $doc."/inc/escrow.php";
+              $pfRef  = trim((string)$orderRow['ref']);
+              $pfAll  = vestra_read_json('order_statuses.json');
+              $pfStat = (string)($pfAll[$pfRef]['status'] ?? 'pending');
+              echo "durum  : {$pfStat}\n";
+              if ($pfStat !== 'pending') { fwrite(STDERR, "siparis zaten '{$pfStat}' -- son cagri yazilmaz\n"); exit(1); }
+              if (vestra_order_in_review($pfRef, $pfStat)) { fwrite(STDERR, "fatura henuz kesilmemis -- odeme istenemez\n"); exit(1); }
+              $pfInvs = vestra_invoices_for_ref($pfRef);
+              if (!$pfInvs) { fwrite(STDERR, "fatura bulunamadi: {$pfRef}\n"); exit(1); }
+              $pfIv = $pfInvs[0];
+              $pfG  = vestra_order_payment_grace($pfAll[$pfRef] ?? ['status'=>'pending'], time());
+              echo "fatura : ".$pfIv['no']."  tutar: ".$pfIv['currency']." ".number_format((float)$pfIv['total'], 2)."\n";
+              echo "asama  : {$pfG['phase']}\n";
+              /* Saat baslamamissa uydurma bir tarih yazmak yerine hesaplanan tarihi
+                 gosteriyoruz; baslamissa MEVCUT son tarih -- bu mektup onu degistirmez. */
+              $pfDeadline = $pfG['deadline'] ?? vestra_business_days_after(time(), VESTRA_ORDER_PAYMENT_GRACE_DAYS);
+              echo "son tarih (DEGISMEDI): ".gmdate('Y-m-d', (int)$pfDeadline)."\n";
+              $pfSuspend = strtolower($E('suspend')) === 'true';
+              echo "askiya alma cumlesi: ".($pfSuspend ? "VAR (panelden ELLE yapilmali -- cron yapmaz)" : "yok")."\n";
+              $pfName = trim((string)($orderRow['name'] ?? '')) ?: trim((string)($orderRow['company'] ?? ''));
+              [$pfSubj, $pfBody, $pfOpts] = vestra_tpl_order_payment_final(
+                  $pfName, $pfRef, (string)$pfIv['no'], (float)$pfIv['total'], (string)$pfIv['currency'],
+                  gmdate('j F Y', (int)$pfDeadline), (bool)$acc,
+                  'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($pfRef), $pfSuspend);
+              echo "\n--- KONU ---\n{$pfSubj}\n--- METIN ---\n{$pfBody}\n";
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — GONDERILMEDI\n"; exit(0); }
+              $pfOk = vestra_send_mail($to, $pfSubj, $pfBody, '', '', null, '', $pfOpts);
+              echo $pfOk ? "\nGONDERILDI -> ".$mask($to)."\n" : "\nGONDERILEMEDI\n";
+              exit($pfOk ? 0 : 1);
             }
 
             /* URUN SORUSUNA site-ICI mesajdan cevap (operator, 3 Eyl 2026 -- LuxuryWellNess'in

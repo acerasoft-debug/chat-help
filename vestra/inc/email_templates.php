@@ -1166,6 +1166,74 @@ function vestra_tpl_order_payment_due(string $buyerName, string $ref, string $in
 }
 
 /**
+ * Son cagri: SATICI siparisi sordu, alicinin cevap vermesi gerekiyor.
+ *
+ * vestra_tpl_order_payment_due() ile ayni sipariş icin ikinci bir mektup, ama ayni
+ * mektup DEGIL: ilki otomatik hatirlatma ("odeme ulasmadi"), bu ise saticinin
+ * sordugunu aktaran ve bir CEVAP isteyen mektup. Ikinci kez ayni metni yollamak
+ * posta listesi gibi okunur; farkli olan ilk mektubun kacirdigi seyi yakalar --
+ * alici odemeyecekse bunu SOYLEMELI ki mal serbest kalsin.
+ *
+ * $deadlineDate MEVCUT son tarihtir, yeni bir sure DEGIL: otomatik iptal saati
+ * ilk hatirlatmayla baslamis durumda ve bu mektup onu ne uzatir ne kisaltir.
+ * Uydurma bir tarih yazmak, sistemin gercekten yapacagi seyle celisirdi.
+ *
+ * $suspend: hesabin askiya alinacagi cumlesi. Sistem bunu KENDILIGINDEN YAPMAZ
+ * (cron_order_payment.php yalnizca siparisi iptal eder; askiya alma yalnizca
+ * satici belgeleri icin var) -- operatorun panelden elle yapmasi gereken bir
+ * karardir. Bu yuzden varsayilan false: yapilmayacak bir tehdit, musteriyi
+ * bizim mektuplarimizi ciddiye almamaya egitir.
+ */
+function vestra_tpl_order_payment_final(string $buyerName, string $ref, string $invoiceNo,
+        float $total, string $currency, string $deadlineDate, bool $hasAccount,
+        string $uploadUrl, bool $suspend = false): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $sym.number_format($total, 2);
+    $subject = "VESTRA — order {$ref}: the seller is asking for an answer";
+
+    $opts = [
+        'badge' => 'Response required',
+        'rows'  => [
+            ['label'=>'Order ref',   'value'=>$ref],
+            ['label'=>'Invoice',     'value'=>$invoiceNo],
+            ['label'=>'Amount due',  'value'=>$amt, 'strong'=>true],
+            ['label'=>'Reply by',    'value'=>$deadlineDate],
+        ],
+    ];
+    if ($hasAccount) $opts['button'] = ['label'=>'Send my payment receipt', 'url'=>$uploadUrl];
+
+    $consequence = $suspend
+        ? "the order will be cancelled, the goods will be released for sale to other buyers, and your account will be suspended."
+        : "the order will be cancelled and the goods will be released for sale to other buyers.";
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      /* "baska alicilar bekliyor" YAZILMADI: operatorun soyledigi, odenmezse malin
+         baskasina gidecegi -- belirli bir alicinin su anda bekledigi degil. Ikisi ayni
+         sey degil ve dogrulanmamis bir aciliyet iddiasi, cevap gelince geri alinamaz. */
+      . "The seller has come back to us about order {$ref}. They have held this stock aside since the "
+      . "order was placed and are asking whether it is going ahead, because they cannot keep it "
+      . "reserved indefinitely.\n\n"
+      . "Invoice {$invoiceNo} for {$amt} is still unpaid.\n\n"
+      . "Please reply and tell us one of two things: that the payment is on its way — in which case the "
+      . "stock stays reserved for you — or that you no longer want the order, so we can release it without "
+      . "holding the seller any longer. Either answer is fine; silence is the one that costs everyone.\n\n"
+      . "If we have not heard from you by {$deadlineDate}, {$consequence}\n\n"
+      . "If you have already paid by bank transfer, please attach the payment receipt to the order"
+      . ($hasAccount
+          ? " here:\n{$uploadUrl}\n\nWe check it as soon as it arrives and confirm your order — no need to reply separately."
+          : ", by replying to this e-mail with it attached. We check it as soon as it arrives and confirm your order.")
+      . "\n\n"
+      . "Kind regards,\n\n"
+      . "VESTRA · Acerasoft LLC\n"
+      . "8 The Green, Suite B, Dover, Delaware 19901, USA\n"
+      . "support@vestrasales.com · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * Short follow-up to a prospect who was written to weeks ago and has not replied.
  *
  * Deliberately NOT the campaign again. A second copy of the same letter reads as a
