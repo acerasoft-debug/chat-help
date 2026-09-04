@@ -489,7 +489,7 @@ jobs:
                   'moq' => max(1, $moq), 'unit' => 'pc', 'mode' => 'sale', 'list' => round($list, 2),
                   'colors' => $colorsEn, 'sizes' => implode(', ', $sizesList),
                   'desc' => implode(' · ', $descBits),
-                  'images' => $images, 'seller_uid' => $sid, 'section' => 'underwear',
+                  'images' => $images, 'seller_uid' => $sid, 'seller' => 'Wholesale Underwear', 'section' => 'underwear',
                   'ships_from' => 'Turkey',
                 ];
               }

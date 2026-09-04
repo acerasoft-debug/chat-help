@@ -241,6 +241,13 @@ jobs:
                  dusuyordu, yani daha once eklenen her batch (footwear dahil)
                  gercekte hic ships_from GIRMEMIS gibi davraniyordu. */
               if (!empty($r['ships_from']) && is_string($r['ships_from'])) $row['ships_from'] = trim($r['ships_from']);
+              /* Musteriye gorunen satici adi (product.php: $p['seller']), hesabin kendi
+                 'company'/'name' alanindan BAGIMSIZ -- sync_lesgarage'daki ayni iki katmanli
+                 desen ($p['seller']='Les Garage Paris', admin.php:698). Verilmezse boş kalır
+                 ve sayfa "Verified business · via VESTRA" genel yedeğine düşer -- bu satır
+                 olmadan Kuloğlu import'unun 3 test satırı tam olarak buna düştü, KURAL'ın
+                 "sadece Wholesale Underwear yaz" gereğini karşılamadan. */
+              if (!empty($r['seller']) && is_string($r['seller'])) $row['seller'] = trim($r['seller']);
               /* seller_email: satici hesabini e-postadan coz (teshis ciktisi id'yi 8 karaktere
                  maskeliyor, tam uid disaridan bilinmiyor). Paket sifreli oldugu icin adres
                  depoya acik girmiyor; cozumleme sunucuda. */

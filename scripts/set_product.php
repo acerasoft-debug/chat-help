@@ -40,7 +40,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from',
+$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
