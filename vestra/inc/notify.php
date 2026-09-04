@@ -762,6 +762,13 @@ function vestra_discover_blocklist(): array {
        bizden parti almaz. 'pegador' Ispanyolca/Portekizce bir kelime oldugu icin
        exact_only'de -- alt dize aranirsa gercek bir dukkani elerdi. */
     'pegador','stay cold apparel','staycoldapparel',
+    /* 24S = LVMH'nin kendi cok markali e-ticaret kanali (Paris). Dior, Celine,
+       Loewe, Fendi ... markalarinin haklarini zaten grup tutuyor: KURAL 1'in
+       "kanalda musteri degil rakip" tarifi. Alan adi tarafi bunu YAKALAMAZ --
+       "24s" govdesi 3 harf, alan adi esleyicisi 4 harften kisa girdileri
+       tumden atliyor. Ad tarafindaki kelime siniri yeterli ve dar: "24seven",
+       "Le 24 Sevres", "H24 Store" gecer, yalniz tek basina duran "24S" eslesir. */
+    '24s',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -890,6 +897,14 @@ function vestra_blocklist_exact_only(): array {
                 elenirdi. Test bunu ekledigim anda yakaladi. Ad tarafinda kelime
                 siniri Stefanel'i zaten Stefanelli'den ayiriyor. */
              'stefanel',
+             /* 'sevenstore' (Liverpool, Frasers Group) 10 harf oldugu icin alan
+                adinda ALT DIZE araniyordu ve "...sevenstore" ile biten her alan
+                adiyla carpisiyor -- "24sevenstore.com" gibi. "24/7" perakendede
+                yaygin bir ad kalibi; gercek bir dukkan sessizce elenirdi.
+                Gercek zincirin alan adi tam olarak sevenstore.com, yani exact
+                eslesme onu kaybetmiyor; ad tarafindaki kelime siniri de duruyor.
+                24S eklerken yazdigim test bunu yakaladi -- giris benim degildi. */
+             'sevenstore',
              /* Ayni gun, Almanya partisi: 'pegador' Ispanyolca/Portekizce bir
                 kelime (kapan/tutucu) ve baska adlarin icinde gecebilir; alt dize
                 arandiginda gercek bir dukkani sessizce elerdi. */

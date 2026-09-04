@@ -372,6 +372,17 @@ $t('Asphalt Gold gecer',   !$blocked('Asphalt Gold','info@asphaltgold.de','aspha
 $t('AFEW Store gecer',     !$blocked('AFEW Store','info@afew-store.com','afew-store.com'));
 $t('Label Kitchen gecer',  !$blocked('Label Kitchen','info@labelkitchen.de','labelkitchen.de'));
 
+echo "\n== 13d. 24S — LVMH'nin kendi kanali ==\n";
+/* Alan adi tarafi "24s"i goremez (3 harf; esleyici <4'u tumden atlar), o yuzden
+   ad tarafinin tuttugunu ayrica dogrula -- yoksa engelledigimizi sanip
+   gonderirdik. */
+$t('24S adiyla',        vestra_name_is_blocked('24S'));
+$t('24S Paris adiyla',  vestra_name_is_blocked('24S Paris'));
+/* Kelime siniri dar kalmali: rakamla baslayan gercek dukkan adlari gecmeli. */
+$t('24seven gecer',     !$blocked('24seven Store','info@24sevenstore.com','24sevenstore.com'));
+$t('Le 24 Sevres gecer',!$blocked('Le 24 Sevres','info@le24sevres.fr','le24sevres.fr'));
+$t('H24 Store gecer',   !$blocked('H24 Store','info@h24store.com','h24store.com'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
