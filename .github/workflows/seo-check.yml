@@ -68,6 +68,19 @@ jobs:
             grep -oiE '<meta name="keywords" content="[^"]*"' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
             echo "  --- hreflang ---"
             grep -c 'rel="alternate" hreflang' /tmp/p.html | sed 's/^/  adet: /'
+            if [ "$L" = "en" ]; then
+              # Search Console / Bing / Yandex sahiplik etiketleri .env'den gelir
+              # (GOOGLE_SITE_VERIFICATION, BING_SITE_VERIFICATION, YANDEX_SITE_VERIFICATION;
+              # inc/head.php). Etiket yoksa operator adimi henuz yapilmamis demektir.
+              echo "  --- site dogrulama etiketleri (.env) ---"
+              for V in google-site-verification msvalidate.01 yandex-verification; do
+                if grep -qiE "<meta name=\"$V\" content=\"[^\"]+\"" /tmp/p.html; then
+                  echo "  VAR  $V ($(grep -oiE "<meta name=\"$V\" content=\"[^\"]+\"" /tmp/p.html | head -1 | grep -oE 'content="[^"]+"' | cut -c10-17)…)"
+                else
+                  echo "  YOK  $V"
+                fi
+              done
+            fi
             echo "  --- JSON-LD knowsAbout ---"
             grep -oE '"knowsAbout":\[[^]]*\]' /tmp/p.html | head -1 | fold -w 150 -s | sed 's/^/  /'
             echo
