@@ -15,7 +15,7 @@ on:
         required: false
         default: ""
       kuloglu:
-        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=95] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
+        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=95] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); images_reset (yalnızca images_staged.json + o klasördeki dosyaları BOŞALTIR — çekim kalitesi/ayarı değiştiğinde 'zaten var' diye eski dosyaları korumaması için, 'reset'in fotoğraf karşılığı); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
       kuloglu_image:
@@ -964,7 +964,19 @@ jobs:
                   $ext = ($info['mime'] ?? '') === 'image/png' ? 'png' : 'jpg';
                   $filename = $slug . ($n > 0 ? '-' . ($n + 1) : '') . '.' . $ext;
                   $outPath = $IMAGES_DIR . '/' . $filename;
-                  $ok = $ext === 'png' ? imagepng($img, $outPath, 1) : imagejpeg($img, $outPath, 95);
+                  // q=100, not 95: operator wording was emphatic ("kesinlikle
+                  // bozulmasin" -- quality must ABSOLUTELY not degrade), file
+                  // size was never the constraint, and the first live test
+                  // (q=95) already showed staged files land LARGER than the
+                  // source (177KB->410KB, 78KB->171KB) -- re-encoding an
+                  // already-compressed JPEG doesn't recover lost detail, it
+                  // just spends more bits not re-losing any more of it, so
+                  // there is no size upside to trading away for a lower
+                  // setting here. PNG stays at compression level 1 (already
+                  // the least lossy GD offers; PNG compression is lossless
+                  // at every level, 1 just skips spending CPU re-compressing
+                  // harder for the same pixels).
+                  $ok = $ext === 'png' ? imagepng($img, $outPath, 1) : imagejpeg($img, $outPath, 100);
                   $w = imagesx($img); $h = imagesy($img);
                   imagedestroy($img);
                   if (!$ok) { $failN++; continue; }
@@ -983,6 +995,25 @@ jobs:
                 echo "\n-- ornek (boyut/kalite karsilastirma) --\n";
                 foreach ($samples as $s) printf("  %-45s %dx%d  kaynak=%.1fKB -> kayitli=%.1fKB\n", $s['slug'], $s['w'], $s['h'], $s['src_kb'], $s['dst_kb']);
               }
+              exit(0);
+            }
+
+            // 'reset' zaten var ama kapsami dar (bayan_sutyen.json + failures.json) --
+            // ayni bilerek: veri cikarim mantigi degisirse eski, hatali kayitlarla
+            // dolu bir dosyayi "zaten var" diye atlamamak icin. Bu, resmin AYNI
+            // dersi: JPEG kalitesi 95->100 degisince (bu depoda tam olarak oldu)
+            // 'images' modunun kendi "zaten var" atlama mantigi eski, dusuk kaliteli
+            // dosyalari sessizce korurdu. Yalnizca images_staged.json + o klasordeki
+            // dosyalari siler; product_urls.json ve bayan_sutyen*.json'a dokunmaz.
+            if ($mode === 'images_reset') {
+              $IMAGES_DIR = $DIR . '/images_staged';
+              $IMAGES_MAP_FILE = $DIR . '/images_staged.json';
+              $n = 0;
+              if (is_dir($IMAGES_DIR)) {
+                foreach (glob($IMAGES_DIR . '/*') ?: [] as $f) { if (is_file($f) && @unlink($f)) $n++; }
+              }
+              save_json_atomic($IMAGES_MAP_FILE, []);
+              printf("sifirlandi: images_staged.json + %d dosya (images_staged/ altinda)\n", $n);
               exit(0);
             }
 
@@ -1050,7 +1081,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|images|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|images|images_reset|reset|status\n");
             exit(1);
 
 
