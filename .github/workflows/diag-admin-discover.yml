@@ -494,6 +494,17 @@ jobs:
                 elseif (empty($sizes) && !empty($colors)) { $singleAxis = ['colors', $colors]; }
                 elseif (count($colors) === 1 && count($sizes) > 1) { $singleAxis = ['sizes', $sizes]; $impliedColor = $colors[0]; }
                 elseif (count($sizes) === 1 && count($colors) > 1) { $singleAxis = ['colors', $colors]; $impliedSize = $sizes[0]; }
+                // Genuine multi x multi (colors AND sizes both have 2+ values) can
+                // ALSO carry trailing bare rows — confirmed live 4 Sep 2026, KOTA 6438
+                // BAYAN KAŞKORSE: 3 colours x 2 sizes gives 6 fully hyphenated rows
+                // ("BEYAZ - L-XL", ...), then the table adds 2 MORE bare rows ("L-XL",
+                // "S-M") after every hyphenated combo is already exhausted — a real
+                // "no specific colour / mixed assortment" pair, same price/pack as the
+                // rest. This is NOT the BELENG rowspan case (colour repeated-but-
+                // omitted): here there IS no single colour to imply, so the bare row's
+                // color is recorded as null — an honest "not specified", never a
+                // guessed carry-forward of the last row's colour, which would fabricate
+                // a fact the page doesn't actually state.
                 $rowStarts = []; // each: [lineIdx, color|null, size|null]
                 for ($i = $scanFrom; $i < $scanCap; $i++) {
                   $ln = $lines[$i];
@@ -501,6 +512,10 @@ jobs:
                     $rowStarts[] = [$i, trim($vm[1]), trim($vm[2])];
                   } elseif ($singleAxis !== null && in_array($ln, $singleAxis[1], true)) {
                     $rowStarts[] = $singleAxis[0] === 'sizes' ? [$i, $impliedColor, $ln] : [$i, $ln, $impliedSize];
+                  } elseif ($singleAxis === null && count($colors) > 1 && count($sizes) > 1 && in_array($ln, $sizes, true)) {
+                    $rowStarts[] = [$i, null, $ln];
+                  } elseif ($singleAxis === null && count($colors) > 1 && count($sizes) > 1 && in_array($ln, $colors, true)) {
+                    $rowStarts[] = [$i, $ln, null];
                   } else {
                     continue;
                   }
