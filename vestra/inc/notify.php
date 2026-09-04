@@ -769,6 +769,28 @@ function vestra_discover_blocklist(): array {
        tumden atliyor. Ad tarafindaki kelime siniri yeterli ve dar: "24seven",
        "Le 24 Sevres", "H24 Store" gecer, yalniz tek basina duran "24S" eslesir. */
     '24s',
+    /* 4 Eyl 2026 — Winter 26/27 IKINCI DOKUNUS kuru kosusu. Bu kip daha once
+       yazilmis leadleri seciyor, yani bunlar ilk kampanyayi ZATEN ALMIS: liste
+       eskiden bu adlari tutmuyordu ve mektup gitti. Simdi eklendi ki ikinci
+       duyuru gitmesin. Kendi markasini satanlar: */
+    'rick owens','alice and olivia','aliceandolivia','bonpoint','rothys',
+    'wolford','nanushka','lena hoschek','lenahoschek','frye company',
+    'thefryecompany','dolls kill','dollskill','risk made in warsaw',
+    'riskmadeinwarsaw','nathalie vleeschouwer','nathalievleeschouwer',
+    'margaret oleary','margaretoleary','lola hats','lolahats',
+    /* Zincirler: */
+    'universal store','universalstore','intersport','elverys',
+    'mainline menswear','mainlinemenswear','change lingerie','changelingerie',
+    'blukids','whsmith','duifhuizen','purdey','etrias',
+    /* AVM / outlet koyu isletmecisi -- KURAL 1'in "ev sahibi, mal almiyor"
+       dali (Asya listesindeki 17 satirin aynisi): */
+    'mall of switzerland','mallofswitzerland','foxtown',
+    'outlets at castle rock','outletsatcastlerock','vingaker',
+    /* Dukkan DEGIL: e-ticaret altyapi saticisi ve ISS webmail'i. "Pao" adli
+       leadin adresi contact@prestashop.com'du -- monaco.mc -> Monaco Telecom
+       vakasinin aynisi. 'libero' 6 harf oldugu icin alan adinda zaten TAM
+       eslesme istiyor, yani "Liberoshop" gibi gercek bir ad etkilenmiyor. */
+    'prestashop','libero',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.

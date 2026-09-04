@@ -415,6 +415,42 @@ if (function_exists('vestra_campaign_preview_base')) {
   $t('govdede gercek ad var',        str_contains($b2,'Di Vincenzo Boutique'));
 }
 
+echo "\n== 13f. Winter 26/27 ikinci dokunus kuru kosusundan ==\n";
+/* Bu 211 adayin hepsi ILK kampanyayi almisti: liste bu adlari tutmadigi icin.
+   Ikinci duyuru gitmeden yakalandi. */
+foreach ([
+  ['Rick Owens','customercare@rickowens.eu'], ['Alice and Olivia','teamao@aliceandolivia.com'],
+  ['Bonpoint','info@bonpoint.com'], ["Rothy's",'bosnewbury@rothys.com'],
+  ['Wolford','service.usa@wolford.com'], ['Nanushka','b3@nanushka.com'],
+  ['Lena Hoschek','onlineshop@lenahoschek.com'], ['Frye','customerservice@thefryecompany.com'],
+  ['Dolls Kill','contact@dollskill.com'], ['Risk','customercare@riskmadeinwarsaw.com'],
+  ['Nathalie Vleeschouwer Outlet','gent@nathalievleeschouwer.be'],
+  ['Margaret O\'Leary','boston@margaretoleary.com'], ['Lola Hats','assistant@lolahats.com'],
+  ['Universal Store','help@universalstore.com.au'], ['Intersport Elverys','info@elverys.ie'],
+  ['Mainline Menswear','sales@mainlinemenswear.co.uk'], ['CHANGE Lingerie','riga@changelingerie.lv'],
+  ['Blukids','x@blukids.it'], ['Misura','inquiry@whsmith.com'],
+  ['Duifhuizen','klantenservice@duifhuizen.nl'], ['Purdey','klantenservice@purdey.nl'],
+  ['Sneaker District','klantenservice@etrias.nl'],
+  ['Mall of Switzerland','info@mallofswitzerland.ch'], ['FoxTown Outlet','info@foxtown.ch'],
+  ['Outlets At Castle Rock','info@outletsatcastlerock.com'],
+  ['Vingakers Factory Outlet','webshop@vingaker.se'],
+  ['Pao','contact@prestashop.com'], ['Libero.it','01zen@libero.it'],
+] as [$n,$e]) $t("engellenmeli: $n", $blocked($n,$e,''));
+
+echo "\n== 13g. GECMELI — ayni partinin gercek butikleri ==\n";
+/* Kelime siniri ve exact_only'nin is gordugunu dogrula: bu adlar yukaridaki
+   girislerin komsulari ve elenmemeli. */
+foreach ([
+  ['Liberoshop Milano','info@liberoshop.it'],      /* 'libero' exact_only */
+  ['Free Store','info@liberostore.com'],
+  ['Yumiko Concept Seoul','info@yumikoconcept.kr'],
+  ['Owens Boutique','info@owensboutique.co.uk'],   /* 'rick owens' tam ifade */
+  ['Sport Corner Wien','info@sportcorner.at'],     /* 'intersport' alt dize degil */
+  ['Purdeys Vintage Room','hi@purdeysvintage.co.uk'], /* 'purdey' exact_only */
+  ['Frye Street Vintage','hello@fryestreet.com'],  /* 'frye company' tam ifade */
+  ['Change Boutique Riga','info@changeboutique.lv'],
+] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
