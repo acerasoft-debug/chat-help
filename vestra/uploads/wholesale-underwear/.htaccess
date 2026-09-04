@@ -1,0 +1,21 @@
+# Kuloğlu import (4 Eyl 2026, operatör talebi: "foto formatlarini googleda
+# bulunamiyacak sekilde yap" — ama "foto kaliteleri kesinlikle bozulmasin").
+#
+# Format değişikliği ters-görsel-aramayı (reverse image search) YENMEZ — o
+# içerik-hash tabanlı (pHash), dosya biçiminden bağımsız çalışır. Buradaki
+# gerçek kaldıraç: Google'ın bu klasörü PASİF taramayla bulup indekslemesini
+# durdurmak. Kalite bilerek KORUNUYOR (yeniden kodlama EXIF'i siler ama
+# kaliteyi düşürmez — bkz. import script'i); bu dosya yalnızca indekslemeyi
+# engelliyor.
+#
+# robots.txt'e Disallow EKLENMEDİ — kasıtlı. Kök robots.txt zaten
+# /uploads/*.jpg vb.'yi bilerek TÜM diğer satıcılar için AÇIYOR (yorumu:
+# "her ilan arama sonucunda görsel kazanabilsin"). Bu klasörü de
+# Disallow etmek çelişkili bir sinyal olurdu: Google bir dosyayı taramadan
+# (crawl) X-Robots-Tag başlığını hiç OKUYAMAZ, yani Disallow+noindex
+# birlikte kullanılırsa dosya bazen hâlâ "taranamayan URL" olarak
+# indekste kalabilir. Doğru, standart yöntem: taramaya izin ver, ama
+# HTTP başlığıyla açıkça "indeksleme" de — o yüzden yalnızca bu:
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, noimageindex"
+</IfModule>

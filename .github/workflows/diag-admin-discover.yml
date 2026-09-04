@@ -15,7 +15,7 @@ on:
         required: false
         default: ""
       kuloglu:
-        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
+        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=95] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
       kuloglu_image:
@@ -908,6 +908,84 @@ jobs:
               exit(0);
             }
 
+            // Fotograflari sunucuda indirip yeniden kodlar: GD'den gecirmek EXIF'i
+            // dogal olarak siler (yeni bir goruntu kaynagi olusturup kaydetmek EXIF
+            // tasimaz -- elle bir "sil" adimi degil, round-trip'in kendisi), kalite
+            // YUKSEK TUTULUR (JPEG q=95 -- "kaliteler kesinlikle bozulmasin" talebi).
+            // Format degistirmek ters-gorsel-arama zaten YENMEZ (icerik-hash tabanli,
+            // bicimden bagimsiz calisir); asil kaldirac uploads/wholesale-underwear/
+            // .htaccess'teki X-Robots-Tag -- Google'in bu klasoru PASIF taramayla
+            // bulup indekslemesini durduran o. Bu mod yalnizca dosyalari indirip
+            // ~/kuloglu_import/images_staged/ altina KAYDEDER (public_html DISI);
+            // gercek uploads/wholesale-underwear/ klasorune kopyalanmasi
+            // add-products.yml'nin stage_from= mekanizmasiyla, urun yazma adiminda.
+            if ($mode === 'images') {
+              if (!function_exists('imagecreatefromstring')) { fwrite(STDERR, "GD eklentisi yok -- goruntu isleme mumkun degil\n"); exit(1); }
+              $start = $arg1 !== '' ? (int)$arg1 : 0;
+              $count = $arg2 !== '' ? (int)$arg2 : 5;
+              $existing = load_json($OUT_FILE, []);
+              if (!$existing) { fwrite(STDERR, "bayan_sutyen.json bos/yok -- once crawl calistir\n"); exit(1); }
+              $IMAGES_DIR = $DIR . '/images_staged';
+              if (!is_dir($IMAGES_DIR)) @mkdir($IMAGES_DIR, 0700, true);
+              $IMAGES_MAP_FILE = $DIR . '/images_staged.json';
+              $map = load_json($IMAGES_MAP_FILE, []);
+
+              $slice = array_slice($existing, $start, $count);
+              printf("kuyruk toplam=%d, bu parti [%d..%d) = %d urun\n", count($existing), $start, $start+count($slice), count($slice));
+
+              $fold = function (string $s): string {
+                $s = @iconv('UTF-8', 'ASCII//TRANSLIT', $s) ?: $s;
+                $s = mb_strtolower($s);
+                $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+                return trim($s, '-');
+              };
+
+              $okN = 0; $failN = 0; $skipN = 0; $samples = [];
+              foreach ($slice as $i => $rec) {
+                $url = $rec['url'] ?? '';
+                if ($url === '') continue;
+                if (isset($map[$url]) && $map[$url]) { $skipN++; continue; } // already staged
+                preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
+                $slug = $sm[1] ?? $fold((string)($rec['title'] ?? $url));
+                $imgs = array_values(array_filter($rec['images'] ?? [], fn($im) => empty($im['thumb'])));
+                if (!$imgs) $imgs = $rec['images'] ?? []; // no full-size flagged -- fall back to whatever exists
+                $staged = [];
+                foreach ($imgs as $n => $im) {
+                  $imgUrl = $im['url'] ?? '';
+                  if ($imgUrl === '') continue;
+                  if ($i > 0 || $n > 0) usleep(300000 + random_int(0, 100000));
+                  $r = vfetch($imgUrl);
+                  if (!$r['html'] || $r['code'] < 200 || $r['code'] >= 300) { $failN++; continue; }
+                  $raw = $r['html'];
+                  $srcBytes = strlen($raw);
+                  $info = @getimagesizefromstring($raw);
+                  $img = @imagecreatefromstring($raw);
+                  if (!$img) { $failN++; continue; }
+                  $ext = ($info['mime'] ?? '') === 'image/png' ? 'png' : 'jpg';
+                  $filename = $slug . ($n > 0 ? '-' . ($n + 1) : '') . '.' . $ext;
+                  $outPath = $IMAGES_DIR . '/' . $filename;
+                  $ok = $ext === 'png' ? imagepng($img, $outPath, 1) : imagejpeg($img, $outPath, 95);
+                  $w = imagesx($img); $h = imagesy($img);
+                  imagedestroy($img);
+                  if (!$ok) { $failN++; continue; }
+                  $dstBytes = filesize($outPath);
+                  $staged[] = $filename;
+                  $okN++;
+                  if (count($samples) < 5) $samples[] = ['slug'=>$slug, 'w'=>$w, 'h'=>$h, 'src_kb'=>round($srcBytes/1024,1), 'dst_kb'=>round($dstBytes/1024,1)];
+                }
+                if ($staged) $map[$url] = $staged;
+              }
+              save_json_atomic($IMAGES_MAP_FILE, $map);
+              printf("\nBu parti bitti: indirilen=%d hata=%d atlandi(zaten vardi)=%d\n", $okN, $failN, $skipN);
+              printf("Dosyadaki toplam eslesme: %d urun\n", count($map));
+              printf("yazildi: %s\n", $IMAGES_MAP_FILE);
+              if ($samples) {
+                echo "\n-- ornek (boyut/kalite karsilastirma) --\n";
+                foreach ($samples as $s) printf("  %-45s %dx%d  kaynak=%.1fKB -> kayitli=%.1fKB\n", $s['slug'], $s['w'], $s['h'], $s['src_kb'], $s['dst_kb']);
+              }
+              exit(0);
+            }
+
             // crawl'un "zaten basarili" atlama mantigi URL'in dosyada olup olmadigina
             // bakiyor, dogruluguna degil -- parser mantigi degistiginde (bu depoda tam
             // olarak oldu: tek-eksenli asorti tablosu duzeltmesi) eski, hatali kayitlarla
@@ -972,7 +1050,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|images|reset|status\n");
             exit(1);
 
 
