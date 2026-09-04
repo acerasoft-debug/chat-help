@@ -791,6 +791,8 @@ return array (
   'Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.' => 'طريقتان للدفع: <b>🛡️ ضمان آمن بالبطاقة</b> (نحتفظ بالأموال ولا نحرّرها للبائع إلا بعد تأكيدك للاستلام) أو <b>🏦 تحويل بنكي</b> بالفاتورة. اختر أدناه.',
   'Under review' => 'قيد المراجعة',
   'Underwear' => 'ملابس داخلية',
+  'Bras' => 'حمالات صدر',
+  'Shapewear' => 'ملابس مشدة',
   'Underwear & Socks' => 'ملابس داخلية وجوارب',
   'Unit' => 'الوحدة',
   'Unit price' => 'سعر الوحدة',

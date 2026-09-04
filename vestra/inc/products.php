@@ -488,7 +488,7 @@ function vestra_products(bool $includeUnlisted = false){
    /shop?section=premium adreslerini (kampanya mektuplari, arama motoru) kirardi.
    Etiket t()'den geciyor: Almanca sayfada "Bekleidung" basiliyor (inc/lang/de.php). */
 function vestra_sections(): array {
-    return ['premium' => 'Apparel', 'footwear' => 'Footwear'];
+    return ['premium' => 'Apparel', 'footwear' => 'Footwear', 'underwear' => 'Underwear'];
 }
 function vestra_product_section(array $p): string {
     $s = strtolower(trim((string)($p['section'] ?? '')));
@@ -507,8 +507,9 @@ function vestra_section_label(string $s): string {
  */
 function vestra_section_note(string $s): string {
     return [
-        'premium'  => 'Designer houses, ordered by the carton',
-        'footwear' => 'Spanish-made shoes, ordered by the series',
+        'premium'   => 'Designer houses, ordered by the carton',
+        'footwear'  => 'Spanish-made shoes, ordered by the series',
+        'underwear' => 'Wholesale intimates, ordered by the pack',
     ][strtolower(trim($s))] ?? '';
 }
 
@@ -540,7 +541,7 @@ function vestra_all_cats(){
     'Outerwear'          => ['Jackets','Coats','Blazers','Vests & Gilets'],
     'Dresses & Suits'    => ['Dresses','Suits','Jumpsuits & Playsuits'],
     'Activewear & Swim'  => ['Activewear','Sportswear','Tracksuits','Tracksuit Sets','Swimwear','Swim Shorts',"Women's Swimwear"],
-    'Underwear & Socks'  => ['Underwear','Lingerie','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
+    'Underwear & Socks'  => ['Underwear','Lingerie','Bras','Shapewear','Socks & Hosiery','Sleepwear','Loungewear','Basics'],
     'Footwear'           => ['Sneakers','Boots','Sandals','Heels','Flats','Loafers','Slippers'],
     'Bags & Luggage'     => ['Handbags','Backpacks','Tote Bags','Wallets & Purses','Travel & Luggage'],
     'Accessories'        => ['Belts','Hats & Caps','Scarves & Shawls','Gloves','Sunglasses','Eyewear','Ties','Hair Accessories','Phone Cases'],

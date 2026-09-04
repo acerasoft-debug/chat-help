@@ -771,6 +771,8 @@ return array (
   'Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.' => 'Due modi per pagare: <b>🛡️ deposito a garanzia con carta</b> (tratteniamo i fondi e li rilasciamo al venditore solo dopo la tua conferma di consegna) o <b>🏦 bonifico bancario</b> tramite fattura. Scegli qui sotto.',
   'Under review' => 'In revisione',
   'Underwear' => 'Intimo',
+  'Bras' => 'Reggiseni',
+  'Shapewear' => 'Guaine modellanti',
   'Underwear & Socks' => 'Intimo e Calze',
   'Unit' => 'Unità',
   'Unit price' => 'Prezzo unitario',

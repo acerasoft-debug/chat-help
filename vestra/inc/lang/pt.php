@@ -791,6 +791,8 @@ return array (
   'Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.' => 'Duas formas de pagar: <b>🛡️ escrow seguro por cartão</b> (retemos os fundos e só os libertamos para o vendedor depois de confirmar a entrega) ou <b>🏦 transferência bancária</b> por fatura. Escolha abaixo.',
   'Under review' => 'Em análise',
   'Underwear' => 'Roupa interior',
+  'Bras' => 'Sutiãs',
+  'Shapewear' => 'Modeladores',
   'Underwear & Socks' => 'Roupa interior e meias',
   'Unit' => 'Unidade',
   'Unit price' => 'Preço unitário',

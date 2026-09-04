@@ -791,6 +791,8 @@ return array (
   'Two ways to pay: <b>🛡️ secure card escrow</b> (we hold the funds and release them to the seller only after you confirm delivery) or <b>🏦 bank transfer</b> by invoice. Choose below.' => 'Два способа оплаты: <b>🛡️ защищённое эскроу картой</b> (мы удерживаем средства и перечисляем их продавцу только после подтверждения получения) или <b>🏦 банковский перевод</b> по счёту. Выберите ниже.',
   'Under review' => 'На рассмотрении',
   'Underwear' => 'Бельё',
+  'Bras' => 'Бюстгальтеры',
+  'Shapewear' => 'Утягивающее бельё',
   'Underwear & Socks' => 'Бельё и носки',
   'Unit' => 'Единица',
   'Unit price' => 'Цена за единицу',
