@@ -639,7 +639,11 @@ jobs:
               $pageNum = 1;
               $consecutiveEmpty = 0;
               while ($pageNum <= $maxPages) {
-                $pageUrl = $pageNum === 1 ? $CATEGORY_URL : ($CATEGORY_URL . '?page=' . $pageNum);
+                // Gercek sayfalama parametresi 'paginate' modunda dogrulandi:
+                // <link rel="next" href="...?tp=2">; 'page='/'sayfa='/'p='/'pg=' hepsi
+                // sessizce 1. sayfaya donuyordu (yeni=0), o yuzden ilk deneme "sayfalama
+                // 60'ta bitti" sanmisti -- kategori gercekte 11 sayfa (paginate-wrapper: "1 2 3 4 .. 11").
+                $pageUrl = $pageNum === 1 ? $CATEGORY_URL : ($CATEGORY_URL . '?tp=' . $pageNum);
                 if ($pageNum > 1) usleep(300000);
                 $r = vfetch($pageUrl);
                 if (!$r['html'] || $r['code'] < 200 || $r['code'] >= 300) {
