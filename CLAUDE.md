@@ -841,9 +841,16 @@ de girsin, 5 dilde eksiksiz: markalar, aksesuar, ayakkabı, tshirt, bot, sweat, 
 - **Elde tutulan tek lead:** `factoryoutlet.gr` (Yunanistan, Attika'da 3 mağaza,
   200+ marka — zincir değil, bağımsız off-price; Il Salvagente emsali). Firma adı
   kayıtta **"Αρχική"** (Yunanca "Anasayfa") olarak duruyor, yani mektup
-  "Hello Αρχική," diye açılacaktı. Bu koşuda `skip_names` ile atlandı. Adı elle
-  düzeltilince gönderilebilir; `add-lead.yml` mevcut kaydı GÜNCELLEMEZ
-  (`= zaten var` deyip geçer), bu yüzden düzeltme panelden yapılmalı.
+  "Hello Αρχική," diye açılacaktı. Bu koşuda `skip_names` ile atlandı ve **öyle
+  bırakıldı** — düzeltmenin bugün güvenli bir yolu yok:
+  panelde prospect için ad DÜZENLEME eylemi yok (`admin.php`: ekle, içe aktar,
+  durum değiştir, elden mektup, sil), `add-lead.yml` mevcut kaydı güncellemiyor
+  (`= zaten var` deyip geçiyor), silip yeniden eklemek ise `last_contacted_at` /
+  `last_newcollection_at` damgalarını siler ve firmaya ilk-temas mektubunun
+  İKİNCİ kez gitmesine yol açar. Yani bir adı düzeltmek için bir mektubu tekrar
+  göndermeyi göze almak gerekiyor; bir lead bunu hak etmiyor.
+  Bu sınıf tekrar ederse doğru çözüm panele küçük bir `rename_lead` eylemi
+  eklemektir (id ile bul, yalnız `company` alanını yaz, damgalara dokunma).
 - Brevo **ücretsiz plan**; `credits` alanı `sendLimit` tipinde (günlük gönderim
   hakkı), 1 Eylül 2026'da **288**. Her test bir hak yiyor.
 - Brevo'da kayıtlı **tek gönderen adres operatörün kendi Gmail'i** ("Acerasoft LLC");
