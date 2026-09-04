@@ -394,6 +394,38 @@ hiçbir kayıt dosyasında (accounts.json dahil) "turkey" geçmiyor — yani mev
 bir Türk müşteri ilişkisini kesme kararı hiç gerekmedi, kural yalnızca YENİ
 kayıtlara ve mevcut hesapların ülke değişikliklerine işliyor.
 
+**Kayıtlı istisna — "Marca Online" satıcı hesabı (operatör kararı, 4 Eyl
+2026).** Kuloğlu Tekstil ithalatının (bkz. bu dosyanın "Kuloğlu Tekstil
+ürün ithalatı" bölümü) gerçek satıcı kimliği. Hesabın `country` alanı
+**Turkey** — soruldu, operatör "türkiye" yazarak bilinçli onayladı (bu
+KURAL'ın ta kendisiyle çelişkili olduğu, vipshop.com/KURAL 1 örneğiyle
+aynı desende, açıkça belirtildikten sonra). Aynı desen: alan adı ortak
+ama karar bilinçli bir istisna için.
+
+- Hesap `create_seller` moduyla (`diag-admin-discover.yml`, `kuloglu`
+  girdisi) doğrudan `auth_save_accounts()` ile yazılıyor —
+  `auth_register()`/profil güncelleme yolundan **geçmiyor**, yani
+  `vestra_country_declares_turkey()` buraya hiç uğramıyor. Bu, kodun
+  gözden kaçırdığı bir boşluk **değil**: `sync_lesgarage` ve
+  `create_tyrex_migrate` (admin.php) zaten aynı doğrudan-yazma desenini
+  kullanıyor, ikisi de bu kontrolden geçmiyor. Genel **self-servis kayıt
+  engeli değişmedi** — yalnızca operatörün kendi, elle oluşturduğu, tek
+  bu hesap için bilinen bir istisna.
+- **İki ayrı ad, bilerek:** hesabın `company` alanı ("Marca Online" —
+  fatura/hukuki kimlik) ile ürünlerin `seller` alanı ("Wholesale
+  Underwear" — müşteriye görünen) **farklı**. Operatör talebi iki kez
+  tekrarlandı: "Kuloglu Textil diye yazma siteye." `company` alanı hiçbir
+  müşteri ekranında tek başına görünmüyor (yalnız fatura/operatör
+  panelinde); `seller` alanı ürün sayfasında (`product.php`) basılan asıl
+  alan — `sync_lesgarage`'daki `$p['seller']='Les Garage Paris'` deseninin
+  aynısı, hesabın kendi `company`'sinden bağımsız.
+- Malın gerçek gönderim yeri (KURAL 3, aşağıda) **Turkey/Kayseri** —
+  Kuloğlu'nun kendi iletişim numaralarından (`0352` alan kodu = Kayseri,
+  `0532` = Türk GSM) doğrulandı, tahmin edilmedi. Hesabın `country`'si ile
+  `ships_from` aynı değeri taşıyor ama **iki ayrı, birbirinden bağımsız
+  karar**: biri operatörün bilinçli KURAL 2g istisnası, diğeri KURAL 3'ün
+  zaten zorunlu tuttuğu, uydurulamayan bir gerçek.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa
