@@ -191,11 +191,17 @@ jobs:
             }
             if (count($links) > 150) echo "  ... (" . (count($links) - 150) . " tane daha, kirpildi)\n";
 
-            // Govde metni: script/style temizlenmis agactan.
+            // Govde metni: script/style temizlenmis agactan. Bos/whitespace-only
+            // satirlar atiliyor -- her sayfada tekrar eden nev menusu tek basina
+            // binlerce bos satir uretiyor ve asil icerigi (urun basligi/fiyati)
+            // sabit karakter tavanindan disari itiyordu.
             $body = $doc->getElementsByTagName('body')->item(0);
-            $text = $body ? trim(preg_replace('/[ \t]+/', ' ', preg_replace('/\n{3,}/', "\n\n", $body->textContent))) : '';
-            echo "\n-- GORUNUR METIN (ilk 4000 karakter) --\n";
-            echo mb_substr($text, 0, 4000) . (mb_strlen($text) > 4000 ? "\n...(kirpildi)" : "") . "\n";
+            $raw = $body ? $body->textContent : '';
+            $nonEmpty = array_values(array_filter(array_map('trim', explode("\n", $raw)), fn($l) => $l !== ''));
+            $text = implode("\n", $nonEmpty);
+            $LIM = 12000;
+            echo "\n-- GORUNUR METIN (bos satirlar atildi, ilk {$LIM} karakter) --\n";
+            echo mb_substr($text, 0, $LIM) . (mb_strlen($text) > $LIM ? "\n...(kirpildi)" : "") . "\n";
             PHPEOF
             php -l /tmp/vestra_siteprobe.php
             php /tmp/vestra_siteprobe.php; RC=$?
