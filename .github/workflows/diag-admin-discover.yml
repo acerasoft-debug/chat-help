@@ -15,7 +15,7 @@ on:
         required: false
         default: ""
       kuloglu:
-        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=100] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); images_reset (yalnızca images_staged.json + o klasördeki dosyaları BOŞALTIR — çekim kalitesi/ayarı değiştiğinde 'zaten var' diye eski dosyaları korumaması için, 'reset'in fotoğraf karşılığı); create_seller (VESTRA'ya GERÇEK bir yazma — 'Marca Online' satıcı hesabını oluşturur, idempotent; inc/auth.php'yi yükler, diğer modların aksine); build_batch|start|count (bayan_sutyen_priced.json + images_staged.json + product-batches/kuloglu-vocab.php'yi [raw.githubusercontent.com'dan] add-products.yml satır formatına dönüştürür, yalnızca fotoğrafı zaten hazır ürünler için, test_batch.json'a yazar — VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca dosya üretir; fiyat log'a hiç basılmaz; renk yalnızca renk[] ve varyant.color'dan değil, boş color'lu bir varyantın size alanı palette_map'te çözülüyorsa oradan da toplanır (Kuloğlu bazı ürünlerde rengi 'beden' alanına yazıyor); her satıra ships_from='Turkey' basılır); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
+        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); price (bayan_sutyen.json'daki TRY fiyatları EUR'a çevirir — sunucudan frankfurter.app/ECB günlük XML/açık piyasa sırasıyla güncel EUR/TRY kurunu çeker, %100 kâr uygular (satış=maliyet×2), bayan_sutyen_priced.json'a yazar; para birimi dönüşümü yalnızca bu tek seferlik alım hesaplaması için, sitenin canlı ziyaretçi para birimi sistemine (inc/money.php) dokunmaz); vocab (bayan_sutyen.json'daki tekrar eden, sonlu kelime dağarcığını döker — marka/kategori/renk/beden essiz listeleri + sayımı, başlıklarda marka/model dışı kelimeler — hiçbir şey yazmaz, yalnızca çeviri sözlüğü elle kurulurken referans için); images|start|count (fotoğrafları sunucuda indirir, GD ile yeniden kodlar — bu adım EXIF'i doğal olarak siler, kalite YÜKSEK tutulur [JPEG q=100] — ve ~/kuloglu_import/images_staged/ altına kaydeder; VESTRA'ya hiçbir şey YAZMAZ, yalnızca bir sonraki adımın [add-products.yml stage_from=] kullanacağı dosyaları hazırlar; varsayılan count=5, küçük bir denemeyle başlamak için); images_reset (yalnızca images_staged.json + o klasördeki dosyaları BOŞALTIR — çekim kalitesi/ayarı değiştiğinde 'zaten var' diye eski dosyaları korumaması için, 'reset'in fotoğraf karşılığı); create_seller (VESTRA'ya GERÇEK bir yazma — 'Marca Online' satıcı hesabını oluşturur, idempotent; inc/auth.php'yi yükler, diğer modların aksine); build_batch|start|count (bayan_sutyen_priced.json + images_staged.json + product-batches/kuloglu-vocab.php'yi [raw.githubusercontent.com'dan] add-products.yml satır formatına dönüştürür, yalnızca fotoğrafı zaten hazır ürünler için, test_batch.json'a yazar — VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca dosya üretir; fiyat log'a hiç basılmaz; renk yalnızca renk[] ve varyant.color'dan değil, boş color'lu bir varyantın size alanı palette_map'te çözülüyorsa oradan da toplanır (Kuloğlu bazı ürünlerde rengi 'beden' alanına yazıyor); her satıra ships_from='Turkey' basılır); export_enc|start|count (build_batch ile AYNI satırları üretir ama VESTRA'ya değil, add-products.yml'nin okuyacağı SIFRELI pakete — çünkü add-products.yml'nin 'file' girdisi actions/checkout'tan inen bir REPO yolu olmak zorunda, sunucudaki test_batch.json'a hiç erişemiyor, ve satır fiyatı Kuloğlu'nun gizli maliyetinin tam iki katı olduğu için depoya düz metin giremez; product-batches/pili-perez.enc ile AYNI anahtar/yöntem [RSA-OAEP + AES-256-CBC, özel anahtar sunucudan hiç çıkmaz] — yalnızca şifreli sonuç, ENC_B64_BEGIN/END arasında |spaced base64 olarak, log'a basılır; bunu product-batches/*.enc olarak commit edip add-products.yml'yi o dosyayla çalıştırmak gerekir); reset (bayan_sutyen.json + failures.json'ı BOŞALTIR, product_urls.json'a dokunmaz — çıkarım mantığı değiştiğinde eskiden 'zaten var' diye atlanacak kayıtları yeniden çektirmek için); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
         required: false
         default: ""
       kuloglu_image:
@@ -380,6 +380,120 @@ jobs:
             function kuloglu_record_is_stale(array $rec): bool {
               $declared = $rec['variant_count_declared'] ?? null;
               return $declared !== null && $declared !== ($rec['variant_count_parsed'] ?? null);
+            }
+
+            // build_batch ve export_enc'in İKİSİ de ayni satirlari uretmeli -- ayri kopyalar
+            // ikinci bir duzenlemede ayrisirdi (bu depoda tam olarak wholesale.php/b2b.php CSS'i
+            // basina geldi, KURAL 10). Ceviri sozlugu product-batches/kuloglu-vocab.php'den
+            // raw.githubusercontent.com uzerinden cekilir (repo kokunde, public_html DISI --
+            // sunucuda yok); Marca Online satici hesabi auth_accounts()'tan bulunur.
+            function kuloglu_fetch_vocab(): array {
+              $vocabUrl = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/kuloglu-vocab.php';
+              $vr = vfetch($vocabUrl);
+              if (!$vr['html']) { fwrite(STDERR, "kuloglu-vocab.php cekilemedi\n"); exit(1); }
+              $vocabTmp = tempnam(sys_get_temp_dir(), 'kv') . '.php';
+              file_put_contents($vocabTmp, $vr['html']);
+              $vocab = require $vocabTmp;
+              @unlink($vocabTmp);
+              return $vocab;
+            }
+            function kuloglu_marca_online_uid(): string {
+              $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
+              $appDir = $home . '/public_html';
+              if (!is_readable($appDir . '/inc/auth.php')) { fwrite(STDERR, "inc/auth.php bulunamadi\n"); exit(1); }
+              require_once $appDir . '/inc/auth.php';
+              foreach (auth_accounts() as $a) {
+                if (($a['type'] ?? '') === 'seller' && strtolower(trim((string)($a['company'] ?? ''))) === 'marca online') return (string)($a['id'] ?? '');
+              }
+              return '';
+            }
+
+            // priced+images+vocab+satici uid'inden add-products.yml satir formatina donusturur.
+            // [start, start+count*3) araligini tarar (headroom: bazilari gorselsiz/varyant-fiyatli
+            // diye atlanir), ilk $count kabul edileni dondurur. renk yalnizca renk[] ve
+            // varyant.color'dan degil -- bos color'lu bir varyantin beden alani palette_map'te
+            // cozuluyorsa oradan da toplanir (Kuloglu bazi urunlerde rengi 'beden' alanina yaziyor,
+            // asil renk alani bos kalir).
+            function kuloglu_build_rows(array $priced, array $imgMap, array $vocab, string $sid, int $start, int $count): array {
+              $tuUpper = fn(string $s): string => mb_strtoupper(str_replace('i', 'İ', $s), 'UTF-8'); // tr-aware-ish: 'i'->'İ' before generic upper so dotless/dotted stays right for lookup
+              $translateWord = function (string $tok) use ($vocab, $tuUpper): string {
+                if (preg_match('/^[0-9]+[A-Za-z0-9.\-]*$/u', $tok)) return $tok; // model no / code, verbatim
+                $key = $tuUpper($tok);
+                return $vocab['words'][$key]['en'] ?? mb_convert_case($tok, MB_CASE_TITLE, 'UTF-8');
+              };
+              $mapColor = function (string $tok) use ($vocab, $tuUpper): ?string {
+                return $vocab['palette_map'][$tuUpper(trim($tok))] ?? null;
+              };
+
+              $rows = []; $skippedNoImg = 0; $skippedVaries = 0;
+              foreach (array_slice($priced, $start, $count * 3) as $rec) { // *3 headroom: some get skipped (no image / variant pricing)
+                if (count($rows) >= $count) break;
+                $url = $rec['url'] ?? '';
+                $staged = $imgMap[$url] ?? [];
+                if (!$staged) { $skippedNoImg++; continue; }
+
+                $ps = array_unique(array_map(fn($v) => $v['price_eur'] ?? null, $rec['variants'] ?? []));
+                if (count($ps) > 1) { $skippedVaries++; continue; } // per-variant pricing -- different handling, not this test batch
+
+                preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
+                $slug = $sm[1] ?? $tuUpper((string)($rec['title'] ?? $url));
+                preg_match('/(\d+)$/', $slug, $skum);
+                $sku = $skum[1] ?? $slug;
+
+                $brand = (string)($rec['brand'] ?? '');
+                $brandTitled = mb_convert_case(mb_strtolower($brand, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+
+                $titleRest = trim((string)preg_replace('/^' . preg_quote($brand, '/') . '\s*/iu', '', (string)($rec['title'] ?? '')));
+                $nameParts = [$brandTitled];
+                foreach (preg_split('/\s+/u', $titleRest) as $tok) { if ($tok !== '') $nameParts[] = $translateWord($tok); }
+                $name = implode(' ', $nameParts);
+
+                $catTr = strtoupper(trim((string)($rec['category'] ?? '')));
+                $vestraCat = $vocab['categories'][$catTr]['vestra_cat'] ?? 'Bras';
+
+                $colorsEn = [];
+                foreach (($rec['colors'] ?? []) as $c) { $m = $mapColor($c); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; }
+                foreach (($rec['variants'] ?? []) as $v) { if (!empty($v['color'])) { $m = $mapColor($v['color']); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; } }
+
+                // Kuloğlu quirk: color-only products sometimes carry the color word in the
+                // "beden" (size) field instead of "renk" (color). Only redirect a size value
+                // into colorsEn when the variant's own color field is empty AND the value
+                // actually resolves in the palette map — real two-axis (color + size)
+                // products keep their sizes untouched.
+                $sizesRaw = [];
+                foreach (($rec['variants'] ?? []) as $v) {
+                  $sz = trim((string)($v['size'] ?? ''));
+                  if ($sz === '') continue;
+                  if (empty($v['color'])) {
+                    $m = $mapColor($sz);
+                    if ($m) { if (!in_array($m, $colorsEn, true)) $colorsEn[] = $m; continue; }
+                  }
+                  $sizesRaw[] = $sz;
+                }
+                $sizesList = array_values(array_unique($sizesRaw));
+
+                $moq = (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1);
+                $list = (float)($rec['unit_price_eur'] ?? 0);
+                if ($list <= 0) { $skippedVaries++; continue; }
+
+                $images = [];
+                foreach ($staged as $fn) $images[] = '/uploads/wholesale-underwear/' . $fn;
+
+                $descBits = [];
+                if ($sizesList) $descBits[] = 'Sizes: ' . implode(', ', $sizesList);
+                if ($moq > 1) $descBits[] = "Minimum order: 1 pack ({$moq} units)";
+
+                $rows[] = [
+                  'id' => 'mo-' . mb_substr($slug, 0, 56),
+                  'brand' => $brandTitled, 'name' => $name, 'cat' => $vestraCat, 'sku' => $sku,
+                  'moq' => max(1, $moq), 'unit' => 'pc', 'mode' => 'sale', 'list' => round($list, 2),
+                  'colors' => $colorsEn, 'sizes' => implode(', ', $sizesList),
+                  'desc' => implode(' · ', $descBits),
+                  'images' => $images, 'seller_uid' => $sid, 'section' => 'underwear',
+                  'ships_from' => 'Turkey',
+                ];
+              }
+              return [$rows, $skippedNoImg, $skippedVaries];
             }
 
             // Labels this page is known to render as their own line. Blank-line
@@ -1090,107 +1204,15 @@ jobs:
               $start = $arg1 !== '' ? (int)$arg1 : 0;
               $count = $arg2 !== '' ? (int)$arg2 : 3;
 
-              $vocabUrl = 'https://raw.githubusercontent.com/acerasoft-debug/chat-help/claude/wizardly-planck-7ylnmk/product-batches/kuloglu-vocab.php';
-              $vr = vfetch($vocabUrl);
-              if (!$vr['html']) { fwrite(STDERR, "kuloglu-vocab.php cekilemedi\n"); exit(1); }
-              $vocabTmp = tempnam(sys_get_temp_dir(), 'kv') . '.php';
-              file_put_contents($vocabTmp, $vr['html']);
-              $vocab = require $vocabTmp;
-              @unlink($vocabTmp);
-
-              $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
-              $appDir = $home . '/public_html';
-              if (!is_readable($appDir . '/inc/auth.php')) { fwrite(STDERR, "inc/auth.php bulunamadi\n"); exit(1); }
-              require $appDir . '/inc/auth.php';
-              $sid = '';
-              foreach (auth_accounts() as $a) {
-                if (($a['type'] ?? '') === 'seller' && strtolower(trim((string)($a['company'] ?? ''))) === 'marca online') { $sid = (string)($a['id'] ?? ''); break; }
-              }
+              $vocab = kuloglu_fetch_vocab();
+              $sid = kuloglu_marca_online_uid();
               if ($sid === '') { fwrite(STDERR, "Marca Online hesabi yok -- once create_seller calistir\n"); exit(1); }
 
               $priced = load_json($PRICED_FILE, []);
               if (!$priced) { fwrite(STDERR, "bayan_sutyen_priced.json bos/yok -- once price calistir\n"); exit(1); }
-              $IMAGES_MAP_FILE = $DIR . '/images_staged.json';
-              $imgMap = load_json($IMAGES_MAP_FILE, []);
+              $imgMap = load_json($DIR . '/images_staged.json', []);
 
-              $tuUpper = fn(string $s): string => mb_strtoupper(str_replace('i', 'İ', $s), 'UTF-8'); // tr-aware-ish: 'i'->'İ' before generic upper so dotless/dotted stays right for lookup
-              $translateWord = function (string $tok) use ($vocab, $tuUpper): string {
-                if (preg_match('/^[0-9]+[A-Za-z0-9.\-]*$/u', $tok)) return $tok; // model no / code, verbatim
-                $key = $tuUpper($tok);
-                return $vocab['words'][$key]['en'] ?? mb_convert_case($tok, MB_CASE_TITLE, 'UTF-8');
-              };
-              $mapColor = function (string $tok) use ($vocab, $tuUpper): ?string {
-                return $vocab['palette_map'][$tuUpper(trim($tok))] ?? null;
-              };
-
-              $rows = []; $skippedNoImg = 0; $skippedVaries = 0;
-              foreach (array_slice($priced, $start, $count * 3) as $rec) { // *3 headroom: some get skipped (no image / variant pricing)
-                if (count($rows) >= $count) break;
-                $url = $rec['url'] ?? '';
-                $staged = $imgMap[$url] ?? [];
-                if (!$staged) { $skippedNoImg++; continue; }
-
-                $ps = array_unique(array_map(fn($v) => $v['price_eur'] ?? null, $rec['variants'] ?? []));
-                if (count($ps) > 1) { $skippedVaries++; continue; } // per-variant pricing -- different handling, not this test batch
-
-                preg_match('#/urun/([a-z0-9\-]+)#i', $url, $sm);
-                $slug = $sm[1] ?? $tuUpper((string)($rec['title'] ?? $url));
-                preg_match('/(\d+)$/', $slug, $skum);
-                $sku = $skum[1] ?? $slug;
-
-                $brand = (string)($rec['brand'] ?? '');
-                $brandTitled = mb_convert_case(mb_strtolower($brand, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
-
-                $titleRest = trim((string)preg_replace('/^' . preg_quote($brand, '/') . '\s*/iu', '', (string)($rec['title'] ?? '')));
-                $nameParts = [$brandTitled];
-                foreach (preg_split('/\s+/u', $titleRest) as $tok) { if ($tok !== '') $nameParts[] = $translateWord($tok); }
-                $name = implode(' ', $nameParts);
-
-                $catTr = strtoupper(trim((string)($rec['category'] ?? '')));
-                $vestraCat = $vocab['categories'][$catTr]['vestra_cat'] ?? 'Bras';
-
-                $colorsEn = [];
-                foreach (($rec['colors'] ?? []) as $c) { $m = $mapColor($c); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; }
-                foreach (($rec['variants'] ?? []) as $v) { if (!empty($v['color'])) { $m = $mapColor($v['color']); if ($m && !in_array($m, $colorsEn, true)) $colorsEn[] = $m; } }
-
-                // Kuloğlu quirk: color-only products sometimes carry the color word in the
-                // "beden" (size) field instead of "renk" (color). Only redirect a size value
-                // into colorsEn when the variant's own color field is empty AND the value
-                // actually resolves in the palette map — real two-axis (color + size)
-                // products keep their sizes untouched.
-                $sizesRaw = [];
-                foreach (($rec['variants'] ?? []) as $v) {
-                  $sz = trim((string)($v['size'] ?? ''));
-                  if ($sz === '') continue;
-                  if (empty($v['color'])) {
-                    $m = $mapColor($sz);
-                    if ($m) { if (!in_array($m, $colorsEn, true)) $colorsEn[] = $m; continue; }
-                  }
-                  $sizesRaw[] = $sz;
-                }
-                $sizesList = array_values(array_unique($sizesRaw));
-
-                $moq = (int)(($rec['variants'][0]['pack_qty'] ?? null) ?: 1);
-                $list = (float)($rec['unit_price_eur'] ?? 0);
-                if ($list <= 0) { $skippedVaries++; continue; }
-
-                $images = [];
-                foreach ($staged as $fn) $images[] = '/uploads/wholesale-underwear/' . $fn;
-
-                $descBits = [];
-                if ($sizesList) $descBits[] = 'Sizes: ' . implode(', ', $sizesList);
-                if ($moq > 1) $descBits[] = "Minimum order: 1 pack ({$moq} units)";
-
-                $rows[] = [
-                  'id' => 'mo-' . mb_substr($slug, 0, 56),
-                  'brand' => $brandTitled, 'name' => $name, 'cat' => $vestraCat, 'sku' => $sku,
-                  'moq' => max(1, $moq), 'unit' => 'pc', 'mode' => 'sale', 'list' => round($list, 2),
-                  'colors' => $colorsEn, 'sizes' => implode(', ', $sizesList),
-                  'desc' => implode(' · ', $descBits),
-                  'images' => $images, 'seller_uid' => $sid, 'section' => 'underwear',
-                  'ships_from' => 'Turkey',
-                ];
-              }
+              [$rows, $skippedNoImg, $skippedVaries] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
 
               $BATCH_FILE = $DIR . '/test_batch.json';
               save_json_atomic($BATCH_FILE, $rows);
@@ -1198,6 +1220,81 @@ jobs:
               printf("yazildi: %s\n", $BATCH_FILE);
               echo "\n-- id listesi --\n";
               foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
+              exit(0);
+            }
+
+            // build_batch'in AYNI satirlarini, VESTRA'ya hic yazilmadan, add-products.yml'nin
+            // dogrudan okuyabilecegi SIFRELI pakete cevirir. Gerekcesi: add-products.yml'nin
+            // 'file' girdisi calisma zamaninda actions/checkout ile inen REPO icinden bir yol
+            // olmak zorunda ([ -f "$RAW_FILE" ] kontrolu runner'da, sunucuda degil) -- yani
+            // test_batch.json sunucuda (~/kuloglu_import/, public_html DISI) durdugu surece o
+            // adima hic giremez. Ve satir icindeki 'list' fiyati VESTRA satis fiyati -- her
+            // zaman Kuloglu'nin gizli TRY maliyetinin TAM IKI KATI, yani depoya (herkese acik)
+            // DUZ METIN girerse Kuloglu'nun maliyetini geri hesaplamak tek bolme islemi olurdu.
+            // Ayni cozum product-batches/pili-perez.enc icin zaten var (bkz. pili-perez-NOTLAR.md):
+            // AES-256 anahtari RSA-OAEP ile, satir listesi AES-256-CBC ile sifrelenir; ozel
+            // anahtar ~/.vestra_import/import_key.pem SUNUCUDAN HIC CIKMAZ, add-products.yml
+            // ayni dosyayi zaten cozebiliyor (bkz. o dosyadaki 'SIFRELI paket' blogu). Fark:
+            // Pili Perez'de veri disaridan (WeTransfer) geldigi icin acik anahtar loga basilip
+            // sifreleme baska yerde yapiliyordu; burada veri zaten sunucuda oldugu icin acik
+            // anahtar ozel anahtardan YERINDE turetilir (openssl_pkey_get_details), disariya
+            // hic cikmaz -- yalnizca SONUC (sifreli metin, anahtarsiz cozulemez) loga basilir,
+            // ayni wetransfer_probe/kuloglu_image fotograf-indirme adimlarindaki BEGIN/END +
+            // |spaced kalibiyla (Actions'in gizli-deger maskelemesi bitisik karakterleri
+            // bozmasin diye). Ciktiyi diske yazip 'file: product-batches/<ad>.enc' ile depoya
+            // COMMIT ETMEK gerekir -- add-products.yml o dosyayi actions/checkout'tan okuyor,
+            // sunucudan degil.
+            if ($mode === 'export_enc') {
+              $start = $arg1 !== '' ? (int)$arg1 : 0;
+              $count = $arg2 !== '' ? (int)$arg2 : 3;
+
+              $vocab = kuloglu_fetch_vocab();
+              $sid = kuloglu_marca_online_uid();
+              if ($sid === '') { fwrite(STDERR, "Marca Online hesabi yok -- once create_seller calistir\n"); exit(1); }
+
+              $priced = load_json($PRICED_FILE, []);
+              if (!$priced) { fwrite(STDERR, "bayan_sutyen_priced.json bos/yok -- once price calistir\n"); exit(1); }
+              $imgMap = load_json($DIR . '/images_staged.json', []);
+
+              [$rows, $skippedNoImg, $skippedVaries] = kuloglu_build_rows($priced, $imgMap, $vocab, $sid, $start, $count);
+              if (!$rows) { fwrite(STDERR, "0 satir olustu -- bos paket sifrelenmedi\n"); exit(1); }
+
+              $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
+              $kdir = $home . '/.vestra_import';
+              $kfile = $kdir . '/import_key.pem';
+              if (!is_dir($kdir)) @mkdir($kdir, 0700, true);
+              if (!is_file($kfile)) {
+                // pili-perez.enc ile AYNI anahtar -- add-products.yml'nin cozme yolu tek bir
+                // sabit dosyaya bakiyor, batch basina ayri anahtar secimi yok.
+                $res = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+                if (!$res || !openssl_pkey_export($res, $pemOut)) { fwrite(STDERR, "anahtar uretilemedi: " . openssl_error_string() . "\n"); exit(1); }
+                file_put_contents($kfile, $pemOut); chmod($kfile, 0600);
+                echo "ice aktarma anahtari URETILDI: {$kfile}\n";
+              }
+              $pk = openssl_pkey_get_private((string)file_get_contents($kfile));
+              if (!$pk) { fwrite(STDERR, "ozel anahtar okunamadi\n"); exit(1); }
+              $pubPem = openssl_pkey_get_details($pk)['key'] ?? '';
+              $pub = $pubPem !== '' ? openssl_pkey_get_public($pubPem) : false;
+              if (!$pub) { fwrite(STDERR, "acik anahtar turetilemedi\n"); exit(1); }
+
+              $json = json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+              $aesKey = random_bytes(32);
+              $iv = random_bytes(16);
+              $cipher = openssl_encrypt($json, 'aes-256-cbc', $aesKey, OPENSSL_RAW_DATA, $iv);
+              if ($cipher === false) { fwrite(STDERR, "AES sifreleme basarisiz\n"); exit(1); }
+              $encKey = '';
+              if (!openssl_public_encrypt($aesKey, $encKey, $pub, OPENSSL_PKCS1_OAEP_PADDING)) { fwrite(STDERR, "RSA sifreleme basarisiz\n"); exit(1); }
+
+              $pkg = ['key' => base64_encode($encKey), 'iv' => base64_encode($iv), 'data' => base64_encode($cipher)];
+              $pkgJson = json_encode($pkg);
+
+              printf("olusturuldu: %d satir (atlandi: gorselsiz=%d, varyant-fiyatli=%d)\n", count($rows), $skippedNoImg, $skippedVaries);
+              echo "\n-- id listesi (fiyatsiz) --\n";
+              foreach ($rows as $r) printf("  %-45s cat=%-10s renk=%-20s beden=%-30s ships_from=%s\n", $r['id'], $r['cat'], implode('/', $r['colors']), $r['sizes'], $r['ships_from']);
+              printf("\nsifreli paket: %d bayt (json), sha256=%s\n", strlen($pkgJson), hash('sha256', $pkgJson));
+              echo "ENC_B64_BEGIN\n";
+              foreach (str_split(base64_encode($pkgJson), 4000) as $ln) echo implode(' ', str_split($ln)) . "\n";
+              echo "ENC_B64_END\n";
               exit(0);
             }
 
@@ -1265,7 +1362,7 @@ jobs:
               }
               exit(0);
             }
-            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|images|images_reset|create_seller|build_batch|reset|status\n");
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|price|vocab|images|images_reset|create_seller|build_batch|export_enc|reset|status\n");
             exit(1);
 
 
