@@ -93,6 +93,14 @@ function vestra_email_is_junk(string $email): bool {
   if($e==='' || !filter_var($e,FILTER_VALIDATE_EMAIL)) return true;
   [$lp,$dp]=array_pad(explode('@',$e,2),2,'');
   if(!preg_match('/[a-z0-9]/',$lp)) return true;   // local part with no letters/digits at all ("--@…")
+  /* Mail domain starting with "www." is a harvesting artefact, never a mailbox: the
+     scraper read the site's own host ("www.shop.be") where the address's domain
+     belongs. It cannot be caught by the DNS probe either -- shared hosting answers
+     A records for every subdomain, so www.<shop> resolves and the candidate survives.
+     Caught live on info@www.amorinikids.be in the Winter 26/27 selection.
+     The real mailbox is the SAME address without the prefix, so dropping it here
+     costs nothing: a re-harvest of that domain picks up the correct one. */
+  if(str_starts_with($dp,'www.')) return true;
   // Placeholder LOCAL parts on an otherwise ordinary domain ("example@mail.com" was scraped from
   // a boilerplate contact form). The domain-side patterns below can't see these.
   // NB: 'mail'/'info'/'contact' are deliberately NOT here — they're real generic mailboxes
@@ -124,7 +132,14 @@ function vestra_email_is_junk(string $email): bool {
        .'|@site123\.|@ionos\.|@one\.com|@hostpoint\.|@infomaniak\.|@web\.com'
        // Same failure, more platforms — each was caught mid-campaign on a real lead:
        // support@jouwweb.nl (NL site builder), blog@wordpress.com, domains@loopia.com (SE host).
-       .'|@jouwweb\.|@wordpress\.com|@loopia\.|@hostinger\.|@wordpress\.org|@automattic\.)#i';
+       .'|@jouwweb\.|@wordpress\.com|@loopia\.|@hostinger\.|@wordpress\.org|@automattic\.'
+       // Same failure again, but the vendor is an app/service embedded in the shop's
+       // pages rather than the platform it is built on: Glood.AI is a Shopify
+       // personalisation app and Virtual Minds is ProSiebenSat.1's adtech arm. Their
+       // support addresses sat in two Winter 26/27 candidates ("INTRO", "Mi.na") in
+       // place of the boutique's own -- a wholesale letter to either reaches a
+       // software vendor, wastes a daily credit and invites a spam complaint.
+       .'|@glood\.|@virtualminds\.)#i';
   return (bool)preg_match($junk,$e);
 }
 
