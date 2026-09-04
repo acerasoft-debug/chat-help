@@ -14,6 +14,10 @@ on:
         description: "GENEL amaçlı, bu dosyanın asıl konusundan bağımsız: herhangi bir URL verin (bu ortamdan çoğu dış alan adına çıkış engelli — proxy allowlist'te değil; sunucunun kendi ağından çeker, Overpass/OSM çağrısıyla aynı prensip). Başlığı, meta açıklamasını, sayfadaki TÜM linkleri (mutlak adrese çevrilmiş, metniyle birlikte) ve script/style ayıklanmış görünür metni (ilk ~4000 karakter) yazar. Salt okunur, hiçbir şey indirmez/kaydetmez. diag-live.yml zaten 25 girdi sınırındaydı (bkz. o dosyanın notu), o yüzden burada — girdi bütçesi boş olan başka bir dosyada."
         required: false
         default: ""
+      kuloglu:
+        description: "Pilot veri toplama — kuloglutekstil.com.tr 'Bayan Sütyen' kategorisini tarar, VESTRA'ya HİÇBİR ŞEY YAZMAZ, yalnızca sunucuda ~/kuloglu_import/*.json üretir (public_html DIŞI, repo'ya girmez). Format: 'MOD' ya da 'MOD|arg1' ya da 'MOD|arg1|arg2'. Modlar: fields|url1,url2,... (belirtilen ürün sayfalarını çek, alanları LOG'a yaz, dosyaya YAZMAZ — çıkarım deseni birkaç üründe doğrulamak için); paginate (kategori sayfasının gerçek sayfalama mekanizmasını teşhis eder, salt okunur); list_urls|maxPages (tüm sayfaları gezip essiz /urun/ linklerini product_urls.json'a yazar, varsayılan maxPages=40); crawl|start|count (product_urls.json'daki kuyruktan [start,start+count) dilimini çeker, bayan_sutyen.json'a ekler/birleştirir, hata verenleri failures.json'a yazar — zaten başarıyla çekilmiş URL'leri atlar, tekrar tekrar çağırmak güvenli); status (üç dosyanın sayaç/özetini yazar, hiçbir şey çekmez). Kibarca: istekler arası ~300-400ms gecikme, paralel yok, makul timeout. Tam yük asla log'a basılmaz — yalnızca sayaç ve birkaç örnek."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -227,4 +231,525 @@ jobs:
             php -l /tmp/vestra_siteprobe.php
             php /tmp/vestra_siteprobe.php; RC=$?
             rm -f /tmp/vestra_siteprobe.php
+            exit $RC
+      # Bu is akisinin ASIL konusundan bagimsiz, ayrica bir pilot veri-toplama
+      # gorevi: kuloglutekstil.com.tr 'Bayan Sutyen' kategorisini tarar.
+      # VESTRA'nin kendi urun/listing verisine DOKUNMAZ, hicbir sey import
+      # ETMEZ -- yalniz sunucuda public_html DISINDA (~/kuloglu_import/)
+      # bir JSON dosyasi biriktirir, sonraki bir incelemede kullanilmak
+      # uzere. Salt okunur taraf: ucuncu tarafin canli sitesine kibar
+      # istekler atar (istekler arasi gecikme, dusuk zaman asimi, paralel
+      # yok), kendi sitesine hicbir yazma yapmaz.
+      - name: "Kuloglu pilot veri toplama (sunucuda, salt okunur ucuncu-taraf tarama)"
+        if: ${{ github.event.inputs.kuloglu != '' }}
+        env:
+          KULOGLU: ${{ github.event.inputs.kuloglu }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 25m
+          envs: KULOGLU
+          script: |
+            cat > /tmp/vestra_kuloglu.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            @set_time_limit(0); @ini_set('implicit_flush','1');
+            while (ob_get_level() > 0) { @ob_end_flush(); }
+
+            $home = getenv('HOME') ?: getenv('HOME_OVERRIDE') ?: '.';
+            $DIR = $home . '/kuloglu_import';
+            if (!is_dir($DIR)) { @mkdir($DIR, 0700, true); }
+            $URLS_FILE = $DIR . '/product_urls.json';
+            $OUT_FILE  = $DIR . '/bayan_sutyen.json';
+            $FAIL_FILE = $DIR . '/failures.json';
+            $PAGES_FILE = $DIR . '/category_pages.json'; // diagnostic record of which category pages were fetched
+
+            $BASE = 'https://www.kuloglutekstil.com.tr';
+            $CATEGORY_PATH = '/kategori/bayan-sutyen';
+            $CATEGORY_URL = $BASE . $CATEGORY_PATH;
+            $UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+
+            $raw = trim((string)getenv('KULOGLU'));
+            $parts = explode('|', $raw);
+            $mode = strtolower(trim($parts[0] ?? ''));
+            $arg1 = trim($parts[1] ?? '');
+            $arg2 = trim($parts[2] ?? '');
+
+            // ---------------------------------------------------------------------
+            // low-level fetch — polite: caller is responsible for delay between calls
+            // ---------------------------------------------------------------------
+            function vfetch(string $url): array {
+              global $UA;
+              $ch = curl_init($url);
+              curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER=>true, CURLOPT_FOLLOWLOCATION=>true, CURLOPT_MAXREDIRS=>6,
+                CURLOPT_TIMEOUT=>25, CURLOPT_CONNECTTIMEOUT=>10, CURLOPT_USERAGENT=>$UA,
+                CURLOPT_HTTPHEADER=>['Accept: text/html,application/xhtml+xml','Accept-Language: tr,en;q=0.8'],
+              ]);
+              $html = curl_exec($ch);
+              $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+              $err = curl_error($ch);
+              curl_close($ch);
+              return ['html'=>$html, 'code'=>$code, 'final'=>$finalUrl, 'err'=>$err];
+            }
+
+            function abs_url(string $href, string $baseUrl): string {
+              if ($href === '' || str_starts_with($href,'#') || str_starts_with($href,'javascript:') || str_starts_with($href,'mailto:') || str_starts_with($href,'tel:')) return '';
+              if (preg_match('#^https?://#i', $href)) return $href;
+              $base = parse_url($baseUrl);
+              $scheme = $base['scheme'] ?? 'https'; $host = $base['host'] ?? '';
+              if (str_starts_with($href,'//')) return $scheme.':'.$href;
+              if (str_starts_with($href,'/')) return $scheme.'://'.$host.$href;
+              $path = $base['path'] ?? '/'; $dir = substr($path,0,strrpos($path,'/') ?: 0);
+              return $scheme.'://'.$host.$dir.'/'.$href;
+            }
+
+            // Turkish decimal formatting: '.' thousands separator, ',' decimal separator.
+            // A naive (float) cast on "1.234,56" would silently produce 1.234 — this
+            // strips everything but digits/./, then removes thousands dots before
+            // swapping the decimal comma, so it fails loudly (null) instead of
+            // quietly mis-parsing.
+            function tr_num($s): ?float {
+              $s = trim((string)$s);
+              if ($s === '') return null;
+              $s = preg_replace('/[^0-9.,]/u', '', $s);
+              if ($s === '') return null;
+              if (str_contains($s, ',')) {
+                $s = str_replace('.', '', $s);
+                $s = str_replace(',', '.', $s);
+              }
+              return is_numeric($s) ? (float)$s : null;
+            }
+
+            function load_json(string $file, $default) {
+              if (!is_file($file)) return $default;
+              $txt = file_get_contents($file);
+              if ($txt === '' || $txt === false) return $default;
+              $j = json_decode($txt, true);
+              return is_null($j) ? $default : $j;
+            }
+            function save_json_atomic(string $file, $data): void {
+              $tmp = $file . '.tmp' . getmypid();
+              file_put_contents($tmp, json_encode($data, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
+              rename($tmp, $file);
+            }
+
+            function parse_dom(string $html): array {
+              libxml_use_internal_errors(true);
+              $doc = new DOMDocument();
+              $doc->loadHTML('<?xml encoding="utf-8"?>' . $html);
+              libxml_clear_errors();
+              $xp = new DOMXPath($doc);
+              return [$doc, $xp];
+            }
+
+            // Strips script/style/noscript in place, returns trimmed non-empty text lines
+            // in document order — same normalization diag-admin-discover.yml's site_probe
+            // uses, so behaviour already validated against this exact site.
+            function visible_lines(DOMDocument $doc): array {
+              foreach (['script','style','noscript'] as $tag) {
+                $nodes = $doc->getElementsByTagName($tag);
+                for ($i=$nodes->length-1; $i>=0; $i--) { $n=$nodes->item($i); if ($n->parentNode) $n->parentNode->removeChild($n); }
+              }
+              $body = $doc->getElementsByTagName('body')->item(0);
+              $rawText = $body ? $body->textContent : '';
+              return array_values(array_filter(array_map('trim', explode("\n",$rawText)), fn($l)=>$l!==''));
+            }
+
+            function find_line_index(array $lines, string $needle, int $from=0): int {
+              for ($i=$from; $i<count($lines); $i++) if ($lines[$i] === $needle) return $i;
+              return -1;
+            }
+
+            // Labels this page is known to render as their own line. Blank-line
+            // stripping in visible_lines() means a genuinely EMPTY value (an empty
+            // <dd></dd>, e.g. an unbranded accessory's "Marka") leaves no line behind
+            // at all — so the naive "next line is the value" read would silently
+            // swallow the following label's text as if it were this field's value.
+            // value_after_label() treats "the next line is itself a known label" as
+            // "value is empty" instead.
+            const KULOGLU_KNOWN_LABELS = ['Kategori','Marka','Promosyon','Paket İçi Adet:','Fiyat','Seçenekler','RENK','BEDEN'];
+            function value_after_label(array $lines, int $labelIdx): string {
+              if ($labelIdx < 0 || !isset($lines[$labelIdx+1])) return '';
+              $next = $lines[$labelIdx+1];
+              if (in_array($next, KULOGLU_KNOWN_LABELS, true)) return '';
+              if (preg_match('/^Asorti Tablo \(\d+\)$/u', $next)) return '';
+              return $next;
+            }
+
+            // ---------------------------------------------------------------------
+            // product-page extraction
+            // ---------------------------------------------------------------------
+            function extract_product(string $url): array {
+              $r = vfetch($url);
+              if (!$r['html'] || $r['code'] < 200 || $r['code'] >= 300) {
+                return ['ok'=>false, 'url'=>$url, 'http_code'=>$r['code'], 'reason'=>'fetch_failed: '.($r['err'] ?: ('http '.$r['code']))];
+              }
+              return extract_product_from_html($r['html'], $url);
+            }
+
+            // Split out from extract_product() so the parsing logic can be unit-tested
+            // against captured/synthetic HTML without a network call.
+            function extract_product_from_html(string $html, string $url): array {
+              [$doc, $xp] = parse_dom($html);
+
+              $h1nodes = $xp->query('//h1');
+              $h1 = $h1nodes->length ? trim(preg_replace('/\s+/u',' ', $h1nodes->item(0)->textContent)) : '';
+
+              $lines = visible_lines($doc);
+
+              $iKat = find_line_index($lines, 'Kategori');
+              $category = value_after_label($lines, $iKat);
+              $iMarka = find_line_index($lines, 'Marka');
+              $brand = value_after_label($lines, $iMarka);
+              $iPaket = find_line_index($lines, 'Paket İçi Adet:');
+              $paketVal = value_after_label($lines, $iPaket);
+              $packQty = $paketVal !== '' ? (int)preg_replace('/\D/u','', $paketVal) : null;
+              $iFiyatLbl = find_line_index($lines, 'Fiyat');
+              $fiyatVal = value_after_label($lines, $iFiyatLbl);
+              $packPrice = $fiyatVal !== '' ? tr_num($fiyatVal) : null;
+
+              // Base unit price: first "<n> TL + KDV"-shaped line, searched only in the
+              // section before the "Kategori" label so a promo banner higher up ("10.000
+              // TL ve Üzeri ...", no "+ KDV") can never match it.
+              $unitPrice = null;
+              $scanEnd = $iKat >= 0 ? $iKat : count($lines);
+              for ($idx = 0; $idx < $scanEnd; $idx++) {
+                if (preg_match('/TL\s*\+\s*KDV/u', $lines[$idx])) { $unitPrice = tr_num($lines[$idx]); break; }
+              }
+
+              $iAsorti = -1; $declaredCount = null;
+              foreach ($lines as $idx=>$ln) {
+                if (preg_match('/^Asorti Tablo \((\d+)\)$/u', $ln, $mm)) { $iAsorti = $idx; $declaredCount = (int)$mm[1]; break; }
+              }
+              $iRenk = find_line_index($lines, 'RENK');
+              $iBeden = find_line_index($lines, 'BEDEN');
+              $placeholderVals = ['Seçenek Seç', 'Seçiniz', 'Seçenek seçiniz'];
+
+              $colors = [];
+              if ($iRenk>=0) {
+                $end = $iBeden>=0 ? $iBeden : ($iAsorti>=0?$iAsorti:count($lines));
+                for ($i=$iRenk+1; $i<$end; $i++) if (!in_array($lines[$i], $placeholderVals, true)) $colors[] = $lines[$i];
+              }
+              $sizes = [];
+              if ($iBeden>=0) {
+                $end = $iAsorti>=0 ? $iAsorti : count($lines);
+                for ($i=$iBeden+1; $i<$end; $i++) if (!in_array($lines[$i], $placeholderVals, true)) $sizes[] = $lines[$i];
+              }
+              $colors = array_values(array_unique($colors));
+              $sizes  = array_values(array_unique($sizes));
+
+              // Assortment table: row-start lines are "<COLOR> - <SIZE>". We don't
+              // assume a fixed stride between rows (an out-of-stock variant may not
+              // carry the usual price/qty/stepper lines) — instead every "X - Y" line
+              // is treated as a row boundary, and we search a bounded window after it
+              // for a TL price and an "adet" pack qty, recording nulls if genuinely
+              // absent rather than mis-reading a later row's numbers as this row's.
+              // Deliberately NOT cross-checked against the parsed $colors list: if
+              // that list ever parses wrong (concatenated line, unexpected label), a
+              // membership filter here would silently zero out the whole table instead
+              // of surfacing the mismatch — declaredCount (itself required by the
+              // regex that sets $iAsorti) is the only bound, so real rows are never
+              // dropped for not matching a possibly-broken color list.
+              $variants = [];
+              if ($iAsorti >= 0) {
+                $scanFrom = $iAsorti + 1;
+                if (isset($lines[$scanFrom]) && stripos($lines[$scanFrom], 'Varyant') !== false) $scanFrom++;
+                $rowStarts = [];
+                for ($i = $scanFrom; $i < count($lines); $i++) {
+                  if (!preg_match('/^(.+?)\s-\s(.+)$/u', $lines[$i], $vm)) continue;
+                  $rowStarts[] = $i;
+                  if (count($rowStarts) >= $declaredCount) break;
+                }
+                foreach ($rowStarts as $k => $i) {
+                  $vm = null; preg_match('/^(.+?)\s-\s(.+)$/u', $lines[$i], $vm);
+                  $windowEnd = $rowStarts[$k+1] ?? min(count($lines), $i + 8);
+                  $vprice = null; $vqty = null; $inStock = null;
+                  for ($j = $i+1; $j < $windowEnd; $j++) {
+                    if ($vprice === null && preg_match('/TL/u', $lines[$j]) && tr_num($lines[$j]) !== null) $vprice = tr_num($lines[$j]);
+                    if ($vqty === null && preg_match('/adet/iu', $lines[$j])) $vqty = (int)preg_replace('/\D/u','', $lines[$j]);
+                  }
+                  $inStock = ($vprice !== null || $vqty !== null) ? true : null; // null = couldn't tell, not a claim of out-of-stock
+                  $variants[] = ['color'=>trim($vm[1]), 'size'=>trim($vm[2]), 'price_try'=>$vprice, 'pack_qty'=>$vqty, 'in_stock'=>$inStock];
+                }
+              }
+
+              // Images: the page also carries other unrelated products' photos in a
+              // "recently viewed / related" rail — <img alt> is that OTHER product's
+              // title, not this page's, so we can't just take "the first few images".
+              // Match this product's own photo(s) by alt-text overlap with the title,
+              // take its /myassets/products/<folder>/ id, then collect every image
+              // sharing that folder (multi-photo products keep all of them under one
+              // folder id) rather than only the single alt-matched file.
+              $titleForMatch = $h1 !== '' ? $h1 : '';
+              $allImgs = []; $imgSeen = [];
+              foreach ($doc->getElementsByTagName('img') as $im) {
+                foreach (['src','data-src','data-original','data-lazy'] as $attr) {
+                  $src = trim((string)$im->getAttribute($attr));
+                  if ($src==='' || str_starts_with($src,'data:')) continue;
+                  $absImg = abs_url($src, $url);
+                  if ($absImg==='' || isset($imgSeen[$absImg])) continue;
+                  $imgSeen[$absImg]=true;
+                  $allImgs[] = ['url'=>$absImg, 'alt'=>trim((string)$im->getAttribute('alt'))];
+                  break;
+                }
+              }
+              $ownFolder = null;
+              foreach ($allImgs as $im) {
+                if ($titleForMatch === '' || $im['alt'] === '') continue;
+                $altNorm = mb_strtolower($im['alt']);
+                $titleNorm = mb_strtolower($titleForMatch);
+                if (str_contains($titleNorm, $altNorm) || str_contains($altNorm, mb_substr($titleNorm, 0, 15))) {
+                  if (preg_match('#/myassets/products/([^/]+)/#', $im['url'], $fm)) { $ownFolder = $fm[1]; break; }
+                }
+              }
+              $images = [];
+              if ($ownFolder !== null) {
+                foreach ($allImgs as $im) {
+                  if (preg_match('#/myassets/products/'.preg_quote($ownFolder,'#').'/#', $im['url'])) {
+                    $images[] = ['url'=>$im['url'], 'thumb'=>str_contains($im['url'],'_min.')];
+                  }
+                }
+              }
+
+              return [
+                'ok' => true,
+                'url' => $url,
+                'brand' => $brand,
+                'title' => $h1 !== '' ? $h1 : null,
+                'category' => $category,
+                'unit_price_try' => $unitPrice,
+                'pack_qty' => $packQty,
+                'pack_price_try' => $packPrice,
+                'colors' => $colors,
+                'sizes' => $sizes,
+                'variant_count_declared' => $declaredCount,
+                'variant_count_parsed' => count($variants),
+                'variants' => $variants,
+                'images' => $images,
+                'image_match_note' => $ownFolder === null ? 'no alt-text match to title; images left empty rather than guessing' : null,
+                'fetched_at' => gmdate('c'),
+              ];
+            }
+
+            // ---------------------------------------------------------------------
+            // modes
+            // ---------------------------------------------------------------------
+            if (defined('KULOGLU_NO_MAIN')) return;
+
+            if ($mode === 'fields') {
+              // Diagnostic only — does not touch any file. arg1 = comma-separated URLs.
+              $urls = array_values(array_filter(array_map('trim', explode(',', $arg1))));
+              if (!$urls) { fwrite(STDERR, "fields modu icin arg1'de virgullu URL listesi gerekli\n"); exit(1); }
+              foreach ($urls as $n => $u) {
+                if ($n > 0) usleep(300000);
+                echo "==================================================================\n";
+                echo "[".($n+1)."/".count($urls)."] $u\n";
+                $t0 = microtime(true);
+                $p = extract_product($u);
+                $ms = round((microtime(true)-$t0)*1000);
+                if (!$p['ok']) { echo "  FETCH BASARISIZ ({$ms} ms): {$p['reason']} (http {$p['http_code']})\n"; continue; }
+                printf("  sure           : %d ms\n", $ms);
+                printf("  brand          : %s\n", $p['brand']);
+                printf("  title          : %s\n", $p['title']);
+                printf("  category       : %s\n", $p['category']);
+                printf("  unit_price_try : %s\n", var_export($p['unit_price_try'], true));
+                printf("  pack_qty       : %s\n", var_export($p['pack_qty'], true));
+                printf("  pack_price_try : %s  (unit*qty = %s)\n", var_export($p['pack_price_try'], true),
+                  ($p['unit_price_try']!==null && $p['pack_qty']!==null) ? round($p['unit_price_try']*$p['pack_qty'],2) : 'n/a');
+                printf("  colors (%d)    : %s\n", count($p['colors']), implode(' | ', $p['colors']));
+                printf("  sizes (%d)     : %s\n", count($p['sizes']), implode(' | ', $p['sizes']));
+                printf("  variants decl=%s parsed=%d\n", var_export($p['variant_count_declared'], true), $p['variant_count_parsed']);
+                $priceset = array_unique(array_map(fn($v)=>$v['price_try'], $p['variants']));
+                $qtyset   = array_unique(array_map(fn($v)=>$v['pack_qty'], $p['variants']));
+                printf("  variant price set : %s\n", implode(', ', $priceset));
+                printf("  variant qty set   : %s\n", implode(', ', $qtyset));
+                printf("  UNIFORM PRICING?  : %s\n", (count($priceset)<=1 && count($qtyset)<=1) ? 'EVET (tek fiyat/adet)' : '*** HAYIR - varyant bazli farkli ***');
+                foreach (array_slice($p['variants'],0,3) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']);
+                if (count($p['variants'])>3) { echo "    ...\n"; foreach (array_slice($p['variants'],-2) as $v) printf("    - %-16s %-8s %8s TL  x%s\n", $v['color'], $v['size'], $v['price_try'], $v['pack_qty']); }
+                printf("  images (%d)    : %s\n", count($p['images']), $p['image_match_note'] ?? '');
+                foreach ($p['images'] as $im) echo "    - {$im['url']}".($im['thumb']?' [thumb]':' [full]')."\n";
+              }
+              exit(0);
+            }
+
+            if ($mode === 'paginate') {
+              // Diagnostic only. Establish the real pagination mechanism for the
+              // category page rather than assuming one.
+              $r = vfetch($CATEGORY_URL);
+              printf("HTTP %d, %d bytes: %s\n", $r['code'], strlen((string)$r['html']), $r['err']);
+              if (!$r['html']) exit(1);
+              $html = $r['html'];
+
+              preg_match_all('#/urun/[a-z0-9\-]+#i', $html, $pm);
+              $prodLinksRaw = array_values(array_unique($pm[0]));
+              printf("\nHam HTML'de /urun/ linki (essiz): %d\n", count($prodLinksRaw));
+
+              foreach (['sayfa=','page=','?p=','pagination','sayfala','per_page','perpage','limit=','pageindex','pagenumber','data-page','rel="next"','load-more','loadmore','infinite','pagesize','page_size','offset='] as $needle) {
+                $pos = stripos($html, $needle);
+                if ($pos !== false) {
+                  $ctx = substr($html, max(0,$pos-60), 160);
+                  $ctx = preg_replace('/\s+/', ' ', $ctx);
+                  echo "  bulundu '{$needle}' @ {$pos}: ...".$ctx."...\n";
+                }
+              }
+
+              [$doc, $xp] = parse_dom($html);
+              echo "\n-- class adi 'pag' iceren elemanlar --\n";
+              foreach ($xp->query('//*[contains(@class,"pag")]') as $node) {
+                $cls = $node->getAttribute('class');
+                $txt = trim(preg_replace('/\s+/', ' ', $node->textContent));
+                printf("  <%s class=\"%s\"> text=%s\n", $node->nodeName, $cls, mb_substr($txt,0,150));
+              }
+              echo "\n-- kategori sayfasina geri donen linkler (kendi URL'i + query) --\n";
+              foreach ($xp->query('//a[@href]') as $a) {
+                $href = trim($a->getAttribute('href'));
+                if (stripos($href, 'bayan-sutyen') !== false) {
+                  $abs = abs_url($href, $r['final'] ?: $CATEGORY_URL);
+                  echo "  {$abs}   [".trim(preg_replace('/\s+/',' ',$a->textContent))."]\n";
+                }
+              }
+
+              echo "\n-- deneme: aday sayfalama URL'leri --\n";
+              $candidates = [
+                $CATEGORY_URL.'?page=2', $CATEGORY_URL.'?sayfa=2', $CATEGORY_URL.'/sayfa-2',
+                $CATEGORY_URL.'?p=2', $CATEGORY_URL.'?pg=2', $CATEGORY_URL.'?sayfa=2&PageIndex=2',
+              ];
+              foreach ($candidates as $cand) {
+                usleep(300000);
+                $rc = vfetch($cand);
+                if (!$rc['html']) { printf("  %-70s HTTP %s (govde yok)\n", $cand, $rc['code']); continue; }
+                preg_match_all('#/urun/[a-z0-9\-]+#i', $rc['html'], $pm2);
+                $set2 = array_values(array_unique($pm2[0]));
+                $new = array_values(array_diff($set2, $prodLinksRaw));
+                printf("  %-70s HTTP %-4s bayt=%-7d urun=%-4d yeni=%-4d\n", $cand, $rc['code'], strlen($rc['html']), count($set2), count($new));
+              }
+              exit(0);
+            }
+
+            if ($mode === 'list_urls') {
+              // arg1 (optional): max pages safety cap, default 40.
+              $maxPages = $arg1 !== '' ? (int)$arg1 : 40;
+              $seen = [];
+              $pageLog = [];
+              $pageNum = 1;
+              $consecutiveEmpty = 0;
+              while ($pageNum <= $maxPages) {
+                $pageUrl = $pageNum === 1 ? $CATEGORY_URL : ($CATEGORY_URL . '?page=' . $pageNum);
+                if ($pageNum > 1) usleep(300000);
+                $r = vfetch($pageUrl);
+                if (!$r['html'] || $r['code'] < 200 || $r['code'] >= 300) {
+                  echo "sayfa {$pageNum}: FETCH BASARISIZ http={$r['code']} err={$r['err']} -- durduruluyor\n";
+                  break;
+                }
+                preg_match_all('#/urun/[a-z0-9\-]+#i', $r['html'], $pm);
+                $onPage = array_values(array_unique($pm[0]));
+                $newCount = 0;
+                foreach ($onPage as $p) { $abs = $BASE.$p; if (!isset($seen[$abs])) { $seen[$abs]=true; $newCount++; } }
+                $pageLog[] = ['page'=>$pageNum, 'url'=>$pageUrl, 'http'=>$r['code'], 'bytes'=>strlen($r['html']), 'on_page'=>count($onPage), 'new'=>$newCount];
+                printf("sayfa %-3d http=%s bayt=%-7d bu_sayfada=%-4d yeni=%-4d toplam=%-5d\n", $pageNum, $r['code'], strlen($r['html']), count($onPage), $newCount, count($seen));
+                if ($newCount === 0) { $consecutiveEmpty++; } else { $consecutiveEmpty = 0; }
+                if ($consecutiveEmpty >= 2) { echo "iki ardisik sayfada yeni urun yok -- sayfalama bitti kabul edildi\n"; break; }
+                $pageNum++;
+              }
+              $urls = array_keys($seen);
+              sort($urls);
+              save_json_atomic($URLS_FILE, $urls);
+              save_json_atomic($PAGES_FILE, $pageLog);
+              printf("\nTOPLAM ESSIZ URUN URL: %d\n", count($urls));
+              printf("yazildi: %s\n", $URLS_FILE);
+              exit(0);
+            }
+
+            if ($mode === 'crawl') {
+              $start = $arg1 !== '' ? (int)$arg1 : 0;
+              $count = $arg2 !== '' ? (int)$arg2 : 100;
+              $urls = load_json($URLS_FILE, null);
+              if (!is_array($urls)) { fwrite(STDERR, "product_urls.json yok/okunamadi -- once list_urls calistir\n"); exit(1); }
+
+              $existing = load_json($OUT_FILE, []);
+              $byUrl = [];
+              foreach ($existing as $rec) if (isset($rec['url'])) $byUrl[$rec['url']] = $rec;
+              $failures = load_json($FAIL_FILE, []);
+              $failByUrl = [];
+              foreach ($failures as $rec) if (isset($rec['url'])) $failByUrl[$rec['url']] = $rec;
+
+              $slice = array_slice($urls, $start, $count);
+              printf("kuyruk toplam=%d, bu parti [%d..%d) = %d url\n", count($urls), $start, $start+count($slice), count($slice));
+
+              $okN=0; $failN=0; $skipN=0; $thisBatchFails = [];
+              $t0 = microtime(true);
+              foreach ($slice as $i => $u) {
+                if (isset($byUrl[$u])) { $skipN++; continue; } // already crawled successfully in a prior run
+                if ($i > 0) usleep(300000 + random_int(0,100000)); // 300-400ms politeness delay
+                $p = extract_product($u);
+                if ($p['ok']) {
+                  $byUrl[$u] = $p; $okN++;
+                  unset($failByUrl[$u]); // succeeded on retry -> drop any stale failure record
+                } else {
+                  $rec = ['url'=>$u, 'http_code'=>$p['http_code'], 'reason'=>$p['reason'], 'when'=>gmdate('c')];
+                  $failByUrl[$u] = $rec; $thisBatchFails[] = $rec;
+                  $failN++;
+                }
+                if (($okN+$failN) % 20 === 0) printf("  ... %d/%d islendi (ok=%d fail=%d)\n", $okN+$failN, count($slice), $okN, $failN);
+              }
+              save_json_atomic($OUT_FILE, array_values($byUrl));
+              save_json_atomic($FAIL_FILE, array_values($failByUrl));
+              $secs = round(microtime(true)-$t0,1);
+
+              printf("\nBu parti bitti: ok=%d fail=%d atlandi(zaten vardi)=%d sure=%ss\n", $okN, $failN, $skipN, $secs);
+              printf("Dosyadaki toplam basarili kayit: %d\n", count($byUrl));
+              printf("Dosyadaki toplam hata kaydi    : %d\n", count($failByUrl));
+              if ($thisBatchFails) {
+                echo "\nBu partideki hatalar:\n";
+                foreach ($thisBatchFails as $f) printf("  %-90s http=%-4s %s\n", $f['url'], $f['http_code'], $f['reason']);
+              }
+              echo "\n-- bu partiden 2 ornek kayit --\n";
+              $sample = array_slice(array_filter($slice, fn($u)=>isset($byUrl[$u]) ), 0, 2);
+              foreach ($sample as $u) echo json_encode($byUrl[$u], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT)."\n";
+              exit(0);
+            }
+
+            if ($mode === 'status') {
+              $urls = load_json($URLS_FILE, []);
+              $existing = load_json($OUT_FILE, []);
+              $failures = load_json($FAIL_FILE, []);
+              printf("kuyruk (product_urls.json)   : %d\n", count($urls));
+              printf("basarili (bayan_sutyen.json) : %d\n", count($existing));
+              printf("hatali (failures.json)       : %d\n", count($failures));
+              $doneUrls = array_column($existing, 'url');
+              $remaining = array_values(array_diff($urls, $doneUrls));
+              printf("kalan (henuz denenmemis)     : %d\n", count(array_filter($remaining, fn($u)=>!in_array($u, array_column($failures,'url'), true))));
+              if ($existing) {
+                printf("dosya boyutu (bayan_sutyen.json): %d bayt\n", filesize($OUT_FILE));
+                $priceUniform = 0; $priceVaries = 0;
+                foreach ($existing as $rec) {
+                  $ps = array_unique(array_map(fn($v)=>$v['price_try']??null, $rec['variants']??[]));
+                  $qs = array_unique(array_map(fn($v)=>$v['pack_qty']??null, $rec['variants']??[]));
+                  if (count($ps)<=1 && count($qs)<=1) $priceUniform++; else $priceVaries++;
+                }
+                printf("tek fiyat/adetli urun         : %d\n", $priceUniform);
+                printf("varyant bazli farkli fiyatli  : %d\n", $priceVaries);
+              }
+              if ($failures) {
+                echo "\nhata nedenleri (gruplu):\n";
+                $byReason = [];
+                foreach ($failures as $f) { $key = preg_replace('/\d+/','#', $f['reason']??'?'); $byReason[$key] = ($byReason[$key]??0)+1; }
+                arsort($byReason);
+                foreach ($byReason as $k=>$n) printf("  %-60s %d\n", $k, $n);
+              }
+              exit(0);
+            }
+
+            fwrite(STDERR, "bilinmeyen mod: '{$mode}'. beklenen: fields|paginate|list_urls|crawl|status\n");
+            exit(1);
+
+            PHPEOF
+            php -l /tmp/vestra_kuloglu.php
+            php /tmp/vestra_kuloglu.php; RC=$?
+            rm -f /tmp/vestra_kuloglu.php
             exit $RC
