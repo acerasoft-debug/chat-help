@@ -573,12 +573,18 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           Array.prototype.forEach.call(s,function(x){t+=parseInt(x.value)||0;}); return t; }
         function recalc(){
           var cq=!!cqSelects(), warn=document.getElementById('warn'), btn=document.getElementById('addBtn');
+          /* SATILDI olan urunde "Add to order" dugmesi hic basilmiyor, yani btn
+             null. Korumasiz btn.disabled recalc()'i daha ilk kosuda oldururdu ve
+             ONUN ALTINDAKI HER SEY sessizce calismazdi: birim fiyat, kademe ve
+             toplam hic yazilmaz, kademe tablosu isaretlenmezdi. Sunucu kapisi
+             kapali oldugu icin satis yine olmazdi ama sayfa bozuk gorunurdu. */
+          var setDisabled=function(v){ if(btn) btn.disabled=v; };
           if(cq){ var t=cqTotal(); document.getElementById('qty').value=t;
             var tt=document.getElementById('cqtotal'); if(tt) tt.textContent=t; }
           var q=parseInt(document.getElementById('qty').value)||0;
-          if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; btn.disabled=true; }
-          else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; btn.disabled=true; }
-          else { warn.style.display='none'; btn.disabled=false; }
+          if(P.minColors>0 && ordColors().length<P.minColors){ warn.style.display='block'; warn.textContent=<?= json_encode(vestra_colours_warn((int)($p['min_colors']??0))) ?>; setDisabled(true); }
+          else if(q<P.moq){ warn.style.display='block'; warn.textContent='<?= addslashes(t('Minimum order is')) ?> '+P.moq+' '+P.unitLabel+'.'; setDisabled(true); }
+          else { warn.style.display='none'; setDisabled(false); }
           var u=unitPrice(q);
           document.getElementById('uprice').textContent=fmtMoney(u);
           document.getElementById('tier').textContent=<?= json_encode(t('tier')) ?>+' '+tierLabel(q)+' '+P.unitLabel;

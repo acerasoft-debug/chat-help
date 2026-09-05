@@ -64,6 +64,13 @@ $t('dropship dugmesi kapali',      str_contains($prod, "if(!\$SOLD && !\$isOwnLi
 $t('numune blogu kapali',          str_contains($prod, "if(!\$SOLD && !\$isOwnListing"));
 $t('teklif blogu kapali',          str_contains($prod, "if(!\$SOLD && !empty(\$p['offers']))"));
 $t('"Add to order" yerine pasif dugme', str_contains($prod, "if(\$SOLD): ?>") && str_contains($prod, 'disabled'));
+/* Dugmeyi kaldirmak, ona DOKUNAN JS'i de gozden gecirmeyi gerektiriyor. recalc()
+   sayfa yuklenirken kosuyor ve #addBtn artik yok: korumasiz btn.disabled ilk
+   satirda TypeError atar, altindaki fiyat/kademe/toplam hic yazilmaz. Satis yine
+   kapali kalirdi (kapi sunucuda) ama sayfa bozuk gorunurdu. */
+$t('recalc() btn null olabilir diye koruyor',
+   !str_contains($prod, 'btn.disabled=true') && !str_contains($prod, 'btn.disabled=false')
+   && str_contains($prod, 'if(btn) btn.disabled=v'));
 
 echo "\n== 5. set_product.php alani kabul ediyor ve DOGRULUYOR ==\n";
 $sp = (string)@file_get_contents(__DIR__.'/../scripts/set_product.php');
