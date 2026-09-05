@@ -278,7 +278,31 @@ jobs:
                   if (defined('VESTRA_SUPPORT_UID') && $uid === VESTRA_SUPPORT_UID) { echo "    [{$role}] VESTRA Support\n"; continue; }
                   $acc = $byId[$uid] ?? null;
                   echo "    [{$role}] ".($acc ? ('"'.($acc['company'] ?: $acc['name'] ?: '(isimsiz)').'" '.m($acc['email']??'')) : '*** HESAP BULUNAMADI ***')
-                     ." | okunmamis=".yn(vestra_msg_unread($t, $uid))."\n";
+                     ." | okunmamis=".yn(vestra_msg_unread($t, $uid))
+                     ." | okuma imleci=".(int)($t['read'][$uid] ?? 0)."/".count($msgs)."\n";
+                }
+                /* SON MESAJ ICIN KAPI ZILI. vestra_msg_send yalnizca alicinin o an
+                   okunmamis mesaji YOKSA e-posta atiyor; bu kosul hicbir yerde
+                   kayda gecmiyordu ve "sistem bu mesaji musteriye e-posta olarak
+                   gonderdi mi?" sorusunun cevabi kodu okuyarak tahmin ediliyordu.
+                   Imlec son mesajin oncesinde kaldiysa durum birebir kurulabilir;
+                   alici o mesaji sonradan okuduysa kurulamaz ve oyle yazilir. */
+                $lastFrom = (string)($last['from'] ?? '');
+                $rcpt = $lastFrom === (string)($t['buyer_uid']??'') ? (string)($t['seller_uid']??'') : (string)($t['buyer_uid']??'');
+                if ($rcpt !== '' && !(defined('VESTRA_SUPPORT_UID') && $rcpt === VESTRA_SUPPORT_UID) && $lastFrom !== 'system') {
+                  $cur = (int)($t['read'][$rcpt] ?? 0);
+                  $lastIdx = count($msgs) - 1;
+                  if ($cur > $lastIdx) {
+                    echo "    kapi zili (e-posta): BILINMIYOR — alici mesaji okumus, o anki imlec kurtarilamiyor\n";
+                  } else {
+                    $had = false;
+                    for ($i = max(0,$cur); $i < $lastIdx; $i++) if ((string)($msgs[$i]['from'] ?? '') !== $rcpt) { $had = true; break; }
+                    $rAcc = $byId[$rcpt] ?? null;
+                    $noAddr = !$rAcc || trim((string)($rAcc['email'] ?? '')) === '';
+                    echo "    kapi zili (e-posta): ".($noAddr ? "GITMEDI — alicinin kayitli adresi yok"
+                         : ($had ? "GITMEDI — alicinin zaten okunmamis mesaji vardi (tekrar zil calmaz)"
+                                 : "GITTI — icerik YOK, sadece 'yeni mesaj var' bildirimi"))."\n";
+                  }
                 }
               }
               echo "\n";
