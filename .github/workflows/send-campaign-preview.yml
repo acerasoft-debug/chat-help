@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -1231,6 +1231,34 @@ jobs:
               $persona = trim($E('signer'));
               [$subject, $body, $opts] = vestra_tpl_order_tracking_soon($buyerName, $oref, $claim !== '' ? $claim : (string)($invNos[0] ?? ''), (bool)$acc, $persona);
               $fromName = $persona !== '' ? $persona.' — VESTRA' : 'VESTRA';
+            } elseif ($letter === 'order_address') {
+              /* Yeni siparise tesekkur + teslimat adresi iste. Mektup siparis
+                 KAYDINDAN besleniyor; ref/tutar girdiye yazilmiyor. */
+              if (!$orderRow) { fwrite(STDERR, "order_address: to=order:<ref> gerekli (mektup siparis kaydindan beslenir)\n"); exit(1); }
+              require_once $doc."/inc/invoice.php";
+              $oref  = trim((string)$orderRow['ref']);
+              $stAll = vestra_read_json('order_statuses.json');
+              $ost   = (string)($stAll[$oref]['status'] ?? 'pending');
+              $otrk  = trim((string)($stAll[$oref]['tracking'] ?? ''));
+              $invs  = vestra_invoices_for_ref($oref);
+              $invNos = array_values(array_filter(array_map(fn($i) => strtoupper(trim((string)($i['no'] ?? ''))), $invs)));
+              echo "durum  : {$ost}  takip: ".($otrk !== '' ? 'VAR' : 'yok')."\n";
+              echo "fatura : ".($invNos ? implode(', ', $invNos) : 'YOK')."\n";
+              /* "Faturaniz hazirlanacak" cumlesi faturasi KESILMIS sipariste
+                 yalan olur; adres de zaten o belgenin uzerinde. */
+              if ($invNos) { fwrite(STDERR, "fatura ZATEN kesilmis (".implode(', ', $invNos).") -- 'faturaniz hazirlanacak' cumlesi yanlis olur\n"); exit(1); }
+              if ($otrk !== '' || in_array($ost, ['shipped','completed'], true)) {
+                fwrite(STDERR, "siparis zaten yolda (durum {$ost}) -- teslimat adresi sormak icin gec\n"); exit(1);
+              }
+              if ($ost === 'cancelled') { fwrite(STDERR, "siparis iptal; mektup gonderilmiyor\n"); exit(1); }
+              $buyerName = trim((string)($orderRow['name'] ?? '')) ?: trim((string)($orderRow['company'] ?? ''));
+              if (trim($E('salutation')) !== '') $buyerName = preg_replace('/^dear\s+/i', '', trim($E('salutation')));
+              $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
+              $oTot = (float)($orderRow['total'] ?? 0);
+              $oCur = trim((string)($orderRow['currency'] ?? 'EUR')) ?: 'EUR';
+              echo "tutar  : {$oCur} ".number_format($oTot, 2)."\n";
+              [$subject, $body, $opts] = vestra_tpl_order_address_request($buyerName, $oref, $oTot, $oCur, (bool)$acc, $persona);
+              $fromName = $persona.' — VESTRA';
             } elseif ($letter === 'l1212') {
               [$subject, $body, $opts] = vestra_tpl_l1212_reply($salutation, $vat, $signer);
             } elseif ($letter === 'l1212_docs') {
