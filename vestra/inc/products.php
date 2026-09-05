@@ -47,6 +47,36 @@ function vestra_ships_from(array $p = []): string {
     return mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
 }
 
+/* On siparis notu (operator istegi, 5 Eyl 2026: "Rezervasyonlar icin erken
+ * siparis kabul edilmektedir. Urun Ekim basi gonderilecektir").
+ *
+ * NEDEN TARIH ELLE YAZILMIYOR: bu depoda tam olarak bu not curudu. L1212'nin
+ * specs'inde 'Lead time' => 'Pre-order -- in stock from 5 May' SERBEST METIN
+ * olarak duruyordu; 5 Eylul'de hala oradaydi, yani ilan dort aydir gecmis bir
+ * tarihi teslim sozu diye basiyordu. CLAUDE.md bunu KURAL 3'un yasakladigi
+ * tahminle ayni hata diye kaydetmis.
+ *
+ * Cozum: ilan MAKINE OKUR bir tarih tutuyor ('preorder_ship' => 'YYYY-MM-DD'),
+ * cumle ondan uretiliyor ve TARIH GECINCE NOT KENDILIGINDEN KAYBOLUYOR. Bir
+ * pazartesi kimsenin elini surmesi gerekmeden ilan yalan soylemeyi birakiyor.
+ * Gecmis tarihte bos donmek bilincli: "yakinda" demeye devam etmek, hic
+ * dememekten kotu.
+ *
+ * Ayin ilk on gunu "early", 11-20 "mid", sonrasi "late" -- operatorun
+ * "Ekim basi" dedigi sey 1 Ekim icin "early October". */
+function vestra_preorder_note(array $p = [], ?int $now = null): string {
+    $iso = trim((string)($p['preorder_ship'] ?? ''));
+    if ($iso === '') return '';
+    $ts = strtotime($iso.' 23:59:59');
+    if ($ts === false) return '';
+    $now = $now ?? time();
+    if ($ts < $now) return '';           /* tarih gecti -> not susar */
+    $d = (int)date('j', $ts);
+    $part = $d <= 10 ? 'early' : ($d <= 20 ? 'mid' : 'late');
+    return 'Pre-orders accepted now for reservation · ships from '
+         . $part . ' ' . date('F Y', $ts) . '.';
+}
+
 /* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici
    ulkesine baglanınca o sabit bayrak "🇪🇺 Ships from Japan" gibi kendi
    metnini yalanlayacakti. Bayrak artik degerden turetiliyor, cozulemezse
@@ -87,7 +117,11 @@ function vestra_demo_products(){
          list left it out entirely, and the lowest number on the ladder (EUR 25.00 at 320 pc)
          was the only Lacoste figure a reader ever saw. */
       'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc','sample_price'=>50.0,'list'=>29.90,
-      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
+      /* "Pre-order -- in stock from 5 May." cumlesi buradan da cikarildi (5 Eyl
+         2026): specs'teki ikiziyle birlikte dort aydir gecmis bir tarihi teslim
+         sozu diye basiyordu. Tarih ilanin metnine GOMULMEZ -- 'preorder_ship'
+         alanina yazilir, cumleyi vestra_preorder_note() uretir. */
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
       'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,
       'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
@@ -102,7 +136,11 @@ function vestra_demo_products(){
         'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
         'Care'=>'Machine wash 30°C · do not tumble dry',
         'Packaging'=>'Cartons of 8 per colourway (8+8)',
-        'Lead time'=>'Pre-order — in stock from 5 May',
+        /* 'Lead time' => 'Pre-order — in stock from 5 May' KALDIRILDI (5 Eyl
+           2026): tarih dort ay once gecmisti ve ilan hala onu teslim sozu diye
+           basiyordu. Yanlis bir tarih, tarihsizden kotu. Gercek tarih
+           ogrenilince 'preorder_ship'=>'YYYY-MM-DD' olarak eklenir; cumleyi
+           vestra_preorder_note() uretir ve suresi dolunca kendiliginden susar. */
         'Season'=>'SS26 · core carryover',
         'Made in'=>'France / EU',
         'Customs code (HS)'=>'6105.10.00',
@@ -177,6 +215,10 @@ function vestra_demo_products(){
     [
       'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
       'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc','sample_price'=>65.0,
+      /* 5 Eyl 2026: stok yok, rezervasyon aciliyor. Tarih MAKINE OKUR -- cumleyi
+         vestra_preorder_note() uretiyor ve 1 Ekim gecince not kendiliginden
+         susuyor (L1212'nin "5 May" notu boyle curumustu). */
+      'preorder_ship'=>'2026-10-01',
       'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
       'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,

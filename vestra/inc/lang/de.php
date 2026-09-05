@@ -1122,4 +1122,6 @@ return array (
   'Wrong, missing or faulty goods only' => 'Nur falsche, fehlende oder mangelhafte Ware',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Großhandelsbestellungen sind vom Rückgaberecht ausgeschlossen — nur falsche, fehlende oder mangelhafte Ware.',
 
+  'Pre-order' => 'Vorbestellung',
+
 );

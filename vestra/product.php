@@ -166,6 +166,19 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <?php if(!empty($p['desc'])): ?>
         <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars($p['desc']) ?></p>
       <?php endif; ?>
+      <?php /* On siparis notu: alici bunu satin alma kutusundan ONCE gormeli --
+               "ne zaman gelir" sorusu siparisten sonra sorulursa is is'ten
+               gecmis olur. Metin vestra_preorder_note()'tan geliyor ve tarih
+               gecince kendiliginden kayboluyor. */
+            $preNote = function_exists('vestra_preorder_note') ? vestra_preorder_note($p) : '';
+            if ($preNote !== ''): ?>
+        <p class="preorder-note" style="margin:0 0 18px;padding:10px 14px;border-radius:10px;
+             background:color-mix(in srgb,var(--acc) 10%,transparent);
+             border:1px solid color-mix(in srgb,var(--acc) 35%,transparent);
+             color:var(--fg);font-size:14px;line-height:1.55">
+          <b><?= t('Pre-order') ?></b> · <?= htmlspecialchars($preNote) ?>
+        </p>
+      <?php endif; ?>
 
       <div class="spec-grid">
         <div class="spec-row"><span><?= t('SKU') ?></span><b><?= htmlspecialchars($p['sku']) ?></b></div>
@@ -567,6 +580,12 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
      Specs & article codes are catalogue data → shown to everyone; only the
      variant thumbnails stay photo-gated (freischaltung), like the gallery. */
   $specs = (!empty($p['specs']) && is_array($p['specs'])) ? $p['specs'] : [];
+  /* 'Lead time' satiri ilan verisine ELLE yazilmiyor (L1212'de oyleydi ve dort
+     ay bayat kaldi); tarihten uretiliyor ve tarih gecince satir hic basilmiyor. */
+  if (function_exists('vestra_preorder_note')) {
+    $ln = vestra_preorder_note($p);
+    if ($ln !== '') $specs = ['Lead time' => $ln] + $specs;
+  }
   $variants = (!empty($p['variants']) && is_array($p['variants'])) ? $p['variants'] : [];
   $related = [];
   $pid = $p['id'] ?? '';
