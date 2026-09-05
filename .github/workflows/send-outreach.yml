@@ -465,9 +465,17 @@ jobs:
               }
               foreach (array_keys($missing) as $m) echo "  ! LEAD LISTESINDE YOK: {$m}\n";
             }
+            /* Adiyla verilen adres lead listesinde HIC yok mu, yoksa bir kosul mu
+               eledi? Ikisi bambaska sey ve ciktida ayirt edilemiyordu: takip kipi
+               bunu $missing ile zaten soyluyor, ana dongu soylemiyordu. */
+            $onlyFound = [];
             foreach ($IS_FOLLOWUP ? [] : $leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
-              if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
+              if ($ONLY && isset($ONLY[$email])) $onlyFound[$email] = true;
+              if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {                  // no / bad e-mail
+                if ($ONLY && isset($ONLY[$email])) echo "  - ATLANDI (gecersiz e-posta adresi): {$email}\n";
+                continue;
+              }
               /* Adi adiyla verilmis bir adres SESSIZCE elenmemeli -- asagidaki iki
                  kosul (cop adres / abonelikten cikmis) once oyleydi ve "0 uygun"
                  ciktisinin nedeni ciktida hic gorunmuyordu. Kosul sirasi degismiyor;
@@ -592,6 +600,11 @@ jobs:
               if (count($picked) >= $COUNT) break;
             }
             if ($DNS_CHECK) echo "DNS: posta alamayan alan adi yuzunden elenen aday: {$dnsDead}\n";
+            if ($ONLY && !$IS_FOLLOWUP) {
+              foreach (array_keys($ONLY) as $oe) {
+                if (!isset($onlyFound[$oe])) echo "  ! LEAD LISTESINDE YOK: {$oe}\n";
+              }
+            }
             if ($IS_NEWCOLL && $ncTooNew) echo "YAS: ilk mektubun uzerinden {$NC_MIN_DAYS} gun gecmedigi icin elenen: {$ncTooNew}\n";
 
             $MODE_LABEL = $IS_FOLLOWUP ? 'TAKIP MEKTUBU' : ($IS_NEWCOLL ? 'YENI KOLEKSIYON — Winter 26/27' : 'Les Garage de Paris');
