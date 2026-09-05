@@ -47,6 +47,29 @@ function vestra_ships_from(array $p = []): string {
     return mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
 }
 
+/* SATILDI / STOK DISI (operator karari, 5 Eyl 2026: "satildi olarak isaretle
+ * satin alinamasin stok disi" -- Jacquemus).
+ *
+ * NEDEN YENI BIR ALAN: elde iki secenek vardi ve ikisi de bu isi yapmiyordu.
+ * 'unlisted' urunu katalogdan tumden CIKARIYOR, status!=approved da oyle --
+ * ikisi de "gizle" demek. Operatorun istedigi ise urunun GORUNMESI ama
+ * SATIN ALINAMAMASI. Ayri kavram, ayri alan.
+ *
+ * SATILDI ≠ GIZLI, bilerek: sayfa ayakta kaliyor, SEO degeri ve gelen
+ * baglantilar korunuyor, alici markanin burada satildigini gormeye devam
+ * ediyor. Yalnizca satin alma kapaniyor.
+ *
+ * DUGMEYI GIZLEMEK KAPI DEGILDIR. Bu depoda ayni ders dropship'te kayitli:
+ * vestra_dropship_of() en basta bakiyor ve elle acilmis blogu bile eziyor.
+ * Bu yuzden alti satin alma yolunun HEPSI sunucu tarafinda ayri ayri
+ * kontrol ediyor (sepet/siparis, numune, teklif, dropship, grup alimi,
+ * line sheet) -- form gonderen biri kapiyi asamasin. */
+function vestra_is_sold_out(array $p = []): bool {
+    $v = $p['sold_out'] ?? false;
+    if (is_string($v)) { $v = strtolower(trim($v)); return $v === 'true' || $v === '1' || $v === 'yes'; }
+    return (bool)$v;
+}
+
 /* On siparis notu (operator istegi, 5 Eyl 2026: "Rezervasyonlar icin erken
  * siparis kabul edilmektedir. Urun Ekim basi gonderilecektir").
  *
@@ -931,11 +954,15 @@ function vestra_group_enrich($p){
 /* All products opened for group buying, enriched + sorted (almost-funded first). */
 function vestra_group_pools(){
   $pools=[];
-  foreach(vestra_products() as $p){ if(!empty($p['group'])) $pools[]=vestra_group_enrich($p); }
+  foreach(vestra_products() as $p){ if(!empty($p['group']) && !vestra_is_sold_out($p)) $pools[]=vestra_group_enrich($p); }
   usort($pools, function($a,$b){ return $b['_pct']<=>$a['_pct']; });
   return $pools;
 }
-function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
+/* SATILDI olan urun havuz olarak da acilmaz: hem /groups listesinden duser
+   (vestra_group_pools -> vestra_products zaten sold_out'u tasiyor ama havuz
+   ayri bir satis yolu) hem group-checkout burayi cagirdigi icin sunucu
+   tarafinda da kapali olur. Tek yerde kesmek, iki yerde unutmaktan iyi. */
+function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])||vestra_is_sold_out($p)) return null; return vestra_group_enrich($p); }
 
 /* ─── Uploads ─── */
 /* Validate + store one uploaded product photo; returns '/uploads/…' or '' on any failure.

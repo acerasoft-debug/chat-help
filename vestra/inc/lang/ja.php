@@ -1119,4 +1119,7 @@ return array (
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => '卸売のご注文は返品の対象外です。誤配送・欠品・不良品に限りお受けいたします。',
   'Pre-order' => '予約注文',
 
+  'Sold out' => '完売',
+  'This item is no longer available to order.' => 'この商品は現在ご注文いただけません。',
+
 );

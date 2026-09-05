@@ -1123,4 +1123,7 @@ return array (
 
   'Pre-order' => 'Précommande',
 
+  'Sold out' => 'Épuisé',
+  'This item is no longer available to order.' => 'Cet article n\'est plus disponible à la commande.',
+
 );

@@ -40,7 +40,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from',
+$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
@@ -82,6 +82,16 @@ foreach ($fixes as $n => $fx) {
      burada mode'u degistirmiyoruz. */
   if (isset($set['sale_list']) && (!is_numeric($set['sale_list']) || (float)$set['sale_list'] <= 0)) {
     $errors[] = "{$ctx} ({$m}): gecersiz sale_list '{$set['sale_list']}'"; continue;
+  }
+  /* sold_out: yalniz gercek bir bool. "false" STRINGI true'ya donusurdu ve
+     urun satista kalirdi -- operator kapattigini sanip satmaya devam ederdi. */
+  if (array_key_exists('sold_out', $set) && !is_bool($set['sold_out'])) {
+    $errors[] = "{$ctx} ({$m}): sold_out true ya da false (tirnaksiz) olmali"; continue;
+  }
+  /* preorder_ship: YYYY-MM-DD ve gecerli bir tarih. Bozuk bir tarih notu
+     sessizce susturur, yani operator ilanda "Ekim basi" yazdigini sanir. */
+  if (isset($set['preorder_ship']) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$set['preorder_ship'])) {
+    $errors[] = "{$ctx} ({$m}): preorder_ship YYYY-MM-DD olmali"; continue;
   }
   if (isset($set['status']) && !in_array($set['status'], ['approved','pending'], true)) {
     $errors[] = "{$ctx} ({$m}): status 'approved' ya da 'pending' olmali"; continue;

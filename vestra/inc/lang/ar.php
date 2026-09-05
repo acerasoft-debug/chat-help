@@ -1119,4 +1119,7 @@ return array (
 
   'Pre-order' => 'طلب مسبق',
 
+  'Sold out' => 'نفدت الكمية',
+  'This item is no longer available to order.' => 'لم يعد هذا المنتج متاحًا للطلب.',
+
 );

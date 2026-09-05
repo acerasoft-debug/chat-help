@@ -51,7 +51,7 @@ if ($variant !== '') {
 $qty = max(1, (int)($_POST['qty'] ?? 1));
 
 $p = $id !== '' ? vestra_find($id) : null;
-if (!$p || !vestra_dropship_enabled($p)) { header('Location: ' . $backUrl); exit; }
+if (!$p || vestra_is_sold_out($p) || !vestra_dropship_enabled($p)) { header('Location: ' . $backUrl); exit; }
 
 $zone = vestra_dropship_zone((string)($_POST['zone'] ?? 'EU'));
 $r = dropship_create_order($p, $colour, $size, $qty, '', '', '', null, null, $zone);

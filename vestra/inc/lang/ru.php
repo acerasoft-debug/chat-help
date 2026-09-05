@@ -1119,4 +1119,7 @@ return array (
 
   'Pre-order' => 'Предзаказ',
 
+  'Sold out' => 'Распродано',
+  'This item is no longer available to order.' => 'Этот товар больше недоступен для заказа.',
+
 );

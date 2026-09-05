@@ -2,6 +2,11 @@
 require __DIR__.'/inc/products.php';
 require_once __DIR__.'/inc/dropship.php';   // vestra_dropship_enabled()
 $p = vestra_find($_GET['id'] ?? '');
+/* SATILDI: sayfanin her yerinde tek karar. Satin alma bloklari bunun
+   uzerinden kapaniyor; sunucu kapilari ayrica order.php/offer.php/
+   sample-checkout.php/dropship-checkout.php icinde duruyor -- dugmeyi
+   gizlemek kapi degildir. */
+$SOLD = $p && function_exists('vestra_is_sold_out') && vestra_is_sold_out($p);
 if(!$p){ http_response_code(404); $PAGE=t('Not found'); $NOINDEX=true; require __DIR__.'/inc/head.php';
   echo '<div class="wrap"><div class="empty">'.t('Product not found.').' <a class="acc" href="/shop">'.t('Back to catalog').'</a></div></div>';
   require __DIR__.'/inc/foot.php'; exit; }
@@ -166,6 +171,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
       <?php if(!empty($p['desc'])): ?>
         <p style="color:var(--mut);margin:0 0 18px;line-height:1.65"><?= htmlspecialchars($p['desc']) ?></p>
       <?php endif; ?>
+      <?php /* SATILDI: satin alma kutusundan ONCE ve en gorunur yerde. Sayfa
+               ayakta kaliyor (SEO ve gelen baglantilar), yalnizca satis kapali. */
+            if ($SOLD): ?>
+        <p class="sold-note" style="margin:0 0 18px;padding:12px 16px;border-radius:10px;
+             background:color-mix(in srgb, #d66 12%, transparent);
+             border:1px solid color-mix(in srgb, #d66 45%, transparent);
+             color:var(--fg);font-size:15px;font-weight:600;line-height:1.5">
+          <?= t('Sold out') ?> · <?= t('This item is no longer available to order.') ?>
+        </p>
+      <?php endif; ?>
       <?php /* On siparis notu: alici bunu satin alma kutusundan ONCE gormeli --
                "ne zaman gelir" sorusu siparisten sonra sorulursa is is'ten
                gecmis olur. Metin vestra_preorder_note()'tan geliyor ve tarih
@@ -236,7 +251,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <?php endif; ?>
       <?php endif; ?>
 
-      <?php if(!empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>
+      <?php if(!$SOLD && !empty($p['group'])): $gp=vestra_group_pool($p['id']); if($gp): ?>
         <a href="/group?id=<?= urlencode($p['id']) ?>" class="banner info" style="display:block;margin:14px 0;text-decoration:none">
           🤝 <?= sprintf(t('Group buy: pool with others to unlock %s/%s — %d%% committed. Join →'), vestra_money($gp['_gprice']), htmlspecialchars($p['unit']), $gp['_pct']) ?>
         </a>
@@ -250,7 +265,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
                degil, cunku sitenin kullanim sartlari tuketiciye satis yapmadigimizi
                yaziyor. Dugme de o yuzden fiyat kapisinin arkasinda.
                Bkz. dropship.php basligi. */ ?>
-      <?php if(!$isOwnListingTop && $PRICES && vestra_dropship_enabled($p)): ?>
+      <?php if(!$SOLD && !$isOwnListingTop && $PRICES && vestra_dropship_enabled($p)): ?>
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 
@@ -434,10 +449,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
           </div>
           <div id="warn" class="warn" style="display:none"></div>
-          <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
-          <div class="hint" style="margin-top:10px"><?= t('Payment is currently by <b>invoice</b> — you receive a proforma invoice and goods ship after bank-transfer payment.') ?></div>
+          <?php if($SOLD): ?>
+            <button class="btn btn-o" type="button" disabled
+                    style="width:100%;justify-content:center;opacity:.6;cursor:not-allowed"><?= t('Sold out') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t('This item is no longer available to order.') ?></div>
+          <?php else: ?>
+            <button class="btn btn-p" id="addBtn" style="width:100%;justify-content:center" onclick="addToOrder()"><?= t('Add to order') ?></button>
+            <div class="hint" style="margin-top:10px"><?= t('Payment is currently by <b>invoice</b> — you receive a proforma invoice and goods ship after bank-transfer payment.') ?></div>
+          <?php endif; ?>
         </div>
-        <?php if(!empty($p['offers'])): ?>
+        <?php if(!$SOLD && !empty($p['offers'])): ?>
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
           <details class="offerdetails">
@@ -488,7 +509,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         </div>
         <?php endif; ?>
         <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
-        <?php if(!$isOwnListing && !empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price']>0): ?>
+        <?php if(!$SOLD && !$isOwnListing && !empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price']>0): ?>
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
           <details class="offerdetails">

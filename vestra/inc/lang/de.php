@@ -1124,4 +1124,7 @@ return array (
 
   'Pre-order' => 'Vorbestellung',
 
+  'Sold out' => 'Ausverkauft',
+  'This item is no longer available to order.' => 'Dieser Artikel ist nicht mehr bestellbar.',
+
 );
