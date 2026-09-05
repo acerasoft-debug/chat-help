@@ -21,7 +21,9 @@ $amiri = ['preorder_ship' => '2026-10-01'];
 $n = vestra_preorder_note($amiri, strtotime('2026-09-05'));
 $t('not basiliyor',                 $n !== '');
 $t('"Ekim basi" -> early October',  str_contains($n, 'early October 2026'));
-$t('rezervasyon dili var',          stripos($n, 'reservation') !== false);
+/* Operator sozleri (5 Eyl 2026): "on siparisler alinmaktadir", "gonderim Ekim basi". */
+$t('"on siparis alinmaktadir"',     stripos($n, 'Pre-orders are being accepted') !== false);
+$t('"gonderim" dili var',           stripos($n, 'dispatch') !== false);
 $t('ay basi/orta/sonu: 15 -> mid',  str_contains(vestra_preorder_note(['preorder_ship'=>'2026-11-15'], strtotime('2026-09-05')), 'mid November'));
 $t('ay basi/orta/sonu: 25 -> late', str_contains(vestra_preorder_note(['preorder_ship'=>'2026-12-25'], strtotime('2026-09-05')), 'late December'));
 $t('ay basi/orta/sonu: 10 -> early',str_contains(vestra_preorder_note(['preorder_ship'=>'2026-11-10'], strtotime('2026-09-05')), 'early November'));
@@ -56,6 +58,42 @@ foreach (vestra_demo_products() as $p) {
     }
 }
 $t('elle yazilmis sevk tarihi kalmadi: '.($stale ? implode(', ', $stale) : 'yok'), $stale === []);
+
+echo "\n== 4b. Stoksuz urun TEK PARCA satmaz (dropship + numune) ==\n";
+/* Ikisi de "hemen tek parca gonderilir" sozu; ortada stok yok, urun Ekim
+   basinda geliyor (operator karari, 5 Eyl 2026). */
+$t('dropship_off isaretli',   !empty($ami['dropship_off']));
+$t('sample_price kaldirilmis', empty($ami['sample_price']));
+if (is_file(__DIR__.'/../vestra/inc/dropship.php')) {
+    require_once __DIR__.'/../vestra/inc/dropship.php';
+    $t('vestra_dropship_of() null doner', vestra_dropship_of($ami) === null);
+}
+/* Numune kapisi product.php ve sample-checkout.php'de AYNI kosul; ikisi de
+   sample_price'a bakiyor, yani alan yoksa dugme de sunucu tarafi da kapali. */
+$sampleOpen = !empty($ami['sample_price']) && is_numeric($ami['sample_price']) && (float)$ami['sample_price'] > 0;
+$t('numune kapisi kapali',    !$sampleOpen);
+/* Bekci: ileride bir ilan hem BEKLEYEN on siparis hem tek-parca satisi
+   sunuyorsa test kirmizi olsun -- karari insan versin, kod sessizce vermesin. */
+$bad = [];
+foreach (vestra_demo_products() as $p) {
+    if (vestra_preorder_note($p, strtotime('2026-09-05')) === '') continue;
+    $s = !empty($p['sample_price']) && (float)$p['sample_price'] > 0;
+    $d = empty($p['dropship_off']) && !(isset($p['dropship']['enabled']) && !$p['dropship']['enabled']);
+    if ($s || $d) $bad[] = ($p['sku'] ?? $p['id'] ?? '?');
+}
+$t('bekleyen on siparis + tek parca yok: '.($bad ? implode(', ', $bad) : 'yok'), $bad === []);
+
+echo "\n== 4c. Amiri != AMI Paris ==\n";
+/* Iki ayri ev. Bu ilanin verisi bastan sona AMI Paris diyordu (Ami de Coeur
+   kalp-A armasi, ami-paris-polo.pdf line sheet, AMI-PL SKU, Made in Portugal)
+   ama marka alani 'Amiri' yaziyordu. */
+$t('marka AMI Paris',            ($ami['brand'] ?? '') === 'AMI Paris');
+$t('katalogda Amiri urunu yok',  !in_array('Amiri', array_column(vestra_demo_products(), 'brand'), true));
+$t('AMI Paris logosu var',       trim(vestra_brand_logo('AMI Paris')) !== '');
+$t('Amiri logosu duruyor',       trim(vestra_brand_logo('Amiri')) !== '');
+/* Canli siparis VES-6B53D265 ve mevcut baglantilar bu tutamaklara bagli. */
+$t('id degismedi',               ($ami['id'] ?? '') === 'amiri-core-polo');
+$t('SKU degismedi',              ($ami['sku'] ?? '') === 'AMI-PL-014');
 
 echo "\n== 5. 'Pre-order' etiketi 8 dilde ==\n";
 $missing = [];

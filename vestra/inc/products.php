@@ -73,7 +73,7 @@ function vestra_preorder_note(array $p = [], ?int $now = null): string {
     if ($ts < $now) return '';           /* tarih gecti -> not susar */
     $d = (int)date('j', $ts);
     $part = $d <= 10 ? 'early' : ($d <= 20 ? 'mid' : 'late');
-    return 'Pre-orders accepted now for reservation · ships from '
+    return 'Pre-orders are being accepted · dispatch '
          . $part . ' ' . date('F Y', $ts) . '.';
 }
 
@@ -213,12 +213,32 @@ function vestra_demo_products(){
       'unlisted'=>true,
     ],
     [
-      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc','sample_price'=>65.0,
+      /* MARKA DUZELTILDI 5 Eyl 2026: 'Amiri' YANLISTI, dogrusu 'AMI Paris'.
+         Amiri (Mike Amiri, Los Angeles) ile AMI Paris (Alexandre Mattiussi)
+         iki ayri ev; notify.php'nin marka listesi ikisini zaten ayri tutuyor.
+         Bu ilanin kendi verisi bastan sona AMI Paris diyordu:
+           - 'Ami de Coeur' + islemeli kalp-A armasi AMI Paris'in imzasi
+           - satici line sheet'inin adi: ami-paris-polo.pdf
+           - SKU: AMI-PL-014  (AMI PoLo)
+           - Made in Portugal -- AMI Paris'in uretim yeri
+         Yalniz gorunen ad degisti. 'id' ve /uploads/amiri/ yollari OLDUGU GIBI
+         kaldi: id canli siparis VES-6B53D265'in ve mevcut baglantilarin
+         tutamagi, gorsel yollari da sunucudaki dosya adlari. Musteri markayi
+         ad + SKU'dan goruyor, iç tutamaktan degil. */
+      'id'=>'amiri-core-polo','brand'=>'AMI Paris','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
       /* 5 Eyl 2026: stok yok, rezervasyon aciliyor. Tarih MAKINE OKUR -- cumleyi
          vestra_preorder_note() uretiyor ve 1 Ekim gecince not kendiliginden
          susuyor (L1212'nin "5 May" notu boyle curumustu). */
       'preorder_ship'=>'2026-10-01',
+      /* DROPSHIP VE NUMUNE KAPALI (operator karari, 5 Eyl 2026). Ikisi de TEK
+         PARCAYI HEMEN gonderme sozu veriyor; ortada stok yok, urun Ekim basinda
+         gelecek. Elde olmayan mali "hemen" satan bir dugme, mektuptaki yanlis
+         tarihle ayni sinif hata.
+         'sample_price' SILINDI, degeri kaybolmasin diye burada: 65.0 EUR. Stok
+         gelince alan geri konur; o zamana kadar hem ürün sayfasindaki dugme hem
+         sample-checkout.php'nin kendi kontrolu (satir 37) kapali kalir. */
+      'dropship_off'=>true,
       'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
       'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,
@@ -314,6 +334,15 @@ function vestra_brand_logo($brand){
       '<line x1="28%" y1="58%" x2="72%" y2="58%" stroke="rgba(255,255,255,.45)" stroke-width="0.8"/>'.
       '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.65)" '.
       'font-family="Georgia,\'Times New Roman\',serif" font-size="11" letter-spacing="4">POLO</text></svg>',
+
+    /* Iki AYRI ev, iki ayri kelime markasi. 'Amiri' anahtari duruyor cunku
+       gercek bir Amiri ilani eklenirse logosu hazir olsun; katalogda su an
+       Amiri urunu YOK (tek ilan AMI Paris'e duzeltildi, 5 Eyl 2026). */
+    'AMI Paris'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="600" letter-spacing="5">'.
+      'AMI PARIS</text></svg>',
 
     'Amiri'=>
       '<svg viewBox="0 0 180 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
