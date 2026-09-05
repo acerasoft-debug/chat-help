@@ -1119,6 +1119,52 @@ function vestra_invoice_link_label(array $iv): string {
  * onaylamadan once ayni yukten TASLAK cizdirilebilsin: onizleme ile kesilen
  * belge ayni koddan cikmali, yoksa operator bir sey gorur, alici baskasini
  * alir. Iskonto payi, tek seferlik navlun, satici gruplamasi -- hepsi burada. */
+/**
+ * Bu siparisin faturasini kimin kesecegine dair OPERATOR SECIMI ('' = secim yok).
+ *
+ * KURAL 5b tekliflerde bu secimi zaten veriyordu (offer_responses.json ->
+ * invoice_seller_uid) ama SIPARISLERDE yoktu: satici yalniz ilanin
+ * seller_uid'inden geliyordu ve operatorun degistirme yolu hic olmamisti.
+ * Operatorun kendi ifadesiyle "yeni siparislerde satici secme opsiyonu olmasi
+ * gerekiyordu" (5 Eyl 2026, VES-6B53D265 -- ilan GARAGE LE PARIS'in ama fatura
+ * VESTRA'dan kesilecekti).
+ *
+ * Secim order_statuses.json'da duruyor: o dosya zaten siparis basina operator
+ * durumunu tutuyor (status, tracking, payment_receipt, payment_grace_start),
+ * yani yeni bir depo acmaya gerek yok.
+ */
+function vestra_order_invoice_seller_pick(string $ref): string {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $st  = vestra_read_json('order_statuses.json');
+    return trim((string)($st[$ref]['invoice_seller_uid'] ?? ''));
+}
+
+/**
+ * Secimi kaydeder. 'vestra' ACIK bir secimdir (platform kessin demek), '' secimi
+ * KALDIRIR (ilanin saticisina geri doner).
+ *
+ * BULUNAMAYAN HESAP KAYDEDILMEZ. KURAL 5b'nin kendi notu: sessizce Acerasoft
+ * LLC'ye dusmek, operatorun secmedigi tuzel kisiden belge cikarmak olurdu.
+ * Burada da ayni: gecersiz uid false doner, hicbir sey yazilmaz.
+ */
+function vestra_order_set_invoice_seller(string $ref, string $uid): bool {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $uid = trim($uid);
+    if ($uid !== '' && $uid !== 'vestra') {
+        require_once __DIR__.'/auth.php';
+        $found = false;
+        foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $found = true; break; } }
+        if (!$found) return false;
+    }
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    if ($uid === '') unset($st[$ref]['invoice_seller_uid']);
+    else             $st[$ref]['invoice_seller_uid'] = $uid;
+    vestra_write_json('order_statuses.json', $st);
+    return true;
+}
+
 function vestra_order_invoice_payloads(string $ref): array {
     require_once __DIR__.'/orders.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
@@ -1143,8 +1189,30 @@ function vestra_order_invoice_payloads(string $ref): array {
         'vat_note'      => trim((string)($orderRow['vat_note'] ?? '')),
         'buyer' => vestra_invoice_buyer($orderRow),
     ];
+    /* Satici: OPERATOR SECIMI > ilanin seller_uid'i > platform. Sira KURAL 5b'nin
+       tekliflerde kurdugu sirayla ayni; buraya 5 Eyl 2026'da eklendi.
+       Secim varken siparis DILIMLENMIYOR: "faturayi su satici kessin" demek tek
+       belge demek. Dilimlemeye devam etseydik iki farkli tuzel kisiden iki
+       numara yanardi ve operatorun sectigi tek satici hicbirinde tek basina
+       olmazdi. Navlun/kupon paylastirma mantigi tek dilimde kendiliginden
+       dogru calisiyor (tek anahtar = tek pay). */
+    $pick = vestra_order_invoice_seller_pick($ref);
+    if ($pick !== '' && $pick !== 'vestra') {
+        /* Kayitli secim SONRADAN silinmis bir hesabi gosteriyorsa sessizce
+           platforma DUSMUYORUZ -- operatorun secmedigi tuzel kisiden belge
+           cikar. Secim yok sayilir, ilanin saticisi gecerli kalir ve panel
+           uyariyi gosterir. */
+        require_once __DIR__.'/auth.php';
+        $exists = false;
+        foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $pick) { $exists = true; break; } }
+        if (!$exists) $pick = '';
+    }
     $bySeller = [];
-    foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    if ($pick !== '') {
+        $bySeller[$pick] = $ld['lines'];
+    } else {
+        foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    }
 
     /* A voucher discounts the ORDER, but invoices are issued per seller. Putting the whole
        discount on each slice would deduct it as many times as there are sellers, so it is

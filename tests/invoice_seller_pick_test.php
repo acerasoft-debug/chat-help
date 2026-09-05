@@ -249,5 +249,42 @@ foreach ($p['items'] as $it) {
 $t('items dizgisi cozucuyle geri okunuyor', $segsOk);
 $t('siparis toplami = fatura genel toplami (650)', abs(($goods + (float)$p['meta']['shipping']) - 650.0) < 0.001);
 
+
+/* ── SIPARIS tarafinda satici secimi (5 Eyl 2026) ────────────────────────────
+ * Operator: "yeni siparislerde satici secme opsiyonu olmasi gerekiyordu".
+ * Tekliflerde bu secim vardi (yukaridaki bolumler), SIPARISLERDE yoktu: satici
+ * yalniz ilanin seller_uid'inden geliyordu. VES-6B53D265'te ilan GARAGE LE
+ * PARIS'indi ama fatura VESTRA'dan kesilecekti ve degistirme yolu hic yoktu. */
+echo "\n== siparis: operator satici secimi ==\n";
+$osrc = file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+foreach (['vestra_order_invoice_seller_pick','vestra_order_set_invoice_seller'] as $fn) {
+    if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $osrc, $m)) { echo "  HATA $fn bulunamadi\n"; $fail++; continue; }
+    eval($strip($m[0]));
+}
+$JSON = [];
+$t('secim yokken bos doner', vestra_order_invoice_seller_pick('VES-1') === '');
+/* 'vestra' ACIK bir secim: platform kessin demek, ilana geri donmez. */
+$t('vestra secilebilir',     vestra_order_set_invoice_seller('VES-1','vestra') === true);
+$t('kaydedilen geri okunur', vestra_order_invoice_seller_pick('VES-1') === 'vestra');
+$t('kayda yazildi', ($JSON['VES-1']['invoice_seller_uid'] ?? '') === 'vestra');
+/* Gecerli satici hesabi. */
+$t('gercek satici uid kabul', vestra_order_set_invoice_seller('VES-1','garage') === true);
+$t('secim guncellendi',       vestra_order_invoice_seller_pick('VES-1') === 'garage');
+/* BULUNAMAYAN HESAP KAYDEDILMEZ -- sessizce platforma dusmek, operatorun
+   secmedigi tuzel kisiden belge cikarmak olurdu (KURAL 5b'nin kendi notu). */
+$t('olmayan hesap REDDEDILIR', vestra_order_set_invoice_seller('VES-1','hayali-uid') === false);
+$t('reddedilince ESKI secim durur', vestra_order_invoice_seller_pick('VES-1') === 'garage');
+/* Bos string secimi KALDIRIR: ilanin saticisina geri don. */
+$t('bos string secimi siler', vestra_order_set_invoice_seller('VES-1','') === true);
+$t('silindikten sonra bos',   vestra_order_invoice_seller_pick('VES-1') === '');
+$t('anahtar da kalkti',       !isset($JSON['VES-1']['invoice_seller_uid']));
+/* Diger siparis durumu alanlarina DOKUNMAZ. */
+$JSON['VES-2'] = ['status'=>'pending','tracking'=>'1Z9','payment_grace_start'=>123];
+vestra_order_set_invoice_seller('VES-2','vestra');
+$t('status korunur',   ($JSON['VES-2']['status'] ?? '') === 'pending');
+$t('tracking korunur', ($JSON['VES-2']['tracking'] ?? '') === '1Z9');
+$t('odeme saati korunur', ($JSON['VES-2']['payment_grace_start'] ?? 0) === 123);
+$t('ref temizlenir (yol gecisi yok)', vestra_order_set_invoice_seller('../../etc/passwd','vestra') === true && isset($JSON['etcpasswd']));
+
 echo "\n".($fail? "KALDI: $fail  (gecen: $ok)\n" : "hepsi gecti ($ok)\n");
 exit($fail?1:0);
