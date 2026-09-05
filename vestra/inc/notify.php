@@ -629,6 +629,48 @@ function vestra_discover_blocklist(): array {
        'emporium' TEK BASINA EKLENMEDI: bircok gercek butik adinda bu kelime geciyor. */
     'ali bin ali','alibinali','khereiji','viled','italdizain','rubaiyat',
     'sinteks','emporium baku',
+    /* ASYA KENDI-ETIKET evleri (4 Eyl 2026, operatorun 150 satirlik Japonya/Kore/
+       Hong Kong/Singapur/Filipinler listesi). Otomatik kontrol bunlarin HICBIRINI
+       tutmuyordu: vestra_is_monobrand() yalnizca vestra_premium_brandlist()'e,
+       yani VESTRA'nin SATTIGI 78 markaya bakiyor -- Japon ve Koreli etiketler o
+       listede yok. Ayni bosluk Hermes'te de cikmisti.
+       Bunlar butik degil MARKA: kendi fabrikasindan mal alirlar, bizden parti
+       almazlar. "Head Office" / "HQ" / "Studio" ekleri zaten listenin kendi
+       kaydinda duruyordu.
+       KISA olanlar (kolor, toga archives, sacai, clot...) ayrica
+       vestra_blocklist_exact_only()'e konuldu: alan adi tarafinda TAM eslesme
+       gerekiyor, yoksa 'clot' gibi bir parca gercek dukkanlarin alan adinda
+       alt dizi olarak yakalanirdi.
+       BES AD BILEREK LISTEDE YOK -- 'neighborhood', 'unused', 'beaker', 'kapital',
+       'unaffected'. Besi de gunluk kelime ve AD tarafinda kelime siniri bile
+       yetmiyor: denendi ve "The Neighborhood Store", "Unused Vintage Roma",
+       "Beaker Street Store", "Kapital Moda Madrid", "Unaffected Boutique"
+       elendi. Bunlar uydurma degil, tam da bu listelerde karsimiza cikan
+       dukkan adi kaliplari. Karsiligi: NBHD, Unused, Beaker,
+       Kapital ve Unaffected'in kendi adresleri suzgecten gecer -- bir partide elle atlanir. Sessiz eleme,
+       bosa giden bir mektuptan pahalidir. */
+    // Japonya
+    'wtaps','visvim','undercoverism','undercover','wacko maria','wackomaria',
+    'sophnet','soph.','cav empt','cavempt','nanamica','and wander','andwander',
+    'sacai','kolor','mastermind japan','mastermind tokyo','suicoke','white mountaineering',
+    'mihara yasuhiro','miharayasuhiro','bedwin','toga archives','limi feu','limifeu',
+    'yohji yamamoto','yohjiyamamoto','issey miyake','isseymiyake','comme des garcons',
+    'comme des garçons','sasquatchfabrix','flagstuff','remi relief','remirelief',
+    'nonnative','porter yoshida','yoshidakaban',
+    // Kore
+    'amomento','nothing written','nothingwritten','low classic','lowclassic','andersson bell',
+    'anderssonbell','ader error','adererror','thisisneverthat','iise','eastlogue',
+    'blankof','beslow','document seoul',
+    // Hong Kong
+    'clot','madness hk','mdnsonline','silly thing','subcrew','workware',
+    // Singapur
+    'benjamin barker','benjaminbarker',"the editor's market",'editors market','actual source',
+    // Filipinler
+    'avel bacudio','carl jan cruz','unschld',
+    /* Marka degil ama alici da degil: Ngee Ann Galleria bir AVM, Beaker Samsung
+       C&T'nin perakende markasi, Hoods HK'nin sitesi izzue.com yani I.T Group
+       (yuzlerce magazali HK zinciri) -- ucu de KURAL 1'in ilk iki basligi. */
+    'ngee ann','izzue','i.t group',
     /* Kendi markasinin BAYRAK MAGAZALARI. vestra_is_monobrand() bunlari goremiyordu:
        o kontrol vestra_premium_brandlist()'e bakiyor, o liste de VESTRA'nin SATTIGI
        78 markayi tutuyor -- satmadigimiz bir evin kendi butigi hicbir suzgece
@@ -854,7 +896,14 @@ function vestra_blocklist_exact_only(): array {
                 ICINDE geciyorlar. Sondam ikisini de yakaladi:
                 'slowear' -> slowearthvintage.com, 'lardini' -> lardinia.it.
                 Ikisi de gercek butik olabilir ve sessizce elenirlerdi. */
-             'slowear','lardini'] as $t){
+             'slowear','lardini',
+             /* 4 Eyl 2026 Asya listesi: kendi-etiket adlari ama ayni zamanda gunluk
+                kelimeler ya da baska adlarin icinde gecebilecek kisa parcalar.
+                Alan adi tarafinda TAM eslesme sart: 'unused' bir dukkanin alan
+                adinda, 'clot' "clothing" icinde, 'toga' "togashi" icinde bulunurdu. */
+             'kolor','toga archives','sacai','clot','iise',
+             'izzue','sophnet','bedwin','blankof','beslow',
+             'document seoul','subcrew','workware','actual source'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }

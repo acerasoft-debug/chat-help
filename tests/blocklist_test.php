@@ -325,6 +325,45 @@ $t('Tiffany Mode gecer',        !$blocked('Tiffany Mode','','tiffanymode.it'));
 $t('Sinonim Baku gecer',        !$blocked('Sinonim Baku','','sinonim.az'));
 $t('Villa Rosa Boutique gecer', !$blocked('Villa Rosa Boutique','','villarosa.it'));
 
+echo "\n== 13. Asya kendi-etiket evleri (4 Eyl 2026, 150 satirlik liste) ==\n";
+/* Otomatik kontrol bunlarin hicbirini tutmuyordu: vestra_is_monobrand() yalnizca
+   SATTIGIMIZ 78 markaya bakiyor, Japon/Koreli etiketler orada yok. Butik degil
+   MARKA olduklari icin bizden parti almazlar. */
+$t('WTAPS (kendi etiketi)',      $blocked('WTAPS Head Office','','wtaps.com'));
+$t('Sacai',                      $blocked('Sacai Head Office','','sacai.jp'));
+$t('Comme des Garcons',          $blocked('Comme des Garcons Tokyo','','comme-des-garcons.com'));
+$t('Yohji Yamamoto',             $blocked('Yohji Yamamoto Official','','yohjiyamamoto.co.jp'));
+$t('Issey Miyake',               $blocked('Issey Miyake Design Studio','','isseymiyake.com'));
+$t('Ader Error (KR)',            $blocked('Ader Error HQ','','adererror.com'));
+$t('Thisisneverthat (KR)',       $blocked('Thisisneverthat HQ','','thisisneverthat.com'));
+$t('Clot (HK)',                  $blocked('Clot Head Office','','clot.com'));
+$t('Carl Jan Cruz (PH)',         $blocked('Carl Jan Cruz Studio','','carljancruz.com'));
+$t('Benjamin Barker (SG)',       $blocked('Benjamin Barker Studio','','benjaminbarker.co'));
+/* Marka degil ama alici da degil: AVM, zincir. */
+$t('Ngee Ann Galleria = AVM',    $blocked('Ngee Ann Galleria Select','','ngeeanngalleria.sg'));
+$t('izzue = I.T Group zinciri',  $blocked('Hoods Hong Kong','','izzue.com'));
+
+echo "\n== 13b. GECMELI — bu partideki GERCEK cok markali butikler ==\n";
+foreach ([
+    ['Kasina Seoul','kasina.co.kr'], ['Worksout Apgujeong','worksout.co.kr'],
+    ['The Armoury Hong Kong','thearmoury.com'], ['Titan 22 Manila','titan22.com'],
+    ['Mita Sneakers','mita-sneakers.co.jp'], ['Sole Academy','soleacademy.com'],
+    ['Quarter Hong Kong','quarter.com.hk'], ['Giza Hong Kong','gizahk.com'],
+    ['Kapok Sun Street','ka-pok.com'], ['Commonwealth PH','commonwealth-ftgg.ph'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
+echo "\n== 13c. GUNLUK KELIME olan bes ad BILEREK listede yok ==\n";
+/* 'neighborhood', 'unused', 'beaker', 'kapital', 'unaffected' listeye konsaydi
+   asagidaki gercek dukkan adlari sessizce elenirdi -- denendi, elendiler.
+   Karsiligi: o bes markanin kendi adresi suzgecten gecer ve partide ELLE
+   atlanir. Sessiz eleme, bosa giden bir mektuptan pahalidir. */
+foreach ([
+    ['The Neighborhood Store','neighborhoodstore.com'], ['Unused Vintage Roma','vintageroma.it'],
+    ['Beaker Street Store','beakerstreet.co.uk'],       ['Kapital Moda Madrid','kapitalmoda.es'],
+    ['Unaffected Boutique','unaffectedboutique.fr'],    ['Clothing Concept Milano','clothingconcept.it'],
+    ['Togashi Mode','togashimode.jp'],                  ['Kolorowa Butik','kolorowa.pl'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));

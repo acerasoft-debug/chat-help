@@ -1,0 +1,446 @@
+[
+    {
+        "email": "info@gr8.co.jp",
+        "company": "GR8 Tokyo",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "customer@restir.com",
+        "company": "Restir Tokyo",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@adelaide-addition.com",
+        "company": "Adelaide Tokyo",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@fascinate.jp",
+        "company": "Fascinate Osaka",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@mita-sneakers.co.jp",
+        "company": "Mita Sneakers",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@gip-store.com",
+        "company": "GIP Store",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@realment.co.jp",
+        "company": "Realment Tokyo",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@dicendice.com",
+        "company": "Dice & Dice Fukuoka",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@arknets.co.jp",
+        "company": "Arknets Utsunomiya",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@digital-mountain.net",
+        "company": "Digital Mountain Hiroshima",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@maas-mind.com",
+        "company": "Maas Mind Store",
+        "country": "Japan",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@surrenderous.com",
+        "company": "Surrender SG",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "manifesto.sg@manifesto.sg",
+        "company": "Manifesto Singapore",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "shop@closet.com.sg",
+        "company": "Closet Singapore",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@kianonstore.com",
+        "company": "Kianon Premium Store",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "sales@collatecontemporary.com",
+        "company": "Collate Contemporary",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@luxuryclubsg.com",
+        "company": "The Luxury Club SG",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@loficina.com.sg",
+        "company": "L'Oficina Singapore",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@cultizm.sg",
+        "company": "Cultizm Singapore",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "hello@passerby.sg",
+        "company": "Passerby Concept Store",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@wellbredstore.com",
+        "company": "Well Bred Store",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@depotheights.com",
+        "company": "Depot Heights Boutique",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@standarddenim.sg",
+        "company": "Standard Denim SG",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@generalstore.sg",
+        "company": "The General Store SG",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@leftfoot.com.sg",
+        "company": "Leftfoot Singapore",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "sales@wunderou.com",
+        "company": "Wunderou Store",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@boutiqueselectionsg.com",
+        "company": "Boutique Selection SG",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@anticlockwise.sg",
+        "company": "Anticlockwise Premium",
+        "country": "Singapore",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@kasina.co.kr",
+        "company": "Kasina Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "support@worksout.co.kr",
+        "company": "Worksout Apgujeong",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@ecru.co.kr",
+        "company": "Ecru Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@sculpstore.com",
+        "company": "Sculp Store",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@slowsteadyclub.com",
+        "company": "Slow Steady Club",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@sfmshop.com",
+        "company": "San Francisco Market",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@manhattans.co.kr",
+        "company": "Manhattan's Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@mode-man.com",
+        "company": "Mode-Man Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@8division.com",
+        "company": "8 Division",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@heights-store.com",
+        "company": "Heights Store",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@iamshop-online.com",
+        "company": "IAMSHOP Suwon",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@sortieseoul.com",
+        "company": "Sortie Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@spectator.co.kr",
+        "company": "Spectator Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@hoods-seoul.com",
+        "company": "Hoods Seoul",
+        "country": "South Korea",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@incredibleshop.com.hk",
+        "company": "Incredible Shop HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@popcorngeneralstore.com",
+        "company": "Popcorn General Store",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@thearmoury.com",
+        "company": "The Armoury Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@ligerhongkong.com",
+        "company": "Liger Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@ka-pok.com",
+        "company": "Kapok Sun Street",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@antonia.hk",
+        "company": "Antonia Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@heavyweather.tw",
+        "company": "Heavy Weather Fashion",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@delstore.co",
+        "company": "Delstore Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@hideandseek.com.hk",
+        "company": "Hide and Seek HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@whitenoisestudio.hk",
+        "company": "White Noise Boutique",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@cocktail.com.hk",
+        "company": "Cocktail Select Shop",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@loadingstore.com",
+        "company": "Loading Store HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@quarter.com.hk",
+        "company": "Quarter Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@take5jeans.com",
+        "company": "Take5 Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@bennysstore.com",
+        "company": "Benny's Store HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@asterisk.hk",
+        "company": "Asterisk Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@midwestvintage.com",
+        "company": "美華氏 Midwest Vintage",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@visualculture.com.hk",
+        "company": "Visual Culture HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@gizahk.com",
+        "company": "Giza Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@stillhouse.hk",
+        "company": "Still House HK",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@thecorner.hk",
+        "company": "The Corner Hong Kong",
+        "country": "Hong Kong",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@commonwealth-ftgg.ph",
+        "company": "Commonwealth PH",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@titan22.com",
+        "company": "Titan 22 Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@soleacademy.com",
+        "company": "Sole Academy",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@hoodwinkmanila.com",
+        "company": "Hoodwinker Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@univers.ph",
+        "company": "Univers Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@thecapital.ph",
+        "company": "The Capital Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "sales@premiumconcept.ph",
+        "company": "Premium Concept PH",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@unionmanila.com",
+        "company": "Boutique Union Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "info@archive1984.com",
+        "company": "Archive 1984 Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "contact@progressionmanila.com",
+        "company": "Progression Manila",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    },
+    {
+        "email": "hello@seekingspace.ph",
+        "company": "Seeking Space PH",
+        "country": "Philippines",
+        "notes": "asia select shops list, 4 Sep 2026"
+    }
+]
