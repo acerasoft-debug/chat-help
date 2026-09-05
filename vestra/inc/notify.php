@@ -629,6 +629,20 @@ function vestra_discover_blocklist(): array {
        'emporium' TEK BASINA EKLENMEDI: bircok gercek butik adinda bu kelime geciyor. */
     'ali bin ali','alibinali','khereiji','viled','italdizain','rubaiyat',
     'sinteks','emporium baku',
+    /* ABD / AVRUPA KENDI-ETIKET evleri (5 Eyl 2026, 200 satirlik kuresel liste).
+       Ayni bosluk: bunlar butik degil MARKA, kendi uretimlerini satiyorlar.
+       Ispanyol ve Italyan olanlarin bir kismi 2 Eyl 2026'da ELLE elenmisti
+       (Capas Sesena, Lander Urquijo, Eduardo Rivera, Schostal, Maledetti
+       Toscani, Davide Cenci, Gratacos, Artisanal Cornucopia) -- o okuma
+       kaydedilmedigi icin ayni isimler bir sonraki listede yeniden karsimiza
+       cikti. Simdi listede. */
+    'stussy','stüssy','brain dead','wearebraindead','pleasures now','pleasuresnow',
+    'awake ny','awakenyclothing','gallery dept','gallerydept','rhude',
+    'fear of god','fearofgod','heron preston','heronpreston',
+    'online ceramics','onlineceramics','real bad man','realbadman',
+    'lander urquijo','landerurquijo','capas seseña','capas sesena','sesena',
+    'eduardo rivera','eduardorivera','gratacos','gratacós','davide cenci','davidecenci',
+    'maledetti toscani','schostal','artisanal cornucopia',
     /* ASYA KENDI-ETIKET evleri (4 Eyl 2026, operatorun 150 satirlik Japonya/Kore/
        Hong Kong/Singapur/Filipinler listesi). Otomatik kontrol bunlarin HICBIRINI
        tutmuyordu: vestra_is_monobrand() yalnizca vestra_premium_brandlist()'e,

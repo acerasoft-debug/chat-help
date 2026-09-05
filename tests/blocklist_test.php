@@ -364,6 +364,32 @@ foreach ([
     ['Togashi Mode','togashimode.jp'],                  ['Kolorowa Butik','kolorowa.pl'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 14. ABD/Avrupa kendi-etiket evleri (5 Eyl 2026, 200 satirlik liste) ==\n";
+/* Ispanyol ve Italyan olanlarin bir kismi 2 Eyl 2026'da ELLE elenmisti; o okuma
+   listeye yazilmadigi icin ayni isimler bir sonraki listede yeniden geldi.
+   Elle okunan her karar listeye girmezse her partide bastan okunur. */
+foreach ([
+    ['Stussy HQ','stussy.com'], ['Brain Dead Fabrications','wearebraindead.com'],
+    ['Gallery Dept HQ','gallerydept.com'], ['Rhude Retail','rhude.com'],
+    ['Fear of God Retail','fearofgod.com'], ['Heron Preston HQ','heronpreston.com'],
+    ['Real Bad Man HQ','realbadman.com'], ['Awake NY Store','awakenyclothing.com'],
+    ['Lander Urquijo','landerurquijo.com'], ['Capas Sesena','sesena.com'],
+    ['Eduardo Rivera Madrid','eduardorivera.es'], ['Gratacos Barcelona','gratacos.com'],
+    ['Davide Cenci','davidecenci.com'], ['Schostal Roma','schostalroma.com'],
+    ['Maledetti Toscani Roma','maledettitoscaniroma.it'],
+    ['Artisanal Cornucopia','artisanalcornucopia.com'],
+] as [$n,$d]) $t("engelli: {$n}", $blocked($n,'','https://'.$d));
+
+echo "\n== 14b. GECMELI — ayni listedeki GERCEK cok markali butikler ==\n";
+foreach ([
+    ['Notre','notre-shop.com'], ['Sugar Arezzo','sugar.it'], ['Concepts','cncpts.com'],
+    ['Hervia Bazaar','hervia.com'], ['Ekseption Madrid','ekseption.es'],
+    ['Goodhood','goodhoodstore.com'], ['Machine-A','machine-a.com'],
+    ['Roden Gray','rodengray.com'], ['Tenue de Nimes','tenuedenimes.com'],
+    ['Andreas Murkudis','andreasmurkudis.com'], ['Gente Roma','genteroma.com'],
+    ['Biffi Boutiques','biffi.com'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
