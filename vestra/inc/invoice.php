@@ -99,10 +99,23 @@ function vestra_payment_rails(array $acc, string $currency): array {
     $g = fn(string $k) => trim((string)($acc[$k] ?? ''));
     if (strtoupper(trim($currency)) === 'USD') {
         if ($g('bank_account') === '' || $g('bank_routing') === '') return [];
-        return [
+        /* ABA yalniz ABD ICI havale icindir. Yurt disindan (Hong Kong, Cin,
+           Japonya...) gelen bir havale SWIFT ile yollanir ve gonderenin bankasi
+           lehdar adi + banka adi + banka adresi ister; bunlarsiz transfer geri
+           doner ya da askida kalir. 5 Eyl 2026'ya kadar bu fatura yalniz hesap
+           numarasi ve ABA basiyordu -- ABD ici odeme icin yeterli, uluslararasi
+           odeme icin EKSIK. Alanlar KURAL 5c'de zaten hesapta duruyordu, sadece
+           belgeye yazilmiyordu.
+           Dolu olmayan satir hic basilmiyor: uydurulmus bir SWIFT, eksik
+           satirdan cok daha pahali. */
+        return array_values(array_filter([
+            $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
             'Account number: '.$g('bank_account').($g('bank_acct_type') !== '' ? '  ('.$g('bank_acct_type').')' : ''),
-            'Routing number (ABA): '.$g('bank_routing'),
-        ];
+            'Routing number (ABA, domestic): '.$g('bank_routing'),
+            $g('bank_bic')     !== '' ? 'SWIFT / BIC (international): '.$g('bank_bic') : '',
+            $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+            $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
+        ], fn($v) => $v !== ''));
     }
     if ($g('bank_iban') === '') return [];
     /* BIC'i secerken dikkat: yapilandirma DUZ ve tek bir 'bank_bic' tutuyor. ABD
@@ -113,9 +126,14 @@ function vestra_payment_rails(array $acc, string $currency): array {
        yeterli, BIC opsiyoneldir -- eksik bir alan, celisen bir ciftten iyidir. */
     $hasUs = $g('bank_account') !== '' || $g('bank_routing') !== '';
     $bic   = $g('bank_eur_bic') !== '' ? $g('bank_eur_bic') : ($hasUs ? '' : $g('bank_bic'));
+    /* AB DISINDAN gelen bir EUR havalesi de banka adi/adresi ister -- SEPA ici
+       IBAN tek basina yeterli, ama Hong Kong'daki bir banka bunlari soruyor. */
     return array_values(array_filter([
+        $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
         'IBAN: '.vestra_iban_pretty($g('bank_iban')),
         $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
+        $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+        $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
     ], fn($v) => $v !== ''));
 }
 
@@ -840,6 +858,35 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             : trim('Invoice '.$invoiceNo.($ref !== '' ? '   ·   Order '.$ref : '')));
         $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
     });
+
+    /* CIZILEMEYEN KARAKTER UYARISI -- yalniz TASLAKTA.
+       Cizici gomulu olmayan Helvetica + CP1252 kullaniyor; Cince/Japonca/
+       Korece/Yunanca/Kiril harfler SESSIZCE soru isaretine donuyor. 5 Eyl
+       2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
+       basiliyordu -- gecerli GORUNEN ama alicinin adini kaybetmis bir fatura.
+       Bu depoda tekrarlanan ders: sessiz kayip, gurultulu hatadan pahali.
+       Uyari KURAL 5d'nin zaten var olan kontrol noktasina, taslagin uzerine
+       basiliyor: operator numarayi yakmadan once goruyor. Kesilmis faturaya
+       basilmiyor -- musteriye giden belgeye ic uyari yazilmaz. */
+    if ($draft) {
+        $lost = [];
+        foreach (['company','name','address','city','country','vat_id','notes'] as $f) {
+            foreach (vestra_pdf_unrenderable((string)($order[$f] ?? '')) as $ch) $lost[$ch] = true;
+        }
+        foreach ($items as $it) {
+            foreach (['name','sku','note'] as $f) {
+                foreach (vestra_pdf_unrenderable((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
+            }
+        }
+        if ($lost) {
+            $chars = implode(' ', array_slice(array_keys($lost), 0, 12));
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $chars) {
+                $p->text($left, 26.0, 7.5,
+                    'WARNING - these characters cannot be printed on this document and appear as "?": '
+                    . $chars . '  Supply a Latin-script name and address before issuing.', false, 0.0);
+            });
+        }
+    }
 
     return $pdf->output();
 }

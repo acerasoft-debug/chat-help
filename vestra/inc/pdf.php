@@ -325,3 +325,35 @@ class VestraPdf {
         return $out;
     }
 }
+
+/**
+ * Bu PDF'in BASAMAYACAGI karakterler.
+ *
+ * Cizici gomulu olmayan Helvetica (Type1) + WinAnsi/CP1252 kullaniyor. CP1252
+ * Bati Avrupa alfabesidir: "Café Zürich" sorunsuz gecer, ama Cince, Japonca,
+ * Korece, Yunanca, Kiril ya da Arapca hicbir karakteri YOKTUR.
+ *
+ * iconv'un '//TRANSLIT//IGNORE' bayragi bunlari sessizce SORU ISARETINE
+ * ceviriyor: 5 Eyl 2026'da olculdu, "香港风徕贸易有限公司" faturaya
+ * "??????????" diye basiliyordu. Yani belge bozuk cikmiyor -- KOTUSU, gecerli
+ * gorunen ama musterinin adini kaybetmis bir fatura cikiyordu ve kimse fark
+ * etmiyordu. Bu depoda tekrarlanan ders: sessiz kayip, gurultulu hatadan pahali.
+ *
+ * Bu fonksiyon karari VERMIYOR, yalnizca olcuyor. Cagiran taraf ne yapacagina
+ * kendi karar verir (faturayi durdurmak, Latin harfli alani kullanmak, operatore
+ * sormak). Donen: kaybolacak BENZERSIZ karakterler.
+ *
+ * @return string[]
+ */
+function vestra_pdf_unrenderable(string $s): array {
+    if ($s === '') return [];
+    $bad = [];
+    $len = mb_strlen($s, 'UTF-8');
+    for ($i = 0; $i < $len; $i++) {
+        $ch = mb_substr($s, $i, 1, 'UTF-8');
+        $c  = @iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $ch);
+        /* Kaynak '?' degilken sonuc '?' ya da bos ise o karakter kaybolmustur. */
+        if ($c === false || $c === '' || ($c === '?' && $ch !== '?')) $bad[$ch] = true;
+    }
+    return array_keys($bad);
+}
