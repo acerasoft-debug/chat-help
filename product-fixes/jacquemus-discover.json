@@ -1,0 +1,4 @@
+[
+  { "match": "jacquemus", "expect": 99, "status": "approved",
+    "_not": "KESIF ICIN. dry_run=true ile calistirilir: hicbir sey degismez, yalniz kac urun eslesiyor ve hangileri oldugu yazilir. status=approved zaten yayindaki urunler icin bos islem." }
+]
