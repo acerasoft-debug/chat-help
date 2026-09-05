@@ -90,13 +90,21 @@ jobs:
               foreach ($hits as $l) {
                 $sent = trim((string)($l['last_contacted_at'] ?? '')) !== '';
                 if ($sent) $sentN++;
-                printf("  %s  %-28s %-30s %-16s eklendi=%s %s\n",
+                /* Ikinci/ucuncu mektubun damgalari da yazilsin. Bunlar olmadan
+                   "bu adrese kac mektup gitti" sorusunun cevabi bu ciktida YOK --
+                   5 Eyl 2026'da yeni-koleksiyon havuzunun neden 7 kisi oldugu
+                   ancak workflow'a tani eklenerek anlasilabildi. */
+                $nc = substr(trim((string)($l['last_newcollection_at'] ?? '')), 0, 10);
+                $fu = substr(trim((string)($l['last_followup_at'] ?? '')), 0, 10);
+                printf("  %s  %-28s %-30s %-16s eklendi=%s %s%s%s\n",
                   $sent ? 'GONDERILDI' : 'BEKLIYOR  ',
                   mb_substr((string)($l['company'] ?? ''), 0, 26),
                   (string)($l['email'] ?? ''),
                   mb_substr((string)($l['city'] ?? ''), 0, 14),
                   substr((string)($l['added_at'] ?? ''), 0, 10),
-                  $sent ? ('-> '.substr((string)($l['last_contacted_at']),0,10).' ('.($l['last_campaign']??'?').')') : ''
+                  $sent ? ('-> '.substr((string)($l['last_contacted_at']),0,10).' ('.($l['last_campaign']??'?').')') : '',
+                  $nc !== '' ? ('  winter=' . $nc) : '',
+                  $fu !== '' ? ('  takip=' . $fu) : ''
                 );
               }
               // Sehir dokumu: kesif hangi sehirleri tuketmis, nerede hala gonderilmemis
@@ -121,6 +129,15 @@ jobs:
               exit(0);
             }
 
+            /* Ikinci mektup havuzu. "Onceki adreslere 2. mektubu gonder" istegi
+               ancak bu sayi bilinerek planlanabilir; toplam gonderim sayisindan
+               cikarilamaz. */
+            $ncSent = 0; $ncPool = 0;
+            foreach ($leads as $l) {
+              if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;
+              if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') { $ncSent++; continue; }
+              $ncPool++;
+            }
             $byDay = []; $everSent = 0;
             foreach ($leads as $l) {
               $t = trim((string)($l['last_contacted_at'] ?? ''));
@@ -133,7 +150,9 @@ jobs:
             $today = date('Y-m-d');
             echo "toplam lead      : ".count($leads)."\n";
             echo "hic email gideni : ".$everSent."\n";
-            echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n\n";
+            echo "BUGUN ($today)   : ".($byDay[$today] ?? 0)."\n";
+            echo "2. mektup (Winter 26/27) gitmis : {$ncSent}\n";
+            echo "2. mektup BEKLEYEN havuz        : {$ncPool}\n\n";
             echo "gune gore dokum (en yeni ustte):\n";
             $n = 0;
             foreach ($byDay as $d => $c) {

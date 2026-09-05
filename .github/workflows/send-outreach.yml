@@ -115,6 +115,10 @@ on:
         description: "YENİ KOLEKSİYON KİPİ (true): kampanyayı DAHA ÖNCE ALMIŞ leadlere Winter 26/27 duyurusunu gönderir (Gallery Dept. / Fred Perry / AMI Paris). Normal kip hiç yazılmamışlara gider; bu kip tam tersini seçer. Aynı lead bu duyuruyu iki kez almaz (last_newcollection_at). Abonelikten çıkmışlar ve blocklist yine hariç."
         required: false
         default: "false"
+      newcoll_min_days:
+        description: "YENİ KOLEKSİYON KİPİ: ilk mektubun üzerinden EN AZ kaç gün geçmiş olsun (varsayılan 3). Aynı gün ikinci mektup, mektubun kendi cümlesini ('size daha önce yazmıştık') yalanlar ve posta listesi gibi okunur. 0 = yaş kontrolü yok."
+        required: false
+        default: "3"
 
 permissions:
   contents: read
@@ -144,6 +148,7 @@ jobs:
           SEND_DNS: ${{ github.event.inputs.dns_check }}
           SEND_FOLLOWUP: ${{ github.event.inputs.followup_emails }}
           SEND_NEWCOLL: ${{ github.event.inputs.new_collection }}
+          SEND_NC_MINDAYS: ${{ github.event.inputs.newcoll_min_days }}
           SEND_MEMBERS: ${{ github.event.inputs.to_members }}
           SEND_RESERVE: ${{ github.event.inputs.quota_reserve }}
           SEND_ONLY_RE: ${{ github.event.inputs.email_regex }}
@@ -154,7 +159,7 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT }}
           command_timeout: 8m
-          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS,SEND_RESERVE
+          envs: SEND_COUNT,SEND_DRY,SEND_SKIP,SEND_PREMIUM,SEND_MIN_BRANDS,SEND_ONLY,SEND_COUNTRY,SEND_NOT_COUNTRY,SEND_FORCE_LANG,SEND_SKIP_RE,SEND_SKIP_CAT,SEND_POOLS,SEND_NAME_ANY,SEND_SKIP_NAME,SEND_RESET,SEND_DNS,SEND_FOLLOWUP,SEND_NEWCOLL,SEND_NC_MINDAYS,SEND_ONLY_RE,SEND_CAT_ANY,SEND_MEMBERS,SEND_RESERVE
           script: |
             cat > /tmp/vestra_send_outreach.php <<'PHPEOF'
             <?php
@@ -317,6 +322,13 @@ jobs:
                saymaz ama takip kipinin damgasiyla da karisirdi. Her duyuru kendi
                damgasini tasirsa ayni kisiye ayni duyuru iki kez gitmiyor. */
             $IS_NEWCOLL = strtolower(trim((string)getenv('SEND_NEWCOLL'))) === 'true';
+            /* Ikinci mektup icin en az yas. 5 Eyl 2026: ayni gun 50 leade ilk mektup
+               gitmisti ve bu kip onlari aninda ikinci mektuba da uygun sayiyordu --
+               "size daha once yazmistik" diye baslayan bir mektup, ilkinden iki saat
+               sonra gidince alicinin gozunde toplu posta. Damga tarihi ne kadar
+               eskiyse mektup o kadar dogru. */
+            $NC_MIN_DAYS = trim((string)getenv('SEND_NC_MINDAYS'));
+            $NC_MIN_DAYS = ($NC_MIN_DAYS === '' ? 3 : max(0, (int)$NC_MIN_DAYS));
             if ($IS_NEWCOLL) require_once $home."/public_html/inc/email_templates.php";
             /* Yeni koleksiyon kipinde firma (alan adi) basina TEK duyuru; bkz. secim dongusu.
                Harita KOSULAR ARASI da dolu olmali: gercek gonderim 50'ye kirpiliyor ve
@@ -324,7 +336,7 @@ jobs:
                yedi firma (dmag.eu, sculpstore.com, luisaworld.com, abovethecloudsstore.com,
                hanley.ie, kirnazabete.com, rsvpgallery.com) iki dakika arayla iki kutudan
                ayni duyuruyu aldi. Damgali leadlerin alan adlari bastan isaretlenir. */
-            $ncSeenDom = [];
+            $ncSeenDom = []; $ncTooNew = 0;
             if ($IS_NEWCOLL) {
               foreach ($leads as $l0) {
                 if (trim((string)($l0['last_newcollection_at'] ?? '')) === '') continue;
@@ -468,6 +480,10 @@ jobs:
                    yollamak, alicinin gozunde ya yalan ya karisiklik. */
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;
                 if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') continue;   // bu duyuruyu zaten aldi
+                if ($NC_MIN_DAYS > 0) {
+                  $ncTs = strtotime((string)$l['last_contacted_at']);
+                  if ($ncTs && (time() - $ncTs) < $NC_MIN_DAYS * 86400) { $ncTooNew++; continue; }
+                }
                 if (isset($seen[$email])) continue;                              // ayni adres iki kez secilmesin
                 /* AYNI FIRMAYA tek duyuru (KURAL 1c'nin bu kipteki hali). 2 Eyl 2026
                    kuru kosusunda ayni alan adi uc kez secildi (customerservice@,
@@ -549,6 +565,7 @@ jobs:
               if (count($picked) >= $COUNT) break;
             }
             if ($DNS_CHECK) echo "DNS: posta alamayan alan adi yuzunden elenen aday: {$dnsDead}\n";
+            if ($IS_NEWCOLL && $ncTooNew) echo "YAS: ilk mektubun uzerinden {$NC_MIN_DAYS} gun gecmedigi icin elenen: {$ncTooNew}\n";
 
             $MODE_LABEL = $IS_FOLLOWUP ? 'TAKIP MEKTUBU' : ($IS_NEWCOLL ? 'YENI KOLEKSIYON — Winter 26/27' : 'Les Garage de Paris');
             echo $DRY ? "== DRY-RUN ({$MODE_LABEL}) — gonderim YOK, sadece secim listesi ==\n"
