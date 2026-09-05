@@ -390,6 +390,13 @@ foreach ([
     ['Biffi Boutiques','biffi.com'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
+echo "\n== 14c. Kendi evinin butigi: Montblanc ==\n";
+/* 5 Eyl 2026 ikinci mektup partisinde boutique.lisboa@montblanc.pt mektup aldi.
+   Ayrik yazilis kasten disarida: dagin adi ve onu tasiyan gercek dukkanlar var. */
+$t('engelli: Montblanc Boutique Lisboa', $blocked('Montblanc Boutique Lisboa','boutique.lisboa@montblanc.pt','https://montblanc.pt'));
+$t('engelli: Montblanc (alan adi)',      $blocked('Boutique','info@montblanc.com','https://montblanc.com'));
+$t('gecer: Mont Blanc Sports',           !$blocked('Mont Blanc Sports','info@montblancsports.fr','https://montblancsports.fr'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));

@@ -696,6 +696,11 @@ function vestra_discover_blocklist(): array {
     'hermès','hermes','cartier','rolex','tiffany & co','tiffanyco',
     'van cleef','vancleefarpels','bvlgari','bulgari','loewe','goyard','hublot',
     'patek philippe','patekphilippe',
+    /* Montblanc: 5 Eyl 2026 ikinci mektup partisinde Lizbon bayrak magazasi
+       (boutique.lisboa@montblanc.pt) mektup aldi -- ayni bosluk, kendi evinin
+       butigi. 'mont blanc' AYRI YAZILISI BILEREK YOK: dag adi ve "Mont Blanc
+       Sports" gibi gercek bir dukkani elerdi; markanin kendi yazimi bitisik. */
+    'montblanc',
     /* 30 Agustos DE/NL partisinden sizanlar: eschuhe.de CCC/eobuwie grubunun
        Almanya vitrini (zincir); Miinto butik PAZARYERI (alici degil kanal);
        Luisa Cerano kendi-marka etiket. min_brands=2 bunlari elemez -- sitelerinde
@@ -917,7 +922,12 @@ function vestra_blocklist_exact_only(): array {
                 adinda, 'clot' "clothing" icinde, 'toga' "togashi" icinde bulunurdu. */
              'kolor','toga archives','sacai','clot','iise',
              'izzue','sophnet','bedwin','blankof','beslow',
-             'document seoul','subcrew','workware','actual source'] as $t){
+             'document seoul','subcrew','workware','actual source',
+             /* 5 Eyl 2026: markanin kendi yazimi bitisik ('montblanc') ama dagin
+                adini tasiyan gercek dukkanlar var -- montblancsports.fr alan
+                adinda alt dizi olarak yakalanip sessizce elenirdi. Ad tarafinda
+                kelime siniri zaten "Mont Blanc Sports"u ayirt ediyor. */
+             'montblanc'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
