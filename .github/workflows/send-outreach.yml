@@ -504,7 +504,7 @@ jobs:
                    ikinci mektup havuzunun neden bu kadar kucuk oldugu ancak workflow'a
                    tani eklenerek anlasilabildi. */
                 if (trim((string)($l['last_contacted_at'] ?? '')) === '') {
-                  if ($ONLY || $DRY) echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n";
+                  if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n";
                   continue;
                 }
                 if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') {   // bu duyuruyu zaten aldi
@@ -547,12 +547,18 @@ jobs:
               /* Artik lead seviyesinde: ad + marka + ADRESIN ALAN ADI. Ad taramasi tek
                  basina yetmiyordu, cunku bot duvarina takilan sitede sirket adi diye
                  hata sayfasinin basligi kaydediliyor ve isim kontrolu bosa dusuyor. */
-              if (!$ONLY && vestra_lead_is_blocked($l)) continue;
+              if (!$ONLY && vestra_lead_is_blocked($l)) {
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (blocklist: zincir/marka/park): {$email}\n";
+                continue;
+              }
               /* Park edilmis / satilik / ELE GECIRILMIS alan adi: dukkan degil. add-and-send
                  bu kontrolu yapiyordu, burasi yapmiyordu -- 2 Eyl 2026 kuru kosusunda
                  kapanmis Jeffrey New York'un alan adi "POKER369" adiyla secildi. */
               if (!$ONLY && function_exists('vestra_name_is_parked_domain')
-                  && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) continue;
+                  && vestra_name_is_parked_domain((string)($l['company'] ?? ''))) {
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (park edilmis alan adi): {$email}\n";
+                continue;
+              }
               if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
               /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
                  name, which a single-brand reseller or a label's own store also does. A
