@@ -559,13 +559,24 @@ jobs:
                 if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (park edilmis alan adi): {$email}\n";
                 continue;
               }
-              if ($PREMIUM && empty($l['premium'])) continue;                    // premium-only mode: skip non-premium leads
+              if ($PREMIUM && empty($l['premium'])) {                             // premium-only mode: skip non-premium leads
+                if ($DRY && $IS_NEWCOLL) echo "  - ATLANDI (premium isareti yok): {$email}\n";
+                continue;
+              }
               /* Multi-brand gate. premium_only passes a shop that mentions ONE designer
                  name, which a single-brand reseller or a label's own store also does. A
                  genuine multi-brand boutique carries several, so requiring N distinct
                  detected brands is what actually separates "stocks other people's labels"
                  from "sells its own". Off by default (0). */
-              if ($MIN_BRANDS > 0 && count(array_filter((array)($l['premium_brands'] ?? []))) < $MIN_BRANDS) continue;
+              /* Bu esik VARSAYILAN OLARAK 2 ve elemesi SESSIZDI: 5 Eyl 2026'da
+                 ikinci mektup havuzu 7 kisi cikti ve bugun yazilan 51 adresin
+                 neden havuzda olmadigi ancak parametreleri tek tek elemekle
+                 anlasilabildi -- yeni eklenen leadlerin premium_brands alani
+                 bos ya da tek marka. Kuru kosuda artik neden yaziliyor. */
+              if ($MIN_BRANDS > 0 && count(array_filter((array)($l['premium_brands'] ?? []))) < $MIN_BRANDS) {
+                if ($ONLY || ($DRY && $IS_NEWCOLL)) echo "  - ATLANDI (en az {$MIN_BRANDS} premium marka sarti): {$email}\n";
+                continue;
+              }
               if ($COUNTRIES && !isset($COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // country filter
               if ($NOT_COUNTRIES && isset($NOT_COUNTRIES[strtolower(trim((string)($l['country'] ?? '')))])) continue; // excluded country — kept in the list, never mailed
               if ($CAT_ANY && !$ONLY) {          // sadece kategorisinde bunlardan biri gecenler
