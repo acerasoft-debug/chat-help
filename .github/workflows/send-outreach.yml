@@ -478,11 +478,24 @@ jobs:
                 /* Tam tersi kosul: bu duyuru SADECE kampanyayi almis olanlara gider.
                    Hic yazilmamis birine "daha once yazmistik" diye baslayan bir mektup
                    yollamak, alicinin gozunde ya yalan ya karisiklik. */
-                if (trim((string)($l['last_contacted_at'] ?? '')) === '') continue;
-                if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') continue;   // bu duyuruyu zaten aldi
+                /* Operator adresi ADIYLA verdiyse (only_emails) eleme SESSIZ olmamali:
+                   takip kipi bunu zaten boyle yapiyor. 5 Eyl 2026'da alti adres
+                   "0 uygun" donduruldu ve hangi kosulun eledigi ancak workflow'a
+                   tani eklenerek anlasilabildi. */
+                if (trim((string)($l['last_contacted_at'] ?? '')) === '') {
+                  if ($ONLY) echo "  - ATLANDI (ilk mektup hic gitmemis): {$email}\n";
+                  continue;
+                }
+                if (trim((string)($l['last_newcollection_at'] ?? '')) !== '') {   // bu duyuruyu zaten aldi
+                  if ($ONLY) echo "  - ATLANDI (duyuruyu zaten almis): {$email}\n";
+                  continue;
+                }
                 if ($NC_MIN_DAYS > 0) {
                   $ncTs = strtotime((string)$l['last_contacted_at']);
-                  if ($ncTs && (time() - $ncTs) < $NC_MIN_DAYS * 86400) { $ncTooNew++; continue; }
+                  if ($ncTs && (time() - $ncTs) < $NC_MIN_DAYS * 86400) {
+                    if ($ONLY) echo "  - ATLANDI (ilk mektup {$NC_MIN_DAYS} gunden yeni): {$email}\n";
+                    $ncTooNew++; continue;
+                  }
                 }
                 if (isset($seen[$email])) continue;                              // ayni adres iki kez secilmesin
                 /* AYNI FIRMAYA tek duyuru (KURAL 1c'nin bu kipteki hali). 2 Eyl 2026
@@ -493,7 +506,10 @@ jobs:
                    iki adres iki ayri firma. */
                 $ncDom = strtolower((string)substr((string)strrchr($email, '@'), 1));
                 if ($ncDom !== '' && !isset($NC_SHARED[$ncDom])) {
-                  if (isset($ncSeenDom[$ncDom])) continue;
+                  if (isset($ncSeenDom[$ncDom])) {
+                    if ($ONLY) echo "  - ATLANDI (ayni firmadan baska bir kutu duyuruyu almis): {$email}\n";
+                    continue;
+                  }
                   $ncSeenDom[$ncDom] = true;
                 }
               } else {
