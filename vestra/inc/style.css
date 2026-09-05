@@ -953,3 +953,23 @@ footer{border-top:1px solid var(--line);padding:34px 0;color:var(--mut);font-siz
 [dir="rtl"] .cswmenu,[dir="rtl"] .lswmenu{right:auto;left:0}
 [dir="rtl"] .cursw,[dir="rtl"] .langsw{margin-left:0;margin-right:10px;
   padding-left:0;padding-right:10px;border-left:0;border-right:1px solid rgba(255,255,255,.12)}
+
+
+/* ── Japonca (5 Eyl 2026) ────────────────────────────────────────────────────
+   Latin yigini Japonca icin kullanilmaz: 'Inter'de kana/kanji yok, tarayici
+   rastgele bir yedege duser ve metin sayfanin geri kalanindan kopuk gorunur.
+   Playfair Display bir SERIF baslik fontu ve Japonca glifi hic tasimiyor;
+   basliklarda da gotik yigina geciliyor -- yanlis bir font, fontsuzdan kotu.
+   Sistem fontlari kullaniliyor, indirilen yok: bir CJK web fontu 5-15 MB'dir
+   ve kimse bunu bir katalog sayfasi icin beklemez. */
+html[lang="ja"] body,
+html[lang="ja"] input, html[lang="ja"] select,
+html[lang="ja"] textarea, html[lang="ja"] button{
+  font-family:'Inter','Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif;
+}
+html[lang="ja"] h1, html[lang="ja"] h2, html[lang="ja"] h3, html[lang="ja"] .logo{
+  font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif;
+}
+/* Japonca satir kirilimi: kelime araligi yok, ogeler arasi kirilma dogal
+   olmali; ayrica satir yuksekligi biraz artiyor (kanji Latin harften uzun). */
+html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywhere; }

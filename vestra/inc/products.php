@@ -1209,7 +1209,11 @@ function vestra_seo_brands(int $max = 14): array {
 /** "wholesale" in the visitor's language — the word that actually appears in the query. */
 function vestra_seo_wholesale_word(string $lang): string {
     return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel',
-            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة'][$lang] ?? 'wholesale';
+            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة',
+            /* 5 Eyl 2026: Japonca. "卸売" toptan satisin kendisi; arama
+               hacminde "卸" tek basina da yaygin ama tek karakter marka
+               adlarinin icinde de geciyor, o yuzden tam sozcuk. */
+            'ja'=>'卸売'][$lang] ?? 'wholesale';
 }
 
 /* Brand <-> URL slug. The landing pages live at /wholesale/<slug>, so the slug has to
@@ -1240,6 +1244,7 @@ function vestra_seo_b2b_terms(string $lang): array {
         'pt' => ['por grosso', 'fornecedor B2B', 'grossista', 'lote de stock', 'preços de revenda', 'para boutiques'],
         'ru' => ['оптом', 'B2B поставщик', 'опт', 'сток', 'оптовые цены', 'для бутиков'],
         'ar' => ['بالجملة', 'مورد B2B', 'جملة', 'ستوك', 'أسعار الجملة', 'للبوتيكات'],
+        'ja' => ['卸売', 'B2Bサプライヤー', '仕入れ', '在庫ロット', '卸価格', 'ブティック向け'],
     ][$lang] ?? [];
 }
 
