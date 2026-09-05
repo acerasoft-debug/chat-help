@@ -468,12 +468,23 @@ jobs:
             foreach ($IS_FOLLOWUP ? [] : $leads as $l) {
               $email = strtolower(trim((string)($l['email'] ?? '')));
               if (!filter_var($email, FILTER_VALIDATE_EMAIL)) continue;          // no / bad e-mail
-              if (vestra_email_is_junk($email)) continue;                        // scraped artefact / placeholder / noreply — would hard-bounce
+              /* Adi adiyla verilmis bir adres SESSIZCE elenmemeli -- asagidaki iki
+                 kosul (cop adres / abonelikten cikmis) once oyleydi ve "0 uygun"
+                 ciktisinin nedeni ciktida hic gorunmuyordu. Kosul sirasi degismiyor;
+                 sadece operatorun yazdigi adres icin bir satir basiliyor. */
+              $named = ($ONLY && isset($ONLY[$email]));
+              if (vestra_email_is_junk($email)) {                                // scraped artefact / placeholder / noreply — would hard-bounce
+                if ($named) echo "  - ATLANDI (cop/otomatik adres): {$email}\n";
+                continue;
+              }
               if (isset($SKIP[$email])) continue;                                // explicitly excluded this run
               if ($SKIP_RE !== '' && preg_match($SKIP_RE, $email)) continue;      // regex-excluded (garbled/scraper addresses)
               if ($ONLY_RE !== '' && !preg_match($ONLY_RE, $email)) continue;     // regex-allowlist (or. sadece amazon@... kanal adresleri)
               if ($ONLY && !isset($ONLY[$email])) continue;                      // allowlist mode: only these addresses
-              if (($l['status'] ?? '') === 'unsubscribed') continue;             // opted out
+              if (($l['status'] ?? '') === 'unsubscribed') {                     // opted out
+                if ($named) echo "  - ATLANDI (abonelikten cikmis): {$email}\n";
+                continue;
+              }
               if ($IS_NEWCOLL) {
                 /* Tam tersi kosul: bu duyuru SADECE kampanyayi almis olanlara gider.
                    Hic yazilmamis birine "daha once yazmistik" diye baslayan bir mektup
