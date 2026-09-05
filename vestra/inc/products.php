@@ -64,17 +64,25 @@ function vestra_ships_from(array $p = []): string {
  *
  * Ayin ilk on gunu "early", 11-20 "mid", sonrasi "late" -- operatorun
  * "Ekim basi" dedigi sey 1 Ekim icin "early October". */
-function vestra_preorder_note(array $p = [], ?int $now = null): string {
+/* Yalniz ZAMAN parcasi: "early October 2026". Ayri duruyor cunku iki farkli
+ * yerde farkli cumleye giriyor -- ilan sayfasi "Pre-orders are being accepted ·
+ * dispatch <X>." diyor, alicinin mektubu "dispatch is scheduled for <X>." Tek
+ * kaynak olmasa ikisi ayrisirdi ve hangisinin dogru oldugu belirsizlesirdi. */
+function vestra_preorder_ship_phrase(array $p = [], ?int $now = null): string {
     $iso = trim((string)($p['preorder_ship'] ?? ''));
     if ($iso === '') return '';
     $ts = strtotime($iso.' 23:59:59');
     if ($ts === false) return '';
     $now = $now ?? time();
-    if ($ts < $now) return '';           /* tarih gecti -> not susar */
+    if ($ts < $now) return '';           /* tarih gecti -> susar */
     $d = (int)date('j', $ts);
     $part = $d <= 10 ? 'early' : ($d <= 20 ? 'mid' : 'late');
-    return 'Pre-orders are being accepted · dispatch '
-         . $part . ' ' . date('F Y', $ts) . '.';
+    return $part . ' ' . date('F Y', $ts);
+}
+
+function vestra_preorder_note(array $p = [], ?int $now = null): string {
+    $ph = vestra_preorder_ship_phrase($p, $now);
+    return $ph === '' ? '' : 'Pre-orders are being accepted · dispatch '.$ph.'.';
 }
 
 /* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici

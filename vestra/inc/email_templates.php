@@ -1044,6 +1044,60 @@ function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $
 }
 
 /**
+ * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
+ * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
+ * eklendi cunku eksikligi sonradan pahaliya patlardi:
+ *
+ *   1. ON SIPARIS TARIHI. Musteri siparisi ilan on siparise donmeden ONCE verdi.
+ *      Faturayi alip 4.680 EUR odedikten sonra malin dort hafta sonra cikacagini
+ *      ogrenmesi, itiraz ve iade talebi doguran durum. Cumle ILANDAN geliyor
+ *      (vestra_preorder_note), mektuba elle yazilmiyor -- ilan degisirse mektup
+ *      da degisir, ayrisamaz.
+ *   2. LATIN HARFLI ADRES. Fatura PDF'i gomulu olmayan Helvetica + CP1252
+ *      kullaniyor; Cince/Japonca harfler "??????" olarak basiliyor. Adres
+ *      Latin harfle gelmezse belge alicinin adresini kaybeder.
+ *
+ * TARIH SABIT YAZILMIYOR: "ilk is gunu" gonderim aninda hesaplaniyor
+ * (vestra_business_days_after). Sablona "Monday 7 September" gomseydik, ayni
+ * mektup gelecek hafta yeniden gonderildiginde gecmis bir gun soylerdi -- bu
+ * depoda L1212'nin "in stock from 5 May" notu tam boyle dort ay bayat kaldi.
+ */
+function vestra_tpl_order_invoice_soon(string $buyerName, string $ref, int $sendTs = 0, string $preorderLine = '', bool $hasAccount = false, string $signer = 'Marco Bellini'): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sendTs = $sendTs > 0 ? $sendTs : time();
+    /* Sonraki IS gunu, kendi basina hesaplaniyor. Once vestra_business_days_after()
+       varsa ona guveniyordu ve yoksa "+1 gun"e dusuyordu -- Cumartesi gonderimde
+       o dal PAZAR diyordu. Sessizce yanlis bir gun soylemektense hafta sonunu
+       burada atla: bagimliligi olmayan dort satir, her yerde ayni cevap. */
+    $due = $sendTs;
+    do { $due += 86400; } while ((int)date('N', $due) >= 6);
+    $dueTxt = date('l j F', $due);
+
+    $subject = "Your VESTRA order {$ref} — invoice on its way";
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    $opts = ['badge'=>'Invoice being prepared', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your order {$ref}.\n\n"
+      . "Your invoice is being prepared and will be sent to your VESTRA account and by e-mail "
+      . "on the first business day, {$dueTxt}."
+      . ($preorderLine !== ''
+          ? " The goods are a pre-order for this season: dispatch is scheduled for "
+            . $preorderLine . "."
+          : '')
+      . "\n\n"
+      . "So that the invoice and the shipping documents are correct, please confirm your "
+      . "delivery address in Latin script, and whether it is the same as your billing address.\n\n"
+      . "Kind regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * Yeni siparis geldi: tesekkur + TESLIMAT ADRESI iste + "fatura adresiyle ayni mi"
  * + "faturaniz hazirlanip gonderilecek" (operator istegi, 5 Eyl 2026, VES-6B53D265).
  *
