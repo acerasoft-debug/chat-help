@@ -2386,23 +2386,44 @@ function vestra_tpl_brand_catalog(string $salutation, string $brand, array $grou
  * $agreed: zaten uzlasilmis kalemlerin basliklari (bilgi icin).
  * $acceptUrl: '' ise mektup baglanti YAZMAZ ve panele yonlendirir -- olmayan
  *   bir dugmeyi tarif etmektense hic tarif etmemek. */
-function vestra_tpl_offer_nudge(string $salutation, string $product, int $qty,
-                                ?float $ourPrice, ?float $theirPrice, string $cur,
-                                array $agreed, string $acceptUrl, string $productUrl,
-                                string $ref, string $signer = 'Marco Bellini'): array {
-    $subject = 'One open item on your order — '.$product;
+function vestra_tpl_offer_nudge(array $open, array $agreed, string $salutation,
+                                string $cur = 'EUR', string $signer = 'Marco Bellini'): array {
+    /* $open: her biri ['ref','product','qty','ours','theirs','url','accept'] olan
+       ACIK teklifler -- sira alicida. Tek kalem de coklu da ayni mektup: 4 Eyl 2026'da
+       ayni aliciya ayni saatte ayni Burberry hoodie'nin UC ayri teklifi acik kaldi ve
+       kalem basina bir mektup, tek bir hatirlatmayi uc ayri e-postaya bolerdi. */
+    $n = count($open);
+    if ($n === 0) return ['', '', []];
     $money = fn(?float $v) => $v === null || $v <= 0 ? '' : $cur.' '.number_format($v, 2);
 
-    $body = $salutation . ",\n\n"
-. "Thank you for your offers — everything else is agreed and ready to be invoiced. "
-. "One item is still open and it is waiting on you.\n\n";
+    $subject = $n === 1
+        ? 'One open item on your order — '.(string)($open[0]['product'] ?? '')
+        : $n.' open items on your order';
 
-    $body .= "OPEN — ".$product."\n"
-           . "Reference ".$ref."  ·  ".$qty." pcs\n";
-    if ($theirPrice !== null && $theirPrice > 0) $body .= "Your offer:  ".$money($theirPrice)." per piece\n";
-    if ($ourPrice   !== null && $ourPrice   > 0) $body .= "Our price:   ".$money($ourPrice)." per piece\n";
-    if ($productUrl !== '') $body .= $productUrl."\n";
-    $body .= "\n";
+    /* Uzlasilmis kalem YOKSA "gerisi hazir" denmez: musteride uzlasilmis bir sey
+       yokken oyle acmak, olmayan bir siparisi varmis gibi gostermek olurdu. */
+    $body = $salutation . ",\n\n"
+        . ($agreed
+            ? "Thank you for your offers — everything else is agreed and ready to be invoiced. "
+              . ($n === 1 ? "One item is still open and it is waiting on you.\n\n"
+                          : "The items below are still open and they are waiting on you.\n\n")
+            : "Thank you for your offers. "
+              . ($n === 1 ? "One item is still open and it is waiting on you.\n\n"
+                          : "The ".$n." items below are still open and they are waiting on you.\n\n"));
+
+    foreach ($open as $it) {
+        $body .= "OPEN — ".trim((string)($it['product'] ?? ''))."\n"
+               . "Reference ".trim((string)($it['ref'] ?? ''))."  ·  ".(int)($it['qty'] ?? 0)." pcs\n";
+        $their = isset($it['theirs']) ? (float)$it['theirs'] : null;
+        $ours  = isset($it['ours'])   ? (float)$it['ours']   : null;
+        if ($their !== null && $their > 0) $body .= "Your offer:  ".$money($their)." per piece\n";
+        if ($ours  !== null && $ours  > 0) $body .= "Our price:   ".$money($ours)." per piece\n";
+        if (trim((string)($it['url'] ?? '')) !== '') $body .= trim((string)$it['url'])."\n";
+        /* Kabul baglantisi KALEM BASINA: token her teklifin kendisine ait, tek bir
+           link uc kalemi birden kapatmaz. */
+        if (trim((string)($it['accept'] ?? '')) !== '') $body .= "Open this item: ".trim((string)$it['accept'])."\n";
+        $body .= "\n";
+    }
 
     if ($agreed) {
         $body .= "Already agreed and ready to invoice:\n";
@@ -2410,22 +2431,23 @@ function vestra_tpl_offer_nudge(string $salutation, string $product, int $qty,
         $body .= "\n";
     }
 
+    $these = $n === 1 ? 'it' : 'them';
+    /* Uc yol da yaziliyor. Karsi teklif SECENEKTEN sayilmazsa musteri ya bizim
+       fiyatimizi kabul etmek ya da bitirmek arasinda sikisir; oysa pazarlik hakki
+       duruyor (operator, 6 Eyl 2026: "ya kabul ya teklif yada red"). */
     $body .= "Please let us know either way:\n\n"
-. "· If you want it, accept and it goes on the same invoice as the rest.\n"
-. "· If you do not, decline it and we will invoice the agreed items straight away, "
-. "without this one. Declining costs you nothing and does not affect the other items.\n\n";
+        . "· Accept, and ".($n === 1 ? "it goes" : "they go")." on the same invoice as the rest.\n"
+        . "· Counter, if the price is not right for you — there are rounds left, so send us your number.\n"
+        . "· Decline, and we will invoice the agreed items straight away, without ".$these.". "
+        . "Declining costs you nothing and does not affect the other items.\n\n";
 
-    if ($acceptUrl !== '') {
-        $body .= "You can do both from here:\n".$acceptUrl."\n\n";
-    } else {
-        $body .= "You can do both from your account: https://vestrasales.com/buyer?tab=offers\n\n";
-    }
+    $body .= "All three are in your account: https://vestrasales.com/buyer?tab=offers\n\n";
 
     $body .= "If we do not hear from you, we will hold the order rather than decide for you — "
-. "so a one-line reply is enough.\n\n"
-. "Best regards,\n\n"
-. $signer . "\n"
-. "VESTRA – vestrasales.com";
+        . "so a one-line reply is enough.\n\n"
+        . "Best regards,\n\n"
+        . $signer . "\n"
+        . "VESTRA – vestrasales.com";
 
     return [$subject, $body, []];
 }

@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken 'alıyor musunuz, yoksa reddedin de diğerleri faturalansın'; spec: offer_ref=&lt;ref&gt;) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -1350,71 +1350,88 @@ jobs:
                 : vestra_tpl_docs_women($salutation, trim($E('missing_brand')), $wItems, $pdfPath !== '', $signer);
               if ($pdfPath !== '') $opts['attachments'] = [['name' => basename($pdfPath), 'path' => $pdfPath]];
             } elseif ($letter === 'offer_nudge') {
-              /* ACIK TEKLIF HATIRLATMASI. spec: offer_ref=O6404A
+              /* ACIK TEKLIF HATIRLATMASI. spec: offer_ref=O6404A  ya da
+                 offer_ref=O795BA,OED4CC,O7A484 (AYNI aliciya TEK mektup).
                  Fiyat, adet, urun ve KABUL BAGLANTISI teklifin GERCEK kaydindan
                  okunuyor -- hicbiri elle verilmiyor. Elle verilen bir fiyat,
                  musterinin hic gormedigi bir rakami ona "sizin teklifiniz" diye
-                 geri okumak olurdu. */
+                 geri okumak olurdu.
+                 Coklu ref neden: 4 Eyl 2026'da ayni aliciya ayni Burberry hoodie'nin
+                 uc ayri teklifi acik kaldi. Ref basina bir kosu, tek bir hatirlatmayi
+                 dakikalar icinde ayni kutuya dusen uc ayri e-postaya bolerdi. */
               require_once $doc."/inc/offers.php";
-              $oref = trim($E('offer_ref'));
-              if ($oref === '') { fwrite(STDERR, "offer_nudge: spec'te offer_ref= yok\n"); exit(1); }
-
-              $orow = vestra_offer_row($oref);
-              if (!$orow) { fwrite(STDERR, "offer_nudge: {$oref} teklifi bulunamadi\n"); exit(1); }
+              $orefs = array_values(array_filter(array_map('trim',
+                preg_split('/[\s,;]+/', $E('offer_ref'), -1, PREG_SPLIT_NO_EMPTY))));
+              if (!$orefs) { fwrite(STDERR, "offer_nudge: spec'te offer_ref= yok\n"); exit(1); }
+              if (count($orefs) !== count(array_unique($orefs))) {
+                fwrite(STDERR, "offer_nudge: ayni ref iki kez verilmis\n"); exit(1);
+              }
               $allResp = (array)vestra_read_json('offer_responses.json');
-              $resp    = $allResp[$oref] ?? null;
-
-              /* SIRA ALICIDA OLMALI. Degilse hatirlatma yanlis adrese gider:
-                 top bizdeyken musteriyi sikistirmis oluruz. */
-              $turn = vestra_offer_turn($resp);
-              $stat = (string)($resp['status'] ?? '');
-              if ($stat !== 'counter' || $turn !== 'buyer') {
-                fwrite(STDERR, "offer_nudge: {$oref} durum='{$stat}' sira='{$turn}' -- "
-                     . "hatirlatma yalnizca durum=counter ve sira=buyer iken gonderilir.\n");
-                exit(1);
+              $openItems = []; $nudgeMail = ''; $cur = 'EUR';
+              foreach ($orefs as $oref) {
+                $orow = vestra_offer_row($oref);
+                if (!$orow) { fwrite(STDERR, "offer_nudge: {$oref} teklifi bulunamadi\n"); exit(1); }
+                $resp = $allResp[$oref] ?? null;
+                /* SIRA ALICIDA OLMALI. Degilse hatirlatma yanlis adrese gider:
+                   top bizdeyken musteriyi sikistirmis oluruz. */
+                $turn = vestra_offer_turn($resp);
+                $stat = (string)($resp['status'] ?? '');
+                if ($stat !== 'counter' || $turn !== 'buyer') {
+                  fwrite(STDERR, "offer_nudge: {$oref} durum='{$stat}' sira='{$turn}' -- "
+                       . "hatirlatma yalnizca durum=counter ve sira=buyer iken gonderilir.\n");
+                  exit(1);
+                }
+                /* TEK ALICI. Karisik adresli bir liste, bir musteriye baskasinin
+                   teklifini ve fiyatini okutur. */
+                $m1 = strtolower(trim((string)($orow['email'] ?? '')));
+                if ($nudgeMail === '') $nudgeMail = $m1;
+                if ($m1 !== $nudgeMail) {
+                  fwrite(STDERR, "offer_nudge: {$oref} BASKA aliciya ait -- tek mektupta karisik alici olmaz\n"); exit(1);
+                }
+                $cur = strtoupper(trim((string)($orow['currency'] ?? 'EUR'))) ?: 'EUR';
+                $listing = null;
+                foreach (vestra_products() as $cand) {
+                  if ((string)($cand['id'] ?? '') === (string)($orow['product_id'] ?? '')) { $listing = $cand; break; }
+                }
+                /* Kabul baglantisi yalnizca GERCEK token varsa yaziliyor. Token
+                   her karsi teklifte yenileniyor; yoksa mektup panele yonlendiriyor
+                   -- calismayan bir dugmeyi tarif etmektense hic tarif etmemek. */
+                $tok = trim((string)($resp['accept_token'] ?? ''));
+                $openItems[] = [
+                  'ref'     => $oref,
+                  'product' => trim((string)($orow['product'] ?? '')),
+                  'qty'     => (int)($orow['qty'] ?? 0),
+                  'ours'    => vestra_offer_last_price($resp, 'seller', $orow),
+                  'theirs'  => vestra_offer_last_price($resp, 'buyer',  $orow),
+                  'url'     => $listing ? vestra_offer_product_url($listing) : '',
+                  'accept'  => $tok !== '' ? vestra_offer_accept_url($oref, $tok) : '',
+                ];
               }
-
-              $prodName = trim((string)($orow['product'] ?? ''));
-              $qty      = (int)($orow['qty'] ?? 0);
-              $cur      = strtoupper(trim((string)($orow['currency'] ?? 'EUR'))) ?: 'EUR';
-              $ourP     = vestra_offer_last_price($resp, 'seller', $orow);
-              $theirP   = vestra_offer_last_price($resp, 'buyer',  $orow);
-
-              $listing  = null;
-              foreach (vestra_products() as $cand) {
-                if ((string)($cand['id'] ?? '') === (string)($orow['product_id'] ?? '')) { $listing = $cand; break; }
-              }
-              $prodUrl  = $listing ? vestra_offer_product_url($listing) : '';
-
-              /* Kabul baglantisi yalnizca GERCEK token varsa yaziliyor. Token
-                 her karsi teklifte yenileniyor; yoksa mektup panele yonlendiriyor
-                 -- calismayan bir dugmeyi tarif etmektense hic tarif etmemek. */
-              $tok = trim((string)($resp['accept_token'] ?? ''));
-              $acceptUrl = $tok !== '' ? vestra_offer_accept_url($oref, $tok) : '';
 
               /* AYNI ALICININ uzlasilmis kalemleri: mektup "digerleri hazir"
-                 derken hangileri oldugunu da yazsin. */
-              $mail = strtolower(trim((string)($orow['email'] ?? '')));
+                 derken hangileri oldugunu da yazsin. Hatirlatilan kalemlerin
+                 kendisi bu listeye giremez. */
               $agreed = [];
               foreach (vestra_read_csv('offers.csv') as $o2) {
-                if (strtolower(trim((string)($o2['email'] ?? ''))) !== $mail) continue;
+                if (strtolower(trim((string)($o2['email'] ?? ''))) !== $nudgeMail) continue;
                 $r2 = (string)($o2['ref'] ?? '');
-                if ($r2 === $oref) continue;
+                if (in_array($r2, $orefs, true)) continue;
                 if ((string)(($allResp[$r2]['status'] ?? '')) !== 'accept') continue;
                 $agreed[] = ($o2['qty'] ?? '?').' pcs — '.trim((string)($o2['product'] ?? $r2)).'  ('.$r2.')';
               }
 
-              echo "teklif      : {$oref} | ".mb_substr($prodName,0,44)."\n";
-              echo "durum/sira  : {$stat} / {$turn}\n";
-              echo "adet        : {$qty} | bizim: ".($ourP !== null ? number_format($ourP,2) : '-')
-                 . " | onun: ".($theirP !== null ? number_format($theirP,2) : '-')." {$cur}\n";
-              echo "kabul linki : ".($acceptUrl !== '' ? 'VAR (token gecerli)' : '*** YOK -> panele yonlendiriliyor ***')."\n";
-              echo "urun linki  : ".($prodUrl !== '' ? 'VAR' : '*** ILAN COZULEMEDI ***')."\n";
+              echo "acik teklif : ".count($openItems)." kalem, tek mektup\n";
+              foreach ($openItems as $it) {
+                echo "  · {$it['ref']} | ".mb_substr((string)$it['product'],0,40)
+                   . " | {$it['qty']} adet | bizim: ".($it['ours'] !== null ? number_format((float)$it['ours'],2) : '-')
+                   . " | onun: ".($it['theirs'] !== null ? number_format((float)$it['theirs'],2) : '-')." {$cur}"
+                   . " | kabul linki: ".($it['accept'] !== '' ? 'VAR' : '*** YOK ***')
+                   . " | urun linki: ".($it['url'] !== '' ? 'VAR' : '*** YOK ***')."\n";
+              }
               echo "uzlasilan   : ".count($agreed)." kalem\n";
               foreach ($agreed as $a) echo "   · ".$a."\n";
 
-              [$subject, $body, $opts] = vestra_tpl_offer_nudge($salutation, $prodName, $qty,
-                  $ourP, $theirP, $cur, $agreed, $acceptUrl, $prodUrl, $oref, $signer);
+              [$subject, $body, $opts] = vestra_tpl_offer_nudge($openItems, $agreed, $salutation, $cur, $signer);
             } elseif ($letter === 'invoice_draft') {
               /* KESILECEK/DUZELTILECEK FATURANIN TASLAGI, operatore.
                  Panelin 📧 Test dugmesiyle AYNI isi yapar (ayni payload, ayni
