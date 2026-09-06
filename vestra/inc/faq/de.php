@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => 'Wie bezahle ich aktuell?',
-        'a' => '<b>Zahlungen erfolgen derzeit auf Rechnung.</b> Nach Bestätigung Ihrer Bestellung erhalten Sie eine Proforma-Rechnung und zahlen per Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Escrow-/Karten-Checkout ist vorübergehend ausgesetzt und wird zu einem späteren Zeitpunkt wieder verfügbar sein.',
+        'a' => 'Zahlungen erfolgen derzeit auf Rechnung. Nach Bestätigung Ihrer Bestellung erhalten Sie eine Proforma-Rechnung und zahlen per Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Escrow-/Karten-Checkout ist vorübergehend ausgesetzt und wird zu einem späteren Zeitpunkt wieder verfügbar sein.',
       ),
       1 => 
       array (

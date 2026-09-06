@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => 'Comment payer actuellement ?',
-        'a' => '<b>Les paiements se font actuellement sur facture.</b> Après confirmation de votre commande, vous recevez une facture proforma et payez par virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par séquestre/carte décrit ci-dessous est temporairement suspendu et sera rétabli ultérieurement.',
+        'a' => 'Les paiements se font actuellement sur facture. Après confirmation de votre commande, vous recevez une facture proforma et payez par virement bancaire ; la marchandise est expédiée après réception du paiement. Le paiement par séquestre/carte décrit ci-dessous est temporairement suspendu et sera rétabli ultérieurement.',
       ),
       1 => 
       array (

@@ -99,17 +99,30 @@ echo "\n== 6. Olu dosya geri gelmedi ==\n";
    bir escrow suresi vardi -- dispatcher bir gun "duzeltilse" site onlari basardi. */
 $t('inc/legal/en.php yok', !file_exists($root . '/inc/legal/en.php'));
 
-echo "\n== 7. Politika 8 dilde ==\n";
+echo "\n== 7. Politika sitenin BUTUN dillerinde ==\n";
 /* Ceviri dosyalari inc/faq/{lang}.php. vestra_faq() eksik bir maddeyi SESSIZCE
    Ingilizceye dusurur -- yani bir ceviri yarim kalirsa sayfa yine calisir ve
    kimse fark etmez. Alicinin okudugu tek belge bu oldugu icin, her dilde her
    maddenin gercekten cevrilmis olmasi burada zorunlu tutuluyor.
    Dil basina AYRI SUREC gerekiyor: vlang() ilk cagrida sabitleniyor, tek
-   surecte donguye alinirsa sekiz dilin sekizi de "Ingilizce" olarak olculur --
-   ilk olcumde tam bu oldu ve ceviriler bozukmus gibi gorundu. */
+   surecte donguye alinirsa dillerin hepsi "Ingilizce" olarak olculur --
+   ilk olcumde tam bu oldu ve ceviriler bozukmus gibi gorundu.
+   DIL LISTESI ELLE YAZILMAZ: burada sabit bir liste duruyordu ve site
+   dokuzuncu dili (ja) aldiginda liste guncellenmedi -- yani yeni dil bu
+   kontrolun disinda kaldi ve FAQ'i hic cevrilmemis olsa da test yesil
+   kalirdi. vlang_list() tek dogruluk kaynagi; yeni bir dil eklendigi anda
+   burasi da onu sorar. */
 $enItems = $faq['returns']['items'];
 $php = PHP_BINARY ?: 'php';
-foreach (['de','fr','it','es','pt','ru','ar'] as $lang) {
+require_once $root . '/inc/i18n.php';
+/* Dil KODU anahtarda duruyor, deger ekranda gorunen etiket ('en' => 'EN').
+   Ilk yazimimda degerleri okudum: 'EN' hicbir zaman 'en'e esit olmadigi icin
+   Ingilizce listede kaldi ve ?lang=FR gibi buyuk harfli kodlar vlang()
+   tarafindan taninmadi -- dokuz dilin dokuzu da "cevrilmemis" cikti. Ceviriler
+   dogruydu, olcum yanlisti. */
+$langs = array_values(array_diff(array_keys(vlang_list()), ['en']));
+$t('dil listesi vlang_list()ten geliyor (' . count($langs) . ' dil)', count($langs) >= 8);
+foreach ($langs as $lang) {
     $code = '$_GET=["lang"=>' . var_export($lang, true) . '];'
           . 'require ' . var_export($root . '/inc/faq.php', true) . ';'
           . '$r=vestra_faq()["returns"] ?? null;'

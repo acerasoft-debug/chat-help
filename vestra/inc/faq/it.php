@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => 'Come si paga attualmente?',
-        'a' => '<b>I pagamenti avvengono attualmente su fattura.</b> Dopo la conferma dell\'ordine ricevi una fattura proforma e paghi tramite bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è temporaneamente sospeso e tornerà disponibile in una fase successiva.',
+        'a' => 'I pagamenti avvengono attualmente su fattura. Dopo la conferma dell\'ordine ricevi una fattura proforma e paghi tramite bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è temporaneamente sospeso e tornerà disponibile in una fase successiva.',
       ),
       1 => 
       array (

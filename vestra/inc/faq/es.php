@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => '¿Cómo pago actualmente?',
-        'a' => '<b>Actualmente los pagos se realizan por factura.</b> Tras confirmar tu pedido recibes una factura proforma y pagas por transferencia bancaria; la mercancía se envía tras el pago. El pago con depósito en garantía/tarjeta descrito más abajo está temporalmente suspendido y volverá más adelante.',
+        'a' => 'Actualmente los pagos se realizan por factura. Tras confirmar tu pedido recibes una factura proforma y pagas por transferencia bancaria; la mercancía se envía tras el pago. El pago con depósito en garantía/tarjeta descrito más abajo está temporalmente suspendido y volverá más adelante.',
       ),
       1 => 
       array (
