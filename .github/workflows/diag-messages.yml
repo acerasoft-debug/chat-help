@@ -281,27 +281,26 @@ jobs:
                      ." | okunmamis=".yn(vestra_msg_unread($t, $uid))
                      ." | okuma imleci=".(int)($t['read'][$uid] ?? 0)."/".count($msgs)."\n";
                 }
-                /* SON MESAJ ICIN KAPI ZILI. vestra_msg_send yalnizca alicinin o an
-                   okunmamis mesaji YOKSA e-posta atiyor; bu kosul hicbir yerde
-                   kayda gecmiyordu ve "sistem bu mesaji musteriye e-posta olarak
-                   gonderdi mi?" sorusunun cevabi kodu okuyarak tahmin ediliyordu.
-                   Imlec son mesajin oncesinde kaldiysa durum birebir kurulabilir;
-                   alici o mesaji sonradan okuduysa kurulamaz ve oyle yazilir. */
+                /* SON MESAJ ICIN KAPI ZILI. Gonderim aninda thread'e damga
+                   basiliyor ($t['ping'][uid]); "sistem bu mesaji musteriye
+                   e-posta olarak gonderdi mi?" sorusu artik tahminle degil bu
+                   damgayla cevaplaniyor. Damgadan ONCEKI mesajlarda damga yok --
+                   o donem icin kurulamaz oldugu yazilir. */
                 $lastFrom = (string)($last['from'] ?? '');
                 $rcpt = $lastFrom === (string)($t['buyer_uid']??'') ? (string)($t['seller_uid']??'') : (string)($t['buyer_uid']??'');
                 if ($rcpt !== '' && !(defined('VESTRA_SUPPORT_UID') && $rcpt === VESTRA_SUPPORT_UID) && $lastFrom !== 'system') {
-                  $cur = (int)($t['read'][$rcpt] ?? 0);
-                  $lastIdx = count($msgs) - 1;
-                  if ($cur > $lastIdx) {
-                    echo "    kapi zili (e-posta): BILINMIYOR — alici mesaji okumus, o anki imlec kurtarilamiyor\n";
+                  $rAcc  = $byId[$rcpt] ?? null;
+                  $ping  = (int)($t['ping'][$rcpt] ?? 0);
+                  $lastT = strtotime((string)($last['at'] ?? ($t['last_at'] ?? ''))) ?: 0;
+                  if (!$rAcc || trim((string)($rAcc['email'] ?? '')) === '') {
+                    echo "    kapi zili (e-posta): GITMEDI — alicinin kayitli adresi yok\n";
+                  } elseif ($ping === 0) {
+                    echo "    kapi zili (e-posta): BILINMIYOR — damga oncesi donem (6 Eyl 2026'dan eski)\n";
+                  } elseif ($lastT && $ping >= $lastT - 5) {
+                    echo "    kapi zili (e-posta): GITTI ".gmdate('Y-m-d H:i', $ping)."Z — icerik YOK, sadece 'yeni mesaj var' bildirimi\n";
                   } else {
-                    $had = false;
-                    for ($i = max(0,$cur); $i < $lastIdx; $i++) if ((string)($msgs[$i]['from'] ?? '') !== $rcpt) { $had = true; break; }
-                    $rAcc = $byId[$rcpt] ?? null;
-                    $noAddr = !$rAcc || trim((string)($rAcc['email'] ?? '')) === '';
-                    echo "    kapi zili (e-posta): ".($noAddr ? "GITMEDI — alicinin kayitli adresi yok"
-                         : ($had ? "GITMEDI — alicinin zaten okunmamis mesaji vardi (tekrar zil calmaz)"
-                                 : "GITTI — icerik YOK, sadece 'yeni mesaj var' bildirimi"))."\n";
+                    echo "    kapi zili (e-posta): GITMEDI — onceki bildirimden bu yana ".VESTRA_MSG_PING_GAP
+                       ." sn dolmamisti (son zil ".gmdate('Y-m-d H:i', $ping)."Z)\n";
                   }
                 }
               }

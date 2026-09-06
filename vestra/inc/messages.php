@@ -11,6 +11,35 @@ function vestra_msg_file(): string { return dirname(__DIR__).'/data/messages.jso
  * seller (demo / catalogue items). These threads route to the operator, who replies
  * from Admin → Messages. */
 const VESTRA_SUPPORT_UID = 'vestra-support';
+/* Burst window for the "new message" mail, in seconds. Every message is mailed except
+   ones that land within this window of the previous mail to the same recipient in the
+   same thread — a supplier typing three lines in a row sends one notification, not
+   three. Set to 0 to mail literally every message. */
+const VESTRA_MSG_PING_GAP = 120;
+
+/**
+ * Does this message earn a "new message" mail to the recipient?
+ *
+ * Yes for every message, except one landing inside the burst window of the previous
+ * mail to the same recipient in the same thread. It used to be "only the first unread
+ * message since they last read the thread", which meant a supplier answering a
+ * customer who had not opened the previous note reached nobody at all — the reply sat
+ * in a panel the customer had no reason to open, and from the outside that is
+ * indistinguishable from a mail that failed to send (operator, 6 Sep 2026:
+ * "email gitsin mesajdan sonra").
+ *
+ * $lastPing is 0 when no mail has ever gone to this recipient in this thread.
+ */
+function vestra_msg_should_ping(int $lastPing, int $now, int $gap = VESTRA_MSG_PING_GAP): bool {
+    if ($lastPing <= 0) return true;
+    if ($gap <= 0) return true;
+    /* A clock that jumped backwards (or a stamp written by a host ahead of this one)
+       leaves $now < $lastPing. Suppressing until the clock catches up would silence
+       the notification for as long as the skew lasts, so a stamp in the future is
+       treated as no stamp. */
+    if ($now < $lastPing) return true;
+    return ($now - $lastPing) >= $gap;
+}
 function vestra_msg_label(string $uid): string { return $uid === VESTRA_SUPPORT_UID ? 'VESTRA Support' : ''; }
 
 /**
@@ -127,11 +156,20 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
     $threads = vestra_msg_threads();
     $id = vestra_msg_thread_id($buyerUid, $sellerUid, $listingId);
     $recipient = $fromUid === $buyerUid ? $sellerUid : $buyerUid;
-    $hadUnread = false; // was the recipient already behind before this message?
+    /* EVERY message rings the doorbell. The old rule mailed only the first unread
+       message in a thread, so a supplier answering a customer who had not opened
+       the previous note reached nobody: the message sat in a panel the customer had
+       no reason to open, and the operator could not tell it apart from a delivery
+       failure. A trade conversation is worth one mail per message.
+       The only thing still held back is a burst: several messages typed in the same
+       minute are one thought, not several, and would arrive as a stack of identical
+       notifications. */
+    $now = time();
+    $lastPing = 0;
     $found = false;
     foreach ($threads as &$t) {
         if (($t['id']??'') === $id) {
-            $hadUnread = vestra_msg_unread($t, $recipient);
+            $lastPing = (int)($t['ping'][$recipient] ?? 0);
             $t['messages'][] = ['from'=>$fromUid, 'text'=>$text, 'at'=>date('c')];
             $t['last_at'] = date('c');
             $found = true;
@@ -150,19 +188,28 @@ function vestra_msg_send(string $buyerUid, string $sellerUid, string $fromUid, s
             'messages'   => [['from'=>$fromUid, 'text'=>$text, 'at'=>date('c')]],
         ];
     }
-    vestra_msg_save_threads($threads);
     require_once __DIR__.'/notify.php';
+    /* Decided BEFORE the file is written, so the ping stamp rides along in the same
+       save. Working it out after the save meant writing messages.json twice for one
+       message, with another request free to land in between. */
+    $mayPing = vestra_msg_should_ping($lastPing, $now);
+    $recAcc = null;
+    if ($mayPing && $recipient !== '' && $recipient !== VESTRA_SUPPORT_UID) {
+        foreach (auth_accounts() as $a) { if (($a['id']??'') === $recipient) { $recAcc = $a; break; } }
+        if ($recAcc && !empty($recAcc['email'])) {
+            foreach ($threads as &$t2) { if (($t2['id']??'') === $id) { $t2['ping'][$recipient] = $now; break; } }
+            unset($t2);
+        }
+    }
+    vestra_msg_save_threads($threads);
     $fromLabel = vestra_msg_label($fromUid); $fromEmail = '';
     if ($fromLabel === '') {
         foreach (auth_accounts() as $a) { if (($a['id']??'') === $fromUid) { $fromLabel = $a['company'] ?: ($a['name'] ?: 'A VESTRA user'); $fromEmail = $a['email'] ?? ''; break; } }
     }
     if ($fromLabel === '') $fromLabel = 'A VESTRA user';
-    // Email ping to the recipient — only on the FIRST unread message since they last read
-    // the thread (no per-message spam). Content stays out of the mail: conversations live
-    // on VESTRA, the mail is just the doorbell.
-    if (!$hadUnread && $recipient !== '' && $recipient !== VESTRA_SUPPORT_UID) {
-        $recAcc = null;
-        foreach (auth_accounts() as $a) { if (($a['id']??'') === $recipient) { $recAcc = $a; break; } }
+    /* Email ping to the recipient, on every message outside the burst window. Content
+       stays out of the mail: conversations live on VESTRA, the mail is just the doorbell. */
+    if ($mayPing && $recipient !== '' && $recipient !== VESTRA_SUPPORT_UID) {
         if ($recAcc && !empty($recAcc['email'])) {
             $panel = ($recAcc['type']??'') === 'seller' ? 'seller' : 'buyer';
             /* The buyer's doorbell carries the same ident the panel shows. The shop name
