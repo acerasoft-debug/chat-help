@@ -1121,4 +1121,9 @@ return array (
   'Wrong, missing or faulty goods only' => 'Uniquement marchandise erronée, manquante ou défectueuse',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Les commandes en gros ne sont pas reprises — uniquement marchandise erronée, manquante ou défectueuse.',
 
+  'Pre-order' => 'Précommande',
+
+  'Sold out' => 'Épuisé',
+  'This item is no longer available to order.' => 'Cet article n\'est plus disponible à la commande.',
+
 );

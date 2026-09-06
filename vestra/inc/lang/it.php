@@ -1121,4 +1121,9 @@ return array (
   'Wrong, missing or faulty goods only' => 'Solo merce errata, mancante o difettosa',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Gli ordini all\'ingrosso non sono soggetti a reso — solo merce errata, mancante o difettosa.',
 
+  'Pre-order' => 'Preordine',
+
+  'Sold out' => 'Esaurito',
+  'This item is no longer available to order.' => 'Questo articolo non è più disponibile per l\'ordine.',
+
 );

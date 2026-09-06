@@ -84,13 +84,14 @@ $t('bolgesel kodlar xx-YY bicimli',                           !array_filter(arra
 $t('Avrupa: de-AT, fr-BE, it-CH, en-NL var',                  isset($map['de-AT'], $map['fr-BE'], $map['it-CH'], $map['en-NL']));
 $t('en-NL Ingilizceye gider',                                 ($map['en-NL'] ?? '') === 'en');
 
-echo "-- her sozluk de.php'ye karsi EKSIKSIZ (8 dil) --\n";
+echo "-- her sozluk de.php'ye karsi EKSIKSIZ (9 dil) --\n";
 /* Operator: "5 dilde eksiksiz" -> "6-7 dil yap, rusca ve portekizce ekle" -> "arapcada yap"
    (3 Eyl 2026). de.php referans set: vlang_list()'teki her dil icin HER anahtar var ve yer
    tutucu / HTML etiket sayisi ayni. t() Ingilizceye dustugu icin eksik bir anahtar sessizce
    yarim ceviri olur -- bu test onu gorunur kilar. */
 $ref = require __DIR__.'/../vestra/inc/lang/de.php';
-$t('vlang_list 8 dil: en fr es it de pt ru ar',              array_keys(vlang_list()) === ['en','fr','es','it','de','pt','ru','ar']);
+/* 5 Eyl 2026: Japonca eklendi (operator: "Japon dilini tum site icin uygula"). */
+$t('vlang_list 9 dil: en fr es it de pt ru ar ja',           array_keys(vlang_list()) === ['en','fr','es','it','de','pt','ru','ar','ja']);
 foreach (array_keys(vlang_list()) as $L) {
     if ($L === 'en') continue;
     $f = __DIR__."/../vestra/inc/lang/$L.php";
@@ -109,10 +110,23 @@ foreach (array_keys(vlang_list()) as $L) {
 $t('Arapca RTL: vlang_dir() yalnizca ar icin rtl',            function_exists('vlang_dir'));
 $t('head.php <html dir> basiyor',                             str_contains((string)@file_get_contents(__DIR__.'/../vestra/inc/head.php'), 'dir="<?= vlang_dir() ?>"'));
 $t('index.php <html dir> basiyor',                            str_contains((string)@file_get_contents(__DIR__.'/../vestra/index.php'), 'dir="<?= vlang_dir() ?>"'));
-$t('index.php $T blogunda 8 dil',                             preg_match_all("~^'(en|fr|it|es|de|pt|ru|ar)'=>\\[~m", (string)@file_get_contents(__DIR__.'/../vestra/index.php')) === 8);
-$t('hreflang: ar-AE, pt-BR, ru-RU var',                        isset(vlang_hreflang_map()['ar-AE'], vlang_hreflang_map()['pt-BR'], vlang_hreflang_map()['ru-RU']));
-$t('toptan sozcugu 8 dilde farkli',                            count(array_unique(array_map('vestra_seo_wholesale_word', array_keys(vlang_list())))) === 8);
-$t('B2B terimleri 8 dilde dolu',                               !array_filter(array_keys(vlang_list()), fn($l) => count(vestra_seo_b2b_terms($l)) < 6));
+$t('index.php $T blogunda 9 dil',                             preg_match_all("~^'(en|fr|it|es|de|pt|ru|ar|ja)'=>\\[~m", (string)@file_get_contents(__DIR__.'/../vestra/index.php')) === 9);
+$t('hreflang: ar-AE, pt-BR, ru-RU, ja-JP var',                 isset(vlang_hreflang_map()['ar-AE'], vlang_hreflang_map()['pt-BR'], vlang_hreflang_map()['ru-RU'], vlang_hreflang_map()['ja-JP']));
+$t('toptan sozcugu 9 dilde farkli',                            count(array_unique(array_map('vestra_seo_wholesale_word', array_keys(vlang_list())))) === 9);
+$t('B2B terimleri 9 dilde dolu',                               !array_filter(array_keys(vlang_list()), fn($l) => count(vestra_seo_b2b_terms($l)) < 6));
+
+
+/* 5 Eyl 2026: Japonca font yigini. 'Inter' ve 'Playfair Display' kana/kanji
+   TASIMIYOR; yigin degismezse tarayici rastgele bir yedege duser ve Japonca
+   sayfa Latin sayfalardan kopuk gorunur. Ana sayfa style.css YUKLEMIYOR,
+   kendi kopyasini tasiyor -- ikisi de ayri ayri kontrol ediliyor. */
+$css = (string)@file_get_contents(__DIR__.'/../vestra/inc/style.css');
+$idx = (string)@file_get_contents(__DIR__.'/../vestra/index.php');
+$t('style.css ja font yigini',        str_contains($css, 'html[lang="ja"]') && str_contains($css, 'Noto Sans JP'));
+$t('style.css ja BASLIK yigini',      preg_match('~html\[lang="ja"\][^{]*h1~', $css) === 1);
+$t('index.php kendi ja yiginini tasir', str_contains($idx, 'html[lang="ja"]') && str_contains($idx, 'Noto Sans JP'));
+$t('ja icin CJK web fontu indirilmiyor', !preg_match('~fonts\.googleapis[^"\x27]*Noto\+Sans\+JP~', $css.$idx));
+$t('head.php <html lang> basiyor',    str_contains((string)@file_get_contents(__DIR__.'/../vestra/inc/head.php'), 'lang="<?= vlang() ?>"'));
 
 echo "-- taksonomi ve arayuz metinleri (ek kontrol) --\n";
 $names = [];

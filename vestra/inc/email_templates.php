@@ -1044,6 +1044,110 @@ function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $
 }
 
 /**
+ * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
+ * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
+ * eklendi cunku eksikligi sonradan pahaliya patlardi:
+ *
+ *   1. ON SIPARIS TARIHI. Musteri siparisi ilan on siparise donmeden ONCE verdi.
+ *      Faturayi alip 4.680 EUR odedikten sonra malin dort hafta sonra cikacagini
+ *      ogrenmesi, itiraz ve iade talebi doguran durum. Cumle ILANDAN geliyor
+ *      (vestra_preorder_note), mektuba elle yazilmiyor -- ilan degisirse mektup
+ *      da degisir, ayrisamaz.
+ *   2. LATIN HARFLI ADRES. Fatura PDF'i gomulu olmayan Helvetica + CP1252
+ *      kullaniyor; Cince/Japonca harfler "??????" olarak basiliyor. Adres
+ *      Latin harfle gelmezse belge alicinin adresini kaybeder.
+ *
+ * TARIH SABIT YAZILMIYOR: "ilk is gunu" gonderim aninda hesaplaniyor
+ * (vestra_business_days_after). Sablona "Monday 7 September" gomseydik, ayni
+ * mektup gelecek hafta yeniden gonderildiginde gecmis bir gun soylerdi -- bu
+ * depoda L1212'nin "in stock from 5 May" notu tam boyle dort ay bayat kaldi.
+ */
+function vestra_tpl_order_invoice_soon(string $buyerName, string $ref, int $sendTs = 0, string $preorderLine = '', bool $hasAccount = false, string $signer = 'Marco Bellini'): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sendTs = $sendTs > 0 ? $sendTs : time();
+    /* Sonraki IS gunu, kendi basina hesaplaniyor. Once vestra_business_days_after()
+       varsa ona guveniyordu ve yoksa "+1 gun"e dusuyordu -- Cumartesi gonderimde
+       o dal PAZAR diyordu. Sessizce yanlis bir gun soylemektense hafta sonunu
+       burada atla: bagimliligi olmayan dort satir, her yerde ayni cevap. */
+    $due = $sendTs;
+    do { $due += 86400; } while ((int)date('N', $due) >= 6);
+    $dueTxt = date('l j F', $due);
+
+    $subject = "Your VESTRA order {$ref} — invoice on its way";
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    $opts = ['badge'=>'Invoice being prepared', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your order {$ref}.\n\n"
+      . "Your invoice is being prepared and will be sent to your VESTRA account and by e-mail "
+      . "on the first business day, {$dueTxt}."
+      . ($preorderLine !== ''
+          ? " The goods are a pre-order for this season: dispatch is scheduled for "
+            . $preorderLine . "."
+          : '')
+      . "\n\n"
+      . "So that the invoice and the shipping documents are correct, please confirm your "
+      . "delivery address in Latin script, and whether it is the same as your billing address.\n\n"
+      . "Kind regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Yeni siparis geldi: tesekkur + TESLIMAT ADRESI iste + "fatura adresiyle ayni mi"
+ * + "faturaniz hazirlanip gonderilecek" (operator istegi, 5 Eyl 2026, VES-6B53D265).
+ *
+ * Ref ve tutar PARAMETRE: siparis kaydindan besleniyor, metne gomulmuyor. Bir
+ * mektuba rakam gommek bu depoda iki kez yanlis belgeye yol acti (escrow tavani,
+ * L1212 kademeleri) -- ilan/siparis degisince mektup sessizce yalan oluyor.
+ *
+ * "Fatura hazirlanacak" cumlesi KURAL 5 ile uyumlu: faturayi operator onayi
+ * kesiyor, o yuzden TARIH VERILMIYOR. Isin kendisi, faturasi ZATEN kesilmis
+ * siparise bu mektubu gondermeyi reddediyor -- orada cumle yalan olurdu.
+ *
+ * Latin harfli adres istemesinin sebebi pratik: hava konsimentosu ve gumruk
+ * beyani Latin harf ister; yerel yazim (Cince/Arapca/Yunanca) ise son teslimatta
+ * kuryenin okudugu sey. Ikisini birden istemek musteriye bir sey kaybettirmiyor,
+ * yeniden teslimat denemesini onluyor.
+ */
+function vestra_tpl_order_address_request(string $buyerName, string $ref, float $total = 0.0, string $currency = 'EUR', bool $hasAccount = false, string $signer = 'Marco Bellini'): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $subject = "Your VESTRA order {$ref} — delivery address needed";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($total > 0) {
+        $sym = $currency === 'EUR' ? '€' : ($currency.' ');
+        $rows[] = ['label'=>'Order total', 'value'=>$sym.number_format($total, 2, '.', ',')];
+    }
+    $opts = ['badge'=>'Order received', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders'];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Thank you for your order, and thank you for choosing VESTRA.\n\n"
+      . "We have received your request {$ref} and it is with us now. Before we can prepare the "
+      . "shipping documents, we need your delivery address in full:\n\n"
+      . "1. The delivery address in Latin script. This is what goes on the air waybill and the "
+      . "customs declaration.\n"
+      . "2. If your address is normally written in another script, please include that version as "
+      . "well — the local courier reads it for the final leg of the delivery.\n"
+      . "3. The consignee name and a telephone number the carrier can reach on the day of delivery.\n\n"
+      . "Is the delivery address the same as your billing address? If it is, just confirm and we "
+      . "will use it for both. If it differs, please send us both addresses.\n\n"
+      . "As soon as we have this, your invoice will be prepared and sent to you.\n\n"
+      . "If anything about the order needs changing before we go ahead, please tell us now.\n\n"
+      . "Kind regards,\n\n"
+      . $signer . "\n"
+      . "VESTRA – vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
  * To a buyer whose account is ALREADY open: how ordering and payment work, with
  * the card-escrow ceiling (operator instruction, 2 Sep 2026: "LESSVAT'a yaz",
  * "escrow 3000'de kalsin").

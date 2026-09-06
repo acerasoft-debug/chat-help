@@ -203,6 +203,11 @@ footer a{color:#d8bd86}
 /* ── Mosaic shapes ───────────────────────────────────────────────────────
    Wide tiles get a landscape crop instead of the 3/4 portrait, otherwise a
    double-width card would tower over its neighbours. */
+.shopwrap .ssoldbadge{position:absolute;top:10px;left:10px;z-index:3;background:rgba(20,18,16,.86);
+  color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  padding:5px 9px;border-radius:6px;border:1px solid rgba(255,255,255,.22)}
+/* Fotograf soluyor ama GIZLENMIYOR: urun hala taninmali. */
+.shopwrap .sthumb-sold .sthumbi{opacity:.45;filter:grayscale(.55)}
 .shopwrap .scard-wide{grid-column:span 2}
 .shopwrap .scard-wide .sthumb{aspect-ratio:16/10}
 .shopwrap .scard-wide .stitle{font-size:15px}
@@ -468,7 +473,13 @@ footer a{color:#d8bd86}
              data-price="<?= !$PRICES ? '' : ($dmode==='offer' ? 999999 : $from) ?>"
              data-search="<?= htmlspecialchars(strtolower(($p['brand']??'').' '.($p['name']??'').' '.($p['sku']??'').' '.($p['cat']??''))) ?>"
              data-name="<?= htmlspecialchars($p['name']??'') ?>">
-            <div class="sthumb" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
+            <div class="sthumb<?= (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) ? ' sthumb-sold' : '' ?>" style="background:linear-gradient(135deg,<?= htmlspecialchars(vestra_accent($p)) ?>,#0e0e11)">
+              <?php /* SATILDI serdi: kart katalogda KALIYOR (marka burada satiliyor
+                       bilgisi ve SEO degeri korunsun) ama satilamadigi ilk bakista
+                       belli olsun -- alici urun sayfasina girip anlamasin. */
+                     if (function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)): ?>
+                <span class="ssoldbadge"><?= t('Sold out') ?></span>
+              <?php endif; ?>
               <?php /* The first photo is the one image search has to work with, so it names the
                         product; the second is the same garment on hover and stays decorative. */
                      $_alt = trim(($p['brand'] ?? '').' '.($p['name'] ?? '')); ?>

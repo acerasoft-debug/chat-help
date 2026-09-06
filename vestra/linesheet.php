@@ -10,6 +10,10 @@ require_once __DIR__.'/inc/auth.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 $p = vestra_find($_GET['id'] ?? '');
+/* SATILDI: line sheet bir SIPARIS belgesidir (fiyat + MOQ + kademe). Satilamayan
+   bir urun icin uretmek, alicinin eline siparis edilemeyecek bir fiyat listesi
+   vermek olur. */
+if ($p && function_exists('vestra_is_sold_out') && vestra_is_sold_out($p)) { http_response_code(404); exit; }
 /* 'linesheet' flags the generated pdf/xls pair; 'sheet' is a file the seller uploaded
    themselves. Both are trade documents and both go through the gate below — the
    uploaded one used to be linked straight out of /uploads, which meant a seller's

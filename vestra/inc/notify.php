@@ -794,6 +794,77 @@ function vestra_discover_blocklist(): array {
     'hummel','valento','elisabetta franchi',
     // Own-label menswear chains (their stores are supplied by their own factory)
     "d's damat",'dsdamat','ds damat','orka holding','damat tween',
+    /* 4 Eyl 2026 — operatorun elle verdigi cok partili Avrupa listesi (IT/UK/FR/DE/
+       AT/CH/ES/PT/NL/BE/LU/IE/RO/HU/SE/DK/NO, ~200 satir, agir tekrarli). Blokliste
+       cogunu zaten tutuyordu (Antonioli, Tessabit, END, Smets, Sivasdescalzo, Foot
+       District, Footpatrol, Solebox, Patta, Norse Store, Brown Thomas, Arnotts, Leam,
+       Cruise Fashion, Slam Jam, Zalando, Farfetch, Wood Wood, Bellerose, Steffl,
+       Tiziana Fausti, Folli Follie, Maison Standards, LuisaViaRoma, Mytheresa,
+       Flannels, MatchesFashion); asagidakiler ELLE okununca cikan bosluklardi. */
+    // Kanalda rakip dev e-tailer GRUBU. 'the outnet' zaten listedeydi ama SAHIBI
+    // ve kardes markalari degildi -- ayni grubun ikinci kutusu ayni kapiya cikar.
+    'yoox','ynap','net-a-porter','netaporter','mr porter','mrporter',
+    // Departman magaza (NL/CH). Selfridges zaten listede; De Bijenkorf ayni grup,
+    // ustelik kendi basina da cok subeli bir departman magazasi zinciri.
+    'bijenkorf','jelmoli',
+    // Cok ulkeli sneaker zinciri (CZ merkezli, CEE genelinde subeler)
+    'footshop',
+    /* Kendi markasini uretip satan evler: bunlar kendi fabrikasindan alir, bizden
+       asla. Hepsi listede "butik" diye geldi. 'guidi' ve 'sartoria' BILEREK YOK:
+       "Guidi" yaygin bir Italyan soyadi ve "sartoria" terzihane demek -- ikisi de
+       gercek bir cok markali dukkani sessizce elerdi (mango/zara dersi). Guidi bu
+       partide elle cikarildi; adi listeye girmedi. */
+    'trussardi','krizia','stefanel','fracomina','carla g','sartoria rossi',
+    'omorovicza','magee 1866','magee1866',
+    /* Ayni gun, Almanya (Dusseldorf/Berlin) partisi. Ikisi de listede "bagimsiz
+       magaza" diye geldi ama operatorun kendi tarifi marka oldugunu soyluyor:
+       Pegador "premium sokak modasi ... bagimsiz dev MARKA", Stay Cold Apparel
+       "giyim/hoodie TASARIMI ve satisi yapan". Kendi etiketini ureten bir firma
+       bizden parti almaz. 'pegador' Ispanyolca/Portekizce bir kelime oldugu icin
+       exact_only'de -- alt dize aranirsa gercek bir dukkani elerdi. */
+    'pegador','stay cold apparel','staycoldapparel',
+    /* 24S = LVMH'nin kendi cok markali e-ticaret kanali (Paris). Dior, Celine,
+       Loewe, Fendi ... markalarinin haklarini zaten grup tutuyor: KURAL 1'in
+       "kanalda musteri degil rakip" tarifi. Alan adi tarafi bunu YAKALAMAZ --
+       "24s" govdesi 3 harf, alan adi esleyicisi 4 harften kisa girdileri
+       tumden atliyor. Ad tarafindaki kelime siniri yeterli ve dar: "24seven",
+       "Le 24 Sevres", "H24 Store" gecer, yalniz tek basina duran "24S" eslesir. */
+    '24s',
+    /* 4 Eyl 2026 — Winter 26/27 IKINCI DOKUNUS kuru kosusu. Bu kip daha once
+       yazilmis leadleri seciyor, yani bunlar ilk kampanyayi ZATEN ALMIS: liste
+       eskiden bu adlari tutmuyordu ve mektup gitti. Simdi eklendi ki ikinci
+       duyuru gitmesin. Kendi markasini satanlar: */
+    'rick owens','alice and olivia','aliceandolivia','bonpoint','rothys',
+    'wolford','nanushka','lena hoschek','lenahoschek','frye company',
+    'thefryecompany','dolls kill','dollskill','risk made in warsaw',
+    'riskmadeinwarsaw','nathalie vleeschouwer','nathalievleeschouwer',
+    'margaret oleary','margaretoleary','lola hats','lolahats',
+    /* Zincirler: */
+    'universal store','universalstore','intersport','elverys',
+    'mainline menswear','mainlinemenswear','change lingerie','changelingerie',
+    'blukids','whsmith','duifhuizen','purdey','etrias',
+    /* AVM / outlet koyu isletmecisi -- KURAL 1'in "ev sahibi, mal almiyor"
+       dali (Asya listesindeki 17 satirin aynisi): */
+    'mall of switzerland','mallofswitzerland','foxtown',
+    'outlets at castle rock','outletsatcastlerock','vingaker',
+    /* Dukkan DEGIL: e-ticaret altyapi saticisi ve ISS webmail'i. "Pao" adli
+       leadin adresi contact@prestashop.com'du -- monaco.mc -> Monaco Telecom
+       vakasinin aynisi. 'libero' 6 harf oldugu icin alan adinda zaten TAM
+       eslesme istiyor, yani "Liberoshop" gibi gercek bir ad etkilenmiyor. */
+    'prestashop','libero',
+    /* 4 Eyl 2026, "global 200 unique independent luxury stores" CSV'si. Liste
+       kendini "bagimsiz butik" diye tanitiyor ama icinde sunlar vardi:
+       kendi markasi -- Supreme (VF Corp) ve Retrosuperfuture (SUPER gozluk);
+       yeniden satis pazar yeri -- Flight Club ve Wethenew (Stadium Goods ile
+       ayni sinif, stok almiyorlar, komisyonla baskasinin malini satiyorlar);
+       zincir -- Footkorner (FR ~30 sube), BAIT (ABD, ustelik kendi etiketi);
+       departman magazasi -- Vitkac (Varsova), Steffl/Jelmoli ile ayni dal.
+       'supreme' TEK BASINA EKLENMEDI: gunluk bir kelime, "Supreme Boutique"
+       gibi gercek bir dukkani elerdi -- yalniz tam alan adi/ifade. Ayni sebeple
+       'bait' degil 'baitme'. */
+    'supremenewyork','supreme new york','retrosuperfuture',
+    'flight club','flightclub','wethenew','footkorner','baitme','bait me',
+    'vitkac',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -816,6 +887,17 @@ function vestra_name_is_parked_domain(string $company): bool {
      gercek bir ad ve gecmeli (test tutuyor). */
   if (in_array($k, ['coming soon','coming soon...','under construction','site under construction',
                     'index of /','welcome to nginx!','apache2 default page','it works!'], true)) return true;
+  /* Taranan ad HAM HTML tasiyorsa tarama basarisiz olmustur -- gercek bir firma
+     adinda "<p style=" gecmez. 4 Eyl 2026: block60.it'in adi
+     'Coming soon - <p style="text-ali' geldi; tam eslesme listesi bunu
+     goremedi cunku basligin sonuna HTML kirintisi yapismisti. Kirik bir
+     taramayi selamlamaya cevirmek ("Hello Coming soon - <p style=...")
+     gondermemekten kotu. */
+  if (preg_match('/<\s*(p|div|span|br|img|a|h[1-6])\b|style\s*=|&(nbsp|amp|lt|gt);/i', $k)) return true;
+  /* Bir baslik "coming soon" ile BASLAYIP ardindan harf degil ayirac geliyorsa
+     yer tutucudur. "Coming Soon Concept Store" (gercek ad) ayiracla degil
+     bosluk+harfle devam ettigi icin gecmeye devam eder -- test tutuyor. */
+  if (preg_match('/^(coming soon|under construction|website coming soon)\s*[-–—:|.!<]/i', $k)) return true;
   foreach ([
     'hugedomains','sedo','afternic','dan.com','undeveloped','namecheap marketplace',
     'godaddy auctions','buy this domain','domain for sale','this domain is for sale',
@@ -839,6 +921,12 @@ function vestra_name_is_parked_domain(string $company): bool {
        butik adinda gecebilir). */
     'poker369','pecah138','situs game','situs judi','slot gacor','judi online','slot online',
     'domaine en vente','ce domaine est à vendre','dominio in vendita','dominio en venta',
+    /* 4 Eyl 2026: capriboutique.com'un taranan adi "capriboutique.com registrato
+       con" -- Italyan kayit sirketinin park sayfasi ("... ile kayitli"). Ayni
+       kalibin komsulari da eklendi. Kelime siniri altta zaten var; "Registro"
+       ya da "Con Boutique" gibi gercek adlar etkilenmiyor. */
+    'registrato con','dominio registrato','registrado con','este dominio',
+    'questo dominio','dominio parcheggiato',
   ] as $needle) {
     /* KELIME SINIRI SART -- duz str_contains bu listeyi de gercek adlarin ICINDE
        buluyor: 'sedo' -> "The Sedona Store". Ayni hata vestra_name_is_blocked'da
@@ -927,7 +1015,25 @@ function vestra_blocklist_exact_only(): array {
                 adini tasiyan gercek dukkanlar var -- montblancsports.fr alan
                 adinda alt dizi olarak yakalanip sessizce elenirdi. Ad tarafinda
                 kelime siniri zaten "Mont Blanc Sports"u ayirt ediyor. */
-             'montblanc'] as $t){
+             'montblanc',
+             /* 4 Eyl 2026 cok partili Avrupa listesi: 'stefanel' (8 harf) alt dize
+                arandiginda "stefanellimoda.it" icinde eslesiyor -- Stefanelli yaygin
+                bir Italyan soyadi, yani gercek bir cok markali butik sessizce
+                elenirdi. Test bunu ekledigim anda yakaladi. Ad tarafinda kelime
+                siniri Stefanel'i zaten Stefanelli'den ayiriyor. */
+             'stefanel',
+             /* 'sevenstore' (Liverpool, Frasers Group) 10 harf oldugu icin alan
+                adinda ALT DIZE araniyordu ve "...sevenstore" ile biten her alan
+                adiyla carpisiyor -- "24sevenstore.com" gibi. "24/7" perakendede
+                yaygin bir ad kalibi; gercek bir dukkan sessizce elenirdi.
+                Gercek zincirin alan adi tam olarak sevenstore.com, yani exact
+                eslesme onu kaybetmiyor; ad tarafindaki kelime siniri de duruyor.
+                24S eklerken yazdigim test bunu yakaladi -- giris benim degildi. */
+             'sevenstore',
+             /* Ayni gun, Almanya partisi: 'pegador' Ispanyolca/Portekizce bir
+                kelime (kapan/tutucu) ve baska adlarin icinde gecebilir; alt dize
+                arandiginda gercek bir dukkani sessizce elerdi. */
+             'pegador'] as $t){
       $m[preg_replace('/[^a-z0-9]/','',strtolower($t))]=true;
     }
   }
@@ -1520,7 +1626,39 @@ function vestra_campaign_preview(string $company='', string $lang='en', string $
   return [$subject,$body,$opts];
 }
 
+/* Taranan ad CIPLAK BIR ALAN ADI ise ("chiarulli.it") hitapta kullanilamaz:
+ * mektup "Hello chiarulli.it," diye acilir ve makine urunu oldugu bellidir.
+ * Sifirlanirsa her dilin ZATEN VAR OLAN bos-ad dali devreye girer ("Hello,"),
+ * yani sekiz sablonun hicbirine dokunmadan duzeliyor.
+ *
+ * 4 Eyl 2026'da Italya B partisinde uc mektup boyle gitti (chiarulli.it,
+ * fiacchini.it, mazzolari.it) -- geri alinamadi. CLAUDE.md'deki
+ * factoryoutlet.gr / "Αρχική" notu ayni sinif: orada cozum bir mektubu tekrar
+ * gondermeyi gerektirdigi icin vazgecilmisti. Hitabi notrlestirmek o bedeli
+ * odemiyor: lead kaydina dokunmuyor, damgalari silmiyor, kimseye ikinci
+ * mektup gondermiyor.
+ *
+ * Dar tutuldu: bosluk iceren hicbir ad etkilenmez, yani "Dr. Martens Store"
+ * ya da "Base Blu - Online Luxury Fashion Boutique" oldugu gibi kalir. */
+function vestra_name_is_bare_domain(string $company): bool {
+  $k = trim($company);
+  if ($k === '' || preg_match('/\s/', $k)) return false;
+  /* Tarama bazen adresi SEMASIYLA birlikte veriyor: velvetboutique.it'in adi
+     "https://www.velvetboutique.it" geldi (4 Eyl 2026, Italya C). Ilk yazimda
+     regex sadece ciplak host'u taniyordu, yani bu gecip "Hello -- a note for
+     https://www.velvetboutique.it." olarak basilacakti. Sema ve bas taki
+     soyulup ayni olcute vuruluyor. */
+  $k = preg_replace('#^[a-z][a-z0-9+.-]*://#i', '', $k);
+  $k = preg_replace('#^www\.#i', '', $k);
+  $k = rtrim($k, '/');
+  if ($k === '') return false;
+  return (bool)preg_match('/^[a-z0-9][a-z0-9.-]*\.[a-z]{2,24}$/i', $k);
+}
+
 function vestra_campaign_preview_base(string $company='', string $lang='en', string $featureCat=''): array {
+  /* Tek bogaz: add-and-send, send-outreach ve panel onizlemesi hepsi buradan
+     geciyor, yani duzeltme uc yola birden isliyor. */
+  if (vestra_name_is_bare_domain($company)) $company = '';
   $counts=[]; $brands=[]; $shots=[];
   if(function_exists('vestra_products')){
     $all=vestra_products();

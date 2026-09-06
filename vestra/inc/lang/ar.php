@@ -1117,4 +1117,9 @@ return array (
   'Wrong, missing or faulty goods only' => 'فقط البضاعة الخاطئة أو الناقصة أو المعيبة',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'طلبات الجملة غير قابلة للإرجاع — فقط البضاعة الخاطئة أو الناقصة أو المعيبة.',
 
+  'Pre-order' => 'طلب مسبق',
+
+  'Sold out' => 'نفدت الكمية',
+  'This item is no longer available to order.' => 'لم يعد هذا المنتج متاحًا للطلب.',
+
 );

@@ -392,6 +392,39 @@ $T = [
 ],
 /* Arabic (operator, 3 Sep 2026: "arapcada yap"). Modern Standard Arabic; the page is
    rendered right-to-left (vlang_dir), so the "forward" arrows point left. */
+'ja'=>[
+ 'tagline'=>"ヨーロッパの認証制B2Bファッション卸売",
+ 'meta'=>"ブランドファッションとテキスタイルのための、KYC認証制B2B卸売マーケットプレイス。すべての販売者が審査を受けています。販売者・バイヤーとも無料でご登録いただけます。",
+ 'why'=>'特長','how'=>'ご利用の流れ','join_nav'=>'はじめる',
+ 'pill'=>'稼働中 · 登録受付中',
+ 'h1'=>'ブランドファッションを卸で、<br><span class="acc">認証された</span>やり方で。',
+ 'sub'=>'すべての販売者がKYC認証を受け、すべての注文が明確な請求条件で進み、すべての取引が記録されるB2Bマーケットプレイスです。空約束ではなく、販売者の認証に基づいて設計されています。',
+ 'b_sell'=>'販売者として登録','b_buy'=>'バイヤーとして登録','b_panel'=>'ダッシュボードを開く',
+ 'tr1'=>'KYC認証済みの販売者','tr2'=>'請求書ベースのお支払い','tr3'=>'取引記録',
+ 'p1t'=>'認証済みの販売者のみ','p1d'=>'すべての販売者に法人KYCを実施しています。VAT番号、登記、本人確認。匿名の出品も、推測に頼る取引もありません。',
+ 'p2t'=>'バイヤー保護','p2d'=>'完全な記録を伴う請求書でお支払いいただけます。商品が出品内容と異なる場合は、定められた異議申し立ての手続きが適用されます。',
+ 'p3t'=>'取引の健全性','p3d'=>'すべての注文が記録され、日時が刻まれ、認証済みの販売者アカウントに紐づけられます。売り手と買い手の双方にとって明確な記録が残ります。',
+ 'hsub'=>'設計そのものが信頼を生む — 売り手にも買い手にも。',
+ 'brands_t'=>'在庫のあるブランド','brands_s'=>'認証済み在庫のリアルタイムな一覧です。以下のブランドはすべて、KYC審査を通過した販売者から現在調達できます。',
+ 's1t'=>'認証を受ける','s1d'=>'販売者もバイヤーも、簡単な事業者確認を行います。承認された会員は実際の卸価格をご覧いただけます。',
+ 's2t'=>'仕入れて注文する','s2d'=>'認証済み販売者による出品をご覧ください。ブランド品とテキスタイルベーシックを、明確な請求条件でご注文いただけます。',
+ 's3t'=>'安心して取引する','s3d'=>'認証済みの販売者情報、記録の残る請求、定められた異議申し立ての手続きが、すべての取引を支えます。',
+ 'jt'=>'VESTRAで取引を始める','js'=>'ご登録は無料、契約の縛りもありません。認証済みの販売者・バイヤー数百社が参加しています。',
+ 'sell_title'=>"販売者の方へ",
+ 'sell_desc'=>'ブランド品やテキスタイル商品を出品し、ヨーロッパ各地の認証済み卸売バイヤーとつながりましょう。',
+ 'sell_f1'=>'すべての注文に記録の残る請求条件',
+ 'sell_f2'=>'手数料は2.8%から。上位プランほど低くなります',
+ 'sell_f3'=>'価格、最低発注数量、段階設定を完全に自分で管理',
+ 'sell_cta'=>'販売者として登録',
+ 'buy_title'=>"バイヤーの方へ",
+ 'buy_desc'=>'KYC認証済みの販売者からファッションを仕入れましょう。すべての取引が記録され、保護されます。',
+ 'buy_f1'=>'KYC認証と審査を経た販売者のみ',
+ 'buy_f2'=>'すべての注文に定められた異議申し立ての手続き',
+ 'buy_f3'=>'閲覧と見積もり依頼は無料',
+ 'buy_cta'=>'バイヤーとして登録',
+ 'app_t'=>'アプリとしてのVESTRA','app_s'=>'ブラウザから直接インストールできます。App StoreもPlay Storeも不要です。価格、注文、メッセージをリアルタイムで確認でき、プッシュ通知にも対応しています。','app_and'=>'Androidにインストール','app_and_hint'=>'Chromeの場合：メニュー ⋮ →「アプリをインストール」。','app_apk'=>'APKをダウンロード','app_ios'=>'iPhoneにインストール','app_ios_hint'=>'Safariで開く → 共有 →「ホーム画面に追加」。','app_noti'=>'通知を有効にする','app_noti_ok'=>'通知は有効です ✓','app_noti_no'=>'通知がブロックされています。ブラウザの設定で許可してください。','app_signin'=>'通知を受け取るには、まずログインしてください。',
+ 'already'=>'すでにアカウントをお持ちですか？','signin'=>'ログイン →',
+],
 'ar'=>[
  'tagline'=>"سوق الجملة B2B الموثوق للأزياء في أوروبا",
  'meta'=>"سوق جملة B2B مع تحقق KYC من البائعين، للأزياء ذات العلامات التجارية والمنسوجات. كل بائع يخضع للتحقق. سجّل مجانًا كبائع أو مشترٍ.",
@@ -440,7 +473,7 @@ $t = $T[$lang] ?? $T['en'];
 // ── SEO: canonical + multilingual hreflang + social + structured data ──
 $SEO_HOST = 'https://vestrasales.com'; $OG_IMAGE = $SEO_HOST.'/inc/og-image.png';
 $_hh = fn($l) => $SEO_HOST.'/'.($l === 'en' ? '' : '?lang='.$l);
-$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR'][$lang] ?? 'en_US';
+$_ogloc = ['en'=>'en_US','de'=>'de_DE','fr'=>'fr_FR','it'=>'it_IT','es'=>'es_ES','pt'=>'pt_PT','ru'=>'ru_RU','ar'=>'ar_AR','ja'=>'ja_JP'][$lang] ?? 'en_US';
 /* Brand names, taken from the LIVE catalogue rather than typed in. Two reasons.
    Truthfulness: the page can only ever name a house that is actually in stock, so
    the copy cannot drift into claiming a brand that was never carried. And reach:
@@ -466,6 +499,7 @@ $_kw = [
  'pt'=>'moda B2B por grosso, grossista de moda de marca, roupa de designer autêntica por grosso, marketplace grossista de moda, fornecedores verificados KYC, grossista multimarca, moda de designer por grosso Europa, comprar roupa por grosso',
  'ru'=>'оптовая мода B2B, брендовая одежда оптом, оригинальная дизайнерская одежда оптом, оптовый маркетплейс одежды, поставщики с KYC-проверкой, мультибрендовый опт, дизайнерская одежда оптом Европа, купить одежду оптом',
  'ar'=>'أزياء بالجملة B2B, ملابس ماركات بالجملة, ملابس مصممين أصلية بالجملة, سوق جملة للأزياء, موردون موثوقون KYC, جملة متعددة العلامات, أزياء مصممين بالجملة أوروبا, شراء ملابس بالجملة',
+ 'ja'=>'ファッション 卸売, B2B ファッション マーケットプレイス, ブランド 衣料 卸, デザイナーズ 衣料 仕入れ, ブティック 仕入先, ヨーロッパ 衣料 卸, KYC認証 卸売業者, アパレル 仕入れ B2B',
 ][$lang] ?? '';
 if ($_brandKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_brandKw;
 /* Live categories too ("Sneaker Großhandel", "Polos en gros") -- localised, from stock. */
@@ -534,6 +568,11 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
   /* Tracking in em so the correction scales with the size; the display step is tighter
      than the card-heading step, which a single -.5px could never express. */
+  /* Japonca: Latin yigininda kana/kanji yok, Playfair'de hic yok. Sistem
+     gotik fontlarina geciliyor; indirilen CJK web fontu YOK (5-15 MB). */
+  html[lang="ja"] body,html[lang="ja"] input,html[lang="ja"] select,html[lang="ja"] textarea,html[lang="ja"] button{font-family:'Inter','Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif}
+  html[lang="ja"] h1,html[lang="ja"] h2,html[lang="ja"] h3,html[lang="ja"] .logo{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP','Yu Gothic UI','Yu Gothic','Meiryo','MS PGothic',system-ui,sans-serif}
+  html[lang="ja"] body{line-height:1.75;word-break:normal;overflow-wrap:anywhere}
   h1,h2,h3{font-family:'Playfair Display',Georgia,serif;font-weight:700;line-height:1.12;
     letter-spacing:-.012em;text-wrap:balance}
   h1{letter-spacing:-.022em}
@@ -951,13 +990,13 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
       <span><?= htmlspecialchars($BRAND) ?><span class="logo-sub">sales</span></span>
     </a>
     <div class="nav-links">
-      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
-      <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات'][$lang] ?? 'Requests' ?></a>
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج','ja'=>'カタログ'][$lang] ?? 'Catalog' ?></a>
+      <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات','ja'=>'リクエスト'][$lang] ?? 'Requests' ?></a>
       <a href="/faq">FAQ</a>
       <?php /* short label here, not $t['brands_t'] — that is a full section heading
                ("Die Marken im Bestand", "Las maisons disponibles") and as a nav item it
                alone pushed the menu ~120px wider than the header could hold. */ ?>
-      <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية'][$lang] ?? 'Brands' ?></a><?php endif; ?>
+      <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية','ja'=>'ブランド'][$lang] ?? 'Brands' ?></a><?php endif; ?>
       <a href="#how"><?= $t['how'] ?></a>
       <?php /* brand name dropped from this label only (the drawer and footer keep it) —
                redundant three centimetres from the wordmark, and it cost ~65px of header
@@ -970,7 +1009,7 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
                tasiyordu ve iki kopya er gec ayrisirdi -- nitekim ayrismisti,
                buradaki baglantilar sorgu parametrelerini korumuyordu. */ ?>
       <?= vlang_switcher() ?>
-      <?php if(!$LOGGED): ?><a href="/login" class="nav-signin"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
+      <?php if(!$LOGGED): ?><a href="/login" class="nav-signin"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول','ja'=>'ログイン'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
       <a href="<?= $LOGGED ? $panelHref : '/register' ?>" class="nav-cta"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     </div>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="mnav">
@@ -978,13 +1017,13 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     </button>
   </nav></div>
   <div class="mnav" id="mnav">
-    <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
-    <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات'][$lang] ?? 'Requests' ?></a>
+    <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج','ja'=>'カタログ'][$lang] ?? 'Catalog' ?></a>
+    <a href="/requests"><?= ['en'=>'Requests','fr'=>'Demandes','it'=>'Richieste','es'=>'Solicitudes','de'=>'Anfragen','pt'=>'Pedidos','ru'=>'Запросы','ar'=>'الطلبات','ja'=>'リクエスト'][$lang] ?? 'Requests' ?></a>
     <a href="/faq">FAQ</a>
-    <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية'][$lang] ?? 'Brands' ?></a><?php endif; ?>
+    <?php if ($_brands): ?><a href="#brands"><?= ['en'=>'Brands','fr'=>'Marques','it'=>'Marchi','es'=>'Marcas','de'=>'Marken','pt'=>'Marcas','ru'=>'Бренды','ar'=>'العلامات التجارية','ja'=>'ブランド'][$lang] ?? 'Brands' ?></a><?php endif; ?>
     <a href="#how"><?= $t['how'] ?></a>
     <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
-    <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
+    <?php if(!$LOGGED): ?><a href="/login"><?= ['en'=>'Sign in','fr'=>'Se connecter','it'=>'Accedi','es'=>'Iniciar sesión','de'=>'Anmelden','pt'=>'Iniciar sessão','ru'=>'Войти','ar'=>'تسجيل الدخول','ja'=>'ログイン'][$lang] ?? 'Sign in' ?></a><?php endif; ?>
     <a href="<?= $LOGGED ? $panelHref : '/register' ?>"><?= $LOGGED ? $t['b_panel'] : $t['join_nav'] ?></a>
     <?php /* Cekmecede DUZ: acilir menu burada bir sey kazandirmaz, cekmece
              zaten tam ekran bir katman. */ ?>
@@ -1522,7 +1561,7 @@ if ($shoePicks):
     <div><b style="color:var(--ink)"><?= htmlspecialchars($BRAND) ?></b> — <?= $t['tagline'] ?>
       <div style="margin-top:6px;opacity:.8"><?= htmlspecialchars($COMPANY) ?></div></div>
     <div class="foot-links">
-      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج'][$lang] ?? 'Catalog' ?></a>
+      <a href="/shop"><?= ['en'=>'Catalog','fr'=>'Catalogue','it'=>'Catalogo','es'=>'Catálogo','de'=>'Katalog','pt'=>'Catálogo','ru'=>'Каталог','ar'=>'الكتالوج','ja'=>'カタログ'][$lang] ?? 'Catalog' ?></a>
       <a href="/faq">FAQ</a>
       <a href="#why"><?= $t['why'].' '.htmlspecialchars($BRAND) ?></a>
       <a href="mailto:<?= htmlspecialchars($CONTACT) ?>" class="acc"><?= htmlspecialchars($CONTACT) ?></a>

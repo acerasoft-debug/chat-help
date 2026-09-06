@@ -47,6 +47,67 @@ function vestra_ships_from(array $p = []): string {
     return mb_strlen($z) === 2 ? mb_strtoupper($z) : $z;
 }
 
+/* SATILDI / STOK DISI (operator karari, 5 Eyl 2026: "satildi olarak isaretle
+ * satin alinamasin stok disi" -- Jacquemus).
+ *
+ * NEDEN YENI BIR ALAN: elde iki secenek vardi ve ikisi de bu isi yapmiyordu.
+ * 'unlisted' urunu katalogdan tumden CIKARIYOR, status!=approved da oyle --
+ * ikisi de "gizle" demek. Operatorun istedigi ise urunun GORUNMESI ama
+ * SATIN ALINAMAMASI. Ayri kavram, ayri alan.
+ *
+ * SATILDI ≠ GIZLI, bilerek: sayfa ayakta kaliyor, SEO degeri ve gelen
+ * baglantilar korunuyor, alici markanin burada satildigini gormeye devam
+ * ediyor. Yalnizca satin alma kapaniyor.
+ *
+ * DUGMEYI GIZLEMEK KAPI DEGILDIR. Bu depoda ayni ders dropship'te kayitli:
+ * vestra_dropship_of() en basta bakiyor ve elle acilmis blogu bile eziyor.
+ * Bu yuzden alti satin alma yolunun HEPSI sunucu tarafinda ayri ayri
+ * kontrol ediyor (sepet/siparis, numune, teklif, dropship, grup alimi,
+ * line sheet) -- form gonderen biri kapiyi asamasin. */
+function vestra_is_sold_out(array $p = []): bool {
+    $v = $p['sold_out'] ?? false;
+    if (is_string($v)) { $v = strtolower(trim($v)); return $v === 'true' || $v === '1' || $v === 'yes'; }
+    return (bool)$v;
+}
+
+/* On siparis notu (operator istegi, 5 Eyl 2026: "Rezervasyonlar icin erken
+ * siparis kabul edilmektedir. Urun Ekim basi gonderilecektir").
+ *
+ * NEDEN TARIH ELLE YAZILMIYOR: bu depoda tam olarak bu not curudu. L1212'nin
+ * specs'inde 'Lead time' => 'Pre-order -- in stock from 5 May' SERBEST METIN
+ * olarak duruyordu; 5 Eylul'de hala oradaydi, yani ilan dort aydir gecmis bir
+ * tarihi teslim sozu diye basiyordu. CLAUDE.md bunu KURAL 3'un yasakladigi
+ * tahminle ayni hata diye kaydetmis.
+ *
+ * Cozum: ilan MAKINE OKUR bir tarih tutuyor ('preorder_ship' => 'YYYY-MM-DD'),
+ * cumle ondan uretiliyor ve TARIH GECINCE NOT KENDILIGINDEN KAYBOLUYOR. Bir
+ * pazartesi kimsenin elini surmesi gerekmeden ilan yalan soylemeyi birakiyor.
+ * Gecmis tarihte bos donmek bilincli: "yakinda" demeye devam etmek, hic
+ * dememekten kotu.
+ *
+ * Ayin ilk on gunu "early", 11-20 "mid", sonrasi "late" -- operatorun
+ * "Ekim basi" dedigi sey 1 Ekim icin "early October". */
+/* Yalniz ZAMAN parcasi: "early October 2026". Ayri duruyor cunku iki farkli
+ * yerde farkli cumleye giriyor -- ilan sayfasi "Pre-orders are being accepted ·
+ * dispatch <X>." diyor, alicinin mektubu "dispatch is scheduled for <X>." Tek
+ * kaynak olmasa ikisi ayrisirdi ve hangisinin dogru oldugu belirsizlesirdi. */
+function vestra_preorder_ship_phrase(array $p = [], ?int $now = null): string {
+    $iso = trim((string)($p['preorder_ship'] ?? ''));
+    if ($iso === '') return '';
+    $ts = strtotime($iso.' 23:59:59');
+    if ($ts === false) return '';
+    $now = $now ?? time();
+    if ($ts < $now) return '';           /* tarih gecti -> susar */
+    $d = (int)date('j', $ts);
+    $part = $d <= 10 ? 'early' : ($d <= 20 ? 'mid' : 'late');
+    return $part . ' ' . date('F Y', $ts);
+}
+
+function vestra_preorder_note(array $p = [], ?int $now = null): string {
+    $ph = vestra_preorder_ship_phrase($p, $now);
+    return $ph === '' ? '' : 'Pre-orders are being accepted · dispatch '.$ph.'.';
+}
+
 /* Etiketin onundeki bayrak. Uc sayfada SABIT 🇪🇺 yaziyordu; kaynak satici
    ulkesine baglanınca o sabit bayrak "🇪🇺 Ships from Japan" gibi kendi
    metnini yalanlayacakti. Bayrak artik degerden turetiliyor, cozulemezse
@@ -87,7 +148,11 @@ function vestra_demo_products(){
          list left it out entirely, and the lowest number on the ladder (EUR 25.00 at 320 pc)
          was the only Lacoste figure a reader ever saw. */
       'cat'=>'Polos','sku'=>'LAC-L1212','moq'=>80,'unit'=>'pc','sample_price'=>50.0,'list'=>29.90,
-      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Pre-order — in stock from 5 May. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
+      /* "Pre-order -- in stock from 5 May." cumlesi buradan da cikarildi (5 Eyl
+         2026): specs'teki ikiziyle birlikte dort aydir gecmis bir tarihi teslim
+         sozu diye basiyordu. Tarih ilanin metnine GOMULMEZ -- 'preorder_ship'
+         alanina yazilir, cumleyi vestra_preorder_note() uretir. */
+      'desc'=>'Iconic L.12.12 cotton piqué polo, regular fit, short sleeves, 100% cotton. Sold in lots of 8 (8+8 cartons); minimum order 80 pc (10 lots), at least 4 colours.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#1b5e3a',
       'sizes'=>'Lots of 8 · sizes 3–8 · min 80 pc (10 lots)','size_step'=>8,'min_colors'=>4,
       'colors'=>['Black','White','Beige','Navy','Yellow','Pink','Bordeaux','Green','Blue','Light Blue'],
@@ -102,7 +167,11 @@ function vestra_demo_products(){
         'Fit'=>'Regular fit · ribbed collar & cuffs · 2-button placket',
         'Care'=>'Machine wash 30°C · do not tumble dry',
         'Packaging'=>'Cartons of 8 per colourway (8+8)',
-        'Lead time'=>'Pre-order — in stock from 5 May',
+        /* 'Lead time' => 'Pre-order — in stock from 5 May' KALDIRILDI (5 Eyl
+           2026): tarih dort ay once gecmisti ve ilan hala onu teslim sozu diye
+           basiyordu. Yanlis bir tarih, tarihsizden kotu. Gercek tarih
+           ogrenilince 'preorder_ship'=>'YYYY-MM-DD' olarak eklenir; cumleyi
+           vestra_preorder_note() uretir ve suresi dolunca kendiliginden susar. */
         'Season'=>'SS26 · core carryover',
         'Made in'=>'France / EU',
         'Customs code (HS)'=>'6105.10.00',
@@ -175,8 +244,32 @@ function vestra_demo_products(){
       'unlisted'=>true,
     ],
     [
-      'id'=>'amiri-core-polo','brand'=>'Amiri','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
-      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc','sample_price'=>65.0,
+      /* MARKA DUZELTILDI 5 Eyl 2026: 'Amiri' YANLISTI, dogrusu 'AMI Paris'.
+         Amiri (Mike Amiri, Los Angeles) ile AMI Paris (Alexandre Mattiussi)
+         iki ayri ev; notify.php'nin marka listesi ikisini zaten ayri tutuyor.
+         Bu ilanin kendi verisi bastan sona AMI Paris diyordu:
+           - 'Ami de Coeur' + islemeli kalp-A armasi AMI Paris'in imzasi
+           - satici line sheet'inin adi: ami-paris-polo.pdf
+           - SKU: AMI-PL-014  (AMI PoLo)
+           - Made in Portugal -- AMI Paris'in uretim yeri
+         Yalniz gorunen ad degisti. 'id' ve /uploads/amiri/ yollari OLDUGU GIBI
+         kaldi: id canli siparis VES-6B53D265'in ve mevcut baglantilarin
+         tutamagi, gorsel yollari da sunucudaki dosya adlari. Musteri markayi
+         ad + SKU'dan goruyor, iç tutamaktan degil. */
+      'id'=>'amiri-core-polo','brand'=>'AMI Paris','name'=>'Core Logo Polo — Ami de Cœur','mode'=>'fixed',
+      'cat'=>'Polos','sku'=>'AMI-PL-014','moq'=>50,'unit'=>'pc',
+      /* 5 Eyl 2026: stok yok, rezervasyon aciliyor. Tarih MAKINE OKUR -- cumleyi
+         vestra_preorder_note() uretiyor ve 1 Ekim gecince not kendiliginden
+         susuyor (L1212'nin "5 May" notu boyle curumustu). */
+      'preorder_ship'=>'2026-10-01',
+      /* DROPSHIP VE NUMUNE KAPALI (operator karari, 5 Eyl 2026). Ikisi de TEK
+         PARCAYI HEMEN gonderme sozu veriyor; ortada stok yok, urun Ekim basinda
+         gelecek. Elde olmayan mali "hemen" satan bir dugme, mektuptaki yanlis
+         tarihle ayni sinif hata.
+         'sample_price' SILINDI, degeri kaybolmasin diye burada: 65.0 EUR. Stok
+         gelince alan geri konur; o zamana kadar hem ürün sayfasindaki dugme hem
+         sample-checkout.php'nin kendi kontrolu (satir 37) kapali kalir. */
+      'dropship_off'=>true,
       'desc'=>'Signature Ami de Cœur piqué polo in 100% organic cotton, regular fit, with the tonal embroidered heart-A crest at the chest. Sold in cartons of 10 per colour (mixed sizes S–XXL); minimum order 50 pc, at least 2 colours. Authenticity verified on delivery.',
       'seller'=>'GARAGE LE PARIS','seller_uid'=>'7ab30f26afedd840','origin'=>'EEA stock · proof on request','verified'=>true,'accent'=>'#4a1420',
       'sizes'=>'Cartons of 10 · sizes S–XXL · min 50 pc (≥2 colours)','size_step'=>10,'min_colors'=>2,
@@ -272,6 +365,15 @@ function vestra_brand_logo($brand){
       '<line x1="28%" y1="58%" x2="72%" y2="58%" stroke="rgba(255,255,255,.45)" stroke-width="0.8"/>'.
       '<text x="50%" y="78%" dominant-baseline="middle" text-anchor="middle" fill="rgba(255,255,255,.65)" '.
       'font-family="Georgia,\'Times New Roman\',serif" font-size="11" letter-spacing="4">POLO</text></svg>',
+
+    /* Iki AYRI ev, iki ayri kelime markasi. 'Amiri' anahtari duruyor cunku
+       gercek bir Amiri ilani eklenirse logosu hazir olsun; katalogda su an
+       Amiri urunu YOK (tek ilan AMI Paris'e duzeltildi, 5 Eyl 2026). */
+    'AMI Paris'=>
+      '<svg viewBox="0 0 200 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
+      '<text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="white" '.
+      'font-family="\'Helvetica Neue\',Helvetica,Arial,sans-serif" font-size="26" font-weight="600" letter-spacing="5">'.
+      'AMI PARIS</text></svg>',
 
     'Amiri'=>
       '<svg viewBox="0 0 180 62" xmlns="http://www.w3.org/2000/svg" class="brand-logo">'.
@@ -852,11 +954,15 @@ function vestra_group_enrich($p){
 /* All products opened for group buying, enriched + sorted (almost-funded first). */
 function vestra_group_pools(){
   $pools=[];
-  foreach(vestra_products() as $p){ if(!empty($p['group'])) $pools[]=vestra_group_enrich($p); }
+  foreach(vestra_products() as $p){ if(!empty($p['group']) && !vestra_is_sold_out($p)) $pools[]=vestra_group_enrich($p); }
   usort($pools, function($a,$b){ return $b['_pct']<=>$a['_pct']; });
   return $pools;
 }
-function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])) return null; return vestra_group_enrich($p); }
+/* SATILDI olan urun havuz olarak da acilmaz: hem /groups listesinden duser
+   (vestra_group_pools -> vestra_products zaten sold_out'u tasiyor ama havuz
+   ayri bir satis yolu) hem group-checkout burayi cagirdigi icin sunucu
+   tarafinda da kapali olur. Tek yerde kesmek, iki yerde unutmaktan iyi. */
+function vestra_group_pool($id){ $p=vestra_find($id); if(!$p||empty($p['group'])||vestra_is_sold_out($p)) return null; return vestra_group_enrich($p); }
 
 /* ─── Uploads ─── */
 /* Validate + store one uploaded product photo; returns '/uploads/…' or '' on any failure.
@@ -1130,7 +1236,11 @@ function vestra_seo_brands(int $max = 14): array {
 /** "wholesale" in the visitor's language — the word that actually appears in the query. */
 function vestra_seo_wholesale_word(string $lang): string {
     return ['en'=>'wholesale','fr'=>'en gros','it'=>'ingrosso','es'=>'al por mayor','de'=>'Großhandel',
-            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة'][$lang] ?? 'wholesale';
+            'pt'=>'por grosso','ru'=>'оптом','ar'=>'بالجملة',
+            /* 5 Eyl 2026: Japonca. "卸売" toptan satisin kendisi; arama
+               hacminde "卸" tek basina da yaygin ama tek karakter marka
+               adlarinin icinde de geciyor, o yuzden tam sozcuk. */
+            'ja'=>'卸売'][$lang] ?? 'wholesale';
 }
 
 /* Brand <-> URL slug. The landing pages live at /wholesale/<slug>, so the slug has to
@@ -1161,6 +1271,7 @@ function vestra_seo_b2b_terms(string $lang): array {
         'pt' => ['por grosso', 'fornecedor B2B', 'grossista', 'lote de stock', 'preços de revenda', 'para boutiques'],
         'ru' => ['оптом', 'B2B поставщик', 'опт', 'сток', 'оптовые цены', 'для бутиков'],
         'ar' => ['بالجملة', 'مورد B2B', 'جملة', 'ستوك', 'أسعار الجملة', 'للبوتيكات'],
+        'ja' => ['卸売', 'B2Bサプライヤー', '仕入れ', '在庫ロット', '卸価格', 'ブティック向け'],
     ][$lang] ?? [];
 }
 

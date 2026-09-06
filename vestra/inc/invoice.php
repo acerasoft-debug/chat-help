@@ -99,10 +99,23 @@ function vestra_payment_rails(array $acc, string $currency): array {
     $g = fn(string $k) => trim((string)($acc[$k] ?? ''));
     if (strtoupper(trim($currency)) === 'USD') {
         if ($g('bank_account') === '' || $g('bank_routing') === '') return [];
-        return [
+        /* ABA yalniz ABD ICI havale icindir. Yurt disindan (Hong Kong, Cin,
+           Japonya...) gelen bir havale SWIFT ile yollanir ve gonderenin bankasi
+           lehdar adi + banka adi + banka adresi ister; bunlarsiz transfer geri
+           doner ya da askida kalir. 5 Eyl 2026'ya kadar bu fatura yalniz hesap
+           numarasi ve ABA basiyordu -- ABD ici odeme icin yeterli, uluslararasi
+           odeme icin EKSIK. Alanlar KURAL 5c'de zaten hesapta duruyordu, sadece
+           belgeye yazilmiyordu.
+           Dolu olmayan satir hic basilmiyor: uydurulmus bir SWIFT, eksik
+           satirdan cok daha pahali. */
+        return array_values(array_filter([
+            $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
             'Account number: '.$g('bank_account').($g('bank_acct_type') !== '' ? '  ('.$g('bank_acct_type').')' : ''),
-            'Routing number (ABA): '.$g('bank_routing'),
-        ];
+            'Routing number (ABA, domestic): '.$g('bank_routing'),
+            $g('bank_bic')     !== '' ? 'SWIFT / BIC (international): '.$g('bank_bic') : '',
+            $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+            $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
+        ], fn($v) => $v !== ''));
     }
     if ($g('bank_iban') === '') return [];
     /* BIC'i secerken dikkat: yapilandirma DUZ ve tek bir 'bank_bic' tutuyor. ABD
@@ -113,9 +126,14 @@ function vestra_payment_rails(array $acc, string $currency): array {
        yeterli, BIC opsiyoneldir -- eksik bir alan, celisen bir ciftten iyidir. */
     $hasUs = $g('bank_account') !== '' || $g('bank_routing') !== '';
     $bic   = $g('bank_eur_bic') !== '' ? $g('bank_eur_bic') : ($hasUs ? '' : $g('bank_bic'));
+    /* AB DISINDAN gelen bir EUR havalesi de banka adi/adresi ister -- SEPA ici
+       IBAN tek basina yeterli, ama Hong Kong'daki bir banka bunlari soruyor. */
     return array_values(array_filter([
+        $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
         'IBAN: '.vestra_iban_pretty($g('bank_iban')),
         $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
+        $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+        $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
     ], fn($v) => $v !== ''));
 }
 
@@ -841,6 +859,35 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
     });
 
+    /* CIZILEMEYEN KARAKTER UYARISI -- yalniz TASLAKTA.
+       Cizici gomulu olmayan Helvetica + CP1252 kullaniyor; Cince/Japonca/
+       Korece/Yunanca/Kiril harfler SESSIZCE soru isaretine donuyor. 5 Eyl
+       2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
+       basiliyordu -- gecerli GORUNEN ama alicinin adini kaybetmis bir fatura.
+       Bu depoda tekrarlanan ders: sessiz kayip, gurultulu hatadan pahali.
+       Uyari KURAL 5d'nin zaten var olan kontrol noktasina, taslagin uzerine
+       basiliyor: operator numarayi yakmadan once goruyor. Kesilmis faturaya
+       basilmiyor -- musteriye giden belgeye ic uyari yazilmaz. */
+    if ($draft) {
+        $lost = [];
+        foreach (['company','name','address','city','country','vat_id','notes'] as $f) {
+            foreach (vestra_pdf_unrenderable((string)($order[$f] ?? '')) as $ch) $lost[$ch] = true;
+        }
+        foreach ($items as $it) {
+            foreach (['name','sku','note'] as $f) {
+                foreach (vestra_pdf_unrenderable((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
+            }
+        }
+        if ($lost) {
+            $chars = implode(' ', array_slice(array_keys($lost), 0, 12));
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $chars) {
+                $p->text($left, 26.0, 7.5,
+                    'WARNING - these characters cannot be printed on this document and appear as "?": '
+                    . $chars . '  Supply a Latin-script name and address before issuing.', false, 0.0);
+            });
+        }
+    }
+
     return $pdf->output();
 }
 
@@ -1072,6 +1119,52 @@ function vestra_invoice_link_label(array $iv): string {
  * onaylamadan once ayni yukten TASLAK cizdirilebilsin: onizleme ile kesilen
  * belge ayni koddan cikmali, yoksa operator bir sey gorur, alici baskasini
  * alir. Iskonto payi, tek seferlik navlun, satici gruplamasi -- hepsi burada. */
+/**
+ * Bu siparisin faturasini kimin kesecegine dair OPERATOR SECIMI ('' = secim yok).
+ *
+ * KURAL 5b tekliflerde bu secimi zaten veriyordu (offer_responses.json ->
+ * invoice_seller_uid) ama SIPARISLERDE yoktu: satici yalniz ilanin
+ * seller_uid'inden geliyordu ve operatorun degistirme yolu hic olmamisti.
+ * Operatorun kendi ifadesiyle "yeni siparislerde satici secme opsiyonu olmasi
+ * gerekiyordu" (5 Eyl 2026, VES-6B53D265 -- ilan GARAGE LE PARIS'in ama fatura
+ * VESTRA'dan kesilecekti).
+ *
+ * Secim order_statuses.json'da duruyor: o dosya zaten siparis basina operator
+ * durumunu tutuyor (status, tracking, payment_receipt, payment_grace_start),
+ * yani yeni bir depo acmaya gerek yok.
+ */
+function vestra_order_invoice_seller_pick(string $ref): string {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $st  = vestra_read_json('order_statuses.json');
+    return trim((string)($st[$ref]['invoice_seller_uid'] ?? ''));
+}
+
+/**
+ * Secimi kaydeder. 'vestra' ACIK bir secimdir (platform kessin demek), '' secimi
+ * KALDIRIR (ilanin saticisina geri doner).
+ *
+ * BULUNAMAYAN HESAP KAYDEDILMEZ. KURAL 5b'nin kendi notu: sessizce Acerasoft
+ * LLC'ye dusmek, operatorun secmedigi tuzel kisiden belge cikarmak olurdu.
+ * Burada da ayni: gecersiz uid false doner, hicbir sey yazilmaz.
+ */
+function vestra_order_set_invoice_seller(string $ref, string $uid): bool {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $uid = trim($uid);
+    if ($uid !== '' && $uid !== 'vestra') {
+        require_once __DIR__.'/auth.php';
+        $found = false;
+        foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $uid) { $found = true; break; } }
+        if (!$found) return false;
+    }
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    if ($uid === '') unset($st[$ref]['invoice_seller_uid']);
+    else             $st[$ref]['invoice_seller_uid'] = $uid;
+    vestra_write_json('order_statuses.json', $st);
+    return true;
+}
+
 function vestra_order_invoice_payloads(string $ref): array {
     require_once __DIR__.'/orders.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
@@ -1096,8 +1189,30 @@ function vestra_order_invoice_payloads(string $ref): array {
         'vat_note'      => trim((string)($orderRow['vat_note'] ?? '')),
         'buyer' => vestra_invoice_buyer($orderRow),
     ];
+    /* Satici: OPERATOR SECIMI > ilanin seller_uid'i > platform. Sira KURAL 5b'nin
+       tekliflerde kurdugu sirayla ayni; buraya 5 Eyl 2026'da eklendi.
+       Secim varken siparis DILIMLENMIYOR: "faturayi su satici kessin" demek tek
+       belge demek. Dilimlemeye devam etseydik iki farkli tuzel kisiden iki
+       numara yanardi ve operatorun sectigi tek satici hicbirinde tek basina
+       olmazdi. Navlun/kupon paylastirma mantigi tek dilimde kendiliginden
+       dogru calisiyor (tek anahtar = tek pay). */
+    $pick = vestra_order_invoice_seller_pick($ref);
+    if ($pick !== '' && $pick !== 'vestra') {
+        /* Kayitli secim SONRADAN silinmis bir hesabi gosteriyorsa sessizce
+           platforma DUSMUYORUZ -- operatorun secmedigi tuzel kisiden belge
+           cikar. Secim yok sayilir, ilanin saticisi gecerli kalir ve panel
+           uyariyi gosterir. */
+        require_once __DIR__.'/auth.php';
+        $exists = false;
+        foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $pick) { $exists = true; break; } }
+        if (!$exists) $pick = '';
+    }
     $bySeller = [];
-    foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    if ($pick !== '') {
+        $bySeller[$pick] = $ld['lines'];
+    } else {
+        foreach ($ld['lines'] as $l) { $bySeller[$l['seller_uid'] ?: 'vestra'][] = $l; }
+    }
 
     /* A voucher discounts the ORDER, but invoices are issued per seller. Putting the whole
        discount on each slice would deduct it as many times as there are sellers, so it is

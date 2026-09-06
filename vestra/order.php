@@ -62,6 +62,10 @@ $cart=json_decode($_POST['cart']??'[]', true); if(!is_array($cart)) $cart=[];
 $lines=[]; $subtotal=0;
 foreach($cart as $it){
   $p=vestra_find($it['id']??''); if(!$p) continue;
+  /* SATILDI: sepette duruyor olabilir (satis kapatilmadan once eklenmis ya da
+     istek elle gonderilmis). Sessizce atlamak yerine DURDURUYORUZ: sessiz
+     atlama, alicinin siparis ozetinde beklemedigi bir eksilme demek. */
+  if (vestra_is_sold_out($p)) { header('Location: /cart?err=soldout'); exit; }
   /* Per-colour carton pickers (Lacoste/RL: min colours + pack step) drive qty from the
      colour breakdown itself, re-derived + re-validated from the client's tokens — the
      posted "qty" is never trusted for these listings. */

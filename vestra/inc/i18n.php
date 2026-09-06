@@ -16,7 +16,7 @@ if(!function_exists('vlang')){
    vlang_dir() gives the <html dir> value and the layout mirrors through flex/grid. Dropping a code here is enough; t() falls back to the English key, so a
    stale dictionary file can never surface a half translated page. Completeness of
    every dictionary against inc/lang/de.php is enforced by tests/seo_landing_test.php. */
-function vlang_list(){ return ['en'=>'EN','fr'=>'FR','es'=>'ES','it'=>'IT','de'=>'DE','pt'=>'PT','ru'=>'RU','ar'=>'AR']; }
+function vlang_list(){ return ['en'=>'EN','fr'=>'FR','es'=>'ES','it'=>'IT','de'=>'DE','pt'=>'PT','ru'=>'RU','ar'=>'AR','ja'=>'JA']; }
 
 /* Writing direction of the active language, for <html dir="…">. Only Arabic is RTL. */
 function vlang_dir(){ return vlang() === 'ar' ? 'rtl' : 'ltr'; }
@@ -38,6 +38,10 @@ function vlang_hreflang_map(){
     'pt' => ['PT','BR'],
     'ru' => ['RU','BY','KZ'],
     'ar' => ['AE','SA','QA','KW','BH','OM','EG','JO','MA'],
+    /* 5 Eyl 2026: Japonca eklendi (operator: "Japon dilini tum site icin uygula").
+       Bolge listesi yalniz JP -- ja-JP. Japonca baska bir ulkenin resmi dili
+       degil, yani hreflang'i baska pazarlara uzatmak yanlis sinyal olurdu. */
+    'ja' => ['JP'],
   ];
   $map = [];
   foreach (array_keys(vlang_list()) as $l) {

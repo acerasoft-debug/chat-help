@@ -34,6 +34,8 @@ if (!$user) {
 }
 
 $p = $id !== '' ? vestra_find($id) : null;
+/* SATILDI: numune de tek parca satistir; stok yokken satilamaz. */
+if ($p && vestra_is_sold_out($p)) { header('Location: ' . $backUrl); exit; }
 if (!$p || empty($p['sample_price']) || !is_numeric($p['sample_price']) || (float)$p['sample_price'] <= 0) {
     // Not sample-eligible (or tampered id) — nothing to sell here.
     header('Location: ' . $backUrl);

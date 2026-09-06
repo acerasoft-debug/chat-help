@@ -266,14 +266,25 @@ foreach (['HugeDomains', 'Sedo', 'Buy this domain', 'This domain is for sale',
           'Domain im Kundenauftrag registriert', 'Domaine en vente', 'Dominio in vendita',
           'Sfera.net Park Page', 'TopDomainer Search Engine', 'Coming Soon', 'Under construction',
           /* Ele gecirilmis alan adlari (2 Eyl 2026): dukkan kapanmis, kumar sitesi almis. */
-          'POKER369', 'PECAH138 ✈️ Situs Game Banyak Promo'] as $n) {
+          'POKER369', 'PECAH138 ✈️ Situs Game Banyak Promo',
+          /* 4 Eyl 2026, Italya B partisi. Ikisi de send=false on kosusunda elle
+             okundugu icin yakalandi -- tam olarak iki-kosu protokolunun sebebi. */
+          'Coming soon - <p style="text-ali',      /* block60.it */
+          'capriboutique.com registrato con',      /* capriboutique.com */
+          /* Kirik tarama: ham HTML tasiyan bir ad firma adi degildir. */
+          'Benvenuti <div class="hdr">', 'Home &nbsp; | Shop'] as $n) {
     $t("park: \"$n\"", vestra_name_is_parked_domain($n));
 }
 echo "\n== 10b. GECMELI — adinda 'domain' gecen GERCEK dukkan ==\n";
 /* Liste bilerek dar: genel bir 'domain'/'shop' kelimesi buraya girerse
    gercek butikler sessizce elenir -- en pahali hata turu. */
 foreach (['Domain Boutique Milano', 'The Sedona Store', 'Coming Soon Concept Store',
-          'Suspended Animation Vintage', 'Maison Ines Ligron', 'NUBIAN'] as $n) {
+          'Suspended Animation Vintage', 'Maison Ines Ligron', 'NUBIAN',
+          /* 4 Eyl 2026 eklemelerinin komsulari: "coming soon" ile BASLAYAN ama
+             ayiracla degil harfle devam eden gercek adlar gecmeli; kayit
+             sirketi kaliplarinin icindeki gunluk kelimeler de oyle. */
+          'Coming Soon Store Berlin', 'Registro Boutique Roma', 'Con Amore Milano',
+          'Este Lauder Concept', 'Style Council Vintage'] as $n) {
     $t("gecer: \"$n\"", !vestra_name_is_parked_domain($n));
 }
 $t('bos ad park sayilmaz', !vestra_name_is_parked_domain(''));
@@ -325,7 +336,142 @@ $t('Tiffany Mode gecer',        !$blocked('Tiffany Mode','','tiffanymode.it'));
 $t('Sinonim Baku gecer',        !$blocked('Sinonim Baku','','sinonim.az'));
 $t('Villa Rosa Boutique gecer', !$blocked('Villa Rosa Boutique','','villarosa.it'));
 
-echo "\n== 13. Asya kendi-etiket evleri (4 Eyl 2026, 150 satirlik liste) ==\n";
+echo "\n== 13. 4 Eyl 2026 cok partili Avrupa listesinden eklenenler ==\n";
+/* Kanalda rakip dev e-tailer GRUBU: 'the outnet' listedeydi ama sahibi YNAP ve
+   kardes markalari degildi -- ayni grubun ikinci kutusu ayni kapiya cikiyor. */
+$t('YNAP',          $blocked('YOOX Net-A-Porter Group','info@ynap.com','ynap.com'));
+$t('Mr Porter',     $blocked('Mr Porter','info@mrporter.com','mrporter.com'));
+$t('Net-a-Porter',  $blocked('Net-a-Porter','cs@net-a-porter.com','net-a-porter.com'));
+$t('De Bijenkorf',  $blocked('De Bijenkorf','service@debijenkorf.nl','debijenkorf.nl'));
+$t('Jelmoli',       $blocked('Jelmoli','info@jelmoli.ch','jelmoli.ch'));
+$t('Footshop',      $blocked('Footshop Budapest','info@footshop.hu','footshop.hu'));
+$t('Omorovicza',    $blocked('Omorovicza Boutique','info@omorovicza.com','omorovicza.com'));
+$t('Magee 1866',    $blocked('Magee 1866','info@magee1866.com','magee1866.com'));
+$t('Krizia',        $blocked('Krizia','info@krizia.it','krizia.it'));
+$t('Trussardi',     $blocked('Trussardi','info@trussardi.com','trussardi.com'));
+$t('Stefanel',      $blocked('Stefanel','customercare@stefanel.com','stefanel.com'));
+$t('Fracomina',     $blocked('Fracomina','info@fracomina.it','fracomina.it'));
+$t('Carla G',       $blocked('Carla G','customercare@carlag.it','carlag.it'));
+$t('Sartoria Rossi',$blocked('Sartoria Rossi','info@sartoriarossi.com','sartoriarossi.com'));
+
+echo "\n== 13b. GECMELI — ayni partide elenmemesi gerekenler ==\n";
+/* 'stefanel' 8 harf oldugu icin alan adinda ALT DIZE araniyordu ve
+   "stefanellimoda.it" icinde eslesti: Stefanelli yaygin bir Italyan soyadi,
+   yani gercek bir butik sessizce elenirdi. exact_only'ye alindi.
+   'guidi' (soyad) ve 'sartoria' (terzihane) ayni sebeple listeye HIC girmedi. */
+$t('Stefanelli Moda gecer',    !$blocked('Stefanelli Moda','info@stefanellimoda.it','stefanellimoda.it'));
+$t('Guidi Boutique gecer',     !$blocked('Guidi Boutique','info@guidiboutique.it','guidiboutique.it'));
+$t('Sartoria Concept gecer',   !$blocked('Sartoria Milano Concept','info@sartoriaconcept.it','sartoriaconcept.it'));
+$t('Carla Gozzi Store gecer',  !$blocked('Carla Gozzi Store','info@carlagozzi.it','carlagozzi.it'));
+$t('Porter Store gecer',       !$blocked('Porter Store Lisboa','info@porterstore.pt','porterstore.pt'));
+$t('Magee Fashion Cork gecer', !$blocked('Magee Fashion Cork','info@mageefashion.ie','mageefashion.ie'));
+$t('Foot Corner Praha gecer',  !$blocked('Foot Corner Praha','info@footcorner.cz','footcorner.cz'));
+
+echo "\n== 13c. Almanya partisi — kendi etiketini ureten markalar ==\n";
+/* Ikisi de listede "bagimsiz magaza" diye geldi ama operatorun kendi tarifi
+   marka oldugunu soyluyor: Pegador "premium sokak modasi ... bagimsiz dev
+   MARKA", Stay Cold Apparel "giyim/hoodie TASARIMI ve satisi yapan". Kendi
+   etiketini ureten bir firma bizden parti almaz -- KURAL 1'in "kendi markasini
+   satan" dali. */
+$t('Pegador',           $blocked('Pegador Streetwear','info@pegador.com','pegador.com'));
+$t('Stay Cold Apparel', $blocked('Stay Cold Apparel','info@staycoldapparel.com','staycoldapparel.com'));
+/* 'pegador' Ispanyolca/Portekizce bir kelime; alt dize arandiginda gercek bir
+   dukkani elerdi, o yuzden exact_only'de. */
+$t('Pegadores Moda gecer', !$blocked('Pegadores Moda','info@pegadoresmoda.es','pegadoresmoda.es'));
+/* Ayni partideki digerleri gecmeli: hepsi cok markali bagimsiz butik. */
+$t('Asphalt Gold gecer',   !$blocked('Asphalt Gold','info@asphaltgold.de','asphaltgold.de'));
+$t('AFEW Store gecer',     !$blocked('AFEW Store','info@afew-store.com','afew-store.com'));
+$t('Label Kitchen gecer',  !$blocked('Label Kitchen','info@labelkitchen.de','labelkitchen.de'));
+
+echo "\n== 13d. 24S — LVMH'nin kendi kanali ==\n";
+/* Alan adi tarafi "24s"i goremez (3 harf; esleyici <4'u tumden atlar), o yuzden
+   ad tarafinin tuttugunu ayrica dogrula -- yoksa engelledigimizi sanip
+   gonderirdik. */
+$t('24S adiyla',        vestra_name_is_blocked('24S'));
+$t('24S Paris adiyla',  vestra_name_is_blocked('24S Paris'));
+/* Kelime siniri dar kalmali: rakamla baslayan gercek dukkan adlari gecmeli. */
+$t('24seven gecer',     !$blocked('24seven Store','info@24sevenstore.com','24sevenstore.com'));
+$t('Le 24 Sevres gecer',!$blocked('Le 24 Sevres','info@le24sevres.fr','le24sevres.fr'));
+$t('H24 Store gecer',   !$blocked('H24 Store','info@h24store.com','h24store.com'));
+
+echo "\n== 13e. Ciplak alan adi hitapta kullanilmaz ==\n";
+/* 4 Eyl 2026: uc mektup "Hello chiarulli.it," diye gitti. Ad sifirlanirsa her
+   dilin var olan bos-ad dali notr hitabi basiyor. */
+foreach (['chiarulli.it','fiacchini.it','mazzolari.it','www.nuvolari.biz','baseblu.com',
+          /* Tarama semayi da getirebiliyor (velvetboutique.it, 4 Eyl 2026). */
+          'https://www.velvetboutique.it','http://vietti.shop','https://sugar.it/',
+          'vietti.shop'] as $n)
+  $t("ciplak: \"$n\"", vestra_name_is_bare_domain($n));
+/* GECMELI -- bosluk iceren gercek adlar ve alan adi olmayanlar dokunulmaz. */
+foreach (['Base Blu - Online Luxury Fashion Boutique','IL DUOMO','Di Vincenzo Boutique',
+          'Dr. Martens Store','NUBIAN','N00b Store','A.P.C','Antonia'] as $n)
+  $t("ad kalir: \"$n\"", !vestra_name_is_bare_domain($n));
+$t('bos ad ciplak sayilmaz', !vestra_name_is_bare_domain(''));
+/* Uctan uca: mektup govdesinde ciplak alan adi GECMEMELI, gercek ad GECMELI. */
+if (function_exists('vestra_campaign_preview_base')) {
+  [$s1,$b1,] = vestra_campaign_preview_base('chiarulli.it','en');
+  $t('govdede ciplak alan adi yok', !str_contains($b1,'chiarulli.it'));
+  [$s2,$b2,] = vestra_campaign_preview_base('Di Vincenzo Boutique','en');
+  $t('govdede gercek ad var',        str_contains($b2,'Di Vincenzo Boutique'));
+}
+
+echo "\n== 13f. Winter 26/27 ikinci dokunus kuru kosusundan ==\n";
+/* Bu 211 adayin hepsi ILK kampanyayi almisti: liste bu adlari tutmadigi icin.
+   Ikinci duyuru gitmeden yakalandi. */
+foreach ([
+  ['Rick Owens','customercare@rickowens.eu'], ['Alice and Olivia','teamao@aliceandolivia.com'],
+  ['Bonpoint','info@bonpoint.com'], ["Rothy's",'bosnewbury@rothys.com'],
+  ['Wolford','service.usa@wolford.com'], ['Nanushka','b3@nanushka.com'],
+  ['Lena Hoschek','onlineshop@lenahoschek.com'], ['Frye','customerservice@thefryecompany.com'],
+  ['Dolls Kill','contact@dollskill.com'], ['Risk','customercare@riskmadeinwarsaw.com'],
+  ['Nathalie Vleeschouwer Outlet','gent@nathalievleeschouwer.be'],
+  ['Margaret O\'Leary','boston@margaretoleary.com'], ['Lola Hats','assistant@lolahats.com'],
+  ['Universal Store','help@universalstore.com.au'], ['Intersport Elverys','info@elverys.ie'],
+  ['Mainline Menswear','sales@mainlinemenswear.co.uk'], ['CHANGE Lingerie','riga@changelingerie.lv'],
+  ['Blukids','x@blukids.it'], ['Misura','inquiry@whsmith.com'],
+  ['Duifhuizen','klantenservice@duifhuizen.nl'], ['Purdey','klantenservice@purdey.nl'],
+  ['Sneaker District','klantenservice@etrias.nl'],
+  ['Mall of Switzerland','info@mallofswitzerland.ch'], ['FoxTown Outlet','info@foxtown.ch'],
+  ['Outlets At Castle Rock','info@outletsatcastlerock.com'],
+  ['Vingakers Factory Outlet','webshop@vingaker.se'],
+  ['Pao','contact@prestashop.com'], ['Libero.it','01zen@libero.it'],
+] as [$n,$e]) $t("engellenmeli: $n", $blocked($n,$e,''));
+
+echo "\n== 13g. GECMELI — ayni partinin gercek butikleri ==\n";
+/* Kelime siniri ve exact_only'nin is gordugunu dogrula: bu adlar yukaridaki
+   girislerin komsulari ve elenmemeli. */
+foreach ([
+  ['Liberoshop Milano','info@liberoshop.it'],      /* 'libero' exact_only */
+  ['Free Store','info@liberostore.com'],
+  ['Yumiko Concept Seoul','info@yumikoconcept.kr'],
+  ['Owens Boutique','info@owensboutique.co.uk'],   /* 'rick owens' tam ifade */
+  ['Sport Corner Wien','info@sportcorner.at'],     /* 'intersport' alt dize degil */
+  ['Purdeys Vintage Room','hi@purdeysvintage.co.uk'], /* 'purdey' exact_only */
+  ['Frye Street Vintage','hello@fryestreet.com'],  /* 'frye company' tam ifade */
+  ['Change Boutique Riga','info@changeboutique.lv'],
+] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+
+echo "\n== 13h. \"global 200 unique independent\" CSV'sinden ==\n";
+foreach ([
+  ['Supreme NY','info@supremenewyork.com'], ['Retrosuperfuture','info@retrosuperfuture.com'],
+  ['Flight Club','info@flightclub.com'],    ['Wethenew Paris','contact@wethenew.com'],
+  ['Footkorner','contact@footkorner.com'],  ['Bait Me','info@baitme.com'],
+  ['Vitkac Warsaw','info@vitkac.com'],
+] as [$n,$e]) $t("engellenmeli: $n", $blocked($n,$e,''));
+
+echo "\n== 13i. GECMELI — 'supreme'/'bait' gunluk kelimeler ==\n";
+/* Bu ikisi TEK BASINA listeye girmedi. Girseydi asagidakiler sessizce elenirdi
+   -- mango/zara dersinin aynisi. */
+foreach ([
+  ['Supreme Boutique Milano','info@supremeboutique.it'],
+  ['Supreme Style Store','hello@supremestyle.co.uk'],
+  ['Baitul Fashion House','info@baitul.ae'],
+  ['Bait Al Zain','info@baitalzain.ae'],
+  ['Flightpath Vintage','info@flightpath.co.uk'],
+  ['New Bait Concept','hi@newbaitconcept.com'],
+] as [$n,$e]) $t("gecmeli: $n", !$blocked($n,$e,''));
+
+echo "\n== 15. Asya kendi-etiket evleri (4 Eyl 2026, 150 satirlik liste) ==\n";
 /* Otomatik kontrol bunlarin hicbirini tutmuyordu: vestra_is_monobrand() yalnizca
    SATTIGIMIZ 78 markaya bakiyor, Japon/Koreli etiketler orada yok. Butik degil
    MARKA olduklari icin bizden parti almazlar. */
@@ -343,7 +489,7 @@ $t('Benjamin Barker (SG)',       $blocked('Benjamin Barker Studio','','benjaminb
 $t('Ngee Ann Galleria = AVM',    $blocked('Ngee Ann Galleria Select','','ngeeanngalleria.sg'));
 $t('izzue = I.T Group zinciri',  $blocked('Hoods Hong Kong','','izzue.com'));
 
-echo "\n== 13b. GECMELI — bu partideki GERCEK cok markali butikler ==\n";
+echo "\n== 15b. GECMELI — bu partideki GERCEK cok markali butikler ==\n";
 foreach ([
     ['Kasina Seoul','kasina.co.kr'], ['Worksout Apgujeong','worksout.co.kr'],
     ['The Armoury Hong Kong','thearmoury.com'], ['Titan 22 Manila','titan22.com'],
@@ -352,7 +498,7 @@ foreach ([
     ['Kapok Sun Street','ka-pok.com'], ['Commonwealth PH','commonwealth-ftgg.ph'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
-echo "\n== 13c. GUNLUK KELIME olan bes ad BILEREK listede yok ==\n";
+echo "\n== 15c. GUNLUK KELIME olan bes ad BILEREK listede yok ==\n";
 /* 'neighborhood', 'unused', 'beaker', 'kapital', 'unaffected' listeye konsaydi
    asagidaki gercek dukkan adlari sessizce elenirdi -- denendi, elendiler.
    Karsiligi: o bes markanin kendi adresi suzgecten gecer ve partide ELLE
@@ -364,7 +510,7 @@ foreach ([
     ['Togashi Mode','togashimode.jp'],                  ['Kolorowa Butik','kolorowa.pl'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
-echo "\n== 14. ABD/Avrupa kendi-etiket evleri (5 Eyl 2026, 200 satirlik liste) ==\n";
+echo "\n== 16. ABD/Avrupa kendi-etiket evleri (5 Eyl 2026, 200 satirlik liste) ==\n";
 /* Ispanyol ve Italyan olanlarin bir kismi 2 Eyl 2026'da ELLE elenmisti; o okuma
    listeye yazilmadigi icin ayni isimler bir sonraki listede yeniden geldi.
    Elle okunan her karar listeye girmezse her partide bastan okunur. */
@@ -380,7 +526,7 @@ foreach ([
     ['Artisanal Cornucopia','artisanalcornucopia.com'],
 ] as [$n,$d]) $t("engelli: {$n}", $blocked($n,'','https://'.$d));
 
-echo "\n== 14b. GECMELI — ayni listedeki GERCEK cok markali butikler ==\n";
+echo "\n== 16b. GECMELI — ayni listedeki GERCEK cok markali butikler ==\n";
 foreach ([
     ['Notre','notre-shop.com'], ['Sugar Arezzo','sugar.it'], ['Concepts','cncpts.com'],
     ['Hervia Bazaar','hervia.com'], ['Ekseption Madrid','ekseption.es'],
@@ -390,7 +536,7 @@ foreach ([
     ['Biffi Boutiques','biffi.com'],
 ] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
 
-echo "\n== 14c. Kendi evinin butigi: Montblanc ==\n";
+echo "\n== 16c. Kendi evinin butigi: Montblanc ==\n";
 /* 5 Eyl 2026 ikinci mektup partisinde boutique.lisboa@montblanc.pt mektup aldi.
    Ayrik yazilis kasten disarida: dagin adi ve onu tasiyan gercek dukkanlar var. */
 $t('engelli: Montblanc Boutique Lisboa', $blocked('Montblanc Boutique Lisboa','boutique.lisboa@montblanc.pt','https://montblanc.pt'));

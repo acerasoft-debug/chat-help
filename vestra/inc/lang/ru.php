@@ -1117,4 +1117,9 @@ return array (
   'Wrong, missing or faulty goods only' => 'Только неверный, недостающий или бракованный товар',
   'Wholesale orders are closed to returns — wrong, missing or faulty goods only.' => 'Оптовые заказы возврату не подлежат — только неверный, недостающий или бракованный товар.',
 
+  'Pre-order' => 'Предзаказ',
+
+  'Sold out' => 'Распродано',
+  'This item is no longer available to order.' => 'Этот товар больше недоступен для заказа.',
+
 );

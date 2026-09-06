@@ -104,6 +104,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Issue (approve) the invoice(s) for an order once stock is confirmed. Auto-invoicing
      is suspended, so the PDF is created HERE on operator approval, then emailed to the
      buyer and added to their account (it appears under My orders / the confirmation page). */
+  /* Faturayi hangi satici kessin (siparis tarafi). KURAL 5b'nin teklif
+     karsiligi; secim order_statuses.json'da duruyor. Bulunamayan hesap
+     KAYDEDILMEZ -- sessizce platforma dusmek, operatorun secmedigi tuzel
+     kisiden belge cikarmak olurdu. */
+  if($act==='order_invoice_seller'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/invoice.php';
+    $uid=trim((string)($_POST['seller_uid']??''));
+    $okPick=vestra_order_set_invoice_seller($ref,$uid);
+    header('Location: /admin?tab=orders&'.($okPick?'seller_saved=':'seller_failed=').urlencode($ref)); exit;
+  }
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -3977,6 +3988,28 @@ foreach($offers as $__o){
                title="Taslak — numara yakmaz, kaydetmez, müşteriye hiçbir şey gitmez"
                href="/admin?pv_order=<?= urlencode($oref) ?>&pv_seller=<?= urlencode($__p['seller_key']) ?>">👁 <?= htmlspecialchars(vestra_invoice_issuer_name($__p['seller'],'VESTRA')) ?></a>
           <?php endforeach; ?>
+          <?php /* SATICI SECIMI (5 Eyl 2026, operator: "yeni siparislerde satici
+                   secme opsiyonu olmasi gerekiyordu"). Tekliflerde KURAL 5b bunu
+                   zaten veriyordu; siparislerde satici yalniz ilanin
+                   seller_uid'inden geliyordu ve degistirme yolu yoktu.
+                   Bos = ilanin saticisi (siparis birden cok saticiya bolunuyorsa
+                   oyle kalir). Bir satici secilirse TEK belge kesilir. */
+                $__pick = vestra_order_invoice_seller_pick($oref); ?>
+          <form method="post" style="margin:0;display:flex;gap:4px;align-items:center">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_invoice_seller">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <select name="seller_uid" style="font-size:12px;max-width:190px"
+                    title="Faturayı hangi satıcı kessin? Boş = ilanın satıcısı. Seçim yapılırsa sipariş tek faturada birleşir.">
+              <option value="">— ilanın satıcısı —</option>
+              <option value="vestra"<?= $__pick==='vestra'?' selected':'' ?>>VESTRA (Acerasoft LLC)</option>
+              <?php foreach(auth_accounts() as $__a): if(($__a['type']??'')!=='seller') continue; ?>
+                <option value="<?= htmlspecialchars($__a['id']??'') ?>"<?= ($__pick===($__a['id']??''))?' selected':'' ?>>
+                  <?= htmlspecialchars($__a['company'] ?: ($__a['name'] ?? $__a['id'] ?? '')) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>
+          </form>
           <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?>? This burns the number(s), stores the PDF(s) and EMAILS THE BUYER. Check the draft (👁) first. Do this once stock is confirmed.')">
             <?= csrfField() ?>
             <input type="hidden" name="_action" value="issue_invoice">
