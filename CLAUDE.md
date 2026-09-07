@@ -653,6 +653,36 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   kendi `$meta`'sını elde kuruyordu (KURAL 5d'nin yasakladığı ikinci kopya);
   şimdi `vestra_order_invoice_payloads()`. `order_doc=invoice:usd` seçimi
   **kayda yazmadan** o birimde önizler. Test: `tests/invoice_currency_test.php`.
+- **Canlı ölçüm, 7 Eyl 2026 (`order_doc=invoice:usd`, run 257):** çevrim doğru
+  çalışıyor — birim €39,00 → **US$45,33**, satır **US$5.439,60**, `fx_note`
+  belgede (`1 EUR = 1,1622 USD, ECB 4 Sep 2026`), Çince unvan kendi harfleriyle,
+  23,6 KB. Ama **hiçbir kombinasyonda USD ödeme kutusu çıkmıyor** ve bu iki ayrı
+  sebepten: (1) siparişin kayıtlı fatura kesicisi **VESTRA platform**
+  (`invoice_seller_uid='vestra'`, operatörün panelde yaptığı seçim; ilanın kendi
+  `seller_uid`'i dolu ve GARAGE LE PARIS'i gösteriyor ama seçim onu **eziyor** —
+  KURAL 5b'nin sırası) ve platformun bağlı banka hesabı yok; (2) GARAGE LE
+  PARIS'te IBAN/BIC/banka/lehdar **dolu** ama `bank_account`/`bank_routing`
+  **boş**, yani USD yolu yok (`diag-messages` → `billing_for=garage`). Yani
+  bugün: **EUR + GARAGE = ödeme kutusu tam; USD = kutu yok, kim keserse kessin.**
+  Çözüm operatörün: ya USD alanlarını hesaba ekler (KURAL 5c) ya belgeyi EUR
+  keser.
+- **Aynı sipariş iki önizlemede iki farklı kesen taraf yazdı** (GARAGE LE PARIS,
+  sonra VESTRA) ve günlükten hangisinin doğru olduğu **okunamıyordu**: hesap
+  araması boş dönünce çıktı, operatör seçimi ile boş `seller_uid`'de birebir
+  aynı. `diag-live` artık `satici kaynagi` satırını basıyor (kayıtlı seçim mi,
+  ilanın `seller_uid`'i mi, kaç satırda dolu). *Çelişkiyi gösterip
+  çözdürmeyen bir teşhis, yarım teşhistir.*
+- **Taslak notu, kutunun KESİN çıkmadığı hâli atlıyordu:** koşul
+  `$sellerAcc !== null` idi, yani platform dilimi — hiç banka hesabı bağlı
+  olmayan tek durum — hiçbir uyarı üretmiyordu. Artık platform da uyarıyor,
+  ödenmiş escrow siparişinde ise uyarmıyor (orada kutu zaten bilerek
+  çizilmiyor). Notlar **layout'tan önce** hesaplanıyor
+  (`vestra_invoice_draft_notes()`, saf): üçüncü not eklendiği gün blok
+  altbilginin üzerine binmişti ve iki metin birden okunmaz olmuştu.
+- **"Havale yaptıktan sonra kısa bir haber versin"** (operatör, 7 Eyl 2026):
+  ödeme şartları satırı bunu belgenin kendisinde istiyor (e-postayla yanıt ya da
+  sipariş sayfasındaki dekont kutusu — KURAL 7'nin kartı). Escrow faturasına
+  yazılmıyor: havale yok.
 
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
