@@ -167,7 +167,12 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         : null;
     /* '' de bilincli bir deger: alani silen operator kargosuz onizleme bekler. */
     $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
-    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh);
+    /* KDV ORANI da ayni desen: taslak formda O AN yazani tasir. Bu satir
+       eksikti -- oran yalnizca KESIMDE kayda geciyordu, yani operator
+       "21" yazip Draft'a bastiginda belgede KDV satiri CIKMIYORDU ve
+       kontrol adiminin kendisi yanlis belgeyi gosteriyordu. */
+    $vr = array_key_exists('vat_rate',$_POST) ? round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))),2) : null;
+    $p = vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr);
     if(!$p){ header('Location: /admin?tab=invoices&msg=invoice_none'); exit; }
     $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
     header('Content-Type: application/pdf');
@@ -318,7 +323,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
         ? mb_substr(trim(preg_replace('/\s+/',' ',(string)$_POST['vat_note'])),0,200)
         : null;
     $sh = array_key_exists('shipping',$_POST) ? round(max(0.0, vestra_price_input($_POST['shipping'])),2) : null;
-    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh);
+    /* KDV ORANI birlesik cubuktan. Tavan %100: yazim hatasiyla girilen bir
+       "210" matrahi negatife dogru ezer (tek satirlik yolda da ayni sinir). */
+    $vr = array_key_exists('vat_rate',$_POST) ? round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))),2) : null;
+    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr);
     if(!empty($p['error'])){
       header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
     }
@@ -342,6 +350,10 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $rs[$primary]['invoice_seller_at']=date('c');
     if($vn!==null) $rs[$primary]['invoice_vat_note']=$vn;
     if($sh!==null) $rs[$primary]['invoice_shipping']=$sh;
+    /* Oran da kayda gecer: redraft ve alici sayfasi belgeyi KAYITTAN yeniden
+       kurar (vestra_offer_invoice_redraft_apply). Yazilmasaydi kesilen belge
+       KDV'li, ayni numarayla yeniden cizileni KDV'siz olurdu. */
+    if($vr!==null) $rs[$primary]['invoice_vat_rate']=$vr;
     $rs[$primary]['invoice_members']=$p['refs'];
     foreach($p['refs'] as $r){ if($r!==$primary) $rs[$r]['invoice_group_ref']=$primary; }
     vestra_write_json('offer_responses.json',$rs);
@@ -4004,6 +4016,15 @@ elseif($tab==='invoices'): ?>
     </select>
     <input name="shipping" inputmode="decimal" placeholder="Kargo €"
            title="Birleşik faturaya eklenecek kargo tutarı (EUR); boş = yok"
+           style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:80px">
+    <?php /* KDV orani, fiyata DAHIL -- satir formundaki kutunun birlesik hali.
+             Buraya kadar YOKTU: birlesik belge orani birincil ref'in kaydindan
+             okuyor, o kayda da yalnizca satir formu yaziyordu; yani birlesik
+             faturada KDV satiri hicbir zaman basilamiyordu. Deger onceden
+             doldurulmuyor (kargo/VAT satiri ile ayni): birincil ref ancak
+             isaretlemeden sonra belli olur. */ ?>
+    <input name="vat_rate" inputmode="decimal" placeholder="KDV %"
+           title="KDV oranı — fiyatlar BRÜT kabul edilir. Toplam değişmez; belgede matrah ve KDV tutarı toplamın altında ayrışır. Boşsa KDV satırı hiç basılmaz."
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:80px">
     <input name="vat_note" maxlength="200" list="vatnotes" placeholder='VAT satırı (örn. "TVA non applicable — article 293 B du CGI")'
            style="font-size:11px;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);min-width:260px">

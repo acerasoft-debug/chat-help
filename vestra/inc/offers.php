@@ -336,7 +336,7 @@ function vestra_offer_invoice_seller(string $ref, ?array $listing = null, string
  * Uc yerde (operator kabulu, alici kabulu, panelden onayli kesim) elle
  * kuruluyordu; ucu de ayni rakami uretmek ZORUNDA, cunku ayni belge.
  * Ayri kopyalar zamanla ayrisir ve ayrisma faturada gorunur. */
-function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null): ?array {
+function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, ?float $vatRateOverride = null): ?array {
     $offerRow = vestra_offer_row($ref);
     if (!$offerRow) return null;
     $listing  = vestra_listing_by_sku($offerRow['sku'] ?? '');
@@ -367,8 +367,11 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
        belgeye hicbir sey basilmiyor: varsayilan bir oran koymak, KDV'siz kesilen
        butun mevcut faturalara sessizce vergi eklerdi. Oran > 0 ise render matrahi
        ve KDV tutarini toplamin ALTINDA ayirir; odenecek rakam degismez, cunku
-       fiyatlar brut. */
-    $vatRate = round(max(0.0, (float)($rs[$ref]['invoice_vat_rate'] ?? 0)), 2);
+       fiyatlar brut. Override, vat_note/shipping ile ayni desen: onizleme formda
+       O AN yazan orani tasisin diye -- kayda gecmez. */
+    $vatRate = $vatRateOverride !== null ? $vatRateOverride
+             : (float)($rs[$ref]['invoice_vat_rate'] ?? 0);
+    $vatRate = round(max(0.0, min(100.0, $vatRate)), 2);
 
     return [
         'meta' => [
@@ -430,7 +433,7 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
 /* $allowInvoiced YALNIZCA redraft icin: kesilmis belgeyi AYNI numarayla
  * yeniden cizerken uyeler elbette faturali gorunur -- normal kesimde ise bu
  * kontrol ikinci numara yakilmasini onluyor, acik kalmali. */
-function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, bool $allowInvoiced = false): array {
+function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickOverride = '', ?string $vatNoteOverride = null, ?float $shippingOverride = null, bool $allowInvoiced = false, ?float $vatRateOverride = null): array {
     require_once __DIR__.'/invoice.php';
     $refs = array_values(array_unique(array_filter(array_map(
         fn($r) => preg_replace('/[^A-Za-z0-9_-]/', '', (string)$r), $refs))));
@@ -483,8 +486,11 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
 
     /* KDV orani BIRINCIL ref'ten: belge tek bir fatura ve tek bir oran tasir.
        Uyelerin ayri oranlari olsaydi tek belgede iki matrah olurdu -- bu yuk
-       zaten tek satici + tek alici kuraliyla sinirli (KURAL 5e). */
-    $vatRate = round(max(0.0, (float)($rs[$primary]['invoice_vat_rate'] ?? 0)), 2);
+       zaten tek satici + tek alici kuraliyla sinirli (KURAL 5e). Override
+       (birlesik cubuktaki kutu) vat_note/shipping ile ayni desen. */
+    $vatRate = $vatRateOverride !== null ? $vatRateOverride
+             : (float)($rs[$primary]['invoice_vat_rate'] ?? 0);
+    $vatRate = round(max(0.0, min(100.0, $vatRate)), 2);
 
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
     return [

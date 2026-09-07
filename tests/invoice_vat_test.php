@@ -91,5 +91,30 @@ $t('panel oranı kaydediyor',   str_contains($adm, "invoice_vat_rate"));
 /* Yazim hatasiyla girilen "210" belgeyi sacmalatir. */
 $t('oran %100 ile sinirli',    str_contains($adm, 'min(100.0'));
 
+echo "\n== 7. Oran, KARDESLERININ (vat_note/shipping) BULUNDUGU HER YERDE ==\n";
+/* Operator, 7 Eyl 2026: "kdv fiyatin icinde gelmiyor". Alan vardi, kaydediliyordu
+   ve belge onu basabiliyordu -- ama YALNIZCA tek satirlik yolda. Birlesik
+   cubukta kutu YOKTU, birlesik kesim orani kaydetmiyordu ve iki taslak yolu da
+   formda O AN yazan orani tasimiyordu; yani operator "21" yazip Draft'a
+   bastiginda kontrol adiminin kendisi yanlis belgeyi gosteriyordu.
+   Olcu basit: vat_note ile shipping'in gectigi her POST/HTML yerinde vat_rate
+   de gecmeli. Ucu ayni alanin uc yuzu; biri geride kalirsa fark BELGEDE cikar. */
+$ofs = (string)@file_get_contents(__DIR__.'/../vestra/inc/offers.php');
+/* Kutu: satir formunda VE birlesik cubukta (fcomb). */
+$t('oran alani iki kez var (satir + birlesik)', substr_count($adm, 'name="vat_rate"') >= 2);
+$comb = substr($adm, (int)strpos($adm, 'id="fcomb"'));
+$comb = substr($comb, 0, (int)strpos($comb, '</form>'));
+$t('birlesik cubukta oran kutusu',  str_contains($comb, 'name="vat_rate"'));
+$t('birlesik cubukta kargo kutusu', str_contains($comb, 'name="shipping"'));
+$t('birlesik cubukta VAT satiri',   str_contains($comb, 'name="vat_note"'));
+/* POST: her iki taslak yolu ve birlesik kesim orani okuyor. */
+$t('oran POST\'tan 3 yerde okunuyor', substr_count($adm, "array_key_exists('vat_rate',\$_POST)") >= 3);
+$t('birlesik kesim orani KAYDEDIYOR', str_contains($adm, "\$rs[\$primary]['invoice_vat_rate']"));
+/* Kurucular: onizlemenin formdaki orani tasiyabilmesi icin override sart. */
+$t('tek satirlik kurucu override aliyor', str_contains($ofs, 'vestra_offer_invoice_payload(string $ref, string $sellerPickOverride') && str_contains($ofs, '?float $vatRateOverride = null'));
+$t('birlesik kurucu override aliyor',     substr_count($ofs, '?float $vatRateOverride = null') >= 2);
+$t('taslak yollari orani geciriyor',      str_contains($adm, 'vestra_offer_invoice_payload($ref, $pick, $vn, $sh, $vr)')
+                                       && str_contains($adm, 'vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr)'));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);

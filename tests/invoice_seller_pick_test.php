@@ -151,6 +151,66 @@ $LISTING_MAP['SKU-2']['seller_uid']='garage';
 $p = vestra_offers_combined_invoice_payload(['OF-1','OF-2']);
 $t('ortak ilan saticisina otomatik dusme', empty($p['error']) && $who($p['seller'])==='GARAGE LE PARIS');
 
+echo "\n== 9b. KDV ORANI (fiyata dahil) HER IKI KURUCUDA ==\n";
+/* Operator, 7 Eyl 2026: "yuzde 21 vat ucreti fiyatin icinde olsun" -- sonra
+   "kdv fiyatin icinde gelmiyor". Sebep buradaydi: oran YALNIZCA tek satirlik
+   yolda okunuyordu; birlesik belge orani birincil ref'ten okuyor ama o kayda
+   yazan hicbir sey yoktu ve iki taslak yolunun ikisi de formdaki oranin
+   varligindan habersizdi. Bu bolum uc seyi birden tutuyor: kayittan okuma,
+   onizleme gecersiz kilmasi (vat_note/shipping ile ayni desen) ve sinirlar. */
+$LISTING_MAP['SKU-2']['seller_uid']='garage';
+$INVOICED = [];
+$JSON = ['OF-1'=>['status'=>'accept','invoice_vat_rate'=>21.0],
+         'OF-2'=>['status'=>'accept','invoice_vat_rate'=>7.0]];
+
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage');
+$t('birlesik: oran birincil ref\'ten (21)', abs(($p['meta']['vat_rate']??0)-21.0)<0.001);
+$t('birlesik: fiyata dahil isareti',        !empty($p['meta']['vat_included']));
+/* Uyenin kendi orani belgeye GIRMEZ: tek belge tek matrah tasir. */
+$t('uyenin orani (7) yok sayildi',          abs(($p['meta']['vat_rate']??0)-21.0)<0.001);
+
+/* Onizleme gecersiz kilmasi: formda O AN yazan oran. Kayda gecmez. */
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage',null,null,false,6.0);
+$t('birlesik: override kaydi ezer (6)',     abs(($p['meta']['vat_rate']??0)-6.0)<0.001);
+$t('birlesik: kayit degismedi',             abs((float)($JSON['OF-1']['invoice_vat_rate']??0)-21.0)<0.001);
+/* 0 BILINCLI bir deger: alani silen operator KDV'siz onizleme bekler --
+   null (hic gonderilmedi) ile ayni sey degil. */
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage',null,null,false,0.0);
+$t('birlesik: override 0 = KDV\'siz onizleme', abs(($p['meta']['vat_rate']??-1)-0.0)<0.001 && empty($p['meta']['vat_included']));
+
+/* Yazim hatasi: "210" matrahi negatife dogru ezerdi. Panelde de sinir var,
+   burada kurucunun kendisi tutuyor -- is akisi yolu paneli kullanmiyor. */
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage',null,null,false,210.0);
+$t('birlesik: %100 tavani',                 abs(($p['meta']['vat_rate']??0)-100.0)<0.001);
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage',null,null,false,-5.0);
+$t('birlesik: negatif oran 0\'a cekilir',    abs(($p['meta']['vat_rate']??-1)-0.0)<0.001);
+
+/* Oran hic yoksa belge KDV'siz: mevcut butun faturalara sessizce vergi eklenmez. */
+$JSON = ['OF-1'=>['status'=>'accept'],'OF-2'=>['status'=>'accept']];
+$p = vestra_offers_combined_invoice_payload(['OF-1','OF-2'],'garage');
+$t('oran yoksa 0 ve dahil degil',           abs(($p['meta']['vat_rate']??-1)-0.0)<0.001 && empty($p['meta']['vat_included']));
+
+/* Tek satirlik yol ayni kurallari tasiyor. */
+$JSON = ['OF-1'=>['status'=>'accept','invoice_vat_rate'=>21.0]];
+$p = vestra_offer_invoice_payload('OF-1');
+$t('tek satir: oran kayittan (21)',         abs(($p['meta']['vat_rate']??0)-21.0)<0.001);
+$p = vestra_offer_invoice_payload('OF-1','',null,null,0.0);
+$t('tek satir: override 0 = KDV\'siz',       abs(($p['meta']['vat_rate']??-1)-0.0)<0.001 && empty($p['meta']['vat_included']));
+$p = vestra_offer_invoice_payload('OF-1','',null,null,210.0);
+$t('tek satir: %100 tavani',                abs(($p['meta']['vat_rate']??0)-100.0)<0.001);
+
+/* REDRAFT: kesilmis belge AYNI numarayla yeniden cizilirken orani kayittan
+   okur. Kesimde kayda yazilmasaydi (admin.php birlesik yolu tam bunu
+   atliyordu) kesilen belge KDV'li, yeniden cizileni KDV'siz olurdu. */
+$JSON = ['OF-1'=>['status'=>'accept','invoice_seller_uid'=>'garage','invoice_vat_rate'=>21.0,
+                  'invoice_shipping'=>20.0,'invoice_members'=>['OF-1','OF-2']],
+         'OF-2'=>['status'=>'accept','invoice_group_ref'=>'OF-1']];
+$INVOICED = ['OF-1'];
+$p = vestra_offer_invoice_redraft_payload('OF-1', 20.0);
+$t('redraft KDV oranini koruyor (21)',      abs(($p['meta']['vat_rate']??0)-21.0)<0.001);
+$t('redraft "dahil" isaretini koruyor',     !empty($p['meta']['vat_included']));
+$INVOICED = [];
+
 echo "\n== 10. KARGO + REDRAFT ==\n";
 /* "faturayi kestik fakat 50 eur shipping ... tekrar yap". Kargo kayittan
    okunur, override onizleme/redraft icindir; redraft yukleyicisi birlesik
