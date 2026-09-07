@@ -76,18 +76,31 @@ $t('bos string gecer',    vestra_pdf_unrenderable('') === []);
 $t('soru isareti kendisi kayip SAYILMAZ', vestra_pdf_unrenderable('what?') === []);
 
 echo "\n== 4. Uyari YALNIZ taslakta ==\n";
-$order = ['ref'=>'VES-TEST','company'=>'香港风徕贸易有限公司','name'=>'LINCHAOWEI',
-          'address'=>'香港九龍尖沙咀','city'=>'Hong Kong','country'=>'Hong Kong SAR',
-          'email'=>'x@example.com','currency'=>'USD','total'=>5150.0];
+/* Alici alanlari GERCEK yukte 'buyer' altinda: 5 Eyl 2026'da bu fixture duz
+   anahtarlarla yazilmisti ve uyari da duz anahtarlari okudugu icin test yesil
+   goruyordu -- oysa uretimdeki yukte o anahtarlar yok, yani uyari hic
+   calismiyordu. Fixture artik ciziciyle ayni sekli tasiyor. */
+$order = ['ref'=>'VES-TEST','currency'=>'USD','total'=>5150.0,'date'=>'2026-09-07T10:00:00+00:00',
+          'buyer'=>['company'=>'香港风徕贸易有限公司','name'=>'LINCHAOWEI',
+                    'address'=>'香港九龍尖沙咀','city'=>'Hong Kong','country'=>'Hong Kong SAR',
+                    'email'=>'x@example.com']];
 $items = [['name'=>'AMI Paris Core Logo Polo','sku'=>'AMI-PL-014','qty'=>120,'price'=>39.0]];
 $draft = vestra_render_invoice_pdf($order, $items, $us, 'DRAFT', true);
 $real  = vestra_render_invoice_pdf($order, $items, $us, 'INV-TEST', false);
-$t('taslakta uyari VAR',        str_contains($draft, 'cannot be printed'));
-$t('taslakta Latin harf isteniyor', str_contains($draft, 'Latin-script'));
+/* 7 Eyl 2026'da DAVRANIS BILEREK DEGISTI: CJK metin artik gomulu alt kume yazi
+   tipiyle GERCEKTEN basiliyor (bkz. tests/pdf_cjk_test.php), yani bu ad icin
+   uyari cikmamali. Basilabilen bir ad icin "Latin harfli ad verin" demek,
+   operatoru olmayan bir ise yollamak olurdu. Uyari yalnizca gomulu yazi tipinde
+   de KARSILIGI OLMAYAN karakterler icin duruyor. */
+$t('CJK taslaginda artik uyari YOK', !str_contains($draft, 'cannot be printed'));
+$t('Cince gercekten gomuluyor',      str_contains($draft, '/FontFile2'));
+$noGlyph = $order; $noGlyph['buyer']['company'] = "Acme \u{10FFFD} Ltd";
+$t('glifi OLMAYAN karakter hala uyariyor',
+   str_contains(vestra_render_invoice_pdf($noGlyph, $items, $us, 'DRAFT', true), 'cannot be printed'));
 /* Musteriye giden belgeye ic uyari yazilmaz. */
 $t('kesilmis faturada uyari YOK', !str_contains($real, 'cannot be printed'));
 /* Latin harfli alici -> taslakta da uyari olmamali (yanlis alarm yok). */
-$latin = $order; $latin['company']='Hong Kong Fenglai Trading Co Ltd'; $latin['address']='5 Canton Road, Kowloon';
+$latin = $order; $latin['buyer']['company']='Hong Kong Fenglai Trading Co Ltd'; $latin['buyer']['address']='5 Canton Road, Kowloon';
 $t('Latin harfli aliciya uyari YOK',
    !str_contains(vestra_render_invoice_pdf($latin, $items, $us, 'DRAFT', true), 'cannot be printed'));
 $t('PDF yine de uretiliyor (engellemiyor)', strlen($draft) > 5000 && strlen($real) > 5000);

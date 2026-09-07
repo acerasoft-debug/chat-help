@@ -860,26 +860,40 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     });
 
     /* CIZILEMEYEN KARAKTER UYARISI -- yalniz TASLAKTA.
-       Cizici gomulu olmayan Helvetica + CP1252 kullaniyor; Cince/Japonca/
-       Korece/Yunanca/Kiril harfler SESSIZCE soru isaretine donuyor. 5 Eyl
-       2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
+       5 Eyl 2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
        basiliyordu -- gecerli GORUNEN ama alicinin adini kaybetmis bir fatura.
-       Bu depoda tekrarlanan ders: sessiz kayip, gurultulu hatadan pahali.
+       7 Eyl 2026'dan beri o metin GOMULU yazi tipiyle gercekten basiliyor, yani
+       uyari artik yalnizca gomulu yazi tipinde de KARSILIGI OLMAYAN karakterler
+       icin cikiyor (vestra_pdf_missing_glyphs). Basilabilen bir ad icin
+       "Latin harfli ad verin" demek, operatoru olmayan bir ise yollardi.
        Uyari KURAL 5d'nin zaten var olan kontrol noktasina, taslagin uzerine
        basiliyor: operator numarayi yakmadan once goruyor. Kesilmis faturaya
        basilmiyor -- musteriye giden belgeye ic uyari yazilmaz. */
     if ($draft) {
+        /* Alici alanlari $order['buyer'] ALTINDA duruyor (bkz. $b, yukarida) --
+           uyari 5 Eyl 2026'da DUZ anahtarlari okuyordu ($order['company']) ve
+           gercek bir yukte o anahtarlar YOK, yani uyari hicbir zaman
+           calismiyordu. Testi de duz anahtarli elde yapilmis bir yukle
+           yazildigi icin yesil goruyordu: kontrolun kodun okudugu yere baktigini
+           dogrulamadan yazilan yedinci vaka. Iki sekil de okunuyor. */
         $lost = [];
-        foreach (['company','name','address','city','country','vat_id','notes'] as $f) {
-            foreach (vestra_pdf_unrenderable((string)($order[$f] ?? '')) as $ch) $lost[$ch] = true;
+        $bw   = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
+        foreach (['company','name','address','city','country','vat','vat_id','notes'] as $f) {
+            foreach (vestra_pdf_missing_glyphs((string)($bw[$f] ?? ($order[$f] ?? ''))) as $ch) $lost[$ch] = true;
         }
         foreach ($items as $it) {
             foreach (['name','sku','note'] as $f) {
-                foreach (vestra_pdf_unrenderable((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
+                foreach (vestra_pdf_missing_glyphs((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
             }
         }
         if ($lost) {
-            $chars = implode(' ', array_slice(array_keys($lost), 0, 12));
+            /* Karakterlerin KENDISI degil KOD NOKTALARI yaziliyor. Uyarinin
+               konusu tam olarak "bu karakter basilamiyor" -- onlari uyarinin
+               icine koymak, uyariyi da basilamaz yapar ve operator bos bir
+               liste gorur. U+XXXX her zaman basilabilir ve aranabilir. */
+            $chars = implode(' ', array_map(
+                fn(string $ch) => sprintf('U+%04X', mb_ord($ch, 'UTF-8') ?: 0),
+                array_slice(array_keys($lost), 0, 12)));
             $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $chars) {
                 $p->text($left, 26.0, 7.5,
                     'WARNING - these characters cannot be printed on this document and appear as "?": '

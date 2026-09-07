@@ -21,6 +21,33 @@
  * accepts. Returns '' when the file is missing or GD is unavailable; the caller draws a
  * placeholder rather than failing.
  */
+require_once __DIR__.'/ttf.php';
+
+/**
+ * CP1252 disi metin icin GOMULECEK yazi tipi.
+ *
+ * Depoyla birlikte geliyor (assets/fonts): sunucuda bir CJK yazi tipinin
+ * bulunacagini varsaymak, faturanin musterinin adini basip basmamasini
+ * barindirmanin kurulumuna baglamak olurdu. Sistem yollari yine de deneniyor --
+ * dosya bir gun deploy disinda kalirsa belge yine dogru cikar.
+ *
+ * '' donerse cizici eski davranisina duser (CP1252'ye cevir + taslakta uyar).
+ */
+function vestra_pdf_embed_font_path(): string
+{
+    static $p = null;
+    if ($p !== null) return $p;
+    foreach ([
+        __DIR__.'/../assets/fonts/vestra-cjk.ttf',
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+        '/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf',
+        '/usr/share/fonts/truetype/arphic/uming.ttc',
+    ] as $cand) {
+        if (is_readable($cand)) return $p = $cand;
+    }
+    return $p = '';
+}
+
 function vestra_pdf_thumb(string $src, int $maxPx = 200, int $quality = 80): string {
     $src = trim($src);
     if ($src === '' || $src[0] !== '/') return '';
@@ -63,6 +90,14 @@ class VestraPdf {
     private array $imgs = [];
     /** @var array<int,array<int,array{0:float,1:float,2:float,3:float,4:string}>> per-page link rects */
     private array $links = [];
+    /* Gomulu yazi tipiyle yazilan metinler. Bir CJK dizesinin glif numaralari
+       ancak BELGENIN TAMAMI bilindikten sonra belli oluyor (alt kume, gecen tum
+       karakterlere gore numaralaniyor), o yuzden cizim aninda akisa bir yer
+       tutucu konuyor ve output() onlari gercek glif numaralariyla degistiriyor. */
+    /** @var string[] yer tutucu sirasina gore UTF-8 metin parcalari */
+    private array $uniRuns = [];
+    private ?VestraTtf $ttf = null;
+    private bool $ttfTried = false;
 
     public function addPage(): void {
         $this->pages[] = $this->cur;
@@ -108,6 +143,28 @@ class VestraPdf {
         $this->pages = $held;
     }
 
+    /**
+     * Gomulu yazi tipi (yalnizca gerektiginde acilir).
+     *
+     * Yoksa null doner ve cizici eski davranisina (CP1252'ye cevir) duser:
+     * bir fatura, yazi tipi dosyasi eksik diye URETILMEMEZLIK edemez.
+     */
+    private function ttf(): ?VestraTtf
+    {
+        if (!$this->ttfTried) {
+            $this->ttfTried = true;
+            $p = vestra_pdf_embed_font_path();
+            if ($p !== '') $this->ttf = VestraTtf::open($p);
+        }
+        return $this->ttf;
+    }
+
+    /** Bu dize Helvetica/CP1252 ile basilabiliyor mu? */
+    private static function needsEmbed(string $s): bool
+    {
+        return vestra_pdf_unrenderable($s) !== [];
+    }
+
     private function esc(string $s): string {
         $conv = @iconv('UTF-8', 'CP1252//TRANSLIT//IGNORE', $s);
         if ($conv === false) $conv = preg_replace('/[^\x20-\x7E]/', '?', $s) ?? '';
@@ -125,8 +182,18 @@ class VestraPdf {
      */
     public function text(float $x, float $y, float $size, string $s, bool $bold = false, float $gray = 0.0): void {
         if ($s === '') return;
-        $font = $bold ? 'F2' : 'F1';
         $g = $gray > 0 ? sprintf("%.2F g ", $gray) : '';
+        /* CP1252 disi karakter varsa (Cince, Japonca, Korece, Kirilce, Yunanca)
+           gomulu yazi tipine geciliyor. Dizenin TAMAMI o yazi tipiyle basiliyor:
+           ayni satiri iki yazi tipine bolmek, karakter genisliklerini ve sag
+           hizalamayi bir arada tutmayi gereksiz yere zorlastirirdi. */
+        if (self::needsEmbed($s) && $this->ttf() !== null) {
+            $this->uniRuns[] = $s;
+            $this->cur .= sprintf("%sBT /F3 %.1F Tf %.2F %.2F Td \x01%d\x01 Tj ET%s\n",
+                $g, $size, $x, $y, count($this->uniRuns) - 1, $gray > 0 ? ' 0 g' : '');
+            return;
+        }
+        $font = $bold ? 'F2' : 'F1';
         $this->cur .= sprintf("%sBT /%s %.1F Tf %.2F %.2F Td (%s) Tj ET%s\n",
             $g, $font, $size, $x, $y, $this->esc($s), $gray > 0 ? ' 0 g' : '');
     }
@@ -137,11 +204,48 @@ class VestraPdf {
     }
 
     public function strWidth(string $s, float $size, bool $bold = false): float {
+        /* Gomulu yazi tipiyle basilacak dizede GERCEK ilerleme genisligi
+           okunuyor: bir CJK glifi tam em genisliginde (1.0), Helvetica ortalamasi
+           0.52 -- yaklasikla olculen bir Cince ad, sag hizalanmis alanda kutunun
+           disina tasardi. Latin metin eski yaklasikla olculmeye devam ediyor,
+           yoksa mevcut butun yerlesimler kayardi. */
+        if (self::needsEmbed($s)) {
+            $f = $this->ttf();
+            if ($f !== null) {
+                $w = 0;
+                foreach (self::codepoints($s) as $cp) $w += $f->advance1000($f->gidFor($cp));
+                return $w / 1000 * $size;
+            }
+        }
         return mb_strlen($s) * $size * ($bold ? 0.60 : 0.52);
+    }
+
+    /** @return int[] UTF-8 dizesinin kod noktalari */
+    private static function codepoints(string $s): array
+    {
+        $out = [];
+        foreach (preg_split('//u', $s, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
+            $cp = mb_ord($ch, 'UTF-8');
+            if ($cp !== false) $out[] = $cp;
+        }
+        return $out;
     }
 
     /** Word-wrap plain text to fit $maxW; returns an array of lines. */
     public function wrap(string $s, float $maxW, float $size, bool $bold = false): array {
+        /* CJK metinde KELIME ARASI BOSLUK YOK: bosluga gore bolen sarmalayici
+           bir Cince adresi tek uzun satir birakir ve sayfadan tasar. Boyle bir
+           dizede karakter karakter sariliyor. */
+        if (self::needsEmbed($s) && $this->ttf() !== null) {
+            $lines = []; $cur = '';
+            foreach (preg_split('//u', trim($s), -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {
+                if ($ch === ' ' && $cur === '') continue;
+                if ($this->strWidth($cur.$ch, $size, $bold) > $maxW && $cur !== '') { $lines[] = $cur; $cur = ltrim($ch); }
+                else $cur .= $ch;
+            }
+            if ($cur !== '') $lines[] = $cur;
+            return $lines ?: [''];
+        }
         $words = preg_split('/\s+/', trim($s));
         $lines = []; $cur = '';
         foreach ($words as $w) {
@@ -217,6 +321,31 @@ class VestraPdf {
     /** A URL inside a PDF string literal. Only the three delimiters need escaping, and a URL
      *  is ASCII by construction here, so this stays separate from esc() — that one transcodes
      *  to CP1252 for display text, which would mangle a percent-encoded address. */
+    /** Glif -> Unicode haritasi; metnin kopyalanabilir ve aranabilir kalmasi icin. */
+    private static function toUnicodeCMap(array $uniMap): string
+    {
+        $lines = [];
+        foreach ($uniMap as $cp => $gid) {
+            /* BMP disi kod noktalari UTF-16 vekil ciftine ayrilir; tek 16 bitlik
+               deger olarak yazilirsa kopyalanan metin bozuk cikar. */
+            if ($cp > 0xFFFF) {
+                $v  = $cp - 0x10000;
+                $dst = sprintf('%04X%04X', 0xD800 + ($v >> 10), 0xDC00 + ($v & 0x3FF));
+            } else {
+                $dst = sprintf('%04X', $cp);
+            }
+            $lines[] = sprintf('<%04X> <%s>', $gid, $dst);
+        }
+        $out = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n"
+             . "/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n"
+             . "/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n"
+             . "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n";
+        foreach (array_chunk($lines, 100) as $chunk) {
+            $out .= count($chunk)." beginbfchar\n".implode("\n", $chunk)."\nendbfchar\n";
+        }
+        return $out."endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend";
+    }
+
     private static function escUri(string $u): string {
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $u);
     }
@@ -279,10 +408,80 @@ class VestraPdf {
                 ' /Filter /DCTDecode', $im['data']];
             $xobj .= '/'.$name.' '.$imgId.' 0 R ';
         }
-        $res = '/Font << /F1 3 0 R /F2 4 0 R >>'.($xobj !== '' ? ' /XObject << '.trim($xobj).' >>' : '');
+        /* GOMULU YAZI TIPI. Yalnizca belgede CP1252 disi karakter gectiyse
+           uretiliyor; Latin bir faturaya tek bayt eklemiyor. Alt kume yalniz
+           gecen karakterlerin gliflerini tasir (tipik fatura ~5 KB), tam yazi
+           tipi 11 MB'dir ve her belgeye gomulemez. */
+        $f3 = '';
+        $uniMap = [];
+        if ($this->uniRuns && ($font = $this->ttf()) !== null) {
+            $cps = [];
+            foreach ($this->uniRuns as $run) foreach (self::codepoints($run) as $cp) $cps[$cp] = true;
+            $cpGid = [];
+            foreach (array_keys($cps) as $cp) {
+                $g = $font->gidFor($cp);
+                if ($g > 0) $cpGid[$cp] = $g;      // glifi olmayan karakter atlanir, kutu basilmaz
+            }
+            $sub = $cpGid ? $font->subset(array_values($cpGid)) : null;
+            if ($sub) {
+                foreach ($cpGid as $cp => $g) if (isset($sub['map'][$g])) $uniMap[$cp] = $sub['map'][$g];
+                $m   = $font->metrics();
+                $tag = strtoupper(substr(preg_replace('/[^a-z]/', '', md5(implode(',', array_keys($uniMap)))), 0, 6));
+                $tag = str_pad($tag, 6, 'A');
+                $name = $tag.'+VestraCJK';
+
+                $fileId = $id++; $descId = $id++; $cidId = $id++; $f3Id = $id++; $tuId = $id++;
+                $raw  = $sub['font'];
+                $comp = function_exists('gzcompress') ? (string)gzcompress($raw, 9) : '';
+                $streams[$fileId] = $comp !== ''
+                    ? ['<< /Length1 '.strlen($raw).' /Filter /FlateDecode', $comp]
+                    : ['<< /Length1 '.strlen($raw), $raw];
+
+                $objs[$descId] = '<< /Type /FontDescriptor /FontName /'.$name.
+                    ' /Flags 4 /FontBBox ['.implode(' ', $m['bbox']).'] /ItalicAngle 0'.
+                    ' /Ascent '.$m['ascent'].' /Descent '.$m['descent'].
+                    ' /CapHeight '.$m['ascent'].' /StemV 80 /FontFile2 '.$fileId.' 0 R >>';
+
+                /* Genislikler CID basina yaziliyor. DW (varsayilan) 1000 cunku
+                   CJK glifleri tam em; yalnizca ondan FARKLI olanlar listeye
+                   giriyor -- Latin harfler ve noktalama. */
+                $wparts = [];
+                foreach ($sub['widths'] as $gid => $w) if ((int)$w !== 1000) $wparts[] = $gid.' ['.(int)$w.']';
+                $objs[$cidId] = '<< /Type /Font /Subtype /CIDFontType2 /BaseFont /'.$name.
+                    ' /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>'.
+                    ' /FontDescriptor '.$descId.' 0 R /DW 1000'.
+                    ($wparts ? ' /W ['.implode(' ', $wparts).']' : '').
+                    ' /CIDToGIDMap /Identity >>';
+
+                /* ToUnicode olmadan belge EKRANDA dogru gorunur ama metin
+                   KOPYALANAMAZ ve aranamaz: gumruk/muhasebe tarafinda faturadan
+                   ad kopyalanmasi siradan bir is. */
+                $objs[$f3Id] = '<< /Type /Font /Subtype /Type0 /BaseFont /'.$name.
+                    ' /Encoding /Identity-H /DescendantFonts ['.$cidId.' 0 R] /ToUnicode '.$tuId.' 0 R >>';
+                $streams[$tuId] = ['<<', self::toUnicodeCMap($uniMap)];
+                $f3 = ' /F3 '.$f3Id.' 0 R';
+            }
+        }
+
+        $res = '/Font << /F1 3 0 R /F2 4 0 R'.$f3.' >>'.($xobj !== '' ? ' /XObject << '.trim($xobj).' >>' : '');
+
+        /* Yer tutucular artik cozulebilir: harita belli. Glifi olmayan karakter
+           dizeden DUSURULUYOR -- .notdef kutusu basmak, soru isaretiyle ayni
+           sessiz yanlisligin baska bir sekli. */
+        $resolve = function (string $content) use ($uniMap): string {
+            return preg_replace_callback('/\x01(\d+)\x01/', function ($m) use ($uniMap) {
+                $run = $this->uniRuns[(int)$m[1]] ?? '';
+                $hex = '';
+                foreach (self::codepoints($run) as $cp) {
+                    if (isset($uniMap[$cp])) $hex .= sprintf('%04X', $uniMap[$cp]);
+                }
+                return '<'.$hex.'>';
+            }, $content) ?? $content;
+        };
 
         $kids = [];
         foreach ($pages as $pageIdx => $content) {
+            $content = $resolve($content);
             $pageId = $id++; $contentId = $id++;
             $kids[] = "$pageId 0 R";
             /* Link annotations are their own objects and the page points at them. /Border
@@ -345,6 +544,34 @@ class VestraPdf {
  *
  * @return string[]
  */
+/**
+ * Bu belgeye GERCEKTEN basilamayacak karakterler.
+ *
+ * vestra_pdf_unrenderable() yalnizca "CP1252 disinda mi" diye bakar; 7 Eyl
+ * 2026'dan beri CP1252 disi metin GOMULU yazi tipiyle basiliyor, yani o listenin
+ * tamami artik bir kayip degil. Taslak uyarisi bunu kullanmali: basilabilen bir
+ * ad icin "Latin harfli ad verin" demek, operatoru olmayan bir isi yapmaya
+ * yollar -- kaydi okumadan yazilan bir uyari, yanlis bir uyaridir.
+ *
+ * Yalnizca hem CP1252'de hem de gomulecek yazi tipinde KARSILIGI OLMAYAN
+ * karakterler doner. Yazi tipi hic acilamiyorsa liste eskisi gibi doner.
+ */
+function vestra_pdf_missing_glyphs(string $s): array
+{
+    $out = vestra_pdf_unrenderable($s);
+    if ($out === []) return [];
+    $path = vestra_pdf_embed_font_path();
+    if ($path === '') return $out;
+    $f = VestraTtf::open($path);
+    if ($f === null) return $out;
+    $miss = [];
+    foreach ($out as $ch) {
+        $cp = mb_ord($ch, 'UTF-8');
+        if ($cp === false || $f->gidFor($cp) === 0) $miss[] = $ch;
+    }
+    return $miss;
+}
+
 function vestra_pdf_unrenderable(string $s): array {
     if ($s === '') return [];
     $bad = [];
