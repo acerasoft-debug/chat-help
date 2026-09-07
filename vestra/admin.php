@@ -130,8 +130,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='order_invoice_currency'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
+    /* KESILMIS FATURADA SECIM ARTIK BIR SEY DEGISTIRMEZ: belge alicinin elinde,
+       numara ve dosya adi yanmis. Dugme o durumda zaten cizilmiyor ama gate
+       BURADA -- dugmeyi gizlemek yetki degil (KURAL 5g'nin aynisi). Sessizce
+       kaydetmek, operatore degismeyecek bir seyi degistirdik sandirirdi. */
+    if(vestra_invoices_for_ref($ref)){
+      header('Location: /admin?tab=orders&view='.urlencode($ref).'&msg=invoice_cur_late'); exit;
+    }
     $okCur=vestra_order_set_invoice_currency($ref,(string)($_POST['currency']??''));
-    header('Location: /admin?tab=invoices&msg='.($okCur?'invoice_cur_saved':'invoice_cur_bad')); exit;
+    /* Nereden basildiysa oraya don: Orders'taki dugmeye basip Invoice
+       approvals'ta uyanmak, operatore baktigi siparisi kaybettirir. */
+    $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
+    header('Location: /admin?tab='.$back.'&msg='.($okCur?'invoice_cur_saved':'invoice_cur_bad')); exit;
   }
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
@@ -2542,6 +2552,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Tanınmayan para birimi — <b>kaydedilmedi</b>. Çevrilebilen birimler: <?= htmlspecialchars(implode(', ', vestra_invoice_currencies())) ?>. Çeviremediği bir birimi kabul etmek, belgeye sessizce yanlış rakam basmak olurdu.</div>
+<?php elseif($msg==='invoice_cur_late'): ?>
+<div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu siparişin faturası <b>zaten kesilmiş</b> — para birimi seçimi artık belgeyi değiştirmez, o yüzden <b>kaydedilmedi</b>. Belge alıcının elinde ve numara yanmış durumda; değiştirmek için <b>Invoice approvals ▸ 🔁 Redraft</b> (aynı numarayla yeniden çizer) ya da faturayı iptal edip yeniden kesmek gerekir.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — para birimi çevrilemedi: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir numara yakılmadı, hiçbir belge yazılmadı. Sipariş tarihinin kuru damgalı değilse <b>Admin ▸ Orders ▸ ⟳ Fetch missing rates</b> ile damgalayın, sonra tekrar deneyin. (Bugünün kuruyla doldurmuyoruz: sipariş tarihinde geçerli olan kur neyse fatura odur.)</div>
 <?php elseif($msg==='offer_del_invoiced'): ?>
@@ -3624,6 +3636,45 @@ elseif($tab==='orders'):
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Invoices</div>
       <?php $vinvs=vestra_invoices_for_ref($viewRef); if(!$vinvs): ?>
         <div style="color:var(--mut);font-size:12px;margin-bottom:8px">— not issued yet · auto-invoicing suspended</div>
+        <?php
+          /* FATURA PARA BIRIMI -- TEK TIK (operator, 7 Eyl 2026: "siparişi
+             dolara çevirme buttonu yap"). Ayni kayit, ayni dogrulayici
+             (`vestra_order_set_invoice_currency`, KURAL 5i); Invoice
+             approvals'taki acilir liste duruyor, burada dugme var. Sebep:
+             karar bu ekranda veriliyor -- "Approve & issue"in yaninda. Bir
+             ekranda gorunmeyen secenek, olmayan secenektir (KURAL 2e'nin
+             "acacak dugmem yok" dersi).
+             SIPARISIN KENDI BIRIMI DEGISMEZ: bu yalnizca BELGENIN birimi.
+             Kesildikten sonra dugme cizilmiyor -- secim belgeyi artik
+             degistirmez; sunucu tarafinda da ayrica reddediliyor. */
+          $__vocur = strtoupper(trim((string)($viewRow['currency'] ?? 'EUR'))) ?: 'EUR';
+          $__vpcur = vestra_order_invoice_currency($viewRef);
+          $__vfx   = vestra_order_fx($viewRef);
+        ?>
+        <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span class="ahint">Invoice currency: <b><?= htmlspecialchars($__vpcur !== '' ? $__vpcur : $__vocur) ?></b><?= $__vpcur === '' ? ' <span style="color:var(--mut)">(order currency)</span>' : '' ?></span>
+          <?php foreach(vestra_invoice_currencies() as $__c): if($__c === ($__vpcur !== '' ? $__vpcur : $__vocur)) continue; ?>
+            <form method="post" style="margin:0">
+              <?= csrfField() ?>
+              <input type="hidden" name="_action" value="order_invoice_currency">
+              <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+              <input type="hidden" name="from" value="view">
+              <input type="hidden" name="currency" value="<?= htmlspecialchars($__c === $__vocur ? '' : $__c) ?>">
+              <button class="abtn" type="submit" style="font-size:12px"
+                      title="Sadece BELGENİN para birimi. Sipariş kaydı değişmez; tutarlar sipariş tarihindeki kurla çevrilir.">
+                <?= $__c === $__vocur ? '↩ Back to '.htmlspecialchars($__c) : '💱 Invoice in '.htmlspecialchars($__c) ?></button>
+            </form>
+          <?php endforeach; ?>
+        </div>
+        <?php if($__vpcur !== '' && $__vpcur !== $__vocur): ?>
+          <div class="ahint" style="margin-bottom:8px">
+            <?php if($__vfx): ?>
+              <?= htmlspecialchars('@ '.vestra_order_fx_note($__vfx)) ?> — <?= htmlspecialchars($__vocur) ?> amounts are converted at the rate of the order date.
+            <?php else: ?>
+              <b style="color:var(--bad)">No rate stamp for this order — issuing will stop.</b> Open the Orders list once, or press “⟳ Fetch missing rates”.
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
         <?php if(!str_contains((string)($viewRow['notes']??''),'Secure escrow')): ?>
         <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice(s) for this order and email the buyer? Do this once stock is confirmed.')">
           <?= csrfField() ?>
