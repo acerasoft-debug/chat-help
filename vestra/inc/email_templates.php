@@ -1044,6 +1044,58 @@ function vestra_tpl_order_tracking_soon(string $buyerName, string $ref, string $
 }
 
 /**
+ * "Havale yaptiktan sonra haber versin" (operator, 7 Eyl 2026, INV-2026-1103 /
+ * Stock&chic). Fatura ZATEN gitti; eksik olan sey odemeyi bildirme yolu:
+ * kesilen mektup "hesaba havale edin, mal odeme gelince cikar" deyip
+ * duruyordu, yani parayi gonderen musterinin soyleyecek yeri yoktu ve iki
+ * taraf da otekinin sirasini bekliyordu.
+ *
+ * Bu mektup SAAT BASLATMAZ. KURAL 7'nin payment_due'su "5 is gunu icinde
+ * gelmezse iptal" diyor ve gercekten o saati kuruyor -- burada istenen o
+ * degil, yalnizca "gonderince haber ver". Ikisini ayni mektupta birlestirmek,
+ * operatorun sormadigi bir tehdidi de gondermek olurdu.
+ *
+ * Iki yol da yaziliyor: siparis sayfasindaki dekont kutusu (yukleme operatore
+ * haber dusurur ve otomatik iptal saatini DURDURUR -- yani "haber verdim" ile
+ * sistemin gordugu sey ayni sey olur) ve duz cevap. Kutuyu bulamayan musteri
+ * cevapsiz kalmasin.
+ */
+function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string $invoiceNo = '', float $amount = 0.0, string $currency = 'EUR', bool $hasAccount = false, string $signer = ''): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $sym  = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt  = $amount > 0 ? $sym.number_format($amount, 2) : '';
+    $subject = "Invoice ".($invoiceNo !== '' ? $invoiceNo." " : '')."— please let us know once the transfer is sent";
+
+    $rows = [['label'=>'Order ref', 'value'=>$ref]];
+    if ($invoiceNo !== '') $rows[] = ['label'=>'Invoice', 'value'=>$invoiceNo];
+    if ($amt !== '')       $rows[] = ['label'=>'Amount due', 'value'=>$amt];
+    $opts = ['badge'=>'Payment', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'Upload payment confirmation',
+                                        'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Your invoice".($invoiceNo !== '' ? " {$invoiceNo}" : '')." for order {$ref} is with you"
+      . ($amt !== '' ? ", for {$amt}" : '').". Payment is by bank transfer to the account shown on the invoice; "
+      . "please quote {$ref} as the reference so we can match it.\n\n"
+      . "One thing we would ask: once you have sent the transfer, please let us know. "
+      . "Bank transfers can take a few days to appear on our side, and a word from you means we can "
+      . "start preparing your goods straight away instead of waiting for the credit to show.\n\n"
+      . ($hasAccount
+          ? "The quickest way is to upload the payment confirmation on your order page — the link is above. "
+            . "It reaches us immediately and you will see it recorded against the order.\n\n"
+            . "If that is inconvenient, simply reply to this e-mail and tell us the date you sent it.\n\n"
+          : "Simply reply to this e-mail with the date you sent it, or attach the payment confirmation.\n\n")
+      . "We will confirm as soon as we have the funds.\n\n"
+      . "Kind regards,\n\n"
+      . ($signer !== ''
+          ? $signer."\nVESTRA – vestrasales.com"
+          : "VESTRA · Acerasoft LLC\n8 The Green, Suite B, Dover, Delaware 19901, USA\nsupport@vestrasales.com · vestrasales.com");
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
  * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
  * eklendi cunku eksikligi sonradan pahaliya patlardi:

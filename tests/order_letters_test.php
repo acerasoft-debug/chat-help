@@ -12,7 +12,8 @@
 $src = file_get_contents(__DIR__.'/../vestra/inc/email_templates.php');
 foreach (['vestra_display_name', 'vestra_tpl_order_tracking_soon', 'vestra_tpl_order_shipped',
           'vestra_tpl_order_address_request', 'vestra_tpl_order_invoice_soon',
-          'vestra_tpl_claim_received', 'vestra_tpl_claim_resolved'] as $fn) {
+          'vestra_tpl_claim_received', 'vestra_tpl_claim_resolved',
+          'vestra_tpl_order_payment_notice'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -133,6 +134,56 @@ $t('yazili yetki cumlesi',              stripos($b10, 'written authorisation') !
 $t('rakam/adres uydurulmuyor',          !preg_match('/€\s?\d|EUR\s?\d|\bIBAN\b/', $b10));
 $t('bilgi kutusu: sonuc vurgulu',       ($o10['rows'][2]['label'] ?? '') === 'Outcome' && !empty($o10['rows'][2]['strong']));
 $t('Turkce karakter yok',               $noTurkish($s10.$b10));
+
+echo "\n== payment_notice: havale gonderilince haber ver ==\n";
+/* Operator, 7 Eyl 2026: "musteriye faturayi gonder. havale yaptiktan sonra
+   haber versin." Fatura kesilirken giden mektup "hesaba havale edin" deyip
+   duruyordu; parayi gonderen musterinin soyleyecek yeri yoktu. */
+[$s11, $b11, $o11] = vestra_tpl_order_payment_notice('Marianne HECQUET', 'O7A484', 'INV-2026-1103', 3320.00, 'EUR', true, 'Marco Bellini');
+$t('Ingilizce, Turkce karakter yok',    $noTurkish($s11.$b11));
+$t('konu haber vermeyi istiyor',        str_contains(strtolower($s11), 'let us know'));
+$t('fatura no konuda',                  str_contains($s11, 'INV-2026-1103'));
+$t('ref govdede',                       str_contains($b11, 'O7A484'));
+/* Tutar KAYITTAN basiliyor: faturayla bir kurus ayrisan bir rakam musteriye
+   "hangisi dogru" diye sordurur. */
+$t('tutar govdede',                     str_contains($b11, '3,320.00'));
+$t('para birimi simgesi',               str_contains($b11, '€3,320.00'));
+$t('referans yazmasi isteniyor',        str_contains($b11, 'quote O7A484'));
+/* Hesabi olana dekont kutusu; olmayana duz cevap. Olmayan bir dugmeye
+   yollamak, KURAL 2b'nin kilitli sayfaya yollama hatasinin aynisi olurdu. */
+$t('dekont yukleme dugmesi',            ($o11['button']['url'] ?? '') === 'https://vestrasales.com/buyer?tab=orders&view=O7A484');
+$t('siparis sayfasi govdede de var',    str_contains($b11, 'order page'));
+$t('cevap yolu da yaziliyor',           str_contains($b11, 'reply to this e-mail'));
+$t('imza personadan',                   str_contains($b11, 'Marco Bellini'));
+/* SAAT BASLATMIYOR: payment_due (KURAL 7) iptal uyarisi tasir ve gercekten
+   5 is gunluk saati kurar. Operator onu istemedi; iki mektubu tek metinde
+   birlestirmek, sorulmamis bir tehdidi de gondermek olurdu. */
+$t('iptal tehdidi YOK',                 !preg_match('/cancel|business days|deadline/i', $b11));
+/* IBAN/banka faturada; mektuba ikinci kopyasi yazilmaz -- ayrisir, ve bu
+   depoda banka numarasi metne gomulmez. */
+$t('IBAN mektuba gomulmemis',           !preg_match('/\bIBAN\b|\b[A-Z]{2}\d{2}[A-Z0-9]{10,}/', $b11));
+
+[$s12, $b12, $o12] = vestra_tpl_order_payment_notice('', 'O7A484', '', 0.0, 'EUR', false, '');
+$t('hesapsiz: dugme yok',               !isset($o12['button']));
+$t('hesapsiz: cevap yolu tek yol',      str_contains($b12, 'reply to this e-mail') && !str_contains($b12, 'order page'));
+$t('adsiz alici "Customer"',            str_contains($b12, 'Dear Customer'));
+/* Tutar/fatura yoksa UYDURULMAZ: satir hic basilmaz. */
+$t('tutar yoksa rakam basmiyor',        !preg_match('/€\d/', $b12));
+$t('fatura yoksa konuda no yok',        !str_contains($s12, 'INV-'));
+$t('imzasiz = sirket imzasi',           str_contains($b12, 'Acerasoft LLC'));
+
+[$s13, $b13,] = vestra_tpl_order_payment_notice('Li', 'O1', 'INV-1', 100.0, 'USD', true, '');
+$t('USD simgesi dogru',                 str_contains($b13, 'US$100.00') && !str_contains($b13, '€100.00'));
+
+/* Mektup, is akisindaki kapilarla birlikte anlamli: faturasiz/odenmis/
+   dekontu gelmis sipariste GONDERILMEZ. Kapilar workflow'da, burada
+   varliklari dogrulaniyor -- kapisiz bir mektup yanlis anda gider. */
+$wf = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
+$t('mektup is akisinda kabloli',        str_contains($wf, "\$letter === 'payment_notice'"));
+$t('faturasiz sipariste durur',         str_contains($wf, "fatura KESILMEMIS -- 'faturaniz sizde' cumlesi yanlis olur"));
+$t('odenmis/gonderilmis sipariste durur', str_contains($wf, "in_array(\$ost, ['paid','shipped','completed'], true)"));
+$t('dekont gelmisse ikinci kez istemez', str_contains($wf, 'dekont ZATEN yuklenmis'));
+$t('escrow sipariste durur',            str_contains($wf, 'escrow siparisi -- havale bildirimi yanlis olur'));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
