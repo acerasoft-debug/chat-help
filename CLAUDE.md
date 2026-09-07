@@ -764,6 +764,28 @@ ekleyelim"* — VES-6B53D265).
   **€86,04** → belgede **Shipping US$100.00**, Total **US$5.539,60**; sipariş
   toplamı €4.766,04 ve denetim "tutuyor". Test: `tests/order_shipping_test.php`.
 
+**KURAL 5l — Teslimat adresi de PANELDEN girilir ("kargo yeri")** (operatör,
+7 Eyl 2026: *"hem kargo yeri aç hem de faturayı güncelle"*).
+- Adres siparişin notlarında `Deliver to: …` parçasında duruyor; ekran onu
+  **gösteriyordu** ama girecek alan yoktu — yalnızca alıcı, sipariş verirken
+  yazabiliyordu. Sonradan e-postayla gelen bir adresi operatörün koyacağı yer
+  yoktu ve VES-6B53D265'in taslağı üç koşu boyunca *"no street address on file —
+  gümrük ve kurye ister"* diye uyarıp durdu. Navlundaki boşluğun aynısı.
+- Tek yazıcı `vestra_order_set_delivery()`; panel: `Admin ▸ Orders ▸ <sipariş> ▸
+  📍 Save address`. **Notların gerisine dokunmaz** (`Payment:`, `Colours —`
+  parçaları siparişin kendi kaydı), tek kopya bırakır, boş kaydetmek siler,
+  faturası kesilmişte **yazmaz** (KURAL 5f).
+- **Doğrulama satırın değişmesine değil, FATURANIN GÖRDÜĞÜNE bakıyor**
+  (`vestra_invoice_buyer($back)`) — ve bu ilk denemede **düştü**: okuma kalıbı
+  `(?:\.\s|$)` adres notların **sonundaysa** kapanış noktasını adresin içinde
+  bırakıyordu ("… Hong Kong."), yani belgeye, ekrana ve kurye etiketine öyle
+  basılıyordu. Kalıp **üç yere ayrı ayrı** yazılmıştı (fatura, panel, sipariş
+  sayfası) ve üçü de aynı kusuru taşıyordu; artık tek fonksiyon:
+  `vestra_order_delivery_address()`. *Yazma tarafı eklenmeden bu kusur
+  görünmüyordu — okuma tek başına kendini doğrulayamıyor.*
+- Test: `order_shipping_test.php §3b` (yazma, faturanın gördüğü, çoğaltmama,
+  silme, sınır, kesilmiş faturada ret).
+
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
 şekilde yap"* → aynı gün *"kdv fiyatın içinde gelmiyor"*).
