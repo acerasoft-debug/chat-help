@@ -304,7 +304,16 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
         <a class="btn btn-o" href="/shop"><?= t('Continue browsing') ?></a>
 
       <?php elseif($mode==='offer'): ?>
+        <?php /* mode='offer' urunun SABIT fiyati yok: teklif kapatilirsa geriye
+                 satin alinacak bir sey kalmiyor. Bu yuzden yazma tarafi
+                 (scripts/set_product.php ve panelin fiyat editoru) bu bilesimi
+                 REDDEDIYOR -- burasi yalnizca elle duzenlenmis bir kayda karsi
+                 son savunma, ve o durumda kutu bos degil, sebebi yaziyor. */ ?>
+        <?php if(vestra_offers_open($p)): ?>
         <div class="banner info" style="margin-top:18px">💬 <?= t('This item is <b>open to offers</b>.') ?> <?= htmlspecialchars($p['guide']??'') ?></div>
+        <?php else: ?>
+        <div class="banner" style="margin-top:18px"><?= t('This item is no longer available to order.') ?></div>
+        <?php endif; ?>
         <table class="tiers">
           <thead><tr><th><?= t('Volume') ?></th><th><?= t('Indicative unit') ?></th></tr></thead>
           <tbody>
@@ -313,6 +322,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           <?php endforeach; ?>
           </tbody>
         </table>
+        <?php if(vestra_offers_open($p)): ?>
         <div class="order-box">
           <?php if(isset($_GET['colerr'])): ?>
           <div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:10px">
@@ -381,6 +391,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <?php endif; ?>
           </form>
         </div>
+        <?php endif; ?>
 
       <?php else: ?>
         <?php if($mode==='sale'): ?>
@@ -461,7 +472,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
             <div class="hint" style="margin-top:10px"><?= t('Payment is currently by <b>invoice</b> — you receive a proforma invoice and goods ship after bank-transfer payment.') ?></div>
           <?php endif; ?>
         </div>
-        <?php if(!$SOLD && !empty($p['offers'])): ?>
+        <?php /* Teklif kutusu: karar vestra_offers_open()'da -- /offer ucu de
+                 AYNI fonksiyonu cagiriyor, yani burada cizilmeyen bir kutunun
+                 formu elle gonderilse de sunucu reddediyor. */ ?>
+        <?php if(!$SOLD && vestra_offers_open($p)): ?>
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">💬 <?= t('This seller also accepts offers.') ?></div>
           <details class="offerdetails">
@@ -511,12 +525,13 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
           </details>
         </div>
         <?php endif; ?>
-        <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid']; ?>
-        <?php if(!$SOLD && !$isOwnListing && !empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price']>0): ?>
+        <?php $isOwnListing = $AUTH_USER && !empty($p['seller_uid']) && $AUTH_USER['id']===$p['seller_uid'];
+              $samplePrice = vestra_sample_price($p); ?>
+        <?php if(!$SOLD && !$isOwnListing && $samplePrice > 0): ?>
         <div class="order-box" style="margin-top:14px">
           <div class="hint" style="margin-bottom:8px">📦 <?= t('Want to check it in hand first?') ?></div>
           <details class="offerdetails">
-            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= vestra_money((float)$p['sample_price']) ?></summary>
+            <summary class="btn btn-o" style="width:100%;justify-content:center">📦 <?= t('Sample order') ?> — <?= vestra_money($samplePrice) ?></summary>
             <?php if($AUTH_USER): ?>
             <form method="post" action="/sample-checkout" style="margin-top:12px">
               <input type="hidden" name="id" value="<?= htmlspecialchars($p['id']) ?>">
@@ -524,7 +539,7 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
               <label class="hint"><?= t('Size or note (optional)') ?></label>
               <input type="text" name="note" maxlength="200" placeholder="<?= htmlspecialchars(t('e.g. size M, or a note for us')) ?>" style="width:100%">
               <div class="hint" style="margin-top:8px"><?= t('EU-wide, shipping included.') ?> <?= t('The exact size you request may not always be available — we ship the closest match from current sample stock.') ?></div>
-              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= vestra_money((float)$p['sample_price']) ?></button>
+              <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Order sample') ?> — <?= vestra_money($samplePrice) ?></button>
             </form>
             <?php else: ?>
             <a class="btn btn-p" href="/login?back=<?= urlencode('/product?id='.$p['id']) ?>" style="width:100%;justify-content:center;margin-top:12px"><?= t('Sign in to order a sample') ?></a>

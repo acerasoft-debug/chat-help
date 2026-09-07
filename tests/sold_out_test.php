@@ -62,7 +62,10 @@ $t('tek karar degiskeni ($SOLD)',  preg_match('~\$SOLD\s*=.*vestra_is_sold_out~'
 $t('grup alimi banneri kapali',    str_contains($prod, "if(!\$SOLD && !empty(\$p['group']))"));
 $t('dropship dugmesi kapali',      str_contains($prod, "if(!\$SOLD && !\$isOwnListingTop"));
 $t('numune blogu kapali',          str_contains($prod, "if(!\$SOLD && !\$isOwnListing"));
-$t('teklif blogu kapali',          str_contains($prod, "if(!\$SOLD && !empty(\$p['offers']))"));
+/* Kosulun teklif yarisi vestra_offers_open()'a tasindi (7 Eyl 2026): urun
+   sayfasi ile /offer ucu artik AYNI fonksiyonu okuyor. Burada tutulan sey
+   degismedi -- satilmis ilanda teklif kutusu cizilmiyor. */
+$t('teklif blogu kapali',          str_contains($prod, "if(!\$SOLD && vestra_offers_open(\$p))"));
 $t('"Add to order" yerine pasif dugme', str_contains($prod, "if(\$SOLD): ?>") && str_contains($prod, 'disabled'));
 /* Dugmeyi kaldirmak, ona DOKUNAN JS'i de gozden gecirmeyi gerektiriyor. recalc()
    sayfa yuklenirken kosuyor ve #addBtn artik yok: korumasiz btn.disabled ilk

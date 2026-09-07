@@ -21,6 +21,20 @@ permissions:
 #   {"match":"XH16B005 BB04", "expect":1, "cat":"Polos", "price":"79.90",
 #    "moq":"20", "sizes":"S×1 · M×3 · ...", "name":"...", "status":"approved"}
 #
+# price / tiers -- IKISI AYRI SEY. 'price' TUM kademeleri ayni rakama yazar
+#   (tek fiyatli urun icin). Basamakli bir merdiven icin 'tiers' verin:
+#     "moq":48, "tiers":[{"min":48,"price":19.00},{"min":104,"price":17.50}]
+#   Ilk basamagin min'i MOQ'ya esit olmak zorunda (yoksa merdiven minimum
+#   siparisin ustunden baslar) ve her basamak bir oncekinden UCUZ olmali.
+#
+# offers -- "off" teklif (pazarlik) kutusunu kapatir, "on" acar. Kapatmak hem
+#   urun sayfasindaki kutuyu hem /offer ucunu kapatir (tek karar noktasi
+#   vestra_offers_open). mode='offer' ilanda kapatmak REDDEDILIR: o urunun
+#   sabit fiyati yok, teklif kapaninca satin alinamaz kalirdi.
+#
+# sample_price -- 0 yazmak numune kutusunu KALDIRIR (eskiden sifir "gecersiz
+#   fiyat" sayiliyordu, yani numuneyi kaldirmanin hicbir yolu yoktu).
+#
 # match: once id/sku TAM eslesme denenir, bulunmazsa sku/gorsel adi/urun adi
 #        icinde ALT DIZE olarak aranir (model kodu genelde dosya adindadir).
 #        Buyuk/kucuk harf ve bosluk/tire farki onemsizdir.

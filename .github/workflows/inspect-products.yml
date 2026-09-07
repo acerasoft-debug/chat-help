@@ -181,6 +181,23 @@ jobs:
                 foreach ($p['tiers'] as $tier) $t[] = ($tier['min'] ?? '?')."+ -> €".($tier['price'] ?? '?');
                 echo "   tiers: ".implode(' | ', $t)."\n";
               }
+              /* Siparis kosullari: MOQ tek basina yalan soyleyebiliyor -- sepet
+                 miktari size_step'in KATINA yuvarliyor, yani 10'luk paketli bir
+                 ilanda "min 48" yazip 50 tahsil etmek mumkun. Teklif ve numune
+                 de burada: ikisi de ilanda birer alan ve ikisi de urun
+                 sayfasinda ayri bir kutu ciziyor, ama hicbir teshis onlari
+                 yazmiyordu -- "teklif dugmesini kaldir" denince neye bakilacagi
+                 kaynaktan okunuyordu. */
+              $terms = [];
+              if (!empty($p['size_step']))  $terms[] = "size_step=".(int)$p['size_step'];
+              if (!empty($p['min_colors'])) $terms[] = "min_colors=".(int)$p['min_colors'];
+              $terms[] = "teklif=".(function_exists('vestra_offers_open')
+                         ? (vestra_offers_open($p) ? 'ACIK' : 'kapali') : '?')
+                       . " (mode=".($p['mode'] ?? '?').", offers=".(!empty($p['offers']) ? 'true' : '-')
+                       . ", no_offers=".(!empty($p['no_offers']) ? 'true' : '-').")";
+              $terms[] = "numune=".(!empty($p['sample_price']) && is_numeric($p['sample_price']) && (float)$p['sample_price'] > 0
+                         ? '€'.$p['sample_price'] : 'yok');
+              echo "   ".implode(' | ', $terms)."\n";
               foreach ($bad as $b) echo "   KAYIP GORSEL: {$b}\n";
             }
 

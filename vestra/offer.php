@@ -9,6 +9,13 @@ if(!$p){ header('Location: /shop'); exit; }
 /* SATILDI: satilamayan bir urune teklif alinmaz -- kabul edilse fatura
    kesilecek ve mal yok. Urun sayfasina geri, sebebi orada yaziyor. */
 if(vestra_is_sold_out($p)){ header('Location: /product?id='.urlencode($id)); exit; }
+/* TEKLIFE KAPALI: bu kontrol yoktu. Urun sayfasi teklif kutusunu yalnizca
+   mode='offer' ya da 'offers' bayragi varken ciziyor, ama bu uc urune hic
+   bakmiyordu -- yani sabit fiyatli, hicbir yerde teklif dugmesi olmayan bir
+   ilana elle POST atan biri teklif birakabiliyordu: kayit dusuyor, saticiya
+   ve aliciya mektup gidiyor, satici kabul ederse fatura kesiliyor. Karar
+   vestra_offers_open()'da, urun sayfasiyla ayni fonksiyonda. */
+if(!vestra_offers_open($p)){ header('Location: /product?id='.urlencode($id)); exit; }
 if(!empty($_POST['website'])){ header('Location: /product?id='.urlencode($id).'&offered=1&ref=NA'); exit; }
 
 $company=trim($_POST['company']??''); $email=trim($_POST['email']??'');
