@@ -1699,12 +1699,24 @@ jobs:
                  kesilmis" dogru bir ret ama sorunun cevabi degil -- kesilen
                  belgede NE var? Kayitli fatura ayarlarini ve numarayi yaz;
                  ikinci numara yine yanmaz, hicbir sey degismez. */
-              $cPrimary = $cRefs[0];
               $cRs = vestra_read_json('offer_responses.json');
-              $cIvs = vestra_invoices_for_ref($cPrimary, false);
+              /* BIRINCIL ref, secilen ilk ref DEGIL: kesim sirasinda hangi
+                 teklif ilk isaretlendiyse belge onun adina cikti ve digerleri
+                 ona invoice_group_ref ile bagli. Ilk denememde $cRefs[0]'i
+                 birincil sandim ve follow_group=false verdim -- fatura AYNI
+                 gruptaydi, blok hic calismadi ve "faturali degil" gibi
+                 gorundu. Once bagi izle, sonra sor. */
+              $cPrimary = $cRefs[0];
+              foreach ($cRefs as $cr) {
+                $cg = trim((string)($cRs[$cr]['invoice_group_ref'] ?? ''));
+                if ($cg !== '') { $cPrimary = $cg; break; }
+                if (!empty($cRs[$cr]['invoice_members'])) { $cPrimary = $cr; break; }
+              }
+              $cIvs = vestra_invoices_for_ref($cPrimary);
               if ($cIvs) {
                 $cRec = (array)($cRs[$cPrimary] ?? []);
-                echo "\nBU REF ZATEN FATURALI -- kayitli hali:\n";
+                echo "\nBU GRUP ZATEN FATURALI -- kayitli hali:\n";
+                echo "  birincil   : ".$cPrimary."\n";
                 echo "  fatura no  : ".(string)($cIvs[0]['no'] ?? '?')."\n";
                 echo "  meta toplam: ".number_format((float)($cIvs[0]['total'] ?? 0),2)
                    ." ".(string)($cIvs[0]['currency'] ?? 'EUR')."\n";
