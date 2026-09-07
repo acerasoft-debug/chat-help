@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | payment_notice (SİPARİŞ: faturası KESİLMİŞ, havale bekleyen siparişe 'havaleyi gönderince haber verin' — dekont yükleme bağlantısı + cevap yolu; SAAT BAŞLATMAZ (o payment_due'dur); to=order:&lt;ref&gt; ŞART; faturasız, ödenmiş, gönderilmiş, iptal, escrow ya da dekontu YÜKLENMİŞ siparişte DURUR) | order_gate (TEŞHİS: bir siparişe fatura düğmesinin neden çizilmediğini gate gate yazar — salt okunur; spec: ref=&lt;sipariş ref&gt;) | invoice_combine_draft (HENÜZ FATURALANMAMIŞ kabullerin BİRLEŞİK fatura TASLAĞI, operatöre e-postayla — numara yakmaz, kaydetmez, müşteriye gitmez; spec: refs=&lt;r1,r2,r3&gt;, ship=&lt;EUR&gt;, vat=&lt;yüzde, fiyata DAHİL&gt;, seller=&lt;uid&gt;) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -1654,6 +1654,60 @@ jobs:
                     ."  TOTAL DUE   : EUR ".number_format($goods+$sh2,2)."\n\n"
                     ."This is a DRAFT: no number was burned, nothing was written to disk, nothing went to the buyer.\n\n— VESTRA";
               $opts = ['attachments' => [['name'=>'DRAFT-'.$iref.'.pdf','path'=>$tmp]]];
+            } elseif ($letter === 'order_gate') {
+              /* "Bu siparise fatura kesemiyorum, BUTTON YOK" -- panelin fatura
+                 dugmesini cizmek icin baktigi HER kosulu tek tek yazar.
+                 Salt okunur: hicbir sey kaydetmez, hicbir numara yakmaz,
+                 hicbir mektup gondermez.
+                 Neden sonda: bu depoda ALTI kez kontrolun kendisi yanlis yere
+                 bakti. "Kodu okudum, gecmesi lazim" bir olcum degil -- gate'i
+                 CALISTIRIP degerini okumak olcum. spec: ref=<siparis ref> */
+              require_once $doc."/inc/orders.php";
+              require_once $doc."/inc/invoice.php";
+              $gref = preg_replace('/[^A-Za-z0-9_-]/','',trim($E('ref')));
+              if ($gref === '') { fwrite(STDERR, "order_gate: spec'te ref= yok\n"); exit(1); }
+
+              $grow = null; $gidx = 0; $gtotal = 0;
+              foreach (vestra_read_csv('orders.csv') as $i => $r) {
+                $gtotal++;
+                if (($r['ref'] ?? '') === $gref) { $grow = $r; $gidx = $i + 1; }
+              }
+              echo "siparis        : {$gref}\n";
+              echo "orders.csv     : ".($grow ? "VAR (satir {$gidx}/{$gtotal})" : "*** YOK -- panel bu siparisi hic gormez ***")."\n";
+              if (!$grow) { fwrite(STDERR, "order_gate: siparis orders.csv'de yok\n"); exit(1); }
+
+              /* GATE 1 -- escrow notu. Kart/escrow siparisi odemede kendi
+                 faturasini kesiyor, o yuzden kuyruga girmiyor. */
+              $gEscrow = str_contains((string)($grow['notes'] ?? ''), 'Secure escrow');
+              echo "GATE 1 escrow  : ".($gEscrow ? "*** ESCROW -- kuyruga GIRMEZ, dugme CIZILMEZ ***" : "havale (gecer)")."\n";
+
+              /* GATE 2 -- zaten faturali mi. */
+              $gInvs = vestra_invoices_for_ref($gref);
+              echo "GATE 2 fatura  : ".($gInvs
+                    ? "*** ZATEN KESILMIS (".implode(', ', array_map(fn($i)=>(string)($i['no']??'?'), $gInvs)).") -- kuyruktan duser ***"
+                    : "yok (gecer)")."\n";
+
+              echo "=> KUYRUKTA GORUNMELI: ".((!$gEscrow && !$gInvs) ? "EVET" : "HAYIR")."\n";
+
+              /* Dugmenin cizildigi ikinci yer: siparis detay sayfasi. Ayni iki
+                 kosul, ama detay sayfasi escrow'u AYRI kontrol ediyor. */
+              echo "=> DETAY SAYFASINDA DUGME: ".((!$gEscrow && !$gInvs) ? "EVET" : "HAYIR")."\n";
+
+              /* Basilacak belge(ler): dilim basina bir taslak baglantisi cizilir.
+                 Bos donerse satir gorunur ama uzerinde hicbir sey olmaz. */
+              $gp = vestra_order_invoice_payloads($gref);
+              echo "yuk (dilim)    : ".count($gp)."\n";
+              foreach ($gp as $one) {
+                echo "   - satici ".vestra_invoice_issuer_name($one['seller'] ?? [], 'VESTRA')
+                   . "  kalem ".count($one['items'] ?? [])
+                   . "  anahtar ".(string)($one['seller_key'] ?? '?')."\n";
+              }
+              $gst = vestra_read_json('order_statuses.json');
+              echo "durum          : ".(string)($gst[$gref]['status'] ?? 'pending')."\n";
+              echo "kur damgasi    : ".(!empty($gst[$gref]['fx']) ? 'var' : 'YOK')."\n";
+              echo "belge birimi   : ".(vestra_order_invoice_currency($gref) ?: '(siparisin kendi birimi)')."\n";
+              echo "\nHICBIR SEY DEGISMEDI (salt okunur).\n";
+              exit(0);
             } elseif ($letter === 'invoice_combine_draft') {
               /* HENUZ FATURALANMAMIS kabullerin BIRLESIK taslagi, operatore.
                  Panelin birlesik cubugundaki 👁 Draft ile AYNI kurucu, AYNI
