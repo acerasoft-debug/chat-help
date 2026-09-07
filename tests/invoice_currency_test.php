@@ -162,8 +162,14 @@ $inv = $src('inc/invoice.php');
 $t('yük çevrimi tek yerde (payloads)',   str_contains($inv, 'vestra_invoice_convert_payload($meta, $sellerItems, $orderCur, $wantCur, $fxStamp)'));
 $t('kur sipariş damgasından',            str_contains($inv, '$fxStamp = vestra_order_fx($ref);'));
 $t('hata varsa hiçbir numara yakılmıyor', str_contains($inv, "if (!empty(\$p['currency_error'])) return ['error'"));
+/* Kesim 7 Eyl 2026'da TEK GÖVDEYE alındı (vestra_order_invoice_issue; panel ve
+   iş akışı aynı fonksiyonu çağırıyor), kontrol de oraya taşındı. Davranış aynı:
+   hata dizisi de "dolu" olduğu için düz bir if($issued) onu kesilmiş sanar ve
+   alıcıya "faturanız hazır" yazardı. İddia kontrolün YENİ evine bakıyor. */
+$t('gövde hata dizisini fatura sanmıyor', str_contains($inv, "if (isset(\$issued['error'])) return ['error'"));
 $adm = $src('../vestra/admin.php');
-$t('admin hata dizisini fatura sanmıyor', str_contains($adm, "if(isset(\$issued['error']))"));
+$t('panel gövdeyi çağırıyor',             str_contains($adm, 'vestra_order_invoice_issue('));
+$t('panel hatayı operatöre yazıyor',      str_contains($adm, "if(!empty(\$r['error']))"));
 $t('admin para birimi seçicisi var',      str_contains($adm, "value=\"order_invoice_currency\"") && str_contains($adm, "if(\$act==='order_invoice_currency')"));
 
 echo "\n== 6b. Tek tık düğmesi (sipariş ekranında) ==\n";

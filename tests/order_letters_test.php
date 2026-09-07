@@ -185,5 +185,47 @@ $t('odenmis/gonderilmis sipariste durur', str_contains($wf, "in_array(\$ost, ['p
 $t('dekont gelmisse ikinci kez istemez', str_contains($wf, 'dekont ZATEN yuklenmis'));
 $t('escrow sipariste durur',            str_contains($wf, 'escrow siparisi -- havale bildirimi yanlis olur'));
 
+echo "\n== siparis faturasi: kesim TEK GOVDEDE ==\n";
+/* Panelin "✓ Approve & issue invoice" dugmesi mektubunu admin.php'nin ICINE
+   elle yaziyordu ve is akisindan siparis faturasi kesmenin yolu YOKTU. Iki
+   kesim yolu zamanla ayrisir; burada ayrisma BELGEDE degil MEKTUPTA gorunur --
+   musteri iki farkli odeme talimati alir (KURAL 5j'nin ayni gerekcesi).
+   Govde: vestra_order_invoice_issue(). */
+$invSrc = (string)@file_get_contents(__DIR__.'/../vestra/inc/invoice.php');
+$admSrc = (string)@file_get_contents(__DIR__.'/../vestra/admin.php');
+$wfSrc  = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
+$issFn  = '';
+if (preg_match('/^function vestra_order_invoice_issue\(.*?^}/ms', $invSrc, $mO)) $issFn = $mO[0];
+
+$t('govde var',                    $issFn !== '');
+$t('panel govdeyi cagiriyor',      str_contains($admSrc, 'vestra_order_invoice_issue('));
+$t('is akisi govdeyi cagiriyor',   str_contains($wfSrc,  'vestra_order_invoice_issue('));
+/* Panelde elle yazilmis ikinci bir kesim/mektup kopyasi kalmamali. */
+$ib = substr($admSrc, (int)strpos($admSrc, "if(\$act==='issue_invoice')"));
+$ib = substr($ib, 0, (int)strpos($ib, 'TASLAK ONIZLEME'));
+$t('panelde ikinci kesim kopyasi yok',  !str_contains($ib, 'vestra_issue_order_invoices('));
+$t('panelde ikinci mektup kopyasi yok', !str_contains($ib, 'vestra_send_mail('));
+
+/* Kesim ONCESI redler -- numara yakmadan durmak, geri alinamaz bir belgeyi
+   duzeltmekten ucuz. */
+$t('escrow sipariste kesmez',      str_contains($issFn, "'Secure escrow'"));
+$t('zaten faturaliysa kesmez',     str_contains($issFn, 'vestra_invoices_for_ref($ref)'));
+$t('siparis yoksa kesmez',         str_contains($issFn, 'Sipariş bulunamadı'));
+/* Para birimi cevrilemezse HICBIR numara yanmaz: hata dizisi de "dolu" oldugu
+   icin duz bir if($issued) onu kesilmis sanip aliciya mektup yazardi. */
+$t('currency hatasi mektubu durdurur', str_contains($issFn, "isset(\$issued['error'])"));
+
+/* Mektup: operatorun "havale yaptiktan sonra haber versin" talimati burada da
+   gecerli -- eski metin havaleyi soyluyor, bildirmeyi soylemiyordu. */
+$t('havale sonrasi haber verme yolu', str_contains($issFn, 'let us know'));
+$t('dekont yukleme yolu yazili',      str_contains($issFn, 'upload the payment confirmation'));
+$t('cevap yolu da yazili',            str_contains($issFn, 'reply to this e-mail'));
+$t('referans yazmasi isteniyor',      str_contains($issFn, 'quoting {$ref}'));
+/* IBAN gomulmez: faturada duruyor, ikinci kopya ayrisir. */
+$t('IBAN mektuba gomulmemis',         !preg_match('/\bIBAN\b/', $issFn));
+/* notify=false: belge kesilir, aliciya mektup gitmez (kayit duzeltmesi). */
+$t('notify=false destekleniyor',      str_contains($issFn, 'bool $notify = true'));
+$t('operatore kopya destekleniyor',   str_contains($issFn, 'string $copyTo'));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

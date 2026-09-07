@@ -1581,3 +1581,69 @@ function vestra_issue_order_invoices(string $ref, bool $redraft = false): array 
     }
     return $issued;
 }
+
+/* SIPARIS FATURASINI KES VE ALICIYA YOLLA -- panelin "✓ Approve & issue
+ * invoice" dugmesinin ve is akisinin ORTAK govdesi (KURAL 5).
+ *
+ * Neden fonksiyon: KURAL 5j'nin ayni gerekcesi. Mektup admin.php'nin icine
+ * elle yazilmisti ve is akisindan siparis faturasi kesmenin yolu yoktu; iki
+ * kesim yolu zamanla ayrisir ve ayrisma BELGEDE degil MEKTUPTA gorunur --
+ * musteri iki farkli talimat alir.
+ *
+ * Doner: ['error'=>...] ya da ['ok'=>true,'nos'=>[...],'count'=>n,
+ * 'notified'=>bool,'sent'=>bool,'copied'=>bool]. */
+function vestra_order_invoice_issue(string $ref, bool $notify = true, string $copyTo = ''): array {
+    require_once __DIR__.'/notify.php';
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return ['error' => 'Sipariş referansı boş.'];
+
+    $orderRow = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $orderRow = $r; break; } }
+    if (!$orderRow) return ['error' => "Sipariş bulunamadı: {$ref}"];
+    /* Kart/escrow siparisi odemede kendi faturasini kesiyor; buradan ikinci
+       bir numara yakmak ayni satisa iki belge cikarirdi. */
+    if (str_contains((string)($orderRow['notes'] ?? ''), 'Secure escrow')) {
+        return ['error' => 'Escrow siparişi — faturasını ödeme anında kendisi keser.'];
+    }
+    if (vestra_invoices_for_ref($ref)) {
+        return ['error' => 'Bu siparişin faturası zaten kesilmiş — aynı satıra ikinci numara yakılmaz.'];
+    }
+
+    $issued = vestra_issue_order_invoices($ref);
+    /* Para birimi cevrilemediyse HICBIR numara yakilmadi. Hata dizisi de
+       "dolu" oldugu icin duz bir if($issued) onu kesilmis sanar ve aliciya
+       "faturaniz hazir" yazardi. */
+    if (isset($issued['error'])) return ['error' => (string)$issued['error']];
+    if (!$issued) return ['error' => 'Fatura kesilemedi (numara üretilmedi).'];
+
+    $nos = array_values(array_filter(array_map(fn($i) => (string)($i['no'] ?? ''), $issued)));
+    $subject = "VESTRA — invoice for order {$ref}";
+    /* Odeme sonrasi HABER VERME yolu (operator, 7 Eyl 2026: "havale yaptiktan
+       sonra haber versin"). Eski metin "havale edin, mal odeme gelince cikar"
+       deyip duruyordu: parayi gonderen musterinin soyleyecek yeri yoktu ve iki
+       taraf da otekinin sirasini bekliyordu. Dekont kutusu KURAL 7'nin
+       siparis sayfasindaki karti -- yukleme operatore haber dusurur ve
+       otomatik iptal saatini DURDURUR. */
+    $body = "Hello ".((string)($orderRow['name'] ?? '') ?: 'there').",\n\n"
+          . "Good news — stock for your order {$ref} is confirmed and your invoice ("
+          . implode(', ', $nos).") is now ready.\n\n"
+          . "Download it from your order confirmation page or under My orders, and pay by bank transfer "
+          . "to the account shown on the invoice, quoting {$ref} as the reference.\n\n"
+          . "Once you have sent the transfer, please let us know: upload the payment confirmation on your "
+          . "order page, or simply reply to this e-mail. Bank transfers take a few days to reach us, and a "
+          . "word from you means we can start preparing your goods straight away.\n\n"
+          . "Your order: https://vestrasales.com/order-confirm?ref=".rawurlencode($ref)."\n\n"
+          . "— VESTRA · vestrasales.com";
+
+    $em   = trim((string)($orderRow['email'] ?? ''));
+    $sent = false;
+    if ($notify && filter_var($em, FILTER_VALIDATE_EMAIL)) {
+        $sent = (bool)vestra_send_mail($em, $subject, $body);
+    }
+    $copied = false;
+    if (trim($copyTo) !== '' && filter_var(trim($copyTo), FILTER_VALIDATE_EMAIL)) {
+        $copied = (bool)vestra_send_mail(trim($copyTo), $subject, $body);
+    }
+    return ['ok' => true, 'nos' => $nos, 'count' => count($issued),
+            'notified' => $notify, 'sent' => $sent, 'copied' => $copied];
+}

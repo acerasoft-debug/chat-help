@@ -164,25 +164,17 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
-    $issued=vestra_issue_order_invoices($ref);
-    /* Para birimi cevrilemediyse HICBIR numara yakilmadi (bkz.
-       vestra_issue_order_invoices). Hata dizisi de "dolu" oldugu icin asagidaki
-       if($issued) onu kesilmis sanar ve aliciya "faturaniz hazir" yazardi. */
-    if(isset($issued['error'])){
-      header('Location: /admin?tab='.((($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices')
-            .'&msg=invoice_cur_err&err='.urlencode(substr((string)$issued['error'],0,120))); exit;
-    }
-    if($issued){
-      $orow=null; foreach(vestra_read_csv('orders.csv') as $r){ if(($r['ref']??'')===$ref){ $orow=$r; break; } }
-      if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
-        require_once __DIR__.'/inc/notify.php';
-        $nos=implode(', ',array_map(fn($i)=>$i['no'],$issued));
-        vestra_send_mail($orow['email'], "VESTRA — invoice for order {$ref}",
-          "Hello ".($orow['name']?:'there').",\n\nGood news — stock for your order {$ref} is confirmed and your invoice ({$nos}) is now ready.\n\nDownload it from your order confirmation page or under My orders, and pay by bank transfer to the account shown on the invoice. Your goods ship as soon as the payment arrives.\n\nView: https://vestrasales.com/order-confirm?ref=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com");
-      }
-    }
+    /* KESIM tek govdede: vestra_order_invoice_issue(). Numara, belge ve alici
+       mektubu orada -- is akisi yolu da AYNI fonksiyonu cagiriyor. Mektup
+       burada elle yaziliydi ve is akisindan siparis faturasi kesmenin yolu
+       yoktu; iki yol ayrisinca fark MEKTUPTA gorunur, yani musteri iki farkli
+       odeme talimati alir (KURAL 5j'nin ayni gerekcesi). */
+    $r = vestra_order_invoice_issue($ref);
     $back=(($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices';
-    header('Location: /admin?tab='.$back.'&msg='.($issued?'invoice_issued':'invoice_none')); exit;
+    if(!empty($r['error'])){
+      header('Location: /admin?tab='.$back.'&msg=invoice_cur_err&err='.urlencode(substr((string)$r['error'],0,120))); exit;
+    }
+    header('Location: /admin?tab='.$back.'&msg=invoice_issued'); exit;
   }
   /* TASLAK ONIZLEME -- operator kararı (1 Eyl 2026): "faturayi musteri
      hesabina inmeden ve email ile gondermeden kendim kontrol etmem gerekiyor".
