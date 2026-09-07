@@ -1147,6 +1147,41 @@ dönmek zorundadir"*).
   date)", "Total volume in USD" kartı, `?dl=orders_usd` CSV. Canlı damgalama:
   `diag-live` → `fx_probe=true` eski siparişleri de damgalar (ref/tarih/kur
   yazar, kişi verisi yok). Test: `tests/order_fx_test.php`.
+- **KURAL 13 — Günlük otomatik journal yazısı: HER GÜN ÇALIŞIR, HER GÜN
+  YAYIMLAMAZ** (operatör, 7 Eyl 2026: *"her gün otomatik journal e paylaşım yap
+  estetik ve ayrıntılı bilgi verici ve işe yarayan"*).
+  - `inc/journal_auto.php` (saf kurucu) + `cron_journal.php` (sunucu crontab'ı
+    **07:20 UTC**, `deploy-vestra.yml` idempotent kurar + kuru koşu kanaryası).
+  - **Yazının tamamı canlı ilan kaydından türer**: hangi marka, kaç yeni model,
+    hangi kategori, en düşük kademe fiyat, MOQ, bedenler, AYRI renk sayısı,
+    gönderim yeri. Sunucuda dil modeli yok; olsa bile moda yorumu üretmek
+    KURAL 3'ün tam tersi olurdu. Toptancının okumak istediği zaten yorum değil:
+    *bu hafta ne geldi, kaça, kaç adetten.*
+  - **Malzeme yoksa YAZI YOK** (eşik `VESTRA_JOURNAL_AUTO_MIN`). Gerekçe iki
+    katmanlı: KURAL 9 ince içeriği yasaklıyor (alan adına zarar verir) ve
+    KURAL 2c'nin dersi — "her sabah '0 bekleyen' yazan bir uyarı okunmamayı
+    öğretir"; içeriksiz günlük yazı da journal'ı atlamayı öğretir. *"Her gün"
+    ile "her gün YAYIN" aynı şey değil; bu bilinçli.*
+  - **Pencere SON RAPORDA başlar**, sabit 7 gün değil. Canlı kuru koşu bunu
+    yakaladı: sabit pencereyle 3 Eylül'de giren **335 ayakkabı** 4–10 Eylül
+    arasındaki HER raporda yeniden duyurulacaktı — aynı yazının yedi kopyası,
+    yani işin kaçınmak için kurulduğu şeyin ta kendisi. 7 gün artık yalnızca
+    üst sınır (ilk rapor sonsuz geriye gitmesin) ve metindeki "son %d gün"
+    gerçek pencereyi yazar.
+  - **Dokuz dil, `t()` YOK**: `vlang()` süreçte ilk çağrıda sabitleniyor
+    (KURAL 11'in ölçüm tuzağı), tek cron sürecinde dokuz dili `t()` ile gezmek
+    dokuz İngilizce yazı üretir ve hiçbir şey bozuk görünmezdi. Cümle parçaları
+    `vestra_journal_auto_strings()` tablosundan; rakamlar `%s` ile giriyor,
+    metne gömülü değil.
+  - **Şişirilmiş rakam da uydurulmuş rakamdır:** ilk taslakta renkler ilan
+    başına TOPLANIYORDU — tek renkli 18 ilan "18 renk seçeneği" diye çıktı;
+    ayrıca başlık "18 pieces" diyordu, ki toptancı bunu 18 **adet** okur.
+    İkisi de yayından önce, ilk çıktı okunarak düzeltildi.
+  - Aynı gün ikinci yazı yok; gövde **düz metin** (renderer markdown/HTML
+    tanımıyor); kapak raporda geçen **gerçek** bir ürünün fotoğrafı; iç
+    bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
+    `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
+  - Test: `tests/journal_auto_test.php` (47 iddia).
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
