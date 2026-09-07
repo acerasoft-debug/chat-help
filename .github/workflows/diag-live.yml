@@ -35,7 +35,7 @@ on:
         required: false
         default: ""
       order_doc:
-        description: "order_sheet_ref ile: 'sheet' (varsayılan, tarafsız sipariş sayfası) veya 'invoice' (fatura ÖNİZLEMESİ — hiçbir şey kaydedilmez, e-posta gitmez)"
+        description: "order_sheet_ref ile: 'sheet' (varsayılan, tarafsız sipariş sayfası), 'invoice' (fatura ÖNİZLEMESİ — hiçbir şey kaydedilmez, e-posta gitmez) veya 'invoice:usd' (o para biriminde önizler, seçimi KAYDA YAZMADAN)"
         required: false
         default: "sheet"
       order_sheet_pubkey:
@@ -723,57 +723,57 @@ jobs:
 
             if (!$pub) { echo "\n(public key verilmedi -- PDF uretilmedi, sadece denetim)\n"; exit($ok ? 0 : 1); }
 
-            if (strtolower(trim((string)getenv('SHEET_DOC'))) === 'invoice') {
-              /* FATURA ONIZLEMESI. vestra_issue_order_invoices() ile AYNI verileri kurar ama
-                 hicbir sey yazmaz ve kimseye e-posta gitmez: numara DRAFT, dosya olusmaz,
-                 siparis "inceleniyor" durumunda kalir. Amac, kesmeden once gorup onaylamak. */
-              /* Alici blogunu gercek kesim ile AYNI fonksiyon kuruyor (vestra_invoice_buyer):
-                 onaylanan belge ile kesilen belge birbirinden ayrilamasin. */
-              $buyer = vestra_invoice_buyer($order);
+            $docWant = strtolower(trim((string)getenv('SHEET_DOC')));
+            if (str_starts_with($docWant, 'invoice')) {
+              /* FATURA ONIZLEMESI -- kesimin KENDI yukunden.
+                 Bu adim uzun sure $meta'yi ELDE kuruyordu: alici blogu, navlun,
+                 kupon payi ve satici dilimlemesi burada bir kez, panelde/kesimde
+                 bir kez yaziliydi. Iki kopya, KURAL 5d'nin yasakladigi ayrisma:
+                 operator burada bir belge gorur, alici baskasini alir. Artik
+                 ikisi de vestra_order_invoice_payloads()'tan okuyor.
+                 Hicbir sey yazilmaz: numara DRAFT, dosya olusmaz, e-posta gitmez.
+                 Para birimi: "invoice" kayitli secimi kullanir, "invoice:usd"
+                 KAYDA YAZMADAN o birimde onizler (7 Eyl 2026). */
+              $curOvr = (str_contains($docWant, ':')) ? strtoupper(trim(explode(':', $docWant, 2)[1])) : '';
+              $payloads = vestra_order_invoice_payloads($ref, $curOvr);
+              if (!$payloads) { fwrite(STDERR, "fatura yuku kurulamadi\n"); exit(1); }
+              $b0 = $payloads[0]['meta']['buyer'] ?? [];
               /* Log herkese acik: adresin KENDISI degil, dolu mu ve nereden geldigi yazilir. */
               printf("alici adresi     : %s (%d karakter)\n",
-                     $buyer['address'] === '' ? 'YOK -- gumruk/UPS icin eksik'
+                     trim((string)($b0['address'] ?? '')) === '' ? 'YOK -- gumruk/UPS icin eksik'
                        : (str_contains((string)($order['notes'] ?? ''), 'Deliver to:') ? 'siparis notundan' : 'kayitli hesaptan'),
-                     mb_strlen($buyer['address']));
-              printf("alici ulkesi     : %s\n", $buyer['country'] !== '' ? $buyer['country'] : 'YOK');
-              $meta = [
-                'ref' => $ref, 'date' => $order['timestamp'] ?? date('c'),
-                'discount' => round((float)($order['discount'] ?? 0), 2),
-                'voucher_code' => trim((string)($order['voucher_code'] ?? '')),
-                'shipping' => round((float)($order['shipping'] ?? 0), 2),
-                'shipping_label' => trim((string)($order['shipping_label'] ?? '')),
-                'partial_shipments' => !empty($order['partial_shipments']),
-                'incoterms' => trim((string)($order['incoterms'] ?? '')),
-                'origin' => trim((string)($order['origin'] ?? '')),
-                'export_reason' => trim((string)($order['export_reason'] ?? '')),
-                'vat_note' => trim((string)($order['vat_note'] ?? '')),
-                'buyer' => $buyer,
-              ];
-              /* Faturayi KIM kesiyor: satirlarin sahibi. Bunu uydurmuyoruz -- urunun
-                 seller_uid'i kimse fatura da onun. Birden fazla satici varsa gercek
-                 kesimde her birine ayri fatura cikar; onizlemede hepsini gosteriyoruz. */
-              $bySeller = [];
-              foreach ($lines as $l) { $bySeller[($l['seller_uid'] ?: 'vestra')][] = $l; }
-              echo "faturayi kesecek : ".count($bySeller)." taraf\n";
+                     mb_strlen((string)($b0['address'] ?? '')));
+              printf("alici ulkesi     : %s\n", trim((string)($b0['country'] ?? '')) !== '' ? $b0['country'] : 'YOK');
+              $ordCur = strtoupper(trim((string)($order['currency'] ?? 'EUR'))) ?: 'EUR';
+              $fxSt   = function_exists('vestra_order_fx') ? vestra_order_fx($ref) : null;
+              printf("siparis birimi   : %s | fatura birimi: %s%s\n", $ordCur,
+                     (string)($payloads[0]['meta']['currency'] ?? $ordCur),
+                     $curOvr !== '' ? "  (ONIZLEME icin, kayda yazilmadi)" : '');
+              printf("kur damgasi      : %s\n", $fxSt ? vestra_order_fx_note($fxSt) : 'YOK -- cevrim gerekiyorsa kesim DURUR');
+              echo "faturayi kesecek : ".count($payloads)." taraf\n";
               $parts = [];
-              foreach ($bySeller as $sid => $items) {
-                $acc = null;
-                if ($sid !== 'vestra') foreach (auth_accounts() as $a) if (($a['id'] ?? '') === $sid) { $acc = $a; break; }
-                $who = $acc ? ($acc['company'] ?: ($acc['name'] ?: $sid)) : 'VESTRA (acerasoft LLC)';
-                /* Banka alanlari faturanin odeme kutusunu olusturuyor. DEGERLERI yazmiyoruz
-                   (log herkese acik), sadece dolu mu bos mu. */
-                $bankSet = $acc ? array_filter([
-                  'bank_name' => !empty($acc['bank_name']), 'bank_holder' => !empty($acc['bank_holder']),
-                  'bank_iban' => !empty($acc['bank_iban']), 'bank_bic' => !empty($acc['bank_bic']),
-                ]) : [];
-                printf("  %-28s %2d satir | banka alanlari: %s\n", mb_substr($who,0,26), count($items),
-                       $acc ? (count($bankSet)."/4 dolu".(count($bankSet)<4 ? ' -- ODEME KUTUSU EKSIK CIKAR' : '')) : 'satici hesabi yok');
-                $parts[] = vestra_render_invoice_pdf($meta, $items, $acc, 'DRAFT-PREVIEW');
+              foreach ($payloads as $p) {
+                $acc = $p['seller'];
+                $who = $acc ? ($acc['company'] ?: ($acc['name'] ?: $p['seller_key'])) : 'VESTRA (acerasoft LLC)';
+                $cur = (string)($p['meta']['currency'] ?? $ordCur);
+                if (!empty($p['currency_error'])) {
+                  printf("  %-28s CEVRILEMEDI: %s -- KESIM DURUR\n", mb_substr($who,0,26), $p['currency_error']);
+                  continue;
+                }
+                /* Odeme kutusu bu para biriminde GERCEKTEN cikiyor mu? Degerleri
+                   yazmiyoruz (log herkese acik), yalnizca kutunun dolu olup
+                   olmadigini -- bos bir odeme kutusunu alici fatura elindeyken
+                   gorurdu. */
+                $rails = $acc ? vestra_payment_rails($acc, $cur) : [];
+                printf("  %-28s %2d satir | %s odeme kutusu: %s\n", mb_substr($who,0,26), count($p['items']), $cur,
+                       $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok') : 'satici hesabi yok');
+                $parts[] = vestra_render_invoice_pdf($p['meta'], $p['items'], $acc, '', true);
               }
+              if (!$parts) { fwrite(STDERR, "hicbir dilim cizilemedi\n"); exit(1); }
               /* Birden fazla satici varsa ilkini gonderiyoruz; digerlerini ayri istersen
                  kesimde zaten ayri dosya olarak cikacaklar. */
               $pdf = $parts[0];
-              echo "onizleme         : fatura (KESILMEDI, kaydedilmedi, e-posta gitmedi)\n";
+              echo "onizleme         : fatura TASLAGI (KESILMEDI, kaydedilmedi, e-posta gitmedi)\n";
             } else {
               $pdf = vestra_render_order_sheet_pdf($order, $lines);
             }
@@ -781,7 +781,7 @@ jobs:
             echo "sha256     : ".hash('sha256', $pdf)."\n";
             /* Tarafsiz sayfada marka izi kalmamali -- isin amaci bu. Faturada TAM TERSI:
                VESTRA basligi olmasi gerekiyor, o yuzden kontrol sadece sheet icin. */
-            if (strtolower(trim((string)getenv('SHEET_DOC'))) !== 'invoice')
+            if (!str_starts_with($docWant, 'invoice'))
               foreach (['VESTRA','vestrasales','acerasoft'] as $n)
                 echo "  iz {$n}: ".(str_contains($pdf, $n) ? 'VAR (HATA)' : 'yok')."\n";
 
