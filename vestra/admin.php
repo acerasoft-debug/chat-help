@@ -127,6 +127,24 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
   /* Faturanin para birimi (7 Eyl 2026). Taninmayan birim KAYDEDILMEZ -- kod
      yalnizca EUR->USD cevirebiliyor ve ceviremedigi bir birimi kabul etmek,
      sessizce yanlis rakam basmak olurdu. */
+  /* NAVLUN (7 Eyl 2026). Tek yazıcı `vestra_order_set_shipping()`: navlun ile
+     sipariş TOPLAMI birlikte hareket eder ve yazma geri okunarak doğrulanır.
+     Faturası kesilmiş siparişi reddetmek de orada — düğmenin görünmemesi yetki
+     değil (KURAL 5g). */
+  if($act==='order_delivery'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $r=vestra_order_set_delivery($ref, (string)($_POST['address']??''));
+    header('Location: /admin?tab=orders&view='.urlencode($ref)
+          .'&msg='.(isset($r['error'])?'addr_fail&err='.urlencode(substr((string)$r['error'],0,140)):'addr_saved')); exit;
+  }
+  if($act==='order_shipping'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/orders.php';
+    $r=vestra_order_set_shipping($ref, vestra_price_input((string)($_POST['shipping']??'0')), (string)($_POST['shipping_label']??''));
+    header('Location: /admin?tab=orders&view='.urlencode($ref)
+          .'&msg='.(isset($r['error'])?'ship_fail&err='.urlencode(substr((string)$r['error'],0,140)):'ship_saved')); exit;
+  }
   if($act==='order_invoice_currency'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2552,6 +2570,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Tanınmayan para birimi — <b>kaydedilmedi</b>. Çevrilebilen birimler: <?= htmlspecialchars(implode(', ', vestra_invoice_currencies())) ?>. Çeviremediği bir birimi kabul etmek, belgeye sessizce yanlış rakam basmak olurdu.</div>
+<?php elseif($msg==='addr_saved'): ?>
+<div class="amsg">✓ Teslimat adresi kaydedildi — <b>faturanın gerçekten bu adresi gördüğü</b> geri okunarak doğrulandı (satırın değişmesi yetmez; belgeyi besleyen çözücü de aynı adresi bulmalı). Gümrük ve kurye için gereken alan buydu.</div>
+<?php elseif($msg==='addr_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Adres <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
+<?php elseif($msg==='ship_saved'): ?>
+<div class="amsg">✓ Navlun kaydedildi ve <b>sipariş toplamı da güncellendi</b> (kayıt geri okunarak doğrulandı). Fatura başka para biriminde kesiliyorsa navlun da sipariş tarihinin kuruyla çevrilir — taslağı (👁) açıp rakamı görün.</div>
+<?php elseif($msg==='ship_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Navlun <b>kaydedilmedi</b>: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir alan değişmedi.</div>
 <?php elseif($msg==='invoice_cur_late'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Bu siparişin faturası <b>zaten kesilmiş</b> — para birimi seçimi artık belgeyi değiştirmez, o yüzden <b>kaydedilmedi</b>. Belge alıcının elinde ve numara yanmış durumda; değiştirmek için <b>Invoice approvals ▸ 🔁 Redraft</b> (aynı numarayla yeniden çizer) ya da faturayı iptal edip yeniden kesmek gerekir.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
@@ -3585,7 +3611,9 @@ elseif($tab==='orders'):
     $vlines=vestra_order_lines($viewRow)['lines']??[];
     $ver=escrow_get($viewRef);
     $vpay=$ver?'escrow':(str_contains($viewRow['notes']??'','Secure escrow')?'escrow':'bank');
-    $vship=''; if(preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', $viewRow['notes']??'', $m)) $vship=$m[1];
+    /* Kalıp tek yerde (inc/orders.php): üç kopya vardı ve üçü de adresin
+       sonundaki noktayı adresin İÇİNDE bırakıyordu. */
+    $vship = vestra_order_delivery_address((string)($viewRow['notes'] ?? ''));
 ?>
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
   <h2 style="font-size:18px;font-weight:700">📦 Order <span class="atag" style="font-size:14px"><?= htmlspecialchars($viewRef) ?></span> · <?= orderBadge($vstatus) ?><?= $ver?' · '.escrow_badge($ver['status']??''):'' ?></h2>
@@ -3599,7 +3627,21 @@ elseif($tab==='orders'):
       <?= arow(['Company','<b>'.htmlspecialchars($viewRow['company']??'—').'</b>'.(($viewRow['vat']??'')!==''?' · VAT '.htmlspecialchars($viewRow['vat']):'')]) ?>
       <?= arow(['Contact',htmlspecialchars($viewRow['name']??'—').' · <a href="mailto:'.htmlspecialchars($viewRow['email']??'').'" style="color:var(--acc)">'.htmlspecialchars($viewRow['email']??'').'</a>']) ?>
       <?= arow(['Country / Phone',htmlspecialchars($viewRow['country']??'—').(($viewRow['phone']??'')!==''?' · '.htmlspecialchars($viewRow['phone']):'')]) ?>
-      <?= arow(['Delivery address',$vship!==''?htmlspecialchars($vship):'<span style="color:var(--mut)">same as billing</span>']) ?>
+      <?php /* TESLİMAT ADRESİ — GÖSTERİLİYORDU ama girilemiyordu (operatör,
+               7 Eyl 2026: "kargo yeri aç"). Adresi yalnızca alıcı sipariş
+               verirken yazabiliyordu; sonradan e-postayla gelen bir adresi
+               operatörün koyacağı yer yoktu ve fatura taslağı "gümrük ve kurye
+               adres ister" diye uyarıp duruyordu. Aynı boşluk navlunda da vardı. */ ?>
+      <?= arow(['Delivery address',
+            ($vship!==''?htmlspecialchars($vship):'<span style="color:var(--mut)">same as billing — nothing on file</span>')
+          . '<form method="post" style="margin:6px 0 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+          . csrfField()
+          . '<input type="hidden" name="_action" value="order_delivery">'
+          . '<input type="hidden" name="ref" value="'.htmlspecialchars($viewRef).'">'
+          . '<input name="address" value="'.htmlspecialchars($vship).'" placeholder="Street, city, postcode, country"'
+          . ' style="flex:1;min-width:220px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">'
+          . '<button class="abtn" type="submit" style="font-size:12px" title="Faturaya ve sevkiyata bu adres basılır. Boş bırakıp kaydetmek adresi siler. Faturası kesilmiş siparişte kaydedilmez.">📍 Save address</button>'
+          . '</form>']) ?>
       <?= arow(['Payment',$vpay==='escrow'?'🛡️ Secure escrow (card)':'🏦 Bank transfer (invoice)']) ?>
       <?= arow(['Placed',htmlspecialchars(substr($viewRow['timestamp']??'',0,16))]) ?>
       <?php if(($viewRow['notes']??'')!==''): ?><?= arow(['Notes','<span style="font-size:12px">'.htmlspecialchars($viewRow['notes']).'</span>']) ?><?php endif; ?>
@@ -3651,6 +3693,38 @@ elseif($tab==='orders'):
           $__vpcur = vestra_order_invoice_currency($viewRef);
           $__vfx   = vestra_order_fx($viewRef);
         ?>
+        <?php
+          /* NAVLUN (operatör, 7 Eyl 2026: "kargo bölümü yok kargo eklemek
+             gerekiyor"). Teklif faturasında kutu vardı, siparişte yoktu — sipariş
+             sayfası navlunu yalnızca GÖSTERİYORDU. Tutar siparişin KENDİ
+             biriminde yazılır; belge başka birimdeyse çevrimi zaten tek yer
+             yapıyor (KURAL 5i) ve karşılığı aşağıda yazıyor, böylece operatör
+             belgede çıkacak rakamı kaydetmeden ÖNCE görür. */
+          $__vship  = round((float)($viewRow['shipping'] ?? 0), 2);
+          $__vslbl  = trim((string)($viewRow['shipping_label'] ?? ''));
+          $__vrate  = ($__vfx && $__vpcur !== '' && $__vpcur !== $__vocur) ? (float)($__vfx['usd'] ?? 0) : 0.0;
+        ?>
+        <form method="post" style="margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="order_shipping">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <span class="ahint">Shipping (<?= htmlspecialchars($__vocur) ?>):</span>
+          <input name="shipping" inputmode="decimal" value="<?= $__vship > 0 ? htmlspecialchars(number_format($__vship, 2, '.', '')) : '' ?>"
+                 placeholder="0.00" style="width:86px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <input name="shipping_label" value="<?= htmlspecialchars($__vslbl) ?>" placeholder="Shipping"
+                 style="width:150px;font-size:12px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+          <button class="abtn" type="submit" style="font-size:12px"
+                  title="Sipariş toplamı da birlikte güncellenir. Faturası kesilmiş siparişte kaydedilmez.">🚚 Save shipping</button>
+          <?php if($__vrate > 0): ?>
+            <span class="ahint" style="font-size:10.5px">
+              <?php if($__vship > 0): ?>
+                = <?= htmlspecialchars(vestra_usd(round($__vship * $__vrate, 2))) ?> on the <?= htmlspecialchars($__vpcur) ?> invoice
+              <?php else: ?>
+                <?= htmlspecialchars($__vpcur) ?> 100.00 ≈ <?= htmlspecialchars($__vocur) ?> <?= htmlspecialchars(number_format(100 / $__vrate, 2, '.', '')) ?>
+              <?php endif; ?>
+            </span>
+          <?php endif; ?>
+        </form>
         <div style="margin-bottom:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
           <span class="ahint">Invoice currency: <b><?= htmlspecialchars($__vpcur !== '' ? $__vpcur : $__vocur) ?></b><?= $__vpcur === '' ? ' <span style="color:var(--mut)">(order currency)</span>' : '' ?></span>
           <?php foreach(vestra_invoice_currencies() as $__c): if($__c === ($__vpcur !== '' ? $__vpcur : $__vocur)) continue; ?>

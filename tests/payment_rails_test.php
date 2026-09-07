@@ -37,14 +37,14 @@ $t('hesap numarasi var',  str_contains($j, 'Account number: ACC1'));
 $t('hesap turu var',      str_contains($j, 'Checking'));
 $t('ABA var ve ABD ici diye isaretli', str_contains($j, 'Routing number (ABA, domestic): ABA1'));
 $t('SWIFT var ve uluslararasi diye isaretli', str_contains($j, 'SWIFT / BIC (international): SWIFT1'));
-$t('banka adi var',       str_contains($j, 'Bank: Test Bank'));
+$t('banka adi var',       str_contains($j, 'Beneficiary bank: Test Bank'));
 $t('banka adresi var',    str_contains($j, 'Bank address: Dover, DE, USA'));
 
 echo "\n== 1b. Dolu olmayan alan UYDURULMAZ ==\n";
 $min = ['bank_account'=>'ACC1','bank_routing'=>'ABA1'];
 $j2 = implode("\n", vestra_payment_rails($min, 'USD'));
 $t('SWIFT yoksa satir yok',      !str_contains($j2, 'SWIFT'));
-$t('banka adi yoksa satir yok',  !str_contains($j2, 'Bank:'));
+$t('banka adi yoksa satir yok',  !str_contains($j2, 'Beneficiary bank:'));
 $t('lehdar yoksa satir yok',     !str_contains($j2, 'Beneficiary'));
 $t('yine de hesap+ABA basiyor',  str_contains($j2, 'ACC1') && str_contains($j2, 'ABA1'));
 $t('hesap YOKSA hic satir yok',  vestra_payment_rails(['bank_routing'=>'ABA1'], 'USD') === []);
@@ -54,7 +54,7 @@ $eur = ['bank_iban'=>'FR7630004008280001234567890'] + $us;
 $j3 = implode("\n", vestra_payment_rails($eur, 'EUR'));
 $t('IBAN bosluklu basiliyor', str_contains($j3, 'IBAN: FR76 3000 4008 2800'));
 $t('lehdar EUR tarafinda da var', str_contains($j3, 'Beneficiary: Acerasoft LLC'));
-$t('banka adi/adresi EUR tarafinda da var', str_contains($j3, 'Bank: Test Bank') && str_contains($j3, 'Bank address:'));
+$t('banka adi/adresi EUR tarafinda da var', str_contains($j3, 'Beneficiary bank: Test Bank') && str_contains($j3, 'Bank address:'));
 /* ESKI KORUMA BOZULMADI: ABD hesabi varken bank_bic bir ABD BIC'i olabilir;
    IBAN'in yanina basmak alicinin bankasina celisen bir cift verir. */
 $t('ABD hesabi varken BIC BASILMAZ', !str_contains($j3, 'BIC / SWIFT: SWIFT1'));

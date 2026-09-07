@@ -36,6 +36,23 @@ function vestra_order_notes_colors(string $notes): array {
     return ['colors' => $colors, 'notes' => $rest];
 }
 
+/**
+ * Siparişin notlarındaki teslimat adresi (`Deliver to: …`).
+ *
+ * Bu kalıp ÜÇ yere ayrı ayrı yazılmıştı — fatura (`vestra_invoice_buyer`),
+ * operatör paneli ve sipariş sayfası — ve üçü de aynı kusuru taşıyordu:
+ * `(?:\.\s|$)` yalnızca "nokta + boşluk"u ya da dizge sonunu tanıyor, yani
+ * adres notların EN SONUNDAysa kapanış noktası adresin İÇİNDE kalıyordu
+ * ("… Hong Kong."). Belgeye, ekrana ve kurye etiketine öyle basılıyordu.
+ * Yazma tarafı eklenince (`vestra_order_set_delivery`) bu görünür oldu:
+ * yazılan ile geri okunan aynı değildi. Kalıp artık tek yerde ve `\.$`
+ * durumunu da tanıyor.
+ */
+function vestra_order_delivery_address(string $notes): string {
+    if (preg_match('/Deliver to: (.*?)(?:\.\s|\.$|$)/u', $notes, $m)) return trim($m[1]);
+    return '';
+}
+
 /** Full line items for an order row, enriched with product info + per-SKU colours. */
 function vestra_order_lines(array $orderRow): array {
     $parsed = vestra_parse_order_items($orderRow['items'] ?? '');
@@ -231,7 +248,7 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
         if ($er) { $isEscrowOrder = true; $escrowBadge = ' · '.escrow_badge($er['status'] ?? ''); }
     }
     $shipTo = '';
-    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', $rawNotes, $m)) $shipTo = trim($m[1]);
+    $shipTo = vestra_order_delivery_address($rawNotes);
     $h .= '<div class="hint" style="display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 14px;font-size:13px">'
         . '<span><b>'.t('Payment').':</b> '.($isEscrowOrder ? '🛡️ '.t('Secure escrow (card)') : '🏦 '.t('Bank transfer (invoice)')).$escrowBadge.'</span>'
         . ($shipTo !== '' ? '<span><b>'.t('Deliver to').':</b> '.htmlspecialchars($shipTo).'</span>' : '')
@@ -377,6 +394,197 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
  * that distinction: "no such order" and "the disk refused" are different faults and
  * a shared 0 would hide a permissions problem behind a reassuring message.
  */
+/**
+ * Bir siparişe NAVLUN yazar (operatör, 7 Eyl 2026: *"kargo bölümü yok kargo
+ * eklemek gerekiyor"* — VES-6B53D265).
+ *
+ * TEKLİF faturasında navlun alanı vardı (`offer_responses.json.invoice_shipping`,
+ * `Admin ▸ Invoice approvals`'taki "Kargo €" kutusu, 1 Eyl 2026'da tam bu sebeple
+ * eklenmişti), SİPARİŞTE yoktu: sipariş sayfası navlunu yalnızca GÖSTERİYOR
+ * (`admin.php`, `shipping > 0` ise satır), yazacak hiçbir yol yoktu.
+ *
+ * TUTAR SİPARİŞİN KENDİ PARA BİRİMİNDE saklanır. Belge başka birimde kesiliyorsa
+ * çevrimi zaten `vestra_invoice_convert_payload()` yapıyor — burada ikinci bir
+ * çevrim, aynı rakamın iki yerde hesaplanması olurdu (KURAL 5i).
+ *
+ * İKİ ALAN BİRLİKTE HAREKET EDER: `shipping` ve `total`. Sipariş satırının
+ * toplamı navlunu İÇERİYOR (denetimi `diag-live` "toplam farki (kayitli - mal -
+ * navlun)" satırı yapıyor) — yalnız birini yazmak o denetimi kırar ve alıcının
+ * sipariş sayfası ile faturası iki ayrı rakam gösterir. Mal toplamı faturanın
+ * okuduğu **aynı** fonksiyondan (`vestra_order_lines`) geliyor, ikinci bir
+ * ayrıştırıcıdan değil.
+ *
+ * FATURASI KESİLMİŞ SİPARİŞTE YAZMAZ: belge alıcının elinde ve numara yanmış.
+ * Doğru yol KURAL 5f (aynı numarayla yeniden çizim), sessizce kaydı değiştirmek
+ * değil — kayıt ile belge ayrışırsa farkı ancak alıcı görür.
+ *
+ * Döner: ['ok'=>true, 'goods'=>…, 'shipping'=>…, 'total'=>…] ya da
+ * ['error'=>gerekçe]. Yazma GERİ OKUNARAK doğrulanıyor (KURAL 5c'nin
+ * `billing_saved` dersi: yazılamayan bir değeri "kaydettim" diye raporlamak,
+ * operatöre olmayan bir kaydı doğru sandırır).
+ */
+function vestra_order_set_shipping(string $ref, float $amount, string $label = ''): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    if (!is_finite($amount) || $amount < 0) return ['error' => 'navlun negatif olamaz'];
+    $amount = round($amount, 2);
+    $label  = trim($label);
+
+    require_once __DIR__.'/invoice.php';
+    if (vestra_invoices_for_ref($ref)) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş — navlun artık belgeyi değiştirmez '
+                         . '(KURAL 5f: aynı numarayla yeniden çizim ya da iptal + yeniden kesim)'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    /* HAM dosya okunuyor: vestra_read_csv() satırları en yeniden eskiye çeviriyor
+       ve o diziyi geri yazmak bütün defteri ters çevirirdi (bkz. yukarıdaki not). */
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    if (!isset($idx['ref'])) { fclose($in); return ['error' => 'orders.csv ref sütunu yok'] ; }
+    foreach (['shipping', 'shipping_label', 'total'] as $need) {
+        if (!isset($idx[$need])) { fclose($in); return ['error' => "orders.csv '{$need}' sütunu yok"]; }
+    }
+
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+
+    $assoc = array_combine($head, $rows[$hit]);
+    $ld    = vestra_order_lines($assoc);
+    $goods = 0.0;
+    foreach ($ld['lines'] as $l) $goods += (float)($l['line'] ?? 0);
+    $goods    = round($goods, 2);
+    $discount = round((float)($assoc['discount'] ?? 0), 2);
+    $total    = round(max(0.0, $goods - $discount) + $amount, 2);
+
+    $rows[$hit][$idx['shipping']]       = number_format($amount, 2, '.', '');
+    $rows[$hit][$idx['shipping_label']] = $label;
+    $rows[$hit][$idx['total']]          = number_format($total, 2, '.', '');
+
+    @copy($file, $file.'.bak-ship-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)'] ; }
+
+    /* GERİ OKU. Dosyaya yazdıktan sonra kaydın gerçekten öyle olduğunu görmeden
+       "kaydedildi" demiyoruz. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back || abs((float)($back['shipping'] ?? -1) - $amount) > 0.004
+               || abs((float)($back['total'] ?? -1) - $total) > 0.004) {
+        return ['error' => 'yazıldı ama geri okuma tutmadı — kayıt değişmemiş olabilir'];
+    }
+
+    /* Kim/ne zaman: mutable sipariş durumu zaten burada duruyor (escrow, fatura
+       seçimi, FX damgası). Rakamın kendisi CSV'de; bu yalnızca iz. */
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['shipping_set_at'] = date('c');
+    $st[$ref]['shipping_set_by'] = 'operator';
+    vestra_write_json('order_statuses.json', $st);
+
+    return ['ok' => true, 'goods' => $goods, 'discount' => $discount,
+            'shipping' => $amount, 'label' => $label, 'total' => $total];
+}
+
+/**
+ * Bir siparişe TESLİMAT ADRESİ yazar (operatör, 7 Eyl 2026: *"kargo yeri aç"*).
+ *
+ * Adres siparişin `notes` alanında `Deliver to: …` parçası olarak duruyor —
+ * `vestra_invoice_buyer()` faturayı oradan besliyor, sipariş ekranı da oradan
+ * okuyup gösteriyor. GÖSTERİYOR ama yazacak yer yoktu: adres yalnızca alıcı
+ * sipariş verirken yazabiliyordu, sonradan gelen bir adresi operatör hiçbir
+ * yere giremiyordu. VES-6B53D265'te fatura taslağı üç koşu boyunca "no street
+ * address on file — gümrük ve kurye ister" diye uyardı ve yapılabilecek bir şey
+ * yoktu. (Navlunda da aynı boşluk vardı; bkz. `vestra_order_set_shipping`.)
+ *
+ * NOTLARIN GERİSİNE DOKUNMAZ: `Payment: …`, `Colours — …` gibi parçalar aynen
+ * kalır, yalnızca `Deliver to: …` parçası değiştirilir/eklenir. Notları
+ * baştan yazmak, siparişin kendi kaydından bilgi silmek olurdu.
+ *
+ * Faturası kesilmiş sipariş REDDEDİLİR: adres belgenin üzerinde ve alıcının
+ * elinde; kaydı sessizce değiştirmek ikisini ayrıştırır (KURAL 5f).
+ */
+function vestra_order_set_delivery(string $ref, string $address): array {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', trim($ref));
+    if ($ref === '') return ['error' => 'ref yok'];
+    /* Tek satıra indiriliyor: notlar tek CSV alanı ve ayrıştırıcı `Deliver to:`
+       parçasını nokta+boşluğa kadar okuyor. Satır sonu bırakmak adresi ortadan
+       keserdi. */
+    $address = trim(preg_replace('/\s+/u', ' ', $address));
+    if (mb_strlen($address) > 300) return ['error' => 'adres çok uzun (300 karakter sınırı)'];
+
+    require_once __DIR__.'/invoice.php';
+    if (vestra_invoices_for_ref($ref)) {
+        return ['error' => 'bu siparişin faturası zaten kesilmiş — adres belgenin üzerinde ve alıcının '
+                         . 'elinde (KURAL 5f: aynı numarayla yeniden çizim)'];
+    }
+
+    $file = vestra_data_dir().'/orders.csv';
+    if (!is_readable($file)) return ['error' => 'orders.csv okunamıyor'];
+    $in = fopen($file, 'r'); if (!$in) return ['error' => 'orders.csv açılamadı'];
+    $head = fgetcsv($in, null, ',', '"', '\\');
+    if (!$head) { fclose($in); return ['error' => 'orders.csv başlıksız']; }
+    $idx = array_flip($head);
+    if (!isset($idx['ref'], $idx['notes'])) { fclose($in); return ['error' => 'orders.csv ref/notes sütunu yok']; }
+
+    $rows = []; $hit = null;
+    while (($r = fgetcsv($in, null, ',', '"', '\\')) !== false) {
+        $r = array_slice(array_pad($r, count($head), ''), 0, count($head));
+        if ((string)$r[$idx['ref']] === $ref) $hit = count($rows);
+        $rows[] = $r;
+    }
+    fclose($in);
+    if ($hit === null) return ['error' => 'sipariş bulunamadı: '.$ref];
+
+    $notes = (string)$rows[$hit][$idx['notes']];
+    /* Var olan parça çıkarılıyor (okuyucunun kullandığı kalıbın aynısı), sonra
+       yenisi ekleniyor. İki ayrı kalıp yazmak, bir gün birinin diğerinin
+       yazdığını bulamaması demek. */
+    $notes = trim(preg_replace('/Deliver to: .*?(?:\.\s|\.$|$)/u', '', $notes));
+    if ($address !== '') $notes = trim($notes . ($notes !== '' ? ' ' : '') . 'Deliver to: ' . $address . '.');
+    $rows[$hit][$idx['notes']] = $notes;
+
+    @copy($file, $file.'.bak-addr-'.date('Ymd_His'));
+    $tmp = $file.'.tmp';
+    $out = fopen($tmp, 'w'); if (!$out) return ['error' => 'geçici dosya açılamadı'];
+    fputcsv($out, $head, ',', '"', '\\');
+    foreach ($rows as $r) fputcsv($out, $r, ',', '"', '\\');
+    fclose($out);
+    if (!rename($tmp, $file)) { @unlink($tmp); return ['error' => 'orders.csv yazılamadı (izin?)']; }
+
+    /* GERİ OKU — hem satırı hem de faturanın gerçekten ne göreceğini. Kaydın
+       değiştiğini görmek yetmez: belgeyi besleyen `vestra_invoice_buyer()` aynı
+       adresi çözebiliyor mu, onu da doğruluyoruz. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $ref) { $back = $r; break; } }
+    if (!$back) return ['error' => 'yazıldı ama satır geri okunamadı'];
+    $seen = trim((string)(vestra_invoice_buyer($back)['address'] ?? ''));
+    if ($address !== '' && $seen !== $address) {
+        return ['error' => 'yazıldı ama fatura bu adresi göremiyor ("'.mb_substr($seen, 0, 40).'…")'];
+    }
+
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    $st[$ref]['delivery_set_at'] = date('c');
+    $st[$ref]['delivery_set_by'] = 'operator';
+    vestra_write_json('order_statuses.json', $st);
+
+    return ['ok' => true, 'address' => $address, 'on_invoice' => $seen, 'notes' => $notes];
+}
+
 function vestra_order_delete(string $ref): int {
     $ref = trim($ref);
     if ($ref === '') return 0;

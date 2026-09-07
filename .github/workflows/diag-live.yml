@@ -778,10 +778,17 @@ jobs:
                    yazmiyoruz (log herkese acik), yalnizca kutunun dolu olup
                    olmadigini -- bos bir odeme kutusunu alici fatura elindeyken
                    gorurdu. */
-                $rails = $acc ? vestra_payment_rails($acc, $cur) : [];
+                /* PLATFORM DILIMINDE HESAP `vestra_platform_seller()` -- cizicinin
+                   okudugu yerin AYNISI. Bu satir "platform kesiyor, bagli banka
+                   hesabi yok" diye sabit yaziyordu; cizici platformun kendi
+                   kunyesini okumaya baslayinca teshis belgeyle ayrildi ve
+                   doldurulmus bir kutuyu "hic cikmaz" diye bildirecekti.
+                   Teshisin kodun BAKTIGI yere bakmasi sart (CLAUDE.md). */
+                $payAcc = $acc ?: vestra_platform_seller();
+                $rails  = vestra_payment_rails($payAcc, $cur);
                 printf("  %-28s %2d satir | %s odeme kutusu: %s\n", mb_substr($who,0,26), count($p['items']), $cur,
-                       $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok')
-                            : 'HIC CIKMAZ -- platform kesiyor, bagli banka hesabi yok');
+                       $rails ? count($rails).' satir'
+                              : 'BOS -- '.($acc ? 'bu hesapta' : 'platform kunyesinde').' '.$cur.' yolu yok');
                 $parts[] = vestra_render_invoice_pdf($p['meta'], $p['items'], $acc, '', true);
               }
               if (!$parts) { fwrite(STDERR, "hicbir dilim cizilemedi\n"); exit(1); }

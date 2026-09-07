@@ -113,7 +113,7 @@ function vestra_payment_rails(array $acc, string $currency): array {
             'Account number: '.$g('bank_account').($g('bank_acct_type') !== '' ? '  ('.$g('bank_acct_type').')' : ''),
             'Routing number (ABA, domestic): '.$g('bank_routing'),
             $g('bank_bic')     !== '' ? 'SWIFT / BIC (international): '.$g('bank_bic') : '',
-            $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+            $g('bank_name')    !== '' ? 'Beneficiary bank: '.$g('bank_name') : '',
             $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
         ], fn($v) => $v !== ''));
     }
@@ -132,7 +132,7 @@ function vestra_payment_rails(array $acc, string $currency): array {
         $g('bank_holder')  !== '' ? 'Beneficiary: '.$g('bank_holder') : '',
         'IBAN: '.vestra_iban_pretty($g('bank_iban')),
         $bic !== '' ? 'BIC / SWIFT: '.$bic : '',
-        $g('bank_name')    !== '' ? 'Bank: '.$g('bank_name') : '',
+        $g('bank_name')    !== '' ? 'Beneficiary bank: '.$g('bank_name') : '',
         $g('bank_address') !== '' ? 'Bank address: '.$g('bank_address') : '',
     ], fn($v) => $v !== ''));
 }
@@ -270,7 +270,8 @@ function vestra_country_name(string $v): string {
  */
 function vestra_invoice_buyer(array $orderRow): array {
     $address = '';
-    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
+    require_once __DIR__.'/orders.php';   // kalıp tek yerde
+    $address = vestra_order_delivery_address((string)($orderRow['notes'] ?? ''));
 
     $acc   = null;
     $email = strtolower(trim((string)($orderRow['email'] ?? '')));
@@ -716,16 +717,21 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            uyariyor, ama dolduruldugunda da hicbir sey degismiyordu. Toplanan
            ama hic okunmayan alan. */
         $payAcc = $sellerAcc ?: vestra_platform_seller();
+        /* KUTUYU TEK KAYNAK KURUYOR: `vestra_payment_rails()`. Buraya ayrica
+           'Account holder', 'Beneficiary bank' ve 'Bank address' ekleniyordu ve
+           rails zaten lehdar/banka/banka adresi satirlarini basiyor -- canli
+           USD taslaginda ucu de IKI KEZ cikti, ikisi farkli etiketle
+           ("Account holder: X" + "Beneficiary: X", "Bank: Y" + "Beneficiary
+           bank: Y"). Odemeyi yapan kisi tek bir lehdar bankasi arar; ayni seyi
+           iki adla yazan bir kutu, iki ayri hesap oldugunu dusundurur.
+           Uzun sure gorunmemesinin sebebi: bu alanlar ancak platform kendi
+           kunyesinden kesmeye baslayinca birlikte doldu. */
         $rails = vestra_payment_rails($payAcc, $cur);
-        $bankLines = array_values(array_filter(array_merge(
-            [!empty($payAcc['bank_holder']) ? 'Account holder: '.$payAcc['bank_holder'] : ''],
-            $rails,
-            [
-              !empty($payAcc['bank_name'])   ? 'Beneficiary bank: '.$payAcc['bank_name'] : '',
-              !empty($payAcc['bank_address']) ? 'Bank address: '.$payAcc['bank_address'] : '',
-              $payRef !== '' ? 'Payment reference: '.$payRef : '',
-            ]
-        ), fn($v) => $v !== ''));
+        $bankLines = $rails
+            ? array_values(array_filter(array_merge($rails, [
+                $payRef !== '' ? 'Payment reference: '.$payRef : '',
+              ]), fn($v) => $v !== ''))
+            : [];
         /* Para birimine uygun hesap YOKSA kutu hic basilmiyor -- $rails bos donuyor
            ve geriye yalnizca ad/adres/referans kaliyor, ki bunlarla odeme yapilamaz.
            Bos bir kutu yerine hicbir kutu: alici "buraya gonderemiyorum" diye sorar,

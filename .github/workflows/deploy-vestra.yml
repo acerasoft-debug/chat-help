@@ -179,6 +179,13 @@ jobs:
               # icinde inceleriz" diyor; sureyi gecen acik talep operatore yazilir.
               # Gecikmis yoksa mektup GITMEZ.
               echo '10 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_claims.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP talep-hatirlatma'
+              # Gunluk journal yazisi (operator, 7 Eyl 2026: "her gun otomatik
+              # journal e paylasim yap"). HER GUN CALISIR, HER GUN YAYIMLAMAZ:
+              # yazinin tamami canli ilan kaydindan turuyor ve yeni ilan yoksa
+              # hicbir sey yazilmiyor -- her gun uretilen ici bos bir yazi hem
+              # alan adinin arama degerini duserir (KURAL 9'un ince icerik
+              # yasagi) hem de okuyucuya journal'i atlamayi ogretir (KURAL 2c).
+              echo '20 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_journal.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP journal'
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
@@ -229,3 +236,10 @@ jobs:
             # kosuda yalnizca ne yapacagini yazar. Fatal olursa deploy kirmizi.
             echo "=== odeme hatirlatma / otomatik iptal (kuru) ==="
             php cron_order_payment.php --dry-run
+            echo ""
+            # Gunluk journal yazisi. Kuru kosu hicbir sey yayimlamaz, yalnizca o
+            # gun ne cikacagini (ya da NEDEN cikmayacagini) yazar. Yazi canli
+            # ilan kaydindan uretildigi icin katalog degistiginde bu adim ilk
+            # kirilacak yer: fatal deploy'u kirmiziya boyar.
+            echo "=== gunluk journal yazisi (kuru) ==="
+            php cron_journal.php --dry

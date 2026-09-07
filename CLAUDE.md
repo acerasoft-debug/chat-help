@@ -698,16 +698,19 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
 - **Canlı ölçüm, 7 Eyl 2026 (`order_doc=invoice:usd`, run 257):** çevrim doğru
   çalışıyor — birim €39,00 → **US$45,33**, satır **US$5.439,60**, `fx_note`
   belgede (`1 EUR = 1,1622 USD, ECB 4 Sep 2026`), Çince unvan kendi harfleriyle,
-  23,6 KB. Ama **hiçbir kombinasyonda USD ödeme kutusu çıkmıyor** ve bu iki ayrı
-  sebepten: (1) siparişin kayıtlı fatura kesicisi **VESTRA platform**
-  (`invoice_seller_uid='vestra'`, operatörün panelde yaptığı seçim; ilanın kendi
+  23,6 KB. O koşuda **USD ödeme kutusu çıkmıyordu** ve sebebi ilk sanıldığı gibi
+  "platformun banka hesabı yok" **değildi** — bkz. KURAL 5j: platformun banka
+  bilgileri kayıtlıydı, **çizici o kaydı hiç okumuyordu**. Düzeltildikten sonra
+  aynı belge **dolu ödeme kutusuyla** çıkıyor (hesap no + ABA + SWIFT + banka
+  adı/adresi + `Payment reference: <ref>`; 7 Eyl 2026, run 261 canlı önizlemesi).
+  Ölçümün yan bulgusu geçerli: siparişin kayıtlı fatura kesicisi **VESTRA
+  platform** (`invoice_seller_uid='vestra'`, operatörün panel seçimi; ilanın
   `seller_uid`'i dolu ve GARAGE LE PARIS'i gösteriyor ama seçim onu **eziyor** —
-  KURAL 5b'nin sırası) ve platformun bağlı banka hesabı yok; (2) GARAGE LE
-  PARIS'te IBAN/BIC/banka/lehdar **dolu** ama `bank_account`/`bank_routing`
-  **boş**, yani USD yolu yok (`diag-messages` → `billing_for=garage`). Yani
-  bugün: **EUR + GARAGE = ödeme kutusu tam; USD = kutu yok, kim keserse kessin.**
-  Çözüm operatörün: ya USD alanlarını hesaba ekler (KURAL 5c) ya belgeyi EUR
-  keser.
+  KURAL 5b'nin sırası), ve **GARAGE LE PARIS'in USD yolu yok**
+  (IBAN/BIC/banka/lehdar dolu, `bank_account`/`bank_routing` **boş** —
+  `diag-messages` → `billing_for=garage`), yani o hesaptan USD kesilirse kutu
+  boş çıkar. *"Kutu boş" gördüğünde önce kimin kestiğine ve kodun NEREDEN
+  okuduğuna bak; eksik veri sanılan şey okunmayan veri olabilir.*
 - **Aynı sipariş iki önizlemede iki farklı kesen taraf yazdı** (GARAGE LE PARIS,
   sonra VESTRA) ve günlükten hangisinin doğru olduğu **okunamıyordu**: hesap
   araması boş dönünce çıktı, operatör seçimi ile boş `seller_uid`'de birebir
@@ -764,7 +767,66 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   belgede** bulamıyor ve iki yönde de "geçiyordu". Sarmayı atlatan bir parça
   aranıyor artık (`operates the marketplace`). *Hiç düşemeyen bir iddia, iddia
   değildir.*
+- **Ödeme kutusunu TEK kaynak kuruyor** (`vestra_payment_rails`). Kutu ayrıca
+  `Account holder`, `Beneficiary bank` ve `Bank address` satırlarını kendisi
+  ekliyordu; rails zaten üçünü de basıyor, yani canlı USD taslağında **lehdar ve
+  banka iki kez, iki ayrı etiketle** çıktı ("Account holder: X" + "Beneficiary:
+  X"). Ödemeyi yapan tek bir lehdar bankası arar; aynı şeyi iki adla yazan kutu
+  iki ayrı hesap sanılır. Kutu artık rails + `Payment reference`; banka etiketi
+  ("Beneficiary bank", ödeyenin formundaki kelime) rails'in içine taşındı.
+  **Yıllarca görünmedi çünkü bu alanlar ancak platform kendi künyesinden
+  kesmeye başlayınca birlikte doldu.**
 - Test: `invoice_currency_test.php §5b`.
+
+**KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
+(operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
+ekleyelim"* — VES-6B53D265).
+- **Teklif faturasında kutu vardı, siparişte YOKTU.** `offer_responses.json`'da
+  `invoice_shipping` ve panelde "Kargo €" 1 Eyl 2026'da tam bu sebeple eklenmişti;
+  sipariş ekranı navlunu yalnızca **gösteriyordu** (üstelik yalnız sıfırdan
+  büyükse), yazacak hiçbir yol yoktu.
+- Tek yazıcı `vestra_order_set_shipping()` (`inc/orders.php`); panelin
+  `🚚 Save shipping` kutusu ve `seller-products.yml` → `admin_mode=shipping`
+  ikisi de onu çağırıyor. **`shipping` ve `total` BİRLİKTE yazılır** — sipariş
+  satırının toplamı navlunu içeriyor ve `diag-live` bunu denetliyor
+  ("toplam farki (kayitli - mal - navlun)"); yalnız birini yazmak denetimi kırar
+  ve alıcının sipariş sayfası ile faturasını iki ayrı rakama böler (KURAL 5f).
+  Mal toplamı faturanın okuduğu **aynı** fonksiyondan (`vestra_order_lines`).
+- **ÜSTÜNE eklemez, YERİNE yazar:** toplam her seferinde mal + navlun olarak
+  yeniden kurulur; aksi hâlde iki düzeltme siparişi çift navlunla bırakırdı.
+- **Faturası kesilmiş siparişte YAZMAZ** — belge alıcının elinde, numara yanmış;
+  yol KURAL 5f (aynı numarayla yeniden çizim). Ham dosyadan okur
+  (`vestra_read_csv()` satırları ters çeviriyor — `vestra_order_delete`'in aynı
+  tuzağı), önce yedekler, geçici dosyaya yazıp **atomik** takas eder ve
+  **geri okuyup doğrular**.
+- **Tutar siparişin KENDİ biriminde saklanır**, çevrim tek yerde (KURAL 5i).
+  Belge başka birimdeyse panel karşılığını yazar; iş akışı doğrudan `100 USD`
+  kabul edip siparişin **damgalı** kuruyla böler (damga yoksa durur).
+- **Canlı ölçüm (7 Eyl 2026, run 32 + 263):** girilen `100 USD` → kayda
+  **€86,04** → belgede **Shipping US$100.00**, Total **US$5.539,60**; sipariş
+  toplamı €4.766,04 ve denetim "tutuyor". Test: `tests/order_shipping_test.php`.
+
+**KURAL 5l — Teslimat adresi de PANELDEN girilir ("kargo yeri")** (operatör,
+7 Eyl 2026: *"hem kargo yeri aç hem de faturayı güncelle"*).
+- Adres siparişin notlarında `Deliver to: …` parçasında duruyor; ekran onu
+  **gösteriyordu** ama girecek alan yoktu — yalnızca alıcı, sipariş verirken
+  yazabiliyordu. Sonradan e-postayla gelen bir adresi operatörün koyacağı yer
+  yoktu ve VES-6B53D265'in taslağı üç koşu boyunca *"no street address on file —
+  gümrük ve kurye ister"* diye uyarıp durdu. Navlundaki boşluğun aynısı.
+- Tek yazıcı `vestra_order_set_delivery()`; panel: `Admin ▸ Orders ▸ <sipariş> ▸
+  📍 Save address`. **Notların gerisine dokunmaz** (`Payment:`, `Colours —`
+  parçaları siparişin kendi kaydı), tek kopya bırakır, boş kaydetmek siler,
+  faturası kesilmişte **yazmaz** (KURAL 5f).
+- **Doğrulama satırın değişmesine değil, FATURANIN GÖRDÜĞÜNE bakıyor**
+  (`vestra_invoice_buyer($back)`) — ve bu ilk denemede **düştü**: okuma kalıbı
+  `(?:\.\s|$)` adres notların **sonundaysa** kapanış noktasını adresin içinde
+  bırakıyordu ("… Hong Kong."), yani belgeye, ekrana ve kurye etiketine öyle
+  basılıyordu. Kalıp **üç yere ayrı ayrı** yazılmıştı (fatura, panel, sipariş
+  sayfası) ve üçü de aynı kusuru taşıyordu; artık tek fonksiyon:
+  `vestra_order_delivery_address()`. *Yazma tarafı eklenmeden bu kusur
+  görünmüyordu — okuma tek başına kendini doğrulayamıyor.*
+- Test: `order_shipping_test.php §3b` (yazma, faturanın gördüğü, çoğaltmama,
+  silme, sınır, kesilmiş faturada ret).
 
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
@@ -1167,6 +1229,41 @@ dönmek zorundadir"*).
   date)", "Total volume in USD" kartı, `?dl=orders_usd` CSV. Canlı damgalama:
   `diag-live` → `fx_probe=true` eski siparişleri de damgalar (ref/tarih/kur
   yazar, kişi verisi yok). Test: `tests/order_fx_test.php`.
+- **KURAL 13 — Günlük otomatik journal yazısı: HER GÜN ÇALIŞIR, HER GÜN
+  YAYIMLAMAZ** (operatör, 7 Eyl 2026: *"her gün otomatik journal e paylaşım yap
+  estetik ve ayrıntılı bilgi verici ve işe yarayan"*).
+  - `inc/journal_auto.php` (saf kurucu) + `cron_journal.php` (sunucu crontab'ı
+    **07:20 UTC**, `deploy-vestra.yml` idempotent kurar + kuru koşu kanaryası).
+  - **Yazının tamamı canlı ilan kaydından türer**: hangi marka, kaç yeni model,
+    hangi kategori, en düşük kademe fiyat, MOQ, bedenler, AYRI renk sayısı,
+    gönderim yeri. Sunucuda dil modeli yok; olsa bile moda yorumu üretmek
+    KURAL 3'ün tam tersi olurdu. Toptancının okumak istediği zaten yorum değil:
+    *bu hafta ne geldi, kaça, kaç adetten.*
+  - **Malzeme yoksa YAZI YOK** (eşik `VESTRA_JOURNAL_AUTO_MIN`). Gerekçe iki
+    katmanlı: KURAL 9 ince içeriği yasaklıyor (alan adına zarar verir) ve
+    KURAL 2c'nin dersi — "her sabah '0 bekleyen' yazan bir uyarı okunmamayı
+    öğretir"; içeriksiz günlük yazı da journal'ı atlamayı öğretir. *"Her gün"
+    ile "her gün YAYIN" aynı şey değil; bu bilinçli.*
+  - **Pencere SON RAPORDA başlar**, sabit 7 gün değil. Canlı kuru koşu bunu
+    yakaladı: sabit pencereyle 3 Eylül'de giren **335 ayakkabı** 4–10 Eylül
+    arasındaki HER raporda yeniden duyurulacaktı — aynı yazının yedi kopyası,
+    yani işin kaçınmak için kurulduğu şeyin ta kendisi. 7 gün artık yalnızca
+    üst sınır (ilk rapor sonsuz geriye gitmesin) ve metindeki "son %d gün"
+    gerçek pencereyi yazar.
+  - **Dokuz dil, `t()` YOK**: `vlang()` süreçte ilk çağrıda sabitleniyor
+    (KURAL 11'in ölçüm tuzağı), tek cron sürecinde dokuz dili `t()` ile gezmek
+    dokuz İngilizce yazı üretir ve hiçbir şey bozuk görünmezdi. Cümle parçaları
+    `vestra_journal_auto_strings()` tablosundan; rakamlar `%s` ile giriyor,
+    metne gömülü değil.
+  - **Şişirilmiş rakam da uydurulmuş rakamdır:** ilk taslakta renkler ilan
+    başına TOPLANIYORDU — tek renkli 18 ilan "18 renk seçeneği" diye çıktı;
+    ayrıca başlık "18 pieces" diyordu, ki toptancı bunu 18 **adet** okur.
+    İkisi de yayından önce, ilk çıktı okunarak düzeltildi.
+  - Aynı gün ikinci yazı yok; gövde **düz metin** (renderer markdown/HTML
+    tanımıyor); kapak raporda geçen **gerçek** bir ürünün fotoğrafı; iç
+    bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
+    `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
+  - Test: `tests/journal_auto_test.php` (47 iddia).
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
