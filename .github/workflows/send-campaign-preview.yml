@@ -1686,11 +1686,16 @@ jobs:
               $vr = (float)($p['meta']['vat_rate'] ?? 0);
               $vatBlock = '';
               if ($vr > 0 && !empty($p['meta']['vat_included']) && $grand > 0) {
-                $net = round($grand / (1 + $vr/100), 2);
-                $vat = round($grand - $net, 2);
-                $lbl = rtrim(rtrim(number_format($vr,2,'.',''),'0'),'.');
+                $net    = round($grand / (1 + $vr/100), 2);
+                /* $vatAmt, $vat DEGIL: $vat bu betikte mektup boyunca alicinin
+                   VERGI NUMARASI ve asagidaki ozet satiri onu basiyor. Ilk
+                   yazimda ayni adi kullandim ve gunluk "vat: 576.***.2" dedi --
+                   vergi numarasi diye bir KDV TUTARI. Yanlis bir teshis satiri
+                   bu depoda alti kez yanlis karara goturdu. */
+                $vatAmt = round($grand - $net, 2);
+                $lbl    = rtrim(rtrim(number_format($vr,2,'.',''),'0'),'.');
                 $vatBlock = "  Taxable amount (excl. VAT) : EUR ".number_format($net,2)."\n"
-                          . "  VAT {$lbl}% (included above)   : EUR ".number_format($vat,2)."\n";
+                          . "  VAT {$lbl}% (included above)   : EUR ".number_format($vatAmt,2)."\n";
               }
               echo "TASLAK (birlesik, HIC kesilmemis kabuller): ".count($p['items'])." kalem\n";
               echo "  refler : ".implode(', ', $p['refs'])."\n";
