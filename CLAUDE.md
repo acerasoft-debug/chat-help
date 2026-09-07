@@ -656,16 +656,19 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
 - **Canlı ölçüm, 7 Eyl 2026 (`order_doc=invoice:usd`, run 257):** çevrim doğru
   çalışıyor — birim €39,00 → **US$45,33**, satır **US$5.439,60**, `fx_note`
   belgede (`1 EUR = 1,1622 USD, ECB 4 Sep 2026`), Çince unvan kendi harfleriyle,
-  23,6 KB. Ama **hiçbir kombinasyonda USD ödeme kutusu çıkmıyor** ve bu iki ayrı
-  sebepten: (1) siparişin kayıtlı fatura kesicisi **VESTRA platform**
-  (`invoice_seller_uid='vestra'`, operatörün panelde yaptığı seçim; ilanın kendi
+  23,6 KB. O koşuda **USD ödeme kutusu çıkmıyordu** ve sebebi ilk sanıldığı gibi
+  "platformun banka hesabı yok" **değildi** — bkz. KURAL 5j: platformun banka
+  bilgileri kayıtlıydı, **çizici o kaydı hiç okumuyordu**. Düzeltildikten sonra
+  aynı belge **dolu ödeme kutusuyla** çıkıyor (hesap no + ABA + SWIFT + banka
+  adı/adresi + `Payment reference: <ref>`; 7 Eyl 2026, run 261 canlı önizlemesi).
+  Ölçümün yan bulgusu geçerli: siparişin kayıtlı fatura kesicisi **VESTRA
+  platform** (`invoice_seller_uid='vestra'`, operatörün panel seçimi; ilanın
   `seller_uid`'i dolu ve GARAGE LE PARIS'i gösteriyor ama seçim onu **eziyor** —
-  KURAL 5b'nin sırası) ve platformun bağlı banka hesabı yok; (2) GARAGE LE
-  PARIS'te IBAN/BIC/banka/lehdar **dolu** ama `bank_account`/`bank_routing`
-  **boş**, yani USD yolu yok (`diag-messages` → `billing_for=garage`). Yani
-  bugün: **EUR + GARAGE = ödeme kutusu tam; USD = kutu yok, kim keserse kessin.**
-  Çözüm operatörün: ya USD alanlarını hesaba ekler (KURAL 5c) ya belgeyi EUR
-  keser.
+  KURAL 5b'nin sırası), ve **GARAGE LE PARIS'in USD yolu yok**
+  (IBAN/BIC/banka/lehdar dolu, `bank_account`/`bank_routing` **boş** —
+  `diag-messages` → `billing_for=garage`), yani o hesaptan USD kesilirse kutu
+  boş çıkar. *"Kutu boş" gördüğünde önce kimin kestiğine ve kodun NEREDEN
+  okuduğuna bak; eksik veri sanılan şey okunmayan veri olabilir.*
 - **Aynı sipariş iki önizlemede iki farklı kesen taraf yazdı** (GARAGE LE PARIS,
   sonra VESTRA) ve günlükten hangisinin doğru olduğu **okunamıyordu**: hesap
   araması boş dönünce çıktı, operatör seçimi ile boş `seller_uid`'de birebir
@@ -722,6 +725,15 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   belgede** bulamıyor ve iki yönde de "geçiyordu". Sarmayı atlatan bir parça
   aranıyor artık (`operates the marketplace`). *Hiç düşemeyen bir iddia, iddia
   değildir.*
+- **Ödeme kutusunu TEK kaynak kuruyor** (`vestra_payment_rails`). Kutu ayrıca
+  `Account holder`, `Beneficiary bank` ve `Bank address` satırlarını kendisi
+  ekliyordu; rails zaten üçünü de basıyor, yani canlı USD taslağında **lehdar ve
+  banka iki kez, iki ayrı etiketle** çıktı ("Account holder: X" + "Beneficiary:
+  X"). Ödemeyi yapan tek bir lehdar bankası arar; aynı şeyi iki adla yazan kutu
+  iki ayrı hesap sanılır. Kutu artık rails + `Payment reference`; banka etiketi
+  ("Beneficiary bank", ödeyenin formundaki kelime) rails'in içine taşındı.
+  **Yıllarca görünmedi çünkü bu alanlar ancak platform kendi künyesinden
+  kesmeye başlayınca birlikte doldu.**
 - Test: `invoice_currency_test.php §5b`.
 
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
