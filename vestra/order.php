@@ -166,6 +166,12 @@ if($fh=@fopen($file,'a')){
   fclose($fh);
 }
 
+/* Siparişin USD karşılığı SİPARİŞ ANINDAKİ kurla damgalanır (operatör, 7 Eyl
+   2026). Vitrin önbelleğindeki günün kuru; ağa çıkmaz. Kur yoksa damga düşmez,
+   admin sekmesi ECB geçmişinden sonra tamamlar — bugünün kuruyla doldurulmaz. */
+require_once __DIR__.'/inc/fx_orders.php';
+vestra_order_fx_stamp($ref, date('c'), true);
+
 /* Spend the code only now — after the row is on disk. Redeeming before the write would burn
    a single-use voucher on an order that never got recorded. */
 if($voucherCode!=='' && $discount>0) voucher_redeem($voucherCode,$ref,$email,$discount);

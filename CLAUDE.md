@@ -891,6 +891,22 @@ dönmek zorundadir"*).
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
+- **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
+  *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
+  koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga
+  `order_statuses.json[ref].fx` (`usd`, `date`, `source`). **İki kur var,
+  karıştırma:** vitrin kuru (`vestra_fx`, bugünün) ile sipariş kuru (damga, bir
+  kez yazılır, değişmez). Damga sipariş yazılırken düşer (`order.php` +
+  `vestra_offer_order_ensure`, vitrin önbelleğinden, ağsız); eski siparişler için
+  frankfurter'in **tarih aralığı** ucundan ECB geçmişi **tek istekle** çekilir
+  (`data/fx_history.json`), admin Orders sekmesi açılınca kendiliğinden
+  (`vestra_orders_fx_backfill`, 30 dk geri çekilme) ve `⟳ Fetch missing rates`
+  düğmesiyle. **Damga yoksa "US$ —"** — bugünün kuruyla doldurulmaz (KURAL 3'ün
+  kur hâli). Hafta sonu siparişi bir önceki yayım gününün kurunu ve **o tarihi**
+  taşır. `Admin ▸ Orders`: listede ≈ US$ satırı, dosyada "In USD (rate on order
+  date)", "Total volume in USD" kartı, `?dl=orders_usd` CSV. Canlı damgalama:
+  `diag-live` → `fx_probe=true` eski siparişleri de damgalar (ref/tarih/kur
+  yazar, kişi verisi yok). Test: `tests/order_fx_test.php`.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,

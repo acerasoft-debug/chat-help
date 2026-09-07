@@ -585,6 +585,10 @@ function vestra_offer_order_ensure(array $p, bool $update = false): bool {
         $shipping > 0 ? number_format($shipping, 2, '.', '') : '',
         $shipping > 0 ? 'Shipping' : ''], ',', '"', '\\');
     fclose($fh);
+    /* USD damgasi SIPARIS ANINDAKI kurla (7 Eyl 2026) -- order.php ile ayni yol;
+       teklif kabulunden dogan siparis de siparistir. */
+    require_once __DIR__.'/fx_orders.php';
+    vestra_order_fx_stamp($ref, date('c'), true);
     return true;
 }
 
