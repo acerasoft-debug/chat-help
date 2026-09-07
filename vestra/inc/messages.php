@@ -287,7 +287,7 @@ function vestra_msg_snippet(array $m): string {
 function vestra_msg_system_html(array $m, string $viewerRole): string {
     $meta = $m['meta'] ?? [];
     $kind = $meta['kind'] ?? '';
-    $time = '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div>';
+    $time = '<div class="msgtime">'.htmlspecialchars(vestra_msg_clock((string)($m['at']??''))).'</div>';
     if ($kind === 'offer') {
         $qty   = (int)($meta['qty']??0);
         $unit  = eur($meta['unit_price']??0);
@@ -412,3 +412,176 @@ function vestra_msg_admin_start(string $targetUid, string $targetType, string $b
     return vestra_msg_send($buyerUid, $sellerUid, VESTRA_SUPPORT_UID, $body, '');
 }
 
+
+/* ── Zaman etiketleri ───────────────────────────────────────────────────────
+   Listede ve baloncukta 7 Eyl 2026'ya kadar ham ISO duruyordu ("2026-09-07T09:52").
+   Bugun: yalniz saat; dun: "Dun"; son alti gun: gun adi; daha eski: gun + ay
+   (baska yilsa yil da). Gun/ay adlari sozlukten ('Mon'..'Sun', 'Jan'..'Dec'),
+   siralama da sozlukten ('{d} {m}' — Japonca '{m}{d}日' yazar). */
+function vestra_msg_clock(string $iso): string {
+    $ts = strtotime($iso);
+    return $ts ? date('H:i', $ts) : '';
+}
+/* [zaman damgasi, bugunden kac gun once] — cozulemeyen tarihte null. */
+function vestra_msg_day_diff(string $iso, ?int $now = null): ?array {
+    $ts = strtotime($iso);
+    if (!$ts) return null;
+    $now ??= time();
+    $diff = (int)round((strtotime(date('Y-m-d', $now)) - strtotime(date('Y-m-d', $ts))) / 86400);
+    return [$ts, max(0, $diff)];   // saat kaymasindan dogan "yarin" bugun sayilir
+}
+function vestra_msg_day_label(string $iso, ?int $now = null): string {
+    $p = vestra_msg_day_diff($iso, $now);
+    if ($p === null) return '';
+    [$ts, $diff] = $p;
+    if ($diff === 0) return t('Today');
+    if ($diff === 1) return t('Yesterday');
+    if ($diff < 7)   return t(date('D', $ts));
+    $now ??= time();
+    $pattern = date('Y', $ts) === date('Y', $now) ? t('{d} {m}') : t('{d} {m} {y}');
+    return str_replace(['{d}', '{m}', '{y}'], [date('j', $ts), t(date('M', $ts)), date('Y', $ts)], $pattern);
+}
+/* Liste satiri: bugunkuler saatle, digerleri gun etiketiyle. */
+function vestra_msg_when(string $iso, ?int $now = null): string {
+    $p = vestra_msg_day_diff($iso, $now);
+    if ($p === null) return '';
+    return $p[1] === 0 ? date('H:i', $p[0]) : vestra_msg_day_label($iso, $now);
+}
+
+/* Konusma avatari: ilanin fotografi (ilan biliniyorsa ve bakan gorebiliyorsa),
+   yoksa marka bas harfi; destek konusmasinda VESTRA isareti. Fotograf kapisi
+   urun sayfasiyla AYNI (auth_user_approved): kapali hesabin vitrinde goremedigi
+   fotograf mesaj listesinden sizmaz. Satici kendi ilaninin fotografini her
+   zaman gorur. */
+function vestra_msg_avatar_html(array $thread, string $uid): string {
+    $otherUid = ($thread['buyer_uid']??'') === $uid ? ($thread['seller_uid']??'') : ($thread['buyer_uid']??'');
+    if ($otherUid === VESTRA_SUPPORT_UID) {
+        return '<span class="tr-ava tr-ava-v" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none">'
+             . '<rect x="1.2" y="1.2" width="29.6" height="29.6" rx="8" stroke="currentColor" stroke-width="1.6"/>'
+             . '<path d="M9 10l7 13 7-13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+    }
+    $lid = (string)($thread['listing_id'] ?? '');
+    $initial = '';
+    if ($lid !== '') {
+        $p = function_exists('vestra_find') ? vestra_find($lid) : null;
+        if (!$p && function_exists('vestra_listing_by_id')) $p = vestra_listing_by_id($lid);
+        if ($p) {
+            $img = function_exists('vestra_primary_image') ? vestra_primary_image($p) : (string)($p['image'] ?? '');
+            $isSeller = ($thread['seller_uid'] ?? '') === $uid;
+            $canSee = $isSeller || (function_exists('auth_user_approved') && function_exists('auth_user') && auth_user_approved(auth_user()));
+            if ($img !== '' && $canSee) {
+                return '<span class="tr-ava"><img src="'.htmlspecialchars($img).'" alt="" loading="lazy" decoding="async"></span>';
+            }
+            $initial = trim((string)($p['brand'] ?? ''));
+        }
+    }
+    if ($initial === '') $initial = vestra_msg_counterpart_label($thread, $uid);
+    $initial = mb_strtoupper(mb_substr(trim($initial), 0, 1));
+    return '<span class="tr-ava tr-ava-i" aria-hidden="true">'.htmlspecialchars($initial !== '' ? $initial : '·').'</span>';
+}
+
+/**
+ * Mesaj sekmesinin tamami: konusma listesi + acik konusma + betikler.
+ *
+ * Alici ve satici paneli AYNI fonksiyonu cagirir. 7 Eyl 2026'ya kadar buyer.php
+ * ve seller.php birer kopya tasiyordu; mobil duzeltmesi ikisine ayri ayri
+ * yazilacak ve ilk farkli duzenlemede ayrisacaklardi. $role yalnizca panel
+ * yolunu (/buyer, /seller), bos-liste metnini ve sistem kartlarinin bakis
+ * acisini secer. YETKI burada degil: $thread'in bu hesaba ait oldugu cagiranda
+ * dogrulanir; burasi yalnizca cizer.
+ *
+ * Telefonda konusma acikken kabuk ekrani doldurur (CSS: .msgshell.has-thread);
+ * baloncuklar tek kaydirma alanidir, yazma kutusu alt sekme cubugunun hemen
+ * ustunde durur. Taslak korunur: 15 sn'lik yoklama yeni mesaj gorunce sayfayi
+ * yeniler, yazilmakta olan metin sessionStorage'a alinip geri konur — eskiden
+ * yenileme yarim mesaji siliyordu.
+ */
+function vestra_msg_panel_html(string $role, string $uid, string $tid, ?array $thread, array $myThreads, string $msgerr = ''): string {
+    $panel = $role === 'seller' ? '/seller' : '/buyer';
+    $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES);
+    $base = $panel.'?tab=messages';
+
+    /* Liste */
+    $list = '<div class="mssearch"><input id="mfilter" type="search" autocomplete="off" placeholder="'.$h(t('Search conversations…')).'" oninput="mFilterThreads(this.value)"></div>';
+    if (!$myThreads) {
+        $list .= '<p class="hint msnone">'.($role === 'seller' ? t('No messages yet. Buyers can message you from a product page.') : t('No messages yet. Start a conversation from any product page.')).'</p>';
+    } else {
+        $list .= '<div class="threadlist" id="mThreadList">';
+        foreach ($myThreads as $th) {
+            $last   = end($th['messages']);
+            $unread = vestra_msg_unread($th, $uid);
+            $name   = vestra_msg_counterpart_label($th, $uid);
+            $list .= '<a class="threadrow'.($unread ? ' unread' : '').(($th['id'] ?? '') === $tid ? ' active' : '').'" data-name="'.$h(mb_strtolower($name)).'" href="'.$base.'&thread='.urlencode((string)$th['id']).'">'
+                   . vestra_msg_avatar_html($th, $uid)
+                   . '<span class="tr-body"><span class="tr-top"><span class="tr-name">'.$h($name).($unread ? ' <span class="tr-dot" aria-label="'.$h(t('Unread')).'"></span>' : '').'</span>'
+                   . '<span class="tr-time">'.$h(vestra_msg_when((string)($th['last_at'] ?? ''))).'</span></span>'
+                   . '<span class="tr-snippet">'.$h(vestra_msg_snippet($last ?: [])).'</span></span></a>';
+        }
+        $list .= '</div>';
+    }
+
+    /* Acik konusma */
+    if ($thread) {
+        $ctp  = vestra_msg_counterpart_label($thread, $uid);
+        $main = '<div class="msghead"><a class="msback" href="'.$base.'" aria-label="'.$h(t('Back to conversations')).'">'
+              . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>'
+              . '<div class="msghead-t"><div class="msghead-n">'.$h($ctp).'</div>';
+        $lid = (string)($thread['listing_id'] ?? '');
+        $tl  = null;
+        if ($lid !== '') { $tl = function_exists('vestra_find') ? vestra_find($lid) : null; if (!$tl) $tl = vestra_listing_by_id($lid); }
+        if ($tl) {
+            $main .= '<a class="msghead-s" href="/product?id='.urlencode($lid).'">'.$h(trim(($tl['brand'] ?? '').' — '.($tl['name'] ?? ''), ' —')).'</a>';
+        }
+        $main .= '</div></div>';
+        if (in_array($msgerr, ['email', 'iban', 'phone'], true)) {
+            $main .= '<div class="banner msgerr">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
+        }
+        $main .= '<div class="msgthread" id="mThread">';
+        $day = '';
+        foreach ($thread['messages'] as $m) {
+            $at = (string)($m['at'] ?? '');
+            $d  = $at !== '' ? date('Y-m-d', strtotime($at) ?: 0) : '';
+            if ($d !== '' && $d !== $day) { $day = $d; $main .= '<div class="msgday"><span>'.$h(vestra_msg_day_label($at)).'</span></div>'; }
+            if (($m['from'] ?? '') === 'system') { $main .= vestra_msg_system_html($m, $role); continue; }
+            $mine = ($m['from'] ?? '') === $uid;
+            $main .= '<div class="msgbubblewrap'.($mine ? ' mine' : '').'"><div class="msgbubble'.($mine ? ' mine' : '').'">'
+                   . nl2br($h($m['text'] ?? ''))
+                   . '<div class="msgtime">'.$h(vestra_msg_clock($at)).'</div></div></div>';
+        }
+        $main .= '</div>';
+        $main .= '<form method="post" action="'.$base.'" class="msgcompose" id="mCompose">'
+               . '<input type="hidden" name="_action" value="send_message">'
+               . '<input type="hidden" name="thread_id" value="'.$h($tid).'">'
+               . '<textarea name="body" rows="1" placeholder="'.$h(t('Write a message…')).'" required enterkeyhint="enter" autocapitalize="sentences"></textarea>'
+               . '<button class="btn btn-p mssend" type="submit" aria-label="'.$h(t('Send')).'"><span class="mssend-t">'.t('Send').'</span>'
+               . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg></button>'
+               . '</form>'
+               . '<p class="hint mshint"><span class="mskey">'.t('Enter to send · Shift+Enter for a new line').' · </span>'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
+    } else {
+        $main = '<div class="msempty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v12H8l-4 4V5z"/></svg>'
+              . '<span>'.t('Select a conversation to start messaging.').'</span></div>';
+    }
+
+    $out = '<div class="panelcard msgpanel"><div class="msgshell'.($thread ? ' has-thread' : '').'">'
+         . '<div class="mslist">'.$list.'</div><div class="msmain">'.$main.'</div></div></div>';
+    $out .= '<script>function mFilterThreads(q){q=q.toLowerCase();document.querySelectorAll("#mThreadList .threadrow").forEach(function(r){r.style.display=r.dataset.name.indexOf(q)>-1?"":"none";});}</script>';
+    if ($thread) {
+        $pollUrl = $base.'&thread='.urlencode($tid).'&poll=1';
+        $out .= '<script>(function(){'
+              . 'var mt=document.getElementById("mThread"),f=document.getElementById("mCompose"),ta=f?f.querySelector("textarea"):null;'
+              . 'if(mt)mt.scrollTop=mt.scrollHeight;'
+              . 'var key="vmsgdraft:"+'.json_encode($tid).';'
+              . 'try{var d=sessionStorage.getItem(key);if(d&&ta&&!ta.value){ta.value=d;ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);}sessionStorage.removeItem(key);}catch(e){}'
+              . 'function grow(){if(!ta)return;ta.style.height="auto";ta.style.height=Math.min(ta.scrollHeight,160)+"px";}'
+              . 'if(ta){ta.addEventListener("input",grow);grow();'
+              . 'var fine=window.matchMedia&&matchMedia("(hover:hover) and (pointer:fine)").matches;'
+              . 'if(fine)ta.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(ta.value.trim()){if(f.requestSubmit)f.requestSubmit();else f.submit();}}});'
+              . 'f.addEventListener("submit",function(){try{sessionStorage.removeItem(key);}catch(e){}});}'
+              . 'var last='.json_encode((string)($thread['last_at'] ?? '')).';'
+              . 'setInterval(function(){fetch('.json_encode($pollUrl).',{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){'
+              . 'if(d.last&&d.last!==last){try{if(ta&&ta.value.trim())sessionStorage.setItem(key,ta.value);}catch(e){}location.reload();}'
+              . '}).catch(function(){})},15000);'
+              . '})();</script>';
+    }
+    return $out;
+}

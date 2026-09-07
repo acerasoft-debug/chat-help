@@ -1185,67 +1185,9 @@ if($tab==='overview'){
   $thread = $tid ? vestra_msg_find_thread($tid) : null;
   if ($thread && ($thread['seller_uid']??'') !== $uid) $thread = null;
   // (marked read earlier, before head.php rendered the nav badge — see top of file)
-  $myThreads = vestra_msg_my_threads($uid);
-
-  $listHtml = '<div class="mssearch"><input id="mfilter" placeholder="'.htmlspecialchars(t('Search conversations…')).'" oninput="mFilterThreads(this.value)"></div>';
-  if (!$myThreads) {
-    $listHtml .= '<p class="hint" style="padding:0 10px">'.t('No messages yet. Buyers can message you from a product page.').'</p>';
-  } else {
-    $listHtml .= '<div class="threadlist" id="mThreadList">';
-    foreach ($myThreads as $th) {
-      $last = end($th['messages']);
-      $unread = vestra_msg_unread($th, $uid);
-      $name = vestra_msg_counterpart_label($th, $uid);
-      $listHtml .= '<a class="threadrow'.($unread?' unread':'').($th['id']===$tid?' active':'').'" data-name="'.htmlspecialchars(mb_strtolower($name)).'" href="/seller?tab=messages&thread='.urlencode($th['id']).'">
-        <div class="tr-name">'.htmlspecialchars($name).($unread?' <span class="tr-dot"></span>':'').'</div>
-        <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
-        <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
-      </a>';
-    }
-    $listHtml .= '</div>';
-  }
-
-  if ($thread) {
-    $ctp = vestra_msg_counterpart_label($thread, $uid);
-    $msgerr = $_GET['msgerr'] ?? '';
-    $mainHtml = '<div class="msghead"><h3 style="margin:0">'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/seller?tab=messages">← '.t('Back').'</a></div>';
-    if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
-      $mainHtml .= '<p class="hint" style="margin:10px 18px 0">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
-    }
-    if (in_array($msgerr, ['email','iban','phone'], true)) {
-      $mainHtml .= '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:10px 18px 0">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
-    }
-    $mainHtml .= '<div class="msgthread" id="mThread">';
-    foreach ($thread['messages'] as $m) {
-      if (($m['from']??'') === 'system') { $mainHtml .= vestra_msg_system_html($m, 'seller'); continue; }
-      $mine = ($m['from']??'') === $uid;
-      $mainHtml .= '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
-        nl2br(htmlspecialchars($m['text']??'')).
-        '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div></div></div>';
-    }
-    $mainHtml .= '</div>';
-    $mainHtml .= '<form method="post" action="/seller?tab=messages" class="msgcompose">
-      <input type="hidden" name="_action" value="send_message">
-      <input type="hidden" name="thread_id" value="'.htmlspecialchars($tid).'">
-      <textarea name="body" rows="2" placeholder="'.htmlspecialchars(t('Write a message…')).'" required></textarea>
-      <button class="btn btn-p" type="submit">'.t('Send').'</button>
-    </form>';
-    $mainHtml .= '<p class="hint" style="padding:0 18px 14px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
-  } else {
-    $mainHtml = '<div class="msempty">'.t('Select a conversation to start messaging.').'</div>';
-  }
-
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';
-  echo '<div class="msgshell'.($thread?' has-thread':'').'"><div class="mslist">'.$listHtml.'</div><div class="msmain">'.$mainHtml.'</div></div>';
-  echo '</div>';
-  echo '<script>function mFilterThreads(q){q=q.toLowerCase();document.querySelectorAll("#mThreadList .threadrow").forEach(function(r){r.style.display=r.dataset.name.indexOf(q)>-1?"":"none";});}</script>';
-  if ($thread) {
-    echo '<script>var mt=document.getElementById("mThread");if(mt)mt.scrollTop=mt.scrollHeight;'.
-      '(function(){var last='.json_encode($thread['last_at']??'').';'.
-      'setInterval(function(){fetch("/seller?tab=messages&thread='.urlencode($tid).'&poll=1",{cache:"no-store"})'.
-      '.then(function(r){return r.json()}).then(function(d){if(d.last&&d.last!==last)location.reload()})'.
-      '.catch(function(){})},15000)})();</script>';
-  }
+  /* Cizim tek yerde: inc/messages.php → vestra_msg_panel_html (alici paneliyle
+     ortak). Sahiplik kontrolu yukarida kaldi; asagisi yalnizca ciziyor. */
+  echo vestra_msg_panel_html('seller', $uid, $tid, $thread, vestra_msg_my_threads($uid), (string)($_GET['msgerr'] ?? ''));
 
 // ── VERIFICATION / KYB ────────────────────────────────────────────────────────
 } elseif($tab==='find'){
