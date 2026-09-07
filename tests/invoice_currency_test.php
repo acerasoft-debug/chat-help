@@ -141,6 +141,15 @@ try {
     $platUsd = vestra_render_invoice_pdf($c['meta'], $c['items'], null, '', true);
     $t('banka alanları dolunca KUTU çıkıyor', str_contains($platUsd, 'Payment details'));
     $t('kutu çıkınca uyarı susuyor',          !str_contains($platUsd, 'no payment box'));
+    /* Kutu TEK kaynaktan (`vestra_payment_rails`). Kutuya ayrıca 'Account
+       holder' + 'Beneficiary bank' + 'Bank address' ekleniyordu; canlı USD
+       taslağında lehdar ve banka İKİ KEZ, iki ayrı etiketle çıktı. Ödemeyi
+       yapan tek bir lehdar bankası arar. */
+    $t('lehdar TEK kez yazılı',  substr_count($platUsd, 'Acerasoft LLC)Tj') <= 1
+                              || substr_count($platUsd, 'Beneficiary: Acerasoft LLC') === 1);
+    $t('"Account holder" satırı yok', !str_contains($platUsd, 'Account holder:'));
+    $t('banka adı TEK kez',      substr_count($platUsd, 'Beneficiary bank: Test Bank') === 1);
+    $t('ödeme referansı kutuda', str_contains($platUsd, 'Payment reference: '));
     /* EUR yolu USD alanlarıyla açılmaz: IBAN yoksa EUR kutusu yine çıkmamalı. */
     $t('EUR yolu ayrı kalıyor',
        str_contains(vestra_render_invoice_pdf($meta, $items, null, '', true), 'no payment box'));
