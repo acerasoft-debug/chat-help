@@ -143,7 +143,14 @@ POST /api/dropship?a=order
   <p><a class="acc" href="/api-docs"><?= t('Full API documentation') ?> →</a></p>
 
   <h2><?= t('Getting started') ?></h2>
-  <p><?= t('Trade pricing and API keys go to verified trade accounts only. Register, then upload your trade licence or business registration in your account. <b>Wholesale prices open the moment that document is uploaded</b> — you do not wait for our review. The remaining documents complete the verification that unlocks seller names and line-sheet downloads.') ?></p>
+  <?php /* KURAL 2: KAPIYI BELGE DEGIL, OPERATOR ONAYI ACAR. Bu paragraf 7 Eyl
+           2026'ya kadar tam tersini soyluyordu -- "fiyatlar belge yuklenir
+           yuklenmez acilir, incelemeyi beklemezsiniz" -- ve ikinci cumlesi
+           KURAL 2'de KALDIRILAN belgeleri ("kalan belgeler") hala istiyordu.
+           Musteriye para hakkinda verilen, tutulmayan bir soz: yukleyip
+           fiyatlari goremeyen kisi platformun kendi kaydini okumadigini
+           gorur (KURAL 2b'nin Kerim Kuku dosyasindaki dersin aynisi). */ ?>
+  <p><?= t('Trade pricing and API keys go to verified trade accounts only. Register, then upload your trade licence in your account — or simply reply to our e-mail with the file attached. <b>Wholesale prices open when we approve the account</b>, usually the same day; the document is what we check, not a switch that opens by itself. The same approval unlocks seller names and line-sheet downloads.') ?></p>
   <p><?= t('For an API key, write to') ?> <a class="acc" href="mailto:support@vestrasales.com">support@vestrasales.com</a> <?= t('from the address on your account, telling us which brands or categories you intend to sell.') ?></p>
   <div class="dscta">
     <?= vestra_join_cta(t('Register free'), 'btn btn-p') ?>

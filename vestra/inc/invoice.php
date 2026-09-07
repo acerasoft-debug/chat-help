@@ -424,6 +424,65 @@ function vestra_invoice_issuer_name(?array $acc, string $fallback = 'Seller'): s
  * yazar, numara satiri 'not assigned yet' der. Belge diske YAZILMAZ, numara
  * YANMAZ, aliciya gitmez -- ciktinin kendisi de bunu soylemeli ki yanlislikla
  * iletilse bile fatura sanilmasin. */
+/**
+ * TASLAK notlari: belgeye ALINAMAYAN her sey, tek yerde ve SAF olarak.
+ *
+ * Ayri bir fonksiyon, cunku cizim bunlarin KAC SATIR tuttugunu layout'tan ONCE
+ * bilmek zorunda -- sonda hesaplanip sayfa dibine basildiklarinda ucuncu not
+ * altbilgiye bindi (7 Eyl 2026, canli USD taslagi). Yalnizca girdiye bakiyor:
+ * diske dokunmuyor, kur aramiyor, hicbir sey yazmiyor.
+ *
+ * Doner: ['notes' => metinler, 'lost' => basilamayan karakterler (anahtar)].
+ */
+function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAcc, string $cur): array {
+    /* ALICI BLOGU 'buyer' ALTINDA. Bu tarama uzun sure $order['company'],
+       $order['name'], $order['address'] okuyordu -- gercek yukte boyle
+       anahtarlar YOK (vestra_invoice_buyer() 'buyer' altina yaziyor), yani
+       uyari canli bir faturada HIC calismadi; yalnizca duz dizi veren testte
+       "calisiyor" gorunuyordu. Bu depoda kontrolun yanlis yere bakmasinin
+       yedincisi (bkz. CLAUDE.md). Duz bicim de okunmaya devam ediyor: iki
+       cagiran sekli de var. */
+    $lost = [];
+    $scan = function ($v) use (&$lost) {
+        foreach (vestra_pdf_unprintable((string)$v) as $ch) $lost[$ch] = true;
+    };
+    $b = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
+    foreach (['company','name','address','country','vat','reg'] as $f) $scan($b[$f] ?? '');
+    foreach (['company','name','address','city','country','vat_id','notes'] as $f) $scan($order[$f] ?? '');
+    foreach ($items as $it) {
+        foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
+        foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
+    }
+    /* Belgeye ALINMAYAN alanlar. Hepsi yalniz taslakta yazilir; musteriye giden
+       belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
+    $notes = [];
+    /* ODEME KUTUSU BOS MU? Kutu yalnizca ODENMEMIS sipariste ciziliyor
+       (`$paid` dali): odenmis bir escrow siparisine "odeme kutusu yok" demek,
+       olmayan bir eksigi bildirmek olurdu.
+       PLATFORM DILIMI DE UYARIYOR (7 Eyl 2026). Kosul eskiden
+       `$sellerAcc !== null` idi, yani kutunun KESINLIKLE cikmadigi tek durum --
+       faturayi platformun kesmesi, ki hicbir banka hesabi bagli degil -- hicbir
+       uyari uretmiyordu. En cok uyari gereken hal, uyarinin disinda kalan haldi. */
+    if (empty($order['paid'])) {
+        $railsNow = $sellerAcc !== null ? vestra_payment_rails($sellerAcc, $cur) : [];
+        if ($railsNow === []) {
+            $notes[] = $sellerAcc === null
+                ? 'NOTE - this invoice is issued by the platform, which has no bank account on file, so it has no payment box at all.'
+                  . ' Pick the issuing seller in Admin > Invoice approvals, or the buyer gets a document with nowhere to pay.'
+                : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
+                  . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
+        }
+    }
+    $bVat = trim((string)(($b['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
+    if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
+        $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
+    }
+    if (trim((string)($b['address'] ?? '')) === '') {
+        $notes[] = 'NOTE - no street address on file for this buyer. Customs and the carrier need one; ask the buyer before issuing.';
+    }
+    return ['notes' => $notes, 'lost' => $lost];
+}
+
 function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc, string $invoiceNo, bool $draft = false): string {
     /* Para birimi. Belge bugune kadar EUR'a SABITTI: tutarlar eur() ile basiliyor ve
        "Currency" satiri duz "EUR" yaziyordu. ABD'li bir alicidan ABD'li bir hesaba
@@ -439,6 +498,26 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $money = fn($n) => $sym.number_format((float)$n, 2, '.', ',');
     $pdf = new VestraPdf();
     $left = 50.0; $right = 545.0; $width = $right - $left; $bottom = 70.0;
+
+    /* TASLAK NOTLARI LAYOUT'TAN ONCE HESAPLANIYOR (7 Eyl 2026). Girdiden baska
+       hicbir seye bakmiyorlar, ama KAC SATIR tuttuklari sayfa dibinde ne kadar
+       yer ayrilacagini belirliyor. Sonda hesaplandiklarinda bu bilinmiyordu ve
+       ucuncu not eklendigi gun notlar altbilginin USTUNE bindi: canli USD
+       taslaginda "VESTRA DRAFT - not an issued invoice" satiri notun icinden
+       geciyordu. Yarisi okunmayan bir uyari, uyari degildir -- ayni ders
+       sarmalama duzeltmesinde de yazilmisti, orada satir sag kenardan
+       tasiyordu, burada altbilgiye biniyor. */
+    $draftNotes = $draft ? vestra_invoice_draft_notes($order, $items, $sellerAcc, $cur) : ['notes' => [], 'lost' => []];
+    $noteLines  = [];
+    foreach (array_slice($draftNotes['notes'], 0, 3) as $n) {
+        foreach (vestra_invoice_wrap($n, $right - $left, 7.5) as $l) $noteLines[] = $l;
+    }
+    $noteLines = array_slice($noteLines, 0, 6);
+    /* Notlar altbilgi cizgisinin (y=60) USTUNDE, yukari dogru yigiliyor; icerigin
+       dibi de o kadar yukari cekiliyor, boylece hicbir sayfada ust uste gelmiyorlar. */
+    $noteTop = 66.0 + max(0, count($noteLines) - 1) * 8.5;
+    if ($noteLines) $bottom = $noteTop + 12.0;
+
     $y = VestraPdf::PAGE_H - 60;
     $newPage = function() use (&$y, $pdf) { $pdf->addPage(); $y = VestraPdf::PAGE_H - 60; };
     $need = function(float $h) use (&$y, $bottom, $newPage) { if ($y - $h < $bottom) $newPage(); };
@@ -795,9 +874,22 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        ayni agirlikta basilmalari, onemli olani gorunmez yapiyordu. Kutu, belgedeki
        odeme kutusuyla ayni dili konusuyor: bu da paraya dair. */
     $termsHead = $paid ? 'Payment status' : 'Payment terms';
+    /* "Havale yaptiktan sonra kisa bir haber versin" (operator, 7 Eyl 2026).
+       Belgeye yaziliyor, ayri bir mektuba degil: odemeyi yapan kisi elinde
+       faturayla oturuyor, ve haber vermesini isteyen cumle tam orada olmali.
+       Neden onemli: SWIFT havalesi 1-3 is gunu suruyor ve gonderenin adi
+       cogu zaman firma adiyla ayni olmuyor -- haber gelmezse tutar hesaba
+       dustugunde hangi siparise ait oldugu aranmak zorunda. Dekont kutusu
+       zaten var (KURAL 7, siparis sayfasindaki "Payment" karti), burada
+       yalnizca ADI konuyor: alici nereye koyacagini bilsin.
+       ODENMIS escrow siparisine YAZILMIYOR -- havale yok, haber verilecek
+       bir sey de yok. */
     $terms = $paid
         ? 'Paid in full via VESTRA secure escrow. Funds are released to the seller once the buyer confirms delivery.'
-        : '100% advance. Goods are dispatched after the full invoice amount is received in the account shown above.';
+        : '100% advance. Goods are dispatched after the full invoice amount is received in the account shown above.'
+          . ' Once you have sent the transfer, please send us a short note — reply to this invoice by e-mail, or upload'
+          . ' the transfer receipt on your order page. It lets us book your payment and start the shipment without waiting'
+          . ' for the bank to identify the sender.';
     $termLines = $pdf->wrap($terms, $width - 20, 9);
     $tBoxH = 16 + count($termLines) * 12;
     $need($tBoxH + 14);
@@ -901,71 +993,13 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        yakmadan once goruyor. Kesilmis faturaya basilmiyor -- musteriye giden
        belgeye ic uyari yazilmaz. */
     if ($draft) {
-        /* ALICI BLOGU 'buyer' ALTINDA. Bu tarama uzun sure $order['company'],
-           $order['name'], $order['address'] okuyordu -- gercek yukte boyle
-           anahtarlar YOK (vestra_invoice_buyer() 'buyer' altina yaziyor,
-           inc/invoice.php:1190), yani uyari canli bir faturada HIC calismadi;
-           yalnizca duz dizi veren testte "calisiyor" gorunuyordu. Bu depoda
-           kontrolun yanlis yere bakmasinin yedincisi (bkz. CLAUDE.md). Duz
-           bicim de okunmaya devam ediyor: iki cagiran sekli de var. */
-        $lost = [];
-        $scan = function ($v) use (&$lost) {
-            foreach (vestra_pdf_unprintable((string)$v) as $ch) $lost[$ch] = true;
-        };
-        $b = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
-        foreach (['company','name','address','country','vat','reg'] as $f) $scan($b[$f] ?? '');
-        foreach (['company','name','address','city','country','vat_id','notes'] as $f) $scan($order[$f] ?? '');
-        foreach ($items as $it) {
-            foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
-            foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
-        }
-        /* Belgeye ALINMAYAN alanlar. Hepsi yalniz taslakta yazilir; musteriye
-           giden belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
-        $notes = [];
-        /* ODEME KUTUSU BOS MU? Fatura USD kesilip kesen hesapta ABD yolu yoksa
-           (`vestra_payment_rails` USD icin hesap no + ABA ister) belgede odeme
-           bloğu HIC cikmaz -- alici parayi nereye gonderecegini bilemez ve bunu
-           ancak fatura elinde gorur. Taslakta soyleniyor. */
-        /* Saf fonksiyon yeniden cagriliyor, yukaridaki $rails DEGISKENI degil:
-           o degisken yalnizca "odenmemis" dalinda tanimli ve odenmis bir siparise
-           taslak cizildiginde tanimsiz kalirdi.
-           Kutu zaten yalnizca ODENMEMIS sipariste ciziliyor (yukarida `$paid`
-           dali): odenmis bir escrow siparisine "odeme kutusu yok" uyarisi
-           basmak, dogru olmayan bir eksigi bildirmek olurdu.
-           PLATFORM DILIMI DE UYARIYOR (7 Eyl 2026). Kosul eskiden
-           `$sellerAcc !== null` idi, yani kutunun KESINLIKLE cikmadigi tek durum
-           -- faturayi platformun kesmesi, ki hicbir banka hesabi bagli degil --
-           hicbir uyari uretmiyordu. En cok uyari gereken hal, uyarinin disinda
-           kalan haldi; bu depoda "kontrol yanlis yere bakiyor" vakalarinin
-           aynisi. */
-        if (empty($order['paid'])) {
-            $railsNow = $sellerAcc !== null ? vestra_payment_rails($sellerAcc, $cur) : [];
-            if ($railsNow === []) {
-                $notes[] = $sellerAcc === null
-                    ? 'NOTE - this invoice is issued by the platform, which has no bank account on file, so it has no payment box at all.'
-                      . ' Pick the issuing seller in Admin > Invoice approvals, or the buyer gets a document with nowhere to pay.'
-                    : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
-                      . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
-            }
-        }
-        $bVat = trim((string)(($order['buyer']['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
-        if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
-            $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
-        }
-        if (trim((string)($order['buyer']['address'] ?? '')) === '') {
-            $notes[] = 'NOTE - no street address on file for this buyer. Customs and the carrier need one; ask the buyer before issuing.';
-        }
-        if ($notes) {
-            /* SARILIYOR: bu notlar uzun ve tek satir basildiginda sag kenardan
-               TASIYOR -- yarisi kesilmis bir uyari, uyari degildir. */
-            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $notes) {
-                $lines = [];
-                foreach (array_slice($notes, 0, 3) as $n) {
-                    foreach (vestra_invoice_wrap($n, $right - $left, 7.5) as $l) $lines[] = $l;
-                }
-                $lines = array_slice($lines, 0, 6);
-                $y = 8.0 + (count($lines) - 1) * 8.5;      // en alt satir sayfanin dibinde kalsin
-                foreach ($lines as $l) { $p->text($left, $y, 7.5, $l, false, 0.35); $y -= 8.5; }
+        $lost = $draftNotes['lost'];
+        if ($noteLines) {
+            /* Notlar altbilgi cizgisinin USTUNDE, yukari dogru. Ayrilan yer
+               yukarida $bottom'a islendi; burada yalnizca ciziliyor. */
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $noteLines, $noteTop) {
+                $y = $noteTop;
+                foreach ($noteLines as $l) { $p->text($left, $y, 7.5, $l, false, 0.35); $y -= 8.5; }
             });
         }
         if ($lost) {
