@@ -118,6 +118,26 @@ $t('hata varsa hiçbir numara yakılmıyor', str_contains($inv, "if (!empty(\$p[
 $adm = $src('../vestra/admin.php');
 $t('admin hata dizisini fatura sanmıyor', str_contains($adm, "if(isset(\$issued['error']))"));
 $t('admin para birimi seçicisi var',      str_contains($adm, "value=\"order_invoice_currency\"") && str_contains($adm, "if(\$act==='order_invoice_currency')"));
+
+echo "\n== 6b. Tek tık düğmesi (sipariş ekranında) ==\n";
+/* Operatör: "siparişi dolara çevirme buttonu yap". Karar "Approve & issue"in
+   yanında veriliyor; bir ekranda görünmeyen seçenek olmayan seçenektir. */
+$t('siparişte 💱 düğmesi var',        str_contains($adm, '💱 Invoice in '));
+$t('geri dönüş düğmesi de var',       str_contains($adm, '↩ Back to '));
+$t('aynı doğrulayıcıyı çağırıyor',    substr_count($adm, 'vestra_order_set_invoice_currency($ref') === 1);
+$t('bastığı yere geri dönüyor',       str_contains($adm, "\$back=((\$_POST['from']??'')==='view')?'orders&view='.urlencode(\$ref):'invoices';"));
+/* Kesilmiş faturada seçim belgeyi değiştirmez: düğme çizilmiyor VE sunucu
+   ayrıca reddediyor — düğmeyi gizlemek yetki değil (KURAL 5g). */
+$t('kesilmişse SUNUCU reddediyor',    str_contains($adm, "if(vestra_invoices_for_ref(\$ref)){")
+                                   && str_contains($adm, 'msg=invoice_cur_late'));
+$t('reddin gerekçesi ekrana yazılı',  str_contains($adm, "elseif(\$msg==='invoice_cur_late')"));
+/* Damga yoksa kesim duracak; bunu düğmeye basan kişi ŞİMDİ görmeli. */
+$t('kur damgası yoksa uyarı',         str_contains($adm, 'No rate stamp for this order — issuing will stop.'));
+$sp = $src('../.github/workflows/seller-products.yml');
+$t('iş akışında da yazma yolu var',   str_contains($sp, "admin_mode == 'currency'"));
+$t('iş akışı yazmayı GERİ OKUYOR',    str_contains($sp, '$after  = vestra_order_invoice_currency($ref);')
+                                   && str_contains($sp, 'if (!$ok || $after !== $expect)'));
+$t('iş akışı numara YAKMIYOR',        !str_contains(explode("- name: Faturayı kes (issue)", $sp)[0], 'vestra_issue_order_invoices'));
 $t('seçici kur damgasını gösteriyor',     str_contains($adm, 'kur damgası yok — kesim durur'));
 $wf = (string)@file_get_contents(__DIR__.'/../.github/workflows/seller-products.yml');
 $t('iş akışı da hatayı ayırt ediyor',     str_contains($wf, "isset(\$issued['error'])"));

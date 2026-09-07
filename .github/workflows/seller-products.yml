@@ -11,7 +11,11 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar (numara yakmaz, belge üretmez, kimseye gitmez). Boş = sadece listeler."
+        required: false
+        default: ""
+      issue_currency:
+        description: "admin_mode=currency ile: fatura hangi para biriminde kesilsin (EUR|USD). Boş = seçimi KALDIR, sipariş kendi birimine döner. Panelin açılır listesiyle aynı kayıt (KURAL 5i)."
         required: false
         default: ""
       payload:
@@ -85,6 +89,108 @@ jobs:
       #
       # Idempotent: ayni ref ikinci kez calistirilirsa kesilmis fatura oldugu gibi doner,
       # yeni numara uretilmez.
+      # FATURANIN PARA BIRIMI (KURAL 5i). Panelin acilir listesiyle AYNI kaydi
+      # yaziyor -- ayri bir alan degil, `order_statuses.json[ref].invoice_currency`.
+      # Yazmak KESMEK DEGIL: numara yanmaz, PDF uretilmez, aliciya hicbir sey
+      # gitmez; secim yalnizca "Approve & issue"a basildiginda belgeye doner.
+      #
+      # Yazma GERI OKUNARAK dogrulaniyor (KURAL 5c'nin billing_saved dersi:
+      # `vestra_order_set_invoice_currency` false donerse hicbir sey yazilmamistir
+      # ve "USD yaptim" demek operatore olmayan bir kaydi dogru sandirir).
+      #
+      # Kur damgasi ve odeme kutusu da ayni koside yaziliyor: damga yoksa kesim
+      # zaten DURACAK, odeme yolu yoksa belge ODEME KUTUSUZ cikacak -- ikisini de
+      # secimi yapan kisi simdi gormeli, alici fatura elindeyken degil.
+      - name: Faturanın para birimini kaydet (currency) — numara yakmaz
+        if: ${{ github.event.inputs.admin_mode == 'currency' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          CUR_REF: ${{ github.event.inputs.issue_ref }}
+          CUR_WANT: ${{ github.event.inputs.issue_currency }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: CUR_REF,CUR_WANT
+          script: |
+            set -e
+            cat > /tmp/vestra_cur.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/fx_orders.php";
+
+            $ref  = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('CUR_REF'));
+            $want = strtoupper(trim((string)getenv('CUR_WANT')));
+            if ($ref === '') { fwrite(STDERR, "ref yok\n"); exit(1); }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            $ordCur = strtoupper(trim((string)($row['currency'] ?? 'EUR'))) ?: 'EUR';
+
+            /* Kesilmis fatura varsa SECIM ARTIK BIR SEY DEGISTIRMEZ: belge alicinin
+               elinde ve dosya adi/numara yanmis durumda. Sessizce yazip "tamam"
+               demek, degismeyecek bir seyi degistirdik sanmak olurdu. */
+            $already = function_exists('vestra_invoices_for_ref') ? vestra_invoices_for_ref($ref) : [];
+            if ($already) {
+              fwrite(STDERR, "fatura ZATEN KESILMIS (".count($already)." belge) -- para birimi secimi artik belgeyi degistirmez.\n"
+                           . "Degistirmek icin KURAL 5f: kalemi cikar/yeniden ciz, ya da faturayi iptal edip yeniden kes.\n");
+              exit(1);
+            }
+
+            $before = vestra_order_invoice_currency($ref);
+            $ok     = vestra_order_set_invoice_currency($ref, $want);
+            $after  = vestra_order_invoice_currency($ref);
+            $expect = ($want === '' || !in_array($want, vestra_invoice_currencies(), true)) ? '' : $want;
+
+            printf("siparis          : %s\n", $ref);
+            printf("siparis birimi   : %s  (KAYIT -- degismez)\n", $ordCur);
+            printf("onceki secim     : %s\n", $before === '' ? '(yok -- siparis birimi)' : $before);
+            printf("istenen          : %s\n", $want === '' ? '(secimi kaldir)' : $want);
+            if (!$ok || $after !== $expect) {
+              fwrite(STDERR, "YAZILAMADI -- kayit '".($after === '' ? '(yok)' : $after)."' olarak kaldi"
+                           . ($ok ? "" : " (taninmayan birim reddedildi; izin listesi: ".implode(', ', vestra_invoice_currencies()).")")."\n");
+              exit(1);
+            }
+            printf("KAYITLI          : %s  (geri okundu, dogrulandi)\n", $after === '' ? '(yok -- siparis birimi)' : $after);
+
+            /* Cevrim gerekiyorsa kur damgasi SART. Yoksa kesim `['error'=>...]`
+               donup duracak -- bunu simdi soylemek, Approve'a basanin kirmizi
+               bant gormesinden ucuz. */
+            if ($after !== '' && $after !== $ordCur) {
+              $fx = vestra_order_fx($ref);
+              printf("kur damgasi      : %s\n", $fx ? vestra_order_fx_note($fx) : "YOK -- KESIM DURUR (Admin > Orders > 'Fetch missing rates')");
+              if (!$fx) exit(1);
+            }
+
+            /* Odeme kutusu bu birimde gercekten cikiyor mu? Degerleri yazmiyoruz
+               (log herkese acik), yalnizca kutunun dolu olup olmadigini. */
+            foreach (vestra_order_invoice_payloads($ref) as $p) {
+              $acc = $p['seller'];
+              $who = $acc ? ($acc['company'] ?: ($acc['name'] ?: $p['seller_key'])) : 'VESTRA (acerasoft LLC)';
+              $cur = (string)($p['meta']['currency'] ?? $ordCur);
+              if (!empty($p['currency_error'])) {
+                printf("  %-26s CEVRILEMEDI: %s -- KESIM DURUR\n", mb_substr($who,0,24), $p['currency_error']);
+                continue;
+              }
+              $rails = $acc ? vestra_payment_rails($acc, $cur) : [];
+              printf("  %-26s %s odeme kutusu: %s\n", mb_substr($who,0,24), $cur,
+                     $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok')
+                          : 'HIC CIKMAZ -- platform kesiyor, bagli banka hesabi yok');
+            }
+            echo "kesim            : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            PHPEOF
+            php -l /tmp/vestra_cur.php
+            php /tmp/vestra_cur.php
+            rm -f /tmp/vestra_cur.php
+
       - name: Faturayı kes (issue) — e-posta göndermez
         if: ${{ github.event.inputs.admin_mode == 'issue' }}
         uses: appleboy/ssh-action@v1.0.3
