@@ -586,6 +586,36 @@ sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değ
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
 
+**KURAL 5h — Fatura müşterinin KENDİ harfleriyle çıkar (CJK gömülü yazı tipi)**
+(operatör, 7 Eyl 2026: *"çin karakterlerini faturaya yazamıyorum … fatura çin
+adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kayıt 5 Eyl 2026).
+- Çizici gömülü olmayan Helvetica + WinAnsi (CP1252) kullanıyordu; CP1252 Batı
+  Avrupa alfabesidir. `iconv(...//TRANSLIT//IGNORE)` Çince/Japonca/Korece/
+  Yunanca/Kiril harfleri **sessizce soru işaretine** çeviriyordu: belge geçerli
+  görünüyor, müşterinin adı yok. Bu depoda tekrar eden ders.
+- Çözüm `vestra/assets/fonts/vestra-cjk.ttf` (WenQuanYi Zen Hei alt kümesi,
+  10 MB, GPL v2 + font istisnası — yanındaki LICENSE dosyası) + `inc/pdf_font.php`
+  (PHP TrueType alt kümeleyici). Belgeye **yalnızca o belgede geçen glifler**
+  gömülür: Çince faturanın tamamı ~26 KB. Biçim Type0/Identity-H +
+  CIDFontType2, CID = yeni glif no.
+- **ToUnicode CMap şart:** onsuz belge doğru görünür ama kopyalanamaz ve
+  `pdftotext` boş döker — gümrükte adresi elle yeniden yazdırmak demektir.
+- **Latin belgeler değişmez:** CP1252'ye sığan bir dizge Helvetica yolundan
+  gider, dosyaya font nesnesi bile eklenmez (testte iddia var).
+- **Genişlik tahmin değil.** Han karakteri tam genişliktir (1 em); Helvetica'nın
+  0.52 em'lik ortalaması Çince adresi yarı genişlikte sanıp satıcı kutusunun
+  üzerine bindiriyordu. Tek ölçüm yeri `vestra_pdf_width()`; `VestraPdf::strWidth`
+  ve `vestra_invoice_wrap()` ikisi de onu çağırır. Çincede boşluk yok, sarma
+  karakter karakter kırıyor.
+- **Taslak uyarısı yanlış yere bakıyordu (7. vaka).** Tarama `$order['company']`
+  okuyordu, oysa gerçek yükte alıcı alanları `$order['buyer']` altında
+  (`vestra_invoice_buyer`). Yani uyarı **canlı bir faturada hiç çalışmadı**;
+  yalnızca düz dizi veren testte "çalışıyor" görünüyordu. Artık `buyer[]`
+  taranıyor ve uyarı **kod noktası** yazıyor (`U+1F9F5`) — basılamayan karakteri
+  uyarının içine koymak uyarıyı da okunmaz yapıyordu.
+- Yazı tipi sunucuya gitmezse eski davranışa döner ve **taslak bunu söyler**;
+  sessiz kayıp olmaz. Test: `tests/pdf_cjk_test.php` (48 iddia).
+
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
 3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları

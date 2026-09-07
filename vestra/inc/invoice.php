@@ -355,7 +355,8 @@ function vestra_next_invoice_no(string $sellerKey): string {
  * column does not wrap — it just keeps drawing, straight over the description beside it.
  */
 function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = false): array {
-    $wide = fn(string $t): float => mb_strlen($t) * $size * ($bold ? 0.60 : 0.52);
+    /* Olcum VestraPdf ile AYNI fonksiyondan (inc/pdf.php): CJK tam genislik. */
+    $wide = fn(string $t): float => vestra_pdf_width($t, $size, $bold);
     $chop = function (string $w) use ($wide, $maxW): array {
         $out = []; $cur = '';
         foreach (preg_split('//u', $w, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
@@ -859,30 +860,46 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
     });
 
-    /* CIZILEMEYEN KARAKTER UYARISI -- yalniz TASLAKTA.
-       Cizici gomulu olmayan Helvetica + CP1252 kullaniyor; Cince/Japonca/
-       Korece/Yunanca/Kiril harfler SESSIZCE soru isaretine donuyor. 5 Eyl
-       2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
-       basiliyordu -- gecerli GORUNEN ama alicinin adini kaybetmis bir fatura.
-       Bu depoda tekrarlanan ders: sessiz kayip, gurultulu hatadan pahali.
-       Uyari KURAL 5d'nin zaten var olan kontrol noktasina, taslagin uzerine
-       basiliyor: operator numarayi yakmadan once goruyor. Kesilmis faturaya
-       basilmiyor -- musteriye giden belgeye ic uyari yazilmaz. */
+    /* BASILAMAYAN KARAKTER UYARISI -- yalniz TASLAKTA.
+       Cince/Japonca/Korece/Yunanca/Kiril artik BASILIYOR: gomulu yazi tipi
+       (inc/pdf_font.php) devrede ve alicinin unvani belgeye kendi harfleriyle
+       giriyor (operator karari, 7 Eyl 2026). Geriye yalniz o yazi tipinin de
+       tasimadigi karakterler kaliyor -- emoji, nadir duzlemler, ya da yazi tipi
+       dosyasi sunucuda yoksa CP1252 disindaki her sey. Uyari KURAL 5d'nin zaten
+       var olan kontrol noktasina, taslagin uzerine basiliyor: operator numarayi
+       yakmadan once goruyor. Kesilmis faturaya basilmiyor -- musteriye giden
+       belgeye ic uyari yazilmaz. */
     if ($draft) {
+        /* ALICI BLOGU 'buyer' ALTINDA. Bu tarama uzun sure $order['company'],
+           $order['name'], $order['address'] okuyordu -- gercek yukte boyle
+           anahtarlar YOK (vestra_invoice_buyer() 'buyer' altina yaziyor,
+           inc/invoice.php:1190), yani uyari canli bir faturada HIC calismadi;
+           yalnizca duz dizi veren testte "calisiyor" gorunuyordu. Bu depoda
+           kontrolun yanlis yere bakmasinin yedincisi (bkz. CLAUDE.md). Duz
+           bicim de okunmaya devam ediyor: iki cagiran sekli de var. */
         $lost = [];
-        foreach (['company','name','address','city','country','vat_id','notes'] as $f) {
-            foreach (vestra_pdf_unrenderable((string)($order[$f] ?? '')) as $ch) $lost[$ch] = true;
-        }
+        $scan = function ($v) use (&$lost) {
+            foreach (vestra_pdf_unprintable((string)$v) as $ch) $lost[$ch] = true;
+        };
+        $b = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
+        foreach (['company','name','address','country','vat','reg'] as $f) $scan($b[$f] ?? '');
+        foreach (['company','name','address','city','country','vat_id','notes'] as $f) $scan($order[$f] ?? '');
         foreach ($items as $it) {
-            foreach (['name','sku','note'] as $f) {
-                foreach (vestra_pdf_unrenderable((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
-            }
+            foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
+            foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
         }
         if ($lost) {
-            $chars = implode(' ', array_slice(array_keys($lost), 0, 12));
+            /* Kod noktasi olarak yaziliyor, karakterin KENDISI olarak degil:
+               basilamayan bir karakteri uyarinin icine koymak uyariyi da
+               okunmaz yapar (satirin tamami gomulu yazi tipine duser ve o
+               karakter orada da bos kutu cikar). "U+1F9F5" her zaman okunur ve
+               operator neyi aradigini bilir. */
+            $chars = implode(' ', array_map(
+                fn($c) => 'U+'.strtoupper(dechex((int)mb_ord($c, 'UTF-8'))),
+                array_slice(array_keys($lost), 0, 12)));
             $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $chars) {
                 $p->text($left, 26.0, 7.5,
-                    'WARNING - these characters cannot be printed on this document and appear as "?": '
+                    'WARNING - this document cannot print these characters and leaves them blank: '
                     . $chars . '  Supply a Latin-script name and address before issuing.', false, 0.0);
             });
         }

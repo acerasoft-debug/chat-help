@@ -62,7 +62,9 @@ $eur2 = $eur; $eur2['bank_eur_bic'] = 'EURBIC1';
 $t('bank_eur_bic acikca verilince basilir', str_contains(implode("\n", vestra_payment_rails($eur2,'EUR')), 'BIC / SWIFT: EURBIC1'));
 $t('IBAN yoksa hic satir yok', vestra_payment_rails(['bank_bic'=>'X'], 'EUR') === []);
 
-echo "\n== 3. PDF'in basamadigi karakterler ==\n";
+echo "\n== 3. Helvetica'nin disindaki karakterler (gomulu yolun tetikleyicisi) ==\n";
+/* Bu fonksiyon "CP1252 disinda" demektir; 7 Eyl 2026'dan beri "kayip" demek
+   DEGIL -- bu karakterler gomulu yazi tipiyle basiliyor (bkz. pdf_cjk_test). */
 $t('Cince yakalaniyor',   vestra_pdf_unrenderable('香港风徕贸易有限公司') !== []);
 $t('Japonca yakalaniyor', vestra_pdf_unrenderable('東京都渋谷区') !== []);
 $t('Kiril yakalaniyor',   vestra_pdf_unrenderable('Москва') !== []);
@@ -74,22 +76,35 @@ $tr = vestra_pdf_unrenderable('Isik Gunes Ozturk');
 $t('duz ASCII gecer',     $tr === []);
 $t('bos string gecer',    vestra_pdf_unrenderable('') === []);
 $t('soru isareti kendisi kayip SAYILMAZ', vestra_pdf_unrenderable('what?') === []);
+/* GERCEKTEN basilamayan = ne CP1252'de ne gomulu yazi tipinde olan. */
+$t('Cince artik BASILABILIR',  vestra_pdf_unprintable('香港风徕贸易有限公司') === []);
+$t('Japonca/Korece basilabilir', vestra_pdf_unprintable('東京都渋谷区 한국어') === []);
+/* Emoji seciminde dikkat: iconv bazi emojileri ASCII'ye CEVIRIR (🙂 -> ":-)"),
+   yani onlar "kayip" sayilmaz. Gercekten karsiligi olmayan biri gerek. */
+$t('cevirisi olmayan emoji basilamaz', vestra_pdf_unprintable('VESTRA 🧵') === ['🧵']);
+$t('ASCII karsiligi olan emoji kayip degil', vestra_pdf_unprintable('VESTRA 🙂') === []);
 
-echo "\n== 4. Uyari YALNIZ taslakta ==\n";
-$order = ['ref'=>'VES-TEST','company'=>'香港风徕贸易有限公司','name'=>'LINCHAOWEI',
-          'address'=>'香港九龍尖沙咀','city'=>'Hong Kong','country'=>'Hong Kong SAR',
-          'email'=>'x@example.com','currency'=>'USD','total'=>5150.0];
-$items = [['name'=>'AMI Paris Core Logo Polo','sku'=>'AMI-PL-014','qty'=>120,'price'=>39.0]];
+echo "\n== 4. Fatura: Cince alici (gercek yuk sekli) ==\n";
+/* Yuk sekli uretimdekiyle AYNI olmak zorunda: alici alanlari 'buyer' altinda.
+   Duz $order['company'] veren eski surum, cizim koduna hic ulasmiyordu --
+   belgeyi degil yalnizca uyari taramasini olcuyordu. Belge duzeyindeki tum
+   iddialar tests/pdf_cjk_test.php'de. */
+$order = ['ref'=>'VES-TEST','date'=>'2026-09-07T10:00:00+00:00','currency'=>'USD','buyer'=>[
+    'company'=>'香港风徕贸易有限公司','name'=>'LINCHAOWEI','email'=>'x@example.com',
+    'country'=>'Hong Kong','address'=>'香港九龍尖沙咀','vat'=>'','reg'=>'']];
+$items = [['sku'=>'AMI-PL-014','brand'=>'AMI Paris','name'=>'Core Logo Polo','colors'=>[],
+           'qty'=>120,'unit'=>39.0,'line'=>4680.0]];
 $draft = vestra_render_invoice_pdf($order, $items, $us, 'DRAFT', true);
 $real  = vestra_render_invoice_pdf($order, $items, $us, 'INV-TEST', false);
-$t('taslakta uyari VAR',        str_contains($draft, 'cannot be printed'));
-$t('taslakta Latin harf isteniyor', str_contains($draft, 'Latin-script'));
-/* Musteriye giden belgeye ic uyari yazilmaz. */
-$t('kesilmis faturada uyari YOK', !str_contains($real, 'cannot be printed'));
-/* Latin harfli alici -> taslakta da uyari olmamali (yanlis alarm yok). */
-$latin = $order; $latin['company']='Hong Kong Fenglai Trading Co Ltd'; $latin['address']='5 Canton Road, Kowloon';
-$t('Latin harfli aliciya uyari YOK',
-   !str_contains(vestra_render_invoice_pdf($latin, $items, $us, 'DRAFT', true), 'cannot be printed'));
+/* 7 Eyl 2026 (operator: "fatura cin adresi ile ciksin"). */
+$t('Cince aliciya uyari YOK',    !str_contains($draft, 'cannot print these characters'));
+$t('Cince belgede gomulu',       str_contains($draft, '/FontFile2') && str_contains($draft, '/Identity-H'));
+$t('kesilmis fatura da gomuyor', str_contains($real, '/FontFile2'));
+/* Latin harfli alici -> ne uyari ne gomulu yazi tipi (mevcut belgeler aynen). */
+$latin = $order; $latin['buyer']['company']='Hong Kong Fenglai Trading Co Ltd'; $latin['buyer']['address']='5 Canton Road, Kowloon';
+$latinPdf = vestra_render_invoice_pdf($latin, $items, $us, 'DRAFT', true);
+$t('Latin harfli aliciya uyari YOK', !str_contains($latinPdf, 'cannot print these characters'));
+$t('Latin belgeye yazi tipi GOMULMEZ', !str_contains($latinPdf, '/FontFile2'));
 $t('PDF yine de uretiliyor (engellemiyor)', strlen($draft) > 5000 && strlen($real) > 5000);
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
