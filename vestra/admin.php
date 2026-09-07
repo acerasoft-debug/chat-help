@@ -1085,6 +1085,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      siparis kaydiyla ayni is, ayni dosya kurallari (auth_doc_file_check
      uzerinden). Musteri panelden yuklediginde zaten buyer.php'nin kendi yolu
      (upload_receipt) calisiyor; bu yalnizca e-posta yolunun karsiligi. */
+  /* Talebi kapat (5 Eyl 2026). Escrow bayragini da temizler -- tek fonksiyon,
+     yoksa para birakilir ama satirda "disputed" asili kalirdi. */
+  if($act==='resolve_claim'){
+    require_once __DIR__.'/inc/claims.php';
+    $clRef = trim((string)($_POST['ref'] ?? ''));
+    $clRes = vestra_claim_resolve($clRef, (string)($_POST['outcome'] ?? ''), 'operator');
+    header('Location: /admin?tab=orders&view='.urlencode($clRef).($clRes['ok'] ? '&msg=claim_resolved' : '&msg=claim_err')); exit;
+  }
   if($act==='attach_receipt'){
     require_once __DIR__.'/inc/receipts.php';
     $rref = trim((string)($_POST['ref'] ?? ''));
@@ -1908,6 +1916,26 @@ if($authed && isset($_GET['dl_doc'])){
       $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
       header('Content-Type: '.$mime);
       header('Content-Disposition: inline; filename="'.addslashes($file).'"');
+      readfile($path); exit;
+    }
+  }
+  http_response_code(404); echo 'File not found'; exit;
+}
+
+// ── Claim evidence download (admin only) ────────────────────────────────────────
+// Kanit dosyalari data/claims/ altinda ve dizinde "Deny from all" var; tek okuma
+// yolu bu. basename() + ref temizligi dl_receipt ile birebir ayni.
+if($authed && isset($_GET['dl_claim'])){
+  require_once __DIR__.'/inc/claims.php';
+  $cRef  = preg_replace('/[^A-Za-z0-9_-]/','', $_GET['ref']??'');
+  $cFile = basename($_GET['dl_claim']??'');
+  if($cRef && $cFile){
+    $path = vestra_claim_file_path($cRef, $cFile);
+    if(is_readable($path)){
+      $ext  = strtolower(pathinfo($cFile,PATHINFO_EXTENSION));
+      $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
+      header('Content-Type: '.$mime);
+      header('Content-Disposition: inline; filename="'.addslashes($cFile).'"');
       readfile($path); exit;
     }
   }
@@ -3591,6 +3619,43 @@ elseif($tab==='orders'):
         </form>
       <?php endif; ?>
     </div>
+    <?php
+      /* Alici talebi (5 Eyl 2026). Kanit dosyalari data/claims/ altinda ve
+         "Deny from all" arkasinda; tek okuma yolu ?dl_claim. Dosya kayitta VE
+         diskte olmali (files_on_disk) -- dosyasi olmayan bir kanit satiri,
+         hic kanit olmamasindan kotudur. */
+      require_once __DIR__.'/inc/claims.php';
+      $vClaim = vestra_order_claim($viewRef);
+    ?>
+    <?php if($vClaim): $vcOpen = ($vClaim['status'] ?? 'open') === 'open'; ?>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <div class="ahint" style="margin-bottom:6px;font-weight:600">
+        <?= $vcOpen ? '⚠ Claim OPEN' : '✓ Claim resolved' ?>
+        · <span style="font-family:ui-monospace,monospace"><?= htmlspecialchars((string)($vClaim['claim_ref']??'')) ?></span>
+      </div>
+      <div style="font-size:12.5px;margin-bottom:4px">
+        <b><?= htmlspecialchars((string)(vestra_claim_reasons()[$vClaim['reason']??'']??'?')) ?></b>
+        <span class="ahint">· opened <?= htmlspecialchars(substr((string)($vClaim['opened_at']??''),0,16)) ?> by <?= htmlspecialchars((string)($vClaim['opened_by']??'?')) ?></span>
+      </div>
+      <div style="font-size:12.5px;white-space:pre-wrap;margin-bottom:8px"><?= htmlspecialchars((string)($vClaim['detail']??'')) ?></div>
+      <?php foreach((array)($vClaim['files_on_disk']??[]) as $cf): ?>
+        <a href="/admin?dl_claim=<?= urlencode($cf) ?>&ref=<?= urlencode($viewRef) ?>" target="_blank" style="color:var(--acc);font-size:12.5px;margin-right:10px">📎 <?= htmlspecialchars($cf) ?></a>
+      <?php endforeach; ?>
+      <?php if($vcOpen): ?>
+        <div class="ahint" style="margin-top:6px">Escrow funds, if any, are held until this is resolved.</div>
+        <form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="resolve_claim">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input name="outcome" placeholder="Outcome (replacement / partial credit / refund / not upheld)" style="flex:1;min-width:240px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12px">
+          <button class="abtn" type="submit" style="font-size:12px">✓ Resolve claim</button>
+        </form>
+      <?php else: ?>
+        <div class="ahint" style="margin-top:6px">Outcome: <?= htmlspecialchars((string)($vClaim['outcome']??'—')) ?>
+          · <?= htmlspecialchars(substr((string)($vClaim['resolved_at']??''),0,16)) ?></div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
 
   <div class="acard">

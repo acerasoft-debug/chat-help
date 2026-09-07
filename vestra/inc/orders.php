@@ -75,7 +75,13 @@ function vestra_order_sellers(array $lines): array {
    despatch because that is where the real waiting happens: the buyer has paid, nothing
    visible moves for days, and "Paid" on its own reads as "nobody is doing anything".
    Naming the two stages turns silence into progress the buyer can see. */
-const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shipped', 'completed'];
+/* 'delivered' zincire 5 Eyl 2026'da eklendi. Yoktu, ama satici onu ISARETLEYEBILIYOR
+   (seller.php) ve escrow sayaci ile alicinin talep suresi ONA bagli. Zincirde
+   olmayinca array_search false donuyor, $idx 0'a dusuyor ve teslim edilmis
+   sipariş ilk noktada "Awaiting payment" olarak cizilıyordu. Ayrica bu sabit
+   vestra_order_settable_statuses()'i de besliyor: operator panelden 'delivered'
+   secemiyordu, yani zincirin isleyen bir asamasi yalnizca saticinin elindeydi. */
+const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shipped', 'delivered', 'completed'];
 
 /* Cancelled is deliberately NOT a step. It is not a later stage of the same journey, it
    is the journey stopping, and putting it on the end of the chain would render every
@@ -99,7 +105,15 @@ function vestra_order_status_label(string $status, bool $forceEnglish = false): 
         'paid' => $tt('Paid'),
         'preparing' => $tt('Being prepared'),
         'to_vestra' => $tt('On its way to VESTRA'),
-        'shipped' => $tt('Shipped'), 'completed' => $tt('Completed'),
+        'shipped' => $tt('Shipped'),
+        /* 'delivered' BURADA YOKTU ve default'a dusuyordu: satici teslimati
+           isaretledigi anda (seller.php) alici sipariste "Awaiting payment"
+           goruyordu -- parasi cekilmis, mali eline gecmis bir siparişte. Ayni
+           durum escrow sayacini ve alicinin 3 gunluk talep suresini baslatiyor,
+           yani ekranin en yanlis oldugu an, dogru olmasinin en cok gerektigi
+           andi. `cancelled` icin ayni tuzak asagidaki yorumda zaten yaziliydi. */
+        'delivered' => $tt('Delivered'),
+        'completed' => $tt('Completed'),
         'cancelled' => $tt('Cancelled'),
         default => $tt('Awaiting payment'),
     };
@@ -269,6 +283,43 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
                 $h .= '<p class="hint" style="margin:0 0 10px">'
                     . t('Already paid by bank transfer? Attach the receipt here and we will confirm your order.').'</p>'
                     . vestra_receipt_upload_form($formHref, $ref);
+                if (function_exists('vestra_doc_upload_js')) $h .= vestra_doc_upload_js();
+            }
+            $h .= '</div>';
+        }
+        /* Talep ("Open dispute") — operator, 5 Eyl 2026: "dispute yaziyor ama
+           böyle bir dispute yeri yok görünmüyor". Metin bes ayri sayfada bu
+           dugmeyi vaat ediyordu ve dugme hicbir yerde yoktu. Asama karari
+           vestra_claim_state()'te; kart, POST isleyicisi ve escrow supurucusu
+           ucu de ONU okur. */
+        if (!function_exists('vestra_claim_state')) require_once __DIR__.'/claims.php';
+        $cl = vestra_claim_state($ref, $statusEntry);
+        if ($cl['phase'] !== 'na') {
+            $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">⚠️ '.t('Report a problem').'</h3></div>';
+            if ($cl['phase'] === 'filed') {
+                $c = $cl['claim'];
+                $reasons = vestra_claim_reasons();
+                $h .= '<p style="margin:0 0 6px"><b>'.t('Claim reference').':</b> <span style="font-family:ui-monospace,monospace">'.htmlspecialchars((string)($c['claim_ref'] ?? '')).'</span></p>'
+                    . '<p style="margin:0 0 6px">'.htmlspecialchars(t((string)($reasons[$c['reason'] ?? ''] ?? ''))).' · '
+                    . htmlspecialchars(substr((string)($c['opened_at'] ?? ''), 0, 10)).'</p>';
+                $n = count((array)($c['files_on_disk'] ?? []));
+                if ($n) $h .= '<p class="hint" style="margin:0 0 6px">📎 '.$n.' '.t('file(s) attached').'</p>';
+                $h .= '<p class="hint" style="margin:0">'.t('We review claims within 2 business days and reply in this order.').'</p>';
+            } elseif ($cl['phase'] === 'late') {
+                /* Sureyi kacirmis aliciyi bos bir duvara birakma: politika 3 gunu
+                   kesin tutuyor ama "yanlis olduğunu düşünüyorsaniz yazin" yolu
+                   aciktir -- kararı operator verir, form vermez. */
+                $h .= '<p class="hint" style="margin:0 0 6px">'.t('The claim window for this delivery has closed.').'</p>'
+                    . '<p class="hint" style="margin:0">'.t('If you believe this is wrong, write to')
+                    . ' <a class="acc" href="mailto:support@vestrasales.com">support@vestrasales.com</a>.</p>';
+            } else {
+                if (!empty($cl['deadline'])) {
+                    $h .= '<p class="hint" style="margin:0 0 8px">'.t('Report by').' <b>'
+                        . htmlspecialchars(date('j M Y', (int)$cl['deadline'])).'</b></p>';
+                }
+                $h .= '<p class="hint" style="margin:0 0 10px">'
+                    . t('Wrong, missing or faulty goods only.').' <a class="acc" href="/faq?cat=returns">'.t('Read the claim rules').'</a></p>'
+                    . vestra_claim_form($formHref, $ref);
                 if (function_exists('vestra_doc_upload_js')) $h .= vestra_doc_upload_js();
             }
             $h .= '</div>';

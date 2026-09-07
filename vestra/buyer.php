@@ -83,6 +83,44 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=orders&view='.urlencode($rRef).($rRes['ok'] ? '&receipt=1' : '&receipt_err='.rawurlencode($rRes['error']))); exit;
 }
 
+/* Talep ac ("Open dispute") — operator, 5 Eyl 2026. Sahiplik kontrolu
+   upload_receipt ile ayni: siparişin e-postasi giris yapmis hesabin e-postasi
+   olmali. Karar (sure doldu mu, zaten acik mi) vestra_claim_open_new()'un
+   icinde, vestra_claim_state() uzerinden -- burada ikinci bir kopyasi YOK. */
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='open_claim') {
+    require_once __DIR__.'/inc/claims.php';
+    $cRef = trim((string)($_POST['ref'] ?? ''));
+    $me = auth_user(); $myEmail = strtolower($me['email'] ?? '');
+    $cOrder = null;
+    foreach (vestra_read_csv('orders.csv') as $row) { if (($row['ref'] ?? '') === $cRef) { $cOrder = $row; break; } }
+    $ownsOrder = $cOrder && $myEmail !== '' && strtolower($cOrder['email'] ?? '') === $myEmail;
+    if (!$cRef || !$ownsOrder) { header('Location: /buyer?tab=orders'); exit; }
+    /* $_FILES['evidence'] coklu girdide sutun sutun gelir; tek tek dosyalara cevir. */
+    $ev = [];
+    $raw = $_FILES['evidence'] ?? null;
+    if (is_array($raw) && isset($raw['name']) && is_array($raw['name'])) {
+        foreach (array_keys($raw['name']) as $i) {
+            $ev[] = ['name'=>$raw['name'][$i], 'type'=>$raw['type'][$i] ?? '', 'tmp_name'=>$raw['tmp_name'][$i] ?? '',
+                     'error'=>$raw['error'][$i] ?? UPLOAD_ERR_NO_FILE, 'size'=>$raw['size'][$i] ?? 0];
+        }
+    }
+    $cRes = vestra_claim_open_new($cRef, (string)($_POST['reason'] ?? ''), (string)($_POST['detail'] ?? ''), $ev, 'buyer');
+    if ($cRes['ok']) {
+        require_once __DIR__.'/inc/notify.php';
+        $opsTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
+        $reasons = vestra_claim_reasons();
+        vestra_send_mail($opsTo, 'VESTRA — claim '.$cRes['claim_ref'].' opened on order '.$cRef,
+            "A buyer opened a claim.\n\n"
+          . "Claim:   ".$cRes['claim_ref']."\n"
+          . "Order:   ".$cRef."\n"
+          . "Company: ".($cOrder['company'] ?? '?')."\n"
+          . "Reason:  ".($reasons[(string)($_POST['reason'] ?? '')] ?? '?')."\n\n"
+          . "Review (with evidence): https://vestrasales.com/admin?tab=orders&view=".rawurlencode($cRef)."\n\n"
+          . "Escrow funds, if any, are held until this is resolved.\n\n— VESTRA");
+    }
+    header('Location: /buyer?tab=orders&view='.urlencode($cRef).($cRes['ok'] ? '&claim=1' : '&claim_err='.rawurlencode($cRes['error']))); exit;
+}
+
 // Confirm receipt (escrow release) — only the buyer who placed it, once shipped OR delivered.
 // 'delivered' da kabul: satici teslimati isaretledikten SONRA alicinin onay dugmesi
 // olmezse, 2-is-gunu sayaci baslamisken alici erken onaylayamaz hale gelirdi.
@@ -279,6 +317,11 @@ if($tab==='overview'){
   if ($viewOrder) {
     if (isset($_GET['receipt'])) echo '<div class="banner ok">✓ '.t('Receipt received — we will confirm it shortly.').'</div>';
     if (isset($_GET['receipt_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⚠ '.htmlspecialchars(t(auth_doc_error_text((string)$_GET['receipt_err']))).'</div>';
+    if (isset($_GET['claim'])) echo '<div class="banner ok">✓ '.t('Your claim has been received. We review claims within 2 business days.').'</div>';
+    /* Hata metni vestra_claim_error_text()'ten: dosya kodlari auth'un sozlugune
+       devrediliyor, talebe ozel kodlar (reason/detail/exists/window) burada. */
+    if (isset($_GET['claim_err'])) { require_once __DIR__.'/inc/claims.php';
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⚠ '.htmlspecialchars(vestra_claim_error_text((string)$_GET['claim_err'])).'</div>'; }
     echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'buyer', $uid, '/buyer?tab=orders', '/buyer?tab=orders');
   } else {
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';

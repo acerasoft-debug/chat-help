@@ -300,6 +300,16 @@ function escrow_auto_release_sweep(bool $dry = false): array {
            pencerenin ortasinda odeme yapiyordu. Ikisinin GEC olani alinir:
            mevcut 2 is gunu taban olarak korunur (hafta sonu davranisi degismez),
            uzerine 3 takvim gunluk hak garanti edilir. */
+        /* ACIK TALEP PARAYI TUTAR. SSS returns/14 bunu birebir vaat ediyor:
+           "Talep acikken para birakilmaz." Talep akisi 5 Eyl 2026'da eklenene
+           kadar bu kontrolun bakacagi bir kayit yoktu; simdi var ve supurucu
+           kart/POST isleyicisiyle AYNI fonksiyonu sorar (vestra_claim_state),
+           yoksa para bir yerde tutulup baska yerde birakilirdi. */
+        require_once __DIR__ . '/claims.php';
+        if (vestra_claim_is_open($ref)) {
+            $out['lines'][] = sprintf('  %s TALEP ACIK — para tutuluyor', $ref);
+            continue;
+        }
         $deadline = max(vestra_business_days_after($dts, 2),
                         $dts + VESTRA_CLAIM_DAYS * 86400);
         if (time() < $deadline) {
