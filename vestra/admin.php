@@ -115,10 +115,26 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     $okPick=vestra_order_set_invoice_seller($ref,$uid);
     header('Location: /admin?tab=orders&'.($okPick?'seller_saved=':'seller_failed=').urlencode($ref)); exit;
   }
+  /* Faturanin para birimi (7 Eyl 2026). Taninmayan birim KAYDEDILMEZ -- kod
+     yalnizca EUR->USD cevirebiliyor ve ceviremedigi bir birimi kabul etmek,
+     sessizce yanlis rakam basmak olurdu. */
+  if($act==='order_invoice_currency'){
+    $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
+    require_once __DIR__.'/inc/invoice.php';
+    $okCur=vestra_order_set_invoice_currency($ref,(string)($_POST['currency']??''));
+    header('Location: /admin?tab=invoices&msg='.($okCur?'invoice_cur_saved':'invoice_cur_bad')); exit;
+  }
   if($act==='issue_invoice'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
     $issued=vestra_issue_order_invoices($ref);
+    /* Para birimi cevrilemediyse HICBIR numara yakilmadi (bkz.
+       vestra_issue_order_invoices). Hata dizisi de "dolu" oldugu icin asagidaki
+       if($issued) onu kesilmis sanar ve aliciya "faturaniz hazir" yazardi. */
+    if(isset($issued['error'])){
+      header('Location: /admin?tab='.((($_POST['from']??'')==='view')?'orders&view='.urlencode($ref):'invoices')
+            .'&msg=invoice_cur_err&err='.urlencode(substr((string)$issued['error'],0,120))); exit;
+    }
     if($issued){
       $orow=null; foreach(vestra_read_csv('orders.csv') as $r){ if(($r['ref']??'')===$ref){ $orow=$r; break; } }
       if($orow && filter_var($orow['email']??'',FILTER_VALIDATE_EMAIL)){
@@ -2359,6 +2375,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        own blocks further down, in the colour they deserve. */
     'invoice_issued'=>'✓ Invoice issued and emailed to the buyer.','invoice_none'=>'No invoice could be issued for that order.',
     'invoice_seller_bad'=>'⚠ Seçilen satıcı hesabı bulunamadı — FATURA KESİLMEDİ. Boş bir hesaba düşüp belgeyi Acerasoft LLC adına çıkarmaktansa hiç kesmemek doğru: listeyi yenileyip tekrar seçin.',
+    /* Yalniz BASARILI olan burada: bu harita her satiri yesil "✓" bandi olarak
+       basiyor. Reddedilen iki hal (taninmayan birim, cevrilemeyen kur) asagida
+       kendi KIRMIZI bloklarinda -- yesile boyanmis bir ret, bu dosyanin kendi
+       uyarisinin tekrari olurdu. */
+    'invoice_cur_saved'=>'✓ Fatura para birimi kaydedildi. Tutarlar SİPARİŞ TARİHİNDEKİ kurla çevrilir; taslağı (👁) açıp rakamları ve ödeme kutusunu görün.',
     'invoice_test_sent'=>'✓ TASLAK fatura test adresine e-postayla gönderildi — numara yakılmadı, müşteriye hiçbir şey gitmedi.',
     'invoice_redrafted'=>'✓ Fatura AYNI numarayla yeniden yazıldı, düzeltilmiş PDF alıcıya e-postayla (ekte) gönderildi. Alıcı panelindeki bağlantı artık düzeltilmiş belgeyi veriyor.',
     'invoice_paid_toggled'=>'✓ Ödeme işareti değiştirildi — alıcı panelindeki "ödenmesi gereken fatura" uyarısı buna göre güncellenir.',
@@ -2524,6 +2545,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Kayıt sunucuya YAZILAMADI — geri okuma tutmadı, hiçbir şeye güvenmeyin. Tekrar deneyin; yine olursa <code>data/accounts.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='billing_none'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
+<?php elseif($msg==='invoice_cur_bad'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Tanınmayan para birimi — <b>kaydedilmedi</b>. Çevrilebilen birimler: <?= htmlspecialchars(implode(', ', vestra_invoice_currencies())) ?>. Çeviremediği bir birimi kabul etmek, belgeye sessizce yanlış rakam basmak olurdu.</div>
+<?php elseif($msg==='invoice_cur_err'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ <b>FATURA KESİLMEDİ</b> — para birimi çevrilemedi: <?= htmlspecialchars((string)($_GET['err'] ?? '')) ?>. Hiçbir numara yakılmadı, hiçbir belge yazılmadı. Sipariş tarihinin kuru damgalı değilse <b>Admin ▸ Orders ▸ ⟳ Fetch missing rates</b> ile damgalayın, sonra tekrar deneyin. (Bugünün kuruyla doldurmuyoruz: sipariş tarihinde geçerli olan kur neyse fatura odur.)</div>
 <?php elseif($msg==='offer_del_invoiced'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Bu teklifin FATURASI kesilmiş — silinmedi. Belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız bırakırdı. Önce faturayı düzeltip bu kalemi çıkarın (Invoice approvals ▸ 🔁 Redraft), sonra silin.</div>
 <?php elseif($msg==='offer_del_none'): ?>
@@ -4154,6 +4179,32 @@ foreach($offers as $__o){
               <?php endforeach; ?>
             </select>
             <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>
+          </form>
+          <?php /* FATURA PARA BIRIMI (7 Eyl 2026, operator: VES-6B53D265 icin
+                   "usd ye cevir faturayi"). Siparisin kendi para birimi kayittir
+                   ve degismez; belge hangi birimde kesilecegi operatorun karari.
+                   Cevrim SIPARIS TARIHININ kuruyla yapilir (inc/fx_orders.php
+                   damgasi); damga yoksa kesim durur ve taslak sebebini yazar. */
+                $__ocur = strtoupper(trim((string)($o['currency'] ?? 'EUR'))) ?: 'EUR';
+                $__pcur = vestra_order_invoice_currency($oref);
+                $__ofx  = vestra_order_fx($oref); ?>
+          <form method="post" style="margin:0;display:flex;gap:4px;align-items:center">
+            <?= csrfField() ?>
+            <input type="hidden" name="_action" value="order_invoice_currency">
+            <input type="hidden" name="ref" value="<?= htmlspecialchars($oref) ?>">
+            <select name="currency" style="font-size:12px"
+                    title="Fatura hangi para biriminde kesilsin? Sipariş kaydı değişmez; tutarlar sipariş tarihindeki kurla çevrilir.">
+              <option value="">— sipariş birimi (<?= htmlspecialchars($__ocur) ?>) —</option>
+              <?php foreach(vestra_invoice_currencies() as $__c): if($__c===$__ocur) continue; ?>
+                <option value="<?= htmlspecialchars($__c) ?>"<?= $__pcur===$__c?' selected':'' ?>><?= htmlspecialchars($__c) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <button class="abtn" type="submit" style="font-size:12px">Kaydet</button>
+            <?php if($__pcur!=='' && $__pcur!==$__ocur): ?>
+              <span class="ahint" style="font-size:10.5px"><?= $__ofx
+                ? htmlspecialchars('@ '.vestra_order_fx_note($__ofx))
+                : '<b style="color:var(--bad)">kur damgası yok — kesim durur</b>' ?></span>
+            <?php endif; ?>
           </form>
           <form method="post" style="margin:0" onsubmit="return confirm('Issue the invoice for order <?= htmlspecialchars($oref) ?>? This burns the number(s), stores the PDF(s) and EMAILS THE BUYER. Check the draft (👁) first. Do this once stock is confirmed.')">
             <?= csrfField() ?>

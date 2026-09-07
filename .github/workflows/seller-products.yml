@@ -149,6 +149,9 @@ jobs:
 
             $before = vestra_invoices_for_ref($ref);
             $issued = vestra_issue_order_invoices($ref, $redraft);
+            /* Para birimi cevrilemediyse hicbir numara yakilmadi; hata dizisi de
+               "dolu" oldugu icin asagidaki count() onu 1 fatura sanardi. */
+            if (isset($issued['error'])) { fwrite(STDERR, "fatura kesilmedi -- para birimi: ".$issued['error']."\n"); exit(1); }
             if (!$issued) { fwrite(STDERR, "fatura kesilemedi (siparis yok ya da satir yok)\n"); exit(1); }
             echo "onceden kesilmis : ".(count($before) ?: 'yok')."\n";
             echo "fatura sayisi    : ".count($issued)."\n";

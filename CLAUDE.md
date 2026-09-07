@@ -625,6 +625,35 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   artık basılmaz, ve iki eksik de **yalnız taslakta** operatöre yazılır. İkisi
   de veri düzeltmesi ister (`Admin ▸ Users ▸ ✎ Edit billing details`).
 
+**KURAL 5i — Fatura başka para biriminde kesilebilir; kur SİPARİŞ TARİHİNİN kuru**
+(operatör, 7 Eyl 2026, VES-6B53D265 / 香港风徕贸易有限公司, €4.680,00:
+*"usd ye cevir faturayi"*).
+- **Siparişin para birimi kayıttır, değişmez.** Belge hangi birimde kesilecek
+  ayrı bir operatör kararı: `order_statuses.json[ref].invoice_currency`
+  (`Admin ▸ Invoice approvals`'ta satıcı seçicisinin yanında). İzin listesi dar:
+  **EUR, USD** — kod yalnız bunu çevirebiliyor, çeviremediğini kabul etmek
+  sessizce yanlış rakam basmak olurdu.
+- **Kur, siparişin FX damgası** (`inc/fx_orders.php`, Operasyonel notlar'daki
+  USD sistemi). Bugünün kuru DEĞİL: Temmuz siparişini Eylül kuruyla çevirmek
+  Temmuz'da tahsil edilen tutarı değiştirirdi. **Damga yoksa fatura KESİLMEZ**
+  (`vestra_issue_order_invoices` → `['error'=>…]`, hiçbir numara yakılmaz);
+  panel kırmızı bant basar ve `⟳ Fetch missing rates`'e yollar.
+- Çevrim tek yerde: `vestra_invoice_convert_payload()` (saf) +
+  `vestra_order_invoice_payloads()`. **Birim** fiyat çevrilip yuvarlanır,
+  satır = birim × adet — ters sıra belgede birim × adet ≠ satır çıkarırdı.
+- Belge **hangi kurla çevrildiğini yazar** (`fx_note`, tutarların hemen altında;
+  kaynak + tarih, ECB olmayana ECB denmez). Yazmazsa alıcının muhasebecisi kendi
+  kurunu uygular ve ödeme soru sorulurken bekler.
+- **Ödeme kutusu boş kalabilir:** `vestra_payment_rails` USD için hesap no + ABA
+  ister; yalnız IBAN'ı olan bir satıcı USD faturada ödeme kutusuz çıkar. Taslak
+  bunu yazar (alıcı aksi hâlde bunu fatura elindeyken görürdü). Çözüm operatörün:
+  ya hesaba ABD alanlarını ekler (KURAL 5c) ya da faturayı hesabın alabildiği
+  birimde keser / KURAL 5b ile başka satıcıyı seçer.
+- **Teşhis önizlemesi artık aynı yükten çiziyor:** `diag-live` → `order_doc=invoice`
+  kendi `$meta`'sını elde kuruyordu (KURAL 5d'nin yasakladığı ikinci kopya);
+  şimdi `vestra_order_invoice_payloads()`. `order_doc=invoice:usd` seçimi
+  **kayda yazmadan** o birimde önizler. Test: `tests/invoice_currency_test.php`.
+
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
 3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları

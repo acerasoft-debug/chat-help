@@ -919,9 +919,20 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
             foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
         }
-        /* Belgeye ALINMAYAN alanlar. Ikisi de yalniz taslakta yazilir; musteriye
+        /* Belgeye ALINMAYAN alanlar. Hepsi yalniz taslakta yazilir; musteriye
            giden belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
         $notes = [];
+        /* ODEME KUTUSU BOS MU? Fatura USD kesilip kesen hesapta ABD yolu yoksa
+           (`vestra_payment_rails` USD icin hesap no + ABA ister) belgede odeme
+           bloğu HIC cikmaz -- alici parayi nereye gonderecegini bilemez ve bunu
+           ancak fatura elinde gorur. Taslakta soyleniyor. */
+        /* Saf fonksiyon yeniden cagriliyor, yukaridaki $rails DEGISKENI degil:
+           o degisken yalnizca "odenmemis" dalinda tanimli ve odenmis bir siparise
+           taslak cizildiginde tanimsiz kalirdi. */
+        if ($sellerAcc !== null && vestra_payment_rails($sellerAcc, $cur) === []) {
+            $notes[] = 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
+                     . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
+        }
         $bVat = trim((string)(($order['buyer']['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
         if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
             $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
@@ -930,9 +941,16 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
             $notes[] = 'NOTE - no street address on file for this buyer. Customs and the carrier need one; ask the buyer before issuing.';
         }
         if ($notes) {
-            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $notes) {
-                $y = 36.0;
-                foreach (array_slice($notes, 0, 2) as $n) { $p->text($left, $y, 7.5, $n, false, 0.35); $y -= 9; }
+            /* SARILIYOR: bu notlar uzun ve tek satir basildiginda sag kenardan
+               TASIYOR -- yarisi kesilmis bir uyari, uyari degildir. */
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $notes) {
+                $lines = [];
+                foreach (array_slice($notes, 0, 3) as $n) {
+                    foreach (vestra_invoice_wrap($n, $right - $left, 7.5) as $l) $lines[] = $l;
+                }
+                $lines = array_slice($lines, 0, 6);
+                $y = 8.0 + (count($lines) - 1) * 8.5;      // en alt satir sayfanin dibinde kalsin
+                foreach ($lines as $l) { $p->text($left, $y, 7.5, $l, false, 0.35); $y -= 8.5; }
             });
         }
         if ($lost) {
@@ -1229,7 +1247,107 @@ function vestra_order_set_invoice_seller(string $ref, string $uid): bool {
     return true;
 }
 
-function vestra_order_invoice_payloads(string $ref): array {
+/* ── FATURANIN PARA BIRIMI ────────────────────────────────────────────────────
+   Operator kararı, 7 Eyl 2026 (VES-6B53D265, Hong Kong'lu alıcı, €4.680,00:
+   *"usd ye cevir faturayi"*). Sipariş EUR alındı; belge USD kesilecek.
+
+   NEDEN AYRI BIR ALAN: sipariş satırının para birimi alışta ne ise odur ve
+   değişmez — kayıt odur. Fatura hangi para biriminde kesileceği ise operatörün
+   kararı (alıcı nereye, hangi hesaba ödeyecek). İkisini tek alana bindirmek,
+   siparişin kaydını faturayı kesmek için değiştirmek demekti.
+
+   İZİN LISTESI DAR: yalnız EUR ve USD. Kod başka bir para birimini çeviremez
+   (elde yalnız EUR→USD damgası var), ve çeviremediği bir birimi kabul etmek
+   sessizce yanlış rakam basmak olurdu. */
+function vestra_invoice_currencies(): array { return ['EUR', 'USD']; }
+
+/** Operatörün seçtiği fatura para birimi; '' = siparişin kendi para birimi. */
+function vestra_order_invoice_currency(string $ref): string {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    $st  = vestra_read_json('order_statuses.json');
+    $c   = strtoupper(trim((string)($st[$ref]['invoice_currency'] ?? '')));
+    return in_array($c, vestra_invoice_currencies(), true) ? $c : '';
+}
+
+/** Seçimi kaydeder. '' seçimi kaldırır. Tanınmayan birim YAZILMAZ (false döner). */
+function vestra_order_set_invoice_currency(string $ref, string $cur): bool {
+    $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
+    if ($ref === '') return false;
+    $cur = strtoupper(trim($cur));
+    if ($cur !== '' && !in_array($cur, vestra_invoice_currencies(), true)) return false;
+    $st = vestra_read_json('order_statuses.json');
+    if (!isset($st[$ref]) || !is_array($st[$ref])) $st[$ref] = [];
+    if ($cur === '') {
+        unset($st[$ref]['invoice_currency'], $st[$ref]['invoice_currency_by'], $st[$ref]['invoice_currency_at']);
+    } else {
+        $st[$ref]['invoice_currency']    = $cur;
+        $st[$ref]['invoice_currency_by'] = 'operator';
+        $st[$ref]['invoice_currency_at'] = date('c');
+    }
+    vestra_write_json('order_statuses.json', $st);
+    return true;
+}
+
+/**
+ * Bir fatura yükünü başka para birimine çevirir. SAF: diske dokunmaz, kuru
+ * kendisi ARAMAZ — çağıran sipariş TARİHİNİN damgasını verir.
+ *
+ * Kur SIPARIS TARIHININ kuru (inc/fx_orders.php damgası), bugünün değil. Aynı
+ * ilke `Admin ▸ Orders`'daki USD sütununda da geçerli: Temmuz siparişini Eylül
+ * kuruyla çevirmek, Temmuz'da tahsil edilen tutarı değiştirmek olurdu. Damga
+ * yoksa çevrim YAPILMAZ ve gerekçe döner — uydurulmuş bir kur, olmayan kurdan
+ * kötüdür (KURAL 3'ün kur hâli).
+ *
+ * Yuvarlama: BIRIM fiyat çevrilip 2 haneye yuvarlanır, satır = birim × adet.
+ * Ters sıra (satırı çevirip birime bölmek) belgede birim × adet ≠ satır
+ * çıkarırdı; faturanın kendi içinde toplaması tutmak zorunda.
+ *
+ * @return array{meta:array,items:array}|array{error:string}
+ */
+function vestra_invoice_convert_payload(array $meta, array $items, string $from, string $to, ?array $fx): array {
+    $from = strtoupper(trim($from)) ?: 'EUR';
+    $to   = strtoupper(trim($to));
+    if ($to === '' || $to === $from) return ['meta' => $meta, 'items' => $items];
+    if ($from !== 'EUR' || $to !== 'USD') {
+        return ['error' => 'only EUR->USD conversion is available ('.$from.'->'.$to.' requested)'];
+    }
+    $rate = (float)($fx['usd'] ?? 0);
+    if ($rate <= 0) return ['error' => 'no exchange rate stamped for this order date'];
+
+    $conv = fn(float $v) => round($v * $rate, 2);
+    $out  = [];
+    foreach ($items as $it) {
+        $qty  = (int)($it['qty'] ?? 0);
+        $unit = $conv((float)($it['unit'] ?? 0));
+        $it['unit'] = $unit;
+        $it['line'] = round($unit * $qty, 2);
+        $out[] = $it;
+    }
+    $meta['currency'] = $to;
+    if (isset($meta['shipping'])) $meta['shipping'] = $conv((float)$meta['shipping']);
+    if (isset($meta['discount'])) $meta['discount'] = $conv((float)$meta['discount']);
+
+    /* Belge hangi kurla çevrildiğini SÖYLER. Söylemezse alıcının muhasebecisi
+       kendi kurunu uygular, tutmayan bir rakam bulur ve ödeme soru sorulurken
+       bekler. Kaynak da yazılıyor: ECB olmayana ECB denmez. */
+    require_once __DIR__.'/fx_orders.php';          // kaynak etiketi oradan; ECB olmayana ECB denmez
+    $src   = vestra_fx_source_label((string)($fx['source'] ?? ''));
+    $dateS = trim((string)($fx['date'] ?? ''));
+    if ($dateS !== '' && ($ts = strtotime($dateS))) $dateS = date('j F Y', $ts);
+    $meta['fx_note'] = 'Amounts converted from '.$from.' at 1 '.$from.' = '.number_format($rate, 4).' '.$to
+        . (($src !== '' || $dateS !== '') ? ' ('.trim($src.' '.$dateS).')' : '')
+        . ', the rate in force on the order date.';
+    $meta['fx_rate']  = $rate;
+    $meta['fx_from']  = $from;
+    return ['meta' => $meta, 'items' => $out];
+}
+
+/**
+ * @param string $currencyOverride Yalnizca ONIZLEME icin: kayda YAZMADAN baska
+ *   bir para biriminde yuk kurar (teshis onizlemesi). Panelin taslagi ve kesim
+ *   bunu vermez -- onlar operatorun KAYITLI secimini okur.
+ */
+function vestra_order_invoice_payloads(string $ref, string $currencyOverride = ''): array {
     require_once __DIR__.'/orders.php';
     $ref = preg_replace('/[^A-Za-z0-9_-]/', '', $ref);
     $orderRow = null;
@@ -1306,14 +1424,41 @@ function vestra_order_invoice_payloads(string $ref): array {
         }
     }
 
+    /* PARA BIRIMI CEVRIMI BURADA, tek yerde: taslak önizleme (👁), kesim
+       (issue_invoice) ve panelin topladığı rakam hepsi bu yükten okuyor. Ayrı
+       ayrı yazılsalardı operatör bir belge görür, alıcı başkasını alırdı —
+       KURAL 5d'nin tam olarak yasakladığı ayrışma. */
+    $orderCur = strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR';
+    $ovr      = strtoupper(trim($currencyOverride));
+    $wantCur  = in_array($ovr, vestra_invoice_currencies(), true) ? $ovr : vestra_order_invoice_currency($ref);
+    $fxStamp  = null;
+    if ($wantCur !== '' && $wantCur !== $orderCur) {
+        require_once __DIR__.'/fx_orders.php';
+        $fxStamp = vestra_order_fx($ref);
+    }
+
     $out = [];
     foreach ($bySeller as $sid => $sellerItems) {
         $sellerAcc = null;
         if ($sid !== 'vestra') { foreach (auth_accounts() as $a) { if (($a['id'] ?? '') === $sid) { $sellerAcc = $a; break; } } }
         $meta = $orderMeta;
+        $meta['currency'] = $orderCur;
         if (!empty($shares[$sid])) { $meta['discount'] = $shares[$sid]; $meta['voucher_code'] = $voucherCode; }
         if ($sid !== array_key_first($bySeller)) { $meta['shipping'] = 0.0; }   // carriage billed once
-        $out[] = ['meta' => $meta, 'items' => $sellerItems, 'seller' => $sellerAcc,
+        $conv = ($wantCur !== '' && $wantCur !== $orderCur)
+            ? vestra_invoice_convert_payload($meta, $sellerItems, $orderCur, $wantCur, $fxStamp)
+            : ['meta' => $meta, 'items' => $sellerItems];
+        if (isset($conv['error'])) {
+            /* Çevrilemeyen belge SESSIZCE eski para biriminde kesilmez: operatör
+               USD istedi, EUR bir belge alsaydı farkı ancak alıcı görürdü.
+               Yük gerekçesiyle işaretleniyor; taslak bunu yazıyor, kesim yolu
+               (vestra_issue_order_invoices) buna bakıp duruyor. */
+            $out[] = ['meta' => $meta, 'items' => $sellerItems, 'seller' => $sellerAcc,
+                      'seller_key' => vestra_invoice_seller_key($sellerAcc),
+                      'currency_error' => $conv['error'], 'want_currency' => $wantCur];
+            continue;
+        }
+        $out[] = ['meta' => $conv['meta'], 'items' => $conv['items'], 'seller' => $sellerAcc,
                   'seller_key' => vestra_invoice_seller_key($sellerAcc)];
     }
     return $out;
@@ -1326,8 +1471,15 @@ function vestra_order_invoice_payloads(string $ref): array {
  * Idempotent: already-issued invoices are returned untouched. Returns the list.
  */
 function vestra_issue_order_invoices(string $ref, bool $redraft = false): array {
+    $payloads = vestra_order_invoice_payloads($ref);
+    /* Çevrilemeyen tek bir dilim varsa HICBIRI kesilmez. Yarısı USD yarısı EUR
+       çıkan bir sipariş, operatörün istediği belge değil; numara yakmadan durmak
+       geri alınamaz bir belgeyi düzeltmekten ucuz. */
+    foreach ($payloads as $p) {
+        if (!empty($p['currency_error'])) return ['error' => (string)$p['currency_error']];
+    }
     $issued = [];
-    foreach (vestra_order_invoice_payloads($ref) as $p) {
+    foreach ($payloads as $p) {
         $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true, $redraft);
         if (!empty($iv['no'])) $issued[] = $iv;
     }
