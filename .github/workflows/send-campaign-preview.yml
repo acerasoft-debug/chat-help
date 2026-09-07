@@ -1641,6 +1641,29 @@ jobs:
                      ? round(max(0.0, min(100.0, (float)str_replace(',','.',$E('vat')))),2) : null;
               $cSel  = preg_replace('/[^A-Za-z0-9_-]/','',trim($E('seller')));
 
+              /* Hangi satici? Panelde acilir liste var, burada YOKTU: kurucu
+                 "ilanlar farkli saticilara ait, listeden secin" diyor ama
+                 secilecek listeyi kimse gostermiyordu. Refleri once tek tek
+                 yaz -- SKU, ilanin satici yuvasi ve o hesabin adi. Kisi verisi
+                 degil: satici bir tuzel kisi ve zaten faturanin uzerinde. */
+              echo "refler ve ilan saticilari:\n";
+              foreach ($cRefs as $cr) {
+                $crow = vestra_offer_row($cr);
+                if (!$crow) { echo "  {$cr}: TEKLIF YOK\n"; continue; }
+                $cl   = vestra_listing_by_sku((string)($crow['sku'] ?? ''));
+                $cuid = trim((string)($cl['seller_uid'] ?? ''));
+                $cnm  = 'platform (Acerasoft LLC)';
+                if ($cuid !== '') {
+                  $cnm = $cuid.' (hesap bulunamadi)';
+                  foreach (auth_accounts() as $ca) {
+                    if ((string)($ca['id'] ?? '') === $cuid) {
+                      $cnm = $cuid.' = '.(string)(($ca['invoice_name'] ?? '') ?: ($ca['company'] ?? '?')); break;
+                    }
+                  }
+                }
+                printf("  %-10s sku=%-18s satici: %s\n", $cr, (string)($crow['sku'] ?? '?'), $cnm);
+              }
+
               $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat);
               if (!empty($p['error'])) { fwrite(STDERR, "invoice_combine_draft: ".$p['error']."\n"); exit(1); }
 
