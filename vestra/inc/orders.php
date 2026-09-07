@@ -234,7 +234,23 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
               '<td class="hint">'.htmlspecialchars(implode(', ', $l['colors'])).'</td>'.
               '<td>'.(int)$l['qty'].'</td><td class="r">'.eur($l['unit']).'</td><td class="r">'.eur($l['line']).'</td></tr>';
     }
-    $h .= '</tbody></table>';
+    /* TOPLAM. Bu sayfa bugune kadar kalemleri gosteriyor ama TOPLAMI hic
+       basmiyordu ($subtotal hesaplaniyor ve kullanilmiyordu): alici siparisini
+       aciyor ve ne odeyecegini goremiyordu.
+       Rakam siparis kaydindan aliniyor, kalemlerden yeniden HESAPLANMIYOR --
+       kargo ve escrow koruma ucreti toplamin icinde ve burada yeniden toplamak
+       PDF'te duran mantigin ikinci bir kopyasi olurdu; iki kopya ayrisir ve
+       ayrisma parada gorunur. Kayitta toplam yoksa kalem toplami yazilir. */
+    $rowTotal = isset($orderRow['total']) && (float)$orderRow['total'] > 0
+        ? round((float)$orderRow['total'], 2) : round($subtotal, 2);
+    $h .= '</tbody><tfoot><tr><td colspan="4" class="r"><b>'.t('Total').'</b></td>'
+        . '<td class="r"><b>'.eur($rowTotal).'</b>'
+        /* USD karsiligi (operator, 7 Eyl 2026: "her siparisin yanina usd ye
+           cevir bolumu ciksin"). Bilgi amacli oldugu cumlede yazili: siparis
+           EUR kesiliyor ve havale EUR bekleniyor. */
+        . vestra_usd_hint_html($rowTotal)
+        . '</td></tr></tfoot>';
+    $h .= '</table>';
     if ($buyerNotes !== '') $h .= '<p class="hint" style="margin-top:10px"><b>'.t('Buyer notes').':</b> '.htmlspecialchars($buyerNotes).'</p>';
 
     $invLinks = '';

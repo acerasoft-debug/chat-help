@@ -1122,4 +1122,5 @@ return array (
   'Sold out' => 'نفدت الكمية',
   'This item is no longer available to order.' => 'لم يعد هذا المنتج متاحًا للطلب.',
 
+  'indicative, invoiced in EUR' => 'تقريبي، الفاتورة باليورو',
 );

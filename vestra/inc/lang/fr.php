@@ -1126,4 +1126,5 @@ return array (
   'Sold out' => 'Épuisé',
   'This item is no longer available to order.' => 'Cet article n\'est plus disponible à la commande.',
 
+  'indicative, invoiced in EUR' => 'indicatif, facturé en EUR',
 );

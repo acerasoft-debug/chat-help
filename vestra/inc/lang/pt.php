@@ -1122,4 +1122,5 @@ return array (
   'Sold out' => 'Esgotado',
   'This item is no longer available to order.' => 'Este artigo já não está disponível para encomenda.',
 
+  'indicative, invoiced in EUR' => 'indicativo, faturado em EUR',
 );

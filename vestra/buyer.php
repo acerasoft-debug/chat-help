@@ -392,6 +392,10 @@ if($tab==='overview'){
               ? '<div class="hint" style="font-weight:400;font-size:11px">'.t('incl. shipping').' '.eur($o['shipping']).'</div>' : '').
             ((($__iv=vestra_order_invoiced_note($ref))!=='')
               ? '<div class="hint" style="font-weight:400;font-size:11px">'.htmlspecialchars($__iv).'</div>' : '').
+            /* USD karsiligi (operator, 7 Eyl 2026). Siparis EUR uzerinden
+               kesiliyor ve havale EUR geliyor; rakam bilgi amacli oldugu icin
+               cumlenin kendisi tek kaynaktan (vestra_usd_hint_html). */
+            vestra_usd_hint_html((float)($o['total']??0)).
           '</div>'.
           '<div class="ordacts">'.$confirmBtn.$invLinks.
             '<a class="btn btn-o btn-sm" href="/order-pdf?ref='.urlencode($ref).'">⤓ PDF</a>'.

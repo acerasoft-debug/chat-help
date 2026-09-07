@@ -1122,4 +1122,5 @@ return array (
   'Sold out' => '完売',
   'This item is no longer available to order.' => 'この商品は現在ご注文いただけません。',
 
+  'indicative, invoiced in EUR' => '参考値、請求は EUR',
 );

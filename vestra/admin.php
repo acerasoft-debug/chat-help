@@ -2770,7 +2770,7 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
   <div class="atscroll"><table class="atable">
     <?= arow(['Ref','Buyer','Total','Status'],true) ?>
     <?php foreach($rec as $o): $st=$orderSt[$o['ref']??'']['status']??'pending'; ?>
-    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($o['ref']??''))!=='')?'<div class="ahint" style="font-size:10.5px">'.htmlspecialchars($__iv).'</div>':''),orderBadge($st)]) ?>
+    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($o['ref']??''))!=='')?'<div class="ahint" style="font-size:10.5px">'.htmlspecialchars($__iv).'</div>':'').vestra_usd_hint_html((float)($o['total']??0),'ahint'),orderBadge($st)]) ?>
     <?php endforeach; ?>
   </table></div>
   <?php } ?>
@@ -3507,7 +3507,7 @@ elseif($tab==='orders'):
       <?php endif; ?>
       <?= arow(['Platform commission','<b style="color:#1f9d63">'.eur($viewRow['commission']??0).'</b>']) ?>
       <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
-      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'')]) ?>
+      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'').vestra_usd_hint_html((float)($viewRow['total']??0),'ahint')]) ?>
     </table>
     <div style="margin-top:12px">
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Commission charges</div>
