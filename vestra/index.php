@@ -30,6 +30,14 @@ require_once __DIR__.'/inc/i18n.php';
    still reads as a fashion film. Falls back silently to the plain hero if the
    catalogue has no photos yet. */
 $HERO_FRAMES = [];
+/* Hos geldin kuponunun yuzdesi kod tarafindan geliyor (VESTRA_WELCOME_PCT).
+   Dokuz dilin metnine "5" yazmak, yuzde degistigi gun ana sayfayi yalanci
+   yapardi -- escrow tavaninda yasanan hata (KURAL 6). Include savunmali:
+   kupon modulu yuklenmezse duyuru hic basilmaz, ana sayfa yine acilir. */
+$WELCOME_PCT = null;
+if (@include_once __DIR__.'/inc/vouchers.php') {
+    if (defined('VESTRA_WELCOME_PCT')) $WELCOME_PCT = rtrim(rtrim(number_format((float)VESTRA_WELCOME_PCT, 2, '.', ''), '0'), '.');
+}
 if (@include_once __DIR__.'/inc/products.php') {
     /* The film should look like a season, not a rail of black t-shirts. Frames are
        picked to be visually different from each other: a women's swimsuit and a pair
@@ -187,6 +195,8 @@ $T = [
  'buy_f3'=>'Free to browse and request quotes',
  'buy_cta'=>'Register as Buyer',
  'app_t'=>'VESTRA as an app','app_s'=>'Install straight from your browser — no App Store, no Play Store. Live prices, orders and messages, with push notifications.','app_and'=>'Install on Android','app_and_hint'=>'In Chrome: menu ⋮ → \'Install app\'.','app_apk'=>'Download APK','app_ios'=>'Install on iPhone','app_ios_hint'=>'Open in Safari → Share → \'Add to Home Screen\'.','app_noti'=>'Enable notifications','app_noti_ok'=>'Notifications are on ✓','app_noti_no'=>'Notifications blocked — allow them in your browser settings.','app_signin'=>'Sign in first to receive notifications.',
+ 'off_t'=>"<b>%s%% off</b> your first order",
+ 'off_s'=>"Register free — your personal code arrives by e-mail.",
  'already'=>'Already have an account?','signin'=>'Sign in →',
 ],
 'fr'=>[
@@ -220,6 +230,8 @@ $T = [
  'buy_f3'=>'Navigation et demandes de devis gratuites',
  'buy_cta'=>'S\'inscrire comme Acheteur',
  'app_t'=>'VESTRA en application','app_s'=>'Installez directement depuis le navigateur — sans App Store ni Play Store. Prix en direct, commandes et messages, avec notifications push.','app_and'=>'Installer sur Android','app_and_hint'=>'Dans Chrome : menu ⋮ → « Installer l’appli ».','app_apk'=>'Télécharger l’APK','app_ios'=>'Installer sur iPhone','app_ios_hint'=>'Dans Safari : Partager → « Sur l’écran d’accueil ».','app_noti'=>'Activer les notifications','app_noti_ok'=>'Notifications activées ✓','app_noti_no'=>'Notifications bloquées — autorisez-les dans les réglages du navigateur.','app_signin'=>'Connectez-vous d’abord pour recevoir les notifications.',
+ 'off_t'=>"<b>%s%% de remise</b> sur votre première commande",
+ 'off_s'=>"Inscription gratuite — votre code personnel arrive par e-mail.",
  'already'=>'Déjà un compte ?','signin'=>'Se connecter →',
 ],
 'it'=>[
@@ -253,6 +265,8 @@ $T = [
  'buy_f3'=>'Navigazione e richieste di preventivo gratuite',
  'buy_cta'=>'Registrati come Acquirente',
  'app_t'=>'VESTRA come app','app_s'=>'Installa direttamente dal browser — senza App Store né Play Store. Prezzi live, ordini e messaggi, con notifiche push.','app_and'=>'Installa su Android','app_and_hint'=>'In Chrome: menu ⋮ → “Installa app”.','app_apk'=>'Scarica APK','app_ios'=>'Installa su iPhone','app_ios_hint'=>'In Safari: Condividi → “Aggiungi a Home”.','app_noti'=>'Attiva le notifiche','app_noti_ok'=>'Notifiche attive ✓','app_noti_no'=>'Notifiche bloccate — consentile nelle impostazioni del browser.','app_signin'=>'Accedi prima per ricevere le notifiche.',
+ 'off_t'=>"<b>%s%% di sconto</b> sul primo ordine",
+ 'off_s'=>"Registrazione gratuita — il codice personale arriva via e-mail.",
  'already'=>'Hai già un account?','signin'=>'Accedi →',
 ],
 'es'=>[
@@ -286,6 +300,8 @@ $T = [
  'buy_f3'=>'Navegación y solicitudes de presupuesto gratuitas',
  'buy_cta'=>'Registrarse como Comprador',
  'app_t'=>'VESTRA como app','app_s'=>'Instálala directamente desde el navegador — sin App Store ni Play Store. Precios en vivo, pedidos y mensajes, con notificaciones push.','app_and'=>'Instalar en Android','app_and_hint'=>'En Chrome: menú ⋮ → “Instalar aplicación”.','app_apk'=>'Descargar APK','app_ios'=>'Instalar en iPhone','app_ios_hint'=>'En Safari: Compartir → “Añadir a pantalla de inicio”.','app_noti'=>'Activar notificaciones','app_noti_ok'=>'Notificaciones activadas ✓','app_noti_no'=>'Notificaciones bloqueadas — permítelas en los ajustes del navegador.','app_signin'=>'Inicia sesión primero para recibir notificaciones.',
+ 'off_t'=>"<b>%s%% de descuento</b> en tu primer pedido",
+ 'off_s'=>"Registro gratuito — tu código personal llega por correo electrónico.",
  'already'=>'¿Ya tienes cuenta?','signin'=>'Iniciar sesión →',
 ],
 'de'=>[
@@ -319,6 +335,8 @@ $T = [
  'buy_f3'=>'Kostenlos stöbern und Angebote anfragen',
  'buy_cta'=>'Als Käufer registrieren',
  'app_t'=>'VESTRA als App','app_s'=>'Direkt aus dem Browser installieren — ohne App Store und Play Store. Live-Preise, Bestellungen & Nachrichten, mit Push-Benachrichtigungen.','app_and'=>'Auf Android installieren','app_and_hint'=>'In Chrome: Menü ⋮ → „App installieren“.','app_apk'=>'APK herunterladen','app_ios'=>'Auf dem iPhone installieren','app_ios_hint'=>'In Safari: Teilen → „Zum Home-Bildschirm“.','app_noti'=>'Benachrichtigungen aktivieren','app_noti_ok'=>'Benachrichtigungen aktiv ✓','app_noti_no'=>'Benachrichtigungen blockiert — bitte in den Browser-Einstellungen erlauben.','app_signin'=>'Bitte zuerst anmelden, um Benachrichtigungen zu erhalten.',
+ 'off_t'=>"<b>%s%% Rabatt</b> auf Ihre erste Bestellung",
+ 'off_s'=>"Kostenlos registrieren — Ihren persönlichen Code erhalten Sie per E-Mail.",
  'already'=>'Bereits ein Konto?','signin'=>'Anmelden →',
 ],
 /* PT and RU added 3 Sep 2026 (operator: "6-7 dil yap — rusca ve portekizce ekle").
@@ -355,6 +373,8 @@ $T = [
  'buy_f3'=>'Grátis para explorar e pedir cotações',
  'buy_cta'=>'Registar como comprador',
  'app_t'=>'VESTRA como aplicação','app_s'=>'Instale diretamente a partir do navegador — sem App Store nem Play Store. Preços em direto, encomendas e mensagens, com notificações push.','app_and'=>'Instalar no Android','app_and_hint'=>'No Chrome: menu ⋮ → «Instalar aplicação».','app_apk'=>'Transferir APK','app_ios'=>'Instalar no iPhone','app_ios_hint'=>'Abra no Safari → Partilhar → «Adicionar ao ecrã principal».','app_noti'=>'Ativar notificações','app_noti_ok'=>'Notificações ativas ✓','app_noti_no'=>'Notificações bloqueadas — permita-as nas definições do navegador.','app_signin'=>'Inicie sessão primeiro para receber notificações.',
+ 'off_t'=>"<b>%s%% de desconto</b> na sua primeira encomenda",
+ 'off_s'=>"Registo gratuito — o seu código pessoal chega por e-mail.",
  'already'=>'Já tem conta?','signin'=>'Iniciar sessão →',
 ],
 'ru'=>[
@@ -388,6 +408,8 @@ $T = [
  'buy_f3'=>'Бесплатный просмотр и запрос цен',
  'buy_cta'=>'Регистрация покупателя',
  'app_t'=>'VESTRA как приложение','app_s'=>'Установите прямо из браузера — без App Store и Play Store. Актуальные цены, заказы и сообщения, с push-уведомлениями.','app_and'=>'Установить на Android','app_and_hint'=>'В Chrome: меню ⋮ → «Установить приложение».','app_apk'=>'Скачать APK','app_ios'=>'Установить на iPhone','app_ios_hint'=>'Откройте в Safari → Поделиться → «На экран „Домой“».','app_noti'=>'Включить уведомления','app_noti_ok'=>'Уведомления включены ✓','app_noti_no'=>'Уведомления заблокированы — разрешите их в настройках браузера.','app_signin'=>'Сначала войдите, чтобы получать уведомления.',
+ 'off_t'=>"<b>Скидка %s%%</b> на первый заказ",
+ 'off_s'=>"Бесплатная регистрация — персональный код придёт на e-mail.",
  'already'=>'Уже есть аккаунт?','signin'=>'Войти →',
 ],
 /* Arabic (operator, 3 Sep 2026: "arapcada yap"). Modern Standard Arabic; the page is
@@ -423,6 +445,8 @@ $T = [
  'buy_f3'=>'閲覧と見積もり依頼は無料',
  'buy_cta'=>'バイヤーとして登録',
  'app_t'=>'アプリとしてのVESTRA','app_s'=>'ブラウザから直接インストールできます。App StoreもPlay Storeも不要です。価格、注文、メッセージをリアルタイムで確認でき、プッシュ通知にも対応しています。','app_and'=>'Androidにインストール','app_and_hint'=>'Chromeの場合：メニュー ⋮ →「アプリをインストール」。','app_apk'=>'APKをダウンロード','app_ios'=>'iPhoneにインストール','app_ios_hint'=>'Safariで開く → 共有 →「ホーム画面に追加」。','app_noti'=>'通知を有効にする','app_noti_ok'=>'通知は有効です ✓','app_noti_no'=>'通知がブロックされています。ブラウザの設定で許可してください。','app_signin'=>'通知を受け取るには、まずログインしてください。',
+ 'off_t'=>"初回ご注文が<b>%s%%オフ</b>",
+ 'off_s'=>"登録は無料 — 専用コードをメールでお送りします。",
  'already'=>'すでにアカウントをお持ちですか？','signin'=>'ログイン →',
 ],
 'ar'=>[
@@ -456,6 +480,8 @@ $T = [
  'buy_f3'=>'التصفح وطلب عروض الأسعار مجانًا',
  'buy_cta'=>'التسجيل كمشترٍ',
  'app_t'=>'VESTRA كتطبيق','app_s'=>'ثبّته مباشرة من المتصفح — بلا App Store ولا Play Store. أسعار حية وطلبيات ورسائل، مع إشعارات فورية.','app_and'=>'التثبيت على Android','app_and_hint'=>'في Chrome: القائمة ⋮ ← «تثبيت التطبيق».','app_apk'=>'تنزيل APK','app_ios'=>'التثبيت على iPhone','app_ios_hint'=>'افتح في Safari ← مشاركة ← «إضافة إلى الشاشة الرئيسية».','app_noti'=>'تفعيل الإشعارات','app_noti_ok'=>'الإشعارات مفعّلة ✓','app_noti_no'=>'الإشعارات محظورة — اسمح بها من إعدادات المتصفح.','app_signin'=>'سجّل الدخول أولًا لتلقي الإشعارات.',
+ 'off_t'=>"<b>خصم %s%%</b> على طلبك الأول",
+ 'off_s'=>"التسجيل مجاني — يصلك رمزك الخاص عبر البريد الإلكتروني.",
  'already'=>'لديك حساب بالفعل؟','signin'=>'تسجيل الدخول ←',
 ],
 ];
@@ -831,6 +857,26 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
   .trustline{margin-top:34px;font-size:13px;color:var(--mut);display:flex;gap:22px;justify-content:center;flex-wrap:wrap}
   .trustline span{display:inline-flex;align-items:center;gap:7px}
 
+  /* Ilk siparis indirimi. Kahraman metniyle birincil dugmenin ARASINDA duruyor:
+     ilk ekranda, tiklanacak yerin hemen ustunde. Vurgu rengi zaten sayfanin
+     birincil dugmesinin rengi, o yuzden band cerceve + hafif dolgu ile ayriliyor;
+     dolu altin bir blok, altindaki "Register as Buyer" dugmesiyle yarisirdi.
+     inline-flex: genisligi metin kadar, bir kenardan kenara serit degil. */
+  .offer{display:inline-flex;align-items:center;gap:14px;margin:0 auto 26px;
+    padding:12px 20px 12px 14px;border-radius:14px;text-decoration:none;
+    border:1px solid rgba(201,168,106,.42);background:rgba(201,168,106,.09);
+    box-shadow:0 10px 30px -18px rgba(201,168,106,.7);transition:.25s;text-align:left}
+  .offer:hover{background:rgba(201,168,106,.16);border-color:rgba(201,168,106,.72);transform:translateY(-1px)}
+  .offer-tag{flex:none;font-size:19px;font-weight:800;letter-spacing:-.5px;line-height:1;
+    color:#1a1408;background:var(--acc);border-radius:10px;padding:11px 12px}
+  .offer-tx{display:flex;flex-direction:column;gap:3px}
+  .offer-t{font-size:15.5px;color:#f2ead9;letter-spacing:.1px}
+  .offer-t b{color:var(--acc);font-weight:700}
+  .offer-s{font-size:12.5px;color:var(--mut)}
+  /* Arapcada blok saga yaslanir; flex yonu <html dir> ile kendiliginden donuyor,
+     yalnizca metnin hizasi acikca yaziliyor. */
+  [dir="rtl"] .offer{text-align:right}
+
   .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:84px 0}
   .card{background:linear-gradient(180deg,var(--bg2),#101015);border:1px solid var(--line);
     border-radius:18px;padding:30px;transition:.3s}
@@ -973,6 +1019,11 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
        loader never fetches the megabytes over cellular. */
     .hero.hasvideo{padding:76px 0 64px;min-height:56vh}
     .trustline{gap:14px}
+    /* Telefonda iki satirlik metin + rozet yan yana dar kaliyor; rozet ustte,
+       metin altinda ve ortalanmis. */
+    .offer{gap:11px;padding:11px 15px;margin-bottom:22px}
+    .offer-t{font-size:14.5px}
+    .offer-s{font-size:12px}
     .brandwall{padding:56px 0 60px}
     .bw-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));max-width:none}
     .bw-cell{min-height:84px;padding:18px 12px}
@@ -1061,6 +1112,18 @@ if ($_catKw !== '') $_kw = ($_kw !== '' ? $_kw.', ' : '').$_catKw;
     <div class="pill"><span class="dot"></span> <?= $t['pill'] ?></div>
     <h1><?= $t['h1'] ?></h1>
     <p><?= $t['sub'] ?></p>
+    <?php if ($WELCOME_PCT !== null): /* Kupon modulu yoksa vaat de yok. */ ?>
+    <?php /* Ikinci satir yalnizca GIRIS YAPMAMISA: uye olana "ucretsiz kayit olun"
+             demek, yaptigi isi tekrar istemek olur. Vaadin kendisi ikisinde de
+             dogru -- kupon ilk siparise bagli (first_order_only), uyelige degil. */ ?>
+    <a class="offer" href="<?= $LOGGED ? '/shop' : '/register?type=buyer' ?>">
+      <span class="offer-tag"><?= htmlspecialchars($WELCOME_PCT) ?>%</span>
+      <span class="offer-tx">
+        <span class="offer-t"><?= sprintf($t['off_t'], htmlspecialchars($WELCOME_PCT)) ?></span>
+        <?php if(!$LOGGED): ?><span class="offer-s"><?= $t['off_s'] ?></span><?php endif; ?>
+      </span>
+    </a>
+    <?php endif; ?>
     <div class="btns">
       <?php if($LOGGED): ?>
       <a class="btn btn-p" href="<?= $panelHref ?>">

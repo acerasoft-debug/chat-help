@@ -25,6 +25,12 @@ require_once __DIR__.'/products.php';   // vestra_read_csv() for the first-order
 
 define('VESTRA_VOUCHERS', __DIR__.'/../data/vouchers.json');
 
+/* Hos geldin kuponunun yuzdesi. TEK KAYNAK: kampanya bu sayiyi varsayilan olarak
+   alir, ana sayfadaki duyuru da ayni sabitten basar. Metne gomulseydi (dokuz dilde
+   "%5" yazili) yuzde degistigi gun site bir sey vaat edip kasa baskasini uygular --
+   escrow tavaninda tam bu yasandi (KURAL 6). */
+if (!defined('VESTRA_WELCOME_PCT')) define('VESTRA_WELCOME_PCT', 5);
+
 function voucher_all(): array {
     if (!is_readable(VESTRA_VOUCHERS)) return [];
     $d = json_decode((string)file_get_contents(VESTRA_VOUCHERS), true);
@@ -175,7 +181,7 @@ function voucher_welcome_run(array $opts): array {
     require_once __DIR__.'/notify.php';
     require_once __DIR__.'/email_templates.php';
 
-    $pct     = (float)($opts['percent'] ?? 5);
+    $pct     = (float)($opts['percent'] ?? VESTRA_WELCOME_PCT);
     $months  = max(1, (int)($opts['months'] ?? 6));
     $aud     = (($opts['audience'] ?? 'buyers') === 'all') ? 'all' : 'buyers';
     $limit   = max(1, (int)($opts['limit'] ?? 200));
