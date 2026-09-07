@@ -145,6 +145,23 @@ $t('Latin alici belgesine yazi tipi gomulmez', (function () use ($meta, $items, 
     return !str_contains(vestra_render_invoice_pdf($m, $items, $seller, '', true), '/FontFile2');
 })());
 
+echo "\n== 6b. Belgeye alinmayan alanlar taslakta soylenir ==\n";
+/* 7 Eyl 2026, CANLI onizleme (VES-6B53D265): alici vergi alanina bolgenin
+   ADINI yazmisti ve fatura "VAT ID: 中国香港特别行政区" basiyordu; ayrica
+   hesapta sokak adresi hic yoktu. Ilki bankaya/gumruge giden belgede yanlis
+   bilgi, ikincisi eksik bilgi. Rakamsiz deger basilmaz, ikisi de TASLAKTA
+   yazilir; musteriye giden belgeye ic not girmez. */
+$badVat = $meta; $badVat['buyer']['vat'] = '中国香港特别行政区'; $badVat['buyer']['address'] = '';
+$dv = vestra_render_invoice_pdf($badVat, $items, $seller, '', true);
+$rv = vestra_render_invoice_pdf($badVat, $items, $seller, 'INV-2026-000902', false);
+$t('rakamsiz vergi alani taslakta bildirilir', str_contains($dv, 'holds no digits'));
+$t('adressiz alici taslakta bildirilir',       str_contains($dv, 'no street address'));
+$t('kesilmis faturada ic not YOK',             !str_contains($rv, 'holds no digits') && !str_contains($rv, 'no street address'));
+/* Rakam iceren gercek numara basilmaya devam ediyor -- yanlis pozitif yok. */
+$okVat = $meta; $okVat['buyer']['vat'] = 'HK12345678';
+$t('gercek numarada uyari YOK', !str_contains(vestra_render_invoice_pdf($okVat, $items, $seller, '', true), 'holds no digits'));
+$t('adres varsa uyari YOK',     !str_contains(vestra_render_invoice_pdf($okVat, $items, $seller, '', true), 'no street address'));
+
 echo "\n== 7. Yazi tipi dosyasi YOKSA belge yine cikar ==\n";
 /* Dosya sunucuya gitmezse fatura kesilmemeli degil: eski davranisa (soru
    isareti) doner ve taslak uyarisi bunu SOYLER. Sessiz kayip olmaz. */

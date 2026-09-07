@@ -614,7 +614,16 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   taranıyor ve uyarı **kod noktası** yazıyor (`U+1F9F5`) — basılamayan karakteri
   uyarının içine koymak uyarıyı da okunmaz yapıyordu.
 - Yazı tipi sunucuya gitmezse eski davranışa döner ve **taslak bunu söyler**;
-  sessiz kayıp olmaz. Test: `tests/pdf_cjk_test.php` (48 iddia).
+  sessiz kayıp olmaz. Test: `tests/pdf_cjk_test.php` (53 iddia).
+- **Canlı ölçüm (7 Eyl 2026, `diag-live` → `order_sheet_ref=VES-6B53D265`,
+  `order_doc=invoice`):** önizleme sunucuda üretildi, şifreli döndü, çözüldü —
+  belge alıcının unvanını **kendi harfleriyle** basıyor, `/FontFile2`,
+  `/Identity-H`, `/ToUnicode` yerinde, 23,9 KB. Aynı koşu **iki veri boşluğu**
+  gösterdi: (1) hesapta **sokak adresi yok** (gümrük/kurye ister),
+  (2) vergi alanına **bölgenin adı** yazılmış ("中国香港特别行政区") ve belge
+  bunu "VAT ID" diye basıyordu. **Rakamsız bir değer vergi numarası değildir:**
+  artık basılmaz, ve iki eksik de **yalnız taslakta** operatöre yazılır. İkisi
+  de veri düzeltmesi ister (`Admin ▸ Users ▸ ✎ Edit billing details`).
 
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod

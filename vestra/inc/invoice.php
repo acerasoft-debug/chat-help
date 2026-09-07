@@ -524,11 +524,20 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $buyerName = '';
     }
 
+    /* RAKAMSIZ bir "VAT ID" vergi numarasi DEGILDIR. 7 Eyl 2026'da canli bir
+       fatura onizlemesinde goruldu: Hong Kong'lu alici vergi alanina bolgenin
+       ADINI yazmisti ve belge "VAT ID: 中国香港特别行政区" basiyordu. Her vergi/
+       sicil numarasi rakam icerir; iceremeyen bir deger bankaya ve gumruk
+       komisyoncusuna giden belgede yanlis bilgidir. Satir basilmaz, ve taslakta
+       operatore bunun neden basilmadigi yazilir (asagida) -- sessizce atmak,
+       yanlis basmak kadar kotu olurdu. */
+    $vatRaw   = trim((string)($b['vat'] ?? ''));
+    $vatUsable = $vatRaw !== '' && preg_match('/\d/', $vatRaw) === 1;
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
-        !empty($b['vat'])
+        $vatUsable
           ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '
-            .vestra_format_tax_id((string)$b['vat'], (string)($b['country'] ?? ''))
+            .vestra_format_tax_id($vatRaw, (string)($b['country'] ?? ''))
           : '',
         /* Alicinin sicil numarasi, saticininkiyle AYNI kalipta (operator istegi,
            1 Eyl 2026). VAT'i olmayan alicida sirketi belgeye baglayan tek resmi
@@ -887,6 +896,22 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         foreach ($items as $it) {
             foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
             foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
+        }
+        /* Belgeye ALINMAYAN alanlar. Ikisi de yalniz taslakta yazilir; musteriye
+           giden belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
+        $notes = [];
+        $bVat = trim((string)(($order['buyer']['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
+        if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
+            $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
+        }
+        if (trim((string)($order['buyer']['address'] ?? '')) === '') {
+            $notes[] = 'NOTE - no street address on file for this buyer. Customs and the carrier need one; ask the buyer before issuing.';
+        }
+        if ($notes) {
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $notes) {
+                $y = 36.0;
+                foreach (array_slice($notes, 0, 2) as $n) { $p->text($left, $y, 7.5, $n, false, 0.35); $y -= 9; }
+            });
         }
         if ($lost) {
             /* Kod noktasi olarak yaziliyor, karakterin KENDISI olarak degil:
