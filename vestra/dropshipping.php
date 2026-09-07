@@ -60,6 +60,16 @@ $dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli k
   <div class="crumbs" style="margin:26px 0 10px"><a href="/"><?= t('Home') ?></a> · <?= t('Dropshipping') ?></div>
   <h1><?= t('Dropshipping') ?></h1>
   <p><?= t('Sell from our catalogue without holding stock. You order one piece at a time, after your own customer has bought it from you, and we ship it straight to their address. No minimum, no carton, no warehouse.') ?></p>
+<?php /* ODEME DURDURULMUSKEN sayfanin kendisi bunu SOYLER (operator, 7 Eyl
+         2026). Kosullari anlatmaya devam ediyor -- ortak neyin dondugunu ve
+         donunce ne bulacagini okuyabilmeli -- ama "simdi siparis ver" demiyor:
+         calismayan bir cagriyi tarif etmek, hic tarif etmemekten kotu. */
+   if (!vestra_dropship_payments_enabled()): ?>
+  <div class="dsnote">
+    <p><b>⏸ <?= t('Single-piece ordering is paused right now.') ?></b>
+       <?= t('Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.') ?></p>
+  </div>
+<?php endif; ?>
 
   <div class="dsnote">
     <p><b><?= t('This is a trade service, not a consumer shop.') ?></b>

@@ -1234,4 +1234,7 @@ return array (
   'Unread' => 'Ungelesen',
   'Back to conversations' => 'Zurück zu den Unterhaltungen',
   'Enter to send · Shift+Enter for a new line' => 'Enter zum Senden · Shift+Enter für eine neue Zeile',
+  'Single-piece ordering is paused right now.' => 'Einzelstück-Bestellungen sind derzeit pausiert.',
+  'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'Das Dropshipping wird überarbeitet, die Kartenzahlung für Einzelstücke ist vorerst abgeschaltet. Der Großhandelsbestellweg mit den üblichen Mindestmengen ist davon nicht betroffen.',
+  'Go to the catalogue' => 'Zum Katalog',
 );

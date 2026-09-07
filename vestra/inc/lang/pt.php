@@ -1229,4 +1229,7 @@ return array (
   'Unread' => 'Não lida',
   'Back to conversations' => 'Voltar às conversas',
   'Enter to send · Shift+Enter for a new line' => 'Enter para enviar · Shift+Enter para nova linha',
+  'Single-piece ordering is paused right now.' => 'As encomendas de peça única estão pausadas neste momento.',
+  'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'O dropshipping está a ser reformulado e o pagamento com cartão por peça está desligado para já. A encomenda grossista com os mínimos habituais não é afetada.',
+  'Go to the catalogue' => 'Ir para o catálogo',
 );

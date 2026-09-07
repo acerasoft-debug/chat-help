@@ -1229,4 +1229,7 @@ return array (
   'Unread' => 'Непрочитано',
   'Back to conversations' => 'Назад к диалогам',
   'Enter to send · Shift+Enter for a new line' => 'Enter — отправить · Shift+Enter — новая строка',
+  'Single-piece ordering is paused right now.' => 'Заказ отдельных изделий сейчас приостановлен.',
+  'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'Дропшиппинг перерабатывается, оплата картой за отдельные изделия пока отключена. Оптовый заказ с обычными минимумами работает как прежде.',
+  'Go to the catalogue' => 'Перейти в каталог',
 );

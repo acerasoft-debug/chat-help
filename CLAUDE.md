@@ -1152,6 +1152,24 @@ dönmek zorundadir"*).
     doldurma; `wetransfer_probe=sheet:<klasör>|from=N|count=M|spaced` klasör
     başına bir küçük resim basar, sayfalar indirilip bakılır. 3 Eylül'de
     açıklama "colegial" derken fotoğraf mokasen/spor gösterdi — fotoğraf kazandı.
+  - **DROPSHIP ÖDEMESİ ŞU AN DURDURULDU** (operatör, 7 Eyl 2026: *"dropshipping
+    ödemesini şu an için kaldır ancak yeniden başlamak için kurulu olsun"*).
+    Duran şey **para**: tek parça sipariş oluşmuyor, Stripe oturumu açılmıyor.
+    Kapı **sunucuda ve tek**: `dropship_create_order()` en başta
+    `vestra_dropship_payments_enabled()` soruyor — site formu ve ortak API'si
+    aynı fonksiyondan geçtiği için ikisi birden duruyor (`503 payments_paused`).
+    **Varsayılan KAPALI**: ayar dosyası (`data/dropship_settings.json`) yoksa ya
+    da bozuksa ödeme durur; tersi, dosya kaybolunca sessizce para almaya
+    başlamak olurdu. **Hiçbir şey silinmedi** — ilanların dropship bloğu, fiyat
+    türetme, bölge/ücret tablosu, `a=list` / `a=stock` uçları, geçmiş siparişler
+    ve panel sekmesi yerinde; list/stock yanıtları `ordering_paused` taşıyor ki
+    ortak durumu sipariş anında değil önceden görsün. Çalışmayan düğme
+    gösterilmiyor: ürün sayfasındaki bağlantı ve satın alma formu çizilmiyor,
+    yerine "şu an durduruldu" notu var (KURAL 4'ün karşı teklif alanı dersi).
+    **Geri açma operatörde**: `Admin ▸ Dropship` üstündeki anahtar, deploy
+    gerekmiyor; yazma geri okunarak doğrulanıyor, tutmazsa kırmızı uyarı çıkar.
+    Test: `tests/dropship_payments_test.php` (39 iddia; varsayılanı ölçmek için
+    ayrı PHP süreçleri — bayrak süreç içinde `static` önbellekli).
   - **Ayakkabıda dropship YOK** (operatör kararı, 3 Eyl 2026: *"Buy a single
     piece — dropshipping, tüm ayakkabılardan kaldır"*). Kural bölmeye bağlı:
     `vestra_dropship_excluded_sections()` = `['footwear']`, `vestra_dropship_of()`
