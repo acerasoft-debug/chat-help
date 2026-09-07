@@ -99,6 +99,57 @@ function vestra_dropship_excluded_sections(): array {
     return ['footwear'];
 }
 
+/* ── DROPSHIP ODEMESI: DURDURULDU, ama kurulu ────────────────────────────────
+   Operator karari, 7 Eyl 2026: *"dropshipping odemesini su an icin kaldir ancak
+   yeniden baslamak icin kurulu olsun"*.
+
+   Ne durdu: PARA. Tek parca dropship siparisi olusturulmuyor ve Stripe oturumu
+   acilmiyor. Ne durmadi: her sey. Urunlerin dropship blogu, fiyat turetme,
+   bolge/ucret tablosu, ortak API'sinin `a=list` ve `a=stock` uclari, gecmis
+   siparisler ve panel sekmesi yerinde -- ortak katalogunu senkronlamaya devam
+   edebiliyor, yalnizca siparis veremiyor.
+
+   TEK KAPI, SUNUCUDA: `dropship_create_order()` en basta bunu soruyor, yani
+   hem site formundan hem ortak API'sinden gelen istek AYNI yerde duruyor.
+   Dugmeyi gizlemek gorunum tercihi; kapi burasi.
+
+   VARSAYILAN KAPALI: dosya yoksa ya da anahtar okunamazsa odeme durur. Tersi
+   (dosya kaybolunca odeme kendiliginden acilir) sessizce para almaya baslamak
+   olurdu -- operatorun "kaldir" dedigi seyin geri gelmesi bir dosya silmeye
+   kalmamali.
+
+   YENIDEN BASLATMA: `Admin ▸ Dropship ▸ odeme anahtari` (data/dropship_settings.json,
+   web'e kapali data/ altinda). Deploy gerekmiyor -- operator kendi acabilmeli,
+   yoksa "yeniden baslamak icin kurulu" olmaz. */
+function vestra_dropship_settings_file(): string { return dirname(__DIR__).'/data/dropship_settings.json'; }
+
+function vestra_dropship_payments_enabled(): bool {
+    static $on = null;
+    if ($on !== null) return $on;
+    $f = vestra_dropship_settings_file();
+    if (!is_readable($f)) return $on = false;
+    $j = json_decode((string)@file_get_contents($f), true);
+    return $on = (is_array($j) && !empty($j['payments_enabled']));
+}
+
+/** Anahtari yazar; sonraki istekte gecerli. Donen: yeni durum. */
+function vestra_dropship_set_payments(bool $enabled): bool {
+    $f = vestra_dropship_settings_file();
+    $j = is_readable($f) ? json_decode((string)@file_get_contents($f), true) : [];
+    if (!is_array($j)) $j = [];
+    $j['payments_enabled'] = $enabled;
+    $j['payments_changed_at'] = date('c');
+    $j['payments_changed_by'] = 'operator';
+    $dir = dirname($f);
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    @file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+    /* Geri okuyarak dogrula: yazilamayan bir anahtar "kapattim" diye rapor
+       edilirse operator kapali sanip acik birakir (KURAL 5c'nin billing_saved
+       dersi). */
+    $chk = json_decode((string)@file_get_contents($f), true);
+    return is_array($chk) && (bool)($chk['payments_enabled'] ?? false) === $enabled;
+}
+
 /**
  * Dropship'e KAPALI urun turleri: kategoride YA DA urun adinda gecmesi yeter.
  *
@@ -316,6 +367,13 @@ function dropship_create_order(
     string $custEmail = '', string $custName = '', string $partnerRef = '',
     ?string $successUrl = null, ?string $cancelUrl = null, string $zone = 'EU'
 ): array {
+    /* ODEME DURDURULDU (operator, 7 Eyl 2026). Site formu ve ortak API'si bu
+       tek fonksiyondan geciyor, yani kapi ikisini birden tutuyor. 503: gecici,
+       "boyle bir ucumuz yok" degil -- ortak sistemi tekrar denemeyi bilsin. */
+    if (!vestra_dropship_payments_enabled()) {
+        return ['ok' => false, 'error' => 'payments_paused',
+                'message' => 'single-piece dropship ordering is temporarily paused', 'status' => 503];
+    }
     $zone = vestra_dropship_zone($zone);
     if ($colour === '' || $size === '') {
         return ['ok' => false, 'error' => 'missing_fields', 'message' => 'colour and size are required', 'status' => 400];

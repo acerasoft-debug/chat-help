@@ -265,7 +265,10 @@ function vestra_colorqty_picker(array $p, string $idSuffix): string {
                degil, cunku sitenin kullanim sartlari tuketiciye satis yapmadigimizi
                yaziyor. Dugme de o yuzden fiyat kapisinin arkasinda.
                Bkz. dropship.php basligi. */ ?>
-      <?php if(!$SOLD && !$isOwnListingTop && $PRICES && vestra_dropship_enabled($p)): ?>
+      <?php /* Odeme durdurulmusken dugme YOK (operator, 7 Eyl 2026): tikladiginda
+               "su an kapali" diyen bir dugme, dugme degil. Urunun dropship
+               blogu yerinde duruyor; kapali olan yalnizca odeme. */ ?>
+      <?php if(!$SOLD && !$isOwnListingTop && $PRICES && vestra_dropship_payments_enabled() && vestra_dropship_enabled($p)): ?>
         <a class="btn btn-o" style="width:100%;justify-content:center;margin-top:14px" href="/dropship?id=<?= urlencode($p['id']) ?>">📮 <?= t('Buy a single piece — dropshipping') ?> →</a>
       <?php endif; ?>
 

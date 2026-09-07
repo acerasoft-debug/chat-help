@@ -1229,4 +1229,7 @@ return array (
   'Unread' => 'غير مقروء',
   'Back to conversations' => 'العودة إلى المحادثات',
   'Enter to send · Shift+Enter for a new line' => 'Enter للإرسال · Shift+Enter لسطر جديد',
+  'Single-piece ordering is paused right now.' => 'طلب القطعة الواحدة متوقف مؤقتًا الآن.',
+  'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'يجري تطوير خدمة الدروبشيبينغ، والدفع بالبطاقة للقطعة الواحدة متوقف حاليًا. الطلب بالجملة بالحدود الدنيا المعتادة لم يتأثر.',
+  'Go to the catalogue' => 'الذهاب إلى الكتالوج',
 );

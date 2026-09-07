@@ -49,7 +49,20 @@ require __DIR__ . '/inc/head.php';
   <p class="hint" style="margin-bottom:24px"><?= t('Buy a single piece, no minimum order — pay by card, we ship it out.') ?>
     <a class="acc" href="/dropshipping"><?= t('How it works, prices and delivery times') ?> →</a></p>
 
-  <?php if (!$dsAllowed): ?>
+  <?php /* ODEME DURDURULDU (operator, 7 Eyl 2026): satin alma formu HIC
+           cizilmiyor. Gosterilip reddedilen bir dugme, olmayan dugmeden kotu --
+           KURAL 4'un karsi teklif alaninda ogrendigi ders. Sayfa ayakta kaliyor
+           (fiyatlar, bolgeler, kosullar okunabilir); kapali olan odeme.
+           Kapinin kendisi sunucuda: dropship_create_order(). */
+     if (!vestra_dropship_payments_enabled()): ?>
+  <div class="order-box">
+    <p style="margin:0 0 10px"><b><?= t('Single-piece ordering is paused right now.') ?></b></p>
+    <p class="hint" style="margin:0">
+      <?= t('Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.') ?>
+      <a class="acc" href="/shop"><?= t('Go to the catalogue') ?> →</a>
+    </p>
+  </div>
+  <?php elseif (!$dsAllowed): ?>
   <div class="order-box">
     <p style="margin:0 0 10px"><b><?= t('Dropshipping is for verified trade accounts.') ?></b></p>
     <p class="hint" style="margin:0 0 14px">

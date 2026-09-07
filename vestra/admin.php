@@ -108,6 +108,15 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      karsiligi; secim order_statuses.json'da duruyor. Bulunamayan hesap
      KAYDEDILMEZ -- sessizce platforma dusmek, operatorun secmedigi tuzel
      kisiden belge cikarmak olurdu. */
+  /* Dropship odeme anahtari (7 Eyl 2026). Yazma GERI OKUNARAK dogrulaniyor:
+     yazilamayan bir anahtari "kapattim" diye raporlamak, operatore kapali
+     sanip acik birakmak demek (KURAL 5c'nin billing_saved dersi). */
+  if($act==='dropship_payments'){
+    require_once __DIR__.'/inc/dropship.php';
+    $dsWant = ($_POST['on'] ?? '') === '1';
+    $dsOk   = vestra_dropship_set_payments($dsWant);
+    header('Location: /admin?tab=dropship&msg='.($dsOk ? ($dsWant?'ds_pay_on':'ds_pay_off') : 'ds_pay_fail')); exit;
+  }
   if($act==='order_invoice_seller'){
     $ref=preg_replace('/[^A-Za-z0-9_-]/','',$_POST['ref']??'');
     require_once __DIR__.'/inc/invoice.php';
@@ -2392,6 +2401,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
        kendi KIRMIZI bloklarinda -- yesile boyanmis bir ret, bu dosyanin kendi
        uyarisinin tekrari olurdu. */
     'invoice_cur_saved'=>'✓ Fatura para birimi kaydedildi. Tutarlar SİPARİŞ TARİHİNDEKİ kurla çevrilir; taslağı (👁) açıp rakamları ve ödeme kutusunu görün.',
+    'ds_pay_off'=>'⏸ Dropship tek-parça ödemesi DURDURULDU — site formu da ortak API\'si de yeni sipariş oluşturmuyor (503 payments_paused). Hiçbir şey silinmedi: katalog, fiyatlar, bölgeler, list/stock uçları ve mevcut siparişler yerinde. Aynı düğme geri açar.',
+    'ds_pay_on'=>'▶ Dropship tek-parça ödemesi AÇIK — ortaklar yeniden sipariş verip kartla ödeyebilir.',
     'invoice_test_sent'=>'✓ TASLAK fatura test adresine e-postayla gönderildi — numara yakılmadı, müşteriye hiçbir şey gitmedi.',
     'invoice_redrafted'=>'✓ Fatura AYNI numarayla yeniden yazıldı, düzeltilmiş PDF alıcıya e-postayla (ekte) gönderildi. Alıcı panelindeki bağlantı artık düzeltilmiş belgeyi veriyor.',
     'invoice_paid_toggled'=>'✓ Ödeme işareti değiştirildi — alıcı panelindeki "ödenmesi gereken fatura" uyarısı buna göre güncellenir.',
@@ -2557,6 +2568,8 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-he
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Kayıt sunucuya YAZILAMADI — geri okuma tutmadı, hiçbir şeye güvenmeyin. Tekrar deneyin; yine olursa <code>data/accounts.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='billing_none'): ?>
 <div class="amsg" style="background:rgba(169,127,44,.1);border:1px solid rgba(169,127,44,.4);color:#8a6420">Form boş gönderildi — değişen bir şey yok.</div>
+<?php elseif($msg==='ds_pay_fail'): ?>
+<div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Anahtar YAZILAMADI — geri okuma tutmadı, durum <b>değişmemiş olabilir</b>. Sayfayı yenileyip üstteki duruma bakın; yine olursa <code>data/dropship_settings.json</code> yazılabilir değil.</div>
 <?php elseif($msg==='invoice_cur_bad'): ?>
 <div class="amsg" style="background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.35);color:#c0392b">⚠ Tanınmayan para birimi — <b>kaydedilmedi</b>. Çevrilebilen birimler: <?= htmlspecialchars(implode(', ', vestra_invoice_currencies())) ?>. Çeviremediği bir birimi kabul etmek, belgeye sessizce yanlış rakam basmak olurdu.</div>
 <?php elseif($msg==='invoice_cur_err'): ?>
@@ -5780,6 +5793,35 @@ elseif($tab==='dropship'):
   duties at destination are not included. Per-unit stock is not tracked, so
   <b>confirm availability with the seller before shipping</b>.
 </p>
+<?php /* ODEME ANAHTARI (operator, 7 Eyl 2026: "dropshipping odemesini su an icin
+         kaldir ancak yeniden baslamak icin kurulu olsun"). Kapali iken tek parca
+         siparis olusmuyor ve Stripe oturumu acilmiyor -- kapi sunucuda
+         (dropship_create_order), dugmenin gizlenmesi degil. Katalog, fiyatlar,
+         bolgeler, ortak API'sinin list/stock uclari ve bu sayfa YERINDE. */
+   $dsPay = vestra_dropship_payments_enabled(); ?>
+<div class="acard" style="margin-bottom:16px">
+  <div class="acard-body" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:260px">
+      <div style="font-weight:600;font-size:14px">
+        <?= $dsPay ? '🟢 Single-piece payment is ON' : '⏸ Single-piece payment is PAUSED' ?>
+      </div>
+      <div style="color:var(--mut);font-size:12.5px;margin-top:3px">
+        <?= $dsPay
+          ? 'Partners can order single pieces and pay by card. The switch below stops new orders immediately; nothing is deleted.'
+          : 'No new single-piece order can be created and no Stripe session opens — the site form and the partner API both refuse (503 payments_paused). Everything stays installed: catalogue, prices, zones, the API\'s list/stock endpoints and the orders below.' ?>
+      </div>
+    </div>
+    <form method="post" style="margin:0"
+          onsubmit="return confirm('<?= $dsPay ? 'Pause single-piece dropship payment? Partners will not be able to order until it is switched back on.' : 'Switch single-piece dropship payment back ON? Partners will be able to order and pay by card again.' ?>')">
+      <?= csrfField() ?>
+      <input type="hidden" name="_action" value="dropship_payments">
+      <input type="hidden" name="on" value="<?= $dsPay ? '0' : '1' ?>">
+      <button class="abtn<?= $dsPay ? '' : ' primary' ?>" type="submit">
+        <?= $dsPay ? '⏸ Pause payment' : '▶ Turn payment back on' ?>
+      </button>
+    </form>
+  </div>
+</div>
 <div class="acard">
   <div class="acard-hd"><h3><?= count($dropOrders) ?> order(s)<?= $dropUnshipped ? ' · '.$dropUnshipped.' paid, not yet shipped' : '' ?></h3></div>
   <div class="acard-body atscroll">

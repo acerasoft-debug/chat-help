@@ -34,6 +34,12 @@
  *
  * Auth: every request needs  Authorization: Bearer <DROPSHIP_API_KEY>.
  * Ralph Lauren, Lacoste and boxershorts are excluded from dropshipping.
+ *
+ * ORDERING PAUSED (7 Sep 2026, operator's decision). a=order answers
+ * 503 {"error":"payments_paused"} while single-piece payment is switched off;
+ * a=list and a=stock keep working and carry "ordering_paused": true so a
+ * partner syncing the catalogue learns it before order time, not at it. The
+ * switch is Admin > Dropship; nothing about the integration changes.
  */
 require_once __DIR__ . '/../inc/api_auth.php';
 require_once __DIR__ . '/../inc/auth.php';
@@ -69,6 +75,9 @@ if ($action === 'stock' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         'name'     => (string)($p['name'] ?? ''),
         'currency' => 'eur',
         'price'    => (float)$ds['price'],
+        /* Siparis su an alinamiyorsa fiyatin yaninda YAZAR: ortak stok/fiyat
+           cekerken durumu bilsin, 503'u siparis aninda kesfetmesin. */
+        'ordering_paused' => !vestra_dropship_payments_enabled(),
         'shipping' => $ship,
         /* Siparis govdesindeki colour/size serbest metin. Ortagin ne yazacagini
            tahmin etmesi gerekmesin diye ilanin bildigi degerler burada: bos dizi
@@ -95,7 +104,11 @@ if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
                   'brand' => (string)($p['brand'] ?? ''), 'name' => (string)($p['name'] ?? ''),
                   'currency' => 'eur', 'price' => (float)$ds['price']];
     }
-    api_json(['ok' => true, 'total' => count($out), 'items' => $out]);
+    /* ODEME DURDUYSA LISTE BUNU SOYLER (7 Eyl 2026). Ortak katalogu senkronlamaya
+       devam edebilsin diye uc ayakta; ama durumu ancak siparis aninda 503 ile
+       ogrenmesi, bizim bildigimiz bir seyi ondan saklamak olurdu. */
+    api_json(['ok' => true, 'total' => count($out), 'items' => $out,
+              'ordering_paused' => !vestra_dropship_payments_enabled()]);
 }
 
 if ($action === 'order' && $_SERVER['REQUEST_METHOD'] === 'POST') {

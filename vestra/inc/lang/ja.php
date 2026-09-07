@@ -1229,4 +1229,7 @@ return array (
   'Unread' => '未読',
   'Back to conversations' => '会話一覧に戻る',
   'Enter to send · Shift+Enter for a new line' => 'Enterで送信 · Shift+Enterで改行',
+  'Single-piece ordering is paused right now.' => '1点単位のご注文は現在停止しています。',
+  'Dropshipping is being reworked and card payment for single pieces is switched off for the moment. Wholesale ordering with the usual minimums is unaffected.' => 'ドロップシッピングは見直し中で、1点単位のカード決済は現在停止しています。通常の最低数量による卸注文には影響ありません。',
+  'Go to the catalogue' => 'カタログへ',
 );
