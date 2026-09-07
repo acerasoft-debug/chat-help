@@ -813,10 +813,12 @@ function vestra_offer_decline_counter(string $ref, string $token): array {
  *
  * @return array ['ok'=>bool,'error'=>string,'offer'=>?array,'unit'=>float,'invoice'=>?array]
  */
-function vestra_offer_accept_counter(string $ref, string $token): array {
+function vestra_offer_accept_counter(string $ref, string $token, ?string $onBehalfBasis = null): array {
     $ref = trim($ref); $token = trim($token);
+    $onBehalf = $onBehalfBasis !== null && trim($onBehalfBasis) !== '';
     $fail = fn(string $e) => ['ok' => false, 'error' => $e, 'offer' => null, 'unit' => 0.0, 'invoice' => null];
-    if ($ref === '' || $token === '') return $fail('link eksik');
+    if ($ref === '') return $fail('link eksik');
+    if (!$onBehalf && $token === '') return $fail('link eksik');
 
     $rs   = vestra_read_json('offer_responses.json');
     $resp = $rs[$ref] ?? null;
@@ -831,9 +833,17 @@ function vestra_offer_accept_counter(string $ref, string $token): array {
             default   => 'sira sizde degil — son karsi teklifi siz verdiniz, satici yanit veriyor',
         });
     }
-    /* hash_equals: token karsilastirmasi zamanlama sizdirmasin. */
-    $want = (string)($resp['accept_token'] ?? '');
-    if ($want === '' || !hash_equals($want, $token)) return $fail('link gecersiz ya da kullanilmis');
+    /* hash_equals: token karsilastirmasi zamanlama sizdirmasin.
+       OPERATOR ADINA KAYIT: alici kabulunu baska bir kanaldan (mesaj, e-posta)
+       bildirdiyse operator burada kaydeder ve token aranmaz -- elinde link
+       yoktur. Sira ve fiyat kontrolleri AYNEN duruyor: kabul yine alicinin
+       tarafindan ve yine BIZIM karsi teklifimiz uzerinden baglanir, yani
+       KURAL 4'un "kendi karsi teklifini kabul eden taraf olamaz" yasagi
+       delinmiyor -- degisen tek sey KIMIN tikladigi. */
+    if (!$onBehalf) {
+        $want = (string)($resp['accept_token'] ?? '');
+        if ($want === '' || !hash_equals($want, $token)) return $fail('link gecersiz ya da kullanilmis');
+    }
 
     $unit = (float)($resp['counter_price'] ?? 0);
     if ($unit <= 0) return $fail('karsi teklif fiyati okunamadi');
@@ -856,8 +866,12 @@ function vestra_offer_accept_counter(string $ref, string $token): array {
         'responded_at'  => $resp['responded_at'] ?? date('c'),
         'responded_by'  => $resp['responded_by'] ?? 'operator',
         'accepted_at'   => date('c'),
-        'accepted_by'   => 'buyer',
-    ];
+        /* Kaydin DOGRUSU: link tiklandiysa 'buyer', operator baska bir kanaldan
+           gelen kabulu isledi ise 'operator'. Ikisini de 'buyer' yazmak, bir
+           anlasmazlikta belgeye "musteri tikladi" dedirtirdi -- kaydin
+           soyleyemeyecegi bir sey. Dayanak da yaziliyor. */
+        'accepted_by'   => $onBehalf ? 'operator' : 'buyer',
+    ] + ($onBehalf ? ['accepted_on_behalf' => true, 'accept_basis' => mb_substr(trim($onBehalfBasis), 0, 300)] : []);
     vestra_write_json('offer_responses.json', $rs);
 
     $buyerAcc  = auth_find($offerRow['email'] ?? '');
@@ -872,8 +886,12 @@ function vestra_offer_accept_counter(string $ref, string $token): array {
        kesilecek. Bu adim olmadan kabul yalnizca JSON'da durur ve kimse
        bakmadikca alici cevapsiz bekler. */
     vestra_notify(
-        "Counter offer ACCEPTED by buyer — {$ref}",
-        "The buyer accepted the counter offer.\n\n"
+        $onBehalf ? "Counter offer accepted — recorded by operator — {$ref}"
+                  : "Counter offer ACCEPTED by buyer — {$ref}",
+        ($onBehalf
+            ? "The operator recorded the buyer's acceptance (the buyer confirmed off-platform).\n"
+              ."Basis: ".trim((string)$onBehalfBasis)."\n\n"
+            : "The buyer accepted the counter offer.\n\n")
       . "Reference : {$ref}\n"
       . "Product   : {$prodName}\n"
       . "SKU       : ".($offerRow['sku'] ?? '')."\n"

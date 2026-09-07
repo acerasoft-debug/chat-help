@@ -95,7 +95,7 @@ on:
       # ya da HESAPTAN gelir, loglara MASKELI yazilir, govde LOGA HIC BASILMAZ
       # (depo ve loglar halka acik; operator mektubu test kutusunda gorur).
       reply_letter:
-        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
+        description: "ALICI CEVABI: payment_final (SON CAGRI — satici sordu, cevap isteniyor; spec: suspend=true ile \"tekrarlananlarda askiya alma hakkimiz saklidir\" cumlesi. Saati DEGISTIRMEZ) | l1212 | l1212_docs | docs_short | docs_women | prospect_women (kayıtsız aday; spec: missing_brand, attach_pdf) | vat_doc_fr | verify_nudge (TOPLU) | resend_verify | approve_account (KYB onayı + 'hesabınız açıldı' maili; spec: waive_doc) | seller_setup (SATICIYA: gönderim yeri + belgeler + Stripe; spec: for=<satıcı>) | offer_preview (karşı teklif mektubunun ÖNİZLEMESİ — hiçbir kayıt değişmez; spec: offer_ref, price) | offer_nudge (AÇIK teklif hatırlatması: sıra alıcıdayken kabul / karşı teklif / red; spec: offer_ref=&lt;ref&gt; — virgülle BİRDEN FAZLA ref verilebilir, AYNI alıcıya TEK mektup olur) | brand_catalog (bir markanın TAM listesi: fiyatlar gövdede + PDF/Excel ekte; spec: brand=<marka TAM adı>, cat=<kategori, alt dize>, attach=both|pdf|xlsx|false) | account_open_l1212 (hesabı ZATEN açık olan alıcıya: 'kapı açık, giriş yapın' + ilanın CANLI kademe/renk/artikel verisi + ilk sipariş kuponu; spec: pid=<ilan id, vars. lac-pique-polo>, vat=<VAT ID>, save_vat=true, pct=5, months=6. Kapı KAPALIYSA iş DURUR) | tracking_soon (SİPARİŞ: 'takip numarası birkaç güne girilecek, sabrınız için teşekkürler' cevabı; to=order:<sipariş ref> ŞART, spec: inv=<müşterinin yazdığı fatura no — kayıtla uyuşmazsa DURUR>; signer boş = şirket imzası; sipariş zaten gönderilmişse DURUR) | order_address (SİPARİŞ: yeni siparişe teşekkür + TESLİMAT ADRESİ iste (Latin harf + yerel yazım + alıcı adı/telefon) + 'fatura adresiyle aynı mı' + 'faturanız hazırlanıp gönderilecek'; to=order:&lt;ref&gt; ŞART, ref/tutar kayıttan basılır; FATURASI KESİLMİŞ, gönderilmiş ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | order_invoice_soon (SİPARİŞ: 'faturanız hazırlanıyor, İLK İŞ GÜNÜ hesabınıza + e-postayla gelecek' + ilandan okunan ÖN SİPARİŞ sevk tarihi + Latin harfli adres isteği; to=order:&lt;ref&gt; ŞART; tarih GÖNDERİM ANINDA hesaplanır, şablona gömülü değil; FATURASI KESİLMİŞ ya da iptal siparişte DURUR; signer varsayılan Marco Bellini) | payment_due (SİPARİŞ: faturası kesilmiş, havale bekleyen siparişe '5 iş günü içinde ödeme gelmezse otomatik iptal' uyarısı — GERÇEKTEN 5 iş günlük SAATİ BAŞLATIR/mektup gönderir aynı fonksiyonla, cron_order_payment.php ile PAYLAŞILAN; to=order:<ref> ŞART, spec: inv=<müşterinin yazdığı fatura no>; sipariş zaten ödenmiş/gönderilmiş/iptal ya da dekont yüklüyse DURUR, escrow siparişinde DURUR; spec: copy_only=true — müşteriye ZATEN giden/gidecek mektubun BİREBİR AYNISINI sadece operatöre yollar, saat DEĞİŞMEZ, müşteriye İKİNCİ mektup GİTMEZ) | escrow_info (hesabı AÇIK alıcıya: giriş + kart escrow tavanı/ücreti KODDAN + fatura yolu; to=account:<isim> ŞART, kapı KAPALIYSA DURUR) | offer_accept (ALICININ kabulünü OPERATÖR ADINA kaydeder — alıcı kabulünü mesaj/e-posta ile bildirdiğinde; fiyat BİZİM karşı teklifimiz, kayıt 'accepted_by=operator' + dayanak metniyle düşer; spec: offer_ref=&lt;ref[,ref]&gt;, basis=&lt;neden&gt;, send=true) | msg_ping (MEVCUT son mesajın BİLDİRİMİNİ yeniden çalar — thread'e hiçbir şey eklemez, içerik taşımaz; spec: listing=<ilan id>/buyer=<alıcı adında geçen metin>/send(true|false)) | msg_reply (E-POSTA DEĞİL — sitenin İÇ MESAJLAŞMASINA yazar, admin panelinin 'Message Moderation' sekmesindeki 'Reply' ile AYNI fonksiyonu çağırır: normal şartlarda İLANIN SATICISI adına görünür, yalnızca ilanın satıcı yuvası VESTRA Support ise VESTRA Support adına; to= burada KULLANILMAZ, hedef reply_spec içindeki listing=/buyer= ile bulunur)."
         required: false
         default: ""
       reply_spec:
@@ -1189,6 +1189,58 @@ jobs:
                mesajlar icin gecmise donuk bir zil yok. Mektup, sistemin kendi
                mektubunun AYNISI: icerik tasimaz, alici tarafinda satici yine urun
                kimligiyle anilir ve Reply-To konmaz. */
+            /* ALICININ KABULUNU OPERATOR ADINA KAYDET. Alici kabulunu mesaj ya da
+               e-postayla bildirdiginde, satici tarafi bunu SISTEME yazamiyor:
+               vestra_offer_respond() sira alicidayken satici tarafini reddediyor
+               (KURAL 4 -- kendi karsi teklifini kabul eden taraf olamaz) ve elimizde
+               alicinin kabul linki yok. Bu kip alicinin kendi kabul yolunu, ayni
+               kontrollerle ve DOGRU imzayla ('accepted_by=operator' + dayanak metni)
+               calistirir; fiyat yine BIZIM karsi teklifimiz.
+               spec: offer_ref=<ref[,ref...]> | basis=<neden> | send=true */
+            if ($letter === 'offer_accept') {
+              require_once $doc."/inc/offers.php";
+              $oaRefs = array_values(array_filter(array_map('trim',
+                preg_split('/[\s,;]+/', $E('offer_ref'), -1, PREG_SPLIT_NO_EMPTY))));
+              $oaBasis = trim($E('basis'));
+              if (!$oaRefs)          { fwrite(STDERR, "offer_accept: offer_ref= gerekli\n"); exit(1); }
+              if ($oaBasis === '')   { fwrite(STDERR, "offer_accept: basis= gerekli -- kaydin dayanagi yazilmadan kabul islenmez\n"); exit(1); }
+              $oaResp = vestra_read_json('offer_responses.json');
+              $oaPlan = [];
+              foreach ($oaRefs as $r) {
+                $row = vestra_offer_row($r);
+                if (!$row) { fwrite(STDERR, "offer_accept: {$r} teklifi bulunamadi\n"); exit(1); }
+                $rp  = $oaResp[$r] ?? null;
+                $trn = vestra_offer_turn($rp);
+                $st  = (string)($rp['status'] ?? '');
+                if ($st !== 'counter' || $trn !== 'buyer') {
+                  fwrite(STDERR, "offer_accept: {$r} durum='{$st}' sira='{$trn}' -- yalniz bizim karsi teklifimiz beklerken kaydedilir\n"); exit(1);
+                }
+                $oaPlan[] = ['ref'=>$r, 'qty'=>(int)($row['qty'] ?? 0),
+                             'unit'=>(float)($rp['counter_price'] ?? 0),
+                             'email'=>strtolower(trim((string)($row['email'] ?? ''))),
+                             'product'=>trim((string)($row['product'] ?? ''))];
+              }
+              /* Tek alici: karisik bir liste, baskasinin teklifini kapatirdi. */
+              $oaMails = array_unique(array_column($oaPlan, 'email'));
+              if (count($oaMails) > 1) { fwrite(STDERR, "offer_accept: refler FARKLI alicilara ait\n"); exit(1); }
+              $oaSum = 0.0;
+              foreach ($oaPlan as $it) {
+                $oaSum += $it['unit'] * $it['qty'];
+                printf("  %-8s %-38s %3d x %8.2f = %9.2f EUR\n", $it['ref'],
+                       mb_substr($it['product'], 0, 36), $it['qty'], $it['unit'], $it['unit'] * $it['qty']);
+              }
+              printf("  %-8s %-38s %3s   %8s   %9.2f EUR\n", '', 'MAL TOPLAMI', '', '', $oaSum);
+              echo "  dayanak: {$oaBasis}\n";
+              if (strtolower($E('send')) !== 'true') { echo "\nsend=false — KAYDEDILMEDI\n"; exit(0); }
+              foreach ($oaPlan as $it) {
+                $r2 = vestra_offer_accept_counter($it['ref'], '', $oaBasis);
+                if (empty($r2['ok'])) { fwrite(STDERR, "offer_accept: {$it['ref']} KAYDEDILEMEDI -- ".($r2['error'] ?? '?')."\n"); exit(1); }
+                echo "  + {$it['ref']} KABUL KAYDEDILDI (".number_format((float)$r2['unit'], 2)." EUR/adet)\n";
+              }
+              echo "\nBITTI. Fatura: Admin > Invoice approvals (KURAL 5).\n";
+              exit(0);
+            }
+
             if ($letter === 'msg_ping') {
               $mpListing = trim($E('listing'));
               $mpBuyerQ  = trim($E('buyer'));
