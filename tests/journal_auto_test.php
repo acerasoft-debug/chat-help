@@ -88,6 +88,24 @@ if (isset($art['skip'])) {
     }
 }
 
+echo "\n== 3b. Aynı ilanlar İKİNCİ kez duyurulmuyor ==\n";
+/* Sabit kayan pencere, 3 Eylül'de giren ilanları 4-10 Eylül arasındaki HER
+   raporda yeniden yazardı: aynı içeriğin yedi kopyası. Pencere son otomatik
+   raporda başlıyor. */
+$jf = vestra_data_dir() . '/journal.json';
+$jb = file_get_contents($jf);
+try {
+    $all = json_decode($jb, true) ?: [];
+    $all[] = ['id' => 'jr_autotest', 'slug' => 'autotest', 'title' => 'autotest',
+              'source' => VESTRA_JOURNAL_AUTO_FLAG, 'created' => date('c'), 'published' => 1];
+    file_put_contents($jf, json_encode($all));
+    $again = vestra_journal_auto_build(null, 3650);
+    $t('son rapordan sonra yeni ilan yoksa YAZI YOK', isset($again['skip']));
+    $t('pencere son raporda başlıyor', vestra_journal_auto_last_ts() !== null);
+} finally {
+    file_put_contents($jf, $jb);
+}
+
 echo "\n== 4. Rakamlar uydurulmuyor / şişirilmiyor ==\n";
 $fn = $src('vestra/inc/journal_auto.php');
 $t('damgasız ilan "yeni" sayılmıyor', str_contains($fn, 'if (!$t || $t < $from'));
@@ -97,6 +115,10 @@ $t('fiyat en düşük kademeden',    str_contains($fn, 'vestra_from_price'));
 /* KURAL 3: gönderim yeri yalnızca hepsi aynı ve doluysa. */
 $t('gönderim yeri tek değilse YAZILMIYOR', str_contains($fn, 'if (count($ships) === 1)'));
 $t('rakamlar metne gömülü değil', !preg_match('/=> \'[^\']*\b\d{2,}\b[^\']*\'/', $fn));
+$t('pencere son rapordan başlıyor', str_contains($fn, 'if ($since !== null && $since > $from) $from = $since;'));
+/* Metindeki "son %d gün" gerçek pencereyi söylemeli: son rapor dün çıktıysa
+   "son 7 gün" demek bir haftalık liste vaat edip bir günlük liste vermektir. */
+$t('"son %d gün" gerçek pencere',   str_contains($fn, '$days    = max(1, (int)ceil(($now - $winFrom) / 86400));'));
 
 echo "\n== 5. Cron: aynı gün ikinci yazı yok, yazma geri okunuyor ==\n";
 $cr = $src('vestra/cron_journal.php');

@@ -224,9 +224,16 @@ function vestra_journal_auto_from_price(array $p): ?float {
 }
 
 /** Pencerede eklenmiş ilanlar, en yeniden eskiye. `added_at` yoksa ürün "yeni" sayılmaz. */
-function vestra_journal_auto_new(int $days = VESTRA_JOURNAL_AUTO_DAYS, ?int $now = null): array {
+function vestra_journal_auto_new(int $days = VESTRA_JOURNAL_AUTO_DAYS, ?int $now = null, ?int $since = null): array {
     $now  = $now ?? time();
     $from = $now - $days * 86400;
+    /* SON RAPORDAN BERİ. Sabit kayan pencere aynı ilanları bir hafta boyunca
+       her sabah yeniden duyururdu: 3 Eylül'de giren 335 ayakkabı, 4-10 Eylül
+       arasındaki her raporun içinde. Aynı içeriğin yedi kopyası okuyucuya da
+       arama motoruna da aynı şeyi yedi kez söyler — bu işin kaçınmak için
+       kurulduğu şeyin ta kendisi. Pencere bu yüzden son otomatik raporda
+       BAŞLIYOR; `$days` yalnızca üst sınır (ilk rapor sonsuz geriye gitmesin). */
+    if ($since !== null && $since > $from) $from = $since;
     $out  = [];
     foreach (vestra_products() as $p) {
         $t = strtotime((string)($p['added_at'] ?? ''));
@@ -249,13 +256,30 @@ function vestra_journal_auto_today(?string $day = null): ?array {
     return null;
 }
 
+/** Son otomatik raporun zamanı (yoksa null) — pencerenin başlangıcı. */
+function vestra_journal_auto_last_ts(): ?int {
+    $best = null;
+    foreach (vestra_journal_all() as $a) {
+        if (($a['source'] ?? '') !== VESTRA_JOURNAL_AUTO_FLAG) continue;
+        $t = strtotime((string)($a['created'] ?? ''));
+        if ($t && ($best === null || $t > $best)) $best = $t;
+    }
+    return $best;
+}
+
 /**
  * Yazıyı kurar. SAF: diske hiçbir şey yazmaz, hiçbir şey yayımlamaz.
  * Döner: `['skip' => gerekçe]` ya da `vestra_journal_save()`'e verilebilecek kayıt.
  */
 function vestra_journal_auto_build(?int $now = null, int $days = VESTRA_JOURNAL_AUTO_DAYS): array {
-    $now = $now ?? time();
-    $new = vestra_journal_auto_new($days, $now);
+    $now   = $now ?? time();
+    $since = vestra_journal_auto_last_ts();
+    $new   = vestra_journal_auto_new($days, $now, $since);
+    /* Metindeki "son %d gün" GERÇEK pencereyi söylemeli: son rapor dün çıktıysa
+       "son 7 gün" yazmak, okuyucuya bir haftalık liste vaat edip bir günlük
+       liste vermek olurdu. */
+    $winFrom = max($now - $days * 86400, $since ?? 0);
+    $days    = max(1, (int)ceil(($now - $winFrom) / 86400));
     if (count($new) < VESTRA_JOURNAL_AUTO_MIN) {
         /* İÇİ BOŞ YAZI YOK. Gerekçe yukarıda: ince içerik alan adına zarar
            verir (KURAL 9) ve okuyucuya journal'ı atlamayı öğretir (KURAL 2c). */
