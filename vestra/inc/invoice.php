@@ -355,7 +355,8 @@ function vestra_next_invoice_no(string $sellerKey): string {
  * column does not wrap — it just keeps drawing, straight over the description beside it.
  */
 function vestra_invoice_wrap(string $s, float $maxW, float $size, bool $bold = false): array {
-    $wide = fn(string $t): float => mb_strlen($t) * $size * ($bold ? 0.60 : 0.52);
+    /* Olcum VestraPdf ile AYNI fonksiyondan (inc/pdf.php): CJK tam genislik. */
+    $wide = fn(string $t): float => vestra_pdf_width($t, $size, $bold);
     $chop = function (string $w) use ($wide, $maxW): array {
         $out = []; $cur = '';
         foreach (preg_split('//u', $w, -1, PREG_SPLIT_NO_EMPTY) as $ch) {
@@ -523,11 +524,20 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $buyerName = '';
     }
 
+    /* RAKAMSIZ bir "VAT ID" vergi numarasi DEGILDIR. 7 Eyl 2026'da canli bir
+       fatura onizlemesinde goruldu: Hong Kong'lu alici vergi alanina bolgenin
+       ADINI yazmisti ve belge "VAT ID: 中国香港特别行政区" basiyordu. Her vergi/
+       sicil numarasi rakam icerir; iceremeyen bir deger bankaya ve gumruk
+       komisyoncusuna giden belgede yanlis bilgidir. Satir basilmaz, ve taslakta
+       operatore bunun neden basilmadigi yazilir (asagida) -- sessizce atmak,
+       yanlis basmak kadar kotu olurdu. */
+    $vatRaw   = trim((string)($b['vat'] ?? ''));
+    $vatUsable = $vatRaw !== '' && preg_match('/\d/', $vatRaw) === 1;
     $buyerLines = array_values(array_filter([
         $b['company'] ?? '', $b['address'] ?? '', $b['country'] ?? '',
-        !empty($b['vat'])
+        $vatUsable
           ? vestra_tax_id_hint((string)($b['country'] ?? ''))['short'].': '
-            .vestra_format_tax_id((string)$b['vat'], (string)($b['country'] ?? ''))
+            .vestra_format_tax_id($vatRaw, (string)($b['country'] ?? ''))
           : '',
         /* Alicinin sicil numarasi, saticininkiyle AYNI kalipta (operator istegi,
            1 Eyl 2026). VAT'i olmayan alicida sirketi belgeye baglayan tek resmi
@@ -881,44 +891,62 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
         $p->textR($right, $fy + 2, 7.5, 'Page '.$n.' of '.$total);
     });
 
-    /* CIZILEMEYEN KARAKTER UYARISI -- yalniz TASLAKTA.
-       5 Eyl 2026'da olculdu: "香港风徕贸易有限公司" belgeye "??????????" diye
-       basiliyordu -- gecerli GORUNEN ama alicinin adini kaybetmis bir fatura.
-       7 Eyl 2026'dan beri o metin GOMULU yazi tipiyle gercekten basiliyor, yani
-       uyari artik yalnizca gomulu yazi tipinde de KARSILIGI OLMAYAN karakterler
-       icin cikiyor (vestra_pdf_missing_glyphs). Basilabilen bir ad icin
-       "Latin harfli ad verin" demek, operatoru olmayan bir ise yollardi.
-       Uyari KURAL 5d'nin zaten var olan kontrol noktasina, taslagin uzerine
-       basiliyor: operator numarayi yakmadan once goruyor. Kesilmis faturaya
-       basilmiyor -- musteriye giden belgeye ic uyari yazilmaz. */
+    /* BASILAMAYAN KARAKTER UYARISI -- yalniz TASLAKTA.
+       Cince/Japonca/Korece/Yunanca/Kiril artik BASILIYOR: gomulu yazi tipi
+       (inc/pdf_font.php) devrede ve alicinin unvani belgeye kendi harfleriyle
+       giriyor (operator karari, 7 Eyl 2026). Geriye yalniz o yazi tipinin de
+       tasimadigi karakterler kaliyor -- emoji, nadir duzlemler, ya da yazi tipi
+       dosyasi sunucuda yoksa CP1252 disindaki her sey. Uyari KURAL 5d'nin zaten
+       var olan kontrol noktasina, taslagin uzerine basiliyor: operator numarayi
+       yakmadan once goruyor. Kesilmis faturaya basilmiyor -- musteriye giden
+       belgeye ic uyari yazilmaz. */
     if ($draft) {
-        /* Alici alanlari $order['buyer'] ALTINDA duruyor (bkz. $b, yukarida) --
-           uyari 5 Eyl 2026'da DUZ anahtarlari okuyordu ($order['company']) ve
-           gercek bir yukte o anahtarlar YOK, yani uyari hicbir zaman
-           calismiyordu. Testi de duz anahtarli elde yapilmis bir yukle
-           yazildigi icin yesil goruyordu: kontrolun kodun okudugu yere baktigini
-           dogrulamadan yazilan yedinci vaka. Iki sekil de okunuyor. */
+        /* ALICI BLOGU 'buyer' ALTINDA. Bu tarama uzun sure $order['company'],
+           $order['name'], $order['address'] okuyordu -- gercek yukte boyle
+           anahtarlar YOK (vestra_invoice_buyer() 'buyer' altina yaziyor,
+           inc/invoice.php:1190), yani uyari canli bir faturada HIC calismadi;
+           yalnizca duz dizi veren testte "calisiyor" gorunuyordu. Bu depoda
+           kontrolun yanlis yere bakmasinin yedincisi (bkz. CLAUDE.md). Duz
+           bicim de okunmaya devam ediyor: iki cagiran sekli de var. */
         $lost = [];
-        $bw   = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
-        foreach (['company','name','address','city','country','vat','vat_id','notes'] as $f) {
-            foreach (vestra_pdf_missing_glyphs((string)($bw[$f] ?? ($order[$f] ?? ''))) as $ch) $lost[$ch] = true;
-        }
+        $scan = function ($v) use (&$lost) {
+            foreach (vestra_pdf_unprintable((string)$v) as $ch) $lost[$ch] = true;
+        };
+        $b = is_array($order['buyer'] ?? null) ? $order['buyer'] : [];
+        foreach (['company','name','address','country','vat','reg'] as $f) $scan($b[$f] ?? '');
+        foreach (['company','name','address','city','country','vat_id','notes'] as $f) $scan($order[$f] ?? '');
         foreach ($items as $it) {
-            foreach (['name','sku','note'] as $f) {
-                foreach (vestra_pdf_missing_glyphs((string)($it[$f] ?? '')) as $ch) $lost[$ch] = true;
-            }
+            foreach (['name','brand','sku','note'] as $f) $scan($it[$f] ?? '');
+            foreach ((array)($it['colors'] ?? []) as $c) $scan($c);
+        }
+        /* Belgeye ALINMAYAN alanlar. Ikisi de yalniz taslakta yazilir; musteriye
+           giden belgeye ic not basilmaz (KURAL 5d'nin kontrol noktasi). */
+        $notes = [];
+        $bVat = trim((string)(($order['buyer']['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
+        if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {
+            $notes[] = 'NOTE - the buyer VAT/tax field holds no digits, so it is not a tax number and was left off the document. Correct it in Admin > Users > Edit billing details.';
+        }
+        if (trim((string)($order['buyer']['address'] ?? '')) === '') {
+            $notes[] = 'NOTE - no street address on file for this buyer. Customs and the carrier need one; ask the buyer before issuing.';
+        }
+        if ($notes) {
+            $pdf->stampEachPage(function (VestraPdf $p) use ($left, $notes) {
+                $y = 36.0;
+                foreach (array_slice($notes, 0, 2) as $n) { $p->text($left, $y, 7.5, $n, false, 0.35); $y -= 9; }
+            });
         }
         if ($lost) {
-            /* Karakterlerin KENDISI degil KOD NOKTALARI yaziliyor. Uyarinin
-               konusu tam olarak "bu karakter basilamiyor" -- onlari uyarinin
-               icine koymak, uyariyi da basilamaz yapar ve operator bos bir
-               liste gorur. U+XXXX her zaman basilabilir ve aranabilir. */
+            /* Kod noktasi olarak yaziliyor, karakterin KENDISI olarak degil:
+               basilamayan bir karakteri uyarinin icine koymak uyariyi da
+               okunmaz yapar (satirin tamami gomulu yazi tipine duser ve o
+               karakter orada da bos kutu cikar). "U+1F9F5" her zaman okunur ve
+               operator neyi aradigini bilir. */
             $chars = implode(' ', array_map(
-                fn(string $ch) => sprintf('U+%04X', mb_ord($ch, 'UTF-8') ?: 0),
+                fn($c) => 'U+'.strtoupper(dechex((int)mb_ord($c, 'UTF-8'))),
                 array_slice(array_keys($lost), 0, 12)));
             $pdf->stampEachPage(function (VestraPdf $p) use ($left, $right, $chars) {
                 $p->text($left, 26.0, 7.5,
-                    'WARNING - these characters cannot be printed on this document and appear as "?": '
+                    'WARNING - this document cannot print these characters and leaves them blank: '
                     . $chars . '  Supply a Latin-script name and address before issuing.', false, 0.0);
             });
         }

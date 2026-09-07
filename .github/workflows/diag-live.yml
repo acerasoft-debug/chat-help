@@ -2469,6 +2469,27 @@ jobs:
               vestra_currency_for_cc('US'), vestra_currency_for_cc('CA'), vestra_currency_for_cc('AU'),
               vestra_currency_for_cc('DE'), vestra_currency_for_cc('JP'), vestra_currency_for_cc('GB'));
 
+            head("4b. SIPARIS USD DAMGASI (siparis tarihinin kuru)");
+            /* Operator, 7 Eyl 2026: siparisler siparis ANINDAKI kurla USD'ye.
+               Damgasiz eski siparisler burada da damgalanir (admin sekmesi
+               acilmadan): ECB gecmisi TEK istekle, tarih basina kur. Cikti
+               ref / tarih / kur / USD -- kisi verisi YOK (halka acik gunluk). */
+            require_once $doc.'/inc/fx_orders.php';
+            $ords = vestra_read_csv('orders.csv');
+            $bf = vestra_orders_fx_backfill($ords, true);
+            printf("  siparis=%d damgasiz=%d damgalandi=%d cekildi=%s hala damgasiz=%d\n",
+              count($ords), $bf['missing'], $bf['stamped'], $bf['fetched'] ? 'EVET' : 'hayir/gerekmedi', $bf['still_missing']);
+            $fxm = vestra_orders_fx_map($ords);
+            foreach (array_slice(array_reverse($ords), 0, 12) as $o) {
+              $fx = $fxm[$o['ref'] ?? ''] ?? null; $u = $fx ? vestra_order_usd($o, $fx) : null;
+              printf("    %-14s %s  EUR %9s  ->  %s\n", substr((string)($o['ref'] ?? ''), 0, 14), substr((string)($o['timestamp'] ?? ''), 0, 10),
+                number_format((float)($o['total'] ?? 0), 2), $u !== null ? vestra_usd($u).'  '.vestra_order_fx_note($fx) : 'US$ —  (kur yok)');
+            }
+            $hf = $doc.'/data/fx_history.json';
+            if (is_file($hf)) { $h = json_decode((string)@file_get_contents($hf), true) ?: []; $days = array_filter(array_keys($h), fn($k) => $k[0] !== '_');
+              printf("  gecmis tablosu: %d gun%s\n", count($days), $days ? ' ('.min($days).' .. '.max($days).')' : ''); }
+            else echo "  gecmis tablosu: yok\n";
+
             head("5. GERCEK SAYFA NE BASIYOR  <-- asil olcum");
             /* GIRIS YAPARAK olcuyoruz. Ziyaretci olarak katalogda fiyat ZATEN
                gorunmuyor (fiyat kapisi), o yuzden cikis yapmis bir istekte "US$

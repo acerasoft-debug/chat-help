@@ -83,6 +83,38 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     header('Location: /buyer?tab=orders&view='.urlencode($rRef).($rRes['ok'] ? '&receipt=1' : '&receipt_err='.rawurlencode($rRes['error']))); exit;
 }
 
+/* Talep ac ("Open dispute") — operator, 5 Eyl 2026. Sahiplik kontrolu
+   upload_receipt ile ayni: siparişin e-postasi giris yapmis hesabin e-postasi
+   olmali. Karar (sure doldu mu, zaten acik mi) vestra_claim_open_new()'un
+   icinde, vestra_claim_state() uzerinden -- burada ikinci bir kopyasi YOK. */
+if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='open_claim') {
+    require_once __DIR__.'/inc/claims.php';
+    $cRef = trim((string)($_POST['ref'] ?? ''));
+    $me = auth_user(); $myEmail = strtolower($me['email'] ?? '');
+    $cOrder = null;
+    foreach (vestra_read_csv('orders.csv') as $row) { if (($row['ref'] ?? '') === $cRef) { $cOrder = $row; break; } }
+    $ownsOrder = $cOrder && $myEmail !== '' && strtolower($cOrder['email'] ?? '') === $myEmail;
+    if (!$cRef || !$ownsOrder) { header('Location: /buyer?tab=orders'); exit; }
+    /* $_FILES['evidence'] coklu girdide sutun sutun gelir; tek tek dosyalara cevir. */
+    $ev = [];
+    $raw = $_FILES['evidence'] ?? null;
+    if (is_array($raw) && isset($raw['name']) && is_array($raw['name'])) {
+        foreach (array_keys($raw['name']) as $i) {
+            $ev[] = ['name'=>$raw['name'][$i], 'type'=>$raw['type'][$i] ?? '', 'tmp_name'=>$raw['tmp_name'][$i] ?? '',
+                     'error'=>$raw['error'][$i] ?? UPLOAD_ERR_NO_FILE, 'size'=>$raw['size'][$i] ?? 0];
+        }
+    }
+    $cRes = vestra_claim_open_new($cRef, (string)($_POST['reason'] ?? ''), (string)($_POST['detail'] ?? ''), $ev, 'buyer');
+    if ($cRes['ok']) {
+        /* Aliciya referans mektubu + push, siparişin sohbet ipligine kart,
+           operatore inceleme mektubu -- hepsi tek yoldan (claims.php), kapanista
+           da ayni yol kullaniliyor. */
+        $cClaim = vestra_order_claim($cRef) ?? [];
+        vestra_claim_notify('opened', $cRef, $cOrder, $cClaim);
+    }
+    header('Location: /buyer?tab=orders&view='.urlencode($cRef).($cRes['ok'] ? '&claim=1' : '&claim_err='.rawurlencode($cRes['error']))); exit;
+}
+
 // Confirm receipt (escrow release) — only the buyer who placed it, once shipped OR delivered.
 // 'delivered' da kabul: satici teslimati isaretledikten SONRA alicinin onay dugmesi
 // olmezse, 2-is-gunu sayaci baslamisken alici erken onaylayamaz hale gelirdi.
@@ -97,6 +129,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $ownsOrder = $orderRow && $myEmail !== '' && strtolower($orderRow['email']??'') === $myEmail;
     $st = vestra_read_json('order_statuses.json');
     $currentStatus = $st[$ref]['status'] ?? 'pending';
+    /* TALEP ACIKKEN ONAY YOK. Onay escrow'u serbest birakir; SSS returns/14
+       "talep acikken para birakilmaz" diyor. Dugme zaten gizli, ama gizli dugme
+       kapi degildir -- POST eden gecer. Karar claims.php'den (tek nokta). */
+    require_once __DIR__.'/inc/claims.php';
+    if ($ref && $ownsOrder && vestra_claim_is_open($ref)) {
+        header('Location: /buyer?tab=orders&view='.urlencode($ref).'&claim_err=hold'); exit;
+    }
     if ($ref && $ownsOrder && in_array($currentStatus, ['shipped','delivered'], true)) {
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         $st[$ref]['history'][] = vestra_order_history_entry('completed', 'buyer');
@@ -279,6 +318,11 @@ if($tab==='overview'){
   if ($viewOrder) {
     if (isset($_GET['receipt'])) echo '<div class="banner ok">✓ '.t('Receipt received — we will confirm it shortly.').'</div>';
     if (isset($_GET['receipt_err'])) echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⚠ '.htmlspecialchars(t(auth_doc_error_text((string)$_GET['receipt_err']))).'</div>';
+    if (isset($_GET['claim'])) echo '<div class="banner ok">✓ '.t('Your claim has been received. We review claims within 2 business days.').'</div>';
+    /* Hata metni vestra_claim_error_text()'ten: dosya kodlari auth'un sozlugune
+       devrediliyor, talebe ozel kodlar (reason/detail/exists/window) burada. */
+    if (isset($_GET['claim_err'])) { require_once __DIR__.'/inc/claims.php';
+      echo '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin-bottom:14px">⚠ '.htmlspecialchars(vestra_claim_error_text((string)$_GET['claim_err'])).'</div>'; }
     echo vestra_render_order_detail($viewOrder, $orderSt[$viewRef] ?? ['status'=>'pending'], 'buyer', $uid, '/buyer?tab=orders', '/buyer?tab=orders');
   } else {
   if(isset($_GET['confirmed'])) echo '<div class="banner ok">✓ '.t('Receipt confirmed. Order completed.').'</div>';
@@ -341,8 +385,13 @@ if($tab==='overview'){
       $reviewNote = $inReview
         ? '<div class="ordreview">🔎 '.htmlspecialchars(vestra_order_review_note((string)($o['timestamp']??''))).'</div>'
         : '';
+      /* Acik talep: listede kucuk bir rozet (operator: "belirgin olmasin"), ve
+         onay dugmesi YOK -- onay parayi birakir, talep onu tutar. */
+      if (!function_exists('vestra_claim_is_open')) require_once __DIR__.'/inc/claims.php';
+      $claimOpen = vestra_claim_is_open($ref);
+      if ($claimOpen) { $stLabel .= ' · ⚠️ '.t('Claim open'); }
       $confirmBtn='';
-      if($st==='shipped' || $st==='delivered'){
+      if(($st==='shipped' || $st==='delivered') && !$claimOpen){
         $confirmBtn='<form method="post" action="/buyer?tab=orders" '.
           ($isHeld?'onsubmit="return confirm(\''.htmlspecialchars(t('Confirm you received the goods? This releases the held funds to the seller and cannot be undone.'),ENT_QUOTES).'\')"':'').'>
           <input type="hidden" name="_action" value="confirm_receipt">
@@ -392,10 +441,6 @@ if($tab==='overview'){
               ? '<div class="hint" style="font-weight:400;font-size:11px">'.t('incl. shipping').' '.eur($o['shipping']).'</div>' : '').
             ((($__iv=vestra_order_invoiced_note($ref))!=='')
               ? '<div class="hint" style="font-weight:400;font-size:11px">'.htmlspecialchars($__iv).'</div>' : '').
-            /* USD karsiligi (operator, 7 Eyl 2026). Siparis EUR uzerinden
-               kesiliyor ve havale EUR geliyor; rakam bilgi amacli oldugu icin
-               cumlenin kendisi tek kaynaktan (vestra_usd_hint_html). */
-            vestra_usd_hint_html((float)($o['total']??0)).
           '</div>'.
           '<div class="ordacts">'.$confirmBtn.$invLinks.
             '<a class="btn btn-o btn-sm" href="/order-pdf?ref='.urlencode($ref).'">⤓ PDF</a>'.
@@ -640,67 +685,9 @@ if($tab==='overview'){
   $thread = $tid ? vestra_msg_find_thread($tid) : null;
   if ($thread && ($thread['buyer_uid']??'') !== $uid) $thread = null;
   // (marked read earlier, before head.php rendered the nav badge — see top of file)
-  $myThreads = vestra_msg_my_threads($uid);
-
-  $listHtml = '<div class="mssearch"><input id="mfilter" placeholder="'.htmlspecialchars(t('Search conversations…')).'" oninput="mFilterThreads(this.value)"></div>';
-  if (!$myThreads) {
-    $listHtml .= '<p class="hint" style="padding:0 10px">'.t('No messages yet. Start a conversation from any product page.').'</p>';
-  } else {
-    $listHtml .= '<div class="threadlist" id="mThreadList">';
-    foreach ($myThreads as $th) {
-      $last = end($th['messages']);
-      $unread = vestra_msg_unread($th, $uid);
-      $name = vestra_msg_counterpart_label($th, $uid);
-      $listHtml .= '<a class="threadrow'.($unread?' unread':'').($th['id']===$tid?' active':'').'" data-name="'.htmlspecialchars(mb_strtolower($name)).'" href="/buyer?tab=messages&thread='.urlencode($th['id']).'">
-        <div class="tr-name">'.htmlspecialchars($name).($unread?' <span class="tr-dot"></span>':'').'</div>
-        <div class="tr-snippet">'.htmlspecialchars(vestra_msg_snippet($last ?: [])).'</div>
-        <div class="tr-time">'.htmlspecialchars(substr($th['last_at']??'', 0, 16)).'</div>
-      </a>';
-    }
-    $listHtml .= '</div>';
-  }
-
-  if ($thread) {
-    $ctp = vestra_msg_counterpart_label($thread, $uid);
-    $msgerr = $_GET['msgerr'] ?? '';
-    $mainHtml = '<div class="msghead"><h3 style="margin:0">'.htmlspecialchars($ctp).'</h3><a class="btn btn-o btn-sm" href="/buyer?tab=messages">← '.t('Back').'</a></div>';
-    if (!empty($thread['listing_id']) && ($tl = vestra_listing_by_id($thread['listing_id']))) {
-      $mainHtml .= '<p class="hint" style="margin:10px 18px 0">🔗 <a class="acc" href="/product?id='.urlencode($thread['listing_id']).'">'.htmlspecialchars(trim(($tl['brand']??'').' — '.($tl['name']??''), ' —')).'</a></p>';
-    }
-    if (in_array($msgerr, ['email','iban','phone'], true)) {
-      $mainHtml .= '<div class="banner" style="background:rgba(239,154,154,.1);border:1px solid rgba(239,154,154,.35);color:var(--bad);margin:10px 18px 0">⚠ '.t('For your safety, sharing email addresses, phone numbers, or bank/IBAN details is not allowed here — all communication and payment must stay on VESTRA so buyer protection still applies. Your message was not sent.').'</div>';
-    }
-    $mainHtml .= '<div class="msgthread" id="mThread">';
-    foreach ($thread['messages'] as $m) {
-      if (($m['from']??'') === 'system') { $mainHtml .= vestra_msg_system_html($m, 'buyer'); continue; }
-      $mine = ($m['from']??'') === $uid;
-      $mainHtml .= '<div class="msgbubblewrap '.($mine?'mine':'').'"><div class="msgbubble '.($mine?'mine':'').'">'.
-        nl2br(htmlspecialchars($m['text']??'')).
-        '<div class="msgtime">'.htmlspecialchars(substr($m['at']??'',0,16)).'</div></div></div>';
-    }
-    $mainHtml .= '</div>';
-    $mainHtml .= '<form method="post" action="/buyer?tab=messages" class="msgcompose">
-      <input type="hidden" name="_action" value="send_message">
-      <input type="hidden" name="thread_id" value="'.htmlspecialchars($tid).'">
-      <textarea name="body" rows="2" placeholder="'.htmlspecialchars(t('Write a message…')).'" required></textarea>
-      <button class="btn btn-p" type="submit">'.t('Send').'</button>
-    </form>';
-    $mainHtml .= '<p class="hint" style="padding:0 18px 14px">'.t('Do not share email addresses, phone numbers, or bank details — keep all communication and payment on VESTRA.').'</p>';
-  } else {
-    $mainHtml = '<div class="msempty">'.t('Select a conversation to start messaging.').'</div>';
-  }
-
-  echo '<div class="panelcard"><div class="pcfhead"><h3>'.t('Messages').'</h3></div>';
-  echo '<div class="msgshell'.($thread?' has-thread':'').'"><div class="mslist">'.$listHtml.'</div><div class="msmain">'.$mainHtml.'</div></div>';
-  echo '</div>';
-  echo '<script>function mFilterThreads(q){q=q.toLowerCase();document.querySelectorAll("#mThreadList .threadrow").forEach(function(r){r.style.display=r.dataset.name.indexOf(q)>-1?"":"none";});}</script>';
-  if ($thread) {
-    echo '<script>var mt=document.getElementById("mThread");if(mt)mt.scrollTop=mt.scrollHeight;'.
-      '(function(){var last='.json_encode($thread['last_at']??'').';'.
-      'setInterval(function(){fetch("/buyer?tab=messages&thread='.urlencode($tid).'&poll=1",{cache:"no-store"})'.
-      '.then(function(r){return r.json()}).then(function(d){if(d.last&&d.last!==last)location.reload()})'.
-      '.catch(function(){})},15000)})();</script>';
-  }
+  /* Cizim tek yerde: inc/messages.php → vestra_msg_panel_html (satici paneliyle
+     ortak). Sahiplik kontrolu yukarida kaldi; asagisi yalnizca ciziyor. */
+  echo vestra_msg_panel_html('buyer', $uid, $tid, $thread, vestra_msg_my_threads($uid), (string)($_GET['msgerr'] ?? ''));
 
 } elseif($tab==='profile') {
   $u = $AUTH_USER ?? [];

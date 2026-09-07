@@ -75,7 +75,13 @@ function vestra_order_sellers(array $lines): array {
    despatch because that is where the real waiting happens: the buyer has paid, nothing
    visible moves for days, and "Paid" on its own reads as "nobody is doing anything".
    Naming the two stages turns silence into progress the buyer can see. */
-const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shipped', 'completed'];
+/* 'delivered' zincire 5 Eyl 2026'da eklendi. Yoktu, ama satici onu ISARETLEYEBILIYOR
+   (seller.php) ve escrow sayaci ile alicinin talep suresi ONA bagli. Zincirde
+   olmayinca array_search false donuyor, $idx 0'a dusuyor ve teslim edilmis
+   sipariş ilk noktada "Awaiting payment" olarak cizilıyordu. Ayrica bu sabit
+   vestra_order_settable_statuses()'i de besliyor: operator panelden 'delivered'
+   secemiyordu, yani zincirin isleyen bir asamasi yalnizca saticinin elindeydi. */
+const VESTRA_ORDER_STEPS = ['pending', 'paid', 'preparing', 'to_vestra', 'shipped', 'delivered', 'completed'];
 
 /* Cancelled is deliberately NOT a step. It is not a later stage of the same journey, it
    is the journey stopping, and putting it on the end of the chain would render every
@@ -99,7 +105,15 @@ function vestra_order_status_label(string $status, bool $forceEnglish = false): 
         'paid' => $tt('Paid'),
         'preparing' => $tt('Being prepared'),
         'to_vestra' => $tt('On its way to VESTRA'),
-        'shipped' => $tt('Shipped'), 'completed' => $tt('Completed'),
+        'shipped' => $tt('Shipped'),
+        /* 'delivered' BURADA YOKTU ve default'a dusuyordu: satici teslimati
+           isaretledigi anda (seller.php) alici sipariste "Awaiting payment"
+           goruyordu -- parasi cekilmis, mali eline gecmis bir siparişte. Ayni
+           durum escrow sayacini ve alicinin 3 gunluk talep suresini baslatiyor,
+           yani ekranin en yanlis oldugu an, dogru olmasinin en cok gerektigi
+           andi. `cancelled` icin ayni tuzak asagidaki yorumda zaten yaziliydi. */
+        'delivered' => $tt('Delivered'),
+        'completed' => $tt('Completed'),
         'cancelled' => $tt('Cancelled'),
         default => $tt('Awaiting payment'),
     };
@@ -244,12 +258,7 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     $rowTotal = isset($orderRow['total']) && (float)$orderRow['total'] > 0
         ? round((float)$orderRow['total'], 2) : round($subtotal, 2);
     $h .= '</tbody><tfoot><tr><td colspan="4" class="r"><b>'.t('Total').'</b></td>'
-        . '<td class="r"><b>'.eur($rowTotal).'</b>'
-        /* USD karsiligi (operator, 7 Eyl 2026: "her siparisin yanina usd ye
-           cevir bolumu ciksin"). Bilgi amacli oldugu cumlede yazili: siparis
-           EUR kesiliyor ve havale EUR bekleniyor. */
-        . vestra_usd_hint_html($rowTotal)
-        . '</td></tr></tfoot>';
+        . '<td class="r"><b>'.eur($rowTotal).'</b></td></tr></tfoot>';
     $h .= '</table>';
     if ($buyerNotes !== '') $h .= '<p class="hint" style="margin-top:10px"><b>'.t('Buyer notes').':</b> '.htmlspecialchars($buyerNotes).'</p>';
 
@@ -289,11 +298,25 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
             }
             $h .= '</div>';
         }
+        /* Talep ("Open dispute") — operator, 5 Eyl 2026: "dispute yaziyor ama
+           böyle bir dispute yeri yok görünmüyor". Metin bes ayri sayfada bu
+           dugmeyi vaat ediyordu ve dugme hicbir yerde yoktu. Asama karari
+           vestra_claim_state()'te; kart, POST isleyicisi ve escrow supurucusu
+           ucu de ONU okur. */
+        /* Bilesenin kendisi claims.php'de (vestra_claim_widget): asama karari,
+           form ve durum satiri TEK yerde. Operator (6 Eyl 2026): her sipariste,
+           ama sessiz -- kocaman bir kart degil, katlanmis bir baglanti. */
+        if (!function_exists('vestra_claim_state')) require_once __DIR__.'/claims.php';
+        $h .= vestra_claim_widget($ref, $statusEntry, $formHref);
     } else {
         $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">'.t('Buyer').'</h3></div>'.
               '<p style="margin:0">'.htmlspecialchars($orderRow['company'] ?? '').'<br>'.
               htmlspecialchars($orderRow['name'] ?? '').' · <a class="acc" href="mailto:'.htmlspecialchars($orderRow['email'] ?? '').'">'.htmlspecialchars($orderRow['email'] ?? '').'</a>'.
               (!empty($orderRow['country']) ? '<br>'.htmlspecialchars($orderRow['country']) : '').'</p></div>';
+        /* Satici talebi GORUR (salt okunur): SSS returns/9 "VESTRA saticidan
+           aciklama ister" -- neyin sikayet edildigini gormeden aciklama olmaz. */
+        if (!function_exists('vestra_claim_seller_block')) require_once __DIR__.'/claims.php';
+        $h .= vestra_claim_seller_block($ref);
     }
 
     $h .= '<div class="panelcard" style="margin:0"><div class="pcfhead"><h3 style="font-size:14px">'.t('Shipping').'</h3></div>';
@@ -310,7 +333,14 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     } else {
         $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.($statusEntry['tracking'] ?? '' ? htmlspecialchars($statusEntry['tracking']) : '<span class="hint">'.t('Not shipped yet').'</span>').'</p>';
         if (!empty($statusEntry['seller_note'])) $h .= '<p style="margin:0"><b>'.t('Note from seller').':</b> '.htmlspecialchars($statusEntry['seller_note']).'</p>';
-        if ($status === 'shipped') {
+        /* 'delivered' da dahil: buyer.php'nin isleyicisi ikisini de kabul ediyor,
+           bu gorunum yalnizca 'shipped'e dugme basiyordu -- teslim edilmis
+           sipariste alici detay sayfasindan onaylayamiyordu (listeden olabiliyordu).
+           Talep ACIKKEN dugme YOK: onay parayi serbest birakir, talep ise onu
+           tutuyor -- ikisi ayni anda dogru olamaz. Sunucu tarafi da reddediyor;
+           dugmeyi gizlemek kapi degil (sold_out dersi). */
+        if (!function_exists('vestra_claim_is_open')) require_once __DIR__.'/claims.php';
+        if (in_array($status, ['shipped', 'delivered'], true) && !vestra_claim_is_open($ref)) {
             $h .= '<form method="post" action="'.htmlspecialchars($formHref).'" style="margin-top:10px">
               <input type="hidden" name="_action" value="confirm_receipt">
               <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">

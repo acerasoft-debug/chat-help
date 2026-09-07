@@ -175,6 +175,10 @@ jobs:
               # faturasi kesilmis, havale bekleyen bir siparise ilk uyari + 5 is
               # gunu; sure dolarsa otomatik iptal. Dekont yuklenmisse saat durur.
               echo '0 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_order_payment.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP odeme-hatirlatma'
+              # Acik talep (dispute) hatirlatmasi (6 Eyl 2026): SSS "2 is gunu
+              # icinde inceleriz" diyor; sureyi gecen acik talep operatore yazilir.
+              # Gecikmis yoksa mektup GITMEZ.
+              echo '10 7 * * * cd $HOME/public_html && '"$PHPBIN"' cron_claims.php >> $HOME/vestra_sweep.log 2>&1 # VESTRA-SWEEP talep-hatirlatma'
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
@@ -203,6 +207,8 @@ jobs:
             cd "$HOME/public_html"
             echo "=== havuz supurucusu (kuru) ==="
             php cron_pool_sweep.php --dry-run
+            echo "=== talep hatirlatmasi (kuru) ==="
+            php cron_claims.php --dry-run
             echo ""
             echo "=== escrow serbest birakma (kuru) ==="
             php cron_escrow_release.php --dry-run

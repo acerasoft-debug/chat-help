@@ -586,6 +586,45 @@ sunucu tarafında **ayrıca** reddedilir — düğmenin görünmemesi yetki değ
 Gerekçe: belge alıcının elinde; kaydını silmek var olan bir faturayı dayanaksız
 bırakır. Sıra: **önce faturayı düzelt (kalemi çıkar), sonra teklifi sil.**
 
+**KURAL 5h — Fatura müşterinin KENDİ harfleriyle çıkar (CJK gömülü yazı tipi)**
+(operatör, 7 Eyl 2026: *"çin karakterlerini faturaya yazamıyorum … fatura çin
+adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kayıt 5 Eyl 2026).
+- Çizici gömülü olmayan Helvetica + WinAnsi (CP1252) kullanıyordu; CP1252 Batı
+  Avrupa alfabesidir. `iconv(...//TRANSLIT//IGNORE)` Çince/Japonca/Korece/
+  Yunanca/Kiril harfleri **sessizce soru işaretine** çeviriyordu: belge geçerli
+  görünüyor, müşterinin adı yok. Bu depoda tekrar eden ders.
+- Çözüm `vestra/assets/fonts/vestra-cjk.ttf` (WenQuanYi Zen Hei alt kümesi,
+  10 MB, GPL v2 + font istisnası — yanındaki LICENSE dosyası) + `inc/pdf_font.php`
+  (PHP TrueType alt kümeleyici). Belgeye **yalnızca o belgede geçen glifler**
+  gömülür: Çince faturanın tamamı ~26 KB. Biçim Type0/Identity-H +
+  CIDFontType2, CID = yeni glif no.
+- **ToUnicode CMap şart:** onsuz belge doğru görünür ama kopyalanamaz ve
+  `pdftotext` boş döker — gümrükte adresi elle yeniden yazdırmak demektir.
+- **Latin belgeler değişmez:** CP1252'ye sığan bir dizge Helvetica yolundan
+  gider, dosyaya font nesnesi bile eklenmez (testte iddia var).
+- **Genişlik tahmin değil.** Han karakteri tam genişliktir (1 em); Helvetica'nın
+  0.52 em'lik ortalaması Çince adresi yarı genişlikte sanıp satıcı kutusunun
+  üzerine bindiriyordu. Tek ölçüm yeri `vestra_pdf_width()`; `VestraPdf::strWidth`
+  ve `vestra_invoice_wrap()` ikisi de onu çağırır. Çincede boşluk yok, sarma
+  karakter karakter kırıyor.
+- **Taslak uyarısı yanlış yere bakıyordu (7. vaka).** Tarama `$order['company']`
+  okuyordu, oysa gerçek yükte alıcı alanları `$order['buyer']` altında
+  (`vestra_invoice_buyer`). Yani uyarı **canlı bir faturada hiç çalışmadı**;
+  yalnızca düz dizi veren testte "çalışıyor" görünüyordu. Artık `buyer[]`
+  taranıyor ve uyarı **kod noktası** yazıyor (`U+1F9F5`) — basılamayan karakteri
+  uyarının içine koymak uyarıyı da okunmaz yapıyordu.
+- Yazı tipi sunucuya gitmezse eski davranışa döner ve **taslak bunu söyler**;
+  sessiz kayıp olmaz. Test: `tests/pdf_cjk_test.php` (53 iddia).
+- **Canlı ölçüm (7 Eyl 2026, `diag-live` → `order_sheet_ref=VES-6B53D265`,
+  `order_doc=invoice`):** önizleme sunucuda üretildi, şifreli döndü, çözüldü —
+  belge alıcının unvanını **kendi harfleriyle** basıyor, `/FontFile2`,
+  `/Identity-H`, `/ToUnicode` yerinde, 23,9 KB. Aynı koşu **iki veri boşluğu**
+  gösterdi: (1) hesapta **sokak adresi yok** (gümrük/kurye ister),
+  (2) vergi alanına **bölgenin adı** yazılmış ("中国香港特别行政区") ve belge
+  bunu "VAT ID" diye basıyordu. **Rakamsız bir değer vergi numarası değildir:**
+  artık basılmaz, ve iki eksik de **yalnız taslakta** operatöre yazılır. İkisi
+  de veri düzeltmesi ister (`Admin ▸ Users ▸ ✎ Edit billing details`).
+
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
 3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları
@@ -779,8 +818,35 @@ dönmek zorundadir"*).
   Site genelindeki bağlantılar `/faq?cat=returns` adresine gider; kural altbilgide,
   ürün sayfasında veya sepette **TEKRAR YAZILMAZ** — iki kopya er geç ayrışır.
   `returns_policy_test.php` bu sayfalarda gün sayısının geçmediğini de doğrular.
-- **Gün sayısı tek kaynaktan:** `VESTRA_CLAIM_DAYS` (`inc/escrow.php`), takvim günü.
-  Metin ile sabitin aynı kalmasını test zorunlu tutar.
+- **Gün sayısı tek kaynaktan:** `VESTRA_CLAIM_DAYS` (`inc/escrow.php`) — **İŞ GÜNÜ**
+  (operatör kararı, 6 Eyl 2026: *"3 günde hafta sonları sayılmasın"*; 4 Eylül'de
+  takvim günüydü). Son tarih `vestra_claim_deadline($teslimTs)` = 3 iş günü sonra,
+  gün sonuna kadar; Cuma teslimat → Çarşamba. Escrow serbest bırakma
+  (`escrow_release_deadline`) ve satıcının "teslim edildi" mektubu **aynı**
+  fonksiyondan okur — mektup eskiden kendi başına "2 iş günü" hesaplıyordu ve
+  KURAL 11 süreyi uzatınca geride kalmıştı (alıcı Çarşamba okuyor, para Perşembe).
+  Metin ile sabitin aynı kalmasını test zorunlu tutar (`returns_policy_test.php`
+  §1/§3: "3 business days", "calendar day" yok, "Friday…by Monday" yok).
+- **"Satıcı ödenir" cümlesi kaldırıldı** (operatör, 6 Eyl 2026: *"verkäufer wird
+  bezahlt yerine satıcının fonları sistemde tutulmayabilir"*). Süre dolunca
+  "the seller is paid" demek havale siparişinde düpedüz **yanlıştı** — satıcı
+  sevkiyattan önce ödenmişti; VESTRA hiç para tutmamıştı. Şimdi 9 dilde: *"any
+  funds still held for the order are no longer held"* — escrow'da doğru, havalede
+  boş küme olarak doğru.
+- **Talep akışı ("Open dispute") 5–6 Eyl 2026'da kuruldu** — `inc/claims.php`,
+  tek karar noktası `vestra_claim_state()`. O tarihe kadar SSS beş sayfada olmayan
+  bir düğmeyi tarif ediyordu ve `disputed` bayrağı hiçbir yerde yazılmıyordu.
+  Operatör: **her siparişte** (iptal hariç), **sessiz** (katlanmış "I have a
+  problem with this order" bağlantısı → sebepler → foto+açıklama). Açık talep
+  escrow süpürücüsünü **ve** alıcının "teslim aldım" düğmesini durdurur; sonuç
+  alıcıya mektupla + sipariş ipliğine kartla gider; satıcı talebi salt-okunur
+  görür; `cron_claims.php` (07:10 UTC) 2 iş gününü geçen açık talebi operatöre
+  yazar. Test: `tests/claim_flow_test.php`.
+- **de/fr/es/it'de `returns` dışı maddeler 4 Eylül'de güncellenmemişti**
+  (6 Eyl 2026'da bulundu): `shipping/5` "48 saat", `disputes/0`/`/4` "5 iş günü",
+  `disputes/2` "satıcı iade sunuyorsa iade mümkün" — KURAL 11'in tersi, dört dilde,
+  iki gün. `returns_policy_test` yalnız `returns`'ü koruyordu;
+  `faq_translation_test.php` artık bu maddelerde rakip süre izini de tutuyor.
 - **Bu iş üç canlı çelişki ortaya çıkardı, üçü de düzeltildi:**
   1. SSS aynı soruya **üç** farklı cevap veriyordu — uyuşmazlık için "5 iş günü",
      nakliye hasarı için "48 saat", escrow için "2 iş günü". Hepsi 3 güne indi.
@@ -864,6 +930,22 @@ dönmek zorundadir"*).
 ## Operasyonel notlar
 
 - Deploy `claude/wizardly-planck-7ylnmk` dalına **push ile** tetiklenir.
+- **Siparişin USD karşılığı SİPARİŞ TARİHİNDEKİ kurla** (operatör, 7 Eyl 2026:
+  *"siparişleri anında sipariş zamanındaki kur ile USD'ye çevirecek bir sistem
+  koy admin paneline"*). Tek kaynak `inc/fx_orders.php`; damga
+  `order_statuses.json[ref].fx` (`usd`, `date`, `source`). **İki kur var,
+  karıştırma:** vitrin kuru (`vestra_fx`, bugünün) ile sipariş kuru (damga, bir
+  kez yazılır, değişmez). Damga sipariş yazılırken düşer (`order.php` +
+  `vestra_offer_order_ensure`, vitrin önbelleğinden, ağsız); eski siparişler için
+  frankfurter'in **tarih aralığı** ucundan ECB geçmişi **tek istekle** çekilir
+  (`data/fx_history.json`), admin Orders sekmesi açılınca kendiliğinden
+  (`vestra_orders_fx_backfill`, 30 dk geri çekilme) ve `⟳ Fetch missing rates`
+  düğmesiyle. **Damga yoksa "US$ —"** — bugünün kuruyla doldurulmaz (KURAL 3'ün
+  kur hâli). Hafta sonu siparişi bir önceki yayım gününün kurunu ve **o tarihi**
+  taşır. `Admin ▸ Orders`: listede ≈ US$ satırı, dosyada "In USD (rate on order
+  date)", "Total volume in USD" kartı, `?dl=orders_usd` CSV. Canlı damgalama:
+  `diag-live` → `fx_probe=true` eski siparişleri de damgalar (ref/tarih/kur
+  yazar, kişi verisi yok). Test: `tests/order_fx_test.php`.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,

@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => 'Come si paga attualmente?',
-        'a' => '<b>I pagamenti avvengono attualmente su fattura.</b> Dopo la conferma dell\'ordine ricevi una fattura proforma e paghi tramite bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è temporaneamente sospeso e tornerà disponibile in una fase successiva.',
+        'a' => 'I pagamenti avvengono attualmente su fattura. Dopo la conferma dell\'ordine ricevi una fattura proforma e paghi tramite bonifico bancario; la merce viene spedita dopo il pagamento. Il checkout con deposito a garanzia/carta descritto di seguito è temporaneamente sospeso e tornerà disponibile in una fase successiva.',
       ),
       1 => 
       array (
@@ -242,7 +242,7 @@
       5 => 
       array (
         'q' => 'Cosa succede se la merce arriva danneggiata?',
-        'a' => 'Documenti il danno con fotografie subito alla consegna, prima di firmare la ricevuta del corriere. Apra una controversia entro 48 ore dalla consegna. Non restituisca la merce senza conferma scritta di VESTRA — i resi non autorizzati complicano la risoluzione.',
+        'a' => 'Documenti il danno con fotografie subito alla consegna, prima di firmare la ricevuta del corriere. Presenti il reclamo entro 3 giorni lavorativi dalla consegna. Non restituisca la merce senza conferma scritta di VESTRA — i resi non autorizzati complicano la risoluzione.',
       ),
     ),
   ),
@@ -254,7 +254,7 @@
       0 => 
       array (
         'q' => 'Cosa succede se la merce non corrisponde alla descrizione dell\'annuncio?',
-        'a' => 'Se la merce differisce sostanzialmente dall\'annuncio (modello, quantità, colore errati o difetti non dichiarati), apra una controversia nella dashboard del Suo account entro 5 giorni lavorativi dalla consegna confermata. Alleghi fotografie e una descrizione scritta. Sospenda ogni ulteriore pagamento al venditore durante la verifica.',
+        'a' => 'Se la merce differisce sostanzialmente dall\'annuncio (modello, quantità, colore errati o difetti non dichiarati), aprite un reclamo nella dashboard del vostro account entro 3 giorni lavorativi dalla consegna — cosa inviare è indicato nella sezione Resi e reclami. Allegate fotografie e una descrizione scritta. Sospendete ogni ulteriore pagamento al venditore durante la verifica.',
       ),
       1 => 
       array (
@@ -264,7 +264,7 @@
       2 => 
       array (
         'q' => 'Posso restituire la merce?',
-        'a' => 'Gli acquisti B2B su VESTRA non prevedono un diritto legale di restituzione (a differenza degli acquisti dei consumatori). I resi sono possibili solo quando la merce è materialmente non conforme alla descrizione, comprovata come contraffatta, o quando il venditore prevede espressamente i resi nel proprio annuncio. Non spedisca mai la merce senza un\'autorizzazione scritta.',
+        'a' => 'Gli ordini all\'ingrosso sono chiusi ai resi: non esiste reso per ripensamento, né diritto legale di recesso su un acquisto B2B. La merce errata, mancante o difettosa è reclamabile entro 3 giorni lavorativi dalla consegna. Le regole complete, le prove da inviare e chi paga il trasporto di ritorno sono indicati nella sezione Resi e reclami.',
       ),
       3 => 
       array (
@@ -274,7 +274,7 @@
       4 => 
       array (
         'q' => 'Entro quando devo aprire una contestazione?',
-        'a' => 'Deve aprire la controversia entro 5 giorni lavorativi dalla data di consegna confermata (o, in caso di mancata consegna, entro il termine concordato). Oltre questa finestra la consegna si considera accettata e le controversie diventano molto più difficili da risolvere.',
+        'a' => 'Entro 3 giorni lavorativi dalla consegna (o, in caso di mancata consegna, entro il termine di consegna concordato). Oltre questa finestra la consegna si considera accettata e gli importi eventualmente ancora trattenuti per l\'ordine non vengono più trattenuti. Gli stessi 3 giorni lavorativi valgono per ogni motivo di reclamo — merce errata, mancante, difettosa o non conforme.',
       ),
       5 => 
       array (
@@ -439,12 +439,12 @@
       2 => 
       array (
         'q' => 'Quanto tempo ho per segnalarlo?',
-        'a' => 'Tre giorni. Dovete avvisarci entro 3 giorni dalla consegna. È l\'unico termine che conta: trascorso questo, la consegna si considera accettata e il venditore viene pagato. Non sono previste proroghe per festività, assenze del personale o colli non aperti — se non potete controllare una consegna entro tre giorni, incaricate qualcuno che possa farlo.',
+        'a' => 'Tre giorni lavorativi. Dovete avvisarci entro 3 giorni lavorativi dalla consegna — dal lunedì al venerdì; sabato e domenica non contano. È l\'unico termine che conta: trascorso questo, la consegna si considera accettata e gli importi eventualmente ancora trattenuti per l\'ordine non vengono più trattenuti. Non sono previste proroghe per festività, assenze del personale o colli non aperti — se non potete controllare una consegna entro tre giorni lavorativi, incaricate qualcuno che possa farlo.',
       ),
       3 => 
       array (
         'q' => 'Come si contano esattamente i 3 giorni?',
-        'a' => 'Giorni di calendario, non lavorativi, a partire dalla data di consegna registrata dal vettore o confermata nel vostro ordine. Una consegna del venerdì va segnalata entro lunedì. Il termine si interrompe nel momento in cui il reclamo viene inviato sulla piattaforma — non quando il venditore risponde.',
+        'a' => 'Giorni lavorativi, non di calendario — sabato e domenica non si contano —, a partire dalla data di consegna registrata dal vettore o confermata nel vostro ordine. Una consegna del venerdì va segnalata entro il mercoledì successivo. Il termine si interrompe nel momento in cui il reclamo viene inviato sulla piattaforma — non quando il venditore risponde.',
       ),
       4 => 
       array (
@@ -484,12 +484,12 @@
       11 => 
       array (
         'q' => 'E se la consegna è incompleta?',
-        'a' => 'Contate i colli rispetto al documento di trasporto prima di firmare, e annotate ogni ammanco sulla ricevuta del vettore in quel momento. Un ammanco scoperto dopo una firma senza riserve è molto più difficile da provare, ma resta reclamabile entro i 3 giorni se i pesi dei cartoni o i sigilli lo confermano. Fotografate i colli sigillati prima di aprirli.',
+        'a' => 'Contate i colli rispetto al documento di trasporto prima di firmare, e annotate ogni ammanco sulla ricevuta del vettore in quel momento. Un ammanco scoperto dopo una firma senza riserve è molto più difficile da provare, ma resta reclamabile entro i 3 giorni lavorativi se i pesi dei cartoni o i sigilli lo confermano. Fotografate i colli sigillati prima di aprirli.',
       ),
       12 => 
       array (
         'q' => 'E se la merce è danneggiata durante il trasporto?',
-        'a' => 'Annotate il danno sulla ricevuta del vettore prima di firmare, fotografate l\'imballo prima di aprirlo e presentate il reclamo entro gli stessi 3 giorni. Il danno da trasporto è materia del vettore e i suoi termini possono essere più brevi dei nostri: è la riserva apposta alla consegna a tutelare il diritto. Non gettate l\'imballo finché il caso non è chiuso.',
+        'a' => 'Annotate il danno sulla ricevuta del vettore prima di firmare, fotografate l\'imballo prima di aprirlo e presentate il reclamo entro gli stessi 3 giorni lavorativi. Il danno da trasporto è materia del vettore e i suoi termini possono essere più brevi dei nostri: è la riserva apposta alla consegna a tutelare il diritto. Non gettate l\'imballo finché il caso non è chiuso.',
       ),
       13 => 
       array (
@@ -499,7 +499,7 @@
       14 => 
       array (
         'q' => 'Un reclamo blocca il pagamento al venditore?',
-        'a' => 'Sì. Finché un reclamo è aperto non viene rilasciato alcun importo, e il rilascio automatico è impostato in modo da non poter avvenire prima della scadenza dei vostri 3 giorni. È la ragione pratica della brevità del termine: il vostro denaro resta trattenuto esattamente per il tempo in cui dura il vostro diritto di contestare.',
+        'a' => 'Sì. Finché un reclamo è aperto non viene rilasciato alcun importo, e il rilascio automatico è impostato in modo da non poter avvenire prima della scadenza dei vostri 3 giorni lavorativi. È la ragione pratica della brevità del termine: il vostro denaro resta trattenuto esattamente per il tempo in cui dura il vostro diritto di contestare.',
       ),
       15 => 
       array (
@@ -514,7 +514,7 @@
       17 => 
       array (
         'q' => 'Qual è il riassunto più breve possibile?',
-        'a' => 'Nessun reso per ripensamento. Solo merce errata, mancante o difettosa. Segnalatelo entro 3 giorni dalla consegna, con fotografie, tramite la piattaforma. Non rispedite nulla prima della nostra autorizzazione scritta.',
+        'a' => 'Nessun reso per ripensamento. Solo merce errata, mancante o difettosa. Segnalatelo entro 3 giorni lavorativi dalla consegna, con fotografie, tramite la piattaforma. Non rispedite nulla prima della nostra autorizzazione scritta.',
       ),
     ),
   ),

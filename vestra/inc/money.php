@@ -226,54 +226,6 @@ function vestra_fx_set_manual(array $rates, string $date = ''): void {
 }
 
 /**
- * Bir EUR tutarinin USD karsiligi ve kurun kimligi (operator, 7 Eyl 2026:
- * "her siparisin yanina usd ye cevir bolumu ciksin").
- *
- * Doner: ['amount' => 'US$5,540.30', 'note' => 'ECB 2026-09-07, 1 EUR = 1.0757 USD']
- * ya da kur yoksa BOS DIZI -- uydurulmus bir kur, faturayla tutmayan bir rakami
- * musterinin onune koyar ve o rakama gore havale yapilir.
- *
- * Cevrilen tutar BILGI AMACLIDIR: siparis EUR uzerinden kesiliyor, banka
- * havalesi de EUR geliyor. Cagiran taraf bunu YAZMAK ZORUNDA (asagidaki
- * vestra_usd_hint_html tek cumleyi tek yerden veriyor) -- USD rakamini
- * odenecek tutar sanan bir alici eksik havale yapar ve fark hafta sonuna
- * takilir.
- */
-function vestra_usd_equiv(float $eurAmount, string $cur = 'USD'): array
-{
-    if ($eurAmount <= 0) return [];
-    $cur  = strtoupper($cur);
-    $rate = vestra_fx($cur);
-    if ($rate <= 0) return [];                      // kur yok: rakam UYDURULMAZ
-    $sym  = vestra_currencies()[$cur]['sym'] ?? '';
-    if ($sym === '') return [];
-    $src  = vestra_fx_source();
-    $date = vestra_fx_date();
-    $lbl  = ['ecb' => 'ECB', 'market' => 'market', 'manual' => 'manual'][$src] ?? '';
-    $note = trim(($lbl !== '' ? $lbl.' ' : '').$date);
-    return [
-        'amount' => $sym.number_format($eurAmount * $rate, 2, '.', ','),
-        'rate'   => $rate,
-        'note'   => trim($note.($note !== '' ? ', ' : '').'1 EUR = '
-                    .rtrim(rtrim(number_format($rate, 4, '.', ''), '0'), '.').' '.$cur),
-    ];
-}
-
-/**
- * Siparis kartlarinda/detayinda gosterilecek hazir HTML parcasi. Kur yoksa ''.
- * Tek yerden ciktigi icin "yaklasik" uyarisi hicbir ekranda unutulamaz.
- */
-function vestra_usd_hint_html(float $eurAmount, string $cls = 'hint', string $cur = 'USD'): string
-{
-    $u = vestra_usd_equiv($eurAmount, $cur);
-    if (!$u) return '';
-    $t = function (string $s): string { return function_exists('t') ? t($s) : $s; };
-    return '<div class="'.htmlspecialchars($cls).'" style="font-weight:400;font-size:11px">'
-         . '≈ '.htmlspecialchars($u['amount']).' · '.htmlspecialchars($t('indicative, invoiced in EUR'))
-         . '<br>'.htmlspecialchars($u['note']).'</div>';
-}
-
-/**
  * Tutari ziyaretcinin para biriminde yaz. Cevrilemiyorsa EUR yazar.
  * $cur verilirse o para birimi kullanilir (fatura gibi sabit baglamlar icin).
  */

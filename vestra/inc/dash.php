@@ -55,6 +55,12 @@ function dash_open($role,$section,$title,$subtitle=''){
   }
   echo '<div class="dashlang"><span>'.t('Language').'</span>'.vlang_switcher('dashsw','flat').'</div>';
   echo '<a class="signout" href="/login?signout=1">'.t('Sign out').'</a>';
+  /* Telefonda serit yana kayar ve acik sekme ("Messages" besinci) ilk ekranda
+     GORUNMUYORDU (7 Eyl 2026 olcumu): kullanici hangi sekmede oldugunu
+     goremiyordu. Acik sekmeyi seridin ortasina getir — yalniz seridin kendi
+     yatay kaydirmasi, sayfa dikeyde oynamaz (scrollIntoView degil). */
+  echo '<script>(function(){var s=document.querySelector(".dashside"),a=s&&s.querySelector("a.on");'
+     . 'if(!a||s.scrollWidth<=s.clientWidth)return;s.scrollLeft=Math.max(0,a.offsetLeft-(s.clientWidth-a.offsetWidth)/2);})();</script>';
   echo '</aside><main class="dashmain">';
 }
 function dash_close(){ echo '</main></div></div>'; }

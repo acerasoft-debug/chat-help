@@ -1093,6 +1093,28 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      siparis kaydiyla ayni is, ayni dosya kurallari (auth_doc_file_check
      uzerinden). Musteri panelden yuklediginde zaten buyer.php'nin kendi yolu
      (upload_receipt) calisiyor; bu yalnizca e-posta yolunun karsiligi. */
+  /* Talebi kapat (5 Eyl 2026). Escrow bayragini da temizler -- tek fonksiyon,
+     yoksa para birakilir ama satirda "disputed" asili kalirdi. */
+  /* Damgasız siparişlere sipariş tarihinin kurunu yaz (7 Eyl 2026). Sekme
+     açılınca kendiliğinden de denenir; bu düğme uç kapalıyken tekrar için. */
+  if($act==='fx_backfill'){
+    require_once __DIR__.'/inc/fx_orders.php';
+    $fxr = vestra_orders_fx_backfill($orders, true);
+    header('Location: /admin?tab=orders&msg=fx_backfill&stamped='.(int)$fxr['stamped'].'&missing='.(int)$fxr['still_missing'].'&fetched='.($fxr['fetched']?1:0)); exit;
+  }
+  if($act==='resolve_claim'){
+    require_once __DIR__.'/inc/claims.php';
+    $clRef = trim((string)($_POST['ref'] ?? ''));
+    $clRes = vestra_claim_resolve($clRef, (string)($_POST['outcome'] ?? ''), 'operator');
+    if ($clRes['ok']) {
+      /* Sonuc aliciya YAZILI gider (SSS returns/6/9/10) ve siparişin sohbet
+         ipligine kart duser -- acilistaki yolun aynisi. */
+      $clRow = null;
+      foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $clRef) { $clRow = $r; break; } }
+      if ($clRow) vestra_claim_notify('resolved', $clRef, $clRow, vestra_order_claim($clRef) ?? []);
+    }
+    header('Location: /admin?tab=orders&view='.urlencode($clRef).($clRes['ok'] ? '&msg=claim_resolved' : '&msg=claim_err')); exit;
+  }
   if($act==='attach_receipt'){
     require_once __DIR__.'/inc/receipts.php';
     $rref = trim((string)($_POST['ref'] ?? ''));
@@ -1922,6 +1944,26 @@ if($authed && isset($_GET['dl_doc'])){
   http_response_code(404); echo 'File not found'; exit;
 }
 
+// ── Claim evidence download (admin only) ────────────────────────────────────────
+// Kanit dosyalari data/claims/ altinda ve dizinde "Deny from all" var; tek okuma
+// yolu bu. basename() + ref temizligi dl_receipt ile birebir ayni.
+if($authed && isset($_GET['dl_claim'])){
+  require_once __DIR__.'/inc/claims.php';
+  $cRef  = preg_replace('/[^A-Za-z0-9_-]/','', $_GET['ref']??'');
+  $cFile = basename($_GET['dl_claim']??'');
+  if($cRef && $cFile){
+    $path = vestra_claim_file_path($cRef, $cFile);
+    if(is_readable($path)){
+      $ext  = strtolower(pathinfo($cFile,PATHINFO_EXTENSION));
+      $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
+      header('Content-Type: '.$mime);
+      header('Content-Disposition: inline; filename="'.addslashes($cFile).'"');
+      readfile($path); exit;
+    }
+  }
+  http_response_code(404); echo 'File not found'; exit;
+}
+
 // ── Payment receipt download (admin only) ───────────────────────────────────────
 if($authed && isset($_GET['dl_receipt'])){
   require_once __DIR__.'/inc/receipts.php';
@@ -1948,6 +1990,22 @@ if($authed && ($_GET['dl']??'')==='sellers'){
   fputcsv($out,['company','contact_name','email','country','address','vat_id','reg_number','phone','website','status','kyb_status'],',','"','\\');
   foreach(auth_accounts() as $a){ if(($a['type']??'')!=='seller') continue;
     fputcsv($out,[$a['company']??'',$a['name']??'',$a['email']??'',$a['country']??'',$a['address']??'',$a['vat_id']??'',$a['reg_number']??'',$a['phone']??'',$a['website']??'',$a['status']??'',$a['kyb_status']??''],',','"','\\');
+  }
+  fclose($out); exit;
+}
+/* Siparişler + USD sütunları (7 Eyl 2026): ham orders.csv'nin yanına
+   usd_rate / usd_rate_date / usd_rate_source / total_usd eklenmiş kopyası.
+   Damgasız sipariş boş hücre basar — bugünün kuruyla doldurulmaz. */
+if($authed && ($_GET['dl']??'')==='orders_usd'){
+  require_once __DIR__.'/inc/fx_orders.php';
+  $rows=vestra_read_csv('orders.csv'); $fxm=vestra_orders_fx_map($rows);
+  header('Content-Type: text/csv; charset=UTF-8'); header('Content-Disposition: attachment; filename="vestra-orders-usd.csv"');
+  $out=fopen('php://output','w');
+  $head=$rows?array_keys($rows[0]):['timestamp','ref','total'];
+  fputcsv($out,array_merge($head,['usd_rate','usd_rate_date','usd_rate_source','total_usd']),',','"','\\');
+  foreach($rows as $r){
+    $fx=$fxm[$r['ref']??'']??null; $usd=$fx?vestra_order_usd($r,$fx):null;
+    fputcsv($out,array_merge(array_values($r),[$fx?number_format((float)$fx['usd'],6,'.',''):'', $fx['date']??'', $fx['source']??'', $usd!==null?number_format($usd,2,'.',''):'']),',','"','\\');
   }
   fclose($out); exit;
 }
@@ -2778,7 +2836,7 @@ if($pendingEmail)  $att[] = ['#3366cc','✉️','Accounts with unverified email'
   <div class="atscroll"><table class="atable">
     <?= arow(['Ref','Buyer','Total','Status'],true) ?>
     <?php foreach($rec as $o): $st=$orderSt[$o['ref']??'']['status']??'pending'; ?>
-    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($o['ref']??''))!=='')?'<div class="ahint" style="font-size:10.5px">'.htmlspecialchars($__iv).'</div>':'').vestra_usd_hint_html((float)($o['total']??0),'ahint'),orderBadge($st)]) ?>
+    <?= arow(['<span class="atag">'.htmlspecialchars(substr($o['ref']??'',0,12)).'</span>',htmlspecialchars($o['company']??$o['email']??''),'<b>'.eur($o['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($o['ref']??''))!=='')?'<div class="ahint" style="font-size:10.5px">'.htmlspecialchars($__iv).'</div>':''),orderBadge($st)]) ?>
     <?php endforeach; ?>
   </table></div>
   <?php } ?>
@@ -3417,7 +3475,20 @@ elseif($tab==='orders'):
      status control — so the admin never pieces an order together from a row. */
   $viewRef=trim($_GET['view']??''); $viewRow=null;
   if($viewRef!==''){ foreach($orders as $__o){ if(($__o['ref']??'')===$viewRef){ $viewRow=$__o; break; } } }
+  /* USD, sipariş tarihinin kuruyla (7 Eyl 2026). Damgasız sipariş varsa ECB
+     geçmişi TEK istekle çekilip damgalanır — sekme açılınca, düğme beklemeden.
+     Uç kapalıysa 30 dk geri çekilir; damgasızlar "—" kalır, tahmin edilmez. */
+  require_once __DIR__.'/inc/fx_orders.php';
+  $fxBack = vestra_orders_fx_backfill($orders, true);
+  $fxMap  = vestra_orders_fx_map($orders);
+  $fxUsdTotal = 0.0; $fxUnstamped = 0;
+  foreach($orders as $__o){ $u = isset($fxMap[$__o['ref']??'']) ? vestra_order_usd($__o, $fxMap[$__o['ref']]) : null; if($u===null) $fxUnstamped++; else $fxUsdTotal += $u; }
 ?>
+<?php if(($_GET['msg']??'')==='fx_backfill'): ?>
+<div class="amsg <?= ((int)($_GET['missing']??0))===0 ? 'ok' : '' ?>">
+  <?= ((int)($_GET['stamped']??0)) ?> order(s) stamped with the rate of their order date<?= ((int)($_GET['missing']??0))>0 ? '; '.(int)$_GET['missing'].' still without a rate'.(($_GET['fetched']??'1')==='0' ? ' — the rate service did not answer, try again in 30 minutes' : '') : '' ?>.
+</div>
+<?php endif; ?>
 <?php /* Platform kendi adina fatura kestiginde (kurasyonlu katalog urunleri: satici
          hesabi yok) odeme kutusu buradan doluyor. Bos ise fatura banka bilgisi
          OLMADAN cikar ve alici parayi nereye gonderecegini bilemez -- o yuzden
@@ -3515,7 +3586,12 @@ elseif($tab==='orders'):
       <?php endif; ?>
       <?= arow(['Platform commission','<b style="color:#1f9d63">'.eur($viewRow['commission']??0).'</b>']) ?>
       <?= arow(['Seller payout',eur($viewRow['payout']??0)]) ?>
-      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'').vestra_usd_hint_html((float)($viewRow['total']??0),'ahint')]) ?>
+      <?= arow(['<b>Buyer pays</b>','<b>'.eur($viewRow['total']??0).'</b>'.((($__iv=vestra_order_invoiced_note($viewRef))!=='')?'  <span class="ahint">'.htmlspecialchars($__iv).'</span>':'')]) ?>
+      <?php /* USD, siparişin KENDİ tarihindeki kurla — bugünün kuru değil (7 Eyl 2026). */
+        $__vfx=$fxMap[$viewRef]??null; $__vusd=$__vfx?vestra_order_usd($viewRow,$__vfx):null; ?>
+      <?= arow(['In USD (rate on order date)', $__vusd!==null
+            ? '<b>'.vestra_usd($__vusd).'</b>  <span class="ahint">EUR→USD '.htmlspecialchars(vestra_order_fx_note($__vfx)).'</span>'
+            : '<span style="color:var(--mut)">— no rate stamped yet</span> <span class="ahint">(use ⟳ Fetch missing rates on the orders list)</span>']) ?>
     </table>
     <div style="margin-top:12px">
       <div class="ahint" style="margin-bottom:6px;font-weight:600">Commission charges</div>
@@ -3599,6 +3675,43 @@ elseif($tab==='orders'):
         </form>
       <?php endif; ?>
     </div>
+    <?php
+      /* Alici talebi (5 Eyl 2026). Kanit dosyalari data/claims/ altinda ve
+         "Deny from all" arkasinda; tek okuma yolu ?dl_claim. Dosya kayitta VE
+         diskte olmali (files_on_disk) -- dosyasi olmayan bir kanit satiri,
+         hic kanit olmamasindan kotudur. */
+      require_once __DIR__.'/inc/claims.php';
+      $vClaim = vestra_order_claim($viewRef);
+    ?>
+    <?php if($vClaim): $vcOpen = ($vClaim['status'] ?? 'open') === 'open'; ?>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <div class="ahint" style="margin-bottom:6px;font-weight:600">
+        <?= $vcOpen ? '⚠ Claim OPEN' : '✓ Claim resolved' ?>
+        · <span style="font-family:ui-monospace,monospace"><?= htmlspecialchars((string)($vClaim['claim_ref']??'')) ?></span>
+      </div>
+      <div style="font-size:12.5px;margin-bottom:4px">
+        <b><?= htmlspecialchars((string)(vestra_claim_reasons()[$vClaim['reason']??'']??'?')) ?></b>
+        <span class="ahint">· opened <?= htmlspecialchars(substr((string)($vClaim['opened_at']??''),0,16)) ?> by <?= htmlspecialchars((string)($vClaim['opened_by']??'?')) ?></span>
+      </div>
+      <div style="font-size:12.5px;white-space:pre-wrap;margin-bottom:8px"><?= htmlspecialchars((string)($vClaim['detail']??'')) ?></div>
+      <?php foreach((array)($vClaim['files_on_disk']??[]) as $cf): ?>
+        <a href="/admin?dl_claim=<?= urlencode($cf) ?>&ref=<?= urlencode($viewRef) ?>" target="_blank" style="color:var(--acc);font-size:12.5px;margin-right:10px">📎 <?= htmlspecialchars($cf) ?></a>
+      <?php endforeach; ?>
+      <?php if($vcOpen): ?>
+        <div class="ahint" style="margin-top:6px">Escrow funds, if any, are held until this is resolved.</div>
+        <form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <?= csrfField() ?>
+          <input type="hidden" name="_action" value="resolve_claim">
+          <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
+          <input name="outcome" required placeholder="Outcome — this sentence is e-mailed to the buyer (replacement / partial credit / refund + return address / not upheld)" style="flex:1;min-width:280px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12px">
+          <button class="abtn" type="submit" style="font-size:12px" onclick="return confirm('This e-mails the outcome to the buyer and posts it into the order thread. Continue?')">✓ Resolve &amp; notify buyer</button>
+        </form>
+      <?php else: ?>
+        <div class="ahint" style="margin-top:6px">Outcome: <?= htmlspecialchars((string)($vClaim['outcome']??'—')) ?>
+          · <?= htmlspecialchars(substr((string)($vClaim['resolved_at']??''),0,16)) ?></div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
 
   <div class="acard">
@@ -3631,8 +3744,16 @@ elseif($tab==='orders'):
   <div class="ascard"><div class="sv" style="color:#9a7320"><?= $cnt_ship ?></div><div class="sl">Shipped</div></div>
   <div class="ascard"><div class="sv" style="color:#1f9d63"><?= $cnt_done ?></div><div class="sl">Completed</div></div>
   <div class="ascard"><div class="sv"><?= eur($totalRevenue) ?></div><div class="sl">Total volume</div></div>
+  <div class="ascard"><div class="sv"><?= vestra_usd($fxUsdTotal) ?></div><div class="sl">Total volume in USD<?= $fxUnstamped ? ' <span style="color:#a9781a">· '.$fxUnstamped.' order(s) without a rate</span>' : ' · rate of each order date' ?></div></div>
 </div>
-<div style="margin-bottom:12px"><a class="abtn" href="/admin?dl=orders">⬇ Download CSV</a></div>
+<div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+  <a class="abtn" href="/admin?dl=orders">⬇ Download CSV</a>
+  <a class="abtn" href="/admin?dl=orders_usd" title="Same rows plus usd_rate, usd_rate_date, usd_rate_source, total_usd">⬇ CSV with USD</a>
+  <?php if($fxUnstamped): ?>
+  <form method="post" style="margin:0"><?= csrfField() ?><input type="hidden" name="_action" value="fx_backfill">
+    <button class="abtn" type="submit" title="Fetches the ECB EUR→USD rate for each order date in one request and stamps the orders that have none">⟳ Fetch missing rates</button></form>
+  <?php endif; ?>
+</div>
 
 <?php
 /* Legacy duplicate refs (same buyer + same items pre-fix) share ONE status entry —
@@ -3654,15 +3775,23 @@ if($__dupRefs): ?>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
   <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Escrow','Update'],true) ?>
-  <?php foreach(array_reverse($orders) as $o):
-    $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
+  <?php require_once __DIR__.'/inc/claims.php'; $__openClaims = vestra_claims_open();
+  foreach(array_reverse($orders) as $o):
+    $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??'';
+    /* Acik talep rozeti: listede gorunmezse operator yalnizca acilis mektubunu
+       kacirmamaya bagli kalir -- ve bekleyen sey sessiz kalir (KURAL 2c). */
+    $__cl = $__openClaims[$ref] ?? null; ?>
   <tr>
-    <td class="ac"><a href="/admin?tab=orders&view=<?= urlencode($ref) ?>" style="text-decoration:none"><span class="atag" title="Open full order dossier"><?= htmlspecialchars(substr($ref,0,12)) ?> →</span></a></td>
+    <td class="ac"><a href="/admin?tab=orders&view=<?= urlencode($ref) ?>" style="text-decoration:none"><span class="atag" title="Open full order dossier"><?= htmlspecialchars(substr($ref,0,12)) ?> →</span></a>
+      <?php if($__cl): ?><div style="color:#a9781a;font-size:11px;margin-top:3px" title="<?= htmlspecialchars((string)($__cl['claim_ref']??'')) ?>">⚠ claim open</div><?php endif; ?></td>
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($o['timestamp']??'',0,10)) ?></td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>
     <td class="ac" style="font-size:11px"><?= vestra_order_items_cell($o['items']??'', 2, 160) ?></td>
-    <td class="ac"><b><?= eur($o['total']??0) ?></b><?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
+    <td class="ac"><b><?= eur($o['total']??0) ?></b>
+      <?php $__fx=$fxMap[$ref]??null; $__usd=$__fx?vestra_order_usd($o,$__fx):null; ?>
+      <div style="font-size:11.5px;<?= $__usd!==null?'':'color:var(--mut)' ?>" title="<?= $__fx?htmlspecialchars('EUR→USD '.vestra_order_fx_note($__fx)):'no rate stamped for this order date yet' ?>"><?= $__usd!==null ? '≈ '.vestra_usd($__usd) : 'US$ —' ?></div>
+      <?php if(((float)($o['shipping']??0))>0): ?><div class="ahint" style="font-size:10.5px">incl. shipping <?= eur($o['shipping']) ?></div><?php endif; ?><?php if(($__iv=vestra_order_invoiced_note($o['ref']??''))!==''): ?><div class="ahint" style="font-size:10.5px"><?= htmlspecialchars($__iv) ?></div><?php endif; ?></td>
     <td class="ac"><?= orderBadge($st) ?></td>
     <td class="ac" style="font-size:11px"><?= htmlspecialchars($trk) ?></td>
     <td class="ac" style="font-size:11px"><?php foreach(vestra_invoices_for_ref($ref) as $iv): ?>

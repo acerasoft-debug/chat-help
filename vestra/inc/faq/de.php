@@ -165,7 +165,7 @@
       0 => 
       array (
         'q' => 'Wie bezahle ich aktuell?',
-        'a' => '<b>Zahlungen erfolgen derzeit auf Rechnung.</b> Nach Bestätigung Ihrer Bestellung erhalten Sie eine Proforma-Rechnung und zahlen per Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Escrow-/Karten-Checkout ist vorübergehend ausgesetzt und wird zu einem späteren Zeitpunkt wieder verfügbar sein.',
+        'a' => 'Zahlungen erfolgen derzeit auf Rechnung. Nach Bestätigung Ihrer Bestellung erhalten Sie eine Proforma-Rechnung und zahlen per Banküberweisung; die Ware wird nach Zahlungseingang versandt. Der unten beschriebene Escrow-/Karten-Checkout ist vorübergehend ausgesetzt und wird zu einem späteren Zeitpunkt wieder verfügbar sein.',
       ),
       1 => 
       array (
@@ -242,7 +242,7 @@
       5 => 
       array (
         'q' => 'Was passiert, wenn Waren beschädigt ankommen?',
-        'a' => 'Dokumentieren Sie den Schaden sofort bei Zustellung mit Fotos, bevor Sie die Empfangsbestätigung des Spediteurs unterschreiben. Eröffnen Sie innerhalb von 48 Stunden nach Zustellung einen Streitfall. Senden Sie keine Ware ohne schriftliche Bestätigung von VESTRA zurück — nicht autorisierte Rücksendungen erschweren die Klärung.',
+        'a' => 'Dokumentieren Sie den Schaden sofort bei Zustellung mit Fotos, bevor Sie die Empfangsbestätigung des Spediteurs unterschreiben. Reichen Sie die Reklamation innerhalb von 3 Werktagen nach Zustellung ein. Senden Sie keine Ware ohne schriftliche Bestätigung von VESTRA zurück — nicht autorisierte Rücksendungen erschweren die Klärung.',
       ),
     ),
   ),
@@ -254,7 +254,7 @@
       0 => 
       array (
         'q' => 'Was passiert, wenn die Waren nicht der Angebotsbeschreibung entsprechen?',
-        'a' => 'Wenn die Ware wesentlich von der Beschreibung abweicht (falsches Modell, Menge, Farbe oder nicht offengelegte Mängel), eröffnen Sie innerhalb von 5 Werktagen nach bestätigter Zustellung einen Streitfall in Ihrem Konto-Dashboard. Fügen Sie Fotos und eine schriftliche Beschreibung bei. Leisten Sie während der Prüfung keine weiteren Zahlungen an den Verkäufer.',
+        'a' => 'Wenn die Ware wesentlich vom Angebot abweicht (falsches Modell, Menge, Farbe oder nicht offengelegte Mängel), eröffnen Sie innerhalb von 3 Werktagen nach Zustellung eine Reklamation in Ihrem Konto-Dashboard — was Sie mitschicken müssen, finden Sie im Abschnitt zu Rückgaben und Reklamationen. Fügen Sie Fotos und eine schriftliche Beschreibung bei. Leisten Sie während der Prüfung keine weiteren Zahlungen an den Verkäufer.',
       ),
       1 => 
       array (
@@ -264,7 +264,7 @@
       2 => 
       array (
         'q' => 'Kann ich Waren zurücksenden?',
-        'a' => 'B2B-Käufe auf VESTRA haben kein gesetzliches Rückgaberecht (im Gegensatz zu Verbraucherkäufen). Retouren sind nur möglich, wenn Waren wesentlich nicht der Beschreibung entsprechen, als Fälschung nachgewiesen wurden oder der Verkäufer in seinem Angebot ausdrücklich Rücknahmen anbietet. Versenden Sie Waren niemals ohne schriftliche Genehmigung zurück.',
+        'a' => 'Großhandelsbestellungen sind von der Rückgabe ausgeschlossen: Es gibt keine Rückgabe bei Sinneswandel und kein gesetzliches Widerrufsrecht bei einem B2B-Kauf. Falsche, fehlende oder mangelhafte Ware kann innerhalb von 3 Werktagen nach Zustellung reklamiert werden. Die vollständigen Regeln, die einzureichenden Nachweise und wer die Rücksendekosten trägt, finden Sie im Abschnitt zu Rückgaben und Reklamationen.',
       ),
       3 => 
       array (
@@ -274,7 +274,7 @@
       4 => 
       array (
         'q' => 'Wie lange habe ich Zeit, einen Streitfall zu eröffnen?',
-        'a' => 'Sie müssen einen Streitfall innerhalb von 5 Werktagen nach dem bestätigten Lieferdatum eröffnen (bzw. bei Nichtlieferung bis zur vereinbarten Lieferfrist). Nach Ablauf dieser Frist gilt die Lieferung als angenommen und Streitfälle sind deutlich schwerer zu lösen.',
+        'a' => 'Innerhalb von 3 Werktagen nach Zustellung (bei Nichtlieferung: bis zum vereinbarten Liefertermin). Nach Ablauf dieser Frist gilt die Lieferung als angenommen, und für die Bestellung noch zurückgehaltene Gelder werden nicht länger zurückgehalten. Dieselben 3 Werktage gelten für jeden Reklamationsgrund — falsch, fehlend, mangelhaft oder nicht wie beschrieben.',
       ),
       5 => 
       array (
@@ -439,12 +439,12 @@
       2 => 
       array (
         'q' => 'Wie lange habe ich Zeit, das zu melden?',
-        'a' => 'Drei Tage. Sie müssen uns innerhalb von 3 Tagen nach Zustellung benachrichtigen. Das ist die einzige Frist, auf die es ankommt: Danach gilt die Lieferung als angenommen und der Verkäufer wird bezahlt. Es gibt keine Verlängerung wegen Feiertagen, Personalabwesenheit oder ungeöffneter Kartons — wenn Sie eine Lieferung nicht innerhalb von drei Tagen prüfen können, beauftragen Sie jemanden, der es kann.',
+        'a' => 'Drei Werktage. Sie müssen uns innerhalb von 3 Werktagen nach Zustellung benachrichtigen — Montag bis Freitag; Samstage und Sonntage zählen nicht. Das ist die einzige Frist, auf die es ankommt: Danach gilt die Lieferung als angenommen, und für die Bestellung noch zurückgehaltene Gelder werden nicht länger zurückgehalten. Es gibt keine Verlängerung wegen Feiertagen, Personalabwesenheit oder ungeöffneter Kartons — wenn Sie eine Lieferung nicht innerhalb von drei Werktagen prüfen können, beauftragen Sie jemanden, der es kann.',
       ),
       3 => 
       array (
         'q' => 'Wie genau werden die 3 Tage gezählt?',
-        'a' => 'Kalendertage, nicht Werktage, beginnend mit dem vom Frachtführer erfassten oder in Ihrer Bestellung bestätigten Zustelldatum. Eine Zustellung am Freitag muss bis Montag gemeldet werden. Die Frist ist in dem Moment gewahrt, in dem Ihre Reklamation auf der Plattform eingeht — nicht erst, wenn der Verkäufer darauf antwortet.',
+        'a' => 'Werktage, nicht Kalendertage — Samstage und Sonntage werden nicht mitgezählt —, beginnend mit dem vom Frachtführer erfassten oder in Ihrer Bestellung bestätigten Zustelldatum. Eine Zustellung am Freitag muss bis zum folgenden Mittwoch gemeldet werden. Die Frist ist in dem Moment gewahrt, in dem Ihre Reklamation auf der Plattform eingeht — nicht erst, wenn der Verkäufer darauf antwortet.',
       ),
       4 => 
       array (
@@ -484,12 +484,12 @@
       11 => 
       array (
         'q' => 'Was, wenn die Lieferung unvollständig ist?',
-        'a' => 'Zählen Sie die Kartons gegen den Lieferschein, bevor Sie quittieren, und vermerken Sie jede Fehlmenge in diesem Moment auf dem Beleg des Frachtführers. Eine erst nach sauberer Unterschrift entdeckte Fehlmenge ist deutlich schwerer nachzuweisen, bleibt innerhalb der 3 Tage aber reklamierbar, wenn Kartongewichte oder Siegel dafür sprechen. Fotografieren Sie versiegelte Kartons, bevor Sie sie öffnen.',
+        'a' => 'Zählen Sie die Kartons gegen den Lieferschein, bevor Sie quittieren, und vermerken Sie jede Fehlmenge in diesem Moment auf dem Beleg des Frachtführers. Eine erst nach sauberer Unterschrift entdeckte Fehlmenge ist deutlich schwerer nachzuweisen, bleibt innerhalb der 3 Werktage aber reklamierbar, wenn Kartongewichte oder Siegel dafür sprechen. Fotografieren Sie versiegelte Kartons, bevor Sie sie öffnen.',
       ),
       12 => 
       array (
         'q' => 'Was, wenn die Ware auf dem Transportweg beschädigt wurde?',
-        'a' => 'Vermerken Sie den Schaden vor der Unterschrift auf dem Beleg des Frachtführers, fotografieren Sie die Verpackung, bevor Sie sie öffnen, und reichen Sie die Reklamation innerhalb derselben 3 Tage ein. Transportschäden sind Sache des Frachtführers und dessen eigene Fristen können kürzer sein als unsere — der Vermerk an der Tür ist deshalb das, was den Anspruch sichert. Entsorgen Sie die Verpackung nicht, bevor der Fall abgeschlossen ist.',
+        'a' => 'Vermerken Sie den Schaden vor der Unterschrift auf dem Beleg des Frachtführers, fotografieren Sie die Verpackung, bevor Sie sie öffnen, und reichen Sie die Reklamation innerhalb derselben 3 Werktage ein. Transportschäden sind Sache des Frachtführers und dessen eigene Fristen können kürzer sein als unsere — der Vermerk an der Tür ist deshalb das, was den Anspruch sichert. Entsorgen Sie die Verpackung nicht, bevor der Fall abgeschlossen ist.',
       ),
       13 => 
       array (
@@ -499,7 +499,7 @@
       14 => 
       array (
         'q' => 'Stoppt eine Reklamation die Zahlung an den Verkäufer?',
-        'a' => 'Ja. Solange eine Reklamation offen ist, wird kein Geld freigegeben, und die automatische Freigabe ist so eingestellt, dass sie nicht vor Ablauf Ihrer 3 Tage erfolgen kann. Das ist der praktische Grund für die kurze Frist: Ihr Geld wird genau so lange gehalten, wie Ihr Recht zur Beanstandung dauert.',
+        'a' => 'Ja. Solange eine Reklamation offen ist, wird kein Geld freigegeben, und die automatische Freigabe ist so eingestellt, dass sie nicht vor Ablauf Ihrer 3 Werktage erfolgen kann. Das ist der praktische Grund für die kurze Frist: Ihr Geld wird genau so lange gehalten, wie Ihr Recht zur Beanstandung dauert.',
       ),
       15 => 
       array (
@@ -514,7 +514,7 @@
       17 => 
       array (
         'q' => 'Was ist die kürzestmögliche Zusammenfassung?',
-        'a' => 'Keine Rückgabe bei Sinneswandel. Nur falsche, fehlende oder mangelhafte Ware. Melden Sie es innerhalb von 3 Tagen nach Zustellung, mit Fotos, über die Plattform. Senden Sie nichts zurück, bevor wir es schriftlich autorisiert haben.',
+        'a' => 'Keine Rückgabe bei Sinneswandel. Nur falsche, fehlende oder mangelhafte Ware. Melden Sie es innerhalb von 3 Werktagen nach Zustellung, mit Fotos, über die Plattform. Senden Sie nichts zurück, bevor wir es schriftlich autorisiert haben.',
       ),
     ),
   ),

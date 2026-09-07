@@ -88,6 +88,14 @@ body{-webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
    !important sart -- satir ici stil baska turlu ezilmiyor. Burada duruyor cunku
    cubugu her sayfa bu dosyadan aliyor, index.php'nin kendi altbilgisi dahil. */
 @media(max-width:820px){#cnotice{bottom:calc(74px + env(safe-area-inset-bottom,0px)) !important}}
+/* Telefonda bildirim ilk ekranin ucte birini kapliyordu (7 Eyl 2026: uc satir
+   metin + ayri satirda dugme, ~250px). Metin kucuk, dugme AYNI satirda. */
+@media(max-width:640px){
+  #cnotice{flex-wrap:nowrap !important;align-items:center !important;padding:10px 12px !important;font-size:12px !important;
+    line-height:1.4;left:10px !important;right:10px !important}
+  #cnotice>span{flex:1;min-width:0}
+  #cnotice button{flex:none;padding:10px 16px !important;font-size:12.5px !important;min-height:40px}
+}
 </style>
 <nav class="vtabbar" aria-label="<?= htmlspecialchars(t('Main')) ?>">
   <?php foreach ($__tbItems as [$href, $label, $match, $icon]):
