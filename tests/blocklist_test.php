@@ -562,6 +562,26 @@ $t('factoryoutlet.gr GECER',          !$blocked('Factory Outlet','info@factoryou
 $t('Outlet Shoes Famous Brands GECER',!$blocked('Outlet Shoes Famous Brands','',''));
 $t('tek kelime "outlet" elemiyor',    !$blocked('The Outlet Store Milano','info@outletstoremilano.it','outletstoremilano.it'));
 
+echo "\n== 10e. SERVIS SAGLAYICI adresi dukkanin adresi degildir ==\n";
+/* Tarayici sayfadaki ilk e-postayi alir; o adres cogu zaman canli destek
+   widget'inin, bir Shopify eklentisinin, park servisinin ya da siteyi yapan
+   ajansin adresidir. Bu depoda UC kez oldu ve ucunde de ELLE elendi -- elle
+   eleme unutulur, kontrol gonderim yolunda olmali (KURAL 1'in kendi dersi). */
+$t('tawk.to (canli destek) BLOK',      $blocked('SHINZO Paris','support@tawk.to','shinzo.paris'));
+$t('notifyboost (Shopify eklentisi) BLOK', $blocked('ka-pok','back-in-stock@notifyboost.net','ka-pok.com'));
+$t('web ajansi BLOK',                  $blocked('Nubian Tokyo','info@stagheaddesigns.com','nubiantokyo.com'));
+$t('alan adi park servisi BLOK',       $blocked('Yusty','domains@topdomainer.com','yusty.com'));
+/* Ayristirma cikti: alan adi degil, sayfadan kopmus bir parca. */
+$t('bozuk ayristirma BLOK',            $blocked('ANTONIA','-banner@section.brands','antonia.it'));
+$t('klaviyo/mailchimp BLOK',           $blocked('X','news@klaviyo.com','x.com') && $blocked('Y','hi@mailchimp.com','y.com'));
+/* GECMESI gerekenler: dukkanin KENDI adresi, serbest saglayici dahil. */
+$t('dukkanin kendi adresi GECER',      !$blocked('EKSEPTION','info@ekseption.com','ekseption.es'));
+$t('gmail adresli butik GECER',        !$blocked('Beni Room','infobeniroom@gmail.com','beniroom.com'));
+$t('.info alan adi GECER',             !$blocked('La Comercial','design@lacomercial.info','lacomercial.info'));
+/* TAM host esitligi: alt dize olsaydi "mytawk.to.shop" gibi bir ad da elenirdi. */
+$t('benzer ad elenmiyor',              !$blocked('Tawk Store','info@tawkstore.com','tawkstore.com'));
+$t('adressiz kayit cokmemeli',         !$blocked('X','','')); 
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));

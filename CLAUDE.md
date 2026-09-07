@@ -262,6 +262,28 @@ bağımsız perakendeci" listesi; elimize 35 satırı geldi).
 - Test: `blocklist_test.php §10d` — dört merkez BLOK, dört bağımsız GEÇER.
   Tek yön yazılsaydı test yeşil kalır, gerçek adaylar sessizce elenirdi.
 
+**KURAL 1h — Siteden çözülen adres DÜKKÂNIN olmayabilir; servis sağlayıcı adresi
+gönderim listesine girmez** (7 Eyl 2026, 200 satırlık liste taraması).
+- Tarayıcı sayfadaki ilk e-postayı alır. O adres çoğu zaman **canlı destek
+  widget'ının**, bir **Shopify eklentisinin**, **alan adı park servisinin** ya da
+  siteyi yapan **ajansın** adresidir. Bu depoda dört vaka:
+  `ka-pok.com → back-in-stock@notifyboost.net`,
+  `nubiantokyo.com → info@stagheaddesigns.com`,
+  `shinzo.paris → support@tawk.to`,
+  `yusty.com → domains@topdomainer.com` ("TopDomainer Search Engine" = park).
+  Beşincisi adres bile değildi: `antonia.it → -banner@section.brands`, sayfadan
+  kopmuş bir parça.
+- İlk üçü **elle** elenmişti; elle eleme unutulur. Kontrol artık gönderim
+  yolunda: `vestra_email_is_service_vendor()` → `vestra_lead_is_blocked()`.
+  **TAM host eşitliği**, alt dize değil — bunlar kesin hostlar ve bulanık eşleşme
+  bu depoda mango/zara dersini doğurmuştu ("Tawk Store" elenmemeli).
+- Liste **dar** tutuluyor: yalnız gözlenenler + hiçbir butiğin kendi alan adı
+  olamayacak canlı destek/pazarlama SaaS'ları (crisp, intercom, zendesk,
+  freshdesk, klaviyo, mailchimp, sentry). Serbest posta sağlayıcıları (gmail vb.)
+  **kapsam dışı** — gerçek küçük butik oradan yazıyor.
+- Test: `blocklist_test.php §10e` — beş vaka BLOK, dükkânın kendi adresi /
+  gmail'li butik / `.info` alan adı / benzer isim GEÇER.
+
 ## Hesap açma / belge kuralları
 
 **KURAL 2 — Satıcıdan istenen belge: ticari kayıt + kimlik. Başka bir şey yok.**
@@ -828,7 +850,7 @@ ekleyelim"* — VES-6B53D265).
 - Test: `order_shipping_test.php §3b` (yazma, faturanın gördüğü, çoğaltmama,
   silme, sınır, kesilmiş faturada ret).
 
-**KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
+**KURAL 5m — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
 şekilde yap"* → aynı gün *"kdv fiyatın içinde gelmiyor"*).
 - Fiyatlar **brüt**: ödenecek tutar değişmez. Ama bir KDV faturası matrahı,
@@ -868,7 +890,7 @@ ekleyelim"* — VES-6B53D265).
   denetimi) ve `invoice_seller_pick_test.php §9b` (iki kurucu, override,
   sınırlar, redraft).
 
-**KURAL 5j — Birleşik faturayı TEK gövde keser; mektup ödemenin BİLDİRİLME
+**KURAL 5n — Birleşik faturayı TEK gövde keser; mektup ödemenin BİLDİRİLME
 yolunu da yazar** (operatör, 7 Eyl 2026: *"müşteriye faturayı gönder. havale
 yaptıktan sonra haber versin"*).
 - Tek uygulayıcı: `vestra_offers_combined_invoice_issue()`. Panelin

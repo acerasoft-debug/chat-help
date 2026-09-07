@@ -1086,8 +1086,41 @@ function vestra_is_monobrand(string $company, string $email='', string $website=
 function vestra_lead_is_blocked(array $lead): bool {
   $co=(string)($lead['company'] ?? ''); $em=(string)($lead['email'] ?? ''); $ws=(string)($lead['website'] ?? '');
   if(vestra_name_is_blocked($co, (string)($lead['brand'] ?? ''))) return true;
+  if(vestra_email_is_service_vendor($em)) return true;
   if(vestra_domain_is_blocked($em, $ws)) return true;
   return vestra_is_monobrand($co, $em, $ws);
+}
+
+/* Sitedeki adres DUKKANIN degil, sitenin KULLANDIGI SERVISIN olabilir.
+ * Tarayici sayfadaki ilk e-postayi alir ve o adres cogu zaman canli destek
+ * widget'inin, bir Shopify eklentisinin, alan adi park servisinin ya da siteyi
+ * yapan ajansin adresidir. Bu depoda uc kez oldu ve UCUNDE de elle elendi:
+ *   ka-pok.com     -> back-in-stock@notifyboost.net  (Shopify eklentisi)
+ *   nubiantokyo.com-> info@stagheaddesigns.com       (web ajansi)
+ *   shinzo.paris   -> support@tawk.to                (canli destek widget'i)
+ * Elle eleme unutulabilir; kontrol GONDERIM YOLUNDA olmali (KURAL 1'in kendi
+ * dersi). Boyle bir adrese toptan kampanya gondermek hem bosa gider hem de
+ * ilgisiz bir sirketin destek kuyruguna dusen bir mektup birakir.
+ *
+ * Liste TAM HOST esitligi ile calisiyor, alt dize ile degil: buradakiler zaten
+ * kesin hostlar ve bulanik eslesme bu depoda mango/zara dersini dogurmustu.
+ * Bir butik bu alan adlarindan birini KENDI adresi olarak kullanamaz. */
+function vestra_service_vendor_domains(): array {
+  return [
+    'tawk.to','notifyboost.net','stagheaddesigns.com','topdomainer.com',
+    /* "section.brands": bir alan adi degil, sayfadan yanlis ayristirilmis
+       parca (antonia.it -> "-banner@section.brands", 7 Eyl 2026). */
+    'section.brands',
+    /* Canli destek / pazarlama SaaS -- hicbiri bir dukkanin kendi alan adi olamaz. */
+    'crisp.chat','intercom.io','zendesk.com','freshdesk.com',
+    'klaviyo.com','mailchimp.com','sentry.io',
+  ];
+}
+function vestra_email_is_service_vendor(string $email): bool {
+  $at=strrpos($email,'@'); if($at===false) return false;
+  $host=preg_replace('/^www\./','',strtolower(trim(substr($email,$at+1))));
+  if($host==='') return false;
+  return in_array($host, vestra_service_vendor_domains(), true);
 }
 /* True when a company/brand name matches a big-chain / monobrand entry on the discovery
  * blocklist. Discovery already skips these when ADDING a lead, but this lets the SEND path
