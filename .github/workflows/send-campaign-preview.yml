@@ -1695,6 +1695,35 @@ jobs:
                 exit(0);
               }
 
+              /* ZATEN KESILMISSE: durmak yetmiyor. "Bu teklifin faturasi zaten
+                 kesilmis" dogru bir ret ama sorunun cevabi degil -- kesilen
+                 belgede NE var? Kayitli fatura ayarlarini ve numarayi yaz;
+                 ikinci numara yine yanmaz, hicbir sey degismez. */
+              $cPrimary = $cRefs[0];
+              $cRs = vestra_read_json('offer_responses.json');
+              $cIvs = vestra_invoices_for_ref($cPrimary, false);
+              if ($cIvs) {
+                $cRec = (array)($cRs[$cPrimary] ?? []);
+                echo "\nBU REF ZATEN FATURALI -- kayitli hali:\n";
+                echo "  fatura no  : ".(string)($cIvs[0]['no'] ?? '?')."\n";
+                echo "  meta toplam: ".number_format((float)($cIvs[0]['total'] ?? 0),2)
+                   ." ".(string)($cIvs[0]['currency'] ?? 'EUR')."\n";
+                echo "  kargo      : ".number_format((float)($cRec['invoice_shipping'] ?? 0),2)."\n";
+                $cvr = (float)($cRec['invoice_vat_rate'] ?? 0);
+                echo "  KDV orani  : ".($cvr > 0 ? rtrim(rtrim(number_format($cvr,2,'.',''),'0'),'.').'% (fiyata dahil)'
+                                                : 'YOK -- belgede matrah/KDV satiri BASILMAZ')."\n";
+                $cvn = trim((string)($cRec['invoice_vat_note'] ?? ''));
+                echo "  VAT satiri : ".($cvn !== '' ? $cvn : '(yok)')."\n";
+                echo "  uyeler     : ".implode(', ', (array)($cRec['invoice_members'] ?? [$cPrimary]))."\n";
+                echo "  odendi     : ".(!empty($cRec['invoice_paid_at']) ? (string)$cRec['invoice_paid_at'] : 'hayir')."\n";
+                $cOrd = false;
+                foreach (vestra_read_csv('orders.csv') as $cr) { if (($cr['ref'] ?? '') === $cPrimary) { $cOrd = $cr; break; } }
+                echo "  siparis    : ".($cOrd ? 'VAR, toplam '.number_format((float)($cOrd['total'] ?? 0),2)
+                                              .' (kargo '.number_format((float)($cOrd['shipping'] ?? 0),2).')'
+                                              : 'YOK') ."\n";
+                echo "  Duzeltme gerekiyorsa: reply_letter=invoice_draft (AYNI numarayla yeniden yazar).\n\n";
+              }
+
               $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat);
               if (!empty($p['error'])) { fwrite(STDERR, "invoice_combine_draft: ".$p['error']."\n"); exit(1); }
 
