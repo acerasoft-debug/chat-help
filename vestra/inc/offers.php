@@ -363,11 +363,20 @@ function vestra_offer_invoice_payload(string $ref, string $sellerPickOverride = 
     $shipping = $shippingOverride !== null ? $shippingOverride
               : (float)($rs[$ref]['invoice_shipping'] ?? 0);
 
+    /* KDV ORANI, fiyata DAHIL. Kayittan okunuyor (invoice_vat_rate), yoksa 0 ve
+       belgeye hicbir sey basilmiyor: varsayilan bir oran koymak, KDV'siz kesilen
+       butun mevcut faturalara sessizce vergi eklerdi. Oran > 0 ise render matrahi
+       ve KDV tutarini toplamin ALTINDA ayirir; odenecek rakam degismez, cunku
+       fiyatlar brut. */
+    $vatRate = round(max(0.0, (float)($rs[$ref]['invoice_vat_rate'] ?? 0)), 2);
+
     return [
         'meta' => [
             'ref' => $ref, 'date' => $offerRow['timestamp'] ?? date('c'),
             'vat_note' => trim($vatNote),
             'shipping' => round(max(0.0, $shipping), 2),
+            'vat_rate' => $vatRate,
+            'vat_included' => $vatRate > 0,
             'buyer' => [
                 'company' => ($offerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),
@@ -472,6 +481,11 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
     $shipping = $shippingOverride !== null ? $shippingOverride
               : (float)($rs[$primary]['invoice_shipping'] ?? 0);
 
+    /* KDV orani BIRINCIL ref'ten: belge tek bir fatura ve tek bir oran tasir.
+       Uyelerin ayri oranlari olsaydi tek belgede iki matrah olurdu -- bu yuk
+       zaten tek satici + tek alici kuraliyla sinirli (KURAL 5e). */
+    $vatRate = round(max(0.0, (float)($rs[$primary]['invoice_vat_rate'] ?? 0)), 2);
+
     $buyerAcc = auth_find($buyerRow['email'] ?? '') ?: [];
     return [
         'refs' => $refs,
@@ -479,6 +493,8 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
             'ref' => $primary, 'date' => date('c'),
             'vat_note' => trim((string)$vatNote),
             'shipping' => round(max(0.0, $shipping), 2),
+            'vat_rate' => $vatRate,
+            'vat_included' => $vatRate > 0,
             'buyer' => [
                 'company' => ($buyerRow['company'] ?? '') ?: (string)($buyerAcc['company'] ?? ''),
                 'vat'     => (string)($buyerAcc['vat_id'] ?? ''),

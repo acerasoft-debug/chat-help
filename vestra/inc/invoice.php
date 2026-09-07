@@ -701,6 +701,28 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
     $pdf->textR($right - 4, $y, 11, $money($grand), true);
     $y -= 16;
 
+    /* KDV FIYATIN ICINDE (operator karari, 7 Eyl 2026: "yuzde 21 vat ucreti
+       fiyatin icinde olsun"). Tutar DEGISMIYOR -- fiyatlar brut, odenecek rakam
+       yukaridaki Total. Ama bir KDV faturasi matrahi, orani ve KDV tutarini
+       AYRI AYRI gostermek zorunda: yalnizca brut yazan bir belgeyle alicinin
+       muhasebesi indirim yapamaz ve saticinin beyani da dayanaksiz kalir.
+       Net asagi yuvarlanip KDV FARKTAN bulunuyor: iki tutari ayri ayri
+       yuvarlamak, toplami bir kurus kaydiriyor ve belge kendi icinde tutmuyor. */
+    $vatRate = round((float)($order['vat_rate'] ?? 0), 2);
+    if ($vatRate > 0 && !empty($order['vat_included']) && $grand > 0) {
+        $net = round($grand / (1 + $vatRate / 100), 2);
+        $vat = round($grand - $net, 2);
+        $lbl = rtrim(rtrim(number_format($vatRate, 2, '.', ''), '0'), '.');
+        $need(34);
+        foreach ([['Taxable amount (excl. VAT)', $money($net)],
+                  ['VAT '.$lbl.'% (included in the total above)', $money($vat)]] as [$k, $v]) {
+            $pdf->textR($colUnit, $y, 8.5, $k, false, 0.35);
+            $pdf->textR($right - 4, $y, 8.5, $v, false, 0.35);
+            $y -= 12;
+        }
+        $y -= 4;
+    }
+
     /* Cevrim dayanagi TUTARLARIN ALTINDA. Onceden "Shipment particulars" tablosunda,
        teslim sarti ve mensei arasinda duruyordu -- oraya sevkiyat icin bakilir, fiyat
        icin degil. 89,90 x kur hesabini yapan muhasebeci rakami tutarlarin yaninda
@@ -1201,6 +1223,12 @@ function vestra_order_invoice_payloads(string $ref): array {
         'origin'        => trim((string)($orderRow['origin'] ?? '')),
         'export_reason' => trim((string)($orderRow['export_reason'] ?? '')),
         'vat_note'      => trim((string)($orderRow['vat_note'] ?? '')),
+        /* KDV orani ve "fiyata dahil mi" siparis kaydindan geliyor; yoksa
+           BASILMIYOR. Varsayilan bir oran koymak, KDV'siz kesilen butun mevcut
+           faturalara sessizce vergi eklerdi -- olmayan bir vergiyi belgeye
+           yazmak, yazmamaktan cok daha pahali. */
+        'vat_rate'      => round((float)($orderRow['vat_rate'] ?? 0), 2),
+        'vat_included'  => !empty($orderRow['vat_included']),
         'buyer' => vestra_invoice_buyer($orderRow),
     ];
     /* Satici: OPERATOR SECIMI > ilanin seller_uid'i > platform. Sira KURAL 5b'nin

@@ -415,6 +415,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $sh = round(max(0.0, vestra_price_input($_POST['shipping'])), 2);
       if(abs($sh - (float)($rs[$ref]['invoice_shipping'] ?? 0)) > 0.004){ $rs[$ref]['invoice_shipping']=$sh; $dirty=true; }
     }
+    /* KDV ORANI (fiyata DAHIL). Bos = KDV satiri hic basilmaz -- varsayilan bir
+       oran koymak, KDV'siz kesilen butun mevcut faturalara sessizce vergi
+       eklerdi. Tavan %100: yazim hatasiyla girilen bir "210" belgeyi sacmalatir
+       ve matrahi negatife dogru ezer. */
+    if(array_key_exists('vat_rate',$_POST)){
+      $vr = round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))), 2);
+      if(abs($vr - (float)($rs[$ref]['invoice_vat_rate'] ?? 0)) > 0.004){ $rs[$ref]['invoice_vat_rate']=$vr; $dirty=true; }
+    }
     if($dirty) vestra_write_json('offer_responses.json',$rs);
     $iv=vestra_offer_issue_invoice($ref, true);
     $issued = $iv && ($iv['no'] ?? '') !== '';
@@ -3822,6 +3830,14 @@ elseif($tab==='invoices'): ?>
                value="<?= ($__fs=(float)($offerResp[$fref]['invoice_shipping'] ?? 0))>0?htmlspecialchars(number_format($__fs,2,'.','')):'' ?>"
                placeholder="Kargo € (boş = yok)"
                title="Faturaya eklenecek kargo tutarı (EUR). Belgede Goods total + Shipping + Grand total olarak ayrışır; boşsa satır hiç basılmaz."
+               style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
+        <?php /* KDV orani: fiyata DAHIL. Toplam degismez; belge matrahi ve KDV
+                 tutarini toplamin altinda ayrica gosterir -- bir KDV faturasinin
+                 tasimak zorunda oldugu iki rakam. Bos = KDV satiri basilmaz. */ ?>
+        <input name="vat_rate" form="<?= htmlspecialchars($fFid) ?>" inputmode="decimal"
+               value="<?= ($__vr=(float)($offerResp[$fref]['invoice_vat_rate'] ?? 0))>0?htmlspecialchars(rtrim(rtrim(number_format($__vr,2,'.',''),'0'),'.')):'' ?>"
+               placeholder="KDV %% (fiyata dahil, boş = yok)"
+               title="KDV oranı — fiyatlar BRÜT kabul edilir. Toplam değişmez; belgede matrah ve KDV tutarı toplamın altında ayrışır. Boşsa KDV satırı hiç basılmaz."
                style="margin-top:4px;width:100%;max-width:200px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:11px">
       </td>
       <td>
