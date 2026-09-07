@@ -101,14 +101,52 @@ $t('EUR belgesinde uyarı YOK',     !str_contains(vestra_render_invoice_pdf($met
 /* PLATFORM DILIMI: kutunun KESINLIKLE çıkmadığı tek hâl (bağlı hesap yok) uyarının
    DIŞINDA kalıyordu — koşul `$sellerAcc !== null` idi. En çok uyarı gereken hâl. */
 $plat = vestra_render_invoice_pdf($meta, $items, null, '', true);
-$t('platform taslağı kutusuzluğu yazıyor', str_contains($plat, 'issued by the platform') && str_contains($plat, 'no payment box'));
+$t('platform taslağı kutusuzluğu yazıyor', str_contains($plat, 'VESTRA is issuing this invoice') && str_contains($plat, 'no payment box'));
+/* Düzeltmenin YERİ yazılı olmalı: platformunki Admin ▸ Orders, satıcınınki
+   Admin ▸ Users. Yanlış sayfaya yollayan uyarı iş görmez. */
+$t('doğru sayfaya yolluyor',       str_contains($plat, 'Platform billing'));
 $t('platform KESİLMİŞ belgesinde iç not YOK',
-   !str_contains(vestra_render_invoice_pdf($meta, $items, null, 'INV-TEST-PLAT', false), 'issued by the platform'));
+   !str_contains(vestra_render_invoice_pdf($meta, $items, null, 'INV-TEST-PLAT', false), 'VESTRA is issuing this invoice'));
 /* ÖDENMİŞ (escrow) siparişte kutu zaten çizilmiyor: olmayan bir eksiği bildirmek
    uyarıyı gürültüye çevirirdi. */
 $paidMeta = $meta; $paidMeta['paid'] = true;
 $t('ödenmiş siparişte uyarı YOK',
    !str_contains(vestra_render_invoice_pdf($paidMeta, $items, null, '', true), 'no payment box'));
+
+echo "\n== 5b. Platform kendi künyesinden kesiyor ==\n";
+/* Panel platformun banka alanlarını TOPLUYOR ve boş bırakılınca "invoices will
+   have no payment box" diye uyarıyordu; çizici ise o kaydı hiç okumuyor,
+   `$sellerAcc ?? []` geçiyordu. Yani doldurulsa da hiçbir şey değişmiyordu. */
+$pfile = vestra_data_dir() . '/platform_seller.json';
+$pbak  = is_file($pfile) ? file_get_contents($pfile) : null;
+try {
+    $platEur = vestra_render_invoice_pdf($meta, $items, null, '', true);
+    $t('platform künyesi belgede (adres)', str_contains($platEur, 'Dover'));
+    $t('platform vergi kimliği belgede',   str_contains($platEur, '61-2070643'));
+    $t('"katalog kalemi" satırı gitti',    !str_contains($platEur, 'Marketplace-catalog item'));
+    /* Aynı belgede "Seller of record: Acerasoft LLC" + "Acerasoft ... is not the
+       seller of record" yazıyordu: kendini yalanlayan iki beyan.
+       ARANAN PARÇA TEK SATIRDA KALMALI: cümlenin tamamı sarılıp iki satıra
+       bölünüyor ve PDF içinde bitişik geçmiyor — ilk yazımda "is not the seller
+       of record" arandı, hiçbir belgede bulunamadı ve iddia HER İKİ yönde de
+       "geçti". Hiç düşemeyen bir iddia, iddia değildir. */
+    $t('platform faturası kendini yalanlamıyor', !str_contains($platEur, 'operates the marketplace'));
+    $t('satıcı faturasında feragat DURUYOR',
+       str_contains(vestra_render_invoice_pdf($meta, $items, $seller, '', true), 'operates the marketplace'));
+
+    file_put_contents($pfile, json_encode([
+        'bank_holder' => 'Acerasoft LLC', 'bank_name' => 'Test Bank',
+        'bank_account' => '1234567890', 'bank_routing' => '021000021',
+    ]));
+    $platUsd = vestra_render_invoice_pdf($c['meta'], $c['items'], null, '', true);
+    $t('banka alanları dolunca KUTU çıkıyor', str_contains($platUsd, 'Payment details'));
+    $t('kutu çıkınca uyarı susuyor',          !str_contains($platUsd, 'no payment box'));
+    /* EUR yolu USD alanlarıyla açılmaz: IBAN yoksa EUR kutusu yine çıkmamalı. */
+    $t('EUR yolu ayrı kalıyor',
+       str_contains(vestra_render_invoice_pdf($meta, $items, null, '', true), 'no payment box'));
+} finally {
+    if ($pbak === null) @unlink($pfile); else file_put_contents($pfile, $pbak);
+}
 
 echo "\n== 6. Kesim yolu: çevrilemeyen belge KESİLMEZ ==\n";
 $inv = $src('inc/invoice.php');

@@ -464,11 +464,16 @@ function vestra_invoice_draft_notes(array $order, array $items, ?array $sellerAc
        faturayi platformun kesmesi, ki hicbir banka hesabi bagli degil -- hicbir
        uyari uretmiyordu. En cok uyari gereken hal, uyarinin disinda kalan haldi. */
     if (empty($order['paid'])) {
-        $railsNow = $sellerAcc !== null ? vestra_payment_rails($sellerAcc, $cur) : [];
+        $payAcc   = $sellerAcc ?: vestra_platform_seller();
+        $railsNow = vestra_payment_rails($payAcc, $cur);
         if ($railsNow === []) {
+            /* Duzeltmenin YERI kesen tarafa gore degisiyor: platform kendi
+               kunyesinden okuyor (Admin > Orders), satici hesabindan
+               (Admin > Users). Yanlis sayfaya yollayan bir uyari, uyarilmamis
+               kadar ise yaramaz. */
             $notes[] = $sellerAcc === null
-                ? 'NOTE - this invoice is issued by the platform, which has no bank account on file, so it has no payment box at all.'
-                  . ' Pick the issuing seller in Admin > Invoice approvals, or the buyer gets a document with nowhere to pay.'
+                ? 'NOTE - VESTRA is issuing this invoice but the platform has no '.$cur.' payment details on file, so the document has no payment box.'
+                  . ' Fill them in under Admin > Orders > Platform billing & bank details (USD needs an account number and ABA routing), or the buyer gets a document with nowhere to pay.'
                 : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
                   . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
         }
@@ -583,7 +588,27 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
                an invoice has to carry; correspondence goes through VESTRA. */
         ], fn($v) => $v !== ''));
     } else {
-        $sellerLines = ['VESTRA (Acerasoft LLC)', 'Marketplace-catalog item', 'support@vestrasales.com'];
+        /* PLATFORM KESIYOR. Burasi uzun sure UC SABIT SATIR basiyordu -- ne
+           adres, ne EIN, ne odeme yolu. Oysa platformun kendi kunyesi kayitli
+           ve panelden duzenleniyor (`vestra_platform_seller()`,
+           `Admin > Orders > Platform billing & bank details`); belge onu hic
+           okumuyordu. Sonuc: satici kutusunda "Marketplace-catalog item"
+           yazan, gumrukte satici adresi ve vergi kimligi olmayan bir ticari
+           fatura -- ve kutu doldurulsa bile hicbir sey degismiyordu. */
+        $plat = vestra_platform_seller();
+        $sellerLines = array_values(array_filter([
+            vestra_invoice_issuer_name($plat, 'VESTRA (Acerasoft LLC)'),
+            (string)($plat['address'] ?? ''),
+            (string)($plat['country'] ?? ''),
+            !empty($plat['vat_id'])
+                ? vestra_tax_id_hint((string)($plat['country'] ?? ''))['short'].': '
+                  .vestra_format_tax_id((string)$plat['vat_id'], (string)($plat['country'] ?? '')) : '',
+            !empty($plat['reg_number']) ? 'Reg. no: '.$plat['reg_number'] : '',
+            /* Platformun adresi ZATEN aleni (site, sozlesme, kunye) ve alicinin
+               yazacagi tek adres bu -- satici hesaplarindaki gerekce (kisisel
+               giris adresi) burada gecerli degil. */
+            'support@vestrasales.com',
+        ], fn($v) => $v !== ''));
     }
     $b = $order['buyer'] ?? [];
     /* A sole trader registers under their own name, so the contact line repeats the company
@@ -684,16 +709,23 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            Faturada yazmazsa alici ya routing'i arayip ayni isme kendisi varir ya da
            "Mercury" tahmin eder -- ad routing ile eslesmez, havale doner. Etiket bu
            yuzden formun kendi dili: "Beneficiary bank". */
-        $rails = vestra_payment_rails($sellerAcc ?? [], $cur);
-        $bankLines = $sellerAcc ? array_values(array_filter(array_merge(
-            [!empty($sellerAcc['bank_holder']) ? 'Account holder: '.$sellerAcc['bank_holder'] : ''],
+        /* PLATFORM FATURASINDA HESAP `vestra_platform_seller()`. Eskiden bos bir
+           dizi geciyordu (`$sellerAcc ?? []`), yani VESTRA kendi adina kestigi
+           her faturayi ODEME KUTUSUZ cikariyordu -- panel banka alanlarini
+           topluyor ve bos birakilinca "invoices will have no payment box" diye
+           uyariyor, ama dolduruldugunda da hicbir sey degismiyordu. Toplanan
+           ama hic okunmayan alan. */
+        $payAcc = $sellerAcc ?: vestra_platform_seller();
+        $rails = vestra_payment_rails($payAcc, $cur);
+        $bankLines = array_values(array_filter(array_merge(
+            [!empty($payAcc['bank_holder']) ? 'Account holder: '.$payAcc['bank_holder'] : ''],
             $rails,
             [
-              !empty($sellerAcc['bank_name'])   ? 'Beneficiary bank: '.$sellerAcc['bank_name'] : '',
-              !empty($sellerAcc['bank_address']) ? 'Bank address: '.$sellerAcc['bank_address'] : '',
+              !empty($payAcc['bank_name'])   ? 'Beneficiary bank: '.$payAcc['bank_name'] : '',
+              !empty($payAcc['bank_address']) ? 'Bank address: '.$payAcc['bank_address'] : '',
               $payRef !== '' ? 'Payment reference: '.$payRef : '',
             ]
-        ), fn($v) => $v !== '')) : [];
+        ), fn($v) => $v !== ''));
         /* Para birimine uygun hesap YOKSA kutu hic basilmiyor -- $rails bos donuyor
            ve geriye yalnizca ad/adres/referans kaliyor, ki bunlarla odeme yapilamaz.
            Bos bir kutu yerine hicbir kutu: alici "buraya gonderemiyorum" diye sorar,
@@ -919,7 +951,16 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
        ustte "From (Seller): Acerasoft LLC" yazarken altta "acerasoft satici degildir"
        demek, gumrukte ve bir ihtilafta belgeyi zayiflatan bir beyandir. O yuzden not
        yalnizca uclu satista basiliyor. */
-    $platformIsSeller = stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
+    /* `$sellerAcc === null` = faturayi PLATFORM kesiyor, ve bu kontrolun var
+       olma sebebi tam olarak o hal. Kosul yalnizca adinda "acerasoft" gecen bir
+       HESABA bakiyordu; platform diliminde `$sellerAcc` null oldugu icin hicbir
+       zaman dogru olmuyordu. Sonuc canli taslakta gorunuyordu: belge ustte
+       "Seller of record: Acerasoft LLC" derken altta "VESTRA (Acerasoft LLC) …
+       is not the seller of record for this sale" diyordu -- ayni belgede
+       kendini yalanlayan iki beyan, ki bu blogun kendi yorumu bunun gumrukte ve
+       bir ihtilafta belgeyi zayiflattigini yaziyor. */
+    $platformIsSeller = $sellerAcc === null
+        || stripos((string)($sellerAcc['company'] ?? ''), 'acerasoft') !== false;
 
     /* Beyanlar. Ustteki sevkiyat tablosuyla AYNI etiket/deger duzeni kullaniliyor --
        belge boyunca tek bir okuma aliskanligi olsun, ve gumruk musaviri aradigi
