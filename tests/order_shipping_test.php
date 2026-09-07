@@ -72,6 +72,26 @@ try {
     $t('olmayan sipariş REDDEDİLİR', isset(vestra_order_set_shipping('YOK-BOYLE-REF', 10.0, '')['error']));
     $t('ref temizleniyor (yol geçişi yok)',
        isset(vestra_order_set_shipping('../../etc/passwd', 10.0, '')['error']));
+
+    echo "\n== 3b. Teslimat adresi (kargo yeri) ==\n";
+    /* Adres siparişin notlarında `Deliver to: …` parçası olarak duruyor ve
+       faturayı oradan besliyor; ekran GÖSTERİYORDU ama girecek yer yoktu. */
+    $a1 = vestra_order_set_delivery($REF, 'Unit 5, 12 Kwun Tong Road, Kowloon, Hong Kong');
+    $t('adres yazıldı',              !isset($a1['error']) && !empty($a1['ok']));
+    $t('FATURA bu adresi görüyor',   ($a1['on_invoice'] ?? '') === 'Unit 5, 12 Kwun Tong Road, Kowloon, Hong Kong');
+    /* Notların gerisi korunuyor: sipariş kaydından bilgi silmek yok. */
+    $r4 = vestra_order_set_shipping($REF, 0.0, '');   // satırı tazele
+    $row2 = null;
+    foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === $REF) { $row2 = $x; break; }
+    $t('notlarda tek kopya var',     substr_count((string)($row2['notes'] ?? ''), 'Deliver to:') === 1);
+    $a2 = vestra_order_set_delivery($REF, 'Rue Neuve 1, 1000 Brussels, Belgium');
+    foreach (vestra_read_csv('orders.csv') as $x) if (($x['ref'] ?? '') === $REF) { $row2 = $x; break; }
+    $t('ikinci yazım ÇOĞALTMIYOR',   substr_count((string)($row2['notes'] ?? ''), 'Deliver to:') === 1);
+    $t('yeni adres geçerli',         ($a2['on_invoice'] ?? '') === 'Rue Neuve 1, 1000 Brussels, Belgium');
+    $a3 = vestra_order_set_delivery($REF, '');
+    $t('boş bırakmak siliyor',       !isset($a3['error']) && ($a3['address'] ?? 'x') === '');
+    $t('çok uzun adres REDDEDİLİR',  isset(vestra_order_set_delivery($REF, str_repeat('x', 301))['error']));
+    $t('olmayan sipariş REDDEDİLİR', isset(vestra_order_set_delivery('YOK-BOYLE-REF', 'a')['error']));
 } finally {
     if ($bak === null) @unlink($file); else file_put_contents($file, $bak);
     if ($stB === null) @unlink($stF); else file_put_contents($stF, $stB);
@@ -96,6 +116,15 @@ $t('panelde navlun formu var',     str_contains($adm, 'value="order_shipping"') 
 $t('panel tek yazıcıyı çağırıyor', str_contains($adm, 'vestra_order_set_shipping($ref'));
 $t('başarı/başarısızlık yazılı',   str_contains($adm, "elseif(\$msg==='ship_saved')") && str_contains($adm, "elseif(\$msg==='ship_fail')"));
 $t('para girişi ham (float) DEĞİL', str_contains($adm, "vestra_price_input((string)(\$_POST['shipping']"));
+$t('panelde adres formu var',      str_contains($adm, 'value="order_delivery"') && str_contains($adm, '📍 Save address'));
+$t('adres tek yazıcıyı çağırıyor', str_contains($adm, 'vestra_order_set_delivery($ref'));
+$t('adres sonucu ekrana yazılı',   str_contains($adm, "elseif(\$msg==='addr_saved')") && str_contains($adm, "elseif(\$msg==='addr_fail')"));
+/* Yazıcı, satırı değil FATURANIN GÖRDÜĞÜNÜ doğruluyor: kaydın değişmesi yetmez,
+   belgeyi besleyen çözücü de aynı adresi bulmalı. */
+$t('adres faturaya karşı doğrulanıyor', str_contains($fn, 'vestra_invoice_buyer($back)'));
+$t('adres yazıcısı da kesilmişte durur',
+   substr_count($fn, 'if (vestra_invoices_for_ref($ref)) {') === 2);
+$t('okuyucuyla AYNI kalıp',        str_contains($fn, "preg_replace('/Deliver to: .*?(?:\\.\\s|\\.\$|\$)/u'"));
 $wf = $src('.github/workflows/seller-products.yml');
 $t('iş akışında da mod var',       str_contains($wf, "admin_mode == 'shipping'"));
 $t('iş akışı aynı yazıcıyı çağırıyor', str_contains($wf, 'vestra_order_set_shipping($ref, $amount, $label)'));

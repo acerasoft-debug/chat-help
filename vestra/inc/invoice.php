@@ -270,7 +270,8 @@ function vestra_country_name(string $v): string {
  */
 function vestra_invoice_buyer(array $orderRow): array {
     $address = '';
-    if (preg_match('/Deliver to: (.*?)(?:\.\s|$)/u', (string)($orderRow['notes'] ?? ''), $m)) $address = trim($m[1]);
+    require_once __DIR__.'/orders.php';   // kalıp tek yerde
+    $address = vestra_order_delivery_address((string)($orderRow['notes'] ?? ''));
 
     $acc   = null;
     $email = strtolower(trim((string)($orderRow['email'] ?? '')));
