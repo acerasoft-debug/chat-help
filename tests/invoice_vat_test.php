@@ -109,7 +109,13 @@ $t('birlesik cubukta kargo kutusu', str_contains($comb, 'name="shipping"'));
 $t('birlesik cubukta VAT satiri',   str_contains($comb, 'name="vat_note"'));
 /* POST: her iki taslak yolu ve birlesik kesim orani okuyor. */
 $t('oran POST\'tan 3 yerde okunuyor', substr_count($adm, "array_key_exists('vat_rate',\$_POST)") >= 3);
-$t('birlesik kesim orani KAYDEDIYOR', str_contains($adm, "\$rs[\$primary]['invoice_vat_rate']"));
+/* Kesim artik TEK GOVDEDE (vestra_offers_combined_invoice_issue; panel ve is
+   akisi ayni fonksiyonu cagiriyor), o yuzden kaydi ORADA ariyoruz. Redraft
+   belgeyi kayittan yeniden kurar: oran yazilmasaydi kesilen belge KDV'li,
+   ayni numarayla yeniden cizileni KDV'siz olurdu. */
+$t('birlesik kesim orani KAYDEDIYOR', str_contains($ofs, "\$rs[\$primary]['invoice_vat_rate'] = \$vatRate;"));
+$t('kesim tek govdede', str_contains($ofs, 'function vestra_offers_combined_invoice_issue(')
+                     && str_contains($adm, 'vestra_offers_combined_invoice_issue('));
 /* Kurucular: onizlemenin formdaki orani tasiyabilmesi icin override sart. */
 $t('tek satirlik kurucu override aliyor', str_contains($ofs, 'vestra_offer_invoice_payload(string $ref, string $sellerPickOverride') && str_contains($ofs, '?float $vatRateOverride = null'));
 $t('birlesik kurucu override aliyor',     substr_count($ofs, '?float $vatRateOverride = null') >= 2);

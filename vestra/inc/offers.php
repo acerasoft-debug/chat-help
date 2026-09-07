@@ -519,6 +519,125 @@ function vestra_offers_combined_invoice_payload(array $refs, string $sellerPickO
     ];
 }
 
+/* BIRLESIK FATURAYI KES -- panelin ✓ Approve dugmesinin ve is akisinin ORTAK
+ * govdesi (KURAL 5, operator onayiyla).
+ *
+ * Neden fonksiyon: KURAL 5f'nin dersi. Kesim iki ayri yerde elle yazilirsa iki
+ * yol zamanla ayrisir ve ayrisma BELGEDE gorunur -- ayni satisin faturasi
+ * panelden kesildiginde bir tutar, is akisindan kesildiginde baskasi. Redraft
+ * (vestra_offer_invoice_redraft_apply) tam bu sebeple zaten tek govdede.
+ *
+ * SIRA onemli: once KAYIT (satici secimi, KDV satiri/orani, kargo, uyelik
+ * baglari), sonra BELGE. Tersi olsaydi ve kesim yarida kalsaydi baglanmamis
+ * ama faturali bir grup kalirdi; bu sirayla en kotu durumda baglanmis ama
+ * belgesiz bir grup kalir ve onay kuyrugu onu YENIDEN gosterir
+ * (vestra_invoices_for_ref bos doner) -- yani hicbir sey kaybolmaz.
+ *
+ * $notify=false: belge kesilir, kayitlar yazilir, ALICIYA mektup GITMEZ.
+ * $copyTo: operatore birebir kopya (musterinin gordugu sey gorulmeli --
+ * KURAL 5f: "[KOPYA]" onegi ve aciklama satiri YOK).
+ *
+ * Doner: ['error'=>...] ya da ['ok'=>true, 'no', 'path', 'primary', 'refs',
+ * 'seller', 'total', 'shipping', 'grand', 'notified', 'sent', 'copied']. */
+function vestra_offers_combined_invoice_issue(array $refs, string $sellerPick = '', ?string $vatNote = null, ?float $shipping = null, ?float $vatRate = null, bool $notify = true, string $copyTo = ''): array {
+    require_once __DIR__.'/invoice.php';
+    require_once __DIR__.'/notify.php';
+
+    /* Satici secimi KAYITTAN ONCE dogrulanir: var olmayan bir uid sessizce
+       platforma dusseydi belge operatorun secmedigi tuzel kisi adina cikardi
+       (KURAL 5b'nin kendi gerekcesi). */
+    $pick = preg_replace('/[^A-Za-z0-9_-]/', '', trim($sellerPick));
+    if ($pick !== '' && $pick !== 'vestra') {
+        $known = false;
+        foreach (auth_accounts() as $sa) {
+            if ((string)($sa['id'] ?? '') === $pick && (string)($sa['type'] ?? '') === 'seller') { $known = true; break; }
+        }
+        if (!$known) return ['error' => "Satıcı hesabı bulunamadı: {$pick}"];
+    }
+
+    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vatNote, $shipping, false, $vatRate);
+    if (!empty($p['error'])) return ['error' => $p['error']];
+
+    $primary = (string)$p['meta']['ref'];
+    $rs = vestra_read_json('offer_responses.json');
+    $rs[$primary]['invoice_seller_uid'] = $p['seller_pick'];
+    $rs[$primary]['invoice_seller_by']  = 'operator';
+    $rs[$primary]['invoice_seller_at']  = date('c');
+    if ($vatNote !== null) $rs[$primary]['invoice_vat_note'] = $vatNote;
+    if ($shipping !== null) $rs[$primary]['invoice_shipping'] = $shipping;
+    /* Oran da kayda gecer: redraft belgeyi KAYITTAN yeniden kurar. Yazilmasaydi
+       kesilen belge KDV'li, ayni numarayla yeniden cizileni KDV'siz olurdu. */
+    if ($vatRate !== null) $rs[$primary]['invoice_vat_rate'] = $vatRate;
+    $rs[$primary]['invoice_members'] = $p['refs'];
+    foreach ($p['refs'] as $r) { if ($r !== $primary) $rs[$r]['invoice_group_ref'] = $primary; }
+    vestra_write_json('offer_responses.json', $rs);
+
+    $iv = vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true);
+    if (!$iv || (string)($iv['no'] ?? '') === '') return ['error' => 'Fatura kesilemedi (numara üretilmedi).'];
+
+    vestra_offer_order_ensure($p);   // faturalanan grup ORDERS'ta TEK siparis
+
+    $shp   = round((float)($p['meta']['shipping'] ?? 0), 2);
+    $goods = round((float)$p['total'], 2);
+    $grand = round($goods + $shp, 2);
+
+    $lines = '';
+    foreach ($p['items'] as $it) {
+        $lines .= sprintf("  %-14s %4d x EUR %s = EUR %s\n", (string)$it['sku'], (int)$it['qty'],
+                  number_format((float)$it['unit'], 2), number_format((float)$it['line'], 2));
+    }
+    $tot = "  Goods total : EUR ".number_format($goods, 2)."  ({$p['qty']} pcs)\n"
+         . ($shp > 0 ? "  Shipping    : EUR ".number_format($shp, 2)."\n" : '')
+         . "  TOTAL DUE   : EUR ".number_format($grand, 2)."\n";
+    /* KDV FIYATIN ICINDE ise mektup da ayirir (KURAL 5i). Hesap cizicinin
+       hesabinin AYNISI -- net asagi yuvarlanir, vergi FARKTAN bulunur; iki
+       ayri yuvarlama toplami bir kurus kaydirir ve mektup ile belge celisirdi. */
+    $vr = round((float)($p['meta']['vat_rate'] ?? 0), 2);
+    if ($vr > 0 && !empty($p['meta']['vat_included']) && $grand > 0) {
+        $net = round($grand / (1 + $vr / 100), 2);
+        $lbl = rtrim(rtrim(number_format($vr, 2, '.', ''), '0'), '.');
+        $tot .= "  (Taxable amount EUR ".number_format($net, 2)
+             .  ", VAT {$lbl}% EUR ".number_format(round($grand - $net, 2), 2)." — included above)\n";
+    }
+
+    $subject = "VESTRA — your invoice {$iv['no']} is ready";
+    /* Odeme sonrasi HABER VERME yolu mektupta yaziyor (operator, 7 Eyl 2026:
+       "havale yaptiktan sonra haber versin"). Dekont siparis sayfasindaki
+       "Payment" kartindan yukleniyor (KURAL 7) -- yukleme operatore haber
+       dusuruyor ve otomatik iptal saatini DURDURUYOR, yani "haber verdim"
+       ile sistemin gordugu sey ayni sey oluyor. Yanit e-postasi da kabul:
+       kutuyu bulamayan musteri cevapsiz kalmasin. */
+    $body = "Hello ".((string)($p['meta']['buyer']['company'] ?? '') ?: 'there').",\n\n"
+          . "Your invoice ({$iv['no']}) for the accepted offers is ready — the PDF is attached.\n\n"
+          . $lines."\n".$tot."\n"
+          . "Please pay by bank transfer to the account shown on the invoice, quoting reference {$primary}.\n\n"
+          . "Once you have sent the transfer, please let us know: upload the payment confirmation on your order page, or simply reply to this e-mail. We will confirm receipt and your goods ship as soon as the payment arrives.\n\n"
+          . "Your order page: https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($primary)."\n"
+          . "The invoice is also available any time under My offers: https://vestrasales.com/buyer?tab=offers\n\n"
+          . "— VESTRA · vestrasales.com";
+    /* PDF EKTE: "faturayi email olarak gonder" (operator istegi, 1 Eyl 2026).
+       Baglanti da duruyor -- ek suzulse bile belgeye ulasilir. */
+    $opts = ['attachments' => [['name' => 'Invoice-'.$iv['no'].'.pdf', 'path' => (string)$iv['path']]]];
+
+    $em     = trim((string)($p['meta']['buyer']['email'] ?? ''));
+    $sent   = false;
+    if ($notify && filter_var($em, FILTER_VALIDATE_EMAIL)) {
+        $sent = (bool)vestra_send_mail($em, $subject, $body, '', '', null, '', $opts);
+    }
+    $copied = false;
+    if (trim($copyTo) !== '' && filter_var(trim($copyTo), FILTER_VALIDATE_EMAIL)) {
+        $copied = (bool)vestra_send_mail(trim($copyTo), $subject, $body, '', '', null, '', $opts);
+    }
+
+    return ['ok' => true, 'no' => (string)$iv['no'], 'path' => (string)$iv['path'],
+            'primary' => $primary, 'refs' => $p['refs'],
+            'seller' => vestra_invoice_issuer_name($p['seller'], 'Acerasoft LLC'),
+            'total' => $goods, 'shipping' => $shp, 'grand' => $grand,
+            'vat_rate' => $vr, 'qty' => (int)$p['qty'],
+            'notified' => $notify, 'sent' => $sent, 'copied' => $copied];
+}
+
+
 /* KABUL EDILEN TEKLIF(LER) FATURALANINCA SIPARIS OLUR (operator karari,
  * 1 Eyl 2026: "bir cok teklif kabul olursa ve tek saticida olursa tek order
  * olarak gozukur, order bolumune de gitmeli"). Teklifler yalnizca teklif

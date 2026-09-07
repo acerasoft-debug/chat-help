@@ -1625,6 +1625,7 @@ jobs:
                  birlestirip gosterir.
                  spec: refs=<r1,r2,r3> | ship=<EUR> | vat=<yuzde, fiyata DAHIL>
                        | seller=<uid, ilanlar farkli saticidaysa zorunlu>
+                       | apply=true (GERCEK KESIM) | notify=false (aliciya yollama)
                  HICBIR SEY KAYDEDILMEZ: numara yanmaz, diske yazilmaz, kayit
                  degismez, musteriye gitmez. Oran ve kargo yalnizca bu ciziME
                  gecerli -- panelin onizlemesiyle ayni desen. */
@@ -1662,6 +1663,36 @@ jobs:
                   }
                 }
                 printf("  %-10s sku=%-18s satici: %s\n", $cr, (string)($crow['sku'] ?? '?'), $cnm);
+              }
+
+              /* apply=true -> GERCEK KESIM (KURAL 5: operator onayiyla).
+                 Panelin ✓ Approve dugmesiyle AYNI fonksiyon
+                 (vestra_offers_combined_invoice_issue): ayni kayit sirasi,
+                 ayni belge, ayni siparis satiri, ayni mektup. Varsayilan
+                 false: taslak.
+                 notify=false -> belge kesilir, ALICIYA mektup gitmez. */
+              if (strtolower(trim($E('apply'))) === 'true') {
+                $notify = strtolower(trim($E('notify'))) !== 'false';
+                $r = vestra_offers_combined_invoice_issue($cRefs, $cSel, null, $cShip, $cVat, $notify, $to);
+                if (!empty($r['error'])) { fwrite(STDERR, "invoice_combine_draft(apply): ".$r['error']."\n"); exit(1); }
+                echo "KESILDI: fatura ".$r['no']."\n";
+                echo "  birincil ref : ".$r['primary']."\n";
+                echo "  uyeler       : ".implode(', ', $r['refs'])."\n";
+                echo "  satici       : ".$r['seller']."\n";
+                echo "  mal ".number_format((float)$r['total'],2)." + kargo ".number_format((float)$r['shipping'],2)
+                   ." = ".number_format((float)$r['grand'],2)." EUR\n";
+                if ((float)$r['vat_rate'] > 0) {
+                  $rn = round((float)$r['grand'] / (1 + (float)$r['vat_rate']/100), 2);
+                  echo "  matrah ".number_format($rn,2)."  KDV %".rtrim(rtrim(number_format((float)$r['vat_rate'],2,'.',''),'0'),'.')
+                     ." ".number_format(round((float)$r['grand'] - $rn, 2),2)." (fiyata dahil)\n";
+                }
+                echo "  aliciya gonderildi : ".(!empty($r['sent']) ? 'EVET' : (empty($r['notified']) ? 'hayir (notify=false, bilerek)' : '*** HAYIR ***'))."\n";
+                echo "  operatore kopya    : ".(!empty($r['copied']) ? 'EVET' : 'hayir')."\n";
+                /* Mektup ISTENDIGI halde gitmediyse is KIRMIZI biter: numara
+                   yandi, belge duruyor, musteri bilmiyor -- sessizce
+                   gecilecek en pahali durum (invoice_draft ile ayni kural). */
+                if (!empty($r['notified']) && empty($r['sent'])) { fwrite(STDERR, "UYARI: fatura kesildi ama alici mektubu GITMEDI\n"); exit(1); }
+                exit(0);
               }
 
               $p = vestra_offers_combined_invoice_payload($cRefs, $cSel, null, $cShip, false, $cVat);

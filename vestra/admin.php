@@ -351,11 +351,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     /* KDV ORANI birlesik cubuktan. Tavan %100: yazim hatasiyla girilen bir
        "210" matrahi negatife dogru ezer (tek satirlik yolda da ayni sinir). */
     $vr = array_key_exists('vat_rate',$_POST) ? round(max(0.0, min(100.0, vestra_price_input($_POST['vat_rate']))),2) : null;
-    $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr);
-    if(!empty($p['error'])){
-      header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
-    }
+    /* TASLAK yalnizca CIZER; kesim ayri govdede (asagida) ve yuku KENDISI
+       kurar. Yuku burada bir kez daha kurmak, iki kurulus arasinda fark
+       dogabilecek tek yeri yaratmak olurdu. */
     if($act==='combine_preview_offer_invoice'){
+      $p = vestra_offers_combined_invoice_payload($refs, $pick, $vn, $sh, false, $vr);
+      if(!empty($p['error'])){
+        header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($p['error'])); exit;
+      }
       $bytes = vestra_render_invoice_pdf($p['meta'], $p['items'], $p['seller'], '', true);
       header('Content-Type: application/pdf');
       header('Content-Disposition: inline; filename="DRAFT-birlesik-'.$p['meta']['ref'].'.pdf"');
@@ -363,49 +366,16 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       header('Content-Length: '.strlen($bytes));
       echo $bytes; exit;
     }
-    /* KESIM. Once kayit: secim + KDV satiri birincile, uyelik baglari
-       digerlerine -- belge kayittan once degil SONRA yazilsaydi ve kesim
-       yarida kalsaydi baglar kopuk kalirdi; bu sirayla en kotu durumda
-       baglanmis ama belgesiz bir grup kalir, kuyruk onu yeniden gosterir
-       (vestra_invoices_for_ref bos doner). */
-    $rs=vestra_read_json('offer_responses.json');
-    $primary=$p['meta']['ref'];
-    $rs[$primary]['invoice_seller_uid']=$p['seller_pick'];
-    $rs[$primary]['invoice_seller_by']='operator';
-    $rs[$primary]['invoice_seller_at']=date('c');
-    if($vn!==null) $rs[$primary]['invoice_vat_note']=$vn;
-    if($sh!==null) $rs[$primary]['invoice_shipping']=$sh;
-    /* Oran da kayda gecer: redraft ve alici sayfasi belgeyi KAYITTAN yeniden
-       kurar (vestra_offer_invoice_redraft_apply). Yazilmasaydi kesilen belge
-       KDV'li, ayni numarayla yeniden cizileni KDV'siz olurdu. */
-    if($vr!==null) $rs[$primary]['invoice_vat_rate']=$vr;
-    $rs[$primary]['invoice_members']=$p['refs'];
-    foreach($p['refs'] as $r){ if($r!==$primary) $rs[$r]['invoice_group_ref']=$primary; }
-    vestra_write_json('offer_responses.json',$rs);
-    $iv=vestra_ensure_invoice($p['meta'], $p['items'], $p['seller'], true);
-    $issued = $iv && ($iv['no'] ?? '') !== '';
-    if($issued){
-      vestra_offer_order_ensure($p);   // faturalanan grup ORDERS'ta TEK siparis
-      $em=(string)($p['meta']['buyer']['email'] ?? '');
-      if(filter_var($em,FILTER_VALIDATE_EMAIL)){
-        require_once __DIR__.'/inc/notify.php';
-        $lines='';
-        foreach($p['items'] as $it){ $lines.=sprintf("  %-14s %4d x EUR %s = EUR %s\n",$it['sku'],$it['qty'],number_format($it['unit'],2),number_format($it['line'],2)); }
-        $shp=(float)($p['meta']['shipping'] ?? 0);
-        $tot="  Goods total : EUR ".number_format($p['total'],2)."  ({$p['qty']} pcs)\n"
-            .($shp>0 ? "  Shipping    : EUR ".number_format($shp,2)."\n" : '')
-            ."  TOTAL DUE   : EUR ".number_format($p['total']+$shp,2)."\n";
-        /* PDF EKTE: "faturayi email olarak gonder" (operator istegi, 1 Eyl 2026).
-           Baglanti da duruyor -- ek suzulse bile belgeye ulasilir. */
-        vestra_send_mail($em, "VESTRA — your invoice {$iv['no']} is ready",
-          "Hello ".(($p['meta']['buyer']['company']??'')?:'there').",\n\nYour invoice ({$iv['no']}) for the accepted offers is ready — the PDF is attached.\n\n"
-         .$lines."\n".$tot."\n"
-         ."Please pay by bank transfer to the account shown on the invoice, quoting reference {$primary}. Your goods ship as soon as the payment arrives.\n"
-         ."You can also download it any time under My offers.\n\n"
-         ."View: https://vestrasales.com/buyer?tab=offers\n\n— VESTRA · vestrasales.com",
-          '','',null,'',['attachments'=>[['name'=>'Invoice-'.$iv['no'].'.pdf','path'=>$iv['path']]]]);
-      }
+    /* KESIM tek govdede: vestra_offers_combined_invoice_issue(). Kayit sirasi,
+       belge, siparis satiri ve alici mektubu orada -- is akisi yolu da AYNI
+       fonksiyonu cagiriyor. Iki ayri kesim yolu zamanla ayrisir ve ayrisma
+       BELGEDE gorunur (KURAL 5f'nin dersi); burada elle yazilmis bir kopya
+       vardi, kaldirildi. */
+    $r = vestra_offers_combined_invoice_issue($refs, $pick, $vn, $sh, $vr);
+    if(!empty($r['error'])){
+      header('Location: /admin?tab=invoices&msg=combine_bad&why='.rawurlencode($r['error'])); exit;
     }
+    $issued = !empty($r['ok']);
     header('Location: /admin?tab=invoices&msg='.($issued?'invoice_issued':'invoice_none')); exit;
   }
   /* Kabul edilmis TEKLIFIN faturasini kes. Ayri islem, cunku kaynak ayri

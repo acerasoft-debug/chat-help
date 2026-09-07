@@ -29,6 +29,20 @@ function auth_accounts(){ return [
   ['id'=>'tyrex', 'type'=>'seller','company'=>'TYREX INTERNATIONAL BV.'],
 ]; }
 function vestra_platform_seller(){ return ['company'=>'Acerasoft LLC']; }
+/* Kesim govdesinin dokundugu disaridaki uclar. Gercek belgeyi cizmek,
+   diske yazmak ve posta gondermek testin isi degil -- burada olculen sey
+   govdenin NE YAPTIGI: hangi sirayla kayda yazdigi, siparis satirini acip
+   acmadigi, mektubu kime ve neyle yolladigi. */
+$MAILED = []; $INV_NO = 0;
+function vestra_ensure_invoice($order,$items,$sellerAcc,$force=false,$redraft=false){
+  global $INV_NO; $INV_NO++;
+  return ['no'=>'INV-TEST-'.$INV_NO, 'path'=>'/tmp/inv-test.pdf', 'seller_key'=>'k'];
+}
+function vestra_send_mail($to,$subject,$body,$replyTo='',$fromName='',$cfg=null,$hero='',array $opts=[]){
+  global $MAILED; $MAILED[] = ['to'=>$to,'subject'=>$subject,'body'=>$body,'opts'=>json_encode($opts)];
+  return true;
+}
+function vestra_invoice_issuer_name($acc,$fallback=''){ return (string)(($acc['invoice_name'] ?? '') ?: (($acc['company'] ?? '') ?: $fallback)); }
 function vestra_from_price($p){ return 0.0; }
 
 preg_match_all('/^function \w+\(.*?^}/ms', $src, $fns);
@@ -210,6 +224,100 @@ $p = vestra_offer_invoice_redraft_payload('OF-1', 20.0);
 $t('redraft KDV oranini koruyor (21)',      abs(($p['meta']['vat_rate']??0)-21.0)<0.001);
 $t('redraft "dahil" isaretini koruyor',     !empty($p['meta']['vat_included']));
 $INVOICED = [];
+
+echo "\n== 9c. KESIM TEK GOVDEDE (panel ve is akisi ayni fonksiyon) ==\n";
+/* KURAL 5f'nin dersi: iki ayri kesim yolu zamanla ayrisir ve ayrisma BELGEDE
+   gorunur. Redraft bu yuzden zaten tek govdede; birlesik kesim degildi --
+   panel kendi kopyasini tasiyordu ve is akisindan kesmenin yolu yoktu.
+   Bu bolum govdeyi CAGIRIR (kayit sirasi, uyelik baglari, siparis satiri,
+   mektup karari) ve iki cagiranin da ona gittigini kaynaktan dogrular. */
+$LISTING_MAP['SKU-2']['seller_uid']='garage';
+$INVOICED = []; $MAILED = [];
+$JSON = ['OF-1'=>['status'=>'accept','counter_price'=>10.00,'agreed_unit'=>10.00],
+         'OF-2'=>['status'=>'accept']];
+
+$r = vestra_offers_combined_invoice_issue(['OF-1','OF-2'], 'garage', 'reverse charge', 20.0, 21.0, true, '');
+$t('kesim basarili',                  empty($r['error']) && !empty($r['ok']));
+$t('numara uretildi',                 ($r['no'] ?? '') !== '');
+$t('birincil ref OF-1',               ($r['primary'] ?? '') === 'OF-1');
+$t('satici operatorun sectigi',       ($r['seller'] ?? '') === 'Agaya Paris');
+/* 10x10 + 25x20 = 600 mal, +20 kargo = 620 brut. */
+$t('mal 600',                         abs((float)($r['total'] ?? 0) - 600.0) < 0.001);
+$t('kargo 20',                        abs((float)($r['shipping'] ?? 0) - 20.0) < 0.001);
+$t('genel toplam 620',                abs((float)($r['grand'] ?? 0) - 620.0) < 0.001);
+$t('KDV orani belgeye gitti (21)',    abs((float)($r['vat_rate'] ?? 0) - 21.0) < 0.001);
+
+/* KAYIT once, belge sonra: secim, KDV satiri/orani, kargo ve uyelik baglari
+   birincilde; uyede invoice_group_ref. Yarida kalan bir kesimde en kotu durum
+   "baglanmis ama belgesiz" olsun diye bu sirada. */
+$t('satici kayda yazildi',            ($JSON['OF-1']['invoice_seller_uid'] ?? '') === 'garage');
+$t('satici damgasi operator',         ($JSON['OF-1']['invoice_seller_by'] ?? '') === 'operator');
+$t('KDV satiri kayda yazildi',        ($JSON['OF-1']['invoice_vat_note'] ?? '') === 'reverse charge');
+$t('kargo kayda yazildi',             abs((float)($JSON['OF-1']['invoice_shipping'] ?? 0) - 20.0) < 0.001);
+$t('KDV ORANI kayda yazildi',         abs((float)($JSON['OF-1']['invoice_vat_rate'] ?? 0) - 21.0) < 0.001);
+$t('uyelik listesi birincilde',       ($JSON['OF-1']['invoice_members'] ?? []) === ['OF-1','OF-2']);
+$t('uye birincile bagli',             ($JSON['OF-2']['invoice_group_ref'] ?? '') === 'OF-1');
+$t('birincil kendine baglanmadi',     !isset($JSON['OF-1']['invoice_group_ref']));
+
+/* Faturalanan grup ORDERS'ta TEK siparis (operator: "order a dussun
+   siparisler"). Yazici burada CALISMIYOR: bu kosumda vestra_read_csv zaten
+   OF-1'i doner, yani vestra_offer_order_ensure idempotent dalindan erken
+   ciker ve diske hicbir sey yazilmaz -- test bir dosya birakmamali. Olculen
+   sey govdenin onu CAGIRDIGI; yazicinin kendisi 10c ve 11'de. */
+$issueSrc = '';
+if (preg_match('/^function vestra_offers_combined_invoice_issue\(.*?^}/ms',
+    (string)@file_get_contents(__DIR__.'/../vestra/inc/offers.php'), $mI)) $issueSrc = $mI[0];
+$t('govde siparis satirini aciyor',   str_contains($issueSrc, 'vestra_offer_order_ensure($p)'));
+/* SIRA: kayit ONCE, belge SONRA. Tersi olsaydi yarida kalan bir kesim
+   baglanmamis ama faturali bir grup birakirdi. */
+$t('kayit belgeden ONCE yaziliyor',
+   $issueSrc !== ''
+   && strpos($issueSrc, "vestra_write_json('offer_responses.json'") < strpos($issueSrc, 'vestra_ensure_invoice('));
+
+/* Mektup: PDF ekli, alicinin adresine. */
+$t('aliciya mektup gitti',            !empty($r['sent']) && ($MAILED[0]['to'] ?? '') === 'buyer@example.com');
+$t('PDF ekte',                        str_contains((string)($MAILED[0]['opts'] ?? ''), 'Invoice-'));
+/* "Havale yaptiktan sonra haber versin" (operator, 7 Eyl 2026): mektup odeme
+   sonrasi haber verme yolunu YAZMALI, yoksa musteri parayi gonderir ve iki
+   taraf da otekinin sirasini bekler. */
+$t('havale sonrasi haber verme yolu', str_contains((string)($MAILED[0]['body'] ?? ''), 'let us know'));
+$t('siparis sayfasi baglantisi',      str_contains((string)($MAILED[0]['body'] ?? ''), 'tab=orders&view=OF-1'));
+$t('KDV mektupta da ayrisiyor',       str_contains((string)($MAILED[0]['body'] ?? ''), 'Taxable amount'));
+
+/* notify=false: belge kesilir, ALICIYA mektup GITMEZ. */
+$INVOICED = []; $MAILED = [];
+$JSON = ['OF-1'=>['status'=>'accept'],'OF-2'=>['status'=>'accept']];
+$r = vestra_offers_combined_invoice_issue(['OF-1','OF-2'], 'garage', null, null, null, false, '');
+$t('notify=false: mektup yok',        empty($r['sent']) && !$MAILED);
+$t('notify=false: belge yine kesildi', empty($r['error']) && ($r['no'] ?? '') !== '');
+$t('oran verilmeyince KDV yok',       abs((float)($r['vat_rate'] ?? -1) - 0.0) < 0.001);
+
+/* Olmayan satici hesabi KAYITTAN ONCE reddedilir: sessizce platforma dusmek,
+   operatorun secmedigi tuzel kisi adina belge cikarmak olurdu (KURAL 5b). */
+$JSON = ['OF-1'=>['status'=>'accept'],'OF-2'=>['status'=>'accept']];
+$before = $JSON;
+$r = vestra_offers_combined_invoice_issue(['OF-1','OF-2'], 'hayali-uid', null, null, null, false, '');
+$t('olmayan satici REDDEDILIR',       !empty($r['error']));
+$t('reddedilince KAYIT DEGISMEDI',    $JSON === $before);
+
+/* Kurucunun butun redleri kesime de gecerli: yarim liste sessizce kesilmez. */
+$JSON['OF-2']['status'] = 'counter';
+$r = vestra_offers_combined_invoice_issue(['OF-1','OF-2'], 'garage', null, null, null, false, '');
+$t('kabul edilmemis teklif kesilmez', !empty($r['error']) && str_contains($r['error'],'kabul edilmiş değil'));
+$JSON['OF-2']['status'] = 'accept';
+
+/* IKI CAGIRAN DA govdeye gidiyor; panelde elle yazilmis ikinci bir kesim YOK. */
+$admSrc = (string)@file_get_contents(__DIR__.'/../vestra/admin.php');
+$wfSrc  = (string)@file_get_contents(__DIR__.'/../.github/workflows/send-campaign-preview.yml');
+$t('panel govdeyi cagiriyor',   str_contains($admSrc, 'vestra_offers_combined_invoice_issue('));
+$t('is akisi govdeyi cagiriyor', str_contains($wfSrc,  'vestra_offers_combined_invoice_issue('));
+/* Birlesik kesim blogunda kendi vestra_ensure_invoice/mektup cagrisi kalmamali. */
+$cb = substr($admSrc, (int)strpos($admSrc, "combine_issue_offer_invoice'"));
+$cb = substr($cb, 0, (int)strpos($cb, "if(\$act==='issue_offer_invoice')"));
+$t('panelde ikinci kesim kopyasi yok', !str_contains($cb, 'vestra_ensure_invoice('));
+$t('panelde ikinci mektup kopyasi yok', !str_contains($cb, 'vestra_send_mail('));
+
+$INVOICED = []; $MAILED = [];
 
 echo "\n== 10. KARGO + REDRAFT ==\n";
 /* "faturayi kestik fakat 50 eur shipping ... tekrar yap". Kargo kayittan
