@@ -736,6 +736,34 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   kesmeye başlayınca birlikte doldu.**
 - Test: `invoice_currency_test.php §5b`.
 
+**KURAL 5k — Siparişe NAVLUN yazılabilir; tutar ile TOPLAM birlikte hareket eder**
+(operatör, 7 Eyl 2026: *"kargo bölümü yok kargo eklemek gerekiyor 100 usd
+ekleyelim"* — VES-6B53D265).
+- **Teklif faturasında kutu vardı, siparişte YOKTU.** `offer_responses.json`'da
+  `invoice_shipping` ve panelde "Kargo €" 1 Eyl 2026'da tam bu sebeple eklenmişti;
+  sipariş ekranı navlunu yalnızca **gösteriyordu** (üstelik yalnız sıfırdan
+  büyükse), yazacak hiçbir yol yoktu.
+- Tek yazıcı `vestra_order_set_shipping()` (`inc/orders.php`); panelin
+  `🚚 Save shipping` kutusu ve `seller-products.yml` → `admin_mode=shipping`
+  ikisi de onu çağırıyor. **`shipping` ve `total` BİRLİKTE yazılır** — sipariş
+  satırının toplamı navlunu içeriyor ve `diag-live` bunu denetliyor
+  ("toplam farki (kayitli - mal - navlun)"); yalnız birini yazmak denetimi kırar
+  ve alıcının sipariş sayfası ile faturasını iki ayrı rakama böler (KURAL 5f).
+  Mal toplamı faturanın okuduğu **aynı** fonksiyondan (`vestra_order_lines`).
+- **ÜSTÜNE eklemez, YERİNE yazar:** toplam her seferinde mal + navlun olarak
+  yeniden kurulur; aksi hâlde iki düzeltme siparişi çift navlunla bırakırdı.
+- **Faturası kesilmiş siparişte YAZMAZ** — belge alıcının elinde, numara yanmış;
+  yol KURAL 5f (aynı numarayla yeniden çizim). Ham dosyadan okur
+  (`vestra_read_csv()` satırları ters çeviriyor — `vestra_order_delete`'in aynı
+  tuzağı), önce yedekler, geçici dosyaya yazıp **atomik** takas eder ve
+  **geri okuyup doğrular**.
+- **Tutar siparişin KENDİ biriminde saklanır**, çevrim tek yerde (KURAL 5i).
+  Belge başka birimdeyse panel karşılığını yazar; iş akışı doğrudan `100 USD`
+  kabul edip siparişin **damgalı** kuruyla böler (damga yoksa durur).
+- **Canlı ölçüm (7 Eyl 2026, run 32 + 263):** girilen `100 USD` → kayda
+  **€86,04** → belgede **Shipping US$100.00**, Total **US$5.539,60**; sipariş
+  toplamı €4.766,04 ve denetim "tutuyor". Test: `tests/order_shipping_test.php`.
+
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
 şekilde yap"* → aynı gün *"kdv fiyatın içinde gelmiyor"*).
