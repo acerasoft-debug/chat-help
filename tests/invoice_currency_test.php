@@ -98,6 +98,17 @@ $usAcc = $seller + ['bank_account'=>'ACC1','bank_routing'=>'ABA1'];
 $t('ABD yolu olan hesapta uyarı YOK',
    !str_contains(vestra_render_invoice_pdf($c['meta'], $c['items'], $usAcc, '', true), 'no payment details for'));
 $t('EUR belgesinde uyarı YOK',     !str_contains(vestra_render_invoice_pdf($meta, $items, $seller, '', true), 'no payment details for'));
+/* PLATFORM DILIMI: kutunun KESINLIKLE çıkmadığı tek hâl (bağlı hesap yok) uyarının
+   DIŞINDA kalıyordu — koşul `$sellerAcc !== null` idi. En çok uyarı gereken hâl. */
+$plat = vestra_render_invoice_pdf($meta, $items, null, '', true);
+$t('platform taslağı kutusuzluğu yazıyor', str_contains($plat, 'issued by the platform') && str_contains($plat, 'no payment box'));
+$t('platform KESİLMİŞ belgesinde iç not YOK',
+   !str_contains(vestra_render_invoice_pdf($meta, $items, null, 'INV-TEST-PLAT', false), 'issued by the platform'));
+/* ÖDENMİŞ (escrow) siparişte kutu zaten çizilmiyor: olmayan bir eksiği bildirmek
+   uyarıyı gürültüye çevirirdi. */
+$paidMeta = $meta; $paidMeta['paid'] = true;
+$t('ödenmiş siparişte uyarı YOK',
+   !str_contains(vestra_render_invoice_pdf($paidMeta, $items, null, '', true), 'no payment box'));
 
 echo "\n== 6. Kesim yolu: çevrilemeyen belge KESİLMEZ ==\n";
 $inv = $src('inc/invoice.php');
