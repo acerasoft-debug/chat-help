@@ -1189,4 +1189,18 @@ return array (
 
   'Delivered' => 'Доставлено',
 
+  'I have a problem with this order' => 'У меня проблема с этим заказом',
+  'Something else' => 'Другое',
+  'Claim' => 'Претензия',
+  'Claim open' => 'Претензия открыта',
+  'Claim opened' => 'Претензия открыта',
+  'Claim resolved' => 'Претензия закрыта',
+  'Buyer claim' => 'Претензия покупателя',
+  'Outcome' => 'Решение',
+  'Under review — we reply within 2 business days, here in this order.' => 'На рассмотрении — мы ответим в течение 2 рабочих дней здесь, в этом заказе.',
+  'A claim is open on this order — receipt cannot be confirmed until it is resolved.' => 'По этому заказу открыта претензия — подтвердить получение нельзя, пока она не закрыта.',
+  'VESTRA is reviewing this claim and may ask you for your account of it. Funds, if held, stay held until it is resolved.' => 'VESTRA рассматривает эту претензию и может запросить у вас объяснения. Удержанные средства, если они есть, остаются удержанными до её закрытия.',
+  'Order delivered' => 'Заказ доставлен',
+  'Payment received' => 'Оплата получена',
+
 );

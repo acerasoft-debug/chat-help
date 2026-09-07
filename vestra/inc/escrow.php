@@ -258,9 +258,11 @@ function escrow_do_release(string $ref): array {
  * otomatigi kendiliginden devre disi birakir. */
 
 /* Alicinin teslimattan sonra YANLIS / EKSIK / HATALI mal bildirmek icin sahip
-   oldugu sure, TAKVIM gunu (operator karari, 4 Eyl 2026). Politika metni
-   inc/faq.php'deki 'returns' bolumunde; tests/returns_policy_test.php ikisinin
-   ayni sayiyi soylemesini zorunlu tutar. */
+   oldugu sure, IS GUNU (Pzt-Cum; Cmt/Paz sayilmaz).
+   4 Eyl 2026'da takvim gunu olarak konmustu; operator 6 Eyl 2026'da degistirdi:
+   "3 gunde hafta sonlari sayilmasin". Politika metni inc/faq.php'deki 'returns'
+   bolumunde (9 dil); tests/returns_policy_test.php ikisinin ayni sayiyi ve ayni
+   gun turunu soylemesini zorunlu tutar. */
 if (!defined('VESTRA_CLAIM_DAYS')) define('VESTRA_CLAIM_DAYS', 3);
 
 /** $ts'ten itibaren $days IS GUNU sonrasi (Cmt/Paz atlanir), epoch saniyesi. */
@@ -271,6 +273,35 @@ function vestra_business_days_after(int $ts, int $days): int {
         if ($dow <= 5) $days--;
     }
     return $ts;
+}
+
+/** Alicinin talep penceresinin BITTIGI an — TEK KAYNAK. Teslimattan
+ *  VESTRA_CLAIM_DAYS is gunu sonra, gun sonuna kadar (23:59:59): "3 is gunu
+ *  icinde" ucuncu gunun tamamini kapsar, ogleden sonrasini degil.
+ *  Cuma teslimat -> Pzt, Sal, Crs -> Carsamba gece yarisina kadar. */
+function vestra_claim_deadline(int $deliveredTs): int {
+    $end = vestra_business_days_after($deliveredTs, VESTRA_CLAIM_DAYS);
+    return strtotime(date('Y-m-d', $end).' 23:59:59');
+}
+
+/**
+ * Teslimattan sonra paranin en erken ne zaman serbest kalacagi — TEK KAYNAK.
+ * Para, alicinin sikayet hakki BITMEDEN saticiya gecmemeli. Iki is gunu
+ * takvimde 3 gunden kisa olabiliyor (Pzt teslimat -> Crs serbest, oysa alicinin
+ * hakki Prs aksamina kadar suruyor). Ikisinin GEC olani alinir: 2 is gunu taban
+ * (hafta sonu davranisi korunur), uzerine VESTRA_CLAIM_DAYS takvim gunu garanti.
+ *
+ * Bu hesap eskiden yalnizca supurucunun icindeydi; saticinin "teslim edildi"
+ * mektubu (seller.php) ise kendi basina "2 is gunu" yaziyordu -- yani alici
+ * mektupta Carsamba okuyup para Persembe'ye kadar tutuluyordu. Ayni sayi iki
+ * yerde ayri hesaplaninca ayrisir; simdi ikisi de burayi cagirir.
+ */
+function escrow_release_deadline(int $deliveredTs): int {
+    /* Talep penceresi artik is gunu (vestra_claim_deadline); 2 is gunu tabani
+       ondan kisa kalir ama korunuyor: pencere bir gun kisalirsa bile para
+       hafta sonu davranisiyla en az 2 is gunu tutulur. */
+    return max(vestra_business_days_after($deliveredTs, 2),
+               vestra_claim_deadline($deliveredTs));
 }
 
 /**
@@ -310,8 +341,7 @@ function escrow_auto_release_sweep(bool $dry = false): array {
             $out['lines'][] = sprintf('  %s TALEP ACIK — para tutuluyor', $ref);
             continue;
         }
-        $deadline = max(vestra_business_days_after($dts, 2),
-                        $dts + VESTRA_CLAIM_DAYS * 86400);
+        $deadline = escrow_release_deadline($dts);
         if (time() < $deadline) {
             $out['lines'][] = sprintf('  %s teslim %s — sure %s dolacak', $ref,
                 date('Y-m-d H:i', $dts), date('Y-m-d H:i', $deadline));

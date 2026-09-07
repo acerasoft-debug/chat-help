@@ -265,10 +265,16 @@ function vestra_msg_snippet(array $m): string {
             default   => '↩ '.t('Counter offer'),
         },
         'order' => match($meta['status']??''){
+            /* 'paid' ve 'delivered' BURADA YOKTU: satici odemeyi/teslimati
+               isaretleyince sohbette "Order placed" karti cikiyordu -- ayni
+               eksigin ucuncu yeri (etiket + zincir + burasi). */
+            'paid'      => '✓ '.t('Payment received'),
             'shipped'   => '🚚 '.t('Order shipped'),
+            'delivered' => '📦 '.t('Order delivered'),
             'completed' => '✓ '.t('Order completed — payment released'),
             default     => '📦 '.t('Order placed'),
         },
+        'claim' => (($meta['status']??'') === 'resolved' ? '✓ '.t('Claim resolved') : '⚠️ '.t('Claim opened')).' — '.($meta['claim_ref']??''),
         'request_offer' => match($meta['status']??''){
             'accept' => '✓ '.t('Sourcing offer accepted'),
             default  => '📋 '.t('New sourcing offer').' — '.($meta['product']??''),
@@ -323,9 +329,25 @@ function vestra_msg_system_html(array $m, string $viewerRole): string {
                ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['ref']??'').'</span></div>'.
                '<div class="mo-prod">'.htmlspecialchars($meta['product']??'').'</div>'.$time.'</div>';
     }
+    if ($kind === 'claim') {
+        /* Talep karti (6 Eyl 2026). SSS returns/9: "sonuc size siparis ipliginde
+           bildirilir, dosya tek yerde kalir". Iki tarafa da ayni kart; satici
+           neyin sikayet edildigini gormek zorunda (aciklama istenecek). */
+        $resolved = ($meta['status']??'') === 'resolved';
+        $body = '<div class="mo-head">'.($resolved ? '✓ '.t('Claim resolved') : '⚠️ '.t('Claim opened'))
+              . ' <span class="atag" style="margin-left:6px">'.htmlspecialchars($meta['claim_ref']??'').'</span>'
+              . ' <span class="atag">'.htmlspecialchars($meta['ref']??'').'</span></div>'
+              . '<div class="mo-prod">'.htmlspecialchars(t((string)($meta['reason']??''))).'</div>';
+        if ($resolved && !empty($meta['outcome'])) $body .= '<div class="mo-terms"><b>'.t('Outcome').':</b> '.htmlspecialchars((string)$meta['outcome']).'</div>';
+        $panel = $viewerRole === 'seller' ? '/seller?tab=orders' : '/buyer?tab=orders&view='.rawurlencode((string)($meta['ref']??''));
+        $body .= '<a class="mo-act" href="'.htmlspecialchars($panel).'">'.t('View order →').'</a>';
+        return '<div class="msgoffer '.($resolved ? 'ok' : 'ctr').'">'.$body.$time.'</div>';
+    }
     if ($kind === 'order') {
         [$cls, $label] = match($meta['status']??''){
+            'paid'      => ['ok',  '✓ '.t('Payment received')],
             'shipped'   => ['ctr', '🚚 '.t('Order shipped')],
+            'delivered' => ['ctr', '📦 '.t('Order delivered')],
             'completed' => ['ok',  '✓ '.t('Order completed — payment released')],
             default     => ['',    '📦 '.t('Order placed')],
         };

@@ -779,8 +779,35 @@ dönmek zorundadir"*).
   Site genelindeki bağlantılar `/faq?cat=returns` adresine gider; kural altbilgide,
   ürün sayfasında veya sepette **TEKRAR YAZILMAZ** — iki kopya er geç ayrışır.
   `returns_policy_test.php` bu sayfalarda gün sayısının geçmediğini de doğrular.
-- **Gün sayısı tek kaynaktan:** `VESTRA_CLAIM_DAYS` (`inc/escrow.php`), takvim günü.
-  Metin ile sabitin aynı kalmasını test zorunlu tutar.
+- **Gün sayısı tek kaynaktan:** `VESTRA_CLAIM_DAYS` (`inc/escrow.php`) — **İŞ GÜNÜ**
+  (operatör kararı, 6 Eyl 2026: *"3 günde hafta sonları sayılmasın"*; 4 Eylül'de
+  takvim günüydü). Son tarih `vestra_claim_deadline($teslimTs)` = 3 iş günü sonra,
+  gün sonuna kadar; Cuma teslimat → Çarşamba. Escrow serbest bırakma
+  (`escrow_release_deadline`) ve satıcının "teslim edildi" mektubu **aynı**
+  fonksiyondan okur — mektup eskiden kendi başına "2 iş günü" hesaplıyordu ve
+  KURAL 11 süreyi uzatınca geride kalmıştı (alıcı Çarşamba okuyor, para Perşembe).
+  Metin ile sabitin aynı kalmasını test zorunlu tutar (`returns_policy_test.php`
+  §1/§3: "3 business days", "calendar day" yok, "Friday…by Monday" yok).
+- **"Satıcı ödenir" cümlesi kaldırıldı** (operatör, 6 Eyl 2026: *"verkäufer wird
+  bezahlt yerine satıcının fonları sistemde tutulmayabilir"*). Süre dolunca
+  "the seller is paid" demek havale siparişinde düpedüz **yanlıştı** — satıcı
+  sevkiyattan önce ödenmişti; VESTRA hiç para tutmamıştı. Şimdi 9 dilde: *"any
+  funds still held for the order are no longer held"* — escrow'da doğru, havalede
+  boş küme olarak doğru.
+- **Talep akışı ("Open dispute") 5–6 Eyl 2026'da kuruldu** — `inc/claims.php`,
+  tek karar noktası `vestra_claim_state()`. O tarihe kadar SSS beş sayfada olmayan
+  bir düğmeyi tarif ediyordu ve `disputed` bayrağı hiçbir yerde yazılmıyordu.
+  Operatör: **her siparişte** (iptal hariç), **sessiz** (katlanmış "I have a
+  problem with this order" bağlantısı → sebepler → foto+açıklama). Açık talep
+  escrow süpürücüsünü **ve** alıcının "teslim aldım" düğmesini durdurur; sonuç
+  alıcıya mektupla + sipariş ipliğine kartla gider; satıcı talebi salt-okunur
+  görür; `cron_claims.php` (07:10 UTC) 2 iş gününü geçen açık talebi operatöre
+  yazar. Test: `tests/claim_flow_test.php`.
+- **de/fr/es/it'de `returns` dışı maddeler 4 Eylül'de güncellenmemişti**
+  (6 Eyl 2026'da bulundu): `shipping/5` "48 saat", `disputes/0`/`/4` "5 iş günü",
+  `disputes/2` "satıcı iade sunuyorsa iade mümkün" — KURAL 11'in tersi, dört dilde,
+  iki gün. `returns_policy_test` yalnız `returns`'ü koruyordu;
+  `faq_translation_test.php` artık bu maddelerde rakip süre izini de tutuyor.
 - **Bu iş üç canlı çelişki ortaya çıkardı, üçü de düzeltildi:**
   1. SSS aynı soruya **üç** farklı cevap veriyordu — uyuşmazlık için "5 iş günü",
      nakliye hasarı için "48 saat", escrow için "2 iş günü". Hepsi 3 güne indi.

@@ -11,7 +11,8 @@
  */
 $src = file_get_contents(__DIR__.'/../vestra/inc/email_templates.php');
 foreach (['vestra_display_name', 'vestra_tpl_order_tracking_soon', 'vestra_tpl_order_shipped',
-          'vestra_tpl_order_address_request', 'vestra_tpl_order_invoice_soon'] as $fn) {
+          'vestra_tpl_order_address_request', 'vestra_tpl_order_invoice_soon',
+          'vestra_tpl_claim_received', 'vestra_tpl_claim_resolved'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -102,6 +103,36 @@ $t('on siparis yoksa cumle YOK',  stripos($b8, 'pre-order') === false);
 $t('hesap yok -> panel linki yok', !isset($o8['button']) && !isset($b8['button']));
 $t('ikinci persona basiliyor',    str_contains($b8, 'Elena Romano'));
 $t('Turkce karakter yok',         $noTurkish($s7.$b7.$b8));
+
+/* --- claim_received / claim_resolved (6 Eyl 2026) ---
+   SSS disputes/1 "referans numarasi alirsiniz", returns/6 "yazili yetki alirsiniz",
+   returns/9 "sonuc size bildirilir". Bu iki mektup o uc vaadin yazili hali.
+   Tutulanlar: ref + talep no konuda, sebep govdede, "geri gondermeyin" uyarisi,
+   sonuc metni OLDUGU GIBI (rakam/adres uydurulmaz), hesap varsa dugme. */
+echo "\n== claim_received ==\n";
+if (!defined('VESTRA_CLAIM_REVIEW_BDAYS')) define('VESTRA_CLAIM_REVIEW_BDAYS', 2);
+[$s9, $b9, $o9] = vestra_tpl_claim_received('maison test', 'VES-1', 'CLM-A1B2C3', 'Not as described', true);
+$t('konu: talep no + siparis ref',      str_contains($s9, 'CLM-A1B2C3') && str_contains($s9, 'VES-1'));
+$t('hitap bas harfli',                  str_contains($b9, 'Hello Maison Test,'));
+$t('govde: referans + sebep',           str_contains($b9, 'Claim reference: CLM-A1B2C3') && str_contains($b9, 'Reason: Not as described'));
+$t('2 is gunu sozu sabitten',           str_contains($b9, 'within '.VESTRA_CLAIM_REVIEW_BDAYS.' business days'));
+$t('"geri gondermeyin" uyarisi',        stripos($b9, 'do not ship anything back') !== false);
+$t('para tutuluyor cumlesi',            stripos($b9, 'stays held') !== false);
+$t('hesap var -> siparis linki',        str_contains($o9['button']['url'] ?? '', 'view=VES-1'));
+$t('bilgi kutusu: talep no vurgulu',    ($o9['rows'][0]['label'] ?? '') === 'Claim reference' && !empty($o9['rows'][0]['strong']));
+[, $b9b, $o9b] = vestra_tpl_claim_received('X', 'VES-2', 'CLM-000000', 'Counterfeit', false);
+$t('hesap yok -> dugme yok, link yok',  !isset($o9b['button']) && !str_contains($b9b, 'buyer?tab=orders'));
+$t('Turkce karakter yok',               $noTurkish($s9.$b9.$b9b));
+
+echo "\n== claim_resolved ==\n";
+$outcome = 'Partial credit of 12 pieces; keep the goods.';
+[$s10, $b10, $o10] = vestra_tpl_claim_resolved('Maison Test', 'VES-1', 'CLM-A1B2C3', $outcome, true);
+$t('konu: talep no + "outcome"',        str_contains($s10, 'CLM-A1B2C3') && stripos($s10, 'outcome') !== false);
+$t('sonuc OLDUGU GIBI basiliyor',       str_contains($b10, 'Outcome: '.$outcome));
+$t('yazili yetki cumlesi',              stripos($b10, 'written authorisation') !== false);
+$t('rakam/adres uydurulmuyor',          !preg_match('/€\s?\d|EUR\s?\d|\bIBAN\b/', $b10));
+$t('bilgi kutusu: sonuc vurgulu',       ($o10['rows'][2]['label'] ?? '') === 'Outcome' && !empty($o10['rows'][2]['strong']));
+$t('Turkce karakter yok',               $noTurkish($s10.$b10));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);

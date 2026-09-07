@@ -292,43 +292,20 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
            dugmeyi vaat ediyordu ve dugme hicbir yerde yoktu. Asama karari
            vestra_claim_state()'te; kart, POST isleyicisi ve escrow supurucusu
            ucu de ONU okur. */
+        /* Bilesenin kendisi claims.php'de (vestra_claim_widget): asama karari,
+           form ve durum satiri TEK yerde. Operator (6 Eyl 2026): her sipariste,
+           ama sessiz -- kocaman bir kart degil, katlanmis bir baglanti. */
         if (!function_exists('vestra_claim_state')) require_once __DIR__.'/claims.php';
-        $cl = vestra_claim_state($ref, $statusEntry);
-        if ($cl['phase'] !== 'na') {
-            $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">⚠️ '.t('Report a problem').'</h3></div>';
-            if ($cl['phase'] === 'filed') {
-                $c = $cl['claim'];
-                $reasons = vestra_claim_reasons();
-                $h .= '<p style="margin:0 0 6px"><b>'.t('Claim reference').':</b> <span style="font-family:ui-monospace,monospace">'.htmlspecialchars((string)($c['claim_ref'] ?? '')).'</span></p>'
-                    . '<p style="margin:0 0 6px">'.htmlspecialchars(t((string)($reasons[$c['reason'] ?? ''] ?? ''))).' · '
-                    . htmlspecialchars(substr((string)($c['opened_at'] ?? ''), 0, 10)).'</p>';
-                $n = count((array)($c['files_on_disk'] ?? []));
-                if ($n) $h .= '<p class="hint" style="margin:0 0 6px">📎 '.$n.' '.t('file(s) attached').'</p>';
-                $h .= '<p class="hint" style="margin:0">'.t('We review claims within 2 business days and reply in this order.').'</p>';
-            } elseif ($cl['phase'] === 'late') {
-                /* Sureyi kacirmis aliciyi bos bir duvara birakma: politika 3 gunu
-                   kesin tutuyor ama "yanlis olduğunu düşünüyorsaniz yazin" yolu
-                   aciktir -- kararı operator verir, form vermez. */
-                $h .= '<p class="hint" style="margin:0 0 6px">'.t('The claim window for this delivery has closed.').'</p>'
-                    . '<p class="hint" style="margin:0">'.t('If you believe this is wrong, write to')
-                    . ' <a class="acc" href="mailto:support@vestrasales.com">support@vestrasales.com</a>.</p>';
-            } else {
-                if (!empty($cl['deadline'])) {
-                    $h .= '<p class="hint" style="margin:0 0 8px">'.t('Report by').' <b>'
-                        . htmlspecialchars(date('j M Y', (int)$cl['deadline'])).'</b></p>';
-                }
-                $h .= '<p class="hint" style="margin:0 0 10px">'
-                    . t('Wrong, missing or faulty goods only.').' <a class="acc" href="/faq?cat=returns">'.t('Read the claim rules').'</a></p>'
-                    . vestra_claim_form($formHref, $ref);
-                if (function_exists('vestra_doc_upload_js')) $h .= vestra_doc_upload_js();
-            }
-            $h .= '</div>';
-        }
+        $h .= vestra_claim_widget($ref, $statusEntry, $formHref);
     } else {
         $h .= '<div class="panelcard" style="margin:0 0 14px"><div class="pcfhead"><h3 style="font-size:14px">'.t('Buyer').'</h3></div>'.
               '<p style="margin:0">'.htmlspecialchars($orderRow['company'] ?? '').'<br>'.
               htmlspecialchars($orderRow['name'] ?? '').' · <a class="acc" href="mailto:'.htmlspecialchars($orderRow['email'] ?? '').'">'.htmlspecialchars($orderRow['email'] ?? '').'</a>'.
               (!empty($orderRow['country']) ? '<br>'.htmlspecialchars($orderRow['country']) : '').'</p></div>';
+        /* Satici talebi GORUR (salt okunur): SSS returns/9 "VESTRA saticidan
+           aciklama ister" -- neyin sikayet edildigini gormeden aciklama olmaz. */
+        if (!function_exists('vestra_claim_seller_block')) require_once __DIR__.'/claims.php';
+        $h .= vestra_claim_seller_block($ref);
     }
 
     $h .= '<div class="panelcard" style="margin:0"><div class="pcfhead"><h3 style="font-size:14px">'.t('Shipping').'</h3></div>';
@@ -345,7 +322,14 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     } else {
         $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.($statusEntry['tracking'] ?? '' ? htmlspecialchars($statusEntry['tracking']) : '<span class="hint">'.t('Not shipped yet').'</span>').'</p>';
         if (!empty($statusEntry['seller_note'])) $h .= '<p style="margin:0"><b>'.t('Note from seller').':</b> '.htmlspecialchars($statusEntry['seller_note']).'</p>';
-        if ($status === 'shipped') {
+        /* 'delivered' da dahil: buyer.php'nin isleyicisi ikisini de kabul ediyor,
+           bu gorunum yalnizca 'shipped'e dugme basiyordu -- teslim edilmis
+           sipariste alici detay sayfasindan onaylayamiyordu (listeden olabiliyordu).
+           Talep ACIKKEN dugme YOK: onay parayi serbest birakir, talep ise onu
+           tutuyor -- ikisi ayni anda dogru olamaz. Sunucu tarafi da reddediyor;
+           dugmeyi gizlemek kapi degil (sold_out dersi). */
+        if (!function_exists('vestra_claim_is_open')) require_once __DIR__.'/claims.php';
+        if (in_array($status, ['shipped', 'delivered'], true) && !vestra_claim_is_open($ref)) {
             $h .= '<form method="post" action="'.htmlspecialchars($formHref).'" style="margin-top:10px">
               <input type="hidden" name="_action" value="confirm_receipt">
               <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">

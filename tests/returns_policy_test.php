@@ -31,7 +31,17 @@ $t('politika detayli (>=15 madde)', count($items) >= 15);
 
 $all = '';
 foreach ($items as $i) $all .= ' ' . $i['q'] . ' ' . $i['a'];
-$t("metin '{$days} days' diyor", str_contains($all, "{$days} days"));
+/* IS GUNU (operator, 6 Eyl 2026: "hafta sonlari sayilmasin"). Metin "3 business
+   days" demeli; "3 days" tek basina eski takvim kuralinin kalintisidir. */
+$t("metin '{$days} business days' diyor", str_contains($all, "{$days} business days"));
+/* Yeni metin "Business days, not calendar days" der -- 'calendar day' gecer ama
+   kural olarak degil, karsitlik olarak. Yasak olan ESKI acilis: "Calendar days,
+   not business days". Ilk yazimim her 'calendar day'i yasaklayip dogru metni
+   kirmizi boyadi. */
+$t("eski 'Calendar days, not business days' kalmadi", stripos($all, 'Calendar days, not business days') === false);
+$t("'Saturdays and Sundays' sayilmadigi yaziyor",    stripos($all, 'Saturdays and Sundays') !== false);
+$t("'Friday ... Monday' ornegi kalmadi",   !preg_match('/Friday[^.]*by Monday/i', $all));
+$t("'the seller is paid' kalmadi (havale siparisinde zaten yanlisti)", stripos($all, 'the seller is paid') === false);
 $t('iadeye kapali oldugu yaziyor', stripos($all, 'closed to returns') !== false);
 foreach (['wrong', 'missing', 'faulty'] as $w) {
     $t("gerekce sayiliyor: {$w}", stripos($all, $w) !== false);
@@ -50,23 +60,26 @@ foreach ($legal as $d) $legalAll .= ' ' . $d['html'];
 $t('Sozlesme\'de sabit escrow suresi yok', !str_contains($legalAll, '2 business days after the'));
 
 echo "\n== 3. Para, sikayet hakki bitmeden cikmiyor ==\n";
-/* Eski kural yalnizca 2 IS GUNU idi ve takvimde 3 gunden KISA olabiliyordu:
-   Pazartesi teslimatta Carsamba serbest, oysa alicinin hakki Persembe aksamina
-   kadar suruyordu -- yani odeme pencerenin ORTASINDA yapiliyordu. */
-$bad = 0; $shown = 0;
+/* Pencere IS GUNU (6 Eyl 2026). Eski takvim kurali Cuma teslimatta Pazartesi
+   diyordu; simdi Cmt/Paz sayilmaz -> Carsamba. Ve para, pencere bitmeden
+   HICBIR gunde cikmamali: 14 gun boyunca her teslim gunu icin denenir. */
+$bad = 0;
 for ($d = 0; $d < 14; $d++) {
     $ts  = strtotime('2026-09-07 10:00') + $d * 86400;   // Pazartesi'den 14 gun
-    $biz = vestra_business_days_after($ts, 2);
-    $win = $ts + $days * 86400;
-    $new = max($biz, $win);
-    if ($new < $win) $bad++;
-    if ($biz < $win && $shown < 2) { $shown++; }
+    if (escrow_release_deadline($ts) < vestra_claim_deadline($ts)) $bad++;
 }
-$t('yeni kural hicbir gunde pencereden once odemiyor', $bad === 0);
-$t('eski kural en az bir gunde erken odardi (duzeltmenin sebebi)', $shown > 0);
+$t('serbest birakma hicbir gunde pencereden once degil', $bad === 0);
+$t('Cuma teslimat -> Carsamba (hafta sonu sayilmaz)',
+   date('D', vestra_claim_deadline(strtotime('2026-09-04 12:00'))) === 'Wed');
+$t('Pazartesi teslimat -> Persembe',
+   date('D', vestra_claim_deadline(strtotime('2026-09-07 12:00'))) === 'Thu');
 $src = file_get_contents($root . '/inc/escrow.php');
-$t('supurucu sabiti gercekten kullaniyor',
-   (bool)preg_match('/\$deadline\s*=\s*max\(\s*vestra_business_days_after\([^)]*\),\s*\$dts\s*\+\s*VESTRA_CLAIM_DAYS/s', $src));
+$t('supurucu TEK kaynagi kullaniyor (escrow_release_deadline -> vestra_claim_deadline)',
+   str_contains($src, '$deadline = escrow_release_deadline($dts)')
+   && (bool)preg_match('/function escrow_release_deadline.*?vestra_claim_deadline\(\$deliveredTs\)/s', $src));
+$t('pencere sabiti IS GUNU ile hesaplaniyor',
+   (bool)preg_match('/function vestra_claim_deadline.*?vestra_business_days_after\(\$deliveredTs,\s*VESTRA_CLAIM_DAYS\)/s', $src));
+$t('kodda takvim gunu carpani kalmadi', !preg_match('/VESTRA_CLAIM_DAYS\s*\*\s*86400/', $src . file_get_contents($root . '/inc/claims.php')));
 
 echo "\n== 4. Baglanti her yerde, kural tek yerde ==\n";
 $link = '/faq?cat=returns';

@@ -1189,4 +1189,18 @@ return array (
 
   'Delivered' => '配達済み',
 
+  'I have a problem with this order' => 'この注文に問題があります',
+  'Something else' => 'その他',
+  'Claim' => '申立て',
+  'Claim open' => '申立て受付中',
+  'Claim opened' => '申立てを受け付けました',
+  'Claim resolved' => '申立てが解決しました',
+  'Buyer claim' => '買い手からの申立て',
+  'Outcome' => '結果',
+  'Under review — we reply within 2 business days, here in this order.' => '確認中です。2営業日以内に、この注文の中でご回答します。',
+  'A claim is open on this order — receipt cannot be confirmed until it is resolved.' => 'この注文には申立てが進行中のため、解決するまで受領確認はできません。',
+  'VESTRA is reviewing this claim and may ask you for your account of it. Funds, if held, stay held until it is resolved.' => 'VESTRAがこの申立てを確認しており、貴社の説明をお願いすることがあります。保留中の資金がある場合、解決まで保留されます。',
+  'Order delivered' => '注文が配達されました',
+  'Payment received' => '入金を確認しました',
+
 );

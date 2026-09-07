@@ -77,7 +77,27 @@ foreach ($langs as $lang) {
         }
     }
 
+    /* Rakip sure izleri: 4 Eyl 2026'da Ingilizce tek sayiya (3 gun) indirildi ama
+       de/fr/es/it'nin returns DISINDAKI maddeleri guncellenmedi -- shipping/5
+       "48 saat", disputes/0 ve /4 "5 is gunu", disputes/2 ise saticinin iade
+       sunabilecegini soyleyen eski metin. Uc farkli sure, dort dilde, iki gun
+       boyunca. 6 Eyl 2026'da pencere IS GUNU oldu; bu bekci hem eski sayilari
+       hem "takvim gunu" kalintisini tutar. */
+    $stale = [];
+    foreach (['shipping/5','returns/2','returns/3','returns/11','returns/12','returns/14','returns/17','disputes/0','disputes/2','disputes/4'] as $key) {
+        [$ck, $ci] = explode('/', $key);
+        $a = (string)($got[$ck]['items'][(int)$ci]['a'] ?? '');
+        if (preg_match('~\b48\b~', $a)) $stale[] = "$key: 48";
+        if (preg_match('~(?<![0-9])5\s*(Werktag|jours? ouvr|d[ií]as h[aá]bil|giorni lavorativ|dias [uú]teis|рабоч|أيام عمل|営業日)~u', $a)) $stale[] = "$key: 5 is gunu";
+        /* Rakam yalnizca sayiyi RAKAMLA yazan iki maddede aranir: returns/2 ve
+           disputes/4. Japonca returns/3 "金曜日→水曜日", Arapca returns/11 "الثلاثة"
+           sayiyi yaziyla verir -- ilk yazimim her maddede '3' arayip sekiz dogru
+           ceviriyi kirmizi boyadi. */
+        if (in_array($key, ['returns/2', 'disputes/4'], true) && !preg_match('~3~', $a)) $stale[] = "$key: '3' yok";
+    }
+    if (preg_match('~Kalendertage, nicht Werktage|jours calendaires, non ouvr|Días naturales, no hábiles|Giorni di calendario, non lavorativi|Dias de calendário, não úteis|Календарными днями, а не рабочими|بالأيام التقويمية لا أيام العمل|営業日ではなく暦日~u', (string)($got['returns']['items'][3]['a'] ?? ''))) $stale[] = 'returns/3: takvim gunu kalmis';
     $t("{$lang}: 12 kategori / {$totalItems} madde tam" . ($countBad ? ' — ' . implode(', ', $countBad) : ''), $countBad === []);
+    $t("{$lang}: rakip sure izi yok (48 saat / 5 is gunu / takvim gunu)" . ($stale ? ' — ' . implode(', ', $stale) : ''), $stale === []);
     $t("{$lang}: Ingilizce kalan yok" . ($untranslated ? ' — ' . count($untranslated) . ' adet: ' . implode(', ', array_slice($untranslated, 0, 6)) : ''), $untranslated === []);
     $t("{$lang}: cevaplarda HTML yok" . ($html ? ' — ' . implode(', ', $html) : ''), $html === []);
     $t("{$lang}: yabanci alfabe sizmamis" . ($foreign ? ' — ' . implode(', ', array_slice($foreign, 0, 6)) : ''), $foreign === []);

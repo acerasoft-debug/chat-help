@@ -242,7 +242,7 @@
       5 => 
       array (
         'q' => '¿Qué ocurre si la mercancía llega dañada?',
-        'a' => 'Documente los daños con fotografías inmediatamente en la entrega, antes de firmar el recibo del transportista. Abra una disputa dentro de las 48 horas siguientes a la entrega. No devuelva mercancía sin confirmación escrita de VESTRA — las devoluciones no autorizadas complican la resolución.',
+        'a' => 'Documente los daños con fotografías inmediatamente en la entrega, antes de firmar el recibo del transportista. Presente la reclamación dentro de los 3 días hábiles siguientes a la entrega. No devuelva mercancía sin confirmación escrita de VESTRA — las devoluciones no autorizadas complican la resolución.',
       ),
     ),
   ),
@@ -254,7 +254,7 @@
       0 => 
       array (
         'q' => '¿Qué ocurre si la mercancía no se corresponde con la descripción del listado?',
-        'a' => 'Si la mercancía difiere sustancialmente del anuncio (modelo, cantidad o color erróneos, o defectos no declarados), abra una disputa en el panel de su cuenta dentro de los 5 días hábiles tras la entrega confirmada. Incluya fotografías y una descripción escrita. Suspenda cualquier pago adicional al vendedor durante la revisión.',
+        'a' => 'Si la mercancía difiere sustancialmente del anuncio (modelo, cantidad o color erróneos, o defectos no declarados), abra una reclamación en el panel de su cuenta dentro de los 3 días hábiles siguientes a la entrega — en la sección Devoluciones y reclamaciones se indica qué debe enviar. Incluya fotografías y una descripción escrita. Suspenda cualquier pago adicional al vendedor durante la revisión.',
       ),
       1 => 
       array (
@@ -264,7 +264,7 @@
       2 => 
       array (
         'q' => '¿Puedo devolver la mercancía?',
-        'a' => 'Las compras B2B en VESTRA no conllevan un derecho legal de devolución (a diferencia de las compras de consumo). Las devoluciones solo son posibles cuando la mercancía difiere sustancialmente de lo descrito, cuando se demuestra que es falsificada, o cuando el vendedor ofrece expresamente devoluciones en su listado. Nunca envíe mercancía de vuelta sin una autorización escrita previa.',
+        'a' => 'Los pedidos al por mayor no admiten devolución: no hay devolución por cambio de opinión ni derecho legal de desistimiento en una compra B2B. La mercancía errónea, faltante o defectuosa puede reclamarse dentro de los 3 días hábiles siguientes a la entrega. Las normas completas, las pruebas que debe enviar y quién paga el transporte de devolución figuran en la sección Devoluciones y reclamaciones.',
       ),
       3 => 
       array (
@@ -274,7 +274,7 @@
       4 => 
       array (
         'q' => '¿Cuánto tiempo tengo para presentar una disputa?',
-        'a' => 'Debe abrir la disputa dentro de los 5 días hábiles posteriores a la fecha de entrega confirmada (o, en caso de no entrega, antes del plazo acordado). Pasada esa ventana, la entrega se considera aceptada y las disputas resultan mucho más difíciles de resolver.',
+        'a' => 'Dentro de los 3 días hábiles siguientes a la entrega (o, en caso de no entrega, antes del plazo de entrega acordado). Pasada esa ventana, la entrega se considera aceptada y los fondos que aún estuvieran retenidos por el pedido dejan de estarlo. Los mismos 3 días hábiles se aplican a todos los motivos — mercancía errónea, faltante, defectuosa o no conforme.',
       ),
       5 => 
       array (
@@ -439,12 +439,12 @@
       2 => 
       array (
         'q' => '¿Cuánto tiempo tengo para comunicarlo?',
-        'a' => 'Tres días. Debe avisarnos dentro de los 3 días siguientes a la entrega. Es el único plazo que cuenta: pasado ese término la entrega se considera aceptada y el vendedor cobra. No hay prórroga por festivos, ausencia de personal o cajas sin abrir — si no puede revisar una entrega en tres días, encargue a alguien que sí pueda.',
+        'a' => 'Tres días hábiles. Debe avisarnos dentro de los 3 días hábiles siguientes a la entrega — de lunes a viernes; los sábados y domingos no cuentan. Es el único plazo que cuenta: pasado ese término, la entrega se considera aceptada y los fondos que aún estuvieran retenidos por el pedido dejan de estarlo. No hay prórroga por festivos, ausencia de personal o cajas sin abrir — si no puede revisar una entrega en tres días hábiles, encargue a alguien que sí pueda.',
       ),
       3 => 
       array (
         'q' => '¿Cómo se cuentan exactamente los 3 días?',
-        'a' => 'Días naturales, no hábiles, desde la fecha de entrega registrada por el transportista o confirmada en su pedido. Una entrega el viernes debe comunicarse como muy tarde el lunes. El plazo se detiene en el momento en que su reclamación entra en la plataforma — no cuando el vendedor responde.',
+        'a' => 'Días hábiles, no naturales — los sábados y domingos no se cuentan —, desde la fecha de entrega registrada por el transportista o confirmada en su pedido. Una entrega el viernes debe comunicarse como muy tarde el miércoles siguiente. El plazo se detiene en el momento en que su reclamación entra en la plataforma — no cuando el vendedor responde.',
       ),
       4 => 
       array (
@@ -484,12 +484,12 @@
       11 => 
       array (
         'q' => '¿Y si la entrega viene incompleta?',
-        'a' => 'Cuente los bultos contra el albarán antes de firmar, y anote cualquier falta en el recibo del transportista en ese momento. Una falta detectada tras una firma sin reservas es mucho más difícil de probar, aunque sigue siendo reclamable dentro de los 3 días si el peso de las cajas o los precintos lo respaldan. Fotografíe las cajas precintadas antes de abrirlas.',
+        'a' => 'Cuente los bultos contra el albarán antes de firmar, y anote cualquier falta en el recibo del transportista en ese momento. Una falta detectada tras una firma sin reservas es mucho más difícil de probar, aunque sigue siendo reclamable dentro de los 3 días hábiles si el peso de las cajas o los precintos lo respaldan. Fotografíe las cajas precintadas antes de abrirlas.',
       ),
       12 => 
       array (
         'q' => '¿Y si la mercancía llega dañada en el transporte?',
-        'a' => 'Haga constar el daño en el recibo del transportista antes de firmar, fotografíe el embalaje antes de abrirlo y presente la reclamación dentro de esos mismos 3 días. El daño de transporte es asunto del transportista y sus plazos pueden ser más cortos que los nuestros: la reserva anotada en la entrega es lo que protege el derecho. No tire el embalaje hasta que el caso esté cerrado.',
+        'a' => 'Haga constar el daño en el recibo del transportista antes de firmar, fotografíe el embalaje antes de abrirlo y presente la reclamación dentro de esos mismos 3 días hábiles. El daño de transporte es asunto del transportista y sus plazos pueden ser más cortos que los nuestros: la reserva anotada en la entrega es lo que protege el derecho. No tire el embalaje hasta que el caso esté cerrado.',
       ),
       13 => 
       array (
@@ -499,7 +499,7 @@
       14 => 
       array (
         'q' => '¿Presentar una reclamación detiene el pago al vendedor?',
-        'a' => 'Sí. Mientras una reclamación está abierta no se libera ningún importe, y la liberación automática está ajustada para no producirse antes de que venzan sus 3 días. Esa es la razón práctica de que el plazo sea corto: su dinero se retiene exactamente el tiempo que dura su derecho a reclamar.',
+        'a' => 'Sí. Mientras una reclamación está abierta no se libera ningún importe, y la liberación automática está ajustada para no producirse antes de que venzan sus 3 días hábiles. Esa es la razón práctica de que el plazo sea corto: su dinero se retiene exactamente el tiempo que dura su derecho a reclamar.',
       ),
       15 => 
       array (
@@ -514,7 +514,7 @@
       17 => 
       array (
         'q' => '¿Cuál es el resumen más breve posible?',
-        'a' => 'Sin devolución por cambio de opinión. Solo mercancía errónea, faltante o defectuosa. Comuníquelo dentro de los 3 días siguientes a la entrega, con fotografías, a través de la plataforma. No devuelva nada hasta que lo autoricemos por escrito.',
+        'a' => 'Sin devolución por cambio de opinión. Solo mercancía errónea, faltante o defectuosa. Comuníquelo dentro de los 3 días hábiles siguientes a la entrega, con fotografías, a través de la plataforma. No devuelva nada hasta que lo autoricemos por escrito.',
       ),
     ),
   ),

@@ -242,7 +242,7 @@
       5 => 
       array (
         'q' => 'E se a mercadoria chegar danificada no transporte?',
-        'a' => 'Documente os danos com fotografias imediatamente na entrega, antes de assinar o recibo do transportador. Apresente a reclamação no prazo de 3 dias após a entrega. Não devolva mercadoria sem confirmação escrita da VESTRA — devoluções não autorizadas dificultam a resolução.',
+        'a' => 'Documente os danos com fotografias imediatamente na entrega, antes de assinar o recibo do transportador. Apresente a reclamação no prazo de 3 dias úteis após a entrega. Não devolva mercadoria sem confirmação escrita da VESTRA — devoluções não autorizadas dificultam a resolução.',
       ),
     ),
   ),
@@ -264,12 +264,12 @@
       2 => 
       array (
         'q' => 'Quanto tempo tenho para comunicar?',
-        'a' => 'Três dias. Tem de nos avisar no prazo de 3 dias após a entrega. É o único prazo que conta: depois dele a entrega considera-se aceite e o vendedor é pago. Não há prorrogação por feriados, ausência de pessoal ou caixas por abrir — se não consegue verificar uma entrega em três dias, incumba alguém que consiga.',
+        'a' => 'Três dias úteis. Tem de nos avisar no prazo de 3 dias úteis após a entrega — de segunda a sexta; sábados e domingos não contam. É o único prazo que conta: depois dele a entrega considera-se aceite e os fundos ainda retidos pela encomenda deixam de estar retidos. Não há prorrogação por feriados, ausência de pessoal ou caixas por abrir — se não consegue verificar uma entrega em três dias úteis, incumba alguém que consiga.',
       ),
       3 => 
       array (
         'q' => 'Como são contados exactamente os 3 dias?',
-        'a' => 'Dias de calendário, não úteis, a contar da data de entrega registada pelo transportador ou confirmada na sua encomenda. Uma entrega à sexta-feira tem de ser comunicada até segunda. O prazo pára no momento em que a reclamação é submetida na plataforma — não quando o vendedor responde.',
+        'a' => 'Dias úteis, não de calendário — sábados e domingos não contam —, a contar da data de entrega registada pelo transportador ou confirmada na sua encomenda. Uma entrega à sexta-feira tem de ser comunicada até à quarta-feira seguinte. O prazo pára no momento em que a reclamação é submetida na plataforma — não quando o vendedor responde.',
       ),
       4 => 
       array (
@@ -309,12 +309,12 @@
       11 => 
       array (
         'q' => 'E se a entrega vier incompleta?',
-        'a' => 'Conte os volumes contra a guia de remessa antes de assinar, e anote qualquer falta no recibo do transportador nesse momento. Uma falta descoberta após uma assinatura sem reservas é muito mais difícil de provar, mas continua reclamável dentro dos 3 dias se os pesos das caixas ou os selos o confirmarem. Fotografe as caixas seladas antes de as abrir.',
+        'a' => 'Conte os volumes contra a guia de remessa antes de assinar, e anote qualquer falta no recibo do transportador nesse momento. Uma falta descoberta após uma assinatura sem reservas é muito mais difícil de provar, mas continua reclamável dentro dos 3 dias úteis se os pesos das caixas ou os selos o confirmarem. Fotografe as caixas seladas antes de as abrir.',
       ),
       12 => 
       array (
         'q' => 'E se a mercadoria chegar danificada no transporte?',
-        'a' => 'Registe o dano no recibo do transportador antes de assinar, fotografe a embalagem antes de a abrir e apresente a reclamação dentro dos mesmos 3 dias. O dano de transporte é matéria do transportador e os prazos dele podem ser mais curtos do que os nossos: é a reserva feita à porta que protege o direito. Não deite fora a embalagem enquanto o caso não estiver encerrado.',
+        'a' => 'Registe o dano no recibo do transportador antes de assinar, fotografe a embalagem antes de a abrir e apresente a reclamação dentro dos mesmos 3 dias úteis. O dano de transporte é matéria do transportador e os prazos dele podem ser mais curtos do que os nossos: é a reserva feita à porta que protege o direito. Não deite fora a embalagem enquanto o caso não estiver encerrado.',
       ),
       13 => 
       array (
@@ -324,7 +324,7 @@
       14 => 
       array (
         'q' => 'Apresentar uma reclamação trava o pagamento ao vendedor?',
-        'a' => 'Sim. Enquanto uma reclamação estiver aberta não é libertado qualquer valor, e a libertação automática está definida para nunca ocorrer antes de terminarem os seus 3 dias. É a razão prática de o prazo ser curto: o seu dinheiro fica retido exactamente o tempo que dura o seu direito de reclamar.',
+        'a' => 'Sim. Enquanto uma reclamação estiver aberta não é libertado qualquer valor, e a libertação automática está definida para nunca ocorrer antes de terminarem os seus 3 dias úteis. É a razão prática de o prazo ser curto: o seu dinheiro fica retido exactamente o tempo que dura o seu direito de reclamar.',
       ),
       15 => 
       array (
@@ -339,7 +339,7 @@
       17 => 
       array (
         'q' => 'Qual é o resumo mais curto possível?',
-        'a' => 'Sem devolução por mudança de ideias. Apenas mercadoria errada, em falta ou defeituosa. Comunique dentro de 3 dias após a entrega, com fotografias, através da plataforma. Não devolva nada antes de autorizarmos por escrito.',
+        'a' => 'Sem devolução por mudança de ideias. Apenas mercadoria errada, em falta ou defeituosa. Comunique dentro de 3 dias úteis após a entrega, com fotografias, através da plataforma. Não devolva nada antes de autorizarmos por escrito.',
       ),
     ),
   ),
@@ -351,7 +351,7 @@
       0 => 
       array (
         'q' => 'E se a mercadoria não corresponder à descrição do anúncio?',
-        'a' => 'Se a mercadoria for materialmente diferente do anúncio (modelo, quantidade ou cor errados, ou defeitos não declarados), abra um litígio no painel da sua conta no prazo de 3 dias após a entrega — veja em Devoluções e reclamações o que deve enviar. Junte fotografias e uma descrição escrita. Suspenda quaisquer pagamentos adicionais ao vendedor enquanto decorre a análise.',
+        'a' => 'Se a mercadoria for materialmente diferente do anúncio (modelo, quantidade ou cor errados, ou defeitos não declarados), abra um litígio no painel da sua conta no prazo de 3 dias úteis após a entrega — veja em Devoluções e reclamações o que deve enviar. Junte fotografias e uma descrição escrita. Suspenda quaisquer pagamentos adicionais ao vendedor enquanto decorre a análise.',
       ),
       1 => 
       array (
@@ -361,7 +361,7 @@
       2 => 
       array (
         'q' => 'Posso devolver a mercadoria?',
-        'a' => 'As encomendas por grosso não admitem devolução: não há devolução por mudança de ideias nem direito legal de livre resolução numa compra B2B. A mercadoria errada, em falta ou defeituosa é reclamável no prazo de 3 dias após a entrega. As regras completas, as provas a enviar e quem paga o transporte de devolução constam de Devoluções e reclamações.',
+        'a' => 'As encomendas por grosso não admitem devolução: não há devolução por mudança de ideias nem direito legal de livre resolução numa compra B2B. A mercadoria errada, em falta ou defeituosa é reclamável no prazo de 3 dias úteis após a entrega. As regras completas, as provas a enviar e quem paga o transporte de devolução constam de Devoluções e reclamações.',
       ),
       3 => 
       array (
@@ -371,7 +371,7 @@
       4 => 
       array (
         'q' => 'Qual é o prazo para abrir um litígio?',
-        'a' => '3 dias após a entrega (ou, em caso de não entrega, até ao prazo de entrega acordado). Passado esse prazo, a entrega considera-se aceite e o vendedor é pago. Os mesmos 3 dias aplicam-se a todos os motivos — mercadoria errada, em falta, defeituosa ou não conforme.',
+        'a' => '3 dias úteis após a entrega (ou, em caso de não entrega, até ao prazo de entrega acordado). Passado esse prazo, a entrega considera-se aceite e os fundos ainda retidos pela encomenda deixam de estar retidos. Os mesmos 3 dias úteis aplicam-se a todos os motivos — mercadoria errada, em falta, defeituosa ou não conforme.',
       ),
       5 => 
       array (

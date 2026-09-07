@@ -1189,4 +1189,18 @@ return array (
 
   'Delivered' => 'تم التسليم',
 
+  'I have a problem with this order' => 'لديّ مشكلة في هذا الطلب',
+  'Something else' => 'شيء آخر',
+  'Claim' => 'مطالبة',
+  'Claim open' => 'مطالبة مفتوحة',
+  'Claim opened' => 'تم فتح مطالبة',
+  'Claim resolved' => 'تمت تسوية المطالبة',
+  'Buyer claim' => 'مطالبة المشتري',
+  'Outcome' => 'النتيجة',
+  'Under review — we reply within 2 business days, here in this order.' => 'قيد المراجعة — نردّ خلال يومي عمل هنا في هذا الطلب.',
+  'A claim is open on this order — receipt cannot be confirmed until it is resolved.' => 'توجد مطالبة مفتوحة على هذا الطلب — لا يمكن تأكيد الاستلام حتى تُسوّى.',
+  'VESTRA is reviewing this claim and may ask you for your account of it. Funds, if held, stay held until it is resolved.' => 'تراجع VESTRA هذه المطالبة وقد تطلب منك روايتك للأمر. الأموال المحتجزة، إن وُجدت، تبقى محتجزة حتى التسوية.',
+  'Order delivered' => 'تم تسليم الطلب',
+  'Payment received' => 'تم استلام الدفعة',
+
 );

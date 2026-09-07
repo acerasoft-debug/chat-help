@@ -1193,4 +1193,18 @@ return array (
 
   'Delivered' => 'Consegnato',
 
+  'I have a problem with this order' => 'Ho un problema con questo ordine',
+  'Something else' => 'Altro',
+  'Claim' => 'Reclamo',
+  'Claim open' => 'Reclamo aperto',
+  'Claim opened' => 'Reclamo aperto',
+  'Claim resolved' => 'Reclamo risolto',
+  'Buyer claim' => 'Reclamo dell\'acquirente',
+  'Outcome' => 'Esito',
+  'Under review — we reply within 2 business days, here in this order.' => 'In esame — rispondiamo entro 2 giorni lavorativi, qui in questo ordine.',
+  'A claim is open on this order — receipt cannot be confirmed until it is resolved.' => 'Su questo ordine è aperto un reclamo — la ricezione non può essere confermata finché non è risolto.',
+  'VESTRA is reviewing this claim and may ask you for your account of it. Funds, if held, stay held until it is resolved.' => 'VESTRA sta esaminando questo reclamo e potrebbe chiederti la tua versione. I fondi trattenuti, se presenti, restano trattenuti fino alla risoluzione.',
+  'Order delivered' => 'Ordine consegnato',
+  'Payment received' => 'Pagamento ricevuto',
+
 );

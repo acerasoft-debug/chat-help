@@ -106,17 +106,11 @@ if (!empty($_SESSION['uid']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['
     }
     $cRes = vestra_claim_open_new($cRef, (string)($_POST['reason'] ?? ''), (string)($_POST['detail'] ?? ''), $ev, 'buyer');
     if ($cRes['ok']) {
-        require_once __DIR__.'/inc/notify.php';
-        $opsTo = (string)vestra_cfg('ops_email', 'acerasoft@gmail.com');
-        $reasons = vestra_claim_reasons();
-        vestra_send_mail($opsTo, 'VESTRA — claim '.$cRes['claim_ref'].' opened on order '.$cRef,
-            "A buyer opened a claim.\n\n"
-          . "Claim:   ".$cRes['claim_ref']."\n"
-          . "Order:   ".$cRef."\n"
-          . "Company: ".($cOrder['company'] ?? '?')."\n"
-          . "Reason:  ".($reasons[(string)($_POST['reason'] ?? '')] ?? '?')."\n\n"
-          . "Review (with evidence): https://vestrasales.com/admin?tab=orders&view=".rawurlencode($cRef)."\n\n"
-          . "Escrow funds, if any, are held until this is resolved.\n\n— VESTRA");
+        /* Aliciya referans mektubu + push, siparişin sohbet ipligine kart,
+           operatore inceleme mektubu -- hepsi tek yoldan (claims.php), kapanista
+           da ayni yol kullaniliyor. */
+        $cClaim = vestra_order_claim($cRef) ?? [];
+        vestra_claim_notify('opened', $cRef, $cOrder, $cClaim);
     }
     header('Location: /buyer?tab=orders&view='.urlencode($cRef).($cRes['ok'] ? '&claim=1' : '&claim_err='.rawurlencode($cRes['error']))); exit;
 }
@@ -135,6 +129,13 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
     $ownsOrder = $orderRow && $myEmail !== '' && strtolower($orderRow['email']??'') === $myEmail;
     $st = vestra_read_json('order_statuses.json');
     $currentStatus = $st[$ref]['status'] ?? 'pending';
+    /* TALEP ACIKKEN ONAY YOK. Onay escrow'u serbest birakir; SSS returns/14
+       "talep acikken para birakilmaz" diyor. Dugme zaten gizli, ama gizli dugme
+       kapi degildir -- POST eden gecer. Karar claims.php'den (tek nokta). */
+    require_once __DIR__.'/inc/claims.php';
+    if ($ref && $ownsOrder && vestra_claim_is_open($ref)) {
+        header('Location: /buyer?tab=orders&view='.urlencode($ref).'&claim_err=hold'); exit;
+    }
     if ($ref && $ownsOrder && in_array($currentStatus, ['shipped','delivered'], true)) {
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'completed','confirmed_at'=>date('c')]);
         $st[$ref]['history'][] = vestra_order_history_entry('completed', 'buyer');
@@ -384,8 +385,13 @@ if($tab==='overview'){
       $reviewNote = $inReview
         ? '<div class="ordreview">🔎 '.htmlspecialchars(vestra_order_review_note((string)($o['timestamp']??''))).'</div>'
         : '';
+      /* Acik talep: listede kucuk bir rozet (operator: "belirgin olmasin"), ve
+         onay dugmesi YOK -- onay parayi birakir, talep onu tutar. */
+      if (!function_exists('vestra_claim_is_open')) require_once __DIR__.'/inc/claims.php';
+      $claimOpen = vestra_claim_is_open($ref);
+      if ($claimOpen) { $stLabel .= ' · ⚠️ '.t('Claim open'); }
       $confirmBtn='';
-      if($st==='shipped' || $st==='delivered'){
+      if(($st==='shipped' || $st==='delivered') && !$claimOpen){
         $confirmBtn='<form method="post" action="/buyer?tab=orders" '.
           ($isHeld?'onsubmit="return confirm(\''.htmlspecialchars(t('Confirm you received the goods? This releases the held funds to the seller and cannot be undone.'),ENT_QUOTES).'\')"':'').'>
           <input type="hidden" name="_action" value="confirm_receipt">

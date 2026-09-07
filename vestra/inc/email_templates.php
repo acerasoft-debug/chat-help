@@ -2533,3 +2533,59 @@ function vestra_tpl_offer_nudge(string $salutation, string $product, int $qty,
 
     return [$subject, $body, []];
 }
+
+/**
+ * Claim received — sent the moment a buyer opens a claim ("Open dispute").
+ * The FAQ (disputes/1) promises "you will receive a reference number" and a
+ * review "within 2 business days"; this letter is that promise in writing.
+ * English only (operator decision, 1 Sep 2026). Numbers come from constants,
+ * never typed into the text (RULE 6/7 lesson).
+ */
+function vestra_tpl_claim_received(string $buyerName, string $ref, string $claimRef, string $reasonLabel, bool $hasAccount): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $bdays = defined('VESTRA_CLAIM_REVIEW_BDAYS') ? (int)VESTRA_CLAIM_REVIEW_BDAYS : 2;
+    $rows = [['label'=>'Claim reference', 'value'=>$claimRef, 'strong'=>true],
+             ['label'=>'Order ref', 'value'=>$ref],
+             ['label'=>'Reason', 'value'=>$reasonLabel]];
+    $opts = ['badge'=>'⚠️ Claim received', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    $subject = "VESTRA — claim {$claimRef} received for order {$ref}";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "We have received your claim on order {$ref}.\n\n"
+      . "Claim reference: {$claimRef}\n"
+      . "Reason: {$reasonLabel}\n\n"
+      . "We review claims within {$bdays} business days and will tell you the outcome in the order itself"
+      . ($hasAccount ? " (https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($ref).")" : '')
+      . ". If we need further photographs or a sample, we will ask there.\n\n"
+      . "Please do not ship anything back: a claim is not a return, and goods sent without our written "
+      . "authorisation may be refused. Any payment still held for this order stays held until the claim is resolved.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}
+
+/**
+ * Claim resolved — the written outcome the FAQ promises (returns/6, returns/9,
+ * returns/10). $outcome is the operator's own sentence and is printed verbatim;
+ * this template never invents a refund figure or a return address.
+ */
+function vestra_tpl_claim_resolved(string $buyerName, string $ref, string $claimRef, string $outcome, bool $hasAccount): array {
+    $buyerName = vestra_display_name($buyerName);
+    if ($buyerName === '') $buyerName = 'Customer';
+    $rows = [['label'=>'Claim reference', 'value'=>$claimRef],
+             ['label'=>'Order ref', 'value'=>$ref],
+             ['label'=>'Outcome', 'value'=>$outcome, 'strong'=>true]];
+    $opts = ['badge'=>'✓ Claim resolved', 'rows'=>$rows];
+    if ($hasAccount) $opts['button'] = ['label'=>'View my order', 'url'=>'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref)];
+    $subject = "VESTRA — claim {$claimRef} on order {$ref}: outcome";
+    $body =
+        "Hello {$buyerName},\n\n"
+      . "Your claim {$claimRef} on order {$ref} has been reviewed.\n\n"
+      . "Outcome: {$outcome}\n\n"
+      . "If a return has been agreed, ship only the pieces named above, to the address named above, and keep "
+      . "this e-mail as your written authorisation. If you have a question about the outcome, reply to this "
+      . "e-mail quoting the claim reference.\n\n"
+      . "—\nVESTRA · vestrasales.com";
+    return [$subject, $body, $opts];
+}

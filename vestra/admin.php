@@ -1091,6 +1091,13 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
     require_once __DIR__.'/inc/claims.php';
     $clRef = trim((string)($_POST['ref'] ?? ''));
     $clRes = vestra_claim_resolve($clRef, (string)($_POST['outcome'] ?? ''), 'operator');
+    if ($clRes['ok']) {
+      /* Sonuc aliciya YAZILI gider (SSS returns/6/9/10) ve siparişin sohbet
+         ipligine kart duser -- acilistaki yolun aynisi. */
+      $clRow = null;
+      foreach (vestra_read_csv('orders.csv') as $r) { if (($r['ref'] ?? '') === $clRef) { $clRow = $r; break; } }
+      if ($clRow) vestra_claim_notify('resolved', $clRef, $clRow, vestra_order_claim($clRef) ?? []);
+    }
     header('Location: /admin?tab=orders&view='.urlencode($clRef).($clRes['ok'] ? '&msg=claim_resolved' : '&msg=claim_err')); exit;
   }
   if($act==='attach_receipt'){
@@ -3647,8 +3654,8 @@ elseif($tab==='orders'):
           <?= csrfField() ?>
           <input type="hidden" name="_action" value="resolve_claim">
           <input type="hidden" name="ref" value="<?= htmlspecialchars($viewRef) ?>">
-          <input name="outcome" placeholder="Outcome (replacement / partial credit / refund / not upheld)" style="flex:1;min-width:240px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12px">
-          <button class="abtn" type="submit" style="font-size:12px">✓ Resolve claim</button>
+          <input name="outcome" required placeholder="Outcome — this sentence is e-mailed to the buyer (replacement / partial credit / refund + return address / not upheld)" style="flex:1;min-width:280px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:12px">
+          <button class="abtn" type="submit" style="font-size:12px" onclick="return confirm('This e-mails the outcome to the buyer and posts it into the order thread. Continue?')">✓ Resolve &amp; notify buyer</button>
         </form>
       <?php else: ?>
         <div class="ahint" style="margin-top:6px">Outcome: <?= htmlspecialchars((string)($vClaim['outcome']??'—')) ?>
@@ -3711,10 +3718,15 @@ if($__dupRefs): ?>
 <?php else: ?>
 <div class="acard"><div class="atscroll"><table class="atable">
   <?= arow(['Ref','Date','Buyer','Company','Items','Total','Status','Tracking','Invoices','Commission','Escrow','Update'],true) ?>
-  <?php foreach(array_reverse($orders) as $o):
-    $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??''; ?>
+  <?php require_once __DIR__.'/inc/claims.php'; $__openClaims = vestra_claims_open();
+  foreach(array_reverse($orders) as $o):
+    $ref=$o['ref']??''; $st=$orderSt[$ref]['status']??'pending'; $trk=$orderSt[$ref]['tracking']??'';
+    /* Acik talep rozeti: listede gorunmezse operator yalnizca acilis mektubunu
+       kacirmamaya bagli kalir -- ve bekleyen sey sessiz kalir (KURAL 2c). */
+    $__cl = $__openClaims[$ref] ?? null; ?>
   <tr>
-    <td class="ac"><a href="/admin?tab=orders&view=<?= urlencode($ref) ?>" style="text-decoration:none"><span class="atag" title="Open full order dossier"><?= htmlspecialchars(substr($ref,0,12)) ?> →</span></a></td>
+    <td class="ac"><a href="/admin?tab=orders&view=<?= urlencode($ref) ?>" style="text-decoration:none"><span class="atag" title="Open full order dossier"><?= htmlspecialchars(substr($ref,0,12)) ?> →</span></a>
+      <?php if($__cl): ?><div style="color:#a9781a;font-size:11px;margin-top:3px" title="<?= htmlspecialchars((string)($__cl['claim_ref']??'')) ?>">⚠ claim open</div><?php endif; ?></td>
     <td class="ac" style="font-size:11px;color:var(--mut)"><?= htmlspecialchars(substr($o['timestamp']??'',0,10)) ?></td>
     <td class="ac"><a href="mailto:<?= htmlspecialchars($o['email']??'') ?>" style="color:var(--acc);font-size:12px"><?= htmlspecialchars($o['email']??'') ?></a></td>
     <td class="ac"><?= htmlspecialchars($o['company']??'—') ?></td>

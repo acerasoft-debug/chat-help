@@ -289,6 +289,30 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
 // teslim diyor, kargolamadan 2 gun sonra birakmak parayi mal yoldayken verirdi.
 // Aliciya sure baslangici ACIKCA e-postalanir -- bilmedigi bir sayacin dolmasiyla
 // parasi el degistirmemeli.
+/* Talep kaniti indirme (satici). Kanit data/claims/ altinda "Deny from all"
+   arkasinda; satici yalnizca KENDI siparişindeki kaniti alabilir -- sahiplik
+   kontrolu deliver_order ile ayni (vestra_order_has_seller_sku). */
+if (!empty($_SESSION['member']) && isset($_GET['dl_claim'])) {
+    require_once __DIR__.'/inc/claims.php';
+    $dcRef  = preg_replace('/[^A-Za-z0-9_-]/', '', (string)($_GET['ref'] ?? ''));
+    $dcFile = basename((string)$_GET['dl_claim']);
+    $dcUid  = $_SESSION['uid'] ?? '';
+    $dcSkus = array_column(vestra_seller_listings($dcUid), 'sku');
+    $dcOwns = false;
+    foreach (vestra_read_csv('orders.csv') as $row) {
+        if (($row['ref'] ?? '') === $dcRef && vestra_order_has_seller_sku($row, $dcSkus)) { $dcOwns = true; break; }
+    }
+    $dcPath = vestra_claim_file_path($dcRef, $dcFile);
+    if ($dcRef && $dcFile && $dcOwns && is_readable($dcPath)) {
+        $ext  = strtolower(pathinfo($dcFile, PATHINFO_EXTENSION));
+        $mime = match($ext){ 'pdf'=>'application/pdf','jpg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp','heic'=>'image/heic','heif'=>'image/heif',default=>'application/octet-stream' };
+        header('Content-Type: '.$mime);
+        header('Content-Disposition: inline; filename="'.addslashes($dcFile).'"');
+        readfile($dcPath); exit;
+    }
+    http_response_code(404); echo 'File not found'; exit;
+}
+
 if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POST['_action']??'')==='deliver_order') {
     $ref = $_POST['ref'] ?? '';
     $uid = $_SESSION['uid'] ?? '';
@@ -304,7 +328,11 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
             $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'delivered','delivered_at'=>date('c')]);
             $st[$ref]['history'][] = vestra_order_history_entry('delivered', 'seller');
             vestra_write_json('order_statuses.json', $st);
-            $deadline = date('D, d M Y', vestra_business_days_after(time(), 2));
+            /* Son tarih supurucuyle AYNI fonksiyondan (escrow_release_deadline):
+               bu mektup eskiden kendi basina "2 is gunu" hesapliyordu ve KURAL 11
+               sureyi max(2 is gunu, 3 takvim gunu) yapinca mektup geride kaldi --
+               alici Carsamba okuyor, para Persembe'ye kadar tutuluyordu. */
+            $deadline = date('D, d M Y', escrow_release_deadline(time()));
             require_once __DIR__.'/inc/notify.php';
             if (!empty($orderRow['email'])) {
                 vestra_send_mail($orderRow['email'], "VESTRA — order {$ref} delivered: please confirm",
@@ -312,10 +340,12 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
                  ."The seller has recorded your order {$ref} as delivered.\n\n"
                  ."Please check the goods and confirm receipt in your dashboard. If everything is as described, "
                  ."confirming releases the payment to the seller.\n\n"
-                 ."If you do NOT confirm and report no problem, the payment is released automatically after "
-                 ."2 business days (by {$deadline}). If anything is wrong, reply to this email or write to "
-                 ."support@vestrasales.com BEFORE then — reported orders stay held until resolved.\n\n"
-                 ."Confirm here: https://vestrasales.com/buyer?tab=orders\n\n— VESTRA · vestrasales.com");
+                 ."If you do NOT confirm and report no problem, the payment is released automatically "
+                 ."(by {$deadline}). If anything is wrong, open the order in your dashboard and use "
+                 ."\"I have a problem with this order\" BEFORE then — an open claim keeps the payment held "
+                 ."until it is resolved. You have ".VESTRA_CLAIM_DAYS." business days from delivery "
+                 ."(weekends do not count) to report wrong, missing or faulty goods.\n\n"
+                 ."Your order: https://vestrasales.com/buyer?tab=orders&view=".rawurlencode($ref)."\n\n— VESTRA · vestrasales.com");
             }
             $buyerAcc = auth_find($orderRow['email'] ?? '');
             if ($buyerAcc) {

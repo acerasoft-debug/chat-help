@@ -242,7 +242,7 @@
       5 => 
       array (
         'q' => 'Que faire si les marchandises arrivent endommagées ?',
-        'a' => 'Documentez les dommages par photos dès la livraison, avant de signer le bon du transporteur. Ouvrez un litige dans les 48 heures suivant la livraison. Ne retournez pas la marchandise sans confirmation écrite de VESTRA — les retours non autorisés compliquent la résolution.',
+        'a' => 'Documentez les dommages par photos dès la livraison, avant de signer le bon du transporteur. Déposez la réclamation dans les 3 jours ouvrés suivant la livraison. Ne retournez pas la marchandise sans confirmation écrite de VESTRA — les retours non autorisés compliquent la résolution.',
       ),
     ),
   ),
@@ -254,7 +254,7 @@
       0 => 
       array (
         'q' => 'Que faire si les marchandises ne correspondent pas à l\'annonce ?',
-        'a' => 'Si la marchandise diffère sensiblement de l\'annonce (mauvais modèle, quantité, couleur ou défauts non déclarés), ouvrez un litige dans votre tableau de bord dans les 5 jours ouvrés suivant la livraison confirmée. Joignez des photos et une description écrite. Suspendez tout paiement supplémentaire au vendeur pendant l\'examen.',
+        'a' => 'Si la marchandise diffère sensiblement de l\'annonce (mauvais modèle, quantité, couleur ou défauts non déclarés), ouvrez un litige dans votre tableau de bord dans les 3 jours ouvrés suivant la livraison — ce qu\'il faut joindre est indiqué dans la section Retours et réclamations. Joignez des photos et une description écrite. Suspendez tout paiement supplémentaire au vendeur pendant l\'examen.',
       ),
       1 => 
       array (
@@ -264,7 +264,7 @@
       2 => 
       array (
         'q' => 'Puis-je retourner des marchandises ?',
-        'a' => 'Les achats B2B sur VESTRA ne bénéficient pas d\'un droit légal de retour (contrairement aux achats réalisés par des consommateurs). Les retours sont possibles uniquement si les marchandises sont substantiellement non conformes à l\'annonce, si la contrefaçon est avérée, ou si le vendeur prévoit explicitement cette possibilité dans son annonce. N\'expédiez jamais un retour sans autorisation écrite préalable.',
+        'a' => 'Les commandes en gros sont fermées aux retours : pas de retour pour changement d\'avis, et aucun droit légal de rétractation sur un achat B2B. La marchandise erronée, manquante ou défectueuse peut faire l\'objet d\'une réclamation dans les 3 jours ouvrés suivant la livraison. Les règles complètes, les preuves à envoyer et la prise en charge des frais de retour sont détaillées dans la section Retours et réclamations.',
       ),
       3 => 
       array (
@@ -274,7 +274,7 @@
       4 => 
       array (
         'q' => 'Quel est le délai pour ouvrir un litige ?',
-        'a' => 'Vous devez ouvrir un litige dans les 5 jours ouvrés suivant la date de livraison confirmée (ou, en cas de non-livraison, avant l\'échéance convenue). Passé ce délai, la livraison est réputée acceptée et les litiges deviennent nettement plus difficiles à résoudre.',
+        'a' => 'Dans les 3 jours ouvrés suivant la livraison (ou, en cas de non-livraison, avant l\'échéance de livraison convenue). Passé ce délai, la livraison est réputée acceptée et les fonds encore retenus pour la commande ne le sont plus. Les mêmes 3 jours ouvrés s\'appliquent à tous les motifs — marchandise erronée, manquante, défectueuse ou non conforme.',
       ),
       5 => 
       array (
@@ -439,12 +439,12 @@
       2 => 
       array (
         'q' => 'De combien de temps disposé-je pour le signaler ?',
-        'a' => 'Trois jours. Vous devez nous prévenir dans les 3 jours suivant la livraison. C\'est le seul délai qui compte : passé ce terme la livraison est réputée acceptée et le vendeur est payé. Aucune prolongation n\'est accordée pour jours fériés, absence de personnel ou cartons non ouverts — si vous ne pouvez pas contrôler une livraison en trois jours, faites-la contrôler par quelqu\'un d\'autre.',
+        'a' => 'Trois jours ouvrés. Vous devez nous prévenir dans les 3 jours ouvrés suivant la livraison — du lundi au vendredi ; les samedis et dimanches ne comptent pas. C\'est le seul délai qui compte : passé ce terme, la livraison est réputée acceptée et les fonds encore retenus pour la commande ne le sont plus. Aucune prolongation n\'est accordée pour jours fériés, absence de personnel ou cartons non ouverts — si vous ne pouvez pas contrôler une livraison en trois jours ouvrés, faites-la contrôler par quelqu\'un d\'autre.',
       ),
       3 => 
       array (
         'q' => 'Comment les 3 jours sont-ils exactement comptés ?',
-        'a' => 'En jours calendaires, non ouvrés, à compter de la date de livraison enregistrée par le transporteur ou confirmée sur votre commande. Une livraison le vendredi doit être signalée au plus tard le lundi. Le délai est interrompu dès que votre réclamation est déposée sur la plateforme — et non lorsque le vendeur y répond.',
+        'a' => 'En jours ouvrés, non calendaires — les samedis et dimanches ne sont pas comptés —, à compter de la date de livraison enregistrée par le transporteur ou confirmée sur votre commande. Une livraison le vendredi doit être signalée au plus tard le mercredi suivant. Le délai est interrompu dès que votre réclamation est déposée sur la plateforme — et non lorsque le vendeur y répond.',
       ),
       4 => 
       array (
@@ -484,12 +484,12 @@
       11 => 
       array (
         'q' => 'Que faire si la livraison est incomplète ?',
-        'a' => 'Comptez les colis face au bon de livraison avant de signer, et inscrivez tout manquant sur le récépissé du transporteur à cet instant. Un manquant découvert après une signature sans réserve est bien plus difficile à prouver, mais reste réclamable dans les 3 jours si le poids des cartons ou les scellés le corroborent. Photographiez les cartons scellés avant de les ouvrir.',
+        'a' => 'Comptez les colis face au bon de livraison avant de signer, et inscrivez tout manquant sur le récépissé du transporteur à cet instant. Un manquant découvert après une signature sans réserve est bien plus difficile à prouver, mais reste réclamable dans les 3 jours ouvrés si le poids des cartons ou les scellés le corroborent. Photographiez les cartons scellés avant de les ouvrir.',
       ),
       12 => 
       array (
         'q' => 'Que faire si la marchandise est endommagée pendant le transport ?',
-        'a' => 'Portez la réserve sur le récépissé du transporteur avant de signer, photographiez l\'emballage avant de l\'ouvrir, et déposez la réclamation dans les mêmes 3 jours. Le dommage de transport relève du transporteur, dont les propres délais peuvent être plus courts que les nôtres : c\'est la réserve faite à la livraison qui protège le recours. Ne jetez pas l\'emballage avant la clôture du dossier.',
+        'a' => 'Portez la réserve sur le récépissé du transporteur avant de signer, photographiez l\'emballage avant de l\'ouvrir, et déposez la réclamation dans les mêmes 3 jours ouvrés. Le dommage de transport relève du transporteur, dont les propres délais peuvent être plus courts que les nôtres : c\'est la réserve faite à la livraison qui protège le recours. Ne jetez pas l\'emballage avant la clôture du dossier.',
       ),
       13 => 
       array (
@@ -499,7 +499,7 @@
       14 => 
       array (
         'q' => 'Une réclamation suspend-elle le paiement au vendeur ?',
-        'a' => 'Oui. Aucun fonds n\'est libéré tant qu\'une réclamation est ouverte, et la libération automatique est réglée pour ne jamais intervenir avant l\'expiration de vos 3 jours. C\'est la raison pratique de la brièveté du délai : votre argent est retenu exactement aussi longtemps que dure votre droit de réclamer.',
+        'a' => 'Oui. Aucun fonds n\'est libéré tant qu\'une réclamation est ouverte, et la libération automatique est réglée pour ne jamais intervenir avant l\'expiration de vos 3 jours ouvrés. C\'est la raison pratique de la brièveté du délai : votre argent est retenu exactement aussi longtemps que dure votre droit de réclamer.',
       ),
       15 => 
       array (
@@ -514,7 +514,7 @@
       17 => 
       array (
         'q' => 'Quel est le résumé le plus court possible ?',
-        'a' => 'Pas de retour pour changement d\'avis. Uniquement marchandise erronée, manquante ou défectueuse. Signalez-le dans les 3 jours suivant la livraison, avec photos, via la plateforme. Ne renvoyez rien avant notre autorisation écrite.',
+        'a' => 'Pas de retour pour changement d\'avis. Uniquement marchandise erronée, manquante ou défectueuse. Signalez-le dans les 3 jours ouvrés suivant la livraison, avec photos, via la plateforme. Ne renvoyez rien avant notre autorisation écrite.',
       ),
     ),
   ),

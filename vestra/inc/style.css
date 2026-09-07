@@ -973,3 +973,26 @@ html[lang="ja"] h1, html[lang="ja"] h2, html[lang="ja"] h3, html[lang="ja"] .log
 /* Japonca satir kirilimi: kelime araligi yok, ogeler arasi kirilma dogal
    olmali; ayrica satir yuksekligi biraz artiyor (kanji Latin harften uzun). */
 html[lang="ja"] body{ line-height:1.75; word-break:normal; overflow-wrap:anywhere; }
+
+/* ── Sipariş talebi ("I have a problem with this order") — sessiz açılır bileşen.
+   Operatör (6 Eyl 2026): her siparişte olsun ama çok belirgin olmasın. Kapalıyken
+   tek satırlık ipucu rengi bir bağlantı; açılınca sebepler, sonra açıklama+foto. */
+.claimdis{margin-top:10px}
+.claimdis>summary{list-style:none;cursor:pointer;color:var(--mut);font-size:12.5px;display:inline-flex;align-items:center;gap:6px;padding:2px 0}
+.claimdis>summary::-webkit-details-marker{display:none}
+.claimdis>summary::marker{content:''}
+.claimdis>summary::before{content:'?';display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);font-size:11px;color:var(--mut)}
+.claimdis>summary:hover,.claimdis[open]>summary{color:var(--ink)}
+.claimdis[open]>summary::before{border-color:var(--acc);color:var(--acc)}
+.claimform{margin-top:10px;padding:12px;border:1px dashed var(--line);border-radius:10px}
+.claimform .hint{margin:0 0 8px}
+.claimreasons{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+.claimreasons label{font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.claimstep2 textarea,.claimstep2 input[type=file]{width:100%;margin-bottom:8px;font-size:12.5px}
+.claimstep2 .btn{margin-top:4px}
+.claimline{font-size:13px;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(240,192,96,.08);border:1px solid rgba(240,192,96,.3)}
+.claimline.ok{background:rgba(120,190,140,.08);border-color:rgba(120,190,140,.3)}
+.claimline .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.claimline .hint{margin-top:4px}
+.claimline .mut{color:var(--mut)}
+.claimlate{margin-top:10px}
