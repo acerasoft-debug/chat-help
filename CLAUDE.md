@@ -654,6 +654,46 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   şimdi `vestra_order_invoice_payloads()`. `order_doc=invoice:usd` seçimi
   **kayda yazmadan** o birimde önizler. Test: `tests/invoice_currency_test.php`.
 
+**KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
+(operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
+şekilde yap"* → aynı gün *"kdv fiyatın içinde gelmiyor"*).
+- Fiyatlar **brüt**: ödenecek tutar değişmez. Ama bir KDV faturası matrahı,
+  oranı ve KDV tutarını **ayrı ayrı** göstermek zorunda — yalnız brüt yazan bir
+  belgeyle alıcının muhasebesi indirim yapamaz, satıcının beyanı dayanaksız
+  kalır. Belge `Total`'in **altına** iki satır basar:
+  `Taxable amount (excl. VAT)` ve `VAT %<oran> (included in the total above)`.
+- **Net aşağı yuvarlanır, KDV FARKTAN bulunur.** İki tutarı ayrı ayrı
+  yuvarlamak toplamı bir kuruş kaydırır ve belge kendi içinde tutmaz.
+- **Oran yoksa hiçbir şey basılmaz** (`vat_rate > 0` **ve** `vat_included`).
+  Varsayılan bir oran koymak, KDV'siz kesilmiş bütün mevcut faturalara sessizce
+  vergi eklerdi. Tavan **%100**: yazım hatasıyla girilen bir "210" matrahı
+  negatife doğru ezer — sınır hem panelde hem kurucularda.
+- **Kargo da matraha dâhil:** ayrışma brüt **genel toplam** üzerinden yapılır
+  (mal + kargo), mal toplamı üzerinden değil.
+- **Alan, kardeşleri `vat_note` ve `shipping`'in bulunduğu HER YERDE olmalı.**
+  "Gelmiyor" şikâyetinin sebebi tam buydu: oran yalnız **tek satırlık** yolda
+  okunuyordu. Birleşik çubukta kutu **yoktu** (birleşik belge oranı birincil
+  ref'ten okur, o kayda yazan hiçbir şey yoktu → birleşik fatura hiçbir zaman
+  KDV taşıyamıyordu), birleşik kesim `invoice_vat_note`/`invoice_shipping`
+  yazarken `invoice_vat_rate` **yazmıyordu** (redraft aynı numarayla KDV'siz
+  yeniden çizerdi) ve **iki taslak yolu da** formda o an yazan oranı
+  taşımıyordu — yani **kontrol adımının kendisi yanlış belgeyi gösteriyordu.**
+  Kurucular artık `?float $vatRateOverride` alıyor; `0` bilinçli bir değer
+  (kutuyu silen operatör KDV'siz önizleme bekler), `null` "hiç gönderilmedi".
+- **Ölçüldü (7 Eyl 2026, canlı sunucu, üç Burberry kabulü O795BA/OED4CC/O7A484,
+  TYREX):** mal €3.300,00 + kargo €20,00 = **€3.320,00**; matrah **€2.743,80**;
+  KDV %21 **€576,20**. Numara yanmadı, diske yazılmadı, müşteriye gitmedi.
+- Kesimden **önce** birleşik taslağı görmenin iş akışı yolu:
+  `send-campaign-preview.yml` → `reply_letter=invoice_combine_draft`,
+  spec `refs=<r1,r2,r3>|ship=<EUR>|vat=<yüzde>|seller=<uid>`. `invoice_draft`'tan
+  farkı: o **kesilmiş** belgeyi aynı numarayla yeniden çizer, bu **hiç
+  kesilmemiş** kabulleri birleştirip gösterir. Reddederse önce refleri ve ilan
+  satıcılarını yazar — "listeden seçin" diyen bir hata, seçilecek listeyi de
+  vermeli.
+- Test: `tests/invoice_vat_test.php` (aritmetik, belge, oran yokken susma, kablo
+  denetimi) ve `invoice_seller_pick_test.php §9b` (iki kurucu, override,
+  sınırlar, redraft).
+
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
 3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları
