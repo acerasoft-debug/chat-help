@@ -764,6 +764,46 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   denetimi) ve `invoice_seller_pick_test.php §9b` (iki kurucu, override,
   sınırlar, redraft).
 
+**KURAL 5j — Birleşik faturayı TEK gövde keser; mektup ödemenin BİLDİRİLME
+yolunu da yazar** (operatör, 7 Eyl 2026: *"müşteriye faturayı gönder. havale
+yaptıktan sonra haber versin"*).
+- Tek uygulayıcı: `vestra_offers_combined_invoice_issue()`. Panelin
+  **✓ Approve** düğmesi ve `send-campaign-preview.yml` →
+  `reply_letter=invoice_combine_draft` + `apply=true` **aynı** fonksiyonu
+  çağırır. Panel kendi elle yazılmış kesim dizisini taşıyordu (kayıt yazımı,
+  `vestra_ensure_invoice`, sipariş satırı, alıcı mektubu) ve iş akışından
+  birleşik fatura kesmenin yolu **yoktu** — KURAL 5f'in zaten bir kez kaydettiği
+  düzen: iki kesim yolu ayrışır ve ayrışma **belgede** görünür.
+- **Sıra: önce KAYIT, sonra BELGE.** Yarıda kalan bir kesimde en kötü durum
+  "bağlanmış ama faturasız" olsun diye — onay kuyruğu onu yeniden gösterir.
+  Tersi, "faturalı ama bağlanmamış" bir grup bırakırdı.
+- **Mektup ödeme sonrası haber verme yolunu yazar.** Eski metin "hesaba havale
+  edin, mal ödeme gelince çıkar" deyip duruyordu: parayı gönderen müşterinin
+  söyleyecek yeri yoktu, iki taraf da ötekinin sırasını bekliyordu (havale
+  günlerce görünmüyor). Şimdi sipariş sayfasındaki dekont kutusunu (KURAL 7 —
+  yükleme operatöre haber düşürür ve otomatik iptal saatini **durdurur**, yani
+  "haber verdim" ile sistemin gördüğü aynı şey olur) ve düz cevabı birlikte
+  yazıyor. KDV fiyata dâhilse matrahı ve vergiyi mektupta da ayırıyor,
+  **çizicinin hesabıyla** (net aşağı yuvarlanır, vergi farktan) — iki ayrı
+  yuvarlama mektubu ekindeki belgeden bir kuruş uzaklaştırırdı.
+- **Kesilmiş bir faturaya ikinci mektup:** `reply_letter=payment_notice`
+  (`to=order:<ref>` şart). Kısa; **saat BAŞLATMAZ** — o `payment_due`'dur ve
+  gerçekten 5 iş günlük iptal saatini kurar. İkisini tek metinde birleştirmek,
+  operatörün sormadığı bir tehdidi de göndermek olurdu. Faturasız, ödenmiş,
+  gönderilmiş, iptal, escrow **ya da dekontu zaten yüklenmiş** siparişte
+  **durur** (yüklemiş olana yeniden istemek, yaptığı işi görmediğimizi söyler —
+  KURAL 2b'nin aynı dersi). Rakamlar kayıttan: tutar sipariş satırından, numara
+  ve para birimi kesilmiş faturadan. IBAN gövdeye yazılmaz, faturada duruyor.
+- **`invoice_combine_draft` reddederken durumu YAZAR.** "Bu teklifin faturası
+  zaten kesilmiş" doğru bir ret ama sorunun cevabı değil: numara, kayıtlı kargo/
+  KDV oranı/VAT satırı, grup üyeleri, ödendi bayrağı ve sipariş satırı basılır.
+  **Birincil ref, seçilen ilk ref değildir** — kesim sırasında ilk işaretlenen
+  tekliftir ve diğerleri ona `invoice_group_ref` ile bağlıdır; ilk yazımda
+  `$refs[0]`'ı birincil sanıp `follow_group=false` verdim ve blok faturalı bir
+  grupta **hiç çalışmadı**. Önce bağı izle, sonra sor.
+- Test: `invoice_seller_pick_test.php §9c` (33 iddia) ve
+  `order_letters_test.php` (payment_notice, 25 iddia).
+
 **KURAL 6 — Kart escrow tavanı €3.000, tek kaynak `VESTRA_ESCROW_MAX`**
 (operatör kararı, 2 Eyl 2026: *"escrow 3000'de kalsın"*). 28 Ağustos'ta kod
 3.500'e çekilmişti; fiyat listesi sayfaları, Excel ve kampanya mektupları
