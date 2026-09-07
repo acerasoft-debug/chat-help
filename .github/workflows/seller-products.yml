@@ -11,11 +11,15 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar (numara yakmaz, belge üretmez, kimseye gitmez). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
         description: "admin_mode=currency ile: fatura hangi para biriminde kesilsin (EUR|USD). Boş = seçimi KALDIR, sipariş kendi birimine döner. Panelin açılır listesiyle aynı kayıt (KURAL 5i)."
+        required: false
+        default: ""
+      issue_shipping:
+        description: "admin_mode=shipping ile: navlun. Siparişin KENDİ biriminde yazın (ör: 86.04), ya da fatura biriminde yazmak için sonuna kod ekleyin (ör: '100 USD') — kur siparişin damgasından okunur. Etiket için '|' ile ekleyin: '100 USD|Air freight'. Sipariş TOPLAMI da birlikte güncellenir."
         required: false
         default: ""
       payload:
@@ -82,13 +86,87 @@ jobs:
               echo "PUBKEY ".base64_encode($pub)."\n";
             '
 
-      # Faturayi KESER. Kesim ile GONDERIM burada bilerek ayri: admin.php'nin "Fatura kes"
-      # dugmesi ikisini birlikte yapiyor, biz sadece ilkini istiyoruz -- belge numarasini
-      # alsin, PDF kaydedilsin, ama musteriye hicbir sey gitmesin. vestra_notify_* cagrisi
-      # yok; onay geldikten sonra gonderim ayri bir adim.
+      # NAVLUN (7 Eyl 2026). Panelin "🚚 Save shipping" kutusuyla AYNI yazıcı:
+      # `vestra_order_set_shipping()` navlun ile sipariş TOPLAMINI birlikte
+      # yazar, yazdığını geri okur ve faturası kesilmiş siparişi reddeder.
+      # Numara yakmaz, belge üretmez, kimseye e-posta gitmez.
       #
-      # Idempotent: ayni ref ikinci kez calistirilirsa kesilmis fatura oldugu gibi doner,
-      # yeni numara uretilmez.
+      # Tutar siparişin kendi biriminde saklanır. Girdi "100 USD" gibi FATURA
+      # biriminde verilirse buradaki tek bölme onu siparişin damgalı kuruyla
+      # geri çevirir ve sonuç yazdırılır -- operatörün belgede göreceği rakamı
+      # elle ters hesaplaması gerekmesin diye.
+      - name: Siparişe navlun yaz (shipping) — numara yakmaz
+        if: ${{ github.event.inputs.admin_mode == 'shipping' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SHIP_REF: ${{ github.event.inputs.issue_ref }}
+          SHIP_VAL: ${{ github.event.inputs.issue_shipping }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: SHIP_REF,SHIP_VAL
+          script: |
+            set -e
+            cat > /tmp/vestra_ship.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/fx_orders.php";
+
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SHIP_REF'));
+            $raw = trim((string)getenv('SHIP_VAL'));
+            if ($ref === '' || $raw === '') { fwrite(STDERR, "ref ya da tutar yok\n"); exit(1); }
+
+            [$amountPart, $label] = array_pad(explode('|', $raw, 2), 2, '');
+            $amountPart = trim($amountPart); $label = trim((string)$label);
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+            $ordCur = strtoupper(trim((string)($row['currency'] ?? 'EUR'))) ?: 'EUR';
+
+            /* "100 USD" -> siparisin biriminde karsiligi. Kur SIPARISIN damgasi
+               (KURAL 5i); bugunun kuru degil, yoksa fatura ile bu rakam ayrisir. */
+            $inCur = $ordCur;
+            if (preg_match('/^(.*?)[\s]*([A-Za-z]{3})$/', $amountPart, $m)) {
+              $inCur = strtoupper($m[2]); $amountPart = trim($m[1]);
+            }
+            $amount = vestra_price_input($amountPart);
+            printf("siparis          : %s\n", $ref);
+            printf("siparis birimi   : %s\n", $ordCur);
+            if ($inCur !== $ordCur) {
+              $fx = vestra_order_fx($ref);
+              if (!$fx || (float)($fx['usd'] ?? 0) <= 0) {
+                fwrite(STDERR, "kur damgasi YOK -- {$inCur} tutarini {$ordCur}'a cevirecek kur yok. "
+                             . "Once Admin > Orders > 'Fetch missing rates'.\n"); exit(1);
+              }
+              if ($inCur !== 'USD') { fwrite(STDERR, "yalnizca {$ordCur} ve USD cevrilebiliyor\n"); exit(1); }
+              $rate = (float)$fx['usd'];
+              $want = $amount;
+              $amount = round($amount / $rate, 2);
+              printf("girilen          : %s %s  (kur %s)\n", number_format($want, 2), $inCur, vestra_order_fx_note($fx));
+              printf("kayda yazilan    : %s %s   -> belgede %s %s\n",
+                     number_format($amount, 2), $ordCur, number_format(round($amount * $rate, 2), 2), $inCur);
+            }
+
+            $r = vestra_order_set_shipping($ref, $amount, $label);
+            if (isset($r['error'])) { fwrite(STDERR, "YAZILAMADI: ".$r['error']."\n"); exit(1); }
+            printf("mal toplami      : %s\n", number_format($r['goods'], 2));
+            printf("navlun           : %s%s\n", number_format($r['shipping'], 2), $r['label'] !== '' ? '  ('.$r['label'].')' : '');
+            printf("SIPARIS TOPLAMI  : %s  (geri okundu, dogrulandi)\n", number_format($r['total'], 2));
+            echo "kesim            : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            PHPEOF
+            php -l /tmp/vestra_ship.php
+            php /tmp/vestra_ship.php
+            rm -f /tmp/vestra_ship.php
+
       # FATURANIN PARA BIRIMI (KURAL 5i). Panelin acilir listesiyle AYNI kaydi
       # yaziyor -- ayri bir alan degil, `order_statuses.json[ref].invoice_currency`.
       # Yazmak KESMEK DEGIL: numara yanmaz, PDF uretilmez, aliciya hicbir sey
@@ -191,6 +269,13 @@ jobs:
             php /tmp/vestra_cur.php
             rm -f /tmp/vestra_cur.php
 
+      # Faturayi KESER. Kesim ile GONDERIM burada bilerek ayri: admin.php'nin "Fatura kes"
+      # dugmesi ikisini birlikte yapiyor, biz sadece ilkini istiyoruz -- belge numarasini
+      # alsin, PDF kaydedilsin, ama musteriye hicbir sey gitmesin. vestra_notify_* cagrisi
+      # yok; onay geldikten sonra gonderim ayri bir adim.
+      #
+      # Idempotent: ayni ref ikinci kez calistirilirsa kesilmis fatura oldugu gibi doner,
+      # yeni numara uretilmez.
       - name: Faturayı kes (issue) — e-posta göndermez
         if: ${{ github.event.inputs.admin_mode == 'issue' }}
         uses: appleboy/ssh-action@v1.0.3
