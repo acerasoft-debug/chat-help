@@ -220,6 +220,48 @@ Alshaya, Al Tayer, Apparel Group, BFL Group, Alyasra, Etoile Group, Concept Bran
 Trafalgar ve Gilbert Luxury Brands kampanya aldı. Kuralın hatırlanmaya bırakılması
 yetmiyor; kontrol gönderim yolunda olmalı.
 
+**KURAL 1f — "Doğrulanmış e-posta" sütunu doğrulanmış demek değildir; adresi
+SİTEDEN çözdür** (7 Eyl 2026, operatörün verdiği 200 satırlık "çok markalı
+bağımsız perakendeci" listesi; elimize 35 satırı geldi).
+- Liste her satırda **"Doğrulanmış Kurumsal E-posta"** başlığı taşıyordu.
+  Sunucuda 12 alan adı sitesinden çözdürüldü: **12'de 0 doğru.**
+  **7 sitede yayınlanmış adres hiç yok** (maxfieldla, hirshleifers,
+  thedarksideinitiative, likelihood.us, machusonline, rodengray, ve kayıtlarımıza
+  göre notre-shop + havenshop). **5'i vardı ama BAŞKA kutu, ikisi başka ALAN
+  ADI:** hlorenzo → `customerservice@` (liste `info@` dedi), xhibition →
+  `support@`, onenessboutique → `online@`, goodhoodstore.com → **`goodhood.co.uk`**,
+  capsuletoronto.com → **`c-apsule.com`**.
+- İmza KURAL 1b'nin aynısı: 35 satırın 22'si `info@` + alan adı. **Bir aracın
+  adres ÜRETTİĞİNİN göstergesi.** Böyle bir listeyi olduğu gibi göndermek, sert
+  bounce oranını yükseltip gerçek adayların da spam'e düşmesine yol açar.
+- **Çözüm ucuz:** `add-and-send.yml`'a adres yerine **site linki** verin
+  (`https://alanadi.com`). Sunucu gerçek yayınlanmış adresi kendisi çözer;
+  bulamazsa **eklemez** ve o dükkâna mektup gitmez. Listenin verdiği adres
+  ile çözülen adres FARKLIYSA, çözülen doğrudur.
+- Kod tarafı 35'in 5'ini tuttu (Kith, Dover Street Market, End Clothing, LN-CC,
+  Brown Thomas). **Elle okuma yine şarttı:** RSVP Gallery'ye 2 Eylül'de zaten
+  **iki kutudan** gitmişti, Mohawk zaten kayıtlıydı, Notre ve Haven'ın sitesinde
+  adres olmadığı 2 Eylül'de kayda geçmişti. Ayrıca liste ağırlıklı **sneaker/
+  streetwear** segmenti — bizim kanalımız değil.
+- **DNS'i yerelde ölçmeye kalkma:** bu ortamda çözümleyici yok; kontrol grubu
+  (`google.com` dahil) da "kayıtlı değil" döner. Kontrol grubu koymasaydım 35
+  alan adının hepsini ölü sayacaktım. Ölçüm sunucuda (`add-and-send`, `dns_check`).
+
+**KURAL 1g — Outlet MERKEZİ ev sahibidir, outlet DÜKKÂNI müşteridir**
+(operatör, 7 Eyl 2026: *"sen outlet bul ve gönder"*).
+- Havuzda `lead_find=outlet` dört kayıt verdi. Üçü (Designer Outlets Wolfsburg,
+  Batavia Stad, Freeport) 30 Ağustos'ta zaten bloklanmıştı — ama **temasları
+  28 Ağustos'ta**, yani kural konmadan önce olmuştu; geçmiş, canlı açık değil.
+  **`Outlet Center Eben` (AT) hâlâ geçiyordu**, eklendi; `outlet village` de
+  eklendi (Bicester/Kildare kalıbı — bağımsız bir dükkânın taşımayacağı tabela).
+- **`outlet` kelimesi TEK BAŞINA eklenmedi** ve eklenmemeli: bağımsız off-price
+  dükkânı da adında taşıyor ve o gerçek müşteri (Il Salvagente, factoryoutlet.gr).
+  Aynı listedeki **"Outlet Shoes Famous Brands"** (Roma, Via dei Coronari) bilerek
+  bırakıldı — tek adresli gerçek dükkân görünümünde; e-postası olmadığı için
+  gönderim listesine giremiyor.
+- Test: `blocklist_test.php §10d` — dört merkez BLOK, dört bağımsız GEÇER.
+  Tek yön yazılsaydı test yeşil kalır, gerçek adaylar sessizce elenirdi.
+
 ## Hesap açma / belge kuralları
 
 **KURAL 2 — Satıcıdan istenen belge: ticari kayıt + kimlik. Başka bir şey yok.**

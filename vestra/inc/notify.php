@@ -605,6 +605,18 @@ function vestra_discover_blocklist(): array {
        Batavia Stad (Lelystad, NL) ve Freeport (Znojmo, CZ). "freeport" tek
        basina degil -- sehir adi ve serbest bolge terimi; tam adiyla. */
     'batavia stad','bataviastad','freeport fashion outlet','fashion arena prague',
+    /* 7 Eyl 2026 — operator "sen outlet bul ve gonder" dedi; havuzda 'outlet'
+       arandi ve dort kayit cikti. Ucu (Designer Outlets Wolfsburg, Batavia Stad,
+       Freeport) 30 Agustos'ta zaten eklenmisti, ama 'Outlet Center Eben'
+       (Ebenthal, AT) hala geciyordu -- o da bir MERKEZ, yani ev sahibi: kiraci
+       markalari barindiriyor, kendisi mal almiyor. Dorduncu kayit "Outlet Shoes
+       Famous Brands" (Roma, Via dei Coronari) BILEREK eklenmedi: tek adresli
+       gercek bir off-price dukkan gorunumunde, yani Il Salvagente emsali.
+       'outlet village' de format adi -- Bicester/Kildare Village kalibi, bagimsiz
+       bir dukkanin tasiyamayacagi bir tabela. Kelime olarak yalniz 'outlet'
+       EKLENMEZ: yukaridaki notun sebebi hala gecerli (factoryoutlet.gr,
+       Il Salvagente). */
+    'outlet center eben','outletcentereben','outlet village',
     /* 4 Eyl 2026, operatorun elle verdigi 45 satirlik Asya/Korfez "luks merkezleri"
        listesi. Yerler dogru, KARSI TARAF yanlis: bunlarin cogu magaza degil AVM
        ISLETMECISI (kiraya veriyor, mal almiyor), gerisi departman magaza ZINCIRI

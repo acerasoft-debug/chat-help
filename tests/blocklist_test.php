@@ -543,6 +543,25 @@ $t('engelli: Montblanc Boutique Lisboa', $blocked('Montblanc Boutique Lisboa','b
 $t('engelli: Montblanc (alan adi)',      $blocked('Boutique','info@montblanc.com','https://montblanc.com'));
 $t('gecer: Mont Blanc Sports',           !$blocked('Mont Blanc Sports','info@montblancsports.fr','https://montblancsports.fr'));
 
+echo "\n== 10d. OUTLET: merkez isletmecisi BLOK, bagimsiz off-price GECER ==\n";
+/* Operator, 7 Eyl 2026: "sen outlet bul ve gonder". Havuzda 'outlet' arandi;
+   cikan dort kaydin ucu zaten blokluydu, 'Outlet Center Eben' geciyordu.
+   Bir outlet MERKEZI ev sahibidir: kiraci markalari barindirir, kendisi mal
+   almaz -- KURAL 1'in AVM kategorisi. Bagimsiz bir off-price DUKKANI ise tam
+   tersi: gercek musteri (Il Salvagente, factoryoutlet.gr emsalleri).
+   Bu bolum ikisinin AYRIMINI tutuyor; 'outlet' kelimesi tek basina bloklansa
+   ayrim kaybolur ve gercek adaylar sessizce elenir -- bu depoda mango/zara
+   dersinin aynisi. */
+$t('Outlet Center Eben (AVM) BLOK',   $blocked('Outlet Center Eben','info@outletcentereben.com','outletcentereben.com'));
+$t('outlet village formati BLOK',     $blocked('Roermond Outlet Village','info@roermondoutletvillage.nl','roermondoutletvillage.nl'));
+$t('Kildare Village BLOK',            $blocked('Kildare Village','info@kildarevillage.com','kildarevillage.com'));
+$t('Designer Outlets Wolfsburg BLOK', $blocked('Designer Outlets Wolfsburg','info@designeroutlets.com','designeroutlets.com'));
+/* GECMESI gerekenler -- bunlar musteri, elenirlerse kimse fark etmez. */
+$t('Il Salvagente GECER',             !$blocked('Il Salvagente','info@ilsalvagente.it','ilsalvagente.it'));
+$t('factoryoutlet.gr GECER',          !$blocked('Factory Outlet','info@factoryoutlet.gr','factoryoutlet.gr'));
+$t('Outlet Shoes Famous Brands GECER',!$blocked('Outlet Shoes Famous Brands','',''));
+$t('tek kelime "outlet" elemiyor',    !$blocked('The Outlet Store Milano','info@outletstoremilano.it','outletstoremilano.it'));
+
 echo "\n== 11. Bos/bozuk girdi cokmemeli ==\n";
 $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
