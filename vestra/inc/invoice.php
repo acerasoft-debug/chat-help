@@ -928,10 +928,25 @@ function vestra_render_invoice_pdf(array $order, array $items, ?array $sellerAcc
            ancak fatura elinde gorur. Taslakta soyleniyor. */
         /* Saf fonksiyon yeniden cagriliyor, yukaridaki $rails DEGISKENI degil:
            o degisken yalnizca "odenmemis" dalinda tanimli ve odenmis bir siparise
-           taslak cizildiginde tanimsiz kalirdi. */
-        if ($sellerAcc !== null && vestra_payment_rails($sellerAcc, $cur) === []) {
-            $notes[] = 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
-                     . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
+           taslak cizildiginde tanimsiz kalirdi.
+           Kutu zaten yalnizca ODENMEMIS sipariste ciziliyor (yukarida `$paid`
+           dali): odenmis bir escrow siparisine "odeme kutusu yok" uyarisi
+           basmak, dogru olmayan bir eksigi bildirmek olurdu.
+           PLATFORM DILIMI DE UYARIYOR (7 Eyl 2026). Kosul eskiden
+           `$sellerAcc !== null` idi, yani kutunun KESINLIKLE cikmadigi tek durum
+           -- faturayi platformun kesmesi, ki hicbir banka hesabi bagli degil --
+           hicbir uyari uretmiyordu. En cok uyari gereken hal, uyarinin disinda
+           kalan haldi; bu depoda "kontrol yanlis yere bakiyor" vakalarinin
+           aynisi. */
+        if (empty($order['paid'])) {
+            $railsNow = $sellerAcc !== null ? vestra_payment_rails($sellerAcc, $cur) : [];
+            if ($railsNow === []) {
+                $notes[] = $sellerAcc === null
+                    ? 'NOTE - this invoice is issued by the platform, which has no bank account on file, so it has no payment box at all.'
+                      . ' Pick the issuing seller in Admin > Invoice approvals, or the buyer gets a document with nowhere to pay.'
+                    : 'NOTE - no payment details for '.$cur.' on the issuing account, so this invoice has no payment box.'
+                      . ' Add them in Admin > Users > Edit billing details, or issue in the currency the account can receive.';
+            }
         }
         $bVat = trim((string)(($order['buyer']['vat'] ?? '') ?: ($order['vat_id'] ?? '')));
         if ($bVat !== '' && preg_match('/\d/', $bVat) !== 1) {

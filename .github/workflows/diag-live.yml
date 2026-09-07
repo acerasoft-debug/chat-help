@@ -750,6 +750,20 @@ jobs:
                      (string)($payloads[0]['meta']['currency'] ?? $ordCur),
                      $curOvr !== '' ? "  (ONIZLEME icin, kayda yazilmadi)" : '');
               printf("kur damgasi      : %s\n", $fxSt ? vestra_order_fx_note($fxSt) : 'YOK -- cevrim gerekiyorsa kesim DURUR');
+              /* KESEN TARAF NEREDEN GELIYOR (7 Eyl 2026). Ayni siparisin iki
+                 onizlemesi iki farkli kesen taraf yazdi (GARAGE LE PARIS /
+                 VESTRA) ve gunlukten hangisinin dogru oldugu okunamiyordu:
+                 celiskiyi GOSTEREN ama COZDURMEYEN bir teshis. Sira KURAL 5b:
+                 operator secimi > ilanin seller_uid'i > platform -- hangisinin
+                 isledigi artik yaziyor. uid DEGERLERI yazilmiyor (log acik),
+                 yalnizca dolu/bos sayisi. */
+              $pickNow = function_exists('vestra_order_invoice_seller_pick') ? vestra_order_invoice_seller_pick($ref) : '';
+              $uidFull = 0; foreach ($lines as $l) if (trim((string)($l['seller_uid'] ?? '')) !== '') $uidFull++;
+              printf("satici kaynagi   : %s | satirlarda seller_uid: %d/%d dolu\n",
+                     $pickNow === ''
+                       ? "ilanin seller_uid'i (kayitli operator secimi YOK)"
+                       : 'OPERATOR SECIMI: '.($pickNow === 'vestra' ? 'VESTRA platform (ilan saticisi EZILDI)' : 'kayitli satici hesabi'),
+                     $uidFull, count($lines));
               echo "faturayi kesecek : ".count($payloads)." taraf\n";
               $parts = [];
               foreach ($payloads as $p) {
@@ -766,7 +780,8 @@ jobs:
                    gorurdu. */
                 $rails = $acc ? vestra_payment_rails($acc, $cur) : [];
                 printf("  %-28s %2d satir | %s odeme kutusu: %s\n", mb_substr($who,0,26), count($p['items']), $cur,
-                       $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok') : 'satici hesabi yok');
+                       $acc ? ($rails ? count($rails).' satir' : 'BOS -- bu hesapta '.$cur.' yolu yok')
+                            : 'HIC CIKMAZ -- platform kesiyor, bagli banka hesabi yok');
                 $parts[] = vestra_render_invoice_pdf($p['meta'], $p['items'], $acc, '', true);
               }
               if (!$parts) { fwrite(STDERR, "hicbir dilim cizilemedi\n"); exit(1); }
