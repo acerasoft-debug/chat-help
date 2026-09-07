@@ -683,6 +683,46 @@ adresi ile çıksın"*; alıcı 香港风徕贸易有限公司 / LINCHAOWEI, kay
   ödeme şartları satırı bunu belgenin kendisinde istiyor (e-postayla yanıt ya da
   sipariş sayfasındaki dekont kutusu — KURAL 7'nin kartı). Escrow faturasına
   yazılmıyor: havale yok.
+- **Tek tık düğmesi** (operatör, 7 Eyl 2026: *"siparişi dolara çevirme buttonu
+  yap"*): `Admin ▸ Orders ▸ <sipariş>` içinde, **"Approve & issue"in yanında**
+  `💱 Invoice in USD` / `↩ Back to EUR`. Invoice approvals'taki açılır liste
+  duruyor; karar bu ekranda veriliyor ve bir ekranda görünmeyen seçenek olmayan
+  seçenektir (KURAL 2e'nin "açacak düğmem yok" dersi). Aynı kayıt, aynı
+  doğrulayıcı. Kullanacağı kuru yazar, damga yoksa **kırmızı** uyarır.
+  **Fatura kesilmişse düğme çizilmez ve sunucu ayrıca reddeder** (`invoice_cur_late`)
+  — belge alıcının elinde, seçim onu değiştirmez. Panel dışından aynı yazma:
+  `seller-products.yml` → `admin_mode=currency` (numara yakmaz, belge üretmez,
+  kimseye gitmez; yazdığını **geri okur**).
+
+**KURAL 5j — VESTRA kendi adına kesiyorsa belge de VESTRA'nın künyesini taşır**
+(7 Eyl 2026, VES-6B53D265; operatör: *"hayır VESTRA olacak satıcı"*).
+- Panel platformun kendi fatura/banka künyesini **topluyordu**
+  (`vestra_platform_seller()`, `data/platform_seller.json`,
+  `Admin ▸ Orders ▸ 🏦 Platform billing & bank details`) ve boş bırakılınca
+  *"not set — invoices will have no payment box"* diye uyarıyordu; **çizici o
+  kaydı hiç okumuyordu.** Platform faturası üç sabit satır basıyordu — `VESTRA
+  (Acerasoft LLC) / Marketplace-catalog item / support@…` — adres yok, vergi
+  kimliği yok, ödeme kutusu yok, ve **alanları doldurmak hiçbir şeyi
+  değiştirmiyordu** (`vestra_payment_rails($sellerAcc ?? [], …)` boş dizi
+  geçiyordu). *Toplanan ama okunmayan alan.*
+- Artık satıcı kutusu ve ödeme yolu `vestra_platform_seller()`'dan geliyor:
+  kayıtlı adres + EIN basılıyor, banka alanları dolunca **ödeme kutusu çıkıyor**.
+  USD için yine hesap no + ABA gerekiyor (KURAL 5i) ve taslak notu artık
+  **doğru sayfaya** yolluyor (Admin ▸ Orders), "başka satıcı seç" demiyor —
+  o düzeltme değildi.
+- **Belge kendini yalanlıyordu:** üstte `Seller of record: Acerasoft LLC`,
+  altı satır aşağıda *"VESTRA (Acerasoft LLC) … is not the seller of record for
+  this sale"*. Tam bu çelişkiyi önlemek için yazılmış kontrol
+  (`$platformIsSeller`) `$sellerAcc['company']` içinde "acerasoft" arıyordu;
+  platform diliminde `$sellerAcc` **null**, yani var olma sebebi olan tek
+  durumda hiç çalışmıyordu. (Bu depoda "kontrol yanlış yere bakıyor"un bir
+  başka örneği.)
+- **Düşemeyen iddia:** ilk testte feragat cümlesi `is not the seller of record`
+  diye arandı; cümle sarıldığı için PDF'te bitişik geçmiyor, yani iddia **hiçbir
+  belgede** bulamıyor ve iki yönde de "geçiyordu". Sarmayı atlatan bir parça
+  aranıyor artık (`operates the marketplace`). *Hiç düşemeyen bir iddia, iddia
+  değildir.*
+- Test: `invoice_currency_test.php §5b`.
 
 **KURAL 5i — KDV FİYATIN İÇİNDE; belge matrahı ve vergiyi ayrı gösterir**
 (operatör, 7 Eyl 2026: *"yüzde 21 vat ücreti fiyatın içinde olsun. Faturayı bu
