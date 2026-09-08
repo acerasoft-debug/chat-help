@@ -1163,6 +1163,51 @@ alınabilir"* + *"yoksa tekli dropshipping fiyatı yüzde 20 eklenecek"*).
   bir sayfa, hiç çevrilmemişten kötü görünür. Çeviri istenirse **sayfanın tamamı**
   bir işte yapılmalı.
 
+**KURAL 17 — Dropship tahsilatı USD; çevrim Stripe'tan ÖNCE, kur yoksa sipariş
+YOK** (operatör, 8 Eyl 2026: *"dropshippingte USD olarak paranın stripe a gitmesi
+gerekiyor"* → *"öncesinde para çevrilsin ve usd olarak gitsin"*).
+
+- **Üç tutar birden çevrilir:** mal satırı, navlun ve Connect komisyonu. Satırlar
+  USD iken navlunu EUR bırakmak yarı çalışmaz — Stripe karışık para birimli
+  oturumu **reddeder**, hiç açılmaz.
+- **Kur sitenin mevcut kaynağından** (`vestra_fx('USD')`, `inc/money.php`). İkinci
+  bir kur kaynağı, aynı sipariş için er geç iki farklı rakam demek.
+- **KUR YOKSA SİPARİŞ YOK:** `fx_unavailable` / 503, Stripe çağrısından **önce**.
+  Uydurulmuş kurla tahsilat, KURAL 3'ün parayla yapılan hâli olurdu; fatura
+  tarafı da damgasız siparişte zaten kesim yapmıyor.
+- **Birim çevrilip yuvarlanır, sonra adetle çarpılır** (KURAL 5i'nin aynısı).
+  Toplamı çevirmek `birim × adet ≠ toplam` bırakır.
+- **Kayıt EUR tabanlı kalır**, çekilen tutar ayrı alanlarda: `charge_currency`,
+  `charge_amount`, `charge_unit`, `charge_rate`, `charge_rate_date`,
+  `charge_rate_source`. Tek alana sıkıştırmak, aylar sonra "bu rakam hangi para
+  birimi" sorusunu tahmine bırakırdı.
+- **Bu iş üç ayrı vakayı açığa çıkardı, üçü de müşteriye ulaşacaktı:**
+  1. `inc/money.php` yalnızca `vestra_dropship_countries()` **içinde** yükleniyordu;
+     tahsilat kur isteyince `vestra_fx()` o fonksiyon çağrılmayan her istekte
+     **tanımsız** oluyordu — yani **karta basan müşteride fatal**. Bu, aynı sabah
+     admin.php için yazılan **KURAL 15'in ikinci vakası**; kural kendi ikinci
+     vakasını yakaladı. Artık önsözde.
+  2. `dropship_fulfill()` mektubu EUR kaydından **"Amount paid: €x"** yazıyordu;
+     kart USD çekilecekti, yani müşterinin ekstresiyle çelişen bir belge.
+     Artık çekilen para biriminden yazıyor; `charge_*` alanı olmayan **eski
+     kayıtlar EUR kalıyor** — onlar gerçekten EUR çekilmişti.
+  3. Ortak API'si yalnız `currency: eur` diyordu. Ortak kendi müşterisine euro
+     fiyat verip dolar faturalanacaktı. Artık `charge_currency`, `charge_price`,
+     `fx_rate`, `fx_date` dönüyor ve kur yoksa **null** — uydurma rakam değil.
+- **Alıcı ÖDEMEDEN ÖNCE görür:** ürün sayfası düğmenin altına dolar tutarını,
+  kuru ve kurun tarihini basar, navlunun da aynı kurla çevrildiğini söyler.
+  Stripe sayfasında keşfedilen bir para birimi, bu deponun tekrar tekrar
+  kaydettiği "sayfada bir, kasada başka rakam" hatasıdır.
+- **Abonelik (€199,90) EUR kaldı, bilinçli:** Stripe aboneliğinin tutarı ve para
+  birimi SABİT olmak zorunda; her tahsilatta kurla çevrilen bir abonelik diye bir
+  şey yok. Dolar isteniyorsa **sabit bir USD rakamı** seçilmeli (ör. $199,90 ya da
+  bugünün kuruyla dondurulmuş bir tutar) — operatör kararı, kur kararı değil.
+- Test: `tests/dropship_plan_test.php` §12 (toplam 90 iddia). Önsöz iddiası
+  require kaldırılarak sınandı: takım **üretimdeki fatal'in birebir aynısıyla**
+  ölüyor (`Call to undefined function vestra_fx()`). *Not: fatal'i `grep HATA`
+  ile aramak onu göremez — çıktının tamamına bakılmalı; ilk ölçümümde bu yüzden
+  "iddia düşmüyor" sanmıştım.*
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
