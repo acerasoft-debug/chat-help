@@ -2965,8 +2965,23 @@ jobs:
                     else { $unknown++; }
                     printf("%-11s %-17s %-8s %s\n", $ref, $when, 'pending', $note);
                 } catch (\Throwable $e) {
-                    $unknown++;
-                    printf("%-11s %-17s %-8s Stripe okunamadi: %s\n", $ref, $when, 'pending', $e->getMessage());
+                    /* Oturum okunamiyor (Stripe eski Checkout oturumlarini bir
+                       sure sonra dondurmuyor). "Bilmiyorum" ile birakmak, para
+                       soz konusuyken yeterli degil: ODEME KAYDINA soruyoruz.
+                       Gercekten odenmis bir siparisin PaymentIntent'i durur ve
+                       metadata'sinda order_ref tasir. */
+                    try {
+                        $q = stripe_api('GET', '/v1/payment_intents/search',
+                                        ['query' => "metadata['order_ref']:'".$ref."'"]);
+                        $hits = $q->data ?? [];
+                        $ok = 0;
+                        foreach ($hits as $pi) if (($pi->status ?? '') === 'succeeded') $ok++;
+                        if ($ok > 0) { $paidButPending++; printf("%-11s %-17s %-8s *** ODEME VAR (%d succeeded PaymentIntent) AMA KAYIT PENDING ***\n", $ref, $when, 'pending', $ok); }
+                        else { $neverPaid++; printf("%-11s %-17s %-8s oturum artik yok; odeme kaydi da YOK -> odenmemis\n", $ref, $when, 'pending'); }
+                    } catch (\Throwable $e2) {
+                        $unknown++;
+                        printf("%-11s %-17s %-8s Stripe okunamadi: %s | arama da basarisiz: %s\n", $ref, $when, 'pending', $e->getMessage(), $e2->getMessage());
+                    }
                 }
             }
             echo "\n== SONUC ==\n";
