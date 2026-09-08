@@ -168,6 +168,26 @@ jobs:
             $offIn = strtolower(trim((string)($in['offers'] ?? '')));
             $dry   = strtolower(trim((string)($in['dry'] ?? 'true'))) !== 'false';
 
+            /* PARA VIRGULLE YAZILIYOR. Operator "79,90" yaziyor; PHP'nin is_numeric'i
+               virgullu ondaligi kabul etmedigi icin asagidaki dogrulama bunu
+               "gecersiz fiyat" diye REDDEDIYORDU. Sessiz para kaybi yoktu -- ham
+               (float) 79.00 verirdi ama oraya hic varilmiyordu -- yine de kullaniciya
+               kendi dogru yazdigi rakami "gecersiz" diye geri vermek bir arac hatasi.
+               Depo zaten bunun cozumleyicisini tasiyor (vestra_price_input; CLAUDE.md:
+               "fiyat okunan HER yerde bu kullanilmali").
+               Yalnizca PARA alanlari: moq ve size_step ctype_digit ile dogrulaniyor,
+               onlara iki ondalik eklemek gecerli bir MOQ'yu gecersiz yapardi.
+               'keep' sayi degil ve oyle kaliyor -- cozumleyici 0 donduruyor, deger
+               ellenmiyor, boylece asagidaki $listKeep dali calismaya devam ediyor. */
+            $money = function (string $v): string {
+              if ($v === '') return '';
+              $f = vestra_price_input($v);
+              return $f > 0 ? number_format($f, 2, '.', '') : $v;
+            };
+            $price   = $money($price);
+            $listP   = $money($listP);
+            $discPct = $money($discPct);
+
             /* Bos = dokunma. Sadece acik "evet"/"hayir" kabul edilir: yazim hatasi
                olan bir deger sessizce "kapat" diye yorumlanip tum katalogdan teklif
                panelini kaldirmasin. */
