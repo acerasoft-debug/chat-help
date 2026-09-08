@@ -36,7 +36,8 @@ if (!$user) {
 $p = $id !== '' ? vestra_find($id) : null;
 /* SATILDI: numune de tek parca satistir; stok yokken satilamaz. */
 if ($p && vestra_is_sold_out($p)) { header('Location: ' . $backUrl); exit; }
-if (!$p || empty($p['sample_price']) || !is_numeric($p['sample_price']) || (float)$p['sample_price'] <= 0) {
+$amount = $p ? vestra_sample_price($p) : 0.0;
+if ($amount <= 0) {
     // Not sample-eligible (or tampered id) — nothing to sell here.
     header('Location: ' . $backUrl);
     exit;
@@ -50,7 +51,6 @@ if (!stripe_available()) {
 $note = trim((string)($_POST['note'] ?? ''));
 if (mb_strlen($note) > 200) $note = mb_substr($note, 0, 200);
 
-$amount = (float)$p['sample_price'];
 $cents  = (int) round($amount * 100);
 
 $ref = 'SPL-' . strtoupper(bin2hex(random_bytes(4)));

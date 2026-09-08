@@ -8,8 +8,12 @@ register_shutdown_function(function(){
 $home = getenv("HOME");
 require $home."/public_html/inc/auth.php";
 require $home."/public_html/inc/products.php";
-foreach (['vestra_listings','vestra_save_listings','vestra_data_dir'] as $fn)
-  if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok\n"); exit(1); }
+/* vestra_offers_open() burada da aranıyor: 'offers' alanini yazan dal onu
+   cagiriyor ve sunucudaki kod eskiyse hata apply'in ORTASINDA cikardi --
+   yani bir kismi yazilmis bir listings.json. Preflight'ta durmasi, deploy'un
+   henuz gecmedigini soyleyen okunur bir mesaj demek. */
+foreach (['vestra_listings','vestra_save_listings','vestra_data_dir','vestra_offers_open'] as $fn)
+  if (!function_exists($fn)) { fwrite(STDERR,"HATA: {$fn}() yok (sunucudaki kod eski olabilir -- once deploy)\n"); exit(1); }
 
 /* seller_uid dogrulamasi icin: hedef id gercek, type=seller bir hesaba
    ait olmali -- yoksa yazim hatasiyla urun sahipsiz/hayalet bir uid'e
@@ -40,7 +44,7 @@ $haystack = function(array $p) use ($norm) {
   return $norm(implode('|', array_map('strval', $bits)));
 };
 
-$ALLOWED = ['cat','price','moq','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
+$ALLOWED = ['cat','price','moq','tiers','offers','sizes','name','status','desc','sample_price','sample_platform_pay','seller_uid','seller','colors','images','size_step','min_colors','pinned','specs','specs_remove','dropship','dropship_off','sale_list','ships_from','sold_out','preorder_ship',
             'group','group_target','group_price','group_deposit_pct','group_balance_days','group_extend_days','group_started','group_deadline','group_extended_to','group_min_qty','group_models','group_title','group_min_colors'];
 /* group_extended_to: cron_pool_sweep.php'nin bir havuzu KENDI koydugu tek seferlik
    uzatma tarihi (inc/products.php: vestra_group_deadline() bu alani group_deadline'in
@@ -69,8 +73,49 @@ foreach ($fixes as $n => $fx) {
   if (isset($set['moq']) && ((int)$set['moq'] < 1)) {
     $errors[] = "{$ctx} ({$m}): gecersiz moq '{$set['moq']}'"; continue;
   }
-  if (isset($set['sample_price']) && (!is_numeric($set['sample_price']) || (float)$set['sample_price'] <= 0)) {
+  /* sample_price 0 = numune KUTUSU YOK. Sifir bilerek gecerli: eskiden
+     "<= 0" hata sayiliyordu, yani bir ilandan numune secenegini kaldirmanin
+     hicbir yolu yoktu (panelde de alan yoktu). Negatif hala hata. */
+  if (isset($set['sample_price']) && (!is_numeric($set['sample_price']) || (float)$set['sample_price'] < 0)) {
     $errors[] = "{$ctx} ({$m}): gecersiz sample_price '{$set['sample_price']}'"; continue;
+  }
+  /* offers: teklif (pazarlik) kutusu acik mi. 'off' vestra_offers_open()'in
+     okudugu 'no_offers' anahtarini kaldirir -- saticinin kendi formundan geri
+     acamayacagi tek yol bu (seller.php her kaydetmede 'offers' alanini
+     kutucuktan yeniden yaziyor). */
+  if (isset($set['offers'])) {
+    $ov = strtolower(trim((string)$set['offers']));
+    if (!in_array($ov, ['on','off','true','false','1','0','acik','kapali'], true)) {
+      $errors[] = "{$ctx} ({$m}): offers 'on' ya da 'off' olmali ('{$set['offers']}')"; continue;
+    }
+    $set['offers'] = in_array($ov, ['on','true','1','acik'], true);
+  }
+  /* tiers: kademe merdiveni [{"min":48,"price":19.00},{"min":104,"price":17.50}].
+     'price' alani TUM kademeleri ayni rakama yaziyor, yani iki basamakli bir
+     merdiven kuramiyordu; tek yol paneldi. Sirali ve tekil olmasi sart:
+     vestra_unit_price() listeyi bastan sona geziyor ve SON eslesen basamagi
+     aliyor, yani sirasi bozuk bir merdivende alici daha buyuk miktarda daha
+     pahali fiyat gorebilir. */
+  if (isset($set['tiers'])) {
+    if (!is_array($set['tiers']) || !$set['tiers']) {
+      $errors[] = "{$ctx} ({$m}): tiers bos-olmayan dizi olmali"; continue;
+    }
+    $tt = []; $bad = false; $prevMin = 0; $prevPrice = null;
+    foreach ($set['tiers'] as $row) {
+      if (!is_array($row) || !isset($row['min'], $row['price'])
+          || !is_numeric($row['min']) || !is_numeric($row['price'])
+          || (int)$row['min'] < 1 || (float)$row['price'] <= 0) { $bad = true; break; }
+      $mn = (int)$row['min']; $pr = round((float)$row['price'], 2);
+      if ($mn <= $prevMin) { $bad = true; break; }               // artan ve tekil
+      if ($prevPrice !== null && $pr >= $prevPrice) {
+        $errors[] = "{$ctx} ({$m}): kademe {$mn} -> €{$pr}, bir onceki basamaktan ucuz degil"
+                  . " — daha cok alan daha pahaliya alir"; continue 2;
+      }
+      $prevMin = $mn; $prevPrice = $pr;
+      $tt[] = ['min' => $mn, 'price' => $pr];
+    }
+    if ($bad) { $errors[] = "{$ctx} ({$m}): tiers satirlari {min,price} olmali, min artan"; continue; }
+    $set['tiers'] = $tt;
   }
   /* sale_list: SADECE "was" fiyatini (uzeri cizili list) degistirir, tiers'a
      (gercekten tahsil edilen tutara) DOKUNMAZ -- 'price' alaninin aksine.
@@ -281,6 +326,51 @@ foreach ($fixes as $n => $fx) {
     }
   }
 
+  /* MOQ, paket adimin KATI olmali. Sepet ve teklif ucu miktari
+     size_step'in katina YUKARI yuvarliyor ($qty % $step), yani 10'luk
+     paketli bir ilanda "min 48" yazmak sayfada 48, kasada 50 demek --
+     ilan edilen minimum hicbir zaman satin alinamiyor. Ayni sebeple
+     kademelerin basamaklari da adima oturmali: oturmayan bir basamaga
+     (ornegin 104, adim 10) alici tam olarak hic ulasamaz, fiyat ancak
+     bir sonraki katta (110) devreye girer. MOQ hata, basamak uyari:
+     birincisi ilani yalanci yapar, ikincisi yalnizca erisilmez. */
+  $stepNew = isset($set['size_step']) ? (int)$set['size_step'] : null;
+  $moqNew  = isset($set['moq'])       ? (int)$set['moq']       : null;
+  foreach ($idx as $i) {
+    $step = $stepNew ?? (int)($all[$i]['size_step'] ?? 0);
+    $moq  = $moqNew  ?? (int)($all[$i]['moq'] ?? 0);
+    if ($step > 1 && $moq > 0 && $moq % $step !== 0) {
+      $errors[] = "{$ctx} ({$m}): moq {$moq}, paket adimi {$step} — sepet {$moq} adedi "
+                . (int)(ceil($moq/$step)*$step)." adede yuvarlar, ilan edilen minimum alinamaz";
+      continue 2;
+    }
+    if (isset($set['tiers'])) {
+      $firstMin = (int)$set['tiers'][0]['min'];
+      if ($moq > 0 && $firstMin !== $moq) {
+        $errors[] = "{$ctx} ({$m}): ilk kademe {$firstMin} ama moq {$moq} — merdiven "
+                  . "minimum siparisten baslamali (ikisini ayni satirda verin)";
+        continue 2;
+      }
+      if ($step > 1) {
+        foreach ($set['tiers'] as $tr) {
+          if ((int)$tr['min'] % $step !== 0)
+            echo "  UYARI ({$m}): kademe ".(int)$tr['min']." paket adimi {$step}'e oturmuyor"
+               . " — alici o miktara tam ulasamaz, fiyat ".(int)(ceil($tr['min']/$step)*$step)." adette devreye girer\n";
+        }
+      }
+    }
+    /* mode='offer' urunun sabit fiyati yok: teklifi kapatmak onu satin
+       alinamaz birakir. Bu bilesim burada reddediliyor ki urun sayfasinin
+       savunma dali (bos bir kutu yerine "artik siparis edilemiyor") hic
+       gerekmesin. */
+    if (isset($set['offers']) && $set['offers'] === false
+        && (string)($all[$i]['mode'] ?? '') === 'offer') {
+      $errors[] = "{$ctx} ({$m}): mode='offer' ilanda teklif kapatilamaz — urun satin "
+                . "alinamaz hale gelir; once mode'u fixed/sale yapin (panel: Prices)";
+      continue 2;
+    }
+  }
+
   /* Zorunlu renk sayisi sunulan renk sayisini asamaz: asarsa form ASLA
      gonderilemez -- alici 4 renk secmek zorundadir ama ortada 3 renk
      vardir ve dugme her tiklamada sessizce reddedilir. Sunulan liste
@@ -342,8 +432,34 @@ foreach ($plan as [$i, $set, $m]) {
     } elseif ($k === 'sample_price') {
       $new = (float)$v; $old = (float)($p['sample_price'] ?? 0);
       if ($old === $new) continue;
-      $line[] = "sample_price {$old} -> {$new}";
+      $line[] = "sample_price {$old} -> {$new}".($new <= 0 ? '  (numune kutusu KALKAR)' : '');
       $all[$i]['sample_price'] = $new;
+      $changes++;
+    } elseif ($k === 'tiers') {
+      $fmt = function (array $t): string {
+        $s = [];
+        foreach ($t as $r) $s[] = ($r['min'] ?? '?').'+ -> €'.number_format((float)($r['price'] ?? 0), 2);
+        return $s ? implode(' | ', $s) : '(yok)';
+      };
+      $old = [];
+      foreach ((array)($p['tiers'] ?? []) as $r)
+        if (is_array($r) && isset($r['min'], $r['price'])) $old[] = ['min'=>(int)$r['min'], 'price'=>round((float)$r['price'],2)];
+      if ($old === $v) continue;
+      $line[] = "tiers ".$fmt($old)."  ->  ".$fmt($v);
+      $all[$i]['tiers'] = $v;
+      $changes++;
+    } elseif ($k === 'offers') {
+      /* Iki alan birden: 'offers' saticinin kutucugu, 'no_offers' operatorun
+         ezicisi. Kapatirken ikisi de yazilmali -- yalnizca 'offers'i silmek
+         saticinin bir sonraki kaydinda geri gelirdi; yalnizca 'no_offers'
+         yazmak da satici panelinde kutucugu isaretli birakirdi, yani satici
+         acik sanip aciklama beklerdi. */
+      $wasOpen = vestra_offers_open($p);
+      if ($wasOpen === (bool)$v) continue;
+      if ($v) { $all[$i]['offers'] = true;  unset($all[$i]['no_offers']); }
+      else    { $all[$i]['no_offers'] = true; unset($all[$i]['offers']); }
+      $line[] = 'teklif '.($wasOpen ? 'ACIK' : 'kapali').' -> '.($v ? 'ACIK' : 'KAPALI')
+              . ($v ? '' : '  (urun sayfasindaki kutu ve /offer ucu birlikte kapanir)');
       $changes++;
     } elseif ($k === 'moq') {
       $new = (int)$v; $old = (int)($p['moq'] ?? 0);

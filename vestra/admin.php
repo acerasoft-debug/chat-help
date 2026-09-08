@@ -559,11 +559,18 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
      in one submit. Demo (built-in) products are saved to data/product_overrides.json;
      live seller listings are edited directly in listings.json. Fields are keyed by
      product id: moq[id], mode[id], list[id], t1min[id]…t3price[id]. Empty tier pairs
-     are ignored, so clearing them never wipes existing pricing by accident. */
+     are ignored, so clearing them never wipes existing pricing by accident.
+
+     offers[id] / sample[id] — the two boxes that used to exist nowhere at all:
+     removing the make-an-offer box or the sample box from one listing meant a
+     code change. An unticked checkbox posts NOTHING, so the row also submits a
+     hidden offers_seen[id]: without it "unticked" and "row not in this submit"
+     look identical and the editor could only ever turn offers ON. */
   if($act==='save_prices'){
     $moqIn=(array)($_POST['moq']??[]); $modeIn=(array)($_POST['mode']??[]); $listIn=(array)($_POST['list']??[]);
     $tminIn=[(array)($_POST['t1min']??[]),(array)($_POST['t2min']??[]),(array)($_POST['t3min']??[])];
     $tprIn =[(array)($_POST['t1price']??[]),(array)($_POST['t2price']??[]),(array)($_POST['t3price']??[])];
+    $offSeen=(array)($_POST['offers_seen']??[]); $offIn=(array)($_POST['offers']??[]); $smpIn=(array)($_POST['sample']??[]);
     $ids=array_values(array_unique(array_merge(array_keys($moqIn),array_keys($modeIn),array_keys($listIn))));
     $all=vestra_listings(); $ov=vestra_product_overrides(); $n=0;
     foreach($ids as $id){
@@ -576,12 +583,23 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
       $m  = isset($moqIn[$id]) && $moqIn[$id]!=='' ? max(1,(int)$moqIn[$id]) : null;
       $md = in_array($modeIn[$id]??'',['fixed','sale','offer'],true) ? $modeIn[$id] : null;
       $ls = isset($listIn[$id]) && $listIn[$id]!=='' ? round((float)$listIn[$id],2) : null;
+      /* 'offer' modunda teklif KAPATILAMAZ: fiyati olmayan bir urunde teklif
+         tek satin alma yolu, kapatmak onu vitrinde duran ama alinamayan bir
+         kayda cevirirdi. Kutucuk zaten kilitli ciziliyor; karar burada da
+         veriliyor cunku kilitli bir alan gonderilmeyen bir alandir, yetki degil. */
+      $offerable = ($md ?? '') !== 'offer';
+      $off = (isset($offSeen[$id]) && $offerable) ? !empty($offIn[$id]) : null;
+      /* vestra_price_input: ham (float) virgullu ondalikta sessizce para
+         kaybettiriyor ("35,50" -> 35.00). Numune fiyati da fiyattir. */
+      $smp = array_key_exists($id,$smpIn) ? max(0.0, round(vestra_price_input($smpIn[$id]),2)) : null;
       if(vestra_is_demo_product($id)){
         $e=(array)($ov[$id]??[]);
         if($m!==null)  $e['moq']=$m;
         if($md!==null) $e['mode']=$md;
         if($ls!==null) $e['list']=$ls;
         if($tiers)     $e['tiers']=$tiers;
+        if($off!==null) $e['no_offers']=!$off;
+        if($smp!==null) $e['sample_price']=$smp;
         if($e){ $ov[$id]=$e; $n++; }
       } else {
         foreach($all as &$p){
@@ -590,6 +608,14 @@ if($authed && $_SERVER['REQUEST_METHOD']==='POST'){
           if($md!==null) $p['mode']=$md;
           if($ls!==null) $p['list']=$ls;
           if($tiers)     $p['tiers']=$tiers;
+          /* Iki alan birlikte: 'offers' saticinin kutucugu, 'no_offers'
+             operatorun ezicisi. Yalnizca 'offers'i silmek saticinin bir
+             sonraki kaydinda geri gelirdi (seller.php her kayitta yeniden
+             yaziyor); yalnizca 'no_offers' yazmak da satici panelinde
+             kutucugu isaretli birakir, satici acik sanir. */
+          if($off===true){ $p['offers']=true; unset($p['no_offers']); }
+          elseif($off===false){ $p['no_offers']=true; unset($p['offers']); }
+          if($smp!==null){ if($smp>0) $p['sample_price']=$smp; else unset($p['sample_price']); }
           $n++; break;
         }
         unset($p);
@@ -4603,7 +4629,7 @@ $fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'mar
     <span style="color:var(--mut);font-size:12px"><?= count($allProd) ?> products · changes apply to the live catalogue instantly</span>
   </div>
   <div class="acard"><div class="atscroll"><table class="atable pricetable">
-    <?= arow(['Product','Type','MOQ','List €<div class="ahint" style="font-weight:400">sale only</div>','Tier 1 — min → €','Tier 2','Tier 3','From'],true) ?>
+    <?= arow(['Product','Type','MOQ','List €<div class="ahint" style="font-weight:400">sale only</div>','Tier 1 — min → €','Tier 2','Tier 3','Offers<div class="ahint" style="font-weight:400">negotiation</div>','Sample €<div class="ahint" style="font-weight:400">empty = none</div>','From'],true) ?>
     <?php foreach($allProd as $p): $id=(string)($p['id']??''); $eid=htmlspecialchars($id); $t=array_values($p['tiers']??[]); $demo=vestra_is_demo_product($id); $thumb=vestra_primary_image($p); ?>
     <tr>
       <td class="ac" style="min-width:210px">
@@ -4629,6 +4655,29 @@ $fxLabel = ['ecb'=>'European Central Bank (daily reference rate)','market'=>'mar
         <input type="number" step="0.01" min="0" name="t<?= $i+1 ?>price[<?= $eid ?>]" value="<?= htmlspecialchars((string)($t[$i]['price']??'')) ?>" placeholder="€" style="width:62px;padding:5px">
       </div></td>
       <?php endfor; ?>
+      <?php /* Teklif ve numune: bu iki kutu HICBIR ekranda yoktu. Bir ilandan
+               "teklif ver" ya da "numune siparis et" kutusunu kaldirmanin tek
+               yolu koda dokunmakti -- yani operatorun her seferinde beklemesi
+               gerekiyordu. Ayni ders KURAL 2e'de yazili: bir ekranda gorunmeyen
+               secenek olmayan secenektir.
+               Numune alani BOS = kutu yok. 'offer' modunda teklif kutucugu
+               kilitli: o urunun sabit fiyati yok, teklifi kapatmak onu satin
+               alinamaz birakirdi (kayit tarafi da reddediyor). */
+        $offOpen = vestra_offers_open($p); $offLocked = ($p['mode'] ?? '') === 'offer'; ?>
+      <td class="ac">
+        <?php /* Kilitli satirda gizli alan da GONDERILMIYOR: disabled bir kutucuk
+                 hic gonderilmez, gizli alan gonderilirdi -- yani ayni gonderimde
+                 mode 'offer'dan 'fixed'e cekilen bir ilan "kutucuk isaretsiz"
+                 okunup teklifi sessizce KAPATILMIS olurdu. Once mod kaydedilir,
+                 satir kilitsiz yeniden cizilir, sonra karar verilir. */ ?>
+        <?php if(!$offLocked): ?><input type="hidden" name="offers_seen[<?= $eid ?>]" value="1"><?php endif; ?>
+        <label style="display:inline-flex;align-items:center;gap:5px;<?= $offLocked?'opacity:.55':'' ?>" title="<?= $offLocked?'Price-on-request listings are offer-only — closing offers would leave nothing to buy':'Show the make-an-offer box on the product page' ?>">
+          <input type="checkbox" name="offers[<?= $eid ?>]" value="1" <?= $offOpen?'checked':'' ?> <?= $offLocked?'disabled':'' ?>>
+          <span class="ahint" style="font-size:10px"><?= $offLocked?'offer mode':($offOpen?'on':'off') ?></span>
+        </label>
+      </td>
+      <?php $sv = vestra_sample_price($p); ?>
+      <td class="ac"><input type="number" step="0.01" min="0" name="sample[<?= $eid ?>]" value="<?= $sv>0?htmlspecialchars(rtrim(rtrim(number_format($sv,2,'.',''),'0'),'.')):'' ?>" placeholder="—" style="width:66px;padding:5px"></td>
       <td class="ac"><b><?= ($p['mode']??'')==='offer' ? '—' : eur(vestra_from_price($p)) ?></b></td>
     </tr>
     <?php endforeach; ?>

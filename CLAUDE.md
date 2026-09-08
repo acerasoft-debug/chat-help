@@ -532,6 +532,51 @@ doğrulayıcıda: `vestra_offer_price_error()` + `vestra_offer_turn()`.
 - **Reddedilen her durumda gerekçe kullanıcıya yazılır** (ürün sayfası, alıcının
   kabul ekranı, admin ve satıcı paneli). Geçersiz yanıt **kayıttan önce** durur.
 
+**KURAL 4b — Teklif ve numune kutuları İLAN BAŞINA kapatılabilir; kapı sunucuda**
+(operatör, 7 Eyl 2026, Lacoste "Trim Cotton Jersey T-Shirt": *"angebot vermeyi
+kaldır sample'ı da kaldır"*).
+- Tek karar noktası `vestra_offers_open()` (`inc/products.php`): `mode='offer'`
+  **ya da** `offers` bayrağı açar, operatörün `no_offers` anahtarı **ikisini de
+  ezer**. Numune için `vestra_sample_price()` — 0/boş/sayı değil = kutu yok.
+- **`/offer` ucu ilanın teklif alıp almadığına HİÇ BAKMIYORDU.** Yalnızca
+  satıldı mı ve fiyat kuralları geçiyor mu diye bakıyordu; sabit fiyatlı,
+  hiçbir yerinde teklif düğmesi olmayan bir ilana elle POST atan biri gerçek
+  bir teklif bırakabiliyordu — satıcı paneline düşüyor, alıcıya mektup gidiyor,
+  kabul edilirse fatura kesiliyordu. `products.php`'nin kendi yorumu "düğmeyi
+  gizlemek kapı değildir" deyip **altı** satın alma yolunu sayıyor; teklif
+  onlardan biri değildi. Artık ürün sayfası ile `/offer` **aynı** fonksiyonu
+  çağırıyor.
+- **Kapatmanın hiçbir yolu yoktu:** panelde alan yok, `set_product.php`'de
+  anahtar yok, `sample_price=0` "geçersiz fiyat" diye reddediliyordu. Şimdi
+  `Admin ▸ Prices`'ta iki sütun (Offers kutucuğu, Sample €) ve
+  `set-product.yml`'de `offers: on|off`, `tiers: [{min,price}…]`,
+  `sample_price: 0`.
+- **`offers` alanını silmek KALICI DEĞİL:** `seller.php` her kaydetmede o alanı
+  satıcının kutucuğundan yeniden yazıyor, yani operatörün kararı satıcının bir
+  sonraki kaydında sessizce geri alınıyordu. `no_offers` bu yüzden ayrı ve
+  satıcı tarafı onu hiç yazmıyor. Numunede böyle bir anahtar **gerekmiyor** —
+  `sample_price`'ı satıcı formu zaten hiç yazmıyor.
+- İşaretsiz bir kutucuk **hiç gönderilmez**: satırda ayrıca gizli
+  `offers_seen[id]` var, yoksa editör teklifi yalnızca **açabilirdi**.
+  `mode='offer'` satırında ikisi de çizilmiyor — aynı gönderimde modu
+  değiştirmek "işaretsiz" diye okunup teklifi sessizce kapatırdı.
+- **`mode='offer'` + teklif kapalı REDDEDİLİYOR** (hem panelde hem yazıcıda):
+  o ilanın sabit fiyatı yok, kapanınca vitrinde duran ama satın alınamayan bir
+  kayıt kalırdı.
+- **MOQ, paket adımının katı olmak zorunda.** Sepet miktarı `size_step`'in
+  katına yuvarlıyor, yani 10'luk paketli bir ilanda "min 48" sayfada 48, kasada
+  50 demek — ilan edilen minimum hiç alınamaz. Kademe basamakları için aynı
+  uyum **uyarı** (fiyat bir kat sonra devreye girer, ilan yalan söylemez).
+- Test: `tests/offers_sample_gate_test.php` (53 iddia; §5 `set_product.php`'yi
+  kum havuzunda **gerçekten koşturuyor** — her ret, kuru koşunun hiçbir şey
+  yazmadığı, ve değişikliğin tamamının indiği).
+- **Ölçüm tuzağı (yaşandı):** ürün sayfasını **girişsiz** çekip "teklif kutusu
+  yok" diye okumak fiyat kapısını ölçer, dalı değil — dört durumda da her
+  işaretçi 0 çıkıyor. Yerel ölçüm onaylı bir alıcı oturumuyla yapıldı: sabit
+  fiyat+numune → numune formu VAR; `offer` açık → teklif formu VAR; `offer`
+  kapalı → form YOK ve yerine "artık sipariş edilemiyor" satırı; sabit
+  fiyat+ikisi kapalı → fiyat bloğu VAR, iki kutu da YOK. PHP uyarısı 0.
+
 **KURAL 5 — Fatura operatör onayıyla kesilir.** Teklif kabul edilince yalnızca
 `pending` döner; PDF ve numara `Admin ▸ Invoice approvals`'tan çıkar. Fatura
 **uzlaşılan** fiyattan kesilir (`vestra_offer_agreed_unit`) — karşı teklif
@@ -1310,6 +1355,34 @@ dönmek zorundadir"*).
     bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
     `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
   - Test: `tests/journal_auto_test.php` (47 iddia).
+- **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
+  *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
+  kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
+  - **Cevap: kişi değil, Google.** Kanıt Google'ın kendi tarifi — ters DNS →
+    `crawl-66-249-*.googlebot.com`, sonra o adı ileri çözüp aynı IP'ye dönmesi.
+    Mountain View'a çözülen adreslerin **hepsi** böyle doğrulandı; `security_log`'da
+    o şehirden tek bir giriş/kayıt olayı bile yok.
+  - **Ama sayaca giren Googlebot DEĞİL.** `vestra_is_bot()` 'bot|crawl|…' arıyordu;
+    Googlebot doğru şekilde atlanıyordu. Google'ın diğer ajanları kimliğini dizgenin
+    **sonundaki** parantezde yazıyor — `GoogleOther`, `Google-Read-Aloud`,
+    `Google-Site-Verification` — ve hiçbirinde 'bot' geçmiyor. Gövdeleri gerçek
+    Googlebot'unkiyle **birebir aynı** (Nexus 5X / Android 10). Ölçüm: Eylül
+    kütüğünde **1.415**, Ağustos'ta **1.207** sayılan istek; 4 Eylül'de günün
+    **1.394 "benzersiz ziyaretçisinin 620'si"** buydu. Gezdiği yerler `/journal?slug=…`
+    ve `/wholesale/<marka>/<kategori>` — yani KURAL 9'un SEO sayfaları.
+  - Süzgeç `\bgoogle-[a-z]|googleother|…` ile genişletildi: yarın çıkacak bir
+    `Google-Xyz` de kendiliğinden kapsanıyor. **Ters yön testli:** iPhone'da Google
+    uygulamasından gezen gerçek kişi `GSA/` taşıyor, `google-` değil — o sayılmaya
+    devam ediyor (mango/zara dersi). `tests/bot_filter_test.php` (33 iddia; eski
+    süzgece karşı 15 hata veriyor, yani düşebilen bir iddia).
+  - **Geçmiş rakamlar düzelmez** — sayaç günlük dosyalara yazılmış durumda; düzeltme
+    yalnızca bundan sonrasına işliyor. Panelde trafiğin düşmesi beklenen sonuç.
+  - Teşhis: `diag-live.yml` → `visits_probe=who` (ya da `who:<şehir>`). **İki tuzağı
+    yaşayarak öğrendi:** (1) erişim kütükleri `.gz`, ilk sürüm düz metin sanıp okudu
+    ve "bu adreslerden istek YOK" dedi — ölçülmemiş bir şeyi ölçülmüş gibi gösteren
+    satır; (2) UA'yı 95 karaktere kırpıp etiketi **kırpılmış** metinden hesapladı ve
+    tabloda Googlebot'a "[SAYILIR]" yazdı, oysa süzgeç tam metne bakıp atlıyordu.
+    *Aracın kendi kırpması ölçümü yalanlıyordu.*
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,

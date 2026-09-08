@@ -388,10 +388,28 @@ function vestra_visits_dir(): string {
     return $d;
 }
 
-/** Crawlers are not customers. Counting them turns "how many people came" into a lie. */
+/** Crawlers are not customers. Counting them turns "how many people came" into a lie.
+ *
+ * GOOGLE'IN HEPSI "bot" DEMIYOR (olculdu, 8 Eyl 2026 -- operator "her gun
+ * Mountain View'dan biri giriyor, gercek kisi mi?" diye sordu). Erisim kutugu:
+ * Googlebot dogru sekilde atlaniyordu, ama Google'in DIGER ajanlari kimliklerini
+ * parantez icinde "GoogleOther", "Google-Read-Aloud", "Google-Site-Verification"
+ * diye yaziyor -- hicbirinde 'bot' ya da 'crawl' gecmiyor, yani hepsi ZIYARETCI
+ * olarak sayiliyordu. Eylul kutugunde 1.415, Agustos'ta 1.207 istek. 4 Eylul'de
+ * gunun 1.394 "benzersiz ziyaretcisinin" 620'si buydu: rakamin yaklasik yarisi.
+ *
+ * Bunlarin govdesi gercek Googlebot'unkiyle AYNI (Nexus 5X / Android 10); ayirt
+ * eden tek sey dizgenin SONUNDAKI parantez. Bu yuzden desen 'google-<harf>'
+ * kalibini genel olarak tutuyor: Google yarin baska bir 'Google-Xyz' cikarirsa
+ * kendiliginden kapsanir.
+ *
+ * DIKKAT, ters yon: iPhone'da Google uygulamasindan gezen GERCEK bir kisi
+ * 'GSA/' tasiyor, 'google-' degil -- o kisi sayilmaya devam etmeli. Kalibi
+ * genisletirken bunu dusun. */
 function vestra_is_bot(string $ua): bool {
     if ($ua === '') return true;   // no UA at all is a script, not a browser
-    return (bool)preg_match('/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headless|curl|wget|python-requests|monitor|uptime|pingdom|semrush|ahrefs|mj12|dotbot|petalbot|gptbot|claudebot|ccbot/i', $ua);
+    if (preg_match('/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headless|curl|wget|python-requests|monitor|uptime|pingdom|semrush|ahrefs|mj12|dotbot|petalbot|gptbot|claudebot|ccbot/i', $ua)) return true;
+    return (bool)preg_match('/\bgoogle-[a-z]|googleother|googleimageproxy|google favicon|google web preview|appengine-google|feedfetcher|chrome-lighthouse/i', $ua);
 }
 
 /**

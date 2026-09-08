@@ -70,6 +70,42 @@ function vestra_is_sold_out(array $p = []): bool {
     return (bool)$v;
 }
 
+/* Bu ilan TEKLIF (pazarlik) kabul ediyor mu -- TEK karar noktasi.
+ *
+ * Iki ayri kaynak vardi ve ikisi de yalnizca urun sayfasinin ICINDE, ayri
+ * ayri okunuyordu: mode='offer' (fiyat istek uzerine, tek eylem teklif
+ * vermek) ve 'offers' bayragi (fiyatli ilanda satici pazarliga da acik).
+ * Sunucu tarafinda ise HICBIRI okunmuyordu -- /offer ucu urunun teklif alip
+ * almadigina hic bakmiyor, sadece satildi mi ve fiyat kurallari saglaniyor mu
+ * diye bakiyordu. Yani teklif dugmesi HIC cizilmeyen sabit fiyatli bir ilana
+ * elle POST atan biri teklif birakabiliyor, satici paneline dusuyor ve
+ * kabul edilirse fatura kesiliyordu. Bu dosyanin bir ust yorumu
+ * ("DUGMEYI GIZLEMEK KAPI DEGILDIR") altı satin alma yolunun hepsinin
+ * sunucuda kontrol edildigini soyluyor; teklif yolunda bu dogru degildi.
+ *
+ * 'no_offers' operatorun kapatma anahtari ve ikisini de EZER. Ayri bir alan
+ * olmasinin sebebi saticinin kendi formu: seller.php her kaydetmede
+ * $p['offers'] alanini kutucuktan yeniden yaziyor, yani operatorun 'offers'i
+ * silmesi saticinin bir sonraki kaydinda sessizce geri aliniyordu. Bu alani
+ * satici tarafi hic yazmiyor. ('sample_price' icin boyle bir anahtar YOK ve
+ * gerekmiyor -- numune fiyatini satici formu zaten hic yazmiyor, sifirlamak
+ * kalicidir.) */
+function vestra_offers_open(array $p): bool {
+    if (!empty($p['no_offers'])) return false;
+    return ((string)($p['mode'] ?? '') === 'offer') || !empty($p['offers']);
+}
+
+/* Numune kutusunun rakami, TEK okuma noktasi. 0 / bos / sayi olmayan = numune
+ * yok. Urun sayfasi ile /sample-checkout kosulu ayri ayri yazmisti ve ikisi
+ * ayni uzunlukta olmasina ragmen aynilar diye guvenilemezdi; ucuncu bir yer
+ * (fiyat listesi, mektup) eklendiginde kural dorduncu kez yazilacakti. */
+function vestra_sample_price(array $p): float {
+    $v = $p['sample_price'] ?? null;
+    if (!is_numeric($v)) return 0.0;
+    $v = (float)$v;
+    return $v > 0 ? $v : 0.0;
+}
+
 /* On siparis notu (operator istegi, 5 Eyl 2026: "Rezervasyonlar icin erken
  * siparis kabul edilmektedir. Urun Ekim basi gonderilecektir").
  *
@@ -318,6 +354,11 @@ function vestra_apply_price_overrides(array $products): array {
     if(isset($o['moq']))  $p['moq']  = (int)$o['moq'];
     if(isset($o['list'])) $p['list'] = (float)$o['list'];
     if(isset($o['mode']) && $o['mode']!=='') $p['mode'] = (string)$o['mode'];
+    /* Teklif ve numune de buradan gecmek zorunda: kodda yazili bir demo
+       urunun 'sample_price'ini panelden SILMENIN baska yolu yok -- kaynak
+       satiri her deploy'da geri gelir. Ayni sebeple 'no_offers'. */
+    if(isset($o['no_offers']))    $p['no_offers']    = (bool)$o['no_offers'];
+    if(isset($o['sample_price'])) $p['sample_price'] = (float)$o['sample_price'];
     if(isset($o['tiers']) && is_array($o['tiers']) && $o['tiers']){
       $t=[];
       foreach($o['tiers'] as $row){

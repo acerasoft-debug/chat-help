@@ -94,7 +94,7 @@ on:
         required: false
         default: ""
       visits_probe:
-        description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz."
+        description: "true = ziyaretçi sayacını CANLI sunucuda sına: gerçek sayfa istekleri sayılıyor mu, /admin sayılmıyor mu, canlı liste doluyor mu. Sınamadan önce sayaç dosyası yedeklenir, sonra geri konur — gerçek rakamlarınız bozulmaz. | 'who' ya da 'who:<şehir>' = KİM GİRİYOR: o şehirden gelen IP'leri ters DNS + ileri doğrulama ile sınıflar (Googlebot mu, Gmail resim vekili mi, gerçek ziyaretçi mi), hangi Google ajanının bot süzgecinden geçtiğini hesaplar, günlük sayaçları ve varsa erişim kütüğünü okur. SALT OKUNUR; IP'ler maskeli basılır."
         required: false
         default: "false"
       fx_probe:
@@ -1406,6 +1406,268 @@ jobs:
             php -l /tmp/vestra_visits.php 2>&1
             php /tmp/vestra_visits.php 2>&1
             rm -f /tmp/vestra_visits.php
+
+      # "Her gun ayni sehirden biri giriyor -- gercek kisi mi, bot mu?"
+      #
+      # Panelin trafik sekmesi yalnizca ULKE + SEHIR sayiyor; kimin girdigini
+      # bilerek TUTMUYOR (canli harita tuzlu ozet, gunluk sayaclar da yalnizca
+      # rakam). Yani soruyu panele bakarak cevaplamak mumkun degil -- ama sunucuda
+      # cevabi tasiyan uc kayit var: ip_intel.json (IP basina sehir + ISS),
+      # security_log.json (giris olaylarinda UA) ve varsa web sunucusunun erisim
+      # kutugu.
+      #
+      # KANIT TERS DNS, UA DEGIL. Bir tarayici kimligi (UA) taklit edilebilir;
+      # Google'in kendi tarifi "ters DNS -> googlebot.com, sonra o adi ILERI
+      # cozup ayni IP'ye donuyor mu" diyor. Bu adim tam olarak onu yapiyor.
+      #
+      # NE BASAR: sehir/ISS, ters DNS adi, ileri dogrulama sonucu, karar, ve
+      # MASKELI IP. Tam IP yalnizca ileri-geri dogrulanmis ALTYAPI adlarinda
+      # (googlebot.com, google.com, googleusercontent.com ...) aciliyor -- orasi
+      # bir sirketin tarayicisi, kisi degil. Dogrulanmayan bir adres bir INSAN
+      # olabilir: adi da IP'si de maskeli kaliyor (bu depoda find_ref bir kez
+      # musteri satirini maskesiz basmisti).
+      - name: Ziyaretçi kim (şehir → IP sınıflandırma, salt okunur)
+        if: ${{ startsWith(github.event.inputs.visits_probe, 'who') }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 6m
+          script: |
+            export WHO='${{ github.event.inputs.visits_probe }}'
+            cat > /tmp/vestra_who.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/security.php";
+            $dir = vestra_data_dir();
+
+            $spec = trim((string)getenv("WHO"));
+            $city = 'Mountain View';
+            if (strpos($spec, ':') !== false) { $c = trim(explode(':', $spec, 2)[1]); if ($c !== '') $city = $c; }
+            echo "===== ZIYARETCI KIM: '{$city}' =====\n\n";
+
+            /* IP MASKESI. Bir teshis adiminin varsayilani "gizle" olmali; acmak
+               icin gerekce (dogrulanmis altyapi) gerekiyor. */
+            $mask = function (string $ip): string {
+              if (strpos($ip, ':') !== false) { $p = explode(':', $ip); return implode(':', array_slice($p, 0, 3)).':…'; }
+              $p = explode('.', $ip);
+              return count($p) === 4 ? $p[0].'.'.$p[1].'.'.$p[2].'.x' : '…';
+            };
+            /* Google'in kendi dogrulama tarifi: ters DNS, sonra o adi ILERI cozup
+               ayni IP'ye donuyor mu diye bak. UA'ya guvenmek yeterli degil --
+               "Googlebot" yazmak bedava, googlebot.com'dan cikmak degil. */
+            $verify = function (string $ip): array {
+              $host = @gethostbyaddr($ip);
+              if (!is_string($host) || $host === '' || $host === $ip) return ['host'=>'', 'ok'=>false, 'why'=>'ters DNS kaydi yok'];
+              $fwd = [];
+              if (strpos($ip, ':') !== false) {
+                foreach ((array)@dns_get_record($host, DNS_AAAA) as $r) if (!empty($r['ipv6'])) $fwd[] = $r['ipv6'];
+              } else {
+                $fwd = (array)@gethostbynamel($host);
+              }
+              $ok = in_array($ip, $fwd, true);
+              return ['host'=>$host, 'ok'=>$ok, 'why'=>$ok ? 'ileri-geri DOGRULANDI' : 'ileri cozum ayni IP\'ye donmedi'];
+            };
+            $INFRA = ['.googlebot.com'=>'GOOGLEBOT — arama tarayicisi',
+                      '.google.com'=>'GOOGLE altyapisi (tarayici/vekil)',
+                      '.googleusercontent.com'=>'GOOGLE kullanici-icerik vekili (Gmail resim vekili buradan cikar)',
+                      '.gae.googleusercontent.com'=>'GOOGLE App Engine',
+                      '.1e100.net'=>'GOOGLE altyapisi (1e100.net = Google)',
+                      '.google'=>'GOOGLE altyapisi (.google TLD, ornegin dns.google)',
+                      '.search.msn.com'=>'BINGBOT', '.crawl.yahoo.net'=>'YAHOO Slurp',
+                      '.applebot.apple.com'=>'APPLEBOT'];
+            $classify = function (string $host) use ($INFRA): string {
+              $h = strtolower($host);
+              foreach ($INFRA as $suf => $label) if (str_ends_with($h, $suf)) return $label;
+              return '';
+            };
+
+            /* ── 1. Hangi Google ajani bot suzgecinden GECIYOR ────────────────
+               Panelde sehir gorunuyorsa ziyaretcinin UA'si vestra_is_bot()'a
+               takilmamis demektir. Hangi Google ajanlarinin takilmadigini
+               tahmin etmek yerine suzgecin kendisine soruyoruz. */
+            echo "-- 1. vestra_is_bot() suzgeci, bilinen Google ajanlari --\n";
+            $uas = [
+              'Googlebot'                 => 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+              'Googlebot-Image'           => 'Googlebot-Image/1.0',
+              'AdsBot-Google'             => 'AdsBot-Google (+http://www.google.com/adsbot.html)',
+              'GoogleOther'               => 'Mozilla/5.0 (compatible; GoogleOther)',
+              'Google-InspectionTool'     => 'Mozilla/5.0 (compatible; Google-InspectionTool/1.0)',
+              'Gmail resim vekili'        => 'Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)',
+              'Google Favicon'            => 'Mozilla/5.0 (X11; U; Linux x86_64) AppleWebKit/534.24 Google Favicon',
+              'Google-Read-Aloud'         => 'Mozilla/5.0 (compatible; Google-Read-Aloud; +https://support.google.com/webmasters/answer/1061943)',
+              'Google-Site-Verification'  => 'Mozilla/5.0 (compatible; Google-Site-Verification/1.0)',
+              'Chrome-Lighthouse'         => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36 Chrome-Lighthouse',
+              'Google Web Preview'        => 'Mozilla/5.0 (en-us) AppleWebKit/534.14 (KHTML, like Gecko; Google Web Preview) Version/5.0 Safari/534.14',
+              'Chrome (gercek kisi)'      => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            ];
+            $passes = [];
+            foreach ($uas as $label => $ua) {
+              $bot = vestra_is_bot($ua);
+              if (!$bot) $passes[] = $label;
+              printf("   %-26s : %s\n", $label, $bot ? 'ATLANIR (sayaca girmez)' : 'SAYILIR  <-- panelde gorunur');
+            }
+            echo "   => sayaca girebilen Google ajanlari: ".($passes ? implode(', ', $passes) : '(yok)')."\n\n";
+
+            /* ── 2. Gunluk sayaclar: bu sehir kac gun, kac benzersiz ────────── */
+            echo "-- 2. Gunluk sayac (son 30 gun), '{$city}' satiri --\n";
+            $days = 0; $sum = 0;
+            for ($i = 29; $i >= 0; $i--) {
+              $ymd = date('Y-m-d', strtotime("-{$i} days"));
+              $d = vestra_visits_day($ymd);
+              $n = 0;
+              foreach ((array)$d['city'] as $k => $v) if (stripos($k, $city) !== false) $n += (int)$v;
+              if ($n > 0) { $days++; $sum += $n; printf("   %s  %s: %-3d   (o gun toplam benzersiz %d, gosterim %d)\n", $ymd, $city, $n, (int)$d['uniq'], (int)$d['hits']); }
+            }
+            echo "   => {$days} gunde toplam {$sum} benzersiz ziyaret\n";
+            if ($days === 0) echo "   (sayacta bu sehir hic yok -- panelde 'simdi sitede' listesinde gormus olabilirsiniz)\n";
+            echo "\n";
+
+            /* ── 3. IP onbellegi: bu sehre cozulen adresler + ters DNS ──────── */
+            echo "-- 3. ip_intel.json: '{$city}' ya da ISS'i Google olan adresler --\n";
+            $intel = is_readable($dir.'/ip_intel.json') ? json_decode((string)file_get_contents($dir.'/ip_intel.json'), true) : [];
+            if (!is_array($intel)) $intel = [];
+            echo "   onbellekte toplam ".count($intel)." IP\n";
+            $cand = [];
+            foreach ($intel as $ip => $v) {
+              if (!is_array($v)) continue;
+              $c = (string)($v['city'] ?? ''); $isp = (string)($v['isp'] ?? '');
+              if (stripos($c, $city) !== false || stripos($isp, 'google') !== false) $cand[$ip] = $v;
+            }
+            if (!$cand) echo "   eslesen adres YOK\n";
+            $n = 0;
+            foreach ($cand as $ip => $v) {
+              if (++$n > 25) { echo "   … (".(count($cand)-25)." adres daha, kesildi)\n"; break; }
+              $r = $verify($ip);
+              $label = $r['ok'] ? $classify($r['host']) : '';
+              /* Tam IP ve tam ana bilgisayar adi YALNIZCA dogrulanmis altyapida. */
+              $showIp = $label !== '' ? $ip : $mask($ip);
+              /* Dogrulanmamis bir adin tamami YAZILMAZ: ev bagantilarinin ters
+                 DNS adi genelde IP'yi harf harf tasiyor (c-73-162-1-2.hsd1…),
+                 yani maskeyi delerdi. Yalnizca son iki etiket (saglayicinin
+                 alan adi) basiliyor -- kimlik degil, sinif bilgisi. */
+              $showHost = '(yok)';
+              if ($r['host'] !== '') {
+                if ($label !== '') $showHost = $r['host'];
+                else { $lab = explode('.', $r['host']); $showHost = '…'.implode('.', array_slice($lab, -2)); }
+              }
+              $age = isset($v['ts']) ? round((time() - (int)$v['ts']) / 86400, 1) : -1;
+              echo "   ".$showIp."\n";
+              echo "      sehir=".($v['city'] ?? '?')." / ".($v['region'] ?? '?')." / ".($v['cc'] ?? '?')
+                 . "   ISS=".($v['isp'] ?? '?')."\n";
+              echo "      hosting=".(!empty($v['hosting'])?'EVET':'hayir')."  proxy/VPN=".(!empty($v['proxy'])?'EVET':'hayir')
+                 . "  onbellek yasi=".($age >= 0 ? $age.' gun' : '?')."\n";
+              echo "      ters DNS: ".$showHost."   -> ".$r['why']."\n";
+              echo "      KARAR: ".($label !== '' ? $label : ($r['ok'] ? 'dogrulandi ama taninan bir tarayici agi degil' : 'DOGRULANAMADI — gercek bir ziyaretci olabilir'))."\n";
+            }
+            echo "\n";
+
+            /* ── 4. Giris olaylari: burada UA da var ────────────────────────── */
+            echo "-- 4. security_log.json: bu adreslerden giris/kayit olayi --\n";
+            $sec = is_readable($dir.'/security_log.json') ? json_decode((string)file_get_contents($dir.'/security_log.json'), true) : [];
+            if (!is_array($sec)) $sec = [];
+            $hit = 0;
+            foreach (array_reverse($sec) as $e) {
+              if (!is_array($e)) continue;
+              $eip = (string)($e['ip'] ?? '');
+              if (!isset($cand[$eip]) && stripos((string)($e['city'] ?? ''), $city) === false) continue;
+              if (++$hit > 15) break;
+              $em = (string)($e['email'] ?? '');
+              $emShown = $em === '' ? '' : substr($em, 0, 2).'***'.strstr($em, '@');
+              echo "   ".($e['ts'] ?? '?')."  ".($e['event'] ?? '?')."  ".$mask($eip)
+                 . ($emShown !== '' ? "  {$emShown}" : '')."\n";
+              echo "      UA: ".mb_substr((string)($e['ua'] ?? '(yok)'), 0, 110)."\n";
+            }
+            if (!$hit) echo "   bu sehirden HICBIR giris/kayit olayi yok (yani hesap acan/giren biri degil)\n";
+            echo "\n";
+
+            /* ── 5. Web sunucusu erisim kutugu: GERCEK tarayici kimlikleri ────
+               3. bolum "kim" sorusunu cevapliyor ama "sayaca hangisi giriyor"u
+               cevaplamiyor: ip_intel.json'a bir IP, ULKE ENGELI yolundan da
+               dusuyor (bot suzgecinden ONCE calisiyor), yani orada Googlebot
+               gorulmesi onun SAYILDIGI anlamina gelmez. Cevap yalnizca UA'da,
+               UA da yalnizca burada.
+               Bu bolum ilk yazimda .gz kutukleri DUZ METIN sanip okudu ve
+               "bu adreslerden istek YOK" dedi -- olculmemis bir seyi olculmus
+               gibi gosteren bir satir. Simdi gzip akitilarak okunuyor. */
+            echo "-- 5. Web sunucusu erisim kutugu (UA tarafi) --\n";
+            $globs = [getenv("HOME").'/logs/*', getenv("HOME").'/access-logs/*',
+                      '/usr/local/apache/domlogs/*vestrasales*', '/var/log/apache2/*access*', '/var/log/nginx/*access*'];
+            $found = [];
+            foreach ($globs as $g) foreach ((array)@glob($g) as $f) {
+              if (!is_file($f) || !is_readable($f) || filesize($f) === 0) continue;
+              if (stripos(basename($f), 'error') !== false) continue;   // hata kutugu erisim kutugu degil
+              $found[$f] = filesize($f);
+            }
+            if (!$found) {
+              echo "   erisim kutugu BULUNAMADI (bu barindirmada okunabilir bir kopyasi yok).\n";
+              echo "   UA tarafi olculemiyor; karar 3. bolumdeki ters DNS'e dayanir.\n";
+            } else {
+              arsort($found);
+              /* Statik dosya sayaci CALISTIRMAZ: vestra_track_visit() auth.php'nin
+                 acilisindan geliyor, yani yalnizca PHP'nin ciktigi bir adres. */
+              $isStatic = fn(string $p) => (bool)preg_match('/\.(png|jpe?g|gif|webp|svg|ico|css|js|woff2?|ttf|map|txt|xml|pdf|mp4)(\?|$)/i', $p);
+              foreach (array_slice($found, 0, 4, true) as $f => $sz) {
+                echo "   ".basename($f)." (".round($sz/1024)." KB)\n";
+                $gz = str_ends_with(strtolower($f), '.gz');
+                $fh = $gz ? @gzopen($f, 'rb') : @fopen($f, 'rb');
+                if (!$fh) { echo "      acilamadi\n"; continue; }
+                $seen = 0; $goog = 0; $byUa = []; $counted = []; $paths = []; $nets = [];
+                while (($ln = ($gz ? gzgets($fh) : fgets($fh))) !== false) {
+                  if (++$seen > 400000) break;
+                  if (stripos($ln, 'google') === false) continue;
+                  if (!preg_match_all('/"([^"]*)"/', $ln, $m) || !isset($m[1][2])) continue;
+                  $ua = $m[1][2];
+                  if (stripos($ua, 'google') === false) continue;       // referrer'da gecen google sayilmaz
+                  $goog++;
+                  /* TAM UA ile anahtarla. Bastan kirpmak Google'in kimligini
+                     GIZLIYOR: "Googlebot/2.1", "Google-InspectionTool",
+                     "GoogleOther" hep parantez icinde ve EN SONDA duruyor,
+                     onlerinde de ayni Nexus 5X govdesi var. Ilk yazimda 95
+                     karaktere kirpip etiketi kirpilmis metinden hesapladim ve
+                     tablo Googlebot'a "[SAYILIR]" dedi -- oysa suzgec tam
+                     metne bakiyor ve atliyordu. Olcum aracinin kendi kirpmasi
+                     olcumu yalanliyordu. */
+                  $key = $ua;
+                  $byUa[$key] = ($byUa[$key] ?? 0) + 1;
+                  $path = preg_match('#\s(/\S*)#', $m[1][0], $pm) ? $pm[1] : '';
+                  /* SAYACA GIREN istek: bot suzgecini gecen + GET + PHP sayfasi. */
+                  if (!vestra_is_bot($ua) && str_starts_with($m[1][0], 'GET ') && $path !== '' && !$isStatic($path)) {
+                    $counted[$key] = ($counted[$key] ?? 0) + 1;
+                    $paths[mb_substr($path, 0, 46)] = ($paths[mb_substr($path, 0, 46)] ?? 0) + 1;
+                    $ip = strtok($ln, ' ');
+                    $p4 = explode('.', (string)$ip);
+                    if (count($p4) === 4) { $k = $p4[0].'.'.$p4[1].'.'.$p4[2].'.x'; $nets[$k] = ($nets[$k] ?? 0) + 1; }
+                  }
+                }
+                $gz ? gzclose($fh) : fclose($fh);
+                echo "      okunan satir: {$seen}   UA'sinda 'google' gecen: {$goog}\n";
+                if (!$goog) { echo "      bu kutukte Google ajani YOK\n"; continue; }
+                /* Kisaltma ORTADAN yapiliyor: bas (isletim sistemi govdesi) ile
+                   son (Google'in kimlik parantezi) birlikte gorunsun. */
+                $short = function (string $ua): string {
+                  return mb_strlen($ua) <= 118 ? $ua : mb_substr($ua, 0, 42).' … '.mb_substr($ua, -72);
+                };
+                arsort($byUa);
+                foreach (array_slice($byUa, 0, 8, true) as $ua => $c)
+                  printf("      %7dx %s  %s\n", $c, vestra_is_bot($ua) ? '[atlanir]' : '[SAYILIR]', $short($ua));
+                $sum = array_sum($counted);
+                echo "      => sayaca giren Google istegi: {$sum}\n";
+                if ($sum) {
+                  arsort($counted); arsort($paths); arsort($nets);
+                  foreach (array_slice($counted, 0, 4, true) as $ua => $c) echo "         {$c}x ".$short($ua)."\n";
+                  foreach (array_slice($paths,   0, 6, true) as $p => $c)  echo "         {$c}x  {$p}\n";
+                  foreach (array_slice($nets,    0, 6, true) as $k => $c)  echo "         {$c}x  ag {$k}\n";
+                }
+              }
+            }
+            PHPEOF
+            php -l /tmp/vestra_who.php 2>&1
+            php /tmp/vestra_who.php 2>&1
+            rm -f /tmp/vestra_who.php
 
       # "Anahtari bul ve ekle": uretemeyiz, ama sunucuda duran her kopyayi deneyebiliriz.
       # Yanlis saglayiciya sorulan gecerli bir anahtar da 401 doner -- o yuzden her
