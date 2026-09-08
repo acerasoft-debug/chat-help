@@ -1213,6 +1213,26 @@ gerekiyor"* → *"öncesinde para çevrilsin ve usd olarak gitsin"*).
   ile aramak onu göremez — çıktının tamamına bakılmalı; ilk ölçümümde bu yüzden
   "iddia düşmüyor" sanmıştım.*
 
+**KURAL 18 — MÜŞTERİYE giden hiçbir şey sormadan gönderilmez: önce ÖNİZLE, sonra
+SOR, sonra gönder** (operatör, 8 Eyl 2026: *"ilk önce sor"*).
+
+- Bağlam: O7A484 / Stock&chic siparişinde operatör *"bu siparişe sor ödeme yapmış
+  mı... ya da yapıp eklemiş mi kontrol et"* dedi. Kontrolü yaptım (durum
+  `pending`, fatura INV-2026-1103, dekont yok) ve **aynı turda mektubu da
+  gönderdim**. Operatör kendisine sorulmasını istiyordu. Mektup gitti; geri
+  alınamaz.
+- **Kural:** müşteriye/aday müşteriye giden her şey — cevap mektupları,
+  kampanyalar, hatırlatmalar, `payment_notice` / `payment_due` / `tracking_soon`
+  gibi bütün `reply_letter` kipleri — önce **`send=false` ile önizlenir**, çıktı
+  operatöre gösterilir ve **operatör "gönder" diyene kadar gönderilmez.**
+- **"Gönder" demiş olması, bir sonraki mektup için izin değildir.** Her gönderim
+  ayrı onay ister; bir turdaki onay o mektuba aittir.
+- İstisna yok denecek kadar dar: operatör aynı mesajda hem hedefi hem "gönder"i
+  açıkça yazmışsa (ör. *"O7A484'e payment_notice gönder"*) ikinci kez sorulmaz.
+  Şüphe varsa sorulur — göndermek geri alınamaz, sormak bir tur gecikir.
+- Bu KURAL 5'in (fatura operatör onayıyla kesilir) mektup tarafındaki karşılığı.
+  Faturada zaten vardı; mektupta yoktu ve bu boşluktan bir mektup geçti.
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
