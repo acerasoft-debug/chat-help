@@ -79,6 +79,17 @@ $dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli k
 
   <h2><?= t('What it costs') ?></h2>
   <p><?= sprintf(t('The dropship price of an article is the wholesale price of its <b>smallest quantity tier</b>, plus <b>%d%%</b>. The smallest tier is the most expensive one, because volume discounts belong to volume; a single piece does not earn the 300-piece price. The added margin covers picking, packing and invoicing one unit instead of a carton.'), $dsMarkup) ?></p>
+  <?php /* TOPTAN ERISIM (operator, 8 Eyl 2026). Fiyat kurali anlatildiktan
+           HEMEN sonra, cunku sattigi sey tam olarak yukaridaki zammin
+           kalkmasi -- bir paragraf sonra anlatilsa neyin yerine gectigi
+           kaybolurdu. Rakamlar sabitlerden; sayfa herkese acik oldugu icin
+           burada bir fiyat listesi degil, tek bir abonelik ucreti duruyor. */ ?>
+  <div class="order-box" style="margin:18px 0;border-color:var(--acc)">
+    <p style="margin:0 0 8px"><b>🔓 <?= t('Wholesale access') ?></b></p>
+    <p style="margin:0 0 10px"><?= sprintf(t('With a wholesale access plan the %d%% single-piece surcharge does not apply: you pay the plain wholesale price on every single-piece order. %s per month, cancel any time.'), $dsMarkup, vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)) ?></p>
+    <p class="hint" style="margin:0"><?= t('It pays for itself once you order regularly; below that, ordering without the plan is cheaper. Both prices are shown on every article before you buy.') ?></p>
+  </div>
+
   <p><?= t('The figure you see on an article page is the final goods price. Shipping is added once per order, by destination:') ?></p>
 
   <div class="dsscroll"><table>
