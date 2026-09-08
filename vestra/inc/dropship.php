@@ -81,6 +81,72 @@ function dropship_stock_left(array $p, string $colour, string $size): int {
 
 const VESTRA_DROPSHIP_MARKUP = 0.20;
 
+/* ── TOPTAN ERISIM ABONELIGI (operator, 8 Eyl 2026) ──────────────────────────
+   *"tiklandiginda aylik odeme funktionu da olsun... 199,90 eur olacak fiyati,
+   eger bu fiyat odenirse toptan fiyatina satin alinabilir... yoksa tekli
+   dropshipping fiyati yuzde 20 eklenecek"*.
+
+   Yani yukaridaki %20 KALKMIYOR: abonesi olmayanin fiyati olarak kaliyor.
+   Abonelik tek bir sey satin aliyor -- ayni urunu ZAMMSIZ, yani ilanin en
+   dusuk adetli kademesindeki toptan fiyatindan tek adet alabilmek.
+
+   Fiyat TEK KAYNAK. Metne gomulmuyor: bu depoda escrow tavani (KURAL 6) tam
+   olarak boyle bes gun boyunca sayfada bir, sepette baska rakam gosterdi. */
+const VESTRA_DROPSHIP_PLAN_PRICE    = 199.90;   // EUR / ay
+const VESTRA_DROPSHIP_PLAN_INTERVAL = 'month';
+const VESTRA_DROPSHIP_PLAN_CURRENCY = 'eur';
+
+/* Hesaptaki alanlar SATICI UYELIGINDEN AYRI bir ad uzayinda:
+   dropship_plan_status / dropship_plan_sub_id / dropship_plan_period_end.
+   `membership_status`a yazmak cazipti ve yanlis olurdu -- webhook'un
+   `customer.subscription.deleted` dali o alani gorunce saticinin ilanlarini
+   askiya aliyor ve "uyeliginiz bitti, ilanlariniz kapandi" mektubu yolluyor.
+   Bir alicinin dropship aboneligini iptal etmesi, hicbir ilani olmayan bir
+   hesaba o mektubu gonderirdi. */
+
+/** Bu hesabin toptan-fiyat aboneligi yururlukte mi? TEK karar noktasi. */
+function vestra_dropship_plan_active(?array $acc): bool {
+    if (!$acc) return false;
+    /* `past_due` BILEREK yok: odeme alinamamisken toptan fiyat vermek, parayi
+       tahsil edemedigimiz bir ayricaligi acik tutmak olurdu. Stripe zaten
+       birkac gun deneyip `canceled`a dusuruyor; o aralikta fiyat zamli. */
+    return in_array((string)($acc['dropship_plan_status'] ?? 'none'), ['active', 'trialing'], true);
+}
+
+/**
+ * Bu ilanin ZAMMSIZ (toptan) tek-adet fiyati -- aboneligin satin aldigi sey.
+ *
+ * Turetilmis blokta taban zaten yaziyor. Elle yazilmis bir dropship blogunda
+ * yazmayabilir; orada ilanin en dusuk adetli kademesi toptan fiyattir.
+ * Taban cozulemezse ya da ilan fiyatindan BUYUKSE indirim yok: aboneye
+ * zamli fiyattan pahali bir rakam basmaktansa ayni fiyati basmak dogru.
+ */
+function vestra_dropship_wholesale_price(array $p): ?float {
+    $ds = vestra_dropship_of($p);
+    if ($ds === null) return null;
+    $list = round((float)($ds['price'] ?? 0), 2);
+    if ($list <= 0) return null;
+    $base = round((float)($ds['base'] ?? 0), 2);
+    if ($base <= 0) $base = round(vestra_dropship_base_price($p), 2);
+    return ($base > 0 && $base <= $list) ? $base : $list;
+}
+
+/**
+ * Bu ALICININ bu ilan icin odeyecegi birim fiyat.
+ *
+ * Fiyat MUSTERIDEN GELMEZ, hesaptan turer: `dropship_create_order()` bunu
+ * kendisi cagiriyor ve POST'ta gelen hicbir tutara bakmiyor.
+ * $acc null (ortak API'si, misafir) -> zamli fiyat.
+ */
+function vestra_dropship_unit_price(array $p, ?array $acc = null): ?float {
+    $ds = vestra_dropship_of($p);
+    if ($ds === null) return null;
+    $list = round((float)($ds['price'] ?? 0), 2);
+    if ($list <= 0) return null;
+    if (!vestra_dropship_plan_active($acc)) return $list;
+    return vestra_dropship_wholesale_price($p) ?? $list;
+}
+
 /** Dropship'e KAPALI markalar (kucuk harf karsilastirilir). */
 function vestra_dropship_excluded_brands(): array {
     return ['ralph lauren', 'lacoste'];
@@ -365,7 +431,8 @@ function vestra_dropship_line_name(array $p, string $colour = '', string $size =
 function dropship_create_order(
     array $p, string $colour, string $size, int $qty,
     string $custEmail = '', string $custName = '', string $partnerRef = '',
-    ?string $successUrl = null, ?string $cancelUrl = null, string $zone = 'EU'
+    ?string $successUrl = null, ?string $cancelUrl = null, string $zone = 'EU',
+    ?array $buyer = null
 ): array {
     /* ODEME DURDURULDU (operator, 7 Eyl 2026). Site formu ve ortak API'si bu
        tek fonksiyondan geciyor, yani kapi ikisini birden tutuyor. 503: gecici,
@@ -402,7 +469,16 @@ function dropship_create_order(
         return ['ok' => false, 'error' => 'payments_unavailable', 'message' => 'payments are not configured', 'status' => 503];
     }
 
-    $unit   = (float)$ds['price'];
+    /* FIYAT HESAPTAN TURER, ISTEKTEN DEGIL (8 Eyl 2026). Toptan erisim
+       aboneligi olan alici zamsiz oder; $buyer yoksa -- ortak API'si, ki tek
+       statik anahtarla calisiyor ve arkasinda bir VESTRA hesabi YOK -- zamli
+       fiyat gecerli. POST'ta gelen hicbir tutar okunmuyor: okunsaydi fiyati
+       musteri belirlerdi. */
+    $unit   = vestra_dropship_unit_price($p, $buyer);
+    if ($unit === null || $unit <= 0) {
+        return ['ok' => false, 'error' => 'no_price', 'message' => 'no dropship price for this product', 'status' => 409];
+    }
+    $planned = vestra_dropship_plan_active($buyer);
     $amount = round($unit * $qty, 2);
     $cents  = (int) round($amount * 100);
 
@@ -435,6 +511,10 @@ function dropship_create_order(
         'customer_email'    => $custEmail,
         'customer_name'     => $custName,
         'amount'            => $amount,
+        /* Hangi fiyattan kesildigi KAYDA giriyor: aylar sonra "bu neden 19,90
+           degil de 23,88" sorusu tahminle degil kayitla cevaplanmali. */
+        'unit'              => $unit,
+        'wholesale_plan'    => $planned,
         'currency'          => 'eur',
         'ship_zone'         => $zone,
         'ship_fee'          => vestra_dropship_zones()[$zone][1],

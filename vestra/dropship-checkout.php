@@ -54,7 +54,9 @@ $p = $id !== '' ? vestra_find($id) : null;
 if (!$p || vestra_is_sold_out($p) || !vestra_dropship_enabled($p)) { header('Location: ' . $backUrl); exit; }
 
 $zone = vestra_dropship_zone((string)($_POST['zone'] ?? 'EU'));
-$r = dropship_create_order($p, $colour, $size, $qty, '', '', '', null, null, $zone);
+/* Toptan erisim aboneligi olan aliciya ZAMSIZ fiyat (8 Eyl 2026). Hesap
+   sunucudan geciyor; fiyat POST'tan degil bu kayittan turuyor. */
+$r = dropship_create_order($p, $colour, $size, $qty, '', '', '', null, null, $zone, $dsUser);
 
 if (!$r['ok']) {
     header('Location: ' . $backUrl . '&dropship_error=' . rawurlencode($r['error'] ?? 'error'));

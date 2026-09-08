@@ -97,6 +97,22 @@ switch ($type) {
             break;
         }
         if (($obj->mode ?? '') !== 'subscription') break;
+
+        /* TOPTAN ERISIM ABONELIGI (8 Eyl 2026) satici uyeliginden AYRI alanlara
+           yazilir. Ayirt eden sey musteri kimligi DEGIL `metadata.plan`: ayni
+           Stripe musterisi hem satici tier'i hem bu plani tasiyabilir. */
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            $accId = $obj->metadata->account_id ?? '';
+            $subId = $obj->subscription ?? '';
+            if ($accId !== '' && $subId !== '') {
+                auth_update($accId, [
+                    'dropship_plan_status' => 'active',   // deneme suresi yok
+                    'dropship_plan_sub_id' => $subId,
+                ]);
+            }
+            break;
+        }
+
         $sellerId = $obj->metadata->seller_id ?? '';
         $tier     = $obj->metadata->tier      ?? '';
         $subId    = $obj->subscription        ?? '';
@@ -160,6 +176,13 @@ switch ($type) {
         $account = stripe_find_account($customerId);
         if (!$account) break;
 
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            $u = ['dropship_plan_status' => $obj->status ?? 'none'];
+            if ($obj->current_period_end) $u['dropship_plan_period_end'] = date('c', $obj->current_period_end);
+            auth_update($account['id'], $u);
+            break;
+        }
+
         $updates = ['membership_status' => $obj->status ?? 'none'];
         $tier = $obj->metadata->tier ?? '';
         if ($tier) $updates['membership_tier'] = $tier;
@@ -174,6 +197,15 @@ switch ($type) {
         if (!$customerId) break;
         $account = stripe_find_account($customerId);
         if (!$account) break;
+
+        /* Toptan erisim aboneligi bitti: fiyat zamli haline doner, BASKA
+           HICBIR SEY olmaz. Asagidaki satici sokumu (ilanlari askiya al +
+           "uyeliginiz bitti" mektubu) buraya UYGULANMAZ -- bu hesabin ilani
+           yok, uyeligi yok; o mektup alakasiz ve yanlis olurdu. */
+        if (($obj->metadata->plan ?? '') === 'dropship_wholesale') {
+            auth_update($account['id'], ['dropship_plan_status' => 'canceled']);
+            break;
+        }
 
         auth_update($account['id'], [
             'membership_status' => 'canceled',

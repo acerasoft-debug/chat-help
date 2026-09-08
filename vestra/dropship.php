@@ -22,6 +22,10 @@ require_once __DIR__ . '/inc/dropship.php';
 
 $dsUser    = auth_user();
 $dsAllowed = $dsUser && auth_prices_unlocked($dsUser);
+/* Toptan erisim aboneligi (KURAL 16): acikse tek adet ZAMSIZ fiyattan.
+   Tek karar noktasi kodda; sayfa yalnizca soruyor. */
+$dsPlan    = vestra_dropship_plan_active($dsUser);
+$dsPlanMsg = (string)($_GET['plan'] ?? '');
 
 $onlyId = trim((string)($_GET['id'] ?? ''));
 $items = array_values(array_filter(vestra_products(), function ($p) use ($onlyId) {
@@ -77,6 +81,49 @@ require __DIR__ . '/inc/head.php';
   </div>
   <?php else: ?>
 
+  <?php /* ABONELIK DURUM MESAJLARI. Stripe'tan donen her hal bir cumle yaziyor;
+           sessiz donus, "odedim mi odemedim mi" sorusunu ziyaretcide birakir. */
+     $planMsgs = [
+       'ok'       => ['ok',  t('Wholesale access is active. Single pieces are now billed at the wholesale price.')],
+       'cancel'   => ['no',  t('Checkout was cancelled — nothing was charged.')],
+       'already'  => ['ok',  t('You already have wholesale access.')],
+       'gate'     => ['no',  t('Dropshipping is for verified trade accounts.')],
+       'notready' => ['no',  t('Card payment is not available right now. Please try again later.')],
+       'error'    => ['no',  t('Something went wrong starting the checkout. Please try again.')],
+     ];
+     if (isset($planMsgs[$dsPlanMsg])): [$kind, $text] = $planMsgs[$dsPlanMsg]; ?>
+  <div class="banner <?= $kind === 'ok' ? 'info' : '' ?>" style="margin-bottom:20px"><?= $kind === 'ok' ? '✓' : '•' ?> <?= htmlspecialchars($text) ?></div>
+  <?php endif; ?>
+
+  <?php /* TOPTAN ERISIM (operator, 8 Eyl 2026). Zam kalkmiyor; abonelik onu
+           kaldiran sey. Rakam koddan geliyor (VESTRA_DROPSHIP_PLAN_PRICE),
+           metne gomulmuyor -- KURAL 6'nin dersi. */ ?>
+  <?php if (!$dsPlan): ?>
+  <div class="order-box" style="margin-bottom:24px;border-color:var(--acc)">
+    <div style="font-weight:600;font-size:16px;margin-bottom:6px">🔓 <?= t('Wholesale access') ?></div>
+    <p class="hint" style="margin:0 0 12px">
+      <?= sprintf(t('Single pieces are priced at wholesale + %d%%. With wholesale access you pay the plain wholesale price on every single-piece order — %s per month, cancel any time.'), (int)round(VESTRA_DROPSHIP_MARKUP * 100), vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)) ?>
+    </p>
+    <form method="post" action="/stripe/dropship-plan" style="margin:0">
+      <button class="btn btn-p" type="submit"><?= t('Activate wholesale access') ?> — <?= vestra_money(VESTRA_DROPSHIP_PLAN_PRICE) ?>/<?= t('month') ?></button>
+    </form>
+  </div>
+  <?php else: ?>
+  <div class="order-box" style="margin-bottom:24px;border-color:var(--acc)">
+    <div style="font-weight:600;margin-bottom:4px">✓ <?= t('Wholesale access') ?></div>
+    <p class="hint" style="margin:0">
+      <?= t('Active — single pieces are billed at the wholesale price, with no single-piece surcharge.') ?>
+    </p>
+    <?php /* Portal POST istiyor; duz bir baglanti GET atar ve sessizce geri
+             doner -- "iptal edemiyorum" sikayeti tam olarak buradan cikardi. */ ?>
+    <form method="post" action="/stripe/portal" style="margin:8px 0 0">
+      <button class="btn btn-o" type="submit" style="font-size:13px"><?= t('Manage or cancel') ?></button>
+    </form>
+    <p class="hint" style="margin:0">
+    </p>
+  </div>
+  <?php endif; ?>
+
   <?php if (!$items): ?>
   <p class="hint"><?= t('Nothing available right now.') ?></p>
   <?php endif; ?>
@@ -88,14 +135,23 @@ require __DIR__ . '/inc/head.php';
   </p>
   <?php endif; ?>
 
-  <?php foreach ($items as $p): $img = vestra_primary_image($p); $ds = vestra_dropship_of($p); ?>
+  <?php foreach ($items as $p): $img = vestra_primary_image($p); $ds = vestra_dropship_of($p);
+        /* Gosterilen fiyat, bu ziyaretcinin GERCEKTEN odeyecegi fiyat.
+           Sayfada bir, kasada baska rakam gostermek bu depoda zaten bir
+           kez yasandi (KURAL 6, escrow tavani). */
+        $dsUnit  = vestra_dropship_unit_price($p, $dsUser);
+        $dsWhole = vestra_dropship_wholesale_price($p);
+        $dsSaves = (!$dsPlan && $dsWhole !== null && $dsUnit !== null && $dsWhole < $dsUnit); ?>
   <div class="order-box" style="margin-bottom:20px">
     <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:12px">
       <?php if ($img): ?><img src="<?= htmlspecialchars($img) ?>" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:10px;flex:none"><?php endif; ?>
       <div>
         <div class="hint"><?= htmlspecialchars((string)($p['brand'] ?? '')) ?></div>
         <div style="font-weight:600;font-size:16px"><?= htmlspecialchars((string)($p['name'] ?? '')) ?></div>
-        <div class="hint" style="margin-top:4px"><?= vestra_money((float)$ds['price']) ?> / <?= t('piece') ?> · <?= t('shipping') ?>:
+        <div class="hint" style="margin-top:4px"><b><?= vestra_money((float)$dsUnit) ?></b> / <?= t('piece') ?>
+          <?php if ($dsPlan): ?><span style="color:var(--acc)">· <?= t('wholesale price') ?></span><?php endif; ?>
+          <?php if ($dsSaves): ?><br><span style="color:var(--acc)"><?= sprintf(t('%s per piece with wholesale access'), vestra_money((float)$dsWhole)) ?></span><?php endif; ?>
+          <br><?= t('shipping') ?>:
           <?php /* Onbir bolgeyi tek tek yazmak bu satiri okunmaz yapiyordu.
                    Ayni ucreti tasiyanlar birlestirilip kod olarak listeleniyor;
                    tam adlar zaten asagidaki acilir listede duruyor. */
@@ -207,7 +263,7 @@ require __DIR__ . '/inc/head.php';
       <div class="hint" style="margin-top:6px"><?= vestra_ships_from_flag($p) ?> <?= htmlspecialchars(vestra_ships_from_label($p)) ?></div>
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
-      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$ds['price']) ?></button>
+      <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$dsUnit) ?></button>
     </form>
     <div class="hint" style="margin-top:8px"><a href="/product?id=<?= urlencode($p['id']) ?>"><?= t('Full product details') ?> →</a></div>
   </div>

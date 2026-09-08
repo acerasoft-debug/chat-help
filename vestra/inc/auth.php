@@ -289,6 +289,9 @@ function auth_register(array $d): array|string {
         'lang'          => substr($_COOKIE['vlang'] ?? 'en', 0, 2),
         'kyb_status'    => $promo_data ? 'approved' : 'pending',
         'membership_status' => 'none',
+        /* Toptan erisim aboneligi (dropship, KURAL 16). Satici uyeliginden
+           AYRI alan: ikisi ayni hesapta birlikte bulunabiliyor. */
+        'dropship_plan_status' => 'none',
         'promo_code'    => $promo_code,
         'promo_benefit' => $promo_data['benefit'] ?? '',
         'promo_expiry'  => $promo_data['expiry']  ?? '',

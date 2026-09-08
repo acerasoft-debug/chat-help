@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -95,6 +95,53 @@ jobs:
       # biriminde verilirse buradaki tek bölme onu siparişin damgalı kuruyla
       # geri çevirir ve sonuç yazdırılır -- operatörün belgede göreceği rakamı
       # elle ters hesaplaması gerekmesin diye.
+      - name: Dropship ödeme anahtarı (aç / kapat)
+        # Operator, 8 Eyl 2026: "Dropshippingi tekrar aci".
+        # Ayni anahtar Admin ▸ Dropship'te de var; bu, ayni kaydin ikinci kapisi
+        # (vestra_dropship_set_payments), yeni bir karar noktasi DEGIL.
+        # Yeni GIRDI eklemiyor: mod adinin kendisi on/off tasiyor -- diag-live
+        # 25 girdi sinirina dayanmis durumda ve bu dosya da ayni butceyi paylasiyor.
+        if: ${{ github.event.inputs.admin_mode == 'dropship_on' || github.event.inputs.admin_mode == 'dropship_off' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DS_MODE: ${{ github.event.inputs.admin_mode }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 2m
+          envs: DS_MODE
+          script: |
+            set -e
+            cat > /tmp/vestra_dspay.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/dropship.php";
+
+            $want = getenv('DS_MODE') === 'dropship_on';
+            printf("onceki durum : %s\n", vestra_dropship_payments_enabled() ? 'ACIK' : 'kapali');
+            vestra_dropship_set_payments($want);
+
+            /* YAZMA GERI OKUNUYOR, ve AYRI bir surecte: vestra_dropship_payments_enabled()
+               surec icinde `static` onbellekli, ayni surecte sormak yazilan degeri
+               degil onbellegi olcerdi -- "yazdim" diyen ama yazmamis bir satir. */
+            $out = shell_exec(escapeshellcmd(PHP_BINARY ?: 'php').' -r '.escapeshellarg(
+              'require getenv("HOME")."/public_html/inc/products.php";'
+             .'require_once getenv("HOME")."/public_html/inc/dropship.php";'
+             .'echo vestra_dropship_payments_enabled() ? "ACIK" : "kapali";'));
+            $now = trim((string)$out);
+            printf("simdiki durum: %s\n", $now);
+            $okState = ($want && $now === 'ACIK') || (!$want && $now === 'kapali');
+            echo $okState ? "SONUC: tuttu\n" : "SONUC: TUTMADI -- kayit istenen degeri almadi\n";
+            exit($okState ? 0 : 1);
+            PHPEOF
+            php /tmp/vestra_dspay.php; rc=$?
+            rm -f /tmp/vestra_dspay.php
+            exit $rc
+
       - name: Siparişe navlun yaz (shipping) — numara yakmaz
         if: ${{ github.event.inputs.admin_mode == 'shipping' }}
         uses: appleboy/ssh-action@v1.0.3
