@@ -2379,7 +2379,17 @@ jobs:
                         if ($subj === '' || !str_contains(mb_strtolower($subj), $needle)) continue;
                         $to = (string)($r['email'] ?? '');
                         if ($to === '') continue;
-                        $hits[$to][] = substr((string)($r['date'] ?? ''), 0, 16);
+                        /* OLAY TIPI ve MESAJ KIMLIGI de aliniyor. Eskiden yalniz tarih
+                           tutuluyordu ve satir "gonderim: 2 kez" diye basiliyordu --
+                           oysa o iki satir cogu zaman AYNI mektubun 'request' +
+                           'delivered' olayi. "Iki mektup gitti" diye okunuyordu ve
+                           asil sorunun ("gitti mi?") cevabi olan olay TIPI hic
+                           yazilmiyordu. */
+                        $hits[$to][] = [
+                            'date'  => substr((string)($r['date'] ?? ''), 0, 16),
+                            'event' => strtolower(trim((string)($r['event'] ?? '?'))),
+                            'msg'   => (string)($r['messageId'] ?? ''),
+                        ];
                     }
                     if (count($batch) < 1000) break;
                 }
@@ -2395,10 +2405,33 @@ jobs:
             $known = [];
             foreach ($leads as $l) { $e = mb_strtolower(trim((string)($l['email'] ?? ''))); if ($e !== '') $known[$e] = true; }
 
-            foreach ($hits as $to => $dates) {
+            foreach ($hits as $to => $rows) {
                 $inList = isset($known[mb_strtolower($to)]);
+                $byEvent = []; $msgs = []; $dates = [];
+                foreach ($rows as $r) {
+                    $byEvent[$r['event']] = ($byEvent[$r['event']] ?? 0) + 1;
+                    if ($r['msg'] !== '') $msgs[$r['msg']] = true;
+                    $dates[] = $r['date'];
+                }
+                ksort($byEvent);
+                $ev = [];
+                foreach ($byEvent as $k => $n) $ev[] = $k.' '.$n;
                 printf("  alici       : %s\n", $mask($to));
-                printf("  gonderim    : %d kez  (%s)\n", count($dates), implode(', ', array_slice($dates, 0, 5)));
+                printf("  mektup      : %d  (olay: %d)\n", max(1, count($msgs)), count($rows));
+                printf("  olaylar     : %s\n", implode(', ', $ev));
+                printf("  tarih       : %s\n", implode(', ', array_slice(array_unique($dates), 0, 5)));
+                /* HUKUM olay tipinden okunuyor, olay SAYISINDAN degil.
+                   'delivered' = alici sunucu KABUL ETTI; CLAUDE.md'nin kaydettigi
+                   gibi bu "gelen kutusunda" demek DEGIL (spam klasoru de delivered
+                   sayilir). Sert red / engellenme varsa mektup ulasmamistir. */
+                $bad = 0; foreach (['hardbounce','softbounce','blocked','spam','invalid','deferred','error'] as $b) $bad += (int)($byEvent[$b] ?? 0);
+                $verdict = isset($byEvent['delivered'])
+                    ? 'TESLIM EDILDI -- alici sunucu kabul etti (gelen kutusu GARANTI DEGIL: spam klasoru de delivered sayilir)'
+                    : (isset($byEvent['requests']) || isset($byEvent['request'])
+                        ? 'BREVO KABUL ETTI, teslim olayi HENUZ YOK -- birkac dakika sonra tekrar bak'
+                        : 'teslim olayi yok');
+                if ($bad) $verdict = '*** SORUN: '.$bad.' olumsuz olay (bounce/blocked/spam) -- mektup ULASMAMIS olabilir ***';
+                printf("  hukum       : %s\n", $verdict);
                 printf("  lead listede: %s\n", $inList ? 'VAR' : 'YOK  <- kayda hic gecmemis');
                 echo "\n";
             }
