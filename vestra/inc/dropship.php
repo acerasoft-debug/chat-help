@@ -27,6 +27,12 @@ require_once __DIR__ . '/products.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/stripe.php';
 require_once __DIR__ . '/escrow.php';
+/* KUR ONSOZDE (8 Eyl 2026, KURAL 15). money.php buraya yalnizca
+   vestra_dropship_countries() ICINDE yukleniyordu; tahsilat USD'ye gecince
+   dropship_create_order() vestra_fx()'i cagirmaya basladi ve o fonksiyon
+   cagrilmadigi her istekte TANIMSIZ oluyordu -- yani karta basan
+   musteride fatal. Bu sabah admin.php'de aynisi yasandi. */
+require_once __DIR__ . '/money.php';
 
 function dropship_file(): string { return __DIR__ . '/../data/dropship_orders.json'; }
 
@@ -138,6 +144,22 @@ function vestra_dropship_wholesale_price(array $p): ?float {
  * kendisi cagiriyor ve POST'ta gelen hicbir tutara bakmiyor.
  * $acc null (ortak API'si, misafir) -> zamli fiyat.
  */
+/**
+ * Bu alicinin bu ilan icin GERCEKTEN cekilecek USD birim tutari.
+ * null = kur yok (o durumda siparis de olusmuyor, bkz. dropship_create_order).
+ *
+ * Sayfa bunu YAZMAK ZORUNDA: tahsilat USD, katalog EUR. "Buy now - EUR 49,90"
+ * yazip Stripe'ta US$ 53,68 sormak, bu deponun tekrar tekrar kaydettigi
+ * "sayfada bir, kasada baska rakam" hatasinin ta kendisi olurdu.
+ */
+function vestra_dropship_usd_unit(array $p, ?array $acc = null): ?float {
+    $unit = vestra_dropship_unit_price($p, $acc);
+    if ($unit === null) return null;
+    $r = vestra_fx('USD');
+    if ($r <= 0) return null;
+    return round($unit * $r, 2);
+}
+
 function vestra_dropship_unit_price(array $p, ?array $acc = null): ?float {
     $ds = vestra_dropship_of($p);
     if ($ds === null) return null;
@@ -480,7 +502,29 @@ function dropship_create_order(
     }
     $planned = vestra_dropship_plan_active($buyer);
     $amount = round($unit * $qty, 2);
-    $cents  = (int) round($amount * 100);
+
+    /* ── TAHSILAT USD (operator, 8 Eyl 2026: "dropshippingte USD olarak paranin
+       stripe a gitmesi gerekiyor... oncesinde para cevrilsin ve usd olarak
+       gitsin") ────────────────────────────────────────────────────────────────
+       Katalog EUR tabanli; cevrim BURADA, Stripe cagrisindan once yapiliyor.
+       Kur sitenin zaten kullandigi kaynaktan (inc/money.php) -- ikinci bir kur
+       kaynagi, iki farkli rakam demek olurdu.
+
+       KUR YOKSA SIPARIS OLUSMAZ. Uydurulmus bir kurla tahsilat yapmak, bu
+       deponun KURAL 3'te ve fatura tarafinda (damgasiz siparise fatura
+       kesilmiyor) zaten yazdigi seyin parayla yapilan hali olurdu. */
+    $fxRate = vestra_fx('USD');
+    if ($fxRate <= 0) {
+        return ['ok' => false, 'error' => 'fx_unavailable',
+                'message' => 'EUR/USD rate is not available; ordering is paused rather than charging a guessed amount',
+                'status' => 503];
+    }
+    /* BIRIM cevrilip yuvarlanir, sonra adetle carpilir -- ters sirada
+       birim x adet != satir toplami cikar ve musteri kendi hesabini tutturamaz
+       (KURAL 5i'nin fatura tarafinda kayitli dersi). */
+    $usdUnitCents = (int) round($unit * $fxRate * 100);
+    $cents        = $usdUnitCents * $qty;
+    $usdAmount    = round($cents / 100, 2);
 
     $ref = 'DRP-' . strtoupper(bin2hex(random_bytes(4)));
 
@@ -492,10 +536,11 @@ function dropship_create_order(
     }
     $directCharge = $seller && !empty($seller['stripe_account_id']) && escrow_seller_ready($seller);
 
-    $feeCents = 0; $payout = $amount;
+    /* Komisyon ve satici payi da USD: $cents artik USD kurusu. */
+    $feeCents = 0; $payout = $usdAmount;
     if ($directCharge) {
         $feeCents = (int) round($cents * vestra_seller_commission_rate($seller['membership_tier'] ?? ''));
-        $payout   = round($amount - $feeCents / 100, 2);
+        $payout   = round($usdAmount - $feeCents / 100, 2);
     }
 
     $rec = [
@@ -515,7 +560,17 @@ function dropship_create_order(
            degil de 23,88" sorusu tahminle degil kayitla cevaplanmali. */
         'unit'              => $unit,
         'wholesale_plan'    => $planned,
+        /* Kayit EUR TABANLI kalir (katalog, satici mutabakati ve mevcut butun
+           okuyucular EUR bekliyor); Stripe'in GERCEKTEN cektigi tutar ayri
+           alanlarda duruyor. Ikisini tek alana sikistirmak, aylar sonra
+           "bu rakam hangi para birimi" sorusunu tahmine birakirdi. */
         'currency'          => 'eur',
+        'charge_currency'   => 'usd',
+        'charge_amount'     => $usdAmount,
+        'charge_unit'       => round($usdUnitCents / 100, 2),
+        'charge_rate'       => $fxRate,
+        'charge_rate_date'  => vestra_fx_date(),
+        'charge_rate_source'=> vestra_fx_source(),
         'ship_zone'         => $zone,
         'ship_fee'          => vestra_dropship_zones()[$zone][1],
         'status'            => 'pending',
@@ -539,7 +594,10 @@ function dropship_create_order(
         'shipping_options'            => [
             ['shipping_rate_data' => [
                 'type'         => 'fixed_amount',
-                'fixed_amount' => ['amount' => (int)round($zFee * 100), 'currency' => 'eur'],
+                /* Navlun da USD: satirlar USD iken kargoyu EUR birakmak Stripe
+                   tarafinda "para birimi karisik" hatasi verir ve oturum hic
+                   acilmaz. */
+                'fixed_amount' => ['amount' => (int)round($zFee * $fxRate * 100), 'currency' => 'usd'],
                 'display_name' => $zLabel,
             ]],
         ],
@@ -550,7 +608,7 @@ function dropship_create_order(
             $session = stripe_escrow_checkout(
                 $seller['stripe_account_id'],
                 [['name' => $lineName, 'amount' => $cents, 'qty' => 1]],
-                $feeCents, $ref, $custEmail, 'eur', 'dropship',
+                $feeCents, $ref, $custEmail, 'usd', 'dropship',
                 $successUrl, $cancelUrl, $extra
             );
         } else {
@@ -560,7 +618,7 @@ function dropship_create_order(
                 'line_items'          => [[
                     'quantity'   => 1,
                     'price_data' => [
-                        'currency'     => 'eur',
+                        'currency'     => 'usd',
                         'unit_amount'  => $cents,
                         'product_data' => ['name' => $lineName],
                     ],
@@ -644,7 +702,13 @@ function dropship_fulfill(array $rec): void {
 
     require_once __DIR__ . '/notify.php';
 
-    $amount = number_format((float)($rec['amount'] ?? 0), 2);
+    /* MEKTUP, KARTTAN CEKILEN TUTARI YAZAR. Bu satir "€{amount}" basiyordu ve
+       tahsilat USD'ye gecince yalan olacakti: musterinin ekstresinde baska bir
+       rakam ve baska bir para birimi gorunurdu. Eski kayitlarda charge_* alani
+       yok -- onlar EUR cekilmisti, oyle kaliyorlar. */
+    $paidCur = strtoupper((string)($rec['charge_currency'] ?? 'EUR'));
+    $paidNum = number_format((float)($rec['charge_amount'] ?? ($rec['amount'] ?? 0)), 2);
+    $amount  = ($paidCur === 'USD' ? 'US$' : '€') . $paidNum;
     $addr = $rec['shipping_address'] ?? null;
     $addrLine = $addr
         ? trim(($addr['name'] ?? '') . "\n" . trim(($addr['line1'] ?? '') . ' ' . ($addr['line2'] ?? '')) . "\n" .
@@ -667,7 +731,7 @@ function dropship_fulfill(array $rec): void {
             "Your order is confirmed and paid.\n\n" .
             "Order ref: {$ref}\n" .
             "Item: {$itemLine}\n" .
-            "Amount paid: €{$amount}\n\n" .
+            "Amount paid: {$amount}\n\n" .
             $etaLine .
             "— VESTRA · vestrasales.com");
     }
@@ -681,7 +745,7 @@ function dropship_fulfill(array $rec): void {
         "A dropship API order has been paid.\n\n" .
         "Ref: {$ref}" . (!empty($rec['partner_reference']) ? " (partner ref: {$rec['partner_reference']})" : "") . "\n" .
         "Item: {$itemLine}\n" .
-        "Amount: €{$amount}" . (!empty($rec['customer_email']) ? " · Customer: {$rec['customer_email']}" : "") . "\n" .
+        "Amount: {$amount}" . (!empty($rec['customer_email']) ? " · Customer: {$rec['customer_email']}" : "") . "\n" .
         "Shipping: " . (string)($rec['ship_zone'] ?? '?') . " · €" . number_format((float)($rec['ship_fee'] ?? 0), 2)
             . " (paid separately at checkout; duties at destination are NOT included)\n" .
         /* Adet bazli stok tutulmadigi icin bu satir uyari degil TALIMAT: mali

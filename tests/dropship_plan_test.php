@@ -158,5 +158,62 @@ $t('suzgec degisince sayfa sifirlanir',
    str_contains($page, "array_intersect_key(\$over, ['brand' => 1, 'cat' => 1, 'q' => 1])")
    || str_contains($src('dropship.php'), "array_intersect_key(\$over, ['brand' => 1, 'cat' => 1, 'q' => 1])"));
 
+echo "\n== 12. TAHSILAT USD (operator, 8 Eyl 2026) ==\n";
+/* "dropshippingte USD olarak paranin stripe a gitmesi gerekiyor...
+    oncesinde para cevrilsin ve usd olarak gitsin" */
+$rate = vestra_fx('USD');
+$t('kur kaynagi calisiyor',        $rate > 0);
+$t('USD birim = EUR birim x kur',  $rate > 0 && abs(vestra_dropship_usd_unit($prod, null) - round(23.88 * $rate, 2)) < 0.011);
+$t('abone USD de zamsiz',          $rate > 0 && abs(vestra_dropship_usd_unit($prod, ['dropship_plan_status'=>'active']) - round(19.90 * $rate, 2)) < 0.011);
+$t('dropship kapaliysa USD yok',   vestra_dropship_usd_unit($off, null) === null);
+
+/* Stripe'a giden UC tutarin da USD olmasi sart: satirlar USD iken kargoyu EUR
+   birakmak oturumu hic actirmaz. */
+$t('satir para birimi usd',        str_contains($dsSrc, "'currency'     => 'usd'"));
+$t('navlun da usd',                str_contains($dsSrc, "'currency' => 'usd'") && str_contains($dsSrc, '$zFee * $fxRate'));
+$t('connect cagrisi usd',          str_contains($dsSrc, "\$custEmail, 'usd', 'dropship'"));
+$t('EUR satir kalmadi',            !str_contains($dsSrc, "'currency'     => 'eur'"));
+
+/* KUR YOKSA SIPARIS YOK. Uydurulmus kurla tahsilat, KURAL 3'un parayla
+   yapilan hali olurdu. */
+$t('kur yoksa reddediyor',         str_contains($dsSrc, "'error' => 'fx_unavailable'"));
+$posFx  = strpos($dsSrc, "'fx_unavailable'");
+$posPay = strpos($dsSrc, 'stripe_escrow_checkout(');
+$t('ret, Stripe cagrisindan ONCE', $posFx !== false && $posPay !== false && $posFx < $posPay);
+
+/* BIRIM cevrilip yuvarlanir, sonra adetle carpilir (KURAL 5i). Toplami
+   cevirmek birim x adet != toplam birakirdi. */
+$t('birim cevrilir, sonra carpilir', str_contains($dsSrc, '$usdUnitCents = (int) round($unit * $fxRate * 100);')
+                                     && str_contains($dsSrc, '$cents        = $usdUnitCents * $qty;'));
+
+/* Kayit EUR tabanli kalir + cekilen tutar ayri yazilir. */
+$t('kayitta EUR tabani duruyor',   str_contains($dsSrc, "'currency'          => 'eur',"));
+$t('cekilen tutar kayitta',        str_contains($dsSrc, "'charge_currency'   => 'usd'") && str_contains($dsSrc, "'charge_amount'"));
+$t('kur ve kaynagi kayitta',       str_contains($dsSrc, "'charge_rate'") && str_contains($dsSrc, "'charge_rate_source'"));
+
+/* MEKTUP CEKILEN parayi yazmali. "Amount paid: EUR x" derken karttan USD
+   cekmek, musterinin ekstresiyle celisen bir belge uretirdi. */
+$t('mektup para birimini kayittan alir', str_contains($dsSrc, "\$paidCur = strtoupper((string)(\$rec['charge_currency'] ?? 'EUR'));"));
+$t('mektupta sabit euro isareti yok',    !str_contains($dsSrc, 'Amount paid: €'));
+$t('eski kayitlar EUR kalir',            str_contains($dsSrc, "?? 'EUR'"));
+
+/* KURAL 15: money.php ONSOZDE olmali. Fonksiyon icinde yuklenirse
+   vestra_fx() odeme aninda TANIMSIZ olur -- karta basan musteride fatal. */
+$preludeEnd = strpos($dsSrc, 'function ');
+$t('money.php onsozde',            $preludeEnd !== false
+                                   && strpos($dsSrc, "require_once __DIR__ . '/money.php';") !== false
+                                   && strpos($dsSrc, "require_once __DIR__ . '/money.php';") < $preludeEnd);
+
+/* Ortak API'si de hangi para biriminde cekilecegini SOYLEMELI. */
+$t('API charge_currency yaziyor',  str_contains($api, "'charge_currency' => 'usd'"));
+$t('API kuru da veriyor',          str_contains($api, "'fx_rate'"));
+$t('API kur yoksa null diyor',     str_contains($api, 'return $r > 0 ? round($eur * $r, 2) : null;'));
+
+/* Alici ODEMEDEN ONCE USD tutari gormeli. */
+$t('sayfa USD tutari yaziyor',     str_contains($page, 'vestra_dropship_usd_unit($p, $dsUser)')
+                                   && str_contains($page, "Charged in US dollars"));
+$t('sayfa kuru da yaziyor',        str_contains($page, "vestra_fx('USD')") && str_contains($page, 'vestra_fx_date()'));
+$t('kur yoksa sayfa soyluyor',     str_contains($page, 'rate is unavailable'));
+
 echo "\n--- $ok gecti, $fail kaldi ---\n";
 exit($fail ? 1 : 0);

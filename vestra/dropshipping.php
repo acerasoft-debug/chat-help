@@ -91,6 +91,10 @@ $dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli k
   </div>
 
   <p><?= t('The figure you see on an article page is the final goods price. Shipping is added once per order, by destination:') ?></p>
+  <?php /* Tahsilat para birimi (operator, 8 Eyl 2026). Fiyat tablosu EUR;
+           kart USD cekiliyor. Ortak kendi musterisine fiyat verirken bunu
+           bilmeli, Stripe sayfasinda kesfetmemeli. */ ?>
+  <p class="hint"><?= t('Prices here are in euro. Card payment is taken in US dollars, converted at the day\'s rate; the article page shows the exact dollar amount before you pay.') ?></p>
 
   <div class="dsscroll"><table>
     <tr><th><?= t('Destination') ?></th><th><?= t('Shipping') ?></th><th><?= t('Delivery') ?></th></tr>

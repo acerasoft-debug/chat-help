@@ -50,6 +50,14 @@ require_once __DIR__ . '/../inc/dropship.php';
 
 api_require_key();
 
+/* EUR -> USD, ortak yanitlari icin. Kur yoksa null doner: uydurulmus bir rakam
+   yerine "bilmiyorum" demek, ortagin kendi musterisine yanlis fiyat vermesini
+   engeller (siparis de zaten ayni durumda 503 ile duruyor). */
+function vestra_dropship_api_usd(float $eur): ?float {
+    $r = vestra_fx('USD');
+    return $r > 0 ? round($eur * $r, 2) : null;
+}
+
 const DROPSHIP_DEFAULT_ID = 'lac-polo-paris';
 
 $action = (string)($_GET['a'] ?? '');
@@ -75,6 +83,15 @@ if ($action === 'stock' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         'name'     => (string)($p['name'] ?? ''),
         'currency' => 'eur',
         'price'    => (float)$ds['price'],
+        /* KART USD CEKILIYOR (8 Eyl 2026). Katalog EUR tabanli kaliyor -- toptan
+           gercek o -- ama ortak kendi musterisine fiyat verirken kartin hangi
+           para biriminde ve hangi tutarda cekilecegini BILMEK zorunda. Yalniz
+           'eur' yazip USD cekmek, ortagi kendi musterisine yanlis rakam
+           soyletirdi. */
+        'charge_currency' => 'usd',
+        'charge_price'    => vestra_dropship_api_usd((float)$ds['price']),
+        'fx_rate'         => vestra_fx('USD') ?: null,
+        'fx_date'         => vestra_fx_date() ?: null,
         /* Siparis su an alinamiyorsa fiyatin yaninda YAZAR: ortak stok/fiyat
            cekerken durumu bilsin, 503'u siparis aninda kesfetmesin. */
         'ordering_paused' => !vestra_dropship_payments_enabled(),
@@ -102,7 +119,9 @@ if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         if ($ds === null) continue;
         $out[] = ['id' => (string)($p['id'] ?? ''), 'sku' => (string)($p['sku'] ?? ''),
                   'brand' => (string)($p['brand'] ?? ''), 'name' => (string)($p['name'] ?? ''),
-                  'currency' => 'eur', 'price' => (float)$ds['price']];
+                  'currency' => 'eur', 'price' => (float)$ds['price'],
+                  'charge_currency' => 'usd',
+                  'charge_price' => vestra_dropship_api_usd((float)$ds['price'])];
     }
     /* ODEME DURDUYSA LISTE BUNU SOYLER (7 Eyl 2026). Ortak katalogu senkronlamaya
        devam edebilsin diye uc ayakta; ama durumu ancak siparis aninda 503 ile

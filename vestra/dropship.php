@@ -225,6 +225,7 @@ require __DIR__ . '/inc/head.php';
 
   <p class="hint" style="margin:-8px 0 18px">
     <?= sprintf(t('%1$s of %2$s articles can be bought as a single piece.'), number_format($dsMatched), number_format($dsTotal)) ?>
+    · <?= t('Card payment is taken in US dollars.') ?>
     <?php if ($dsPages > 1): ?> · <?= sprintf(t('page %1$d / %2$d'), $dsPage, $dsPages) ?><?php endif; ?>
   </p>
 
@@ -263,6 +264,7 @@ require __DIR__ . '/inc/head.php';
            Sayfada bir, kasada baska rakam gostermek bu depoda zaten bir
            kez yasandi (KURAL 6, escrow tavani). */
         $dsUnit  = vestra_dropship_unit_price($p, $dsUser);
+        $dsUsd   = vestra_dropship_usd_unit($p, $dsUser);   // Stripe'in cekecegi tutar
         $dsWhole = vestra_dropship_wholesale_price($p);
         $dsSaves = (!$dsPlan && $dsWhole !== null && $dsUnit !== null && $dsWhole < $dsUnit); ?>
   <div class="order-box" style="margin-bottom:20px">
@@ -387,6 +389,20 @@ require __DIR__ . '/inc/head.php';
       <label class="hint" style="margin-top:8px;display:block"><?= t('Quantity') ?></label>
       <input type="number" name="qty" value="1" min="1" style="width:90px">
       <button class="btn btn-p" type="submit" style="width:100%;justify-content:center;margin-top:10px"><?= t('Buy now') ?> — <?= vestra_money((float)$dsUnit) ?></button>
+      <?php /* TAHSILAT USD (operator, 8 Eyl 2026). Katalog EUR tabanli, kart
+               USD cekiliyor; alici bunu Stripe sayfasinda degil BURADA gormeli.
+               Kur ve kaynagi da yaziliyor: rakami dogrulayamadigi bir cevrim,
+               alicinin muhasebesine acik soru olarak duser. */ ?>
+      <?php if ($dsUsd !== null): ?>
+      <p class="hint" style="margin:8px 0 0;font-size:11.5px">
+        <?= sprintf(t('Charged in US dollars: %1$s per piece, at 1 EUR = %2$s.'),
+                    'US$'.number_format($dsUsd, 2), number_format(vestra_fx('USD'), 4)) ?>
+        <?php if (($__fxd = vestra_fx_date()) !== ''): ?> (<?= htmlspecialchars($__fxd) ?>)<?php endif; ?>
+        <?= t('Shipping is converted at the same rate.') ?>
+      </p>
+      <?php else: ?>
+      <p class="hint" style="margin:8px 0 0;color:var(--bad)"><?= t('The EUR/USD rate is unavailable right now, so orders are paused rather than charged at a guessed rate.') ?></p>
+      <?php endif; ?>
     </form>
     <div class="hint" style="margin-top:8px"><a href="/product?id=<?= urlencode($p['id']) ?>"><?= t('Full product details') ?> →</a></div>
   </div>
