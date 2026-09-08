@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -484,6 +484,118 @@ jobs:
             php -l /tmp/vestra_cur.php
             php /tmp/vestra_cur.php
             rm -f /tmp/vestra_cur.php
+
+      # Faturayi KIMIN kesecegini KAYDA yazar -- panelin acilir listesiyle AYNI
+      # kayit (order_statuses.json[ref].invoice_seller_uid, KURAL 5b).
+      #
+      # NEDEN GEREKTI (8 Eyl 2026, VES-A8A129EC): siparis birden fazla saticinin
+      # ilanini tasiyorsa vestra_order_invoice_payloads() onu satici basina
+      # DILIMLER ve her dilim AYRI belge olur -- operator faturayi acinca uc
+      # kalem goruyor, dorduncu (baska saticinin) kalem "faturada yok" gibi
+      # duruyor. Kalem eksik degil, belge iki tane. Tek dogru mudahale bu secim:
+      # secim varken dilimleme YAPILMIYOR, tek belge cikiyor.
+      #
+      #   issue_ref : siparis ref (or: VES-A8A129EC)
+      #   payload   : 'vestra' (platform kessin) | hesabin ADINDAN bir parca |
+      #               bos = secimi KALDIR (ilanin saticisina geri doner).
+      #               uid degil ad parcasi: uid'i ezberden yazmak yanlis tuzel
+      #               kisiden belge cikarabilir; burada TEK esleme sart.
+      - name: Faturayı kimin keseceğini seç (seller) — belge üretmez
+        if: ${{ github.event.inputs.admin_mode == 'seller' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SEL_REF: ${{ github.event.inputs.issue_ref }}
+          SEL_WHO: ${{ github.event.inputs.payload }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: SEL_REF,SEL_WHO
+          script: |
+            set -e
+            cat > /tmp/vestra_isel.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/invoice.php";
+            require_once $doc."/inc/fx_orders.php";
+
+            $ref = preg_replace('/[^A-Za-z0-9_-]/', '', (string)getenv('SEL_REF'));
+            $who = trim((string)getenv('SEL_WHO'));
+            if ($ref === '') { fwrite(STDERR, "ref yok (issue_ref)\n"); exit(1); }
+
+            $row = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $row = $r; break; }
+            if (!$row) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            /* Kesilmis fatura varsa secim ARTIK BIR SEY DEGISTIRMEZ: belge
+               alicinin elinde, numara yanmis, dosya adi satici anahtarindan
+               turuyor. Sessizce yazip "tamam" demek, degismeyecek bir seyi
+               degistirdik sanmak olurdu (currency modunun ayni gerekcesi). */
+            $already = vestra_invoices_for_ref($ref);
+            if ($already) {
+              fwrite(STDERR, "fatura ZATEN KESILMIS (".implode(', ', array_map(fn($i)=>(string)($i['no']??'?'), $already))
+                           .") -- satici secimi artik belgeyi degistirmez.\nKURAL 5f: kalemi cikar/yeniden ciz, ya da iptal edip yeniden kes.\n");
+              exit(1);
+            }
+
+            /* AD -> uid. 'vestra' acik bir secimdir (platform kessin). */
+            $uid = '';
+            if ($who !== '' && strtolower($who) !== 'vestra') {
+              $hits = [];
+              foreach (auth_accounts() as $a) {
+                $hay = mb_strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
+                if (mb_strpos($hay, mb_strtolower($who)) !== false) $hits[] = $a;
+              }
+              if (count($hits) !== 1) {
+                fwrite(STDERR, "ad '".$who."' ".count($hits)." hesapla esletti -- TEK esleme sart\n");
+                foreach ($hits as $h) fwrite(STDERR, "   - ".($h['company'] ?: $h['name'])."\n");
+                exit(1);
+              }
+              $uid = (string)$hits[0]['id'];
+              echo "secilen hesap  : ".($hits[0]['company'] ?: $hits[0]['name'])."\n";
+            } elseif (strtolower($who) === 'vestra') {
+              $uid = 'vestra';
+            }
+
+            $before = vestra_order_invoice_seller_pick($ref);
+            $ok     = vestra_order_set_invoice_seller($ref, $uid);
+            $after  = vestra_order_invoice_seller_pick($ref);
+
+            printf("siparis        : %s\n", $ref);
+            printf("onceki secim   : %s\n", $before === '' ? '(yok -- ilanin saticisi)' : $before);
+            printf("istenen        : %s\n", $uid === '' ? '(secimi kaldir)' : $uid);
+            if (!$ok || $after !== $uid) {
+              fwrite(STDERR, "YAZILAMADI -- kayit '".($after === '' ? '(yok)' : $after)."' olarak kaldi\n");
+              exit(1);
+            }
+            printf("KAYITLI        : %s  (geri okundu, dogrulandi)\n", $after === '' ? '(yok -- ilanin saticisi)' : $after);
+
+            /* Secimin gercekten TEK belge urettigini burada olcuyoruz: kodu
+               okuyup "dilimlemez" demek olcum degil. */
+            $ld = vestra_order_lines($row);
+            $pcs = 0; foreach ($ld['lines'] as $l) $pcs += (int)($l['qty'] ?? 0);
+            printf("siparis kalemi : %d satir / %d adet\n", count($ld['lines']), $pcs);
+            $ps = vestra_order_invoice_payloads($ref);
+            printf("yuk (dilim)    : %d  %s\n", count($ps), count($ps) === 1 ? '(TEK BELGE)' : '*** BIRDEN FAZLA BELGE ***');
+            foreach ($ps as $p) {
+              $goods = 0.0; foreach (($p['items'] ?? []) as $it) $goods += (float)($it['line'] ?? 0);
+              printf("   - %-26s kalem %d  mal %s  navlun %s\n",
+                     mb_substr(vestra_invoice_issuer_name($p['seller'] ?? [], 'VESTRA'), 0, 26),
+                     count($p['items'] ?? []),
+                     number_format($goods, 2),
+                     number_format((float)($p['meta']['shipping'] ?? 0), 2));
+            }
+            echo "kesim          : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
+            PHPEOF
+            php -l /tmp/vestra_isel.php
+            php /tmp/vestra_isel.php
+            rm -f /tmp/vestra_isel.php
 
       # Faturayi KESER. Kesim ile GONDERIM burada bilerek ayri: admin.php'nin "Fatura kes"
       # dugmesi ikisini birlikte yapiyor, biz sadece ilkini istiyoruz -- belge numarasini
