@@ -16,6 +16,12 @@ require_once __DIR__.'/inc/journal.php';
 require_once __DIR__.'/inc/money.php';
 require_once __DIR__.'/inc/api_keys.php';
 require_once __DIR__.'/inc/dropship.php';
+/* KUR DOSYASI ONSOZDE (7 Eyl 2026). Once yalnizca SIPARISLER sekmesinde
+   yukleniyordu; FATURALAR sekmesi ayni vestra_order_fx()'i cagirdigi icin
+   sade EUR siparislerde sayfa "Approve & issue" dugmesinden bir form once
+   fatal ile oluyordu -- dugme yok degil, HTML gonderilmemisti. Yuklenirken
+   ag kullanmaz, sadece fonksiyon tanimlar (tests/admin_fx_load_test.php). */
+require_once __DIR__.'/inc/fx_orders.php';
 if(session_status()===PHP_SESSION_NONE) session_start();
 
 $PASS   = (string)vestra_cfg('admin_pass','');

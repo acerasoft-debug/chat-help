@@ -1082,6 +1082,42 @@ ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
   **gerçekten düştüğü** uydurma bir kategori enjekte edilerek doğrulandı — bu
   depoda hiç düşemeyen bir iddia zaten bir kez çıkmıştı (KURAL 5j).
 
+**KURAL 15 — "Düğme yok" önce ÇİZİM sorusudur: sayfa sonuna kadar basıldı mı?**
+(operatör, 7 Eyl 2026: *"fatura kesemyorum bu siparise button yok düzelt ve
+fatura kes"* — VES-0A2571C2 / GARAGE LE PARIS.)
+
+- Kapılar açıktı. `vestra_order_invoice_payloads()` dilim veriyordu, escrow notu
+  yoktu, sipariş kesilmemişti — kapıları ölçen bir sonda hepsini yeşil buldu ve
+  "üretemedim" diye rapor edildi. **Yanlış katman ölçülmüştü.** Canlı hata
+  günlüğü siparişin geldiği dakikalarda dört kere şunu yazıyordu:
+  `PHP Fatal error: Call to undefined function vestra_order_fx() in admin.php`.
+- `inc/fx_orders.php` admin.php'nin **önsözünde değildi**; yalnızca (a) fx
+  backfill POST'unda, (b) `orders_usd` indirmesinde, (c) **SİPARİŞLER** sekmesinde
+  yükleniyordu. **FATURALAR** sekmesi aynı fonksiyonu çağırıyor ama dosyayı hiç
+  yüklemiyordu. Tek kurtaran yol `vestra_order_invoice_payloads()` içindeki
+  require ve o da **sadece** siparişe farklı bir fatura para birimi seçilmişse
+  çalışıyor (`if ($wantCur !== '' && $wantCur !== $orderCur)`).
+- Bu yüzden hata **veriye bağlı**, rastgele değil: USD'ye çevrilmiş sipariş
+  (VES-6B53D265) sayfayı ayakta tutuyor, **sade EUR sipariş** (VES-0A2571C2)
+  öldürüyordu. Ölen sayfa `✓ Approve & issue` düğmesinden **bir form önce**
+  kesiliyor — düğme "kaybolmuş" değildi, o HTML hiç gönderilmemişti. Listedeki
+  ilk sade sipariş, altındaki bütün siparişlerin düğmesini de götürüyordu.
+- **Ders:** bir kontrol görünmüyorsa ilk ölçüm o kontrolün *koşulu* değil,
+  sayfanın **sonuna kadar çizilip çizilmediğidir** — ve canlı hata günlüğü
+  bakılacak ilk yerdir, kaynak okumak değil. KURAL 3'ün çizim hâli: sonda neyi
+  ölçtüğünü söylemeliydi ("kapılar açık" ≠ "düğme basıldı").
+- **Çözüm eklemedir, taşıma değil:** `fx_orders.php` önsöze girdi, mevcut üç
+  require yerinde kaldı. Dosya yüklenirken ağ kullanmaz, yalnız iki require +
+  iki sabit + fonksiyon tanımlar — bu da test ediliyor, yoksa önsöze konan bir
+  dosya her panel açılışında ECB'ye gidebilirdi.
+- Test: `tests/admin_fx_load_test.php` (20 iddia). Önsöz **kaynaktan token'la**
+  okunur (elle yazılan liste admin.php değişince eskir; yorum satırına göre
+  eleyen ilk sürüm, önsöze konan dosyanın üstüne yorum yazılınca onu görmedi ve
+  yeşil kaldı — bir kez oldu, tokenla düzeltildi). Fonksiyonların tanımlı olduğu
+  **ayrı bir PHP sürecinde** ölçülür; başka bir testin yüklediği dosya miras
+  alınırsa ölçüm yalan söyler. Düzeltme geri alınarak iddianın gerçekten
+  düştüğü doğrulandı (3 kırmızı).
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
