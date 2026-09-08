@@ -27,7 +27,7 @@ on:
         required: false
         default: "false"
       dropship_probe:
-        description: "true = dropship'i CANLI sunucuda uçtan uca sına: anahtar sunucudaki .env'den okunur (dışarı çıkmaz), gerçek bir Stripe ödeme oturumu açılır, tutar/kargo/ülke geri okunup doğrulanır, sınama siparişi silinir."
+        description: "'orders' = dropship siparişlerinin neden 'pending' olduğunu STRIPE'A SORARAK ayırır (salt okunur). true = dropship'i CANLI sunucuda uçtan uca sına: anahtar sunucudaki .env'den okunur (dışarı çıkmaz), gerçek bir Stripe ödeme oturumu açılır, tutar/kargo/ülke geri okunup doğrulanır, sınama siparişi silinir."
         required: false
         default: "false"
       order_sheet_ref:
@@ -2907,6 +2907,76 @@ jobs:
       # ANAHTAR SUNUCUDAN OKUNUYOR. Onceki hali anahtari workflow GIRDISI olarak
       # aliyordu; girdiler herkese acik Actions kaydinda gorunur. Simdi anahtar
       # sunucunun .env'inden okunuyor ve hicbir yere yazilmiyor.
+      - name: Dropship siparişleri neden 'pending' (salt okunur)
+        # Operator, 8 Eyl 2026: "butun dropshippingler pendingte duruyor bu neden
+        # olmus?". Kayit Stripe'a GITMEDEN once 'pending' yaziliyor ve ancak
+        # webhook 'paid'e cekiyor. Yani iki bambaska sebep ayni gorunuyor:
+        #   (a) alici Stripe'ta odemeyi tamamlamadi -- kayit dogru,
+        #   (b) odedi ama webhook dusmedi -- kayit YANLIS, para alinmis.
+        # Ayirt etmenin tek yolu STRIPE'A SORMAK: her pending kaydin checkout
+        # oturumunu okuyup payment_status'una bakiyoruz. Tahminle cevaplanacak
+        # bir soru degil. Salt okunur: hicbir kayit degismez.
+        if: github.event.inputs.dropship_probe == 'orders'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            cat > /tmp/vestra_dsorders.php <<'PHPEOF'
+            <?php
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/dropship.php";
+            require_once $doc."/inc/stripe.php";
+
+            $all = dropship_all();
+            printf("toplam dropship siparisi: %d\n", count($all));
+            $byStatus = [];
+            foreach ($all as $r) { $st = (string)($r['status'] ?? '?'); $byStatus[$st] = ($byStatus[$st] ?? 0) + 1; }
+            foreach ($byStatus as $st => $n) printf("  %-10s %d\n", $st, $n);
+            echo "\n";
+            if (!stripe_available()) { echo "Stripe yapilandirilmamis -- oturum durumu sorulamiyor\n"; exit(0); }
+
+            /* Her pending kaydin Stripe oturumu ne diyor? Musteri e-postasi
+               MASKELI (log herkese acik). */
+            $mask = function (string $e): string {
+                if ($e === '') return '-';
+                $a = explode('@', $e, 2);
+                return mb_substr($a[0], 0, 2).'***@'.($a[1] ?? '?');
+            };
+            $paidButPending = 0; $neverPaid = 0; $noSession = 0; $unknown = 0;
+            echo "ref         tarih             kayit    STRIPE ne diyor\n";
+            foreach ($all as $r) {
+                if ((string)($r['status'] ?? '') !== 'pending') continue;
+                $ref = (string)($r['ref'] ?? '?');
+                $sid = (string)($r['session_id'] ?? '');
+                $when = substr((string)($r['created_at'] ?? $r['created'] ?? ''), 0, 16);
+                if ($sid === '') { $noSession++; printf("%-11s %-17s %-8s oturum kimligi YOK (Stripe'a hic gidilmemis)\n", $ref, $when, 'pending'); continue; }
+                try {
+                    $sess = stripe_api('GET', '/v1/checkout/sessions/'.$sid);
+                    $ps = (string)($sess->payment_status ?? '?');
+                    $ss = (string)($sess->status ?? '?');
+                    $note = "payment_status={$ps} status={$ss}";
+                    if ($ps === 'paid') { $paidButPending++; $note .= "  *** ODENMIS AMA KAYIT PENDING -- WEBHOOK DUSMEMIS ***"; }
+                    elseif ($ss === 'expired' || $ps === 'unpaid') { $neverPaid++; $note .= "  (alici odemeyi tamamlamamis)"; }
+                    else { $unknown++; }
+                    printf("%-11s %-17s %-8s %s\n", $ref, $when, 'pending', $note);
+                } catch (\Throwable $e) {
+                    $unknown++;
+                    printf("%-11s %-17s %-8s Stripe okunamadi: %s\n", $ref, $when, 'pending', $e->getMessage());
+                }
+            }
+            echo "\n== SONUC ==\n";
+            printf("  odendigi halde pending : %d   <- gercek ariza buysa burasi > 0\n", $paidButPending);
+            printf("  hic odenmemis          : %d   (terk edilmis sepet, kayit DOGRU)\n", $neverPaid);
+            printf("  oturumu hic olusmamis  : %d\n", $noSession);
+            printf("  belirsiz               : %d\n", $unknown);
+            PHPEOF
+            php /tmp/vestra_dsorders.php; rm -f /tmp/vestra_dsorders.php
+
       - name: Dropship uçtan uca sınama (canlı)
         if: github.event.inputs.dropship_probe == 'true'
         uses: appleboy/ssh-action@v1.0.3
