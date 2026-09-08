@@ -964,3 +964,109 @@ function vestra_render_order_sheet_pdf(array $orderRow, array $lines): string {
     $pdf->textR($right, $y, 13, $units.' pcs total', true);
     return $pdf->output();
 }
+
+/**
+ * OPERATORUN ELLE KURDUGU SIPARIS (8 Eyl 2026).
+ *
+ * Neden gerekti: bu depoda siparis yazmanin YALNIZCA iki yolu vardi --
+ * alicinin kendi kasasi (order.php) ve kabul edilmis teklif
+ * (vestra_offer_order_ensure). Operator telefonda/e-postada anlasilan bir
+ * satisi kayda gecirmek istediginde hicbir yol yoktu; "siparis ve fatura yap"
+ * bir dugmeye basmak degil, yazilmamis bir kod parcasiydi.
+ *
+ * Satir bicimi vestra_offer_order_ensure ile BIREBIR AYNI: ayni kolonlar, ayni
+ * items dizgesi, ayni kargo kolonu, ayni FX damgasi. Ikinci bir bicim
+ * uydurmak, paneli ve fatura yolunu iki ayri sekli okumak zorunda birakirdi.
+ *
+ * BEDEN items'a YAZILMAZ, nota yazilir. items kolonunu
+ * vestra_order_lines() "Nx SKU @fiyat" olarak ayristiriyor; araya beden
+ * sokmak o ayristiriciyi bozardi. Renklerin nota yazilmasiyla ayni desen
+ * (bkz. vestra_order_notes_colors).
+ *
+ * @param array $acc    Alicinin HESABI (accounts.json satiri). Adres/VAT oradan.
+ * @param array $lines  [['sku'=>, 'size'=>, 'qty'=>, 'unit'=>], ...]
+ * @return array ['ok'=>true,'ref'=>...] ya da ['error'=>gerekce]
+ */
+function vestra_order_create_manual(array $acc, array $lines, float $shipping = 0.0, string $notesExtra = ''): array {
+    if (!$acc || trim((string)($acc['email'] ?? '')) === '') return ['error' => 'Alici hesabi yok ya da e-postasi bos.'];
+    if (!$lines) return ['error' => 'Kalem yok.'];
+
+    /* Ayni SKU birden fazla bedende gelebiliyor (M/L/XL). items kolonunda SKU
+       basina TEK satir olur, adetler toplanir; beden dokumu nota gider. */
+    $bySku = [];
+    $sizes = [];
+    foreach ($lines as $l) {
+        $sku  = trim((string)($l['sku'] ?? ''));
+        $qty  = max(1, (int)($l['qty'] ?? 1));
+        $unit = round((float)($l['unit'] ?? 0), 2);
+        $size = trim((string)($l['size'] ?? ''));
+        if ($sku === '' || $unit <= 0) return ['error' => "Gecersiz kalem: sku='{$sku}' unit={$unit}"];
+        if (isset($bySku[$sku]) && abs($bySku[$sku]['unit'] - $unit) > 0.001) {
+            return ['error' => "Ayni SKU iki farkli birim fiyatla geldi: {$sku}"];
+        }
+        $bySku[$sku] = ['qty' => ($bySku[$sku]['qty'] ?? 0) + $qty, 'unit' => $unit];
+        if ($size !== '') $sizes[$sku][] = $size.'×'.$qty;
+    }
+
+    $goods = 0.0; $items = [];
+    foreach ($bySku as $sku => $v) {
+        $goods  += round($v['unit'] * $v['qty'], 2);
+        $items[] = $v['qty'].'x '.$sku.' @'.number_format($v['unit'], 2, '.', '');
+    }
+    $goods    = round($goods, 2);
+    $shipping = round(max(0.0, $shipping), 2);
+
+    /* Ref CAKISMASIZ olmali: ayni ref'e ikinci satir, paneli ve faturayi
+       hangi satirin gecerli oldugunu bilemez hale getirir. */
+    $existing = [];
+    foreach (vestra_read_csv('orders.csv') as $r) $existing[(string)($r['ref'] ?? '')] = true;
+    $ref = '';
+    for ($i = 0; $i < 20 && $ref === ''; $i++) {
+        $try = 'VES-'.strtoupper(bin2hex(random_bytes(4)));
+        if (!isset($existing[$try])) $ref = $try;
+    }
+    if ($ref === '') return ['error' => 'Benzersiz referans uretilemedi.'];
+
+    $sizeNote = '';
+    foreach ($sizes as $sku => $ss) $sizeNote .= ' '.$sku.': '.implode(' · ', $ss).'.';
+    $notes = 'Payment: Bank transfer.'
+           . ($notesExtra !== '' ? ' '.trim($notesExtra) : '')
+           . ($sizeNote !== '' ? ' Sizes —'.$sizeNote : '')
+           . ($shipping > 0 ? ' Shipping EUR '.number_format($shipping, 2, '.', '').'.' : '');
+
+    $dir = dirname(__DIR__).'/data'; if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $file = $dir.'/orders.csv'; $new = !file_exists($file);
+    $head = ['timestamp','ref','company','vat','name','email','country','phone','items','subtotal',
+             'commission','payout','total','notes','consent','terms_version','voucher_code','discount',
+             'shipping','shipping_label'];
+    if (!$new && function_exists('vestra_csv_ensure_header')) vestra_csv_ensure_header('orders.csv', $head);
+    $fh = @fopen($file, 'a');
+    if (!$fh) return ['error' => 'orders.csv acilamadi.'];
+    if ($new) fputcsv($fh, $head, ',', '"', '\\');
+    fputcsv($fh, [date('c'), $ref,
+        (string)($acc['company'] ?? ''), (string)($acc['vat_id'] ?? ''),
+        (string)($acc['name'] ?? ''), (string)($acc['email'] ?? ''),
+        (string)($acc['country'] ?? ''), (string)($acc['phone'] ?? ''),
+        implode(' | ', $items), number_format($goods, 2, '.', ''), '0.00',
+        number_format($goods, 2, '.', ''), number_format($goods + $shipping, 2, '.', ''),
+        $notes, 'operator', defined('VESTRA_TERMS_VERSION') ? VESTRA_TERMS_VERSION : '', '', '',
+        $shipping > 0 ? number_format($shipping, 2, '.', '') : '',
+        $shipping > 0 ? 'Shipping' : ''], ',', '"', '\\');
+    fclose($fh);
+
+    /* USD damgasi siparis anindaki kurla -- order.php ve teklif yoluyla ayni. */
+    require_once __DIR__.'/fx_orders.php';
+    vestra_order_fx_stamp($ref, date('c'), true);
+
+    /* YAZMA GERI OKUNUYOR. Bu depoda "kaydettim" diyen ama kaydetmemis bir
+       satir daha once cikti; para iceren bir yazmada bu kabul edilemez. */
+    $back = null;
+    foreach (vestra_read_csv('orders.csv') as $r) if (($r['ref'] ?? '') === $ref) { $back = $r; break; }
+    if (!$back) return ['error' => 'Satir yazildi ama geri okunamadi.'];
+    $wantTotal = number_format($goods + $shipping, 2, '.', '');
+    if (trim((string)($back['total'] ?? '')) !== $wantTotal) {
+        return ['error' => "Geri okuma tutmadi: total='{$back['total']}' beklenen '{$wantTotal}'"];
+    }
+    return ['ok' => true, 'ref' => $ref, 'goods' => $goods, 'shipping' => $shipping,
+            'total' => round($goods + $shipping, 2), 'items' => implode(' | ', $items)];
+}
