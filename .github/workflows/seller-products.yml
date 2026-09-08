@@ -585,11 +585,32 @@ jobs:
             printf("yuk (dilim)    : %d  %s\n", count($ps), count($ps) === 1 ? '(TEK BELGE)' : '*** BIRDEN FAZLA BELGE ***');
             foreach ($ps as $p) {
               $goods = 0.0; foreach (($p['items'] ?? []) as $it) $goods += (float)($it['line'] ?? 0);
+              $cur = (string)($p['meta']['currency'] ?? 'EUR');
               printf("   - %-26s kalem %d  mal %s  navlun %s\n",
                      mb_substr(vestra_invoice_issuer_name($p['seller'] ?? [], 'VESTRA'), 0, 26),
                      count($p['items'] ?? []),
                      number_format($goods, 2),
                      number_format((float)($p['meta']['shipping'] ?? 0), 2));
+              /* BELGEYE BASILACAK SATIRLAR. "Kalem 4" demek operatorun
+                 gordugu sey degil -- eksik sandigi kalemi ADIYLA gormesi
+                 lazim. Kisiye ait hicbir alan yok: SKU/adet/tutar. */
+              foreach (($p['items'] ?? []) as $it) {
+                printf("       %-30s %-26s %2d x %8s = %9s\n",
+                       mb_substr((string)($it['sku'] ?? '?'), 0, 30),
+                       mb_substr((string)($it['name'] ?? ''), 0, 26),
+                       (int)($it['qty'] ?? 0),
+                       number_format((float)($it['unit'] ?? 0), 2),
+                       number_format((float)($it['line'] ?? 0), 2));
+              }
+              /* Odeme kutusu: DEGERLER YAZILMAZ (log herkese acik), yalnizca
+                 dolu mu. Bos cikan bir kutu, havale bekleyen bir faturada
+                 alicinin nereye odeyecegini bilmemesi demek. */
+              $payAcc = $p['seller'] ?: (function_exists('vestra_platform_seller') ? vestra_platform_seller() : []);
+              $rails  = $payAcc ? vestra_payment_rails($payAcc, $cur) : [];
+              printf("       odeme kutusu (%s): %s\n", $cur,
+                     $rails ? count($rails).' satir' : 'BOS -- bu kunyede '.$cur.' yolu yok');
+              $goodsAll = $goods + (float)($p['meta']['shipping'] ?? 0);
+              printf("       ODENECEK: %s %s\n", $cur, number_format($goodsAll, 2));
             }
             echo "kesim          : YAPILMADI (numara yanmadi, PDF uretilmedi, aliciya hicbir sey gitmedi)\n";
             PHPEOF
