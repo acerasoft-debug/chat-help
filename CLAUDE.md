@@ -1331,6 +1331,34 @@ dönmek zorundadir"*).
     bağlantılar yalnızca `vestra_seo_resolve()` ile **açıldığı doğrulanan**
     `/b2b` ve `/wholesale` sayfalarına (KURAL 9). Yazma **geri okunuyor**.
   - Test: `tests/journal_auto_test.php` (47 iddia).
+- **Trafik sayacı GOOGLE'IN YARISINI ziyaretçi sayıyordu** (operatör, 8 Eyl 2026:
+  *"US · Mountain View, böyle biri sürekli siteye giriyor her gün — gerçek bir
+  kişi mi yoksa google bot mu? araştır ve IP'sine bak"*).
+  - **Cevap: kişi değil, Google.** Kanıt Google'ın kendi tarifi — ters DNS →
+    `crawl-66-249-*.googlebot.com`, sonra o adı ileri çözüp aynı IP'ye dönmesi.
+    Mountain View'a çözülen adreslerin **hepsi** böyle doğrulandı; `security_log`'da
+    o şehirden tek bir giriş/kayıt olayı bile yok.
+  - **Ama sayaca giren Googlebot DEĞİL.** `vestra_is_bot()` 'bot|crawl|…' arıyordu;
+    Googlebot doğru şekilde atlanıyordu. Google'ın diğer ajanları kimliğini dizgenin
+    **sonundaki** parantezde yazıyor — `GoogleOther`, `Google-Read-Aloud`,
+    `Google-Site-Verification` — ve hiçbirinde 'bot' geçmiyor. Gövdeleri gerçek
+    Googlebot'unkiyle **birebir aynı** (Nexus 5X / Android 10). Ölçüm: Eylül
+    kütüğünde **1.415**, Ağustos'ta **1.207** sayılan istek; 4 Eylül'de günün
+    **1.394 "benzersiz ziyaretçisinin 620'si"** buydu. Gezdiği yerler `/journal?slug=…`
+    ve `/wholesale/<marka>/<kategori>` — yani KURAL 9'un SEO sayfaları.
+  - Süzgeç `\bgoogle-[a-z]|googleother|…` ile genişletildi: yarın çıkacak bir
+    `Google-Xyz` de kendiliğinden kapsanıyor. **Ters yön testli:** iPhone'da Google
+    uygulamasından gezen gerçek kişi `GSA/` taşıyor, `google-` değil — o sayılmaya
+    devam ediyor (mango/zara dersi). `tests/bot_filter_test.php` (33 iddia; eski
+    süzgece karşı 15 hata veriyor, yani düşebilen bir iddia).
+  - **Geçmiş rakamlar düzelmez** — sayaç günlük dosyalara yazılmış durumda; düzeltme
+    yalnızca bundan sonrasına işliyor. Panelde trafiğin düşmesi beklenen sonuç.
+  - Teşhis: `diag-live.yml` → `visits_probe=who` (ya da `who:<şehir>`). **İki tuzağı
+    yaşayarak öğrendi:** (1) erişim kütükleri `.gz`, ilk sürüm düz metin sanıp okudu
+    ve "bu adreslerden istek YOK" dedi — ölçülmemiş bir şeyi ölçülmüş gibi gösteren
+    satır; (2) UA'yı 95 karaktere kırpıp etiketi **kırpılmış** metinden hesapladı ve
+    tabloda Googlebot'a "[SAYILIR]" yazdı, oysa süzgeç tam metne bakıp atlıyordu.
+    *Aracın kendi kırpması ölçümü yalanlıyordu.*
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
