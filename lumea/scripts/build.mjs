@@ -151,6 +151,14 @@ Disallow: /*/entrar/
 Disallow: /*/registro/
 Disallow: /*/cuenta/
 Disallow: /*/reservar/
+Disallow: /*/connexion/
+Disallow: /*/inscription/
+Disallow: /*/compte/
+Disallow: /*/reserver/
+Disallow: /*/accedi/
+Disallow: /*/registrati/
+Disallow: /*/account/
+Disallow: /*/prenota/
 Disallow: /api/
 
 Sitemap: ${site.origin}${site.basePath}/sitemap.xml

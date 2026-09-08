@@ -12,7 +12,9 @@ export { fmt };
 const SEG = {
   de: { services: 'behandlungen', skincare: 'hautpflege', cities: 'staedte', how: 'ablauf', therapists: 'therapeut-werden', login: 'anmelden', register: 'registrieren', account: 'konto', book: 'buchen', contact: 'kontakt', imprint: 'impressum', privacy: 'datenschutz', terms: 'agb', gift: 'gutscheine', corporate: 'unternehmen', prive: 'prive', journal: 'journal', profiles: 'therapeuten' },
   en: { services: 'treatments', skincare: 'skincare', cities: 'cities', how: 'how-it-works', therapists: 'become-a-therapist', login: 'sign-in', register: 'register', account: 'account', book: 'book', contact: 'contact', imprint: 'imprint', privacy: 'privacy', terms: 'terms', gift: 'gift-vouchers', corporate: 'for-companies', prive: 'prive', journal: 'journal', profiles: 'therapists' },
-  es: { services: 'tratamientos', skincare: 'estetica', cities: 'ciudades', how: 'como-funciona', therapists: 'trabaja-con-nosotros', login: 'entrar', register: 'registro', account: 'cuenta', book: 'reservar', contact: 'contacto', imprint: 'aviso-legal', privacy: 'privacidad', terms: 'condiciones', gift: 'tarjetas-regalo', corporate: 'empresas', prive: 'prive', journal: 'journal', profiles: 'terapeutas' }
+  es: { services: 'tratamientos', skincare: 'estetica', cities: 'ciudades', how: 'como-funciona', therapists: 'trabaja-con-nosotros', login: 'entrar', register: 'registro', account: 'cuenta', book: 'reservar', contact: 'contacto', imprint: 'aviso-legal', privacy: 'privacidad', terms: 'condiciones', gift: 'tarjetas-regalo', corporate: 'empresas', prive: 'prive', journal: 'journal', profiles: 'terapeutas' },
+  fr: { services: 'soins', skincare: 'soins-du-visage', cities: 'villes', how: 'comment-ca-marche', therapists: 'devenir-therapeute', login: 'connexion', register: 'inscription', account: 'compte', book: 'reserver', contact: 'contact', imprint: 'mentions-legales', privacy: 'confidentialite', terms: 'conditions', gift: 'cartes-cadeaux', corporate: 'entreprises', prive: 'prive', journal: 'journal', profiles: 'therapeutes' },
+  it: { services: 'trattamenti', skincare: 'skincare', cities: 'citta', how: 'come-funziona', therapists: 'diventa-terapista', login: 'accedi', register: 'registrati', account: 'account', book: 'prenota', contact: 'contatti', imprint: 'note-legali', privacy: 'privacy', terms: 'condizioni', gift: 'buoni-regalo', corporate: 'aziende', prive: 'prive', journal: 'journal', profiles: 'terapisti' }
 };
 
 /**
@@ -214,7 +216,7 @@ ${alternates}
 <link rel="alternate" hreflang="x-default" href="${absolute(pathFor(site.defaultLocale, key))}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${attr(site.brand)}">
-<meta property="og:locale" content="${locale === 'de' ? 'de_DE' : locale === 'es' ? 'es_ES' : 'en_GB'}">
+<meta property="og:locale" content="${{ de: 'de_DE', en: 'en_GB', es: 'es_ES', fr: 'fr_FR', it: 'it_IT' }[locale]}">
 <meta property="og:title" content="${attr(title)}">
 <meta property="og:description" content="${attr(description)}">
 <meta property="og:url" content="${canonical}">
@@ -245,6 +247,10 @@ ${header(locale, key)}
 ${body}
 </main>
 ${footer(locale, services, cities)}
+<div class="sticky-cta" id="stickyCta">
+  <a class="btn btn--ghost btn--sm" href="https://wa.me/${attr(site.whatsapp.replace(/\D/g, ''))}" rel="noopener" target="_blank">${esc(t[locale].conv.stickyWa)}</a>
+  <a class="btn btn--gold" href="${withBase(pathFor(locale, { t: 'book' }))}">${esc(t[locale].conv.stickyBook)}</a>
+</div>
 <script>window.__geoTpl=${JSON.stringify(t[locale].hero.locatedIn)};window.__applySuccess=${JSON.stringify(t[locale].apply.success)};window.__bookSuccess=${JSON.stringify(fmt(t[locale].booking.success, { minutes: site.trust.responseMinutes }))};</script>
 <script src="${withBase('/assets/app.js')}" defer></script>
 </body>
@@ -278,7 +284,7 @@ export function serviceCard(locale, s, currency = 'EUR') {
     <p>${esc(c.short)}</p>
     <div class="card__foot">
       <span>${s.durations.join(' / ')} ${esc(L.common.minutes)}</span>
-      <span class="card__arrow">&rarr;</span>
+      <span class="btn btn--gold btn--sm">${esc(L.conv.cardBook)} &rarr;</span>
     </div>
   </a>`;
 }

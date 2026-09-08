@@ -164,23 +164,23 @@ export { allSlugs };
    ------------------------------------------------------------------------ */
 const CERTS = {
   body: [
-    { de: 'Manuelle Lymphdrainage (Vodder, 4 Wochen)', en: 'Manual Lymphatic Drainage (Vodder, 4 weeks)', es: 'Drenaje Linfático Manual (Vodder, 4 semanas)' },
-    { de: 'Sportmassage & Faszientherapie', en: 'Sports Massage & Fascia Therapy', es: 'Masaje Deportivo y Terapia Fascial' },
-    { de: 'Zertifizierte Schwangerschaftsmassage', en: 'Certified Prenatal Massage', es: 'Masaje Prenatal Certificado' },
-    { de: 'Lomi Lomi Nui (Level II)', en: 'Lomi Lomi Nui (Level II)', es: 'Lomi Lomi Nui (Nivel II)' },
-    { de: 'Traditionelle Thai-Massage (Wat Po, Bangkok)', en: 'Traditional Thai Massage (Wat Po, Bangkok)', es: 'Masaje Tailandés Tradicional (Wat Po, Bangkok)' },
-    { de: 'Hot-Stone & Wärmetherapie', en: 'Hot Stone & Thermotherapy', es: 'Piedras Calientes y Termoterapia' },
-    { de: 'Onkologische Massage (S4OM)', en: 'Oncology Massage (S4OM)', es: 'Masaje Oncológico (S4OM)' },
-    { de: 'Erste Hilfe & Notfallmanagement', en: 'First Aid & Emergency Response', es: 'Primeros Auxilios y Emergencias' }
+    { de: 'Manuelle Lymphdrainage (Vodder, 4 Wochen)', en: 'Manual Lymphatic Drainage (Vodder, 4 weeks)', es: 'Drenaje Linfático Manual (Vodder, 4 semanas)' , fr: 'Drainage lymphatique manuel (Vodder, 4 semaines)', it: 'Drenaggio linfatico manuale (Vodder, 4 settimane)' },
+    { de: 'Sportmassage & Faszientherapie', en: 'Sports Massage & Fascia Therapy', es: 'Masaje Deportivo y Terapia Fascial' , fr: 'Massage sportif & thérapie des fascias', it: 'Massaggio sportivo & terapia fasciale' },
+    { de: 'Zertifizierte Schwangerschaftsmassage', en: 'Certified Prenatal Massage', es: 'Masaje Prenatal Certificado' , fr: 'Massage prénatal certifié', it: 'Massaggio prenatale certificato' },
+    { de: 'Lomi Lomi Nui (Level II)', en: 'Lomi Lomi Nui (Level II)', es: 'Lomi Lomi Nui (Nivel II)' , fr: 'Lomi Lomi Nui (niveau II)', it: 'Lomi Lomi Nui (livello II)' },
+    { de: 'Traditionelle Thai-Massage (Wat Po, Bangkok)', en: 'Traditional Thai Massage (Wat Po, Bangkok)', es: 'Masaje Tailandés Tradicional (Wat Po, Bangkok)' , fr: 'Massage thaï traditionnel (Wat Po, Bangkok)', it: 'Massaggio thai tradizionale (Wat Po, Bangkok)' },
+    { de: 'Hot-Stone & Wärmetherapie', en: 'Hot Stone & Thermotherapy', es: 'Piedras Calientes y Termoterapia' , fr: 'Pierres chaudes & thermothérapie', it: 'Hot stone & termoterapia' },
+    { de: 'Onkologische Massage (S4OM)', en: 'Oncology Massage (S4OM)', es: 'Masaje Oncológico (S4OM)' , fr: 'Massage oncologique (S4OM)', it: 'Massaggio oncologico (S4OM)' },
+    { de: 'Erste Hilfe & Notfallmanagement', en: 'First Aid & Emergency Response', es: 'Primeros Auxilios y Emergencias' , fr: 'Premiers secours & urgences', it: 'Primo soccorso & emergenze' }
   ],
   skincare: [
-    { de: 'Staatlich geprüfte Kosmetikerin', en: 'State-certified Aesthetician', es: 'Esteticista con titulación oficial' },
-    { de: 'HIFU-Anwenderzertifikat (Gerätehersteller)', en: 'HIFU Practitioner Certificate (manufacturer)', es: 'Certificado HIFU (fabricante)' },
-    { de: 'Mikrostrom & Radiofrequenz', en: 'Microcurrent & Radiofrequency', es: 'Microcorrientes y Radiofrecuencia' },
-    { de: 'Apparative Tiefenreinigung (Hydra)', en: 'Device-assisted Deep Cleanse (Hydra)', es: 'Limpieza Profunda con Aparatología (Hydra)' },
-    { de: 'Chemische Peelings (Level 1–2)', en: 'Chemical Peels (Level 1–2)', es: 'Peelings Químicos (Nivel 1–2)' },
-    { de: 'Gua Sha & Buccal-Technik', en: 'Gua Sha & Buccal Technique', es: 'Gua Sha y Técnica Bucal' },
-    { de: 'Hygiene- & Infektionsschutz', en: 'Hygiene & Infection Control', es: 'Higiene y Control de Infecciones' }
+    { de: 'Staatlich geprüfte Kosmetikerin', en: 'State-certified Aesthetician', es: 'Esteticista con titulación oficial' , fr: 'Esthéticienne diplômée d’État', it: 'Estetista qualificata' },
+    { de: 'HIFU-Anwenderzertifikat (Gerätehersteller)', en: 'HIFU Practitioner Certificate (manufacturer)', es: 'Certificado HIFU (fabricante)' , fr: 'Certificat praticienne HIFU (fabricant)', it: 'Certificato operatrice HIFU (produttore)' },
+    { de: 'Mikrostrom & Radiofrequenz', en: 'Microcurrent & Radiofrequency', es: 'Microcorrientes y Radiofrecuencia' , fr: 'Microcourant & radiofréquence', it: 'Microcorrenti & radiofrequenza' },
+    { de: 'Apparative Tiefenreinigung (Hydra)', en: 'Device-assisted Deep Cleanse (Hydra)', es: 'Limpieza Profunda con Aparatología (Hydra)' , fr: 'Nettoyage profond par appareil (Hydra)', it: 'Pulizia profonda con apparecchiatura (Hydra)' },
+    { de: 'Chemische Peelings (Level 1–2)', en: 'Chemical Peels (Level 1–2)', es: 'Peelings Químicos (Nivel 1–2)' , fr: 'Peelings chimiques (niveau 1–2)', it: 'Peeling chimici (livello 1–2)' },
+    { de: 'Gua Sha & Buccal-Technik', en: 'Gua Sha & Buccal Technique', es: 'Gua Sha y Técnica Bucal' , fr: 'Gua sha & technique buccale', it: 'Gua sha & tecnica buccale' },
+    { de: 'Hygiene- & Infektionsschutz', en: 'Hygiene & Infection Control', es: 'Higiene y Control de Infecciones' , fr: 'Hygiène & prévention des infections', it: 'Igiene & controllo delle infezioni' }
   ]
 };
 
@@ -199,6 +199,16 @@ const BIO = {
     (t, c) => `${t.fullName.split(' ')[0]} lleva ${t.years} años como ${t.title.toLowerCase()} y forma parte de Luméa en ${c} desde ${t.since}. Su foco es el trabajo preciso y tranquilo: primero escuchar, después tratar. Los clientes describen su estilo como claro, cálido y sin prisas.`,
     (t, c) => `Tras su formación y varios años en clínica y spa, ${t.fullName.split(' ')[0]} se especializó en tratamientos a domicilio en ${c}, con camilla propia, manta térmica y un ritual fijo que funciona igual de bien en cualquier casa. ${t.years} años de experiencia y ${t.reviews} reseñas verificadas.`,
     (t, c) => `«El cuerpo dice lo que necesita; solo hay que mirar bien.» ${t.fullName.split(' ')[0]} combina ${t.title.toLowerCase()} con una valoración estructurada antes de cada tratamiento. En ${c} desde ${t.since}, radio de ${t.radiusKm} km y respuesta habitual en ${t.responseMinutes} minutos.`
+  ],
+  fr: [
+    (t, c) => `${t.fullName.split(' ')[0]} exerce depuis ${t.years} ans (${t.title}) et fait partie de Luméa à ${c} depuis ${t.since}. L’accent est mis sur un travail précis et calme : écouter d’abord, traiter ensuite. Les clients décrivent le style comme clair, chaleureux et sans hâte.`,
+    (t, c) => `Après sa formation et plusieurs années en cabinet et en spa, ${t.fullName.split(' ')[0]} s’est spécialisée dans les soins à domicile à ${c} — avec sa propre table, un matelas chauffant et un rituel fixe qui fonctionne aussi bien dans chaque maison. ${t.years} ans d’expérience, ${t.reviews} avis vérifiés.`,
+    (t, c) => `« Le corps dit ce dont il a besoin — il suffit de bien regarder. » ${t.fullName.split(' ')[0]} associe son métier (${t.title}) à un bilan structuré avant chaque soin. À ${c} depuis ${t.since}, rayon de ${t.radiusKm} km, réponse généralement sous ${t.responseMinutes} minutes.`
+  ],
+  it: [
+    (t, c) => `${t.fullName.split(' ')[0]} lavora da ${t.years} anni (${t.title}) e fa parte di Luméa a ${c} dal ${t.since}. Il focus è un lavoro preciso e calmo: prima ascoltare, poi trattare. Gli ospiti descrivono lo stile come chiaro, caldo e senza fretta.`,
+    (t, c) => `Dopo la formazione e diversi anni in studio e spa, ${t.fullName.split(' ')[0]} si è specializzata nei trattamenti a domicilio a ${c} — con lettino proprio, materassino riscaldato e un rituale fisso che funziona altrettanto bene in ogni casa. ${t.years} anni di esperienza, ${t.reviews} recensioni verificate.`,
+    (t, c) => `«Il corpo dice ciò di cui ha bisogno — basta guardare bene.» ${t.fullName.split(' ')[0]} unisce la professione (${t.title}) a una valutazione strutturata prima di ogni trattamento. A ${c} dal ${t.since}, raggio di ${t.radiusKm} km, risposta di solito entro ${t.responseMinutes} minuti.`
   ]
 };
 
@@ -226,6 +236,22 @@ const REVIEWS = {
     'Consejo honesto, sin venta. Ahora reservamos cada mes.',
     'El mejor drenaje linfático que he tenido, y he tenido muchos. Piernas más ligeras esa misma noche.',
     'Perfecto antes de nuestra boda. La piel se veía realmente distinta al día siguiente.'
+  ],
+  fr: [
+    'Ponctuelle, discrète, totalement professionnelle. La pression était exacte et vérifiée deux fois.',
+    'Des semaines de douleurs cervicales — après le soin, j’ai dormi toute la nuit pour la première fois.',
+    'Installée en cinq minutes, tout apporté, l’appartement laissé comme avant. Une personne charmante.',
+    'Conseil honnête, pas de discours commercial. Nous réservons chaque mois maintenant.',
+    'Le meilleur drainage lymphatique que j’aie eu, et j’en ai eu beaucoup. Jambes nettement plus légères le soir.',
+    'Parfait avant notre mariage. La peau avait vraiment changé le lendemain.'
+  ],
+  it: [
+    'Puntuale, silenziosa, assolutamente professionale. La pressione era giusta ed è stata verificata due volte.',
+    'Settimane di dolore cervicale — dopo il trattamento ho dormito tutta la notte per la prima volta.',
+    'Montaggio in cinque minuti, tutto portato, casa lasciata come prima. Una persona deliziosa.',
+    'Consiglio onesto, niente vendita. Ora prenotiamo ogni mese.',
+    'Il miglior drenaggio linfatico che abbia mai fatto, e ne ho fatti tanti. Gambe nettamente più leggere la sera.',
+    'Perfetto prima del nostro matrimonio. La pelle era davvero diversa il giorno dopo.'
   ]
 };
 const REVIEWERS = ['Anna K.', 'M. Berger', 'S. Öztürk', 'Julia R.', 'D. Martín', 'C. Weber', 'L. Fischer', 'P. Navarro', 'T. Huber', 'E. Rossi'];
@@ -241,11 +267,11 @@ export function profileExtras(th, locale = 'de') {
   while (certs.size < 3 + Math.floor(r() * 2)) certs.add(pick(r, pool));
   const districts = [...city.districts].sort(() => r() - 0.5).slice(0, 3 + Math.floor(r() * 3));
   const availability = [
-    { de: 'Werktags vormittags', en: 'Weekday mornings', es: 'Mañanas entre semana' },
-    { de: 'Werktags abends', en: 'Weekday evenings', es: 'Noches entre semana' },
-    { de: 'Wochenende', en: 'Weekends', es: 'Fines de semana' },
-    ...(th.lateNight ? [{ de: 'Late Night (22–02 Uhr)', en: 'Late night (10pm–2am)', es: 'Franja nocturna (22–02 h)' }] : []),
-    ...(th.acceptsShortNotice ? [{ de: 'Kurzfristig (unter 3 Std.)', en: 'Short notice (under 3 hrs)', es: 'Aviso corto (menos de 3 h)' }] : [])
+    { de: 'Werktags vormittags', en: 'Weekday mornings', es: 'Mañanas entre semana' , fr: 'Matins en semaine', it: 'Mattine feriali' },
+    { de: 'Werktags abends', en: 'Weekday evenings', es: 'Noches entre semana' , fr: 'Soirs en semaine', it: 'Sere feriali' },
+    { de: 'Wochenende', en: 'Weekends', es: 'Fines de semana' , fr: 'Week-ends', it: 'Weekend' },
+    ...(th.lateNight ? [{ de: 'Late Night (22–02 Uhr)', en: 'Late night (10pm–2am)', es: 'Franja nocturna (22–02 h)' , fr: 'Nuit (22h–2h)', it: 'Notte (22–02)' }] : []),
+    ...(th.acceptsShortNotice ? [{ de: 'Kurzfristig (unter 3 Std.)', en: 'Short notice (under 3 hrs)', es: 'Aviso corto (menos de 3 h)' , fr: 'Court préavis (moins de 3 h)', it: 'Breve preavviso (meno di 3 h)' }] : [])
   ].filter(() => r() < 0.85);
   const reviews = Array.from({ length: 3 }, (_, i) => {
     const d = new Date(2026, 7 - i * 2, 4 + Math.floor(r() * 20));
@@ -258,8 +284,8 @@ export function profileExtras(th, locale = 'de') {
     availability: availability.map((a) => a[locale]),
     reviews,
     equipment: (isSkincare
-      ? [{ de: 'Apparative Kosmetik', en: 'Skincare devices', es: 'Aparatología estética' }, { de: 'LED-Gerät', en: 'LED device', es: 'Equipo LED' }, { de: 'Lupenlampe', en: 'Magnifying lamp', es: 'Lámpara lupa' }]
-      : [{ de: 'Mobile Massageliege', en: 'Mobile massage table', es: 'Camilla portátil' }, { de: 'Beheizte Auflage', en: 'Heated table pad', es: 'Manta térmica' }, { de: 'Bio-Öle & Klangschale', en: 'Organic oils & singing bowl', es: 'Aceites ecológicos y cuenco' }]
+      ? [{ de: 'Apparative Kosmetik', en: 'Skincare devices', es: 'Aparatología estética' , fr: 'Appareils esthétiques', it: 'Apparecchiature estetiche' }, { de: 'LED-Gerät', en: 'LED device', es: 'Equipo LED' , fr: 'Appareil LED', it: 'Dispositivo LED' }, { de: 'Lupenlampe', en: 'Magnifying lamp', es: 'Lámpara lupa' , fr: 'Lampe loupe', it: 'Lampada a lente' }]
+      : [{ de: 'Mobile Massageliege', en: 'Mobile massage table', es: 'Camilla portátil' , fr: 'Table de massage portable', it: 'Lettino portatile' }, { de: 'Beheizte Auflage', en: 'Heated table pad', es: 'Manta térmica' , fr: 'Matelas chauffant', it: 'Materassino riscaldato' }, { de: 'Bio-Öle & Klangschale', en: 'Organic oils & singing bowl', es: 'Aceites ecológicos y cuenco' , fr: 'Huiles bio & bol chantant', it: 'Oli biologici & campana tibetana' }]
     ).map((e) => e[locale]),
     verification: { identity: true, qualification: true, insurance: true, background: true },
     isSkincare

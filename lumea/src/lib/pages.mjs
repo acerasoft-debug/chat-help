@@ -58,6 +58,7 @@ function quickBook(locale, opts = {}) {
         </select>
       </label>
     </div>
+    <p class="slots" id="qbSlots" data-tpl="${attr(L.conv.slots)}" data-tpl-one="${attr(L.conv.slotsOne)}" aria-live="polite"></p>
     <button class="btn btn--gold btn--block" type="submit">${esc(L.quickBook.search)}</button>
     <p class="center" style="margin:.9rem 0 0">
       <button type="button" class="link-btn" data-use-location>${esc(L.quickBook.useLocation)}</button>
@@ -86,13 +87,14 @@ function ctaBand(locale) {
 function statsBand(locale) {
   const L = t[locale];
   const items = [
-    [`${site.trust.therapists}+`, L.footer.therapists],
+    [`${(site.trust.clients / 1000).toFixed(0)}.000+`, { de: 'Gäste', en: 'Guests', es: 'Clientes', fr: 'Clients', it: 'Ospiti' }[locale]],
+    [`${site.trust.therapists}+`, { de: 'Geprüfte Expert:innen', en: 'Vetted specialists', es: 'Especialistas verificados', fr: 'Spécialistes vérifiés', it: 'Specialisti verificati' }[locale]],
     [String(site.trust.cities), L.nav.cities],
-    [String(site.trust.countries), locale === 'de' ? 'Länder' : locale === 'es' ? 'Países' : 'Countries'],
-    [`${site.trust.rating}/5`, locale === 'de' ? 'Bewertung' : locale === 'es' ? 'Valoración' : 'Rating']
+    [String(site.trust.countries), { de: 'Länder', en: 'Countries', es: 'Países', fr: 'Pays', it: 'Paesi' }[locale]],
+    [`${site.trust.rating}/5`, { de: 'Bewertung', en: 'Rating', es: 'Valoración', fr: 'Note', it: 'Valutazione' }[locale]]
   ];
   return `<section class="band section--tight section">
-    <div class="wrap grid g4">
+    <div class="wrap grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
       ${items.map(([b, s]) => `<div class="stat"><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('')}
     </div>
   </section>`;
@@ -121,6 +123,7 @@ export function homePage(locale) {
       </div>
       <p class="hero__trust"><span class="stars">★★★★★</span> ${esc(
         fmt(L.hero.trustLine, {
+          clients: site.trust.clients.toLocaleString(locale === 'en' ? 'en-GB' : locale),
           therapists: site.trust.therapists,
           rating: site.trust.rating,
           reviews: site.trust.reviewCount,
@@ -128,7 +131,25 @@ export function homePage(locale) {
         })
       )}</p>
     </div>
-    <div>${quickBook(locale)}</div>
+    <div class="hero__aside">
+      <div class="hero__art" aria-hidden="true">
+        <svg viewBox="0 0 600 600" width="100%" height="100%" fill="none">
+          <circle cx="300" cy="300" r="258" stroke="url(#gA)" stroke-width="1.2"/>
+          <circle cx="300" cy="300" r="205" stroke="url(#gA)" stroke-width=".9" opacity=".7"/>
+          <circle cx="300" cy="300" r="150" stroke="url(#gA)" stroke-width=".7" opacity=".5"/>
+          <path d="M60 330c80-120 200-160 480-60" stroke="url(#gA)" stroke-width="1.1" opacity=".8"/>
+          <path d="M40 420c120-90 300-110 520-20" stroke="url(#gA)" stroke-width=".8" opacity=".5"/>
+          <defs><linearGradient id="gA" x1="0" x2="1"><stop stop-color="#c9a961" stop-opacity="0"/><stop offset=".5" stop-color="#c9a961"/><stop offset="1" stop-color="#c9a961" stop-opacity="0"/></linearGradient></defs>
+        </svg>
+      </div>
+      ${quickBook(locale)}
+      <div class="ticker" id="liveTicker" data-just="${attr(L.conv.justBooked)}" data-ago="${attr(L.conv.ago)}" data-live="${attr(L.conv.liveNow)}" aria-live="polite">
+        <span class="ticker__dot"></span><span class="ticker__text">${esc(L.conv.justBooked)} …</span>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <ul class="trust-strip">${L.conv.trust.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
   </div>
 </section>
 
@@ -160,6 +181,7 @@ ${statsBand(locale)}
     <div class="grid g3">
       ${L.why.map((w) => `<div class="feature"><span class="feature__ico">◆</span><div><h4>${esc(w.t)}</h4><p>${esc(w.d)}</p></div></div>`).join('')}
     </div>
+    <p class="guarantee">★ ${esc(L.conv.guarantee)}</p>
   </div>
 </section>
 
@@ -1086,6 +1108,62 @@ const LEGAL = {
       { h: 'Salud y contraindicaciones', p: ['Los clientes deben comunicar enfermedades relevantes, embarazo, cirugías y medicación antes de iniciar el tratamiento. Determinadas indicaciones requieren autorización médica.'] },
       { h: 'Responsabilidad', p: ['Todas las terapeutas disponen de su propio seguro de responsabilidad civil profesional. La responsabilidad de la plataforma se rige por la normativa aplicable.'] }
     ] }
+  },
+  fr: {
+    imprint: { title: 'Mentions légales', desc: 'Identification du prestataire.', blocks: [
+      { h: 'Prestataire', p: [`${site.legalName}, Kurfürstendamm 194, 10707 Berlin, Allemagne`, `E-mail : ${site.email} · Téléphone : ${site.phone}`] },
+      { h: 'Représentée par', p: ['La direction. L’inscription au registre du commerce et le numéro de TVA seront ajoutés avant le lancement.'] },
+      { h: 'Responsable du contenu', p: ['La direction, adresse ci-dessus.'] },
+      { h: 'Règlement des litiges', p: ['La Commission européenne met à disposition une plateforme de règlement en ligne des litiges. Nous ne sommes ni tenus ni disposés à participer à une procédure devant un organisme de médiation de la consommation.'] },
+      { h: 'Remarque', p: ['Ceci est une version de démonstration et de développement. Toutes les données d’adresse, de registre et fiscales doivent être remplacées par les données réelles avant publication.'] }
+    ] },
+    privacy: { title: 'Politique de confidentialité', desc: 'Comment nous collectons, traitons et protégeons les données personnelles conformément au RGPD.', blocks: [
+      { h: 'Responsable du traitement', p: [`${site.legalName}, adresse dans les mentions légales. Demandes relatives à la vie privée : ${site.email}`] },
+      { h: 'Données traitées', list: ['Données de compte : nom, e-mail, téléphone, hachage du mot de passe', 'Données de réservation : adresse, rendez-vous, soin choisi, notes', 'Données de localisation : votre adresse IP pour déterminer la ville (art. 6, § 1, f RGPD) et — uniquement avec autorisation explicite — la position de l’appareil', 'Données de sécurité : adresse IP, horodatage et identifiant d’appareil de chaque connexion', 'Données de candidature des thérapeutes : qualifications, assurance, zone d’intervention'] },
+      { h: 'Bases juridiques', p: ['Exécution du contrat (art. 6, § 1, b), intérêt légitime en matière de sécurité et de prévention de la fraude (f), et consentement pour la position de l’appareil et le marketing (a).'] },
+      { h: 'Localisation par adresse IP', p: ['Pour présélectionner votre ville, nous évaluons l’adresse IP côté serveur. L’IP complète n’est pas conservée durablement ; dans les journaux de sécurité, elle est tronquée ou conservée uniquement pendant la durée légalement admise. Vous pouvez modifier la ville manuellement à tout moment.'] },
+      { h: 'Durée de conservation', p: ['Données de compte jusqu’à suppression du compte, données de réservation selon les délais commerciaux et fiscaux, journaux de sécurité 90 jours maximum.'] },
+      { h: 'Vos droits', list: ['Accès, rectification, effacement et limitation du traitement', 'Portabilité des données', 'Opposition au traitement fondé sur l’intérêt légitime', 'Retrait du consentement avec effet pour l’avenir', 'Réclamation auprès d’une autorité de contrôle'] },
+      { h: 'Remarque', p: ['Cette version est un modèle technique et ne remplace pas une revue juridique avant le lancement.'] }
+    ] },
+    terms: { title: 'Conditions générales', desc: 'Les conditions régissant la mise en relation et la réalisation des soins.', blocks: [
+      { h: 'Objet', p: [`${site.legalName} met exclusivement en relation des thérapeutes indépendantes vérifiées et des clients pour des soins professionnels de bien-être, de massage et de la peau.`] },
+      { h: 'Cadre strictement thérapeutique', p: ['Tous les services organisés sont de nature strictement thérapeutique et esthétique. Toute demande ou comportement à caractère sexuel entraîne l’arrêt immédiat du soin, la facturation intégrale du rendez-vous et la fermeture définitive du compte. Les thérapeutes sont expressément autorisées à mettre fin à un soin à tout moment sans justification.'] },
+      { h: 'Réservation et contrat', p: ['Une demande est sans engagement. Le contrat est formé à la confirmation par la thérapeute. La prestation est réalisée par la thérapeute indépendante.'] },
+      { h: 'Prix et paiement', p: ['Les prix affichés au moment de la réservation s’appliquent et incluent déplacement et équipement. Le paiement est effectué d’avance à la réservation. Le montant est conservé sous séquestre par la plateforme et versé à la thérapeute uniquement une fois le soin terminé. En cas d’annulation par la thérapeute ou de non-présentation, le montant est intégralement remboursé. Le pourboire est facultatif et revient entièrement à la thérapeute.'] },
+      { h: 'Vérification d’identité et de documents', p: ['Les thérapeutes ne sont activées qu’après examen et approbation par la plateforme de leur pièce d’identité, diplôme, assurance responsabilité civile professionnelle et extrait de casier judiciaire. Sans vérification complète, aucune prestation ne peut être fournie via la plateforme. Les clients confirment leur identité à l’inscription par e-mail et numéro de téléphone.'] },
+      { h: 'Annulation', p: ['Gratuite jusqu’à 12 heures avant le rendez-vous. Au-delà, 50 % du prix du soin sont facturés. En l’absence de toute personne sur place, le prix intégral est facturé.'] },
+      { h: 'Santé et contre-indications', p: ['Les clients doivent signaler toute pathologie, grossesse, intervention et médication pertinente avant le début du soin. Certaines indications requièrent un accord médical.'] },
+      { h: 'Responsabilité', p: ['Toutes les thérapeutes disposent de leur propre assurance responsabilité civile professionnelle. La responsabilité de la plateforme est régie par les dispositions légales.'] }
+    ] }
+  },
+  it: {
+    imprint: { title: 'Note legali', desc: 'Identificazione del fornitore.', blocks: [
+      { h: 'Fornitore', p: [`${site.legalName}, Kurfürstendamm 194, 10707 Berlino, Germania`, `E-mail: ${site.email} · Telefono: ${site.phone}`] },
+      { h: 'Rappresentata da', p: ['La direzione. Iscrizione al registro delle imprese e partita IVA saranno aggiunte prima del lancio.'] },
+      { h: 'Responsabile dei contenuti', p: ['La direzione, indirizzo come sopra.'] },
+      { h: 'Risoluzione delle controversie', p: ['La Commissione europea mette a disposizione una piattaforma per la risoluzione online delle controversie. Non siamo obbligati né disposti a partecipare a procedure davanti a un organismo di conciliazione dei consumatori.'] },
+      { h: 'Nota', p: ['Questa è una versione dimostrativa e di sviluppo. Tutti i dati di indirizzo, registro e fiscali devono essere sostituiti con quelli reali prima della pubblicazione.'] }
+    ] },
+    privacy: { title: 'Informativa sulla privacy', desc: 'Come raccogliamo, trattiamo e proteggiamo i dati personali ai sensi del GDPR.', blocks: [
+      { h: 'Titolare del trattamento', p: [`${site.legalName}, indirizzo nelle note legali. Richieste privacy: ${site.email}`] },
+      { h: 'Dati trattati', list: ['Dati dell’account: nome, e-mail, telefono, hash della password', 'Dati di prenotazione: indirizzo, appuntamento, trattamento scelto, note', 'Dati di posizione: l’indirizzo IP per determinare la città (art. 6, par. 1, lett. f GDPR) e — solo con permesso esplicito — la posizione del dispositivo', 'Dati di sicurezza: indirizzo IP, orario e identificativo del dispositivo di ogni accesso', 'Dati di candidatura dei terapisti: qualifiche, assicurazione, zona di copertura'] },
+      { h: 'Basi giuridiche', p: ['Esecuzione del contratto (art. 6, par. 1, lett. b), interesse legittimo alla sicurezza e alla prevenzione delle frodi (f) e consenso per la posizione del dispositivo e il marketing (a).'] },
+      { h: 'Geolocalizzazione tramite IP', p: ['Per preselezionare la tua città valutiamo l’indirizzo IP lato server. L’IP completo non viene conservato stabilmente; nei log di sicurezza viene troncato o conservato solo per il periodo consentito dalla legge. Puoi cambiare la città manualmente in qualsiasi momento.'] },
+      { h: 'Conservazione', p: ['Dati dell’account fino alla cancellazione, dati di prenotazione secondo i termini commerciali e fiscali, log di sicurezza per un massimo di 90 giorni.'] },
+      { h: 'I tuoi diritti', list: ['Accesso, rettifica, cancellazione e limitazione del trattamento', 'Portabilità dei dati', 'Opposizione al trattamento basato sull’interesse legittimo', 'Revoca del consenso con effetto per il futuro', 'Reclamo a un’autorità di controllo'] },
+      { h: 'Nota', p: ['Questa versione è un modello tecnico e non sostituisce una revisione legale prima del lancio.'] }
+    ] },
+    terms: { title: 'Condizioni generali', desc: 'Le condizioni che regolano l’intermediazione e l’erogazione dei trattamenti.', blocks: [
+      { h: 'Oggetto', p: [`${site.legalName} intermedia esclusivamente trattamenti professionali di benessere, massaggio e skincare tra terapisti autonomi verificati e ospiti.`] },
+      { h: 'Ambito rigorosamente terapeutico', p: ['Tutti i servizi intermediati sono di natura rigorosamente terapeutica ed estetica. Richieste o comportamenti di natura sessuale comportano l’interruzione immediata del trattamento, l’addebito integrale dell’appuntamento e la chiusura definitiva dell’account. I terapisti sono espressamente autorizzati a terminare un trattamento in qualsiasi momento senza motivazione.'] },
+      { h: 'Prenotazione e contratto', p: ['La richiesta non è vincolante. Il contratto si perfeziona con la conferma del terapista. Il servizio è erogato dal terapista autonomo.'] },
+      { h: 'Prezzi e pagamento', p: ['Si applicano i prezzi mostrati al momento della prenotazione, comprensivi di trasferta e attrezzatura. Il pagamento avviene in anticipo alla prenotazione. L’importo è custodito in deposito dalla piattaforma e versato al terapista solo a trattamento completato. In caso di annullamento da parte del terapista o mancata presentazione, l’importo viene rimborsato integralmente. La mancia è facoltativa e resta interamente al terapista.'] },
+      { h: 'Verifica di identità e documenti', p: ['I terapisti vengono attivati solo dopo che la piattaforma ha esaminato e approvato documento d’identità, diploma, assicurazione RC professionale e casellario giudiziale. Senza verifica completa non è possibile erogare servizi tramite la piattaforma. Gli ospiti confermano la propria identità alla registrazione tramite e-mail e numero di telefono.'] },
+      { h: 'Cancellazione', p: ['Gratuita fino a 12 ore prima dell’appuntamento. Oltre, viene addebitato il 50 % del prezzo. Se nessuno è presente sul posto, viene addebitato l’intero prezzo.'] },
+      { h: 'Salute e controindicazioni', p: ['Gli ospiti devono comunicare patologie rilevanti, gravidanza, interventi e farmaci prima dell’inizio del trattamento. Alcune indicazioni richiedono il nulla osta medico.'] },
+      { h: 'Responsabilità', p: ['Tutti i terapisti dispongono di una propria assicurazione RC professionale. La responsabilità della piattaforma è regolata dalle disposizioni di legge.'] }
+    ] }
   }
 };
 
@@ -1100,7 +1178,9 @@ export function contactPage(locale) {
   const copy = {
     de: { h: 'Kontakt', d: 'Concierge, Hotel- und Firmenanfragen, Presse — wir antworten in der Regel innerhalb eines Werktages.', hotel: 'Hotels, Villen & Yachten', hotelP: 'Wir richten feste Ansprechpartner:innen, Rahmenpreise und Verfügbarkeitsfenster für Ihre Häuser ein.', corp: 'Unternehmen', corpP: 'Wiederkehrende Bürotage mit fester Therapeutin und Buchungsliste für Ihr Team.' },
     en: { h: 'Contact', d: 'Concierge, hotel and corporate enquiries, press — we usually reply within one working day.', hotel: 'Hotels, villas & yachts', hotelP: 'We set up dedicated contacts, framework rates and availability windows for your properties.', corp: 'Companies', corpP: 'Recurring office days with a dedicated therapist and a booking list for your team.' },
-    es: { h: 'Contacto', d: 'Conserjería, solicitudes de hoteles y empresas, prensa: respondemos normalmente en un día laborable.', hotel: 'Hoteles, villas y yates', hotelP: 'Configuramos contactos dedicados, tarifas marco y ventanas de disponibilidad para tus propiedades.', corp: 'Empresas', corpP: 'Jornadas periódicas en oficina con terapeuta fija y lista de reservas para tu equipo.' }
+    es: { h: 'Contacto', d: 'Conserjería, solicitudes de hoteles y empresas, prensa: respondemos normalmente en un día laborable.', hotel: 'Hoteles, villas y yates', hotelP: 'Configuramos contactos dedicados, tarifas marco y ventanas de disponibilidad para tus propiedades.', corp: 'Empresas', corpP: 'Jornadas periódicas en oficina con terapeuta fija y lista de reservas para tu equipo.' },
+    fr: { h: 'Contact', d: 'Conciergerie, demandes hôtels et entreprises, presse — nous répondons généralement sous un jour ouvré.', hotel: 'Hôtels, villas & yachts', hotelP: 'Nous mettons en place des interlocuteurs dédiés, des tarifs cadres et des fenêtres de disponibilité pour vos établissements.', corp: 'Entreprises', corpP: 'Journées récurrentes au bureau avec une thérapeute attitrée et une liste de réservation pour votre équipe.' },
+    it: { h: 'Contatti', d: 'Concierge, richieste di hotel e aziende, stampa — rispondiamo di norma entro un giorno lavorativo.', hotel: 'Hotel, ville & yacht', hotelP: 'Definiamo referenti dedicati, tariffe quadro e finestre di disponibilità per le vostre strutture.', corp: 'Aziende', corpP: 'Giornate ricorrenti in ufficio con terapista fissa e lista di prenotazione per il tuo team.' }
   }[locale];
 
   const body = `
@@ -1136,7 +1216,9 @@ export function giftPage(locale) {
   const copy = {
     de: { h: 'Gutscheine', d: 'Ein Gutschein ohne Preisangabe, den die beschenkte Person selbst terminiert — gültig in allen zwanzig Städten und drei Jahre lang einlösbar.', list: ['Digital in Minuten, gedruckt auf Wunsch', 'Ohne sichtbaren Betrag', 'Gültig für alle Behandlungen und alle Städte', 'Drei Jahre gültig, Restbetrag bleibt erhalten'] },
     en: { h: 'Gift vouchers', d: 'A voucher without a visible price that the recipient schedules themselves — valid in all twenty cities and redeemable for three years.', list: ['Digital in minutes, printed on request', 'No amount shown on the voucher', 'Valid for every treatment and every city', 'Three years validity, remaining balance kept'] },
-    es: { h: 'Tarjetas regalo', d: 'Una tarjeta sin precio visible que la persona obsequiada agenda por sí misma: válida en las veinte ciudades y canjeable durante tres años.', list: ['Digital en minutos, impresa si lo deseas', 'Sin importe visible en la tarjeta', 'Válida para todos los tratamientos y ciudades', 'Tres años de validez, el saldo restante se conserva'] }
+    es: { h: 'Tarjetas regalo', d: 'Una tarjeta sin precio visible que la persona obsequiada agenda por sí misma: válida en las veinte ciudades y canjeable durante tres años.', list: ['Digital en minutos, impresa si lo deseas', 'Sin importe visible en la tarjeta', 'Válida para todos los tratamientos y ciudades', 'Tres años de validez, el saldo restante se conserva'] },
+    fr: { h: 'Cartes cadeaux', d: 'Une carte sans prix visible que la personne planifie elle-même — valable dans les vingt villes et pendant trois ans.', list: ['Numérique en quelques minutes, imprimée sur demande', 'Aucun montant visible sur la carte', 'Valable pour tous les soins et toutes les villes', 'Trois ans de validité, le solde restant est conservé'] },
+    it: { h: 'Buoni regalo', d: 'Un buono senza prezzo visibile che la persona fissa da sé — valido nelle venti città e per tre anni.', list: ['Digitale in pochi minuti, stampato su richiesta', 'Nessun importo visibile sul buono', 'Valido per tutti i trattamenti e tutte le città', 'Tre anni di validità, il saldo residuo resta'] }
   }[locale];
   return simplePage(locale, { t: 'gift' }, copy.h, copy.d, [{ list: copy.list }, { p: [L.booking.payLater] }]);
 }
@@ -1145,14 +1227,16 @@ export function corporatePage(locale) {
   const copy = {
     de: { h: 'Für Unternehmen & Hotels', d: 'Wiederkehrende Bürotage, Event-Lounges, Hotelsuiten und Retreats — mit festen Therapeut:innen, Rahmenvertrag und monatlicher Sammelrechnung.', list: ['Feste Ansprechpartner:innen und garantierte Zeitfenster', 'Buchungsliste für Ihr Team, kein Verwaltungsaufwand', 'Massagestuhl-Format ab 20 Minuten pro Person', 'Rahmenpreise ab 15 Terminen im Monat', 'Monatliche Sammelrechnung, DSGVO-konform'] },
     en: { h: 'For companies & hotels', d: 'Recurring office days, event lounges, hotel suites and retreats — with dedicated therapists, a framework agreement and one monthly invoice.', list: ['Dedicated contacts and guaranteed time slots', 'A booking list for your team, no admin overhead', 'Chair-massage format from 20 minutes per person', 'Framework rates from 15 appointments per month', 'One monthly invoice, GDPR compliant'] },
-    es: { h: 'Para empresas y hoteles', d: 'Jornadas periódicas en oficina, salas de eventos, suites de hotel y retiros, con terapeutas fijas, contrato marco y una única factura mensual.', list: ['Contactos dedicados y franjas garantizadas', 'Lista de reservas para tu equipo, sin carga administrativa', 'Formato silla desde 20 minutos por persona', 'Tarifas marco a partir de 15 citas al mes', 'Factura mensual única y conforme al RGPD'] }
+    es: { h: 'Para empresas y hoteles', d: 'Jornadas periódicas en oficina, salas de eventos, suites de hotel y retiros, con terapeutas fijas, contrato marco y una única factura mensual.', list: ['Contactos dedicados y franjas garantizadas', 'Lista de reservas para tu equipo, sin carga administrativa', 'Formato silla desde 20 minutos por persona', 'Tarifas marco a partir de 15 citas al mes', 'Factura mensual única y conforme al RGPD'] },
+    fr: { h: 'Pour les entreprises & hôtels', d: 'Journées récurrentes au bureau, salons d’événements, suites d’hôtel et retraites — avec thérapeutes attitrées, contrat cadre et une seule facture mensuelle.', list: ['Interlocuteurs dédiés et créneaux garantis', 'Liste de réservation pour votre équipe, zéro administratif', 'Format chaise dès 20 minutes par personne', 'Tarifs cadres dès 15 rendez-vous par mois', 'Une facture mensuelle, conforme au RGPD'] },
+    it: { h: 'Per aziende & hotel', d: 'Giornate ricorrenti in ufficio, lounge di eventi, suite d’hotel e ritiri — con terapiste fisse, contratto quadro e un’unica fattura mensile.', list: ['Referenti dedicati e fasce garantite', 'Lista di prenotazione per il tuo team, zero burocrazia', 'Formato sedia da 20 minuti a persona', 'Tariffe quadro da 15 appuntamenti al mese', 'Un’unica fattura mensile, conforme al GDPR'] }
   }[locale];
   return simplePage(locale, { t: 'corporate' }, copy.h, copy.d, [{ list: copy.list }]);
 }
 
 export function notFoundPage(locale) {
   const L = t[locale];
-  const copy = { de: 'Diese Seite gibt es nicht (mehr).', en: 'This page does not exist (any more).', es: 'Esta página no existe (ya).' }[locale];
+  const copy = { de: 'Diese Seite gibt es nicht (mehr).', en: 'This page does not exist (any more).', es: 'Esta página no existe (ya).', fr: 'Cette page n’existe pas (ou plus).', it: 'Questa pagina non esiste (più).' }[locale];
   const body = `<section class="section center"><div class="wrap">
     <p class="eyebrow">404</p><h1>${esc(copy)}</h1>
     <p class="lede center" style="margin:1rem auto 2rem">${esc(L.sections.catalogueSub)}</p>
@@ -1323,6 +1407,8 @@ ${crumbs(locale, [
 const PROFILE_UI = {
   de: { about: 'Über', certs: 'Ausbildung & Zertifikate', verify: 'Identitäts- & Dokumentenprüfung', coverage: 'Einsatzgebiet', avail: 'Verfügbarkeit', equip: 'Ausstattung', menu: 'Behandlungen & Preise', reviews: 'Verifizierte Bewertungen', book: 'Mit {name} buchen', radius: 'Radius {km} km um {city}', langs: 'Sprachen', exp: '{years} Jahre Erfahrung', since: 'Bei Luméa seit {year}', response: 'Antwortet in ⌀ {min} Min.', verifiedOn: 'Alle Pflichtdokumente durch das Luméa-Prüfteam freigegeben.', metaDesc: '{name}, {title} in {city}: {count} Behandlungen, {rating}/5 aus {reviews} Bewertungen, identitäts- und dokumentengeprüft. Mobil buchbar im Umkreis von {km} km.', otherIn: 'Weitere Therapeut:innen in {city}' },
   en: { about: 'About', certs: 'Training & certificates', verify: 'Identity & document verification', coverage: 'Coverage', avail: 'Availability', equip: 'Equipment', menu: 'Treatments & prices', reviews: 'Verified reviews', book: 'Book with {name}', radius: '{km} km radius around {city}', langs: 'Languages', exp: '{years} years of experience', since: 'With Luméa since {year}', response: 'Replies in ~{min} min', verifiedOn: 'All mandatory documents approved by the Luméa review team.', metaDesc: '{name}, {title} in {city}: {count} treatments, {rating}/5 from {reviews} reviews, identity- and document-verified. Mobile bookings within {km} km.', otherIn: 'More therapists in {city}' },
+  fr: { about: 'À propos de', certs: 'Formation & certificats', verify: 'Vérification d’identité & documents', coverage: 'Zone d’intervention', avail: 'Disponibilités', equip: 'Équipement', menu: 'Soins & tarifs', reviews: 'Avis vérifiés', book: 'Réserver avec {name}', radius: 'Rayon de {km} km autour de {city}', langs: 'Langues', exp: '{years} ans d’expérience', since: 'Chez Luméa depuis {year}', response: 'Répond en ~{min} min', verifiedOn: 'Tous les documents obligatoires approuvés par l’équipe de vérification Luméa.', metaDesc: '{name}, {title} à {city} : {count} soins, {rating}/5 sur {reviews} avis, identité et documents vérifiés. Réservation à domicile dans un rayon de {km} km.', otherIn: 'Autres thérapeutes à {city}' },
+  it: { about: 'Su', certs: 'Formazione & certificati', verify: 'Verifica di identità & documenti', coverage: 'Zona di copertura', avail: 'Disponibilità', equip: 'Attrezzatura', menu: 'Trattamenti & prezzi', reviews: 'Recensioni verificate', book: 'Prenota con {name}', radius: 'Raggio di {km} km intorno a {city}', langs: 'Lingue', exp: '{years} anni di esperienza', since: 'Con Luméa dal {year}', response: 'Risponde in ~{min} min', verifiedOn: 'Tutti i documenti obbligatori approvati dal team di verifica Luméa.', metaDesc: '{name}, {title} a {city}: {count} trattamenti, {rating}/5 da {reviews} recensioni, identità e documenti verificati. Prenotazioni a domicilio nel raggio di {km} km.', otherIn: 'Altri terapisti a {city}' },
   es: { about: 'Sobre', certs: 'Formación y certificados', verify: 'Verificación de identidad y documentos', coverage: 'Zona de cobertura', avail: 'Disponibilidad', equip: 'Equipamiento', menu: 'Tratamientos y precios', reviews: 'Reseñas verificadas', book: 'Reservar con {name}', radius: 'Radio de {km} km alrededor de {city}', langs: 'Idiomas', exp: '{years} años de experiencia', since: 'En Luméa desde {year}', response: 'Responde en ~{min} min', verifiedOn: 'Todos los documentos obligatorios aprobados por el equipo de verificación de Luméa.', metaDesc: '{name}, {title} en {city}: {count} tratamientos, {rating}/5 de {reviews} reseñas, identidad y documentos verificados. Reservas a domicilio en un radio de {km} km.', otherIn: 'Más terapeutas en {city}' }
 };
 

@@ -9,7 +9,7 @@ export const site = {
   // Set to a repo sub-path (e.g. '/lumea-private-spa') when hosting on GitHub Pages.
   basePath: process.env.LUMEA_BASE || '',
   defaultLocale: 'de',
-  locales: ['de', 'en', 'es'],
+  locales: ['de', 'en', 'es', 'fr', 'it'],
   email: 'concierge@lumea.spa',
   phone: '+49 30 5679 8840',
   phoneHref: '+493056798840',
@@ -32,11 +32,13 @@ export const site = {
     plausibleDomain: process.env.LUMEA_PLAUSIBLE || ''
   },
   trust: {
-    therapists: 480,
+    therapists: 520,
+    clients: 10400,
+    treatmentsDone: 38600,
     cities: 20,
     countries: 4,
     rating: 4.9,
-    reviewCount: 3162,
+    reviewCount: 4870,
     responseMinutes: 12
   },
   currencyByCountry: { DE: 'EUR', AT: 'EUR', CH: 'CHF', ES: 'EUR' }
@@ -45,5 +47,7 @@ export const site = {
 export const localeMeta = {
   de: { htmlLang: 'de', hreflang: 'de', label: 'Deutsch', flag: 'DE', dir: 'ltr' },
   en: { htmlLang: 'en', hreflang: 'en', label: 'English', flag: 'EN', dir: 'ltr' },
-  es: { htmlLang: 'es', hreflang: 'es', label: 'Español', flag: 'ES', dir: 'ltr' }
+  es: { htmlLang: 'es', hreflang: 'es', label: 'Español', flag: 'ES', dir: 'ltr' },
+  fr: { htmlLang: 'fr', hreflang: 'fr', label: 'Français', flag: 'FR', dir: 'ltr' },
+  it: { htmlLang: 'it', hreflang: 'it', label: 'Italiano', flag: 'IT', dir: 'ltr' }
 };

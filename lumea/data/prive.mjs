@@ -62,5 +62,43 @@ export const prive = {
       { q: '¿Qué pasa cuando viajo?', a: 'Tu membresía es válida en las 20 ciudades. En Signature y Résidence enviamos tu registro de tratamientos a la terapeuta local con antelación.' },
       { q: '¿Cómo cancelo?', a: 'Con un clic en tu cuenta, cada mes al final del periodo. Los tratamientos acumulados siguen siendo válidos tres meses.' }
     ]
+  },
+  fr: {
+    nav: 'Privé',
+    eyebrow: 'Luméa Privé',
+    title: 'L’abonnement pour ceux qui n’attendent pas.',
+    sub: 'Créneaux prioritaires, une thérapeute attitrée qui connaît votre corps, et un concierge qui répond encore à deux heures du matin. Privé s’adresse aux clients pour qui un soin est une routine, pas une exception.',
+    perMonth: 'par mois',
+    cta: 'Devenir membre',
+    ctaSub: 'Résiliable chaque mois. Premier soin sous 72 heures.',
+    tiers: {
+      essentiel: { name: 'Essentiel', tag: 'L’entrée', desc: 'Pour un rituel mensuel avec priorité et prix fixe.', includes: ['1 soin de 90 min par mois inclus', 'Créneaux prioritaires avant les non-membres', '15 % sur chaque soin supplémentaire', 'Annulation gratuite jusqu’à 4 heures avant', 'Soins non utilisés reportables 3 mois'] },
+      signature: { name: 'Signature', tag: 'Le plus choisi', desc: 'Une thérapeute attitrée qui connaît votre corps, votre pression et votre agenda.', includes: ['2 soins de 90 min par mois inclus', 'Thérapeute attitrée avec remplacement en cas d’absence', 'Garantie le jour même dans les villes principales jusqu’à 16 h', '20 % sur soins et options supplémentaires', 'Journal de soins et notes de progression', 'Valable dans les 20 villes — même en voyage'] },
+      residence: { name: 'Résidence', tag: 'Maison & famille', desc: 'Pour les familles, foyers, yachts et résidences à besoin hebdomadaire.', includes: ['Soin hebdomadaire pour jusqu’à 4 personnes', 'Deux thérapeutes attitrées (massage & visage)', 'Concierge 24/7 par WhatsApp et téléphone', 'Créneaux de nuit et duo sans supplément', 'Accompagnement en voyage sur accord (villa, yacht, chalet)', 'Bilan peau et corps trimestriel', 'Profils invités pour visiteurs et famille'] }
+    },
+    faq: [
+      { q: 'Puis-je choisir ma thérapeute ?', a: 'Oui. Après votre premier soin, nous proposons deux profils ; vous décidez. Vous pouvez changer à tout moment.' },
+      { q: 'Et si je voyage ?', a: 'Votre abonnement est valable dans les 20 villes. En Signature et Résidence, nous transmettons votre journal de soins à la thérapeute locale à l’avance.' },
+      { q: 'Comment résilier ?', a: 'En un clic dans votre compte, chaque mois à l’échéance. Les soins reportés restent valables trois mois.' }
+    ]
+  },
+  it: {
+    nav: 'Privé',
+    eyebrow: 'Luméa Privé',
+    title: 'L’abbonamento per chi non aspetta.',
+    sub: 'Fasce prioritarie, una terapista fissa che conosce il tuo corpo e un concierge che risponde anche alle due di notte. Privé è per gli ospiti per cui un trattamento è una routine, non un’eccezione.',
+    perMonth: 'al mese',
+    cta: 'Diventa membro',
+    ctaSub: 'Disdetta mensile. Primo trattamento entro 72 ore.',
+    tiers: {
+      essentiel: { name: 'Essentiel', tag: 'L’ingresso', desc: 'Per un rituale mensile con priorità e prezzo fisso.', includes: ['1 trattamento da 90 min al mese incluso', 'Fasce prioritarie rispetto ai non membri', '15 % su ogni trattamento aggiuntivo', 'Cancellazione gratuita fino a 4 ore prima', 'Trattamenti non usati riportabili per 3 mesi'] },
+      signature: { name: 'Signature', tag: 'Il più scelto', desc: 'Una terapista fissa che conosce il tuo corpo, la tua pressione e la tua agenda.', includes: ['2 trattamenti da 90 min al mese inclusi', 'Terapista fissa con sostituzione in caso di assenza', 'Garanzia in giornata nelle città principali fino alle 16', '20 % su trattamenti ed extra aggiuntivi', 'Registro dei trattamenti e note di progresso', 'Valido in tutte le 20 città — anche in viaggio'] },
+      residence: { name: 'Résidence', tag: 'Casa & famiglia', desc: 'Per famiglie, case, yacht e residenze con esigenza settimanale.', includes: ['Trattamento settimanale fino a 4 persone', 'Due terapiste fisse (massaggio & skincare)', 'Concierge 24/7 via WhatsApp e telefono', 'Fasce notturne e duo senza supplemento', 'Accompagnamento in viaggio su accordo (villa, yacht, chalet)', 'Analisi trimestrale di pelle e corpo', 'Profili ospiti per visitatori e famiglia'] }
+    },
+    faq: [
+      { q: 'Posso scegliere la mia terapista?', a: 'Sì. Dopo il primo trattamento proponiamo due profili; decidi tu. Puoi cambiare in qualsiasi momento.' },
+      { q: 'E se viaggio?', a: 'L’abbonamento vale in tutte le 20 città. Con Signature e Résidence inviamo in anticipo il tuo registro dei trattamenti alla terapista locale.' },
+      { q: 'Come disdico?', a: 'Con un clic nell’account, ogni mese alla scadenza. I trattamenti riportati restano validi tre mesi.' }
+    ]
   }
 };

@@ -29,6 +29,7 @@ const DIST = path.resolve(__dirname, '../dist');
 const PORT = Number(process.env.PORT || 4477);
 const HOST = process.env.HOST || '0.0.0.0';
 const COOKIE = 'lumea_session';
+const LOCALES = ['de', 'en', 'es', 'fr', 'it'];
 const SECURE = process.env.NODE_ENV === 'production';
 const ADMIN_EMAILS = String(process.env.LUMEA_ADMIN_EMAIL || '').toLowerCase().split(',').map((e) => e.trim()).filter(Boolean);
 const promoteAdmin = (user) => {
@@ -136,7 +137,7 @@ route('POST', '/api/auth/register', async (req, body) => {
     name: asStr(body.name, 120),
     phone: asStr(body.phone, 40),
     role,
-    locale: ['de', 'en', 'es'].includes(body.locale) ? body.locale : 'de',
+    locale: LOCALES.includes(body.locale) ? body.locale : 'de',
     ip: anonymiseIp(ip)
   });
   const promoted = promoteAdmin(user);
@@ -198,7 +199,7 @@ route('POST', '/api/therapists/apply', async (req, body) => {
       email, password,
       name: [asStr(body.firstName, 60), asStr(body.lastName, 60)].filter(Boolean).join(' '),
       phone: asStr(body.phone, 40), role: 'therapist',
-      locale: ['de', 'en', 'es'].includes(body.locale) ? body.locale : 'de',
+      locale: LOCALES.includes(body.locale) ? body.locale : 'de',
       ip, status: 'pending'
     });
   }
@@ -246,7 +247,7 @@ route('POST', '/api/bookings', async (req, body) => {
     JSON.stringify(asArr(body.addons)), asStr(body.city, 40), asStr(body.place, 60),
     asStr(body.address, 300), asStr(body.date, 20), asStr(body.time, 10),
     asStr(body.notes, 2000), asStr(body.name, 120), asStr(body.email, 190), asStr(body.phone, 40),
-    asStr(body.total, 40), ['de', 'en', 'es'].includes(body.locale) ? body.locale : 'de',
+    asStr(body.total, 40), LOCALES.includes(body.locale) ? body.locale : 'de',
     'requested', now(), anonymiseIp(clientIp(req))
   );
   // Payment model: the guest pays upfront (payment_status = authorised); the amount is held
@@ -394,7 +395,7 @@ const shapeProfile = (r, locale = 'de') => {
 route('GET', '/api/therapists/profile', async (req, _b, url) => {
   const r = one(`SELECT * FROM therapists WHERE id = ? AND status = 'active'`, url.searchParams.get('id') || '');
   if (!r) return { status: 404, body: { error: 'not found' } };
-  const locale = ['de', 'en', 'es'].includes(url.searchParams.get('locale')) ? url.searchParams.get('locale') : 'de';
+  const locale = LOCALES.includes(url.searchParams.get('locale')) ? url.searchParams.get('locale') : 'de';
   return { status: 200, body: { profile: shapeProfile(r, locale) } };
 });
 

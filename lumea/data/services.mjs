@@ -1,6 +1,8 @@
 import { de } from './content/services.de.mjs';
 import { en } from './content/services.en.mjs';
 import { es } from './content/services.es.mjs';
+import { fr } from './content/services.fr.mjs';
+import { it } from './content/services.it.mjs';
 
 /**
  * Catalogue core: locale-independent facts (slug, price, duration, category).
@@ -8,10 +10,10 @@ import { es } from './content/services.es.mjs';
  * translators never have to touch pricing logic.
  */
 export const categories = [
-  { slug: 'signature', order: 1, de: 'Signature Rituale', en: 'Signature Rituals', es: 'Rituales Signature' },
-  { slug: 'body', order: 2, de: 'Körper & Contouring', en: 'Body & Contouring', es: 'Cuerpo & Contorno' },
-  { slug: 'therapy', order: 3, de: 'Therapeutisch & Regeneration', en: 'Therapeutic & Recovery', es: 'Terapéutico & Recuperación' },
-  { slug: 'skincare', order: 4, de: 'Gesicht & Hautpflege', en: 'Face & Skincare', es: 'Rostro & Cuidado de la piel' }
+  { slug: 'signature', order: 1, de: 'Signature Rituale', en: 'Signature Rituals', es: 'Rituales Signature', fr: 'Rituels Signature', it: 'Rituali Signature' },
+  { slug: 'body', order: 2, de: 'Körper & Contouring', en: 'Body & Contouring', es: 'Cuerpo & Contorno', fr: 'Corps & Silhouette', it: 'Corpo & Contouring' },
+  { slug: 'therapy', order: 3, de: 'Therapeutisch & Regeneration', en: 'Therapeutic & Recovery', es: 'Terapéutico & Recuperación', fr: 'Thérapeutique & Récupération', it: 'Terapeutico & Recupero' },
+  { slug: 'skincare', order: 4, de: 'Gesicht & Hautpflege', en: 'Face & Skincare', es: 'Rostro & Cuidado de la piel', fr: 'Visage & Soins de la peau', it: 'Viso & Skincare' }
 ];
 
 const core = [
@@ -40,7 +42,7 @@ const core = [
   { slug: 'hifu-lifting', category: 'skincare', durations: [60, 90], price: { EUR: 349, CHF: 419 }, popular: true, hero: true, accent: '#B8A27A', pressure: 2 }
 ];
 
-const copy = { de, en, es };
+const copy = { de, en, es, fr, it };
 
 export const services = core.map((s) => ({
   ...s,
@@ -60,11 +62,11 @@ export const moneyServices = services.filter((s) => s.popular).map((s) => s.slug
 
 /** Optional extras offered at checkout, priced as flat add-ons. */
 export const addons = [
-  { slug: 'hot-towels', price: { EUR: 0, CHF: 0 }, de: 'Warme Kompressen-Ritual', en: 'Hot towel ritual', es: 'Ritual de toallas calientes' },
-  { slug: 'dry-brushing', price: { EUR: 19, CHF: 25 }, de: 'Trockenbürsten-Vorbereitung', en: 'Dry brushing prep', es: 'Cepillado en seco' },
-  { slug: 'scalp-ritual', price: { EUR: 29, CHF: 35 }, de: 'Kopfhaut- & Haaröl-Ritual (15 Min.)', en: 'Scalp & hair-oil ritual (15 min)', es: 'Ritual de cuero cabelludo (15 min)' },
-  { slug: 'cbd-oil', price: { EUR: 25, CHF: 30 }, de: 'Bio-CBD-Öl Upgrade', en: 'Organic CBD oil upgrade', es: 'Upgrade de aceite CBD ecológico' },
-  { slug: 'sound-bath', price: { EUR: 39, CHF: 49 }, de: 'Klangschalen-Abschluss', en: 'Singing-bowl finish', es: 'Cierre con cuencos tibetanos' },
-  { slug: 'second-therapist', price: { EUR: 120, CHF: 145 }, de: 'Vier-Hände (zweite Therapeutin)', en: 'Four-hands (second therapist)', es: 'Cuatro manos (segunda terapeuta)' },
-  { slug: 'late-night', price: { EUR: 45, CHF: 55 }, de: 'Late-Night-Slot (22–02 Uhr)', en: 'Late-night slot (10pm–2am)', es: 'Franja nocturna (22:00–02:00)' }
+  { slug: 'hot-towels', price: { EUR: 0, CHF: 0 }, de: 'Warme Kompressen-Ritual', en: 'Hot towel ritual', es: 'Ritual de toallas calientes', fr: 'Rituel de serviettes chaudes', it: 'Rituale di asciugamani caldi' },
+  { slug: 'dry-brushing', price: { EUR: 19, CHF: 25 }, de: 'Trockenbürsten-Vorbereitung', en: 'Dry brushing prep', es: 'Cepillado en seco', fr: 'Brossage à sec', it: 'Spazzolatura a secco' },
+  { slug: 'scalp-ritual', price: { EUR: 29, CHF: 35 }, de: 'Kopfhaut- & Haaröl-Ritual (15 Min.)', en: 'Scalp & hair-oil ritual (15 min)', es: 'Ritual de cuero cabelludo (15 min)', fr: 'Rituel cuir chevelu & huile (15 min)', it: 'Rituale cuoio capelluto & olio (15 min)' },
+  { slug: 'cbd-oil', price: { EUR: 25, CHF: 30 }, de: 'Bio-CBD-Öl Upgrade', en: 'Organic CBD oil upgrade', es: 'Upgrade de aceite CBD ecológico', fr: 'Huile CBD bio', it: 'Olio CBD biologico' },
+  { slug: 'sound-bath', price: { EUR: 39, CHF: 49 }, de: 'Klangschalen-Abschluss', en: 'Singing-bowl finish', es: 'Cierre con cuencos tibetanos', fr: 'Clôture aux bols chantants', it: 'Chiusura con campane tibetane' },
+  { slug: 'second-therapist', price: { EUR: 120, CHF: 145 }, de: 'Vier-Hände (zweite Therapeutin)', en: 'Four-hands (second therapist)', es: 'Cuatro manos (segunda terapeuta)', fr: 'Quatre mains (2e thérapeute)', it: 'Quattro mani (seconda terapista)' },
+  { slug: 'late-night', price: { EUR: 45, CHF: 55 }, de: 'Late-Night-Slot (22–02 Uhr)', en: 'Late-night slot (10pm–2am)', es: 'Franja nocturna (22:00–02:00)', fr: 'Créneau de nuit (22h–2h)', it: 'Fascia notturna (22–02)' }
 ];

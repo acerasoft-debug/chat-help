@@ -28,13 +28,17 @@
   const T = {
     de: { noResults: 'Keine Treffer in Reichweite. Radius erweitern oder Anfrage hinterlassen.', away: 'km entfernt', book: 'Buchen', results: 'Treffer', sending: 'Wird gesendet …', ok: 'Gesendet.', err: 'Etwas ist schiefgelaufen. Bitte erneut versuchen.', required: 'Bitte ausfüllen.', denied: 'Standort nicht freigegeben — Stadt bitte manuell wählen.', total: 'Gesamt', loggedOut: 'Sie sind abgemeldet.', badLogin: 'E-Mail oder Passwort stimmt nicht.', weakPw: 'Passwort muss mindestens 10 Zeichen haben.', exists: 'Für diese E-Mail existiert bereits ein Konto.' },
     en: { noResults: 'No matches in range. Widen the radius or leave a request.', away: 'km away', book: 'Book', results: 'matches', sending: 'Sending …', ok: 'Sent.', err: 'Something went wrong. Please try again.', required: 'Please complete this field.', denied: 'Location not shared — please choose a city manually.', total: 'Total', loggedOut: 'You are signed out.', badLogin: 'Email or password is incorrect.', weakPw: 'Password must be at least 10 characters.', exists: 'An account already exists for this email.' },
-    es: { noResults: 'Sin coincidencias en el radio. Amplíalo o déjanos tu solicitud.', away: 'km', book: 'Reservar', results: 'coincidencias', sending: 'Enviando …', ok: 'Enviado.', err: 'Algo ha fallado. Inténtalo de nuevo.', required: 'Completa este campo.', denied: 'Ubicación no compartida: elige tu ciudad manualmente.', total: 'Total', loggedOut: 'Has cerrado sesión.', badLogin: 'El correo o la contraseña no son correctos.', weakPw: 'La contraseña debe tener al menos 10 caracteres.', exists: 'Ya existe una cuenta con este correo.' }
+    es: { noResults: 'Sin coincidencias en el radio. Amplíalo o déjanos tu solicitud.', away: 'km', book: 'Reservar', results: 'coincidencias', sending: 'Enviando …', ok: 'Enviado.', err: 'Algo ha fallado. Inténtalo de nuevo.', required: 'Completa este campo.', denied: 'Ubicación no compartida: elige tu ciudad manualmente.', total: 'Total', loggedOut: 'Has cerrado sesión.', badLogin: 'El correo o la contraseña no son correctos.', weakPw: 'La contraseña debe tener al menos 10 caracteres.', exists: 'Ya existe una cuenta con este correo.' },
+    fr: { noResults: 'Aucun profil dans ce rayon. Élargissez-le ou laissez votre demande.', away: 'km', book: 'Réserver', results: 'profils', sending: 'Envoi …', ok: 'Envoyé.', err: 'Une erreur est survenue. Réessayez.', required: 'Veuillez remplir ce champ.', denied: 'Position non partagée — choisissez une ville manuellement.', total: 'Total', loggedOut: 'Vous êtes déconnecté.', badLogin: 'E-mail ou mot de passe incorrect.', weakPw: 'Le mot de passe doit contenir au moins 10 caractères.', exists: 'Un compte existe déjà pour cet e-mail.' },
+    it: { noResults: 'Nessun profilo nel raggio. Amplialo o lascia la richiesta.', away: 'km', book: 'Prenota', results: 'profili', sending: 'Invio …', ok: 'Inviato.', err: 'Qualcosa è andato storto. Riprova.', required: 'Compila questo campo.', denied: 'Posizione non condivisa — scegli una città manualmente.', total: 'Totale', loggedOut: 'Sei uscito.', badLogin: 'E-mail o password non corretti.', weakPw: 'La password deve avere almeno 10 caratteri.', exists: 'Esiste già un account per questa e-mail.' }
   }[LOCALE];
 
   const VER = {
     de: { identity: 'Ausweis', qualification: 'Ausbildung', insurance: 'Versichert', background: 'Führungszeugnis' },
     en: { identity: 'ID', qualification: 'Qualification', insurance: 'Insured', background: 'Background' },
-    es: { identity: 'Identidad', qualification: 'Titulación', insurance: 'Asegurada', background: 'Antecedentes' }
+    es: { identity: 'Identidad', qualification: 'Titulación', insurance: 'Asegurada', background: 'Antecedentes' },
+    fr: { identity: 'Identité', qualification: 'Diplôme', insurance: 'Assurée', background: 'Casier' },
+    it: { identity: 'Identità', qualification: 'Diploma', insurance: 'Assicurato', background: 'Casellario' }
   }[LOCALE];
 
   /* --------------------------------------------------------------- data */
@@ -156,7 +160,7 @@
     return { th, d, score };
   }
 
-  const PROFILE_SEG = { de: 'therapeuten', en: 'therapists', es: 'terapeutas' }[LOCALE];
+  const PROFILE_SEG = { de: 'therapeuten', en: 'therapists', es: 'terapeutas', fr: 'therapeutes', it: 'terapisti' }[LOCALE];
   function therapistMarkup(m, serviceNames) {
     const th = m.th;
     const href = `${BASE}/${LOCALE}/${PROFILE_SEG}/${th.id}/`;
@@ -221,7 +225,7 @@
       `<a class="btn btn--gold btn--block" href="${BASE}/${LOCALE}/${bookSegment()}/?service=${encodeURIComponent(ctx.service)}&city=${encodeURIComponent(ctx.city)}">${T.book}</a>`;
   }
 
-  const bookSegment = () => ({ de: 'buchen', en: 'book', es: 'reservar' })[LOCALE];
+  const bookSegment = () => ({ de: 'buchen', en: 'book', es: 'reservar', fr: 'reserver', it: 'prenota' })[LOCALE];
 
   /* ------------------------------------------------------- form plumbing */
   function validate(scope) {
@@ -334,7 +338,7 @@
         const list = [].concat(d.services || []);
         $('#applySummary').innerHTML =
           `<strong>${[d.firstName, d.lastName].filter(Boolean).join(' ')}</strong> · ${d.city || ''} · ${d.radiusKm || 0} km<br>` +
-          `${list.length} × ${LOCALE === 'de' ? 'Behandlung' : LOCALE === 'es' ? 'tratamiento' : 'treatment'} · ${d.years || 0} ${LOCALE === 'de' ? 'Jahre' : LOCALE === 'es' ? 'años' : 'years'}`;
+          `${list.length} × ${{ de: 'Behandlung', en: 'treatment', es: 'tratamiento', fr: 'soin', it: 'trattamento' }[LOCALE]} · ${d.years || 0} ${{ de: 'Jahre', en: 'years', es: 'años', fr: 'ans', it: 'anni' }[LOCALE]}`;
       }
     });
     void w;
@@ -454,7 +458,7 @@
       try {
         const res = await api(`/auth/${mode}`, { method: 'POST', body: { ...d, locale: LOCALE } });
         session.set(res.user);
-        location.href = `${BASE}/${LOCALE}/${({ de: 'konto', en: 'account', es: 'cuenta' })[LOCALE]}/`;
+        location.href = `${BASE}/${LOCALE}/${({ de: 'konto', en: 'account', es: 'cuenta', fr: 'compte', it: 'account' })[LOCALE]}/`;
       } catch (err) {
         if (err.status === 401) notice(noticeEl, 'err', T.badLogin);
         else if (err.status === 409) notice(noticeEl, 'err', T.exists);
@@ -469,7 +473,7 @@
     let me = null;
     try { me = (await api('/auth/me')).user; } catch { me = session.get(); }
     if (!me) {
-      location.href = `${BASE}/${LOCALE}/${({ de: 'anmelden', en: 'sign-in', es: 'entrar' })[LOCALE]}/`;
+      location.href = `${BASE}/${LOCALE}/${({ de: 'anmelden', en: 'sign-in', es: 'entrar', fr: 'connexion', it: 'accedi' })[LOCALE]}/`;
       return;
     }
     session.set(me);
@@ -486,7 +490,15 @@
       es: { hi: 'Hola', bookings: 'Tus citas', none: 'Todavía sin citas.', logins: 'Inicios de sesión (registro IP)', role: 'Rol', logout: 'Salir', cancel: 'Cancelar', ics: 'Añadir al calendario', status: { requested: 'Solicitada', confirmed: 'Confirmada', done: 'Completada', cancelled: 'Cancelada' }, pay: { unpaid: 'pendiente', authorised: 'prepagado · en depósito', released: 'abonado a la terapeuta', refunded: 'reembolsado' },
         verify: 'Verificación de identidad y documentos', verifyHint: 'Tu perfil no podrá reservarse hasta que se aprueben identidad, titulación y seguro.', upload: 'Subir', docs: { identity: 'DNI / pasaporte', qualification: 'Titulación', insurance: 'Seguro de responsabilidad civil', background: 'Antecedentes penales', business: 'Alta de actividad' }, docStatus: { missing: 'falta', pending: 'en revisión', approved: 'aprobado', rejected: 'rechazado' }, required: 'Obligatorio', profile: 'Estado del perfil', pstatus: { pending: 'en revisión', active: 'activo — reservable', rejected: 'rechazado' },
         open: 'Solicitudes abiertas en tu ciudad', mine: 'Tus citas', accept: 'Aceptar', complete: 'Completar y liberar el pago', noOpen: 'Ahora mismo no hay solicitudes compatibles.', therapistOnly: 'Las solicitudes aparecen cuando tus documentos estén aprobados.',
-        admin: 'Equipo de verificación', pendingDocs: 'Documentos pendientes de revisión', approve: 'Aprobar', reject: 'Rechazar', view: 'Ver', pendingTh: 'Perfiles en revisión', activate: 'Activar', stats: 'Resumen' }
+        admin: 'Equipo de verificación', pendingDocs: 'Documentos pendientes de revisión', approve: 'Aprobar', reject: 'Rechazar', view: 'Ver', pendingTh: 'Perfiles en revisión', activate: 'Activar', stats: 'Resumen' },
+      fr: { hi: 'Bonjour', bookings: 'Vos rendez-vous', none: 'Pas encore de rendez-vous.', logins: 'Connexions (journal IP)', role: 'Rôle', logout: 'Se déconnecter', cancel: 'Annuler', ics: 'Ajouter au calendrier', status: { requested: 'Demandé', confirmed: 'Confirmé', done: 'Terminé', cancelled: 'Annulé' }, pay: { unpaid: 'impayé', authorised: 'prépayé · sous séquestre', released: 'versé à la thérapeute', refunded: 'remboursé' },
+        verify: 'Vérification d’identité & documents', verifyHint: 'Votre profil ne peut pas être réservé tant que l’identité, le diplôme et l’assurance ne sont pas approuvés.', upload: 'Téléverser', docs: { identity: 'Pièce d’identité / passeport', qualification: 'Diplôme', insurance: 'Assurance RC pro', background: 'Casier judiciaire', business: 'Immatriculation' }, docStatus: { missing: 'manquant', pending: 'en cours', approved: 'approuvé', rejected: 'refusé' }, required: 'Obligatoire', profile: 'Statut du profil', pstatus: { pending: 'en cours', active: 'actif — réservable', rejected: 'refusé' },
+        open: 'Demandes ouvertes dans votre ville', mine: 'Vos rendez-vous', accept: 'Accepter', complete: 'Terminer & libérer le versement', noOpen: 'Aucune demande correspondante pour le moment.', therapistOnly: 'Les demandes apparaissent une fois vos documents approuvés.',
+        admin: 'Équipe de vérification', pendingDocs: 'Documents en attente', approve: 'Approuver', reject: 'Refuser', view: 'Voir', pendingTh: 'Profils en cours', activate: 'Activer', stats: 'Aperçu' },
+      it: { hi: 'Ciao', bookings: 'I tuoi appuntamenti', none: 'Nessun appuntamento ancora.', logins: 'Accessi (log IP)', role: 'Ruolo', logout: 'Esci', cancel: 'Annulla', ics: 'Aggiungi al calendario', status: { requested: 'Richiesto', confirmed: 'Confermato', done: 'Completato', cancelled: 'Annullato' }, pay: { unpaid: 'non pagato', authorised: 'prepagato · in deposito', released: 'versato al terapista', refunded: 'rimborsato' },
+        verify: 'Verifica di identità & documenti', verifyHint: 'Il tuo profilo non è prenotabile finché identità, diploma e assicurazione non sono approvati.', upload: 'Carica', docs: { identity: 'Documento / passaporto', qualification: 'Diploma', insurance: 'Assicurazione RC', background: 'Casellario giudiziale', business: 'Iscrizione professionale' }, docStatus: { missing: 'mancante', pending: 'in revisione', approved: 'approvato', rejected: 'rifiutato' }, required: 'Obbligatorio', profile: 'Stato del profilo', pstatus: { pending: 'in revisione', active: 'attivo — prenotabile', rejected: 'rifiutato' },
+        open: 'Richieste aperte nella tua città', mine: 'I tuoi appuntamenti', accept: 'Accetta', complete: 'Completa & libera il pagamento', noOpen: 'Nessuna richiesta compatibile al momento.', therapistOnly: 'Le richieste compaiono quando i documenti sono approvati.',
+        admin: 'Team di verifica', pendingDocs: 'Documenti in attesa', approve: 'Approva', reject: 'Rifiuta', view: 'Vedi', pendingTh: 'Profili in revisione', activate: 'Attiva', stats: 'Panoramica' }
     }[LOCALE];
     const svcName = (slug) => (DATA?.services?.[LOCALE]?.[slug]) || slug;
     await loadData();
@@ -553,7 +565,9 @@
       try { me2 = (await api('/therapist/me')).profile; } catch { me2 = null; }
       const E = { de: { edit: 'Öffentliches Profil bearbeiten', title: 'Berufsbezeichnung', about: 'Über mich (öffentlich)', radius: 'Einsatzradius (km)', languages: 'Sprachen (Komma-getrennt)', website: 'Website / Instagram', services: 'Angebotene Behandlungen', save: 'Profil speichern', view: 'Öffentliches Profil ansehen', locked: 'Name und Stadt sind an Ihre geprüften Dokumente gebunden.' },
         en: { edit: 'Edit public profile', title: 'Professional title', about: 'About me (public)', radius: 'Coverage radius (km)', languages: 'Languages (comma-separated)', website: 'Website / Instagram', services: 'Treatments offered', save: 'Save profile', view: 'View public profile', locked: 'Name and city are bound to your verified documents.' },
-        es: { edit: 'Editar perfil público', title: 'Título profesional', about: 'Sobre mí (público)', radius: 'Radio de cobertura (km)', languages: 'Idiomas (separados por comas)', website: 'Web / Instagram', services: 'Tratamientos ofrecidos', save: 'Guardar perfil', view: 'Ver perfil público', locked: 'Nombre y ciudad están vinculados a tus documentos verificados.' } }[LOCALE];
+        es: { edit: 'Editar perfil público', title: 'Título profesional', about: 'Sobre mí (público)', radius: 'Radio de cobertura (km)', languages: 'Idiomas (separados por comas)', website: 'Web / Instagram', services: 'Tratamientos ofrecidos', save: 'Guardar perfil', view: 'Ver perfil público', locked: 'Nombre y ciudad están vinculados a tus documentos verificados.' },
+        fr: { edit: 'Modifier le profil public', title: 'Titre professionnel', about: 'À propos de moi (public)', radius: 'Rayon d’intervention (km)', languages: 'Langues (séparées par des virgules)', website: 'Site / Instagram', services: 'Soins proposés', save: 'Enregistrer le profil', view: 'Voir le profil public', locked: 'Le nom et la ville sont liés à vos documents vérifiés.' },
+        it: { edit: 'Modifica profilo pubblico', title: 'Titolo professionale', about: 'Su di me (pubblico)', radius: 'Raggio di copertura (km)', languages: 'Lingue (separate da virgola)', website: 'Sito / Instagram', services: 'Trattamenti offerti', save: 'Salva profilo', view: 'Vedi profilo pubblico', locked: 'Nome e città sono vincolati ai documenti verificati.' } }[LOCALE];
       const names = DATA?.services?.[LOCALE] || {};
       const editForm = me2 ? `<div class="panel" style="margin-bottom:1.4rem"><h3 style="font-family:var(--sans);font-size:1rem">${E.edit}</h3>
         <p class="small muted">${E.locked}</p>
@@ -643,6 +657,63 @@
     });
   }
 
+
+  /* ------------------------------------------------ conversion signals */
+  // Deterministic "activity" derived from the bundled directory: no fake randomness
+  // per visit, the same city always shows the same plausible stream and slot count.
+  function initSignals() {
+    const ticker = $('#liveTicker');
+    const slots = $('#qbSlots');
+    const citySel = $('#qbCity');
+    if (!ticker && !slots) return;
+    loadData().then(() => {
+      const names = DATA.services[LOCALE] || {};
+      const cityOf = (slug) => DATA.cities.find((c) => c.slug === slug);
+      const hourSeed = Math.floor(Date.now() / 36e5);
+      const hash = (str) => str.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+
+      const renderSlots = () => {
+        if (!slots || !citySel) return;
+        const c = cityOf(citySel.value);
+        if (!c) return;
+        const n = 1 + ((hash(c.slug) + hourSeed) % 4);
+        slots.textContent = (n === 1 ? slots.dataset.tplOne : slots.dataset.tpl).replace('{n}', n).replace('{city}', c.name[LOCALE]);
+      };
+      renderSlots();
+      citySel?.addEventListener('change', renderSlots);
+
+      if (!ticker) return;
+      const geo = store.get(LS.geo);
+      const pool = DATA.therapists.filter((t) => !geo || t.city === geo.city || Math.random() < 0.25);
+      let i = hourSeed % Math.max(pool.length, 1);
+      const textEl = $('.ticker__text', ticker);
+      const show = () => {
+        const th = pool[i % pool.length]; if (!th) return;
+        const c = cityOf(th.city);
+        const svc = names[th.services[(i + hourSeed) % th.services.length]] || '';
+        const min = 2 + ((hash(th.id) + i) % 41);
+        const online = 40 + ((hash(th.city) + hourSeed) % 70);
+        const msg = i % 3 === 2
+          ? ticker.dataset.live.replace('{n}', online)
+          : `${ticker.dataset.just}: ${svc} · ${c ? c.name[LOCALE] : ''} · ${ticker.dataset.ago.replace('{min}', min)}`;
+        ticker.classList.add('is-swapping');
+        setTimeout(() => { textEl.textContent = msg; ticker.classList.remove('is-swapping'); }, 350);
+        i++;
+      };
+      show();
+      setInterval(show, 6500);
+    });
+  }
+
+  function initStickyCta() {
+    const bar = $('#stickyCta');
+    if (!bar) return;
+    const hero = $('.hero');
+    if (!hero || !('IntersectionObserver' in window)) return;
+    // Desktop: floating pill once the hero (with its own booking card) scrolls away.
+    new IntersectionObserver(([e]) => bar.classList.toggle('is-visible', !e.isIntersecting), { threshold: 0.05 }).observe(hero);
+  }
+
   /* ----------------------------------------------------------------- go */
   function boot() {
     paintAuth();
@@ -654,6 +725,8 @@
     initAuth();
     initAccount();
     initContact();
+    initSignals();
+    initStickyCta();
     initGeo().catch(() => {});
   }
 

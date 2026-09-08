@@ -2,6 +2,7 @@
 export const t = {
   de: {
     dir: 'Startseite',
+    conv: { justBooked: 'Gerade gebucht', ago: 'vor {min} Min.', slots: 'Heute noch {n} Zeitfenster in {city}', slotsOne: 'Heute nur noch 1 Zeitfenster in {city}', trust: ['ID-geprüfte Expert:innen', 'Treuhand-Zahlung', 'Gratis-Storno bis 12 Std.', 'Apple Pay · Visa · TWINT'], stickyBook: 'Jetzt buchen', stickyWa: 'WhatsApp', cardBook: 'Buchen', liveNow: '{n} Expert:innen jetzt online', guarantee: 'Zufriedenheitsgarantie: Gefällt die Behandlung nicht, erstatten wir 100 %.' },
     tagline: 'Privates Spa. Bei Ihnen zu Hause.',
     metaHomeTitle: 'Mobile Premium-Massage & Hautpflege zu Hause | {brand}',
     metaHomeDesc: 'Geprüfte Therapeutinnen und Kosmetikerinnen kommen zu Ihnen — in Deutschland, Österreich, der Schweiz und Spanien. Von Anti-Cellulite bis Signature Facial, buchbar in 60 Sekunden.',
@@ -16,7 +17,7 @@ export const t = {
       locating: 'Standort wird erkannt …',
       locatedIn: 'Erkannt: {city} — {count} Therapeut:innen in Ihrer Nähe',
       locateFail: 'Stadt wählen',
-      trustLine: '{therapists}+ geprüfte Therapeut:innen · {rating}/5 aus {reviews} Bewertungen · Antwort in ⌀ {minutes} Min.'
+      trustLine: '{clients}+ Gäste · {therapists}+ geprüfte Expert:innen · {rating}/5 aus {reviews} Bewertungen · Antwort in ⌀ {minutes} Min.'
     },
     quickBook: { title: 'Verfügbarkeit in Ihrer Nähe', service: 'Behandlung', city: 'Stadt oder Postleitzahl', when: 'Wann', duration: 'Dauer', search: 'Therapeut:innen anzeigen', useLocation: 'Meinen Standort verwenden', today: 'Heute', tomorrow: 'Morgen', thisWeek: 'Diese Woche', flexible: 'Flexibel' },
     sections: {
@@ -125,6 +126,7 @@ export const t = {
 
   en: {
     dir: 'Home',
+    conv: { justBooked: 'Just booked', ago: '{min} min ago', slots: '{n} slots left today in {city}', slotsOne: 'Only 1 slot left today in {city}', trust: ['ID-verified specialists', 'Escrow payment', 'Free cancellation up to 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Book now', stickyWa: 'WhatsApp', cardBook: 'Book', liveNow: '{n} specialists online now', guarantee: 'Satisfaction guarantee: if the treatment disappoints, we refund 100 %.' },
     tagline: 'Private spa. At your door.',
     metaHomeTitle: 'Premium Mobile Massage & Skincare at Home | {brand}',
     metaHomeDesc: 'Vetted therapists and aestheticians come to you — across Germany, Austria, Switzerland and Spain. From anti-cellulite to signature facials, booked in 60 seconds.',
@@ -139,7 +141,7 @@ export const t = {
       locating: 'Detecting your location …',
       locatedIn: 'Detected: {city} — {count} therapists near you',
       locateFail: 'Choose a city',
-      trustLine: '{therapists}+ vetted therapists · {rating}/5 from {reviews} reviews · avg. reply in {minutes} min'
+      trustLine: '{clients}+ guests · {therapists}+ vetted specialists · {rating}/5 from {reviews} reviews · avg. reply in {minutes} min'
     },
     quickBook: { title: 'Availability near you', service: 'Treatment', city: 'City or postcode', when: 'When', duration: 'Duration', search: 'Show therapists', useLocation: 'Use my location', today: 'Today', tomorrow: 'Tomorrow', thisWeek: 'This week', flexible: 'Flexible' },
     sections: {
@@ -248,6 +250,7 @@ export const t = {
 
   es: {
     dir: 'Inicio',
+    conv: { justBooked: 'Reservado ahora', ago: 'hace {min} min', slots: '{n} franjas libres hoy en {city}', slotsOne: 'Solo 1 franja libre hoy en {city}', trust: ['Especialistas con ID verificada', 'Pago en depósito', 'Cancelación gratis hasta 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Reservar', stickyWa: 'WhatsApp', cardBook: 'Reservar', liveNow: '{n} especialistas en línea', guarantee: 'Garantía de satisfacción: si el tratamiento no convence, devolvemos el 100 %.' },
     tagline: 'Spa privado. En tu puerta.',
     metaHomeTitle: 'Masaje y estética premium a domicilio | {brand}',
     metaHomeDesc: 'Terapeutas y esteticistas verificados van a tu casa en Alemania, Austria, Suiza y España. Del anticelulítico al facial signature, reservado en 60 segundos.',
@@ -262,7 +265,7 @@ export const t = {
       locating: 'Detectando tu ubicación …',
       locatedIn: 'Detectado: {city} — {count} terapeutas cerca de ti',
       locateFail: 'Elige tu ciudad',
-      trustLine: '{therapists}+ terapeutas verificados · {rating}/5 de {reviews} reseñas · respuesta media en {minutes} min'
+      trustLine: '{clients}+ clientes · {therapists}+ especialistas verificados · {rating}/5 de {reviews} reseñas · respuesta media en {minutes} min'
     },
     quickBook: { title: 'Disponibilidad cerca de ti', service: 'Tratamiento', city: 'Ciudad o código postal', when: 'Cuándo', duration: 'Duración', search: 'Ver terapeutas', useLocation: 'Usar mi ubicación', today: 'Hoy', tomorrow: 'Mañana', thisWeek: 'Esta semana', flexible: 'Flexible' },
     sections: {
@@ -367,6 +370,252 @@ export const t = {
     match: { idOk: 'Identidad verificada', certOk: 'Titulación verificada', insOk: 'Asegurada', bgOk: 'Antecedentes comprobados', title: 'Tus mejores coincidencias', distance: 'a {km} km', rating: '{rating} ({count})', speaks: 'Habla', verified: 'Verificada', topRated: 'Mejor valorada', since: 'Con nosotros desde {year}', bookWith: 'Reservar con {name}', noResults: 'Todavía no tenemos un perfil en rango para esta combinación. Amplía el radio o déjanos tu solicitud y te contactamos.', radius: 'Radio', profile: 'Ver perfil', responds: 'Responde en ~{min} min' },
     footer: { services: 'Tratamientos', company: 'Empresa', cities: 'Ciudades', legal: 'Legal', about: 'Sobre nosotros', careers: 'Empleo', press: 'Prensa', contact: 'Contacto', imprint: 'Aviso legal', privacy: 'Privacidad', terms: 'Condiciones', cookies: 'Cookies', therapists: 'Hazte terapeuta', gift: 'Tarjetas regalo', corporate: 'Para empresas', hotels: 'Para hoteles', rights: 'Todos los derechos reservados.', claim: 'Únicamente tratamientos profesionales de bienestar y estética.' },
     common: { readMore: 'Saber más', book: 'Reservar', from: 'desde', minutes: 'min', all: 'Todos', close: 'Cerrar', chooseCity: 'Elige ciudad', chooseService: 'Elige tratamiento', required: 'Obligatorio', optional: 'opcional', yes: 'Sí', no: 'No', or: 'o', sending: 'Enviando …', backHome: 'Volver al inicio' }
+  },
+  fr: {
+    dir: 'Accueil',
+    conv: { justBooked: 'Réservé à l’instant', ago: 'il y a {min} min', slots: '{n} créneaux restants aujourd’hui à {city}', slotsOne: 'Plus qu’1 créneau aujourd’hui à {city}', trust: ['Spécialistes à identité vérifiée', 'Paiement sous séquestre', 'Annulation gratuite jusqu’à 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Réserver', stickyWa: 'WhatsApp', cardBook: 'Réserver', liveNow: '{n} spécialistes en ligne', guarantee: 'Garantie satisfaction : si le soin déçoit, nous remboursons 100 %.' },
+    tagline: 'Spa privé. À votre porte.',
+    metaHomeTitle: 'Massage & soins de la peau premium à domicile | {brand}',
+    metaHomeDesc: 'Des thérapeutes et esthéticiennes vérifiées viennent chez vous — en Allemagne, Autriche, Suisse et Espagne. De l’anti-cellulite au soin visage signature, réservé en 60 secondes.',
+    nav: { services: 'Soins', skincare: 'Visage', cities: 'Villes', how: 'Comment ça marche', therapists: 'Pour les thérapeutes', journal: 'Journal', login: 'Connexion', book: 'Réserver', account: 'Mon compte' },
+    hero: {
+      eyebrow: 'Allemagne · Autriche · Suisse · Espagne',
+      title: 'Le spa vient à vous.',
+      titleAccent: 'En 90 minutes.',
+      sub: 'Des thérapeutes et esthéticiennes vérifiées arrivent avec leur table, leurs huiles bio et leur musique — chez vous, à l’hôtel ou au bureau. La disponibilité près de vous est détectée automatiquement.',
+      ctaPrimary: 'Vérifier la disponibilité',
+      ctaSecondary: 'Voir les soins',
+      locating: 'Détection de votre position …',
+      locatedIn: 'Détecté : {city} — {count} thérapeutes près de vous',
+      locateFail: 'Choisir une ville',
+      trustLine: '{clients}+ clients · {therapists}+ spécialistes vérifiés · {rating}/5 sur {reviews} avis · réponse moyenne en {minutes} min'
+    },
+    quickBook: { title: 'Disponibilité près de vous', service: 'Soin', city: 'Ville ou code postal', when: 'Quand', duration: 'Durée', search: 'Voir les thérapeutes', useLocation: 'Utiliser ma position', today: 'Aujourd’hui', tomorrow: 'Demain', thisWeek: 'Cette semaine', flexible: 'Flexible' },
+    sections: {
+      popular: 'Les plus réservés',
+      popularSub: 'Les soins que nos clients choisissent le plus souvent dans les quatre pays.',
+      catalogue: 'La carte complète',
+      catalogueSub: 'Vingt-trois soins — du travail thérapeutique profond aux soins de la peau assistés par appareil. Tout livré à votre porte.',
+      how: 'Comment ça marche',
+      howSub: 'Quatre étapes, de la demande au calme d’après.',
+      cities: 'Où nous intervenons',
+      citiesSub: 'Vingt villes dans quatre pays — et davantage chaque saison.',
+      why: 'Pourquoi {brand}',
+      whySub: 'Nous ne sommes pas un annuaire. Chaque thérapeute est vérifiée en personne.',
+      testimonials: 'Ce que disent nos clients',
+      faq: 'Questions fréquentes',
+      therapistCta: 'Vous êtes thérapeute ?',
+      nearby: 'Disponibles près de vous',
+      relatedServices: 'Se marie bien avec',
+      relatedCities: 'Également disponible à',
+      addons: 'Options',
+      districts: 'Quartiers desservis',
+      hotels: 'Hôtels partenaires'
+    },
+    how: [
+      { t: 'Position & intention', d: 'Nous détectons votre ville automatiquement via votre IP ou la position de l’appareil. Vous choisissez soin, durée et créneau.' },
+      { t: 'La bonne thérapeute', d: 'Notre algorithme pondère distance, spécialisation, langue et note, et vous propose les trois meilleurs profils près de vous.' },
+      { t: 'Confirmé en minutes', d: 'Votre thérapeute confirme en {minutes} minutes en moyenne. Le paiement est sécurisé et versé après le soin.' },
+      { t: 'Installation & rituel', d: 'Table, linge, huiles, parfum et musique arrivent avec elle, sont installés en moins de dix minutes — et ne laissent aucune trace.' }
+    ],
+    why: [
+      { t: 'Vérifiées, pas seulement inscrites', d: 'Pièce d’identité, diplôme, assurance responsabilité civile et casier judiciaire sont approuvés un à un par notre équipe. Personne ne travaille sans vérification d’identité complète — sans exception.' },
+      { t: 'Strictement thérapeutique', d: 'Luméa est un réseau de bien-être et de soins de la peau. Toute demande hors de ce cadre entraîne la fermeture immédiate et définitive du compte.' },
+      { t: 'Sécurité des deux côtés', d: 'Comptes vérifiés, statut de rendez-vous partagé, contact d’urgence dans l’app et une équipe de confiance joignable 24h/24.' },
+      { t: 'Rémunération juste', d: 'Les clients paient d’avance ; le montant est conservé sous séquestre et versé après le soin. Les thérapeutes gardent 80 % et 100 % des pourboires — sans risque d’impayé.' },
+      { t: 'Tout compris', d: 'Table, matelas chauffant, linge propre, huiles bio, parfum, musique et déplacement sont inclus dans le prix affiché.' },
+      { t: 'Quatre pays, un standard', d: 'Les mêmes standards à Berlin, Vienne, Zurich et Marbella — avec des thérapeutes formées localement.' }
+    ],
+    faq: [
+      { q: 'En combien de temps quelqu’un peut-il arriver ?', a: 'Dans les villes principales, le délai minimum est d’environ 90 minutes. Nous recommandons de réserver 24 heures à l’avance, et trois jours pour les rituels en duo.' },
+      { q: 'Qu’est-ce qui est compris dans le prix ?', a: 'Déplacement, table de massage professionnelle, matelas chauffant, linge propre, huiles bio, parfum, musique, installation et rangement. Aucun supplément en dehors des options.' },
+      { q: 'Comment payer ?', a: 'D’avance, à la réservation, par carte, Apple Pay, Google Pay, prélèvement SEPA ou TWINT en Suisse. Le montant est conservé sous séquestre et versé à la thérapeute uniquement une fois le soin terminé — si la thérapeute annule ou ne vient pas, vous êtes intégralement remboursé. Le pourboire est facultatif et revient entièrement à la thérapeute.' },
+      { q: 'Chaque thérapeute est-elle vérifiée ?', a: 'Oui, sans exception. Aucun profil n’est mis en ligne — même temporairement — sans pièce d’identité vérifiée, diplôme vérifié et assurance responsabilité civile valide. Nous vérifions en plus le casier judiciaire et l’immatriculation. Les sceaux de vérification figurent sur chaque profil.' },
+      { q: 'Puis-je annuler gratuitement ?', a: 'Oui, sans frais jusqu’à 12 heures avant le rendez-vous. Au-delà, nous facturons 50 %, car votre thérapeute a déjà bloqué le déplacement.' },
+      { q: 'Le service est-il strictement thérapeutique ?', a: 'Oui. Luméa organise uniquement des soins professionnels de bien-être, de massage et de la peau. Toute demande au-delà entraîne l’exclusion immédiate et définitive.' },
+      { q: 'Travaillez-vous avec des hôtels et des entreprises ?', a: 'Oui. Nous intervenons dans les suites d’hôtel, villas, yachts et sites d’entreprise dans les vingt villes. Les demandes passent par le formulaire de contact.' },
+      { q: 'Comment les thérapeutes sont-elles vérifiées ?', a: 'Quatre étapes : contrôle des documents (pièce d’identité, diplôme, assurance, casier judiciaire, immatriculation), vérification d’identité par vidéo, références et séance d’essai en personne. Un profil devient réservable seulement après approbation de tous les documents obligatoires. Environ une candidature sur quatre est acceptée.' },
+      { q: 'Et si j’ai très peu de place ?', a: 'Environ 2 × 2,5 mètres suffisent. Avec moins, nous travaillons sur chaise de massage ou sur tapis — prévenez-nous simplement.' }
+    ],
+    service: { from: 'dès', per: 'pour {min} min', book: 'Réserver ce soin', duration: 'Durée', pressure: 'Intensité', included: 'Inclus', ritual: 'Le déroulé', benefits: 'Bienfaits', forWhom: 'Pour qui', faqTitle: 'Questions sur ce soin', bookIn: 'Réserver {service} à {city}', allCities: 'Disponible dans toutes les villes' },
+    city: { title: '{service} à {city}', heroTitle: 'Massage & soins de la peau à domicile à {city}', intro: 'Des thérapeutes vérifiées viennent à vous — à la maison, à l’hôtel ou au bureau. {count} profils sont actuellement actifs à {city}.', therapistCount: '{count} thérapeutes actifs', bookNow: 'Vérifier la disponibilité à {city}', servicesIn: 'Soins à {city}', localTitle: '{city} en détail' },
+    auth: {
+      loginTitle: 'Bon retour',
+      loginSub: 'Connectez-vous pour gérer vos rendez-vous, enregistrer vos favoris et réserver plus vite.',
+      registerTitle: 'Créer votre compte',
+      registerSub: 'Deux minutes — ensuite vous réservez en un clic.',
+      email: 'Adresse e-mail', password: 'Mot de passe', passwordHint: 'Au moins 10 caractères', name: 'Nom complet', phone: 'Téléphone',
+      login: 'Se connecter', register: 'Créer un compte', logout: 'Se déconnecter',
+      asClient: 'Je veux réserver', asTherapist: 'Je suis thérapeute',
+      haveAccount: 'Déjà un compte ?', noAccount: 'Pas encore de compte ?',
+      forgot: 'Mot de passe oublié ?', remember: 'Rester connecté',
+      terms: 'En vous inscrivant, vous acceptez les Conditions et la Politique de confidentialité.',
+      loginIpNote: 'Pour votre sécurité, nous enregistrons l’adresse IP, l’heure et l’appareil de chaque connexion. Vous pouvez consulter toutes les sessions dans votre compte.'
+    },
+    apply: {
+      title: 'Rejoindre {brand}',
+      sub: 'Nous acceptons environ une candidature sur quatre — et versons 80 %, un forfait déplacement garanti et le contrôle total de votre agenda.',
+      steps: ['Vous', 'Qualification', 'Soins', 'Zone', 'Vérification'],
+      fields: {
+        firstName: 'Prénom', lastName: 'Nom', email: 'E-mail', phone: 'Téléphone / WhatsApp',
+        country: 'Pays', city: 'Ville', postal: 'Code postal', radius: 'Rayon d’intervention (km)',
+        languages: 'Langues', years: 'Années d’expérience', qualification: 'Formation / diplôme',
+        certificates: 'Certificats (à téléverser plus tard)', insurance: 'Assurance responsabilité civile professionnelle',
+        services: 'Soins proposés', equipment: 'Votre équipement', availability: 'Disponibilités',
+        website: 'Site web ou Instagram (facultatif)', about: 'Courte présentation', password: 'Mot de passe de votre compte'
+      },
+      equipmentOptions: ['Table de massage portable', 'Matelas chauffant', 'Chaise de massage', 'Futon thaï', 'Kit pierres chaudes', 'Appareils esthétiques', 'Appareil LED', 'Huiles bio personnelles'],
+      availabilityOptions: ['Matins en semaine', 'Après-midis en semaine', 'Soirs en semaine', 'Week-ends', 'Nuit (22h–2h)', 'Court préavis (moins de 3 h)'],
+      submit: 'Envoyer ma candidature',
+      next: 'Continuer', back: 'Retour',
+      success: 'Candidature reçue. Nous examinons vos informations et revenons vers vous sous 48 heures avec l’étape suivante.',
+      benefitsTitle: 'Ce que vous obtenez',
+      benefits: [
+        { t: '80 %, tous les pourboires', d: 'Les clients paient d’avance — vous ne portez aucun risque d’impayé. Versement après chaque soin terminé, réglé chaque mardi. Aucun frais d’entrée ni mensuel.' },
+        { t: 'Vous fixez rayon et horaires', d: 'Zone, disponibilités et niveau de prix sont à vous — modifiables à tout moment.' },
+        { t: 'Clients vérifiés', d: 'Chaque client est vérifié par e-mail et téléphone. Les demandes hors cadre thérapeutique sont supprimées immédiatement.' },
+        { t: 'Système de sécurité', d: 'Statut de rendez-vous partagé, contact d’urgence, check-in sur place et équipe de confiance 24h/24.' },
+        { t: 'Demande prévisible', d: 'Habitués, hôtels partenaires et contrats d’entreprise créent des rendez-vous récurrents plutôt que ponctuels.' },
+        { t: 'Formation continue', d: 'Accès à des formations avancées en massage oncologique, prénatal et soins par appareil.' }
+      ],
+      requirementsTitle: 'Conditions',
+      requirements: ['Pièce d’identité ou passeport valide (vérification avec contrôle vidéo)', 'Formation complète en massage, physiothérapie ou esthétique — le diplôme est vérifié', 'Assurance responsabilité civile professionnelle (police vérifiée)', 'Extrait de casier judiciaire vierge de moins de 3 mois', 'Statut d’indépendant enregistré dans le pays d’exercice', 'Équipement mobile personnel et au moins deux ans d’expérience']
+    },
+    booking: {
+      title: 'Demander un rendez-vous', step1: 'Soin', step2: 'Lieu & heure', step3: 'Contact', step4: 'Confirmation',
+      address: 'Adresse', addressHint: 'Rue, numéro, étage/interphone', notes: 'Notes pour votre thérapeute',
+      notesHint: 'Douleurs, pression souhaitée, allergies, animaux, stationnement …',
+      date: 'Date', time: 'Heure', persons: 'Personnes', place: 'Où ?',
+      placeOptions: ['Domicile', 'Hôtel / suite', 'Bureau', 'Maison de vacances / villa', 'Yacht'],
+      summary: 'Récapitulatif', total: 'Total', payLater: 'Prépaiement sécurisé — conservé sous séquestre, versé à la thérapeute uniquement après le soin',
+      submit: 'Envoyer une demande sans engagement', success: 'Demande envoyée. Votre thérapeute confirme généralement sous {minutes} minutes.'
+    },
+    match: { idOk: 'Identité vérifiée', certOk: 'Diplôme vérifié', insOk: 'Assurée', bgOk: 'Casier vérifié', title: 'Vos meilleurs profils', distance: 'à {km} km', rating: '{rating} ({count})', speaks: 'Parle', verified: 'Vérifiée', topRated: 'Mieux notée', since: 'Avec nous depuis {year}', bookWith: 'Réserver avec {name}', noResults: 'Aucun profil dans ce rayon pour cette combinaison. Élargissez le rayon ou laissez votre demande — nous revenons vers vous.', radius: 'Rayon', profile: 'Voir le profil', responds: 'Répond en ~{min} min' },
+    footer: { services: 'Soins', company: 'Entreprise', cities: 'Villes', legal: 'Légal', about: 'À propos', careers: 'Carrières', press: 'Presse', contact: 'Contact', imprint: 'Mentions légales', privacy: 'Confidentialité', terms: 'Conditions', cookies: 'Cookies', therapists: 'Devenir thérapeute', gift: 'Cartes cadeaux', corporate: 'Pour les entreprises', hotels: 'Pour les hôtels', rights: 'Tous droits réservés.', claim: 'Uniquement des soins professionnels de bien-être et de la peau.' },
+    common: { readMore: 'En savoir plus', book: 'Réserver', from: 'dès', minutes: 'min', all: 'Tous', close: 'Fermer', chooseCity: 'Choisir une ville', chooseService: 'Choisir un soin', required: 'Obligatoire', optional: 'facultatif', yes: 'Oui', no: 'Non', or: 'ou', sending: 'Envoi …', backHome: 'Retour à l’accueil' }
+  },
+  it: {
+    dir: 'Home',
+    conv: { justBooked: 'Prenotato adesso', ago: '{min} min fa', slots: '{n} fasce libere oggi a {city}', slotsOne: 'Solo 1 fascia libera oggi a {city}', trust: ['Specialisti con identità verificata', 'Pagamento in deposito', 'Cancellazione gratuita fino a 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Prenota ora', stickyWa: 'WhatsApp', cardBook: 'Prenota', liveNow: '{n} specialisti online ora', guarantee: 'Garanzia di soddisfazione: se il trattamento delude, rimborsiamo il 100 %.' },
+    tagline: 'Spa privata. A casa tua.',
+    metaHomeTitle: 'Massaggi e skincare premium a domicilio | {brand}',
+    metaHomeDesc: 'Terapisti ed estetiste verificati vengono da te — in Germania, Austria, Svizzera e Spagna. Dall’anticellulite al facial signature, prenotato in 60 secondi.',
+    nav: { services: 'Trattamenti', skincare: 'Skincare', cities: 'Città', how: 'Come funziona', therapists: 'Per i terapisti', journal: 'Journal', login: 'Accedi', book: 'Prenota', account: 'Il mio account' },
+    hero: {
+      eyebrow: 'Germania · Austria · Svizzera · Spagna',
+      title: 'La spa viene da te.',
+      titleAccent: 'In 90 minuti.',
+      sub: 'Terapisti ed estetiste verificati arrivano con lettino, oli biologici e musica — a casa, in hotel o in ufficio. La disponibilità vicino a te viene rilevata automaticamente.',
+      ctaPrimary: 'Verifica disponibilità',
+      ctaSecondary: 'Vedi i trattamenti',
+      locating: 'Rilevamento della posizione …',
+      locatedIn: 'Rilevato: {city} — {count} terapisti vicino a te',
+      locateFail: 'Scegli una città',
+      trustLine: '{clients}+ ospiti · {therapists}+ specialisti verificati · {rating}/5 da {reviews} recensioni · risposta media in {minutes} min'
+    },
+    quickBook: { title: 'Disponibilità vicino a te', service: 'Trattamento', city: 'Città o CAP', when: 'Quando', duration: 'Durata', search: 'Mostra terapisti', useLocation: 'Usa la mia posizione', today: 'Oggi', tomorrow: 'Domani', thisWeek: 'Questa settimana', flexible: 'Flessibile' },
+    sections: {
+      popular: 'I più prenotati',
+      popularSub: 'I trattamenti che i nostri ospiti scelgono più spesso in tutti e quattro i Paesi.',
+      catalogue: 'Il menu completo',
+      catalogueSub: 'Ventitré trattamenti — dal lavoro terapeutico profondo alla skincare con apparecchiature. Tutto a domicilio.',
+      how: 'Come funziona',
+      howSub: 'Quattro passaggi, dalla richiesta alla quiete di dopo.',
+      cities: 'Dove operiamo',
+      citiesSub: 'Venti città in quattro Paesi — e altre ogni stagione.',
+      why: 'Perché {brand}',
+      whySub: 'Non siamo una bacheca di annunci. Ogni terapista è verificato di persona.',
+      testimonials: 'Cosa dicono gli ospiti',
+      faq: 'Domande frequenti',
+      therapistCta: 'Sei un terapista?',
+      nearby: 'Disponibili vicino a te',
+      relatedServices: 'Si abbina bene con',
+      relatedCities: 'Disponibile anche a',
+      addons: 'Extra opzionali',
+      districts: 'Quartieri coperti',
+      hotels: 'Hotel partner'
+    },
+    how: [
+      { t: 'Posizione e intento', d: 'Rileviamo la tua città automaticamente dall’IP o dalla posizione del dispositivo. Tu scegli trattamento, durata e fascia oraria.' },
+      { t: 'Il terapista giusto', d: 'Il nostro matching pesa distanza, specializzazione, lingua e valutazione e ti mostra i tre profili migliori vicino a te.' },
+      { t: 'Confermato in minuti', d: 'Il tuo terapista conferma in media in {minutes} minuti. Il pagamento è custodito e versato solo dopo il trattamento.' },
+      { t: 'Allestimento e rituale', d: 'Lettino, biancheria, oli, profumo e musica arrivano con lei, si montano in meno di dieci minuti — e non lasciano traccia.' }
+    ],
+    why: [
+      { t: 'Verificati, non solo iscritti', d: 'Documento, diploma, assicurazione RC e casellario giudiziale vengono approvati uno a uno dal nostro team. Nessuno lavora senza verifica completa dell’identità — senza eccezioni.' },
+      { t: 'Rigorosamente terapeutico', d: 'Luméa è una rete di benessere e skincare. Qualsiasi richiesta fuori da questo ambito comporta la chiusura immediata e definitiva dell’account.' },
+      { t: 'Sicurezza per entrambi', d: 'Account verificati, stato dell’appuntamento condiviso, contatto di emergenza in app e un team di fiducia raggiungibile 24 ore su 24.' },
+      { t: 'Compenso equo', d: 'Gli ospiti pagano in anticipo; l’importo resta in deposito e viene versato dopo il trattamento. I terapisti trattengono l’80 % e il 100 % delle mance — senza rischio di insoluto.' },
+      { t: 'Tutto incluso', d: 'Lettino, materassino riscaldato, biancheria pulita, oli biologici, profumo, musica e trasferta sono nel prezzo indicato.' },
+      { t: 'Quattro Paesi, uno standard', d: 'Gli stessi standard a Berlino, Vienna, Zurigo e Marbella — con terapisti formati localmente.' }
+    ],
+    faq: [
+      { q: 'In quanto tempo può arrivare qualcuno?', a: 'Nelle città principali il preavviso minimo è di circa 90 minuti. Consigliamo di prenotare con 24 ore di anticipo, tre giorni per i rituali in coppia.' },
+      { q: 'Cosa è incluso nel prezzo?', a: 'Trasferta, lettino professionale, materassino riscaldato, biancheria pulita, oli biologici, profumo, musica, montaggio e smontaggio. Nessun extra oltre agli optional.' },
+      { q: 'Come si paga?', a: 'In anticipo alla prenotazione con carta, Apple Pay, Google Pay, addebito SEPA o TWINT in Svizzera. L’importo resta in deposito e viene versato al terapista solo a trattamento completato — se il terapista annulla o non si presenta, ricevi il rimborso integrale. La mancia è facoltativa e va interamente al terapista.' },
+      { q: 'Ogni terapista è verificato nell’identità?', a: 'Sì, senza eccezioni. Nessun profilo va online — nemmeno temporaneamente — senza documento verificato, diploma verificato e assicurazione RC valida. Controlliamo inoltre casellario giudiziale e iscrizione professionale. I sigilli di verifica sono visibili su ogni profilo.' },
+      { q: 'Posso annullare gratuitamente?', a: 'Sì, senza costi fino a 12 ore prima. Oltre, addebitiamo il 50 %, perché il terapista ha già bloccato la trasferta.' },
+      { q: 'Il servizio è rigorosamente terapeutico?', a: 'Sì. Luméa organizza esclusivamente trattamenti professionali di benessere, massaggio e skincare. Qualsiasi richiesta oltre comporta l’esclusione immediata e definitiva.' },
+      { q: 'Lavorate con hotel e aziende?', a: 'Sì. Serviamo suite d’hotel, ville, yacht e sedi aziendali in tutte le venti città. Le richieste passano dal modulo di contatto.' },
+      { q: 'Come vengono verificati i terapisti?', a: 'Quattro fasi: revisione documentale (documento, diploma, assicurazione RC, casellario, iscrizione professionale), riscontro dell’identità in video, referenze e sessione di prova di persona. Un profilo diventa prenotabile solo dopo l’approvazione di tutti i documenti obbligatori. Circa una candidatura su quattro viene accettata.' },
+      { q: 'E se ho poco spazio?', a: 'Bastano circa 2 × 2,5 metri. Con meno, lavoriamo su sedia da massaggio o sul materassino — basta avvisarci.' }
+    ],
+    service: { from: 'da', per: 'per {min} min', book: 'Prenota questo trattamento', duration: 'Durata', pressure: 'Intensità', included: 'Incluso', ritual: 'La sequenza', benefits: 'Benefici', forWhom: 'Indicato per', faqTitle: 'Domande su questo trattamento', bookIn: 'Prenota {service} a {city}', allCities: 'Disponibile in tutte le città' },
+    city: { title: '{service} a {city}', heroTitle: 'Massaggi e skincare a domicilio a {city}', intro: 'Terapisti verificati vengono da te — a casa, in hotel o in ufficio. {count} profili sono attualmente attivi a {city}.', therapistCount: '{count} terapisti attivi', bookNow: 'Verifica disponibilità a {city}', servicesIn: 'Trattamenti a {city}', localTitle: '{city} nel dettaglio' },
+    auth: {
+      loginTitle: 'Bentornato',
+      loginSub: 'Accedi per gestire gli appuntamenti, salvare i preferiti e prenotare più in fretta.',
+      registerTitle: 'Crea il tuo account',
+      registerSub: 'Due minuti — poi prenoti con un clic.',
+      email: 'Indirizzo e-mail', password: 'Password', passwordHint: 'Almeno 10 caratteri', name: 'Nome e cognome', phone: 'Telefono',
+      login: 'Accedi', register: 'Crea account', logout: 'Esci',
+      asClient: 'Voglio prenotare', asTherapist: 'Sono un terapista',
+      haveAccount: 'Hai già un account?', noAccount: 'Non hai ancora un account?',
+      forgot: 'Password dimenticata?', remember: 'Resta connesso',
+      terms: 'Registrandoti accetti le Condizioni e l’Informativa sulla privacy.',
+      loginIpNote: 'Per sicurezza registriamo indirizzo IP, orario e dispositivo di ogni accesso. Puoi consultare tutte le sessioni nel tuo account.'
+    },
+    apply: {
+      title: 'Entra in {brand}',
+      sub: 'Accettiamo circa una candidatura su quattro — e paghiamo l’80 %, una trasferta garantita e il pieno controllo della tua agenda.',
+      steps: ['Su di te', 'Qualifica', 'Trattamenti', 'Zona', 'Verifica'],
+      fields: {
+        firstName: 'Nome', lastName: 'Cognome', email: 'E-mail', phone: 'Telefono / WhatsApp',
+        country: 'Paese', city: 'Città', postal: 'CAP', radius: 'Raggio di copertura (km)',
+        languages: 'Lingue', years: 'Anni di esperienza', qualification: 'Formazione / diploma',
+        certificates: 'Certificati (da caricare dopo)', insurance: 'Assicurazione RC professionale',
+        services: 'Trattamenti offerti', equipment: 'La tua attrezzatura', availability: 'Disponibilità',
+        website: 'Sito web o Instagram (facoltativo)', about: 'Breve presentazione', password: 'Password del tuo account'
+      },
+      equipmentOptions: ['Lettino portatile', 'Materassino riscaldato', 'Sedia da massaggio', 'Futon thai', 'Set pietre calde', 'Apparecchiature estetiche', 'Dispositivo LED', 'Oli biologici propri'],
+      availabilityOptions: ['Mattine feriali', 'Pomeriggi feriali', 'Sere feriali', 'Weekend', 'Notte (22–02)', 'Breve preavviso (meno di 3 h)'],
+      submit: 'Invia candidatura',
+      next: 'Continua', back: 'Indietro',
+      success: 'Candidatura ricevuta. Esaminiamo i tuoi dati e ti ricontattiamo entro 48 ore con il passaggio successivo.',
+      benefitsTitle: 'Cosa ottieni',
+      benefits: [
+        { t: '80 %, tutte le mance', d: 'Gli ospiti pagano in anticipo — nessun rischio di insoluto. Pagamento dopo ogni trattamento completato, liquidato ogni martedì. Nessuna quota d’ingresso o mensile.' },
+        { t: 'Decidi tu raggio e orari', d: 'Zona, disponibilità e livello di prezzo li definisci tu e li cambi quando vuoi.' },
+        { t: 'Ospiti verificati', d: 'Ogni ospite è verificato via e-mail e telefono. Le richieste fuori dall’ambito terapeutico vengono rimosse subito.' },
+        { t: 'Sistema di sicurezza', d: 'Stato dell’appuntamento condiviso, contatto di emergenza, check-in sul posto e team di fiducia 24 ore su 24.' },
+        { t: 'Domanda prevedibile', d: 'Clienti abituali, hotel partner e contratti aziendali creano appuntamenti ricorrenti invece di singoli.' },
+        { t: 'Formazione continua', d: 'Accesso a corsi avanzati in massaggio oncologico, prenatale e skincare con apparecchiature.' }
+      ],
+      requirementsTitle: 'Requisiti',
+      requirements: ['Documento d’identità o passaporto valido (verifica con riscontro video)', 'Formazione completa in massaggio, fisioterapia o estetica — il diploma viene verificato', 'Assicurazione RC professionale (polizza verificata)', 'Casellario giudiziale pulito, non più vecchio di 3 mesi', 'Partita IVA o attività registrata nel Paese di lavoro', 'Attrezzatura mobile propria e almeno due anni di esperienza']
+    },
+    booking: {
+      title: 'Richiedi un appuntamento', step1: 'Trattamento', step2: 'Luogo e ora', step3: 'Contatto', step4: 'Conferma',
+      address: 'Indirizzo', addressHint: 'Via, numero, piano/citofono', notes: 'Note per il terapista',
+      notesHint: 'Disturbi, pressione preferita, allergie, animali, parcheggio …',
+      date: 'Data', time: 'Ora', persons: 'Persone', place: 'Dove?',
+      placeOptions: ['Casa', 'Hotel / suite', 'Ufficio', 'Casa vacanze / villa', 'Yacht'],
+      summary: 'Riepilogo', total: 'Totale', payLater: 'Prepagamento sicuro — in deposito, versato al terapista solo dopo il trattamento',
+      submit: 'Invia richiesta senza impegno', success: 'Richiesta inviata. Il terapista di solito conferma entro {minutes} minuti.'
+    },
+    match: { idOk: 'Identità verificata', certOk: 'Diploma verificato', insOk: 'Assicurato', bgOk: 'Casellario verificato', title: 'I tuoi profili migliori', distance: 'a {km} km', rating: '{rating} ({count})', speaks: 'Parla', verified: 'Verificato', topRated: 'Più votato', since: 'Con noi dal {year}', bookWith: 'Prenota con {name}', noResults: 'Nessun profilo nel raggio per questa combinazione. Amplia il raggio o lascia la richiesta — ti ricontattiamo.', radius: 'Raggio', profile: 'Vedi profilo', responds: 'Risponde in ~{min} min' },
+    footer: { services: 'Trattamenti', company: 'Azienda', cities: 'Città', legal: 'Legale', about: 'Chi siamo', careers: 'Lavora con noi', press: 'Stampa', contact: 'Contatti', imprint: 'Note legali', privacy: 'Privacy', terms: 'Condizioni', cookies: 'Cookie', therapists: 'Diventa terapista', gift: 'Buoni regalo', corporate: 'Per le aziende', hotels: 'Per gli hotel', rights: 'Tutti i diritti riservati.', claim: 'Esclusivamente trattamenti professionali di benessere e skincare.' },
+    common: { readMore: 'Scopri di più', book: 'Prenota', from: 'da', minutes: 'min', all: 'Tutti', close: 'Chiudi', chooseCity: 'Scegli una città', chooseService: 'Scegli un trattamento', required: 'Obbligatorio', optional: 'facoltativo', yes: 'Sì', no: 'No', or: 'o', sending: 'Invio …', backHome: 'Torna alla home' }
   }
 };
 
