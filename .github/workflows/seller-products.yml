@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = verilen kalemler için SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -95,6 +95,119 @@ jobs:
       # biriminde verilirse buradaki tek bölme onu siparişin damgalı kuruyla
       # geri çevirir ve sonuç yazdırılır -- operatörün belgede göreceği rakamı
       # elle ters hesaplaması gerekmesin diye.
+      - name: Sipariş TASLAĞI (salt okunur, hiçbir şey yazmaz)
+        # Operator, 8 Eyl 2026: dort kalemlik bir siparis + fatura istendi
+        # (secilen bedenler, dropship fiyati = toptan + %20, kargo 30 EUR).
+        # KURAL 5 faturayi operator onayina bagliyor ve KURAL 5d kesimden ONCE
+        # taslak gormeyi sart kosuyor; ustelik kodda ELLE siparis olusturma yolu
+        # hic yok, yani once ne yazilacaginin rakamlari goruluyor.
+        # Bu adim HICBIR SEY YAZMAZ: hesabi ve ilanlari okur, fiyatlari kodun
+        # kendi fonksiyonundan (vestra_dropship_unit_price) turetir ve toplami
+        # yazar. Rakami elle hesaplayip mektuba/faturaya koymak, bu deponun
+        # tekrar tekrar kaydettigi hata.
+        #   payload         : sku:beden:adet virgulle  (ornek: S74GD1399:M:1,662853TJW90:L:1)
+        #   issue_shipping  : kargo EUR
+        #   issue_ref       : hesabi bulmak icin AD parcasi (e-posta DEGIL -- girdi herkese acik)
+        if: ${{ github.event.inputs.admin_mode == 'order_draft' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          OD_LINES: ${{ github.event.inputs.payload }}
+          OD_SHIP:  ${{ github.event.inputs.issue_shipping }}
+          OD_WHO:   ${{ github.event.inputs.issue_ref }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 4m
+          envs: OD_LINES,OD_SHIP,OD_WHO
+          script: |
+            set -e
+            cat > /tmp/vestra_orddraft.php <<'PHPEOF'
+            <?php
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/money.php";
+            require_once $doc."/inc/dropship.php";
+
+            $mask = function (string $e): string {
+                if ($e === '') return '-';
+                $a = explode('@', $e, 2);
+                return mb_substr($a[0], 0, 1).'***@'.($a[1] ?? '?');
+            };
+
+            /* 1. HESAP. E-posta girdiye yazilmaz (herkese acik); ad parcasiyla
+               araniyor ve TEK esleme sart -- iki Negulescu varsa hangisi
+               oldugunu tahmin etmek, faturayi yanlis kisiye kesmek olurdu. */
+            $who = mb_strtolower(trim((string)getenv('OD_WHO')));
+            $hits = [];
+            if ($who !== '') {
+                foreach (auth_accounts() as $a) {
+                    $hay = mb_strtolower(($a['name'] ?? '').' '.($a['company'] ?? '').' '.($a['email'] ?? ''));
+                    if (mb_strpos($hay, $who) !== false) $hits[] = $a;
+                }
+            }
+            echo "== HESAP ==\n";
+            if (count($hits) !== 1) {
+                printf("  '%s' icin %d hesap bulundu -- tek esleme sart, DURDUM\n", $who, count($hits));
+                foreach ($hits as $a) printf("    %s <%s>\n", (string)($a['company'] ?: ($a['name'] ?? '?')), $mask((string)($a['email'] ?? '')));
+                exit(1);
+            }
+            $acc = $hits[0];
+            printf("  %s <%s>\n", (string)($acc['company'] ?: ($acc['name'] ?? '?')), $mask((string)($acc['email'] ?? '')));
+            printf("  tip=%s  durum=%s  kyb=%s  fiyat kapisi=%s\n",
+                (string)($acc['type'] ?? '?'), (string)($acc['status'] ?? '?'), (string)($acc['kyb_status'] ?? '?'),
+                auth_prices_unlocked($acc) ? 'ACIK' : 'KAPALI');
+            printf("  ulke=%s  vat=%s\n", (string)($acc['country'] ?? '-'),
+                trim((string)($acc['vat_id'] ?? '')) !== '' ? 'kayitli' : 'YOK');
+            if (!auth_prices_unlocked($acc)) echo "  UYARI: fiyat kapisi kapali -- bu hesap sitede fiyat goremiyor\n";
+
+            /* 2. KALEMLER. Fiyat KODUN kendi fonksiyonundan; elle hesaplanmiyor. */
+            echo "\n== KALEMLER (dropship fiyati = en dusuk kademe + %".(int)round(VESTRA_DROPSHIP_MARKUP*100).") ==\n";
+            $all = vestra_products();
+            $bySku = [];
+            foreach ($all as $p) { $sk = trim((string)($p['sku'] ?? '')); if ($sk !== '') $bySku[mb_strtolower($sk)] = $p; }
+
+            $subtotal = 0.0; $problems = 0; $lines = [];
+            foreach (array_filter(array_map('trim', explode(',', (string)getenv('OD_LINES')))) as $spec) {
+                $parts = array_map('trim', explode(':', $spec));
+                $sku = $parts[0] ?? ''; $size = $parts[1] ?? ''; $qty = max(1, (int)($parts[2] ?? 1));
+                $p = $bySku[mb_strtolower($sku)] ?? null;
+                if (!$p) { printf("  !! %-24s KATALOGDA YOK\n", $sku); $problems++; continue; }
+                $unit = vestra_dropship_unit_price($p, null);   // abonelik YOK -> zamli fiyat
+                if ($unit === null || $unit <= 0) { printf("  !! %-24s dropship fiyati YOK (kapali ya da kademesiz)\n", $sku); $problems++; continue; }
+                /* Beden ilanda gercekten var mi? Olmayan bedene fatura kesmek,
+                   gonderilemeyecek bir sey satmak olurdu. */
+                $sizes = array_map('strval', (array)($p['sizes'] ?? []));
+                $sizeOk = $sizes === [] || in_array($size, $sizes, true);
+                $lineTot = round($unit * $qty, 2);
+                $subtotal += $lineTot;
+                $lines[] = [$sku, $size, $qty, $unit, $lineTot];
+                printf("  %-24s %-4s x%-2d  %8s  = %9s   %s\n", $sku, $size, $qty,
+                    number_format($unit, 2), number_format($lineTot, 2),
+                    $sizeOk ? '' : '!! bu beden ilanda YOK: '.implode('/', $sizes));
+                if (!$sizeOk) $problems++;
+                printf("      %s %s\n", (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
+            }
+
+            $ship = round((float)str_replace(',', '.', (string)getenv('OD_SHIP')), 2);
+            $total = round($subtotal + $ship, 2);
+            echo "\n== TOPLAM ==\n";
+            printf("  mal      : EUR %10s\n", number_format($subtotal, 2));
+            printf("  kargo    : EUR %10s\n", number_format($ship, 2));
+            printf("  TOPLAM   : EUR %10s\n", number_format($total, 2));
+            $r = vestra_fx('USD');
+            if ($r > 0) printf("  (~US$%s, 1 EUR = %s)\n", number_format($total * $r, 2), number_format($r, 4));
+            printf("\n  kalem sayisi: %d   sorunlu: %d\n", count($lines), $problems);
+            echo $problems ? "  SONUC: SORUN VAR -- yukaridaki satirlar duzelmeden siparis YAZILMAMALI\n"
+                           : "  SONUC: taslak temiz. HICBIR SEY YAZILMADI (salt okunur).\n";
+            PHPEOF
+            php /tmp/vestra_orddraft.php; rc=$?
+            rm -f /tmp/vestra_orddraft.php
+            exit $rc
+
       - name: Dropship ödeme anahtarı (aç / kapat)
         # Operator, 8 Eyl 2026: "Dropshippingi tekrar aci".
         # Ayni anahtar Admin ▸ Dropship'te de var; bu, ayni kaydin ikinci kapisi
