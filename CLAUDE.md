@@ -1725,6 +1725,42 @@ dönmek zorundadir"*).
   Gönderilen: 4 Winter + 1 soğuk = **5 mektup, 0 hata**. Yani günlük 300'lük kota
   değil, **gönderilecek adres** darboğaz. Hacim isteniyorsa sıradaki iş yeni lead
   keşfidir (`discover-city.yml` / `add-and-send.yml`), yeni kampanya metni değil.
+- **KEŞFİN VERİMİ ÖLÇÜLDÜ: ~1 lead/şehir** (8 Eyl 2026; operatör: *"kendinde bul"*,
+  *"yeni lead keşfi de yap"*, *"200 adrese"*). `discover-city.yml` iki koşu,
+  8 şehir, ~30 dakika → **7 yeni lead**. Şehir başına dökümü, ki asıl bilgi bu:
+
+  | Şehir | Taranan | E-postalı | Yeni |
+  |---|---:|---:|---:|
+  | Bologna, Valencia | 160 | 14 | **0** (hepsi zaten kayıtlı) |
+  | Lyon | 80 | 23 | 4 |
+  | São Paulo, Mexico City, Buenos Aires | 240 | — | **0** |
+  | Santiago | 80 | 3 | 3 |
+  | Hamburg | 0 | 0 | 0 (Overpass boş döndü) |
+
+  **200 adres ≈ 200 şehir ≈ 13 saat koşu.** Avrupa'nın büyük şehirleri doymuş
+  (Bologna/Valencia'da 14 e-postalı dükkânın 14'ü de kayıtlıydı); Latin Amerika
+  da beklenenin aksine kuru çıktı. Bir sonraki sefer bu tabloyu oku: "keşif
+  yapalım" bir gün sürer, bir öğleden sonra değil.
+- **Havuzun "uygun" dediği aday, gönderilebilir aday DEĞİL.** Aynı gün
+  `send-outreach` kuru koşusu `min_brands=2` ile **3**, `min_brands=1` ile **6**
+  aday verdi; elle okununca gönderilebilir **0** çıktı. Sebep: seçici **adres**
+  damgasına bakıyor, `add-and-send` ise **firma alan adına** (KURAL 1c). Altısının
+  dördü (Luisa World, BLUE IN GREEN SOHO, Livestock, UP THERE) aynı gün mektup
+  gönderilmiş firmaların **ikinci kutusu** — göndermek 2 Eylül'deki 7 çift
+  mektubun aynısı olurdu. Kalan ikisi operatör kararı bekliyor: **Carl Scarpa**
+  (IE, çok şubeli + ağırlıklı kendi markası — bloklisteye ekleMEdim, `worksout`
+  dersi: hatırlamayla eleme yapma) ve **Kinfolk** (`info@kinfolk.kr`; dükkân
+  Brooklyn ama çözülen adres Kore alan adında, lead'in ülkesi boş).
+  *Kuru koşunun sayısını rapor etmeden önce listeyi tek tek oku.*
+- **Operatörün yüklediği CSV'nin yarısı UYDURMAYDI** (8 Eyl 2026,
+  `global_200_multibrand_stores.csv`). 200 satırın **85'i** aynı kalıpta üretilmiş
+  yer tutucuydu: ad `Concept Store Variant 116…200`, şehir `Multibrand Hub`,
+  adres `contact@boutiquevariant<N>.com`. 28 satır KURAL 1 engelli; kalan 87'nin
+  **84'ü** aynı gün zaten işlenmişti. Gerçekten yeni 3 alan adının
+  (`guadalupe-store.com.br`, `maze.com.br`, `fitzrovia.com.ar`) **üçünde de**
+  sitede yayınlanmış adres yok. Yani 200 satırlık dosyadan gönderilebilir adres:
+  **0**. Uydurma 85'e göndermek 85 sert bounce demekti — dosyanın "200 satır"
+  olması 200 aday olduğu anlamına gelmiyor, KURAL 1b'nin aynı imzası.
 - **Elde tutulan tek lead:** `factoryoutlet.gr` (Yunanistan, Attika'da 3 mağaza,
   200+ marka — zincir değil, bağımsız off-price; Il Salvagente emsali). Firma adı
   kayıtta **"Αρχική"** (Yunanca "Anasayfa") olarak duruyor, yani mektup
