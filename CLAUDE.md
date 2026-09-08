@@ -336,7 +336,7 @@ açıyor, ama kayıt geldiğinde operatöre **hiçbir şey haber vermiyordu**
 hâlâ kilitliydi — o alıcı sitede fiyat göremiyor, sepeti onaylayamıyordu.
 - Kapalı hesabın göremediği: fiyatlar (`head.php:47`), sipariş (`order.php:24`),
   line sheet PDF/Excel, dropship. Yani hesap "duruyor" ama **hiçbir işe yaramıyor**.
-- Çözüm sunucu crontab'ında: `cron_pending_accounts.php` (06:40 UTC,
+- Çözüm sunucu crontab'ında: `cron_pending_accounts.php` (06:40 sunucu saati = 13:40 UTC,
   `deploy-vestra.yml` idempotent kurar). GitHub'a `schedule` eklemek **çözmez** —
   zamanlanmış işler her zaman varsayılan daldaki sürümü çalıştırır.
 - **Bekleyen yoksa mektup gitmez.** Her sabah "0 bekleyen" yazan bir uyarı,
@@ -397,7 +397,7 @@ için süre verilsin... 3 gün gibi, eğer yüklemez ise suspend olsun"*).
   hesaplanmaz** (46 gün önce ilan vermiş 9 satıcıyı ilk sabah uyarmadan askıya
   almak kural değil tuzak olurdu); ilanı olmayan satıcıya saat işlemez. Karar
   tek yerde: `auth_seller_doc_grace()` (saf; `tests/seller_doc_grace_test.php`).
-- `cron_seller_docs.php` (sunucu crontab **06:50 UTC**, deploy kurar):
+- `cron_seller_docs.php` (sunucu crontab **06:50 sunucu saati = 13:50 UTC**, deploy kurar):
   damgala + "3 gün içinde" mektubu → son 24 saatte hatırlatma → süre dolunca
   `status=suspended, suspend_reason=docs` + mektup. **İlk uyarı gitmeden askı
   yok.** Operatöre yalnızca bir şey olduğu gün yazar: saat başlayan (kim, kaç
@@ -1033,7 +1033,7 @@ siparişin oraya"*).
 - Mektup **İngilizce** (operatör: *"İngilizce hazırla şablonu"*), rakamlar
   parametreden basılır — tavan/ücret gibi gömülü metin ayrışması burada da
   aynı hata olurdu. Test: `tests/order_payment_test.php`.
-- Zamanlama: sunucu crontab'ı 07:00 UTC (`cron_order_payment.php`,
+- Zamanlama: sunucu crontab'ı 07:00 sunucu saati = 14:00 UTC (`cron_order_payment.php`,
   `deploy-vestra.yml` idempotent kurar + kuru-koşu kanaryası).
 
 **KURAL 8 — Mesajlaşmada satıcı ürün identiyle görünür; mağaza adı yazılmaz**
@@ -1295,7 +1295,7 @@ dönmek zorundadir"*).
   problem with this order" bağlantısı → sebepler → foto+açıklama). Açık talep
   escrow süpürücüsünü **ve** alıcının "teslim aldım" düğmesini durdurur; sonuç
   alıcıya mektupla + sipariş ipliğine kartla gider; satıcı talebi salt-okunur
-  görür; `cron_claims.php` (07:10 UTC) 2 iş gününü geçen açık talebi operatöre
+  görür; `cron_claims.php` (07:10 sunucu saati = 14:10 UTC) 2 iş gününü geçen açık talebi operatöre
   yazar. Test: `tests/claim_flow_test.php`.
 - **de/fr/es/it'de `returns` dışı maddeler 4 Eylül'de güncellenmemişti**
   (6 Eyl 2026'da bulundu): `shipping/5` "48 saat", `disputes/0`/`/4` "5 iş günü",
@@ -1405,7 +1405,7 @@ dönmek zorundadir"*).
   YAYIMLAMAZ** (operatör, 7 Eyl 2026: *"her gün otomatik journal e paylaşım yap
   estetik ve ayrıntılı bilgi verici ve işe yarayan"*).
   - `inc/journal_auto.php` (saf kurucu) + `cron_journal.php` (sunucu crontab'ı
-    **07:20 UTC**, `deploy-vestra.yml` idempotent kurar + kuru koşu kanaryası).
+    **07:20 sunucu saati = 14:20 UTC**, `deploy-vestra.yml` idempotent kurar + kuru koşu kanaryası).
   - **Yazının tamamı canlı ilan kaydından türer**: hangi marka, kaç yeni model,
     hangi kategori, en düşük kademe fiyat, MOQ, bedenler, AYRI renk sayısı,
     gönderim yeri. Sunucuda dil modeli yok; olsa bile moda yorumu üretmek
@@ -1529,8 +1529,32 @@ dönmek zorundadir"*).
   yalnızca **dispatch'te** etkilidir; **schedule her zaman varsayılan daldaki
   sürümü çalıştırır.** Günlük işler bu yüzden **sunucu crontab'ında**:
   deploy-vestra.yml her push'ta `VESTRA-SWEEP` etiketli satırları idempotent kurar
-  (06:10 havuz, 06:25 escrow, UTC; kütük `~/vestra_sweep.log`) ve ardından iki
+  (06:10 havuz, 06:25 escrow; kütük `~/vestra_sweep.log`) ve ardından iki
   süpürücüyü kuru koşuyla ayağa kaldırıp fatal varsa deploy'u kırmızıya boyar.
+- **CRON SAATLERİ UTC DEĞİL, SUNUCUNUN YEREL SAATİ (MST, UTC−7).** Bu dosya altı
+  yerde "06:40 UTC", "07:20 UTC" diye yazıyordu; **yanlıştı** — cron crontab'ı
+  sunucunun kendi saat diliminde yorumlar, `deploy-vestra.yml`'deki satırlar ise
+  UTC sanılarak yazıldı. Ölçüm (8 Eyl 2026, `diag-messages` → `cron_probe`):
+  sunucu `2026-09-08 06:15 MST (-0700)` derken UTC `13:15`; süpürücü kütüğündeki
+  escrow damgaları dört gün üst üste **13:25 UTC**, yani crontab'daki `25 6`
+  gerçekte 06:25 **MST**. Dolayısıyla her iş **yazdığından 7 saat sonra** koşuyor
+  (journal 07:20 → **14:20 UTC**). `-0700` Eylül'de MST demek DST **yok**
+  (Denver olsa MDT/-0600 olurdu), yani kayma sabit; ama saat dilimi bir gün
+  değişirse hepsi birden kayar. Saatler **bilerek** olduğu gibi bırakıldı: işler
+  günlük, 7 saatlik kayma hiçbirinin doğruluğunu bozmuyor (iş günü hesapları
+  dahil) ve gerçek UTC'ye çevirmek o günün koşusunu bir gün öteler.
+  **Yeni bir günlük iş eklerken saati UTC sanma; 7 ekle.**
+- **"Otomasyon çalışmadı" önce KAYIT sorusudur** (8 Eyl 2026, journal). Deploy
+  kanaryası `--dry` ile yeşildi ve "yazacak malzeme var" diyordu; crontab satırı
+  da kuruluydu — ama `~/vestra_sweep.log`'da tek bir `journal:` satırı yoktu ve
+  depoda **0 otomatik yazı** vardı. Sebep ne kod ne kapıydı: iş kurulduğunda
+  (7 Eyl 18:37 UTC = 11:37 MST) o günün 07:20'si **geçmişti**, ilk ateşleme
+  ertesi gün. Kütüğü o güne kadar **hiçbir şey okumuyordu** — günlük işler
+  günlerce sessizce ölü kalabilir ve bunu gösterecek tek satır yoktu.
+  Sonda: `diag-messages.yml` → `cron_probe=true` (kurulu satırlar, sunucu
+  yerel+UTC saati, kütüğün son yazımı ve son damgaları, journal deposu, kurucunun
+  şu an ne üreteceği). Kütük **maskelenir**: canlı `cron_pending_accounts.php`
+  oraya hesap adresi yazıyor.
 - `add-and-send.yml` ve `send-outreach.yml` ikisi de `leads.json`'ı oku-değiştir-yaz
   yapar: **paralel çalıştırma**, biri diğerini ezer ve gönderim kaydı kaybolunca aynı
   adrese ikinci kez e-posta gider.
