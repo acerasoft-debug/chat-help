@@ -1,0 +1,50 @@
+name: LUMÉA — build & deploy static site
+
+on:
+  push:
+    branches: [main, master, 'claude/**']
+    paths: ['lumea/**', '.github/workflows/lumea-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: lumea-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: lumea } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build static site
+        env:
+          # Set LUMEA_ORIGIN to the custom domain; for project pages also set LUMEA_BASE=/<repo>.
+          LUMEA_ORIGIN: ${{ vars.LUMEA_ORIGIN || 'https://lumea.spa' }}
+          LUMEA_BASE: ${{ vars.LUMEA_BASE || '' }}
+        run: node scripts/build.mjs
+      - name: Smoke-test API server
+        run: |
+          (PORT=4499 node server/index.mjs > server.log 2>&1 &)
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:4499/api/health && break; sleep 0.5; done
+          curl -sf "http://127.0.0.1:4499/api/therapists?city=berlin&service=deep-tissue" | grep -q '"count"'
+          curl -sf http://127.0.0.1:4499/de/ | grep -q 'LUMÉA'
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: lumea/dist }
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

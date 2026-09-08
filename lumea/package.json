@@ -1,0 +1,17 @@
+{
+  "name": "lumea-private-spa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LUMEA - premium mobile massage & skincare marketplace for DE / AT / CH / ES. Zero-dependency static site generator with programmatic SEO.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/build.mjs && node server/index.mjs",
+    "serve": "node server/index.mjs",
+    "dev": "node scripts/build.mjs && node --watch server/index.mjs",
+    "clean": "rm -rf dist .data"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}
