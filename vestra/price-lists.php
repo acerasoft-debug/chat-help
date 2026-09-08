@@ -40,6 +40,16 @@ ksort($brands, SORT_NATURAL | SORT_FLAG_CASE);
 $totalArticles = array_sum(array_column($brands, 'n'));
 
 require __DIR__.'/inc/head.php';
+
+/* Ayni kapi, ayni gerekce (KURAL: bkz. price-list.php). Bu sayfa marka basina
+   urun sayisini, kategorileri ve "en dusuk fiyat" sutununu tasiyordu; fiyat
+   zaten kilitliydi ama listenin kendisi acikti. */
+if (!$PRICES) {
+    require_once __DIR__.'/inc/pricewall.php';
+    vestra_price_wall($PRICE_GATE, $KYC_URL, $AUTH_USER, '/price-lists', t('Wholesale price lists'));
+    require __DIR__.'/inc/foot.php';
+    exit;
+}
 ?>
 <style>
   .pl-wrap{max-width:1000px;margin:0 auto;padding:0 24px 80px}

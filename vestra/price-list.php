@@ -54,6 +54,23 @@ $META = $brandFilter !== ''
     : t('VESTRA wholesale price list — every article with its trade price per piece, minimum order quantity, sizes, manufacturer article number and product link. B2B only.');
 
 require __DIR__.'/inc/head.php';
+
+/* KAPI (operator karari, 8 Eyl 2026: "giris olmadan price list acilmasin
+   anmeldung a zorla"). Bu sayfa 8 Eylul'e kadar girissiz aciliyordu: rakam
+   gizliydi ama katalog -- urun adi, artikel no, MOQ, bedenler, stok derinligi
+   -- okunuyordu. Artik kilitliyken TEK SATIR bile cizilmiyor, yerine kayit
+   duvari geliyor.
+   Karar head.php'nin $PRICES'i (= admin || auth_prices_unlocked); ikinci bir
+   kapi tanimlanmiyor. Duvar dondukten sonra exit: asagidaki dongu calisirsa
+   kilitli sayfa yine liste basardi. */
+if (!$PRICES) {
+    require_once __DIR__.'/inc/pricewall.php';
+    vestra_price_wall($PRICE_GATE, $KYC_URL, $AUTH_USER,
+        '/price-list'.($brandFilter !== '' ? '?brand='.rawurlencode($brandFilter) : ''),
+        $brandFilter !== '' ? $brandFilter : t('Wholesale price list'));
+    require __DIR__.'/inc/foot.php';
+    exit;
+}
 ?>
 <style>
   .pc-wrap{max-width:1180px;margin:0 auto;padding:0 24px 90px}
