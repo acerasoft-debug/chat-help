@@ -51,6 +51,32 @@ $exampleReqs = [
   ['title'=>t('Denim, Italian sizing 44–54'),
    'cat'=>'Jeans','qty'=>'120–200','target'=>'110–160 €','country'=>'GR',
    'notes'=>t('Two stores, distressed and clean washes both sell for us. A mixed series of 10 per model is fine. Stock on hand matters more than price — the season is already running.')],
+  /* 8 Eyl 2026'da eklenenler. Hepsi katalogda GERCEKTEN bulunan taraflardan
+     secildi -- ic giyim, ayakkabi ve tasarimci ustler -- cunku tedarik
+     edemeyecegimiz bir sey icin "iyi talep ornegi" gostermek okuyucuyu
+     bosuna yazdirir. Kategoriler vestra_all_cats() sozlugunden; uydurma bir
+     kategori adi t() ile cevrilemez ve karta ham dizge basar. */
+  ['title'=>t('Cotton underwear, mixed-size packs'),
+   'cat'=>'Underwear','qty'=>'500–1.000','target'=>'2–5 €','country'=>'PT',
+   'notes'=>t('Basics wall in two stores, we reorder this every quarter. Mixed S–XXL packs per colour, nude and black are the two that never sit. Need the size split inside a pack written down before we commit.')],
+  ['title'=>t('Socks, boxed assortments'),
+   'cat'=>'Socks & Hosiery','qty'=>'60–100 boxes','target'=>'1–3 €','country'=>'BE',
+   'notes'=>t('Till-point buy, sells year round. Plain and patterned both. A box per size run is easier for us to handle than loose pairs — tell us how many pairs a box holds.')],
+  ['title'=>t('Designer shirts, mixed sizes'),
+   'cat'=>'Shirts','qty'=>'80–150','target'=>'60–120 €','country'=>'CZ',
+   'notes'=>t('Men\'s floor, we sell a shirt with a jacket. Plain and micro-pattern, classic collar. Article codes and photographs before we order; we can repeat within the season if it moves.')],
+  ['title'=>t('Winter boots, sizes 36–41'),
+   'cat'=>'Boots','qty'=>'100–180 pairs','target'=>'20–32 €','country'=>'SE',
+   'notes'=>t('Season starts in October here and lined boots go first. Real leather is a plus but a good sole matters more to our customer. Would take a mixed size run across two models.')],
+  ['title'=>t('Summer sandals, adult sizes'),
+   'cat'=>'Sandals','qty'=>'150–250 pairs','target'=>'8–15 €','country'=>'IE',
+   'notes'=>t('Buying early for next summer. Flat and low-wedge both work; comfort sells better than fashion for our floor. Boxed assortments are fine if the size split is stated.')],
+  ['title'=>t('Padded jackets, autumn delivery'),
+   'cat'=>'Jackets','qty'=>'100–200','target'=>'70–130 €','country'=>'DK',
+   'notes'=>t('Lightweight padded pieces for the transitional weeks, then heavier from November. Muted colours move best. Delivery date matters more than depth — we would rather have two models on time than four late.')],
+  ['title'=>t('Tracksuit sets, logo-forward'),
+   'cat'=>'Tracksuit Sets','qty'=>'120–250','target'=>'55–100 €','country'=>'RO',
+   'notes'=>t('Younger floor, matching sets outsell separates for us. Need the top and bottom priced as a set and the size run stated. Photographs that show the logo clearly help us pre-sell online.')],
 ];
 
 $openCount=count($userReqs);

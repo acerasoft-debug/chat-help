@@ -1013,6 +1013,30 @@ ardından ident no ya da sku numarası koy, mağaza ismi yapma"*).
 - Test: `tests/msg_seller_ident_test.php` (21 iddia). Her iki yönü de tutar —
   gizlenmesi gereken ad ve *görünmeye devam etmesi* gereken alıcı/Support.
 
+**KURAL 14 — Talep panosu ("Anfragen"): ÖRNEK ile GERÇEK talep karışmaz**
+(operatör, 8 Eyl 2026: *"sitenin anfragen bölümüne yeni anfragen lar ekle"*).
+- `requests.php` iki liste basıyor: `requests.csv`'den gelen **gerçek** alıcı
+  talepleri ve koddaki `$exampleReqs`. Örnekler bilerek var — sıfır talepli bir
+  pano, arz yokluğu gibi okunuyor — ama üç şartı dosyanın kendi yorumunda yazılı:
+  her kartta **"Example" rozeti**, sayaçlara **girmez**, ve **teklif düğmesi
+  YOK**. Sonuncusu asıl olan: teklif veren satıcı firmasını, e-postasını, birim
+  fiyatını ve teslim şartlarını `request_offers.csv`'ye yazıyor; uydurma bir
+  alıcıda bunların ulaşacağı hiçbir adres yok.
+- **Uydurma talep `requests.csv`'ye YAZILMAZ.** Dosyanın kendi notu zaten
+  "no demo seeds — the board only shows genuine Anzeigen" diyor. Yazılsaydı
+  "açık talep" sayacına girer ve satıcıları var olmayan bir alıcıya fiyat
+  açıklamaya davet ederdi.
+- 8 Eyl 2026'da **7 örnek eklendi** (8 → 15): iç giyim, çorap, gömlek, bot,
+  sandalet, mont, eşofman takımı. Hepsi **katalogda gerçekten bulunan**
+  taraflardan seçildi — tedarik edemeyeceğimiz bir şey için "iyi talep örneği"
+  göstermek okuyucuyu boşuna yazdırır.
+- **Kategori `vestra_all_cats()` sözlüğünden olmak zorunda.** Karta
+  `t($x['cat'])` ile basılıyor; sözlükte olmayan bir ad çevrilemez, ham dizge
+  çıkar ve pano var olmayan bir kategori gösterir (KURAL 9'un pano hâli).
+- Test: `tests/requests_board_test.php` (15 iddia). Kategori iddiasının
+  **gerçekten düştüğü** uydurma bir kategori enjekte edilerek doğrulandı — bu
+  depoda hiç düşemeyen bir iddia zaten bir kez çıkmıştı (KURAL 5j).
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
