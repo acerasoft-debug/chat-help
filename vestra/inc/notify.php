@@ -2817,7 +2817,13 @@ function vestra_verify_text($lang, $name, $token) {
 }
 
 /* localized welcome email after registration → [subject, body, opts]. */
-function vestra_ack_text($lang,$name,$type){
+/* $approved: kapi ZATEN acik dogan hesap (KURAL 2g'nin Suudi istisnasi,
+   auth_register()'daki $autoApprove). Ayri bir govde sart: varsayilan metin
+   "Our team will review them and activate your account" diyor ve bu hesapta
+   YAPILMAYACAK bir isi bekletiyor -- KURAL 2b'nin aynisi (kapi acikken belgeyi
+   sebep gostermek). Belge istegi yine aciliyor, cunku belge KAPI DEGIL uyari
+   (KURAL 2); mektup da onu boyle soyluyor: yukleyin ama beklemeyin. */
+function vestra_ack_text($lang,$name,$type,bool $approved=false){
   $roleWord = ['en'=>$type==='seller'?'seller':'buyer','de'=>$type==='seller'?'Verkäufer':'Käufer',
     'fr'=>$type==='seller'?'vendeur':'acheteur','it'=>$type==='seller'?'venditore':'acquirente',
     'es'=>$type==='seller'?'vendedor':'comprador'][$lang] ?? ($type==='seller'?'seller':'buyer');
@@ -2850,6 +2856,29 @@ function vestra_ack_text($lang,$name,$type){
      "Hola %s,\n\nTu cuenta VESTRA como %s ha sido creada con éxito.\n\nSiguiente paso: sube tus documentos de verificación:\n%s\n\nTambién puedes simplemente responder a este correo adjuntando el documento (PDF o foto) y lo añadiremos a tu cuenta.\n\nNuestro equipo los revisará y activará tu cuenta. ¡Gracias!\n\n— VESTRA · vestrasales.com",
    ],
   ];
+  if ($approved) {
+    /* Acik hesabin mektubu: dugme KATALOGA gider, belge yukleme sayfasina
+       degil -- ilk tiklamanin gotureceği yer, hesabin gercekten yapabildigi
+       seydir. Belge satiri duruyor ama "bekleyin" cumlesi yok. */
+    $shopUrl = 'https://vestrasales.com/shop';
+    $btnLabel = ['en'=>'Browse wholesale prices','de'=>'Großhandelspreise ansehen',
+      'fr'=>'Voir les prix de gros','it'=>'Vedi i prezzi all\'ingrosso',
+      'es'=>'Ver precios mayoristas'][$lang] ?? 'Browse wholesale prices';
+    $A=[
+     'en'=>['Welcome to VESTRA — your account is open',
+       "Hello %s,\n\nYour VESTRA account has been created as a verified %s and is open straight away: you can sign in, see wholesale prices and place orders now. There is nothing to wait for.\n\nStart here:\n%s\n\nOne housekeeping note: please upload your trade licence / business registration at your convenience — you can do it in your account, or simply reply to this e-mail with the document attached (PDF or a photo) and we add it for you. It does not hold up your ordering.\n\n— VESTRA · vestrasales.com"],
+     'de'=>['Willkommen bei VESTRA — Ihr Konto ist freigeschaltet',
+       "Hallo %s,\n\nIhr VESTRA-Konto als %s wurde erstellt und ist sofort freigeschaltet: Sie können sich anmelden, Großhandelspreise sehen und bestellen. Sie müssen auf nichts warten.\n\nHier geht es los:\n%s\n\nEine Formalie: Bitte laden Sie bei Gelegenheit Ihre Gewerbeanmeldung / Handelsregisterauszug hoch — in Ihrem Konto oder einfach als Antwort auf diese E-Mail mit dem Dokument im Anhang (PDF oder Foto). Ihre Bestellungen werden dadurch nicht aufgehalten.\n\n— VESTRA · vestrasales.com"],
+     'fr'=>['Bienvenue sur VESTRA — votre compte est ouvert',
+       "Bonjour %s,\n\nVotre compte VESTRA en tant que %s a été créé et est ouvert immédiatement : vous pouvez vous connecter, voir les prix de gros et passer commande dès maintenant. Il n'y a rien à attendre.\n\nCommencez ici :\n%s\n\nUne formalité : merci de téléverser votre extrait d'immatriculation quand cela vous arrange — depuis votre compte, ou simplement en répondant à cet e-mail avec le document en pièce jointe (PDF ou photo). Cela ne bloque pas vos commandes.\n\n— VESTRA · vestrasales.com"],
+     'it'=>['Benvenuto su VESTRA — il tuo account è attivo',
+       "Ciao %s,\n\nIl tuo account VESTRA come %s è stato creato ed è già attivo: puoi accedere, vedere i prezzi all'ingrosso e ordinare subito. Non devi aspettare nulla.\n\nInizia qui:\n%s\n\nUna formalità: quando ti è comodo, carica la tua visura camerale / licenza commerciale — dal tuo account, oppure rispondendo a questa e-mail con il documento allegato (PDF o foto). Non blocca i tuoi ordini.\n\n— VESTRA · vestrasales.com"],
+     'es'=>['Bienvenido a VESTRA — tu cuenta está abierta',
+       "Hola %s,\n\nTu cuenta VESTRA como %s ha sido creada y está abierta de inmediato: puedes iniciar sesión, ver los precios mayoristas y hacer pedidos ya. No tienes que esperar nada.\n\nEmpieza aquí:\n%s\n\nUn trámite: cuando te venga bien, sube tu licencia comercial / registro mercantil — desde tu cuenta o respondiendo a este correo con el documento adjunto (PDF o foto). No bloquea tus pedidos.\n\n— VESTRA · vestrasales.com"],
+    ];
+    $a = $A[$lang] ?? $A['en'];
+    return [$a[0], sprintf($a[1], $name, $roleWord, $shopUrl), ['button'=>['label'=>$btnLabel,'url'=>$shopUrl]]];
+  }
   $t = $T[$lang] ?? $T['en'];
   return [$t[0], sprintf($t[1], $name, $roleWord, $url), ['button'=>['label'=>$btnLabel,'url'=>$url]]];
 }

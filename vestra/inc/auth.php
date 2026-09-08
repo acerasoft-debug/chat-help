@@ -270,6 +270,29 @@ function auth_register(array $d): array|string {
 
     $list = auth_accounts();
     $type = in_array($d['type'] ?? '', ['seller', 'buyer']) ? $d['type'] : 'buyer';
+
+    /* OTOMATIK ACILAN ULKELER: alicinin kapisi kayitta ACIK dogar (operator
+       karari, 8 Eyl 2026: "arabistandaan girenler direkt fiyatlari gorebilsinler
+       ve siparis edebilsinler" -> "japonya, avustralya da ayni olsun" ->
+       "singapur da"). Liste TEK yerde: vestra_auto_open_countries().
+
+       Kapiyi acan alan promo hesabinin kullandiginin AYNISI --
+       kyb_status='approved' -> auth_user_approved() -> fiyat, siparis, line
+       sheet. Kapinin ikinci bir tanimi yazilmadi (bu depoda kontrolun kendisi
+       alti kez yanlis yere bakti; yedincisi bu olurdu).
+
+       Neden YALNIZCA alici: operatorun cumlesi fiyat gormek ve siparis vermek
+       uzerine, ikisi de alici yolu. Saticida kyb_status daha agir bir sey
+       soyluyor (odeme/guven) ve ilan kapisi zaten ayri (KURAL 2f). O ulkelerden
+       gelen satici eski akista kaliyor -- degisiklik degil, mevcut hal.
+
+       Neden YALNIZCA kayitta: profil kaydetmede ulkeyi 'Japan' yapmak hesabin
+       KENDI kapisini acmasi olurdu. Turkiye engeli her iki yerde de calisir
+       cunku o KAPATIR; bu ACAR, ve acan bir kontrol kayit disinda calismamali.
+       buyer.php/seller.php'ye bilerek eklenmedi. */
+    $autoCc      = $type === 'buyer' ? vestra_country_auto_opens((string)($d['country'] ?? '')) : '';
+    $autoApprove = $autoCc !== '';
+
     $acc  = [
         'id'             => bin2hex(random_bytes(8)),
         'email'          => strtolower(trim($d['email'])),
@@ -287,7 +310,12 @@ function auth_register(array $d): array|string {
         'phone'         => trim($d['phone']       ?? ''),
         'website'       => trim($d['website']     ?? ''),
         'lang'          => substr($_COOKIE['vlang'] ?? 'en', 0, 2),
-        'kyb_status'    => $promo_data ? 'approved' : 'pending',
+        'kyb_status'    => ($promo_data || $autoApprove) ? 'approved' : 'pending',
+        /* Kapiyi NE actiysa hesapta yazili kalsin. Promo hesabinda bu alan hic
+           yoktu ve aylar sonra "bu hesap neden acik?" sorusunun cevabi kayitta
+           hicbir yerde durmuyordu; sessizce acilan bir kapi, operatorun elle
+           actigi kapiyla ayni gorunuyor. */
+        'kyb_auto'      => $autoApprove ? 'country:'.$autoCc : ($promo_data ? 'promo:'.$promo_code : ''),
         'membership_status' => 'none',
         /* Toptan erisim aboneligi (dropship, KURAL 16). Satici uyeliginden
            AYRI alan: ikisi ayni hesapta birlikte bulunabiliyor. */
@@ -384,9 +412,22 @@ function auth_register(array $d): array|string {
     // Notify admin of new registration
     require_once __DIR__.'/notify.php';
     $roleLabel = $type === 'seller' ? 'Seller' : 'Buyer';
+    /* Kendiliginden acilan kapi, operatorun HABERI OLMADAN acilmasin: rozet
+       konuda, gerekce govdede. Bildirim her kayitta ayni cumleyi yazsaydi
+       okunmamayi ogretirdi (KURAL 2c) -- bu satir yalnizca is olan hesapta var. */
+    /* Ulke adi tabloda degil, ISO kodundan cozuluyor: iki ayri yerde yazilan bir
+       ad er gec ayrisir ve bildirim, hesabin gercekten tasidigi koddan baska bir
+       ulke soyler. Cozulemezse kod basilir -- uydurmaktansa 'SA' yazmak yeg. */
+    $autoName = $autoApprove ? vestra_country_of_cc($autoCc) : '';
     vestra_notify(
-        "🆕 New {$roleLabel} registered: ".($acc['name']?:'—').' — '.($acc['company']?:'—'),
+        "🆕 New {$roleLabel} registered: ".($acc['name']?:'—').' — '.($acc['company']?:'—')
+          .($autoApprove ? '  [account OPEN — '.$autoName.']' : ''),
         "New {$roleLabel} account on VESTRA:\n\n".
+        ($autoApprove
+          ? "⚠ This account is ALREADY OPEN (prices + ordering) — auto-approved because the\n".
+            "  registered country is {$autoName} (operator decision, 8 Sep 2026).\n".
+            "  No approval is needed from you. To close it again: Admin ▸ Users ▸ Suspend.\n\n"
+          : '').
         "Name:    ".($acc['name']    ?: '—')."\n".
         "Email:   ".$acc['email']."\n".
         "Company: ".($acc['company'] ?: '—')."\n".
@@ -412,7 +453,7 @@ function auth_register(array $d): array|string {
         $acc['verify_sent_ok'] = $sent;
         auth_update($acc['id'], ['verify_sent_at' => $acc['verify_sent_at'], 'verify_sent_ok' => $sent]);
     } else {
-        [$subj, $body, $aOpts] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type);
+        [$subj, $body, $aOpts] = vestra_ack_text($lang, $acc['name'] ?: $acc['company'], $type, $autoApprove);
         $sent = vestra_send_mail($acc['email'], $subj, $body, '', '', null, '', $aOpts);
         auth_update($acc['id'], ['ack_sent_at' => date('c'), 'ack_sent_ok' => $sent]);
     }

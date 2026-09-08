@@ -532,6 +532,75 @@ ama karar bilinçli bir istisna için.
   karar**: biri operatörün bilinçli KURAL 2g istisnası, diğeri KURAL 3'ün
   zaten zorunlu tuttuğu, uydurulamayan bir gerçek.
 
+**KURAL 2h — Bazı ülkelerden kayıt olan ALICI'nın kapısı kayıtta AÇIK doğar:
+S.Arabistan, Japonya, Avustralya, Singapur** (operatör, 8 Eyl 2026, aynı gün üç
+kez büyüdü: *"arabistandaan girenler direkt fiyatlari görebilsinler ve siparis
+edebilsinler"* → *"japonya, avustralya da ayni olsun"* → *"singapur da"*).
+KURAL 2g'nin tam tersi yöne bakan kardeşi: o kapatır, bu açar — ve açan bir
+kural yanlış eşleşirse operatörün hakkında hiçbir karar vermediği bir firmaya
+toptan fiyatı ve sipariş hakkını verir.
+
+- **Liste TEK yerde:** `vestra_auto_open_countries()` (`inc/security.php`),
+  ISO koduyla anahtarlı. Yeni ülke = **bir satır**, kapıda yeni bir dal değil.
+  Ülke başına ayrı fonksiyon yazılmadı çünkü kural bir öğleden sonrada üç kez
+  büyüdü; beşincisi de gelecek.
+- **Ölçüt IP değil, hesabın KAYITLI ÜLKESİ** (operatör seçimi). IP tek bir
+  isteğe ait: seyahatteki Japon alıcı sipariş ortasında erişimini kaybederdi,
+  Tokyo çıkışlı bir VPN ise kazanırdı. Beyan edilen ülke hesap yaşadıkça geçerli
+  ve gerçek bir ticari kaydın uyması gereken şey zaten o.
+- **Kapının ikinci bir tanımı YAZILMADI.** Promo hesabının kullandığı **aynı**
+  alan açıyor: `kyb_status='approved'` → `auth_user_approved()` → fiyat, sipariş,
+  line sheet, dropship. Bu depoda altı kez kontrolün kendisi yanlış yere baktı;
+  `auth_prices_unlocked()`'a ülke dalı eklemek yedincisi olurdu. Sitede
+  `status==='active'` diye ayrıca bakan **tek bir yer bile yok** (arandı).
+- **Yalnızca ALICI.** Operatörün cümlesi fiyat görmek ve sipariş vermek üzerine;
+  ikisi de alıcı yolu. Satıcıda `kyb_status` daha ağır bir şey söylüyor
+  (ödeme/güven) ve ilan kapısı zaten ayrı (KURAL 2f) — o ülkelerden gelen satıcı
+  eski akışta, yani **değişiklik değil, mevcut hâl**.
+- **Yalnızca KAYITTA.** Profil kaydetmede ülkeyi "Japan" yapmak hesabın **kendi
+  kapısını açması** olurdu. Türkiye kontrolü `buyer.php`/`seller.php`'de de var
+  çünkü o KAPATIR; bu oraya bilerek eklenmedi (test §9 bunu tutuyor).
+- **Çıplak ISO kodu kabul ediliyor** (`SA`, `JP`, `AU`, `SG`): kayıt formunun
+  kendi placeholder'ı `DE`, yani tam bu şekli istiyor — reddetmek, formun
+  dediğini yapan kullanıcıyı elerdi. **Eşleşme TAM, alt dize değil**, ve her
+  ülkenin kendi yakın-komşu tuzağı testte adıyla duruyor:
+  - `SA` — günlük dilde "SA" çoğu zaman **Güney Afrika** demek; onun ISO'su `ZA`.
+  - `AU` — **Avusturya** (`AT`) klasik karışma; `Österreich`/`Autriche` de.
+  - `JP` — `JA` bir **dil** kodu, Japonya'nın kodu değil; Jamaika `JM`.
+  - `SG` — Senegal `SN`, Sri Lanka `LK`.
+  Ayrıca eyalet adı ülke değil (`South Australia`, `Western Australia`) ve
+  şirket adı ülke değil (`Saudi Arabia Trading Co.`). Bu, Türkiye kuralındaki
+  Türkmenistan'ın ve mango/zara dersinin aynı sınıfı.
+- **Gevşek eşleştirmenin bedeli ölçüldü.** Falsifikasyon koşusunda `in_array`
+  yerine `str_contains` konunca **21 iddia** düştü ve içlerinden biri şuydu:
+  Portekizce `austrália` dizgesi `tr` içeriyor, yani alt dize eşleşmesiyle
+  **`TR` (Türkiye) Avustralya sayılıp kapıyı AÇIYORDU** — KURAL 2g'nin tam
+  tersi. Açan bir kuralda bulanık eşleşme böyle bir şey.
+- **Sessiz kapı yok.** Hesapta gerekçe duruyor (`kyb_auto='country:JP'` gibi;
+  promo hesabında bu alan hiç yoktu ve aylar sonra "bu hesap neden açık?"
+  sorusunun cevabı hiçbir yerde durmuyordu) ve operatöre giden kayıt bildirimi
+  konuda rozet, gövdede gerekçe taşıyor. Rozet **yalnızca** otomatik onayda
+  basılıyor — her kayıtta aynı cümleyi yazan bildirim okunmamayı öğretir
+  (KURAL 2c). **Ülke adı ISO kodundan çözülüyor** (`vestra_country_of_cc`), elle
+  yazılmıyor: liste büyüdüğünde yanlış ülkeyi söyleyen bir satır kalırdı.
+- **`vestra_cc_of_country()`'ye S.Arabistan ve Singapur eklendi** (Japonya/
+  Avustralya zaten vardı): panelin "beyan edilen ülke ≠ kayıt IP'sinin ülkesi"
+  karşılaştırması o haritadan okuyor ve haritada olmayan ad **sessiz geçiyor** —
+  yani kapısı kendiliğinden açılan iki ülke, tam da bakılması gereken yerde
+  hiçbir zaman karşılaştırılmıyordu.
+- **Kayıt mektubu ayrı gövde** (`vestra_ack_text($lang,$name,$type,$approved)`):
+  varsayılan metin *"Our team will review them and activate your account"*
+  diyor ve bu hesapta **yapılmayacak** bir işi bekletiyor — KURAL 2b'nin aynısı
+  (kapı açıkken belgeyi sebep göstermek). Yeni gövde hesabın açık olduğunu
+  söylüyor, düğme belge sayfasına değil **kataloga** gidiyor, belge yine
+  isteniyor ama *"does not hold up your ordering"* diye. 5 dilde yazılı ve
+  **hiçbir ülke adı gömülü değil** — dört ülkeye dört metin yazmak, beşincisi
+  eklendiğinde sessizce eksik kalırdı (test bunu da tutuyor).
+  `cron_pending_accounts.php` bu hesabı "onay bekliyor" diye **yazmıyor**
+  (kapısı açık), "açık ama belgesiz" listesinde **duruyor** — doğru olan bu.
+- Test: `tests/auto_open_country_test.php` (171 iddia). Düşebildiği doğrulandı:
+  eşleştirici alt dizeye çevrilip üç değişiklik geri alınınca **21 kırmızı**.
+
 **KURAL 3 — Malın nereden gönderildiği tahmin edilmez, yazılır.**
 
 - `vestra_ships_from()` **yalnızca** ilandaki `ships_from` alanını okur; yoksa

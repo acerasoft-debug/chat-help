@@ -279,6 +279,13 @@ function vestra_cc_of_country(string $name): string {
         'russia'=>'RU','ukraine'=>'UA','bulgaria'=>'BG','romania'=>'RO',
         'hungary'=>'HU','croatia'=>'HR','slovenia'=>'SI','slovakia'=>'SK',
         'azerbaijan'=>'AZ',
+        /* Otomatik acilan ulkeler (vestra_auto_open_countries) burada da olmali:
+           panelin "beyan edilen ulke ≠ kayit IP'sinin ulkesi" karsilastirmasi bu
+           haritadan okuyor ve haritada olmayan ad SESSIZ gecer. Suudi Arabistan
+           ve Singapur eksikti, yani kapisi kendiliginden acilan iki ulke tam da
+           bakilmasi gereken yerde hicbir zaman karsilastirilmiyordu.
+           Japonya/Avustralya zaten yukarida. */
+        'saudi arabia'=>'SA','singapore'=>'SG',
     ];
     return $map[strtolower(trim($name))] ?? '';
 }
@@ -312,6 +319,102 @@ function vestra_country_declares_turkey(string $raw): bool {
     return vestra_cc_of_country($raw) === 'TR';
 }
 
+/**
+ * Countries whose BUYERS get an open account the moment they register — no
+ * approval queue, prices and ordering live immediately.
+ *
+ * Operator decisions, 8 Sep 2026, in this order: "arabistandaan girenler direkt
+ * fiyatlari gorebilsinler ve siparis edebilsinler" → "japonya, avustralya da
+ * ayni olsun" → "singapur da". Written as ONE list rather than one function per
+ * country precisely because it grew three times in an afternoon: the next
+ * country is a line here, not a new branch at the gate.
+ *
+ * Keyed by ISO 3166-1 alpha-2; the values are every spelling a buyer might type
+ * into a free-text form, ASCII/case folded. Adding a country = adding a row.
+ *
+ * WHY DECLARED COUNTRY, NOT IP (operator's choice): an IP is true for one
+ * request. A Japanese buyer travelling would lose access mid-order, and anyone
+ * on a Tokyo VPN would gain it. The declared country follows the account for as
+ * long as it exists, and it is what a real trade licence has to agree with.
+ *
+ * WHY EXACT MATCHES ONLY: vestra_country_declares_turkey() is this function's
+ * sibling but points the OPPOSITE way — Turkey CLOSES the door, these OPEN it.
+ * A false positive here is not a wrong label; it hands wholesale prices and
+ * ordering to a firm the operator never decided on. So: no substring matching,
+ * ever. The traps this list must not fall into, each asserted in
+ * tests/auto_open_country_test.php:
+ *   SA  — everyday English writes "SA" for South Africa, whose ISO code is ZA.
+ *   AU  — Australia vs AUSTRIA (AT) is the classic mix-up; also 'AT' ≠ 'AU'.
+ *   JP  — 'JA' is a LANGUAGE code, not Japan's; Jamaica is JM.
+ *   SG  — no near-neighbour, but bare 'SG' must not catch 'Senegal' (SN).
+ * Bare ISO codes ARE accepted: the registration form's own placeholder is 'DE',
+ * so it asks for exactly that shape, and rejecting it would fail the users who
+ * do what the form says.
+ */
+function vestra_auto_open_countries(): array {
+    static $t = [
+        'SA' => ['saudi arabia', 'saudiarabia', 'saudi', 'kingdom of saudi arabia',
+                 'the kingdom of saudi arabia', 'ksa',
+                 'saudi arabien',                                     // de
+                 'arabie saoudite',                                   // fr
+                 'arabia saudita', 'arabia saudí', 'arabia saudi',    // es / it
+                 'arábia saudita',                                    // pt
+                 'саудовская аравия',                                 // ru
+                 'السعودية', 'المملكة العربية السعودية',              // ar
+                 'suudi arabistan'],                                  // tr
+        'JP' => ['japan', 'nippon', 'nihon', 'state of japan',
+                 'japon', 'japón',                                    // fr / es
+                 'giappone',                                          // it
+                 'japão',                                             // pt
+                 'япония',                                            // ru
+                 '日本', '日本国',                                      // ja
+                 'اليابان',                                           // ar
+                 'japonya'],                                          // tr
+        'AU' => ['australia', 'commonwealth of australia',
+                 'australien',                                        // de
+                 'australie',                                         // fr
+                 'austrália',                                         // pt
+                 'австралия',                                         // ru
+                 'オーストラリア', '豪州',                              // ja
+                 'أستراليا', 'استراليا',                              // ar
+                 'avustralya'],                                       // tr
+        'SG' => ['singapore', 'republic of singapore',
+                 'singapur',                                          // de / es / tr
+                 'singapour',                                         // fr
+                 'singapura',                                         // pt / ms
+                 'сингапур',                                          // ru
+                 'シンガポール',                                        // ja
+                 '新加坡',                                             // zh
+                 'سنغافورة'],                                         // ar
+    ];
+    return $t;
+}
+
+/**
+ * Which auto-open country did this raw country-field value declare?
+ * Returns the ISO code ('SA', 'JP', 'AU', 'SG') or '' for everything else —
+ * '' is also what an unreadable or empty value returns, i.e. uncertainty
+ * leaves the account in the normal approval queue rather than opening it.
+ */
+function vestra_country_auto_opens(string $raw): string {
+    $raw = trim($raw);
+    if ($raw === '') return '';
+    $codes = vestra_auto_open_countries();
+    /* Bare ISO code first — the form's placeholder asks for this shape. */
+    if (preg_match('/^[A-Za-z]{2}$/', $raw) && isset($codes[strtoupper($raw)])) return strtoupper($raw);
+    /* Serbest metin: bosluk/tire normalize, kucuk harf. Arapca/Rusca/Japonca
+       harfler KATLANMAZ, oldugu gibi karsilastirilir -- alici kendi diliyle
+       yazabilir ve o yazimlar tabloda duruyor. */
+    $folded = mb_strtolower($raw);
+    $folded = strtr($folded, ['-' => ' ', '_' => ' ']);
+    $folded = trim(preg_replace('/\s+/u', ' ', $folded));
+    if ($folded === '') return '';
+    foreach ($codes as $cc => $names) {
+        if (in_array($folded, $names, true)) return $cc;
+    }
+    return '';
+}
+
 /* vestra_cc_of_country()'nin TERSI: 'FR' -> 'France'.
  *
  * Hesaplarda ulke bazen tam ad ('France'), bazen ISO kodu ('FR') olarak
@@ -334,7 +437,7 @@ function vestra_country_of_cc(string $cc): string {
                   'sweden','denmark','norway','finland','united states','canada','mexico',
                   'turkey','japan','south korea','china','australia','united arab emirates',
                   'russia','ukraine','bulgaria','romania','hungary','croatia','slovenia',
-                  'slovakia','azerbaijan'] as $name) {
+                  'slovakia','azerbaijan','saudi arabia','singapore'] as $name) {
             $code = vestra_cc_of_country($name);
             if ($code !== '' && !isset($rev[$code])) $rev[$code] = ucwords($name);
         }
