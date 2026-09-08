@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = verilen kalemler için SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -95,7 +95,7 @@ jobs:
       # biriminde verilirse buradaki tek bölme onu siparişin damgalı kuruyla
       # geri çevirir ve sonuç yazdırılır -- operatörün belgede göreceği rakamı
       # elle ters hesaplaması gerekmesin diye.
-      - name: Sipariş TASLAĞI (salt okunur, hiçbir şey yazmaz)
+      - name: Sipariş taslağı / YAZIMI (order_draft = salt okunur, order_write = yazar)
         # Operator, 8 Eyl 2026: dort kalemlik bir siparis + fatura istendi
         # (secilen bedenler, dropship fiyati = toptan + %20, kargo 30 EUR).
         # KURAL 5 faturayi operator onayina bagliyor ve KURAL 5d kesimden ONCE
@@ -108,19 +108,20 @@ jobs:
         #   payload         : sku:beden:adet virgulle  (ornek: S74GD1399:M:1,662853TJW90:L:1)
         #   issue_shipping  : kargo EUR
         #   issue_ref       : hesabi bulmak icin AD parcasi (e-posta DEGIL -- girdi herkese acik)
-        if: ${{ github.event.inputs.admin_mode == 'order_draft' }}
+        if: ${{ github.event.inputs.admin_mode == 'order_draft' || github.event.inputs.admin_mode == 'order_write' }}
         uses: appleboy/ssh-action@v1.0.3
         env:
           OD_LINES: ${{ github.event.inputs.payload }}
           OD_SHIP:  ${{ github.event.inputs.issue_shipping }}
           OD_WHO:   ${{ github.event.inputs.issue_ref }}
+          OD_MODE:  ${{ github.event.inputs.admin_mode }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 4m
-          envs: OD_LINES,OD_SHIP,OD_WHO
+          envs: OD_LINES,OD_SHIP,OD_WHO,OD_MODE
           script: |
             set -e
             cat > /tmp/vestra_orddraft.php <<'PHPEOF'
@@ -131,6 +132,7 @@ jobs:
             require_once $doc."/inc/auth.php";
             require_once $doc."/inc/money.php";
             require_once $doc."/inc/dropship.php";
+            require_once $doc."/inc/orders.php";
 
             $mask = function (string $e): string {
                 if ($e === '') return '-';
@@ -234,8 +236,29 @@ jobs:
             $r = vestra_fx('USD');
             if ($r > 0) printf("  (~US$%s, 1 EUR = %s)\n", number_format($total * $r, 2), number_format($r, 4));
             printf("\n  kalem sayisi: %d   sorunlu: %d\n", count($lines), $problems);
-            echo $problems ? "  SONUC: SORUN VAR -- yukaridaki satirlar duzelmeden siparis YAZILMAMALI\n"
-                           : "  SONUC: taslak temiz. HICBIR SEY YAZILMADI (salt okunur).\n";
+
+            /* YAZMA, AYNI ADIMDA VE AYNI HESAPTAN. Ikinci bir adim, fiyat
+               mantiginin ikinci kopyasi demek olurdu; bu depo ayrisan iki
+               kopyanin bedelini KURAL 5d/5f'te zaten yazdi. Taslak ile yazim
+               arasindaki TEK fark asagidaki dal. */
+            $write = getenv('OD_MODE') === 'order_write';
+            if (!$write) {
+                echo $problems ? "  SONUC: SORUN VAR -- duzelmeden siparis YAZILMAMALI\n"
+                               : "  SONUC: taslak temiz. HICBIR SEY YAZILMADI (salt okunur).\n";
+                exit($problems ? 1 : 0);
+            }
+            if ($problems) { fwrite(STDERR, "SORUN VAR -- yazmiyorum\n"); exit(1); }
+
+            $mkLines = [];
+            foreach ($lines as $L) $mkLines[] = ['sku'=>$L[0], 'size'=>$L[1], 'qty'=>$L[2], 'unit'=>$L[3]];
+            $res = vestra_order_create_manual($acc, $mkLines, $ship,
+                'Dropship pricing (wholesale +'.(int)round(VESTRA_DROPSHIP_MARKUP*100).'%), single pieces, agreed with the buyer.');
+            if (!empty($res['error'])) { fwrite(STDERR, "YAZILAMADI: ".$res['error']."\n"); exit(1); }
+            printf("\n  SIPARIS YAZILDI: %s\n", (string)$res['ref']);
+            printf("  mal %s + kargo %s = %s EUR   (kayittan geri okundu)\n",
+                number_format((float)$res['goods'], 2), number_format((float)$res['shipping'], 2),
+                number_format((float)$res['total'], 2));
+            echo "  FATURA KESILMEDI -- numara yakmaz, musteriye hicbir sey gitmedi.\n";
             PHPEOF
             php /tmp/vestra_orddraft.php; rc=$?
             rm -f /tmp/vestra_orddraft.php
