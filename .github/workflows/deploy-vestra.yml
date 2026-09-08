@@ -189,6 +189,12 @@ jobs:
             ) | crontab -
             echo "-- kurulu VESTRA-SWEEP satirlari:"
             crontab -l | grep 'VESTRA-SWEEP'
+            # SAATLER UTC DEGIL. cron crontab'i SUNUCUNUN YEREL saatinde yorumlar
+            # ve bu sunucu MST (-0700), yani yukaridaki "06:10" gercekte 13:10
+            # UTC. 8 Eyl 2026'ya kadar CLAUDE.md alti yerde "UTC" diyordu ve
+            # yanlisti. Varsayimi gorunur kilmak icin her deploy iki saati yan
+            # yana basiyor: bir sonraki okuyan crontab satirindan UTC cikarmasin.
+            echo "-- cron bu saatleri YEREL okur: $(date '+%Y-%m-%d %H:%M %Z (%z)')  |  UTC: $(date -u '+%H:%M')"
             # Kutuk public_html DISINDA (web'den erisilemez); sismesin diye
             # 512KB'i asarsa son 128KB kalir.
             L="$HOME/vestra_sweep.log"

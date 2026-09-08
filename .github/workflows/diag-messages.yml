@@ -54,6 +54,10 @@ on:
         description: "true = canlı PHP hataları: error_log'daki Fatal/Warning/Notice/Deprecated satırları mesaj+dosya:satır bazında gruplanır (sayı, son görülme). Sitedeki gerçek kırıkları bulmanın en ucuz yolu"
         required: false
         default: "false"
+      cron_probe:
+        description: "true = zamanlanmış işler: crontab'daki VESTRA-SWEEP satırları, süpürücü kütüğünün son hâli ve journal cron'un ne yazdığı. 'Otomasyon çalışmadı' denince buraya bakılır"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -97,13 +101,14 @@ jobs:
           IN_BILLING:   ${{ github.event.inputs.billing_for }}
           IN_UPLOAD:    ${{ github.event.inputs.upload_probe }}
           IN_ERRLOG:    ${{ github.event.inputs.errlog }}
+          IN_CRON:      ${{ github.event.inputs.cron_probe }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 5m
-          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG
+          envs: IN_WHO,IN_WHO2,IN_BRAND,IN_SHIPS,IN_THREADS,IN_MAILCFG,IN_MAIL_FOR,IN_MAIL_SUBJ,IN_SENDER,IN_ORDERS,IN_BILLING,IN_UPLOAD,IN_ERRLOG,IN_CRON
           script: |
             cat > /tmp/diag_msg.php <<'PHPEOF'
             <?php
@@ -776,3 +781,79 @@ jobs:
             php -l /tmp/diag_msg.php
             php /tmp/diag_msg.php
             rm -f /tmp/diag_msg.php
+
+            # ---- ZAMANLANMIS ISLER: KURULU MU, ATESLEDI MI, NE DEDI? ----------
+            # "Otomasyon calismadi" bir cizim ya da kapi sorusu DEGIL (KURAL 15),
+            # bir KAYIT sorusu: crontab satiri duruyor mu, o dakikada kutuge bir
+            # sey dustu mu, ne yazdi. 8 Eyl 2026'ya kadar ~/vestra_sweep.log'u
+            # HICBIR sey okumuyordu -- gunluk isler sessizce hic calismamis
+            # olabilirdi ve bunu gosterecek tek satir yoktu. Salt-okunur.
+            #
+            # KUTUK MASKELENIR: canli kosuda cron_pending_accounts.php buraya
+            # hesap adresi yaziyor; bu depo ve Actions kutugu herkese acik.
+            if [ "$IN_CRON" = "true" ]; then
+              MASK='s/\([A-Za-z0-9._%+-]\{1,2\}\)[A-Za-z0-9._%+-]*@/\1***@/g'
+              echo; echo "===== ZAMANLANMIS ISLER ====="
+              echo "-- kurulu VESTRA-SWEEP satirlari --"
+              # DEGISKENE AL, boruya degil: `grep ... | sed ... || echo` dalinda
+              # cikis kodu SED'in oluyor ve sed hep basarili -- yani "HIC YOK"
+              # satiri hicbir zaman basilamazdi. Yalnizca iyi haber verebilen bir
+              # sonda, sonda degildir (CLAUDE.md, KURAL 5j).
+              CRONL="$(crontab -l 2>/dev/null | grep 'VESTRA-SWEEP' || true)"
+              if [ -n "$CRONL" ]; then printf '%s\n' "$CRONL" | sed 's/^/    /'
+              else echo "    HIC YOK -- gunluk isler ZAMANLANMAMIS"; fi
+              # SAAT DILIMI: crontab satirlari UTC sanilarak yazildi, ama cron
+              # SUNUCUNUN YEREL saatini kullanir. Ikisi ayriysa her gunluk is
+              # yazildigi saatte degil, kaydigi saatte kosar -- ve "calismadi"
+              # gorunen sey aslinda "daha sirasi gelmedi" olur. Bunu ilk gunde
+              # gormenin tek yolu iki saati yan yana basmak.
+              echo "-- sunucu saati --"
+              echo "    yerel : $(date '+%Y-%m-%d %H:%M %Z (%z)')"
+              echo "    UTC   : $(date -u '+%Y-%m-%d %H:%M')"
+              L="$HOME/vestra_sweep.log"
+              echo "-- supurucu kutugu --"
+              if [ -f "$L" ]; then
+                echo "    $(wc -c < "$L") bayt | son yazim: $(date -r "$L" '+%Y-%m-%d %H:%M %Z' 2>/dev/null || echo '?')"
+                echo "    bugun (yerel $(date '+%Y-%m-%d')) tarihli satir: $(grep -c "$(date '+%Y-%m-%d')" "$L" 2>/dev/null || echo 0)"
+                # Kutukteki SON tarihli damgalar: isler hangi saatte kosuyor?
+                # Cadence'i gormek, tek bir "0 satir" sayisindan cok daha fazlasini soyler.
+                echo "    -- kutukteki son 4 zaman damgasi --"
+                grep -o '[0-9]\{4\}-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' "$L" 2>/dev/null | tail -n 4 | sed 's/^/      /'
+                echo "    -- son 6 satir --"
+                tail -n 6 "$L" 2>/dev/null | sed "$MASK" | cut -c1-150 | sed 's/^/      /'
+              else
+                echo "    KUTUK YOK -- hicbir cron calismis gorunmuyor"
+              fi
+              echo "-- journal cron ne yazdi (son 8) --"
+              if [ -f "$L" ] && grep -q 'journal:' "$L" 2>/dev/null; then
+                grep 'journal:' "$L" | tail -n 8 | sed "$MASK" | cut -c1-150 | sed 's/^/    /'
+              else
+                echo "    journal satiri YOK -- cron_journal.php hic calismamis"
+              fi
+              # Deponun kendisi: kutuk ne derse desin, yayimlanmis yazi var mi?
+              # Iki kayit birbirini tutmuyorsa once celiskiyi coz (CLAUDE.md).
+              cat > /tmp/diag_journal.php <<'PJEOF'
+            <?php
+            $doc = getenv('HOME').'/public_html';
+            require $doc.'/inc/products.php';
+            require_once $doc.'/inc/journal.php';
+            require_once $doc.'/inc/journal_auto.php';
+            $all  = vestra_journal_all();
+            $auto = array_values(array_filter($all, fn($a) => ($a['source'] ?? '') === VESTRA_JOURNAL_AUTO_FLAG));
+            echo "  toplam yazi: ".count($all)." | otomatik uretilen: ".count($auto)."\n";
+            usort($auto, fn($a, $b) => strcmp((string)($b['created'] ?? ''), (string)($a['created'] ?? '')));
+            foreach (array_slice($auto, 0, 5) as $a)
+              echo "    ".substr((string)($a['created'] ?? '?'), 0, 16)."  ".(empty($a['published']) ? 'TASLAK ' : 'yayinda')."  ".($a['slug'] ?? '?')."\n";
+            if (!$auto) echo "    HIC OTOMATIK YAZI YOK\n";
+            $t = vestra_journal_auto_today();
+            echo "  bugunun otomatik yazisi: ".($t ? ($t['slug'] ?? '?') : 'YOK')."\n";
+            $l = vestra_journal_auto_last_ts();
+            echo "  son otomatik rapor: ".($l ? gmdate('Y-m-d H:i', $l).' UTC' : 'hic')."\n";
+            /* Kurucu SAF: diske hicbir sey yazmaz (bkz. journal_auto.php). */
+            $art = vestra_journal_auto_build();
+            echo "  su an kursa: ".(isset($art['skip']) ? 'YAZI YOK -- '.$art['skip'] : 'YAZARDI -- '.$art['title'])."\n";
+            PJEOF
+              echo "-- journal deposu --"
+              php -l /tmp/diag_journal.php >/dev/null 2>&1 && php /tmp/diag_journal.php
+              rm -f /tmp/diag_journal.php
+            fi
