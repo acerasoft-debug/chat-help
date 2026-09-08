@@ -644,6 +644,18 @@ seçimdir, ilana geri dönmez.
 - **IBAN faturaya sunucudan girer** (`vestra_payment_rails` → seçilen hesabın
   `bank_iban`/`bank_holder`). Numara buraya, workflow girdisine ya da teşhis
   çıktısına **yazılmaz** — teşhiste yalnızca `VAR (n hane)` görünür.
+- **"Faturada kalem yok" ilk olarak DİLİM sorusudur** (8 Eyl 2026,
+  VES-A8A129EC): siparişin satırları birden fazla satıcının ilanındansa
+  `vestra_order_invoice_payloads()` siparişi satıcı başına **böler** ve her
+  dilim **ayrı belge** olur. Operatör faturayı açıp üç kalem görüyor, dördüncü
+  (başka satıcının) kalem *"faturada yok"* diye okunuyor — oysa kalem eksik
+  değil, **belge iki tane**. Ölçüm: dilim sayısı + her dilimin kalemleri
+  (KURAL 15'in çizim dersinin fatura hâli: önce neyin üretildiğine bak).
+  Tek belge isteniyorsa çare operatör seçimi — seçim varken dilimleme yok.
+  Panel dışından: `seller-products.yml` → `admin_mode=seller`
+  (`issue_ref=<sipariş>`, `payload='vestra'|hesap adı parçası|boş`), aynı
+  kaydı yazar, **geri okur** ve dilimleri kalem kalem basar. Kesilmiş faturada
+  **reddeder** (numara yanmış, belge alıcının elinde — yol KURAL 5f).
 - Test: `tests/invoice_seller_pick_test.php`.
 
 **KURAL 5c — Satıcının fatura ve banka bilgileri panelden düzeltilebilir**
