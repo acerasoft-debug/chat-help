@@ -1623,7 +1623,15 @@ jobs:
                   $ua = $m[1][2];
                   if (stripos($ua, 'google') === false) continue;       // referrer'da gecen google sayilmaz
                   $goog++;
-                  $key = mb_substr($ua, 0, 95);
+                  /* TAM UA ile anahtarla. Bastan kirpmak Google'in kimligini
+                     GIZLIYOR: "Googlebot/2.1", "Google-InspectionTool",
+                     "GoogleOther" hep parantez icinde ve EN SONDA duruyor,
+                     onlerinde de ayni Nexus 5X govdesi var. Ilk yazimda 95
+                     karaktere kirpip etiketi kirpilmis metinden hesapladim ve
+                     tablo Googlebot'a "[SAYILIR]" dedi -- oysa suzgec tam
+                     metne bakiyor ve atliyordu. Olcum aracinin kendi kirpmasi
+                     olcumu yalanliyordu. */
+                  $key = $ua;
                   $byUa[$key] = ($byUa[$key] ?? 0) + 1;
                   $path = preg_match('#\s(/\S*)#', $m[1][0], $pm) ? $pm[1] : '';
                   /* SAYACA GIREN istek: bot suzgecini gecen + GET + PHP sayfasi. */
@@ -1638,14 +1646,19 @@ jobs:
                 $gz ? gzclose($fh) : fclose($fh);
                 echo "      okunan satir: {$seen}   UA'sinda 'google' gecen: {$goog}\n";
                 if (!$goog) { echo "      bu kutukte Google ajani YOK\n"; continue; }
+                /* Kisaltma ORTADAN yapiliyor: bas (isletim sistemi govdesi) ile
+                   son (Google'in kimlik parantezi) birlikte gorunsun. */
+                $short = function (string $ua): string {
+                  return mb_strlen($ua) <= 118 ? $ua : mb_substr($ua, 0, 42).' … '.mb_substr($ua, -72);
+                };
                 arsort($byUa);
                 foreach (array_slice($byUa, 0, 8, true) as $ua => $c)
-                  printf("      %7dx %s  %s\n", $c, vestra_is_bot($ua) ? '[atlanir]' : '[SAYILIR]', $ua);
+                  printf("      %7dx %s  %s\n", $c, vestra_is_bot($ua) ? '[atlanir]' : '[SAYILIR]', $short($ua));
                 $sum = array_sum($counted);
                 echo "      => sayaca giren Google istegi: {$sum}\n";
                 if ($sum) {
                   arsort($counted); arsort($paths); arsort($nets);
-                  foreach (array_slice($counted, 0, 4, true) as $ua => $c) echo "         {$c}x {$ua}\n";
+                  foreach (array_slice($counted, 0, 4, true) as $ua => $c) echo "         {$c}x ".$short($ua)."\n";
                   foreach (array_slice($paths,   0, 6, true) as $p => $c)  echo "         {$c}x  {$p}\n";
                   foreach (array_slice($nets,    0, 6, true) as $k => $c)  echo "         {$c}x  ag {$k}\n";
                 }
