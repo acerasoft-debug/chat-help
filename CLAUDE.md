@@ -247,6 +247,48 @@ bağımsız perakendeci" listesi; elimize 35 satırı geldi).
   (`google.com` dahil) da "kayıtlı değil" döner. Kontrol grubu koymasaydım 35
   alan adının hepsini ölü sayacaktım. Ölçüm sunucuda (`add-and-send`, `dns_check`).
 
+**KURAL 1f — aynı listenin TAMAMI geldi (8 Eyl 2026, 200 satır) ve tahmin
+doğrulandı.** Operatör listeyi olduğu gibi yapıştırıp "kampanya gönder" dedi.
+Protokol uygulandı: adres değil **site linki** verildi, önce 6 parti `send=false`
+(167 site tarandı), taranan adlar okundu, bloklist güncellendi, sonra **ülke
+başına** `send=true`.
+
+| | |
+|---|---:|
+| Satır | 200 |
+| Kod (KURAL 1) tuttu | 33 |
+| Sitede yayınlanmış adres YOK | ~110 |
+| Tarama yeni ad açığa çıkardı → engellendi | 9 |
+| **Gerçekten mektup alan** | **9** |
+
+- **Listenin adresleri uydurma.** İlk partide çözülen 12 adresin **10'u**
+  listedekinden farklıydı, ikisi başka ALAN ADI: `merci-merci.com` →
+  `achatmode@merci.paris`, `kiliwatch.paris` → `contact@espacekiliwatch.fr`.
+  7 Eylül'deki 12/0 ölçümüyle aynı sonuç, artık 200 satırın tamamında.
+  Site linki vermek bu listeyi tek başına kurtardı.
+- **Elle okuma yine şarttı** ve bu sefer okunacak şey *taranan firma adıydı*:
+  `present-london.com` → `hello@presentagency.com` / **"Four Marketing"**
+  (marka dağıtım ajansı), `kasina.co.kr` → **`support@cre.ma`** (Kore yorum
+  widget'ı SaaS'ı). Satıra bakarak ikisi de görünmüyordu.
+- **Ad olmayan adlar gönderilmedi:** `park.at` → firma adı **"Home"**,
+  `nid-tokyo.com` → **"N id – N id"**. `factoryoutlet.gr` → "Αρχική" ile aynı
+  sınıf; mektup "Hello Home," diye açılırdı. Panelde `rename_lead` eylemi hâlâ
+  yok, o yüzden gönderim listesinden çıkarıldılar.
+- Ülke tespiti üç kez yanıldı ve `country` girdisi düzeltti: `blueingreensoho`
+  (NYC) → "Japan", `selectshopframe` (Dubai, tel +971) → "Japan",
+  `thespace.co.za` (tel +27) → "France". KURAL 1e'nin sebebi tam bu.
+- Gönderilenler: Pilgrim Surf + Supply (US), Kiliwatch ve Underground (FR,
+  Fransızca), Capsule (CA), The Space (ZA), Run Colors (PL, Lehçe), Good As
+  Gold (NZ), FRAME (AE), Story Online (IL). **Hata 0**, ölü alan adı 1
+  (`baselinestudio.co.za`).
+- **Kendi hatam, kayda geçsin:** `run_workflow` **500** döndü, tekrar denedim —
+  ama ilk POST koşuyu ZATEN kuyruğa almıştı ve iki `add-and-send` **aynı
+  saniyelerde** koştu (16:53:24 ve :25, İngiltere partisi). Bu tam olarak
+  `leads.json` oku-değiştir-yaz yarışı. Bu kez zararsız kaldı: ikisi de
+  "gönderildi 0, atlandı 2" — iki adres de zaten yazılmıştı, yani ne çift
+  mektup ne kayıp damga. **Kural: `run_workflow` 5xx dönerse tekrar denemeden
+  ÖNCE koşu listesine bak.**
+
 **KURAL 1g — Outlet MERKEZİ ev sahibidir, outlet DÜKKÂNI müşteridir**
 (operatör, 7 Eyl 2026: *"sen outlet bul ve gönder"*).
 - Havuzda `lead_find=outlet` dört kayıt verdi. Üçü (Designer Outlets Wolfsburg,

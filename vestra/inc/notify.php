@@ -877,6 +877,31 @@ function vestra_discover_blocklist(): array {
     'supremenewyork','supreme new york','retrosuperfuture',
     'flight club','flightclub','wethenew','footkorner','baitme','bait me',
     'vitkac',
+    /* 8 Eyl 2026 — operatorun 200 satirlik kuresel listesi. Kod 200'un 33'unu
+       tuttu; asagidakiler GECTI ve ancak sitesi TARANIP adi okununca cikti.
+       Tarama olmasaydi hepsine mektup giderdi.
+         distributor / marka ajansi : present-london.com'un sitesindeki adres
+           hello@presentagency.com ve firma adi "Four Marketing" -- yani dukkan
+           degil, markalarin UK dagitimini tutan ajans (KURAL 1'in 2. basligi).
+         platform / zincir : wconcept (Kore, SSG), rinkan (Japon ikinci el lüks
+           zinciri, gsc-rinkan.com), the webster (10 magaza), undefeated
+           (ABD/JP zinciri, ustelik kendi etiketi), lemkus (Guney Afrika).
+         kendi markasi : another aspect (DK), slow steady club (KR).
+       'worksout' ILK YAZIMDA EKLENDI VE GERI ALINDI: testin 15b bolumu
+       "Worksout Apgujeong GECMELI" diyor -- 4 Eyl 2026'da bir Asya listesi
+       okunurken verilmis, BAKILARAK alinmis bir karar. Benim eklemem
+       hatirlamaya dayaniyordu; kayit daha guclu kanit ve bu depoda sessiz
+       eleme yanlis gonderimden pahali. Ayni sebeple Kasina, Titan 22, Mita
+       Sneakers ve Sole Academy'ye de dokunulmadi (hepsi 15b'de).
+       BILEREK EKLENMEYENLER: 'invincible' ve 'addict' -- ikisi de gunluk
+       kelime, AD tarafinda kelime siniri bile yetmez ("Addict Boutique",
+       "Invincible Store" gercek dukkan adi kaliplari; ustelik ikisinin de
+       sitesinde yayinlanmis adres yok, yani gonderim listesine zaten girmiyor).
+       'beaker' de eklenmedi -- yukaridaki notun ta kendisi. */
+    'four marketing','presentagency','wconcept','w concept',
+    'rinkan','gsc-rinkan',
+    'the webster','thewebster','undefeated','lemkus','jack lemkus',
+    'another aspect','anotheraspect','slow steady club','slowsteadyclub',
   ];
 }
 /* PARK EDILMIS / SATILIK alan adi: dukkan degil, satis sayfasi.
@@ -1108,6 +1133,10 @@ function vestra_lead_is_blocked(array $lead): bool {
 function vestra_service_vendor_domains(): array {
   return [
     'tawk.to','notifyboost.net','stagheaddesigns.com','topdomainer.com',
+    /* 8 Eyl 2026: kasina.co.kr sitesinden cozulen adres support@cre.ma cikti --
+       Crema, Kore e-ticaretinde yaygin bir YORUM WIDGET SaaS'i. Dukkanin
+       adresi degil; ayni sinif tawk.to ile. */
+    'cre.ma',
     /* "section.brands": bir alan adi degil, sayfadan yanlis ayristirilmis
        parca (antonia.it -> "-banner@section.brands", 7 Eyl 2026). */
     'section.brands',
