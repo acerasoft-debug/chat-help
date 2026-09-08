@@ -587,5 +587,34 @@ $t('hepsi bos',        !$blocked('', '', ''));
 $t('yalniz @ isareti', !$blocked('', '@', ''));
 $t('paylasimli host adiyla yargilanmaz', !$blocked('Mystore','hi@mystore.wixsite.com','mystore.wixsite.com'));
 
+echo "\n== 17. 8 Eyl 2026, 200 satirlik kuresel liste — SITE TARAMASI cikardi ==\n";
+/* Bu adlarin hicbiri listedeki satirdan anlasilmiyordu; ancak alan adinin
+   sitesi taranip DONEN AD okununca ortaya ciktilar. present-london.com'un
+   sitesindeki adres hello@presentagency.com ve firma adi "Four Marketing" --
+   dukkan degil, markalarin UK dagitimini tutan ajans. */
+foreach ([
+    ['Four Marketing','presentagency.com'], ['W Concept','wconcept.com'],
+    ['RINKAN ONLINE','gsc-rinkan.com'],     ['The Webster','thewebster.com'],
+    ['Undefeated','undefeated.com'],        ['Lemkus','lemkus.com'],
+    ['ANOTHER ASPECT','anotheraspect.org'], ['Slow Steady Club','slowsteadyclub.com'],
+] as [$n,$d]) $t("blok: {$n}", $blocked($n,'','https://'.$d));
+
+echo "\n== 17b. GECMELI — ayni partide elenmemesi gerekenler ==\n";
+/* 'worksout' ilk yazimda 17'ye eklenmisti ve 15b'yi kirdi: 4 Eyl 2026'da
+   BAKILARAK "gercek cok markali butik" karari verilmis. Kayit, hatirlamadan
+   guclu kanittir; geri alindi. Asagidakiler o kararin ve komsu adlarin
+   bekcisi -- 17'deki bir ad bunlardan birini yakarsa burasi kirmizi olur. */
+foreach ([
+    ['Worksout Apgujeong','worksout.co.kr'],   ['Present Perfect Vintage','presentperfect.it'],
+    ['Concept Store Aspect','aspectstore.de'], ['Webster Street Boutique','websterstreet.co.uk'],
+    ['Lemke Mode','lemkemode.de'],             ['Steady Hands Store','steadyhands.se'],
+] as [$n,$d]) $t("gecer: {$n}", !$blocked($n,'','https://'.$d));
+
+echo "\n== 17c. cre.ma = yorum widget'i SaaS, dukkanin adresi degil ==\n";
+$t('kasina -> support@cre.ma BLOK', $blocked('Kasina','support@cre.ma','https://kasina.co.kr'));
+/* TAM host esitligi: benzer adli gercek bir dukkan elenmemeli (mango/zara dersi). */
+$t('crema.it (gercek dukkan) GECER', !$blocked('Crema Moda','info@crema.it','https://crema.it'));
+$t('cremashop.de GECER',            !$blocked('Crema Shop','hallo@cremashop.de','https://cremashop.de'));
+
 echo "\nTOPLAM: {$ok} gecti, {$fail} kaldi\n";
 exit($fail === 0 ? 0 : 1);
