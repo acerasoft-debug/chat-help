@@ -226,6 +226,42 @@ jobs:
             PHPEOF
             php /tmp/vestra_platbill.php; rm -f /tmp/vestra_platbill.php
 
+            # ADMIN ONSOZU: kur dosyasi kosulsuz yuklenıyor mu? (8 Eyl 2026)
+            # 7 Eyl'de FATURALAR sekmesi "Call to undefined function
+            # vestra_order_fx()" ile sayfanin ortasinda oluyordu ve operator
+            # "bu siparise button yok" diye bildirdi -- dugme kaybolmamisti,
+            # o HTML hic gonderilmemisti. Duzeltme dosyayi onsoze koydu.
+            # Burasi DEPLOY EDILMIS dosyayi olcer: depoda dogru olmasi
+            # sunucuda dogru oldugu anlamina gelmiyor (deploy kapsami bu
+            # depoyu daha once yaralamisti). Salt okunur, token seviyesinde.
+            echo; echo "== admin onsozu: inc/fx_orders.php kosulsuz yukleniyor mu =="
+            cat > /tmp/vestra_prelude.php <<'PHPEOF'
+            <?php
+            $f = getenv("HOME")."/public_html/admin.php";
+            if (!is_readable($f)) { echo "  admin.php OKUNAMIYOR\n"; exit(0); }
+            $toks = @token_get_all((string)file_get_contents($f));
+            $depth = 0; $pend = null; $pre = []; $stopped = false;
+            foreach ($toks as $x) {
+              if ($x === '{') { $depth++; continue; }
+              if ($x === '}') { $depth--; continue; }
+              if (!is_array($x) || $depth !== 0) continue;
+              if (in_array($x[0], [T_COMMENT,T_DOC_COMMENT,T_WHITESPACE,T_OPEN_TAG,T_CLOSE_TAG,T_INLINE_HTML], true)) continue;
+              if (in_array($x[0], [T_IF,T_WHILE,T_FOR,T_FOREACH,T_SWITCH,T_FUNCTION,T_TRY], true)) { $stopped = true; break; }
+              if (in_array($x[0], [T_REQUIRE,T_REQUIRE_ONCE,T_INCLUDE,T_INCLUDE_ONCE], true)) { $pend = true; continue; }
+              if ($pend && $x[0] === T_CONSTANT_ENCAPSED_STRING) { $v = trim($x[1], "'\""); if (str_starts_with($v,'/inc/')) $pre[] = $v; $pend = null; }
+            }
+            printf("  onsozde %d dosya, tarama kosulsuz bolumun sonunda durdu: %s\n", count($pre), $stopped ? 'evet' : 'HAYIR');
+            $has = in_array('/inc/fx_orders.php', $pre, true);
+            echo $has ? "  SONUC: inc/fx_orders.php ONSOZDE -- faturalar sekmesi kur cagrisinda olmez\n"
+                      : "  SONUC: inc/fx_orders.php ONSOZDE DEGIL -- FATURALAR sekmesi sade EUR sipariste FATAL verir\n";
+            PHPEOF
+            php /tmp/vestra_prelude.php; rm -f /tmp/vestra_prelude.php
+            echo "  -- hata gunlugunde vestra_order_fx fatal'leri (en son 3) --"
+            grep -h "undefined function vestra_order_fx" ~/public_html/error_log ~/error_log 2>/dev/null \
+              | tail -3 | sed 's/^/    /' || true
+            grep -hc "undefined function vestra_order_fx" ~/public_html/error_log ~/error_log 2>/dev/null \
+              | paste -sd+ - | sed 's/^/    toplam: /' || true
+
             # Operator "panelden girdim, sistemde mevcut" dedi ama platform dosyasi yok.
             # Banka bilgisi YANLIS KUTUYA -- bir HESABIN kendi banka alanlarina --
             # girilmis olabilir: satici hesaplarinin fatura icin kendi bank_* alanlari
