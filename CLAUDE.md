@@ -1198,10 +1198,15 @@ gerekiyor"* → *"öncesinde para çevrilsin ve usd olarak gitsin"*).
   kuru ve kurun tarihini basar, navlunun da aynı kurla çevrildiğini söyler.
   Stripe sayfasında keşfedilen bir para birimi, bu deponun tekrar tekrar
   kaydettiği "sayfada bir, kasada başka rakam" hatasıdır.
-- **Abonelik (€199,90) EUR kaldı, bilinçli:** Stripe aboneliğinin tutarı ve para
-  birimi SABİT olmak zorunda; her tahsilatta kurla çevrilen bir abonelik diye bir
-  şey yok. Dolar isteniyorsa **sabit bir USD rakamı** seçilmeli (ör. $199,90 ya da
-  bugünün kuruyla dondurulmuş bir tutar) — operatör kararı, kur kararı değil.
+- **Abonelik de USD: $199,90/ay** (operatör, 8 Eyl 2026: *"199,90 usd olsun"*).
+  Stripe aboneliğinin tutarı ve para birimi **sabit** olmak zorunda — her tahsilatta
+  kurla çevrilen bir abonelik diye bir şey yok — o yüzden burada çevrim YOK, sabit
+  bir dolar rakamı var. Rakam aynı kaldı, para birimi değişti.
+- **Plan ücreti `vestra_money()` ile BASILMAZ.** O fonksiyon argümanı EUR sanıp
+  ziyaretçinin gösterim para birimine çevirir; sabiti USD yapıp basımı düzeltmeseydim
+  sayfa çevrilmiş bir rakam yazarken Stripe $199,90 çekecekti — bu deponun tekrar
+  tekrar kaydettiği "sayfada bir, kasada başka rakam". Tek basım noktası
+  `vestra_dropship_plan_label()`; üç sayfa da oradan okuyor.
 - Test: `tests/dropship_plan_test.php` §12 (toplam 90 iddia). Önsöz iddiası
   require kaldırılarak sınandı: takım **üretimdeki fatal'in birebir aynısıyla**
   ölüyor (`Call to undefined function vestra_fx()`). *Not: fatal'i `grep HATA`

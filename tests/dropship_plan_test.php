@@ -26,7 +26,10 @@ echo "== 1. Plan fiyati TEK KAYNAK ve dogru ==\n";
 $t('fiyat 199,90',            abs(VESTRA_DROPSHIP_PLAN_PRICE - 199.90) < 0.001);
 $t('Stripe kurusu 19990',     (int)round(VESTRA_DROPSHIP_PLAN_PRICE * 100) === 19990);
 $t('aylik',                   VESTRA_DROPSHIP_PLAN_INTERVAL === 'month');
-$t('euro',                    VESTRA_DROPSHIP_PLAN_CURRENCY === 'eur');
+/* Operator, 8 Eyl 2026: "199,90 usd olsun". Tek adet tahsilati zaten USD
+   (KURAL 17); abonelik de ayni birimde ve SABIT bir dolar rakami. */
+$t('abonelik USD',            VESTRA_DROPSHIP_PLAN_CURRENCY === 'usd');
+$t('etiket US$199.90',        vestra_dropship_plan_label() === 'US$199.90');
 $t('zam HALA %20',            abs(VESTRA_DROPSHIP_MARKUP - 0.20) < 0.0001);
 
 echo "\n== 2. Abonelik durumu: tek karar noktasi ==\n";
@@ -99,6 +102,8 @@ echo "\n== 8. Abonelik ucu ==\n";
 $ep = $src('stripe/dropship-plan.php');
 $t('dosya var',                     $ep !== '');
 $t('abonelik kipi',                 str_contains($ep, "'mode'       => 'subscription'"));
+$t('uc para birimini SABITTEN alir', str_contains($ep, "'currency'     => VESTRA_DROPSHIP_PLAN_CURRENCY")
+                                     && !str_contains($ep, "'currency'     => 'eur'"));
 $t('fiyat SABITTEN, gomulu degil',  str_contains($ep, 'VESTRA_DROPSHIP_PLAN_PRICE') && !str_contains($ep, '19990,'));
 /* Rakam KODDA gomulu olmamali. Yorumdaki operator cumlesi ("199,90 eur olacak")
    bunu ihlal etmiyor ve silinmemeli -- karari kaydeden satir o. O yuzden
@@ -129,7 +134,14 @@ echo "\n== 10. Sayfa, odenecek fiyati gosteriyor ==\n";
 $t('birim fiyat plana gore',   str_contains($page, 'vestra_dropship_unit_price($p, $dsUser)'));
 $t('dugmede de ayni fiyat',    str_contains($page, "t('Buy now') ?> — <?= vestra_money((float)\$dsUnit)"));
 $t('eski sabit fiyat kalmadi', !str_contains($page, "vestra_money((float)\$ds['price'])"));
-$t('plan fiyati sabitten',     str_contains($page, 'vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)'));
+/* Plan ucreti vestra_money() ile BASILMAMALI: o fonksiyon argumani EUR sanip
+   ziyaretcinin gosterim para birimine cevirir, yani sayfa cevrilmis bir rakam
+   yazarken Stripe $199,90 cekerdi -- "sayfada bir, kasada baska rakam". */
+$t('plan fiyati tek kaynaktan', str_contains($page, 'vestra_dropship_plan_label()'));
+$t('plan vestra_money ile BASILMIYOR', !str_contains($page, 'vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)'));
+$t('anlatim sayfasi da ayni kaynaktan',
+   str_contains($src('dropshipping.php'), 'vestra_dropship_plan_label()')
+   && !str_contains($src('dropshipping.php'), 'vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)'));
 $t('zam orani sabitten',       str_contains($page, 'VESTRA_DROPSHIP_MARKUP * 100'));
 
 echo "\n== 11. Gezilebilir dropship katalogu ==\n";

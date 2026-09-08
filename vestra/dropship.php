@@ -154,10 +154,10 @@ require __DIR__ . '/inc/head.php';
   <div class="order-box" style="margin-bottom:24px;border-color:var(--acc)">
     <div style="font-weight:600;font-size:16px;margin-bottom:6px">🔓 <?= t('Wholesale access') ?></div>
     <p class="hint" style="margin:0 0 12px">
-      <?= sprintf(t('Single pieces are priced at wholesale + %d%%. With wholesale access you pay the plain wholesale price on every single-piece order — %s per month, cancel any time.'), (int)round(VESTRA_DROPSHIP_MARKUP * 100), vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)) ?>
+      <?= sprintf(t('Single pieces are priced at wholesale + %d%%. With wholesale access you pay the plain wholesale price on every single-piece order — %s per month, cancel any time.'), (int)round(VESTRA_DROPSHIP_MARKUP * 100), vestra_dropship_plan_label()) ?>
     </p>
     <form method="post" action="/stripe/dropship-plan" style="margin:0">
-      <button class="btn btn-p" type="submit"><?= t('Activate wholesale access') ?> — <?= vestra_money(VESTRA_DROPSHIP_PLAN_PRICE) ?>/<?= t('month') ?></button>
+      <button class="btn btn-p" type="submit"><?= t('Activate wholesale access') ?> — <?= vestra_dropship_plan_label() ?>/<?= t('month') ?></button>
     </form>
   </div>
   <?php else: ?>

@@ -98,9 +98,26 @@ const VESTRA_DROPSHIP_MARKUP = 0.20;
 
    Fiyat TEK KAYNAK. Metne gomulmuyor: bu depoda escrow tavani (KURAL 6) tam
    olarak boyle bes gun boyunca sayfada bir, sepette baska rakam gosterdi. */
-const VESTRA_DROPSHIP_PLAN_PRICE    = 199.90;   // EUR / ay
+const VESTRA_DROPSHIP_PLAN_PRICE    = 199.90;   // USD / ay (operator, 8 Eyl 2026)
 const VESTRA_DROPSHIP_PLAN_INTERVAL = 'month';
-const VESTRA_DROPSHIP_PLAN_CURRENCY = 'eur';
+/* USD (operator: "199,90 usd olsun"). Tek adet tahsilati zaten USD (KURAL 17);
+   abonelik de ayni para biriminde. Stripe aboneliginin tutari ve para birimi
+   SABIT olmak zorunda -- her ay kurla cevrilen bir abonelik diye bir sey yok --
+   o yuzden burada cevrim YOK, sabit bir dolar rakami var. */
+const VESTRA_DROPSHIP_PLAN_CURRENCY = 'usd';
+
+/**
+ * Plan ucretinin EKRANA basilacak hali: "US$199.90".
+ *
+ * vestra_money() ile BASILMAZ ve bu onemli: o fonksiyon argumani EUR sanip
+ * ziyaretcinin gosterim para birimine cevirir, yani sayfa "€199,90" (ya da
+ * cevrilmis bir rakam) derken Stripe $199,90 cekerdi. Tek yerden basiliyor ki
+ * uc sayfa birbirinden ayrisamasin.
+ */
+function vestra_dropship_plan_label(): string {
+    $n = number_format(VESTRA_DROPSHIP_PLAN_PRICE, 2);
+    return VESTRA_DROPSHIP_PLAN_CURRENCY === 'usd' ? 'US$'.$n : '€'.$n;
+}
 
 /* Hesaptaki alanlar SATICI UYELIGINDEN AYRI bir ad uzayinda:
    dropship_plan_status / dropship_plan_sub_id / dropship_plan_period_end.

@@ -86,7 +86,7 @@ $dsSections = vestra_dropship_excluded_sections();   // ayakkabi: bolme geneli k
            burada bir fiyat listesi degil, tek bir abonelik ucreti duruyor. */ ?>
   <div class="order-box" style="margin:18px 0;border-color:var(--acc)">
     <p style="margin:0 0 8px"><b>🔓 <?= t('Wholesale access') ?></b></p>
-    <p style="margin:0 0 10px"><?= sprintf(t('With a wholesale access plan the %d%% single-piece surcharge does not apply: you pay the plain wholesale price on every single-piece order. %s per month, cancel any time.'), $dsMarkup, vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)) ?></p>
+    <p style="margin:0 0 10px"><?= sprintf(t('With a wholesale access plan the %d%% single-piece surcharge does not apply: you pay the plain wholesale price on every single-piece order. %s per month, cancel any time.'), $dsMarkup, vestra_dropship_plan_label()) ?></p>
     <p class="hint" style="margin:0"><?= t('It pays for itself once you order regularly; below that, ordering without the plan is cheaper. Both prices are shown on every article before you buy.') ?></p>
   </div>
 
