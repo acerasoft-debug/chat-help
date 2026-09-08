@@ -1325,6 +1325,32 @@ Aşağıdakiler istendi ve gerekçesiyle yapılmadı — tekrar gelirse aynı ge
 - Kurumsal format rehberinden çalışan e-postası türetme — var olmayan kişilere posta
   gider, sert bounce oranı gönderen alan adının itibarını düşürür.
 
+**KURAL 19 — Fiyat listesi GİRİŞSİZ açılmaz; kayıt zorunlu** (operatör, 8 Eyl
+2026: *"giris olmadan price list acilmasin anmeldung a zorla"*).
+- `/price-list` ve `/price-lists` o güne kadar **bilerek** herkese açıktı
+  (dosyaların kendi yorumu "PUBLIC ON PURPOSE" diyordu): rakam zaten kilitliydi
+  — fiyat sütununda 🔒 — ama **katalogun kendisi** açıktı: ürün adı, üreticinin
+  artikel numarası, MOQ, beden aralığı, **beden bazında stok derinliği** ve
+  marka başına ürün sayısı. Artık kilitliyken **tek satır** çizilmiyor.
+- **Kapı yeniden tanımlanmadı:** iki sayfa da `head.php`'nin `$PRICES`'ini
+  (`$IS_ADMIN || auth_prices_unlocked()`) okuyor ve tek çiziciye devrediyor:
+  `inc/pricewall.php`. Bu depoda kapının ikinci kopyası **altı kez** yanlış yere
+  baktı; yedincisi yazılmadı.
+- **Duvarın her cümlesi 7 sözlükte ZATEN duran bir anahtar** (KURAL 10): ilk
+  günden 8 dilde doğru çıkıyor, yarısı İngilizce kalmıyor. Almancası
+  *"Gewerbeanmeldung"* — operatörün istediği "Anmeldung" tam olarak bu.
+- **Yan etki (bilinçli):** bu iki sayfa artık arama motoruna da ürün metni
+  vermiyor; Googlebot da girişsiz ziyaretçi olduğu için duvarı görüyor. Sayfalar
+  200 dönmeye ve başlık/açıklama taşımaya devam ediyor (404 değil), yani
+  kampanya bağlantıları ve dizindeki adresler kırılmıyor — ama /price-list'in
+  eski SEO metni gitti. Karar operatörün.
+- **Kilitli ziyaretçi ne görüyor:** marka/kategori bağlantıları hâlâ altbilgide
+  (KURAL 9, site geneli) — duvar yalnız listeyi kapatıyor, siteyi değil.
+- Test: `tests/price_wall_test.php` (31 iddia). Sayfalar kum havuzunda
+  **gerçekten çiziliyor**: kilitliyken satır/ad/artikel no yok, kapı açıkken
+  liste var. Kaynakta `if (!$PRICES)` görmek ölçüm değil. Muhafaza kaldırılınca
+  **6 iddia kırmızıya dönüyor** (doğrulandı).
+
 ## SEO ve diller
 
 **KURAL 9 — SEO iniş sayfaları canlı stoktan türer; boş sayfa yok** (operatör
