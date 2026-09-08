@@ -1584,39 +1584,71 @@ jobs:
             if (!$hit) echo "   bu sehirden HICBIR giris/kayit olayi yok (yani hesap acan/giren biri degil)\n";
             echo "\n";
 
-            /* ── 5. Web sunucusu erisim kutugu: gercek UA'lar ───────────────── */
-            echo "-- 5. Web sunucusu erisim kutugu --\n";
-            $globs = [getenv("HOME").'/logs/*', getenv("HOME").'/access-logs/*', getenv("HOME").'/*log',
+            /* ── 5. Web sunucusu erisim kutugu: GERCEK tarayici kimlikleri ────
+               3. bolum "kim" sorusunu cevapliyor ama "sayaca hangisi giriyor"u
+               cevaplamiyor: ip_intel.json'a bir IP, ULKE ENGELI yolundan da
+               dusuyor (bot suzgecinden ONCE calisiyor), yani orada Googlebot
+               gorulmesi onun SAYILDIGI anlamina gelmez. Cevap yalnizca UA'da,
+               UA da yalnizca burada.
+               Bu bolum ilk yazimda .gz kutukleri DUZ METIN sanip okudu ve
+               "bu adreslerden istek YOK" dedi -- olculmemis bir seyi olculmus
+               gibi gosteren bir satir. Simdi gzip akitilarak okunuyor. */
+            echo "-- 5. Web sunucusu erisim kutugu (UA tarafi) --\n";
+            $globs = [getenv("HOME").'/logs/*', getenv("HOME").'/access-logs/*',
                       '/usr/local/apache/domlogs/*vestrasales*', '/var/log/apache2/*access*', '/var/log/nginx/*access*'];
             $found = [];
-            foreach ($globs as $g) foreach ((array)@glob($g) as $f) if (is_file($f) && is_readable($f) && filesize($f) > 0) $found[$f] = filesize($f);
+            foreach ($globs as $g) foreach ((array)@glob($g) as $f) {
+              if (!is_file($f) || !is_readable($f) || filesize($f) === 0) continue;
+              if (stripos(basename($f), 'error') !== false) continue;   // hata kutugu erisim kutugu degil
+              $found[$f] = filesize($f);
+            }
             if (!$found) {
               echo "   erisim kutugu BULUNAMADI (bu barindirmada okunabilir bir kopyasi yok).\n";
-              echo "   Yani UA tarafi bu adimda olculemiyor; karar 3. bolumdeki ters DNS'e dayaniyor.\n";
+              echo "   UA tarafi olculemiyor; karar 3. bolumdeki ters DNS'e dayanir.\n";
             } else {
               arsort($found);
-              foreach (array_slice($found, 0, 3, true) as $f => $sz) {
-                echo "   ".$f." (".round($sz/1024)." KB)\n";
-                $lines = @file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                if (!$lines) { echo "      okunamadi\n"; continue; }
-                $lines = array_slice($lines, -20000);
-                $byUa = []; $byPath = [];
-                foreach ($lines as $ln) {
-                  $ip = strtok($ln, ' ');
-                  $isCand = isset($cand[$ip]);
-                  if (!$isCand) continue;
-                  if (preg_match_all('/"([^"]*)"/', $ln, $m) && isset($m[1][2])) {
-                    $ua = mb_substr($m[1][2], 0, 90);
-                    $byUa[$ua] = ($byUa[$ua] ?? 0) + 1;
-                  }
-                  if (isset($m[1][0]) && preg_match('#\s(/\S*)#', $m[1][0], $pm)) {
-                    $p = mb_substr($pm[1], 0, 50); $byPath[$p] = ($byPath[$p] ?? 0) + 1;
+              /* Statik dosya sayaci CALISTIRMAZ: vestra_track_visit() auth.php'nin
+                 acilisindan geliyor, yani yalnizca PHP'nin ciktigi bir adres. */
+              $isStatic = fn(string $p) => (bool)preg_match('/\.(png|jpe?g|gif|webp|svg|ico|css|js|woff2?|ttf|map|txt|xml|pdf|mp4)(\?|$)/i', $p);
+              foreach (array_slice($found, 0, 4, true) as $f => $sz) {
+                echo "   ".basename($f)." (".round($sz/1024)." KB)\n";
+                $gz = str_ends_with(strtolower($f), '.gz');
+                $fh = $gz ? @gzopen($f, 'rb') : @fopen($f, 'rb');
+                if (!$fh) { echo "      acilamadi\n"; continue; }
+                $seen = 0; $goog = 0; $byUa = []; $counted = []; $paths = []; $nets = [];
+                while (($ln = ($gz ? gzgets($fh) : fgets($fh))) !== false) {
+                  if (++$seen > 400000) break;
+                  if (stripos($ln, 'google') === false) continue;
+                  if (!preg_match_all('/"([^"]*)"/', $ln, $m) || !isset($m[1][2])) continue;
+                  $ua = $m[1][2];
+                  if (stripos($ua, 'google') === false) continue;       // referrer'da gecen google sayilmaz
+                  $goog++;
+                  $key = mb_substr($ua, 0, 95);
+                  $byUa[$key] = ($byUa[$key] ?? 0) + 1;
+                  $path = preg_match('#\s(/\S*)#', $m[1][0], $pm) ? $pm[1] : '';
+                  /* SAYACA GIREN istek: bot suzgecini gecen + GET + PHP sayfasi. */
+                  if (!vestra_is_bot($ua) && str_starts_with($m[1][0], 'GET ') && $path !== '' && !$isStatic($path)) {
+                    $counted[$key] = ($counted[$key] ?? 0) + 1;
+                    $paths[mb_substr($path, 0, 46)] = ($paths[mb_substr($path, 0, 46)] ?? 0) + 1;
+                    $ip = strtok($ln, ' ');
+                    $p4 = explode('.', (string)$ip);
+                    if (count($p4) === 4) { $k = $p4[0].'.'.$p4[1].'.'.$p4[2].'.x'; $nets[$k] = ($nets[$k] ?? 0) + 1; }
                   }
                 }
-                if (!$byUa && !$byPath) { echo "      son 20.000 satirda bu adreslerden istek YOK\n"; continue; }
-                arsort($byUa); arsort($byPath);
-                foreach (array_slice($byUa, 0, 6, true) as $ua => $c)   echo "      {$c}x UA: {$ua}\n";
-                foreach (array_slice($byPath, 0, 8, true) as $p => $c)  echo "      {$c}x  {$p}\n";
+                $gz ? gzclose($fh) : fclose($fh);
+                echo "      okunan satir: {$seen}   UA'sinda 'google' gecen: {$goog}\n";
+                if (!$goog) { echo "      bu kutukte Google ajani YOK\n"; continue; }
+                arsort($byUa);
+                foreach (array_slice($byUa, 0, 8, true) as $ua => $c)
+                  printf("      %7dx %s  %s\n", $c, vestra_is_bot($ua) ? '[atlanir]' : '[SAYILIR]', $ua);
+                $sum = array_sum($counted);
+                echo "      => sayaca giren Google istegi: {$sum}\n";
+                if ($sum) {
+                  arsort($counted); arsort($paths); arsort($nets);
+                  foreach (array_slice($counted, 0, 4, true) as $ua => $c) echo "         {$c}x {$ua}\n";
+                  foreach (array_slice($paths,   0, 6, true) as $p => $c)  echo "         {$c}x  {$p}\n";
+                  foreach (array_slice($nets,    0, 6, true) as $k => $c)  echo "         {$c}x  ag {$k}\n";
+                }
               }
             }
             PHPEOF
