@@ -178,16 +178,33 @@ jobs:
                 if (!$p) { printf("  !! %-24s KATALOGDA YOK\n", $sku); $problems++; continue; }
                 $unit = vestra_dropship_unit_price($p, null);   // abonelik YOK -> zamli fiyat
                 if ($unit === null || $unit <= 0) { printf("  !! %-24s dropship fiyati YOK (kapali ya da kademesiz)\n", $sku); $problems++; continue; }
-                /* Beden ilanda gercekten var mi? Olmayan bedene fatura kesmek,
-                   gonderilemeyecek bir sey satmak olurdu. */
-                $sizes = array_map('strval', (array)($p['sizes'] ?? []));
-                $sizeOk = $sizes === [] || in_array($size, $sizes, true);
+                /* Beden ilanda gercekten var mi VE yetiyor mu? Olmayan bedene
+                   fatura kesmek, gonderilemeyecek bir sey satmak olurdu.
+
+                   ILK SURUM YANLIS YERE BAKTI: `sizes` bir dizi degil, insan
+                   icin yazilmis bir METIN ("S×1 · M×3 · L×3 · XL×2 · XXL×1 ·
+                   10 pcs/pack"). in_array('M', [o metin]) her satirda false
+                   dondu ve alti kalemin altisini birden "beden yok" diye
+                   isaretledi -- veri degil, kontrol bozuktu. Simdi metin
+                   ayristiriliyor: beden ve o bedendeki ADET birlikte okunuyor,
+                   yani "M var mi" degil "M'den 1 tane var mi" sorulabiliyor. */
+                $sizeRaw = is_array($p['sizes'] ?? null)
+                    ? implode(' ', array_map('strval', $p['sizes']))
+                    : (string)($p['sizes'] ?? '');
+                $avail = [];
+                if (preg_match_all('/([0-9]{2,3}|XXXL|XXL|XL|XS|S|M|L)\s*[×xX]\s*([0-9]+)/u', $sizeRaw, $mm, PREG_SET_ORDER)) {
+                    foreach ($mm as $m2) $avail[mb_strtoupper($m2[1])] = (int)$m2[2];
+                }
+                $want = mb_strtoupper($size);
+                if ($avail === []) { $sizeOk = true; $sizeNote = '(ilanda beden dokumu yok, kontrol edilemedi)'; }
+                elseif (!isset($avail[$want])) { $sizeOk = false; $sizeNote = '!! beden YOK -- ilanda: '.implode(' ', array_map(fn($k,$v)=>"{$k}x{$v}", array_keys($avail), $avail)); }
+                elseif ($avail[$want] < $qty) { $sizeOk = false; $sizeNote = sprintf('!! yetersiz: %s bedeninde %d var, %d isteniyor', $want, $avail[$want], $qty); }
+                else { $sizeOk = true; $sizeNote = sprintf('(%s: %d adet var)', $want, $avail[$want]); }
                 $lineTot = round($unit * $qty, 2);
                 $subtotal += $lineTot;
                 $lines[] = [$sku, $size, $qty, $unit, $lineTot];
                 printf("  %-24s %-4s x%-2d  %8s  = %9s   %s\n", $sku, $size, $qty,
-                    number_format($unit, 2), number_format($lineTot, 2),
-                    $sizeOk ? '' : '!! bu beden ilanda YOK: '.implode('/', $sizes));
+                    number_format($unit, 2), number_format($lineTot, 2), $sizeNote);
                 if (!$sizeOk) $problems++;
                 printf("      %s %s\n", (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
             }
