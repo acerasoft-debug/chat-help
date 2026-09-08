@@ -1372,9 +1372,26 @@ jobs:
               $buyerName = trim((string)($orderRow['name'] ?? '')) ?: trim((string)($orderRow['company'] ?? ''));
               if (trim($E('salutation')) !== '') $buyerName = preg_replace('/^dear\s+/i', '', trim($E('salutation')));
               /* Tutar KAYITTAN, elle degil: faturayla bir kurus ayrisan bir
-                 rakam musteriye "hangisi dogru" diye sordurur. */
-              $oamt = round((float)($orderRow['total'] ?? 0), 2);
-              $ocur = strtoupper(trim((string)($invs[0]['currency'] ?? 'EUR'))) ?: 'EUR';
+                 rakam musteriye "hangisi dogru" diye sordurur.
+
+                 TUTAR VE PARA BIRIMI AYNI YERDEN, yani FATURADAN (8 Eyl 2026).
+                 Onceden tutar siparis satirindan, para birimi faturadan
+                 aliniyordu; fatura siparisin kendi biriminde kesildigi surece
+                 ikisi ayni seyi soyluyordu ve kusur gorunmuyordu. KURAL 5i ile
+                 fatura baska bir para biriminde kesilebilir hale gelince ayni
+                 satir iki ayri kaydi birlestirmeye basladi: VES-6B53D265'te
+                 siparis EUR 4.766,04, fatura US$5.539,60, ve mektup ikisini
+                 karistirip "US$4.766,04" yazacakti -- musterinin elindeki
+                 belgede olmayan bir rakam. Mektup FATURADAN bahsediyor, o
+                 halde rakami da faturanin kendisi vermeli. */
+              $ocur = strtoupper(trim((string)($invs[0]['currency'] ?? ''))) ?: strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR';
+              $oamt = round((float)($invs[0]['total'] ?? 0), 2);
+              if ($oamt <= 0) {   /* eski/eksik meta: siparis satirina dus, ama ancak birimler AYNIYSA */
+                  $ordCur = strtoupper(trim((string)($orderRow['currency'] ?? 'EUR'))) ?: 'EUR';
+                  if ($ordCur !== $ocur) { fwrite(STDERR, "fatura toplami okunamadi ve siparis birimi ({$ordCur}) fatura birimiyle ({$ocur}) ayni degil -- yanlis rakam yazmaktansa duruyorum\n"); exit(1); }
+                  $oamt = round((float)($orderRow['total'] ?? 0), 2);
+              }
+              echo "tutar  : {$ocur} ".number_format($oamt, 2)."  (faturadan)\n";
               $persona = trim($E('signer')) !== '' ? trim($E('signer')) : 'Marco Bellini';
               [$subject, $body, $opts] = vestra_tpl_order_payment_notice(
                 $buyerName, $oref, (string)($invNos[0] ?? ''), $oamt, $ocur, (bool)$acc, $persona);

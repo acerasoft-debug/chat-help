@@ -227,5 +227,35 @@ $t('IBAN mektuba gomulmemis',         !preg_match('/\bIBAN\b/', $issFn));
 $t('notify=false destekleniyor',      str_contains($issFn, 'bool $notify = true'));
 $t('operatore kopya destekleniyor',   str_contains($issFn, 'string $copyTo'));
 
+echo "\n== payment_notice: tutar ve para birimi AYNI kayittan (fatura) ==\n";
+/* 8 Eyl 2026, VES-6B53D265. Mektup tutari SIPARIS satirindan (EUR 4.766,04),
+   para birimini FATURADAN (USD) aliyordu. Fatura siparisin kendi biriminde
+   kesildigi surece ikisi ayni seyi soyluyor ve kusur GORUNMUYORDU; KURAL 5i
+   faturayi baska bir para biriminde kesilebilir yapinca ayni satir
+   US$4.766,04 yazacakti -- musterinin elindeki belgede (US$5.539,60) olmayan
+   bir rakam. */
+$wf = (string)@file_get_contents(__DIR__ . '/../.github/workflows/send-campaign-preview.yml');
+$t('is akisi okundu',                   $wf !== '');
+$t('tutar FATURADAN aliniyor',          str_contains($wf, '$oamt = round((float)($invs[0][\'total\'] ?? 0), 2);'));
+$t('para birimi de FATURADAN',          str_contains($wf, '$ocur = strtoupper(trim((string)($invs[0][\'currency\'] ?? \'\')))'));
+/* Siparis satirindan okuyan satir HALA var ve olmali: fatura meta'si eksik
+   olan ESKI kayitlar icin geri dusus. Iddia varligini degil YERINI olcuyor --
+   once fatura, sonra birim esitligi kapisi, en sonda geri dusus. Varliga
+   bakan ilk surumu bu yuzden dustu ve dogrusu buydu. */
+$pnBlock = '';
+$pnA = strpos($wf, "elseif (\$letter === 'payment_notice')");
+$pnB = $pnA !== false ? strpos($wf, "elseif (\$letter === 'order_invoice_soon')", $pnA) : false;
+if ($pnA !== false && $pnB !== false) $pnBlock = substr($wf, $pnA, $pnB - $pnA);
+$t('payment_notice blogu bulundu',      $pnBlock !== '');
+$pInv  = strpos($pnBlock, '$oamt = round((float)($invs[0][\'total\'] ?? 0), 2);');
+$pGate = strpos($pnBlock, 'if ($ordCur !== $ocur)');
+$pOrd  = strpos($pnBlock, '$oamt = round((float)($orderRow[\'total\'] ?? 0), 2);');
+$t('once fatura, sonra kapi, sonra geri dusus',
+   $pInv !== false && $pGate !== false && $pOrd !== false && $pInv < $pGate && $pGate < $pOrd);
+/* Fatura toplami okunamayan eski kayitta siparis satirina dusulebilir, ama
+   YALNIZCA birimler ayniysa: farkliyken dusmek kusuru geri getirirdi. */
+$t('geri dusus birim esitligine bagli', str_contains($wf, 'if ($ordCur !== $ocur) { fwrite(STDERR,'));
+$t('onizleme tutari da yaziyor',        str_contains($wf, 'tutar  : {$ocur} '));
+
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
