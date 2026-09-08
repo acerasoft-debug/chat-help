@@ -28,18 +28,70 @@ $dsPlan    = vestra_dropship_plan_active($dsUser);
 $dsPlanMsg = (string)($_GET['plan'] ?? '');
 
 $onlyId = trim((string)($_GET['id'] ?? ''));
-$items = array_values(array_filter(vestra_products(), function ($p) use ($onlyId) {
-    if (!vestra_dropship_enabled($p)) return false;
-    if ($onlyId !== '' && ($p['id'] ?? '') !== $onlyId) return false;
+
+/* GEZILEBILIR DROPSHIP KATALOGU (operator, 8 Eyl 2026: "Dropshipping icin ayri
+   bir sayfada acabiliriz").
+
+   Eskiden bu sayfa urun SECTIRMIYORDU: kimlik verilmemisse 12 ornek basip
+   /shop'a yolluyordu, ve /shop dropship'e gore suzulemiyor -- yani "tek adet
+   alinabilecek seyler" listesine hicbir yerden ulasilamiyordu. Artik burasi o
+   liste. ?id= verilince gene tek urunun satin alma formu aciliyor; iki gorunum
+   ayni dosyada cunku ikisi de ayni kaynaktan (dropship'e ACIK kume) turuyor. */
+$dsPool = array_values(array_filter(vestra_products(), 'vestra_dropship_enabled'));
+
+/* SUZGEC SECENEKLERI, dropship'e ACIK kumeden turer -- butun katalogdan degil.
+   Butun katalogdan turetilseydi listede tek adet alinamayan bir marka (Lacoste,
+   Ralph Lauren) ya da bolme (ayakkabi) secilebilir ve sonuc hep bos cikardi:
+   kullaniciya kendi kurdugumuz bir cikmaz sokak gostermek olurdu. */
+$dsBrands = []; $dsCats = [];
+foreach ($dsPool as $p) {
+    $b = trim((string)($p['brand'] ?? '')); if ($b !== '') $dsBrands[$b] = ($dsBrands[$b] ?? 0) + 1;
+    $c = trim((string)($p['cat']   ?? '')); if ($c !== '') $dsCats[$c]   = ($dsCats[$c]   ?? 0) + 1;
+}
+ksort($dsBrands, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($dsCats,   SORT_NATURAL | SORT_FLAG_CASE);
+
+$fBrand = trim((string)($_GET['brand'] ?? ''));
+$fCat   = trim((string)($_GET['cat']   ?? ''));
+$fQ     = trim((string)($_GET['q']     ?? ''));
+/* Gecersiz bir suzgec sessizce YOK SAYILIR, bos sonuc dondurmez: adres cubugundan
+   gelen yanlis bir marka adi "bu sayfada hicbir sey yok" gibi okunurdu. */
+if ($fBrand !== '' && !isset($dsBrands[$fBrand])) $fBrand = '';
+if ($fCat   !== '' && !isset($dsCats[$fCat]))     $fCat   = '';
+
+$items = array_values(array_filter($dsPool, function ($p) use ($onlyId, $fBrand, $fCat, $fQ) {
+    if ($onlyId !== '') return ($p['id'] ?? '') === $onlyId;
+    if ($fBrand !== '' && trim((string)($p['brand'] ?? '')) !== $fBrand) return false;
+    if ($fCat   !== '' && trim((string)($p['cat']   ?? '')) !== $fCat)   return false;
+    if ($fQ !== '') {
+        $hay = mb_strtolower(trim(($p['brand'] ?? '').' '.($p['name'] ?? '').' '.($p['sku'] ?? '')));
+        if (mb_strpos($hay, mb_strtolower($fQ)) === false) return false;
+    }
     return true;
 }));
-/* Dropship artik katalogun neredeyse tamamina acik. Uc yuz urunu tek sayfaya
-   dizmek, bu sayfanin isi degil -- katalogun isi. Burasi bir SATIN ALMA
-   sayfasi; urun secimi /shop'ta yapiliyor ve buraya ?id= ile geliniyor.
-   Kimlik verilmemisse yalnizca bir avuc ornek gosterip katalogu isaret et. */
-$dsTotal = count($items);
-$dsAll   = $onlyId !== '';
-if (!$dsAll) $items = array_slice($items, 0, 12);
+
+$dsTotal   = count($dsPool);       // dropship'e acik TUM urunler
+$dsMatched = count($items);        // suzgecten gecenler
+$dsAll     = $onlyId !== '';       // tek urun gorunumu mu
+
+/* Sayfalama. 24, ekranda dort sutunda alti sira demek; daha buyugu mobilde
+   fotograf yukunu gereksiz buyutuyor. */
+$dsPer  = 24;
+$dsPage = max(1, (int)($_GET['page'] ?? 1));
+$dsPages = $dsAll ? 1 : max(1, (int)ceil($dsMatched / $dsPer));
+if ($dsPage > $dsPages) $dsPage = $dsPages;
+if (!$dsAll) $items = array_slice($items, ($dsPage - 1) * $dsPer, $dsPer);
+
+/* Suzgec/sayfa baglantilari kurulurken mevcut secimler korunur.
+   SUZGEC degisirse sayfa 1'e doner: 3. sayfadayken marka secen biri, yeni
+   suzgecte 3 sayfa olmadigi icin bos bir sayfaya duserdi. */
+$dsUrl = function (array $over = []) use ($fBrand, $fCat, $fQ, $dsPage) {
+    $q = ['brand' => $fBrand, 'cat' => $fCat, 'q' => $fQ, 'page' => (string)($dsPage > 1 ? $dsPage : '')];
+    if (array_intersect_key($over, ['brand' => 1, 'cat' => 1, 'q' => 1])) $q['page'] = '';
+    foreach ($over as $k => $v) $q[$k] = (string)$v;
+    $q = array_filter($q, fn($v) => $v !== '');
+    return '/dropship' . ($q ? '?' . http_build_query($q) : '');
+};
 $dserr = (string)($_GET['dropship_error'] ?? '');
 
 $PAGE = t('Dropshipping');
@@ -125,17 +177,88 @@ require __DIR__ . '/inc/head.php';
   <?php endif; ?>
 
   <?php if (!$items): ?>
-  <p class="hint"><?= t('Nothing available right now.') ?></p>
+  <?php /* Bos sonucun SEBEBI yaziliyor. "Nothing available right now" bir
+           suzgec yuzunden bosaldiginda yanlis: katalog dolu, secim dar. */ ?>
+    <?php if (!$dsAll && ($fBrand !== '' || $fCat !== '' || $fQ !== '')): ?>
+    <p class="hint"><?= t('No article matches this filter.') ?>
+      <a class="acc" href="/dropship"><?= t('Clear') ?> →</a></p>
+    <?php else: ?>
+    <p class="hint"><?= t('Nothing available right now.') ?></p>
+    <?php endif; ?>
   <?php endif; ?>
 
-  <?php if (!$dsAll && $dsTotal > count($items)): ?>
-  <p class="hint" style="margin:-14px 0 22px">
-    <?= sprintf(t('%d articles are available for single-piece purchase.'), $dsTotal) ?>
-    <a href="/shop"><?= t('Browse the catalogue') ?> →</a>
+  <?php /* ── KATALOG GORUNUMU (?id= yokken) ─────────────────────────────────
+           Suzgec + izgara + sayfalama. Satin alma formu burada CIZILMIYOR:
+           renk/beden/bolge/adet secimi tek urunun sayfasina ait ve yirmi dort
+           urunun formunu ust uste basmak, secim yapilacak sayfayi doldurulacak
+           bir kagit yiginina cevirirdi. ─────────────────────────────────── */
+     if (!$dsAll): ?>
+
+  <form method="get" action="/dropship" class="order-box" style="margin-bottom:20px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div style="flex:1 1 180px">
+      <label class="hint" style="display:block"><?= t('Brand') ?></label>
+      <select name="brand" style="width:100%">
+        <option value=""><?= t('All brands') ?></option>
+        <?php foreach ($dsBrands as $b => $n): ?>
+        <option value="<?= htmlspecialchars($b) ?>"<?= $fBrand === $b ? ' selected' : '' ?>><?= htmlspecialchars($b) ?> (<?= (int)$n ?>)</option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div style="flex:1 1 180px">
+      <label class="hint" style="display:block"><?= t('Category') ?></label>
+      <select name="cat" style="width:100%">
+        <option value=""><?= t('All categories') ?></option>
+        <?php foreach ($dsCats as $c => $n): ?>
+        <option value="<?= htmlspecialchars($c) ?>"<?= $fCat === $c ? ' selected' : '' ?>><?= htmlspecialchars(t($c)) ?> (<?= (int)$n ?>)</option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div style="flex:1 1 160px">
+      <label class="hint" style="display:block"><?= t('Search') ?></label>
+      <input type="text" name="q" value="<?= htmlspecialchars($fQ) ?>" placeholder="<?= htmlspecialchars(t('name or article no.')) ?>" style="width:100%">
+    </div>
+    <button class="btn btn-p" type="submit"><?= t('Filter') ?></button>
+    <?php if ($fBrand !== '' || $fCat !== '' || $fQ !== ''): ?>
+    <a class="btn btn-o" href="/dropship"><?= t('Clear') ?></a>
+    <?php endif; ?>
+  </form>
+
+  <p class="hint" style="margin:-8px 0 18px">
+    <?= sprintf(t('%1$s of %2$s articles can be bought as a single piece.'), number_format($dsMatched), number_format($dsTotal)) ?>
+    <?php if ($dsPages > 1): ?> · <?= sprintf(t('page %1$d / %2$d'), $dsPage, $dsPages) ?><?php endif; ?>
   </p>
+
+  <div class="shopgrid" style="margin-bottom:24px">
+    <?php foreach ($items as $gp):
+      $gimg  = vestra_primary_image($gp);
+      $gunit = vestra_dropship_unit_price($gp, $dsUser);
+      $gwh   = vestra_dropship_wholesale_price($gp);
+      $gsave = (!$dsPlan && $gwh !== null && $gunit !== null && $gwh < $gunit); ?>
+    <a class="scard" href="/dropship?id=<?= urlencode((string)$gp['id']) ?>">
+      <?php if ($gimg): ?><img src="<?= htmlspecialchars($gimg) ?>" alt="" loading="lazy" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px"><?php endif; ?>
+      <div style="padding:8px 2px 2px">
+        <div class="hint" style="font-size:11px"><?= htmlspecialchars((string)($gp['brand'] ?? '')) ?></div>
+        <div style="font-size:13px;line-height:1.3;margin:2px 0 4px"><?= htmlspecialchars((string)($gp['name'] ?? '')) ?></div>
+        <div style="font-weight:600"><?= $gunit !== null ? vestra_money((float)$gunit) : '—' ?>
+          <?php if ($dsPlan): ?><span class="hint" style="font-weight:400">· <?= t('wholesale price') ?></span><?php endif; ?></div>
+        <?php if ($gsave): ?><div class="hint" style="font-size:11px;color:var(--acc)"><?= sprintf(t('%s with wholesale access'), vestra_money((float)$gwh)) ?></div><?php endif; ?>
+      </div>
+    </a>
+    <?php endforeach; ?>
+  </div>
+
+  <?php if ($dsPages > 1): ?>
+  <div style="display:flex;gap:8px;justify-content:center;align-items:center;margin-bottom:24px;flex-wrap:wrap">
+    <?php if ($dsPage > 1): ?><a class="btn btn-o" href="<?= htmlspecialchars($dsUrl(['page' => $dsPage - 1])) ?>">← <?= t('Previous') ?></a><?php endif; ?>
+    <span class="hint"><?= sprintf(t('page %1$d / %2$d'), $dsPage, $dsPages) ?></span>
+    <?php if ($dsPage < $dsPages): ?><a class="btn btn-o" href="<?= htmlspecialchars($dsUrl(['page' => $dsPage + 1])) ?>"><?= t('Next') ?> →</a><?php endif; ?>
+  </div>
   <?php endif; ?>
 
-  <?php foreach ($items as $p): $img = vestra_primary_image($p); $ds = vestra_dropship_of($p);
+  <?php endif; /* katalog gorunumu */ ?>
+
+  <?php /* TEK URUN GORUNUMU: yalnizca ?id= verildiginde satin alma formu. */ ?>
+  <?php if ($dsAll): foreach ($items as $p): $img = vestra_primary_image($p); $ds = vestra_dropship_of($p);
         /* Gosterilen fiyat, bu ziyaretcinin GERCEKTEN odeyecegi fiyat.
            Sayfada bir, kasada baska rakam gostermek bu depoda zaten bir
            kez yasandi (KURAL 6, escrow tavani). */
@@ -267,7 +390,7 @@ require __DIR__ . '/inc/head.php';
     </form>
     <div class="hint" style="margin-top:8px"><a href="/product?id=<?= urlencode($p['id']) ?>"><?= t('Full product details') ?> →</a></div>
   </div>
-  <?php endforeach; ?>
+  <?php endforeach; endif; /* tek urun gorunumu */ ?>
   <?php endif; /* $dsAllowed */ ?>
 </div>
 <?php require __DIR__ . '/inc/foot.php'; ?>

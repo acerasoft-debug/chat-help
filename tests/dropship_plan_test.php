@@ -132,5 +132,31 @@ $t('eski sabit fiyat kalmadi', !str_contains($page, "vestra_money((float)\$ds['p
 $t('plan fiyati sabitten',     str_contains($page, 'vestra_money(VESTRA_DROPSHIP_PLAN_PRICE)'));
 $t('zam orani sabitten',       str_contains($page, 'VESTRA_DROPSHIP_MARKUP * 100'));
 
+echo "\n== 11. Gezilebilir dropship katalogu ==\n";
+/* Operator, 8 Eyl 2026: "Dropshipping icin ayri bir sayfada acabiliriz".
+   Sayfa eskiden urun SECTIRMIYORDU (12 ornek + /shop'a link), ve /shop
+   dropship'e gore suzulemiyor -- yani tek adet alinabilecek seylerin listesi
+   hicbir yerde yoktu. */
+$t('suzgec cubugu var',            str_contains($page, "name=\"brand\"") && str_contains($page, "name=\"cat\"") && str_contains($page, "name=\"q\""));
+$t('izgara ciziliyor',             str_contains($page, 'class="shopgrid"') && str_contains($page, 'class="scard"'));
+$t('sayfalama var',                str_contains($page, '$dsPages > 1') && str_contains($page, '$dsUrl(['));
+/* SUZGEC SECENEKLERI dropship'e ACIK kumeden turemeli: butun katalogdan
+   turetilseydi Lacoste/Ralph Lauren ya da ayakkabi secilebilir ve sonuc hep
+   bos cikardi -- kendi kurdugumuz bir cikmaz sokak. */
+$t('secenekler dropship kumesinden', str_contains($page, 'foreach ($dsPool as $p)') || str_contains($page, '$dsPool as $p'));
+$t('gecersiz suzgec yok sayiliyor',  str_contains($page, "if (\$fBrand !== '' && !isset(\$dsBrands[\$fBrand])) \$fBrand = '';"));
+/* Iki gorunum AYRILMIS olmali: izgarada satin alma formu, tek urun
+   gorunumunde izgara olmamali. */
+$t('izgara yalniz ?id= YOKKEN',    str_contains($page, 'if (!$dsAll): ?>'));
+$t('form yalniz ?id= VARKEN',      str_contains($page, 'if ($dsAll): foreach ($items as $p)'));
+$t('izgara fiyati da plana gore',  str_contains($page, 'vestra_dropship_unit_price($gp, $dsUser)'));
+/* Bos sonucun sebebi yazilmali: suzgec yuzunden bosalan bir sayfada
+   "Nothing available right now" yanlis -- katalog dolu, secim dar. */
+$t('bos sonucun sebebi ayriliyor', str_contains($page, "t('No article matches this filter.')"));
+/* Suzgec degisince sayfa 1'e donmeli. */
+$t('suzgec degisince sayfa sifirlanir',
+   str_contains($page, "array_intersect_key(\$over, ['brand' => 1, 'cat' => 1, 'q' => 1])")
+   || str_contains($src('dropship.php'), "array_intersect_key(\$over, ['brand' => 1, 'cat' => 1, 'q' => 1])"));
+
 echo "\n--- $ok gecti, $fail kaldi ---\n";
 exit($fail ? 1 : 0);
