@@ -1118,6 +1118,51 @@ fatura kes"* — VES-0A2571C2 / GARAGE LE PARIS.)
   alınırsa ölçüm yalan söyler. Düzeltme geri alınarak iddianın gerçekten
   düştüğü doğrulandı (3 kırmızı).
 
+**KURAL 16 — Toptan erişim aboneliği: %20 zammı KALDIRAN şey; iki fiyat da
+tutulur** (operatör, 8 Eyl 2026: *"tıklandığında aylık ödeme fonksiyonu da
+olsun... 199,90 eur olacak fiyatı, eğer bu fiyat ödenirse toptan fiyatına satın
+alınabilir"* + *"yoksa tekli dropshipping fiyatı yüzde 20 eklenecek"*).
+
+- **Zam kalkmadı, abonesizin fiyatı oldu.** `VESTRA_DROPSHIP_MARKUP` yerinde
+  duruyor; abonelik onu kaldıran şey. Testin **iki yönü de** tutması şart:
+  zam kaybolursa abonelik hiçbir şey satmıyor, hep uygulanırsa abonelik parayı
+  boşuna alıyor olurdu (`dropship_plan_test.php`; zam sıfırlanınca 5, abonelik
+  yok sayılınca 2 iddia kırmızıya döner).
+- **Fiyat tek sabit:** `VESTRA_DROPSHIP_PLAN_PRICE = 199.90`. Stripe panelinde
+  hazır bir Price'a bağlamak, rakamı sunucudan okunamayan ikinci bir yere daha
+  yazmak olurdu — KURAL 6'nın escrow tavanı dersi. Abonelik satırı `price_data`
+  ile yerinde kuruluyor.
+- **Hesapta AYRI ad uzayı:** `dropship_plan_status` / `_sub_id` / `_period_end`.
+  `membership_status`a yazmak kısa yoldu ve **yanlıştı**: webhook'un
+  `customer.subscription.deleted` dalı o alanı görünce hesabın ilanlarını askıya
+  alıp *"üyeliğiniz bitti, ilanlarınız kapandı"* mektubu yolluyor. Bir alıcının
+  dropship aboneliğini iptal etmesi, hiç ilanı ve üyeliği olmayan bir hesaba o
+  mektubu göndertecekti. Üç abonelik dalı da artık `metadata.plan` ile ayrılıyor
+  ve plan iptali **satıcı sökümünden önce** `break` ediyor.
+- **`past_due` bilerek kapalı:** tahsil edilemeyen bir ayrıcalık açık kalmaz.
+- **Fiyat istekten gelmez, hesaptan türer.** `dropship_create_order()` birim
+  fiyatı `vestra_dropship_unit_price($p, $buyer)` ile kendisi buluyor; POST'taki
+  hiçbir tutar okunmuyor. Ortak API'sinin tek statik anahtarının arkasında bir
+  VESTRA hesabı **yok**, dolayısıyla o taraf zamlı fiyatta kalıyor — test bunu
+  da tutuyor.
+- **Satan her yerin iptal yolu olmalı.** Kablolama sırasında iki boşluk çıktı:
+  fatura portalı yalnız satıcıyaydı (yani iptal edilemeyen bir abonelik satılmış
+  olurdu) ve sayfadaki bağlantı düz `<a>` idi — portal POST istiyor, GET sessizce
+  geri döner. "İptal edemiyorum" şikâyeti tam olarak buradan çıkardı.
+- **Gösterilen fiyat, tahsil edilen fiyat.** Sayfa da sipariş kurucusu da aynı
+  fonksiyondan okuyor; sayfada bir, kasada başka rakam bu depoda zaten yaşandı.
+- Ödeme anahtarının sunucu tarafı yolu: `seller-products.yml` →
+  `admin_mode=dropship_on|dropship_off`. Panel anahtarıyla **aynı kayıt**, ikinci
+  bir karar noktası değil. Yazma **ayrı bir PHP sürecinde** geri okunuyor: bayrak
+  süreç içinde `static` önbellekli, aynı süreçte sormak yazılan değeri değil
+  önbelleği ölçerdi.
+- **Dropship sayfası 8 dilde de İNGİLİZCE** (8 Eyl 2026'da ölçüldü: 49 anahtarın
+  43'ü `de.php`'de yok). Bu yeni bir gerileme değil, sayfanın baştan beri hâli;
+  KURAL 10'un testi yalnız `de.php`'nin anahtar kümesini karşılaştırdığı için
+  yeşil kalıyor. Yeni metinler de bilerek sözlüğe eklenmedi — yarısı çevrilmiş
+  bir sayfa, hiç çevrilmemişten kötü görünür. Çeviri istenirse **sayfanın tamamı**
+  bir işte yapılmalı.
+
 ## Güvenlik / gizlilik
 
 - Depo **herkese açık**, Actions logları da açık. Banka hesap/routing numarası, API
