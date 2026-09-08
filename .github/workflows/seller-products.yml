@@ -203,16 +203,32 @@ jobs:
                 $lineTot = round($unit * $qty, 2);
                 $subtotal += $lineTot;
                 $lines[] = [$sku, $size, $qty, $unit, $lineTot];
-                printf("  %-24s %-4s x%-2d  %8s  = %9s   %s\n", $sku, $size, $qty,
-                    number_format($unit, 2), number_format($lineTot, 2), $sizeNote);
-                if (!$sizeOk) $problems++;
+                $baseSum = ($baseSum ?? 0.0) + round(((float)vestra_dropship_wholesale_price($p)) * $qty, 2);
+                /* TAM FIYAT DOKUMU (operator: "tam fiyatlari ver"). Yalnizca
+                   son rakami basmak, "bu 47,88 nereden cikti" sorusunu acik
+                   birakiyor. Kademe merdiveni, taban (en dusuk kademe), zam ve
+                   satir carpimi birlikte yaziliyor -- her rakam kaynagiyla. */
+                $base = vestra_dropship_wholesale_price($p);
+                $tiers = [];
+                foreach ((array)($p['tiers'] ?? []) as $tt) {
+                    $tmin = (int)($tt['min'] ?? 0); $tpr = (float)($tt['price'] ?? 0);
+                    if ($tmin > 0 && $tpr > 0) $tiers[] = $tmin.'+ = '.number_format($tpr, 2);
+                }
+                printf("  %-24s %-4s x%-2d  %s\n", $sku, $size, $qty, $sizeNote);
                 printf("      %s %s\n", (string)($p['brand'] ?? ''), (string)($p['name'] ?? ''));
+                printf("      kademeler   : %s\n", $tiers ? implode('  |  ', $tiers) : '(kademe yok)');
+                printf("      toptan taban: EUR %8s   (en dusuk adetli kademe)\n", number_format((float)$base, 2));
+                printf("      dropship    : EUR %8s   (taban + %%%d)\n", number_format($unit, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
+                printf("      satir       : EUR %8s   (%s x %d)\n\n", number_format($lineTot, 2), number_format($unit, 2), $qty);
+                if (!$sizeOk) $problems++;
             }
 
             $ship = round((float)str_replace(',', '.', (string)getenv('OD_SHIP')), 2);
             $total = round($subtotal + $ship, 2);
             echo "\n== TOPLAM ==\n";
-            printf("  mal      : EUR %10s\n", number_format($subtotal, 2));
+            printf("  toptan   : EUR %10s   (zamsiz taban toplami -- kiyas icin)\n", number_format((float)($baseSum ?? 0), 2));
+            printf("  mal      : EUR %10s   (dropship, taban + %%%d)\n", number_format($subtotal, 2), (int)round(VESTRA_DROPSHIP_MARKUP * 100));
+            printf("  zam payi : EUR %10s\n", number_format($subtotal - (float)($baseSum ?? 0), 2));
             printf("  kargo    : EUR %10s\n", number_format($ship, 2));
             printf("  TOPLAM   : EUR %10s\n", number_format($total, 2));
             $r = vestra_fx('USD');
