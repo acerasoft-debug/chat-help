@@ -802,11 +802,23 @@ jobs:
               CRONL="$(crontab -l 2>/dev/null | grep 'VESTRA-SWEEP' || true)"
               if [ -n "$CRONL" ]; then printf '%s\n' "$CRONL" | sed 's/^/    /'
               else echo "    HIC YOK -- gunluk isler ZAMANLANMAMIS"; fi
+              # SAAT DILIMI: crontab satirlari UTC sanilarak yazildi, ama cron
+              # SUNUCUNUN YEREL saatini kullanir. Ikisi ayriysa her gunluk is
+              # yazildigi saatte degil, kaydigi saatte kosar -- ve "calismadi"
+              # gorunen sey aslinda "daha sirasi gelmedi" olur. Bunu ilk gunde
+              # gormenin tek yolu iki saati yan yana basmak.
+              echo "-- sunucu saati --"
+              echo "    yerel : $(date '+%Y-%m-%d %H:%M %Z (%z)')"
+              echo "    UTC   : $(date -u '+%Y-%m-%d %H:%M')"
               L="$HOME/vestra_sweep.log"
               echo "-- supurucu kutugu --"
               if [ -f "$L" ]; then
-                TODAY="$(date -u '+%Y-%m-%d')"
-                echo "    $(wc -c < "$L") bayt | bugun ($TODAY) dusen satir: $(grep -c "$TODAY" "$L" 2>/dev/null || echo 0)"
+                echo "    $(wc -c < "$L") bayt | son yazim: $(date -r "$L" '+%Y-%m-%d %H:%M %Z' 2>/dev/null || echo '?')"
+                echo "    bugun (yerel $(date '+%Y-%m-%d')) tarihli satir: $(grep -c "$(date '+%Y-%m-%d')" "$L" 2>/dev/null || echo 0)"
+                # Kutukteki SON tarihli damgalar: isler hangi saatte kosuyor?
+                # Cadence'i gormek, tek bir "0 satir" sayisindan cok daha fazlasini soyler.
+                echo "    -- kutukteki son 4 zaman damgasi --"
+                grep -o '[0-9]\{4\}-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' "$L" 2>/dev/null | tail -n 4 | sed 's/^/      /'
                 echo "    -- son 6 satir --"
                 tail -n 6 "$L" 2>/dev/null | sed "$MASK" | cut -c1-150 | sed 's/^/      /'
               else
