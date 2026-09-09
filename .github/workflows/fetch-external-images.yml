@@ -212,21 +212,40 @@ jobs:
                 if (!preg_match('#^[a-z0-9][a-z0-9/_.-]*$#i', $rel) || strpos($rel, '..') !== false) { echo "  RED: gecersiz hedef yol '{$rel}'\n"; $fail++; continue; }
                 if (!preg_match('#^https://#i', $pageUrl)) { echo "  RED: gecersiz sayfa URL '{$pageUrl}'\n"; $fail++; continue; }
 
-                $src = null;
+                $src = null; $direct = null;
                 $prod = shopify_product_json($pageUrl, $ua);
                 if ($prod) {
                   $src = $prod['images'][0]['src'] ?? ($prod['image']['src'] ?? null);
                 } else {
-                  [$pcode, $phtml] = vestra_fetch($pageUrl, $ua);
-                  if ($pcode >= 200 && $pcode < 300 && $phtml !== false) $src = first_image_url_html($phtml);
+                  [$pcode, $phtml, $pctype] = vestra_fetch($pageUrl, $ua);
+                  if ($pcode >= 200 && $pcode < 300 && $phtml !== false) {
+                    /* URL'nin KENDISI bir gorsel olabilir. Eskiden bu durumda
+                       first_image_url_html() ikili veride <img> etiketi ariyor,
+                       bulamiyor ve "gorsel bulunamadi" diyordu -- yani dogrudan bir
+                       gorsel adresi veren her cagri, dosya gayet indirilebilir
+                       oldugu halde basarisiz oluyordu. Hem content-type hem SIHIRLI
+                       BAYTLAR: sunucular jpeg'e application/octet-stream diyebiliyor,
+                       ve yalniz uzantiya bakmak bir HTML sayfasini .jpg sanmaya acik. */
+                    $ct  = strtolower(trim(explode(';', (string)$pctype)[0]));
+                    $sig = substr($phtml, 0, 12);
+                    $isImg = str_starts_with($ct, 'image/')
+                          || substr($sig,0,3) === "\xFF\xD8\xFF"                       // jpeg
+                          || substr($sig,0,8) === "\x89PNG\r\n\x1a\n"                   // png
+                          || (substr($sig,0,4) === 'RIFF' && substr($phtml,8,4) === 'WEBP')
+                          || strpos(substr($phtml,4,8), 'ftyp') !== false;              // avif/heif
+                    if ($isImg) $direct = $phtml;
+                    else        $src = first_image_url_html($phtml);
+                  }
                 }
-                if (!$src) { echo "  HATA: '{$rel}' icin gorsel bulunamadi ({$pageUrl})\n"; $fail++; continue; }
+                if ($direct === null && !$src) { echo "  HATA: '{$rel}' icin gorsel bulunamadi ({$pageUrl})\n"; $fail++; continue; }
+                if ($direct !== null) { $src = $pageUrl; }   // asagidaki loglar icin
                 if (strpos($src, '//') === 0) $src = 'https:'.$src;
                 elseif (strpos($src, 'http') !== 0) { echo "  HATA: '{$rel}' gorsel URL'si bagil, atlandi\n"; $fail++; continue; }
 
                 $absDir = $doc.'/uploads/'.dirname($rel);
                 if (!is_dir($absDir) && !@mkdir($absDir, 0755, true)) { echo "  HATA: klasor olusturulamadi {$absDir}\n"; $fail++; continue; }
-                [$icode, $bin, , $ierr] = vestra_fetch($src, $ua, true);
+                if ($direct !== null) { $icode = 200; $bin = $direct; $ierr = ''; }
+                else { [$icode, $bin, , $ierr] = vestra_fetch($src, $ua, true); }
                 if ($icode < 200 || $icode >= 300 || $bin === false || strlen($bin) < 800) { echo "  HATA: indirilemedi '{$rel}' (kod={$icode} {$ierr})\n"; $fail++; continue; }
                 $abs = $doc.'/uploads/'.$rel;
                 if (@file_put_contents($abs, $bin) === false) { echo "  HATA: yazilamadi {$abs}\n"; $fail++; continue; }

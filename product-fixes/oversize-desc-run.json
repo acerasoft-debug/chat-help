@@ -1,0 +1,52 @@
+[
+ {
+  "match": "blc-612966",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-612966tlvb3",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966TLVB3. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-612966tlvf1",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966TLVF1. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-612966tmvg7",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966TMVG7. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-612966tnvn4",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966TNVN4. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-612966tnvn4w",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 612966TNVN4W. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-641675tlvf9",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 641675TLVF9. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-676589",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 676589. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-676589tlvg70901",
+  "expect": 1,
+  "desc": "Original Balenciaga, model 676589TLVG70901. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ },
+ {
+  "match": "blc-tnvg9",
+  "expect": 1,
+  "desc": "Original Balenciaga, model TNVG9. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10/pack. EEA stock with full invoice trail."
+ }
+]
