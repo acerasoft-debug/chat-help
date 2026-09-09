@@ -1,6 +1,9 @@
 name: LUMÉA — fetch images
 
 on:
+  push:
+    branches: ['claude/vip-massage-site-setup-ze1npk']
+    paths: ['.github/workflows/lumea-images.yml', 'lumea/scripts/fetch-images.mjs']
   workflow_dispatch:
     inputs:
       force:
@@ -23,7 +26,7 @@ jobs:
         env:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-        run: node scripts/fetch-images.mjs ${{ inputs.force && '--force' || '' }}
+        run: node scripts/fetch-images.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}
       - name: Commit images
         run: |
           git config user.name "lumea-images[bot]"
