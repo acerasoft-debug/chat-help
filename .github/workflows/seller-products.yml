@@ -11,7 +11,7 @@ on:
         required: false
         default: ""
       admin_mode:
-        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. Boş = sadece listeler."
+        description: "'keygen' = sunucuda şifreleme anahtarı üretir, public key'i yazar. 'apply' = payload'daki şifreli satıcı bilgilerini uygular. 'issue' = faturayı KESER (e-posta GÖNDERMEZ). 'currency' = faturanın para birimini KAYDA yazar. 'shipping' = siparişe navlun yazar (sipariş toplamı da güncellenir). 'seller' = faturayı KİMİN keseceğini kayda yazar (issue_ref=sipariş, payload='vestra'|hesap adı parçası|boş; birden fazla satıcılı sipariş böylece TEK belge olur, KURAL 5b). Üçü de numara yakmaz, belge üretmez, kimseye gitmez. 'order_draft' = SALT OKUNUR sipariş taslağı (hesap + fiyatlar + toplam; hiçbir şey yazmaz). 'order_write' = AYNI hesaplamayı yapar ve siparişi orders.csv'ye YAZAR (fatura KESMEZ, e-posta göndermez). 'dropship_on' / 'dropship_off' = tek adet dropship ÖDEMESİNİ açar/kapatır (Admin ▸ Dropship'teki anahtarın aynısı; yazma geri okunur). 'thread_seller' = konuşmayı başka satıcıya taşır (KURAL 19). 'offer_restore' = panelden SİLİNMİŞ bir teklifi kendi 'bak-del' yedeğinden geri yükler (issue_ref=teklif ref); offer_price verilirse AYNI koşuda karşı teklifi de işler ve MÜŞTERİYE MEKTUP GÖNDERİR — offer_apply=true demedikçe kuru koşu. 'ship' = siparişe taşıyıcı/servis/takip numarası yazar (issue_ref=sipariş, ship_spec=…); status=shipped verilirse 'gönderildi' mektubu MÜŞTERİYE gider. Boş = sadece listeler."
         required: false
         default: ""
       issue_currency:
@@ -50,6 +50,10 @@ on:
         description: "admin_mode=thread_seller: 'true' = KAYDET. Varsayilan kuru kosu — ne olacagini yazar, dosyaya dokunmaz."
         required: false
         default: "false"
+      ship_spec:
+        description: "admin_mode=ship: gönderim bilgisi — 'tracking=<no>|carrier=ups|service=Express Saver|status=shipped'. status=shipped verilirse MÜŞTERİYE 'gönderildi' MEKTUBU GİDER. offer_apply=true demedikçe kuru koşu."
+        required: false
+        default: ""
       offer_price:
         description: "admin_mode=offer_restore: karşı teklif BİRİM fiyatı (ör: 100). Boş = yalnız kaydı geri yükle, teklif verme, MÜŞTERİYE HİÇBİR ŞEY GİTMEZ."
         required: false
@@ -1075,6 +1079,147 @@ jobs:
             php -l /tmp/vestra_mvseller.php
             php /tmp/vestra_mvseller.php; RC=$?
             rm -f /tmp/vestra_mvseller.php
+            exit $RC
+
+      - name: Siparişe taşıyıcı / servis / takip numarası yaz (ship)
+        if: ${{ github.event.inputs.admin_mode == 'ship' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          SH_REF:  ${{ github.event.inputs.issue_ref }}
+          SH_SPEC: ${{ github.event.inputs.ship_spec }}
+          SH_GO:   ${{ github.event.inputs.offer_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 5m
+          envs: SH_REF,SH_SPEC,SH_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_shipment.php <<'PHPEOF'
+            <?php
+            /* Siparise tasiyici + servis + takip numarasi yazar; istenirse durumu
+             * 'shipped' yapar ve ALICIYA mektup gonderir.
+             *
+             * Panelde bu kutular var; bu yol panel disindan ayni kaydi yazmak icin
+             * (KURAL 5b/5i'deki admin_mode desenlerinin aynisi). Yazma TEK
+             * fonksiyondan: vestra_order_set_shipment() -- ikinci bir yazici,
+             * panelle er gec ayrisir.
+             *
+             * MEKTUP: gonderim yolu vestra_tpl_order_shipped() ile ayni sablonu
+             * kullanir (admin.php ve seller.php de oyle). Kuru kosu VARSAYILAN
+             * (KURAL 18): mektup musteriye gidiyor. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/orders.php";
+            require_once $doc."/inc/email_templates.php";
+            require_once $doc."/inc/notify.php";
+
+            $ref  = trim((string)getenv('SH_REF'));
+            $spec = (string)getenv('SH_SPEC');
+            $go   = strtolower(trim((string)getenv('SH_GO'))) === 'true';
+            if ($ref === '') { fwrite(STDERR, "issue_ref bos -- siparis referansi gerekli\n"); exit(1); }
+
+            $F = [];
+            foreach (explode('|', $spec) as $part) {
+              $part = trim($part); if ($part === '') continue;
+              $kv = explode('=', $part, 2);
+              if (count($kv) === 2) $F[strtolower(trim($kv[0]))] = trim($kv[1]);
+            }
+            $E = fn(string $k) => (string)($F[$k] ?? '');
+
+            /* Siparis GERCEKTEN var mi. orders.csv'de olmayan bir ref'e durum
+               yazmak, hicbir yerde gorunmeyen bir kayit birakir. */
+            $oRow = null;
+            foreach (vestra_read_csv('orders.csv') as $r) if ((string)($r['ref'] ?? '') === $ref) { $oRow = $r; break; }
+            if (!$oRow) { fwrite(STDERR, "siparis bulunamadi: {$ref}\n"); exit(1); }
+
+            $mask = fn(string $e) => $e === '' ? '' : preg_replace('/^(.).*(@.*)$/', '$1***$2', $e);
+            $all  = vestra_read_json('order_statuses.json');
+            $cur  = (array)($all[$ref] ?? []);
+            $prevStatus = (string)($cur['status'] ?? 'pending');
+            $before = vestra_order_shipment($cur);
+
+            echo "== GONDERIM BILGISI ==\n";
+            echo "siparis   : {$ref} | ".(string)($oRow['company'] ?? '')." | ".$mask((string)($oRow['email'] ?? ''))."\n";
+            echo "durum     : {$prevStatus}\n";
+            echo "onceki    : tasiyici=".($before['carrier_name'] ?: '-')." servis=".($before['service'] ?: '-')
+               . " takip=".($before['tracking'] ?: '-')."\n";
+
+            /* Yazilmayan alan KORUNUR: null gecince vestra_order_set_shipment
+               dokunmuyor. Bos dizge ise SILER -- ikisi ayri niyet. */
+            $trk = array_key_exists('tracking', $F) ? $E('tracking') : null;
+            $car = array_key_exists('carrier',  $F) ? $E('carrier')  : null;
+            $svc = array_key_exists('service',  $F) ? $E('service')  : null;
+            $wantStatus = strtolower($E('status'));
+            if ($wantStatus !== '' && !in_array($wantStatus, vestra_order_settable_statuses(), true)) {
+              fwrite(STDERR, "gecersiz durum: {$wantStatus} (gecerli: ".implode(', ', vestra_order_settable_statuses()).")\n"); exit(1);
+            }
+
+            /* ONIZLEME: yazmadan once cozulen tasiyici ve BAGLANTIYI goster.
+               "Numarayi yazdim" demek yetmez -- alicinin tiklayacagi sey bu. */
+            $preview = vestra_order_shipment(array_merge($cur, array_filter([
+              'tracking'     => $trk,
+              'ship_carrier' => $car,
+              'ship_service' => $svc,
+            ], fn($v) => $v !== null)));
+            echo "yeni      : tasiyici=".($preview['carrier_name'] ?: '-')." servis=".($preview['service'] ?: '-')
+               . " takip=".($preview['tracking'] ?: '-')."\n";
+            echo "baglanti  : ".($preview['url'] !== '' ? $preview['url'] : '*** YOK -- tasiyici cozulmedi, alici duz metin gorur ***')."\n";
+            echo "durum     : ".($wantStatus !== '' ? "{$prevStatus} -> {$wantStatus}" : "degismiyor")."\n";
+
+            $buyerAcc = auth_find((string)($oRow['email'] ?? ''));
+            $willMail = $wantStatus === 'shipped'
+                     && ($prevStatus !== 'shipped' || ($preview['tracking'] !== '' && $preview['tracking'] !== $before['tracking']));
+            echo "mektup    : ".($willMail ? 'GIDECEK (aliciya)' : 'gitmeyecek')."\n";
+            if ($willMail) {
+              [$mS, $mB] = vestra_tpl_order_shipped((string)($oRow['name'] ?: ($oRow['company'] ?: 'there')),
+                              $ref, $preview['tracking'], (bool)$buyerAcc, $preview);
+              echo "--- mektup onizlemesi ---\nKonu: {$mS}\n{$mB}\n--- son ---\n";
+            }
+
+            if (!$go) { echo "\noffer_apply=false — HICBIR SEY YAZILMADI, HICBIR MEKTUP GITMEDI.\n"; exit(0); }
+
+            $res = vestra_order_set_shipment($ref, $trk, $car, $svc);
+            if (empty($res['ok'])) { fwrite(STDERR, "YAZILAMADI: ".((string)($res['error'] ?? '?'))."\n"); exit(1); }
+            $after = $res['shipment'];
+            echo "\nKAYDEDILDI (geri okundu): tasiyici=".($after['carrier_name'] ?: '-')
+               . " servis=".($after['service'] ?: '-')." takip=".($after['tracking'] ?: '-')."\n";
+            echo "baglanti  : ".($after['url'] !== '' ? $after['url'] : 'YOK')."\n";
+
+            if ($wantStatus !== '') {
+              $all2 = vestra_read_json('order_statuses.json');
+              $all2[$ref] = array_merge((array)($all2[$ref] ?? []), ['status' => $wantStatus, 'updated_at' => date('c')]);
+              if ($wantStatus === 'shipped' && empty($all2[$ref]['shipped_at'])) $all2[$ref]['shipped_at'] = date('c');
+              $all2[$ref]['history'][] = vestra_order_history_entry($wantStatus, 'admin',
+                  $after['tracking'] !== '' ? trim(($after['carrier_name'] !== '' ? $after['carrier_name'].' ' : '').$after['tracking']) : '');
+              vestra_write_json('order_statuses.json', $all2);
+              $back = vestra_read_json('order_statuses.json');
+              $now  = (string)($back[$ref]['status'] ?? '');
+              if ($now !== $wantStatus) { fwrite(STDERR, "GERI OKUMA: durum '{$now}', beklenen '{$wantStatus}'\n"); exit(1); }
+              echo "durum     : {$now} (geri okundu)\n";
+            }
+
+            if ($willMail && !empty($oRow['email'])) {
+              [$mS, $mB, $mO] = vestra_tpl_order_shipped((string)($oRow['name'] ?: ($oRow['company'] ?: 'there')),
+                                  $ref, $after['tracking'], (bool)$buyerAcc, $after);
+              $sent = vestra_send_mail((string)$oRow['email'], $mS, $mB, '', '', null, '', $mO);
+              echo "mektup    : ".($sent ? 'GONDERILDI' : '*** SAGLAYICI REDDETTI ***')."\n";
+              if ($buyerAcc) {
+                require_once $doc."/inc/push.php";
+                vestra_push_send((string)$buyerAcc['id'], 'VESTRA — order shipped 🚚',
+                  'Order '.$ref.($after['tracking'] !== '' ? ' · '.trim($after['carrier_name'].' '.$after['tracking']) : '').' is on its way.',
+                  '/buyer?tab=orders');
+              }
+              if (!$sent) exit(1);
+            }
+            PHPEOF
+            php -l /tmp/vestra_shipment.php
+            php /tmp/vestra_shipment.php; RC=$?
+            rm -f /tmp/vestra_shipment.php
             exit $RC
 
       - name: Silinmiş teklifi yedekten geri yükle (+ karşı teklif)

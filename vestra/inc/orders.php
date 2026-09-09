@@ -74,6 +74,119 @@ function vestra_order_history_entry(string $status, string $by, string $note = '
     return array_filter(['status' => $status, 'at' => date('c'), 'by' => $by, 'note' => $note], fn($v) => $v !== '');
 }
 
+/* ─────────────────────────── Gönderim (kargo firması + servis + takip) ───────
+ * Operatör, 9 Eyl 2026: "bu gönderim numarasini ekle link ile beraber ups
+ * express saver" + "her pakette gönderici kargo bölümüde olsun".
+ *
+ * O güne kadar `tracking` ÇIPLAK BİR DİZGEYDİ: alıcı sipariş sayfasında ve
+ * mektupta 18 karakterlik bir numara görüyor, hangi firmanın taşıdığını ve
+ * nereye bakacağını bilmiyordu. Kargo firması, servis adı ve takip bağlantısı
+ * üç ayrı olgu ve üçü de eksikti.
+ *
+ * TAKİP BAĞLANTISI KAYDA YAZILMAZ, numaradan TÜRETİLİR. Elle yapıştırılan bir
+ * URL, aynı olgunun ikinci kopyası olurdu ve bu depo o hatanın bedelini bu
+ * hafta iki kez ödedi (`desc`/`sizes` beden serisi, thread id). Numara
+ * değişince bağlantı kendiliğinden değişir. */
+function vestra_carriers(): array {
+    /* URL kalıbı operatörün KENDİ verdiği biçim (UPS) — "düzeltilmedi".
+     * Liste bilerek DAR: yalnız gerçekten kullanılan taşıyıcılar. */
+    return [
+        'ups'    => ['name' => 'UPS',        'url' => 'https://www.ups.com/track?tracknum=%s&loc=en_US&requester=ST/trackdetails'],
+        'dhl'    => ['name' => 'DHL',        'url' => 'https://www.dhl.com/global-en/home/tracking.html?tracking-id=%s'],
+        'fedex'  => ['name' => 'FedEx',      'url' => 'https://www.fedex.com/fedextrack/?trknbr=%s'],
+        'tnt'    => ['name' => 'TNT',        'url' => 'https://www.tnt.com/express/en_gb/site/shipping-tools/tracking.html?searchType=con&cons=%s'],
+        'gls'    => ['name' => 'GLS',        'url' => 'https://gls-group.com/track?match=%s'],
+        'dpd'    => ['name' => 'DPD',        'url' => 'https://tracking.dpd.de/status/en_US/parcel/%s'],
+        'postnl' => ['name' => 'PostNL',     'url' => 'https://postnl.nl/en/track-and-trace/?B=%s'],
+        'other'  => ['name' => '',           'url' => ''],
+    ];
+}
+
+/**
+ * Numaranın KENDİ biçiminden taşıyıcı çıkarımı — ve yalnızca biçim KESİNSE.
+ *
+ * Tek çıkarım UPS: `1Z` + 16 alfanümerik, başka hiçbir taşıyıcının kullanmadığı
+ * bir kalıp. DHL'in 10 hanesi ile FedEx'in 12 hanesi gibi kalıplar birbirine ve
+ * başka numaralara benziyor; oradan tahmin yürütmek alıcıya BAŞKA BİR PAKETİN
+ * ya da hiçbir şeyin sayfasını açan bir bağlantı verir — bağlantı olmamasından
+ * kötü. Onlarda taşıyıcıyı operatör yazar (KURAL 3'ün kargo hâli).
+ *
+ * SAĞLAMA BASAMAĞI (1Z'nin son hanesi) BİLEREK DOĞRULANMIYOR: elimde
+ * algoritmayı sınayacak güvenilir bir referans numara yok ve yanlış yazılmış
+ * bir sağlama, GEÇERLİ numaraları reddederdi — hiç kontrol etmemekten kötü bir
+ * arıza. Biçim kontrolü kesin ve yanlış ret üretemez.
+ */
+function vestra_carrier_from_tracking(string $tracking): string {
+    $t = strtoupper(preg_replace('/\s+/', '', $tracking));
+    return preg_match('/^1Z[0-9A-Z]{16}$/', $t) ? 'ups' : '';
+}
+
+/**
+ * Bir siparişin gönderim bilgisi, TEK yerde. Alıcı sayfası, satıcı/admin paneli
+ * ve "gönderildi" mektubu üçü de burayı okur; ayrı ayrı kurulsalardı üçü ayrı
+ * şey yazardı (bu depoda KURAL 5f'in üç katmanı aynı sınıf).
+ *
+ * @return array{tracking:string,carrier:string,carrier_name:string,service:string,url:string,has:bool}
+ */
+function vestra_order_shipment(?array $statusEntry): array {
+    $st       = (array)($statusEntry ?? []);
+    $tracking = trim((string)($st['tracking'] ?? ''));
+    $service  = trim((string)($st['ship_service'] ?? ''));
+    /* Sıra: operatörün YAZDIĞI taşıyıcı > numaradan çıkarılan. Yazılmış bir
+       değeri çıkarımın ezmesi, operatörün kararını sessizce geri almak olurdu. */
+    $carrier  = strtolower(trim((string)($st['ship_carrier'] ?? '')));
+    $known    = vestra_carriers();
+    if ($carrier === '' || !isset($known[$carrier])) $carrier = vestra_carrier_from_tracking($tracking);
+    $name = $carrier !== '' ? (string)($known[$carrier]['name'] ?? '') : '';
+    $url  = '';
+    if ($tracking !== '' && $carrier !== '' && !empty($known[$carrier]['url'])) {
+        $url = sprintf((string)$known[$carrier]['url'], rawurlencode($tracking));
+    }
+    return [
+        'tracking'     => $tracking,
+        'carrier'      => $carrier,
+        'carrier_name' => $name,
+        'service'      => $service,
+        'url'          => $url,
+        'has'          => $tracking !== '' || $name !== '' || $service !== '',
+    ];
+}
+
+/**
+ * Gönderim bilgisini kaydeder (durum DEĞİŞTİRMEZ — onu çağıran yol yapar).
+ * `vestra_order_set_shipping()` (navlun tutarı) ile karıştırma: o para, bu paket.
+ *
+ * Boş dizge alanı SİLER: bir taşıyıcıyı kaldırmanın başka yolu olmazdı.
+ */
+function vestra_order_set_shipment(string $ref, ?string $tracking, ?string $carrier, ?string $service): array {
+    $ref = trim($ref);
+    if ($ref === '') return ['ok' => false, 'error' => 'ref yok'];
+    $all = vestra_read_json('order_statuses.json');
+    $row = (array)($all[$ref] ?? []);
+    if ($tracking !== null) {
+        $t = strtoupper(preg_replace('/\s+/', '', trim($tracking)));
+        if ($t === '') unset($row['tracking']); else $row['tracking'] = $t;
+    }
+    if ($carrier !== null) {
+        $c = strtolower(trim($carrier));
+        if ($c !== '' && !isset(vestra_carriers()[$c])) {
+            return ['ok' => false, 'error' => 'bilinmeyen tasiyici: '.$c.' (gecerli: '.implode(', ', array_keys(vestra_carriers())).')'];
+        }
+        if ($c === '') unset($row['ship_carrier']); else $row['ship_carrier'] = $c;
+    }
+    if ($service !== null) {
+        $s = trim(preg_replace('/\s+/', ' ', $service));
+        if (mb_strlen($s) > 60) return ['ok' => false, 'error' => 'servis adi 60 karakteri asiyor'];
+        if ($s === '') unset($row['ship_service']); else $row['ship_service'] = $s;
+    }
+    $row['updated_at'] = date('c');
+    $all[$ref] = $row;
+    vestra_write_json('order_statuses.json', $all);
+    /* GERİ OKU: "kaydedildi" diyen bir satır tek başına kanıt değil. */
+    $back = vestra_read_json('order_statuses.json');
+    return ['ok' => true, 'error' => '', 'shipment' => vestra_order_shipment($back[$ref] ?? null)];
+}
+
 /** Distinct sellers whose SKUs appear in this order (uid => label), for the "seller(s)" info block. */
 function vestra_order_sellers(array $lines): array {
     $out = [];
@@ -337,18 +450,44 @@ function vestra_render_order_detail(array $orderRow, array $statusEntry, string 
     }
 
     $h .= '<div class="panelcard" style="margin:0"><div class="pcfhead"><h3 style="font-size:14px">'.t('Shipping').'</h3></div>';
+    /* Taşıyıcı / servis / takip TEK yerden (vestra_order_shipment): alıcı sayfası,
+       satıcı formu ve mektup aynı üç olguyu okumalı. Operatör, 9 Eyl 2026:
+       "her pakette gönderici kargo bölümüde olsun". */
+    $shp = vestra_order_shipment($statusEntry);
     if ($viewerRole === 'seller') {
+        $carrierOpts = '';
+        foreach (vestra_carriers() as $ck => $cv) {
+            if ($ck === 'other') continue;
+            $carrierOpts .= '<option value="'.htmlspecialchars($ck).'"'.($shp['carrier'] === $ck ? ' selected' : '').'>'.htmlspecialchars($cv['name']).'</option>';
+        }
         $h .= '<form method="post" action="'.htmlspecialchars($formHref).'">
           <input type="hidden" name="_action" value="update_order_note">
           <input type="hidden" name="ref" value="'.htmlspecialchars($ref).'">
+          <label class="hint">'.t('Carrier').'</label>
+          <select name="ship_carrier" style="width:100%;margin-bottom:10px"><option value="">—</option>'.$carrierOpts.'</select>
+          <label class="hint">'.t('Service').'</label>
+          <input name="ship_service" value="'.htmlspecialchars($shp['service']).'" placeholder="Express Saver" style="width:100%;margin-bottom:10px">
           <label class="hint">'.t('Tracking number').'</label>
-          <input name="tracking" value="'.htmlspecialchars($statusEntry['tracking'] ?? '').'" style="width:100%;margin-bottom:10px">
+          <input name="tracking" value="'.htmlspecialchars($shp['tracking']).'" style="width:100%;margin-bottom:10px">
           <label class="hint">'.t('Note to buyer').'</label>
           <textarea name="seller_note" rows="2" style="width:100%;margin-bottom:10px">'.htmlspecialchars($statusEntry['seller_note'] ?? '').'</textarea>
           <button class="btn btn-p btn-sm" type="submit">'.t('Save').'</button>
         </form>';
     } else {
-        $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.($statusEntry['tracking'] ?? '' ? htmlspecialchars($statusEntry['tracking']) : '<span class="hint">'.t('Not shipped yet').'</span>').'</p>';
+        if ($shp['carrier_name'] !== '') {
+            $h .= '<p style="margin:0 0 6px"><b>'.t('Carrier').':</b> '.htmlspecialchars($shp['carrier_name'])
+                . ($shp['service'] !== '' ? ' · '.htmlspecialchars($shp['service']) : '').'</p>';
+        } elseif ($shp['service'] !== '') {
+            $h .= '<p style="margin:0 0 6px"><b>'.t('Service').':</b> '.htmlspecialchars($shp['service']).'</p>';
+        }
+        /* Numara BAĞLANTI olarak basılıyor — çözülebildiyse. Çözülemeyen taşıyıcıda
+           düz metin kalır: kırık bir bağlantı, bağlantı olmamasından kötü. */
+        $trkTxt = $shp['tracking'] === ''
+            ? '<span class="hint">'.t('Not shipped yet').'</span>'
+            : ($shp['url'] !== ''
+                ? '<a class="acc" href="'.htmlspecialchars($shp['url']).'" target="_blank" rel="noopener nofollow">'.htmlspecialchars($shp['tracking']).'</a>'
+                : htmlspecialchars($shp['tracking']));
+        $h .= '<p style="margin:0 0 6px"><b>'.t('Tracking number').':</b> '.$trkTxt.'</p>';
         if (!empty($statusEntry['seller_note'])) $h .= '<p style="margin:0"><b>'.t('Note from seller').':</b> '.htmlspecialchars($statusEntry['seller_note']).'</p>';
         /* 'delivered' da dahil: buyer.php'nin isleyicisi ikisini de kabul ediyor,
            bu gorunum yalnizca 'shipped'e dugme basiyordu -- teslim edilmis

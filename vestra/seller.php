@@ -194,8 +194,20 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st = vestra_read_json('order_statuses.json');
         $tracking = trim($_POST['tracking']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['status'=>'shipped','tracking'=>$tracking,'shipped_at'=>date('c')]);
+        /* Tasiyici + servis: admin tarafiyla ayni kural -- alan formda yoksa
+           kayitli deger KORUNUR (bu form sadece 'tracking' tasiyabiliyor). */
+        if (array_key_exists('ship_carrier', $_POST)) {
+            $c = strtolower(trim((string)$_POST['ship_carrier']));
+            if ($c === '') unset($st[$ref]['ship_carrier']);
+            elseif (isset(vestra_carriers()[$c])) $st[$ref]['ship_carrier'] = $c;
+        }
+        if (array_key_exists('ship_service', $_POST)) {
+            $sv = trim(preg_replace('/\s+/', ' ', (string)$_POST['ship_service']));
+            if ($sv === '') unset($st[$ref]['ship_service']); else $st[$ref]['ship_service'] = mb_substr($sv, 0, 60);
+        }
         $st[$ref]['history'][] = vestra_order_history_entry('shipped', 'seller', $tracking ? "Tracking: {$tracking}" : '');
         vestra_write_json('order_statuses.json', $st);
+        $shpNow = vestra_order_shipment($st[$ref]);
         /* Shipped card into the buyer's conversation */
         $buyerAcc = auth_find($orderRow['email'] ?? '');
         if ($buyerAcc) {
@@ -216,7 +228,7 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         if (!empty($orderRow['email'])) {
             require_once __DIR__.'/inc/email_templates.php';
             [$sSubj, $sBody, $sOpts] = vestra_tpl_order_shipped(
-                $orderRow['name'] ?: ($orderRow['company'] ?: 'there'), $ref, $tracking, (bool)$buyerAcc);
+                $orderRow['name'] ?: ($orderRow['company'] ?: 'there'), $ref, $tracking, (bool)$buyerAcc, $shpNow);
             vestra_send_mail($orderRow['email'], $sSubj, $sBody, '', '', null, '', $sOpts);
         }
     }
@@ -236,6 +248,17 @@ if (!empty($_SESSION['member']) && $_SERVER['REQUEST_METHOD']==='POST' && ($_POS
         $st = vestra_read_json('order_statuses.json');
         $tracking = trim($_POST['tracking']??''); $note = trim($_POST['seller_note']??'');
         $st[$ref] = array_merge($st[$ref] ?? [], ['tracking'=>$tracking,'seller_note'=>$note]);
+        /* Bu form tasiyici ve servisi TASIYOR (vestra_render_order_detail'deki
+           gonderim karti) -- ayni kural: alan yoksa kayitli deger korunur. */
+        if (array_key_exists('ship_carrier', $_POST)) {
+            $c = strtolower(trim((string)$_POST['ship_carrier']));
+            if ($c === '') unset($st[$ref]['ship_carrier']);
+            elseif (isset(vestra_carriers()[$c])) $st[$ref]['ship_carrier'] = $c;
+        }
+        if (array_key_exists('ship_service', $_POST)) {
+            $sv = trim(preg_replace('/\s+/', ' ', (string)$_POST['ship_service']));
+            if ($sv === '') unset($st[$ref]['ship_service']); else $st[$ref]['ship_service'] = mb_substr($sv, 0, 60);
+        }
         $st[$ref]['history'][] = vestra_order_history_entry($st[$ref]['status'] ?? 'pending', 'seller', t('Tracking/note updated'));
         vestra_write_json('order_statuses.json', $st);
     }

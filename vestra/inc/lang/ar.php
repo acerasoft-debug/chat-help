@@ -784,6 +784,8 @@ return array (
   'Track in My orders →' => 'التتبع في «طلبياتي» ←',
   'Tracking' => 'التتبع',
   'Tracking number' => 'رقم التتبع',
+  'Carrier' => 'شركة الشحن',
+  'Service' => 'الخدمة',
   'Tracking number (optional)' => 'رقم التتبع (اختياري)',
   'Tracking/note updated' => 'تم تحديث التتبع/الملاحظة',
   'Tracksuits' => 'بدلات رياضية',

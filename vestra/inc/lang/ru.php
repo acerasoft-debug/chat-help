@@ -784,6 +784,8 @@ return array (
   'Track in My orders →' => 'Отслеживать в «Моих заказах» →',
   'Tracking' => 'Отслеживание',
   'Tracking number' => 'Трек-номер',
+  'Carrier' => 'Перевозчик',
+  'Service' => 'Услуга',
   'Tracking number (optional)' => 'Трек-номер (необязательно)',
   'Tracking/note updated' => 'Трек-номер/примечание обновлены',
   'Tracksuits' => 'Спортивные костюмы',
