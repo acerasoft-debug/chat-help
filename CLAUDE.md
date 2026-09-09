@@ -1800,6 +1800,33 @@ dönmek zorundadir"*).
   4 üründen geliyor (ikisi hem adda hem açıklamada eşleşti). **Katalogda başka
   hiçbir ürün oversize/boxy/relaxed demiyor**; 37 beyan ise tersini, dar kalıbı
   söylüyor. Yani kanıta dayanarak değiştirilecek başka model yok.
+- **KATALOG SUSUYORSA KAYNAK İNTERNETTİR — ve kalıbı taşıyan STİL NUMARASIDIR**
+  (operatör, 9 Eyl 2026: *"GG Print T-Shirt XJDEZ … bunlar oversize sanırım …
+  internetten araştır oversize olanların hepsine uygula"*).
+  - Katalogdaki **hiçbir Gucci ilanı kalıp belirtmiyor**, yani kendi verimiz bu
+    soruyu cevaplayamıyor. Operatör de "sanırım" dedi. Hafızadan "Gucci'ler
+    oversize'dır" demek KURAL 3'ün ta kendisi olurdu; araştırma yapıldı.
+  - **Bulgu: `616036` Gucci'nin OVERSIZE tişört silueti.** Beş ayrı kumaş kodunda
+    bağımsız kaynaklarla doğrulandı: `616036-XJDV9` *"in an oversize fit"*
+    (BUYMA), `616036-XJDC-L` *"The North Face x Gucci **Oversize** T-Shirt"*
+    (GOAT), `616036-XJDEZ-9791` *"Gucci x Doraemon **Oversized** T-shirt"*
+    (Kickscrew + Reversible + Solesense). Uygulananlar: `guc-t01`, `guc-t02`,
+    `guc-t03`, `guc-t04`, `guc-t07`.
+  - **KUMAŞ KODU TEK BAŞINA KALIBI TAŞIMAZ.** `guc-t06`'nın kodu `XJD3X` ama tam
+    kodu `548334-XJD3X-9095` — **farklı bir stil numarası**, SS22 Tiger, tarifi
+    *"slightly loose fit"*. Oversize değil, **dokunulmadı**. Kumaş kodundan
+    marka çıkarımı yapan bir kural bunu da değiştirirdi.
+  - **Çözülemeyenler bırakıldı:** `XJD3W`, `XJDVI`, `XJDX31`, `XJDXM`, `XJDXN`
+    hiçbir perakendecide indekslenmiyor, `guc-t12` ise iç SKU (`VS-GU-T01`).
+    D&G/Casablanca/BALMAIN/Burberry kodları da aranabilir değil. *Bulamamak,
+    "oversize değil" demek değil — bilmiyoruz demek, ve bilmediğimiz için
+    dokunmadık.*
+  - **Katalog adları güvenilmez:** `XJDEZ` bizde *"GG Print T-Shirt, White"*
+    yazıyor ama gerçek ürün **Doraemon x Gucci** (White/Blue). Kalıp kararı bu
+    yüzden **ada değil koda** dayandırıldı; arama yaparken de ad kullanılamaz.
+  - `desc` ile `sizes` **birlikte** yazıldı (aşağıdaki Balenciaga dersi); paket
+    son eki `10 pcs/pack` korundu. Kuru koşu 5 ilanda 10 alan dedi ve canlı
+    `desc` metinleri çıkarımla birebir uyuştu.
 - **Ama iki DSQUARED2 kendi içinde çelişiyor:** `dsq-101213` adı *"Graphic
   T-Shirt (Oversized)"*, açıklaması *"100% cotton, **regular fit**"*;
   `dsq-101237` adı *"Oversized Fit T-Shirt"*, açıklaması yine *"regular fit"*.
