@@ -9,7 +9,7 @@
  * Writes credits.json alongside so the imprint can render attributions.
  * Run on a machine with internet (or the "LUMÉA — fetch images" workflow).
  */
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { services } from '../data/services.mjs';
@@ -155,13 +155,17 @@ if (MODE === 'candidates') {
 /* --- choose mode: download the human-picked candidate at full size --- */
 if (MODE === 'choose') {
   const manifest = JSON.parse(readFileSync(path.join(OUT, 'candidates.json'), 'utf8'));
-  for (const [slug, n] of Object.entries(PLAN.choices || {})) {
-    const pick = (manifest[slug] || []).find((c) => c.n === Number(n));
+  for (const [slug, ref] of Object.entries(PLAN.choices || {})) {
+    // A choice is "n" from the slug's own list or "other-slug#n" to borrow from another list.
+    const [src, n] = String(ref).includes('#') ? String(ref).split('#') : [slug, ref];
+    const pick = (manifest[src] || []).find((c) => c.n === Number(n));
     if (!pick) { console.log(`  – ${slug}: choice ${n} not found`); continue; }
     try { await download(pick.url, path.join(OUT, `${slug}.jpg`)); credits[slug] = { ...pick.credit, fetchedAt: new Date().toISOString().slice(0, 10) }; done++; console.log(`  ✓ ${slug} ← #${n} ${pick.title}`); }
     catch (e) { console.log(`  ! ${slug}: ${e.message}`); }
   }
   writeFileSync(path.join(OUT, 'credits.json'), JSON.stringify(credits, null, 2));
+  try { rmSync(CAND_DIR, { recursive: true, force: true }); rmSync(path.join(OUT, 'candidates.json'), { force: true }); } catch { /* fine */ }
+  writeFileSync(path.join(OUT, 'plan.json'), JSON.stringify({ mode: 'auto' }, null, 2));
   console.log(`${done} chosen photos fetched`);
   process.exit(0);
 }
