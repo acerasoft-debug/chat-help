@@ -47,7 +47,7 @@
   let DATA = null;
   const loadData = (() => {
     let p;
-    return () => (p ||= fetch(`${BASE}/assets/data.json`).then((r) => r.json()).then((d) => (DATA = d)).catch(() => (DATA = { cities: [], therapists: [], services: {} })));
+    return () => (p ||= (window.__lumeaData ? Promise.resolve((DATA = window.__lumeaData)) : fetch(`${BASE}/assets/data.json`)).then((r) => r.json()).then((d) => (DATA = d)).catch(() => (DATA = { cities: [], therapists: [], services: {} })));
   })();
 
   const km = (aLat, aLng, bLat, bLng) => {
@@ -953,6 +953,7 @@
     initGeo().catch(() => {});
   }
 
+  window.__lumeaBoot = boot; // single-file preview re-runs boot after swapping pages
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
