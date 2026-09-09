@@ -1,0 +1,21 @@
+[
+  {"match":"guc-t01", "expect":1,
+   "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack",
+   "desc":"Original Gucci, model 616036-XJDV9-B. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack. EEA stock with full invoice trail."},
+
+  {"match":"guc-t02", "expect":1,
+   "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack",
+   "desc":"Original Gucci, model 616036-XJDV9. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack. EEA stock with full invoice trail."},
+
+  {"match":"guc-t03", "expect":1,
+   "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack",
+   "desc":"Original Gucci, model 616036-XJDC-L. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack. EEA stock with full invoice trail."},
+
+  {"match":"guc-t04", "expect":1,
+   "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack",
+   "desc":"Original Gucci, model 616036-XJDC. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack. EEA stock with full invoice trail."},
+
+  {"match":"guc-t07", "expect":1,
+   "sizes":"XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack",
+   "desc":"Original Gucci, model XJDEZ. XXS×1 · XS×3 · S×3 · M×2 · L×1 · 10 pcs/pack. EEA stock with full invoice trail."}
+]
