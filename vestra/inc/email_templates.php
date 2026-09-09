@@ -1096,6 +1096,89 @@ function vestra_tpl_order_payment_notice(string $buyerName, string $ref, string 
 }
 
 /**
+ * "Odeme yapacak mi, YA DA NE ZAMAN" (operator, 9 Eyl 2026, Stock&chic /
+ * O7A484: *"zaten satin almisti odeme yapiyormu onu sorucaz"* + *"yada ne
+ * zaman"*). Musteri siparisi verdi, fatura kesildi, para gelmedi ve son
+ * mesajinda "su an devam etmeyecegim" dedi. Istenen tek sey bir CEVAP.
+ *
+ * NE DEGIL: payment_due degil -- o KURAL 7'nin 5 is gunluk saatini GERCEKTEN
+ * baslatir ve iptal uyarisi tasir. payment_notice de degil -- o "havaleyi
+ * yaptiktan sonra haber verin" der, yani odeyecegini VARSAYAR. Bu mektup
+ * varsaymiyor, soruyor; hicbir saat baslatmiyor, hicbir tarih vermiyor.
+ * Uydurma bir son tarih yazmak, sonra tutmadiginda geri alinamaz.
+ *
+ * FRANSIZCA DA VAR: bu musteri Fransizca yaziyor ve konusma Fransizca
+ * gecti. Ingilizce bir "final call" gondermek, hem tonu hem dili kaydirirdi.
+ * Iki metin de AYNI fonksiyonda: ayri yazilsalardi biri duzeltilip digeri
+ * eskirdi (bu depoda ayrisma dersi KURAL 5f'te kayitli).
+ *
+ * RAKAM VE NUMARA PARAMETREDEN: cagiran onlari FATURADAN okuyor. Metne
+ * gomulu bir tutar, belge baska bir birimde kesilince sessizce yalan olur.
+ */
+function vestra_tpl_order_payment_ask(string $buyerName, string $ref, string $invoiceNo = '',
+        float $amount = 0.0, string $currency = 'EUR', bool $hasAccount = false,
+        string $signer = '', string $lang = 'en'): array {
+    $buyerName = vestra_display_name($buyerName);
+    $lang = strtolower($lang) === 'fr' ? 'fr' : 'en';
+    if ($buyerName === '') $buyerName = $lang === 'fr' ? 'Madame, Monsieur' : 'Customer';
+    $sym = strtoupper($currency) === 'USD' ? 'US$' : '€';
+    $amt = $amount > 0
+        ? ($lang === 'fr' ? number_format($amount, 2, ',', ' ').' '.$sym : $sym.number_format($amount, 2))
+        : '';
+
+    $rows = [['label' => $lang === 'fr' ? 'Commande' : 'Order ref', 'value' => $ref]];
+    if ($invoiceNo !== '') $rows[] = ['label' => $lang === 'fr' ? 'Facture' : 'Invoice', 'value' => $invoiceNo];
+    if ($amt !== '')       $rows[] = ['label' => $lang === 'fr' ? 'Montant' : 'Amount', 'value' => $amt];
+    $opts = ['badge' => $lang === 'fr' ? 'Paiement' : 'Payment', 'rows' => $rows];
+    if ($hasAccount) $opts['button'] = [
+        'label' => $lang === 'fr' ? 'Transmettre le justificatif' : 'Upload payment confirmation',
+        'url'   => 'https://vestrasales.com/buyer?tab=orders&view='.rawurlencode($ref),
+    ];
+
+    $tail = $signer !== ''
+        ? $signer."\nVESTRA - vestrasales.com"
+        : "VESTRA - vestrasales.com";
+
+    if ($lang === 'fr') {
+        $subject = "Commande {$ref}".($invoiceNo !== '' ? " — facture {$invoiceNo}" : '')." : où en êtes-vous ?";
+        $body =
+            "Bonjour {$buyerName},\n\n"
+          . "Votre commande {$ref} est bien enregistrée et la facture"
+          . ($invoiceNo !== '' ? " {$invoiceNo}" : '')
+          . ($amt !== '' ? " de {$amt}" : '')." vous a été adressée. "
+          . "À ce jour, le paiement ne nous est pas encore parvenu.\n\n"
+          . "Nous ne souhaitons pas vous presser. Nous avons simplement besoin de savoir si le virement "
+          . "est prévu et, si oui, à quelle date approximative. Si vous préférez reporter, dites-le-nous "
+          . "aussi franchement : les deux réponses nous conviennent et nous évitent de réserver la "
+          . "marchandise sans raison.\n\n"
+          . ($hasAccount
+              ? "Si le virement est déjà parti, merci de nous transmettre le justificatif via le bouton "
+                . "ci-dessus, ou en répondant à cet e-mail. Nous confirmons dès réception.\n\n"
+              : "Si le virement est déjà parti, merci de nous transmettre le justificatif en réponse à "
+                . "cet e-mail. Nous confirmons dès réception.\n\n")
+          . "Bien cordialement,\n\n".$tail;
+        return [$subject, $body, $opts];
+    }
+
+    $subject = "Order {$ref}".($invoiceNo !== '' ? " - invoice {$invoiceNo}" : '').": is the payment on its way?";
+    $body =
+        "Dear {$buyerName},\n\n"
+      . "Your order {$ref} is on our books and invoice"
+      . ($invoiceNo !== '' ? " {$invoiceNo}" : '')
+      . ($amt !== '' ? " for {$amt}" : '')." is with you. As of today the payment has not reached us.\n\n"
+      . "We are not chasing you. We only need to know whether the transfer is planned and, if so, "
+      . "roughly when. If you would rather postpone, tell us that just as plainly: either answer is "
+      . "fine, and it saves us holding the goods reserved for no reason.\n\n"
+      . ($hasAccount
+          ? "If the transfer has already gone out, please send us the payment confirmation using the "
+            . "button above, or simply reply to this e-mail. We confirm as soon as it arrives.\n\n"
+          : "If the transfer has already gone out, please reply to this e-mail with the payment "
+            . "confirmation. We confirm as soon as it arrives.\n\n")
+      . "Kind regards,\n\n".$tail;
+    return [$subject, $body, $opts];
+}
+
+/**
  * "Faturaniz hazirlaniyor, ilk is gunu gelecek" (operator metni, 5 Eyl 2026,
  * VES-6B53D265). Ustune iki sey daha tasiyor, ikisi de operatorle konusulup
  * eklendi cunku eksikligi sonradan pahaliya patlardi:

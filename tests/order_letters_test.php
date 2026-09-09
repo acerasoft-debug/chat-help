@@ -13,7 +13,7 @@ $src = file_get_contents(__DIR__.'/../vestra/inc/email_templates.php');
 foreach (['vestra_display_name', 'vestra_tpl_order_tracking_soon', 'vestra_tpl_order_shipped',
           'vestra_tpl_order_address_request', 'vestra_tpl_order_invoice_soon',
           'vestra_tpl_claim_received', 'vestra_tpl_claim_resolved',
-          'vestra_tpl_order_payment_notice'] as $fn) {
+          'vestra_tpl_order_payment_notice', 'vestra_tpl_order_payment_ask'] as $fn) {
     if (!preg_match('/^function '.preg_quote($fn,'/').'\(.*?^}/ms', $src, $m)) { echo "HATA: $fn bulunamadi\n"; exit(1); }
     eval($m[0]);
 }
@@ -256,6 +256,54 @@ $t('once fatura, sonra kapi, sonra geri dusus',
    YALNIZCA birimler ayniysa: farkliyken dusmek kusuru geri getirirdi. */
 $t('geri dusus birim esitligine bagli', str_contains($wf, 'if ($ordCur !== $ocur) { fwrite(STDERR,'));
 $t('onizleme tutari da yaziyor',        str_contains($wf, 'tutar  : {$ocur} '));
+
+echo "\n-- payment_ask: \"odeyecek misiniz, ya da NE ZAMAN\" (9 Eyl 2026) --\n";
+/* Bu mektup SORAR. Saat baslatmaz, tarih vermez, iptalle tehdit etmez --
+   o payment_due'nun isi (KURAL 7) ve ikisi karisirsa operatorun sormadigi
+   bir tehdit musteriye gider. */
+[$as, $ab, $ao] = vestra_tpl_order_payment_ask('Marie Dupont', 'O7A484', 'INV-2026-1103', 3320.00, 'EUR', true, 'Marco Bellini', 'fr');
+$t('FR konu ref + fatura no tasir',      str_contains($as, 'O7A484') && str_contains($as, 'INV-2026-1103'));
+$t('FR govde kayitli tutari yaziyor',    str_contains($ab, '3 320,00 €'));
+$t('FR "ne zaman" sorusu var',           str_contains($ab, 'quelle date'));
+/* Aksansiz Fransizca ilk yazimda gercekten cikti ("ou en etes-vous"):
+   metin sunucuya UTF-8 gidiyor, yani aksani atmak icin hicbir sebep
+   yoktu -- yalnizca yazarken dusmustu. */
+$t('FR aksanlar yerinde',                str_contains($as, 'où en êtes-vous')
+                                         && str_contains($ab, 'enregistrée') && str_contains($ab, 'déjà')
+                                         && str_contains($ab, 'À ce jour'));
+$t('FR erteleme secenegi sunuluyor',     str_contains($ab, 'préférez reporter'));
+/* Duseme testi: son tarih / iptal dili HICBIR dilde olmamali. */
+foreach (['annul', 'jours ouvr', 'délai de paiement', 'cancel', 'business days', 'deadline'] as $bad) {
+    $t("FR/EN'de tehdit dili yok: {$bad}", stripos($ab, $bad) === false);
+}
+$t('FR dekont dugmesi siparise bagli',   ($ao['button']['url'] ?? '') === 'https://vestrasales.com/buyer?tab=orders&view=O7A484');
+$t('FR imza personadan',                 str_contains($ab, 'Marco Bellini'));
+$t('FR Turkce sizmiyor',                 $noTurkish($ab) && $noTurkish($as));
+
+[$es, $eb, $eo] = vestra_tpl_order_payment_ask('Marie Dupont', 'O7A484', 'INV-2026-1103', 3320.00, 'EUR', false, '', 'en');
+$t('EN varsayilan dil',                  str_contains($es, 'is the payment on its way?'));
+$t('EN tutar Ingilizce bicimde',         str_contains($eb, '€3,320.00'));
+$t('hesapsiz alicida dugme YOK',         !isset($eo['button']));
+$t('hesapsiz alici e-postayla cevaplar', str_contains($eb, 'reply to this e-mail'));
+foreach (['cancel', 'business days', 'deadline'] as $bad) {
+    $t("EN'de tehdit dili yok: {$bad}", stripos($eb, $bad) === false);
+}
+
+echo "\n-- payment_ask: is akisi kablolamasi --\n";
+$paBlock = '';
+if (preg_match("/elseif \\(\\\$letter === 'payment_ask'\\).*?elseif \\(\\\$letter === 'order_invoice_soon'\\)/s", $wf, $m2)) $paBlock = $m2[0];
+$t('payment_ask dali var',               $paBlock !== '');
+$t('sablonu cagiriyor',                  str_contains($paBlock, 'vestra_tpl_order_payment_ask('));
+$t('lang spec okunuyor',                 str_contains($paBlock, "\$E('lang')"));
+/* SAAT BASLATMIYOR: payment_due'nun fonksiyonlari bu dalda gecmemeli. */
+foreach (['vestra_order_payment_reminder_send', 'payment_grace_start', 'vestra_order_payment_grace'] as $clock) {
+    $t("saat baslatmiyor ({$clock})", !str_contains($paBlock, $clock));
+}
+$t('odenmis sipariste duruyor',          str_contains($paBlock, "in_array(\$ost, ['paid','shipped','completed'], true)"));
+$t('dekont yuklenmisse duruyor',         str_contains($paBlock, 'if ($hasRcpt)'));
+$t('faturasiz sipariste duruyor',        str_contains($paBlock, 'if (!$invNos)'));
+$t('escrow sipariste duruyor',           str_contains($paBlock, "stripos((string)(\$orderRow['notes'] ?? ''), 'escrow')"));
+$t('tutar faturadan',                    str_contains($paBlock, "\$invs[0]['total']"));
 
 printf("\n%d ok, %d hata\n", $ok, $fail);
 exit($fail ? 1 : 0);
