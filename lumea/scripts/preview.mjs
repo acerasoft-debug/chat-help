@@ -41,8 +41,12 @@ for (const p of PAGES) {
   pages[p] = { title, main, globals, header, footer, extras, locale };
   if (!chrome) chrome = { header, footer, extras, locale };
 }
-const inlineImg = (s) => s.replace(/src="\/assets\/img\/([^"]+)"/g, (m, f) => {
-  try { const b = readFileSync(path.join(DIST, 'assets/img', f)); return `src="data:image/${f.endsWith('.png') ? 'png' : f.endsWith('.webp') ? 'webp' : 'jpeg'};base64,${b.toString('base64')}"`; } catch { return m; }
+const inlineImg = (s) => s.replace(/ srcset="[^"]*" sizes="[^"]*"/g, '').replace(/src="\/assets\/img\/([^"]+)"/g, (m, f) => {
+  const small = f.replace(/\.(jpe?g|png|webp)$/i, '.sm.$1');
+  for (const cand of [small, f]) {
+    try { const b = readFileSync(path.join(DIST, 'assets/img', cand)); return `src="data:image/${cand.endsWith('.png') ? 'png' : cand.endsWith('.webp') ? 'webp' : 'jpeg'};base64,${b.toString('base64')}"`; } catch { /* next */ }
+  }
+  return m;
 });
 const rewrite = (s) => inlineImg(s.replace(/(href|action)="\/(?!\/)/g, '$1="#/'));
 

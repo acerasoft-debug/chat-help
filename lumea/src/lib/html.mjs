@@ -57,7 +57,8 @@ const IMG_DIR = nodePath.resolve(nodePath.dirname(fileURLToPath(import.meta.url)
 export function media({ slug, motif, accent, label = '', alt = '', className = '', w = 800, h = 600 }) {
   for (const ext of ['jpg', 'webp', 'png']) {
     if (existsSync(nodePath.join(IMG_DIR, `${slug}.${ext}`))) {
-      return `<div class="media ${className}"><img src="${withBase(`/assets/img/${slug}.${ext}`)}" alt="${attr(alt)}" loading="lazy" width="${w}" height="${h}"></div>`;
+      const sm = existsSync(nodePath.join(IMG_DIR, `${slug}.sm.${ext}`)) ? ` srcset="${withBase(`/assets/img/${slug}.sm.${ext}`)} 900w, ${withBase(`/assets/img/${slug}.${ext}`)} 1600w" sizes="(max-width: 700px) 100vw, 50vw"` : '';
+      return `<div class="media ${className}"><img src="${withBase(`/assets/img/${slug}.${ext}`)}"${sm} alt="${attr(alt)}" loading="lazy" width="${w}" height="${h}"></div>`;
     }
   }
   return `<div class="media ${className}">${art({ motif, accent, seed: slug, w, h, label })}</div>`;

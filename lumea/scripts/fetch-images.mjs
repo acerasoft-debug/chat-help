@@ -21,46 +21,46 @@ mkdirSync(OUT, { recursive: true });
 const FORCE = process.argv.includes('--force');
 const UA = 'LUMEA-image-fetch/1.0 (https://github.com/acerasoft-debug/chat-help; concierge@lumea.spa)';
 
-/* Curated, subject-specific queries: [primary, fallback]. Calm, editorial, no faces where possible. */
+/* Curated queries per slug — still life and nature first (they photograph reliably), people last. */
 const Q = {
-  'hero-home': ['spa towels orchid candle', 'spa still life'],
-  'signature-lumea': ['massage candles spa relaxation', 'spa candles'],
-  'anti-cellulite': ['body massage legs spa', 'massage therapy legs'],
-  'lymphatic-drainage': ['lymphatic drainage massage', 'back massage hands'],
-  'body-sculpt-wrap': ['seaweed spa body wrap', 'algae spa'],
-  'cupping-fascia': ['cupping therapy back', 'cupping massage'],
-  'aromatherapy': ['essential oils lavender bottle', 'lavender aromatherapy'],
-  'hot-stone': ['hot stone massage back', 'basalt massage stones'],
-  'lomi-lomi': ['plumeria flowers spa', 'frangipani flower water'],
-  'duo-couples': ['couple spa massage', 'rose petals spa'],
-  'classic-swedish': ['massage therapy table', 'swedish massage'],
-  'deep-tissue': ['deep tissue back massage', 'back massage'],
-  'sports-recovery': ['sports massage athlete', 'physiotherapy massage'],
-  'prenatal': ['pregnancy massage', 'pregnant woman relaxing'],
-  'thai-yoga': ['thai massage stretching', 'thai massage'],
-  'reflexology': ['foot reflexology massage', 'foot massage spa'],
-  'head-neck-shoulder': ['head massage relaxation', 'scalp massage'],
-  'signature-facial': ['facial treatment spa mask', 'facial spa'],
-  'hydra-glow': ['facial skincare glowing skin', 'skin care treatment'],
-  'lifting-facial': ['gua sha facial', 'face massage jade roller'],
-  'enzyme-peel': ['papaya fruit fresh', 'enzyme peel skincare'],
-  'mens-facial': ['men facial skincare', 'man face treatment'],
-  'eye-decollete': ['eye mask spa cucumber', 'eye treatment spa'],
-  'hifu-lifting': ['ultrasound skin treatment face', 'aesthetic skin device treatment'],
-  'journal-cellulite-was-massage-wirklich-kann': ['body lotion legs skin', 'skin care body'],
-  'journal-zuhause-vorbereiten-mobile-massage': ['living room calm candles', 'cozy living room minimal'],
-  'journal-lymphdrainage-nach-dem-flug': ['airplane window clouds', 'travel airplane wing'],
-  'journal-hautpflege-vor-dem-event-sieben-tage': ['skincare serum bottle', 'cosmetics minimal'],
-  'city-berlin': ['Brandenburg Gate Berlin', 'Berlin skyline'], 'city-muenchen': ['Munich Marienplatz', 'Munich Frauenkirche'],
-  'city-hamburg': ['Hamburg Elbphilharmonie', 'Hamburg Speicherstadt'], 'city-frankfurt': ['Frankfurt skyline', 'Frankfurt am Main'],
-  'city-koeln': ['Cologne Cathedral Rhine', 'Cologne skyline'], 'city-duesseldorf': ['Düsseldorf Rheinturm', 'Düsseldorf Medienhafen'],
-  'city-stuttgart': ['Stuttgart Schlossplatz', 'Stuttgart skyline'], 'city-wien': ['Vienna Hofburg', 'Vienna Schönbrunn'],
-  'city-salzburg': ['Salzburg old town Hohensalzburg', 'Salzburg panorama'], 'city-innsbruck': ['Innsbruck Nordkette', 'Innsbruck old town'],
-  'city-zuerich': ['Zurich lake Grossmünster', 'Zurich skyline'], 'city-genf': ['Geneva Jet d\'Eau lake', 'Geneva lake'],
-  'city-basel': ['Basel Rhine Münster', 'Basel old town'], 'city-lugano': ['Lugano lake', 'Lago di Lugano'],
-  'city-madrid': ['Madrid Gran Via', 'Madrid Retiro'], 'city-barcelona': ['Barcelona Sagrada Familia', 'Barcelona skyline'],
-  'city-valencia': ['Valencia City of Arts and Sciences', 'Valencia'], 'city-marbella': ['Marbella beach', 'Marbella Puerto Banus'],
-  'city-ibiza': ['Ibiza Dalt Vila', 'Ibiza beach'], 'city-palma': ['Palma Cathedral Mallorca', 'Palma de Mallorca']
+  'hero-home': ['spa candles towels', 'spa stones orchid', 'wellness candles', 'orchid white'],
+  'signature-lumea': ['spa candles', 'candle light', 'tea light candles'],
+  'anti-cellulite': ['sea salt', 'bath salt', 'body scrub'],
+  'lymphatic-drainage': ['water ripples', 'calm water surface', 'still water reflection'],
+  'body-sculpt-wrap': ['seaweed', 'kelp forest', 'algae water'],
+  'cupping-fascia': ['cupping therapy', 'fire cupping', 'glass cups'],
+  'aromatherapy': ['lavender field', 'lavender', 'essential oil bottle'],
+  'hot-stone': ['basalt stones', 'stacked stones zen', 'pebbles balance'],
+  'lomi-lomi': ['plumeria', 'frangipani flower', 'hibiscus'],
+  'duo-couples': ['rose petals', 'pink roses close up', 'peony'],
+  'classic-swedish': ['massage room spa', 'spa interior', 'massage table'],
+  'deep-tissue': ['back massage', 'massage therapy', 'massage'],
+  'sports-recovery': ['running track', 'athletics track', 'runner sunrise'],
+  'prenatal': ['pregnant silhouette', 'pregnancy belly', 'maternity'],
+  'thai-yoga': ['yoga pose', 'yoga stretching', 'yoga sunrise'],
+  'reflexology': ['feet spa', 'foot massage', 'bare feet sand'],
+  'head-neck-shoulder': ['head massage', 'scalp massage', 'massage relaxation'],
+  'signature-facial': ['facial mask spa', 'skincare cream jar', 'cosmetic cream'],
+  'hydra-glow': ['water drops', 'dewdrops leaf', 'water droplets macro'],
+  'lifting-facial': ['jade roller', 'gua sha', 'jade stone'],
+  'enzyme-peel': ['papaya', 'papaya fruit', 'pineapple slices'],
+  'mens-facial': ['shaving brush', 'barber shop', 'razor shaving'],
+  'eye-decollete': ['cucumber slices', 'cucumber', 'eye mask'],
+  'hifu-lifting': ['ultrasound gel', 'aesthetic clinic', 'skin care device'],
+  'journal-cellulite-was-massage-wirklich-kann': ['body lotion', 'skin cream', 'moisturizer'],
+  'journal-zuhause-vorbereiten-mobile-massage': ['living room candles', 'cozy living room', 'minimalist interior'],
+  'journal-lymphdrainage-nach-dem-flug': ['airplane wing clouds', 'airplane window', 'clouds from above'],
+  'journal-hautpflege-vor-dem-event-sieben-tage': ['serum dropper', 'skincare bottle', 'cosmetics'],
+  'city-berlin': ['Brandenburg Gate', 'Berlin skyline', 'Berlin Museumsinsel'], 'city-muenchen': ['Munich Marienplatz', 'Munich Frauenkirche', 'Munich skyline'],
+  'city-hamburg': ['Elbphilharmonie', 'Hamburg Speicherstadt', 'Hamburg harbour'], 'city-frankfurt': ['Frankfurt skyline', 'Frankfurt Main skyline night', 'Frankfurt am Main'],
+  'city-koeln': ['Cologne Cathedral', 'Cologne Rhine bridge', 'Köln skyline'], 'city-duesseldorf': ['Düsseldorf Rheinturm', 'Düsseldorf Medienhafen', 'Düsseldorf skyline'],
+  'city-stuttgart': ['Stuttgart Schlossplatz', 'Stuttgart Neues Schloss', 'Stuttgart'], 'city-wien': ['Vienna Schönbrunn', 'Vienna Hofburg', 'Vienna State Opera'],
+  'city-salzburg': ['Salzburg Hohensalzburg', 'Salzburg old town', 'Salzburg panorama'], 'city-innsbruck': ['Innsbruck Nordkette', 'Innsbruck Goldenes Dachl', 'Innsbruck Inn river'],
+  'city-zuerich': ['Zürich Grossmünster', 'Zurich lake', 'Zürich skyline'], 'city-genf': ['Geneva Jet d\'Eau', 'Lake Geneva', 'Geneva lake'],
+  'city-basel': ['Basel Münster Rhine', 'Basel Rhine', 'Basel old town'], 'city-lugano': ['Lugano lake', 'Lago di Lugano', 'Lugano'],
+  'city-madrid': ['Madrid Gran Vía', 'Madrid Palacio de Cibeles', 'Madrid Retiro'], 'city-barcelona': ['Sagrada Família', 'Barcelona skyline', 'Barcelona Park Güell'],
+  'city-valencia': ['Valencia City of Arts and Sciences', 'Ciutat de les Arts i les Ciències', 'Valencia'], 'city-marbella': ['Marbella beach', 'Marbella', 'Puerto Banús'],
+  'city-ibiza': ['Ibiza Dalt Vila', 'Ibiza sunset', 'Ibiza'], 'city-palma': ['Palma Cathedral', 'Palma de Mallorca cathedral', 'Mallorca']
 };
 for (const s of services) if (!Q[s.slug]) Q[s.slug] = [s.i18n.en.name, 'spa massage'];
 for (const c of cities) if (!Q[`city-${c.slug}`]) Q[`city-${c.slug}`] = [c.name.en, `${c.name.en} skyline`];
@@ -81,20 +81,29 @@ async function unsplash(q) {
   const p = j.results?.[0]; if (!p) return null;
   return { url: `${p.urls.raw}&w=1600&q=80&fm=jpg&fit=max`, credit: { author: p.user.name, source: 'Unsplash', license: 'Unsplash License', page: p.links.html } };
 }
-const OK_LICENSE = /cc0|cc-by(-sa)?(-[0-9.]+)?$|public domain|pd/i;
+const OK_LICENSE = /^(cc0|cc[ -]by([ -]sa)?([ -][0-9.]+)?|public domain|pd[ -]?[a-z0-9-]*)$/i;
+const REJECT = /\b(1[0-8]\d\d|19\d\d|200[0-4])\b|black[ -]and[ -]white|monochrome|grayscale|painting|engraving|drawing|lithograph|map|stereo|postcard|war|military|soldier|medical|disease|hospital|edema|patient|sign|poster|logo|diagram|screenshot|scan|document|book|coin|stamp|statue|portrait|nude|naked/i;
+const SIGNATURE_SPAM = /\.(gif|tiff?)$/i;
+async function commonsSearch(q, qualityOnly) {
+  const search = `${q} filetype:bitmap filemime:image/jpeg fileres:>1600${qualityOnly ? ' hastemplate:QualityImage' : ''}`;
+  const s = await (await get(`https://commons.wikimedia.org/w/api.php?action=query&list=search&srnamespace=6&srlimit=20&format=json&srsearch=${encodeURIComponent(search)}`)).json();
+  return (s.query?.search || []).map((x) => x.title).filter((t) => /\.jpe?g$/i.test(t) && !REJECT.test(t) && !SIGNATURE_SPAM.test(t));
+}
 async function commons(q) {
-  const search = `${q} filetype:bitmap -filemime:svg fileres:>1400`;
-  const s = await (await get(`https://commons.wikimedia.org/w/api.php?action=query&list=search&srnamespace=6&srlimit=12&format=json&srsearch=${encodeURIComponent(search)}`)).json();
-  const titles = (s.query?.search || []).map((x) => x.title).filter((t) => /\.(jpe?g|png|webp)$/i.test(t));
+  // Reviewed "Quality images" first; only then the open pool, both under the same filters.
+  let titles = await commonsSearch(q, true);
+  if (titles.length < 2) titles = titles.concat(await commonsSearch(q, false));
   if (!titles.length) return null;
   const info = await (await get(`https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=1600&format=json&titles=${encodeURIComponent(titles.join('|'))}`)).json();
   const pages = Object.values(info.query?.pages || {}).map((p) => ({ title: p.title, ii: p.imageinfo?.[0] })).filter((p) => p.ii);
   pages.sort((a, b) => titles.indexOf(a.title) - titles.indexOf(b.title));
   for (const p of pages) {
     const m = p.ii.extmetadata || {};
-    const lic = m.LicenseShortName?.value || '';
+    const lic = (m.LicenseShortName?.value || '').trim();
+    const cats = m.Categories?.value || '';
+    const year = Number((m.DateTimeOriginal?.value || '').match(/\b(1[0-9]{3}|20[0-9]{2})\b/)?.[1] || 2020);
     const ratio = p.ii.width / p.ii.height;
-    if (ratio < 1.15 || ratio > 2.2 || !OK_LICENSE.test(lic)) continue;
+    if (ratio < 1.2 || ratio > 2.1 || p.ii.width < 1600 || !OK_LICENSE.test(lic) || REJECT.test(cats) || year < 2006) continue;
     return { url: p.ii.thumburl, credit: { author: (m.Artist?.value || '').replace(/<[^>]+>/g, '').trim() || 'Wikimedia Commons', source: 'Wikimedia Commons', license: lic, page: p.ii.descriptionurl } };
   }
   return null;

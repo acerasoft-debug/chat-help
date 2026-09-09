@@ -27,6 +27,16 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         run: node scripts/fetch-images.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}
+      - name: Normalise sizes (1600px site copy + 900px preview copy)
+        run: |
+          sudo apt-get install -y -q imagemagick >/dev/null
+          cd data/images
+          for f in *.jpg; do
+            case "$f" in *.sm.jpg) continue;; esac
+            mogrify -auto-orient -strip -resize '1600x1600>' -quality 82 "$f"
+            convert "$f" -resize '900x900>' -quality 74 "${f%.jpg}.sm.jpg"
+          done
+          ls -la | head -80
       - name: Commit images
         run: |
           git config user.name "lumea-images[bot]"
