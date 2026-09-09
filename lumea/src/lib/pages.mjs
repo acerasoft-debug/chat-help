@@ -278,6 +278,7 @@ ${crumbs(locale, [
 <section class="section section--tight">
   <div class="wrap">
     ${sectionHead(L.hero.eyebrow, onlyCategory === 'skincare' ? L.nav.skincare : L.sections.catalogue, L.sections.catalogueSub)}
+    <form class="search" role="search" onsubmit="return false"><input type="search" id="serviceSearch" name="q" placeholder="${attr(L.x.search.placeholder)}" autocomplete="off" aria-label="${attr(L.x.search.placeholder)}"><p class="small muted" id="searchEmpty" hidden>${esc(L.x.search.none)}</p></form>
     ${cats
       .map((cat) => {
         const list = services.filter((s) => s.category === cat.slug);
@@ -286,7 +287,7 @@ ${crumbs(locale, [
         ${list
           .map((s) => {
             const c = s.i18n[locale];
-            return `<a class="menu-row" href="${withBase(pathFor(locale, { t: 'service', slug: s.slug }))}">
+            return `<a class="menu-row" data-q="${attr([c.name, c.tagline, c.short, ...(c.keywords || [])].join(' ').toLowerCase())}" href="${withBase(pathFor(locale, { t: 'service', slug: s.slug }))}">
             <strong>${esc(c.name)}</strong>
             <span class="menu-row__price">${esc(L.common.from)} ${esc(money(s.price.EUR))} <small>· ${s.durations.join('/')} ${esc(L.common.minutes)}</small></span>
             <p>${esc(c.short)}</p>
@@ -875,7 +876,7 @@ export function authPage(locale, mode) {
         <label class="field"><span>${esc(A.email)}</span><input type="email" name="email" autocomplete="email" required><em class="field-error">${esc(L.common.required)}</em></label>
         ${isLogin ? '' : `<label class="field"><span>${esc(A.phone)}</span><input name="phone" autocomplete="tel"></label>`}
         <label class="field"><span>${esc(A.password)}</span><input type="password" name="password" minlength="${isLogin ? 1 : 10}" autocomplete="${isLogin ? 'current-password' : 'new-password'}" required><em class="field-hint">${esc(isLogin ? '' : A.passwordHint)}</em><em class="field-error">${esc(L.common.required)}</em></label>
-        ${isLogin ? `<label class="check" style="margin-bottom:1.2rem"><input type="checkbox" name="remember" checked><span>${esc(A.remember)}</span></label>` : `<label class="check" style="margin-bottom:1.2rem"><input type="checkbox" name="consent" required><span>${esc(A.terms)}</span></label>`}
+        ${isLogin ? `<div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap"><label class="check" style="margin:0"><input type="checkbox" name="remember" checked><span>${esc(A.remember)}</span></label><a class="small" style="color:var(--gold)" href="${withBase(pathFor(locale, { t: 'reset' }))}">${esc(A.forgot)}</a></div>` : `<label class="check" style="margin-bottom:1.2rem"><input type="checkbox" name="consent" required><span>${esc(A.terms)}</span></label>`}
         <button class="btn btn--gold btn--block" type="submit">${esc(isLogin ? A.login : A.register)}</button>
       </form>
       <p class="small muted" style="margin-top:1.3rem">${esc(A.loginIpNote)}</p>
@@ -894,6 +895,36 @@ export function authPage(locale, mode) {
     body,
     noindex: true
   }));
+}
+
+export function resetPage(locale) {
+  const L = t[locale];
+  const X = L.x.forgot;
+  const key = { t: 'reset' };
+  const body = `
+<section class="section">
+  <div class="wrap" style="max-width:520px">
+    <div class="panel">
+      <div id="resetNotice"></div>
+      <form id="forgotForm" novalidate>
+        <h1 style="font-size:clamp(1.9rem,3.4vw,2.6rem)">${esc(X.title)}</h1>
+        <p class="muted" style="margin-bottom:1.6rem">${esc(X.sub)}</p>
+        <label class="field"><span>${esc(L.auth.email)}</span><input type="email" name="email" autocomplete="email" required><em class="field-error">${esc(L.common.required)}</em></label>
+        <button class="btn btn--gold btn--block" type="submit">${esc(X.send)}</button>
+      </form>
+      <form id="resetForm" hidden novalidate>
+        <h1 style="font-size:clamp(1.9rem,3.4vw,2.6rem)">${esc(X.resetTitle)}</h1>
+        <input type="hidden" name="token">
+        <label class="field"><span>${esc(X.newPw)}</span><input type="password" name="password" minlength="10" autocomplete="new-password" required><em class="field-hint">${esc(L.auth.passwordHint)}</em></label>
+        <label class="field"><span>${esc(X.confirm)}</span><input type="password" name="confirm" minlength="10" autocomplete="new-password" required></label>
+        <button class="btn btn--gold btn--block" type="submit">${esc(X.save)}</button>
+      </form>
+      <hr class="rule" style="margin:1.6rem 0">
+      <p class="small center" style="margin:0"><a style="color:var(--gold)" href="${withBase(pathFor(locale, { t: 'login' }))}">${esc(L.auth.login)}</a></p>
+    </div>
+  </div>
+</section>`;
+  return layout(base(locale, key, { title: `${X.title} | ${site.brand}`, description: X.sub, body, noindex: true }));
 }
 
 export function accountPage(locale) {
@@ -938,6 +969,8 @@ ${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href
       <div id="bookNotice"></div>
       <form id="bookForm" novalidate>
         <section data-step="0">
+          <input type="hidden" name="therapistId" id="bookTherapistId">
+          <div class="notice notice--info" id="bookTherapist" hidden></div>
           <label class="field"><span>${esc(L.quickBook.service)}</span><select name="service" id="bookService">${serviceOptions}</select></label>
           <div class="field--row">
             <label class="field"><span>${esc(L.quickBook.duration)}</span>
@@ -975,13 +1008,18 @@ ${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href
 
         <section data-step="3" hidden>
           <div id="bookSummary" class="notice notice--info"></div>
-          <p class="small muted">${esc(B.payLater)}</p>
+          <div class="field--row" style="align-items:end">
+            <label class="field" style="margin:0"><span>${esc(L.x.booking.discount)}</span><input name="voucher" id="bookVoucher" placeholder="LUMEA-XXXX-XXXX" style="text-transform:uppercase"></label>
+            <button type="button" class="btn btn--ghost" data-voucher-apply>${esc(L.x.voucher.apply)}</button>
+          </div>
+          <p class="small" id="voucherState" style="margin:.5rem 0 0;min-height:1.2em"></p>
+          <p class="small muted" style="margin-top:1rem">${esc(B.payLater)}</p>
         </section>
 
         <div class="form-actions">
           <button type="button" class="btn btn--ghost" data-book-back hidden>${esc(L.apply.back)}</button>
           <button type="button" class="btn btn--gold" data-book-next>${esc(L.apply.next)}</button>
-          <button type="submit" class="btn btn--gold" data-book-submit hidden>${esc(B.submit)}</button>
+          <button type="submit" class="btn btn--gold" data-book-submit hidden>${esc(L.x.booking.prepay)} · <span data-book-total>—</span></button>
         </div>
       </form>
     </div>
@@ -1220,7 +1258,43 @@ export function giftPage(locale) {
     fr: { h: 'Cartes cadeaux', d: 'Une carte sans prix visible que la personne planifie elle-même — valable dans les vingt villes et pendant trois ans.', list: ['Numérique en quelques minutes, imprimée sur demande', 'Aucun montant visible sur la carte', 'Valable pour tous les soins et toutes les villes', 'Trois ans de validité, le solde restant est conservé'] },
     it: { h: 'Buoni regalo', d: 'Un buono senza prezzo visibile che la persona fissa da sé — valido nelle venti città e per tre anni.', list: ['Digitale in pochi minuti, stampato su richiesta', 'Nessun importo visibile sul buono', 'Valido per tutti i trattamenti e tutte le città', 'Tre anni di validità, il saldo residuo resta'] }
   }[locale];
-  return simplePage(locale, { t: 'gift' }, copy.h, copy.d, [{ list: copy.list }, { p: [L.booking.payLater] }]);
+  const X = L.x.voucher;
+  const key = { t: 'gift' };
+  const body = `
+${crumbs(locale, [{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href: pathFor(locale, key), label: copy.h }])}
+<section class="section section--tight">
+  <div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:clamp(26px,4vw,56px);align-items:start">
+    <div>
+      <p class="eyebrow">${esc(site.brand)}</p>
+      <h1>${esc(copy.h)}</h1>
+      <p class="lede">${esc(copy.d)}</p>
+      <ul class="ticks" style="margin-top:1.6rem">${copy.list.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="guarantee" style="margin-top:1.6rem">★ ${esc(L.conv.guarantee)}</p>
+    </div>
+    <div class="panel">
+      <h3 style="font-family:var(--sans);font-size:1rem">${esc(X.title)}</h3>
+      <div id="voucherNotice"></div>
+      <form id="voucherForm" novalidate>
+        <label class="field"><span>${esc(X.amount)}</span></label>
+        <div class="chips" style="margin-bottom:1rem">${[100, 150, 250, 500].map((a, i) => `<button type="button" class="chip${i === 1 ? ' is-on' : ''}" data-amount="${a}">${money(a)}</button>`).join('')}<button type="button" class="chip" data-amount="custom">${esc(X.custom)}</button></div>
+        <label class="field" id="voucherCustom" hidden><span>${esc(X.custom)}</span><input type="number" name="customAmount" min="50" max="5000" step="10" placeholder="50 – 5000"></label>
+        <input type="hidden" name="amount" value="150">
+        <div class="form-grid">
+          <label class="field"><span>${esc(X.recipientName)}</span><input name="recipientName"></label>
+          <label class="field"><span>${esc(X.buyer)}</span><input type="email" name="buyerEmail" required><em class="field-error">${esc(L.common.required)}</em></label>
+          <label class="field field--full"><span>${esc(X.recipient)}</span><input type="email" name="recipientEmail"></label>
+          <label class="field field--full"><span>${esc(X.message)}</span><textarea name="message" rows="3" maxlength="600"></textarea></label>
+        </div>
+        <label class="check" style="margin-bottom:1rem"><input type="checkbox" name="consent" required><span>${esc(L.auth.terms)}</span></label>
+        <button class="btn btn--gold btn--block" type="submit">${esc(X.buy)} · <span id="voucherTotal">${esc(money(150))}</span></button>
+        <p class="small muted center" style="margin-top:.7rem">${esc(L.booking.payLater)}</p>
+      </form>
+      <div id="voucherResult" hidden></div>
+    </div>
+  </div>
+</section>
+${ctaBand(locale)}`;
+  return layout(base(locale, key, { title: `${copy.h} | ${site.brand}`, description: copy.d, body, extraLd: [breadcrumbLd([{ href: pathFor(locale, { t: 'home' }), label: L.dir }, { href: pathFor(locale, key), label: copy.h }])] }));
 }
 
 export function corporatePage(locale) {
@@ -1436,7 +1510,7 @@ ${crumbs(locale, [
   <div class="wrap" style="display:grid;grid-template-columns:1.35fr .65fr;gap:clamp(28px,4vw,64px);align-items:start">
     <div>
       <div class="t-card" style="align-items:center;gap:1.4rem">
-        <div class="avatar" style="width:96px;height:96px;font-size:2rem;background:hsl(${th.hue} 32% 42%)">${esc(th.initials)}</div>
+        <div class="avatar" data-avatar="${th.id}" style="width:96px;height:96px;font-size:2rem;background:hsl(${th.hue} 32% 42%)">${esc(th.initials)}</div>
         <div>
           <p class="eyebrow" style="margin-bottom:.3rem">${esc(th.title)} · ${esc(cityName)}</p>
           <h1 style="font-size:clamp(2rem,4.2vw,3.2rem);margin-bottom:.4rem">${esc(th.fullName)}</h1>
@@ -1474,7 +1548,7 @@ ${crumbs(locale, [
         <p>${esc(s.i18n[locale].tagline)}</p></a>`).join('')}
 
       <h3 style="margin-top:2.4rem">${esc(U.reviews)}</h3>
-      <div class="grid g3">${x.reviews.map((rv) => `<figure class="quote" style="margin:0"><span class="stars">${stars(rv.rating)}</span><p style="font-size:1rem;margin-top:.5rem">&ldquo;${esc(rv.text)}&rdquo;</p>
+      <div class="grid g3" id="profileReviews" data-profile-id="${th.id}" data-verified="${attr(L.x.review.verified)}">${x.reviews.map((rv) => `<figure class="quote" style="margin:0"><span class="stars">${stars(rv.rating)}</span><p style="font-size:1rem;margin-top:.5rem">&ldquo;${esc(rv.text)}&rdquo;</p>
         <footer><b>${esc(rv.name)}</b> · ${esc(rv.date)} · ${esc(serviceBySlug[rv.service]?.i18n[locale].name || '')}</footer></figure>`).join('')}</div>
     </div>
 
@@ -1487,6 +1561,7 @@ ${crumbs(locale, [
         <dt class="muted">${esc(U.langs)}</dt><dd style="margin:0">${esc(th.languages.join(', '))}</dd>
       </dl>
       <a class="btn btn--gold btn--block" style="margin-top:1.4rem" href="${bookHref}">${esc(fmt(U.book, { name: th.name }))}</a>
+      <button type="button" class="btn btn--ghost btn--block btn--sm" style="margin-top:.6rem" data-fav="${th.id}" data-on="${attr(L.x.fav.remove)}" data-off="${attr(L.x.fav.add)}">${esc(L.x.fav.add)}</button>
       <p class="small muted center" style="margin-top:.8rem">${esc(L.booking.payLater)}</p>
     </aside>
   </div>

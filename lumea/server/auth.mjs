@@ -82,4 +82,30 @@ export function createUser({ email, password, name, phone, role = 'client', loca
 export const findUserByEmail = (email) => one('SELECT * FROM users WHERE email = ?', String(email).toLowerCase().trim());
 
 /** Never let password hashes leave the server. */
-export const publicUser = (u) => u && ({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role, locale: u.locale, status: u.status, createdAt: u.created_at });
+export const publicUser = (u) => u && ({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role, locale: u.locale, status: u.status, createdAt: u.created_at,
+  emailVerified: !!u.email_verified, priveTier: u.prive_tier || null, priveSince: u.prive_since || null });
+
+/* ------------------------------------------ one-time tokens (reset / verify) */
+export function issueToken(userId, kind, hours) {
+  const token = newToken();
+  run('DELETE FROM tokens WHERE user_id = ? AND kind = ?', userId, kind);
+  run('INSERT INTO tokens (token,user_id,kind,expires_at,created_at) VALUES (?,?,?,?,?)',
+    digest(token), userId, kind, new Date(Date.now() + hours * 3600e3).toISOString(), now());
+  return token;
+}
+
+/** Returns the user row and burns the token; null when unknown, expired or already used. */
+export function consumeToken(token, kind) {
+  if (!token) return null;
+  const row = one('SELECT * FROM tokens WHERE token = ? AND kind = ? AND used_at IS NULL AND expires_at > ?', digest(String(token)), kind, now());
+  if (!row) return null;
+  run('UPDATE tokens SET used_at = ? WHERE token = ?', now(), row.token);
+  return one('SELECT * FROM users WHERE id = ?', row.user_id);
+}
+
+export function setPassword(userId, password) {
+  run('UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(password), userId);
+  run('DELETE FROM sessions WHERE user_id = ?', userId); // every device signs in again
+}
+
+export const hasSessionFromIp = (userId, ip) => !!one('SELECT 1 FROM sessions WHERE user_id = ? AND ip = ? LIMIT 1', userId, ip || '');

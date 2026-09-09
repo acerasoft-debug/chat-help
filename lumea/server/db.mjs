@@ -136,6 +136,61 @@ for (const [col, def] of [['payment_status', "TEXT DEFAULT 'unpaid'"], ['payout_
   try { db.exec(`ALTER TABLE bookings ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
 }
 
+db.exec(`
+CREATE TABLE IF NOT EXISTS tokens (
+  token      TEXT PRIMARY KEY,           -- sha256 digest
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind       TEXT NOT NULL,              -- reset | verify
+  expires_at TEXT NOT NULL,
+  used_at    TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id, kind);
+
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  therapist_id TEXT NOT NULL REFERENCES therapists(id) ON DELETE CASCADE,
+  created_at   TEXT NOT NULL,
+  PRIMARY KEY (user_id, therapist_id)
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id           TEXT PRIMARY KEY,
+  booking_id   TEXT NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+  therapist_id TEXT NOT NULL REFERENCES therapists(id) ON DELETE CASCADE,
+  user_id      TEXT REFERENCES users(id) ON DELETE SET NULL,
+  rating       INTEGER NOT NULL,
+  text         TEXT,
+  author       TEXT,
+  service      TEXT,
+  locale       TEXT,
+  created_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reviews_therapist ON reviews(therapist_id, created_at);
+
+CREATE TABLE IF NOT EXISTS vouchers (
+  code           TEXT PRIMARY KEY,
+  amount         INTEGER NOT NULL,        -- EUR, initial value
+  balance        INTEGER NOT NULL,
+  currency       TEXT NOT NULL DEFAULT 'EUR',
+  buyer_email    TEXT, recipient_email TEXT, recipient_name TEXT, message TEXT,
+  locale         TEXT,
+  payment_status TEXT NOT NULL DEFAULT 'authorised',
+  expires_at     TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  created_ip     TEXT
+);
+`);
+for (const [col, def] of [['email_verified', 'INTEGER DEFAULT 0'], ['prive_tier', 'TEXT'], ['prive_since', 'TEXT'], ['deleted_at', 'TEXT']]) {
+  try { db.exec(`ALTER TABLE users ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
+}
+for (const [col, def] of [['photo_path', 'TEXT'], ['photo_mime', 'TEXT']]) {
+  try { db.exec(`ALTER TABLE therapists ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
+}
+for (const [col, def] of [['voucher_code', 'TEXT'], ['discount', 'INTEGER DEFAULT 0'], ['reviewed', 'INTEGER DEFAULT 0']]) {
+  try { db.exec(`ALTER TABLE bookings ADD COLUMN ${col} ${def}`); } catch { /* column exists */ }
+}
+
 export const now = () => new Date().toISOString();
 export const id = (prefix) => `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
 

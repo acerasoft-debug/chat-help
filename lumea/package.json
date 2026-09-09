@@ -9,7 +9,10 @@
     "start": "node scripts/build.mjs && node server/index.mjs",
     "serve": "node server/index.mjs",
     "dev": "node scripts/build.mjs && node --watch server/index.mjs",
-    "clean": "rm -rf dist .data"
+    "clean": "rm -rf dist .data",
+    "test": "node scripts/check-i18n.mjs && node scripts/build.mjs && node test/e2e.mjs",
+    "check": "node scripts/check-i18n.mjs",
+    "og": "node scripts/og.mjs"
   },
   "engines": {
     "node": ">=22.5"

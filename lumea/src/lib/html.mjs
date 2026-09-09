@@ -10,11 +10,11 @@ export { fmt };
 
 /** Localised URL segments. One entry per logical page type. */
 const SEG = {
-  de: { services: 'behandlungen', skincare: 'hautpflege', cities: 'staedte', how: 'ablauf', therapists: 'therapeut-werden', login: 'anmelden', register: 'registrieren', account: 'konto', book: 'buchen', contact: 'kontakt', imprint: 'impressum', privacy: 'datenschutz', terms: 'agb', gift: 'gutscheine', corporate: 'unternehmen', prive: 'prive', journal: 'journal', profiles: 'therapeuten' },
-  en: { services: 'treatments', skincare: 'skincare', cities: 'cities', how: 'how-it-works', therapists: 'become-a-therapist', login: 'sign-in', register: 'register', account: 'account', book: 'book', contact: 'contact', imprint: 'imprint', privacy: 'privacy', terms: 'terms', gift: 'gift-vouchers', corporate: 'for-companies', prive: 'prive', journal: 'journal', profiles: 'therapists' },
-  es: { services: 'tratamientos', skincare: 'estetica', cities: 'ciudades', how: 'como-funciona', therapists: 'trabaja-con-nosotros', login: 'entrar', register: 'registro', account: 'cuenta', book: 'reservar', contact: 'contacto', imprint: 'aviso-legal', privacy: 'privacidad', terms: 'condiciones', gift: 'tarjetas-regalo', corporate: 'empresas', prive: 'prive', journal: 'journal', profiles: 'terapeutas' },
-  fr: { services: 'soins', skincare: 'soins-du-visage', cities: 'villes', how: 'comment-ca-marche', therapists: 'devenir-therapeute', login: 'connexion', register: 'inscription', account: 'compte', book: 'reserver', contact: 'contact', imprint: 'mentions-legales', privacy: 'confidentialite', terms: 'conditions', gift: 'cartes-cadeaux', corporate: 'entreprises', prive: 'prive', journal: 'journal', profiles: 'therapeutes' },
-  it: { services: 'trattamenti', skincare: 'skincare', cities: 'citta', how: 'come-funziona', therapists: 'diventa-terapista', login: 'accedi', register: 'registrati', account: 'account', book: 'prenota', contact: 'contatti', imprint: 'note-legali', privacy: 'privacy', terms: 'condizioni', gift: 'buoni-regalo', corporate: 'aziende', prive: 'prive', journal: 'journal', profiles: 'terapisti' }
+  de: { services: 'behandlungen', skincare: 'hautpflege', cities: 'staedte', how: 'ablauf', therapists: 'therapeut-werden', login: 'anmelden', register: 'registrieren', account: 'konto', book: 'buchen', contact: 'kontakt', imprint: 'impressum', privacy: 'datenschutz', terms: 'agb', gift: 'gutscheine', corporate: 'unternehmen', prive: 'prive', journal: 'journal', profiles: 'therapeuten', reset: 'passwort-zuruecksetzen' },
+  en: { services: 'treatments', skincare: 'skincare', cities: 'cities', how: 'how-it-works', therapists: 'become-a-therapist', login: 'sign-in', register: 'register', account: 'account', book: 'book', contact: 'contact', imprint: 'imprint', privacy: 'privacy', terms: 'terms', gift: 'gift-vouchers', corporate: 'for-companies', prive: 'prive', journal: 'journal', profiles: 'therapists', reset: 'reset-password' },
+  es: { services: 'tratamientos', skincare: 'estetica', cities: 'ciudades', how: 'como-funciona', therapists: 'trabaja-con-nosotros', login: 'entrar', register: 'registro', account: 'cuenta', book: 'reservar', contact: 'contacto', imprint: 'aviso-legal', privacy: 'privacidad', terms: 'condiciones', gift: 'tarjetas-regalo', corporate: 'empresas', prive: 'prive', journal: 'journal', profiles: 'terapeutas', reset: 'restablecer' },
+  fr: { services: 'soins', skincare: 'soins-du-visage', cities: 'villes', how: 'comment-ca-marche', therapists: 'devenir-therapeute', login: 'connexion', register: 'inscription', account: 'compte', book: 'reserver', contact: 'contact', imprint: 'mentions-legales', privacy: 'confidentialite', terms: 'conditions', gift: 'cartes-cadeaux', corporate: 'entreprises', prive: 'prive', journal: 'journal', profiles: 'therapeutes', reset: 'reinitialiser' },
+  it: { services: 'trattamenti', skincare: 'skincare', cities: 'citta', how: 'come-funziona', therapists: 'diventa-terapista', login: 'accedi', register: 'registrati', account: 'account', book: 'prenota', contact: 'contatti', imprint: 'note-legali', privacy: 'privacy', terms: 'condizioni', gift: 'buoni-regalo', corporate: 'aziende', prive: 'prive', journal: 'journal', profiles: 'terapisti', reset: 'reimposta-password' }
 };
 
 /**
@@ -220,11 +220,13 @@ ${alternates}
 <meta property="og:title" content="${attr(title)}">
 <meta property="og:description" content="${attr(description)}">
 <meta property="og:url" content="${canonical}">
-<meta property="og:image" content="${absolute('/assets/og.svg')}">
+<meta property="og:image" content="${absolute('/assets/og.png')}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${attr(title)}">
 <meta name="twitter:description" content="${attr(description)}">
-<meta name="twitter:image" content="${absolute('/assets/og.svg')}">
+<meta name="twitter:image" content="${absolute('/assets/og.png')}">
 <meta name="theme-color" content="#16130f" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
 ${site.verification.google ? `<meta name="google-site-verification" content="${attr(site.verification.google)}">` : ''}
@@ -237,7 +239,7 @@ ${site.verification.bing ? `<meta name="msvalidate.01" content="${attr(site.veri
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="${withBase('/assets/styles.css')}">
-${site.analytics.plausibleDomain ? `<script defer data-domain="${attr(site.analytics.plausibleDomain)}" src="https://plausible.io/js/script.js"></script>` : ''}
+${site.analytics.plausibleDomain ? `<script>window.__plausible=${JSON.stringify(site.analytics.plausibleDomain)};</script>` : ''}
 ${ld}
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''} data-locale="${locale}" data-base="${withBase('')}">
@@ -247,11 +249,15 @@ ${header(locale, key)}
 ${body}
 </main>
 ${footer(locale, services, cities)}
+<div class="cookie" id="cookieBar" hidden role="dialog" aria-live="polite">
+  <p>${esc(t[locale].x.cookie.text)} <a href="${withBase(pathFor(locale, { t: 'privacy' }))}">${esc(t[locale].x.cookie.more)}</a></p>
+  <div class="cookie__actions"><button class="btn btn--ghost btn--sm" data-cookie="necessary">${esc(t[locale].x.cookie.decline)}</button><button class="btn btn--gold btn--sm" data-cookie="all">${esc(t[locale].x.cookie.accept)}</button></div>
+</div>
 <div class="sticky-cta" id="stickyCta">
   <a class="btn btn--ghost btn--sm" href="https://wa.me/${attr(site.whatsapp.replace(/\D/g, ''))}" rel="noopener" target="_blank">${esc(t[locale].conv.stickyWa)}</a>
   <a class="btn btn--gold" href="${withBase(pathFor(locale, { t: 'book' }))}">${esc(t[locale].conv.stickyBook)}</a>
 </div>
-<script>window.__geoTpl=${JSON.stringify(t[locale].hero.locatedIn)};window.__applySuccess=${JSON.stringify(t[locale].apply.success)};window.__bookSuccess=${JSON.stringify(fmt(t[locale].booking.success, { minutes: site.trust.responseMinutes }))};</script>
+<script>window.__x=${JSON.stringify(t[locale].x)};window.__geoTpl=${JSON.stringify(t[locale].hero.locatedIn)};window.__applySuccess=${JSON.stringify(t[locale].apply.success)};window.__bookSuccess=${JSON.stringify(fmt(t[locale].booking.success, { minutes: site.trust.responseMinutes }))};</script>
 <script src="${withBase('/assets/app.js')}" defer></script>
 </body>
 </html>`;

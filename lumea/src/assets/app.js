@@ -41,6 +41,8 @@
     it: { identity: 'Identità', qualification: 'Diploma', insurance: 'Assicurato', background: 'Casellario' }
   }[LOCALE];
 
+  const XT = window.__x || {};
+
   /* --------------------------------------------------------------- data */
   let DATA = null;
   const loadData = (() => {
@@ -375,6 +377,32 @@
     const params = new URLSearchParams(location.search);
     if (params.get('service')) { const s = $('#bookService'); if (s) s.value = params.get('service'); }
     if (params.get('city')) { const c = $('#bookCity'); if (c) c.value = params.get('city'); }
+    if (params.get('therapist')) {
+      const tid = params.get('therapist');
+      $('#bookTherapistId').value = tid;
+      loadData().then(() => {
+        const th = DATA.therapists.find((t) => t.id === tid);
+        const box = $('#bookTherapist');
+        if (th && box) { box.hidden = false; box.innerHTML = `<strong>${XT.booking.therapist}:</strong> ${th.name} · ${th.title} · ★ ${th.rating}`; }
+      });
+    }
+    let voucherDiscount = 0;
+    $('[data-voucher-apply]')?.addEventListener('click', async () => {
+      const code = ($('#bookVoucher').value || '').trim().toUpperCase();
+      const state = $('#voucherState');
+      if (!code) return;
+      try {
+        const v = await api(`/vouchers/check?code=${encodeURIComponent(code)}`);
+        voucherDiscount = v.balance;
+        state.style.color = 'var(--forest)';
+        state.textContent = XT.voucher.applied.replace('{amount}', `${v.balance} €`);
+      } catch {
+        voucherDiscount = 0;
+        state.style.color = '#b3402f';
+        state.textContent = XT.voucher.invalid;
+      }
+      form.dispatchEvent(new Event('change'));
+    });
     const dateEl = form.querySelector('[name=date]');
     if (dateEl && !dateEl.value) {
       const d = new Date(Date.now() + 864e5);
@@ -395,7 +423,10 @@
       if (dur === 120) total = Math.round(total * 1.8);
       if (Number(d.persons) === 2) total = Math.round(total * 1.9);
       $$('[name=addons]:checked', form).forEach((el) => { total += Number(el.dataset.eur || 0); });
-      totalEl.textContent = chf ? `CHF ${total}` : `${total} €`;
+      const gross = total;
+      if (voucherDiscount) total = Math.max(0, total - voucherDiscount);
+      totalEl.textContent = (chf ? `CHF ${total}` : `${total} €`) + (voucherDiscount ? ` (${gross})` : '');
+      const mirror = $('[data-book-total]'); if (mirror) mirror.textContent = chf ? `CHF ${total}` : `${total} €`;
       asideEl.innerHTML = [opt?.textContent.split(' — ')[0], `${dur} min`, cityOpt?.textContent, d.date, d.time]
         .filter(Boolean).map((x) => `<div>${x}</div>`).join('');
       return total;
@@ -458,6 +489,8 @@
       try {
         const res = await api(`/auth/${mode}`, { method: 'POST', body: { ...d, locale: LOCALE } });
         session.set(res.user);
+        const plan = new URLSearchParams(location.search).get('plan');
+        if (plan) { try { await api('/prive/subscribe', { method: 'POST', body: { tier: plan } }); } catch { /* shown in account */ } }
         location.href = `${BASE}/${LOCALE}/${({ de: 'konto', en: 'account', es: 'cuenta', fr: 'compte', it: 'account' })[LOCALE]}/`;
       } catch (err) {
         if (err.status === 401) notice(noticeEl, 'err', T.badLogin);
@@ -523,9 +556,15 @@
           <div class="small muted" style="margin-top:.3rem">${b.date || ''} ${b.time || ''} · ${b.duration || ''} min · ${b.city || ''} · ${b.total || ''}</div>
           ${b.therapist ? `<div class="small" style="margin-top:.3rem">${b.therapist.name} · ${b.therapist.title}</div>` : ''}
           <div class="small muted" style="margin-top:.3rem">💳 ${L.pay[b.paymentStatus] || b.paymentStatus || ''}</div>
+          ${b.discount ? `<div class="small" style="color:var(--forest)">${XT.voucher.applied.replace('{amount}', b.discount + ' €')}</div>` : ''}
           ${b.id && !b.local && ['requested', 'confirmed'].includes(b.status) ? `<div style="display:flex;gap:.5rem;margin-top:.7rem;flex-wrap:wrap">
             ${b.status === 'confirmed' ? `<a class="btn btn--ghost btn--sm" href="${API}/bookings/ics?id=${b.id}">${L.ics}</a>` : ''}
             <button class="btn btn--ghost btn--sm" data-cancel="${b.id}">${L.cancel}</button></div>` : ''}
+          ${b.status === 'done' && b.therapist ? (b.reviewed ? `<div class="small" style="margin-top:.6rem"><span class="badge badge--forest">✓ ${XT.review.done}</span></div>` : `<form class="review-form" data-review="${b.id}" style="margin-top:.8rem">
+            <div class="small" style="margin-bottom:.3rem">${XT.review.prompt}</div>
+            <div class="stars-input" data-stars>${[1, 2, 3, 4, 5].map((n) => `<span data-n="${n}" class="${n <= 5 ? 'is-on' : ''}">★</span>`).join('')}</div><input type="hidden" name="rating" value="5">
+            <label class="field" style="margin:.6rem 0"><span>${XT.review.text}</span><textarea name="text" rows="2" maxlength="1200"></textarea></label>
+            <button class="btn btn--gold btn--sm" type="submit">${XT.review.send}</button></form>`) : ''}
         </div>`).join('') : `<p class="muted small">${L.none}</p>`}</div>`;
     }
 
@@ -571,6 +610,8 @@
       const names = DATA?.services?.[LOCALE] || {};
       const editForm = me2 ? `<div class="panel" style="margin-bottom:1.4rem"><h3 style="font-family:var(--sans);font-size:1rem">${E.edit}</h3>
         <p class="small muted">${E.locked}</p>
+        <div class="doc-row" style="margin-bottom:1rem"><div style="display:flex;gap:.8rem;align-items:center"><div class="avatar" style="width:56px;height:56px;background:hsl(${me2.hue} 32% 42%)">${me2.photo ? `<img src="${API}/therapists/photo?id=${me2.id}&v=${Date.now()}" alt="">` : me2.initials}</div><div class="small muted">${XT.photo.hint}</div></div>
+          <label class="btn btn--ghost btn--sm" style="cursor:pointer">${XT.photo.upload}<input type="file" hidden accept="image/jpeg,image/png,image/webp" data-photo></label></div>
         <form id="profileForm" novalidate>
           <div class="form-grid">
             <label class="field"><span>${E.title}</span><input name="title" value="${(me2.title || '').replace(/"/g, '&quot;')}"></label>
@@ -600,8 +641,36 @@
       </div>`;
     }
 
+    /* ---- favourites / privé / security (every role) */
+    async function favoritesPanel() {
+      let favs = [];
+      try { favs = (await api('/favorites')).favorites || []; } catch { return ''; }
+      return `<div class="panel" style="margin-bottom:1.4rem"><h3 style="font-family:var(--sans);font-size:1rem">${XT.fav.title}</h3>
+        ${favs.length ? favs.map((f) => `<div class="doc-row"><div style="display:flex;gap:.7rem;align-items:center"><div class="avatar" style="width:40px;height:40px;font-size:.9rem;background:hsl(${f.hue} 32% 42%)">${f.photo ? `<img src="${API}/therapists/photo?id=${f.id}" alt="">` : f.initials}</div><div><strong>${f.name}</strong><div class="small muted">${f.title} · ★ ${f.rating}</div></div></div>
+          <div style="display:flex;gap:.4rem"><a class="btn btn--ghost btn--sm" href="${BASE}/${LOCALE}/${PROFILE_SEG}/${f.id}/">${T.book}</a><button class="btn btn--ghost btn--sm" data-unfav="${f.id}">×</button></div></div>`).join('') : `<p class="muted small">${XT.fav.none}</p>`}</div>`;
+    }
+    function privePanel() {
+      const P = XT.prive;
+      return `<div class="panel" style="margin-bottom:1.4rem"><h3 style="font-family:var(--sans);font-size:1rem">${P.title}</h3>
+        ${me.priveTier ? `<p><span class="badge">${me.priveTier}</span> <span class="small muted">${P.active.replace('{date}', (me.priveSince || '').slice(0, 10))}</span></p><button class="btn btn--ghost btn--sm" data-prive-cancel>${P.cancel}</button>`
+          : `<p class="small muted">${P.none}</p><a class="btn btn--gold btn--sm" href="${BASE}/${LOCALE}/prive/">${P.choose}</a>`}</div>`;
+    }
+    function securityPanel() {
+      const S = XT.security;
+      return `<div class="panel" style="margin-bottom:1.4rem"><h3 style="font-family:var(--sans);font-size:1rem">${S.title}</h3>
+        <p class="small">${me.emailVerified ? `<span class="badge badge--forest">✓ ${S.emailOk}</span>` : `<span class="badge">${S.emailNo}</span> <button class="link-btn" data-resend>${S.resend}</button>`}</p>
+        <form id="pwForm" novalidate style="margin-top:1rem"><div class="form-grid">
+          <label class="field"><span>${S.current}</span><input type="password" name="current" autocomplete="current-password" required></label>
+          <label class="field"><span>${S.newPw}</span><input type="password" name="password" minlength="10" autocomplete="new-password" required></label></div>
+          <button class="btn btn--ghost btn--sm" type="submit">${S.changePw}</button></form>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.2rem"><a class="btn btn--ghost btn--sm" href="${API}/auth/export">${S.export}</a><button class="btn btn--ghost btn--sm" data-delete style="color:#b3402f">${S.delete}</button></div></div>`;
+    }
+    const verifiedParam = new URLSearchParams(location.search).get('verified');
+    if (verifiedParam === '1') notice($('#accountNotice'), 'ok', XT.security.verifiedNow);
+
     const main = me.role === 'admin' ? await adminView() + await clientView() : me.role === 'therapist' ? await therapistView() : await clientView();
-    root.innerHTML = head + `<div style="display:grid;grid-template-columns:1.3fr .7fr;gap:clamp(20px,3vw,40px);align-items:start"><div>${main}</div>${sessionsPanel}</div>`;
+    const side = (me.role === 'client' ? await favoritesPanel() : '') + privePanel() + securityPanel() + sessionsPanel;
+    root.innerHTML = head + `<div style="display:grid;grid-template-columns:1.3fr .7fr;gap:clamp(20px,3vw,40px);align-items:start"><div>${main}</div><div>${side}</div></div>`;
 
     const reload = () => initAccount();
     root.addEventListener('click', async (e) => {
@@ -614,6 +683,16 @@
         if (b.dataset.complete) await api('/therapist/complete', { method: 'POST', body: { id: b.dataset.complete } });
         if (b.dataset.review) await api('/admin/documents/review', { method: 'POST', body: { id: b.dataset.review, status: b.dataset.status } });
         if (b.dataset.activate) await api('/admin/therapists/status', { method: 'POST', body: { id: b.dataset.activate, status: 'active' } });
+        if (b.dataset.unfav) await api('/favorites', { method: 'POST', body: { therapistId: b.dataset.unfav, remove: true } });
+        if (b.hasAttribute('data-prive-cancel')) { await api('/prive/cancel', { method: 'POST' }); notice($('#accountNotice'), 'ok', XT.prive.cancelled); }
+        if (b.hasAttribute('data-resend')) { await api('/auth/verify/resend', { method: 'POST' }); notice($('#accountNotice'), 'ok', XT.security.resent); return; }
+        if (b.hasAttribute('data-delete')) {
+          const pw = window.prompt(XT.security.deleteConfirm + '\n\n' + XT.security.current + ':');
+          if (!pw) return;
+          await api('/auth/delete', { method: 'POST', body: { password: pw } });
+          session.clear(); alert(XT.security.deleted); location.href = `${BASE}/${LOCALE}/`; return;
+        }
+        if (b.closest('[data-stars]')) return;
         reload();
       } catch (err) { notice($('#accountNotice'), 'err', err.data?.error || T.err); }
     }, { once: true });
@@ -629,7 +708,37 @@
       catch (err) { notice($('#accountNotice'), 'err', err.data?.error || T.err); }
     });
 
+    root.addEventListener('click', (e) => {
+      const star = e.target.closest('[data-stars] span'); if (!star) return;
+      const wrap = star.parentElement; const n = Number(star.dataset.n);
+      $$('span', wrap).forEach((x) => x.classList.toggle('is-on', Number(x.dataset.n) <= n));
+      wrap.nextElementSibling.value = n;
+    });
+    root.addEventListener('submit', async (e) => {
+      const rf = e.target.closest('.review-form');
+      if (rf) {
+        e.preventDefault();
+        try { await api('/bookings/review', { method: 'POST', body: { id: rf.dataset.review, rating: rf.rating.value, text: rf.text.value } }); notice($('#accountNotice'), 'ok', XT.review.thanks); reload(); }
+        catch (err) { notice($('#accountNotice'), 'err', err.data?.error || T.err); }
+        return;
+      }
+      const pf = e.target.closest('#pwForm');
+      if (pf) {
+        e.preventDefault(); if (!validate(pf)) return;
+        try { await api('/auth/password', { method: 'POST', body: { current: pf.current.value, password: pf.password.value } }); notice($('#accountNotice'), 'ok', XT.security.changed); pf.reset(); }
+        catch (err) { notice($('#accountNotice'), 'err', err.status === 403 ? XT.security.wrong : (err.data?.error || T.err)); }
+      }
+    });
     root.addEventListener('change', async (e) => {
+      const photo = e.target.closest('input[type=file][data-photo]');
+      if (photo && photo.files[0]) {
+        const f = photo.files[0];
+        const data = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+        notice($('#accountNotice'), 'info', T.sending);
+        try { await api('/therapist/photo', { method: 'POST', body: { mime: f.type, data } }); notice($('#accountNotice'), 'ok', T.ok); reload(); }
+        catch (err) { notice($('#accountNotice'), 'err', err.data?.error || T.err); }
+        return;
+      }
       const input = e.target.closest('input[type=file][data-doc]');
       if (!input || !input.files[0]) return;
       const file = input.files[0];
@@ -714,6 +823,115 @@
     new IntersectionObserver(([e]) => bar.classList.toggle('is-visible', !e.isIntersecting), { threshold: 0.05 }).observe(hero);
   }
 
+
+  /* ------------------------------------------------------------- cookies */
+  function initCookies() {
+    const bar = $('#cookieBar');
+    if (!bar) return;
+    const choice = store.get('lumea.consent');
+    const loadAnalytics = () => {
+      if (!window.__plausible || $('#plausible')) return;
+      const sc = document.createElement('script'); sc.id = 'plausible'; sc.defer = true; sc.dataset.domain = window.__plausible; sc.src = 'https://plausible.io/js/script.js';
+      document.head.appendChild(sc);
+    };
+    if (choice === 'all') loadAnalytics();
+    if (!choice) bar.hidden = false;
+    bar.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-cookie]'); if (!b) return;
+      store.set('lumea.consent', b.dataset.cookie);
+      bar.hidden = true;
+      if (b.dataset.cookie === 'all') loadAnalytics();
+    });
+  }
+
+  /* -------------------------------------------------- forgot / reset flow */
+  function initReset() {
+    const forgot = $('#forgotForm'); const reset = $('#resetForm');
+    if (!forgot || !reset) return;
+    const token = new URLSearchParams(location.search).get('token');
+    const noticeEl = $('#resetNotice');
+    if (token) { forgot.hidden = true; reset.hidden = false; reset.token.value = token; }
+    forgot.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!validate(forgot)) return;
+      notice(noticeEl, 'info', T.sending);
+      try { await api('/auth/forgot', { method: 'POST', body: { email: forgot.email.value, locale: LOCALE } }); } catch { /* always ok */ }
+      forgot.hidden = true; notice(noticeEl, 'ok', XT.forgot.sent);
+    });
+    reset.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!validate(reset)) return;
+      if (reset.password.value !== reset.confirm.value) return notice(noticeEl, 'err', XT.forgot.mismatch);
+      notice(noticeEl, 'info', T.sending);
+      try { await api('/auth/reset', { method: 'POST', body: { token: reset.token.value, password: reset.password.value } }); reset.hidden = true; notice(noticeEl, 'ok', XT.forgot.done); }
+      catch (err) { notice(noticeEl, 'err', err.status === 410 ? XT.forgot.invalid : (err.data?.error || T.err)); }
+    });
+  }
+
+  /* ------------------------------------------------------------ vouchers */
+  function initVoucher() {
+    const form = $('#voucherForm'); if (!form) return;
+    const totalEl = $('#voucherTotal'); const custom = $('#voucherCustom');
+    const setAmount = (v) => { form.amount.value = v; totalEl.textContent = `${v} €`; };
+    form.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-amount]'); if (!chip) return;
+      $$('[data-amount]', form).forEach((c) => c.classList.toggle('is-on', c === chip));
+      if (chip.dataset.amount === 'custom') { custom.hidden = false; custom.querySelector('input').focus(); setAmount(Number(custom.querySelector('input').value) || 100); }
+      else { custom.hidden = true; setAmount(Number(chip.dataset.amount)); }
+    });
+    custom?.querySelector('input')?.addEventListener('input', (e) => setAmount(Math.min(Math.max(Number(e.target.value) || 50, 50), 5000)));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (!validate(form)) return;
+      const d = fdToObject(form); d.locale = LOCALE;
+      notice($('#voucherNotice'), 'info', T.sending);
+      try {
+        const r = await api('/vouchers', { method: 'POST', body: d });
+        form.hidden = true;
+        $('#voucherNotice').innerHTML = '';
+        const out = $('#voucherResult'); out.hidden = false;
+        out.innerHTML = `<div class="notice notice--ok"><strong>${XT.voucher.yourCode}</strong><div class="card__price" style="font-size:1.6rem;margin:.4rem 0;letter-spacing:.08em">${r.code}</div>
+          <div class="small">${r.amount} € · ${XT.voucher.validUntil} ${r.expiresAt.slice(0, 10)}</div><div class="small" style="margin-top:.4rem">${XT.voucher.sentTo.replace('{to}', r.sentTo)}</div></div>`;
+      } catch (err) { notice($('#voucherNotice'), 'err', err.data?.error || T.err); }
+    });
+  }
+
+  /* ------------------------------------------------------ service search */
+  function initSearch() {
+    const input = $('#serviceSearch'); if (!input) return;
+    const q0 = new URLSearchParams(location.search).get('q'); if (q0) input.value = q0;
+    const apply = () => {
+      const q = input.value.trim().toLowerCase();
+      let shown = 0;
+      $$('.menu-row').forEach((row) => { const hit = !q || (row.dataset.q || '').includes(q); row.hidden = !hit; if (hit) shown++; });
+      $$('.menu-group').forEach((g) => { g.hidden = !$$('.menu-row', g).some((r) => !r.hidden); });
+      $('#searchEmpty').hidden = shown > 0;
+    };
+    input.addEventListener('input', apply); apply();
+  }
+
+  /* ----------------------------------------- therapist profile hydration */
+  function initProfile() {
+    const reviewsEl = $('#profileReviews'); const fav = $('[data-fav]');
+    const id = reviewsEl?.dataset.profileId || fav?.dataset.fav;
+    if (!id) return;
+    api(`/therapists/profile?id=${encodeURIComponent(id)}&locale=${LOCALE}`).then((r) => {
+      const p = r.profile;
+      if (p.photo) { const av = $(`[data-avatar="${id}"]`); if (av) av.innerHTML = `<img src="${API}/therapists/photo?id=${id}" alt="${p.name}" loading="lazy">`; }
+      const real = (p.sampleReviews || []).filter((x) => x.verified);
+      if (real.length && reviewsEl) {
+        const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n);
+        reviewsEl.insertAdjacentHTML('afterbegin', real.map((rv) => `<figure class="quote" style="margin:0;border-color:var(--gold)"><span class="stars">${stars(rv.rating)}</span> <span class="badge badge--forest">${reviewsEl.dataset.verified}</span><p style="font-size:1rem;margin-top:.5rem">&ldquo;${(rv.text || '').replace(/</g, '&lt;')}&rdquo;</p><footer><b>${rv.name}</b> · ${rv.date}</footer></figure>`).join(''));
+      }
+    }).catch(() => {});
+    if (fav) {
+      const paint = (on) => { fav.textContent = on ? fav.dataset.on : fav.dataset.off; fav.dataset.state = on ? '1' : '0'; };
+      if (session.get()) api('/favorites').then((r) => paint(r.favorites.some((f) => f.id === id))).catch(() => {});
+      fav.addEventListener('click', async () => {
+        if (!session.get()) { location.href = `${BASE}/${LOCALE}/${({ de: 'anmelden', en: 'sign-in', es: 'entrar', fr: 'connexion', it: 'accedi' })[LOCALE]}/`; return; }
+        const on = fav.dataset.state === '1';
+        try { await api('/favorites', { method: 'POST', body: { therapistId: id, remove: on } }); paint(!on); } catch { /* ignore */ }
+      });
+    }
+  }
+
   /* ----------------------------------------------------------------- go */
   function boot() {
     paintAuth();
@@ -727,6 +945,11 @@
     initContact();
     initSignals();
     initStickyCta();
+    initCookies();
+    initReset();
+    initVoucher();
+    initSearch();
+    initProfile();
     initGeo().catch(() => {});
   }
 

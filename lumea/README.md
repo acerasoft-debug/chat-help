@@ -11,17 +11,20 @@ Zero npm dependencies. Node ≥ 22.5 only (built-in `node:sqlite`, `node:crypto`
 npm start          # builds dist/ and serves site + API on http://localhost:4477
 npm run build      # static site only (GitHub Pages / Netlify / Cloudflare Pages)
 npm run dev        # build + auto-restart API on change
+npm test           # i18n parity + build + 57 end-to-end API assertions (throw-away SQLite)
+npm run og         # re-render the Open Graph PNG from og.svg (needs global Playwright)
 ```
 
 ## What is inside
 
 | Layer | Path | Notes |
 | --- | --- | --- |
-| Content | `data/` | services (DE/EN/ES copy), cities, therapists (deterministic roster), journal, Privé tiers, UI strings |
-| Static generator | `scripts/build.mjs`, `src/lib/` | 1 965 pages, sitemap, robots, manifest, JSON-LD, hreflang |
+| Content | `data/` | services (DE/EN/ES/FR/IT copy), cities, therapists (deterministic roster), journal, Privé tiers, UI strings |
+| Static generator | `scripts/build.mjs`, `src/lib/` | 1 970 pages, sitemap, robots, manifest, RSS, JSON-LD, hreflang, per-locale 404 |
 | Front-end runtime | `src/assets/app.js`, `styles.css` | IP/GPS location, matching, wizards, dashboards; works without the API |
-| API server | `server/` | auth, sessions with IP log, geo-IP, matching, bookings, verification, admin |
-| Ops | `Dockerfile`, `.env.example`, `.github/workflows/lumea-pages.yml` | container + Pages deploy |
+| API server | `server/` | auth + reset + email verification, sessions with IP log, geo-IP, matching, bookings, escrow, vouchers, reviews, favourites, Privé, verification, admin, transactional mail |
+| Tests | `test/e2e.mjs`, `scripts/check-i18n.mjs` | 57 API journey assertions on a throw-away DB; i18n key parity across 5 locales |
+| Ops | `Dockerfile`, `.env.example`, `.github/workflows/lumea-ci.yml`, `lumea-pages.yml` | CI (i18n → build → e2e → docker) + Pages deploy |
 
 ### Pages generated (per locale × 5)
 
@@ -44,7 +47,17 @@ Every page carries `canonical`, `hreflang` (de/en/es/fr/it/x-default), Open Grap
   therapist only when they mark the appointment `done` (`released`), or refunded on cancellation (`refunded`).
   Plug your PSP (Stripe/Adyen/Mollie) webhook into `POST /api/bookings` → `authorised` and
   `POST /api/therapist/complete` → payout.
-- **Strictly therapeutic.** Copy, FAQ and terms state it in all three languages; the API has no other scope.
+- **Strictly therapeutic.** Copy, FAQ and terms state it in all five languages; the API has no other scope.
+- **Every journey closes the loop.** Registration → verification mail; forgot password → one-hour single-use
+  link that revokes all sessions; new-device sign-in → security mail; booking → request / confirmation /
+  completion / cancellation mails; completed booking → verified review that updates the therapist's rating;
+  document review → mail to the applicant. Mail goes through Resend (`LUMEA_RESEND_KEY`), your own webhook
+  (`LUMEA_MAIL_WEBHOOK`) or, by default, `.eml` files in `<data dir>/outbox/`.
+- **GDPR by construction.** Cookie consent gates analytics; `GET /api/auth/export` returns everything held
+  about a user; `POST /api/auth/delete` erases personal fields, cancels open bookings, refunds escrow and
+  anonymises reviews. Sign-in logs keep truncated IPs only.
+- **Hardened by default.** CSP, HSTS (prod), `X-Frame-Options: DENY`, per-IP sliding-window rate limits on
+  every public write endpoint, scrypt hashes, HttpOnly cookies, throttled logins, hashed one-time tokens.
 - **Location first.** `/api/geo` resolves city from edge headers (Cloudflare / Vercel), an optional geo-IP provider
   (`LUMEA_GEOIP_URL`), or `Accept-Language`; the browser can upgrade to GPS on request. Full IPs are never
   stored — sign-in logs keep a truncated `/24` (`/48` for IPv6).
@@ -58,6 +71,14 @@ Every page carries `canonical`, `hreflang` (de/en/es/fr/it/x-default), Open Grap
 | GET | `/api/therapists/profile?id&locale` | anyone | full public profile incl. verification seals |
 | POST | `/api/auth/register` · `/login` · `/logout` | — | scrypt hashes, HttpOnly cookie, throttling (8/email, 25/IP per 15 min) |
 | GET | `/api/auth/me` · `/api/auth/sessions` | signed in | current user; sign-in history with IP, device, city |
+| POST | `/api/auth/forgot` · `/reset` · `/password` | — / signed in | password reset (mail, 1 h, single-use) and change |
+| POST/GET | `/api/auth/verify/resend` · `/api/auth/verify?token` | signed in / link | email verification |
+| GET/POST | `/api/auth/export` · `/api/auth/delete` | signed in | GDPR portability and erasure |
+| GET/POST | `/api/favorites` | signed in | saved therapists |
+| POST | `/api/bookings/review` · GET `/api/therapists/reviews?id` | signed in / anyone | verified reviews after `done`; rating recalculated |
+| POST/GET | `/api/vouchers` · `/api/vouchers/check?code` | anyone | gift vouchers (50–5000 €, 3 years); redeemed via `voucher` on `POST /api/bookings` |
+| POST | `/api/prive/subscribe` · `/api/prive/cancel` | signed in | membership tiers (`?plan=` on register auto-subscribes) |
+| POST/GET | `/api/therapist/photo` · `/api/therapists/photo?id` | therapist / anyone | profile photo (≤ 2 MB) |
 | POST | `/api/bookings` | anyone | create request (prepaid), returns 3 suggested therapists |
 | GET | `/api/bookings` · `/api/bookings/ics?id` | client | my appointments; iCalendar export |
 | POST | `/api/bookings/cancel` | client | cancel → refund state |

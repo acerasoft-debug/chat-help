@@ -2,6 +2,18 @@
 export const t = {
   de: {
     dir: 'Startseite',
+    x: {
+      cookie: { text: 'Wir verwenden nur technisch notwendige Cookies für Anmeldung und Buchung. Reichweitenmessung erfolgt ausschließlich cookielos und nur mit Ihrer Zustimmung.', accept: 'Einverstanden', decline: 'Nur notwendige', more: 'Datenschutz' },
+      forgot: { title: 'Passwort zurücksetzen', sub: 'Wir senden Ihnen einen Link, der eine Stunde gültig ist.', send: 'Link senden', sent: 'Falls ein Konto existiert, ist der Link unterwegs. Prüfen Sie auch den Spam-Ordner.', resetTitle: 'Neues Passwort festlegen', newPw: 'Neues Passwort', confirm: 'Passwort wiederholen', save: 'Passwort speichern', done: 'Passwort geändert. Bitte melden Sie sich neu an.', invalid: 'Dieser Link ist ungültig oder abgelaufen.', mismatch: 'Die Passwörter stimmen nicht überein.' },
+      voucher: { title: 'Gutschein kaufen', amount: 'Betrag', custom: 'Eigener Betrag', recipientName: 'Name der beschenkten Person', recipient: 'E-Mail der beschenkten Person (optional — sonst an Sie)', message: 'Persönliche Nachricht', buyer: 'Ihre E-Mail', buy: 'Gutschein kaufen', yourCode: 'Ihr Gutscheincode', sentTo: 'Der Gutschein wurde per E-Mail an {to} gesendet.', code: 'Gutscheincode', apply: 'Einlösen', applied: 'Gutschein eingelöst: −{amount}', invalid: 'Gutschein ungültig, abgelaufen oder aufgebraucht.', validUntil: 'gültig bis' },
+      fav: { title: 'Favoriten', add: 'Merken', remove: 'Gemerkt ✓', none: 'Noch keine Favoriten. Auf jedem Profil können Sie Therapeut:innen merken.' },
+      review: { title: 'Bewertung', prompt: 'Wie war Ihre Behandlung?', text: 'Ihr Erfahrungsbericht (optional)', send: 'Bewertung senden', thanks: 'Danke — Ihre Bewertung ist online.', verified: 'Verifizierte Buchung', done: 'Bewertet' },
+      prive: { title: 'Luméa Privé', none: 'Keine aktive Mitgliedschaft.', active: 'Mitglied seit {date}', cancel: 'Mitgliedschaft kündigen', cancelled: 'Mitgliedschaft zum Laufzeitende gekündigt.', choose: 'Mitglied werden', welcome: 'Willkommen bei Privé — Ihr Concierge meldet sich innerhalb von 24 Stunden.' },
+      security: { title: 'Sicherheit & Daten', changePw: 'Passwort ändern', current: 'Aktuelles Passwort', newPw: 'Neues Passwort', save: 'Speichern', changed: 'Passwort geändert.', wrong: 'Aktuelles Passwort ist falsch.', export: 'Meine Daten exportieren (JSON)', delete: 'Konto löschen', deleteConfirm: 'Konto und alle Daten unwiderruflich löschen? Offene Termine werden storniert.', deleted: 'Ihr Konto wurde gelöscht.', emailOk: 'E-Mail bestätigt', emailNo: 'E-Mail noch nicht bestätigt', resend: 'Bestätigungslink erneut senden', resent: 'Bestätigungslink gesendet.', verifiedNow: 'E-Mail-Adresse bestätigt. Danke!' },
+      search: { placeholder: 'Behandlung suchen — z. B. Lymphdrainage, Rücken, Glow …', none: 'Nichts gefunden. Versuchen Sie einen anderen Begriff.' },
+      photo: { upload: 'Profilfoto hochladen', hint: 'JPG/PNG/WEBP bis 2 MB — Profile mit Foto werden dreimal häufiger gebucht.' },
+      booking: { therapist: 'Gewünschte Therapeut:in', anyTherapist: 'Beste verfügbare Therapeut:in (automatisches Matching)', discount: 'Gutschein', prepay: 'Jetzt sicher vorauszahlen' }
+    },
     conv: { justBooked: 'Gerade gebucht', ago: 'vor {min} Min.', slots: 'Heute noch {n} Zeitfenster in {city}', slotsOne: 'Heute nur noch 1 Zeitfenster in {city}', trust: ['ID-geprüfte Expert:innen', 'Treuhand-Zahlung', 'Gratis-Storno bis 12 Std.', 'Apple Pay · Visa · TWINT'], stickyBook: 'Jetzt buchen', stickyWa: 'WhatsApp', cardBook: 'Buchen', liveNow: '{n} Expert:innen jetzt online', guarantee: 'Zufriedenheitsgarantie: Gefällt die Behandlung nicht, erstatten wir 100 %.' },
     tagline: 'Privates Spa. Bei Ihnen zu Hause.',
     metaHomeTitle: 'Mobile Premium-Massage & Hautpflege zu Hause | {brand}',
@@ -126,6 +138,18 @@ export const t = {
 
   en: {
     dir: 'Home',
+    x: {
+      cookie: { text: 'We only use strictly necessary cookies for sign-in and booking. Audience measurement is cookieless and runs only with your consent.', accept: 'Agree', decline: 'Necessary only', more: 'Privacy' },
+      forgot: { title: 'Reset your password', sub: 'We will send you a link valid for one hour.', send: 'Send link', sent: 'If an account exists, the link is on its way. Check your spam folder too.', resetTitle: 'Set a new password', newPw: 'New password', confirm: 'Repeat password', save: 'Save password', done: 'Password changed. Please sign in again.', invalid: 'This link is invalid or has expired.', mismatch: 'The passwords do not match.' },
+      voucher: { title: 'Buy a voucher', amount: 'Amount', custom: 'Custom amount', recipientName: 'Recipient name', recipient: 'Recipient email (optional — otherwise sent to you)', message: 'Personal message', buyer: 'Your email', buy: 'Buy voucher', yourCode: 'Your voucher code', sentTo: 'The voucher has been emailed to {to}.', code: 'Voucher code', apply: 'Redeem', applied: 'Voucher applied: −{amount}', invalid: 'Voucher invalid, expired or used up.', validUntil: 'valid until' },
+      fav: { title: 'Favourites', add: 'Save', remove: 'Saved ✓', none: 'No favourites yet. Save therapists from any profile.' },
+      review: { title: 'Review', prompt: 'How was your treatment?', text: 'Your experience (optional)', send: 'Send review', thanks: 'Thank you — your review is live.', verified: 'Verified booking', done: 'Reviewed' },
+      prive: { title: 'Luméa Privé', none: 'No active membership.', active: 'Member since {date}', cancel: 'Cancel membership', cancelled: 'Membership cancelled at the end of the term.', choose: 'Become a member', welcome: 'Welcome to Privé — your concierge will be in touch within 24 hours.' },
+      security: { title: 'Security & data', changePw: 'Change password', current: 'Current password', newPw: 'New password', save: 'Save', changed: 'Password changed.', wrong: 'Current password is incorrect.', export: 'Export my data (JSON)', delete: 'Delete account', deleteConfirm: 'Permanently delete your account and all data? Open appointments will be cancelled.', deleted: 'Your account has been deleted.', emailOk: 'Email verified', emailNo: 'Email not verified yet', resend: 'Resend verification link', resent: 'Verification link sent.', verifiedNow: 'Email address confirmed. Thank you!' },
+      search: { placeholder: 'Search treatments — e.g. lymphatic, back, glow …', none: 'Nothing found. Try another term.' },
+      photo: { upload: 'Upload profile photo', hint: 'JPG/PNG/WEBP up to 2 MB — profiles with a photo get booked three times as often.' },
+      booking: { therapist: 'Preferred therapist', anyTherapist: 'Best available therapist (automatic matching)', discount: 'Voucher', prepay: 'Prepay securely now' }
+    },
     conv: { justBooked: 'Just booked', ago: '{min} min ago', slots: '{n} slots left today in {city}', slotsOne: 'Only 1 slot left today in {city}', trust: ['ID-verified specialists', 'Escrow payment', 'Free cancellation up to 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Book now', stickyWa: 'WhatsApp', cardBook: 'Book', liveNow: '{n} specialists online now', guarantee: 'Satisfaction guarantee: if the treatment disappoints, we refund 100 %.' },
     tagline: 'Private spa. At your door.',
     metaHomeTitle: 'Premium Mobile Massage & Skincare at Home | {brand}',
@@ -250,6 +274,18 @@ export const t = {
 
   es: {
     dir: 'Inicio',
+    x: {
+      cookie: { text: 'Solo usamos cookies estrictamente necesarias para el acceso y la reserva. La medición de audiencia no usa cookies y solo se activa con tu consentimiento.', accept: 'De acuerdo', decline: 'Solo necesarias', more: 'Privacidad' },
+      forgot: { title: 'Restablecer contraseña', sub: 'Te enviaremos un enlace válido durante una hora.', send: 'Enviar enlace', sent: 'Si existe una cuenta, el enlace está en camino. Revisa también la carpeta de spam.', resetTitle: 'Definir nueva contraseña', newPw: 'Nueva contraseña', confirm: 'Repetir contraseña', save: 'Guardar contraseña', done: 'Contraseña cambiada. Vuelve a iniciar sesión.', invalid: 'Este enlace no es válido o ha caducado.', mismatch: 'Las contraseñas no coinciden.' },
+      voucher: { title: 'Comprar tarjeta regalo', amount: 'Importe', custom: 'Importe personalizado', recipientName: 'Nombre de la persona obsequiada', recipient: 'Correo de la persona obsequiada (opcional; si no, te llega a ti)', message: 'Mensaje personal', buyer: 'Tu correo', buy: 'Comprar tarjeta', yourCode: 'Tu código', sentTo: 'La tarjeta se ha enviado por correo a {to}.', code: 'Código de la tarjeta', apply: 'Canjear', applied: 'Tarjeta aplicada: −{amount}', invalid: 'Código no válido, caducado o agotado.', validUntil: 'válido hasta' },
+      fav: { title: 'Favoritos', add: 'Guardar', remove: 'Guardado ✓', none: 'Aún sin favoritos. Guarda terapeutas desde cualquier perfil.' },
+      review: { title: 'Valoración', prompt: '¿Qué tal tu tratamiento?', text: 'Tu experiencia (opcional)', send: 'Enviar valoración', thanks: 'Gracias, tu valoración ya está publicada.', verified: 'Reserva verificada', done: 'Valorado' },
+      prive: { title: 'Luméa Privé', none: 'Sin membresía activa.', active: 'Miembro desde {date}', cancel: 'Cancelar membresía', cancelled: 'Membresía cancelada al final del periodo.', choose: 'Hacerme miembro', welcome: 'Bienvenido a Privé: tu concierge te contactará en 24 horas.' },
+      security: { title: 'Seguridad y datos', changePw: 'Cambiar contraseña', current: 'Contraseña actual', newPw: 'Nueva contraseña', save: 'Guardar', changed: 'Contraseña cambiada.', wrong: 'La contraseña actual no es correcta.', export: 'Exportar mis datos (JSON)', delete: 'Eliminar cuenta', deleteConfirm: '¿Eliminar la cuenta y todos los datos de forma irreversible? Las citas abiertas se cancelarán.', deleted: 'Tu cuenta ha sido eliminada.', emailOk: 'Correo verificado', emailNo: 'Correo aún sin verificar', resend: 'Reenviar enlace de verificación', resent: 'Enlace de verificación enviado.', verifiedNow: 'Correo confirmado. ¡Gracias!' },
+      search: { placeholder: 'Buscar tratamiento: linfático, espalda, glow …', none: 'Sin resultados. Prueba con otro término.' },
+      photo: { upload: 'Subir foto de perfil', hint: 'JPG/PNG/WEBP hasta 2 MB. Los perfiles con foto se reservan el triple.' },
+      booking: { therapist: 'Terapeuta preferido', anyTherapist: 'Mejor terapeuta disponible (matching automático)', discount: 'Tarjeta regalo', prepay: 'Prepagar ahora de forma segura' }
+    },
     conv: { justBooked: 'Reservado ahora', ago: 'hace {min} min', slots: '{n} franjas libres hoy en {city}', slotsOne: 'Solo 1 franja libre hoy en {city}', trust: ['Especialistas con ID verificada', 'Pago en depósito', 'Cancelación gratis hasta 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Reservar', stickyWa: 'WhatsApp', cardBook: 'Reservar', liveNow: '{n} especialistas en línea', guarantee: 'Garantía de satisfacción: si el tratamiento no convence, devolvemos el 100 %.' },
     tagline: 'Spa privado. En tu puerta.',
     metaHomeTitle: 'Masaje y estética premium a domicilio | {brand}',
@@ -373,6 +409,18 @@ export const t = {
   },
   fr: {
     dir: 'Accueil',
+    x: {
+      cookie: { text: 'Nous n’utilisons que des cookies strictement nécessaires à la connexion et à la réservation. La mesure d’audience est sans cookie et n’est activée qu’avec votre accord.', accept: 'D’accord', decline: 'Nécessaires uniquement', more: 'Confidentialité' },
+      forgot: { title: 'Réinitialiser le mot de passe', sub: 'Nous vous envoyons un lien valable une heure.', send: 'Envoyer le lien', sent: 'Si un compte existe, le lien est en route. Vérifiez aussi vos spams.', resetTitle: 'Définir un nouveau mot de passe', newPw: 'Nouveau mot de passe', confirm: 'Répéter le mot de passe', save: 'Enregistrer', done: 'Mot de passe modifié. Veuillez vous reconnecter.', invalid: 'Ce lien est invalide ou expiré.', mismatch: 'Les mots de passe ne correspondent pas.' },
+      voucher: { title: 'Acheter une carte cadeau', amount: 'Montant', custom: 'Montant libre', recipientName: 'Nom de la personne', recipient: 'E-mail de la personne (facultatif — sinon envoyé à vous)', message: 'Message personnel', buyer: 'Votre e-mail', buy: 'Acheter la carte', yourCode: 'Votre code', sentTo: 'La carte a été envoyée par e-mail à {to}.', code: 'Code cadeau', apply: 'Utiliser', applied: 'Carte appliquée : −{amount}', invalid: 'Code invalide, expiré ou épuisé.', validUntil: 'valable jusqu’au' },
+      fav: { title: 'Favoris', add: 'Enregistrer', remove: 'Enregistré ✓', none: 'Pas encore de favoris. Enregistrez des thérapeutes depuis leur profil.' },
+      review: { title: 'Avis', prompt: 'Comment était votre soin ?', text: 'Votre expérience (facultatif)', send: 'Envoyer l’avis', thanks: 'Merci — votre avis est en ligne.', verified: 'Réservation vérifiée', done: 'Évalué' },
+      prive: { title: 'Luméa Privé', none: 'Aucun abonnement actif.', active: 'Membre depuis le {date}', cancel: 'Résilier l’abonnement', cancelled: 'Abonnement résilié à l’échéance.', choose: 'Devenir membre', welcome: 'Bienvenue chez Privé — votre concierge vous contacte sous 24 heures.' },
+      security: { title: 'Sécurité & données', changePw: 'Changer le mot de passe', current: 'Mot de passe actuel', newPw: 'Nouveau mot de passe', save: 'Enregistrer', changed: 'Mot de passe modifié.', wrong: 'Le mot de passe actuel est incorrect.', export: 'Exporter mes données (JSON)', delete: 'Supprimer le compte', deleteConfirm: 'Supprimer définitivement le compte et toutes les données ? Les rendez-vous ouverts seront annulés.', deleted: 'Votre compte a été supprimé.', emailOk: 'E-mail vérifié', emailNo: 'E-mail non vérifié', resend: 'Renvoyer le lien de vérification', resent: 'Lien de vérification envoyé.', verifiedNow: 'Adresse e-mail confirmée. Merci !' },
+      search: { placeholder: 'Rechercher un soin — lymphatique, dos, éclat …', none: 'Aucun résultat. Essayez un autre terme.' },
+      photo: { upload: 'Ajouter une photo de profil', hint: 'JPG/PNG/WEBP jusqu’à 2 Mo — les profils avec photo sont réservés trois fois plus.' },
+      booking: { therapist: 'Thérapeute souhaitée', anyTherapist: 'Meilleure thérapeute disponible (matching automatique)', discount: 'Carte cadeau', prepay: 'Prépayer en toute sécurité' }
+    },
     conv: { justBooked: 'Réservé à l’instant', ago: 'il y a {min} min', slots: '{n} créneaux restants aujourd’hui à {city}', slotsOne: 'Plus qu’1 créneau aujourd’hui à {city}', trust: ['Spécialistes à identité vérifiée', 'Paiement sous séquestre', 'Annulation gratuite jusqu’à 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Réserver', stickyWa: 'WhatsApp', cardBook: 'Réserver', liveNow: '{n} spécialistes en ligne', guarantee: 'Garantie satisfaction : si le soin déçoit, nous remboursons 100 %.' },
     tagline: 'Spa privé. À votre porte.',
     metaHomeTitle: 'Massage & soins de la peau premium à domicile | {brand}',
@@ -496,6 +544,18 @@ export const t = {
   },
   it: {
     dir: 'Home',
+    x: {
+      cookie: { text: 'Usiamo solo cookie strettamente necessari per accesso e prenotazione. La misurazione del pubblico è senza cookie e attiva solo con il tuo consenso.', accept: 'Accetto', decline: 'Solo necessari', more: 'Privacy' },
+      forgot: { title: 'Reimposta la password', sub: 'Ti inviamo un link valido per un’ora.', send: 'Invia link', sent: 'Se esiste un account, il link è in arrivo. Controlla anche lo spam.', resetTitle: 'Imposta una nuova password', newPw: 'Nuova password', confirm: 'Ripeti la password', save: 'Salva password', done: 'Password cambiata. Accedi di nuovo.', invalid: 'Questo link non è valido o è scaduto.', mismatch: 'Le password non coincidono.' },
+      voucher: { title: 'Acquista un buono', amount: 'Importo', custom: 'Importo libero', recipientName: 'Nome del destinatario', recipient: 'E-mail del destinatario (facoltativa — altrimenti a te)', message: 'Messaggio personale', buyer: 'La tua e-mail', buy: 'Acquista buono', yourCode: 'Il tuo codice', sentTo: 'Il buono è stato inviato via e-mail a {to}.', code: 'Codice buono', apply: 'Usa', applied: 'Buono applicato: −{amount}', invalid: 'Codice non valido, scaduto o esaurito.', validUntil: 'valido fino al' },
+      fav: { title: 'Preferiti', add: 'Salva', remove: 'Salvato ✓', none: 'Nessun preferito ancora. Salva i terapisti da qualsiasi profilo.' },
+      review: { title: 'Recensione', prompt: 'Com’è andato il trattamento?', text: 'La tua esperienza (facoltativo)', send: 'Invia recensione', thanks: 'Grazie — la tua recensione è online.', verified: 'Prenotazione verificata', done: 'Recensito' },
+      prive: { title: 'Luméa Privé', none: 'Nessun abbonamento attivo.', active: 'Membro dal {date}', cancel: 'Disdici abbonamento', cancelled: 'Abbonamento disdetto a fine periodo.', choose: 'Diventa membro', welcome: 'Benvenuto in Privé — il tuo concierge ti contatta entro 24 ore.' },
+      security: { title: 'Sicurezza & dati', changePw: 'Cambia password', current: 'Password attuale', newPw: 'Nuova password', save: 'Salva', changed: 'Password cambiata.', wrong: 'La password attuale non è corretta.', export: 'Esporta i miei dati (JSON)', delete: 'Elimina account', deleteConfirm: 'Eliminare definitivamente account e dati? Gli appuntamenti aperti saranno annullati.', deleted: 'Il tuo account è stato eliminato.', emailOk: 'E-mail verificata', emailNo: 'E-mail non ancora verificata', resend: 'Reinvia link di verifica', resent: 'Link di verifica inviato.', verifiedNow: 'Indirizzo e-mail confermato. Grazie!' },
+      search: { placeholder: 'Cerca un trattamento — linfatico, schiena, glow …', none: 'Nessun risultato. Prova un altro termine.' },
+      photo: { upload: 'Carica foto profilo', hint: 'JPG/PNG/WEBP fino a 2 MB — i profili con foto vengono prenotati tre volte di più.' },
+      booking: { therapist: 'Terapista preferito', anyTherapist: 'Miglior terapista disponibile (matching automatico)', discount: 'Buono regalo', prepay: 'Prepaga ora in sicurezza' }
+    },
     conv: { justBooked: 'Prenotato adesso', ago: '{min} min fa', slots: '{n} fasce libere oggi a {city}', slotsOne: 'Solo 1 fascia libera oggi a {city}', trust: ['Specialisti con identità verificata', 'Pagamento in deposito', 'Cancellazione gratuita fino a 12 h', 'Apple Pay · Visa · TWINT'], stickyBook: 'Prenota ora', stickyWa: 'WhatsApp', cardBook: 'Prenota', liveNow: '{n} specialisti online ora', guarantee: 'Garanzia di soddisfazione: se il trattamento delude, rimborsiamo il 100 %.' },
     tagline: 'Spa privata. A casa tua.',
     metaHomeTitle: 'Massaggi e skincare premium a domicilio | {brand}',

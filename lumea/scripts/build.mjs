@@ -43,6 +43,7 @@ for (const locale of site.locales) {
   for (const th of therapists) add(pathFor(locale, { t: 'therapist', id: th.id }), P.therapistPage(locale, th), { priority: '0.6' });
   add(pathFor(locale, { t: 'login' }), P.authPage(locale, 'login'), { noindex: true });
   add(pathFor(locale, { t: 'register' }), P.authPage(locale, 'register'), { noindex: true });
+  add(pathFor(locale, { t: 'reset' }), P.resetPage(locale), { noindex: true });
   add(pathFor(locale, { t: 'account' }), P.accountPage(locale), { noindex: true });
   add(pathFor(locale, { t: 'book' }), P.bookPage(locale), { noindex: true });
   for (const which of ['imprint', 'privacy', 'terms']) {
@@ -74,8 +75,34 @@ for (const p of pages) {
   await writeFile(file, p.html);
 }
 
-// 404 for GitHub Pages / Netlify / Cloudflare Pages.
+// 404 for GitHub Pages / Netlify / Cloudflare Pages — root + one per locale (the server picks by path prefix).
 await writeFile(path.join(OUT, '404.html'), P.notFoundPage(site.defaultLocale));
+for (const locale of site.locales) await writeFile(path.join(OUT, locale, '404.html'), P.notFoundPage(locale));
+
+// Journal RSS per locale.
+import { journalMeta } from '../data/journal.mjs';
+for (const locale of site.locales) {
+  const items = articles.map((a) => `    <item>
+      <title>${a[locale].title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</title>
+      <link>${absolute(pathFor(locale, { t: 'article', slug: a.slug }))}</link>
+      <guid>${absolute(pathFor(locale, { t: 'article', slug: a.slug }))}</guid>
+      <pubDate>${new Date(a.date).toUTCString()}</pubDate>
+      <description>${a[locale].excerpt.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</description>
+    </item>`).join('\n');
+  await writeFile(path.join(OUT, locale, 'journal', 'feed.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+    <title>${site.brand} — ${journalMeta[locale].title}</title>
+    <link>${absolute(pathFor(locale, { t: 'journal' }))}</link>
+    <description>${journalMeta[locale].sub.replace(/&/g, '&amp;')}</description>
+    <language>${locale}</language>
+${items}
+</channel></rss>`);
+}
+
+// RFC 9116 security contact + humans.txt
+await mkdir(path.join(OUT, '.well-known'), { recursive: true });
+await writeFile(path.join(OUT, '.well-known', 'security.txt'), `Contact: mailto:security@lumea.spa\nPreferred-Languages: de, en, es, fr, it\nExpires: ${new Date(Date.now() + 365 * 864e5).toISOString()}\nCanonical: ${site.origin}${site.basePath}/.well-known/security.txt\n`);
+await writeFile(path.join(OUT, 'humans.txt'), `/* TEAM */\n${site.brand} — ${site.legalName}\nConcierge: ${site.email}\n\n/* SITE */\nLanguages: ${site.locales.join(', ')}\nStandards: HTML5, CSS3, ES2022, JSON-LD, hreflang\nBuilt with: Node.js, zero dependencies\n`);
 
 // Root: language negotiation with a hard fallback that still links out.
 const rootLinks = site.locales
