@@ -1687,6 +1687,59 @@ dönmek zorundadir"*).
   `dial tcp: i/o timeout` ile düştü: SSH hiç bağlanmadı, yani o koşu **veri
   hakkında hiçbir şey söylemiyor** — ikinci runner'la tekrarlandı (runner IP'si
   notunun aynısı).
+- **AMA BEDEN SERİSİ İKİ YERDE YAZILI ve yalnızca biri değişti.** `sizes` alanı
+  düzeldi, `desc` metni eski seriyi yazmaya devam etti:
+  *"Original Balenciaga, model 612966TLVF1. S×1 · M×3 · L×3 · XL×2 · XXL×1 ·
+  10/pack. EEA stock…"* — yani ürün sayfası aynı ürün için **spec satırında bir,
+  bir paragraf altında başka** dağılım gösteriyordu. Operatör bunu gördü ve
+  "bunu da verdiğim gibi yap" dedi; ben değişikliği uygulanmış sanıyordum çünkü
+  **elimdeki aracın yazdığı alanı** doğrulamıştım, o olgunun **başka nereye
+  yazıldığını** hiç sormamıştım. KURAL 5f'in üç katmanı ve KURAL 11'in SSS/sabit
+  ayrışmasıyla aynı sınıf. *Bir alanı değiştirmeden önce "bu bilgi başka nerede
+  yazılı?" diye sor; geri okuma yalnız yazdığın alanı doğruluyorsa yarım.*
+- Sonda: `inspect-products.yml` → `fit_scan=true`. İki şey basıyor: (1) hangi
+  ilan **kalıp beyan ediyor** (geniş: oversize/boxy/relaxed/loose/large fit —
+  dar: slim/regular/classic), kanıt cümlesiyle; (2) `desc` ile `sizes`'ın
+  **çeliştiği** her ilan, iki seri + tam açıklama metniyle. Düzeltme metni bu
+  çıktıdan, **sunucunun kendi dizgesinden** kuruldu (şablondan yeniden yazılmadı).
+  10 Balenciaga düzeltildi, geri okundu: markadaki çelişki 12 → **2**.
+- **Katalog genelinde 35 ilanda bu çelişki vardı; 10'u benimdi, 25'i ÖNCEDEN
+  duruyordu** (BALMAIN 14, Burberry 9, Balenciaga 2). Onlarda `sizes` bambaşka
+  bir seri yazıyor (ör. `S×2 · M×2 · L×2 · XL×2 · XXL×2`) ya da hiç seri yok,
+  açıklama ise her ilanda aynı `S×1 · M×3 · L×3 · XL×2 · XXL×1` kalıbını
+  tekrarlıyor — yani açıklama **şablondan** basılmış ve ilanın kendi serisiyle
+  hiç hizalanmamış. Operatör kararı bekliyor: düzeltmek `desc`'i her ilanın
+  `sizes`'ından yeniden yazmak demek.
+- **Kalıp taraması "hangileri gerçekten oversize" sorusunu KAPATTI:** 670 ürünün
+  yalnızca **6 beyanı** geniş kalıba işaret ediyor ve altısı da zaten değiştirilen
+  4 üründen geliyor (ikisi hem adda hem açıklamada eşleşti). **Katalogda başka
+  hiçbir ürün oversize/boxy/relaxed demiyor**; 37 beyan ise tersini, dar kalıbı
+  söylüyor. Yani kanıta dayanarak değiştirilecek başka model yok.
+- **Ama iki DSQUARED2 kendi içinde çelişiyor:** `dsq-101213` adı *"Graphic
+  T-Shirt (Oversized)"*, açıklaması *"100% cotton, **regular fit**"*;
+  `dsq-101237` adı *"Oversized Fit T-Shirt"*, açıklaması yine *"regular fit"*.
+  İkisi de yeni seriyi **adına bakarak** aldı. Hangisinin doğru olduğunu satıcı
+  bilir — bu yüzden açıklama **değiştirilmedi**, operatör kararına bırakıldı.
+- **Fotoğraf ekleme (9 Eyl 2026, `blc-612966tlvf1`):** operatörün gönderdiği 3
+  tedarikçi fotoğrafı (paket, hangtag, yıkama etiketi) ilana eklendi; mevcut iki
+  kare **başta bırakıldı** (istenen eklemekti, kapağı değiştirmek değil).
+  Telefon fotoğrafı **olduğu gibi yayına konmaz**: EXIF piksele uygulanıp
+  (Orientation) tamamen atıldı — marka/model/firmware/çekim saati ve (boş da
+  olsa) bir GPS bloğu taşıyordu; 4000×3000 / ~5 MB kareler 1600 px / ~200 KB'a
+  indirildi.
+- **`fetch-external-images.yml` MOD C doğrudan görsel adresini indiremiyordu:**
+  yalnızca ürün SAYFASI bekliyor, Shopify JSON'u yoksa HTML'de ilk `<img>`
+  arıyordu — JPEG baytlarında etiket bulamayınca "gorsel bulunamadi" diyordu.
+  Artık yanıtın kendisi görselse doğrudan kullanıyor; **hem content-type hem
+  sihirli baytlar** (sunucular JPEG'e `application/octet-stream` diyebiliyor,
+  yalnız uzantıya bakmak da bir HTML hata sayfasını `.jpg` diye kaydettirir).
+- **Fotoğraflardaki etiketler bir uyuşmazlık gösteriyor, operatör kararı
+  bekliyor:** hangtag `CATEGORY-STYLE 612966 / FABRIC TLVF1 / COLOUR 1069`
+  (siyah) — ilanla birebir. Ama paket ve etiket kareleri **612965**
+  (`FABRIC TLVF1 / COLOUR 9014`, pembe grafiti baskılı beyaz tişört) yazıyor,
+  yani ilanın kodundan **farklı bir stil numarası**. Beyaz model ayrı bir
+  artikelse kendi ilanını hak ediyor; aynı ilanda durursa alıcı 612966 sipariş
+  edip vitrinde 612965 görüyor.
 - **Katalogdan gizli ürün: `unlisted`** (operatör kararı, 2 Eyl 2026 — Musterstück
   `lac-l1212-musterstueck`). `vestra_products()` varsayılan olarak `unlisted` kayıtları
   **atar**; her açık liste (vitrin, fiyat listeleri, katalog dosyaları, sitemap,
