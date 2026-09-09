@@ -38,6 +38,18 @@ on:
         description: "issue_redraft ile: faturanın sıra numarasını bu sayıya çeker (ör: 102 -> INV-2026-000102) ve satıcının sayacını oradan devam ettirir. Boş = numaraya dokunma."
         required: false
         default: ""
+      move_to:
+        description: "admin_mode=thread_seller: konusmalarin YENI saticisi — hesap uid'i ya da firma adindan bir parca (ör: tyrex)"
+        required: false
+        default: ""
+      move_threads:
+        description: "admin_mode=thread_seller: tasinacak thread id'leri (virgulle). 'ilan:<listing_id>' yazarsaniz O ILANIN tum thread'leri."
+        required: false
+        default: ""
+      move_apply:
+        description: "admin_mode=thread_seller: 'true' = KAYDET. Varsayilan kuru kosu — ne olacagini yazar, dosyaya dokunmaz."
+        required: false
+        default: "false"
       issue_pubkey:
         description: "admin_mode=issue için: kesilen PDF'in şifreleneceği RSA public key (PEM, base64). Depo herkese açık, PDF şifresiz dönmez."
         required: false
@@ -906,6 +918,156 @@ jobs:
             php -l /tmp/vestra_seller_apply.php
             php /tmp/vestra_seller_apply.php
             rm -f /tmp/vestra_seller_apply.php
+
+      - name: Konuşmanın satıcısını taşı
+        if: ${{ github.event.inputs.admin_mode == 'thread_seller' }}
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          MV_TO: ${{ github.event.inputs.move_to }}
+          MV_TH: ${{ github.event.inputs.move_threads }}
+          MV_GO: ${{ github.event.inputs.move_apply }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 3m
+          envs: MV_TO,MV_TH,MV_GO
+          script: |
+            set -e
+            cat > /tmp/vestra_mvseller.php <<'PHPEOF'
+            <?php
+            /* Bir konusmayi baska bir saticiya tasi.
+             *
+             * TEK ONEMLI TUZAK: thread'in id'si SATICIDAN TUREEN bir ozet --
+             * vestra_msg_thread_id() = md5(alici|satici|ilan). Yalnizca 'seller_uid'
+             * alanini degistirip id'yi oldugu gibi birakmak sessiz bir bozulma olur:
+             * kayit yeni saticinin panelinde gorunur ama bir sonraki mesajda
+             * vestra_msg_send() yeni id'yi hesaplar, o id'yi bulamaz ve AYNI taraflar
+             * icin IKINCI bir thread acar -- konusma ikiye boluner. Bu yuzden id de
+             * yeniden hesaplaniyor.
+             *
+             * Yazma yollari sunucudaki tek kaynaktan gecer (vestra_msg_threads /
+             * vestra_msg_save_threads); dosya bicimini burada elle kurmuyoruz. */
+            ini_set('display_errors','1'); error_reporting(E_ALL);
+            $doc = getenv("HOME")."/public_html";
+            require_once $doc."/inc/auth.php";
+            require_once $doc."/inc/products.php";
+            require_once $doc."/inc/messages.php";
+
+            $to   = trim((string)getenv('MV_TO'));
+            $sel  = trim((string)getenv('MV_TH'));
+            $go   = strtolower(trim((string)getenv('MV_GO'))) === 'true';
+            if ($to === '' || $sel === '') { fwrite(STDERR, "move_to ve move_threads zorunlu\n"); exit(1); }
+
+            /* Hedef hesap: once tam uid, sonra firma/ad icinde parca. Birden fazla
+               hesap eslesirse DUR -- yanlis satici, yanlis panele dusen bir konusma
+               ve (ilan da tasinirsa) yanlis tuzel kisiden fatura demek. */
+            $accs = auth_accounts();
+            $hit = [];
+            foreach ($accs as $a) {
+              if (($a['id'] ?? '') === $to) { $hit = [$a]; break; }
+              $hay = strtolower(($a['company'] ?? '').' '.($a['name'] ?? ''));
+              if (stripos($hay, strtolower($to)) !== false) $hit[] = $a;
+            }
+            if (count($hit) !== 1) {
+              fwrite(STDERR, "hedef satici tek degil ('{$to}' -> ".count($hit)." hesap)\n");
+              foreach ($hit as $a) fwrite(STDERR, "   ".($a['id']??'?')." | ".($a['company']??'')." | ".($a['name']??'')."\n");
+              exit(1);
+            }
+            $newUid  = (string)$hit[0]['id'];
+            $newName = trim(($hit[0]['company'] ?? '') ?: ($hit[0]['name'] ?? ''));
+            echo "hedef satici: {$newName}  (uid {$newUid})\n\n";
+
+            $threads = vestra_msg_threads();
+            $byId = [];
+            foreach ($threads as $i => $t) $byId[(string)($t['id'] ?? '')] = $i;
+
+            /* Secim: id listesi ya da 'ilan:<listing_id>' (o ilanin TUM konusmalari).
+               Ilan biciminin sebebi: bir ilan el degistirdiginde geride kalan tek bir
+               konusma, artik satmadigi bir urun hakkinda eski saticiya mektup
+               gondermeye devam eder. */
+            $want = [];
+            foreach (preg_split('/[,\s]+/', $sel) as $tok) {
+              $tok = trim($tok); if ($tok === '') continue;
+              if (stripos($tok, 'ilan:') === 0) {
+                $lid = substr($tok, 5);
+                foreach ($threads as $t) if ((string)($t['listing_id'] ?? '') === $lid) $want[] = (string)($t['id'] ?? '');
+              } else $want[] = $tok;
+            }
+            $want = array_values(array_unique(array_filter($want)));
+            if (!$want) { fwrite(STDERR, "secilen thread yok\n"); exit(1); }
+
+            $nameOf = function (string $uid) use ($accs): string {
+              foreach ($accs as $a) if (($a['id'] ?? '') === $uid) return trim(($a['company'] ?? '') ?: ($a['name'] ?? '')) ?: $uid;
+              return $uid;
+            };
+            $plan = []; $stop = 0;
+            foreach ($want as $tid) {
+              if (!isset($byId[$tid])) { echo "  ATLANDI {$tid}: thread yok\n"; $stop++; continue; }
+              $t = $threads[$byId[$tid]];
+              $old = (string)($t['seller_uid'] ?? '');
+              $buy = (string)($t['buyer_uid'] ?? '');
+              $lid = (string)($t['listing_id'] ?? '');
+              $msgs = (array)($t['messages'] ?? []);
+              echo "  {$tid} | ilan={$lid} | alici=".$nameOf($buy)." | satici=".$nameOf($old)." | mesaj=".count($msgs)."\n";
+              if ($old === $newUid) { echo "      zaten bu saticida — atlandi\n"; continue; }
+
+              /* ESKI SATICI BU KONUSMADA YAZDIYSA TASIMA. Mesajlar 'from' ile
+                 imzali; thread'i baska bir firmaya vermek, o cumleleri de ona
+                 yazdirmak olur. Kim ne yazdiysa o yazmis kalir. */
+              $wrote = 0;
+              foreach ($msgs as $m) if ((string)($m['from'] ?? '') === $old) $wrote++;
+              if ($wrote > 0) {
+                echo "      DURDU: eski satici bu konusmada {$wrote} mesaj YAZMIS.\n";
+                echo "      Tasimak o sozleri baska firmaya mal etmek olurdu — operator karari gerekiyor.\n";
+                $stop++; continue;
+              }
+
+              $newId = vestra_msg_thread_id($buy, $newUid, $lid);
+              if (isset($byId[$newId]) && $newId !== $tid) {
+                echo "      DURDU: bu alici+yeni satici+ilan icin ZATEN thread var ({$newId}).\n";
+                echo "      Iki gecmisi birlestirmek yeniden adlandirma degil, ayri bir karar.\n";
+                $stop++; continue;
+              }
+              echo "      -> satici ".$nameOf($old)." => {$newName} | id {$tid} => {$newId}\n";
+              $plan[] = ['i'=>$byId[$tid], 'old'=>$old, 'newId'=>$newId];
+            }
+
+            if ($stop > 0) { fwrite(STDERR, "\n{$stop} thread durdu — hicbir sey yazilmadi (hepsi ya da hicbiri).\n"); exit(1); }
+            if (!$plan)    { echo "\ndegisecek thread yok.\n"; exit(0); }
+            if (!$go)      { echo "\nKURU KOSU — hicbir sey kaydedilmedi. Uygulamak icin move_apply=true.\n"; exit(0); }
+
+            $bak = $doc.'/data/messages.json.bak-'.date('Ymd-His');
+            @copy($doc.'/data/messages.json', $bak);
+            echo "\nyedek: {$bak}\n";
+            foreach ($plan as $p) {
+              $i = $p['i'];
+              $threads[$i]['seller_uid'] = $newUid;
+              $threads[$i]['id']         = $p['newId'];
+              /* Okuma imleci ve zil damgasi UID BASINA tutuluyor. Eskisininkini yeni
+                 saticiya devretmek, hic okumadigi mesajlari okunmus gostermek olurdu;
+                 birakmak da olmayan bir hesabi kayitta tutar. Silinir: TYREX gercekten
+                 okumadi, okunmamis gorsun. */
+              foreach (['read','ping'] as $k) if (isset($threads[$i][$k][$p['old']])) unset($threads[$i][$k][$p['old']]);
+            }
+            vestra_msg_save_threads($threads);
+
+            /* GERI OKU: yazma sessizce basarisiz olabilir (izin, disk) ve
+               "kaydedildi" yazan bir satir tek basina kanit degil. */
+            $after = vestra_msg_threads(); $ok = 0;
+            foreach ($plan as $p) {
+              foreach ($after as $t) {
+                if ((string)($t['id'] ?? '') === $p['newId'] && (string)($t['seller_uid'] ?? '') === $newUid) { $ok++; break; }
+              }
+            }
+            printf("KAYDEDILDI — %d/%d thread yeni saticida ve yeni id ile geri okundu.\n", $ok, count($plan));
+            exit($ok === count($plan) ? 0 : 1);
+            PHPEOF
+            php -l /tmp/vestra_mvseller.php
+            php /tmp/vestra_mvseller.php; RC=$?
+            rm -f /tmp/vestra_mvseller.php
+            exit $RC
 
       - name: Listele
         if: ${{ github.event.inputs.admin_mode == '' }}
