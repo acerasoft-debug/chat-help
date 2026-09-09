@@ -92,5 +92,89 @@ $r=vestra_offer_counter_by_buyer('OF-1','abc',10.0);
 $t('alici cevap verebilir', $r['ok']);
 $t('gecmis tamamlandi: 2 tur', count($JSON['OF-1']['counters'])===2);
 
+/* ── Alicinin KABULU/REDDI pazarlik gecmisini SILMEZ ──────────────────────
+ * Iki yol da kaydi sifirdan kuruyordu ve 'counters' dusuyordu: alicinin
+ * panelindeki tur cizelgesi bosaliyor, sayac da counter_price'a bakip 1
+ * donuyordu -- yani her ret bir tur hakkini sessizce iade ediyordu. */
+echo "\n== Kabul/ret pazarlik gecmisini KORUR ==\n";
+$JSON=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V'); $h1=$tok();
+vestra_offer_counter_by_buyer('OF-1',$h1,10.0);
+vestra_offer_respond('OF-1','counter',11.0,null,'V'); $h2=$tok();
+$t('3 tur yazildi', $cnt()===3 && count($JSON['OF-1']['counters'])===3);
+vestra_offer_decline_counter('OF-1',$h2);
+$t('RET sonrasi 3 tur DURUYOR',        count($JSON['OF-1']['counters']??[])===3);
+$t('RET sonrasi sayac hala 3',         $cnt()===3);
+$t('RET sonrasi kalan tur 0',          vestra_offer_counters_left($JSON['OF-1'])===0);
+$JSON=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V'); $h3=$tok();
+vestra_offer_counter_by_buyer('OF-1',$h3,10.0);
+vestra_offer_respond('OF-1','counter',11.0,null,'V'); $h4=$tok();
+vestra_offer_accept_counter('OF-1',$h4);
+$t('KABUL sonrasi 3 tur DURUYOR',      count($JSON['OF-1']['counters']??[])===3);
+$t('KABUL sonrasi kim ne verdi okunur',
+   ($JSON['OF-1']['counters'][0]['by']??'')==='seller'
+   && ($JSON['OF-1']['counters'][1]['by']??'')==='buyer'
+   && abs((float)($JSON['OF-1']['counters'][1]['price']??0)-10.0)<0.001);
+
+/* ── REDDEDILMIS teklifi satici DAHA IYI fiyatla yeniden acabilir ─────────
+ * (operator, 9 Eyl 2026: alici 100 EUR'yu reddetti, operator 90 EUR istedi.)
+ * Testin tuttugu ASIL sey iki yon: yeniden acilabilmesi VE kabul edilmis bir
+ * teklifin ASLA acilamamasi -- yasagin var olma sebebi o. */
+echo "\n== REDDEDILMIS teklif: satici daha ucuza donebilir ==\n";
+$JSON=[]; $MAIL=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V'); $kd=$tok();
+vestra_offer_decline_counter('OF-1',$kd);
+$t('durum decline, sira kimsede degil', ($JSON['OF-1']['status']??'')==='decline' && $turn()==='');
+$r=vestra_offer_respond('OF-1','counter',11.0,null,'V');
+$t('satici DAHA UCUZ karsi teklifle donebilir', $r['ok']);
+$t('durum yeniden counter',            ($JSON['OF-1']['status']??'')==='counter');
+$t('sira yeniden alicida',             $turn()==='buyer');
+$t('tur sayaci arttı (bedava tur yok)',$cnt()===2);
+$t('TAZE token uretildi',              $tok()!=='' && $tok()!==$kd);
+$t('aliciya mektup gitti',             count($MAIL)>0);
+
+echo "\n== Yeniden acmada FIYAT KURALLARI aynen gecerli ==\n";
+$kd2=$tok(); vestra_offer_decline_counter('OF-1',$kd2);
+$t('AYNI fiyatla acilamaz',   !vestra_offer_respond('OF-1','counter',11.0,null,'V')['ok']);
+$t('DAHA PAHALI acilamaz',    !vestra_offer_respond('OF-1','counter',12.5,null,'V')['ok']);
+$t('urun fiyatinin USTU acilamaz', !vestra_offer_respond('OF-1','counter',25.0,null,'V')['ok']);
+$t('tur sayaci reddedilenlerden artmadi', $cnt()===2);
+$t('daha ucuz olan GECER',    vestra_offer_respond('OF-1','counter',10.0,null,'V')['ok'] && $cnt()===3);
+
+echo "\n== KABUL EDILMIS teklif ASLA yeniden acilmaz ==\n";
+$JSON=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V'); $ka=$tok();
+vestra_offer_accept_counter('OF-1',$ka);
+$t('durum accept',                     ($JSON['OF-1']['status']??'')==='accept');
+$t('kabul edilmise KARSI TEKLIF YOK',  !vestra_offer_respond('OF-1','counter',11.0,null,'V')['ok']);
+$t('kabul edilmise RET YOK',           !vestra_offer_respond('OF-1','decline',0,null,'V')['ok']);
+$t('uzlasilan fiyat degismedi',        abs(vestra_offer_agreed_unit('OF-1')-12.0)<0.001);
+
+echo "\n== Tur hakki bittiyse yeniden acma da YOK ==\n";
+$JSON=[];
+vestra_offer_respond('OF-1','counter',12.0,null,'V'); $x1=$tok();
+vestra_offer_counter_by_buyer('OF-1',$x1,10.0);
+vestra_offer_respond('OF-1','counter',11.0,null,'V'); $x2=$tok();
+vestra_offer_decline_counter('OF-1',$x2);
+$t('3 tur dolu + reddedilmis',         $cnt()===3 && ($JSON['OF-1']['status']??'')==='decline');
+$t('yeniden acilamaz (tur hakki bitti)', !vestra_offer_respond('OF-1','counter',10.5,null,'V')['ok']);
+
+/* ── Sabitin KENDISI: operator 9 Eyl 2026'da 5 dedi ──────────────────────
+ * Bu dosya kendi basina 3 tanimliyor (mekanizmayi sinamak icin), o yuzden
+ * SEVK EDILEN deger ancak kaynaktan okunarak dogrulanabilir. Escrow tavani
+ * bu depoda tam bu yuzden bes gun kod ile metin arasinda ayri kalmisti. */
+echo "\n== Sevk edilen sabit ==\n";
+$offSrc = file_get_contents(__DIR__.'/../vestra/inc/offers.php');
+$t('VESTRA_OFFER_MAX_COUNTERS = 5',
+   preg_match("/define\('VESTRA_OFFER_MAX_COUNTERS',\s*5\)/", $offSrc) === 1);
+$t('yeniden acma YALNIZ decline ile',
+   preg_match("/\\\$reopen\s*=\s*\\\$action\s*===\s*'counter'\s*&&[^\n]*'decline'/", $offSrc) === 1);
+foreach (['vestra/buyer.php','vestra/admin.php'] as $rel) {
+    $s = file_get_contents(__DIR__.'/../'.$rel);
+    /* Rakam metne gomulmemeli: sayfalar sabiti BASMALI. */
+    $t(basename($rel).' sabiti okuyor', str_contains($s, 'VESTRA_OFFER_MAX_COUNTERS'));
+}
+
 printf("\n=========== %d gecti, %d KALDI ===========\n",$ok,$fail);
 exit($fail?1:0);

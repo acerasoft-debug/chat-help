@@ -22,11 +22,13 @@ require_once __DIR__.'/products.php';
 require_once __DIR__.'/auth.php';
 
 /* Bir pazarlikta verilebilecek EN FAZLA karsi teklif sayisi -- iki taraf
- * TOPLAMI. Operator karari: "karsi teklif en fazla 3 kere verilebilir".
- * Ucuncuden sonra taraflar yalnizca kabul ya da ret verebilir; sinirsiz
+ * TOPLAMI. Operator karari 31 Agu 2026'da 3'tu; 9 Eyl 2026'da 5'e cikarildi
+ * ("teklif edilebilecek sayiyi 5'e cikar"). Sinirin KENDISI duruyor: sinirsiz
  * pazarlik, ikisini de sonuca baglamayan bir yazisma zinciri uretiyor.
- * Tek sabit: sayi degisirse panel, mektup ve kontrol birlikte degisir. */
-if (!defined('VESTRA_OFFER_MAX_COUNTERS')) define('VESTRA_OFFER_MAX_COUNTERS', 3);
+ * TEK SABIT: rakam hicbir metne GOMULMEZ -- panel, alici paneli, mektup ve
+ * kontrol dordu de buradan okur. Escrow tavaninin dersi (KURAL 6): metne
+ * gomulen bir rakam, sabit degisince sessizce yalan soyler. */
+if (!defined('VESTRA_OFFER_MAX_COUNTERS')) define('VESTRA_OFFER_MAX_COUNTERS', 5);
 
 /* Simdiye kadar kac karsi teklif verildi. Eski kayitlarda 'counters'
  * dizisi YOK ama 'counter_price' olabilir -- o da bir turdur, yoksa
@@ -161,13 +163,27 @@ function vestra_offer_respond(string $ref, string $action, float $ctr, ?array $a
 
     /* Sira ve tavan. Bir karara baglanmis teklif yeniden yanitlanamaz --
        aksi halde kabul edilmis bir teklif sonradan reddedilebilir ve
-       alici iki celiskili mektup alir. Karsi teklifte ayrica TUR SINIRI:
-       ucuncuden sonra yalnizca kabul/ret. */
+       alici iki celiskili mektup alir. Karsi teklifte ayrica TUR SINIRI.
+
+       TEK ISTISNA -- REDDEDILMIS teklife SATICI daha IYI bir fiyatla donebilir
+       (operator, 9 Eyl 2026: alici 100 EUR'yu reddetti, operator 90 EUR
+       gonderilmesini istedi). Ticarette olagan olan bu ve engellemek, kaybedilen
+       bir musteriyi geri kazanmanin tek yolunu kapatirdi.
+         - Yalnizca 'decline'. KABUL EDILMIS teklif ASLA yeniden acilmaz:
+           orada uzlasilan bir fiyat, muhtemelen bir siparis satiri ve bir fatura
+           var; yasagin var olma sebebi tam olarak o.
+         - Yalnizca 'counter'. Reddedilmis bir teklifi 'accept' etmek, alicinin
+           HAYIR dedigi fiyattan onu baglamak olurdu.
+         - Fiyat kurallari AYNEN gecerli: yon kurali (satici her turda DUSER)
+           asagida uygulaniyor, yani yeni teklif oncekinden ucuz olmak zorunda.
+           Alici her halukarda daha iyi bir teklif goruyor.
+         - Tur sayaci da AYNEN gecerli: yeniden acmak bedava tur uretmiyor. */
     $turn = vestra_offer_turn($prev);
-    if ($turn === '') {
+    $reopen = $action === 'counter' && (string)($prev['status'] ?? '') === 'decline';
+    if ($turn === '' && !$reopen) {
         return ['ok' => false, 'error' => 'bu teklif zaten '.(($prev['status'] ?? '') === 'accept' ? 'kabul edildi' : 'reddedildi')];
     }
-    if ($turn !== 'seller') {
+    if ($turn !== 'seller' && !$reopen) {
         return ['ok' => false, 'error' => 'sira alicida — son karsi teklifi o verdi'];
     }
     if ($action === 'counter' && vestra_offer_counters_left($prev) < 1) {
@@ -897,6 +913,19 @@ function vestra_offer_decline_counter(string $ref, string $token): array {
     $rs[$ref] = [
         'status'        => 'decline',
         'counter_price' => $unit,
+        /* PAZARLIK GECMISI KORUNUR. Bu iki alan burada YAZILMIYORDU: alicinin
+           ret linki kaydi sifirdan kuruyor ve 'counters' ile 'counter_by'
+           dusuyordu. Iki sonucu vardi.
+             1. Alicinin kendi panelindeki tur zaman cizelgesi (buyer.php,
+                'round i/N') ret'ten sonra KAYBOLUYORDU -- oysa dosyanin kendi
+                yorumu "butun turlar saklaniyor... kim ne teklif etti sorusunun
+                cevabi kayitta durmazsa uzlasilan fiyat da savunulamaz" diyor.
+             2. Sayac 'counters' yoksa counter_price'a bakip 1 donuyor, yani
+                ret her seferinde tur hakkini SESSIZCE iade ediyordu. Reddedilmis
+                teklif yeniden acilamadigi surece gorunmuyordu; yeniden acma
+                eklenince "reddet -> yeniden ac" sonsuz tur uretirdi. */
+        'counters'      => (array)($resp['counters'] ?? []),
+        'counter_by'    => $resp['counter_by'] ?? null,
         'responded_at'  => $resp['responded_at'] ?? date('c'),
         'responded_by'  => $resp['responded_by'] ?? 'operator',
         'declined_at'   => date('c'),
@@ -992,6 +1021,13 @@ function vestra_offer_accept_counter(string $ref, string $token, ?string $onBeha
         'status'        => 'accept',
         'counter_price' => $unit,
         'agreed_unit'   => round($unit, 2),
+        /* Ret yolundaki ayni kayip buradaydi ve BURADA DAHA AGIR: kabul edilmis
+           bir teklifin fiyati faturaya giriyor, yani bir anlasmazlikta savunulmasi
+           gereken rakam o. Turlar dusunce kayit "su fiyatta anlasildi" diyor ama
+           "nasil gelindi" sorusuna cevap veremiyordu; alicinin panelindeki tur
+           cizelgesi de kabulden sonra bosaliyordu. */
+        'counters'      => (array)($resp['counters'] ?? []),
+        'counter_by'    => $resp['counter_by'] ?? null,
         'responded_at'  => $resp['responded_at'] ?? date('c'),
         'responded_by'  => $resp['responded_by'] ?? 'operator',
         'accepted_at'   => date('c'),

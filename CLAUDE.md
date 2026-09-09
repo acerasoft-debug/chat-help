@@ -626,9 +626,34 @@ toptan fiyatı ve sipariş hakkını verir.
 **KURAL 4 — Pazarlığın sınırları** (operatör kararı, 31 Ağu 2026). Hepsi tek
 doğrulayıcıda: `vestra_offer_price_error()` + `vestra_offer_turn()`.
 
-- **En fazla 3 karşı teklif**, iki tarafın **toplamı** (`VESTRA_OFFER_MAX_COUNTERS`).
-  Dolunca yalnızca kabul/ret kalır ve karşı teklif alanı **hiç görünmez** —
-  gösterilip reddedilen bir alan, olmayan bir alandan kötü.
+- **En fazla 5 karşı teklif**, iki tarafın **toplamı** (`VESTRA_OFFER_MAX_COUNTERS`;
+  31 Ağu 2026'da 3'tü, **9 Eyl 2026'da 5'e çıkarıldı** — operatör: *"teklif
+  edilebilecek sayıyı 5'e çıkar"*). Dolunca yalnızca kabul/ret kalır ve karşı
+  teklif alanı **hiç görünmez** — gösterilip reddedilen bir alan, olmayan bir
+  alandan kötü. **Rakam hiçbir metne gömülü değil**: panel, alıcı paneli ve
+  mektuplar ("bu son tur", "kalan tur var") sabitten okuyor, o yüzden 3→5
+  tek satırda oldu. `tests/offers_rounds_test.php` mekanizmayı kendi tanımladığı
+  bir değerle sınıyor, **sevk edilen 5'i ise kaynaktan** doğruluyor — escrow
+  tavanının beş gün koddan farklı kalması (KURAL 6) bu iki ayrı iddianın sebebi.
+- **Reddedilen teklife satıcı DAHA İYİ fiyatla dönebilir** (operatör, 9 Eyl
+  2026: alıcı €100'ü reddetti, operatör €90 gönderilmesini istedi). Kapalı bir
+  pazarlığı yeniden açmak ticarette olağan ve engellemek, kaybedilen müşteriyi
+  geri kazanmanın tek yolunu kapatırdı. Sınırlar aynen duruyor: **yalnız
+  `decline`** (kabul edilmiş teklif **asla** açılmaz — orada uzlaşılan fiyat,
+  sipariş satırı ve fatura var, yasağın var olma sebebi o), **yalnız `counter`**
+  (reddedilmiş bir teklifi kabul etmek, alıcıyı *hayır* dediği fiyattan bağlamak
+  olurdu), yön kuralı (yeni teklif öncekinden **ucuz** olmak zorunda) ve tur
+  sayacı — yeniden açmak bedava tur üretmiyor.
+- **Alıcının kabulü/reddi pazarlık geçmişini SİLİYORDU** (9 Eyl 2026'da bulundu).
+  `vestra_offer_accept_counter()` ve `vestra_offer_decline_counter()` kaydı
+  sıfırdan kuruyor ve `counters` düşüyordu. İki sonucu vardı: (1) alıcının kendi
+  panelindeki tur çizelgesi (`buyer.php`, "round i/N") kabulden/retten sonra
+  **boşalıyordu** — oysa kural "kim ne teklif etti sorusunun cevabı kayıtta
+  durmazsa uzlaşılan fiyat da savunulamaz" diyor; (2) sayaç `counters` yoksa
+  `counter_price`'a bakıp **1** dönüyor, yani her ret tur hakkını **sessizce
+  iade ediyordu**. İkincisi reddedilmiş teklif yeniden açılamadığı sürece
+  görünmüyordu; yeniden açma eklenince "reddet → yeniden aç" **sonsuz tur**
+  üretirdi. *Yeni bir kapı açmadan önce, kapalıyken görünmeyen ne varsa onu ara.*
 - **Alıcı** teklifi ürünün **yarısından az** olamaz; **satıcı** karşı teklifi
   ürünün **normal fiyatından fazla** olamaz.
 - **Alıcı her turda yükselmeli, satıcı her turda düşmeli.** Pazarlık daralmak
